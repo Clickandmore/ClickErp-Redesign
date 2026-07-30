@@ -28,6 +28,7 @@ use App\Services\MoyasarService;
 use App\Services\RentalContractExpiryReminderService;
 use App\Support\MoyasarSettings;
 use App\Support\RentalContractPricing;
+use App\Support\RentalContractSettlement;
 use App\Support\SystemModuleManager;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
@@ -2532,9 +2533,23 @@ class RentContractController extends Controller
 
     protected function buildRentalClosureSummary(RentalContract $contract, ?Carbon $closureDate = null): array
     {
-        $contract->loadMissing(['info.package', 'order.details.package', 'maid', 'financialAdjustments', 'financeInvoice']);
+        $contract->loadMissing([
+            'info.package',
+            'order.details.package',
+            'maid',
+            'financialAdjustments',
+            'financeInvoice',
+            'extensions',
+        ]);
 
         $info = $contract->info;
+        // Extending a contract only pushes `ingaz_to` forward; the duration,
+        // value and payments stay on the extension rows. Settling against the
+        // base contract alone priced a 3-month contract as a 1-month one.
+        $extensions = $contract->extensions ?: collect();
+        $extensionDays = (int) $extensions->sum('extension_days');
+        $extensionValue = (float) $extensions->sum('extension_value');
+        $extensionPaidAmount = (float) $extensions->sum('payment_amount');
         $package = $info?->package ?: $contract->order?->details?->package;
         $packageId = (int) ($info?->package_id ?: $contract->order?->details?->package_id ?: 0);
         $hasExplicitPackage = $packageId > 0;
@@ -2585,8 +2600,15 @@ class RentContractController extends Controller
             ? Carbon::parse($info->ingaz_from)->startOfDay()
             : ($contract->contract_date ? Carbon::parse($contract->contract_date)->startOfDay() : null);
         $endDate = $info?->ingaz_to ? Carbon::parse($info->ingaz_to)->startOfDay() : null;
-        $dateDurationDays = ($startDate && $endDate)
-            ? max(1, $startDate->diffInDays($endDate, false))
+        // `ingaz_to` already carries every extension, so the base period is
+        // recovered by removing them again. The base figures below are then
+        // resolved against the contract as it was originally sold, and the
+        // extensions are added back once at the end.
+        $baseEndDate = $endDate && $extensionDays > 0
+            ? $endDate->copy()->subDays($extensionDays)
+            : $endDate;
+        $dateDurationDays = ($startDate && $baseEndDate)
+            ? max(1, $startDate->diffInDays($baseEndDate, false))
             : 0;
 
         $remainingDaysValue = null;
@@ -2642,10 +2664,31 @@ class RentContractController extends Controller
             $paidAmount = max($paidAmount, (float) $contract->financeInvoice->paid_amount);
         }
 
+        // Kept separate from the totals below: `contract_*` columns describe the
+        // contract as it was sold, and the extension rows own the rest. Writing
+        // a total back into them would make the next settlement count the
+        // extensions twice.
+        $baseContractValue = $contractValue;
+        $baseDurationDays = $durationDays;
+        $baseDurationMonths = $durationMonths;
+        $basePaidAmount = $paidAmount;
+
+        // Fold the extensions back into the contract they belong to, so the
+        // settlement prices the full period the client actually holds.
+        if ($extensionDays > 0 || $extensionValue > 0 || $extensionPaidAmount > 0) {
+            $durationDays += $extensionDays;
+            $contractValue = round($contractValue + $extensionValue, 2);
+            $paidAmount = round($paidAmount + $extensionPaidAmount, 2);
+
+            if ($durationDays > 0) {
+                $durationMonths = max(1, (int) ceil($durationDays / 30));
+            }
+        }
+
         $storedRemainingAmount = is_numeric($info?->remaining_amount) ? (float) $info->remaining_amount : null;
         $remainingAmount = $storedRemainingAmount !== null && $storedRemainingAmount > 0
-            ? $storedRemainingAmount
-            : max(0.0, $contractValue - $paidAmount);
+            ? round($storedRemainingAmount + max(0.0, $extensionValue - $extensionPaidAmount), 2)
+            : max(0.0, round($contractValue - $paidAmount, 2));
 
         $usedDays = null;
         if ($durationDays > 0) {
@@ -2658,16 +2701,17 @@ class RentContractController extends Controller
             }
         }
 
-        $rawDailyRate = $durationDays > 0 ? ($contractValue / $durationDays) : 0.0;
-        $dailyRate = round($rawDailyRate, 2);
-        $usedCost = $usedDays !== null ? min($contractValue, round($rawDailyRate * $usedDays, 2)) : 0.0;
-        $remainingDaysCost = $remainingDaysValue !== null
-            ? min($contractValue, round($rawDailyRate * (int) $remainingDaysValue, 2))
-            : 0.0;
-        $calculatedRefundValue = $paidAmount > 0
-            ? max(0.0, round($paidAmount - $usedCost, 2))
-            : max(0.0, $remainingDaysCost);
-        $calculatedCompanyDueValue = round($rawDailyRate * $overdueDays, 2);
+        $settlement = RentalContractSettlement::calculate(
+            $contractValue,
+            $durationDays,
+            $paidAmount,
+            (int) ($usedDays ?? 0),
+            $overdueDays
+        );
+        $dailyRate = $settlement['daily_rate'];
+        $usedCost = $usedDays !== null ? $settlement['used_cost'] : 0.0;
+        $calculatedRefundValue = $settlement['refund_value'];
+        $calculatedCompanyDueValue = $settlement['company_due_value'];
 
         $storedRefundValue = (float) $contract->financialAdjustments()
             ->where('context', 'closure')
@@ -2698,6 +2742,14 @@ class RentContractController extends Controller
             'overdue_days' => $overdueDays,
             'daily_rate' => $dailyRate,
             'used_cost' => $usedCost,
+            'earned_amount' => $settlement['earned_amount'],
+            'extension_days' => $extensionDays,
+            'extension_value' => round($extensionValue, 2),
+            'extension_paid_amount' => round($extensionPaidAmount, 2),
+            'base_contract_value' => $baseContractValue,
+            'base_duration_days' => $baseDurationDays,
+            'base_duration_months' => $baseDurationMonths,
+            'base_paid_amount' => $basePaidAmount,
             'calculated_refund_value' => $calculatedRefundValue,
             'refund_value' => $refundValue,
             'calculated_company_due_value' => $calculatedCompanyDueValue,
@@ -2954,18 +3006,21 @@ class RentContractController extends Controller
                 'closure_return_reason' => $closureReturnReason !== '' ? $closureReturnReason : null,
             ];
 
-            if ((float) $contract->info->contract_value <= 0 && (float) ($summary['contract_value'] ?? 0) > 0) {
-                $infoUpdates['contract_value'] = (float) $summary['contract_value'];
+            // The base figures, never the extension-inclusive totals: these
+            // columns describe the contract itself and the extension rows are
+            // added on top of them every time the settlement is rebuilt.
+            if ((float) $contract->info->contract_value <= 0 && (float) ($summary['base_contract_value'] ?? 0) > 0) {
+                $infoUpdates['contract_value'] = (float) $summary['base_contract_value'];
                 $infoUpdates['monthly_cost'] = (float) ($summary['monthly_cost'] ?? 0);
-                $infoUpdates['contract_duration_months'] = (int) ($summary['duration_months'] ?? 0);
-                $infoUpdates['contract_duration_days'] = (int) ($summary['duration_days'] ?? 0);
+                $infoUpdates['contract_duration_months'] = (int) ($summary['base_duration_months'] ?? 0);
+                $infoUpdates['contract_duration_days'] = (int) ($summary['base_duration_days'] ?? 0);
             }
 
             if (!empty($validated['close_payment_status'])) {
                 $infoUpdates['payment_status'] = $validated['close_payment_status'];
 
                 if ($validated['close_payment_status'] === 'paid') {
-                    $infoUpdates['paid_amount'] = (float) ($summary['contract_value'] ?? 0);
+                    $infoUpdates['paid_amount'] = (float) ($summary['base_contract_value'] ?? 0);
                     $infoUpdates['remaining_amount'] = 0;
                 }
             }
@@ -3802,7 +3857,7 @@ class RentContractController extends Controller
                 $infoUpdates['payment_status'] = $validated['close_payment_status'];
 
                 if ($validated['close_payment_status'] === 'paid') {
-                    $infoUpdates['paid_amount'] = (float) ($summary['contract_value'] ?? 0);
+                    $infoUpdates['paid_amount'] = (float) ($summary['base_contract_value'] ?? 0);
                     $infoUpdates['remaining_amount'] = 0;
                 }
             }
