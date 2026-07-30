@@ -47,6 +47,26 @@ php artisan cv:doctor
 php artisan config:clear && php artisan config:cache
 ```
 
+## `Permission denied` عند تشغيل Chromium
+
+```
+FATAL:.../spawn_subprocess.cc:222] posix_spawn .../chrome_crashpad_handler: Permission denied (13)
+```
+
+`ZipArchive::extractTo` لا يحفظ صلاحيات يونكس، فتصل ملفات Chrome بدون صلاحية التنفيذ.
+الملف الرئيسي `chrome` يُصلَح فيعمل `chrome --version` بشكل طبيعي، لكن Chrome يشغّل ملفات
+مساعدة بجواره (`chrome_crashpad_handler`) فينهار عند بدء التشغيل بإشارة SIGTRAP.
+
+الحل: إعادة تنفيذ الأمر — وهو يصلح الصلاحيات حتى لو كانت النسخة مثبتة مسبقًا:
+
+```bash
+php artisan cv:install-browser
+php artisan cv:doctor
+```
+
+الأمر يتعرّف على الملفات التنفيذية عبر توقيع الملف (`ELF` أو `#!`) لا عبر قائمة أسماء،
+فأي ملف مساعد جديد في إصدار قادم يُغطّى تلقائيًا.
+
 ## أنماط التشغيل (مهم على cPanel)
 
 CloudLinux/CageFS والحاويات التي تمنع user namespaces تقتل عملية **zygote** الخاصة بـ Chromium،

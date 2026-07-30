@@ -56,6 +56,17 @@ class InstallCvPdfBrowser extends Command
                 $this->info("Chrome $version مثبت بالفعل:");
                 $this->line($executablePath);
 
+                // ZipArchive drops unix permissions, so an install made before
+                // this repair step exists has non-executable helper binaries.
+                $repaired = $this->ensureExecutablePermissions($installDirectory);
+
+                if ($repaired > 0) {
+                    $this->newLine();
+                    $this->info("تم إصلاح صلاحيات التنفيذ لـ $repaired ملفًا.");
+                }
+
+                $this->comment('نفّذ الآن: php artisan cv:doctor للتأكد من أن التشغيل يعمل فعليًا.');
+
                 return self::SUCCESS;
             }
 
@@ -103,19 +114,7 @@ class InstallCvPdfBrowser extends Command
                     throw new RuntimeException('تعذر نقل Chrome إلى مجلد التثبيت داخل storage.');
                 }
 
-                if (PHP_OS_FAMILY !== 'Windows') {
-                    // Chrome spawns helper binaries of its own, and the zip
-                    // does not always carry the executable bit through.
-                    foreach (['chrome_crashpad_handler', 'chrome_sandbox'] as $helper) {
-                        $helperPath = dirname($executablePath) . DIRECTORY_SEPARATOR . $helper;
-
-                        if (is_file($helperPath)) {
-                            @chmod($helperPath, 0755);
-                        }
-                    }
-
-                    @chmod($executablePath, 0755);
-                }
+                $this->ensureExecutablePermissions($installDirectory);
             } finally {
                 if (is_dir($temporaryRoot)) {
                     File::deleteDirectory($temporaryRoot);
@@ -139,6 +138,52 @@ class InstallCvPdfBrowser extends Command
 
             return self::FAILURE;
         }
+    }
+
+    /**
+     * ZipArchive::extractTo does not carry unix permissions, so every binary
+     * arrives without its executable bit. Chrome then dies at startup with
+     * `posix_spawn chrome_crashpad_handler: Permission denied`, because it
+     * spawns helper binaries next to itself. Detect them by file signature
+     * rather than by name so a new helper in a future release is covered too.
+     *
+     * @return int Number of files whose permissions were changed.
+     */
+    private function ensureExecutablePermissions(string $directory): int
+    {
+        if (PHP_OS_FAMILY === 'Windows') {
+            return 0;
+        }
+
+        $fixed = 0;
+
+        foreach (File::allFiles($directory) as $file) {
+            $path = $file->getPathname();
+
+            if (is_executable($path)) {
+                continue;
+            }
+
+            $handle = @fopen($path, 'rb');
+
+            if ($handle === false) {
+                continue;
+            }
+
+            $signature = (string) fread($handle, 4);
+            fclose($handle);
+
+            // ELF binaries and shared objects, plus shell script helpers.
+            if ($signature !== "\x7fELF" && !str_starts_with($signature, '#!')) {
+                continue;
+            }
+
+            if (@chmod($path, 0755)) {
+                $fixed++;
+            }
+        }
+
+        return $fixed;
     }
 
     private function platformDetails(): array

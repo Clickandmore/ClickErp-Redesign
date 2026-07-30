@@ -16,6 +16,8 @@ class CvPdfDoctor extends Command
 
     private array $problems = [];
 
+    private bool $permissionDenied = false;
+
     public function handle(MaidCvPdfGenerator $generator): int
     {
         $this->line('<comment>تشخيص محرك توليد السير الذاتية</comment>');
@@ -243,9 +245,13 @@ class CvPdfDoctor extends Command
                 }
             }
 
-            $this->problems[] = 'فشل تشغيل Chromium بكل أنماط التشغيل. '
-                . 'الاستضافة تمنع تشغيله فعليًا — استخدم خدمة رسم خارجية عبر '
-                . 'CV_PDF_REMOTE_DRIVER وCV_PDF_REMOTE_URL.';
+            $this->problems[] = $this->permissionDenied
+                ? 'فشل تشغيل Chromium لأن أحد ملفاته المساعدة غير قابل للتنفيذ '
+                    . '(Permission denied). نفّذ php artisan cv:install-browser لإصلاح الصلاحيات، '
+                    . 'ثم أعد php artisan cv:doctor.'
+                : 'فشل تشغيل Chromium بكل أنماط التشغيل. '
+                    . 'الاستضافة تمنع تشغيله فعليًا — استخدم خدمة رسم خارجية عبر '
+                    . 'CV_PDF_REMOTE_DRIVER وCV_PDF_REMOTE_URL.';
         } finally {
             File::deleteDirectory($directory);
         }
@@ -297,6 +303,11 @@ class CvPdfDoctor extends Command
         }
 
         $output = trim($process->getErrorOutput() ?: $process->getOutput());
+
+        if (Str::contains($output, 'Permission denied')) {
+            $this->permissionDenied = true;
+        }
+
         $this->line("  $profile: <fg=red>فشل</> — " . ($failure ?? 'لم يُنتج أي ملف'));
 
         if ($output !== '') {
