@@ -81,7 +81,7 @@ class ManagedFileStorage
 
         if (!$this->isR2Path($storedPath)) {
             return Storage::disk('public')->exists($storedPath)
-                ? asset('storage/' . ltrim($storedPath, '/'))
+                ? Storage::disk('public')->url($storedPath)
                 : null;
         }
 
@@ -116,33 +116,26 @@ class ManagedFileStorage
 
     public function inlineResponse(string $storedPath, string $filename, string $contentType): StreamedResponse
     {
-        return $this->streamedResponse($storedPath, $filename, $contentType, 'inline');
+        abort_unless($this->exists($storedPath), 404);
+        $disk = $this->disk($storedPath);
+        $path = $this->path($storedPath);
+
+        return response()->stream(function () use ($disk, $path): void {
+            $stream = $disk->readStream($path);
+            if (!is_resource($stream)) {
+                return;
+            }
+            fpassthru($stream);
+            fclose($stream);
+        }, 200, [
+            'Content-Type' => $contentType,
+            'Content-Disposition' => 'inline; filename="' . str_replace(['"', "\r", "\n"], '', $filename) . '"',
+            'X-Content-Type-Options' => 'nosniff',
+            'Cache-Control' => 'private, max-age=3600',
+        ]);
     }
 
     public function downloadResponse(string $storedPath, string $filename, string $contentType): StreamedResponse
-    {
-        return $this->streamedResponse($storedPath, $filename, $contentType, 'attachment');
-    }
-
-    /**
-     * @return resource|false
-     */
-    public function readStream(string $storedPath)
-    {
-        return $this->disk($storedPath)->readStream($this->path($storedPath));
-    }
-
-    public function mimeType(string $storedPath): string
-    {
-        return $this->disk($storedPath)->mimeType($this->path($storedPath)) ?: 'application/octet-stream';
-    }
-
-    private function streamedResponse(
-        string $storedPath,
-        string $filename,
-        string $contentType,
-        string $disposition
-    ): StreamedResponse
     {
         abort_unless($this->exists($storedPath), 404);
         $disk = $this->disk($storedPath);
@@ -157,10 +150,23 @@ class ManagedFileStorage
             fclose($stream);
         }, 200, [
             'Content-Type' => $contentType,
-            'Content-Disposition' => $disposition . '; filename="' . str_replace(['"', "\r", "\n"], '', $filename) . '"',
+            'Content-Disposition' => 'attachment; filename="' . str_replace(['"', "\r", "\n"], '', $filename) . '"',
             'X-Content-Type-Options' => 'nosniff',
-            'Cache-Control' => 'private, max-age=3600',
+            'Cache-Control' => 'private, no-store',
         ]);
+    }
+
+    /**
+     * @return resource|false
+     */
+    public function readStream(string $storedPath)
+    {
+        return $this->disk($storedPath)->readStream($this->path($storedPath));
+    }
+
+    public function mimeType(string $storedPath): string
+    {
+        return $this->disk($storedPath)->mimeType($this->path($storedPath)) ?: 'application/octet-stream';
     }
 
     public function contents(string $storedPath): string
