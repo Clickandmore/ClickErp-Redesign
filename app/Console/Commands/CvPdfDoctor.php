@@ -215,11 +215,10 @@ class CvPdfDoctor extends Command
             . 'color:#fff;padding:24px;border-radius:12px}</style></head>'
             . '<body><div class="row"><div class="box">اختبار</div><div class="box">Flexbox</div></div></body></html>';
 
-        $directory = storage_path('app/cv-pdf-temp/doctor-' . Str::uuid());
-        File::ensureDirectoryExists($directory);
+        $directory = $generator->createBrowserTemporaryDirectory('doc');
 
         try {
-            $htmlPath = $directory . DIRECTORY_SEPARATOR . 'cv.html';
+            $htmlPath = $directory . DIRECTORY_SEPARATOR . 'i.html';
             File::put($htmlPath, $html);
 
             $browserPath = $generator->browserExecutable();
@@ -264,15 +263,15 @@ class CvPdfDoctor extends Command
         string $directory,
         string $profile
     ): bool {
-        $attemptDirectory = $directory . DIRECTORY_SEPARATOR . $profile;
+        $attemptDirectory = $directory . DIRECTORY_SEPARATOR . $generator->browserProfileCode($profile);
         File::ensureDirectoryExists($attemptDirectory);
 
-        $pdfPath = $attemptDirectory . DIRECTORY_SEPARATOR . 'cv.pdf';
+        $pdfPath = $attemptDirectory . DIRECTORY_SEPARATOR . 'o.pdf';
 
         $process = new Process(
             $generator->browserCommand(
                 $browserPath,
-                $attemptDirectory . DIRECTORY_SEPARATOR . 'browser-profile',
+                $attemptDirectory . DIRECTORY_SEPARATOR . 'p',
                 $pdfPath,
                 $htmlPath,
                 $profile
