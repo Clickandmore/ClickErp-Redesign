@@ -104,6 +104,16 @@ class InstallCvPdfBrowser extends Command
                 }
 
                 if (PHP_OS_FAMILY !== 'Windows') {
+                    // Chrome spawns helper binaries of its own, and the zip
+                    // does not always carry the executable bit through.
+                    foreach (['chrome_crashpad_handler', 'chrome_sandbox'] as $helper) {
+                        $helperPath = dirname($executablePath) . DIRECTORY_SEPARATOR . $helper;
+
+                        if (is_file($helperPath)) {
+                            @chmod($helperPath, 0755);
+                        }
+                    }
+
                     @chmod($executablePath, 0755);
                 }
             } finally {
@@ -121,6 +131,7 @@ class InstallCvPdfBrowser extends Command
             $this->line($executablePath);
             $this->newLine();
             $this->comment('لا تحتاج إلى تعديل CV_PDF_BROWSER_PATH؛ سيكتشفه النظام تلقائيًا.');
+            $this->comment('نفّذ الآن: php artisan cv:doctor للتأكد من أن التشغيل يعمل فعليًا على هذا السيرفر.');
 
             return self::SUCCESS;
         } catch (\Throwable $exception) {
