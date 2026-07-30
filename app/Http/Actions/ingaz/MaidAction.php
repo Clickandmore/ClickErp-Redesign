@@ -2025,7 +2025,13 @@ class MaidAction extends MainAction
                         $q->where('job_type_id', $type);
                     });
 
-                    $this->excludeShelterInstantFilters($query);
+                    // Rental keeps every rental worker, including the ones sitting
+                    // in the shelter and flagged for instant pickup: those are
+                    // precisely the workers a client can rent today. Recruitment
+                    // still excludes them, because they are already in-country.
+                    if ($type !== 2) {
+                        $this->excludeShelterInstantFilters($query);
+                    }
                 }
             })
             ->when(isset($request->nationality_id), function ($query) use ($request) {

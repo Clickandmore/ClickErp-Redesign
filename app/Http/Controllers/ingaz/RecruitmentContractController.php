@@ -967,6 +967,22 @@ class RecruitmentContractController extends Controller
                                 . '</div>';
                         }
 
+                        // Gender, in the conventional pink/blue so it reads at a
+                        // glance in a column that is otherwise all muted grey.
+                        if ($row->maid->gender_label) {
+                            $isFemale = $row->maid->gender_label === 'أنثى';
+                            $genderColor = $isFemale ? '#d63384' : '#0d6efd';
+                            $genderIcon = $isFemale ? 'fa-venus' : 'fa-mars';
+
+                            $maidInfo .= '<div class="text-muted small d-flex align-items-center gap-2">'
+                                . '<i class="fas ' . $genderIcon . '" style="color:' . $genderColor . '"></i>'
+                                . '<span><span class="text-secondary">الجنس: </span>'
+                                . '<span class="fw-semibold" style="color:' . $genderColor . '">'
+                                . e($row->maid->gender_label)
+                                . '</span></span>'
+                                . '</div>';
+                        }
+
                         // Office
                         if ($row->maid->office) {
                             $maidInfo .= '<div class="text-muted small d-flex align-items-center gap-2">'

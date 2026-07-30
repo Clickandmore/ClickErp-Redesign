@@ -706,6 +706,21 @@ class Maid extends Model
         return self::getRequestTypeOptions()[$requestType] ?? helperTrans('ingaz.request_type_custom');
     }
 
+    /**
+     * Imported rows carry the gender in Arabic or as a single letter, so match
+     * the same spellings the dashboard statistics already normalise.
+     */
+    public function getGenderLabelAttribute(): ?string
+    {
+        $gender = strtolower(trim((string) $this->gender));
+
+        return match (true) {
+            in_array($gender, ['female', 'f', '1', 'أنثى', 'انثى'], true) => 'أنثى',
+            in_array($gender, ['male', 'm', '0', 'ذكر'], true) => 'ذكر',
+            default => null,
+        };
+    }
+
     // public function getCvCodeAttribute(): ?string
     // {
     //     if (!$this->office_id || !$this->office?->title) {

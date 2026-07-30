@@ -70,9 +70,28 @@ class AdminTravelHistoryController extends Controller
                         $html .= '<div class="mb-1">';
                         $html .= '<span class="fw-bold">' . e($user->name ?? 'غير محدد') . '</span><br>';
                         $html .= '<small class="text-muted">رقم: ' . e($user->id ?? '-') . '</small>';
-                        if (!empty($user->mobile)) {
-                            $html .= '<br><small class="text-muted">' . e($user->mobile) . '</small>';
+
+                        // primaryPhoneValue() prefixes the country code and drops
+                        // the placeholder numbers the importers write, and
+                        // documentNumber() picks the tax number for company
+                        // clients and the national id for everyone else.
+                        $phone = $user->primaryPhoneValue();
+                        if ($phone !== '') {
+                            $html .= '<br><small class="text-muted">'
+                                . '<i class="fas fa-phone me-1"></i>'
+                                . '<span dir="ltr">' . e($phone) . '</span>'
+                                . '</small>';
                         }
+
+                        $documentNumber = $user->documentNumber();
+                        if ($documentNumber !== null) {
+                            $html .= '<br><small class="text-muted">'
+                                . '<i class="fas fa-id-card me-1"></i>'
+                                . e($user->documentNumberLabel()) . ': '
+                                . '<span dir="ltr">' . e($documentNumber) . '</span>'
+                                . '</small>';
+                        }
+
                         $html .= '</div>';
                     });
 
@@ -1448,6 +1467,20 @@ class AdminTravelHistoryController extends Controller
         END";
     }
 
+    /**
+     * Numbers are stored in local form (05xxxxxxxx) with the country code kept
+     * in its own column, so reduce whatever the user typed to the digits that
+     * actually appear in the column: +966 55 123 4567, 0551234567 and
+     * 551234567 all have to find the same client.
+     */
+    private function normalizeClientPhoneSearch(?string $value): string
+    {
+        $digits = preg_replace('/\D+/', '', (string) $value) ?: '';
+        $digits = preg_replace('/^966/', '', $digits) ?: $digits;
+
+        return ltrim($digits, '0');
+    }
+
     private function travelIndexQuery(Request $request)
     {
         $query = TravelHistory::with(['user', 'maid', 'maid.nationality', 'maid.nationality.translations'])
@@ -1486,13 +1519,44 @@ class AdminTravelHistoryController extends Controller
                             ->where('admins.name', 'like', '%' . $search . '%');
                     })
                     ->orWhereHas('user', function ($q) use ($search) {
-                        $q->where('name', 'like', '%' . $search . '%');
+                        $q->where('name', 'like', '%' . $search . '%')
+                            ->orWhere('national_num', 'like', '%' . $search . '%')
+                            ->orWhere('tax_number', 'like', '%' . $search . '%')
+                            ->orWhere('source_phone', 'like', '%' . $search . '%')
+                            ->orWhere('phone', 'like', '%' . $search . '%');
                     })
                     ->orWhereHas('maid', function ($q) use ($search) {
                         $q->where('passport_num', 'like', '%' . $search . '%')
                             ->orWhere('name', 'like', '%' . $search . '%');
                     });
             });
+        }
+
+        if ($request->filled('client_phone')) {
+            $phone = $this->normalizeClientPhoneSearch($request->client_phone);
+
+            if ($phone !== '') {
+                // The real number can live in `source_phone` while `phone` holds
+                // an importer placeholder, so every phone column is searched.
+                $query->whereHas('user', function ($q) use ($phone) {
+                    $q->where(function ($inner) use ($phone) {
+                        foreach (['phone', 'source_phone', 'phone2', 'source_phone2'] as $column) {
+                            $inner->orWhere($column, 'like', '%' . $phone . '%');
+                        }
+                    });
+                });
+            }
+        }
+
+        if ($request->filled('client_document')) {
+            $document = preg_replace('/\D+/', '', (string) $request->client_document) ?: '';
+
+            if ($document !== '') {
+                $query->whereHas('user', function ($q) use ($document) {
+                    $q->where('national_num', 'like', '%' . $document . '%')
+                        ->orWhere('tax_number', 'like', '%' . $document . '%');
+                });
+            }
         }
 
         if ($request->filled('travel_type')) {
