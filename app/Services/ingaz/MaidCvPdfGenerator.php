@@ -82,7 +82,8 @@ class MaidCvPdfGenerator
 
             throw new RuntimeException(
                 'تعذر توليد السيرة الذاتية بنفس تنسيق القالب لأن Chromium غير مثبت أو غير مضبوط على السيرفر. '
-                . 'ثبّت Google Chrome أو Chromium واضبط CV_PDF_BROWSER_PATH على مسار الملف التنفيذي.'
+                . 'نفّذ php artisan cv:install-browser لتثبيته داخل المشروع، '
+                . 'أو اضبط CV_PDF_BROWSER_PATH على مسار Chrome المثبت.'
             );
         }
 
@@ -199,6 +200,7 @@ class MaidCvPdfGenerator
             'C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe',
             'C:\\Program Files\\Microsoft\\Edge\\Application\\msedge.exe',
             'C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe',
+            ...$this->managedBrowserExecutables(),
             '/usr/bin/google-chrome',
             '/usr/bin/google-chrome-stable',
             '/usr/bin/chromium',
@@ -243,6 +245,22 @@ class MaidCvPdfGenerator
     private function mpdfFallbackEnabled(): bool
     {
         return (bool) config('cv.pdf.allow_mpdf_fallback', false);
+    }
+
+    private function managedBrowserExecutables(): array
+    {
+        $patterns = PHP_OS_FAMILY === 'Windows'
+            ? [storage_path('app/cv-browser/*/chrome-win64/chrome.exe')]
+            : [storage_path('app/cv-browser/*/chrome-linux64/chrome')];
+        $executables = [];
+
+        foreach ($patterns as $pattern) {
+            $matches = glob($pattern) ?: [];
+            rsort($matches, SORT_NATURAL);
+            array_push($executables, ...$matches);
+        }
+
+        return $executables;
     }
 
     private function fileUrl(string $path): string
