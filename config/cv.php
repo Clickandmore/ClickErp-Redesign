@@ -27,6 +27,12 @@ return [
         'timeout' => (int) env('CV_PDF_TIMEOUT', 120),
 
         /*
+         * Chromium creates a Unix socket below its profile directory. Keep
+         * this base path short or Chromium aborts with "Socket path too long".
+         */
+        'temp_path' => env('CV_PDF_TEMP_PATH'),
+
+        /*
          * Shared hosting sometimes forbids running a local binary at all
          * (disabled proc_open, noexec home directory, missing system
          * libraries). Point this at a Gotenberg or Browserless instance to

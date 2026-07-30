@@ -86,6 +86,28 @@ class MaidCvPdfGeneratorTest extends TestCase
         $this->assertSame(MaidCvPdfGenerator::BROWSER_PROFILES, $generator->browserProfiles());
     }
 
+    public function test_browser_temporary_paths_are_short_enough_for_unix_sockets(): void
+    {
+        $generator = app(MaidCvPdfGenerator::class);
+        $directory = $generator->createBrowserTemporaryDirectory();
+
+        try {
+            $profilePath = $directory
+                . DIRECTORY_SEPARATOR
+                . $generator->browserProfileCode('default')
+                . DIRECTORY_SEPARATOR
+                . 'p';
+
+            $this->assertLessThan(60, strlen($profilePath));
+            $this->assertSame('d', $generator->browserProfileCode('default'));
+            $this->assertSame('z', $generator->browserProfileCode('no-zygote'));
+            $this->assertSame('s', $generator->browserProfileCode('single-process'));
+            $this->assertSame('l', $generator->browserProfileCode('legacy-headless'));
+        } finally {
+            \Illuminate\Support\Facades\File::deleteDirectory($directory);
+        }
+    }
+
     public function test_dompdf_can_create_a_pdf_from_rendered_blade_html(): void
     {
         $html = app(MaidCvPdfGenerator::class)->renderTemplate(

@@ -142,10 +142,9 @@ class MaidCvPdfGenerator
 
     private function generateWithBrowser(string $browserPath, string $html): string
     {
-        $temporaryDirectory = storage_path('app/cv-pdf-temp/' . Str::uuid());
-        File::ensureDirectoryExists($temporaryDirectory);
+        $temporaryDirectory = $this->createBrowserTemporaryDirectory();
 
-        $htmlPath = $temporaryDirectory . DIRECTORY_SEPARATOR . 'cv.html';
+        $htmlPath = $temporaryDirectory . DIRECTORY_SEPARATOR . 'i.html';
         $failures = [];
 
         try {
@@ -176,11 +175,11 @@ class MaidCvPdfGenerator
         string $temporaryDirectory,
         string $profile
     ): array {
-        $attemptDirectory = $temporaryDirectory . DIRECTORY_SEPARATOR . $profile;
+        $attemptDirectory = $temporaryDirectory . DIRECTORY_SEPARATOR . $this->browserProfileCode($profile);
         File::ensureDirectoryExists($attemptDirectory);
 
-        $pdfPath = $attemptDirectory . DIRECTORY_SEPARATOR . 'cv.pdf';
-        $profilePath = $attemptDirectory . DIRECTORY_SEPARATOR . 'browser-profile';
+        $pdfPath = $attemptDirectory . DIRECTORY_SEPARATOR . 'o.pdf';
+        $profilePath = $attemptDirectory . DIRECTORY_SEPARATOR . 'p';
 
         $process = new Process(
             $this->browserCommand($browserPath, $profilePath, $pdfPath, $htmlPath, $profile),
@@ -240,6 +239,60 @@ class MaidCvPdfGenerator
         }
 
         return self::BROWSER_PROFILES;
+    }
+
+    public function browserProfileCode(string $profile): string
+    {
+        return match ($profile) {
+            'default' => 'd',
+            'no-zygote' => 'z',
+            'single-process' => 's',
+            'legacy-headless' => 'l',
+            default => 'x',
+        };
+    }
+
+    public function createBrowserTemporaryDirectory(string $prefix = 'cv'): string
+    {
+        $configuredPath = trim((string) config('cv.pdf.temp_path', ''));
+        $candidates = array_values(array_unique(array_filter([
+            $configuredPath,
+            PHP_OS_FAMILY !== 'Windows' ? '/tmp' : null,
+            sys_get_temp_dir(),
+        ])));
+
+        foreach ($candidates as $baseDirectory) {
+            try {
+                File::ensureDirectoryExists($baseDirectory);
+            } catch (\Throwable $exception) {
+                continue;
+            }
+
+            if (!is_dir($baseDirectory) || !is_writable($baseDirectory)) {
+                continue;
+            }
+
+            $safePrefix = substr(preg_replace('/[^a-z0-9]/i', '', $prefix) ?: 'cv', 0, 3);
+
+            for ($attempt = 0; $attempt < 5; $attempt++) {
+                $directory = rtrim($baseDirectory, DIRECTORY_SEPARATOR)
+                    . DIRECTORY_SEPARATOR
+                    . $safePrefix
+                    . '-'
+                    . bin2hex(random_bytes(4));
+
+                if (!file_exists($directory)) {
+                    File::ensureDirectoryExists($directory);
+
+                    return $directory;
+                }
+            }
+        }
+
+        throw new RuntimeException(
+            'تعذر إنشاء مجلد مؤقت قصير وقابل للكتابة لتشغيل Chromium. '
+            . 'اضبط CV_PDF_TEMP_PATH على مسار قصير مثل /tmp.'
+        );
     }
 
     /**
