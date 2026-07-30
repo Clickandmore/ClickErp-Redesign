@@ -232,6 +232,17 @@ class StoreRentalContractRequest extends FormRequest
             $maid = $this->maid_id
                 ? Maid::with('nationality.translations')->find($this->maid_id)
                 : null;
+            $isCurrentContractMaid = (bool) (
+                $maid
+                && $currentContract
+                && (int) $currentContract->maid_id === (int) $maid->id
+            );
+            $isWillingShelterRentalMaid = $maid
+                ? Maid::query()
+                    ->whereKey($maid->id)
+                    ->willingToWorkInsideShelter()
+                    ->exists()
+                : false;
             $selectedOrder = $this->order_id
                 ? Order::query()
                     ->whereKey($this->order_id)
@@ -245,14 +256,22 @@ class StoreRentalContractRequest extends FormRequest
                 if (
                     $maid
                     && !$maid->available
+                    && !$isWillingShelterRentalMaid
                     && !$isSelectedOrderMaid
-                    && (!$currentContract || (int) $currentContract->maid_id !== (int) $maid->id)
+                    && !$isCurrentContractMaid
                 ) {
                     $validator->errors()->add('maid_id', 'العاملة المختارة غير متاحة حالياً');
                 }
 
                 if ($maid && !$maid->jobTypes()->where('job_type_id', $this->getRentalJobTypeId())->exists()) {
                     $validator->errors()->add('maid_id', 'العاملة المختارة ليست من نوع تأجير');
+                }
+
+                if ($maid && !$isCurrentContractMaid && !$isWillingShelterRentalMaid) {
+                    $validator->errors()->add(
+                        'maid_id',
+                        'يمكن إنشاء عقد الإيجار فقط لعاملة تأجير موجودة داخل الإيواء ومسجل أنها ترغب في العمل'
+                    );
                 }
 
                 if ($maid) {

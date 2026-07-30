@@ -49,6 +49,7 @@ use Yajra\DataTables\Facades\DataTables;
 
 class InvoiceController extends Controller
 {
+    private const SETTING_GENERAL_INVOICE_REVENUE_ACCOUNT = 'general_invoice_revenue_account';
     private const SETTING_DELEGATION_REVENUE_ACCOUNT = 'ingaz_delegation_revenue_account';
     private const SETTING_DELEGATION_INGAZ_ACCOUNT = 'ingaz_delegation_ingaz_account';
     private const SETTING_DELEGATION_COST_ACCOUNT = 'ingaz_delegation_cost_account';
@@ -2229,8 +2230,8 @@ class InvoiceController extends Controller
         }
 
         $revenueAccountId = $this->resolveSettingAccountId(
-            self::SETTING_DELEGATION_REVENUE_ACCOUNT,
-            'حساب إيراد الفواتير العامة غير محدد. الرجاء تحديد حساب إيراد تفاويض إنجاز من صفحة إعدادات الحسابات أولاً.',
+            self::SETTING_GENERAL_INVOICE_REVENUE_ACCOUNT,
+            'حساب إيراد الفواتير العامة غير محدد. الرجاء تحديده من صفحة إعدادات الحسابات أولاً.',
             'creditor'
         );
         $statement = $this->buildInvoiceStatement($invoice);

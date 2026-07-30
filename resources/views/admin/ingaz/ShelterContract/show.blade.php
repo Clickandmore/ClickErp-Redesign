@@ -361,6 +361,23 @@
             </div>
         </div>
 
+        @if($contract->hasEscapeReport())
+            <div class="alert alert-danger mt-4">
+                <div class="fw-bold mb-1"><i class="fas fa-running me-1"></i> يوجد بلاغ هروب على العاملة</div>
+                <div>تم إخراجها من الإيواء، ولا يمكن بدء نقل الكفالة أو إجراءات الترحيل لهذا العقد.</div>
+                @if($contract->info?->escape_report_note)
+                    <div class="mt-2"><strong>الملاحظة:</strong> {{ $contract->info->escape_report_note }}</div>
+                @endif
+                @if(is_array($contract->info?->escape_report_attachment) && !empty($contract->info->escape_report_attachment['path']))
+                    <a class="btn btn-sm btn-outline-danger mt-2"
+                        href="{{ route('ShelterContract.escapeReport.attachment', $contract->id) }}">
+                        <i class="fas fa-paperclip me-1"></i>
+                        {{ $contract->info->escape_report_attachment['name'] ?? 'تحميل مرفق البلاغ' }}
+                    </a>
+                @endif
+            </div>
+        @endif
+
         <div class="info-grid">
             <section class="info-card contract-info">
                 <div class="section-title">
@@ -570,12 +587,12 @@
                     </a>
                 @endif
 
-                @if($contract->info && $contract->info->wants_to_work == 'yes' && $canCreateTransferRequest)
+                @if(!$contract->hasEscapeReport() && $contract->info && $contract->info->wants_to_work == 'yes' && $canCreateTransferRequest)
                     <a href="{{ route('SponsorshipTransfer.create', ['contract_id' => $contract->id]) }}" class="action-card action-card--transfer">
                         <i class="fas fa-exchange-alt"></i>
                         <span>بدء نقل الكفالة</span>
                     </a>
-                @elseif($contract->info && $contract->info->wants_to_work == 'no')
+                @elseif(!$contract->hasEscapeReport() && $contract->info && $contract->info->wants_to_work == 'no')
                     @php
                         $deportationProcedure = $contract->deportationProcedure;
                     @endphp

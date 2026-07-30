@@ -514,6 +514,11 @@ class Contract extends Model
         });
     }
 
+    public function hasEscapeReport(): bool
+    {
+        return $this->info?->outside_shelter_reason === 'escape_report';
+    }
+
     public function getActivitylogOptions(): LogOptions
     {
         return LogOptions::defaults()

@@ -48,25 +48,31 @@
                 </div>
 
                 <div class="row g-3 mb-4">
-                    <div class="col-md-3">
+                    <div class="col-md-6 col-xl">
                         <div class="stat-card">
                             <span class="text-muted">الإجمالي</span>
                             <strong>{{ $statistics['total'] ?? 0 }}</strong>
                         </div>
                     </div>
-                    <div class="col-md-3">
+                    <div class="col-md-6 col-xl">
                         <div class="stat-card">
                             <span class="text-muted">تسليم إيجار</span>
                             <strong>{{ $statistics['rental'] ?? 0 }}</strong>
                         </div>
                     </div>
-                    <div class="col-md-3">
+                    <div class="col-md-6 col-xl">
                         <div class="stat-card">
                             <span class="text-muted">تسليم نقل خدمات</span>
                             <strong>{{ $statistics['transfer'] ?? 0 }}</strong>
                         </div>
                     </div>
-                    <div class="col-md-3">
+                    <div class="col-md-6 col-xl">
+                        <div class="stat-card border-danger">
+                            <span class="text-danger">بلاغات الهروب</span>
+                            <strong>{{ $statistics['escape'] ?? 0 }}</strong>
+                        </div>
+                    </div>
+                    <div class="col-md-6 col-xl">
                         <div class="stat-card">
                             <span class="text-muted">أخرى</span>
                             <strong>{{ $statistics['other'] ?? 0 }}</strong>
@@ -90,6 +96,7 @@
                                     <option value="">الكل</option>
                                     <option value="rental_delivery">تسليم عقد إيجار</option>
                                     <option value="transfer_delivery">تسليم نقل خدمات</option>
+                                    <option value="escape_report">بلاغ هروب</option>
                                 </select>
                             </div>
                             <div class="col-md-3">
@@ -141,6 +148,7 @@
                                         <th>بيانات العاملة</th>
                                         <th>سبب الخروج</th>
                                         <th>تاريخ الخروج</th>
+                                        <th>تفاصيل البلاغ</th>
                                         <th>المرجع</th>
                                         <th>الإجراءات</th>
                                     </tr>
@@ -197,6 +205,7 @@
                     { data: 'maid_data', name: 'maid_data', orderable: false },
                     { data: 'outside_reason', name: 'outside_reason', orderable: false },
                     { data: 'outside_at', name: 'outside_at' },
+                    { data: 'outside_details', name: 'outside_details', orderable: false, searchable: false },
                     { data: 'reference_link', name: 'reference_link', orderable: false, searchable: false },
                     { data: 'actions', name: 'actions', orderable: false, searchable: false }
                 ],

@@ -684,6 +684,19 @@ class Maid extends Model
         return $query->where('request_type', $requestType);
     }
 
+    public function scopeWillingToWorkInsideShelter(Builder $query): Builder
+    {
+        return $query->whereHas('contracts', function ($contractQuery) {
+            $contractQuery->insideShelter()
+                ->whereHas('info', function ($infoQuery) {
+                    $infoQuery->where(function ($willingQuery) {
+                        $willingQuery->where('wants_to_work', 'yes')
+                            ->orWhere('wants_to_work', 1);
+                    });
+                });
+        });
+    }
+
     public function getRequestTypeLabelAttribute(): string
     {
         $requestType = self::resolveRequestType($this->request_type);

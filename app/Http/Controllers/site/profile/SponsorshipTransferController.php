@@ -114,6 +114,13 @@ class SponsorshipTransferController extends Controller
                 ], 400);
             }
 
+            if ($contract->hasEscapeReport() || $contract->info->is_outside_shelter) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'لا يمكن نقل كفالة العاملة لوجود بلاغ هروب عليها'
+                ], 422);
+            }
+
             // إنشاء أو البحث عن الكفيل الجديد
             $newSponsor = User::where('national_num', $request->new_sponsor_national_id)->first();
 

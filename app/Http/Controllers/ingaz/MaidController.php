@@ -634,7 +634,7 @@ class MaidController extends Controller
                         . '</div>';
                 })
                 ->editColumn('nationality_id', fn(Maid $row) => e($row->nationality?->sub_title ?? '-'))
-                ->addColumn('job_type', fn(Maid $row) => e($row->jobTypes->pluck('title')->filter()->implode(', ') ?: '-'))
+                ->addColumn('job_type', fn(Maid $row) => e($this->getMaidJobTypeTitle($row, $rentalJobTypeId)))
                 ->editColumn('passport_num', fn(Maid $row) => e($row->passport_num ?? '-'))
                 ->editColumn('price', fn(Maid $row) => $row->resolved_price !== null ? number_format((float) $row->resolved_price, 2) : '-')
                 ->editColumn('salary', fn(Maid $row) => $row->resolved_salary !== null ? number_format((float) $row->resolved_salary, 2) : '-')
@@ -680,16 +680,13 @@ class MaidController extends Controller
                         : '<span class="badge bg-secondary"><i class="fa fa-thumb-tack"></i> ' . helperTrans('ingaz.unpinned') . '</span>';
                 })
                 ->addColumn('cv_status', function (Maid $row) {
-                    if ($row->status === 'backout') {
+                    $effectiveStatus = $this->resolveRentalMaidCvStatus($row);
+
+                    if ($effectiveStatus === 'backout') {
                         return '<span class="badge bg-danger">' . helperTrans('ingaz.backout') . '</span>';
                     }
 
-                    $hasActiveRecruitmentContracts = $row->contracts->whereIn('status', $this->recruitmentContractStatuses())->isNotEmpty();
-                    $hasActiveOrders = $row->orders->whereIn('status', $this->activeOrderStatuses())->isNotEmpty();
-                    $hasActiveRentalContracts = $row->rentalContracts->whereIn('status', $this->rentalActiveContractStatuses())->isNotEmpty();
-                    $canCreateRentalContract = $this->canCreateRentalContractForMaid($row);
-
-                    if ($canCreateRentalContract) {
+                    if ($effectiveStatus === 'ready') {
                         $badges = ['<span class="badge bg-success">' . helperTrans('ingaz.ready_for_contract') . '</span>'];
 
                         if ((int) $row->maid_accommodation_type === 2) {
@@ -699,22 +696,16 @@ class MaidController extends Controller
                         return implode(' ', $badges);
                     }
 
-                    if ($hasActiveRentalContracts) {
+                    if ($effectiveStatus === 'active_rental_contract') {
                         return '<span class="badge bg-primary">' . helperTrans('ingaz.has_rental_contract') . '</span>';
                     }
 
-                    if (
-                        !$row->available
-                        || $row->status === 'reserved'
-                        || $hasActiveRecruitmentContracts
-                        || $hasActiveOrders
-                        || $hasActiveRentalContracts
-                    ) {
-                        return '<span class="badge bg-warning text-dark">' . helperTrans('ingaz.maid_status_reserved') . '</span>';
+                    if ($effectiveStatus === 'in_accommodation') {
+                        return '<span class="badge bg-info text-dark">' . helperTrans('ingaz.inside_shelter') . '</span>';
                     }
 
-                    if ((int) $row->maid_accommodation_type === 2) {
-                        return '<span class="badge bg-info text-dark">' . helperTrans('ingaz.inside_shelter') . '</span>';
+                    if ($effectiveStatus === 'reserved') {
+                        return '<span class="badge bg-warning text-dark">' . helperTrans('ingaz.maid_status_reserved') . '</span>';
                     }
 
                     return '<span class="badge bg-success">' . helperTrans('ingaz.maid_status_available') . '</span>';
@@ -805,7 +796,10 @@ class MaidController extends Controller
         $filter = [
             'nationalities' => Nationality::orderByTranslation('sub_title', 'asc')->get(['id']),
             'offices' => $officeAct->getAllOffices(),
-            'job_types' => JobType::with('translations')->orderByTranslation('title', 'asc')->get(['id']),
+            'job_types' => JobType::with('translations')
+                ->whereKey($rentalJobTypeId)
+                ->orderByTranslation('title', 'asc')
+                ->get(['id']),
             'request_types' => objModel::getRequestTypeOptions(),
         ];
 
@@ -1566,6 +1560,8 @@ class MaidController extends Controller
         $rentalTypeId = $this->getRentalJobTypeId();
 
         if ($request->ajax()) {
+            $rentalTypes = $this->filterJobTypesById($jobTypesAction->getJobsTypes(), $rentalTypeId);
+
             return $this->createAjaxResponse(
                 $act,
                 $officeAct,
@@ -1574,6 +1570,7 @@ class MaidController extends Controller
                 $jobTypesAction,
                 'create',
                 [
+                    'types' => $rentalTypes,
                     'defaultTypeId' => $rentalTypeId,
                     'defaultShelterContract' => '0',
                     'defaultIsShow' => true,
@@ -1587,7 +1584,9 @@ class MaidController extends Controller
         $nationalities = $act->getNationalities();
         $religions = $relAct->getReligions();
         $jobs = $jobTitleAction->getJobsTitles();
-        [$types, $defaultTypeId] = $this->prepareJobTypesForForm($jobTypesAction->getJobsTypes());
+        [$types, $defaultTypeId] = $this->prepareJobTypesForForm(
+            $this->filterJobTypesById($jobTypesAction->getJobsTypes(), $rentalTypeId)
+        );
         $offices = $officeAct->getAllOffices();
         $skills = $skillAction->get();
         $rentalFinanceItems = $this->buildCreateRentalFinanceItems();
@@ -2917,6 +2916,26 @@ class MaidController extends Controller
         return $query->get(['id']);
     }
 
+    private function filterJobTypesById($types, ?int $jobTypeId)
+    {
+        if (!$jobTypeId) {
+            return collect();
+        }
+
+        return collect($types)
+            ->filter(fn($type) => (int) $type->id === $jobTypeId)
+            ->values();
+    }
+
+    private function getMaidJobTypeTitle(Maid $maid, int $jobTypeId): string
+    {
+        $jobType = $maid->jobTypes->first(
+            fn($type) => (int) $type->id === $jobTypeId
+        );
+
+        return $jobType?->title ?: '-';
+    }
+
     private function prepareJobTypesForForm($types): array
     {
         $collection = collect($types);
@@ -3035,6 +3054,10 @@ class MaidController extends Controller
     private function applyRentalReservedFilter($query): void
     {
         $query->whereNotIn('status', ['backout', 'deported'])
+            ->where(function ($accommodationQuery) {
+                $accommodationQuery->whereNull('maid_accommodation_type')
+                    ->orWhere('maid_accommodation_type', '!=', 2);
+            })
             ->where(function ($reservedQuery) {
                 $reservedQuery->where('status', 'reserved')
                     ->orWhere('available', false)
@@ -3048,6 +3071,47 @@ class MaidController extends Controller
                         $rentalQuery->whereIn('status', $this->rentalActiveContractStatuses());
                     });
             });
+    }
+
+    private function resolveRentalMaidCvStatus(Maid $maid): string
+    {
+        if ($maid->status === 'backout') {
+            return 'backout';
+        }
+
+        if ($this->canCreateRentalContractForMaid($maid)) {
+            return 'ready';
+        }
+
+        $hasActiveRentalContracts = $maid->rentalContracts
+            ->whereIn('status', $this->rentalActiveContractStatuses())
+            ->isNotEmpty();
+
+        if ($hasActiveRentalContracts) {
+            return 'active_rental_contract';
+        }
+
+        if ((int) $maid->maid_accommodation_type === 2 && $maid->status !== 'deported') {
+            return 'in_accommodation';
+        }
+
+        $hasActiveRecruitmentContracts = $maid->contracts
+            ->whereIn('status', $this->recruitmentContractStatuses())
+            ->isNotEmpty();
+        $hasActiveOrders = $maid->orders
+            ->whereIn('status', $this->activeOrderStatuses())
+            ->isNotEmpty();
+
+        if (
+            !$maid->available
+            || $maid->status === 'reserved'
+            || $hasActiveRecruitmentContracts
+            || $hasActiveOrders
+        ) {
+            return 'reserved';
+        }
+
+        return 'available';
     }
 
     private function applyRentalBackoutFilter($query): void

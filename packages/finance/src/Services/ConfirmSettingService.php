@@ -205,6 +205,7 @@ class ConfirmSettingService extends MainService
             'musaned_intermediate_account',
             'musaned_commission_account',
             'expense_tax_account',
+            'general_invoice_revenue_account',
             'ingaz_delegation_revenue_account',
             'ingaz_delegation_ingaz_account',
             'ingaz_delegation_cost_account',

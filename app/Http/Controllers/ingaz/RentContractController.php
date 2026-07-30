@@ -645,12 +645,8 @@ class RentContractController extends Controller
         }
 
         // الحصول على العاملات المتاحة من نوع تأجير
-        $requestedMaidId = $request->filled('maid_id')
-            ? (int) $request->input('maid_id')
-            : null;
-
         $availableRentalMaids = $this->getAvailableRentalMaidsQuery(
-            $selectedOrder?->maid_id ?: $requestedMaidId
+            $selectedOrder?->maid_id
         )->get();
 
         $packages = Package::with(['translations', 'nationality.translations'])
@@ -1230,7 +1226,7 @@ class RentContractController extends Controller
             ->max('end_date');
 
         // الحصول على العاملات المتاحة من نوع تأجير
-        $availableRentalMaids = $this->getAvailableRentalMaidsQuery($contract->maid_id)->get();
+        $availableRentalMaids = $this->getAvailableRentalMaidsQuery($contract->maid_id, true)->get();
 
         $packages = Package::with(['translations', 'nationality.translations'])
             ->visible()
@@ -2285,7 +2281,7 @@ class RentContractController extends Controller
         }
     }
 
-    private function getAvailableRentalMaidsQuery(?int $currentMaidId = null)
+    private function getAvailableRentalMaidsQuery(?int $currentMaidId = null, bool $includeCurrentMaid = false)
     {
         $rentalJobTypeId = $this->getRentalJobTypeId();
 
@@ -2293,15 +2289,12 @@ class RentContractController extends Controller
             ->whereHas('jobTypes', function ($query) use ($rentalJobTypeId) {
                 $query->where('job_type_id', $rentalJobTypeId);
             })
-            ->where('status', '!=', 'backout')
-            ->where(function ($query) use ($currentMaidId) {
-                $query->where(function ($availableQuery) {
-                    $availableQuery->where('available', true)
-                        ->whereIn('status', ['available', 'completed']);
-                });
+            ->whereNotIn('status', ['backout', 'deported'])
+            ->where(function ($query) use ($currentMaidId, $includeCurrentMaid) {
+                $query->willingToWorkInsideShelter();
 
-                if ($currentMaidId) {
-                    $query->orWhere('id', $currentMaidId);
+                if ($includeCurrentMaid && $currentMaidId) {
+                    $query->orWhereKey($currentMaidId);
                 }
             })
             ->where(function ($query) use ($currentMaidId) {

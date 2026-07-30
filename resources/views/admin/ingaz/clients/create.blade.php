@@ -164,6 +164,55 @@
             box-shadow: 0 10px 26px rgba(16, 24, 40, .08);
         }
 
+        .hijri-calendar-popover {
+            position: absolute;
+            top: calc(100% + 6px);
+            right: 0;
+            z-index: 1060;
+            width: min(350px, 92vw);
+            padding: 14px;
+            border: 1px solid #d9e0ea;
+            border-radius: 10px;
+            background: #fff;
+            box-shadow: 0 14px 34px rgba(16, 24, 40, .18);
+        }
+
+        .hijri-calendar-grid {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 4px;
+            direction: rtl;
+        }
+
+        .hijri-calendar-weekday {
+            padding: 7px 2px;
+            color: #667085;
+            font-size: 12px;
+            font-weight: 700;
+            text-align: center;
+        }
+
+        .hijri-calendar-day {
+            width: 100%;
+            aspect-ratio: 1;
+            padding: 0;
+            border: 0;
+            border-radius: 7px;
+            color: #344054;
+            background: transparent;
+        }
+
+        .hijri-calendar-day:hover {
+            color: #0f766e;
+            background: #e6f6f3;
+        }
+
+        .hijri-calendar-day.is-selected {
+            color: #fff;
+            background: #0f766e;
+            font-weight: 700;
+        }
+
         @media (max-width: 767.98px) {
             .client-create-header,
             .client-form-actions {
@@ -292,9 +341,52 @@
                         </div>
 
                         <div class="col-lg-6 person-client-field">
-                            <label class="form-label" for="birthdate">{{ helperTrans('ingaz.birthdate') }}</label>
+                            <label class="form-label" for="birthdate">تاريخ الميلاد (ميلادي)</label>
                             <input type="date" id="birthdate" name="birthdate" class="form-control"
                                    value="{{ old('birthdate') }}">
+                            <small class="text-muted d-block mt-1">يمكن إدخال التاريخ الميلادي أو الهجري.</small>
+                        </div>
+
+                        <div class="col-lg-6 person-client-field">
+                            <label class="form-label" for="birthdate_hijri">تاريخ الميلاد (هجري)</label>
+                            <div id="birthdate_hijri_picker" class="position-relative">
+                                <div class="input-group">
+                                    <input type="text" id="birthdate_hijri" class="form-control" dir="ltr"
+                                           placeholder="اختر التاريخ الهجري" readonly>
+                                    <button type="button" id="birthdate_hijri_toggle"
+                                            class="btn btn-outline-secondary" aria-label="فتح التقويم الهجري">
+                                        <i class="fas fa-calendar-alt"></i>
+                                    </button>
+                                </div>
+
+                                <div id="birthdate_hijri_calendar" class="hijri-calendar-popover d-none" dir="rtl">
+                                    <div class="d-flex align-items-center gap-2 mb-3">
+                                        <button type="button" id="hijri_calendar_previous"
+                                                class="btn btn-light btn-sm" aria-label="الشهر السابق">
+                                            <i class="fas fa-chevron-right"></i>
+                                        </button>
+                                        <select id="birthdate_hijri_month" class="form-select form-select-sm"
+                                                aria-label="الشهر الهجري"></select>
+                                        <select id="birthdate_hijri_year" class="form-select form-select-sm"
+                                                aria-label="السنة الهجرية"></select>
+                                        <button type="button" id="hijri_calendar_next"
+                                                class="btn btn-light btn-sm" aria-label="الشهر التالي">
+                                            <i class="fas fa-chevron-left"></i>
+                                        </button>
+                                    </div>
+                                    <div id="birthdate_hijri_weekdays" class="hijri-calendar-grid"></div>
+                                    <div id="birthdate_hijri_days" class="hijri-calendar-grid"></div>
+                                    <div class="d-flex justify-content-end mt-2 pt-2 border-top">
+                                        <button type="button" id="birthdate_hijri_clear"
+                                                class="btn btn-link btn-sm text-danger text-decoration-none">
+                                            مسح التاريخ
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                            <div id="birthdate_hijri_feedback" class="text-danger small mt-1 d-none">
+                                يرجى اختيار تاريخ هجري صحيح وكامل.
+                            </div>
                         </div>
 
                         <div class="col-lg-6 person-client-field">
@@ -473,6 +565,366 @@
             $('.client-type-radio').on('change', toggleClientTypeFields);
             toggleClientTypeFields();
 
+            const $birthdate = $('#birthdate');
+            const $birthdateHijriPicker = $('#birthdate_hijri_picker');
+            const $birthdateHijri = $('#birthdate_hijri');
+            const $birthdateHijriCalendar = $('#birthdate_hijri_calendar');
+            const $birthdateHijriYear = $('#birthdate_hijri_year');
+            const $birthdateHijriMonth = $('#birthdate_hijri_month');
+            const $birthdateHijriDays = $('#birthdate_hijri_days');
+            const $birthdateHijriFeedback = $('#birthdate_hijri_feedback');
+            let syncingBirthdate = false;
+
+            const hijriFormatter = (() => {
+                try {
+                    const formatter = new Intl.DateTimeFormat('en-US-u-ca-islamic-umalqura-nu-latn', {
+                        year: 'numeric',
+                        month: 'numeric',
+                        day: 'numeric',
+                        timeZone: 'UTC'
+                    });
+
+                    return formatter.resolvedOptions().calendar === 'islamic-umalqura'
+                        ? formatter
+                        : null;
+                } catch (error) {
+                    return null;
+                }
+            })();
+
+            function normalizeDateDigits(value) {
+                const arabicDigits = '٠١٢٣٤٥٦٧٨٩';
+                const persianDigits = '۰۱۲۳۴۵۶۷۸۹';
+
+                return String(value || '')
+                    .trim()
+                    .replace(/[٠-٩]/g, digit => arabicDigits.indexOf(digit))
+                    .replace(/[۰-۹]/g, digit => persianDigits.indexOf(digit))
+                    .replace(/[/.]/g, '-')
+                    .replace(/\s+/g, '');
+            }
+
+            function parseDateParts(value) {
+                const match = normalizeDateDigits(value).match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
+
+                if (!match) {
+                    return null;
+                }
+
+                return {
+                    year: Number(match[1]),
+                    month: Number(match[2]),
+                    day: Number(match[3])
+                };
+            }
+
+            function formatDateParts(parts) {
+                return [
+                    String(parts.year).padStart(4, '0'),
+                    String(parts.month).padStart(2, '0'),
+                    String(parts.day).padStart(2, '0')
+                ].join('-');
+            }
+
+            function hijriPartsFromTimestamp(timestamp) {
+                if (!hijriFormatter) {
+                    return null;
+                }
+
+                const values = {};
+                hijriFormatter.formatToParts(new Date(timestamp)).forEach(part => {
+                    if (part.type === 'year' || part.type === 'month' || part.type === 'day') {
+                        values[part.type] = Number(part.value);
+                    }
+                });
+
+                return values.year && values.month && values.day ? values : null;
+            }
+
+            function compareDateParts(left, right) {
+                if (left.year !== right.year) {
+                    return left.year - right.year;
+                }
+                if (left.month !== right.month) {
+                    return left.month - right.month;
+                }
+                return left.day - right.day;
+            }
+
+            function gregorianToHijri(value) {
+                const parts = parseDateParts(value);
+
+                if (!parts) {
+                    return null;
+                }
+
+                const timestamp = Date.UTC(parts.year, parts.month - 1, parts.day, 12);
+                const date = new Date(timestamp);
+
+                if (
+                    date.getUTCFullYear() !== parts.year ||
+                    date.getUTCMonth() !== parts.month - 1 ||
+                    date.getUTCDate() !== parts.day
+                ) {
+                    return null;
+                }
+
+                return hijriPartsFromTimestamp(timestamp);
+            }
+
+            function hijriToGregorian(value) {
+                const target = parseDateParts(value);
+
+                if (
+                    !target ||
+                    target.year < 1200 ||
+                    target.year > 1600 ||
+                    target.month < 1 ||
+                    target.month > 12 ||
+                    target.day < 1 ||
+                    target.day > 30 ||
+                    !hijriFormatter
+                ) {
+                    return null;
+                }
+
+                const dayMilliseconds = 86400000;
+                let low = Math.floor(Date.UTC(target.year + 577, 0, 1, 12) / dayMilliseconds);
+                let high = Math.floor(Date.UTC(target.year + 581, 11, 31, 12) / dayMilliseconds);
+
+                while (low <= high) {
+                    const middle = Math.floor((low + high) / 2);
+                    const current = hijriPartsFromTimestamp(middle * dayMilliseconds);
+
+                    if (!current) {
+                        return null;
+                    }
+
+                    const comparison = compareDateParts(current, target);
+
+                    if (comparison === 0) {
+                        const date = new Date(middle * dayMilliseconds);
+                        return {
+                            year: date.getUTCFullYear(),
+                            month: date.getUTCMonth() + 1,
+                            day: date.getUTCDate()
+                        };
+                    }
+
+                    if (comparison < 0) {
+                        low = middle + 1;
+                    } else {
+                        high = middle - 1;
+                    }
+                }
+
+                return null;
+            }
+
+            function setHijriPickerInvalid(isInvalid) {
+                $birthdateHijri.toggleClass('is-invalid', isInvalid);
+                $birthdateHijriFeedback.toggleClass('d-none', !isInvalid);
+            }
+
+            function selectedHijriDate() {
+                return parseDateParts($birthdateHijri.val());
+            }
+
+            function setSelectValue($select, value) {
+                if (value && !$select.find('option[value="' + value + '"]').length) {
+                    $select.append(new Option(value, value));
+                }
+
+                $select.val(value ? String(value) : '');
+            }
+
+            function populateHijriPicker() {
+                if (!hijriFormatter) {
+                    $('#birthdate_hijri_toggle').prop('disabled', true);
+                    $birthdateHijriFeedback
+                        .removeClass('d-none')
+                        .text('المتصفح الحالي لا يدعم تقويم أم القرى.');
+                    return;
+                }
+
+                const currentHijriDate = hijriPartsFromTimestamp(Date.now());
+                const hijriMonths = [
+                    'محرم', 'صفر', 'ربيع الأول', 'ربيع الآخر',
+                    'جمادى الأولى', 'جمادى الآخرة', 'رجب', 'شعبان',
+                    'رمضان', 'شوال', 'ذو القعدة', 'ذو الحجة'
+                ];
+                const weekdays = ['أحد', 'اثنين', 'ثلاثاء', 'أربعاء', 'خميس', 'جمعة', 'سبت'];
+
+                for (let year = currentHijriDate.year; year >= 1200; year--) {
+                    $birthdateHijriYear.append(new Option(year, year));
+                }
+
+                hijriMonths.forEach((month, index) => {
+                    $birthdateHijriMonth.append(new Option(month, index + 1));
+                });
+
+                weekdays.forEach(day => {
+                    $('#birthdate_hijri_weekdays').append(
+                        $('<div>', {class: 'hijri-calendar-weekday', text: day})
+                    );
+                });
+
+                setSelectValue($birthdateHijriYear, currentHijriDate.year);
+                setSelectValue($birthdateHijriMonth, currentHijriDate.month);
+                renderHijriCalendar();
+            }
+
+            function renderHijriCalendar() {
+                const year = Number($birthdateHijriYear.val());
+                const month = Number($birthdateHijriMonth.val());
+                const selectedDate = selectedHijriDate();
+                const firstGregorianDate = hijriToGregorian(formatDateParts({year, month, day: 1}));
+
+                $birthdateHijriDays.empty();
+
+                if (!firstGregorianDate) {
+                    return;
+                }
+
+                const firstWeekday = new Date(Date.UTC(
+                    firstGregorianDate.year,
+                    firstGregorianDate.month - 1,
+                    firstGregorianDate.day
+                )).getUTCDay();
+
+                for (let blank = 0; blank < firstWeekday; blank++) {
+                    $birthdateHijriDays.append('<span></span>');
+                }
+
+                for (let day = 1; day <= 30; day++) {
+                    const hijriDate = {year, month, day};
+
+                    if (!hijriToGregorian(formatDateParts(hijriDate))) {
+                        continue;
+                    }
+
+                    const isSelected = selectedDate
+                        && selectedDate.year === year
+                        && selectedDate.month === month
+                        && selectedDate.day === day;
+
+                    $birthdateHijriDays.append(
+                        $('<button>', {
+                            type: 'button',
+                            class: 'hijri-calendar-day' + (isSelected ? ' is-selected' : ''),
+                            text: day,
+                            'data-day': day,
+                            'aria-label': formatDateParts(hijriDate)
+                        })
+                    );
+                }
+            }
+
+            function syncHijriFromGregorian() {
+                if (syncingBirthdate) {
+                    return;
+                }
+
+                if (!hijriFormatter) {
+                    return;
+                }
+
+                syncingBirthdate = true;
+                const hijriDate = $birthdate.val() ? gregorianToHijri($birthdate.val()) : null;
+
+                $birthdateHijri.val(hijriDate ? formatDateParts(hijriDate) : '');
+                if (hijriDate) {
+                    setSelectValue($birthdateHijriYear, hijriDate.year);
+                    setSelectValue($birthdateHijriMonth, hijriDate.month);
+                }
+                renderHijriCalendar();
+                setHijriPickerInvalid(false);
+                syncingBirthdate = false;
+            }
+
+            function syncGregorianFromHijri() {
+                if (syncingBirthdate) {
+                    return;
+                }
+
+                if (!hijriFormatter) {
+                    return true;
+                }
+
+                const hijriDate = selectedHijriDate();
+
+                if (!hijriDate) {
+                    setHijriPickerInvalid(false);
+                    return true;
+                }
+
+                const gregorianDate = hijriToGregorian(formatDateParts(hijriDate));
+
+                if (!gregorianDate) {
+                    setHijriPickerInvalid(true);
+                    return false;
+                }
+
+                syncingBirthdate = true;
+                setHijriPickerInvalid(false);
+                $birthdate.val(formatDateParts(gregorianDate));
+                syncingBirthdate = false;
+                return true;
+            }
+
+            populateHijriPicker();
+            $birthdate.on('change', syncHijriFromGregorian);
+            $('#birthdate_hijri_toggle, #birthdate_hijri').on('click', function () {
+                $birthdateHijriCalendar.toggleClass('d-none');
+            });
+            $birthdateHijriYear.add($birthdateHijriMonth).on('change', renderHijriCalendar);
+            $birthdateHijriDays.on('click', '.hijri-calendar-day', function () {
+                const hijriDate = {
+                    year: Number($birthdateHijriYear.val()),
+                    month: Number($birthdateHijriMonth.val()),
+                    day: Number($(this).data('day'))
+                };
+
+                $birthdateHijri.val(formatDateParts(hijriDate));
+                syncGregorianFromHijri();
+                renderHijriCalendar();
+                $birthdateHijriCalendar.addClass('d-none');
+            });
+            $('#hijri_calendar_previous, #hijri_calendar_next').on('click', function () {
+                let year = Number($birthdateHijriYear.val());
+                let month = Number($birthdateHijriMonth.val());
+                const direction = this.id === 'hijri_calendar_next' ? 1 : -1;
+
+                month += direction;
+                if (month < 1) {
+                    month = 12;
+                    year--;
+                } else if (month > 12) {
+                    month = 1;
+                    year++;
+                }
+
+                setSelectValue($birthdateHijriYear, year);
+                setSelectValue($birthdateHijriMonth, month);
+                renderHijriCalendar();
+            });
+            $('#birthdate_hijri_clear').on('click', function () {
+                $birthdateHijri.val('');
+                $birthdate.val('');
+                setHijriPickerInvalid(false);
+                renderHijriCalendar();
+                $birthdateHijriCalendar.addClass('d-none');
+            });
+            $(document).on('click', function (event) {
+                if (!$(event.target).closest($birthdateHijriPicker).length) {
+                    $birthdateHijriCalendar.addClass('d-none');
+                }
+            });
+
+            if ($birthdate.val()) {
+                syncHijriFromGregorian();
+            }
+
             if ($citySelect.length) {
                 const citiesData = $citySelect.find('option').not('[value=""]').map(function () {
                     const $option = $(this);
@@ -525,6 +977,11 @@
                 const $form = $(this);
                 const $btn = $('#submitBtn');
                 const originalHtml = $btn.html();
+
+                if (!syncGregorianFromHijri()) {
+                    $birthdateHijri.trigger('focus');
+                    return;
+                }
 
                 $form.find('.is-invalid').removeClass('is-invalid');
 

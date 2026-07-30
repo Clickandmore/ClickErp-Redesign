@@ -558,9 +558,9 @@ class SponsorshipTransferController extends Controller
             // إذا كان الطلب موجوداً وله عاملة، نبحث عن العقد المناسب
             if ($selectedOrder && $selectedOrder->maid) {
                 // البحث عن العقد الذي يحتوي على هذه العاملة في الإيواء
-                $matchingContractQuery = Contract::with(['maid', 'user', 'info'])
+                $matchingContractQuery = Contract::insideShelter()
+                    ->with(['maid', 'user', 'info'])
                     ->where('maid_id', $selectedOrder->maid_id)
-                    ->where('status', \App\Enums\ingaz\ContractStatusEnum::Shelter->value)
                     ->whereHas('info', function($query) {
                         $query->where('wants_to_work', 'yes');
                     })
@@ -587,8 +587,8 @@ class SponsorshipTransferController extends Controller
         }
 
         // جلب العقود المتاحة للنقل (العقود داخل الإيواء مع work_willingness = 'yes')
-        $contractsQuery = Contract::with(['maid', 'user', 'info'])
-            ->where('status', \App\Enums\ingaz\ContractStatusEnum::Shelter->value)
+        $contractsQuery = Contract::insideShelter()
+            ->with(['maid', 'user', 'info'])
             ->whereHas('info', function($query) {
                 $query->where('wants_to_work', 'yes');
             })
@@ -692,6 +692,13 @@ class SponsorshipTransferController extends Controller
                     'success' => false,
                     'message' => 'هذا العقد غير متاح للنقل'
                 ], 400);
+            }
+
+            if ($contract->hasEscapeReport() || $contract->info->is_outside_shelter) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'لا يمكن نقل كفالة العاملة لوجود بلاغ هروب عليها'
+                ], 422);
             }
 
             DB::beginTransaction();
@@ -1120,6 +1127,10 @@ class SponsorshipTransferController extends Controller
             $transfer = SponsorshipTransfer::findOrFail($id);
             $this->assertCanAccessBranchModel($transfer);
 
+            if ($this->transferBlockedByEscapeReport($transfer)) {
+                return $this->escapeReportBlockedResponse();
+            }
+
             if ($transfer->status !== 'pending') {
                 return response()->json([
                     'success' => false,
@@ -1195,6 +1206,10 @@ class SponsorshipTransferController extends Controller
         try {
             $transfer = SponsorshipTransfer::findOrFail($id);
             $this->assertCanAccessBranchModel($transfer);
+
+            if ($this->transferBlockedByEscapeReport($transfer)) {
+                return $this->escapeReportBlockedResponse();
+            }
 
             if ($transfer->status !== 'approved') {
                 return response()->json([
@@ -1385,6 +1400,10 @@ class SponsorshipTransferController extends Controller
         try {
             $transfer = SponsorshipTransfer::with(['contract.info', 'transferServiceContract'])->findOrFail($id);
             $this->assertCanAccessBranchModel($transfer);
+
+            if ($this->transferBlockedByEscapeReport($transfer)) {
+                return $this->escapeReportBlockedResponse();
+            }
 
             if ($transfer->status !== 'trial_started' && $transfer->status !== 'trial') {
                 return response()->json([
@@ -2036,6 +2055,10 @@ class SponsorshipTransferController extends Controller
             $transfer = SponsorshipTransfer::findOrFail($id);
             $this->assertCanAccessBranchModel($transfer);
 
+            if ($this->transferBlockedByEscapeReport($transfer)) {
+                return $this->escapeReportBlockedResponse();
+            }
+
             // التحقق من الحالة
             if (!$transfer->canSendContract()) {
                 return response()->json([
@@ -2083,6 +2106,10 @@ class SponsorshipTransferController extends Controller
         try {
             $transfer = SponsorshipTransfer::findOrFail($id);
             $this->assertCanAccessBranchModel($transfer);
+
+            if ($this->transferBlockedByEscapeReport($transfer)) {
+                return $this->escapeReportBlockedResponse();
+            }
 
             // التحقق من الحالة
             if (!$transfer->canSignContract()) {
@@ -2132,6 +2159,10 @@ class SponsorshipTransferController extends Controller
         try {
             $transfer = SponsorshipTransfer::with(['transferServiceContract', 'contract'])->findOrFail($id);
             $this->assertCanAccessBranchModel($transfer);
+
+            if ($this->transferBlockedByEscapeReport($transfer)) {
+                return $this->escapeReportBlockedResponse();
+            }
 
             // التحقق من الحالة
             if (!$transfer->canDeliverMaid()) {
@@ -2366,6 +2397,10 @@ class SponsorshipTransferController extends Controller
             $transfer = SponsorshipTransfer::with(['transferServiceContract', 'contract'])->findOrFail($id);
             $this->assertCanAccessBranchModel($transfer);
 
+            if ($this->transferBlockedByEscapeReport($transfer)) {
+                return $this->escapeReportBlockedResponse();
+            }
+
             // إضافة logging للتشخيص
             \Log::info('Start Trial - Transfer ID: ' . $id . ', Current Status: ' . $transfer->status);
 
@@ -2492,6 +2527,10 @@ class SponsorshipTransferController extends Controller
             $transfer = SponsorshipTransfer::findOrFail($id);
             $this->assertCanAccessBranchModel($transfer);
 
+            if ($this->transferBlockedByEscapeReport($transfer)) {
+                return $this->escapeReportBlockedResponse();
+            }
+
             // التحقق من الحالة - يجب أن يكون العقد مُرسل
             if ($transfer->status !== 'contract_sent') {
                 return response()->json([
@@ -2576,6 +2615,10 @@ class SponsorshipTransferController extends Controller
             $transfer = SponsorshipTransfer::findOrFail($id);
             $this->assertCanAccessBranchModel($transfer);
 
+            if ($this->transferBlockedByEscapeReport($transfer)) {
+                return $this->escapeReportBlockedResponse();
+            }
+
             // التحقق من البيانات المرسلة
             $request->validate([
                 'signature' => 'required|string'
@@ -2628,5 +2671,20 @@ class SponsorshipTransferController extends Controller
                 'message' => 'حدث خطأ أثناء حفظ توقيع الشركة: ' . $e->getMessage()
             ], 500);
         }
+    }
+
+    private function transferBlockedByEscapeReport(SponsorshipTransfer $transfer): bool
+    {
+        $transfer->loadMissing('contract.info');
+
+        return (bool) $transfer->contract?->hasEscapeReport();
+    }
+
+    private function escapeReportBlockedResponse()
+    {
+        return response()->json([
+            'success' => false,
+            'message' => 'لا يمكن متابعة نقل الكفالة لوجود بلاغ هروب على العاملة',
+        ], 422);
     }
 }

@@ -1410,6 +1410,82 @@
                 window.location.href = url.toString();
             });
 
+            $(document).on('click', '.report-escape', function(e) {
+                e.preventDefault();
+                const contractId = $(this).data('id');
+
+                Swal.fire({
+                    title: 'إضافة بلاغ هروب',
+                    html: `
+                        <div class="text-start">
+                            <div class="alert alert-warning small">
+                                سيخرج العقد من الإيواء ولن يكون متاحاً لنقل الكفالة أو الترحيل.
+                            </div>
+                            <label for="escapeReportNote" class="form-label">الملاحظة</label>
+                            <textarea id="escapeReportNote" class="form-control mb-3" rows="4" maxlength="3000"
+                                placeholder="اكتب تفاصيل البلاغ"></textarea>
+                            <label for="escapeReportAttachment" class="form-label">المرفق</label>
+                            <input id="escapeReportAttachment" type="file" class="form-control"
+                                accept=".jpg,.jpeg,.png,.pdf,.doc,.docx">
+                            <small class="text-muted">يجب إدخال ملاحظة أو اختيار ملف واحد على الأقل.</small>
+                        </div>
+                    `,
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonColor: '#dc3545',
+                    confirmButtonText: 'تسجيل بلاغ الهروب',
+                    cancelButtonText: 'إلغاء',
+                    focusConfirm: false,
+                    preConfirm: () => {
+                        const note = document.getElementById('escapeReportNote').value.trim();
+                        const fileInput = document.getElementById('escapeReportAttachment');
+
+                        if (!note && !fileInput.files.length) {
+                            Swal.showValidationMessage('يجب كتابة ملاحظة أو إرفاق ملف.');
+                            return false;
+                        }
+
+                        return { note, file: fileInput.files[0] || null };
+                    }
+                }).then((result) => {
+                    if (!result.isConfirmed) {
+                        return;
+                    }
+
+                    const formData = new FormData();
+                    formData.append('_token', '{{ csrf_token() }}');
+                    formData.append('note', result.value.note);
+                    if (result.value.file) {
+                        formData.append('attachment', result.value.file);
+                    }
+
+                    Swal.fire({
+                        title: 'جارٍ تسجيل البلاغ...',
+                        allowOutsideClick: false,
+                        didOpen: () => Swal.showLoading()
+                    });
+
+                    $.ajax({
+                        url: '{{ route('ShelterContract.escapeReport', ':id') }}'.replace(':id', contractId),
+                        type: 'POST',
+                        data: formData,
+                        processData: false,
+                        contentType: false,
+                        success: function(response) {
+                            Swal.fire('تم!', response.message, 'success').then(() => {
+                                window.location.href = response.redirect || '{{ route('ShelterContract.outside') }}';
+                            });
+                        },
+                        error: function(xhr) {
+                            const errors = xhr.responseJSON?.errors;
+                            const firstError = errors ? Object.values(errors).flat()[0] : null;
+                            Swal.fire('خطأ!', firstError || xhr.responseJSON?.message ||
+                                'تعذر تسجيل بلاغ الهروب.', 'error');
+                        }
+                    });
+                });
+            });
+
             // Handle action buttons
             $(document).on('click', '.confirm-action', function(e) {
                 // console.log("Amer");

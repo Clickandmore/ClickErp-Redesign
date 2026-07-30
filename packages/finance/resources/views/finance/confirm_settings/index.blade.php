@@ -454,6 +454,13 @@
                         <span class="settings-nav__count">3 {{ __('finance::finance.settings_fields') }}</span>
                     </span>
                 </a>
+                <a class="settings-nav__item" href="#general-invoice-settings-section">
+                    <span class="settings-nav__icon"><i class="fa fa-file-invoice-dollar"></i></span>
+                    <span>
+                        <span class="settings-nav__title">{{ __('finance::finance.general_invoice_accounts') }}</span>
+                        <span class="settings-nav__count">1 {{ __('finance::finance.settings_fields') }}</span>
+                    </span>
+                </a>
                 <a class="settings-nav__item" href="#ingaz-delegation-settings-section">
                     <span class="settings-nav__icon"><i class="fa fa-file-signature"></i></span>
                     <span>
@@ -853,6 +860,37 @@
                             <div class="setting-field__tree">
                                 <strong>{{ $accountTreeLabel }}:</strong> {{ __('finance::finance.musaned_commission_account_tree_hint') }}
                             </div>
+                        </div>
+                    </div>
+                </div>
+            </details>
+
+            <details class="settings-section" id="general-invoice-settings-section" open>
+                <summary>
+                    <div>
+                        <h3 class="settings-section-title">{{ __('finance::finance.general_invoice_accounts') }}</h3>
+                        <p class="settings-section-hint">{{ __('finance::finance.general_invoice_accounts_hint') }}</p>
+                    </div>
+                    <span class="settings-section-icon"><i class="fa fa-chevron-down"></i></span>
+                </summary>
+                <div class="settings-section-body">
+                    <div class="settings-grid">
+                        <div class="setting-field">
+                            <div class="setting-field__top">
+                                <label for="general_invoice_revenue_account">{{ __('finance::finance.general_invoice_revenue_account') }}</label>
+                                <span class="setting-field__tools">
+                                    {!! addUpButton(route('finance.accounts.create'), 'general_invoice_revenue_account', false, 'name', true) !!}
+                                </span>
+                            </div>
+                            <input type="hidden" value="general_invoice_revenue_account" name="data[general_invoice_revenue_account][title]">
+                            <select name="data[general_invoice_revenue_account][value]" id="general_invoice_revenue_account"
+                                    class="form-control account-ajax-select" data-account-scope="creditor_leaf">
+                                <option value="">{{ __('finance::finance.choose') }}</option>
+                                @if ($item = $settingAccountOption('general_invoice_revenue_account'))
+                                    <option value="{{ $item->id }}" selected>{{ $item->code }} / {{ $item->name }}</option>
+                                @endif
+                            </select>
+                            <small>{{ __('finance::finance.general_invoice_revenue_account_hint') }}</small>
                         </div>
                     </div>
                 </div>

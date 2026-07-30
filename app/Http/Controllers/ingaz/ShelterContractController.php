@@ -24,6 +24,8 @@ use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Validation\ValidationException;
 use Nami\Finance\Models\Account;
 use Nami\Finance\Models\ConfirmSetting;
 use Nami\Finance\Enums\AccountTypesEnum;
@@ -55,7 +57,8 @@ class ShelterContractController extends Controller
             'only' => ['searchByPassport', 'getContractDetails', 'getNationalities', 'getShelterPlaces'],
         ]);
         $this->middleware($this->permissionMiddleware($this->shelterAdditionCreatePermissions()), ['only' => ['create', 'store']]);
-        $this->middleware($this->permissionMiddleware($this->shelterContractEditPermissions()), ['only' => ['edit', 'update', 'storeLivingExpense', 'livingExpenses']]);
+        $this->middleware($this->permissionMiddleware($this->shelterContractEditPermissions()), ['only' => ['edit', 'update', 'storeLivingExpense', 'livingExpenses', 'reportEscape']]);
+        $this->middleware($this->permissionMiddleware($this->shelterContractDetailViewPermissions()), ['only' => ['downloadEscapeReportAttachment']]);
         $this->middleware($this->permissionMiddleware($this->shelterRemoveFromShelterPermissions()), ['only' => ['back']]);
         $this->middleware($this->permissionMiddleware($this->shelterQuickTagsEditPermissions()), ['only' => ['updateQuickTags']]);
         $this->middleware($this->permissionMiddleware($this->shelterDeportationProceduresEditPermissions()), [
@@ -2028,8 +2031,26 @@ class ShelterContractController extends Controller
                         return match ($reason) {
                             'rental_delivery' => '<span class="badge bg-primary">تسليم عقد إيجار</span>',
                             'transfer_delivery' => '<span class="badge bg-success">تسليم نقل خدمات</span>',
+                            'escape_report' => '<span class="badge bg-danger"><i class="fas fa-running me-1"></i>بلاغ هروب</span>',
                             default => '<span class="badge bg-secondary">غير محدد</span>',
                         };
+                    })
+                    ->addColumn('outside_details', function ($row) {
+                        if (!$row->hasEscapeReport()) {
+                            return '<span class="text-muted">—</span>';
+                        }
+
+                        $note = trim((string) $row->info?->escape_report_note);
+                        $reporter = $row->info?->outsideShelterBy?->name;
+                        $html = $note !== ''
+                            ? '<div class="small">' . nl2br(e($note)) . '</div>'
+                            : '<span class="text-muted">بدون ملاحظة</span>';
+
+                        if ($reporter) {
+                            $html .= '<div class="text-muted small mt-1"><i class="fas fa-user me-1"></i>' . e($reporter) . '</div>';
+                        }
+
+                        return $html;
                     })
                     ->addColumn('outside_at', function ($row) {
                         $timestamp = $this->resolveOutsideShelterAt($row);
@@ -2048,6 +2069,18 @@ class ShelterContractController extends Controller
                         return 'غير محدد';
                     })
                     ->addColumn('reference_link', function ($row) {
+                        if ($row->hasEscapeReport()) {
+                            $attachment = $row->info?->escape_report_attachment;
+
+                            if (!is_array($attachment) || empty($attachment['path'])) {
+                                return '<span class="text-muted">لا يوجد ملف</span>';
+                            }
+
+                            return '<a href="' . e(route('ShelterContract.escapeReport.attachment', $row->id)) . '" class="btn btn-sm btn-outline-danger">'
+                                . '<i class="fas fa-paperclip"></i> ' . e($attachment['name'] ?? 'تحميل مرفق البلاغ')
+                                . '</a>';
+                        }
+
                         $reference = $this->resolveOutsideShelterReference($row);
 
                         if (!$reference) {
@@ -2105,7 +2138,7 @@ class ShelterContractController extends Controller
 
                         return $actions;
                     })
-                    ->rawColumns(['maid_data', 'outside_reason', 'reference_link', 'actions'])
+                    ->rawColumns(['maid_data', 'outside_reason', 'outside_details', 'reference_link', 'actions'])
                     ->make(true);
             } catch (\Exception $e) {
                 \Log::error('Error in outsideShelter: ' . $e->getMessage());
@@ -2120,7 +2153,8 @@ class ShelterContractController extends Controller
         $outsideTotal = $outsideContracts->clone()->count();
         $outsideRental = $this->applyOutsideReasonFilter($outsideContracts->clone(), 'rental_delivery')->count();
         $outsideTransfer = $this->applyOutsideReasonFilter($outsideContracts->clone(), 'transfer_delivery')->count();
-        $outsideOther = max(0, $outsideTotal - $outsideRental - $outsideTransfer);
+        $outsideEscape = $this->applyOutsideReasonFilter($outsideContracts->clone(), 'escape_report')->count();
+        $outsideOther = max(0, $outsideTotal - $outsideRental - $outsideTransfer - $outsideEscape);
 
         $data["dataTableRoute"] = route($this->mainRoute . '.outside');
         $data["modalType"] = "modal-lg";
@@ -2131,6 +2165,7 @@ class ShelterContractController extends Controller
             'total' => $outsideTotal,
             'rental' => $outsideRental,
             'transfer' => $outsideTransfer,
+            'escape' => $outsideEscape,
             'other' => $outsideOther,
         ];
 
@@ -2524,6 +2559,9 @@ class ShelterContractController extends Controller
                     'maid' => function ($query) {
                         $query->with([
                             'jobTypes',
+                            'rentalContracts' => function ($rentalQuery) {
+                                $rentalQuery->select(['id', 'maid_id', 'status']);
+                            },
                             'nationality' => function ($q) {
                                 $q->with('translations');
                             },
@@ -2644,6 +2682,104 @@ class ShelterContractController extends Controller
                 'message' => 'حدث خطأ أثناء حذف العقد من الإيواء: ' . $e->getMessage()
             ], 500);
         }
+    }
+
+    public function reportEscape(Request $request, $id)
+    {
+        $validated = $request->validate([
+            'note' => ['nullable', 'string', 'max:3000', 'required_without:attachment'],
+            'attachment' => ['nullable', 'file', 'mimes:jpg,jpeg,png,pdf,doc,docx', 'max:10240', 'required_without:note'],
+        ], [
+            'note.required_without' => 'يجب كتابة ملاحظة أو إرفاق ملف للبلاغ.',
+            'attachment.required_without' => 'يجب إرفاق ملف أو كتابة ملاحظة للبلاغ.',
+            'attachment.mimes' => 'صيغة المرفق يجب أن تكون صورة أو PDF أو Word.',
+            'attachment.max' => 'حجم المرفق يجب ألا يتجاوز 10 ميجابايت.',
+            'note.max' => 'الملاحظة يجب ألا تتجاوز 3000 حرف.',
+        ]);
+
+        $contract = Contract::with('info')->findOrFail($id);
+        $this->assertCanAccessBranchModel($contract, 'contracts');
+
+        if ($contract->status !== ContractStatusEnum::Shelter->value || $contract->info?->is_outside_shelter) {
+            throw ValidationException::withMessages([
+                'contract_id' => 'لا يمكن تسجيل بلاغ هروب لأن العاملة ليست داخل الإيواء.',
+            ]);
+        }
+
+        $attachment = null;
+
+        if ($request->hasFile('attachment')) {
+            $file = $request->file('attachment');
+            $attachment = [
+                'path' => $file->store('shelter-contracts/escape-reports', 'public'),
+                'name' => $file->getClientOriginalName(),
+                'mime_type' => $file->getClientMimeType(),
+                'size' => $file->getSize(),
+            ];
+        }
+
+        try {
+            DB::transaction(function () use ($contract, $validated, $attachment) {
+                $lockedContract = Contract::with('info')->lockForUpdate()->findOrFail($contract->id);
+
+                if ($lockedContract->status !== ContractStatusEnum::Shelter->value || $lockedContract->info?->is_outside_shelter) {
+                    throw ValidationException::withMessages([
+                        'contract_id' => 'تم تغيير حالة العاملة ولم تعد داخل الإيواء.',
+                    ]);
+                }
+
+                $lockedContract->info()->updateOrCreate(
+                    ['contract_id' => $lockedContract->id],
+                    [
+                        'is_outside_shelter' => true,
+                        'outside_shelter_at' => now(),
+                        'outside_shelter_reason' => 'escape_report',
+                        'outside_shelter_reference_type' => null,
+                        'outside_shelter_reference_id' => null,
+                        'outside_shelter_by' => auth('admin')->id(),
+                        'escape_report_note' => $validated['note'] ?? null,
+                        'escape_report_attachment' => $attachment,
+                        'is_available_for_instant' => false,
+                    ]
+                );
+
+                $this->syncMaidInstantDisplay($lockedContract, false);
+
+                activity()
+                    ->performedOn($lockedContract)
+                    ->causedBy(auth('admin')->user())
+                    ->withProperties([
+                        'note' => $validated['note'] ?? null,
+                        'attachment' => $attachment['name'] ?? null,
+                    ])
+                    ->log('تم تسجيل بلاغ هروب وإخراج العاملة من الإيواء');
+            });
+        } catch (\Throwable $e) {
+            if ($attachment && Storage::disk('public')->exists($attachment['path'])) {
+                Storage::disk('public')->delete($attachment['path']);
+            }
+
+            throw $e;
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => 'تم تسجيل بلاغ الهروب ونقل العاملة إلى خارج الإيواء.',
+            'redirect' => route('ShelterContract.outside'),
+        ]);
+    }
+
+    public function downloadEscapeReportAttachment($id)
+    {
+        $contract = Contract::with('info')->findOrFail($id);
+        $this->assertCanAccessBranchModel($contract, 'contracts');
+
+        $attachment = $contract->info?->escape_report_attachment;
+        $path = is_array($attachment) ? ($attachment['path'] ?? null) : null;
+
+        abort_unless($contract->hasEscapeReport() && $path && Storage::disk('public')->exists($path), 404);
+
+        return Storage::disk('public')->download($path, $attachment['name'] ?? basename($path));
     }
 
     /**
@@ -2926,6 +3062,9 @@ class ShelterContractController extends Controller
                         PermKeys::SPONSOR_TRANSFER_CREATE,
                         PermKeys::SPONSOR_TRANSFER_CONTROL,
                     ]);
+                    $canCreateRentalContract = $this->adminCanAny([
+                        PermKeys::RENT_CONTRACT_CREATE,
+                    ]);
 
                     $actions = '<div class="dropdown actions-dropdown">
                                     <button class="btn btn-sm btn-primary dropdown-toggle actions-btn" type="button" aria-expanded="false" title="الإجراءات المتاحة">
@@ -2976,6 +3115,40 @@ class ShelterContractController extends Controller
                         $actions .= '<li><hr class="dropdown-divider"></li>';
                         $actions .= '<li><a class="dropdown-item confirm-action" href="#" data-action="back" data-id="' . $row->id . '" data-text="هل أنت متأكد من حذف العقد من الإيواء؟ سيعود العقد إلى العقود المكتملة">
                                         <i class="fas fa-undo"></i> حذف من الإيواء
+                                    </a></li>';
+                    }
+
+                    if ($canEditContract) {
+                        $actions .= '<li><a class="dropdown-item text-danger report-escape" href="#" data-id="' . $row->id . '">
+                                        <i class="fas fa-running"></i> إضافة بلاغ هروب
+                                    </a></li>';
+                    }
+
+                    $maidRentalContracts = $row->maid?->rentalContracts;
+                    $hasActiveRentalContract = $maidRentalContracts
+                        ? $maidRentalContracts->whereIn('status', [
+                            'new',
+                            'waiting_contract_send',
+                            'contract_sent',
+                            'contract_signed',
+                            'maid_delivered',
+                            'active',
+                            'transferred',
+                            'suspended',
+                            'frozen',
+                        ])
+                            ->isNotEmpty()
+                        : false;
+                    $canRentWillingMaid = $canCreateRentalContract
+                        && $row->maid
+                        && $this->determineShelterServiceCategory($row->maid) === 'rental'
+                        && $row->info?->wants_to_work === 'yes'
+                        && !$hasActiveRentalContract;
+
+                    if ($canRentWillingMaid) {
+                        $actions .= '<li><hr class="dropdown-divider"></li>';
+                        $actions .= '<li><a class="dropdown-item text-success" href="' . route('RentContract.create', ['maid_id' => $row->maid_id]) . '">
+                                        <i class="fas fa-file-signature"></i> إضافة عقد إيجار
                                     </a></li>';
                     }
 
@@ -3197,6 +3370,13 @@ class ShelterContractController extends Controller
                 ], 400);
             }
 
+            if ($contract->hasEscapeReport() || $contract->info?->is_outside_shelter) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'لا يمكن بدء الترحيل لوجود بلاغ هروب على العاملة'
+                ], 422);
+            }
+
             // التحقق من أن العاملة لا ترغب بالعمل
             if ($contract->info && $contract->info->wants_to_work === 'yes') {
                 return response()->json([
@@ -3269,12 +3449,19 @@ class ShelterContractController extends Controller
             'request_data' => $request->all()
         ]);
 
-        $procedureContract = Contract::findOrFail(
+        $procedureContract = Contract::with('info')->findOrFail(
             \App\Models\DeportationProcedure::findOrFail($id)->contract_id
         );
         $this->assertCanAccessBranchModel($procedureContract, 'contracts');
 
         try {
+            if ($procedureContract->hasEscapeReport()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'لا يمكن متابعة إجراءات الترحيل لوجود بلاغ هروب على العاملة',
+                ], 422);
+            }
+
             $procedure = \App\Models\DeportationProcedure::findOrFail($id);
 
             // التحقق من أن الإجراءات غير مكتملة

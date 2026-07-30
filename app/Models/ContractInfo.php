@@ -15,6 +15,7 @@ class ContractInfo extends Model
     protected $casts = [
         'shelter_attachments' => 'array',
         'shelter_quick_tags' => 'array',
+        'escape_report_attachment' => 'array',
         'is_outside_shelter' => 'boolean',
         'outside_shelter_at' => 'datetime',
     ];
