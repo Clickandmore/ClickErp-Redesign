@@ -473,6 +473,28 @@ class RecruitmentContractController extends Controller
         return "DATE(COALESCE(NULLIF((SELECT ci.contract_date FROM contract_infos as ci WHERE ci.contract_id = contracts.id LIMIT 1), '0000-00-00'), NULLIF(contracts.contract_date, '0000-00-00')))";
     }
 
+    private function getEffectiveArrivalDateSql(): string
+    {
+        return "DATE(COALESCE(
+            NULLIF(contracts.warranty_start_date, '0000-00-00 00:00:00'),
+            (SELECT COALESCE(NULLIF(th.arrival_date, '0000-00-00'), th.arrived_at)
+                FROM travel_histories as th
+                WHERE th.order_id = contracts.id
+                    AND th.deleted_at IS NULL
+                    AND th.status = 'completed'
+                ORDER BY th.id DESC
+                LIMIT 1),
+            CASE WHEN contracts.status IN ('arrival', 'completed')
+                THEN NULLIF((SELECT ci.arrival_date FROM contract_infos as ci WHERE ci.contract_id = contracts.id LIMIT 1), '0000-00-00')
+                ELSE NULL
+            END,
+            CASE WHEN contracts.status IN ('arrival', 'completed')
+                THEN NULLIF((SELECT m.arrival_date FROM maids as m WHERE m.id = contracts.maid_id LIMIT 1), '0000-00-00')
+                ELSE NULL
+            END
+        ))";
+    }
+
     private function sponsorshipTransferDisplayStatuses(): array
     {
         return [
@@ -575,7 +597,7 @@ class RecruitmentContractController extends Controller
         }
 
         if ($statusFilter === 'expired_over_2y') {
-            $query->whereRaw($this->getEffectiveContractDateSql() . ' < ?', [
+            $query->whereRaw($this->getEffectiveArrivalDateSql() . ' < ?', [
                 Carbon::today()->subYears(2)->toDateString(),
             ]);
             return;

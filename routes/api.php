@@ -164,10 +164,13 @@ Route::group(['middleware' => 'lang', 'prefix' => 'client'], function () {
     Route::get('latest-worker-cvs', [App\Http\Controllers\Api\LatestWorkerCvController::class, 'index']);
     Route::get('offers', [App\Http\Controllers\Api\ApiOfferController::class, 'index']);
     Route::get('offers/{id}', [App\Http\Controllers\Api\ApiOfferController::class, 'show'])->whereNumber('id');
+    Route::get('guidelines', [App\Http\Controllers\Api\ApiGuidelineController::class, 'index']);
     Route::resource('all-workers', ApiMaidController::class);
     Route::get('arrival-worker', [App\Http\Controllers\Api\ApiMaidController::class, 'arrivalWorker']);
     Route::get('questions', [App\Http\Controllers\Api\ApiQuestionController::class, 'index']);
     Route::get('customer-service-employees', [App\Http\Controllers\Api\ApiCustomerController::class, 'index']);
+    Route::post('simplified-orders', [App\Http\Controllers\Api\ApiSimplifiedOrderController::class, 'store'])
+        ->middleware('throttle:5,1');
 });
 
 // *************************************************************************************************************

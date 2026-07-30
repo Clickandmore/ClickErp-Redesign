@@ -31,15 +31,22 @@
     $clientName = optional($displayClient)->name;
     $contractCreatedAt = $contract->created_at ? \Carbon\Carbon::parse($contract->created_at) : null;
     $contractDate = $info->contract_date ? \Carbon\Carbon::parse($info->contract_date) : null;
-    $contractExpiryDate = $contractDate
-        ? $contractDate->copy()->addYears((int) ($info->contract_duration ?: 2))
+    $actualArrivalDate = $contract->resolveRecruitmentArrivalDateTime();
+    $contractExpiryDate = $actualArrivalDate
+        ? $contract->recruitmentContractExpiryDate($actualArrivalDate)
         : null;
-    $arrivalDateForDisplay = $info->arrival_date
+    $arrivalDateForDisplay = $actualArrivalDate
+        ?: $info->arrival_date
         ?: optional($contract->travelHistory)->arrival_date
         ?: optional($contract->maid)->arrival_date;
     $arrivalDateLabel = $arrivalDateForDisplay
         ? \Carbon\Carbon::parse($arrivalDateForDisplay)->format('Y-m-d')
         : 'غير محدد';
+    $currentContractStageLabel = $statusTimeline['current_stage_label']
+        ?? getContractStatus($contract->status)
+        ?? 'غير محددة';
+    $contractExpiryPendingMessage = 'لم يبدأ الاحتساب؛ العاملة لم تصل حتى الآن. المرحلة الحالية: '
+        . $currentContractStageLabel;
     $contractDurationLabel = match ((int) ($info->contract_duration ?? 0)) {
         1 => 'سنة واحدة',
         2 => 'سنتان',
@@ -1026,7 +1033,14 @@
                     <div class="overview-card">
                         <span class="overview-label">مدة التعاقد</span>
                         <div class="overview-value">{{ $contractDurationLabel }}</div>
-                        <div class="overview-meta">ينتهي في {{ $contractExpiryDate ? $contractExpiryDate->format('Y-m-d') : 'غير محدد' }}</div>
+                        @if ($contractExpiryDate)
+                            <div class="overview-meta">ينتهي في {{ $contractExpiryDate->format('Y-m-d') }}</div>
+                        @else
+                            <div class="overview-meta">
+                                لم يبدأ الاحتساب؛ العاملة لم تصل حتى الآن.<br>
+                                المرحلة الحالية: {{ $currentContractStageLabel }}
+                            </div>
+                        @endif
                     </div>
                 </div>
 
@@ -1251,7 +1265,9 @@
                         </div>
                         <div class="info-row">
                             <span class="info-label">تاريخ انتهاء العقد:</span>
-                            <span class="info-value danger">{{ $contractExpiryDate ? $contractExpiryDate->format('Y-m-d') : 'غير محدد' }}</span>
+                            <span class="info-value danger">
+                                {{ $contractExpiryDate ? $contractExpiryDate->format('Y-m-d') : $contractExpiryPendingMessage }}
+                            </span>
                         </div>
                         <div class="info-row">
                             <span class="info-label">تاريخ إنشاء العقد:</span>

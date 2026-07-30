@@ -21,6 +21,7 @@ use App\Http\Controllers\ingaz\ComplaintTypeController;
 use App\Http\Controllers\ingaz\ContactController;
 use App\Http\Controllers\ingaz\CountryPoliceController;
 use App\Http\Controllers\ingaz\CvConvertController;
+use App\Http\Controllers\ingaz\CvTemplateSettingsController;
 use App\Http\Controllers\ingaz\DataImportController;
 use App\Http\Controllers\ingaz\DeportationTravelController;
 use App\Http\Controllers\ingaz\DevelopSettingController;
@@ -28,6 +29,7 @@ use App\Http\Controllers\ingaz\FastNewController;
 use App\Http\Controllers\ingaz\FeatureController;
 use App\Http\Controllers\ingaz\FindUsLocationController;
 use App\Http\Controllers\ingaz\HomeHeroSectionController;
+use App\Http\Controllers\ingaz\GuidelineSectionController;
 use App\Http\Controllers\ingaz\FinancialRequestController;
 use App\Http\Controllers\ingaz\InvoiceController;
 use App\Http\Controllers\ingaz\JobTitleController;
@@ -136,6 +138,10 @@ Route::group(
                 ->name('home-hero.edit');
             Route::put('home-hero', [HomeHeroSectionController::class, 'update'])
                 ->name('home-hero.update');
+            Route::get('guidelines', [GuidelineSectionController::class, 'edit'])
+                ->name('guidelines.edit');
+            Route::put('guidelines', [GuidelineSectionController::class, 'update'])
+                ->name('guidelines.update');
             Route::resource('find-us', FindUsLocationController::class)
                 ->except('show')
                 ->parameters(['find-us' => 'location']);
@@ -213,6 +219,10 @@ Route::group(
             Route::get('form-settings/preview/{template}', [FormSettingsController::class, 'preview'])->name('form-settings.preview');
             Route::get('form-settings/preview/{template}/print', [FormSettingsController::class, 'print'])->name('form-settings.preview.print');
 
+            Route::get('settings/cv-template', [CvTemplateSettingsController::class, 'edit'])
+                ->name('settings.cv-template.edit');
+            Route::put('settings/cv-template', [CvTemplateSettingsController::class, 'update'])
+                ->name('settings.cv-template.update');
             Route::resource('settings', SettingController::class);
             Route::get('settings/section/{section}', [SettingController::class, 'section'])->name('settings.section');
             Route::get('moyasar-settings', [MoyasarSettingsController::class, 'edit'])->name('moyasar-settings.edit');
@@ -306,6 +316,14 @@ Route::group(
             // Limit maid parameter to numeric IDs to avoid catching custom pages like create_rapid_cv
             Route::post('maids/extract-cv-data', [MaidController::class, 'extractCvData'])->name('maids.extract-cv-data');
             Route::post('maids/bulk-visibility', [MaidController::class, 'bulkVisibility'])->name('maids.bulk-visibility');
+            Route::post('maids/cv/generate-bulk', [MaidController::class, 'generateCvBulk'])->name('maids.generate-cv.bulk');
+            Route::post('maids/cv/export', [MaidController::class, 'exportGeneratedCvs'])->name('maids.generated-cvs.export');
+            Route::get('maids/{maid}/cv/download', [MaidController::class, 'downloadGeneratedCv'])
+                ->whereNumber('maid')
+                ->name('maids.generated-cv.download');
+            Route::post('maids/{maid}/generate-cv', [MaidController::class, 'generateCv'])
+                ->whereNumber('maid')
+                ->name('maids.generate-cv');
             Route::post('maids/{maid}/media', [MaidController::class, 'updateMedia'])->whereNumber('maid')->name('maids.media.update');
             Route::resource('maids', MaidController::class)->whereNumber('maid');
             Route::get('maids/create_rapid_cv', [MaidController::class, 'create_rapid_cv'])->name('maids.create_rapid_cv');

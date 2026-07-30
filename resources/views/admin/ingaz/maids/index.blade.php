@@ -118,6 +118,9 @@
                 'deported' => 0,
                 'pinned' => 0,
             ];
+            $canBulkGenerateCv = @AdminGuardHasPerm(\App\PermKeys::MAIDS_EDIT);
+            $canExportGeneratedCv = @AdminGuardHasPerm(\App\PermKeys::MAIDS_EXPORT_PDF);
+            $canSelectCvRows = $canBulkGenerateCv || $canExportGeneratedCv;
         @endphp
 
         <div class="page-body">
@@ -132,6 +135,20 @@
                         </div>
                     </div>
                     <div class="btn-toolbar gap-2">
+                        @if ($canBulkGenerateCv)
+                            <button type="button" class="btn btn-outline-danger btn-sm maid-cv-bulk-action"
+                                id="bulkGenerateMaidCvsButton" disabled>
+                                <i class="fas fa-cogs me-1"></i>
+                                توليد PDF للمحدد (<span class="maid-cv-selected-count">0</span>)
+                            </button>
+                        @endif
+                        @if ($canExportGeneratedCv)
+                            <button type="button" class="btn btn-danger btn-sm maid-cv-bulk-action"
+                                id="bulkExportMaidCvsButton" disabled>
+                                <i class="fas fa-file-archive me-1"></i>
+                                تصدير ملفات السيرة (<span class="maid-cv-selected-count">0</span>)
+                            </button>
+                        @endif
                         @if (@AdminGuardHasPerm(\App\PermKeys::MAIDS_BULK_VISIBILITY))
                             <button type="button" class="btn btn-outline-secondary btn-sm" id="bulkMaidVisibilityButton">
                                 <i class="fas fa-eye me-1"></i>{{ helperTrans('ingaz.maids_bulk_visibility') }}
@@ -394,7 +411,17 @@
                                 style="width:100%">
                                 <thead>
                                     <tr>
-                                        <th>#</th>
+                                        <th>
+                                            @if ($canSelectCvRows)
+                                                <span class="d-inline-flex align-items-center gap-2">
+                                                    <input type="checkbox" class="form-check-input m-0"
+                                                        id="selectAllMaidCvs" title="تحديد كل السير في الصفحة الحالية">
+                                                    <span>#</span>
+                                                </span>
+                                            @else
+                                                #
+                                            @endif
+                                        </th>
                                         <th>{{ helperTrans('ingaz.maid_photo') }}</th>
                                         <th>{{ helperTrans('ingaz.maid_data') }}</th>
                                         <th>{{ helperTrans('ingaz.added_details') }}</th>
@@ -594,6 +621,7 @@
     <script>
         $(function() {
             const statNumberFormat = new Intl.NumberFormat();
+            const selectedMaidCvIds = new Set();
             const updateStats = (stats) => {
                 if (!stats) {
                     return;
@@ -604,6 +632,27 @@
                         el.textContent = statNumberFormat.format(value);
                     });
                 });
+            };
+
+            const updateMaidCvSelectionUi = () => {
+                const selectedCount = selectedMaidCvIds.size;
+                $('.maid-cv-selected-count').text(selectedCount);
+                $('.maid-cv-bulk-action').prop('disabled', selectedCount === 0);
+
+                const pageCheckboxes = $('#dataTableObject .maid-cv-select');
+                const checkedOnPage = pageCheckboxes.filter(':checked').length;
+                const selectAll = document.getElementById('selectAllMaidCvs');
+                if (selectAll) {
+                    selectAll.checked = pageCheckboxes.length > 0 && checkedOnPage === pageCheckboxes.length;
+                    selectAll.indeterminate = checkedOnPage > 0 && checkedOnPage < pageCheckboxes.length;
+                }
+            };
+
+            const restoreMaidCvSelection = () => {
+                $('#dataTableObject .maid-cv-select').each(function() {
+                    this.checked = selectedMaidCvIds.has(String(this.value));
+                });
+                updateMaidCvSelectionUi();
             };
 
             function closeMaidsActionsDropdown() {
@@ -729,7 +778,32 @@
                 drawCallback: function() {
                     $('#dataTableObject .actions-btn').removeAttr('data-bs-toggle data-bs-auto-close data-bs-display');
                     closeMaidsActionsDropdown();
+                    restoreMaidCvSelection();
                 }
+            });
+
+            $(document).on('change', '#dataTableObject .maid-cv-select', function() {
+                const id = String(this.value);
+                if (this.checked) {
+                    selectedMaidCvIds.add(id);
+                } else {
+                    selectedMaidCvIds.delete(id);
+                }
+                updateMaidCvSelectionUi();
+            });
+
+            $('#selectAllMaidCvs').on('change', function() {
+                const checked = this.checked;
+                $('#dataTableObject .maid-cv-select').each(function() {
+                    const id = String(this.value);
+                    this.checked = checked;
+                    if (checked) {
+                        selectedMaidCvIds.add(id);
+                    } else {
+                        selectedMaidCvIds.delete(id);
+                    }
+                });
+                updateMaidCvSelectionUi();
             });
 
             $(document).on('click', '#dataTableObject .actions-btn', function(e) {
@@ -828,6 +902,109 @@
             const csrfToken = $('meta[name=\"csrf-token\"]').attr('content');
             const daysLabel = "{{ helperTrans('ingaz.days') }}";
             const notSpecifiedLabel = "{{ helperTrans('ingaz.not_specified') }}";
+
+            $('#bulkGenerateMaidCvsButton').on('click', function() {
+                const maidIds = Array.from(selectedMaidCvIds);
+                if (!maidIds.length) {
+                    return;
+                }
+
+                if (maidIds.length > 50) {
+                    Swal.fire({
+                        icon: 'warning',
+                        title: 'عدد السير أكبر من الحد المسموح',
+                        text: 'يمكن توليد 50 سيرة كحد أقصى في العملية الواحدة.'
+                    });
+                    return;
+                }
+
+                Swal.fire({
+                    icon: 'question',
+                    title: 'توليد ملفات السيرة الذاتية',
+                    text: `سيتم توليد أو إعادة توليد ${maidIds.length} ملف PDF. هل تريد المتابعة؟`,
+                    showCancelButton: true,
+                    confirmButtonText: 'نعم، ابدأ التوليد',
+                    cancelButtonText: @json(helperTrans('ingaz.cancel')),
+                    confirmButtonColor: '#dc3545'
+                }).then((result) => {
+                    if (!result.isConfirmed) {
+                        return;
+                    }
+
+                    Swal.fire({
+                        title: 'جاري توليد ملفات السيرة',
+                        text: 'قد تستغرق العملية بعض الوقت حسب عدد السير المحددة.',
+                        allowOutsideClick: false,
+                        didOpen: () => Swal.showLoading()
+                    });
+
+                    $.ajax({
+                        url: @json(route('maids.generate-cv.bulk')),
+                        method: 'POST',
+                        data: {
+                            _token: csrfToken,
+                            maid_ids: maidIds
+                        },
+                        success: function(response) {
+                            table.ajax.reload(null, false);
+                            Swal.fire({
+                                icon: response.failed_count > 0 ? 'warning' : 'success',
+                                title: response.message,
+                                text: response.failed_count > 0
+                                    ? 'يمكن إعادة المحاولة للسير التي تعذر توليدها.'
+                                    : 'يمكنك الآن تصدير الملفات المحددة.',
+                            });
+                        },
+                        error: function(xhr) {
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'تعذر توليد ملفات السيرة',
+                                text: xhr.responseJSON?.message
+                                    || xhr.responseJSON?.errors?.maid_ids?.[0]
+                                    || @json(helperTrans('ingaz.unexpected_error'))
+                            });
+                        }
+                    });
+                });
+            });
+
+            $('#bulkExportMaidCvsButton').on('click', function() {
+                const maidIds = Array.from(selectedMaidCvIds);
+                if (!maidIds.length) {
+                    return;
+                }
+
+                if (maidIds.length > 100) {
+                    Swal.fire({
+                        icon: 'warning',
+                        title: 'عدد السير أكبر من الحد المسموح',
+                        text: 'يمكن تصدير 100 سيرة كحد أقصى في العملية الواحدة.'
+                    });
+                    return;
+                }
+
+                const form = $('<form>', {
+                    method: 'POST',
+                    action: @json(route('maids.generated-cvs.export')),
+                    target: '_blank',
+                    class: 'd-none'
+                });
+                form.append($('<input>', {
+                    type: 'hidden',
+                    name: '_token',
+                    value: csrfToken
+                }));
+                maidIds.forEach((id) => {
+                    form.append($('<input>', {
+                        type: 'hidden',
+                        name: 'maid_ids[]',
+                        value: id
+                    }));
+                });
+                $('body').append(form);
+                form.trigger('submit');
+                setTimeout(() => form.remove(), 1000);
+            });
 
             $('#bulkMaidVisibilityButton').on('click', function() {
                 const button = $(this);
@@ -1200,6 +1377,51 @@
                             });
                         }
                     });
+                });
+            });
+
+            $(document).on('click', '.generate-maid-cv', function(e) {
+                e.preventDefault();
+                const button = $(this);
+                const url = button.data('url');
+
+                if (!url) {
+                    return;
+                }
+
+                button.prop('disabled', true);
+                Swal.fire({
+                    title: 'جاري توليد السيرة الذاتية',
+                    text: 'يرجى الانتظار حتى يتم إنشاء ملف PDF.',
+                    allowOutsideClick: false,
+                    didOpen: () => Swal.showLoading()
+                });
+
+                $.ajax({
+                    url: url,
+                    method: 'POST',
+                    headers: {
+                        'X-CSRF-TOKEN': csrfToken
+                    },
+                    success: function(response) {
+                        table.ajax.reload(null, false);
+                        Swal.fire({
+                            icon: 'success',
+                            title: response.message || 'تم توليد السيرة الذاتية بنجاح',
+                            timer: 2200,
+                            showConfirmButton: false
+                        });
+                    },
+                    error: function(xhr) {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'تعذر توليد السيرة الذاتية',
+                            text: xhr.responseJSON?.message || @json(helperTrans('ingaz.unexpected_error'))
+                        });
+                    },
+                    complete: function() {
+                        button.prop('disabled', false);
+                    }
                 });
             });
 

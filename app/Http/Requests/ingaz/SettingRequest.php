@@ -142,6 +142,7 @@ class SettingRequest extends MainRequest
             'show_customer_service_during_booking' => 'nullable|boolean',
             'show_public_site' => 'nullable|boolean',
             'external_auth_mode' => 'nullable|in:password,otp',
+            'external_order_mode' => 'nullable|in:authenticated,simplified',
             'note_ar' => 'nullable|string',
             'note_en' => 'nullable|string',
             'link_rights_and_duties' => 'nullable|string',

@@ -16,6 +16,13 @@ use Intervention\Image\ImageManagerStatic as Image;
 
 use function PHPSTORM_META\map;
 
+if (!function_exists('toObject')) {
+    function toObject($item)
+    {
+        return json_decode(json_encode($item));
+    }
+}
+
 /**
  * Show the form for creating a new resource.
  *

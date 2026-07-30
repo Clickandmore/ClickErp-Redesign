@@ -8,7 +8,10 @@ class HomeHeroSectionResource extends JsonResource
 {
     public function toArray($request): array
     {
-        $videoUrl = $this->video_type === 'upload'
+        $videoType = in_array($this->video_type, ['upload', 'youtube'], true)
+            ? $this->video_type
+            : ($this->video_path ? 'upload' : ($this->video_url ? 'youtube' : null));
+        $videoUrl = $videoType === 'upload'
             ? ($this->video_path ? showFile($this->video_path) : null)
             : $this->video_url;
 
@@ -20,10 +23,10 @@ class HomeHeroSectionResource extends JsonResource
                 'id' => $image->id,
                 'url' => $image->url,
             ])->values(),
-            'video' => $this->video_type && $videoUrl
+            'video' => $videoType && $videoUrl
                 ? [
                     'title' => $this->video_title,
-                    'type' => $this->video_type,
+                    'type' => $videoType,
                     'url' => $videoUrl,
                 ]
                 : null,

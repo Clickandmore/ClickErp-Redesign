@@ -83,6 +83,8 @@ class SettingResource extends JsonResource
             'show_customer_service_during_booking' => (bool)$this->show_customer_service_during_booking,
             'external_auth_mode' => \App\Support\ExternalAuthSettings::mode(),
             'uses_otp_authentication' => \App\Support\ExternalAuthSettings::usesOtpOnly(),
+            'external_order_mode' => \App\Support\ExternalOrderSettings::mode(),
+            'uses_simplified_ordering' => \App\Support\ExternalOrderSettings::usesSimplifiedOrdering(),
 		];
     }
 

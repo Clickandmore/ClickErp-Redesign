@@ -31,6 +31,7 @@ class MaidRequest extends MainRequest
             'name:en' => 'required|string|max:255',
             'gender' => 'nullable|in:male,female',
             'cv_file' => 'nullable',
+            'maid_cv_file' => 'nullable|file|mimes:pdf|max:10240',
             'video' => 'nullable',
             'video_link' => 'nullable|url|max:2000',
             'nationality_id' => 'required|exists:nationalities,id',
@@ -49,6 +50,16 @@ class MaidRequest extends MainRequest
             'salary' => 'nullable|numeric',
             'experience_years' => 'nullable',
             'experience_status' => 'required|in:has_experience,no_experience',
+            'cooking_experience' => [
+                'nullable',
+                Rule::requiredIf(fn () => $this->input('experience_status') === 'has_experience'),
+                Rule::in([
+                    'arabic_cooking',
+                    'regular_cooking',
+                    'willing_to_learn',
+                    'general_cooking',
+                ]),
+            ],
             'religion_id' => 'nullable|exists:religions,id',
             'id_number' => [
                 'nullable',
@@ -128,6 +139,9 @@ class MaidRequest extends MainRequest
     {
         $data = [
             'video_link' => $this->normalizeVideoLink($this->input('video_link')),
+            'cooking_experience' => $this->input('experience_status') === 'has_experience'
+                ? $this->input('cooking_experience')
+                : null,
         ];
 
         if ($this->isSelectedRentalType()) {
@@ -165,7 +179,20 @@ class MaidRequest extends MainRequest
             $value = $matches[2];
         }
 
-        return html_entity_decode(trim($value), ENT_QUOTES, 'UTF-8') ?: null;
+        $value = html_entity_decode(trim($value), ENT_QUOTES, 'UTF-8');
+
+        if (preg_match('~^https?://(?:drive|docs)\.google\.com/file/d/([^/?#]+)~i', $value, $matches)) {
+            return 'https://drive.google.com/file/d/' . $matches[1] . '/preview';
+        }
+
+        if (preg_match('~^https?://drive\.google\.com/(?:open|uc)~i', $value)) {
+            parse_str((string) parse_url($value, PHP_URL_QUERY), $query);
+            if (filled($query['id'] ?? null)) {
+                return 'https://drive.google.com/file/d/' . $query['id'] . '/preview';
+            }
+        }
+
+        return $value ?: null;
     }
 
     public function messages()
@@ -175,6 +202,9 @@ class MaidRequest extends MainRequest
             'name:en.string' => 'اسم العاملة يجب أن يكون نص',
             'name:en.max' => 'اسم العاملة يجب أن لا يتجاوز 255 حرف',
             'cv_file.required' => helperTrans('web.cv_file_is_required'),
+            'maid_cv_file.file' => 'ملف سيرة العاملة من المكتب الخارجي غير صالح',
+            'maid_cv_file.mimes' => 'يجب أن يكون ملف سيرة العاملة من المكتب الخارجي بصيغة PDF',
+            'maid_cv_file.max' => 'حجم ملف سيرة العاملة من المكتب الخارجي يجب ألا يتجاوز 10 ميجابايت',
             'nationality_id.required' => helperTrans('web.nationality_id_is_required'),
             'nationality_id.exists' => helperTrans('web.invalid_nationality_id'),
             'passport_num.required' => helperTrans('web.passport_num_is_required'),

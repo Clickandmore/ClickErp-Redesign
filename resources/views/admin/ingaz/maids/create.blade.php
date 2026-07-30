@@ -466,6 +466,15 @@
                                     <input type="file" data-default-file="" name="cv_file" id="cv_file" class="dropify"
                                         accept=".pdf,image/*">
                                 </div>
+                                <div class="col-12">
+                                    <label for="maid_cv_file" class="form-label">
+                                        {{ helperTrans('ingaz.maid_cv_file') }}
+                                        <small class="text-muted">({{ helperTrans('ingaz.optional') }})</small>
+                                    </label>
+                                    <input type="file" name="maid_cv_file" id="maid_cv_file"
+                                        class="form-control" accept="application/pdf,.pdf">
+                                    <div class="form-text">{{ helperTrans('ingaz.maid_cv_file_hint') }}</div>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -1095,6 +1104,29 @@
                                                 <input type="text" name="education" id="education"
                                                     class="form-control" maxlength="255"
                                                     value="{{ old('education') }}">
+                                            </div>
+                                            <div class="col-md-4" id="cooking_experience_field"
+                                                style="{{ old('experience_status') === 'has_experience' ? '' : 'display: none;' }}">
+                                                <label for="cooking_experience" class="form-label">
+                                                    {{ helperTrans('ingaz.cooking_experience') }}
+                                                </label>
+                                                <select name="cooking_experience" id="cooking_experience"
+                                                    class="form-control"
+                                                    {{ old('experience_status') === 'has_experience' ? 'required' : '' }}>
+                                                    <option value="">{{ helperTrans('ingaz.select_cooking_experience') }}</option>
+                                                    <option value="arabic_cooking" {{ old('cooking_experience') === 'arabic_cooking' ? 'selected' : '' }}>
+                                                        {{ helperTrans('ingaz.cooking_experience_arabic') }}
+                                                    </option>
+                                                    <option value="regular_cooking" {{ old('cooking_experience') === 'regular_cooking' ? 'selected' : '' }}>
+                                                        {{ helperTrans('ingaz.cooking_experience_regular') }}
+                                                    </option>
+                                                    <option value="willing_to_learn" {{ old('cooking_experience') === 'willing_to_learn' ? 'selected' : '' }}>
+                                                        {{ helperTrans('ingaz.cooking_experience_willing_to_learn') }}
+                                                    </option>
+                                                    <option value="general_cooking" {{ old('cooking_experience') === 'general_cooking' ? 'selected' : '' }}>
+                                                        {{ helperTrans('ingaz.cooking_experience_general') }}
+                                                    </option>
+                                                </select>
                                             </div>
                                             <div class="col-md-4" id="driving_license_field">
                                                 <label for="has_driving_license" class="form-label">
@@ -2549,7 +2581,21 @@
 
                 var iframeMatch = value.match(/<iframe\b[^>]*\bsrc\s*=\s*(["']?)([^"'\s>]+)\1/i);
                 if (iframeMatch && iframeMatch[2]) {
-                    return $('<textarea/>').html(iframeMatch[2]).text().trim();
+                    value = $('<textarea/>').html(iframeMatch[2]).text().trim();
+                }
+
+                var driveFileMatch = value.match(/^https?:\/\/(?:drive|docs)\.google\.com\/file\/d\/([^/?#]+)/i);
+                if (driveFileMatch && driveFileMatch[1]) {
+                    return 'https://drive.google.com/file/d/' + driveFileMatch[1] + '/preview';
+                }
+
+                try {
+                    var url = new URL(value);
+                    if (url.hostname === 'drive.google.com' && url.searchParams.get('id')) {
+                        return 'https://drive.google.com/file/d/' + url.searchParams.get('id') + '/preview';
+                    }
+                } catch (error) {
+                    // Keep the original value so the normal URL validation can handle it.
                 }
 
                 return value;
@@ -2610,9 +2656,13 @@
                 var status = $('#experience_status').val();
                 var $section = $('#experience_section');
                 var $requiredFields = $section.find('[data-exp-required]');
+                var $cookingField = $('#cooking_experience_field');
+                var $cookingSelect = $('#cooking_experience');
 
                 if (status === 'has_experience') {
                     $section.slideDown();
+                    $cookingField.slideDown();
+                    $cookingSelect.attr('required', 'required');
                     $requiredFields.each(function() {
                         $(this).attr('required', 'required');
                     });
@@ -2620,6 +2670,8 @@
                         window.initExperienceSelects();
                     }
                 } else {
+                    $cookingSelect.removeAttr('required').val('');
+                    $cookingField.slideUp();
                     $requiredFields.each(function() {
                         $(this).removeAttr('required');
                     });

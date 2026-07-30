@@ -216,6 +216,7 @@ const PARTENR_CONTROL = 'partenr_control';
     const SETTINGS_VIEW = 'settings_view';
     const SETTINGS_EDIT = 'settings_edit';
     const SETTINGS_CONTROL = 'settings_control';
+    const SETTINGS_CV_TEMPLATE = 'settings_cv_template';
     const MOYASAR_SETTINGS = 'moyasar_settings';
 
     // سجل النشاط
@@ -380,6 +381,12 @@ const PARTENR_CONTROL = 'partenr_control';
     const HOME_HERO_EDIT = 'home_hero_edit';
     const HOME_HERO_DELETE = 'home_hero_delete';
     const HOME_HERO_CONTROL = 'home_hero_control';
+
+    const GUIDELINES_VIEW = 'guidelines_view';
+    const GUIDELINES_CREATE = 'guidelines_create';
+    const GUIDELINES_EDIT = 'guidelines_edit';
+    const GUIDELINES_DELETE = 'guidelines_delete';
+    const GUIDELINES_CONTROL = 'guidelines_control';
 
     const FIND_US_VIEW = 'find_us_view';
     const FIND_US_CREATE = 'find_us_create';
