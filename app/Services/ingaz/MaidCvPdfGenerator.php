@@ -13,6 +13,7 @@ use Illuminate\Support\Str;
 use Mpdf\Mpdf;
 use Mpdf\Output\Destination;
 use RuntimeException;
+use Symfony\Component\Process\ExecutableFinder;
 use Symfony\Component\Process\Process;
 
 class MaidCvPdfGenerator
@@ -74,15 +75,31 @@ class MaidCvPdfGenerator
     {
         $browserPath = $this->browserExecutable();
 
-        if ($browserPath !== null) {
-            try {
-                return $this->generateWithBrowser($browserPath, $html);
-            } catch (\Throwable $exception) {
-                report($exception);
+        if ($browserPath === null) {
+            if ($this->mpdfFallbackEnabled()) {
+                return $this->generateWithMpdf($html);
             }
+
+            throw new RuntimeException(
+                'تعذر توليد السيرة الذاتية بنفس تنسيق القالب لأن Chromium غير مثبت أو غير مضبوط على السيرفر. '
+                . 'ثبّت Google Chrome أو Chromium واضبط CV_PDF_BROWSER_PATH على مسار الملف التنفيذي.'
+            );
         }
 
-        return $this->generateWithMpdf($html);
+        try {
+            return $this->generateWithBrowser($browserPath, $html);
+        } catch (\Throwable $exception) {
+            if ($this->mpdfFallbackEnabled()) {
+                report($exception);
+
+                return $this->generateWithMpdf($html);
+            }
+
+            throw new RuntimeException(
+                'تعذر توليد السيرة الذاتية بواسطة Chromium: ' . $exception->getMessage(),
+                previous: $exception
+            );
+        }
     }
 
     private function generateWithBrowser(string $browserPath, string $html): string
@@ -175,7 +192,7 @@ class MaidCvPdfGenerator
 
     private function browserExecutable(): ?string
     {
-        $configuredPath = trim((string) env('CV_PDF_BROWSER_PATH', ''));
+        $configuredPath = trim((string) config('cv.pdf.browser_path', ''));
         $candidates = array_filter([
             $configuredPath,
             'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe',
@@ -186,6 +203,15 @@ class MaidCvPdfGenerator
             '/usr/bin/google-chrome-stable',
             '/usr/bin/chromium',
             '/usr/bin/chromium-browser',
+            '/usr/local/bin/google-chrome',
+            '/usr/local/bin/google-chrome-stable',
+            '/usr/local/bin/chromium',
+            '/usr/local/bin/chromium-browser',
+            '/opt/google/chrome/chrome',
+            '/opt/google/chrome/google-chrome',
+            '/snap/bin/chromium',
+            '/usr/bin/microsoft-edge',
+            '/usr/bin/microsoft-edge-stable',
         ]);
 
         foreach ($candidates as $candidate) {
@@ -194,7 +220,29 @@ class MaidCvPdfGenerator
             }
         }
 
+        $finder = new ExecutableFinder();
+
+        foreach ([
+            'google-chrome',
+            'google-chrome-stable',
+            'chromium',
+            'chromium-browser',
+            'microsoft-edge',
+            'microsoft-edge-stable',
+        ] as $executable) {
+            $path = $finder->find($executable);
+
+            if ($path !== null) {
+                return $path;
+            }
+        }
+
         return null;
+    }
+
+    private function mpdfFallbackEnabled(): bool
+    {
+        return (bool) config('cv.pdf.allow_mpdf_fallback', false);
     }
 
     private function fileUrl(string $path): string
