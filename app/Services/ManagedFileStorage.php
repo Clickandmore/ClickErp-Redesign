@@ -163,27 +163,6 @@ class ManagedFileStorage
         ]);
     }
 
-    public function downloadResponse(string $storedPath, string $filename, string $contentType): StreamedResponse
-    {
-        abort_unless($this->exists($storedPath), 404);
-        $disk = $this->disk($storedPath);
-        $path = $this->path($storedPath);
-
-        return response()->stream(function () use ($disk, $path): void {
-            $stream = $disk->readStream($path);
-            if (!is_resource($stream)) {
-                return;
-            }
-            fpassthru($stream);
-            fclose($stream);
-        }, 200, [
-            'Content-Type' => $contentType,
-            'Content-Disposition' => 'attachment; filename="' . str_replace(['"', "\r", "\n"], '', $filename) . '"',
-            'X-Content-Type-Options' => 'nosniff',
-            'Cache-Control' => 'private, no-store',
-        ]);
-    }
-
     public function contents(string $storedPath): string
     {
         if (!$this->exists($storedPath)) {
