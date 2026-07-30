@@ -1158,6 +1158,199 @@ class InvoiceController extends Controller
         });
     }
 
+    public function reconcileRecruitmentContractInvoice(
+        int $contractId,
+        array $invoicePayload,
+        \Carbon\Carbon $invoiceDate,
+        string $sourceFile,
+        int $sourceRow,
+        ObjService $service,
+        YearService $yearService,
+        BondService $bondService
+    ): array {
+        return DB::transaction(function () use (
+            $contractId,
+            $invoicePayload,
+            $invoiceDate,
+            $sourceFile,
+            $sourceRow,
+            $service,
+            $yearService,
+            $bondService
+        ): array {
+            $contract = Contract::query()
+                ->with(['user', 'maid.nationality', 'requiredMaidNationality', 'invoice'])
+                ->lockForUpdate()
+                ->findOrFail($contractId);
+
+            if (!$contract->invoice) {
+                $result = $this->createRecruitmentContractInvoice(
+                    $contract->id,
+                    $invoicePayload,
+                    $invoiceDate,
+                    false,
+                    $service,
+                    $yearService,
+                    $bondService,
+                    true
+                );
+                $result['invoice']->update([
+                    'legacy_source_file' => $sourceFile,
+                    'legacy_source_row' => $sourceRow,
+                    'legacy_source_payload' => $invoicePayload,
+                ]);
+                $result['action'] = 'created';
+
+                return $result;
+            }
+
+            $invoice = Invoice::query()
+                ->with(['financeSale.zatca', 'musanedTransferItem'])
+                ->lockForUpdate()
+                ->findOrFail($contract->invoice->id);
+            $amountChanged = collect([
+                [(float) $invoice->direct_recruitment_cost, (float) $invoicePayload['direct_recruitment_cost']],
+                [(float) $invoice->external_recruitment_cost, (float) $invoicePayload['external_recruitment_cost']],
+                [(float) $invoice->government_cost, (float) $invoicePayload['government_cost']],
+                [(float) $invoice->vat_amount, (float) $invoicePayload['vat_amount']],
+                [(float) $invoice->total_due, (float) $invoicePayload['total_due']],
+            ])->contains(fn (array $values) => abs($values[0] - $values[1]) >= 0.01);
+
+            if ($invoice->financeSale?->zatca_invoice_id || $invoice->financeSale?->zatca) {
+                throw new \RuntimeException('الفاتورة مرتبطة بفاتورة زكاة مرسلة ولا يجوز تعديلها مباشرة.');
+            }
+            if ($amountChanged && $invoice->musanedTransferItem) {
+                throw new \RuntimeException('الفاتورة مرتبطة بتحويل مساند؛ يجب تسوية التحويل قبل تعديل مبالغها.');
+            }
+            if ($amountChanged && (
+                $invoice->arrival_revenue_constraint_id
+                || $invoice->external_office_cost_constraint_id
+                || $invoice->external_office_purchase_id
+            )) {
+                throw new \RuntimeException('الفاتورة مرتبطة بقيود وصول أو تكلفة مكتب خارجي؛ لا يمكن تعديل مبالغها تلقائياً.');
+            }
+
+            $bonds = Bond::query()
+                ->where('recruitment_contract_id', $contract->id)
+                ->lockForUpdate()
+                ->get();
+            if ($bonds->count() > 1) {
+                throw new \RuntimeException('يوجد أكثر من سند مرتبط بالعقد؛ يلزم فحص محاسبي يدوي.');
+            }
+            $oldBond = $bonds->first();
+            if ($oldBond?->check || $oldBond?->bondTax) {
+                throw new \RuntimeException('سند العقد يحتوي شيكاً أو ضريبة ولا يمكن استبداله تلقائياً.');
+            }
+
+            $oldInvoiceConstraintId = $invoice->invoice_constraint_id
+                ? (int) $invoice->invoice_constraint_id
+                : null;
+            $oldBondConstraintId = $oldBond?->constraint_id
+                ? (int) $oldBond->constraint_id
+                : null;
+
+            $invoice->update(['invoice_constraint_id' => null]);
+            if ($oldBond) {
+                $oldBond->update(['constraint_id' => null, 'is_confirm' => 0]);
+                $oldBond->delete();
+            }
+            foreach (array_unique(array_filter([$oldInvoiceConstraintId, $oldBondConstraintId])) as $constraintId) {
+                $constraint = Constraint::query()->lockForUpdate()->find($constraintId);
+                if ($constraint) {
+                    $constraint->constraintDetails()->delete();
+                    $constraint->delete();
+                }
+            }
+
+            $invoice->update([
+                'direct_recruitment_cost' => $invoicePayload['direct_recruitment_cost'],
+                'external_recruitment_cost' => $invoicePayload['external_recruitment_cost'],
+                'government_cost' => $invoicePayload['government_cost'],
+                'internal_ticket_cost' => $invoicePayload['internal_ticket_cost'],
+                'visa_recruited_count' => $invoicePayload['visa_recruited_count'],
+                'direct_recruitment_count' => $invoicePayload['direct_recruitment_count'],
+                'external_recruitment_count' => $invoicePayload['external_recruitment_count'],
+                'insured_count' => $invoicePayload['insured_count'],
+                'government_cost_count' => $invoicePayload['government_cost_count'],
+                'internal_ticket_count' => $invoicePayload['internal_ticket_count'],
+                'subtotal' => $invoicePayload['subtotal'],
+                'discount' => $invoicePayload['discount'],
+                'vat_amount' => $invoicePayload['vat_amount'],
+                'total_due' => $invoicePayload['total_due'],
+                'created_at' => $invoiceDate,
+                'paid_at' => $invoiceDate,
+                'legacy_source_file' => $sourceFile,
+                'legacy_source_row' => $sourceRow,
+                'legacy_source_payload' => $invoicePayload,
+            ]);
+            $invoice = $invoice->fresh(['contract.user', 'financeSale.items']);
+
+            if ($invoice->financeSale) {
+                if ($invoice->financeSale->items->count() !== 1) {
+                    throw new \RuntimeException('فاتورة المبيعات المحاسبية تحتوي أكثر من بند ولا يمكن مزامنتها تلقائياً.');
+                }
+                $invoice->financeSale->update([
+                    'date' => $invoiceDate->toDateString(),
+                    'total_item' => $invoicePayload['subtotal'],
+                    'final_total' => $invoicePayload['total_due'],
+                    'total_tax_value' => $invoicePayload['vat_amount'],
+                ]);
+                $invoice->financeSale->items->first()->update([
+                    'price' => $invoicePayload['subtotal'],
+                    'tax_per' => $invoicePayload['subtotal'] > 0 && $invoicePayload['vat_amount'] > 0
+                        ? InvoiceCalculationService::VAT_RATE * 100
+                        : 0,
+                    'tax_value' => $invoicePayload['vat_amount'],
+                    'total_price_before' => $invoicePayload['subtotal'],
+                    'final_total' => $invoicePayload['total_due'],
+                    'amount' => 1,
+                ]);
+            }
+
+            $this->assertRecruitmentInvoiceAccountingConfiguration($invoiceDate, $yearService);
+            $nationality = $contract->maid?->nationality ?? $contract->requiredMaidNationality;
+            $nationalityName = $nationality?->sub_title ?? $nationality?->title ?? null;
+            $nationalityAccountId = $this->resolveContractNationalityLiabilityAccountId($nationality);
+            if (!$nationalityAccountId) {
+                throw new \RuntimeException('حساب التزامات عقود الجنسية غير مربوط أو غير صالح.');
+            }
+            $clientAccountId = $this->ensureClientAccountId($contract);
+            $contractCostCenter = $this->ensureRecruitmentContractCostCenter($contract, $nationalityName);
+            $invoiceConstraint = $this->storeInvoiceConstraintForInvoice(
+                $invoice,
+                $service,
+                $yearService,
+                $nationalityAccountId,
+                $clientAccountId,
+                $contractCostCenter->id
+            );
+            $invoice->update(['invoice_constraint_id' => $invoiceConstraint?->id]);
+
+            $receiptBond = $this->storeReceiptBondForInvoice(
+                $invoice,
+                $bondService,
+                $yearService,
+                $clientAccountId,
+                (int) $this->resolveMusanedReceiptAccount()->id
+            );
+            $receiptBond->update(['recruitment_contract_id' => $contract->id]);
+
+            if (!$invoiceConstraint || !$receiptBond->constraint_id) {
+                throw new \RuntimeException('لم تكتمل إعادة إنشاء القيود المحاسبية.');
+            }
+
+            return [
+                'invoice' => $invoice->fresh(),
+                'invoice_constraint' => $invoiceConstraint,
+                'receipt_bond' => $receiptBond->fresh(),
+                'action' => $amountChanged ? 'corrected' : 'accounting_rebuilt',
+                'replaced_invoice_constraint_id' => $oldInvoiceConstraintId,
+                'replaced_receipt_bond_id' => $oldBond?->id,
+                'replaced_receipt_constraint_id' => $oldBondConstraintId,
+            ];
+        });
+    }
+
     public function queueZatcaSale(int $id)
     {
         try {

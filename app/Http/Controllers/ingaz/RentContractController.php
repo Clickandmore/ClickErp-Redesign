@@ -2294,7 +2294,7 @@ class RentContractController extends Controller
                 $query->willingToWorkInsideShelter();
 
                 if ($includeCurrentMaid && $currentMaidId) {
-                    $query->orWhereKey($currentMaidId);
+                    $query->orWhere('id', $currentMaidId);
                 }
             })
             ->where(function ($query) use ($currentMaidId) {
