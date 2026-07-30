@@ -47,6 +47,25 @@ php artisan cv:doctor
 php artisan config:clear && php artisan config:cache
 ```
 
+## أنماط التشغيل (مهم على cPanel)
+
+CloudLinux/CageFS والحاويات التي تمنع user namespaces تقتل عملية **zygote** الخاصة بـ Chromium،
+فينهار بإشارة SIGTRAP (`signal "5"`) رغم أن `chrome --version` يعمل بشكل سليم. لذلك يجرّب
+المولّد أنماط تشغيل متدرجة، كل واحد يعطّل طبقة عزل إضافية، حتى ينجح أحدها:
+
+| النمط | الخيارات المضافة |
+| --- | --- |
+| `default` | لا شيء (الأسرع) |
+| `no-zygote` | `--no-zygote` |
+| `single-process` | `--no-zygote --single-process` |
+| `legacy-headless` | `--headless` القديم + `--no-zygote --single-process` |
+
+`cv:doctor` يجرّبها جميعًا ويطبع النمط العامل. ثبّته في `.env` لتوفير المحاولات الفاشلة في كل توليد:
+
+```env
+CV_PDF_BROWSER_PROFILE=no-zygote
+```
+
 ## إن فشل التشغيل المحلي على الاستضافة
 
 على استضافة مشتركة قد تصطدم بأحد هذه الحواجز ولا تملك صلاحية حلّها:
@@ -54,6 +73,7 @@ php artisan config:clear && php artisan config:cache
 - `proc_open` معطّلة في `php.ini`
 - مجلد `home` مركّب بخيار `noexec`
 - مكتبات ناقصة مثل `libnss3` أو `libgbm` أو `libatk-1.0`
+- منع إنشاء العمليات الفرعية بكل الأنماط أعلاه
 
 `cv:doctor` سيحدد أيها بالضبط. عندها إمّا تطلب من الدعم الفني معالجته، أو تشغّل الرسم عن بُعد —
 وهو **ما زال Chromium**، لذلك يبقى التنسيق مطابقًا تمامًا:
@@ -71,6 +91,7 @@ CV_PDF_REMOTE_TOKEN=
 | المتغير | الافتراضي | الوصف |
 | --- | --- | --- |
 | `CV_PDF_BROWSER_PATH` | (فارغ) | مسار Chrome صريح. اتركه فارغًا للاكتشاف التلقائي. |
+| `CV_PDF_BROWSER_PROFILE` | (فارغ) | تثبيت نمط التشغيل. اتركه فارغًا للتجربة التلقائية. |
 | `CV_PDF_VIRTUAL_TIME_BUDGET` | `15000` | مهلة (ms) لتحميل الصور والخطوط قبل الطباعة. ارفعها إن ظهرت صور ناقصة. |
 | `CV_PDF_TIMEOUT` | `120` | أقصى مدة (ثانية) لعملية Chromium. |
 | `CV_PDF_ALLOW_MPDF_FALLBACK` | `false` | **أبقِه `false`.** تفعيله يعيد المشكلة الأصلية. |

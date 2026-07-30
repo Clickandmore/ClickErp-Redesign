@@ -217,7 +217,6 @@ class CvPdfDoctor extends Command
         File::ensureDirectoryExists($directory);
 
         try {
-            $pdfPath = $directory . DIRECTORY_SEPARATOR . 'cv.pdf';
             $htmlPath = $directory . DIRECTORY_SEPARATOR . 'cv.html';
             File::put($htmlPath, $html);
 
@@ -229,35 +228,81 @@ class CvPdfDoctor extends Command
                 return;
             }
 
-            $process = new Process(
-                $generator->browserCommand(
-                    $browserPath,
-                    $directory . DIRECTORY_SEPARATOR . 'browser-profile',
-                    $pdfPath,
-                    $htmlPath
-                ),
-                $directory,
-                [
-                    'HOME' => $directory,
-                    'XDG_CONFIG_HOME' => $directory,
-                    'XDG_CACHE_HOME' => $directory,
-                    'TMPDIR' => $directory,
-                ]
-            );
-            $process->setTimeout(120);
-            $process->run();
+            // Every profile is tried even after one succeeds, so the report
+            // shows exactly which ones this host tolerates.
+            foreach (MaidCvPdfGenerator::BROWSER_PROFILES as $profile) {
+                if ($this->attemptProfile($generator, $browserPath, $htmlPath, $directory, $profile)) {
+                    $this->newLine();
+                    $this->info("نمط التشغيل العامل على هذا السيرفر: $profile");
 
-            if (!$process->isSuccessful() || !is_file($pdfPath)) {
-                $this->line('  <fg=red>فشل</>');
-                $this->line('  ' . Str::limit(trim($process->getErrorOutput() ?: $process->getOutput()), 500));
-                $this->problems[] = 'فشل تشغيل Chromium فعليًا. راجع رسالة الخطأ أعلاه.';
+                    if ($profile !== MaidCvPdfGenerator::BROWSER_PROFILES[0]) {
+                        $this->comment("ثبّته في .env لتسريع التوليد: CV_PDF_BROWSER_PROFILE=$profile");
+                    }
 
-                return;
+                    return;
+                }
             }
 
-            $this->line('  <fg=green>نجح</> — حجم الملف: ' . number_format(filesize($pdfPath)) . ' بايت');
+            $this->problems[] = 'فشل تشغيل Chromium بكل أنماط التشغيل. '
+                . 'الاستضافة تمنع تشغيله فعليًا — استخدم خدمة رسم خارجية عبر '
+                . 'CV_PDF_REMOTE_DRIVER وCV_PDF_REMOTE_URL.';
         } finally {
             File::deleteDirectory($directory);
         }
+    }
+
+    private function attemptProfile(
+        MaidCvPdfGenerator $generator,
+        string $browserPath,
+        string $htmlPath,
+        string $directory,
+        string $profile
+    ): bool {
+        $attemptDirectory = $directory . DIRECTORY_SEPARATOR . $profile;
+        File::ensureDirectoryExists($attemptDirectory);
+
+        $pdfPath = $attemptDirectory . DIRECTORY_SEPARATOR . 'cv.pdf';
+
+        $process = new Process(
+            $generator->browserCommand(
+                $browserPath,
+                $attemptDirectory . DIRECTORY_SEPARATOR . 'browser-profile',
+                $pdfPath,
+                $htmlPath,
+                $profile
+            ),
+            $attemptDirectory,
+            [
+                'HOME' => $attemptDirectory,
+                'XDG_CONFIG_HOME' => $attemptDirectory,
+                'XDG_CACHE_HOME' => $attemptDirectory,
+                'TMPDIR' => $attemptDirectory,
+            ]
+        );
+        $process->setTimeout(120);
+
+        try {
+            $process->run();
+            $failure = $process->isSuccessful() ? null : 'خرج بالرمز ' . $process->getExitCode();
+        } catch (\Throwable $exception) {
+            // A crashed Chromium is signalled, and Symfony turns that into an
+            // exception rather than an exit code.
+            $failure = $exception->getMessage();
+        }
+
+        if ($failure === null && is_file($pdfPath)) {
+            $this->line("  $profile: <fg=green>نجح</> — " . number_format(filesize($pdfPath)) . ' بايت');
+
+            return true;
+        }
+
+        $output = trim($process->getErrorOutput() ?: $process->getOutput());
+        $this->line("  $profile: <fg=red>فشل</> — " . ($failure ?? 'لم يُنتج أي ملف'));
+
+        if ($output !== '') {
+            $this->line('    ' . Str::limit($output, 400));
+        }
+
+        return false;
     }
 }
