@@ -81,7 +81,7 @@ class ManagedFileStorage
 
         if (!$this->isR2Path($storedPath)) {
             return Storage::disk('public')->exists($storedPath)
-                ? Storage::disk('public')->url($storedPath)
+                ? asset('storage/' . ltrim($storedPath, '/'))
                 : null;
         }
 
