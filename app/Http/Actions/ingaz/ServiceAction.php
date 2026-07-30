@@ -25,11 +25,23 @@ class ServiceAction extends MainAction
     public function updateService($id, $data)
     {
         $row = $this->find($id);
+        $oldImage = null;
+        $newImage = null;
         if (isset($data['image'])) {
-            deleteFile($row->image);
+            $oldImage = $row->image;
             $image = $data['image'];
             $data['image'] = uploadFile($image, $this->fileFolder);
+            $newImage = $data['image'];
         }
-        return $row->update($data);
+        try {
+            $updated = $row->update($data);
+        } catch (\Throwable $exception) {
+            deleteFile($newImage);
+            throw $exception;
+        }
+        if ($newImage) {
+            deleteFile($oldImage);
+        }
+        return $updated;
     }
 }

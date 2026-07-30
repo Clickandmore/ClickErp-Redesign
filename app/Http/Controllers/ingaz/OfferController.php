@@ -9,7 +9,6 @@ use App\Models\ingaz\Nationality;
 use App\Models\ingaz\Offer;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Yajra\DataTables\Facades\DataTables;
 
@@ -116,10 +115,17 @@ class OfferController extends Controller
 
     public function store(OfferRequest $request)
     {
-        DB::transaction(function () use ($request) {
-            $offer = Offer::create($this->validatedData($request));
-            $this->syncRelations($offer, $request);
-        });
+        $newFiles = [];
+
+        try {
+            DB::transaction(function () use ($request, &$newFiles) {
+                $offer = Offer::create($this->validatedData($request, null, $newFiles));
+                $this->syncRelations($offer, $request);
+            });
+        } catch (\Throwable $exception) {
+            $this->deleteFiles($newFiles);
+            throw $exception;
+        }
 
         return jsonSuccess();
     }
@@ -149,11 +155,24 @@ class OfferController extends Controller
     public function update(OfferRequest $request, $id)
     {
         $offer = Offer::findOrFail($id);
+        $oldFiles = [];
+        $newFiles = [];
 
-        DB::transaction(function () use ($request, $offer) {
-            $offer->update($this->validatedData($request, $offer));
-            $this->syncRelations($offer, $request);
-        });
+        try {
+            DB::transaction(function () use ($request, $offer, &$oldFiles, &$newFiles) {
+                if ($request->hasFile('image') && $offer->image) {
+                    $oldFiles[] = $offer->image;
+                }
+
+                $offer->update($this->validatedData($request, $offer, $newFiles));
+                $this->syncRelations($offer, $request);
+            });
+        } catch (\Throwable $exception) {
+            $this->deleteFiles($newFiles);
+            throw $exception;
+        }
+
+        $this->deleteFiles($oldFiles);
 
         return jsonSuccess();
     }
@@ -162,11 +181,9 @@ class OfferController extends Controller
     {
         $offer = Offer::findOrFail($id);
 
-        if ($offer->image) {
-            Storage::delete($offer->image);
-        }
-
+        $image = $offer->image;
         $offer->delete();
+        $this->deleteFiles([$image]);
 
         return jsonSuccess();
     }
@@ -195,7 +212,11 @@ class OfferController extends Controller
         ];
     }
 
-    private function validatedData(OfferRequest $request, ?Offer $offer = null): array
+    private function validatedData(
+        OfferRequest $request,
+        ?Offer $offer,
+        array &$newFiles
+    ): array
     {
         $data = $request->validated();
         unset($data['nationality_ids'], $data['maid_ids']);
@@ -207,16 +228,20 @@ class OfferController extends Controller
         $data['discount_percentage'] = $this->resolveDiscountPercentage($data);
 
         if ($request->hasFile('image')) {
-            if ($offer && $offer->image) {
-                Storage::delete($offer->image);
-            }
-
             $data['image'] = uploadFile($request->file('image'), 'images/offers/', 1);
+            $newFiles[] = $data['image'];
         } else {
             unset($data['image']);
         }
 
         return $data;
+    }
+
+    private function deleteFiles(array $paths): void
+    {
+        foreach (array_unique(array_filter($paths)) as $path) {
+            deleteFile($path);
+        }
     }
 
     private function resolveDiscountPercentage(array $data): ?float

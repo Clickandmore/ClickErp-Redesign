@@ -505,20 +505,13 @@ if (!function_exists('documentBranding')) {
 if (!function_exists('imageOrNull')) {
     function imageOrNull($fileFullPath)
     {
-        if ($fileFullPath && file_exists(public_path('/storage/' . $fileFullPath))) {
-            return asset('/storage/' . $fileFullPath);
-        }
-        return "";
+        return showFile($fileFullPath) ?: '';
     }
 }
 
 function getFile($fileFullPath)
 {
-    if ($fileFullPath && file_exists(public_path('/storage/' . $fileFullPath))) {
-        return asset('/storage/' . $fileFullPath);
-    }
-
-    return asset('/storage/uploads/noImage.gif');
+    return showFile($fileFullPath) ?: asset('/storage/uploads/noImage.gif');
 }
 
 if (!function_exists('getAuthUser')) {

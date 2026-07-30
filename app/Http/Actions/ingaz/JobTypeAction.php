@@ -24,13 +24,25 @@ class JobTypeAction extends MainAction
 
     public function update($id, $data)
     {
+        $obj = $this->find($id);
+        $oldImage = null;
+        $newImage = null;
         if (isset($data['image'])) {
-            $obj = $this->find($id);
-            deleteFile($obj->image);
+            $oldImage = $obj->image;
             $image = $data['image'];
             $data['image'] = uploadFile($image, $this->fileFolder);
+            $newImage = $data['image'];
         }
-        return parent::update($id, $data);
+        try {
+            $updated = parent::update($id, $data);
+        } catch (\Throwable $exception) {
+            deleteFile($newImage);
+            throw $exception;
+        }
+        if ($newImage) {
+            deleteFile($oldImage);
+        }
+        return $updated;
     }
 
     public function getJobsTypes()

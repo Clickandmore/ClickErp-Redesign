@@ -25,12 +25,24 @@ class SliderAction extends MainAction
     public function updateSlider($id, $data)
     {
         $row = $this->find($id);
+        $oldImage = null;
+        $newImage = null;
 
         if (request()->hasFile('image')) {
-            deleteFile($row->image);
+            $oldImage = $row->image;
             $data['image'] = uploadFile($data['image'], $this->fileFolder, 1);
+            $newImage = $data['image'];
         }
 
-        return $row->update($data);
+        try {
+            $updated = $row->update($data);
+        } catch (\Throwable $exception) {
+            deleteFile($newImage);
+            throw $exception;
+        }
+        if ($newImage) {
+            deleteFile($oldImage);
+        }
+        return $updated;
     }
 }

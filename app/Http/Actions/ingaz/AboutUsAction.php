@@ -18,6 +18,8 @@ class AboutUsAction extends MainAction
     public function updateSetting($id, $data)
     {
         $about = $this->find($id);
+        $oldFiles = [];
+        $newFiles = [];
 
         // Separate translation data from main data
         $translationData = [];
@@ -36,31 +38,40 @@ class AboutUsAction extends MainAction
                 $mainData[$key] = $value;
             }
         }
-        if (isset($data['image'])) {
-            $mainData['image'] = uploadFile($data['image'], 'images/abouts/', 1);
-        }
-        if (isset($data['image_vision'])) {
-            $mainData['image_vision'] = uploadFile($data['image_vision'], 'images/abouts/', 1);
-        }
-        if (isset($data['image_message'])) {
-            $mainData['image_message'] = uploadFile($data['image_message'], 'images/abouts/', 1);
-        }
-        if (isset($data['image_value'])) {
-            $mainData['image_value'] = uploadFile($data['image_value'], 'images/abouts/', 1);
-        }
-        // Update main data
-        if (!empty($mainData)) {
-            $about->update($mainData);
+        foreach ($this->files as $field) {
+            if (!isset($data[$field])) {
+                continue;
+            }
+
+            $oldFiles[] = $about->{$field};
+            $mainData[$field] = uploadFile($data[$field], 'images/abouts/', 1);
+            $newFiles[] = $mainData[$field];
         }
 
-        // Update translations
-        foreach ($translationData as $locale => $fields) {
-            $about->translateOrNew($locale)->fill($fields);
+        try {
+            if (!empty($mainData)) {
+                $about->update($mainData);
+            }
+
+            foreach ($translationData as $locale => $fields) {
+                $about->translateOrNew($locale)->fill($fields);
+            }
+
+            $about->save();
+        } catch (\Throwable $exception) {
+            $this->deleteFiles($newFiles);
+            throw $exception;
         }
 
-        $about->save();
-
+        $this->deleteFiles($oldFiles);
         return $about;
+    }
+
+    private function deleteFiles(array $paths): void
+    {
+        foreach (array_unique(array_filter($paths)) as $path) {
+            deleteFile($path);
+        }
     }
 
 }

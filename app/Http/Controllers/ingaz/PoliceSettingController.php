@@ -35,13 +35,21 @@ class PoliceSettingController extends Controller
     public function store(objRequest $request, objAction $action)
     {
         $data = $request->only($this->postData);
+        $newFiles = [];
         if (isset($data['file_workers_rights'])) {
             $data['file_workers_rights'] = uploadFile($data['file_workers_rights'], 'images/polices_settings/', 1);
+            $newFiles[] = $data['file_workers_rights'];
         }
         if (isset($data['file_employee_rights'])) {
             $data['file_employee_rights'] = uploadFile($data['file_employee_rights'], 'images/polices_settings/', 1);
+            $newFiles[] = $data['file_employee_rights'];
         }
-        $data = $action->store($data);
+        try {
+            $data = $action->store($data);
+        } catch (\Throwable $exception) {
+            $this->deleteFiles($newFiles);
+            throw $exception;
+        }
         return jsonSuccess($data, null, 201);
     }
 
@@ -59,19 +67,44 @@ class PoliceSettingController extends Controller
     public function update(objRequest $request, objAction $action, $id)
     {
         $dataInsert = $request->only($this->postData);
+        $setting = $action->find($id);
+        $oldFiles = [];
+        $newFiles = [];
         if (isset($dataInsert['file_workers_rights'])) {
+            $oldFiles[] = $setting->file_workers_rights;
             $dataInsert['file_workers_rights'] = uploadFile($dataInsert['file_workers_rights'], 'images/polices_settings/', 1);
+            $newFiles[] = $dataInsert['file_workers_rights'];
         }
         if (isset($dataInsert['file_employee_rights'])) {
+            $oldFiles[] = $setting->file_employee_rights;
             $dataInsert['file_employee_rights'] = uploadFile($dataInsert['file_employee_rights'], 'images/polices_settings/', 1);
+            $newFiles[] = $dataInsert['file_employee_rights'];
         }
-        $action->find($id)->update($dataInsert);
+        try {
+            $setting->update($dataInsert);
+        } catch (\Throwable $exception) {
+            $this->deleteFiles($newFiles);
+            throw $exception;
+        }
+        $this->deleteFiles($oldFiles);
         return jsonSuccess(null, null, 201);
     }
 
     public function destroy($id, objAction $action)
     {
+        $setting = $action->find($id);
         $action->delete($id);
+        $this->deleteFiles([
+            $setting?->file_workers_rights,
+            $setting?->file_employee_rights,
+        ]);
         return jsonSuccess();
+    }
+
+    private function deleteFiles(array $paths): void
+    {
+        foreach (array_unique(array_filter($paths)) as $path) {
+            deleteFile($path);
+        }
     }
 }

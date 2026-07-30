@@ -4,7 +4,6 @@ namespace App\Http\Actions\ingaz;
 
 use App\Http\Actions\MainAction;
 use App\Models\ingaz\JobTitle;
-use Illuminate\Support\Facades\Storage;
 
 class JobTitleAction extends MainAction
 {
@@ -27,14 +26,27 @@ class JobTitleAction extends MainAction
     public function updateJobTitle($id, $data)
     {
         $row = $this->find($id);
+        $oldImage = null;
+        $newImage = null;
 
         if (request()->hasFile('image')) {
-            Storage::delete($row->image);
+            $oldImage = $row->image;
             $data['image'] = uploadFile($data['image'], $this->fileFolder, 1);
+            $newImage = $data['image'];
         }
 
-        return $row->update($data);
+        try {
+            $updated = $row->update($data);
+        } catch (\Throwable $exception) {
+            deleteFile($newImage);
+            throw $exception;
+        }
 
+        if ($newImage) {
+            deleteFile($oldImage);
+        }
+
+        return $updated;
     }
 
     public function getJobsTitles()
