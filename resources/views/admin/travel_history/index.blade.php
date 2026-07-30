@@ -286,6 +286,16 @@
                                         <input type="text" class="form-control" id="order_id" placeholder="#123">
                                     </div>
                                     <div class="col-md-3">
+                                        <label class="form-label">جوال العميل</label>
+                                        <input type="text" class="form-control" id="client_phone"
+                                            placeholder="05xxxxxxxx" dir="ltr">
+                                    </div>
+                                    <div class="col-md-3">
+                                        <label class="form-label">هوية العميل / السجل التجاري</label>
+                                        <input type="text" class="form-control" id="client_document"
+                                            placeholder="10xxxxxxxx" dir="ltr">
+                                    </div>
+                                    <div class="col-md-3">
                                         <label class="form-label">{{ __('admin.travel_type') }}</label>
                                         <select id="travel_type" class="form-control">
                                             <option value="">{{ __('admin.travel_type') }}</option>
@@ -772,6 +782,8 @@
                     data: function(d) {
                         d.search = $('#search_text').val();
                         d.order_id = $('#order_id').val();
+                        d.client_phone = $('#client_phone').val();
+                        d.client_document = $('#client_document').val();
                         d.travel_type = $('#travel_type').val();
                         d.travel_with = $('#travel_with').val();
                         d.status = $('#status').val();
@@ -901,6 +913,8 @@
             const params = new URLSearchParams();
             params.set('search', $('#search_text').val() || '');
             params.set('order_id', $('#order_id').val() || '');
+            params.set('client_phone', $('#client_phone').val() || '');
+            params.set('client_document', $('#client_document').val() || '');
             params.set('travel_type', $('#travel_type').val() || '');
             params.set('travel_with', $('#travel_with').val() || '');
             params.set('status', $('#status').val() || '');
@@ -916,6 +930,8 @@
         function resetTravelFilters() {
             $('#search_text').val('');
             $('#order_id').val('');
+            $('#client_phone').val('');
+            $('#client_document').val('');
             $('#travel_type').val('');
             $('#travel_with').val('');
             $('#status').val('');
