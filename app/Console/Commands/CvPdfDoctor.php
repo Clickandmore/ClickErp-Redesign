@@ -26,6 +26,14 @@ class CvPdfDoctor extends Command
         $this->reportEnvironment();
         $this->reportFallbackMode($generator);
 
+        if ($generator->usesSvgRenderer()) {
+            $this->line('  CV_PDF_RENDERER: <fg=green>svg</> — لن يتم تشغيل Chromium.');
+            $this->newLine();
+            $this->info('وضع SVG مفعّل. توليد السير سيعمل دون Chromium أو mPDF.');
+
+            return self::SUCCESS;
+        }
+
         $remoteDriver = $generator->remoteDriver();
 
         if ($remoteDriver !== null) {
