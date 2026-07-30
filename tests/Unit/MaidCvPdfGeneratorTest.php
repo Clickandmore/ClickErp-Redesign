@@ -36,6 +36,28 @@ class MaidCvPdfGeneratorTest extends TestCase
         $this->assertFalse($generator->isGeneratedPath(null));
     }
 
+    public function test_the_degraded_mpdf_fallback_is_disabled_by_default(): void
+    {
+        // A silent fallback is what made server PDFs stop matching the
+        // uploaded template while local PDFs still looked correct.
+        $this->assertFalse(config('cv.pdf.allow_mpdf_fallback'));
+        $this->assertFalse(app(MaidCvPdfGenerator::class)->mpdfFallbackEnabled());
+    }
+
+    public function test_the_browser_command_prints_the_page_without_chrome_headers(): void
+    {
+        $command = app(MaidCvPdfGenerator::class)
+            ->browserCommand('/usr/bin/chromium', '/tmp/profile', '/tmp/cv.pdf', '/tmp/cv.html');
+
+        $this->assertSame('/usr/bin/chromium', $command[0]);
+        $this->assertContains('--headless=new', $command);
+        $this->assertContains('--no-sandbox', $command);
+        $this->assertContains('--no-pdf-header-footer', $command);
+        $this->assertContains('--print-to-pdf=/tmp/cv.pdf', $command);
+        $this->assertContains('--virtual-time-budget=15000', $command);
+        $this->assertSame('file:///tmp/cv.html', end($command));
+    }
+
     public function test_dompdf_can_create_a_pdf_from_rendered_blade_html(): void
     {
         $html = app(MaidCvPdfGenerator::class)->renderTemplate(

@@ -8,6 +8,7 @@ use App\Models\ingaz\Skill;
 use App\Support\MaidCvTemplateSettings;
 use Illuminate\Support\Facades\Blade;
 use Illuminate\Support\Facades\File;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Mpdf\Mpdf;
@@ -71,8 +72,32 @@ class MaidCvPdfGenerator
         return $path;
     }
 
+    /**
+     * Every environment must render with Chromium. Falling back to another
+     * engine produces a PDF that no longer matches the uploaded template,
+     * so an unusable renderer is a hard failure instead of a silent downgrade.
+     */
     private function generatePdfContents(string $html): string
     {
+        $remoteDriver = $this->remoteDriver();
+
+        if ($remoteDriver !== null) {
+            try {
+                return $this->generateWithRemoteBrowser($remoteDriver, $html);
+            } catch (\Throwable $exception) {
+                if ($this->mpdfFallbackEnabled()) {
+                    report($exception);
+
+                    return $this->generateWithMpdf($html);
+                }
+
+                throw new RuntimeException(
+                    'تعذر توليد السيرة الذاتية عبر خدمة الرسم الخارجية: ' . $exception->getMessage(),
+                    previous: $exception
+                );
+            }
+        }
+
         $browserPath = $this->browserExecutable();
 
         if ($browserPath === null) {
@@ -80,10 +105,19 @@ class MaidCvPdfGenerator
                 return $this->generateWithMpdf($html);
             }
 
+            throw new RuntimeException($this->missingBrowserMessage());
+        }
+
+        if (!function_exists('proc_open')) {
+            if ($this->mpdfFallbackEnabled()) {
+                return $this->generateWithMpdf($html);
+            }
+
             throw new RuntimeException(
-                'تعذر توليد السيرة الذاتية بنفس تنسيق القالب لأن Chromium غير مثبت أو غير مضبوط على السيرفر. '
-                . 'نفّذ php artisan cv:install-browser لتثبيته داخل المشروع، '
-                . 'أو اضبط CV_PDF_BROWSER_PATH على مسار Chrome المثبت.'
+                'تعذر تشغيل Chromium لأن الدالة proc_open معطّلة في إعدادات PHP على السيرفر. '
+                . 'أزل proc_open من disable_functions في php.ini، '
+                . 'أو اضبط CV_PDF_REMOTE_DRIVER وCV_PDF_REMOTE_URL لاستخدام خدمة رسم خارجية. '
+                . 'نفّذ php artisan cv:doctor لعرض التشخيص الكامل.'
             );
         }
 
@@ -97,7 +131,8 @@ class MaidCvPdfGenerator
             }
 
             throw new RuntimeException(
-                'تعذر توليد السيرة الذاتية بواسطة Chromium: ' . $exception->getMessage(),
+                'تعذر توليد السيرة الذاتية بواسطة Chromium: ' . $exception->getMessage()
+                . ' نفّذ php artisan cv:doctor لعرض التشخيص الكامل.',
                 previous: $exception
             );
         }
@@ -115,25 +150,25 @@ class MaidCvPdfGenerator
         try {
             File::put($htmlPath, $html);
 
-            $process = new Process([
-                $browserPath,
-                '--headless=new',
-                '--disable-gpu',
-                '--no-sandbox',
-                '--disable-dev-shm-usage',
-                '--allow-file-access-from-files',
-                '--run-all-compositor-stages-before-draw',
-                '--no-pdf-header-footer',
-                '--user-data-dir=' . $profilePath,
-                '--print-to-pdf=' . $pdfPath,
-                $this->fileUrl($htmlPath),
-            ]);
-            $process->setTimeout(90);
+            $process = new Process(
+                $this->browserCommand($browserPath, $profilePath, $pdfPath, $htmlPath),
+                $temporaryDirectory,
+                // Shared hosting often runs PHP without a writable HOME, and
+                // Chromium aborts on startup when it cannot write its caches.
+                [
+                    'HOME' => $temporaryDirectory,
+                    'XDG_CONFIG_HOME' => $temporaryDirectory,
+                    'XDG_CACHE_HOME' => $temporaryDirectory,
+                    'TMPDIR' => $temporaryDirectory,
+                ]
+            );
+            $process->setTimeout($this->processTimeout());
             $process->run();
 
             if (!$process->isSuccessful() || !is_file($pdfPath)) {
                 throw new RuntimeException(
-                    'تعذر إنشاء PDF بواسطة المتصفح: ' . trim($process->getErrorOutput() ?: $process->getOutput())
+                    trim($process->getErrorOutput() ?: $process->getOutput())
+                        ?: 'لم يُنتج المتصفح أي ملف ولم يُرجع رسالة خطأ.'
                 );
             }
 
@@ -148,8 +183,107 @@ class MaidCvPdfGenerator
         }
     }
 
+    /**
+     * @return array<int, string>
+     */
+    public function browserCommand(
+        string $browserPath,
+        string $profilePath,
+        string $pdfPath,
+        string $htmlPath
+    ): array {
+        return [
+            $browserPath,
+            '--headless=new',
+            '--disable-gpu',
+            '--no-sandbox',
+            '--disable-setuid-sandbox',
+            '--disable-dev-shm-usage',
+            '--disable-extensions',
+            '--disable-background-networking',
+            '--disable-crash-reporter',
+            '--no-first-run',
+            '--no-default-browser-check',
+            '--hide-scrollbars',
+            '--force-color-profile=srgb',
+            '--font-render-hinting=none',
+            '--allow-file-access-from-files',
+            '--run-all-compositor-stages-before-draw',
+            // Gives remote images and web fonts time to arrive on a server
+            // that is slower than a developer machine.
+            '--virtual-time-budget=' . $this->virtualTimeBudget(),
+            '--no-pdf-header-footer',
+            '--print-to-pdf-no-header',
+            '--user-data-dir=' . $profilePath,
+            '--crash-dumps-dir=' . $profilePath,
+            '--print-to-pdf=' . $pdfPath,
+            $this->fileUrl($htmlPath),
+        ];
+    }
+
+    private function generateWithRemoteBrowser(string $driver, string $html): string
+    {
+        $url = rtrim(trim((string) config('cv.pdf.remote.url', '')), '/');
+
+        if ($url === '') {
+            throw new RuntimeException('لم يتم ضبط CV_PDF_REMOTE_URL.');
+        }
+
+        $token = trim((string) config('cv.pdf.remote.token', ''));
+        $timeout = max(30, (int) config('cv.pdf.remote.timeout', 120));
+
+        $response = match ($driver) {
+            'gotenberg' => Http::timeout($timeout)
+                ->when($token !== '', fn ($request) => $request->withToken($token))
+                ->attach('files', $html, 'index.html')
+                ->post($url . '/forms/chromium/convert/html', [
+                    'marginTop' => '0',
+                    'marginBottom' => '0',
+                    'marginLeft' => '0',
+                    'marginRight' => '0',
+                    'printBackground' => 'true',
+                    'preferCssPageSize' => 'true',
+                    'waitDelay' => '2s',
+                ]),
+            'browserless' => Http::timeout($timeout)
+                ->post($url . '/pdf' . ($token !== '' ? '?token=' . urlencode($token) : ''), [
+                    'html' => $html,
+                    'options' => [
+                        'printBackground' => true,
+                        'preferCSSPageSize' => true,
+                        'margin' => ['top' => '0', 'bottom' => '0', 'left' => '0', 'right' => '0'],
+                    ],
+                    'gotoOptions' => ['waitUntil' => 'networkidle0'],
+                ]),
+            default => throw new RuntimeException(
+                "قيمة CV_PDF_REMOTE_DRIVER غير مدعومة: $driver. المدعوم: gotenberg أو browserless."
+            ),
+        };
+
+        if (!$response->successful()) {
+            throw new RuntimeException(
+                'استجابة غير ناجحة (' . $response->status() . '): ' . Str::limit($response->body(), 300)
+            );
+        }
+
+        $contents = $response->body();
+
+        if (!Str::startsWith($contents, '%PDF')) {
+            throw new RuntimeException('لم تُرجع الخدمة ملف PDF صالحًا.');
+        }
+
+        return $contents;
+    }
+
     private function generateWithMpdf(string $html): string
     {
+        if (!class_exists(Mpdf::class)) {
+            throw new RuntimeException(
+                'تم تفعيل CV_PDF_ALLOW_MPDF_FALLBACK لكن حزمة mpdf/mpdf غير مثبتة. '
+                . 'نفّذ composer require mpdf/mpdf أو أعد تعطيل هذا الخيار.'
+            );
+        }
+
         $temporaryDirectory = storage_path('framework/cache/mpdf');
         File::ensureDirectoryExists($temporaryDirectory);
         // The page size and margins are configured directly on mPDF below.
@@ -191,7 +325,7 @@ class MaidCvPdfGenerator
         }
     }
 
-    private function browserExecutable(): ?string
+    public function browserExecutable(): ?string
     {
         $configuredPath = trim((string) config('cv.pdf.browser_path', ''));
         $candidates = array_filter([
@@ -242,12 +376,41 @@ class MaidCvPdfGenerator
         return null;
     }
 
-    private function mpdfFallbackEnabled(): bool
+    public function remoteDriver(): ?string
     {
-        return (bool) config('cv.pdf.allow_mpdf_fallback', false);
+        $driver = strtolower(trim((string) config('cv.pdf.remote.driver', '')));
+
+        return $driver === '' ? null : $driver;
     }
 
-    private function managedBrowserExecutables(): array
+    public function mpdfFallbackEnabled(): bool
+    {
+        return filter_var(config('cv.pdf.allow_mpdf_fallback', false), FILTER_VALIDATE_BOOLEAN);
+    }
+
+    public function missingBrowserMessage(): string
+    {
+        return 'تعذر توليد السيرة الذاتية بنفس تنسيق القالب لأن Chromium غير مثبت أو غير مضبوط على السيرفر. '
+            . 'نفّذ php artisan cv:install-browser لتثبيته داخل المشروع، '
+            . 'أو اضبط CV_PDF_BROWSER_PATH على مسار Chrome المثبت، '
+            . 'أو اضبط CV_PDF_REMOTE_DRIVER وCV_PDF_REMOTE_URL لاستخدام خدمة رسم خارجية. '
+            . 'نفّذ php artisan cv:doctor لعرض التشخيص الكامل.';
+    }
+
+    public function virtualTimeBudget(): int
+    {
+        return max(1000, (int) config('cv.pdf.virtual_time_budget', 15000));
+    }
+
+    private function processTimeout(): int
+    {
+        return max(30, (int) config('cv.pdf.timeout', 120));
+    }
+
+    /**
+     * @return array<int, string>
+     */
+    public function managedBrowserExecutables(): array
     {
         $patterns = PHP_OS_FAMILY === 'Windows'
             ? [storage_path('app/cv-browser/*/chrome-win64/chrome.exe')]
@@ -263,7 +426,7 @@ class MaidCvPdfGenerator
         return $executables;
     }
 
-    private function fileUrl(string $path): string
+    public function fileUrl(string $path): string
     {
         return 'file:///' . ltrim(str_replace('\\', '/', $path), '/');
     }
