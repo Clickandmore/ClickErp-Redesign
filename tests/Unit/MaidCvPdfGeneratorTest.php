@@ -3,7 +3,9 @@
 namespace Tests\Unit;
 
 use App\Models\ingaz\Maid;
+use App\Models\ingaz\Setting;
 use App\Services\ingaz\MaidCvPdfGenerator;
+use App\Services\ingaz\MaidCvSvgGenerator;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Tests\TestCase;
 
@@ -106,6 +108,41 @@ class MaidCvPdfGeneratorTest extends TestCase
         } finally {
             \Illuminate\Support\Facades\File::deleteDirectory($directory);
         }
+    }
+
+    public function test_svg_renderer_can_be_forced_on_restricted_hosting(): void
+    {
+        $generator = app(MaidCvPdfGenerator::class);
+
+        config()->set('cv.pdf.renderer', 'auto');
+        $this->assertFalse($generator->usesSvgRenderer());
+
+        config()->set('cv.pdf.renderer', 'svg');
+        $this->assertTrue($generator->usesSvgRenderer());
+    }
+
+    public function test_svg_fallback_renders_without_a_browser(): void
+    {
+        $maid = new Maid([
+            'name' => 'Test Worker',
+            'passport_num' => 'P12345',
+            'skills' => [],
+        ]);
+        $maid->id = 10;
+        foreach (['nationality', 'religion', 'office', 'recruitmentOffice'] as $relation) {
+            $maid->setRelation($relation, null);
+        }
+        foreach (['jobTypes', 'jobTitles', 'expertises'] as $relation) {
+            $maid->setRelation($relation, collect());
+        }
+
+        $settings = (new Setting())->forceFill(['title' => 'Test Office']);
+        $svg = app(MaidCvSvgGenerator::class)->render($maid, $settings);
+
+        $this->assertStringStartsWith('<svg', $svg);
+        $this->assertStringContainsString('Test Worker', $svg);
+        $this->assertStringContainsString('P12345', $svg);
+        $this->assertStringContainsString('Test Office', $svg);
     }
 
     public function test_dompdf_can_create_a_pdf_from_rendered_blade_html(): void

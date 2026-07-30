@@ -3,6 +3,12 @@
 return [
     'pdf' => [
         /*
+         * auto: try Chromium and fall back to SVG on failure.
+         * svg: skip Chromium entirely (recommended on restricted hosting).
+         */
+        'renderer' => env('CV_PDF_RENDERER', 'auto'),
+
+        /*
          * Use the same Chromium renderer in every environment so uploaded
          * Blade templates keep identical HTML/CSS layout in generated PDFs.
          */

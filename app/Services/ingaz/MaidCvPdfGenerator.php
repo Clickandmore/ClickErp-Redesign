@@ -47,13 +47,31 @@ class MaidCvPdfGenerator
             'recruitmentOffice',
         ]);
 
-        $html = $this->renderTemplate($template, $this->viewData($maid, $settings));
-        $contents = $this->generatePdfContents($html);
+        if ($this->usesSvgRenderer()) {
+            $contents = app(MaidCvSvgGenerator::class)->render($maid, $settings);
+            $extension = 'svg';
+        } else {
+            $extension = 'pdf';
+
+            try {
+                $html = $this->renderTemplate($template, $this->viewData($maid, $settings));
+                $contents = $this->generatePdfContents($html);
+            } catch (\Throwable $exception) {
+                report($exception);
+                \Log::warning('Chromium CV generation failed; using SVG fallback.', [
+                    'maid_id' => $maid->id,
+                    'error' => $exception->getMessage(),
+                ]);
+
+                $contents = app(MaidCvSvgGenerator::class)->render($maid, $settings);
+                $extension = 'svg';
+            }
+        }
         if ($contents === '') {
             throw new RuntimeException('تعذر إنشاء ملف PDF من القالب المرفوع.');
         }
 
-        $path = self::STORAGE_DIRECTORY . '/maid-' . $maid->id . '-' . Str::uuid() . '.pdf';
+        $path = self::STORAGE_DIRECTORY . '/maid-' . $maid->id . '-' . Str::uuid() . '.' . $extension;
         if (!Storage::disk('public')->put($path, $contents)) {
             throw new RuntimeException('تعذر حفظ ملف السيرة الذاتية المولد.');
         }
@@ -74,10 +92,14 @@ class MaidCvPdfGenerator
         return $path;
     }
 
+    public function usesSvgRenderer(): bool
+    {
+        return strtolower(trim((string) config('cv.pdf.renderer', 'auto'))) === 'svg';
+    }
+
     /**
-     * Every environment must render with Chromium. Falling back to another
-     * engine produces a PDF that no longer matches the uploaded template,
-     * so an unusable renderer is a hard failure instead of a silent downgrade.
+     * Render the uploaded Blade template as PDF whenever a Chromium renderer
+     * is available. The caller owns the browser-independent SVG fallback.
      */
     private function generatePdfContents(string $html): string
     {
