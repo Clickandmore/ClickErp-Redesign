@@ -26,6 +26,7 @@ use App\Models\RentalContractTerm;
 use App\Services\ingaz\RentalContractFinanceService;
 use App\Services\MoyasarService;
 use App\Services\RentalContractExpiryReminderService;
+use App\Services\RentalShelterPresenceService;
 use App\Support\MoyasarSettings;
 use App\Support\RentalContractPricing;
 use App\Support\RentalContractSettlement;
@@ -4349,80 +4350,12 @@ class RentContractController extends Controller
 
     private function markShelterContractOutsideForRental(RentalContract $rentalContract): void
     {
-        if (!$rentalContract->maid_id) {
-            return;
-        }
-
-        $shelterContract = Contract::query()
-            ->with('info')
-            ->where('maid_id', $rentalContract->maid_id)
-            ->where('status', ContractStatusEnum::Shelter->value)
-            ->where(function ($query) {
-                $query->whereDoesntHave('info')
-                    ->orWhereHas('info', function ($infoQuery) {
-                        $infoQuery->where(function ($outsideQuery) {
-                            $outsideQuery->whereNull('is_outside_shelter')
-                                ->orWhere('is_outside_shelter', false);
-                        });
-                    });
-            })
-            ->latest('id')
-            ->lockForUpdate()
-            ->first();
-
-        if (!$shelterContract) {
-            return;
-        }
-
-        $shelterContract->info()->updateOrCreate([], [
-            'is_outside_shelter' => true,
-            'outside_shelter_at' => $rentalContract->maid_delivered_at ?: now(),
-            'outside_shelter_reason' => 'rental_delivery',
-            'outside_shelter_reference_type' => RentalContract::class,
-            'outside_shelter_reference_id' => $rentalContract->id,
-            'outside_shelter_by' => auth('admin')->id() ?: auth()->id(),
-        ]);
-
-        $shelterContract->contract_status_logs()->create([
-            'status' => ContractStatusEnum::Shelter->value,
-            'date' => now(),
-            'notes' => 'تم إخراج العاملة من داخل الإيواء بسبب تسليم عقد إيجار رقم ' . $rentalContract->id,
-        ]);
+        app(RentalShelterPresenceService::class)->markOutside($rentalContract);
     }
 
     private function returnShelterContractInsideForRental(RentalContract $rentalContract): void
     {
-        if (!$rentalContract->maid_id) {
-            return;
-        }
-
-        $shelterContract = Contract::query()
-            ->with('info')
-            ->where('maid_id', $rentalContract->maid_id)
-            ->where('status', ContractStatusEnum::Shelter->value)
-            ->whereHas('info', function ($infoQuery) use ($rentalContract) {
-                $infoQuery->where('is_outside_shelter', true)
-                    ->where('outside_shelter_reason', 'rental_delivery')
-                    ->where('outside_shelter_reference_type', RentalContract::class)
-                    ->where('outside_shelter_reference_id', $rentalContract->id);
-            })
-            ->latest('id')
-            ->lockForUpdate()
-            ->first();
-
-        if (!$shelterContract || !$shelterContract->info) {
-            return;
-        }
-
-        $shelterContract->info->update([
-            'is_outside_shelter' => false,
-        ]);
-
-        $shelterContract->contract_status_logs()->create([
-            'status' => ContractStatusEnum::Shelter->value,
-            'date' => now(),
-            'notes' => 'تمت إعادة العاملة إلى داخل الإيواء بعد إنهاء عقد إيجار رقم ' . $rentalContract->id,
-        ]);
+        app(RentalShelterPresenceService::class)->returnInside($rentalContract);
     }
 
     private function resolvePackagePeriodCost(?Package $package, int $contractDurationMonths): float

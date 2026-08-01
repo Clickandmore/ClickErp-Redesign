@@ -470,7 +470,7 @@ class Contract extends Model
     {
         return $query->where('status', ContractStatusEnum::Shelter->value)
             ->whereDoesntHave('maid.rentalContracts', function ($rentalQuery) {
-                $rentalQuery->whereIn('status', ['maid_delivered', 'active']);
+                $rentalQuery->whereIn('status', \App\Services\RentalShelterPresenceService::OUTSIDE_RENTAL_STATUSES);
             })
             ->whereDoesntHave('sponsorshipTransfers', function ($transferQuery) {
                 $transferQuery->whereIn('status', ['maid_delivered', 'trial', 'trial_started']);

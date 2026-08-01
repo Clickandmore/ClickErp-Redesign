@@ -653,37 +653,7 @@ class RentalContractExpiryReminderService
 
     private function returnShelterContractInsideForRental(RentalContract $rentalContract): void
     {
-        if (!$rentalContract->maid_id) {
-            return;
-        }
-
-        $shelterContract = Contract::query()
-            ->with('info')
-            ->where('maid_id', $rentalContract->maid_id)
-            ->where('status', ContractStatusEnum::Shelter->value)
-            ->whereHas('info', function ($infoQuery) use ($rentalContract) {
-                $infoQuery->where('is_outside_shelter', true)
-                    ->where('outside_shelter_reason', 'rental_delivery')
-                    ->where('outside_shelter_reference_type', RentalContract::class)
-                    ->where('outside_shelter_reference_id', $rentalContract->id);
-            })
-            ->latest('id')
-            ->lockForUpdate()
-            ->first();
-
-        if (!$shelterContract || !$shelterContract->info) {
-            return;
-        }
-
-        $shelterContract->info->update([
-            'is_outside_shelter' => false,
-        ]);
-
-        $shelterContract->contract_status_logs()->create([
-            'status' => ContractStatusEnum::Shelter->value,
-            'date' => now(),
-            'notes' => 'تمت إعادة العاملة إلى داخل الإيواء بعد اختيار العميل تسليم العاملة لعقد إيجار رقم ' . $rentalContract->id,
-        ]);
+        app(RentalShelterPresenceService::class)->returnInside($rentalContract);
     }
 
     private function buildCustomerMessage(RentalContract $contract, RentalContractExpiryReminder $reminder): string
