@@ -109,6 +109,18 @@
                                 </div>
 
                                 <div class="col-md-6">
+                                    <label for="religion_id" class="form-label">
+                                        {{ helperTrans('ingaz.religion_id') }} <span class="text-danger">*</span>
+                                    </label>
+                                    <select name="religion_id" id="religion_id" class="form-control" required>
+                                        <option value="">{{ helperTrans('ingaz.choose') }}</option>
+                                        @foreach ($religions as $religion)
+                                            <option value="{{ $religion->id }}">{{ $religion->title }}</option>
+                                        @endforeach
+                                    </select>
+                                </div>
+
+                                <div class="col-md-6">
                                     <label for="job_id" class="form-label">المهنة <span class="text-danger">*</span></label>
                                     <select name="job_id[]" id="job_id" class="form-control" required>
                                         <option value="">اختر المهنة</option>
@@ -177,6 +189,7 @@
                 officeFetchError: @json(helperTrans('ingaz.office_fetch_error')),
                 ok: @json(helperTrans('ingaz.ok')),
                 nationalityRequired: @json(helperTrans('ingaz.nationality_required')),
+                religionRequired: 'يرجى اختيار الديانة',
                 genderRequired: 'يرجى اختيار الجنس',
                 jobRequired: 'يرجى اختيار المهنة',
                 passportRequired: @json(helperTrans('ingaz.passport_required')),
@@ -190,7 +203,7 @@
                 create: @json(__('ingaz.create')),
             };
             $('.dropify').dropify();
-            $('#Pnationality_id, #office_id, #job_id').select2({
+            $('#Pnationality_id, #religion_id, #office_id, #job_id').select2({
                 width: '100%',
                 dir: 'rtl'
             });
@@ -347,6 +360,12 @@
                 var genderValue = $('[name="gender"]').val();
                 if (!genderValue || genderValue.trim() === '') {
                     errors.push(rapidCvTranslations.genderRequired);
+                    isValid = false;
+                }
+
+                var religionValue = $('[name="religion_id"]').val();
+                if (!religionValue || religionValue.trim() === '') {
+                    errors.push(rapidCvTranslations.religionRequired);
                     isValid = false;
                 }
 

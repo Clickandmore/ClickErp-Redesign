@@ -1792,10 +1792,11 @@ class MaidController extends Controller
         );
     }
 
-    public function create_rapid_cv(NationalityAction $act, RecruitmentOfficeAction $officeAct, JobTitleAction $jobTitleAction, JobTypeAction $jobTypesAction, Request $request)
+    public function create_rapid_cv(NationalityAction $act, RecruitmentOfficeAction $officeAct, ReligionAction $religionAction, JobTitleAction $jobTitleAction, JobTypeAction $jobTypesAction, Request $request)
     {
         // Handle direct request
         $nationalities = $act->getNationalities();
+        $religions = $religionAction->getReligions();
         $offices = $officeAct->getAllOffices();
         $jobs = $jobTitleAction->getJobsTitles();
         [, $defaultTypeId] = $this->prepareJobTypesForForm($jobTypesAction->getJobsTypes());
@@ -1804,6 +1805,7 @@ class MaidController extends Controller
             "{$this->folderPath}.rapid_cv_add",
             compact(
                 'nationalities',
+                'religions',
                 'offices',
                 'jobs',
                 'defaultTypeId',

@@ -27,6 +27,7 @@ class StoreRapidCv extends MainRequest
             'name:en' => 'nullable|string|max:255',
             'gender' => 'required|in:male,female',
             'nationality_id' => 'required|exists:nationalities,id',
+            'religion_id' => 'required|exists:religions,id',
             'passport_num' => [
                 'required',
                 Rule::unique('maids')->ignore($this->route('maid')),
@@ -46,6 +47,8 @@ class StoreRapidCv extends MainRequest
             'name:en.max' => 'اسم العاملة يجب أن لا يتجاوز 255 حرف',
             'nationality_id.required' => helperTrans('web.nationality_id_is_required'),
             'nationality_id.exists' => helperTrans('web.invalid_nationality_id'),
+            'religion_id.required' => 'يرجى اختيار الديانة',
+            'religion_id.exists' => 'الديانة المختارة غير موجودة',
             'passport_num.required' => helperTrans('web.passport_num_is_required'),
             'passport_num.min' => helperTrans('web.passport_num_min_length'),
             'passport_num.unique' => 'رقم الجواز مسجل مسبقاً في النظام، يرجى التحقق من الرقم أو اختيار رقم آخر',
