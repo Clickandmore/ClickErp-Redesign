@@ -193,10 +193,6 @@ class FinancialRequestController extends Controller
             return back()->withErrors(['attachments' => 'يجب إرفاق إثبات التحويل قبل تسجيل السداد.']);
         }
 
-        if ($data['status'] === FinancialRequest::STATUS_RECEIPT_ATTACHED && ! $this->hasStageAttachment($financialRequest, $request, 'official_receipt')) {
-            return back()->withErrors(['attachments' => 'يجب إرفاق الإيصال الرسمي قبل المتابعة.']);
-        }
-
         DB::transaction(function () use ($request, $financialRequest, $data, $bondService, $yearService, $previousStatus) {
             $payload = [
                 'status' => $data['status'],
@@ -277,7 +273,7 @@ class FinancialRequestController extends Controller
 
     public function searchAccounts(Request $request)
     {
-        abort_unless(AdminGuardHasAnyPerm([\App\PermKeys::FINANCIAL_REQUESTS_CREATE, \App\PermKeys::FINANCIAL_REQUESTS_EDIT, \App\PermKeys::FINANCIAL_REQUESTS_CHANGE_STATUS, \App\PermKeys::FINANCIAL_REQUESTS_APPROVE, \App\PermKeys::FINANCIAL_REQUESTS_CONTROL]), 403);
+        abort_unless(AdminGuardHasAnyPerm([\App\PermKeys::FINANCIAL_REQUESTS_CREATE, \App\PermKeys::FINANCIAL_REQUESTS_EDIT, \App\PermKeys::FINANCIAL_REQUESTS_CHANGE_STATUS, \App\PermKeys::FINANCIAL_REQUESTS_APPROVE, \App\PermKeys::FINANCIAL_REQUESTS_CLOSE, \App\PermKeys::FINANCIAL_REQUESTS_CONTROL]), 403);
 
         $term = trim((string) $request->input('q'));
 
@@ -703,13 +699,21 @@ class FinancialRequestController extends Controller
             \App\PermKeys::FINANCIAL_REQUESTS_CREATE,
             \App\PermKeys::FINANCIAL_REQUESTS_CHANGE_STATUS,
             \App\PermKeys::FINANCIAL_REQUESTS_APPROVE,
+            \App\PermKeys::FINANCIAL_REQUESTS_REQUEST_CLOSING,
+            \App\PermKeys::FINANCIAL_REQUESTS_CLOSE,
             \App\PermKeys::FINANCIAL_REQUESTS_CONTROL,
         ]);
     }
 
     private function canViewAll(): bool
     {
-        return AdminGuardHasAnyPerm([\App\PermKeys::FINANCIAL_REQUESTS_CHANGE_STATUS, \App\PermKeys::FINANCIAL_REQUESTS_APPROVE, \App\PermKeys::FINANCIAL_REQUESTS_CONTROL]);
+        return AdminGuardHasAnyPerm([
+            \App\PermKeys::FINANCIAL_REQUESTS_CHANGE_STATUS,
+            \App\PermKeys::FINANCIAL_REQUESTS_APPROVE,
+            \App\PermKeys::FINANCIAL_REQUESTS_REQUEST_CLOSING,
+            \App\PermKeys::FINANCIAL_REQUESTS_CLOSE,
+            \App\PermKeys::FINANCIAL_REQUESTS_CONTROL,
+        ]);
     }
 
     private function canCreate(): bool
@@ -746,7 +750,7 @@ class FinancialRequestController extends Controller
             FinancialRequest::STATUS_REJECTED => [FinancialRequest::STATUS_FOR_APPROVAL],
             FinancialRequest::STATUS_APPROVED => [FinancialRequest::STATUS_PAID],
             FinancialRequest::STATUS_PAID => [FinancialRequest::STATUS_REQUEST_CLOSING],
-            FinancialRequest::STATUS_REQUEST_CLOSING => [FinancialRequest::STATUS_RECEIPT_ATTACHED],
+            FinancialRequest::STATUS_REQUEST_CLOSING => [FinancialRequest::STATUS_RECEIPT_ATTACHED, FinancialRequest::STATUS_CLOSED],
             FinancialRequest::STATUS_RECEIPT_ATTACHED => [FinancialRequest::STATUS_CLOSED, FinancialRequest::STATUS_REQUEST_CLOSING],
         ];
 
@@ -766,6 +770,33 @@ class FinancialRequestController extends Controller
 
         if ($nextStatus === FinancialRequest::STATUS_PAID && $financialRequest->status !== FinancialRequest::STATUS_PAID) {
             return (int) $financialRequest->created_by_id === (int) auth('admin')->id();
+        }
+
+        if ($financialRequest->status === FinancialRequest::STATUS_FOR_APPROVAL
+            && in_array($nextStatus, [FinancialRequest::STATUS_APPROVED, FinancialRequest::STATUS_PREPARING], true)) {
+            return AdminGuardHasAnyPerm([
+                \App\PermKeys::FINANCIAL_REQUESTS_APPROVE,
+                \App\PermKeys::FINANCIAL_REQUESTS_CHANGE_STATUS,
+                \App\PermKeys::FINANCIAL_REQUESTS_CONTROL,
+            ]);
+        }
+
+        if ($financialRequest->status === FinancialRequest::STATUS_PAID
+            && $nextStatus === FinancialRequest::STATUS_REQUEST_CLOSING) {
+            return AdminGuardHasAnyPerm([
+                \App\PermKeys::FINANCIAL_REQUESTS_REQUEST_CLOSING,
+                \App\PermKeys::FINANCIAL_REQUESTS_CHANGE_STATUS,
+                \App\PermKeys::FINANCIAL_REQUESTS_CONTROL,
+            ]);
+        }
+
+        if (in_array($financialRequest->status, [FinancialRequest::STATUS_REQUEST_CLOSING, FinancialRequest::STATUS_RECEIPT_ATTACHED], true)
+            && $nextStatus === FinancialRequest::STATUS_CLOSED) {
+            return AdminGuardHasAnyPerm([
+                \App\PermKeys::FINANCIAL_REQUESTS_CLOSE,
+                \App\PermKeys::FINANCIAL_REQUESTS_CHANGE_STATUS,
+                \App\PermKeys::FINANCIAL_REQUESTS_CONTROL,
+            ]);
         }
 
         if ($nextStatus !== $financialRequest->status) {

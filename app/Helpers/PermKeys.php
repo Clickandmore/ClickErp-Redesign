@@ -121,6 +121,8 @@ const PARTENR_CONTROL = 'partenr_control';
     const FINANCIAL_REQUESTS_CHANGE_STATUS = 'financial_requests_change_status';
     const FINANCIAL_REQUESTS_ESCALATE = 'financial_requests_escalate';
     const FINANCIAL_REQUESTS_APPROVE = 'financial_requests_approve';
+    const FINANCIAL_REQUESTS_REQUEST_CLOSING = 'financial_requests_request_closing';
+    const FINANCIAL_REQUESTS_CLOSE = 'financial_requests_close';
     const FINANCIAL_REQUESTS_EXPORT = 'financial_requests_export';
     const FINANCIAL_REQUESTS_CONTROL = 'financial_requests_control';
 

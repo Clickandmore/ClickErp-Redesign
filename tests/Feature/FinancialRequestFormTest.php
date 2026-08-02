@@ -9,6 +9,7 @@ use Nami\Finance\Models\Account;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
+use Nami\Finance\Models\ConfirmSetting;
 use Tests\TestCase;
 
 class FinancialRequestFormTest extends TestCase
@@ -141,6 +142,36 @@ class FinancialRequestFormTest extends TestCase
             ->assertSee('FR-LEGACY-TEST')
             ->assertSee('تم رفع الطلب المالي.')
             ->assertSee('الحالة الحالية لطلب قديم لا يحتوي على سجل انتقالات محفوظ.');
+    }
+
+    public function test_request_closing_can_be_closed_without_official_receipt(): void
+    {
+        ConfirmSetting::query()->create([
+            'title' => 'automatic_journal_entries',
+            'value' => 'off',
+            'status' => 1,
+            'created_by_id' => auth('admin')->id(),
+        ]);
+
+        $requestItem = FinancialRequest::query()->create([
+            'request_no' => 'FR-CLOSE-WITHOUT-RECEIPT',
+            'type' => 'other_financial',
+            'priority' => FinancialRequest::PRIORITY_NORMAL,
+            'status' => FinancialRequest::STATUS_REQUEST_CLOSING,
+            'amount' => 100,
+            'request_date' => now()->toDateString(),
+            'created_by_id' => auth('admin')->id(),
+        ]);
+
+        $this->post(route('financial-requests.status', $requestItem), [
+            'status' => FinancialRequest::STATUS_CLOSED,
+            'priority' => FinancialRequest::PRIORITY_NORMAL,
+        ])->assertSessionHasNoErrors();
+
+        $requestItem->refresh();
+        $this->assertSame(FinancialRequest::STATUS_CLOSED, $requestItem->status);
+        $this->assertNotNull($requestItem->closed_at);
+        $this->assertFalse($requestItem->attachments()->where('field_key', 'official_receipt')->exists());
     }
 
     public static function paymentMethods(): array

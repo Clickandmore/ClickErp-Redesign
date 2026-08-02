@@ -8,20 +8,22 @@
         $contractTypeLabel = $requestItem->contract_type_label;
         $financeBondTypeLabel = $bondTypes[$requestItem->finance_bond_type] ?? null;
         $isCreator = (int) $requestItem->created_by_id === (int) auth('admin')->id();
-        $isAuditor = @AdminGuardHasAnyPerm([\App\PermKeys::FINANCIAL_REQUESTS_CHANGE_STATUS, \App\PermKeys::FINANCIAL_REQUESTS_APPROVE, \App\PermKeys::FINANCIAL_REQUESTS_CONTROL]);
+        $isApprover = @AdminGuardHasAnyPerm([\App\PermKeys::FINANCIAL_REQUESTS_APPROVE, \App\PermKeys::FINANCIAL_REQUESTS_CHANGE_STATUS, \App\PermKeys::FINANCIAL_REQUESTS_CONTROL]);
+        $canRequestClosing = @AdminGuardHasAnyPerm([\App\PermKeys::FINANCIAL_REQUESTS_REQUEST_CLOSING, \App\PermKeys::FINANCIAL_REQUESTS_CHANGE_STATUS, \App\PermKeys::FINANCIAL_REQUESTS_CONTROL]);
+        $canClose = @AdminGuardHasAnyPerm([\App\PermKeys::FINANCIAL_REQUESTS_CLOSE, \App\PermKeys::FINANCIAL_REQUESTS_CHANGE_STATUS, \App\PermKeys::FINANCIAL_REQUESTS_CONTROL]);
         $actions = [];
-        if ($isAuditor && $requestItem->status === \App\Models\FinancialRequest::STATUS_FOR_APPROVAL) {
+        if ($isApprover && $requestItem->status === \App\Models\FinancialRequest::STATUS_FOR_APPROVAL) {
             $actions = ['approve' => [\App\Models\FinancialRequest::STATUS_APPROVED, 'اعتماد', 'success'], 'reject' => [\App\Models\FinancialRequest::STATUS_PREPARING, 'غير معتمد', 'danger']];
         } elseif ($isCreator && in_array($requestItem->status, [\App\Models\FinancialRequest::STATUS_PREPARING, \App\Models\FinancialRequest::STATUS_REJECTED], true)) {
             $actions = ['resubmit' => [\App\Models\FinancialRequest::STATUS_FOR_APPROVAL, 'إعادة الإرسال للاعتماد', 'primary']];
         } elseif ($isCreator && $requestItem->status === \App\Models\FinancialRequest::STATUS_APPROVED) {
             $actions = ['paid' => [\App\Models\FinancialRequest::STATUS_PAID, 'تم السداد', 'primary']];
-        } elseif ($isAuditor && $requestItem->status === \App\Models\FinancialRequest::STATUS_PAID) {
+        } elseif ($canRequestClosing && $requestItem->status === \App\Models\FinancialRequest::STATUS_PAID) {
             $actions = ['verify' => [\App\Models\FinancialRequest::STATUS_REQUEST_CLOSING, 'طلب الإقفال', 'warning']];
-        } elseif ($isCreator && $requestItem->status === \App\Models\FinancialRequest::STATUS_REQUEST_CLOSING) {
-            $actions = ['receipt' => [\App\Models\FinancialRequest::STATUS_RECEIPT_ATTACHED, 'تم إرفاق الإيصال', 'info']];
-        } elseif ($isAuditor && $requestItem->status === \App\Models\FinancialRequest::STATUS_RECEIPT_ATTACHED) {
-            $actions = ['close' => [\App\Models\FinancialRequest::STATUS_CLOSED, 'مكتمل وإقفال', 'success'], 'incomplete' => [\App\Models\FinancialRequest::STATUS_REQUEST_CLOSING, 'غير مكتمل', 'danger']];
+        } elseif ($canClose && $requestItem->status === \App\Models\FinancialRequest::STATUS_REQUEST_CLOSING) {
+            $actions = ['close' => [\App\Models\FinancialRequest::STATUS_CLOSED, 'إقفال وإغلاق الطلب', 'success']];
+        } elseif ($canClose && $requestItem->status === \App\Models\FinancialRequest::STATUS_RECEIPT_ATTACHED) {
+            $actions = ['close' => [\App\Models\FinancialRequest::STATUS_CLOSED, 'إقفال وإغلاق الطلب', 'success'], 'incomplete' => [\App\Models\FinancialRequest::STATUS_REQUEST_CLOSING, 'غير مكتمل', 'danger']];
         }
     @endphp
 
@@ -202,10 +204,10 @@
                                     <input type="hidden" name="attachment_labels[payment_proof]" value="إثبات التحويل البنكي">
                                     <input type="file" name="attachments[payment_proof][]" class="form-control mb-2" required multiple>
                                 @endif
-                                @if(isset($actions['receipt']))
-                                    <label class="form-label">الإيصال الرسمي <span class="text-danger">*</span></label>
+                                @if(isset($actions['receipt']) || isset($actions['close']))
+                                    <label class="form-label">الإيصال الرسمي <span class="text-muted">(اختياري)</span></label>
                                     <input type="hidden" name="attachment_labels[official_receipt]" value="الإيصال الرسمي">
-                                    <input type="file" name="attachments[official_receipt][]" class="form-control mb-2" required multiple>
+                                    <input type="file" name="attachments[official_receipt][]" class="form-control mb-2" multiple>
                                 @endif
                                 @if(isset($actions['close']))
                                 <label class="form-label">نوع السند عند الإقفال</label>

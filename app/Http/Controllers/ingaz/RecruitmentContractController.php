@@ -291,52 +291,6 @@ class RecruitmentContractController extends Controller
         ]);
     }
 
-    private function findClientByPhone(?string $phone): ?User
-    {
-        $phoneCandidates = $this->phoneCandidates($phone);
-
-        if (empty($phoneCandidates)) {
-            return null;
-        }
-
-        return User::whereIn('phone', $phoneCandidates)->first();
-    }
-
-    private function phoneCandidates(?string $phone): array
-    {
-        $phone = trim((string) $phone);
-        $normalizedPhone = $this->normalizeSaudiPhone($phone);
-
-        return array_values(array_unique(array_filter([
-            $phone,
-            $normalizedPhone,
-            $normalizedPhone ? '0' . $normalizedPhone : null,
-            $normalizedPhone ? '966' . $normalizedPhone : null,
-            $normalizedPhone ? '+966' . $normalizedPhone : null,
-        ])));
-    }
-
-    private function normalizeSaudiPhone(string $phone): ?string
-    {
-        $digits = preg_replace('/\D+/', '', $phone);
-
-        if (!$digits) {
-            return null;
-        }
-
-        if (str_starts_with($digits, '00966')) {
-            $digits = substr($digits, 5);
-        } elseif (str_starts_with($digits, '966')) {
-            $digits = substr($digits, 3);
-        }
-
-        if (str_starts_with($digits, '05')) {
-            $digits = substr($digits, 1);
-        }
-
-        return preg_match('/^5\d{8}$/', $digits) ? $digits : null;
-    }
-
     private function buildTravelManagementActions(TravelHistory $travelHistory, string $context = 'buttons'): string
     {
         $canEditTravel = @AdminGuardHasPerm(\App\NewPermKeys::REC_CONTRACTS_EDIT_TRAVEL)
@@ -3035,42 +2989,9 @@ class RecruitmentContractController extends Controller
                     ], 422);
                 }
 
-                // تحديث بيانات المستخدم من الطلب المسبق
+                // بيانات العميل تُدار من صفحة العملاء فقط. إنشاء العقد لا يجوز أن
+                // يغيّر هوية العميل أو بياناته لأن كل العقود السابقة تشير للسجل نفسه.
                 $user = $order->user;
-                if ($user) {
-                    if ($request->filled('account_client_type')) {
-                        $user->client_type = $accountClientType;
-                    }
-
-                    logger()->info('Updating user from order - Request data:', [
-                        'new_client_national_num' => $request->new_client_national_num,
-                        'client_national_num' => $request->client_national_num,
-                        'new_client_birthdate' => $request->new_client_birthdate,
-                        'client_birthdate' => $request->client_birthdate,
-                        'new_client_address' => $request->new_client_address,
-                        'address' => $request->address,
-                        'new_client_phone2' => $request->new_client_phone2,
-                        'phone2' => $request->phone2,
-                        'new_client_city' => $request->new_client_city,
-                        'city' => $request->city,
-                        'user_current_national_num' => $user->national_num
-                    ]);
-
-                    $documentNumber = $request->new_client_national_num ?? $request->client_national_num ?? null;
-                    $user->update($user->clientTypeAwarePayload([
-                        'client_type' => $user->client_type ?: $accountClientType,
-                        'license_number' => $request->new_client_license_number ?? $request->client_license_number ?? $user->license_number,
-                        'birthdate' => $request->new_client_birthdate ?? $request->client_birthdate ?? $user->birthdate,
-                        'address' => $request->new_client_address ?? $request->address ?? $user->address,
-                        'phone2' => $request->new_client_phone2 ?? $request->phone2 ?? $user->phone2,
-                        'city' => $request->new_client_city ?? $request->city ?? $user->city,
-                        'beds_num' => $request->new_client_beds_num ?? $request->beds_num ?? $user->beds_num,
-                        'family_num' => $request->new_client_family_num ?? $request->family_num ?? $user->family_num,
-                        'children' => $request->new_client_children ?? $request->children ?? $user->children,
-                        'job' => $request->new_client_job ?? $request->job ?? $user->job,
-                    ], $documentNumber));
-                    logger()->info('Updated user from order:', ['user' => $user->toArray()]);
-                }
 
                 $contractData['user_id'] = $order->user_id;
                 $contractData['maid_id'] = $shouldCreateWithoutAssignedMaid ? null : $order->maid_id;
@@ -3099,10 +3020,6 @@ class RecruitmentContractController extends Controller
 
                 if ($request->filled('client_id')) {
                     $user = User::find($request->client_id);
-                }
-
-                if (!$user && $request->filled('client_phone')) {
-                    $user = $this->findClientByPhone($request->client_phone);
                 }
 
                 if (!$user) {
@@ -3140,29 +3057,6 @@ class RecruitmentContractController extends Controller
 
                     $user = User::create($userPayload);
                     logger()->info('Created new user:', ['user' => $user->toArray()]);
-                } else {
-                    // Update existing user with new data
-                    $documentNumber = $request->new_client_national_num ?? $request->client_national_num;
-                    $user->client_type = $accountClientType;
-                    $user->update($user->clientTypeAwarePayload([
-                        'client_type' => $accountClientType,
-                        'name' => $request->client_name,
-                        'phone_code' => '+966',
-                        'nationality_id' => $request->client_nationality_id,
-                        'license_number' => $accountClientType === 'company' ? ($request->new_client_license_number ?? $request->client_license_number) : null,
-                        'tax_number' => $accountClientType === 'person' ? null : $user->tax_number,
-                        'email' => $request->new_client_email ?? $request->client_email,
-                        'phone2' => $request->new_client_phone2 ?? $request->client_phone2,
-                        'city' => $request->new_client_city ?? $request->client_city,
-                        'beds_num' => $request->new_client_beds_num ?? $request->client_beds_num,
-                        'family_num' => $request->new_client_family_num ?? $request->client_family_num,
-                        'children' => $request->new_client_children ?? $request->client_children,
-                        'job' => $request->new_client_job ?? $request->client_job,
-                        'address' => $request->new_client_address ?? $request->client_address,
-                        'birthdate' => $request->new_client_birthdate ?? $request->client_birthdate,
-                        'password' => bcrypt('123456'), // Update password
-                    ], $documentNumber));
-                    logger()->info('Updated existing user:', ['user' => $user->toArray()]);
                 }
                 $contractData['user_id'] = $user->id;
                 $contractData['marketer_id'] = $marketerId; // تقييد المسوق حسب صلاحية المستخدم الحالي

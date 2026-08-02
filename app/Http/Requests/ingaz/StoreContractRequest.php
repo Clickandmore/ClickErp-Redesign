@@ -10,6 +10,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\Rule;
 use Illuminate\Contracts\Validation\Validator;
 use Illuminate\Http\Exceptions\HttpResponseException;
+use App\Services\ingaz\RecruitmentClientIdentityGuard;
 
 class StoreContractRequest extends MainRequest
 {
@@ -80,10 +81,20 @@ class StoreContractRequest extends MainRequest
             !$this->filled('client_id')
             && !$this->filled('new_existing_client_id')
             && $this->input('client_type') === 'new_client'
-            && ($normalizedData['client_phone'] ?? $this->filled('client_phone'))
         ) {
-            $clientPhone = $normalizedData['client_phone'] ?? $this->input('client_phone');
-            $existingClient = $this->findClientByPhone($clientPhone);
+            $guard = app(RecruitmentClientIdentityGuard::class);
+            $accountType = $this->input('account_client_type') === 'company' ? 'company' : 'person';
+            $documentNumber = $this->input('new_client_national_num')
+                ?? $this->input('client_national_num');
+            $existingClient = $guard->findByDocument($accountType, $documentNumber);
+
+            if (!$existingClient && ($normalizedData['client_phone'] ?? $this->filled('client_phone'))) {
+                $clientPhone = $normalizedData['client_phone'] ?? $this->input('client_phone');
+                $phoneClient = $guard->findByPhone($clientPhone);
+                if ($phoneClient && !$guard->hasDocumentConflict($phoneClient, $accountType, $documentNumber)) {
+                    $existingClient = $phoneClient;
+                }
+            }
 
             if ($existingClient) {
                 $normalizedData['client_id'] = $existingClient->id;
@@ -114,14 +125,27 @@ class StoreContractRequest extends MainRequest
             && !$this->filled('order_id')
             && !$selectedClientId;
         $clientPhoneRules = $isCreatingNewClient
-            ? ['required', Rule::unique('users', 'phone')]
+            ? [
+                'required',
+                function ($attribute, $value, $fail) {
+                    if (!app(RecruitmentClientIdentityGuard::class)->normalizeSaudiPhone($value)) {
+                        $fail('رقم الجوال يجب أن يكون رقماً سعودياً صحيحاً يبدأ بـ 05.');
+                    }
+                },
+                Rule::unique('users', 'phone'),
+            ]
             : ['nullable'];
+
+        $personDocumentRules = ['nullable', 'string', 'max:50'];
+        if ($isCreatingNewClient && $this->input('account_client_type', 'person') !== 'company') {
+            $personDocumentRules = ['required', 'string', 'max:50', Rule::unique('users', 'national_num')];
+        }
 
         return [
             'contract_date' => 'required',
-            'msaned_number' => 'required',
+            'msaned_number' => ['required', Rule::unique('contract_infos', 'msaned_number')],
             'tafwed_number' => 'nullable',
-            'visa_number' => 'required',
+            'visa_number' => ['required', Rule::unique('contract_infos', 'visa_number')],
             'visa_milad_date' => 'nullable',
             'visa_hijry_date' => 'nullable',
             'contract_duration' => 'required|integer|min:1',
@@ -134,7 +158,7 @@ class StoreContractRequest extends MainRequest
             'client_phone' => $clientPhoneRules,
             'client_nationality_id' => 'required_if:client_type,new_client',
             'client_email' => 'nullable|email',
-            'new_client_national_num' => 'nullable',
+            'new_client_national_num' => $personDocumentRules,
             'new_client_license_number' => 'nullable|string|max:100',
             'client_license_number' => 'nullable|string|max:100',
             'client_phone2' => 'nullable',
@@ -182,6 +206,48 @@ class StoreContractRequest extends MainRequest
         ];
     }
 
+    public function withValidator(Validator $validator): void
+    {
+        $validator->after(function (Validator $validator) {
+            if ($this->input('client_type') !== 'new_client' || $this->filled('order_id')) {
+                return;
+            }
+
+            $guard = app(RecruitmentClientIdentityGuard::class);
+            $accountType = $this->input('account_client_type') === 'company' ? 'company' : 'person';
+            $documentNumber = $this->input('new_client_national_num')
+                ?? $this->input('client_national_num');
+            $selectedClientId = $this->input('client_id') ?: $this->input('new_existing_client_id');
+
+            if ($guard->documentMatchCount($accountType, $documentNumber) > 1) {
+                $validator->errors()->add(
+                    'new_client_national_num',
+                    'توجد عدة سجلات بنفس الهوية. لا يمكن إنشاء العقد قبل معالجة تكرار العميل.'
+                );
+                return;
+            }
+
+            if ($selectedClientId) {
+                $selectedClient = User::query()->find($selectedClientId);
+                if ($selectedClient && $guard->hasDocumentConflict($selectedClient, $accountType, $documentNumber)) {
+                    $validator->errors()->add(
+                        'new_client_national_num',
+                        'هوية العميل المدخلة لا تطابق العميل المختار. أوقف الإنشاء وراجع سجل العميل.'
+                    );
+                }
+                return;
+            }
+
+            $phoneClient = $guard->findByPhone($this->input('client_phone'));
+            if ($phoneClient && $guard->hasDocumentConflict($phoneClient, $accountType, $documentNumber)) {
+                $validator->errors()->add(
+                    'client_phone',
+                    'رقم الجوال مرتبط بعميل آخر وهوية مختلفة. لا يمكن دمج العميلين.'
+                );
+            }
+        });
+    }
+
     public function messages(){
         return [
             'contract_date.required' => 'يرجي ادخال تاريخ العقد',
@@ -198,6 +264,9 @@ class StoreContractRequest extends MainRequest
             'client_name.required_if' => 'يرجي ادخال اسم العميل',
             'client_phone.required_if' => 'يرجي ادخال رقم هاتف العميل',
             'client_phone.unique' => 'رقم جوال العميل مسجل مسبقاً في النظام، يرجى اختيار العميل الموجود أو إدخال رقم آخر',
+            'new_client_national_num.unique' => 'رقم هوية العميل مسجل مسبقاً؛ يرجى اختيار العميل الموجود.',
+            'msaned_number.unique' => 'رقم مساند مسجل مسبقاً في عقد آخر.',
+            'visa_number.unique' => 'رقم التأشيرة مسجل مسبقاً في عقد آخر.',
 
             'client_nationality_id.required_if' => 'يرجي اختيار جنسية العميل',
             'new_client_national_num.required' => 'يرجي ادخال رقم هوية العميل',
@@ -267,49 +336,4 @@ class StoreContractRequest extends MainRequest
         return $value;
     }
 
-    private function findClientByPhone(?string $phone): ?User
-    {
-        $phoneCandidates = $this->phoneCandidates($phone);
-
-        if (empty($phoneCandidates)) {
-            return null;
-        }
-
-        return User::whereIn('phone', $phoneCandidates)->first();
-    }
-
-    private function phoneCandidates(?string $phone): array
-    {
-        $phone = trim((string) $phone);
-        $normalizedPhone = $this->normalizeSaudiPhone($phone);
-
-        return array_values(array_unique(array_filter([
-            $phone,
-            $normalizedPhone,
-            $normalizedPhone ? '0' . $normalizedPhone : null,
-            $normalizedPhone ? '966' . $normalizedPhone : null,
-            $normalizedPhone ? '+966' . $normalizedPhone : null,
-        ])));
-    }
-
-    private function normalizeSaudiPhone(string $phone): ?string
-    {
-        $digits = preg_replace('/\D+/', '', $phone);
-
-        if (!$digits) {
-            return null;
-        }
-
-        if (str_starts_with($digits, '00966')) {
-            $digits = substr($digits, 5);
-        } elseif (str_starts_with($digits, '966')) {
-            $digits = substr($digits, 3);
-        }
-
-        if (str_starts_with($digits, '05')) {
-            $digits = substr($digits, 1);
-        }
-
-        return preg_match('/^5\d{8}$/', $digits) ? $digits : null;
-    }
 }
