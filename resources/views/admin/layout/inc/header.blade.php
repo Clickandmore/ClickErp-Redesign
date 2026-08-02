@@ -492,6 +492,10 @@ $quickLinks = collect([
                     $__adminBranch = ($user && $user->branch_id && \App\Support\SystemModuleManager::isEnabled('branches'))
                         ? $user->branch
                         : null;
+                    $__adminAvatarUrl = ($user && $user->image)
+                        ? showFile($user->image)
+                        : null;
+                    $__adminAvatarUrl ??= asset('admin/assets/img/profile_av.png');
                 @endphp
                 @if ($__adminBranch)
                 <li class="d-none d-xl-flex align-items-center me-1">
@@ -508,14 +512,14 @@ $quickLinks = collect([
                         <a class="nav-link dropdown-toggle rounded-circle after-none p-0" href="#" role="button"
                             data-bs-toggle="dropdown">
                             <img class="avatar img-thumbnail rounded-circle shadow"
-                                src="{{ showFile(($user && $user->image) ? $user->image : '../admin/assets/img/profile_av.png') }}"
+                                src="{{ $__adminAvatarUrl }}"
                                 alt="">
                         </a>
                         <div class="dropdown-menu border-0 rounded-4 shadow p-0">
                             <div class="card border-0 w240">
                                 <div class="card-body border-bottom d-flex">
                                     <img class="avatar rounded-circle"
-                                        src="{{showFile(($user && $user->image) ? $user->image : '../admin/assets/img/profile_av.png') }}"
+                                        src="{{ $__adminAvatarUrl }}"
                                         alt="">
                                     <div class="flex-fill ms-3">
                                         <h6 class="card-title mb-0">{{$user ? $user->name : 'Guest'}}</h6>
