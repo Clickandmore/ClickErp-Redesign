@@ -921,7 +921,7 @@
                 Swal.fire({
                     icon: 'question',
                     title: 'توليد ملفات السيرة الذاتية',
-                    text: `سيتم توليد أو إعادة توليد ${maidIds.length} ملف {{ ($cvOutputType ?? 'pdf') === 'image' ? 'صورة PNG' : 'PDF' }}. هل تريد المتابعة؟`,
+                    text: `سيتم توليد أو إعادة توليد ${maidIds.length} ملف {{ ($cvOutputType ?? 'pdf') === 'image' ? 'صورة' : 'PDF' }}. هل تريد المتابعة؟`,
                     showCancelButton: true,
                     confirmButtonText: 'نعم، ابدأ التوليد',
                     cancelButtonText: @json(helperTrans('ingaz.cancel')),
@@ -1393,7 +1393,7 @@
                 Swal.fire({
                     title: 'جاري توليد السيرة الذاتية',
                     text: @json(($cvOutputType ?? 'pdf') === 'image'
-                        ? 'يرجى الانتظار حتى يتم إنشاء صورة PNG.'
+                        ? 'يرجى الانتظار حتى يتم إنشاء صورة السيرة الذاتية.'
                         : 'يرجى الانتظار حتى يتم إنشاء ملف PDF.'),
                     allowOutsideClick: false,
                     didOpen: () => Swal.showLoading()

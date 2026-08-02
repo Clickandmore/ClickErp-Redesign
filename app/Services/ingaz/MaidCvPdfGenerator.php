@@ -47,15 +47,18 @@ class MaidCvPdfGenerator
 
         $outputType = MaidCvTemplateSettings::outputType();
         $html = $this->renderTemplate($template, $this->viewData($maid, $settings, $outputType));
-        $contents = $outputType === self::OUTPUT_IMAGE
-            ? $this->generateImageContents($html)
-            : $this->generatePdfContents($html);
+        if ($outputType === self::OUTPUT_IMAGE) {
+            [$contents, $extension] = $this->generateImageOutput($html, $maid);
+        } else {
+            $contents = $this->generatePdfContents($html);
+            $extension = 'pdf';
+        }
+
         if ($contents === '') {
-            throw new RuntimeException('تعذر إنشاء ملف PDF من القالب المرفوع.');
+            throw new RuntimeException('تعذر إنشاء ملف السيرة الذاتية من القالب المرفوع.');
         }
 
         $storage = app(ManagedFileStorage::class);
-        $extension = $outputType === self::OUTPUT_IMAGE ? 'png' : 'pdf';
         $path = $storage->storeFileContents($contents, self::STORAGE_DIRECTORY, $extension);
 
         $previousPath = $maid->cv_preview;
@@ -74,20 +77,36 @@ class MaidCvPdfGenerator
         return $path;
     }
 
-    /**
-     * Generate a high-resolution PNG using an isolated Chrome profile and
-     * the Blade template stored in the database.
-     */
-    private function generateImageContents(string $html): string
+    private function generateImageOutput(string $html, Maid $maid): array
     {
         if (!function_exists('proc_open')) {
-            throw new RuntimeException('توليد صورة السيرة يحتاج إلى تفعيل proc_open على الخادم.');
+            return [$this->generateSvgFallback($html), 'svg'];
         }
 
         $browserPath = $this->browserExecutable();
         if ($browserPath === null) {
-            throw new RuntimeException('تعذر توليد الصورة: لم يتم العثور على Google Chrome أو Microsoft Edge على الخادم.');
+            return [$this->generateSvgFallback($html), 'svg'];
         }
+
+        try {
+            return [$this->generatePngWithBrowser($browserPath, $html), 'png'];
+        } catch (\Throwable $exception) {
+            report($exception);
+            \Log::warning('Chrome CV image generation failed; using the database-template SVG fallback.', [
+                'maid_id' => $maid->id,
+                'error' => $exception->getMessage(),
+            ]);
+
+            return [$this->generateSvgFallback($html), 'svg'];
+        }
+    }
+
+    /**
+     * Generate a high-resolution PNG using the isolated Chrome sequence used
+     * by asuss, while rendering the database Blade template.
+     */
+    private function generatePngWithBrowser(string $browserPath, string $html): string
+    {
 
         $temporaryDirectory = storage_path('app/cv-image-temp/' . Str::uuid());
         $profilePath = $temporaryDirectory . DIRECTORY_SEPARATOR . 'browser-profile';
@@ -146,6 +165,134 @@ class MaidCvPdfGenerator
             return $contents;
         } finally {
             File::deleteDirectory($temporaryDirectory);
+        }
+    }
+
+    /**
+     * Browser-independent fallback matching asuss' production strategy.
+     * The rendered database template is converted to XHTML and embedded in SVG.
+     */
+    private function generateSvgFallback(string $html): string
+    {
+        $viewportWidth = max(320, (int) env('CV_IMAGE_VIEWPORT_WIDTH', 794));
+        $viewportHeight = max(480, (int) env('CV_IMAGE_VIEWPORT_HEIGHT', 1123));
+
+        if (!class_exists(\DOMDocument::class)) {
+            $plainText = e(Str::limit(trim(preg_replace('/\s+/u', ' ', strip_tags($html)) ?? ''), 4000));
+
+            return '<?xml version="1.0" encoding="UTF-8"?>'
+                . '<svg xmlns="http://www.w3.org/2000/svg" width="' . $viewportWidth . '" height="' . $viewportHeight . '" viewBox="0 0 ' . $viewportWidth . ' ' . $viewportHeight . '">'
+                . '<rect width="100%" height="100%" fill="#fff"/>'
+                . '<text x="40" y="70" fill="#111" font-family="Tahoma,Arial,sans-serif" font-size="16">' . $plainText . '</text>'
+                . '</svg>';
+        }
+
+        $document = new \DOMDocument('1.0', 'UTF-8');
+        $previousErrors = libxml_use_internal_errors(true);
+
+        try {
+            $document->loadHTML(
+                '<?xml encoding="UTF-8">' . $html,
+                LIBXML_HTML_NOIMPLIED | LIBXML_HTML_NODEFDTD | LIBXML_NONET
+            );
+
+            $xpath = new \DOMXPath($document);
+            foreach ($xpath->query('//script') ?: [] as $script) {
+                $script->parentNode?->removeChild($script);
+            }
+
+            $this->inlineLocalDocumentImages($xpath);
+
+            $styles = '';
+            foreach ($xpath->query('//style') ?: [] as $style) {
+                $styles .= $document->saveXML($style);
+            }
+
+            $body = $document->getElementsByTagName('body')->item(0);
+            $content = '';
+            $nodes = $body ? iterator_to_array($body->childNodes) : iterator_to_array($document->childNodes);
+
+            foreach ($nodes as $node) {
+                if ($node instanceof \DOMElement && in_array(strtolower($node->tagName), ['html', 'head', 'style'], true)) {
+                    if (strtolower($node->tagName) === 'html') {
+                        foreach (iterator_to_array($node->childNodes) as $htmlChild) {
+                            if ($htmlChild instanceof \DOMElement && strtolower($htmlChild->tagName) === 'body') {
+                                foreach (iterator_to_array($htmlChild->childNodes) as $bodyChild) {
+                                    $content .= $document->saveXML($bodyChild);
+                                }
+                            }
+                        }
+                    }
+                    continue;
+                }
+
+                $content .= $document->saveXML($node);
+            }
+
+            return '<?xml version="1.0" encoding="UTF-8"?>'
+                . '<svg xmlns="http://www.w3.org/2000/svg" width="' . $viewportWidth . '" height="' . $viewportHeight . '" viewBox="0 0 ' . $viewportWidth . ' ' . $viewportHeight . '">'
+                . '<rect width="100%" height="100%" fill="#fff"/>'
+                . '<foreignObject x="0" y="0" width="100%" height="100%">'
+                . '<div xmlns="http://www.w3.org/1999/xhtml" style="width:' . $viewportWidth . 'px;height:' . $viewportHeight . 'px;overflow:hidden;background:#fff">'
+                . $styles . $content
+                . '</div></foreignObject></svg>';
+        } finally {
+            libxml_clear_errors();
+            libxml_use_internal_errors($previousErrors);
+        }
+    }
+
+    /**
+     * SVG files displayed through an img tag cannot reliably load nested local
+     * assets, so embed local template images just like the asuss generator does.
+     */
+    private function inlineLocalDocumentImages(\DOMXPath $xpath): void
+    {
+        $allowedRoots = array_values(array_filter([
+            realpath(public_path()),
+            realpath(storage_path('app/public')),
+        ]));
+
+        foreach ($xpath->query('//img[@src]') ?: [] as $image) {
+            if (!$image instanceof \DOMElement) {
+                continue;
+            }
+
+            $source = trim($image->getAttribute('src'));
+            if ($source === '' || Str::startsWith($source, ['data:', 'blob:'])) {
+                continue;
+            }
+
+            $urlPath = rawurldecode((string) (parse_url($source, PHP_URL_PATH) ?: $source));
+            $relativePath = ltrim(str_replace('\\', '/', $urlPath), '/');
+            $candidates = [public_path($relativePath)];
+
+            if (Str::startsWith($relativePath, 'storage/')) {
+                $candidates[] = storage_path('app/public/' . Str::after($relativePath, 'storage/'));
+            }
+
+            foreach ($candidates as $candidate) {
+                $resolved = realpath($candidate);
+                if (!$resolved || !is_file($resolved)) {
+                    continue;
+                }
+
+                $isAllowed = collect($allowedRoots)->contains(
+                    fn (string $root) => Str::startsWith(str_replace('\\', '/', $resolved), rtrim(str_replace('\\', '/', $root), '/') . '/')
+                );
+                if (!$isAllowed) {
+                    continue;
+                }
+
+                try {
+                    $mime = File::mimeType($resolved) ?: 'application/octet-stream';
+                    $image->setAttribute('src', 'data:' . $mime . ';base64,' . base64_encode(File::get($resolved)));
+                } catch (\Throwable) {
+                    // Keep the original source when a local asset cannot be read.
+                }
+
+                break;
+            }
         }
     }
 

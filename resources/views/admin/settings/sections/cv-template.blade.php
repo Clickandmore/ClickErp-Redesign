@@ -643,12 +643,13 @@
                             id="cv_template_output_type_image" value="image"
                             {{ $selectedOutputType === 'image' ? 'checked' : '' }}>
                         <label class="form-check-label" for="cv_template_output_type_image">
-                            <i class="fas fa-file-image text-info me-1"></i> صورة PNG
+                            <i class="fas fa-file-image text-info me-1"></i> صورة
                         </label>
                     </div>
                 </div>
                 <div class="form-text mt-2">
                     يستخدم الخيار المختار في التوليد الفردي والجماعي والتوليد التلقائي بعد إنشاء أو تعديل السيرة.
+                    تُنشأ PNG عند توفر Chrome، ويُستخدم SVG تلقائيًا على الخوادم التي لا تحتوي على متصفح.
                 </div>
                 @error('cv_template_output_type')
                     <div class="text-danger small mt-2">{{ $message }}</div>
