@@ -580,6 +580,7 @@ class UserController extends Controller
             'full_name_en' => 'nullable|string|max:255',
             'identity_date' => 'nullable|string|max:50',
             'identity_type' => 'nullable|string|max:100',
+            'residence_expiry_date' => 'nullable|date',
             'workplace' => 'nullable|string|max:255',
             'po_box' => 'nullable|string|max:50',
             'postal_code' => 'nullable|string|max:50',
@@ -603,6 +604,8 @@ class UserController extends Controller
             'marital_status.required_if' => __('ingaz.marital_status_required'),
             'marital_status.in' => 'الحالة الاجتماعية المختارة غير صحيحة',
         ]);
+
+        $data = $this->clearResidenceExpiryForSaudi($data);
 
         $normalizedPhone = $this->normalizeSaudiPhone($data['phone']);
 
@@ -698,6 +701,29 @@ class UserController extends Controller
                 'url' => route($this->mainRoute . '.index')
             ]);
         });
+    }
+
+    /**
+     * تاريخ انتهاء الإقامة يخص غير السعوديين فقط.
+     *
+     * الحقل مخفي في الواجهة عند اختيار السعودية، وهذا يمنع بقاء قيمة قديمة
+     * لو غُيّرت الجنسية إلى السعودية عند التعديل.
+     */
+    private function clearResidenceExpiryForSaudi(array $data): array
+    {
+        if (! array_key_exists('nationality_id', $data)) {
+            return $data;
+        }
+
+        $country = $data['nationality_id']
+            ? Country::find($data['nationality_id'])
+            : null;
+
+        if (! $country || $country->is_saudi) {
+            $data['residence_expiry_date'] = null;
+        }
+
+        return $data;
     }
 
     private function normalizeSaudiPhone(string $phone): ?string
@@ -1107,6 +1133,7 @@ class UserController extends Controller
             'full_name_en' => 'nullable|string|max:255',
             'identity_date' => 'nullable|string|max:50',
             'identity_type' => 'nullable|string|max:100',
+            'residence_expiry_date' => 'nullable|date',
             'workplace' => 'nullable|string|max:255',
             'po_box' => 'nullable|string|max:50',
             'postal_code' => 'nullable|string|max:50',
@@ -1159,6 +1186,8 @@ class UserController extends Controller
             'is_blocked.required' => __('ingaz.client_is_blocked_required'),
             'is_blocked.boolean' => __('ingaz.client_is_blocked_boolean')
         ]);
+
+        $data = $this->clearResidenceExpiryForSaudi($data);
 
         $normalizedPhone = $this->normalizeSaudiPhone($data['phone']);
 

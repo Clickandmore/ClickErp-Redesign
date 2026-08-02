@@ -106,6 +106,7 @@ class MaidController extends Controller
         $this->applyRecruitmentMaidsScope($query);
         $this->applyUniquePassportDisplayScope($query);
         $cvGenerationAvailable = MaidCvTemplateSettings::enabled();
+        $cvOutputType = MaidCvTemplateSettings::outputType();
         $canSelectForCvActions = @AdminGuardHasPerm(\App\PermKeys::MAIDS_EDIT)
             || @AdminGuardHasPerm(\App\PermKeys::MAIDS_EXPORT_PDF);
 
@@ -480,7 +481,7 @@ class MaidController extends Controller
                         . '</div>'
                         . '</div>';
                 })
-                ->addColumn('actions', function (Maid $row) use ($cvGenerationAvailable) {
+                ->addColumn('actions', function (Maid $row) use ($cvGenerationAvailable, $cvOutputType) {
                     $menuItems = '';
                     $today = Carbon::today();
                     $offerActive = $row->offer_price !== null
@@ -492,15 +493,18 @@ class MaidController extends Controller
                         $menuItems .= '<li><a class="dropdown-item" href="' . route('showMaidDetails', $row->id) . '#maid-attachments"><i class="fas fa-paperclip text-info me-2"></i>' . helperTrans('ingaz.attachments') . '</a></li>';
                     }
 
-                    if (@AdminGuardHasPerm(\App\PermKeys::MAIDS_EXPORT_PDF) && $this->maidGeneratedPdfPath($row)) {
+                    if (@AdminGuardHasPerm(\App\PermKeys::MAIDS_EXPORT_PDF) && ($generatedCvPath = $this->maidGeneratedCvPath($row))) {
+                        $generatedExtension = strtoupper(pathinfo($generatedCvPath, PATHINFO_EXTENSION));
                         $menuItems .= '<li><a class="dropdown-item" href="' . route('maids.generated-cv.download', $row->id) . '">'
-                            . '<i class="fas fa-download text-danger me-2"></i>تصدير ملف السيرة PDF</a></li>';
+                            . '<i class="fas fa-download text-danger me-2"></i>تنزيل ملف السيرة ' . e($generatedExtension) . '</a></li>';
                     }
 
                     if (@AdminGuardHasPerm(\App\PermKeys::MAIDS_EDIT)) {
                         $menuItems .= '<li><a class="dropdown-item" href="' . route($this->mainRoute . '.edit', $row->id) . '"><i class="fas fa-edit text-secondary me-2"></i>' . helperTrans('ingaz.edit_maid') . '</a></li>';
-                        if ($cvGenerationAvailable && empty($row->cv_preview)) {
-                            $menuItems .= '<li><button type="button" class="dropdown-item generate-maid-cv" data-url="' . route('maids.generate-cv', $row->id) . '"><i class="fas fa-file-pdf text-danger me-2"></i>توليد السيرة الذاتية</button></li>';
+                        if ($cvGenerationAvailable) {
+                            $generationIcon = $cvOutputType === MaidCvPdfGenerator::OUTPUT_IMAGE ? 'fa-file-image text-info' : 'fa-file-pdf text-danger';
+                            $generationLabel = filled($row->cv_preview) ? 'إعادة توليد السيرة الذاتية' : 'توليد السيرة الذاتية';
+                            $menuItems .= '<li><button type="button" class="dropdown-item generate-maid-cv" data-url="' . route('maids.generate-cv', $row->id) . '"><i class="fas ' . $generationIcon . ' me-2"></i>' . $generationLabel . '</button></li>';
                         }
                         if ($row->available && $row->status === 'available') {
                             $menuItems .= '<li><button type="button" class="dropdown-item manage-offer" data-id="' . $row->id . '" data-name="' . e($row->name ?? '') . '" data-offer-price="' . e($row->offer_price ?? '') . '" data-offer-duration="' . e($row->offer_duration ?? '') . '" data-offer-description="' . e($row->offer_description ?? '') . '" data-offer-start="' . ($row->offer_starts_at ? $row->offer_starts_at->format('Y-m-d') : '') . '" data-offer-expire="' . ($row->offer_expires_at ? $row->offer_expires_at->format('Y-m-d') : '') . '" data-offer-active="' . ($offerActive ? 'true' : 'false') . '"><i class="fas fa-tags text-warning me-2"></i>' . helperTrans('ingaz.manage_offer') . '</button></li>';
@@ -577,6 +581,7 @@ class MaidController extends Controller
             'filters' => $filters,
             'dataTableRoute' => route($this->mainRoute . '.index'),
             'createRoute' => route($this->mainRoute . '.create'),
+            'cvOutputType' => $cvOutputType,
         ]);
     }
 
@@ -598,7 +603,10 @@ class MaidController extends Controller
                     'nationality',
                     'religion',
                     'jobTypes',
-                    'contracts',
+                    'contracts' => function ($query) {
+                        $query->with(['info', 'travelHistory', 'sponsorshipTransfers'])
+                            ->latest('id');
+                    },
                     'orders',
                     'rentalContracts' => function ($query) {
                         $query->select(['id', 'maid_id', 'status']);
@@ -624,6 +632,7 @@ class MaidController extends Controller
                     'is_show',
                     'available',
                     'available_at',
+                    'arrival_date',
                     'created_at',
                     'is_pinned',
                     'status',
@@ -712,6 +721,9 @@ class MaidController extends Controller
                 })
                 ->addColumn('cv_status', function (Maid $row) {
                     $effectiveStatus = $this->resolveRentalMaidCvStatus($row);
+                    $insideShelterContract = $this->resolveInsideShelterContract($row);
+                    $hasStaleShelterFlag = (int) $row->maid_accommodation_type === 2
+                        && !$insideShelterContract;
 
                     if ($effectiveStatus === 'backout') {
                         return '<span class="badge bg-danger">' . helperTrans('ingaz.backout') . '</span>';
@@ -720,7 +732,7 @@ class MaidController extends Controller
                     if ($effectiveStatus === 'ready') {
                         $badges = ['<span class="badge bg-success">' . helperTrans('ingaz.ready_for_contract') . '</span>'];
 
-                        if ((int) $row->maid_accommodation_type === 2) {
+                        if ($insideShelterContract) {
                             $badges[] = '<span class="badge bg-info text-dark">' . helperTrans('ingaz.inside_shelter') . '</span>';
                         }
 
@@ -736,6 +748,11 @@ class MaidController extends Controller
                     }
 
                     if ($effectiveStatus === 'reserved') {
+                        if ($hasStaleShelterFlag) {
+                            return '<span class="badge bg-warning text-dark" title="حالة السيرة لا تطابق حالة العقد">'
+                                . '<i class="fas fa-exclamation-triangle me-1"></i>محددة للإيواء - لا يوجد عقد إيواء نشط</span>';
+                        }
+
                         return '<span class="badge bg-warning text-dark">' . helperTrans('ingaz.maid_status_reserved') . '</span>';
                     }
 
@@ -746,6 +763,10 @@ class MaidController extends Controller
                     $menuItems = [];
                     $canCreateRentalContract = $this->canCreateRentalContractForMaid($row);
                     $canUseAvailableActions = (bool) $row->available && in_array($row->status, ['available', 'completed'], true);
+                    $insideShelterContract = $this->resolveInsideShelterContract($row);
+                    $shelterEntryContract = $insideShelterContract
+                        ? null
+                        : $this->resolveShelterEntryContract($row);
 
                     if (@AdminGuardHasPerm(\App\PermKeys::MAIDS_SHOW) || @AdminGuardHasPerm(\App\PermKeys::MAIDS_RENTAL_VIEW)) {
                         $menuItems[] = '<li><a class="dropdown-item" href="' . route('showMaidDetails', $row->id) . '">
@@ -759,6 +780,19 @@ class MaidController extends Controller
                     if (@AdminGuardHasPerm(\App\PermKeys::RENT_CONTRACT_CREATE) && $canCreateRentalContract) {
                         $menuItems[] = '<li><a class="dropdown-item" href="' . route('RentContract.create', ['maid_id' => $row->id]) . '">
                             <i class="fas fa-file-signature text-success me-2"></i>' . helperTrans('ingaz.create_rental_contract') . '
+                        </a></li>';
+                    }
+
+                    if (
+                        $shelterEntryContract
+                        && @AdminGuardHasAnyPerm([
+                            \App\PermKeys::SHELTER_CONTRACT_ADDITION_CREATE,
+                            \App\PermKeys::SHELTER_CONTRACT_CREATE,
+                            \App\PermKeys::SHELTER_CONTRACT_CONTROL,
+                        ])
+                    ) {
+                        $menuItems[] = '<li><a class="dropdown-item" href="' . route('ShelterContract.create', ['contract_id' => $shelterEntryContract->id]) . '">
+                            <i class="fas fa-warehouse text-info me-2"></i>إدخال العاملة للإيواء
                         </a></li>';
                     }
 
@@ -1345,13 +1379,16 @@ class MaidController extends Controller
     public function previewCv($id, ManagedFileStorage $storage)
     {
         $maid = objModel::withTrashed()->findOrFail($id);
-        abort_unless($this->maidHasPreviewableCv($maid), 404, 'ملف السيرة غير موجود.');
+        $previewPath = $this->maidPreviewableCvPath($maid);
+        abort_unless($previewPath, 404, 'ملف السيرة غير موجود.');
 
-        if (strtolower(pathinfo((string) $maid->cv_file, PATHINFO_EXTENSION)) !== 'pdf') {
+        if (strtolower(pathinfo($previewPath, PATHINFO_EXTENSION)) !== 'pdf') {
+            $extension = pathinfo($previewPath, PATHINFO_EXTENSION);
+
             return $storage->inlineResponse(
-                $maid->cv_file,
-                'maid-cv-' . $maid->id . '.' . pathinfo((string) $maid->cv_file, PATHINFO_EXTENSION),
-                $storage->mimeType($maid->cv_file)
+                $previewPath,
+                'maid-cv-' . $maid->id . ($extension ? '.' . $extension : ''),
+                $storage->mimeType($previewPath)
             );
         }
 
@@ -1408,12 +1445,13 @@ class MaidController extends Controller
         return null;
     }
 
-    private function maidGeneratedPdfPath(Maid $maid): ?string
+    private function maidGeneratedCvPath(Maid $maid): ?string
     {
         $path = $maid->cv_preview;
 
         return filled($path)
-            && strtolower(pathinfo((string) $path, PATHINFO_EXTENSION)) === 'pdf'
+            && in_array(strtolower(pathinfo((string) $path, PATHINFO_EXTENSION)), ['pdf', 'png'], true)
+            && app(MaidCvPdfGenerator::class)->isGeneratedPath($path)
             && app(ManagedFileStorage::class)->exists($path)
                 ? $path
                 : null;
@@ -1425,7 +1463,10 @@ class MaidController extends Controller
         $identifier = trim((string) preg_replace('/[^A-Za-z0-9_-]+/', '-', (string) $identifier), '-');
         $identifier = $identifier !== '' ? $identifier : (string) $maid->id;
 
-        return 'maid-cv-' . $maid->id . '-' . $identifier . '.pdf';
+        $extension = strtolower(pathinfo((string) $maid->cv_preview, PATHINFO_EXTENSION));
+        $extension = in_array($extension, ['pdf', 'png'], true) ? $extension : 'pdf';
+
+        return 'maid-cv-' . $maid->id . '-' . $identifier . '.' . $extension;
     }
 
     private function maidImagePath(Maid $maid): ?string
@@ -2067,6 +2108,7 @@ class MaidController extends Controller
                 'success' => true,
                 'message' => 'تم توليد السيرة الذاتية بنجاح.',
                 'path' => $path,
+                'output_type' => MaidCvTemplateSettings::outputType(),
                 'preview_url' => route('maids.cv.preview', $maid->id),
             ]);
         } catch (\Throwable $exception) {
@@ -2134,19 +2176,20 @@ class MaidController extends Controller
             'generated_count' => $generatedCount,
             'failed_count' => $failedCount,
             'generated_ids' => $generated,
+            'output_type' => MaidCvTemplateSettings::outputType(),
             'failures' => $failed,
         ], $generatedCount > 0 ? 200 : 422);
     }
 
     public function downloadGeneratedCv(Maid $maid, ManagedFileStorage $storage)
     {
-        $path = $this->maidGeneratedPdfPath($maid);
+        $path = $this->maidGeneratedCvPath($maid);
         abort_unless($path, 404, 'ملف السيرة الذاتية المولد غير موجود.');
 
         return $storage->downloadResponse(
             $path,
             $this->generatedCvFilename($maid),
-            'application/pdf'
+            $storage->mimeType($path)
         );
     }
 
@@ -2168,7 +2211,7 @@ class MaidController extends Controller
         $exportable = $ids
             ->map(function ($id) use ($maids) {
                 $maid = $maids->get($id);
-                $path = $maid ? $this->maidGeneratedPdfPath($maid) : null;
+                $path = $maid ? $this->maidGeneratedCvPath($maid) : null;
 
                 return $maid && $path ? compact('maid', 'path') : null;
             })
@@ -2177,7 +2220,7 @@ class MaidController extends Controller
 
         if ($exportable->isEmpty()) {
             throw ValidationException::withMessages([
-                'maid_ids' => 'السير المحددة لا تحتوي على ملفات PDF مولدة. استخدم زر التوليد الجماعي أولًا.',
+                'maid_ids' => 'السير المحددة لا تحتوي على ملفات مولدة. استخدم زر التوليد الجماعي أولًا.',
             ]);
         }
 
@@ -2187,7 +2230,7 @@ class MaidController extends Controller
             return $storage->downloadResponse(
                 $item['path'],
                 $this->generatedCvFilename($item['maid']),
-                'application/pdf'
+                $storage->mimeType($item['path'])
             );
         }
 
@@ -2212,7 +2255,7 @@ class MaidController extends Controller
             if ($missingIds->isNotEmpty()) {
                 $zip->addFromString(
                     'missing-cv-files.txt',
-                    "The following maid IDs do not have a generated PDF:\r\n" . $missingIds->join(', ')
+                    "The following maid IDs do not have a generated CV file:\r\n" . $missingIds->join(', ')
                 );
             }
         } catch (\Throwable $exception) {
@@ -3392,9 +3435,8 @@ class MaidController extends Controller
     private function applyRentalReservedFilter($query): void
     {
         $query->whereNotIn('status', ['backout', 'deported'])
-            ->where(function ($accommodationQuery) {
-                $accommodationQuery->whereNull('maid_accommodation_type')
-                    ->orWhere('maid_accommodation_type', '!=', 2);
+            ->whereDoesntHave('contracts', function ($contractQuery) {
+                $contractQuery->insideShelter();
             })
             ->where(function ($reservedQuery) {
                 $reservedQuery->where('status', 'reserved')
@@ -3429,7 +3471,7 @@ class MaidController extends Controller
             return 'active_rental_contract';
         }
 
-        if ((int) $maid->maid_accommodation_type === 2 && $maid->status !== 'deported') {
+        if ($this->resolveInsideShelterContract($maid)) {
             return 'in_accommodation';
         }
 
@@ -3450,6 +3492,78 @@ class MaidController extends Controller
         }
 
         return 'available';
+    }
+
+    private function maidPreviewableCvPath(Maid $maid): ?string
+    {
+        $storage = app(ManagedFileStorage::class);
+
+        foreach ([$maid->cv_preview, $maid->cv_file] as $path) {
+            if (filled($path) && $storage->exists($path)) {
+                return $path;
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Resolve the contract that actually makes the worker appear on the shelter page.
+     * The legacy maid_accommodation_type flag alone is not sufficient.
+     */
+    private function resolveInsideShelterContract(Maid $maid): ?Contract
+    {
+        $hasOutsideRentalContract = $maid->rentalContracts
+            ->whereIn('status', \App\Services\RentalShelterPresenceService::OUTSIDE_RENTAL_STATUSES)
+            ->isNotEmpty();
+
+        if ($hasOutsideRentalContract) {
+            return null;
+        }
+
+        return $maid->contracts->first(function (Contract $contract) {
+            $isOutsideShelter = (bool) ($contract->info?->is_outside_shelter ?? false);
+            $hasOutsideTransfer = $contract->sponsorshipTransfers
+                ->whereIn('status', ['maid_delivered', 'trial', 'trial_started'])
+                ->isNotEmpty();
+
+            return $contract->status === ContractStatusEnum::Shelter->value
+                && !$isOutsideShelter
+                && !$hasOutsideTransfer;
+        });
+    }
+
+    /**
+     * Find the latest arrived contract accepted by ShelterContractController::create.
+     */
+    private function resolveShelterEntryContract(Maid $maid): ?Contract
+    {
+        $eligibleStatuses = [
+            ContractStatusEnum::Arrival->value,
+            ContractStatusEnum::Completed->value,
+            ContractStatusEnum::UnderWarranty->value,
+            ContractStatusEnum::Closed->value,
+        ];
+
+        return $maid->contracts->first(function (Contract $contract) use ($maid, $eligibleStatuses) {
+            if (!in_array($contract->status, $eligibleStatuses, true)) {
+                return false;
+            }
+
+            $arrivalDate = $contract->info?->arrival_date
+                ?: $maid->arrival_date
+                ?: $contract->travelHistory?->arrival_date;
+
+            if (!$arrivalDate) {
+                return false;
+            }
+
+            try {
+                return Carbon::parse($arrivalDate)->startOfDay()->lte(now()->startOfDay());
+            } catch (\Throwable) {
+                return false;
+            }
+        });
     }
 
     private function applyRentalBackoutFilter($query): void

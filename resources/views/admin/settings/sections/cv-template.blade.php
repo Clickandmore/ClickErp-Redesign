@@ -619,7 +619,40 @@
                         تفعيل توليد السيرة الذاتية تلقائيًا
                     </label>
                 </div>
-                <p class="mb-0">عند التفعيل سيتم توليد PDF بعد إنشاء السيرة الذاتية أو تعديلها.</p>
+                <p class="mb-0">عند التفعيل سيتم توليد الصيغة المختارة أدناه بعد إنشاء السيرة الذاتية أو تعديلها.</p>
+            </div>
+        </div>
+
+        <div class="col-12">
+            <div class="guide-card">
+                <label class="form-label fw-bold d-block mb-3">
+                    <i class="fas fa-file-export text-primary me-1"></i> نوع الملف الناتج عند التوليد
+                </label>
+                @php($selectedOutputType = old('cv_template_output_type', $settings->cv_template_output_type ?? 'pdf'))
+                <div class="d-flex flex-wrap gap-4">
+                    <div class="form-check">
+                        <input class="form-check-input" type="radio" name="cv_template_output_type"
+                            id="cv_template_output_type_pdf" value="pdf"
+                            {{ $selectedOutputType === 'pdf' ? 'checked' : '' }}>
+                        <label class="form-check-label" for="cv_template_output_type_pdf">
+                            <i class="fas fa-file-pdf text-danger me-1"></i> PDF
+                        </label>
+                    </div>
+                    <div class="form-check">
+                        <input class="form-check-input" type="radio" name="cv_template_output_type"
+                            id="cv_template_output_type_image" value="image"
+                            {{ $selectedOutputType === 'image' ? 'checked' : '' }}>
+                        <label class="form-check-label" for="cv_template_output_type_image">
+                            <i class="fas fa-file-image text-info me-1"></i> صورة PNG
+                        </label>
+                    </div>
+                </div>
+                <div class="form-text mt-2">
+                    يستخدم الخيار المختار في التوليد الفردي والجماعي والتوليد التلقائي بعد إنشاء أو تعديل السيرة.
+                </div>
+                @error('cv_template_output_type')
+                    <div class="text-danger small mt-2">{{ $message }}</div>
+                @enderror
             </div>
         </div>
 

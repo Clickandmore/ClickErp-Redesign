@@ -312,11 +312,23 @@
                             <select name="nationality_id" id="nationalitySelect" class="form-control select2">
                                 <option value="">{{ helperTrans('ingaz.choose') }}</option>
                                 @foreach($countries as $country)
-                                    <option value="{{ $country->id }}" {{ old('nationality_id') == $country->id ? 'selected' : '' }}>
+                                    <option value="{{ $country->id }}"
+                                            data-is-saudi="{{ $country->is_saudi ? '1' : '0' }}"
+                                            {{ old('nationality_id') == $country->id ? 'selected' : '' }}>
                                         {{ $country->title }}
                                     </option>
                                 @endforeach
                             </select>
+                        </div>
+
+                        {{-- يظهر فقط عند اختيار جنسية غير سعودية --}}
+                        <div class="col-lg-6 residence-expiry-field d-none">
+                            <label class="form-label" for="residence_expiry_date">
+                                تاريخ انتهاء الإقامة
+                                <span class="text-muted">({{ helperTrans('ingaz.optional') }})</span>
+                            </label>
+                            <input type="date" id="residence_expiry_date" name="residence_expiry_date"
+                                   class="form-control" value="{{ old('residence_expiry_date') }}">
                         </div>
 
                         <div class="col-lg-6 person-client-field">
@@ -970,6 +982,33 @@
                     $citySelect.val('').trigger('change');
                 });
             }
+
+            // تاريخ انتهاء الإقامة يظهر للجنسيات غير السعودية فقط
+            (function () {
+                const $nationality = $('#nationalitySelect');
+                const $field = $('.residence-expiry-field');
+                const $input = $('#residence_expiry_date');
+
+                if (!$nationality.length || !$field.length) {
+                    return;
+                }
+
+                const toggleResidenceExpiry = function () {
+                    const isSaudi = String($nationality.find('option:selected').data('is-saudi')) === '1';
+                    const hasNationality = !!$nationality.val();
+
+                    if (hasNationality && !isSaudi) {
+                        $field.removeClass('d-none');
+                        return;
+                    }
+
+                    $field.addClass('d-none');
+                    $input.val('');
+                };
+
+                $nationality.on('change', toggleResidenceExpiry);
+                toggleResidenceExpiry();
+            })();
 
             $('#addForm').on('submit', function (e) {
                 e.preventDefault();

@@ -443,6 +443,12 @@
                                     <div class="value">{{ $client->identity_date ?? helperTrans('ingaz.not_specified') }}
                                     </div>
                                 </div>
+                                @if ($client->residence_expiry_date)
+                                    <div class="info-item">
+                                        <div class="label">تاريخ انتهاء الإقامة</div>
+                                        <div class="value">{{ $client->residence_expiry_date->format('Y-m-d') }}</div>
+                                    </div>
+                                @endif
                                 <div class="info-item">
                                     <div class="label">الاسم بالإنجليزية</div>
                                     <div class="value" dir="ltr">

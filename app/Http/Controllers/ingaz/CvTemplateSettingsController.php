@@ -28,6 +28,7 @@ class CvTemplateSettingsController extends Controller
     {
         $validated = $request->validate([
             'cv_template_enabled' => ['nullable', 'boolean'],
+            'cv_template_output_type' => ['required', 'in:pdf,image'],
             'cv_template_file' => ['nullable', 'file', 'max:2048'],
         ], [
             'cv_template_file.file' => 'ملف قالب السيرة الذاتية غير صالح.',
@@ -53,6 +54,7 @@ class CvTemplateSettingsController extends Controller
             'cv_template_enabled' => $enabled,
             'cv_template_blade' => $template !== '' ? $template : null,
             'cv_template_filename' => $filename,
+            'cv_template_output_type' => $validated['cv_template_output_type'],
         ])->save();
 
         MaidCvTemplateSettings::clearCache();

@@ -31,6 +31,24 @@ class Country extends Model
         return app()->getLocale() == 'ar' ? $this->name_ar : $this->name_en;
     }
 
+    /**
+     * هل الدولة هي المملكة العربية السعودية؟
+     *
+     * لا نعتمد على رقم ثابت لأنه يختلف بين البيئات، بل على الاسم أو الرمز.
+     */
+    public function getIsSaudiAttribute(): bool
+    {
+        $searchText = mb_strtolower(implode(' ', array_filter([
+            $this->name_ar,
+            $this->name_en,
+            $this->code,
+        ])));
+
+        return str_contains($searchText, 'السعود')
+            || str_contains($searchText, 'saudi')
+            || (bool) preg_match('/(^|\s)sa($|\s)/i', $searchText);
+    }
+
     public function scopeActive($query)
     {
         return $query->where('is_active', true);
