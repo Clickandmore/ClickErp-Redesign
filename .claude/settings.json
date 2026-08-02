@@ -8,7 +8,9 @@
       "Bash(php -l /Applications/MAMP/htdocs/ClickERP/config/istiqdam.php)",
       "Bash(php \"C:/Users/SOUK-A~1/AppData/Local/Temp/claude/e--Software-Engineering-Work-Erp-click-erp/83301a5f-deee-4bb5-9a9d-5046b761375c/scratchpad/check.php\")",
       "Bash(php -r ' *)",
-      "Bash(php artisan tinker '--execute= *)"
+      "Bash(php artisan tinker '--execute= *)",
+      "Bash(grep -n '$data = $request->validate' app/Http/Controllers/ingaz/UserController.php)",
+      "Bash(php artisan *)"
     ],
     "additionalDirectories": [
       "E:\\Software Engineering\\Work\\tawasut-rec\\tawasut-rec\\lang\\en"

@@ -18,6 +18,8 @@ use Symfony\Component\Process\Process;
 class MaidCvPdfGenerator
 {
     public const STORAGE_DIRECTORY = 'images/Maid/generated-cvs';
+    public const OUTPUT_PDF = 'pdf';
+    public const OUTPUT_IMAGE = 'image';
 
     public function generate(Maid $maid): string
     {
@@ -43,14 +45,18 @@ class MaidCvPdfGenerator
             'recruitmentOffice',
         ]);
 
-        $html = $this->renderTemplate($template, $this->viewData($maid, $settings));
-        $contents = $this->generatePdfContents($html);
+        $outputType = MaidCvTemplateSettings::outputType();
+        $html = $this->renderTemplate($template, $this->viewData($maid, $settings, $outputType));
+        $contents = $outputType === self::OUTPUT_IMAGE
+            ? $this->generateImageContents($html)
+            : $this->generatePdfContents($html);
         if ($contents === '') {
             throw new RuntimeException('تعذر إنشاء ملف PDF من القالب المرفوع.');
         }
 
         $storage = app(ManagedFileStorage::class);
-        $path = $storage->storeFileContents($contents, self::STORAGE_DIRECTORY, 'pdf');
+        $extension = $outputType === self::OUTPUT_IMAGE ? 'png' : 'pdf';
+        $path = $storage->storeFileContents($contents, self::STORAGE_DIRECTORY, $extension);
 
         $previousPath = $maid->cv_preview;
 
@@ -66,6 +72,81 @@ class MaidCvPdfGenerator
         }
 
         return $path;
+    }
+
+    /**
+     * Generate a high-resolution PNG using an isolated Chrome profile and
+     * the Blade template stored in the database.
+     */
+    private function generateImageContents(string $html): string
+    {
+        if (!function_exists('proc_open')) {
+            throw new RuntimeException('توليد صورة السيرة يحتاج إلى تفعيل proc_open على الخادم.');
+        }
+
+        $browserPath = $this->browserExecutable();
+        if ($browserPath === null) {
+            throw new RuntimeException('تعذر توليد الصورة: لم يتم العثور على Google Chrome أو Microsoft Edge على الخادم.');
+        }
+
+        $temporaryDirectory = storage_path('app/cv-image-temp/' . Str::uuid());
+        $profilePath = $temporaryDirectory . DIRECTORY_SEPARATOR . 'browser-profile';
+        File::ensureDirectoryExists($profilePath);
+
+        $htmlPath = $temporaryDirectory . DIRECTORY_SEPARATOR . 'cv.html';
+        $imagePath = $temporaryDirectory . DIRECTORY_SEPARATOR . 'cv.png';
+        $viewportWidth = max(320, (int) env('CV_IMAGE_VIEWPORT_WIDTH', 794));
+        $viewportHeight = max(480, (int) env('CV_IMAGE_VIEWPORT_HEIGHT', 1123));
+
+        try {
+            File::put($htmlPath, $html);
+
+            $process = new Process([
+                $browserPath,
+                '--headless=new',
+                '--user-data-dir=' . $profilePath,
+                '--disable-gpu',
+                '--no-sandbox',
+                '--disable-dev-shm-usage',
+                '--disable-crash-reporter',
+                '--disable-breakpad',
+                '--disable-features=Crashpad',
+                '--no-first-run',
+                '--no-default-browser-check',
+                '--disable-background-networking',
+                '--disable-component-update',
+                '--disable-default-apps',
+                '--disable-extensions',
+                '--disable-sync',
+                '--hide-scrollbars',
+                '--allow-file-access-from-files',
+                '--run-all-compositor-stages-before-draw',
+                '--virtual-time-budget=3000',
+                '--force-device-scale-factor=2',
+                '--default-background-color=ffffffff',
+                '--window-size=' . $viewportWidth . ',' . $viewportHeight,
+                '--screenshot=' . $imagePath,
+                $this->fileUrl($htmlPath),
+            ]);
+            $process->setTimeout(90);
+            $process->run();
+
+            if (!$process->isSuccessful() || !is_file($imagePath)) {
+                throw new RuntimeException(
+                    'تعذر إنشاء صورة السيرة بواسطة المتصفح: '
+                    . trim($process->getErrorOutput() ?: $process->getOutput())
+                );
+            }
+
+            $contents = File::get($imagePath);
+            if (!Str::startsWith($contents, "\x89PNG\r\n\x1a\n")) {
+                throw new RuntimeException('لم يُرجع المتصفح صورة PNG صالحة.');
+            }
+
+            return $contents;
+        } finally {
+            File::deleteDirectory($temporaryDirectory);
+        }
     }
 
     private function generatePdfContents(string $html): string
@@ -173,7 +254,7 @@ class MaidCvPdfGenerator
 
     private function browserExecutable(): ?string
     {
-        $configuredPath = trim((string) env('CV_PDF_BROWSER_PATH', ''));
+        $configuredPath = trim((string) (config('services.chrome.path') ?: env('CV_PDF_BROWSER_PATH', '')));
         $candidates = array_filter([
             $configuredPath,
             'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe',
@@ -184,11 +265,51 @@ class MaidCvPdfGenerator
             '/usr/bin/google-chrome-stable',
             '/usr/bin/chromium',
             '/usr/bin/chromium-browser',
+            '/usr/bin/chromium-headless-shell',
+            '/usr/local/bin/google-chrome',
+            '/usr/local/bin/chromium',
+            '/usr/local/bin/chrome-headless-shell',
+            '/opt/google/chrome/google-chrome',
+            '/opt/google/chrome/chrome',
+            '/usr/bin/microsoft-edge',
+            '/usr/bin/microsoft-edge-stable',
+            '/snap/bin/chromium',
+            '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',
         ]);
 
         foreach ($candidates as $candidate) {
-            if (is_file($candidate) && is_executable($candidate)) {
+            if (is_file($candidate)) {
                 return $candidate;
+            }
+        }
+
+        $lookupCommand = PHP_OS_FAMILY === 'Windows' ? 'where.exe' : 'which';
+        foreach ([
+            'google-chrome',
+            'google-chrome-stable',
+            'chromium',
+            'chromium-browser',
+            'chromium-headless-shell',
+            'chrome-headless-shell',
+            'microsoft-edge',
+            'microsoft-edge-stable',
+            'chrome',
+        ] as $binary) {
+            try {
+                $lookup = new Process([$lookupCommand, $binary]);
+                $lookup->setTimeout(5);
+                $lookup->run();
+
+                if (!$lookup->isSuccessful()) {
+                    continue;
+                }
+
+                $resolved = trim(strtok($lookup->getOutput(), "\r\n") ?: '');
+                if ($resolved !== '' && is_file($resolved)) {
+                    return $resolved;
+                }
+            } catch (\Throwable) {
+                // Continue through the remaining browser names.
             }
         }
 
@@ -223,7 +344,7 @@ class MaidCvPdfGenerator
             );
     }
 
-    private function viewData(Maid $maid, Setting $settings): array
+    private function viewData(Maid $maid, Setting $settings, string $outputType): array
     {
         $expertises = $maid->expertises;
 
@@ -238,7 +359,9 @@ class MaidCvPdfGenerator
             ],
             'customerServices' => collect(),
             'type' => $maid->request_type ?: 'estqdam',
-            'cvPdfMode' => true,
+            'cvPdfMode' => $outputType === self::OUTPUT_PDF,
+            'cvImageMode' => $outputType === self::OUTPUT_IMAGE,
+            'cvOutputType' => $outputType,
         ];
     }
 }

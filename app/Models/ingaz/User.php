@@ -33,6 +33,7 @@ class User extends Authenticatable implements JWTSubject
 
     protected $casts = [
         'branch_id' => 'integer',
+        'residence_expiry_date' => 'date',
     ];
 
     public function clientNumber()

@@ -28,6 +28,14 @@ class MaidCvTemplateSettings
             && filled($setting?->cv_template_blade);
     }
 
+    public static function outputType(): string
+    {
+        $setting = self::current();
+        $type = strtolower(trim((string) ($setting?->cv_template_output_type ?? 'pdf')));
+
+        return in_array($type, ['pdf', 'image'], true) ? $type : 'pdf';
+    }
+
     public static function clearCache(): void
     {
         self::$cachedSetting = null;
