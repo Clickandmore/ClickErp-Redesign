@@ -2573,7 +2573,7 @@ return array (
     'post_arrival_support_text' => 'rate of follow-up and support after arrival',
     'video_title' => 'Watch the introductory video of the Musaned platform',
     'video_description' => 'Musaned - The National Platform for Domestic Labor Services',
-    'video_link' => 'https://www.youtube.com/embed/I3L7Ft6W0-s',
+    'video_link' => 'Video Link',
     'Operations_Management' => 'Operations Management',
     'video_description' => 'Musaned - The National Platform for Domestic Labor Services',
     'hr' => 'Hr Management',
@@ -2636,7 +2636,7 @@ return array (
 
   'activation_code_note' => 'After submitting your basic information, you will receive an SMS with the Musaned activation code. Enter the code to complete account registration.',
   'step_password_info' => 'Confirm Password: Re-enter your chosen password',
-  'step_password_mobile_email' => 
+  'step_password_mobile_email' =>
   array (
     'password_confirmation' => 'Confirm Password: Re-enter your chosen password',
     'mobile_number_registered' => 'Mobile number registered in Absher',
@@ -2644,14 +2644,14 @@ return array (
   ),
   'password_hint' => 'Password: Choose a password that includes letters, numbers, and symbols',
   'requirements_title' => 'Before starting the visa issuance, ensure the following requirements are ready:',
-  'requirements_list' => 
+  'requirements_list' =>
   array (
     'social_insurance' => 'Are you registered with GOSI (Social Insurance)?',
     'employment_status' => 'Employment Status: According to financial ability proof',
     'financial_proof' => 'Type of financial proof: Salary certificate (private or public sector), or bank statement based on allowed visa count',
   ),
   'payment_step_title' => 'How to Pay Visa Fees via SADAD',
-  'payment_steps' => 
+  'payment_steps' =>
   array (
     'login_to_bank' => 'Log in to your bank website, app, or ATM',
     'choose_payments' => 'Choose "Payments"',
@@ -2666,20 +2666,20 @@ return array (
   'payment_note' => 'The invoice will be issued via SADAD. Pay within one day to submit the request.',
   'visa_request_title' => 'Visa Issuance Request',
   'visa_info_step' => 'Fill Visa Information',
-  'visa_info_fields' => 
+  'visa_info_fields' =>
   array (
     'job_title' => 'Job Title: Choose the domestic worker\'s occupation',
     'nationality' => 'Nationality: Choose the nationality of the domestic worker',
     'arrival_country' => 'Arrival Country: Choose the country of origin',
   ),
   'financial_proof_step' => 'Proof of Financial Ability',
-  'financial_proof_fields' => 
+  'financial_proof_fields' =>
   array (
     'salary_statement' => 'Salary Certificate: Enter monthly salary from private or public sector',
     'bank_statement' => 'Bank Certificate: Enter the average monthly balance',
   ),
   'upload_documents' => 'Upload Documents and Attachments',
-  'documents_list' => 
+  'documents_list' =>
   array (
     'financial_proof_doc' => 'Proof of Financial Ability',
     'id_or_family_card' => 'Family Card or National ID Copy',
@@ -3974,7 +3974,7 @@ return array (
   'We are pleased to welcome you to explore our services. We strive to provide the best domestic worker recruitment services. To submit a domestic worker recruitment application, please complete all information correctly.' => 'We are pleased to welcome you to explore our services. We strive to provide the best domestic worker recruitment services. To submit a domestic worker recruitment application, please complete all information correctly.',
   'features   ' => 'Features',
   'contact-us' => 'Contact us',
-  0 => 
+  0 =>
   array (
     'financial_proof_doc' => 'Financial proof doc',
     'id_or_family_card' => 'Id or family card',

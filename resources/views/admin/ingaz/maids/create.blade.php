@@ -1304,9 +1304,13 @@
 
                 $clone.find('input, textarea').val('');
                 $clone.find('span.select2').remove();
+                // Select2 stores generated identifiers on the select and its options.
+                // Cloning those identifiers makes the second row share Select2 state
+                // with the first one, so selecting another country may not work.
+                $clone.find('[data-select2-id]').removeAttr('data-select2-id');
                 $clone.find('select.select2').each(function() {
                     $(this)
-                        .removeAttr('data-select2-id')
+                        .removeAttr('aria-hidden tabindex')
                         .removeClass('select2-hidden-accessible')
                         .prop('selectedIndex', 0);
                 });
