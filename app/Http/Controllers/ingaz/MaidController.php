@@ -1450,7 +1450,7 @@ class MaidController extends Controller
         $path = $maid->cv_preview;
 
         return filled($path)
-            && in_array(strtolower(pathinfo((string) $path, PATHINFO_EXTENSION)), ['pdf', 'png'], true)
+            && in_array(strtolower(pathinfo((string) $path, PATHINFO_EXTENSION)), ['pdf', 'png', 'svg'], true)
             && app(MaidCvPdfGenerator::class)->isGeneratedPath($path)
             && app(ManagedFileStorage::class)->exists($path)
                 ? $path
@@ -1464,7 +1464,7 @@ class MaidController extends Controller
         $identifier = $identifier !== '' ? $identifier : (string) $maid->id;
 
         $extension = strtolower(pathinfo((string) $maid->cv_preview, PATHINFO_EXTENSION));
-        $extension = in_array($extension, ['pdf', 'png'], true) ? $extension : 'pdf';
+        $extension = in_array($extension, ['pdf', 'png', 'svg'], true) ? $extension : 'pdf';
 
         return 'maid-cv-' . $maid->id . '-' . $identifier . '.' . $extension;
     }
