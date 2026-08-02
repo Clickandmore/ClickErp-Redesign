@@ -337,7 +337,7 @@
     </style>
 @endsection
 
-@section('title')
+@section('page-title')
     تفاصيل طلب نقل الكفالة
 @endsection
 
@@ -769,7 +769,6 @@
                     </div>
                 </div>
             @endif
-        </div>
 
         {{-- القيود المحاسبية --}}
         @if ($transfer->trial_start_constraint_id || $transfer->completion_constraint_id || $transfer->failure_constraint_id)
@@ -805,6 +804,6 @@
 </div>
 @endsection
 
-@section('script')
+@section('js')
     <script src="{{ asset('admin') }}/custom/admin-tables.js"></script>
 @endsection

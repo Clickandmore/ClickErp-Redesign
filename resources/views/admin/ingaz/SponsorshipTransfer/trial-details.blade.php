@@ -262,12 +262,14 @@
             allowOutsideClick: () => !Swal.isLoading()
         }).then((result) => {
             if (result.isConfirmed) {
+                const response = result.value || {};
+                const hasAccountingWarning = Boolean(response.accounting_warning);
                 Swal.fire({
-                    title: 'تم بنجاح!',
-                    text: 'تم بدء فترة التجربة بنجاح',
-                    icon: 'success',
-                    timer: 2000,
-                    showConfirmButton: false
+                    title: hasAccountingWarning ? 'بدأت التجربة مع تنبيه محاسبي' : 'تم بنجاح!',
+                    text: response.message || 'تم بدء فترة التجربة بنجاح',
+                    icon: hasAccountingWarning ? 'warning' : 'success',
+                    timer: hasAccountingWarning ? undefined : 2000,
+                    showConfirmButton: hasAccountingWarning
                 }).then(() => {
                     window.location.href = '{{ route("SponsorshipTransfer.index") }}';
                 });

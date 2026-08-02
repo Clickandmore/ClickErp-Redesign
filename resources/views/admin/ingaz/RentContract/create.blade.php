@@ -108,6 +108,16 @@
             border-top: 1px dashed #d7e3ef;
         }
 
+        .rent-contract-create .quick-create-client {
+            min-height: 46px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.45rem;
+            border-radius: 12px;
+            font-weight: 700;
+        }
+
         .rent-contract-create .contract-form-grid > [class*="col-"] {
             display: flex;
         }
@@ -514,12 +524,13 @@
 
                     <div class="selection-toolbar">
                         <div class="row g-3 align-items-end">
-                            <div class="col-lg-6">
-                                <label for="new_existing_client_id" class="form-label">اختر عميل <span
-                                        class="text-danger">*</span></label>
+                            <div class="col-lg-9">
+                                <label for="new_existing_client_id" class="form-label">اختر عميل
+                                    <small class="text-muted">(اختياري)</small></label>
                                 <select name="new_existing_client_id" id="new_existing_client_id"
-                                        class="form-select select2" style="width:100%">
-                                    <option value="" {{ !isset($selectedClient) || !$selectedClient ? 'selected' : '' }} disabled>اختر عميل...</option>
+                                        class="form-select ajax-client-select" style="width:100%"
+                                        data-placeholder="ابحث بالاسم أو الجوال أو الهوية">
+                                    <option value="" {{ !isset($selectedClient) || !$selectedClient ? 'selected' : '' }}></option>
                                     @if(isset($selectedClient) && $selectedClient)
                                         <option value="{{ $selectedClient->id }}"
                                                 selected
@@ -545,7 +556,15 @@
                                     @endif
                                 </select>
                             </div>
-                            <div class="col-lg-6">
+                            <div class="col-lg-3">
+                                <button type="button" id="use-direct-client-data"
+                                        class="btn btn-outline-primary quick-create-client w-100"
+                                        title="إدخال بيانات عميل جديد داخل نفس الشاشة">
+                                    <i class="fas fa-user-plus"></i>
+                                    عميل جديد من البيانات
+                                </button>
+                            </div>
+                            <div class="col-12">
                                 <label for="maid_id" class="form-label">اختر عاملة <span
                                         class="text-danger">*</span></label>
                                 <select name="maid_id" id="maid_id" class="form-select select2" style="width:100%">
@@ -572,15 +591,13 @@
                             </div>
                         </div>
                         <div class="quick-actions d-flex flex-column flex-lg-row align-items-lg-center justify-content-between gap-3">
-                            <p class="selection-toolbar-note">ابدأ باختيار العميل والعاملة، وسيتم تعبئة البيانات وإظهار الباقات المناسبة بشكل تلقائي داخل النموذج.</p>
-                            <a href="{{ route('clients.create') }}" target="_blank" class="btn btn-outline-primary"
-                               title="إضافة عميل جديد"><i class="fas fa-user-plus"></i> إضافة عميل جديد</a>
+                            <p class="selection-toolbar-note">اختر عميلاً موجوداً لتعبئة بياناته تلقائياً، أو اضغط «عميل جديد من البيانات» وأدخل بياناته داخل نفس النموذج، ثم اختر العاملة.</p>
                         </div>
                     </div>
 
                     <div class="row g-4 contract-form-grid">
                         <!-- بيانات العميل والعاملة (تظهر بعد الاختيار) -->
-                        <div class="col-12 col-xl-6">
+                        <div class="col-12">
                             <div class="form-section">
                                 <div class="section-header">
                                     <div class="section-icon">
@@ -662,6 +679,13 @@
                                             @endforeach
                                         </select>
                                         <div class="invalid-feedback" id="err_new_client_city"></div>
+                                        <div class="contract-city-actions mt-2">
+                                            <a href="{{ route('cities.create') }}" target="_blank"
+                                               class="btn btn-outline-primary btn-sm">
+                                                <i class="fas fa-plus-circle ms-1"></i>إضافة مدينة سعودية
+                                            </a>
+                                            <small class="text-muted">ابحث باسم المدينة أو أضفها إذا لم تكن موجودة.</small>
+                                        </div>
                                     </div>
                                     <div class="col-md-6 mb-2">
                                         <label class="form-label">البريد الإلكتروني <small
@@ -671,16 +695,14 @@
                                         <div class="invalid-feedback" id="err_new_client_email"></div>
                                     </div>
                                     <div class="col-md-6 mb-2 js-rent-person-field">
-                                        <label class="form-label">تاريخ الميلاد <small
-                                                class="text-muted">(اختياري)</small></label>
+                                        <label class="form-label">تاريخ الميلاد <span class="text-danger">*</span></label>
                                         <input type="date" id="new_client_birthdate" name="new_client_birthdate"
-                                               class="form-control" max="{{ date('Y-m-d') }}">
+                                               class="form-control" data-validation="required" max="{{ date('Y-m-d') }}">
                                     </div>
                                     <div class="col-md-6 mb-2">
-                                        <label class="form-label">رقم جوال إضافي <small
-                                                class="text-muted">(اختياري)</small></label>
+                                        <label class="form-label">رقم جوال إضافي <span class="text-danger">*</span></label>
                                         <input type="tel" id="new_client_phone2" name="new_client_phone2"
-                                               class="form-control">
+                                               class="form-control" data-validation="required">
                                     </div>
                                     <div class="col-md-6 mb-2">
                                         <label class="form-label">العنوان التفصيلي <small
@@ -721,7 +743,7 @@
                             </div>
                         </div>
                         </div>
-                        <div class="col-12 col-xl-6">
+                        <div class="col-12">
                             <div class="form-section">
                                 <div class="section-header">
                                     <div class="section-icon">
@@ -1131,7 +1153,7 @@
                 allowClear: true,
                 dir: 'rtl',
                 width: '100%',
-                minimumInputLength: 2,
+                minimumInputLength: 0,
                 ajax: {
                     url: @json(route('RentContract.existing.clients')),
                     dataType: 'json',
@@ -1580,6 +1602,12 @@
                 } else {
                     clearClientData();
                 }
+            });
+
+            $('#use-direct-client-data').on('click', function () {
+                $('#new_existing_client_id').val(null).trigger('change');
+                clearClientData();
+                $('#new_client_name').trigger('focus');
             });
 
             $('#new_existing_client_id').on('select2:select', function (event) {

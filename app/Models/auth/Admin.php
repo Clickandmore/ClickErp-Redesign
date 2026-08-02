@@ -44,11 +44,20 @@ class Admin extends Authenticatable
     }
 
     /**
-     * Exclude accounts managed as external office/agent users.
+     * Exclude only accounts managed exclusively as external-office agents.
+     *
+     * An internal user may also be linked to an external office. That link
+     * must not make the user disappear from the main users page while they
+     * still have an internal role or direct permissions.
      */
     public function scopeNotExternalOfficeAgents(Builder $query): Builder
     {
-        return $query->whereDoesntHave('agentOfficeLinks');
+        return $query->where(function (Builder $query) {
+            $query->whereDoesntHave('agentOfficeLinks')
+                ->orWhereNotNull($this->getTable() . '.role_id')
+                ->orWhereHas('roles')
+                ->orWhereHas('permissions');
+        });
     }
 
     public function role()

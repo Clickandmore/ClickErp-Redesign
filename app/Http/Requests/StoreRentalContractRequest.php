@@ -55,7 +55,7 @@ class StoreRentalContractRequest extends FormRequest
             'new_client_email' => 'nullable|email|max:255',
             'new_client_national_num' => 'required|string|max:50',
             'new_client_license_number' => 'nullable|string|max:100',
-            'new_client_birthdate' => 'nullable|date',
+            'new_client_birthdate' => 'nullable|required_if:account_client_type,person|date',
             'new_client_address' => 'nullable|string|max:500',
             'new_client_city' => [
                 'required',
@@ -66,7 +66,7 @@ class StoreRentalContractRequest extends FormRequest
                         ->whereIn('country_id', Country::query()->select('id')->where('code', 'SA'));
                 }),
             ],
-            'new_client_phone2' => 'nullable|string|max:20',
+            'new_client_phone2' => 'required|string|max:20',
             'new_client_beds_num' => 'nullable|string|max:10',
             'new_client_family_num' => 'nullable|integer|min:1',
             'new_client_children' => 'nullable|integer|min:0',
@@ -169,6 +169,9 @@ class StoreRentalContractRequest extends FormRequest
             'client_nationality_id.exists' => 'الجنسية المختارة غير صحيحة',
             'new_client_email.email' => 'البريد الإلكتروني غير صحيح',
             'new_client_national_num.required' => 'رقم الهوية مطلوب',
+            'new_client_birthdate.required' => 'تاريخ ميلاد العميل مطلوب',
+            'new_client_birthdate.required_if' => 'تاريخ ميلاد العميل مطلوب للأفراد',
+            'new_client_phone2.required' => 'رقم الجوال الإضافي مطلوب',
             'new_client_city.required' => 'المدينة مطلوبة',
             'new_client_city.exists' => 'يرجى اختيار مدينة سعودية صحيحة من القائمة',
 
