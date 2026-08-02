@@ -659,7 +659,7 @@
                                             class="btn btn-outline-primary btn-sm">
                                             <i class="fas fa-eye me-1"></i>عرض داخل الموقع
                                         </button>
-                                        <a href="{{ $cvFileUrl }}" download class="btn btn-light btn-sm border">
+                                        <a href="{{ route('maids.cv.download', $maid->id) }}" class="btn btn-light btn-sm border">
                                             <i class="fas fa-download me-1"></i>تنزيل
                                         </a>
                                     </div>
@@ -941,10 +941,13 @@
                                             <div class="text-muted small">
                                                 <i
                                                     class="fas fa-globe me-1"></i>{{ $expertise->country?->title ?? helperTrans('ingaz.not_specified') }}
+                                                @if ($expertise->period_label)
+                                                    <span class="mx-1 text-secondary">•</span>
+                                                    <i class="fas fa-calendar-alt me-1"></i>{{ $expertise->period_label }}
+                                                @endif
                                                 <span class="mx-1 text-secondary">•</span>
                                                 <i
-                                                    class="fas fa-hourglass-half me-1"></i>{{ $expertise->number_of_years ?? '0' }}
-                                                {{ helperTrans('ingaz.years') }}
+                                                    class="fas fa-hourglass-half me-1"></i>{{ $expertise->duration_label ?? helperTrans('ingaz.not_specified') }}
                                             </div>
                                         </div>
                                     @endforeach

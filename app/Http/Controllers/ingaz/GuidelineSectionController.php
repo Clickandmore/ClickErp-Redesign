@@ -30,16 +30,25 @@ class GuidelineSectionController extends Controller
         $section = $this->section();
         $this->validateRequiredFiles($request, $section);
         $this->authorizeChanges($request, $section);
+        $oldFiles = [];
+        $newFiles = [];
 
-        DB::transaction(function () use ($request, $section) {
-            $section ??= new GuidelineSection();
-            $this->replaceFile($section, 'client_file_path', $request->file('client_file'), 'client');
-            $this->replaceFile($section, 'worker_file_path', $request->file('worker_file'), 'worker');
-            $section->save();
+        try {
+            DB::transaction(function () use ($request, $section, &$oldFiles, &$newFiles) {
+                $section ??= new GuidelineSection();
+                $this->replaceFile($section, 'client_file_path', $request->file('client_file'), 'client', $oldFiles, $newFiles);
+                $this->replaceFile($section, 'worker_file_path', $request->file('worker_file'), 'worker', $oldFiles, $newFiles);
+                $section->save();
 
-            $this->syncVideos($section, $request->input('videos', []));
-            $this->syncVersions($section, $request->input('versions', []), $request);
-        });
+                $this->syncVideos($section, $request->input('videos', []));
+                $this->syncVersions($section, $request->input('versions', []), $request, $oldFiles, $newFiles);
+            });
+        } catch (\Throwable $exception) {
+            $this->deleteFiles($newFiles);
+            throw $exception;
+        }
+
+        $this->deleteFiles($oldFiles);
 
         return redirect()
             ->route('guidelines.edit')
@@ -129,17 +138,25 @@ class GuidelineSectionController extends Controller
         }
     }
 
-    private function replaceFile($model, string $attribute, $file, string $prefix): void
+    private function replaceFile(
+        $model,
+        string $attribute,
+        $file,
+        string $prefix,
+        array &$oldFiles,
+        array &$newFiles
+    ): void
     {
         if (!$file) {
             return;
         }
 
         if ($model->{$attribute}) {
-            deleteFile($model->{$attribute});
+            $oldFiles[] = $model->{$attribute};
         }
 
         $model->{$attribute} = uploadFile($file, "files/guidelines/{$prefix}/", 1);
+        $newFiles[] = $model->{$attribute};
     }
 
     private function syncVideos(GuidelineSection $section, array $rows): void
@@ -161,7 +178,9 @@ class GuidelineSectionController extends Controller
     private function syncVersions(
         GuidelineSection $section,
         array $rows,
-        GuidelineSectionRequest $request
+        GuidelineSectionRequest $request,
+        array &$oldFiles,
+        array &$newFiles
     ): void {
         $keptIds = [];
 
@@ -177,13 +196,17 @@ class GuidelineSectionController extends Controller
                 $version,
                 'client_file_path',
                 $request->file("versions.$index.client_file"),
-                'nationalities'
+                'nationalities',
+                $oldFiles,
+                $newFiles
             );
             $this->replaceFile(
                 $version,
                 'worker_file_path',
                 $request->file("versions.$index.worker_file"),
-                'nationalities'
+                'nationalities',
+                $oldFiles,
+                $newFiles
             );
             $version->save();
             $keptIds[] = $version->id;
@@ -195,8 +218,8 @@ class GuidelineSectionController extends Controller
             ->get();
 
         foreach ($deleted as $version) {
-            deleteFile($version->client_file_path);
-            deleteFile($version->worker_file_path);
+            $oldFiles[] = $version->client_file_path;
+            $oldFiles[] = $version->worker_file_path;
             $version->delete();
         }
 
@@ -204,5 +227,12 @@ class GuidelineSectionController extends Controller
             ->whereDoesntHave('versions')
             ->get()
             ->each(fn (NationalityGuideline $guideline) => $guideline->delete());
+    }
+
+    private function deleteFiles(array $paths): void
+    {
+        foreach (array_unique(array_filter($paths)) as $path) {
+            deleteFile($path);
+        }
     }
 }

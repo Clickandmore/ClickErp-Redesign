@@ -1342,10 +1342,18 @@ class MaidController extends Controller
         ));
     }
 
-    public function previewCv($id)
+    public function previewCv($id, ManagedFileStorage $storage)
     {
         $maid = objModel::withTrashed()->findOrFail($id);
-        abort_unless($this->maidHasPreviewablePdf($maid), 404, 'ملف السيرة غير موجود.');
+        abort_unless($this->maidHasPreviewableCv($maid), 404, 'ملف السيرة غير موجود.');
+
+        if (strtolower(pathinfo((string) $maid->cv_file, PATHINFO_EXTENSION)) !== 'pdf') {
+            return $storage->inlineResponse(
+                $maid->cv_file,
+                'maid-cv-' . $maid->id . '.' . pathinfo((string) $maid->cv_file, PATHINFO_EXTENSION),
+                $storage->mimeType($maid->cv_file)
+            );
+        }
 
         return view($this->folderPath . '.cv_preview', [
             'maid' => $maid,
@@ -1363,6 +1371,20 @@ class MaidController extends Controller
             $pdfPath,
             'maid-cv-' . $maid->id . '.pdf',
             'application/pdf'
+        );
+    }
+
+    public function downloadCv($id, ManagedFileStorage $storage)
+    {
+        $maid = objModel::withTrashed()->findOrFail($id);
+        abort_unless($this->maidHasPreviewableCv($maid), 404, 'ملف السيرة غير موجود.');
+
+        $extension = pathinfo((string) $maid->cv_file, PATHINFO_EXTENSION);
+
+        return $storage->downloadResponse(
+            $maid->cv_file,
+            'maid-cv-' . $maid->id . ($extension ? '.' . $extension : ''),
+            $storage->mimeType($maid->cv_file)
         );
     }
 
@@ -1421,6 +1443,12 @@ class MaidController extends Controller
         return null;
     }
 
+    private function maidHasPreviewableCv(Maid $maid): bool
+    {
+        return filled($maid->cv_file)
+            && app(ManagedFileStorage::class)->exists($maid->cv_file);
+    }
+
     public function storeAttachments(Request $request, $id)
     {
         if (!@AdminGuardHasPerm(\App\PermKeys::MAIDS_EDIT)) {
@@ -1440,19 +1468,22 @@ class MaidController extends Controller
 
         foreach ($request->file('attachments', []) as $file) {
             $originalName = $file->getClientOriginalName();
-            $extension = $file->getClientOriginalExtension();
-            $fileName = Str::uuid()->toString() . ($extension ? '.' . $extension : '');
-            $path = $file->storeAs('maids/attachments/' . $maid->id, $fileName, 'public');
+            $path = uploadMaidFile($file, 'maids/attachments/' . $maid->id);
 
-            MaidAttachment::create([
-                'maid_id' => $maid->id,
-                'uploaded_by' => auth('admin')->id() ?: auth()->id(),
-                'title' => $validated['title'] ?? null,
-                'original_name' => $originalName,
-                'path' => $path,
-                'mime_type' => $file->getClientMimeType(),
-                'size' => $file->getSize() ?: 0,
-            ]);
+            try {
+                MaidAttachment::create([
+                    'maid_id' => $maid->id,
+                    'uploaded_by' => auth('admin')->id() ?: auth()->id(),
+                    'title' => $validated['title'] ?? null,
+                    'original_name' => $originalName,
+                    'path' => $path,
+                    'mime_type' => $file->getClientMimeType(),
+                    'size' => $file->getSize() ?: 0,
+                ]);
+            } catch (\Throwable $exception) {
+                deleteFile($path);
+                throw $exception;
+            }
         }
 
         return redirect()
@@ -1485,19 +1516,38 @@ class MaidController extends Controller
 
         $zip = new \ZipArchive();
         $zipFile = tempnam(sys_get_temp_dir(), 'maid-attachments-');
+        $temporaryAttachmentFiles = [];
 
         if ($zip->open($zipFile, \ZipArchive::OVERWRITE) !== true) {
             return redirect()->back()->with('error', __('ingaz.attachments_zip_failed'));
         }
 
+        $storage = app(ManagedFileStorage::class);
         foreach ($attachments as $attachment) {
-            $zip->addFile(
-                Storage::disk('public')->path($attachment->path),
-                $this->buildAttachmentDownloadName($attachment)
-            );
+            $stream = $storage->readStream($attachment->path);
+            if (!is_resource($stream)) {
+                continue;
+            }
+
+            $temporaryPath = tempnam(sys_get_temp_dir(), 'maid-attachment-');
+            $temporaryStream = fopen($temporaryPath, 'wb');
+            if (!is_resource($temporaryStream)) {
+                fclose($stream);
+                continue;
+            }
+
+            stream_copy_to_stream($stream, $temporaryStream);
+            fclose($stream);
+            fclose($temporaryStream);
+
+            $temporaryAttachmentFiles[] = $temporaryPath;
+            $zip->addFile($temporaryPath, $this->buildAttachmentDownloadName($attachment));
         }
 
         $zip->close();
+        foreach ($temporaryAttachmentFiles as $temporaryAttachmentFile) {
+            @unlink($temporaryAttachmentFile);
+        }
 
         if (filesize($zipFile) <= 0) {
             @unlink($zipFile);
@@ -1521,7 +1571,11 @@ class MaidController extends Controller
             abort(404);
         }
 
-        return Storage::disk('public')->download($attachment->path, $attachment->original_name);
+        return app(ManagedFileStorage::class)->downloadResponse(
+            $attachment->path,
+            $attachment->original_name ?: 'attachment',
+            $attachment->mime_type ?: 'application/octet-stream'
+        );
     }
 
     public function viewAttachment($id, MaidAttachment $attachment)
@@ -1536,12 +1590,11 @@ class MaidController extends Controller
             abort(404);
         }
 
-        $filename = str_replace(['"', "\r", "\n"], '', $attachment->original_name ?: 'attachment');
-
-        return response()->file(Storage::disk('public')->path($attachment->path), [
-            'Content-Type' => $attachment->mime_type ?: 'application/octet-stream',
-            'Content-Disposition' => 'inline; filename="' . $filename . '"',
-        ]);
+        return app(ManagedFileStorage::class)->inlineResponse(
+            $attachment->path,
+            $attachment->original_name ?: 'attachment',
+            $attachment->mime_type ?: 'application/octet-stream'
+        );
     }
 
     public function deleteAttachment($id, MaidAttachment $attachment)
@@ -1557,7 +1610,7 @@ class MaidController extends Controller
         }
 
         if ($attachment->path) {
-            Storage::disk('public')->delete($attachment->path);
+            deleteFile($attachment->path);
         }
 
         $attachment->delete();

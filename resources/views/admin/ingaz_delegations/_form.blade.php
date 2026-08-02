@@ -440,7 +440,7 @@
                                         @endphp
                                         <li class="list-group-item d-flex justify-content-between align-items-center">
                                             <span>{{ $attachmentName }}</span>
-                                            <a href="{{ Storage::url($attachmentPath) }}"
+                                            <a href="{{ showFile($attachmentPath) }}"
                                                class="btn btn-sm btn-outline-primary" target="_blank">عرض</a>
                                         </li>
                                     @endforeach

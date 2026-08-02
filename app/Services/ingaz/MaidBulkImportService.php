@@ -14,6 +14,7 @@ use App\Models\ingaz\MaidExternalReference;
 use App\Models\ingaz\Nationality;
 use App\Models\ingaz\Religion;
 use App\Models\ingaz\Skill;
+use App\Services\ManagedFileStorage;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
@@ -825,10 +826,11 @@ class MaidBulkImportService
 
         $pathExtension = strtolower(pathinfo((string) parse_url($url, PHP_URL_PATH), PATHINFO_EXTENSION));
         $extension = preg_match('/^[a-z0-9]{2,5}$/', $pathExtension) ? $pathExtension : ($kind === 'cv' ? 'pdf' : 'jpg');
-        $relativePath = 'images/Maid/arabia/' . $workerNumber . '_' . $kind . '_' . Str::random(8) . '.' . $extension;
-        Storage::disk('public')->put($relativePath, $response->body());
-
-        return $relativePath;
+        return app(ManagedFileStorage::class)->storeMaidFileContents(
+            $response->body(),
+            'images/Maid/arabia',
+            $extension
+        );
     }
 
     private function loadSpreadsheetForImport(string $path): \PhpOffice\PhpSpreadsheet\Spreadsheet

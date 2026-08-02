@@ -19,6 +19,7 @@ use App\Models\ingaz\Order;
 use App\Models\ingaz\User;
 use App\PermKeys;
 use App\Services\AdminNotificationService;
+use App\Services\ManagedFileStorage;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
@@ -91,7 +92,7 @@ class ComplaintController extends Controller
                     return '<span class="badge ' . $badgeClass . '">' . $statusText . '</span>';
                 })
                 ->editColumn('file', function ($row) {
-                    return $row->file ? Storage::url($row->file) : null;
+                    return $row->file ? showFile($row->file) : null;
                 })
                 ->editColumn('user_id', function ($row) {
                     return $row->user ? @$row->user->name : null;
@@ -735,7 +736,7 @@ class ComplaintController extends Controller
         $this->assertCanAccessBranchModel($complaint);
         $attachment = $complaint->attachmentFiles()->whereKey($attachment)->firstOrFail();
 
-        Storage::disk('public')->delete($attachment->path);
+        deleteFile($attachment->path);
         $attachment->delete();
 
         return back()->with('success', 'تم حذف المرفق بنجاح.');
@@ -744,16 +745,21 @@ class ComplaintController extends Controller
     private function storeComplaintAttachments(objModel $complaint, array $files, array $names = []): void
     {
         foreach (array_values($files) as $index => $file) {
-            $path = $file->store('complaints/attachments', 'public');
+            $path = app(ManagedFileStorage::class)->uploadFile($file, 'complaints/attachments');
 
-            $complaint->attachmentFiles()->create([
-                'path' => $path,
-                'display_name' => trim((string) ($names[$index] ?? '')) ?: null,
-                'original_name' => $file->getClientOriginalName(),
-                'mime_type' => $file->getMimeType(),
-                'size' => $file->getSize(),
-                'added_by' => auth('admin')->id(),
-            ]);
+            try {
+                $complaint->attachmentFiles()->create([
+                    'path' => $path,
+                    'display_name' => trim((string) ($names[$index] ?? '')) ?: null,
+                    'original_name' => $file->getClientOriginalName(),
+                    'mime_type' => $file->getMimeType(),
+                    'size' => $file->getSize(),
+                    'added_by' => auth('admin')->id(),
+                ]);
+            } catch (\Throwable $exception) {
+                deleteFile($path);
+                throw $exception;
+            }
         }
     }
 
@@ -763,13 +769,13 @@ class ComplaintController extends Controller
         $this->assertCanAccessBranchModel($complaint);
 
         foreach ($complaint->attachmentFiles as $attachment) {
-            Storage::disk('public')->delete($attachment->path);
+            deleteFile($attachment->path);
         }
 
         // حذف المرفقات القديمة قبل نقلها إلى الجدول الجديد
         if ($complaint->attachments && is_array($complaint->attachments)) {
             foreach ($complaint->attachments as $attachment) {
-                Storage::disk('public')->delete($attachment);
+                deleteFile($attachment);
             }
         }
 

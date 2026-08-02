@@ -5,10 +5,10 @@ namespace App\Services\ingaz;
 use App\Models\ingaz\Maid;
 use App\Models\ingaz\Setting;
 use App\Models\ingaz\Skill;
+use App\Services\ManagedFileStorage;
 use App\Support\MaidCvTemplateSettings;
 use Illuminate\Support\Facades\Blade;
 use Illuminate\Support\Facades\File;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Mpdf\Mpdf;
 use Mpdf\Output\Destination;
@@ -49,22 +49,20 @@ class MaidCvPdfGenerator
             throw new RuntimeException('تعذر إنشاء ملف PDF من القالب المرفوع.');
         }
 
-        $path = self::STORAGE_DIRECTORY . '/maid-' . $maid->id . '-' . Str::uuid() . '.pdf';
-        if (!Storage::disk('public')->put($path, $contents)) {
-            throw new RuntimeException('تعذر حفظ ملف السيرة الذاتية المولد.');
-        }
+        $storage = app(ManagedFileStorage::class);
+        $path = $storage->storeFileContents($contents, self::STORAGE_DIRECTORY, 'pdf');
 
         $previousPath = $maid->cv_preview;
 
         try {
             $maid->forceFill(['cv_preview' => $path])->save();
         } catch (\Throwable $exception) {
-            Storage::disk('public')->delete($path);
+            $storage->delete($path);
             throw $exception;
         }
 
         if ($this->isGeneratedPath($previousPath) && $previousPath !== $path) {
-            Storage::disk('public')->delete($previousPath);
+            $storage->delete($previousPath);
         }
 
         return $path;
@@ -217,7 +215,12 @@ class MaidCvPdfGenerator
     public function isGeneratedPath(?string $path): bool
     {
         return is_string($path)
-            && Str::startsWith($path, self::STORAGE_DIRECTORY . '/');
+            && Str::startsWith(
+                Str::startsWith($path, ManagedFileStorage::R2_PREFIX)
+                    ? Str::after($path, ManagedFileStorage::R2_PREFIX)
+                    : $path,
+                self::STORAGE_DIRECTORY . '/'
+            );
     }
 
     private function viewData(Maid $maid, Setting $settings): array

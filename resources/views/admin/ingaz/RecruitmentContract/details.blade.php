@@ -1633,7 +1633,7 @@
                                     </div>
 
                                     <!-- Eye icon -->
-                                    <a href="{{ showFile($contract->signature) }}" target="_blank"
+                                    <a href="{{ showSignatureFile($contract->signature) }}" target="_blank"
                                         class="text-secondary fs-5" title="عرض الملف">
                                         <i class="fas fa-eye"></i>
                                     </a>

@@ -6,7 +6,7 @@ use App\Models\auth\Admin;
 use App\Models\Concerns\AssignsBranch;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Support\Facades\Storage;
+use App\Services\ManagedFileStorage;
 
 class MaidAttachment extends Model
 {
@@ -54,7 +54,7 @@ class MaidAttachment extends Model
 
     public function existsOnDisk(): bool
     {
-        return $this->path && Storage::disk('public')->exists($this->path);
+        return app(ManagedFileStorage::class)->exists($this->path);
     }
 
     protected function resolveBranchIdForCreate(): ?int

@@ -6,7 +6,6 @@ namespace App\Http\Actions\dashboard;
 use App\Http\Actions\MainAction;
 use App\Models\ingaz\Setting;
 use Illuminate\Support\Facades\Schema;
-use Illuminate\Support\Facades\Storage;
 
 class SettingAction extends MainAction
 {
@@ -87,90 +86,48 @@ class SettingAction extends MainAction
     {
         $setting = $this->find($id);
         unset($data['_token'], $data['_method']);
+        $oldFiles = [];
+        $newFiles = [];
+        $fileFields = [
+            'qr_image',
+            'zatch_logo',
+            'cover_image',
+            'admin_login_background',
+            'light_image',
+            'experience_image',
+            'second_qr_image',
+            'logo_header',
+            'document_logo',
+            'admin_logo',
+            'logo_footer',
+            'favicon',
+            'about_image',
+        ];
 
-        if (isset($data['qr_image']) && $data['qr_image'] instanceof \Illuminate\Http\UploadedFile) {
-            deleteFile($setting->qr_image);
-            $image = $data['qr_image'];
-            $data['qr_image'] = uploadFile($image, $this->fileFolder, 1);
-        }
-        if (isset($data['zatch_logo']) && $data['zatch_logo'] instanceof \Illuminate\Http\UploadedFile) {
-            deleteFile($setting->zatch_logo);
-            $image = $data['zatch_logo'];
-            $data['zatch_logo'] = uploadFile($image, $this->fileFolder, 1);
-        }
-        if (isset($data['cover_image']) && $data['cover_image'] instanceof \Illuminate\Http\UploadedFile) {
-            deleteFile($setting->cover_image);
-            $image = $data['cover_image'];
-            $data['cover_image'] = uploadFile($image, $this->fileFolder, 1);
-        }
-        if (isset($data['admin_login_background']) && $data['admin_login_background'] instanceof \Illuminate\Http\UploadedFile) {
-            deleteFile($setting->admin_login_background);
-            $image = $data['admin_login_background'];
-            $data['admin_login_background'] = uploadFile($image, $this->fileFolder, 1);
-        }
-        if (isset($data['light_image']) && $data['light_image'] instanceof \Illuminate\Http\UploadedFile) {
-            deleteFile($setting->light_image);
-            $image = $data['light_image'];
-            $data['light_image'] = uploadFile($image, $this->fileFolder, 1);
-        }
+        try {
+            foreach ($fileFields as $field) {
+                if (!isset($data[$field]) || !$data[$field] instanceof \Illuminate\Http\UploadedFile) {
+                    continue;
+                }
 
-        if (isset($data['experience_image']) && $data['experience_image'] instanceof \Illuminate\Http\UploadedFile) {
-            deleteFile($setting->experience_image);
-            $image = $data['experience_image'];
-            $data['experience_image'] = uploadFile($image, $this->fileFolder, 1);
-        }
+                $oldFiles[] = $setting->{$field};
+                $data[$field] = uploadFile($data[$field], $this->fileFolder, 1);
+                $newFiles[] = $data[$field];
+            }
 
-        if (isset($data['second_qr_image']) && $data['second_qr_image'] instanceof \Illuminate\Http\UploadedFile) {
-            deleteFile($setting->second_qr_image);
-            $image = $data['second_qr_image'];
-            $data['second_qr_image'] = uploadFile($image, $this->fileFolder, 1);
-        }
-
-
-        // Handle file uploads
-        if (isset($data['logo_header']) && $data['logo_header'] instanceof \Illuminate\Http\UploadedFile) {
-            deleteFile($setting->logo_header);
-            $image = $data['logo_header'];
-            $data['logo_header'] = uploadFile($image, $this->fileFolder, 1);
-        }
-        if (isset($data['document_logo']) && $data['document_logo'] instanceof \Illuminate\Http\UploadedFile) {
-            deleteFile($setting->document_logo);
-            $image = $data['document_logo'];
-            $data['document_logo'] = uploadFile($image, $this->fileFolder, 1);
-        }
-        if (isset($data['admin_logo']) && $data['admin_logo'] instanceof \Illuminate\Http\UploadedFile) {
-            deleteFile($setting->admin_logo);
-            $image = $data['admin_logo'];
-            $data['admin_logo'] = uploadFile($image, $this->fileFolder, 1);
-        }
-        if (isset($data['logo_footer']) && $data['logo_footer'] instanceof \Illuminate\Http\UploadedFile) {
-            deleteFile($setting->logo_footer);
-            $image = $data['logo_footer'];
-            $data['logo_footer'] = uploadFile($image, $this->fileFolder, 1);
-        }
-        if (isset($data['favicon']) && $data['favicon'] instanceof \Illuminate\Http\UploadedFile) {
-            deleteFile($setting->favicon);
-            $image = $data['favicon'];
-            $data['favicon'] = uploadFile($image, $this->fileFolder, 1);
-        }
-        if (isset($data['about_image']) && $data['about_image'] instanceof \Illuminate\Http\UploadedFile) {
-            deleteFile($setting->about_image);
-            $image = $data['about_image'];
-            $data['about_image'] = uploadFile($image, $this->fileFolder, 1);
-        }
-        // Optional keys that may not be present in every section update
-        $optionalKeys = [
+            // Optional keys that may not be present in every section update
+            $optionalKeys = [
             'note_en',
             'note_ar',
             'years',
             'show_customer_service_during_booking',
             'link_rights_and_duties',
-        ];
-        foreach ($optionalKeys as $key) {
-            if (array_key_exists($key, $data)) {
-                $setting->{$key} = $data[$key];
+            ];
+            foreach ($optionalKeys as $key) {
+                if (array_key_exists($key, $data)) {
+                    $setting->{$key} = $data[$key];
+                }
             }
-        }
 
         if (array_key_exists('admin_quick_links_empty', $data) && !array_key_exists('admin_quick_links', $data)) {
             $data['admin_quick_links'] = [];
@@ -217,9 +174,22 @@ class SettingAction extends MainAction
             $setting->translateOrNew($locale)->fill($fields);
         }
 
-        $setting->save();
+            $setting->save();
+        } catch (\Throwable $exception) {
+            $this->deleteManagedFiles($newFiles);
+            throw $exception;
+        }
+
+        $this->deleteManagedFiles($oldFiles);
 
         return $setting;
+    }
+
+    private function deleteManagedFiles(array $paths): void
+    {
+        foreach (array_unique(array_filter($paths)) as $path) {
+            deleteFile($path);
+        }
     }
 
     private function normalizeAdminQuickLinks($links): array
@@ -251,10 +221,9 @@ class SettingAction extends MainAction
     public function deleteSetting($id)
     {
         $obj = $this->find($id);
-        if ($obj->image != 'default.png') {
-            Storage::delete('public/images/admins/settings/' . $obj->image);
-        }
+        $image = $obj->image != 'default.png' ? $obj->image : null;
         $this->delete($id);
+        deleteFile($image);
     }
 
 }

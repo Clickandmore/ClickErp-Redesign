@@ -25,23 +25,33 @@ class WhyChooseUsController extends Controller
     public function update(WhyChooseUsRequest $request)
     {
         $this->authorizeRequestedChanges($request);
+        $oldImageFiles = [];
+        $newImageFiles = [];
 
-        DB::transaction(function () use ($request) {
-            $section = WhyChooseUs::firstOrNew();
-            $section->is_active = $request->boolean('is_active');
-            $section->translateOrNew('ar')->title = $request->input('title:ar');
-            $section->translateOrNew('ar')->description = $request->input('description:ar');
-            $section->translateOrNew('en')->title = $request->input('title:en');
-            $section->translateOrNew('en')->description = $request->input('description:en');
-            $section->save();
+        try {
+            DB::transaction(function () use ($request, &$oldImageFiles, &$newImageFiles) {
+                $section = WhyChooseUs::firstOrNew();
+                $section->is_active = $request->boolean('is_active');
+                $section->translateOrNew('ar')->title = $request->input('title:ar');
+                $section->translateOrNew('ar')->description = $request->input('description:ar');
+                $section->translateOrNew('en')->title = $request->input('title:en');
+                $section->translateOrNew('en')->description = $request->input('description:en');
+                $section->save();
 
-            $this->deleteSelectedImages(
-                $section,
-                $request->input('delete_image_ids', [])
-            );
-            $this->storeImages($section, $request->file('images', []));
-            $this->syncFeatures($section, $request->input('features', []));
-        });
+                $this->deleteSelectedImages(
+                    $section,
+                    $request->input('delete_image_ids', []),
+                    $oldImageFiles
+                );
+                $this->storeImages($section, $request->file('images', []), $newImageFiles);
+                $this->syncFeatures($section, $request->input('features', []));
+            });
+        } catch (\Throwable $exception) {
+            $this->deleteImageFiles($newImageFiles);
+            throw $exception;
+        }
+
+        $this->deleteImageFiles($oldImageFiles);
 
         return redirect()
             ->route('why-choose-us.edit')
@@ -128,7 +138,11 @@ class WhyChooseUsController extends Controller
             || (string) optional($section->translate('en'))->description !== (string) $request->input('description:en');
     }
 
-    private function deleteSelectedImages(WhyChooseUs $section, array $imageIds): void
+    private function deleteSelectedImages(
+        WhyChooseUs $section,
+        array $imageIds,
+        array &$oldImageFiles
+    ): void
     {
         if (empty($imageIds)) {
             return;
@@ -137,22 +151,24 @@ class WhyChooseUsController extends Controller
         $section->images()
             ->whereIn('id', $imageIds)
             ->get()
-            ->each(function ($image) {
+            ->each(function ($image) use (&$oldImageFiles) {
                 if (!$image->is_public_asset) {
-                    deleteFile($image->path);
+                    $oldImageFiles[] = $image->path;
                 }
 
                 $image->delete();
             });
     }
 
-    private function storeImages(WhyChooseUs $section, array $images): void
+    private function storeImages(WhyChooseUs $section, array $images, array &$newImageFiles): void
     {
         $nextOrder = ((int) $section->images()->max('sort_order')) + 1;
 
         foreach ($images as $image) {
+            $path = uploadFile($image, 'images/why-choose-us/', 1);
+            $newImageFiles[] = $path;
             $section->images()->create([
-                'path' => uploadFile($image, 'images/why-choose-us/', 1),
+                'path' => $path,
                 'is_public_asset' => false,
                 'sort_order' => $nextOrder++,
             ]);
@@ -183,6 +199,13 @@ class WhyChooseUsController extends Controller
         $section->features()
             ->whereNotIn('id', $keptIds)
             ->delete();
+    }
+
+    private function deleteImageFiles(array $paths): void
+    {
+        foreach (array_unique(array_filter($paths)) as $path) {
+            deleteFile($path);
+        }
     }
 
     private function iconOptions(): array

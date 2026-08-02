@@ -2486,4 +2486,8 @@ return array (
   'maid_cv_file_hint' => 'ملف PDF فقط بحد أقصى 10 ميجابايت، ويمكن تركه فارغًا.',
   'maid_cv_file_current' => 'الملف الحالي',
   'maid_cv_file_description' => 'السيرة الذاتية المرسلة من المكتب الخارجي',
+  'expertise_period' => 'سنوات الخبرة',
+  'expertise_duration' => 'مدة الخبرة',
+  'expertise_start' => 'من',
+  'expertise_end' => 'إلى',
 );

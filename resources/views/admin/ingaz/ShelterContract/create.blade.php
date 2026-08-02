@@ -497,7 +497,7 @@
                                     @endphp
                                     @if ($path)
                                         <li>
-                                            <a href="{{ asset('storage/' . ltrim($path, '/')) }}" target="_blank">
+                                            <a href="{{ showFile($path) }}" target="_blank">
                                                 {{ $name }}
                                             </a>
                                         </li>

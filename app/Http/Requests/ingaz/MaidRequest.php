@@ -6,6 +6,7 @@ use App\Http\Requests\MainRequest;
 use App\Models\Country;
 use App\Models\ingaz\JobType;
 use App\Models\ingaz\Maid;
+use App\Support\ExperiencePeriod;
 use Illuminate\Validation\Rule;
 
 class MaidRequest extends MainRequest
@@ -110,6 +111,9 @@ class MaidRequest extends MainRequest
             'expertises.*.number_of_years' => 'nullable|numeric|min:0',
             'expertises.*.job_title_id' => 'nullable|exists:job_titles,id',
             'expertises.*.work_city' => 'nullable|string|max:255',
+            // <input type="month"> يرسل "YYYY-MM"
+            'expertises.*.start_date' => 'nullable|date_format:Y-m',
+            'expertises.*.end_date' => 'nullable|date_format:Y-m',
             'rental_finance_items' => 'nullable|array',
             'rental_finance_items.*.account_id' => 'nullable|exists:fn_accounts,id',
             'rental_finance_items.*.type' => 'nullable|in:income,expense',
@@ -267,6 +271,38 @@ class MaidRequest extends MainRequest
                     $validator->errors()->add(
                         "expertises.{$index}.work_city",
                         'مدينة العمل السابقة مطلوبة عند اختيار المملكة العربية السعودية.'
+                    );
+                }
+
+                // مدة الخبرة تُحسب من التاريخين، فلا معنى لأحدهما بدون الآخر
+                $start = ExperiencePeriod::normalize($expertise['start_date'] ?? null);
+                $end = ExperiencePeriod::normalize($expertise['end_date'] ?? null);
+
+                if ($start && ! $end) {
+                    $validator->errors()->add(
+                        "expertises.{$index}.end_date",
+                        'يرجى تحديد نهاية الخبرة.'
+                    );
+                }
+
+                if ($end && ! $start) {
+                    $validator->errors()->add(
+                        "expertises.{$index}.start_date",
+                        'يرجى تحديد بداية الخبرة.'
+                    );
+                }
+
+                if ($start && $end && $end < $start) {
+                    $validator->errors()->add(
+                        "expertises.{$index}.end_date",
+                        'نهاية الخبرة يجب أن تكون بعد بدايتها أو مساوية لها.'
+                    );
+                }
+
+                if ($start && $start > now()->startOfMonth()->toDateString()) {
+                    $validator->errors()->add(
+                        "expertises.{$index}.start_date",
+                        'بداية الخبرة لا يمكن أن تكون في المستقبل.'
                     );
                 }
             }

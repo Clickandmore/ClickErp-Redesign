@@ -24,6 +24,7 @@ use App\Models\RentalContractExtension;
 use App\Models\RentalContractInfo;
 use App\Models\RentalContractTerm;
 use App\Services\ingaz\RentalContractFinanceService;
+use App\Services\ManagedFileStorage;
 use App\Services\MoyasarService;
 use App\Services\RentalContractExpiryReminderService;
 use App\Services\RentalShelterPresenceService;
@@ -827,7 +828,7 @@ class RentContractController extends Controller
 
             $remainingAmount = max(0, $contractValue - $paidAmount);
             $paymentReceiptPath = $request->hasFile('payment_receipt')
-                ? $request->file('payment_receipt')->store('rental-contracts/create/receipts', 'public')
+                ? app(ManagedFileStorage::class)->uploadFile($request->file('payment_receipt'), 'rental-contracts/create/receipts')
                 : null;
 
             // إنشاء معلومات العقد
@@ -981,7 +982,7 @@ class RentContractController extends Controller
             'extensions.invoiceConstraint',
             'extensions.receiptBond',
             'extensions.receiptConstraint',
-            'financialAdjustments',
+            'financialAdjustments.constraint',
         ])->findOrFail($id);
         $this->assertCanAccessBranchModel($contract, 'rental_contracts');
 
@@ -1390,8 +1391,10 @@ class RentContractController extends Controller
             ];
 
             if ($request->hasFile('payment_receipt')) {
-                $newPaymentReceiptPath = $request->file('payment_receipt')
-                    ->store('rental-contracts/edit/receipts', 'public');
+                $newPaymentReceiptPath = app(ManagedFileStorage::class)->uploadFile(
+                    $request->file('payment_receipt'),
+                    'rental-contracts/edit/receipts'
+                );
                 $contractInfoUpdates = array_merge(
                     $contractInfoUpdates,
                     $this->buildPaymentReceiptUpdatePayload($contract->info, $newPaymentReceiptPath)
@@ -1527,8 +1530,10 @@ class RentContractController extends Controller
             );
 
             if ($request->hasFile('payment_receipt')) {
-                $newPaymentReceiptPath = $request->file('payment_receipt')
-                    ->store('rental-contracts/payments/receipts', 'public');
+                $newPaymentReceiptPath = app(ManagedFileStorage::class)->uploadFile(
+                    $request->file('payment_receipt'),
+                    'rental-contracts/payments/receipts'
+                );
                 $contract->info->update(
                     $this->buildPaymentReceiptUpdatePayload($contract->info, $newPaymentReceiptPath)
                 );
@@ -3031,8 +3036,10 @@ class RentContractController extends Controller
             }
 
             if ($request->hasFile('close_payment_receipt')) {
-                $newPaymentReceiptPath = $request->file('close_payment_receipt')
-                    ->store('rental-contracts/closures/receipts', 'public');
+                $newPaymentReceiptPath = app(ManagedFileStorage::class)->uploadFile(
+                    $request->file('close_payment_receipt'),
+                    'rental-contracts/closures/receipts'
+                );
                 $infoUpdates = array_merge(
                     $infoUpdates,
                     $this->buildPaymentReceiptUpdatePayload($contract->info, $newPaymentReceiptPath)
@@ -3040,8 +3047,10 @@ class RentContractController extends Controller
             }
 
             if ($request->hasFile('close_client_iban_attachment')) {
-                $infoUpdates['closure_client_iban_attachment_path'] = $request->file('close_client_iban_attachment')
-                    ->store('rental-contracts/closures/iban', 'public');
+                $infoUpdates['closure_client_iban_attachment_path'] = app(ManagedFileStorage::class)->uploadFile(
+                    $request->file('close_client_iban_attachment'),
+                    'rental-contracts/closures/iban'
+                );
             }
 
             if ($contract->info) {
@@ -3176,14 +3185,15 @@ class RentContractController extends Controller
             return redirect()->back()->with('error', 'تعذر تجهيز ملف المرفقات.');
         }
 
+        $storage = app(ManagedFileStorage::class);
         foreach ($attachments as $attachment) {
-            $absolutePath = Storage::disk($attachment['disk'])->path($attachment['path']);
-
-            if (!is_file($absolutePath)) {
+            $stream = $storage->readStream($attachment['path']);
+            if (!is_resource($stream)) {
                 continue;
             }
 
-            $zip->addFile($absolutePath, $attachment['filename']);
+            $zip->addFromString($attachment['filename'], stream_get_contents($stream));
+            fclose($stream);
         }
 
         $zip->close();
@@ -3209,7 +3219,13 @@ class RentContractController extends Controller
             abort(404);
         }
 
-        return Storage::disk($attachmentData['disk'])->download($attachmentData['path'], $attachmentData['filename']);
+        $storage = app(ManagedFileStorage::class);
+
+        return $storage->downloadResponse(
+            $attachmentData['path'],
+            $attachmentData['filename'],
+            $storage->mimeType($attachmentData['path'])
+        );
     }
 
     public function viewAttachment($id, string $attachment)
@@ -3221,13 +3237,13 @@ class RentContractController extends Controller
             abort(404);
         }
 
-        $filename = str_replace(['"', "\r", "\n"], '', $attachmentData['filename']);
-        $mimeType = Storage::disk($attachmentData['disk'])->mimeType($attachmentData['path']) ?: 'application/octet-stream';
+        $storage = app(ManagedFileStorage::class);
 
-        return response()->file(Storage::disk($attachmentData['disk'])->path($attachmentData['path']), [
-            'Content-Type' => $mimeType,
-            'Content-Disposition' => 'inline; filename="' . $filename . '"',
-        ]);
+        return $storage->inlineResponse(
+            $attachmentData['path'],
+            $attachmentData['filename'],
+            $storage->mimeType($attachmentData['path'])
+        );
     }
 
     public function deletePaymentReceipt($id, string $receipt)
@@ -3256,8 +3272,8 @@ class RentContractController extends Controller
         $receiptItems = array_values($receiptItems);
 
         $pathStillUsed = collect($receiptItems)->contains(fn ($item) => ($item['path'] ?? null) === $targetReceipt['path']);
-        if (!$pathStillUsed && Storage::disk('public')->exists($targetReceipt['path'])) {
-            Storage::disk('public')->delete($targetReceipt['path']);
+        if (!$pathStillUsed && app(ManagedFileStorage::class)->exists($targetReceipt['path'])) {
+            deleteFile($targetReceipt['path']);
         }
 
         $updates = [
@@ -3308,7 +3324,7 @@ class RentContractController extends Controller
             $path = is_array($receipt) ? ($receipt['path'] ?? null) : $receipt;
             $path = is_string($path) ? trim($path) : null;
 
-            if (!$path || isset($seenPaths[$path]) || !Storage::disk('public')->exists($path)) {
+            if (!$path || isset($seenPaths[$path]) || !app(ManagedFileStorage::class)->exists($path)) {
                 return;
             }
 
@@ -3383,7 +3399,7 @@ class RentContractController extends Controller
 
         $attachments = [];
         $addAttachment = function (?string $path, string $label, string $keyPrefix) use (&$attachments, $contract) {
-            if (!$path || !Storage::disk('public')->exists($path)) {
+            if (!$path || !app(ManagedFileStorage::class)->exists($path)) {
                 return;
             }
 
@@ -3397,7 +3413,7 @@ class RentContractController extends Controller
                 'key' => $keyPrefix . '-' . count($attachments),
                 'label' => $label,
                 'path' => $path,
-                'disk' => 'public',
+                'disk' => 'managed',
                 'url' => route('RentContract.attachments.view', [$contract->id, $keyPrefix . '-' . count($attachments)]),
                 'download_url' => route('RentContract.attachments.download.single', [$contract->id, $keyPrefix . '-' . count($attachments)]),
                 'filename' => (count($attachments) + 1) . '-' . $safeLabel . ($extension ? '.' . $extension : ''),
@@ -3547,13 +3563,19 @@ class RentContractController extends Controller
 
             $transferIsPaid = $transferRemainingAmount <= 0.0;
             $paymentReceiptPath = $request->hasFile('payment_receipt')
-                ? $request->file('payment_receipt')->store('rental-contracts/sponsorship-transfer/receipts', 'public')
+                ? app(ManagedFileStorage::class)->uploadFile(
+                    $request->file('payment_receipt'),
+                    'rental-contracts/sponsorship-transfer/receipts'
+                )
                 : null;
             $transferAttachments = [];
 
             foreach ($request->file('attachments', []) as $file) {
                 $transferAttachments[] = [
-                    'path' => $file->store('rental-contracts/sponsorship-transfer/attachments', 'public'),
+                    'path' => app(ManagedFileStorage::class)->uploadFile(
+                        $file,
+                        'rental-contracts/sponsorship-transfer/attachments'
+                    ),
                     'name' => $file->getClientOriginalName(),
                     'mime_type' => $file->getClientMimeType(),
                     'size' => $file->getSize(),
@@ -3868,8 +3890,10 @@ class RentContractController extends Controller
             }
 
             if ($request->hasFile('close_payment_receipt')) {
-                $newPaymentReceiptPath = $request->file('close_payment_receipt')
-                    ->store('rental-contracts/closures/receipts', 'public');
+                $newPaymentReceiptPath = app(ManagedFileStorage::class)->uploadFile(
+                    $request->file('close_payment_receipt'),
+                    'rental-contracts/closures/receipts'
+                );
                 $infoUpdates = array_merge(
                     $infoUpdates,
                     $this->buildPaymentReceiptUpdatePayload($contract->info, $newPaymentReceiptPath)
@@ -3877,8 +3901,10 @@ class RentContractController extends Controller
             }
 
             if ($request->hasFile('close_client_iban_attachment')) {
-                $infoUpdates['closure_client_iban_attachment_path'] = $request->file('close_client_iban_attachment')
-                    ->store('rental-contracts/closures/iban', 'public');
+                $infoUpdates['closure_client_iban_attachment_path'] = app(ManagedFileStorage::class)->uploadFile(
+                    $request->file('close_client_iban_attachment'),
+                    'rental-contracts/closures/iban'
+                );
             }
 
             $contract->info->update($infoUpdates);
@@ -4123,8 +4149,10 @@ class RentContractController extends Controller
 
             $extensionReceiptPath = null;
             if ($request->hasFile('extension_payment_receipt')) {
-                $extensionReceiptPath = $request->file('extension_payment_receipt')
-                    ->store('rental-contracts/extensions/receipts', 'public');
+                $extensionReceiptPath = app(ManagedFileStorage::class)->uploadFile(
+                    $request->file('extension_payment_receipt'),
+                    'rental-contracts/extensions/receipts'
+                );
             }
 
             $extensionAmounts = $rentalContractFinanceService->extensionAmounts(
@@ -4316,11 +4344,14 @@ class RentContractController extends Controller
                 ], 400);
             }
 
-            $fileName = 'signature_' . $id . '_' . time() . '.png';
-            \Storage::disk('public')->put('signatures/' . $fileName, $signatureImage);
+            $signaturePath = app(ManagedFileStorage::class)->storeFileContents(
+                $signatureImage,
+                'signatures',
+                'png'
+            );
 
             $updates = [
-                'signature' => $fileName,
+                'signature' => $signaturePath,
             ];
 
             if ($contract->canSignContract()) {
@@ -4333,7 +4364,12 @@ class RentContractController extends Controller
                 ]);
             }
 
-            $contract->update($updates);
+            try {
+                $contract->update($updates);
+            } catch (\Throwable $exception) {
+                deleteFile($signaturePath);
+                throw $exception;
+            }
 
             return response()->json([
                 'success' => true,

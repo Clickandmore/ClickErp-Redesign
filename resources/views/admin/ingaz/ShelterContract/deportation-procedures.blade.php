@@ -488,7 +488,7 @@
                                                                 @php
                                                                     $filePath = $attachment['path'] ?? '';
                                                                     $fileUrl = $filePath
-                                                                        ? asset('storage/' . $filePath)
+                                                                        ? showFile($filePath)
                                                                         : '#';
                                                                 @endphp
                                                                 <span class="badge bg-success">
@@ -564,7 +564,7 @@
                                                                 @php
                                                                     $filePath = $attachment['path'] ?? '';
                                                                     $fileUrl = $filePath
-                                                                        ? asset('storage/' . $filePath)
+                                                                        ? showFile($filePath)
                                                                         : '#';
                                                                 @endphp
                                                                 <span class="badge bg-primary">
@@ -638,7 +638,7 @@
                                                                 @php
                                                                     $filePath = $attachment['path'] ?? '';
                                                                     $fileUrl = $filePath
-                                                                        ? asset('storage/' . $filePath)
+                                                                        ? showFile($filePath)
                                                                         : '#';
                                                                 @endphp
                                                                 <span class="badge bg-warning">
@@ -711,7 +711,7 @@
                                                                 @php
                                                                     $filePath = $attachment['path'] ?? '';
                                                                     $fileUrl = $filePath
-                                                                        ? asset('storage/' . $filePath)
+                                                                        ? showFile($filePath)
                                                                         : '#';
                                                                 @endphp
                                                                 <span class="badge bg-info">
@@ -787,7 +787,7 @@
                                                             @php
                                                                 $filePath = $attachment['path'] ?? '';
                                                                 $fileUrl = $filePath
-                                                                    ? asset('storage/' . $filePath)
+                                                                    ? showFile($filePath)
                                                                     : '#';
                                                             @endphp
                                                             <span class="badge bg-danger">
@@ -837,7 +837,7 @@
                                                             $filePath = is_array($attachment)
                                                                 ? $attachment['path'] ?? $attachment
                                                                 : $attachment;
-                                                            $fullPath = $filePath ? asset('storage/' . $filePath) : '#';
+                                                            $fullPath = $filePath ? showFile($filePath) : '#';
                                                         @endphp
                                                         <a href="{{ $fullPath }}" target="_blank"
                                                             class="btn btn-sm btn-primary">

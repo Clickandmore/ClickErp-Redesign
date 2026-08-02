@@ -11,7 +11,7 @@
 
     @if($contractSignature)
         <div class="signature-display">
-            <img src="{{ asset('storage/signatures/' . $contractSignature) }}" alt="التوقيع المحفوظ">
+            <img src="{{ showSignatureFile($contractSignature) }}" alt="التوقيع المحفوظ">
         </div>
     @elseif(isset($allowSignature) && $allowSignature)
         <div class="signature-canvas-container">
@@ -48,7 +48,7 @@
         <div class="signature-line">
             التوقيع:
             @if(!empty($companySignature))
-                <img src="{{ asset('storage/' . $companySignature) }}" style="max-width: 150px; max-height: 60px; vertical-align: middle;">
+                <img src="{{ showFile($companySignature) }}" style="max-width: 150px; max-height: 60px; vertical-align: middle;">
             @else
                 ........................
             @endif
@@ -62,7 +62,7 @@
         <div class="signature-line">
             التوقيع:
             @if($contractSignature)
-                <img src="{{ asset('storage/signatures/' . $contractSignature) }}" style="max-width: 150px; max-height: 60px; vertical-align: middle;">
+                <img src="{{ showSignatureFile($contractSignature) }}" style="max-width: 150px; max-height: 60px; vertical-align: middle;">
             @else
                 ........................
             @endif

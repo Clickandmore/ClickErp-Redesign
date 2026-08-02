@@ -4039,4 +4039,8 @@ return array (
   'maid_cv_file_hint' => 'PDF only, up to 10MB. This field is optional.',
   'maid_cv_file_current' => 'Current file',
   'maid_cv_file_description' => 'CV received from the external office',
+  'expertise_period' => 'Experience years',
+  'expertise_duration' => 'Experience duration',
+  'expertise_start' => 'From',
+  'expertise_end' => 'To',
 );

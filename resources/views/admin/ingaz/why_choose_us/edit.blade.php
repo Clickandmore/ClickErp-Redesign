@@ -87,7 +87,7 @@
                                 </label>
                                 <input type="text" name="title:{{ $locale }}" class="form-control"
                                     value="{{ old('title:' . $locale, $section ? optional($section->translate($locale))->title : '') }}"
-                                    required @readonly(!$canEditWhyChooseUs)>
+                                    required {{ !$canEditWhyChooseUs ? 'readonly' : '' }}>
                             </div>
                         @endforeach
 
@@ -98,7 +98,7 @@
                                     ({{ helperTrans('ingaz.' . $locale) }})
                                 </label>
                                 <textarea name="description:{{ $locale }}" class="form-control"
-                                    rows="5" maxlength="3000" required @readonly(!$canEditWhyChooseUs)>{{ old('description:' . $locale, $section ? optional($section->translate($locale))->description : '') }}</textarea>
+                                    rows="5" maxlength="3000" required {{ !$canEditWhyChooseUs ? 'readonly' : '' }}>{{ old('description:' . $locale, $section ? optional($section->translate($locale))->description : '') }}</textarea>
                             </div>
                         @endforeach
 
@@ -108,7 +108,7 @@
                                     value="{{ $canEditWhyChooseUs ? 0 : (old('is_active', $section ? $section->is_active : true) ? 1 : 0) }}">
                                 <input class="form-check-input" type="checkbox" name="is_active"
                                     value="1" id="why-choose-active"
-                                    @disabled(!$canEditWhyChooseUs)
+                                    {{ !$canEditWhyChooseUs ? 'disabled' : '' }}
                                     {{ old('is_active', $section ? $section->is_active : true) ? 'checked' : '' }}>
                                 <label class="form-check-label" for="why-choose-active">
                                     {{ __('why_choose_us.active') }}
@@ -127,7 +127,7 @@
                 </div>
                 <div class="card-body">
                     <input type="file" name="images[]" class="form-control"
-                        accept=".jpg,.jpeg,.png,.webp" multiple @disabled(!$canCreateWhyChooseUs)>
+                        accept=".jpg,.jpeg,.png,.webp" multiple {{ !$canCreateWhyChooseUs ? 'disabled' : '' }}>
                     <small class="text-muted">{{ __('why_choose_us.images_hint') }}</small>
 
                     @if ($section && $section->images->isNotEmpty())
@@ -138,7 +138,7 @@
                                     <img src="{{ $image->url }}" class="why-choose-image d-block mb-2"
                                         alt="">
                                     <input type="checkbox" name="delete_image_ids[]"
-                                        value="{{ $image->id }}" @disabled(!$canDeleteWhyChooseUs)>
+                                        value="{{ $image->id }}" {{ !$canDeleteWhyChooseUs ? 'disabled' : '' }}>
                                     {{ __('why_choose_us.delete_image') }}
                                 </label>
                             @endforeach
@@ -176,39 +176,39 @@
                                         <input type="text" name="features[{{ $index }}][ar][title]"
                                             class="form-control" maxlength="255"
                                             value="{{ $feature->id ? optional($feature->translate('ar'))->title : '' }}"
-                                            required @readonly(($feature->id && !$canEditWhyChooseUs) || (!$feature->id && !$canCreateWhyChooseUs))>
+                                            required {{ ($feature->id && !$canEditWhyChooseUs) || (!$feature->id && !$canCreateWhyChooseUs) ? 'readonly' : '' }}>
                                     </div>
                                     <div class="col-md-5">
                                         <label class="form-label">{{ __('why_choose_us.section_title_en') }}</label>
                                         <input type="text" name="features[{{ $index }}][en][title]"
                                             class="form-control" maxlength="255"
                                             value="{{ $feature->id ? optional($feature->translate('en'))->title : '' }}"
-                                            required @readonly(($feature->id && !$canEditWhyChooseUs) || (!$feature->id && !$canCreateWhyChooseUs))>
+                                            required {{ ($feature->id && !$canEditWhyChooseUs) || (!$feature->id && !$canCreateWhyChooseUs) ? 'readonly' : '' }}>
                                     </div>
                                     <div class="col-md-2">
                                         <label class="form-label">{{ __('why_choose_us.order') }}</label>
                                         <input type="number" name="features[{{ $index }}][sort_order]"
                                             class="form-control" min="1" max="9999"
                                             value="{{ $feature->sort_order ?? ($index + 1) }}" required
-                                            @readonly(($feature->id && !$canEditWhyChooseUs) || (!$feature->id && !$canCreateWhyChooseUs))>
+                                            {{ ($feature->id && !$canEditWhyChooseUs) || (!$feature->id && !$canCreateWhyChooseUs) ? 'readonly' : '' }}>
                                     </div>
                                     <div class="col-md-5">
                                         <label class="form-label">{{ __('why_choose_us.section_description_ar') }}</label>
                                         <textarea name="features[{{ $index }}][ar][description]"
                                             class="form-control" rows="3" maxlength="1000"
-                                            required @readonly(($feature->id && !$canEditWhyChooseUs) || (!$feature->id && !$canCreateWhyChooseUs))>{{ $feature->id ? optional($feature->translate('ar'))->description : '' }}</textarea>
+                                            required {{ ($feature->id && !$canEditWhyChooseUs) || (!$feature->id && !$canCreateWhyChooseUs) ? 'readonly' : '' }}>{{ $feature->id ? optional($feature->translate('ar'))->description : '' }}</textarea>
                                     </div>
                                     <div class="col-md-5">
                                         <label class="form-label">{{ __('why_choose_us.section_description_en') }}</label>
                                         <textarea name="features[{{ $index }}][en][description]"
                                             class="form-control" rows="3" maxlength="1000"
-                                            required @readonly(($feature->id && !$canEditWhyChooseUs) || (!$feature->id && !$canCreateWhyChooseUs))>{{ $feature->id ? optional($feature->translate('en'))->description : '' }}</textarea>
+                                            required {{ ($feature->id && !$canEditWhyChooseUs) || (!$feature->id && !$canCreateWhyChooseUs) ? 'readonly' : '' }}>{{ $feature->id ? optional($feature->translate('en'))->description : '' }}</textarea>
                                     </div>
                                     <div class="col-md-2 d-flex align-items-end gap-2">
                                         <button type="button"
                                             class="btn btn-outline-primary choose-feature-icon"
                                             data-bs-toggle="modal" data-bs-target="#whyIconModal"
-                                            @disabled(($feature->id && !$canEditWhyChooseUs) || (!$feature->id && !$canCreateWhyChooseUs))>
+                                            {{ ($feature->id && !$canEditWhyChooseUs) || (!$feature->id && !$canCreateWhyChooseUs) ? 'disabled' : '' }}>
                                             <i class="{{ $feature->icon ?? 'fa fa-check-circle' }} feature-icon-preview"></i>
                                             {{ __('why_choose_us.choose_icon') }}
                                         </button>

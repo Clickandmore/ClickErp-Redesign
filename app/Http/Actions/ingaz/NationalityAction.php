@@ -6,7 +6,6 @@ use App\Http\Actions\MainAction;
 use App\Models\ingaz\Maid;
 use App\Models\ingaz\Nationality;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Storage;
 
 class NationalityAction extends MainAction
 {
@@ -51,10 +50,13 @@ class NationalityAction extends MainAction
     public function updateNationality($id, $data)
     {
         $row = $this->find($id);
+        $oldLogo = null;
+        $newLogo = null;
 
         if (request()->hasFile('logo')) {
-            Storage::delete($row->logo);
+            $oldLogo = $row->logo;
             $data['logo'] = uploadFile($data['logo'], $this->fileFolder, 1);
+            $newLogo = $data['logo'];
         }
         $data['is_show'] = isset($data['is_show']) ? 1 : 0;
 
@@ -64,7 +66,18 @@ class NationalityAction extends MainAction
 
         $data['expected_duration'] = (int) $data['expected_duration'];
         // dd($row, $data);
-        return $row->update($data);
+        try {
+            $updated = $row->update($data);
+        } catch (\Throwable $exception) {
+            deleteFile($newLogo);
+            throw $exception;
+        }
+
+        if ($newLogo) {
+            deleteFile($oldLogo);
+        }
+
+        return $updated;
     }
 
     public function getNationalities()

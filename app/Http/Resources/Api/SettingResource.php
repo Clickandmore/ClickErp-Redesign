@@ -2,6 +2,7 @@
 
 namespace App\Http\Resources\Api;
 
+use App\Services\ManagedFileStorage;
 use Illuminate\Http\Resources\Json\JsonResource;
 
 class SettingResource extends JsonResource
@@ -31,16 +32,16 @@ class SettingResource extends JsonResource
             'experience_years' => (int)$this->experience_years,
             'copyright' => (string)$this->copyright,
 
-            'logo_header' => (string)$this->logo_header,
-            'logo_footer' => (string)$this->logo_footer,
-            'favicon' => (string)$this->favicon,
-            'cover_image' => (string)$this->cover_image,
+            'logo_header' => $this->mediaValue($this->logo_header),
+            'logo_footer' => $this->mediaValue($this->logo_footer),
+            'favicon' => $this->mediaValue($this->favicon),
+            'cover_image' => $this->mediaValue($this->cover_image),
 
-            'zatch_logo' => (string)$this->zatch_logo,
-            'about_image' => (string)$this->about_image,
-            'experience_image' => (string)$this->experience_image,
-            'qr_code' => (string)$this->qr_code,
-            'second_qr_code' => (string)$this->second_qr_code,
+            'zatch_logo' => $this->mediaValue($this->zatch_logo),
+            'about_image' => $this->mediaValue($this->about_image),
+            'experience_image' => $this->mediaValue($this->experience_image),
+            'qr_code' => $this->mediaValue($this->qr_code),
+            'second_qr_code' => $this->mediaValue($this->second_qr_code),
 
             'facebook' => (string)$this->facebook,
             'tiktok' => (string)$this->tiktok,
@@ -86,6 +87,19 @@ class SettingResource extends JsonResource
             'external_order_mode' => \App\Support\ExternalOrderSettings::mode(),
             'uses_simplified_ordering' => \App\Support\ExternalOrderSettings::usesSimplifiedOrdering(),
 		];
+	}
+
+    private function mediaValue($storedPath): string
+    {
+        $storedPath = is_string($storedPath) ? trim($storedPath) : '';
+
+        if ($storedPath === '') {
+            return '';
+        }
+
+        return app(ManagedFileStorage::class)->isR2Path($storedPath)
+            ? (string) showFile($storedPath)
+            : $storedPath;
     }
 
     private function seoPayload(): array

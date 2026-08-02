@@ -674,7 +674,7 @@
                         <!-- عرض التوقيع المحفوظ -->
                         @if($contract->signature)
                             <div class="signature-display">
-                                <img src="{{ asset('storage/signatures/' . $contract->signature) }}" alt="التوقيع المحفوظ">
+                                <img src="{{ showSignatureFile($contract->signature) }}" alt="التوقيع المحفوظ">
                             </div>
                         @else
                             <!-- Canvas للتوقيع -->
@@ -703,7 +703,7 @@
                         <div style="margin-top: 15px;">
                             توقيع الطرف الثاني:
                             @if($contract->signature)
-                                <img src="{{ asset('storage/signatures/' . $contract->signature) }}" style="max-width: 150px; max-height: 60px; vertical-align: middle;">
+                                <img src="{{ showSignatureFile($contract->signature) }}" style="max-width: 150px; max-height: 60px; vertical-align: middle;">
                             @else
                                 ..................................................................
                             @endif

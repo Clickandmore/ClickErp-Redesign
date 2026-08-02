@@ -449,7 +449,7 @@
                     <!-- عرض التوقيع المحفوظ -->
                     @if ($transfer->signature)
                         <div class="signature-display">
-                            <img src="{{ asset('storage/signatures/' . $transfer->signature) }}" alt="التوقيع المحفوظ">
+                            <img src="{{ showSignatureFile($transfer->signature) }}" alt="التوقيع المحفوظ">
                             <div style="margin-top: 10px; font-size: 12pt; color: #666;">
                                 تاريخ التوقيع:
                                 {{ $transfer->contract_signed_at ? $transfer->contract_signed_at->format('Y-m-d H:i') : 'غير محدد' }}
@@ -491,7 +491,7 @@
                     <div style="text-align: center; width: 45%;">
                         @if ($transfer->signature)
                             <div style="margin-bottom: 10px;">
-                                <img src="{{ asset('storage/signatures/' . $transfer->signature) }}" alt="التوقيع"
+                                <img src="{{ showSignatureFile($transfer->signature) }}" alt="التوقيع"
                                     style="max-height: 60px; border: 1px solid #ccc;">
                             </div>
                         @endif

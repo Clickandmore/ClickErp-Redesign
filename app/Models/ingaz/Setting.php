@@ -80,12 +80,12 @@ class Setting extends Model
 
     public function getHeaderLogoUrlAttribute()
     {
-        return $this->logo_header ? asset('storage/' . $this->logo_header) : null;
+        return $this->logo_header ? showFile($this->logo_header) : null;
     }
 
     public function getFooterLogoUrlAttribute()
     {
-        return $this->logo_footer ? asset('storage/' . $this->logo_footer) : null;
+        return $this->logo_footer ? showFile($this->logo_footer) : null;
     }
 
     public static function getValue($key, $default = null)
