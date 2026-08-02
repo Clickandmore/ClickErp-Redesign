@@ -28,7 +28,9 @@ class SponsorshipTransferTrialStartService
     public function record(SponsorshipTransfer $transfer): ?Constraint
     {
         if (!AutomaticJournalEntries::enabled()) {
-            return null;
+            throw new \RuntimeException(
+                'إنشاء القيود المحاسبية التلقائية غير مفعّل من إعدادات الحسابات.'
+            );
         }
 
         $transfer->loadMissing([
@@ -98,7 +100,9 @@ class SponsorshipTransferTrialStartService
         }
 
         if (empty($lines)) {
-            return null;
+            throw new \RuntimeException(
+                'لا توجد قيمة عقد أو دفعة محصلة أو تكلفة إيواء أكبر من صفر لإنشاء قيد بداية التجربة.'
+            );
         }
 
         $value = $this->roundMoney(array_sum(array_column($lines, 'debtor_value')));
@@ -192,7 +196,7 @@ class SponsorshipTransferTrialStartService
         return $this->resolveAccountByCandidates(
             ['البنك الأهلي رئيسي', 'البنك الرئيسي', 'بنك'],
             [],
-            fn ($q) => $q->where('account_type', 'debtor')
+            fn ($q) => $q->where('status', 'debtor')
                          ->where(function ($inner) {
                              $inner->where('name', 'like', '%بنك%')
                                    ->orWhere('name', 'like', '%bank%');

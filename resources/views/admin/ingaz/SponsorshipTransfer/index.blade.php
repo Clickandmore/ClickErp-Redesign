@@ -649,11 +649,16 @@
                         'X-Requested-With': 'XMLHttpRequest',
                         'Accept': 'application/json'
                     },
-                    success: function(response) {
-                        if (response.success) {
-                            Swal.fire('نجح!', response.message, 'success').then(() => {
-                                dataTable.ajax.reload();
-                            });
+                        success: function(response) {
+                            if (response.success) {
+                                const hasAccountingWarning = Boolean(response.accounting_warning);
+                                Swal.fire(
+                                    hasAccountingWarning ? 'تمت العملية مع تنبيه محاسبي' : 'نجح!',
+                                    response.message,
+                                    hasAccountingWarning ? 'warning' : 'success'
+                                ).then(() => {
+                                    dataTable.ajax.reload();
+                                });
                         } else {
                             Swal.fire('خطأ!', response.message, 'error');
                         }
@@ -682,7 +687,12 @@
                     },
                     success: function(response) {
                         if (response.success) {
-                            Swal.fire('نجح!', response.message, 'success').then(() => {
+                            const hasAccountingWarning = Boolean(response.accounting_warning);
+                            Swal.fire(
+                                hasAccountingWarning ? 'تمت العملية مع تنبيه محاسبي' : 'نجح!',
+                                response.message,
+                                hasAccountingWarning ? 'warning' : 'success'
+                            ).then(() => {
                                 dataTable.ajax.reload();
                             });
                         } else {
