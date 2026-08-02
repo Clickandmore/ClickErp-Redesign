@@ -35,6 +35,7 @@ use App\NewPermKeys;
 use App\Services\ingaz\RecruitmentTripAccountingService;
 use App\Services\ingaz\RecruitmentContractRefundService;
 use App\Services\ingaz\RentalMaidArrivalService;
+use App\Services\ManagedFileStorage;
 use App\Support\SystemModuleManager;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
@@ -1931,19 +1932,27 @@ class RecruitmentContractController extends Controller
         $titles = $validated['attachment_titles'] ?? [];
 
         foreach ($request->file('attachments', []) as $index => $file) {
-            $path = $file->store('recruitment-contracts/' . $contract->id, 'public');
+            $path = app(ManagedFileStorage::class)->uploadFile(
+                $file,
+                'recruitment-contracts/' . $contract->id
+            );
 
-            RecruitmentContractAttachment::create([
-                'contract_id' => $contract->id,
-                'title' => $titles[$index] ?? null,
-                'type' => $type ?: 'other',
-                'disk' => 'public',
-                'path' => $path,
-                'original_name' => $file->getClientOriginalName(),
-                'mime_type' => $file->getClientMimeType(),
-                'size' => $file->getSize() ?: 0,
-                'uploaded_by' => auth('admin')->id(),
-            ]);
+            try {
+                RecruitmentContractAttachment::create([
+                    'contract_id' => $contract->id,
+                    'title' => $titles[$index] ?? null,
+                    'type' => $type ?: 'other',
+                    'disk' => 'managed',
+                    'path' => $path,
+                    'original_name' => $file->getClientOriginalName(),
+                    'mime_type' => $file->getClientMimeType(),
+                    'size' => $file->getSize() ?: 0,
+                    'uploaded_by' => auth('admin')->id(),
+                ]);
+            } catch (\Throwable $exception) {
+                deleteFile($path);
+                throw $exception;
+            }
         }
 
         return redirect()
@@ -1983,12 +1992,15 @@ class RecruitmentContractController extends Controller
             return redirect()->back()->with('error', 'تعذر تجهيز ملف المرفقات.');
         }
 
+        $storage = app(ManagedFileStorage::class);
         foreach ($attachments as $attachment) {
-            $absolutePath = Storage::disk($attachment['disk'])->path($attachment['path']);
-
-            if (is_file($absolutePath)) {
-                $zip->addFile($absolutePath, $attachment['filename']);
+            $stream = $storage->readStream($attachment['path']);
+            if (!is_resource($stream)) {
+                continue;
             }
+
+            $zip->addFromString($attachment['filename'], stream_get_contents($stream));
+            fclose($stream);
         }
 
         $zip->close();
@@ -2013,11 +2025,16 @@ class RecruitmentContractController extends Controller
             abort(404);
         }
 
-        if (!Storage::disk($attachment->disk)->exists($attachment->path)) {
+        $storage = app(ManagedFileStorage::class);
+        if (!$storage->exists($attachment->path)) {
             return redirect()->back()->with('error', 'ملف المرفق غير موجود.');
         }
 
-        return Storage::disk($attachment->disk)->download($attachment->path, $attachment->original_name);
+        return $storage->downloadResponse(
+            $attachment->path,
+            $attachment->original_name,
+            $attachment->mime_type ?: 'application/octet-stream'
+        );
     }
 
     public function deleteAttachment($contractId, RecruitmentContractAttachment $attachment)
@@ -2030,7 +2047,7 @@ class RecruitmentContractController extends Controller
             abort(404);
         }
 
-        Storage::disk($attachment->disk)->delete($attachment->path);
+        deleteFile($attachment->path);
         $attachment->delete();
 
         return redirect()
@@ -2043,7 +2060,7 @@ class RecruitmentContractController extends Controller
         $contract->loadMissing('attachments');
 
         return $contract->attachments
-            ->filter(fn ($attachment) => Storage::disk($attachment->disk ?: 'public')->exists($attachment->path))
+            ->filter(fn ($attachment) => app(ManagedFileStorage::class)->exists($attachment->path))
             ->values()
             ->map(function ($attachment, $index) use ($contract) {
                 $extension = pathinfo($attachment->original_name, PATHINFO_EXTENSION);
@@ -2888,7 +2905,7 @@ class RecruitmentContractController extends Controller
         ];
 
         if ($request->hasFile('manual_maid_attachment')) {
-            $uploadedPath = uploadFile($request->file('manual_maid_attachment'), 'maids/');
+            $uploadedPath = uploadMaidFile($request->file('manual_maid_attachment'), 'maids/');
             $maidData['cv_file'] = $uploadedPath;
 
             $extension = strtolower((string) $request->file('manual_maid_attachment')->getClientOriginalExtension());
@@ -3204,9 +3221,9 @@ class RecruitmentContractController extends Controller
             ];
 
             if ($isManualMaidSummary && !$manualMaid && $request->hasFile('manual_maid_attachment')) {
-                $contractInfo['manual_maid_attachment'] = uploadFile(
+                $contractInfo['manual_maid_attachment'] = app(ManagedFileStorage::class)->uploadFile(
                     $request->file('manual_maid_attachment'),
-                    'contracts/manual_maid_attachments/'
+                    'contracts/manual_maid_attachments'
                 );
             }
 

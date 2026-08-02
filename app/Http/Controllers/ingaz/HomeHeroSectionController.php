@@ -24,24 +24,33 @@ class HomeHeroSectionController extends Controller
         $section = HomeHeroSection::with('images')->first();
         $this->authorizeRequestedChanges($request, $section);
         $this->validateMediaState($request, $section);
+        $oldMediaFiles = [];
+        $newMediaFiles = [];
 
-        DB::transaction(function () use ($request, $section) {
-            $section ??= new HomeHeroSection();
-            $section->is_active = $request->boolean('is_active');
-            $section->video_type = $request->input('video_type');
+        try {
+            DB::transaction(function () use ($request, $section, &$oldMediaFiles, &$newMediaFiles) {
+                $section ??= new HomeHeroSection();
+                $section->is_active = $request->boolean('is_active');
+                $section->video_type = $request->input('video_type');
 
-            foreach (config('translatable.locales') as $locale) {
-                $translation = $section->translateOrNew($locale);
-                $translation->title = $request->input("title:$locale");
-                $translation->subtitle = $request->input("subtitle:$locale");
-                $translation->video_title = $request->input("video_title:$locale");
-            }
+                foreach (config('translatable.locales') as $locale) {
+                    $translation = $section->translateOrNew($locale);
+                    $translation->title = $request->input("title:$locale");
+                    $translation->subtitle = $request->input("subtitle:$locale");
+                    $translation->video_title = $request->input("video_title:$locale");
+                }
 
-            $this->syncVideo($section, $request);
-            $section->save();
-            $this->deleteImages($section, $request->input('delete_image_ids', []));
-            $this->storeImages($section, $request->file('images', []));
-        });
+                $this->syncVideo($section, $request, $oldMediaFiles, $newMediaFiles);
+                $section->save();
+                $this->deleteImages($section, $request->input('delete_image_ids', []), $oldMediaFiles);
+                $this->storeImages($section, $request->file('images', []), $newMediaFiles);
+            });
+        } catch (\Throwable $exception) {
+            $this->deleteMediaFiles($newMediaFiles);
+            throw $exception;
+        }
+
+        $this->deleteMediaFiles($oldMediaFiles);
 
         return redirect()
             ->route('home-hero.edit')
@@ -145,14 +154,19 @@ class HomeHeroSectionController extends Controller
             );
     }
 
-    private function syncVideo(HomeHeroSection $section, HomeHeroSectionRequest $request): void
+    private function syncVideo(
+        HomeHeroSection $section,
+        HomeHeroSectionRequest $request,
+        array &$oldMediaFiles,
+        array &$newMediaFiles
+    ): void
     {
         $type = $request->input('video_type');
 
         if ($section->video_path && (
             $type !== 'upload' || $request->hasFile('video_file')
         )) {
-            deleteFile($section->video_path);
+            $oldMediaFiles[] = $section->video_path;
             $section->video_path = null;
         }
 
@@ -162,6 +176,7 @@ class HomeHeroSectionController extends Controller
                 'videos/home-hero/',
                 1
             );
+            $newMediaFiles[] = $section->video_path;
         }
 
         $section->video_url = $type === 'youtube'
@@ -173,23 +188,32 @@ class HomeHeroSectionController extends Controller
         }
     }
 
-    private function deleteImages(HomeHeroSection $section, array $imageIds): void
+    private function deleteImages(HomeHeroSection $section, array $imageIds, array &$oldMediaFiles): void
     {
         $section->images()
             ->whereIn('id', $imageIds)
             ->get()
-            ->each(function ($image) {
-                deleteFile($image->path);
+            ->each(function ($image) use (&$oldMediaFiles) {
+                $oldMediaFiles[] = $image->path;
                 $image->delete();
             });
     }
 
-    private function storeImages(HomeHeroSection $section, array $images): void
+    private function storeImages(HomeHeroSection $section, array $images, array &$newMediaFiles): void
     {
         foreach ($images as $image) {
+            $path = uploadFile($image, 'images/home-hero/', 1);
+            $newMediaFiles[] = $path;
             $section->images()->create([
-                'path' => uploadFile($image, 'images/home-hero/', 1),
+                'path' => $path,
             ]);
+        }
+    }
+
+    private function deleteMediaFiles(array $paths): void
+    {
+        foreach (array_unique(array_filter($paths)) as $path) {
+            deleteFile($path);
         }
     }
 }

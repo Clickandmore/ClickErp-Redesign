@@ -1325,32 +1325,40 @@ class MaidAction extends MainAction
         $languagesData = $request->input('languages', []);
         $data['languages'] = $languagesData;
 
-        if (isset($data['cv_file'])) {
-            deleteFile($maid->cv_file);
-            $image = $data['cv_file'];
-            $data['cv_file'] = uploadMaidFile($image, $this->fileFolder);
-        }
-        if (isset($data['cv_preview'])) {
-            deleteFile($maid->cv_preview);
-            $image = $data['cv_preview'];
-            $data['cv_preview'] = uploadMaidFile($image, $this->fileFolder);
-        }
-        if (isset($data['maid_cv_file']) && $data['maid_cv_file'] instanceof \Illuminate\Http\UploadedFile) {
-            deleteFile($maid->maid_cv_file);
-            $file = $data['maid_cv_file'];
-            $data['maid_cv_file'] = uploadMaidFile($file, $this->fileFolder);
-        } else {
-            unset($data['maid_cv_file']);
-        }
-        if (isset($data['image'])) {
-            deleteFile($maid->image);
-            $image = $data['image'];
-            $data['image'] = uploadMaidFile($image, $this->fileFolder);
-        }
-        if (isset($data['video'])) {
-            deleteFile($maid->video);
-            $video = $data['video'];
-            $data['video'] = uploadMaidFile($video, $this->fileFolder);
+        $oldMediaFiles = [];
+        $newMediaFiles = [];
+
+        try {
+            if (isset($data['cv_file'])) {
+                $oldMediaFiles[] = $maid->cv_file;
+                $image = $data['cv_file'];
+                $data['cv_file'] = uploadMaidFile($image, $this->fileFolder);
+                $newMediaFiles[] = $data['cv_file'];
+            }
+            if (isset($data['cv_preview'])) {
+                $oldMediaFiles[] = $maid->cv_preview;
+                $image = $data['cv_preview'];
+                $data['cv_preview'] = uploadMaidFile($image, $this->fileFolder);
+                $newMediaFiles[] = $data['cv_preview'];
+            }
+            if (isset($data['image'])) {
+                $oldMediaFiles[] = $maid->image;
+                $image = $data['image'];
+                $data['image'] = uploadMaidFile($image, $this->fileFolder);
+                $newMediaFiles[] = $data['image'];
+            }
+            if (isset($data['video'])) {
+                $oldMediaFiles[] = $maid->video;
+                $video = $data['video'];
+                $data['video'] = uploadMaidFile($video, $this->fileFolder);
+                $newMediaFiles[] = $data['video'];
+            }
+        } catch (\Throwable $exception) {
+            foreach (array_filter($newMediaFiles) as $newMediaFile) {
+                deleteFile($newMediaFile);
+            }
+
+            throw $exception;
         }
 
         // Convert skills array to JSON if it exists
@@ -1473,7 +1481,20 @@ class MaidAction extends MainAction
             unset($data['expertises']);
         }
 
-        $row->update($data);
+        try {
+            $row->update($data);
+        } catch (\Throwable $exception) {
+            foreach (array_filter($newMediaFiles) as $newMediaFile) {
+                deleteFile($newMediaFile);
+            }
+
+            throw $exception;
+        }
+
+        foreach (array_filter($oldMediaFiles) as $oldMediaFile) {
+            deleteFile($oldMediaFile);
+        }
+
         $this->syncLegacyMaidLanguageTranslations($row, $langs);
 
         if (isset($data['expertises']) && $experienceStatusValue === 'has_experience') {

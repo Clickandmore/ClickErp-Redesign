@@ -462,7 +462,7 @@
                             <div class="info-row">
                                 <span class="info-label">مرفق الآيبان:</span>
                                 <span class="info-value">
-                                    <a href="{{ Storage::disk('public')->url($transfer->failure_client_iban_attachment_path) }}" target="_blank" class="text-primary">
+                                    <a href="{{ showFile($transfer->failure_client_iban_attachment_path) }}" target="_blank" class="text-primary">
                                         عرض المرفق
                                     </a>
                                 </span>
@@ -524,7 +524,7 @@
                         <div class="info-row">
                             <span class="info-label">إيصال الدفع:</span>
                             <span class="info-value">
-                                <a href="{{ Storage::disk('public')->url($transfer->payment_receipt_path) }}" target="_blank" class="text-primary">
+                                <a href="{{ showFile($transfer->payment_receipt_path) }}" target="_blank" class="text-primary">
                                     عرض الإيصال
                                 </a>
                             </span>
@@ -535,7 +535,7 @@
                             <span class="info-label">المرفقات:</span>
                             <span class="info-value">
                                 @foreach ($transfer->attachments as $attachment)
-                                    <a href="{{ Storage::disk('public')->url($attachment['path'] ?? '') }}" target="_blank" class="d-block text-primary">
+                                    <a href="{{ showFile($attachment['path'] ?? '') }}" target="_blank" class="d-block text-primary">
                                         {{ $attachment['name'] ?? 'مرفق' }}
                                     </a>
                                 @endforeach

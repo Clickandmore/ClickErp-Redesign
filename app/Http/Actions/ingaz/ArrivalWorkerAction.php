@@ -26,9 +26,23 @@ class ArrivalWorkerAction extends MainAction
 
     public function updateArrivalWorkers($data, $id)
     {
+        $arrivalWorker = $this->find($id);
+        $oldImage = null;
+        $newImage = null;
         if (isset($data['image'])) {
+            $oldImage = $arrivalWorker->image;
             $data['image'] = uploadFile($data['image'], $this->fileFolder);
+            $newImage = $data['image'];
         }
-        return $this->find($id)->update($data);
+        try {
+            $updated = $arrivalWorker->update($data);
+        } catch (\Throwable $exception) {
+            deleteFile($newImage);
+            throw $exception;
+        }
+        if ($newImage) {
+            deleteFile($oldImage);
+        }
+        return $updated;
     }
 }

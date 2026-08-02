@@ -4,6 +4,7 @@ namespace App\Http\Controllers\APPAPIControllers;
 
 use App\Http\Controllers\Controller;
 use App\Models\ingaz\Complaint;
+use App\Services\ManagedFileStorage;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Validator;
@@ -32,13 +33,20 @@ class AppComplaintController extends Controller
         ];
 
         if ($request->hasFile('file')) {
-            $file = $request->file('file');
-            $fileName = Str::random(40) . '.' . $file->getClientOriginalExtension();
-            $file->storeAs('public/complaints', $fileName);
-            $data['file'] = 'complaints/' . $fileName;
+            $data['file'] = app(ManagedFileStorage::class)->uploadFile(
+                $request->file('file'),
+                'complaints'
+            );
         }
 
-        $complaint = Complaint::create($data);
+        try {
+            $complaint = Complaint::create($data);
+        } catch (\Throwable $exception) {
+            if (!empty($data['file'])) {
+                deleteFile($data['file']);
+            }
+            throw $exception;
+        }
 
         return jsonSuccess($complaint->fresh(), 'تم ارسال الشكوى بنجاح');
     }

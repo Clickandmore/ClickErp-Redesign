@@ -11,6 +11,7 @@ use App\Models\RentalContractTerm;
 use App\Models\Setting;
 use App\Models\ShelterWorkers;
 use App\Models\TravelHistory;
+use App\Services\ManagedFileStorage;
 use App\Support\AutomationSettings;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
@@ -318,16 +319,15 @@ class AdminContractController extends Controller
                 ], 400);
             }
 
-            // إنشاء اسم فريد للملف
-            $fileName = "signature_" . $contractId . "_" . time() . ".png";
-
-            // حفظ الملف في storage
-            $filePath = "signatures/" . $fileName;
-            \Storage::disk("public")->put($filePath, $signatureImage);
+            $filePath = app(ManagedFileStorage::class)->storeFileContents(
+                $signatureImage,
+                'signatures',
+                'png'
+            );
 
             // حفظ مسار الملف في قاعدة البيانات وتحديث مرحلة العقد عند أول توقيع
             $updates = [
-                "signature" => $fileName,
+                "signature" => $filePath,
             ];
 
             if (in_array($contract->status, ['waiting_contract_send', 'contract_sent'], true)) {
@@ -342,7 +342,12 @@ class AdminContractController extends Controller
                 ]);
             }
 
-            $contract->update($updates);
+            try {
+                $contract->update($updates);
+            } catch (\Throwable $exception) {
+                deleteFile($filePath);
+                throw $exception;
+            }
 
             // إعادة تحميل العقد للتأكد من التحديث
             $contract->refresh();
@@ -351,7 +356,7 @@ class AdminContractController extends Controller
                 "success" => true,
                 "message" => "تم حفظ التوقيع بنجاح",
                 "signature_path" => $filePath,
-                "signature_file" => $fileName
+                "signature_file" => basename($filePath)
             ]);
 
         } catch (\Exception $e) {

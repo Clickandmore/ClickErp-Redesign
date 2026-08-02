@@ -208,7 +208,7 @@
                                         <small class="text-muted">اترك فارغاً إذا لم ترد تغيير الشعار</small>
                                         @if(!empty($settings['logo']))
                                             <div class="mt-2">
-                                                <img src="{{ asset('storage/' . $settings['logo']) }}" alt="Logo"
+                                                <img src="{{ showFile($settings['logo']) }}" alt="Logo"
                                                      style="max-height: 100px;">
                                             </div>
                                         @endif
@@ -220,7 +220,7 @@
                                         <small class="text-muted">اترك فارغاً إذا لم ترد تغيير توقيع الشركة</small>
                                         @if(!empty($settings['company_signature']))
                                             <div class="mt-2">
-                                                <img src="{{ asset('storage/' . $settings['company_signature']) }}" alt="Company signature"
+                                                <img src="{{ showFile($settings['company_signature']) }}" alt="Company signature"
                                                      style="max-height: 100px;">
                                             </div>
                                         @endif

@@ -5,7 +5,6 @@ namespace App\Models;
 use App\Models\Concerns\AssignsBranch;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Support\Facades\Storage;
 
 class RentalContractExtension extends Model
 {
@@ -79,7 +78,7 @@ class RentalContractExtension extends Model
             return null;
         }
 
-        return Storage::disk('public')->url($this->payment_receipt_path);
+        return showFile($this->payment_receipt_path);
     }
 
     protected function resolveBranchIdForCreate(): ?int

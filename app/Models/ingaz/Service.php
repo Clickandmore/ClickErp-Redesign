@@ -33,7 +33,7 @@ class Service extends Model
 
     public function getImageURLAttribute()
     {
-        return asset('storage/' . $this->image) ?? null;
+        return showFile($this->image);
     }
 
 }

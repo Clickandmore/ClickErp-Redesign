@@ -8,7 +8,7 @@
         $documentTitle = trim(preg_replace('/\bنموذج\s*/u', '', (string) $documentTitle));
         $documentCompanyName = documentSetting('document_company_name', $contractSettings['company_name'] ?? documentSetting('website_name', config('app.name')));
         $documentLogo = filled($contractSettings['logo'] ?? null)
-            ? asset('storage/' . ltrim($contractSettings['logo'], '/'))
+            ? showFile($contractSettings['logo'])
             : documentLogoUrl(asset('site/assets/images/logo.svg'));
         $ministryLogo = asset('site/assets/images/Ministry-of-Labor-and-Social-Development.svg');
         $documentAddress = $contractSettings['address'] ?? documentSetting('location', 'الرياض');

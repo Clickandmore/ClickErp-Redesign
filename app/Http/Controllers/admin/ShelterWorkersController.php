@@ -4,11 +4,19 @@ namespace App\Http\Controllers\admin;
 
 use App\Models\ingaz\Nationality;
 use App\Models\ShelterWorkers;
+use App\Services\ManagedFileStorage;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Storage;
 
 class ShelterWorkersController extends Controller
 {
+    private const FILE_FIELDS = [
+        'travel_doc',
+        'settlement',
+        'graduation',
+        'reserve',
+        'travel',
+    ];
+
     public function __construct()
     {
         $this->middleware('permission:shelter_workers_view|shelter_workers_control,admin', ['only' => ['index', 'show', 'download']]);
@@ -112,24 +120,16 @@ class ShelterWorkersController extends Controller
         );
 
         // List of file fields
-        $fileFields = [
-            'travel_doc',
-            'settlement',
-            'graduation',
-            'reserve',
-            'travel',
-        ];
-
         // Loop to handle file uploads
-        foreach ($fileFields as $field) {
+        foreach (self::FILE_FIELDS as $field) {
             if ($request->hasFile($field)) {
-                $filePath = $request->file($field)->store("uploads/{$field}s", 'public');
-                $data->$field = $filePath;  // Set the file path
+                $oldPath = $data->$field;
+                $data->$field = app(ManagedFileStorage::class)
+                    ->uploadFile($request->file($field), "uploads/{$field}s");
+                $data->save();
+                deleteFile($oldPath);
             }
         }
-
-        // Save the model to update file paths
-        $data->save();
 
         return redirect(route('shelter_workers'))->with('success', __('admin.success'));
     }
@@ -147,16 +147,29 @@ class ShelterWorkersController extends Controller
     public function destroy(string $id)
     {
         $data = ShelterWorkers::find($id);
-        $data ? $data->delete() : '';
+        if ($data) {
+            foreach (self::FILE_FIELDS as $field) {
+                deleteFile($data->$field);
+            }
+            $data->delete();
+        }
+
         return redirect()->back()->with('success', __('admin.success'));
     }
 
     public function download($id, $field)
     {
+        abort_unless(in_array($field, self::FILE_FIELDS, true), 404);
         $shelterWorker = ShelterWorkers::findOrFail($id);
 
         if ($shelterWorker->$field) {
-            return response()->download(storage_path("app/public/" . $shelterWorker->$field));
+            $path = $shelterWorker->$field;
+
+            return app(ManagedFileStorage::class)->downloadResponse(
+                $path,
+                basename($path),
+                app(ManagedFileStorage::class)->mimeType($path)
+            );
         }
 
         return back()->with('error', __('admin.file_not_found'));
@@ -164,11 +177,11 @@ class ShelterWorkersController extends Controller
 
     public function deleteFile($id, $field)
     {
+        abort_unless(in_array($field, self::FILE_FIELDS, true), 404);
         $shelterWorker = ShelterWorkers::findOrFail($id);
 
         if ($shelterWorker->$field) {
-            // Delete the file from storage
-            Storage::disk('public')->delete($shelterWorker->$field);
+            deleteFile($shelterWorker->$field);
 
             // Remove the file path from the database
             $shelterWorker->$field = null;

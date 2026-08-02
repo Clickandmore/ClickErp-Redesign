@@ -13,7 +13,7 @@ class ManagedFileStorage
     public const R2_PREFIX = 'r2://';
     private static ?string $configuredDiskHash = null;
 
-    public function uploadMaidFile(UploadedFile $file, string $directory): string
+    public function uploadFile(UploadedFile $file, string $directory): string
     {
         $directory = trim($directory, '/');
         $extension = strtolower((string) $file->getClientOriginalExtension());
@@ -28,6 +28,35 @@ class ManagedFileStorage
         $this->r2Disk($settings)->putFileAs(dirname($path), $file, basename($path));
 
         return self::R2_PREFIX . $path;
+    }
+
+    public function uploadMaidFile(UploadedFile $file, string $directory): string
+    {
+        return $this->uploadFile($file, $directory);
+    }
+
+    public function storeFileContents(string $contents, string $directory, string $extension = ''): string
+    {
+        $directory = trim($directory, '/');
+        $extension = strtolower(trim($extension, " \t\n\r\0\x0B."));
+        $filename = Str::random(10) . time() . ($extension !== '' ? '.' . $extension : '');
+
+        if (!R2StorageSettings::isReady()) {
+            Storage::disk('public')->put($directory . '/' . $filename, $contents);
+
+            return $directory . '/' . $filename;
+        }
+
+        $settings = R2StorageSettings::all();
+        $path = trim($settings['root_prefix'] . '/' . $directory . '/' . $filename, '/');
+        $this->r2Disk($settings)->put($path, $contents);
+
+        return self::R2_PREFIX . $path;
+    }
+
+    public function storeMaidFileContents(string $contents, string $directory, string $extension = ''): string
+    {
+        return $this->storeFileContents($contents, $directory, $extension);
     }
 
     public function exists(?string $storedPath): bool
@@ -52,7 +81,7 @@ class ManagedFileStorage
 
         if (!$this->isR2Path($storedPath)) {
             return Storage::disk('public')->exists($storedPath)
-                ? Storage::disk('public')->url($storedPath)
+                ? asset('storage/' . ltrim($storedPath, '/'))
                 : null;
         }
 
@@ -125,6 +154,19 @@ class ManagedFileStorage
             'X-Content-Type-Options' => 'nosniff',
             'Cache-Control' => 'private, no-store',
         ]);
+    }
+
+    /**
+     * @return resource|false
+     */
+    public function readStream(string $storedPath)
+    {
+        return $this->disk($storedPath)->readStream($this->path($storedPath));
+    }
+
+    public function mimeType(string $storedPath): string
+    {
+        return $this->disk($storedPath)->mimeType($this->path($storedPath)) ?: 'application/octet-stream';
     }
 
     public function contents(string $storedPath): string

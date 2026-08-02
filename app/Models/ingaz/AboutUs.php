@@ -26,21 +26,21 @@ class AboutUs extends Model
 
     public function getImageURLAttribute()
     {
-        return asset('storage/' . $this->image) ?? null;
+        return showFile($this->image);
     }
 
     public function getImageVisionURLAttribute()
     {
-        return asset('storage/' . $this->image_vision) ?? null;
+        return showFile($this->image_vision);
     }
 
     public function getImageMessageURLAttribute()
     {
-        return asset('storage/' . $this->image_message) ?? null;
+        return showFile($this->image_message);
     }
 
     public function getImageValueURLAttribute()
     {
-        return asset('storage/' . $this->image_value) ?? null;
+        return showFile($this->image_value);
     }
 }

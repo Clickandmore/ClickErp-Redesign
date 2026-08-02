@@ -51,7 +51,7 @@
             @foreach ($article->attachments as $attachment)
                 <div class="col-md-6 col-lg-4">
                     <div class="border rounded p-2 d-flex justify-content-between align-items-center">
-                        <a href="{{ Storage::url($attachment->file_path) }}" target="_blank">
+                        <a href="{{ showFile($attachment->file_path) }}" target="_blank">
                             <i class="fas fa-paperclip me-1"></i>{{ $attachment->file_name }}
                         </a>
                         <form action="{{ route('support.attachments.destroy', $attachment) }}" method="POST" onsubmit="return confirm('حذف هذا المرفق؟');">

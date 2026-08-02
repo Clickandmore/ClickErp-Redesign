@@ -5,9 +5,9 @@ namespace App\Models\ingaz;
 use App\Models\auth\Admin;
 use App\Models\Concerns\AssignsBranch;
 use App\Models\Contract;
+use App\Services\ManagedFileStorage;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Support\Facades\Storage;
 
 class RecruitmentContractAttachment extends Model
 {
@@ -31,7 +31,7 @@ class RecruitmentContractAttachment extends Model
 
     public function getUrlAttribute(): string
     {
-        return Storage::disk($this->disk ?: 'public')->url($this->path);
+        return (string) app(ManagedFileStorage::class)->url($this->path);
     }
 
     public function getSizeLabelAttribute(): string

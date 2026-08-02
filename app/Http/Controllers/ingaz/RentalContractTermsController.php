@@ -6,6 +6,7 @@ use App\Http\Controllers\admin\Controller;
 use App\Models\RentalContractTerm;
 use App\Models\Setting;
 use App\PermKeys;
+use App\Services\ManagedFileStorage;
 use App\Support\RentalContractDefaultTerms;
 use Illuminate\Http\Request;
 
@@ -171,7 +172,7 @@ class RentalContractTermsController extends Controller
         // معالجة الشعار إذا تم رفعه
         if ($request->hasFile('logo')) {
             $logo = $request->file('logo');
-            $logoPath = $logo->store('contract_logos', 'public');
+            $logoPath = app(ManagedFileStorage::class)->uploadFile($logo, 'contract_logos');
 
             Setting::updateOrCreate(
                 ['key' => 'rent_contract_logo'],
@@ -181,7 +182,7 @@ class RentalContractTermsController extends Controller
 
         if ($request->hasFile('company_signature')) {
             $signature = $request->file('company_signature');
-            $signaturePath = $signature->store('contract_signatures', 'public');
+            $signaturePath = app(ManagedFileStorage::class)->uploadFile($signature, 'contract_signatures');
 
             Setting::updateOrCreate(
                 ['key' => 'rent_contract_company_signature'],

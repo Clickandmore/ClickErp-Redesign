@@ -11,7 +11,6 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Storage;
 
 class AdminSettingsController extends Controller
 {
@@ -236,11 +235,10 @@ class AdminSettingsController extends Controller
             $file = $request->file('popup_image');
 
             $old_image = $settings->getSetting('popup_image');
-            if ($old_image) {
-                Storage::delete('public/' . $old_image);
-            }
+            deleteFile($old_image);
 
-            $path = $file->store('images/settings', 'public');
+            $path = app(\App\Services\ManagedFileStorage::class)
+                ->uploadFile($file, 'images/settings');
             $settings->setSetting('popup_image', $path);
         }
     }

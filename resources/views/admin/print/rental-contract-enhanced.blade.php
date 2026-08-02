@@ -326,7 +326,7 @@
                 </div>
                 @else
                 <div class="signature-box">
-                    <img src="{{ $contract->signature }}" alt="توقيع العميل" class="signature-saved">
+                    <img src="{{ showSignatureFile($contract->signature) }}" alt="توقيع العميل" class="signature-saved">
                     <p class="mt-2 text-success">
                         <i class="fas fa-check-circle"></i> تم توقيع العقد
                     </p>
