@@ -37,6 +37,60 @@ class MaidAction extends MainAction
     }
 
     /**
+     * بادئة السيريال الموحّد لسير التأجير.
+     */
+    private const RENTAL_CV_CODE_PREFIX = 'RENT-';
+
+    /**
+     * سيريال موحّد لكل سيرة تأجير: RENT-0001.
+     *
+     * كود الاستقدام يُبنى على اسم المكتب الخارجي (MAK/009)، وسير التأجير غالبًا
+     * بلا مكتب فكانت تُحفظ بلا كود. هنا يُولَّد لها عدّاد مستقل موحّد،
+     * ويُطبَّق حتى لو كان للعاملة مكتب حتى تبقى كل سير التأجير على صيغة واحدة.
+     */
+    private function assignRentalCvCode(Maid $maid): void
+    {
+        if (! $this->maidIsRental($maid)) {
+            return;
+        }
+
+        $maid->cv_code = $this->nextRentalCvCode();
+        $maid->save();
+
+        \Log::info('Rental cv_code assigned', ['maid_id' => $maid->id, 'cv_code' => $maid->cv_code]);
+    }
+
+    /**
+     * نعتمد على العلاقة بعد المزامنة لا على الطلب، لأنها المصدر النهائي لنوع السيرة.
+     */
+    private function maidIsRental(Maid $maid): bool
+    {
+        $rentalJobTypeId = $this->getRentalJobTypeId();
+
+        return $rentalJobTypeId
+            && $maid->jobTypes()->where('job_types.id', $rentalJobTypeId)->exists();
+    }
+
+    private function nextRentalCvCode(): string
+    {
+        $prefix = self::RENTAL_CV_CODE_PREFIX;
+        $digitsFrom = strlen($prefix) + 1;
+
+        $lastNumber = (int) $this->model->newQuery()
+            ->where('cv_code', 'LIKE', $prefix . '%')
+            ->selectRaw("MAX(CAST(SUBSTRING(cv_code, {$digitsFrom}) AS UNSIGNED)) as last_number")
+            ->value('last_number');
+
+        // حلقة الحماية تتفادى التصادم لو أُنشئت سيرتان في نفس اللحظة
+        do {
+            $lastNumber++;
+            $code = $prefix . str_pad((string) $lastNumber, 4, '0', STR_PAD_LEFT);
+        } while ($this->model->newQuery()->where('cv_code', $code)->exists());
+
+        return $code;
+    }
+
+    /**
      * سنوات صف خبرة واحد. التاريخان أولى من القيمة القادمة من الواجهة لأنهما مصدرها.
      */
     private function expertiseYears(array $expertise): float
@@ -469,6 +523,8 @@ class MaidAction extends MainAction
                 $maid->jobTypes()->sync($jobTypeIds);
                 \Log::info('Job types synced successfully');
 
+                $this->assignRentalCvCode($maid);
+
                 $this->syncRentalMaidFinancialAdjustments($maid, $request);
 
                 if ($this->isRentalTypeRequest($request)) {
@@ -598,6 +654,9 @@ class MaidAction extends MainAction
         if ($request->job_id) {
             $maid->jobTitles()->sync((array) $request->job_id);
         }
+
+        $this->assignRentalCvCode($maid);
+
         return $maid;
     }
 

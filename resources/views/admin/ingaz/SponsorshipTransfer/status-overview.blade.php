@@ -878,7 +878,12 @@
                         },
                         success: function(response) {
                             if (response.success) {
-                                Swal.fire('نجح!', response.message, 'success').then(() => {
+                                const hasAccountingWarning = Boolean(response.accounting_warning);
+                                Swal.fire(
+                                    hasAccountingWarning ? 'تمت العملية مع تنبيه محاسبي' : 'نجح!',
+                                    response.message,
+                                    hasAccountingWarning ? 'warning' : 'success'
+                                ).then(() => {
                                     window.location.reload();
                                 });
                             } else {
@@ -901,7 +906,12 @@
                         }, payload),
                         success: function(response) {
                             if (response.success) {
-                                Swal.fire('نجح!', response.message, 'success').then(() => {
+                                const hasAccountingWarning = Boolean(response.accounting_warning);
+                                Swal.fire(
+                                    hasAccountingWarning ? 'تمت العملية مع تنبيه محاسبي' : 'نجح!',
+                                    response.message,
+                                    hasAccountingWarning ? 'warning' : 'success'
+                                ).then(() => {
                                     window.location.reload();
                                 });
                             } else {

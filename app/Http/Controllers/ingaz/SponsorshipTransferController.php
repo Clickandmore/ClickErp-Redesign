@@ -2224,15 +2224,16 @@ class SponsorshipTransferController extends Controller
             $transfer->refresh();
             $this->notifySponsorshipTransferStatusChanged($transfer, $previousStatus);
 
-            try {
-                app(SponsorshipTransferTrialStartService::class)->record($transfer);
-            } catch (\Throwable $accountingEx) {
-                \Log::warning('SponsorshipTransferTrialStartService: ' . $accountingEx->getMessage(), ['transfer_id' => $transfer->id]);
+            $accountingWarning = $this->recordTrialStartConstraint($transfer);
+            $message = 'تم تسجيل استلام العاملة وتفعيل فترة التجربة مباشرة';
+            if ($accountingWarning) {
+                $message .= "\n\n" . $accountingWarning;
             }
 
             return response()->json([
                 'success' => true,
-                'message' => 'تم تسجيل استلام العاملة وتفعيل فترة التجربة مباشرة'
+                'message' => $message,
+                'accounting_warning' => $accountingWarning,
             ]);
 
         } catch (\Exception $e) {
@@ -2243,6 +2244,29 @@ class SponsorshipTransferController extends Controller
                 'success' => false,
                 'message' => 'حدث خطأ في تسجيل تسليم العاملة'
             ], 500);
+        }
+    }
+
+    /**
+     * يحاول إنشاء قيد بداية التجربة دون تعطيل الإجراء التشغيلي عند فشل المحاسبة.
+     */
+    private function recordTrialStartConstraint(SponsorshipTransfer $transfer): ?string
+    {
+        try {
+            $constraint = app(SponsorshipTransferTrialStartService::class)->record($transfer);
+
+            if (!$constraint) {
+                return 'تنبيه محاسبي: بدأت فترة التجربة، لكن لم يتم إنشاء قيد بداية التجربة دون سبب محدد.';
+            }
+
+            return null;
+        } catch (\Throwable $accountingEx) {
+            \Log::warning('SponsorshipTransferTrialStartService: ' . $accountingEx->getMessage(), [
+                'transfer_id' => $transfer->id,
+            ]);
+
+            return 'تنبيه محاسبي: بدأت فترة التجربة، لكن لم يتم إنشاء قيد بداية التجربة. السبب: '
+                . $accountingEx->getMessage();
         }
     }
 
@@ -2464,9 +2488,16 @@ class SponsorshipTransferController extends Controller
             $transfer->refresh();
             $this->notifySponsorshipTransferStatusChanged($transfer, $previousStatus);
 
+            $accountingWarning = $this->recordTrialStartConstraint($transfer);
+            $message = 'تم بدء فترة التجربة بنجاح';
+            if ($accountingWarning) {
+                $message .= "\n\n" . $accountingWarning;
+            }
+
             return response()->json([
                 'success' => true,
-                'message' => 'تم بدء فترة التجربة بنجاح'
+                'message' => $message,
+                'accounting_warning' => $accountingWarning,
             ]);
 
         } catch (\Exception $e) {
