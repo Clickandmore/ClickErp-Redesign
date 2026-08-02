@@ -982,7 +982,7 @@ class RentContractController extends Controller
             'extensions.invoiceConstraint',
             'extensions.receiptBond',
             'extensions.receiptConstraint',
-            'financialAdjustments',
+            'financialAdjustments.constraint',
         ])->findOrFail($id);
         $this->assertCanAccessBranchModel($contract, 'rental_contracts');
 

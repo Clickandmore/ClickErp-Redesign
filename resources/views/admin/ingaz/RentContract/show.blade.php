@@ -724,6 +724,7 @@
             ];
             $closureCompanyDue = (float) ($closureSummary['company_due_value'] ?? $closureSummary['calculated_company_due_value'] ?? 0);
             $closureClientRefund = (float) ($closureSummary['refund_value'] ?? $closureSummary['calculated_refund_value'] ?? 0);
+            $closureAdjustments = $contract->financialAdjustments->where('context', 'closure');
             $showClosureSettlement = $closureCompanyDue > 0 || $closureClientRefund > 0;
             $isEarlyClosure = (bool) ($closureSummary['is_early_closure'] ?? false);
             $cancelledRemainingDays = (int) ($closureSummary['remaining_days_value'] ?? 0);
@@ -1543,28 +1544,6 @@
                                 </li>
                             </ul>
 
-                            @php
-                                $closureAdjustments = $contract->financialAdjustments
-                                    ->where('context', 'closure');
-                            @endphp
-                            @if ($closureAdjustments->isNotEmpty())
-                                <div class="d-flex flex-wrap gap-2 mb-4">
-                                    @foreach ($closureAdjustments as $adjustment)
-                                        <a href="{{ route('rental.credit-note.download', ['id' => $adjustment->id, 'autoprint' => 1]) }}"
-                                            target="_blank" class="btn btn-outline-primary">
-                                            <i class="fas fa-file-invoice-dollar me-1"></i>
-                                            {{ $adjustment->type === 'expense' ? 'طباعة الإشعار الدائن' : 'طباعة الإشعار المدين' }}
-                                        </a>
-                                        @if ($adjustment->constraint_id)
-                                            <a href="{{ route('finance.add-constraint.show', ['add_constraint' => $adjustment->constraint_id, 'autoprint' => 1]) }}"
-                                                target="_blank" class="btn btn-outline-secondary">
-                                                <i class="fas fa-rotate-left me-1"></i>
-                                                {{ $adjustment->type === 'expense' ? 'قيد إشعار دائن / استرجاع' : 'قيد مستحق الشركة' }}
-                                            </a>
-                                        @endif
-                                    @endforeach
-                                </div>
-                            @endif
                         @endif
 
                         @if ($contract->financeInvoice)
@@ -1629,6 +1608,63 @@
                         @else
                             <div class="empty-state">
                                 لم يتم إنشاء مستندات مالية لهذا العقد حتى الآن.
+                            </div>
+                        @endif
+
+                        @if ($closureAdjustments->isNotEmpty())
+                            <div class="mt-4">
+                                <h4 class="h6 fw-bold mb-3">
+                                    <i class="fas fa-scale-balanced me-1"></i>
+                                    قيود تسوية إنهاء العقد
+                                </h4>
+                                <div class="table-responsive">
+                                    <table class="table table-bordered align-middle mb-0">
+                                        <thead class="table-light">
+                                            <tr>
+                                                <th>نوع التسوية</th>
+                                                <th>القيمة</th>
+                                                <th>الإشعار</th>
+                                                <th>القيد المحاسبي</th>
+                                                <th>حالة القيد</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            @foreach ($closureAdjustments as $adjustment)
+                                                <tr>
+                                                    <td>
+                                                        {{ $adjustment->type === 'expense' ? 'استرجاع للعميل' : 'مستحق للشركة' }}
+                                                    </td>
+                                                    <td>{{ number_format((float) $adjustment->amount, 2) }} ريال</td>
+                                                    <td>
+                                                        <a href="{{ route('rental.credit-note.download', ['id' => $adjustment->id, 'autoprint' => 1]) }}"
+                                                            target="_blank" rel="noopener" class="btn btn-sm btn-outline-primary">
+                                                            <i class="fas fa-file-invoice-dollar me-1"></i>
+                                                            {{ $adjustment->type === 'expense' ? 'الإشعار الدائن' : 'الإشعار المدين' }}
+                                                        </a>
+                                                    </td>
+                                                    <td>
+                                                        @if ($adjustment->constraint_id)
+                                                            <a href="{{ route('finance.add-constraint.show', ['add_constraint' => $adjustment->constraint_id, 'autoprint' => 1]) }}"
+                                                                target="_blank" rel="noopener" class="btn btn-sm btn-outline-secondary">
+                                                                <i class="fas fa-book me-1"></i>
+                                                                قيد #{{ $adjustment->constraint?->code ?: $adjustment->constraint_id }}
+                                                            </a>
+                                                        @else
+                                                            <span class="text-muted">-</span>
+                                                        @endif
+                                                    </td>
+                                                    <td>
+                                                        @if ($adjustment->constraint_id)
+                                                            <span class="badge bg-success">تم إنشاء القيد</span>
+                                                        @else
+                                                            <span class="badge bg-warning text-dark">لم يُنشأ قيد</span>
+                                                        @endif
+                                                    </td>
+                                                </tr>
+                                            @endforeach
+                                        </tbody>
+                                    </table>
+                                </div>
                             </div>
                         @endif
 

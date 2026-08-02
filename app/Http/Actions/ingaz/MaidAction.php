@@ -11,6 +11,7 @@ use App\Models\ingaz\Maid;
 use App\Models\ingaz\User as ClientUser;
 use App\Services\ingaz\RentalMaidAccountingService;
 use App\Services\ingaz\RentalMaidFinanceService;
+use App\Support\ExperiencePeriod;
 use Carbon\Carbon;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Str;
@@ -33,6 +34,16 @@ class MaidAction extends MainAction
     ) {
         $this->model = $model;
         $this->fileFolder = 'images/Maid/';
+    }
+
+    /**
+     * سنوات صف خبرة واحد. التاريخان أولى من القيمة القادمة من الواجهة لأنهما مصدرها.
+     */
+    private function expertiseYears(array $expertise): float
+    {
+        $years = ExperiencePeriod::years($expertise['start_date'] ?? null, $expertise['end_date'] ?? null);
+
+        return (float) ($years ?? ($expertise['number_of_years'] ?? 0));
     }
 
     public function storeMaid($data, $request)
@@ -70,7 +81,7 @@ class MaidAction extends MainAction
             $totalYears = 0;
             if (isset($data['expertises']) && is_array($data['expertises'])) {
                 foreach ($data['expertises'] as $expertise) {
-                    $totalYears += (float)($expertise['number_of_years'] ?? 0);
+                    $totalYears += $this->expertiseYears($expertise);
                 }
             } elseif (isset($data['experience_years']) && $data['experience_years'] !== '') {
                 $totalYears = (int)$data['experience_years'];
@@ -1264,7 +1275,7 @@ class MaidAction extends MainAction
             $totalYears = 0;
             if (isset($data['expertises']) && is_array($data['expertises'])) {
                 foreach ($data['expertises'] as $expertise) {
-                    $totalYears += (float)($expertise['number_of_years'] ?? 0);
+                    $totalYears += $this->expertiseYears($expertise);
                 }
             } elseif (isset($data['experience_years']) && $data['experience_years'] !== '') {
                 $totalYears = (int)$data['experience_years'];

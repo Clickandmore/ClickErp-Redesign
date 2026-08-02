@@ -969,7 +969,9 @@
                             <thead>
                                 <tr>
                                     <th>{{ $isAr ? 'الدولة' : 'Country' }}</th>
-                                    <th>{{ $isAr ? 'عدد السنوات' : 'Years' }}</th>
+                                    <th style="width:150px">{{ $isAr ? 'من' : 'From' }}</th>
+                                    <th style="width:150px">{{ $isAr ? 'إلى' : 'To' }}</th>
+                                    <th>{{ $isAr ? 'مدة الخبرة' : 'Duration' }}</th>
                                     <th>{{ $isAr ? 'المسمى الوظيفي' : 'Job Title' }}</th>
                                     <th style="width:120px">{{ $isAr ? 'الإجراءات' : 'Actions' }}</th>
                                 </tr>
@@ -985,18 +987,22 @@
                                         </select>
                                     </td>
                                     <td>
+                                        <input type="month" name="expertises[0][start_date]"
+                                            class="form-control exp-start-date" max="{{ now()->format('Y-m') }}"
+                                            data-exp-required="true">
+                                    </td>
+                                    <td>
+                                        <input type="month" name="expertises[0][end_date]"
+                                            class="form-control exp-end-date" max="{{ now()->format('Y-m') }}"
+                                            data-exp-required="true">
+                                    </td>
+                                    <td>
                                         <div class="experience-duration-wrapper">
-                                            <div class="input-group">
-                                                <input type="number" min="0" step="0.001"
-                                                    class="form-control exp-duration-value"
-                                                    placeholder="{{ $isAr ? 'القيمة' : 'Value' }}"
-                                                    data-exp-required="true">
-                                                <select class="form-select exp-duration-unit" data-exp-required="true">
-                                                    <option value="years">{{ $isAr ? 'سنوات' : 'Years' }}</option>
-                                                    <option value="months">{{ $isAr ? 'أشهر' : 'Months' }}</option>
-                                                </select>
-                                            </div>
-                                            <input type="hidden" name="expertises[0][number_of_years]" class="exp-duration-years" data-exp-required="true">
+                                            <input type="text" class="form-control exp-duration-label"
+                                                placeholder="{{ $isAr ? 'تُحسب تلقائياً' : 'Calculated' }}" readonly
+                                                tabindex="-1">
+                                            <input type="hidden" name="expertises[0][number_of_years]" class="exp-duration-years">
+                                            <div class="invalid-feedback d-block text-danger small exp-duration-error"></div>
                                         </div>
                                     </td>
                                     <td>
@@ -1050,6 +1056,7 @@
     <script src="{{ asset('admin') }}/assets/js/bundle/select2.bundle.js"></script>
     <script src="{{ asset('admin') }}/assets/js/bundle/sweetalert2.bundle.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.min.js"></script>
+    @include('admin.ingaz.maids._experience_duration_js')
     <script>
         const agentCreateTranslations = {
             cvFileRequiredTitle: @json($isAr ? 'ملف السيرة مطلوب' : 'CV File Required'),
@@ -1179,13 +1186,13 @@
             toggleExperienceSection();
 
             // ---------- Sync experience duration ----------
+            // المنطق مشترك مع شاشات لوحة التحكم: admin.ingaz.maids._experience_duration_js
             function syncExperienceRow($row) {
-                var v = parseFloat($row.find('.exp-duration-value').val());
-                var unit = $row.find('.exp-duration-unit').val();
-                var years = isNaN(v) ? '' : (unit === 'months' ? (v / 12).toFixed(2) : v.toFixed(2));
-                $row.find('.exp-duration-years').val(years);
+                if (typeof window.syncExperienceRow === 'function') {
+                    window.syncExperienceRow($row);
+                }
             }
-            $(document).on('input change', '.exp-duration-value, .exp-duration-unit', function () {
+            $(document).on('input change', '.exp-start-date, .exp-end-date', function () {
                 syncExperienceRow($(this).closest('tr.y-group'));
             });
 
