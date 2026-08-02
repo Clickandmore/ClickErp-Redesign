@@ -842,7 +842,9 @@
                                 <tr>
                                     <th>{{ __('ingaz.country') }} </th>
                                     <th>مدينة العمل السابقة</th>
-                                    <th>{{ __('ingaz.number_of_years') }}</th>
+                                    <th style="width:150px">من</th>
+                                    <th style="width:150px">إلى</th>
+                                    <th>مدة الخبرة</th>
                                     <th>{{ __('ingaz.job_title') }}</th>
                                     <th style="width:150px">{{ __('ingaz.actions') }}</th>
                                 </tr>
@@ -885,19 +887,22 @@
                                         </span>
                                     </td>
                                     <td>
+                                        <input type="month" name="expertises[0][start_date]"
+                                            class="form-control exp-start-date" max="{{ now()->format('Y-m') }}"
+                                            data-exp-required="true">
+                                    </td>
+                                    <td>
+                                        <input type="month" name="expertises[0][end_date]"
+                                            class="form-control exp-end-date" max="{{ now()->format('Y-m') }}"
+                                            data-exp-required="true">
+                                    </td>
+                                    <td>
                                         <div class="experience-duration-wrapper">
-                                            <div class="input-group">
-                                                <input type="number" min="0" step="0.001"
-                                                    class="form-control exp-duration-value"
-                                                    placeholder="{{ helperTrans('ingaz.duration_value_placeholder') }}"
-                                                    data-exp-required="true">
-                                                <select class="form-select exp-duration-unit" data-exp-required="true">
-                                                    <option value="years">{{ helperTrans('ingaz.years') }}</option>
-                                                    <option value="months">{{ helperTrans('ingaz.months') }}</option>
-                                                </select>
-                                            </div>
+                                            <input type="text" class="form-control exp-duration-label"
+                                                placeholder="تُحسب تلقائياً" readonly tabindex="-1">
                                             <input type="hidden" name="expertises[0][number_of_years]"
-                                                class="exp-duration-years" data-exp-required="true">
+                                                class="exp-duration-years">
+                                            <div class="invalid-feedback d-block text-danger small exp-duration-error"></div>
                                         </div>
                                     </td>
                                     <td>
@@ -1263,80 +1268,9 @@
             });
         });
     </script>
+    @include('admin.ingaz.maids._experience_duration_js')
     <script>
         $(function() {
-
-            const formatYearsValue = function(value, unit) {
-                if (value === '' || value === null || typeof value === 'undefined') {
-                    return '';
-                }
-
-                const numericValue = parseFloat(value);
-                if (Number.isNaN(numericValue)) {
-                    return '';
-                }
-
-                if (unit === 'months') {
-                    return (numericValue / 12).toFixed(2);
-                }
-
-                return numericValue.toFixed(2);
-            };
-
-            window.syncExperienceRow = function($row) {
-                const $valueInput = $row.find('.exp-duration-value');
-                const $unitSelect = $row.find('.exp-duration-unit');
-                const $hiddenInput = $row.find('.exp-duration-years');
-
-                const rawValue = $valueInput.val();
-                const unit = $unitSelect.val();
-
-                const formattedYears = formatYearsValue(rawValue, unit);
-                $hiddenInput.val(formattedYears);
-            };
-
-            window.initializeExperienceRow = function($row) {
-                const $valueInput = $row.find('.exp-duration-value');
-                const $unitSelect = $row.find('.exp-duration-unit');
-                const $hiddenInput = $row.find('.exp-duration-years');
-
-                const initialYears = parseFloat($hiddenInput.val());
-
-                if (!Number.isNaN(initialYears) && initialYears > 0) {
-                    if (initialYears < 1) {
-                        $unitSelect.val('months');
-                        const months = (initialYears * 12).toFixed(1);
-                        $valueInput.val(parseFloat(months));
-                    } else {
-                        $unitSelect.val('years');
-                        $valueInput.val(parseFloat(initialYears.toFixed(1)));
-                    }
-                } else {
-                    $unitSelect.val('years');
-                    $valueInput.val('');
-                    $hiddenInput.val('');
-                }
-
-                window.syncExperienceRow($row);
-            };
-
-            window.attachExperienceHandlers = function(context) {
-                const $scope = context ? $(context) : $('#experience_section');
-
-                $scope.find('tr.y-group').each(function() {
-                    const $row = $(this);
-
-                    $row.find('.exp-duration-value').off('.exp').on('input.exp change.exp', function() {
-                        window.syncExperienceRow($row);
-                    });
-
-                    $row.find('.exp-duration-unit').off('.exp').on('change.exp', function() {
-                        window.syncExperienceRow($row);
-                    });
-
-                    window.initializeExperienceRow($row);
-                });
-            };
 
             // إعادة ترقيم أسماء الحقول بعد أي تغيير
             window.reindexRows = function() {
@@ -2640,6 +2574,8 @@
                 $('#experience_section').find('.experience-work-city')
                     .val('')
                     .prop('required', false);
+                $('#experience_section').find('.exp-duration-label, .exp-duration-years').val('');
+                $('#experience_section').find('.exp-duration-error').text('');
                 $('#json_array tr.y-group').slice(1).remove();
                 if (typeof window.reindexRows === 'function') {
                     window.reindexRows();

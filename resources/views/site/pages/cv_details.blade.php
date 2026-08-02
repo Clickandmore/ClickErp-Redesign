@@ -620,7 +620,8 @@
                     <table>
                         <tr>
                             <td>{{ __('ingaz.country') }}</td>
-                            <td>{{ __('ingaz.number_of_years') }}</td>
+                            <td>{{ __('ingaz.expertise_period') }}</td>
+                            <td>{{ __('ingaz.expertise_duration') }}</td>
                             <td>{{ __('ingaz.job_title') }}</td>
                         </tr>
                         @forelse(optional($maid)->expertises ?? [] as $expertise)
@@ -630,12 +631,13 @@
                                         ? optional($expertise->country)->name_ar
                                         : optional($expertise->country)->name_en }}
                                 </td>
-                                <td>{{ $expertise->number_of_years }}</td>
+                                <td>{{ $expertise->period_label ?? '--' }}</td>
+                                <td>{{ $expertise->duration_label ?? '--' }}</td>
                                 <td>{{ optional($expertise->jobTitle)->title }}</td>
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="3" style="text-align:center; vertical-align:middle;">
+                                <td colspan="4" style="text-align:center; vertical-align:middle;">
                                     {{ __('ingaz.no_expertise_for_this_maid') }}
                                 </td>
                             </tr>

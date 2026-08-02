@@ -133,7 +133,13 @@ class ApiMaidController extends Controller
                         'country_name_ar' => $expertise->country?->name_ar,
                         'country_name_en' => $expertise->country?->name_en,
                         'work_city' => $expertise->work_city,
+                        'start_date' => $expertise->start_date?->toDateString(),
+                        'end_date' => $expertise->end_date?->toDateString(),
                         'number_of_years' => $expertise->number_of_years,
+                        // جاهزة للعرض: "2018م – 2022م" و "4 سنوات و 5 أشهر"
+                        'duration_months' => $expertise->duration_months,
+                        'period_label' => $expertise->period_label,
+                        'duration_label' => $expertise->duration_label,
                         'job_title_id' => $expertise->job_title_id,
                         'job_title' => $expertise->jobTitle?->title,
                     ];
