@@ -843,11 +843,21 @@ class Maid extends Model
             ->filter(fn($jobType) => $this->isInstantJobType($jobType))
             ->values();
 
-        if ($instantJobTypes->isNotEmpty()) {
-            return $instantJobTypes;
+        if ($instantJobTypes->isEmpty()) {
+            $instantJobTypes = new EloquentCollection([$this->makeFallbackInstantJobType()]);
         }
 
-        return new EloquentCollection([$this->makeFallbackInstantJobType()]);
+        // A rental worker made available from the shelter must appear in both
+        // public-site services: rental (2) and sponsorship transfer (3).
+        // Keep the transfer type first so immediate-receipt flows continue to
+        // resolve their effective job type as transfer.
+        $rentalJobTypes = $jobTypes
+            ->filter(fn($jobType) => (int) $jobType->id === 2)
+            ->values();
+
+        return new EloquentCollection(
+            $instantJobTypes->concat($rentalJobTypes)->unique('id')->values()->all()
+        );
     }
 
     public function getEffectiveJobTypeAttribute(): ?JobType

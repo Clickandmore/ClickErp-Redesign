@@ -607,7 +607,7 @@ class ShelterContractController extends Controller
             'حالة الضمان',
             'رغبة العمل',
             'التصنيفات السريعة',
-            'حالة الاستلام الفوري',
+            'حالة الاستلام الفوري / نقل الخدمات',
         ];
     }
 
@@ -637,8 +637,12 @@ class ShelterContractController extends Controller
                 'حالة الضمان' => $guaranteeData['label'],
                 'رغبة العمل' => $this->formatWorkWillingnessLabel($workWillingness),
                 'التصنيفات السريعة' => $quickTags ? implode('، ', $quickTags) : 'بدون تصنيف',
-                'حالة الاستلام الفوري' => $workWillingness === 'yes'
-                    ? (optional($contract->info)->is_available_for_instant ? 'متاحة' : 'غير متاحة')
+                'حالة الاستلام الفوري / نقل الخدمات' => $workWillingness === 'yes'
+                    ? (optional($contract->info)->is_available_for_instant
+                        ? ($this->determineShelterServiceCategory($maid) === 'rental'
+                            ? 'متاحة للإيجار ونقل الخدمات'
+                            : 'متاحة لنقل الخدمات')
+                        : 'غير متاحة')
                     : 'غير مطبق',
             ];
         })->all();
@@ -3005,11 +3009,16 @@ class ShelterContractController extends Controller
                 ->addColumn('instant_receipt_availability', function ($row) {
                     $isAvailable = $row->info ? $row->info->is_available_for_instant : false;
                     $workWillingness = $row->info ? $row->info->wants_to_work : null;
+                    $isRentalWorker = $this->determineShelterServiceCategory($row->maid) === 'rental';
 
                     if ($workWillingness === 'yes' && $isAvailable) {
-                        return '<span class="badge bg-success"><i class="fas fa-eye me-1"></i>متاحة للاستلام الفوري</span>';
+                        $label = $isRentalWorker
+                            ? 'متاحة للإيجار ونقل الخدمات'
+                            : 'متاحة لنقل الخدمات';
+
+                        return '<span class="badge bg-success"><i class="fas fa-eye me-1"></i>' . $label . '</span>';
                     } elseif ($workWillingness === 'yes' && !$isAvailable) {
-                        return '<span class="badge bg-warning"><i class="fas fa-eye-slash me-1"></i>غير متاحة للاستلام الفوري</span>';
+                        return '<span class="badge bg-warning"><i class="fas fa-eye-slash me-1"></i>غير متاحة للاستلام الفوري / نقل الخدمات</span>';
                     } elseif ($workWillingness === 'no') {
                         return '<span class="badge bg-secondary"><i class="fas fa-ban me-1"></i>لا ترغب بالعمل</span>';
                     } else {
@@ -3105,12 +3114,15 @@ class ShelterContractController extends Controller
                     }
 
                     if ($canToggleInstantReceipt && $row->info && $row->info->wants_to_work === 'yes') {
-                        $currentStatus = $row->info->is_available_for_instant ? 'متاحة' : 'غير متاحة';
+                        $availableStatus = $this->determineShelterServiceCategory($row->maid) === 'rental'
+                            ? 'متاحة للإيجار ونقل الخدمات'
+                            : 'متاحة لنقل الخدمات';
+                        $currentStatus = $row->info->is_available_for_instant ? $availableStatus : 'غير متاحة';
                         $newStatus = $row->info->is_available_for_instant ? 'إخفاء من الموقع' : 'إظهار على الموقع';
                         $icon = $row->info->is_available_for_instant ? 'fa-eye-slash' : 'fa-eye';
                         $badgeClass = $row->info->is_available_for_instant ? 'text-success' : 'text-warning';
 
-                        $actions .= '<li><a class="dropdown-item toggle-instant-receipt ' . $badgeClass . '" href="#" data-id="' . $row->id . '" data-current="' . ($row->info->is_available_for_instant ? '1' : '0') . '" data-text="تغيير حالة الاستلام الفوري من ' . $currentStatus . ' إلى ' . $newStatus . '">
+                        $actions .= '<li><a class="dropdown-item toggle-instant-receipt ' . $badgeClass . '" href="#" data-id="' . $row->id . '" data-current="' . ($row->info->is_available_for_instant ? '1' : '0') . '" data-text="تغيير حالة الاستلام الفوري / نقل الخدمات من ' . $currentStatus . ' إلى ' . $newStatus . '">
                                         <i class="fas ' . $icon . ' me-1"></i> ' . $newStatus . '
                                     </a></li>';
                     }
@@ -3157,6 +3169,9 @@ class ShelterContractController extends Controller
                     }
 
                     if ($canCreateTransferRequest && $row->info && $row->info->wants_to_work === 'yes') {
+                        $siteAvailabilityLabel = $this->determineShelterServiceCategory($row->maid) === 'rental'
+                            ? 'متاحة للإيجار ونقل الخدمات'
+                            : 'متاحة لنقل الخدمات';
                         $actions .= '<li><hr class="dropdown-divider"></li>';
                         $actions .= '<li><a class="dropdown-item confirm-action" href="#" data-action="transfer" data-id="' . $row->id . '" data-text="سيتم فتح صفحة إضافة طلب نقل خدمات">
                                         <i class="fas fa-exchange-alt"></i> إضافة طلب نقل خدمات
@@ -3165,7 +3180,7 @@ class ShelterContractController extends Controller
                         // إضافة معلومات إضافية
                         $actions .= '<li><div class="dropdown-item-text text-muted small">
                                         <i class="fas fa-info-circle me-1"></i>
-                                        <strong>الحالة الحالية:</strong> ' . ($row->info->is_available_for_instant ? 'متاحة للاستلام الفوري' : 'غير متاحة للاستلام الفوري') . '
+                                        <strong>الحالة الحالية:</strong> ' . ($row->info->is_available_for_instant ? $siteAvailabilityLabel : 'غير متاحة') . '
                                     </div></li>';
                     }
 
@@ -4149,7 +4164,7 @@ class ShelterContractController extends Controller
             if (!$contract->info || $contract->info->wants_to_work !== 'yes') {
                 return response()->json([
                     'success' => false,
-                    'message' => 'العاملة لا ترغب بالعمل - لا يمكن تغيير حالة الاستلام الفوري'
+                    'message' => 'العاملة لا ترغب بالعمل - لا يمكن إتاحتها للاستلام الفوري / نقل الخدمات'
                 ], 400);
             }
 
@@ -4172,7 +4187,10 @@ class ShelterContractController extends Controller
                 'changed_by' => auth('admin')->id()
             ]);
 
-            $statusText = $newStatus ? 'متاحة للاستلام الفوري' : 'غير متاحة للاستلام الفوري';
+            $availableStatus = $this->determineShelterServiceCategory($contract->maid) === 'rental'
+                ? 'متاحة للإيجار ونقل الخدمات'
+                : 'متاحة لنقل الخدمات';
+            $statusText = $newStatus ? $availableStatus : 'غير متاحة';
             $actionText = $newStatus ? 'إظهار' : 'إخفاء';
 
             return response()->json([
@@ -4189,7 +4207,7 @@ class ShelterContractController extends Controller
             \Log::error('Error toggling instant receipt: ' . $e->getMessage());
             return response()->json([
                 'success' => false,
-                'message' => 'حدث خطأ أثناء تغيير حالة الاستلام الفوري'
+                'message' => 'حدث خطأ أثناء تغيير حالة الاستلام الفوري / نقل الخدمات'
             ], 500);
         }
     }

@@ -682,11 +682,11 @@
                                     <input type="date" id="filterReturnDate" class="form-control">
                                 </div>
                                 <div class="col-md-3">
-                                    <label for="filterInstantReceipt" class="form-label">الاستلام الفوري</label>
+                                    <label for="filterInstantReceipt" class="form-label">الاستلام الفوري / نقل الخدمات</label>
                                     <select id="filterInstantReceipt" class="form-select">
                                         <option value="">جميع العاملات</option>
-                                        <option value="yes">متاحة للاستلام الفوري</option>
-                                        <option value="no">غير متاحة للاستلام الفوري</option>
+                                        <option value="yes">متاحة للاستلام الفوري / نقل الخدمات</option>
+                                        <option value="no">غير متاحة</option>
                                     </select>
                                 </div>
                                 <div class="col-md-3">
@@ -760,7 +760,7 @@
                                         <th>مدة داخل الإيواء</th>
                                         <th>الحالة</th>
                                         <th>التصنيفات السريعة</th>
-                                        <th>متاحة للاستلام الفوري</th>
+                                        <th>الاستلام الفوري / نقل الخدمات</th>
                                         <th>الإجراءات</th>
                                     </tr>
                                 </thead>
@@ -1755,7 +1755,7 @@
 
                 // Show confirmation
                 Swal.fire({
-                    title: 'تأكيد تغيير حالة الاستلام الفوري',
+                    title: 'تأكيد تغيير حالة الاستلام الفوري / نقل الخدمات',
                     text: actionText,
                     icon: 'question',
                     showCancelButton: true,
@@ -1775,13 +1775,13 @@
                             },
                             success: function(response) {
                                 Swal.fire('نجح!', response.message ||
-                                    'تم تغيير حالة الاستلام الفوري بنجاح', 'success'
+                                    'تم تغيير حالة الاستلام الفوري / نقل الخدمات بنجاح', 'success'
                                 );
                                 dataTable.ajax.reload();
                             },
                             error: function(xhr) {
                                 let errorMessage =
-                                    'حدث خطأ أثناء تغيير حالة الاستلام الفوري';
+                                    'حدث خطأ أثناء تغيير حالة الاستلام الفوري / نقل الخدمات';
                                 if (xhr.responseJSON && xhr.responseJSON.message) {
                                     errorMessage = xhr.responseJSON.message;
                                 }

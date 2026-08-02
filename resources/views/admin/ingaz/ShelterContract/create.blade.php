@@ -276,7 +276,7 @@
 
                 <div class="col-4 mt-4" id="instant_display_wrapper" style="display:none;">
                     <label for="is_available_for_instant"
-                        class="form-label">{{ helperTrans('ingaz.display_on_site') }}</label>
+                        class="form-label">الاستلام الفوري / نقل الخدمات</label>
                     @php
                         $instantAvailability = old(
                             'is_available_for_instant',
@@ -289,10 +289,10 @@
                             {{ helperTrans('ingaz.no') }}
                         </option>
                         <option value="1" {{ (string) $instantAvailability === '1' ? 'selected' : '' }}>
-                            {{ helperTrans('ingaz.yes') }}
+                            متاحة للاستلام الفوري / نقل الخدمات
                         </option>
                     </select>
-                    <small class="form-text text-muted">{{ helperTrans('ingaz.display_on_site_hint') }}</small>
+                    <small class="form-text text-muted">عاملة الإيجار تظهر في الإيجار ونقل الخدمات معًا، أما عاملة الاستقدام فتظهر في نقل الخدمات فقط.</small>
                 </div>
 
                 <div class="col-12 mt-4">

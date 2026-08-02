@@ -62,6 +62,21 @@ class InstantShelterListingTest extends TestCase
         $this->assertSame(3, $maid->effective_job_type?->id);
     }
 
+    public function test_available_rental_worker_inside_shelter_is_listed_for_rental_and_transfer(): void
+    {
+        $maid = new Maid();
+        $maid->setRelation('jobTypes', new EloquentCollection([
+            new JobType(['id' => 2, 'title' => 'تأجير']),
+        ]));
+        $maid->setRelation('contracts', new EloquentCollection([
+            $this->makeShelterContract('yes', true),
+        ]));
+
+        $this->assertTrue($maid->isInstantShelterListing());
+        $this->assertSame([3, 2], $maid->site_listing_job_types->pluck('id')->all());
+        $this->assertSame(3, $maid->effective_job_type?->id);
+    }
+
     private function makeShelterContract(string $wantsToWork, bool $isAvailableForInstant): Contract
     {
         $contract = new Contract([
