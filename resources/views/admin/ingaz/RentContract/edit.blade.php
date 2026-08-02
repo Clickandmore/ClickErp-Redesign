@@ -576,10 +576,11 @@
                             <div class="col-md-4" id="receiptAccountWrapper">
                                 <label for="receipt_account_id" class="form-label">البنك / حساب السداد</label>
                                 <select id="receipt_account_id" name="receipt_account_id" class="form-select"
-                                    @disabled((bool) $contract->financeInvoice?->receipt_bond_id)>
+                                    {{ $contract->financeInvoice?->receipt_bond_id ? 'disabled' : '' }}>
                                     <option value="">اختر الحساب الذي سيصدر عليه سند القبض</option>
                                     @foreach($receiptAccounts as $account)
-                                        <option value="{{ $account->id }}" @selected((string) old('receipt_account_id', $contract->financeInvoice?->receipt_account_id) === (string) $account->id)>
+                                        <option value="{{ $account->id }}"
+                                            {{ (string) old('receipt_account_id', $contract->financeInvoice?->receipt_account_id) === (string) $account->id ? 'selected' : '' }}>
                                             {{ $account->code }} - {{ $account->name }}
                                         </option>
                                     @endforeach
