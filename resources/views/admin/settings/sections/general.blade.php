@@ -145,15 +145,8 @@
                     </fieldset>
                 </div>
 
-                <div class="col-md-6 col-xl-8">
-                    <label class="form-label">{{ __('admin.settings_map_link') }}</label>
-                    <fieldset class="form-icon-group right-icon position-relative">
-                        <div class="form-icon position-absolute">
-                            <i class="fa fa-link"></i>
-                        </div>
-                        <input type="text" name="map_link" class="form-control"
-                               value="{{ $settings->map_link ?? '' }}">
-                    </fieldset>
+                <div class="col-12">
+                    @include('admin.settings.partials.map-link-field', ['settings' => $settings])
                 </div>
             </div>
         </div>
