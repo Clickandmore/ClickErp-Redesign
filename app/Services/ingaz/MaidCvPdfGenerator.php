@@ -10,6 +10,8 @@ use App\Support\MaidCvTemplateSettings;
 use Illuminate\Support\Facades\Blade;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Str;
+use Mpdf\Config\ConfigVariables;
+use Mpdf\Config\FontVariables;
 use Mpdf\Mpdf;
 use Mpdf\Output\Destination;
 use RuntimeException;
@@ -360,6 +362,9 @@ class MaidCvPdfGenerator
     {
         $temporaryDirectory = storage_path('framework/cache/mpdf');
         File::ensureDirectoryExists($temporaryDirectory);
+        $fontDirectory = public_path('cv/webfonts/tajawal');
+        $defaultConfig = (new ConfigVariables())->getDefaults();
+        $defaultFontConfig = (new FontVariables())->getDefaults();
         // The page size and margins are configured directly on mPDF below.
         // Keeping an uploaded template's @page rule as well can make mPDF
         // generate many blank pages, while browser-based PDF generation needs it.
@@ -385,7 +390,16 @@ class MaidCvPdfGenerator
                 'margin_right' => 0,
                 'margin_top' => 0,
                 'margin_bottom' => 0,
-                'default_font' => 'dejavusans',
+                'fontDir' => array_merge($defaultConfig['fontDir'], [$fontDirectory]),
+                'fontdata' => $defaultFontConfig['fontdata'] + [
+                    'tajawal' => [
+                        'R' => 'Tajawal-Regular.ttf',
+                        'B' => 'Tajawal-Bold.ttf',
+                        'useOTL' => 0xFF,
+                        'useKashida' => 75,
+                    ],
+                ],
+                'default_font' => 'tajawal',
                 'tempDir' => $temporaryDirectory,
             ]);
             $pdf->autoScriptToLang = true;
@@ -471,13 +485,76 @@ class MaidCvPdfGenerator
     public function renderTemplate(string $template, array $data): string
     {
         try {
-            return Blade::render($template, $data, true);
+            return $this->embedLocalTajawalFont(Blade::render($template, $data, true));
         } catch (\Throwable $exception) {
             throw new RuntimeException(
                 'تعذر تنفيذ قالب السيرة الذاتية: ' . $exception->getMessage(),
                 previous: $exception
             );
         }
+    }
+
+    /**
+     * Embed Tajawal in the generated document so file:// rendering and servers
+     * without outbound access do not fall back to a different Arabic font.
+     */
+    private function embedLocalTajawalFont(string $html): string
+    {
+        static $fontStyle = null;
+
+        if ($fontStyle === null) {
+            $faces = [];
+
+            $fontFiles = [
+                400 => 'Tajawal-Regular.ttf',
+                500 => 'Tajawal-Medium.ttf',
+                700 => 'Tajawal-Bold.ttf',
+                800 => 'Tajawal-ExtraBold.ttf',
+                900 => 'Tajawal-Black.ttf',
+            ];
+
+            foreach ($fontFiles as $weight => $filename) {
+                $path = public_path('cv/webfonts/tajawal/' . $filename);
+
+                if (!is_file($path) || !is_readable($path)) {
+                    continue;
+                }
+
+                $faces[] = '@font-face{'
+                    . 'font-family:"Tajawal";'
+                    . 'font-style:normal;'
+                    . "font-weight:{$weight};"
+                    . 'font-display:block;'
+                    . 'src:url("data:font/ttf;base64,' . base64_encode(File::get($path)) . '") format("truetype");'
+                    . '}';
+            }
+
+            $fontStyle = $faces
+                ? '<style data-cv-local-font="tajawal">' . implode('', $faces) . '</style>'
+                : '';
+        }
+
+        if ($fontStyle === '') {
+            return $html;
+        }
+
+        // The uploaded templates may still contain Google Fonts links. They are
+        // unnecessary once Tajawal is embedded and can delay or fail offline output.
+        $html = preg_replace(
+            '~<link\b[^>]*href=["\']https://fonts\.(?:googleapis|gstatic)\.com[^"\']*["\'][^>]*>\s*~i',
+            '',
+            $html
+        ) ?? $html;
+
+        // Existing uploaded templates request Cairo. Use the locally embedded
+        // Tajawal family without requiring the template to be uploaded again.
+        $html = str_ireplace('Cairo', 'Tajawal', $html);
+
+        if (stripos($html, '</head>') !== false) {
+            return preg_replace('~</head>~i', $fontStyle . '</head>', $html, 1) ?? $html;
+        }
+
+        return $fontStyle . $html;
     }
 
     public function isGeneratedPath(?string $path): bool

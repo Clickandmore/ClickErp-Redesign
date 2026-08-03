@@ -25,6 +25,20 @@ class MaidCvPdfGeneratorTest extends TestCase
         $this->assertStringContainsString('<span>P12345</span>', $html);
     }
 
+    public function test_it_replaces_cairo_with_embedded_tajawal_and_removes_remote_font_links(): void
+    {
+        $html = app(MaidCvPdfGenerator::class)->renderTemplate(
+            '<html><head><link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400..900" rel="stylesheet"></head><body>CV</body></html>',
+            []
+        );
+
+        $this->assertStringContainsString('data-cv-local-font="tajawal"', $html);
+        $this->assertStringContainsString('data:font/ttf;base64,', $html);
+        $this->assertStringContainsString('font-family:"Tajawal"', $html);
+        $this->assertStringNotContainsString('Cairo', $html);
+        $this->assertStringNotContainsString('fonts.googleapis.com', $html);
+    }
+
     public function test_it_identifies_only_generated_cv_preview_paths(): void
     {
         $generator = app(MaidCvPdfGenerator::class);
