@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\ingaz;
 
+use App\Enums\ingaz\ComplaintSubmissionMethodEnum;
 use App\Enums\ingaz\NotificationActionEnum;
 use App\Http\Actions\ingaz\UserAction;
 use App\Http\Controllers\admin\Controller;
@@ -209,14 +210,36 @@ class ComplaintController extends Controller
             ->get();
         $admins = Admin::query()->activeForOperations()->orderBy('name')->get();
         $orders = Order::query()->with(['user', 'maid'])->latest('id')->limit(1000)->get(['id', 'order_code', 'user_id', 'maid_id', 'status']);
-        $contracts = Contract::query()->with(['user', 'maid'])->latest('id')->limit(1000)->get(['id', 'user_id', 'maid_id', 'order_id', 'status']);
+        $contracts = Contract::query()->with(['user', 'maid'])->latest('id')->limit(1000)
+            ->get(['id', 'user_id', 'maid_id', 'order_id', 'status', 'type', 'contract_date']);
+        $contractOptions = $contracts->map(fn (Contract $contract) => [
+            'id' => $contract->id,
+            'label' => $this->contractSelectorLabel($contract),
+        ])->values();
         $recruitmentOffices = RecruitmentOffices::query()->with('translations')->orderBy('id')->get();
         $partyTypes = ComplaintType::partyTypes();
 
         return view($this->folderPath . '.create', compact(
             'users', 'nationalities', 'complaintTypes', 'admins', 'orders', 'contracts',
-            'recruitmentOffices', 'partyTypes'
+            'contractOptions', 'recruitmentOffices', 'partyTypes'
         ));
+    }
+
+    /**
+     * نص خيار العقد في قائمة ربط الشكوى — التاريخ والحالة يميّزان عقود العميل الواحد.
+     */
+    private function contractSelectorLabel(Contract $contract): string
+    {
+        $contractDate = $contract->info?->contract_date ?: $contract->contract_date;
+        $status = \App\Enums\ingaz\ContractStatusEnum::tryFrom((string) $contract->status);
+
+        return implode(' — ', array_filter([
+            'عقد #' . $contract->id,
+            $contract->user?->name ?: 'بدون عميل',
+            $contract->maid?->name,
+            $contractDate ? \Carbon\Carbon::parse($contractDate)->format('Y-m-d') : null,
+            $status?->lang(),
+        ]));
     }
 
     public function store(Request $request, UserAction $userAction)
@@ -252,6 +275,8 @@ class ComplaintController extends Controller
             $data = $request->except('attachments', 'attachment_names');
             $data['status'] = 'pending';
             $data['message'] = $request->details; // للتوافق مع الحقل القديم
+            // الشكاوى المُدخلة من لوحة التحكم تُحفظ دائماً بهذه القناة — تُفرض بعد except حتى لا تُزوَّر من الطلب
+            $data['submission_method'] = ComplaintSubmissionMethodEnum::Dashboard->value;
             $rawPhone = $data['complainant_phone'] ?? '';
             $normalizedPhone = ltrim($rawPhone, '0');
             $data['complainant_phone'] = $normalizedPhone;
@@ -407,7 +432,11 @@ class ComplaintController extends Controller
     public function show($id)
     {
         $complaint = objModel::with([
-            'user', 'complaintType', 'assignedTo', 'resolvedBy', 'maidNationality', 'contract.maid',
+            'user', 'complaintType', 'assignedTo', 'resolvedBy', 'maidNationality',
+            // بيانات العقد المرتبط تُعرض داخل صفحة تفاصيل الشكوى
+            'contract.user', 'contract.maid.nationality', 'contract.maid.office',
+            'contract.marketer', 'contract.info', 'contract.requiredMaidNationality',
+            'contract.requiredMaidJobTitle',
             'order.user', 'order.maid', 'order.contracts.maid', 'relatedUser', 'recruitmentOffice',
             'comments.admin', 'attachmentFiles.addedBy',
         ])

@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\site\profile;
 
+use App\Enums\ingaz\ComplaintSubmissionMethodEnum;
 use App\Http\Actions\ingaz\ComplaintAction as objAction;
 use App\Http\Controllers\admin\Controller;
 use App\Http\Requests\ingaz\ComplaintRequest;
@@ -47,6 +48,7 @@ class ComplaintController extends Controller
     {
         $dataInsert = $request->only($this->postData);
         $dataInsert['user_id'] = getGuardedUser()->id;
+        $dataInsert['submission_method'] = ComplaintSubmissionMethodEnum::Website->value;
 
         // Handle file upload
         if ($request->hasFile('file')) {
