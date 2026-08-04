@@ -640,7 +640,7 @@ class ShelterContractController extends Controller
                 'حالة الاستلام الفوري / نقل الخدمات' => $workWillingness === 'yes'
                     ? (optional($contract->info)->is_available_for_instant
                         ? ($this->determineShelterServiceCategory($maid) === 'rental'
-                            ? 'متاحة للإيجار ونقل الخدمات'
+                            ? 'متاحة للاستلام الفوري في الإيجار فقط'
                             : 'متاحة لنقل الخدمات')
                         : 'غير متاحة')
                     : 'غير مطبق',
@@ -1632,8 +1632,16 @@ class ShelterContractController extends Controller
             return;
         }
 
+        $isRentalWorker = $this->determineShelterServiceCategory($maid) === 'rental';
+
         if ($displayOnSite) {
-            $maid->jobTypes()->syncWithoutDetaching([$instantJobTypeId]);
+            if ($isRentalWorker) {
+                // Availability is metadata for rental workers. Keep their public
+                // service exclusively rental and remove any legacy transfer tag.
+                $maid->jobTypes()->detach($instantJobTypeId);
+            } else {
+                $maid->jobTypes()->syncWithoutDetaching([$instantJobTypeId]);
+            }
             $maid->is_show = true;
             // $maid->status = 'in_accommodation';
             $maid->maid_accommodation_type = 2;
@@ -2461,6 +2469,8 @@ class ShelterContractController extends Controller
             } elseif ($serviceCategory === 'transfer') {
                 $rows->whereHas('maid.jobTypes.translations', function ($query) {
                     $this->applyJobTypeKeywordQuery($query, $this->getTransferServiceKeywords());
+                })->whereDoesntHave('maid.jobTypes.translations', function ($query) {
+                    $this->applyJobTypeKeywordQuery($query, $this->getRentalServiceKeywords());
                 });
             } elseif ($serviceCategory === 'recruitment') {
                 $rows->where(function ($query) {
@@ -3013,7 +3023,7 @@ class ShelterContractController extends Controller
 
                     if ($workWillingness === 'yes' && $isAvailable) {
                         $label = $isRentalWorker
-                            ? 'متاحة للإيجار ونقل الخدمات'
+                            ? 'استلام فوري - إيجار فقط'
                             : 'متاحة لنقل الخدمات';
 
                         return '<span class="badge bg-success"><i class="fas fa-eye me-1"></i>' . $label . '</span>';
@@ -3115,7 +3125,7 @@ class ShelterContractController extends Controller
 
                     if ($canToggleInstantReceipt && $row->info && $row->info->wants_to_work === 'yes') {
                         $availableStatus = $this->determineShelterServiceCategory($row->maid) === 'rental'
-                            ? 'متاحة للإيجار ونقل الخدمات'
+                            ? 'استلام فوري - إيجار فقط'
                             : 'متاحة لنقل الخدمات';
                         $currentStatus = $row->info->is_available_for_instant ? $availableStatus : 'غير متاحة';
                         $newStatus = $row->info->is_available_for_instant ? 'إخفاء من الموقع' : 'إظهار على الموقع';
@@ -3168,10 +3178,11 @@ class ShelterContractController extends Controller
                                     </a></li>';
                     }
 
-                    if ($canCreateTransferRequest && $row->info && $row->info->wants_to_work === 'yes') {
-                        $siteAvailabilityLabel = $this->determineShelterServiceCategory($row->maid) === 'rental'
-                            ? 'متاحة للإيجار ونقل الخدمات'
-                            : 'متاحة لنقل الخدمات';
+                    if ($canCreateTransferRequest
+                        && $row->info
+                        && $row->info->wants_to_work === 'yes'
+                        && $this->determineShelterServiceCategory($row->maid) !== 'rental') {
+                        $siteAvailabilityLabel = 'متاحة لنقل الخدمات';
                         $actions .= '<li><hr class="dropdown-divider"></li>';
                         $actions .= '<li><a class="dropdown-item confirm-action" href="#" data-action="transfer" data-id="' . $row->id . '" data-text="سيتم فتح صفحة إضافة طلب نقل خدمات">
                                         <i class="fas fa-exchange-alt"></i> إضافة طلب نقل خدمات
@@ -4188,7 +4199,7 @@ class ShelterContractController extends Controller
             ]);
 
             $availableStatus = $this->determineShelterServiceCategory($contract->maid) === 'rental'
-                ? 'متاحة للإيجار ونقل الخدمات'
+                ? 'استلام فوري - إيجار فقط'
                 : 'متاحة لنقل الخدمات';
             $statusText = $newStatus ? $availableStatus : 'غير متاحة';
             $actionText = $newStatus ? 'إظهار' : 'إخفاء';

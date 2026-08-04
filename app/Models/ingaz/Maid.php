@@ -782,6 +782,23 @@ class Maid extends Model
             || str_contains($title, 'نقل');
     }
 
+    protected function isRentalJobType(?JobType $jobType): bool
+    {
+        if (!$jobType) {
+            return false;
+        }
+
+        if ((int) $jobType->id === 2) {
+            return true;
+        }
+
+        $title = $this->normalizeJobTypeTitle($jobType->title);
+
+        return str_contains($title, 'ايجار')
+            || str_contains($title, 'تاجير')
+            || str_contains($title, 'rent');
+    }
+
     protected function makeFallbackInstantJobType(): JobType
     {
         return new JobType([
@@ -835,6 +852,16 @@ class Maid extends Model
     {
         $jobTypes = $this->getLoadedJobTypes();
 
+        // Rental is an exclusive public service. Instant availability is only
+        // metadata and must never move or duplicate a rental worker to transfer.
+        $rentalJobTypes = $jobTypes
+            ->filter(fn($jobType) => $this->isRentalJobType($jobType))
+            ->values();
+
+        if ($rentalJobTypes->isNotEmpty()) {
+            return $rentalJobTypes;
+        }
+
         if (!$this->isInstantShelterListing()) {
             return $jobTypes;
         }
@@ -847,17 +874,7 @@ class Maid extends Model
             $instantJobTypes = new EloquentCollection([$this->makeFallbackInstantJobType()]);
         }
 
-        // A rental worker made available from the shelter must appear in both
-        // public-site services: rental (2) and sponsorship transfer (3).
-        // Keep the transfer type first so immediate-receipt flows continue to
-        // resolve their effective job type as transfer.
-        $rentalJobTypes = $jobTypes
-            ->filter(fn($jobType) => (int) $jobType->id === 2)
-            ->values();
-
-        return new EloquentCollection(
-            $instantJobTypes->concat($rentalJobTypes)->unique('id')->values()->all()
-        );
+        return new EloquentCollection($instantJobTypes->unique('id')->values()->all());
     }
 
     public function getEffectiveJobTypeAttribute(): ?JobType
@@ -868,6 +885,12 @@ class Maid extends Model
     protected function getPrimaryJobType()
     {
         $jobTypes = $this->getLoadedJobTypes();
+
+        $rentalJobType = $jobTypes->first(fn($jobType) => $this->isRentalJobType($jobType));
+
+        if ($rentalJobType) {
+            return $rentalJobType;
+        }
 
         if ($this->isInstantShelterListing()) {
             $instantJobType = $jobTypes->first(fn($jobType) => $this->isInstantJobType($jobType));
@@ -900,10 +923,6 @@ class Maid extends Model
 
     protected function detectJobCategory(): string
     {
-        if ($this->isInstantShelterListing()) {
-            return 'transfer';
-        }
-
         $jobType = $this->getPrimaryJobType();
         $title = $this->normalizeJobTypeTitle($jobType?->title);
 
@@ -913,6 +932,10 @@ class Maid extends Model
 
         if (str_contains($title, 'ايجار') || str_contains($title, 'تاجير') || str_contains($title, 'rent')) {
             return 'rental';
+        }
+
+        if ($this->isInstantShelterListing()) {
+            return 'transfer';
         }
 
         if (str_contains($title, 'استلام') || str_contains($title, 'instant')) {

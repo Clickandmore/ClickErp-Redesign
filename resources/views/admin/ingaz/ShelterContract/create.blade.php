@@ -4,15 +4,18 @@
     $editingContract = $editingContract ?? null;
     $editingInfo = optional($editingContract)->info;
     $selectedContractId = old('contract_id', $selectedContractId ?? optional($editingContract)->id);
-    $defaultReceiptText = replaceDocumentPlaceholders((string) documentSetting(
-        'shelter_receipt_default_text',
-        ' الى [اسم_المكتب] وأمل من المكتب حل مشكلتها وذلك بنقل خدماتها لتعمل عند صاحب عمل آخر او ترحيلها حسب ما يراه المكتب مناسبا، كما اتعهد بعدم عمل خروج نهائي او بلاغ هروب أو اي اجراء يخص العاملة إلا بموافقة من المكتب، علماً أنه في حالة نقل خدمات العاملة يحق لي استرجاع مستحقاتي وفقاً للعقد الموحد والنظام الصادر من وزارة الموارد البشرية والتنمية الاجتماعية ، حيث انه حسب التعميم الصادر من مساند والذي ينص على الزام ارجاع المبالغ المستحقة للعملاء من خلال منصة مساند وليس عن طريق حساب المكتب المستقدم وعلى ان يكون ارجاع المبلغ خلال عشرين يوم عمل من تاريخ تسليم العاملة .'
-    ));
+    $defaultReceiptText = replaceDocumentPlaceholders(
+        (string) documentSetting(
+            'shelter_receipt_default_text',
+            ' الى [اسم_المكتب] وأمل من المكتب حل مشكلتها وذلك بنقل خدماتها لتعمل عند صاحب عمل آخر او ترحيلها حسب ما يراه المكتب مناسبا، كما اتعهد بعدم عمل خروج نهائي او بلاغ هروب أو اي اجراء يخص العاملة إلا بموافقة من المكتب، علماً أنه في حالة نقل خدمات العاملة يحق لي استرجاع مستحقاتي وفقاً للعقد الموحد والنظام الصادر من وزارة الموارد البشرية والتنمية الاجتماعية ، حيث انه حسب التعميم الصادر من مساند والذي ينص على الزام ارجاع المبالغ المستحقة للعملاء من خلال منصة مساند وليس عن طريق حساب المكتب المستقدم وعلى ان يكون ارجاع المبلغ خلال عشرين يوم عمل من تاريخ تسليم العاملة .',
+        ),
+    );
     $editingQuickTags = [];
     if ($editingInfo && $editingInfo->shelter_quick_tags) {
         $editingQuickTags = is_array($editingInfo->shelter_quick_tags)
             ? $editingInfo->shelter_quick_tags
-            : (json_decode($editingInfo->shelter_quick_tags, true) ?: []);
+            : (json_decode($editingInfo->shelter_quick_tags, true) ?:
+            []);
     }
 @endphp
 @section('page-title')
@@ -20,9 +23,14 @@
 @endsection
 @section('content')
     @if (
-        (!$isEditMode && @AdminGuardHasAnyPerm([\App\PermKeys::SHELTER_CONTRACT_ADDITION_CREATE, \App\PermKeys::SHELTER_CONTRACT_CREATE, \App\PermKeys::SHELTER_CONTRACT_CONTROL])) ||
-        ($isEditMode && @AdminGuardHasAnyPerm([\App\PermKeys::SHELTER_CONTRACT_EDIT, \App\PermKeys::SHELTER_CONTRACT_CONTROL]))
-    )
+        (!$isEditMode &&
+            @AdminGuardHasAnyPerm([
+                \App\PermKeys::SHELTER_CONTRACT_ADDITION_CREATE,
+                \App\PermKeys::SHELTER_CONTRACT_CREATE,
+                \App\PermKeys::SHELTER_CONTRACT_CONTROL,
+            ])) ||
+            ($isEditMode &&
+                @AdminGuardHasAnyPerm([\App\PermKeys::SHELTER_CONTRACT_EDIT, \App\PermKeys::SHELTER_CONTRACT_CONTROL])))
         <script>
             console.log('=== Page Loaded - ShelterContract {{ $isEditMode ? 'Edit' : 'Create' }} ===');
             console.log('jQuery version:', $.fn.jquery);
@@ -40,7 +48,8 @@
                             </h5>
                             <p class="card-text mb-3">إضافة عقد مكتمل مختصر ثم توجيهه مباشرة إلى الإيواء.</p>
                             <div class="d-flex gap-2">
-                                <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#createContractModal">
+                                <button type="button" class="btn btn-primary" data-bs-toggle="modal"
+                                    data-bs-target="#createContractModal">
                                     <i class="fas fa-plus me-1"></i>
                                     {{ helperTrans('ingaz.add_completed_contract') }}
                                 </button>
@@ -72,8 +81,8 @@
                         <option value="musaned">رقم عقد مساند</option>
                     </select>
                     <div class="input-group mb-2">
-                        <input type="text" id="contract_number_search" class="form-control"
-                            placeholder="اكتب رقم العقد" value="{{ $selectedContractId ?: '' }}">
+                        <input type="text" id="contract_number_search" class="form-control" placeholder="اكتب رقم العقد"
+                            value="{{ $selectedContractId ?: '' }}">
                         <button type="button" id="search_contract_number_btn" class="btn btn-primary">
                             بحث
                         </button>
@@ -84,14 +93,17 @@
                         </option>
                         @foreach ($contracts ?? [] as $contract)
                             @php
-                                $maidName = optional($contract->info)->manual_maid_name ?: ($contract->maid->name ?? '');
-                                $passportNumber = optional($contract->info)->manual_maid_passport_num ?: ($contract->maid->passport_num ?? '');
+                                $maidName = optional($contract->info)->manual_maid_name ?: $contract->maid->name ?? '';
+                                $passportNumber =
+                                    optional($contract->info)->manual_maid_passport_num ?:
+                                    $contract->maid->passport_num ?? '';
                                 $clientName = $contract->user->name ?? '';
                                 $clientNationalId = $contract->user?->documentNumber() ?? '';
-                                $arrivalDate = optional($contract->info)->arrival_date
-                                    ?: optional($contract->maid)->arrival_date
-                                    ?: optional($contract->travelHistory)->arrival_date
-                                    ?: '';
+                                $arrivalDate =
+                                    optional($contract->info)->arrival_date ?:
+                                    optional($contract->maid)->arrival_date ?:
+                                    optional($contract->travelHistory)->arrival_date ?:
+                                    '';
                                 if ($arrivalDate instanceof \Carbon\CarbonInterface) {
                                     $arrivalDate = $arrivalDate->format('Y-m-d');
                                 }
@@ -111,21 +123,22 @@
                                     ->map(function ($complaint) {
                                         return [
                                             'id' => $complaint->id,
-                                            'label' => '#' . str_pad((string) $complaint->id, 6, '0', STR_PAD_LEFT) . ' - ' . ($complaint->subject ?: 'بدون عنوان'),
+                                            'label' =>
+                                                '#' .
+                                                str_pad((string) $complaint->id, 6, '0', STR_PAD_LEFT) .
+                                                ' - ' .
+                                                ($complaint->subject ?: 'بدون عنوان'),
                                         ];
                                     })
                                     ->values();
                             @endphp
-                            <option value="{{ $contract->id }}"
-                                data-passport="{{ $passportNumber }}"
-                                data-passport-snapshot="{{ $passportNumber }}"
-                                data-maid-name="{{ $maidName }}"
+                            <option value="{{ $contract->id }}" data-passport="{{ $passportNumber }}"
+                                data-passport-snapshot="{{ $passportNumber }}" data-maid-name="{{ $maidName }}"
                                 data-maid-name-snapshot="{{ $maidName }}"
                                 data-maid-nationality="{{ $contract->maid?->nationality_id ?? '' }}"
-                                data-client-name="{{ $clientName }}"
-                                data-client-national-id="{{ $clientNationalId }}"
+                                data-client-name="{{ $clientName }}" data-client-national-id="{{ $clientNationalId }}"
                                 data-sponsorship-price="{{ optional($contract->info)->sponsorship_price }}"
-                                data-receipt-date="{{ optional($contract->info)->receipt_form_date ?? ($arrivalDate ?: ($contract->contract_date ?? '')) }}"
+                                data-receipt-date="{{ optional($contract->info)->receipt_form_date ?? ($arrivalDate ?: $contract->contract_date ?? '') }}"
                                 data-receipt-text="{{ optional($contract->info)->receipt_form_text }}"
                                 data-has-residency="{{ optional($contract->info)->workers_have_residency }}"
                                 data-medical-exam="{{ optional($contract->info)->performing_medical_examination }}"
@@ -169,7 +182,8 @@
                 <div class="col-4">
                     <label for="TextInput" class="form-label">{{ helperTrans('ingaz.receipt_source') }}</label>
                     <select name="receipt_source" class="form-select form-control select2" data-validation="required">
-                        <option disabled {{ old('receipt_source', optional($editingInfo)->receipt_source) ? '' : 'selected' }}>
+                        <option disabled
+                            {{ old('receipt_source', optional($editingInfo)->receipt_source) ? '' : 'selected' }}>
                             {{ helperTrans('ingaz.choose') }}
                         </option>
                         @forelse (__('shelter_worker_statuses.received_by') ?? [] as $k => $name)
@@ -186,7 +200,8 @@
                     <label for="TextInput" class="form-label">تاريخ إدخالها للإيواء</label>
                     <input type="date" name="maid_date_back" class="form-control" data-validation="required" readonly
                         value="{{ old('maid_date_back', optional($editingInfo)->maid_date_back) }}">
-                    <small class="form-text text-muted">هذا التاريخ يمثل تاريخ مراجعتها وإيداعها داخل الإيواء وسيُعيّن تلقائياً إلى اليوم الحالي.</small>
+                    <small class="form-text text-muted">هذا التاريخ يمثل تاريخ مراجعتها وإيداعها داخل الإيواء وسيُعيّن
+                        تلقائياً إلى اليوم الحالي.</small>
                 </div>
 
                 <div class="col-4 mt-4">
@@ -221,7 +236,8 @@
                 <div class="col-4 mt-4">
                     <label for="TextInput" class="form-label">{{ helperTrans('ingaz.work_willingness') }}</label>
                     <select name="wants_to_work" class="form-select form-control select2">
-                        <option disabled {{ old('wants_to_work', optional($editingInfo)->wants_to_work) ? '' : 'selected' }}>
+                        <option disabled
+                            {{ old('wants_to_work', optional($editingInfo)->wants_to_work) ? '' : 'selected' }}>
                             {{ helperTrans('ingaz.choose') }}
                         </option>
                         <option value="yes"
@@ -243,7 +259,8 @@
                     <label class="form-label">هل العاملة لديها اقامة؟</label>
                     <select name="workers_have_residency" id="workers_have_residency"
                         class="form-select form-control select2">
-                        <option disabled {{ old('workers_have_residency', optional($editingInfo)->workers_have_residency) ? '' : 'selected' }}>
+                        <option disabled
+                            {{ old('workers_have_residency', optional($editingInfo)->workers_have_residency) ? '' : 'selected' }}>
                             {{ helperTrans('ingaz.choose') }}</option>
                         <option value="yes"
                             {{ old('workers_have_residency', optional($editingInfo)->workers_have_residency) === 'yes' ? 'selected' : '' }}>
@@ -275,8 +292,7 @@
                 </div>
 
                 <div class="col-4 mt-4" id="instant_display_wrapper" style="display:none;">
-                    <label for="is_available_for_instant"
-                        class="form-label">الاستلام الفوري / نقل الخدمات</label>
+                    <label for="is_available_for_instant" class="form-label">الاستلام الفوري</label>
                     @php
                         $instantAvailability = old(
                             'is_available_for_instant',
@@ -289,10 +305,10 @@
                             {{ helperTrans('ingaz.no') }}
                         </option>
                         <option value="1" {{ (string) $instantAvailability === '1' ? 'selected' : '' }}>
-                            متاحة للاستلام الفوري / نقل الخدمات
+                            متاحة للاستلام الفوري
                         </option>
                     </select>
-                    <small class="form-text text-muted">عاملة الإيجار تظهر في الإيجار ونقل الخدمات معًا، أما عاملة الاستقدام فتظهر في نقل الخدمات فقط.</small>
+                    {{-- <small class="form-text text-muted">عاملة الإيجار تبقى في قسم الإيجار فقط، ويظهر الاستلام الفوري كملاحظة على توفرها.</small> --}}
                 </div>
 
                 <div class="col-12 mt-4">
@@ -306,7 +322,8 @@
                             <option value="{{ $tag }}"></option>
                         @endforeach
                     </datalist>
-                    <small class="form-text text-muted">افصل بين التصنيفات بفاصلة عربية أو إنجليزية. هذه التصنيفات ستظهر في الإحصائيات والفلاتر السريعة بصفحة الإيواء.</small>
+                    <small class="form-text text-muted">افصل بين التصنيفات بفاصلة عربية أو إنجليزية. هذه التصنيفات ستظهر في
+                        الإحصائيات والفلاتر السريعة بصفحة الإيواء.</small>
                 </div>
 
                 @if (!$isEditMode)
@@ -320,56 +337,82 @@
                                     <div class="col-12">
                                         <label class="form-label d-block">الإجراء</label>
                                         <div class="form-check form-check-inline">
-                                            <input class="form-check-input" type="radio" name="complaint_action" id="complaint_action_none" value="none" {{ old('complaint_action', 'none') === 'none' ? 'checked' : '' }}>
+                                            <input class="form-check-input" type="radio" name="complaint_action"
+                                                id="complaint_action_none" value="none"
+                                                {{ old('complaint_action', 'none') === 'none' ? 'checked' : '' }}>
                                             <label class="form-check-label" for="complaint_action_none">بدون شكوى</label>
                                         </div>
                                         <div class="form-check form-check-inline">
-                                            <input class="form-check-input" type="radio" name="complaint_action" id="complaint_action_link" value="link" {{ old('complaint_action') === 'link' ? 'checked' : '' }}>
-                                            <label class="form-check-label" for="complaint_action_link">ربط بشكوى موجودة</label>
+                                            <input class="form-check-input" type="radio" name="complaint_action"
+                                                id="complaint_action_link" value="link"
+                                                {{ old('complaint_action') === 'link' ? 'checked' : '' }}>
+                                            <label class="form-check-label" for="complaint_action_link">ربط بشكوى
+                                                موجودة</label>
                                         </div>
                                         <div class="form-check form-check-inline">
-                                            <input class="form-check-input" type="radio" name="complaint_action" id="complaint_action_create" value="create" {{ old('complaint_action') === 'create' ? 'checked' : '' }}>
-                                            <label class="form-check-label" for="complaint_action_create">إنشاء شكوى جديدة</label>
+                                            <input class="form-check-input" type="radio" name="complaint_action"
+                                                id="complaint_action_create" value="create"
+                                                {{ old('complaint_action') === 'create' ? 'checked' : '' }}>
+                                            <label class="form-check-label" for="complaint_action_create">إنشاء شكوى
+                                                جديدة</label>
                                         </div>
                                     </div>
 
                                     <div class="col-12" id="link_complaint_wrapper" style="display:none;">
                                         <label class="form-label" for="shelter_complaint_id">الشكاوى المقترحة</label>
-                                        <select name="shelter_complaint_id" id="shelter_complaint_id" class="form-select">
+                                        <select name="shelter_complaint_id" id="shelter_complaint_id"
+                                            class="form-select">
                                             <option value="">اختر شكوى</option>
                                         </select>
-                                        <small class="form-text text-muted" id="shelter_complaint_hint">اختر العقد أولاً لعرض الشكاوى المرتبطة به.</small>
+                                        <small class="form-text text-muted" id="shelter_complaint_hint">اختر العقد أولاً
+                                            لعرض الشكاوى المرتبطة به.</small>
                                     </div>
 
                                     <div class="col-12" id="create_complaint_wrapper" style="display:none;">
                                         <div class="row g-3">
                                             <div class="col-md-4">
-                                                <label class="form-label" for="shelter_complaint_type_id">نوع الشكوى</label>
-                                                <select name="shelter_complaint_type_id" id="shelter_complaint_type_id" class="form-select">
+                                                <label class="form-label" for="shelter_complaint_type_id">نوع
+                                                    الشكوى</label>
+                                                <select name="shelter_complaint_type_id" id="shelter_complaint_type_id"
+                                                    class="form-select">
                                                     <option value="">اختر نوع الشكوى</option>
                                                     @foreach ($complaintTypes ?? [] as $type)
-                                                        <option value="{{ $type->id }}" {{ (string) old('shelter_complaint_type_id') === (string) $type->id ? 'selected' : '' }}>
+                                                        <option value="{{ $type->id }}"
+                                                            {{ (string) old('shelter_complaint_type_id') === (string) $type->id ? 'selected' : '' }}>
                                                             {{ $type->name }}
                                                         </option>
                                                     @endforeach
                                                 </select>
                                             </div>
                                             <div class="col-md-4">
-                                                <label class="form-label" for="shelter_complaint_priority">الأولوية</label>
-                                                <select name="shelter_complaint_priority" id="shelter_complaint_priority" class="form-select">
-                                                    <option value="low" {{ old('shelter_complaint_priority') === 'low' ? 'selected' : '' }}>منخفضة</option>
-                                                    <option value="medium" {{ old('shelter_complaint_priority', 'medium') === 'medium' ? 'selected' : '' }}>متوسطة</option>
-                                                    <option value="high" {{ old('shelter_complaint_priority') === 'high' ? 'selected' : '' }}>عالية</option>
-                                                    <option value="urgent" {{ old('shelter_complaint_priority') === 'urgent' ? 'selected' : '' }}>عاجلة</option>
+                                                <label class="form-label"
+                                                    for="shelter_complaint_priority">الأولوية</label>
+                                                <select name="shelter_complaint_priority" id="shelter_complaint_priority"
+                                                    class="form-select">
+                                                    <option value="low"
+                                                        {{ old('shelter_complaint_priority') === 'low' ? 'selected' : '' }}>
+                                                        منخفضة</option>
+                                                    <option value="medium"
+                                                        {{ old('shelter_complaint_priority', 'medium') === 'medium' ? 'selected' : '' }}>
+                                                        متوسطة</option>
+                                                    <option value="high"
+                                                        {{ old('shelter_complaint_priority') === 'high' ? 'selected' : '' }}>
+                                                        عالية</option>
+                                                    <option value="urgent"
+                                                        {{ old('shelter_complaint_priority') === 'urgent' ? 'selected' : '' }}>
+                                                        عاجلة</option>
                                                 </select>
                                             </div>
                                             <div class="col-md-4">
-                                                <label class="form-label" for="shelter_complaint_subject">موضوع الشكوى</label>
-                                                <input type="text" name="shelter_complaint_subject" id="shelter_complaint_subject" class="form-control"
+                                                <label class="form-label" for="shelter_complaint_subject">موضوع
+                                                    الشكوى</label>
+                                                <input type="text" name="shelter_complaint_subject"
+                                                    id="shelter_complaint_subject" class="form-control"
                                                     value="{{ old('shelter_complaint_subject', 'شكوى مرتبطة بإدخال العاملة للإيواء') }}">
                                             </div>
                                             <div class="col-12">
-                                                <label class="form-label" for="shelter_complaint_details">تفاصيل الشكوى</label>
+                                                <label class="form-label" for="shelter_complaint_details">تفاصيل
+                                                    الشكوى</label>
                                                 <textarea name="shelter_complaint_details" id="shelter_complaint_details" class="form-control" rows="3"
                                                     placeholder="اتركها فارغة لاستخدام أسباب الإرجاع كتفاصيل للشكوى">{{ old('shelter_complaint_details') }}</textarea>
                                             </div>
@@ -483,7 +526,8 @@
                         if ($isEditMode && $editingInfo && $editingInfo->shelter_attachments) {
                             $existingAttachments = is_array($editingInfo->shelter_attachments)
                                 ? $editingInfo->shelter_attachments
-                                : (json_decode($editingInfo->shelter_attachments, true) ?: []);
+                                : (json_decode($editingInfo->shelter_attachments, true) ?:
+                                []);
                         }
                     @endphp
                     @if ($isEditMode && count($existingAttachments))
@@ -515,7 +559,8 @@
             <div class="col-12 modal-footer">
                 <button class="btn btn-primary" type="submit">{{ __('buttons.save') }}</button>
                 @if ($isEditMode)
-                    <a href="{{ route('ShelterContract.index') }}" class="btn btn-secondary">{{ __('buttons.cancel') }}</a>
+                    <a href="{{ route('ShelterContract.index') }}"
+                        class="btn btn-secondary">{{ __('buttons.cancel') }}</a>
                 @endif
             </div>
         </form>
@@ -544,16 +589,19 @@
                                 <div class="col-12">
                                     <label class="form-label d-block">العميل</label>
                                     <div class="form-check form-check-inline">
-                                        <input class="form-check-input" type="radio" name="client_type" id="existing_client" value="existing" checked>
+                                        <input class="form-check-input" type="radio" name="client_type"
+                                            id="existing_client" value="existing" checked>
                                         <label class="form-check-label" for="existing_client">اختيار عميل</label>
                                     </div>
                                     <div class="form-check form-check-inline">
-                                        <input class="form-check-input" type="radio" name="client_type" id="new_client" value="new">
+                                        <input class="form-check-input" type="radio" name="client_type"
+                                            id="new_client" value="new">
                                         <label class="form-check-label" for="new_client">إضافة عميل</label>
                                     </div>
                                 </div>
                                 <div id="existing_client_section" class="col-12">
-                                    <select name="existing_client_id" id="existing_client_id" class="form-select select2-ajax-client" style="width:100%"></select>
+                                    <select name="existing_client_id" id="existing_client_id"
+                                        class="form-select select2-ajax-client" style="width:100%"></select>
                                 </div>
                                 <div class="col-md-6 new-client-field" style="display:none;">
                                     <label class="form-label">اسم العميل *</label>
@@ -565,11 +613,13 @@
                                 </div>
                                 <div class="col-md-6">
                                     <label class="form-label">رقم هوية العميل</label>
-                                    <input type="text" name="client_national_num" id="client_national_num" class="form-control">
+                                    <input type="text" name="client_national_num" id="client_national_num"
+                                        class="form-control">
                                 </div>
                                 <div class="col-md-6">
                                     <label class="form-label">تاريخ ميلاد العميل</label>
-                                    <input type="date" name="client_birthdate" id="client_birthdate" class="form-control">
+                                    <input type="date" name="client_birthdate" id="client_birthdate"
+                                        class="form-control">
                                 </div>
                                 <div class="col-12 new-client-field" style="display:none;">
                                     <label class="form-label">العنوان</label>
@@ -579,16 +629,19 @@
                                 <div class="col-12 border-top pt-3">
                                     <label class="form-label d-block">العاملة</label>
                                     <div class="form-check form-check-inline">
-                                        <input class="form-check-input" type="radio" name="maid_type" id="existing_maid" value="existing" checked>
+                                        <input class="form-check-input" type="radio" name="maid_type"
+                                            id="existing_maid" value="existing" checked>
                                         <label class="form-check-label" for="existing_maid">اختيار عاملة</label>
                                     </div>
                                     <div class="form-check form-check-inline">
-                                        <input class="form-check-input" type="radio" name="maid_type" id="new_maid" value="new">
+                                        <input class="form-check-input" type="radio" name="maid_type" id="new_maid"
+                                            value="new">
                                         <label class="form-check-label" for="new_maid">إضافة عاملة</label>
                                     </div>
                                 </div>
                                 <div id="existing_maid_section" class="col-12">
-                                    <select name="maid_id" id="maid_id" class="form-select select2-ajax-maid" style="width:100%"></select>
+                                    <select name="maid_id" id="maid_id" class="form-select select2-ajax-maid"
+                                        style="width:100%"></select>
                                 </div>
                                 <div class="col-md-6 new-maid-field" style="display:none;">
                                     <label class="form-label">اسم العاملة *</label>
@@ -611,11 +664,13 @@
                                 </div>
                                 <div class="col-md-3 new-maid-field" style="display:none;">
                                     <label class="form-label">الراتب</label>
-                                    <input type="number" name="new_maid_salary" class="form-control" min="0" step="0.01">
+                                    <input type="number" name="new_maid_salary" class="form-control" min="0"
+                                        step="0.01">
                                 </div>
                                 <div class="col-md-3 new-maid-field" style="display:none;">
                                     <label class="form-label">العمر</label>
-                                    <input type="number" name="new_maid_age" class="form-control" min="0" step="1">
+                                    <input type="number" name="new_maid_age" class="form-control" min="0"
+                                        step="1">
                                 </div>
 
                                 <div class="col-md-4 border-top pt-3">
@@ -739,7 +794,7 @@
                     beforeSend: function() {
                         $('#search_passport_btn').html(
                             '<i class="fa fa-spinner fa-spin"></i> {{ helperTrans('ingaz.searching') }}'
-                            );
+                        );
                     },
                     success: function(response) {
                         updateContractDropdown(response.contracts);
@@ -821,9 +876,9 @@
                 });
 
                 $('#shelter_complaint_hint').text(
-                    complaints.length
-                        ? 'تم العثور على شكاوى مفتوحة مرتبطة بهذا العقد.'
-                        : 'لا توجد شكاوى مفتوحة مرتبطة بهذا العقد. يمكنك إنشاء شكوى جديدة.'
+                    complaints.length ?
+                    'تم العثور على شكاوى مفتوحة مرتبطة بهذا العقد.' :
+                    'لا توجد شكاوى مفتوحة مرتبطة بهذا العقد. يمكنك إنشاء شكوى جديدة.'
                 );
             }
 
@@ -866,9 +921,9 @@
                     return;
                 }
 
-                let searchType = exactContractNumber
-                    ? 'contract_number'
-                    : ($('#contract_search_type').val() || 'contract_number');
+                let searchType = exactContractNumber ?
+                    'contract_number' :
+                    ($('#contract_search_type').val() || 'contract_number');
                 let requestData = {
                     search: contractNumber,
                     search_type: searchType
@@ -888,18 +943,20 @@
                     },
                     success: function(response) {
                         let contracts = response.contracts || [];
-                        let selectedContract = exactContractNumber
-                            ? contracts.find(function(contract) {
+                        let selectedContract = exactContractNumber ?
+                            contracts.find(function(contract) {
                                 return String(contract.id) === contractNumber;
-                            })
-                            : contracts[0];
+                            }) :
+                            contracts[0];
 
                         if (!selectedContract) {
                             clearContractDropdown();
                             $('#contract_search_feedback')
                                 .removeClass('text-success')
                                 .addClass('text-danger')
-                                .text('لم يتم العثور على عقد مؤهل للإيواء. يجب أن يكون العقد في مرحلة وصول/ضمان/مكتمل وتاريخ الوصول مسجلًا وغير مستقبلي.');
+                                .text(
+                                    'لم يتم العثور على عقد مؤهل للإيواء. يجب أن يكون العقد في مرحلة وصول/ضمان/مكتمل وتاريخ الوصول مسجلًا وغير مستقبلي.'
+                                    );
                             if (response.ineligibility && response.ineligibility.message) {
                                 $('#contract_search_feedback').text(response.ineligibility.message);
                             }
@@ -931,13 +988,14 @@
                 contracts = contracts || [];
                 let $select = $('#contract_id');
                 let currentValue = selectedId || $select.val() || selectedShelterContractId;
-                let existingSelectedOption = currentValue
-                    ? $select.find('option[value="' + currentValue + '"]').clone()
-                    : $();
+                let existingSelectedOption = currentValue ?
+                    $select.find('option[value="' + currentValue + '"]').clone() :
+                    $();
                 let selectedExistsInResults = false;
 
                 $select.empty();
-                $select.append('<option disabled ' + (!currentValue ? 'selected' : '') + '>{{ helperTrans('ingaz.choose') }}</option>');
+                $select.append('<option disabled ' + (!currentValue ? 'selected' : '') +
+                    '>{{ helperTrans('ingaz.choose') }}</option>');
 
                 if (contracts.length === 0) {
                     $select.append('<option disabled>{{ helperTrans('ingaz.no_contracts_found') }}</option>');
@@ -990,7 +1048,8 @@
                 toggleShelterComplaintFields();
             });
 
-            if (selectedShelterContractId && !$('#contract_id').find('option[value="' + selectedShelterContractId + '"]').length) {
+            if (selectedShelterContractId && !$('#contract_id').find('option[value="' + selectedShelterContractId +
+                    '"]').length) {
                 searchContractByNumber(selectedShelterContractId, true, true);
             }
         });
@@ -1032,7 +1091,7 @@
                                 $('#arrival_date').val('{{ $contract->maid->arrival_date }}');
                                 console.log(
                                     'تم ملء تاريخ الوصول من العاملة: {{ $contract->maid->arrival_date }}'
-                                    );
+                                );
                                 // حساب المدة من تاريخ الوصول
                                 calculateDurationFromArrivalDate('{{ $contract->maid->arrival_date }}');
                             @else
@@ -1250,23 +1309,23 @@
                 return;
             }
 
-            const printHtml = ''
-                + '\x3C!doctype html>'
-                + '\x3Chtml dir="rtl" lang="ar">'
-                + '\x3Chead>'
-                + '\x3Cmeta charset="UTF-8">'
-                + '\x3Ctitle>نموذج الإيواء\x3C/title>'
-                + '\x3Cstyle>'
-                + 'body{font-family:Tahoma,Arial,sans-serif;padding:32px;line-height:2;color:#111;}'
-                + 'h1{font-size:22px;margin:0 0 24px;text-align:center;}'
-                + '.content{font-size:16px;white-space:normal;}'
-                + '\x3C/style>'
-                + '\x3C/head>'
-                + '\x3Cbody>'
-                + '\x3Ch1>نموذج الإيواء\x3C/h1>'
-                + '\x3Cdiv class="content">' + receiptText + '\x3C/div>'
-                + '\x3C/body>'
-                + '\x3C/html>';
+            const printHtml = '' +
+                '\x3C!doctype html>' +
+                '\x3Chtml dir="rtl" lang="ar">' +
+                '\x3Chead>' +
+                '\x3Cmeta charset="UTF-8">' +
+                '\x3Ctitle>نموذج الإيواء\x3C/title>' +
+                '\x3Cstyle>' +
+                'body{font-family:Tahoma,Arial,sans-serif;padding:32px;line-height:2;color:#111;}' +
+                'h1{font-size:22px;margin:0 0 24px;text-align:center;}' +
+                '.content{font-size:16px;white-space:normal;}' +
+                '\x3C/style>' +
+                '\x3C/head>' +
+                '\x3Cbody>' +
+                '\x3Ch1>نموذج الإيواء\x3C/h1>' +
+                '\x3Cdiv class="content">' + receiptText + '\x3C/div>' +
+                '\x3C/body>' +
+                '\x3C/html>';
 
             printWindow.document.write(printHtml);
             printWindow.document.close();
@@ -1307,7 +1366,7 @@
                                 $('#arrival_date').val('{{ $contract->maid->arrival_date }}');
                                 console.log(
                                     'تم ملء تاريخ الوصول من العاملة: {{ $contract->maid->arrival_date }}'
-                                    );
+                                );
                             @else
                                 $('#arrival_date').val('');
                                 console.log('لا يوجد تاريخ وصول للعقد');
@@ -1407,7 +1466,8 @@
                     },
                     success: function(data) {
                         var $select = $('#maid_id');
-                        $select.empty().append(new Option('{{ helperTrans('ingaz.choose') }}', '', true, false));
+                        $select.empty().append(new Option('{{ helperTrans('ingaz.choose') }}',
+                            '', true, false));
 
                         (data.maids || []).forEach(function(item) {
                             var option = new Option(item.text, item.id, false, false);
@@ -1563,7 +1623,7 @@
                     beforeSend: function() {
                         $('#search_maid_btn').html(
                             '<i class="fa fa-spinner fa-spin"></i> {{ helperTrans('ingaz.searching') }}'
-                            );
+                        );
                     },
                     success: function(response) {
                         updateMaidDropdown(response.maids);
@@ -1635,6 +1695,7 @@
                     }
                 });
             }
+
             function clearCreateContractErrors() {
                 $('#createContractErrors').addClass('d-none').empty();
                 $('#createContractForm .is-invalid').removeClass('is-invalid');
@@ -1686,7 +1747,8 @@
                 }).join('');
 
                 $('#createContractErrors')
-                    .html('<strong>تعذر حفظ العقد للأسباب التالية:</strong><ul class="mb-0 mt-2">' + listItems + '</ul>')
+                    .html('<strong>تعذر حفظ العقد للأسباب التالية:</strong><ul class="mb-0 mt-2">' + listItems +
+                        '</ul>')
                     .removeClass('d-none');
             }
 
@@ -1751,7 +1813,8 @@
                                 text: response.message,
                                 confirmButtonText: '{{ helperTrans('ingaz.ok') }}'
                             }).then(function() {
-                                window.location.href = response.redirect_url || '{{ route('ShelterContract.create') }}';
+                                window.location.href = response.redirect_url ||
+                                    '{{ route('ShelterContract.create') }}';
                             });
                         } else {
                             showCreateContractErrors(response.message);

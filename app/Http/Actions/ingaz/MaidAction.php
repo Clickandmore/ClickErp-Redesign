@@ -2110,6 +2110,8 @@ class MaidAction extends MainAction
                         })->orWhere(function ($orQuery) use ($today) {
                             $this->applyShelterInstantFilters($orQuery, $today);
                         });
+                    })->whereDoesntHave('jobTypes', function ($rentalQuery) {
+                        $rentalQuery->where('job_type_id', 2);
                     });
                 } else {
                     $query->whereHas('jobTypes', function ($q) use ($type) {

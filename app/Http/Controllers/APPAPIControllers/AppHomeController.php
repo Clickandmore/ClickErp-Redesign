@@ -209,6 +209,12 @@ class AppHomeController extends Controller
             $query->whereHas('jobTypes', function ($jobTypeQuery) use ($jobTypeIds) {
                 $jobTypeQuery->whereIn('job_type_id', $jobTypeIds);
             });
+
+            if (in_array(3, $jobTypeIds, true) && !in_array(2, $jobTypeIds, true)) {
+                $query->whereDoesntHave('jobTypes', function ($rentalJobTypeQuery) {
+                    $rentalJobTypeQuery->where('job_type_id', 2);
+                });
+            }
         }
 
         $jobTitleIds = $this->normalizeArrayInput($request->input('job_title_id'));
