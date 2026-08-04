@@ -198,10 +198,10 @@
 
                 <div class="col-4 mt-4">
                     <label for="TextInput" class="form-label">تاريخ إدخالها للإيواء</label>
-                    <input type="date" name="maid_date_back" class="form-control" data-validation="required" readonly
-                        value="{{ old('maid_date_back', optional($editingInfo)->maid_date_back) }}">
-                    <small class="form-text text-muted">هذا التاريخ يمثل تاريخ مراجعتها وإيداعها داخل الإيواء وسيُعيّن
-                        تلقائياً إلى اليوم الحالي.</small>
+                    <input type="date" name="maid_date_back" class="form-control" data-validation="required" required
+                        value="{{ old('maid_date_back', optional($editingInfo)->maid_date_back ?: now()->toDateString()) }}">
+                    <small class="form-text text-muted">هذا التاريخ يمثل تاريخ مراجعتها وإيداعها داخل الإيواء. يُحدّد
+                        افتراضيًا بتاريخ اليوم ويمكن تعديله.</small>
                 </div>
 
                 <div class="col-4 mt-4">
@@ -1238,7 +1238,7 @@
 
             // تعيين تاريخ الإرجاع عند تغيير العقد
             $('#contract_id').on('change', function() {
-                if (!isEditMode) {
+                if (!isEditMode && !$('input[name="maid_date_back"]').val()) {
                     setReturnDateToToday();
                 }
             });
