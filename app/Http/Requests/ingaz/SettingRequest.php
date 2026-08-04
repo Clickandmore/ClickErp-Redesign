@@ -17,6 +17,26 @@ class SettingRequest extends MainRequest
     }
 
     /**
+     * حقل رابط الخريطة يقبل كود الـ iframe كاملاً، فنستخرج منه قيمة src قبل الحفظ.
+     *
+     * @return void
+     */
+    protected function prepareForValidation()
+    {
+        if (!$this->has('map_link')) {
+            return;
+        }
+
+        $mapLink = trim((string) $this->input('map_link'));
+
+        if ($mapLink !== '' && preg_match('/<iframe[^>]*\ssrc\s*=\s*["\']([^"\']+)["\']/i', $mapLink, $matches)) {
+            $mapLink = trim($matches[1]);
+        }
+
+        $this->merge(['map_link' => $mapLink]);
+    }
+
+    /**
      * Get the validation rules that apply to the request.
      *
      * @return array
@@ -49,7 +69,7 @@ class SettingRequest extends MainRequest
             'email' => 'nullable|email',
             'phone' => 'nullable',
             'other_phone' => 'nullable',
-            'map_link' => 'nullable',
+            'map_link' => 'nullable|string|max:2000',
             'header_link_1_title' => 'nullable|string|max:100',
             'header_link_1_url' => 'nullable|url|max:500',
             'header_link_2_title' => 'nullable|string|max:100',
