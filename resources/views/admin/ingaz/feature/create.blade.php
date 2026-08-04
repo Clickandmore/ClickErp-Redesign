@@ -1,9 +1,14 @@
-<form class="row g-3 from-submit-global" method="post" action="{{route("features.store")}}">
+<form class="row g-3 from-submit-global" method="post" action="{{route("features.store")}}" enctype="multipart/form-data">
     @csrf
     <label for="TextInput" class="form-label">
         {{helperTrans("ingaz.counter icon")}}
     </label>
     @include('admin.ingaz.statistics.icons')
+
+    <div class="col-12">
+        <label class="form-label">{{ helperTrans('ingaz.image') }} ({{ helperTrans('ingaz.optional') }})</label>
+        <input type="file" name="image_file" class="dropify" accept="image/jpeg,image/png,image/webp">
+    </div>
 
     @foreach (config('translatable.locales') as $locale)
         <div class="col-6">
@@ -33,6 +38,5 @@
         <button class="btn btn-outline-secondary" type="button" data-bs-dismiss="modal">{{__("buttons.close")}}</button>
     </div>
 </form>
-
 
 

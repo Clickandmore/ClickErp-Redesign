@@ -33,7 +33,8 @@ class FeatureRequest extends MainRequest
             'title:en' => 'string',
             'description:ar' => 'string',
             'description:en' => 'string',
-            'image' => [$this->isMethod('post') ? 'nullable' : ''],
+            'image' => ['nullable', 'string', 'max:255'],
+            'image_file' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:5120'],
         ];
 
 
