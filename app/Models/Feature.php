@@ -10,13 +10,23 @@ class Feature extends Model
     use Translatable;
 
     protected $fillable = [
-        'image'
+        'image',
+        'image_file',
+    ];
+
+    protected $appends = [
+        'image_url',
     ];
 
     public $translatedAttributes = [
         'title',
         'description',
     ];
+
+    public function getImageUrlAttribute(): ?string
+    {
+        return $this->image_file ? showFile($this->image_file) : null;
+    }
 
 
 

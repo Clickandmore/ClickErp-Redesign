@@ -89,13 +89,13 @@ class FeatureController extends Controller
     public function update(objRequest $request, objAction $action, $id)
     {
         $updatedData = $request->validated();
-        $data = $action->find($id)->update($updatedData);
+        $data = $action->update($id, $updatedData);
         return jsonSuccess($data);
     }
 
     public function destroy($id, objAction $action)
     {
-        $action->deleteWithFile($id, 'image');
+        $action->deleteWithFile($id, 'image_file');
         return jsonSuccess();
     }
 }
