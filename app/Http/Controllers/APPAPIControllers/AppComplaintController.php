@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\APPAPIControllers;
 
+use App\Enums\ingaz\ComplaintSubmissionMethodEnum;
 use App\Http\Controllers\Controller;
 use App\Models\ingaz\Complaint;
 use App\Services\ManagedFileStorage;
@@ -30,6 +31,7 @@ class AppComplaintController extends Controller
             'details' => $request->message,
             'complainant_name' => (string) (auth('api')->user()?->name ?? ''),
             'complainant_phone' => (string) (auth('api')->user()?->phone ?? ''),
+            'submission_method' => ComplaintSubmissionMethodEnum::MobileApp->value,
         ];
 
         if ($request->hasFile('file')) {

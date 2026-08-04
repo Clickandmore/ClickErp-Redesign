@@ -22,6 +22,15 @@
         'manual' => 'ربط يدوي',
         'none' => 'بدون ربط',
     ];
+    // قناة التقديم: enum معروف، أو نص حر قادم من الاستيراد
+    $submissionMethod = \App\Enums\ingaz\ComplaintSubmissionMethodEnum::tryFrom((string) $complaint->submission_method);
+    $submissionMethodLabel = \App\Enums\ingaz\ComplaintSubmissionMethodEnum::label($complaint->submission_method);
+    // عقود الاستقدام (recruitment/maid) لها صفحة تفاصيل خاصة، وما عداها عقود إيواء
+    $contractUrl = $complaint->contract
+        ? (in_array($complaint->contract->type, ['recruitment', 'maid'], true)
+            ? route('contracts.details', $complaint->contract->id)
+            : route('ShelterContract.show', $complaint->contract->id))
+        : null;
 @endphp
 
 <div class="complaint-detail-page">
@@ -90,7 +99,15 @@
                         </div>
                         <div class="detail-data-item">
                             <span>طريقة التقديم</span>
-                            <strong>{{ $complaint->submission_method ?: __('ingaz.not_specified') }}</strong>
+                            <strong>
+                                @if ($submissionMethodLabel)
+                                    <span class="badge bg-{{ $submissionMethod?->color() ?: 'secondary' }}">
+                                        <i class="fas {{ $submissionMethod?->icon() ?: 'fa-circle-info' }} me-1"></i>{{ $submissionMethodLabel }}
+                                    </span>
+                                @else
+                                    {{ __('ingaz.not_specified') }}
+                                @endif
+                            </strong>
                         </div>
                         <div class="detail-data-item">
                             <span>جواز العاملة</span>
@@ -169,12 +186,121 @@
                             </strong>
                         </div>
                         @if ($complaint->contract)
-                            <a href="{{ route('ShelterContract.show', $complaint->contract->id) }}" class="btn btn-outline-primary btn-sm">عرض العقد</a>
+                            <a href="{{ $contractUrl }}" class="btn btn-outline-primary btn-sm">عرض العقد</a>
                         @endif
                     </div>
                     @if ($complaint->relation_notes)
                         <div class="relation-notes">{{ $complaint->relation_notes }}</div>
                     @endif
+                </section>
+            @endif
+
+            @if ($complaint->contract)
+                @php
+                    $contract = $complaint->contract;
+                    $contractInfo = $contract->info;
+                    $contractStatus = \App\Enums\ingaz\ContractStatusEnum::tryFrom((string) $contract->status);
+                    $contractDate = $contractInfo?->contract_date ?: $contract->contract_date;
+                    $notSet = __('ingaz.not_specified');
+                @endphp
+                <section class="detail-section contract-section">
+                    <div class="detail-section__header">
+                        <span class="section-icon section-icon--info"><i class="fas fa-file-contract"></i></span>
+                        <div>
+                            <h5>تفاصيل العقد المرتبط</h5>
+                            <small>عقد #{{ $contract->id }}@if ($contractStatus) — {{ $contractStatus->lang() }}@endif</small>
+                        </div>
+                    </div>
+                    <div class="detail-section__body">
+                        <div class="detail-data-grid">
+                            <div class="detail-data-item">
+                                <span>رقم العقد</span>
+                                <strong>#{{ $contract->id }}</strong>
+                            </div>
+                            <div class="detail-data-item">
+                                <span>حالة العقد</span>
+                                <strong>
+                                    <span class="badge bg-{{ $contractStatus?->color() ?: 'secondary' }}">
+                                        {{ $contractStatus?->lang() ?: ($contract->status ?: $notSet) }}
+                                    </span>
+                                </strong>
+                            </div>
+                            <div class="detail-data-item">
+                                <span>تاريخ العقد</span>
+                                <strong>{{ $contractDate ? \Carbon\Carbon::parse($contractDate)->format('Y-m-d') : $notSet }}</strong>
+                            </div>
+                            <div class="detail-data-item">
+                                <span>العميل</span>
+                                <strong>{{ $contract->user?->name ?: $notSet }}</strong>
+                            </div>
+                            <div class="detail-data-item">
+                                <span>جوال العميل</span>
+                                <strong>
+                                    @if ($contract->user?->phone)
+                                        <a href="tel:{{ $contract->user->phone }}">{{ $contract->user->phone }}</a>
+                                    @else
+                                        {{ $notSet }}
+                                    @endif
+                                </strong>
+                            </div>
+                            <div class="detail-data-item">
+                                <span>العاملة</span>
+                                <strong>{{ $contract->maid?->name ?: $notSet }}</strong>
+                            </div>
+                            <div class="detail-data-item">
+                                <span>جواز العاملة</span>
+                                <strong>{{ $contract->maid?->passport_num ?: $notSet }}</strong>
+                            </div>
+                            <div class="detail-data-item">
+                                <span>جنسية العاملة</span>
+                                <strong>{{ $contract->maid?->nationality?->title ?: $contract->requiredMaidNationality?->title ?: $notSet }}</strong>
+                            </div>
+                            <div class="detail-data-item">
+                                <span>المهنة</span>
+                                <strong>{{ $contract->requiredMaidJobTitle?->title ?: $notSet }}</strong>
+                            </div>
+                            <div class="detail-data-item">
+                                <span>المكتب الخارجي</span>
+                                <strong>{{ $contract->maid?->office?->title ?: $notSet }}</strong>
+                            </div>
+                            <div class="detail-data-item">
+                                <span>رقم التأشيرة</span>
+                                <strong>{{ $contractInfo?->visa_number ?: $contract->visa_number ?: $notSet }}</strong>
+                            </div>
+                            <div class="detail-data-item">
+                                <span>رقم مساند</span>
+                                <strong>{{ $contractInfo?->msaned_number ?: $contract->msaned_number ?: $notSet }}</strong>
+                            </div>
+                            <div class="detail-data-item">
+                                <span>قيمة العقد</span>
+                                <strong>{{ $contractInfo?->contract_value ? number_format((float) $contractInfo->contract_value, 2) . ' ' . __('ingaz.sar') : $notSet }}</strong>
+                            </div>
+                            <div class="detail-data-item">
+                                <span>مدة العقد</span>
+                                <strong>{{ $contractInfo?->contract_duration ? $contractInfo->contract_duration . ' سنة' : $notSet }}</strong>
+                            </div>
+                            <div class="detail-data-item">
+                                <span>حالة الضمان</span>
+                                <strong>
+                                    @if ($contract->warranty_end_date)
+                                        {{ \Carbon\Carbon::parse($contract->warranty_end_date)->isFuture() ? 'ساري حتى' : 'منتهٍ في' }}
+                                        {{ \Carbon\Carbon::parse($contract->warranty_end_date)->format('Y-m-d') }}
+                                    @else
+                                        {{ $notSet }}
+                                    @endif
+                                </strong>
+                            </div>
+                            <div class="detail-data-item">
+                                <span>المسوّق</span>
+                                <strong>{{ $contract->marketer?->name ?: $notSet }}</strong>
+                            </div>
+                        </div>
+                        <div class="mt-3">
+                            <a href="{{ $contractUrl }}" class="btn btn-primary btn-sm">
+                                <i class="fas fa-external-link-alt me-1"></i>فتح صفحة العقد
+                            </a>
+                        </div>
+                    </div>
                 </section>
             @endif
 

@@ -9,19 +9,19 @@
 @endsection
 
 @section('style')
-<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
 <style>
-    .complaint-create { max-width: 1240px; margin: 0 auto; }
+    .complaint-create { position: relative; max-width: 1240px; margin: 0 auto; }
     .complaint-hero { background: linear-gradient(135deg, #19376d, #2f67b2); color: #fff; border-radius: 18px; padding: 28px; box-shadow: 0 14px 34px rgba(25,55,109,.18); }
     .complaint-hero .hero-icon { width: 54px; height: 54px; display: grid; place-items: center; border-radius: 16px; background: rgba(255,255,255,.14); font-size: 24px; }
-    .form-section { background: #fff; border: 1px solid #e8edf4; border-radius: 16px; margin-top: 18px; overflow: hidden; box-shadow: 0 6px 22px rgba(31,45,61,.05); }
-    .form-section-header { display: flex; gap: 13px; align-items: center; padding: 18px 22px; background: #f8fafc; border-bottom: 1px solid #e8edf4; }
+    .form-section { background: #fff; border: 1px solid #e8edf4; border-radius: 16px; margin-top: 18px; overflow: visible; box-shadow: 0 6px 22px rgba(31,45,61,.05); }
+    .form-section-header { display: flex; gap: 13px; align-items: center; padding: 18px 22px; background: #f8fafc; border-bottom: 1px solid #e8edf4; border-radius: 16px 16px 0 0; }
     .step-number { width: 34px; height: 34px; display: grid; place-items: center; border-radius: 10px; background: #2f67b2; color: #fff; font-weight: 700; }
-    .form-section-body { padding: 22px; }
+    .form-section-body { position: relative; padding: 22px; }
     .form-label { color: #344054; font-weight: 700; }
     .required { color: #dc3545; }
     .relation-grid { display: grid; grid-template-columns: repeat(6, minmax(120px,1fr)); gap: 10px; }
-    .relation-option input { position: absolute; opacity: 0; pointer-events: none; }
+    .relation-option { position: relative; display: block; min-width: 0; }
+    .relation-option input { position: absolute; inset: 0; z-index: 2; width: 100%; height: 100%; margin: 0; opacity: 0; cursor: pointer; }
     .relation-card { min-height: 96px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; border: 1px solid #dce3ed; border-radius: 13px; background: #fff; color: #475467; cursor: pointer; transition: .2s ease; }
     .relation-card i { font-size: 22px; color: #667085; }
     .relation-option input:checked + .relation-card { border-color: #2f67b2; background: #eef5ff; color: #19376d; box-shadow: 0 0 0 3px rgba(47,103,178,.11); }
@@ -30,7 +30,9 @@
     .select2-container .select2-selection--single { height: 39px; border-color: #dee2e6; }
     .select2-container--default .select2-selection--single .select2-selection__rendered { line-height: 37px; }
     .select2-container--default .select2-selection--single .select2-selection__arrow { height: 37px; }
-    .footer-actions { position: sticky; bottom: 12px; z-index: 5; display: flex; justify-content: flex-end; gap: 10px; margin-top: 18px; padding: 14px; border: 1px solid #e8edf4; border-radius: 14px; background: rgba(255,255,255,.95); box-shadow: 0 8px 30px rgba(31,45,61,.11); backdrop-filter: blur(7px); }
+    .select2-container { max-width: 100%; }
+    .select2-dropdown { z-index: 1055; }
+    .footer-actions { position: relative; z-index: 1; display: flex; justify-content: flex-end; gap: 10px; margin-top: 18px; padding: 14px; border: 1px solid #e8edf4; border-radius: 14px; background: rgba(255,255,255,.95); box-shadow: 0 8px 30px rgba(31,45,61,.11); backdrop-filter: blur(7px); }
     @media (max-width: 992px) { .relation-grid { grid-template-columns: repeat(3,1fr); } }
     @media (max-width: 576px) { .relation-grid { grid-template-columns: repeat(2,1fr); } .form-section-body { padding: 16px; } }
 </style>
@@ -138,7 +140,7 @@
                 </div>
                 <div class="relation-panel" data-relation="contract">
                     <label class="form-label">اختر العقد <span class="required">*</span></label>
-                    <select name="contract_id" class="form-select select2 relation-input"><option value="">ابحث برقم العقد أو اسم العميل</option>@foreach($contracts as $contract)<option value="{{ $contract->id }}" {{ old('contract_id') == $contract->id ? 'selected' : '' }}>عقد #{{ $contract->id }} — {{ $contract->user?->name ?: 'بدون عميل' }} @if($contract->maid) — {{ $contract->maid->name }} @endif</option>@endforeach</select>
+                    <select name="contract_id" class="form-select select2 relation-input"><option value="">ابحث برقم العقد أو اسم العميل أو العاملة</option>@foreach($contractOptions as $contractOption)<option value="{{ $contractOption['id'] }}" {{ old('contract_id') == $contractOption['id'] ? 'selected' : '' }}>{{ $contractOption['label'] }}</option>@endforeach</select>
                 </div>
                 <div class="relation-panel" data-relation="office">
                     <label class="form-label">اختر المكتب الخارجي <span class="required">*</span></label>
@@ -177,10 +179,23 @@
 @endsection
 
 @section('js')
-<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
 <script>
 $(function () {
-    $('.select2').select2({ dir: 'rtl', width: '100%', allowClear: true, placeholder: 'اختر أو ابحث' });
+    $('.select2').each(function () {
+        const $select = $(this);
+
+        if ($select.hasClass('select2-hidden-accessible')) {
+            $select.select2('destroy');
+        }
+
+        $select.select2({
+            dir: 'rtl',
+            width: '100%',
+            allowClear: true,
+            placeholder: 'اختر أو ابحث',
+            dropdownParent: $select.closest('.form-section-body')
+        });
+    });
 
     function refreshRelationPanels() {
         const type = $('[name="relation_type"]:checked').val();
