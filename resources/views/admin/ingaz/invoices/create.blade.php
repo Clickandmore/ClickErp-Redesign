@@ -394,6 +394,7 @@
         $contractSearch = $contractSearch ?? request('contract_search');
         $contractSearchAttempted = $contractSearchAttempted ?? filled($contractSearch);
         $contractSearchMessage = $contractSearchMessage ?? null;
+        $invoiceEligibleStatusLabels = $invoiceEligibleStatusLabels ?? collect();
         $isDelegationInvoice = (bool) $selectedIngazDelegation;
         $isGeneralInvoice = !$isDelegationInvoice && !$selectedContract && $selectedClientId;
         $invoiceMode = $isDelegationInvoice ? 'delegation' : ($isGeneralInvoice ? 'general' : 'contract');
@@ -456,6 +457,17 @@
         </div>
 
         @if (!$isDelegationInvoice && !$isGeneralInvoice)
+            <div class="alert alert-info d-flex align-items-start gap-2 mb-3" role="alert">
+                <i class="fas fa-circle-info mt-1"></i>
+                <div>
+                    <div class="fw-bold mb-1">مراحل العقود التي يمكن إصدار فاتورة لها</div>
+                    <div>
+                        يمكن إصدار الفاتورة للعقد الذي لا توجد له فاتورة سابقة ويكون في إحدى المراحل التالية:
+                        {{ $invoiceEligibleStatusLabels->join('، ') }}.
+                    </div>
+                </div>
+            </div>
+
             <div class="editor-panel mb-3">
                 <div class="mini-section mb-0">
                     <div class="mini-title">
@@ -467,7 +479,7 @@
                             <label class="form-label" for="contract_search">رقم العقد</label>
                             <input type="text" name="contract_search" id="contract_search" class="form-control"
                                 value="{{ $contractSearch }}" placeholder="اكتب رقم العقد ثم اضغط بحث">
-                            <div class="field-note">يتم البحث في العقود الحالية فقط، ولا يتم جلب كل العقود.</div>
+                            <div class="field-note">يتم البحث في العقود المؤهلة لإصدار فاتورة فقط، ولا يتم جلب كل العقود.</div>
                         </div>
                         <div class="col-md-3 d-grid">
                             <button type="submit" class="btn btn-primary">

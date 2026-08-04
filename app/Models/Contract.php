@@ -175,14 +175,27 @@ class Contract extends Model
 
     public function isCurrentRecruitmentContract(): bool
     {
-        return in_array($this->status, [
+        return $this->isInvoiceEligible();
+    }
+
+    public function isInvoiceEligible(): bool
+    {
+        return in_array($this->status, self::invoiceEligibleStatuses(), true);
+    }
+
+    /**
+     * The recruitment contract stages for which an invoice may be issued.
+     */
+    public static function invoiceEligibleStatuses(): array
+    {
+        return [
             ContractStatusEnum::PendingMaidSelection->value,
             ContractStatusEnum::New ->value,
             ContractStatusEnum::Msaned->value,
             ContractStatusEnum::Tafwed->value,
             ContractStatusEnum::Taffez->value,
             ContractStatusEnum::Tazker->value,
-        ], true);
+        ];
     }
 
     public function canManageExternalOfficeDispatch(): bool

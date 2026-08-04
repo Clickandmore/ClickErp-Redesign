@@ -729,7 +729,7 @@ class InvoiceController extends Controller
             $searchedContract = Contract::query()
                 ->with(['user', 'maid.nationality', 'requiredMaidNationality'])
                 ->whereDoesntHave('invoice')
-                ->whereIn('status', $this->currentRecruitmentContractStatuses())
+                ->whereIn('status', Contract::invoiceEligibleStatuses())
                 ->where(function ($query) use ($contractSearch) {
                     if (is_numeric($contractSearch)) {
                         $query->where('id', (int) $contractSearch);
@@ -766,7 +766,7 @@ class InvoiceController extends Controller
             }
         }
 
-        if ($selectedContract && !$selectedContract->isCurrentRecruitmentContract()) {
+        if ($selectedContract && !$selectedContract->isInvoiceEligible()) {
             $selectedContract = null;
             $contractId = null;
             $contractSearchMessage = 'لا يمكن إصدار فاتورة إلا لعقد من العقود الحالية.';
@@ -791,6 +791,9 @@ class InvoiceController extends Controller
         // The public invoice number currently follows the auto-incrementing invoice ID.
         $nextInvoiceNumber = ((int) Invoice::query()->max('id')) + 1;
         $invoiceIssuedAt = now();
+        $invoiceEligibleStatusLabels = collect(Contract::invoiceEligibleStatuses())
+            ->map(fn (string $status) => ContractStatusEnum::from($status)->lang())
+            ->values();
 
         return view('admin.ingaz.invoices.create', compact(
             'contractId',
@@ -803,6 +806,7 @@ class InvoiceController extends Controller
             'contractSearch',
             'contractSearchAttempted',
             'contractSearchMessage',
+            'invoiceEligibleStatusLabels',
             'nextInvoiceNumber',
             'invoiceIssuedAt'
         ));
@@ -838,18 +842,6 @@ class InvoiceController extends Controller
             'invoiceIssuedAt',
             'nextInvoiceNumber'
         ));
-    }
-
-    private function currentRecruitmentContractStatuses(): array
-    {
-        return [
-            ContractStatusEnum::PendingMaidSelection->value,
-            ContractStatusEnum::New->value,
-            ContractStatusEnum::Msaned->value,
-            ContractStatusEnum::Tafwed->value,
-            ContractStatusEnum::Taffez->value,
-            ContractStatusEnum::Tazker->value,
-        ];
     }
 
     /**
@@ -932,7 +924,7 @@ class InvoiceController extends Controller
         if ($request->filled('contract_id')) {
             $contractIsCurrent = Contract::query()
                 ->whereKey($request->contract_id)
-                ->whereIn('status', $this->currentRecruitmentContractStatuses())
+                ->whereIn('status', Contract::invoiceEligibleStatuses())
                 ->exists();
 
             if (!$contractIsCurrent) {

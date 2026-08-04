@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Actions\ingaz\UserAction;
 use App\Http\Controllers\admin\Controller;
+use App\Models\Country;
 use Illuminate\Http\Request;
 
 class ApiClientDashboard extends Controller
@@ -85,6 +86,15 @@ class ApiClientDashboard extends Controller
             "recentComplaints" => $recentComplaints,
             "sponsorshipTransfers" => $sponsorshipTransfers,
             "notifications_count" => $notifications_count,
+            "nationalities" => Country::query()
+                ->active()
+                ->ordered()
+                ->get()
+                ->map(fn (Country $country) => [
+                    'id' => (int) $country->id,
+                    'title' => (string) $country->title,
+                ])
+                ->values(),
         ];
 
         return apiResponse(true, __('api.All items'), $data, 200);
@@ -92,24 +102,42 @@ class ApiClientDashboard extends Controller
 
     public function update_profile(Request $request, UserAction $action)
     {
-        logger()->info('Update profile request data: ', $request->all());
+        $validated = $request->validate([
+            'name' => 'required|string|max:255',
+            'email' => 'nullable|email|unique:users,email,' . auth()->id(),
+            'nationality_id' => 'sometimes|nullable|exists:countries,id',
+            'national_num' => 'sometimes|nullable|string|max:50|unique:users,national_num,' . auth()->id(),
+            'birthdate' => 'sometimes|nullable|date|before_or_equal:today',
+            'marital_status' => 'sometimes|nullable|string|in:single,married,divorced,widowed',
+            'phone2' => 'sometimes|nullable|string|max:20',
+            'address' => 'sometimes|nullable|string|max:255',
+            'city' => 'sometimes|nullable|string|max:100',
+            'rooms_num' => 'sometimes|nullable|integer|min:0',
+            'family_num' => 'sometimes|nullable|integer|min:0',
+            'children' => 'sometimes|nullable|integer|min:0',
+            'job' => 'sometimes|nullable|string|max:100',
+            'full_name_en' => 'sometimes|nullable|string|max:255',
+            'identity_type' => 'sometimes|nullable|string|max:100',
+            'identity_date' => 'sometimes|nullable|string|max:50',
+            'residence_expiry_date' => 'sometimes|nullable|date',
+            'workplace' => 'sometimes|nullable|string|max:255',
+            'po_box' => 'sometimes|nullable|string|max:50',
+            'postal_code' => 'sometimes|nullable|string|max:50',
+        ], [
+            'name.required' => 'الاسم مطلوب.',
+            'name.string'   => 'الاسم يجب أن يكون نصًا.',
+            'name.max'      => 'الاسم يجب ألا يتجاوز 255 حرفًا.',
+            'email.email'   => 'يرجى إدخال بريد إلكتروني صحيح.',
+            'email.unique'  => 'هذا البريد الإلكتروني مستخدم بالفعل.',
+            'national_num.unique' => 'رقم الهوية مستخدم بالفعل.',
+            'birthdate.before_or_equal' => 'تاريخ الميلاد يجب ألا يكون في المستقبل.',
+            'marital_status.in' => 'الحالة الاجتماعية المختارة غير صحيحة.',
+        ]);
 
         try {
-            $dataInsert = $request->only(['name', 'email']);
-
-            // Validate the data
-            $request->validate([
-                'name' => 'required|string|max:255',
-                'email' => 'nullable|email|unique:users,email,' . auth()->id(),
-            ], [
-                'name.required' => 'الاسم مطلوب.',
-                'name.string'   => 'الاسم يجب أن يكون نصًا.',
-                'name.max'      => 'الاسم يجب ألا يتجاوز 255 حرفًا.',
-                'email.email'   => 'يرجى إدخال بريد إلكتروني صحيح.',
-                'email.unique'  => 'هذا البريد الإلكتروني مستخدم بالفعل.',
-            ]);
-
-            $data = $action->updateUser(auth()->id(), $dataInsert);
+            // Only validated keys sent by the caller are updated. Older API clients
+            // that only send name/email therefore keep all optional profile data.
+            $data = $action->updateUser(auth()->id(), $validated);
 
             if ($data) {
                 return apiResponse(true, helperTrans('api.data_updated_successfully'), [], 200);

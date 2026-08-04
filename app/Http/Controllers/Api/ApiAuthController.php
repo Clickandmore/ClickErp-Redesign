@@ -103,7 +103,7 @@ class ApiAuthController extends Controller
 
     protected function generateToken()
     {
-        $user = auth()->user();
+        $user = auth()->user()->loadMissing('nationality');
         $token = JWTAuth::fromUser($user);
 
         return $token;
