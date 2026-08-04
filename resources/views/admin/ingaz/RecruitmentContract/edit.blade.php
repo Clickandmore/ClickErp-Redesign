@@ -381,9 +381,9 @@
                                             </div>
 
                                             <div class="col-md-6">
-                                                <label class="form-label">الدين المطلوب للعامل/ة</label>
+                                                <label class="form-label">الديانة المطلوبة للعامل/ة</label>
                                                 <select name="required_maid_religion" id="required_maid_religion" class="form-select select2">
-                                                    <option value="">اختر الدين المطلوب...</option>
+                                                    <option value="">اختر الديانة المطلوبة...</option>
                                                     @foreach ($maidReligions as $religion)
                                                         <option value="{{ $religion->id }}" @selected((string) old('required_maid_religion', $contract->required_maid_religion_id) === (string) $religion->id)>
                                                             {{ $religion->title }}

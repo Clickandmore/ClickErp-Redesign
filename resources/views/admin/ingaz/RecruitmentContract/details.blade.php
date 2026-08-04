@@ -1123,7 +1123,7 @@
                                     class="info-value">{{ $office->title ?? 'غير محدد' }}</span>
                             </div>
                             <div class="info-row">
-                                <span class="info-label">الدين:</span>
+                                <span class="info-label">الديانة:</span>
                                 <span
                                     class="info-value">{{ $contract->maid && $contract->maid->religion ? $contract->maid->religion->title : 'غير محدد' }}</span>
                             </div>

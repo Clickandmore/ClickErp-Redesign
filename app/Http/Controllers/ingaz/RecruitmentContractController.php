@@ -1547,9 +1547,11 @@ class RecruitmentContractController extends Controller
                     // الفاتورة
                     $invoice = $row->invoice;
                     if (!$invoice) {
-                        $actions .= '<li><a class="dropdown-item" href="' . route('invoices.create') . '?contract_id=' . $row->id . '" target="_blank">
-                                    <i class="fas fa-file-invoice"></i> اضافة فاتورة
-                                </a></li>';
+                        if ($row->isInvoiceEligible()) {
+                            $actions .= '<li><a class="dropdown-item" href="' . route('invoices.create') . '?contract_id=' . $row->id . '" target="_blank">
+                                        <i class="fas fa-file-invoice"></i> اضافة فاتورة
+                                    </a></li>';
+                        }
                     } elseif ($invoice->musanedTransferItem && $invoice->musanedTransferItem->transfer) {
                         $actions .= '<li><a class="dropdown-item" href="' . e(route('musaned-transfers.show', $invoice->musanedTransferItem->transfer->id)) . '">
                                     <i class="fas fa-money-bill-transfer"></i> عرض تحويل مساند

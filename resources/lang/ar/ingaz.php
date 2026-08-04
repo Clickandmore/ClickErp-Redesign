@@ -91,7 +91,7 @@ return array (
   'nationality_name' => 'اسم الجنسية',
   'slider' => 'السلايدر',
   'religions' => 'الأديان',
-  'religion' => 'الدين',
+  'religion' => 'الديانة',
   'skills' => 'المهارات',
   'skill' => 'مهارة',
   'is_show' => 'حالة الظهور',
