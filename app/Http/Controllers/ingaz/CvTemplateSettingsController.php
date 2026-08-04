@@ -29,8 +29,11 @@ class CvTemplateSettingsController extends Controller
         $validated = $request->validate([
             'cv_template_enabled' => ['nullable', 'boolean'],
             'cv_template_output_type' => ['required', 'in:pdf,image'],
+            'cv_public_site_url' => ['nullable', 'url', 'max:500'],
             'cv_template_file' => ['nullable', 'file', 'max:2048'],
         ], [
+            'cv_public_site_url.url' => 'رابط الموقع العام يجب أن يكون رابطًا صحيحًا يبدأ بـ http:// أو https://.',
+            'cv_public_site_url.max' => 'رابط الموقع العام يجب ألا يتجاوز 500 حرف.',
             'cv_template_file.file' => 'ملف قالب السيرة الذاتية غير صالح.',
             'cv_template_file.max' => 'حجم قالب السيرة الذاتية يجب ألا يتجاوز 2MB.',
         ]);
@@ -55,6 +58,9 @@ class CvTemplateSettingsController extends Controller
             'cv_template_blade' => $template !== '' ? $template : null,
             'cv_template_filename' => $filename,
             'cv_template_output_type' => $validated['cv_template_output_type'],
+            'cv_public_site_url' => filled($validated['cv_public_site_url'] ?? null)
+                ? rtrim(trim($validated['cv_public_site_url']), '/')
+                : null,
         ])->save();
 
         MaidCvTemplateSettings::clearCache();

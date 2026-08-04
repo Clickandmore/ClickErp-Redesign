@@ -802,8 +802,10 @@ class ShelterContractController extends Controller
 
     private function resolveShelterEntryDate(Contract $contract): ?Carbon
     {
-        $candidate = optional($contract->latestShelterLog)->created_at
-            ?? optional($contract->info)->maid_date_back
+        // التاريخ المُدخل يدوياً في شاشة التعديل يتقدّم على طابع زمن سجل الحالة،
+        // وإلا بقيت القائمة تعرض لحظة نقل العقد إلى الإيواء ولا تعكس أي تعديل لاحق.
+        $candidate = optional($contract->info)->maid_date_back
+            ?? optional($contract->latestShelterLog)->created_at
             ?? optional($contract->info)->created_at
             ?? $contract->created_at;
 

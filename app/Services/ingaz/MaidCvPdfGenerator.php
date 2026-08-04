@@ -484,6 +484,13 @@ class MaidCvPdfGenerator
 
     public function renderTemplate(string $template, array $data): string
     {
+        $previousPublicSiteUrl = config('app.public_site_url');
+        $cvPublicSiteUrl = trim((string) data_get($data, 'settings.cv_public_site_url'));
+
+        if ($cvPublicSiteUrl !== '') {
+            config(['app.public_site_url' => rtrim($cvPublicSiteUrl, '/')]);
+        }
+
         try {
             return $this->embedLocalTajawalFont(Blade::render($template, $data, true));
         } catch (\Throwable $exception) {
@@ -491,6 +498,8 @@ class MaidCvPdfGenerator
                 'تعذر تنفيذ قالب السيرة الذاتية: ' . $exception->getMessage(),
                 previous: $exception
             );
+        } finally {
+            config(['app.public_site_url' => $previousPublicSiteUrl]);
         }
     }
 
