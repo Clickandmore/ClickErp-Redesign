@@ -11,6 +11,7 @@ use App\Models\ingaz\Maid;
 use App\Models\ingaz\User as ClientUser;
 use App\Services\ingaz\RentalMaidAccountingService;
 use App\Services\ingaz\RentalMaidFinanceService;
+use App\Support\CvOptionsSettings;
 use App\Support\ExperiencePeriod;
 use Carbon\Carbon;
 use Illuminate\Database\QueryException;
@@ -2110,9 +2111,22 @@ class MaidAction extends MainAction
                         })->orWhere(function ($orQuery) use ($today) {
                             $this->applyShelterInstantFilters($orQuery, $today);
                         });
-                    })->whereDoesntHave('jobTypes', function ($rentalQuery) {
-                        $rentalQuery->where('job_type_id', 2);
                     });
+
+                    if (CvOptionsSettings::rentalTransferEnabled()) {
+                        // عاملة الإيجار تدخل نقل الخدمات فقط عند تفعيلها للاستلام الفوري.
+                        $query->where(function ($rentalQuery) use ($today) {
+                            $rentalQuery->whereDoesntHave('jobTypes', function ($q) {
+                                $q->where('job_type_id', 2);
+                            })->orWhere(function ($instantQuery) use ($today) {
+                                $this->applyShelterInstantFilters($instantQuery, $today);
+                            });
+                        });
+                    } else {
+                        $query->whereDoesntHave('jobTypes', function ($rentalQuery) {
+                            $rentalQuery->where('job_type_id', 2);
+                        });
+                    }
                 } else {
                     $query->whereHas('jobTypes', function ($q) use ($type) {
                         $q->where('job_type_id', $type);

@@ -120,10 +120,13 @@
             <div class="col-lg-9">
                 <div class="card border-0 shadow-sm settings-card">
                     <div class="card-body">
-                        @if (
-                            ($activeSection === 'cv-template' && @AdminGuardHasPerm(\App\PermKeys::SETTINGS_CV_TEMPLATE))
-                            || ($activeSection !== 'cv-template' && @AdminGuardHasPerm(\App\PermKeys::SETTINGS_VIEW))
-                        )
+                        @php
+                            $sectionPermission = match ($activeSection) {
+                                'cv-template' => \App\PermKeys::SETTINGS_CV_TEMPLATE,
+                                default => \App\PermKeys::SETTINGS_VIEW,
+                            };
+                        @endphp
+                        @if (@AdminGuardHasPerm($sectionPermission))
                             <div class="d-flex flex-wrap align-items-center justify-content-between mb-3">
                                 <div>
                                     <h5 class="mb-1">@yield('settings-title')</h5>

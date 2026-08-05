@@ -21,6 +21,7 @@ use App\Http\Controllers\ingaz\ComplaintTypeController;
 use App\Http\Controllers\ingaz\ContactController;
 use App\Http\Controllers\ingaz\CountryPoliceController;
 use App\Http\Controllers\ingaz\CvConvertController;
+use App\Http\Controllers\ingaz\CvOptionsSettingsController;
 use App\Http\Controllers\ingaz\CvTemplateSettingsController;
 use App\Http\Controllers\ingaz\DataImportController;
 use App\Http\Controllers\ingaz\DeportationTravelController;
@@ -223,6 +224,10 @@ Route::group(
                 ->name('settings.cv-template.edit');
             Route::put('settings/cv-template', [CvTemplateSettingsController::class, 'update'])
                 ->name('settings.cv-template.update');
+            Route::get('settings/cv-options', [CvOptionsSettingsController::class, 'edit'])
+                ->name('settings.cv-options.edit');
+            Route::put('settings/cv-options', [CvOptionsSettingsController::class, 'update'])
+                ->name('settings.cv-options.update');
             Route::resource('settings', SettingController::class);
             Route::get('settings/section/{section}', [SettingController::class, 'section'])->name('settings.section');
             Route::get('moyasar-settings', [MoyasarSettingsController::class, 'edit'])->name('moyasar-settings.edit');

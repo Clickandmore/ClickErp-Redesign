@@ -142,6 +142,7 @@
                     $canViewHomeSettings ||
                     $canViewMaidsData ||
                     @AdminGuardHasPerm(\App\PermKeys::SETTINGS_CV_TEMPLATE) ||
+                    @AdminGuardHasPerm(\App\PermKeys::SETTINGS_CV_OPTIONS) ||
                     @AdminGuardHasPerm(\App\PermKeys::SETTINGS_CONTROL) ||
                     @AdminGuardHasPerm(\App\PermKeys::PACKAGES_VIEW) ||
                     $canViewFinanceModule ||
@@ -1201,6 +1202,7 @@
                             request()->routeIs('rent-contract-terms.*') ||
                             request()->routeIs('packages.*') ||
                             request()->routeIs('moyasar-settings.*');
+                        $isCvOptionsSettingsRoute = request()->routeIs('settings.cv-options.*');
                         $isInternalSystemSettingsRoute =
                             $isTranslationSettingsRoute ||
                             request()->routeIs('settings.cv-template.*') ||
@@ -1235,6 +1237,7 @@
                             $isInternalSystemSettingsRoute ||
                             $isRecruitmentSettingsRoute ||
                             $isRentalSettingsRoute ||
+                            $isCvOptionsSettingsRoute ||
                             $isZatcaSettingsRoute ||
                             $branchesManagementOpen ||
                             $isAccessControlOpen ||
@@ -1579,6 +1582,16 @@
                                             </li>
                                         @endif
                                     </ul>
+                                </li>
+                            @endif
+
+                            @if (@AdminGuardHasPerm(\App\PermKeys::SETTINGS_CV_OPTIONS))
+                                <li>
+                                    <a class="m-link {{ $isCvOptionsSettingsRoute ? 'active' : '' }}"
+                                        href="{{ route('settings.cv-options.edit') }}">
+                                        <i class="fa fa-id-card"></i>
+                                        <span class="ms-2">إعدادات السير الذاتية</span>
+                                    </a>
                                 </li>
                             @endif
 

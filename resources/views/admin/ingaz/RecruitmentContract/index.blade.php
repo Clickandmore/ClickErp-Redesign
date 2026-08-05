@@ -600,6 +600,30 @@
             text-decoration: none;
         }
 
+        .contract-arrival-note {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            width: fit-content;
+            padding: 6px 10px;
+            border-radius: 999px;
+            font-size: 0.82rem;
+            font-weight: 700;
+            white-space: nowrap;
+        }
+
+        .contract-arrival-note--expected {
+            background: #fef9c3;
+            color: #854d0e;
+            border: 1px solid #fde047;
+        }
+
+        .contract-arrival-note--arrived {
+            background: #dcfce7;
+            color: #166534;
+            border: 1px solid #86efac;
+        }
+
         .dropdown-menu.dropdown-menu-end.recruitment-actions-floating-menu {
             position: fixed !important;
             top: var(--recruitment-actions-top) !important;

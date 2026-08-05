@@ -6,6 +6,7 @@ use App\Enums\ingaz\ContractStatusEnum;
 use App\Http\Controllers\ingaz\RecruitmentOffice;
 use App\Models\Contract;
 use App\Models\RecruitmentOffices;
+use App\Support\CvOptionsSettings;
 use Astrotomic\Translatable\Translatable;
 use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 use Illuminate\Database\Eloquent\Builder;
@@ -852,14 +853,30 @@ class Maid extends Model
     {
         $jobTypes = $this->getLoadedJobTypes();
 
-        // Rental is an exclusive public service. Instant availability is only
-        // metadata and must never move or duplicate a rental worker to transfer.
+        // Rental is an exclusive public service by default: instant availability is
+        // only metadata and never moves or duplicates a rental worker to transfer.
+        // Enabling "إتاحة سيرة عاملة الإيجار لنقل الخدمات" lists an instant-ready
+        // rental worker under both rental and transfer.
         $rentalJobTypes = $jobTypes
             ->filter(fn($jobType) => $this->isRentalJobType($jobType))
             ->values();
 
         if ($rentalJobTypes->isNotEmpty()) {
-            return $rentalJobTypes;
+            if (!CvOptionsSettings::rentalTransferEnabled() || !$this->isInstantShelterListing()) {
+                return $rentalJobTypes;
+            }
+
+            $rentalTransferJobTypes = $jobTypes
+                ->filter(fn($jobType) => $this->isInstantJobType($jobType))
+                ->values();
+
+            if ($rentalTransferJobTypes->isEmpty()) {
+                $rentalTransferJobTypes = new EloquentCollection([$this->makeFallbackInstantJobType()]);
+            }
+
+            return new EloquentCollection(
+                $rentalJobTypes->concat($rentalTransferJobTypes)->unique('id')->values()->all()
+            );
         }
 
         if (!$this->isInstantShelterListing()) {
@@ -875,6 +892,22 @@ class Maid extends Model
         }
 
         return new EloquentCollection($instantJobTypes->unique('id')->values()->all());
+    }
+
+    /**
+     * سيرة عاملة إيجار مُتاحة أيضًا لنقل الخدمات على الموقع الخارجي.
+     * تُستخدم لعرض ملاحظة توضيحية للعميل على بطاقة السيرة.
+     */
+    public function getIsRentalTransferListingAttribute(): bool
+    {
+        if (!CvOptionsSettings::rentalTransferEnabled()) {
+            return false;
+        }
+
+        $hasRentalJobType = $this->getLoadedJobTypes()
+            ->contains(fn($jobType) => $this->isRentalJobType($jobType));
+
+        return $hasRentalJobType && $this->isInstantShelterListing();
     }
 
     public function getEffectiveJobTypeAttribute(): ?JobType

@@ -73,14 +73,25 @@
                 </select>
             </div>
 
-            <div class="col-4 mt-4">
-                <label for="TextInput" class="form-label">متاحة للاستلام الفوري</label>
-                <select name="is_available_for_instant" class="form-select form-control select2" data-validation="required" id="is_available_for_instant">
-                    <option value="0" @if($contract->info && $contract->info->is_available_for_instant == false) selected @endif>غير متاحة</option>
-                    <option value="1" @if($contract->info && $contract->info->is_available_for_instant == true) selected @endif>متاحة</option>
-                </select>
-                <small class="form-text text-muted">متاح فقط للعاملات التي ترغب بالعمل</small>
-            </div>
+            @php
+                $maidJobTypeTitles = optional($contract->maid)->jobTypes?->pluck('title')->implode(' ') ?? '';
+                $normalizedJobTypeTitles = str_replace(['أ', 'إ', 'آ'], 'ا', mb_strtolower($maidJobTypeTitles));
+                $isRentalMaid =
+                    str_contains($normalizedJobTypeTitles, 'ايجار') ||
+                    str_contains($normalizedJobTypeTitles, 'تاجير') ||
+                    str_contains($normalizedJobTypeTitles, 'rent');
+                $showInstantReceiptField = !$isRentalMaid || \App\Support\CvOptionsSettings::rentalTransferEnabled();
+            @endphp
+            @if ($showInstantReceiptField)
+                <div class="col-4 mt-4">
+                    <label for="TextInput" class="form-label">متاحة للاستلام الفوري</label>
+                    <select name="is_available_for_instant" class="form-select form-control select2" data-validation="required" id="is_available_for_instant">
+                        <option value="0" @if($contract->info && $contract->info->is_available_for_instant == false) selected @endif>غير متاحة</option>
+                        <option value="1" @if($contract->info && $contract->info->is_available_for_instant == true) selected @endif>متاحة</option>
+                    </select>
+                    <small class="form-text text-muted">متاح فقط للعاملات التي ترغب بالعمل</small>
+                </div>
+            @endif
 
             <div class="col-12 mt-4">
                 <label for="TextInput" class="form-label">{{helperTrans("ingaz.back_reasons")}}</label>

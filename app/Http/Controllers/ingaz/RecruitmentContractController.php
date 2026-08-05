@@ -1080,6 +1080,8 @@ class RecruitmentContractController extends Controller
                 })
                 ->addColumn('contract_info', function ($row) {
                     $contractInfo = '';
+                    $contractArrival = $this->resolveWorkerArrivalDetails($row);
+
                     if ($row->info) {
                         $contractInfo .= '<div class="contract-info d-flex flex-column gap-3">';
                         if ($row->info->msaned_number) {
@@ -1157,6 +1159,24 @@ class RecruitmentContractController extends Controller
                         }
                     }
 
+                    // تاريخ الوصول كملاحظة واضحة على كل عقد، سواء وصلت العاملة أو ما زالت مجدولة.
+                    if ($contractArrival['date_label']) {
+                        $arrivalNoteClass = $contractArrival['has_arrived']
+                            ? 'contract-arrival-note contract-arrival-note--arrived'
+                            : 'contract-arrival-note contract-arrival-note--expected';
+                        $arrivalNoteLabel = $contractArrival['has_arrived'] ? 'تاريخ الوصول' : 'الوصول المتوقع';
+                        $contractInfo .= '<div class="mt-2">'
+                            . '<span class="' . $arrivalNoteClass . '">'
+                            . '<i class="fas fa-plane-arrival me-1"></i>'
+                            . $arrivalNoteLabel . ': '
+                            . '<span dir="ltr">' . e($contractArrival['date_label']) . '</span>'
+                            . ($contractArrival['time_label']
+                                ? ' - <span dir="ltr">' . e($contractArrival['time_label']) . '</span>'
+                                : '')
+                            . '</span>'
+                            . '</div>';
+                    }
+
                     if ((int) ($row->notes_count ?? 0) > 0) {
                         $notesCount = (int) $row->notes_count;
                         $contractInfo .= '<div class="mt-2">'
@@ -1173,19 +1193,26 @@ class RecruitmentContractController extends Controller
                 ->addColumn('arrival_info', function ($row) {
                     $arrival = $this->resolveWorkerArrivalDetails($row);
 
-                    if (!$arrival['has_arrived']) {
+                    // قبل الوصول الفعلي نعرض تاريخ الوصول المتوقع (المحجوز في الرحلة)
+                    // بدل الشرطة، حتى يظهر التاريخ لعقود مرحلة التذكرة أيضاً.
+                    if (!$arrival['has_arrived'] && !$arrival['date_label']) {
                         return '<span class="text-muted">—</span>';
                     }
 
                     $html = '<div class="arrival-info-cell">';
-                    $html .= '<div class="arrival-info-status">'
-                        . '<i class="fas fa-circle-check"></i>'
-                        . '<span>وصلت العاملة</span>'
-                        . '</div>';
+                    $html .= $arrival['has_arrived']
+                        ? '<div class="arrival-info-status">'
+                            . '<i class="fas fa-circle-check"></i>'
+                            . '<span>وصلت العاملة</span>'
+                            . '</div>'
+                        : '<div class="arrival-info-status text-warning">'
+                            . '<i class="fas fa-plane-departure"></i>'
+                            . '<span>لم تصل بعد</span>'
+                            . '</div>';
 
                     if ($arrival['date_label']) {
                         $html .= '<div class="arrival-info-date">'
-                            . '<span>تاريخ الوصول للمملكة</span>'
+                            . '<span>' . ($arrival['has_arrived'] ? 'تاريخ الوصول للمملكة' : 'تاريخ الوصول المتوقع') . '</span>'
                             . '<strong dir="ltr">' . e($arrival['date_label']) . '</strong>'
                             . '</div>';
                     } else {

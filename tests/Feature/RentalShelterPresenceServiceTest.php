@@ -31,6 +31,18 @@ class RentalShelterPresenceServiceTest extends TestCase
         ]);
     }
 
+    public function test_closing_a_rental_returns_the_maid_inside_and_willing_to_work(): void
+    {
+        [$shelterContract, $rentalContract] = $this->makeStaleRentalShelterRecord('completed', 'no');
+
+        $returned = app(RentalShelterPresenceService::class)->returnInside($rentalContract);
+
+        $this->assertTrue($returned);
+        $shelterContract->info->refresh();
+        $this->assertFalse((bool) $shelterContract->info->is_outside_shelter);
+        $this->assertSame('yes', $shelterContract->info->wants_to_work);
+    }
+
     public function test_another_outside_rental_prevents_returning_maid_to_shelter(): void
     {
         [$shelterContract, $rentalContract, $maidId, $userId] = $this->makeStaleRentalShelterRecord('completed');
@@ -60,7 +72,7 @@ class RentalShelterPresenceServiceTest extends TestCase
         $this->assertSame($rentalContract->id, $shelterContract->info->outside_shelter_reference_id);
     }
 
-    private function makeStaleRentalShelterRecord(string $rentalStatus): array
+    private function makeStaleRentalShelterRecord(string $rentalStatus, string $wantsToWork = 'yes'): array
     {
         $suffix = str_replace('.', '', uniqid('', true));
         $nationalityId = DB::table('nationalities')->insertGetId([
@@ -107,7 +119,7 @@ class RentalShelterPresenceServiceTest extends TestCase
             'outside_shelter_reason' => 'rental_delivery',
             'outside_shelter_reference_type' => RentalContract::class,
             'outside_shelter_reference_id' => 999999,
-            'wants_to_work' => 'yes',
+            'wants_to_work' => $wantsToWork,
         ]);
 
         $rentalContractId = DB::table('rental_contracts')->insertGetId([
