@@ -654,7 +654,7 @@ return array (
   'Worker Name:' => 'اسم العاملة:',
   'Passport Number:' => 'رقم الجواز:',
   'External Office:' => 'المكتب الخارجي:',
-  'Religion:' => 'الدين:',
+  'Religion:' => 'الديانة:',
   'Profession:' => 'المهنة:',
   'Experience Years:' => 'سنوات الخبرة:',
   'Experience Status:' => 'حالة الخبرة:',

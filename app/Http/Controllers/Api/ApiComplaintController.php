@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Enums\ingaz\ComplaintSubmissionMethodEnum;
 use App\Http\Actions\ingaz\ComplaintAction as objAction;
 use App\Http\Controllers\admin\Controller;
 use App\Http\Requests\ingaz\ComplaintRequest;
@@ -64,6 +65,7 @@ class ApiComplaintController extends Controller
     {
         $dataInsert = $request->only($this->postData);
         $dataInsert['user_id'] = auth('api')->user()->id;
+        $dataInsert['submission_method'] = ComplaintSubmissionMethodEnum::MobileApp->value;
 
         // Handle file upload
         if ($request->hasFile('file')) {

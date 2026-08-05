@@ -597,6 +597,9 @@ class MaidController extends Controller
 
         $request->merge(['job_type' => $rentalJobTypeId]);
 
+        $cvGenerationAvailable = MaidCvTemplateSettings::enabled();
+        $cvOutputType = MaidCvTemplateSettings::outputType();
+
         if ($request->ajax()) {
             $rows = objModel::query()
                 ->with([
@@ -759,7 +762,7 @@ class MaidController extends Controller
                     return '<span class="badge bg-success">' . helperTrans('ingaz.maid_status_available') . '</span>';
                 })
                 ->editColumn('created_at', fn(Maid $row) => $row->created_at?->format('Y-m-d h:i A') ?? '-')
-                ->addColumn('actions', function (Maid $row) {
+                ->addColumn('actions', function (Maid $row) use ($cvGenerationAvailable, $cvOutputType) {
                     $menuItems = [];
                     $canCreateRentalContract = $this->canCreateRentalContractForMaid($row);
                     $canUseAvailableActions = (bool) $row->available && in_array($row->status, ['available', 'completed'], true);
@@ -796,10 +799,25 @@ class MaidController extends Controller
                         </a></li>';
                     }
 
+                    if (@AdminGuardHasPerm(\App\PermKeys::MAIDS_EXPORT_PDF) && ($generatedCvPath = $this->maidGeneratedCvPath($row))) {
+                        $generatedExtension = strtoupper(pathinfo($generatedCvPath, PATHINFO_EXTENSION));
+                        $menuItems[] = '<li><a class="dropdown-item" href="' . route('maids.generated-cv.download', $row->id) . '">
+                            <i class="fas fa-download text-danger me-2"></i>تنزيل ملف السيرة ' . e($generatedExtension) . '
+                        </a></li>';
+                    }
+
                     if (@AdminGuardHasPerm(\App\PermKeys::MAIDS_EDIT)) {
                         $menuItems[] = '<li><a class="dropdown-item" href="' . route($this->mainRoute . '.edit', $row->id) . '">
                             <i class="fas fa-pen text-secondary me-2"></i>' . helperTrans('ingaz.edit_maid') . '
                         </a></li>';
+
+                        if ($cvGenerationAvailable) {
+                            $generationIcon = $cvOutputType === MaidCvPdfGenerator::OUTPUT_IMAGE ? 'fa-file-image text-info' : 'fa-file-pdf text-danger';
+                            $generationLabel = filled($row->cv_preview) ? 'إعادة توليد السيرة الذاتية' : 'توليد السيرة الذاتية';
+                            $menuItems[] = '<li><button type="button" class="dropdown-item generate-maid-cv" data-url="' . route('maids.generate-cv', $row->id) . '">
+                                <i class="fas ' . $generationIcon . ' me-2"></i>' . $generationLabel . '
+                            </button></li>';
+                        }
                     }
 
                     if (@AdminGuardHasPerm(\App\PermKeys::MAIDS_TOGGLE_STATUS)) {
@@ -900,6 +918,7 @@ class MaidController extends Controller
             'showRentalStats' => true,
             'isRentalPage' => true,
             'rentalTypeId' => $rentalJobTypeId,
+            'cvOutputType' => $cvOutputType,
         ]);
     }
 

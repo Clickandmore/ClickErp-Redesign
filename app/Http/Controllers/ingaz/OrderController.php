@@ -22,6 +22,7 @@ use App\Models\ingaz\UserAddress;
 use App\Models\Branch;
 use App\Models\Contract;
 use App\Models\MaidUnavailableRecord;
+use App\Services\ManagedFileStorage;
 use App\Support\AutomationSettings;
 use App\Support\SystemModuleManager;
 use Illuminate\Http\Request;
@@ -971,13 +972,13 @@ class OrderController extends Controller
             abort(404);
         }
 
-        $filePath = storage_path('app/public/' . $transfer->file); // Adjusted the path for the 'public' disk
+        $storage = app(ManagedFileStorage::class);
 
-        if (!file_exists($filePath)) {
-            abort(404);
-        }
-
-        return response()->download($filePath, basename($transfer->file));
+        return $storage->downloadResponse(
+            $transfer->file,
+            basename($transfer->file),
+            $storage->mimeType($transfer->file)
+        );
     }
 
     public function completeOrder(Request $request, $id)

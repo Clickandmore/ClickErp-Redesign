@@ -65,27 +65,13 @@ class ManagedFileStorage
             return false;
         }
 
-        if (!$this->isR2Path($storedPath)) {
-            if (Storage::disk('public')->exists($storedPath)) {
-                return true;
-            }
-
-            if (!R2StorageSettings::isReady()) {
-                return false;
-            }
-
-            try {
-                return $this->r2Disk()->exists($this->legacyR2Path($storedPath));
-            } catch (\Throwable $exception) {
-                report($exception);
-                return false;
-            }
-        }
-
         try {
-            return $this->r2Disk()->exists($this->path($storedPath));
+            [$disk, $path] = $this->readLocation($storedPath);
+
+            return $disk->exists($path);
         } catch (\Throwable $exception) {
             report($exception);
+
             return false;
         }
     }
@@ -96,22 +82,23 @@ class ManagedFileStorage
             return null;
         }
 
-        if (!$this->isR2Path($storedPath)) {
-            if (Storage::disk('public')->exists($storedPath)) {
-                return asset('storage/' . ltrim($storedPath, '/'));
-            }
+        try {
+            [$disk, $path, $isR2] = $this->readLocation($storedPath);
 
-            if (!R2StorageSettings::isReady()) {
+            if (!$disk->exists($path)) {
                 return null;
             }
 
-            // Some pre-R2 records retain their original relative path even after
-            // the file was copied below root_prefix in the R2 bucket.
-            return $this->r2Url($this->legacyR2Path($storedPath));
-        }
+            if (!$isR2) {
+                return asset('storage/' . ltrim($path, '/'));
+            }
 
-        try {
-            return $this->r2Url($this->path($storedPath));
+            $settings = R2StorageSettings::all();
+            if (filled($settings['public_url'])) {
+                return rtrim($settings['public_url'], '/') . '/' . ltrim($path, '/');
+            }
+
+            return $disk->temporaryUrl($path, now()->addMinutes(30));
         } catch (\Throwable $exception) {
             report($exception);
             return null;
@@ -124,14 +111,31 @@ class ManagedFileStorage
             return false;
         }
 
-        try {
-            [$disk, $path] = $this->readLocation($storedPath);
+        if ($this->isR2Path($storedPath)) {
+            try {
+                return $this->r2Disk()->delete($this->path($storedPath));
+            } catch (\Throwable $exception) {
+                report($exception);
 
-            return $disk->delete($path);
-        } catch (\Throwable $exception) {
-            report($exception);
-            return false;
+                return false;
+            }
         }
+
+        // Legacy paths can exist in both places during migration. Delete both so
+        // the local fallback cannot make a deleted R2 file reappear.
+        $settings = R2StorageSettings::all();
+        $deletedFromR2 = true;
+
+        if (R2StorageSettings::isReady($settings)) {
+            $deletedFromR2 = $this->deleteIfExists(
+                $this->r2Disk($settings),
+                $this->legacyR2Path($storedPath, $settings)
+            );
+        }
+
+        $deletedLocally = $this->deleteIfExists(Storage::disk('public'), $storedPath);
+
+        return $deletedFromR2 && $deletedLocally;
     }
 
     public function inlineResponse(string $storedPath, string $filename, string $contentType): StreamedResponse
@@ -226,46 +230,46 @@ class ManagedFileStorage
         return $this->isR2Path($storedPath) ? substr($storedPath, strlen(self::R2_PREFIX)) : $storedPath;
     }
 
-    private function legacyR2Path(string $storedPath, ?array $settings = null): string
-    {
-        $settings ??= R2StorageSettings::all();
-        $path = ltrim($storedPath, '/');
-        $prefix = trim((string) ($settings['root_prefix'] ?? ''), '/');
-
-        if ($prefix === '' || $path === $prefix || str_starts_with($path, $prefix . '/')) {
-            return $path;
-        }
-
-        return $prefix . '/' . $path;
-    }
-
-    private function r2Url(string $path): ?string
-    {
-        try {
-            $settings = R2StorageSettings::all();
-
-            if (filled($settings['public_url'])) {
-                return rtrim($settings['public_url'], '/') . '/' . ltrim($path, '/');
-            }
-
-            return $this->r2Disk($settings)->temporaryUrl($path, now()->addMinutes(30));
-        } catch (\Throwable $exception) {
-            report($exception);
-            return null;
-        }
-    }
-
+    /**
+     * @return array{0: mixed, 1: string, 2: bool}
+     */
     private function readLocation(string $storedPath): array
     {
         if ($this->isR2Path($storedPath)) {
-            return [$this->r2Disk(), $this->path($storedPath)];
+            return [$this->r2Disk(), $this->path($storedPath), true];
         }
 
-        if (Storage::disk('public')->exists($storedPath) || !R2StorageSettings::isReady()) {
-            return [Storage::disk('public'), $storedPath];
+        $settings = R2StorageSettings::all();
+        if (R2StorageSettings::isReady($settings)) {
+            try {
+                $disk = $this->r2Disk($settings);
+                $path = $this->legacyR2Path($storedPath, $settings);
+
+                if ($disk->exists($path)) {
+                    return [$disk, $path, true];
+                }
+            } catch (\Throwable $exception) {
+                report($exception);
+            }
         }
 
-        return [$this->r2Disk(), $this->legacyR2Path($storedPath)];
+        return [Storage::disk('public'), $storedPath, false];
+    }
+
+    private function legacyR2Path(string $storedPath, array $settings): string
+    {
+        return trim($settings['root_prefix'] . '/' . ltrim($storedPath, '/'), '/');
+    }
+
+    private function deleteIfExists($disk, string $path): bool
+    {
+        try {
+            return !$disk->exists($path) || $disk->delete($path);
+        } catch (\Throwable $exception) {
+            report($exception);
+
+            return false;
+        }
     }
 
     private function r2Disk(?array $settings = null)

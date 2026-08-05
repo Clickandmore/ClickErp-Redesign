@@ -625,6 +625,27 @@
 
         <div class="col-12">
             <div class="guide-card">
+                <label class="form-label fw-bold" for="cv_public_site_url">
+                    <i class="fas fa-globe text-primary me-1"></i> رابط الموقع العام للسيرة الذاتية
+                </label>
+                <input type="url"
+                    class="form-control @error('cv_public_site_url') is-invalid @enderror"
+                    name="cv_public_site_url" id="cv_public_site_url" dir="ltr"
+                    placeholder="https://example.com"
+                    value="{{ old('cv_public_site_url', $settings->cv_public_site_url ?? config('app.public_site_url')) }}">
+                <div class="form-text">
+                    يُستخدم هذا النطاق في رابط QR داخل السيرة، مثال:
+                    <code>https://example.com/all-workers/123?type=estqdam</code>.
+                    عند تركه فارغًا سيُستخدم <code>PUBLIC_SITE_URL</code> كقيمة احتياطية.
+                </div>
+                @error('cv_public_site_url')
+                    <div class="invalid-feedback">{{ $message }}</div>
+                @enderror
+            </div>
+        </div>
+
+        <div class="col-12">
+            <div class="guide-card">
                 <label class="form-label fw-bold d-block mb-3">
                     <i class="fas fa-file-export text-primary me-1"></i> نوع الملف الناتج عند التوليد
                 </label>

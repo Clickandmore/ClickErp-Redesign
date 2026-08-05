@@ -34,7 +34,16 @@ class ApiMaidController extends Controller
 
         $data['type'] = $request->type ?? 'all';
         $data['jobTitles'] = $jobTitleAction->get();
-        $data['nationalities'] = $nationalityAction->get();
+        $data['nationalities'] = $nationalityAction->getVisible()
+            ->map(function ($nationality) {
+                $payload = $nationality->toArray();
+                $payload['title'] = filled($nationality->title)
+                    ? $nationality->title
+                    : $nationality->sub_title;
+
+                return $payload;
+            })
+            ->values();
         $data['blade_title'] = match ($request->type) {
             'all' => __('ingaz.recruitment_request'),
             'estqdam' => __('ingaz.recruitment_request'),

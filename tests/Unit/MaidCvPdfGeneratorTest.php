@@ -39,6 +39,19 @@ class MaidCvPdfGeneratorTest extends TestCase
         $this->assertStringNotContainsString('fonts.googleapis.com', $html);
     }
 
+    public function test_it_uses_the_cv_public_site_url_while_rendering_and_restores_the_environment_value(): void
+    {
+        config(['app.public_site_url' => 'https://environment.example']);
+
+        $html = app(MaidCvPdfGenerator::class)->renderTemplate(
+            '<span>{{ config("app.public_site_url") }}</span>',
+            ['settings' => (object) ['cv_public_site_url' => 'https://website.example/']]
+        );
+
+        $this->assertStringContainsString('<span>https://website.example</span>', $html);
+        $this->assertSame('https://environment.example', config('app.public_site_url'));
+    }
+
     public function test_it_identifies_only_generated_cv_preview_paths(): void
     {
         $generator = app(MaidCvPdfGenerator::class);
