@@ -179,6 +179,7 @@
             $cvFileUrl = $cvPdfPath ? showFile($cvPdfPath) : null;
             $cvPreviewUrl = $cvPdfPath ? route('maids.cv.preview', $maid->id) : null;
             $externalCvUrl = filled($maid->maid_cv_file) ? showFile($maid->maid_cv_file) : null;
+            $generatedCvExtension = $generatedCvPath ? strtoupper(pathinfo($generatedCvPath, PATHINFO_EXTENSION)) : null;
         @endphp
 
         <div class="container-fluid py-3 py-lg-4">
@@ -276,6 +277,11 @@
                         @if (@AdminGuardHasPerm(\App\PermKeys::MAIDS_EDIT))
                             <a href="{{ route('maids.edit', $maid->id) }}" class="btn btn-primary">
                                 <i class="fas fa-edit me-1"></i>{{ helperTrans('ingaz.edit_maid') }}
+                            </a>
+                        @endif
+                        @if ($generatedCvPath && @AdminGuardHasPerm(\App\PermKeys::MAIDS_EXPORT_PDF))
+                            <a href="{{ route('maids.generated-cv.download', $maid->id) }}" class="btn btn-danger">
+                                <i class="fas fa-download me-1"></i>تنزيل النموذج {{ $generatedCvExtension }}
                             </a>
                         @endif
                         <a href="#maid-attachments" class="btn btn-outline-info">
@@ -644,6 +650,22 @@
                             <h5 class="fw-bold mb-3 d-flex align-items-center gap-2">
                                 <i class="fas fa-paperclip text-info"></i>{{ helperTrans('ingaz.maid_attachments') }}
                             </h5>
+
+                            @if ($generatedCvPath && @AdminGuardHasPerm(\App\PermKeys::MAIDS_EXPORT_PDF))
+                                <div class="border border-danger-subtle rounded-3 p-3 mb-3 bg-danger-subtle">
+                                    <div class="d-flex align-items-center gap-3">
+                                        <i class="fas fa-file-arrow-down text-danger fs-2"></i>
+                                        <div class="flex-grow-1">
+                                            <div class="fw-semibold">نموذج السيرة المُنشأ</div>
+                                            <div class="text-muted small">النموذج جاهز للتنزيل بصيغة {{ $generatedCvExtension }}</div>
+                                        </div>
+                                        <a href="{{ route('maids.generated-cv.download', $maid->id) }}"
+                                            class="btn btn-danger btn-sm flex-shrink-0">
+                                            <i class="fas fa-download me-1"></i>تنزيل
+                                        </a>
+                                    </div>
+                                </div>
+                            @endif
 
                             @if ($cvFileUrl)
                                 <div class="border rounded-3 p-3 mb-3 bg-light">

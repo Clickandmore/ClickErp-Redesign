@@ -496,14 +496,14 @@ class MaidController extends Controller
                     if (@AdminGuardHasPerm(\App\PermKeys::MAIDS_EXPORT_PDF) && ($generatedCvPath = $this->maidGeneratedCvPath($row))) {
                         $generatedExtension = strtoupper(pathinfo($generatedCvPath, PATHINFO_EXTENSION));
                         $menuItems .= '<li><a class="dropdown-item" href="' . route('maids.generated-cv.download', $row->id) . '">'
-                            . '<i class="fas fa-download text-danger me-2"></i>تنزيل ملف السيرة ' . e($generatedExtension) . '</a></li>';
+                            . '<i class="fas fa-download text-danger me-2"></i>تنزيل النموذج ' . e($generatedExtension) . '</a></li>';
                     }
 
                     if (@AdminGuardHasPerm(\App\PermKeys::MAIDS_EDIT)) {
                         $menuItems .= '<li><a class="dropdown-item" href="' . route($this->mainRoute . '.edit', $row->id) . '"><i class="fas fa-edit text-secondary me-2"></i>' . helperTrans('ingaz.edit_maid') . '</a></li>';
                         if ($cvGenerationAvailable) {
                             $generationIcon = $cvOutputType === MaidCvPdfGenerator::OUTPUT_IMAGE ? 'fa-file-image text-info' : 'fa-file-pdf text-danger';
-                            $generationLabel = filled($row->cv_preview) ? 'إعادة توليد السيرة الذاتية' : 'توليد السيرة الذاتية';
+                            $generationLabel = $this->maidGeneratedCvPath($row) ? 'إعادة إنشاء النموذج' : 'إنشاء نموذج';
                             $menuItems .= '<li><button type="button" class="dropdown-item generate-maid-cv" data-url="' . route('maids.generate-cv', $row->id) . '"><i class="fas ' . $generationIcon . ' me-2"></i>' . $generationLabel . '</button></li>';
                         }
                         if ($row->available && $row->status === 'available') {
@@ -802,7 +802,7 @@ class MaidController extends Controller
                     if (@AdminGuardHasPerm(\App\PermKeys::MAIDS_EXPORT_PDF) && ($generatedCvPath = $this->maidGeneratedCvPath($row))) {
                         $generatedExtension = strtoupper(pathinfo($generatedCvPath, PATHINFO_EXTENSION));
                         $menuItems[] = '<li><a class="dropdown-item" href="' . route('maids.generated-cv.download', $row->id) . '">
-                            <i class="fas fa-download text-danger me-2"></i>تنزيل ملف السيرة ' . e($generatedExtension) . '
+                            <i class="fas fa-download text-danger me-2"></i>تنزيل النموذج ' . e($generatedExtension) . '
                         </a></li>';
                     }
 
@@ -813,7 +813,7 @@ class MaidController extends Controller
 
                         if ($cvGenerationAvailable) {
                             $generationIcon = $cvOutputType === MaidCvPdfGenerator::OUTPUT_IMAGE ? 'fa-file-image text-info' : 'fa-file-pdf text-danger';
-                            $generationLabel = filled($row->cv_preview) ? 'إعادة توليد السيرة الذاتية' : 'توليد السيرة الذاتية';
+                            $generationLabel = $this->maidGeneratedCvPath($row) ? 'إعادة إنشاء النموذج' : 'إنشاء نموذج';
                             $menuItems[] = '<li><button type="button" class="dropdown-item generate-maid-cv" data-url="' . route('maids.generate-cv', $row->id) . '">
                                 <i class="fas ' . $generationIcon . ' me-2"></i>' . $generationLabel . '
                             </button></li>';
@@ -1288,6 +1288,7 @@ class MaidController extends Controller
             'available_at' => $maid->available_at,
             'created_at' => $maid->created_at,
         ];
+        $generatedCvPath = $this->maidGeneratedCvPath($maid);
 
         $imageExtensions = ['jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp', 'svg'];
         $maidImages = collect([
@@ -1391,7 +1392,8 @@ class MaidController extends Controller
             'isRentalMaid',
             'backToListRoute',
             'hrEmployeeRecord',
-            'maidImages'
+            'maidImages',
+            'generatedCvPath'
         ));
     }
 
@@ -2127,7 +2129,7 @@ class MaidController extends Controller
 
             return response()->json([
                 'success' => true,
-                'message' => 'تم توليد السيرة الذاتية بنجاح.',
+                'message' => 'تم إنشاء النموذج بنجاح.',
                 'path' => $path,
                 'output_type' => MaidCvTemplateSettings::outputType(),
                 'preview_url' => route('maids.cv.preview', $maid->id),
@@ -2153,13 +2155,13 @@ class MaidController extends Controller
             'maid_ids.*' => ['required', 'integer', 'distinct', 'exists:maids,id'],
         ], [
             'maid_ids.required' => 'يجب تحديد سيرة واحدة على الأقل.',
-            'maid_ids.max' => 'يمكن توليد 50 سيرة كحد أقصى في العملية الواحدة.',
+            'maid_ids.max' => 'يمكن إنشاء 50 نموذجًا كحد أقصى في العملية الواحدة.',
         ]);
 
         if (!MaidCvTemplateSettings::enabled()) {
             return response()->json([
                 'success' => false,
-                'message' => 'توليد السيرة الذاتية غير مفعل أو لم يتم رفع القالب.',
+                'message' => 'إنشاء نموذج السيرة غير مفعل أو لم يتم رفع القالب.',
             ], 422);
         }
 
@@ -2192,8 +2194,8 @@ class MaidController extends Controller
         return response()->json([
             'success' => $generatedCount > 0,
             'message' => $failedCount === 0
-                ? "تم توليد {$generatedCount} ملف سيرة ذاتية بنجاح."
-                : "تم توليد {$generatedCount} ملف، وتعذر توليد {$failedCount} ملف.",
+                ? "تم إنشاء {$generatedCount} نموذج سيرة ذاتية بنجاح."
+                : "تم إنشاء {$generatedCount} نموذج، وتعذر إنشاء {$failedCount} نموذج.",
             'generated_count' => $generatedCount,
             'failed_count' => $failedCount,
             'generated_ids' => $generated,
@@ -2205,7 +2207,7 @@ class MaidController extends Controller
     public function downloadGeneratedCv(Maid $maid, ManagedFileStorage $storage)
     {
         $path = $this->maidGeneratedCvPath($maid);
-        abort_unless($path, 404, 'ملف السيرة الذاتية المولد غير موجود.');
+        abort_unless($path, 404, 'نموذج السيرة المُنشأ غير موجود.');
 
         return $storage->downloadResponse(
             $path,
@@ -2241,7 +2243,7 @@ class MaidController extends Controller
 
         if ($exportable->isEmpty()) {
             throw ValidationException::withMessages([
-                'maid_ids' => 'السير المحددة لا تحتوي على ملفات مولدة. استخدم زر التوليد الجماعي أولًا.',
+                'maid_ids' => 'السير المحددة لا تحتوي على نماذج منشأة. استخدم زر الإنشاء الجماعي أولًا.',
             ]);
         }
 

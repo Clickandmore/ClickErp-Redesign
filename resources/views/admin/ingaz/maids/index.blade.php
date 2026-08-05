@@ -139,7 +139,7 @@
                             <button type="button" class="btn btn-outline-danger btn-sm maid-cv-bulk-action"
                                 id="bulkGenerateMaidCvsButton" disabled>
                                 <i class="fas fa-cogs me-1"></i>
-                                توليد PDF للمحدد (<span class="maid-cv-selected-count">0</span>)
+                                إنشاء نموذج للمحدد (<span class="maid-cv-selected-count">0</span>)
                             </button>
                         @endif
                         @if ($canExportGeneratedCv)
@@ -913,17 +913,17 @@
                     Swal.fire({
                         icon: 'warning',
                         title: 'عدد السير أكبر من الحد المسموح',
-                        text: 'يمكن توليد 50 سيرة كحد أقصى في العملية الواحدة.'
+                        text: 'يمكن إنشاء 50 نموذجًا كحد أقصى في العملية الواحدة.'
                     });
                     return;
                 }
 
                 Swal.fire({
                     icon: 'question',
-                    title: 'توليد ملفات السيرة الذاتية',
-                    text: `سيتم توليد أو إعادة توليد ${maidIds.length} ملف {{ ($cvOutputType ?? 'pdf') === 'image' ? 'صورة' : 'PDF' }}. هل تريد المتابعة؟`,
+                    title: 'إنشاء نماذج السيرة الذاتية',
+                    text: `سيتم إنشاء أو إعادة إنشاء ${maidIds.length} نموذج {{ ($cvOutputType ?? 'pdf') === 'image' ? 'صورة' : 'PDF' }}. هل تريد المتابعة؟`,
                     showCancelButton: true,
-                    confirmButtonText: 'نعم، ابدأ التوليد',
+                    confirmButtonText: 'نعم، ابدأ الإنشاء',
                     cancelButtonText: @json(helperTrans('ingaz.cancel')),
                     confirmButtonColor: '#dc3545'
                 }).then((result) => {
@@ -932,7 +932,7 @@
                     }
 
                     Swal.fire({
-                        title: 'جاري توليد ملفات السيرة',
+                        title: 'جاري إنشاء نماذج السيرة',
                         text: 'قد تستغرق العملية بعض الوقت حسب عدد السير المحددة.',
                         allowOutsideClick: false,
                         didOpen: () => Swal.showLoading()
@@ -951,14 +951,14 @@
                                 icon: response.failed_count > 0 ? 'warning' : 'success',
                                 title: response.message,
                                 text: response.failed_count > 0
-                                    ? 'يمكن إعادة المحاولة للسير التي تعذر توليدها.'
+                                    ? 'يمكن إعادة المحاولة للنماذج التي تعذر إنشاؤها.'
                                     : 'يمكنك الآن تصدير الملفات المحددة.',
                             });
                         },
                         error: function(xhr) {
                             Swal.fire({
                                 icon: 'error',
-                                title: 'تعذر توليد ملفات السيرة',
+                                title: 'تعذر إنشاء نماذج السيرة',
                                 text: xhr.responseJSON?.message
                                     || xhr.responseJSON?.errors?.maid_ids?.[0]
                                     || @json(helperTrans('ingaz.unexpected_error'))
@@ -1391,7 +1391,7 @@
 
                 button.prop('disabled', true);
                 Swal.fire({
-                    title: 'جاري توليد السيرة الذاتية',
+                    title: 'جاري إنشاء النموذج',
                     text: @json(($cvOutputType ?? 'pdf') === 'image'
                         ? 'يرجى الانتظار حتى يتم إنشاء صورة السيرة الذاتية.'
                         : 'يرجى الانتظار حتى يتم إنشاء ملف PDF.'),
@@ -1409,7 +1409,7 @@
                         table.ajax.reload(null, false);
                         Swal.fire({
                             icon: 'success',
-                            title: response.message || 'تم توليد السيرة الذاتية بنجاح',
+                            title: response.message || 'تم إنشاء النموذج بنجاح',
                             timer: 2200,
                             showConfirmButton: false
                         });
@@ -1417,7 +1417,7 @@
                     error: function(xhr) {
                         Swal.fire({
                             icon: 'error',
-                            title: 'تعذر توليد السيرة الذاتية',
+                            title: 'تعذر إنشاء النموذج',
                             text: xhr.responseJSON?.message || @json(helperTrans('ingaz.unexpected_error'))
                         });
                     },
