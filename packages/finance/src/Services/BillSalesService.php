@@ -434,6 +434,7 @@ class BillSalesService extends MainService
                 'zatca',
                 'saleAttachments',
                 'sourceInvoice',
+                'rentalSourceInvoice.rentalContract',
             ])
             ->findOrFail($id);
 

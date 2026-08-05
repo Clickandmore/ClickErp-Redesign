@@ -39,7 +39,9 @@ class ShareInvoiceZatcaService extends MainService
 
     public function shareInvoice($invoice_id)
     {
-        $invoice = $this->find($invoice_id);
+        $invoice = $this->model->with(['client', 'items.item'])->findOrFail($invoice_id);
+        $this->validateInvoiceForSharing($invoice);
+        $this->validateZatcaConfiguration();
 
         // Set temporary attributes (do not save them to the database)
         $invoice->setAttribute('is_B2B', (bool) $invoice->client->is_company);
@@ -51,7 +53,19 @@ class ShareInvoiceZatcaService extends MainService
         $resultOfShare = $this->sendToZatca($invoice, $customer, $items);
         $resultArray = json_decode($resultOfShare['result'], true);
 
-        $status = $resultArray['reportingStatus'] ?? $resultArray['clearanceStatus'];
+        if (!is_array($resultArray)) {
+            $httpStatus = (int) ($resultOfShare['http_status'] ?? 0);
+            $connectionError = trim((string) ($resultOfShare['curl_error'] ?? ''));
+            $details = $connectionError !== ''
+                ? $connectionError
+                : ($httpStatus > 0 ? 'HTTP ' . $httpStatus : 'لم يصل رد صالح من خادم الهيئة');
+
+            throw new \RuntimeException('تعذر الاتصال بهيئة الزكاة: ' . $details . '.');
+        }
+
+        $status = $resultArray['reportingStatus']
+            ?? $resultArray['clearanceStatus']
+            ?? ($invoice->is_B2B ? 'NOT_CLEARED' : 'NOT_REPORTED');
 
         // Use updateOrCreate to handle both update and create in a single call
         $zatcaInvoice = ZatcaInvoice::updateOrCreate(
@@ -76,6 +90,86 @@ class ShareInvoiceZatcaService extends MainService
 
         $invoice->update(['zatca_invoice_id' => $zatcaInvoice->id]);
 
+        if (!in_array($status, ['REPORTED', 'CLEARED'], true)) {
+            throw new \RuntimeException($this->zatcaRejectionMessage($resultArray));
+        }
+
         return $zatcaInvoice;
+    }
+
+    private function validateInvoiceForSharing(Sale $invoice): void
+    {
+        if (!$invoice->client) {
+            throw new \RuntimeException('الفاتورة غير مرتبطة بعميل.');
+        }
+
+        if ($invoice->items->isEmpty()) {
+            throw new \RuntimeException('لا توجد بنود في الفاتورة.');
+        }
+
+        $itemsTax = round((float) $invoice->items->sum('tax_value'), 2);
+        $invoiceTax = round((float) $invoice->total_tax_value, 2);
+        if (abs($itemsTax - $invoiceTax) > 0.01) {
+            throw new \RuntimeException('إجمالي ضريبة البنود لا يطابق ضريبة الفاتورة.');
+        }
+
+        foreach ($invoice->items as $index => $item) {
+            $taxRate = (float) $item->tax_per;
+            if ($taxRate <= 0) {
+                continue;
+            }
+
+            $taxableAmount = round(max(0, ((float) $item->price * (float) $item->amount) - (float) $item->discount_value), 2);
+            $expectedTax = round($taxableAmount * ($taxRate / 100), 2);
+            if (abs($expectedTax - (float) $item->tax_value) > 0.01) {
+                throw new \RuntimeException(
+                    'ضريبة البند رقم ' . ($index + 1) . ' غير صحيحة؛ المتوقع '
+                    . number_format($expectedTax, 2) . ' والمسجل '
+                    . number_format((float) $item->tax_value, 2) . ' ريال.'
+                );
+            }
+        }
+    }
+
+    private function validateZatcaConfiguration(): void
+    {
+        $setting = $this->zatcaSettingService->getSetting();
+        $required = [
+            'VAT_name' => 'اسم المنشأة',
+            'CRN_number' => 'رقم السجل التجاري',
+            'VAT_number' => 'الرقم الضريبي',
+            'city' => 'المدينة',
+            'street' => 'الشارع',
+            'postal_zone' => 'الرمز البريدي',
+        ];
+        $missing = [];
+
+        foreach ($required as $field => $label) {
+            if (blank($setting->{$field})) {
+                $missing[] = $label;
+            }
+        }
+
+        if ($missing !== []) {
+            throw new \RuntimeException('أكمل إعدادات هيئة الزكاة أولاً: ' . implode('، ', $missing) . '.');
+        }
+
+        if (!is_readable(base_path('certificate/private_key.pem'))
+            || !is_readable(base_path('certificate/response.json'))) {
+            throw new \RuntimeException('شهادة توقيع هيئة الزكاة أو المفتاح الخاص غير متوفرين.');
+        }
+    }
+
+    private function zatcaRejectionMessage(array $response): string
+    {
+        $messages = collect(data_get($response, 'validationResults.errorMessages', []))
+            ->map(fn ($error) => is_array($error) ? ($error['message'] ?? $error['status'] ?? null) : $error)
+            ->filter()
+            ->take(3)
+            ->implode(' | ');
+
+        return $messages !== ''
+            ? 'رفضت هيئة الزكاة الفاتورة: ' . $messages
+            : 'رفضت هيئة الزكاة الفاتورة. راجع بيانات الفاتورة وبيانات العميل والمنشأة.';
     }
 }

@@ -433,7 +433,8 @@ trait ZatcaInvoicesTrait
 
         $id = $invoice->invoice_no;
         $vatNo = $this->getSetting()->VAT_number;
-        $address = $this->getSetting()->city;
+        $crnNumber = $this->getSetting()->CRN_number;
+        $address = $this->getSetting()->street;
         $building = $this->getSetting()->building;
         $plot_identification = $this->getSetting()->plot_identification;
         $city_subdivision = $this->getSetting()->city_subdivision;
@@ -469,7 +470,7 @@ trait ZatcaInvoicesTrait
             'time' => date('H:i:s'),
             'previous_invoice_hash' => $invoice->PIH ?? 'NWZlY2ViNjZmZmM4NmYzOGQ5NTI3ODZjNmQ2OTZjNzljMmRiYzIzOWRkNGU5MWI0NjcyOWQ3M2EyN2ZiNTdlOQ==',
             'invoice_counter_number' => $invoice->invoice_no,
-            'CRN_number' => $vatNo,
+            'CRN_number' => $crnNumber,
             'street' => $address,
             'building' => $building,
             'plot_identification' => $plot_identification,
@@ -587,8 +588,9 @@ trait ZatcaInvoicesTrait
         curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
         $result = curl_exec($ch);
         $status_code = curl_getinfo($ch, CURLINFO_HTTP_CODE);   //get status code
+        $curlError = '';
         if (curl_errno($ch)) {
-            $result = curl_error($ch);
+            $curlError = curl_error($ch);
         }
         curl_close($ch);
 //        file_put_contents('certificate/compliance_invoice_pos_' . $id . '.json', $result);
@@ -599,7 +601,9 @@ trait ZatcaInvoicesTrait
             "invoice_hash"              => $invoiceHash,
             'file_path'                 => $relative_file_path,
             'qr'                        => $qr,
-            'uuid'                      => $UUID
+            'uuid'                      => $UUID,
+            'http_status'               => $status_code,
+            'curl_error'                => $curlError,
         ];
     }
 

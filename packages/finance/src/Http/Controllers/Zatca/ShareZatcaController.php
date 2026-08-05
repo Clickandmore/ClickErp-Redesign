@@ -29,7 +29,16 @@ class ShareZatcaController extends Controller
      */
     public function store(Request $request,ShareInvoiceZatcaService $service)
     {
-        return $service->shareInvoice($request->id);
+        $validated = $request->validate(['id' => ['required', 'integer', 'exists:fn_sales,id']]);
+
+        try {
+            return response()->json([
+                'message' => 'تمت مشاركة الفاتورة مع هيئة الزكاة بنجاح.',
+                'invoice' => $service->shareInvoice($validated['id']),
+            ]);
+        } catch (\Throwable $e) {
+            return response()->json(['message' => $e->getMessage()], 422);
+        }
     }
 
     /**

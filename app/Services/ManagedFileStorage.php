@@ -61,8 +61,25 @@ class ManagedFileStorage
 
     public function exists(?string $storedPath): bool
     {
+        if (!filled($storedPath)) {
+            return false;
+        }
+
         if (!$this->isR2Path($storedPath)) {
-            return filled($storedPath) && Storage::disk('public')->exists($storedPath);
+            if (Storage::disk('public')->exists($storedPath)) {
+                return true;
+            }
+
+            if (!R2StorageSettings::isReady()) {
+                return false;
+            }
+
+            try {
+                return $this->r2Disk()->exists($this->legacyR2Path($storedPath));
+            } catch (\Throwable $exception) {
+                report($exception);
+                return false;
+            }
         }
 
         try {
@@ -80,20 +97,21 @@ class ManagedFileStorage
         }
 
         if (!$this->isR2Path($storedPath)) {
-            return Storage::disk('public')->exists($storedPath)
-                ? asset('storage/' . ltrim($storedPath, '/'))
-                : null;
+            if (Storage::disk('public')->exists($storedPath)) {
+                return asset('storage/' . ltrim($storedPath, '/'));
+            }
+
+            if (!R2StorageSettings::isReady()) {
+                return null;
+            }
+
+            // Some pre-R2 records retain their original relative path even after
+            // the file was copied below root_prefix in the R2 bucket.
+            return $this->r2Url($this->legacyR2Path($storedPath));
         }
 
         try {
-            $settings = R2StorageSettings::all();
-            $path = $this->path($storedPath);
-
-            if (filled($settings['public_url'])) {
-                return rtrim($settings['public_url'], '/') . '/' . ltrim($path, '/');
-            }
-
-            return $this->r2Disk($settings)->temporaryUrl($path, now()->addMinutes(30));
+            return $this->r2Url($this->path($storedPath));
         } catch (\Throwable $exception) {
             report($exception);
             return null;
@@ -107,7 +125,9 @@ class ManagedFileStorage
         }
 
         try {
-            return $this->disk($storedPath)->delete($this->path($storedPath));
+            [$disk, $path] = $this->readLocation($storedPath);
+
+            return $disk->delete($path);
         } catch (\Throwable $exception) {
             report($exception);
             return false;
@@ -117,8 +137,7 @@ class ManagedFileStorage
     public function inlineResponse(string $storedPath, string $filename, string $contentType): StreamedResponse
     {
         abort_unless($this->exists($storedPath), 404);
-        $disk = $this->disk($storedPath);
-        $path = $this->path($storedPath);
+        [$disk, $path] = $this->readLocation($storedPath);
 
         return response()->stream(function () use ($disk, $path): void {
             $stream = $disk->readStream($path);
@@ -138,8 +157,7 @@ class ManagedFileStorage
     public function downloadResponse(string $storedPath, string $filename, string $contentType): StreamedResponse
     {
         abort_unless($this->exists($storedPath), 404);
-        $disk = $this->disk($storedPath);
-        $path = $this->path($storedPath);
+        [$disk, $path] = $this->readLocation($storedPath);
 
         return response()->stream(function () use ($disk, $path): void {
             $stream = $disk->readStream($path);
@@ -161,12 +179,16 @@ class ManagedFileStorage
      */
     public function readStream(string $storedPath)
     {
-        return $this->disk($storedPath)->readStream($this->path($storedPath));
+        [$disk, $path] = $this->readLocation($storedPath);
+
+        return $disk->readStream($path);
     }
 
     public function mimeType(string $storedPath): string
     {
-        return $this->disk($storedPath)->mimeType($this->path($storedPath)) ?: 'application/octet-stream';
+        [$disk, $path] = $this->readLocation($storedPath);
+
+        return $disk->mimeType($path) ?: 'application/octet-stream';
     }
 
     public function contents(string $storedPath): string
@@ -175,7 +197,9 @@ class ManagedFileStorage
             throw new \RuntimeException('الملف المطلوب غير موجود.');
         }
 
-        return $this->disk($storedPath)->get($this->path($storedPath));
+        [$disk, $path] = $this->readLocation($storedPath);
+
+        return $disk->get($path);
     }
 
     public function testConnection(?array $settings = null): void
@@ -202,9 +226,46 @@ class ManagedFileStorage
         return $this->isR2Path($storedPath) ? substr($storedPath, strlen(self::R2_PREFIX)) : $storedPath;
     }
 
-    private function disk(string $storedPath)
+    private function legacyR2Path(string $storedPath, ?array $settings = null): string
     {
-        return $this->isR2Path($storedPath) ? $this->r2Disk() : Storage::disk('public');
+        $settings ??= R2StorageSettings::all();
+        $path = ltrim($storedPath, '/');
+        $prefix = trim((string) ($settings['root_prefix'] ?? ''), '/');
+
+        if ($prefix === '' || $path === $prefix || str_starts_with($path, $prefix . '/')) {
+            return $path;
+        }
+
+        return $prefix . '/' . $path;
+    }
+
+    private function r2Url(string $path): ?string
+    {
+        try {
+            $settings = R2StorageSettings::all();
+
+            if (filled($settings['public_url'])) {
+                return rtrim($settings['public_url'], '/') . '/' . ltrim($path, '/');
+            }
+
+            return $this->r2Disk($settings)->temporaryUrl($path, now()->addMinutes(30));
+        } catch (\Throwable $exception) {
+            report($exception);
+            return null;
+        }
+    }
+
+    private function readLocation(string $storedPath): array
+    {
+        if ($this->isR2Path($storedPath)) {
+            return [$this->r2Disk(), $this->path($storedPath)];
+        }
+
+        if (Storage::disk('public')->exists($storedPath) || !R2StorageSettings::isReady()) {
+            return [Storage::disk('public'), $storedPath];
+        }
+
+        return [$this->r2Disk(), $this->legacyR2Path($storedPath)];
     }
 
     private function r2Disk(?array $settings = null)

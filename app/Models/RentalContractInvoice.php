@@ -26,6 +26,8 @@ class RentalContractInvoice extends Model
         'is_paid' => 'boolean',
         'paid_at' => 'datetime',
         'branch_id' => 'integer',
+        'send_to_zatca' => 'boolean',
+        'finance_sale_id' => 'integer',
     ];
 
     public function rentalContract()
@@ -56,6 +58,11 @@ class RentalContractInvoice extends Model
     public function receiptAccount()
     {
         return $this->belongsTo(Account::class, 'receipt_account_id');
+    }
+
+    public function financeSale()
+    {
+        return $this->belongsTo(\Nami\Finance\Models\Sale::class, 'finance_sale_id');
     }
 
     protected function resolveBranchIdForCreate(): ?int

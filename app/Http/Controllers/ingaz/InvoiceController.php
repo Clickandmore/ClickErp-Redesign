@@ -16,6 +16,7 @@ use App\Models\ingaz\User as ClientUser;
 use App\Services\ingaz\InvoiceCalculationService;
 use App\Support\AutomaticJournalEntries;
 use App\Support\InvoiceQrCode;
+use App\Support\RentalContractPricing;
 use App\Support\SystemModuleManager;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -189,7 +190,9 @@ class InvoiceController extends Controller
 
         $rentalQuery = DB::table('rental_contract_invoices as rental_invoice')
             ->leftJoin('rental_contracts as rental_contract', 'rental_contract.id', '=', 'rental_invoice.rental_contract_id')
-            ->leftJoin('users as rental_client', 'rental_client.id', '=', 'rental_contract.user_id');
+            ->leftJoin('users as rental_client', 'rental_client.id', '=', 'rental_contract.user_id')
+            ->leftJoin('fn_sales as rental_finance_sale', 'rental_finance_sale.id', '=', 'rental_invoice.finance_sale_id')
+            ->leftJoin('zatca_invoices as rental_zatca_invoice', 'rental_zatca_invoice.id', '=', 'rental_finance_sale.zatca_invoice_id');
 
         if ($rentalBranchesEnabled) {
             $rentalQuery->leftJoin('branches as rental_branch', 'rental_branch.id', '=', 'rental_contract.branch_id');
@@ -220,10 +223,10 @@ class InvoiceController extends Controller
             'rental_invoice.discount',
             'rental_invoice.total_due',
             'rental_invoice.is_paid',
-            DB::raw('0 as send_to_zatca'),
-            DB::raw('NULL as finance_sale_id'),
+            'rental_invoice.send_to_zatca',
+            'rental_invoice.finance_sale_id',
             DB::raw('NULL as legacy_zatca_shared'),
-            DB::raw('NULL as zatca_status'),
+            'rental_zatca_invoice.zatca_status',
             'rental_invoice.created_at',
         ]);
 
@@ -401,8 +404,21 @@ class InvoiceController extends Controller
 
     private function standardInvoiceZatcaBadge($row): string
     {
-        if (in_array($row->row_type, ['rental', 'rental_adjustment'], true)) {
+        if ($row->row_type === 'rental_adjustment') {
             return '<span class="badge bg-secondary-subtle text-secondary border">غير مطلوب</span>';
+        }
+
+        if ($row->row_type === 'rental') {
+            if (!$row->finance_sale_id) {
+                return '<span class="badge bg-info-subtle text-info border">جاهزة للمشاركة</span>';
+            }
+
+            return match ($row->zatca_status) {
+                'REPORTED' => '<span class="badge bg-success">مرحل للهيئة</span>',
+                'CLEARED' => '<span class="badge bg-primary">معتمد من الهيئة</span>',
+                'NOT_REPORTED', 'NOT_CLEARED' => '<span class="badge bg-danger">مرفوض من الهيئة</span>',
+                default => '<span class="badge bg-warning-subtle text-warning border">معلق في المبيعات</span>',
+            };
         }
 
         if ((int) $row->legacy_zatca_shared === 1) {
@@ -449,8 +465,14 @@ class InvoiceController extends Controller
         if ($row->row_type === 'rental') {
             $contractUrl = $row->rental_contract_id ? route('RentContract.show', $row->rental_contract_id) : '#';
             $printUrl = route('rental.invoice.download', ['id' => $row->id, 'autoprint' => 1]);
+            $queueButton = !$row->finance_sale_id
+                ? '<form method="post" action="' . route('rental-invoices.queue-zatca-sale', $row->id) . '" class="d-inline queue-zatca-form">'
+                    . csrf_field()
+                    . '<button type="submit" class="btn btn-sm btn-outline-success" title="إدراج فاتورة التأجير في فواتير الزكاة"><i class="fas fa-receipt"></i></button></form>'
+                : '<a href="' . route('finance.bill-sales.show', $row->finance_sale_id) . '" class="btn btn-sm btn-outline-success" title="فاتورة المبيعات المرسلة للهيئة"><i class="fas fa-link"></i></a>';
 
             return '<div class="d-flex justify-content-end gap-2">
+                        ' . $queueButton . '
                         <a href="' . $contractUrl . '" class="btn btn-sm btn-outline-primary" title="عرض عقد التأجير"><i class="fas fa-eye"></i></a>
                         <a href="' . $printUrl . '" class="btn btn-sm btn-outline-secondary" target="_blank" rel="noopener" title="طباعة الفاتورة"><i class="fas fa-print"></i></a>
                     </div>';
@@ -1373,6 +1395,23 @@ class InvoiceController extends Controller
         }
     }
 
+    public function queueRentalZatcaSale(int $id)
+    {
+        try {
+            $invoice = RentalContractInvoice::query()
+                ->with(['rentalContract.user', 'rentalContract.maid', 'rentalContract.info.package', 'financeSale.zatca'])
+                ->findOrFail($id);
+
+            DB::transaction(function () use ($invoice) {
+                $this->queueRentalInvoiceForZatcaSale($invoice);
+            });
+
+            return back()->with('success', 'تم إدراج فاتورة التأجير ضمن فواتير المبيعات المعلقة لهيئة الزكاة بعد استبعاد راتب العاملة.');
+        } catch (\Throwable $e) {
+            return back()->with('error', $e->getMessage());
+        }
+    }
+
     public function legacySourceFile(int $id)
     {
         $invoice = Invoice::query()->findOrFail($id);
@@ -1536,6 +1575,122 @@ class InvoiceController extends Controller
         ]);
 
         return $sale;
+    }
+
+    private function queueRentalInvoiceForZatcaSale(RentalContractInvoice $invoice): Sale
+    {
+        if ($invoice->finance_sale_id) {
+            $sale = Sale::query()->find($invoice->finance_sale_id);
+            if ($sale) {
+                return $sale;
+            }
+
+            $invoice->update(['finance_sale_id' => null]);
+        }
+
+        $invoice->loadMissing([
+            'rentalContract.user',
+            'rentalContract.maid',
+            'rentalContract.info.package',
+        ]);
+        $contract = $invoice->rentalContract;
+        $clientUser = $contract?->user;
+
+        if (!$contract || !$clientUser) {
+            throw new \RuntimeException('فاتورة التأجير غير مرتبطة بعقد وعميل صالحين للمشاركة مع هيئة الزكاة.');
+        }
+
+        $monthlySalary = (float) ($contract->info?->monthly_salary ?? 0);
+        if ($monthlySalary <= 0) {
+            $monthlySalary = (float) ($contract->maid?->resolved_salary ?? $contract->maid?->salary ?? 0);
+        }
+        $durationDays = RentalContractPricing::durationDays(
+            (int) ($contract->info?->contract_duration_days ?? 0),
+            (int) ($contract->info?->contract_duration_months ?? 0)
+        );
+        $grossTotal = $this->roundMoney((float) $invoice->total_due);
+        if ($grossTotal <= 0) {
+            $grossTotal = $this->roundMoney(
+                max(0, (float) $invoice->subtotal - (float) $invoice->discount + (float) $invoice->vat_amount)
+            );
+        }
+        $zatcaAmounts = $this->rentalZatcaAmounts(RentalContractPricing::fromGrossPrice(
+            $grossTotal,
+            $monthlySalary,
+            $durationDays,
+            (int) ($contract->info?->contract_duration_months ?? 0)
+        ));
+        $salaryExemptAmount = $zatcaAmounts['salary_exempt_amount'];
+        $taxableSubtotal = $zatcaAmounts['taxable_subtotal'];
+        $vatAmount = $zatcaAmounts['vat_amount'];
+        $zatcaTotal = $zatcaAmounts['total'];
+
+        $accountId = $this->ensureClientUserAccountId($clientUser);
+        $financeClient = $this->ensureFinanceClientForInvoice($clientUser, $accountId);
+        $financeItem = $this->ensureRentalZatcaServiceItem();
+
+        $sale = Sale::query()->create([
+            'code' => $this->nextFinanceSaleCode(),
+            'client_id' => $financeClient->id,
+            'debit_client_id' => $accountId,
+            'date' => optional($contract->contract_date)->toDateString()
+                ?: optional($invoice->created_at)->toDateString()
+                ?: now()->toDateString(),
+            'notes' => 'فاتورة تأجير #' . $invoice->id
+                . ' / العقد #' . ($contract->contract_number ?: $contract->id)
+                . ' / خدمة التأجير فقط بعد استبعاد راتب العاملة '
+                . number_format($salaryExemptAmount, 2) . ' ريال',
+            'total_item' => $taxableSubtotal,
+            'discount' => 0,
+            'final_total' => $zatcaTotal,
+            'total_tax_value' => $vatAmount,
+            'type' => SalesTypeEnum::Sales->value,
+            'file' => 'no_file',
+            'payment_type' => $invoice->payment_type ?: 'cash',
+            'created_by_id' => Auth::guard('admin')->id() ?: Auth::id() ?: 1,
+        ]);
+
+        SaleItem::query()->create([
+            'sale_id' => $sale->id,
+            'item_id' => $financeItem->id,
+            'price' => $taxableSubtotal,
+            'discount_per' => 0,
+            'discount_value' => 0,
+            'tax_per' => InvoiceCalculationService::VAT_RATE * 100,
+            'tax_value' => $vatAmount,
+            'total_price_before' => $taxableSubtotal,
+            'final_total' => $zatcaTotal,
+            'purchase_price' => 0,
+            'amount' => 1,
+            'stock_id' => null,
+            'status' => 'new',
+        ]);
+
+        $invoice->update([
+            'send_to_zatca' => true,
+            'finance_sale_id' => $sale->id,
+        ]);
+
+        return $sale;
+    }
+
+    private function rentalZatcaAmounts(array $pricing): array
+    {
+        $salaryExemptAmount = $this->roundMoney(max(0, (float) ($pricing['salary_exempt_amount'] ?? 0)));
+        $taxableSubtotal = $this->roundMoney(max(0, (float) ($pricing['taxable_subtotal'] ?? 0)));
+        $vatAmount = $this->roundMoney(max(0, (float) ($pricing['vat_amount'] ?? 0)));
+        $zatcaTotal = $this->roundMoney($taxableSubtotal + $vatAmount);
+
+        if ($taxableSubtotal <= 0) {
+            throw new \RuntimeException('لا يوجد مبلغ خدمة تأجير خاضع للضريبة في هذه الفاتورة بعد استبعاد راتب العاملة.');
+        }
+
+        return [
+            'salary_exempt_amount' => $salaryExemptAmount,
+            'taxable_subtotal' => $taxableSubtotal,
+            'vat_amount' => $vatAmount,
+            'total' => $zatcaTotal,
+        ];
     }
 
     private function ensureFinanceClientForInvoice(ClientUser $user, int $accountId): Client
@@ -1723,6 +1878,41 @@ class InvoiceController extends Controller
             'purchase_unit_id' => $unitId,
             'purchase_price' => 0,
             'details' => 'صنف خدمي تلقائي لفواتير إنجاز المرحلة إلى هيئة الزكاة.',
+            'sale_account_id' => $accountId,
+            'stock_account_id' => $accountId,
+            'stock_tracking' => 0,
+            'show_pos' => 0,
+            'show_website' => 0,
+        ]);
+    }
+
+    private function ensureRentalZatcaServiceItem(): Item
+    {
+        $item = Item::query()
+            ->where('code_string', 'RENTAL-ZATCA-INVOICE')
+            ->first();
+
+        if ($item) {
+            return $item;
+        }
+
+        $categoryId = $this->ensureZatcaServiceCategoryId();
+        $unitId = $this->ensureZatcaServiceUnitId();
+        $accountId = $this->ensureZatcaServiceSalesAccountId();
+
+        return Item::query()->create([
+            'name' => 'خدمة تأجير عاملة منزلية',
+            'main_category_id' => $categoryId,
+            'sub_category_id' => null,
+            'type' => CategoryTypes::Service->value,
+            'code_string' => 'RENTAL-ZATCA-INVOICE',
+            'code' => ((int) Item::query()->max('code')) + 1,
+            'min_order' => 0,
+            'sale_unit_id' => $unitId,
+            'sale_price' => 0,
+            'purchase_unit_id' => $unitId,
+            'purchase_price' => 0,
+            'details' => 'صنف خدمي تلقائي لفواتير التأجير المرسلة إلى هيئة الزكاة دون راتب العاملة.',
             'sale_account_id' => $accountId,
             'stock_account_id' => $accountId,
             'stock_tracking' => 0,

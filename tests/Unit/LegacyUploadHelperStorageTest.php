@@ -74,6 +74,46 @@ class LegacyUploadHelperStorageTest extends TestCase
         Storage::disk('public')->assertExists($path);
     }
 
+    public function test_legacy_relative_path_is_read_from_r2_when_local_file_is_missing(): void
+    {
+        Storage::fake('public');
+        $settings = $this->settings(true);
+        $settings['public_url'] = 'https://files.example.com';
+        $diskConfig = R2StorageSettings::diskConfig($settings);
+
+        $this->setStaticProperty(R2StorageSettings::class, 'cached', $settings);
+        config(['filesystems.disks.r2_runtime' => $diskConfig]);
+        Storage::fake('r2_runtime');
+        $this->setStaticProperty(
+            ManagedFileStorage::class,
+            'configuredDiskHash',
+            hash('sha256', serialize($diskConfig))
+        );
+
+        $path = 'images/Maid/legacy-cv.jpg';
+        Storage::disk('r2_runtime')->put('clickerp/' . $path, 'r2-image');
+
+        $storage = app(ManagedFileStorage::class);
+
+        $this->assertTrue($storage->exists($path));
+        $this->assertSame('https://files.example.com/clickerp/' . $path, $storage->url($path));
+        $this->assertSame('r2-image', $storage->contents($path));
+    }
+
+    public function test_local_file_is_preferred_for_a_legacy_relative_path(): void
+    {
+        Storage::fake('public');
+        $this->setStaticProperty(R2StorageSettings::class, 'cached', $this->settings(true));
+
+        $path = 'images/Maid/local-cv.jpg';
+        Storage::disk('public')->put($path, 'local-image');
+
+        $storage = app(ManagedFileStorage::class);
+
+        $this->assertSame(asset('storage/' . $path), $storage->url($path));
+        $this->assertSame('local-image', $storage->contents($path));
+    }
+
     private function settings(bool $enabled): array
     {
         return [

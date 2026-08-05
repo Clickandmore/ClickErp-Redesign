@@ -29,6 +29,13 @@ class BillSalesController extends Controller
                 ->addIndexColumn()
                 ->editColumn('code', function ($row) {
                     $invoice = $row->sourceInvoice;
+                    $rentalInvoice = $row->rentalSourceInvoice;
+                    if ($rentalInvoice) {
+                        return '<a href="' . route('rental.invoice.download', ['id' => $rentalInvoice->id])
+                            . '" target="_blank" class="fw-bold text-decoration-none">إيجار #' . e((string) $rentalInvoice->id)
+                            . '</a><div class="small text-muted">رقم المبيعات: ' . e((string) $row->code) . '</div>';
+                    }
+
                     if (!$invoice) {
                         return '<span class="fw-bold">#' . e((string) $row->code) . '</span>'
                             . '<div class="small text-muted">فاتورة مبيعات يدوية</div>';
@@ -42,6 +49,14 @@ class BillSalesController extends Controller
                 })
                 ->addColumn('invoice_source', function ($row) {
                     $invoice = $row->sourceInvoice;
+                    $rentalInvoice = $row->rentalSourceInvoice;
+                    if ($rentalInvoice) {
+                        return '<a href="' . route('RentContract.show', $rentalInvoice->rental_contract_id)
+                            . '" class="badge bg-success-subtle text-success border text-decoration-none">عقد تأجير #'
+                            . e((string) ($rentalInvoice->rentalContract?->contract_number ?: $rentalInvoice->rental_contract_id))
+                            . '</a>';
+                    }
+
                     if (!$invoice) {
                         return '<span class="badge bg-secondary-subtle text-secondary border">فاتورة مالية</span>';
                     }
@@ -214,6 +229,8 @@ class BillSalesController extends Controller
                 'client',
                 'zatca',
                 'sourceInvoice:id,legacy_invoice_number,legacy_order_number,contract_id,ingaz_delegation_id,finance_sale_id',
+                'rentalSourceInvoice:id,rental_contract_id,finance_sale_id',
+                'rentalSourceInvoice.rentalContract:id,contract_number',
             ])
             ->withCount('saleAttachments');
         $fromDate = $request->input('from_date');
@@ -234,6 +251,12 @@ class BillSalesController extends Controller
                     ->orWhereHas('sourceInvoice', function ($invoiceQuery) use ($invoiceNumber) {
                         $invoiceQuery->where('id', $invoiceNumber)
                             ->orWhere('legacy_invoice_number', $invoiceNumber);
+                    })
+                    ->orWhereHas('rentalSourceInvoice', function ($invoiceQuery) use ($invoiceNumber) {
+                        $invoiceQuery->where('id', $invoiceNumber)
+                            ->orWhereHas('rentalContract', function ($contractQuery) use ($invoiceNumber) {
+                                $contractQuery->where('contract_number', $invoiceNumber);
+                            });
                     });
             });
         }
@@ -253,6 +276,12 @@ class BillSalesController extends Controller
         // operational invoices screen. Manual financial sales are ordered next
         // by their own id and remain visible.
         return $dataTable
+            ->orderByDesc(
+                \App\Models\RentalContractInvoice::query()
+                    ->select('id')
+                    ->whereColumn('finance_sale_id', 'fn_sales.id')
+                    ->limit(1)
+            )
             ->orderByDesc(
                 Invoice::query()
                     ->select('id')
@@ -277,12 +306,21 @@ class BillSalesController extends Controller
     {
         $invoice = $sale->sourceInvoice;
 
+        if ($sale->rentalSourceInvoice) {
+            return 'إيجار #' . $sale->rentalSourceInvoice->id;
+        }
+
         return (string) ($invoice?->legacy_invoice_number ?: ($invoice?->id ?: $sale->code));
     }
 
     private function sourceInvoiceLabel($sale): string
     {
         $invoice = $sale->sourceInvoice;
+        if ($sale->rentalSourceInvoice) {
+            return 'عقد تأجير #' . ($sale->rentalSourceInvoice->rentalContract?->contract_number
+                ?: $sale->rentalSourceInvoice->rental_contract_id);
+        }
+
         if (!$invoice) {
             return 'فاتورة مبيعات يدوية';
         }

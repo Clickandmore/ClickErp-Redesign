@@ -461,9 +461,11 @@
                     $('#dataTableObject').DataTable().ajax.reload();
                 },
                 error: function(xhr, status, error) {
-                    // Handle error
-                    console.error('Error sharing invoice:', error);
-                    errorToster('Error sharing invoice');
+                    let message = xhr.responseJSON && xhr.responseJSON.message
+                        ? xhr.responseJSON.message
+                        : 'تعذر مشاركة الفاتورة مع هيئة الزكاة.';
+                    console.error('Error sharing invoice:', message);
+                    errorToster(message);
                 }
             });
         });

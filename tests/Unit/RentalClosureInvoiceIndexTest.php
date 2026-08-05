@@ -3,6 +3,7 @@
 namespace Tests\Unit;
 
 use App\Http\Controllers\ingaz\InvoiceController;
+use App\Support\RentalContractPricing;
 use ReflectionClass;
 use Tests\TestCase;
 
@@ -46,6 +47,68 @@ class RentalClosureInvoiceIndexTest extends TestCase
 
         $this->assertStringContainsString('إشعار مدين #13', $this->invoke($controller, 'standardInvoiceNumberLink', $row));
         $this->assertStringContainsString('مستحق على العميل', $this->invoke($controller, 'standardInvoicePaymentBadge', $row));
+    }
+
+    public function test_rental_invoice_can_be_queued_for_zatca_from_the_unified_invoice_screen(): void
+    {
+        $row = (object) [
+            'row_type' => 'rental',
+            'id' => 29,
+            'rental_contract_id' => 91,
+            'finance_sale_id' => null,
+            'zatca_status' => null,
+        ];
+
+        $controller = app(InvoiceController::class);
+
+        $this->assertStringContainsString('جاهزة للمشاركة', $this->invoke($controller, 'standardInvoiceZatcaBadge', $row));
+        $actions = $this->invoke($controller, 'standardInvoiceActions', $row);
+        $this->assertStringContainsString('rental-invoices/29/queue-zatca-sale', $actions);
+        $this->assertStringContainsString('إدراج فاتورة التأجير في فواتير الزكاة', $actions);
+    }
+
+    public function test_queued_rental_invoice_links_to_its_financial_sale(): void
+    {
+        $row = (object) [
+            'row_type' => 'rental',
+            'id' => 29,
+            'rental_contract_id' => 91,
+            'finance_sale_id' => 55,
+            'zatca_status' => null,
+        ];
+
+        $controller = app(InvoiceController::class);
+
+        $this->assertStringContainsString('معلق في المبيعات', $this->invoke($controller, 'standardInvoiceZatcaBadge', $row));
+        $this->assertStringContainsString('finance/bill-sales/55', $this->invoke($controller, 'standardInvoiceActions', $row));
+    }
+
+    public function test_rental_zatca_amount_excludes_worker_salary(): void
+    {
+        $amounts = $this->invoke(
+            app(InvoiceController::class),
+            'rentalZatcaAmounts',
+            RentalContractPricing::fromGrossPrice(1840, 1000, 30, 1)
+        );
+
+        $this->assertSame(1000.0, $amounts['salary_exempt_amount']);
+        $this->assertSame(730.43, $amounts['taxable_subtotal']);
+        $this->assertSame(109.57, $amounts['vat_amount']);
+        $this->assertSame(840.0, $amounts['total']);
+    }
+
+    public function test_rental_zatca_amount_recalculates_tax_when_legacy_invoice_stored_zero_vat(): void
+    {
+        $amounts = $this->invoke(
+            app(InvoiceController::class),
+            'rentalZatcaAmounts',
+            RentalContractPricing::fromGrossPrice(100, 1100, 1, 1)
+        );
+
+        $this->assertSame(36.67, $amounts['salary_exempt_amount']);
+        $this->assertSame(55.07, $amounts['taxable_subtotal']);
+        $this->assertSame(8.26, $amounts['vat_amount']);
+        $this->assertSame(63.33, $amounts['total']);
     }
 
     private function invoke(object $target, string $method, mixed ...$arguments): mixed

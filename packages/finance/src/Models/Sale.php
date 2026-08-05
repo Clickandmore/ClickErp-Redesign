@@ -3,6 +3,7 @@
 namespace Nami\Finance\Models;
 
 use App\Models\ingaz\Invoice;
+use App\Models\RentalContractInvoice;
 use App\Models\auth\Admin;
 use Nami\Finance\Models\ZatcaInvoice;
 use Illuminate\Support\Facades\DB;
@@ -107,5 +108,10 @@ class Sale extends Model
     public function sourceInvoice()
     {
         return $this->hasOne(Invoice::class, 'finance_sale_id');
+    }
+
+    public function rentalSourceInvoice()
+    {
+        return $this->hasOne(RentalContractInvoice::class, 'finance_sale_id');
     }
 }

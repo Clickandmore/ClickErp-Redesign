@@ -524,6 +524,10 @@ class AdminRoutePermissionMatrix
                 PermKeys::INVOICES_CONTROL,
                 PermKeys::REC_CONTRACTS_MANAGE,
             ],
+            'rental-invoices.queue-zatca-sale' => [
+                PermKeys::INVOICES_CONTROL,
+                PermKeys::REC_CONTRACTS_MANAGE,
+            ],
             'musaned-transfers.index' => [
                 PermKeys::MUSANED_TRANSFERS_VIEW,
                 PermKeys::MUSANED_TRANSFERS_CONTROL,
