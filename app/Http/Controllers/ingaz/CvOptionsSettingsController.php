@@ -18,7 +18,7 @@ class CvOptionsSettingsController extends Controller
     {
         $settings = Setting::query()->firstOrCreate([]);
 
-        return view('admin.settings.sections.cv-options', compact('settings'));
+        return view('admin.ingaz.cv-options-settings.edit', compact('settings'));
     }
 
     public function update(Request $request)

@@ -1202,6 +1202,7 @@
                             request()->routeIs('rent-contract-terms.*') ||
                             request()->routeIs('packages.*') ||
                             request()->routeIs('moyasar-settings.*');
+                        $isCvOptionsSettingsRoute = request()->routeIs('settings.cv-options.*');
                         $isInternalSystemSettingsRoute =
                             $isTranslationSettingsRoute ||
                             request()->routeIs('settings.cv-template.*') ||
@@ -1236,6 +1237,7 @@
                             $isInternalSystemSettingsRoute ||
                             $isRecruitmentSettingsRoute ||
                             $isRentalSettingsRoute ||
+                            $isCvOptionsSettingsRoute ||
                             $isZatcaSettingsRoute ||
                             $branchesManagementOpen ||
                             $isAccessControlOpen ||
@@ -1267,16 +1269,6 @@
                                         href="{{ route('settings.cv-template.edit') }}">
                                         <i class="fa fa-file-pdf"></i>
                                         <span class="ms-2">إعداد قالب السيرة الذاتية</span>
-                                    </a>
-                                </li>
-                            @endif
-
-                            @if (@AdminGuardHasPerm(\App\PermKeys::SETTINGS_CV_OPTIONS))
-                                <li>
-                                    <a class="m-link {{ request()->routeIs('settings.cv-options.*') ? 'active' : '' }}"
-                                        href="{{ route('settings.cv-options.edit') }}">
-                                        <i class="fa fa-id-card"></i>
-                                        <span class="ms-2">إعدادات السير الذاتية</span>
                                     </a>
                                 </li>
                             @endif
@@ -1590,6 +1582,16 @@
                                             </li>
                                         @endif
                                     </ul>
+                                </li>
+                            @endif
+
+                            @if (@AdminGuardHasPerm(\App\PermKeys::SETTINGS_CV_OPTIONS))
+                                <li>
+                                    <a class="m-link {{ $isCvOptionsSettingsRoute ? 'active' : '' }}"
+                                        href="{{ route('settings.cv-options.edit') }}">
+                                        <i class="fa fa-id-card"></i>
+                                        <span class="ms-2">إعدادات السير الذاتية</span>
+                                    </a>
                                 </li>
                             @endif
 
