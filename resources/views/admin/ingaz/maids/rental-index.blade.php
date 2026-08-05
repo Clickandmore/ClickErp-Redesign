@@ -909,6 +909,53 @@
                 });
             });
 
+            $(document).on('click', '.generate-maid-cv', function(e) {
+                e.preventDefault();
+                const button = $(this);
+                const url = button.data('url');
+
+                if (!url) {
+                    return;
+                }
+
+                button.prop('disabled', true);
+                Swal.fire({
+                    title: 'جاري توليد السيرة الذاتية',
+                    text: @json(($cvOutputType ?? 'pdf') === 'image'
+                        ? 'يرجى الانتظار حتى يتم إنشاء صورة السيرة الذاتية.'
+                        : 'يرجى الانتظار حتى يتم إنشاء ملف PDF.'),
+                    allowOutsideClick: false,
+                    didOpen: () => Swal.showLoading()
+                });
+
+                $.ajax({
+                    url: url,
+                    method: 'POST',
+                    headers: {
+                        'X-CSRF-TOKEN': csrfToken
+                    },
+                    success: function(response) {
+                        table.ajax.reload(null, false);
+                        Swal.fire({
+                            icon: 'success',
+                            title: response.message || 'تم توليد السيرة الذاتية بنجاح',
+                            timer: 2200,
+                            showConfirmButton: false
+                        });
+                    },
+                    error: function(xhr) {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'تعذر توليد السيرة الذاتية',
+                            text: xhr.responseJSON?.message || @json(helperTrans('ingaz.unexpected_error'))
+                        });
+                    },
+                    complete: function() {
+                        button.prop('disabled', false);
+                    }
+                });
+            });
+
             window.back_out_modal_func = function() {
                 $('#back_out_modal').modal('hide');
 
