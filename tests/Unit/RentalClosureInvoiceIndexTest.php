@@ -83,7 +83,7 @@ class RentalClosureInvoiceIndexTest extends TestCase
         $this->assertStringContainsString('finance/bill-sales/55', $this->invoke($controller, 'standardInvoiceActions', $row));
     }
 
-    public function test_rental_zatca_amount_excludes_worker_salary(): void
+    public function test_rental_zatca_amount_keeps_worker_salary_as_non_taxable_line(): void
     {
         $amounts = $this->invoke(
             app(InvoiceController::class),
@@ -94,7 +94,9 @@ class RentalClosureInvoiceIndexTest extends TestCase
         $this->assertSame(1000.0, $amounts['salary_exempt_amount']);
         $this->assertSame(730.43, $amounts['taxable_subtotal']);
         $this->assertSame(109.57, $amounts['vat_amount']);
-        $this->assertSame(840.0, $amounts['total']);
+        $this->assertSame(1730.43, $amounts['invoice_subtotal']);
+        $this->assertSame(840.0, $amounts['service_total']);
+        $this->assertSame(1840.0, $amounts['total']);
     }
 
     public function test_rental_zatca_amount_recalculates_tax_when_legacy_invoice_stored_zero_vat(): void
@@ -108,7 +110,9 @@ class RentalClosureInvoiceIndexTest extends TestCase
         $this->assertSame(36.67, $amounts['salary_exempt_amount']);
         $this->assertSame(55.07, $amounts['taxable_subtotal']);
         $this->assertSame(8.26, $amounts['vat_amount']);
-        $this->assertSame(63.33, $amounts['total']);
+        $this->assertSame(91.74, $amounts['invoice_subtotal']);
+        $this->assertSame(63.33, $amounts['service_total']);
+        $this->assertSame(100.0, $amounts['total']);
     }
 
     private function invoke(object $target, string $method, mixed ...$arguments): mixed

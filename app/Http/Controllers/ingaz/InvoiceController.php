@@ -1398,7 +1398,7 @@ class InvoiceController extends Controller
                 $this->queueRentalInvoiceForZatcaSale($invoice);
             });
 
-            return back()->with('success', 'تم إدراج فاتورة التأجير ضمن فواتير المبيعات المعلقة لهيئة الزكاة بعد استبعاد راتب العاملة.');
+            return back()->with('success', 'تم إدراج فاتورة التأجير كاملة ضمن فواتير المبيعات، مع إظهار راتب العاملة كبند غير خاضع للضريبة.');
         } catch (\Throwable $e) {
             return back()->with('error', $e->getMessage());
         }
@@ -1615,11 +1615,13 @@ class InvoiceController extends Controller
         $salaryExemptAmount = $zatcaAmounts['salary_exempt_amount'];
         $taxableSubtotal = $zatcaAmounts['taxable_subtotal'];
         $vatAmount = $zatcaAmounts['vat_amount'];
+        $invoiceSubtotal = $zatcaAmounts['invoice_subtotal'];
         $zatcaTotal = $zatcaAmounts['total'];
 
         $accountId = $this->ensureClientUserAccountId($clientUser);
         $financeClient = $this->ensureFinanceClientForInvoice($clientUser, $accountId);
-        $financeItem = $this->ensureRentalZatcaServiceItem();
+        $financeItem = $taxableSubtotal > 0 ? $this->ensureRentalZatcaServiceItem() : null;
+        $salaryItem = $salaryExemptAmount > 0 ? $this->ensureRentalSalaryZatcaItem() : null;
 
         $sale = Sale::query()->create([
             'code' => $this->nextFinanceSaleCode(),
@@ -1630,9 +1632,9 @@ class InvoiceController extends Controller
                 ?: now()->toDateString(),
             'notes' => 'فاتورة تأجير #' . $invoice->id
                 . ' / العقد #' . ($contract->contract_number ?: $contract->id)
-                . ' / خدمة التأجير فقط بعد استبعاد راتب العاملة '
+                . ' / راتب العاملة غير خاضع للضريبة '
                 . number_format($salaryExemptAmount, 2) . ' ريال',
-            'total_item' => $taxableSubtotal,
+            'total_item' => $invoiceSubtotal,
             'discount' => 0,
             'final_total' => $zatcaTotal,
             'total_tax_value' => $vatAmount,
@@ -1642,21 +1644,41 @@ class InvoiceController extends Controller
             'created_by_id' => Auth::guard('admin')->id() ?: Auth::id() ?: 1,
         ]);
 
-        SaleItem::query()->create([
-            'sale_id' => $sale->id,
-            'item_id' => $financeItem->id,
-            'price' => $taxableSubtotal,
-            'discount_per' => 0,
-            'discount_value' => 0,
-            'tax_per' => InvoiceCalculationService::VAT_RATE * 100,
-            'tax_value' => $vatAmount,
-            'total_price_before' => $taxableSubtotal,
-            'final_total' => $zatcaTotal,
-            'purchase_price' => 0,
-            'amount' => 1,
-            'stock_id' => null,
-            'status' => 'new',
-        ]);
+        if ($financeItem) {
+            SaleItem::query()->create([
+                'sale_id' => $sale->id,
+                'item_id' => $financeItem->id,
+                'price' => $taxableSubtotal,
+                'discount_per' => 0,
+                'discount_value' => 0,
+                'tax_per' => InvoiceCalculationService::VAT_RATE * 100,
+                'tax_value' => $vatAmount,
+                'total_price_before' => $taxableSubtotal,
+                'final_total' => $this->roundMoney($taxableSubtotal + $vatAmount),
+                'purchase_price' => 0,
+                'amount' => 1,
+                'stock_id' => null,
+                'status' => 'new',
+            ]);
+        }
+
+        if ($salaryItem) {
+            SaleItem::query()->create([
+                'sale_id' => $sale->id,
+                'item_id' => $salaryItem->id,
+                'price' => $salaryExemptAmount,
+                'discount_per' => 0,
+                'discount_value' => 0,
+                'tax_per' => 0,
+                'tax_value' => 0,
+                'total_price_before' => $salaryExemptAmount,
+                'final_total' => $salaryExemptAmount,
+                'purchase_price' => 0,
+                'amount' => 1,
+                'stock_id' => null,
+                'status' => 'new',
+            ]);
+        }
 
         $invoice->update([
             'send_to_zatca' => true,
@@ -1671,16 +1693,20 @@ class InvoiceController extends Controller
         $salaryExemptAmount = $this->roundMoney(max(0, (float) ($pricing['salary_exempt_amount'] ?? 0)));
         $taxableSubtotal = $this->roundMoney(max(0, (float) ($pricing['taxable_subtotal'] ?? 0)));
         $vatAmount = $this->roundMoney(max(0, (float) ($pricing['vat_amount'] ?? 0)));
-        $zatcaTotal = $this->roundMoney($taxableSubtotal + $vatAmount);
+        $invoiceSubtotal = $this->roundMoney($salaryExemptAmount + $taxableSubtotal);
+        $serviceTotal = $this->roundMoney($taxableSubtotal + $vatAmount);
+        $zatcaTotal = $this->roundMoney($invoiceSubtotal + $vatAmount);
 
-        if ($taxableSubtotal <= 0) {
-            throw new \RuntimeException('لا يوجد مبلغ خدمة تأجير خاضع للضريبة في هذه الفاتورة بعد استبعاد راتب العاملة.');
+        if ($invoiceSubtotal <= 0) {
+            throw new \RuntimeException('لا يوجد مبلغ صالح لإدراجه في فاتورة التأجير المرسلة إلى هيئة الزكاة.');
         }
 
         return [
             'salary_exempt_amount' => $salaryExemptAmount,
             'taxable_subtotal' => $taxableSubtotal,
             'vat_amount' => $vatAmount,
+            'invoice_subtotal' => $invoiceSubtotal,
+            'service_total' => $serviceTotal,
             'total' => $zatcaTotal,
         ];
     }
@@ -1905,6 +1931,41 @@ class InvoiceController extends Controller
             'purchase_unit_id' => $unitId,
             'purchase_price' => 0,
             'details' => 'صنف خدمي تلقائي لفواتير التأجير المرسلة إلى هيئة الزكاة دون راتب العاملة.',
+            'sale_account_id' => $accountId,
+            'stock_account_id' => $accountId,
+            'stock_tracking' => 0,
+            'show_pos' => 0,
+            'show_website' => 0,
+        ]);
+    }
+
+    private function ensureRentalSalaryZatcaItem(): Item
+    {
+        $item = Item::query()
+            ->where('code_string', 'RENTAL-WORKER-SALARY-OOS')
+            ->first();
+
+        if ($item) {
+            return $item;
+        }
+
+        $categoryId = $this->ensureZatcaServiceCategoryId();
+        $unitId = $this->ensureZatcaServiceUnitId();
+        $accountId = $this->ensureZatcaServiceSalesAccountId();
+
+        return Item::query()->create([
+            'name' => 'راتب العاملة - غير خاضع للضريبة',
+            'main_category_id' => $categoryId,
+            'sub_category_id' => null,
+            'type' => CategoryTypes::Service->value,
+            'code_string' => 'RENTAL-WORKER-SALARY-OOS',
+            'code' => ((int) Item::query()->max('code')) + 1,
+            'min_order' => 0,
+            'sale_unit_id' => $unitId,
+            'sale_price' => 0,
+            'purchase_unit_id' => $unitId,
+            'purchase_price' => 0,
+            'details' => 'بند راتب العاملة ضمن فاتورة التأجير، غير خاضع لضريبة القيمة المضافة.',
             'sale_account_id' => $accountId,
             'stock_account_id' => $accountId,
             'stock_tracking' => 0,

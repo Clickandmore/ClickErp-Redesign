@@ -1163,6 +1163,10 @@ class RentContractController extends Controller
 
                 if ($oldMaid) {
                     $this->syncMaidBookingState($oldMaid);
+                    app(RentalShelterPresenceService::class)->returnReplacedMaidInside(
+                        (int) $oldMaid->id,
+                        $contract
+                    );
                 }
 
                 $description = $oldMaid

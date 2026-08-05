@@ -179,7 +179,9 @@
             $cvFileUrl = $cvPdfPath ? showFile($cvPdfPath) : null;
             $cvPreviewUrl = $cvPdfPath ? route('maids.cv.preview', $maid->id) : null;
             $externalCvUrl = filled($maid->maid_cv_file) ? showFile($maid->maid_cv_file) : null;
-            $generatedCvExtension = $generatedCvPath ? strtoupper(pathinfo($generatedCvPath, PATHINFO_EXTENSION)) : null;
+            $generatedCvWhatsAppUrl = $generatedCvShareUrl
+                ? 'https://wa.me/?text=' . rawurlencode('نموذج السيرة الذاتية - ' . ($maid->name ?: $maid->cv_code ?: $maid->id) . "\n" . $generatedCvShareUrl)
+                : null;
         @endphp
 
         <div class="container-fluid py-3 py-lg-4">
@@ -281,7 +283,11 @@
                         @endif
                         @if ($generatedCvPath && @AdminGuardHasPerm(\App\PermKeys::MAIDS_EXPORT_PDF))
                             <a href="{{ route('maids.generated-cv.download', $maid->id) }}" class="btn btn-danger">
-                                <i class="fas fa-download me-1"></i>تنزيل النموذج {{ $generatedCvExtension }}
+                                <i class="fas fa-file-pdf me-1"></i>تنزيل النموذج PDF
+                            </a>
+                            <a href="{{ $generatedCvWhatsAppUrl }}" target="_blank" rel="noopener"
+                                class="btn btn-success">
+                                <i class="fab fa-whatsapp me-1"></i>مشاركة عبر واتساب
                             </a>
                         @endif
                         <a href="#maid-attachments" class="btn btn-outline-info">
@@ -657,12 +663,18 @@
                                         <i class="fas fa-file-arrow-down text-danger fs-2"></i>
                                         <div class="flex-grow-1">
                                             <div class="fw-semibold">نموذج السيرة المُنشأ</div>
-                                            <div class="text-muted small">النموذج جاهز للتنزيل بصيغة {{ $generatedCvExtension }}</div>
+                                            <div class="text-muted small">النموذج جاهز للتنزيل والمشاركة بصيغة PDF</div>
                                         </div>
-                                        <a href="{{ route('maids.generated-cv.download', $maid->id) }}"
-                                            class="btn btn-danger btn-sm flex-shrink-0">
-                                            <i class="fas fa-download me-1"></i>تنزيل
-                                        </a>
+                                        <div class="d-flex flex-column gap-2 flex-shrink-0">
+                                            <a href="{{ route('maids.generated-cv.download', $maid->id) }}"
+                                                class="btn btn-danger btn-sm">
+                                                <i class="fas fa-file-pdf me-1"></i>تنزيل PDF
+                                            </a>
+                                            <a href="{{ $generatedCvWhatsAppUrl }}" target="_blank" rel="noopener"
+                                                class="btn btn-success btn-sm">
+                                                <i class="fab fa-whatsapp me-1"></i>واتساب
+                                            </a>
+                                        </div>
                                     </div>
                                 </div>
                             @endif

@@ -68,6 +68,11 @@ use Mcamara\LaravelLocalization\Facades\LaravelLocalization;
 //});
 
 /** NEW ROUTES */
+Route::get('/shared/maids/{maid}/cv.pdf', [IngazMaidController::class, 'sharedGeneratedCvPdf'])
+    ->whereNumber('maid')
+    ->middleware(['signed', 'throttle:60,1'])
+    ->name('maids.generated-cv.shared');
+
 Route::get('/getMaidDetails/{maidId}', [IngazMaidController::class, 'getMaidDetails'])->name('is.getMaidDetails');
 Route::get('/maidsLoopContractsAndSetAvailableWhenDoneCronJob', [AdminContractController::class, 'maidsLoopContractsAndSetAvailableWhenDoneCronJob'])->name('maidsLoopContractsAndSetAvailableWhenDoneCronJob');
 Route::get('/check-tazker-contracts', [AdminContractController::class, 'checkTazkerContracts'])->name('check.tazker.contracts');

@@ -61,6 +61,35 @@ class RentalShelterPresenceServiceTest extends TestCase
         $this->assertTrue((bool) $shelterContract->info->fresh()->is_outside_shelter);
     }
 
+    public function test_replaced_maid_returns_inside_after_rental_is_reassigned(): void
+    {
+        [$shelterContract, $rentalContract, $oldMaidId] = $this->makeStaleRentalShelterRecord('active');
+
+        $newMaidId = DB::table('maids')->insertGetId([
+            'name' => 'Replacement rental maid',
+            'passport_num' => 'REPLACEMENT-' . str_replace('.', '', uniqid('', true)),
+            'nationality_id' => DB::table('maids')->where('id', $oldMaidId)->value('nationality_id'),
+            'religion_id' => DB::table('maids')->where('id', $oldMaidId)->value('religion_id'),
+            'cv_file' => '',
+            'height' => '',
+            'weight' => '',
+            'status' => 'contracted',
+            'available' => false,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $rentalContract->update(['maid_id' => $newMaidId]);
+
+        $returned = app(RentalShelterPresenceService::class)
+            ->returnReplacedMaidInside($oldMaidId, $rentalContract);
+
+        $this->assertTrue($returned);
+        $shelterContract->info->refresh();
+        $this->assertFalse((bool) $shelterContract->info->is_outside_shelter);
+        $this->assertSame('yes', $shelterContract->info->wants_to_work);
+    }
+
     public function test_new_delivery_replaces_an_old_rental_reference(): void
     {
         [$shelterContract, $rentalContract] = $this->makeStaleRentalShelterRecord('maid_delivered');

@@ -79,6 +79,43 @@ class MaidCvPdfGenerator
         return $path;
     }
 
+    /** Render a PDF copy without changing the stored CV preview. */
+    public function renderPdfContents(Maid $maid): string
+    {
+        $settings = MaidCvTemplateSettings::current();
+
+        if (!$settings || !$settings->cv_template_enabled) {
+            throw new RuntimeException('إنشاء نموذج السيرة غير مفعل.');
+        }
+
+        $template = trim((string) $settings->cv_template_blade);
+        if ($template === '') {
+            throw new RuntimeException('لم يتم رفع قالب السيرة الذاتية.');
+        }
+
+        $maid->loadMissing([
+            'nationality',
+            'religion',
+            'jobTypes',
+            'jobTitles',
+            'expertises.country',
+            'expertises.jobTitle',
+            'office',
+            'recruitmentOffice',
+        ]);
+
+        $html = $this->renderTemplate($template, $this->viewData($maid, $settings, self::OUTPUT_PDF));
+        // Downloads and share links must respond within the normal web request
+        // timeout, so use the in-process PDF renderer instead of launching Chrome.
+        $contents = $this->generateWithMpdf($html);
+
+        if ($contents === '' || !Str::startsWith($contents, '%PDF')) {
+            throw new RuntimeException('تعذر إنشاء ملف PDF لنموذج السيرة.');
+        }
+
+        return $contents;
+    }
+
     private function generateImageOutput(string $html, Maid $maid): array
     {
         if (!function_exists('proc_open')) {

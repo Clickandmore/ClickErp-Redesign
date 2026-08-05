@@ -83,6 +83,14 @@ class RentalShelterPresenceService
         );
     }
 
+    public function returnReplacedMaidInside(int $maidId, RentalContract $rentalContract): bool
+    {
+        return $this->returnMaidInside(
+            $maidId,
+            'تمت إعادة العاملة إلى داخل الإيواء بعد استبدالها في عقد إيجار رقم ' . $rentalContract->id
+        );
+    }
+
     public function reconcileContract(Contract $contract, string $note): bool
     {
         if (!$contract->maid_id || !$this->canReturnMaidInside((int) $contract->maid_id)) {

@@ -35,6 +35,7 @@ use Illuminate\Support\Facades\App;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\URL;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use Yajra\DataTables\Facades\DataTables;
@@ -494,9 +495,16 @@ class MaidController extends Controller
                     }
 
                     if (@AdminGuardHasPerm(\App\PermKeys::MAIDS_EXPORT_PDF) && ($generatedCvPath = $this->maidGeneratedCvPath($row))) {
-                        $generatedExtension = strtoupper(pathinfo($generatedCvPath, PATHINFO_EXTENSION));
+                        $shareUrl = URL::temporarySignedRoute(
+                            'maids.generated-cv.shared',
+                            now()->addDays(7),
+                            ['maid' => $row->id]
+                        );
+                        $whatsAppUrl = 'https://wa.me/?text=' . rawurlencode('نموذج السيرة الذاتية - ' . ($row->name ?: $row->cv_code ?: $row->id) . "\n" . $shareUrl);
                         $menuItems .= '<li><a class="dropdown-item" href="' . route('maids.generated-cv.download', $row->id) . '">'
-                            . '<i class="fas fa-download text-danger me-2"></i>تنزيل النموذج ' . e($generatedExtension) . '</a></li>';
+                            . '<i class="fas fa-file-pdf text-danger me-2"></i>تنزيل النموذج PDF</a></li>';
+                        $menuItems .= '<li><a class="dropdown-item" href="' . e($whatsAppUrl) . '" target="_blank" rel="noopener">'
+                            . '<i class="fab fa-whatsapp text-success me-2"></i>مشاركة PDF عبر واتساب</a></li>';
                     }
 
                     if (@AdminGuardHasPerm(\App\PermKeys::MAIDS_EDIT)) {
@@ -800,9 +808,17 @@ class MaidController extends Controller
                     }
 
                     if (@AdminGuardHasPerm(\App\PermKeys::MAIDS_EXPORT_PDF) && ($generatedCvPath = $this->maidGeneratedCvPath($row))) {
-                        $generatedExtension = strtoupper(pathinfo($generatedCvPath, PATHINFO_EXTENSION));
+                        $shareUrl = URL::temporarySignedRoute(
+                            'maids.generated-cv.shared',
+                            now()->addDays(7),
+                            ['maid' => $row->id]
+                        );
+                        $whatsAppUrl = 'https://wa.me/?text=' . rawurlencode('نموذج السيرة الذاتية - ' . ($row->name ?: $row->cv_code ?: $row->id) . "\n" . $shareUrl);
                         $menuItems[] = '<li><a class="dropdown-item" href="' . route('maids.generated-cv.download', $row->id) . '">
-                            <i class="fas fa-download text-danger me-2"></i>تنزيل النموذج ' . e($generatedExtension) . '
+                            <i class="fas fa-file-pdf text-danger me-2"></i>تنزيل النموذج PDF
+                        </a></li>';
+                        $menuItems[] = '<li><a class="dropdown-item" href="' . e($whatsAppUrl) . '" target="_blank" rel="noopener">
+                            <i class="fab fa-whatsapp text-success me-2"></i>مشاركة PDF عبر واتساب
                         </a></li>';
                     }
 
@@ -1289,6 +1305,9 @@ class MaidController extends Controller
             'created_at' => $maid->created_at,
         ];
         $generatedCvPath = $this->maidGeneratedCvPath($maid);
+        $generatedCvShareUrl = $generatedCvPath
+            ? URL::temporarySignedRoute('maids.generated-cv.shared', now()->addDays(7), ['maid' => $maid->id])
+            : null;
 
         $imageExtensions = ['jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp', 'svg'];
         $maidImages = collect([
@@ -1393,7 +1412,8 @@ class MaidController extends Controller
             'backToListRoute',
             'hrEmployeeRecord',
             'maidImages',
-            'generatedCvPath'
+            'generatedCvPath',
+            'generatedCvShareUrl'
         ));
     }
 
@@ -1488,6 +1508,11 @@ class MaidController extends Controller
         $extension = in_array($extension, ['pdf', 'png', 'svg'], true) ? $extension : 'pdf';
 
         return 'maid-cv-' . $maid->id . '-' . $identifier . '.' . $extension;
+    }
+
+    private function generatedCvPdfFilename(Maid $maid): string
+    {
+        return pathinfo($this->generatedCvFilename($maid), PATHINFO_FILENAME) . '.pdf';
     }
 
     private function maidImagePath(Maid $maid): ?string
@@ -2204,16 +2229,43 @@ class MaidController extends Controller
         ], $generatedCount > 0 ? 200 : 422);
     }
 
-    public function downloadGeneratedCv(Maid $maid, ManagedFileStorage $storage)
+    public function downloadGeneratedCv(
+        Maid $maid,
+        ManagedFileStorage $storage,
+        MaidCvPdfGenerator $cvGenerator
+    )
     {
         $path = $this->maidGeneratedCvPath($maid);
         abort_unless($path, 404, 'نموذج السيرة المُنشأ غير موجود.');
 
-        return $storage->downloadResponse(
-            $path,
-            $this->generatedCvFilename($maid),
-            $storage->mimeType($path)
+        $contents = strtolower(pathinfo($path, PATHINFO_EXTENSION)) === 'pdf'
+            ? $storage->contents($path)
+            : $cvGenerator->renderPdfContents($maid);
+
+        return response()->streamDownload(
+            static fn () => print($contents),
+            $this->generatedCvPdfFilename($maid),
+            ['Content-Type' => 'application/pdf']
         );
+    }
+
+    public function sharedGeneratedCvPdf(
+        Maid $maid,
+        ManagedFileStorage $storage,
+        MaidCvPdfGenerator $cvGenerator
+    ) {
+        $path = $this->maidGeneratedCvPath($maid);
+        abort_unless($path, 404, 'نموذج السيرة المُنشأ غير موجود.');
+
+        $contents = strtolower(pathinfo($path, PATHINFO_EXTENSION)) === 'pdf'
+            ? $storage->contents($path)
+            : $cvGenerator->renderPdfContents($maid);
+
+        return response($contents, 200, [
+            'Content-Type' => 'application/pdf',
+            'Content-Disposition' => 'inline; filename="' . $this->generatedCvPdfFilename($maid) . '"',
+            'X-Content-Type-Options' => 'nosniff',
+        ]);
     }
 
     public function exportGeneratedCvs(Request $request, ManagedFileStorage $storage)
