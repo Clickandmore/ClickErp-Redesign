@@ -102,6 +102,12 @@
                             <span class="fw-semibold">قالب السيرة الذاتية</span>
                         </a>
                     @endif
+                    @if (@AdminGuardHasPerm(\App\PermKeys::SETTINGS_CV_OPTIONS))
+                        <a class="nav-link {{ $activeSection === 'cv-options' ? 'active' : '' }}"
+                            href="{{ route('settings.cv-options.edit') }}">
+                            <span class="fw-semibold">إعدادات السير الذاتية</span>
+                        </a>
+                    @endif
                     <a class="nav-link {{ $activeSection === 'seo' ? 'active' : '' }}" href="{{ route('settings.section', 'seo') }}">
                         <span class="fw-semibold">{{ __('admin.settings_section_seo') }}</span>
                     </a>
@@ -120,10 +126,14 @@
             <div class="col-lg-9">
                 <div class="card border-0 shadow-sm settings-card">
                     <div class="card-body">
-                        @if (
-                            ($activeSection === 'cv-template' && @AdminGuardHasPerm(\App\PermKeys::SETTINGS_CV_TEMPLATE))
-                            || ($activeSection !== 'cv-template' && @AdminGuardHasPerm(\App\PermKeys::SETTINGS_VIEW))
-                        )
+                        @php
+                            $sectionPermission = match ($activeSection) {
+                                'cv-template' => \App\PermKeys::SETTINGS_CV_TEMPLATE,
+                                'cv-options' => \App\PermKeys::SETTINGS_CV_OPTIONS,
+                                default => \App\PermKeys::SETTINGS_VIEW,
+                            };
+                        @endphp
+                        @if (@AdminGuardHasPerm($sectionPermission))
                             <div class="d-flex flex-wrap align-items-center justify-content-between mb-3">
                                 <div>
                                     <h5 class="mb-1">@yield('settings-title')</h5>

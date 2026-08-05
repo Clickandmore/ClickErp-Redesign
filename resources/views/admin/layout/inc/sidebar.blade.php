@@ -142,6 +142,7 @@
                     $canViewHomeSettings ||
                     $canViewMaidsData ||
                     @AdminGuardHasPerm(\App\PermKeys::SETTINGS_CV_TEMPLATE) ||
+                    @AdminGuardHasPerm(\App\PermKeys::SETTINGS_CV_OPTIONS) ||
                     @AdminGuardHasPerm(\App\PermKeys::SETTINGS_CONTROL) ||
                     @AdminGuardHasPerm(\App\PermKeys::PACKAGES_VIEW) ||
                     $canViewFinanceModule ||
@@ -1266,6 +1267,16 @@
                                         href="{{ route('settings.cv-template.edit') }}">
                                         <i class="fa fa-file-pdf"></i>
                                         <span class="ms-2">إعداد قالب السيرة الذاتية</span>
+                                    </a>
+                                </li>
+                            @endif
+
+                            @if (@AdminGuardHasPerm(\App\PermKeys::SETTINGS_CV_OPTIONS))
+                                <li>
+                                    <a class="m-link {{ request()->routeIs('settings.cv-options.*') ? 'active' : '' }}"
+                                        href="{{ route('settings.cv-options.edit') }}">
+                                        <i class="fa fa-id-card"></i>
+                                        <span class="ms-2">إعدادات السير الذاتية</span>
                                     </a>
                                 </li>
                             @endif

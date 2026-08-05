@@ -32,6 +32,10 @@ class ApiMaidController extends Controller
     ) {
         $data['maids'] = $maidAction->paginate($request);
 
+        // ملاحظة "متاحة للإيجار ونقل الخدمات" تُحسب هنا فقط (العلاقات محمّلة مسبقًا)
+        // بدلاً من إضافتها إلى $appends وتحميل استعلامات إضافية على كل شاشات الإدارة.
+        $data['maids']->getCollection()->each->append('is_rental_transfer_listing');
+
         $data['type'] = $request->type ?? 'all';
         $data['jobTitles'] = $jobTitleAction->get();
         $data['nationalities'] = $nationalityAction->getVisible()
@@ -130,6 +134,7 @@ class ApiMaidController extends Controller
 
         $maidPayload = $maid->toArray();
         $maidPayload['recruitment_office'] = $recruitmentOfficePayload;
+        $maidPayload['is_rental_transfer_listing'] = $maid->is_rental_transfer_listing;
 
         $data = [
             'maid' => $maidPayload,
