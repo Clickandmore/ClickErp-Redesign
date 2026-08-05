@@ -35,6 +35,7 @@ class ApiMaidController extends Controller
         // ملاحظة "متاحة للإيجار ونقل الخدمات" تُحسب هنا فقط (العلاقات محمّلة مسبقًا)
         // بدلاً من إضافتها إلى $appends وتحميل استعلامات إضافية على كل شاشات الإدارة.
         $data['maids']->getCollection()->each->append('is_rental_transfer_listing');
+        $this->attachRentalPackages($data['maids']->getCollection());
 
         $data['type'] = $request->type ?? 'all';
         $data['jobTitles'] = $jobTitleAction->get();
@@ -61,6 +62,49 @@ class ApiMaidController extends Controller
         return apiResponse(true, __('api.All items'), $data, 200);
     }
 
+
+    /**
+     * إرفاق باقات التأجير المتاحة لجنسية كل عاملة بحقل إضافي `rental_packages`،
+     * دون المساس بأي حقل قائم حتى لا تتأثر النسخ الأخرى المرتبطة بهذا الـ API.
+     * تُحمَّل الباقات باستعلام واحد لكل الصفحة تجنبًا لمشكلة N+1.
+     */
+    private function attachRentalPackages($maids): void
+    {
+        $nationalityIds = collect($maids)
+            ->pluck('nationality_id')
+            ->filter()
+            ->unique()
+            ->values();
+
+        $packages = Package::query()
+            ->visible()
+            ->ordered()
+            ->where(function ($query) use ($nationalityIds) {
+                $query->whereNull('nationality_id');
+
+                if ($nationalityIds->isNotEmpty()) {
+                    $query->orWhereIn('nationality_id', $nationalityIds->all());
+                }
+            })
+            ->get();
+
+        $sharedPackages = $packages->whereNull('nationality_id')->values();
+        $packagesByNationality = $packages->whereNotNull('nationality_id')->groupBy('nationality_id');
+        $request = request();
+
+        foreach ($maids as $maid) {
+            $maidPackages = collect($packagesByNationality->get($maid->nationality_id, collect()))
+                ->concat($sharedPackages)
+                ->values();
+
+            $maid->setAttribute(
+                'rental_packages',
+                $maidPackages
+                    ->map(fn (Package $package) => (new PackageResource($package))->toArray($request))
+                    ->all()
+            );
+        }
+    }
 
     /**
      * Show the form for creating a new resource.

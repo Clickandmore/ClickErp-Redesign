@@ -8,7 +8,9 @@ use App\Http\Traits\SendSMSTrait;
 use App\Models\AdminNotification;
 use App\Models\auth\Admin;
 use App\Models\Contract;
+use App\Models\ingaz\Nationality;
 use App\Models\ingaz\Order;
+use App\Models\RecruitmentOffices;
 use App\Models\TravelHistory;
 use App\Models\TravelHistoryFiles;
 use App\Services\ingaz\RecruitmentTripAccountingService;
@@ -229,6 +231,21 @@ class AdminTravelHistoryController extends Controller
                 ->orderBy('name')
                 ->get(['id', 'name']),
             'arrivalAirports' => $this->travelAirportOptions(),
+            'travelMarketers' => Admin::query()
+                ->whereIn('id', Contract::query()
+                    ->whereNotNull('marketer_id')
+                    ->select('marketer_id'))
+                ->orderBy('name')
+                ->get(['id', 'name']),
+            'travelNationalities' => Nationality::with('translations')
+                ->get()
+                ->sortBy(fn (Nationality $nationality) => $nationality->display_name)
+                ->values(),
+            // عنوان المكتب مخزَّن في جدول الترجمات، لذلك نحمّل الترجمات ونرتب بعد الجلب.
+            'travelOffices' => RecruitmentOffices::with('translations')
+                ->get()
+                ->sortBy(fn (RecruitmentOffices $office) => (string) $office->title)
+                ->values(),
         ]);
     }
 
@@ -1570,6 +1587,36 @@ class AdminTravelHistoryController extends Controller
 
         if ($request->filled('travel_date')) {
             $query->whereDate('arrival_date', $request->travel_date);
+        }
+
+        if ($request->filled('travel_date_from')) {
+            $query->whereDate('arrival_date', '>=', $request->travel_date_from);
+        }
+
+        if ($request->filled('travel_date_to')) {
+            $query->whereDate('arrival_date', '<=', $request->travel_date_to);
+        }
+
+        // المسوّق مسجّل على عقد الاستقدام، و travel_histories.order_id يحمل رقم العقد.
+        if ($request->filled('marketer_id')) {
+            $query->whereExists(function ($subQuery) use ($request) {
+                $subQuery->selectRaw('1')
+                    ->from('contracts')
+                    ->whereColumn('contracts.id', 'travel_histories.order_id')
+                    ->where('contracts.marketer_id', $request->marketer_id);
+            });
+        }
+
+        if ($request->filled('nationality_id')) {
+            $query->whereHas('maid', function ($maidQuery) use ($request) {
+                $maidQuery->where('nationality_id', $request->nationality_id);
+            });
+        }
+
+        if ($request->filled('office_id')) {
+            $query->whereHas('maid', function ($maidQuery) use ($request) {
+                $maidQuery->where('office_id', $request->office_id);
+            });
         }
 
         if ($request->filled('created_date')) {

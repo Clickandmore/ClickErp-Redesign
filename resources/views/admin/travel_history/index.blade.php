@@ -329,6 +329,41 @@
                                         <input type="date" class="form-control" id="travel_date">
                                     </div>
                                     <div class="col-md-3">
+                                        <label class="form-label">تاريخ الرحلة من</label>
+                                        <input type="date" class="form-control" id="travel_date_from">
+                                    </div>
+                                    <div class="col-md-3">
+                                        <label class="form-label">تاريخ الرحلة إلى</label>
+                                        <input type="date" class="form-control" id="travel_date_to">
+                                    </div>
+                                    <div class="col-md-3">
+                                        <label class="form-label">المسوق</label>
+                                        <select id="marketer_id" class="form-control">
+                                            <option value="">جميع المسوقين</option>
+                                            @foreach (($travelMarketers ?? collect()) as $marketer)
+                                                <option value="{{ $marketer->id }}">{{ $marketer->name }}</option>
+                                            @endforeach
+                                        </select>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <label class="form-label">الجنسية</label>
+                                        <select id="nationality_id" class="form-control">
+                                            <option value="">جميع الجنسيات</option>
+                                            @foreach (($travelNationalities ?? collect()) as $nationality)
+                                                <option value="{{ $nationality->id }}">{{ $nationality->display_name }}</option>
+                                            @endforeach
+                                        </select>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <label class="form-label">المكتب الخارجي</label>
+                                        <select id="office_id" class="form-control">
+                                            <option value="">جميع المكاتب</option>
+                                            @foreach (($travelOffices ?? collect()) as $office)
+                                                <option value="{{ $office->id }}">{{ $office->title }}</option>
+                                            @endforeach
+                                        </select>
+                                    </div>
+                                    <div class="col-md-3">
                                         <label class="form-label">تاريخ الإنشاء</label>
                                         <input type="date" class="form-control" id="created_date">
                                     </div>
@@ -788,6 +823,11 @@
                         d.travel_with = $('#travel_with').val();
                         d.status = $('#status').val();
                         d.travel_date = $('#travel_date').val();
+                        d.travel_date_from = $('#travel_date_from').val();
+                        d.travel_date_to = $('#travel_date_to').val();
+                        d.marketer_id = $('#marketer_id').val();
+                        d.nationality_id = $('#nationality_id').val();
+                        d.office_id = $('#office_id').val();
                         d.created_date = $('#created_date').val();
                         d.created_by = $('#created_by').val();
                         d.arrival_airport = $('#arrival_airport').val();
@@ -919,6 +959,11 @@
             params.set('travel_with', $('#travel_with').val() || '');
             params.set('status', $('#status').val() || '');
             params.set('travel_date', $('#travel_date').val() || '');
+            params.set('travel_date_from', $('#travel_date_from').val() || '');
+            params.set('travel_date_to', $('#travel_date_to').val() || '');
+            params.set('marketer_id', $('#marketer_id').val() || '');
+            params.set('nationality_id', $('#nationality_id').val() || '');
+            params.set('office_id', $('#office_id').val() || '');
             params.set('created_date', $('#created_date').val() || '');
             params.set('created_by', $('#created_by').val() || '');
             params.set('arrival_airport', $('#arrival_airport').val() || '');
@@ -936,6 +981,11 @@
             $('#travel_with').val('');
             $('#status').val('');
             $('#travel_date').val('');
+            $('#travel_date_from').val('');
+            $('#travel_date_to').val('');
+            $('#marketer_id').val('');
+            $('#nationality_id').val('');
+            $('#office_id').val('');
             $('#created_date').val('');
             $('#created_by').val('');
             $('#arrival_airport').val('');

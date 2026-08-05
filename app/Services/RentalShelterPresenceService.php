@@ -184,6 +184,10 @@ class RentalShelterPresenceService
 
     private function clearRentalOutsideFlag(Contract $contract, string $note): void
     {
+        // العاملة العائدة من عقد إيجار منتهٍ تعود متاحة داخل الإيواء وراغبة بالعمل،
+        // حتى تظهر مباشرة في قوائم الإيواء والتأجير دون تعديل يدوي.
+        $wantsToWorkRestored = $contract->info->wants_to_work !== 'yes';
+
         $contract->info->update([
             'is_outside_shelter' => false,
             'outside_shelter_at' => null,
@@ -191,7 +195,12 @@ class RentalShelterPresenceService
             'outside_shelter_reference_type' => null,
             'outside_shelter_reference_id' => null,
             'outside_shelter_by' => null,
+            'wants_to_work' => 'yes',
         ]);
+
+        if ($wantsToWorkRestored) {
+            $note .= ' وتم ضبط رغبة العمل على "ترغب بالعمل".';
+        }
 
         $contract->contract_status_logs()->create([
             'status' => ContractStatusEnum::Shelter->value,
