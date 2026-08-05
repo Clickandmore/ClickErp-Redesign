@@ -143,6 +143,7 @@
                                 data-has-residency="{{ optional($contract->info)->workers_have_residency }}"
                                 data-medical-exam="{{ optional($contract->info)->performing_medical_examination }}"
                                 data-service-type="{{ optional($contract->info)->worker_service_type }}"
+                                data-service-category="{{ ($contractServiceCategories ?? [])[$contract->id] ?? 'recruitment' }}"
                                 data-arrival-date="{{ $arrivalDate }}"
                                 data-shelter-complaints='@json($shelterComplaintOptions)'
                                 data-status="{{ $contract->status }}"
@@ -308,7 +309,7 @@
                             متاحة للاستلام الفوري
                         </option>
                     </select>
-                    {{-- <small class="form-text text-muted">عاملة الإيجار تبقى في قسم الإيجار فقط، ويظهر الاستلام الفوري كملاحظة على توفرها.</small> --}}
+                    <small class="form-text text-muted" id="instant_display_hint"></small>
                 </div>
 
                 <div class="col-12 mt-4">
@@ -835,6 +836,7 @@
                     'data-has-residency': contract.has_residency || '',
                     'data-medical-exam': contract.medical_exam || '',
                     'data-service-type': contract.service_type || '',
+                    'data-service-category': contract.service_category || 'recruitment',
                     'data-arrival-date': contract.arrival_date || '',
                     'data-shelter-complaints': JSON.stringify(contract.shelter_complaints || []),
                     'data-status': contract.status || ''
@@ -1217,6 +1219,10 @@
                 console.log('تم تعيين تاريخ الإرجاع إلى اليوم:', todayString);
             }
 
+            // حقل الاستلام الفوري متاح لعاملات الإيجار فقط عند تفعيل
+            // "إتاحة سيرة عاملة الإيجار لنقل الخدمات" في إعدادات السير الذاتية.
+            const rentalInstantReceiptEnabled = @json((bool) ($rentalInstantReceiptEnabled ?? false));
+
             // تعيين تاريخ الإرجاع عند تحميل الصفحة
             $(document).ready(function() {
                 if (!isEditMode || !$('input[name="maid_date_back"]').val()) {
@@ -1247,9 +1253,24 @@
                 toggleInstantDisplayField();
             });
 
+            $('#contract_id').on('change', function() {
+                toggleInstantDisplayField();
+            });
+
+            function selectedContractIsRental() {
+                return $('#contract_id').find('option:selected').data('serviceCategory') === 'rental';
+            }
+
             function toggleInstantDisplayField() {
                 const wantsValue = $('select[name="wants_to_work"]').val();
-                if (wantsValue === 'yes') {
+                const blockedForRental = selectedContractIsRental() && !rentalInstantReceiptEnabled;
+
+                if (wantsValue === 'yes' && !blockedForRental) {
+                    $('#instant_display_hint').text(
+                        selectedContractIsRental() ?
+                        'ستظهر سيرة عاملة الإيجار في الموقع الخارجي ضمن الإيجار ونقل الخدمات.' :
+                        ''
+                    );
                     $('#instant_display_wrapper').slideDown(200);
                 } else {
                     $('#instant_display_wrapper').slideUp(200);

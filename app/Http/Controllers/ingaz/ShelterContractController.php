@@ -20,6 +20,7 @@ use App\PermKeys;
 use App\Services\ingaz\ShelterLivingExpenseAccountingService;
 use App\Services\ManagedFileStorage;
 use App\Support\AutomationSettings;
+use App\Support\CvOptionsSettings;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Auth;
@@ -735,6 +736,31 @@ class ShelterContractController extends Controller
         return 'recruitment';
     }
 
+    /**
+     * حقل "الاستلام الفوري" متاح دائمًا لغير عاملات الإيجار، أما عاملات الإيجار
+     * فيتوقف على إعداد "إتاحة سيرة عاملة الإيجار لنقل الخدمات" في إعدادات السير الذاتية.
+     */
+    /**
+     * @return array<int, string> تصنيف الخدمة لكل عقد معروض في قائمة الاختيار.
+     */
+    private function mapContractServiceCategories($contracts): array
+    {
+        return collect($contracts)
+            ->mapWithKeys(fn (Contract $contract) => [
+                $contract->id => $this->determineShelterServiceCategory($contract->maid),
+            ])
+            ->all();
+    }
+
+    private function instantReceiptFieldEnabledFor(?Maid $maid): bool
+    {
+        if ($this->determineShelterServiceCategory($maid) !== 'rental') {
+            return true;
+        }
+
+        return CvOptionsSettings::rentalTransferEnabled();
+    }
+
     private function normalizeServiceCategoryTitle(?string $title): string
     {
         if (!$title) {
@@ -1107,6 +1133,7 @@ class ShelterContractController extends Controller
             'has_residency' => optional($contract->info)->workers_have_residency ?? '',
             'medical_exam' => optional($contract->info)->performing_medical_examination ?? '',
             'service_type' => optional($contract->info)->worker_service_type ?? '',
+            'service_category' => $this->determineShelterServiceCategory($contract->maid),
             'arrival_date' => $arrivalDate,
             'status' => $contract->status,
             'shelter_complaints' => $contract->complaints
@@ -1140,8 +1167,10 @@ class ShelterContractController extends Controller
         $nationalities = $this->shelterContractNationalities();
         $quickTagSuggestions = $this->getQuickTagSuggestions();
         $complaintTypes = ComplaintType::orderBy('name')->get();
+        $rentalInstantReceiptEnabled = CvOptionsSettings::rentalTransferEnabled();
+        $contractServiceCategories = $this->mapContractServiceCategories($contracts);
 
-        return view($this->folderPath . '.create', compact('shelters', 'contracts', 'selectedContractId', 'nationalities', 'quickTagSuggestions', 'complaintTypes'));
+        return view($this->folderPath . '.create', compact('shelters', 'contracts', 'selectedContractId', 'nationalities', 'quickTagSuggestions', 'complaintTypes', 'rentalInstantReceiptEnabled', 'contractServiceCategories'));
     }
 
     /**
@@ -1355,7 +1384,9 @@ class ShelterContractController extends Controller
         $this->assertCanAccessBranchModel($contract, 'contracts');
 
         $wantsToWork = $request->input('wants_to_work') ?: 'unknown';
-        $displayOnSite = $wantsToWork === 'yes' && $request->boolean('is_available_for_instant');
+        $displayOnSite = $wantsToWork === 'yes'
+            && $request->boolean('is_available_for_instant')
+            && $this->instantReceiptFieldEnabledFor($contract->maid);
         $existingAttachments = $contract->info ? ($contract->info->shelter_attachments ?? []) : [];
         $attachments = $this->prepareShelterAttachments($request, $existingAttachments);
 
@@ -1506,6 +1537,8 @@ class ShelterContractController extends Controller
         $quickTagSuggestions = $this->getQuickTagSuggestions();
         $isEditMode = true;
         $editingContract = $contract;
+        $rentalInstantReceiptEnabled = CvOptionsSettings::rentalTransferEnabled();
+        $contractServiceCategories = $this->mapContractServiceCategories($contracts);
 
         return view(
             $this->folderPath . '.create',
@@ -1516,7 +1549,9 @@ class ShelterContractController extends Controller
                 'nationalities',
                 'quickTagSuggestions',
                 'isEditMode',
-                'editingContract'
+                'editingContract',
+                'rentalInstantReceiptEnabled',
+                'contractServiceCategories'
             )
         );
     }
@@ -1554,7 +1589,9 @@ class ShelterContractController extends Controller
         $contract = Contract::with('maid')->findOrFail($id);
         $this->assertCanAccessBranchModel($contract, 'contracts');
         $wantsToWork = $request->input('wants_to_work') ?: 'unknown';
-        $displayOnSite = $wantsToWork === 'yes' && $request->boolean('is_available_for_instant');
+        $displayOnSite = $wantsToWork === 'yes'
+            && $request->boolean('is_available_for_instant')
+            && $this->instantReceiptFieldEnabledFor($contract->maid);
         // $existingAttachments = $contract->info ? ($contract->info->shelter_attachments ?? []) : [];
         $existingAttachments = $contract->info && $contract->info->shelter_attachments ?
             (
@@ -3132,7 +3169,10 @@ class ShelterContractController extends Controller
                                     </a></li>';
                     }
 
-                    if ($canToggleInstantReceipt && $row->info && $row->info->wants_to_work === 'yes') {
+                    if ($canToggleInstantReceipt
+                        && $row->info
+                        && $row->info->wants_to_work === 'yes'
+                        && $this->instantReceiptFieldEnabledFor($row->maid)) {
                         $availableStatus = $this->determineShelterServiceCategory($row->maid) === 'rental'
                             ? 'استلام فوري - إيجار فقط'
                             : 'متاحة لنقل الخدمات';
@@ -4190,6 +4230,14 @@ class ShelterContractController extends Controller
 
             $oldStatus = $contract->info->is_available_for_instant;
             $newStatus = !$oldStatus;
+
+            // إتاحة عاملة الإيجار لنقل الخدمات تتطلب تفعيل الإعداد في إعدادات السير الذاتية.
+            if ($newStatus && !$this->instantReceiptFieldEnabledFor($contract->maid)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'إتاحة سيرة عاملة الإيجار لنقل الخدمات غير مفعّلة في إعدادات السير الذاتية'
+                ], 400);
+            }
 
             // تحديث حالة الاستلام الفوري
             $contract->info->update([
