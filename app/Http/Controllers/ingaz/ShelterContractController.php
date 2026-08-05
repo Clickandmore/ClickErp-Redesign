@@ -25,7 +25,6 @@ use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
 use Nami\Finance\Models\Account;
 use Nami\Finance\Models\ConfirmSetting;
@@ -2731,7 +2730,10 @@ class ShelterContractController extends Controller
         if ($request->hasFile('attachment')) {
             $file = $request->file('attachment');
             $attachment = [
-                'path' => $file->store('shelter-contracts/escape-reports', 'public'),
+                'path' => app(ManagedFileStorage::class)->uploadFile(
+                    $file,
+                    'shelter-contracts/escape-reports'
+                ),
                 'name' => $file->getClientOriginalName(),
                 'mime_type' => $file->getClientMimeType(),
                 'size' => $file->getSize(),
@@ -2775,8 +2777,8 @@ class ShelterContractController extends Controller
                     ->log('تم تسجيل بلاغ هروب وإخراج العاملة من الإيواء');
             });
         } catch (\Throwable $e) {
-            if ($attachment && Storage::disk('public')->exists($attachment['path'])) {
-                Storage::disk('public')->delete($attachment['path']);
+            if ($attachment) {
+                app(ManagedFileStorage::class)->delete($attachment['path']);
             }
 
             throw $e;
@@ -2797,9 +2799,14 @@ class ShelterContractController extends Controller
         $attachment = $contract->info?->escape_report_attachment;
         $path = is_array($attachment) ? ($attachment['path'] ?? null) : null;
 
-        abort_unless($contract->hasEscapeReport() && $path && Storage::disk('public')->exists($path), 404);
+        $storage = app(ManagedFileStorage::class);
+        abort_unless($contract->hasEscapeReport() && $path && $storage->exists($path), 404);
 
-        return Storage::disk('public')->download($path, $attachment['name'] ?? basename($path));
+        return $storage->downloadResponse(
+            $path,
+            $attachment['name'] ?? basename($path),
+            $attachment['mime_type'] ?? $storage->mimeType($path)
+        );
     }
 
     /**
