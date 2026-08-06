@@ -48,7 +48,12 @@ class MaidCvPdfGenerator
         ]);
 
         $outputType = MaidCvTemplateSettings::outputType();
-        $html = $this->renderTemplate($template, $this->viewData($maid, $settings, $outputType));
+        $html = $this->embedManagedMedia(
+            $this->renderTemplate($template, $this->viewData($maid, $settings, $outputType)),
+            $maid,
+            $settings
+        );
+
         if ($outputType === self::OUTPUT_IMAGE) {
             [$contents, $extension] = $this->generateImageOutput($html, $maid);
         } else {
@@ -104,7 +109,11 @@ class MaidCvPdfGenerator
             'recruitmentOffice',
         ]);
 
-        $html = $this->renderTemplate($template, $this->viewData($maid, $settings, self::OUTPUT_PDF));
+        $html = $this->embedManagedMedia(
+            $this->renderTemplate($template, $this->viewData($maid, $settings, self::OUTPUT_PDF)),
+            $maid,
+            $settings
+        );
         // Downloads and share links must respond within the normal web request
         // timeout, so use the in-process PDF renderer instead of launching Chrome.
         $contents = $this->generateWithMpdf($html);
@@ -601,6 +610,79 @@ class MaidCvPdfGenerator
         }
 
         return $fontStyle . $html;
+    }
+
+    /**
+     * يضمّن ملفات النظام داخل الـ HTML كـ data URI قبل التحويل.
+     *
+     * القالب يستدعي showFile() فيخرج رابطًا: محلي `.../storage/...` أو رابط R2 موقّع.
+     * الاثنان يحتاجان طلب شبكة أثناء التحويل — المتصفح قد يفشل في جلبه ضمن مهلة اللقطة،
+     * ومسار SVG لا يحمّل موارد خارجية إطلاقًا فتظهر الصورة فارغة. القراءة هنا تتم عبر
+     * ManagedFileStorage فتعمل مع R2 والتخزين المحلي بنفس الطريقة.
+     */
+    private function embedManagedMedia(string $html, Maid $maid, Setting $settings): string
+    {
+        $storage = app(ManagedFileStorage::class);
+
+        foreach ($this->mediaSourcePaths($maid, $settings) as $storedPath) {
+            $url = showFile($storedPath);
+
+            if (!filled($url)) {
+                continue;
+            }
+
+            // الروابط الموقّعة تحمل توقيعًا مختلفًا في كل استدعاء، والثابت منها هو ما قبل "?".
+            $base = strtok($url, '?');
+
+            if ($base === false || $base === '' || !str_contains($html, $base)) {
+                continue;
+            }
+
+            try {
+                $dataUri = 'data:' . $storage->mimeType($storedPath)
+                    . ';base64,' . base64_encode($storage->contents($storedPath));
+            } catch (\Throwable $exception) {
+                report($exception);
+
+                continue;
+            }
+
+            $html = preg_replace(
+                '~' . preg_quote($base, '~') . '(\?[^"\'\s>]*)?~',
+                // القيمة قد تحوي "$" فتُفسَّر كمرجع في preg_replace
+                str_replace(['\\', '$'], ['\\\\', '\\$'], $dataUri),
+                $html
+            ) ?? $html;
+        }
+
+        return $html;
+    }
+
+    /**
+     * مسارات الملفات التي قد يعرضها قالب السيرة.
+     *
+     * @return array<int, string>
+     */
+    private function mediaSourcePaths(Maid $maid, Setting $settings): array
+    {
+        $paths = [
+            $maid->getRawOriginal('image'),
+            $maid->getRawOriginal('personal_image'),
+            optional($maid->nationality)->getRawOriginal('logo'),
+        ];
+
+        foreach ([
+            'logo_header', 'logo_footer', 'favicon', 'experience_image',
+            'qr_image', 'second_qr_image', 'zatch_logo', 'cover_image',
+            'about_image', 'admin_logo', 'document_logo', 'light_image',
+        ] as $column) {
+            $paths[] = $settings->getRawOriginal($column);
+        }
+
+        return array_values(array_unique(array_filter(
+            $paths,
+            fn ($path): bool => is_string($path) && trim($path) !== '' && trim($path) !== 'null'
+        )));
     }
 
     public function isGeneratedPath(?string $path): bool
