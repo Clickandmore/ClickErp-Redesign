@@ -160,7 +160,7 @@ class Contract extends Model
 
     public function travelHistory()
     {
-        return $this->hasOne(\App\Models\TravelHistory::class, 'order_id', 'id');
+        return $this->hasOne(\App\Models\TravelHistory::class, 'order_id', 'id')->latestOfMany();
     }
 
     public function externalOfficeDispatch()
