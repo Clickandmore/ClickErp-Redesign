@@ -23,7 +23,9 @@ use Illuminate\Support\Facades\Schema;
 
 class Maid extends Model
 {
-    use HasFactory, Translatable, LogsActivity, SoftDeletes;
+    use HasFactory, Translatable, LogsActivity, SoftDeletes, \App\Models\Concerns\ResolvesMediaUrls;
+
+    protected array $mediaUrlColumns = ['image', 'cv_file', 'cv_preview', 'video'];
 
     public const REQUEST_TYPE_KNOWN = 'known';
     public const REQUEST_TYPE_SPECIFIC = 'specific';

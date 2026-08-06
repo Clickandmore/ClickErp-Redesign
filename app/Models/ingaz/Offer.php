@@ -9,7 +9,9 @@ use Spatie\Activitylog\Traits\LogsActivity;
 
 class Offer extends Model
 {
-    use HasFactory, LogsActivity;
+    use HasFactory, LogsActivity, \App\Models\Concerns\ResolvesMediaUrls;
+
+    protected array $mediaUrlColumns = ['image'];
 
     public const TYPE_GENERAL = 'general';
     public const TYPE_NATIONALITY = 'nationality';

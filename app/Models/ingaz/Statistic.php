@@ -10,6 +10,9 @@ class Statistic extends Model
 {
     use Translatable, HasFactory;
 
+    // ملاحظة: عمود image هنا كلاس أيقونة (FontAwesome) وليس ملفًا مرفوعًا،
+    // ولذلك لا يحتاج ResolvesMediaUrls.
+
     protected $guarded = [];
 
     public $translatedAttributes = ['title'];

@@ -16,7 +16,7 @@ class ServiceResource extends JsonResource
         {
         return [
 			'id' => (int)$this->id,
-			'image' => (string)$this->image,
+			'image' => (string)apiFileUrl($this->image),
 			'created_at' => (string)$this->created_at,
 			'updated_at' => (string)$this->updated_at,
 		];

@@ -10,7 +10,9 @@ use Spatie\Activitylog\Traits\LogsActivity;
 
 class Service extends Model
 {
-    use Translatable, HasFactory, LogsActivity;
+    use Translatable, HasFactory, LogsActivity, \App\Models\Concerns\ResolvesMediaUrls;
+
+    protected array $mediaUrlColumns = ['image'];
 
     protected $guarded = [];
 

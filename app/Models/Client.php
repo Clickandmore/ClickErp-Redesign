@@ -6,7 +6,10 @@ namespace App\Models;
 
 class Client extends Model
 {
- 
+    use Concerns\ResolvesMediaUrls;
+
+    protected array $mediaUrlColumns = ['image'];
+
     protected $fillable = [
         'title',
         'image',
