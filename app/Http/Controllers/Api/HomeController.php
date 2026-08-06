@@ -33,7 +33,6 @@ use App\Http\Resources\Api\RecruitmentRequirementResource;
 use App\Http\Resources\Api\WhyChooseUsResource;
 use App\Http\Resources\Api\MusanedSectionResource;
 use App\Http\Resources\Api\HomeHeroSectionResource;
-use App\Services\ManagedFileStorage;
 use App\Http\Traits\API\ApiResponse;
 use App\Http\Traits\SendSMSTrait;
 use App\Http\Traits\StoreMessageTrait;
@@ -336,16 +335,7 @@ class HomeController extends Controller
         $statics = $statisticAction->get();
         $services = $serviceAction->get();
         $steps = $stepAction->get();
-        $clients = $clientAction->get()->map(function ($client) {
-            $data = $client->toArray();
-            $storedImage = $client->getRawOriginal('image');
-
-            if (app(ManagedFileStorage::class)->isR2Path($storedImage)) {
-                $data['image'] = showFile($storedImage);
-            }
-
-            return $data;
-        });
+        $clients = $clientAction->get();
         $whatDos = $whatDoAction->get()->load('items');
         $whatDos->each->append('image_url');
         $whatDoSetting = $whatDoSettingAction->first();

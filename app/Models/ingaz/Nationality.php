@@ -10,7 +10,9 @@ use Spatie\Activitylog\Traits\LogsActivity;
 
 class Nationality extends Model
 {
-    use Translatable, HasFactory, LogsActivity;
+    use Translatable, HasFactory, LogsActivity, \App\Models\Concerns\ResolvesMediaUrls;
+
+    protected array $mediaUrlColumns = ['logo'];
 
     protected $guarded = [];
     protected $fillable = [
@@ -57,8 +59,8 @@ class Nationality extends Model
 
     public function getLogoURLAttribute()
     {
-        // return showFile($this->logo);
-        return $this->logo;
+        // ملفات R2 تحتاج رابطًا مطلقًا، والمحلية تبقى مسارًا نسبيًا كما يتوقعها الموقع الخارجي.
+        return apiFileUrl($this->logo);
     }
 
     public function getDisplayNameAttribute(): string

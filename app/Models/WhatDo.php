@@ -9,7 +9,9 @@ use Astrotomic\Translatable\Translatable;
 
 class WhatDo extends Model implements TranslatableContract
 {
-    use Translatable;
+    use Translatable, Concerns\ResolvesMediaUrls;
+
+    protected array $mediaUrlColumns = ['image'];
 
     public $translatedAttributes = ['title', 'description'];
     protected $fillable = ['icon', 'type', 'image'];

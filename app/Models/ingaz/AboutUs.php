@@ -8,7 +8,9 @@ use Illuminate\Database\Eloquent\Model;
 
 class AboutUs extends Model
 {
-    use Translatable,HasFactory;
+    use Translatable,HasFactory, \App\Models\Concerns\ResolvesMediaUrls;
+
+    protected array $mediaUrlColumns = ['image', 'image_vision', 'image_message', 'image_value'];
 
     protected $guarded = [];
 

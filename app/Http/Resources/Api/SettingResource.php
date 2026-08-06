@@ -2,7 +2,6 @@
 
 namespace App\Http\Resources\Api;
 
-use App\Services\ManagedFileStorage;
 use Illuminate\Http\Resources\Json\JsonResource;
 
 class SettingResource extends JsonResource
@@ -91,15 +90,7 @@ class SettingResource extends JsonResource
 
     private function mediaValue($storedPath): string
     {
-        $storedPath = is_string($storedPath) ? trim($storedPath) : '';
-
-        if ($storedPath === '') {
-            return '';
-        }
-
-        return app(ManagedFileStorage::class)->isR2Path($storedPath)
-            ? (string) showFile($storedPath)
-            : $storedPath;
+        return (string) apiFileUrl($storedPath);
     }
 
     private function seoPayload(): array

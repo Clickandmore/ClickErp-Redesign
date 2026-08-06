@@ -7,7 +7,9 @@ use Illuminate\Database\Eloquent\Model;
 
 class Feature extends Model
 {
-    use Translatable;
+    use Translatable, Concerns\ResolvesMediaUrls;
+
+    protected array $mediaUrlColumns = ['image_file'];
 
     protected $fillable = [
         'image',

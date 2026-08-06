@@ -329,6 +329,7 @@ public function preview($id, ManagedFileStorage $storage)
 
 ### 6.5 قواعد يجب الالتزام بها
 
+0. **في الـ API استخدم `apiFileUrl()` وليس `showFile()`** — راجع القسم 6.6.
 1. **لا تبنِ الرابط يدويًا** بـ `asset('storage/'.$path)` — سيكسر ملفات R2. استخدم
    `showFile()` أو `ManagedFileStorage::url()` دائمًا.
 2. **لا تستخدم `Storage::disk('public')->delete()` مباشرة** — استخدم `deleteFile()`.
@@ -341,6 +342,48 @@ public function preview($id, ManagedFileStorage $storage)
    (كما في [StoreRapidCv.php:38](app/Http/Requests/StoreRapidCv.php#L38)).
 6. **حجم الملفات الكبيرة**: `putFileAs` يرفع بشكل متزامن داخل الـ request؛ للفيديوهات
    الكبيرة فكّر في نقل الرفع إلى Job في الطابور.
+
+### 6.6 عقد الملفات في الـ API (الموقع الخارجي والتطبيق)
+
+الداشبورد تعرض عبر Blade فيمرّ كل شيء بـ `showFile()`. أما الـ API فكثير من نقاطه ترجّع
+**الموديل نفسه** (لا Resource)، فكان العمود يخرج بقيمته المخزنة — ومع R2 تصبح
+`r2://clickerp/...` وهي ليست رابطًا يفتحه أي كلاينت.
+
+الحل طبقتان:
+
+| الطبقة | الملف | الدور |
+|---|---|---|
+| هيلبر | [`apiFileUrl()`](app/Helpers/MainHelper.php#L354) | R2 → رابط مطلق، محلي → المسار النسبي كما هو |
+| Trait | [`ResolvesMediaUrls`](app/Models/Concerns/ResolvesMediaUrls.php) | يطبّق الهيلبر على أعمدة الملفات عند `toArray()` |
+
+```php
+class Nationality extends Model
+{
+    use \App\Models\Concerns\ResolvesMediaUrls;
+
+    protected array $mediaUrlColumns = ['logo'];
+}
+```
+
+الموديلات المشمولة حاليًا: `Maid`, `Nationality`, `Slider`, `Service`, `AboutUs`, `Offer`,
+`Client`, `WhatDo`, `Feature`. أي موديل جديد تُعرض ملفاته عبر الـ API يحتاج نفس السطرين.
+
+> انتبه: `Statistic.image` و `Step.icon` و `WhyUs.icon` و `WhyChooseUsFeature.icon` هي
+> **كلاسات أيقونات FontAwesome** لا ملفات، فلا تضف إليها الـ trait.
+
+نقاط انتباه في التصميم:
+
+- التدخل في **`toArray()` فقط** وليس `attributesToArray()`. السبب: قراءة الخاصية مباشرة
+  (`$maid->cv_file`) يعتمد عليها الرفع والحذف والبث، وسجل النشاط (Spatie ActivityLog) يقرأ
+  `attributesToArray()` — ولو حُوّلت هناك لصارت الروابط الموقّعة المؤقتة تُسجَّل كتغيير في
+  كل حفظ.
+- **الملفات المحلية لا تتغير قيمتها إطلاقًا** — يخرج المسار النسبي كما هو، فلا يتأثر أي
+  كلاينت قائم.
+- `apiFileUrl()` يحتفظ بكاش داخل الطلب الواحد لتفادي نداء `exists()` المتكرر إلى R2
+  (الصفحة الرئيسية وحدها تكرر نفس الشعار عشرات المرات)، ويُعطَّل الكاش تلقائيًا عندما يكون
+  `public_url` فارغًا لأن الروابط الموقّعة تنتهي بعد 30 دقيقة.
+
+الاختبار: [tests/Feature/Models/ApiMediaUrlTest.php](tests/Feature/Models/ApiMediaUrlTest.php).
 
 ---
 

@@ -351,6 +351,49 @@ if (!function_exists('showFile')) {
     }
 }
 
+if (!function_exists('apiFileUrl')) {
+    /**
+     * قيمة ملف صالحة للاستهلاك من الموقع الخارجي / التطبيق.
+     *
+     * ملفات R2 ترجع كرابط مطلق كامل، والملفات المحلية ترجع بمسارها النسبي كما هو
+     * (الكلاينت يضيف نطاق الـ ERP بنفسه). الهدف ألا تتسرب قيمة "r2://..." الخام إلى الـ API.
+     */
+    function apiFileUrl($storedPath, string $fallback = '')
+    {
+        if (!is_string($storedPath)) {
+            return $fallback;
+        }
+
+        $storedPath = trim($storedPath);
+
+        if ($storedPath === '' || $storedPath === 'null') {
+            return $fallback;
+        }
+
+        if (!app(\App\Services\ManagedFileStorage::class)->isR2Path($storedPath)) {
+            return $storedPath;
+        }
+
+        // كل استجابة تكرر نفس الملف كثيرًا (شعار الجنسية داخل كل عاملة مثلًا)
+        // و ManagedFileStorage::url() يعمل نداء شبكة لـ R2 في كل مرة.
+        // الكاش فقط عند وجود نطاق عام (روابط دائمة)؛ الروابط الموقّعة تنتهي بعد 30 دقيقة
+        // فلا يصح الاحتفاظ بها في worker طويل العمر.
+        static $resolved = [];
+
+        $cacheable = filled(\App\Support\R2StorageSettings::all()['public_url'] ?? null);
+
+        if (!$cacheable) {
+            return showFile($storedPath) ?: $fallback;
+        }
+
+        if (!array_key_exists($storedPath, $resolved)) {
+            $resolved[$storedPath] = showFile($storedPath);
+        }
+
+        return $resolved[$storedPath] ?: $fallback;
+    }
+}
+
 if (!function_exists('uploadMaidFile')) {
     function uploadMaidFile(\Illuminate\Http\UploadedFile $file, string $path)
     {
