@@ -83,22 +83,19 @@ class ManagedFileStorage
         }
 
         try {
-            [$disk, $path, $isR2] = $this->readLocation($storedPath);
-
-            if (!$disk->exists($path)) {
-                return null;
-            }
-
-            if (!$isR2) {
-                return asset('storage/' . ltrim($path, '/'));
-            }
-
             $settings = R2StorageSettings::all();
-            if (filled($settings['public_url'])) {
-                return rtrim($settings['public_url'], '/') . '/' . ltrim($path, '/');
+
+            if ($this->isR2Path($storedPath)) {
+                $path = $this->path($storedPath);
+
+                if (filled($settings['public_url'])) {
+                    return rtrim($settings['public_url'], '/') . '/' . ltrim($path, '/');
+                }
+
+                return $this->r2Disk($settings)->temporaryUrl($path, now()->addMinutes(30));
             }
 
-            return $disk->temporaryUrl($path, now()->addMinutes(30));
+            return asset('storage/' . ltrim($storedPath, '/'));
         } catch (\Throwable $exception) {
             report($exception);
             return null;
