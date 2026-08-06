@@ -225,6 +225,95 @@ class ManagedFileStorage
         return is_string($storedPath) && str_starts_with($storedPath, self::R2_PREFIX);
     }
 
+    /**
+     * يرجع مؤشر "r2://..." لمسار محلي قديم **إن كان الملف موجودًا فعلًا في الـ Bucket**.
+     *
+     * يفيد بعد رفع الملفات إلى R2 يدويًا: لا حاجة لإعادة رفعها، فقط لربط قيمة العمود بها.
+     */
+    public function existingR2Pointer(string $storedPath): ?string
+    {
+        if ($this->isR2Path($storedPath)) {
+            return $storedPath;
+        }
+
+        $settings = R2StorageSettings::all();
+
+        if (!R2StorageSettings::isReady($settings)) {
+            return null;
+        }
+
+        try {
+            $path = $this->legacyR2Path($storedPath, $settings);
+
+            return $this->r2Disk($settings)->exists($path) ? self::R2_PREFIX . $path : null;
+        } catch (\Throwable $exception) {
+            report($exception);
+
+            return null;
+        }
+    }
+
+    /**
+     * المفتاح الذي يتوقعه النظام داخل الـ Bucket لمسار محلي قديم — بصرف النظر عن وجوده.
+     * يفيد في تشخيص الرفع اليدوي: قارن هذا بما رفعته فعلًا.
+     */
+    public function expectedR2Key(string $storedPath): string
+    {
+        return $this->isR2Path($storedPath)
+            ? $this->path($storedPath)
+            : $this->legacyR2Path($storedPath, R2StorageSettings::all());
+    }
+
+    /**
+     * ينقل ملفًا محليًا قديمًا إلى R2 ويرجع المؤشر الجديد "r2://..." ليُحفظ في القاعدة.
+     *
+     * الملف المحلي يبقى مكانه (نسخ لا نقل) حتى يمكن التراجع، ولا يُعاد الرفع لو كان
+     * الملف موجودًا في الـ Bucket أصلًا.
+     *
+     * @throws \RuntimeException إذا لم يكن R2 جاهزًا أو الملف غير موجود لا محليًا ولا على R2
+     */
+    public function migrateLocalFileToR2(string $storedPath): string
+    {
+        if ($this->isR2Path($storedPath)) {
+            return $storedPath;
+        }
+
+        $settings = R2StorageSettings::all();
+
+        if (!R2StorageSettings::isReady($settings)) {
+            throw new \RuntimeException('تخزين R2 غير مفعّل أو لم يتم التحقق منه.');
+        }
+
+        $disk = $this->r2Disk($settings);
+        $path = $this->legacyR2Path($storedPath, $settings);
+
+        if ($disk->exists($path)) {
+            return self::R2_PREFIX . $path;
+        }
+
+        $local = Storage::disk('public');
+
+        if (!$local->exists($storedPath)) {
+            throw new \RuntimeException('الملف غير موجود محليًا ولا على R2: ' . $storedPath);
+        }
+
+        $stream = $local->readStream($storedPath);
+
+        if (!is_resource($stream)) {
+            throw new \RuntimeException('تعذر قراءة الملف المحلي: ' . $storedPath);
+        }
+
+        try {
+            $disk->writeStream($path, $stream);
+        } finally {
+            if (is_resource($stream)) {
+                fclose($stream);
+            }
+        }
+
+        return self::R2_PREFIX . $path;
+    }
+
     private function path(string $storedPath): string
     {
         return $this->isR2Path($storedPath) ? substr($storedPath, strlen(self::R2_PREFIX)) : $storedPath;
