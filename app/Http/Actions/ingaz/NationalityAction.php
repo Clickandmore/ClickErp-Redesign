@@ -81,7 +81,7 @@ class NationalityAction extends MainAction
     }
 
     public function getNationalities()
-    {
+    { 
         return $this->model->orderByTranslation('sub_title', 'asc')->get();
     }
 

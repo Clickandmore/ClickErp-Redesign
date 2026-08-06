@@ -57,7 +57,8 @@ class Nationality extends Model
 
     public function getLogoURLAttribute()
     {
-        return showFile($this->logo);
+        // return showFile($this->logo);
+        return $this->logo;
     }
 
     public function getDisplayNameAttribute(): string

@@ -127,7 +127,7 @@ class HomeController extends Controller
         ]));
         $searchValue = trim($searchValue, " \t\n\r\0\x0B#");
 
-        $contractQuery = Contract::query()->with(['user', 'maid.nationality', 'info']);
+        $contractQuery = Contract::query()->with(['user', 'maid.nationalitiesy', 'info']);
 
         if ($searchValue !== '') {
             $contractQuery->where(function ($query) use ($searchValue) {
