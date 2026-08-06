@@ -339,6 +339,31 @@ class RecruitmentContractController extends Controller
         return $html;
     }
 
+    private function renderTravelArrivalDateBadge(?TravelHistory $travelHistory, bool $hasArrived = false): string
+    {
+        $arrivalDateTime = $travelHistory?->resolveArrivalDateTime();
+
+        if (!$arrivalDateTime) {
+            return '';
+        }
+
+        $badgeClass = $hasArrived
+            ? 'contract-arrival-note contract-arrival-note--arrived'
+            : 'contract-arrival-note contract-arrival-note--expected';
+        $label = $hasArrived ? 'تاريخ الوصول' : 'الوصول المتوقع';
+        $timeLabel = filled($travelHistory?->arrival_time)
+            || (filled($travelHistory?->arrival_date) && preg_match('/\d{1,2}:\d{2}/', (string) $travelHistory->arrival_date))
+                ? $arrivalDateTime->format('H:i')
+                : null;
+
+        return '<span class="' . $badgeClass . '">'
+            . '<i class="fas fa-plane-arrival me-1"></i>'
+            . e($label) . ': '
+            . '<span dir="ltr">' . e($arrivalDateTime->format('Y-m-d')) . '</span>'
+            . ($timeLabel ? ' - <span dir="ltr">' . e($timeLabel) . '</span>' : '')
+            . '</span>';
+    }
+
     private function updateContractStatusRecord(Contract $contract, string $nextStatus, ?string $date = null): array
     {
         $currentStatus = $contract->status;
@@ -1360,17 +1385,30 @@ class RecruitmentContractController extends Controller
                                 return '<span class="badge bg-warning">رحلة مسجلة - بانتظار مرحلة التذاكر</span>';
                             }
 
+                            $arrivalBadge = $this->renderTravelArrivalDateBadge(
+                                $travelHistory,
+                                $travelHistory->status === 'completed'
+                            );
+
                             if ($travelHistory->status === 'completed') {
-                                return '<span class="badge bg-success">تم إكمال الرحلة</span>';
+                                return '<div class="d-flex flex-column align-items-start gap-2">'
+                                    . '<span class="badge bg-success">تم إكمال الرحلة</span>'
+                                    . $arrivalBadge
+                                    . '</div>';
                             } else {
-                                // عرض زر إكمال الرحلة لجميع الرحلات غير المكتملة
                                 if ($hasCompleteTravelPermission) {
-                                    return '<button class="btn btn-success btn-sm complete-trip-btn btn-action" data-trip-id="' . $travelHistory->id . '" title="إكمال الرحلة">
-                                        <i class="fas fa-check me-1"></i>إكمال الرحلة
-                                    </button>';
+                                    return '<div class="d-flex flex-column align-items-start gap-2">'
+                                        . $arrivalBadge
+                                        . '<button class="btn btn-success btn-sm complete-trip-btn btn-action" data-trip-id="' . $travelHistory->id . '" title="إكمال الرحلة">
+                                            <i class="fas fa-check me-1"></i>إكمال الرحلة
+                                        </button>'
+                                        . '</div>';
                                 } else {
                                     $statusText = $travelHistory->status === 'active' ? 'رحلة نشطة' : 'رحلة قيد الإعداد';
-                                    return '<span class="badge bg-warning">' . $statusText . '</span>';
+                                    return '<div class="d-flex flex-column align-items-start gap-2">'
+                                        . $arrivalBadge
+                                        . '<span class="badge bg-warning">' . $statusText . '</span>'
+                                        . '</div>';
                                 }
                             }
                         } else {
