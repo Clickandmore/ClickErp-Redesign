@@ -385,6 +385,29 @@ class Nationality extends Model
 
 الاختبار: [tests/Feature/Models/ApiMediaUrlTest.php](tests/Feature/Models/ApiMediaUrlTest.php).
 
+### 6.7 توليد نموذج السيرة — تضمين الصور
+
+قالب السيرة (المرفوع في قاعدة البيانات) يستدعي `showFile()` فيخرج **رابطًا**: محلي
+`.../storage/...` أو رابط R2 موقّع. وكلاهما يحتاج طلب شبكة أثناء التحويل، وهذا يفشل في
+ثلاثة مواضع:
+
+- **مسار SVG الاحتياطي** — الـ `<img>` داخل SVG لا يحمّل موارد خارجية إطلاقًا.
+- **Chrome** — الصفحة تُحمَّل من `file://` ومهلة اللقطة 3 ثوانٍ فقط.
+- **mPDF** — جلب الصور البعيدة بطيء وهش، خصوصًا مع روابط موقّعة.
+
+لذلك يمرّ الـ HTML بـ
+[`embedManagedMedia()`](app/Services/ingaz/MaidCvPdfGenerator.php) بعد التصيير مباشرة
+وقبل تسليمه لأي محوِّل: تُقرأ بايتات كل ملف عبر `ManagedFileStorage` — أي من R2 أو من
+القرص المحلي حسب قيمة العمود — وتُستبدل بـ `data:` URI.
+
+- المطابقة تتم على **الرابط قبل `?`** لأن الروابط الموقّعة تحمل توقيعًا مختلفًا في كل
+  استدعاء، ثم يُبتلع ما بعده.
+- الملفات المشمولة: صورة العاملة، شعار جنسيتها، وشعارات/أختام الإعدادات
+  (`mediaSourcePaths()`).
+- أي صورة يعجز النظام عن قراءتها تُترك برابطها الأصلي — لا ينكسر التوليد.
+
+الاختبار: [tests/Feature/Models/CvMediaEmbeddingTest.php](tests/Feature/Models/CvMediaEmbeddingTest.php).
+
 ---
 
 ## 7. الفرق بين `uploadFile()` القديمة و `uploadMaidFile()` الجديدة

@@ -10,6 +10,7 @@ use App\Http\Controllers\APPAPIControllers\AppOrderController;
 use App\Http\Controllers\APPAPIControllers\AppComplaintController;
 use App\Http\Controllers\APPAPIControllers\RentalOrderPaymentController;
 use App\Http\Middleware\AppApiLang;
+use App\Http\Middleware\PreventApiResponseCaching;
 use App\Http\Controllers\Webhook\WhatsAppWebhookController;
 use App\Http\Controllers\Api\ExternalVisitorWidgetController;
 use \Api\ApiSettingController;
@@ -140,7 +141,7 @@ Route::controller(Api\HomeController::class)->group(function ($router) {
 
 
 // Public API routes (3mer)
-Route::group(['middleware' => 'lang', 'prefix' => 'client'], function () {
+Route::group(['middleware' => ['lang', PreventApiResponseCaching::class], 'prefix' => 'client'], function () {
     Route::get('home', [HomeController::class, 'homeSections']);
     Route::get('recruitment-requirements', [HomeController::class, 'recruitmentRequirements']);
     Route::get('about', [HomeController::class, 'about']);
