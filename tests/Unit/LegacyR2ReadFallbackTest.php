@@ -61,6 +61,36 @@ class LegacyR2ReadFallbackTest extends TestCase
         $this->assertSame('r2-copy', $this->storage->contents($path));
     }
 
+    public function test_legacy_path_uses_r2_public_url_when_copy_exists(): void
+    {
+        $this->settings['public_url'] = 'https://media.example.com';
+        $diskConfig = R2StorageSettings::diskConfig($this->settings);
+        $this->setStaticProperty(R2StorageSettings::class, 'cached', $this->settings);
+        config(['filesystems.disks.r2_runtime' => $diskConfig]);
+        $this->setStaticProperty(
+            ManagedFileStorage::class,
+            'configuredDiskHash',
+            hash('sha256', serialize($diskConfig))
+        );
+
+        $path = 'images/Maid/photo.jpg';
+        Storage::disk('public')->put($path, 'local-copy');
+        Storage::disk('r2_runtime')->put('clickerp/' . $path, 'r2-copy');
+
+        $this->assertSame(
+            'https://media.example.com/clickerp/images/Maid/photo.jpg',
+            $this->storage->url($path)
+        );
+    }
+
+    public function test_legacy_path_uses_local_url_when_r2_copy_is_missing(): void
+    {
+        $path = 'images/Maid/photo.jpg';
+        Storage::disk('public')->put($path, 'local-copy');
+
+        $this->assertSame(asset('storage/' . $path), $this->storage->url($path));
+    }
+
     public function test_legacy_path_falls_back_to_local_when_r2_copy_is_missing(): void
     {
         $path = 'images/Maid/photo.jpg';

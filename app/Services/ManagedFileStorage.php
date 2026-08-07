@@ -86,13 +86,19 @@ class ManagedFileStorage
             $settings = R2StorageSettings::all();
 
             if ($this->isR2Path($storedPath)) {
-                $path = $this->path($storedPath);
+                return $this->r2Url($this->path($storedPath), $settings);
+            }
 
-                if (filled($settings['public_url'])) {
-                    return rtrim($settings['public_url'], '/') . '/' . ltrim($path, '/');
+            // Older database rows keep a local-looking path even after their file
+            // has been copied to R2. Prefer that R2 object for browser-facing URLs,
+            // just as readLocation() already does for streams and file contents.
+            if (R2StorageSettings::isReady($settings)) {
+                $disk = $this->r2Disk($settings);
+                $path = $this->legacyR2Path($storedPath, $settings);
+
+                if ($disk->exists($path)) {
+                    return $this->r2Url($path, $settings, $disk);
                 }
-
-                return $this->r2Disk($settings)->temporaryUrl($path, now()->addMinutes(30));
             }
 
             return asset('storage/' . ltrim($storedPath, '/'));
@@ -345,6 +351,15 @@ class ManagedFileStorage
     private function legacyR2Path(string $storedPath, array $settings): string
     {
         return trim($settings['root_prefix'] . '/' . ltrim($storedPath, '/'), '/');
+    }
+
+    private function r2Url(string $path, array $settings, $disk = null): string
+    {
+        if (filled($settings['public_url'])) {
+            return rtrim($settings['public_url'], '/') . '/' . ltrim($path, '/');
+        }
+
+        return ($disk ?? $this->r2Disk($settings))->temporaryUrl($path, now()->addMinutes(30));
     }
 
     private function deleteIfExists($disk, string $path): bool
