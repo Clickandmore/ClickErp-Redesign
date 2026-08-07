@@ -80,22 +80,20 @@ class UserController extends Controller
                     'finance_account_code' => Account::select('code')
                         ->whereColumn('fn_accounts.id', 'users.account_id')
                         ->limit(1),
-                    'recruitment_contracts_count' => Contract::selectRaw('COUNT(*)')
+                    // Keep the two mutually-exclusive cases separate so MySQL can
+                    // use the user/old-sponsor indexes instead of scanning contracts
+                    // for every client because of the previous correlated OR.
+                    'direct_recruitment_contracts_count' => Contract::selectRaw('COUNT(*)')
                         ->whereIn('type', ['recruitment', 'maid'])
-                        ->where(function ($contractQuery) {
-                            $contractQuery
-                                ->where(function ($directContractQuery) {
-                                    $directContractQuery
-                                        ->whereColumn('user_id', 'users.id')
-                                        ->whereDoesntHave('sponsorshipTransfers', function ($transferQuery) {
-                                            $transferQuery->whereIn('status', $this->sponsorshipTransferDisplayStatuses());
-                                        });
-                                })
-                                ->orWhereHas('sponsorshipTransfers', function ($transferQuery) {
-                                    $transferQuery
-                                        ->whereIn('status', $this->sponsorshipTransferDisplayStatuses())
-                                        ->whereColumn('old_sponsor_id', 'users.id');
-                                });
+                        ->whereColumn('user_id', 'users.id')
+                        ->whereDoesntHave('sponsorshipTransfers', function ($transferQuery) {
+                            $transferQuery->whereIn('status', $this->sponsorshipTransferDisplayStatuses());
+                        }),
+                    'transferred_recruitment_contracts_count' => SponsorshipTransfer::selectRaw('COUNT(DISTINCT contract_id)')
+                        ->whereColumn('old_sponsor_id', 'users.id')
+                        ->whereIn('status', $this->sponsorshipTransferDisplayStatuses())
+                        ->whereHas('contract', function ($contractQuery) {
+                            $contractQuery->whereIn('type', ['recruitment', 'maid']);
                         }),
                     'last_order_at' => Order::select('created_at')
                         ->whereColumn('user_id', 'users.id')
@@ -120,7 +118,6 @@ class UserController extends Controller
                         ->latest('created_at')
                         ->limit(1),
                 ])
-                ->orderByRaw('arabia_client_number IS NULL ASC')
                 ->orderByDesc('arabia_client_number')
                 ->orderByDesc('id');
 
@@ -175,12 +172,12 @@ class UserController extends Controller
 
             if ($request->filled('date_from')) {
                 $from = Carbon::parse($request->get('date_from'))->startOfDay();
-                $units->whereDate('created_at', '>=', $from);
+                $units->where('created_at', '>=', $from);
             }
 
             if ($request->filled('date_to')) {
                 $to = Carbon::parse($request->get('date_to'))->endOfDay();
-                $units->whereDate('created_at', '<=', $to);
+                $units->where('created_at', '<=', $to);
             }
 
             if ($request->filled('keyword')) {
@@ -311,7 +308,10 @@ class UserController extends Controller
                 ->addColumn('metrics', function ($row) {
                     $ordersCount = number_format((int)$row->orders_count);
                     $activeOrders = number_format((int)$row->active_orders_count);
-                    $recruitmentCount = number_format((int)$row->recruitment_contracts_count);
+                    $recruitmentCount = number_format(
+                        (int) $row->direct_recruitment_contracts_count
+                        + (int) $row->transferred_recruitment_contracts_count
+                    );
                     $rentalCount = number_format((int)$row->rental_contracts_count);
                     $transferCount = number_format((int)$row->transfer_requests_count);
 
@@ -473,11 +473,23 @@ class UserController extends Controller
         $statsQuery = objModel::query();
         $this->applyBranchScope($statsQuery);
 
+        $monthStart = Carbon::now()->startOfMonth();
+        $monthEnd = Carbon::now()->endOfMonth();
+        $stats = (clone $statsQuery)
+            ->selectRaw(
+                'COUNT(*) AS total,
+                SUM(CASE WHEN is_blocked = 0 THEN 1 ELSE 0 END) AS active,
+                SUM(CASE WHEN is_blocked = 1 THEN 1 ELSE 0 END) AS blocked,
+                SUM(CASE WHEN created_at BETWEEN ? AND ? THEN 1 ELSE 0 END) AS new_this_month',
+                [$monthStart, $monthEnd]
+            )
+            ->first();
+
         $data['stats'] = [
-            'total' => (clone $statsQuery)->count(),
-            'active' => (clone $statsQuery)->where('is_blocked', 0)->count(),
-            'blocked' => (clone $statsQuery)->where('is_blocked', 1)->count(),
-            'new_this_month' => (clone $statsQuery)->whereBetween('created_at', [Carbon::now()->startOfMonth(), Carbon::now()->endOfMonth()])->count(),
+            'total' => (int) ($stats->total ?? 0),
+            'active' => (int) ($stats->active ?? 0),
+            'blocked' => (int) ($stats->blocked ?? 0),
+            'new_this_month' => (int) ($stats->new_this_month ?? 0),
             'with_orders' => (clone $statsQuery)->has('orders')->count(),
         ];
         $data['nationalities'] = Country::active()->ordered()->get(['id', 'name_ar', 'name_en']);
