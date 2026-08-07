@@ -12,20 +12,21 @@
         $footerName = 'Click ERP';
         $footerUrl = 'https://clickerp.com.sa';
 
-        $resolveLoginBackground = static function (?string $storedPath): ?string {
+        $loginMediaStorage = app(\App\Services\ManagedFileStorage::class);
+        $resolveLoginAsset = static function (?string $storedPath) use ($loginMediaStorage): ?string {
             if (empty($storedPath)) {
                 return null;
             }
 
-            $storage = app(\App\Services\ManagedFileStorage::class);
-
-            if ($storage->isR2Path($storedPath)) {
-                return $storage->exists($storedPath) ? $storage->url($storedPath) : null;
+            if ($loginMediaStorage->isR2Path($storedPath)) {
+                return $loginMediaStorage->exists($storedPath)
+                    ? $loginMediaStorage->url($storedPath)
+                    : null;
             }
 
-            $r2Pointer = $storage->existingR2Pointer($storedPath);
+            $r2Pointer = $loginMediaStorage->existingR2Pointer($storedPath);
             if ($r2Pointer !== null) {
-                return $storage->url($r2Pointer);
+                return $loginMediaStorage->url($r2Pointer);
             }
 
             return \Illuminate\Support\Facades\Storage::disk('public')->exists($storedPath)
@@ -39,7 +40,7 @@
             $settings->cover_image ?? null,
             $settings->light_image ?? null,
         ] as $backgroundPath) {
-            $loginBg = $resolveLoginBackground($backgroundPath);
+            $loginBg = $resolveLoginAsset($backgroundPath);
 
             if ($loginBg !== null) {
                 break;
@@ -48,14 +49,23 @@
 
         $loginBg ??= asset('site/assets/images/login_image.jpg');
 
-        $loginLogo =
-            isset($settings) && !empty($settings->admin_logo)
-                ? showFile($settings->admin_logo)
-                : (isset($settings) && !empty($settings->logo_header)
-                    ? showFile($settings->logo_header)
-                    : (isset($developSettings) && !empty($developSettings->logo_login)
-                        ? showFile($developSettings->logo_login)
-                        : asset('site/assets/images/company_logo.png')));
+        $defaultLoginLogo = asset('site/assets/images/fav.png');
+        $loginLogo = null;
+        foreach ([
+            $settings->admin_logo ?? null,
+            $settings->logo_header ?? null,
+            $settings->document_logo ?? null,
+            $settings->favicon ?? null,
+            $developSettings->logo_login ?? null,
+        ] as $logoPath) {
+            $loginLogo = $resolveLoginAsset($logoPath);
+
+            if ($loginLogo !== null) {
+                break;
+            }
+        }
+
+        $loginLogo ??= $defaultLoginLogo;
 
         $footerLogo = asset('site/assets/images/fav.png');
     @endphp
@@ -99,7 +109,7 @@
                 <div class="brand-lockup">
                     <div class="brand-logo">
                         <img class="logo" src="{{ $loginLogo }}" alt="logo"
-                            onerror="this.onerror=null;this.src='{{ asset('site/assets/images/company_logo.png') }}';">
+                            onerror="this.onerror=null;this.src='{{ $defaultLoginLogo }}';">
                     </div>
                 </div>
 
