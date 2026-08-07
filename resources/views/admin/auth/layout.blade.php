@@ -12,15 +12,41 @@
         $footerName = 'Click ERP';
         $footerUrl = 'https://clickerp.com.sa';
 
-        if (isset($settings) && !empty($settings->admin_login_background)) {
-            $loginBg = showFile($settings->admin_login_background);
-        } elseif (isset($settings) && !empty($settings->cover_image)) {
-            $loginBg = showFile($settings->cover_image);
-        } elseif (isset($settings) && !empty($settings->light_image)) {
-            $loginBg = showFile($settings->light_image);
-        } else {
-            $loginBg = asset('site/assets/images/login_image.jpg');
+        $resolveLoginBackground = static function (?string $storedPath): ?string {
+            if (empty($storedPath)) {
+                return null;
+            }
+
+            $storage = app(\App\Services\ManagedFileStorage::class);
+
+            if ($storage->isR2Path($storedPath)) {
+                return $storage->exists($storedPath) ? $storage->url($storedPath) : null;
+            }
+
+            $r2Pointer = $storage->existingR2Pointer($storedPath);
+            if ($r2Pointer !== null) {
+                return $storage->url($r2Pointer);
+            }
+
+            return \Illuminate\Support\Facades\Storage::disk('public')->exists($storedPath)
+                ? asset('storage/' . ltrim($storedPath, '/'))
+                : null;
+        };
+
+        $loginBg = null;
+        foreach ([
+            $settings->admin_login_background ?? null,
+            $settings->cover_image ?? null,
+            $settings->light_image ?? null,
+        ] as $backgroundPath) {
+            $loginBg = $resolveLoginBackground($backgroundPath);
+
+            if ($loginBg !== null) {
+                break;
+            }
         }
+
+        $loginBg ??= asset('site/assets/images/login_image.jpg');
 
         $loginLogo =
             isset($settings) && !empty($settings->admin_logo)
