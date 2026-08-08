@@ -105,6 +105,48 @@ class RecruitmentContractPresentationTest extends TestCase
         $this->assertSame('2026-07-22', $arrival['date_label']);
     }
 
+    /** @test */
+    public function scheduled_trip_date_is_presented_as_expected_arrival_before_the_worker_arrives(): void
+    {
+        $contract = new Contract([
+            'status' => ContractStatusEnum::Tazker->value,
+        ]);
+        $contract->setRelation('travelHistory', new TravelHistory([
+            'status' => 'active',
+            'arrival_date' => '2026-08-15',
+            'arrival_time' => '18:30:00',
+        ]));
+        $contract->setRelation('info', null);
+        $contract->setRelation('maid', null);
+        $contract->setRelation('externalOfficeDispatch', null);
+
+        $arrival = $this->invoke('resolveWorkerArrivalDetails', $contract);
+
+        $this->assertFalse($arrival['has_arrived']);
+        $this->assertSame('2026-08-15', $arrival['date_label']);
+        $this->assertSame('18:30', $arrival['time_label']);
+    }
+
+    /** @test */
+    public function legacy_contract_arrival_date_is_not_presented_as_expected_arrival_without_a_trip(): void
+    {
+        $contract = new Contract([
+            'status' => ContractStatusEnum::Tazker->value,
+        ]);
+        $contract->setRelation('travelHistory', null);
+        $contract->setRelation('info', new ContractInfo([
+            'arrival_date' => '2026-08-10',
+        ]));
+        $contract->setRelation('maid', null);
+        $contract->setRelation('externalOfficeDispatch', null);
+
+        $arrival = $this->invoke('resolveWorkerArrivalDetails', $contract);
+
+        $this->assertFalse($arrival['has_arrived']);
+        $this->assertNull($arrival['date_label']);
+        $this->assertNull($arrival['time_label']);
+    }
+
     private function invoke(string $method, Contract $contract): array
     {
         $reflection = new ReflectionMethod($this->controller, $method);

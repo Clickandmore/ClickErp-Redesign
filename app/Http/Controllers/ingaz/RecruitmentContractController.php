@@ -1218,12 +1218,6 @@ class RecruitmentContractController extends Controller
                 ->addColumn('arrival_info', function ($row) {
                     $arrival = $this->resolveWorkerArrivalDetails($row);
 
-                    // قبل الوصول الفعلي نعرض تاريخ الوصول المتوقع (المحجوز في الرحلة)
-                    // بدل الشرطة، حتى يظهر التاريخ لعقود مرحلة التذكرة أيضاً.
-                    if (!$arrival['has_arrived'] && !$arrival['date_label']) {
-                        return '<span class="text-muted">—</span>';
-                    }
-
                     $html = '<div class="arrival-info-cell">';
                     $html .= $arrival['has_arrived']
                         ? '<div class="arrival-info-status">'
@@ -1243,7 +1237,9 @@ class RecruitmentContractController extends Controller
                     } else {
                         $html .= '<div class="arrival-date-missing">'
                             . '<i class="fas fa-triangle-exclamation"></i>'
-                            . '<span>تاريخ الوصول غير مسجل</span>'
+                            . '<span>' . ($arrival['has_arrived']
+                                ? 'تاريخ الوصول الفعلي غير مسجل'
+                                : 'لم يُحدد موعد الوصول بعد') . '</span>'
                             . '</div>';
                     }
 
@@ -2674,16 +2670,6 @@ class RecruitmentContractController extends Controller
             ? $contract->travelHistory
             : $contract->travelHistory()->latest('id')->first();
 
-        $arrivalDateTime = $travelHistory?->resolveArrivalDateTime();
-
-        if (!$arrivalDateTime && $contract->info?->arrival_date) {
-            $arrivalDateTime = $this->normalizeContractStageDate($contract->info->arrival_date);
-        }
-
-        if (!$arrivalDateTime && $contract->maid?->arrival_date) {
-            $arrivalDateTime = $this->normalizeContractStageDate($contract->maid->arrival_date);
-        }
-
         $hasArrived = $travelHistory?->status === 'completed'
             || in_array($contract->status, [
                 ContractStatusEnum::Arrival->value,
@@ -2691,6 +2677,18 @@ class RecruitmentContractController extends Controller
                 ContractStatusEnum::UnderWarranty->value,
                 ContractStatusEnum::Closed->value,
             ], true);
+
+        $arrivalDateTime = $travelHistory?->resolveArrivalDateTime();
+
+        // بيانات العقد والعاملة تواريخ فعلية قديمة وليست موعداً مجدولاً.
+        // لذلك لا تستخدم كـ "وصول متوقع" قبل اكتمال الرحلة أو بلوغ مرحلة الوصول.
+        if ($hasArrived && !$arrivalDateTime && $contract->info?->arrival_date) {
+            $arrivalDateTime = $this->normalizeContractStageDate($contract->info->arrival_date);
+        }
+
+        if ($hasArrived && !$arrivalDateTime && $contract->maid?->arrival_date) {
+            $arrivalDateTime = $this->normalizeContractStageDate($contract->maid->arrival_date);
+        }
 
         $hasExplicitArrivalTime = filled($travelHistory?->arrival_time)
             || (filled($travelHistory?->arrival_date)

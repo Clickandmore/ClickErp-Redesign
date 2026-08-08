@@ -1243,6 +1243,7 @@
                                 </th>
                                 <th class="operations-column-heading operations-column-heading-arrival">
                                     <i class="fas fa-plane-arrival"></i>الوصول للمملكة
+                                    <small class="d-block mt-1 text-muted fw-normal">المتوقع من الرحلة أو الفعلي بعد الوصول</small>
                                 </th>
                                 <th>{{ helperTrans('ingaz.recruitment_office') }}</th>
                                 <th>المسوق</th>
