@@ -399,7 +399,7 @@ class WebsiteVisitorChatController extends Controller
             ->map(function ($domain) {
                 $domain = strtolower(trim((string) $domain));
                 if ($domain === '*') {
-                    return '*';
+                    return null;
                 }
                 $wildcard = str_starts_with($domain, '*.');
                 $candidate = $wildcard ? substr($domain, 2) : $domain;
@@ -416,7 +416,7 @@ class WebsiteVisitorChatController extends Controller
             ->all();
 
         if ($domains === []) {
-            abort(422, 'يجب إدخال نطاق صحيح واحد على الأقل.');
+            abort(422, 'يجب إدخال نطاق صريح واحد على الأقل؛ السماح المفتوح * غير مسموح.');
         }
 
         return [

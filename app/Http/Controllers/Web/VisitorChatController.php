@@ -11,6 +11,8 @@ class VisitorChatController extends Controller
 {
     public function heartbeat(Request $request)
     {
+        $this->ensureInternalTrackingEnabled();
+
         $validated = $request->validate([
             'current_url' => ['nullable', 'string', 'max:2048'],
             'page_title' => ['nullable', 'string', 'max:255'],
@@ -67,6 +69,8 @@ class VisitorChatController extends Controller
 
     public function messages(Request $request)
     {
+        $this->ensureInternalTrackingEnabled();
+
         $validated = $request->validate([
             'after_id' => ['nullable', 'integer', 'min:0'],
         ]);
@@ -97,6 +101,8 @@ class VisitorChatController extends Controller
 
     public function send(Request $request)
     {
+        $this->ensureInternalTrackingEnabled();
+
         $validated = $request->validate([
             'body' => ['required', 'string', 'max:2000'],
         ]);
@@ -138,6 +144,11 @@ class VisitorChatController extends Controller
                 'session_started_at' => now(),
             ]
         );
+    }
+
+    private function ensureInternalTrackingEnabled(): void
+    {
+        abort_unless(config('website-visitors.legacy_internal_tracking', false), 404);
     }
 
     private function messagePayload($message): array

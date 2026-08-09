@@ -47,7 +47,7 @@ class WebsiteVisitorSite extends Model
         foreach ((array) $this->allowed_domains as $allowed) {
             $allowed = strtolower(trim((string) $allowed));
             if ($allowed === '*') {
-                return true;
+                continue;
             }
             if (str_starts_with($allowed, '*.')) {
                 $base = substr($allowed, 2);

@@ -5,13 +5,16 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\WebsiteVisitor;
 use App\Models\WebsiteVisitorSite;
+use App\Support\WebsiteVisitorRequestGuard;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 
 class ExternalVisitorWidgetController extends Controller
 {
-    public function heartbeat(Request $request, string $siteKey)
+    public function heartbeat(Request $request, string $siteKey, WebsiteVisitorRequestGuard $requestGuard)
     {
+        $requestGuard->ensureHumanBrowser($request);
+
         $site = $this->site($siteKey);
         $this->authorizeOrigin($request, $site, true);
 
@@ -20,8 +23,8 @@ class ExternalVisitorWidgetController extends Controller
             'page_title' => ['nullable', 'string', 'max:255'],
             'referrer' => ['nullable', 'url', 'max:2048'],
             'timezone' => ['nullable', 'string', 'max:100'],
-            'screen_width' => ['nullable', 'integer', 'min:0', 'max:65535'],
-            'screen_height' => ['nullable', 'integer', 'min:0', 'max:65535'],
+            'screen_width' => ['required', 'integer', 'min:1', 'max:65535'],
+            'screen_height' => ['required', 'integer', 'min:1', 'max:65535'],
         ]);
 
         if (!$site->allowsOrigin($validated['current_url'])) {
@@ -29,9 +32,12 @@ class ExternalVisitorWidgetController extends Controller
         }
 
         $visitor = $this->visitor($request, $site, true);
-        $latestPageView = $visitor->pageViews()->latest('visited_at')->first();
+        $recentlyRecorded = $visitor->pageViews()
+            ->where('url', $validated['current_url'])
+            ->where('visited_at', '>=', now()->subMinutes(10))
+            ->exists();
 
-        if (!$latestPageView || $latestPageView->url !== $validated['current_url']) {
+        if (!$recentlyRecorded) {
             $visitor->pageViews()->create([
                 'url' => $validated['current_url'],
                 'title' => $validated['page_title'] ?? null,

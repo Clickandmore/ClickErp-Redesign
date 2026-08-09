@@ -60,12 +60,17 @@ Route::post('webhooks/whatsapp', [WhatsAppWebhookController::class, 'receive'])-
 
 Route::prefix('visitor-widget/{siteKey}')
     ->where(['siteKey' => '[A-Za-z0-9]{40,64}'])
-    ->middleware('throttle:240,1')
     ->name('api.visitor-widget.')
     ->group(function () {
-        Route::post('heartbeat', [ExternalVisitorWidgetController::class, 'heartbeat'])->name('heartbeat');
-        Route::get('messages', [ExternalVisitorWidgetController::class, 'messages'])->name('messages');
-        Route::post('messages', [ExternalVisitorWidgetController::class, 'send'])->name('send');
+        Route::post('heartbeat', [ExternalVisitorWidgetController::class, 'heartbeat'])
+            ->middleware('throttle:10,1')
+            ->name('heartbeat');
+        Route::get('messages', [ExternalVisitorWidgetController::class, 'messages'])
+            ->middleware('throttle:240,1')
+            ->name('messages');
+        Route::post('messages', [ExternalVisitorWidgetController::class, 'send'])
+            ->middleware('throttle:20,1')
+            ->name('send');
     });
 
 Route::group(

@@ -12,6 +12,10 @@ class TrackWebsiteVisitor
 {
     public function handle(Request $request, Closure $next)
     {
+        if (!config('website-visitors.legacy_internal_tracking', false)) {
+            return $next($request);
+        }
+
         $response = $next($request);
 
         if (

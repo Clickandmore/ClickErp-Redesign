@@ -95,7 +95,9 @@
     <input type="color" id="colorInput" class="color-input">
 </div> -->
     @include('site.partials.whatsapp_float')
-    @include('site.partials.visitor_tracking')
+    @if(config('website-visitors.legacy_internal_tracking', false))
+        @include('site.partials.visitor_tracking')
+    @endif
     <footer class="footer">
         @include('site.layouts.footer')
     </footer>
