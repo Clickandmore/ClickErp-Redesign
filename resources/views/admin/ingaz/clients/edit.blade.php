@@ -174,8 +174,9 @@
 @section('content')
     @if (@AdminGuardHasPerm(\App\PermKeys::CLIENTS_EDIT))
         @php
-            $hasSourcePhone = filled($client->source_phone);
-            $phoneInput = (string) old('phone', $client->source_phone ?: $client->phone);
+            $canonicalPhone = $client->canonicalPhoneValue();
+            $hasSourcePhone = filled($client->source_phone) && !$canonicalPhone;
+            $phoneInput = (string) old('phone', $canonicalPhone ?: ($client->source_phone ?: $client->phone));
             $phoneDigits = $hasSourcePhone ? $phoneInput : preg_replace('/\D+/', '', $phoneInput);
 
             if (!$hasSourcePhone && str_starts_with($phoneDigits, '00966')) {
@@ -230,7 +231,7 @@
                                 <div class="input-group">
                                     <span class="input-group-text" dir="ltr">{{ $hasSourcePhone ? 'المصدر' : '+966' }}</span>
                                     <input type="text" id="phone" name="phone" class="form-control" dir="ltr"
-                                           value="{{ $phoneDigits ?: $phoneInput }}" required>
+                                           value="{{ $phoneDigits ?: $phoneInput }}" inputmode="tel" pattern="[0-9+() .-]*" required>
                                 </div>
                             </div>
 
@@ -336,7 +337,8 @@
                             <div class="col-lg-6">
                                 <label for="phone2" class="form-label">{{ helperTrans('ingaz.phone2') }}</label>
                                 <input type="text" id="phone2" name="phone2" class="form-control" dir="ltr"
-                                       value="{{ old('phone2', $client->source_phone2 ?: $client->phone2) }}">
+                                       value="{{ old('phone2', $client->source_phone2 ?: $client->phone2) }}"
+                                       inputmode="tel" pattern="[0-9+() .-]*">
                             </div>
 
                             <div class="col-lg-6">

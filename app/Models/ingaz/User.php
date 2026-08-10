@@ -45,7 +45,7 @@ class User extends Authenticatable implements JWTSubject
     {
         $sourcePhone = trim((string) ($this->source_phone ?? ''));
         if ($sourcePhone !== '') {
-            return $sourcePhone;
+            return $this->withoutInternalDuplicateMarker($sourcePhone);
         }
 
         $phone = trim((string) $this->phone);
@@ -55,12 +55,54 @@ class User extends Authenticatable implements JWTSubject
             return '';
         }
 
-        return trim((string) $this->phone_code . $phone);
+        return trim((string) $this->phone_code . $this->withoutInternalDuplicateMarker($phone));
     }
 
     public function secondaryPhoneValue(): string
     {
-        return trim((string) (($this->source_phone2 ?? null) ?: $this->phone2));
+        $phone = trim((string) (($this->source_phone2 ?? null) ?: $this->phone2));
+
+        return $this->withoutInternalDuplicateMarker($phone);
+    }
+
+    /**
+     * Return the Saudi mobile number used for comparisons and duplicate reports.
+     * Internal migration suffixes remain stored to preserve unique login values,
+     * but never form part of the customer's real phone number.
+     */
+    public function canonicalPhoneValue(): ?string
+    {
+        $phone = trim((string) (($this->source_phone ?? null) ?: $this->phone));
+        $phone = $this->withoutInternalDuplicateMarker($phone);
+        $phone = strtr($phone, [
+            '٠' => '0', '١' => '1', '٢' => '2', '٣' => '3', '٤' => '4',
+            '٥' => '5', '٦' => '6', '٧' => '7', '٨' => '8', '٩' => '9',
+            '۰' => '0', '۱' => '1', '۲' => '2', '۳' => '3', '۴' => '4',
+            '۵' => '5', '۶' => '6', '۷' => '7', '۸' => '8', '۹' => '9',
+        ]);
+        $digits = preg_replace('/\D+/', '', $phone);
+
+        if (str_starts_with($digits, '00966')) {
+            $digits = substr($digits, 5);
+        } elseif (str_starts_with($digits, '966')) {
+            $digits = substr($digits, 3);
+        }
+
+        if (str_starts_with($digits, '05')) {
+            $digits = substr($digits, 1);
+        }
+
+        return preg_match('/^5\d{8}$/', $digits) ? $digits : null;
+    }
+
+    public function hasInternalDuplicatePhoneMarker(): bool
+    {
+        return preg_match('/-dup-(?:\d+)?$/', trim((string) $this->phone)) === 1;
+    }
+
+    private function withoutInternalDuplicateMarker(string $phone): string
+    {
+        return trim((string) preg_replace('/-dup-(?:\d+)?$/', '', trim($phone)));
     }
 
     public function isCompanyClient(): bool

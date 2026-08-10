@@ -266,7 +266,7 @@
                             <div class="input-group">
                                 <span class="input-group-text" dir="ltr">+966</span>
                                 <input type="text" id="phone" name="phone" class="form-control" dir="ltr"
-                                       value="{{ old('phone') }}" required>
+                                       value="{{ old('phone') }}" inputmode="tel" pattern="[0-9+() .-]*" required>
                             </div>
                         </div>
 
@@ -420,7 +420,7 @@
                         <div class="col-lg-6">
                             <label class="form-label" for="phone2">{{ helperTrans('ingaz.phone2') }}</label>
                             <input type="text" id="phone2" name="phone2" class="form-control" dir="ltr"
-                                   value="{{ old('phone2') }}">
+                                   value="{{ old('phone2') }}" inputmode="tel" pattern="[0-9+() .-]*">
                         </div>
 
                         <div class="col-lg-6">

@@ -266,6 +266,8 @@ Route::group(
             Route::get('website-visitors/{visitor}/messages', [WebsiteVisitorChatController::class, 'messages'])->name('website-visitors.messages');
             Route::post('website-visitors/{visitor}/messages', [WebsiteVisitorChatController::class, 'send'])->name('website-visitors.send');
             Route::post('clients/bulk-update-status', [UserController::class, 'bulkUpdateStatus'])->name('clients.bulk-update-status');
+            Route::get('clients/reports/duplicate-phones', [UserController::class, 'exportDuplicatePhones'])
+                ->name('clients.reports.duplicate-phones');
             Route::resource('clients', UserController::class);
             Route::post('clients/{id}/attachments', [UserController::class, 'storeAttachments'])->name('clients.attachments.store');
             Route::get('clients/{id}/attachments/download', [UserController::class, 'downloadAttachments'])->name('clients.attachments.download');

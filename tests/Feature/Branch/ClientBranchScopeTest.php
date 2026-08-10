@@ -92,4 +92,58 @@ class ClientBranchScopeTest extends TestCase
             ->assertDontSee($ownClient->name, false)
             ->assertSee($otherClient->name, false);
     }
+
+    /** @test */
+    public function duplicate_phone_filter_uses_the_clean_phone_without_the_migration_marker(): void
+    {
+        $branch = $this->makeBranch(['is_main' => true]);
+        $viewer = $this->branchAdmin($branch);
+        $this->grant($viewer, \App\PermKeys::CLIENTS_VIEW);
+
+        $phone = '5' . random_int(10000000, 99999999);
+        $first = $this->makeClient('Duplicate phone one', $branch->id);
+        $first->updateQuietly(['phone' => $phone]);
+        $second = $this->makeClient('Duplicate phone two', $branch->id);
+        $second->updateQuietly(['phone' => $phone . '-dup-']);
+        $unique = $this->makeClient('Unique phone client', $branch->id);
+
+        $response = $this->actingAsAdmin($viewer)->get(
+            route('clients.index', ['phone_status' => 'duplicate']),
+            ['X-Requested-With' => 'XMLHttpRequest']
+        );
+
+        $response->assertOk()
+            ->assertSee($first->name, false)
+            ->assertSee($second->name, false)
+            ->assertDontSee($unique->name, false);
+
+        $this->assertStringContainsString(
+            __('ingaz.duplicate_phone'),
+            (string) data_get($response->json(), 'data.0.client_data')
+        );
+    }
+
+    /** @test */
+    public function duplicate_phone_report_can_be_downloaded_without_merging_clients(): void
+    {
+        $branch = $this->makeBranch(['is_main' => true]);
+        $viewer = $this->branchAdmin($branch);
+        $this->grant($viewer, \App\PermKeys::CLIENTS_VIEW);
+        $this->grant($viewer, \App\PermKeys::CLIENTS_EXPORT_EXCEL);
+
+        $phone = '5' . random_int(10000000, 99999999);
+        $first = $this->makeClient('Report duplicate one', $branch->id);
+        $first->updateQuietly(['phone' => $phone]);
+        $second = $this->makeClient('Report duplicate two', $branch->id);
+        $second->updateQuietly(['phone' => $phone . '-dup-2']);
+
+        $response = $this->actingAsAdmin($viewer)->get(route('clients.reports.duplicate-phones'));
+
+        $response->assertOk();
+        $this->assertStringContainsString(
+            'duplicate-client-phones-',
+            (string) $response->headers->get('content-disposition')
+        );
+        $this->assertSame($phone . '-dup-2', $second->fresh()->phone);
+    }
 }

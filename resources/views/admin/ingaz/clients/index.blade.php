@@ -119,6 +119,8 @@
                 'blocked' => 0,
                 'new_this_month' => 0,
                 'with_orders' => 0,
+                'duplicate_phone_groups' => 0,
+                'duplicate_phone_clients' => 0,
             ];
         @endphp
 
@@ -145,6 +147,10 @@
                             </a>
                         @endif
                         @if (@AdminGuardHasPerm(\App\PermKeys::CLIENTS_EXPORT_EXCEL))
+                            <a href="{{ route('clients.reports.duplicate-phones') }}"
+                                class="btn btn-outline-warning btn-sm">
+                                <i class="fa fa-copy me-1"></i>{{ helperTrans('ingaz.duplicate_phones_report') }}
+                            </a>
                             <a href="{{ route('clients.export.excel') }}" class="btn btn-outline-success btn-sm">
                                 <i class="fa fa-file-excel me-1"></i>{{ helperTrans('ingaz.export_excel') }}
                             </a>
@@ -311,6 +317,15 @@
                                     <option value="">{{ helperTrans('ingaz.all') }}</option>
                                     <option value="with">{{ helperTrans('ingaz.with_orders') }}</option>
                                     <option value="without">{{ helperTrans('ingaz.without_orders') }}</option>
+                                </select>
+                            </div>
+                            <div class="col-xl-2 col-lg-3 col-md-4">
+                                <label class="form-label">{{ helperTrans('ingaz.phone_status') }}</label>
+                                <select id="filter-phone-status" class="form-select filter-trigger">
+                                    <option value="">{{ helperTrans('ingaz.all') }}</option>
+                                    <option value="duplicate">{{ helperTrans('ingaz.duplicate_phone') }}</option>
+                                    <option value="unique">{{ helperTrans('ingaz.unique_phone') }}</option>
+                                    <option value="invalid">{{ helperTrans('ingaz.invalid_phone') }}</option>
                                 </select>
                             </div>
                             <div class="col-xl-2 col-lg-3 col-md-4">
@@ -527,6 +542,7 @@
                             d.branch_id = $('#filter-branch').val();
                         @endif
                         d.has_orders = $('#filter-orders').val();
+                        d.phone_status = $('#filter-phone-status').val();
                         d.date_from = $('#filter-date-from').val();
                         d.date_to = $('#filter-date-to').val();
                         d.keyword = $('#filter-keyword').val();

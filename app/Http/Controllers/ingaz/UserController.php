@@ -64,6 +64,7 @@ class UserController extends Controller
     {
         $branchesEnabled = $this->branchesEnabled();
         $canViewAllBranches = $this->canViewAllClientBranches();
+        $duplicatePhoneCounts = $this->duplicatePhoneCountsForCurrentAdmin();
 
         if ($request->ajax()) {
             $units = objModel::query()
@@ -170,6 +171,19 @@ class UserController extends Controller
                 }
             }
 
+            $phoneStatus = (string) $request->get('phone_status');
+            $canonicalPhoneSql = $this->canonicalPhoneSql();
+            $duplicatePhones = $duplicatePhoneCounts->keys()->all();
+
+            if ($phoneStatus === 'duplicate') {
+                $units->whereIn(DB::raw($canonicalPhoneSql), $duplicatePhones ?: ['__none__']);
+            } elseif ($phoneStatus === 'unique') {
+                $units->whereRaw($canonicalPhoneSql . " REGEXP '^5[0-9]{8}$'")
+                    ->whereNotIn(DB::raw($canonicalPhoneSql), $duplicatePhones);
+            } elseif ($phoneStatus === 'invalid') {
+                $units->whereRaw($canonicalPhoneSql . " NOT REGEXP '^5[0-9]{8}$'");
+            }
+
             if ($request->filled('date_from')) {
                 $from = Carbon::parse($request->get('date_from'))->startOfDay();
                 $units->where('created_at', '>=', $from);
@@ -252,17 +266,24 @@ class UserController extends Controller
                                 <i class="fas fa-file-invoice-dollar me-1"></i>' . e($row->finance_account_code) . '
                             </a>';
                 })
-                ->editColumn('client_data', function ($row) {
+                ->editColumn('client_data', function ($row) use ($duplicatePhoneCounts) {
                     $nationality = $row->nationality ? $row->nationality->title : helperTrans('ingaz.not_specified');
                     $city = $row->city ?: helperTrans('ingaz.not_specified');
                     $documentNumber = $row->documentNumber();
                     $idNumber = $documentNumber ? '<span class="badge bg-light text-dark border me-1"><i class="fas fa-id-card me-1"></i>' . e($row->documentNumberLabel()) . ': ' . e($documentNumber) . '</span>' : '';
 
                     $primaryPhone = $this->clientPrimaryPhoneValue($row);
+                    $duplicateCount = (int) ($duplicatePhoneCounts->get($row->canonicalPhoneValue()) ?? 0);
+                    $duplicateBadge = $duplicateCount > 1
+                        ? '<span class="badge bg-warning-subtle text-warning border border-warning-subtle ms-1"
+                                title="' . e(__('ingaz.duplicate_phone_clients_count', ['count' => $duplicateCount])) . '">
+                                <i class="fas fa-copy me-1"></i>' . e(__('ingaz.duplicate_phone')) . ' (' . $duplicateCount . ')
+                            </span>'
+                        : '';
                     $primary = $primaryPhone !== ''
                         ? '<a href="tel:' . e($primaryPhone) . '" class="text-decoration-none" dir="ltr">
                                 <i class="fas fa-phone-alt me-1 text-success"></i>' . e($primaryPhone) . '
-                            </a>'
+                            </a>' . $duplicateBadge
                         : '<span class="text-muted">' . helperTrans('ingaz.not_specified') . '</span>';
 
                     $secondaryPhone = $this->clientSecondaryPhoneValue($row);
@@ -491,6 +512,8 @@ class UserController extends Controller
             'blocked' => (int) ($stats->blocked ?? 0),
             'new_this_month' => (int) ($stats->new_this_month ?? 0),
             'with_orders' => (clone $statsQuery)->has('orders')->count(),
+            'duplicate_phone_groups' => $duplicatePhoneCounts->count(),
+            'duplicate_phone_clients' => $duplicatePhoneCounts->sum(),
         ];
         $data['nationalities'] = Country::active()->ordered()->get(['id', 'name_ar', 'name_en']);
         $data['cities'] = City::active()->ordered()->get(['id', 'name_ar', 'name_en']);
@@ -572,7 +595,7 @@ class UserController extends Controller
 
         $rules = [
             'name' => 'required|string|max:255',
-            'phone' => 'required|string|max:20',
+            'phone' => ['required', 'string', 'max:20', 'regex:/^[0-9+()\s.\-]+$/'],
             'email' => 'nullable|email|max:255|unique:users,email',
             'client_category_id' => 'nullable|exists:fn_client_categories,id',
             'client_type' => 'required|string|in:person,company',
@@ -582,7 +605,7 @@ class UserController extends Controller
             'license_number' => 'nullable|required_if:client_type,company|string|max:100',
             'birthdate' => 'nullable|date',
             'marital_status' => 'nullable|string|in:single,married,divorced,widowed',
-            'phone2' => 'nullable|string|max:20',
+            'phone2' => ['nullable', 'string', 'max:20', 'regex:/^[0-9+()\s.\-]+$/'],
             'address' => 'nullable|string|max:255',
             'city' => 'nullable|string|max:100',
             'rooms_num' => 'nullable|integer|min:0',
@@ -606,6 +629,8 @@ class UserController extends Controller
         }
 
         $data = $request->validate($rules, [
+            'phone.regex' => __('ingaz.client_phone_invalid_format'),
+            'phone2.regex' => __('ingaz.client_phone_digits_only'),
             'national_num.required' => __('ingaz.client_national_num_required'),
             'national_num.required_if' => __('ingaz.client_national_num_required'),
             'national_num.unique' => __('ingaz.client_national_num_already_exists'),
@@ -1125,7 +1150,7 @@ class UserController extends Controller
 
         $rules = [
             'name' => 'required|string|max:255',
-            'phone' => 'required|string|max:20',
+            'phone' => ['required', 'string', 'max:20', 'regex:/^[0-9+()\s.\-]+$/'],
             'email' => 'nullable|email|max:255|unique:users,email,' . $client->id,
             'nationality_id' => 'nullable|exists:countries,id',
             'client_category_id' => 'nullable|exists:fn_client_categories,id',
@@ -1135,7 +1160,7 @@ class UserController extends Controller
             'license_number' => 'nullable|string|max:100',
             'birthdate' => 'nullable|date',
             'marital_status' => 'nullable|string|in:single,married,divorced,widowed',
-            'phone2' => 'nullable|string|max:20',
+            'phone2' => ['nullable', 'string', 'max:20', 'regex:/^[0-9+()\s.\-]+$/'],
             'address' => 'nullable|string|max:255',
             'city' => 'nullable|string|max:100',
             'rooms_num' => 'nullable|integer|min:0',
@@ -1165,6 +1190,7 @@ class UserController extends Controller
             'phone.string' => __('ingaz.client_phone_required'),
             'phone.max' => __('ingaz.client_phone_max'),
             'phone.unique' => __('ingaz.client_phone_already_exists'),
+            'phone.regex' => __('ingaz.client_phone_invalid_format'),
             'email.email' => __('ingaz.client_email_invalid'),
             'email.max' => __('ingaz.client_email_max'),
             'email.unique' => __('ingaz.client_email_already_exists'),
@@ -1183,6 +1209,7 @@ class UserController extends Controller
             'birthdate.date' => __('ingaz.client_birthdate_invalid'),
             'phone2.string' => __('ingaz.client_phone2_max'),
             'phone2.max' => __('ingaz.client_phone2_max'),
+            'phone2.regex' => __('ingaz.client_phone_digits_only'),
             'address.string' => __('ingaz.client_address_max'),
             'address.max' => __('ingaz.client_address_max'),
             'city.string' => __('ingaz.client_city_max'),
@@ -1209,22 +1236,35 @@ class UserController extends Controller
             ]);
         }
 
-        $phoneCandidates = array_values(array_unique(array_filter([
-            $data['phone'],
-            $normalizedPhone,
-            '0' . $normalizedPhone,
-            '966' . $normalizedPhone,
-            '+966' . $normalizedPhone,
-        ])));
+        $phoneWasNotChanged = $client->canonicalPhoneValue() === $normalizedPhone;
 
-        if (objModel::where('id', '!=', $client->id)->whereIn('phone', $phoneCandidates)->exists()) {
-            throw ValidationException::withMessages([
-                'phone' => __('ingaz.client_phone_already_exists'),
-            ]);
+        if (!$phoneWasNotChanged) {
+            $phoneCandidates = array_values(array_unique(array_filter([
+                $data['phone'],
+                $normalizedPhone,
+                '0' . $normalizedPhone,
+                '966' . $normalizedPhone,
+                '+966' . $normalizedPhone,
+            ])));
+
+            if (objModel::where('id', '!=', $client->id)->whereIn('phone', $phoneCandidates)->exists()) {
+                throw ValidationException::withMessages([
+                    'phone' => __('ingaz.client_phone_already_exists'),
+                ]);
+            }
         }
 
-        $data['phone'] = $normalizedPhone;
-        $data['phone_code'] = '+966';
+        $data['phone'] = $phoneWasNotChanged ? $client->phone : $normalizedPhone;
+        $data['phone_code'] = $phoneWasNotChanged ? $client->phone_code : '+966';
+        if (!$phoneWasNotChanged && Schema::hasColumn('users', 'source_phone')) {
+            $data['source_phone'] = null;
+        }
+        if (Schema::hasColumn('users', 'source_phone2') && array_key_exists('phone2', $data)) {
+            $sourcePhone2 = trim((string) $client->source_phone2);
+            if ($sourcePhone2 !== '' && trim((string) $data['phone2']) !== $sourcePhone2) {
+                $data['source_phone2'] = null;
+            }
+        }
 
         if ($this->branchesEnabled() && !$this->canViewAllClientBranches()) {
             $data['branch_id'] = $client->branch_id;
@@ -1238,7 +1278,7 @@ class UserController extends Controller
         if ($clientFinance) {
             $clientFinance->update([
                 'name' => $data['name'],
-                'phone' => $data['phone'],
+                'phone' => $normalizedPhone,
                 'email' => $data['email'] ?? '',
                 'address' => $data['address'] ?? '',
                 'city' => $data['city'] ?? null,
@@ -1348,6 +1388,42 @@ class UserController extends Controller
         return $query->get();
     }
 
+    /**
+     * Canonical Saudi mobile expression used by filters and reports.
+     * Migration-only `-dup-` suffixes are intentionally ignored while the
+     * stored operational value remains untouched for uniqueness purposes.
+     */
+    private function canonicalPhoneSql(string $table = 'users'): string
+    {
+        $rawPhone = Schema::hasColumn('users', 'source_phone')
+            ? "COALESCE(NULLIF(TRIM({$table}.source_phone), ''), TRIM({$table}.phone))"
+            : "TRIM({$table}.phone)";
+        $withoutDuplicateMarker = "REGEXP_REPLACE({$rawPhone}, '-dup-[0-9]*$', '')";
+        $digits = "REGEXP_REPLACE({$withoutDuplicateMarker}, '[^0-9]', '')";
+
+        return "(CASE
+            WHEN {$digits} LIKE '00966%' THEN SUBSTRING({$digits}, 6)
+            WHEN {$digits} LIKE '966%' THEN SUBSTRING({$digits}, 4)
+            WHEN {$digits} LIKE '05%' THEN SUBSTRING({$digits}, 2)
+            ELSE {$digits}
+        END)";
+    }
+
+    private function duplicatePhoneCountsForCurrentAdmin()
+    {
+        $query = objModel::query();
+        $this->applyBranchScope($query);
+        $canonicalPhoneSql = $this->canonicalPhoneSql();
+
+        return $query
+            ->selectRaw($canonicalPhoneSql . ' AS canonical_phone, COUNT(*) AS duplicate_count')
+            ->whereRaw($canonicalPhoneSql . " REGEXP '^5[0-9]{8}$'")
+            ->groupByRaw($canonicalPhoneSql)
+            ->havingRaw('COUNT(*) > 1')
+            ->pluck('duplicate_count', 'canonical_phone')
+            ->map(fn ($count) => (int) $count);
+    }
+
     private function clientPrimaryPhoneValue(objModel $client): string
     {
         return $client->primaryPhoneValue();
@@ -1381,6 +1457,103 @@ class UserController extends Controller
         $this->findClientForCurrentAdmin($id);
         $action->delete($id);
         return jsonSuccess();
+    }
+
+    public function exportDuplicatePhones()
+    {
+        if (!@AdminGuardHasPerm(\App\PermKeys::CLIENTS_EXPORT_EXCEL)) {
+            abort(403, __('ingaz.permission_denied_export_clients_excel'));
+        }
+
+        $duplicatePhoneCounts = $this->duplicatePhoneCountsForCurrentAdmin();
+        $duplicatePhones = $duplicatePhoneCounts->keys()->all();
+        $canonicalPhoneSql = $this->canonicalPhoneSql();
+        $query = objModel::query()->with(['nationality', 'createdBy', 'financeAccount']);
+        $this->applyBranchScope($query);
+
+        $clients = $query
+            ->whereIn(DB::raw($canonicalPhoneSql), $duplicatePhones ?: ['__none__'])
+            ->get()
+            ->sortBy(fn (objModel $client) => sprintf('%s-%010d', $client->canonicalPhoneValue(), $client->id))
+            ->values();
+
+        $spreadsheet = new \PhpOffice\PhpSpreadsheet\Spreadsheet();
+        $sheet = $spreadsheet->getActiveSheet();
+        $sheet->setTitle(mb_substr(__('ingaz.duplicate_phone_numbers'), 0, 31));
+        $sheet->setRightToLeft(true);
+
+        $headers = [
+            __('ingaz.phone'),
+            __('ingaz.duplicate_count'),
+            __('ingaz.client_number'),
+            __('ingaz.name'),
+            __('ingaz.client_type'),
+            __('ingaz.identity'),
+            __('ingaz.phone2'),
+            __('ingaz.account_number'),
+            __('ingaz.nationality'),
+            __('ingaz.registration_source'),
+            __('ingaz.created_at'),
+            __('ingaz.status'),
+        ];
+        $sheet->fromArray($headers, null, 'A1');
+        $sheet->getStyle('A1:L1')->applyFromArray([
+            'font' => ['bold' => true],
+            'alignment' => [
+                'horizontal' => \PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER,
+            ],
+            'fill' => [
+                'fillType' => \PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID,
+                'startColor' => ['rgb' => 'FFF3CD'],
+            ],
+        ]);
+
+        $row = 2;
+        foreach ($clients as $client) {
+            $canonicalPhone = $client->canonicalPhoneValue();
+            $documentNumber = $client->documentNumber();
+
+            $sheet->setCellValueExplicit(
+                'A' . $row,
+                $canonicalPhone ? '0' . $canonicalPhone : '',
+                \PhpOffice\PhpSpreadsheet\Cell\DataType::TYPE_STRING
+            );
+            $sheet->setCellValue('B' . $row, (int) $duplicatePhoneCounts->get($canonicalPhone, 0));
+            $sheet->setCellValue('C' . $row, $client->clientNumber());
+            $sheet->setCellValue('D' . $row, $client->name);
+            $sheet->setCellValue('E' . $row, $client->isCompanyClient() ? __('ingaz.company') : __('ingaz.person_client'));
+            $sheet->setCellValueExplicit(
+                'F' . $row,
+                $documentNumber ? $client->documentNumberLabel() . ': ' . $documentNumber : '',
+                \PhpOffice\PhpSpreadsheet\Cell\DataType::TYPE_STRING
+            );
+            $sheet->setCellValueExplicit(
+                'G' . $row,
+                $client->secondaryPhoneValue(),
+                \PhpOffice\PhpSpreadsheet\Cell\DataType::TYPE_STRING
+            );
+            $sheet->setCellValue('H' . $row, $client->financeAccount?->code ?? '');
+            $sheet->setCellValue('I' . $row, $client->nationality?->title ?? '');
+            $sheet->setCellValue('J' . $row, $client->register_from ?? '');
+            $sheet->setCellValue('K' . $row, optional($client->created_at)->format('Y-m-d H:i:s'));
+            $sheet->setCellValue('L' . $row, $client->is_blocked ? __('ingaz.blocked') : __('ingaz.active'));
+            $row++;
+        }
+
+        foreach (range('A', 'L') as $column) {
+            $sheet->getColumnDimension($column)->setAutoSize(true);
+        }
+        $sheet->freezePane('A2');
+        $sheet->setAutoFilter('A1:L' . max(1, $row - 1));
+
+        $writer = new \PhpOffice\PhpSpreadsheet\Writer\Xlsx($spreadsheet);
+        $tempFile = tempnam(sys_get_temp_dir(), 'duplicate-client-phones-');
+        $writer->save($tempFile);
+        $filename = 'duplicate-client-phones-' . now()->format('Y-m-d') . '.xlsx';
+
+        return response()->download($tempFile, $filename, [
+            'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        ])->deleteFileAfterSend(true);
     }
 
     public function exportPdf()

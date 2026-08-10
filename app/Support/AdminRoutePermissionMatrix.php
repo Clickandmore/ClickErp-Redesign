@@ -326,6 +326,7 @@ class AdminRoutePermissionMatrix
             [
                 'clients.export.pdf' => [PermKeys::CLIENTS_EXPORT_PDF, PermKeys::CLIENTS_EXPORT],
                 'clients.export.excel' => [PermKeys::CLIENTS_EXPORT_EXCEL, PermKeys::CLIENTS_EXPORT],
+                'clients.reports.duplicate-phones' => [PermKeys::CLIENTS_EXPORT_EXCEL, PermKeys::CLIENTS_EXPORT],
                 'clients.attachments.store' => [PermKeys::CLIENTS_EDIT],
                 'clients.attachments.download' => [PermKeys::CLIENTS_SHOW, PermKeys::CLIENTS_VIEW],
                 'clients.attachments.view' => [PermKeys::CLIENTS_SHOW, PermKeys::CLIENTS_VIEW],
