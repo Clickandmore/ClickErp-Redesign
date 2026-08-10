@@ -69,6 +69,7 @@ const PARTENR_CONTROL = 'partenr_control';
     const MAIDS_VIEW = 'maids_view';
     const MAIDS_CREATE = 'maids_create';
     const MAIDS_EDIT = 'maids_edit';
+    const MAIDS_TRANSACTION_EDIT_OVERRIDE = 'maids_transaction_edit_override';
     const MAIDS_DELETE = 'maids_delete';
     const MAIDS_EXPORT = 'maids_export';
     const MAIDS_EXPORT_PDF = 'maids_export_pdf';
@@ -483,6 +484,7 @@ const PARTENR_CONTROL = 'partenr_control';
     const SHELTER_CONTRACT_WORK_DESIRE_EDIT = 'shelter_contract_work_desire_edit';
     const SHELTER_CONTRACT_QUICK_TAGS_EDIT = 'shelter_contract_quick_tags_edit';
     const SHELTER_CONTRACT_INSTANT_RECEIPT_EDIT = 'shelter_contract_instant_receipt_edit';
+    const SHELTER_CONTRACT_RENTAL_INSTANT_RECEIPT_EDIT = 'shelter_contract_rental_instant_receipt_edit';
     const SHELTER_CONTRACT_REMOVE_FROM_SHELTER_EDIT = 'shelter_contract_remove_from_shelter_edit';
 
     // ========================================

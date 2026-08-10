@@ -82,8 +82,11 @@
         'positive' => '__positive__',
         'total' => '__total__',
     ]);
-    $financialEditLock = $obj->hasFinancialEditLock();
-    $externalOfficeDispatchEditLock = $obj->hasExternalOfficeDispatchEditLock();
+    $hasFinancialRelations = $obj->hasFinancialEditLock();
+    $hasExternalOfficeDispatch = $obj->hasExternalOfficeDispatchEditLock();
+    $canOverrideTransactionEditLock = @AdminGuardHasPerm(\App\PermKeys::MAIDS_TRANSACTION_EDIT_OVERRIDE);
+    $financialEditLock = $hasFinancialRelations && !$canOverrideTransactionEditLock;
+    $externalOfficeDispatchEditLock = $hasExternalOfficeDispatch && !$canOverrideTransactionEditLock;
     $identityEditLock = $financialEditLock || $externalOfficeDispatchEditLock;
     $storedRequestType = \App\Models\ingaz\Maid::normalizeRequestType($obj->request_type);
     $typeFieldLocked = $financialEditLock && $storedTypeIds->isNotEmpty();
@@ -402,6 +405,13 @@
                             <div class="alert alert-warning mb-0">
                                 رقم الجواز والجنسية والوكيل/المكتب والبيانات المالية المرجعية مقفلة لوجود فاتورة/قيد محاسبي مرتبط أو إرسالية مكتب خارجي. يمكن تعديل الاسم والديانة والمهارات والحالة الاجتماعية والخبرة وبقية سمات العاملة.
                                 ويمكن استخدام زر «تعديل الصور والفيديو فقط» وحفظها بشكل مستقل.
+                            </div>
+                        </div>
+                    @endif
+                    @if ($canOverrideTransactionEditLock && ($hasFinancialRelations || $hasExternalOfficeDispatch))
+                        <div class="col-12">
+                            <div class="alert alert-info mb-0">
+                                لديك صلاحية إدارية لتجاوز قفل السيرة المرتبطة بمعاملات. سيتم تسجيل التعديلات المنفذة بهذه الصلاحية.
                             </div>
                         </div>
                     @endif
@@ -881,6 +891,13 @@
                             value="{{ old('video_link', $obj->video_link) }}"
                             placeholder="{{ __('ingaz.video_link_or_iframe_placeholder') }}">
                         <small class="text-muted d-block mt-1">{{ __('ingaz.video_link_iframe_hint') }}</small>
+                        <label for="maid_video" class="form-label mt-3">
+                            {{ helperTrans('ingaz.video') }}
+                            <small class="text-muted">({{ helperTrans('ingaz.optional') }})</small>
+                        </label>
+                        <input type="file" name="video" id="maid_video" class="form-control"
+                            accept="video/mp4,video/quicktime,video/x-msvideo,video/x-ms-wmv,video/webm,video/x-matroska,video/x-m4v">
+                        <small class="text-muted d-block mt-1">MP4, MOV, AVI, WMV, WEBM, MKV, M4V — 100 MB</small>
                         <div class="maid-video-preview mt-2 d-none">
                             <div class="border rounded overflow-hidden" style="height: 220px;">
                                 <iframe class="js-video-preview-frame" src="" width="100%" height="100%"
@@ -1217,8 +1234,8 @@
                         <div class="accordion maid-additional-accordion" id="additionalInformationAccordion">
                             <div class="accordion-item">
                                 <h2 class="accordion-header" id="additionalInformationHeading">
-                                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
-                                        data-bs-target="#additionalInformationCollapse" aria-expanded="false"
+                                    <button class="accordion-button" type="button" data-bs-toggle="collapse"
+                                        data-bs-target="#additionalInformationCollapse" aria-expanded="true"
                                         aria-controls="additionalInformationCollapse">
                                         <span class="maid-additional-accordion__icon">
                                             <i class="fas fa-circle-info"></i>
@@ -1231,7 +1248,7 @@
                                         </span>
                                     </button>
                                 </h2>
-                                <div id="additionalInformationCollapse" class="accordion-collapse collapse"
+                                <div id="additionalInformationCollapse" class="accordion-collapse collapse show"
                                     aria-labelledby="additionalInformationHeading"
                                     data-bs-parent="#additionalInformationAccordion">
                                     <div class="accordion-body">
@@ -1307,6 +1324,9 @@
                                                     </option>
                                                     <option value="general_cooking" {{ $selectedCookingExperience === 'general_cooking' ? 'selected' : '' }}>
                                                         {{ helperTrans('ingaz.cooking_experience_general') }}
+                                                    </option>
+                                                    <option value="no_cooking_experience" {{ $selectedCookingExperience === 'no_cooking_experience' ? 'selected' : '' }}>
+                                                        {{ helperTrans('ingaz.cooking_experience_none') }}
                                                     </option>
                                                 </select>
                                             </div>

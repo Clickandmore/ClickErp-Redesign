@@ -285,8 +285,17 @@ class DashboardController extends Controller
             'duration' => 'nullable|string',
             'experience_status' => 'required|in:has_experience,no_experience',
             'experience_years' => 'nullable',
+            'cooking_experience' => 'nullable|required_if:experience_status,has_experience|in:arabic_cooking,regular_cooking,willing_to_learn,general_cooking,no_cooking_experience',
+            'video' => 'nullable|file|mimes:mp4,mov,avi,wmv,webm,mkv,m4v|max:102400',
             'video_link' => 'nullable|string|max:2000',
             'additional_notes' => 'nullable|string',
+            'phone' => 'nullable|string|max:50',
+            'relative_name' => 'nullable|string|max:255',
+            'relative_phone' => 'nullable|string|max:50',
+            'residence_city' => 'nullable|string|max:255',
+            'passport_issue_place' => 'nullable|string|max:255',
+            'education' => 'nullable|string|max:255',
+            'has_driving_license' => 'nullable|boolean',
             'id_number' => 'nullable|string|max:30',
             'id_expiry_date' => 'nullable|date',
             'border_number' => 'nullable|string|max:50',
@@ -314,6 +323,9 @@ class DashboardController extends Controller
         $data['is_show'] = 0;
         $data['submission_status'] = Maid::SUBMISSION_PENDING;
         $data['submission_type'] = Maid::SUBMISSION_TYPE_CREATE;
+        $data['cooking_experience'] = $data['experience_status'] === 'has_experience'
+            ? ($data['cooking_experience'] ?? null)
+            : null;
         // Force experience_status fallback to avoid unexpected null
         $data['experience_status'] = $data['experience_status'] ?? 'no_experience';
 
@@ -465,8 +477,16 @@ class DashboardController extends Controller
             'birth_date' => ['required', 'date'],
             'age' => ['nullable', 'numeric', 'min:18', 'max:90'],
             'experience_status' => ['required', 'in:has_experience,no_experience'],
+            'cooking_experience' => ['nullable', 'required_if:experience_status,has_experience', 'in:arabic_cooking,regular_cooking,willing_to_learn,general_cooking,no_cooking_experience'],
             'video_link' => ['nullable', 'string', 'max:2000'],
             'additional_notes' => ['nullable', 'string', 'max:1000'],
+            'phone' => ['nullable', 'string', 'max:50'],
+            'relative_name' => ['nullable', 'string', 'max:255'],
+            'relative_phone' => ['nullable', 'string', 'max:50'],
+            'residence_city' => ['nullable', 'string', 'max:255'],
+            'passport_issue_place' => ['nullable', 'string', 'max:255'],
+            'education' => ['nullable', 'string', 'max:255'],
+            'has_driving_license' => ['nullable', 'boolean'],
             'languages' => ['nullable', 'array'],
             'percentage' => ['nullable', 'array'],
             'skills' => ['nullable', 'array'],
@@ -480,6 +500,9 @@ class DashboardController extends Controller
         }
 
         $data = $request->all();
+        $data['cooking_experience'] = $data['experience_status'] === 'has_experience'
+            ? ($data['cooking_experience'] ?? null)
+            : null;
         $data['submission_status'] = Maid::SUBMISSION_PENDING;
         $data['submission_type'] = Maid::SUBMISSION_TYPE_UPDATE;
         $data['is_show'] = 0;

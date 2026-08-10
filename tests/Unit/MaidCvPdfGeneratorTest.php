@@ -4,7 +4,9 @@ namespace Tests\Unit;
 
 use App\Models\ingaz\Maid;
 use App\Services\ingaz\MaidCvPdfGenerator;
+use App\Services\ManagedFileStorage;
 use Barryvdh\DomPDF\Facade\Pdf;
+use Mockery;
 use Tests\TestCase;
 
 class MaidCvPdfGeneratorTest extends TestCase
@@ -59,7 +61,25 @@ class MaidCvPdfGeneratorTest extends TestCase
         $this->assertTrue($generator->isGeneratedPath(
             MaidCvPdfGenerator::STORAGE_DIRECTORY . '/maid-10-example.pdf'
         ));
+        $this->assertTrue($generator->isGeneratedPath(
+            'r2://clickerp/' . MaidCvPdfGenerator::STORAGE_DIRECTORY . '/maid-10-example.pdf'
+        ));
+        $this->assertTrue($generator->isGeneratedPath(
+            'r2://another/root/prefix/' . MaidCvPdfGenerator::STORAGE_DIRECTORY . '/maid-10-example.png?version=2'
+        ));
+        $this->assertTrue($generator->isGeneratedPath(
+            'https://cdn.example.com/company/' . MaidCvPdfGenerator::STORAGE_DIRECTORY . '/maid-10-example.svg?token=abc#preview'
+        ));
+        $this->assertTrue($generator->isGeneratedPath(
+            'C:\\storage\\app\\public\\' . MaidCvPdfGenerator::STORAGE_DIRECTORY . '\\maid-10-example.pdf'
+        ));
         $this->assertFalse($generator->isGeneratedPath('images/Maid/uploaded-preview.pdf'));
+        $this->assertFalse($generator->isGeneratedPath(
+            'r2://clickerp/' . MaidCvPdfGenerator::STORAGE_DIRECTORY . '/unsupported.jpg'
+        ));
+        $this->assertFalse($generator->isGeneratedPath(
+            'r2://clickerp/images/Maid/not-generated-cvs/maid-10-example.pdf'
+        ));
         $this->assertFalse($generator->isGeneratedPath(null));
     }
 
@@ -71,6 +91,42 @@ class MaidCvPdfGeneratorTest extends TestCase
         );
 
         $contents = Pdf::loadHTML($html)->setPaper('a4')->output();
+
+        $this->assertStringStartsWith('%PDF-', $contents);
+    }
+
+    public function test_it_wraps_the_stored_cv_image_in_a_pdf_without_rerendering_the_template(): void
+    {
+        $path = MaidCvPdfGenerator::STORAGE_DIRECTORY . '/maid-10-example.png';
+        $imageContents = base64_decode(
+            'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=',
+            true
+        );
+        $storage = Mockery::mock(ManagedFileStorage::class);
+        $storage->shouldReceive('exists')->once()->with($path)->andReturnTrue();
+        $storage->shouldReceive('contents')->once()->with($path)->andReturn($imageContents);
+        $storage->shouldReceive('mimeType')->once()->with($path)->andReturn('image/png');
+        $this->app->instance(ManagedFileStorage::class, $storage);
+
+        $contents = app(MaidCvPdfGenerator::class)->renderStoredImageAsPdfContents($path);
+
+        $this->assertStringStartsWith('%PDF-', $contents);
+        $this->assertStringContainsString('/Subtype /Image', $contents);
+    }
+
+    public function test_it_wraps_the_stored_svg_cv_in_a_pdf_without_rerendering_the_template(): void
+    {
+        $path = MaidCvPdfGenerator::STORAGE_DIRECTORY . '/maid-10-example.svg';
+        $imageContents = '<svg xmlns="http://www.w3.org/2000/svg" width="794" height="1123">'
+            . '<rect width="794" height="1123" fill="#102447"/>'
+            . '<text x="40" y="80" fill="#ffffff">CV</text></svg>';
+        $storage = Mockery::mock(ManagedFileStorage::class);
+        $storage->shouldReceive('exists')->once()->with($path)->andReturnTrue();
+        $storage->shouldReceive('contents')->once()->with($path)->andReturn($imageContents);
+        $storage->shouldReceive('mimeType')->once()->with($path)->andReturn('image/svg+xml');
+        $this->app->instance(ManagedFileStorage::class, $storage);
+
+        $contents = app(MaidCvPdfGenerator::class)->renderStoredImageAsPdfContents($path);
 
         $this->assertStringStartsWith('%PDF-', $contents);
     }

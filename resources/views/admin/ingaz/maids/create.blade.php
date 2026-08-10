@@ -778,6 +778,13 @@
                         <input type="text" name="video_link" class="form-control js-video-link-input"
                             placeholder="{{ __('ingaz.video_link_or_iframe_placeholder') }}">
                         <small class="text-muted d-block mt-1">{{ __('ingaz.video_link_iframe_hint') }}</small>
+                        <label for="maid_video" class="form-label mt-3">
+                            {{ helperTrans('ingaz.video') }}
+                            <small class="text-muted">({{ helperTrans('ingaz.optional') }})</small>
+                        </label>
+                        <input type="file" name="video" id="maid_video" class="form-control"
+                            accept="video/mp4,video/quicktime,video/x-msvideo,video/x-ms-wmv,video/webm,video/x-matroska,video/x-m4v">
+                        <small class="text-muted d-block mt-1">MP4, MOV, AVI, WMV, WEBM, MKV, M4V — 100 MB</small>
                         <div class="maid-video-preview mt-2 d-none">
                             <div class="border rounded overflow-hidden" style="height: 220px;">
                                 <iframe class="js-video-preview-frame" src="" width="100%" height="100%"
@@ -1045,8 +1052,8 @@
                         <div class="accordion maid-additional-accordion" id="additionalInformationAccordion">
                             <div class="accordion-item">
                                 <h2 class="accordion-header" id="additionalInformationHeading">
-                                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
-                                        data-bs-target="#additionalInformationCollapse" aria-expanded="false"
+                                    <button class="accordion-button" type="button" data-bs-toggle="collapse"
+                                        data-bs-target="#additionalInformationCollapse" aria-expanded="true"
                                         aria-controls="additionalInformationCollapse">
                                         <span class="maid-additional-accordion__icon">
                                             <i class="fas fa-circle-info"></i>
@@ -1059,7 +1066,7 @@
                                         </span>
                                     </button>
                                 </h2>
-                                <div id="additionalInformationCollapse" class="accordion-collapse collapse"
+                                <div id="additionalInformationCollapse" class="accordion-collapse collapse show"
                                     aria-labelledby="additionalInformationHeading"
                                     data-bs-parent="#additionalInformationAccordion">
                                     <div class="accordion-body">
@@ -1130,6 +1137,9 @@
                                                     </option>
                                                     <option value="general_cooking" {{ old('cooking_experience') === 'general_cooking' ? 'selected' : '' }}>
                                                         {{ helperTrans('ingaz.cooking_experience_general') }}
+                                                    </option>
+                                                    <option value="no_cooking_experience" {{ old('cooking_experience') === 'no_cooking_experience' ? 'selected' : '' }}>
+                                                        {{ helperTrans('ingaz.cooking_experience_none') }}
                                                     </option>
                                                 </select>
                                             </div>

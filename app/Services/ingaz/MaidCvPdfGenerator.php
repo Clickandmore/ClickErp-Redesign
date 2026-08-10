@@ -57,7 +57,7 @@ class MaidCvPdfGenerator
         if ($outputType === self::OUTPUT_IMAGE) {
             [$contents, $extension] = $this->generateImageOutput($html, $maid);
         } else {
-            $contents = $this->generatePdfContents($html);
+            $contents = $this->generatePdfContents($html, $maid);
             $extension = 'pdf';
         }
 
@@ -123,6 +123,112 @@ class MaidCvPdfGenerator
         }
 
         return $contents;
+    }
+
+    /**
+     * Wrap the already-generated CV image in a PDF without rendering the Blade
+     * template again. This keeps the download identical to cv_preview.
+     */
+    public function renderStoredImageAsPdfContents(string $storedPath): string
+    {
+        $storage = app(ManagedFileStorage::class);
+        abort_unless($storage->exists($storedPath), 404);
+
+        $contents = $storage->contents($storedPath);
+        $mimeType = $storage->mimeType($storedPath);
+
+        if (!Str::startsWith($mimeType, 'image/')) {
+            throw new RuntimeException('The stored CV preview is not an image.');
+        }
+
+        return $this->renderImageContentsAsPdfContents(
+            $contents,
+            $mimeType,
+            strtolower(pathinfo($storedPath, PATHINFO_EXTENSION))
+        );
+    }
+
+    /**
+     * Place an already-rendered image on a PDF page without asking the PDF
+     * engine to interpret the original HTML/CSS template again.
+     */
+    private function renderImageContentsAsPdfContents(
+        string $contents,
+        string $mimeType,
+        string $sourceExtension = ''
+    ): string {
+
+        if ($contents === '') {
+            throw new RuntimeException('The stored CV preview image is empty.');
+        }
+
+        $temporaryDirectory = storage_path('framework/cache/mpdf');
+        File::ensureDirectoryExists($temporaryDirectory);
+        $extension = strtolower($sourceExtension);
+        $extension = in_array($extension, ['jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp', 'svg'], true)
+            ? $extension
+            : match ($mimeType) {
+                'image/jpeg' => 'jpg',
+                'image/gif' => 'gif',
+                'image/bmp' => 'bmp',
+                'image/webp' => 'webp',
+                'image/svg+xml' => 'svg',
+                default => 'png',
+            };
+        $temporaryImagePath = $temporaryDirectory . DIRECTORY_SEPARATOR
+            . 'cv-preview-' . Str::uuid() . '.' . $extension;
+        File::put($temporaryImagePath, $contents);
+        $previousErrorReporting = error_reporting();
+        error_reporting($previousErrorReporting & ~E_WARNING & ~E_NOTICE & ~E_DEPRECATED);
+
+        try {
+            $pdf = new Mpdf([
+                'mode' => 'utf-8',
+                'format' => 'A4',
+                'orientation' => 'P',
+                'margin_left' => 0,
+                'margin_right' => 0,
+                'margin_top' => 0,
+                'margin_bottom' => 0,
+                'tempDir' => $temporaryDirectory,
+            ]);
+
+            $pageWidth = 210.0;
+            $pageHeight = 297.0;
+            $imageWidth = $pageWidth;
+            $imageHeight = $pageHeight;
+            $imageX = 0.0;
+            $imageY = 0.0;
+            $dimensions = @getimagesize($temporaryImagePath);
+
+            if (is_array($dimensions) && ($dimensions[0] ?? 0) > 0 && ($dimensions[1] ?? 0) > 0) {
+                $scale = min($pageWidth / $dimensions[0], $pageHeight / $dimensions[1]);
+                $imageWidth = $dimensions[0] * $scale;
+                $imageHeight = $dimensions[1] * $scale;
+                $imageX = ($pageWidth - $imageWidth) / 2;
+                $imageY = ($pageHeight - $imageHeight) / 2;
+            }
+
+            $pdf->SetDisplayMode('fullpage');
+            $pdf->AddPage();
+            $pdf->Image(
+                $temporaryImagePath,
+                $imageX,
+                $imageY,
+                $imageWidth,
+                $imageHeight
+            );
+
+            $pdfContents = $pdf->Output('', Destination::STRING_RETURN);
+            if ($pdfContents === '' || !Str::startsWith($pdfContents, '%PDF')) {
+                throw new RuntimeException('Failed to create a PDF from the stored CV image.');
+            }
+
+            return $pdfContents;
+        } finally {
+            error_reporting($previousErrorReporting);
+            File::delete($temporaryImagePath);
+        }
     }
 
     private function generateImageOutput(string $html, Maid $maid): array
@@ -344,15 +450,25 @@ class MaidCvPdfGenerator
         }
     }
 
-    private function generatePdfContents(string $html): string
+    private function generatePdfContents(string $html, Maid $maid): string
     {
         $browserPath = $this->browserExecutable();
 
-        if ($browserPath !== null) {
+        if (function_exists('proc_open') && $browserPath !== null) {
             try {
-                return $this->generateWithBrowser($browserPath, $html);
+                $imageContents = $this->generatePngWithBrowser($browserPath, $html);
+
+                return $this->renderImageContentsAsPdfContents(
+                    $imageContents,
+                    'image/png',
+                    'png'
+                );
             } catch (\Throwable $exception) {
                 report($exception);
+                \Log::warning('Chrome CV screenshot-to-PDF generation failed; using mPDF fallback.', [
+                    'maid_id' => $maid->id,
+                    'error' => $exception->getMessage(),
+                ]);
             }
         }
 
@@ -687,13 +803,33 @@ class MaidCvPdfGenerator
 
     public function isGeneratedPath(?string $path): bool
     {
-        return is_string($path)
-            && Str::startsWith(
-                Str::startsWith($path, ManagedFileStorage::R2_PREFIX)
-                    ? Str::after($path, ManagedFileStorage::R2_PREFIX)
-                    : $path,
-                self::STORAGE_DIRECTORY . '/'
-            );
+        if (!is_string($path) || trim($path) === '') {
+            return false;
+        }
+
+        $normalizedPath = trim(str_replace('\\', '/', rawurldecode($path)));
+        if (Str::startsWith($normalizedPath, ManagedFileStorage::R2_PREFIX)) {
+            $normalizedPath = Str::after($normalizedPath, ManagedFileStorage::R2_PREFIX);
+        }
+
+        // A stored value can also be a public R2/CDN URL. Only its path is
+        // relevant, and query strings or fragments must not affect detection.
+        if (Str::startsWith($normalizedPath, ['http://', 'https://'])) {
+            $normalizedPath = (string) (parse_url($normalizedPath, PHP_URL_PATH) ?: '');
+        } else {
+            $normalizedPath = preg_split('/[?#]/', $normalizedPath, 2)[0] ?? '';
+        }
+
+        $normalizedPath = '/' . ltrim($normalizedPath, '/');
+        $generatedDirectory = '/' . trim(self::STORAGE_DIRECTORY, '/') . '/';
+        $filename = basename($normalizedPath);
+        $extension = strtolower(pathinfo($filename, PATHINFO_EXTENSION));
+
+        // Covers local paths, legacy paths, R2 pointers with any root prefix,
+        // and public CDN URLs without coupling detection to storage settings.
+        return $filename !== ''
+            && in_array($extension, ['pdf', 'png', 'svg'], true)
+            && Str::contains($normalizedPath, $generatedDirectory);
     }
 
     private function viewData(Maid $maid, Setting $settings, string $outputType): array

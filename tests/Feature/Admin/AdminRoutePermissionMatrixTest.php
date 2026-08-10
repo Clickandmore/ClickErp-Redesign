@@ -83,4 +83,24 @@ class AdminRoutePermissionMatrixTest extends TestCase
             );
         }
     }
+
+    public function test_shelter_instant_receipt_route_accepts_the_dedicated_rental_permission(): void
+    {
+        $permissions = AdminRoutePermissionMatrix::resolve(
+            'ShelterContract.toggleInstantReceipt',
+            Request::create('/admin/ShelterContract/10/toggle-instant-receipt', 'POST')
+        );
+
+        $this->assertContains(PermKeys::SHELTER_CONTRACT_RENTAL_INSTANT_RECEIPT_EDIT, $permissions);
+        $this->assertContains(PermKeys::SHELTER_CONTRACT_INSTANT_RECEIPT_EDIT, $permissions);
+    }
+
+    public function test_rental_instant_receipt_permission_is_registered_for_the_permissions_screen(): void
+    {
+        $permission = collect(config('access_control_permission_registry.permissions'))
+            ->firstWhere('name', PermKeys::SHELTER_CONTRACT_RENTAL_INSTANT_RECEIPT_EDIT);
+
+        $this->assertNotNull($permission);
+        $this->assertSame('إتاحة عاملات الإيجار للاستلام الفوري', $permission['display_name']);
+    }
 }

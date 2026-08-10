@@ -281,7 +281,7 @@
                                 <i class="fas fa-edit me-1"></i>{{ helperTrans('ingaz.edit_maid') }}
                             </a>
                         @endif
-                        @if ($generatedCvPath && @AdminGuardHasPerm(\App\PermKeys::MAIDS_EXPORT_PDF))
+                        @if ($generatedCvPath && @AdminGuardHasAnyPerm([\App\PermKeys::MAIDS_EXPORT, \App\PermKeys::MAIDS_EXPORT_PDF]))
                             <a href="{{ route('maids.generated-cv.download', $maid->id) }}" class="btn btn-danger">
                                 <i class="fas fa-file-pdf me-1"></i>تنزيل النموذج PDF
                             </a>
@@ -657,13 +657,13 @@
                                 <i class="fas fa-paperclip text-info"></i>{{ helperTrans('ingaz.maid_attachments') }}
                             </h5>
 
-                            @if ($generatedCvPath && @AdminGuardHasPerm(\App\PermKeys::MAIDS_EXPORT_PDF))
+                            @if ($generatedCvPath && @AdminGuardHasAnyPerm([\App\PermKeys::MAIDS_EXPORT, \App\PermKeys::MAIDS_EXPORT_PDF]))
                                 <div class="border border-danger-subtle rounded-3 p-3 mb-3 bg-danger-subtle">
                                     <div class="d-flex align-items-center gap-3">
                                         <i class="fas fa-file-arrow-down text-danger fs-2"></i>
                                         <div class="flex-grow-1">
-                                            <div class="fw-semibold">نموذج السيرة المُنشأ</div>
-                                            <div class="text-muted small">النموذج جاهز للتنزيل والمشاركة بصيغة PDF</div>
+                                            <div class="fw-semibold">ملف السيرة المحفوظ</div>
+                                            <div class="text-muted small">الملف جاهز للتنزيل والمشاركة بصيغة PDF مع الحفاظ على تنسيقه</div>
                                         </div>
                                         <div class="d-flex flex-column gap-2 flex-shrink-0">
                                             <a href="{{ route('maids.generated-cv.download', $maid->id) }}"

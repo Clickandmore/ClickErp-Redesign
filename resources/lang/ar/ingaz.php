@@ -1834,6 +1834,7 @@ return array (
   'cooking_experience_regular' => 'لديها خبرة بالطبخ العادي',
   'cooking_experience_willing_to_learn' => 'ليس لديها خبرة بالطبخ لكن قابلة للتعلم',
   'cooking_experience_general' => 'لديها خبرة بالطبخ عامة',
+  'cooking_experience_none' => 'لا يوجد لديها خبرة في الطبخ',
   'required' => 'مطلوب',
   'national_id_required' => 'رقم الهوية مطلوب',
   'validation_error_title' => 'خطأ في البيانات',
