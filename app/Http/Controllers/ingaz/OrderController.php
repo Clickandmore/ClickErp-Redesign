@@ -1003,13 +1003,14 @@ class OrderController extends Controller
     {
         try {
             $order = Order::findOrFail($id);
+            $oldMaid = $order->maid;
 
-            // Validate input
-            $request->validate([
+            $rules = [
                 'maid_id' => 'required|exists:maids,id',
-                'old_maid_status' => 'required|in:available,backout',
+                'old_maid_status' => ($oldMaid ? 'required' : 'nullable') . '|in:available,backout',
                 'reason' => 'required_if:old_maid_status,backout|nullable|string|max:1000'
-            ]);
+            ];
+            $request->validate($rules);
 
             $newMaidId = $request->maid_id;
             $oldMaidStatus = $request->old_maid_status;
@@ -1017,6 +1018,25 @@ class OrderController extends Controller
 
             // Check if new maid is available
             $newMaid = \App\Models\ingaz\Maid::findOrFail($newMaidId);
+
+            if ($order->job_type_id == 2) {
+                $order->loadMissing('details.package');
+
+                if (! $newMaid->jobTypes()->where('job_type_id', 2)->exists()) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'العاملة المختارة ليست متاحة لخدمة الإيجار.'
+                    ], 422);
+                }
+
+                $packageNationalityId = $order->details?->package?->nationality_id;
+                if ($packageNationalityId && (int) $newMaid->nationality_id !== (int) $packageNationalityId) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'جنسية العاملة المختارة لا تطابق جنسية الباقة.'
+                    ], 422);
+                }
+            }
 
             if (!$newMaid->available || $newMaid->status !== 'available') {
                 return response()->json([
@@ -1057,19 +1077,11 @@ class OrderController extends Controller
                 ], 400);
             }
 
-            $oldMaid = $order->maid;
-            if (!$oldMaid) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'لا توجد عاملة حالية مرتبطة بهذا الطلب'
-                ], 400);
-            }
-
             \DB::beginTransaction();
 
             try {
                 // Save old maid info
-                $oldMaidId = $oldMaid->id;
+                $oldMaidId = $oldMaid?->id;
 
                 \Log::info('Changing maid in order', [
                     'order_id' => $id,
@@ -1090,7 +1102,7 @@ class OrderController extends Controller
                     'available' => false
                 ]);
 
-                if ($oldMaidStatus === 'backout') {
+                if ($oldMaid && $oldMaidStatus === 'backout') {
                     $oldMaid->update([
                         'status' => 'backout',
                         'available' => false,
@@ -1102,7 +1114,7 @@ class OrderController extends Controller
                         'reason' => $reason,
                         'admin_id' => auth()->guard('admin')->id() ?: auth()->id(),
                     ]);
-                } else {
+                } elseif ($oldMaid) {
                     $oldMaidHasActiveOrder = Order::where('maid_id', $oldMaidId)
                         ->whereIn('status', [
                             OrderEnum::New->value,
@@ -1135,7 +1147,7 @@ class OrderController extends Controller
                     'order_id' => $id,
                     'old_maid_id' => $oldMaidId,
                     'new_maid_id' => $newMaidId,
-                    'old_maid_new_status' => $oldMaid->status,
+                    'old_maid_new_status' => $oldMaid?->status,
                     'new_maid_status' => $newMaid->status
                 ]);
 
@@ -1152,15 +1164,15 @@ class OrderController extends Controller
 
                 return response()->json([
                     'success' => true,
-                    'message' => 'تم تغيير العاملة بنجاح',
+                    'message' => $oldMaid ? 'تم تغيير العاملة بنجاح' : 'تم تعيين العاملة للطلب بنجاح',
                     'data' => [
                         'order_id' => $id,
-                        'old_maid' => [
+                        'old_maid' => $oldMaid ? [
                             'id' => $oldMaid->id,
                             'name' => $oldMaid->name,
                             'status' => $oldMaid->status,
                             'available' => $oldMaid->available
-                        ],
+                        ] : null,
                         'new_maid' => [
                             'id' => $newMaid->id,
                             'name' => $newMaid->name,

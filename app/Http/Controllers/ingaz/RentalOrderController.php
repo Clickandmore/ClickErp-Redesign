@@ -236,8 +236,10 @@ class RentalOrderController extends Controller
 
                     // Change Maid button for new orders
                     if (@AdminGuardHasPerm(\App\PermKeys::ORDERS_EDIT) && $row->status == OrderEnum::New->value) {
-                        $actions .= '<li><button class="dropdown-item change-maid" data-id="' . $row->id . '">
-                            <i class="fa fa-user"></i> تغيير العاملة
+                        $hasMaid = $row->maid_id ? '1' : '0';
+                        $maidActionLabel = $row->maid_id ? 'تغيير العاملة' : 'تعيين عاملة';
+                        $actions .= '<li><button class="dropdown-item change-maid" data-id="' . $row->id . '" data-has-maid="' . $hasMaid . '">
+                            <i class="fa fa-user"></i> ' . $maidActionLabel . '
                         </button></li>';
                     }
 

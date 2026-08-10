@@ -1259,10 +1259,11 @@
             $(document).on('click', '.change-maid', function(e) {
                 e.preventDefault();
                 var orderId = $(this).data('id');
+                var hasMaid = String($(this).data('has-maid')) === '1';
 
                 if (orderId) {
                     // Show change maid modal
-                    showChangeMaidModal(orderId);
+                    showChangeMaidModal(orderId, hasMaid);
                 } else {
                     console.error('Order ID not found!');
                     Swal.fire('خطأ!', 'لم يتم العثور على معرف الطلب', 'error');
@@ -1346,7 +1347,33 @@
         });
 
         // Functions for modals and actions
-        function showChangeMaidModal(orderId) {
+        function showChangeMaidModal(orderId, hasMaid) {
+            const actionLabel = hasMaid ? 'تغيير العاملة' : 'تعيين عاملة';
+            const previousMaidSection = hasMaid ? `
+                                <div class="col-md-4">
+                                    <div class="form-group mb-3">
+                                        <label class="form-label">
+                                            <i class="fas fa-user-minus"></i>
+                                            حالة العاملة السابقة
+                                        </label>
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="radio" name="old_maid_status"
+                                                   id="status_available_order" value="available" required>
+                                            <label class="form-check-label" for="status_available_order">
+                                                <i class="fas fa-check text-success"></i>
+                                                متاحة
+                                            </label>
+                                        </div>
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="radio" name="old_maid_status"
+                                                   id="status_unavailable_order" value="backout" required>
+                                            <label class="form-check-label" for="status_unavailable_order">
+                                                <i class="fas fa-ban text-danger"></i>
+                                                باك اوت
+                                            </label>
+                                        </div>
+                                    </div>
+                                </div>` : '';
             // Create and show the modal
             const modalHtml = `
         <div class="modal fade" id="changeMaidOrderModal" tabindex="-1" aria-labelledby="changeMaidOrderModalLabel" aria-hidden="true">
@@ -1355,12 +1382,12 @@
                     <div class="modal-header">
                         <h5 class="modal-title" id="changeMaidOrderModalLabel">
                             <i class="fas fa-exchange-alt"></i>
-                            تغيير العاملة في الطلب رقم #${orderId}
+                            ${actionLabel} في الطلب رقم #${orderId}
                         </h5>
                         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                     </div>
                     <div class="modal-body">
-                        <form id="changeMaidOrderForm">
+                        <form id="changeMaidOrderForm" data-has-maid="${hasMaid ? '1' : '0'}">
                             <input type="hidden" id="order_id" value="${orderId}">
 
                             <div class="row">
@@ -1397,30 +1424,7 @@
                                         </small>
                                     </div>
                                 </div>
-                                <div class="col-md-4">
-                                    <div class="form-group mb-3">
-                                        <label class="form-label">
-                                            <i class="fas fa-user-minus"></i>
-                                            حالة العاملة السابقة
-                                        </label>
-                                        <div class="form-check">
-                                            <input class="form-check-input" type="radio" name="old_maid_status"
-                                                   id="status_available_order" value="available" required>
-                                            <label class="form-check-label" for="status_available_order">
-                                                <i class="fas fa-check text-success"></i>
-                                                متاحة
-                                            </label>
-                                        </div>
-                                        <div class="form-check">
-                                            <input class="form-check-input" type="radio" name="old_maid_status"
-                                                   id="status_unavailable_order" value="backout" required>
-                                            <label class="form-check-label" for="status_unavailable_order">
-                                                <i class="fas fa-ban text-danger"></i>
-                                                باك اوت
-                                            </label>
-                                        </div>
-                                    </div>
-                                </div>
+                                ${previousMaidSection}
                             </div>
 
                             <div class="form-group mb-3">
@@ -1547,15 +1551,15 @@
                 return;
             }
 
-            if (!formData.get('old_maid_status')) {
+            if (form.dataset.hasMaid === '1' && !formData.get('old_maid_status')) {
                 Swal.fire('خطأ!', 'يرجى اختيار حالة العاملة السابقة', 'error');
                 return;
             }
 
             // تأكيد العملية
             Swal.fire({
-                title: 'تأكيد تغيير العاملة',
-                text: 'هل أنت متأكد من تغيير العاملة في هذا الطلب؟',
+                title: form.dataset.hasMaid === '1' ? 'تأكيد تغيير العاملة' : 'تأكيد تعيين العاملة',
+                text: form.dataset.hasMaid === '1' ? 'هل أنت متأكد من تغيير العاملة في هذا الطلب؟' : 'هل أنت متأكد من تعيين العاملة لهذا الطلب؟',
                 icon: 'question',
                 showCancelButton: true,
                 confirmButtonColor: '#28a745',
@@ -1571,7 +1575,7 @@
                         data: {
                             _token: '{{ csrf_token() }}',
                             maid_id: formData.get('new_maid_id'),
-                            old_maid_status: formData.get('old_maid_status'),
+                            old_maid_status: formData.get('old_maid_status') || null,
                             reason: formData.get('reason')
                         },
                         success: function(response) {
