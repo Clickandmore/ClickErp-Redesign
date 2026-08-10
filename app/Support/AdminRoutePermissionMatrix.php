@@ -615,6 +615,12 @@ class AdminRoutePermissionMatrix
             'ShelterContract.outside' => [PermKeys::SHELTER_CONTRACT_INSIDE_VIEW, PermKeys::SHELTER_CONTRACT_VIEW, PermKeys::SHELTER_CONTRACT_CONTROL],
             'ShelterContract.deported' => [PermKeys::SHELTER_CONTRACT_DEPORTED_VIEW, PermKeys::SHELTER_CONTRACT_VIEW, PermKeys::SHELTER_CONTRACT_CONTROL],
             'ShelterContract.export' => [PermKeys::SHELTER_CONTRACT_VIEW, PermKeys::SHELTER_CONTRACT_CONTROL],
+            'ShelterContract.toggleInstantReceipt' => [
+                PermKeys::SHELTER_CONTRACT_INSTANT_RECEIPT_EDIT,
+                PermKeys::SHELTER_CONTRACT_RENTAL_INSTANT_RECEIPT_EDIT,
+                PermKeys::SHELTER_CONTRACT_EDIT,
+                PermKeys::SHELTER_CONTRACT_CONTROL,
+            ],
             'shelter_workers' => [PermKeys::SHELTER_WORKERS_VIEW, PermKeys::SHELTER_WORKERS_CONTROL],
             'shelter-places.index' => [PermKeys::SHELTER_PLACES_VIEW, PermKeys::SHELTER_PLACES_CONTROL],
         ];

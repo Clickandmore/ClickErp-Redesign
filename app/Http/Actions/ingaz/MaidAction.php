@@ -9,6 +9,7 @@ use App\Models\ContractInfo;
 use App\Models\ingaz\JobType;
 use App\Models\ingaz\Maid;
 use App\Models\ingaz\User as ClientUser;
+use App\PermKeys;
 use App\Services\ingaz\RentalMaidAccountingService;
 use App\Services\ingaz\RentalMaidFinanceService;
 use App\Support\CvOptionsSettings;
@@ -1301,7 +1302,10 @@ class MaidAction extends MainAction
         \Log::info('Request data:', $request->all());
 
         $maid = parent::find($id);
-        $hasFinancialEditLock = $maid->hasFinancialEditLock();
+        $hasFinancialRelations = $maid->hasFinancialEditLock();
+        $hasExternalOfficeDispatch = $maid->hasExternalOfficeDispatchEditLock();
+        $canOverrideTransactionEditLock = $this->canOverrideMaidTransactionEditLock();
+        $hasFinancialEditLock = $hasFinancialRelations && !$canOverrideTransactionEditLock;
         // A financially linked CV may carry more than one legacy type while the edit UI
         // submits a single type_id. Preserve all stored types so editing a harmless
         // attribute never looks like (or causes) a financial classification change.
@@ -1315,7 +1319,22 @@ class MaidAction extends MainAction
             unset($data['price'], $data['salary'], $data['arrival_date'], $data['request_type']);
         }
 
-        $this->guardFinanciallyLinkedMaidIdentityChanges($maid, $data, $jobTypeIds);
+        $this->guardFinanciallyLinkedMaidIdentityChanges(
+            $maid,
+            $data,
+            $jobTypeIds,
+            $canOverrideTransactionEditLock
+        );
+
+        if ($canOverrideTransactionEditLock && ($hasFinancialRelations || $hasExternalOfficeDispatch)) {
+            \Log::warning('Privileged linked maid edit lock override used', [
+                'maid_id' => $maid->id,
+                'admin_id' => auth('admin')->id(),
+                'financial_relations' => $hasFinancialRelations,
+                'external_office_dispatch' => $hasExternalOfficeDispatch,
+                'submitted_fields' => array_keys($data),
+            ]);
+        }
 
         $requestTypeColumnExists = Schema::hasColumn('maids', 'request_type');
         $offerPriceColumnExists = Schema::hasColumn('maids', 'offer_price');
@@ -1608,8 +1627,17 @@ class MaidAction extends MainAction
         return parent::find($id);
     }
 
-    protected function guardFinanciallyLinkedMaidIdentityChanges(Maid $maid, array $data, array $newJobTypeIds): void
+    protected function guardFinanciallyLinkedMaidIdentityChanges(
+        Maid $maid,
+        array $data,
+        array $newJobTypeIds,
+        bool $canOverride = false
+    ): void
     {
+        if ($canOverride) {
+            return;
+        }
+
         $lockedFields = [];
         $hasFinancialEditLock = $maid->hasFinancialEditLock();
         $hasExternalOfficeDispatchEditLock = $maid->hasExternalOfficeDispatchEditLock();
@@ -1671,6 +1699,13 @@ class MaidAction extends MainAction
         }
 
         throw ValidationException::withMessages($lockedFields);
+    }
+
+    protected function canOverrideMaidTransactionEditLock(): bool
+    {
+        $admin = auth('admin')->user();
+
+        return $admin && $admin->can(PermKeys::MAIDS_TRANSACTION_EDIT_OVERRIDE);
     }
 
     protected function activeOrderStatuses(): array

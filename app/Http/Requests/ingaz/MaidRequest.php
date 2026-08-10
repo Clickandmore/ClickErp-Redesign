@@ -33,7 +33,7 @@ class MaidRequest extends MainRequest
             'gender' => 'nullable|in:male,female',
             'cv_file' => 'nullable',
             'maid_cv_file' => 'nullable|file|mimes:pdf|max:10240',
-            'video' => 'nullable',
+            'video' => 'nullable|file|mimes:mp4,mov,avi,wmv,webm,mkv,m4v|max:102400',
             'video_link' => 'nullable|url|max:2000',
             'nationality_id' => 'required|exists:nationalities,id',
             'passport_num' => [
@@ -59,6 +59,7 @@ class MaidRequest extends MainRequest
                     'regular_cooking',
                     'willing_to_learn',
                     'general_cooking',
+                    'no_cooking_experience',
                 ]),
             ],
             'religion_id' => 'nullable|exists:religions,id',

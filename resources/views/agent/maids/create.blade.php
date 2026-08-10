@@ -815,6 +815,66 @@
             </div>
         </div>
 
+        {{-- بيانات العاملة الإضافية - ظاهرة ومفتوحة افتراضياً --}}
+        <div class="mc-section" id="additional_worker_information">
+            <div class="mc-section__head">
+                <h3 class="mc-section__title">
+                    <span class="mc-section__icon"><i class="fa fa-circle-info"></i></span>
+                    {{ $isAr ? 'بيانات العاملة الإضافية' : 'Additional Worker Information' }}
+                </h3>
+                <span class="mc-section__hint">{{ $isAr ? 'بيانات التواصل والمؤهل وخبرة الطبخ' : 'Contact, education, and cooking experience' }}</span>
+            </div>
+            <div class="row g-3">
+                <div class="col-md-4"><div class="mc-field">
+                    <label class="mc-field-label">{{ $isAr ? 'رقم جوال العاملة' : 'Worker Phone' }}</label>
+                    <input type="tel" name="phone" class="form-control" maxlength="50" value="{{ old('phone') }}">
+                </div></div>
+                <div class="col-md-4"><div class="mc-field">
+                    <label class="mc-field-label">{{ $isAr ? 'اسم أحد أقارب العاملة' : 'Relative Name' }}</label>
+                    <input type="text" name="relative_name" class="form-control" maxlength="255" value="{{ old('relative_name') }}">
+                </div></div>
+                <div class="col-md-4"><div class="mc-field">
+                    <label class="mc-field-label">{{ $isAr ? 'رقم جوال قريب العاملة' : 'Relative Phone' }}</label>
+                    <input type="tel" name="relative_phone" class="form-control" maxlength="50" value="{{ old('relative_phone') }}">
+                </div></div>
+                <div class="col-md-4"><div class="mc-field">
+                    <label class="mc-field-label">{{ $isAr ? 'مدينة سكن العاملة' : 'Residence City' }}</label>
+                    <input type="text" name="residence_city" class="form-control" maxlength="255" value="{{ old('residence_city') }}">
+                </div></div>
+                <div class="col-md-4"><div class="mc-field">
+                    <label class="mc-field-label">{{ $isAr ? 'مكان إصدار الجواز' : 'Passport Issue Place' }}</label>
+                    <input type="text" name="passport_issue_place" class="form-control" maxlength="255" value="{{ old('passport_issue_place') }}">
+                </div></div>
+                <div class="col-md-4"><div class="mc-field">
+                    <label class="mc-field-label">{{ $isAr ? 'المؤهل التعليمي' : 'Education' }}</label>
+                    <input type="text" name="education" class="form-control" maxlength="255" value="{{ old('education') }}">
+                </div></div>
+                <div class="col-md-4" id="cooking_experience_field"
+                    style="{{ old('experience_status') === 'has_experience' ? '' : 'display: none;' }}">
+                    <div class="mc-field">
+                        <label class="mc-field-label">{{ $isAr ? 'خبرة الطبخ' : 'Cooking Experience' }}</label>
+                        <select name="cooking_experience" id="cooking_experience" class="form-control"
+                            {{ old('experience_status') === 'has_experience' ? 'required' : '' }}>
+                            <option value="">{{ $isAr ? 'اختر خبرة الطبخ' : 'Select cooking experience' }}</option>
+                            <option value="arabic_cooking" {{ old('cooking_experience') === 'arabic_cooking' ? 'selected' : '' }}>{{ $isAr ? 'لديها خبرة بالطبخ العربي' : 'Experienced in Arabic cooking' }}</option>
+                            <option value="regular_cooking" {{ old('cooking_experience') === 'regular_cooking' ? 'selected' : '' }}>{{ $isAr ? 'لديها خبرة بالطبخ العادي' : 'Experienced in regular cooking' }}</option>
+                            <option value="willing_to_learn" {{ old('cooking_experience') === 'willing_to_learn' ? 'selected' : '' }}>{{ $isAr ? 'ليس لديها خبرة بالطبخ لكن قابلة للتعلم' : 'No experience, but willing to learn' }}</option>
+                            <option value="general_cooking" {{ old('cooking_experience') === 'general_cooking' ? 'selected' : '' }}>{{ $isAr ? 'لديها خبرة بالطبخ عامة' : 'Has general cooking experience' }}</option>
+                            <option value="no_cooking_experience" {{ old('cooking_experience') === 'no_cooking_experience' ? 'selected' : '' }}>{{ $isAr ? 'لا يوجد لديها خبرة في الطبخ' : 'Has no cooking experience' }}</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="col-md-4"><div class="mc-field">
+                    <label class="mc-field-label">{{ $isAr ? 'هل تحمل رخصة قيادة؟' : 'Has a driving license?' }}</label>
+                    <select name="has_driving_license" class="form-control">
+                        <option value="">{{ $isAr ? 'اختر' : 'Select' }}</option>
+                        <option value="1" {{ old('has_driving_license') === '1' ? 'selected' : '' }}>{{ $isAr ? 'نعم' : 'Yes' }}</option>
+                        <option value="0" {{ old('has_driving_license') === '0' ? 'selected' : '' }}>{{ $isAr ? 'لا' : 'No' }}</option>
+                    </select>
+                </div></div>
+            </div>
+        </div>
+
         {{-- بيانات الجواز --}}
         <div class="mc-section">
             <div class="mc-section__head">
@@ -913,6 +973,18 @@
                                 <iframe class="js-video-preview-frame" src="" width="100%" height="100%" style="border: 0;" allowfullscreen loading="lazy"></iframe>
                             </div>
                         </div>
+                    </div>
+                </div>
+
+                <div class="col-md-4">
+                    <div class="mc-field">
+                        <label class="mc-field-label">
+                            {{ $isAr ? 'رفع فيديو' : 'Upload Video' }}
+                            <span class="mc-optional">({{ $isAr ? 'اختياري' : 'optional' }})</span>
+                        </label>
+                        <input type="file" name="video" class="form-control"
+                            accept="video/mp4,video/quicktime,video/x-msvideo,video/x-ms-wmv,video/webm,video/x-matroska,video/x-m4v">
+                        <small class="text-muted">{{ $isAr ? 'يمكن رفع ملف فيديو أو استخدام الرابط، والحد الأقصى 100 ميجابايت.' : 'Upload a video file or use the link; maximum size is 100 MB.' }}</small>
                     </div>
                 </div>
 
@@ -1171,15 +1243,21 @@
                 var status = $('#experience_status').val();
                 var $section = $('#experience_section');
                 var $req = $section.find('[data-exp-required]');
+                var $cookingField = $('#cooking_experience_field');
+                var $cookingSelect = $('#cooking_experience');
                 if (status === 'has_experience') {
                     $section.slideDown();
                     $req.attr('required', 'required');
+                    $cookingField.slideDown();
+                    $cookingSelect.attr('required', 'required');
                     $section.find('select.select2').each(function () {
                         if (!$(this).data('select2')) $(this).select2({ width: '100%' });
                     });
                 } else {
                     $req.removeAttr('required');
                     $section.slideUp();
+                    $cookingSelect.removeAttr('required').val('');
+                    $cookingField.slideUp();
                 }
             }
             $('#experience_status').on('change', toggleExperienceSection);

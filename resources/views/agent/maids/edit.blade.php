@@ -116,6 +116,67 @@
             </div>
         </section>
 
+        <section class="agent-edit-card" id="additional_worker_information">
+            <h4><i class="fa fa-circle-info"></i> {{ $isAr ? 'بيانات العاملة الإضافية' : 'Additional Worker Information' }}</h4>
+            <div class="row g-3">
+                <div class="col-md-4">
+                    <label class="form-label">{{ $isAr ? 'رقم جوال العاملة' : 'Worker Phone' }}</label>
+                    <input type="tel" class="form-control" name="phone" maxlength="50"
+                        value="{{ old('phone', $maid->phone) }}">
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">{{ $isAr ? 'اسم أحد أقارب العاملة' : 'Relative Name' }}</label>
+                    <input class="form-control" name="relative_name" maxlength="255"
+                        value="{{ old('relative_name', $maid->relative_name) }}">
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">{{ $isAr ? 'رقم جوال قريب العاملة' : 'Relative Phone' }}</label>
+                    <input type="tel" class="form-control" name="relative_phone" maxlength="50"
+                        value="{{ old('relative_phone', $maid->relative_phone) }}">
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">{{ $isAr ? 'مدينة سكن العاملة' : 'Residence City' }}</label>
+                    <input class="form-control" name="residence_city" maxlength="255"
+                        value="{{ old('residence_city', $maid->residence_city) }}">
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">{{ $isAr ? 'مكان إصدار الجواز' : 'Passport Issue Place' }}</label>
+                    <input class="form-control" name="passport_issue_place" maxlength="255"
+                        value="{{ old('passport_issue_place', $maid->passport_issue_place) }}">
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">{{ $isAr ? 'المؤهل التعليمي' : 'Education' }}</label>
+                    <input class="form-control" name="education" maxlength="255"
+                        value="{{ old('education', $maid->education) }}">
+                </div>
+                @php
+                    $selectedExperienceStatus = old('experience_status', $maid->experience_status);
+                    $selectedCookingExperience = old('cooking_experience', $maid->cooking_experience);
+                @endphp
+                <div class="col-md-4" id="cooking_experience_field"
+                    style="{{ $selectedExperienceStatus === 'has_experience' ? '' : 'display: none;' }}">
+                    <label class="form-label">{{ $isAr ? 'خبرة الطبخ' : 'Cooking Experience' }}</label>
+                    <select class="form-control" name="cooking_experience" id="cooking_experience"
+                        {{ $selectedExperienceStatus === 'has_experience' ? 'required' : '' }}>
+                        <option value="">{{ $isAr ? 'اختر خبرة الطبخ' : 'Select cooking experience' }}</option>
+                        <option value="arabic_cooking" {{ $selectedCookingExperience === 'arabic_cooking' ? 'selected' : '' }}>{{ $isAr ? 'لديها خبرة بالطبخ العربي' : 'Experienced in Arabic cooking' }}</option>
+                        <option value="regular_cooking" {{ $selectedCookingExperience === 'regular_cooking' ? 'selected' : '' }}>{{ $isAr ? 'لديها خبرة بالطبخ العادي' : 'Experienced in regular cooking' }}</option>
+                        <option value="willing_to_learn" {{ $selectedCookingExperience === 'willing_to_learn' ? 'selected' : '' }}>{{ $isAr ? 'ليس لديها خبرة بالطبخ لكن قابلة للتعلم' : 'No experience, but willing to learn' }}</option>
+                        <option value="general_cooking" {{ $selectedCookingExperience === 'general_cooking' ? 'selected' : '' }}>{{ $isAr ? 'لديها خبرة بالطبخ عامة' : 'Has general cooking experience' }}</option>
+                        <option value="no_cooking_experience" {{ $selectedCookingExperience === 'no_cooking_experience' ? 'selected' : '' }}>{{ $isAr ? 'لا يوجد لديها خبرة في الطبخ' : 'Has no cooking experience' }}</option>
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">{{ $isAr ? 'هل تحمل رخصة قيادة؟' : 'Has a driving license?' }}</label>
+                    <select class="form-control" name="has_driving_license">
+                        <option value="">{{ $isAr ? 'اختر' : 'Select' }}</option>
+                        <option value="1" {{ (string) old('has_driving_license', $maid->has_driving_license) === '1' ? 'selected' : '' }}>{{ $isAr ? 'نعم' : 'Yes' }}</option>
+                        <option value="0" {{ (string) old('has_driving_license', $maid->has_driving_license) === '0' ? 'selected' : '' }}>{{ $isAr ? 'لا' : 'No' }}</option>
+                    </select>
+                </div>
+            </div>
+        </section>
+
         <section class="agent-edit-card">
             <h4><i class="fa fa-briefcase"></i> {{ $isAr ? 'العمل والخبرة' : 'Work and Experience' }}</h4>
             <input type="hidden" name="office_id" value="{{ $maid->office_id }}">
@@ -146,7 +207,7 @@
                 </div>
                 <div class="col-md-4">
                     <label class="form-label">{{ $isAr ? 'حالة الخبرة' : 'Experience Status' }} <span class="required-mark">*</span></label>
-                    <select class="form-control" name="experience_status" required>
+                    <select class="form-control" name="experience_status" id="experience_status" required>
                         <option value="has_experience" {{ old('experience_status', $maid->experience_status) === 'has_experience' ? 'selected' : '' }}>{{ $isAr ? 'لديها خبرة' : 'Has Experience' }}</option>
                         <option value="no_experience" {{ old('experience_status', $maid->experience_status) === 'no_experience' ? 'selected' : '' }}>{{ $isAr ? 'بدون خبرة' : 'No Experience' }}</option>
                     </select>
@@ -209,5 +270,26 @@
 @push('scripts')
     <script src="https://code.jquery.com/jquery-3.6.4.min.js"></script>
     <script src="{{ asset('admin') }}/assets/js/bundle/select2.bundle.js"></script>
-    <script>$(function () { $('.js-select2').select2({ width: '100%' }); });</script>
+    <script>
+        $(function () {
+            $('.js-select2').select2({ width: '100%' });
+
+            function toggleCookingExperience() {
+                var hasExperience = $('#experience_status').val() === 'has_experience';
+                var $field = $('#cooking_experience_field');
+                var $select = $('#cooking_experience');
+
+                if (hasExperience) {
+                    $field.slideDown();
+                    $select.attr('required', 'required');
+                } else {
+                    $select.removeAttr('required').val('');
+                    $field.slideUp();
+                }
+            }
+
+            $('#experience_status').on('change', toggleCookingExperience);
+            toggleCookingExperience();
+        });
+    </script>
 @endpush

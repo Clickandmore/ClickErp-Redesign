@@ -125,6 +125,76 @@ class MaidCvPdfGenerator
         return $contents;
     }
 
+    /**
+     * Wrap the already-generated CV image in a PDF without rendering the Blade
+     * template again. This keeps the download identical to cv_preview.
+     */
+    public function renderStoredImageAsPdfContents(string $storedPath): string
+    {
+        $storage = app(ManagedFileStorage::class);
+        abort_unless($storage->exists($storedPath), 404);
+
+        $contents = $storage->contents($storedPath);
+        $mimeType = $storage->mimeType($storedPath);
+
+        if (!Str::startsWith($mimeType, 'image/')) {
+            throw new RuntimeException('The stored CV preview is not an image.');
+        }
+
+        $temporaryDirectory = storage_path('framework/cache/mpdf');
+        File::ensureDirectoryExists($temporaryDirectory);
+        $previousErrorReporting = error_reporting();
+        error_reporting($previousErrorReporting & ~E_WARNING & ~E_NOTICE & ~E_DEPRECATED);
+
+        try {
+            $pdf = new Mpdf([
+                'mode' => 'utf-8',
+                'format' => 'A4',
+                'orientation' => 'P',
+                'margin_left' => 0,
+                'margin_right' => 0,
+                'margin_top' => 0,
+                'margin_bottom' => 0,
+                'tempDir' => $temporaryDirectory,
+            ]);
+
+            $pageWidth = 210.0;
+            $pageHeight = 297.0;
+            $imageWidth = $pageWidth;
+            $imageHeight = $pageHeight;
+            $imageX = 0.0;
+            $imageY = 0.0;
+            $dimensions = @getimagesizefromstring($contents);
+
+            if (is_array($dimensions) && ($dimensions[0] ?? 0) > 0 && ($dimensions[1] ?? 0) > 0) {
+                $scale = min($pageWidth / $dimensions[0], $pageHeight / $dimensions[1]);
+                $imageWidth = $dimensions[0] * $scale;
+                $imageHeight = $dimensions[1] * $scale;
+                $imageX = ($pageWidth - $imageWidth) / 2;
+                $imageY = ($pageHeight - $imageHeight) / 2;
+            }
+
+            $pdf->SetDisplayMode('fullpage');
+            $pdf->AddPage();
+            $pdf->Image(
+                'data:' . $mimeType . ';base64,' . base64_encode($contents),
+                $imageX,
+                $imageY,
+                $imageWidth,
+                $imageHeight
+            );
+
+            $pdfContents = $pdf->Output('', Destination::STRING_RETURN);
+            if ($pdfContents === '' || !Str::startsWith($pdfContents, '%PDF')) {
+                throw new RuntimeException('Failed to create a PDF from the stored CV image.');
+            }
+
+            return $pdfContents;
+        } finally {
+            error_reporting($previousErrorReporting);
+        }
+    }
+
     private function generateImageOutput(string $html, Maid $maid): array
     {
         if (!function_exists('proc_open')) {
