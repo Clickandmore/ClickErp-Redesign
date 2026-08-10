@@ -160,11 +160,32 @@ class AdminRoutePermissionMatrix
         return null;
     }
 
+    // public static function firstAccessibleUrlForAdmin($admin, array $excludedRouteNames = []): ?string
+    // {
+    //     $routeName = self::firstAccessibleRouteNameForAdmin($admin, $excludedRouteNames);
+
+    //     return $routeName ? route($routeName) : null;
+    // }
     public static function firstAccessibleUrlForAdmin($admin, array $excludedRouteNames = []): ?string
     {
-        $routeName = self::firstAccessibleRouteNameForAdmin($admin, $excludedRouteNames);
+        $attempts = 0;
 
-        return $routeName ? route($routeName) : null;
+        while ($attempts < 50) {
+            $attempts++;
+            $routeName = self::firstAccessibleRouteNameForAdmin($admin, $excludedRouteNames);
+
+            if (!$routeName) {
+                return null;
+            }
+
+            try {
+                return route($routeName);
+            } catch (\Illuminate\Routing\Exceptions\UrlGenerationException $e) {
+                $excludedRouteNames[] = $routeName;
+            }
+        }
+
+        return null;
     }
 
     public static function adminHasAnyPermission($admin, array $permissions): bool
