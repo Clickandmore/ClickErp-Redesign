@@ -494,7 +494,8 @@ class MaidController extends Controller
                         $menuItems .= '<li><a class="dropdown-item" href="' . route('showMaidDetails', $row->id) . '#maid-attachments"><i class="fas fa-paperclip text-info me-2"></i>' . helperTrans('ingaz.attachments') . '</a></li>';
                     }
 
-                    if (@AdminGuardHasPerm(\App\PermKeys::MAIDS_EXPORT_PDF) && ($generatedCvPath = $this->maidGeneratedCvPath($row))) {
+                    if (@AdminGuardHasAnyPerm([\App\PermKeys::MAIDS_EXPORT, \App\PermKeys::MAIDS_EXPORT_PDF])
+                        && ($downloadableCvPath = $this->maidDownloadableCvPath($row))) {
                         $shareUrl = URL::temporarySignedRoute(
                             'maids.generated-cv.shared',
                             now()->addDays(7),
@@ -807,7 +808,8 @@ class MaidController extends Controller
                         </a></li>';
                     }
 
-                    if (@AdminGuardHasPerm(\App\PermKeys::MAIDS_EXPORT_PDF) && ($generatedCvPath = $this->maidGeneratedCvPath($row))) {
+                    if (@AdminGuardHasAnyPerm([\App\PermKeys::MAIDS_EXPORT, \App\PermKeys::MAIDS_EXPORT_PDF])
+                        && ($downloadableCvPath = $this->maidDownloadableCvPath($row))) {
                         $shareUrl = URL::temporarySignedRoute(
                             'maids.generated-cv.shared',
                             now()->addDays(7),
@@ -1304,7 +1306,7 @@ class MaidController extends Controller
             'available_at' => $maid->available_at,
             'created_at' => $maid->created_at,
         ];
-        $generatedCvPath = $this->maidGeneratedCvPath($maid);
+        $generatedCvPath = $this->maidDownloadableCvPath($maid);
         $generatedCvShareUrl = $generatedCvPath
             ? URL::temporarySignedRoute('maids.generated-cv.shared', now()->addDays(7), ['maid' => $maid->id])
             : null;
@@ -1493,6 +1495,26 @@ class MaidController extends Controller
         return filled($path)
             && in_array(strtolower(pathinfo((string) $path, PATHINFO_EXTENSION)), ['pdf', 'png', 'svg'], true)
             && app(MaidCvPdfGenerator::class)->isGeneratedPath($path)
+            && app(ManagedFileStorage::class)->exists($path)
+                ? $path
+                : null;
+    }
+
+    /**
+     * Return the stored CV preview regardless of whether it was uploaded or
+     * generated. Downloading an uploaded PDF returns its original bytes, while
+     * an uploaded image is placed directly in a PDF without rebuilding the CV.
+     */
+    private function maidDownloadableCvPath(Maid $maid): ?string
+    {
+        $path = $maid->cv_preview;
+
+        return filled($path)
+            && in_array(
+                strtolower(pathinfo((string) $path, PATHINFO_EXTENSION)),
+                ['pdf', 'jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp', 'svg'],
+                true
+            )
             && app(ManagedFileStorage::class)->exists($path)
                 ? $path
                 : null;
@@ -2235,8 +2257,8 @@ class MaidController extends Controller
         MaidCvPdfGenerator $cvGenerator
     )
     {
-        $path = $this->maidGeneratedCvPath($maid);
-        abort_unless($path, 404, 'نموذج السيرة المُنشأ غير موجود.');
+        $path = $this->maidDownloadableCvPath($maid);
+        abort_unless($path, 404, 'ملف معاينة السيرة غير موجود.');
 
         $contents = strtolower(pathinfo($path, PATHINFO_EXTENSION)) === 'pdf'
             ? $storage->contents($path)
@@ -2254,8 +2276,8 @@ class MaidController extends Controller
         ManagedFileStorage $storage,
         MaidCvPdfGenerator $cvGenerator
     ) {
-        $path = $this->maidGeneratedCvPath($maid);
-        abort_unless($path, 404, 'نموذج السيرة المُنشأ غير موجود.');
+        $path = $this->maidDownloadableCvPath($maid);
+        abort_unless($path, 404, 'ملف معاينة السيرة غير موجود.');
 
         $contents = strtolower(pathinfo($path, PATHINFO_EXTENSION)) === 'pdf'
             ? $storage->contents($path)
