@@ -268,6 +268,7 @@ class ContractController extends Controller
 
             $maids = Maid::query()
                 ->with('nationality')
+                ->whereDoesntHave('contracts')
                 ->when($search, function($query) use ($search) {
                     $query->where(function($q) use ($search) {
                         $q->where('name', 'like', "%{$search}%")
@@ -309,7 +310,10 @@ class ContractController extends Controller
     public function getAllMaids()
     {
         try {
-            $maids = Maid::with('nationality')->limit(50)->get();
+            $maids = Maid::with('nationality')
+                ->whereDoesntHave('contracts')
+                ->limit(50)
+                ->get();
 
             $results = $maids->map(function($maid) {
                 return [
@@ -492,6 +496,25 @@ class ContractController extends Controller
                 'client_birthdate' => 'nullable|date'
             ]);
 
+            $msanedNumber = trim((string) ($contractData['msaned_number'] ?? ''));
+            if ($msanedNumber !== '') {
+                $contractWithSameMusaned = Contract::query()
+                    ->where(function ($query) use ($msanedNumber) {
+                        $query->whereRaw('TRIM(msaned_number) = ?', [$msanedNumber])
+                            ->orWhereHas('info', function ($infoQuery) use ($msanedNumber) {
+                                $infoQuery->whereRaw('TRIM(msaned_number) = ?', [$msanedNumber]);
+                            });
+                    })
+                    ->latest('id')
+                    ->first(['id']);
+
+                if ($contractWithSameMusaned) {
+                    throw \Illuminate\Validation\ValidationException::withMessages([
+                        'msaned_number' => 'رقم عقد مساند مستخدم بالفعل في العقد رقم ' . $contractWithSameMusaned->id . '. استخدم العقد الموجود لإضافة العاملة إلى الإيواء بدل إنشاء عقد سريع جديد.',
+                    ]);
+                }
+            }
+
             $maidType = $request->input('maid_type', 'existing');
             if ($maidType === 'new') {
                 $maid = Maid::create([
@@ -506,7 +529,9 @@ class ContractController extends Controller
                     'is_show' => 0,
                 ]);
             } else {
-                $maid = Maid::find($contractData['maid_id']);
+                $maid = Maid::query()
+                    ->lockForUpdate()
+                    ->find($contractData['maid_id']);
             }
 
             if (!$maid) {
@@ -514,6 +539,17 @@ class ContractController extends Controller
                     'success' => false,
                     'message' => 'العاملة غير موجودة'
                 ], 400);
+            }
+
+            $existingMaidContract = Contract::query()
+                ->where('maid_id', $maid->id)
+                ->latest('id')
+                ->first(['id', 'status']);
+
+            if ($existingMaidContract) {
+                throw \Illuminate\Validation\ValidationException::withMessages([
+                    'maid_id' => 'العاملة مرتبطة بالفعل بالعقد رقم ' . $existingMaidContract->id . '. استخدم العقد المكتمل الموجود لإضافة العاملة إلى الإيواء بدل إنشاء عقد سريع جديد.',
+                ]);
             }
 
             // Update client information if provided
@@ -535,7 +571,7 @@ class ContractController extends Controller
                 'status' => 'completed', // Set as completed (عقد مكتمل)
                 'contract_date' => $contractData['contract_date'],
                 'visa_number' => $contractData['visa_number'],
-                'msaned_number' => $contractData['msaned_number'] ?? '',
+                'msaned_number' => $msanedNumber,
             ]);
 
             // Create contract info with arrival date
@@ -543,7 +579,7 @@ class ContractController extends Controller
                 'contract_id' => $contract->id,
                 'contract_date' => $contractData['contract_date'],
                 'visa_number' => $contractData['visa_number'],
-                'msaned_number' => $contractData['msaned_number'] ?? '',
+                'msaned_number' => $msanedNumber,
                 'arrival_date' => $contractData['arrival_date'],
             ]);
 
