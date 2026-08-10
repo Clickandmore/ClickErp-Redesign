@@ -141,8 +141,26 @@ class MaidCvPdfGenerator
             throw new RuntimeException('The stored CV preview is not an image.');
         }
 
+        if ($contents === '') {
+            throw new RuntimeException('The stored CV preview image is empty.');
+        }
+
         $temporaryDirectory = storage_path('framework/cache/mpdf');
         File::ensureDirectoryExists($temporaryDirectory);
+        $extension = strtolower(pathinfo($storedPath, PATHINFO_EXTENSION));
+        $extension = in_array($extension, ['jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp', 'svg'], true)
+            ? $extension
+            : match ($mimeType) {
+                'image/jpeg' => 'jpg',
+                'image/gif' => 'gif',
+                'image/bmp' => 'bmp',
+                'image/webp' => 'webp',
+                'image/svg+xml' => 'svg',
+                default => 'png',
+            };
+        $temporaryImagePath = $temporaryDirectory . DIRECTORY_SEPARATOR
+            . 'cv-preview-' . Str::uuid() . '.' . $extension;
+        File::put($temporaryImagePath, $contents);
         $previousErrorReporting = error_reporting();
         error_reporting($previousErrorReporting & ~E_WARNING & ~E_NOTICE & ~E_DEPRECATED);
 
@@ -164,7 +182,7 @@ class MaidCvPdfGenerator
             $imageHeight = $pageHeight;
             $imageX = 0.0;
             $imageY = 0.0;
-            $dimensions = @getimagesizefromstring($contents);
+            $dimensions = @getimagesize($temporaryImagePath);
 
             if (is_array($dimensions) && ($dimensions[0] ?? 0) > 0 && ($dimensions[1] ?? 0) > 0) {
                 $scale = min($pageWidth / $dimensions[0], $pageHeight / $dimensions[1]);
@@ -177,7 +195,7 @@ class MaidCvPdfGenerator
             $pdf->SetDisplayMode('fullpage');
             $pdf->AddPage();
             $pdf->Image(
-                'data:' . $mimeType . ';base64,' . base64_encode($contents),
+                $temporaryImagePath,
                 $imageX,
                 $imageY,
                 $imageWidth,
@@ -192,6 +210,7 @@ class MaidCvPdfGenerator
             return $pdfContents;
         } finally {
             error_reporting($previousErrorReporting);
+            File::delete($temporaryImagePath);
         }
     }
 

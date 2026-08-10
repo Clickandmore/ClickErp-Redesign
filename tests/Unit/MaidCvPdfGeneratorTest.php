@@ -93,6 +93,7 @@ class MaidCvPdfGeneratorTest extends TestCase
         $contents = app(MaidCvPdfGenerator::class)->renderStoredImageAsPdfContents($path);
 
         $this->assertStringStartsWith('%PDF-', $contents);
+        $this->assertStringContainsString('/Subtype /Image', $contents);
     }
 
     public function test_it_wraps_the_stored_svg_cv_in_a_pdf_without_rerendering_the_template(): void
