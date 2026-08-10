@@ -61,7 +61,25 @@ class MaidCvPdfGeneratorTest extends TestCase
         $this->assertTrue($generator->isGeneratedPath(
             MaidCvPdfGenerator::STORAGE_DIRECTORY . '/maid-10-example.pdf'
         ));
+        $this->assertTrue($generator->isGeneratedPath(
+            'r2://clickerp/' . MaidCvPdfGenerator::STORAGE_DIRECTORY . '/maid-10-example.pdf'
+        ));
+        $this->assertTrue($generator->isGeneratedPath(
+            'r2://another/root/prefix/' . MaidCvPdfGenerator::STORAGE_DIRECTORY . '/maid-10-example.png?version=2'
+        ));
+        $this->assertTrue($generator->isGeneratedPath(
+            'https://cdn.example.com/company/' . MaidCvPdfGenerator::STORAGE_DIRECTORY . '/maid-10-example.svg?token=abc#preview'
+        ));
+        $this->assertTrue($generator->isGeneratedPath(
+            'C:\\storage\\app\\public\\' . MaidCvPdfGenerator::STORAGE_DIRECTORY . '\\maid-10-example.pdf'
+        ));
         $this->assertFalse($generator->isGeneratedPath('images/Maid/uploaded-preview.pdf'));
+        $this->assertFalse($generator->isGeneratedPath(
+            'r2://clickerp/' . MaidCvPdfGenerator::STORAGE_DIRECTORY . '/unsupported.jpg'
+        ));
+        $this->assertFalse($generator->isGeneratedPath(
+            'r2://clickerp/images/Maid/not-generated-cvs/maid-10-example.pdf'
+        ));
         $this->assertFalse($generator->isGeneratedPath(null));
     }
 

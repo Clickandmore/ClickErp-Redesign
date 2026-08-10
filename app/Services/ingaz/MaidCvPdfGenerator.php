@@ -776,13 +776,33 @@ class MaidCvPdfGenerator
 
     public function isGeneratedPath(?string $path): bool
     {
-        return is_string($path)
-            && Str::startsWith(
-                Str::startsWith($path, ManagedFileStorage::R2_PREFIX)
-                    ? Str::after($path, ManagedFileStorage::R2_PREFIX)
-                    : $path,
-                self::STORAGE_DIRECTORY . '/'
-            );
+        if (!is_string($path) || trim($path) === '') {
+            return false;
+        }
+
+        $normalizedPath = trim(str_replace('\\', '/', rawurldecode($path)));
+        if (Str::startsWith($normalizedPath, ManagedFileStorage::R2_PREFIX)) {
+            $normalizedPath = Str::after($normalizedPath, ManagedFileStorage::R2_PREFIX);
+        }
+
+        // A stored value can also be a public R2/CDN URL. Only its path is
+        // relevant, and query strings or fragments must not affect detection.
+        if (Str::startsWith($normalizedPath, ['http://', 'https://'])) {
+            $normalizedPath = (string) (parse_url($normalizedPath, PHP_URL_PATH) ?: '');
+        } else {
+            $normalizedPath = preg_split('/[?#]/', $normalizedPath, 2)[0] ?? '';
+        }
+
+        $normalizedPath = '/' . ltrim($normalizedPath, '/');
+        $generatedDirectory = '/' . trim(self::STORAGE_DIRECTORY, '/') . '/';
+        $filename = basename($normalizedPath);
+        $extension = strtolower(pathinfo($filename, PATHINFO_EXTENSION));
+
+        // Covers local paths, legacy paths, R2 pointers with any root prefix,
+        // and public CDN URLs without coupling detection to storage settings.
+        return $filename !== ''
+            && in_array($extension, ['pdf', 'png', 'svg'], true)
+            && Str::contains($normalizedPath, $generatedDirectory);
     }
 
     private function viewData(Maid $maid, Setting $settings, string $outputType): array
