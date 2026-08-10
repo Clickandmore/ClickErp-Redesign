@@ -2240,7 +2240,7 @@ class MaidController extends Controller
 
         $contents = strtolower(pathinfo($path, PATHINFO_EXTENSION)) === 'pdf'
             ? $storage->contents($path)
-            : $cvGenerator->renderPdfContents($maid);
+            : $cvGenerator->renderStoredImageAsPdfContents($path);
 
         return response()->streamDownload(
             static fn () => print($contents),
@@ -2259,7 +2259,7 @@ class MaidController extends Controller
 
         $contents = strtolower(pathinfo($path, PATHINFO_EXTENSION)) === 'pdf'
             ? $storage->contents($path)
-            : $cvGenerator->renderPdfContents($maid);
+            : $cvGenerator->renderStoredImageAsPdfContents($path);
 
         return response($contents, 200, [
             'Content-Type' => 'application/pdf',
@@ -2375,7 +2375,7 @@ class MaidController extends Controller
             'image' => ['nullable', 'image', 'max:10240'],
             'cv_file' => ['nullable', 'file', 'mimes:pdf,jpg,jpeg,png,gif,bmp,webp', 'max:20480'],
             'cv_preview' => ['nullable', 'image', 'max:10240'],
-            'video' => ['nullable', 'file', 'mimes:mp4,mov,avi,wmv,webm,mkv', 'max:102400'],
+            'video' => ['nullable', 'file', 'mimes:mp4,mov,avi,wmv,webm,mkv,m4v', 'max:102400'],
             'video_link' => ['nullable', 'url', 'max:2000'],
         ], [
             'image.image' => 'يجب أن تكون الصورة الشخصية ملف صورة صالحًا.',

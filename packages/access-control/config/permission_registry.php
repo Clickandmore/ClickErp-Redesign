@@ -833,5 +833,21 @@ return array (
       'display_name' => 'اعتماد القيود المحاسبية',
       'description' => 'إمكانية اعتماد القيود المحاسبية المنتظرة.',
     ),
+    98 =>
+    array (
+      'name' => 'shelter_contract_rental_instant_receipt_edit',
+      'group' => 'shelter_contract',
+      'section' => 'shelter_management',
+      'display_name' => 'إتاحة عاملات الإيجار للاستلام الفوري',
+      'description' => 'السماح بإتاحة أو إلغاء إتاحة عاملة الإيجار للاستلام الفوري وظهورها في نقل الخدمات.',
+    ),
+    99 =>
+    array (
+      'name' => 'maids_transaction_edit_override',
+      'group' => 'maids',
+      'section' => 'cv_management',
+      'display_name' => 'تعديل السيرة المرتبطة بمعاملات',
+      'description' => 'صلاحية إدارية لتجاوز قفل بيانات العاملة المرتبطة بفواتير أو قيود محاسبية أو إرساليات مكاتب خارجية.',
+    ),
   ),
 );

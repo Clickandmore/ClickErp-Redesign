@@ -66,7 +66,10 @@ class ShelterContractController extends Controller
             'only' => ['startDeportation', 'updateDeportationProcedures'],
         ]);
         $this->middleware($this->permissionMiddleware($this->shelterWorkDesireEditPermissions()), ['only' => ['changeWorkDesire']]);
-        $this->middleware($this->permissionMiddleware($this->shelterInstantReceiptEditPermissions()), ['only' => ['toggleInstantReceipt']]);
+        $this->middleware($this->permissionMiddleware(array_merge(
+            $this->shelterInstantReceiptEditPermissions(),
+            $this->shelterRentalInstantReceiptEditPermissions()
+        )), ['only' => ['toggleInstantReceipt']]);
         $this->middleware($this->permissionMiddleware([PermKeys::SHELTER_CONTRACT_DELETE, PermKeys::SHELTER_CONTRACT_CONTROL]), ['only' => ['destroy']]);
     }
 
@@ -210,6 +213,14 @@ class ShelterContractController extends Controller
         return [
             PermKeys::SHELTER_CONTRACT_REMOVE_FROM_SHELTER_EDIT,
             PermKeys::SHELTER_CONTRACT_EDIT,
+            PermKeys::SHELTER_CONTRACT_CONTROL,
+        ];
+    }
+
+    private function shelterRentalInstantReceiptEditPermissions(): array
+    {
+        return [
+            PermKeys::SHELTER_CONTRACT_RENTAL_INSTANT_RECEIPT_EDIT,
             PermKeys::SHELTER_CONTRACT_CONTROL,
         ];
     }
@@ -3069,7 +3080,7 @@ class ShelterContractController extends Controller
 
                     if ($workWillingness === 'yes' && $isAvailable) {
                         $label = $isRentalWorker
-                            ? 'استلام فوري - إيجار فقط'
+                            ? 'استلام فوري - ظاهرة في نقل الخدمات'
                             : 'متاحة لنقل الخدمات';
 
                         return '<span class="badge bg-success"><i class="fas fa-eye me-1"></i>' . $label . '</span>';
@@ -3119,11 +3130,14 @@ class ShelterContractController extends Controller
                     return $html;
                 })
                 ->addColumn('actions', function ($row) {
+                    $isRentalWorker = $this->determineShelterServiceCategory($row->maid) === 'rental';
                     $canViewDetails = $this->adminCanAny($this->shelterContractDetailViewPermissions());
                     $canEditContract = $this->adminCanAny($this->shelterContractEditPermissions());
                     $canChangeWorkDesire = $this->adminCanAny($this->shelterWorkDesireEditPermissions());
                     $canEditQuickTags = $this->adminCanAny($this->shelterQuickTagsEditPermissions());
-                    $canToggleInstantReceipt = $this->adminCanAny($this->shelterInstantReceiptEditPermissions());
+                    $canToggleInstantReceipt = $isRentalWorker
+                        ? $this->adminCanAny($this->shelterRentalInstantReceiptEditPermissions())
+                        : $this->adminCanAny($this->shelterInstantReceiptEditPermissions());
                     $canRemoveFromShelter = $this->adminCanAny($this->shelterRemoveFromShelterPermissions());
                     $canViewDeportationProcedures = $this->adminCanAny($this->shelterDeportationProceduresViewPermissions());
                     $canManageDeportationProcedures = $this->adminCanAny($this->shelterDeportationProceduresEditPermissions());
@@ -3173,11 +3187,15 @@ class ShelterContractController extends Controller
                         && $row->info
                         && $row->info->wants_to_work === 'yes'
                         && $this->instantReceiptFieldEnabledFor($row->maid)) {
-                        $availableStatus = $this->determineShelterServiceCategory($row->maid) === 'rental'
-                            ? 'استلام فوري - إيجار فقط'
+                        $availableStatus = $isRentalWorker
+                            ? 'متاحة للاستلام الفوري وتظهر في نقل الخدمات'
                             : 'متاحة لنقل الخدمات';
                         $currentStatus = $row->info->is_available_for_instant ? $availableStatus : 'غير متاحة';
-                        $newStatus = $row->info->is_available_for_instant ? 'إخفاء من الموقع' : 'إظهار على الموقع';
+                        $newStatus = $isRentalWorker
+                            ? ($row->info->is_available_for_instant
+                                ? 'جعلها غير متاحة للاستلام الفوري'
+                                : 'جعلها متاحة للاستلام الفوري')
+                            : ($row->info->is_available_for_instant ? 'إخفاء من الموقع' : 'إظهار على الموقع');
                         $icon = $row->info->is_available_for_instant ? 'fa-eye-slash' : 'fa-eye';
                         $badgeClass = $row->info->is_available_for_instant ? 'text-success' : 'text-warning';
 
@@ -4207,7 +4225,13 @@ class ShelterContractController extends Controller
      */
     public function toggleInstantReceipt(Request $request, $id)
     {
-        $this->assertCanAccessBranchModel(Contract::findOrFail($id), 'contracts');
+        $authorizationContract = Contract::with('maid.jobTypes')->findOrFail($id);
+        $this->assertCanAccessBranchModel($authorizationContract, 'contracts');
+        $isRentalWorker = $this->determineShelterServiceCategory($authorizationContract->maid) === 'rental';
+        $requiredPermissions = $isRentalWorker
+            ? $this->shelterRentalInstantReceiptEditPermissions()
+            : $this->shelterInstantReceiptEditPermissions();
+        abort_unless($this->adminCanAny($requiredPermissions), 403);
 
         try {
             $contract = Contract::with(['maid', 'info'])->findOrFail($id);
@@ -4256,14 +4280,14 @@ class ShelterContractController extends Controller
             ]);
 
             $availableStatus = $this->determineShelterServiceCategory($contract->maid) === 'rental'
-                ? 'استلام فوري - إيجار فقط'
+                ? 'متاحة للاستلام الفوري وتظهر في نقل الخدمات'
                 : 'متاحة لنقل الخدمات';
             $statusText = $newStatus ? $availableStatus : 'غير متاحة';
-            $actionText = $newStatus ? 'إظهار' : 'إخفاء';
+            $actionText = $newStatus ? 'إتاحة' : 'إلغاء إتاحة';
 
             return response()->json([
                 'success' => true,
-                'message' => 'تم ' . $actionText . ' العاملة من الموقع الخارجي بنجاح',
+                'message' => 'تم ' . $actionText . ' العاملة للاستلام الفوري بنجاح',
                 'data' => [
                     'old_status' => $oldStatus,
                     'new_status' => $newStatus,

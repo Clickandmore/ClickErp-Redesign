@@ -3167,6 +3167,7 @@ return array (
   'cooking_experience_regular' => 'Experienced in regular cooking',
   'cooking_experience_willing_to_learn' => 'No cooking experience, but willing to learn',
   'cooking_experience_general' => 'Has general cooking experience',
+  'cooking_experience_none' => 'Has no cooking experience',
   'required' => 'Required',
   'optional' => 'Optional',
   'national_id_required' => 'ID number is required',
