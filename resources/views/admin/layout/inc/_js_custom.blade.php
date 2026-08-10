@@ -47,12 +47,36 @@
         })
     }
 
+    // رسالة لكل حالة HTTP. قبل ذلك كان أي رد غير 422/500 يظهر كـ"لا تمتلك الصلاحية"،
+    // فيبدو فشل رفع ملف كبير (413/419) وكأنه نقص صلاحيات.
+    var ajaxStatusMessages = {
+        0: 'تعذر الاتصال بالخادم، تحقق من الاتصال ثم حاول مرة أخرى.',
+        401: '{{__("auth.code error")}}',
+        403: '{{__("auth.code error")}}',
+        404: 'الرابط المطلوب غير موجود.',
+        405: 'هذا الإجراء غير مسموح به على هذا الرابط.',
+        413: 'حجم الملف المرفوع أكبر من الحد المسموح به على الخادم.',
+        419: 'انتهت صلاحية الجلسة أو تجاوز حجم الملف الحد المسموح به، حدّث الصفحة ثم أعد المحاولة.',
+        429: 'عدد كبير من المحاولات، انتظر قليلًا ثم حاول مرة أخرى.',
+        500: 'حدث خطأ في الخادم',
+        502: 'الخادم لا يستجيب حاليًا، حاول بعد قليل.',
+        503: 'الخدمة غير متاحة مؤقتًا، حاول بعد قليل.',
+        504: 'انتهت مهلة الاتصال بالخادم، حاول مرة أخرى.'
+    };
+
     function handleErrorResponce(errorObj) {
         console.log('handleErrorResponce');
         console.log(errorObj.status);
-        if (errorObj.status == 422 || errorObj.status == 400) {
-            let errorsObj = $.parseJSON(errorObj.responseText);
-            let listObject = errorsObj.data || errorsObj.errors || {};
+        let status = errorObj.status;
+        let payload = {};
+        try {
+            payload = $.parseJSON(errorObj.responseText) || {};
+        } catch (e) {
+            payload = {};
+        }
+
+        if (status == 422 || status == 400) {
+            let listObject = payload.data || payload.errors || {};
             let testArr = [];
             $.each(listObject, function (errorKey, errorArr) {
                 if (Array.isArray(errorArr)) {
@@ -63,19 +87,19 @@
                     testArr.push(errorArr);
                 }
             });
+            // أخطاء abort(422, '...') ترجع message فقط بلا قائمة حقول
+            if (testArr.length === 0 && payload.message) {
+                testArr.push(payload.message);
+            }
             validToster('{{__("auth.an error occurred")}}', testArr.length > 0 ? testArr : ['حدث خطأ في البيانات المدخلة'])
-        } else if (errorObj.status == 500) {
-            let message = 'حدث خطأ في الخادم';
-            try {
-                let errorsObj = $.parseJSON(errorObj.responseText);
-                if (errorsObj.message) {
-                    message = errorsObj.message;
-                }
-            } catch(e) {}
-            errorToster('{{__("auth.an error occurred")}}', message);
-        } else {
-            errorToster('{{__("auth.an error occurred")}}', "{{__("auth.code error")}}");
+            return;
         }
+
+        let known = ajaxStatusMessages[status];
+        let message = (status == 500 && payload.message)
+            ? payload.message
+            : (known || payload.message || ('حدث خطأ غير متوقع (' + status + ')'));
+        errorToster('{{__("auth.an error occurred")}}', message);
     }
 
     function handleSuccessResponce(result) {

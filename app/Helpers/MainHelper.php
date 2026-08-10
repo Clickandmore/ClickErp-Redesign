@@ -306,18 +306,47 @@ if (!function_exists('uploadFile')) {
         $storage = app(\App\Services\ManagedFileStorage::class);
         $directory = trim((string) $path, '/');
 
-        try {
-            if ($compress != null) {
+        // رفع فشل على مستوى PHP (تجاوز upload_max_filesize مثلًا) يصل كملف "غير صالح"،
+        // وأي محاولة لنقله ترمي استثناء إنجليزيًا خامًا ينتهي بخطأ 500 غامض.
+        if ($image instanceof \Illuminate\Http\UploadedFile && !$image->isValid()) {
+            abort(422, uploadErrorMessage($image));
+        }
+
+        if ($compress != null) {
+            try {
                 $img = Image::make($image);
                 $contents = (string) $img->encode('webp', $quality_ratio);
 
                 return $storage->storeFileContents($contents, $directory, 'webp');
+            } catch (\Exception $e) {
+                // SVG و PDF والفيديو لا يقرأها GD — تُخزَّن كما هي بدل الضغط.
+                logger()->error('Error in uploadFile: ' . $e->getMessage());
             }
+        }
 
-            return $storage->uploadFile($image, $directory);
-        } catch (\Exception $e) {
-            logger()->error('Error in uploadFile: ' . $e->getMessage());
-            return $storage->uploadFile($image, $directory);
+        return $storage->uploadFile($image, $directory);
+    }
+}
+
+if (!function_exists('uploadErrorMessage')) {
+    function uploadErrorMessage(\Illuminate\Http\UploadedFile $file): string
+    {
+        $name = $file->getClientOriginalName();
+
+        switch ($file->getError()) {
+            case UPLOAD_ERR_INI_SIZE:
+            case UPLOAD_ERR_FORM_SIZE:
+                return 'حجم الملف "' . $name . '" أكبر من الحد المسموح به على الخادم ('
+                    . ini_get('upload_max_filesize') . ').';
+            case UPLOAD_ERR_PARTIAL:
+                return 'لم يكتمل رفع الملف "' . $name . '"، أعد المحاولة.';
+            case UPLOAD_ERR_NO_FILE:
+                return 'لم يتم اختيار أي ملف.';
+            case UPLOAD_ERR_NO_TMP_DIR:
+            case UPLOAD_ERR_CANT_WRITE:
+                return 'تعذر حفظ الملف على الخادم مؤقتًا، راجع إعدادات الخادم.';
+            default:
+                return 'تعذر رفع الملف "' . $name . '".';
         }
     }
 }
