@@ -8,6 +8,9 @@
         $contractTypeLabel = $requestItem->contract_type_label;
         $financeBondTypeLabel = $bondTypes[$requestItem->finance_bond_type] ?? null;
         $isCreator = (int) $requestItem->created_by_id === (int) auth('admin')->id();
+        $canEdit = $isCreator
+            && in_array($requestItem->status, [\App\Models\FinancialRequest::STATUS_PREPARING, \App\Models\FinancialRequest::STATUS_FOR_APPROVAL, \App\Models\FinancialRequest::STATUS_REJECTED], true)
+            && @AdminGuardHasAnyPerm([\App\PermKeys::FINANCIAL_REQUESTS_CREATE, \App\PermKeys::FINANCIAL_REQUESTS_EDIT, \App\PermKeys::FINANCIAL_REQUESTS_CONTROL]);
         $isApprover = @AdminGuardHasAnyPerm([\App\PermKeys::FINANCIAL_REQUESTS_APPROVE, \App\PermKeys::FINANCIAL_REQUESTS_CHANGE_STATUS, \App\PermKeys::FINANCIAL_REQUESTS_CONTROL]);
         $canRequestClosing = @AdminGuardHasAnyPerm([\App\PermKeys::FINANCIAL_REQUESTS_REQUEST_CLOSING, \App\PermKeys::FINANCIAL_REQUESTS_CHANGE_STATUS, \App\PermKeys::FINANCIAL_REQUESTS_CONTROL]);
         $canClose = @AdminGuardHasAnyPerm([\App\PermKeys::FINANCIAL_REQUESTS_CLOSE, \App\PermKeys::FINANCIAL_REQUESTS_CHANGE_STATUS, \App\PermKeys::FINANCIAL_REQUESTS_CONTROL]);
@@ -65,9 +68,16 @@
                 <div class="text-muted small mb-1">الطلبات المالية / تفاصيل الطلب</div>
                 <h3 class="mb-0">طلب مالي <span dir="ltr">{{ $requestItem->request_no }}</span></h3>
             </div>
-            <a class="btn btn-outline-secondary px-3" href="{{ route('financial-requests.index') }}">
-                <i class="fa fa-arrow-right ms-1"></i> رجوع للقائمة
-            </a>
+            <div class="d-flex gap-2">
+                @if($canEdit)
+                    <a class="btn btn-outline-dark px-3" href="{{ route('financial-requests.edit', $requestItem) }}">
+                        <i class="fa fa-edit ms-1"></i> {{ __('financial_requests.edit') }}
+                    </a>
+                @endif
+                <a class="btn btn-outline-secondary px-3" href="{{ route('financial-requests.index') }}">
+                    <i class="fa fa-arrow-right ms-1"></i> رجوع للقائمة
+                </a>
+            </div>
         </div>
 
         <div class="card request-hero mb-3">

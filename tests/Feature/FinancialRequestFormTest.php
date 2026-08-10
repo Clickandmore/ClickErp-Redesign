@@ -124,6 +124,49 @@ class FinancialRequestFormTest extends TestCase
         $response->assertSessionHasErrors('contract_type');
     }
 
+    public function test_request_can_be_edited_while_waiting_for_approval(): void
+    {
+        $this->post(route('financial-requests.store'), $this->validPayload('cash'))
+            ->assertSessionHasNoErrors();
+
+        $requestItem = FinancialRequest::query()->latest('id')->firstOrFail();
+        $this->assertSame(FinancialRequest::STATUS_FOR_APPROVAL, $requestItem->status);
+
+        $this->put(route('financial-requests.update', $requestItem), [
+            ...$this->validPayload('cash'),
+            'amount' => 275,
+            'description' => 'تم تعديل الطلب قبل الاعتماد',
+        ])->assertRedirect(route('financial-requests.show', $requestItem));
+
+        $requestItem->refresh();
+        $this->assertSame(FinancialRequest::STATUS_FOR_APPROVAL, $requestItem->status);
+        $this->assertSame('275.00', $requestItem->amount);
+        $this->assertSame('تم تعديل الطلب قبل الاعتماد', $requestItem->description);
+        $this->assertCount(2, $requestItem->statusLogs);
+    }
+
+    public function test_approved_request_cannot_be_edited(): void
+    {
+        $requestItem = FinancialRequest::query()->create([
+            'request_no' => 'FR-APPROVED-NO-EDIT',
+            'type' => 'other_financial',
+            'priority' => FinancialRequest::PRIORITY_NORMAL,
+            'status' => FinancialRequest::STATUS_APPROVED,
+            'amount' => 100,
+            'request_date' => now()->toDateString(),
+            'branch_id' => auth('admin')->user()->branch_id,
+            'created_by_id' => auth('admin')->id(),
+        ]);
+
+        $this->get(route('financial-requests.edit', $requestItem))->assertForbidden();
+        $this->put(route('financial-requests.update', $requestItem), [
+            ...$this->validPayload('cash'),
+            'amount' => 300,
+        ])->assertForbidden();
+
+        $this->assertSame('100.00', $requestItem->fresh()->amount);
+    }
+
     public function test_request_without_branch_can_be_opened_when_it_is_visible_in_the_list(): void
     {
         $requestItem = FinancialRequest::query()->create([

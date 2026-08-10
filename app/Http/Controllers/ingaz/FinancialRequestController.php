@@ -148,7 +148,10 @@ class FinancialRequestController extends Controller
             $previousStatus = $financialRequest->status;
             $financialRequest->update($data);
             $this->storeAttachments($financialRequest, $request);
-            $this->logStatus($financialRequest, $previousStatus, FinancialRequest::STATUS_FOR_APPROVAL, 'تم استكمال الطلب وإعادة إرساله للاعتماد.');
+
+            if ($previousStatus !== FinancialRequest::STATUS_FOR_APPROVAL) {
+                $this->logStatus($financialRequest, $previousStatus, FinancialRequest::STATUS_FOR_APPROVAL, 'تم استكمال الطلب وإعادة إرساله للاعتماد.');
+            }
         });
 
         return redirect()->route('financial-requests.show', $financialRequest)->with('success', 'تم تحديث الطلب المالي.');
@@ -724,7 +727,11 @@ class FinancialRequestController extends Controller
     private function canEdit(FinancialRequest $financialRequest): bool
     {
         return $this->canAccessRequest($financialRequest)
-            && in_array($financialRequest->status, [FinancialRequest::STATUS_PREPARING, FinancialRequest::STATUS_REJECTED], true)
+            && in_array($financialRequest->status, [
+                FinancialRequest::STATUS_PREPARING,
+                FinancialRequest::STATUS_FOR_APPROVAL,
+                FinancialRequest::STATUS_REJECTED,
+            ], true)
             && (int) $financialRequest->created_by_id === (int) auth('admin')->id()
             && AdminGuardHasAnyPerm([\App\PermKeys::FINANCIAL_REQUESTS_CREATE, \App\PermKeys::FINANCIAL_REQUESTS_EDIT, \App\PermKeys::FINANCIAL_REQUESTS_CONTROL]);
     }
