@@ -191,7 +191,7 @@ class AdminSettingsController extends Controller
         if ($section === 'announcements') {
             $request->validate([
                 'section' => 'required|in:announcements',
-                'popup_image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
+                'popup_image' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg|max:2048',
             ]);
 
             return;

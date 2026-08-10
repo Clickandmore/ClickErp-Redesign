@@ -34,7 +34,7 @@ class FeatureRequest extends MainRequest
             'description:ar' => 'string',
             'description:en' => 'string',
             'image' => ['nullable', 'string', 'max:255'],
-            'image_file' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:5120'],
+            'image_file' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp,svg', 'max:5120'],
         ];
 
 

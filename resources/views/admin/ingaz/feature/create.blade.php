@@ -7,7 +7,7 @@
 
     <div class="col-12">
         <label class="form-label">{{ helperTrans('ingaz.image') }} ({{ helperTrans('ingaz.optional') }})</label>
-        <input type="file" name="image_file" class="dropify" accept="image/jpeg,image/png,image/webp">
+        <input type="file" name="image_file" class="dropify" accept="image/jpeg,image/png,image/webp,image/svg+xml">
     </div>
 
     @foreach (config('translatable.locales') as $locale)

@@ -22,7 +22,7 @@ class OfferRequest extends MainRequest
             'type' => ['required', Rule::in(array_keys(Offer::types()))],
             'title' => ['required', 'string', 'max:255'],
             'description' => ['required', 'string'],
-            'image' => [$this->isMethod('post') ? 'required' : 'nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:4096'],
+            'image' => [$this->isMethod('post') ? 'required' : 'nullable', 'image', 'mimes:jpg,jpeg,png,webp,svg', 'max:4096'],
             'price_before_discount' => ['nullable', 'numeric', 'min:0'],
             'price_after_discount' => ['nullable', 'numeric', 'min:0'],
             'discount_percentage' => ['nullable', 'numeric', 'min:0', 'max:100'],

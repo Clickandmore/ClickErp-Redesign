@@ -26,7 +26,7 @@ class HomeHeroSectionRequest extends MainRequest
             'video_title:en' => 'nullable|string|max:255',
             'is_active' => 'required|boolean',
             'images' => 'nullable|array|max:12',
-            'images.*' => 'image|mimes:jpg,jpeg,png,webp|max:10240',
+            'images.*' => 'image|mimes:jpg,jpeg,png,webp,svg|max:10240',
             'delete_image_ids' => 'nullable|array',
             'delete_image_ids.*' => 'integer|exists:home_hero_images,id',
             'video_type' => ['nullable', Rule::in(['upload', 'youtube'])],

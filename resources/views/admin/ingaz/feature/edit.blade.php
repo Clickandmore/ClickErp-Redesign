@@ -7,7 +7,7 @@
     @include('admin.ingaz.statistics.icons')
     <div class="col-12">
         <label class="form-label">{{ helperTrans('ingaz.image') }} ({{ helperTrans('ingaz.optional') }})</label>
-        <input type="file" name="image_file" class="dropify" accept="image/jpeg,image/png,image/webp"
+        <input type="file" name="image_file" class="dropify" accept="image/jpeg,image/png,image/webp,image/svg+xml"
                @if($obj->image_url) data-default-file="{{ $obj->image_url }}" @endif>
     </div>
     @foreach (config('translatable.locales') as $locale)

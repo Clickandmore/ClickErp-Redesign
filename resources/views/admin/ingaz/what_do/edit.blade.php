@@ -28,7 +28,7 @@
             {{ helperTrans('ingaz.image') }} ({{ helperTrans('ingaz.optional') }})
         </label>
         <input type="file" name="image" class="dropify"
-               accept="image/jpeg,image/png,image/webp"
+               accept="image/jpeg,image/png,image/webp,image/svg+xml"
                data-default-file="{{ showFile($obj->image) }}">
     </div>
     @foreach (config('translatable.locales') as $locale)

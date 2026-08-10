@@ -22,7 +22,7 @@ class WhyChooseUsRequest extends MainRequest
             'description:en' => 'required|string|max:3000',
             'is_active' => 'required|boolean',
             'images' => 'nullable|array|max:8',
-            'images.*' => 'image|mimes:jpg,jpeg,png,webp|max:5120',
+            'images.*' => 'image|mimes:jpg,jpeg,png,webp,svg|max:5120',
             'delete_image_ids' => 'nullable|array',
             'delete_image_ids.*' => 'integer|exists:why_choose_us_images,id',
             'features' => 'required|array|min:1|max:12',
