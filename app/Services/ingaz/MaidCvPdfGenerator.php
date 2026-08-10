@@ -57,7 +57,7 @@ class MaidCvPdfGenerator
         if ($outputType === self::OUTPUT_IMAGE) {
             [$contents, $extension] = $this->generateImageOutput($html, $maid);
         } else {
-            $contents = $this->generatePdfContents($html);
+            $contents = $this->generatePdfContents($html, $maid);
             $extension = 'pdf';
         }
 
@@ -141,13 +141,30 @@ class MaidCvPdfGenerator
             throw new RuntimeException('The stored CV preview is not an image.');
         }
 
+        return $this->renderImageContentsAsPdfContents(
+            $contents,
+            $mimeType,
+            strtolower(pathinfo($storedPath, PATHINFO_EXTENSION))
+        );
+    }
+
+    /**
+     * Place an already-rendered image on a PDF page without asking the PDF
+     * engine to interpret the original HTML/CSS template again.
+     */
+    private function renderImageContentsAsPdfContents(
+        string $contents,
+        string $mimeType,
+        string $sourceExtension = ''
+    ): string {
+
         if ($contents === '') {
             throw new RuntimeException('The stored CV preview image is empty.');
         }
 
         $temporaryDirectory = storage_path('framework/cache/mpdf');
         File::ensureDirectoryExists($temporaryDirectory);
-        $extension = strtolower(pathinfo($storedPath, PATHINFO_EXTENSION));
+        $extension = strtolower($sourceExtension);
         $extension = in_array($extension, ['jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp', 'svg'], true)
             ? $extension
             : match ($mimeType) {
@@ -433,15 +450,25 @@ class MaidCvPdfGenerator
         }
     }
 
-    private function generatePdfContents(string $html): string
+    private function generatePdfContents(string $html, Maid $maid): string
     {
         $browserPath = $this->browserExecutable();
 
-        if ($browserPath !== null) {
+        if (function_exists('proc_open') && $browserPath !== null) {
             try {
-                return $this->generateWithBrowser($browserPath, $html);
+                $imageContents = $this->generatePngWithBrowser($browserPath, $html);
+
+                return $this->renderImageContentsAsPdfContents(
+                    $imageContents,
+                    'image/png',
+                    'png'
+                );
             } catch (\Throwable $exception) {
                 report($exception);
+                \Log::warning('Chrome CV screenshot-to-PDF generation failed; using mPDF fallback.', [
+                    'maid_id' => $maid->id,
+                    'error' => $exception->getMessage(),
+                ]);
             }
         }
 
