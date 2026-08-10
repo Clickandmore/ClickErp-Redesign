@@ -81,14 +81,17 @@ class ApiUserAddressController extends Controller
     public function update(UserAddressRequest $request, $id, ObjAction $action)
     {
         $dataInsert = $request->only($this->postData);
-        $data = $action->updateUserAddress($id, $dataInsert);
-        if (!$data) {
-            return jsonSuccess(null,'هذا العنوان غير موجود',201);
-        } else {
-            $address = $action->find($id);
-            $addresses = objResource::make($address);
-            return jsonSuccess($addresses);
+        $address = objModel::query()
+            ->where('user_id', Auth::id())
+            ->find($id);
+
+        if (!$address) {
+            return jsonError('هذا العنوان غير موجود', 404);
         }
+
+        $address->update($dataInsert);
+
+        return jsonSuccess(objResource::make($address->fresh()));
     }
 
     /**
@@ -99,11 +102,16 @@ class ApiUserAddressController extends Controller
      */
     public function destroy($id, objAction $action)
     {
-        $isDeleted = $action->deleteUserAddress($id);
-        if ($isDeleted) {
-            return jsonSuccess(null,'تم حذف العنوان بنجاح');
-        } else {
-            return jsonSuccess(null,'هذا العنوان غير موجود',201);
+        $address = objModel::query()
+            ->where('user_id', Auth::id())
+            ->find($id);
+
+        if (!$address) {
+            return jsonError('هذا العنوان غير موجود', 404);
         }
+
+        $address->delete();
+
+        return jsonSuccess(null, 'تم حذف العنوان بنجاح');
     }
 }
