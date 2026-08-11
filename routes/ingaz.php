@@ -37,6 +37,7 @@ use App\Http\Controllers\ingaz\JobTitleController;
 use App\Http\Controllers\ingaz\AgentMaidImportAdminController;
 use App\Http\Controllers\ingaz\MaidBulkImportController;
 use App\Http\Controllers\ingaz\MaidController;
+use App\Http\Controllers\ingaz\MaidLanguageController;
 use App\Http\Controllers\ingaz\MaidTestController;
 use App\Http\Controllers\ingaz\MakeAccountsForClientsController;
 use App\Http\Controllers\ingaz\MusanedTransferController;
@@ -248,6 +249,9 @@ Route::group(
             Route::resource('offers', OfferController::class);
             Route::resource('sliders', SliderController::class);
             Route::resource('religions', ReligionController::class);
+            Route::patch('languages/{language}/toggle-visibility', [MaidLanguageController::class, 'toggleVisibility'])
+                ->name('languages.toggle-visibility');
+            Route::resource('languages', MaidLanguageController::class)->except('show');
             Route::resource('social-statuses', SocialStatusController::class);
             Route::resource('questions', QuestionController::class);
             Route::resource('contact', ContactController::class);

@@ -4044,6 +4044,8 @@ return array (
   'expertise_duration' => 'Experience duration',
   'expertise_start' => 'From',
   'expertise_end' => 'To',
+  'maids_with_video' => 'Workers with video',
+  'maids_without_video' => 'Workers without video',
   'phone_status' => 'Mobile Number Status',
   'duplicate_phone_numbers' => 'Duplicate Mobile Numbers',
   'duplicate_phone' => 'Duplicate Number',

@@ -28,6 +28,7 @@ use App\Services\ingaz\MaidCvPdfGenerator;
 use App\Services\ingaz\RentalMaidFinanceService;
 use App\Services\ManagedFileStorage;
 use App\Support\MaidCvTemplateSettings;
+use App\Support\MaidLanguageCatalog;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
@@ -81,6 +82,8 @@ class MaidController extends Controller
                 'image',
                 'cv_file',
                 'cv_preview',
+                'video',
+                'video_link',
                 'nationality_id',
                 'religion_id',
                 'passport_num',
@@ -170,6 +173,7 @@ class MaidController extends Controller
                     $passport = e($row->passport_num ?? helperTrans('ingaz.not_specified'));
                     $cvCode = $row->cv_code ? e($row->cv_code) : null;
                     $requestType = e($row->request_type_label);
+                    $videoBadge = $this->maidVideoBadge($row);
 
                     $pinnedBadge = $row->is_pinned
                         ? '<span class="badge bg-warning-subtle text-warning ms-1"><i class="fas fa-thumbtack text-secondary"></i> ' . helperTrans('ingaz.pinned') . '</span>'
@@ -198,6 +202,7 @@ class MaidController extends Controller
                         . '<div class="text-muted text-medium">'
                         . '<i class="fas fa-diagram-project me-1 text-secondary"></i>' . helperTrans('ingaz.request_type') . ': ' . $requestType
                         . '</div>'
+                        . $videoBadge
                         . '</div>'
                         . '</div>';
                 })
@@ -634,6 +639,8 @@ class MaidController extends Controller
                     'image',
                     'cv_file',
                     'cv_preview',
+                    'video',
+                    'video_link',
                     'nationality_id',
                     'religion_id',
                     'passport_num',
@@ -677,12 +684,14 @@ class MaidController extends Controller
                     $cvCode = $row->cv_code ? '<span class="small text-muted">' . helperTrans('ingaz.cv_code') . ': ' . e($row->cv_code) . '</span>' : '';
                     $requestType = e($row->request_type_label);
                     $nameHtml = '<span class="fw-semibold maid-name notranslate" translate="no" dir="auto" data-maid-display="' . $name . '" aria-label="' . $name . '"></span>';
+                    $videoBadge = $this->maidVideoBadge($row);
 
                     return '<div class="d-flex flex-column gap-1">'
                         . '<a href="' . route('showMaidDetails', $row->id) . '" class="text-decoration-none notranslate" translate="no" dir="auto">' . $nameHtml . '</a>'
                         . '<span class="small text-muted">' . helperTrans('ingaz.passport') . ': ' . $passport . '</span>'
                         . $cvCode
                         . '<span class="small text-muted">' . helperTrans('ingaz.request_type') . ': ' . $requestType . '</span>'
+                        . $videoBadge
                         . '</div>';
                 })
                 ->editColumn('nationality_id', fn(Maid $row) => e($row->nationality?->sub_title ?? '-'))
@@ -913,6 +922,7 @@ class MaidController extends Controller
             'experience_years' => $request->experience_years,
             'cv_status' => $request->cv_status,
             'visibility' => $request->visibility,
+            'video_status' => $request->video_status,
             'experience_status' => $request->experience_status,
             'request_type' => $request->request_type,
             'pinned' => $request->pinned,
@@ -1769,6 +1779,7 @@ class MaidController extends Controller
         [$types, $defaultTypeId] = $this->prepareJobTypesForForm($jobTypesAction->getJobsTypes());
         $offices = $officeAct->getAllOffices();
         $skills = $skillAction->get();
+        $maidLanguages = app(MaidLanguageCatalog::class)->active();
         $rentalFinanceItems = $this->buildCreateRentalFinanceItems();
 
         $defaultShelterContract = '0';
@@ -1786,6 +1797,7 @@ class MaidController extends Controller
                 'jobs',
                 'types',
                 'skills',
+                'maidLanguages',
                 'defaultTypeId',
                 'defaultShelterContract',
                 'defaultIsShow',
@@ -1831,6 +1843,7 @@ class MaidController extends Controller
         );
         $offices = $officeAct->getAllOffices();
         $skills = $skillAction->get();
+        $maidLanguages = app(MaidLanguageCatalog::class)->active();
         $rentalFinanceItems = $this->buildCreateRentalFinanceItems();
 
         $defaultTypeId = $rentalTypeId ?? $defaultTypeId;
@@ -1849,6 +1862,7 @@ class MaidController extends Controller
                 'jobs',
                 'types',
                 'skills',
+                'maidLanguages',
                 'defaultTypeId',
                 'defaultShelterContract',
                 'defaultIsShow',
@@ -2109,6 +2123,7 @@ class MaidController extends Controller
     public function edit(Request $request, $id, NationalityAction $act, RecruitmentOfficeAction $officeAct, ReligionAction $relAct, JobTitleAction $jobTitleAction, JobTypeAction $jobTypesAction, SkillAction $skillAction)
     {
         $obj = objModel::with('jobTypes')->findOrFail($id);
+        $maidLanguages = app(MaidLanguageCatalog::class)->forForm($obj->languages);
         $rentalTypeId = $this->getRentalJobTypeId();
         $isRentalMaid = $rentalTypeId ? $obj->jobTypes->contains('id', $rentalTypeId) : false;
         // Some legacy maids are linked to both recruitment and rental job types.
@@ -2128,6 +2143,7 @@ class MaidController extends Controller
                 'isRentalForm' => $isRentalForm,
                 'formRedirectRoute' => $formRedirectRoute,
                 'defaultTypeId' => $defaultTypeId,
+                'maidLanguages' => $maidLanguages,
             ]);
         }
 
@@ -2147,6 +2163,7 @@ class MaidController extends Controller
             'jobs',
             'types',
             'skills',
+            'maidLanguages',
             'defaultShelterContract',
             'isRentalForm',
             'formRedirectRoute',
@@ -3273,10 +3290,12 @@ class MaidController extends Controller
         }
         $offices = $officeAction->getAllOffices();
         $skills = app(SkillAction::class)->get();
+        $selectedLanguageCodes = isset($extraData['obj']) ? (array) $extraData['obj']->languages : [];
+        $maidLanguages = $extraData['maidLanguages'] ?? app(MaidLanguageCatalog::class)->forForm($selectedLanguageCodes);
 
         unset($extraData['types']);
 
-        $data = array_merge(compact('nationalities', 'offices', 'religions', 'jobs', 'types', 'skills'), $extraData);
+        $data = array_merge(compact('nationalities', 'offices', 'religions', 'jobs', 'types', 'skills', 'maidLanguages'), $extraData);
         $returnHTML = view("{$this->folderPath}.{$viewName}", $data)->render();
         return jsonSuccess(['html' => $returnHTML]);
     }
@@ -3825,6 +3844,30 @@ class MaidController extends Controller
         }
     }
 
+    private function maidVideoBadge(Maid $maid): string
+    {
+        $videoValue = filled($maid->video_link) ? $maid->video_link : $maid->video;
+
+        if (blank($videoValue)) {
+            return '';
+        }
+
+        $videoUrl = filter_var($videoValue, FILTER_VALIDATE_URL)
+            ? $videoValue
+            : showFile($videoValue);
+
+        $label = e(helperTrans('ingaz.watch_video'));
+        $content = '<i class="fas fa-video me-1"></i>' . $label;
+
+        if (blank($videoUrl)) {
+            return '<span class="badge bg-danger-subtle text-danger align-self-start">' . $content . '</span>';
+        }
+
+        return '<a href="' . e($videoUrl) . '" target="_blank" rel="noopener noreferrer" '
+            . 'class="badge bg-danger-subtle text-danger text-decoration-none align-self-start" '
+            . 'title="' . $label . '">' . $content . '</a>';
+    }
+
     public function applyMaidFilter($request, $rows)
     {
         if ($request->filled('keyword')) {
@@ -3901,6 +3944,26 @@ class MaidController extends Controller
                 $rows->where('is_show', true);
             } elseif ($request->visibility === 'hidden') {
                 $rows->where('is_show', false);
+            }
+        }
+
+        if ($request->filled('video_status')) {
+            if ($request->video_status === 'with_video') {
+                $rows->where(function ($query) {
+                    $query->where(function ($videoQuery) {
+                        $videoQuery->whereNotNull('video')->where('video', '!=', '');
+                    })->orWhere(function ($linkQuery) {
+                        $linkQuery->whereNotNull('video_link')->where('video_link', '!=', '');
+                    });
+                });
+            } elseif ($request->video_status === 'without_video') {
+                $rows->where(function ($query) {
+                    $query->where(function ($videoQuery) {
+                        $videoQuery->whereNull('video')->orWhere('video', '');
+                    })->where(function ($linkQuery) {
+                        $linkQuery->whereNull('video_link')->orWhere('video_link', '');
+                    });
+                });
             }
         }
 

@@ -2491,6 +2491,8 @@ return array (
   'expertise_duration' => 'مدة الخبرة',
   'expertise_start' => 'من',
   'expertise_end' => 'إلى',
+  'maids_with_video' => 'العاملات اللاتي لديهن فيديو',
+  'maids_without_video' => 'العاملات بدون فيديو',
   'phone_status' => 'حالة رقم الجوال',
   'duplicate_phone_numbers' => 'أرقام الجوال المكررة',
   'duplicate_phone' => 'رقم مكرر',

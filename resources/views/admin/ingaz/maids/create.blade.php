@@ -329,6 +329,7 @@
                 <form class="row g-3 from-submit-global-maid" method="post" action="{{ route('maids.store') }}"
                     enctype="multipart/form-data" id="maidForm">
                     @csrf
+                    @include('admin.ingaz.maids.partials.form-validation-feedback')
                     <!-- الملفات -->
 
                     <div class="col-12">
@@ -825,19 +826,15 @@
                             </div>
                         </div>
                         <div class="row g-3">
-                            @foreach ([
-                                'arabic' => helperTrans('ingaz.arabic_language'),
-                                'english' => helperTrans('ingaz.english_language'),
-                                'amharic' => helperTrans('ingaz.amharic_language'),
-                                'mother' => helperTrans('ingaz.mother_language'),
-                            ] as $language => $label)
+                            @foreach ($maidLanguages as $maidLanguage)
                                 @include('admin.ingaz.maids._language_rating', [
-                                    'language' => $language,
-                                    'label' => $label,
-                                    'checked' => collect(old('languages', []))->contains($language),
-                                    'percentage' => old('percentage.' . $language, ''),
-                                    'level' => old('language_levels.' . $language, ''),
+                                    'language' => $maidLanguage->code,
+                                    'label' => $maidLanguage->title,
+                                    'checked' => collect(old('languages', []))->contains($maidLanguage->code),
+                                    'percentage' => old('percentage.' . $maidLanguage->code, ''),
+                                    'level' => old('language_levels.' . $maidLanguage->code, ''),
                                     'mode' => $languageRatingMode,
+                                    'inactive' => !$maidLanguage->is_active,
                                 ])
                             @endforeach
                         </div>
@@ -2264,9 +2261,12 @@
                 }
             });
 
+            @include('admin.ingaz.maids.partials.form-validation-feedback-script')
+
             // التحقق من النموذج قبل الإرسال
             $('#maidForm').on('submit', function(e) {
                 e.preventDefault();
+                clearMaidFormValidationErrors();
 
                 var isValid = true;
                 var errors = [];
@@ -2366,6 +2366,7 @@
                 }
 
                 if (!isValid) {
+                    showMaidFormValidationErrors({ form: errors });
                     Swal.fire({
                         icon: 'error',
                         title: maidCreateTranslations.errorTitle,
@@ -2493,21 +2494,16 @@
                         });
                     },
                     error: function(xhr) {
-                        var errorMessage = maidCreateTranslations.maidAddError;
-
-                        if (xhr.responseJSON && xhr.responseJSON.errors) {
-                            var errors = xhr.responseJSON.errors;
-                            errorMessage = '';
-
-                            for (var field in errors) {
-                                errorMessage += errors[field].join('\n') + '\n';
-                            }
-                        }
+                        var response = xhr.responseJSON || {};
+                        var errorMessages = showMaidFormValidationErrors(
+                            response.errors,
+                            response.message || maidCreateTranslations.maidAddError
+                        );
 
                         Swal.fire({
                             icon: 'error',
                             title: maidCreateTranslations.errorTitle,
-                            text: errorMessage,
+                            text: errorMessages.join('\n'),
                             confirmButtonText: maidCreateTranslations.ok
                         });
                     },

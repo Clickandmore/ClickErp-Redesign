@@ -59,6 +59,28 @@
                 </div>
 
                 <div class="col-12">
+                    <div class="card border-0 shadow-sm">
+                        <div class="card-body">
+                            <input type="hidden" name="maid_transaction_edit_override_enabled" value="0">
+                            <div class="form-check form-switch mb-2">
+                                <input class="form-check-input" type="checkbox" role="switch"
+                                    name="maid_transaction_edit_override_enabled"
+                                    id="maid_transaction_edit_override_enabled" value="1"
+                                    {{ old('maid_transaction_edit_override_enabled', $settings->maid_transaction_edit_override_enabled ?? false) ? 'checked' : '' }}>
+                                <label class="form-check-label fw-bold" for="maid_transaction_edit_override_enabled">
+                                    السماح بتعديل السيرة المرتبطة بمعاملات
+                                </label>
+                            </div>
+
+                            <p class="text-muted mb-0">
+                                عند التفعيل يمكن تعديل بيانات السيرة حتى لو كانت مرتبطة بطلب أو عقد نشط أو فاتورة أو قيد محاسبي أو إرسالية مكتب خارجي.
+                                هذا إعداد عام يطبّق على كل من يملك صلاحية تعديل السير، ويجب تعطيله بعد انتهاء الحاجة إليه.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-12">
                     <button type="submit" class="btn btn-primary">
                         <i class="fas fa-save me-1"></i> حفظ الإعدادات
                     </button>

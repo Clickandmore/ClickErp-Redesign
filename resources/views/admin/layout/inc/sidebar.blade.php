@@ -130,7 +130,7 @@
                 $canViewHomeSettings = @AdminGuardHasAnyPerm([\App\PermKeys::SETTINGS_VIEW, \App\PermKeys::SLIDERS_VIEW, \App\PermKeys::OFFERS_VIEW, \App\PermKeys::OFFERS_CONTROL, \App\PermKeys::ABOUT_US_VIEW, \App\PermKeys::FAQ_VIEW, \App\PermKeys::STATISTICS_VIEW, \App\PermKeys::STEPS_VIEW, \App\PermKeys::SERVICES_VIEW, \App\PermKeys::PARTENR_VIEW, \App\PermKeys::WHY_CHOOSE_US_VIEW, \App\PermKeys::WHY_CHOOSE_US_CONTROL, \App\PermKeys::FIND_US_VIEW, \App\PermKeys::FIND_US_CONTROL, \App\PermKeys::RECRUITMENT_REQUIREMENTS_VIEW, \App\PermKeys::RECRUITMENT_REQUIREMENTS_CONTROL]);
 
                 $canViewBranches = @SystemModuleEnabled('branches') && @AdminGuardHasAnyPerm([\App\PermKeys::BRANCHES_VIEW, \App\PermKeys::BRANCHES_CREATE, \App\PermKeys::BRANCHES_EDIT, \App\PermKeys::BRANCHES_DELETE, \App\PermKeys::BRANCHES_CONTROL]);
-                $canViewMaidsData = @AdminGuardHasAnyPerm([\App\PermKeys::NATIONALITIES_VIEW, \App\PermKeys::REC_OFFICES_VIEW, \App\PermKeys::JOB_TITLES_VIEW, \App\PermKeys::RELIGIONS_VIEW, \App\PermKeys::SKILLS_VIEW, \App\PermKeys::COUNTRIES_VIEW, \App\PermKeys::SOCIAL_STATUS_VIEW, \App\PermKeys::USERS_VIEW, \App\PermKeys::MAIDS_VIEW]);
+                $canViewMaidsData = @AdminGuardHasAnyPerm([\App\PermKeys::NATIONALITIES_VIEW, \App\PermKeys::REC_OFFICES_VIEW, \App\PermKeys::JOB_TITLES_VIEW, \App\PermKeys::RELIGIONS_VIEW, \App\PermKeys::SKILLS_VIEW, \App\PermKeys::MAID_LANGUAGES_VIEW, \App\PermKeys::COUNTRIES_VIEW, \App\PermKeys::SOCIAL_STATUS_VIEW, \App\PermKeys::USERS_VIEW, \App\PermKeys::MAIDS_VIEW]);
                 $isDeveloper =
                     (int) (auth('admin')->user()->admin_type ?? 0) === \App\Enums\AdminTypeisEnum::Developer->value;
                 $canViewAccessControl = $isDeveloper || @AdminGuardHasAnyPerm([\App\PermKeys::USERS_VIEW, \App\PermKeys::ROLES_VIEW, \App\NewPermKeys::ACTIVITY_LOG_VIEW, \App\NewPermKeys::ACTIVITY_LOG_EXPORT, \App\NewPermKeys::ACTIVITY_LOG_MANAGE, \App\PermKeys::SETTINGS_VIEW, \App\PermKeys::DEVELOPERS_PERMS, 'admins-read', 'role-permissions-read']);
@@ -1192,7 +1192,7 @@
                             request()->routeIs('steps.*') ||
                             request()->routeIs('requiremens.*') ||
                             request()->routeIs('partenrs.*');
-                        $isRecruitmentSettingsRoute = in_array(Route::currentRouteName(), [
+                        $isRecruitmentSettingsRoute = request()->routeIs('languages.*') || in_array(Route::currentRouteName(), [
                             'job-titles.index',
                             'nationalities.index',
                             'religions.index',
@@ -1620,6 +1620,16 @@
                                                     <i class="fa fa-globe"></i>
                                                     <span
                                                         class="ms-2">{{ helperTrans('ingaz.nationalities') }}</span>
+                                                </a>
+                                            </li>
+                                        @endif
+
+                                        @if (@AdminGuardHasPerm(\App\PermKeys::MAID_LANGUAGES_VIEW))
+                                            <li>
+                                                <a class="m-link {{ request()->routeIs('languages.*') ? 'active' : '' }}"
+                                                    href="{{ route('languages.index') }}">
+                                                    <i class="fa fa-language"></i>
+                                                    <span class="ms-2">اللغات</span>
                                                 </a>
                                             </li>
                                         @endif

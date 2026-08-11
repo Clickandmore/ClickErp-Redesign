@@ -266,6 +266,12 @@ const PARTENR_CONTROL = 'partenr_control';
     const SKILLS_DELETE = 'skills_delete';
     const SKILLS_CONTROL = 'skills_control';
 
+    const MAID_LANGUAGES_VIEW = 'maid_languages_view';
+    const MAID_LANGUAGES_CREATE = 'maid_languages_create';
+    const MAID_LANGUAGES_EDIT = 'maid_languages_edit';
+    const MAID_LANGUAGES_DELETE = 'maid_languages_delete';
+    const MAID_LANGUAGES_TOGGLE_VISIBILITY = 'maid_languages_toggle_visibility';
+
     const COUNTRIES_VIEW = 'countries_view';
     const COUNTRIES_CREATE = 'countries_create';
     const COUNTRIES_EDIT = 'countries_edit';
