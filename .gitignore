@@ -39,3 +39,4 @@ error_log
 /certificate
 
 /migration_system/data
+.claude/settings.local.json
