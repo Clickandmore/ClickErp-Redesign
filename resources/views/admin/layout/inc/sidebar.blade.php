@@ -90,7 +90,7 @@
                 $canViewContactRequests = @AdminGuardHasAnyPerm([\App\PermKeys::CONTACT_VIEW, \App\PermKeys::CONTACT_CREATE, \App\PermKeys::CONTACT_EDIT, \App\PermKeys::CONTACT_DELETE, \App\PermKeys::CONTACT_CONTROL]);
 
                 $canViewOrders = @AdminGuardHasAnyPerm([\App\PermKeys::ORDERS_VIEW, \App\PermKeys::ORDERS_CREATE, \App\PermKeys::ORDERS_EDIT, \App\PermKeys::ORDERS_DELETE, \App\PermKeys::ORDERS_EXPORT, \App\PermKeys::RETURN_REQUEST_VIEW, \App\PermKeys::RETURN_REQUEST_CREATE, \App\PermKeys::RETURN_REQUEST_EDIT, \App\PermKeys::RETURN_REQUEST_DELETE, \App\PermKeys::PROFESSIONAL_APPLICATION_VIEW, \App\PermKeys::RECRUITMENT_REQUESTS_VIEW, \App\PermKeys::RENEW_CONTRACTS_VIEW]) || $canViewContactRequests;
-                $canViewFinancialRequests = @AdminGuardHasAnyPerm([\App\PermKeys::FINANCIAL_REQUESTS_VIEW, \App\PermKeys::FINANCIAL_REQUESTS_CREATE, \App\PermKeys::FINANCIAL_REQUESTS_CHANGE_STATUS, \App\PermKeys::FINANCIAL_REQUESTS_APPROVE, \App\PermKeys::FINANCIAL_REQUESTS_REQUEST_CLOSING, \App\PermKeys::FINANCIAL_REQUESTS_CLOSE, \App\PermKeys::FINANCIAL_REQUESTS_CONTROL]);
+                $canViewFinancialRequests = @AdminGuardHasAnyPerm([\App\PermKeys::FINANCIAL_REQUESTS_VIEW, \App\PermKeys::FINANCIAL_REQUESTS_CREATE, \App\PermKeys::FINANCIAL_REQUESTS_DELETE, \App\PermKeys::FINANCIAL_REQUESTS_CHANGE_STATUS, \App\PermKeys::FINANCIAL_REQUESTS_APPROVE, \App\PermKeys::FINANCIAL_REQUESTS_REQUEST_CLOSING, \App\PermKeys::FINANCIAL_REQUESTS_CLOSE, \App\PermKeys::FINANCIAL_REQUESTS_CONTROL]);
                 $canViewOperationalCommissions = @SystemModuleEnabled('commissions') && @AdminGuardHasAnyPerm([\App\PermKeys::COMMISSIONS_VIEW, \App\PermKeys::COMMISSIONS_CALCULATE, \App\PermKeys::COMMISSIONS_SETTINGS]);
 
                 $canViewRecruitmentContracts = @AdminGuardHasAnyPerm([\App\NewPermKeys::REC_CONTRACTS_VIEW, \App\NewPermKeys::REC_CONTRACTS_CREATE, \App\NewPermKeys::REC_CONTRACTS_UPDATE, \App\NewPermKeys::REC_CONTRACTS_EDIT, \App\NewPermKeys::REC_CONTRACTS_DELETE, \App\NewPermKeys::REC_CONTRACTS_CHANGE_TO_MSANED, \App\NewPermKeys::REC_CONTRACTS_CHANGE_TO_TAFWED, \App\NewPermKeys::REC_CONTRACTS_CHANGE_TO_TAFFEZ, \App\NewPermKeys::REC_CONTRACTS_CHANGE_TO_TAZKER, \App\NewPermKeys::REC_CONTRACTS_RETURN, \App\NewPermKeys::REC_CONTRACTS_RETURN_VIEW]);
@@ -992,6 +992,15 @@
                                     </a>
                                     <ul class="sub-menu collapse {{ request()->routeIs('financial-requests.*') ? 'show' : '' }}"
                                         id="financial_requests_menu_admin">
+                                        @if (@AdminGuardHasAnyPerm([\App\PermKeys::FINANCIAL_REQUESTS_CREATE, \App\PermKeys::FINANCIAL_REQUESTS_CONTROL]))
+                                            <li>
+                                                <a class="m-link {{ request()->routeIs('financial-requests.create') ? 'active' : '' }}"
+                                                    href="{{ route('financial-requests.create') }}">
+                                                    <i class="fa fa-plus"></i>
+                                                    <span class="ms-2">{{ __('financial_requests.new') }}</span>
+                                                </a>
+                                            </li>
+                                        @endif
                                         <li>
                                             <a class="m-link {{ request()->routeIs('financial-requests.index') && !request('scope') ? 'active' : '' }}"
                                                 href="{{ route('financial-requests.index') }}">
@@ -1013,12 +1022,12 @@
                                                 <span class="ms-2">{{ __('financial_requests.scopes.paid') }}</span>
                                             </a>
                                         </li>
-                                        @if (@AdminGuardHasAnyPerm([\App\PermKeys::FINANCIAL_REQUESTS_CREATE, \App\PermKeys::FINANCIAL_REQUESTS_CONTROL]))
+                                        @if (@AdminGuardHasAnyPerm([\App\PermKeys::FINANCIAL_REQUESTS_DELETE, \App\PermKeys::FINANCIAL_REQUESTS_CONTROL]))
                                             <li>
-                                                <a class="m-link {{ request()->routeIs('financial-requests.create') ? 'active' : '' }}"
-                                                    href="{{ route('financial-requests.create') }}">
-                                                    <i class="fa fa-plus"></i>
-                                                    <span class="ms-2">{{ __('financial_requests.new') }}</span>
+                                                <a class="m-link {{ request()->routeIs('financial-requests.index') && request('scope') === 'deleted' ? 'active' : '' }}"
+                                                    href="{{ route('financial-requests.index', ['scope' => 'deleted']) }}">
+                                                    <i class="fa fa-trash"></i>
+                                                    <span class="ms-2">{{ __('financial_requests.scopes.deleted') }}</span>
                                                 </a>
                                             </li>
                                         @endif

@@ -410,6 +410,7 @@ Route::group(
             Route::get('financial-requests/contract-details', [FinancialRequestController::class, 'contractDetails'])->name('financial-requests.contract-details');
             Route::get('financial-requests/export', [FinancialRequestController::class, 'export'])->name('financial-requests.export');
             Route::get('financial-requests/print', [FinancialRequestController::class, 'print'])->name('financial-requests.print');
+            Route::post('financial-requests/{financialRequest}/restore', [FinancialRequestController::class, 'restore'])->name('financial-requests.restore');
             Route::post('financial-requests/{financialRequest}/status', [FinancialRequestController::class, 'updateStatus'])->name('financial-requests.status');
             Route::resource('financial-requests', FinancialRequestController::class)
                 ->parameters(['financial-requests' => 'financialRequest']);

@@ -167,6 +167,54 @@ class FinancialRequestFormTest extends TestCase
         $this->assertSame('100.00', $requestItem->fresh()->amount);
     }
 
+    public function test_incomplete_request_can_be_soft_deleted_and_restored(): void
+    {
+        $requestItem = FinancialRequest::query()->create([
+            'request_no' => 'FR-INCOMPLETE-DELETE',
+            'type' => 'other_financial',
+            'priority' => FinancialRequest::PRIORITY_NORMAL,
+            'status' => FinancialRequest::STATUS_FOR_APPROVAL,
+            'amount' => 100,
+            'request_date' => now()->toDateString(),
+            'branch_id' => auth('admin')->user()->branch_id,
+            'created_by_id' => auth('admin')->id(),
+        ]);
+
+        $this->delete(route('financial-requests.destroy', $requestItem))
+            ->assertRedirect(route('financial-requests.index', ['scope' => 'incomplete']));
+
+        $this->assertSoftDeleted('financial_requests', ['id' => $requestItem->id]);
+
+        $this->post(route('financial-requests.restore', $requestItem->id))
+            ->assertRedirect(route('financial-requests.index', ['scope' => 'deleted']));
+
+        $this->assertDatabaseHas('financial_requests', [
+            'id' => $requestItem->id,
+            'deleted_at' => null,
+        ]);
+    }
+
+    public function test_approved_request_cannot_be_deleted(): void
+    {
+        $requestItem = FinancialRequest::query()->create([
+            'request_no' => 'FR-APPROVED-NO-DELETE',
+            'type' => 'other_financial',
+            'priority' => FinancialRequest::PRIORITY_NORMAL,
+            'status' => FinancialRequest::STATUS_APPROVED,
+            'amount' => 100,
+            'request_date' => now()->toDateString(),
+            'branch_id' => auth('admin')->user()->branch_id,
+            'created_by_id' => auth('admin')->id(),
+        ]);
+
+        $this->delete(route('financial-requests.destroy', $requestItem))->assertStatus(422);
+
+        $this->assertDatabaseHas('financial_requests', [
+            'id' => $requestItem->id,
+            'deleted_at' => null,
+        ]);
+    }
+
     public function test_request_without_branch_can_be_opened_when_it_is_visible_in_the_list(): void
     {
         $requestItem = FinancialRequest::query()->create([

@@ -1,7 +1,7 @@
 @extends('click.layout.indexs.index')
 
 @section('content')
-    @if (@AdminGuardHasAnyPerm([\App\PermKeys::FINANCIAL_REQUESTS_VIEW, \App\PermKeys::FINANCIAL_REQUESTS_CREATE, \App\PermKeys::FINANCIAL_REQUESTS_CHANGE_STATUS, \App\PermKeys::FINANCIAL_REQUESTS_APPROVE, \App\PermKeys::FINANCIAL_REQUESTS_REQUEST_CLOSING, \App\PermKeys::FINANCIAL_REQUESTS_CLOSE, \App\PermKeys::FINANCIAL_REQUESTS_CONTROL]))
+    @if (@AdminGuardHasAnyPerm([\App\PermKeys::FINANCIAL_REQUESTS_VIEW, \App\PermKeys::FINANCIAL_REQUESTS_CREATE, \App\PermKeys::FINANCIAL_REQUESTS_DELETE, \App\PermKeys::FINANCIAL_REQUESTS_CHANGE_STATUS, \App\PermKeys::FINANCIAL_REQUESTS_APPROVE, \App\PermKeys::FINANCIAL_REQUESTS_REQUEST_CLOSING, \App\PermKeys::FINANCIAL_REQUESTS_CLOSE, \App\PermKeys::FINANCIAL_REQUESTS_CONTROL]))
         <div class="container-fluid">
             <div class="d-flex align-items-center justify-content-between mb-3">
                 <div>
@@ -9,7 +9,7 @@
                     <div class="text-muted">{{ __('financial_requests.subtitle') }}</div>
                 </div>
                 <div class="d-flex gap-2">
-                    @if (@AdminGuardHasAnyPerm([\App\PermKeys::FINANCIAL_REQUESTS_EXPORT, \App\PermKeys::FINANCIAL_REQUESTS_CONTROL]))
+                    @if (! $showDeleted && @AdminGuardHasAnyPerm([\App\PermKeys::FINANCIAL_REQUESTS_EXPORT, \App\PermKeys::FINANCIAL_REQUESTS_CONTROL]))
                         <a class="btn btn-outline-success" href="{{ route('financial-requests.export', request()->query()) }}">
                             <i class="fa fa-file-excel"></i> Excel
                         </a>
@@ -45,11 +45,18 @@
                     {{ $scopes['paid'] }}
                     <span class="badge bg-light text-dark ms-1">{{ $counts['paid'] ?? 0 }}</span>
                 </a>
+                @if($canDeleteRequests)
+                    <a class="btn {{ $activeScope === 'deleted' ? 'btn-danger' : 'btn-outline-danger' }}"
+                        href="{{ route('financial-requests.index', array_merge($scopeQuery, ['scope' => 'deleted'])) }}">
+                        {{ $scopes['deleted'] }}
+                        <span class="badge bg-light text-dark ms-1">{{ $counts['deleted'] ?? 0 }}</span>
+                    </a>
+                @endif
             </div>
 
             <form class="card mb-3" method="GET">
                 <div class="card-body">
-                    @if (in_array(request('scope'), ['incomplete', 'paid'], true))
+                    @if (in_array(request('scope'), ['incomplete', 'paid', 'deleted'], true))
                         <input type="hidden" name="scope" value="{{ request('scope') }}">
                     @endif
                     <div class="row g-3">
@@ -124,9 +131,25 @@
                                 <td><span class="badge bg-{{ $item->priority === 'critical' ? 'danger' : ($item->priority === 'important' ? 'warning' : 'light text-dark') }}">{{ $priorities[$item->priority] ?? $item->priority }}</span></td>
                                 <td>{{ $item->creator?->name ?: '-' }}</td>
                                 <td class="text-end">
-                                    <a class="btn btn-sm btn-outline-primary" href="{{ route('financial-requests.show', $item) }}"><i class="fa fa-eye"></i></a>
-                                    @if (in_array($item->status, ['preparing', 'for_approval', 'rejected'], true) && (int) $item->created_by_id === (int) auth('admin')->id() && @AdminGuardHasAnyPerm([\App\PermKeys::FINANCIAL_REQUESTS_CREATE, \App\PermKeys::FINANCIAL_REQUESTS_EDIT, \App\PermKeys::FINANCIAL_REQUESTS_CONTROL]))
-                                        <a class="btn btn-sm btn-outline-dark" href="{{ route('financial-requests.edit', $item) }}" title="{{ __('financial_requests.edit') }}"><i class="fa fa-edit"></i></a>
+                                    @if($showDeleted)
+                                        <form method="POST" action="{{ route('financial-requests.restore', $item->id) }}" class="d-inline">
+                                            @csrf
+                                            <button class="btn btn-sm btn-outline-success" type="submit" title="{{ __('financial_requests.restore') }}">
+                                                <i class="fa fa-undo"></i> {{ __('financial_requests.restore') }}
+                                            </button>
+                                        </form>
+                                    @else
+                                        <a class="btn btn-sm btn-outline-primary" href="{{ route('financial-requests.show', $item) }}"><i class="fa fa-eye"></i></a>
+                                        @if (in_array($item->status, ['preparing', 'for_approval', 'rejected'], true) && (int) $item->created_by_id === (int) auth('admin')->id() && @AdminGuardHasAnyPerm([\App\PermKeys::FINANCIAL_REQUESTS_CREATE, \App\PermKeys::FINANCIAL_REQUESTS_EDIT, \App\PermKeys::FINANCIAL_REQUESTS_CONTROL]))
+                                            <a class="btn btn-sm btn-outline-dark" href="{{ route('financial-requests.edit', $item) }}" title="{{ __('financial_requests.edit') }}"><i class="fa fa-edit"></i></a>
+                                        @endif
+                                        @if ($canDeleteRequests && in_array($item->status, ['preparing', 'for_approval', 'rejected'], true) && ! $item->finance_bond_id)
+                                            <form method="POST" action="{{ route('financial-requests.destroy', $item) }}" class="d-inline" onsubmit="return confirm(@js(__('financial_requests.delete_confirm')))" >
+                                                @csrf
+                                                @method('DELETE')
+                                                <button class="btn btn-sm btn-outline-danger" type="submit" title="{{ __('financial_requests.delete') }}"><i class="fa fa-trash"></i></button>
+                                            </form>
+                                        @endif
                                     @endif
                                 </td>
                             </tr>

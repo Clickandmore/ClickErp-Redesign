@@ -30,7 +30,13 @@ class FinancialRequestController extends Controller
     {
         abort_unless($this->canView(), 403);
 
+        $showDeleted = $request->input('scope') === 'deleted';
+        if ($showDeleted) {
+            abort_unless($this->canDelete(), 403);
+        }
+
         $query = FinancialRequest::query()
+            ->when($showDeleted, fn ($query) => $query->onlyTrashed())
             ->with(['creator', 'financeBond'])
             ->latest();
 
@@ -51,6 +57,8 @@ class FinancialRequestController extends Controller
             'priorities' => FinancialRequest::priorities(),
             'counts' => $counts,
             'scopes' => $this->requestScopes(),
+            'canDeleteRequests' => $this->canDelete(),
+            'showDeleted' => $showDeleted,
         ]);
     }
 
@@ -160,11 +168,24 @@ class FinancialRequestController extends Controller
     public function destroy(FinancialRequest $financialRequest)
     {
         abort_unless($this->canAccessRequest($financialRequest), 403);
-        abort_unless(AdminGuardHasAnyPerm([(\App\PermKeys::FINANCIAL_REQUESTS_DELETE), \App\PermKeys::FINANCIAL_REQUESTS_CONTROL]), 403);
+        abort_unless($this->canDelete(), 403);
+        abort_unless($this->isDeletable($financialRequest), 422, 'لا يمكن حذف الطلب المالي بعد اعتماده.');
 
         $financialRequest->delete();
 
-        return redirect()->route('financial-requests.index')->with('success', 'تم حذف الطلب المالي.');
+        return redirect()->route('financial-requests.index', ['scope' => 'incomplete'])->with('success', 'تم نقل الطلب المالي إلى الطلبات المحذوفة.');
+    }
+
+    public function restore(int $financialRequest)
+    {
+        abort_unless($this->canDelete(), 403);
+
+        $requestItem = FinancialRequest::onlyTrashed()->findOrFail($financialRequest);
+        abort_unless($this->canAccessRequest($requestItem), 403);
+
+        $requestItem->restore();
+
+        return redirect()->route('financial-requests.index', ['scope' => 'deleted'])->with('success', 'تمت استعادة الطلب المالي بنجاح.');
     }
 
     public function updateStatus(Request $request, FinancialRequest $financialRequest, BondService $bondService, YearService $yearService)
@@ -512,7 +533,7 @@ class FinancialRequestController extends Controller
 
         $this->applyRequestBranchFilter($query, $request, 'financial_requests');
 
-        return [
+        $counts = [
             'all' => (clone $query)->count(),
             'incomplete' => (clone $query)->whereIn('status', [
                 FinancialRequest::STATUS_PREPARING,
@@ -524,6 +545,19 @@ class FinancialRequestController extends Controller
             ])->count(),
             'paid' => (clone $query)->whereIn('status', $this->paidStatuses())->count(),
         ];
+
+        if ($this->canDelete()) {
+            $deletedQuery = FinancialRequest::onlyTrashed();
+
+            if (! $this->canViewAll()) {
+                $deletedQuery->where('created_by_id', auth('admin')->id());
+            }
+
+            $this->applyRequestBranchFilter($deletedQuery, $request, 'financial_requests');
+            $counts['deleted'] = $deletedQuery->count();
+        }
+
+        return $counts;
     }
 
     private function requestScopes(): array
@@ -700,6 +734,7 @@ class FinancialRequestController extends Controller
         return AdminGuardHasAnyPerm([
             \App\PermKeys::FINANCIAL_REQUESTS_VIEW,
             \App\PermKeys::FINANCIAL_REQUESTS_CREATE,
+            \App\PermKeys::FINANCIAL_REQUESTS_DELETE,
             \App\PermKeys::FINANCIAL_REQUESTS_CHANGE_STATUS,
             \App\PermKeys::FINANCIAL_REQUESTS_APPROVE,
             \App\PermKeys::FINANCIAL_REQUESTS_REQUEST_CLOSING,
@@ -711,6 +746,7 @@ class FinancialRequestController extends Controller
     private function canViewAll(): bool
     {
         return AdminGuardHasAnyPerm([
+            \App\PermKeys::FINANCIAL_REQUESTS_DELETE,
             \App\PermKeys::FINANCIAL_REQUESTS_CHANGE_STATUS,
             \App\PermKeys::FINANCIAL_REQUESTS_APPROVE,
             \App\PermKeys::FINANCIAL_REQUESTS_REQUEST_CLOSING,
@@ -722,6 +758,20 @@ class FinancialRequestController extends Controller
     private function canCreate(): bool
     {
         return AdminGuardHasAnyPerm([\App\PermKeys::FINANCIAL_REQUESTS_CREATE, \App\PermKeys::FINANCIAL_REQUESTS_CONTROL]);
+    }
+
+    private function canDelete(): bool
+    {
+        return AdminGuardHasAnyPerm([\App\PermKeys::FINANCIAL_REQUESTS_DELETE, \App\PermKeys::FINANCIAL_REQUESTS_CONTROL]);
+    }
+
+    private function isDeletable(FinancialRequest $financialRequest): bool
+    {
+        return in_array($financialRequest->status, [
+            FinancialRequest::STATUS_PREPARING,
+            FinancialRequest::STATUS_FOR_APPROVAL,
+            FinancialRequest::STATUS_REJECTED,
+        ], true) && ! $financialRequest->finance_bond_id;
     }
 
     private function canEdit(FinancialRequest $financialRequest): bool

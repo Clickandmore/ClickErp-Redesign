@@ -4,7 +4,8 @@ return [
     'all_branches' => 'All Branches',
     'title' => 'Financial Requests', 'manage' => 'Financial Request Management',
     'subtitle' => 'Operational financial requests linked to clients, workers, and contracts.',
-    'new' => 'New Request', 'edit' => 'Edit Financial Request', 'back' => 'Back', 'print' => 'Print',
+    'new' => 'New Request', 'edit' => 'Edit Financial Request', 'delete' => 'Delete', 'restore' => 'Restore',
+    'delete_confirm' => 'Are you sure you want to move this request to deleted requests?', 'back' => 'Back', 'print' => 'Print',
     'basic_data' => 'Basic Information', 'paid_to' => 'Paid To', 'branch' => 'Branch', 'select_branch' => 'Select branch',
     'accounting_name' => 'Accounting Name', 'request_type' => 'Request Type', 'select_request_type' => 'Select request type',
     'priority' => 'Priority', 'request_date' => 'Request Date', 'amount' => 'Amount', 'debit_credit' => 'Debit / Credit',
@@ -29,5 +30,5 @@ return [
     'contract_types' => ['recruitment'=>'Recruitment','rental'=>'Rental'],
     'statuses' => ['preparing'=>'Preparing','for_approval'=>'For Approval','approved'=>'Approved / Awaiting Payment','paid'=>'Paid','request_closing'=>'Request for Closing','receipt_attached'=>'Receipt Attached','rejected'=>'Incomplete','closed'=>'Closed'],
     'priorities' => ['normal'=>'Normal','important'=>'Important','critical'=>'Urgent'],
-    'scopes' => ['all'=>'All Financial Requests','incomplete'=>'Incomplete','paid'=>'Paid / Closing in Progress'],
+    'scopes' => ['all'=>'All Financial Requests','incomplete'=>'Incomplete','paid'=>'Paid / Closing in Progress','deleted'=>'Deleted Requests'],
 ];
