@@ -141,7 +141,12 @@ class ManagedFileStorage
         return $deletedFromR2 && $deletedLocally;
     }
 
-    public function inlineResponse(string $storedPath, string $filename, string $contentType): StreamedResponse
+    public function inlineResponse(
+        string $storedPath,
+        string $filename,
+        string $contentType,
+        array $headers = []
+    ): StreamedResponse
     {
         abort_unless($this->exists($storedPath), 404);
         [$disk, $path] = $this->readLocation($storedPath);
@@ -153,12 +158,12 @@ class ManagedFileStorage
             }
             fpassthru($stream);
             fclose($stream);
-        }, 200, [
+        }, 200, array_merge([
             'Content-Type' => $contentType,
             'Content-Disposition' => 'inline; filename="' . str_replace(['"', "\r", "\n"], '', $filename) . '"',
             'X-Content-Type-Options' => 'nosniff',
             'Cache-Control' => 'private, max-age=3600',
-        ]);
+        ], $headers));
     }
 
     public function downloadResponse(string $storedPath, string $filename, string $contentType): StreamedResponse

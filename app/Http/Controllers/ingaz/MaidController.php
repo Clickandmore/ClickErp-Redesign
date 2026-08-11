@@ -2307,6 +2307,25 @@ class MaidController extends Controller
         ]);
     }
 
+    /**
+     * Stable API-facing preview. It resolves the current database path on every
+     * request, so regenerating a CV cannot leave consumers with a deleted R2 key.
+     */
+    public function sharedCvPreview(Maid $maid, ManagedFileStorage $storage)
+    {
+        $path = $this->maidPreviewableCvPath($maid);
+        abort_unless($path, 404, 'ملف السيرة غير موجود.');
+
+        $extension = strtolower(pathinfo((string) $path, PATHINFO_EXTENSION));
+
+        return $storage->inlineResponse(
+            $path,
+            'maid-cv-' . $maid->id . ($extension ? '.' . $extension : ''),
+            $storage->mimeType($path),
+            ['Cache-Control' => 'private, no-store, max-age=0']
+        );
+    }
+
     public function exportGeneratedCvs(Request $request, ManagedFileStorage $storage)
     {
         $validated = $request->validate([

@@ -6,6 +6,7 @@ use App\Models\ingaz\Maid;
 use App\Models\ingaz\Nationality;
 use App\Services\ManagedFileStorage;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
+use Illuminate\Support\Facades\URL;
 use Tests\TestCase;
 
 /**
@@ -75,5 +76,22 @@ class ApiMediaUrlTest extends TestCase
         // الحذف والبث والمعاينة تقرأ الخاصية مباشرة — يجب ألا يمسها التحويل.
         $this->assertSame($stored, $maid->cv_file);
         $this->assertSame($stored, $maid->getRawOriginal('cv_file'));
+    }
+
+    public function test_generated_cv_preview_uses_a_stable_signed_application_url(): void
+    {
+        $maid = new Maid();
+        $maid->setRawAttributes([
+            'id' => 492,
+            'cv_preview' => ManagedFileStorage::R2_PREFIX
+                . 'tenant/images/Maid/generated-cvs/old-key.svg',
+        ], true);
+        $maid->exists = true;
+
+        $url = $maid->cvPreviewUrl();
+
+        $this->assertStringContainsString('/shared/maids/492/cv-preview', $url);
+        $this->assertStringNotContainsString('cloudflarestorage.com', $url);
+        $this->assertTrue(URL::hasValidSignature(\Illuminate\Http\Request::create($url)));
     }
 }

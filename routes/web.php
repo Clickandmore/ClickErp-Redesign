@@ -73,6 +73,11 @@ Route::get('/shared/maids/{maid}/cv.pdf', [IngazMaidController::class, 'sharedGe
     ->middleware(['signed', 'throttle:60,1'])
     ->name('maids.generated-cv.shared');
 
+Route::get('/shared/maids/{maid}/cv-preview', [IngazMaidController::class, 'sharedCvPreview'])
+    ->whereNumber('maid')
+    ->middleware(['signed', 'throttle:120,1'])
+    ->name('maids.cv-preview.shared');
+
 Route::get('/getMaidDetails/{maidId}', [IngazMaidController::class, 'getMaidDetails'])->name('is.getMaidDetails');
 Route::get('/maidsLoopContractsAndSetAvailableWhenDoneCronJob', [AdminContractController::class, 'maidsLoopContractsAndSetAvailableWhenDoneCronJob'])->name('maidsLoopContractsAndSetAvailableWhenDoneCronJob');
 Route::get('/check-tazker-contracts', [AdminContractController::class, 'checkTazkerContracts'])->name('check.tazker.contracts');
