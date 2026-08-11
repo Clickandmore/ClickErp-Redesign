@@ -11,7 +11,9 @@
       "Bash(/Applications/MAMP/Library/bin/mysql -h127.0.0.1 -P8889 -uroot -proot -e \"SELECT COUNT\\(*\\) FROM rafdain_test.branches; SELECT COUNT\\(*\\) FROM rafdain_test.admins;\")",
       "Bash(echo \"exit=$?\")",
       "Bash(php -d error_reporting=\"E_ALL & ~E_DEPRECATED & ~E_NOTICE\" artisan permissions:audit --module=all --show-unused --show-unprotected --json)",
-      "Bash(python3 -c ' *)"
+      "Bash(python3 -c ' *)",
+      "Bash(php -l app/Console/Commands/MigrateLegacyRentalContracts.php)",
+      "Bash(php artisan *)"
     ]
   }
 }

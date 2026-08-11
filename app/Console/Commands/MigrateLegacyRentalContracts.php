@@ -29,6 +29,7 @@ class MigrateLegacyRentalContracts extends Command
         {--source=aqro_old_backup : اسم قاعدة البيانات القديمة}
         {--contracts=303,304,305 : معرّفات العقود في القاعدة القديمة}
         {--user=657 : معرّف العميل الجديد في القاعدة القديمة (اتركه فارغًا إن لم يكن هناك عميل جديد)}
+        {--admin= : الموظف الذي تُنسب إليه العمليات. الافتراضي: نفس موظف المصدر}
         {--apply : تنفيذ فعلي وحفظ. بدونه محاكاة فقط}
         {--keep-dates=1 : الإبقاء على created_at/updated_at الأصلية}';
 
@@ -183,6 +184,36 @@ class MigrateLegacyRentalContracts extends Command
             }
         }
 
+        // الموظف المنفّذ موجود؟
+        $adminIds = collect(DB::table(DB::raw("`{$this->source}`.rental_contracts"))
+            ->whereIn('id', $contractIds)
+            ->get(['contract_sent_by', 'maid_delivered_by', 'marketer_id']))
+            ->flatMap(fn ($r) => [$r->contract_sent_by, $r->maid_delivered_by, $r->marketer_id])
+            ->filter()->unique();
+
+        if ($this->option('admin')) {
+            $adminIds = collect([(int) $this->option('admin')]);
+        }
+
+        if ($adminIds->isEmpty()) {
+            $this->error('تعذر استنتاج الموظف المنفّذ من المصدر — مرّر --admin=<id>.');
+            $ok = false;
+        }
+
+        $adminsSoftDelete = Schema::hasColumn('admins', 'deleted_at');
+
+        foreach ($adminIds as $adminId) {
+            $query = DB::table('admins')->where('id', $adminId);
+            if ($adminsSoftDelete) {
+                $query->whereNull('deleted_at');
+            }
+
+            if (!$query->exists()) {
+                $this->error("الموظف {$adminId} غير موجود أو محذوف في القاعدة الجديدة.");
+                $ok = false;
+            }
+        }
+
         $this->line($ok ? '✔ الفحص المسبق سليم' : '✘ الفحص المسبق فشل');
         $this->line('');
 
@@ -208,6 +239,8 @@ class MigrateLegacyRentalContracts extends Command
         $oldAccount = $old['account_id']
             ? (array) DB::table(DB::raw("`{$this->source}`.fn_accounts"))->where('id', $old['account_id'])->first()
             : [];
+
+        $this->actAs($oldAccount['created_by_id'] ?? null);
 
         $account = Account::query()->create([
             'name'           => $old['name'],
@@ -280,6 +313,15 @@ class MigrateLegacyRentalContracts extends Command
             throw new \RuntimeException("العقد {$legacyId} بلا بيانات مالية في المصدر.");
         }
 
+        // خدمات المالية تقرأ الموظف من جلسة الدخول (BondService يفترض وجوده أصلًا).
+        // ننتحل نفس موظف المصدر حتى تُسجَّل العمليات باسمه لا باسم موظف افتراضي.
+        $this->actAs(
+            $oldContract['contract_sent_by']
+            ?? $oldContract['maid_delivered_by']
+            ?? $oldContract['marketer_id']
+            ?? null
+        );
+
         // العميل: يُعاد ربطه فقط إن كان العميل نفسه قد نُقل الآن
         $userId = ($newUserId && (int) $oldContract['user_id'] === (int) $this->option('user'))
             ? $newUserId
@@ -338,6 +380,9 @@ class MigrateLegacyRentalContracts extends Command
         $compare = [
             'subtotal', 'discount', 'vat_amount', 'total_due',
             'paid_amount', 'remaining_amount', 'payment_status', 'is_paid',
+            // RentalContractInvoice يستخدم AssignsBranch: لو كانت وحدة الفروع مفعّلة
+            // فقد يُختم الفرع من الموظف المنتحَل بينما المصدر NULL.
+            'branch_id',
         ];
 
         $clean = true;
@@ -436,6 +481,34 @@ class MigrateLegacyRentalContracts extends Command
         }
 
         return (int) DB::table($table)->insertGetId($payload);
+    }
+
+    /**
+     * ينتحل شخصية موظف على حارس admin.
+     *
+     * ضروري لأن BondService::storeBond() يقرأ Auth::guard('admin')->user()->id
+     * بلا تحقق، و RentalContractFinanceService يعود إلى الموظف رقم 1 عند غياب الجلسة
+     * — وكلاهما يُنتج بيانات مخالفة للمصدر.
+     */
+    private function actAs(?int $adminId): void
+    {
+        $adminId = $this->option('admin') !== null && $this->option('admin') !== ''
+            ? (int) $this->option('admin')
+            : $adminId;
+
+        if (!$adminId) {
+            throw new \RuntimeException(
+                'تعذر تحديد الموظف المنفّذ. مرّر --admin=<id> صراحةً.'
+            );
+        }
+
+        if (auth('admin')->id() === $adminId) {
+            return;
+        }
+
+        if (!auth('admin')->loginUsingId($adminId)) {
+            throw new \RuntimeException("تعذر الدخول كموظف رقم {$adminId} — تأكد من وجوده وأنه غير محذوف.");
+        }
     }
 
     private function nextContractNumber(): string
