@@ -29,4 +29,6 @@ return array (
   'Fast news' => 'Fast news',
   'Features' => 'Features',
   'what_do' => 'What do',
+  'Order created successfully' => 'Order created successfully.',
+  'Order updated successfully' => 'Order updated successfully.',
 );
