@@ -373,6 +373,14 @@
                                 </select>
                             </div>
                             <div class="col-xl-2 col-lg-3 col-md-4">
+                                <label class="form-label">{{ helperTrans('ingaz.video') }}</label>
+                                <select id="filter-video-status" class="form-select filter-trigger">
+                                    <option value="">{{ helperTrans('ingaz.all') }}</option>
+                                    <option value="with_video">{{ helperTrans('ingaz.maids_with_video') }}</option>
+                                    <option value="without_video">{{ helperTrans('ingaz.maids_without_video') }}</option>
+                                </select>
+                            </div>
+                            <div class="col-xl-2 col-lg-3 col-md-4">
                                 <label class="form-label">{{ helperTrans('ingaz.maid_pinned_filter') }}</label>
                                 <select id="filter-pinned" class="form-select filter-trigger">
                                     <option value="">{{ helperTrans('ingaz.all') }}</option>
@@ -709,6 +717,7 @@
                         d.nationality_id = $('#filter-nationality').val();
                         d.office_id = $('#filter-office').val();
                         d.visibility = $('#filter-visibility').val();
+                        d.video_status = $('#filter-video-status').val();
                         d.pinned = $('#filter-pinned').val();
                         d.date_from = $('#filter-date-from').val();
                         d.date_to = $('#filter-date-to').val();

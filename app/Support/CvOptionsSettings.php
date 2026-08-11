@@ -12,8 +12,10 @@ use Illuminate\Support\Facades\Schema;
 class CvOptionsSettings
 {
     public const RENTAL_TRANSFER_COLUMN = 'rental_cv_transfer_enabled';
+    public const MAID_TRANSACTION_EDIT_OVERRIDE_COLUMN = 'maid_transaction_edit_override_enabled';
 
     private static ?bool $rentalTransferEnabled = null;
+    private static ?bool $maidTransactionEditOverrideEnabled = null;
 
     /**
      * هل يُسمح بإتاحة سيرة عاملة الإيجار لنقل الخدمات على الموقع الخارجي؟
@@ -32,9 +34,30 @@ class CvOptionsSettings
         return self::$rentalTransferEnabled = (bool) Setting::query()->value(self::RENTAL_TRANSFER_COLUMN);
     }
 
+    /**
+     * هل يُسمح بتجاوز قفل بيانات السيرة المرتبطة بمعاملات مالية أو إرسالية مكتب خارجي؟
+     */
+    public static function maidTransactionEditOverrideEnabled(): bool
+    {
+        if (self::$maidTransactionEditOverrideEnabled !== null) {
+            return self::$maidTransactionEditOverrideEnabled;
+        }
+
+        if (
+            !Schema::hasTable('settings')
+            || !Schema::hasColumn('settings', self::MAID_TRANSACTION_EDIT_OVERRIDE_COLUMN)
+        ) {
+            return self::$maidTransactionEditOverrideEnabled = false;
+        }
+
+        return self::$maidTransactionEditOverrideEnabled = (bool) Setting::query()
+            ->value(self::MAID_TRANSACTION_EDIT_OVERRIDE_COLUMN);
+    }
+
     public static function clearCache(): void
     {
         self::$rentalTransferEnabled = null;
+        self::$maidTransactionEditOverrideEnabled = null;
     }
 
     /**
@@ -43,5 +66,10 @@ class CvOptionsSettings
     public static function fakeRentalTransferEnabled(?bool $enabled): void
     {
         self::$rentalTransferEnabled = $enabled;
+    }
+
+    public static function fakeMaidTransactionEditOverrideEnabled(?bool $enabled): void
+    {
+        self::$maidTransactionEditOverrideEnabled = $enabled;
     }
 }

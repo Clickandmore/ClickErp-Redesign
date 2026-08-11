@@ -122,6 +122,7 @@ class AdminRoutePermissionMatrix
             'steps.index',
             'partenrs.index',
             'nationalities.index',
+            'languages.index',
             'job-titles.index',
             'religions.index',
             'skills.index',
@@ -935,6 +936,15 @@ class AdminRoutePermissionMatrix
                 'edit' => [PermKeys::RELIGIONS_EDIT, PermKeys::RELIGIONS_CONTROL],
                 'destroy' => [PermKeys::RELIGIONS_DELETE, PermKeys::RELIGIONS_CONTROL],
             ]),
+            self::resource('languages', [
+                'index' => [PermKeys::MAID_LANGUAGES_VIEW],
+                'create' => [PermKeys::MAID_LANGUAGES_CREATE],
+                'edit' => [PermKeys::MAID_LANGUAGES_EDIT],
+                'destroy' => [PermKeys::MAID_LANGUAGES_DELETE],
+            ]),
+            [
+                'languages.toggle-visibility' => [PermKeys::MAID_LANGUAGES_TOGGLE_VISIBILITY],
+            ],
             self::resource('skills', [
                 'index' => [PermKeys::SKILLS_VIEW],
                 'show' => [PermKeys::SKILLS_VIEW],

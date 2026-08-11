@@ -537,6 +537,14 @@ class Maid extends Model
             return false;
         }
 
+        if ($this->hasActiveOrderForEditLock()) {
+            return true;
+        }
+
+        if ($this->hasActiveRecruitmentContractForEditLock()) {
+            return true;
+        }
+
         if ($this->hasRecruitmentInvoiceForEditLock()) {
             return true;
         }
@@ -550,6 +558,36 @@ class Maid extends Model
         }
 
         return false;
+    }
+
+    private function hasActiveOrderForEditLock(): bool
+    {
+        if (!Schema::hasTable('orders') || !Schema::hasColumn('orders', 'maid_id')) {
+            return false;
+        }
+
+        return $this->orders()
+            ->whereIn('status', ['new', 'under_process', 'contracted', 'contracted_without_contract'])
+            ->exists();
+    }
+
+    private function hasActiveRecruitmentContractForEditLock(): bool
+    {
+        if (!Schema::hasTable('contracts') || !Schema::hasColumn('contracts', 'maid_id')) {
+            return false;
+        }
+
+        return $this->contracts()
+            ->whereIn('status', [
+                ContractStatusEnum::PendingMaidSelection->value,
+                ContractStatusEnum::New->value,
+                ContractStatusEnum::Msaned->value,
+                ContractStatusEnum::Tafwed->value,
+                ContractStatusEnum::Taffez->value,
+                ContractStatusEnum::Tazker->value,
+                ContractStatusEnum::Arrival->value,
+            ])
+            ->exists();
     }
 
     public function hasExternalOfficeDispatchEditLock(): bool

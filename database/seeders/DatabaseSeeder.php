@@ -24,6 +24,7 @@ class DatabaseSeeder extends Seeder
         $this->call(AssignRecruitmentContractsPermissionsSeeder::class);
         $this->call(RentContractTermsPermissionsSeeder::class);
         $this->call(MoyasarSettingsPermissionsSeeder::class);
+        $this->call(MaidLanguagesSeeder::class);
 
         // إضافة بيانات الدول والمدن
         $this->call(CountriesSeeder::class);

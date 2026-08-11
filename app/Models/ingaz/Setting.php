@@ -74,6 +74,8 @@ class Setting extends Model
     protected $casts = [
         'admin_quick_links' => 'array',
         'cv_template_enabled' => 'boolean',
+        'rental_cv_transfer_enabled' => 'boolean',
+        'maid_transaction_edit_override_enabled' => 'boolean',
     ];
 
     protected $appends = ['header_logo_url', 'footer_logo_url'];
