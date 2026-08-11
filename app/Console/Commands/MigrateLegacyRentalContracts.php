@@ -399,12 +399,14 @@ class MigrateLegacyRentalContracts extends Command
             }
 
             foreach ($compare as $field) {
-                $o = $old[$field] ?? null;
-                $n = $new[$field] ?? null;
+                // القيم القديمة تأتي خامًا من القاعدة، والجديدة مارّة على casts الموديل
+                // (is_paid مثلًا يصير boolean). نوحّد الشكل قبل المقارنة.
+                $o = $this->normalize($old[$field] ?? null);
+                $n = $this->normalize($new[$field] ?? null);
 
                 $same = is_numeric($o) && is_numeric($n)
                     ? abs((float) $o - (float) $n) < 0.005
-                    : (string) $o === (string) $n;
+                    : $o === $n;
 
                 if (!$same) {
                     $clean = false;
@@ -413,8 +415,8 @@ class MigrateLegacyRentalContracts extends Command
                 $rows[] = [
                     $r['legacy_number'] . ' → ' . $r['new_number'],
                     $field,
-                    (string) $o,
-                    (string) $n,
+                    $o === '' ? 'NULL' : $o,
+                    $n === '' ? 'NULL' : $n,
                     $same ? '✔' : '✘ فرق',
                 ];
             }
@@ -481,6 +483,23 @@ class MigrateLegacyRentalContracts extends Command
         }
 
         return (int) DB::table($table)->insertGetId($payload);
+    }
+
+    /**
+     * يوحّد القيمة قبل المقارنة: المنطقية تصير 0/1، و null تصير سلسلة فارغة،
+     * حتى لا تُحسب فروقًا وهمية بسبب casts الموديل.
+     */
+    private function normalize($value): string
+    {
+        if (is_bool($value)) {
+            return $value ? '1' : '0';
+        }
+
+        if ($value === null) {
+            return '';
+        }
+
+        return (string) $value;
     }
 
     /**
