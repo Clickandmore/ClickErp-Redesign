@@ -29,4 +29,6 @@ return array (
   'cancellation_submitted_successfully' => 'تم إرسال طلب إلغاء العقد بنجاح.',
   'data_updated_successfully' => 'تم تحديث البيانات بنجاح.',
   'error_updating_profile' => 'حدث خطأ أثناء تحديث الملف الشخصي. يرجى المحاولة مرة أخرى.',
+  'Order created successfully' => 'تم إنشاء الطلب بنجاح.',
+  'Order updated successfully' => 'تم تحديث الطلب بنجاح.',
 );
