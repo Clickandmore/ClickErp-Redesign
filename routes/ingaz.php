@@ -337,6 +337,9 @@ Route::group(
                 ->whereNumber('maid')
                 ->name('maids.generate-cv');
             Route::post('maids/{maid}/media', [MaidController::class, 'updateMedia'])->whereNumber('maid')->name('maids.media.update');
+            Route::get('maids/{maid}/video', [MaidController::class, 'openVideo'])
+                ->whereNumber('maid')
+                ->name('maids.video.open');
             Route::resource('maids', MaidController::class)->whereNumber('maid');
             Route::get('maids/create_rapid_cv', [MaidController::class, 'create_rapid_cv'])->name('maids.create_rapid_cv');
             Route::post('maids/store_rapid_cv', [MaidController::class, 'store_rapid_cv'])->name('maids.store_rapid_cv');
