@@ -10,7 +10,7 @@ class HomeHeroImage extends Model
 
     protected $appends = ['url'];
 
-    public function getUrlAttribute(): string
+    public function getUrlAttribute(): ?string
     {
         return showFile($this->path);
     }

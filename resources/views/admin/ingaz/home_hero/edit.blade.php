@@ -98,7 +98,9 @@
                         <div class="d-flex flex-wrap gap-3 mt-4">
                             @foreach ($section->images as $image)
                                 <label class="border rounded p-2 text-center">
-                                    <img src="{{ $image->url }}" class="home-hero-image d-block mb-2" alt="">
+                                    @if ($image->url)
+                                        <img src="{{ $image->url }}" class="home-hero-image d-block mb-2" alt="">
+                                    @endif
                                     <input type="checkbox" name="delete_image_ids[]"
                                         value="{{ $image->id }}" @disabled(!$canDelete)>
                                     {{ __('home_hero.delete_image') }}
