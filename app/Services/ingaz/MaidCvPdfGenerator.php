@@ -784,6 +784,11 @@ class MaidCvPdfGenerator
         $paths = [
             $maid->getRawOriginal('image'),
             $maid->getRawOriginal('personal_image'),
+            // Uploaded templates may use the full CV scan as the large image.
+            // With private R2 this URL is signed and expires, so it must be
+            // embedded in the generated SVG/PDF just like the profile photo.
+            $maid->getRawOriginal('cv_file'),
+            $maid->getRawOriginal('maid_cv_file'),
             optional($maid->nationality)->getRawOriginal('logo'),
         ];
 

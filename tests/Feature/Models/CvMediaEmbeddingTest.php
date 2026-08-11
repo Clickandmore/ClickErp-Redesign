@@ -36,7 +36,12 @@ class CvMediaEmbeddingTest extends TestCase
     public function test_media_paths_are_collected_from_the_maid_and_the_settings(): void
     {
         $maid = new Maid();
-        $maid->setRawAttributes(['id' => 1, 'image' => 'images/Maid/a.png'], true);
+        $maid->setRawAttributes([
+            'id' => 1,
+            'image' => 'images/Maid/a.png',
+            'cv_file' => 'r2://tenant/images/Maid/full-cv.png',
+            'maid_cv_file' => 'r2://tenant/images/Maid/office-cv.pdf',
+        ], true);
 
         $settings = new Setting();
         $settings->setRawAttributes([
@@ -49,6 +54,8 @@ class CvMediaEmbeddingTest extends TestCase
         $paths = $this->mediaPaths($maid, $settings);
 
         $this->assertContains('images/Maid/a.png', $paths);
+        $this->assertContains('r2://tenant/images/Maid/full-cv.png', $paths);
+        $this->assertContains('r2://tenant/images/Maid/office-cv.pdf', $paths);
         $this->assertContains('images/settings/logo.svg', $paths);
         // القيم الفارغة و"null" النصية لا تُعد ملفات
         $this->assertNotContains('', $paths);
