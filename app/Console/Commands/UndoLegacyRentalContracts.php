@@ -65,9 +65,21 @@ class UndoLegacyRentalContracts extends Command
 
         $bondIds = $invoices->pluck('receipt_bond_id')->filter()->unique()->values()->all();
 
-        $costCenterIds = Schema::hasTable('fn_cost_centers')
-            ? DB::table('fn_cost_centers')->whereIn('table_related_id', $contractIds)->pluck('id')->all()
-            : [];
+        // table_related_id وحده لا يكفي: عمود table_name عديم الفائدة (قيمته
+        // 'fn_cost_centers' للجميع)، وعقد الاستقدام رقم 316 يختلف عن عقد التأجير 316.
+        // العنوان يحمل رقم العقد الفريد، فنطابق عليه أيضًا.
+        $costCenterIds = [];
+        if (Schema::hasTable('fn_cost_centers')) {
+            $titles = $contracts
+                ->map(fn ($c) => 'عقد تأجير #' . ($c->contract_number ?: $c->id))
+                ->all();
+
+            $costCenterIds = DB::table('fn_cost_centers')
+                ->whereIn('table_related_id', $contractIds)
+                ->whereIn('title', $titles)
+                ->pluck('id')
+                ->all();
+        }
 
         // العميل: يُحذف فقط إن كان قد أُنشئ بهذا النقل ولا يملك أي بيانات أخرى
         $clientUserId = $this->resolveMigratedClient($contracts->pluck('user_id')->unique()->all(), $contractIds);
