@@ -52,6 +52,7 @@ class MaidController extends Controller
     public function __construct()
     {
         $this->middleware('permission:maids_view,admin', ['only' => ['index', 'pendingSubmissions']]);
+        $this->middleware('permission:maids_view|maids_rental_view,admin', ['only' => ['openVideo']]);
         $this->middleware('permission:maids_rental_view,admin', ['only' => ['rentalIndex']]);
         $this->middleware('permission:maids_backout_view,admin', ['only' => ['noneAvailableMaids']]);
         $this->middleware('permission:maids_deleted_view,admin', ['only' => ['deletedCvs']]);
@@ -3865,15 +3866,18 @@ class MaidController extends Controller
 
     private function maidVideoBadge(Maid $maid): string
     {
-        $videoValue = filled($maid->video_link) ? $maid->video_link : $maid->video;
+        $videoLink = trim((string) $maid->video_link);
+        $storedVideo = $maid->getRawOriginal('video');
 
-        if (blank($videoValue)) {
+        if ($videoLink === '' && blank($storedVideo)) {
             return '';
         }
 
-        $videoUrl = filter_var($videoValue, FILTER_VALIDATE_URL)
-            ? $videoValue
-            : showFile($videoValue);
+        // Never expose an internal r2:// pointer in HTML. For stored videos the
+        // dashboard route creates a fresh temporary R2 URL only when clicked.
+        $videoUrl = $videoLink !== ''
+            ? $videoLink
+            : route('maids.video.open', $maid->id);
 
         $label = e(helperTrans('ingaz.watch_video'));
         $content = '<i class="fas fa-video me-1"></i>' . $label;
@@ -3885,6 +3889,19 @@ class MaidController extends Controller
         return '<a href="' . e($videoUrl) . '" target="_blank" rel="noopener noreferrer" '
             . 'class="badge bg-danger-subtle text-danger text-decoration-none align-self-start" '
             . 'title="' . $label . '">' . $content . '</a>';
+    }
+
+    public function openVideo(Maid $maid)
+    {
+        $storedVideo = $maid->getRawOriginal('video');
+        abort_unless(filled($storedVideo), 404, 'ملف الفيديو غير موجود.');
+
+        $videoUrl = showFile($storedVideo);
+        abort_unless(filled($videoUrl), 404, 'تعذّر الوصول إلى ملف الفيديو.');
+
+        return redirect()->away($videoUrl, 302, [
+            'Cache-Control' => 'private, no-store, max-age=0',
+        ]);
     }
 
     public function applyMaidFilter($request, $rows)
