@@ -19,7 +19,9 @@ use App\Models\ingaz\User;
 use App\Models\auth\Admin;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Facades\URL;
 
 class Maid extends Model
 {
@@ -181,7 +183,30 @@ class Maid extends Model
 
     public function getCvPreviewURLAttribute()
     {
-        return showFile($this->cv_preview);
+        return $this->cvPreviewUrl();
+    }
+
+    /**
+     * Generated CV keys change after regeneration. Expose a permanent signed
+     * application URL so API consumers never retain a deleted R2 object key.
+     */
+    public function cvPreviewUrl(): ?string
+    {
+        $path = $this->getRawOriginal('cv_preview');
+
+        if (!filled($path)) {
+            return null;
+        }
+
+        if (
+            $this->exists
+            && Route::has('maids.cv-preview.shared')
+            && app(\App\Services\ingaz\MaidCvPdfGenerator::class)->isGeneratedPath($path)
+        ) {
+            return URL::signedRoute('maids.cv-preview.shared', ['maid' => $this->getKey()]);
+        }
+
+        return showFile($path);
     }
 
     public function getCvFileURLAttribute()

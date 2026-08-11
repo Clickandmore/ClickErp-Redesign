@@ -25,7 +25,9 @@ trait ResolvesMediaUrls
             // نمرّر القيمة التي كانت ستخرج فعلًا (وليس getRawOriginal) حتى لا يُعرض
             // مسار قديم عند تحويل موديل عُدّل ولم يُحفظ بعد.
             if (array_key_exists($column, $data) && filled($data[$column])) {
-                $data[$column] = apiFileUrl($data[$column]);
+                $data[$column] = $column === 'cv_preview' && method_exists($this, 'cvPreviewUrl')
+                    ? $this->cvPreviewUrl()
+                    : apiFileUrl($data[$column]);
             }
         }
 
