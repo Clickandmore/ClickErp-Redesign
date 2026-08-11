@@ -2582,6 +2582,12 @@
                 var typeContext = getTypeContext();
                 var cvTypeValue = $('select[name="type_id"]').val();
 
+                var videoErrors = validateMaidVideoFile();
+                if (videoErrors.length) {
+                    errors = errors.concat(videoErrors);
+                    isValid = false;
+                }
+
                 if (!cvTypeValue || cvTypeValue.trim() === '') {
                     errors.push(maidCreateTranslations.cvTypeRequired);
                     isValid = false;
@@ -2799,7 +2805,7 @@
                         var response = xhr.responseJSON || {};
                         var errorMessages = showMaidFormValidationErrors(
                             response.errors,
-                            response.message || maidCreateTranslations.maidAddError
+                            maidAjaxErrorMessage(xhr, maidCreateTranslations.maidAddError)
                         );
 
                         Swal.fire({

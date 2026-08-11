@@ -4057,4 +4057,11 @@ return array (
   'duplicate_count' => 'Duplicate Count',
   'registration_source' => 'Registration Source',
   'client_phone_digits_only' => 'The additional mobile number must not contain letters.',
+  'maid_video_too_large' => 'The video is larger than 100 MB. Choose a smaller video and try again.',
+  'maid_upload_request_too_large' => 'The server rejected the upload because the request is too large. Compress the video or review the server upload limits.',
+  'maid_session_expired' => 'Your session expired during the upload. Refresh the page and try again.',
+  'maid_upload_connection_failed' => 'The connection was interrupted during the upload. Check your internet connection and try again.',
+  'maid_server_save_failed' => 'The CV could not be saved on the server. If this happens while uploading a video, check its size and the storage configuration.',
+  'maid_video_storage_failed' => 'The video reached the server but could not be saved to storage. Check the available disk space and the storage directory permissions.',
+  'maid_save_failed' => 'The CV could not be saved. Please try again.',
 );

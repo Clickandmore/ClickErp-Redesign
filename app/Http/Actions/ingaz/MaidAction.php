@@ -127,7 +127,7 @@ class MaidAction extends MainAction
         }
         if (isset($data['video']) && $data['video'] instanceof \Illuminate\Http\UploadedFile) {
             $video = $data['video'];
-            $data['video'] = uploadMaidFile($video, $this->fileFolder);
+            $data['video'] = $this->uploadMaidVideo($video);
         }
 
         // Normalize experience values before defaults so they survive cleanup
@@ -1443,7 +1443,7 @@ class MaidAction extends MainAction
             if (isset($data['video'])) {
                 $oldMediaFiles[] = $maid->video;
                 $video = $data['video'];
-                $data['video'] = uploadMaidFile($video, $this->fileFolder);
+                $data['video'] = $this->uploadMaidVideo($video);
                 $newMediaFiles[] = $data['video'];
             }
         } catch (\Throwable $exception) {
@@ -2225,5 +2225,24 @@ class MaidAction extends MainAction
     public function findAvailable($id)
     {
         return $this->availableQuery()->find($id);
+    }
+
+    private function uploadMaidVideo(\Illuminate\Http\UploadedFile $video): string
+    {
+        try {
+            return uploadMaidFile($video, $this->fileFolder);
+        } catch (\Throwable $exception) {
+            report($exception);
+            \Log::error('Maid video upload failed.', [
+                'admin_id' => auth('admin')->id(),
+                'original_name' => $video->getClientOriginalName(),
+                'size' => $video->getSize(),
+                'error' => $exception->getMessage(),
+            ]);
+
+            throw ValidationException::withMessages([
+                'video' => [__('ingaz.maid_video_storage_failed')],
+            ]);
+        }
     }
 }

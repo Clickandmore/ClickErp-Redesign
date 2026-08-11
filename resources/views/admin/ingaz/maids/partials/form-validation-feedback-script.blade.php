@@ -82,6 +82,44 @@ function showMaidFormValidationErrors(errors, fallbackMessage) {
     return messages;
 }
 
+function validateMaidVideoFile() {
+    var input = document.getElementById('maid_video');
+    var file = input && input.files ? input.files[0] : null;
+    var maxBytes = 100 * 1024 * 1024;
+
+    if (!file || file.size <= maxBytes) {
+        return [];
+    }
+
+    return [@json(__('ingaz.maid_video_too_large'))];
+}
+
+function maidAjaxErrorMessage(xhr, fallbackMessage) {
+    var response = xhr.responseJSON || {};
+
+    if (xhr.status === 413) {
+        return @json(__('ingaz.maid_upload_request_too_large'));
+    }
+
+    if (xhr.status === 419) {
+        return @json(__('ingaz.maid_session_expired'));
+    }
+
+    if (xhr.status === 0) {
+        return @json(__('ingaz.maid_upload_connection_failed'));
+    }
+
+    if (xhr.status >= 500) {
+        return @json(__('ingaz.maid_server_save_failed'));
+    }
+
+    if (response.message) {
+        return response.message;
+    }
+
+    return fallbackMessage || @json(__('ingaz.maid_save_failed'));
+}
+
 $('#maidForm').on('input change', '.is-invalid', function() {
     $(this).removeClass('is-invalid').next('.maid-server-error').remove();
     $(this).next('.select2').find('.select2-selection').removeClass('border-danger');
