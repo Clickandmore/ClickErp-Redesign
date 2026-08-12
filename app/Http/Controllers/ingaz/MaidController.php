@@ -46,7 +46,7 @@ class MaidController extends Controller
 {
 
     public $folderPath = "admin.ingaz.maids";
-    public $postData = ["nationality_id", "expertises", 'experience_status', 'cooking_experience', 'image', 'video', 'childrens_count', 'duration', 'additional_notes', 'video_link', 'cv_file', 'marital_status:ar', 'marital_status:en', 'languages', 'percentage', 'language_levels', 'experience_years', 'cv_preview', 'maid_cv_file', 'religion_id', 'passport_num', 'phone', 'relative_name', 'relative_phone', 'residence_city', 'passport_issue_place', 'education', 'has_driving_license', 'price', 'salary', 'age', 'office_id', 'name:en', 'gender', 'type_id', 'job_id', 'skills', 'birth_date', 'height', 'weight', 'id_number', 'id_expiry_date', 'border_number', 'passport_issue_date', 'passport_expiry_date', 'arrival_date', 'create_shelter_contract', 'request_type'];
+    public $postData = ["nationality_id", "expertises", 'experience_status', 'cooking_experience', 'image', 'video', 'remove_video', 'childrens_count', 'duration', 'additional_notes', 'video_link', 'cv_file', 'marital_status:ar', 'marital_status:en', 'languages', 'percentage', 'language_levels', 'experience_years', 'cv_preview', 'maid_cv_file', 'religion_id', 'passport_num', 'phone', 'relative_name', 'relative_phone', 'residence_city', 'passport_issue_place', 'education', 'has_driving_license', 'price', 'salary', 'age', 'office_id', 'name:en', 'gender', 'type_id', 'job_id', 'skills', 'birth_date', 'height', 'weight', 'id_number', 'id_expiry_date', 'border_number', 'passport_issue_date', 'passport_expiry_date', 'arrival_date', 'create_shelter_contract', 'request_type'];
     public $mainRoute = "maids";
 
     public function __construct()
@@ -2435,6 +2435,7 @@ class MaidController extends Controller
             'cv_file' => ['nullable', 'file', 'mimes:pdf,jpg,jpeg,png,gif,bmp,webp', 'max:20480'],
             'cv_preview' => ['nullable', 'image', 'max:10240'],
             'video' => ['nullable', 'file', 'mimes:mp4,mov,avi,wmv,webm,mkv,m4v', 'max:102400'],
+            'remove_video' => ['nullable', 'boolean'],
             'video_link' => ['nullable', 'url', 'max:2000'],
         ], [
             'image.image' => 'يجب أن تكون الصورة الشخصية ملف صورة صالحًا.',
@@ -2458,6 +2459,11 @@ class MaidController extends Controller
                 $oldFiles[] = $maid->{$field};
                 $updates[$field] = uploadMaidFile($request->file($field), 'images/Maid/');
                 $uploadedFiles[] = $updates[$field];
+            }
+
+            if ($request->boolean('remove_video') && !$request->hasFile('video')) {
+                $oldFiles[] = $maid->video;
+                $updates['video'] = null;
             }
 
             if ($request->boolean('remove_video_link')) {

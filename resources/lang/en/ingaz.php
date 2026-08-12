@@ -4063,5 +4063,9 @@ return array (
   'maid_upload_connection_failed' => 'The connection was interrupted during the upload. Check your internet connection and try again.',
   'maid_server_save_failed' => 'The CV could not be saved on the server. If this happens while uploading a video, check its size and the storage configuration.',
   'maid_video_storage_failed' => 'The video reached the server but could not be saved to storage. Check the available disk space and the storage directory permissions.',
+  'clear_video_value' => 'Clear video value',
+  'remove_video_value' => 'Remove video value',
+  'video_value_will_be_removed' => 'The video file and link will be removed when the changes are saved.',
+  'remove_uploaded_video' => 'Remove the current uploaded video',
   'maid_save_failed' => 'The CV could not be saved. Please try again.',
 );
