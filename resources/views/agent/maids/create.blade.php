@@ -815,44 +815,44 @@
             </div>
         </div>
 
-        {{-- بيانات العاملة الإضافية - ظاهرة ومفتوحة افتراضياً --}}
+        {{-- بيانات العاملة - ظاهرة ومفتوحة افتراضياً --}}
         <div class="mc-section" id="additional_worker_information">
             <div class="mc-section__head">
                 <h3 class="mc-section__title">
                     <span class="mc-section__icon"><i class="fa fa-circle-info"></i></span>
-                    {{ $isAr ? 'بيانات العاملة الإضافية' : 'Additional Worker Information' }}
+                    {{ $isAr ? 'بيانات العاملة' : 'Worker Information' }}
                 </h3>
                 <span class="mc-section__hint">{{ $isAr ? 'بيانات التواصل والمؤهل وخبرة الطبخ' : 'Contact, education, and cooking experience' }}</span>
             </div>
             <div class="row g-3">
                 <div class="col-md-4"><div class="mc-field">
-                    <label class="mc-field-label">{{ $isAr ? 'رقم جوال العاملة' : 'Worker Phone' }}</label>
-                    <input type="tel" name="phone" class="form-control" maxlength="50" value="{{ old('phone') }}">
+                    <label class="mc-field-label">{{ $isAr ? 'رقم جوال العاملة' : 'Worker Phone' }}<span class="mc-required">*</span></label>
+                    <input type="tel" name="phone" class="form-control" maxlength="50" value="{{ old('phone') }}" required>
                 </div></div>
                 <div class="col-md-4"><div class="mc-field">
-                    <label class="mc-field-label">{{ $isAr ? 'اسم أحد أقارب العاملة' : 'Relative Name' }}</label>
-                    <input type="text" name="relative_name" class="form-control" maxlength="255" value="{{ old('relative_name') }}">
+                    <label class="mc-field-label">{{ $isAr ? 'اسم أحد أقارب العاملة' : 'Relative Name' }}<span class="mc-required">*</span></label>
+                    <input type="text" name="relative_name" class="form-control" maxlength="255" value="{{ old('relative_name') }}" required>
                 </div></div>
                 <div class="col-md-4"><div class="mc-field">
-                    <label class="mc-field-label">{{ $isAr ? 'رقم جوال قريب العاملة' : 'Relative Phone' }}</label>
-                    <input type="tel" name="relative_phone" class="form-control" maxlength="50" value="{{ old('relative_phone') }}">
+                    <label class="mc-field-label">{{ $isAr ? 'رقم جوال قريب العاملة' : 'Relative Phone' }}<span class="mc-required">*</span></label>
+                    <input type="tel" name="relative_phone" class="form-control" maxlength="50" value="{{ old('relative_phone') }}" required>
                 </div></div>
                 <div class="col-md-4"><div class="mc-field">
-                    <label class="mc-field-label">{{ $isAr ? 'مدينة سكن العاملة' : 'Residence City' }}</label>
-                    <input type="text" name="residence_city" class="form-control" maxlength="255" value="{{ old('residence_city') }}">
+                    <label class="mc-field-label">{{ $isAr ? 'مدينة سكن العاملة' : 'Residence City' }}<span class="mc-required">*</span></label>
+                    <input type="text" name="residence_city" class="form-control" maxlength="255" value="{{ old('residence_city') }}" required>
                 </div></div>
                 <div class="col-md-4"><div class="mc-field">
-                    <label class="mc-field-label">{{ $isAr ? 'مكان إصدار الجواز' : 'Passport Issue Place' }}</label>
-                    <input type="text" name="passport_issue_place" class="form-control" maxlength="255" value="{{ old('passport_issue_place') }}">
+                    <label class="mc-field-label">{{ $isAr ? 'مكان إصدار الجواز' : 'Passport Issue Place' }}<span class="mc-required">*</span></label>
+                    <input type="text" name="passport_issue_place" class="form-control" maxlength="255" value="{{ old('passport_issue_place') }}" required>
                 </div></div>
                 <div class="col-md-4"><div class="mc-field">
-                    <label class="mc-field-label">{{ $isAr ? 'المؤهل التعليمي' : 'Education' }}</label>
-                    <input type="text" name="education" class="form-control" maxlength="255" value="{{ old('education') }}">
+                    <label class="mc-field-label">{{ $isAr ? 'المؤهل التعليمي' : 'Education' }}<span class="mc-required">*</span></label>
+                    <input type="text" name="education" class="form-control" maxlength="255" value="{{ old('education') }}" required>
                 </div></div>
                 <div class="col-md-4" id="cooking_experience_field"
                     style="{{ old('experience_status') === 'has_experience' ? '' : 'display: none;' }}">
                     <div class="mc-field">
-                        <label class="mc-field-label">{{ $isAr ? 'خبرة الطبخ' : 'Cooking Experience' }}</label>
+                        <label class="mc-field-label">{{ $isAr ? 'خبرة الطبخ' : 'Cooking Experience' }}<span class="mc-required">*</span></label>
                         <select name="cooking_experience" id="cooking_experience" class="form-control"
                             {{ old('experience_status') === 'has_experience' ? 'required' : '' }}>
                             <option value="">{{ $isAr ? 'اختر خبرة الطبخ' : 'Select cooking experience' }}</option>
@@ -865,8 +865,8 @@
                     </div>
                 </div>
                 <div class="col-md-4"><div class="mc-field">
-                    <label class="mc-field-label">{{ $isAr ? 'هل تحمل رخصة قيادة؟' : 'Has a driving license?' }}</label>
-                    <select name="has_driving_license" class="form-control">
+                    <label class="mc-field-label">{{ $isAr ? 'هل تحمل رخصة قيادة؟' : 'Has a driving license?' }}<span class="mc-required">*</span></label>
+                    <select name="has_driving_license" class="form-control" required>
                         <option value="">{{ $isAr ? 'اختر' : 'Select' }}</option>
                         <option value="1" {{ old('has_driving_license') === '1' ? 'selected' : '' }}>{{ $isAr ? 'نعم' : 'Yes' }}</option>
                         <option value="0" {{ old('has_driving_license') === '0' ? 'selected' : '' }}>{{ $isAr ? 'لا' : 'No' }}</option>

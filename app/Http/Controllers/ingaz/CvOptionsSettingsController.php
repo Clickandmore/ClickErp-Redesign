@@ -25,12 +25,14 @@ class CvOptionsSettingsController extends Controller
     {
         $validated = $request->validate([
             'rental_cv_transfer_enabled' => ['nullable', 'boolean'],
+            'maid_transaction_edit_override_enabled' => ['nullable', 'boolean'],
         ]);
 
         $settings = Setting::query()->firstOrCreate([]);
 
         $settings->forceFill([
             CvOptionsSettings::RENTAL_TRANSFER_COLUMN => (bool) ($validated['rental_cv_transfer_enabled'] ?? false),
+            CvOptionsSettings::MAID_TRANSACTION_EDIT_OVERRIDE_COLUMN => (bool) ($validated['maid_transaction_edit_override_enabled'] ?? false),
         ])->save();
 
         CvOptionsSettings::clearCache();

@@ -8,6 +8,7 @@ use App\Models\ingaz\Maid;
 use App\PermKeys;
 use App\Services\ingaz\RentalMaidAccountingService;
 use App\Services\ingaz\RentalMaidFinanceService;
+use App\Support\CvOptionsSettings;
 use Illuminate\Support\Collection;
 use Illuminate\Validation\ValidationException;
 use Mockery;
@@ -18,6 +19,7 @@ class MaidActionFinancialEditLockTest extends TestCase
 {
     protected function tearDown(): void
     {
+        CvOptionsSettings::fakeMaidTransactionEditOverrideEnabled(null);
         Mockery::close();
 
         parent::tearDown();
@@ -30,6 +32,53 @@ class MaidActionFinancialEditLockTest extends TestCase
         $this->invokeGuard($action, $maid, ['name:en' => 'Updated Worker Name']);
 
         $this->assertTrue(true);
+    }
+
+    public function test_active_order_marks_maid_as_transaction_locked(): void
+    {
+        $orders = Mockery::mock();
+        $orders->shouldReceive('whereIn')
+            ->once()
+            ->with('status', ['new', 'under_process', 'contracted', 'contracted_without_contract'])
+            ->andReturnSelf();
+        $orders->shouldReceive('exists')->once()->andReturnTrue();
+
+        $maid = Mockery::mock(Maid::class)->makePartial();
+        $maid->exists = true;
+        $maid->id = 452;
+        $maid->shouldReceive('orders')->once()->andReturn($orders);
+
+        $this->assertTrue($maid->hasFinancialEditLock());
+    }
+
+    public function test_active_recruitment_contract_marks_maid_as_transaction_locked(): void
+    {
+        $orders = Mockery::mock();
+        $orders->shouldReceive('whereIn')->once()->andReturnSelf();
+        $orders->shouldReceive('exists')->once()->andReturnFalse();
+
+        $contracts = Mockery::mock();
+        $contracts->shouldReceive('whereIn')
+            ->once()
+            ->with('status', [
+                \App\Enums\ingaz\ContractStatusEnum::PendingMaidSelection->value,
+                \App\Enums\ingaz\ContractStatusEnum::New->value,
+                \App\Enums\ingaz\ContractStatusEnum::Msaned->value,
+                \App\Enums\ingaz\ContractStatusEnum::Tafwed->value,
+                \App\Enums\ingaz\ContractStatusEnum::Taffez->value,
+                \App\Enums\ingaz\ContractStatusEnum::Tazker->value,
+                \App\Enums\ingaz\ContractStatusEnum::Arrival->value,
+            ])
+            ->andReturnSelf();
+        $contracts->shouldReceive('exists')->once()->andReturnTrue();
+
+        $maid = Mockery::mock(Maid::class)->makePartial();
+        $maid->exists = true;
+        $maid->id = 451;
+        $maid->shouldReceive('orders')->once()->andReturn($orders);
+        $maid->shouldReceive('contracts')->once()->andReturn($contracts);
+
+        $this->assertTrue($maid->hasFinancialEditLock());
     }
 
     public function test_financially_linked_maid_passport_remains_locked(): void
@@ -54,35 +103,24 @@ class MaidActionFinancialEditLockTest extends TestCase
         $this->assertTrue(true);
     }
 
-    public function test_override_permission_is_registered_for_the_permissions_screen(): void
+    public function test_override_is_not_registered_for_the_permissions_screen(): void
     {
         $permission = collect(config('access_control_permission_registry.permissions'))
             ->firstWhere('name', PermKeys::MAIDS_TRANSACTION_EDIT_OVERRIDE);
 
-        $this->assertNotNull($permission);
-        $this->assertSame('تعديل السيرة المرتبطة بمعاملات', $permission['display_name']);
+        $this->assertNull($permission);
     }
 
-    public function test_maid_control_permission_does_not_replace_the_dedicated_override_permission(): void
+    public function test_disabled_cv_option_keeps_linked_maid_edits_locked(): void
     {
-        $admin = Mockery::mock();
-        $admin->shouldReceive('can')
-            ->once()
-            ->with(PermKeys::MAIDS_TRANSACTION_EDIT_OVERRIDE)
-            ->andReturnFalse();
-        $this->mockAdminGuardUser($admin);
+        CvOptionsSettings::fakeMaidTransactionEditOverrideEnabled(false);
 
         $this->assertFalse($this->invokeCanOverride($this->makeAction()));
     }
 
-    public function test_dedicated_override_permission_unlocks_linked_maid_edits(): void
+    public function test_enabled_cv_option_unlocks_linked_maid_edits(): void
     {
-        $admin = Mockery::mock();
-        $admin->shouldReceive('can')
-            ->once()
-            ->with(PermKeys::MAIDS_TRANSACTION_EDIT_OVERRIDE)
-            ->andReturnTrue();
-        $this->mockAdminGuardUser($admin);
+        CvOptionsSettings::fakeMaidTransactionEditOverrideEnabled(true);
 
         $this->assertTrue($this->invokeCanOverride($this->makeAction()));
     }
@@ -125,15 +163,6 @@ class MaidActionFinancialEditLockTest extends TestCase
         $method = new ReflectionMethod(MaidAction::class, 'guardFinanciallyLinkedMaidIdentityChanges');
         $method->setAccessible(true);
         $method->invoke($action, $maid, $data, [3], $canOverride);
-    }
-
-    private function mockAdminGuardUser($admin): void
-    {
-        $guard = Mockery::mock();
-        $guard->shouldReceive('user')->once()->andReturn($admin);
-        $auth = Mockery::mock();
-        $auth->shouldReceive('guard')->once()->with('admin')->andReturn($guard);
-        $this->app->instance('auth', $auth);
     }
 
     private function invokeCanOverride(MaidAction $action): bool

@@ -29,7 +29,7 @@ class MaidCardResource extends JsonResource
 
             'image' => (string) showFile($this->image),
             'cv_file' => (string) showFile($this->cv_file),
-            'cv_preview' => (string) showFile($this->cv_preview),
+            'cv_preview' => (string) $this->resource->cvPreviewUrl(),
             'video' => (string) showFile($this->video),
             'video_link' => (string) $this->video_link,
 

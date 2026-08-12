@@ -323,6 +323,12 @@ class NewPermKeys
     const SKILLS_DELETE = 'skills_delete';
     const SKILLS_MANAGE = 'skills_manage';
 
+    const MAID_LANGUAGES_VIEW = 'maid_languages_view';
+    const MAID_LANGUAGES_CREATE = 'maid_languages_create';
+    const MAID_LANGUAGES_EDIT = 'maid_languages_edit';
+    const MAID_LANGUAGES_DELETE = 'maid_languages_delete';
+    const MAID_LANGUAGES_TOGGLE_VISIBILITY = 'maid_languages_toggle_visibility';
+
     // عمال الإيواء (Shelter Workers)
     const SHELTER_WORKERS_VIEW = 'shelter_workers_view';
     const SHELTER_WORKERS_CREATE = 'shelter_workers_create';
@@ -546,6 +552,7 @@ class NewPermKeys
             self::NATIONALITIES_VIEW,
             self::RELIGIONS_VIEW,
             self::SKILLS_VIEW,
+            self::MAID_LANGUAGES_VIEW,
             self::SHELTER_WORKERS_VIEW,
             self::SHELTER_PLACES_VIEW,
             self::REC_OFFICES_VIEW,

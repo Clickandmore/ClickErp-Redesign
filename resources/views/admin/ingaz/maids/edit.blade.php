@@ -84,7 +84,7 @@
     ]);
     $hasFinancialRelations = $obj->hasFinancialEditLock();
     $hasExternalOfficeDispatch = $obj->hasExternalOfficeDispatchEditLock();
-    $canOverrideTransactionEditLock = @AdminGuardHasPerm(\App\PermKeys::MAIDS_TRANSACTION_EDIT_OVERRIDE);
+    $canOverrideTransactionEditLock = \App\Support\CvOptionsSettings::maidTransactionEditOverrideEnabled();
     $financialEditLock = $hasFinancialRelations && !$canOverrideTransactionEditLock;
     $externalOfficeDispatchEditLock = $hasExternalOfficeDispatch && !$canOverrideTransactionEditLock;
     $identityEditLock = $financialEditLock || $externalOfficeDispatchEditLock;
@@ -388,6 +388,7 @@
                     enctype="multipart/form-data" id="maidForm">
                     @csrf
                     @method('PUT')
+                    @include('admin.ingaz.maids.partials.form-validation-feedback')
                     @if ($typeFieldLocked)
                         <input type="hidden" name="type_id" value="{{ $selectedTypeId }}">
                     @endif
@@ -403,7 +404,7 @@
                     @if ($hasLockedIdentityFields)
                         <div class="col-12">
                             <div class="alert alert-warning mb-0">
-                                رقم الجواز والجنسية والوكيل/المكتب والبيانات المالية المرجعية مقفلة لوجود فاتورة/قيد محاسبي مرتبط أو إرسالية مكتب خارجي. يمكن تعديل الاسم والديانة والمهارات والحالة الاجتماعية والخبرة وبقية سمات العاملة.
+                                رقم الجواز والجنسية والوكيل/المكتب والبيانات المالية المرجعية مقفلة لوجود طلب أو عقد نشط أو فاتورة/قيد محاسبي مرتبط أو إرسالية مكتب خارجي. يمكن تعديل الاسم والديانة والمهارات والحالة الاجتماعية والخبرة وبقية سمات العاملة.
                                 ويمكن استخدام زر «تعديل الصور والفيديو فقط» وحفظها بشكل مستقل.
                             </div>
                         </div>
@@ -411,7 +412,7 @@
                     @if ($canOverrideTransactionEditLock && ($hasFinancialRelations || $hasExternalOfficeDispatch))
                         <div class="col-12">
                             <div class="alert alert-info mb-0">
-                                لديك صلاحية إدارية لتجاوز قفل السيرة المرتبطة بمعاملات. سيتم تسجيل التعديلات المنفذة بهذه الصلاحية.
+                                تم تفعيل تجاوز قفل السيرة المرتبطة بمعاملات من إعدادات السير الذاتية. سيتم تسجيل التعديلات المنفذة أثناء التفعيل.
                             </div>
                         </div>
                     @endif
@@ -935,19 +936,15 @@
                             </div>
                         </div>
                         <div class="row g-3">
-                            @foreach ([
-                                'arabic' => helperTrans('ingaz.arabic_language'),
-                                'english' => helperTrans('ingaz.english_language'),
-                                'amharic' => helperTrans('ingaz.amharic_language'),
-                                'mother' => helperTrans('ingaz.mother_language'),
-                            ] as $language => $label)
+                            @foreach ($maidLanguages as $maidLanguage)
                                 @include('admin.ingaz.maids._language_rating', [
-                                    'language' => $language,
-                                    'label' => $label,
-                                    'checked' => in_array($language, $langs, true),
-                                    'percentage' => $percentages[$language] ?? '',
-                                    'level' => $languageLevels[$language] ?? '',
+                                    'language' => $maidLanguage->code,
+                                    'label' => $maidLanguage->title,
+                                    'checked' => in_array($maidLanguage->code, $langs, true),
+                                    'percentage' => $percentages[$maidLanguage->code] ?? '',
+                                    'level' => $languageLevels[$maidLanguage->code] ?? '',
                                     'mode' => $languageRatingMode,
+                                    'inactive' => !$maidLanguage->is_active,
                                 ])
                             @endforeach
                         </div>
@@ -2573,14 +2570,23 @@
                 }
             });
 
+            @include('admin.ingaz.maids.partials.form-validation-feedback-script')
+
             // التحقق من النموذج قبل الإرسال
             $('#maidForm').on('submit', function(e) {
                 e.preventDefault();
+                clearMaidFormValidationErrors();
 
                 var isValid = true;
                 var errors = [];
                 var typeContext = getTypeContext();
                 var cvTypeValue = $('select[name="type_id"]').val();
+
+                var videoErrors = validateMaidVideoFile();
+                if (videoErrors.length) {
+                    errors = errors.concat(videoErrors);
+                    isValid = false;
+                }
 
                 if (!cvTypeValue || cvTypeValue.trim() === '') {
                     errors.push(maidCreateTranslations.cvTypeRequired);
@@ -2675,6 +2681,7 @@
                 }
 
                 if (!isValid) {
+                    showMaidFormValidationErrors({ form: errors });
                     Swal.fire({
                         icon: 'error',
                         title: maidCreateTranslations.errorTitle,
@@ -2795,21 +2802,16 @@
                         });
                     },
                     error: function(xhr) {
-                        var errorMessage = maidCreateTranslations.maidAddError;
-
-                        if (xhr.responseJSON && xhr.responseJSON.errors) {
-                            var errors = xhr.responseJSON.errors;
-                            errorMessage = '';
-
-                            for (var field in errors) {
-                                errorMessage += errors[field].join('\n') + '\n';
-                            }
-                        }
+                        var response = xhr.responseJSON || {};
+                        var errorMessages = showMaidFormValidationErrors(
+                            response.errors,
+                            maidAjaxErrorMessage(xhr, maidCreateTranslations.maidAddError)
+                        );
 
                         Swal.fire({
                             icon: 'error',
                             title: maidCreateTranslations.errorTitle,
-                            text: errorMessage,
+                            text: errorMessages.join('\n'),
                             confirmButtonText: maidCreateTranslations.ok
                         });
                     },

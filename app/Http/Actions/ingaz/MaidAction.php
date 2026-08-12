@@ -9,7 +9,6 @@ use App\Models\ContractInfo;
 use App\Models\ingaz\JobType;
 use App\Models\ingaz\Maid;
 use App\Models\ingaz\User as ClientUser;
-use App\PermKeys;
 use App\Services\ingaz\RentalMaidAccountingService;
 use App\Services\ingaz\RentalMaidFinanceService;
 use App\Support\CvOptionsSettings;
@@ -128,7 +127,7 @@ class MaidAction extends MainAction
         }
         if (isset($data['video']) && $data['video'] instanceof \Illuminate\Http\UploadedFile) {
             $video = $data['video'];
-            $data['video'] = uploadMaidFile($video, $this->fileFolder);
+            $data['video'] = $this->uploadMaidVideo($video);
         }
 
         // Normalize experience values before defaults so they survive cleanup
@@ -310,12 +309,16 @@ class MaidAction extends MainAction
         // Verify that the nationality and religion exist in the database
         $nationality = \App\Models\ingaz\Nationality::find($data['nationality_id']);
         if (!$nationality) {
-            throw new \Exception('Selected nationality does not exist in the database');
+            throw ValidationException::withMessages([
+                'nationality_id' => 'الجنسية المحددة غير موجودة. يرجى اختيار جنسية صحيحة من القائمة.',
+            ]);
         }
 
-        $religion = \App\Models\ingaz\Religion::find($data['religion_id']);
-        if (!$religion) {
-            throw new \Exception('Selected religion does not exist in the database');
+        if (filled($data['religion_id'] ?? null)
+            && !\App\Models\ingaz\Religion::find($data['religion_id'])) {
+            throw ValidationException::withMessages([
+                'religion_id' => 'الديانة المحددة غير موجودة. يرجى اختيار ديانة صحيحة من القائمة.',
+            ]);
         }
 
         $duration = $data['duration'] ?? null;
@@ -1440,7 +1443,7 @@ class MaidAction extends MainAction
             if (isset($data['video'])) {
                 $oldMediaFiles[] = $maid->video;
                 $video = $data['video'];
-                $data['video'] = uploadMaidFile($video, $this->fileFolder);
+                $data['video'] = $this->uploadMaidVideo($video);
                 $newMediaFiles[] = $data['video'];
             }
         } catch (\Throwable $exception) {
@@ -1703,9 +1706,7 @@ class MaidAction extends MainAction
 
     protected function canOverrideMaidTransactionEditLock(): bool
     {
-        $admin = auth('admin')->user();
-
-        return $admin && $admin->can(PermKeys::MAIDS_TRANSACTION_EDIT_OVERRIDE);
+        return CvOptionsSettings::maidTransactionEditOverrideEnabled();
     }
 
     protected function activeOrderStatuses(): array
@@ -2114,7 +2115,7 @@ class MaidAction extends MainAction
         );
 
         $type = match ($request->type) {
-            'estqdam' => 1,
+            'estqdam', 'estgdam' => 1,
             'egar' => 2,
             'transfer' => 3,
             default => null,
@@ -2224,5 +2225,24 @@ class MaidAction extends MainAction
     public function findAvailable($id)
     {
         return $this->availableQuery()->find($id);
+    }
+
+    private function uploadMaidVideo(\Illuminate\Http\UploadedFile $video): string
+    {
+        try {
+            return uploadMaidFile($video, $this->fileFolder);
+        } catch (\Throwable $exception) {
+            report($exception);
+            \Log::error('Maid video upload failed.', [
+                'admin_id' => auth('admin')->id(),
+                'original_name' => $video->getClientOriginalName(),
+                'size' => $video->getSize(),
+                'error' => $exception->getMessage(),
+            ]);
+
+            throw ValidationException::withMessages([
+                'video' => [__('ingaz.maid_video_storage_failed')],
+            ]);
+        }
     }
 }

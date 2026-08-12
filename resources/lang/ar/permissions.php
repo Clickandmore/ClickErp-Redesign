@@ -405,4 +405,10 @@ return array (
   'recruitment_requirements_edit' => 'تعديل متطلبات الاستقدام',
   'recruitment_requirements_delete' => 'حذف متطلبات الاستقدام',
   'recruitment_requirements_control' => 'التحكم الكامل في متطلبات الاستقدام',
+  'maid_languages' => 'لغات السير الذاتية',
+  'maid_languages_view' => 'عرض اللغات',
+  'maid_languages_create' => 'إضافة لغة',
+  'maid_languages_edit' => 'تعديل لغة',
+  'maid_languages_delete' => 'حذف لغة',
+  'maid_languages_toggle_visibility' => 'إظهار وإخفاء اللغات',
 );

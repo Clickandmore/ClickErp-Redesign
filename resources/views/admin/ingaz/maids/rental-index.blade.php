@@ -329,6 +329,13 @@
                                 </select>
                             </div>
                             <div class="col-lg-3 col-md-3 col-sm-6 mb-3">
+                                <select name="video_status" id="video_status" class="form-control">
+                                    <option value="">{{ helperTrans('ingaz.video') }}: {{ helperTrans('ingaz.all') }}</option>
+                                    <option value="with_video" {{ $request->video_status === 'with_video' ? 'selected' : '' }}>{{ helperTrans('ingaz.maids_with_video') }}</option>
+                                    <option value="without_video" {{ $request->video_status === 'without_video' ? 'selected' : '' }}>{{ helperTrans('ingaz.maids_without_video') }}</option>
+                                </select>
+                            </div>
+                            <div class="col-lg-3 col-md-3 col-sm-6 mb-3">
                                 <select name="request_type" id="request_type" class="form-control">
                                     <option value="">{{ helperTrans('ingaz.all_request_types') }}</option>
                                     @foreach (($filter['request_types'] ?? []) as $requestTypeKey => $requestTypeLabel)
@@ -615,6 +622,7 @@
                     experience_years: $('#experience_years').val(),
                     cv_status: $('#cv_status').val(),
                     visibility: $('#visibility').val(),
+                    video_status: $('#video_status').val(),
                     experience_status: $('#experience_status').val(),
                     request_type: $('#request_type').val(),
                     pinned: $('#pinned').val(),

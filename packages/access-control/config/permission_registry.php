@@ -835,11 +835,43 @@ return array (
     ),
     99 =>
     array (
-      'name' => 'maids_transaction_edit_override',
-      'group' => 'maids',
+      'name' => 'maid_languages_view',
+      'group' => 'maid_languages',
       'section' => 'cv_management',
-      'display_name' => 'تعديل السيرة المرتبطة بمعاملات',
-      'description' => 'صلاحية إدارية لتجاوز قفل بيانات العاملة المرتبطة بفواتير أو قيود محاسبية أو إرساليات مكاتب خارجية.',
+      'display_name' => 'عرض اللغات',
+      'description' => 'إمكانية عرض صفحة لغات السير الذاتية.',
+    ),
+    100 =>
+    array (
+      'name' => 'maid_languages_create',
+      'group' => 'maid_languages',
+      'section' => 'cv_management',
+      'display_name' => 'إضافة لغة',
+      'description' => 'إمكانية إضافة لغة جديدة إلى نماذج السير الذاتية.',
+    ),
+    101 =>
+    array (
+      'name' => 'maid_languages_edit',
+      'group' => 'maid_languages',
+      'section' => 'cv_management',
+      'display_name' => 'تعديل لغة',
+      'description' => 'إمكانية تعديل العنوان العربي والإنجليزي للغة.',
+    ),
+    102 =>
+    array (
+      'name' => 'maid_languages_delete',
+      'group' => 'maid_languages',
+      'section' => 'cv_management',
+      'display_name' => 'حذف لغة',
+      'description' => 'إمكانية حذف لغة من إعدادات نماذج السير الذاتية.',
+    ),
+    103 =>
+    array (
+      'name' => 'maid_languages_toggle_visibility',
+      'group' => 'maid_languages',
+      'section' => 'cv_management',
+      'display_name' => 'إظهار وإخفاء اللغات',
+      'description' => 'إمكانية إظهار اللغة أو إخفائها في نموذج السيرة الذاتية.',
     ),
   ),
 );

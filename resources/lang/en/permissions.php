@@ -520,6 +520,12 @@ return [
     'recruitment_requirements_edit' => 'Edit recruitment requirements',
     'recruitment_requirements_delete' => 'Delete recruitment requirements',
     'recruitment_requirements_control' => 'Fully manage recruitment requirements',
+    'maid_languages' => 'CV Languages',
+    'maid_languages_view' => 'View languages',
+    'maid_languages_create' => 'Create language',
+    'maid_languages_edit' => 'Edit language',
+    'maid_languages_delete' => 'Delete language',
+    'maid_languages_toggle_visibility' => 'Show and hide languages',
 
     // ========================================
     // Legacy Recruitment Contracts (for compatibility)

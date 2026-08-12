@@ -3,6 +3,7 @@
     $percentage = $percentage ?? '';
     $level = $level ?? '';
     $mode = $mode ?? ($level !== '' ? 'level' : 'percentage');
+    $inactive = (bool) ($inactive ?? false);
 @endphp
 
 <div class="col-md-3">
@@ -10,7 +11,12 @@
         <input class="form-check-input lang-check" type="checkbox"
             name="languages[{{ $language }}]" id="{{ $language }}" value="{{ $language }}"
             {{ $checked ? 'checked' : '' }}>
-        <label class="form-check-label" for="{{ $language }}">{{ $label }}</label>
+        <label class="form-check-label" for="{{ $language }}">
+            {{ $label }}
+            @if ($inactive)
+                <span class="badge bg-secondary ms-1">مخفية</span>
+            @endif
+        </label>
     </div>
 
     <div class="lang-extra mt-2 {{ $checked ? '' : 'd-none' }}">
