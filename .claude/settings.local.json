@@ -11,7 +11,17 @@
       "Bash(/Applications/MAMP/Library/bin/mysql -h127.0.0.1 -P8889 -uroot -proot -e \"SELECT COUNT\\(*\\) FROM rafdain_test.branches; SELECT COUNT\\(*\\) FROM rafdain_test.admins;\")",
       "Bash(echo \"exit=$?\")",
       "Bash(php -d error_reporting=\"E_ALL & ~E_DEPRECATED & ~E_NOTICE\" artisan permissions:audit --module=all --show-unused --show-unprotected --json)",
-      "Bash(python3 -c ' *)"
+      "Bash(python3 -c ' *)",
+      "Bash(php -r '$c=require \"packages/access-control/config/permission_registry.php\"; echo \"registry_permissions=\".count\\($c[\"permissions\"]\\).\"\\\\n\"; $s=require \"packages/access-control/config/laratrust_seeder.php\"; echo \"seeder_keys=\".implode\\(\",\",array_keys\\($s\\)\\).\"\\\\n\"; foreach\\($s as $k=>$v\\){ if\\(is_array\\($v\\)\\) echo \"  $k: \".count\\($v,COUNT_RECURSIVE\\).\"\\\\n\";}')",
+      "Bash(timeout 400 php -d error_reporting=0 vendor/bin/phpunit tests/Feature/Admin/)",
+      "Bash(php -d error_reporting=0 vendor/bin/phpunit tests/Feature/Admin/)",
+      "Bash(grep -n 'function \\(\\\\?Request\\\\|fn \\(\\\\|function \\(Request\\\\|$request' app/Support/AdminRoutePermissionMatrix.php)",
+      "Bash(php -d error_reporting=0 artisan permissions:doctor)",
+      "Bash(php -d error_reporting=0 artisan tinker '--execute= *)",
+      "Bash(php -d error_reporting=0 artisan permissions:prune-orphans --apply)",
+      "Bash(php -d error_reporting=0 artisan permissions:prepare-server --role-id=1 --role-name=Administrator)",
+      "Bash(php -d error_reporting=0 artisan permission:cache-reset)",
+      "Bash(php -d error_reporting=0 -d memory_limit=1G vendor/bin/phpunit)"
     ]
   }
 }

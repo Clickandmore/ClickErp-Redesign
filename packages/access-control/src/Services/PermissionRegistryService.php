@@ -166,6 +166,11 @@ class PermissionRegistryService
                 ->first();
 
             if ($existing) {
+                // التعطيل قرار إداري متعمد (permissions:prune-orphans أو زر التفعيل في شاشة
+                // المطور). أمر مزامنة النشر لا يجوز أن يعيد إحياء صف عُطل عن قصد، وإلا عادت
+                // المربعات الميتة إلى /dash/perms بعد كل deploy. الاسترجاع يتم صراحة فقط.
+                unset($values['is_active']);
+
                 $existing->fill($values);
                 $existing->save();
                 $permission = $existing;

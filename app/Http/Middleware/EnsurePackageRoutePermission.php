@@ -38,7 +38,11 @@ class EnsurePackageRoutePermission
         abort(403, __('ingaz.permission_denied'));
     }
 
-    private function resolvePermissions(?string $routeName, string $module): array
+    /**
+     * الصلاحيات المطلوبة لمسار حزمة معينة. عامة ليستخدمها كتالوج الصلاحيات
+     * (App\Support\PermissionCatalog) في التدقيق والمزامنة بدون Reflection.
+     */
+    public function resolvePermissions(?string $routeName, string $module): array
     {
         if (!$routeName) {
             return [];
@@ -48,8 +52,26 @@ class EnsurePackageRoutePermission
             'finance' => $this->financePermissions($routeName),
             'hr' => $this->hrPermissions($routeName),
             'zatca' => $this->zatcaPermissions($routeName),
+            'crm' => $this->crmPermissions($routeName),
+            'employee' => $this->employeePermissions($routeName),
             default => [],
         };
+    }
+
+    private function crmPermissions(string $routeName): array
+    {
+        [$resource, $action] = $this->splitPrefixedRoute($routeName, 'crm.');
+        $resource = $resource === 'home' ? 'dashboard' : $resource;
+
+        return $this->resourcePermissions('crm', $resource, $action, 'crm_module');
+    }
+
+    private function employeePermissions(string $routeName): array
+    {
+        [$resource, $action] = $this->splitPrefixedRoute($routeName, 'employee.');
+        $resource = $resource === 'home' ? 'dashboard' : $resource;
+
+        return $this->resourcePermissions('employee', $resource, $action, 'employee_module');
     }
 
     private function financePermissions(string $routeName): array

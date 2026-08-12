@@ -5,6 +5,7 @@ namespace App\Console\Commands;
 use App\Models\Permission;
 use App\Models\auth\Admin;
 use App\Support\AdminRoutePermissionMatrix;
+use App\Support\PermissionCatalog;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Schema;
 use Nami\AccessControl\Services\PermissionRegistryService;
@@ -41,6 +42,11 @@ class PrepareServerPermissionsCommand extends Command
 
         $this->line('Route matrix definitions: ' . $matrixSummary['total']);
         $this->line('Route matrix created: ' . $matrixSummary['created'] . ' | Updated: ' . $matrixSummary['updated']);
+
+        $routeSummary = $this->syncRoutePermissionCatalog($service);
+
+        $this->line('Route catalog definitions: ' . $routeSummary['total']);
+        $this->line('Route catalog created: ' . $routeSummary['created'] . ' | Updated: ' . $routeSummary['updated']);
 
         $allPermissions = Permission::query()
             ->where('guard_name', $role->guard_name)
@@ -90,6 +96,23 @@ class PrepareServerPermissionsCommand extends Command
         return $service->syncPermissionDefinitions($definitions, [], false);
     }
 
+    /**
+     * تسجيل كل صلاحية يمكن أن يطلبها أي مسار إداري، بما فيها صلاحيات الحزم
+     * التي يولدها EnsurePackageRoutePermission بالاصطلاح ولا توجد في أي ملف تعريف.
+     * بدون هذه الخطوة تتحول تلك الشاشات تلقائياً إلى صلاحية الوحدة كاملة.
+     */
+    private function syncRoutePermissionCatalog(PermissionRegistryService $service): array
+    {
+        $definitions = PermissionCatalog::requiredPermissions()
+            ->map(fn (string $name) => $service->makeExplicitPermissionDefinition([
+                'name' => $name,
+                'is_active' => true,
+            ]))
+            ->all();
+
+        return $service->syncPermissionDefinitions($definitions, [], false);
+    }
+
     private function printFinalVerification(Role $role): void
     {
         $screenPermissionNames = Permission::query()
@@ -113,6 +136,15 @@ class PrepareServerPermissionsCommand extends Command
 
         if ($missingPermissionNames->isNotEmpty()) {
             $this->warn('Missing permissions: ' . $missingPermissionNames->take(30)->implode(', '));
+        }
+
+        $unregisteredRequired = PermissionCatalog::missingPermissions($role->guard_name);
+
+        $this->line('Route required total: ' . PermissionCatalog::requiredPermissions()->count());
+        $this->line('Route required unregistered: ' . $unregisteredRequired->count());
+
+        if ($unregisteredRequired->isNotEmpty()) {
+            $this->warn('Unregistered route permissions: ' . $unregisteredRequired->take(30)->implode(', '));
         }
     }
 

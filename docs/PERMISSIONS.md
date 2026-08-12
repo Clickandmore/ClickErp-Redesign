@@ -2,6 +2,9 @@
 
 هذا الملف مخصص لتجهيز الصلاحيات بعد النشر أو بعد أي تحديث يضيف أو يعدل صلاحية.
 
+لخطة التصحيح المرحلية وأثر كل خطوة على المستخدمين، انظر
+[PERMISSIONS_CLEANUP_PLAN.md](PERMISSIONS_CLEANUP_PLAN.md).
+
 روابط التحقق:
 
 ```text
@@ -62,7 +65,13 @@ Final verification:
 Screen total: ...
 Role selected: ...
 Missing selected: 0
+Route required total: ...
+Route required unregistered: 0
 ```
+
+`Route required unregistered` هو الرقم الأهم للشاشات الجديدة: يعني أن كل صلاحية يطلبها
+أي مسار إداري صارت صفا في جدول `permissions`، أي مربع اختيار ظاهر في `/dash/perms`.
+`Missing selected` وحده لا يكفي لأنه يقارن الدور بالجدول فقط، لا الجدول بالمسارات.
 
 لا تعتمد على رقم ثابت مثل `1047` أو `1013` لأن الرقم يتغير حسب آخر migrations وتعريفات الصلاحيات الموجودة على السيرفر. المعيار الصحيح هو أن يكون:
 
@@ -76,6 +85,55 @@ Missing selected = 0
 ```bash
 php artisan permissions:prepare-server --role-id=ROLE_ID --role-name=Administrator --attach-first-admin
 php artisan permission:cache-reset
+```
+
+## 4.1. الفحص الشامل قبل وبعد التنفيذ
+
+```bash
+php artisan permissions:doctor
+php artisan permissions:doctor --details      # القوائم الكاملة
+php artisan permissions:doctor --json         # للتصدير
+php artisan permissions:doctor --module=crm   # وحدة واحدة
+```
+
+الأمر يقرأ فقط ولا يعدل شيئا. يعتمد على `App\Support\PermissionCatalog` الذي يستخرج
+الصلاحيات من المسارات نفسها، فلا يحتاج تحديث ملف تعريف عند إضافة شاشة جديدة.
+
+معنى الأرقام:
+
+```text
+مسارات محجوبة عن الجميع    يجب أن يكون 0. غير ذلك يعني شاشة لا يفتحها حتى المدير.
+صلاحيات مطلوبة وغير مسجلة  يجب أن يكون 0 بعد permissions:prepare-server.
+صلاحيات لا يستخدمها شيء    مربعات اختيار لا تحمي شيئا، مرشحة للحذف.
+مسارات إدارية بلا أي حماية  شاشات يفتحها أي مشرف مسجل دخول مهما كان دوره.
+```
+
+الأمر يرجع كود خروج غير صفري عند وجود مسارات محجوبة أو صلاحيات ناقصة، فيصلح للاستخدام
+في خطوة نشر آلية. أضف `--strict` ليعتبر الشاشات غير المحمية خطأ أيضا.
+
+## 4.2. تنظيف المربعات الميتة
+
+```bash
+php artisan permissions:prune-orphans              # عرض فقط
+php artisan permissions:prune-orphans --apply      # تنفيذ
+php artisan permissions:prune-orphans --restore=storage/app/permissions-pruned-YYYYmmdd-HHMMSS.json
+```
+
+يعطل بـ `is_active=0` كل صلاحية لا يطلبها أي مسار ولا تُذكر في أي واجهة، ويحفظ ملف
+استرجاع في `storage/app`. لا يحذف شيئا.
+
+يستثني تلقائيا الصلاحيات المحجوزة لشاشات إدارية غير محمية بعد، مثل CRM وبوابة الموظفين
+وشاشات access-control، لأن تعطيلها اليوم يعني أن حماية تلك الشاشات لاحقا ستقفلها على كل
+الأدوار. لتجاوز هذا الاستثناء استخدم `--include-earmarked`.
+
+تحذيران مهمان:
+
+```text
+موديل Permission يطبق global scope على is_active، فالصف المعطل يختفي عن كل استعلامات
+النظام. أول حفظ لأي دور من /dash/perms بعد التعطيل يزيل الصلاحيات المعطلة من
+role_has_permissions نهائيا، لأن استعلام الحفظ يستبعد المعطل.
+
+أمر permissions:prepare-server لا يعيد تفعيل ما عُطل عن قصد. الاسترجاع بـ --restore فقط.
 ```
 
 ## 5. التحقق بعد التنفيذ

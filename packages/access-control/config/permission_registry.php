@@ -26,18 +26,10 @@ return array (
     'main' => 
     array (
     ),
-    'finance' => 
+    // finance.reports أُزيل: لا يوجد أي مسار بهذا الاسم، وكان يعيد إنشاء
+    // finance_reports_* كمربعات اختيار لا تحمي شيئا بعد كل permissions:prepare-server.
+    'finance' =>
     array (
-      'finance.reports' => 
-      array (
-        'actions' => 
-        array (
-          0 => 'view',
-          1 => 'create',
-          2 => 'edit',
-          3 => 'delete',
-        ),
-      ),
     ),
     'hr' => 
     array (
