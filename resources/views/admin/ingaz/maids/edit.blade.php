@@ -898,6 +898,13 @@
                         </label>
                         <input type="file" name="video" id="maid_video" class="form-control"
                             accept="video/mp4,video/quicktime,video/x-msvideo,video/x-ms-wmv,video/webm,video/x-matroska,video/x-m4v">
+                        <input type="hidden" name="remove_video" id="remove_maid_video" value="0">
+                        <button type="button" class="btn btn-outline-danger btn-sm mt-2 js-clear-maid-video">
+                            <i class="fas fa-trash-alt me-1"></i>{{ __('ingaz.remove_video_value') }}
+                        </button>
+                        <small class="text-danger d-none mt-2 js-video-removal-notice">
+                            {{ __('ingaz.video_value_will_be_removed') }}
+                        </small>
                         <small class="text-muted d-block mt-1">MP4, MOV, AVI, WMV, WEBM, MKV, M4V — 100 MB</small>
                         <div class="maid-video-preview mt-2 d-none">
                             <div class="border rounded overflow-hidden" style="height: 220px;">
@@ -1392,6 +1399,11 @@
                                         <div class="col-md-6">
                                             <label class="form-label">{{ helperTrans('ingaz.video') }}</label>
                                             <input type="file" name="video" class="form-control" accept="video/*">
+                                            <div class="form-check mt-2">
+                                                <input class="form-check-input" type="checkbox" value="1"
+                                                    name="remove_video" id="media_remove_video">
+                                                <label class="form-check-label" for="media_remove_video">{{ __('ingaz.remove_uploaded_video') }}</label>
+                                            </div>
                                         </div>
                                         <div class="col-12">
                                             <label class="form-label">{{ helperTrans('ingaz.video_link') }}</label>
@@ -2885,6 +2897,20 @@
     </script>
     <script>
         $(function() {
+            $('.js-clear-maid-video').on('click', function() {
+                $('#maid_video').val('');
+                $('#remove_maid_video').val('1');
+                $('.js-video-link-input').val('').trigger('change');
+                $('.js-video-removal-notice').removeClass('d-none');
+            });
+
+            $('#maid_video').on('change input', function() {
+                if ($(this).val()) {
+                    $('#remove_maid_video').val('0');
+                    $('.js-video-removal-notice').addClass('d-none');
+                }
+            });
+
             function clearExperienceSection() {
                 $('#experience_section').find('[data-exp-required]').each(function() {
                     $(this).val('');

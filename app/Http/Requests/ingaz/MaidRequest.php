@@ -34,6 +34,7 @@ class MaidRequest extends MainRequest
             'cv_file' => 'nullable',
             'maid_cv_file' => 'nullable|file|mimes:pdf|max:10240',
             'video' => 'nullable|file|mimes:mp4,mov,avi,wmv,webm,mkv,m4v|max:102400',
+            'remove_video' => 'nullable|boolean',
             'video_link' => 'nullable|url|max:2000',
             'nationality_id' => 'required|exists:nationalities,id',
             'passport_num' => [
