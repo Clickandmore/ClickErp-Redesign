@@ -785,6 +785,9 @@
                         </label>
                         <input type="file" name="video" id="maid_video" class="form-control"
                             accept="video/mp4,video/quicktime,video/x-msvideo,video/x-ms-wmv,video/webm,video/x-matroska,video/x-m4v">
+                        <button type="button" class="btn btn-outline-danger btn-sm mt-2 js-clear-maid-video">
+                            <i class="fas fa-trash-alt me-1"></i>{{ __('ingaz.clear_video_value') }}
+                        </button>
                         <small class="text-muted d-block mt-1">MP4, MOV, AVI, WMV, WEBM, MKV, M4V — 100 MB</small>
                         <div class="maid-video-preview mt-2 d-none">
                             <div class="border rounded overflow-hidden" style="height: 220px;">
@@ -2583,6 +2586,11 @@
     </script>
     <script>
         $(function() {
+            $('.js-clear-maid-video').on('click', function() {
+                $('#maid_video').val('');
+                $('.js-video-link-input').val('').trigger('change');
+            });
+
             function clearExperienceSection() {
                 $('#experience_section').find('[data-exp-required]').each(function() {
                     $(this).val('');

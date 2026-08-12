@@ -1420,6 +1420,7 @@ class MaidAction extends MainAction
 
         $oldMediaFiles = [];
         $newMediaFiles = [];
+        $removeVideo = $request->boolean('remove_video');
 
         try {
             if (isset($data['cv_file'])) {
@@ -1440,7 +1441,10 @@ class MaidAction extends MainAction
                 $data['image'] = uploadMaidFile($image, $this->fileFolder);
                 $newMediaFiles[] = $data['image'];
             }
-            if (isset($data['video'])) {
+            if ($removeVideo) {
+                $oldMediaFiles[] = $maid->video;
+                $data['video'] = null;
+            } elseif (isset($data['video'])) {
                 $oldMediaFiles[] = $maid->video;
                 $video = $data['video'];
                 $data['video'] = $this->uploadMaidVideo($video);
@@ -1453,6 +1457,8 @@ class MaidAction extends MainAction
 
             throw $exception;
         }
+
+        unset($data['remove_video']);
 
         // Convert skills array to JSON if it exists
         if (isset($data['skills']) && is_array($data['skills'])) {
