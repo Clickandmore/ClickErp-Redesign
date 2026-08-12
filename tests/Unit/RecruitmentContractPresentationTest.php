@@ -31,16 +31,19 @@ class RecruitmentContractPresentationTest extends TestCase
     }
 
     /** @test */
-    public function application_duration_starts_when_the_contract_record_was_created_and_stops_on_arrival(): void
+    public function application_duration_starts_on_the_contract_date_and_stops_on_arrival(): void
     {
         Carbon::setTestNow('2026-07-28 12:00:00');
 
         $contract = new Contract([
             'status' => ContractStatusEnum::Completed->value,
+            'contract_date' => '2026-07-03',
         ]);
         $contract->created_at = Carbon::parse('2026-07-01 15:30:00');
         $contract->setRelation('contract_status_logs', new Collection());
-        $contract->setRelation('info', null);
+        $contract->setRelation('info', new ContractInfo([
+            'contract_date' => '2026-07-05',
+        ]));
         $contract->setRelation('maid', null);
         $contract->setRelation('externalOfficeDispatch', null);
         $contract->setRelation('travelHistory', new TravelHistory([
@@ -51,11 +54,30 @@ class RecruitmentContractPresentationTest extends TestCase
 
         $summary = $this->invoke('buildContractDurationSummary', $contract);
 
-        $this->assertSame(10, $summary['total_days']);
-        $this->assertSame('10 أيام', $summary['total_label']);
-        $this->assertSame('2026-07-01', $summary['started_at_label']);
+        $this->assertSame(6, $summary['total_days']);
+        $this->assertSame('6 أيام', $summary['total_label']);
+        $this->assertSame('2026-07-05', $summary['started_at_label']);
         $this->assertSame('2026-07-11', $summary['ended_at_label']);
         $this->assertTrue($summary['worker_arrived']);
+    }
+
+    /** @test */
+    public function application_duration_falls_back_to_the_contract_record_date_then_created_at(): void
+    {
+        $contract = new Contract([
+            'status' => ContractStatusEnum::New->value,
+            'contract_date' => '2026-07-03',
+        ]);
+        $contract->created_at = Carbon::parse('2026-07-01 15:30:00');
+        $contract->setRelation('contract_status_logs', new Collection());
+        $contract->setRelation('info', null);
+        $contract->setRelation('maid', null);
+        $contract->setRelation('externalOfficeDispatch', null);
+        $contract->setRelation('travelHistory', null);
+
+        $summary = $this->invoke('buildContractDurationSummary', $contract);
+
+        $this->assertSame('2026-07-03', $summary['started_at_label']);
     }
 
     /** @test */

@@ -609,7 +609,7 @@ class RecruitmentContractController extends Controller
                 'externalOfficeDispatch',
                 'maid.nationality.translations', // جنسية العاملة مع الترجمات
                 'maid.religion.translations', // ديانة العاملة مع الترجمات
-                'maid.office.translations', // المكتب الخارجي مع الترجمات
+                'maid.recruitmentOffice.translations', // المكتب الخارجي مع الترجمات
                 'requiredMaidNationality.translations', // الجنسية المفضلة للعاملة
                 'requiredMaidReligion.translations',
                 'requiredMaidJobTitle.translations',
@@ -964,10 +964,10 @@ class RecruitmentContractController extends Controller
                         }
 
                         // Office
-                        if ($row->maid->office) {
+                        if ($row->maid->recruitmentOffice) {
                             $maidInfo .= '<div class="text-muted small d-flex align-items-center gap-2">'
                                 . '<i class="fas fa-building text-secondary"></i>'
-                                . '<span><span class="text-secondary">المكتب الخارجي: </span>' . $row->maid->office->title . '</span>'
+                                . '<span><span class="text-secondary">المكتب الخارجي: </span>' . $row->maid->recruitmentOffice->title . '</span>'
                                 . '</div>';
                         }
 
@@ -1349,7 +1349,7 @@ class RecruitmentContractController extends Controller
                     return $row->branch ? e($row->branch->name) : '-';
                 })
                 ->addColumn('recruitment_office', function ($row) {
-                    $office = $row->maid?->office ?? $row->maid?->recruitmentOffice ?? $row->info?->manualMaidOffice;
+                    $office = $row->maid?->recruitmentOffice ?? $row->info?->manualMaidOffice;
                     return $office?->title ?  '<span class="text-muted">' . $office?->title .'</span>' : '<span class="text-muted">غير محدد</span>';
                 })
                 ->addColumn('updateStatus', function ($row) {
@@ -1811,7 +1811,7 @@ class RecruitmentContractController extends Controller
             'maid.nationality',
             'maid.religion',
             'maid.jobTitles',
-            'maid.office',
+            'maid.recruitmentOffice',
             'info.prevSponsorship',
             'info.manualMaidNationality',
             'info.manualMaidOffice',
@@ -2661,7 +2661,10 @@ class RecruitmentContractController extends Controller
 
     private function resolveEffectiveContractStartDate(Contract $contract): Carbon
     {
-        return ($this->normalizeContractStageDate($contract->created_at) ?: now())->startOfDay();
+        return ($this->normalizeContractStageDate($contract->info?->contract_date)
+            ?: $this->normalizeContractStageDate($contract->contract_date)
+            ?: $this->normalizeContractStageDate($contract->created_at)
+            ?: now())->startOfDay();
     }
 
     private function resolveWorkerArrivalDetails(Contract $contract): array
@@ -4758,7 +4761,7 @@ class RecruitmentContractController extends Controller
                     'is_show',
                     'available_at',
                 ])
-                ->with(['nationality', 'religion', 'jobTitles', 'office'])
+                ->with(['nationality', 'religion', 'jobTitles', 'recruitmentOffice'])
                 ->where('available', true)
                 ->where('status', 'available') // التأكد من أن الحالة متاحة
                 ->whereDoesntHave('contracts', function ($q) {
@@ -4831,7 +4834,7 @@ class RecruitmentContractController extends Controller
                             'religion' => $maid->religion?->title,
                             'job' => $maid->jobTitles->first()?->title,
                             'nationality' => $maid->nationality?->sub_title,
-                            'office' => $maid->office?->title,
+                            'office' => $maid->recruitmentOffice?->title,
                             'salary' => $maid->salary,
                             'experience' => $maid->experience_years,
                             'age' => $maid->age,

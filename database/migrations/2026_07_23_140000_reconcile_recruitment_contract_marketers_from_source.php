@@ -3,7 +3,6 @@
 use App\Services\commissions\LegacyCommissionMarketerResolver;
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
@@ -18,7 +17,6 @@ return new class extends Migration
             return;
         }
 
-        $this->createHistoricalMarketerProfiles();
         $resolver = app(LegacyCommissionMarketerResolver::class);
 
         DB::transaction(function () use ($resolver) {
@@ -84,26 +82,4 @@ return new class extends Migration
         // The incorrect creator-based assignment is intentionally not restored.
     }
 
-    private function createHistoricalMarketerProfiles(): void
-    {
-        foreach (LegacyCommissionMarketerResolver::HISTORICAL_PROFILE_NAMES as $name) {
-            if (DB::table('admins')->where('name', $name)->exists()) {
-                continue;
-            }
-
-            $key = substr(hash('sha256', $name), 0, 16);
-            DB::table('admins')->insert([
-                'name' => $name,
-                'username' => 'legacy_marketer_' . $key,
-                'email' => "legacy-marketer-{$key}@invalid.local",
-                'password' => Hash::make(bin2hex(random_bytes(32))),
-                'admin_type' => 'commission_marketer',
-                'status' => 'suspended',
-                'note' => 'ملف مسوق تاريخي من نظام الرافدين السابق؛ موقوف ولا يستخدم لتسجيل الدخول.',
-                'whatsapp' => '',
-                'created_at' => now(),
-                'updated_at' => now(),
-            ]);
-        }
-    }
 };
