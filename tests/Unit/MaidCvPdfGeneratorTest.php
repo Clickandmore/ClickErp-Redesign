@@ -130,4 +130,30 @@ class MaidCvPdfGeneratorTest extends TestCase
 
         $this->assertStringStartsWith('%PDF-', $contents);
     }
+
+    public function test_it_routes_foreign_object_svg_through_browser_rendering(): void
+    {
+        $path = MaidCvPdfGenerator::STORAGE_DIRECTORY . '/maid-10-example.svg';
+        $imageContents = '<svg xmlns="http://www.w3.org/2000/svg"><foreignObject>'
+            . '<div xmlns="http://www.w3.org/1999/xhtml">CV</div>'
+            . '</foreignObject></svg>';
+        $maid = new Maid(['name' => 'Test Worker']);
+        $storage = Mockery::mock(ManagedFileStorage::class);
+        $storage->shouldReceive('exists')->once()->with($path)->andReturnTrue();
+        $storage->shouldReceive('contents')->once()->with($path)->andReturn($imageContents);
+        $storage->shouldReceive('mimeType')->once()->with($path)->andReturn('image/svg+xml');
+        $this->app->instance(ManagedFileStorage::class, $storage);
+
+        $generator = Mockery::mock(MaidCvPdfGenerator::class)
+            ->makePartial()
+            ->shouldAllowMockingProtectedMethods();
+        $generator->shouldReceive('renderForeignObjectSvgAsPdfContents')
+            ->once()
+            ->with($imageContents, $maid)
+            ->andReturn('%PDF-browser-render');
+
+        $contents = $generator->renderStoredImageAsPdfContents($path, $maid);
+
+        $this->assertSame('%PDF-browser-render', $contents);
+    }
 }

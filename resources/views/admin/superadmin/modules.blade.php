@@ -144,6 +144,12 @@
             color: #991b1b;
         }
 
+        .alert-warning {
+            border-color: #fde68a;
+            background: #fffbeb;
+            color: #92400e;
+        }
+
         .stats {
             display: grid;
             grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -177,6 +183,92 @@
             gap: 16px;
             align-items: start;
         }
+
+        .backup-panel {
+            margin-top: 16px;
+        }
+
+        .backup-settings {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(150px, 1fr));
+            gap: 12px;
+            align-items: end;
+        }
+
+        .field label {
+            display: block;
+            margin-bottom: 7px;
+            font-size: .82rem;
+            font-weight: 900;
+            color: var(--muted);
+        }
+
+        .field input {
+            width: 100%;
+            min-height: 42px;
+            border: 1px solid var(--border-strong);
+            border-radius: 9px;
+            padding: 8px 10px;
+            font: inherit;
+            background: #fff;
+        }
+
+        .backup-status {
+            padding: 11px 12px;
+            border-radius: 9px;
+            background: var(--surface-soft);
+            border: 1px solid var(--border);
+            font-weight: 800;
+            font-size: .84rem;
+        }
+
+        .backup-status.is-ready { color: #166534; background: #f0fdf4; border-color: #bbf7d0; }
+        .backup-status.is-off { color: var(--danger); background: var(--danger-soft); border-color: #fecaca; }
+
+        .backup-actions {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .backup-table-wrap { overflow-x: auto; margin-top: 18px; }
+        .backup-table { width: 100%; border-collapse: collapse; min-width: 760px; }
+        .backup-table th, .backup-table td { text-align: right; padding: 11px; border-bottom: 1px solid var(--border); }
+        .backup-table th { color: var(--muted); font-size: .8rem; background: var(--surface-soft); }
+        .backup-table td { font-size: .86rem; }
+        .backup-file { direction: ltr; text-align: left; font-family: monospace; }
+        .restore-form { display: flex; gap: 6px; align-items: center; }
+        .restore-form input { width: 94px; min-height: 38px; border: 1px solid var(--border-strong); border-radius: 8px; padding: 6px; }
+        .btn-small { min-height: 36px; padding: 0 10px; font-size: .78rem; }
+
+        .scheduler-summary {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 12px;
+            margin-bottom: 14px;
+        }
+
+        .scheduler-stat {
+            padding: 14px;
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            background: var(--surface-soft);
+        }
+
+        .scheduler-stat strong { display: block; margin-top: 7px; font-size: 1rem; }
+        .scheduler-stat.is-active { border-color: #bbf7d0; background: #f0fdf4; color: #166534; }
+        .scheduler-stat.is-inactive { border-color: #fecaca; background: #fef2f2; color: #991b1b; }
+        .cron-expression { direction: ltr; text-align: left; font-family: monospace; white-space: nowrap; }
+        .cron-command { direction: ltr; text-align: left; font-family: monospace; font-size: .75rem; max-width: 420px; overflow-wrap: anywhere; }
+        .cron-entry { direction: ltr; text-align: left; padding: 10px; border-radius: 8px; background: #0f172a; color: #e2e8f0; overflow-wrap: anywhere; font-family: monospace; font-size: .76rem; }
+        .risk-badge { display: inline-flex; padding: 5px 9px; border-radius: 999px; font-size: .75rem; font-weight: 900; margin-bottom: 6px; }
+        .risk-low { color: #166534; background: #dcfce7; }
+        .risk-medium { color: #92400e; background: #fef3c7; }
+        .risk-high, .risk-invalid { color: #991b1b; background: #fee2e2; }
+        .risk-unknown { color: #475569; background: #e2e8f0; }
+        .job-explanation { min-width: 220px; line-height: 1.7; }
+        .job-effect { min-width: 250px; line-height: 1.7; }
+        .job-safety { min-width: 230px; line-height: 1.7; }
 
         .panel {
             background: var(--surface);
@@ -558,6 +650,9 @@
             .save-row .btn {
                 width: 100%;
             }
+
+            .backup-settings { grid-template-columns: 1fr; }
+            .scheduler-summary { grid-template-columns: 1fr; }
         }
     </style>
 </head>
@@ -572,6 +667,15 @@
     $enabledCount = collect($enabledMap)->filter()->count();
     $disabledCount = max(count($modules) - $enabledCount, 0);
     $activeAdminsCount = $admins->filter(fn ($admin) => ($admin->status ?? 'active') !== 'suspended')->count();
+    $backupSettings = $backupSettings ?? ['enabled' => true, 'daily_time' => '03:30', 'retention_days' => 30, 'local_enabled' => true, 'local_retention_days' => 7, 'path' => 'database-backups'];
+    $databaseBackups = $databaseBackups ?? [];
+    $localDatabaseBackups = $localDatabaseBackups ?? [];
+    $backupListError = $backupListError ?? null;
+    $r2Ready = $r2Ready ?? false;
+    $schedulerStatus = $schedulerStatus ?? ['active' => false, 'last_heartbeat_at' => null, 'crontab_configured' => null, 'crontab_entries' => [], 'crontab_error' => null, 'recommended_entry' => '', 'jobs' => []];
+    $cronJobs = collect($schedulerStatus['jobs']);
+    $highRiskCronCount = $cronJobs->where('risk', 'high')->count();
+    $invalidCronCount = $cronJobs->where('risk', 'invalid')->count();
 @endphp
 
 <main class="dev-shell">
@@ -736,6 +840,229 @@
             </div>
         </aside>
     </div>
+
+    <section class="panel backup-panel">
+        <div class="panel-head">
+            <div>
+                <h2 class="panel-title">نسخ قاعدة البيانات إلى R2 والسيرفر</h2>
+                <p class="panel-subtitle">نسخة MySQL مضغوطة يوميًا؛ 30 يومًا في R2 و7 أيام على السيرفر. التنزيل يحفظ ملف القاعدة على جهازك مباشرة.</p>
+            </div>
+            <div class="backup-actions">
+                <form method="POST" action="{{ route('dev-superadmin.database-backups.download-current') }}">
+                    @csrf
+                    <button class="btn btn-primary" type="submit" {{ $r2Ready ? '' : 'disabled' }}>تنزيل قاعدة البيانات الآن</button>
+                </form>
+                <form method="POST" action="{{ route('dev-superadmin.database-backups.create') }}">
+                    @csrf
+                    <button class="btn" type="submit" {{ $r2Ready ? '' : 'disabled' }}>إنشاء نسخة دون تنزيل</button>
+                </form>
+            </div>
+        </div>
+
+        <div class="panel-body">
+            <form method="POST" action="{{ route('dev-superadmin.database-backups.settings') }}" class="backup-settings">
+                @csrf
+                @method('PUT')
+                <div class="field">
+                    <label>الجدولة اليومية</label>
+                    <label class="backup-status {{ $backupSettings['enabled'] ? 'is-ready' : '' }}">
+                        <input type="hidden" name="enabled" value="0">
+                        <input type="checkbox" name="enabled" value="1" {{ old('enabled', $backupSettings['enabled']) ? 'checked' : '' }}>
+                        تفعيل النسخ التلقائي
+                    </label>
+                </div>
+                <div class="field">
+                    <label>نسخة السيرفر الخاصة</label>
+                    <label class="backup-status {{ $backupSettings['local_enabled'] ? 'is-ready' : '' }}">
+                        <input type="hidden" name="local_enabled" value="0">
+                        <input type="checkbox" name="local_enabled" value="1" {{ old('local_enabled', $backupSettings['local_enabled']) ? 'checked' : '' }}>
+                        الاحتفاظ بنسخة على السيرفر
+                    </label>
+                </div>
+                <div class="field">
+                    <label for="backupDailyTime">وقت التنفيذ</label>
+                    <input id="backupDailyTime" type="time" name="daily_time" required value="{{ old('daily_time', $backupSettings['daily_time']) }}">
+                </div>
+                <div class="field">
+                    <label for="backupRetention">مدة الاحتفاظ في R2 (يوم)</label>
+                    <input id="backupRetention" type="number" name="retention_days" min="1" max="365" required value="{{ old('retention_days', $backupSettings['retention_days']) }}">
+                </div>
+                <div class="field">
+                    <label for="localBackupRetention">مدة الاحتفاظ على السيرفر (يوم)</label>
+                    <input id="localBackupRetention" type="number" name="local_retention_days" min="1" max="30" required value="{{ old('local_retention_days', $backupSettings['local_retention_days']) }}">
+                </div>
+                <div class="field">
+                    <label for="backupPath">المجلد داخل R2</label>
+                    <input id="backupPath" type="text" name="path" required value="{{ old('path', $backupSettings['path']) }}">
+                </div>
+                <button class="btn" type="submit">حفظ الإعداد</button>
+            </form>
+
+            <p class="backup-status {{ $r2Ready ? 'is-ready' : 'is-off' }}">
+                {{ $r2Ready ? 'اتصال R2 جاهز للحفظ والاستعادة.' : 'R2 غير جاهز. فعّله واختبر الاتصال من إعدادات التخزين أولًا.' }}
+                <a href="{{ route('storage.settings') }}">فتح إعدادات التخزين</a>
+            </p>
+
+            <p class="backup-status {{ $backupSettings['local_enabled'] ? 'is-ready' : '' }}">
+                النسخ الخاصة الموجودة على السيرفر: {{ count($localDatabaseBackups) }} — محفوظة داخل storage/app/database-backups وغير متاحة للعامة.
+            </p>
+
+            @if ($backupListError)
+                <div class="alert alert-danger">تعذر قراءة قائمة النسخ: {{ $backupListError }}</div>
+            @endif
+
+            <div class="backup-table-wrap">
+                <table class="backup-table">
+                    <thead><tr><th>الملف</th><th>التاريخ</th><th>الحجم</th><th>الإجراءات</th></tr></thead>
+                    <tbody>
+                    @forelse ($databaseBackups as $backup)
+                        <tr>
+                            <td class="backup-file">{{ $backup['filename'] }}</td>
+                            <td>{{ \Carbon\Carbon::createFromTimestamp($backup['created_at'])->format('Y-m-d H:i:s') }}</td>
+                            <td>{{ number_format($backup['size'] / 1024 / 1024, 2) }} MB</td>
+                            <td>
+                                <div class="backup-actions">
+                                    <a class="btn btn-small" href="{{ route('dev-superadmin.database-backups.download', ['key' => $backup['key']]) }}">تنزيل</a>
+                                    <form class="restore-form" method="POST" action="{{ route('dev-superadmin.database-backups.restore') }}" onsubmit="return confirm('سيتم استبدال قاعدة البيانات الحالية بهذه النسخة. هل أنت متأكد؟')">
+                                        @csrf
+                                        <input type="hidden" name="key" value="{{ $backup['key'] }}">
+                                        <input type="text" name="confirmation" required placeholder="RESTORE" autocomplete="off">
+                                        <button class="btn btn-small" type="submit">استعادة</button>
+                                    </form>
+                                    <form method="POST" action="{{ route('dev-superadmin.database-backups.destroy') }}" onsubmit="return confirm('حذف النسخة نهائيًا من R2؟')">
+                                        @csrf
+                                        @method('DELETE')
+                                        <input type="hidden" name="key" value="{{ $backup['key'] }}">
+                                        <button class="btn btn-danger btn-small" type="submit">حذف</button>
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>
+                    @empty
+                        <tr><td colspan="4">لا توجد نسخ احتياطية محفوظة حتى الآن.</td></tr>
+                    @endforelse
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </section>
+
+    <section class="panel backup-panel">
+        <div class="panel-head">
+            <div>
+                <h2 class="panel-title">مراقبة Cron Jobs وLaravel Scheduler</h2>
+                <p class="panel-subtitle">الحالة تعتمد على نبض يُكتب بواسطة <span dir="ltr">schedule:run</span> كل دقيقة، وليست مجرد وجود المهمة داخل الكود.</p>
+            </div>
+            <div class="backup-actions">
+                @if (!$schedulerStatus['active'] || $schedulerStatus['crontab_configured'] !== true)
+                    <form method="POST" action="{{ route('dev-superadmin.scheduler.enable') }}" onsubmit="return confirm('سيتم تثبيت سطر Cron وتشغيل جميع المهام المستحقة الآن. هل تريد المتابعة؟')">
+                        @csrf
+                        <button class="btn btn-primary" type="submit">تفعيل وتشغيل Scheduler</button>
+                    </form>
+                @endif
+                <a class="btn" href="{{ route('dev-superadmin.modules') }}">تحديث الحالة</a>
+            </div>
+        </div>
+
+        <div class="panel-body">
+            <div class="scheduler-summary">
+                <div class="scheduler-stat {{ $schedulerStatus['active'] ? 'is-active' : 'is-inactive' }}">
+                    حالة Laravel Scheduler
+                    <strong>{{ $schedulerStatus['active'] ? 'يعمل الآن' : 'متوقف أو لم يعمل خلال 3 دقائق' }}</strong>
+                </div>
+                <div class="scheduler-stat {{ $schedulerStatus['crontab_configured'] === true ? 'is-active' : ($schedulerStatus['crontab_configured'] === false ? 'is-inactive' : '') }}">
+                    إعداد Crontab للمستخدم الحالي
+                    <strong>
+                        @if ($schedulerStatus['crontab_configured'] === true) موجود
+                        @elseif ($schedulerStatus['crontab_configured'] === false) غير موجود
+                        @else تعذر التحقق
+                        @endif
+                    </strong>
+                </div>
+                <div class="scheduler-stat">
+                    آخر نبض
+                    <strong>{{ $schedulerStatus['last_heartbeat_at'] ? $schedulerStatus['last_heartbeat_at']->format('Y-m-d H:i:s') : 'لا يوجد بعد' }}</strong>
+                </div>
+            </div>
+
+            <div class="alert alert-warning">
+                <strong>ملخص تدقيق الأمان:</strong>
+                لا توجد مهمة مجدولة تحذف صفوف عقود أو طلبات أو عملاء مباشرة.
+                توجد {{ $highRiskCronCount }} مهمة عالية التأثير تغيّر حالة الطلب تلقائيًا،
+                و{{ $invalidCronCount }} مهمة بأمر غير موجود لن تعمل حتى يتم إصلاحها.
+                حذف النسخ الاحتياطية محصور بالملفات الأقدم من مدة الاحتفاظ فقط.
+            </div>
+
+            @if ($schedulerStatus['crontab_error'])
+                <div class="alert alert-danger">تعذر فحص Crontab: {{ $schedulerStatus['crontab_error'] }}</div>
+            @endif
+
+            @foreach ($schedulerStatus['crontab_entries'] as $entry)
+                <div class="cron-entry">{{ $entry }}</div>
+            @endforeach
+
+            @if ($schedulerStatus['crontab_configured'] === false)
+                <div class="alert alert-danger">
+                    Scheduler غير مضاف إلى Crontab لهذا المستخدم. أضف السطر التالي على السيرفر:
+                    <div class="cron-entry">{{ $schedulerStatus['recommended_entry'] }}</div>
+                </div>
+            @endif
+
+            <div class="backup-table-wrap">
+                <table class="backup-table">
+                    <thead>
+                        <tr>
+                            <th>المهمة</th>
+                            <th>الحالة</th>
+                            <th>سبب التشغيل</th>
+                            <th>التأثير والحذف</th>
+                            <th>الخطورة وضابط الأمان</th>
+                            <th>الجدولة والتشغيل القادم</th>
+                            <th>الأمر</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                    @forelse ($schedulerStatus['jobs'] as $job)
+                        <tr>
+                            <td><strong>{{ $job['name'] }}</strong></td>
+                            <td>
+                                <span class="status-badge {{ $job['enabled'] ? 'status-on' : 'status-off' }}">
+                                    @if (!$job['command_exists']) أمر غير موجود — لن تعمل
+                                    @elseif ($job['enabled']) مفعلة وتعمل
+                                    @elseif ($job['configured']) مجدولة لكن Scheduler متوقف
+                                    @else غير مفعلة في هذه البيئة
+                                    @endif
+                                </span>
+                            </td>
+                            <td class="job-explanation">{{ $job['purpose'] }}</td>
+                            <td class="job-effect">
+                                <div>{{ $job['data_effect'] }}</div>
+                                <strong>{{ $job['deletion'] }}</strong>
+                            </td>
+                            <td class="job-safety">
+                                <span class="risk-badge risk-{{ $job['risk'] }}">{{ $job['risk_label'] }}</span>
+                                <div>{{ $job['safety_note'] }}</div>
+                            </td>
+                            <td>
+                                <div class="cron-expression">{{ $job['expression'] }}</div>
+                                <div>{{ $job['next_run_at'] ? $job['next_run_at']->format('Y-m-d H:i:s') : '—' }}</div>
+                            </td>
+                            <td>
+                                <div class="cron-command">{{ $job['command'] }}</div>
+                                <small class="text-muted">
+                                    {{ $job['without_overlapping'] ? 'بدون تداخل' : 'يسمح بالتداخل' }}
+                                    — {{ $job['background'] ? 'في الخلفية' : 'في المقدمة' }}
+                                </small>
+                            </td>
+                        </tr>
+                    @empty
+                        <tr><td colspan="7">لم يتم العثور على مهمات مجدولة.</td></tr>
+                    @endforelse
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </section>
 </main>
 
 <script>

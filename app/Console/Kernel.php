@@ -6,6 +6,8 @@ use App\Enums\ingaz\OrderEnum;
 use App\Models\ingaz\Maid;
 use App\Models\ingaz\Order;
 use App\Support\AutomationSettings;
+use App\Support\DatabaseBackupSettings;
+use App\Services\SchedulerMonitorService;
 use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Foundation\Console\Kernel as ConsoleKernel;
 
@@ -19,6 +21,10 @@ class Kernel extends ConsoleKernel
      */
     protected function schedule(Schedule $schedule): void
     {
+        $schedule->call([SchedulerMonitorService::class, 'writeHeartbeat'])
+            ->everyMinute()
+            ->description('scheduler-heartbeat');
+
         // $schedule->command('inspire')->hourly();
         $warrantyUpdateTime = AutomationSettings::warrantyStatusUpdateTime();
         $warrantyInitializeCron = AutomationSettings::hoursCronExpression(
@@ -41,6 +47,7 @@ class Kernel extends ConsoleKernel
         $logClearTime = AutomationSettings::logClearTime();
         $databaseOptimizeWeekday = AutomationSettings::databaseOptimizeWeekday();
         $databaseOptimizeTime = AutomationSettings::databaseOptimizeTime();
+        $databaseBackupSettings = DatabaseBackupSettings::all();
 
         // ============ تحديثات الضمان ============
 
@@ -165,6 +172,15 @@ class Kernel extends ConsoleKernel
             ->withoutOverlapping()
             ->runInBackground()
             ->appendOutputTo(storage_path('logs/configured-notification-alerts.log'));
+
+        if ($databaseBackupSettings['enabled']) {
+            $schedule->command('database:backup-r2')
+                ->dailyAt($databaseBackupSettings['daily_time'])
+                ->name('database-backup-r2')
+                ->withoutOverlapping(120)
+                ->runInBackground()
+                ->appendOutputTo(storage_path('logs/database-backup.log'));
+        }
     }
 
     /**

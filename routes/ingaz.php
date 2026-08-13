@@ -9,6 +9,7 @@ use App\Http\Controllers\admin\AdminTravelHistoryController;
 use App\Http\Controllers\admin\ContractReturnRequestController;
 use App\Http\Controllers\admin\FormSettingsController;
 use App\Http\Controllers\admin\DevSuperAdminController;
+use App\Http\Controllers\admin\DevDatabaseBackupController;
 use App\Http\Controllers\admin\office\OfficeController;
 use App\Http\Controllers\admin\PrintContractController;
 use App\Http\Controllers\admin\ShelterWorkersController;
@@ -737,6 +738,13 @@ Route::group(
             Route::middleware('dev.superadmin')->group(function () {
                 Route::get('modules', [DevSuperAdminController::class, 'modules'])->name('modules');
                 Route::put('modules', [DevSuperAdminController::class, 'updateModules'])->name('modules.update');
+                Route::post('scheduler/enable', [DevSuperAdminController::class, 'enableScheduler'])->name('scheduler.enable');
+                Route::put('database-backups/settings', [DevDatabaseBackupController::class, 'updateSettings'])->name('database-backups.settings');
+                Route::post('database-backups', [DevDatabaseBackupController::class, 'create'])->name('database-backups.create');
+                Route::post('database-backups/download-current', [DevDatabaseBackupController::class, 'downloadCurrent'])->name('database-backups.download-current');
+                Route::get('database-backups/download', [DevDatabaseBackupController::class, 'download'])->name('database-backups.download');
+                Route::post('database-backups/restore', [DevDatabaseBackupController::class, 'restore'])->name('database-backups.restore');
+                Route::delete('database-backups', [DevDatabaseBackupController::class, 'destroy'])->name('database-backups.destroy');
                 Route::post('impersonate/{admin}', [DevSuperAdminController::class, 'impersonate'])->name('impersonate');
                 Route::post('logout', [DevSuperAdminController::class, 'logout'])->name('logout');
             });

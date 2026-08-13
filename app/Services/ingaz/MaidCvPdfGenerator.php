@@ -126,10 +126,10 @@ class MaidCvPdfGenerator
     }
 
     /**
-     * Wrap the already-generated CV image in a PDF without rendering the Blade
-     * template again. This keeps the download identical to cv_preview.
+     * Wrap the already-generated CV image in a PDF. SVG fallbacks containing
+     * XHTML are rendered from the Blade template because mPDF cannot draw them.
      */
-    public function renderStoredImageAsPdfContents(string $storedPath): string
+    public function renderStoredImageAsPdfContents(string $storedPath, ?Maid $maid = null): string
     {
         $storage = app(ManagedFileStorage::class);
         abort_unless($storage->exists($storedPath), 404);
@@ -139,6 +139,15 @@ class MaidCvPdfGenerator
 
         if (!Str::startsWith($mimeType, 'image/')) {
             throw new RuntimeException('The stored CV preview is not an image.');
+        }
+
+        // mPDF accepts SVG files, but it silently drops XHTML rendered through
+        // <foreignObject>. Generated SVG fallbacks use that structure, which
+        // previously produced a valid yet completely blank PDF download.
+        if ($maid !== null
+            && Str::startsWith($mimeType, 'image/svg+xml')
+            && stripos($contents, '<foreignObject') !== false) {
+            return $this->renderForeignObjectSvgAsPdfContents($contents, $maid);
         }
 
         return $this->renderImageContentsAsPdfContents(
@@ -259,14 +268,19 @@ class MaidCvPdfGenerator
      * Generate a high-resolution PNG using the isolated Chrome sequence used
      * by asuss, while rendering the database Blade template.
      */
-    private function generatePngWithBrowser(string $browserPath, string $html): string
+    private function generatePngWithBrowser(
+        string $browserPath,
+        string $html,
+        string $documentExtension = 'html'
+    ): string
     {
 
         $temporaryDirectory = storage_path('app/cv-image-temp/' . Str::uuid());
         $profilePath = $temporaryDirectory . DIRECTORY_SEPARATOR . 'browser-profile';
         File::ensureDirectoryExists($profilePath);
 
-        $htmlPath = $temporaryDirectory . DIRECTORY_SEPARATOR . 'cv.html';
+        $documentExtension = $documentExtension === 'svg' ? 'svg' : 'html';
+        $htmlPath = $temporaryDirectory . DIRECTORY_SEPARATOR . 'cv.' . $documentExtension;
         $imagePath = $temporaryDirectory . DIRECTORY_SEPARATOR . 'cv.png';
         $viewportWidth = max(320, (int) env('CV_IMAGE_VIEWPORT_WIDTH', 794));
         $viewportHeight = max(480, (int) env('CV_IMAGE_VIEWPORT_HEIGHT', 1123));
@@ -302,24 +316,73 @@ class MaidCvPdfGenerator
                 $this->fileUrl($htmlPath),
             ]);
             $process->setTimeout(90);
-            $process->run();
+            $process->start();
 
-            if (!$process->isSuccessful() || !is_file($imagePath)) {
+            $contents = null;
+            while ($process->isRunning()) {
+                if (is_file($imagePath)) {
+                    $candidate = File::get($imagePath);
+                    if (Str::startsWith($candidate, "\x89PNG\r\n\x1a\n")
+                        && Str::endsWith($candidate, "\x00\x00\x00\x00IEND\xAE\x42\x60\x82")) {
+                        $contents = $candidate;
+                        break;
+                    }
+                }
+
+                $process->checkTimeout();
+                usleep(100000);
+            }
+
+            if ($contents !== null && $process->isRunning()) {
+                // Chrome on macOS can leave an updater child attached to the
+                // process pipes after the screenshot is already complete.
+                $process->stop(1);
+            }
+
+            if ($contents === null && is_file($imagePath)) {
+                $contents = File::get($imagePath);
+            }
+
+            if ($contents === null || !Str::startsWith($contents, "\x89PNG\r\n\x1a\n")) {
                 throw new RuntimeException(
                     'تعذر إنشاء صورة السيرة بواسطة المتصفح: '
                     . trim($process->getErrorOutput() ?: $process->getOutput())
                 );
             }
 
-            $contents = File::get($imagePath);
-            if (!Str::startsWith($contents, "\x89PNG\r\n\x1a\n")) {
-                throw new RuntimeException('لم يُرجع المتصفح صورة PNG صالحة.');
-            }
-
             return $contents;
         } finally {
             File::deleteDirectory($temporaryDirectory);
         }
+    }
+
+    /**
+     * Render the exact stored SVG preview in Chrome before placing it in PDF.
+     * This preserves foreignObject HTML/CSS that PDF libraries cannot render.
+     */
+    protected function renderForeignObjectSvgAsPdfContents(string $svgContents, Maid $maid): string
+    {
+        $browserPath = $this->browserExecutable();
+
+        if (function_exists('proc_open') && $browserPath !== null) {
+            try {
+                $imageContents = $this->generatePngWithBrowser($browserPath, $svgContents, 'svg');
+
+                return $this->renderImageContentsAsPdfContents(
+                    $imageContents,
+                    'image/png',
+                    'png'
+                );
+            } catch (\Throwable $exception) {
+                report($exception);
+                \Log::warning('Stored SVG CV browser rendering failed; using template PDF fallback.', [
+                    'maid_id' => $maid->id,
+                    'error' => $exception->getMessage(),
+                ]);
+            }
+        }
+
+        return $this->renderPdfContents($maid);
     }
 
     /**

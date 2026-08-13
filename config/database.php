@@ -4,6 +4,11 @@ use Illuminate\Support\Str;
 
 return [
 
+    'backup_binaries' => [
+        'mysqldump' => env('MYSQLDUMP_BINARY'),
+        'mysql' => env('MYSQL_BINARY'),
+    ],
+
     /*
     |--------------------------------------------------------------------------
     | Default Database Connection Name

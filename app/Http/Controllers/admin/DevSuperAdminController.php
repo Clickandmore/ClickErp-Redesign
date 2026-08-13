@@ -4,6 +4,10 @@ namespace App\Http\Controllers\admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\auth\Admin;
+use App\Services\DatabaseBackupService;
+use App\Services\SchedulerMonitorService;
+use App\Support\DatabaseBackupSettings;
+use App\Support\R2StorageSettings;
 use App\Support\SystemModuleManager;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -43,7 +47,11 @@ class DevSuperAdminController extends Controller
             ->withErrors(['username' => 'بيانات دخول لوحة التطوير غير صحيحة.']);
     }
 
-    public function modules(Request $request)
+    public function modules(
+        Request $request,
+        DatabaseBackupService $databaseBackups,
+        SchedulerMonitorService $schedulerMonitor
+    )
     {
         $admins = Admin::query()
             ->with('role')
@@ -62,6 +70,15 @@ class DevSuperAdminController extends Controller
                 return $admin;
             });
 
+        $backups = [];
+        $backupListError = null;
+        try {
+            $backups = $databaseBackups->backups();
+        } catch (\Throwable $exception) {
+            report($exception);
+            $backupListError = $exception->getMessage();
+        }
+
         return view('admin.superadmin.modules', [
             'modules' => SystemModuleManager::modules(),
             'enabledMap' => SystemModuleManager::enabledMap(),
@@ -69,6 +86,12 @@ class DevSuperAdminController extends Controller
             'defaultDashboardKey' => SystemModuleManager::defaultDashboardKey(),
             'branchLimit' => SystemModuleManager::branchLimit(),
             'admins' => $admins,
+            'backupSettings' => DatabaseBackupSettings::all(),
+            'databaseBackups' => $backups,
+            'localDatabaseBackups' => $databaseBackups->localBackups(),
+            'backupListError' => $backupListError,
+            'r2Ready' => R2StorageSettings::isReady(),
+            'schedulerStatus' => $schedulerMonitor->status(),
         ]);
     }
 
@@ -88,6 +111,22 @@ class DevSuperAdminController extends Controller
         return redirect()
             ->route('dev-superadmin.modules')
             ->with('success', 'تم تحديث حالة الموديلات وإعداداتها بنجاح.');
+    }
+
+    public function enableScheduler(SchedulerMonitorService $schedulerMonitor)
+    {
+        try {
+            $result = $schedulerMonitor->enableAndRun();
+            $message = $result['installed']
+                ? 'تمت إضافة ClickERP إلى Crontab وتشغيل Laravel Scheduler بنجاح.'
+                : 'إعداد Crontab موجود مسبقًا، وتم تشغيل Laravel Scheduler الآن بنجاح.';
+
+            return back()->with('success', $message);
+        } catch (\Throwable $exception) {
+            report($exception);
+
+            return back()->withErrors(['scheduler' => $exception->getMessage()]);
+        }
     }
 
     public function impersonate(Request $request, int $admin)

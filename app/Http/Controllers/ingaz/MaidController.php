@@ -2280,7 +2280,7 @@ class MaidController extends Controller
 
         $contents = strtolower(pathinfo($path, PATHINFO_EXTENSION)) === 'pdf'
             ? $storage->contents($path)
-            : $cvGenerator->renderStoredImageAsPdfContents($path);
+            : $cvGenerator->renderStoredImageAsPdfContents($path, $maid);
 
         return response()->streamDownload(
             static fn () => print($contents),
@@ -2299,7 +2299,7 @@ class MaidController extends Controller
 
         $contents = strtolower(pathinfo($path, PATHINFO_EXTENSION)) === 'pdf'
             ? $storage->contents($path)
-            : $cvGenerator->renderStoredImageAsPdfContents($path);
+            : $cvGenerator->renderStoredImageAsPdfContents($path, $maid);
 
         return response($contents, 200, [
             'Content-Type' => 'application/pdf',
