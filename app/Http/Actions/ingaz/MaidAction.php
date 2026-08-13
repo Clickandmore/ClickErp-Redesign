@@ -15,9 +15,10 @@ use App\Support\CvOptionsSettings;
 use App\Support\ExperiencePeriod;
 use Carbon\Carbon;
 use Illuminate\Database\QueryException;
-use Illuminate\Support\Str;
+use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use Nami\Hr\Models\Department as HrDepartment;
 use Nami\Hr\Models\Employee as HrEmployee;
@@ -2129,11 +2130,7 @@ class MaidAction extends MainAction
 
         $today = now()->toDateString();
 
-        $orderSeed = (string) (
-            $request->input('order_seed')
-            ?? session('all_workers_order_seed')
-            ?? now()->timestamp
-        );
+        $orderSeed = $this->resolvePaginationOrderSeed($request);
 
         return $this->availableQuery()
             ->with([
@@ -2226,6 +2223,30 @@ class MaidAction extends MainAction
             ->orderByRaw('MD5(CONCAT(maids.id, ?))', [$orderSeed])
             ->orderBy('id', 'desc')
             ->paginate($limit);
+    }
+
+    /**
+     * Keep the randomized CV order identical while moving between pages.
+     *
+     * The public website stores a seed in the session. API consumers are
+     * usually stateless, so their fallback seed is derived from the active
+     * filters (without the page number) instead of the current timestamp.
+     */
+    private function resolvePaginationOrderSeed($request): string
+    {
+        if ($request->filled('order_seed')) {
+            return (string) $request->input('order_seed');
+        }
+
+        $sessionSeed = session('all_workers_order_seed');
+
+        if (filled($sessionSeed)) {
+            return (string) $sessionSeed;
+        }
+
+        $filters = Arr::sortRecursive($request->except(['page', 'order_seed']));
+
+        return hash('sha256', json_encode($filters, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
     }
 
     public function findAvailable($id)
