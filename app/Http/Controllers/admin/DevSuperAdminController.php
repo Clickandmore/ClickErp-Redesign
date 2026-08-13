@@ -7,6 +7,7 @@ use App\Models\auth\Admin;
 use App\Services\DatabaseBackupService;
 use App\Services\SchedulerMonitorService;
 use App\Support\DatabaseBackupSettings;
+use App\Support\ClientSubscriptionSettings;
 use App\Support\R2StorageSettings;
 use App\Support\SystemModuleManager;
 use Illuminate\Http\Request;
@@ -92,7 +93,28 @@ class DevSuperAdminController extends Controller
             'backupListError' => $backupListError,
             'r2Ready' => R2StorageSettings::isReady(),
             'schedulerStatus' => $schedulerMonitor->status(),
+            'subscription' => ClientSubscriptionSettings::all(),
         ]);
+    }
+
+    public function updateSubscription(Request $request)
+    {
+        $data = $request->validate([
+            'client_name' => ['required', 'string', 'max:160'],
+            'client_code' => ['nullable', 'string', 'max:80'],
+            'plan_name' => ['required', 'string', 'max:120'],
+            'status' => ['required', 'in:active,trial,paused,expired'],
+            'work_started_at' => ['nullable', 'date'],
+            'subscription_started_at' => ['nullable', 'date'],
+            'subscription_ends_at' => ['nullable', 'date', 'after_or_equal:subscription_started_at'],
+            'notes' => ['nullable', 'string', 'max:1000'],
+        ]);
+
+        ClientSubscriptionSettings::persist($data);
+
+        return redirect()
+            ->to(route('dev-superadmin.modules') . '#subscription')
+            ->with('success', 'تم حفظ بيانات العميل والاشتراك بنجاح.');
     }
 
     public function updateModules(Request $request)

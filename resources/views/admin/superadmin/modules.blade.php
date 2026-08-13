@@ -6,16 +6,18 @@
     <title>لوحة Super Admin التطويرية</title>
     <style>
         :root {
-            --bg: #eef3f5;
+            --bg: #f3f6f8;
             --surface: #ffffff;
-            --surface-soft: #f8fbfc;
-            --border: #d7e1e7;
+            --surface-soft: #f8fafb;
+            --border: #dfe7eb;
             --border-strong: #c4d1da;
-            --text: #172033;
+            --text: #152431;
             --muted: #64748b;
-            --accent: #0f766e;
-            --accent-dark: #115e59;
-            --accent-soft: #e5f5f2;
+            --accent: #087f72;
+            --accent-dark: #06665d;
+            --accent-soft: #e6f7f3;
+            --navy: #16324f;
+            --navy-soft: #edf3f8;
             --danger: #b91c1c;
             --danger-soft: #fef2f2;
             --warning: #a16207;
@@ -34,8 +36,8 @@
         }
 
         .dev-shell {
-            width: min(1240px, calc(100% - 32px));
-            margin: 24px auto;
+            width: min(1320px, calc(100% - 32px));
+            margin: 20px auto 40px;
         }
 
         .topbar {
@@ -47,7 +49,7 @@
             padding: 16px 18px;
             background: var(--surface);
             border: 1px solid var(--border);
-            border-radius: 14px;
+            border-radius: 18px;
             box-shadow: 0 14px 35px rgba(23, 32, 51, .06);
             margin-bottom: 16px;
         }
@@ -65,7 +67,7 @@
             border-radius: 12px;
             display: grid;
             place-items: center;
-            background: var(--accent);
+            background: linear-gradient(145deg, var(--navy), var(--accent));
             color: #fff;
             font-weight: 900;
             flex: 0 0 auto;
@@ -129,6 +131,106 @@
             margin-bottom: 16px;
         }
 
+        .section-nav {
+            position: sticky;
+            top: 10px;
+            z-index: 20;
+            display: flex;
+            gap: 8px;
+            padding: 8px;
+            margin-bottom: 16px;
+            overflow-x: auto;
+            background: rgba(255, 255, 255, .94);
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            box-shadow: 0 8px 22px rgba(23, 50, 79, .07);
+            backdrop-filter: blur(12px);
+        }
+
+        .section-nav a {
+            min-height: 38px;
+            display: inline-flex;
+            align-items: center;
+            gap: 7px;
+            padding: 0 13px;
+            border-radius: 9px;
+            color: #526174;
+            text-decoration: none;
+            font-size: .84rem;
+            font-weight: 900;
+            white-space: nowrap;
+        }
+
+        .section-nav a:first-child,
+        .section-nav a:hover {
+            color: var(--accent-dark);
+            background: var(--accent-soft);
+        }
+
+        .nav-dot { width: 7px; height: 7px; border-radius: 50%; background: currentColor; opacity: .65; }
+
+        .subscription-panel {
+            display: grid;
+            grid-template-columns: minmax(300px, .8fr) minmax(0, 1.55fr);
+            margin-bottom: 16px;
+            border: 1px solid #cfe1e3;
+            border-radius: 18px;
+            overflow: hidden;
+            background: var(--surface);
+            box-shadow: 0 16px 36px rgba(23, 50, 79, .07);
+            scroll-margin-top: 72px;
+        }
+
+        .subscription-overview {
+            position: relative;
+            padding: 26px;
+            overflow: hidden;
+            color: #fff;
+            background: linear-gradient(145deg, #16324f 0%, #0b625e 100%);
+        }
+
+        .subscription-overview::after {
+            content: "";
+            position: absolute;
+            width: 210px;
+            height: 210px;
+            inset-inline-end: -90px;
+            bottom: -120px;
+            border: 42px solid rgba(255,255,255,.07);
+            border-radius: 50%;
+        }
+
+        .eyebrow { margin: 0 0 12px; font-size: .78rem; font-weight: 900; opacity: .72; }
+        .client-title { margin: 0; font-size: 1.6rem; line-height: 1.45; }
+        .client-code { margin: 8px 0 22px; font-size: .84rem; opacity: .75; direction: ltr; text-align: right; }
+        .subscription-state { display: inline-flex; align-items: center; gap: 8px; min-height: 34px; padding: 0 12px; border-radius: 999px; background: rgba(255,255,255,.14); font-weight: 900; font-size: .84rem; }
+        .subscription-state::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: #64f1c2; box-shadow: 0 0 0 4px rgba(100,241,194,.14); }
+        .subscription-state.is-expired::before, .subscription-state.is-paused::before { background: #fca5a5; box-shadow: 0 0 0 4px rgba(252,165,165,.14); }
+        .subscription-plan { margin: 26px 0 0; padding-top: 18px; border-top: 1px solid rgba(255,255,255,.15); }
+        .subscription-plan small { display: block; opacity: .68; margin-bottom: 6px; }
+        .subscription-plan strong { font-size: 1.05rem; }
+
+        .subscription-content { padding: 22px; }
+        .section-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; margin-bottom: 18px; }
+        .section-heading h2 { margin: 0; font-size: 1.08rem; }
+        .section-heading p { margin: 6px 0 0; color: var(--muted); font-size: .85rem; line-height: 1.7; }
+
+        .subscription-form { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 13px; }
+        .subscription-form .span-2 { grid-column: span 2; }
+        .subscription-form .span-4 { grid-column: 1 / -1; }
+        .field select, .field textarea {
+            width: 100%;
+            border: 1px solid var(--border-strong);
+            border-radius: 9px;
+            padding: 8px 10px;
+            font: inherit;
+            background: #fff;
+        }
+        .field select { min-height: 42px; }
+        .field textarea { min-height: 68px; resize: vertical; }
+        .field input:focus, .field select:focus, .field textarea:focus { outline: none; border-color: #58aaa3; box-shadow: 0 0 0 4px rgba(15,118,110,.09); }
+        .form-actions { display: flex; justify-content: flex-end; align-items: center; }
+
         .alert {
             padding: 12px 14px;
             border-radius: 10px;
@@ -160,8 +262,9 @@
         .stat {
             background: var(--surface);
             border: 1px solid var(--border);
-            border-radius: 12px;
-            padding: 14px;
+            border-radius: 14px;
+            padding: 16px;
+            border-top: 3px solid var(--accent);
         }
 
         .stat-label {
@@ -276,6 +379,7 @@
             border-radius: 14px;
             box-shadow: 0 12px 28px rgba(23, 32, 51, .05);
             overflow: hidden;
+            scroll-margin-top: 72px;
         }
 
         .panel-head {
@@ -624,6 +728,10 @@
             .layout {
                 grid-template-columns: 1fr;
             }
+
+            .subscription-panel { grid-template-columns: 1fr; }
+            .subscription-form { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+            .subscription-form .span-4 { grid-column: 1 / -1; }
         }
 
         @media (max-width: 720px) {
@@ -653,6 +761,9 @@
 
             .backup-settings { grid-template-columns: 1fr; }
             .scheduler-summary { grid-template-columns: 1fr; }
+            .subscription-form { grid-template-columns: 1fr; }
+            .subscription-form .span-2, .subscription-form .span-4 { grid-column: auto; }
+            .subscription-overview, .subscription-content { padding: 19px; }
         }
     </style>
 </head>
@@ -676,6 +787,14 @@
     $cronJobs = collect($schedulerStatus['jobs']);
     $highRiskCronCount = $cronJobs->where('risk', 'high')->count();
     $invalidCronCount = $cronJobs->where('risk', 'invalid')->count();
+    $subscription = $subscription ?? [];
+    $subscriptionStatuses = [
+        'active' => 'اشتراك نشط',
+        'trial' => 'فترة تجريبية',
+        'paused' => 'الاشتراك موقوف',
+        'expired' => 'الاشتراك منتهي',
+    ];
+    $subscriptionStatus = ($subscription['is_expired'] ?? false) ? 'expired' : ($subscription['status'] ?? 'active');
 @endphp
 
 <main class="dev-shell">
@@ -683,8 +802,8 @@
         <div class="brand">
             <div class="brand-mark">SA</div>
             <div>
-                <h1 class="brand-title">لوحة Super Admin التطويرية</h1>
-                <p class="brand-text">تحكم مستقل في الموديلات مع إمكانية الدخول كأي موظف للفحص التقني.</p>
+                <h1 class="brand-title">إدارة حساب العميل</h1>
+                <p class="brand-text">الاشتراك، صلاحيات النظام، المستخدمون، والبنية التقنية في مكان واحد.</p>
             </div>
         </div>
 
@@ -709,18 +828,99 @@
         </div>
     @endif
 
+    <nav class="section-nav" aria-label="أقسام لوحة التحكم">
+        <a href="#subscription"><span class="nav-dot"></span>العميل والاشتراك</a>
+        <a href="#modules"><span class="nav-dot"></span>الموديلات</a>
+        <a href="#employees"><span class="nav-dot"></span>الموظفون</a>
+        <a href="#backups"><span class="nav-dot"></span>النسخ الاحتياطية</a>
+        <a href="#scheduler"><span class="nav-dot"></span>المهام المجدولة</a>
+    </nav>
+
+    <section class="subscription-panel" id="subscription">
+        <div class="subscription-overview">
+            <p class="eyebrow">ملف العميل</p>
+            <h2 class="client-title">{{ $subscription['client_name'] ?: config('app.name') }}</h2>
+            <p class="client-code">{{ $subscription['client_code'] ? 'ID: ' . $subscription['client_code'] : 'لم يحدد رقم العميل' }}</p>
+            <span class="subscription-state is-{{ $subscriptionStatus }}">
+                {{ $subscriptionStatuses[$subscriptionStatus] ?? 'غير محدد' }}
+            </span>
+            <div class="subscription-plan">
+                <small>الباقة الحالية</small>
+                <strong>{{ $subscription['plan_name'] ?? 'الخطة الأساسية' }}</strong>
+            </div>
+        </div>
+
+        <div class="subscription-content">
+            <div class="section-heading">
+                <div>
+                    <h2>بيانات الاشتراك وبدء التشغيل</h2>
+                    <p>هذه البيانات مرجع سريع لفريق الدعم ولا تؤثر تلقائيًا على إتاحة النظام.</p>
+                </div>
+            </div>
+
+            <form class="subscription-form" method="POST" action="{{ route('dev-superadmin.subscription.update') }}">
+                @csrf
+                @method('PUT')
+                <div class="field span-2">
+                    <label for="clientName">اسم العميل / المنشأة</label>
+                    <input id="clientName" name="client_name" type="text" required value="{{ old('client_name', $subscription['client_name'] ?? '') }}" placeholder="اسم المنشأة">
+                </div>
+                <div class="field">
+                    <label for="clientCode">رقم العميل</label>
+                    <input id="clientCode" name="client_code" type="text" value="{{ old('client_code', $subscription['client_code'] ?? '') }}" placeholder="CL-001" dir="ltr">
+                </div>
+                <div class="field">
+                    <label for="subscriptionStatus">حالة الاشتراك</label>
+                    <select id="subscriptionStatus" name="status" required>
+                        @foreach ($subscriptionStatuses as $statusKey => $statusLabel)
+                            <option value="{{ $statusKey }}" {{ old('status', $subscription['status'] ?? 'active') === $statusKey ? 'selected' : '' }}>{{ $statusLabel }}</option>
+                        @endforeach
+                    </select>
+                </div>
+                <div class="field">
+                    <label for="planName">اسم الباقة</label>
+                    <input id="planName" name="plan_name" type="text" required value="{{ old('plan_name', $subscription['plan_name'] ?? '') }}" placeholder="الخطة الأساسية">
+                </div>
+                <div class="field">
+                    <label for="workStartedAt">بداية عمل العميل بالبرنامج</label>
+                    <input id="workStartedAt" name="work_started_at" type="date" value="{{ old('work_started_at', $subscription['work_started_at'] ?? '') }}">
+                </div>
+                <div class="field">
+                    <label for="subscriptionStartedAt">بداية الاشتراك</label>
+                    <input id="subscriptionStartedAt" name="subscription_started_at" type="date" value="{{ old('subscription_started_at', $subscription['subscription_started_at'] ?? '') }}">
+                </div>
+                <div class="field">
+                    <label for="subscriptionEndsAt">نهاية الاشتراك</label>
+                    <input id="subscriptionEndsAt" name="subscription_ends_at" type="date" value="{{ old('subscription_ends_at', $subscription['subscription_ends_at'] ?? '') }}">
+                </div>
+                <div class="field span-4">
+                    <label for="subscriptionNotes">ملاحظات العميل</label>
+                    <textarea id="subscriptionNotes" name="notes" placeholder="أي تفاصيل مهمة للتجديد أو الدعم الفني...">{{ old('notes', $subscription['notes'] ?? '') }}</textarea>
+                </div>
+                <div class="form-actions span-4">
+                    <button class="btn btn-primary" type="submit">حفظ بيانات الاشتراك</button>
+                </div>
+            </form>
+        </div>
+    </section>
+
     <section class="stats" aria-label="ملخص اللوحة">
         <div class="stat">
-            <div class="stat-label">كل الموديلات</div>
-            <div class="stat-value">{{ count($modules) }}</div>
+            <div class="stat-label">مدة استخدام البرنامج</div>
+            <div class="stat-value">{{ isset($subscription['days_using_system']) && $subscription['days_using_system'] !== null ? number_format($subscription['days_using_system']) . ' يوم' : '—' }}</div>
         </div>
         <div class="stat">
-            <div class="stat-label">المفعلة</div>
-            <div class="stat-value">{{ $enabledCount }}</div>
+            <div class="stat-label">المتبقي في الاشتراك</div>
+            <div class="stat-value">
+                @if (($subscription['days_remaining'] ?? null) === null) —
+                @elseif ($subscription['days_remaining'] < 0) منتهي
+                @else {{ number_format($subscription['days_remaining']) }} يوم
+                @endif
+            </div>
         </div>
         <div class="stat">
-            <div class="stat-label">المغلقة</div>
-            <div class="stat-value">{{ $disabledCount }}</div>
+            <div class="stat-label">الموديلات المفعلة</div>
+            <div class="stat-value">{{ $enabledCount }} <small style="font-size:.8rem;color:var(--muted)">من {{ count($modules) }}</small></div>
         </div>
         <div class="stat">
             <div class="stat-label">الموظفون النشطون</div>
@@ -729,7 +929,7 @@
     </section>
 
     <div class="layout">
-        <section class="panel">
+        <section class="panel" id="modules">
             <div class="panel-head">
                 <div>
                     <h2 class="panel-title">إدارة الموديلات</h2>
@@ -807,7 +1007,7 @@
             </div>
         </section>
 
-        <aside class="panel">
+        <aside class="panel" id="employees">
             <div class="panel-head">
                 <div>
                     <h2 class="panel-title">الدخول كموظف</h2>
@@ -841,7 +1041,7 @@
         </aside>
     </div>
 
-    <section class="panel backup-panel">
+    <section class="panel backup-panel" id="backups">
         <div class="panel-head">
             <div>
                 <h2 class="panel-title">نسخ قاعدة البيانات إلى R2 والسيرفر</h2>
@@ -858,7 +1058,6 @@
                 </form>
             </div>
         </div>
-
         <div class="panel-body">
             <form method="POST" action="{{ route('dev-superadmin.database-backups.settings') }}" class="backup-settings">
                 @csrf
@@ -947,7 +1146,7 @@
         </div>
     </section>
 
-    <section class="panel backup-panel">
+    <section class="panel backup-panel" id="scheduler">
         <div class="panel-head">
             <div>
                 <h2 class="panel-title">مراقبة Cron Jobs وLaravel Scheduler</h2>

@@ -738,6 +738,7 @@ Route::group(
             Route::middleware('dev.superadmin')->group(function () {
                 Route::get('modules', [DevSuperAdminController::class, 'modules'])->name('modules');
                 Route::put('modules', [DevSuperAdminController::class, 'updateModules'])->name('modules.update');
+                Route::put('subscription', [DevSuperAdminController::class, 'updateSubscription'])->name('subscription.update');
                 Route::post('scheduler/enable', [DevSuperAdminController::class, 'enableScheduler'])->name('scheduler.enable');
                 Route::put('database-backups/settings', [DevDatabaseBackupController::class, 'updateSettings'])->name('database-backups.settings');
                 Route::post('database-backups', [DevDatabaseBackupController::class, 'create'])->name('database-backups.create');
