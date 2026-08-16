@@ -17,7 +17,14 @@ class ApiCustomerController extends Controller
      */
     public function index(Request $request)
     {
-       $customers = objModel::where('admin_type',AdminTypes::CustomerService->value)->get();
+       $customers = objModel::query()
+           ->with('branch')
+           ->where('admin_type', AdminTypes::CustomerService->value)
+           ->activeForOperations()
+           ->when($request->filled('branch_id'), function ($query) use ($request) {
+               $query->where('branch_id', $request->integer('branch_id'));
+           })
+           ->get();
        $data = objResource::collection($customers);
        return jsonSuccess($data,__('api.All items'));
     }
