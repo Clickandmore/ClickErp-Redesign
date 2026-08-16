@@ -171,7 +171,7 @@ Route::group(
             //** NEW */
             Route::get('getContractEdit/{id}', [AdminContractController::class, 'getContractEdit'])->name('getContractEdit');
             Route::post('updateContractInfo', [AdminContractController::class, 'updateContractInfo'])->name('updateContractInfo');
-            Route::get('get-contract-details', [\App\Http\Controllers\ingaz\ShelterContractController::class, 'getContractDetails'])->name('get.contract.details');
+            Route::get('get-contract-details', [\App\Http\Controllers\ingaz\ShelterContractController::class, 'getContractDetails'])->name('get.contract.details.legacy');
             Route::get('search-contracts-by-passport', [\App\Http\Controllers\ingaz\ShelterContractController::class, 'searchByPassport'])->name('search.contracts.by.passport');
             //** */
             Route::get('viewFullOrderContract', [AdminFullOrderContractController::class, 'viewFullOrderContract'])->name('viewFullOrderContract');
@@ -538,7 +538,7 @@ Route::group(
                 ->name('SponsorshipTransfer.attachment.download');
 
             Route::resource('SponsorshipTransfer', SponsorshipTransferController::class);
-            Route::get('Contract/searchClients', [SponsorshipTransferController::class, 'searchClients'])->name('Contract.searchClients');
+            Route::get('Contract/searchClients', [SponsorshipTransferController::class, 'searchClients'])->name('SponsorshipTransfer.searchClients');
             Route::post('SponsorshipTransfer/{id}/approve', [SponsorshipTransferController::class, 'approve'])->name('SponsorshipTransfer.approve');
             Route::post('SponsorshipTransfer/{id}/reject', [SponsorshipTransferController::class, 'reject'])->name('SponsorshipTransfer.reject');
             Route::post('SponsorshipTransfer/{id}/complete', [SponsorshipTransferController::class, 'complete'])->name('SponsorshipTransfer.complete');
@@ -781,8 +781,6 @@ Route::group(
         });
     }
 );
-
-Route::get("ShelterContract/deportation/{id}/activity-log", [ShelterContractController::class, "getActivityLog"])->name("ShelterContract.deportation.activity-log");
 
 // ===================== نظام العمولات =====================
 Route::middleware(['admin', 'admin.route.permission'])

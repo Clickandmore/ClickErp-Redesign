@@ -270,7 +270,7 @@ $(document).ready(function() {
         placeholder: 'ابحث عن الكفيل الجديد...',
         allowClear: true,
         ajax: {
-            url: '{{ route('Contract.searchClients') }}',
+            url: '{{ route('SponsorshipTransfer.searchClients') }}',
             dataType: 'json',
             delay: 250,
             data: function(params) {

@@ -285,7 +285,7 @@ Route::group(
                 'orders_count' => \App\Models\ingaz\Order::count(),
                 'latest_orders' => \App\Models\ingaz\Order::latest()->take(3)->get(['id', 'user_id', 'maid_id', 'status', 'created_at'])
             ]);
-        });
+        })->name('test-orders');
 
         // Test route for admin orders
         Route::get('test-admin-orders', function () {
@@ -293,7 +293,7 @@ Route::group(
                 'orders_count' => \App\Models\ingaz\Order::count(),
                 'orders' => \App\Models\ingaz\Order::with(['user', 'maid', 'jobType'])->latest()->take(5)->get()
             ]);
-        });
+        })->name('test-admin-orders');
 
         // Test route for orders display (no auth required)
         Route::get('orders-display', function () {
@@ -307,7 +307,7 @@ Route::group(
                 'admins' => \App\Models\auth\Admin::select('id', 'name')->whereNull('deleted_at')->get(),
                 'orders' => $orders
             ]);
-        });
+        })->name('orders-display');
 
         // Test route for client orders display (no auth required)
         Route::get('client-orders-display', function () {
@@ -332,7 +332,7 @@ Route::group(
             $data['order_progressbar'] = ['refused' => 0, 'new' => 20, 'paid' => 40, 'completed' => 60, 'started' => 80, 'done' => 100];
 
             return view('web.ingaz.orders.index', $data);
-        });
+        })->name('client-orders-display');
 
         // AJAX route for DataTable (no auth required)
         Route::get('orders-ajax', function (\Illuminate\Http\Request $request) {
@@ -380,7 +380,7 @@ Route::group(
                     ];
                 })
             ]);
-        });
+        })->name('orders-ajax');
     }
 );
 
@@ -448,7 +448,7 @@ Route::group(['prefix' => 'admin', 'middleware' => ['auth:admin', 'admin', 'admi
     });
 
     // Add the travel complete route inside the admin group
-    Route::post('/travel/complete/{tripId}', [RecruitmentContractController::class, 'completeTrip'])->name('travel.complete');
+    Route::post('/travel/complete/{tripId}', [RecruitmentContractController::class, 'completeTrip'])->name('recruitment.travel.complete');
     Route::post('/RecruitmentContract/completeTrip', [RecruitmentContractController::class, 'completeTrip'])->name('RecruitmentContract.completeTrip');
     Route::post('/travel/add', [RecruitmentContractController::class, 'addTravel'])->name('travel.add');
     Route::post('/RecruitmentContract/updateStatus', [RecruitmentContractController::class, 'updateStatus'])->name('RecruitmentContract.updateStatus');

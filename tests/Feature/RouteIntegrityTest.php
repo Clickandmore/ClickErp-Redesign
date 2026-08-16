@@ -92,7 +92,7 @@ class RouteIntegrityTest extends TestCase
 
             foreach (array_unique($matches[1]) as $name) {
                 if (! $registered->has($name)) {
-                    $problems[] = str_replace(base_path() . '/', '', $file) . " => route('{$name}')";
+                    $problems[] = $this->relativePath($file) . " => route('{$name}')";
                 }
             }
         }
@@ -109,7 +109,7 @@ class RouteIntegrityTest extends TestCase
             try {
                 Blade::compileString(File::get($file));
             } catch (\Throwable $e) {
-                $problems[] = str_replace(base_path() . '/', '', $file) . ' => ' . $e->getMessage();
+                $problems[] = $this->relativePath($file) . ' => ' . $e->getMessage();
             }
         }
 
@@ -145,6 +145,11 @@ class RouteIntegrityTest extends TestCase
     private function describe(Route $route): string
     {
         return implode('|', $route->methods()) . ' /' . $route->uri();
+    }
+
+    private function relativePath(string $path): string
+    {
+        return str_replace('\\', '/', substr($path, strlen(base_path()) + 1));
     }
 
     private function report(string $heading, array $problems): string
