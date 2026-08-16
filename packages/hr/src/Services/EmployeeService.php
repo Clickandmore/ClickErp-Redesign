@@ -42,6 +42,8 @@ class EmployeeService extends MainService
             ? $this->model->query()->onlyMaids()->latest()
             : $this->model->query()->onlyEmployees()->latest();
 
+        $query->with($category === Employee::CATEGORY_MAID ? 'maid.branch' : 'admin.branch');
+
         $branchId = app(BranchAccessService::class)->selectedBranchId($request);
 
         return $query
