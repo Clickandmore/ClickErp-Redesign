@@ -80,6 +80,7 @@ const PARTENR_CONTROL = 'partenr_control';
     const MAIDS_TOGGLE_PIN = 'maids_toggle_pin';
     const MAIDS_CONTROL = 'maids_control';
     const MAIDS_RENTAL_VIEW = 'maids_rental_view';
+    const MAIDS_CHANGE_BRANCH = 'maids_change_branch';
     const MAIDS_BACKOUT_VIEW = 'maids_backout_view';
     const MAIDS_DELETED_VIEW = 'maids_deleted_view';
 

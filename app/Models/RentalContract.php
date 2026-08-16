@@ -74,6 +74,7 @@ class RentalContract extends Model
     protected function resolveBranchIdForCreate(): ?int
     {
         return $this->resolveBranchIdFromOrder($this->order_id ?? null)
+            ?: $this->resolveBranchIdFromMaid($this->maid_id ?? null)
             ?: $this->resolveBranchIdFromAdmin($this->marketer_id ?? null)
             ?: $this->resolveBranchIdFromCurrentAdmin();
     }

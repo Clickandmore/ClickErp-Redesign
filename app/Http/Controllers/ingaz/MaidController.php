@@ -23,6 +23,8 @@ use App\Models\ingaz\Nationality;
 use App\Models\ingaz\Skill;
 use App\Models\MaidUnavailableRecord;
 use App\Models\RecruitmentOffices;
+use App\Models\Branch;
+use App\Services\BranchAccessService;
 use App\Services\ingaz\MaidCvExtractionService;
 use App\Services\ingaz\MaidCvPdfGenerator;
 use App\Services\ingaz\RentalMaidFinanceService;
@@ -35,6 +37,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\App;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\URL;
 use Illuminate\Support\Str;
@@ -46,7 +49,7 @@ class MaidController extends Controller
 {
 
     public $folderPath = "admin.ingaz.maids";
-    public $postData = ["nationality_id", "expertises", 'experience_status', 'cooking_experience', 'image', 'video', 'remove_video', 'childrens_count', 'duration', 'additional_notes', 'video_link', 'cv_file', 'marital_status:ar', 'marital_status:en', 'languages', 'percentage', 'language_levels', 'experience_years', 'cv_preview', 'maid_cv_file', 'religion_id', 'passport_num', 'phone', 'relative_name', 'relative_phone', 'residence_city', 'passport_issue_place', 'education', 'has_driving_license', 'price', 'salary', 'age', 'office_id', 'name:en', 'gender', 'type_id', 'job_id', 'skills', 'birth_date', 'height', 'weight', 'id_number', 'id_expiry_date', 'border_number', 'passport_issue_date', 'passport_expiry_date', 'arrival_date', 'create_shelter_contract', 'request_type'];
+    public $postData = ["nationality_id", "expertises", 'experience_status', 'cooking_experience', 'image', 'video', 'remove_video', 'childrens_count', 'duration', 'additional_notes', 'video_link', 'cv_file', 'marital_status:ar', 'marital_status:en', 'languages', 'percentage', 'language_levels', 'experience_years', 'cv_preview', 'maid_cv_file', 'religion_id', 'passport_num', 'phone', 'relative_name', 'relative_phone', 'residence_city', 'passport_issue_place', 'education', 'has_driving_license', 'price', 'salary', 'age', 'office_id', 'branch_id', 'name:en', 'gender', 'type_id', 'job_id', 'skills', 'birth_date', 'height', 'weight', 'id_number', 'id_expiry_date', 'border_number', 'passport_issue_date', 'passport_expiry_date', 'arrival_date', 'create_shelter_contract', 'request_type'];
     public $mainRoute = "maids";
 
     public function __construct()
@@ -62,6 +65,7 @@ class MaidController extends Controller
         $this->middleware('permission:maids_toggle_status,admin', ['only' => ['show']]);
         $this->middleware('permission:maids_bulk_visibility,admin', ['only' => ['bulkVisibility']]);
         $this->middleware('permission:maids_toggle_pin,admin', ['only' => ['togglePin']]);
+        $this->middleware('permission:maids_change_branch,admin', ['only' => ['changeBranch']]);
         $this->middleware('permission:maids_export|maids_export_pdf,admin', ['only' => ['exportPdf', 'downloadGeneratedCv', 'exportGeneratedCvs']]);
         $this->middleware('permission:maids_export|maids_export_excel,admin', ['only' => ['exportExcel']]);
     }
@@ -618,6 +622,7 @@ class MaidController extends Controller
         if ($request->ajax()) {
             $rows = objModel::query()
                 ->with([
+                    'branch',
                     'nationality',
                     'religion',
                     'jobTypes',
@@ -662,10 +667,13 @@ class MaidController extends Controller
                     'maid_accommodation_type',
                     'id_expiry_date',
                     'request_type',
+                    'branch_id',
                 ])
                 ->orderByDesc('is_pinned')
                 ->orderByDesc('available')
                 ->orderByDesc('created_at');
+
+            app(BranchAccessService::class)->applyToQuery($rows, $request, 'maids');
 
             $this->applyMaidFilter($request, $rows);
 
@@ -697,6 +705,9 @@ class MaidController extends Controller
                 })
                 ->editColumn('nationality_id', fn(Maid $row) => e($row->nationality?->sub_title ?? '-'))
                 ->addColumn('job_type', fn(Maid $row) => e($this->getMaidJobTypeTitle($row, $rentalJobTypeId)))
+                ->addColumn('branch_name', fn(Maid $row) => $row->branch
+                    ? '<span class="badge bg-info text-dark">' . e($row->branch->name) . '</span>'
+                    : '<span class="text-muted">-</span>')
                 ->editColumn('passport_num', fn(Maid $row) => e($row->passport_num ?? '-'))
                 ->editColumn('price', fn(Maid $row) => $row->resolved_price !== null ? number_format((float) $row->resolved_price, 2) : '-')
                 ->editColumn('salary', fn(Maid $row) => $row->resolved_salary !== null ? number_format((float) $row->resolved_salary, 2) : '-')
@@ -848,6 +859,13 @@ class MaidController extends Controller
                         }
                     }
 
+                    if ($this->canChangeRentalMaidBranch()) {
+                        $menuItems[] = '<li><button type="button" class="dropdown-item change-maid-branch"'
+                            . ' data-url="' . route('maids.branch.update', $row->id) . '"'
+                            . ' data-current-branch="' . e((string) $row->branch_id) . '">'
+                            . '<i class="fas fa-code-branch text-info me-2"></i>تغيير الفرع</button></li>';
+                    }
+
                     if (@AdminGuardHasPerm(\App\PermKeys::MAIDS_TOGGLE_STATUS)) {
                         $menuItems[] = '<li><button class="dropdown-item update-status" data-id="' . $row->id . '">
                             <i class="fas fa-adjust text-muted me-2"></i>' . helperTrans('ingaz.toggle_visibility') . '
@@ -900,7 +918,7 @@ class MaidController extends Controller
                                 </ul>
                             </div>';
                 })
-                ->rawColumns(['cv_file', 'name', 'financial_items', 'is_show', 'is_pinned', 'cv_status', 'actions'])
+                ->rawColumns(['cv_file', 'name', 'branch_name', 'financial_items', 'is_show', 'is_pinned', 'cv_status', 'actions'])
                 ->make(true);
         }
 
@@ -943,11 +961,34 @@ class MaidController extends Controller
             'addButtonText' => helperTrans('ingaz.add_rental_cv'),
             'defaultFilters' => $defaultFilters,
             'enforcedFilters' => ['job_type' => $rentalJobTypeId],
-            'rentalStats' => $this->calculateRentalStats($rentalJobTypeId),
             'showRentalStats' => true,
             'isRentalPage' => true,
             'rentalTypeId' => $rentalJobTypeId,
             'cvOutputType' => $cvOutputType,
+            'branchSelector' => app(BranchAccessService::class)->selectorData($request),
+            'canChangeMaidBranch' => $this->canChangeRentalMaidBranch(),
+            'rentalStats' => $this->calculateRentalStats($rentalJobTypeId, $request),
+        ]);
+    }
+
+    public function changeBranch(Request $request, Maid $maid)
+    {
+        $branchAccess = app(BranchAccessService::class);
+        abort_unless($this->canChangeRentalMaidBranch(), 403);
+        abort_unless($branchAccess->enabled() && Schema::hasColumn('maids', 'branch_id'), 404);
+        abort_unless($this->isRentalMaid($maid), 422, 'يمكن تغيير الفرع لسير عاملات الإيجار فقط.');
+
+        $validated = $request->validate([
+            'branch_id' => ['required', 'integer', 'exists:branches,id'],
+        ]);
+        $branch = Branch::query()->active()->findOrFail($validated['branch_id']);
+
+        $maid->update(['branch_id' => $branch->id]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'تم تغيير فرع العاملة بنجاح.',
+            'branch' => ['id' => $branch->id, 'name' => $branch->name],
         ]);
     }
 
@@ -1782,6 +1823,7 @@ class MaidController extends Controller
         $skills = $skillAction->get();
         $maidLanguages = app(MaidLanguageCatalog::class)->active();
         $rentalFinanceItems = $this->buildCreateRentalFinanceItems();
+        $branchSelector = $this->maidBranchSelector($request);
 
         $defaultShelterContract = '0';
         $defaultIsShow = true;
@@ -1805,7 +1847,8 @@ class MaidController extends Controller
                 'isRentalForm',
                 'formRedirectRoute',
                 'requireIdFields',
-                'rentalFinanceItems'
+                'rentalFinanceItems',
+                'branchSelector'
             )
         );
     }
@@ -1846,6 +1889,7 @@ class MaidController extends Controller
         $skills = $skillAction->get();
         $maidLanguages = app(MaidLanguageCatalog::class)->active();
         $rentalFinanceItems = $this->buildCreateRentalFinanceItems();
+        $branchSelector = $this->maidBranchSelector($request);
 
         $defaultTypeId = $rentalTypeId ?? $defaultTypeId;
         $defaultShelterContract = '0';
@@ -1870,7 +1914,8 @@ class MaidController extends Controller
                 'isRentalForm',
                 'formRedirectRoute',
                 'requireIdFields',
-                'rentalFinanceItems'
+                'rentalFinanceItems',
+                'branchSelector'
             )
         );
     }
@@ -2127,6 +2172,9 @@ class MaidController extends Controller
         $maidLanguages = app(MaidLanguageCatalog::class)->forForm($obj->languages);
         $rentalTypeId = $this->getRentalJobTypeId();
         $isRentalMaid = $rentalTypeId ? $obj->jobTypes->contains('id', $rentalTypeId) : false;
+        if ($isRentalMaid) {
+            $this->assertCanAccessBranchModel($obj, 'maids');
+        }
         // Some legacy maids are linked to both recruitment and rental job types.
         // Prefer the rental type on edit when that relation exists instead of
         // blindly displaying the first pivot row (usually recruitment).
@@ -2155,6 +2203,7 @@ class MaidController extends Controller
         $types = $jobTypesAction->getJobsTypes();
         $offices = $officeAct->getAllOffices();
         $skills = $skillAction->get();
+        $branchSelector = $this->maidBranchSelector($request, $obj);
 
         return view("{$this->folderPath}.edit", compact(
             'obj',
@@ -2168,12 +2217,18 @@ class MaidController extends Controller
             'defaultShelterContract',
             'isRentalForm',
             'formRedirectRoute',
-            'defaultTypeId'
+            'defaultTypeId',
+            'branchSelector'
         ));
     }
 
     public function update(MaidRequest $request, objAction $action, MaidCvPdfGenerator $cvGenerator, $id)
     {
+        $maid = objModel::with('jobTypes')->findOrFail($id);
+        if ($this->isRentalMaid($maid)) {
+            $this->assertCanAccessBranchModel($maid, 'maids');
+        }
+
         $data = $request->only($this->postData);
         $data = $action->updateMaid($id, $data, $request);
         $this->generateCvAutomatically($data, $cvGenerator);
@@ -3318,10 +3373,11 @@ class MaidController extends Controller
         $skills = app(SkillAction::class)->get();
         $selectedLanguageCodes = isset($extraData['obj']) ? (array) $extraData['obj']->languages : [];
         $maidLanguages = $extraData['maidLanguages'] ?? app(MaidLanguageCatalog::class)->forForm($selectedLanguageCodes);
+        $branchSelector = $this->maidBranchSelector(request(), $extraData['obj'] ?? null);
 
         unset($extraData['types']);
 
-        $data = array_merge(compact('nationalities', 'offices', 'religions', 'jobs', 'types', 'skills', 'maidLanguages'), $extraData);
+        $data = array_merge(compact('nationalities', 'offices', 'religions', 'jobs', 'types', 'skills', 'maidLanguages', 'branchSelector'), $extraData);
         $returnHTML = view("{$this->folderPath}.{$viewName}", $data)->render();
         return jsonSuccess(['html' => $returnHTML]);
     }
@@ -3329,6 +3385,21 @@ class MaidController extends Controller
     private function buildCreateRentalFinanceItems(): array
     {
         return app(RentalMaidFinanceService::class)->getFormItems((array) old('rental_finance_items', []));
+    }
+
+    private function maidBranchSelector(Request $request, ?Maid $maid = null): array
+    {
+        $service = app(BranchAccessService::class);
+        $selector = $service->selectorData($request);
+        $defaultBranchId = old('branch_id', $maid?->branch_id);
+
+        if (!$defaultBranchId && $selector['enabled']) {
+            $defaultBranchId = $selector['forced_branch_id']
+                ?: $service->adminBranchId()
+                ?: $service->mainBranchId();
+        }
+
+        return $selector + ['default_branch_id' => $defaultBranchId];
     }
 
     private function normalizeArabicText(?string $text): string
@@ -3516,18 +3587,21 @@ class MaidController extends Controller
         return $jobType?->id;
     }
 
-    private function calculateRentalStats(int $jobTypeId): array
+    private function calculateRentalStats(int $jobTypeId, ?Request $request = null): array
     {
+        $request ??= request();
         $baseQuery = objModel::query()->whereHas('jobTypes', function ($query) use ($jobTypeId) {
             $query->where('job_type_id', $jobTypeId);
         });
+        app(BranchAccessService::class)->applyToQuery($baseQuery, $request, 'maids');
 
         $today = Carbon::today();
         $expiryThreshold = Carbon::today()->addDays(30);
-        $shelterContracts = Contract::insideShelter()->whereHas('maid', function ($maidQuery) use ($jobTypeId) {
+        $shelterContracts = Contract::insideShelter()->whereHas('maid', function ($maidQuery) use ($jobTypeId, $request) {
             $maidQuery->whereHas('jobTypes', function ($jobTypeQuery) use ($jobTypeId) {
                 $jobTypeQuery->where('job_type_id', $jobTypeId);
             });
+            app(BranchAccessService::class)->applyToQuery($maidQuery, $request, 'maids');
         });
 
         return [
@@ -3557,6 +3631,12 @@ class MaidController extends Controller
         }
 
         return $query->count();
+    }
+
+    private function canChangeRentalMaidBranch(): bool
+    {
+        return app(BranchAccessService::class)->canViewAllBranches()
+            && @AdminGuardHasPerm(\App\PermKeys::MAIDS_CHANGE_BRANCH);
     }
 
     private function applyRentalAvailableFilter($query): void

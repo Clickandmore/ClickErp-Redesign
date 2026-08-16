@@ -189,6 +189,13 @@ trait AssignsBranch
             return null;
         }
 
+        if (Schema::hasTable('maids') && Schema::hasColumn('maids', 'branch_id')) {
+            $branchId = DB::table('maids')->where('id', $maidId)->value('branch_id');
+            if ($branchId) {
+                return (int) $branchId;
+            }
+        }
+
         if (Schema::hasTable('contracts') && Schema::hasColumn('contracts', 'branch_id') && Schema::hasColumn('contracts', 'maid_id')) {
             $branchId = DB::table('contracts')
                 ->where('maid_id', $maidId)

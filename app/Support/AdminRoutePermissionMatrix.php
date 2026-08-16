@@ -365,6 +365,7 @@ class AdminRoutePermissionMatrix
             'maids.index' => [PermKeys::MAIDS_VIEW],
             'maids.create' => [PermKeys::MAIDS_CREATE],
             'maids.rental.index' => [PermKeys::MAIDS_RENTAL_VIEW],
+            'maids.branch.update' => [PermKeys::MAIDS_CHANGE_BRANCH],
             'maids.pending-submissions' => [PermKeys::MAIDS_VIEW, PermKeys::MAIDS_EDIT],
             'maids.approve-submission' => [PermKeys::MAIDS_EDIT],
             'maids.reject-submission' => [PermKeys::MAIDS_EDIT],

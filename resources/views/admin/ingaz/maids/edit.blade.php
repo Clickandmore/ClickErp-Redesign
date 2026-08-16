@@ -638,6 +638,25 @@
                                     </select>
                                 </div>
 
+                                @if (($branchSelector['enabled'] ?? false) && ($branchSelector['branches'] ?? collect())->isNotEmpty())
+                                    <div class="col-4 maid-branch-field" style="display:none;">
+                                        <label for="maid_branch_id" class="form-label">الفرع</label>
+                                        @if ($branchSelector['forced_branch_id'] ?? null)
+                                            <input type="hidden" name="branch_id" value="{{ $branchSelector['forced_branch_id'] }}">
+                                            <select id="maid_branch_id" class="form-control" disabled>
+                                        @else
+                                            <select id="maid_branch_id" name="branch_id" class="form-control">
+                                        @endif
+                                            <option value="">اختر الفرع</option>
+                                            @foreach ($branchSelector['branches'] as $branch)
+                                                <option value="{{ $branch->id }}" {{ (int) ($branchSelector['default_branch_id'] ?? 0) === (int) $branch->id ? 'selected' : '' }}>
+                                                    {{ $branch->name }}{{ $branch->code ? ' - ' . $branch->code : '' }}
+                                                </option>
+                                            @endforeach
+                                        </select>
+                                    </div>
+                                @endif
+
                                 <!-- الوظائف -->
                                 <div class="col-4">
                                     <label for="TextInput" class="form-label">{{ helperTrans('ingaz.job_2') }} </label>
@@ -2208,6 +2227,7 @@
                 var heightWeightFields = $('input[name="height"], input[name="weight"]').closest('.col-4');
                 var maritalStatusField = $('select[name="marital_status:ar"]').closest('.col-4');
                 var officeField = $('.office-field');
+                var branchField = $('.maid-branch-field');
                 var salaryField = $('input[name="salary"]').closest('.col-4');
                 var jobField = $('select[name="job_id[]"]').closest('.col-4');
                 var requestTypeField = $('#request_type_field');
@@ -2221,6 +2241,7 @@
                 var heightWeightInputs = $('input[name="height"], input[name="weight"]');
                 var maritalStatusSelect = $('select[name="marital_status:ar"]');
                 var officeSelect = $('select[name="office_id"]');
+                var branchSelect = $('select[name="branch_id"]');
                 var salaryInput = $('input[name="salary"]');
                 var jobSelect = $('select[name="job_id[]"]');
                 var requestTypeSelect = $('#request_type');
@@ -2233,6 +2254,7 @@
                 heightWeightFields.show();
                 maritalStatusField.show();
                 officeField.show();
+                branchField.hide();
                 salaryField.show();
                 jobField.show();
                 requestTypeField.show();
@@ -2245,6 +2267,7 @@
                 heightWeightInputs.attr('required', 'required');
                 maritalStatusSelect.attr('required', 'required');
                 officeSelect.attr('required', 'required');
+                branchSelect.prop('required', false).prop('disabled', true);
                 salaryInput.attr('required', 'required');
                 jobSelect.attr('required', 'required');
                 requestTypeSelect.prop('disabled', false);
@@ -2281,6 +2304,8 @@
                     arrivalDateInput.val('');
                     rentalFinanceSection.hide();
                 } else if (typeContext.isRental) {
+                    branchField.show();
+                    branchSelect.prop('disabled', false).prop('required', true);
                     // Hide fields for ايجار
                     heightWeightFields.hide();
                     maritalStatusField.hide();

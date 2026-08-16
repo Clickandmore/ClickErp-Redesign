@@ -213,6 +213,11 @@
                                         @endif
                                     </div>
                                     <h4>{{ $maid->name ?? '' }}</h4>
+                                    @if (\App\Support\SystemModuleManager::isEnabled('branches') && $maid->branch)
+                                        <span class="badge bg-info text-dark mb-2">
+                                            <i class="fas fa-code-branch me-1"></i>{{ $maid->branch->name }}
+                                        </span>
+                                    @endif
                                     <div class="workerInfo">
                                         <p>{{ __('ingaz.nationality') }} :
                                             <span>{{ $maid->nationality?->sub_title ?? '' }}</span>

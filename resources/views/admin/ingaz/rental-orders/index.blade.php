@@ -164,6 +164,7 @@
                                     @endforeach
                                 </select>
                             </div>
+                            @include('admin.partials.branch-filter', ['id' => 'branch_id', 'containerClass' => 'col-md-2', 'label' => 'الفرع'])
                             <div class="col-md-2">
                                 <label class="form-label">{{ helperTrans('ingaz.timer_status') }}</label>
                                 <select class="form-select" name="timer_status" id="timer_status">
@@ -225,6 +226,7 @@
                                     <th>{{ helperTrans('ingaz.nationality') }}</th>
                                     <th>{{ helperTrans('ingaz.passport_num') }}</th>
                                     <th>{{ helperTrans('ingaz.order_job_type') }}</th>
+                                    <th>الفرع</th>
                                     <th>{{ helperTrans('ingaz.status') }}</th>
                                     <th>{{ helperTrans('ingaz.timer') }}</th>
                                     <th>{{ helperTrans('ingaz.contract_status') }}</th>
@@ -309,6 +311,11 @@
                     searchable: true
                 },
                 {
+                    "data": "branch_name",
+                    orderable: false,
+                    searchable: false
+                },
+                {
                     "data": "status",
                     orderable: true,
                     searchable: true
@@ -367,6 +374,7 @@
                         d.job_type = $('#job_type').val();
                         d.admin_id = $('#admin_id').val();
                         d.request_type = $('#request_type').val();
+                        d.branch_id = $('#branch_id').val();
                         d.timer_status = $('#timer_status').val();
                         d.client_name = $('#client_name').val();
                         d.phone = $('#phone').val();
@@ -1209,7 +1217,7 @@
 
             // Clear filters
             $('#clearFilters').on('click', function() {
-                $('#from_date, #to_date, #status, #job_type, #admin_id, #timer_status, #client_name, #phone, #passport_num')
+                $('#from_date, #to_date, #status, #job_type, #admin_id, #branch_id, #timer_status, #client_name, #phone, #passport_num')
                     .val('');
                 dataTable.ajax.reload();
             });
@@ -1222,6 +1230,7 @@
                     status: $('#status').val() || getUrlParameter('status'),
                     job_type: $('#job_type').val(),
                     admin_id: $('#admin_id').val(),
+                    branch_id: $('#branch_id').val(),
                     timer_status: $('#timer_status').val(),
                     client_name: $('#client_name').val(),
                     phone: $('#phone').val(),
@@ -1236,6 +1245,7 @@
                     status: $('#status').val() || getUrlParameter('status'),
                     job_type: $('#job_type').val(),
                     admin_id: $('#admin_id').val(),
+                    branch_id: $('#branch_id').val(),
                     timer_status: $('#timer_status').val(),
                     client_name: $('#client_name').val(),
                     phone: $('#phone').val(),
