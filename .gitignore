@@ -40,3 +40,4 @@ error_log
 
 /migration_system/data
 .claude/settings.local.json
+storage/framework/scheduler-heartbeat.json
