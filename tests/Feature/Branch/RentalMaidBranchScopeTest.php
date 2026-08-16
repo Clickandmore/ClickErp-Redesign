@@ -156,6 +156,30 @@ class RentalMaidBranchScopeTest extends TestCase
         $this->assertFalse($ids->contains($theirs->id));
     }
 
+    /** @test */
+    public function disabled_branches_module_removes_every_branch_element_from_the_rental_maids_page(): void
+    {
+        $branch = $this->makeBranch(['is_main' => true]);
+        $admin = $this->branchAdmin($branch);
+        $this->grant($admin, \App\PermKeys::MAIDS_RENTAL_VIEW);
+        $this->makeRentalMaid('Rental maid while branches are disabled', $branch->id);
+        $this->enableBranchesModule(false);
+
+        $this->actingAsAdmin($admin)
+            ->get(route('maids.rental.index'))
+            ->assertOk()
+            ->assertDontSee('id="branch_id"', false)
+            ->assertDontSee("data: 'branch_name'", false)
+            ->assertDontSee('change-maid-branch', false);
+
+        $response = $this->get(route('maids.rental.index'), ['X-Requested-With' => 'XMLHttpRequest']);
+        $response->assertOk();
+
+        $firstRow = (array) data_get($response->json(), 'data.0', []);
+        $this->assertArrayNotHasKey('branch_id', $firstRow);
+        $this->assertArrayNotHasKey('branch_name', $firstRow);
+    }
+
     private function grant($admin, string $permission): void
     {
         Permission::withoutGlobalScopes()->updateOrCreate(

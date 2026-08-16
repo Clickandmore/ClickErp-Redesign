@@ -607,6 +607,8 @@ class MaidController extends Controller
     public function rentalIndex(Request $request, RecruitmentOfficeAction $officeAct)
     {
         $rentalJobTypeId = $this->getRentalJobTypeId();
+        $branchAccess = app(BranchAccessService::class);
+        $branchesEnabled = $branchAccess->enabled() && $branchAccess->tableHasBranchColumn('maids');
 
         if (!$rentalJobTypeId) {
             return redirect()
@@ -620,25 +622,29 @@ class MaidController extends Controller
         $cvOutputType = MaidCvTemplateSettings::outputType();
 
         if ($request->ajax()) {
+            $relations = [
+                'nationality',
+                'religion',
+                'jobTypes',
+                'contracts' => function ($query) {
+                    $query->with(['info', 'travelHistory', 'sponsorshipTransfers'])->latest('id');
+                },
+                'orders',
+                'rentalContracts' => function ($query) {
+                    $query->select(['id', 'maid_id', 'status']);
+                },
+                'rentalFinancialAdjustments' => function ($query) {
+                    $query->where('context', 'maid')
+                        ->select(['id', 'maid_id', 'type', 'label', 'amount', 'settled_at']);
+                },
+            ];
+
+            if ($branchesEnabled) {
+                $relations[] = 'branch';
+            }
+
             $rows = objModel::query()
-                ->with([
-                    'branch',
-                    'nationality',
-                    'religion',
-                    'jobTypes',
-                    'contracts' => function ($query) {
-                        $query->with(['info', 'travelHistory', 'sponsorshipTransfers'])
-                            ->latest('id');
-                    },
-                    'orders',
-                    'rentalContracts' => function ($query) {
-                        $query->select(['id', 'maid_id', 'status']);
-                    },
-                    'rentalFinancialAdjustments' => function ($query) {
-                        $query->where('context', 'maid')
-                            ->select(['id', 'maid_id', 'type', 'label', 'amount', 'settled_at']);
-                    },
-                ])
+                ->with($relations)
                 ->select([
                     'id',
                     'name',
@@ -667,17 +673,17 @@ class MaidController extends Controller
                     'maid_accommodation_type',
                     'id_expiry_date',
                     'request_type',
-                    'branch_id',
                 ])
+                ->when($branchesEnabled, fn ($query) => $query->addSelect('branch_id'))
                 ->orderByDesc('is_pinned')
                 ->orderByDesc('available')
                 ->orderByDesc('created_at');
 
-            app(BranchAccessService::class)->applyToQuery($rows, $request, 'maids');
+            $branchAccess->applyToQuery($rows, $request, 'maids');
 
             $this->applyMaidFilter($request, $rows);
 
-            return DataTables::of($rows)
+            $dataTable = DataTables::of($rows)
                 ->addIndexColumn()
                 ->editColumn('cv_file', function (Maid $row) {
                     $rawPath = $this->maidImagePath($row);
@@ -704,10 +710,15 @@ class MaidController extends Controller
                         . '</div>';
                 })
                 ->editColumn('nationality_id', fn(Maid $row) => e($row->nationality?->sub_title ?? '-'))
-                ->addColumn('job_type', fn(Maid $row) => e($this->getMaidJobTypeTitle($row, $rentalJobTypeId)))
-                ->addColumn('branch_name', fn(Maid $row) => $row->branch
+                ->addColumn('job_type', fn(Maid $row) => e($this->getMaidJobTypeTitle($row, $rentalJobTypeId)));
+
+            if ($branchesEnabled) {
+                $dataTable->addColumn('branch_name', fn(Maid $row) => $row->branch
                     ? '<span class="badge bg-info text-dark">' . e($row->branch->name) . '</span>'
-                    : '<span class="text-muted">-</span>')
+                    : '<span class="text-muted">-</span>');
+            }
+
+            return $dataTable
                 ->editColumn('passport_num', fn(Maid $row) => e($row->passport_num ?? '-'))
                 ->editColumn('price', fn(Maid $row) => $row->resolved_price !== null ? number_format((float) $row->resolved_price, 2) : '-')
                 ->editColumn('salary', fn(Maid $row) => $row->resolved_salary !== null ? number_format((float) $row->resolved_salary, 2) : '-')
@@ -918,7 +929,10 @@ class MaidController extends Controller
                                 </ul>
                             </div>';
                 })
-                ->rawColumns(['cv_file', 'name', 'branch_name', 'financial_items', 'is_show', 'is_pinned', 'cv_status', 'actions'])
+                ->rawColumns(array_values(array_filter([
+                    'cv_file', 'name', $branchesEnabled ? 'branch_name' : null, 'financial_items',
+                    'is_show', 'is_pinned', 'cv_status', 'actions',
+                ])))
                 ->make(true);
         }
 
@@ -965,7 +979,8 @@ class MaidController extends Controller
             'isRentalPage' => true,
             'rentalTypeId' => $rentalJobTypeId,
             'cvOutputType' => $cvOutputType,
-            'branchSelector' => app(BranchAccessService::class)->selectorData($request),
+            'branchesEnabled' => $branchesEnabled,
+            'branchSelector' => $branchAccess->selectorData($request),
             'canChangeMaidBranch' => $this->canChangeRentalMaidBranch(),
             'rentalStats' => $this->calculateRentalStats($rentalJobTypeId, $request),
         ]);
