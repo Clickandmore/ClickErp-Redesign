@@ -57,7 +57,7 @@ class Employee extends Model
             return $query;
         }
 
-        return $query->where($this->getTable() . '.employee_category', static::CATEGORY_EMPLOYEE);
+        return $query->whereNull($this->getTable() . '.maid_id');
     }
 
     public function scopeOnlyMaids($query)
@@ -68,7 +68,7 @@ class Employee extends Model
             return $query->whereRaw('1 = 0');
         }
 
-        return $query->where($this->getTable() . '.employee_category', static::CATEGORY_MAID);
+        return $query->whereNotNull($this->getTable() . '.maid_id');
     }
 
     public function scopeAdminType($query)
