@@ -27,9 +27,12 @@
                 </select>
             </div>
         </div>
-        <div class="col-3">
-
-        </div>
+        @include('admin.partials.branch-filter', [
+            'id' => 'branch_id',
+            'name' => 'branch_id',
+            'label' => __('financial_requests.branch'),
+            'containerClass' => 'col-3',
+        ])
         <div class="col-3">
             <br>
             @if (!empty($createRoute))
@@ -79,6 +82,7 @@
                     "data": function (d) {
                         d.department_id = $('#department_id').val();
                         d.job_id = $('#job_id').val();
+                        d.branch_id = $('[name="branch_id"]').val();
                     }
                 },
                 "columns": [
@@ -118,7 +122,7 @@
                 ]
             });
 
-            $('#department_id, #job_id').change(function () {
+            $('#department_id, #job_id, [name="branch_id"]').change(function () {
                 table.draw();
             });
         });

@@ -4,6 +4,7 @@ namespace Nami\Hr\Services;
 
 
 use App\Enums\AdminTypeisEnum;
+use App\Services\BranchAccessService;
 use Nami\Hr\MainService;
 use Nami\Hr\Models\Employee;
 use Nami\Hr\Models\Department;
@@ -41,7 +42,16 @@ class EmployeeService extends MainService
             ? $this->model->query()->onlyMaids()->latest()
             : $this->model->query()->onlyEmployees()->latest();
 
+        $branchId = app(BranchAccessService::class)->selectedBranchId($request);
+
         return $query
+            ->when($branchId, function ($builder) use ($branchId, $category) {
+                $relation = $category === Employee::CATEGORY_MAID ? 'maid' : 'admin';
+
+                $builder->whereHas($relation, function ($relationQuery) use ($branchId) {
+                    $relationQuery->where('branch_id', $branchId);
+                });
+            })
             ->when($request->filled('department_id'), function ($builder) use ($request) {
                 $builder->where('deparment_id', $request->department_id);
             })
