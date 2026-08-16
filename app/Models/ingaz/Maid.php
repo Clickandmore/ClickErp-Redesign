@@ -6,6 +6,7 @@ use App\Enums\ingaz\ContractStatusEnum;
 use App\Http\Controllers\ingaz\RecruitmentOffice;
 use App\Models\Contract;
 use App\Models\RecruitmentOffices;
+use App\Models\Branch;
 use App\Support\CvOptionsSettings;
 use Astrotomic\Translatable\Translatable;
 use Illuminate\Database\Eloquent\Collection as EloquentCollection;
@@ -116,6 +117,7 @@ class Maid extends Model
         'offer_expires_at',
         'deleted_by',
         'arrival_date',
+        'branch_id',
         'created_at',
         'submission_status',
         'submission_type',
@@ -147,7 +149,13 @@ class Maid extends Model
         'arrival_date' => 'date',
         'deleted_at' => 'datetime',
         'reviewed_at' => 'datetime',
+        'branch_id' => 'integer',
     ];
+
+    public function branch()
+    {
+        return $this->belongsTo(Branch::class, 'branch_id');
+    }
 
     public function externalReferences()
     {

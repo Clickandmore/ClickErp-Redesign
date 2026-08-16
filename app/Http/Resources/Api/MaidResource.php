@@ -52,6 +52,9 @@ class MaidResource extends JsonResource
                 'id' => $this->recruitmentOffice?->id,
                 'title' => $this->recruitmentOffice?->title,
             ],
+			'branch' => \App\Support\SystemModuleManager::isEnabled('branches') && $this->branch
+				? ['id' => (int) $this->branch->id, 'name' => (string) $this->branch->name]
+				: null,
 			// 'created_at' => (string)$this->created_at,
 			// 'updated_at' => (string)$this->updated_at,
 		];

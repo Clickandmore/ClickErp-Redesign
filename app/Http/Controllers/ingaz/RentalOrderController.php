@@ -9,6 +9,7 @@ use App\Models\ingaz\JobTitle;
 use App\Models\ingaz\Order as objModel;
 use App\Support\AutomationSettings;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Yajra\DataTables\Facades\DataTables;
 
 class RentalOrderController extends Controller
@@ -46,13 +47,15 @@ class RentalOrderController extends Controller
                 'details.admin',
                 'customer',
                 'rentalContracts',
-                'latestMoyasarPayment'
+                'latestMoyasarPayment',
+                'branch'
             ]);
 
             // Order by created_at desc to show newest orders first
             $query->orderBy('created_at', 'desc');
 
             $query->rentalRequests();
+            $this->applyRequestBranchFilter($query, $request, 'orders');
 
             // Apply status filter
             if ($request->has('status') && $request->status != '') {
@@ -142,6 +145,9 @@ class RentalOrderController extends Controller
                 ->editColumn('job_type_id', function ($row) {
                     return ($row->jobType) ? $row->jobType->title : '';
                 })
+                ->addColumn('branch_name', fn ($row) => $row->branch
+                    ? '<span class="badge bg-info text-dark">' . e($row->branch->name) . '</span>'
+                    : '<span class="text-muted">-</span>')
                 ->editColumn('user_id', function ($row) {
                     return '<span class="client-name text-nowrap">' . (($row->user) ? $row->user->name : '-') . '</span>';
                 })
@@ -274,7 +280,7 @@ class RentalOrderController extends Controller
                     return $actions;
                 })
                 ->escapeColumns([])
-                       ->rawColumns(['actions', 'status', 'timer', 'user_id', 'phone', 'maid_id', 'maid_passport_num', 'deliver_status', 'package_name', 'address_status', 'payment_status', 'contract_status', 'order_code', 'created_at', 'admin_name'])
+                       ->rawColumns(['actions', 'status', 'timer', 'user_id', 'phone', 'maid_id', 'maid_passport_num', 'deliver_status', 'package_name', 'address_status', 'payment_status', 'contract_status', 'order_code', 'created_at', 'admin_name', 'branch_name'])
                        ->make(true);
         }
 
@@ -292,6 +298,7 @@ class RentalOrderController extends Controller
         });
 
         $statisticsQuery = objModel::query()->rentalRequests();
+        $this->applyRequestBranchFilter($statisticsQuery, $request, 'orders');
         $data['totalOrders'] = (clone $statisticsQuery)->count();
         $data['newOrders'] = (clone $statisticsQuery)->where('status', OrderEnum::New->value)->count();
         $data['underProcessOrders'] = (clone $statisticsQuery)->where('status', OrderEnum::UnderProcess->value)->count();
@@ -391,6 +398,8 @@ class RentalOrderController extends Controller
     public function destroy($id)
     {
         try {
+            $order = objModel::rentalRequests()->findOrFail($id);
+            $this->assertCanAccessBranchModel($order, 'orders');
             $action = new objAction();
             $result = $action->delete($id);
 
@@ -410,6 +419,7 @@ class RentalOrderController extends Controller
     {
         try {
             $order = objModel::rentalRequests()->findOrFail($id);
+            $this->assertCanAccessBranchModel($order, 'orders');
 
             if ($order->status !== OrderEnum::New->value) {
                 return response()->json(['success' => false, 'message' => 'لا يمكن قبول هذا الطلب.']);
@@ -430,6 +440,7 @@ class RentalOrderController extends Controller
             DB::beginTransaction();
 
             $order = objModel::rentalRequests()->findOrFail($id);
+            $this->assertCanAccessBranchModel($order, 'orders');
 
             if ($order->status !== OrderEnum::New->value) {
                 return response()->json(['success' => false, 'message' => 'لا يمكن رفض هذا الطلب.']);

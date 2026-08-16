@@ -8,6 +8,7 @@ use App\Support\SystemModuleManager;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Facades\DB;
 
 trait AssignsOrderBranch
 {
@@ -48,6 +49,14 @@ trait AssignsOrderBranch
 
     protected function resolveOrderBranchIdForCreate(): ?int
     {
+        $maidId = (int) ($this->maid_id ?? 0);
+        if ($maidId > 0 && Schema::hasTable('maids') && Schema::hasColumn('maids', 'branch_id')) {
+            $maidBranchId = DB::table('maids')->where('id', $maidId)->value('branch_id');
+            if ($maidBranchId) {
+                return (int) $maidBranchId;
+            }
+        }
+
         $responsibleAdminId = (int) ($this->customer_id ?? 0);
         if ($responsibleAdminId > 0) {
             return $this->resolveOrderBranchIdFromAdmin($responsibleAdminId)

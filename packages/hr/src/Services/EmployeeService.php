@@ -37,7 +37,7 @@ class EmployeeService extends MainService
     {
         $query = $category === Employee::CATEGORY_MAID
             ? $this->model->query()->onlyMaids()->latest()
-            : $this->getDataTable();
+            : $this->model->query()->onlyEmployees()->latest();
 
         return $query
             ->when($request->filled('department_id'), function ($builder) use ($request) {

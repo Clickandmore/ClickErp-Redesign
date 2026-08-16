@@ -292,6 +292,11 @@
                                     @endforeach
                                 </select>
                             </div>
+                            @include('admin.partials.branch-filter', [
+                                'id' => 'branch_id',
+                                'containerClass' => 'col-lg-3 col-md-3 col-sm-6 mb-3',
+                                'label' => 'الفرع',
+                            ])
                             <div class="col-lg-3 col-md-3 col-sm-6 mb-3">
                                 <select class="form-control" name="job_type" id="type" disabled>
                                     <option value="">{{ helperTrans('ingaz.select_cv_type') }}</option>
@@ -385,6 +390,7 @@
                             <th>{{ helperTrans('ingaz.name') }}</th>
                             <th class="d-none d-lg-table-cell">{{ helperTrans('ingaz.nationality_id') }}</th>
                             <th class="d-none d-lg-table-cell">{{ helperTrans('ingaz.job_type') }}</th>
+                            <th>الفرع</th>
                             <th>{{ helperTrans('ingaz.passport_num') }}</th>
                             <th class="d-none d-md-table-cell">{{ helperTrans('ingaz.price') }}</th>
                             <th class="d-none d-md-table-cell">{{ helperTrans('ingaz.salary') }}</th>
@@ -507,6 +513,7 @@
             const defaultFiltersConfig = @json($defaultFilters);
             const enforcedFiltersConfig = @json($enforcedFilters);
             const csrfToken = $('meta[name="csrf-token"]').attr('content');
+            const branchOptions = @json(($branchSelector['branches'] ?? collect())->mapWithKeys(fn($branch) => [$branch->id => $branch->name]));
             const rentalTranslations = {
                 hideFilter: @json(helperTrans('ingaz.hide_filter')),
                 showFilter: @json(helperTrans('ingaz.show_filter')),
@@ -571,6 +578,7 @@
                 { data: 'name', orderable: false, searchable: false },
                 { data: 'nationality_id', orderable: false, searchable: false, className: 'd-none d-lg-table-cell' },
                 { data: 'job_type', orderable: false, searchable: false, className: 'd-none d-lg-table-cell' },
+                { data: 'branch_name', orderable: false, searchable: false },
                 { data: 'passport_num', orderable: false, searchable: false },
                 { data: 'price', orderable: false, searchable: false, className: 'd-none d-md-table-cell' },
                 { data: 'salary', orderable: false, searchable: false, className: 'd-none d-md-table-cell' },
@@ -618,6 +626,7 @@
                     passport_num: $('#passport_num').val(),
                     nationality_id: $('#nationality_id').val(),
                     office_id: $('#office_id').val(),
+                    branch_id: $('#branch_id').val(),
                     job_type: $('#type').val(),
                     experience_years: $('#experience_years').val(),
                     cv_status: $('#cv_status').val(),
@@ -656,7 +665,7 @@
                 },
                 columns: columns,
                 pageLength: 10,
-                order: [[13, 'desc']],
+                order: [[15, 'desc']],
                 language: {
                     url: "{{ asset('admin/assets/js/datatable-ar.json') }}"
                 },
@@ -694,6 +703,33 @@
                 $dropdown.addClass('show');
                 $button.attr('aria-expanded', 'true').addClass('show');
                 placeRentalActionsMenu($button, $menu);
+            });
+
+            $(document).on('click', '.change-maid-branch', function() {
+                const button = $(this);
+                Swal.fire({
+                    title: 'تغيير فرع العاملة',
+                    input: 'select',
+                    inputOptions: branchOptions,
+                    inputValue: button.data('current-branch') || '',
+                    inputPlaceholder: 'اختر الفرع',
+                    showCancelButton: true,
+                    confirmButtonText: 'حفظ',
+                    cancelButtonText: 'إلغاء',
+                    inputValidator: value => value ? undefined : 'يرجى اختيار الفرع'
+                }).then(result => {
+                    if (!result.isConfirmed) return;
+
+                    $.post(button.data('url'), {
+                        _token: csrfToken,
+                        branch_id: result.value
+                    }).done(response => {
+                        Swal.fire('تم', response.message, 'success');
+                        table.ajax.reload(null, false);
+                    }).fail(xhr => {
+                        Swal.fire('خطأ', xhr.responseJSON?.message || 'تعذر تغيير الفرع.', 'error');
+                    });
+                });
             });
 
             $(document).on('click', function(e) {

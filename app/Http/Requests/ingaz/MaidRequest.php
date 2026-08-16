@@ -7,6 +7,7 @@ use App\Models\Country;
 use App\Models\ingaz\JobType;
 use App\Models\ingaz\Maid;
 use App\Support\ExperiencePeriod;
+use App\Services\BranchAccessService;
 use Illuminate\Validation\Rule;
 
 class MaidRequest extends MainRequest
@@ -102,6 +103,12 @@ class MaidRequest extends MainRequest
                 'nullable',
                 'exists:recruitment_offices,id',
             ],
+            'branch_id' => [
+                Rule::requiredIf(fn () => $this->isSelectedRentalType() && app(BranchAccessService::class)->enabled()),
+                'nullable',
+                'integer',
+                Rule::exists('branches', 'id')->where(fn ($query) => $query->where('is_active', true)),
+            ],
             'languages' => 'nullable|array',
             'percentage' => 'nullable|array',
             'percentage.*' => 'nullable|numeric|min:0|max:100',
@@ -151,10 +158,15 @@ class MaidRequest extends MainRequest
         ];
 
         if ($this->isSelectedRentalType()) {
+            $branchAccess = app(BranchAccessService::class);
+            $forcedBranchId = $branchAccess->enabled() && !$branchAccess->canViewAllBranches()
+                ? $branchAccess->adminBranchId()
+                : null;
             $data = array_merge($data, [
                 'request_type' => Maid::REQUEST_TYPE_CUSTOM,
                 'rental_kingdom_status' => $this->input('rental_kingdom_status'),
                 'rental_finance_items_confirmed' => true,
+                'branch_id' => $forcedBranchId ?: $this->input('branch_id'),
             ]);
 
             if (($data['rental_kingdom_status'] ?? null) === 'outside') {
@@ -164,6 +176,7 @@ class MaidRequest extends MainRequest
             $data = array_merge($data, [
                 'rental_kingdom_status' => null,
                 'arrival_date' => null,
+                'branch_id' => null,
             ]);
         }
 
@@ -284,6 +297,7 @@ class MaidRequest extends MainRequest
             'job_id.*' => 'الوظيفة المحددة',
             'type_id' => 'نوع السيرة',
             'office_id' => 'المكتب الخارجي',
+            'branch_id' => 'الفرع',
             'percentage.*' => 'نسبة إتقان اللغة',
             'language_levels.*' => 'مستوى اللغة',
             'expertises.*.country_id' => 'دولة الخبرة',
@@ -305,6 +319,16 @@ class MaidRequest extends MainRequest
     public function withValidator($validator)
     {
         $validator->after(function ($validator) {
+            if ($this->isSelectedRentalType() && app(BranchAccessService::class)->enabled()) {
+                $allowedBranchIds = app(BranchAccessService::class)->selectorBranches()
+                    ->pluck('id')
+                    ->map(fn ($id) => (int) $id);
+
+                if (!$allowedBranchIds->contains((int) $this->input('branch_id'))) {
+                    $validator->errors()->add('branch_id', 'الفرع المحدد غير متاح للمستخدم الحالي.');
+                }
+            }
+
             $expertises = collect((array) $this->input('expertises', []));
             $countries = Country::query()
                 ->whereIn('id', $expertises->pluck('country_id')->filter()->all())

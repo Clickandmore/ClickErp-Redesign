@@ -13,11 +13,13 @@ use App\Services\ingaz\RentalMaidAccountingService;
 use App\Services\ingaz\RentalMaidFinanceService;
 use App\Support\CvOptionsSettings;
 use App\Support\ExperiencePeriod;
+use App\Support\SystemModuleManager;
 use Carbon\Carbon;
 use Illuminate\Database\QueryException;
-use Illuminate\Support\Str;
+use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use Nami\Hr\Models\Department as HrDepartment;
 use Nami\Hr\Models\Employee as HrEmployee;
@@ -362,6 +364,7 @@ class MaidAction extends MainAction
         $passportExpiryColumnExists = Schema::hasColumn('maids', 'passport_expiry_date');
         $genderColumnExists = Schema::hasColumn('maids', 'gender');
         $arabiaWorkerNumberColumnExists = Schema::hasColumn('maids', 'arabia_worker_number');
+        $branchColumnExists = Schema::hasColumn('maids', 'branch_id');
 
         // Ensure all required fields are present in the data array
         $createData = [
@@ -454,6 +457,9 @@ class MaidAction extends MainAction
         }
         if ($passportExpiryColumnExists) {
             $createData['passport_expiry_date'] = $data['passport_expiry_date'] ?? null;
+        }
+        if ($branchColumnExists) {
+            $createData['branch_id'] = $data['branch_id'] ?? null;
         }
 
 
@@ -2129,11 +2135,7 @@ class MaidAction extends MainAction
 
         $today = now()->toDateString();
 
-        $orderSeed = (string) (
-            $request->input('order_seed')
-            ?? session('all_workers_order_seed')
-            ?? now()->timestamp
-        );
+        $orderSeed = $this->resolvePaginationOrderSeed($request);
 
         return $this->availableQuery()
             ->with([
@@ -2145,6 +2147,7 @@ class MaidAction extends MainAction
                 'expertises.jobTitle',
                 'contracts.info',
             ])
+            ->when(SystemModuleManager::isEnabled('branches'), fn ($query) => $query->with('branch'))
             ->when(isset($type), function ($query) use ($type, $today) {
                 if ($type === 3) {
                     $query->where(function ($transferQuery) use ($today) {
@@ -2221,11 +2224,42 @@ class MaidAction extends MainAction
                     $q->where('job_title_id', $request->job);
                 });
             })
+            ->when(
+                $type === 2
+                    && SystemModuleManager::isEnabled('branches')
+                    && Schema::hasColumn('maids', 'branch_id')
+                    && $request->filled('branch_id'),
+                fn ($query) => $query->where('branch_id', (int) $request->input('branch_id'))
+            )
             ->orderBy('is_pinned', 'desc')
             // Stable random order (same seed) to avoid duplicates between pagination pages.
             ->orderByRaw('MD5(CONCAT(maids.id, ?))', [$orderSeed])
             ->orderBy('id', 'desc')
             ->paginate($limit);
+    }
+
+    /**
+     * Keep the randomized CV order identical while moving between pages.
+     *
+     * The public website stores a seed in the session. API consumers are
+     * usually stateless, so their fallback seed is derived from the active
+     * filters (without the page number) instead of the current timestamp.
+     */
+    private function resolvePaginationOrderSeed($request): string
+    {
+        if ($request->filled('order_seed')) {
+            return (string) $request->input('order_seed');
+        }
+
+        $sessionSeed = session('all_workers_order_seed');
+
+        if (filled($sessionSeed)) {
+            return (string) $sessionSeed;
+        }
+
+        $filters = Arr::sortRecursive($request->except(['page', 'order_seed']));
+
+        return hash('sha256', json_encode($filters, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
     }
 
     public function findAvailable($id)
