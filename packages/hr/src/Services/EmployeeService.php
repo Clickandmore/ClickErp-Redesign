@@ -6,10 +6,12 @@ namespace Nami\Hr\Services;
 use App\Enums\AdminTypeisEnum;
 use Nami\Hr\MainService;
 use Nami\Hr\Models\Employee;
+use Nami\Hr\Models\Department;
 use Nami\Hr\Models\EmployeeFile;
 use Nami\Hr\Models\EmployeeInsurance;
 use Nami\Hr\Models\EmployeeShift;
 use Nami\Hr\Models\EmployeeAllowance;
+use Nami\Hr\Models\Job;
 use App\Services\Nami\AdminService;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
@@ -83,9 +85,31 @@ class EmployeeService extends MainService
         return $this->departmentService->getDepartment();
     }
 
+    public function getDepartmentsForCategory(string $category)
+    {
+        return Department::query()
+            ->whereHas('employees', function ($query) use ($category) {
+                $category === Employee::CATEGORY_MAID
+                    ? $query->onlyMaids()
+                    : $query->onlyEmployees();
+            })
+            ->get();
+    }
+
     public function getJob()
     {
         return $this->jobService->getJob();
+    }
+
+    public function getJobsForCategory(string $category)
+    {
+        return Job::query()
+            ->whereHas('employees', function ($query) use ($category) {
+                $category === Employee::CATEGORY_MAID
+                    ? $query->onlyMaids()
+                    : $query->onlyEmployees();
+            })
+            ->get();
     }
 
     public function getShift()
