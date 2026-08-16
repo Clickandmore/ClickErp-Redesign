@@ -102,22 +102,26 @@ Route::group(
         });
 
         //--------------------------------stores------------------------
-        Route::group(['middleware' => 'auth:api', 'prefix' => 'client'], function ($router) {
+        Route::group([
+            'middleware' => 'auth:api',
+            'prefix' => 'client',
+            'as' => 'api.client.auth.',
+        ], function ($router) {
             Route::resource('dashboard', ApiClientDashboard::class);
-            Route::post('/update-profile', [App\Http\Controllers\Api\ApiClientDashboard::class, 'update_profile']);
+            Route::post('/update-profile', [App\Http\Controllers\Api\ApiClientDashboard::class, 'update_profile'])->name('update-profile');
             Route::resource('notifications', ApiNotificationController::class);
             Route::resource('complaints', ApiComplaintController::class);
-            Route::get('complaints-types', [App\Http\Controllers\Api\ApiComplaintController::class, 'complaints_types']);
-            Route::get('orders/tracking', [App\Http\Controllers\Api\ApiOrderController::class, 'tracking']);
+            Route::get('complaints-types', [App\Http\Controllers\Api\ApiComplaintController::class, 'complaints_types'])->name('complaints-types');
+            Route::get('orders/tracking', [App\Http\Controllers\Api\ApiOrderController::class, 'tracking'])->name('orders.tracking');
             Route::resource('orders', ApiOrderController::class);
-            Route::post('eagar-request', [EagarRequestController::class, 'store']);
-            Route::post('rental-package-bookings', [RentalPackageBookingController::class, 'store']);
+            Route::post('eagar-request', [EagarRequestController::class, 'store'])->name('eagar-request.store');
+            Route::post('rental-package-bookings', [RentalPackageBookingController::class, 'store'])->name('rental-package-bookings.store');
             Route::apiResource('user-addresses', ApiUserAddressController::class)->only(['index', 'store', 'update', 'destroy']);
-            Route::get('recruitment-request/{id}', [App\Http\Controllers\Api\ApiOrderController::class, 'showRecruitmentRequest']);
-            Route::get('recruitment-request', [App\Http\Controllers\Api\ApiRecruitmentRequest::class, 'index']);
-            Route::post('recruitment-request', [App\Http\Controllers\Api\ApiRecruitmentRequest::class, 'store']);
+            Route::get('recruitment-request/{id}', [App\Http\Controllers\Api\ApiOrderController::class, 'showRecruitmentRequest'])->name('recruitment-request.show');
+            Route::get('recruitment-request', [App\Http\Controllers\Api\ApiRecruitmentRequest::class, 'index'])->name('recruitment-request.index');
+            Route::post('recruitment-request', [App\Http\Controllers\Api\ApiRecruitmentRequest::class, 'store'])->name('recruitment-request.store');
             Route::resource('contracts', ApiContractController::class);
-            Route::post('contracts/cancel', [App\Http\Controllers\Api\ApiContractController::class, 'cancel']);
+            Route::post('contracts/cancel', [App\Http\Controllers\Api\ApiContractController::class, 'cancel'])->name('contracts.cancel');
             Route::resource('profile/renew-contracts', ApiRenewContractsController::class);
             Route::resource('sponsorship-transfers', ApiSponsorshipTransferController::class);
             Route::resource('return-requests', ApiReturnRequestController::class);
@@ -125,7 +129,7 @@ Route::group(
 
             // *****************
 
-            Route::get('search-maids', [App\Http\Controllers\Api\ApiMaidController::class, 'search']);
+            Route::get('search-maids', [App\Http\Controllers\Api\ApiMaidController::class, 'search'])->name('search-maids');
             Route::resource('packages', ApiPackageController::class);
         });
 
@@ -148,37 +152,42 @@ Route::controller(Api\HomeController::class)->group(function ($router) {
 
 
 // Public API routes (3mer)
-Route::group(['middleware' => ['lang', PreventApiResponseCaching::class], 'prefix' => 'client'], function () {
-    Route::get('home', [HomeController::class, 'homeSections']);
-    Route::get('recruitment-requirements', [HomeController::class, 'recruitmentRequirements']);
-    Route::get('about', [HomeController::class, 'about']);
-    Route::get('renew-contracts', [App\Http\Controllers\Api\ApiRenewContractsController::class, 'page']);
-    Route::post('renew-contracts', [App\Http\Controllers\Api\ApiRenewContractsController::class, 'store']);
+Route::group([
+    'middleware' => ['lang', PreventApiResponseCaching::class],
+    'prefix' => 'client',
+    'as' => 'api.client.public.',
+], function () {
+    Route::get('home', [HomeController::class, 'homeSections'])->name('home');
+    Route::get('recruitment-requirements', [HomeController::class, 'recruitmentRequirements'])->name('recruitment-requirements');
+    Route::get('about', [HomeController::class, 'about'])->name('about');
+    Route::get('renew-contracts', [App\Http\Controllers\Api\ApiRenewContractsController::class, 'page'])->name('renew-contracts.page');
+    Route::post('renew-contracts', [App\Http\Controllers\Api\ApiRenewContractsController::class, 'store'])->name('renew-contracts.store');
     Route::resource('daily-lebor-demand', ApiDailyLabotDemandController::class)->only(['index', 'store']);
     Route::resource('known-service', ApiKnownServiceController::class)->only(['index', 'store']);
     Route::resource('select-worker', ApiSelectWorkerController::class)->only(['index']);
     Route::resource('contact-us', ApiContactController::class);
-    Route::get('settings/policies', [App\Http\Controllers\Api\ApiSettingController::class, 'policies']);
+    Route::get('settings/policies', [App\Http\Controllers\Api\ApiSettingController::class, 'policies'])->name('settings.policies');
     Route::resource('settings', ApiSettingController::class);
     // Route::resource('maids', ApiMaidController::class);
     Route::resource('jobs', ApiJobTitleController::class);
-    Route::get('why-us', [HomeController::class, 'whyUs']);
-    Route::get('testimonials', [HomeController::class, 'testimonials']);
-    Route::post('testimonials', [HomeController::class, 'storeTestimonial']);
+    Route::get('why-us', [HomeController::class, 'whyUs'])->name('why-us');
+    Route::get('testimonials', [HomeController::class, 'testimonials'])->name('testimonials.index');
+    Route::post('testimonials', [HomeController::class, 'storeTestimonial'])->name('testimonials.store');
     Route::resource('sliders', ApiSliderController::class);
     Route::resource('nationalities', ApiNationalityController::class);
     Route::resource('religions', ApiReligionController::class);
     Route::resource('job-types', ApiJobTypeController::class);
-    Route::get('latest-worker-cvs', [App\Http\Controllers\Api\LatestWorkerCvController::class, 'index']);
-    Route::get('offers', [App\Http\Controllers\Api\ApiOfferController::class, 'index']);
-    Route::get('offers/{id}', [App\Http\Controllers\Api\ApiOfferController::class, 'show'])->whereNumber('id');
-    Route::get('guidelines', [App\Http\Controllers\Api\ApiGuidelineController::class, 'index']);
+    Route::get('latest-worker-cvs', [App\Http\Controllers\Api\LatestWorkerCvController::class, 'index'])->name('latest-worker-cvs.index');
+    Route::get('offers', [App\Http\Controllers\Api\ApiOfferController::class, 'index'])->name('offers.index');
+    Route::get('offers/{id}', [App\Http\Controllers\Api\ApiOfferController::class, 'show'])->whereNumber('id')->name('offers.show');
+    Route::get('guidelines', [App\Http\Controllers\Api\ApiGuidelineController::class, 'index'])->name('guidelines.index');
     Route::resource('all-workers', ApiMaidController::class);
-    Route::get('arrival-worker', [App\Http\Controllers\Api\ApiMaidController::class, 'arrivalWorker']);
-    Route::get('questions', [App\Http\Controllers\Api\ApiQuestionController::class, 'index']);
-    Route::get('customer-service-employees', [App\Http\Controllers\Api\ApiCustomerController::class, 'index']);
+    Route::get('arrival-worker', [App\Http\Controllers\Api\ApiMaidController::class, 'arrivalWorker'])->name('arrival-worker');
+    Route::get('questions', [App\Http\Controllers\Api\ApiQuestionController::class, 'index'])->name('questions.index');
+    Route::get('customer-service-employees', [App\Http\Controllers\Api\ApiCustomerController::class, 'index'])->name('customer-service-employees.index');
     Route::post('simplified-orders', [App\Http\Controllers\Api\ApiSimplifiedOrderController::class, 'store'])
-        ->middleware('throttle:5,1');
+        ->middleware('throttle:5,1')
+        ->name('simplified-orders.store');
 });
 
 // *************************************************************************************************************

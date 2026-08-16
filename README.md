@@ -79,7 +79,13 @@ APP_DEBUG=false
 ```bash
 php artisan config:clear
 php artisan config:cache
+php artisan route:cache
+php artisan view:cache
 ```
+
+يجب أن ينجح `route:cache` قبل إعادة الموقع للخدمة. فشل هذا الأمر يعني وجود أسماء
+مسارات مكررة، وترك ملف كاش قديم بعد تحديث ملفات Blade قد يؤدي إلى أخطاء
+`RouteNotFoundException` رغم وجود المسار في ملفات المشروع.
 
 ## Migrations العامة
 
