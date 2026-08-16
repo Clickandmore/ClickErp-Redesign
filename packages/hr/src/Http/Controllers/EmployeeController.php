@@ -163,8 +163,16 @@ class EmployeeController extends Controller
         $data["identityColumnLabel"] = $isMaidListing
             ? __('hr::hr.maid_identity')
             : __('hr::hr.Employee ID number');
-        $data['departments'] = $action->getDepartmentsForCategory($category);
-        $data['jobs'] = $action->getJobsForCategory($category);
+        $data['departments'] = $isMaidListing
+            ? $action->getDepartmentsForCategory($category)
+            : $action->getdepartment()->reject(function ($department) {
+                return $department->title === 'قسم العاملات';
+            })->values();
+        $data['jobs'] = $isMaidListing
+            ? $action->getJobsForCategory($category)
+            : $action->getJob()->reject(function ($job) {
+                return $job->title === 'عاملة';
+            })->values();
         return view($this->folderPath . '.index', $data);
     }
 
