@@ -18,16 +18,16 @@ class HandleExpiredOrders extends Command
 
     public function handle()
     {
-        $expiredOrders = Order::where('status', OrderEnum::New->value)
+        Order::where('status', OrderEnum::New->value)
             ->where('expiration_time', '<', Carbon::now())
-            ->get();
-
-        foreach ($expiredOrders as $order) {
-            $order->status = OrderEnum::Refused->value;
-            $order->save();
+            ->with(['user', 'maid'])
+            ->chunkById(100, function ($orders): void {
+                foreach ($orders as $order) {
+                    $order->status = OrderEnum::Refused->value;
+                    $order->save();
 
             // Create notification for the user
-            $order->user->notifications()->create([
+                    $order->user->notifications()->create([
                 'title' => [
                     'en' => 'Order Expired',
                     'ar' => 'انتهت صلاحية الطلب'
@@ -38,23 +38,24 @@ class HandleExpiredOrders extends Command
                 ],
                 'type' => 'order_expired',
                 'order_id' => $order->id
-            ]);
+                    ]);
 
             // Send SMS
-            $userPhone = $order->user?->phone;
-            if ($userPhone) {
-                $body = " عزيزي العميل : تخطي الطلب الخاص بكم المدة المسموحة له في النظام والغاءه برقم جواز : " . $order->maid->passport_num . " ورقم الطلب : " . $order->order_code;
-                $result = $this->sendSMS(formatSaudiPhone($userPhone), $body);
+                    $userPhone = $order->user?->phone;
+                    if ($userPhone) {
+                        $body = " عزيزي العميل : تخطي الطلب الخاص بكم المدة المسموحة له في النظام والغاءه برقم جواز : " . $order->maid?->passport_num . " ورقم الطلب : " . $order->order_code;
+                        $result = $this->sendSMS(formatSaudiPhone($userPhone), $body);
 
-                if (isset($result['code']) && $result['code'] == "1") {
-                    $this->storeMessage('ارسال رسالة نصية الى العميل', $body, NotificationActionEnum::SMS->value, $order->user->id);
+                        if (isset($result['code']) && $result['code'] == "1") {
+                            $this->storeMessage('ارسال رسالة نصية الى العميل', $body, NotificationActionEnum::SMS->value, $order->user->id);
+                        }
+                    } else {
+                        \Log::warning('Expired order SMS skipped: missing user phone', [
+                            'order_id' => $order->id
+                        ]);
+                    }
                 }
-            } else {
-                \Log::warning('Expired order SMS skipped: missing user phone', [
-                    'order_id' => $order->id
-                ]);
-            }
-        }
+            });
 
         $this->info('Expired orders handled successfully.');
     }

@@ -54,6 +54,10 @@ class AppServiceProvider extends ServiceProvider
         CommunicationSettings::applyRuntimeConfig();
 
         if ($this->app->runningInConsole()) {
+            if (filter_var(env('CLICKERP_SCHEDULER_RUN', false), FILTER_VALIDATE_BOOL)) {
+                @ini_set('memory_limit', (string) config('scheduler.memory_limit', '192M'));
+            }
+
             return;
         }
 

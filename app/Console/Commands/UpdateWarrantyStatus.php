@@ -39,25 +39,26 @@ class UpdateWarrantyStatus extends Command
     {
         $this->info('Starting warranty status update...');
         // جلب العقود في مرحلة الوصول أو المكتملة التي قد تحتاج إعادة تقييم
-        $contracts = Contract::whereIn('status', [
+        $query = Contract::whereIn('status', [
                 ContractStatusEnum::Arrival->value,
                 ContractStatusEnum::Completed->value,
             ])
-            ->whereIn('type', ['recruitment', 'maid'])
-            ->get();
+            ->whereIn('type', ['recruitment', 'maid']);
 
         $updatedCount = 0;
         $expiredCount = 0;
 
-        foreach ($contracts as $contract) {
-            $contract->calculateWarrantyStatus();
-            $contract->refresh();
-            $updatedCount++;
+        $query->chunkById(100, function ($contracts) use (&$updatedCount, &$expiredCount): void {
+            foreach ($contracts as $contract) {
+                $contract->calculateWarrantyStatus();
+                $contract->refresh();
+                $updatedCount++;
 
-            if ($contract->warranty_status === 'expired') {
-                $expiredCount++;
+                if ($contract->warranty_status === 'expired') {
+                    $expiredCount++;
+                }
             }
-        }
+        });
 
         $this->info("Warranty status update completed!");
         $this->info("Total contracts processed: {$updatedCount}");

@@ -29,25 +29,27 @@ class InitializeWarrantyStatus extends Command
     {
         $this->info('Initializing warranty status for arrival and completed contracts...');
         // نفس نطاق شاشة العقود المكتملة: عقود الاستقدام في الوصول أو المكتملة فقط.
-        $contracts = Contract::whereIn('status', [
+        $query = Contract::whereIn('status', [
             ContractStatusEnum::Arrival->value,
             ContractStatusEnum::Completed->value,
-        ])->whereIn('type', ['recruitment', 'maid'])->get();
+        ])->whereIn('type', ['recruitment', 'maid']);
 
         $activeCount = 0;
         $expiredCount = 0;
         $notApplicableCount = 0;
 
-        foreach ($contracts as $contract) {
-            $contract->calculateWarrantyStatus();
-            $contract->refresh();
+        $query->chunkById(100, function ($contracts) use (&$activeCount, &$expiredCount, &$notApplicableCount): void {
+            foreach ($contracts as $contract) {
+                $contract->calculateWarrantyStatus();
+                $contract->refresh();
 
-            match ($contract->warranty_status) {
-                'active' => $activeCount++,
-                'expired' => $expiredCount++,
-                default => $notApplicableCount++,
-            };
-        }
+                match ($contract->warranty_status) {
+                    'active' => $activeCount++,
+                    'expired' => $expiredCount++,
+                    default => $notApplicableCount++,
+                };
+            }
+        });
 
         $totalProcessed = $activeCount + $expiredCount + $notApplicableCount;
 

@@ -20,39 +20,40 @@ class CancelExpiredOrders extends Command
             $deadlineHours = AutomationSettings::orderNewDeadlineHours();
 
             // البحث عن الطلبات الجديدة التي انتهت مهلة متابعتها
-            $expiredOrders = Order::where('status', OrderEnum::New->value)
+            $query = Order::where('status', OrderEnum::New->value)
                 ->where('deadline_at', '<=', now())
-                ->whereNotNull('deadline_at')
-                ->get();
+                ->whereNotNull('deadline_at');
 
             $canceledCount = 0;
 
-            foreach ($expiredOrders as $order) {
-                Log::info('Canceling expired order', [
-                    'order_id' => $order->id,
-                    'deadline_at' => $order->deadline_at,
-                ]);
+            $query->chunkById(100, function ($orders) use (&$canceledCount, $deadlineHours): void {
+                foreach ($orders as $order) {
+                    Log::info('Canceling expired order', [
+                        'order_id' => $order->id,
+                        'deadline_at' => $order->deadline_at,
+                    ]);
 
                 // تحديث حالة الطلب إلى ملغي
-                $order->status = OrderEnum::Return->value; // أو استخدم القيمة المناسبة
-                $order->refuse_reason = "تم إلغاء الطلب تلقائياً بسبب انتهاء المهلة ({$deadlineHours} ساعة) دون تأكيد من المندوب";
-                $order->status_changed_at = now();
-                $order->save();
+                    $order->status = OrderEnum::Return->value; // أو استخدم القيمة المناسبة
+                    $order->refuse_reason = "تم إلغاء الطلب تلقائياً بسبب انتهاء المهلة ({$deadlineHours} ساعة) دون تأكيد من المندوب";
+                    $order->status_changed_at = now();
+                    $order->save();
 
                 // تحرير العاملة وإعادتها لحالة متاحة
-                $this->releaseMaid($order);
+                    $this->releaseMaid($order);
 
                 // إرسال إشعار للعميل
-                Notification::create([
-                    'title' => 'إلغاء الطلب',
-                    'description' => "تم إلغاء طلبك رقم {$order->id} تلقائياً بسبب عدم تأكيده خلال {$deadlineHours} ساعة",
-                    'order_id' => $order->id,
-                    'user_id' => $order->user_id,
-                    'type' => 'order_canceled',
-                ]);
+                    Notification::create([
+                        'title' => 'إلغاء الطلب',
+                        'description' => "تم إلغاء طلبك رقم {$order->id} تلقائياً بسبب عدم تأكيده خلال {$deadlineHours} ساعة",
+                        'order_id' => $order->id,
+                        'user_id' => $order->user_id,
+                        'type' => 'order_canceled',
+                    ]);
 
-                $canceledCount++;
-            }
+                    $canceledCount++;
+                }
+            });
 
             $this->info("تم إلغاء {$canceledCount} طلب منتهي الصلاحية");
             Log::info("Auto-canceled {$canceledCount} expired orders");

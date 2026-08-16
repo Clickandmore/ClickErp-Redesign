@@ -55,49 +55,44 @@ class Kernel extends ConsoleKernel
         $schedule->command('contracts:update-warranty-status')
             ->dailyAt($warrantyUpdateTime)
             ->withoutOverlapping()
-            ->runInBackground()
             ->appendOutputTo(storage_path('logs/warranty-update.log'));
 
         // 2. تهيئة الضمان للعقود الجديدة كل 6 ساعات
         $schedule->command('contracts:initialize-warranty')
             ->cron($warrantyInitializeCron)
-            ->withoutOverlapping()
-            ->runInBackground();
+            ->withoutOverlapping();
 
         // ============ تحديثات الطلبات ============
 
         // 3. تحديث تايمر الطلبات كل 30 دقيقة
         $schedule->call(function () use ($orderUrgentThresholdHours) {
             // تحديث حالة الطلبات المتأخرة
-            $overdueOrders = Order::where('status', OrderEnum::New->value)
+            Order::where('status', OrderEnum::New->value)
                 ->where('deadline_at', '<', now())
-                ->get();
-
-            foreach ($overdueOrders as $order) {
-                \Log::warning('Order overdue', [
-                    'order_id' => $order->id,
-                    'deadline' => $order->deadline_at,
-                    'hours_overdue' => $order->deadline_at->diffInHours(now())
-                ]);
-            }
+                ->lazyById(100)
+                ->each(function (Order $order): void {
+                    \Log::warning('Order overdue', [
+                        'order_id' => $order->id,
+                        'deadline' => $order->deadline_at,
+                        'hours_overdue' => $order->deadline_at->diffInHours(now())
+                    ]);
+                });
 
             // إرسال تنبيهات للطلبات العاجلة (أقل من ساعتين)
-            $urgentOrders = Order::where('status', OrderEnum::New->value)
+            Order::where('status', OrderEnum::New->value)
                 ->where('deadline_at', '>', now())
                 ->where('deadline_at', '<', now()->addHours($orderUrgentThresholdHours))
-                ->get();
-
-            foreach ($urgentOrders as $order) {
-                \Log::info('Order urgent', [
-                    'order_id' => $order->id,
-                    'deadline' => $order->deadline_at,
-                    'minutes_remaining' => $order->deadline_at->diffInMinutes(now())
-                ]);
-            }
+                ->lazyById(100)
+                ->each(function (Order $order): void {
+                    \Log::info('Order urgent', [
+                        'order_id' => $order->id,
+                        'deadline' => $order->deadline_at,
+                        'minutes_remaining' => $order->deadline_at->diffInMinutes(now())
+                    ]);
+                });
         })->cron($ordersTimerCron)
           ->name('update-orders-timer')
-          ->withoutOverlapping()
-          ->runInBackground();
+          ->withoutOverlapping();
 
         // 4. تنظيف الطلبات القديمة المعلقة شهرياً
         $schedule->call(function () use ($oldPendingOrdersDays) {
@@ -152,25 +147,21 @@ class Kernel extends ConsoleKernel
         
         $schedule->command('orders:cancel-expired')
              ->cron($ordersAutoCancelCron)
-             ->withoutOverlapping()
-             ->runInBackground();
+             ->withoutOverlapping();
 
         // Auto-refuse expired orders
         $schedule->command('orders:handle-expired')
             ->cron($ordersExpiredHandlerCron)
-            ->withoutOverlapping()
-            ->runInBackground();
+            ->withoutOverlapping();
 
         $schedule->command('rental-contracts:send-expiry-reminders')
             ->dailyAt('09:00')
             ->withoutOverlapping()
-            ->runInBackground()
             ->appendOutputTo(storage_path('logs/rental-contract-expiry-reminders.log'));
 
         $schedule->command('notifications:run-configured-alerts')
             ->everyFiveMinutes()
             ->withoutOverlapping()
-            ->runInBackground()
             ->appendOutputTo(storage_path('logs/configured-notification-alerts.log'));
 
         if ($databaseBackupSettings['enabled']) {
@@ -178,7 +169,6 @@ class Kernel extends ConsoleKernel
                 ->dailyAt($databaseBackupSettings['daily_time'])
                 ->name('database-backup-r2')
                 ->withoutOverlapping(120)
-                ->runInBackground()
                 ->appendOutputTo(storage_path('logs/database-backup.log'));
         }
     }

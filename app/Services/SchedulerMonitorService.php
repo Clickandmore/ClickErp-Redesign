@@ -26,11 +26,7 @@ class SchedulerMonitorService
             'crontab_configured' => $crontab['configured'],
             'crontab_entries' => $crontab['entries'],
             'crontab_error' => $crontab['error'],
-            'recommended_entry' => sprintf(
-                '* * * * * cd %s && %s artisan schedule:run >> /dev/null 2>&1',
-                escapeshellarg(base_path()),
-                escapeshellarg($this->phpBinary())
-            ),
+            'recommended_entry' => $this->cronEntry(),
             'jobs' => $this->jobs($heartbeat['active']),
         ];
     }
@@ -284,12 +280,14 @@ class SchedulerMonitorService
             $entries = collect(preg_split('/\R/', $output) ?: [])
                 ->map(fn (string $line) => trim($line))
                 ->filter(fn (string $line) => $line !== '' && !Str::startsWith($line, '#'))
-                ->filter(fn (string $line) => Str::contains($line, ['schedule:run', base_path(), 'artisan']))
+                ->filter(fn (string $line) => Str::contains($line, 'schedule:run')
+                    && Str::contains($line, base_path())
+                    && Str::contains($line, 'artisan'))
                 ->values()
                 ->all();
 
             return [
-                'configured' => collect($entries)->contains(fn (string $line) => Str::contains($line, 'schedule:run')),
+                'configured' => collect($entries)->contains(fn (string $line) => $line === $this->cronEntry()),
                 'entries' => $entries,
                 'error' => null,
             ];
@@ -302,19 +300,22 @@ class SchedulerMonitorService
     {
         $result = $this->readCrontab();
         $contents = rtrim($result['contents']);
-        $entry = sprintf(
-            '* * * * * cd %s && %s artisan schedule:run >> /dev/null 2>&1',
-            escapeshellarg(base_path()),
-            escapeshellarg($this->phpBinary())
-        );
+        $entry = $this->cronEntry();
+        $lines = collect(preg_split('/\R/', $contents) ?: []);
+        $marker = self::CRON_MARKER . ': ' . substr(sha1(base_path()), 0, 12);
+        $projectEntry = fn (string $line): bool => Str::contains($line, 'schedule:run')
+            && Str::contains($line, base_path());
 
-        if (Str::contains($contents, self::CRON_MARKER) || collect(preg_split('/\R/', $contents) ?: [])
-            ->contains(fn (string $line) => Str::contains($line, 'schedule:run') && Str::contains($line, base_path()))) {
+        if ($lines->contains(fn (string $line) => trim($line) === $entry)) {
             return false;
         }
 
-        $newContents = ($contents !== '' ? $contents . PHP_EOL . PHP_EOL : '')
-            . self::CRON_MARKER . PHP_EOL
+        // Upgrade a legacy unbounded entry for this project instead of adding a duplicate.
+        $retainedContents = $lines
+            ->reject(fn (string $line) => trim($line) === $marker || $projectEntry(trim($line)))
+            ->implode(PHP_EOL);
+        $newContents = (trim($retainedContents) !== '' ? rtrim($retainedContents) . PHP_EOL . PHP_EOL : '')
+            . $marker . PHP_EOL
             . $entry . PHP_EOL;
 
         $process = new Process(['crontab', '-']);
@@ -327,9 +328,7 @@ class SchedulerMonitorService
         }
 
         $verified = $this->readCrontab()['contents'];
-        if (!Str::contains($verified, self::CRON_MARKER)
-            || !Str::contains($verified, 'schedule:run')
-            || !Str::contains($verified, base_path())) {
+        if (!Str::contains($verified, $marker) || !Str::contains($verified, $entry)) {
             throw new \RuntimeException('تم إرسال إعداد Crontab لكن تعذر التحقق من حفظه.');
         }
 
@@ -338,7 +337,13 @@ class SchedulerMonitorService
 
     private function runNow(): void
     {
-        $process = new Process([$this->phpBinary(), base_path('artisan'), 'schedule:run'], base_path());
+        $process = new Process([
+            $this->phpBinary(),
+            '-d',
+            'memory_limit=' . $this->memoryLimit(),
+            base_path('artisan'),
+            'schedule:run',
+        ], base_path(), ['CLICKERP_SCHEDULER_RUN' => '1']);
         $process->setTimeout(300);
         $process->run();
 
@@ -380,5 +385,29 @@ class SchedulerMonitorService
         }
 
         throw new \RuntimeException('لم يتم العثور على PHP CLI. عيّن SCHEDULER_PHP_BINARY في ملف البيئة.');
+    }
+
+    private function cronEntry(): string
+    {
+        return sprintf(
+            '* * * * * cd %s && sleep %d && flock -n %s env CLICKERP_SCHEDULER_RUN=1 %s -d memory_limit=%s artisan schedule:run >> /dev/null 2>&1',
+            escapeshellarg(base_path()),
+            $this->delaySeconds(),
+            escapeshellarg(storage_path('framework/scheduler-run.lock')),
+            escapeshellarg($this->phpBinary()),
+            escapeshellarg($this->memoryLimit())
+        );
+    }
+
+    private function memoryLimit(): string
+    {
+        $limit = trim((string) config('scheduler.memory_limit', '192M'));
+
+        return preg_match('/^[1-9][0-9]*[KMG]?$/i', $limit) ? strtoupper($limit) : '192M';
+    }
+
+    private function delaySeconds(): int
+    {
+        return max(0, min(50, (int) config('scheduler.delay_seconds', 0)));
     }
 }
