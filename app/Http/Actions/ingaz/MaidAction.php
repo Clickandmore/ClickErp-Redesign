@@ -13,6 +13,7 @@ use App\Services\ingaz\RentalMaidAccountingService;
 use App\Services\ingaz\RentalMaidFinanceService;
 use App\Support\CvOptionsSettings;
 use App\Support\ExperiencePeriod;
+use App\Support\SystemModuleManager;
 use Carbon\Carbon;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Arr;
@@ -363,6 +364,7 @@ class MaidAction extends MainAction
         $passportExpiryColumnExists = Schema::hasColumn('maids', 'passport_expiry_date');
         $genderColumnExists = Schema::hasColumn('maids', 'gender');
         $arabiaWorkerNumberColumnExists = Schema::hasColumn('maids', 'arabia_worker_number');
+        $branchColumnExists = Schema::hasColumn('maids', 'branch_id');
 
         // Ensure all required fields are present in the data array
         $createData = [
@@ -455,6 +457,9 @@ class MaidAction extends MainAction
         }
         if ($passportExpiryColumnExists) {
             $createData['passport_expiry_date'] = $data['passport_expiry_date'] ?? null;
+        }
+        if ($branchColumnExists) {
+            $createData['branch_id'] = $data['branch_id'] ?? null;
         }
 
 
@@ -2142,6 +2147,7 @@ class MaidAction extends MainAction
                 'expertises.jobTitle',
                 'contracts.info',
             ])
+            ->when(SystemModuleManager::isEnabled('branches'), fn ($query) => $query->with('branch'))
             ->when(isset($type), function ($query) use ($type, $today) {
                 if ($type === 3) {
                     $query->where(function ($transferQuery) use ($today) {
@@ -2218,6 +2224,13 @@ class MaidAction extends MainAction
                     $q->where('job_title_id', $request->job);
                 });
             })
+            ->when(
+                $type === 2
+                    && SystemModuleManager::isEnabled('branches')
+                    && Schema::hasColumn('maids', 'branch_id')
+                    && $request->filled('branch_id'),
+                fn ($query) => $query->where('branch_id', (int) $request->input('branch_id'))
+            )
             ->orderBy('is_pinned', 'desc')
             // Stable random order (same seed) to avoid duplicates between pagination pages.
             ->orderByRaw('MD5(CONCAT(maids.id, ?))', [$orderSeed])

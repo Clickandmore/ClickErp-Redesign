@@ -635,6 +635,10 @@ class RentContractController extends Controller
                                 ->whereDoesntHave('rentalContracts')
                                 ->find($request->order_id);
 
+            if ($selectedOrder) {
+                $this->assertCanAccessBranchModel($selectedOrder, 'orders');
+            }
+
             \Log::info('Selected order for rent contract', [
                 'order_id' => $request->order_id,
                 'selected_order' => $selectedOrder ? [
@@ -783,7 +787,8 @@ class RentContractController extends Controller
                 $user = User::create($userPayload);
             }
 
-            $selectedMaid = Maid::with('nationality')->find($request->maid_id);
+            $selectedMaid = Maid::with('nationality')->findOrFail($request->maid_id);
+            $this->assertCanAccessBranchModel($selectedMaid, 'maids');
             $monthlySalary = (float) $request->monthly_salary;
 
             // إنشاء عقد التأجير
@@ -2296,7 +2301,7 @@ class RentContractController extends Controller
     {
         $rentalJobTypeId = $this->getRentalJobTypeId();
 
-        return Maid::query()
+        $query = Maid::query()
             ->whereHas('jobTypes', function ($query) use ($rentalJobTypeId) {
                 $query->where('job_type_id', $rentalJobTypeId);
             })
@@ -2341,6 +2346,11 @@ class RentContractController extends Controller
             })
             ->with(['nationality.translations', 'religion.translations', 'jobTitles.translations'])
             ->latest();
+
+        app(\App\Services\BranchAccessService::class)
+            ->applyToQuery($query, request(), 'maids');
+
+        return $query;
     }
 
     private function rentalActiveContractStatuses(): array

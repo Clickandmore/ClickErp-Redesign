@@ -10,10 +10,12 @@ use App\Http\Actions\ingaz\MaidAction;
 use App\Http\Actions\ingaz\NationalityAction;
 use App\Http\Controllers\admin\Controller;
 use App\Http\Resources\Api\PackageResource;
+use App\Models\Branch;
 use App\Models\auth\Admin;
 use App\Models\ingaz\Maid;
 use App\Models\ingaz\Package;
 use App\Models\ingaz\Skill;
+use App\Support\SystemModuleManager;
 use Illuminate\Http\Request;
 
 class ApiMaidController extends Controller
@@ -49,6 +51,14 @@ class ApiMaidController extends Controller
                 return $payload;
             })
             ->values();
+        $data['branches_enabled'] = SystemModuleManager::isEnabled('branches');
+        $data['branches'] = $data['branches_enabled']
+            ? Branch::query()->active()->ordered()->get(['id', 'name_ar', 'name_en'])
+                ->map(fn (Branch $branch) => [
+                    'id' => $branch->id,
+                    'name' => $branch->name,
+                ])->values()
+            : collect();
         $data['blade_title'] = match ($request->type) {
             'all' => __('ingaz.recruitment_request'),
             'estqdam' => __('ingaz.recruitment_request'),

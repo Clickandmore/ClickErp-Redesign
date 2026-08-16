@@ -307,6 +307,7 @@ Route::group(
             Route::get('maids/{id}/details', [\App\Http\Controllers\ingaz\MaidController::class, 'getMaidDetails'])->name('maids.details');
             Route::get('maids/rental', [\App\Http\Controllers\ingaz\MaidController::class, 'rentalIndex'])->name('maids.rental.index');
             Route::get('maids/rental/create', [\App\Http\Controllers\ingaz\MaidController::class, 'createRental'])->name('maids.rental.create');
+            Route::post('maids/{maid}/branch', [\App\Http\Controllers\ingaz\MaidController::class, 'changeBranch'])->name('maids.branch.update');
             Route::post('maids/{id}/attachments', [\App\Http\Controllers\ingaz\MaidController::class, 'storeAttachments'])->name('maids.attachments.store');
             Route::get('maids/{id}/attachments/download', [\App\Http\Controllers\ingaz\MaidController::class, 'downloadAttachments'])->name('maids.attachments.download');
             Route::get('maids/{id}/attachments/{attachment}/view', [\App\Http\Controllers\ingaz\MaidController::class, 'viewAttachment'])->name('maids.attachments.view');

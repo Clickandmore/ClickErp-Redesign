@@ -75,6 +75,12 @@ class MaidCardResource extends JsonResource
                     'title' => (string) $this->recruitmentOffice->title,
                 ]
                 : null,
+            'branch' => \App\Support\SystemModuleManager::isEnabled('branches') && $this->branch
+                ? [
+                    'id' => (int) $this->branch->id,
+                    'name' => (string) $this->branch->name,
+                ]
+                : null,
         ];
     }
 }
