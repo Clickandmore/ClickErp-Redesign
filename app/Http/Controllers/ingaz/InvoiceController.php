@@ -8,6 +8,7 @@ use App\Models\Branch;
 use App\Models\Contract;
 use App\Models\IngazDelegation;
 use App\Models\RentalContractInvoice;
+use App\Models\RentalFinancialAdjustment;
 use App\Models\RecruitmentInvoiceCreditNote;
 use App\Models\SponsorshipTransfer;
 use App\PermKeys;
@@ -240,7 +241,9 @@ class InvoiceController extends Controller
             ->join('rental_contracts as adjustment_contract', 'adjustment_contract.id', '=', 'closure_adjustment.rental_contract_id')
             ->join('rental_contract_invoices as base_rental_invoice', 'base_rental_invoice.rental_contract_id', '=', 'adjustment_contract.id')
             ->leftJoin('users as adjustment_client', 'adjustment_client.id', '=', 'adjustment_contract.user_id')
-            ->where('closure_adjustment.context', 'closure')
+            ->leftJoin('fn_sales as adjustment_sale', 'adjustment_sale.id', '=', 'closure_adjustment.finance_sale_id')
+            ->leftJoin('zatca_invoices as adjustment_zatca', 'adjustment_zatca.id', '=', 'adjustment_sale.zatca_invoice_id')
+            ->whereIn('closure_adjustment.context', ['closure', 'manual_credit_note'])
             ->where('closure_adjustment.amount', '>', 0);
 
         if ($rentalBranchesEnabled) {
@@ -273,15 +276,15 @@ class InvoiceController extends Controller
             $rentalBranchesEnabled
                 ? DB::raw('COALESCE(adjustment_branch.name_ar, "-") as branch')
                 : DB::raw('"-" as branch'),
-            DB::raw('(closure_adjustment.amount - ' . $adjustmentVatExpression . ') as subtotal'),
-            DB::raw($adjustmentVatExpression . ' as vat_amount'),
+            DB::raw('COALESCE(closure_adjustment.taxable_amount + closure_adjustment.non_taxable_amount, closure_adjustment.amount - ' . $adjustmentVatExpression . ') as subtotal'),
+            DB::raw('COALESCE(closure_adjustment.vat_amount, ' . $adjustmentVatExpression . ') as vat_amount'),
             DB::raw('0 as discount'),
             'closure_adjustment.amount as total_due',
             DB::raw("CASE WHEN closure_adjustment.type = 'expense' THEN 1 ELSE 0 END as is_paid"),
-            DB::raw('0 as send_to_zatca'),
-            DB::raw('NULL as finance_sale_id'),
+            'closure_adjustment.send_to_zatca',
+            'closure_adjustment.finance_sale_id',
             DB::raw('NULL as legacy_zatca_shared'),
-            DB::raw('NULL as zatca_status'),
+            'adjustment_zatca.zatca_status',
             'closure_adjustment.created_at',
         ]);
 
@@ -291,6 +294,7 @@ class InvoiceController extends Controller
             ->leftJoin('ingaz_delegations as credit_delegation', 'credit_delegation.id', '=', 'credit_note.ingaz_delegation_id')
             ->leftJoin('users as credit_client', 'credit_client.id', '=', 'credit_contract.user_id')
             ->leftJoin('users as credit_delegation_client', 'credit_delegation_client.id', '=', 'credit_delegation.user_id')
+            ->leftJoin('users as credit_general_client', 'credit_general_client.id', '=', 'original_invoice.client_id')
             ->leftJoin('fn_sales as credit_sale', 'credit_sale.id', '=', 'credit_note.finance_sale_id')
             ->leftJoin('zatca_invoices as credit_zatca', 'credit_zatca.id', '=', 'credit_sale.zatca_invoice_id');
 
@@ -317,8 +321,8 @@ class InvoiceController extends Controller
             'credit_note.constraint_id as adjustment_constraint_id',
             DB::raw('NULL as base_rental_invoice_id'),
             'credit_note.invoice_id as base_invoice_id',
-            DB::raw('COALESCE(credit_client.name, credit_delegation_client.name, "-") as client_name'),
-            DB::raw('COALESCE(credit_client.phone, credit_delegation_client.phone, "") as client_phone'),
+            DB::raw('COALESCE(credit_client.name, credit_delegation_client.name, credit_general_client.name, "-") as client_name'),
+            DB::raw('COALESCE(credit_client.phone, credit_delegation_client.phone, credit_general_client.phone, "") as client_phone'),
             $invoiceBranchesEnabled
                 ? DB::raw('COALESCE(credit_branch.name_ar, "-") as branch')
                 : DB::raw('"-" as branch'),
@@ -423,7 +427,9 @@ class InvoiceController extends Controller
         if ($row->row_type === 'recruitment_credit_note') {
             $source = $row->contract_id
                 ? 'عقد استقدام #' . e((string) $row->contract_id)
-                : 'تفويض إنجاز #' . e((string) $row->ingaz_delegation_id);
+                : ($row->ingaz_delegation_id
+                    ? 'تفويض إنجاز #' . e((string) $row->ingaz_delegation_id)
+                    : 'فاتورة عامة');
 
             return '<span class="badge bg-danger-subtle text-danger border">فاتورة #'
                 . e((string) $row->base_invoice_id) . ' / ' . $source . '</span>';
@@ -480,7 +486,18 @@ class InvoiceController extends Controller
     private function standardInvoiceZatcaBadge($row): string
     {
         if ($row->row_type === 'rental_adjustment') {
-            return '<span class="badge bg-secondary-subtle text-secondary border">غير مطلوب</span>';
+            if (!(bool) $row->send_to_zatca) {
+                return '<span class="badge bg-secondary-subtle text-secondary border">غير مطلوب</span>';
+            }
+            if (!$row->finance_sale_id) {
+                return '<span class="badge bg-warning-subtle text-warning border">لم يدرج</span>';
+            }
+            return match ($row->zatca_status) {
+                'REPORTED' => '<span class="badge bg-success">مرحل للهيئة</span>',
+                'CLEARED' => '<span class="badge bg-primary">معتمد من الهيئة</span>',
+                'NOT_REPORTED', 'NOT_CLEARED' => '<span class="badge bg-danger">مرفوض من الهيئة</span>',
+                default => '<span class="badge bg-warning-subtle text-warning border">معلق في مرتجعات المبيعات</span>',
+            };
         }
 
         if ($row->row_type === 'rental') {
@@ -528,7 +545,7 @@ class InvoiceController extends Controller
                 ? '<a href="' . route('finance.add-constraint.show', ['add_constraint' => $row->adjustment_constraint_id])
                     . '" class="btn btn-sm btn-outline-dark" target="_blank" rel="noopener" title="عرض قيد إشعار الدائن"><i class="fas fa-book-open"></i></a>'
                 : '';
-            $saleButton = $row->finance_sale_id
+            $saleButton = ($row->finance_sale_id ?? null)
                 ? '<a href="' . route('finance.bill-sales.show', $row->finance_sale_id) . '" class="btn btn-sm btn-outline-success" title="مرتجع المبيعات"><i class="fas fa-link"></i></a>'
                 : '';
 
@@ -545,10 +562,13 @@ class InvoiceController extends Controller
                 ? '<a href="' . route('finance.add-constraint.show', ['add_constraint' => $row->adjustment_constraint_id])
                     . '" class="btn btn-sm btn-outline-dark" target="_blank" rel="noopener" title="عرض قيد التسوية"><i class="fas fa-book-open"></i></a>'
                 : '';
+            $saleButton = ($row->finance_sale_id ?? null)
+                ? '<a href="' . route('finance.bill-sales.show', $row->finance_sale_id) . '" class="btn btn-sm btn-outline-success" title="مرتجع المبيعات"><i class="fas fa-link"></i></a>'
+                : '';
 
             return '<div class="d-flex justify-content-end gap-2">
                         <a href="' . $contractUrl . '" class="btn btn-sm btn-outline-primary" title="عرض عقد التأجير"><i class="fas fa-eye"></i></a>
-                        ' . $constraintButton . '
+                        ' . $constraintButton . $saleButton . '
                         <a href="' . $printUrl . '" class="btn btn-sm btn-outline-secondary" target="_blank" rel="noopener" title="طباعة مستند الإغلاق"><i class="fas fa-print"></i></a>
                     </div>';
         }
@@ -556,6 +576,9 @@ class InvoiceController extends Controller
         if ($row->row_type === 'rental') {
             $contractUrl = $row->rental_contract_id ? route('RentContract.show', $row->rental_contract_id) : '#';
             $printUrl = route('rental.invoice.download', ['id' => $row->id, 'autoprint' => 1]);
+            $creditNoteButton = $this->canCreateInvoiceCreditNote()
+                ? '<a href="' . route('rental-invoices.credit-notes.create', $row->id) . '" class="btn btn-sm btn-outline-danger" title="إنشاء إشعار دائن دون إنهاء عقد التأجير"><i class="fas fa-file-invoice-dollar"></i></a>'
+                : '';
             $queueButton = !$row->finance_sale_id
                 ? '<form method="post" action="' . route('rental-invoices.queue-zatca-sale', $row->id) . '" class="d-inline queue-zatca-form">'
                     . csrf_field()
@@ -564,6 +587,7 @@ class InvoiceController extends Controller
 
             return '<div class="d-flex justify-content-end gap-2">
                         ' . $queueButton . '
+                        ' . $creditNoteButton . '
                         <a href="' . $contractUrl . '" class="btn btn-sm btn-outline-primary" title="عرض عقد التأجير"><i class="fas fa-eye"></i></a>
                         <a href="' . $printUrl . '" class="btn btn-sm btn-outline-secondary" target="_blank" rel="noopener" title="طباعة الفاتورة"><i class="fas fa-print"></i></a>
                     </div>';
@@ -578,10 +602,11 @@ class InvoiceController extends Controller
                 : '<a href="' . route('finance.bill-sales.show', $row->finance_sale_id) . '" class="btn btn-sm btn-outline-success" title="فاتورة المبيعات"><i class="fas fa-link"></i></a>');
         $showUrl = route('invoices.show', $row->id);
         $printUrl = route('invoice.download', ['id' => $row->id, 'autoprint' => 1]);
-        $creditNoteButton = ($row->contract_id || $row->ingaz_delegation_id)
+        $creditNoteButton = ($row->contract_id || $row->ingaz_delegation_id
+                || (!$row->sponsorship_transfer_id && $row->base_invoice_id))
             && !$row->legacy_invoice_number
             && $this->canCreateInvoiceCreditNote()
-            ? '<a href="' . route('invoices.credit-notes.create', $row->id) . '" class="btn btn-sm btn-outline-danger" title="إنشاء إشعار دائن دون تغيير العقد أو التفويض"><i class="fas fa-file-invoice-dollar"></i></a>'
+            ? '<a href="' . route('invoices.credit-notes.create', $row->id) . '" class="btn btn-sm btn-outline-danger" title="إنشاء إشعار دائن دون تغيير العقد أو التفويض أو الفاتورة الأصلية"><i class="fas fa-file-invoice-dollar"></i></a>'
             : '';
 
         return '<div class="d-flex justify-content-end gap-2">
@@ -1785,6 +1810,77 @@ class InvoiceController extends Controller
         return $sale;
     }
 
+    public function queueRentalCreditNoteForZatcaSale(
+        RentalFinancialAdjustment $adjustment,
+        RentalContractInvoice $invoice
+    ): Sale {
+        if ($adjustment->finance_sale_id) {
+            $existing = Sale::query()->find($adjustment->finance_sale_id);
+            if ($existing) {
+                return $existing;
+            }
+        }
+
+        $originalSale = $invoice->financeSale ?: $this->queueRentalInvoiceForZatcaSale($invoice);
+        $originalSale->loadMissing('items');
+        $taxableItemId = (int) ($originalSale->items->first(fn ($item) => (float) $item->tax_per > 0)?->item_id
+            ?: $this->ensureRentalZatcaServiceItem()->id);
+        $exemptItemId = (int) ($originalSale->items->first(fn ($item) => (float) $item->tax_per <= 0)?->item_id
+            ?: $this->ensureRentalSalaryZatcaItem()->id);
+        $taxable = $this->roundMoney((float) $adjustment->taxable_amount);
+        $nonTaxable = $this->roundMoney((float) $adjustment->non_taxable_amount);
+        $vat = $this->roundMoney((float) $adjustment->vat_amount);
+
+        $sale = Sale::query()->create([
+            'code' => $this->nextFinanceSaleCode(),
+            'client_id' => $originalSale->client_id,
+            'debit_client_id' => $originalSale->debit_client_id,
+            'date' => optional($adjustment->issue_date)->toDateString()
+                ?: optional($adjustment->created_at)->toDateString()
+                ?: now()->toDateString(),
+            'notes' => 'إشعار دائن تأجير #' . $adjustment->id . ' للفاتورة #' . $invoice->id,
+            'adjustment_reason' => $adjustment->notes,
+            'original_sale_id' => $originalSale->id,
+            'total_item' => $this->roundMoney($taxable + $nonTaxable),
+            'discount' => 0,
+            'final_total' => (float) $adjustment->amount,
+            'total_tax_value' => $vat,
+            'type' => SalesTypeEnum::BackSales->value,
+            'file' => 'no_file',
+            'payment_type' => $invoice->payment_type ?: 'cash',
+            'created_by_id' => Auth::guard('admin')->id() ?: Auth::id() ?: 1,
+        ]);
+
+        foreach ([
+            [$taxableItemId, 'عكس خدمات التأجير', $taxable, $vat, 15],
+            [$exemptItemId, 'عكس راتب العاملة المعفى من الضريبة', $nonTaxable, 0, 0],
+        ] as [$itemId, $label, $net, $itemVat, $taxRate]) {
+            if ($net <= 0) {
+                continue;
+            }
+            SaleItem::query()->create([
+                'sale_id' => $sale->id,
+                'item_id' => $itemId,
+                'line_description' => $label,
+                'price' => $net,
+                'discount_per' => 0,
+                'discount_value' => 0,
+                'tax_per' => $taxRate,
+                'tax_value' => $itemVat,
+                'total_price_before' => $net,
+                'final_total' => $this->roundMoney($net + $itemVat),
+                'purchase_price' => 0,
+                'amount' => 1,
+                'stock_id' => null,
+                'status' => 'new',
+            ]);
+        }
+
+        $adjustment->update(['finance_sale_id' => $sale->id, 'send_to_zatca' => true]);
+
+        return $sale;
+    }
+
     private function rentalZatcaAmounts(array $pricing): array
     {
         $salaryExemptAmount = $this->roundMoney(max(0, (float) ($pricing['salary_exempt_amount'] ?? 0)));
@@ -2953,16 +3049,18 @@ class InvoiceController extends Controller
 
     public function createRecruitmentCreditNote(int $id)
     {
+        abort_unless($this->canCreateInvoiceCreditNote(), 403);
         $invoice = Invoice::query()
-            ->with(['contract.user', 'contract.info', 'ingazDelegation.user', 'recruitmentCreditNotes'])
+            ->with(['contract.user', 'contract.info', 'ingazDelegation.user', 'client', 'recruitmentCreditNotes'])
             ->findOrFail($id);
         $this->assertCanAccessBranchModel($invoice, 'invoices');
 
         abort_unless(
             ($invoice->contract_id && $invoice->contract)
-                || ($invoice->ingaz_delegation_id && $invoice->ingazDelegation),
+                || ($invoice->ingaz_delegation_id && $invoice->ingazDelegation)
+                || ($invoice->client_id && $invoice->client && !$invoice->sponsorship_transfer_id),
             422,
-            'إشعار الدائن متاح لفواتير عقود الاستقدام وتفاويض الإنجاز فقط.'
+            'إشعار الدائن متاح لفواتير الاستقدام والتفاويض والفواتير العامة فقط.'
         );
 
         $remaining = $this->recruitmentCreditNoteRemaining($invoice);
@@ -2976,6 +3074,7 @@ class InvoiceController extends Controller
         ObjService $service,
         YearService $yearService
     ) {
+        abort_unless($this->canCreateInvoiceCreditNote(), 403);
         $validated = $request->validate([
             'issue_date' => ['required', 'date', 'before_or_equal:today'],
             'reason' => ['required', 'string', 'max:1000'],
@@ -2987,14 +3086,15 @@ class InvoiceController extends Controller
         try {
             $creditNote = DB::transaction(function () use ($validated, $id, $service, $yearService) {
                 $invoice = Invoice::query()
-                    ->with(['contract.user', 'ingazDelegation.user', 'financeSale.items', 'recruitmentCreditNotes'])
+                    ->with(['contract.user', 'ingazDelegation.user', 'client', 'financeSale.items', 'recruitmentCreditNotes'])
                     ->lockForUpdate()
                     ->findOrFail($id);
                 $this->assertCanAccessBranchModel($invoice, 'invoices');
 
                 if ((!$invoice->contract_id || !$invoice->contract)
-                    && (!$invoice->ingaz_delegation_id || !$invoice->ingazDelegation)) {
-                    throw new \RuntimeException('إشعار الدائن متاح لفواتير عقود الاستقدام وتفاويض الإنجاز فقط.');
+                    && (!$invoice->ingaz_delegation_id || !$invoice->ingazDelegation)
+                    && (!$invoice->client_id || !$invoice->client || $invoice->sponsorship_transfer_id)) {
+                    throw new \RuntimeException('إشعار الدائن متاح لفواتير الاستقدام والتفاويض والفواتير العامة فقط.');
                 }
 
                 if ($invoice->ingaz_delegation_id && !$invoice->invoice_constraint_id) {
@@ -3008,6 +3108,24 @@ class InvoiceController extends Controller
 
                     if (!$sourceConstraint) {
                         throw new \RuntimeException('تعذر إنشاء قيد الفاتورة الأصلي لتفويض الإنجاز.');
+                    }
+
+                    $invoice->update(['invoice_constraint_id' => $sourceConstraint->id]);
+                    $invoice->setRelation('invoiceConstraint', $sourceConstraint);
+                }
+
+                if (!$invoice->contract_id && !$invoice->ingaz_delegation_id
+                    && $invoice->client_id && !$invoice->invoice_constraint_id) {
+                    $clientAccountId = $this->ensureClientUserAccountId($invoice->client);
+                    $sourceConstraint = $this->storeInvoiceConstraintForGeneralInvoice(
+                        $invoice,
+                        $service,
+                        $yearService,
+                        $clientAccountId
+                    );
+
+                    if (!$sourceConstraint) {
+                        throw new \RuntimeException('تعذر إنشاء قيد الفاتورة العامة الأصلي.');
                     }
 
                     $invoice->update(['invoice_constraint_id' => $sourceConstraint->id]);
@@ -3085,8 +3203,9 @@ class InvoiceController extends Controller
 
     public function downloadRecruitmentCreditNote(int $id)
     {
+        abort_unless($this->canViewInvoiceCreditNote(), 403);
         $creditNote = RecruitmentInvoiceCreditNote::query()
-            ->with(['invoice.contract.user', 'invoice.ingazDelegation.user', 'financeSale.zatca', 'constraint'])
+                ->with(['invoice.contract.user', 'invoice.ingazDelegation.user', 'invoice.client', 'financeSale.zatca', 'constraint'])
             ->findOrFail($id);
         $this->assertCanAccessBranchModel($creditNote->invoice, 'invoices');
 
@@ -3101,7 +3220,9 @@ class InvoiceController extends Controller
         $viewData['invoiceDate'] = $creditNote->issue_date->format('Y-m-d');
         $viewData['invoiceDateTime'] = $creditNote->issue_date->format('Y-m-d') . ' 00:00:00';
         $viewData['invoiceStatus'] = 'رصيد دائن للعميل';
-        $sourceLabel = $creditNote->contract_id ? 'عقد الاستقدام' : 'تفويض الإنجاز';
+        $sourceLabel = $creditNote->contract_id
+            ? 'عقد الاستقدام'
+            : ($creditNote->ingaz_delegation_id ? 'تفويض الإنجاز' : 'فاتورة عامة');
         $viewData['serviceLongDescription'] = 'إشعار دائن مرتبط بفاتورة ' . $sourceLabel . ' رقم '
             . $viewData['originalInvoiceNumber'] . ' - السبب: ' . $creditNote->reason;
         $viewData['items'] = collect($creditNote->line_items)->map(fn (array $item) => [
@@ -3694,9 +3815,10 @@ class InvoiceController extends Controller
             throw new \RuntimeException('لا توجد سنة مالية نشطة لتاريخ إشعار الدائن.');
         }
 
-        $invoice->loadMissing(['contract.user', 'ingazDelegation.user', 'invoiceConstraint.constraintDetails', 'arrivalRevenueConstraint.constraintDetails']);
+        $invoice->loadMissing(['contract.user', 'ingazDelegation.user', 'client', 'invoiceConstraint.constraintDetails', 'arrivalRevenueConstraint.constraintDetails']);
         $clientAccountId = (int) ($invoice->contract?->user?->account_id
             ?: $invoice->ingazDelegation?->user?->account_id
+            ?: $invoice->client?->account_id
             ?: 0);
         if (!$clientAccountId) {
             throw new \RuntimeException('لا يوجد حساب محاسبي للعميل المرتبط بالعقد.');
@@ -3727,7 +3849,9 @@ class InvoiceController extends Controller
             throw new \RuntimeException('تعذر تحديد حساب الالتزام في قيد الفاتورة الأصلي.');
         }
 
-        $sourceName = $invoice->contract_id ? 'استقدام' : 'تفويض إنجاز';
+        $sourceName = $invoice->contract_id
+            ? 'استقدام'
+            : ($invoice->ingaz_delegation_id ? 'تفويض إنجاز' : 'فاتورة عامة');
         $statement = 'إشعار دائن ' . $sourceName . ' #' . $creditNote->id
             . ' للفاتورة #' . ($invoice->legacy_invoice_number ?: $invoice->id)
             . ' - ' . $creditNote->reason;
@@ -3851,7 +3975,9 @@ class InvoiceController extends Controller
             'client_id' => $originalSale->client_id,
             'debit_client_id' => $originalSale->debit_client_id,
             'date' => $creditNote->issue_date->format('Y-m-d'),
-            'notes' => 'إشعار دائن ' . ($invoice->contract_id ? 'استقدام' : 'تفويض إنجاز')
+            'notes' => 'إشعار دائن ' . ($invoice->contract_id
+                ? 'استقدام'
+                : ($invoice->ingaz_delegation_id ? 'تفويض إنجاز' : 'فاتورة عامة'))
                 . ' #' . $creditNote->id . ' للفاتورة #' . $invoice->id,
             'adjustment_reason' => $creditNote->reason,
             'original_sale_id' => $originalSale->id,

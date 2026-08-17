@@ -5,16 +5,17 @@
 @section('content')
 @php
     $isDelegation = (bool) $invoice->ingaz_delegation_id;
-    $sourceLabel = $isDelegation ? 'تفويض إنجاز' : 'استقدام';
-    $sourceNumber = $isDelegation ? $invoice->ingaz_delegation_id : $invoice->contract_id;
-    $sourceClient = $isDelegation ? $invoice->ingazDelegation?->user : $invoice->contract?->user;
+    $isGeneral = !$invoice->contract_id && !$invoice->ingaz_delegation_id;
+    $sourceLabel = $isGeneral ? 'عامة' : ($isDelegation ? 'تفويض إنجاز' : 'استقدام');
+    $sourceNumber = $isGeneral ? ($invoice->legacy_invoice_number ?: $invoice->id) : ($isDelegation ? $invoice->ingaz_delegation_id : $invoice->contract_id);
+    $sourceClient = $isGeneral ? $invoice->client : ($isDelegation ? $invoice->ingazDelegation?->user : $invoice->contract?->user);
 @endphp
 <div class="container py-4">
     <div class="card shadow-sm">
         <div class="card-header bg-white d-flex justify-content-between align-items-center">
             <div>
                 <h4 class="mb-1">إشعار دائن لفاتورة {{ $sourceLabel }} #{{ $invoice->legacy_invoice_number ?: $invoice->id }}</h4>
-                <div class="text-muted">{{ $isDelegation ? 'التفويض' : 'العقد' }} #{{ $sourceNumber }} — {{ $sourceClient?->name }}</div>
+                <div class="text-muted">{{ $isGeneral ? 'الفاتورة' : ($isDelegation ? 'التفويض' : 'العقد') }} #{{ $sourceNumber }} — {{ $sourceClient?->name }}</div>
             </div>
             <a href="{{ route('invoices.index') }}" class="btn btn-outline-secondary">رجوع</a>
         </div>
@@ -24,7 +25,7 @@
             @endif
 
             <div class="alert alert-info">
-                إنشاء هذا الإشعار يعكس القيد المالي والضريبة ورصيد العميل، ولا يغيّر حالة {{ $isDelegation ? 'التفويض' : 'العقد أو العاملة' }}.
+                إنشاء هذا الإشعار يعكس القيد المالي والضريبة ورصيد العميل، ولا يغيّر {{ $isGeneral ? 'الفاتورة الأصلية' : ($isDelegation ? 'حالة التفويض' : 'حالة العقد أو العاملة') }}.
                 صرف المبلغ للعميل يتم بسند صرف مستقل.
             </div>
 

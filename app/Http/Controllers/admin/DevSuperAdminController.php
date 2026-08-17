@@ -55,30 +55,44 @@ class DevSuperAdminController extends Controller
         SchedulerMonitorService $schedulerMonitor
     )
     {
-        $admins = Admin::query()
-            ->with('role')
-            ->orderBy('name')
-            ->get(['id', 'name', 'email', 'phone', 'username', 'role_id', 'status', 'admin_type'])
-            ->map(function (Admin $admin) {
-                $roleName = optional($admin->role)->name ?: 'بدون دور';
+        $activeSection = match ($request->route()?->getName()) {
+            'dev-superadmin.subscription' => 'subscription',
+            'dev-superadmin.product-updates' => 'product-updates',
+            'dev-superadmin.employees' => 'employees',
+            'dev-superadmin.database-backups' => 'backups',
+            'dev-superadmin.scheduler' => 'scheduler',
+            default => 'modules',
+        };
 
-                $admin->forceFill([
-                    'dev_contact' => $admin->email ?: ($admin->phone ?: ($admin->username ?: 'لا توجد بيانات دخول ظاهرة')),
-                    'dev_role_name' => $roleName,
-                    'dev_is_suspended' => ($admin->status ?? 'active') === 'suspended',
-                    'dev_search_text' => trim($admin->id . ' ' . $admin->name . ' ' . $admin->email . ' ' . $admin->phone . ' ' . $admin->username . ' ' . $roleName),
-                ]);
+        $admins = collect();
+        if (in_array($activeSection, ['subscription', 'employees'], true)) {
+            $admins = Admin::query()
+                ->with('role')
+                ->orderBy('name')
+                ->get(['id', 'name', 'email', 'phone', 'username', 'role_id', 'status', 'admin_type'])
+                ->map(function (Admin $admin) {
+                    $roleName = optional($admin->role)->name ?: 'بدون دور';
 
-                return $admin;
-            });
+                    $admin->forceFill([
+                        'dev_contact' => $admin->email ?: ($admin->phone ?: ($admin->username ?: 'لا توجد بيانات دخول ظاهرة')),
+                        'dev_role_name' => $roleName,
+                        'dev_is_suspended' => ($admin->status ?? 'active') === 'suspended',
+                        'dev_search_text' => trim($admin->id . ' ' . $admin->name . ' ' . $admin->email . ' ' . $admin->phone . ' ' . $admin->username . ' ' . $roleName),
+                    ]);
+
+                    return $admin;
+                });
+        }
 
         $backups = [];
         $backupListError = null;
-        try {
-            $backups = $databaseBackups->backups();
-        } catch (\Throwable $exception) {
-            report($exception);
-            $backupListError = $exception->getMessage();
+        if ($activeSection === 'backups') {
+            try {
+                $backups = $databaseBackups->backups();
+            } catch (\Throwable $exception) {
+                report($exception);
+                $backupListError = $exception->getMessage();
+            }
         }
 
         return view('admin.superadmin.modules', [
@@ -88,14 +102,15 @@ class DevSuperAdminController extends Controller
             'defaultDashboardKey' => SystemModuleManager::defaultDashboardKey(),
             'branchLimit' => SystemModuleManager::branchLimit(),
             'admins' => $admins,
-            'backupSettings' => DatabaseBackupSettings::all(),
+            'backupSettings' => $activeSection === 'backups' ? DatabaseBackupSettings::all() : null,
             'databaseBackups' => $backups,
-            'localDatabaseBackups' => $databaseBackups->localBackups(),
+            'localDatabaseBackups' => $activeSection === 'backups' ? $databaseBackups->localBackups() : [],
             'backupListError' => $backupListError,
-            'r2Ready' => R2StorageSettings::isReady(),
-            'schedulerStatus' => $schedulerMonitor->status(),
+            'r2Ready' => $activeSection === 'backups' && R2StorageSettings::isReady(),
+            'schedulerStatus' => $activeSection === 'scheduler' ? $schedulerMonitor->status() : null,
             'subscription' => ClientSubscriptionSettings::all(),
             'productUpdates' => ProductUpdatesSettings::all(),
+            'activeSection' => $activeSection,
         ]);
     }
 
@@ -105,28 +120,33 @@ class DevSuperAdminController extends Controller
             'title' => ['required', 'string', 'max:160'],
             'summary' => ['nullable', 'string', 'max:500'],
             'published_at' => ['nullable', 'date'],
-            'items' => ['required', 'string', 'max:5000'],
+            'updates' => ['required', 'array', 'min:1', 'max:20'],
+            'updates.*.title' => ['required', 'string', 'max:160'],
+            'updates.*.details' => ['nullable', 'string', 'max:1000'],
+            'updates.*.url' => ['nullable', 'string', 'max:1000'],
+            'updates.*.link_label' => ['nullable', 'string', 'max:80'],
         ]);
 
-        $items = preg_split('/\r\n|\r|\n/', $data['items']) ?: [];
-        $items = array_values(array_filter(array_map('trim', $items)));
+        foreach ($data['updates'] as $index => $update) {
+            $url = trim((string) ($update['url'] ?? ''));
+            $isInternalUrl = Str::startsWith($url, '/') && ! Str::startsWith($url, '//');
+            $isExternalUrl = Str::startsWith($url, ['https://', 'http://']);
+            $isAnchor = Str::startsWith($url, '#');
 
-        if (count($items) === 0) {
-            return back()->withErrors(['items' => 'أضف نقطة واحدة على الأقل للتحديث.'])->withInput();
-        }
-
-        if (count($items) > 20) {
-            return back()->withErrors(['items' => 'يمكن إضافة 20 نقطة كحد أقصى.'])->withInput();
+            if ($url !== '' && ! $isInternalUrl && ! $isExternalUrl && ! $isAnchor) {
+                return back()
+                    ->withErrors(["updates.$index.url" => 'أدخل رابطًا داخليًا يبدأ بـ / أو رابطًا كاملًا يبدأ بـ https://.'])
+                    ->withInput();
+            }
         }
 
         ProductUpdatesSettings::persist([
             ...$data,
             'is_enabled' => $request->boolean('is_enabled'),
-            'items' => $items,
         ]);
 
         return redirect()
-            ->to(route('dev-superadmin.modules') . '#product-updates')
+            ->route('dev-superadmin.product-updates')
             ->with('success', 'تم حفظ محتوى «ما الجديد» وسيظهر في هيدر لوحة الإدارة.');
     }
 
@@ -146,7 +166,7 @@ class DevSuperAdminController extends Controller
         ClientSubscriptionSettings::persist($data);
 
         return redirect()
-            ->to(route('dev-superadmin.modules') . '#subscription')
+            ->route('dev-superadmin.subscription')
             ->with('success', 'تم حفظ بيانات العميل والاشتراك بنجاح.');
     }
 

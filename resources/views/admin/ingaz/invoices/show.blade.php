@@ -64,7 +64,7 @@
                                     <i class="fa-solid fa-file-pdf"></i>
                                 </a>
                             @endif
-                            @if (($invoice->contract_id || $invoice->ingaz_delegation_id) && !$invoice->legacy_invoice_number && AdminGuardHasAnyPerm([\App\PermKeys::INVOICE_CREDIT_NOTES_CREATE, \App\PermKeys::INVOICE_CREDIT_NOTES_CONTROL, \App\PermKeys::INVOICES_CONTROL, \App\PermKeys::REC_CONTRACTS_MANAGE, \App\PermKeys::INGAZ_DELEGATIONS_CONTROL]))
+                            @if (($invoice->contract_id || $invoice->ingaz_delegation_id || ($invoice->client_id && !$invoice->sponsorship_transfer_id)) && !$invoice->legacy_invoice_number && AdminGuardHasAnyPerm([\App\PermKeys::INVOICE_CREDIT_NOTES_CREATE, \App\PermKeys::INVOICE_CREDIT_NOTES_CONTROL, \App\PermKeys::INVOICES_CONTROL, \App\PermKeys::REC_CONTRACTS_MANAGE, \App\PermKeys::INGAZ_DELEGATIONS_CONTROL]))
                                 <a href="{{ route('invoices.credit-notes.create', $invoice->id) }}"
                                    class="btn btn-light border text-danger" title="إنشاء إشعار دائن">
                                     <i class="fa-solid fa-file-invoice-dollar"></i>

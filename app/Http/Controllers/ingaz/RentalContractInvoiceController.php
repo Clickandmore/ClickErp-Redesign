@@ -7,15 +7,105 @@ use App\Models\ingaz\Setting;
 use App\Models\RentalContractExtension;
 use App\Models\RentalContractInvoice;
 use App\Models\RentalFinancialAdjustment;
+use App\PermKeys;
 use App\Services\ingaz\InvoiceCalculationService;
 use App\Services\ingaz\RentalContractFinanceService;
 use App\Support\InvoiceQrCode;
 use App\Support\RentalContractPricing;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use PDF;
 
 class RentalContractInvoiceController extends Controller
 {
+    public function createCreditNote(int $id, RentalContractFinanceService $financeService)
+    {
+        $this->authorizeCreditNoteCreation();
+        $invoice = RentalContractInvoice::query()
+            ->with(['rentalContract.user', 'rentalContract.info.package'])
+            ->findOrFail($id);
+        abort_unless($invoice->rentalContract, 422, 'فاتورة التأجير غير مرتبطة بعقد صالح.');
+
+        $remaining = $this->creditNoteRemaining($invoice);
+        $breakdown = $financeService->closureAdjustmentAmounts(
+            $invoice,
+            $invoice->rentalContract,
+            $remaining
+        );
+
+        return view('admin.ingaz.invoices.rental-credit-note-create', compact('invoice', 'remaining', 'breakdown'));
+    }
+
+    public function storeCreditNote(Request $request, int $id, RentalContractFinanceService $financeService)
+    {
+        $this->authorizeCreditNoteCreation();
+        $validated = $request->validate([
+            'issue_date' => ['required', 'date', 'before_or_equal:today'],
+            'reason' => ['required', 'string', 'max:1000'],
+            'amount' => ['required', 'numeric', 'min:0.01'],
+            'send_to_zatca' => ['nullable', 'boolean'],
+        ]);
+
+        try {
+            $adjustment = DB::transaction(function () use ($validated, $id, $financeService) {
+                $invoice = RentalContractInvoice::query()
+                    ->with(['rentalContract.user', 'rentalContract.info.package', 'rentalContract.maid'])
+                    ->lockForUpdate()
+                    ->findOrFail($id);
+                $contract = $invoice->rentalContract;
+                if (!$contract) {
+                    throw new \RuntimeException('فاتورة التأجير غير مرتبطة بعقد صالح.');
+                }
+
+                $issueDate = \Carbon\Carbon::parse($validated['issue_date'])->startOfDay();
+                if ($invoice->created_at && $issueDate->lt($invoice->created_at->copy()->startOfDay())) {
+                    throw new \RuntimeException('تاريخ إشعار الدائن لا يمكن أن يسبق تاريخ الفاتورة الأصلية.');
+                }
+
+                $amount = round((float) $validated['amount'], 2);
+                $remaining = $this->creditNoteRemaining($invoice);
+                if ($amount > $remaining + 0.01) {
+                    throw new \RuntimeException('قيمة إشعار الدائن تتجاوز الرصيد المتبقي من فاتورة التأجير.');
+                }
+
+                $breakdown = $financeService->closureAdjustmentAmounts($invoice, $contract, $amount);
+                $lineItems = $this->rentalCreditNoteItems($breakdown);
+                $adjustment = $contract->financialAdjustments()->create([
+                    'maid_id' => $contract->maid_id,
+                    'type' => 'expense',
+                    'label' => 'إشعار دائن يدوي لفاتورة التأجير #' . $invoice->id,
+                    'amount' => $amount,
+                    'taxable_amount' => $breakdown['taxable_subtotal'],
+                    'non_taxable_amount' => $breakdown['salary_exempt_amount'],
+                    'vat_amount' => $breakdown['vat_amount'],
+                    'line_items' => $lineItems,
+                    'send_to_zatca' => (bool) ($validated['send_to_zatca'] ?? true),
+                    'notes' => trim($validated['reason']),
+                    'context' => 'manual_credit_note',
+                    'issue_date' => $issueDate->toDateString(),
+                    'created_by' => Auth::guard('admin')->id(),
+                ]);
+
+                $constraint = $financeService->recordClosureAdjustment($contract, $adjustment, $issueDate);
+                if (!$constraint) {
+                    throw new \RuntimeException('تعذر إنشاء القيد المالي لإشعار الدائن. تأكد من تفعيل القيود التلقائية.');
+                }
+
+                if ($adjustment->send_to_zatca) {
+                    app(InvoiceController::class)->queueRentalCreditNoteForZatcaSale($adjustment->fresh(), $invoice);
+                }
+
+                return $adjustment->fresh(['constraint', 'financeSale']);
+            });
+
+            return redirect()->route('rental.credit-note.download', ['id' => $adjustment->id, 'autoprint' => 1])
+                ->with('success', 'تم إنشاء إشعار الدائن وقيده المالي دون إنهاء عقد التأجير أو تعديل الفاتورة الأصلية.');
+        } catch (\Throwable $e) {
+            return back()->withInput()->with('error', $e->getMessage());
+        }
+    }
+
     public function download(int $id)
     {
         $viewData = $this->prepareInvoiceViewData($id);
@@ -41,12 +131,13 @@ class RentalContractInvoiceController extends Controller
 
     public function creditNote(int $id, RentalContractFinanceService $financeService)
     {
+        $this->authorizeCreditNoteView();
         $adjustment = RentalFinancialAdjustment::query()
             ->with([
                 'rentalContract.info.package',
                 'rentalContract.financeInvoice',
             ])
-            ->where('context', 'closure')
+            ->whereIn('context', ['closure', 'manual_credit_note'])
             ->findOrFail($id);
         $contract = $adjustment->rentalContract;
         $invoice = $contract?->financeInvoice;
@@ -96,9 +187,12 @@ class RentalContractInvoiceController extends Controller
             ];
         }
 
-        $documentDateTime = optional($adjustment->created_at)->format('Y-m-d H:i:s')
+        $documentDateTime = optional($adjustment->issue_date)->format('Y-m-d') . ' 00:00:00';
+        if (!$adjustment->issue_date) {
+            $documentDateTime = optional($adjustment->created_at)->format('Y-m-d H:i:s')
             ?: optional($contract->closed_at)->format('Y-m-d H:i:s')
             ?: now()->format('Y-m-d H:i:s');
+        }
         $documentUrl = route('rental.credit-note.download', ['id' => $adjustment->id, 'autoprint' => 1]);
         $barcodeValue = $this->buildInvoiceQrSerial(
             $viewData['supplierName'],
@@ -114,9 +208,9 @@ class RentalContractInvoiceController extends Controller
             'documentNumberLabel' => $isCreditNote ? 'رقم الإشعار الدائن' : 'رقم الإشعار المدين',
             'documentNumber' => $adjustment->id,
             'invoiceStatus' => 'معتمد',
-            'serviceDesc' => 'تسوية إنهاء عقد تأجير',
+            'serviceDesc' => $adjustment->context === 'manual_credit_note' ? 'مرتجع فاتورة تأجير' : 'تسوية إنهاء عقد تأجير',
             'serviceLongDescription' => ($isCreditNote ? 'استرجاع للعميل' : 'مستحق للشركة')
-                . ' عند إنهاء عقد التأجير رقم '
+                . ($adjustment->context === 'manual_credit_note' ? ' دون إنهاء عقد التأجير رقم ' : ' عند إنهاء عقد التأجير رقم ')
                 . ($contract->contract_number ?: $contract->id)
                 . ' المرتبط بالفاتورة #'
                 . $invoice->id,
@@ -132,6 +226,8 @@ class RentalContractInvoiceController extends Controller
             'vatAmount' => $vatAmount,
             'grandTotal' => $grandTotal,
             'backUrl' => route('RentContract.show', $contract->id),
+            'originalInvoiceNumber' => $invoice->id,
+            'creditNoteReason' => $adjustment->notes,
         ]);
 
         if (request()->query('driver') !== 'dompdf') {
@@ -149,6 +245,54 @@ class RentalContractInvoiceController extends Controller
         return request()->boolean('download')
             ? $pdf->download('rental-credit-note-' . $id . '.pdf')
             : $pdf->stream('rental-credit-note-' . $id . '.pdf');
+    }
+
+    private function creditNoteRemaining(RentalContractInvoice $invoice): float
+    {
+        $credited = RentalFinancialAdjustment::query()
+            ->where('rental_contract_id', $invoice->rental_contract_id)
+            ->where('type', 'expense')
+            ->whereIn('context', ['closure', 'manual_credit_note'])
+            ->sum('amount');
+
+        return round(max(0, (float) $invoice->total_due - (float) $credited), 2);
+    }
+
+    private function rentalCreditNoteItems(array $breakdown): array
+    {
+        return array_values(array_filter([
+            (float) $breakdown['taxable_subtotal'] > 0 ? [
+                'label' => 'عكس خدمات التأجير', 'quantity' => 1,
+                'unit_price' => (float) $breakdown['taxable_subtotal'],
+                'tax_rate' => 15, 'vat_amount' => (float) $breakdown['vat_amount'],
+                'line_total' => round((float) $breakdown['taxable_subtotal'] + (float) $breakdown['vat_amount'], 2),
+            ] : null,
+            (float) $breakdown['salary_exempt_amount'] > 0 ? [
+                'label' => 'عكس راتب العاملة المعفى من الضريبة', 'quantity' => 1,
+                'unit_price' => (float) $breakdown['salary_exempt_amount'],
+                'tax_rate' => 0, 'vat_amount' => 0,
+                'line_total' => (float) $breakdown['salary_exempt_amount'],
+            ] : null,
+        ]));
+    }
+
+    private function authorizeCreditNoteCreation(): void
+    {
+        abort_unless(@AdminGuardHasAnyPerm([
+            PermKeys::INVOICE_CREDIT_NOTES_CREATE,
+            PermKeys::INVOICE_CREDIT_NOTES_CONTROL,
+            PermKeys::INVOICES_CONTROL,
+        ]), 403);
+    }
+
+    private function authorizeCreditNoteView(): void
+    {
+        abort_unless(@AdminGuardHasAnyPerm([
+            PermKeys::INVOICE_CREDIT_NOTES_VIEW,
+            PermKeys::INVOICE_CREDIT_NOTES_PRINT,
+            PermKeys::INVOICE_CREDIT_NOTES_CONTROL,
+            PermKeys::INVOICES_CONTROL,
+        ]), 403);
     }
 
     public function extension(int $id, RentalContractFinanceService $financeService)

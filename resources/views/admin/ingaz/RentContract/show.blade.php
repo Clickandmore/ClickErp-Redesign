@@ -724,7 +724,7 @@
             ];
             $closureCompanyDue = (float) ($closureSummary['company_due_value'] ?? $closureSummary['calculated_company_due_value'] ?? 0);
             $closureClientRefund = (float) ($closureSummary['refund_value'] ?? $closureSummary['calculated_refund_value'] ?? 0);
-            $closureAdjustments = $contract->financialAdjustments->where('context', 'closure');
+            $closureAdjustments = $contract->financialAdjustments->whereIn('context', ['closure', 'manual_credit_note']);
             $showClosureSettlement = $closureCompanyDue > 0 || $closureClientRefund > 0;
             $isEarlyClosure = (bool) ($closureSummary['is_early_closure'] ?? false);
             $cancelledRemainingDays = (int) ($closureSummary['remaining_days_value'] ?? 0);
@@ -1580,6 +1580,13 @@
                                     <i class="fas fa-list me-1"></i>
                                     جميع الفواتير
                                 </a>
+                                @if (AdminGuardHasAnyPerm([\App\PermKeys::INVOICE_CREDIT_NOTES_CREATE, \App\PermKeys::INVOICE_CREDIT_NOTES_CONTROL, \App\PermKeys::INVOICES_CONTROL]))
+                                    <a href="{{ route('rental-invoices.credit-notes.create', $contract->financeInvoice->id) }}"
+                                        class="btn btn-outline-danger">
+                                        <i class="fas fa-file-invoice-dollar me-1"></i>
+                                        إشعار دائن دون إنهاء العقد
+                                    </a>
+                                @endif
 
                                 @if ($contract->financeInvoice->receipt_bond_id)
                                     <a href="{{ route('finance.bonds-print.show', ['bonds_print' => $contract->financeInvoice->receipt_bond_id, 'type' => 'qabd']) }}"
@@ -1615,7 +1622,7 @@
                             <div class="mt-4">
                                 <h4 class="h6 fw-bold mb-3">
                                     <i class="fas fa-scale-balanced me-1"></i>
-                                    قيود تسوية إنهاء العقد
+                                    إشعارات وتسويات عقد التأجير
                                 </h4>
                                 <div class="table-responsive">
                                     <table class="table table-bordered align-middle mb-0">
@@ -1632,7 +1639,7 @@
                                             @foreach ($closureAdjustments as $adjustment)
                                                 <tr>
                                                     <td>
-                                                        {{ $adjustment->type === 'expense' ? 'استرجاع للعميل' : 'مستحق للشركة' }}
+                                                        {{ $adjustment->context === 'manual_credit_note' ? 'مرتجع مستقل' : ($adjustment->type === 'expense' ? 'استرجاع عند الإنهاء' : 'مستحق للشركة عند الإنهاء') }}
                                                     </td>
                                                     <td>{{ number_format((float) $adjustment->amount, 2) }} ريال</td>
                                                     <td>

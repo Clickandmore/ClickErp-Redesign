@@ -468,6 +468,8 @@ Route::group(
             Route::get('rental-invoices/download/{id}', [RentalContractInvoiceController::class, 'download'])->name('rental.invoice.download');
             Route::get('rental-extension-invoices/download/{id}', [RentalContractInvoiceController::class, 'extension'])->name('rental.extension-invoice.download');
             Route::get('rental-credit-notes/download/{id}', [RentalContractInvoiceController::class, 'creditNote'])->name('rental.credit-note.download');
+            Route::get('rental-invoices/{id}/credit-notes/create', [RentalContractInvoiceController::class, 'createCreditNote'])->name('rental-invoices.credit-notes.create');
+            Route::post('rental-invoices/{id}/credit-notes', [RentalContractInvoiceController::class, 'storeCreditNote'])->name('rental-invoices.credit-notes.store');
             Route::post('RentContract/{id}/complete', [RentContractController::class, 'completeContract'])->name('RentContract.complete');
             Route::get('RentContract/statistics/data', [RentContractController::class, 'statistics'])->name('RentContract.statistics');
             Route::get('RentContract/export/excel', [RentContractController::class, 'exportExcel'])->name('RentContract.export.excel');
@@ -745,6 +747,11 @@ Route::group(
 
             Route::middleware('dev.superadmin')->group(function () {
                 Route::get('modules', [DevSuperAdminController::class, 'modules'])->name('modules');
+                Route::get('subscription', [DevSuperAdminController::class, 'modules'])->name('subscription');
+                Route::get('product-updates', [DevSuperAdminController::class, 'modules'])->name('product-updates');
+                Route::get('employees', [DevSuperAdminController::class, 'modules'])->name('employees');
+                Route::get('database-backups', [DevSuperAdminController::class, 'modules'])->name('database-backups');
+                Route::get('scheduler', [DevSuperAdminController::class, 'modules'])->name('scheduler');
                 Route::put('modules', [DevSuperAdminController::class, 'updateModules'])->name('modules.update');
                 Route::put('subscription', [DevSuperAdminController::class, 'updateSubscription'])->name('subscription.update');
                 Route::put('product-updates', [DevSuperAdminController::class, 'updateProductUpdates'])->name('product-updates.update');

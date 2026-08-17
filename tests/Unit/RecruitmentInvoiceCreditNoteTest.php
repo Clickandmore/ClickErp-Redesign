@@ -121,6 +121,26 @@ class RecruitmentInvoiceCreditNoteTest extends TestCase
         $this->assertStringContainsString('دون تغيير العقد أو التفويض', $html);
     }
 
+    public function test_general_invoice_exposes_the_same_credit_note_action(): void
+    {
+        $admin = Mockery::mock();
+        $admin->shouldReceive('can')->andReturnTrue();
+        $guard = Mockery::mock();
+        $guard->shouldReceive('user')->andReturn($admin);
+        Auth::shouldReceive('guard')->with('admin')->andReturn($guard);
+
+        $row = (object) [
+            'row_type' => 'invoice', 'id' => 202, 'contract_id' => null,
+            'ingaz_delegation_id' => null, 'sponsorship_transfer_id' => null,
+            'base_invoice_id' => 202, 'legacy_invoice_number' => null,
+            'legacy_zatca_shared' => null, 'finance_sale_id' => null,
+        ];
+
+        $html = $this->invoke(app(InvoiceController::class), 'standardInvoiceActions', $row);
+        $this->assertStringContainsString('/admin/invoices/202/credit-notes/create', $html);
+        $this->assertStringContainsString('الفاتورة الأصلية', $html);
+    }
+
     public function test_partial_direct_credit_reverses_the_matching_original_constraint_line(): void
     {
         $invoice = new Invoice([

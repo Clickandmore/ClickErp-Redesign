@@ -16,12 +16,19 @@ class RentalFinancialAdjustment extends Model
         'maid_id',
         'account_id',
         'constraint_id',
+        'finance_sale_id',
         'cost_center_id',
         'type',
         'label',
         'amount',
+        'taxable_amount',
+        'non_taxable_amount',
+        'vat_amount',
+        'line_items',
+        'send_to_zatca',
         'notes',
         'context',
+        'issue_date',
         'created_by',
         'settled_at',
         'settled_by',
@@ -30,6 +37,12 @@ class RentalFinancialAdjustment extends Model
 
     protected $casts = [
         'amount' => 'decimal:2',
+        'taxable_amount' => 'decimal:2',
+        'non_taxable_amount' => 'decimal:2',
+        'vat_amount' => 'decimal:2',
+        'line_items' => 'array',
+        'send_to_zatca' => 'boolean',
+        'issue_date' => 'date',
         'settled_at' => 'datetime',
         'branch_id' => 'integer',
     ];
@@ -52,6 +65,11 @@ class RentalFinancialAdjustment extends Model
     public function constraint()
     {
         return $this->belongsTo(\Nami\Finance\Models\Constraint::class, 'constraint_id');
+    }
+
+    public function financeSale()
+    {
+        return $this->belongsTo(\Nami\Finance\Models\Sale::class, 'finance_sale_id');
     }
 
     public function costCenter()

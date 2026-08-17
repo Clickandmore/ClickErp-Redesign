@@ -14,15 +14,21 @@ class ProductUpdatesSettings
         'title' => 'جديد في كليك',
         'summary' => 'تحسينات جديدة أصبحت متاحة الآن',
         'published_at' => null,
-        'items' => [
-            'أصبح بإمكانك إنشاء إشعار دائن مباشرة من الفواتير في الاستقدام والتفاويض.',
+        'updates' => [
+            [
+                'title' => 'إشعارات الدائن لفواتير الاستقدام والتفاويض',
+                'details' => 'يمكنك الآن إنشاء إشعار دائن مباشرة من الفاتورة مع إنشاء القيد المالي المرتبط به.',
+                'url' => '/dashboard/invoices',
+                'link_label' => 'الانتقال إلى الفواتير',
+            ],
         ],
     ];
 
     public static function all(): array
     {
         $settings = self::DEFAULTS;
-        $version = 'default';
+        $version = sha1(json_encode(self::DEFAULTS, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
+        $stored = null;
 
         if (Schema::hasTable('dev_superadmin_settings')) {
             $row = DB::table('dev_superadmin_settings')
@@ -45,11 +51,21 @@ class ProductUpdatesSettings
         $settings['published_at'] = filled($settings['published_at'] ?? null)
             ? (string) $settings['published_at']
             : null;
-        $settings['items'] = collect($settings['items'] ?? [])
-            ->filter(fn ($item) => is_string($item) && trim($item) !== '')
-            ->map(fn ($item) => trim($item))
+        $rawUpdates = is_array($stored) && array_key_exists('updates', $stored)
+            ? ($settings['updates'] ?? [])
+            : self::convertLegacyItems($settings['items'] ?? null);
+
+        if ($rawUpdates === null) {
+            $rawUpdates = self::DEFAULTS['updates'];
+        }
+
+        $settings['updates'] = collect($rawUpdates)
+            ->filter(fn ($update) => is_array($update))
+            ->map(fn ($update) => self::normalizeUpdate($update))
+            ->filter(fn ($update) => $update['title'] !== '')
             ->values()
             ->all();
+        unset($settings['items']);
         $settings['version'] = (string) $version;
 
         return $settings;
@@ -66,9 +82,10 @@ class ProductUpdatesSettings
             'title' => trim((string) ($payload['title'] ?? '')),
             'summary' => trim((string) ($payload['summary'] ?? '')),
             'published_at' => filled($payload['published_at'] ?? null) ? $payload['published_at'] : null,
-            'items' => collect($payload['items'] ?? [])
-                ->filter(fn ($item) => is_string($item) && trim($item) !== '')
-                ->map(fn ($item) => trim($item))
+            'updates' => collect($payload['updates'] ?? [])
+                ->filter(fn ($update) => is_array($update))
+                ->map(fn ($update) => self::normalizeUpdate($update))
+                ->filter(fn ($update) => $update['title'] !== '')
                 ->values()
                 ->all(),
         ];
@@ -81,5 +98,33 @@ class ProductUpdatesSettings
                 'updated_at' => now(),
             ]
         );
+    }
+
+    private static function normalizeUpdate(array $update): array
+    {
+        return [
+            'title' => trim((string) ($update['title'] ?? '')),
+            'details' => trim((string) ($update['details'] ?? '')),
+            'url' => trim((string) ($update['url'] ?? '')),
+            'link_label' => trim((string) ($update['link_label'] ?? '')),
+        ];
+    }
+
+    private static function convertLegacyItems(mixed $items): ?array
+    {
+        if (! is_array($items)) {
+            return null;
+        }
+
+        return collect($items)
+            ->filter(fn ($item) => is_string($item) && trim($item) !== '')
+            ->map(fn ($item) => [
+                'title' => trim($item),
+                'details' => '',
+                'url' => '',
+                'link_label' => '',
+            ])
+            ->values()
+            ->all();
     }
 }

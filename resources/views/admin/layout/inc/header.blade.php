@@ -229,15 +229,18 @@ $quickLinks = collect([
             background: #ef4444; color: #fff; border: 2px solid #fff;
             font-size: 9px; font-weight: 800; line-height: 15px; text-align: center;
         }
-        .cm-whats-new-menu { width: min(390px, calc(100vw - 24px)); overflow: hidden; }
+        .cm-whats-new-menu { width: min(440px, calc(100vw - 24px)); overflow: hidden; }
         .cm-whats-new-head { padding: 18px; color: #fff; background: linear-gradient(135deg, #0f6b6e, #15959a); }
         .cm-whats-new-head h6 { color: inherit; font-size: 1rem; font-weight: 800; }
         .cm-whats-new-head p { margin: 6px 0 0; color: rgba(255,255,255,.82); font-size: .78rem; }
         .cm-whats-new-date { display: inline-flex; margin-top: 10px; padding: 4px 8px; border-radius: 999px; background: rgba(255,255,255,.16); font-size: .7rem; }
-        .cm-whats-new-list { list-style: none; margin: 0; padding: 14px 18px 18px; }
-        .cm-whats-new-list li { position: relative; padding-block: 9px; padding-inline-start: 22px; color: #334155; font-size: .83rem; line-height: 1.65; border-bottom: 1px solid #eef2f7; }
-        .cm-whats-new-list li:last-child { border-bottom: 0; }
-        .cm-whats-new-list li::before { content: ''; position: absolute; top: 17px; inset-inline-start: 2px; width: 8px; height: 8px; border-radius: 50%; background: #16a085; box-shadow: 0 0 0 4px rgba(22,160,133,.12); }
+        .cm-whats-new-list { display:grid; gap:10px; max-height:min(520px, 65vh); overflow-y:auto; margin:0; padding:14px; background:#f8fafc; }
+        .cm-whats-new-card { position:relative; padding:13px 44px 13px 14px; border:1px solid #e6edf3; border-radius:12px; background:#fff; }
+        .cm-whats-new-number { position:absolute; top:13px; right:13px; width:22px; height:22px; display:flex; align-items:center; justify-content:center; border-radius:7px; background:#e8f7f5; color:#0f766e; font-size:.68rem; font-weight:800; }
+        .cm-whats-new-card h6 { margin:0; color:#1e293b; font-size:.86rem; font-weight:800; line-height:1.5; }
+        .cm-whats-new-card p { margin:5px 0 0; color:#64748b; font-size:.75rem; line-height:1.6; }
+        .cm-whats-new-link { display:inline-flex; align-items:center; gap:6px; margin-top:9px; color:#0f6b6e; font-size:.74rem; font-weight:800; text-decoration:none; }
+        .cm-whats-new-link:hover { color:#0b4f51; }
 
         .cm-header-open-site {
             display: inline-flex;
@@ -398,7 +401,7 @@ $quickLinks = collect([
             </div>
 
             <ul class="header-right justify-content-end d-flex align-items-center mb-0">
-                @if (($productUpdates['is_enabled'] ?? false) && count($productUpdates['items'] ?? []) > 0)
+                @if (($productUpdates['is_enabled'] ?? false) && count($productUpdates['updates'] ?? []) > 0)
                 <li>
                     <div class="dropdown morphing {{ $scaleDirection }}">
                         <a id="cm-whats-new-toggle" class="nav-link dropdown-toggle after-none cm-header-action cm-whats-new-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false" title="ما الجديد في كليك">
@@ -413,9 +416,27 @@ $quickLinks = collect([
                                     <span class="cm-whats-new-date"><i class="fa fa-calendar ms-1"></i>{{ \Carbon\Carbon::parse($productUpdates['published_at'])->translatedFormat('j F Y') }}</span>
                                 @endif
                             </div>
-                            <ul class="cm-whats-new-list">
-                                @foreach ($productUpdates['items'] as $item)<li>{{ $item }}</li>@endforeach
-                            </ul>
+                            <div class="cm-whats-new-list">
+                                @foreach ($productUpdates['updates'] as $update)
+                                    <article class="cm-whats-new-card">
+                                        <span class="cm-whats-new-number">{{ $loop->iteration }}</span>
+                                        <h6>{{ $update['title'] }}</h6>
+                                        @if ($update['details'])<p>{{ $update['details'] }}</p>@endif
+                                        @if ($update['url'])
+                                            @php
+                                                $isExternalUpdateLink = \Illuminate\Support\Str::startsWith(
+                                                    $update['url'],
+                                                    ['http://', 'https://']
+                                                );
+                                            @endphp
+                                            <a class="cm-whats-new-link" href="{{ $update['url'] }}" @if($isExternalUpdateLink) target="_blank" rel="noopener noreferrer" @endif>
+                                                {{ $update['link_label'] ?: 'عرض الميزة' }}
+                                                <i class="fa {{ app()->getLocale() === 'ar' ? 'fa-arrow-left' : 'fa-arrow-right' }}"></i>
+                                            </a>
+                                        @endif
+                                    </article>
+                                @endforeach
+                            </div>
                         </div>
                     </div>
                 </li>

@@ -3102,21 +3102,35 @@ class RentContractController extends Controller
                     : 'استرجاع مسجل أثناء إنهاء عقد الإيجار. القيمة المقترحة حسب الأيام: ')
                     . number_format($suggestedAmount, 2) . ' ريال'
                     . ($closureReturnReason !== '' ? "\nسبب الإرجاع: " . $closureReturnReason : '');
+                $closureBreakdown = $contract->financeInvoice
+                    ? $rentalContractFinanceService->closureAdjustmentAmounts($contract->financeInvoice, $contract, $adjustmentAmount)
+                    : ['taxable_subtotal' => 0, 'salary_exempt_amount' => 0, 'vat_amount' => 0];
                 $adjustment = $contract->financialAdjustments()->create([
                     'maid_id' => $contract->maid_id,
                     'type' => $isCompanyDue ? 'income' : 'expense',
                     'label' => $adjustmentLabel,
                     'amount' => $adjustmentAmount,
+                    'taxable_amount' => $closureBreakdown['taxable_subtotal'],
+                    'non_taxable_amount' => $closureBreakdown['salary_exempt_amount'],
+                    'vat_amount' => $closureBreakdown['vat_amount'],
+                    'send_to_zatca' => !$isCompanyDue,
                     'notes' => $adjustmentNotes,
                     'context' => 'closure',
+                    'issue_date' => $closureDate->toDateString(),
                     'created_by' => auth('admin')->id(),
                 ]);
 
-                $rentalContractFinanceService->recordClosureAdjustment(
+                $closureConstraint = $rentalContractFinanceService->recordClosureAdjustment(
                     $contract,
                     $adjustment,
                     $closureDate
                 );
+                if (!$isCompanyDue && $closureConstraint && $contract->financeInvoice) {
+                    app(InvoiceController::class)->queueRentalCreditNoteForZatcaSale(
+                        $adjustment->fresh(),
+                        $contract->financeInvoice
+                    );
+                }
             }
 
             if ($contract->maid) {

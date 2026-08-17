@@ -18,6 +18,7 @@ class RentalClosureInvoiceIndexTest extends TestCase
             'adjustment_constraint_id' => 103672,
             'rental_contract_id' => 5819,
             'rental_contract_number' => '1931',
+            'finance_sale_id' => null,
         ];
 
         $controller = app(InvoiceController::class);
@@ -65,6 +66,23 @@ class RentalClosureInvoiceIndexTest extends TestCase
         $actions = $this->invoke($controller, 'standardInvoiceActions', $row);
         $this->assertStringContainsString('rental-invoices/29/queue-zatca-sale', $actions);
         $this->assertStringContainsString('إدراج فاتورة التأجير في فواتير الزكاة', $actions);
+    }
+
+    public function test_manual_rental_credit_note_can_be_created_without_closing_contract(): void
+    {
+        $row = (object) [
+            'row_type' => 'rental', 'id' => 29, 'rental_contract_id' => 91,
+            'finance_sale_id' => 55, 'zatca_status' => null,
+        ];
+        $admin = \Mockery::mock();
+        $admin->shouldReceive('can')->andReturnTrue();
+        $guard = \Mockery::mock();
+        $guard->shouldReceive('user')->andReturn($admin);
+        \Illuminate\Support\Facades\Auth::shouldReceive('guard')->with('admin')->andReturn($guard);
+
+        $actions = $this->invoke(app(InvoiceController::class), 'standardInvoiceActions', $row);
+        $this->assertStringContainsString('rental-invoices/29/credit-notes/create', $actions);
+        $this->assertStringContainsString('دون إنهاء عقد التأجير', $actions);
     }
 
     public function test_queued_rental_invoice_links_to_its_financial_sale(): void
