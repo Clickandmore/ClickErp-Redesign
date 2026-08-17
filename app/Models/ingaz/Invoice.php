@@ -6,6 +6,7 @@ use App\Models\Concerns\AssignsBranch;
 use App\Models\Contract;
 use App\Models\IngazDelegation;
 use App\Models\MusanedTransferItem;
+use App\Models\RecruitmentInvoiceCreditNote;
 use App\Models\SponsorshipTransfer;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -97,5 +98,10 @@ class Invoice extends Model
     public function financeSale()
     {
         return $this->belongsTo(Sale::class, 'finance_sale_id');
+    }
+
+    public function recruitmentCreditNotes()
+    {
+        return $this->hasMany(RecruitmentInvoiceCreditNote::class, 'invoice_id');
     }
 }

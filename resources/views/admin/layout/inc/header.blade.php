@@ -5,6 +5,7 @@ $user = getAuthUser();
 $settings = $settings ?? null;
 $appTimezone = config('app.timezone', 'Asia/Riyadh');
 $headerNow = now()->timezone($appTimezone);
+$productUpdates = \App\Support\ProductUpdatesSettings::all();
 $quickLinks = collect([
     [
         'title' => optional($settings)->header_link_1_title ?? __('admin.layout.default_musaned_pro'),
@@ -221,6 +222,23 @@ $quickLinks = collect([
             box-shadow: none;
         }
 
+        .cm-whats-new-toggle { position: relative; }
+        .cm-whats-new-badge {
+            position: absolute; top: -7px; inset-inline-end: -8px;
+            min-width: 31px; padding: 2px 5px; border-radius: 999px;
+            background: #ef4444; color: #fff; border: 2px solid #fff;
+            font-size: 9px; font-weight: 800; line-height: 15px; text-align: center;
+        }
+        .cm-whats-new-menu { width: min(390px, calc(100vw - 24px)); overflow: hidden; }
+        .cm-whats-new-head { padding: 18px; color: #fff; background: linear-gradient(135deg, #0f6b6e, #15959a); }
+        .cm-whats-new-head h6 { color: inherit; font-size: 1rem; font-weight: 800; }
+        .cm-whats-new-head p { margin: 6px 0 0; color: rgba(255,255,255,.82); font-size: .78rem; }
+        .cm-whats-new-date { display: inline-flex; margin-top: 10px; padding: 4px 8px; border-radius: 999px; background: rgba(255,255,255,.16); font-size: .7rem; }
+        .cm-whats-new-list { list-style: none; margin: 0; padding: 14px 18px 18px; }
+        .cm-whats-new-list li { position: relative; padding-block: 9px; padding-inline-start: 22px; color: #334155; font-size: .83rem; line-height: 1.65; border-bottom: 1px solid #eef2f7; }
+        .cm-whats-new-list li:last-child { border-bottom: 0; }
+        .cm-whats-new-list li::before { content: ''; position: absolute; top: 17px; inset-inline-start: 2px; width: 8px; height: 8px; border-radius: 50%; background: #16a085; box-shadow: 0 0 0 4px rgba(22,160,133,.12); }
+
         .cm-header-open-site {
             display: inline-flex;
             align-items: center;
@@ -380,6 +398,28 @@ $quickLinks = collect([
             </div>
 
             <ul class="header-right justify-content-end d-flex align-items-center mb-0">
+                @if (($productUpdates['is_enabled'] ?? false) && count($productUpdates['items'] ?? []) > 0)
+                <li>
+                    <div class="dropdown morphing {{ $scaleDirection }}">
+                        <a id="cm-whats-new-toggle" class="nav-link dropdown-toggle after-none cm-header-action cm-whats-new-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false" title="ما الجديد في كليك">
+                            <i class="fa fa-bullhorn"></i>
+                            <span id="cm-whats-new-badge" class="cm-whats-new-badge">جديد</span>
+                        </a>
+                        <div class="dropdown-menu cm-whats-new-menu shadow border-0 p-0 m-0">
+                            <div class="cm-whats-new-head">
+                                <h6 class="mb-0">{{ $productUpdates['title'] }}</h6>
+                                @if ($productUpdates['summary'])<p>{{ $productUpdates['summary'] }}</p>@endif
+                                @if ($productUpdates['published_at'])
+                                    <span class="cm-whats-new-date"><i class="fa fa-calendar ms-1"></i>{{ \Carbon\Carbon::parse($productUpdates['published_at'])->translatedFormat('j F Y') }}</span>
+                                @endif
+                            </div>
+                            <ul class="cm-whats-new-list">
+                                @foreach ($productUpdates['items'] as $item)<li>{{ $item }}</li>@endforeach
+                            </ul>
+                        </div>
+                    </div>
+                </li>
+                @endif
                 <li>
                     <div class="dropdown morphing {{$scaleDirection}} notifications cm-notifications">
                         <a class="nav-link dropdown-toggle after-none cm-header-action" href="#" role="button" data-bs-toggle="dropdown" title="{{ __('admin.layout.notifications') }}">
@@ -584,6 +624,26 @@ $quickLinks = collect([
 @once
     <script>
         document.addEventListener('DOMContentLoaded', function () {
+            const whatsNewToggle = document.getElementById('cm-whats-new-toggle');
+            const whatsNewBadge = document.getElementById('cm-whats-new-badge');
+            const whatsNewVersion = @json($productUpdates['version'] ?? 'default');
+            const whatsNewStorageKey = 'clickerp_whats_new_seen_version';
+
+            if (whatsNewToggle && whatsNewBadge) {
+                try {
+                    if (localStorage.getItem(whatsNewStorageKey) === whatsNewVersion) {
+                        whatsNewBadge.style.display = 'none';
+                    }
+                } catch (error) {}
+
+                whatsNewToggle.addEventListener('click', function () {
+                    try {
+                        localStorage.setItem(whatsNewStorageKey, whatsNewVersion);
+                    } catch (error) {}
+                    whatsNewBadge.style.display = 'none';
+                });
+            }
+
             const liveDate = document.getElementById('cm-live-date');
             const liveTime = document.getElementById('cm-live-time');
             const sessionDuration = document.getElementById('cm-session-duration');

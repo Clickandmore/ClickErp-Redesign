@@ -12,6 +12,7 @@ use App\Models\ingaz\Maid;
 use App\Models\ingaz\User;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\Schema;
 
 class IngazDelegation extends Model
 {
@@ -19,6 +20,8 @@ class IngazDelegation extends Model
 
     public const STATUS_UNDER_PROCESS = 'under_process';
     public const STATUS_EXECUTED = 'executed';
+
+    private static ?array $statusOptionsCache = null;
 
     protected $fillable = [
         'delegation_date_gregorian',
@@ -58,17 +61,37 @@ class IngazDelegation extends Model
         'branch_id' => 'integer',
     ];
 
-    public static function statusOptions(): array
+    public static function statusOptions(?string $includeStatus = null): array
     {
-        return [
-            self::STATUS_UNDER_PROCESS => 'تحت المعالجة',
-            self::STATUS_EXECUTED => 'تم تنفيذ التفويض',
-        ];
+        if (!Schema::hasTable('ingaz_delegation_stages')) {
+            return [
+                self::STATUS_UNDER_PROCESS => 'تحت المعالجة',
+                self::STATUS_EXECUTED => 'تم تنفيذ التفويض',
+            ];
+        }
+
+        self::$statusOptionsCache ??= IngazDelegationStage::query()
+            ->orderBy('sort_order')
+            ->orderBy('id')
+            ->get()
+            ->mapWithKeys(fn (IngazDelegationStage $stage) => [
+                $stage->key => ['label' => $stage->displayName(), 'active' => $stage->is_active],
+            ])->all();
+
+        return collect(self::$statusOptionsCache)
+            ->filter(fn (array $stage, string $key) => $stage['active'] || $key === $includeStatus)
+            ->map(fn (array $stage) => $stage['label'])
+            ->all();
+    }
+
+    public static function clearStatusOptionsCache(): void
+    {
+        self::$statusOptionsCache = null;
     }
 
     public function getStatusLabelAttribute(): string
     {
-        return self::statusOptions()[$this->status] ?? $this->status;
+        return self::statusOptions($this->status)[$this->status] ?? $this->status;
     }
 
     public function nationality()
@@ -104,6 +127,11 @@ class IngazDelegation extends Model
     public function invoice()
     {
         return $this->hasOne(Invoice::class, 'ingaz_delegation_id');
+    }
+
+    public function creditNotes()
+    {
+        return $this->hasMany(RecruitmentInvoiceCreditNote::class, 'ingaz_delegation_id');
     }
 
     protected function resolveBranchIdForCreate(): ?int

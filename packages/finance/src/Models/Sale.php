@@ -114,4 +114,14 @@ class Sale extends Model
     {
         return $this->hasOne(RentalContractInvoice::class, 'finance_sale_id');
     }
+
+    public function originalSale()
+    {
+        return $this->belongsTo(self::class, 'original_sale_id');
+    }
+
+    public function recruitmentCreditNote()
+    {
+        return $this->hasOne(\App\Models\RecruitmentInvoiceCreditNote::class, 'finance_sale_id');
+    }
 }

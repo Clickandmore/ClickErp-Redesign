@@ -429,6 +429,17 @@
             <p class="section-title">وصف</p>
             <div class="desc-box">{{ $serviceLongDescription }}</div>
 
+            @if(!empty($originalInvoiceNumber))
+                <table class="info-table" style="margin-bottom: 12px;">
+                    <tr>
+                        <td class="info-label">رقم الفاتورة الأصلية</td>
+                        <td class="info-value">{{ $originalInvoiceNumber }}</td>
+                        <td class="info-label">سبب إصدار الإشعار</td>
+                        <td class="info-value">{{ $creditNoteReason }}</td>
+                    </tr>
+                </table>
+            @endif
+
             <table class="items">
                 <thead>
                     <tr>

@@ -43,7 +43,11 @@ class IngazDelegationController extends Controller
 
     public function index(Request $request): View|JsonResponse
     {
-        $query = IngazDelegation::with(['country', 'nationality', 'profession', 'user', 'maid', 'marketer', 'invoice.musanedTransferItem.transfer']);
+        $query = IngazDelegation::with([
+            'country', 'nationality', 'profession', 'user', 'maid', 'marketer',
+            'invoice.musanedTransferItem.transfer',
+            'invoice.recruitmentCreditNotes.constraint',
+        ]);
         $this->applyRequestBranchFilter($query, $request, 'ingaz_delegations');
 
         $searchInput = $request->input('global_search', $request->query('search'));
@@ -73,6 +77,10 @@ class IngazDelegationController extends Controller
             $query->where('client_source_type', $request->client_source_type);
         }
 
+        if ($request->filled('status') && array_key_exists($request->status, IngazDelegation::statusOptions())) {
+            $query->where('status', $request->status);
+        }
+
         if ($request->filled('marketer_id')) {
             $query->where('marketer_id', (int) $request->marketer_id);
         }
@@ -93,6 +101,8 @@ class IngazDelegationController extends Controller
             $canChangeDelegationStatus = $this->adminCanAny($this->delegationStatusPermissions());
             $canViewInvoices = $this->adminCanAny($this->invoiceViewPermissions());
             $canCreateInvoices = $this->adminCanAny($this->invoiceCreatePermissions());
+            $canViewCreditNotes = $this->adminCanAny($this->creditNoteViewPermissions());
+            $canCreateCreditNotes = $this->adminCanAny($this->creditNoteCreatePermissions());
             $canViewMusanedTransfers = $this->adminCanAny($this->musanedTransferViewPermissions());
             $canCreateMusanedTransfers = $this->adminCanAny($this->musanedTransferCreatePermissions());
 
@@ -155,7 +165,7 @@ class IngazDelegationController extends Controller
                     return e($this->delegationCountryName($row));
                 })
                 ->addColumn('profession_name', fn (IngazDelegation $row) => e($row->profession?->title ?? '-'))
-                ->addColumn('invoice', function (IngazDelegation $row) use ($canViewInvoices, $canCreateInvoices, $canViewMusanedTransfers, $canCreateMusanedTransfers) {
+                ->addColumn('invoice', function (IngazDelegation $row) use ($canViewInvoices, $canCreateInvoices, $canViewCreditNotes, $canCreateCreditNotes, $canViewMusanedTransfers, $canCreateMusanedTransfers) {
                     if ($row->invoice) {
                         $actions = [];
 
@@ -163,6 +173,20 @@ class IngazDelegationController extends Controller
                             $actions[] = '<a href="' . route('invoices.show', $row->invoice->id) . '" class="btn btn-sm btn-outline-success">
                                 <i class="fa fa-file-invoice me-1"></i>الفاتورة
                             </a>';
+                        }
+
+                        if ($canCreateCreditNotes) {
+                            $actions[] = '<a href="' . route('invoices.credit-notes.create', $row->invoice->id) . '" class="btn btn-sm btn-outline-danger">
+                                <i class="fa fa-file-invoice-dollar me-1"></i>إشعار دائن
+                            </a>';
+                        }
+
+                        if ($canViewCreditNotes) {
+                            foreach ($row->invoice->recruitmentCreditNotes as $creditNote) {
+                                $actions[] = '<a href="' . route('recruitment-credit-notes.download', ['id' => $creditNote->id, 'autoprint' => 1]) . '" target="_blank" rel="noopener" class="btn btn-sm btn-outline-danger">
+                                    <i class="fa fa-print me-1"></i>إشعار #' . e((string) $creditNote->id) . '
+                                </a>';
+                            }
                         }
 
                         $transfer = $row->invoice->musanedTransferItem?->transfer;
@@ -196,7 +220,7 @@ class IngazDelegationController extends Controller
                         return $this->statusBadgeHtml($row);
                     }
 
-                    $options = collect(IngazDelegation::statusOptions())->map(function ($label, $value) use ($row) {
+                    $options = collect(IngazDelegation::statusOptions($row->status))->map(function ($label, $value) use ($row) {
                         $selected = $row->status === $value ? 'selected' : '';
 
                         return '<option value="' . e($value) . '" ' . $selected . '>' . e($label) . '</option>';
@@ -257,8 +281,9 @@ class IngazDelegationController extends Controller
 
         $countries = Country::query()->ordered()->get(['id', 'name_ar', 'name_en', 'code', 'phone_code', 'sort_order']);
         $canCreateDelegation = $this->adminCanAny($this->delegationCreatePermissions());
+        $statusOptions = IngazDelegation::statusOptions();
 
-        return view('admin.ingaz_delegations.index', compact('countries', 'canCreateDelegation'));
+        return view('admin.ingaz_delegations.index', compact('countries', 'canCreateDelegation', 'statusOptions'));
     }
 
     public function print(IngazDelegation $ingazDelegation): View
@@ -300,7 +325,11 @@ class IngazDelegationController extends Controller
     {
         $this->assertCanAccessBranchModel($ingazDelegation);
 
-        $ingazDelegation->load(['country', 'nationality', 'profession', 'user', 'maid.religion', 'marketer', 'invoice']);
+        $ingazDelegation->load([
+            'country', 'nationality', 'profession', 'user', 'maid.religion', 'marketer',
+            'invoice.recruitmentCreditNotes.constraint',
+            'invoice.recruitmentCreditNotes.financeSale',
+        ]);
 
         return view('admin.ingaz_delegations.show', [
             'delegation' => $ingazDelegation,
@@ -310,6 +339,8 @@ class IngazDelegationController extends Controller
             'canEditDelegation' => $this->adminCanAny($this->delegationEditPermissions()),
             'canViewInvoices' => $this->adminCanAny($this->invoiceViewPermissions()),
             'canCreateInvoices' => $this->adminCanAny($this->invoiceCreatePermissions()),
+            'canViewCreditNotes' => $this->adminCanAny($this->creditNoteViewPermissions()),
+            'canCreateCreditNotes' => $this->adminCanAny($this->creditNoteCreatePermissions()),
             'canViewMusanedTransfers' => $this->adminCanAny($this->musanedTransferViewPermissions()),
             'canCreateMusanedTransfers' => $this->adminCanAny($this->musanedTransferCreatePermissions()),
         ]);
@@ -389,7 +420,7 @@ class IngazDelegationController extends Controller
         $this->assertCanAccessBranchModel($ingazDelegation);
 
         $validated = $request->validate([
-            'status' => ['required', 'in:' . implode(',', array_keys(IngazDelegation::statusOptions()))],
+            'status' => ['required', 'in:' . implode(',', array_keys(IngazDelegation::statusOptions($ingazDelegation->status)))],
         ]);
 
         $ingazDelegation->update([
@@ -889,6 +920,29 @@ class IngazDelegationController extends Controller
             PermKeys::INVOICES_CREATE,
             PermKeys::INVOICES_CONTROL,
             PermKeys::REC_CONTRACTS_CREATE,
+            PermKeys::REC_CONTRACTS_MANAGE,
+        ];
+    }
+
+    private function creditNoteViewPermissions(): array
+    {
+        return [
+            PermKeys::INVOICE_CREDIT_NOTES_VIEW,
+            PermKeys::INVOICE_CREDIT_NOTES_PRINT,
+            PermKeys::INVOICE_CREDIT_NOTES_CONTROL,
+            PermKeys::INVOICES_CONTROL,
+            PermKeys::INGAZ_DELEGATIONS_CONTROL,
+            PermKeys::REC_CONTRACTS_MANAGE,
+        ];
+    }
+
+    private function creditNoteCreatePermissions(): array
+    {
+        return [
+            PermKeys::INVOICE_CREDIT_NOTES_CREATE,
+            PermKeys::INVOICE_CREDIT_NOTES_CONTROL,
+            PermKeys::INVOICES_CONTROL,
+            PermKeys::INGAZ_DELEGATIONS_CONTROL,
             PermKeys::REC_CONTRACTS_MANAGE,
         ];
     }

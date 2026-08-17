@@ -473,6 +473,7 @@ class AdminRoutePermissionMatrix
             'RecruitmentContract.export.pdf' => [NewPermKeys::REC_CONTRACTS_EXPORT, NewPermKeys::REC_CONTRACTS_MANAGE],
             'RecruitmentContract.export.excel' => [NewPermKeys::REC_CONTRACTS_EXPORT, NewPermKeys::REC_CONTRACTS_MANAGE],
             'contracts.details' => [NewPermKeys::REC_CONTRACTS_VIEW, NewPermKeys::REC_CONTRACTS_MANAGE],
+            'RecruitmentContract.stageSteps.update' => [NewPermKeys::REC_CONTRACTS_UPDATE, NewPermKeys::REC_CONTRACTS_MANAGE],
             'contract-return-requests.index' => [NewPermKeys::REC_CONTRACTS_VIEW, NewPermKeys::REC_CONTRACTS_MANAGE],
             'contract-return-requests.show' => [NewPermKeys::REC_CONTRACTS_VIEW, NewPermKeys::REC_CONTRACTS_MANAGE],
             'contract-return-requests.process' => [NewPermKeys::REC_CONTRACTS_EDIT, NewPermKeys::REC_CONTRACTS_MANAGE],
@@ -549,6 +550,22 @@ class AdminRoutePermissionMatrix
             'invoices.queue-zatca-sale' => [
                 PermKeys::INVOICES_CONTROL,
                 PermKeys::REC_CONTRACTS_MANAGE,
+            ],
+            'invoices.credit-notes.*' => [
+                PermKeys::INVOICE_CREDIT_NOTES_CREATE,
+                PermKeys::INVOICE_CREDIT_NOTES_CONTROL,
+                PermKeys::INVOICES_CONTROL,
+                PermKeys::REC_CONTRACTS_MANAGE,
+                PermKeys::INGAZ_DELEGATIONS_CONTROL,
+            ],
+            'recruitment-credit-notes.download' => [
+                PermKeys::INVOICE_CREDIT_NOTES_VIEW,
+                PermKeys::INVOICE_CREDIT_NOTES_PRINT,
+                PermKeys::INVOICE_CREDIT_NOTES_CONTROL,
+                PermKeys::INVOICES_PRINT,
+                PermKeys::INVOICES_CONTROL,
+                PermKeys::REC_CONTRACTS_MANAGE,
+                PermKeys::INGAZ_DELEGATIONS_CONTROL,
             ],
             'rental-invoices.queue-zatca-sale' => [
                 PermKeys::INVOICES_CONTROL,
@@ -767,6 +784,8 @@ class AdminRoutePermissionMatrix
             'moyasar-settings.update' => [PermKeys::MOYASAR_SETTINGS],
             'recruitment-contract-stages.edit' => [PermKeys::SETTINGS_VIEW],
             'recruitment-contract-stages.update' => [PermKeys::SETTINGS_CONTROL],
+            'ingaz-delegation-stages.edit' => [PermKeys::SETTINGS_VIEW],
+            'ingaz-delegation-stages.update' => [PermKeys::SETTINGS_CONTROL],
             'admin.ingaz.settings.index' => [PermKeys::SETTINGS_VIEW],
             'admin.ingaz.settings.update' => [PermKeys::SETTINGS_CONTROL],
         ];

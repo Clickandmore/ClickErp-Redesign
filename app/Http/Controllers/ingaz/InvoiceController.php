@@ -8,7 +8,9 @@ use App\Models\Branch;
 use App\Models\Contract;
 use App\Models\IngazDelegation;
 use App\Models\RentalContractInvoice;
+use App\Models\RecruitmentInvoiceCreditNote;
 use App\Models\SponsorshipTransfer;
+use App\PermKeys;
 use App\Models\ingaz\Invoice;
 use App\Models\ingaz\Nationality;
 use App\Models\ingaz\Setting;
@@ -36,6 +38,7 @@ use Nami\Finance\Models\Category;
 use Nami\Finance\Models\Client;
 use Nami\Finance\Models\ConfirmSetting;
 use Nami\Finance\Models\Constraint;
+use Nami\Finance\Models\ConstraintDetails;
 use Nami\Finance\Models\CostCenter;
 use Nami\Finance\Models\Item;
 use Nami\Finance\Models\Sale;
@@ -171,6 +174,7 @@ class InvoiceController extends Controller
             DB::raw('NULL as adjustment_type'),
             DB::raw('NULL as adjustment_constraint_id'),
             DB::raw('NULL as base_rental_invoice_id'),
+            DB::raw('invoice.id as base_invoice_id'),
             DB::raw('COALESCE(recruitment_client.name, delegation_client.name, direct_client.name, "-") as client_name'),
             DB::raw('COALESCE(recruitment_client.phone, delegation_client.phone, direct_client.phone, "") as client_phone'),
             $invoiceBranchesEnabled
@@ -213,6 +217,7 @@ class InvoiceController extends Controller
             DB::raw('NULL as adjustment_type'),
             DB::raw('NULL as adjustment_constraint_id'),
             DB::raw('rental_invoice.id as base_rental_invoice_id'),
+            DB::raw('NULL as base_invoice_id'),
             DB::raw('COALESCE(rental_client.name, "-") as client_name'),
             DB::raw('COALESCE(rental_client.phone, "") as client_phone'),
             $rentalBranchesEnabled
@@ -262,6 +267,7 @@ class InvoiceController extends Controller
             'closure_adjustment.type as adjustment_type',
             'closure_adjustment.constraint_id as adjustment_constraint_id',
             'base_rental_invoice.id as base_rental_invoice_id',
+            DB::raw('NULL as base_invoice_id'),
             DB::raw('COALESCE(adjustment_client.name, "-") as client_name'),
             DB::raw('COALESCE(adjustment_client.phone, "") as client_phone'),
             $rentalBranchesEnabled
@@ -279,8 +285,57 @@ class InvoiceController extends Controller
             'closure_adjustment.created_at',
         ]);
 
+        $creditNoteQuery = DB::table('recruitment_invoice_credit_notes as credit_note')
+            ->join('invoices as original_invoice', 'original_invoice.id', '=', 'credit_note.invoice_id')
+            ->leftJoin('contracts as credit_contract', 'credit_contract.id', '=', 'credit_note.contract_id')
+            ->leftJoin('ingaz_delegations as credit_delegation', 'credit_delegation.id', '=', 'credit_note.ingaz_delegation_id')
+            ->leftJoin('users as credit_client', 'credit_client.id', '=', 'credit_contract.user_id')
+            ->leftJoin('users as credit_delegation_client', 'credit_delegation_client.id', '=', 'credit_delegation.user_id')
+            ->leftJoin('fn_sales as credit_sale', 'credit_sale.id', '=', 'credit_note.finance_sale_id')
+            ->leftJoin('zatca_invoices as credit_zatca', 'credit_zatca.id', '=', 'credit_sale.zatca_invoice_id');
+
+        if (!$this->canViewInvoiceCreditNote()) {
+            $creditNoteQuery->whereRaw('1 = 0');
+        }
+
+        if ($invoiceBranchesEnabled) {
+            $creditNoteQuery->leftJoin('branches as credit_branch', 'credit_branch.id', '=', 'credit_note.branch_id');
+        }
+        $this->applyRequestBranchFilter($creditNoteQuery, $request, 'invoices', 'credit_note.branch_id');
+        $creditNoteQuery->select([
+            DB::raw("'recruitment_credit_note' as row_type"),
+            'credit_note.id',
+            DB::raw('credit_note.id as invoice_sort_number'),
+            DB::raw('NULL as legacy_invoice_number'),
+            DB::raw('NULL as legacy_order_number'),
+            'credit_note.contract_id',
+            'credit_note.ingaz_delegation_id',
+            DB::raw('NULL as sponsorship_transfer_id'),
+            DB::raw('NULL as rental_contract_id'),
+            DB::raw('NULL as rental_contract_number'),
+            DB::raw("'credit_note' as adjustment_type"),
+            'credit_note.constraint_id as adjustment_constraint_id',
+            DB::raw('NULL as base_rental_invoice_id'),
+            'credit_note.invoice_id as base_invoice_id',
+            DB::raw('COALESCE(credit_client.name, credit_delegation_client.name, "-") as client_name'),
+            DB::raw('COALESCE(credit_client.phone, credit_delegation_client.phone, "") as client_phone'),
+            $invoiceBranchesEnabled
+                ? DB::raw('COALESCE(credit_branch.name_ar, "-") as branch')
+                : DB::raw('"-" as branch'),
+            'credit_note.subtotal',
+            'credit_note.vat_amount',
+            DB::raw('0 as discount'),
+            'credit_note.total as total_due',
+            DB::raw('1 as is_paid'),
+            'credit_note.send_to_zatca',
+            'credit_note.finance_sale_id',
+            DB::raw('NULL as legacy_zatca_shared'),
+            'credit_zatca.zatca_status',
+            'credit_note.created_at',
+        ]);
+
         $query = DB::query()->fromSub(
-            $invoiceQuery->unionAll($rentalQuery)->unionAll($closureAdjustmentQuery),
+            $invoiceQuery->unionAll($rentalQuery)->unionAll($closureAdjustmentQuery)->unionAll($creditNoteQuery),
             'invoice_rows'
         );
 
@@ -325,6 +380,7 @@ class InvoiceController extends Controller
                 'adjustment_type',
                 'adjustment_constraint_id',
                 'base_rental_invoice_id',
+                'base_invoice_id',
                 'client_phone',
                 'is_paid',
                 'send_to_zatca',
@@ -337,6 +393,12 @@ class InvoiceController extends Controller
 
     private function standardInvoiceNumberLink($row): string
     {
+        if ($row->row_type === 'recruitment_credit_note') {
+            $url = route('recruitment-credit-notes.download', ['id' => $row->id, 'autoprint' => 1]);
+
+            return '<a href="' . $url . '" target="_blank" rel="noopener" class="fw-bold text-danger text-decoration-none">إشعار دائن #' . e((string) $row->id) . '</a>';
+        }
+
         if ($row->row_type === 'rental_adjustment') {
             $url = route('rental.credit-note.download', ['id' => $row->id, 'autoprint' => 1]);
             $label = $row->adjustment_type === 'expense' ? 'إشعار دائن' : 'إشعار مدين';
@@ -358,6 +420,15 @@ class InvoiceController extends Controller
 
     private function standardInvoiceSourceBadge($row): string
     {
+        if ($row->row_type === 'recruitment_credit_note') {
+            $source = $row->contract_id
+                ? 'عقد استقدام #' . e((string) $row->contract_id)
+                : 'تفويض إنجاز #' . e((string) $row->ingaz_delegation_id);
+
+            return '<span class="badge bg-danger-subtle text-danger border">فاتورة #'
+                . e((string) $row->base_invoice_id) . ' / ' . $source . '</span>';
+        }
+
         if (in_array($row->row_type, ['rental', 'rental_adjustment'], true)) {
             $contractNumber = $row->rental_contract_number ?: $row->rental_contract_id;
             $class = $row->row_type === 'rental_adjustment'
@@ -390,6 +461,10 @@ class InvoiceController extends Controller
 
     private function standardInvoicePaymentBadge($row): string
     {
+        if ($row->row_type === 'recruitment_credit_note') {
+            return '<span class="badge bg-info-subtle text-info border">رصيد لصالح العميل</span>';
+        }
+
         if ($row->row_type === 'rental_adjustment') {
             return $row->adjustment_type === 'expense'
                 ? '<span class="badge bg-info-subtle text-info border">رصيد لصالح العميل</span>'
@@ -447,6 +522,22 @@ class InvoiceController extends Controller
 
     private function standardInvoiceActions($row): string
     {
+        if ($row->row_type === 'recruitment_credit_note') {
+            $printUrl = route('recruitment-credit-notes.download', ['id' => $row->id, 'autoprint' => 1]);
+            $constraintButton = $row->adjustment_constraint_id
+                ? '<a href="' . route('finance.add-constraint.show', ['add_constraint' => $row->adjustment_constraint_id])
+                    . '" class="btn btn-sm btn-outline-dark" target="_blank" rel="noopener" title="عرض قيد إشعار الدائن"><i class="fas fa-book-open"></i></a>'
+                : '';
+            $saleButton = $row->finance_sale_id
+                ? '<a href="' . route('finance.bill-sales.show', $row->finance_sale_id) . '" class="btn btn-sm btn-outline-success" title="مرتجع المبيعات"><i class="fas fa-link"></i></a>'
+                : '';
+
+            return '<div class="d-flex justify-content-end gap-2">'
+                . $constraintButton . $saleButton
+                . '<a href="' . $printUrl . '" class="btn btn-sm btn-outline-secondary" target="_blank" rel="noopener" title="طباعة إشعار الدائن"><i class="fas fa-print"></i></a>'
+                . '</div>';
+        }
+
         if ($row->row_type === 'rental_adjustment') {
             $contractUrl = route('RentContract.show', $row->rental_contract_id);
             $printUrl = route('rental.credit-note.download', ['id' => $row->id, 'autoprint' => 1]);
@@ -487,9 +578,15 @@ class InvoiceController extends Controller
                 : '<a href="' . route('finance.bill-sales.show', $row->finance_sale_id) . '" class="btn btn-sm btn-outline-success" title="فاتورة المبيعات"><i class="fas fa-link"></i></a>');
         $showUrl = route('invoices.show', $row->id);
         $printUrl = route('invoice.download', ['id' => $row->id, 'autoprint' => 1]);
+        $creditNoteButton = ($row->contract_id || $row->ingaz_delegation_id)
+            && !$row->legacy_invoice_number
+            && $this->canCreateInvoiceCreditNote()
+            ? '<a href="' . route('invoices.credit-notes.create', $row->id) . '" class="btn btn-sm btn-outline-danger" title="إنشاء إشعار دائن دون تغيير العقد أو التفويض"><i class="fas fa-file-invoice-dollar"></i></a>'
+            : '';
 
         return '<div class="d-flex justify-content-end gap-2">
                     ' . $queueButton . '
+                    ' . $creditNoteButton . '
                     <a href="' . $showUrl . '" class="btn btn-sm btn-outline-primary" title="عرض التفاصيل"><i class="fas fa-eye"></i></a>
                     <a href="' . $printUrl . '" class="btn btn-sm btn-outline-secondary" target="_blank" rel="noopener" title="طباعة الفاتورة"><i class="fas fa-print"></i></a>
                 </div>';
@@ -2854,6 +2951,190 @@ class InvoiceController extends Controller
         return $pdf->stream('invoice-' . $invoice->id . '.pdf');
     }
 
+    public function createRecruitmentCreditNote(int $id)
+    {
+        $invoice = Invoice::query()
+            ->with(['contract.user', 'contract.info', 'ingazDelegation.user', 'recruitmentCreditNotes'])
+            ->findOrFail($id);
+        $this->assertCanAccessBranchModel($invoice, 'invoices');
+
+        abort_unless(
+            ($invoice->contract_id && $invoice->contract)
+                || ($invoice->ingaz_delegation_id && $invoice->ingazDelegation),
+            422,
+            'إشعار الدائن متاح لفواتير عقود الاستقدام وتفاويض الإنجاز فقط.'
+        );
+
+        $remaining = $this->recruitmentCreditNoteRemaining($invoice);
+
+        return view('admin.ingaz.invoices.credit-note-create', compact('invoice', 'remaining'));
+    }
+
+    public function storeRecruitmentCreditNote(
+        Request $request,
+        int $id,
+        ObjService $service,
+        YearService $yearService
+    ) {
+        $validated = $request->validate([
+            'issue_date' => ['required', 'date', 'before_or_equal:today'],
+            'reason' => ['required', 'string', 'max:1000'],
+            'taxable_amount' => ['required', 'numeric', 'min:0'],
+            'non_taxable_amount' => ['required', 'numeric', 'min:0'],
+            'send_to_zatca' => ['nullable', 'boolean'],
+        ]);
+
+        try {
+            $creditNote = DB::transaction(function () use ($validated, $id, $service, $yearService) {
+                $invoice = Invoice::query()
+                    ->with(['contract.user', 'ingazDelegation.user', 'financeSale.items', 'recruitmentCreditNotes'])
+                    ->lockForUpdate()
+                    ->findOrFail($id);
+                $this->assertCanAccessBranchModel($invoice, 'invoices');
+
+                if ((!$invoice->contract_id || !$invoice->contract)
+                    && (!$invoice->ingaz_delegation_id || !$invoice->ingazDelegation)) {
+                    throw new \RuntimeException('إشعار الدائن متاح لفواتير عقود الاستقدام وتفاويض الإنجاز فقط.');
+                }
+
+                if ($invoice->ingaz_delegation_id && !$invoice->invoice_constraint_id) {
+                    $clientAccountId = $this->ensureClientUserAccountId($invoice->ingazDelegation->user);
+                    $sourceConstraint = $this->storeInvoiceConstraintForIngazDelegation(
+                        $invoice,
+                        $service,
+                        $yearService,
+                        $clientAccountId
+                    );
+
+                    if (!$sourceConstraint) {
+                        throw new \RuntimeException('تعذر إنشاء قيد الفاتورة الأصلي لتفويض الإنجاز.');
+                    }
+
+                    $invoice->update(['invoice_constraint_id' => $sourceConstraint->id]);
+                    $invoice->setRelation('invoiceConstraint', $sourceConstraint);
+                }
+
+                if (!$invoice->invoice_constraint_id && !$invoice->arrival_revenue_constraint_id) {
+                    throw new \RuntimeException('لا يمكن إنشاء إشعار دائن قبل وجود قيد الفاتورة أو قيد إيراد الوصول.');
+                }
+
+                $issueDate = \Carbon\Carbon::parse($validated['issue_date'])->startOfDay();
+                $invoiceDate = optional($invoice->created_at)->copy()?->startOfDay();
+                if ($invoiceDate && $issueDate->lt($invoiceDate)) {
+                    throw new \RuntimeException('تاريخ إشعار الدائن لا يمكن أن يسبق تاريخ الفاتورة الأصلية.');
+                }
+
+                $remaining = $this->recruitmentCreditNoteRemaining($invoice);
+                $taxable = $this->roundMoney((float) $validated['taxable_amount']);
+                $nonTaxable = $this->roundMoney((float) $validated['non_taxable_amount']);
+                $vat = $this->roundMoney($taxable * InvoiceCalculationService::VAT_RATE);
+                $subtotal = $this->roundMoney($taxable + $nonTaxable);
+                $total = $this->roundMoney($subtotal + $vat);
+
+                if ($total <= 0) {
+                    throw new \RuntimeException('يجب أن تكون قيمة إشعار الدائن أكبر من صفر.');
+                }
+                if ($taxable > $remaining['taxable_amount'] + 0.01
+                    || $nonTaxable > $remaining['non_taxable_amount'] + 0.01
+                    || $vat > $remaining['vat_amount'] + 0.01
+                    || $total > $remaining['total'] + 0.01) {
+                    throw new \RuntimeException('قيمة إشعار الدائن تتجاوز الرصيد المتبقي من الفاتورة الأصلية.');
+                }
+
+                $lineItems = $this->buildRecruitmentCreditNoteItems($invoice, $taxable, $nonTaxable);
+
+                $creditNote = RecruitmentInvoiceCreditNote::query()->create([
+                    'invoice_id' => $invoice->id,
+                    'contract_id' => $invoice->contract_id,
+                    'ingaz_delegation_id' => $invoice->ingaz_delegation_id,
+                    'issue_date' => $issueDate->toDateString(),
+                    'reason' => trim($validated['reason']),
+                    'taxable_amount' => $taxable,
+                    'non_taxable_amount' => $nonTaxable,
+                    'subtotal' => $subtotal,
+                    'vat_amount' => $vat,
+                    'total' => $total,
+                    'line_items' => $lineItems,
+                    'send_to_zatca' => (bool) ($validated['send_to_zatca'] ?? true),
+                    'created_by_id' => Auth::guard('admin')->id() ?: Auth::id(),
+                ]);
+
+                $constraint = $this->storeRecruitmentCreditNoteConstraint(
+                    $creditNote,
+                    $invoice,
+                    $service,
+                    $yearService
+                );
+                $sale = $this->storeRecruitmentCreditNoteSale($creditNote, $invoice);
+
+                $creditNote->update([
+                    'constraint_id' => $constraint->id,
+                    'finance_sale_id' => $sale->id,
+                ]);
+
+                return $creditNote->fresh(['invoice', 'contract', 'constraint', 'financeSale']);
+            });
+
+            return redirect()
+                ->route('recruitment-credit-notes.download', ['id' => $creditNote->id, 'autoprint' => 1])
+                ->with('success', 'تم إنشاء إشعار الدائن وقيده المالي دون تغيير حالة العقد أو التفويض.');
+        } catch (\Throwable $e) {
+            return back()->withInput()->with('error', $e->getMessage());
+        }
+    }
+
+    public function downloadRecruitmentCreditNote(int $id)
+    {
+        $creditNote = RecruitmentInvoiceCreditNote::query()
+            ->with(['invoice.contract.user', 'invoice.ingazDelegation.user', 'financeSale.zatca', 'constraint'])
+            ->findOrFail($id);
+        $this->assertCanAccessBranchModel($creditNote->invoice, 'invoices');
+
+        $viewData = $this->prepareInvoiceViewData((int) $creditNote->invoice_id);
+        $viewData['creditNote'] = $creditNote;
+        $viewData['invoiceTitle'] = 'إشعار دائن ضريبي';
+        $viewData['invoiceSubtitle'] = 'Tax Credit Note';
+        $viewData['documentNumberLabel'] = 'رقم إشعار الدائن';
+        $viewData['documentNumber'] = $creditNote->id;
+        $viewData['originalInvoiceNumber'] = $creditNote->invoice->legacy_invoice_number ?: $creditNote->invoice_id;
+        $viewData['creditNoteReason'] = $creditNote->reason;
+        $viewData['invoiceDate'] = $creditNote->issue_date->format('Y-m-d');
+        $viewData['invoiceDateTime'] = $creditNote->issue_date->format('Y-m-d') . ' 00:00:00';
+        $viewData['invoiceStatus'] = 'رصيد دائن للعميل';
+        $sourceLabel = $creditNote->contract_id ? 'عقد الاستقدام' : 'تفويض الإنجاز';
+        $viewData['serviceLongDescription'] = 'إشعار دائن مرتبط بفاتورة ' . $sourceLabel . ' رقم '
+            . $viewData['originalInvoiceNumber'] . ' - السبب: ' . $creditNote->reason;
+        $viewData['items'] = collect($creditNote->line_items)->map(fn (array $item) => [
+            'label' => $item['label'],
+            'unit' => (float) $item['unit_price'],
+            'qty' => (float) $item['quantity'],
+            'line_subtotal' => (float) ($item['line_subtotal'] ?? ((float) $item['unit_price'] * (float) $item['quantity'])),
+            'line_discount' => 0,
+            'line_total' => (float) ($item['line_subtotal'] ?? ((float) $item['unit_price'] * (float) $item['quantity'])),
+            'vat_rate' => ((float) $item['tax_rate']) / 100,
+            'vat_amount' => (float) $item['vat_amount'],
+            'line_grand_total' => (float) $item['line_total'],
+        ])->all();
+        $viewData['subtotalBeforeDiscount'] = (float) $creditNote->subtotal;
+        $viewData['discountTotal'] = 0.0;
+        $viewData['netSubtotal'] = (float) $creditNote->subtotal;
+        $viewData['vatAmount'] = (float) $creditNote->vat_amount;
+        $viewData['grandTotal'] = (float) $creditNote->total;
+        $viewData['invoiceUrl'] = route('recruitment-credit-notes.download', $creditNote->id);
+        $qrValue = $creditNote->financeSale?->zatca?->qr ?: $this->buildInvoiceQrSerial(
+            $viewData['supplierName'],
+            $viewData['supplierTaxNumber'],
+            $viewData['invoiceDateTime'],
+            (float) $creditNote->total,
+            (float) $creditNote->vat_amount
+        );
+        $viewData['qrImage'] = InvoiceQrCode::render($qrValue);
+
+        return response()->view('admin.ingaz.invoices.print', $viewData, 200, [
+            'Content-Type' => 'text/html; charset=UTF-8',
+        ]);
+    }
+
     public function prepareInvoiceViewData(int $id): array
     {
         $invoice = Invoice::with([
@@ -2875,6 +3156,8 @@ class InvoiceController extends Controller
             'invoiceConstraint',
             'musanedTransferItem.transfer',
             'financeSale.zatca',
+            'recruitmentCreditNotes.constraint',
+            'recruitmentCreditNotes.financeSale',
         ])->findOrFail($id);
         $this->assertCanAccessBranchModel($invoice, 'invoices');
 
@@ -3314,6 +3597,388 @@ class InvoiceController extends Controller
             'other_amount' => $otherAmount,
             'vat_amount' => $vatAmount,
             'total_due' => $totalDue,
+        ];
+    }
+
+    private function recruitmentCreditNoteRemaining(Invoice $invoice): array
+    {
+        $invoice->loadMissing('recruitmentCreditNotes');
+        $netTotal = $this->roundMoney(max(0, (float) $invoice->total_due - (float) $invoice->vat_amount));
+        $taxableTotal = $this->roundMoney(min(
+            $netTotal,
+            (float) $invoice->vat_amount > 0
+                ? (float) $invoice->vat_amount / InvoiceCalculationService::VAT_RATE
+                : 0
+        ));
+        $nonTaxableTotal = $this->roundMoney(max(0, $netTotal - $taxableTotal));
+
+        return [
+            'taxable_amount' => $this->roundMoney(max(0, $taxableTotal - (float) $invoice->recruitmentCreditNotes->sum('taxable_amount'))),
+            'non_taxable_amount' => $this->roundMoney(max(0, $nonTaxableTotal - (float) $invoice->recruitmentCreditNotes->sum('non_taxable_amount'))),
+            'vat_amount' => $this->roundMoney(max(0, (float) $invoice->vat_amount - (float) $invoice->recruitmentCreditNotes->sum('vat_amount'))),
+            'subtotal' => $this->roundMoney(max(0, $netTotal - (float) $invoice->recruitmentCreditNotes->sum('subtotal'))),
+            'total' => $this->roundMoney(max(0, (float) $invoice->total_due - (float) $invoice->recruitmentCreditNotes->sum('total'))),
+        ];
+    }
+
+    private function buildRecruitmentCreditNoteItems(
+        Invoice $invoice,
+        float $taxableAmount,
+        float $nonTaxableAmount
+    ): array {
+        $invoiceItems = collect($this->buildInvoiceItems($invoice));
+        $result = collect();
+
+        foreach ([true => $taxableAmount, false => $nonTaxableAmount] as $isTaxable => $requestedAmount) {
+            $requestedAmount = $this->roundMoney((float) $requestedAmount);
+            if ($requestedAmount <= 0) {
+                continue;
+            }
+
+            $matchingItems = $invoiceItems
+                ->filter(fn (array $item) => ((float) ($item['vat_rate'] ?? 0) > 0) === (bool) $isTaxable)
+                ->values();
+            $sourceTotal = $this->roundMoney((float) $matchingItems->sum('line_total'));
+            if ($matchingItems->isEmpty() || $sourceTotal <= 0) {
+                throw new \RuntimeException('تعذر مطابقة مبلغ إشعار الدائن مع بنود الفاتورة الأصلية.');
+            }
+
+            $remaining = $requestedAmount;
+            $matchingItems->each(function (array $item, int $index) use (
+                $matchingItems,
+                $requestedAmount,
+                $sourceTotal,
+                $isTaxable,
+                &$remaining,
+                $result
+            ) {
+                $allocatedNet = $index === $matchingItems->count() - 1
+                    ? $remaining
+                    : $this->roundMoney(
+                        $requestedAmount * ((float) $item['line_total'] / $sourceTotal)
+                    );
+                $remaining = $this->roundMoney($remaining - $allocatedNet);
+                if ($allocatedNet <= 0) {
+                    return;
+                }
+
+                $quantity = max(1, (float) ($item['qty'] ?? 1));
+                $vatAmount = $isTaxable
+                    ? $this->roundMoney($allocatedNet * InvoiceCalculationService::VAT_RATE)
+                    : 0.0;
+
+                $result->push([
+                    'key' => (string) ($item['key'] ?? ''),
+                    'label' => (string) ($item['label'] ?? 'بند'),
+                    'quantity' => $quantity,
+                    'unit_price' => $this->roundMoney($allocatedNet / $quantity),
+                    'line_subtotal' => $allocatedNet,
+                    'tax_rate' => $isTaxable ? 15 : 0,
+                    'vat_amount' => $vatAmount,
+                    'line_total' => $this->roundMoney($allocatedNet + $vatAmount),
+                ]);
+            });
+        }
+
+        return $result->values()->all();
+    }
+
+    private function storeRecruitmentCreditNoteConstraint(
+        RecruitmentInvoiceCreditNote $creditNote,
+        Invoice $invoice,
+        ObjService $service,
+        YearService $yearService
+    ): Constraint {
+        $activeYear = $yearService->checkDateRange($creditNote->issue_date->format('Y-m-d'));
+        if (!$activeYear) {
+            throw new \RuntimeException('لا توجد سنة مالية نشطة لتاريخ إشعار الدائن.');
+        }
+
+        $invoice->loadMissing(['contract.user', 'ingazDelegation.user', 'invoiceConstraint.constraintDetails', 'arrivalRevenueConstraint.constraintDetails']);
+        $clientAccountId = (int) ($invoice->contract?->user?->account_id
+            ?: $invoice->ingazDelegation?->user?->account_id
+            ?: 0);
+        if (!$clientAccountId) {
+            throw new \RuntimeException('لا يوجد حساب محاسبي للعميل المرتبط بالعقد.');
+        }
+
+        $sourceDetails = $invoice->invoice_constraint_id
+            ? ConstraintDetails::query()->where('constraint_id', $invoice->invoice_constraint_id)->orderBy('id')->get()
+            : collect();
+        $arrivalDetails = $invoice->arrival_revenue_constraint_id
+            ? ConstraintDetails::query()->where('constraint_id', $invoice->arrival_revenue_constraint_id)->orderBy('id')->get()
+            : collect();
+        if ($sourceDetails->isEmpty() && $arrivalDetails->isEmpty()) {
+            throw new \RuntimeException('لا يوجد قيد فاتورة أو إيراد وصول يحتوي تفاصيل يمكن عكسها.');
+        }
+
+        $taxAccountId = $this->resolveRevenueTaxAccountId();
+        $netCreditDetails = $sourceDetails
+            ->filter(fn ($detail) => (float) $detail->creditor_value > 0 && (int) $detail->account_id !== (int) $taxAccountId)
+            ->values();
+        $netSourceColumn = 'creditor_value';
+        if ($netCreditDetails->isEmpty() && $arrivalDetails->isNotEmpty()) {
+            $netCreditDetails = $arrivalDetails
+                ->filter(fn ($detail) => (float) $detail->debtor_value > 0)
+                ->values();
+            $netSourceColumn = 'debtor_value';
+        }
+        if ($netCreditDetails->isEmpty() && (float) $creditNote->subtotal > 0) {
+            throw new \RuntimeException('تعذر تحديد حساب الالتزام في قيد الفاتورة الأصلي.');
+        }
+
+        $sourceName = $invoice->contract_id ? 'استقدام' : 'تفويض إنجاز';
+        $statement = 'إشعار دائن ' . $sourceName . ' #' . $creditNote->id
+            . ' للفاتورة #' . ($invoice->legacy_invoice_number ?: $invoice->id)
+            . ' - ' . $creditNote->reason;
+        $lines = [];
+
+        foreach ($this->recruitmentCreditNoteNetAllocations(
+            $creditNote,
+            $invoice,
+            $netCreditDetails,
+            $netSourceColumn
+        ) as $allocation) {
+            $this->appendCreditNoteLine($lines, (int) $allocation['account_id'], 'debtor', $allocation['amount'], $statement, $allocation['cost_center_id']);
+            $this->appendCreditNoteLine($lines, $clientAccountId, 'creditor', $allocation['amount'], $statement);
+        }
+        if ((float) $creditNote->vat_amount > 0) {
+            if (!$taxAccountId) {
+                throw new \RuntimeException('حساب ضريبة المخرجات غير معرف.');
+            }
+            $this->appendCreditNoteLine($lines, $taxAccountId, 'debtor', (float) $creditNote->vat_amount, $statement);
+            $this->appendCreditNoteLine($lines, $clientAccountId, 'creditor', (float) $creditNote->vat_amount, $statement);
+        }
+
+        if ($invoice->arrival_revenue_constraint_id) {
+            $arrivalDebit = $arrivalDetails->filter(fn ($detail) => (float) $detail->debtor_value > 0)->values();
+            $arrivalCredit = $arrivalDetails->filter(fn ($detail) => (float) $detail->creditor_value > 0)->values();
+
+            foreach ($this->allocateCreditNoteAmount($arrivalCredit, (float) $creditNote->subtotal, 'creditor_value') as $allocation) {
+                $this->appendCreditNoteLine($lines, (int) $allocation['account_id'], 'debtor', $allocation['amount'], $statement, $allocation['cost_center_id']);
+            }
+            foreach ($this->allocateCreditNoteAmount($arrivalDebit, (float) $creditNote->subtotal, 'debtor_value') as $allocation) {
+                $this->appendCreditNoteLine($lines, (int) $allocation['account_id'], 'creditor', $allocation['amount'], $statement, $allocation['cost_center_id']);
+            }
+        }
+
+        $debit = $this->roundMoney(array_sum(array_column($lines, 'debtor_value')));
+        $credit = $this->roundMoney(array_sum(array_column($lines, 'creditor_value')));
+        if (abs($debit - $credit) > 0.01) {
+            throw new \RuntimeException(
+                'قيد إشعار الدائن غير متوازن: المدين '
+                . number_format($debit, 2) . ' والدائن ' . number_format($credit, 2) . '.'
+            );
+        }
+
+        $data = [
+            'code' => $service->lastCode(),
+            'date' => $creditNote->issue_date->format('Y-m-d'),
+            'statement' => $statement,
+            'account_id' => array_column($lines, 'account_id'),
+            'account_type' => array_column($lines, 'account_type'),
+            'debtor_value' => array_column($lines, 'debtor_value'),
+            'creditor_value' => array_column($lines, 'creditor_value'),
+            'statement_account' => array_column($lines, 'statement'),
+            'cost_center_required' => 'off',
+            'cost_center_id' => array_column($lines, 'cost_center_id'),
+            'value' => $debit,
+        ];
+
+        $constraint = $service->storeConstraint($data, $activeYear);
+        $service->storeConstraintDetails($data['account_id'], $constraint->id, $data);
+        $service->storeFiles($constraint, $data);
+
+        return $constraint;
+    }
+
+    private function recruitmentCreditNoteNetAllocations(
+        RecruitmentInvoiceCreditNote $creditNote,
+        Invoice $invoice,
+        $sourceDetails,
+        string $valueColumn
+    ): array {
+        $breakdown = $this->buildInvoiceFinanceBreakdown($invoice);
+        if ($sourceDetails->count() < 2
+            || $breakdown['direct_amount'] <= 0
+            || $breakdown['other_amount'] <= 0) {
+            return $this->allocateCreditNoteAmount(
+                $sourceDetails,
+                (float) $creditNote->subtotal,
+                $valueColumn
+            );
+        }
+
+        $creditItems = collect($creditNote->line_items);
+        $directAmount = $this->roundMoney((float) $creditItems
+            ->where('key', 'direct')
+            ->sum(fn (array $item) => (float) ($item['line_subtotal'] ?? 0)));
+        $otherAmount = $this->roundMoney(max(0, (float) $creditNote->subtotal - $directAmount));
+        $allocations = [];
+
+        if ($directAmount > 0) {
+            $detail = $sourceDetails->first();
+            $allocations[] = [
+                'account_id' => (int) $detail->account_id,
+                'cost_center_id' => $detail->cost_center_id,
+                'amount' => $directAmount,
+            ];
+        }
+        if ($otherAmount > 0) {
+            $otherDetails = $sourceDetails->slice(1)->values();
+            $allocations = array_merge(
+                $allocations,
+                $this->allocateCreditNoteAmount($otherDetails, $otherAmount, $valueColumn)
+            );
+        }
+
+        return $allocations;
+    }
+
+    private function storeRecruitmentCreditNoteSale(
+        RecruitmentInvoiceCreditNote $creditNote,
+        Invoice $invoice
+    ): Sale {
+        $originalSale = $invoice->financeSale;
+        if (!$originalSale) {
+            $originalSale = $this->queueInvoiceForZatcaSale($invoice);
+        }
+        $originalSale->loadMissing('items');
+        $itemId = (int) ($originalSale->items->first()?->item_id ?: $this->ensureIngazZatcaServiceItem()->id);
+
+        $sale = Sale::query()->create([
+            'code' => ((int) Sale::query()->max('code')) + 1,
+            'client_id' => $originalSale->client_id,
+            'debit_client_id' => $originalSale->debit_client_id,
+            'date' => $creditNote->issue_date->format('Y-m-d'),
+            'notes' => 'إشعار دائن ' . ($invoice->contract_id ? 'استقدام' : 'تفويض إنجاز')
+                . ' #' . $creditNote->id . ' للفاتورة #' . $invoice->id,
+            'adjustment_reason' => $creditNote->reason,
+            'original_sale_id' => $originalSale->id,
+            'total_item' => (float) $creditNote->subtotal,
+            'discount' => 0,
+            'final_total' => (float) $creditNote->total,
+            'total_tax_value' => (float) $creditNote->vat_amount,
+            'type' => SalesTypeEnum::BackSales->value,
+            'file' => 'no_file',
+            'payment_type' => 'cash',
+            'created_by_id' => Auth::guard('admin')->id() ?: Auth::id() ?: 1,
+        ]);
+
+        foreach ($creditNote->line_items as $item) {
+            SaleItem::query()->create([
+                'sale_id' => $sale->id,
+                'item_id' => $itemId,
+                'line_description' => (string) $item['label'],
+                'price' => (float) $item['unit_price'],
+                'discount_per' => 0,
+                'discount_value' => 0,
+                'tax_per' => (float) $item['tax_rate'],
+                'tax_value' => (float) $item['vat_amount'],
+                'total_price_before' => (float) ($item['line_subtotal'] ?? $item['unit_price']),
+                'final_total' => (float) $item['line_total'],
+                'purchase_price' => 0,
+                'amount' => (float) ($item['quantity'] ?? 1),
+                'stock_id' => null,
+                'status' => 'new',
+            ]);
+        }
+
+        return $sale;
+    }
+
+    private function canCreateInvoiceCreditNote(): bool
+    {
+        $admin = Auth::guard('admin')->user();
+        if (!$admin) {
+            return false;
+        }
+
+        foreach ([
+            PermKeys::INVOICE_CREDIT_NOTES_CREATE,
+            PermKeys::INVOICE_CREDIT_NOTES_CONTROL,
+            PermKeys::INVOICES_CONTROL,
+            PermKeys::REC_CONTRACTS_MANAGE,
+            PermKeys::INGAZ_DELEGATIONS_CONTROL,
+        ] as $permission) {
+            if ($admin->can($permission)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private function canViewInvoiceCreditNote(): bool
+    {
+        $admin = Auth::guard('admin')->user();
+        if (!$admin) {
+            return false;
+        }
+
+        foreach ([
+            PermKeys::INVOICE_CREDIT_NOTES_VIEW,
+            PermKeys::INVOICE_CREDIT_NOTES_PRINT,
+            PermKeys::INVOICE_CREDIT_NOTES_CONTROL,
+            PermKeys::INVOICES_CONTROL,
+            PermKeys::REC_CONTRACTS_MANAGE,
+            PermKeys::INGAZ_DELEGATIONS_CONTROL,
+        ] as $permission) {
+            if ($admin->can($permission)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private function allocateCreditNoteAmount($details, float $amount, string $valueColumn): array
+    {
+        $amount = $this->roundMoney($amount);
+        if ($amount <= 0 || $details->isEmpty()) {
+            return [];
+        }
+
+        $sourceTotal = (float) $details->sum($valueColumn);
+        if ($sourceTotal <= 0) {
+            return [];
+        }
+
+        $remaining = $amount;
+        return $details->values()->map(function ($detail, int $index) use ($details, $amount, $sourceTotal, $valueColumn, &$remaining) {
+            $allocated = $index === $details->count() - 1
+                ? $remaining
+                : $this->roundMoney($amount * ((float) $detail->getAttribute($valueColumn) / $sourceTotal));
+            $remaining = $this->roundMoney($remaining - $allocated);
+
+            return [
+                'account_id' => (int) $detail->account_id,
+                'cost_center_id' => $detail->cost_center_id,
+                'amount' => $allocated,
+            ];
+        })->all();
+    }
+
+    private function appendCreditNoteLine(
+        array &$lines,
+        int $accountId,
+        string $type,
+        float $amount,
+        string $statement,
+        ?int $costCenterId = null
+    ): void {
+        $amount = $this->roundMoney($amount);
+        if ($amount <= 0) {
+            return;
+        }
+
+        $lines[] = [
+            'account_id' => $accountId,
+            'account_type' => $type,
+            'debtor_value' => $type === 'debtor' ? $amount : 0,
+            'creditor_value' => $type === 'creditor' ? $amount : 0,
+            'statement' => $statement,
+            'cost_center_id' => $costCenterId,
         ];
     }
 

@@ -149,6 +149,15 @@
                             </select>
                         </div>
                         <div class="col-md-2">
+                            <label class="form-label">مرحلة التفويض</label>
+                            <select name="status" class="form-select">
+                                <option value="">الكل</option>
+                                @foreach ($statusOptions as $value => $label)
+                                    <option value="{{ $value }}" @selected(request('status') === $value)>{{ $label }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div class="col-md-2">
                             <label class="form-label">من تاريخ التفويض</label>
                             <input type="date" name="from_date" value="{{ request('from_date') }}" class="form-control">
                         </div>
@@ -223,6 +232,7 @@
                         d.global_search = $('input[name="search"]').val();
                         d.country_id = $('select[name="country_id"]').val();
                         d.client_source_type = $('select[name="client_source_type"]').val();
+                        d.status = $('select[name="status"]').val();
                         d.from_date = $('input[name="from_date"]').val();
                         d.to_date = $('input[name="to_date"]').val();
                     }

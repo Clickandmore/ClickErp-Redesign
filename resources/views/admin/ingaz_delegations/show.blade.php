@@ -20,6 +20,9 @@
                         @if ($canViewInvoices)
                             <a href="{{ route('invoices.show', $delegation->invoice->id) }}" class="btn btn-success">عرض الفاتورة</a>
                         @endif
+                        @if ($canCreateCreditNotes)
+                            <a href="{{ route('invoices.credit-notes.create', $delegation->invoice->id) }}" class="btn btn-danger">إنشاء إشعار دائن</a>
+                        @endif
                         @if ($delegation->invoice->musanedTransferItem?->transfer && $canViewMusanedTransfers)
                             <a href="{{ route('musaned-transfers.show', $delegation->invoice->musanedTransferItem->transfer->id) }}" class="btn btn-info">عرض تحويل مساند</a>
                         @elseif (!$delegation->invoice->musanedTransferItem?->transfer && $canCreateMusanedTransfers)
@@ -108,6 +111,50 @@
                         </div>
                     </div>
                 </div>
+
+                @if ($delegation->invoice && ($canViewCreditNotes || $canCreateCreditNotes))
+                    <div class="col-12">
+                        <div class="card shadow-sm border-0">
+                            <div class="card-header bg-light d-flex justify-content-between align-items-center">
+                                <h5 class="mb-0"><i class="fas fa-file-invoice-dollar text-danger me-1"></i>إشعارات الدائن</h5>
+                                @if ($canCreateCreditNotes)
+                                    <a href="{{ route('invoices.credit-notes.create', $delegation->invoice->id) }}" class="btn btn-sm btn-outline-danger">
+                                        إنشاء إشعار دائن
+                                    </a>
+                                @endif
+                            </div>
+                            <div class="card-body">
+                                @if ($canViewCreditNotes && $delegation->invoice->recruitmentCreditNotes->isNotEmpty())
+                                    <div class="table-responsive">
+                                        <table class="table table-bordered align-middle mb-0">
+                                            <thead class="table-light">
+                                                <tr><th>رقم الإشعار</th><th>التاريخ</th><th>السبب</th><th>الإجمالي</th><th>المستندات</th></tr>
+                                            </thead>
+                                            <tbody>
+                                                @foreach ($delegation->invoice->recruitmentCreditNotes as $creditNote)
+                                                    <tr>
+                                                        <td>#{{ $creditNote->id }}</td>
+                                                        <td>{{ optional($creditNote->issue_date)->format('Y-m-d') }}</td>
+                                                        <td>{{ $creditNote->reason }}</td>
+                                                        <td>{{ number_format((float) $creditNote->total, 2) }} ريال</td>
+                                                        <td>
+                                                            <a href="{{ route('recruitment-credit-notes.download', ['id' => $creditNote->id, 'autoprint' => 1]) }}" target="_blank" rel="noopener" class="btn btn-sm btn-outline-danger">طباعة</a>
+                                                            @if ($creditNote->constraint_id)
+                                                                <a href="{{ route('finance.add-constraint.show', ['add_constraint' => $creditNote->constraint_id]) }}" target="_blank" rel="noopener" class="btn btn-sm btn-outline-secondary">القيد</a>
+                                                            @endif
+                                                        </td>
+                                                    </tr>
+                                                @endforeach
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                @elseif ($canViewCreditNotes)
+                                    <div class="text-muted">لا توجد إشعارات دائنة مرتبطة بهذا التفويض.</div>
+                                @endif
+                            </div>
+                        </div>
+                    </div>
+                @endif
 
                 <div class="col-12">
                     <div class="card shadow-sm border-0">

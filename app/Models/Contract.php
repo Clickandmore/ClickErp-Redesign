@@ -115,6 +115,11 @@ class Contract extends Model
         return $this->hasOne(Invoice::class, 'contract_id');
     }
 
+    public function recruitmentCreditNotes()
+    {
+        return $this->hasMany(RecruitmentInvoiceCreditNote::class, 'contract_id');
+    }
+
     public function financeBonds()
     {
         return $this->hasMany(Bond::class, 'recruitment_contract_id');
@@ -133,6 +138,11 @@ class Contract extends Model
     public function notes()
     {
         return $this->hasMany(ContractNote::class, 'contract_id');
+    }
+
+    public function recruitmentStageStepCompletions()
+    {
+        return $this->hasMany(RecruitmentContractStepCompletion::class, 'contract_id');
     }
 
     public function complaints()

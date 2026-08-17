@@ -64,6 +64,12 @@
                                     <i class="fa-solid fa-file-pdf"></i>
                                 </a>
                             @endif
+                            @if (($invoice->contract_id || $invoice->ingaz_delegation_id) && !$invoice->legacy_invoice_number && AdminGuardHasAnyPerm([\App\PermKeys::INVOICE_CREDIT_NOTES_CREATE, \App\PermKeys::INVOICE_CREDIT_NOTES_CONTROL, \App\PermKeys::INVOICES_CONTROL, \App\PermKeys::REC_CONTRACTS_MANAGE, \App\PermKeys::INGAZ_DELEGATIONS_CONTROL]))
+                                <a href="{{ route('invoices.credit-notes.create', $invoice->id) }}"
+                                   class="btn btn-light border text-danger" title="إنشاء إشعار دائن">
+                                    <i class="fa-solid fa-file-invoice-dollar"></i>
+                                </a>
+                            @endif
                             @if ($invoice->musanedTransferItem && $invoice->musanedTransferItem->transfer && AdminGuardHasAnyPerm([\App\PermKeys::MUSANED_TRANSFERS_VIEW, \App\PermKeys::MUSANED_TRANSFERS_CONTROL, \App\PermKeys::REC_CONTRACTS_VIEW, \App\PermKeys::REC_CONTRACTS_MANAGE]))
                                 <a href="{{ route('musaned-transfers.show', $invoice->musanedTransferItem->transfer->id) }}"
                                     class="btn btn-light border" title="عرض تحويل مساند">
@@ -223,6 +229,20 @@
                     </div>
 
                     <div class="d-flex gap-2 mt-4 no-print">
+                        @if (AdminGuardHasAnyPerm([\App\PermKeys::INVOICE_CREDIT_NOTES_VIEW, \App\PermKeys::INVOICE_CREDIT_NOTES_PRINT, \App\PermKeys::INVOICE_CREDIT_NOTES_CONTROL, \App\PermKeys::INVOICES_CONTROL, \App\PermKeys::REC_CONTRACTS_MANAGE, \App\PermKeys::INGAZ_DELEGATIONS_CONTROL]))
+                            @foreach ($invoice->recruitmentCreditNotes as $creditNote)
+                                <a href="{{ route('recruitment-credit-notes.download', ['id' => $creditNote->id, 'autoprint' => 1]) }}"
+                                   target="_blank" rel="noopener" class="btn btn-outline-danger">
+                                    إشعار دائن #{{ $creditNote->id }}
+                                </a>
+                                @if ($creditNote->constraint_id)
+                                    <a href="{{ route('finance.add-constraint.show', ['add_constraint' => $creditNote->constraint_id]) }}"
+                                       target="_blank" rel="noopener" class="btn btn-outline-secondary">
+                                        قيد الإشعار #{{ $creditNote->id }}
+                                    </a>
+                                @endif
+                            @endforeach
+                        @endif
                         <a href="{{ $invoice->sponsorship_transfer_id ? route('SponsorshipTransfer.show', $invoice->sponsorship_transfer_id) : ($invoice->ingaz_delegation_id ? route('ingaz-delegations.index') : ($invoice->contract_id ? route('RecruitmentContract.index') : route('invoices.index'))) }}" class="btn btn-outline-secondary">إغلاق</a>
                     </div>
                 </div>

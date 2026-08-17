@@ -975,6 +975,19 @@
 @section('content')
     @if (@AdminGuardHasPerm(\App\NewPermKeys::REC_CONTRACTS_VIEW))
 
+        @if (session('success'))
+            <div class="alert alert-success alert-dismissible fade show" role="alert">
+                {{ session('success') }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="إغلاق"></button>
+            </div>
+        @endif
+        @if (session('error'))
+            <div class="alert alert-danger">{{ session('error') }}</div>
+        @endif
+        @if ($errors->any())
+            <div class="alert alert-danger">{{ $errors->first() }}</div>
+        @endif
+
         <div class="contract-details-container" id="printDiv">
             <div class="details-page-shell">
                 <!-- رأس العقد -->
@@ -1425,6 +1438,35 @@
                                 </div>
                             @endif
 
+                            @if ($canCreateInvoiceCreditNotes)
+                                <div class="mt-3">
+                                    <a class="btn btn-sm btn-outline-danger"
+                                       href="{{ route('invoices.credit-notes.create', $contract->invoice->id) }}">
+                                        <i class="fas fa-file-invoice-dollar me-1"></i>إنشاء إشعار دائن
+                                    </a>
+                                </div>
+                            @endif
+
+                            @if ($canViewInvoiceCreditNotes && $contract->invoice->recruitmentCreditNotes->isNotEmpty())
+                                <div class="mt-3 pt-3 border-top">
+                                    <div class="fw-semibold mb-2"><i class="fas fa-file-invoice-dollar text-danger me-1"></i>إشعارات الدائن</div>
+                                    @foreach ($contract->invoice->recruitmentCreditNotes as $creditNote)
+                                        <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-2">
+                                            <a class="btn btn-sm btn-outline-danger" target="_blank" rel="noopener"
+                                               href="{{ route('recruitment-credit-notes.download', ['id' => $creditNote->id, 'autoprint' => 1]) }}">
+                                                إشعار #{{ $creditNote->id }} — {{ number_format((float) $creditNote->total, 2) }} ريال
+                                            </a>
+                                            @if ($creditNote->constraint_id)
+                                                <a class="btn btn-sm btn-outline-secondary" target="_blank" rel="noopener"
+                                                   href="{{ route('finance.add-constraint.show', ['add_constraint' => $creditNote->constraint_id]) }}">
+                                                    عرض القيد
+                                                </a>
+                                            @endif
+                                        </div>
+                                    @endforeach
+                                </div>
+                            @endif
+
                             @if (!empty($financialSummary['linked_bonds']))
                                 <div class="mt-3 pt-3 border-top">
                                     <div class="fw-semibold mb-2"><i class="fas fa-receipt text-success me-1"></i>السندات المالية المرتبطة</div>
@@ -1797,6 +1839,92 @@
             <!-- سجل الحالات -->
             <div class="row contract-activity-section">
                 <div class="col-12 mb-4">
+                    @if ($contractStageSteps->isNotEmpty())
+                        <div class="info-card mb-4" id="contractStageSteps">
+                            <div class="card-title d-flex flex-wrap justify-content-between align-items-center gap-2">
+                                <span>
+                                    <i class="fas fa-list-check text-success"></i>
+                                    الخطوات التفصيلية للعقد
+                                </span>
+                                <span class="badge bg-light text-dark border">
+                                    المرحلة الحالية: {{ $currentContractStageLabel }}
+                                </span>
+                            </div>
+                            <div class="text-muted mb-3">
+                                الخطوات المعروضة مرتبطة بمرحلة العقد وجنسية العاملة، مع الاحتفاظ بالخطوات المنجزة من المراحل السابقة.
+                            </div>
+
+                            <div class="d-grid gap-3">
+                                @foreach ($contractStageSteps as $step)
+                                    @php
+                                        $completion = $step->completions->first();
+                                        $isCompleted = (bool) optional($completion)->completed_at;
+                                        $isCurrentStageStep = $step->stage === $contract->status && !$step->trashed() && $step->is_active;
+                                        $stageLabel = \App\Support\RecruitmentContractStageLabels::label($step->stage) ?: $step->stage;
+                                    @endphp
+                                    <div class="border rounded-3 p-3 {{ $isCompleted ? 'bg-success bg-opacity-10 border-success' : 'bg-white' }}">
+                                        <div class="d-flex flex-wrap justify-content-between align-items-start gap-3">
+                                            <div>
+                                                <div class="d-flex flex-wrap align-items-center gap-2 mb-1">
+                                                    <span class="fs-5 fw-bold">
+                                                        <i class="fas {{ $isCompleted ? 'fa-circle-check text-success' : 'fa-circle text-muted' }} me-1"></i>
+                                                        {{ $step->displayName(app()->getLocale()) }}
+                                                    </span>
+                                                    <span class="badge bg-primary">{{ $stageLabel }}</span>
+                                                    <span class="badge bg-secondary">
+                                                        {{ $step->nationality?->display_name ?: 'جميع الجنسيات' }}
+                                                    </span>
+                                                    @if (!$isCurrentStageStep)
+                                                        <span class="badge bg-light text-dark border">خطوة سابقة</span>
+                                                    @endif
+                                                </div>
+                                                @if ($isCompleted)
+                                                    <div class="small text-success">
+                                                        أنجزها {{ $completion->completedBy?->name ?: 'النظام' }}
+                                                        بتاريخ {{ $completion->completed_at->format('Y-m-d H:i') }}
+                                                    </div>
+                                                @else
+                                                    <div class="small text-muted">بانتظار الإنجاز</div>
+                                                @endif
+                                            </div>
+                                        </div>
+
+                                        @if ($isCurrentStageStep && $canUpdateContractStageSteps)
+                                            <form method="POST" action="{{ route('RecruitmentContract.stageSteps.update', [$contract->id, $step->id]) }}" class="mt-3">
+                                                @csrf
+                                                <div class="row g-2 align-items-center">
+                                                    <div class="col-lg">
+                                                        <input type="text" name="notes" class="form-control"
+                                                            value="{{ $completion?->notes }}" maxlength="2000"
+                                                            placeholder="ملاحظة عن تنفيذ الخطوة (اختياري)">
+                                                    </div>
+                                                    <div class="col-lg-auto d-flex gap-2">
+                                                        @if ($isCompleted)
+                                                            <button type="submit" name="completed" value="1" class="btn btn-outline-primary">
+                                                                <i class="fas fa-save me-1"></i> حفظ الملاحظة
+                                                            </button>
+                                                            <button type="submit" name="completed" value="0" class="btn btn-outline-warning">
+                                                                <i class="fas fa-rotate-left me-1"></i> إعادة فتح
+                                                            </button>
+                                                        @else
+                                                            <button type="submit" name="completed" value="1" class="btn btn-success">
+                                                                <i class="fas fa-check me-1"></i> تم الإنجاز
+                                                            </button>
+                                                        @endif
+                                                    </div>
+                                                </div>
+                                            </form>
+                                        @elseif ($completion?->notes)
+                                            <div class="mt-2 p-2 bg-white border rounded small">
+                                                <strong>الملاحظة:</strong> {{ $completion->notes }}
+                                            </div>
+                                        @endif
+                                    </div>
+                                @endforeach
+                            </div>
+                        </div>
+                    @endif
+
                     <div class="info-card">
                         @if ($statusTimelineItems->count())
                             <div class="timeline-panel">
@@ -2243,6 +2371,12 @@
                         title="عرض الفاتورة" target="_blank">
                         <i class="fas fa-file-pdf"></i>
                     </a>
+                    @if ($canCreateInvoiceCreditNotes)
+                        <a href="{{ route('invoices.credit-notes.create', $contract->invoice->id) }}"
+                           class="btn-icon btn-delete" title="إنشاء إشعار دائن">
+                            <i class="fas fa-file-invoice-dollar"></i>
+                        </a>
+                    @endif
                 @endif
 
                 @if (!empty($contractAttachments))

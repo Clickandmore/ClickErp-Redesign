@@ -183,6 +183,10 @@ const PARTENR_CONTROL = 'partenr_control';
     const INVOICES_EXPORT = 'invoices_export';
     const INVOICES_PRINT = 'invoices_print';
     const INVOICES_CONTROL = 'invoices_control';
+    const INVOICE_CREDIT_NOTES_VIEW = 'invoice_credit_notes_view';
+    const INVOICE_CREDIT_NOTES_CREATE = 'invoice_credit_notes_create';
+    const INVOICE_CREDIT_NOTES_PRINT = 'invoice_credit_notes_print';
+    const INVOICE_CREDIT_NOTES_CONTROL = 'invoice_credit_notes_control';
 
     // تحويلات مساند
     const MUSANED_TRANSFERS_VIEW = 'musaned_transfers_view';

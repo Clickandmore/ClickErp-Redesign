@@ -2,6 +2,7 @@
 
 namespace App\Services\ingaz;
 
+use App\Models\IngazDelegation;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
 use PhpOffice\PhpSpreadsheet\Cell\Coordinate;
@@ -340,7 +341,7 @@ class DataImportTemplateService
                     ['key' => 'external_office_address', 'label' => 'عنوان المكتب الخارجي', 'required' => false, 'example' => 'Manila'],
                     ['key' => 'external_office_phone', 'label' => 'هاتف المكتب الخارجي', 'required' => false, 'example' => '+639000000000'],
                     ['key' => 'marketer_id', 'label' => 'المسوق/الموظف', 'required' => false, 'example' => '1'],
-                    ['key' => 'status', 'label' => 'حالة التفويض', 'required' => false, 'example' => 'تحت المعالجة', 'valid_values' => ['تحت المعالجة', 'تم تنفيذ التفويض', 'under_process', 'executed']],
+                    ['key' => 'status', 'label' => 'حالة التفويض', 'required' => false, 'example' => 'تحت المعالجة', 'valid_values' => array_merge(array_values(IngazDelegation::statusOptions()), array_keys(IngazDelegation::statusOptions()))],
                     ['key' => 'notes', 'label' => 'ملاحظات', 'required' => false, 'example' => 'تفويض مستورد'],
                 ],
             ],

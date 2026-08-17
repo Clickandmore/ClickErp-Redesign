@@ -5781,6 +5781,12 @@ class DataImportExecutionService
     {
         $normalized = $this->normalizeArabicText($status);
 
+        foreach (IngazDelegation::statusOptions() as $key => $label) {
+            if ($normalized === $this->normalizeArabicText($key) || $normalized === $this->normalizeArabicText($label)) {
+                return $key;
+            }
+        }
+
         return in_array($normalized, [
             'executed',
             'done',

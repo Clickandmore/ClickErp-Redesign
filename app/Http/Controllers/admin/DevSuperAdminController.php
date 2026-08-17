@@ -9,6 +9,7 @@ use App\Services\SchedulerMonitorService;
 use App\Support\DatabaseBackupSettings;
 use App\Support\ClientSubscriptionSettings;
 use App\Support\R2StorageSettings;
+use App\Support\ProductUpdatesSettings;
 use App\Support\SystemModuleManager;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -94,7 +95,39 @@ class DevSuperAdminController extends Controller
             'r2Ready' => R2StorageSettings::isReady(),
             'schedulerStatus' => $schedulerMonitor->status(),
             'subscription' => ClientSubscriptionSettings::all(),
+            'productUpdates' => ProductUpdatesSettings::all(),
         ]);
+    }
+
+    public function updateProductUpdates(Request $request)
+    {
+        $data = $request->validate([
+            'title' => ['required', 'string', 'max:160'],
+            'summary' => ['nullable', 'string', 'max:500'],
+            'published_at' => ['nullable', 'date'],
+            'items' => ['required', 'string', 'max:5000'],
+        ]);
+
+        $items = preg_split('/\r\n|\r|\n/', $data['items']) ?: [];
+        $items = array_values(array_filter(array_map('trim', $items)));
+
+        if (count($items) === 0) {
+            return back()->withErrors(['items' => 'أضف نقطة واحدة على الأقل للتحديث.'])->withInput();
+        }
+
+        if (count($items) > 20) {
+            return back()->withErrors(['items' => 'يمكن إضافة 20 نقطة كحد أقصى.'])->withInput();
+        }
+
+        ProductUpdatesSettings::persist([
+            ...$data,
+            'is_enabled' => $request->boolean('is_enabled'),
+            'items' => $items,
+        ]);
+
+        return redirect()
+            ->to(route('dev-superadmin.modules') . '#product-updates')
+            ->with('success', 'تم حفظ محتوى «ما الجديد» وسيظهر في هيدر لوحة الإدارة.');
     }
 
     public function updateSubscription(Request $request)

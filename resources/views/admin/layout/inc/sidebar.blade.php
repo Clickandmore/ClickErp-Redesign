@@ -131,6 +131,8 @@
 
                 $canViewBranches = @SystemModuleEnabled('branches') && @AdminGuardHasAnyPerm([\App\PermKeys::BRANCHES_VIEW, \App\PermKeys::BRANCHES_CREATE, \App\PermKeys::BRANCHES_EDIT, \App\PermKeys::BRANCHES_DELETE, \App\PermKeys::BRANCHES_CONTROL]);
                 $canViewMaidsData = @AdminGuardHasAnyPerm([\App\PermKeys::NATIONALITIES_VIEW, \App\PermKeys::REC_OFFICES_VIEW, \App\PermKeys::JOB_TITLES_VIEW, \App\PermKeys::RELIGIONS_VIEW, \App\PermKeys::SKILLS_VIEW, \App\PermKeys::MAID_LANGUAGES_VIEW, \App\PermKeys::COUNTRIES_VIEW, \App\PermKeys::SOCIAL_STATUS_VIEW, \App\PermKeys::USERS_VIEW, \App\PermKeys::MAIDS_VIEW]);
+                $canViewCvSettings = @AdminGuardHasAnyPerm([\App\PermKeys::SETTINGS_CV_OPTIONS, \App\PermKeys::SETTINGS_CV_TEMPLATE, \App\PermKeys::JOB_TITLES_VIEW, \App\PermKeys::RELIGIONS_VIEW, \App\PermKeys::SKILLS_VIEW, \App\PermKeys::MAID_LANGUAGES_VIEW, \App\PermKeys::SOCIAL_STATUS_VIEW]);
+                $canViewRecruitmentSettings = @AdminGuardHasAnyPerm([\App\PermKeys::SETTINGS_VIEW, \App\PermKeys::NATIONALITIES_VIEW, \App\PermKeys::COUNTRIES_VIEW]);
                 $isDeveloper =
                     (int) (auth('admin')->user()->admin_type ?? 0) === \App\Enums\AdminTypeisEnum::Developer->value;
                 $canViewAccessControl = $isDeveloper || @AdminGuardHasAnyPerm([\App\PermKeys::USERS_VIEW, \App\PermKeys::ROLES_VIEW, \App\NewPermKeys::ACTIVITY_LOG_VIEW, \App\NewPermKeys::ACTIVITY_LOG_EXPORT, \App\NewPermKeys::ACTIVITY_LOG_MANAGE, \App\PermKeys::SETTINGS_VIEW, \App\PermKeys::DEVELOPERS_PERMS, 'admins-read', 'role-permissions-read']);
@@ -141,8 +143,10 @@
                     $canViewWebsiteManagement ||
                     $canViewHomeSettings ||
                     $canViewMaidsData ||
+                    $canViewCvSettings ||
                     @AdminGuardHasPerm(\App\PermKeys::SETTINGS_CV_TEMPLATE) ||
                     @AdminGuardHasPerm(\App\PermKeys::SETTINGS_CV_OPTIONS) ||
+                    @AdminGuardHasPerm(\App\PermKeys::MOYASAR_SETTINGS) ||
                     @AdminGuardHasPerm(\App\PermKeys::SETTINGS_CONTROL) ||
                     @AdminGuardHasPerm(\App\PermKeys::PACKAGES_VIEW) ||
                     $canViewFinanceModule ||
@@ -1192,29 +1196,33 @@
                             request()->routeIs('steps.*') ||
                             request()->routeIs('requiremens.*') ||
                             request()->routeIs('partenrs.*');
-                        $isRecruitmentSettingsRoute = request()->routeIs('languages.*') || in_array(Route::currentRouteName(), [
-                            'job-titles.index',
+                        $isRecruitmentSettingsRoute = in_array(Route::currentRouteName(), [
                             'nationalities.index',
-                            'religions.index',
-                            'skills.index',
                             'countries.index',
                             'cities.index',
                             'airports.index',
                             'airports.create',
                             'airports.edit',
-                            'social-statuses.index',
                             'recruitment-contract-stages.edit',
                             'recruitment-contract-stages.update',
+                            'ingaz-delegation-stages.edit',
+                            'ingaz-delegation-stages.update',
                         ]);
                         $isRentalSettingsRoute =
                             request()->routeIs('rent-contract.settings') ||
                             request()->routeIs('rent-contract-terms.*') ||
-                            request()->routeIs('packages.*') ||
-                            request()->routeIs('moyasar-settings.*');
-                        $isCvOptionsSettingsRoute = request()->routeIs('settings.cv-options.*');
+                            request()->routeIs('packages.*');
+                        $isCvSettingsRoute =
+                            request()->routeIs('settings.cv-options.*') ||
+                            request()->routeIs('settings.cv-template.*') ||
+                            request()->routeIs('languages.*') ||
+                            request()->routeIs('job-titles.*') ||
+                            request()->routeIs('religions.*') ||
+                            request()->routeIs('skills.*') ||
+                            request()->routeIs('social-statuses.*');
                         $isInternalSystemSettingsRoute =
                             $isTranslationSettingsRoute ||
-                            request()->routeIs('settings.cv-template.*') ||
+                            request()->routeIs('moyasar-settings.*') ||
                             request()->routeIs('storage.settings*') ||
                             request()->routeIs('form-settings.*') ||
                             request()->routeIs('dash.settings*') ||
@@ -1246,7 +1254,7 @@
                             $isInternalSystemSettingsRoute ||
                             $isRecruitmentSettingsRoute ||
                             $isRentalSettingsRoute ||
-                            $isCvOptionsSettingsRoute ||
+                            $isCvSettingsRoute ||
                             $isZatcaSettingsRoute ||
                             $branchesManagementOpen ||
                             $isAccessControlOpen ||
@@ -1268,26 +1276,6 @@
                                         href="{{ route('settings.section', 'dashboard') }}">
                                         <i class="fa fa-gauge"></i>
                                         <span class="ms-2">{{ __('admin.sidebar.dashboard_settings') }}</span>
-                                    </a>
-                                </li>
-                            @endif
-
-                            @if (@AdminGuardHasPerm(\App\PermKeys::SETTINGS_CV_TEMPLATE))
-                                <li>
-                                    <a class="m-link {{ request()->routeIs('settings.cv-template.*') ? 'active' : '' }}"
-                                        href="{{ route('settings.cv-template.edit') }}">
-                                        <i class="fa fa-file-pdf"></i>
-                                        <span class="ms-2">إعداد قالب السيرة الذاتية</span>
-                                    </a>
-                                </li>
-                            @endif
-
-                            @if (@AdminGuardHasPerm(\App\PermKeys::MOYASAR_SETTINGS))
-                                <li>
-                                    <a class="m-link {{ request()->routeIs('moyasar-settings.*') ? 'active' : '' }}"
-                                        href="{{ route('moyasar-settings.edit') }}">
-                                        <i class="fa fa-credit-card"></i>
-                                        <span class="ms-2">إعدادات بوابة ميسر</span>
                                     </a>
                                 </li>
                             @endif
@@ -1594,17 +1582,84 @@
                                 </li>
                             @endif
 
-                            @if (@AdminGuardHasPerm(\App\PermKeys::SETTINGS_CV_OPTIONS))
-                                <li>
-                                    <a class="m-link {{ $isCvOptionsSettingsRoute ? 'active' : '' }}"
-                                        href="{{ route('settings.cv-options.edit') }}">
+                            @if ($canViewCvSettings)
+                                <li class="{{ $isCvSettingsRoute ? '' : 'collapsed' }}">
+                                    <a class="m-link" data-bs-toggle="collapse" data-bs-target="#cvSettings"
+                                        href="#">
                                         <i class="fa fa-id-card"></i>
                                         <span class="ms-2">إعدادات السير الذاتية</span>
+                                        <span class="arrow fa fa-angle-left ms-auto text-end"></span>
                                     </a>
+                                    <ul class="sub-menu collapse {{ $isCvSettingsRoute ? 'show' : '' }}"
+                                        id="cvSettings">
+                                        @if (@AdminGuardHasPerm(\App\PermKeys::SETTINGS_CV_OPTIONS))
+                                            <li>
+                                                <a class="m-link {{ request()->routeIs('settings.cv-options.*') ? 'active' : '' }}"
+                                                    href="{{ route('settings.cv-options.edit') }}">
+                                                    <i class="fa fa-sliders"></i>
+                                                    <span class="ms-2">خيارات السير الذاتية</span>
+                                                </a>
+                                            </li>
+                                        @endif
+                                        @if (@AdminGuardHasPerm(\App\PermKeys::SETTINGS_CV_TEMPLATE))
+                                            <li>
+                                                <a class="m-link {{ request()->routeIs('settings.cv-template.*') ? 'active' : '' }}"
+                                                    href="{{ route('settings.cv-template.edit') }}">
+                                                    <i class="fa fa-file-pdf"></i>
+                                                    <span class="ms-2">إعداد قالب السيرة الذاتية</span>
+                                                </a>
+                                            </li>
+                                        @endif
+                                        @if (@AdminGuardHasPerm(\App\PermKeys::MAID_LANGUAGES_VIEW))
+                                            <li>
+                                                <a class="m-link {{ request()->routeIs('languages.*') ? 'active' : '' }}"
+                                                    href="{{ route('languages.index') }}">
+                                                    <i class="fa fa-language"></i>
+                                                    <span class="ms-2">اللغات</span>
+                                                </a>
+                                            </li>
+                                        @endif
+                                        @if (@AdminGuardHasPerm(\App\PermKeys::JOB_TITLES_VIEW))
+                                            <li>
+                                                <a class="m-link {{ request()->routeIs('job-titles.*') ? 'active' : '' }}"
+                                                    href="{{ route('job-titles.index') }}">
+                                                    <i class="fa fa-briefcase"></i>
+                                                    <span class="ms-2">{{ helperTrans('ingaz.job_titles') }}</span>
+                                                </a>
+                                            </li>
+                                        @endif
+                                        @if (@AdminGuardHasPerm(\App\PermKeys::RELIGIONS_VIEW))
+                                            <li>
+                                                <a class="m-link {{ request()->routeIs('religions.*') ? 'active' : '' }}"
+                                                    href="{{ route('religions.index') }}">
+                                                    <i class="fa fa-book-open"></i>
+                                                    <span class="ms-2">{{ helperTrans('ingaz.religions') }}</span>
+                                                </a>
+                                            </li>
+                                        @endif
+                                        @if (@AdminGuardHasPerm(\App\PermKeys::SKILLS_VIEW))
+                                            <li>
+                                                <a class="m-link {{ request()->routeIs('skills.*') ? 'active' : '' }}"
+                                                    href="{{ route('skills.index') }}">
+                                                    <i class="fa fa-list-check"></i>
+                                                    <span class="ms-2">{{ helperTrans('ingaz.skills') }}</span>
+                                                </a>
+                                            </li>
+                                        @endif
+                                        @if (@AdminGuardHasPerm(\App\PermKeys::SOCIAL_STATUS_VIEW))
+                                            <li>
+                                                <a class="m-link {{ request()->routeIs('social-statuses.*') ? 'active' : '' }}"
+                                                    href="{{ route('social-statuses.index') }}">
+                                                    <i class="fa fa-heart"></i>
+                                                    <span class="ms-2">{{ __('admin.sidebar.social_statuses') }}</span>
+                                                </a>
+                                            </li>
+                                        @endif
+                                    </ul>
                                 </li>
                             @endif
 
-                            @if ($canViewMaidsData)
+                            @if ($canViewRecruitmentSettings)
                                 <li class="{{ $isRecruitmentSettingsRoute ? '' : 'collapsed' }}">
                                     <a class="m-link" data-bs-toggle="collapse" data-bs-target="#my_dashboard3"
                                         href="#">
@@ -1624,16 +1679,6 @@
                                             </li>
                                         @endif
 
-                                        @if (@AdminGuardHasPerm(\App\PermKeys::MAID_LANGUAGES_VIEW))
-                                            <li>
-                                                <a class="m-link {{ request()->routeIs('languages.*') ? 'active' : '' }}"
-                                                    href="{{ route('languages.index') }}">
-                                                    <i class="fa fa-language"></i>
-                                                    <span class="ms-2">اللغات</span>
-                                                </a>
-                                            </li>
-                                        @endif
-
                                         @if (@AdminGuardHasPerm(\App\PermKeys::SETTINGS_VIEW))
                                             <li>
                                                 <a class="m-link {{ request()->routeIs('recruitment-contract-stages.*') ? 'active' : '' }}"
@@ -1643,33 +1688,15 @@
                                                         class="ms-2">{{ __('admin.recruitment_contract_stages') }}</span>
                                                 </a>
                                             </li>
-                                        @endif
-
-                                        @if (@AdminGuardHasPerm(\App\PermKeys::JOB_TITLES_VIEW))
                                             <li>
-                                                <a class="m-link" href="{{ route('job-titles.index') }}">
-                                                    <i class="fa fa-arrow-left"></i>
-                                                    <span class="ms-2">{{ helperTrans('ingaz.job_titles') }}</span>
+                                                <a class="m-link {{ request()->routeIs('ingaz-delegation-stages.*') ? 'active' : '' }}"
+                                                    href="{{ route('ingaz-delegation-stages.edit') }}">
+                                                    <i class="fa fa-list-ol"></i>
+                                                    <span class="ms-2">مراحل التفويض</span>
                                                 </a>
                                             </li>
                                         @endif
 
-                                        @if (@AdminGuardHasPerm(\App\PermKeys::RELIGIONS_VIEW))
-                                            <li>
-                                                <a class="m-link" href="{{ route('religions.index') }}">
-                                                    <i class="fa fa-arrow-left"></i>
-                                                    <span class="ms-2">{{ helperTrans('ingaz.religions') }}</span>
-                                                </a>
-                                            </li>
-                                        @endif
-                                        @if (@AdminGuardHasPerm(\App\PermKeys::SKILLS_VIEW))
-                                            <li>
-                                                <a class="m-link" href="{{ route('skills.index') }}">
-                                                    <i class="fa fa-arrow-left"></i>
-                                                    <span class="ms-2">{{ helperTrans('ingaz.skills') }}</span>
-                                                </a>
-                                            </li>
-                                        @endif
                                         @if (@AdminGuardHasPerm(\App\PermKeys::COUNTRIES_VIEW))
                                             <li>
                                                 <a class="m-link {{ Route::currentRouteName() == 'countries.index' ? 'active' : '' }}"
@@ -1690,15 +1717,6 @@
                                                     href="{{ route('airports.index') }}">
                                                     <i class="fa fa-plane"></i>
                                                     <span class="ms-2">المطارات</span>
-                                                </a>
-                                            </li>
-                                        @endif
-                                        @if (@AdminGuardHasPerm(\App\PermKeys::SOCIAL_STATUS_VIEW))
-                                            <li>
-                                                <a class="m-link" href="{{ route('social-statuses.index') }}">
-                                                    <i class="fa fa-heart"></i>
-                                                    <span
-                                                        class="ms-2">{{ __('admin.sidebar.social_statuses') }}</span>
                                                 </a>
                                             </li>
                                         @endif
@@ -1782,7 +1800,7 @@
                                 </ul>
                             </li>
 
-                            @if (@AdminGuardHasAnyPerm([\App\PermKeys::SETTINGS_VIEW, \App\PermKeys::SETTINGS_CONTROL, \App\PermKeys::DEVELOPERS_PERMS]))
+                            @if (@AdminGuardHasAnyPerm([\App\PermKeys::SETTINGS_VIEW, \App\PermKeys::SETTINGS_CONTROL, \App\PermKeys::DEVELOPERS_PERMS, \App\PermKeys::MOYASAR_SETTINGS]))
                                 <li class="{{ $isInternalSystemSettingsRoute ? '' : 'collapsed' }}">
                                     <a class="m-link" data-bs-toggle="collapse"
                                         data-bs-target="#internalSystemSettings" href="#">
@@ -1794,6 +1812,16 @@
 
                                     <ul class="sub-menu collapse {{ $isInternalSystemSettingsRoute ? 'show' : '' }}"
                                         id="internalSystemSettings">
+                                        @if (@AdminGuardHasPerm(\App\PermKeys::MOYASAR_SETTINGS))
+                                            <li>
+                                                <a class="m-link {{ request()->routeIs('moyasar-settings.*') ? 'active' : '' }}"
+                                                    href="{{ route('moyasar-settings.edit') }}">
+                                                    <i class="fa fa-credit-card"></i>
+                                                    <span class="ms-2">إعدادات بوابة ميسر</span>
+                                                </a>
+                                            </li>
+                                        @endif
+
                                         @if (@AdminGuardHasPerm(\App\PermKeys::SETTINGS_VIEW) || @AdminGuardHasPerm(\App\PermKeys::SETTINGS_CONTROL))
                                             <li>
                                                 <a class="m-link {{ request()->routeIs('storage.settings*') ? 'active' : '' }}"

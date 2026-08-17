@@ -399,6 +399,9 @@ trait ZatcaInvoicesTrait
             'grand_total' => (double) $invoice->final_total, // الاجمالي شامل الضريبة بعد الخصم
             'is_B2B' => boolval($invoice->is_B2B),
             'is_invoice' => $invoice->is_invoice,
+            'PIH' => $invoice->PIH ?? null,
+            'billing_reference' => $invoice->billing_reference ?? null,
+            'adjustment_reason' => $invoice->adjustment_reason ?? null,
             'date' => (new DateTime($invoice->date))->format('c'),
             'customer' => (object)[
                 'name' => $customer->name,
@@ -417,7 +420,7 @@ trait ZatcaInvoicesTrait
         foreach ($items as $item) {
             $invoiceItems[] = (object)[
                 'product_id' => $item->item_id,
-                'product_name' => $item->item->name,
+                'product_name' => $item->line_description ?: $item->item->name,
                 'unit_quantity' => $item->amount,
                 'net_unit_price' => $item->price,
                 'discount' => $item->discount_value ?? 0,
@@ -443,6 +446,7 @@ trait ZatcaInvoicesTrait
         $companyName = $this->getSetting()->VAT_name;
         $invoiceType = $invoice->is_B2B ? '0111010' : '0211010';
         $invoiceTypeNo = $invoice->is_invoice ? '388' : '381';
+        $documentDate = new DateTime($invoice->date);
 
         $customer_vatNo = $customer->tax_number;
         $building_customer = $customer_building;
@@ -458,7 +462,7 @@ trait ZatcaInvoicesTrait
             'grand_total' => $invoice->grand_total,
             'order_discount' => 0,//$invoice->order_discount,
             'product_tax' => $invoice->product_tax,
-            'date' => date('Y-m-d') . 'T' . date('H:i:s')
+            'date' => $documentDate->format('Y-m-d') . 'T' . date('H:i:s')
         ];
 
         $details = $invoiceItems;
@@ -466,9 +470,11 @@ trait ZatcaInvoicesTrait
         $props = [
             'invoice_serial_number' => $id,
             'uuid' => $UUID,//'3cf5ee18-ee25-44ea-a444-2c37ba7f28be',// vsprintf('%s%s-%s-%s-%s-%s%s%s', str_split(bin2hex(random_bytes(16)), 4)),
-            'date' => date('Y-m-d'),
+            'date' => $documentDate->format('Y-m-d'),
             'time' => date('H:i:s'),
             'previous_invoice_hash' => $invoice->PIH ?? 'NWZlY2ViNjZmZmM4NmYzOGQ5NTI3ODZjNmQ2OTZjNzljMmRiYzIzOWRkNGU5MWI0NjcyOWQ3M2EyN2ZiNTdlOQ==',
+            'billing_reference' => $invoice->billing_reference,
+            'adjustment_reason' => $invoice->adjustment_reason,
             'invoice_counter_number' => $invoice->invoice_no,
             'CRN_number' => $crnNumber,
             'street' => $address,
@@ -628,11 +634,7 @@ trait ZatcaInvoicesTrait
             '    <cbc:InvoiceTypeCode name="SET_INVOICE_TYPE">SET_INVOICE_TYPE_NO</cbc:InvoiceTypeCode>' ."\n" .
             '    <cbc:DocumentCurrencyCode>SAR</cbc:DocumentCurrencyCode>' ."\n" .
             '    <cbc:TaxCurrencyCode>SAR</cbc:TaxCurrencyCode>' ."\n" .
-            '    <cac:BillingReference>' ."\n" .
-            '        <cac:InvoiceDocumentReference>' ."\n" .
-            '            <cbc:ID>"Invoice Number: 348; Invoice Issue Date: 2022-11-04"</cbc:ID>' ."\n" .
-            '        </cac:InvoiceDocumentReference>' ."\n" .
-            '    </cac:BillingReference>' ."\n" .
+            'SET_BILLING_REFERENCE' ."\n" .
             '    <cac:AdditionalDocumentReference>' ."\n" .
             '        <cbc:ID>ICV</cbc:ID>' ."\n" .
             '        <cbc:UUID>SET_INVOICE_COUNTER_NUMBER</cbc:UUID>' ."\n" .
@@ -715,10 +717,8 @@ trait ZatcaInvoicesTrait
             '    <cac:PaymentMeans>' ."\n" .
             '        <cbc:PaymentMeansCode>SET_PAYMENT_MEANS</cbc:PaymentMeansCode>' ."\n";
         $sale = $props['sale'];
-        if($props['invoice_type_no'] == '383'){
-            $template.='        <cbc:InstructionNote>TERMINATION</cbc:InstructionNote>' ."\n" ;
-        }else if($props['invoice_type_no'] == '381'){
-            $template.='        <cbc:InstructionNote>Returned Items</cbc:InstructionNote>' ."\n" ;
+        if(in_array($props['invoice_type_no'], ['381', '383'], true)){
+            $template.='        <cbc:InstructionNote>SET_ADJUSTMENT_REASON</cbc:InstructionNote>' ."\n" ;
         }
 
         $template.='    </cac:PaymentMeans>' ."\n" .
@@ -830,7 +830,21 @@ trait ZatcaInvoicesTrait
         $populated_template = str_replace('SET_INVOICE_TYPE_NO',$props['invoice_type_no'],$template);
         $populated_template = str_replace('SET_INVOICE_TYPE',$props['invoice_type'],$populated_template);
         $populated_template = str_replace('SET_INVOICE_ITEMS',$items,$populated_template);
-        $populated_template = str_replace('SET_BILLING_REFERENCE','',$populated_template);
+        $billingReference = '';
+        if (in_array($props['invoice_type_no'], ['381', '383'], true) && !empty($props['billing_reference'])) {
+            $reference = htmlspecialchars((string) $props['billing_reference'], ENT_XML1 | ENT_QUOTES, 'UTF-8');
+            $billingReference = '    <cac:BillingReference>' ."\n"
+                . '        <cac:InvoiceDocumentReference>' ."\n"
+                . '            <cbc:ID>' . $reference . '</cbc:ID>' ."\n"
+                . '        </cac:InvoiceDocumentReference>' ."\n"
+                . '    </cac:BillingReference>';
+        }
+        $populated_template = str_replace('SET_BILLING_REFERENCE', $billingReference, $populated_template);
+        $populated_template = str_replace(
+            'SET_ADJUSTMENT_REASON',
+            htmlspecialchars((string) ($props['adjustment_reason'] ?? ''), ENT_XML1 | ENT_QUOTES, 'UTF-8'),
+            $populated_template
+        );
 
 
 

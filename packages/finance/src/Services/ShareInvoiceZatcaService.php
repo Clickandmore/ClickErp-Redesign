@@ -11,6 +11,7 @@ use Nami\Finance\Traits\ZatcaInvoicesTrait;
 use DOMDocument;
 use DB;
 use Salla\ZATCA\Helpers\Certificate;
+use Nami\Finance\Enums\SalesTypeEnum;
 
 class ShareInvoiceZatcaService extends MainService
 {
@@ -39,13 +40,15 @@ class ShareInvoiceZatcaService extends MainService
 
     public function shareInvoice($invoice_id)
     {
-        $invoice = $this->model->with(['client', 'items.item'])->findOrFail($invoice_id);
+        $invoice = $this->model->with(['client', 'items.item', 'originalSale'])->findOrFail($invoice_id);
         $this->validateInvoiceForSharing($invoice);
         $this->validateZatcaConfiguration();
 
         // Set temporary attributes (do not save them to the database)
         $invoice->setAttribute('is_B2B', (bool) $invoice->client->is_company);
-        $invoice->setAttribute('is_invoice', true);
+        $invoice->setAttribute('is_invoice', $invoice->type !== SalesTypeEnum::BackSales->value);
+        $invoice->setAttribute('PIH', $this->getLastHash());
+        $invoice->setAttribute('billing_reference', $invoice->original_sale_id ? (string) $invoice->original_sale_id : null);
 
         $customer = $invoice->client;
         $items = $invoice->items;
@@ -86,7 +89,7 @@ class ShareInvoiceZatcaService extends MainService
         // Remove temporary attributes before updating
         $invoice->unsetRelation('client');
         $invoice->unsetRelation('items');
-        unset($invoice->is_B2B, $invoice->is_invoice);
+        unset($invoice->is_B2B, $invoice->is_invoice, $invoice->PIH, $invoice->billing_reference);
 
         $invoice->update(['zatca_invoice_id' => $zatcaInvoice->id]);
 

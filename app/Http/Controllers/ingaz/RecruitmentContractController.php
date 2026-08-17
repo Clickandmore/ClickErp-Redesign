@@ -30,8 +30,11 @@ use App\Models\ingaz\Religion;
 use App\Models\ingaz\User;
 use App\Models\MaidUnavailableRecord;
 use App\Models\RecruitmentOffices;
+use App\Models\RecruitmentContractStageStep;
+use App\Models\RecruitmentContractStepCompletion;
 use App\Models\TravelHistory;
 use App\NewPermKeys;
+use App\PermKeys;
 use App\Services\ingaz\RecruitmentTripAccountingService;
 use App\Services\ingaz\RecruitmentContractRefundService;
 use App\Services\ingaz\RentalMaidArrivalService;
@@ -102,6 +105,27 @@ class RecruitmentContractController extends Controller
         return @AdminGuardHasAnyPerm([
             NewPermKeys::REC_CONTRACTS_UPDATE,
             NewPermKeys::REC_CONTRACTS_MANAGE,
+        ]);
+    }
+
+    private function canViewInvoiceCreditNotes(): bool
+    {
+        return @AdminGuardHasAnyPerm([
+            PermKeys::INVOICE_CREDIT_NOTES_VIEW,
+            PermKeys::INVOICE_CREDIT_NOTES_PRINT,
+            PermKeys::INVOICE_CREDIT_NOTES_CONTROL,
+            PermKeys::INVOICES_CONTROL,
+            PermKeys::REC_CONTRACTS_MANAGE,
+        ]);
+    }
+
+    private function canCreateInvoiceCreditNotes(): bool
+    {
+        return @AdminGuardHasAnyPerm([
+            PermKeys::INVOICE_CREDIT_NOTES_CREATE,
+            PermKeys::INVOICE_CREDIT_NOTES_CONTROL,
+            PermKeys::INVOICES_CONTROL,
+            PermKeys::REC_CONTRACTS_MANAGE,
         ]);
     }
 
@@ -1824,6 +1848,8 @@ class RecruitmentContractController extends Controller
             'recruitmentRefund.createdBy',
             'attachments.uploader',
             'invoice.financeSale',
+            'invoice.recruitmentCreditNotes.constraint',
+            'invoice.recruitmentCreditNotes.financeSale',
             'invoice.musanedTransferItem.transfer',
             'invoice.arrivalRevenueConstraint.constraintDetails.account',
             'invoice.externalOfficeCostConstraint.constraintDetails.account',
@@ -1905,6 +1931,10 @@ class RecruitmentContractController extends Controller
             $statusHistory = collect([$inferredCurrentStatus])->concat($statusHistory)->values();
         }
         $financialSummary = $this->buildRecruitmentContractFinancialSummary($contract);
+        $canViewInvoiceCreditNotes = $this->canViewInvoiceCreditNotes();
+        $canCreateInvoiceCreditNotes = $this->canCreateInvoiceCreditNotes();
+        $contractStageSteps = $this->getContractStageSteps($contract);
+        $canUpdateContractStageSteps = $this->canUpdateRecruitmentContracts();
 
         $contractExtensionRequests = \App\Models\ContractExtensionRequest::with(['requestedBy', 'processedBy'])
             ->where('contract_id', $contract->id)
@@ -1921,8 +1951,87 @@ class RecruitmentContractController extends Controller
             'contractDocuments',
             'statusHistory',
             'financialSummary',
-            'contractExtensionRequests'
+            'contractExtensionRequests',
+            'canViewInvoiceCreditNotes',
+            'canCreateInvoiceCreditNotes',
+            'contractStageSteps',
+            'canUpdateContractStageSteps'
         ));
+    }
+
+    private function getContractStageSteps(Contract $contract)
+    {
+        $nationalityId = $contract->maid?->nationality_id
+            ?: $contract->required_maid_nationality_id
+            ?: $contract->info?->manual_maid_nationality_id;
+
+        return RecruitmentContractStageStep::withTrashed()
+            ->with([
+                'nationality.translations',
+                'completions' => fn ($query) => $query
+                    ->where('contract_id', $contract->id)
+                    ->with('completedBy'),
+            ])
+            ->where(function ($query) use ($contract, $nationalityId) {
+                $query->where(function ($currentSteps) use ($contract, $nationalityId) {
+                    $currentSteps->whereNull('deleted_at')
+                        ->where('is_active', true)
+                        ->where('stage', $contract->status)
+                        ->where(function ($nationalities) use ($nationalityId) {
+                            $nationalities->whereNull('nationality_id');
+                            if ($nationalityId) {
+                                $nationalities->orWhere('nationality_id', $nationalityId);
+                            }
+                        });
+                })->orWhereHas('completions', function ($completions) use ($contract) {
+                    $completions->where('contract_id', $contract->id)
+                        ->whereNotNull('completed_at');
+                });
+            })
+            ->orderByRaw('CASE WHEN stage = ? THEN 0 ELSE 1 END', [$contract->status])
+            ->orderBy('sort_order')
+            ->orderBy('id')
+            ->get();
+    }
+
+    public function updateStageStep(Request $request, Contract $contract, RecruitmentContractStageStep $step)
+    {
+        abort_unless($this->canUpdateRecruitmentContracts(), 403);
+        abort_unless(in_array($contract->type, ['recruitment', 'maid'], true), 404);
+
+        $validated = $request->validate([
+            'completed' => ['required', 'boolean'],
+            'notes' => ['nullable', 'string', 'max:2000'],
+        ]);
+
+        $nationalityId = $contract->maid?->nationality_id
+            ?: $contract->required_maid_nationality_id
+            ?: $contract->info?->manual_maid_nationality_id;
+        $appliesToContract = $step->is_active
+            && $step->stage === $contract->status
+            && (!$step->nationality_id || (int) $step->nationality_id === (int) $nationalityId);
+
+        abort_unless($appliesToContract, 422, 'هذه الخطوة لا تنطبق على مرحلة العقد أو جنسية العاملة الحالية.');
+
+        $completion = RecruitmentContractStepCompletion::firstOrNew([
+            'contract_id' => $contract->id,
+            'stage_step_id' => $step->id,
+        ]);
+        $completion->notes = trim((string) ($validated['notes'] ?? '')) ?: null;
+
+        if ($validated['completed'] && !$completion->completed_at) {
+            $completion->completed_at = now();
+            $completion->completed_by_id = Auth::guard('admin')->id();
+        } elseif (!$validated['completed']) {
+            $completion->completed_at = null;
+            $completion->completed_by_id = null;
+        }
+
+        $completion->save();
+
+        return redirect()
+            ->route('contracts.details', $contract->id)
+            ->with('success', $validated['completed'] ? 'تم إنجاز خطوة العقد بنجاح.' : 'تمت إعادة فتح خطوة العقد.');
     }
 
     public function storeAttachments(Request $request, $contractId)
@@ -2114,6 +2223,8 @@ class RecruitmentContractController extends Controller
     {
         $contract->loadMissing([
             'invoice.financeSale',
+            'invoice.recruitmentCreditNotes.constraint',
+            'invoice.recruitmentCreditNotes.financeSale',
             'invoice.musanedTransferItem.transfer',
             'recruitmentRefund.refundConstraint',
             'externalOfficeDispatch',
@@ -2139,6 +2250,26 @@ class RecruitmentContractController extends Controller
 
             if ($contract->invoice->finance_sale_id) {
                 $addFinancialDocument('finance-sale', 'فاتورة المبيعات المحاسبية', route('finance.bill-sales.show', $contract->invoice->finance_sale_id), 'fas fa-file-lines');
+            }
+
+            if ($this->canViewInvoiceCreditNotes()) {
+                foreach ($contract->invoice->recruitmentCreditNotes as $creditNote) {
+                    $addFinancialDocument(
+                        'invoice-credit-note-' . $creditNote->id,
+                        'إشعار دائن #' . $creditNote->id . ' — ' . number_format((float) $creditNote->total, 2) . ' ريال',
+                        route('recruitment-credit-notes.download', ['id' => $creditNote->id, 'autoprint' => 1]),
+                        'fas fa-file-invoice-dollar'
+                    );
+
+                    if ($creditNote->constraint_id) {
+                        $addFinancialDocument(
+                            'invoice-credit-note-constraint-' . $creditNote->id,
+                            'قيد إشعار الدائن #' . $creditNote->id,
+                            route('finance.add-constraint.show', ['add_constraint' => $creditNote->constraint_id]),
+                            'fas fa-book-open'
+                        );
+                    }
+                }
             }
 
             if ($contract->invoice->arrival_revenue_constraint_id) {

@@ -788,6 +788,7 @@
     $highRiskCronCount = $cronJobs->where('risk', 'high')->count();
     $invalidCronCount = $cronJobs->where('risk', 'invalid')->count();
     $subscription = $subscription ?? [];
+    $productUpdates = $productUpdates ?? \App\Support\ProductUpdatesSettings::all();
     $subscriptionStatuses = [
         'active' => 'اشتراك نشط',
         'trial' => 'فترة تجريبية',
@@ -830,6 +831,7 @@
 
     <nav class="section-nav" aria-label="أقسام لوحة التحكم">
         <a href="#subscription"><span class="nav-dot"></span>العميل والاشتراك</a>
+        <a href="#product-updates"><span class="nav-dot"></span>ما الجديد</a>
         <a href="#modules"><span class="nav-dot"></span>الموديلات</a>
         <a href="#employees"><span class="nav-dot"></span>الموظفون</a>
         <a href="#backups"><span class="nav-dot"></span>النسخ الاحتياطية</a>
@@ -899,6 +901,51 @@
                 </div>
                 <div class="form-actions span-4">
                     <button class="btn btn-primary" type="submit">حفظ بيانات الاشتراك</button>
+                </div>
+            </form>
+        </div>
+    </section>
+
+    <section class="panel" id="product-updates" style="margin-bottom:24px;">
+        <div class="panel-head">
+            <div>
+                <h2 class="panel-title">ما الجديد في كليك</h2>
+                <p class="panel-subtitle">حرّر الرسالة التي تظهر للعملاء من أيقونة «ما الجديد» في هيدر لوحة الإدارة. اكتب كل ميزة في سطر مستقل.</p>
+            </div>
+        </div>
+        <div class="panel-body">
+            <form class="subscription-form" method="POST" action="{{ route('dev-superadmin.product-updates.update') }}">
+                @csrf
+                @method('PUT')
+                <div class="field span-2">
+                    <label for="productUpdateTitle">عنوان التحديث</label>
+                    <input id="productUpdateTitle" name="title" type="text" required value="{{ old('title', $productUpdates['title'] ?? '') }}" placeholder="جديد في كليك">
+                </div>
+                <div class="field">
+                    <label for="productUpdateDate">تاريخ النشر</label>
+                    <input id="productUpdateDate" name="published_at" type="date" value="{{ old('published_at', $productUpdates['published_at'] ?? '') }}">
+                </div>
+                <div class="field">
+                    <label for="productUpdateEnabled">حالة الظهور</label>
+                    <label class="switch-row" for="productUpdateEnabled" style="min-height:46px;margin:0;">
+                        <span>إظهار في الهيدر</span>
+                        <span class="switch">
+                            <input name="is_enabled" type="hidden" value="0">
+                            <input id="productUpdateEnabled" name="is_enabled" type="checkbox" value="1" {{ old('is_enabled', $productUpdates['is_enabled'] ?? true) ? 'checked' : '' }}>
+                            <span class="slider"></span>
+                        </span>
+                    </label>
+                </div>
+                <div class="field span-4">
+                    <label for="productUpdateSummary">وصف مختصر</label>
+                    <input id="productUpdateSummary" name="summary" type="text" value="{{ old('summary', $productUpdates['summary'] ?? '') }}" placeholder="تحسينات جديدة أصبحت متاحة الآن">
+                </div>
+                <div class="field span-4">
+                    <label for="productUpdateItems">نقاط التحديث — كل نقطة في سطر</label>
+                    <textarea id="productUpdateItems" name="items" required rows="6" placeholder="اكتب كل ميزة في سطر مستقل">{{ old('items', implode("\n", $productUpdates['items'] ?? [])) }}</textarea>
+                </div>
+                <div class="form-actions span-4">
+                    <button class="btn btn-primary" type="submit">حفظ ونشر التحديث</button>
                 </div>
             </form>
         </div>

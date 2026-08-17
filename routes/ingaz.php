@@ -8,6 +8,7 @@ use App\Http\Controllers\admin\AdminShelterWorkersContractCTLR;
 use App\Http\Controllers\admin\AdminTravelHistoryController;
 use App\Http\Controllers\admin\ContractReturnRequestController;
 use App\Http\Controllers\admin\FormSettingsController;
+use App\Http\Controllers\admin\IngazDelegationStageController;
 use App\Http\Controllers\admin\DevSuperAdminController;
 use App\Http\Controllers\admin\DevDatabaseBackupController;
 use App\Http\Controllers\admin\office\OfficeController;
@@ -238,6 +239,8 @@ Route::group(
             Route::put('recruitment-contract-stages', [RecruitmentContractStageLabelController::class, 'update'])->name('recruitment-contract-stages.update');
             Route::get('recruitment-contract-stage-labels', fn() => redirect()->route('recruitment-contract-stages.edit'));
             Route::put('recruitment-contract-stage-labels', [RecruitmentContractStageLabelController::class, 'update']);
+            Route::get('ingaz-delegation-stages', [IngazDelegationStageController::class, 'edit'])->name('ingaz-delegation-stages.edit');
+            Route::put('ingaz-delegation-stages', [IngazDelegationStageController::class, 'update'])->name('ingaz-delegation-stages.update');
             Route::get('translation-terms', [TranslationTermController::class, 'index'])->name('translation-terms.index');
             Route::post('translation-terms', [TranslationTermController::class, 'store'])->name('translation-terms.store');
             Route::post('translation-terms/sync', [TranslationTermController::class, 'sync'])->name('translation-terms.sync');
@@ -454,6 +457,7 @@ Route::group(
             Route::resource('RecruitmentContract', RecruitmentContractController::class);
             Route::get('RecruitmentContractBack/{id}', [RecruitmentContractController::class, 'back'])->name('RecruitmentContract.back');
             Route::get('contractsDetails/{id}', [RecruitmentContractController::class, 'details'])->name('contracts.details');
+            Route::post('RecruitmentContract/{contract}/stage-steps/{step}', [RecruitmentContractController::class, 'updateStageStep'])->name('RecruitmentContract.stageSteps.update');
             Route::post('RecruitmentContract/{contractId}/add-maid', [RecruitmentContractController::class, 'addMaidToContract'])->name('RecruitmentContract.addMaid');
             Route::get('RecruitmentContract/{contractId}/select-maid', [RecruitmentContractController::class, 'selectMaidForContract'])->name('RecruitmentContract.selectMaid');
             Route::get('RecruitmentContract/{contractId}/change-maid', [RecruitmentContractController::class, 'showChangeMaid'])->name('RecruitmentContract.showChangeMaid');
@@ -476,6 +480,9 @@ Route::group(
             Route::get('invoices/export/excel', [InvoiceController::class, 'exportExcel'])->name('invoices.export.excel');
             Route::get('invoices/export/pdf', [InvoiceController::class, 'exportPdf'])->name('invoices.export.pdf');
             Route::get('invoices/{id}/legacy-source-file', [InvoiceController::class, 'legacySourceFile'])->name('invoices.legacy-source-file');
+            Route::get('invoices/{id}/credit-notes/create', [InvoiceController::class, 'createRecruitmentCreditNote'])->name('invoices.credit-notes.create');
+            Route::post('invoices/{id}/credit-notes', [InvoiceController::class, 'storeRecruitmentCreditNote'])->name('invoices.credit-notes.store');
+            Route::get('recruitment-credit-notes/{id}/download', [InvoiceController::class, 'downloadRecruitmentCreditNote'])->name('recruitment-credit-notes.download');
             Route::resource('invoices', InvoiceController::class);
             Route::get('invoices/download/{id}', [InvoiceController::class, 'downloadInvoice'])->name('invoice.download');
             Route::get('musaned-transfers/search', [MusanedTransferController::class, 'search'])->name('musaned-transfers.search');
@@ -740,6 +747,7 @@ Route::group(
                 Route::get('modules', [DevSuperAdminController::class, 'modules'])->name('modules');
                 Route::put('modules', [DevSuperAdminController::class, 'updateModules'])->name('modules.update');
                 Route::put('subscription', [DevSuperAdminController::class, 'updateSubscription'])->name('subscription.update');
+                Route::put('product-updates', [DevSuperAdminController::class, 'updateProductUpdates'])->name('product-updates.update');
                 Route::post('scheduler/enable', [DevSuperAdminController::class, 'enableScheduler'])->name('scheduler.enable');
                 Route::put('database-backups/settings', [DevDatabaseBackupController::class, 'updateSettings'])->name('database-backups.settings');
                 Route::post('database-backups', [DevDatabaseBackupController::class, 'create'])->name('database-backups.create');
