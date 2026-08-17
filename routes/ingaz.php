@@ -622,6 +622,8 @@ Route::group(
             // Istiqdam Integration Routes (wired to real API controller)
             Route::prefix('istiqdam')->name('istiqdam.')->group(function () {
                 Route::get('/', [\App\Http\Controllers\admin\IstiqdasmRealController::class, 'index'])->name('index');
+                Route::get('/settings', [\App\Http\Controllers\admin\IstiqdasmRealController::class, 'settings'])->name('settings');
+                Route::put('/settings', [\App\Http\Controllers\admin\IstiqdasmRealController::class, 'updateSettings'])->name('settings.update');
                 Route::get('/test-connection', [\App\Http\Controllers\admin\IstiqdasmRealController::class, 'testConnection'])->name('test.connection');
                 Route::get('/diagnose', [\App\Http\Controllers\admin\IstiqdasmRealController::class, 'diagnoseConnection'])->name('diagnose');
 

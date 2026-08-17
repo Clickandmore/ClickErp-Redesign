@@ -54,6 +54,23 @@ class IstiqdamIntegrationTest extends TestCase
         });
     }
 
+    public function test_staging_contract_creation_uses_documented_v2_gateway_endpoint(): void
+    {
+        $this->configureEnvironment('staging', 'https://gateway.test');
+
+        Http::fake([
+            'https://oauth.test/token' => Http::response(['access_token' => 'test-access-token']),
+            'https://gateway.test/takamol/staging/external/v2/createcontractapiwrapper' => Http::response([
+                'body' => ['response' => ['number' => '12345']],
+            ]),
+        ]);
+
+        $result = app(IstiqdasmService::class)->createContract(['package' => ['id' => 1]]);
+
+        $this->assertTrue($result['success']);
+        Http::assertSent(fn ($request) => $request->url() === 'https://gateway.test/takamol/staging/external/v2/createcontractapiwrapper');
+    }
+
     public function test_production_uses_protected_istiqdam_endpoint(): void
     {
         $this->configureEnvironment('production', 'https://production.test');

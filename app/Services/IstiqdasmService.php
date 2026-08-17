@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Models\IstiqdamSetting;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Cache;
@@ -35,6 +36,19 @@ class IstiqdasmService
 
         if (!is_array($config)) {
             throw new \RuntimeException("Istiqdam environment [{$env}] is not configured.");
+        }
+
+        // Keep the integration usable during a staged deployment before the
+        // settings migration has been applied; environment values remain the fallback.
+        try {
+            $storedSettings = IstiqdamSetting::query()->first();
+        } catch (\Throwable $exception) {
+            $storedSettings = null;
+        }
+        if ($storedSettings) {
+            $config['client_id'] = $storedSettings->client_id ?: $config['client_id'];
+            $config['client_secret'] = $storedSettings->client_secret ?: $config['client_secret'];
+            $config['api_key'] = $storedSettings->api_key ?: $config['api_key'];
         }
 
         $this->environment   = $env;
@@ -190,12 +204,12 @@ class IstiqdasmService
 
     /**
      * Create Contract
-     * POST /takamol/staging/external/v1/createcontractapiwrapper
+     * POST /takamol/staging/external/v2/createcontractapiwrapper
      */
     public function createContract(array $contractData): array
     {
         $endpoint = $this->endpoint(
-            '/takamol/staging/external/v1/createcontractapiwrapper',
+            '/takamol/staging/external/v2/createcontractapiwrapper',
             '/api/protected/istiqdam/contract'
         );
         $url      = $this->baseUrl . $endpoint;

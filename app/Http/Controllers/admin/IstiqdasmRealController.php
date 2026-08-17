@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\admin;
 
 use App\Models\IstiqdasmContract;
+use App\Models\IstiqdamSetting;
 use App\Services\IstiqdasmService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -22,7 +23,62 @@ class IstiqdasmRealController extends Controller
      */
     public function index()
     {
-        return view('admin.istiqdam.real-index');
+        $settings = IstiqdamSetting::query()->first();
+
+        return view('admin.istiqdam.real-index', [
+            'environment' => config('istiqdam.current_env'),
+            'istiqdamSettings' => $settings,
+            'isConfigured' => $this->isConfigured($settings),
+            'contractSummary' => [
+                'total' => IstiqdasmContract::count(),
+                'pending' => IstiqdasmContract::where('status', 'pending_approval')->count(),
+                'active' => IstiqdasmContract::where('status', 'active')->count(),
+                'cancelled' => IstiqdasmContract::where('status', 'cancelled')->count(),
+            ],
+            'recentContracts' => IstiqdasmContract::latest()->take(5)->get(),
+        ]);
+    }
+
+    /** Display the credentials and connection setup separately from operations. */
+    public function settings()
+    {
+        $settings = IstiqdamSetting::query()->first();
+
+        return view('admin.istiqdam.settings', [
+            'environment' => config('istiqdam.current_env'),
+            'istiqdamSettings' => $settings,
+            'isConfigured' => $this->isConfigured($settings),
+        ]);
+    }
+
+    /** Save the operational credentials received from Takamol. */
+    public function updateSettings(Request $request)
+    {
+        $validated = $request->validate([
+            'establishment_name' => ['required', 'string', 'max:255'],
+            'client_id' => ['required', 'string', 'max:255'],
+            'client_secret' => ['nullable', 'string', 'max:2000'],
+            'api_key' => ['nullable', 'string', 'max:2000'],
+        ]);
+
+        $settings = IstiqdamSetting::query()->firstOrNew();
+        $settings->establishment_name = $validated['establishment_name'];
+        $settings->client_id = $validated['client_id'];
+        if ($request->filled('client_secret')) {
+            $settings->client_secret = $validated['client_secret'];
+        }
+        if ($request->filled('api_key')) {
+            $settings->api_key = $validated['api_key'];
+        }
+        $settings->updated_by = auth('admin')->id();
+
+        if (!$settings->exists && (!$request->filled('client_secret') || !$request->filled('api_key'))) {
+            return back()->withErrors(['client_secret' => 'أدخل Client Secret وAPI KEY عند حفظ الإعداد لأول مرة.'])->withInput();
+        }
+
+        $settings->save();
+
+        return redirect()->route('istiqdam.settings')->with('success', 'تم حفظ إعدادات الربط بأمان. يمكنك الآن اختبار الاتصال وتشغيل العمليات.');
     }
 
     /**
@@ -47,9 +103,6 @@ class IstiqdasmRealController extends Controller
             } else {
                 // إضافة معلومات تشخيص إضافية
                 $diagnosis = [
-                    'server_ip' => $_SERVER['SERVER_ADDR'] ?? 'غير متوفر',
-                    'client_ip' => $_SERVER['REMOTE_ADDR'] ?? 'غير متوفر',
-                    'user_agent' => $_SERVER['HTTP_USER_AGENT'] ?? 'غير متوفر',
                     'timestamp' => now()->toISOString(),
                 ];
 
@@ -532,17 +585,18 @@ class IstiqdasmRealController extends Controller
     public function diagnoseConnection()
     {
         try {
+            $storedSettings = IstiqdamSetting::query()->first();
+            $credentialsConfigured = (bool) ($storedSettings?->client_id && $storedSettings?->client_secret && $storedSettings?->api_key)
+                || ((bool) config('istiqdam.environments.' . config('istiqdam.current_env') . '.client_id')
+                    && (bool) config('istiqdam.environments.' . config('istiqdam.current_env') . '.client_secret')
+                    && (bool) config('istiqdam.environments.' . config('istiqdam.current_env') . '.api_key'));
+
             $diagnosis = [
                 'timestamp' => now()->toISOString(),
                 'environment' => config('istiqdam.current_env'),
                 'base_url' => config('istiqdam.environments.' . config('istiqdam.current_env') . '.base_url'),
-                'client_id' => config('istiqdam.environments.' . config('istiqdam.current_env') . '.client_id'),
                 'api_key_length' => strlen(config('istiqdam.environments.' . config('istiqdam.current_env') . '.api_key')),
-                'server_info' => [
-                    'server_ip' => $_SERVER['SERVER_ADDR'] ?? 'غير متوفر',
-                    'client_ip' => $_SERVER['REMOTE_ADDR'] ?? 'غير متوفر',
-                    'user_agent' => $_SERVER['HTTP_USER_AGENT'] ?? 'غير متوفر',
-                ]
+                'credentials_configured' => $credentialsConfigured,
             ];
 
             // اختبار الاتصال
@@ -574,6 +628,14 @@ class IstiqdasmRealController extends Controller
             ?? $data;
 
         return is_array($payload) ? $payload : [];
+    }
+
+    private function isConfigured(?IstiqdamSetting $settings): bool
+    {
+        return (bool) ($settings?->establishment_name
+            && $settings?->client_id
+            && $settings?->client_secret
+            && $settings?->api_key);
     }
 
 }

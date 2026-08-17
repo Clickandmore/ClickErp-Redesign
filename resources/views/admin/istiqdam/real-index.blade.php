@@ -1,593 +1,96 @@
 @extends('admin.layout.indexs.index')
 
-@section('style')
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-<meta name="csrf-token" content="{{ csrf_token() }}">
-@endsection
-
-@section('page-title')
-منصة الاستقدام - الربط الفعلي
-@endsection
+@section('page-title', 'منصة الاستقدام')
 
 @section('content')
-<div class="page-body p-4 text-dark">
-    <div class="container-fluid">
-        <!-- Page Title Section -->
-        <div class="row mb-4">
-            <div class="col-12">
-                <div class="alert alert-success">
-                    <h4><i class="fas fa-link me-2"></i>منصة الاستقدام - الربط الفعلي</h4>
-                    <p class="mb-0">هذه الصفحة تستخدم الربط الفعلي مع منصة الاستقدام الحكومية السعودية</p>
+<div class="page-body p-4 text-dark" dir="rtl">
+    <div class="container-fluid istiqdam-dashboard">
+        <div class="d-flex flex-wrap justify-content-between align-items-start gap-3 mb-4">
+            <div>
+                <div class="d-flex align-items-center gap-2 mb-1">
+                    <h3 class="mb-0">منصة الاستقدام</h3>
+                    <span class="badge {{ $environment === 'production' ? 'bg-danger' : 'bg-warning text-dark' }} px-3 py-2">{{ $environment === 'production' ? 'الإنتاج' : 'بيئة ' . $environment }}</span>
                 </div>
+                <p class="text-muted mb-0">إدارة الربط مع تكامل: الباقات، العقود، تفاصيل العقد، الإلغاء، والتنزيل.</p>
+            </div>
+            <div class="d-flex gap-2">
+                <a class="btn btn-outline-secondary" href="{{ route('istiqdam.settings') }}"><i class="fas fa-cog me-1"></i> إعدادات الربط</a>
+                <button class="btn btn-outline-primary" id="connection-test" type="button" {{ $isConfigured ? '' : 'disabled' }}><i class="fas fa-plug me-1"></i> فحص الاتصال</button>
+                <a class="btn btn-primary {{ $isConfigured ? '' : 'disabled' }}" href="{{ $isConfigured ? route('istiqdam.contracts.create') : '#' }}"><i class="fas fa-plus me-1"></i> إنشاء عقد</a>
             </div>
         </div>
 
-        <!-- Navigation -->
-        <div class="row mb-4">
-            <div class="col-12">
-                <div class="card">
-                    <div class="card-body">
-                        <div class="btn-group" role="group">
-                            <a href="{{ route('istiqdam.index') }}" class="btn btn-outline-secondary">
-                                <i class="fas fa-flask me-1"></i>
-                                النسخة التجريبية
-                            </a>
-                            <button class="btn btn-success active">
-                                <i class="fas fa-link me-1"></i>
-                                الربط الفعلي
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            </div>
+        @if ($environment === 'production')
+            <div class="alert alert-warning d-flex gap-2 align-items-center" role="alert"><i class="fas fa-triangle-exclamation"></i><span>أنت تعمل على بيئة الإنتاج؛ إنشاء العقد أو إلغاؤه يؤثر في بيانات المنصة الفعلية.</span></div>
+        @endif
+        <div id="connection-result" class="d-none mb-4" role="status"></div>
+        @unless ($isConfigured)<div class="alert alert-info">لم تكتمل إعدادات الربط بعد. <a href="{{ route('istiqdam.settings') }}" class="alert-link">انتقل إلى صفحة الإعدادات</a> ثم احفظ البيانات قبل تنفيذ العمليات.</div>@endunless
+
+        <div class="row g-3 mb-4">
+            <div class="col-md-6 col-xl-3"><div class="card metric-card"><div class="card-body"><small class="text-muted">كل العقود المحلية</small><div class="metric-value">{{ number_format($contractSummary['total']) }}</div></div></div></div>
+            <div class="col-md-6 col-xl-3"><div class="card metric-card"><div class="card-body"><small class="text-muted">بانتظار الموافقة</small><div class="metric-value text-info">{{ number_format($contractSummary['pending']) }}</div></div></div></div>
+            <div class="col-md-6 col-xl-3"><div class="card metric-card"><div class="card-body"><small class="text-muted">العقود النشطة</small><div class="metric-value text-success">{{ number_format($contractSummary['active']) }}</div></div></div></div>
+            <div class="col-md-6 col-xl-3"><div class="card metric-card"><div class="card-body"><small class="text-muted">العقود الملغاة</small><div class="metric-value text-danger">{{ number_format($contractSummary['cancelled']) }}</div></div></div></div>
         </div>
 
-        <!-- API Connection Status -->
-        <div class="row mb-4">
-            <div class="col-12">
-                <div class="card">
-                    <div class="card-header">
-                        <h5 class="card-title mb-0">
-                            <i class="fas fa-signal me-2"></i>
-                            حالة الاتصال مع منصة الاستقدام الحكومية
-                        </h5>
-                    </div>
-                    <div class="card-body">
-                        <div id="connectionStatus">
-                            <div class="d-flex align-items-center">
-                                <div class="spinner-border spinner-border-sm text-primary me-2" role="status">
-                                    <span class="visually-hidden">جاري التحقق...</span>
-                                </div>
-                                <span>جاري اختبار الاتصال مع المنصة الحكومية...</span>
-                            </div>
-                        </div>
-                        <div class="mt-3">
-                            <button type="button" class="btn btn-primary me-2" id="testConnectionBtn">
-                                <i class="fas fa-wifi me-2"></i>
-                                اختبار الاتصال
-                            </button>
-                            <button type="button" class="btn btn-info me-2" onclick="showApiInfo()">
-                                <i class="fas fa-info-circle me-2"></i>
-                                معلومات الـ API
-                            </button>
-                            <button type="button" class="btn btn-warning" id="diagnoseBtn">
-                                <i class="fas fa-stethoscope me-2"></i>
-                                تشخيص الاتصال
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            </div>
+        <div class="row g-4">
+            <div class="col-xl-8"><div class="card h-100"><div class="card-header bg-white d-flex justify-content-between align-items-center"><strong>العمليات المتاحة</strong><small class="text-muted">وفق وثائق تكامل المرفقة</small></div><div class="list-group list-group-flush">
+                <button class="list-group-item list-group-item-action d-flex justify-content-between align-items-center py-3" id="packages-action" type="button" {{ $isConfigured ? '' : 'disabled' }}><span><i class="fas fa-boxes-stacked text-primary me-2"></i><strong>الباقات</strong><small class="d-block text-muted me-4">جلب الباقات المتاحة واختيار باقة للعقد</small></span><i class="fas fa-chevron-left"></i></button>
+                <button class="list-group-item list-group-item-action d-flex justify-content-between align-items-center py-3" id="contract-action" type="button" {{ $isConfigured ? '' : 'disabled' }}><span><i class="fas fa-file-contract text-info me-2"></i><strong>استعلام عن عقد</strong><small class="d-block text-muted me-4">التفاصيل، تنزيل ملف العقد، أو إلغاء العقد</small></span><i class="fas fa-chevron-left"></i></button>
+                <button class="list-group-item list-group-item-action d-flex justify-content-between align-items-center py-3" id="permit-action" type="button" {{ $isConfigured ? '' : 'disabled' }}><span><i class="fas fa-id-card text-warning me-2"></i><strong>إسناد تصريح عمل</strong><small class="d-block text-muted me-4">ربط تصريح العمل والعاملة بعقد قائم في المنصة</small></span><i class="fas fa-chevron-left"></i></button>
+                <a class="list-group-item list-group-item-action d-flex justify-content-between align-items-center py-3 {{ $isConfigured ? '' : 'disabled' }}" href="{{ $isConfigured ? route('istiqdam.contracts.create') : '#' }}"><span><i class="fas fa-file-circle-plus text-success me-2"></i><strong>إنشاء عقد</strong><small class="d-block text-muted me-4">يرسل بيانات المستفيد والباقة والالتزامات إلى تكامل</small></span><i class="fas fa-chevron-left"></i></a>
+            </div></div></div>
+            <div class="col-xl-4"><div class="card h-100"><div class="card-header bg-white"><strong>حالة الإعداد</strong></div><div class="card-body"><dl class="row mb-0 small"><dt class="col-5 text-muted">البيئة</dt><dd class="col-7">{{ $environment }}</dd><dt class="col-5 text-muted">المهلة</dt><dd class="col-7">{{ config('istiqdam.timeout') }} ثانية</dd><dt class="col-5 text-muted">المصادقة</dt><dd class="col-7"><span id="auth-state" class="badge bg-secondary">لم تُفحص</span></dd></dl><button class="btn btn-sm btn-outline-secondary mt-3" id="diagnose-action" type="button">تشخيص آمن للإعداد</button></div></div></div>
         </div>
 
-        <!-- Environment Info -->
-        <div class="row mb-4">
-            <div class="col-md-6">
-                <div class="card border-primary">
-                    <div class="card-header bg-primary text-white">
-                        <h6 class="card-title mb-0">
-                            <i class="fas fa-server me-2"></i>
-                            معلومات البيئة
-                        </h6>
-                    </div>
-                    <div class="card-body">
-                        <table class="table table-sm mb-0">
-                            <tr>
-                                <td><strong>البيئة الحالية:</strong></td>
-                                <td><span class="badge bg-warning">{{ config('istiqdam.current_env') }}</span></td>
-                            </tr>
-                            <tr>
-                                <td><strong>رابط الـ API:</strong></td>
-                                <td><code class="small">{{ config('istiqdam.environments.' . config('istiqdam.current_env') . '.base_url') }}</code></td>
-                            </tr>
-                            <tr>
-                                <td><strong>معرف العميل:</strong></td>
-                                <td><code>{{ config('istiqdam.environments.' . config('istiqdam.current_env') . '.client_id') }}</code></td>
-                            </tr>
-                            <tr>
-                                <td><strong>مهلة الانتظار:</strong></td>
-                                <td>{{ config('istiqdam.timeout') }} ثانية</td>
-                            </tr>
-                        </table>
-                    </div>
-                </div>
-            </div>
-            <div class="col-md-6">
-                <div class="card border-success">
-                    <div class="card-header bg-success text-white">
-                        <h6 class="card-title mb-0">
-                            <i class="fas fa-cogs me-2"></i>
-                            الوظائف المتاحة
-                        </h6>
-                    </div>
-                    <div class="card-body">
-                        <ul class="list-unstyled mb-0">
-                            <li class="mb-2">
-                                <i class="fas fa-check-circle text-success me-2"></i>
-                                جلب الباقات من المنصة
-                            </li>
-                            <li class="mb-2">
-                                <i class="fas fa-check-circle text-success me-2"></i>
-                                إنشاء العقود في المنصة
-                            </li>
-                            <li class="mb-2">
-                                <i class="fas fa-check-circle text-success me-2"></i>
-                                عرض تفاصيل العقود
-                            </li>
-                            <li class="mb-2">
-                                <i class="fas fa-check-circle text-success me-2"></i>
-                                إلغاء العقود
-                            </li>
-                            <li class="mb-2">
-                                <i class="fas fa-check-circle text-success me-2"></i>
-                                تحميل ملفات العقود
-                            </li>
-                            <li class="mb-2">
-                                <i class="fas fa-check-circle text-success me-2"></i>
-                                إضافة العاملات للعقود
-                            </li>
-                        </ul>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Quick Actions with Real API -->
-        <div class="row mb-4">
-            <div class="col-xl-4 col-md-6 mb-4">
-                <div class="card action-card h-100 border-primary">
-                    <div class="card-body text-center">
-                        <div class="action-icon mb-3">
-                            <i class="fas fa-box fa-3x text-primary"></i>
-                        </div>
-                        <h5 class="card-title">الباقات الحقيقية</h5>
-                        <p class="card-text text-muted">جلب الباقات مباشرة من المنصة</p>
-                        <button class="btn btn-primary" onclick="testRealPackages()">
-                            <i class="fas fa-download me-1"></i>
-                            جلب الباقات
-                        </button>
-                    </div>
-                </div>
-            </div>
-
-            <div class="col-xl-4 col-md-6 mb-4">
-                <div class="card action-card h-100 border-success">
-                    <div class="card-body text-center">
-                        <div class="action-icon mb-3">
-                            <i class="fas fa-file-contract fa-3x text-success"></i>
-                        </div>
-                        <h5 class="card-title">إنشاء عقد حقيقي</h5>
-                        <p class="card-text text-muted">إنشاء عقد في المنصة الحكومية</p>
-                        <button class="btn btn-success" onclick="showContractForm()">
-                            <i class="fas fa-plus me-1"></i>
-                            إنشاء عقد
-                        </button>
-                    </div>
-                </div>
-            </div>
-
-            <div class="col-xl-4 col-md-6 mb-4">
-                <div class="card action-card h-100 border-info">
-                    <div class="card-body text-center">
-                        <div class="action-icon mb-3">
-                            <i class="fas fa-search fa-3x text-info"></i>
-                        </div>
-                        <h5 class="card-title">البحث عن عقد</h5>
-                        <p class="card-text text-muted">البحث في المنصة الحكومية</p>
-                        <button class="btn btn-info" onclick="showSearchForm()">
-                            <i class="fas fa-search me-1"></i>
-                            بحث
-                        </button>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Test Results -->
-        <div class="row">
-            <div class="col-12">
-                <div class="card">
-                    <div class="card-header">
-                        <h5 class="card-title mb-0">
-                            <i class="fas fa-chart-line me-2"></i>
-                            نتائج الاختبارات
-                        </h5>
-                    </div>
-                    <div class="card-body">
-                        <div id="testResults">
-                            <div class="text-center text-muted">
-                                <i class="fas fa-flask fa-3x mb-3"></i>
-                                <p>لم يتم تشغيل أي اختبارات بعد</p>
-                                <small>استخدم الأزرار أعلاه لاختبار الوظائف المختلفة</small>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
+        <div class="card mt-4"><div class="card-header bg-white"><strong>أحدث العقود المحفوظة محلياً</strong></div><div class="table-responsive"><table class="table table-hover align-middle mb-0"><thead><tr><th>رقم المنصة</th><th>المستفيد</th><th>الحالة</th><th>آخر مزامنة</th><th></th></tr></thead><tbody>
+            @forelse ($recentContracts as $contract)
+                <tr><td>{{ $contract->istiqdam_contract_id }}</td><td>{{ $contract->beneficiary_name ?: $contract->beneficiary_id }}</td><td><span class="badge {{ $contract->status_badge_class }}">{{ $contract->status_text }}</span></td><td>{{ optional($contract->last_synced_at)->format('Y-m-d H:i') ?: '—' }}</td><td><button class="btn btn-sm btn-outline-primary inspect-contract" data-contract-id="{{ $contract->istiqdam_contract_id }}" type="button">عرض</button></td></tr>
+            @empty
+                <tr><td class="text-center text-muted py-4" colspan="5">لا توجد عقود محفوظة محلياً بعد.</td></tr>
+            @endforelse
+        </tbody></table></div></div>
+        <div class="modal fade" id="istiqdam-modal" tabindex="-1" aria-hidden="true"><div class="modal-dialog modal-lg modal-dialog-scrollable"><div class="modal-content"><div class="modal-header"><h5 class="modal-title" id="modal-title">منصة الاستقدام</h5><button type="button" class="btn-close m-0" data-bs-dismiss="modal" aria-label="إغلاق"></button></div><div class="modal-body" id="modal-content"></div></div></div></div>
     </div>
 </div>
 @endsection
 
-@section("js")
-<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-
+@section('js')
 <script>
-$(document).ready(function() {
-    // Test connection on page load
-    testConnection();
+(() => {
+    const modalEl = document.getElementById('istiqdam-modal'), modal = window.bootstrap ? new bootstrap.Modal(modalEl) : null, content = document.getElementById('modal-content'), title = document.getElementById('modal-title');
+    const csrf = document.querySelector('meta[name="csrf-token"]')?.content;
+    const escapeHtml = value => $('<div>').text(value ?? '—').html();
+    const open = (heading, html) => { title.textContent = heading; content.innerHTML = html; modal?.show(); };
+    const error = xhr => xhr.responseJSON?.message || xhr.responseJSON?.error || 'تعذر إتمام الطلب. تحقق من الاتصال والإعدادات.';
+    const notice = (kind, message) => { const box = document.getElementById('connection-result'); box.className = `alert alert-${kind} mb-4`; box.textContent = message; };
+    const contractUrl = id => '{{ route('istiqdam.contracts.show', ':contractId') }}'.replace(':contractId', encodeURIComponent(id));
 
-    // Test connection button
-    $('#testConnectionBtn').on('click', function() {
-        testConnection();
+    document.getElementById('connection-test').addEventListener('click', function () {
+        this.disabled = true; notice('info', 'جاري اختبار المصادقة وجلب باقة واحدة…');
+        $.get('{{ route('istiqdam.test.connection') }}').done(response => { notice('success', response.message); $('#auth-state').attr('class', 'badge bg-success').text('متصل'); }).fail(xhr => { notice('danger', error(xhr)); $('#auth-state').attr('class', 'badge bg-danger').text('فشل'); }).always(() => this.disabled = false);
     });
-
-    function testConnection() {
-        $('#connectionStatus').html(`
-            <div class="d-flex align-items-center">
-                <div class="spinner-border spinner-border-sm text-primary me-2" role="status">
-                    <span class="visually-hidden">جاري الاختبار...</span>
-                </div>
-                <span>جاري اختبار الاتصال مع المنصة الحكومية...</span>
-            </div>
-        `);
-
-        $.ajax({
-            url: '{{ route("istiqdam.test.connection") }}',
-            type: 'GET',
-            timeout: 30000, // 30 seconds timeout
-            success: function(response) {
-                if (response.success) {
-                    $('#connectionStatus').html(`
-                        <div class="alert alert-success mb-0">
-                            <i class="fas fa-check-circle me-2"></i>
-                            <strong>نجح الاتصال مع المنصة الحكومية!</strong>
-                            <small class="d-block mt-1">${response.message}</small>
-                            <small class="d-block mt-1">البيئة: ${response.data.environment} | الوقت: ${new Date(response.data.timestamp).toLocaleString('ar-SA')}</small>
-                        </div>
-                    `);
-
-                    // Log successful test
-                    logTestResult('اختبار الاتصال', 'نجح', response.message);
-                } else {
-                    $('#connectionStatus').html(`
-                        <div class="alert alert-danger mb-0">
-                            <i class="fas fa-times-circle me-2"></i>
-                            <strong>فشل الاتصال مع المنصة!</strong>
-                            <small class="d-block mt-1">${response.message}</small>
-                        </div>
-                    `);
-
-                    // Log failed test
-                    logTestResult('اختبار الاتصال', 'فشل', response.message);
-                }
-            },
-            error: function(xhr, status, error) {
-                let errorMessage = 'حدث خطأ أثناء الاتصال';
-                if (status === 'timeout') {
-                    errorMessage = 'انتهت مهلة الانتظار - قد تكون المنصة غير متاحة';
-                } else if (xhr.responseJSON && xhr.responseJSON.message) {
-                    errorMessage = xhr.responseJSON.message;
-                }
-
-                $('#connectionStatus').html(`
-                    <div class="alert alert-danger mb-0">
-                        <i class="fas fa-exclamation-triangle me-2"></i>
-                        <strong>خطأ في الاتصال!</strong>
-                        <small class="d-block mt-1">${errorMessage}</small>
-                    </div>
-                `);
-
-                // Log error
-                logTestResult('اختبار الاتصال', 'خطأ', errorMessage);
-            }
-        });
-    }
-
-    function logTestResult(testName, status, message) {
-        const timestamp = new Date().toLocaleString('ar-SA');
-        const statusClass = status === 'نجح' ? 'success' : status === 'فشل' ? 'danger' : 'warning';
-
-        const resultHtml = `
-            <div class="alert alert-${statusClass} alert-dismissible fade show">
-                <strong>${testName}:</strong> ${message}
-                <small class="d-block mt-1">${timestamp}</small>
-                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-            </div>
-        `;
-
-        if ($('#testResults .text-muted').length) {
-            $('#testResults').html(resultHtml);
-        } else {
-            $('#testResults').prepend(resultHtml);
-        }
-    }
-});
-
-function showApiInfo() {
-    Swal.fire({
-        title: 'معلومات الـ API',
-        html: `
-            <div class="text-start">
-                <h6>تفاصيل الربط مع منصة الاستقدام:</h6>
-                <ul>
-                    <li><strong>البيئة:</strong> {{ config('istiqdam.current_env') }}</li>
-                    <li><strong>رابط الـ API:</strong><br><code class="small">{{ config('istiqdam.environments.' . config('istiqdam.current_env') . '.base_url') }}</code></li>
-                    <li><strong>معرف العميل:</strong> {{ config('istiqdam.environments.' . config('istiqdam.current_env') . '.client_id') }}</li>
-                    <li><strong>مهلة الانتظار:</strong> {{ config('istiqdam.timeout') }} ثانية</li>
-                </ul>
-                <hr>
-                <h6>ملاحظات مهمة:</h6>
-                <ul>
-                    <li>هذا ربط حقيقي مع المنصة الحكومية</li>
-                    <li>جميع العمليات ستؤثر على البيانات الفعلية</li>
-                    <li>يرجى الحذر عند الاختبار</li>
-                </ul>
-            </div>
-        `,
-        icon: 'info',
-        confirmButtonText: 'حسناً',
-        width: '600px'
+    document.getElementById('packages-action').addEventListener('click', () => {
+        open('الباقات المتاحة', '<div class="text-center py-4 text-muted"><span class="spinner-border spinner-border-sm"></span> جارِ جلب الباقات…</div>');
+        $.get('{{ route('istiqdam.packages.data') }}', {length: 10, start: 0}).done(response => {
+            const rows = (response.data || []).map(pkg => `<tr><td>${escapeHtml(pkg.id || pkg.packageId)}</td><td>${escapeHtml(pkg.nationality?.name?.ar || pkg.nationality)}</td><td>${escapeHtml(pkg.occupation?.name?.ar || pkg.occupation)}</td><td>${escapeHtml(pkg.duration?.value || pkg.duration)}</td><td>${escapeHtml(pkg.price?.gross || pkg.priceGross)}</td></tr>`).join('');
+            content.innerHTML = rows ? `<p class="text-muted small">المعروض 10 باقات. تظهر الباقات كاملة عند إنشاء العقد.</p><div class="table-responsive"><table class="table table-sm"><thead><tr><th>المعرف</th><th>الجنسية</th><th>المهنة</th><th>المدة</th><th>السعر</th></tr></thead><tbody>${rows}</tbody></table></div><a class="btn btn-primary" href="{{ route('istiqdam.contracts.create') }}">إنشاء عقد بهذه الباقات</a>` : '<p class="text-muted mb-0">لا توجد باقات متاحة حالياً.</p>';
+        }).fail(xhr => content.innerHTML = `<div class="alert alert-danger mb-0">${escapeHtml(error(xhr))}</div>`);
     });
-}
-
-function testRealPackages() {
-    Swal.fire({
-        title: 'جاري جلب الباقات...',
-        html: 'يرجى الانتظار أثناء جلب الباقات من المنصة الحكومية',
-        allowOutsideClick: false,
-        showConfirmButton: false,
-        didOpen: () => {
-            Swal.showLoading();
-
-            $.ajax({
-                url: '{{ route("istiqdam.packages.data") }}',
-                type: 'GET',
-                timeout: 30000,
-                success: function(response) {
-                    Swal.close();
-                    if (response.data && response.data.length > 0) {
-                        let packagesHtml = '<div class="table-responsive"><table class="table table-sm"><thead><tr><th>ID</th><th>الجنسية</th><th>المهنة</th><th>المدة</th><th>السعر</th></tr></thead><tbody>';
-                        response.data.forEach(function(pkg) {
-                            const nationality = pkg.nationality?.name?.ar || pkg.nationality || 'N/A';
-                            const occupation = pkg.occupation?.name?.ar || pkg.occupation || 'N/A';
-                            const duration = pkg.duration?.value || pkg.duration || 'N/A';
-                            const price = pkg.price?.gross || pkg.priceGross || 'N/A';
-                            packagesHtml += `<tr><td>${pkg.id || pkg.packageId || 'N/A'}</td><td>${nationality}</td><td>${occupation}</td><td>${duration}</td><td>${price}</td></tr>`;
-                        });
-                        packagesHtml += '</tbody></table></div>';
-
-                        Swal.fire({
-                            title: 'الباقات من المنصة الحكومية',
-                            html: packagesHtml,
-                            width: '800px',
-                            confirmButtonText: 'حسناً'
-                        });
-
-                        logTestResult('جلب الباقات', 'نجح', `تم جلب ${response.data.length} باقة من المنصة`);
-                    } else {
-                        Swal.fire('تنبيه', 'لا توجد باقات متاحة', 'info');
-                        logTestResult('جلب الباقات', 'فشل', 'لا توجد باقات متاحة');
-                    }
-                },
-                error: function(xhr, status, error) {
-                    Swal.close();
-                    let errorMsg = status === 'timeout' ? 'انتهت مهلة الانتظار' : 'حدث خطأ في الاتصال';
-                    Swal.fire('خطأ!', errorMsg, 'error');
-                    logTestResult('جلب الباقات', 'خطأ', errorMsg);
-                }
-            });
-        }
+    const inspect = id => {
+        open('تفاصيل العقد', '<div class="text-center py-4 text-muted"><span class="spinner-border spinner-border-sm"></span> جارِ جلب التفاصيل…</div>');
+        $.get(contractUrl(id)).done(response => content.innerHTML = `<pre class="small bg-light border rounded p-3 mb-3" dir="ltr">${escapeHtml(JSON.stringify(response.data, null, 2))}</pre><div class="d-flex flex-wrap gap-2"><a class="btn btn-outline-primary" href="{{ route('istiqdam.contracts.download', [':contractId', 'pdf']) }}" target="_blank">تنزيل PDF</a><button class="btn btn-outline-danger" id="cancel-contract" data-id="${escapeHtml(id)}">إلغاء العقد</button></div>`).fail(xhr => content.innerHTML = `<div class="alert alert-danger mb-0">${escapeHtml(error(xhr))}</div>`);
+    };
+    document.getElementById('contract-action').addEventListener('click', () => open('استعلام عن عقد', '<label class="form-label" for="contract-id">رقم العقد في المنصة</label><div class="input-group"><input class="form-control" id="contract-id" inputmode="numeric"><button class="btn btn-primary" id="find-contract">بحث</button></div>'));
+    document.getElementById('permit-action').addEventListener('click', () => open('إسناد تصريح عمل', '<div class="row g-3"><div class="col-md-6"><label class="form-label">رقم العقد</label><input class="form-control" id="permit-contract-id"></div><div class="col-md-6"><label class="form-label">رقم تصريح العمل</label><input class="form-control" id="permit-number"></div><div class="col-md-6"><label class="form-label">هوية العاملة</label><input class="form-control" id="laborer-id"></div><div class="col-md-6"><label class="form-label">تاريخ الميلاد</label><input class="form-control" type="date" id="laborer-birthdate"></div></div><button class="btn btn-primary mt-3" id="assign-permit">إسناد التصريح</button>'));
+    document.addEventListener('click', event => {
+        const inspectButton = event.target.closest('.inspect-contract'); if (inspectButton) inspect(inspectButton.dataset.contractId);
+        if (event.target.id === 'find-contract') { const id = document.getElementById('contract-id').value.trim(); if (id) inspect(id); }
+        if (event.target.id === 'assign-permit') { const id = document.getElementById('permit-contract-id').value.trim(), number = document.getElementById('permit-number').value.trim(), laborerId = document.getElementById('laborer-id').value.trim(), birthdate = document.getElementById('laborer-birthdate').value; if (!id || !number || !laborerId || !birthdate) { notice('warning', 'أكمل بيانات تصريح العمل والعاملة أولاً.'); return; } event.target.disabled = true; $.ajax({url: '{{ route('istiqdam.work-permit.assign', ':contractId') }}'.replace(':contractId', encodeURIComponent(id)), method: 'POST', headers: {'X-CSRF-TOKEN': csrf}, data: {work_permit_number: number, laborer_id: laborerId, laborer_birthdate: birthdate}}).done(response => { notice('success', response.message); modal?.hide(); }).fail(xhr => { notice('danger', error(xhr)); event.target.disabled = false; }); }
+        if (event.target.id === 'cancel-contract' && confirm('هل أنت متأكد من إلغاء هذا العقد في المنصة؟')) { const id = event.target.dataset.id; event.target.disabled = true; $.ajax({url: '{{ route('istiqdam.contracts.cancel', ':contractId') }}'.replace(':contractId', encodeURIComponent(id)), method: 'DELETE', headers: {'X-CSRF-TOKEN': csrf}}).done(response => { notice('success', response.message); modal?.hide(); }).fail(xhr => { notice('danger', error(xhr)); event.target.disabled = false; }); }
     });
-}
-
-function showContractForm() {
-    Swal.fire({
-        title: 'إنشاء عقد في المنصة الحكومية',
-        html: `
-            <div class="alert alert-warning">
-                <i class="fas fa-exclamation-triangle me-2"></i>
-                <strong>تحذير:</strong> هذا سيقوم بإنشاء عقد حقيقي في المنصة الحكومية!
-            </div>
-            <p>هل تريد المتابعة لصفحة إنشاء العقد؟</p>
-        `,
-        icon: 'warning',
-        showCancelButton: true,
-        confirmButtonText: 'نعم، المتابعة',
-        cancelButtonText: 'إلغاء',
-        confirmButtonColor: '#d33'
-    }).then((result) => {
-        if (result.isConfirmed) {
-            window.location.href = @json(route('istiqdam.contracts.create'));
-        }
-    });
-}
-
-function showSearchForm() {
-    Swal.fire({
-        title: 'البحث عن عقد في المنصة',
-        html: `
-            <input type="text" id="contractSearchId" class="form-control" placeholder="أدخل رقم العقد">
-        `,
-        showCancelButton: true,
-        confirmButtonText: 'بحث',
-        cancelButtonText: 'إلغاء',
-        preConfirm: () => {
-            const contractId = document.getElementById('contractSearchId').value;
-            if (!contractId) {
-                Swal.showValidationMessage('يرجى إدخال رقم العقد');
-                return false;
-            }
-            return contractId;
-        }
-    }).then((result) => {
-        if (result.isConfirmed) {
-            searchRealContract(result.value);
-        }
-    });
-}
-
-function searchRealContract(contractId) {
-    Swal.fire({
-        title: 'جاري البحث...',
-        html: `جاري البحث عن العقد ${contractId} في المنصة الحكومية`,
-        allowOutsideClick: false,
-        showConfirmButton: false,
-        didOpen: () => {
-            Swal.showLoading();
-
-            $.ajax({
-                url: '{{ route("istiqdam.contracts.show", ":id") }}'.replace(':id', contractId),
-                type: 'GET',
-                timeout: 30000,
-                success: function(response) {
-                    Swal.close();
-                    if (response.success) {
-                        Swal.fire({
-                            title: 'تم العثور على العقد!',
-                            html: `<pre class="text-start">${JSON.stringify(response.data, null, 2)}</pre>`,
-                            width: '800px',
-                            confirmButtonText: 'حسناً'
-                        });
-                        logTestResult('البحث عن عقد', 'نجح', `تم العثور على العقد ${contractId}`);
-                    } else {
-                        Swal.fire('لم يتم العثور على العقد', response.message, 'info');
-                        logTestResult('البحث عن عقد', 'فشل', response.message);
-                    }
-                },
-                error: function(xhr, status, error) {
-                    Swal.close();
-                    let errorMsg = status === 'timeout' ? 'انتهت مهلة الانتظار' : 'حدث خطأ في البحث';
-                    Swal.fire('خطأ!', errorMsg, 'error');
-                    logTestResult('البحث عن عقد', 'خطأ', errorMsg);
-                }
-            });
-        }
-    });
-}
-
-// تشخيص الاتصال
-$(document).on('click', '#diagnoseBtn', function() {
-    Swal.fire({
-        title: 'جاري التشخيص...',
-        html: 'جاري تشخيص مشاكل الاتصال مع المنصة الحكومية',
-        allowOutsideClick: false,
-        showConfirmButton: false,
-        didOpen: () => {
-            Swal.showLoading();
-
-            $.ajax({
-                url: '{{ route("istiqdam.diagnose") }}',
-                type: 'GET',
-                timeout: 30000,
-                success: function(response) {
-                    Swal.close();
-                    if (response.success) {
-                        let diagnosisHtml = `
-                            <div class="text-start">
-                                <h6>نتائج التشخيص:</h6>
-                                <table class="table table-sm">
-                                    <tr><td><strong>البيئة:</strong></td><td>${response.diagnosis.environment}</td></tr>
-                                    <tr><td><strong>رابط API:</strong></td><td><code>${response.diagnosis.base_url}</code></td></tr>
-                                    <tr><td><strong>معرف العميل:</strong></td><td>${response.diagnosis.client_id}</td></tr>
-                                    <tr><td><strong>طول مفتاح API:</strong></td><td>${response.diagnosis.api_key_length}</td></tr>
-                                    <tr><td><strong>مهلة الانتظار:</strong></td><td>${response.diagnosis.timeout} ثانية</td></tr>
-                                </table>
-
-                                <h6 class="mt-3">اختبار الاتصال الأساسي:</h6>
-                                <p>الحالة: <span class="badge ${response.diagnosis.health_check.success ? 'bg-success' : 'bg-danger'}">${response.diagnosis.health_check.success ? 'نجح' : 'فشل'}</span></p>
-                                <p>رمز الاستجابة: ${response.diagnosis.health_check.status}</p>
-
-                                <h6 class="mt-3">اختبار API الرئيسي:</h6>
-                                <p>الحالة: <span class="badge ${response.diagnosis.api_test.success ? 'bg-success' : 'bg-danger'}">${response.diagnosis.api_test.success ? 'نجح' : 'فشل'}</span></p>
-                                <p>رمز الاستجابة: ${response.diagnosis.api_test.status}</p>
-
-                                ${response.diagnosis.api_test.response ? `<p>الاستجابة: <code>${JSON.stringify(response.diagnosis.api_test.response, null, 2)}</code></p>` : ''}
-                            </div>
-                        `;
-
-                        Swal.fire({
-                            title: 'نتائج التشخيص',
-                            html: diagnosisHtml,
-                            width: '800px',
-                            confirmButtonText: 'حسناً'
-                        });
-
-                        logTestResult('تشخيص الاتصال', 'نجح', 'تم إكمال التشخيص');
-                    } else {
-                        Swal.fire('خطأ في التشخيص', response.message, 'error');
-                        logTestResult('تشخيص الاتصال', 'فشل', response.message);
-                    }
-                },
-                error: function(xhr, status, error) {
-                    Swal.close();
-                    let errorMsg = status === 'timeout' ? 'انتهت مهلة الانتظار' : 'حدث خطأ في التشخيص';
-                    Swal.fire('خطأ!', errorMsg, 'error');
-                    logTestResult('تشخيص الاتصال', 'خطأ', errorMsg);
-                }
-            });
-        }
-    });
-});
+    document.getElementById('diagnose-action').addEventListener('click', () => { open('تشخيص الإعداد', '<div class="text-center py-4 text-muted"><span class="spinner-border spinner-border-sm"></span> جارِ التشخيص…</div>'); $.get('{{ route('istiqdam.diagnose') }}').done(response => { const data = response.diagnosis; content.innerHTML = `<dl class="row mb-0"><dt class="col-sm-5">البيئة</dt><dd class="col-sm-7">${escapeHtml(data.environment)}</dd><dt class="col-sm-5">بيانات الاعتماد</dt><dd class="col-sm-7">${data.credentials_configured ? 'مهيأة' : 'ناقصة'}</dd><dt class="col-sm-5">اختبار الاتصال</dt><dd class="col-sm-7">${data.connection_test?.success ? 'نجح' : 'فشل'}</dd></dl>`; }).fail(xhr => content.innerHTML = `<div class="alert alert-danger mb-0">${escapeHtml(error(xhr))}</div>`); });
+})();
 </script>
-
-<style>
-.action-card {
-    transition: transform 0.2s;
-    border: 2px solid #e9ecef;
-}
-
-.action-card:hover {
-    transform: translateY(-5px);
-    box-shadow: 0 4px 8px rgba(0,0,0,0.15);
-}
-
-.action-icon {
-    opacity: 0.8;
-}
-
-.card {
-    border: none;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-}
-
-.border-primary {
-    border-color: #007bff !important;
-}
-
-.border-success {
-    border-color: #28a745 !important;
-}
-
-.border-info {
-    border-color: #17a2b8 !important;
-}
-
-code {
-    background-color: #f8f9fa;
-    padding: 2px 4px;
-    border-radius: 3px;
-    font-size: 0.875em;
-}
-</style>
+<style>.istiqdam-dashboard .metric-card{border:0;box-shadow:0 2px 10px rgba(0,0,0,.06)}.istiqdam-dashboard .metric-value{font-size:2rem;font-weight:700;margin-top:.25rem}.istiqdam-dashboard .list-group-item{border-left:0;border-right:0}.istiqdam-dashboard .list-group-item:first-child{border-top:0}</style>
 @endsection
