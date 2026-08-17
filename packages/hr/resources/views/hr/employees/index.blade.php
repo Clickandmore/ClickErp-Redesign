@@ -51,6 +51,7 @@
             <th>{{ __("hr::hr.Date of hiring") }}</th>
             <th>{{ __("hr::hr.job") }}</th>
             <th>{{ __("hr::hr.department") }}</th>
+            <th>{{ __('financial_requests.branch') }}</th>
             <th>{{ __("hr::hr.Status") }}</th>
             <th>{{__("hr::hr.actions")}}</th>
         </tr>
@@ -93,6 +94,7 @@
                     {"data": "hired_date", orderable: false, searchable: true},
                     {"data": "job_id", orderable: false, searchable: true},
                     {"data": "deparment_id", orderable: false, searchable: true},
+                    {"data": "branch", orderable: false, searchable: true},
                     {"data": "status", orderable: false, searchable: false},
                     {"data": "actions", orderable: false, searchable: false}
                 ],

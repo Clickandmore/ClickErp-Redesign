@@ -78,8 +78,14 @@
                             <option value="all" {{ ($workerScope ?? 'current') === 'all' ? 'selected' : '' }}>جميع عاملات التأجير</option>
                         </select>
                     </div>
+                    @include('admin.partials.branch-filter', [
+                        'id' => 'payroll_branch_id',
+                        'name' => 'branch_id',
+                        'label' => __('financial_requests.branch'),
+                        'containerClass' => '',
+                    ])
                     <button type="submit" class="btn btn-primary">بحث</button>
-                    <a href="{{ route('payrolls.create', ['month' => $selectedMonth]) }}" class="btn btn-outline-secondary">إعادة ضبط</a>
+                    <a href="{{ route('payrolls.create', array_filter(['month' => $selectedMonth, 'branch_id' => $selectedBranchId])) }}" class="btn btn-outline-secondary">إعادة ضبط</a>
                 </form>
 
                 <a href="{{ $indexRoute }}" class="btn btn-outline-secondary">

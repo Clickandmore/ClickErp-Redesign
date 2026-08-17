@@ -3,6 +3,7 @@
 namespace Nami\Hr\Http\Controllers;
 
 use App\Http\Controllers\admin\Controller;
+use App\Services\BranchAccessService;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use App\Models\ingaz\Setting;
@@ -21,10 +22,16 @@ class PayrollController extends Controller
     public function index(Request $request)
     {
         $month = $request->input('month');
+        $branchId = app(BranchAccessService::class)->selectedBranchId($request);
 
         $payrolls = Payroll::query()
             ->when($month, function ($query) use ($month) {
                 $query->where('month_year', $month);
+            })
+            ->when($branchId, function ($query) use ($branchId) {
+                $query->whereHas('items.maid', function ($maidQuery) use ($branchId) {
+                    $maidQuery->where('branch_id', $branchId);
+                });
             })
             ->latest('month_year')
             ->latest('id')
@@ -34,13 +41,17 @@ class PayrollController extends Controller
             'bladeTitle' => 'مسير الرواتب',
             'selectedMonth' => $month,
             'payrolls' => $payrolls,
-            'createRoute' => route('payrolls.create', array_filter(['month' => $month])),
+            'createRoute' => route('payrolls.create', array_filter([
+                'month' => $month,
+                'branch_id' => $branchId,
+            ])),
         ]);
     }
 
     public function create(Request $request, \App\Http\Actions\ingaz\MaidAction $maidAction)
     {
         $maidAction->syncAllRentalMaidsToHr();
+        $branchId = app(BranchAccessService::class)->selectedBranchId($request);
 
         [$monthYear, $monthDate, $actualMonthDays] = $this->resolveMonthContext($request->input('month'));
         [$monthDaysDisplayOption, $monthDays] = $this->resolveMonthDaysDisplayOption(
@@ -54,6 +65,11 @@ class PayrollController extends Controller
         $rows = Employee::query()
             ->onlyMaids()
             ->whereNotNull('maid_id')
+            ->when($branchId, function ($query) use ($branchId) {
+                $query->whereHas('maid', function ($maidQuery) use ($branchId) {
+                    $maidQuery->where('branch_id', $branchId);
+                });
+            })
             ->when($passportNumber !== '', function ($query) use ($passportNumber) {
                 $query->whereHas('maid', function ($maidQuery) use ($passportNumber) {
                     $maidQuery->where('passport_num', 'like', '%' . $passportNumber . '%');
@@ -103,9 +119,10 @@ class PayrollController extends Controller
             'monthLabel' => $monthDate->locale(app()->getLocale())->translatedFormat('F Y'),
             'monthDays' => $monthDays,
             'actualMonthDays' => $actualMonthDays,
+            'selectedBranchId' => $branchId,
             'rows' => $rows,
             'storeRoute' => route('payrolls.store'),
-            'indexRoute' => route('payrolls.index'),
+            'indexRoute' => route('payrolls.index', array_filter(['branch_id' => $branchId])),
         ]);
     }
 

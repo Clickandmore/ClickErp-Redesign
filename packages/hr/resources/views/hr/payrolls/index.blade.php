@@ -22,16 +22,25 @@
             </div>
 
             <div class="d-flex align-items-end gap-2 flex-wrap">
-                <form method="GET" action="{{ route('payrolls.index') }}">
-                    <label for="month" class="form-label mb-1">تصفية بالشهر</label>
-                    <input
-                        id="month"
-                        name="month"
-                        type="month"
-                        class="form-control"
-                        value="{{ $selectedMonth }}"
-                        onchange="this.form.submit()"
-                    >
+                <form method="GET" action="{{ route('payrolls.index') }}" class="d-flex align-items-end gap-2 flex-wrap">
+                    <div>
+                        <label for="month" class="form-label mb-1">تصفية بالشهر</label>
+                        <input
+                            id="month"
+                            name="month"
+                            type="month"
+                            class="form-control"
+                            value="{{ $selectedMonth }}"
+                            onchange="this.form.submit()"
+                        >
+                    </div>
+
+                    @include('admin.partials.branch-filter', [
+                        'id' => 'payroll_branch_id',
+                        'name' => 'branch_id',
+                        'label' => __('financial_requests.branch'),
+                        'containerClass' => '',
+                    ])
                 </form>
 
                 <a href="{{ $createRoute }}" class="btn btn-primary">
@@ -103,6 +112,13 @@
 @section('js')
     <script>
         (function () {
+            const branchFilter = document.querySelector('[name="branch_id"]');
+            if (branchFilter && branchFilter.tagName === 'SELECT') {
+                branchFilter.addEventListener('change', function () {
+                    this.form.submit();
+                });
+            }
+
             const rows = Array.from(document.querySelectorAll('.payroll-summary-row'));
             const selectAll = document.querySelector('[data-select-all]');
             const summary = document.querySelector('[data-selected-count]');

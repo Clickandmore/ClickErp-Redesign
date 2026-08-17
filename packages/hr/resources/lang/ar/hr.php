@@ -129,7 +129,7 @@ return array (
   'employeeAttendances' => 'الحضور و الانصراف',
   'hr_employee_attendances' => 'الحضور و الانصراف',
   'salaries' => 'المرتبات',
-  'payrolls' => 'مسير الرواتب',
+  'payrolls' => 'مسير الرواتب للعاملات',
   'hr_employee_salary' => 'المرتبات',
   'letters' => 'الخطابات',
   'hr_letters' => 'الخطابات',

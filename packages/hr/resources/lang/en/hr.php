@@ -139,7 +139,7 @@ return array (
   'employeeAttendances' => 'employee attendances',
   'hr_employee_attendances' => 'employee attendances',
   'salaries' => 'salaries',
-  'payrolls' => 'Payrolls',
+  'payrolls' => 'Maid Payrolls',
   'hr_employee_salary' => 'salaries',
   'letters' => 'letters',
   'hr_letters' => 'letters',
