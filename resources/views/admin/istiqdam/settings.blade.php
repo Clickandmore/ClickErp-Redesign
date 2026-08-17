@@ -23,9 +23,9 @@
                     @csrf
                     @method('PUT')
                     <div class="col-md-6">
-                        <label class="form-label" for="establishment_name">English establishment name <span class="text-danger">*</span></label>
-                        <input class="form-control @error('establishment_name') is-invalid @enderror" id="establishment_name" name="establishment_name" value="{{ old('establishment_name', $istiqdamSettings?->establishment_name) }}" required autocomplete="organization">
-                        <div class="form-text">الاسم الإنجليزي للمنشأة كما هو مسجل لدى تكامل.</div>
+                        <label class="form-label" for="establishment_name">English establishment name <span class="text-muted">(اختياري)</span></label>
+                        <input class="form-control @error('establishment_name') is-invalid @enderror" id="establishment_name" name="establishment_name" value="{{ old('establishment_name', $istiqdamSettings?->establishment_name) }}" autocomplete="organization">
+                        <div class="form-text">للتعريف داخل النظام فقط؛ لا يدخل في مصادقة OAuth.</div>
                         @error('establishment_name')<div class="invalid-feedback">{{ $message }}</div>@enderror
                     </div>
                     <div class="col-md-6">

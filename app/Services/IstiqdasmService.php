@@ -128,11 +128,15 @@ class IstiqdasmService
                 return $token;
             }
 
-            $this->lastAuthenticationError = 'رفضت بوابة OAuth الطلب (HTTP ' . $response->status() . ').';
+            $responseBody = $response->json();
+            $providerMessage = is_array($responseBody)
+                ? ($responseBody['error_description'] ?? $responseBody['description'] ?? $responseBody['message'] ?? $responseBody['error'] ?? null)
+                : null;
+            $this->lastAuthenticationError = 'رفضت بوابة OAuth الطلب (HTTP ' . $response->status() . ')' . ($providerMessage ? ': ' . $providerMessage : '.');
 
             Log::channel('istiqdam')->error('Istiqdam OAuth2 token fetch failed', [
                 'status'   => $response->status(),
-                'response' => $response->json(),
+                'response' => $responseBody,
             ]);
 
             return null;

@@ -55,14 +55,14 @@ class IstiqdasmRealController extends Controller
     public function updateSettings(Request $request)
     {
         $validated = $request->validate([
-            'establishment_name' => ['required', 'string', 'max:255'],
+            'establishment_name' => ['nullable', 'string', 'max:255'],
             'client_id' => ['required', 'string', 'max:255'],
             'client_secret' => ['nullable', 'string', 'max:2000'],
             'api_key' => ['nullable', 'string', 'max:2000'],
         ]);
 
         $settings = IstiqdamSetting::query()->firstOrNew();
-        $settings->establishment_name = $validated['establishment_name'];
+        $settings->establishment_name = $validated['establishment_name'] ?? null;
         $settings->client_id = $validated['client_id'];
         if ($request->filled('client_secret')) {
             $settings->client_secret = $validated['client_secret'];
@@ -632,8 +632,7 @@ class IstiqdasmRealController extends Controller
 
     private function isConfigured(?IstiqdamSetting $settings): bool
     {
-        return (bool) ($settings?->establishment_name
-            && $settings?->client_id
+        return (bool) ($settings?->client_id
             && $settings?->client_secret
             && $settings?->api_key);
     }
