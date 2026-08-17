@@ -139,6 +139,13 @@ class DatabaseBackupService
         $this->assertValidKey($key);
         $this->assertR2Ready();
 
+        // A restore can legitimately take longer than the web request's default
+        // execution limit. Keep it running even if the browser/proxy disconnects.
+        if (function_exists('set_time_limit')) {
+            set_time_limit(0);
+        }
+        ignore_user_abort(true);
+
         Cache::lock('database-backup-operation', 7200)->block(5, function () use ($key): void {
             $disk = $this->disk();
             if (!$disk->exists($key)) {
@@ -174,12 +181,29 @@ class DatabaseBackupService
                     throw new RuntimeException('ملف النسخة تالف أو ليس بصيغة SQL مضغوطة.');
                 }
 
+                $restoreInput = fopen('php://temp/maxmemory:5242880', 'w+b');
+                if (!is_resource($restoreInput)) {
+                    gzclose($sql);
+                    throw new RuntimeException('تعذر تجهيز محتوى النسخة للاستعادة.');
+                }
+
+                $connection = $this->connection();
+                try {
+                    $this->prepareRestoreInput($sql, $restoreInput);
+                } finally {
+                    gzclose($sql);
+                }
+                rewind($restoreInput);
+
                 DB::disconnect();
-                $process = new Process($this->mysqlCommand(), base_path(), $this->processEnvironment());
+                $process = new Process($this->mysqlCommand($connection), base_path(), $this->processEnvironment($connection));
                 $process->setTimeout(7200);
-                $process->setInput($sql);
-                $process->run();
-                gzclose($sql);
+                $process->setInput($restoreInput);
+                try {
+                    $process->run();
+                } finally {
+                    fclose($restoreInput);
+                }
 
                 if (!$process->isSuccessful()) {
                     throw new RuntimeException('فشلت استعادة قاعدة البيانات: ' . trim($process->getErrorOutput()));
@@ -281,7 +305,7 @@ class DatabaseBackupService
         $connection = $this->connection();
         $command = array_merge([$binary], $this->connectionArguments($connection), [
             '--single-transaction', '--quick', '--routines', '--triggers', '--events',
-            '--hex-blob', '--no-tablespaces', '--default-character-set=utf8mb4', '--add-drop-table', '--databases',
+            '--hex-blob', '--no-tablespaces', '--default-character-set=utf8mb4', '--add-drop-table',
             (string) $connection['database'],
         ]);
 
@@ -294,9 +318,43 @@ class DatabaseBackupService
         return $command;
     }
 
-    private function mysqlCommand(): array
+    private function mysqlCommand(?array $connection = null): array
     {
-        return array_merge([$this->binary('mysql')], $this->connectionArguments($this->connection()));
+        $connection ??= $this->connection();
+
+        return array_merge([$this->binary('mysql')], $this->connectionArguments($connection), [
+            '--database=' . $connection['database'],
+        ]);
+    }
+
+    /**
+     * Remove database-selection statements from old dumps created with
+     * mysqldump --databases. The mysql client is always pinned to the database
+     * configured for this application, so a production dump cannot create or
+     * switch to its original database name during a restore.
+     *
+     * @param resource $source
+     * @param resource $destination
+     */
+    private function prepareRestoreInput($source, $destination): void
+    {
+        while (($line = fgets($source)) !== false) {
+            if (preg_match('/^\s*(?:CREATE|DROP|ALTER)\s+DATABASE\b.*;\s*$/i', $line)) {
+                continue;
+            }
+
+            if (preg_match('/^\s*USE\s+(?:`(?:``|[^`])+`|[^;\s]+)\s*;\s*$/i', $line)) {
+                continue;
+            }
+
+            if (fwrite($destination, $line) === false) {
+                throw new RuntimeException('تعذر تجهيز محتوى النسخة للاستعادة.');
+            }
+        }
+
+        if (!feof($source)) {
+            throw new RuntimeException('تعذر فك ضغط النسخة الاحتياطية.');
+        }
     }
 
     private function connectionArguments(array $connection): array
@@ -332,9 +390,11 @@ class DatabaseBackupService
         return array_replace(['host' => '127.0.0.1', 'port' => 3306, 'password' => '', 'unix_socket' => ''], $connection);
     }
 
-    private function processEnvironment(): array
+    private function processEnvironment(?array $connection = null): array
     {
-        return ['MYSQL_PWD' => (string) ($this->connection()['password'] ?? '')];
+        $connection ??= $this->connection();
+
+        return ['MYSQL_PWD' => (string) ($connection['password'] ?? '')];
     }
 
     private function binary(string $name): string
