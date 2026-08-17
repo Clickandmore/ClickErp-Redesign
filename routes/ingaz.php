@@ -630,6 +630,7 @@ Route::group(
                 Route::get('/packages/{packageId}', [\App\Http\Controllers\admin\IstiqdasmRealController::class, 'getPackage'])->name('packages.show');
 
                 // Contracts
+                Route::get('/contracts/create', [\App\Http\Controllers\admin\IstiqdasmRealController::class, 'createContract'])->name('contracts.create');
                 Route::post('/contracts', [\App\Http\Controllers\admin\IstiqdasmRealController::class, 'storeContract'])->name('contracts.store');
                 Route::get('/contracts/{contractId}', [\App\Http\Controllers\admin\IstiqdasmRealController::class, 'getContractDetails'])->name('contracts.show');
                 Route::delete('/contracts/{contractId}', [\App\Http\Controllers\admin\IstiqdasmRealController::class, 'cancelContract'])->name('contracts.cancel');

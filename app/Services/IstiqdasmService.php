@@ -15,15 +15,29 @@ class IstiqdasmService
     protected string $clientSecret;
     protected string $apiKey;
     protected string $scope;
+    protected string $environment;
     protected int $timeout;
+    protected int $connectTimeout;
     protected string $tokenCacheKey;
     protected int $tokenCacheTtl;
+    protected ?string $lastAuthenticationError = null;
 
     public function __construct()
     {
-        $env    = Config::get('istiqdam.current_env');
+        $env    = Config::get('istiqdam.current_env', 'staging');
         $config = Config::get("istiqdam.environments.{$env}");
 
+        // The working Asuss installation calls this environment "stage" while
+        // this project historically used "staging". Accept both names.
+        if (!is_array($config) && $env === 'stage') {
+            $config = Config::get('istiqdam.environments.staging');
+        }
+
+        if (!is_array($config)) {
+            throw new \RuntimeException("Istiqdam environment [{$env}] is not configured.");
+        }
+
+        $this->environment   = $env;
         $this->baseUrl       = rtrim($config['base_url'], '/');
         $this->oauthUrl      = $config['oauth_url'];
         $this->clientId      = $config['client_id'];
@@ -31,6 +45,7 @@ class IstiqdasmService
         $this->apiKey        = $config['api_key'];
         $this->scope         = $config['scope'];
         $this->timeout       = Config::get('istiqdam.timeout', 30);
+        $this->connectTimeout = Config::get('istiqdam.connect_timeout', 10);
         $this->tokenCacheKey = Config::get('istiqdam.token_cache_key', 'istiqdam_oauth_token');
         $this->tokenCacheTtl = Config::get('istiqdam.token_cache_ttl', 3500);
     }
@@ -71,18 +86,35 @@ class IstiqdasmService
                     'API-KEY'             => $this->apiKey,
                     'Content-Type'        => 'application/x-www-form-urlencoded',
                 ])
-                ->withOptions(['verify' => true, 'http_errors' => false])
+                ->withOptions([
+                    'verify' => true,
+                    'http_errors' => false,
+                    'connect_timeout' => $this->connectTimeout,
+                ])
                 ->asForm()
                 ->post($this->oauthUrl, [
                     'grant_type' => 'client_credentials',
                     'scope'      => $this->scope,
                 ]);
 
-            $this->logApiCall('POST', $this->oauthUrl, ['grant_type' => 'client_credentials'], $response);
+            // OAuth responses contain the access token, so never pass the response body to the API logger.
+            if (Config::get('istiqdam.logging.enabled')) {
+                Log::channel('istiqdam')->info('Istiqdam OAuth2 token request', [
+                    'endpoint' => $this->oauthUrl,
+                    'status' => $response->status(),
+                ]);
+            }
 
             if ($response->successful()) {
-                return $response->json('access_token');
+                $token = $response->json('access_token');
+                $this->lastAuthenticationError = $token
+                    ? null
+                    : 'استجابة OAuth لا تحتوي على access_token.';
+
+                return $token;
             }
+
+            $this->lastAuthenticationError = 'رفضت بوابة OAuth الطلب (HTTP ' . $response->status() . ').';
 
             Log::channel('istiqdam')->error('Istiqdam OAuth2 token fetch failed', [
                 'status'   => $response->status(),
@@ -92,6 +124,7 @@ class IstiqdasmService
             return null;
 
         } catch (\Exception $e) {
+            $this->lastAuthenticationError = $this->connectionErrorMessage($e);
             Log::channel('istiqdam')->error('Istiqdam OAuth2 exception', ['error' => $e->getMessage()]);
             return null;
         }
@@ -112,11 +145,16 @@ class IstiqdasmService
             ->withHeaders([
                 'Authorization'   => 'Bearer ' . $token,
                 'X-IBM-Client-Id' => $this->clientId,
+                'X-IBM-Client-Secret' => $this->clientSecret,
                 'API-KEY'         => $this->apiKey,
                 'Accept'          => 'application/json',
                 'Content-Type'    => 'application/json',
             ])
-            ->withOptions(['verify' => true, 'http_errors' => false]);
+            ->withOptions([
+                'verify' => true,
+                'http_errors' => false,
+                'connect_timeout' => $this->connectTimeout,
+            ]);
     }
 
     // -------------------------------------------------------------------------
@@ -156,7 +194,10 @@ class IstiqdasmService
      */
     public function createContract(array $contractData): array
     {
-        $endpoint = '/takamol/staging/external/v1/createcontractapiwrapper';
+        $endpoint = $this->endpoint(
+            '/takamol/staging/external/v1/createcontractapiwrapper',
+            '/api/protected/istiqdam/contract'
+        );
         $url      = $this->baseUrl . $endpoint;
 
         try {
@@ -181,7 +222,10 @@ class IstiqdasmService
      */
     public function getContractDetails(string $contractId): array
     {
-        $endpoint = "/takamol/staging/api/v1/external/contractDetails/{$contractId}";
+        $endpoint = $this->endpoint(
+            "/takamol/staging/api/v1/external/contractDetails/{$contractId}",
+            "/api/protected/istiqdam/contractDetails/{$contractId}"
+        );
         $url      = $this->baseUrl . $endpoint;
 
         try {
@@ -206,7 +250,10 @@ class IstiqdasmService
      */
     public function cancelContract(string $contractId): array
     {
-        $endpoint = "/takamol/staging/api/v1/external/cancelContract/{$contractId}";
+        $endpoint = $this->endpoint(
+            "/takamol/staging/api/v1/external/cancelContract/{$contractId}",
+            "/api/protected/istiqdam/cancelContract/{$contractId}"
+        );
         $url      = $this->baseUrl . $endpoint;
 
         try {
@@ -231,7 +278,10 @@ class IstiqdasmService
      */
     public function downloadContract(string $contractId, string $type = 'pdf'): array
     {
-        $endpoint = "/takamol/staging/api/v1/external/downloadContract/{$contractId}";
+        $endpoint = $this->endpoint(
+            "/takamol/staging/api/v1/external/downloadContract/{$contractId}",
+            "/api/protected/istiqdam/downloadContract/{$contractId}"
+        );
         $url      = $this->baseUrl . $endpoint . "?type={$type}";
 
         try {
@@ -263,7 +313,10 @@ class IstiqdasmService
      */
     public function getPackage(int $packageId): array
     {
-        $endpoint = "/takamol/staging/api/v1/external/package/{$packageId}";
+        $endpoint = $this->endpoint(
+            "/takamol/staging/api/v1/external/package/{$packageId}",
+            "/api/protected/istiqdam/package/{$packageId}"
+        );
         $url      = $this->baseUrl . $endpoint;
 
         try {
@@ -292,13 +345,22 @@ class IstiqdasmService
      */
     public function getPackages(int $page = 0, int $size = 10, array $filters = []): array
     {
-        $endpoint = '/takamol/staging/api/v1/external/packages';
+        $endpoint = $this->endpoint(
+            '/takamol/staging/api/v1/external/packages',
+            '/api/protected/istiqdam/packages'
+        );
 
-        $queryParams = array_merge([
-            'Page' => $page,
-            'Size' => $size,
-            'Sort' => 'createdAt,desc',
-        ], $filters);
+        $queryParams = $this->usesTakamolGateway()
+            ? array_merge([
+                'Page' => $page,
+                'Size' => $size,
+                'Sort' => 'createdAt,desc',
+            ], $this->mapGatewayFilters($filters))
+            : array_merge([
+                'page' => $page,
+                'size' => $size,
+                'sort' => 'createdAt,desc',
+            ], $filters);
 
         $url = $this->baseUrl . $endpoint . '?' . http_build_query($queryParams);
 
@@ -327,7 +389,10 @@ class IstiqdasmService
      */
     public function assignWorkPermit(string $contractId, array $workPermitData): array
     {
-        $endpoint = "/takamol/staging/api/v1/external/workPermitAssignment/{$contractId}";
+        $endpoint = $this->endpoint(
+            "/takamol/staging/api/v1/external/workPermitAssignment/{$contractId}",
+            "/api/protected/istiqdam/workPermitAssignment/{$contractId}"
+        );
         $url      = $this->baseUrl . $endpoint;
 
         try {
@@ -360,7 +425,8 @@ class IstiqdasmService
         if (!$token) {
             return [
                 'success' => false,
-                'error'   => 'فشل في الحصول على OAuth2 Token - تحقق من Client ID و Client Secret و API-KEY',
+                'error'   => $this->lastAuthenticationError
+                    ?: 'فشل الحصول على OAuth2 Token؛ تحقق من Client ID وClient Secret وAPI Key.',
             ];
         }
 
@@ -406,7 +472,6 @@ class IstiqdasmService
             $token = $this->fetchNewToken();
             $diagnosis['oauth2_test'] = [
                 'success'    => (bool) $token,
-                'token_hint' => $token ? substr($token, 0, 10) . '...' : null,
             ];
         } catch (\Exception $e) {
             $diagnosis['oauth2_test'] = ['error' => $e->getMessage()];
@@ -445,5 +510,62 @@ class IstiqdasmService
             'status_code' => $response->status(),
             'body'        => $body,
         ];
+    }
+
+    private function usesTakamolGateway(): bool
+    {
+        return in_array($this->environment, ['stage', 'staging', 'uat'], true);
+    }
+
+    private function endpoint(string $gatewayEndpoint, string $productionEndpoint): string
+    {
+        return $this->usesTakamolGateway() ? $gatewayEndpoint : $productionEndpoint;
+    }
+
+    private function mapGatewayFilters(array $filters): array
+    {
+        $keyMap = [
+            'packageid' => 'PackageId',
+            'duration' => 'Duration',
+            'nationality' => 'Nationality',
+            'occupation' => 'Occupation',
+            'gender' => 'Gender',
+            'pricegrossmin' => 'PriceGrossMin',
+            'pricegrossmax' => 'PriceGrossMax',
+        ];
+
+        $mapped = [];
+        foreach ($filters as $key => $value) {
+            if ($value === null || $value === '') {
+                continue;
+            }
+
+            $mapped[$keyMap[strtolower((string) $key)] ?? $key] = $value;
+        }
+
+        return $mapped;
+    }
+
+    private function connectionErrorMessage(\Throwable $exception): string
+    {
+        $message = $exception->getMessage();
+
+        if (preg_match('/cURL error 6|Could not resolve host/i', $message)) {
+            return 'تعذر العثور على نطاق بوابة تكامل (DNS).';
+        }
+
+        if (preg_match('/cURL error 7|Failed to connect/i', $message)) {
+            return 'تعذر فتح اتصال شبكي مع بوابة تكامل؛ تحقق من الجدار الناري وIP المسموح.';
+        }
+
+        if (preg_match('/cURL error 28|timed out/i', $message)) {
+            return 'انتهت مهلة الاتصال ببوابة تكامل.';
+        }
+
+        if (preg_match('/SSL|certificate/i', $message)) {
+            return 'فشل التحقق من شهادة TLS الخاصة ببوابة تكامل.';
+        }
+
+        return 'حدث خطأ أثناء الاتصال بخدمة OAuth في تكامل.';
     }
 }

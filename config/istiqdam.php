@@ -30,7 +30,7 @@ return [
         ],
         'production' => [
             'base_url'      => env('ISTIQDAM_PROD_BASE_URL', 'https://gw-apic.qiwa.sa'),
-            'oauth_url'     => env('ISTIQDAM_PROD_OAUTH_URL', 'https://gw-apic.qiwa.sa/takamol/staging/takamol-oauth/oauth2/token'),
+            'oauth_url'     => env('ISTIQDAM_PROD_OAUTH_URL', 'https://gw-apic.qiwa.sa/takamol/prod/takamol-oauth/oauth2/token'),
             'client_id'     => env('ISTIQDAM_PROD_CLIENT_ID', ''),
             'client_secret' => env('ISTIQDAM_PROD_CLIENT_SECRET', ''),
             'api_key'       => env('ISTIQDAM_PROD_API_KEY', ''),
@@ -61,6 +61,7 @@ return [
     |--------------------------------------------------------------------------
     */
     'timeout' => 30,
+    'connect_timeout' => 10,
 
     /*
     |--------------------------------------------------------------------------
