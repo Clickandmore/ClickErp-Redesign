@@ -1529,6 +1529,21 @@
                                 </div>
                             </div>
 
+                            <div class="row g-2 mb-3">
+                                <div class="col-6">
+                                    <div class="border rounded p-2 bg-info-subtle">
+                                        <small class="text-muted d-block">إشعارات دائنة سابقة</small>
+                                        <strong id="refundPreviewPreviousCredit">0.00</strong>
+                                    </div>
+                                </div>
+                                <div class="col-6">
+                                    <div class="border rounded p-2 bg-danger-subtle">
+                                        <small class="text-muted d-block">الإشعار الذي سينشأ الآن</small>
+                                        <strong id="refundPreviewRemainingCredit">0.00</strong>
+                                    </div>
+                                </div>
+                            </div>
+
                             <div class="alert alert-warning py-2 d-none" id="refundPreviewWarnings"></div>
 
                             <div class="table-responsive">
@@ -3213,6 +3228,8 @@
                 $('#refundPreviewPenaltyPercent').text(formatRefundMoney(summary.penalty_percent) + '%');
                 $('#refundPreviewPenaltyAmount').text(formatRefundMoney(summary.penalty_amount));
                 $('#refundPreviewRefundAmount').text(formatRefundMoney(summary.refund_amount));
+                $('#refundPreviewPreviousCredit').text(formatRefundMoney(summary.previous_credit_amount));
+                $('#refundPreviewRemainingCredit').text(formatRefundMoney(summary.remaining_credit_note_amount));
                 $('#refundPreviewParty').text(summary.cancelled_by_label || 'غير محدد');
                 $('#refundPreviewTotalDebtor').text(formatRefundMoney(totals.debtor));
                 $('#refundPreviewTotalCreditor').text(formatRefundMoney(totals.creditor));

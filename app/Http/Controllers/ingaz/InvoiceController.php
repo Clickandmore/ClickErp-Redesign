@@ -3114,6 +3114,18 @@ class InvoiceController extends Controller
                     $invoice->setRelation('invoiceConstraint', $sourceConstraint);
                 }
 
+                if ($invoice->contract_id
+                    && !$invoice->invoice_constraint_id
+                    && !$invoice->arrival_revenue_constraint_id) {
+                    $sourceConstraint = $this->ensureRecruitmentInvoiceConstraintForCreditNote(
+                        $invoice,
+                        $service,
+                        $yearService
+                    );
+                    $invoice->update(['invoice_constraint_id' => $sourceConstraint->id]);
+                    $invoice->setRelation('invoiceConstraint', $sourceConstraint);
+                }
+
                 if (!$invoice->contract_id && !$invoice->ingaz_delegation_id
                     && $invoice->client_id && !$invoice->invoice_constraint_id) {
                     $clientAccountId = $this->ensureClientUserAccountId($invoice->client);
@@ -3254,6 +3266,109 @@ class InvoiceController extends Controller
         return response()->view('admin.ingaz.invoices.print', $viewData, 200, [
             'Content-Type' => 'text/html; charset=UTF-8',
         ]);
+    }
+
+    public function createSystemCreditNoteForRecruitmentRefund(
+        Invoice $invoice,
+        string $issueDate,
+        string $reason,
+        ObjService $service,
+        YearService $yearService
+    ): ?RecruitmentInvoiceCreditNote {
+        $invoice->loadMissing([
+            'contract.user',
+            'financeSale.items',
+            'recruitmentCreditNotes',
+            'invoiceConstraint.constraintDetails',
+            'arrivalRevenueConstraint.constraintDetails',
+        ]);
+
+        if (!$invoice->contract_id || !$invoice->contract) {
+            throw new \RuntimeException('الاسترداد التلقائي متاح لفاتورة عقد استقدام فقط.');
+        }
+
+        $remaining = $this->recruitmentCreditNoteRemaining($invoice);
+        if ((float) $remaining['total'] <= 0.01) {
+            return null;
+        }
+
+        if (!$invoice->invoice_constraint_id && !$invoice->arrival_revenue_constraint_id) {
+            $sourceConstraint = $this->ensureRecruitmentInvoiceConstraintForCreditNote(
+                $invoice,
+                $service,
+                $yearService
+            );
+            $invoice->update(['invoice_constraint_id' => $sourceConstraint->id]);
+            $invoice->setRelation('invoiceConstraint', $sourceConstraint);
+        }
+
+        $creditNote = RecruitmentInvoiceCreditNote::query()->create([
+            'invoice_id' => $invoice->id,
+            'contract_id' => $invoice->contract_id,
+            'ingaz_delegation_id' => null,
+            'issue_date' => $issueDate,
+            'reason' => trim($reason),
+            'taxable_amount' => $remaining['taxable_amount'],
+            'non_taxable_amount' => $remaining['non_taxable_amount'],
+            'subtotal' => $remaining['subtotal'],
+            'vat_amount' => $remaining['vat_amount'],
+            'total' => $remaining['total'],
+            'line_items' => $this->buildRecruitmentCreditNoteItems(
+                $invoice,
+                (float) $remaining['taxable_amount'],
+                (float) $remaining['non_taxable_amount']
+            ),
+            'send_to_zatca' => true,
+            'created_by_id' => Auth::guard('admin')->id() ?: Auth::id(),
+        ]);
+
+        $constraint = $this->storeRecruitmentCreditNoteConstraint($creditNote, $invoice, $service, $yearService);
+        $sale = $this->storeRecruitmentCreditNoteSale($creditNote, $invoice);
+        $creditNote->update([
+            'constraint_id' => $constraint->id,
+            'finance_sale_id' => $sale->id,
+        ]);
+
+        return $creditNote->fresh(['constraint', 'financeSale']);
+    }
+
+    private function ensureRecruitmentInvoiceConstraintForCreditNote(
+        Invoice $invoice,
+        ObjService $service,
+        YearService $yearService
+    ): Constraint {
+        $invoice->loadMissing([
+            'contract.user',
+            'contract.maid.nationality',
+            'contract.requiredMaidNationality',
+        ]);
+        $contract = $invoice->contract;
+        if (!$contract) {
+            throw new \RuntimeException('الفاتورة غير مرتبطة بعقد استقدام صالح.');
+        }
+
+        $invoiceDate = optional($invoice->created_at)?->copy() ?: now();
+        $this->assertRecruitmentInvoiceAccountingConfiguration($invoiceDate, $yearService);
+        $nationality = $contract->maid?->nationality ?? $contract->requiredMaidNationality;
+        $nationalityName = $nationality?->sub_title ?? $nationality?->title ?? null;
+        $nationalityAccountId = $this->resolveContractNationalityLiabilityAccountId($nationality);
+        if (!$nationalityAccountId) {
+            throw new \RuntimeException('حساب التزامات عقود الجنسية غير مربوط أو غير صالح.');
+        }
+
+        $constraint = $this->storeInvoiceConstraintForInvoice(
+            $invoice,
+            $service,
+            $yearService,
+            $nationalityAccountId,
+            $this->ensureClientAccountId($contract),
+            $this->ensureRecruitmentContractCostCenter($contract, $nationalityName)->id
+        );
+        if (!$constraint) {
+            throw new \RuntimeException('تعذر إنشاء قيد الفاتورة الأصلي قبل إشعار الدائن.');
+        }
+
+        return $constraint;
     }
 
     public function prepareInvoiceViewData(int $id): array

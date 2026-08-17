@@ -43,6 +43,11 @@ class RecruitmentContractRefund extends Model
         return $this->belongsTo(Constraint::class, 'refund_constraint_id');
     }
 
+    public function creditNote()
+    {
+        return $this->belongsTo(RecruitmentInvoiceCreditNote::class, 'credit_note_id');
+    }
+
     public function createdBy()
     {
         return $this->belongsTo(Admin::class, 'created_by_id');

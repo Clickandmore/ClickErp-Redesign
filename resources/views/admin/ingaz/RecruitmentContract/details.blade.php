@@ -1570,7 +1570,7 @@
                                         <span class="info-value">{{ $refund->createdBy->name ?? 'غير محدد' }}</span>
                                     </div>
                                     <div class="info-row">
-                                        <span class="info-label">قيد الاسترداد:</span>
+                                        <span class="info-label">قيد الغرامة:</span>
                                         <span class="info-value">
                                             @if ($refundConstraint)
                                                 <a class="btn btn-sm btn-outline-primary"
@@ -1580,7 +1580,22 @@
                                                     عرض القيد #{{ $refundConstraint->code ?? $refundConstraint->id }}
                                                 </a>
                                             @else
-                                                <span class="badge bg-warning text-dark">لا يوجد قيد مالي</span>
+                                                <span class="badge bg-light text-dark">لا توجد غرامة بقيد مستقل</span>
+                                            @endif
+                                        </span>
+                                    </div>
+                                    <div class="info-row">
+                                        <span class="info-label">إشعار دائن الاسترداد:</span>
+                                        <span class="info-value">
+                                            @if ($refund->creditNote)
+                                                <a class="btn btn-sm btn-outline-danger"
+                                                    href="{{ route('recruitment-credit-notes.download', ['id' => $refund->credit_note_id, 'autoprint' => 1]) }}"
+                                                    target="_blank" rel="noopener">
+                                                    <i class="fas fa-file-invoice-dollar me-1"></i>
+                                                    إشعار #{{ $refund->credit_note_id }}
+                                                </a>
+                                            @else
+                                                <span class="badge bg-info text-dark">الفاتورة معكوسة بإشعارات سابقة</span>
                                             @endif
                                         </span>
                                     </div>

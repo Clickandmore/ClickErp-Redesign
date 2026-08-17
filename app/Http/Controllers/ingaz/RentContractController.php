@@ -2732,6 +2732,11 @@ class RentContractController extends Controller
         $usedCost = $usedDays !== null ? $settlement['used_cost'] : 0.0;
         $calculatedRefundValue = $settlement['refund_value'];
         $calculatedCompanyDueValue = $settlement['company_due_value'];
+        $manualCreditAmount = round((float) $contract->financialAdjustments
+            ->where('context', 'manual_credit_note')
+            ->where('type', 'expense')
+            ->sum('amount'), 2);
+        $calculatedRefundValue = max(0, round($calculatedRefundValue - $manualCreditAmount, 2));
 
         $storedRefundValue = (float) $contract->financialAdjustments()
             ->where('context', 'closure')
@@ -3020,6 +3025,20 @@ class RentContractController extends Controller
             $currentRemainingAmount = (float) ($summary['remaining_amount'] ?? 0);
             $newRemainingAmount = max(0, $currentRemainingAmount - $clearRemainingAmount);
             $closureReturnReason = trim((string) ($validated['closure_return_reason'] ?? ''));
+
+            if ($adjustmentType === 'refund' && $contract->financeInvoice) {
+                $alreadyCredited = (float) $contract->financialAdjustments
+                    ->where('type', 'expense')
+                    ->whereIn('context', ['closure', 'manual_credit_note'])
+                    ->sum('amount');
+                $creditableBalance = max(0, round((float) $contract->financeInvoice->total_due - $alreadyCredited, 2));
+                if ($adjustmentAmount > $creditableBalance + 0.01) {
+                    throw new \RuntimeException(
+                        'قيمة إشعار الإنهاء تتجاوز رصيد الفاتورة غير المعكوس. الحد المتاح: '
+                        . number_format($creditableBalance, 2) . ' ريال.'
+                    );
+                }
+            }
 
             $infoUpdates = [
                 'remaining_amount' => $newRemainingAmount,

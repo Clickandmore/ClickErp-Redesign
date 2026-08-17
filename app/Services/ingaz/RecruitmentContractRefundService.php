@@ -5,6 +5,7 @@ namespace App\Services\ingaz;
 use App\Models\Contract;
 use App\Models\MusanedTransferItem;
 use App\Models\RecruitmentContractRefund;
+use App\Http\Controllers\ingaz\InvoiceController;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Auth;
 use App\Support\AutomaticJournalEntries;
@@ -26,7 +27,7 @@ class RecruitmentContractRefundService
 
     public function preview(Contract $contract, string $refundDate, ?string $cancelledBy = null): array
     {
-        $contract->loadMissing(['invoice.musanedTransferItem.transfer', 'info']);
+        $contract->loadMissing(['invoice.musanedTransferItem.transfer', 'invoice.recruitmentCreditNotes', 'info']);
         $invoice = $contract->invoice;
 
         if (!$invoice) {
@@ -48,9 +49,12 @@ class RecruitmentContractRefundService
             $cancelledBy = null;
         }
 
-        $clientRefundAmount = $hasMusanedTransfer && $cancelledBy === 'client'
+        $grossRefundAmount = $hasMusanedTransfer && $cancelledBy === 'client'
             ? max(0, $this->roundMoney($contractAmount - $penaltyAmount))
             : $contractAmount;
+        $previousCreditAmount = $this->roundMoney((float) $invoice->recruitmentCreditNotes->sum('total'));
+        $remainingCreditNoteAmount = $this->roundMoney(max(0, $contractAmount - $previousCreditAmount));
+        $clientRefundAmount = $this->roundMoney($grossRefundAmount);
 
         return [
             'has_musaned_transfer' => $hasMusanedTransfer,
@@ -60,13 +64,15 @@ class RecruitmentContractRefundService
             'contract_amount' => $contractAmount,
             'penalty_amount' => $penaltyAmount,
             'refund_amount' => $clientRefundAmount,
+            'previous_credit_amount' => $previousCreditAmount,
+            'remaining_credit_note_amount' => $remainingCreditNoteAmount,
             'transfer_item' => $transferItem,
         ];
     }
 
     public function refund(Contract $contract, array $data): RecruitmentContractRefund
     {
-        $contract->loadMissing(['invoice.musanedTransferItem.transfer', 'user', 'info']);
+        $contract->loadMissing(['invoice.musanedTransferItem.transfer', 'invoice.recruitmentCreditNotes', 'user', 'info']);
         $invoice = $contract->invoice;
 
         if (!$invoice) {
@@ -84,12 +90,21 @@ class RecruitmentContractRefundService
             throw new \RuntimeException('يجب تحديد الطرف المتسبب في الإلغاء بعد تحويل مبلغ العقد من مساند.');
         }
 
+        $creditNote = app(InvoiceController::class)->createSystemCreditNoteForRecruitmentRefund(
+            $invoice,
+            $refundDate,
+            'استرداد عقد الاستقدام #' . $contract->id . ': ' . ($data['reason'] ?? 'استرداد العقد'),
+            $this->constraintService,
+            $this->yearService
+        );
         $constraint = null;
         /** @var MusanedTransferItem|null $transferItem */
         $transferItem = $summary['transfer_item'];
 
-        if ($summary['has_musaned_transfer'] && AutomaticJournalEntries::enabled()) {
-            $constraint = $this->createRefundConstraint(
+        if ($summary['has_musaned_transfer']
+            && (float) $summary['penalty_amount'] > 0
+            && AutomaticJournalEntries::enabled()) {
+            $constraint = $this->createPenaltyConstraint(
                 $contract,
                 $transferItem,
                 $refundDate,
@@ -102,6 +117,7 @@ class RecruitmentContractRefundService
             'invoice_id' => $invoice->id,
             'musaned_transfer_item_id' => $transferItem?->id,
             'refund_constraint_id' => $constraint?->id,
+            'credit_note_id' => $creditNote?->id,
             'cancelled_by' => $summary['cancelled_by'],
             'refund_date' => $refundDate,
             'days_from_contract' => $summary['days_from_contract'],
@@ -123,19 +139,32 @@ class RecruitmentContractRefundService
         $warnings = [];
         $lines = [];
 
-        if (!$summary['has_musaned_transfer']) {
-            $warnings[] = 'لم يتم تسجيل تحويل مساند لهذا العقد، لذلك لن يتم إنشاء قيد مالي للاسترداد.';
-        } elseif (!AutomaticJournalEntries::enabled()) {
-            $warnings[] = 'لن يتم إنشاء قيد مالي للاسترداد لأن القيود التلقائية غير مفعلة من إعدادات الحسابات.';
-        } else {
-            $sourceConstraintId = $invoice->arrival_revenue_constraint_id ?: $invoice->constraint_id;
-            $reverseLines = $this->buildReverseInvoiceLines($sourceConstraintId, $statement);
+        if ((float) $summary['remaining_credit_note_amount'] > 0) {
+            $sourceConstraintId = $invoice->arrival_revenue_constraint_id
+                ?: $invoice->invoice_constraint_id
+                ?: $invoice->constraint_id;
+            $reverseLines = $this->buildReverseInvoiceLines(
+                $sourceConstraintId,
+                $statement,
+                (float) $summary['remaining_credit_note_amount'],
+                (float) $summary['contract_amount']
+            );
 
             if (empty($reverseLines)) {
                 $warnings[] = 'لا يوجد قيد فاتورة أو قيد إيراد وصول لعكسه ضمن قيد الاسترداد.';
             }
 
-            $lines = array_merge($lines, $this->withSection($reverseLines, 'القيد العكسي للفاتورة'));
+            $lines = array_merge($lines, $this->withSection($reverseLines, 'إشعار الدائن للرصيد غير المعكوس'));
+        } else {
+            $warnings[] = 'تم عكس كامل قيمة الفاتورة بإشعارات دائنة سابقة، ولن ينشأ إشعار إضافي.';
+        }
+
+        if ($summary['has_musaned_transfer'] && !AutomaticJournalEntries::enabled()
+            && (float) $summary['penalty_amount'] > 0) {
+            $warnings[] = 'لن يتم إنشاء قيد الغرامة لأن القيود التلقائية غير مفعلة.';
+        }
+
+        if ($summary['has_musaned_transfer'] && AutomaticJournalEntries::enabled()) {
 
             /** @var MusanedTransferItem|null $transferItem */
             $transferItem = $summary['transfer_item'];
@@ -203,8 +232,12 @@ class RecruitmentContractRefundService
                 'contract_amount' => $summary['contract_amount'],
                 'penalty_amount' => $summary['penalty_amount'],
                 'refund_amount' => $summary['refund_amount'],
+                'previous_credit_amount' => $summary['previous_credit_amount'],
+                'remaining_credit_note_amount' => $summary['remaining_credit_note_amount'],
                 'statement' => $statement,
-                'source_constraint_id' => $invoice->arrival_revenue_constraint_id ?: $invoice->constraint_id,
+                'source_constraint_id' => $invoice->arrival_revenue_constraint_id
+                    ?: $invoice->invoice_constraint_id
+                    ?: $invoice->constraint_id,
             ],
             'lines' => $lines,
             'totals' => [
@@ -215,7 +248,7 @@ class RecruitmentContractRefundService
         ];
     }
 
-    private function createRefundConstraint(
+    private function createPenaltyConstraint(
         Contract $contract,
         MusanedTransferItem $transferItem,
         string $refundDate,
@@ -226,14 +259,13 @@ class RecruitmentContractRefundService
             throw new \RuntimeException('لا يوجد سنة مالية نشطة لتاريخ الاسترداد المحدد.');
         }
 
-        $invoice = $contract->invoice;
         $clientAccountId = (int) ($contract->user?->account_id ?: 0);
         if (!$clientAccountId) {
             throw new \RuntimeException('لا يوجد حساب محاسبي للعميل المرتبط بالعقد.');
         }
 
         $statement = $this->buildStatement($contract, $summary);
-        $lines = $this->buildReverseInvoiceLines($invoice->arrival_revenue_constraint_id ?: $invoice->constraint_id, $statement);
+        $lines = [];
 
         if (($summary['cancelled_by'] ?? null) === 'client' && (float) $summary['penalty_amount'] > 0) {
             $penaltyIncomeAccountId = $this->ensurePenaltyIncomeAccountId();
@@ -274,18 +306,27 @@ class RecruitmentContractRefundService
         return $constraint;
     }
 
-    private function buildReverseInvoiceLines(?int $constraintId, string $statement): array
+    private function buildReverseInvoiceLines(
+        ?int $constraintId,
+        string $statement,
+        ?float $remainingAmount = null,
+        ?float $originalAmount = null
+    ): array
     {
         if (!$constraintId) {
             return [];
         }
 
+        $ratio = $remainingAmount !== null && $originalAmount && $originalAmount > 0
+            ? min(1, max(0, $remainingAmount / $originalAmount))
+            : 1;
+
         return ConstraintDetails::query()
             ->where('constraint_id', $constraintId)
             ->get()
-            ->map(function (ConstraintDetails $detail) use ($statement) {
-                $debtor = $this->roundMoney((float) $detail->creditor_value);
-                $creditor = $this->roundMoney((float) $detail->debtor_value);
+            ->map(function (ConstraintDetails $detail) use ($statement, $ratio) {
+                $debtor = $this->roundMoney((float) $detail->creditor_value * $ratio);
+                $creditor = $this->roundMoney((float) $detail->debtor_value * $ratio);
 
                 return [
                     'account_id' => (int) $detail->account_id,

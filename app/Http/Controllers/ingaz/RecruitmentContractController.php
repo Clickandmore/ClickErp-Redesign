@@ -1845,6 +1845,8 @@ class RecruitmentContractController extends Controller
             'sponsorshipTransfers.oldSponsor',
             'sponsorshipTransfers.newSponsor',
             'recruitmentRefund.refundConstraint.constraintDetails.account',
+            'recruitmentRefund.creditNote.constraint',
+            'recruitmentRefund.creditNote.financeSale',
             'recruitmentRefund.createdBy',
             'attachments.uploader',
             'invoice.financeSale',
@@ -2311,6 +2313,13 @@ class RecruitmentContractController extends Controller
                 'add_constraint' => $contract->recruitmentRefund->refund_constraint_id,
                 'autoprint' => 1,
             ]), 'fas fa-rotate-left');
+        }
+
+        if ($contract->recruitmentRefund?->credit_note_id) {
+            $addFinancialDocument('refund-credit-note', 'إشعار دائن استرداد العقد', route('recruitment-credit-notes.download', [
+                'id' => $contract->recruitmentRefund->credit_note_id,
+                'autoprint' => 1,
+            ]), 'fas fa-file-invoice-dollar');
         }
 
         if (!empty($financialDocuments)) {
@@ -6242,6 +6251,19 @@ class RecruitmentContractController extends Controller
             DB::beginTransaction();
 
             try {
+                $contract = Contract::with([
+                    'maid',
+                    'user',
+                    'invoice.musanedTransferItem.transfer',
+                    'invoice.recruitmentCreditNotes',
+                    'recruitmentRefund',
+                    'info',
+                ])->lockForUpdate()->findOrFail($validated['contract_id']);
+
+                if ($contract->recruitmentRefund) {
+                    throw new \RuntimeException('تم تسجيل استرداد سابق لهذا العقد.');
+                }
+
                 $refund = $refundService->refund($contract, [
                     'refund_date' => $validated['refund_date'],
                     'cancelled_by' => $validated['cancelled_by'] ?? null,
