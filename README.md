@@ -79,11 +79,12 @@ APP_DEBUG=false
 ```bash
 php artisan config:clear
 php artisan config:cache
-php artisan route:cache
+php artisan route:trans:cache
 php artisan view:cache
 ```
 
-يجب أن ينجح `route:cache` قبل إعادة الموقع للخدمة. فشل هذا الأمر يعني وجود أسماء
+يجب أن ينجح `route:trans:cache` قبل إعادة الموقع للخدمة. لا تستخدم `route:cache`
+العادي لأن مسارات اللغات تحتاج ملف كاش مستقلًا لكل لغة. فشل الأمر يعني وجود أسماء
 مسارات مكررة، وترك ملف كاش قديم بعد تحديث ملفات Blade قد يؤدي إلى أخطاء
 `RouteNotFoundException` رغم وجود المسار في ملفات المشروع.
 
