@@ -92,8 +92,9 @@ class IstiqdasmRealController extends Controller
             $result = $this->istiqdasmService->getPackages($page, $size, $filters);
 
             if ($result['success']) {
-                $data = $result['data']['content'] ?? [];
-                $totalRecords = $result['data']['totalElements'] ?? 0;
+                $payload = $this->apiPayload($result['data'] ?? []);
+                $data = $payload['content'] ?? [];
+                $totalRecords = $payload['total'] ?? ($payload['totalElements'] ?? count($data));
 
                 return response()->json([
                     'draw' => $request->input('draw'),
@@ -116,6 +117,28 @@ class IstiqdasmRealController extends Controller
                 'error' => 'حدث خطأ: ' . $e->getMessage()
             ], 500);
         }
+    }
+
+    /**
+     * Show the real contract form and load its packages directly from Takamol.
+     */
+    public function createContract()
+    {
+        $result = $this->istiqdasmService->getPackages(0, 1000);
+
+        if (!$result['success']) {
+            return redirect()
+                ->route('istiqdam.index')
+                ->with('error', 'تعذر جلب الباقات من منصة تكامل: ' . ($result['error'] ?? 'خطأ غير معروف'));
+        }
+
+        $payload = $this->apiPayload($result['data'] ?? []);
+
+        return view('admin.istiqdam.real-create-contract', [
+            'packages' => $payload['content'] ?? [],
+            'totalRecords' => $payload['total'] ?? ($payload['totalElements'] ?? 0),
+            'apiEnvironment' => config('istiqdam.current_env'),
+        ]);
     }
 
     /**
@@ -170,6 +193,9 @@ class IstiqdasmRealController extends Controller
             'contact_redirect'                => 'nullable|string',
             'contact_email'                   => 'nullable|email',
             'beneficiary_city'               => 'nullable|string',
+            'beneficiary_district'           => 'nullable|string',
+            'beneficiary_postal_code'        => 'nullable|string',
+            'beneficiary_short_address'      => 'nullable|string',
             'special_specification'           => 'nullable|string',
             'down_payment_amount'             => 'required|numeric|min:0',
             'down_payment_due_date'           => 'required|date',
@@ -208,6 +234,9 @@ class IstiqdasmRealController extends Controller
                     'beneficiary' => [
                         'address' => [
                             'city' => $request->beneficiary_city ?? '',
+                            'district' => $request->beneficiary_district,
+                            'postalCode' => $request->beneficiary_postal_code,
+                            'shortAddress' => $request->beneficiary_short_address,
                         ],
                         'contact' => [
                             'person' => [
@@ -265,18 +294,42 @@ class IstiqdasmRealController extends Controller
                 ], 400);
             }
 
-            // API returns contract number in the "number" field (not "contractId")
-            $contractNumber = $result['data']['number'] ?? null;
+            $apiPayload = $this->apiPayload($result['data'] ?? []);
+            $contractNumber = $apiPayload['number']
+                ?? $apiPayload['contractId']
+                ?? $apiPayload['id']
+                ?? null;
+
+            if (!$contractNumber) {
+                DB::rollBack();
+
+                return response()->json([
+                    'success' => false,
+                    'message' => 'أنشأت المنصة الاستجابة دون إرجاع رقم العقد؛ لم يتم حفظ سجل محلي.',
+                    'error_details' => $result['data'] ?? null,
+                ], 502);
+            }
 
             // Store local reference
             $localContract = IstiqdasmContract::create([
                 'istiqdam_contract_id' => $contractNumber,
                 'contract_number'      => 'IST-' . date('Ymd') . '-' . str_pad($contractNumber, 6, '0', STR_PAD_LEFT),
                 'beneficiary_id'       => $request->beneficiary_id,
+                'beneficiary_birthdate' => $request->beneficiary_birthdate,
                 'beneficiary_name'     => $request->contact_person_name,
                 'package_id'           => $request->package_id,
-                'status'               => 'pending',
+                'package_details'      => $apiPayload['package'] ?? ['id' => (int) $request->package_id],
+                'start_date'           => $request->start_at,
+                'status'               => 'pending_approval',
+                'contact_details'      => $contractData['details']['beneficiary']['contact'],
+                'address_details'      => $contractData['details']['beneficiary']['address'],
+                'payment_details'      => $contractData['details']['payment'],
                 'total_amount'         => $request->down_payment_amount,
+                'remaining_amount'     => $request->down_payment_amount,
+                'commitments'          => $contractData['details']['commitments'],
+                'special_specification' => $request->special_specification,
+                'last_api_response'    => $result['data'],
+                'last_synced_at'       => now(),
                 'created_by'           => auth('admin')->id(),
             ]);
 
@@ -286,6 +339,7 @@ class IstiqdasmRealController extends Controller
                 'success' => true,
                 'message' => 'تم إنشاء العقد في منصة الاستقدام الحكومية بنجاح!',
                 'data'    => $result['data'],
+                'platform_contract_number' => (string) $contractNumber,
                 'local_contract' => [
                     'id'              => $localContract->id,
                     'contract_number' => $localContract->contract_number,
@@ -506,6 +560,20 @@ class IstiqdasmRealController extends Controller
                 'message' => 'فشل في التشخيص: ' . $e->getMessage()
             ], 500);
         }
+    }
+
+    /**
+     * Takamol staging wraps business data in body.response, while other
+     * environments may return the business payload directly.
+     */
+    private function apiPayload(array $data): array
+    {
+        $payload = $data['body']['response']
+            ?? $data['response']
+            ?? $data['body']
+            ?? $data;
+
+        return is_array($payload) ? $payload : [];
     }
 
 }

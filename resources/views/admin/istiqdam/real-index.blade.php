@@ -369,7 +369,11 @@ function testRealPackages() {
                     if (response.data && response.data.length > 0) {
                         let packagesHtml = '<div class="table-responsive"><table class="table table-sm"><thead><tr><th>ID</th><th>الجنسية</th><th>المهنة</th><th>المدة</th><th>السعر</th></tr></thead><tbody>';
                         response.data.forEach(function(pkg) {
-                            packagesHtml += `<tr><td>${pkg.packageId || 'N/A'}</td><td>${pkg.nationality || 'N/A'}</td><td>${pkg.occupation || 'N/A'}</td><td>${pkg.duration || 'N/A'}</td><td>${pkg.priceGross || 'N/A'}</td></tr>`;
+                            const nationality = pkg.nationality?.name?.ar || pkg.nationality || 'N/A';
+                            const occupation = pkg.occupation?.name?.ar || pkg.occupation || 'N/A';
+                            const duration = pkg.duration?.value || pkg.duration || 'N/A';
+                            const price = pkg.price?.gross || pkg.priceGross || 'N/A';
+                            packagesHtml += `<tr><td>${pkg.id || pkg.packageId || 'N/A'}</td><td>${nationality}</td><td>${occupation}</td><td>${duration}</td><td>${price}</td></tr>`;
                         });
                         packagesHtml += '</tbody></table></div>';
 
@@ -414,8 +418,7 @@ function showContractForm() {
         confirmButtonColor: '#d33'
     }).then((result) => {
         if (result.isConfirmed) {
-            // Create a form for real contract creation
-            Swal.fire('قريباً', 'سيتم إضافة نموذج إنشاء العقد الحقيقي', 'info');
+            window.location.href = @json(route('istiqdam.contracts.create'));
         }
     });
 }
