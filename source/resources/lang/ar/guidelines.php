@@ -1,0 +1,25 @@
+<?php
+
+return [
+    'page_title' => 'التوجيهات والإرشادات',
+    'sidebar_title' => 'التوجيهات والإرشادات',
+    'global_files' => 'الحقوق والواجبات العامة',
+    'client_file' => 'ملف حقوق وواجبات العميل',
+    'worker_file' => 'ملف حقوق وواجبات العاملة',
+    'current_file' => 'عرض الملف الحالي',
+    'youtube_links' => 'روابط يوتيوب',
+    'youtube_url' => 'رابط يوتيوب',
+    'add_video' => 'إضافة فيديو',
+    'no_videos' => 'لم تتم إضافة روابط يوتيوب.',
+    'nationality_versions' => 'إرشادات الجنسيات',
+    'nationality_versions_hint' => 'أضف صفاً لكل نسخة لغوية متاحة للجنسية.',
+    'add_language_version' => 'إضافة نسخة لغوية',
+    'nationality' => 'الجنسية',
+    'choose_nationality' => 'اختر الجنسية',
+    'language' => 'اللغة',
+    'remove' => 'إزالة',
+    'global_file_required' => 'ملفا الإرشادات العامة مطلوبان.',
+    'version_files_required' => 'الملفان مطلوبان لكل نسخة لغوية جديدة.',
+    'duplicate_language' => 'لا يمكن إضافة اللغة نفسها مرتين للجنسية الواحدة.',
+    'saved' => 'تم حفظ التوجيهات والإرشادات بنجاح.',
+];

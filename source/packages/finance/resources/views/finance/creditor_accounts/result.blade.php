@@ -1,0 +1,130 @@
+@php
+    $accountsCount = $accounts->count();
+    $totalBalance = (float) $accounts->sum('balance');
+    $totalDebtor = (float) $accounts->sum('debtor_total');
+    $totalCreditor = (float) $accounts->sum('creditor_total');
+@endphp
+
+<div class="row g-3 mb-3">
+    <div class="col-lg-4 col-md-6">
+        <div class="card creditor-result-card h-100">
+            <div class="card-body d-flex align-items-center justify-content-between">
+                <div>
+                    <div class="text-muted small">الحسابات ذات الرصيد الدائن الفعلي</div>
+                    <div class="h4 mb-0 mt-1">{{ number_format($accountsCount) }}</div>
+                </div>
+                <span class="rounded-circle p-3" style="background:#eef5f5;color:#315a63">
+                    <i class="fa fa-list-alt fa-lg"></i>
+                </span>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-4 col-md-6">
+        <div class="card creditor-result-card h-100">
+            <div class="card-body">
+                <div class="text-muted small">إجمالي الأرصدة الدائنة</div>
+                <div class="h4 mb-0 mt-1" style="color:#315a63">{{ number_format($totalBalance, 2) }}</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-4 col-md-12">
+        <div class="card creditor-result-card h-100">
+            <div class="card-body">
+                <div class="text-muted small">الفترة المعروضة</div>
+                <div class="mt-1 font-weight-bold">
+                    {{ !empty($filters['from_date']) ? $filters['from_date'] : 'بداية الحركات' }}
+                    <span class="mx-1">—</span>
+                    {{ !empty($filters['to_date']) ? $filters['to_date'] : 'حتى آخر حركة' }}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card creditor-result-card">
+    <div class="card-body p-0">
+        @if ($accountsCount > 0)
+            <div class="table-responsive">
+                <table class="table table-hover mb-0" id="toExcelTable" style="width:100%">
+                    <thead style="background:#eef5f5;color:#27474d">
+                        <tr>
+                            <th>#</th>
+                            <th>{{ __('finance::finance.account_code') }}</th>
+                            <th>{{ __('finance::finance.account_name') }}</th>
+                            <th>الحساب الأب</th>
+                            <th class="text-center">الطبيعة الأصلية للحساب</th>
+                            <th class="text-center">اتجاه الرصيد الحالي</th>
+                            <th class="text-left">إجمالي المدين</th>
+                            <th class="text-left">إجمالي الدائن</th>
+                            <th class="text-left">الرصيد الدائن الفعلي</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach ($accounts as $row)
+                            @php
+                                $statementUrl = route('finance.account-statement.index', [
+                                    'account_id' => $row->id,
+                                    'from_date' => $filters['from_date'] ?? '',
+                                    'to_date' => $filters['to_date'] ?? '',
+                                    'type' => 'both',
+                                    'other_account' => 'no',
+                                ]);
+                            @endphp
+                            <tr>
+                                <td class="text-muted">{{ $loop->iteration }}</td>
+                                <td>
+                                    <a href="{{ $statementUrl }}" target="_blank" rel="noopener"
+                                       class="font-weight-bold" style="color:#315a63" title="فتح كشف الحساب">
+                                        {{ $row->code }}
+                                    </a>
+                                </td>
+                                <td>
+                                    <a href="{{ $statementUrl }}" target="_blank" rel="noopener" style="color:inherit">
+                                        {{ $row->name }}
+                                    </a>
+                                </td>
+                                <td>
+                                    @if ($row->parent_name)
+                                        <span class="text-muted">{{ $row->parent_code }}</span>
+                                        <span>{{ $row->parent_name }}</span>
+                                    @else
+                                        <span class="text-muted">—</span>
+                                    @endif
+                                </td>
+                                <td class="text-center">
+                                    @if ($row->status === 'creditor')
+                                        <span class="creditor-status-badge creditor-status-badge--nature-creditor">طبيعته دائن</span>
+                                    @else
+                                        <span class="creditor-status-badge creditor-status-badge--nature-debtor">طبيعته مدين</span>
+                                    @endif
+                                </td>
+                                <td class="text-center">
+                                    <span class="creditor-status-badge creditor-status-badge--actual-creditor">رصيده الفعلي دائن</span>
+                                </td>
+                                <td class="text-left">{{ number_format((float) $row->debtor_total, 2) }}</td>
+                                <td class="text-left">{{ number_format((float) $row->creditor_total, 2) }}</td>
+                                <td class="text-left font-weight-bold" style="color:#315a63">
+                                    {{ number_format((float) $row->balance, 2) }}
+                                </td>
+                            </tr>
+                        @endforeach
+                    </tbody>
+                    <tfoot style="background:#f8fafb;font-weight:700">
+                        <tr>
+                            <td colspan="6" class="text-center">{{ __('finance::finance.total') }}</td>
+                            <td class="text-left">{{ number_format($totalDebtor, 2) }}</td>
+                            <td class="text-left">{{ number_format($totalCreditor, 2) }}</td>
+                            <td class="text-left" style="color:#315a63">{{ number_format($totalBalance, 2) }}</td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+        @else
+            <div class="text-center py-5 px-3">
+                <div class="mb-2 text-muted"><i class="fa fa-inbox fa-3x"></i></div>
+                <h5>{{ __('finance::finance.no_data_found') }}</h5>
+                <p class="text-muted mb-0">لا توجد حسابات برصيد دائن فعلي ضمن معايير البحث المحددة.</p>
+            </div>
+        @endif
+    </div>
+</div>

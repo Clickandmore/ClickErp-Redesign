@@ -1,0 +1,31 @@
+# Never commit secrets or runtime configuration
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.pfx
+
+# Runtime and user data
+storage/
+uploads/
+upload/
+database/
+*.sql
+*.sqlite
+
+# Dependencies and generated output
+vendor/
+node_modules/
+dist/
+build/
+.cache/
+
+# Local tooling
+.DS_Store
+.idea/
+.vscode/
+*.log
+Thumbs.db
+

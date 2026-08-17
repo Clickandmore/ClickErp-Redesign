@@ -1,0 +1,27 @@
+
+.PrintArea table{
+    text-align: center;
+}
+@media print {
+    @page {}
+    .PrintArea table{
+        /* direction: rtl; */
+        width: 100%;
+        border-collapse: collapse;
+        table-layout: fixed;
+    }
+    .PrintArea table td{white-space: normal !important;  font-size: 12px}
+    .wrap-td{white-space: normal !important; }
+    table { page-break-inside:auto }
+    tr  { page-break-inside:avoid; page-break-after:auto; font-size: 13px }
+    thead { display:table-header-group }
+    tfoot { display:table-footer-group }
+    .PrintHide {
+        display: none;
+    }
+
+}
+
+@media screen {
+
+}

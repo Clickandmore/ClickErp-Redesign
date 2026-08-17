@@ -1,0 +1,27 @@
+<?php
+
+return [
+    'manage_countries' => 'إدارة الدول',
+    'countries_list' => 'قائمة الدول',
+    'add_new' => 'إضافة دولة جديدة',
+    'add_new_country' => 'إضافة دولة جديدة',
+    'edit_country' => 'تعديل الدولة',
+    'name' => 'الاسم',
+    'name_ar' => 'الاسم بالعربية',
+    'name_en' => 'الاسم بالإنجليزية',
+    'code' => 'رمز الدولة',
+    'phone_code' => 'رمز الهاتف',
+    'currency' => 'العملة',
+    'currency_symbol' => 'رمز العملة',
+    'status' => 'الحالة',
+    'sort_order' => 'ترتيب العرض',
+    'actions' => 'الإجراءات',
+    'active' => 'نشط',
+    'inactive' => 'غير نشط',
+    'is_active' => 'نشط',
+    'confirm_delete' => 'هل أنت متأكد من حذف هذه الدولة؟',
+    'country_added' => 'تم إضافة الدولة بنجاح',
+    'country_updated' => 'تم تحديث الدولة بنجاح',
+    'country_deleted' => 'تم حذف الدولة بنجاح',
+    'country_status_updated' => 'تم تحديث حالة الدولة بنجاح',
+];

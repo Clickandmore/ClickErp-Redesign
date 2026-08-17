@@ -1,0 +1,71 @@
+@extends('admin.layout.indexs.index')
+@section("style")
+@endsection
+@section('page-title')
+    الحالات الاجتماعية
+@endsection
+@section('content')
+@if (@AdminGuardHasPerm(\App\PermKeys::MAIDS_VIEW))
+    @if (@AdminGuardHasPerm(\App\PermKeys::MAIDS_CONTROL))
+        {!! addButton(route("social-statuses.create") ,"حالة اجتماعية") !!}
+    @endif
+    <p>اضغط على زر العرض لتغيير حالة الظهور</p>
+    <table id="dataTableObject" class="table display dataTable table-hover" style="width:100%">
+        <thead>
+        <tr>
+            <th>#</th>
+            <th>الاسم</th>
+            <th>حالة الظهور</th>
+            <th>الإجراءات</th>
+        </tr>
+        </thead>
+        <tbody>
+
+        </tbody>
+    </table>
+@else
+    @include('components.no_permissions')
+@endif
+
+@endsection
+@section('js')
+    <script>
+        $(document).ready(function () {
+            let columns = [
+                {"data": 'DT_RowIndex', name: 'DT_RowIndex', orderable: false, searchable: false},
+                {"data": "title", orderable: true, searchable: true},
+                {"data": "is_show", orderable: false, searchable: false},
+                {"data": "actions", orderable: false, searchable: false}
+            ];
+            showDataTable("{{route("social-statuses.index")}}", columns);
+        });
+
+        // ِChange Status Using Ajax
+        $(document).on('click', '.update-status', function (event) {
+            var rowId = $(this).data('id');
+            var url = "{{ route('social-statuses.show', ':id') }}";
+            url = url.replace(':id', rowId);
+            $.ajax({
+                type: 'Get',
+                url: url,
+                success: function (data) {
+                    if (data.success) {
+                        reloadDataTable();
+                        $.toast({
+                            heading: 'نجاح',
+                            text: 'تم تغيير الحالة بنجاح!',
+                            showHideTransition: 'slide',
+                            icon: 'success',
+                            hideAfter: 2000,
+                            position: 'top-right',
+                            stack: 1
+                        });
+                    }
+                    else {
+                        alert('فشل في تحديث الحالة.');
+                    }
+                }
+            });
+        });
+    </script>
+@endsection
