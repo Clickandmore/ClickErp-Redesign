@@ -248,7 +248,7 @@ long_query_time         = 10 s
 | العامل | الأثر |
 |---|---|
 | نُسخ `.env.example` كما هي (`APP_DEBUG=true`، `sync`، `local`) | بطء مضاعف + تجمّد عند إرسال الرسائل |
-| لم يُشغَّل `config:cache` / `route:cache` / OPcache | +400 ms لكل طلب |
+| لم يُشغَّل `config:cache` / `route:trans:cache` / OPcache | +400 ms لكل طلب |
 | حجم البيانات (عدد العقود والسير) | العدادات و`whereDoesntHave` تنمو خطياً |
 | عدد الجداول في القاعدة | تكلفة `information_schema` ترتفع |
 | تفعيل وحدة الفروع `branches` | يُفعّل مسار `BranchScopedPermissions` كاملاً = مئات الاستعلامات الإضافية |
@@ -469,7 +469,7 @@ QUEUE_CONNECTION=redis      # أو database — ليس sync أبداً
 
 ```bash
 php artisan config:cache
-php artisan route:cache
+php artisan route:trans:cache
 php artisan view:cache
 php artisan event:cache
 composer dump-autoload -o --classmap-authoritative
@@ -685,7 +685,7 @@ SMS، واتساب، Firebase، توليد PDF — كلها يجب أن تكون
 | # | المهمة | الجهد | الأثر |
 |---|---|---|---|
 | 1 | حذف سكربت `codehim.com` واستضافته محلياً | 10 دقائق | 🔴 عالٍ جداً |
-| 2 | تصحيح `.env` عند العملاء + `config:cache` + `route:cache` + OPcache | 30 دقيقة | 🔴 عالٍ جداً |
+| 2 | تصحيح `.env` عند العملاء + `config:cache` + `route:trans:cache` + OPcache | 30 دقيقة | 🔴 عالٍ جداً |
 | 3 | إصلاح `View::composer('*')` (البند 1.1) | ساعتان | 🔴 عالٍ جداً |
 | 4 | `SchemaCache` (البند 1.2) | 3 ساعات | 🔴 عالٍ جداً |
 | 5 | memoization الصلاحيات (البند 1.3) | ساعتان | 🟠 عالٍ |
