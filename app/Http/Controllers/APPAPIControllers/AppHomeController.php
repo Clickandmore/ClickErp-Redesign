@@ -51,7 +51,7 @@ class AppHomeController extends Controller
     {
         $query = Nationality::with('translations')
             ->where('is_show', true)
-            ->orderByTranslation('sub_title', 'asc');
+            ->ordered();
 
         if (($request->pagination ?? 'off') === 'on') {
             $limitPerPage = max((int) ($request->limit_per_page ?? 10), 1);

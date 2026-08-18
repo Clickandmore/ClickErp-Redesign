@@ -240,7 +240,7 @@ class HomeController extends Controller
     }
     public function nationalites(Request $request)
     {
-        $nationalities = Nationality::where('is_show', 1)->get()->pluck('id', 'title');
+        $nationalities = Nationality::where('is_show', 1)->ordered()->get()->pluck('id', 'title');
 
         return [
             "status" => 1,

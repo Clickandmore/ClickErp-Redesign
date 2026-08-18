@@ -25,7 +25,12 @@
                         @endif
                         @if ($delegation->invoice->musanedTransferItem?->transfer && $canViewMusanedTransfers)
                             <a href="{{ route('musaned-transfers.show', $delegation->invoice->musanedTransferItem->transfer->id) }}" class="btn btn-info">عرض تحويل مساند</a>
-                        @elseif (!$delegation->invoice->musanedTransferItem?->transfer && $canCreateMusanedTransfers)
+                        @endif
+                        @if ($delegation->invoice->musanedTransferItem?->transfer && $canDeleteMusanedTransfers)
+                            <a href="{{ route('musaned-transfers.show', $delegation->invoice->musanedTransferItem->transfer->id) }}#deleteMusanedTransfer"
+                                class="btn btn-outline-danger">حذف تحويل مساند</a>
+                        @endif
+                        @if (!$delegation->invoice->musanedTransferItem?->transfer && $canCreateMusanedTransfers)
                             <a href="{{ route('musaned-transfers.create', ['ingaz_delegation_ids' => [$delegation->id]]) }}" class="btn btn-info">تسجيل تحويل مساند</a>
                         @endif
                     @elseif ($canCreateInvoices)
