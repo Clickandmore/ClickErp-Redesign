@@ -1638,9 +1638,18 @@ class RecruitmentContractController extends Controller
                                     </a></li>';
                         }
                     } elseif ($invoice->musanedTransferItem && $invoice->musanedTransferItem->transfer) {
-                        $actions .= '<li><a class="dropdown-item" href="' . e(route('musaned-transfers.show', $invoice->musanedTransferItem->transfer->id)) . '">
+                        $musanedTransfer = $invoice->musanedTransferItem->transfer;
+                        $actions .= '<li><a class="dropdown-item" href="' . e(route('musaned-transfers.show', $musanedTransfer->id)) . '">
                                     <i class="fas fa-money-bill-transfer"></i> عرض تحويل مساند
                                 </a></li>';
+                        if (@AdminGuardHasAnyPerm([
+                            \App\PermKeys::MUSANED_TRANSFERS_DELETE,
+                            \App\PermKeys::MUSANED_TRANSFERS_CONTROL,
+                        ])) {
+                            $actions .= '<li><a class="dropdown-item text-danger" href="' . e(route('musaned-transfers.show', $musanedTransfer->id) . '#deleteMusanedTransfer') . '">
+                                        <i class="fas fa-trash"></i> حذف تحويل مساند
+                                    </a></li>';
+                        }
                     } else {
                         $actions .= '<li><a class="dropdown-item" href="' . e(route('musaned-transfers.create', ['contract_ids' => [$row->id]])) . '">
                                     <i class="fas fa-money-bill-transfer"></i> تسجيل تحويل مساند

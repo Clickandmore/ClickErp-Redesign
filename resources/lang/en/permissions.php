@@ -451,6 +451,7 @@ return [
     'invoices_control' => 'Manage Invoices',
     'musaned_transfers_view' => 'View Musaned Transfers',
     'musaned_transfers_create' => 'Create Musaned Transfer',
+    'musaned_transfers_delete' => 'Delete Musaned Transfer',
     'musaned_transfers_control' => 'Manage Musaned Transfers',
 
     // Contract Status Change Permissions (Step by Step)

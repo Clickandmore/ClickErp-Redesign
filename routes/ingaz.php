@@ -488,7 +488,7 @@ Route::group(
             Route::resource('invoices', InvoiceController::class);
             Route::get('invoices/download/{id}', [InvoiceController::class, 'downloadInvoice'])->name('invoice.download');
             Route::get('musaned-transfers/search', [MusanedTransferController::class, 'search'])->name('musaned-transfers.search');
-            Route::resource('musaned-transfers', MusanedTransferController::class)->only(['index', 'create', 'store', 'show']);
+            Route::resource('musaned-transfers', MusanedTransferController::class)->only(['index', 'create', 'store', 'show', 'destroy']);
 
             // Ø¥ØºÙ„Ø§Ù‚ Ø¹Ù‚ÙˆØ¯ Ø§Ù„Ø¥ÙŠØ¬Ø§Ø±
             Route::get('RentContract/{id}/details', [RentContractController::class, 'getContractDetails'])->name('RentContract.details');

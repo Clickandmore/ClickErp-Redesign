@@ -95,6 +95,17 @@ class AdminRoutePermissionMatrixTest extends TestCase
         $this->assertContains(PermKeys::SHELTER_CONTRACT_INSTANT_RECEIPT_EDIT, $permissions);
     }
 
+    public function test_musaned_transfer_deletion_uses_its_dedicated_permission(): void
+    {
+        $this->assertSame(
+            [PermKeys::MUSANED_TRANSFERS_DELETE, PermKeys::MUSANED_TRANSFERS_CONTROL],
+            AdminRoutePermissionMatrix::resolve(
+                'musaned-transfers.destroy',
+                Request::create('/admin/musaned-transfers/10', 'DELETE')
+            )
+        );
+    }
+
     public function test_rental_instant_receipt_permission_is_registered_for_the_permissions_screen(): void
     {
         $permission = collect(config('access_control_permission_registry.permissions'))
