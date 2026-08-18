@@ -660,7 +660,7 @@
                 'tazker',
                 'sari',
             ]);
-            $showCompletedStatsInitially = !$requestedStatus || in_array($requestedStatus, ['completed_stage', 'completed', 'refunded', 'arrival', 'shelter']);
+            $showCompletedStatsInitially = !$requestedStatus || in_array($requestedStatus, ['completed_stage', 'completed', 'refunded', 'arrival']);
             $contractStageLabels = \App\Support\RecruitmentContractStageLabels::labels();
             $contractStageLabel = fn($status) => $contractStageLabels[$status][app()->getLocale() === 'en' ? 'en' : 'ar'] ?? $status;
         @endphp
@@ -835,12 +835,14 @@
                                                 <div class="stat-body"><div class="stat-title">{{ $contractStageLabel('refunded') }}</div><div class="stat-value" data-stat-key="stage_refunded">0</div></div>
                                             </button>
                                         </div>
+                                        {{-- عقود الإيواء لها شاشة مستقلة ولا تُعرض ضمن عقود الاستقدام.
                                         <div class="col-12 col-sm-6">
                                             <button type="button" class="stat-card stat-filter stat-card-shelter" data-status="shelter">
                                                 <div class="stat-icon"><i class="fas fa-house-user"></i></div>
                                                 <div class="stat-body"><div class="stat-title">{{ $contractStageLabel('shelter') }}</div><div class="stat-value" data-stat-key="stage_shelter">0</div></div>
                                             </button>
                                         </div>
+                                        --}}
                                     </div>
                                 </div>
                             </div>
@@ -962,7 +964,7 @@
                                 <option value="completed">{{ $contractStageLabel('completed') }}</option>
                                 <option value="refunded">{{ $contractStageLabel('refunded') }}</option>
                                 <option value="back">{{ $contractStageLabel('back') }}</option>
-                                <option value="shelter">{{ $contractStageLabel('shelter') }}</option>
+                                {{-- <option value="shelter">{{ $contractStageLabel('shelter') }}</option> --}}
                                 <option value="pending_maid_selection">{{ $contractStageLabel('pending_maid_selection') }}</option>
                                 <option value="accreditation_contracts">{{ $contractStageLabel('accreditation_contracts') }}</option>
                             </select>
@@ -1731,7 +1733,7 @@
                 const currentStatuses = ['current', 'pending_maid_selection', 'new', 'msaned', 'tafwed', 'taffez',
                     'tazker', 'sari', 'accreditation_contracts'
                 ];
-            const completedStatuses = ['completed_stage', 'completed', 'refunded', 'arrival', 'shelter'];
+            const completedStatuses = ['completed_stage', 'completed', 'refunded', 'arrival'];
 
                 if (!statusValue) {
                     $('#currentStatsSection').show();
