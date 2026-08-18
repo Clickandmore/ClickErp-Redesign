@@ -3,6 +3,16 @@
 @section('page-title', 'عرض تحويل مساند')
 
 @section('content')
+    @php
+        $canDeleteTransfer = AdminGuardHasAnyPerm([
+            \App\PermKeys::MUSANED_TRANSFERS_DELETE,
+            \App\PermKeys::MUSANED_TRANSFERS_CONTROL,
+        ]);
+        $constraintsToDelete = collect([
+            $transfer->settlementConstraint,
+            $transfer->bankTransferConstraint,
+        ])->filter()->unique('id')->values();
+    @endphp
     <div class="container-fluid">
         <div class="d-flex justify-content-between align-items-center mb-3">
             <div>
@@ -13,6 +23,12 @@
                 </div>
             </div>
             <div class="d-flex gap-2">
+                @if ($canDeleteTransfer)
+                    <button type="button" class="btn btn-outline-danger" data-bs-toggle="modal"
+                        data-bs-target="#deleteMusanedTransfer">
+                        <i class="fas fa-trash me-1"></i>حذف التحويل
+                    </button>
+                @endif
                 @if (AdminGuardHasAnyPerm([\App\PermKeys::MUSANED_TRANSFERS_CREATE, \App\PermKeys::MUSANED_TRANSFERS_CONTROL, \App\PermKeys::REC_CONTRACTS_CREATE, \App\PermKeys::REC_CONTRACTS_MANAGE]))
                     <a href="{{ route('musaned-transfers.create') }}" class="btn btn-outline-primary">
                         <i class="fas fa-plus me-1"></i>تحويل جديد
@@ -26,6 +42,16 @@
 
         @if (session('success'))
             <div class="alert alert-success">{{ session('success') }}</div>
+        @endif
+
+        @if ($errors->any())
+            <div class="alert alert-danger">
+                <ul class="mb-0">
+                    @foreach ($errors->all() as $error)
+                        <li>{{ $error }}</li>
+                    @endforeach
+                </ul>
+            </div>
         @endif
 
         <div class="row g-3 mb-3">
@@ -166,4 +192,94 @@
             </div>
         </div>
     </div>
+
+    @if ($canDeleteTransfer)
+        <div class="modal fade" id="deleteMusanedTransfer" tabindex="-1"
+            aria-labelledby="deleteMusanedTransferLabel" aria-hidden="true">
+            <div class="modal-dialog modal-lg modal-dialog-centered">
+                <div class="modal-content">
+                    <div class="modal-header bg-danger text-white">
+                        <h5 class="modal-title" id="deleteMusanedTransferLabel">
+                            تأكيد حذف تحويل مساند #{{ $transfer->id }}
+                        </h5>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"
+                            aria-label="إغلاق"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="alert alert-warning">
+                            سيتم حذف التحويل وبنوده والقيود المحاسبية التالية. لا يمكن التراجع عن هذه العملية.
+                        </div>
+
+                        @if ($constraintsToDelete->isNotEmpty())
+                            <div class="table-responsive">
+                                <table class="table table-bordered align-middle mb-0">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th>نوع القيد</th>
+                                            <th>رقم القيد</th>
+                                            <th>التاريخ</th>
+                                            <th>البيان</th>
+                                            <th>القيمة</th>
+                                            <th>عرض</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @foreach ($constraintsToDelete as $constraint)
+                                            <tr>
+                                                <td>
+                                                    {{ $constraint->id === $transfer->settlement_constraint_id ? 'قيد التسوية' : 'قيد التحويل البنكي' }}
+                                                </td>
+                                                <td>{{ $constraint->code ?? $constraint->id }}</td>
+                                                <td>{{ $constraint->date }}</td>
+                                                <td>{{ $constraint->statement ?: '-' }}</td>
+                                                <td>{{ number_format((float) $constraint->value, 2) }}</td>
+                                                <td>
+                                                    <a class="btn btn-sm btn-outline-primary" target="_blank"
+                                                        href="{{ route('finance.add-constraint.show', ['add_constraint' => $constraint->id]) }}">
+                                                        <i class="fas fa-eye"></i>
+                                                    </a>
+                                                </td>
+                                            </tr>
+                                        @endforeach
+                                    </tbody>
+                                </table>
+                            </div>
+                        @else
+                            <div class="alert alert-info mb-0">
+                                لا توجد قيود محاسبية نشطة مرتبطة بهذا التحويل، وسيتم حذف التحويل وبنوده فقط.
+                            </div>
+                        @endif
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
+                        <form method="POST" action="{{ route('musaned-transfers.destroy', $transfer->id) }}">
+                            @csrf
+                            @method('DELETE')
+                            <button type="submit" class="btn btn-danger">
+                                <i class="fas fa-trash me-1"></i>
+                                حذف التحويل و{{ $constraintsToDelete->count() }} من القيود
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    @endif
 @endsection
+
+@if ($canDeleteTransfer)
+    @push('js')
+        <script>
+            document.addEventListener('DOMContentLoaded', function () {
+                if (window.location.hash !== '#deleteMusanedTransfer' || typeof bootstrap === 'undefined') {
+                    return;
+                }
+
+                const modalElement = document.getElementById('deleteMusanedTransfer');
+                if (modalElement) {
+                    bootstrap.Modal.getOrCreateInstance(modalElement).show();
+                }
+            });
+        </script>
+    @endpush
+@endif

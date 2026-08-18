@@ -573,12 +573,14 @@ class AdminRoutePermissionMatrix
             ],
             'musaned-transfers.index' => [
                 PermKeys::MUSANED_TRANSFERS_VIEW,
+                PermKeys::MUSANED_TRANSFERS_DELETE,
                 PermKeys::MUSANED_TRANSFERS_CONTROL,
                 PermKeys::REC_CONTRACTS_VIEW,
                 PermKeys::REC_CONTRACTS_MANAGE,
             ],
             'musaned-transfers.show' => [
                 PermKeys::MUSANED_TRANSFERS_VIEW,
+                PermKeys::MUSANED_TRANSFERS_DELETE,
                 PermKeys::MUSANED_TRANSFERS_CONTROL,
                 PermKeys::REC_CONTRACTS_VIEW,
                 PermKeys::REC_CONTRACTS_MANAGE,
@@ -600,6 +602,10 @@ class AdminRoutePermissionMatrix
                 PermKeys::MUSANED_TRANSFERS_CONTROL,
                 PermKeys::REC_CONTRACTS_CREATE,
                 PermKeys::REC_CONTRACTS_MANAGE,
+            ],
+            'musaned-transfers.destroy' => [
+                PermKeys::MUSANED_TRANSFERS_DELETE,
+                PermKeys::MUSANED_TRANSFERS_CONTROL,
             ],
         ];
     }

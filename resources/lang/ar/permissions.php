@@ -348,6 +348,7 @@ return array (
   'invoices_control' => 'إدارة الفواتير',
   'musaned_transfers_view' => 'عرض تحويلات مساند',
   'musaned_transfers_create' => 'تسجيل تحويل مساند',
+  'musaned_transfers_delete' => 'حذف تحويل مساند',
   'musaned_transfers_control' => 'إدارة تحويلات مساند',
   'rec_contracts_change_to_msaned' => 'تغيير إلى عقود مساند',
   'rec_contracts_change_to_tafwed' => 'تغيير إلى التفويض',

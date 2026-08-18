@@ -191,6 +191,7 @@ const PARTENR_CONTROL = 'partenr_control';
     // تحويلات مساند
     const MUSANED_TRANSFERS_VIEW = 'musaned_transfers_view';
     const MUSANED_TRANSFERS_CREATE = 'musaned_transfers_create';
+    const MUSANED_TRANSFERS_DELETE = 'musaned_transfers_delete';
     const MUSANED_TRANSFERS_CONTROL = 'musaned_transfers_control';
 
     // ========================================

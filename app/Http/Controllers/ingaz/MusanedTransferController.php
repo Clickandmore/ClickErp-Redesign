@@ -406,6 +406,50 @@ class MusanedTransferController extends Controller
         return view('admin.ingaz.musaned_transfers.show', compact('transfer'));
     }
 
+    public function destroy(int $id, ObjService $service)
+    {
+        $transfer = MusanedTransfer::query()->findOrFail($id);
+        $this->assertCanAccessBranchModel($transfer);
+
+        try {
+            $deletedConstraintsCount = DB::transaction(function () use ($transfer, $service) {
+                $lockedTransfer = MusanedTransfer::query()
+                    ->lockForUpdate()
+                    ->findOrFail($transfer->id);
+
+                $constraintIds = collect([
+                    $lockedTransfer->settlement_constraint_id,
+                    $lockedTransfer->bank_transfer_constraint_id,
+                ])->filter()->unique()->values();
+
+                $constraints = Constraint::query()
+                    ->whereIn('id', $constraintIds)
+                    ->lockForUpdate()
+                    ->get();
+
+                foreach ($constraints as $constraint) {
+                    $service->deleteConstraint((int) $constraint->id);
+                }
+
+                $lockedTransfer->delete();
+
+                return $constraints->count();
+            });
+        } catch (ValidationException $exception) {
+            return back()->withErrors($exception->errors());
+        } catch (\Throwable $exception) {
+            report($exception);
+
+            return back()->withErrors([
+                'delete' => 'تعذر حذف تحويل مساند والقيود المرتبطة به. لم يتم حذف أي بيانات.',
+            ]);
+        }
+
+        return redirect()
+            ->route('musaned-transfers.index')
+            ->with('success', 'تم حذف تحويل مساند وحذف ' . $deletedConstraintsCount . ' من القيود المحاسبية المرتبطة به بنجاح.');
+    }
+
     private function getEligibleInvoicesQuery()
     {
         $query = Invoice::query()
