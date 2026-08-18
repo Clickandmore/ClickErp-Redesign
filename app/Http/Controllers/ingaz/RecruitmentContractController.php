@@ -610,6 +610,15 @@ class RecruitmentContractController extends Controller
         $query->where('status', $statusFilter);
     }
 
+    private function excludeShelterContracts($query): void
+    {
+        $query->where(function ($contractQuery) {
+            $contractQuery
+                ->whereNull('status')
+                ->orWhere('status', '!=', ContractStatusEnum::Shelter->value);
+        });
+    }
+
 
     public function index(Request $request)
     {
@@ -656,9 +665,8 @@ class RecruitmentContractController extends Controller
             // فلتر الحالة - استخدام query parameter فقط
             $statusFilter = $this->getStatusFilterForRequest($request);
 
-            if ($statusFilter !== ContractStatusEnum::Shelter->value) {
-                $query->whereIn('type', ['recruitment', 'maid']);
-            }
+            $query->whereIn('type', ['recruitment', 'maid']);
+            $this->excludeShelterContracts($query);
 
             $this->applyStatusFilter($query, $statusFilter);
 
@@ -4113,11 +4121,8 @@ class RecruitmentContractController extends Controller
             'sponsorshipTransfers.oldSponsor',
         ]);
 
-        $statusFilter = $this->getStatusFilterForRequest($request);
-
-        if ($statusFilter !== ContractStatusEnum::Shelter->value) {
-            $query->whereIn('type', ['recruitment', 'maid']);
-        }
+        $query->whereIn('type', ['recruitment', 'maid']);
+        $this->excludeShelterContracts($query);
 
         $this->applyContractFilters($query, $request);
 
@@ -5344,12 +5349,10 @@ class RecruitmentContractController extends Controller
 
             $baseQuery = Contract::query()
                 ->whereIn('type', ['recruitment', 'maid']);
-            $shelterQuery = Contract::query()
-                ->where('status', ContractStatusEnum::Shelter->value);
+            $this->excludeShelterContracts($baseQuery);
 
             // تطبيق نفس فلاتر البحث (بدون الحالة وحالة الضمان) للحصول على إحصائيات قابلة للتنقل
             $this->applyContractFilters($baseQuery, $request, true, true);
-            $this->applyContractFilters($shelterQuery, $request, true, true);
 
             $today = \Carbon\Carbon::now()->toDateString();
             $currentStatuses = $this->getCurrentContractStatuses();
@@ -5427,7 +5430,6 @@ class RecruitmentContractController extends Controller
                 'stage_tazker' => (int) ($aggregate->stage_tazker ?? 0),
                 'stage_arrival' => (int) ($aggregate->stage_arrival ?? 0),
                 'stage_completed' => (int) ($aggregate->stage_completed ?? 0),
-                'stage_shelter' => (clone $shelterQuery)->count(),
                 'warranty_active' => (int) ($aggregate->warranty_active ?? 0),
                 'warranty_expired' => (int) ($aggregate->warranty_expired ?? 0),
                 'warranty_not_applicable' => (int) ($aggregate->warranty_not_applicable ?? 0),
