@@ -18,6 +18,7 @@ class Nationality extends Model
     protected $fillable = [
         'logo',
         'phone_code',
+        'sort_order',
         'price',
         'direct_recruitment_cost',
         'external_recruitment_cost',
@@ -31,6 +32,7 @@ class Nationality extends Model
     ];
 
     protected $casts = [
+        'sort_order' => 'integer',
         'price' => 'decimal:2',
         'direct_recruitment_cost' => 'decimal:2',
         'external_recruitment_cost' => 'decimal:2',
@@ -83,5 +85,13 @@ class Nationality extends Model
         }
 
         return (string) $this->id;
+    }
+
+    public function scopeOrdered($query)
+    {
+        return $query
+            ->orderByRaw('CASE WHEN sort_order = 0 THEN 1 ELSE 0 END')
+            ->orderBy('sort_order')
+            ->orderBy('id');
     }
 }

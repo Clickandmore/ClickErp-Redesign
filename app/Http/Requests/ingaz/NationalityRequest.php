@@ -30,6 +30,7 @@ class NationalityRequest extends MainRequest
         $rules = [
             'logo' => [$this->isMethod('post') ? 'required' : 'nullable'],
             'phone_code' => "required",
+            'sort_order' => 'required|integer|min:1|max:4294967295',
             'price' => "nullable|numeric|min:0",
             'direct_recruitment_cost' => "nullable|numeric|min:0",
             'external_recruitment_cost' => "nullable|numeric|min:0",

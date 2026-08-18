@@ -52,7 +52,7 @@ class HomeAction extends MainAction
         $appVisitAction->storeAppVisit($request);
         $data['job_types'] = JobType::get();
         $data['job_titles'] = JobTitle::get();
-        $data['nationalities'] = Nationality::get();
+        $data['nationalities'] = Nationality::ordered()->get();
         $data['about_us'] = AboutUs::get();
         $data['services'] = Service::get();
         $data['steps'] = $this->stepAction->get();

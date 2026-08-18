@@ -12,6 +12,11 @@
         <input type="text" name="phone_code" class="form-control" data-validation="required">
     </div>
     <div class="col-12">
+        <label for="sort_order" class="form-label">{{ __('countries.sort_order') }}</label>
+        <input type="number" id="sort_order" name="sort_order" class="form-control"
+               min="1" step="1" value="{{ old('sort_order', $nextSortOrder) }}" data-validation="required">
+    </div>
+    <div class="col-12">
         <label for="TextInput" class="form-label">
             تكلفة الاستقدام
         </label>

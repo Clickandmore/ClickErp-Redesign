@@ -82,13 +82,13 @@ class NationalityAction extends MainAction
 
     public function getNationalities()
     { 
-        return $this->model->orderByTranslation('sub_title', 'asc')->get();
+        return $this->model->ordered()->get();
     }
 
     public function getVisible()
     {
         return $this->model->where('is_show', true)
-            ->orderByTranslation('sub_title', 'asc')
+            ->ordered()
             ->get();
     }
 

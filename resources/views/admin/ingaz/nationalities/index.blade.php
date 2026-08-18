@@ -87,6 +87,7 @@
                             <thead>
                                 <tr>
                                     <th>#</th>
+                                    <th>{{ __('countries.sort_order') }}</th>
                                     <th>{{ helperTrans("ingaz.nationality_name") }}</th>
                                     <th>{{ helperTrans("ingaz.financial_details") }}</th>
                                     <th>{{ helperTrans("ingaz.visibility") }}</th>
@@ -111,16 +112,17 @@
     $(document).ready(function () {
         let columns = [
             {"data": 'DT_RowIndex', name: 'DT_RowIndex', orderable: false, searchable: false},
+            {"data": "sort_order", name: "sort_order", orderable: true, searchable: false},
             {"data": "meta", name: "meta", orderable: false, searchable: false},
             {"data": "financials", name: "financials", orderable: false, searchable: false},
             {"data": "visibility_toggle", name: "visibility_toggle", orderable: false, searchable: false},
             {"data": "actions", name: "actions", orderable: false, searchable: false},
-            {"data": "sub_title_plain", name: "sub_title_plain", orderable: true, searchable: true, visible: false}
+            {"data": "sub_title_plain", name: "sub_title_plain", orderable: false, searchable: true, visible: false}
         ];
         showDataTable("{{ $dataTableRoute }}", columns);
 
         $('#dataTableObject').on('init.dt', function () {
-            $(this).DataTable().order([[5, 'asc']]).draw();
+            $(this).DataTable().order([[1, 'asc']]).draw();
         });
     });
 

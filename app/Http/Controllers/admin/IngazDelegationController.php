@@ -105,6 +105,7 @@ class IngazDelegationController extends Controller
             $canCreateCreditNotes = $this->adminCanAny($this->creditNoteCreatePermissions());
             $canViewMusanedTransfers = $this->adminCanAny($this->musanedTransferViewPermissions());
             $canCreateMusanedTransfers = $this->adminCanAny($this->musanedTransferCreatePermissions());
+            $canDeleteMusanedTransfers = $this->adminCanAny($this->musanedTransferDeletePermissions());
 
             $rows = $query->latest('id');
 
@@ -165,7 +166,7 @@ class IngazDelegationController extends Controller
                     return e($this->delegationCountryName($row));
                 })
                 ->addColumn('profession_name', fn (IngazDelegation $row) => e($row->profession?->title ?? '-'))
-                ->addColumn('invoice', function (IngazDelegation $row) use ($canViewInvoices, $canCreateInvoices, $canViewCreditNotes, $canCreateCreditNotes, $canViewMusanedTransfers, $canCreateMusanedTransfers) {
+                ->addColumn('invoice', function (IngazDelegation $row) use ($canViewInvoices, $canCreateInvoices, $canViewCreditNotes, $canCreateCreditNotes, $canViewMusanedTransfers, $canCreateMusanedTransfers, $canDeleteMusanedTransfers) {
                     if ($row->invoice) {
                         $actions = [];
 
@@ -195,7 +196,15 @@ class IngazDelegationController extends Controller
                             $actions[] = '<a href="' . route('musaned-transfers.show', $transfer->id) . '" class="btn btn-sm btn-outline-info">
                                 <i class="fa fa-arrow-right-arrow-left me-1"></i>التحويل
                             </a>';
-                        } elseif (!$transfer && $canCreateMusanedTransfers) {
+                        }
+
+                        if ($transfer && $canDeleteMusanedTransfers) {
+                            $actions[] = '<a href="' . e(route('musaned-transfers.show', $transfer->id) . '#deleteMusanedTransfer') . '" class="btn btn-sm btn-outline-danger">
+                                <i class="fa fa-trash me-1"></i>حذف التحويل
+                            </a>';
+                        }
+
+                        if (!$transfer && $canCreateMusanedTransfers) {
                             $actions[] = '<a href="' . route('musaned-transfers.create', ['ingaz_delegation_ids' => [$row->id]]) . '" class="btn btn-sm btn-outline-info">
                                 <i class="fa fa-plus me-1"></i>تحويل
                             </a>';
@@ -327,6 +336,7 @@ class IngazDelegationController extends Controller
 
         $ingazDelegation->load([
             'country', 'nationality', 'profession', 'user', 'maid.religion', 'marketer',
+            'invoice.musanedTransferItem.transfer',
             'invoice.recruitmentCreditNotes.constraint',
             'invoice.recruitmentCreditNotes.financeSale',
         ]);
@@ -343,6 +353,7 @@ class IngazDelegationController extends Controller
             'canCreateCreditNotes' => $this->adminCanAny($this->creditNoteCreatePermissions()),
             'canViewMusanedTransfers' => $this->adminCanAny($this->musanedTransferViewPermissions()),
             'canCreateMusanedTransfers' => $this->adminCanAny($this->musanedTransferCreatePermissions()),
+            'canDeleteMusanedTransfers' => $this->adminCanAny($this->musanedTransferDeletePermissions()),
         ]);
     }
 
@@ -964,6 +975,14 @@ class IngazDelegationController extends Controller
             PermKeys::MUSANED_TRANSFERS_CONTROL,
             PermKeys::REC_CONTRACTS_CREATE,
             PermKeys::REC_CONTRACTS_MANAGE,
+        ];
+    }
+
+    private function musanedTransferDeletePermissions(): array
+    {
+        return [
+            PermKeys::MUSANED_TRANSFERS_DELETE,
+            PermKeys::MUSANED_TRANSFERS_CONTROL,
         ];
     }
 

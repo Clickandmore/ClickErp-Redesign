@@ -20,6 +20,7 @@ class NationalityController extends Controller
     public $postData = [
         "logo",
         "phone_code",
+        "sort_order",
         "sub_title:ar",
         "sub_title:en",
         "description:ar",
@@ -55,6 +56,7 @@ class NationalityController extends Controller
                     'id',
                     'logo',
                     'phone_code',
+                    'sort_order',
                     'price',
                     'direct_recruitment_cost',
                     'external_recruitment_cost',
@@ -64,10 +66,11 @@ class NationalityController extends Controller
                     'service_transportation_cost',
                     'rental_cost',
                     'monthly_salary',
+                    'expected_duration',
                     'is_show',
                     'created_at',
                 ])
-                ->orderByTranslation('sub_title', 'asc');
+                ->ordered();
 
             $currency = helperTrans('ingaz.currency_sar');
 
@@ -207,12 +210,14 @@ class NationalityController extends Controller
 
     public function create(Request $request)
     {
+        $nextSortOrder = max(1, ((int) objModel::max('sort_order')) + 1);
+
         if ($request->ajax()) {
-            $returnHTML = view($this->folderPath . ".create")->render();
+            $returnHTML = view($this->folderPath . ".create", compact('nextSortOrder'))->render();
             return jsonSuccess(["html" => $returnHTML]);
         }
 
-        return view($this->folderPath . '.create-page');
+        return view($this->folderPath . '.create-page', compact('nextSortOrder'));
     }
 
 
