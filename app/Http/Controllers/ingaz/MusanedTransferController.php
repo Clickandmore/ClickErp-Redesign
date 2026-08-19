@@ -242,6 +242,14 @@ class MusanedTransferController extends Controller
                     ]);
                 }
 
+                // Older transfer deletions may have left their item records
+                // behind. They have no transfer parent and must not prevent
+                // the invoice from being transferred again.
+                MusanedTransferItem::query()
+                    ->whereIn('invoice_id', $invoices->pluck('id'))
+                    ->whereDoesntHave('transfer')
+                    ->delete();
+
                 $itemPayloads = [];
                 $totals = [
                     'customer_paid_total' => 0.0,
@@ -431,6 +439,9 @@ class MusanedTransferController extends Controller
                     $service->deleteConstraint((int) $constraint->id);
                 }
 
+                // Explicitly remove items as a safeguard for installations
+                // where the database foreign-key cascade was not applied.
+                $lockedTransfer->items()->delete();
                 $lockedTransfer->delete();
 
                 return $constraints->count();
@@ -463,7 +474,9 @@ class MusanedTransferController extends Controller
                 'ingazDelegation.nationality',
                 'musanedTransferItem',
             ])
-            ->whereDoesntHave('musanedTransferItem')
+            // A transfer item only blocks its invoice while its parent
+            // transfer still exists. This also releases legacy orphan items.
+            ->whereDoesntHave('musanedTransferItem.transfer')
             ->where(function ($query) {
                 $query->whereHas('contract')
                     ->orWhereHas('ingazDelegation');

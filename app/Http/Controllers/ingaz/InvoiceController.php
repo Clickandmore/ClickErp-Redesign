@@ -2001,11 +2001,9 @@ class InvoiceController extends Controller
         $pdf = PDF::loadView('admin.ingaz.invoices.export-pdf', [
             'invoices' => $invoices,
             'printedAt' => now(),
-        ])->setPaper('a4', 'landscape');
-
-        $pdf->setOptions([
-            'defaultFont' => 'dejavu sans',
-            'isHtml5ParserEnabled' => true,
+        ], [], [
+            'format' => 'A4-L',
+            'mode' => 'utf-8',
         ]);
 
         return $pdf->download('ingaz-invoices-' . now()->format('Y-m-d-His') . '.pdf');
@@ -3033,11 +3031,9 @@ class InvoiceController extends Controller
             ]);
         }
 
-        $pdf = PDF::loadView('admin.ingaz.invoices.invoice', $viewData)->setPaper('a4', 'portrait');
-
-        $pdf->setOptions([
-            'defaultFont' => 'dejavu sans',
-            'isHtml5ParserEnabled' => true,
+        $pdf = PDF::loadView('admin.ingaz.invoices.invoice', $viewData, [], [
+            'format' => 'A4',
+            'mode' => 'utf-8',
         ]);
 
         if (request()->boolean('download')) {

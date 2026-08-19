@@ -135,7 +135,7 @@
 <body>
     <!-- header -->
 
-    @include('click.layout.inc.print_header')
+    @include('finance::finance.print-header')
 
     <main class="main">
         <div class="Title">

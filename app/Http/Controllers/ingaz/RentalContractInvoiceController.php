@@ -116,10 +116,9 @@ class RentalContractInvoiceController extends Controller
             ]);
         }
 
-        $pdf = PDF::loadView('admin.ingaz.invoices.print', $viewData)->setPaper('a4', 'portrait');
-        $pdf->setOptions([
-            'defaultFont' => 'dejavu sans',
-            'isHtml5ParserEnabled' => true,
+        $pdf = PDF::loadView('admin.ingaz.invoices.print', $viewData, [], [
+            'format' => 'A4',
+            'mode' => 'utf-8',
         ]);
 
         if (request()->boolean('download')) {
@@ -236,10 +235,9 @@ class RentalContractInvoiceController extends Controller
             ]);
         }
 
-        $pdf = PDF::loadView('admin.ingaz.invoices.print', $viewData)->setPaper('a4', 'portrait');
-        $pdf->setOptions([
-            'defaultFont' => 'dejavu sans',
-            'isHtml5ParserEnabled' => true,
+        $pdf = PDF::loadView('admin.ingaz.invoices.print', $viewData, [], [
+            'format' => 'A4',
+            'mode' => 'utf-8',
         ]);
 
         return request()->boolean('download')
@@ -389,10 +387,9 @@ class RentalContractInvoiceController extends Controller
             ]);
         }
 
-        $pdf = PDF::loadView('admin.ingaz.invoices.print', $viewData)->setPaper('a4', 'portrait');
-        $pdf->setOptions([
-            'defaultFont' => 'dejavu sans',
-            'isHtml5ParserEnabled' => true,
+        $pdf = PDF::loadView('admin.ingaz.invoices.print', $viewData, [], [
+            'format' => 'A4',
+            'mode' => 'utf-8',
         ]);
 
         return request()->boolean('download')

@@ -57,7 +57,9 @@ class EagarRequestController extends Controller
             return $orderAction->storeOrder([
                 'maid_id' => $maid->id,
                 'job_type_id' => 2,
-                'payment_method' => $request->input('payment_method', 'none'),
+                // 'none' كانت تُقرأ في شاشة طلبات الإيجار على أنها "تم الدفع"،
+                // والطلب القادم من الموقع الخارجي غير مدفوع.
+                'payment_method' => 'cash',
             ], $request);
         });
 

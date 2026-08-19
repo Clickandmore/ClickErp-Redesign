@@ -23,6 +23,9 @@ use Illuminate\Validation\Rule;
 class RecruitmentController extends Controller
 {
     use SendSMSTrait, StoreMessageTrait;
+
+    private const RECRUITMENT_JOB_TYPE_ID = 1;
+
     public function create($client_id)
     {
         $client = User::findOrFail($client_id);
@@ -30,7 +33,6 @@ class RecruitmentController extends Controller
         // Get filter parameters
         $nationality_id = request('nationality_id');
         $religion_id = request('religion_id');
-        $job_type_id = request('job_type_id');
         $experience_years = request('experience_years');
         $passport_num = request('passport_num');
         $office_id = request('office_id');
@@ -50,6 +52,12 @@ class RecruitmentController extends Controller
             })
             ->whereDoesntHave('orders', function ($q) {
                 $q->whereIn('status', ['pending', 'approved', 'in_progress']);
+            })
+            ->whereHas('jobTypes', function ($q) {
+                $q->where('job_type_id', self::RECRUITMENT_JOB_TYPE_ID);
+            })
+            ->whereDoesntHave('jobTypes', function ($q) {
+                $q->where('job_types.id', '!=', self::RECRUITMENT_JOB_TYPE_ID);
             });
 
         // Apply filters
@@ -58,11 +66,6 @@ class RecruitmentController extends Controller
         }
         if ($religion_id) {
             $query->where('religion_id', $religion_id);
-        }
-        if ($job_type_id) {
-            $query->whereHas('jobTypes', function ($q) use ($job_type_id) {
-                $q->where('job_type_id', $job_type_id);
-            });
         }
         if ($experience_years) {
             $query->where('experience_years', '>=', $experience_years);
@@ -82,7 +85,8 @@ class RecruitmentController extends Controller
         // Get data for filters
         $nationalities = Nationality::all();
         $religions = Religion::all();
-        $job_types = JobType::all();
+        $recruitmentJobType = JobType::findOrFail(self::RECRUITMENT_JOB_TYPE_ID);
+        $job_types = collect([$recruitmentJobType]);
         $offices = RecruitmentOffices::all();
 
         // Get employees
@@ -96,6 +100,7 @@ class RecruitmentController extends Controller
             'available_maids',
             'nationalities',
             'religions',
+            'recruitmentJobType',
             'job_types',
             'employees',
             'offices'
@@ -154,10 +159,22 @@ class RecruitmentController extends Controller
                 'notes' => 'nullable|string',
             ]);
 
+            // Do not rely on the UI filter: recruitment requests can only use
+            // CVs assigned to the recruitment job type.
+            $maid = Maid::query()
+                ->whereKey($request->maid_id)
+                ->whereHas('jobTypes', function ($query) {
+                    $query->where('job_type_id', self::RECRUITMENT_JOB_TYPE_ID);
+                })
+                ->whereDoesntHave('jobTypes', function ($query) {
+                    $query->where('job_types.id', '!=', self::RECRUITMENT_JOB_TYPE_ID);
+                })
+                ->firstOrFail();
+
             DB::beginTransaction();
 
             // Get job type ID for recruitment
-            $jobType = JobType::where('id', 1)->first(); // Assuming 1 is the ID for recruitment type
+            $jobType = JobType::findOrFail(self::RECRUITMENT_JOB_TYPE_ID);
 
             // Create order using the model
             $recruitment = RecruitmentRequest::create([
@@ -183,7 +200,6 @@ class RecruitmentController extends Controller
 
             // Keep the persisted business status and immediate availability in sync.
             // Use a model instance so the maid activity log records the transition.
-            $maid = Maid::findOrFail($request->maid_id);
             $maid->update([
                 'status' => 'reserved',
                 'available' => false,

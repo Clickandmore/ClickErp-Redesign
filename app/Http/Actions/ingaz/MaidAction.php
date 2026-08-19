@@ -2060,6 +2060,9 @@ class MaidAction extends MainAction
 
         return $this->model
             ->shown()
+            // أي طلب قائم على السيرة (استقدام أو إيجار أو نقل خدمات) يخفيها من الموقع
+            // الخارجي، بما في ذلك سير الإيجار المتاحة للاستلام الفوري من السكن.
+            ->withoutActiveOrders()
             ->where(function ($query) use ($today) {
                 $query->where(function ($available) use ($today) {
                     $available->where('available', true)
@@ -2077,9 +2080,6 @@ class MaidAction extends MainAction
                                 ContractStatusEnum::Tazker->value,
                                 ContractStatusEnum::Arrival->value,
                             ]);
-                        })
-                        ->whereDoesntHave('orders', function ($orderQuery) {
-                            $orderQuery->whereIn('status', ['new', 'under_process', 'contracted']);
                         });
                 })->orWhere(function ($shelter) use ($today) {
                     $this->applyShelterInstantFilters($shelter, $today);

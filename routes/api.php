@@ -181,6 +181,11 @@ Route::group([
     Route::get('offers', [App\Http\Controllers\Api\ApiOfferController::class, 'index'])->name('offers.index');
     Route::get('offers/{id}', [App\Http\Controllers\Api\ApiOfferController::class, 'show'])->whereNumber('id')->name('offers.show');
     Route::get('guidelines', [App\Http\Controllers\Api\ApiGuidelineController::class, 'index'])->name('guidelines.index');
+    // مدونة الموقع الخارجي. slugs يُستهلك من sitemap.xml، لذلك يسبق {slug}
+    // حتى لا يبتلعه كمقال اسمه "slugs".
+    Route::get('blogs', [App\Http\Controllers\Api\ApiBlogController::class, 'index'])->name('blogs.index');
+    Route::get('blogs/slugs', [App\Http\Controllers\Api\ApiBlogController::class, 'slugs'])->name('blogs.slugs');
+    Route::get('blogs/{slug}', [App\Http\Controllers\Api\ApiBlogController::class, 'show'])->name('blogs.show');
     Route::resource('all-workers', ApiMaidController::class);
     Route::get('arrival-worker', [App\Http\Controllers\Api\ApiMaidController::class, 'arrivalWorker'])->name('arrival-worker');
     Route::get('questions', [App\Http\Controllers\Api\ApiQuestionController::class, 'index'])->name('questions.index');
@@ -188,6 +193,10 @@ Route::group([
     Route::post('simplified-orders', [App\Http\Controllers\Api\ApiSimplifiedOrderController::class, 'store'])
         ->middleware('throttle:5,1')
         ->name('simplified-orders.store');
+    // طلب إيجار من الموقع الخارجي، يقبل العميل المسجّل والزائر معًا.
+    Route::post('rental-requests', [App\Http\Controllers\Api\ApiRentalRequestController::class, 'store'])
+        ->middleware('throttle:10,1')
+        ->name('rental-requests.store');
 });
 
 // *************************************************************************************************************

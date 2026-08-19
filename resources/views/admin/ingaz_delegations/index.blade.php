@@ -97,6 +97,10 @@
                 min-width: 180px;
             }
         }
+
+        .table-responsive {
+            overflow-x: auto !important;
+        }
     </style>
 @endsection
 

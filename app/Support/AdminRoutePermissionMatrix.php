@@ -4,6 +4,7 @@ namespace App\Support;
 
 use App\NewPermKeys;
 use App\PermKeys;
+use App\Services\ingaz\ReportExportService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Str;
@@ -330,7 +331,10 @@ class AdminRoutePermissionMatrix
             'admins.reset-password' => [PermKeys::USERS_EDIT],
             'admins.terminate-session' => [PermKeys::USERS_EDIT],
             'admins.toggle-status' => [PermKeys::USERS_EDIT],
-            'reports.export' => [NewPermKeys::REPORTS_EXPORT, NewPermKeys::REPORTS_MANAGE],
+            // بوابة المسار = اتحاد كل صلاحية تصدير معرفة في ReportExportService،
+            // والفحص الدقيق لكل تقرير/صيغة يبقى داخل الخدمة نفسها.
+            'reports.index' => ReportExportService::allExportPermissions(),
+            'reports.export' => ReportExportService::allExportPermissions(),
             'form-settings.preview.print' => [PermKeys::SETTINGS_VIEW, PermKeys::SETTINGS_CONTROL],
         ];
     }
@@ -818,6 +822,18 @@ class AdminRoutePermissionMatrix
             ]),
             [
                 'offers.toggle-status' => [PermKeys::OFFERS_EDIT, PermKeys::OFFERS_CONTROL],
+            ],
+            self::resource('blogs', [
+                'index' => [PermKeys::BLOGS_VIEW, PermKeys::BLOGS_CONTROL],
+                'show' => [PermKeys::BLOGS_VIEW, PermKeys::BLOGS_CONTROL],
+                'create' => [PermKeys::BLOGS_CREATE, PermKeys::BLOGS_CONTROL],
+                'store' => [PermKeys::BLOGS_CREATE, PermKeys::BLOGS_CONTROL],
+                'edit' => [PermKeys::BLOGS_EDIT, PermKeys::BLOGS_CONTROL],
+                'update' => [PermKeys::BLOGS_EDIT, PermKeys::BLOGS_CONTROL],
+                'destroy' => [PermKeys::BLOGS_DELETE, PermKeys::BLOGS_CONTROL],
+            ]),
+            [
+                'blogs.toggle-status' => [PermKeys::BLOGS_EDIT, PermKeys::BLOGS_CONTROL],
             ],
             self::resource('about-us', [
                 'index' => [PermKeys::ABOUT_US_VIEW],

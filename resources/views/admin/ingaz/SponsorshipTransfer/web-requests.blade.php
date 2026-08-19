@@ -184,6 +184,31 @@
 .text-gray-800 {
     color: #5a5c69 !important;
 }
+
+/* إجراءات الطلب معروضة بجانب بعضها بدل القائمة المنسدلة. */
+.order-actions-inline {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    justify-content: flex-start;
+}
+
+.order-actions-inline .order-action {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 3px 8px;
+    font-size: 0.78rem;
+    line-height: 1.4;
+    white-space: nowrap;
+}
+
+/* الشاشات الضيقة تكتفي بالأيقونة، والاسم يبقى في تلميح الزر. */
+@media (max-width: 1399.98px) {
+    .order-actions-inline .order-action span {
+        display: none;
+    }
+}
 </style>
 @endpush
 

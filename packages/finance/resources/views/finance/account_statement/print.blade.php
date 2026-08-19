@@ -720,7 +720,7 @@
 
     <div class="print-page">
         <div class="print-shell">
-            @include('click.layout.inc.print_header')
+            @include('finance::finance.print-header')
 
             <section class="print-heading">
                 <div class="print-heading__title">

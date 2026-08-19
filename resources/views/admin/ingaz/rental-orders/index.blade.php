@@ -49,6 +49,35 @@
             color: #8892a6;
             font-size: 0.85rem;
         }
+
+        /* إجراءات الطلب معروضة بجانب بعضها بدل القائمة المنسدلة. */
+        .order-actions-cell {
+            min-width: 150px;
+        }
+
+        .order-actions-inline {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 4px;
+            justify-content: flex-start;
+        }
+
+        .order-actions-inline .order-action {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 3px 8px;
+            font-size: 0.78rem;
+            line-height: 1.4;
+            white-space: nowrap;
+        }
+
+        /* الشاشات الضيقة تكتفي بالأيقونة، والاسم يبقى في تلميح الزر. */
+        @media (max-width: 1399.98px) {
+            .order-actions-inline .order-action span {
+                display: none;
+            }
+        }
     </style>
 @endsection
 @section('page-title')
@@ -341,7 +370,7 @@
                     "data": "actions",
                     orderable: false,
                     searchable: false,
-                    className: 'text-center'
+                    className: 'text-center order-actions-cell'
                 }
             ];
 
@@ -1121,24 +1150,9 @@
 
             // Initialize tooltips after DataTable loads
             dataTable.on('draw', function() {
+                // إجراءات الطلب أصبحت أزراراً ظاهرة بجانب بعضها، فلا حاجة لتهيئة
+                // أو إغلاق أي قائمة منسدلة بعد إعادة الرسم.
                 initTooltips();
-
-                // Clean up dropdown text
-                $('.dropdown-item').each(function() {
-                    let text = $(this).text();
-                    // Remove any repeated "الإجراءات" text
-                    text = text.replace(/الإجراءات/g, '').trim();
-                    // Remove any extra spaces
-                    text = text.replace(/\s+/g, ' ').trim();
-                    $(this).text(text);
-
-                    // Ensure only one icon per item
-                    $(this).find('i').slice(1).remove();
-                });
-
-                // Ensure all dropdowns are closed after DataTable redraw
-                $('.dropdown').removeClass('show');
-                $('.dropdown-menu').hide();
             });
 
             // Initialize tooltips on page load

@@ -2,7 +2,7 @@
 
 namespace Nami\Finance\Services;
 
-use Barryvdh\DomPDF\Facade\Pdf;
+use PDF as Pdf;
 use Illuminate\Support\Collection;
 use PhpOffice\PhpSpreadsheet\Cell\DataType;
 use PhpOffice\PhpSpreadsheet\Cell\Coordinate;
@@ -166,12 +166,9 @@ class TaxInvoiceStatementExportService
             'supplierTaxNumber' => $supplierTaxNumber,
             'periodLabel' => $this->periodLabel($filters),
             'generatedAt' => now(),
-        ])->setPaper('a4', 'landscape');
-
-        $pdf->setOptions([
-            'defaultFont' => 'dejavu sans',
-            'isHtml5ParserEnabled' => true,
-            'isRemoteEnabled' => false,
+        ], [], [
+            'format' => 'A4-L',
+            'mode' => 'utf-8',
         ]);
 
         return $pdf->download($this->filename('pdf'));
