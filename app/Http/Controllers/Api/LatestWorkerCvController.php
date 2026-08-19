@@ -22,6 +22,8 @@ class LatestWorkerCvController extends Controller
         }
 
         $maids = Maid::shown()
+            // السيرة المحجوزة بطلب قائم لا تظهر ضمن أحدث السير على الموقع الخارجي.
+            ->withoutActiveOrders()
             ->with([
                 'jobTypes',
                 'jobTitles',

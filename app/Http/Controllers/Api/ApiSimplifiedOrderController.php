@@ -34,6 +34,7 @@ class ApiSimplifiedOrderController extends Controller
             'name' => ['required', 'string', 'min:2', 'max:255'],
             'phone' => ['required', 'regex:/^5\d{8}$/'],
             'maid_id' => ['required', 'integer', 'exists:maids,id'],
+            'service_type' => ['nullable', 'string', 'max:30'],
             'customer' => [
                 'required',
                 'integer',
@@ -52,14 +53,17 @@ class ApiSimplifiedOrderController extends Controller
             'customer.exists' => __('ingaz.customer_is_not_exists'),
         ]);
 
-        $maid = Maid::with('jobTypes')->findOrFail($data['maid_id']);
-        $jobType = $maid->jobTypes->first();
+        $maid = Maid::with(['jobTypes', 'nationality'])->findOrFail($data['maid_id']);
 
-        if (!$jobType) {
+        // الخدمة التي حجز منها العميل على الموقع الخارجي تحدد شاشة الطلب في لوحة التحكم.
+        $jobTypeId = $maid->resolveJobTypeIdForService($data['service_type'] ?? null)
+            ?? $maid->jobTypes->first()?->id;
+
+        if (!$jobTypeId) {
             return apiResponse(false, __('ingaz.job_type_not_found'), null, 404);
         }
 
-        return DB::transaction(function () use ($data, $maid, $jobType) {
+        return DB::transaction(function () use ($data, $maid, $jobTypeId) {
             $user = User::query()->where('phone', $data['phone'])->lockForUpdate()->first();
 
             if ($user && (int) $user->is_blocked === 1) {
@@ -94,7 +98,7 @@ class ApiSimplifiedOrderController extends Controller
             $order = RecruitmentRequest::create([
                 'user_id' => $user->id,
                 'maid_id' => $maid->id,
-                'job_type_id' => $jobType->id,
+                'job_type_id' => $jobTypeId,
                 'customer_id' => $data['customer'],
             ]);
 

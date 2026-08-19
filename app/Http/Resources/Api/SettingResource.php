@@ -85,6 +85,8 @@ class SettingResource extends JsonResource
             'uses_otp_authentication' => \App\Support\ExternalAuthSettings::usesOtpOnly(),
             'external_order_mode' => \App\Support\ExternalOrderSettings::mode(),
             'uses_simplified_ordering' => \App\Support\ExternalOrderSettings::usesSimplifiedOrdering(),
+            'rental_order_mode' => \App\Support\RentalOrderSettings::mode(),
+            'uses_simplified_rental_ordering' => \App\Support\RentalOrderSettings::usesSimplifiedOrdering(),
 		];
 	}
 

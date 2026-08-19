@@ -67,7 +67,8 @@ class OrderAction extends MainAction
 
     public function storeOrder($data, $request)
     {
-        $data['user_id'] = Auth::user()->id;
+        // الطلبات القادمة من الموقع الخارجي بدون تسجيل دخول تمرر صاحب الطلب صراحةً.
+        $data['user_id'] = $data['user_id'] ?? Auth::user()->id;
         $data['order_code'] = $this->model::generateUniqueCode();
 
         $order = $this->store($data);

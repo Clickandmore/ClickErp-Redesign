@@ -819,6 +819,18 @@ class AdminRoutePermissionMatrix
             [
                 'offers.toggle-status' => [PermKeys::OFFERS_EDIT, PermKeys::OFFERS_CONTROL],
             ],
+            self::resource('blogs', [
+                'index' => [PermKeys::BLOGS_VIEW, PermKeys::BLOGS_CONTROL],
+                'show' => [PermKeys::BLOGS_VIEW, PermKeys::BLOGS_CONTROL],
+                'create' => [PermKeys::BLOGS_CREATE, PermKeys::BLOGS_CONTROL],
+                'store' => [PermKeys::BLOGS_CREATE, PermKeys::BLOGS_CONTROL],
+                'edit' => [PermKeys::BLOGS_EDIT, PermKeys::BLOGS_CONTROL],
+                'update' => [PermKeys::BLOGS_EDIT, PermKeys::BLOGS_CONTROL],
+                'destroy' => [PermKeys::BLOGS_DELETE, PermKeys::BLOGS_CONTROL],
+            ]),
+            [
+                'blogs.toggle-status' => [PermKeys::BLOGS_EDIT, PermKeys::BLOGS_CONTROL],
+            ],
             self::resource('about-us', [
                 'index' => [PermKeys::ABOUT_US_VIEW],
                 'show' => [PermKeys::ABOUT_US_VIEW],

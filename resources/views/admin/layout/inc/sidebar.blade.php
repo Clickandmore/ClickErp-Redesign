@@ -1343,6 +1343,16 @@
                                                         </li>
                                                     @endif
 
+                                                    @if (@AdminGuardHasAnyPerm([\App\PermKeys::BLOGS_VIEW, \App\PermKeys::BLOGS_CONTROL]))
+                                                        <li>
+                                                            <a class="m-link {{ request()->routeIs('blogs.*') ? 'active' : '' }}"
+                                                                href="{{ route('blogs.index') }}">
+                                                                <i class="fa fa-pen-nib"></i>
+                                                                <span class="ms-2">المدونة والمقالات</span>
+                                                            </a>
+                                                        </li>
+                                                    @endif
+
                                                     @if (@AdminGuardHasPerm(\App\PermKeys::SLIDERS_VIEW))
                                                         <li>
                                                             <a class="m-link {{ request()->routeIs('sliders.*') ? 'active' : '' }}"

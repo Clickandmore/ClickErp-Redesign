@@ -3,6 +3,7 @@
 namespace App\Models\ingaz;
 
 use App\Enums\ingaz\ContractStatusEnum;
+use App\Enums\ingaz\OrderEnum;
 use App\Http\Controllers\ingaz\RecruitmentOffice;
 use App\Models\Contract;
 use App\Models\RecruitmentOffices;
@@ -480,6 +481,21 @@ class Maid extends Model
     public function scopeFromExternalOffice($query)
     {
         return $query->whereNotNull('office_id');
+    }
+
+    /**
+     * السير التي لا يوجد عليها طلب قائم من الموقع الخارجي أو التطبيق.
+     * طلب الاستقدام أو الإيجار أو نقل الخدمات يحجز السيرة فتختفي من الموقع.
+     */
+    public function scopeWithoutActiveOrders($query)
+    {
+        return $query->whereDoesntHave('orders', function ($orderQuery) {
+            $orderQuery->whereIn('status', [
+                OrderEnum::New->value,
+                OrderEnum::UnderProcess->value,
+                OrderEnum::Contracted->value,
+            ]);
+        });
     }
 
     public function scopeAvailableFromToday($query)
@@ -1100,6 +1116,57 @@ class Maid extends Model
             ),
             default => $this->resolved_price,
         };
+    }
+
+    /**
+     * نوع الطلب (job_type_id) المناسب للخدمة التي طلبها الموقع الخارجي.
+     * يرجع null إذا لم تكن العاملة معروضة تحت هذه الخدمة، فيبقى السلوك القديم كما هو.
+     */
+    public function resolveJobTypeIdForService(?string $serviceType): ?int
+    {
+        $jobTypeId = match ($this->normalizeServiceType($serviceType)) {
+            'recruitment' => 1,
+            'rental' => 2,
+            'transfer' => 3,
+            default => null,
+        };
+
+        if ($jobTypeId === null) {
+            return null;
+        }
+
+        $attachedIds = $this->jobTypes
+            ->pluck('id')
+            ->map(fn ($id) => (int) $id);
+
+        if ($attachedIds->contains($jobTypeId)) {
+            return $jobTypeId;
+        }
+
+        // سيرة عاملة الإيجار المتاحة للاستلام الفوري تظهر أيضًا ضمن نقل الخدمات على
+        // الموقع الخارجي دون أن يكون النوع 3 مرتبطًا بها في maid_jobs.
+        if ($jobTypeId === 3 && $this->isInstantShelterListing()) {
+            return 3;
+        }
+
+        return null;
+    }
+
+    /**
+     * التكاليف المعروضة على بطاقة السيرة في الموقع الخارجي، كل خدمة بسعرها.
+     * قيمة نقل الخدمات تأتي من الجنسية (service_transportation_cost) لا من سعر الاستقدام.
+     */
+    public function serviceCostsForSite(): array
+    {
+        $transferCost = $this->nationality?->service_transportation_cost;
+
+        return [
+            'recruitment_cost' => $this->resolvePriceForService('recruitment'),
+            'rental_cost' => $this->resolvePriceForService('rental'),
+            'transfer_cost' => ($transferCost !== null && (float) $transferCost > 0)
+                ? (float) $transferCost
+                : null,
+        ];
     }
 
     public function getResolvedPriceAttribute(): ?float

@@ -38,6 +38,7 @@ class ApiMaidController extends Controller
         // بدلاً من إضافتها إلى $appends وتحميل استعلامات إضافية على كل شاشات الإدارة.
         $data['maids']->getCollection()->each->append('is_rental_transfer_listing');
         $this->attachRentalPackages($data['maids']->getCollection());
+        $this->attachServiceCosts($data['maids']->getCollection());
 
         $data['type'] = $request->type ?? 'all';
         $data['jobTitles'] = $jobTitleAction->get();
@@ -117,6 +118,20 @@ class ApiMaidController extends Controller
     }
 
     /**
+     * إرفاق تكلفة كل خدمة بالسيرة حتى يعرض الموقع الخارجي قيمة نقل الخدمات
+     * القادمة من الجنسية بدل قيمة الاستقدام أو الراتب على بطاقة نقل الخدمات.
+     * الجنسية محمّلة مسبقًا في الاستعلام فلا استعلامات إضافية هنا.
+     */
+    private function attachServiceCosts($maids): void
+    {
+        foreach ($maids as $maid) {
+            foreach ($maid->serviceCostsForSite() as $key => $value) {
+                $maid->setAttribute($key, $value);
+            }
+        }
+    }
+
+    /**
      * Show the form for creating a new resource.
      *
      * @return \Illuminate\Http\Response
@@ -186,7 +201,7 @@ class ApiMaidController extends Controller
             'manager_email' => $recruitmentOffice->manager_email,
         ] : null;
 
-        $maidPayload = $maid->toArray();
+        $maidPayload = array_merge($maid->toArray(), $maid->serviceCostsForSite());
         $maidPayload['recruitment_office'] = $recruitmentOfficePayload;
         $maidPayload['is_rental_transfer_listing'] = $maid->is_rental_transfer_listing;
 
