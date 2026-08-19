@@ -199,7 +199,9 @@ class RentalOrderController extends Controller
                            }
 
                            // Keep the legacy display for orders created before payment tracking was introduced.
-                           if ($row->payment_method && $row->payment_method !== 'cash') {
+                           // 'cash' و 'none' تعنيان أن الطلب لم يُدفع بعد، وطلبات الموقع الخارجي
+                           // تُنشأ بإحداهما، فلا تُعرض على أنها مدفوعة.
+                           if ($row->payment_method && !in_array($row->payment_method, ['cash', 'none'], true)) {
                                return '<span class="badge bg-success status-badge">تم الدفع</span>';
                            }
                            return '<span class="badge bg-warning status-badge">لم يتم الدفع</span>';
@@ -220,63 +222,61 @@ class RentalOrderController extends Controller
                     return '<span class="text-info">' . ($row->resolveResponsibleAdmin()?->name ?? '-') . '</span>';
                 })
                 ->addColumn('actions', function ($row) {
-                    $actions = '<div class="dropdown actions-dropdown">
-                                    <button class="btn btn-sm btn-primary dropdown-toggle actions-btn" type="button" aria-expanded="false" title="الإجراءات المتاحة">
-                                        <i class="fas fa-cogs me-1"></i> الإجراءات
-                        </button>
-                        <ul class="dropdown-menu dropdown-menu-end shadow-lg">';
+                    // الإجراءات معروضة بجانب بعضها بدل قائمة منسدلة، فلا تعتمد على أي
+                    // تهيئة JavaScript وتظل ظاهرة بعد كل إعادة رسم لجدول البيانات.
+                    $actions = '<div class="order-actions-inline">';
 
                     // View button
                     if (@AdminGuardHasPerm(\App\PermKeys::ORDERS_VIEW)) {
-                        $actions .= '<li><a class="dropdown-item" href="' . route('showSingleOrder', ['orderId' => $row->id]) . '">
-                            <i class="fa fa-eye"></i> عرض التفاصيل
-                        </a></li>';
+                        $actions .= '<a class="btn btn-sm btn-outline-primary order-action" href="' . route('showSingleOrder', ['orderId' => $row->id]) . '" title="عرض التفاصيل">
+                            <i class="fa fa-eye"></i><span>عرض</span>
+                        </a>';
                     }
 
                     // Add Contract button for approved orders
                     if (@AdminGuardHasPerm(\App\PermKeys::RENT_CONTRACT_CREATE) && $row->status == OrderEnum::UnderProcess->value) {
-                        $actions .= '<li><a class="dropdown-item" href="' . route('RentContract.create', ['order_id' => $row->id]) . '">
-                            <i class="fa fa-plus"></i> إضافة عقد إيجار
-                        </a></li>';
+                        $actions .= '<a class="btn btn-sm btn-outline-success order-action" href="' . route('RentContract.create', ['order_id' => $row->id]) . '" title="إضافة عقد إيجار">
+                            <i class="fa fa-file-signature"></i><span>عقد</span>
+                        </a>';
                     }
 
                     // Change Maid button for new orders
                     if (@AdminGuardHasPerm(\App\PermKeys::ORDERS_EDIT) && $row->status == OrderEnum::New->value) {
                         $hasMaid = $row->maid_id ? '1' : '0';
                         $maidActionLabel = $row->maid_id ? 'تغيير العاملة' : 'تعيين عاملة';
-                        $actions .= '<li><button class="dropdown-item change-maid" data-id="' . $row->id . '" data-has-maid="' . $hasMaid . '">
-                            <i class="fa fa-user"></i> ' . $maidActionLabel . '
-                        </button></li>';
+                        $actions .= '<button type="button" class="btn btn-sm btn-outline-secondary order-action change-maid" data-id="' . $row->id . '" data-has-maid="' . $hasMaid . '" title="' . $maidActionLabel . '">
+                            <i class="fa fa-user"></i><span>' . $maidActionLabel . '</span>
+                        </button>';
                     }
 
-                           // Approve/Reject buttons for new orders
-                           if (@AdminGuardHasPerm(\App\PermKeys::ORDERS_EDIT) && $row->status == OrderEnum::New->value) {
-                               $actions .= '<li><button class="dropdown-item approve-order" data-id="' . $row->id . '">
-                                   <i class="fa fa-check text-success"></i> قبول الطلب
-                               </button></li>';
-                               $actions .= '<li><button class="dropdown-item reject-order" data-id="' . $row->id . '">
-                                   <i class="fa fa-times text-danger"></i> رفض الطلب
-                               </button></li>';
-                           }
+                    // Approve/Reject buttons for new orders
+                    if (@AdminGuardHasPerm(\App\PermKeys::ORDERS_EDIT) && $row->status == OrderEnum::New->value) {
+                        $actions .= '<button type="button" class="btn btn-sm btn-outline-success order-action approve-order" data-id="' . $row->id . '" title="قبول الطلب">
+                            <i class="fa fa-check"></i><span>قبول</span>
+                        </button>';
+                        $actions .= '<button type="button" class="btn btn-sm btn-outline-danger order-action reject-order" data-id="' . $row->id . '" title="رفض الطلب">
+                            <i class="fa fa-ban"></i><span>رفض</span>
+                        </button>';
+                    }
 
                     // Refuse/Return button for new and under_process orders
                     if (@AdminGuardHasPerm(\App\PermKeys::ORDERS_EDIT)) {
                         if (in_array($row->status, [OrderEnum::New->value, OrderEnum::UnderProcess->value])) {
-                            $actions .= '<li><button class="dropdown-item refuse-order" data-id="' . $row->id . '">
-                                <i class="fa fa-times"></i> رفض/إرجاع الطلب
-                            </button></li>';
+                            $actions .= '<button type="button" class="btn btn-sm btn-outline-warning order-action refuse-order" data-id="' . $row->id . '" title="رفض/إرجاع الطلب">
+                                <i class="fa fa-rotate-left"></i><span>إرجاع</span>
+                            </button>';
                         }
                     }
 
                     // Delete button
                     if (@AdminGuardHasPerm(\App\PermKeys::ORDERS_DELETE)) {
-                        $actions .= '<li><hr class="dropdown-divider"></li>
-                        <li><button class="dropdown-item delete-order" data-id="' . $row->id . '">
-                            <i class="fa fa-trash"></i> حذف الطلب
-                        </button></li>';
+                        $actions .= '<button type="button" class="btn btn-sm btn-outline-danger order-action delete-order" data-id="' . $row->id . '" title="حذف الطلب">
+                            <i class="fa fa-trash"></i><span>حذف</span>
+                        </button>';
                     }
 
-                    $actions .= '</ul></div>';
+                    $actions .= '</div>';
+
                     return $actions;
                 })
                 ->escapeColumns([])

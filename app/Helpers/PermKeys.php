@@ -340,6 +340,12 @@ const PARTENR_CONTROL = 'partenr_control';
     const OFFERS_DELETE = 'offers_delete';
     const OFFERS_CONTROL = 'offers_control';
 
+    const BLOGS_VIEW = 'blogs_view';
+    const BLOGS_CREATE = 'blogs_create';
+    const BLOGS_EDIT = 'blogs_edit';
+    const BLOGS_DELETE = 'blogs_delete';
+    const BLOGS_CONTROL = 'blogs_control';
+
     const FAQ_VIEW = 'faq_view';
     const FAQ_CREATE = 'faq_create';
     const FAQ_EDIT = 'faq_edit';

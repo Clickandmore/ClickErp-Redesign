@@ -31,6 +31,10 @@ if (!function_exists('jsonSuccess')) {
     {
         $msg = ($msg == null) ? __("auth.done successfully") : $msg;
         return response()->json([
+            // API clients (including the connected recruitment websites) use
+            // this flag to distinguish a successful response from an error.
+            // Keep the legacy fields below for existing dashboard consumers.
+            'status' => true,
             'code' => $code,
             'data' => $data,
             'message' => $msg,

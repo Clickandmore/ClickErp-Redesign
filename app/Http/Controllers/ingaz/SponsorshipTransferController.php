@@ -482,41 +482,39 @@ class SponsorshipTransferController extends Controller
                     return '<span class="badge ' . $badgeClass . '">' . $row->status . '</span>';
                 })
                 ->addColumn('actions', function ($row) {
-                    $actions = '<div class="dropdown actions-dropdown">
-                                    <button class="btn btn-sm btn-primary dropdown-toggle actions-btn" type="button"  aria-expanded="false" title="الإجراءات المتاحة">
-                                        <i class="fas fa-cogs me-1"></i> الإجراءات
-                                    </button>
-                                    <ul class="dropdown-menu dropdown-menu-end shadow-lg">';
+                    // أزرار ظاهرة بجانب بعضها بدل قائمة منسدلة لم تكن تُفتح أصلاً،
+                    // فلا تعتمد على أي تهيئة JavaScript في هذه الشاشة.
+                    $actions = '<div class="order-actions-inline">';
 
                     // عرض تفاصيل الطلب
                     if (@AdminGuardHasPerm(\App\PermKeys::SPONSOR_TRANSFER_WEB_REQUESTS_VIEW)) {
-                        $actions .= '<li><a class="dropdown-item" href="' . route('SponsorshipTransfer.webRequest.show', $row->id) . '">
-                                        <i class="fas fa-eye"></i> عرض التفاصيل
-                                    </a></li>';
+                        $actions .= '<a class="btn btn-sm btn-outline-primary order-action" href="' . route('SponsorshipTransfer.webRequest.show', $row->id) . '" title="عرض التفاصيل">
+                                        <i class="fas fa-eye"></i><span>عرض</span>
+                                    </a>';
                     }
 
                     // إنشاء طلب نقل خدمات
                     if (($row->status == 'new' || $row->status == 'paid') && @AdminGuardHasPerm(\App\PermKeys::SPONSOR_TRANSFER_CREATE)) {
-                        $actions .= '<li><a class="dropdown-item" href="' . route('SponsorshipTransfer.create', ['order_id' => $row->id]) . '">
-                                        <i class="fas fa-exchange-alt"></i> إنشاء طلب نقل خدمات
-                                    </a></li>';
-                    }
-
-                    // إلغاء الطلب وإرجاع العاملة متاحة
-                    if (($row->status == 'new' || $row->status == 'paid') && @AdminGuardHasPerm(\App\PermKeys::SPONSOR_TRANSFER_EDIT)) {
-                        $actions .= '<li><a class="dropdown-item confirm-action" href="#" data-action="cancel-order" data-id="' . $row->id . '" data-text="إلغاء الطلب وإرجاع العاملة متاحة مرة أخرى">
-                                        <i class="fas fa-times"></i> إلغاء الطلب
-                                    </a></li>';
+                        $actions .= '<a class="btn btn-sm btn-outline-success order-action" href="' . route('SponsorshipTransfer.create', ['order_id' => $row->id]) . '" title="إنشاء طلب نقل خدمات">
+                                        <i class="fas fa-exchange-alt"></i><span>إنشاء نقل</span>
+                                    </a>';
                     }
 
                     // تحديث حالة الطلب
                     if ($row->status == 'new' && @AdminGuardHasPerm(\App\PermKeys::SPONSOR_TRANSFER_EDIT)) {
-                        $actions .= '<li><a class="dropdown-item confirm-action" href="#" data-action="update-status" data-id="' . $row->id . '" data-status="started" data-text="تحديث حالة الطلب إلى معالج">
-                                        <i="fas fa-play"></i> بدء المعالجة
-                                        </a></li>';
+                        $actions .= '<a class="btn btn-sm btn-outline-info order-action confirm-action" href="#" data-action="update-status" data-id="' . $row->id . '" data-status="started" data-text="تحديث حالة الطلب إلى معالج" title="بدء المعالجة">
+                                        <i class="fas fa-play"></i><span>بدء المعالجة</span>
+                                    </a>';
                     }
 
-                    $actions .= '</ul></div>';
+                    // إلغاء الطلب وإرجاع العاملة متاحة
+                    if (($row->status == 'new' || $row->status == 'paid') && @AdminGuardHasPerm(\App\PermKeys::SPONSOR_TRANSFER_EDIT)) {
+                        $actions .= '<a class="btn btn-sm btn-outline-danger order-action confirm-action" href="#" data-action="cancel-order" data-id="' . $row->id . '" data-text="إلغاء الطلب وإرجاع العاملة متاحة مرة أخرى" title="إلغاء الطلب">
+                                        <i class="fas fa-times"></i><span>إلغاء</span>
+                                    </a>';
+                    }
+
+                    $actions .= '</div>';
 
                     return $actions;
                 })

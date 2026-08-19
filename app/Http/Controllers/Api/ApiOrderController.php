@@ -100,6 +100,7 @@ class ApiOrderController extends Controller
     {
         $request->validate([
             'maid_id' => ['required', 'exists:maids,id'],
+            'service_type' => ['nullable', 'string', 'max:30'],
             'customer' => [
                 'nullable',
                 Rule::exists('admins', 'id')->where(function ($query) {
@@ -117,9 +118,13 @@ class ApiOrderController extends Controller
         ]);
 
         $maid = $maidAction->find($request->maid_id);
-        $jobType = $maid->jobTypes->first();
 
-        if (!$jobType) {
+        // الموقع الخارجي يرسل الخدمة التي حجز منها العميل (استقدام/إيجار/نقل خدمات)
+        // ليصل الطلب إلى شاشته الصحيحة في لوحة التحكم. غيابها يبقي السلوك القديم.
+        $jobTypeId = $maid->resolveJobTypeIdForService($request->input('service_type'))
+            ?? $maid->jobTypes->first()?->id;
+
+        if (!$jobTypeId) {
             return apiResponse(false, __("ingaz.job_type_not_found"), null, 404);
         }
 
@@ -136,11 +141,11 @@ class ApiOrderController extends Controller
             return apiResponse(false, __("web.there_are_order_in_prograss"), null, 403);
         }
 
-        return DB::transaction(function () use ($request, $maid, $jobType, $adminAction) {
+        return DB::transaction(function () use ($request, $maid, $jobTypeId, $adminAction) {
             $order = RecruitmentRequest::create([
                 'user_id' => auth()->id(),
                 'maid_id' => $maid->id,
-                'job_type_id' => $jobType->id,
+                'job_type_id' => $jobTypeId,
             ]);
 
             $user = auth()->user();

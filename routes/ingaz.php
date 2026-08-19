@@ -49,6 +49,7 @@ use App\Http\Controllers\ingaz\NotificationController;
 use App\Http\Controllers\ingaz\NotificationSettingsController;
 use App\Http\Controllers\ingaz\StorageSettingsController;
 use App\Http\Controllers\ingaz\WhatsAppInboxController;
+use App\Http\Controllers\ingaz\BlogController;
 use App\Http\Controllers\ingaz\OfferController;
 use App\Http\Controllers\ingaz\OrderController;
 use App\Http\Controllers\ingaz\PackageController;
@@ -251,6 +252,8 @@ Route::group(
             Route::resource('nationalities', NationalityController::class);
             Route::post('offers/{id}/toggle-status', [OfferController::class, 'toggleStatus'])->name('offers.toggle-status');
             Route::resource('offers', OfferController::class);
+            Route::post('blogs/{id}/toggle-status', [BlogController::class, 'toggleStatus'])->name('blogs.toggle-status');
+            Route::resource('blogs', BlogController::class);
             Route::resource('sliders', SliderController::class);
             Route::resource('religions', ReligionController::class);
             Route::patch('languages/{language}/toggle-visibility', [MaidLanguageController::class, 'toggleVisibility'])
