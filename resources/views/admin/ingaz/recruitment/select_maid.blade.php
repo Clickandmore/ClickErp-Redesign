@@ -45,15 +45,16 @@
                                 <div class="col-md-4">
                                     <div class="form-group">
                                         <label for="job_type_id">نوع الوظيفة</label>
-                                        <select name="job_type_id" id="job_type_id" class="form-control select2">
+                                        <select id="job_type_id" class="form-control select2" disabled>
                                             <option value="">الكل</option>
                                             @foreach ($job_types as $job_type)
                                                 <option value="{{ $job_type->id }}"
-                                                    {{ request('job_type_id') == $job_type->id ? 'selected' : '' }}>
+                                                    {{ $job_type->id == $recruitmentJobType->id ? 'selected' : '' }}>
                                                     {{ $job_type->title }}
                                                 </option>
                                             @endforeach
                                         </select>
+                                        <input type="hidden" name="job_type_id" value="{{ $recruitmentJobType->id }}">
                                     </div>
                                 </div>
                             </div>

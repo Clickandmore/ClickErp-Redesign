@@ -44,6 +44,21 @@ use Spatie\Activitylog\Models\Activity;
 
 class ReportExportService
 {
+    /**
+     * أقصى عدد خلايا (صفوف × أعمدة) يولّد له مسار driver=dompdf ملف PDF عبر mPDF.
+     *
+     * قياس فعلي ضمن حد الذاكرة 768M الذي تضبطه configureRuntime()، وبعد رفع
+     * pcre.backtrack_limit هناك أيضاً:
+     *    6400 خلية => 192MB
+     *   12800 خلية => 326MB
+     *   24000 خلية => 564MB
+     *   33000 خلية => 766MB (على حافة الحد تماماً)
+     * ولأن نفاد الذاكرة خطأ قاتل لا يلتقطه try/catch، القيمة أدناه تترك هامشاً
+     * واضحاً. وما يتجاوزها يعود تلقائياً إلى عرض الطباعة الذي جرى التحقق من
+     * نجاحه على كل التقارير مهما كان حجمها.
+     */
+    private const PDF_FILE_MAX_CELLS = 20000;
+
     protected ?int $rentalJobTypeId = null;
     protected ?bool $hasShelterQuickTags = null;
 
@@ -424,6 +439,102 @@ class ReportExportService
         ];
     }
 
+    /**
+     * مصفوفة صلاحيات التصدير: مصدر الحقيقة الوحيد لمن يستطيع تصدير أي تقرير وبأي صيغة.
+     *
+     * تُستخدم في ثلاثة مواضع ويجب أن تبقى متطابقة بينها:
+     *  - هذه الخدمة (إظهار التقرير + السماح بالتصدير فعلياً)
+     *  - AdminRoutePermissionMatrix للمسار reports.export (بوابة الميدلوير)
+     *  - القائمة الجانبية لإظهار رابط التقارير
+     *
+     * أي صلاحية هنا يجب أن تكون قابلة للمنح من /dash/perms، لذلك تُزامَن عبر
+     * php artisan permissions:prepare-server.
+     *
+     * @return array<string, array{pdf: array<int, string>, excel: array<int, string>}>
+     */
+    public static function permissionMap(): array
+    {
+        $reports = [
+            NewPermKeys::REPORTS_EXPORT,
+            NewPermKeys::REPORTS_MANAGE,
+        ];
+
+        $both = fn (array $permissions) => [
+            'pdf' => array_values(array_unique(array_merge($permissions, $reports))),
+            'excel' => array_values(array_unique(array_merge($permissions, $reports))),
+        ];
+
+        return [
+            'maids' => [
+                'pdf' => array_merge([PermKeys::MAIDS_EXPORT, PermKeys::MAIDS_EXPORT_PDF], $reports),
+                'excel' => array_merge([PermKeys::MAIDS_EXPORT, PermKeys::MAIDS_EXPORT_EXCEL], $reports),
+            ],
+            'orders' => $both([PermKeys::ORDERS_EXPORT]),
+            'clients' => [
+                'pdf' => array_merge([
+                    PermKeys::CLIENTS_EXPORT,
+                    PermKeys::CLIENTS_EXPORT_PDF,
+                    NewPermKeys::CLIENTS_EXPORT,
+                ], $reports),
+                'excel' => array_merge([
+                    PermKeys::CLIENTS_EXPORT,
+                    PermKeys::CLIENTS_EXPORT_EXCEL,
+                    NewPermKeys::CLIENTS_EXPORT,
+                ], $reports),
+            ],
+            'recruitment_contracts' => $both([
+                PermKeys::REC_CONTRACTS_EXPORT,
+                NewPermKeys::REC_CONTRACTS_EXPORT,
+            ]),
+            'rent_contracts' => $both([PermKeys::RENT_CONTRACT_VIEW]),
+            'shelter_contracts' => $both([PermKeys::SHELTER_CONTRACT_VIEW]),
+            'sponsorship_transfers' => $both([
+                PermKeys::SPONSOR_TRANSFER_VIEW,
+                PermKeys::SPONSOR_TRANSFER_CONTROL,
+            ]),
+            'deportation_travel' => $both([
+                PermKeys::TRAVEL_VIEW,
+                PermKeys::TRAVEL_CONTROL,
+            ]),
+            'travel_trips' => $both([
+                PermKeys::TRAVEL_VIEW,
+                PermKeys::TRAVEL_CONTROL,
+            ]),
+            'complaints' => $both([
+                PermKeys::COMPLAINT_VIEW,
+                PermKeys::COMPLAINT_CONTROL,
+            ]),
+            'offices' => $both([
+                PermKeys::OFFICE_VIEW,
+                PermKeys::OFFICE_CONTROL,
+            ]),
+            'financial_requests' => $both([
+                PermKeys::FINANCIAL_REQUESTS_VIEW,
+                PermKeys::FINANCIAL_REQUESTS_CREATE,
+                PermKeys::FINANCIAL_REQUESTS_EXPORT,
+                PermKeys::FINANCIAL_REQUESTS_CONTROL,
+            ]),
+        ];
+    }
+
+    /**
+     * اتحاد كل صلاحية تسمح بتصدير أي تقرير، لتغذية بوابة المسار reports.export.
+     *
+     * @return array<int, string>
+     */
+    public static function allExportPermissions(): array
+    {
+        $permissions = [];
+
+        foreach (self::permissionMap() as $formats) {
+            foreach ($formats as $formatPermissions) {
+                $permissions = array_merge($permissions, $formatPermissions);
+            }
+        }
+
+        return array_values(array_unique($permissions));
+    }
+
     private function canAccessReport(string $reportKey): bool
     {
         return $this->canExportFormat($reportKey, 'pdf')
@@ -432,77 +543,9 @@ class ReportExportService
 
     private function canExportFormat(string $reportKey, string $format): bool
     {
-        return match ($reportKey) {
-            'maids' => $format === 'pdf'
-                ? AdminGuardHasAnyPerm([
-                    PermKeys::MAIDS_EXPORT,
-                    PermKeys::MAIDS_EXPORT_PDF,
-                    NewPermKeys::REPORTS_EXPORT,
-                ])
-                : AdminGuardHasAnyPerm([
-                    PermKeys::MAIDS_EXPORT,
-                    PermKeys::MAIDS_EXPORT_EXCEL,
-                    NewPermKeys::REPORTS_EXPORT,
-                ]),
-            'orders' => AdminGuardHasAnyPerm([
-                PermKeys::ORDERS_EXPORT,
-                NewPermKeys::REPORTS_EXPORT,
-            ]),
-            'clients' => $format === 'pdf'
-                ? AdminGuardHasAnyPerm([
-                    PermKeys::CLIENTS_EXPORT,
-                    PermKeys::CLIENTS_EXPORT_PDF,
-                    NewPermKeys::CLIENTS_EXPORT,
-                    NewPermKeys::REPORTS_EXPORT,
-                ])
-                : AdminGuardHasAnyPerm([
-                    PermKeys::CLIENTS_EXPORT,
-                    PermKeys::CLIENTS_EXPORT_EXCEL,
-                    NewPermKeys::CLIENTS_EXPORT,
-                    NewPermKeys::REPORTS_EXPORT,
-                ]),
-            'recruitment_contracts' => AdminGuardHasAnyPerm([
-                PermKeys::REC_CONTRACTS_EXPORT,
-                NewPermKeys::REC_CONTRACTS_EXPORT,
-                NewPermKeys::REPORTS_EXPORT,
-            ]),
-            'rent_contracts' => AdminGuardHasAnyPerm([
-                PermKeys::RENT_CONTRACT_VIEW,
-                NewPermKeys::REPORTS_EXPORT,
-            ]),
-            'shelter_contracts' => AdminGuardHasAnyPerm([
-                PermKeys::SHELTER_CONTRACT_VIEW,
-                NewPermKeys::REPORTS_EXPORT,
-            ]),
-            'sponsorship_transfers' => AdminGuardHasAnyPerm([
-                PermKeys::SPONSOR_TRANSFER_VIEW,
-                PermKeys::SPONSOR_TRANSFER_CONTROL,
-                NewPermKeys::REPORTS_EXPORT,
-            ]),
-            'deportation_travel', 'travel_trips' => AdminGuardHasAnyPerm([
-                PermKeys::TRAVEL_VIEW,
-                PermKeys::TRAVEL_CONTROL,
-                NewPermKeys::REPORTS_EXPORT,
-            ]),
-            'complaints' => AdminGuardHasAnyPerm([
-                PermKeys::COMPLAINT_VIEW,
-                PermKeys::COMPLAINT_CONTROL,
-                NewPermKeys::REPORTS_EXPORT,
-            ]),
-            'offices' => AdminGuardHasAnyPerm([
-                PermKeys::OFFICE_VIEW,
-                PermKeys::OFFICE_CONTROL,
-                NewPermKeys::REPORTS_EXPORT,
-            ]),
-            'financial_requests' => AdminGuardHasAnyPerm([
-                PermKeys::FINANCIAL_REQUESTS_VIEW,
-                PermKeys::FINANCIAL_REQUESTS_CREATE,
-                PermKeys::FINANCIAL_REQUESTS_EXPORT,
-                PermKeys::FINANCIAL_REQUESTS_CONTROL,
-                NewPermKeys::REPORTS_EXPORT,
-            ]),
-            default => false,
-        };
+        $permissions = self::permissionMap()[$reportKey][$format] ?? [];
+
+        return $permissions !== [] && AdminGuardHasAnyPerm($permissions);
     }
 
     private function ensureReportAccess(string $reportKey): void
@@ -515,6 +558,9 @@ class ReportExportService
     {
         @ini_set('memory_limit', '768M');
         @set_time_limit(600);
+        // mPDF يمرّر كامل HTML عبر تعبيرات PCRE، والحد الافتراضي (مليون) يسقط
+        // أي تقرير متوسط الحجم برسالة "HTML code size is larger than pcre.backtrack_limit".
+        @ini_set('pcre.backtrack_limit', '20000000');
     }
 
     private function buildReportPayload(string $reportKey, Request $request): array
@@ -1358,7 +1404,12 @@ class ReportExportService
 
         // Default to a browser print view because it preserves Arabic shaping
         // more reliably than Dompdf for these wide tabular reports.
-        if ($request->query('driver') !== 'dompdf') {
+        // ومسار driver=dompdf يولّد ملف PDF فعلياً عبر mPDF، لكنه محدود بحجم الجدول:
+        // فوق الحد أدناه ينفد حد التراجع في PCRE داخل mPDF ويسقط الطلب، فنرجع لعرض الطباعة.
+        $useFileDriver = $request->query('driver') === 'dompdf'
+            && ($viewData['recordCount'] * count($viewData['headings'])) <= self::PDF_FILE_MAX_CELLS;
+
+        if (!$useFileDriver) {
             return response()->view(
                 'admin.ingaz.reports.print',
                 array_merge($viewData, [
@@ -1373,13 +1424,12 @@ class ReportExportService
         }
 
         $filename = $this->buildFilename($payload['filename_prefix'], 'pdf');
-        $pdf = PDF::loadView('admin.ingaz.reports.pdf', $viewData)
-            ->setPaper($viewData['paperSize'], 'landscape');
 
-        $pdf->setWarnings(false);
-        $pdf->setOptions([
-            'defaultFont' => 'dejavu sans',
-            'isHtml5ParserEnabled' => true,
+        // mPDF هي المحرك الوحيد هنا الذي يشكّل الحروف العربية بشكل صحيح، وهي لا تعرف
+        // setPaper/setOptions/setWarnings الخاصة بـ Dompdf؛ إعداد الصفحة يمرَّر إلى loadView.
+        $pdf = PDF::loadView('admin.ingaz.reports.pdf', $viewData, [], [
+            'format' => strtoupper($viewData['paperSize']) . '-L',
+            'mode' => 'utf-8',
         ]);
 
         if ($request->boolean('download') || $request->query('type') === 'download') {
