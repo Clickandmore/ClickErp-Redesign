@@ -2289,7 +2289,7 @@
                     // يتم إخفاء الحقول غير المطلوبة لهذا النوع من الخدمة
                     idFields.hide();
                     heightWeightFields.hide();
-                    maritalStatusField.hide();
+                    maritalStatusField.show();
                     officeField.hide();
                     passportExtraFields.hide();
                     priceLabel.text(@json(helperTrans('ingaz.service_transfer_cost')));
@@ -2311,16 +2311,13 @@
                     maritalStatusField.hide();
                     salaryField.show();
                     requestTypeField.hide();
-                    languagesField.hide();
+                    languagesField.show();
                     rentalKingdomStatusField.show();
                     rentalKingdomStatusSelect.prop('disabled', false);
                     priceLabel.text(@json(helperTrans('ingaz.monthly_rental_cost')));
                     if (!identityFieldLocks.requestType) {
                         requestTypeSelect.val(requestTypeCustom);
                     }
-                    maritalStatusEnField.val('');
-                    shouldUpdateMaritalTranslation = false;
-
                     idInputs.removeAttr('required');
                     heightWeightInputs.removeAttr('required');
                     maritalStatusSelect.removeAttr('required');

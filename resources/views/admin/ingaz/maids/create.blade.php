@@ -2006,17 +2006,14 @@
                     branchSelect.prop('disabled', false).prop('required', true);
                     // Hide fields for ايجار
                     heightWeightFields.hide();
-                    maritalStatusField.hide();
+                    maritalStatusField.show();
                     salaryField.show();
                     requestTypeField.hide();
-                    languagesField.hide();
+                    languagesField.show();
                     rentalKingdomStatusField.show();
                     rentalKingdomStatusSelect.prop('disabled', false);
                     priceLabel.text(@json(helperTrans('ingaz.monthly_rental_cost')));
                     requestTypeSelect.val(requestTypeCustom);
-                    maritalStatusEnField.val('');
-                    shouldUpdateMaritalTranslation = false;
-
                     idInputs.removeAttr('required');
                     heightWeightInputs.removeAttr('required');
                     maritalStatusSelect.removeAttr('required');
