@@ -106,7 +106,8 @@
 
                 $canViewComplaints = @AdminGuardHasPerm(\App\PermKeys::COMPLAINT_VIEW);
                 $canViewSponsorshipTransfer = @AdminGuardHasAnyPerm([\App\PermKeys::SPONSOR_TRANSFER_VIEW, \App\PermKeys::SPONSOR_TRANSFER_WEB_REQUESTS_VIEW, \App\PermKeys::SPONSOR_TRANSFER_CREATE, \App\PermKeys::SPONSOR_TRANSFER_EDIT, \App\PermKeys::SPONSOR_TRANSFER_DELETE]);
-                $canViewReports = @AdminGuardHasAnyPerm([\App\PermKeys::MAIDS_EXPORT, \App\PermKeys::MAIDS_EXPORT_PDF, \App\PermKeys::MAIDS_EXPORT_EXCEL, \App\PermKeys::ORDERS_EXPORT, \App\PermKeys::REC_CONTRACTS_EXPORT, \App\PermKeys::RENT_CONTRACT_VIEW, \App\PermKeys::SHELTER_CONTRACT_VIEW, \App\PermKeys::SPONSOR_TRANSFER_VIEW, \App\PermKeys::SPONSOR_TRANSFER_CONTROL, \App\PermKeys::TRAVEL_VIEW, \App\PermKeys::TRAVEL_CONTROL, \App\PermKeys::COMPLAINT_VIEW, \App\PermKeys::COMPLAINT_CONTROL, \App\PermKeys::OFFICE_VIEW, \App\PermKeys::OFFICE_CONTROL, \App\PermKeys::FINANCIAL_REQUESTS_VIEW, \App\PermKeys::FINANCIAL_REQUESTS_CREATE, \App\PermKeys::FINANCIAL_REQUESTS_EXPORT, \App\PermKeys::FINANCIAL_REQUESTS_CONTROL, \App\NewPermKeys::REC_CONTRACTS_EXPORT, \App\NewPermKeys::REPORTS_EXPORT]);
+                // نفس اتحاد الصلاحيات المستخدم في بوابة المسار reports.export حتى لا يظهر الرابط لمن لا يستطيع التصدير.
+                $canViewReports = @AdminGuardHasAnyPerm(\App\Services\ingaz\ReportExportService::allExportPermissions());
                 $canViewOfficeManagement = @AdminGuardHasPerm(\App\PermKeys::OFFICE_VIEW);
 
                 $canViewOperations =

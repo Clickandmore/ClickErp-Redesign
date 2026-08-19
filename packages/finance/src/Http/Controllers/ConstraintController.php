@@ -98,10 +98,9 @@ class ConstraintController extends Controller
             'totals' => $totals,
             'filters' => $this->resolveExportFilters($request),
             'title' => __('finance::finance.constraints'),
-        ])->setPaper('a4', 'landscape');
-        $pdf->setOptions([
-            'defaultFont' => 'dejavu sans',
-            'isHtml5ParserEnabled' => true,
+        ], [], [
+            'format' => 'A4-L',
+            'mode' => 'utf-8',
         ]);
 
         return $pdf->download($this->buildExportFilename('pdf'));

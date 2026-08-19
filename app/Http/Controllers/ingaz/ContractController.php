@@ -705,12 +705,11 @@ class ContractController extends Controller
         error_reporting($previousErrorReporting & ~E_DEPRECATED & ~E_USER_DEPRECATED);
 
         try {
-            $pdf = PDF::loadView('admin.ingaz.RecruitmentContract.delivery_form', $viewData)->setPaper('a4', 'portrait');
-
-            $pdf->setWarnings(false);
-            $pdf->setOptions([
-                'defaultFont' => 'dejavu sans',
-                'isHtml5ParserEnabled' => true,
+            // PDF هنا هو mPDF (وحدها تشكّل العربية بشكل صحيح) ولا تعرف setPaper/setOptions
+            // الخاصة بـ Dompdf؛ إعداد الصفحة يمرَّر إلى loadView.
+            $pdf = PDF::loadView('admin.ingaz.RecruitmentContract.delivery_form', $viewData, [], [
+                'format' => 'A4',
+                'mode' => 'utf-8',
             ]);
 
             if (request()->boolean('download') || request()->query('type') === 'download') {

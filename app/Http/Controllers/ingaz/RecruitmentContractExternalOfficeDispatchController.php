@@ -622,13 +622,9 @@ class RecruitmentContractExternalOfficeDispatchController extends Controller
             ]);
         }
 
-        $pdf = PDF::loadView('admin.ingaz.RecruitmentContract.external_office_dispatch_print', $viewData)
-            ->setPaper('a4', 'portrait');
-
-        $pdf->setWarnings(false);
-        $pdf->setOptions([
-            'defaultFont' => 'dejavu sans',
-            'isHtml5ParserEnabled' => true,
+        $pdf = PDF::loadView('admin.ingaz.RecruitmentContract.external_office_dispatch_print', $viewData, [], [
+            'format' => 'A4',
+            'mode' => 'utf-8',
         ]);
 
         $fileName = 'external-office-dispatch-contract-' . $contract->id . '.pdf';

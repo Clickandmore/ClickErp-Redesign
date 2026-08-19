@@ -2,7 +2,7 @@
 
 namespace Nami\Finance\Services;
 
-use Barryvdh\DomPDF\Facade\Pdf;
+use PDF as Pdf;
 use Illuminate\Http\Request;
 use Nami\Finance\Enums\BondTypes;
 use PhpOffice\PhpSpreadsheet\Cell\Coordinate;
@@ -107,11 +107,9 @@ class BondListExportService
                 'bond_search', 'from_date', 'to_date', 'cost_center_id',
                 'debit_account_id', 'credit_account_id', 'payment_type', 'is_confirm',
             ]),
-        ])->setPaper('a4', 'landscape');
-
-        $pdf->setOptions([
-            'defaultFont' => 'dejavu sans',
-            'isHtml5ParserEnabled' => true,
+        ], [], [
+            'format' => 'A4-L',
+            'mode' => 'utf-8',
         ]);
 
         return $pdf->download($this->filename($type, 'pdf'));

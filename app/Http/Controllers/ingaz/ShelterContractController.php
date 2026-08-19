@@ -580,16 +580,16 @@ class ShelterContractController extends Controller
 
     private function exportPdfFile(array $rows)
     {
+        // الاسم المستعار PDF مرتبط بحزمة mPDF لأنها وحدها تشكّل الحروف العربية بشكل صحيح،
+        // وهي لا تعرف setPaper/setOptions/setWarnings الخاصة بـ Dompdf. إعداد الصفحة يمرَّر
+        // إلى loadView مباشرة: A4-L أي A4 عرضية.
         $pdf = PDF::loadView('admin.ingaz.ShelterContract.export_pdf', [
             'rows' => $rows,
             'headings' => $this->exportHeadings(),
             'exportedAt' => now()->format('Y-m-d H:i'),
-        ])->setPaper('a4', 'landscape');
-
-        $pdf->setWarnings(false);
-        $pdf->setOptions([
-            'defaultFont' => 'dejavu sans',
-            'isHtml5ParserEnabled' => true,
+        ], [], [
+            'format' => 'A4-L',
+            'mode' => 'utf-8',
         ]);
 
         return $pdf->download($this->buildExportFilename('pdf'));
@@ -4366,12 +4366,9 @@ class ShelterContractController extends Controller
         error_reporting($previousErrorReporting & ~E_DEPRECATED & ~E_USER_DEPRECATED);
 
         try {
-            $pdf = PDF::loadView('admin.ingaz.ShelterContract.receipt_form', $viewData)->setPaper('a4', 'portrait');
-
-            $pdf->setWarnings(false);
-            $pdf->setOptions([
-                'defaultFont' => 'dejavu sans',
-                'isHtml5ParserEnabled' => true,
+            $pdf = PDF::loadView('admin.ingaz.ShelterContract.receipt_form', $viewData, [], [
+                'format' => 'A4',
+                'mode' => 'utf-8',
             ]);
 
             if (request()->boolean('download') || request()->query('type') === 'download') {
