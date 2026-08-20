@@ -61,9 +61,9 @@
             </select>
             @if($settings->visitorTrackingPayload()['enabled'])
                 <div class="mt-3">
-                    <label class="form-label">قيمة كود التتبع الحالية</label>
-                    <textarea class="form-control" rows="2" dir="ltr" readonly>{{ $settings->visitorTrackingPayload()['embed_code'] }}</textarea>
-                    <div class="form-text">متاح أيضًا عبر <code>GET /api/client/settings/visitor-tracking</code> وداخل <code>visitor_tracking</code> في API الإعدادات.</div>
+                    <label class="form-label">قيمة <code>body</code> الحالية</label>
+                    <textarea class="form-control" rows="5" dir="ltr" readonly>{{ $settings->seoBodyCode() }}</textarea>
+                    <div class="form-text">تجمع تلقائيًا كود الفوتر/Body وكود Live Chat وكود تتبع الزوار المختار، وتتوفر داخل <code>seo.body</code> و<code>body</code> في API الإعدادات.</div>
                 </div>
             @endif
         </div>

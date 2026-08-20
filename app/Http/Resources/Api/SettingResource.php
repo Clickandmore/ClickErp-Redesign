@@ -17,6 +17,7 @@ class SettingResource extends JsonResource
         $seo = $this->seoPayload();
         $visitorTracking = $this->resource->visitorTrackingPayload();
         $seo['visitor_tracking'] = $visitorTracking;
+        $seo['body'] = $this->resource->seoBodyCode();
 
         return [
 			'id' => (int)$this->id,
@@ -74,6 +75,7 @@ class SettingResource extends JsonResource
             'live_chat_tag' => $seo['live_chat_tag'],
             'visitor_tracking' => $visitorTracking,
             'visitor_tracking_code' => $visitorTracking['embed_code'],
+            'body' => $seo['body'],
 
             'privacy_policy' => (string)$this->privacy_policy,
             'terms_conditions' => (string)$this->terms_conditions,

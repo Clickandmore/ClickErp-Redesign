@@ -538,6 +538,9 @@ class AppHomeController extends Controller
             'hotjar_tag' => $seo['hotjar_tag'],
             'meta_pixel_tag' => $seo['meta_pixel_tag'],
             'live_chat_tag' => $seo['live_chat_tag'],
+            'visitor_tracking' => $seo['visitor_tracking'],
+            'visitor_tracking_code' => $seo['visitor_tracking']['embed_code'],
+            'body' => $seo['body'],
             'phone1' => $phone,
             'phone2' => $whatsapp !== '' ? $whatsapp : $otherPhone,
             'phone3' => $otherPhone,
@@ -608,6 +611,8 @@ class AppHomeController extends Controller
         $locale = in_array($locale, ['ar', 'en'], true) ? $locale : 'ar';
         $translation = $setting->translate($locale, false);
 
+        $visitorTracking = $setting->visitorTrackingPayload();
+
         return [
             'locale' => $locale,
             'article_tags' => (string) ($translation?->seo_article_tags ?? ''),
@@ -622,6 +627,8 @@ class AppHomeController extends Controller
             'hotjar_tag' => (string) ($setting->hotjar_tag ?? ''),
             'meta_pixel_tag' => (string) ($setting->meta_pixel_tag ?? ''),
             'live_chat_tag' => (string) ($setting->live_chat_tag ?? ''),
+            'visitor_tracking' => $visitorTracking,
+            'body' => $setting->seoBodyCode(),
         ];
     }
 

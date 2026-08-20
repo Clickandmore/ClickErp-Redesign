@@ -36,9 +36,19 @@ class WebsiteVisitorTrackingTest extends TestCase
         $payload = $settings->visitorTrackingPayload();
 
         $this->assertTrue($payload['enabled']);
+        $this->assertSame('body', $payload['placement']);
         $this->assertSame(['client.example'], $payload['allowed_domains']);
         $this->assertStringContainsString('/visitor-widget/' . str_repeat('a', 48) . '.js', $payload['script_url']);
         $this->assertStringContainsString('<script async src=', $payload['embed_code']);
+        $this->assertSame($payload['embed_code'], $payload['body']);
+
+        $settings->tag_manager_footer = '<noscript>manager</noscript>';
+        $settings->live_chat_tag = '<script>chat()</script>';
+        $body = $settings->seoBodyCode();
+
+        $this->assertStringContainsString('<noscript>manager</noscript>', $body);
+        $this->assertStringContainsString('<script>chat()</script>', $body);
+        $this->assertStringContainsString('/visitor-widget/' . str_repeat('a', 48) . '.js', $body);
     }
 
     public function test_settings_do_not_expose_an_inactive_tracking_code(): void

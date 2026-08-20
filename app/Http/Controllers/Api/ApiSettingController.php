@@ -50,9 +50,11 @@ class ApiSettingController extends Controller
         return $this->successResponse(
             $settings ? $settings->visitorTrackingPayload() : [
                 'enabled' => false,
+                'placement' => 'body',
                 'site_key' => null,
                 'script_url' => null,
                 'embed_code' => null,
+                'body' => null,
                 'allowed_domains' => [],
             ],
             __('api.All items'),

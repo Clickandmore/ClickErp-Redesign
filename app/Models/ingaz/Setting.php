@@ -113,16 +113,32 @@ class Setting extends Model
     {
         $site = $this->websiteVisitorSite;
         $enabled = $site && !$site->trashed() && $site->is_active;
+        $embedCode = $enabled ? $site->embedCode() : null;
 
         return [
             'enabled' => (bool) $enabled,
+            'placement' => 'body',
             'site_key' => $enabled ? $site->public_key : null,
             'script_url' => $enabled
                 ? route('visitor-widget.script', ['siteKey' => $site->public_key])
                 : null,
-            'embed_code' => $enabled ? $site->embedCode() : null,
+            'embed_code' => $embedCode,
+            'body' => $embedCode,
             'allowed_domains' => $enabled ? array_values((array) $site->allowed_domains) : [],
         ];
+    }
+
+    public function seoBodyCode(): string
+    {
+        $trackingCode = $this->visitorTrackingPayload()['embed_code'];
+
+        return collect([
+            $this->tag_manager_footer,
+            $this->live_chat_tag,
+            $trackingCode,
+        ])->map(fn ($code) => trim((string) $code))
+            ->filter()
+            ->implode("\n");
     }
 
     public function getActivitylogOptions(): LogOptions
