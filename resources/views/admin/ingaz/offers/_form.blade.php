@@ -58,7 +58,9 @@
 
 <div class="col-md-6">
     <label class="form-label">رابط العرض</label>
-    <input type="url" name="url" class="form-control" value="{{ $obj->url ?? '' }}">
+    <input type="text" name="url" class="form-control" value="{{ $obj->url ?? '' }}"
+           placeholder="https://example.com/offer  أو  /professional-workers">
+    <small class="text-muted">رابط كامل يبدأ بـ https:// أو مسار داخلي في الموقع يبدأ بـ /</small>
 </div>
 
 <div class="col-md-3">
