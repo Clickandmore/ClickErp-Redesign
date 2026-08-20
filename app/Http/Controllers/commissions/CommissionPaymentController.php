@@ -72,7 +72,7 @@ class CommissionPaymentController extends Controller
 
     public function index(Admin $admin)
     {
-        abort_unless($admin->admin_type === 'customer_service', 404);
+        abort_unless($this->isCommissionMarketer($admin), 404);
 
         $payments = $this->paymentService->getPaymentsForMarketer($admin->id);
         $balance = $this->profileService->getMarketerBalance($admin->id);
@@ -84,7 +84,7 @@ class CommissionPaymentController extends Controller
 
     public function store(Request $request, Admin $admin)
     {
-        abort_unless($admin->admin_type === 'customer_service', 404);
+        abort_unless($this->isCommissionMarketer($admin), 404);
 
         $balance = $this->profileService->getMarketerBalance($admin->id);
 
@@ -114,7 +114,7 @@ class CommissionPaymentController extends Controller
 
     public function linkFinanceBond(Request $request, Admin $admin, int $payment)
     {
-        abort_unless($admin->admin_type === 'customer_service', 404);
+        abort_unless($this->isCommissionMarketer($admin), 404);
 
         $validated = $request->validate($this->financialRules());
         $payment = $this->paymentService->linkExistingPaymentToFinance(
@@ -134,7 +134,7 @@ class CommissionPaymentController extends Controller
 
     public function print(Admin $admin, int $payment)
     {
-        abort_unless($admin->admin_type === 'customer_service', 404);
+        abort_unless($this->isCommissionMarketer($admin), 404);
 
         $payment = $this->paymentService->getPaymentsForMarketer($admin->id)
             ->where('id', $payment)->first();
@@ -174,5 +174,11 @@ class CommissionPaymentController extends Controller
                 'date',
             ],
         ];
+    }
+
+    private function isCommissionMarketer(Admin $admin): bool
+    {
+        return $admin->admin_type === 'customer_service'
+            || $this->profileService->hasOperations($admin->id);
     }
 }
