@@ -48,6 +48,31 @@
         </div>
 
         <div class="col-12">
+            <h6 class="text-muted mb-2">ربط تتبع زوار موقع العميل</h6>
+            <p class="text-muted small mb-3">اختر كودًا تم إنشاؤه من صفحة زوار الموقع. سيعمل الكود فقط على النطاقات المسجلة له، وستعيده API الإعدادات للموقع الخارجي.</p>
+            <a href="{{ route('website-visitors.index', ['tab' => 'tracking']) }}" class="btn btn-sm btn-outline-info mb-3">إدارة أكواد التتبع والنطاقات</a>
+            <select name="website_visitor_site_id" class="form-select" dir="rtl">
+                <option value="">بدون تتبع</option>
+                @foreach($visitorSites as $visitorSite)
+                    <option value="{{ $visitorSite->id }}" @selected((string) old('website_visitor_site_id', $settings->website_visitor_site_id) === (string) $visitorSite->id)>
+                        {{ $visitorSite->name }} — {{ implode(', ', $visitorSite->allowed_domains ?? []) }}
+                    </option>
+                @endforeach
+            </select>
+            @if($settings->visitorTrackingPayload()['enabled'])
+                <div class="mt-3">
+                    <label class="form-label">قيمة كود التتبع الحالية</label>
+                    <textarea class="form-control" rows="2" dir="ltr" readonly>{{ $settings->visitorTrackingPayload()['embed_code'] }}</textarea>
+                    <div class="form-text">متاح أيضًا عبر <code>GET /api/client/settings/visitor-tracking</code> وداخل <code>visitor_tracking</code> في API الإعدادات.</div>
+                </div>
+            @endif
+        </div>
+
+        <div class="col-12">
+            <hr>
+        </div>
+
+        <div class="col-12">
             <h6 class="text-muted mb-2">{{ __('admin.settings_tag_manager') }}</h6>
             <p class="text-muted small mb-3">{{ __('admin.settings_tag_manager_hint') }}</p>
             <div class="row g-3">

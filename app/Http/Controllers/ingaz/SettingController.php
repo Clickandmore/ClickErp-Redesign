@@ -6,6 +6,7 @@ use App\Http\Actions\dashboard\SettingAction as objAction;
 use App\Http\Controllers\admin\Controller;
 use App\Http\Requests\ingaz\SettingRequest;
 use App\Models\ingaz\Setting;
+use App\Models\WebsiteVisitorSite;
 use Illuminate\Http\Request;
 
 class SettingController extends Controller
@@ -53,6 +54,7 @@ class SettingController extends Controller
         'hotjar_tag',
         'meta_pixel_tag',
         'live_chat_tag',
+        'website_visitor_site_id',
         'there_are_offer',
         'location:ar',
         'location:en',
@@ -178,7 +180,11 @@ class SettingController extends Controller
             $settings = Setting::create();
         }
 
-        return view('admin.settings.sections.' . $section, compact('settings'));
+        $visitorSites = $section === 'seo'
+            ? WebsiteVisitorSite::query()->where('is_active', true)->orderBy('name')->get()
+            : collect();
+
+        return view('admin.settings.sections.' . $section, compact('settings', 'visitorSites'));
     }
 
     /**

@@ -39,7 +39,12 @@ class WebsiteVisitor extends Model
 
     public function site()
     {
-        return $this->belongsTo(WebsiteVisitorSite::class, 'website_visitor_site_id');
+        return $this->belongsTo(WebsiteVisitorSite::class, 'website_visitor_site_id')->withTrashed();
+    }
+
+    public function scopeExternalTracked($query)
+    {
+        return $query->whereNotNull('website_visitor_site_id');
     }
 
     public function messages()

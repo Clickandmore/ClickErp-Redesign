@@ -43,6 +43,23 @@ class ApiSettingController extends Controller
         return $this->successResponse(null, __('api.not found'), 201);
     }
 
+    public function visitorTracking()
+    {
+        $settings = objModel::first();
+
+        return $this->successResponse(
+            $settings ? $settings->visitorTrackingPayload() : [
+                'enabled' => false,
+                'site_key' => null,
+                'script_url' => null,
+                'embed_code' => null,
+                'allowed_domains' => [],
+            ],
+            __('api.All items'),
+            200
+        );
+    }
+
     /**
      * Show the form for creating a new resource.
      *

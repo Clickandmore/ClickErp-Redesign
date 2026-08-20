@@ -54,6 +54,7 @@ class WebsiteVisitorChatController extends Controller
         $onlineSince = now()->subSeconds(self::ONLINE_SECONDS);
 
         $visitors = WebsiteVisitor::query()
+            ->externalTracked()
             ->with(['user:id,name,phone,email', 'site:id,name'])
             ->withCount(['pageViews', 'messages'])
             ->withCount([
@@ -101,6 +102,7 @@ class WebsiteVisitorChatController extends Controller
         $search = trim((string) ($validated['search'] ?? ''));
 
         $visitors = WebsiteVisitor::query()
+            ->externalTracked()
             ->with(['user:id,name,phone,email', 'site:id,name'])
             ->withCount(['pageViews', 'messages'])
             ->where('last_seen_at', '>=', now()->subDays($days))
@@ -131,6 +133,7 @@ class WebsiteVisitorChatController extends Controller
         $search = trim((string) ($validated['search'] ?? ''));
 
         $visitors = WebsiteVisitor::query()
+            ->externalTracked()
             ->with(['user:id,name,phone,email', 'site:id,name', 'latestMessage'])
             ->withCount([
                 'messages',
@@ -178,6 +181,7 @@ class WebsiteVisitorChatController extends Controller
 
     public function show(WebsiteVisitor $visitor)
     {
+        $this->ensureExternalVisitor($visitor);
         $visitor->load(['user:id,name,phone,email', 'site:id,name']);
 
         $pageViews = $visitor->pageViews()
@@ -250,6 +254,7 @@ class WebsiteVisitorChatController extends Controller
 
     public function messages(WebsiteVisitor $visitor)
     {
+        $this->ensureExternalVisitor($visitor);
         $messages = $visitor->messages()
             ->oldest('id')
             ->limit(200)
@@ -277,6 +282,7 @@ class WebsiteVisitorChatController extends Controller
 
     public function send(Request $request, WebsiteVisitor $visitor)
     {
+        $this->ensureExternalVisitor($visitor);
         $validated = $request->validate([
             'body' => ['required', 'string', 'max:2000'],
         ]);
@@ -432,5 +438,10 @@ class WebsiteVisitorChatController extends Controller
                 : null,
             'is_active' => $request->boolean('is_active'),
         ];
+    }
+
+    private function ensureExternalVisitor(WebsiteVisitor $visitor): void
+    {
+        abort_unless($visitor->website_visitor_site_id, 404);
     }
 }

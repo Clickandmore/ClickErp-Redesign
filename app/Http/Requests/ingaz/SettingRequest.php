@@ -3,6 +3,7 @@
 namespace App\Http\Requests\ingaz;
 
 use App\Http\Requests\MainRequest;
+use Illuminate\Validation\Rule;
 
 class SettingRequest extends MainRequest
 {
@@ -90,6 +91,13 @@ class SettingRequest extends MainRequest
             'hotjar_tag' => 'nullable|string',
             'meta_pixel_tag' => 'nullable|string',
             'live_chat_tag' => 'nullable|string',
+            'website_visitor_site_id' => [
+                'nullable',
+                'integer',
+                Rule::exists('website_visitor_sites', 'id')->where(function ($query) {
+                    return $query->where('is_active', true)->whereNull('deleted_at');
+                }),
+            ],
             'location:ar' => 'nullable|string',
             'location:en' => 'nullable|string',
             'dashboard_name:ar' => 'nullable|string',

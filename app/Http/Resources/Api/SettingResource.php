@@ -15,6 +15,8 @@ class SettingResource extends JsonResource
     public function toArray($request)
     {
         $seo = $this->seoPayload();
+        $visitorTracking = $this->resource->visitorTrackingPayload();
+        $seo['visitor_tracking'] = $visitorTracking;
 
         return [
 			'id' => (int)$this->id,
@@ -70,6 +72,8 @@ class SettingResource extends JsonResource
             'hotjar_tag' => $seo['hotjar_tag'],
             'meta_pixel_tag' => $seo['meta_pixel_tag'],
             'live_chat_tag' => $seo['live_chat_tag'],
+            'visitor_tracking' => $visitorTracking,
+            'visitor_tracking_code' => $visitorTracking['embed_code'],
 
             'privacy_policy' => (string)$this->privacy_policy,
             'terms_conditions' => (string)$this->terms_conditions,

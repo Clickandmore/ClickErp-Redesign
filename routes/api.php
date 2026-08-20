@@ -167,6 +167,7 @@ Route::group([
     Route::resource('select-worker', ApiSelectWorkerController::class)->only(['index']);
     Route::resource('contact-us', ApiContactController::class);
     Route::get('settings/policies', [App\Http\Controllers\Api\ApiSettingController::class, 'policies'])->name('settings.policies');
+    Route::get('settings/visitor-tracking', [App\Http\Controllers\Api\ApiSettingController::class, 'visitorTracking'])->name('settings.visitor-tracking');
     Route::resource('settings', ApiSettingController::class);
     // Route::resource('maids', ApiMaidController::class);
     Route::resource('jobs', ApiJobTitleController::class);
