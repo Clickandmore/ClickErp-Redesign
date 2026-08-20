@@ -27,6 +27,10 @@ class SponsorshipTransferTrialStartService
 
     public function record(SponsorshipTransfer $transfer): ?Constraint
     {
+        if ($transfer->isRentalWorkflow()) {
+            return null;
+        }
+
         if (!AutomaticJournalEntries::enabled()) {
             throw new \RuntimeException(
                 'إنشاء القيود المحاسبية التلقائية غير مفعّل من إعدادات الحسابات.'

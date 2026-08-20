@@ -542,6 +542,7 @@ class SponsorshipTransferController extends Controller
 
     public function create()
     {
+        $workflowSource = request('workflow_source') === 'rental' ? 'rental' : 'standard';
         // التحقق من وجود order_id في الطلب
         $orderId = request('order_id');
         $selectedOrder = null;
@@ -587,7 +588,7 @@ class SponsorshipTransferController extends Controller
 
         // جلب العقود المتاحة للنقل (العقود داخل الإيواء مع work_willingness = 'yes')
         $contractsQuery = Contract::insideShelter()
-            ->with(['maid', 'user', 'info'])
+            ->with(['maid.jobTypes', 'user', 'info'])
             ->whereHas('info', function($query) {
                 $query->where('wants_to_work', 'yes');
             })
@@ -595,9 +596,15 @@ class SponsorshipTransferController extends Controller
         $this->applyRequestBranchFilter($contractsQuery, request(), 'contracts');
         $contracts = $contractsQuery->latest()->get();
 
+        if ($workflowSource === 'rental') {
+            $contracts = $contracts
+                ->filter(fn (Contract $contract) => $this->contractIsRentalWorker($contract))
+                ->values();
+        }
+
         $receiptAccounts = SponsorshipTransferPaymentService::receiptAccounts();
 
-        return view($this->folderPath . '.create', compact('contracts', 'selectedContractId', 'selectedOrder', 'selectedNewSponsorId', 'selectedNewSponsor', 'receiptAccounts'));
+        return view($this->folderPath . '.create', compact('contracts', 'selectedContractId', 'selectedOrder', 'selectedNewSponsorId', 'selectedNewSponsor', 'receiptAccounts', 'workflowSource'));
     }
 
 
@@ -605,6 +612,7 @@ class SponsorshipTransferController extends Controller
     {
         try {
             $validated = $request->validate([
+                'workflow_source' => 'nullable|in:standard,rental',
                 'contract_id' => 'required|exists:contracts,id',
                 'new_sponsor_mode' => 'required|in:existing,new',
                 'new_sponsor_id' => 'required_if:new_sponsor_mode,existing|nullable|exists:users,id',
@@ -661,12 +669,6 @@ class SponsorshipTransferController extends Controller
                 'notes.max' => 'الملاحظات يجب أن تكون أقل من 1000 حرف',
             ]);
 
-            if (in_array($validated['payment_status'], ['paid', 'partial'], true) && !$request->hasFile('payment_receipt')) {
-                throw ValidationException::withMessages([
-                    'payment_receipt' => 'يجب إرفاق إيصال الدفع عند تحديد حالة الدفع تم الدفع أو مدفوع جزئياً',
-                ]);
-            }
-
             $contract = Contract::with('info')->find($validated['contract_id']);
             if ($contract) {
                 $this->assertCanAccessBranchModel($contract);
@@ -677,6 +679,26 @@ class SponsorshipTransferController extends Controller
                     'success' => false,
                     'message' => 'العقد غير موجود'
                 ], 404);
+            }
+
+            $workflowSource = ($validated['workflow_source'] ?? 'standard') === 'rental'
+                ? 'rental'
+                : 'standard';
+            if ($workflowSource === 'rental' && !$this->contractIsRentalWorker($contract)) {
+                throw ValidationException::withMessages([
+                    'contract_id' => 'مسار نقل الكفالة غير المالي مخصص لعاملات الإيجار فقط.',
+                ]);
+            }
+
+            if ($workflowSource === 'rental') {
+                $validated['paid_amount'] = 0;
+                $validated['payment_type'] = 'pay_later';
+                $validated['payment_status'] = 'later';
+                $validated['receipt_account_id'] = null;
+            } elseif (in_array($validated['payment_status'], ['paid', 'partial'], true) && !$request->hasFile('payment_receipt')) {
+                throw ValidationException::withMessages([
+                    'payment_receipt' => 'يجب إرفاق إيصال الدفع عند تحديد حالة الدفع تم الدفع أو مدفوع جزئياً',
+                ]);
             }
 
             if (!$contract->user_id) {
@@ -721,7 +743,7 @@ class SponsorshipTransferController extends Controller
                 ]);
             }
 
-            $paymentReceiptPath = $request->hasFile('payment_receipt')
+            $paymentReceiptPath = $workflowSource !== 'rental' && $request->hasFile('payment_receipt')
                 ? app(ManagedFileStorage::class)->uploadFile(
                     $request->file('payment_receipt'),
                     'sponsorship-transfers/receipts'
@@ -743,6 +765,7 @@ class SponsorshipTransferController extends Controller
 
             // حفظ بيانات طلب نقل الكفالة
             $transferData = [
+                'workflow_source' => $workflowSource,
                 'contract_id' => $contract->id,
                 'old_sponsor_id' => $contract->user_id,
                 'new_sponsor_id' => $newSponsor->id,
@@ -765,7 +788,7 @@ class SponsorshipTransferController extends Controller
             // إنشاء طلب نقل خدمات جديد
             $transfer = SponsorshipTransfer::create($transferData);
             $financeResult = null;
-            if ((float) $transfer->paid_amount > 0) {
+            if (!$transfer->isRentalWorkflow() && (float) $transfer->paid_amount > 0) {
                 $financeResult = $paymentService->createReceipt(
                     $transfer,
                     (int) $validated['receipt_account_id'],
@@ -904,6 +927,7 @@ class SponsorshipTransferController extends Controller
         $contracts = $contractsQuery->latest()->get();
 
         $isEditMode = true;
+        $workflowSource = $transfer->isRentalWorkflow() ? 'rental' : 'standard';
         $selectedContractId = $transfer->contract_id;
         $selectedNewSponsorId = $transfer->new_sponsor_id;
         $selectedNewSponsor = $transfer->newSponsor;
@@ -918,7 +942,8 @@ class SponsorshipTransferController extends Controller
             'selectedOrder',
             'selectedNewSponsorId',
             'selectedNewSponsor',
-            'receiptAccounts'
+            'receiptAccounts',
+            'workflowSource'
         ));
     }
 
@@ -960,8 +985,16 @@ class SponsorshipTransferController extends Controller
                 'notes' => 'nullable|string|max:1000',
             ]);
 
+            if ($transfer->isRentalWorkflow()) {
+                $validated['paid_amount'] = 0;
+                $validated['payment_type'] = 'pay_later';
+                $validated['payment_status'] = 'later';
+                $validated['receipt_account_id'] = null;
+            }
+
             if (
-                in_array($validated['payment_status'], ['paid', 'partial'], true)
+                !$transfer->isRentalWorkflow()
+                && in_array($validated['payment_status'], ['paid', 'partial'], true)
                 && !$request->hasFile('payment_receipt')
                 && !$transfer->payment_receipt_path
             ) {
@@ -1020,7 +1053,7 @@ class SponsorshipTransferController extends Controller
             }
 
             $paymentReceiptPath = $transfer->payment_receipt_path;
-            if ($request->hasFile('payment_receipt')) {
+            if (!$transfer->isRentalWorkflow() && $request->hasFile('payment_receipt')) {
                 $paymentReceiptPath = app(ManagedFileStorage::class)->uploadFile(
                     $request->file('payment_receipt'),
                     'sponsorship-transfers/receipts'
@@ -1063,7 +1096,7 @@ class SponsorshipTransferController extends Controller
                 'notes' => $validated['notes'] ?? null,
             ]);
 
-            if ((float) $transfer->paid_amount > 0 && !$transfer->receipt_bond_id) {
+            if (!$transfer->isRentalWorkflow() && (float) $transfer->paid_amount > 0 && !$transfer->receipt_bond_id) {
                 $paymentService->createReceipt(
                     $transfer,
                     (int) $validated['receipt_account_id'],
@@ -1317,6 +1350,24 @@ class SponsorshipTransferController extends Controller
         });
 
         return response()->json(['results' => $results]);
+    }
+
+    private function contractIsRentalWorker(Contract $contract): bool
+    {
+        $contract->loadMissing('maid.jobTypes');
+        $jobTypes = $contract->maid?->jobTypes ?? collect();
+
+        if ($jobTypes->contains(fn ($jobType) => (int) $jobType->id === 2)) {
+            return true;
+        }
+
+        $titles = mb_strtolower($jobTypes->pluck('title')->filter()->implode(' '));
+
+        return str_contains($titles, 'إيجار')
+            || str_contains($titles, 'ايجار')
+            || str_contains($titles, 'تأجير')
+            || str_contains($titles, 'rental')
+            || str_contains($titles, 'rent');
     }
 
     private function findOrCreateNewSponsor(array $validated): User

@@ -588,7 +588,7 @@
                 @endif
 
                 @if(!$contract->hasEscapeReport() && $contract->info && $contract->info->wants_to_work == 'yes' && $canCreateTransferRequest)
-                    <a href="{{ route('SponsorshipTransfer.create', ['contract_id' => $contract->id]) }}" class="action-card action-card--transfer">
+                    <a href="{{ route('SponsorshipTransfer.create', ['contract_id' => $contract->id, 'workflow_source' => $isRentalWorker ? 'rental' : 'standard']) }}" class="action-card action-card--transfer">
                         <i class="fas fa-exchange-alt"></i>
                         <span>بدء نقل الكفالة</span>
                     </a>
@@ -615,6 +615,10 @@
                 @endif
 
                 @if ($canRemoveFromShelter)
+                    <button onclick="leaveForVacation({{ $contract->id }})" type="button" class="action-card action-card--edit">
+                        <i class="fas fa-plane-departure"></i>
+                        <span>خروج العاملة في إجازة</span>
+                    </button>
                     <button onclick="confirmBack({{ $contract->id }})" type="button" class="action-card action-card--danger">
                         <i class="fas fa-undo"></i>
                         <span>إرجاع العقد</span>
@@ -629,6 +633,33 @@
 @section('js')
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script>
+function leaveForVacation(id) {
+    Swal.fire({
+        title: 'تأكيد الإجازة',
+        text: 'هل تريد إخراج العاملة من الإيواء بسبب الإجازة؟',
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonText: 'نعم، خروج إجازة',
+        cancelButtonText: 'إلغاء'
+    }).then((result) => {
+        if (!result.isConfirmed) return;
+
+        $.ajax({
+            url: '{{ route("ShelterContract.vacation", ":id") }}'.replace(':id', id),
+            type: 'POST',
+            data: { _token: '{{ csrf_token() }}' },
+            success: function(response) {
+                Swal.fire('تم!', response.message, 'success').then(() => {
+                    window.location.href = response.redirect || '{{ route("ShelterContract.outside") }}';
+                });
+            },
+            error: function(xhr) {
+                Swal.fire('خطأ!', xhr.responseJSON?.message || 'تعذر إخراج العاملة في إجازة.', 'error');
+            }
+        });
+    });
+}
+
 function confirmBack(id) {
     Swal.fire({
         title: 'تأكيد',
