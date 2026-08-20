@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\ingaz;
 
 use App\Enums\ingaz\ContractStatusEnum;
+use App\Enums\ingaz\OrderEnum;
 use App\Http\Actions\ingaz\JobTitleAction;
 use App\Http\Actions\ingaz\JobTypeAction;
 use App\Http\Actions\ingaz\MaidAction as objAction;
@@ -31,6 +32,7 @@ use App\Services\ingaz\RentalMaidFinanceService;
 use App\Services\ManagedFileStorage;
 use App\Support\MaidCvTemplateSettings;
 use App\Support\MaidLanguageCatalog;
+use App\Support\RecruitmentOrderStatusLabels;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
@@ -754,9 +756,14 @@ class MaidController extends Controller
                     return $remaining == 0 ? __('ingaz.none') : $remaining . ' ' . __('ingaz.days');
                 })
                 ->addColumn('is_show', function (Maid $row) {
-                    return $row->is_show
+                    $visibility = $row->is_show
                         ? '<span class="badge bg-success"><i class="fa fa-eye"></i> ' . helperTrans('ingaz.maid_visibility_visible') . '</span>'
                         : '<span class="badge bg-dark"><i class="fa fa-eye-slash"></i> ' . helperTrans('ingaz.maid_visibility_hidden') . '</span>';
+
+                    return '<div class="d-flex flex-column align-items-start gap-1">'
+                        . $visibility
+                        . $this->maidOpenOrderBadges($row)
+                        . '</div>';
                 })
                 ->addColumn('is_pinned', function (Maid $row) {
                     return $row->is_pinned
@@ -3446,6 +3453,71 @@ class MaidController extends Controller
     private function activeOrderStatuses(): array
     {
         return ['new', 'under_process', 'contracted', 'contracted_without_contract'];
+    }
+
+    /**
+     * حالات الطلب التي تعني أن الطلب لم يعد قائماً على العاملة
+     * (مرتجع / مرفوض-ملغي / ملغي آلياً) فلا تُعرض بجانب حالة الظهور.
+     *
+     * @return array<int, string>
+     */
+    private function closedOrderStatuses(): array
+    {
+        return [
+            OrderEnum::Return->value,
+            OrderEnum::Refused->value,
+            OrderEnum::CanceledBySystem->value,
+        ];
+    }
+
+    /**
+     * آخر طلب قائم على العاملة، أو null إن لم يوجد أو كانت كل طلباتها مرتجعة/ملغية.
+     */
+    private function resolveMaidOpenOrder(Maid $maid): ?\App\Models\ingaz\Order
+    {
+        $orders = $maid->relationLoaded('orders')
+            ? $maid->orders
+            : $maid->orders()->latest('id')->get();
+
+        return $orders
+            ->reject(fn ($order) => in_array($order->status, $this->closedOrderStatuses(), true))
+            ->sortByDesc('id')
+            ->first();
+    }
+
+    /**
+     * شارتا "عليها طلب" + حالة الطلب المعروضتان بجانب حالة الظهور في جدول سير الإيجار.
+     * تُرجع نصاً فارغاً إذا لم يكن على العاملة طلب قائم.
+     */
+    private function maidOpenOrderBadges(Maid $maid): string
+    {
+        $order = $this->resolveMaidOpenOrder($maid);
+
+        if (! $order) {
+            return '';
+        }
+
+        $reference = $order->order_code ?: $order->id;
+        $statusLabel = RecruitmentOrderStatusLabels::label($order->status, app()->getLocale())
+            ?: $order->status;
+
+        return '<span class="badge bg-warning text-dark" title="' . e(helperTrans('ingaz.order_status') . ': ' . $statusLabel) . '">'
+            . '<i class="fa fa-clipboard-list"></i> ' . helperTrans('ingaz.has_open_order') . ' #' . e($reference)
+            . '</span>'
+            . '<span class="badge ' . $this->orderStatusBadgeClass($order->status) . '">' . e($statusLabel) . '</span>';
+    }
+
+    private function orderStatusBadgeClass(?string $status): string
+    {
+        return match ($status) {
+            OrderEnum::New->value => 'bg-primary',
+            OrderEnum::UnderProcess->value => 'bg-warning text-dark',
+            OrderEnum::Contracted->value,
+            OrderEnum::ContractedWithoutContract->value => 'bg-info text-dark',
+            OrderEnum::Completed->value,
+            OrderEnum::Done->value => 'bg-success',
+            default => 'bg-secondary',
+        };
     }
 
     private function rentalActiveContractStatuses(): array

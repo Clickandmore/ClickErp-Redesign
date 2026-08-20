@@ -3411,6 +3411,7 @@ return array (
   'unpinned' => 'Unpinned',
   'ready_for_contract' => 'Ready for Contract',
   'has_rental_contract' => 'Has Rental Contract',
+  'has_open_order' => 'Has Order',
   'passport' => 'Passport',
   'service_transfer_cost' => 'Service Transfer Cost',
   'monthly_rental_cost' => 'Monthly Rental Cost',

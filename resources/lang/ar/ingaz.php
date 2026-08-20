@@ -2027,6 +2027,7 @@ return array (
   'unpinned' => 'غير مثبتة',
   'ready_for_contract' => 'جاهزة للعقد',
   'has_rental_contract' => 'عليها عقد إيجار',
+  'has_open_order' => 'عليها طلب',
   'service_transfer_cost' => 'تكلفة نقل الخدمات',
   'monthly_rental_cost' => 'تكلفة الإيجار الشهري',
   'rental_maids_title' => 'سير عاملات الإيجار',

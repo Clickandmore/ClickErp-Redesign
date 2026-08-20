@@ -26,7 +26,18 @@ class OfferRequest extends MainRequest
             'price_before_discount' => ['nullable', 'numeric', 'min:0'],
             'price_after_discount' => ['nullable', 'numeric', 'min:0'],
             'discount_percentage' => ['nullable', 'numeric', 'min:0', 'max:100'],
-            'url' => ['nullable', 'url', 'max:255'],
+            // Accepts a full URL (https://...) or an internal path (/professional-workers).
+            'url' => ['nullable', 'string', 'max:255', function ($attribute, $value, $fail) {
+                if (filter_var($value, FILTER_VALIDATE_URL) !== false) {
+                    return;
+                }
+
+                if (preg_match('#^/[^\s]*$#', $value)) {
+                    return;
+                }
+
+                $fail('رابط العرض يجب أن يكون رابطًا كاملًا (https://...) أو مسارًا داخليًا يبدأ بـ /');
+            }],
             'starts_at' => ['nullable', 'date'],
             'ends_at' => ['nullable', 'date', 'after_or_equal:starts_at'],
             'is_active' => ['nullable', 'boolean'],
