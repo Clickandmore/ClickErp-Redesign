@@ -22,7 +22,9 @@ class OfferRequest extends MainRequest
             'type' => ['required', Rule::in(array_keys(Offer::types()))],
             'title' => ['required', 'string', 'max:255'],
             'description' => ['required', 'string'],
-            'image' => [$this->isMethod('post') ? 'required' : 'nullable', 'image', 'mimes:jpg,jpeg,png,webp,svg', 'max:4096'],
+            // Offer artwork is stored unchanged. Do not impose an application
+            // type or size restriction; PHP/server upload limits still apply.
+            'image' => [$this->isMethod('post') ? 'required' : 'nullable', 'file'],
             'price_before_discount' => ['nullable', 'numeric', 'min:0'],
             'price_after_discount' => ['nullable', 'numeric', 'min:0'],
             'discount_percentage' => ['nullable', 'numeric', 'min:0', 'max:100'],
@@ -60,5 +62,14 @@ class OfferRequest extends MainRequest
                 $validator->errors()->add('price_after_discount', 'السعر بعد الخصم يجب أن يكون أقل من أو يساوي السعر قبل الخصم.');
             }
         });
+    }
+
+    public function messages(): array
+    {
+        return [
+            'image.required' => 'اختر ملف صورة للعرض. إذا كنت قد اخترت ملفاً بالفعل، فقد يكون حجمه أكبر من الحد المسموح به على الخادم (' . ini_get('upload_max_filesize') . ').',
+            'image.file' => 'تعذر قراءة الملف المرفوع. أعد اختيار الملف وحاول مرة أخرى.',
+            'image.uploaded' => 'لم يكتمل رفع الملف. تحقق من اتصالك أو من أن حجمه لا يتجاوز حد الخادم (' . ini_get('upload_max_filesize') . ').',
+        ];
     }
 }

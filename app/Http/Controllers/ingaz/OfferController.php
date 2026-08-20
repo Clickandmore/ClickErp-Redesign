@@ -228,7 +228,9 @@ class OfferController extends Controller
         $data['discount_percentage'] = $this->resolveDiscountPercentage($data);
 
         if ($request->hasFile('image')) {
-            $data['image'] = uploadFile($request->file('image'), 'images/offers/', 1);
+            // Keep the uploaded artwork in its original format and size.
+            // Compression may reject otherwise valid formats such as SVG/HEIC.
+            $data['image'] = uploadFile($request->file('image'), 'images/offers/');
             $newFiles[] = $data['image'];
         } else {
             unset($data['image']);
