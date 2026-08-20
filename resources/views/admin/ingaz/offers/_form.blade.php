@@ -39,6 +39,9 @@
 <div class="col-12">
     <label class="form-label">صورة العرض @if(empty($obj)) <span class="text-danger">*</span> @endif</label>
     <input type="file" name="image" class="dropify" data-default-file="{{ isset($obj) && $obj->image ? getFile($obj->image) : '' }}" {{ empty($obj) ? 'required' : '' }}>
+    <small class="text-muted d-block mt-1">
+        يُقبل الملف بأي امتداد أو حجم من جهة النظام. إذا تجاوز حجم الملف حد الخادم ({{ ini_get('upload_max_filesize') }}) ستظهر رسالة توضح ذلك.
+    </small>
 </div>
 
 <div class="col-md-4">
