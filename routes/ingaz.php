@@ -600,6 +600,8 @@ Route::group(
             Route::get('ShelterContract/get-shelter-places', [ShelterContractController::class, 'getShelterPlaces'])->name('ShelterContract.getShelterPlaces');
             Route::get('ShelterContract/export/{format}', [ShelterContractController::class, 'export'])->name('ShelterContract.export');
             Route::post('ShelterContract/{id}/back', [ShelterContractController::class, 'back'])->name('ShelterContract.back');
+            Route::post('ShelterContract/{id}/vacation', [ShelterContractController::class, 'leaveForVacation'])->name('ShelterContract.vacation');
+            Route::post('ShelterContract/{id}/return-from-vacation', [ShelterContractController::class, 'returnFromVacation'])->name('ShelterContract.returnFromVacation');
             Route::post('ShelterContract/{id}/escape-report', [ShelterContractController::class, 'reportEscape'])->name('ShelterContract.escapeReport');
             Route::get('ShelterContract/{id}/escape-report/attachment', [ShelterContractController::class, 'downloadEscapeReportAttachment'])->name('ShelterContract.escapeReport.attachment');
             Route::post('ShelterContract/{id}/quick-tags', [ShelterContractController::class, 'updateQuickTags'])->name('ShelterContract.quickTags');

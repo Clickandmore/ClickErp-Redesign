@@ -60,7 +60,7 @@ class ShelterContractController extends Controller
         $this->middleware($this->permissionMiddleware($this->shelterAdditionCreatePermissions()), ['only' => ['create', 'store']]);
         $this->middleware($this->permissionMiddleware($this->shelterContractEditPermissions()), ['only' => ['edit', 'update', 'storeLivingExpense', 'livingExpenses', 'reportEscape']]);
         $this->middleware($this->permissionMiddleware($this->shelterContractDetailViewPermissions()), ['only' => ['downloadEscapeReportAttachment']]);
-        $this->middleware($this->permissionMiddleware($this->shelterRemoveFromShelterPermissions()), ['only' => ['back']]);
+        $this->middleware($this->permissionMiddleware($this->shelterRemoveFromShelterPermissions()), ['only' => ['back', 'leaveForVacation', 'returnFromVacation']]);
         $this->middleware($this->permissionMiddleware($this->shelterQuickTagsEditPermissions()), ['only' => ['updateQuickTags']]);
         $this->middleware($this->permissionMiddleware($this->shelterDeportationProceduresEditPermissions()), [
             'only' => ['startDeportation', 'updateDeportationProcedures'],
@@ -1533,7 +1533,9 @@ class ShelterContractController extends Controller
             $warrantyDays = isset($matches[1]) ? (int) $matches[1] : 0;
         }
 
-        return view('admin.ingaz.ShelterContract.show', compact('contract', 'warrantyStatus', 'warrantyDays'));
+        $isRentalWorker = $this->determineShelterServiceCategory($contract->maid) === 'rental';
+
+        return view('admin.ingaz.ShelterContract.show', compact('contract', 'warrantyStatus', 'warrantyDays', 'isRentalWorker'));
     }
 
 
@@ -2097,6 +2099,7 @@ class ShelterContractController extends Controller
                             'rental_delivery' => '<span class="badge bg-primary">تسليم عقد إيجار</span>',
                             'transfer_delivery' => '<span class="badge bg-success">تسليم نقل خدمات</span>',
                             'escape_report' => '<span class="badge bg-danger"><i class="fas fa-running me-1"></i>بلاغ هروب</span>',
+                            'vacation' => '<span class="badge bg-info text-dark"><i class="fas fa-plane me-1"></i>إجازة</span>',
                             default => '<span class="badge bg-secondary">غير محدد</span>',
                         };
                     })
@@ -2199,6 +2202,14 @@ class ShelterContractController extends Controller
                                         </a></li>';
                         }
 
+                        if ($this->resolveOutsideShelterReason($row) === 'vacation'
+                            && $this->adminCanAny($this->shelterRemoveFromShelterPermissions())) {
+                            $actions .= '<li><hr class="dropdown-divider"></li>';
+                            $actions .= '<li><a class="dropdown-item text-success return-from-vacation" href="#" data-id="' . $row->id . '">
+                                            <i class="fas fa-home"></i> إعادة العاملة إلى الإيواء
+                                        </a></li>';
+                        }
+
                         $actions .= '</ul></div>';
 
                         return $actions;
@@ -2219,7 +2230,8 @@ class ShelterContractController extends Controller
         $outsideRental = $this->applyOutsideReasonFilter($outsideContracts->clone(), 'rental_delivery')->count();
         $outsideTransfer = $this->applyOutsideReasonFilter($outsideContracts->clone(), 'transfer_delivery')->count();
         $outsideEscape = $this->applyOutsideReasonFilter($outsideContracts->clone(), 'escape_report')->count();
-        $outsideOther = max(0, $outsideTotal - $outsideRental - $outsideTransfer - $outsideEscape);
+        $outsideVacation = $this->applyOutsideReasonFilter($outsideContracts->clone(), 'vacation')->count();
+        $outsideOther = max(0, $outsideTotal - $outsideRental - $outsideTransfer - $outsideEscape - $outsideVacation);
 
         $data["dataTableRoute"] = route($this->mainRoute . '.outside');
         $data["modalType"] = "modal-lg";
@@ -2231,6 +2243,7 @@ class ShelterContractController extends Controller
             'rental' => $outsideRental,
             'transfer' => $outsideTransfer,
             'escape' => $outsideEscape,
+            'vacation' => $outsideVacation,
             'other' => $outsideOther,
         ];
 
@@ -2686,6 +2699,98 @@ class ShelterContractController extends Controller
         $rows = $rows->orderByDesc($this->getShelterOrderExpression())->get();
 
         return $this->exportData($rows, $format);
+    }
+
+    public function leaveForVacation($id)
+    {
+        $contract = Contract::with('info')->findOrFail($id);
+        $this->assertCanAccessBranchModel($contract, 'contracts');
+
+        if ($contract->status !== ContractStatusEnum::Shelter->value || $contract->info?->is_outside_shelter) {
+            return response()->json([
+                'success' => false,
+                'message' => 'لا يمكن إخراج العاملة في إجازة لأنها ليست داخل الإيواء حالياً.',
+            ], 422);
+        }
+
+        DB::transaction(function () use ($contract) {
+            $lockedContract = Contract::with('info')->lockForUpdate()->findOrFail($contract->id);
+
+            if ($lockedContract->status !== ContractStatusEnum::Shelter->value || $lockedContract->info?->is_outside_shelter) {
+                throw ValidationException::withMessages([
+                    'contract' => 'تم تغيير حالة العاملة، يرجى تحديث الصفحة والمحاولة مرة أخرى.',
+                ]);
+            }
+
+            $lockedContract->info()->updateOrCreate([], [
+                'is_outside_shelter' => true,
+                'outside_shelter_at' => now(),
+                'outside_shelter_reason' => 'vacation',
+                'outside_shelter_reference_type' => null,
+                'outside_shelter_reference_id' => null,
+                'outside_shelter_by' => auth('admin')->id(),
+            ]);
+
+            $lockedContract->contract_status_logs()->create([
+                'status' => ContractStatusEnum::Shelter->value,
+                'date' => now(),
+                'notes' => 'تم إخراج العاملة من الإيواء بسبب الإجازة.',
+            ]);
+        });
+
+        return response()->json([
+            'success' => true,
+            'message' => 'تم إخراج العاملة في إجازة ونقلها إلى جدول خارج الإيواء.',
+            'redirect' => route('ShelterContract.outside'),
+        ]);
+    }
+
+    public function returnFromVacation($id)
+    {
+        $contract = Contract::with('info')->findOrFail($id);
+        $this->assertCanAccessBranchModel($contract, 'contracts');
+
+        if ($contract->status !== ContractStatusEnum::Shelter->value
+            || !$contract->info?->is_outside_shelter
+            || $contract->info?->outside_shelter_reason !== 'vacation') {
+            return response()->json([
+                'success' => false,
+                'message' => 'لا يمكن إعادة العاملة؛ سجل الخروج الحالي ليس إجازة.',
+            ], 422);
+        }
+
+        DB::transaction(function () use ($contract) {
+            $lockedContract = Contract::with('info')->lockForUpdate()->findOrFail($contract->id);
+
+            if (!$lockedContract->info?->is_outside_shelter
+                || $lockedContract->info?->outside_shelter_reason !== 'vacation') {
+                throw ValidationException::withMessages([
+                    'contract' => 'تم تغيير حالة العاملة، يرجى تحديث الصفحة والمحاولة مرة أخرى.',
+                ]);
+            }
+
+            $lockedContract->info->update([
+                'is_outside_shelter' => false,
+                'outside_shelter_at' => null,
+                'outside_shelter_reason' => null,
+                'outside_shelter_reference_type' => null,
+                'outside_shelter_reference_id' => null,
+                'outside_shelter_by' => null,
+                'maid_date_back' => now()->toDateString(),
+            ]);
+
+            $lockedContract->contract_status_logs()->create([
+                'status' => ContractStatusEnum::Shelter->value,
+                'date' => now(),
+                'notes' => 'عادت العاملة من الإجازة إلى داخل الإيواء.',
+            ]);
+        });
+
+        return response()->json([
+            'success' => true,
+            'message' => 'تمت إعادة العاملة من الإجازة إلى داخل الإيواء.',
+            'redirect' => route('ShelterContract.index'),
+        ]);
     }
 
     /**
@@ -3206,6 +3311,9 @@ class ShelterContractController extends Controller
 
                     if ($canRemoveFromShelter) {
                         $actions .= '<li><hr class="dropdown-divider"></li>';
+                        $actions .= '<li><a class="dropdown-item text-info confirm-action" href="#" data-action="vacation" data-id="' . $row->id . '" data-text="هل تريد إخراج العاملة من الإيواء بسبب الإجازة؟">
+                                        <i class="fas fa-plane-departure"></i> خروج العاملة في إجازة
+                                    </a></li>';
                         $actions .= '<li><a class="dropdown-item confirm-action" href="#" data-action="back" data-id="' . $row->id . '" data-text="هل أنت متأكد من حذف العقد من الإيواء؟ سيعود العقد إلى العقود المكتملة">
                                         <i class="fas fa-undo"></i> حذف من الإيواء
                                     </a></li>';
@@ -3247,11 +3355,11 @@ class ShelterContractController extends Controller
 
                     if ($canCreateTransferRequest
                         && $row->info
-                        && $row->info->wants_to_work === 'yes'
-                        && $this->determineShelterServiceCategory($row->maid) !== 'rental') {
+                        && $row->info->wants_to_work === 'yes') {
+                        $transferWorkflow = $isRentalWorker ? 'rental' : 'standard';
                         $siteAvailabilityLabel = 'متاحة لنقل الخدمات';
                         $actions .= '<li><hr class="dropdown-divider"></li>';
-                        $actions .= '<li><a class="dropdown-item confirm-action" href="#" data-action="transfer" data-id="' . $row->id . '" data-text="سيتم فتح صفحة إضافة طلب نقل خدمات">
+                        $actions .= '<li><a class="dropdown-item confirm-action" href="#" data-action="transfer" data-workflow="' . $transferWorkflow . '" data-id="' . $row->id . '" data-text="سيتم فتح صفحة إضافة طلب نقل خدمات">
                                         <i class="fas fa-exchange-alt"></i> إضافة طلب نقل خدمات
                                     </a></li>';
 

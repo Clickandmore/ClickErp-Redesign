@@ -133,7 +133,9 @@ class MaidController extends Controller
             return DataTables::of($query)
                 ->addIndexColumn()
                 ->addColumn('worker_display_id', function ($row) use ($canSelectForCvActions) {
-                    $displayId = e($row->arabia_worker_number ?: $row->id);
+                    // معرّف الجدول وحده. كان العمود يعرض arabia_worker_number عند وجوده ويسقط إلى id،
+                    // فيختلط رقمان من فضاءين مختلفين في خانة واحدة ويظهر رقمان متطابقان لسيرتين مختلفتين.
+                    $displayId = e($row->id);
                     if (!$canSelectForCvActions) {
                         return $displayId;
                     }

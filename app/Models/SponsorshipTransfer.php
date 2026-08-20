@@ -17,6 +17,7 @@ class SponsorshipTransfer extends Model
     protected $fillable = [
         'external_source',
         'external_operation_number',
+        'workflow_source',
         'contract_id',
         'branch_id',
         'old_sponsor_id',
@@ -366,6 +367,11 @@ class SponsorshipTransfer extends Model
     public function canStartTrial()
     {
         return $this->status === 'maid_delivered';
+    }
+
+    public function isRentalWorkflow(): bool
+    {
+        return $this->workflow_source === 'rental';
     }
 
     public function scopeTransferred($query)

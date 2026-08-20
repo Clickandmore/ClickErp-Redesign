@@ -73,6 +73,12 @@
                         </div>
                     </div>
                     <div class="col-md-6 col-xl">
+                        <div class="stat-card border-info">
+                            <span class="text-info">في إجازة</span>
+                            <strong>{{ $statistics['vacation'] ?? 0 }}</strong>
+                        </div>
+                    </div>
+                    <div class="col-md-6 col-xl">
                         <div class="stat-card">
                             <span class="text-muted">أخرى</span>
                             <strong>{{ $statistics['other'] ?? 0 }}</strong>
@@ -97,6 +103,7 @@
                                     <option value="rental_delivery">تسليم عقد إيجار</option>
                                     <option value="transfer_delivery">تسليم نقل خدمات</option>
                                     <option value="escape_report">بلاغ هروب</option>
+                                    <option value="vacation">إجازة</option>
                                 </select>
                             </div>
                             <div class="col-md-3">
@@ -221,6 +228,38 @@
             $('#clearFilters').on('click', function() {
                 $('#filterContractNumber, #filterOutsideReason, #filterNationality, #filterShelter').val('');
                 table.ajax.reload();
+            });
+
+            $(document).on('click', '.return-from-vacation', function(event) {
+                event.preventDefault();
+                const contractId = $(this).data('id');
+
+                Swal.fire({
+                    title: 'تأكيد العودة',
+                    text: 'هل عادت العاملة من الإجازة إلى الإيواء؟',
+                    icon: 'question',
+                    showCancelButton: true,
+                    confirmButtonText: 'نعم، عادت',
+                    cancelButtonText: 'إلغاء'
+                }).then(function(result) {
+                    if (!result.isConfirmed) {
+                        return;
+                    }
+
+                    $.ajax({
+                        url: '{{ route('ShelterContract.returnFromVacation', ':id') }}'.replace(':id', contractId),
+                        type: 'POST',
+                        data: { _token: '{{ csrf_token() }}' },
+                        success: function(response) {
+                            Swal.fire('تم!', response.message, 'success').then(function() {
+                                table.ajax.reload();
+                            });
+                        },
+                        error: function(xhr) {
+                            Swal.fire('خطأ!', xhr.responseJSON?.message || 'تعذر إعادة العاملة إلى الإيواء.', 'error');
+                        }
+                    });
+                });
             });
         });
     </script>

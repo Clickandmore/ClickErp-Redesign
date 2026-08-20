@@ -1493,6 +1493,7 @@
                 e.preventDefault();
                 const action = $(this).data('action');
                 const id = $(this).data('id');
+                const workflow = $(this).data('workflow') || 'standard';
                 const text = $(this).data('text') || 'هل أنت متأكد من هذا الإجراء؟';
 
                 Swal.fire({
@@ -1507,12 +1508,12 @@
                 }).then((result) => {
                     if (result.isConfirmed) {
                         // تنفيذ الإجراء
-                        performAction(action, id);
+                        performAction(action, id, workflow);
                     }
                 });
             });
 
-            function performAction(action, id) {
+            function performAction(action, id, workflow) {
                 let url = '';
                 let method = 'POST';
 
@@ -1522,8 +1523,11 @@
                         break;
                     case 'transfer':
                         // فتح صفحة إضافة طلب نقل خدمات
-                        window.location.href = '{{ route('SponsorshipTransfer.create') }}?contract_id=' + id;
+                        window.location.href = '{{ route('SponsorshipTransfer.create') }}?contract_id=' + id + '&workflow_source=' + encodeURIComponent(workflow);
                         return;
+                    case 'vacation':
+                        url = '{{ route('ShelterContract.vacation', ':id') }}'.replace(':id', id);
+                        break;
                     case 'start-deportation':
                         $.ajax({
                             url: '{{ route('ShelterContract.deportation.start', ':id') }}'

@@ -755,13 +755,30 @@
                         </select>
                     </div>
 
+                    @php
+                        $maritalStatusOptions = [
+                            'عازبة' => helperTrans('ingaz.female_single'),
+                            'أعزب' => helperTrans('ingaz.male_single'),
+                            'متزوجة' => helperTrans('ingaz.female_married'),
+                            'متزوج' => helperTrans('ingaz.male_married'),
+                        ];
+                        $currentMaritalStatus = trim((string) old('marital_status:ar', optional($obj->translate('ar'))->marital_status));
+                    @endphp
+
                     <div class="col-4">
-                        <label for="TextInput" class="form-label">{{ helperTrans('ingaz.marital status') }} </label>
-                        <select name="marital_status:ar" class="form-control" required>
-                            <option value="عازبة" {{ old('marital_status:ar', optional($obj->translate('ar'))->marital_status) == 'عازبة' ? 'selected' : '' }}>{{ helperTrans('ingaz.female_single') }}</option>
-                            <option value="أعزب" {{ old('marital_status:ar', optional($obj->translate('ar'))->marital_status) == 'أعزب' ? 'selected' : '' }}>{{ helperTrans('ingaz.male_single') }}</option>
-                            <option value="متزوجة" {{ old('marital_status:ar', optional($obj->translate('ar'))->marital_status) == 'متزوجة' ? 'selected' : '' }}>{{ helperTrans('ingaz.female_married') }}</option>
-                            <option value="متزوج" {{ old('marital_status:ar', optional($obj->translate('ar'))->marital_status) == 'متزوج' ? 'selected' : '' }}>{{ helperTrans('ingaz.male_married') }}</option>
+                        <label for="marital_status_ar" class="form-label">{{ helperTrans('ingaz.marital status') }} </label>
+                        <select name="marital_status:ar" id="marital_status_ar" class="form-control" required>
+                            @if ($currentMaritalStatus === '')
+                                <option value="" selected disabled>{{ helperTrans('ingaz.choose') }}</option>
+                            @elseif (! array_key_exists($currentMaritalStatus, $maritalStatusOptions))
+                                {{-- قيمة مخزّنة لا تطابق الخيارات (مثل "Married" في العمود العربي):
+                                     تُعرض كما هي حتى لا يستبدلها الحفظ صامتاً بأول خيار في القائمة. --}}
+                                <option value="{{ $currentMaritalStatus }}" selected>{{ $currentMaritalStatus }}</option>
+                            @endif
+
+                            @foreach ($maritalStatusOptions as $maritalStatusValue => $maritalStatusLabel)
+                                <option value="{{ $maritalStatusValue }}" {{ $currentMaritalStatus === $maritalStatusValue ? 'selected' : '' }}>{{ $maritalStatusLabel }}</option>
+                            @endforeach
                         </select>
                         <input type="hidden" name="marital_status:en" id="marital_status_en" value="{{ old('marital_status:en', optional($obj->translate('en'))->marital_status) }}">
                     </div>
@@ -2161,9 +2178,10 @@
                 var selectedStatus = $('select[name="marital_status:ar"]').val();
                 if (selectedStatus && maritalStatusTranslations[selectedStatus]) {
                     maritalStatusEnField.val(maritalStatusTranslations[selectedStatus]);
-                } else {
+                } else if (!selectedStatus) {
                     maritalStatusEnField.val('');
                 }
+                // قيمة عربية مخزّنة خارج القائمة: نُبقي الترجمة الإنجليزية المحفوظة بدل مسحها.
             }
 
             function getTypeContext() {
@@ -2308,7 +2326,8 @@
                     branchSelect.prop('disabled', false).prop('required', true);
                     // Hide fields for ايجار
                     heightWeightFields.hide();
-                    maritalStatusField.hide();
+                    // الحالة الاجتماعية تظهر لسير الإيجار كما في شاشة الإضافة، لكنها غير إلزامية.
+                    maritalStatusField.show();
                     salaryField.show();
                     requestTypeField.hide();
                     languagesField.show();

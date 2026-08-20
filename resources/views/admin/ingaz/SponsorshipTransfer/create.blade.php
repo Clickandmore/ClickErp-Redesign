@@ -5,6 +5,8 @@
     $formAction = $isEditMode
         ? route('SponsorshipTransfer.update', $transfer->id)
         : route('SponsorshipTransfer.store');
+    $workflowSource = $workflowSource ?? ($transfer->workflow_source ?? 'standard');
+    $isRentalWorkflow = $workflowSource === 'rental';
 @endphp
 <div class="row justify-content-center">
     <div class="col-lg-10 col-md-12">
@@ -40,8 +42,17 @@
                 @endif
                 <form id="sponsorshipTransferForm" class="row g-4" enctype="multipart/form-data">
                     @csrf
+                    <input type="hidden" name="workflow_source" value="{{ $workflowSource }}">
                     @if($isEditMode)
                         @method('PUT')
+                    @endif
+                    @if($isRentalWorkflow)
+                        <div class="col-12">
+                            <div class="alert alert-info mb-0">
+                                <i class="fas fa-info-circle me-2"></i>
+                                هذا نقل كفالة لعاملة إيجار. سيستمر تسلسل النقل والتجربة كالمعتاد دون إنشاء قيود أو سندات أو فاتورة مالية.
+                            </div>
+                        </div>
                     @endif
                     <!-- اختيار العقد -->
                     <div class="col-12">
@@ -144,6 +155,7 @@
                         <label class="form-label fw-bold">قيمة العقد <span class="text-danger">*</span></label>
                         <input type="number" name="contract_value" id="contract_value" class="form-control" min="0" step="0.01" value="{{ old('contract_value', $transfer->contract_value ?? '') }}" required>
                     </div>
+                    @unless($isRentalWorkflow)
                     <div class="col-md-4">
                         <label class="form-label fw-bold">المبلغ المدفوع <span class="text-danger">*</span></label>
                         <input type="number" name="paid_amount" id="paid_amount" class="form-control" min="0" step="0.01" value="{{ old('paid_amount', $transfer->paid_amount ?? '') }}" required>
@@ -223,11 +235,21 @@
                             </div>
                         </div>
                     </div>
+                    @else
+                        <input type="hidden" name="paid_amount" id="paid_amount" value="0">
+                        <input type="hidden" name="payment_type" id="payment_type" value="pay_later">
+                        <input type="hidden" name="payment_status" id="payment_status" value="later">
+                        <div class="col-12">
+                            <label for="attachments" class="form-label fw-bold">مرفقات إضافية</label>
+                            <input type="file" name="attachments[]" id="attachments" class="form-control" accept=".jpg,.jpeg,.png,.pdf,.doc,.docx" multiple>
+                            <div class="form-text">يمكن رفع مستندات الطلب دون إنشاء أي حركة مالية.</div>
+                        </div>
+                    @endunless
                     <div class="col-12">
                         <label class="form-label fw-bold">ملاحظات إضافية</label>
                         <textarea name="notes" class="form-control" rows="2" maxlength="1000" placeholder="اكتب أي ملاحظات إضافية هنا...">{{ old('notes', $transfer->notes ?? '') }}</textarea>
                     </div>
-                    @unless($isEditMode)
+                    @if(!$isEditMode && !$isRentalWorkflow)
                         <div class="col-12">
                             <div class="alert alert-info d-flex align-items-start gap-2 mb-0">
                                 <i class="fas fa-file-invoice-dollar mt-1"></i>
@@ -237,7 +259,7 @@
                                 </div>
                             </div>
                         </div>
-                    @endunless
+                    @endif
                     <div class="col-12 d-flex justify-content-end mt-3">
                         <button type="button" class="btn btn-secondary me-2" onclick="window.history.back()">
                             <i class="fas fa-arrow-left me-2"></i>رجوع
@@ -250,9 +272,11 @@
                             <button type="submit" class="btn btn-primary px-4" value="save">
                                 <i class="fas fa-plus-circle me-2"></i>إضافة طلب النقل
                             </button>
+                            @unless($isRentalWorkflow)
                             <button type="submit" class="btn btn-success px-4 ms-2" value="save_and_invoice">
                                 <i class="fas fa-file-invoice-dollar me-2"></i>حفظ وإصدار فاتورة
                             </button>
+                            @endunless
                         @endif
                     </div>
                 </form>

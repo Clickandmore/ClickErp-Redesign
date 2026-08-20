@@ -27,6 +27,10 @@ class SponsorshipTransferCompletionService
 
     public function record(SponsorshipTransfer $transfer): ?Constraint
     {
+        if ($transfer->isRentalWorkflow()) {
+            return null;
+        }
+
         if (!AutomaticJournalEntries::enabled()) {
             return null;
         }

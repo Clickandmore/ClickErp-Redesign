@@ -731,7 +731,7 @@
                 },
                 columns: [{
                         data: 'worker_display_id',
-                        name: 'arabia_worker_number',
+                        name: 'id',
                         orderable: false,
                         searchable: false
                     },

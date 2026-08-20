@@ -36,6 +36,10 @@ class SponsorshipTransferPaymentService
 
     public function createReceipt(SponsorshipTransfer $transfer, int $receiptAccountId, Carbon|string|null $date = null): array
     {
+        if ($transfer->isRentalWorkflow()) {
+            return ['bond' => null, 'constraint' => null];
+        }
+
         $transfer->loadMissing(['newSponsor', 'contract.maid', 'receiptBond']);
 
         if ((float) $transfer->paid_amount <= 0) {
@@ -89,6 +93,10 @@ class SponsorshipTransferPaymentService
 
     public function createRefund(SponsorshipTransfer $transfer, float $amount, int $paymentAccountId, Carbon|string|null $date = null): array
     {
+        if ($transfer->isRentalWorkflow()) {
+            return ['bond' => null, 'constraint' => null];
+        }
+
         $transfer->loadMissing(['newSponsor', 'contract.maid', 'refundBond']);
         if ($amount <= 0) {
             return ['bond' => null, 'constraint' => null];
