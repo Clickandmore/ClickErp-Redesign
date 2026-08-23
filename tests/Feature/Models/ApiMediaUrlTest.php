@@ -94,4 +94,22 @@ class ApiMediaUrlTest extends TestCase
         $this->assertStringNotContainsString('cloudflarestorage.com', $url);
         $this->assertTrue(URL::hasValidSignature(\Illuminate\Http\Request::create($url)));
     }
+
+    public function test_generated_cv_download_keeps_the_original_preview_format(): void
+    {
+        $maid = new Maid();
+        $maid->setRawAttributes([
+            'id' => 492,
+            'cv_preview' => ManagedFileStorage::R2_PREFIX
+                . 'tenant/images/Maid/generated-cvs/current-preview.png',
+        ], true);
+        $maid->exists = true;
+
+        $url = $maid->cv_download_url;
+
+        $this->assertStringContainsString('/shared/maids/492/cv-preview', $url);
+        $this->assertStringContainsString('download=1', $url);
+        $this->assertStringNotContainsString('/cv.pdf', $url);
+        $this->assertTrue(URL::hasValidSignature(\Illuminate\Http\Request::create($url)));
+    }
 }
