@@ -18,7 +18,8 @@ class LatestWorkerCvController extends Controller
         };
 
         if (!$jobTypeId) {
-            return apiResponse(true, __('api.All items'), [], 200);
+            return apiResponse(true, __('api.All items'), [], 200)
+                ->header('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0');
         }
 
         $maids = Maid::shown()
@@ -39,6 +40,9 @@ class LatestWorkerCvController extends Controller
             ->limit(9)
             ->get();
 
-        return apiResponse(true, __('api.All items'), $maids, 200);
+        return apiResponse(true, __('api.All items'), $maids, 200)
+            ->header('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0')
+            ->header('Pragma', 'no-cache')
+            ->header('Expires', '0');
     }
 }

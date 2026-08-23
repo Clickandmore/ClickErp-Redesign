@@ -2380,10 +2380,15 @@ class MaidController extends Controller
             ? $storage->contents($path)
             : $cvGenerator->renderStoredImageAsPdfContents($path, $maid);
 
+        $filename = $this->generatedCvPdfFilename($maid);
+
         return response($contents, 200, [
             'Content-Type' => 'application/pdf',
-            'Content-Disposition' => 'inline; filename="' . $this->generatedCvPdfFilename($maid) . '"',
+            'Content-Disposition' => request()->boolean('download')
+                ? 'attachment; filename="' . $filename . '"'
+                : 'inline; filename="' . $filename . '"',
             'X-Content-Type-Options' => 'nosniff',
+            'Cache-Control' => 'private, no-store, max-age=0',
         ]);
     }
 
