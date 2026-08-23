@@ -2403,10 +2403,17 @@ class MaidController extends Controller
 
         $extension = strtolower(pathinfo((string) $path, PATHINFO_EXTENSION));
 
+        $filename = 'maid-cv-' . $maid->id . ($extension ? '.' . $extension : '');
+        $mimeType = $storage->mimeType($path);
+
+        if (request()->boolean('download')) {
+            return $storage->downloadResponse($path, $filename, $mimeType);
+        }
+
         return $storage->inlineResponse(
             $path,
-            'maid-cv-' . $maid->id . ($extension ? '.' . $extension : ''),
-            $storage->mimeType($path),
+            $filename,
+            $mimeType,
             ['Cache-Control' => 'private, no-store, max-age=0']
         );
     }

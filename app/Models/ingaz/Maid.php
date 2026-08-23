@@ -228,11 +228,13 @@ class Maid extends Model
     {
         if (!filled($this->getRawOriginal('cv_preview'))
             || !$this->exists
-            || !Route::has('maids.generated-cv.shared')) {
+            || !Route::has('maids.cv-preview.shared')) {
             return null;
         }
 
-        return URL::signedRoute('maids.generated-cv.shared', [
+        // Download the generated preview in its original format (PNG/SVG/etc.)
+        // instead of routing images through the PDF conversion endpoint.
+        return URL::signedRoute('maids.cv-preview.shared', [
             'maid' => $this->getKey(),
             'download' => 1,
         ]);
