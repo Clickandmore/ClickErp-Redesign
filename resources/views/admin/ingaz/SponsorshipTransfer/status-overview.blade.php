@@ -496,6 +496,10 @@
                                         $maidNationality = optional($maid?->nationality)->title ?: optional($maid?->nationality)->name ?: optional($maid?->nationality)->sub_title ?: 'غير محدد';
                                         $trialEndDate = $transfer->trial_end_date;
                                         $daysRemaining = $transfer->trial_days_remaining;
+                                        $returnedToShelter = $pageConfig['page'] === 'transferred'
+                                            && $contract?->status === \App\Enums\ingaz\ContractStatusEnum::Shelter->value
+                                            && (int) $contract?->user_id === (int) $transfer->new_sponsor_id
+                                            && !$contract?->info?->is_outside_shelter;
                                     @endphp
                                     <tr>
                                         <td><strong>عقد رقم: {{ $contract?->id ?? 'غير محدد' }}</strong></td>
@@ -656,6 +660,25 @@
                                                                     <i class="fas fa-home"></i> عرض في الإيواء
                                                                 </a>
                                                             </li>
+                                                        @endif
+
+                                                        @if($pageConfig['page'] === 'transferred')
+                                                            @if($returnedToShelter)
+                                                                <li>
+                                                                    <a class="dropdown-item text-success" href="{{ route('ShelterContract.availableForTransfer') }}">
+                                                                        <i class="fas fa-house-circle-check"></i> موجودة داخل الإيواء
+                                                                    </a>
+                                                                </li>
+                                                            @elseif(@AdminGuardHasPerm(\App\PermKeys::SPONSOR_TRANSFER_CONTROL))
+                                                                <li>
+                                                                    <a class="dropdown-item return-to-shelter-action" href="#"
+                                                                        data-url="{{ route('SponsorshipTransfer.returnToShelter', $transfer->id) }}"
+                                                                        data-maid="{{ $maid?->name }}"
+                                                                        data-sponsor="{{ $transfer->newSponsor?->name }}">
+                                                                        <i class="fas fa-house-user"></i> إعادة العاملة للإيواء
+                                                                    </a>
+                                                                </li>
+                                                            @endif
                                                         @endif
                                                     @endif
                                                 </ul>
@@ -924,6 +947,71 @@
                         }
                     });
                 }
+            @endif
+
+            @if($pageConfig['page'] === 'transferred')
+                $(document).on('click', '.return-to-shelter-action', function (event) {
+                    event.preventDefault();
+
+                    const button = $(this);
+                    const maid = button.data('maid') || 'العاملة';
+                    const sponsor = button.data('sponsor') || 'الكفيل الحالي';
+
+                    Swal.fire({
+                        title: 'إعادة العاملة إلى الإيواء؟',
+                        text: `سيتم إدخال ${maid} إلى الإيواء وإتاحتها لنقل الكفالة من ${sponsor} إلى كفيل آخر.`,
+                        icon: 'question',
+                        showCancelButton: true,
+                        confirmButtonColor: '#198754',
+                        cancelButtonColor: '#6c757d',
+                        confirmButtonText: 'نعم، إعادة للإيواء',
+                        cancelButtonText: 'إلغاء'
+                    }).then((result) => {
+                        if (!result.isConfirmed) {
+                            return;
+                        }
+
+                        $.ajax({
+                            url: button.data('url'),
+                            type: 'POST',
+                            data: {
+                                _token: '{{ csrf_token() }}'
+                            },
+                            headers: {
+                                'X-Requested-With': 'XMLHttpRequest',
+                                'Accept': 'application/json'
+                            },
+                            success: function (response) {
+                                if (!response.success) {
+                                    Swal.fire('خطأ!', response.message, 'error');
+                                    return;
+                                }
+
+                                Swal.fire({
+                                    title: 'تمت الإعادة بنجاح',
+                                    text: response.message,
+                                    icon: 'success',
+                                    showCancelButton: Boolean(response.redirect),
+                                    confirmButtonText: response.redirect ? 'عرض المتاح للنقل' : 'حسناً',
+                                    cancelButtonText: 'البقاء في الصفحة'
+                                }).then((alertResult) => {
+                                    if (alertResult.isConfirmed && response.redirect) {
+                                        window.location.href = response.redirect;
+                                        return;
+                                    }
+
+                                    window.location.reload();
+                                });
+                            },
+                            error: function (xhr) {
+                                const message = xhr.responseJSON?.message
+                                    || Object.values(xhr.responseJSON?.errors || {})[0]?.[0]
+                                    || 'حدث خطأ غير متوقع';
+                                Swal.fire('خطأ!', message, 'error');
+                            }
+                        });
+                    });
+                });
             @endif
         });
     </script>

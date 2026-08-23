@@ -746,6 +746,7 @@ class AdminRoutePermissionMatrix
                 'SponsorshipTransfer.reject' => [PermKeys::SPONSOR_TRANSFER_CONTROL],
                 'SponsorshipTransfer.complete' => [PermKeys::SPONSOR_TRANSFER_CONTROL],
                 'SponsorshipTransfer.confirmTransfer' => [PermKeys::SPONSOR_TRANSFER_CONTROL],
+                'SponsorshipTransfer.returnToShelter' => [PermKeys::SPONSOR_TRANSFER_CONTROL],
                 'SponsorshipTransfer.cancelTransfer' => [PermKeys::SPONSOR_TRANSFER_CONTROL],
                 'SponsorshipTransfer.send-contract' => [PermKeys::SPONSOR_TRANSFER_CONTROL],
                 'SponsorshipTransfer.sign-contract' => [PermKeys::SPONSOR_TRANSFER_CONTROL],

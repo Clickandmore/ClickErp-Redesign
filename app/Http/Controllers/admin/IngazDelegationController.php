@@ -43,11 +43,17 @@ class IngazDelegationController extends Controller
 
     public function index(Request $request): View|JsonResponse
     {
-        $query = IngazDelegation::with([
+        $creditNotesAvailable = Schema::hasTable('recruitment_invoice_credit_notes');
+        $relations = [
             'country', 'nationality', 'profession', 'user', 'maid', 'marketer',
             'invoice.musanedTransferItem.transfer',
-            'invoice.recruitmentCreditNotes.constraint',
-        ]);
+        ];
+
+        if ($creditNotesAvailable) {
+            $relations[] = 'invoice.recruitmentCreditNotes.constraint';
+        }
+
+        $query = IngazDelegation::with($relations);
         $this->applyRequestBranchFilter($query, $request, 'ingaz_delegations');
 
         $searchInput = $request->input('global_search', $request->query('search'));
@@ -85,6 +91,8 @@ class IngazDelegationController extends Controller
             $query->where('marketer_id', (int) $request->marketer_id);
         }
 
+        $this->applyDocumentPresenceFilters($query, $request);
+
         if ($request->filled('from_date')) {
             $query->whereDate('delegation_date_gregorian', '>=', $request->from_date);
         }
@@ -101,8 +109,10 @@ class IngazDelegationController extends Controller
             $canChangeDelegationStatus = $this->adminCanAny($this->delegationStatusPermissions());
             $canViewInvoices = $this->adminCanAny($this->invoiceViewPermissions());
             $canCreateInvoices = $this->adminCanAny($this->invoiceCreatePermissions());
-            $canViewCreditNotes = $this->adminCanAny($this->creditNoteViewPermissions());
-            $canCreateCreditNotes = $this->adminCanAny($this->creditNoteCreatePermissions());
+            $canViewCreditNotes = $creditNotesAvailable
+                && $this->adminCanAny($this->creditNoteViewPermissions());
+            $canCreateCreditNotes = $creditNotesAvailable
+                && $this->adminCanAny($this->creditNoteCreatePermissions());
             $canViewMusanedTransfers = $this->adminCanAny($this->musanedTransferViewPermissions());
             $canCreateMusanedTransfers = $this->adminCanAny($this->musanedTransferCreatePermissions());
             $canDeleteMusanedTransfers = $this->adminCanAny($this->musanedTransferDeletePermissions());
@@ -293,6 +303,24 @@ class IngazDelegationController extends Controller
         $statusOptions = IngazDelegation::statusOptions();
 
         return view('admin.ingaz_delegations.index', compact('countries', 'canCreateDelegation', 'statusOptions'));
+    }
+
+    private function applyDocumentPresenceFilters($query, Request $request): void
+    {
+        $relations = [
+            'has_invoice' => 'invoice',
+            'has_musaned_transfer' => 'invoice.musanedTransferItem.transfer',
+        ];
+
+        foreach ($relations as $filter => $relation) {
+            $value = (string) $request->input($filter, '');
+
+            if ($value === '1') {
+                $query->whereHas($relation);
+            } elseif ($value === '0') {
+                $query->whereDoesntHave($relation);
+            }
+        }
     }
 
     public function print(IngazDelegation $ingazDelegation): View

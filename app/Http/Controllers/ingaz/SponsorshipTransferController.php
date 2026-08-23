@@ -1532,6 +1532,146 @@ class SponsorshipTransferController extends Controller
     }
 
     /**
+     * Return a successfully transferred maid to shelter under her current sponsor.
+     */
+    public function returnTransferredMaidToShelter($id)
+    {
+        try {
+            DB::beginTransaction();
+
+            $transfer = SponsorshipTransfer::query()
+                ->with(['contract.info', 'contract.maid'])
+                ->lockForUpdate()
+                ->findOrFail($id);
+            $this->assertCanAccessBranchModel($transfer);
+
+            if ($transfer->status !== 'transferred') {
+                throw ValidationException::withMessages([
+                    'transfer' => 'يمكن إعادة العاملة إلى الإيواء بعد اكتمال نقل الكفالة فقط.',
+                ]);
+            }
+
+            if (!$transfer->contract) {
+                throw ValidationException::withMessages([
+                    'contract' => 'لا يوجد عقد مرتبط بحركة نقل الكفالة.',
+                ]);
+            }
+
+            $contract = Contract::query()
+                ->with(['info', 'maid'])
+                ->lockForUpdate()
+                ->findOrFail($transfer->contract_id);
+
+            if ((int) $contract->user_id !== (int) $transfer->new_sponsor_id) {
+                throw ValidationException::withMessages([
+                    'contract' => 'تعذر الإرجاع لأن الكفيل الحالي للعقد تغيّر بعد هذه الحركة.',
+                ]);
+            }
+
+            if ($contract->status === ContractStatusEnum::Shelter->value
+                && !$contract->info?->is_outside_shelter) {
+                throw ValidationException::withMessages([
+                    'contract' => 'العاملة موجودة داخل الإيواء بالفعل.',
+                ]);
+            }
+
+            if ($contract->status !== ContractStatusEnum::Completed->value) {
+                throw ValidationException::withMessages([
+                    'contract' => 'لا يمكن إعادة العاملة لأن حالة العقد الحالية لا تسمح بذلك.',
+                ]);
+            }
+
+            $hasLaterTransfer = SponsorshipTransfer::query()
+                ->where('contract_id', $contract->id)
+                ->where('id', '>', $transfer->id)
+                ->exists();
+
+            if ($hasLaterTransfer) {
+                throw ValidationException::withMessages([
+                    'transfer' => 'توجد حركة نقل كفالة أحدث لهذه العاملة؛ لا يمكن الإرجاع من الحركة السابقة.',
+                ]);
+            }
+
+            if ($contract->hasEscapeReport()) {
+                throw ValidationException::withMessages([
+                    'contract' => 'لا يمكن إعادة العاملة إلى الإيواء لوجود بلاغ هروب عليها.',
+                ]);
+            }
+
+            $hasActiveRental = $contract->maid?->rentalContracts()
+                ->whereIn('status', \App\Services\RentalShelterPresenceService::OUTSIDE_RENTAL_STATUSES)
+                ->exists() ?? false;
+
+            if ($hasActiveRental) {
+                throw ValidationException::withMessages([
+                    'contract' => 'لا يمكن إعادة العاملة إلى الإيواء لوجود عقد إيجار نشط عليها.',
+                ]);
+            }
+
+            $returnedAt = now();
+            $contract->update([
+                'status' => ContractStatusEnum::Shelter->value,
+            ]);
+
+            $contract->info()->updateOrCreate([], [
+                'wants_to_work' => 'yes',
+                'maid_date_back' => $returnedAt->toDateString(),
+                'is_outside_shelter' => false,
+                'outside_shelter_at' => null,
+                'outside_shelter_reason' => null,
+                'outside_shelter_reference_type' => null,
+                'outside_shelter_reference_id' => null,
+                'outside_shelter_by' => null,
+            ]);
+
+            if ($contract->maid) {
+                $contract->maid->update([
+                    'status' => 'available',
+                    'available' => true,
+                    'available_at' => $returnedAt->toDateString(),
+                    'maid_accommodation_type' => 2,
+                ]);
+            }
+
+            $contract->contract_status_logs()->create([
+                'status' => ContractStatusEnum::Shelter->value,
+                'date' => $returnedAt,
+                'notes' => 'تمت إعادة العاملة إلى داخل الإيواء بعد اكتمال نقل الكفالة رقم ' . $transfer->id
+                    . '، مع إبقاء الكفيل الحالي تمهيداً لإمكانية نقلها إلى كفيل آخر.',
+            ]);
+
+            DB::commit();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'تمت إعادة العاملة إلى الإيواء وأصبحت متاحة لنقل الكفالة من الكفيل الحالي إلى كفيل آخر.',
+                'redirect' => route('ShelterContract.availableForTransfer'),
+            ]);
+        } catch (ValidationException $e) {
+            if (DB::transactionLevel() > 0) {
+                DB::rollBack();
+            }
+
+            throw $e;
+        } catch (\Throwable $e) {
+            if (DB::transactionLevel() > 0) {
+                DB::rollBack();
+            }
+
+            \Log::error('Error returning transferred maid to shelter', [
+                'transfer_id' => $id,
+                'admin_id' => auth()->guard('admin')->id(),
+                'exception' => $e,
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'حدث خطأ أثناء إعادة العاملة إلى الإيواء.',
+            ], 500);
+        }
+    }
+
+    /**
      * Cancel transfer - move to failed status and return to shelter
      */
     public function cancelTransfer(Request $request, SponsorshipTransferPaymentService $paymentService, $id)
@@ -1825,7 +1965,7 @@ class SponsorshipTransferController extends Controller
                 'title' => helperTrans('ingaz.transferred'),
                 'route' => route('SponsorshipTransfer.transferred'),
                 'statuses' => ['transferred'],
-                'relations' => ['contract.maid.nationality', 'oldSponsor', 'newSponsor', 'transferredBy'],
+                'relations' => ['contract.info', 'contract.maid.nationality', 'oldSponsor', 'newSponsor', 'transferredBy'],
                 'theme' => 'success',
                 'date_label' => 'تاريخ النقل',
                 'empty_icon' => 'fas fa-check-circle',
