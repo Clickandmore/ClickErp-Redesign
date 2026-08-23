@@ -555,6 +555,7 @@ Route::group(
             Route::post('SponsorshipTransfer/{id}/reject', [SponsorshipTransferController::class, 'reject'])->name('SponsorshipTransfer.reject');
             Route::post('SponsorshipTransfer/{id}/complete', [SponsorshipTransferController::class, 'complete'])->name('SponsorshipTransfer.complete');
             Route::post('SponsorshipTransfer/{id}/confirm-transfer', [SponsorshipTransferController::class, 'confirmTransfer'])->name('SponsorshipTransfer.confirmTransfer');
+            Route::post('SponsorshipTransfer/{id}/return-to-shelter', [SponsorshipTransferController::class, 'returnTransferredMaidToShelter'])->name('SponsorshipTransfer.returnToShelter');
             Route::post('SponsorshipTransfer/{id}/cancel-transfer', [SponsorshipTransferController::class, 'cancelTransfer'])->name('SponsorshipTransfer.cancelTransfer');
             Route::get('sms-dispatch', [NotificationController::class, 'index'])->name('notifications.index');
             Route::post('sms-dispatch', [NotificationController::class, 'store'])->name('notifications.store');

@@ -290,10 +290,6 @@ class Contract extends Model
             $errors[] = 'رقم جواز العاملة غير مكتمل.';
         }
 
-        if ($data['worker_age'] === '') {
-            $errors[] = 'عمر العاملة غير مكتمل.';
-        }
-
         if ($data['worker_experience'] === '') {
             $errors[] = 'خبرة العاملة غير مكتملة.';
         }

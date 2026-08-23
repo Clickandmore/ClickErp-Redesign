@@ -25,8 +25,23 @@
             color: #344054;
         }
 
-        .ingaz-delegations-page .table-responsive {
-            overflow-x: auto;
+        /* tables.css يفرض overflow: visible !important على .table-responsive
+           ويُحمّل بعد @yield('css')، لذلك نحتاج محدداً أقوى لإعادة تفعيل التمرير الأفقي */
+        .ingaz-delegations-page .table-responsive,
+        .ingaz-delegations-page .dataTables_wrapper .table-responsive {
+            overflow-x: auto !important;
+            overflow-y: hidden !important;
+            width: 100%;
+            max-width: 100%;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        .ingaz-delegations-page .dataTables_wrapper {
+            max-width: 100%;
+        }
+
+        .ingaz-delegations-page .table-card .card-body {
+            min-width: 0;
         }
 
         #ingaz-delegations-table {
@@ -97,10 +112,6 @@
                 min-width: 180px;
             }
         }
-
-        .table-responsive {
-            overflow-x: auto !important;
-        }
     </style>
 @endsection
 
@@ -159,6 +170,22 @@
                                 @foreach ($statusOptions as $value => $label)
                                     <option value="{{ $value }}" @selected(request('status') === $value)>{{ $label }}</option>
                                 @endforeach
+                            </select>
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label">الفاتورة</label>
+                            <select name="has_invoice" class="form-select">
+                                <option value="">الكل</option>
+                                <option value="1" @selected(request('has_invoice') === '1')>لها فاتورة</option>
+                                <option value="0" @selected(request('has_invoice') === '0')>بدون فاتورة</option>
+                            </select>
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label">تحويل مساند</label>
+                            <select name="has_musaned_transfer" class="form-select">
+                                <option value="">الكل</option>
+                                <option value="1" @selected(request('has_musaned_transfer') === '1')>تم تسجيل التحويل</option>
+                                <option value="0" @selected(request('has_musaned_transfer') === '0')>لم يسجل التحويل</option>
                             </select>
                         </div>
                         <div class="col-md-2">
@@ -224,7 +251,8 @@
             const table = $('#ingaz-delegations-table').DataTable({
                 processing: true,
                 serverSide: true,
-                responsive: true,
+                responsive: false,
+                autoWidth: false,
                 pageLength: 25,
                 searching: false,
                 order: [[0, 'desc']],
@@ -237,6 +265,8 @@
                         d.country_id = $('select[name="country_id"]').val();
                         d.client_source_type = $('select[name="client_source_type"]').val();
                         d.status = $('select[name="status"]').val();
+                        d.has_invoice = $('select[name="has_invoice"]').val();
+                        d.has_musaned_transfer = $('select[name="has_musaned_transfer"]').val();
                         d.from_date = $('input[name="from_date"]').val();
                         d.to_date = $('input[name="to_date"]').val();
                     }
@@ -254,10 +284,7 @@
                     { data: 'actions', name: 'actions', orderable: false, searchable: false, className: 'text-nowrap' }
                 ],
                 columnDefs: [
-                    { targets: 0, responsivePriority: 1, width: '60px' },
-                    { targets: 3, responsivePriority: 2 },
-                    { targets: -1, responsivePriority: 3 },
-                    { targets: [1, 2, 8], responsivePriority: 4 }
+                    { targets: 0, width: '60px' }
                 ],
                 language: {
                     url: '//cdn.datatables.net/plug-ins/1.13.6/i18n/ar.json'
