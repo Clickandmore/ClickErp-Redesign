@@ -182,6 +182,8 @@ Route::group([
     Route::get('offers', [App\Http\Controllers\Api\ApiOfferController::class, 'index'])->name('offers.index');
     Route::get('offers/{id}', [App\Http\Controllers\Api\ApiOfferController::class, 'show'])->whereNumber('id')->name('offers.show');
     Route::get('guidelines', [App\Http\Controllers\Api\ApiGuidelineController::class, 'index'])->name('guidelines.index');
+    // شريط آخر الأخبار أعلى هيدر المواقع الخارجية
+    Route::get('fast-news', [App\Http\Controllers\Api\ApiFastNewController::class, 'index'])->name('fast-news.index');
     // مدونة الموقع الخارجي. slugs يُستهلك من sitemap.xml، لذلك يسبق {slug}
     // حتى لا يبتلعه كمقال اسمه "slugs".
     Route::get('blogs', [App\Http\Controllers\Api\ApiBlogController::class, 'index'])->name('blogs.index');
