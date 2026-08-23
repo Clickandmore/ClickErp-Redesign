@@ -70,7 +70,10 @@ class ApiMaidController extends Controller
             default => __('ingaz.recruitment_request')
         };
 
-        return apiResponse(true, __('api.All items'), $data, 200);
+        return apiResponse(true, __('api.All items'), $data, 200)
+            ->header('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0')
+            ->header('Pragma', 'no-cache')
+            ->header('Expires', '0');
     }
 
 
@@ -233,7 +236,10 @@ class ApiMaidController extends Controller
             'skills' => $skills,
         ];
 
-        return apiResponse(true, 'تم جلب البيانات بنجاح.', $data, 200);
+        return apiResponse(true, 'تم جلب البيانات بنجاح.', $data, 200)
+            ->header('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0')
+            ->header('Pragma', 'no-cache')
+            ->header('Expires', '0');
     }
 
     /**
