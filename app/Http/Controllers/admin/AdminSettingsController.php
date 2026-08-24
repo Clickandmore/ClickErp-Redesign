@@ -235,11 +235,20 @@ class AdminSettingsController extends Controller
             $file = $request->file('popup_image');
 
             $old_image = $settings->getSetting('popup_image');
-            deleteFile($old_image);
-
             $path = app(\App\Services\ManagedFileStorage::class)
                 ->uploadFile($file, 'images/settings');
-            $settings->setSetting('popup_image', $path);
+
+            if (! $settings->setSetting('popup_image', $path)) {
+                deleteFile($path);
+
+                throw new \RuntimeException('Unable to persist the uploaded announcement image.');
+            }
+
+            if (filled($old_image) && $old_image !== $path) {
+                DB::afterCommit(static function () use ($old_image): void {
+                    deleteFile($old_image);
+                });
+            }
         }
     }
 

@@ -168,6 +168,9 @@ Route::group([
     Route::resource('contact-us', ApiContactController::class);
     Route::get('settings/policies', [App\Http\Controllers\Api\ApiSettingController::class, 'policies'])->name('settings.policies');
     Route::get('settings/visitor-tracking', [App\Http\Controllers\Api\ApiSettingController::class, 'visitorTracking'])->name('settings.visitor-tracking');
+    Route::get('settings/announcement-image/{version?}', [App\Http\Controllers\Api\ApiSettingController::class, 'announcementImage'])
+        ->where('version', '[a-f0-9]{12}')
+        ->name('settings.announcement-image');
     Route::resource('settings', ApiSettingController::class);
     // Route::resource('maids', ApiMaidController::class);
     Route::resource('jobs', ApiJobTitleController::class);
