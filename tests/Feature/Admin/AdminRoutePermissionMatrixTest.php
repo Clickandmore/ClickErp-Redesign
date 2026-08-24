@@ -66,6 +66,7 @@ class AdminRoutePermissionMatrixTest extends TestCase
             'SponsorshipTransfer.reject',
             'SponsorshipTransfer.complete',
             'SponsorshipTransfer.confirmTransfer',
+            'SponsorshipTransfer.returnToShelter',
             'SponsorshipTransfer.cancelTransfer',
             'SponsorshipTransfer.send-contract',
             'SponsorshipTransfer.sign-contract',

@@ -183,6 +183,7 @@ class Maid extends Model
         'image_url',
         'cv_preview_url',
         'cv_file_url',
+        'cv_download_url',
     ];
 
     public function getImageURLAttribute()
@@ -221,6 +222,22 @@ class Maid extends Model
     public function getCvFileURLAttribute()
     {
         return showFile($this->cv_file);
+    }
+
+    public function getCvDownloadURLAttribute(): ?string
+    {
+        if (!filled($this->getRawOriginal('cv_preview'))
+            || !$this->exists
+            || !Route::has('maids.cv-preview.shared')) {
+            return null;
+        }
+
+        // Download the generated preview in its original format (PNG/SVG/etc.)
+        // instead of routing images through the PDF conversion endpoint.
+        return URL::signedRoute('maids.cv-preview.shared', [
+            'maid' => $this->getKey(),
+            'download' => 1,
+        ]);
     }
 
     public function getLanguagesAttribute($value): array

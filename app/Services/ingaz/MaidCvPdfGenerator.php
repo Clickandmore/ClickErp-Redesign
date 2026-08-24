@@ -847,6 +847,9 @@ class MaidCvPdfGenerator
         $paths = [
             $maid->getRawOriginal('image'),
             $maid->getRawOriginal('personal_image'),
+            // The uploaded full-body photo is rendered in the CV sidebar.
+            // Embed it so private/R2 URLs are not fetched during generation.
+            $maid->getRawOriginal('cv_file'),
             optional($maid->nationality)->getRawOriginal('logo'),
         ];
 
