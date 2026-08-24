@@ -157,7 +157,9 @@
                                                         <td>{{ $creditNote->reason }}</td>
                                                         <td>{{ number_format((float) $creditNote->total, 2) }} ريال</td>
                                                         <td>
-                                                            <a href="{{ route('recruitment-credit-notes.download', ['id' => $creditNote->id, 'autoprint' => 1]) }}" target="_blank" rel="noopener" class="btn btn-sm btn-outline-danger">طباعة</a>
+                                                            @if ($canPrintCreditNotes)
+                                                                <a href="{{ route('recruitment-credit-notes.download', ['id' => $creditNote->id, 'autoprint' => 1]) }}" target="_blank" rel="noopener" class="btn btn-sm btn-outline-danger">طباعة</a>
+                                                            @endif
                                                             @if ($creditNote->constraint_id)
                                                                 <a href="{{ route('finance.add-constraint.show', ['add_constraint' => $creditNote->constraint_id]) }}" target="_blank" rel="noopener" class="btn btn-sm btn-outline-secondary">القيد</a>
                                                             @endif
@@ -213,7 +215,7 @@
                                                         @if (!empty($properties['transfer_id']) && $canViewMusanedTransfers && $entry['event'] !== 'musaned_transfer_deleted')
                                                             <a class="btn btn-sm btn-outline-info" href="{{ route('musaned-transfers.show', $properties['transfer_id']) }}">التحويل #{{ $properties['transfer_id'] }}</a>
                                                         @endif
-                                                        @if (!empty($properties['credit_note_id']) && $canViewCreditNotes)
+                                                        @if (!empty($properties['credit_note_id']) && $canPrintCreditNotes)
                                                             <a class="btn btn-sm btn-outline-danger" target="_blank" rel="noopener" href="{{ route('recruitment-credit-notes.download', $properties['credit_note_id']) }}">الإشعار #{{ $properties['credit_note_id'] }}</a>
                                                         @endif
                                                     </div>

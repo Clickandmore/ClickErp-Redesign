@@ -182,6 +182,38 @@
             $generatedCvWhatsAppUrl = $generatedCvShareUrl
                 ? 'https://wa.me/?text=' . rawurlencode('نموذج السيرة الذاتية - ' . ($maid->name ?: $maid->cv_code ?: $maid->id) . "\n" . $generatedCvShareUrl)
                 : null;
+            $genderLabels = ['male' => 'ذكر', 'female' => 'أنثى'];
+            $maritalStatusLabels = [
+                'single' => 'أعزب / عزباء',
+                'married' => 'متزوج / متزوجة',
+                'divorced' => 'مطلق / مطلقة',
+                'widowed' => 'أرمل / أرملة',
+            ];
+            $experienceStatusLabels = ['has_experience' => 'لديها خبرة', 'no_experience' => 'بدون خبرة'];
+            $cookingExperienceLabels = [
+                'arabic_cooking' => 'لديها خبرة بالطبخ العربي',
+                'regular_cooking' => 'لديها خبرة بالطبخ العادي',
+                'willing_to_learn' => 'قابلة لتعلم الطبخ',
+                'general_cooking' => 'لديها خبرة عامة بالطبخ',
+                'no_cooking_experience' => 'بدون خبرة في الطبخ',
+            ];
+            $languageLevelLabels = [
+                'acceptable' => 'مقبول',
+                'average' => 'متوسط',
+                'good' => 'جيد',
+                'excellent' => 'ممتاز',
+            ];
+            $dateValue = static function ($value) {
+                if (!$value) {
+                    return '-';
+                }
+
+                try {
+                    return \Carbon\Carbon::parse($value)->format('Y-m-d');
+                } catch (\Throwable $exception) {
+                    return trim((string) $value) ?: '-';
+                }
+            };
         @endphp
 
         <div class="container-fluid py-3 py-lg-4">
@@ -227,7 +259,7 @@
                         @endif
                         <div class="d-flex flex-column gap-2">
                             <div class="d-flex flex-wrap align-items-center gap-2">
-                                <h2 class="mb-0 fw-bold">{{ $maid->name ?? helperTrans('ingaz.not_specified') }}</h2>
+                                <h2 class="mb-0 fw-bold">{{ $maid->name ?: '-' }}</h2>
                                 <span class="badge {{ $statusMeta['class'] }} d-inline-flex align-items-center gap-1">
                                     <i class="{{ $statusMeta['icon'] }}"></i>{{ $statusMeta['text'] }}
                                 </span>
@@ -238,21 +270,21 @@
                             </div>
                             <div class="text-muted small d-flex flex-wrap gap-3">
                                 <span><i
-                                        class="fas fa-passport me-1"></i>{{ $maid->passport_num ?? helperTrans('ingaz.not_specified') }}</span>
+                                        class="fas fa-passport me-1"></i>{{ $maid->passport_num ?: '-' }}</span>
                                 @if ($maid->arabia_worker_number)
                                     <span><i class="fas fa-hashtag me-1"></i>رقم عامل أربيا:
                                         {{ $maid->arabia_worker_number }}</span>
                                 @endif
                                 <span><i
-                                        class="fas fa-flag me-1"></i>{{ $maid->nationality?->sub_title ?? helperTrans('ingaz.not_specified') }}</span>
+                                        class="fas fa-flag me-1"></i>{{ $maid->nationality?->sub_title ?: '-' }}</span>
                                 <span><i
-                                        class="fas fa-building me-1"></i>{{ $externalOffice?->title ?? helperTrans('ingaz.not_specified') }}</span>
+                                        class="fas fa-building me-1"></i>{{ $externalOffice?->title ?: '-' }}</span>
                                 <span><i
                                         class="fas fa-diagram-project me-1"></i>{{ helperTrans('ingaz.request_type') }}:
                                     {{ $maid->request_type_label }}</span>
                                 <span><i
                                         class="fas fa-user-tie me-1"></i>{{ helperTrans('ingaz.added_by') }}:
-                                    {{ $maid->addedBy?->name ?? helperTrans('ingaz.not_specified') }}</span>
+                                    {{ $maid->addedBy?->name ?: '-' }}</span>
                                 <span><i
                                         class="fas fa-calendar-plus me-1"></i>{{ $availability['created_at']?->format('Y-m-d') ?? '-' }}</span>
                             </div>
@@ -387,7 +419,7 @@
                             <div class="row g-3">
                                 <div class="col-md-6">
                                     <div class="text-muted small">{{ helperTrans('ingaz.name') }}</div>
-                                    <div class="fw-semibold">{{ $maid->name ?? helperTrans('ingaz.not_specified') }}</div>
+                                    <div class="fw-semibold">{{ $maid->name ?: '-' }}</div>
                                 </div>
                                 <div class="col-md-6">
                                     <div class="text-muted small">{{ helperTrans('ingaz.age') }}</div>
@@ -396,12 +428,12 @@
                                 <div class="col-md-6">
                                     <div class="text-muted small">{{ helperTrans('web.nationality') }}</div>
                                     <div class="fw-semibold">
-                                        {{ $maid->nationality?->sub_title ?? helperTrans('ingaz.not_specified') }}</div>
+                                        {{ $maid->nationality?->sub_title ?: '-' }}</div>
                                 </div>
                                 <div class="col-md-6">
                                     <div class="text-muted small">{{ helperTrans('web.religion') }}</div>
                                     <div class="fw-semibold">
-                                        {{ $maid->religion?->title ?? helperTrans('ingaz.not_specified') }}</div>
+                                        {{ $maid->religion?->title ?: '-' }}</div>
                                 </div>
                                 <div class="col-md-6">
                                     <div class="text-muted small">{{ helperTrans('web.passport_number') }}</div>
@@ -417,8 +449,60 @@
                                 </div>
                                 <div class="col-md-6">
                                     <div class="text-muted small">{{ helperTrans('ingaz.children') }}</div>
-                                    <div class="fw-semibold">{{ $maid->childrens_count ?? '0' }}</div>
+                                    <div class="fw-semibold">{{ $maid->childrens_count ?? '-' }}</div>
                                 </div>
+                                <div class="col-md-6">
+                                    <div class="text-muted small">الجنس</div>
+                                    <div class="fw-semibold">{{ $genderLabels[$maid->gender] ?? '-' }}</div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="text-muted small">تاريخ الميلاد</div>
+                                    <div class="fw-semibold">{{ $dateValue($maid->birth_date) }}</div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="text-muted small">الحالة الاجتماعية</div>
+                                    <div class="fw-semibold">{{ $maritalStatusLabels[$maid->marital_status] ?? ($maid->marital_status ?: '-') }}</div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="text-muted small">المؤهل التعليمي</div>
+                                    <div class="fw-semibold">{{ $maid->education ?: '-' }}</div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="text-muted small">رخصة قيادة</div>
+                                    <div class="fw-semibold">{{ $maid->has_driving_license === null ? '-' : ($maid->has_driving_license ? 'نعم' : 'لا') }}</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card maid-card">
+                        <div class="card-body">
+                            <h5 class="fw-bold mb-3 d-flex align-items-center gap-2">
+                                <i class="fas fa-id-card text-info"></i>بيانات الجواز والهوية
+                            </h5>
+                            <div class="row g-3">
+                                <div class="col-md-6"><div class="text-muted small">رقم جواز السفر</div><div class="fw-semibold">{{ $maid->passport_num ?: '-' }}</div></div>
+                                <div class="col-md-6"><div class="text-muted small">مكان إصدار الجواز</div><div class="fw-semibold">{{ $maid->passport_issue_place ?: '-' }}</div></div>
+                                <div class="col-md-6"><div class="text-muted small">تاريخ إصدار الجواز</div><div class="fw-semibold">{{ $dateValue($maid->passport_issue_date) }}</div></div>
+                                <div class="col-md-6"><div class="text-muted small">تاريخ انتهاء الجواز</div><div class="fw-semibold">{{ $dateValue($maid->passport_expiry_date) }}</div></div>
+                                <div class="col-md-6"><div class="text-muted small">رقم الهوية / الإقامة</div><div class="fw-semibold">{{ $maid->id_number ?: '-' }}</div></div>
+                                <div class="col-md-6"><div class="text-muted small">تاريخ انتهاء الهوية / الإقامة</div><div class="fw-semibold">{{ $dateValue($maid->id_expiry_date) }}</div></div>
+                                <div class="col-md-6"><div class="text-muted small">رقم الحدود</div><div class="fw-semibold">{{ $maid->border_number ?: '-' }}</div></div>
+                                <div class="col-md-6"><div class="text-muted small">رقم عامل أربيا</div><div class="fw-semibold">{{ $maid->arabia_worker_number ?: '-' }}</div></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card maid-card">
+                        <div class="card-body">
+                            <h5 class="fw-bold mb-3 d-flex align-items-center gap-2">
+                                <i class="fas fa-address-book text-success"></i>بيانات التواصل
+                            </h5>
+                            <div class="row g-3">
+                                <div class="col-md-6"><div class="text-muted small">رقم الهاتف</div><div class="fw-semibold" dir="ltr">{{ $maid->phone ?: '-' }}</div></div>
+                                <div class="col-md-6"><div class="text-muted small">مدينة الإقامة</div><div class="fw-semibold">{{ $maid->residence_city ?: '-' }}</div></div>
+                                <div class="col-md-6"><div class="text-muted small">اسم القريب</div><div class="fw-semibold">{{ $maid->relative_name ?: '-' }}</div></div>
+                                <div class="col-md-6"><div class="text-muted small">هاتف القريب</div><div class="fw-semibold" dir="ltr">{{ $maid->relative_phone ?: '-' }}</div></div>
                             </div>
                         </div>
                     </div>
@@ -430,36 +514,69 @@
                             </h5>
                             <div class="row g-3">
                                 <div class="col-md-6">
-                                    <div class="text-muted small">{{ helperTrans('ingaz.job_types') }}</div>
+                                    <div class="text-muted small">نوع السيرة / الخدمة</div>
                                     <div class="fw-semibold">
-                                        {{ $maid->jobTypes->pluck('title')->implode(', ') ?: helperTrans('ingaz.not_specified') }}
+                                        {{ $maid->jobTypes->pluck('title')->filter()->implode(', ') ?: '-' }}
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="text-muted small">المهنة</div>
+                                    <div class="fw-semibold">
+                                        {{ $maid->jobTitles->pluck('title')->filter()->implode(', ') ?: '-' }}
                                     </div>
                                 </div>
                                 <div class="col-md-6">
                                     <div class="text-muted small">{{ helperTrans('ingaz.office') }}</div>
                                     <div class="fw-semibold">
-                                        {{ $externalOffice?->title ?? helperTrans('ingaz.not_specified') }}</div>
+                                        {{ $externalOffice?->title ?: '-' }}</div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="text-muted small">الفرع</div>
+                                    <div class="fw-semibold">{{ $maid->branch?->name ?: '-' }}</div>
                                 </div>
                                 <div class="col-md-6">
                                     <div class="text-muted small">{{ helperTrans('ingaz.request_type') }}</div>
-                                    <div class="fw-semibold">{{ $maid->request_type_label }}</div>
+                                    <div class="fw-semibold">{{ $maid->request_type_label ?: '-' }}</div>
                                 </div>
                                 <div class="col-md-6">
                                     <div class="text-muted small">{{ helperTrans('web.salary') }}</div>
                                     <div class="fw-semibold">
-                                        {{ $maid->resolved_salary !== null ? number_format($maid->resolved_salary, 2) : helperTrans('ingaz.not_specified') }}
+                                        {{ $maid->salary !== null ? number_format((float) $maid->salary, 2) : '-' }}
                                     </div>
                                 </div>
                                 <div class="col-md-6">
                                     <div class="text-muted small">{{ helperTrans('ingaz.price') }}</div>
                                     <div class="fw-semibold">
-                                        {{ $maid->resolved_price !== null ? number_format($maid->resolved_price, 2) : helperTrans('ingaz.not_specified') }}
+                                        {{ $maid->price !== null ? number_format((float) $maid->price, 2) : '-' }}
                                     </div>
                                 </div>
-                                <div class="col-md-12">
-                                    <div class="text-muted small">{{ helperTrans('ingaz.additional_notes') }}</div>
-                                    <div class="fw-semibold">
-                                        {{ $maid->additional_notes ?? helperTrans('ingaz.not_specified') }}</div>
+                                <div class="col-md-6">
+                                    <div class="text-muted small">حالة الخبرة</div>
+                                    <div class="fw-semibold">{{ $experienceStatusLabels[$maid->experience_status] ?? '-' }}</div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="text-muted small">سنوات الخبرة</div>
+                                    <div class="fw-semibold">{{ $maid->experience_years !== null && $maid->experience_years !== '' ? $maid->experience_years : '-' }}</div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="text-muted small">خبرة الطبخ</div>
+                                    <div class="fw-semibold">{{ $cookingExperienceLabels[$maid->cooking_experience] ?? '-' }}</div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="text-muted small">مدة الوصول المتوقعة</div>
+                                    <div class="fw-semibold">{{ $maid->duration ?: '-' }}</div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="text-muted small">تاريخ الوصول</div>
+                                    <div class="fw-semibold">{{ $dateValue($maid->arrival_date) }}</div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="text-muted small">وجود العاملة داخل / خارج المملكة</div>
+                                    <div class="fw-semibold">{{ $isRentalMaid ? ($maid->arrival_date ? 'داخل المملكة' : 'خارج المملكة') : '-' }}</div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="text-muted small">تاريخ الإتاحة</div>
+                                    <div class="fw-semibold">{{ $dateValue($maid->available_at) }}</div>
                                 </div>
                             </div>
                         </div>
@@ -468,26 +585,46 @@
                     <div class="card maid-card">
                         <div class="card-body">
                             <h5 class="fw-bold mb-3 d-flex align-items-center gap-2">
+                                <i class="fas fa-tags text-danger"></i>بيانات العرض
+                            </h5>
+                            <div class="row g-3">
+                                <div class="col-md-6"><div class="text-muted small">سعر العرض</div><div class="fw-semibold">{{ $maid->offer_price !== null ? number_format((float) $maid->offer_price, 2) : '-' }}</div></div>
+                                <div class="col-md-6"><div class="text-muted small">مدة العرض</div><div class="fw-semibold">{{ $maid->offer_duration ?: '-' }}</div></div>
+                                <div class="col-md-6"><div class="text-muted small">بداية العرض</div><div class="fw-semibold">{{ $dateValue($maid->offer_starts_at) }}</div></div>
+                                <div class="col-md-6"><div class="text-muted small">نهاية العرض</div><div class="fw-semibold">{{ $dateValue($maid->offer_expires_at) }}</div></div>
+                                <div class="col-md-12"><div class="text-muted small">وصف العرض</div><div class="fw-semibold">{{ $maid->offer_description ?: '-' }}</div></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card maid-card">
+                        <div class="card-body">
+                            <h5 class="fw-bold mb-3 d-flex align-items-center gap-2">
+                                <i class="fas fa-note-sticky text-warning"></i>ملاحظات السيرة
+                            </h5>
+                            <div class="fw-semibold">{{ $maid->additional_notes ?: '-' }}</div>
+                        </div>
+                    </div>
+
+                    <div class="card maid-card">
+                        <div class="card-body">
+                            <h5 class="fw-bold mb-3 d-flex align-items-center gap-2">
                                 <i class="fas fa-building text-primary"></i>بيانات الوكيل الخارجي
                             </h5>
-                            @if ($externalOffice)
-                                <div class="row g-3">
-                                    <div class="col-md-6">
-                                        <div class="text-muted small">{{ helperTrans('ingaz.recruitment_office') }}</div>
-                                        <div class="fw-semibold">{{ $externalOffice->title ?? helperTrans('ingaz.not_specified') }}</div>
-                                    </div>
-                                    <div class="col-md-6">
-                                        <div class="text-muted small">{{ helperTrans('ingaz.service') }}</div>
-                                        <div class="fw-semibold">{{ $maid->request_type_label }}</div>
-                                    </div>
-                                    <div class="col-md-6">
-                                        <div class="text-muted small">{{ helperTrans('ingaz.nationality') }}</div>
-                                        <div class="fw-semibold">{{ $maid->nationality?->sub_title ?? helperTrans('ingaz.not_specified') }}</div>
-                                    </div>
+                            <div class="row g-3">
+                                <div class="col-md-6">
+                                    <div class="text-muted small">{{ helperTrans('ingaz.recruitment_office') }}</div>
+                                    <div class="fw-semibold">{{ $externalOffice?->title ?: '-' }}</div>
                                 </div>
-                            @else
-                                <p class="text-muted mb-0">{{ helperTrans('ingaz.not_specified') }}</p>
-                            @endif
+                                <div class="col-md-6">
+                                    <div class="text-muted small">{{ helperTrans('ingaz.service') }}</div>
+                                    <div class="fw-semibold">{{ $maid->request_type_label ?: '-' }}</div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="text-muted small">{{ helperTrans('ingaz.nationality') }}</div>
+                                    <div class="fw-semibold">{{ $maid->nationality?->sub_title ?: '-' }}</div>
+                                </div>
+                            </div>
                         </div>
                     </div>
 
@@ -656,6 +793,23 @@
                             <h5 class="fw-bold mb-3 d-flex align-items-center gap-2">
                                 <i class="fas fa-paperclip text-info"></i>{{ helperTrans('ingaz.maid_attachments') }}
                             </h5>
+
+                            <div class="row g-2 mb-3">
+                                <div class="col-6"><div class="text-muted small">الصورة الشخصية</div><div class="fw-semibold">{{ filled($maid->image) ? 'مرفقة' : '-' }}</div></div>
+                                <div class="col-6"><div class="text-muted small">الصورة الكاملة / الملف الأساسي</div><div class="fw-semibold">{{ filled($maid->cv_file) ? 'مرفق' : '-' }}</div></div>
+                                <div class="col-6"><div class="text-muted small">سيرة المكتب الخارجي</div><div class="fw-semibold">{{ filled($maid->maid_cv_file) ? 'مرفقة' : '-' }}</div></div>
+                                <div class="col-6"><div class="text-muted small">ملف الفيديو</div><div class="fw-semibold">{{ filled($maid->video) ? 'مرفق' : '-' }}</div></div>
+                                <div class="col-12">
+                                    <div class="text-muted small">رابط الفيديو</div>
+                                    <div class="fw-semibold text-break">
+                                        @if (filled($maid->video_link))
+                                            <a href="{{ $maid->video_link }}" target="_blank" rel="noopener">{{ $maid->video_link }}</a>
+                                        @else
+                                            -
+                                        @endif
+                                    </div>
+                                </div>
+                            </div>
 
                             @if ($generatedCvPath && @AdminGuardHasAnyPerm([\App\PermKeys::MAIDS_EXPORT, \App\PermKeys::MAIDS_EXPORT_PDF]))
                                 <div class="border border-danger-subtle rounded-3 p-3 mb-3 bg-danger-subtle">
@@ -922,12 +1076,20 @@
                                         @php $language = trim($language); @endphp
                                         <li class="d-flex justify-content-between">
                                             <span class="fw-semibold">{{ $language }}</span>
-                                            <span class="text-muted">{{ $languagePercentages[$language] ?? '-' }}</span>
+                                            <span class="text-muted">
+                                                @if (isset($languagePercentages[$language]) && $languagePercentages[$language] !== '')
+                                                    {{ $languagePercentages[$language] }}%
+                                                @elseif (!empty($languageLevels[$language]))
+                                                    {{ $languageLevelLabels[$languageLevels[$language]] ?? $languageLevels[$language] }}
+                                                @else
+                                                    -
+                                                @endif
+                                            </span>
                                         </li>
                                     @endforeach
                                 </ul>
                             @else
-                                <p class="text-muted mb-0">{{ helperTrans('ingaz.not_specified') }}</p>
+                                <p class="text-muted mb-0">-</p>
                             @endif
                         </div>
                     </div>
@@ -954,7 +1116,7 @@
                                     @endforeach
                                 </div>
                             @else
-                                <p class="text-muted mb-0">{{ helperTrans('ingaz.not_specified') }}</p>
+                                <p class="text-muted mb-0">-</p>
                             @endif
                         </div>
                     </div>
@@ -969,25 +1131,19 @@
                                 <div class="d-flex flex-column gap-2">
                                     @foreach ($maid->expertises as $expertise)
                                         <div class="border rounded-3 p-3">
-                                            <div class="fw-semibold">
-                                                {{ $expertise->jobTitle?->title ?? helperTrans('ingaz.not_specified') }}
-                                            </div>
-                                            <div class="text-muted small">
-                                                <i
-                                                    class="fas fa-globe me-1"></i>{{ $expertise->country?->title ?? helperTrans('ingaz.not_specified') }}
-                                                @if ($expertise->period_label)
-                                                    <span class="mx-1 text-secondary">•</span>
-                                                    <i class="fas fa-calendar-alt me-1"></i>{{ $expertise->period_label }}
-                                                @endif
-                                                <span class="mx-1 text-secondary">•</span>
-                                                <i
-                                                    class="fas fa-hourglass-half me-1"></i>{{ $expertise->duration_label ?? helperTrans('ingaz.not_specified') }}
+                                            <div class="row g-2">
+                                                <div class="col-md-6"><span class="text-muted small">المهنة:</span> <span class="fw-semibold">{{ $expertise->jobTitle?->title ?: '-' }}</span></div>
+                                                <div class="col-md-6"><span class="text-muted small">الدولة:</span> <span class="fw-semibold">{{ $expertise->country?->title ?: '-' }}</span></div>
+                                                <div class="col-md-6"><span class="text-muted small">مدينة العمل:</span> <span class="fw-semibold">{{ $expertise->work_city ?: '-' }}</span></div>
+                                                <div class="col-md-6"><span class="text-muted small">المدة:</span> <span class="fw-semibold">{{ $expertise->duration_label ?: '-' }}</span></div>
+                                                <div class="col-md-6"><span class="text-muted small">تاريخ البداية:</span> <span class="fw-semibold">{{ $dateValue($expertise->start_date) }}</span></div>
+                                                <div class="col-md-6"><span class="text-muted small">تاريخ النهاية:</span> <span class="fw-semibold">{{ $dateValue($expertise->end_date) }}</span></div>
                                             </div>
                                         </div>
                                     @endforeach
                                 </div>
                             @else
-                                <p class="text-muted mb-0">{{ helperTrans('ingaz.not_specified') }}</p>
+                                <p class="text-muted mb-0">-</p>
                             @endif
                         </div>
                     </div>

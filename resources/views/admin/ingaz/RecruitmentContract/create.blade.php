@@ -996,10 +996,12 @@
                                     {{ __('buttons.save') }}
                                 </button>
 
+                                @if (\App\Support\InvoiceAuthorization::canCreate())
                                 <button class="btn btn-success btn-lg px-3" id="save-and-invoice" type="button">
                                     <i class="fa-solid fa-file-invoice-dollar me-2"></i>
                                     {{ __('ingaz.save_and_issue_an_invoice') }}
                                 </button>
+                                @endif
                             </div>
                         </div>
                     </div>
@@ -1132,11 +1134,13 @@
                                     {{ __('buttons.save') }}
                                 </button>
 
+                                @if (\App\Support\InvoiceAuthorization::canCreate())
                                 <button class="btn btn-success btn-lg px-5" id="order-save-and-invoice"
                                     type="button">
                                     <i class="fa-solid fa-file-invoice-dollar me-2"></i>
                                     {{ __('ingaz.save_and_issue_an_invoice') }}
                                 </button>
+                                @endif
                             </div>
                         </div>
                     </div>

@@ -18,6 +18,7 @@ use App\Models\office\Office as RecruitmentOffice;
 use App\PermKeys;
 use App\Services\ManagedFileStorage;
 use App\Support\IngazDelegationTimeline;
+use App\Support\InvoiceAuthorization;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -390,6 +391,7 @@ class IngazDelegationController extends Controller
             'canViewInvoices' => $this->adminCanAny($this->invoiceViewPermissions()),
             'canCreateInvoices' => $this->adminCanAny($this->invoiceCreatePermissions()),
             'canViewCreditNotes' => $this->adminCanAny($this->creditNoteViewPermissions()),
+            'canPrintCreditNotes' => $this->adminCanAny(InvoiceAuthorization::creditNotePrintPermissions()),
             'canCreateCreditNotes' => $this->adminCanAny($this->creditNoteCreatePermissions()),
             'canViewMusanedTransfers' => $this->adminCanAny($this->musanedTransferViewPermissions()),
             'canCreateMusanedTransfers' => $this->adminCanAny($this->musanedTransferCreatePermissions()),
@@ -981,45 +983,25 @@ class IngazDelegationController extends Controller
 
     private function invoiceViewPermissions(): array
     {
-        return [
-            PermKeys::INVOICES_VIEW,
-            PermKeys::INVOICES_CONTROL,
-            PermKeys::REC_CONTRACTS_VIEW,
-            PermKeys::REC_CONTRACTS_MANAGE,
-        ];
+        return InvoiceAuthorization::viewPermissions();
     }
 
     private function invoiceCreatePermissions(): array
     {
-        return [
-            PermKeys::INVOICES_CREATE,
-            PermKeys::INVOICES_CONTROL,
-            PermKeys::REC_CONTRACTS_CREATE,
-            PermKeys::REC_CONTRACTS_MANAGE,
-        ];
+        return InvoiceAuthorization::createPermissions();
     }
 
     private function creditNoteViewPermissions(): array
     {
-        return [
-            PermKeys::INVOICE_CREDIT_NOTES_VIEW,
-            PermKeys::INVOICE_CREDIT_NOTES_PRINT,
-            PermKeys::INVOICE_CREDIT_NOTES_CONTROL,
-            PermKeys::INVOICES_CONTROL,
-            PermKeys::INGAZ_DELEGATIONS_CONTROL,
-            PermKeys::REC_CONTRACTS_MANAGE,
-        ];
+        return array_values(array_unique(array_merge(
+            InvoiceAuthorization::creditNoteViewPermissions(),
+            InvoiceAuthorization::creditNotePrintPermissions()
+        )));
     }
 
     private function creditNoteCreatePermissions(): array
     {
-        return [
-            PermKeys::INVOICE_CREDIT_NOTES_CREATE,
-            PermKeys::INVOICE_CREDIT_NOTES_CONTROL,
-            PermKeys::INVOICES_CONTROL,
-            PermKeys::INGAZ_DELEGATIONS_CONTROL,
-            PermKeys::REC_CONTRACTS_MANAGE,
-        ];
+        return InvoiceAuthorization::creditNoteCreatePermissions();
     }
 
     private function musanedTransferViewPermissions(): array

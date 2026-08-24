@@ -40,6 +40,7 @@ use App\Services\ingaz\RecruitmentContractRefundService;
 use App\Services\ingaz\RentalMaidArrivalService;
 use App\Services\ManagedFileStorage;
 use App\Support\SystemModuleManager;
+use App\Support\InvoiceAuthorization;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Database\QueryException;
@@ -110,23 +111,13 @@ class RecruitmentContractController extends Controller
 
     private function canViewInvoiceCreditNotes(): bool
     {
-        return @AdminGuardHasAnyPerm([
-            PermKeys::INVOICE_CREDIT_NOTES_VIEW,
-            PermKeys::INVOICE_CREDIT_NOTES_PRINT,
-            PermKeys::INVOICE_CREDIT_NOTES_CONTROL,
-            PermKeys::INVOICES_CONTROL,
-            PermKeys::REC_CONTRACTS_MANAGE,
-        ]);
+        return InvoiceAuthorization::canViewCreditNotes()
+            || InvoiceAuthorization::canPrintCreditNotes();
     }
 
     private function canCreateInvoiceCreditNotes(): bool
     {
-        return @AdminGuardHasAnyPerm([
-            PermKeys::INVOICE_CREDIT_NOTES_CREATE,
-            PermKeys::INVOICE_CREDIT_NOTES_CONTROL,
-            PermKeys::INVOICES_CONTROL,
-            PermKeys::REC_CONTRACTS_MANAGE,
-        ]);
+        return InvoiceAuthorization::canCreateCreditNotes();
     }
 
     private function canSelectMaidForRecruitmentContracts(): bool
@@ -1654,7 +1645,7 @@ class RecruitmentContractController extends Controller
                     // الفاتورة
                     $invoice = $row->invoice;
                     if (!$invoice) {
-                        if ($row->isInvoiceEligible()) {
+                        if ($row->isInvoiceEligible() && InvoiceAuthorization::canCreate()) {
                             $actions .= '<li><a class="dropdown-item" href="' . route('invoices.create') . '?contract_id=' . $row->id . '" target="_blank">
                                         <i class="fas fa-file-invoice"></i> اضافة فاتورة
                                     </a></li>';
@@ -2279,14 +2270,18 @@ class RecruitmentContractController extends Controller
         };
 
         if ($contract->invoice) {
-            $addFinancialDocument('invoice-view', 'عرض الفاتورة', route('invoices.show', $contract->invoice->id), 'fas fa-file-invoice');
-            $addFinancialDocument('invoice-download', 'تنزيل الفاتورة', route('invoice.download', ['id' => $contract->invoice->id, 'autoprint' => 1]), 'fas fa-download');
+            if (InvoiceAuthorization::canView()) {
+                $addFinancialDocument('invoice-view', 'عرض الفاتورة', route('invoices.show', $contract->invoice->id), 'fas fa-file-invoice');
+            }
+            if (InvoiceAuthorization::canPrint()) {
+                $addFinancialDocument('invoice-download', 'تنزيل الفاتورة', route('invoice.download', ['id' => $contract->invoice->id, 'autoprint' => 1]), 'fas fa-download');
+            }
 
             if ($contract->invoice->finance_sale_id) {
                 $addFinancialDocument('finance-sale', 'فاتورة المبيعات المحاسبية', route('finance.bill-sales.show', $contract->invoice->finance_sale_id), 'fas fa-file-lines');
             }
 
-            if ($this->canViewInvoiceCreditNotes()) {
+            if (InvoiceAuthorization::canPrintCreditNotes()) {
                 foreach ($contract->invoice->recruitmentCreditNotes as $creditNote) {
                     $addFinancialDocument(
                         'invoice-credit-note-' . $creditNote->id,

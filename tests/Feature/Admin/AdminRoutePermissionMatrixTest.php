@@ -39,6 +39,53 @@ class AdminRoutePermissionMatrixTest extends TestCase
         $this->assertSame([PermKeys::DASHBOARD_VIEW], $permissions);
     }
 
+    public function test_invoice_creation_is_not_granted_by_recruitment_contract_permissions(): void
+    {
+        foreach (['invoices.create', 'invoices.store', 'invoices.searchClients', 'SponsorshipTransfer.invoice.create'] as $routeName) {
+            $permissions = AdminRoutePermissionMatrix::resolve($routeName, Request::create('/'));
+
+            $this->assertSame(
+                [PermKeys::INVOICES_CREATE, PermKeys::INVOICES_CONTROL],
+                $permissions,
+                "Route [{$routeName}] must use invoice permissions only."
+            );
+            $this->assertNotContains(PermKeys::REC_CONTRACTS_CREATE, $permissions);
+            $this->assertNotContains(PermKeys::REC_CONTRACTS_MANAGE, $permissions);
+        }
+    }
+
+    public function test_every_invoice_operation_route_has_its_dedicated_permission_gate(): void
+    {
+        $expectations = [
+            'invoices.index' => [PermKeys::INVOICES_VIEW, PermKeys::INVOICES_CONTROL],
+            'invoices.show' => [PermKeys::INVOICES_VIEW, PermKeys::INVOICES_CONTROL],
+            'invoices.edit' => [PermKeys::INVOICES_CONTROL],
+            'invoices.update' => [PermKeys::INVOICES_CONTROL],
+            'invoices.destroy' => [PermKeys::INVOICES_CONTROL],
+            'invoices.export.excel' => [PermKeys::INVOICES_EXPORT, PermKeys::INVOICES_CONTROL],
+            'invoices.export.pdf' => [PermKeys::INVOICES_EXPORT, PermKeys::INVOICES_CONTROL],
+            'invoice.download' => [PermKeys::INVOICES_PRINT, PermKeys::INVOICES_CONTROL],
+            'invoices.legacy-source-file' => [PermKeys::INVOICES_PRINT, PermKeys::INVOICES_CONTROL],
+            'rental.invoice.download' => [PermKeys::INVOICES_PRINT, PermKeys::INVOICES_CONTROL],
+            'rental.extension-invoice.download' => [PermKeys::INVOICES_PRINT, PermKeys::INVOICES_CONTROL],
+            'invoices.queue-zatca-sale' => [PermKeys::INVOICES_CONTROL],
+            'rental-invoices.queue-zatca-sale' => [PermKeys::INVOICES_CONTROL],
+            'rental-adjustments.queue-zatca-sale' => [PermKeys::INVOICES_CONTROL],
+            'invoices.credit-notes.create' => [PermKeys::INVOICE_CREDIT_NOTES_CREATE, PermKeys::INVOICE_CREDIT_NOTES_CONTROL, PermKeys::INVOICES_CONTROL],
+            'rental-invoices.credit-notes.store' => [PermKeys::INVOICE_CREDIT_NOTES_CREATE, PermKeys::INVOICE_CREDIT_NOTES_CONTROL, PermKeys::INVOICES_CONTROL],
+            'recruitment-credit-notes.download' => [PermKeys::INVOICE_CREDIT_NOTES_PRINT, PermKeys::INVOICE_CREDIT_NOTES_CONTROL, PermKeys::INVOICES_CONTROL],
+            'rental.credit-note.download' => [PermKeys::INVOICE_CREDIT_NOTES_PRINT, PermKeys::INVOICE_CREDIT_NOTES_CONTROL, PermKeys::INVOICES_CONTROL],
+        ];
+
+        foreach ($expectations as $routeName => $permissions) {
+            $this->assertSame(
+                $permissions,
+                AdminRoutePermissionMatrix::resolve($routeName, Request::create('/')),
+                "Route [{$routeName}] has an incorrect invoice permission gate."
+            );
+        }
+    }
+
     public function test_roles_store_uses_edit_permission_for_edit_requests(): void
     {
         $permissions = AdminRoutePermissionMatrix::resolve(

@@ -58,7 +58,7 @@
                         </small>
                     </div>
                     <div class="invoice-index-actions">
-                        @if (AdminGuardHasAnyPerm([\App\PermKeys::INVOICES_EXPORT, \App\PermKeys::INVOICES_CONTROL, \App\PermKeys::REC_CONTRACTS_EXPORT, \App\PermKeys::REC_CONTRACTS_MANAGE]))
+                        @if (\App\Support\InvoiceAuthorization::canExport())
                             <a href="{{ route('invoices.export.excel') }}" class="btn btn-outline-success" id="invoiceExportExcel">
                                 <i class="fas fa-file-excel me-1"></i> Excel
                             </a>
@@ -66,7 +66,7 @@
                                 <i class="fas fa-file-pdf me-1"></i> PDF
                             </a>
                         @endif
-                        @if (AdminGuardHasAnyPerm([\App\PermKeys::INVOICES_CREATE, \App\PermKeys::INVOICES_CONTROL, \App\PermKeys::REC_CONTRACTS_CREATE, \App\PermKeys::REC_CONTRACTS_MANAGE]))
+                        @if (\App\Support\InvoiceAuthorization::canCreate())
                             <a href="{{ route('invoices.create') }}" class="btn btn-primary">
                                 <i class="fas fa-plus me-1"></i> إضافة فاتورة
                             </a>

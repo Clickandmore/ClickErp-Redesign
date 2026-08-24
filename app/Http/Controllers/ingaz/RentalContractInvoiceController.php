@@ -7,10 +7,10 @@ use App\Models\ingaz\Setting;
 use App\Models\RentalContractExtension;
 use App\Models\RentalContractInvoice;
 use App\Models\RentalFinancialAdjustment;
-use App\PermKeys;
 use App\Services\ingaz\InvoiceCalculationService;
 use App\Services\ingaz\RentalContractFinanceService;
 use App\Support\InvoiceQrCode;
+use App\Support\InvoiceAuthorization;
 use App\Support\RentalContractPricing;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Http\Request;
@@ -19,6 +19,13 @@ use PDF;
 
 class RentalContractInvoiceController extends Controller
 {
+    public function __construct()
+    {
+        $this->middleware($this->permissionMiddleware(InvoiceAuthorization::printPermissions()), ['only' => ['download', 'extension']]);
+        $this->middleware($this->permissionMiddleware(InvoiceAuthorization::creditNoteCreatePermissions()), ['only' => ['createCreditNote', 'storeCreditNote']]);
+        $this->middleware($this->permissionMiddleware(InvoiceAuthorization::creditNotePrintPermissions()), ['only' => ['creditNote']]);
+    }
+
     public function createCreditNote(int $id, RentalContractFinanceService $financeService)
     {
         $this->authorizeCreditNoteCreation();
@@ -99,8 +106,11 @@ class RentalContractInvoiceController extends Controller
                 return $adjustment->fresh(['constraint', 'financeSale']);
             });
 
-            return redirect()->route('rental.credit-note.download', ['id' => $adjustment->id, 'autoprint' => 1])
-                ->with('success', 'تم إنشاء إشعار الدائن وقيده المالي دون إنهاء عقد التأجير أو تعديل الفاتورة الأصلية.');
+            $redirect = InvoiceAuthorization::canPrintCreditNotes()
+                ? redirect()->route('rental.credit-note.download', ['id' => $adjustment->id, 'autoprint' => 1])
+                : redirect()->route('rental-invoices.credit-notes.create', $id);
+
+            return $redirect->with('success', 'تم إنشاء إشعار الدائن وقيده المالي دون إنهاء عقد التأجير أو تعديل الفاتورة الأصلية.');
         } catch (\Throwable $e) {
             return back()->withInput()->with('error', $e->getMessage());
         }
@@ -290,21 +300,17 @@ class RentalContractInvoiceController extends Controller
 
     private function authorizeCreditNoteCreation(): void
     {
-        abort_unless(@AdminGuardHasAnyPerm([
-            PermKeys::INVOICE_CREDIT_NOTES_CREATE,
-            PermKeys::INVOICE_CREDIT_NOTES_CONTROL,
-            PermKeys::INVOICES_CONTROL,
-        ]), 403);
+        abort_unless(InvoiceAuthorization::canCreateCreditNotes(), 403);
     }
 
     private function authorizeCreditNoteView(): void
     {
-        abort_unless(@AdminGuardHasAnyPerm([
-            PermKeys::INVOICE_CREDIT_NOTES_VIEW,
-            PermKeys::INVOICE_CREDIT_NOTES_PRINT,
-            PermKeys::INVOICE_CREDIT_NOTES_CONTROL,
-            PermKeys::INVOICES_CONTROL,
-        ]), 403);
+        abort_unless(InvoiceAuthorization::canPrintCreditNotes(), 403);
+    }
+
+    private function permissionMiddleware(array $permissions): string
+    {
+        return 'permission:' . implode('|', array_values(array_unique($permissions))) . ',admin';
     }
 
     public function extension(int $id, RentalContractFinanceService $financeService)

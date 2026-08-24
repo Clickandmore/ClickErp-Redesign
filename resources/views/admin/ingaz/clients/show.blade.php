@@ -583,14 +583,18 @@
                                                 <td>{{ number_format($invoice->total_due, 2) }}</td>
                                                 <td>{{ $invoice->created_at?->format('Y-m-d H:i') ?? '-' }}</td>
                                                 <td class="text-end d-flex justify-content-end gap-2">
+                                                    @if (\App\Support\InvoiceAuthorization::canView())
                                                     <a href="{{ route('invoices.show', $invoice->id) }}"
                                                         class="btn btn-sm btn-outline-primary">
                                                         <i class="fas fa-eye"></i>
                                                     </a>
+                                                    @endif
+                                                    @if (\App\Support\InvoiceAuthorization::canPrint())
                                                     <a href="{{ route('invoice.download', $invoice->id) }}"
                                                         class="btn btn-sm btn-outline-secondary" target="_blank">
                                                         <i class="fas fa-file-pdf"></i>
                                                     </a>
+                                                    @endif
                                                 </td>
                                             </tr>
                                         @empty

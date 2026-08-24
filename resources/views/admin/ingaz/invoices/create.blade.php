@@ -447,12 +447,14 @@
 
                 </div>
 
+                @if (\App\Support\InvoiceAuthorization::canView())
                 <div class="d-flex flex-wrap gap-2">
                     <a href="{{ route('invoices.index') }}" class="btn btn-outline-secondary toolbar-btn">
                         <i class="fas fa-table-list me-1"></i>
                         جميع الفواتير
                     </a>
                 </div>
+                @endif
             </div>
         </div>
 
@@ -964,10 +966,12 @@
                                         <i class="fas fa-save me-1"></i>
                                         حفظ وإصدار الفاتورة
                                     </button>
+                                    @if (\App\Support\InvoiceAuthorization::canView())
                                     <a href="{{ route('invoices.index') }}" class="btn btn-outline-secondary">
                                         <i class="fas fa-list me-1"></i>
                                         الرجوع إلى جميع الفواتير
                                     </a>
+                                    @endif
                                 </div>
 
                                 <div class="action-note mt-3">
@@ -980,15 +984,19 @@
                                         تم إصدار الفاتورة
                                     </h6>
                                     <div class="d-grid gap-2">
+                                        @if (\App\Support\InvoiceAuthorization::canView())
                                         <a href="#" class="btn btn-outline-primary" id="viewInvoiceBtn">
                                             <i class="fas fa-eye me-1"></i>
                                             عرض الفاتورة
                                         </a>
+                                        @endif
+                                        @if (\App\Support\InvoiceAuthorization::canPrint())
                                         <a href="#" class="btn btn-primary" id="printInvoiceBtn" target="_blank"
                                             rel="noopener">
                                             <i class="fas fa-print me-1"></i>
                                             طباعة الفاتورة
                                         </a>
+                                        @endif
                                         <a href="#" class="btn btn-outline-dark d-none js-post-save-link"
                                             id="printInvoiceConstraintBtn" target="_blank" rel="noopener">
                                             <i class="fas fa-book-open me-1"></i>
@@ -1014,11 +1022,13 @@
                                             <i class="fas fa-plus me-1"></i>
                                             إصدار فاتورة أخرى
                                         </a>
+                                        @if (\App\Support\InvoiceAuthorization::canView())
                                         <a href="{{ route('invoices.index') }}" class="btn btn-outline-secondary"
                                             id="allInvoicesBtn">
                                             <i class="fas fa-table-list me-1"></i>
                                             جميع الفواتير
                                         </a>
+                                        @endif
                                     </div>
                                 </div>
                             </div>

@@ -1244,6 +1244,7 @@ class MaidController extends Controller
             'religion',
             'jobTypes',
             'jobTitles',
+            'branch',
             'recruitmentOffice',
             'addedBy',
             'contracts.info',
@@ -1328,6 +1329,7 @@ class MaidController extends Controller
             $percentagesRaw = json_decode($percentagesRaw, true);
         }
         $languagePercentages = collect($percentagesRaw ?? [])->filter()->toArray();
+        $languageLevels = collect($maid->language_levels ?? [])->filter()->toArray();
         $externalOffice = $maid->recruitmentOffice;
 
         $orders = $maid->orders->sortByDesc('created_at');
@@ -1480,6 +1482,7 @@ class MaidController extends Controller
             'maidSkills',
             'languages',
             'languagePercentages',
+            'languageLevels',
             'externalOffice',
             'stats',
             'availability',

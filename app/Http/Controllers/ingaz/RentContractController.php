@@ -34,6 +34,7 @@ use App\Support\RentalContractPricing;
 use App\Support\RentalClosureReconciler;
 use App\Support\RentalContractSettlement;
 use App\Support\SystemModuleManager;
+use App\Support\InvoiceAuthorization;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -426,7 +427,7 @@ class RentContractController extends Controller
                                     <i class="fas fa-paperclip"></i> تحميل مرفقات العقد
                                 </a></li>';
 
-                    if ($row->financeInvoice) {
+                    if ($row->financeInvoice && InvoiceAuthorization::canPrint()) {
                         $actions .= '<li><a class="dropdown-item" href="' . route('rental.invoice.download', ['id' => $row->financeInvoice->id, 'autoprint' => 1]) . '" target="_blank">
                                         <i class="fas fa-file-invoice"></i> طباعة الفاتورة
                                     </a></li>';
@@ -932,7 +933,7 @@ class RentContractController extends Controller
                     'payment_link_sent' => (bool) ($moyasarResult['link_sent'] ?? false),
                     'payment_link_sms_error' => $moyasarResult['sms_error'] ?? $moyasarResult['failure_reason'] ?? null,
                     'print_url' => route('print.rental.contract', $rentalContract->id),
-                    'invoice_print_url' => $financeInvoice
+                    'invoice_print_url' => $financeInvoice && InvoiceAuthorization::canPrint()
                         ? route('rental.invoice.download', ['id' => $financeInvoice->id, 'autoprint' => 1])
                         : null,
                     'receipt_bond_print_url' => $receiptBond
