@@ -141,6 +141,7 @@ class SettingResource extends JsonResource
         return [
             'enabled' => $newSettings->getSetting('show_popup') === '1',
             'image' => $image,
+            'link' => (string) $newSettings->getSetting('popup_link'),
             'version' => $version,
         ];
     }
