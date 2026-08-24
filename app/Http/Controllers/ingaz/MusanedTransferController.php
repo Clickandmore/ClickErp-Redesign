@@ -8,6 +8,7 @@ use App\Models\ingaz\Invoice;
 use App\Models\MusanedTransfer;
 use App\Models\MusanedTransferItem;
 use App\Support\AutomaticJournalEntries;
+use App\Support\IngazDelegationTimeline;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -380,6 +381,18 @@ class MusanedTransferController extends Controller
             ]);
         }
 
+        foreach ($transfer->items->whereNotNull('ingaz_delegation_id') as $item) {
+            if ($item->ingazDelegation) {
+                IngazDelegationTimeline::record($item->ingazDelegation, 'musaned_transfer_created', [
+                    'summary' => 'تم ربط التفويض بتحويل مساند.',
+                    'transfer_id' => $transfer->id,
+                    'reference_number' => $transfer->reference_number,
+                    'transferred_amount' => (float) $item->transferred_amount,
+                    'transfer_date' => optional($transfer->transfer_date)->format('Y-m-d'),
+                ]);
+            }
+        }
+
         return redirect()
             ->route('musaned-transfers.show', $transfer->id)
             ->with(
@@ -416,8 +429,14 @@ class MusanedTransferController extends Controller
 
     public function destroy(int $id, ObjService $service)
     {
-        $transfer = MusanedTransfer::query()->findOrFail($id);
+        $transfer = MusanedTransfer::query()
+            ->with('items.ingazDelegation')
+            ->findOrFail($id);
         $this->assertCanAccessBranchModel($transfer);
+        $delegationItems = $transfer->items
+            ->whereNotNull('ingaz_delegation_id')
+            ->filter(fn (MusanedTransferItem $item) => $item->ingazDelegation)
+            ->values();
 
         try {
             $deletedConstraintsCount = DB::transaction(function () use ($transfer, $service) {
@@ -453,6 +472,16 @@ class MusanedTransferController extends Controller
 
             return back()->withErrors([
                 'delete' => 'تعذر حذف تحويل مساند والقيود المرتبطة به. لم يتم حذف أي بيانات.',
+            ]);
+        }
+
+        foreach ($delegationItems as $item) {
+            IngazDelegationTimeline::record($item->ingazDelegation, 'musaned_transfer_deleted', [
+                'summary' => 'تم حذف تحويل مساند المرتبط بالتفويض.',
+                'transfer_id' => $transfer->id,
+                'reference_number' => $transfer->reference_number,
+                'transferred_amount' => (float) $item->transferred_amount,
+                'transfer_date' => optional($transfer->transfer_date)->format('Y-m-d'),
             ]);
         }
 

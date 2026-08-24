@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Models\Concerns\AssignsBranch;
 use App\Models\ingaz\Invoice;
+use App\Models\auth\Admin;
 use Illuminate\Database\Eloquent\Model;
 use Nami\Finance\Models\Constraint;
 use Nami\Finance\Models\Sale;
@@ -49,6 +50,11 @@ class RecruitmentInvoiceCreditNote extends Model
     public function constraint()
     {
         return $this->belongsTo(Constraint::class);
+    }
+
+    public function createdBy()
+    {
+        return $this->belongsTo(Admin::class, 'created_by_id');
     }
 
     protected function resolveBranchIdForCreate(): ?int

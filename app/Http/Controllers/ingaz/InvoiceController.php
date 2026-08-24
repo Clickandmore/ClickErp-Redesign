@@ -20,6 +20,7 @@ use App\Services\ingaz\InvoiceCalculationService;
 use App\Services\ingaz\RentalContractFinanceService;
 use App\Support\AutomaticJournalEntries;
 use App\Support\InvoiceQrCode;
+use App\Support\IngazDelegationTimeline;
 use App\Support\RentalContractPricing;
 use App\Support\SystemModuleManager;
 use Illuminate\Http\Request;
@@ -1146,6 +1147,20 @@ class InvoiceController extends Controller
         $receiptBond = $result['receipt_bond'];
         /** @var \Nami\Finance\Models\Constraint|null $delegationCostConstraint */
         $delegationCostConstraint = $result['delegation_cost_constraint'] ?? null;
+
+        if ($invoice->ingaz_delegation_id) {
+            $delegation = $invoice->relationLoaded('ingazDelegation')
+                ? $invoice->ingazDelegation
+                : IngazDelegation::query()->find($invoice->ingaz_delegation_id);
+
+            if ($delegation) {
+                IngazDelegationTimeline::record($delegation, 'invoice_created', [
+                    'summary' => 'تم إصدار فاتورة للتفويض.',
+                    'invoice_id' => $invoice->id,
+                    'total' => (float) $invoice->total_due,
+                ]);
+            }
+        }
 
         return response()->json([
             'success' => true,
@@ -3259,6 +3274,19 @@ class InvoiceController extends Controller
 
                 return $creditNote->fresh(['invoice', 'contract', 'constraint', 'financeSale']);
             });
+
+            if ($creditNote->ingaz_delegation_id) {
+                $delegation = IngazDelegation::query()->find($creditNote->ingaz_delegation_id);
+                if ($delegation) {
+                    IngazDelegationTimeline::record($delegation, 'credit_note_created', [
+                        'summary' => 'تم إنشاء إشعار دائن مرتبط بفاتورة التفويض.',
+                        'credit_note_id' => $creditNote->id,
+                        'invoice_id' => $creditNote->invoice_id,
+                        'total' => (float) $creditNote->total,
+                        'reason' => $creditNote->reason,
+                    ]);
+                }
+            }
 
             return redirect()
                 ->route('recruitment-credit-notes.download', ['id' => $creditNote->id, 'autoprint' => 1])

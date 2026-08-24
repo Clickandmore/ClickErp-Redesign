@@ -17,6 +17,7 @@ use App\Models\IngazDelegation;
 use App\Models\office\Office as RecruitmentOffice;
 use App\PermKeys;
 use App\Services\ManagedFileStorage;
+use App\Support\IngazDelegationTimeline;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -344,14 +345,21 @@ class IngazDelegationController extends Controller
 
     public function store(StoreIngazDelegationRequest $request): RedirectResponse
     {
-        DB::transaction(function () use ($request) {
+        $delegation = DB::transaction(function () use ($request) {
             $client = $this->resolveClient($request);
             $country = $this->resolveCountry($request);
             $nationality = $this->resolveNationalityForCountry($country);
             $maid = $this->resolveMaid($request, null, $nationality);
 
-            IngazDelegation::create($this->buildDelegationPayload($request, $client, $country, $nationality, $maid));
+            return IngazDelegation::create(
+                $this->buildDelegationPayload($request, $client, $country, $nationality, $maid)
+            );
         });
+
+        IngazDelegationTimeline::record($delegation, 'delegation_created', [
+            'summary' => 'تم إنشاء تفويض الإنجاز.',
+            'ingaz_number' => $delegation->ingaz_number,
+        ]);
 
         return redirect()
             ->route('ingaz-delegations.index')
@@ -366,8 +374,12 @@ class IngazDelegationController extends Controller
             'country', 'nationality', 'profession', 'user', 'maid.religion', 'marketer',
             'invoice.musanedTransferItem.transfer',
             'invoice.recruitmentCreditNotes.constraint',
+            'invoice.recruitmentCreditNotes.createdBy',
             'invoice.recruitmentCreditNotes.financeSale',
+            'invoice.musanedTransferItem.transfer.createdBy',
         ]);
+
+        $timeline = IngazDelegationTimeline::for($ingazDelegation);
 
         return view('admin.ingaz_delegations.show', [
             'delegation' => $ingazDelegation,
@@ -382,6 +394,7 @@ class IngazDelegationController extends Controller
             'canViewMusanedTransfers' => $this->adminCanAny($this->musanedTransferViewPermissions()),
             'canCreateMusanedTransfers' => $this->adminCanAny($this->musanedTransferCreatePermissions()),
             'canDeleteMusanedTransfers' => $this->adminCanAny($this->musanedTransferDeletePermissions()),
+            'timeline' => $timeline,
         ]);
     }
 
@@ -400,6 +413,7 @@ class IngazDelegationController extends Controller
     public function update(StoreIngazDelegationRequest $request, IngazDelegation $ingazDelegation): RedirectResponse
     {
         $this->assertCanAccessBranchModel($ingazDelegation);
+        $before = $ingazDelegation->getAttributes();
 
         DB::transaction(function () use ($request, $ingazDelegation) {
             $client = $this->resolveClient($request);
@@ -409,6 +423,14 @@ class IngazDelegationController extends Controller
 
             $ingazDelegation->update($this->buildDelegationPayload($request, $client, $country, $nationality, $maid, $ingazDelegation));
         });
+
+        $changes = IngazDelegationTimeline::changes($ingazDelegation, $before);
+        if ($changes !== []) {
+            IngazDelegationTimeline::record($ingazDelegation, 'delegation_updated', [
+                'summary' => 'تم تعديل بيانات التفويض.',
+                'changes' => $changes,
+            ]);
+        }
 
         return redirect()
             ->route('ingaz-delegations.show', $ingazDelegation)
@@ -462,9 +484,23 @@ class IngazDelegationController extends Controller
             'status' => ['required', 'in:' . implode(',', array_keys(IngazDelegation::statusOptions($ingazDelegation->status)))],
         ]);
 
+        $oldStatus = $ingazDelegation->status;
+        $oldStatusLabel = $ingazDelegation->status_label;
+
         $ingazDelegation->update([
             'status' => $validated['status'],
         ]);
+
+        if ($oldStatus !== $ingazDelegation->status) {
+            IngazDelegationTimeline::record($ingazDelegation, 'delegation_status_updated', [
+                'summary' => 'تم تغيير حالة التفويض.',
+                'changes' => [[
+                    'field' => 'حالة التفويض',
+                    'old' => $oldStatusLabel,
+                    'new' => $ingazDelegation->status_label,
+                ]],
+            ]);
+        }
 
         return response()->json([
             'message' => 'تم تحديث حالة التفويض بنجاح.',

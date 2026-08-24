@@ -5,6 +5,20 @@
 @endsection
 
 @section('content')
+    <style>
+        .delegation-timeline { position: relative; margin: 0; padding: 0; list-style: none; }
+        .delegation-timeline::before { content: ''; position: absolute; top: 10px; bottom: 10px; right: 18px; width: 2px; background: #e9ecef; }
+        .delegation-timeline__item { position: relative; padding: 0 55px 24px 0; }
+        .delegation-timeline__item:last-child { padding-bottom: 0; }
+        .delegation-timeline__icon { position: absolute; z-index: 1; top: 0; right: 0; width: 38px; height: 38px; border-radius: 50%; display: grid; place-items: center; border: 4px solid #fff; }
+        .delegation-timeline__content { border: 1px solid #edf0f3; border-radius: 12px; padding: 14px 16px; background: #fff; }
+        .delegation-timeline__meta { color: #6c757d; font-size: .84rem; }
+        .delegation-timeline__changes { margin-top: 10px; display: grid; gap: 7px; }
+        .delegation-timeline__change { padding: 8px 10px; border-radius: 8px; background: #f8f9fa; font-size: .88rem; }
+        .delegation-timeline__old { color: #b02a37; text-decoration: line-through; }
+        .delegation-timeline__new { color: #146c43; font-weight: 600; }
+    </style>
+
     <div class="page-body">
         <div class="container-fluid">
             <div class="d-flex align-items-center justify-content-between mb-4">
@@ -160,6 +174,96 @@
                         </div>
                     </div>
                 @endif
+
+                <div class="col-12">
+                    <div class="card shadow-sm border-0">
+                        <div class="card-header bg-light d-flex justify-content-between align-items-center">
+                            <h5 class="mb-0"><i class="fas fa-history text-primary me-1"></i> سجل تحديثات التفويض</h5>
+                            <span class="badge bg-primary">{{ $timeline->count() }} عملية</span>
+                        </div>
+                        <div class="card-body">
+                            @if ($timeline->isNotEmpty())
+                                <ol class="delegation-timeline">
+                                    @foreach ($timeline as $entry)
+                                        @php
+                                            $properties = $entry['properties'];
+                                        @endphp
+                                        <li class="delegation-timeline__item">
+                                            <span class="delegation-timeline__icon bg-{{ $entry['color'] }} text-white">
+                                                <i class="fas {{ $entry['icon'] }}"></i>
+                                            </span>
+                                            <div class="delegation-timeline__content">
+                                                <div class="d-flex flex-wrap justify-content-between align-items-start gap-2">
+                                                    <div>
+                                                        <strong>{{ $entry['title'] }}</strong>
+                                                        @if ($entry['legacy'])
+                                                            <span class="badge bg-secondary ms-1">سجل سابق</span>
+                                                        @endif
+                                                        <div class="delegation-timeline__meta mt-1">
+                                                            <i class="fas fa-user me-1"></i>{{ $entry['actor'] }}
+                                                            <span class="mx-2">•</span>
+                                                            <i class="far fa-clock me-1"></i>{{ $entry['occurred_at']->format('Y-m-d H:i:s') }}
+                                                        </div>
+                                                    </div>
+
+                                                    <div class="d-flex gap-1">
+                                                        @if (!empty($properties['invoice_id']) && $canViewInvoices)
+                                                            <a class="btn btn-sm btn-outline-success" href="{{ route('invoices.show', $properties['invoice_id']) }}">الفاتورة #{{ $properties['invoice_id'] }}</a>
+                                                        @endif
+                                                        @if (!empty($properties['transfer_id']) && $canViewMusanedTransfers && $entry['event'] !== 'musaned_transfer_deleted')
+                                                            <a class="btn btn-sm btn-outline-info" href="{{ route('musaned-transfers.show', $properties['transfer_id']) }}">التحويل #{{ $properties['transfer_id'] }}</a>
+                                                        @endif
+                                                        @if (!empty($properties['credit_note_id']) && $canViewCreditNotes)
+                                                            <a class="btn btn-sm btn-outline-danger" target="_blank" rel="noopener" href="{{ route('recruitment-credit-notes.download', $properties['credit_note_id']) }}">الإشعار #{{ $properties['credit_note_id'] }}</a>
+                                                        @endif
+                                                    </div>
+                                                </div>
+
+                                                @if (!empty($properties['summary']))
+                                                    <div class="mt-2">{{ $properties['summary'] }}</div>
+                                                @endif
+
+                                                <div class="d-flex flex-wrap gap-2 mt-2">
+                                                    @if (!empty($properties['reference_number']))
+                                                        <span class="badge bg-light text-dark border">مرجع التحويل: {{ $properties['reference_number'] }}</span>
+                                                    @endif
+                                                    @if (isset($properties['transferred_amount']))
+                                                        <span class="badge bg-light text-dark border">المبلغ المحول: {{ number_format((float) $properties['transferred_amount'], 2) }} ريال</span>
+                                                    @endif
+                                                    @if (isset($properties['total']))
+                                                        <span class="badge bg-light text-dark border">الإجمالي: {{ number_format((float) $properties['total'], 2) }} ريال</span>
+                                                    @endif
+                                                    @if (!empty($properties['transfer_date']))
+                                                        <span class="badge bg-light text-dark border">تاريخ التحويل: {{ $properties['transfer_date'] }}</span>
+                                                    @endif
+                                                </div>
+
+                                                @if (!empty($properties['reason']))
+                                                    <div class="small mt-2"><strong>السبب:</strong> {{ $properties['reason'] }}</div>
+                                                @endif
+
+                                                @if (!empty($properties['changes']))
+                                                    <div class="delegation-timeline__changes">
+                                                        @foreach ($properties['changes'] as $change)
+                                                            <div class="delegation-timeline__change">
+                                                                <strong>{{ $change['field'] ?? 'الحقل' }}:</strong>
+                                                                <span class="delegation-timeline__old">{{ $change['old'] ?? '-' }}</span>
+                                                                <i class="fas fa-long-arrow-alt-left mx-2 text-muted"></i>
+                                                                <span class="delegation-timeline__new">{{ $change['new'] ?? '-' }}</span>
+                                                            </div>
+                                                        @endforeach
+                                                    </div>
+                                                @endif
+                                            </div>
+                                        </li>
+                                    @endforeach
+                                </ol>
+                            @else
+                                <div class="text-muted text-center py-3">لا توجد تحديثات مسجلة لهذا التفويض.</div>
+                            @endif
+                        </div>
+                    </div>
+                </div>
 
                 <div class="col-12">
                     <div class="card shadow-sm border-0">
