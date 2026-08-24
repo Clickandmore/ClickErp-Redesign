@@ -437,6 +437,7 @@ return [
     'rec_contracts_delete' => 'Delete Recruitment Contract',
     'rec_contracts_export' => 'Export Recruitment Contracts',
     'rec_contracts_print' => 'Print Recruitment Contract',
+    'rec_contracts_view_shelter' => 'View Shelter Contracts Button in Recruitment Contracts',
     'ingaz_delegations_view' => 'View Ingaz Delegations',
     'ingaz_delegations_create' => 'Create Ingaz Delegation',
     'ingaz_delegations_edit' => 'Edit Ingaz Delegations',

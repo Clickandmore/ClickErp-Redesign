@@ -334,6 +334,7 @@ return array (
   'rec_contracts_delete' => 'حذف عقد الاستقدام',
   'rec_contracts_export' => 'تصدير عقود الاستقدام',
   'rec_contracts_print' => 'طباعة عقد الاستقدام',
+  'rec_contracts_view_shelter' => 'عرض زر عقود الإيواء في عقود الاستقدام',
   'ingaz_delegations_view' => 'عرض تفاويض الإنجاز',
   'ingaz_delegations_create' => 'إضافة تفويض إنجاز',
   'ingaz_delegations_edit' => 'تعديل تفاويض الإنجاز',
