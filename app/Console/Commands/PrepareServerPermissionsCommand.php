@@ -48,8 +48,25 @@ class PrepareServerPermissionsCommand extends Command
         $this->line('Route catalog definitions: ' . $routeSummary['total']);
         $this->line('Route catalog created: ' . $routeSummary['created'] . ' | Updated: ' . $routeSummary['updated']);
 
+        $manualOptInPermissions = collect(config('manual_permission_opt_ins.permissions', []))
+            ->filter(fn ($name) => is_string($name) && trim($name) !== '')
+            ->unique()
+            ->values();
+        $preservedManualOptIns = $role->permissions()
+            ->whereIn('name', $manualOptInPermissions)
+            ->pluck('name');
+
         $allPermissions = Permission::query()
             ->where('guard_name', $role->guard_name)
+            ->when($manualOptInPermissions->isNotEmpty(), function ($query) use ($manualOptInPermissions, $preservedManualOptIns) {
+                $query->where(function ($permissionQuery) use ($manualOptInPermissions, $preservedManualOptIns) {
+                    $permissionQuery->whereNotIn('name', $manualOptInPermissions);
+
+                    if ($preservedManualOptIns->isNotEmpty()) {
+                        $permissionQuery->orWhereIn('name', $preservedManualOptIns);
+                    }
+                });
+            })
             ->orderBy('name')
             ->get();
 
@@ -124,8 +141,14 @@ class PrepareServerPermissionsCommand extends Command
             ->permissions()
             ->pluck('name');
 
+        $manualOptInPermissionNames = collect(config('manual_permission_opt_ins.permissions', []));
+        $unassignedManualOptIns = $screenPermissionNames
+            ->intersect($manualOptInPermissionNames)
+            ->diff($assignedPermissionNames)
+            ->values();
         $missingPermissionNames = $screenPermissionNames
             ->diff($assignedPermissionNames)
+            ->diff($unassignedManualOptIns)
             ->values();
 
         $this->newLine();
@@ -136,6 +159,12 @@ class PrepareServerPermissionsCommand extends Command
 
         if ($missingPermissionNames->isNotEmpty()) {
             $this->warn('Missing permissions: ' . $missingPermissionNames->take(30)->implode(', '));
+        }
+
+        $this->line('Manual opt-in unassigned: ' . $unassignedManualOptIns->count());
+
+        if ($unassignedManualOptIns->isNotEmpty()) {
+            $this->line('Manual opt-in permissions: ' . $unassignedManualOptIns->implode(', '));
         }
 
         $unregisteredRequired = PermissionCatalog::missingPermissions($role->guard_name);

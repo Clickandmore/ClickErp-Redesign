@@ -669,7 +669,7 @@
         <div class="contracts-page-header">
             <h3 class="h3 mb-0 text-gray-800">
                 <i class="fas fa-file-contract text-primary me-2"></i>
-                {{ helperTrans('ingaz.All Recruitment contracts') }}
+                {{ $shelterContractsMode ? 'عقود الإيواء' : helperTrans('ingaz.All Recruitment contracts') }}
             </h3>
             <div class="contracts-header-actions">
                 <a href="{{ route('RecruitmentContract.index') }}" class="btn btn-outline-dark">
@@ -680,6 +680,13 @@
                     <i class="fas fa-layer-group"></i>
                     العقود السارية
                 </a>
+                @if (@AdminGuardHasPerm(\App\NewPermKeys::REC_CONTRACTS_VIEW_SHELTER))
+                    <a href="{{ route('RecruitmentContract.index', ['shelter_contracts' => 1]) }}"
+                        class="btn {{ $shelterContractsMode ? 'btn-dark' : 'btn-outline-dark' }}">
+                        <i class="fas fa-house-user"></i>
+                        عقود الإيواء
+                    </a>
+                @endif
                 <a href="{{ route('RecruitmentContract.externalOfficeDispatch.index') }}" class="btn btn-outline-primary">
                     <i class="fas fa-paper-plane"></i>
                     إرسالات المكتب الخارجي
@@ -698,7 +705,7 @@
         </div>
 
         {{-- احصائيات العقود --}}
-        <div class="row mb-3" id="contractStatsSection">
+        <div class="row mb-3 {{ $shelterContractsMode ? 'd-none' : '' }}" id="contractStatsSection">
             <div class="col-12">
                 <div class="card">
                     <div class="card-header d-flex justify-content-between align-items-center contract-stats-header">
@@ -944,7 +951,7 @@
                         </div>
                     </div>
                     <div class="row mt-3">
-                        <div class="col-md-3">
+                        <div class="col-md-3 {{ $shelterContractsMode ? 'd-none' : '' }}">
                             <label for="statusFilter" class="form-label">حالة العقد:</label>
                             <select id="statusFilter" class="form-select">
                                 <option value="">جميع الحالات</option>
@@ -1134,7 +1141,7 @@
             </div>
         </div>
 
-        <div class="row mb-3">
+        <div class="row mb-3 {{ $shelterContractsMode ? 'd-none' : '' }}">
             <div class="col-12">
                 <div class="card">
                     <div class="card-body">
@@ -1643,6 +1650,7 @@
 
     <script>
         $(document).ready(function() {
+            const shelterContractsMode = @json((bool) $shelterContractsMode);
             const statsCollapsePreferenceKey = 'recruitmentContractStatsCollapsed';
             const statsCollapseElement = document.getElementById('contractStatsCollapse');
             const statsToggleButton = document.getElementById('contractStatsToggle');
@@ -2103,7 +2111,8 @@
                     },
                     data: function(d) {
                         d.global_search = $('#globalSearchFilter').val();
-                        d.status = $('#statusFilter').val();
+                        d.status = shelterContractsMode ? '' : $('#statusFilter').val();
+                        d.shelter_contracts = shelterContractsMode ? 1 : '';
                         d.date_from = $('#dateFromFilter').val();
                         d.date_to = $('#dateToFilter').val();
                         d.client_phone = $('#clientPhoneFilter').val();
@@ -2125,7 +2134,7 @@
 
                         // إضافة فلتر حالة الضمان فقط إذا كانت الحالة "عقود مكتملة"
                         const statusValue = $('#statusFilter').val();
-                        if ((statusValue === 'arrival' || statusValue === 'completed' || statusValue === 'completed_stage') && $(
+                        if (!shelterContractsMode && (statusValue === 'arrival' || statusValue === 'completed' || statusValue === 'completed_stage') && $(
                                 '#warrantyStatusFilter').val()) {
                             d.warranty_status = $('#warrantyStatusFilter').val();
                         }

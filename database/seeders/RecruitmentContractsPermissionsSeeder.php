@@ -62,6 +62,11 @@ class RecruitmentContractsPermissionsSeeder extends Seeder
                 'display_name' => 'طباعة عقد الاستقدام',
                 'guard_name' => 'admin'
             ],
+            [
+                'name' => NewPermKeys::REC_CONTRACTS_VIEW_SHELTER,
+                'display_name' => 'عرض زر عقود الإيواء في عقود الاستقدام',
+                'guard_name' => 'admin'
+            ],
 
             // صلاحيات تغيير حالة العقد (مرحلة بمرحلة)
             [
@@ -204,6 +209,7 @@ class RecruitmentContractsPermissionsSeeder extends Seeder
             NewPermKeys::REC_CONTRACTS_DELETE => 'إمكانية حذف عقد الاستقدام.',
             NewPermKeys::REC_CONTRACTS_EXPORT => 'إمكانية تصدير بيانات عقود الاستقدام.',
             NewPermKeys::REC_CONTRACTS_PRINT => 'إمكانية طباعة وثائق عقود الاستقدام.',
+            NewPermKeys::REC_CONTRACTS_VIEW_SHELTER => 'إظهار زر عقود الإيواء وعرض عقود الإيواء فقط داخل شاشة عقود الاستقدام.',
             NewPermKeys::REC_CONTRACTS_CHANGE_TO_MSANED => 'إمكانية نقل العقد إلى مرحلة مساند.',
             NewPermKeys::REC_CONTRACTS_CHANGE_TO_TAFWED => 'إمكانية نقل العقد إلى مرحلة التفويض.',
             NewPermKeys::REC_CONTRACTS_CHANGE_TO_TAFFEZ => 'إمكانية نقل العقد إلى مرحلة التفييز.',
