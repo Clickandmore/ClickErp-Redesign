@@ -1434,6 +1434,7 @@
                                                             target="_blank" rel="noopener" class="small">
                                                             فاتورة التمديد
                                                         </a>
+                                                        @endif
                                                     </div>
                                                     @if ($extension->invoiceConstraint)
                                                         <div>
@@ -1657,7 +1658,6 @@
                                                             <i class="fas fa-file-invoice-dollar me-1"></i>
                                                             {{ $adjustment->type === 'expense' ? 'الإشعار الدائن' : 'الإشعار المدين' }}
                                                         </a>
-                                                        @endif
                                                         @endif
                                                     </td>
                                                     <td>
