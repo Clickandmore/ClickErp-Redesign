@@ -3,9 +3,8 @@
 namespace Nami\Finance\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Illuminate\Database\Eloquent\Model;
 
-class ClientAttachment extends Model
+class ClientAttachment extends Finance
 {
     use HasFactory;
     protected $table = 'fn_client_attachments';

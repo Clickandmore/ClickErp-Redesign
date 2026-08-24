@@ -3,9 +3,8 @@
 namespace Nami\Hr\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Illuminate\Database\Eloquent\Model;
 
-class Tax extends Model
+class Tax extends HrModel
 {
     use HasFactory;
     protected $table = 'hr_tax';

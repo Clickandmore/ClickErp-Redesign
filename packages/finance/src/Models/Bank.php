@@ -3,11 +3,10 @@
 namespace Nami\Finance\Models;
 
 use App\Models\auth\Admin;
-use Illuminate\Database\Eloquent\Model;
 use Astrotomic\Translatable\Translatable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 
-class Bank extends Model
+class Bank extends Finance
 {
     use Translatable, HasFactory;
     ## Initialization

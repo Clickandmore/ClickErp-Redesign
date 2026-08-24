@@ -3,9 +3,8 @@
 namespace Nami\Finance\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Illuminate\Database\Eloquent\Model;
 
-class SaleItem extends Model
+class SaleItem extends Finance
 {
     use HasFactory;
     protected $table = 'fn_sale_items';

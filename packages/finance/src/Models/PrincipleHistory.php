@@ -3,9 +3,8 @@
 namespace Nami\Finance\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Illuminate\Database\Eloquent\Model;
 
-class PrincipleHistory extends Model
+class PrincipleHistory extends Finance
 {
     protected $table = 'fn_principle_history';
     protected $fillable =['principle_id','from_website_id','to_website_id'];

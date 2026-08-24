@@ -3,7 +3,6 @@
 namespace Nami\Finance\Models;
 use App\Models\auth\Admin;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 
 class FnYear extends Finance

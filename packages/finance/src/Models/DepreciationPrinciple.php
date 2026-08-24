@@ -4,9 +4,8 @@ namespace Nami\Finance\Models;
 
 use App\Models\auth\Admin;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Illuminate\Database\Eloquent\Model;
 
-class DepreciationPrinciple extends Model
+class DepreciationPrinciple extends Finance
 {
     use HasFactory;
     protected $table = "fn_depreciation_principles";

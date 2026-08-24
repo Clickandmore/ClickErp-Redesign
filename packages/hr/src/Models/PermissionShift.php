@@ -3,10 +3,9 @@
 namespace Nami\Hr\Models;
 
 
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 
-class PermissionShift extends Model
+class PermissionShift extends HrModel
 {
     use HasFactory;
     protected $table = 'hr_permission_shifts';

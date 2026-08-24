@@ -3,9 +3,8 @@
 namespace Nami\Hr\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Illuminate\Database\Eloquent\Model;
 
-class ShiftDay extends Model
+class ShiftDay extends HrModel
 {
     use HasFactory;
     protected $table = 'hr_shift_days';

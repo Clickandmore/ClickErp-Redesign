@@ -2,8 +2,7 @@
 
 namespace Nami\Hr\Models;
 
-use Illuminate\Database\Eloquent\Model;
-class DailyWorkReport extends Model
+class DailyWorkReport extends HrModel
 {
     // use HasFactory;
     protected $table = 'hr_daily_work_reports';

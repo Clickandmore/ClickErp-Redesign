@@ -4,9 +4,8 @@ namespace Nami\Hr\Models;
 
 use App\Models\Nami\Admin;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Illuminate\Database\Eloquent\Model;
 
-class EmployeeAttendances extends Model
+class EmployeeAttendances extends HrModel
 {
     use HasFactory;
     protected $table = 'hr_employee_attendances';

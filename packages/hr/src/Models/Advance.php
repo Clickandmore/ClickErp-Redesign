@@ -6,9 +6,8 @@ use Nami\Hr\Enums\AdvanceDeliveryMethod;
 use Nami\Hr\Enums\AdvanceMethod;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Illuminate\Database\Eloquent\Model;
 
-class Advance extends Model
+class Advance extends HrModel
 {
     use HasFactory;
     protected $table = 'hr_advances';

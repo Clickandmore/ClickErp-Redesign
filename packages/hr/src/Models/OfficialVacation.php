@@ -3,9 +3,8 @@
 namespace Nami\Hr\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Illuminate\Database\Eloquent\Model;
 
-class OfficialVacation extends Model
+class OfficialVacation extends HrModel
 {
     use HasFactory;
     protected $table = 'hr_official_vacation';

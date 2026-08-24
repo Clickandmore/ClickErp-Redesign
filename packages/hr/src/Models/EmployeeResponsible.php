@@ -3,8 +3,7 @@
 namespace Nami\Hr\Models;
 
 
-use Illuminate\Database\Eloquent\Model;
-class EmployeeResponsible extends Model
+class EmployeeResponsible extends HrModel
 {
     protected $guarded = [];
     protected $table = 'hr_employee_responsible';

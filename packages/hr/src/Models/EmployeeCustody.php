@@ -3,10 +3,9 @@
 namespace Nami\Hr\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Illuminate\Database\Eloquent\Model;
 use Nami\Finance\Models\Account;
 
-class EmployeeCustody extends Model
+class EmployeeCustody extends HrModel
 {
     use HasFactory;
 

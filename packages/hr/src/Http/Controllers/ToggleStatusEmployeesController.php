@@ -4,8 +4,7 @@ namespace Nami\Hr\Http\Controllers;
 
 use App\Http\Controllers\admin\Controller;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Schema;
+use Nami\Hr\Support\StatusModelRegistry;
 
 class ToggleStatusEmployeesController extends Controller
 {
@@ -71,15 +70,23 @@ class ToggleStatusEmployeesController extends Controller
      */
     public function update(Request $request, $id)
     {
-        $newStatus = $request->input('status');
-        $tableName = $request->input('table_name');
+        $data = $request->validate([
+            'status' => ['required'],
+            'table_name' => ['required', 'string'],
+        ]);
+        $modelClass = StatusModelRegistry::modelFor($data['table_name']);
 
-        if (!Schema::hasTable($tableName)) {
-            $message = "الجدول $tableName غير موجود";
-            return jsonValid(['message' => $message]);
+        if (!$modelClass) {
+            return jsonValid(['message' => 'جدول الحالة غير مسموح به']);
         }
 
-        DB::table($tableName)->where('id', $id)->update(['status' => $newStatus]);
+        $obj = $modelClass::query()->find($id);
+
+        if (!$obj) {
+            return jsonValid(['message' => 'السجل غير موجود']);
+        }
+
+        $obj->update(['status' => $data['status']]);
 
         $message = "تم تحديث الحالة بنجاح";
         return jsonSuccess(['message' => $message]);

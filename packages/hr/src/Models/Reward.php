@@ -3,9 +3,8 @@
 namespace Nami\Hr\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Illuminate\Database\Eloquent\Model;
 
-class Reward extends Model
+class Reward extends HrModel
 {
     use HasFactory;
     protected $table = 'hr_rewards';

@@ -2,7 +2,6 @@
 
 namespace Nami\Finance\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\DB;
 
 class PrincipleImage extends Finance

@@ -8,9 +8,8 @@ use App\Models\auth\Admin;
 use Nami\Finance\Models\ZatcaInvoice;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Illuminate\Database\Eloquent\Model;
 
-class Sale extends Model
+class Sale extends Finance
 {
     use HasFactory;
     protected $table = 'fn_sales';

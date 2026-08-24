@@ -3,9 +3,8 @@
 namespace Nami\Hr\Models;
 
 
-use Illuminate\Database\Eloquent\Model;
 
-class HrTaskReply extends Model
+class HrTaskReply extends HrModel
 {
     protected $table = 'hr_task_replies';
     protected $fillable = ['title', 'description', 'task_id','employee_id','file'];

@@ -4,9 +4,8 @@ namespace Nami\Hr\Models;
 
 use Nami\Hr\Enums\AllowanceTypeis;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Illuminate\Database\Eloquent\Model;
 
-class EmployeeSalary extends Model
+class EmployeeSalary extends HrModel
 {
     use HasFactory;
     protected $table = 'hr_employee_salary';

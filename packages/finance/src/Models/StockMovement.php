@@ -3,9 +3,8 @@
 namespace Nami\Finance\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Illuminate\Database\Eloquent\Model;
 
-class StockMovement extends Model
+class StockMovement extends Finance
 {
     use HasFactory;
     protected $guarded = [];

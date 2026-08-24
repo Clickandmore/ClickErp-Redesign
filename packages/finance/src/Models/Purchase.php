@@ -4,9 +4,8 @@ namespace Nami\Finance\Models;
 
 use App\Models\Nami\Admin;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Illuminate\Database\Eloquent\Model;
 
-class Purchase extends Model
+class Purchase extends Finance
 {
     use HasFactory;
     protected $table = 'fn_purchases';

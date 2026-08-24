@@ -3,9 +3,8 @@
 namespace Nami\Finance\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Illuminate\Database\Eloquent\Model;
 
-class StockMovementPurchase extends Model
+class StockMovementPurchase extends Finance
 {
     use HasFactory;
     protected $fillable = ['bill_id','stock_movement_id'];

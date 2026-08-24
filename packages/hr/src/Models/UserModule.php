@@ -4,9 +4,8 @@ namespace Nami\Hr\Models;
 
 use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Illuminate\Database\Eloquent\Model;
 
-class UserModule extends Model
+class UserModule extends HrModel
 {
     use HasFactory;
 

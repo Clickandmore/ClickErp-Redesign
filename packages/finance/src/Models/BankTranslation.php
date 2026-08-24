@@ -3,9 +3,8 @@
 namespace Nami\Finance\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Illuminate\Database\Eloquent\Model;
 
-class BankTranslation extends Model
+class BankTranslation extends Finance
 {
     ## Initialization
     // use HasFactory;

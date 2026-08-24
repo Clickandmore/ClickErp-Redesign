@@ -2,10 +2,9 @@
 
 namespace Nami\Hr\Models;
 
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 
-class Shift extends Model
+class Shift extends HrModel
 {
     use HasFactory;
     protected $table = 'hr_shifts';

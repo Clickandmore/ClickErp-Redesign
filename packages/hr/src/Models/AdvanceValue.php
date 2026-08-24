@@ -4,9 +4,8 @@ namespace Nami\Hr\Models;
 
 use Nami\Hr\Enums\AdvanceValueStatus;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Illuminate\Database\Eloquent\Model;
 
-class AdvanceValue extends Model
+class AdvanceValue extends HrModel
 {
     use HasFactory;
     protected $table = 'hr_advance_values';

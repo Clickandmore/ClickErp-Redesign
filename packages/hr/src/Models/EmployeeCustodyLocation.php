@@ -3,9 +3,8 @@
 namespace Nami\Hr\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Illuminate\Database\Eloquent\Model;
 
-class EmployeeCustodyLocation extends Model
+class EmployeeCustodyLocation extends HrModel
 {
     use HasFactory;
 

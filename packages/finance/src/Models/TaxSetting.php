@@ -2,10 +2,9 @@
 namespace Nami\Finance\Models;
 
 use App\Models\auth\Admin;
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 
-class TaxSetting extends Model
+class TaxSetting extends Finance
 {
     use HasFactory;
 

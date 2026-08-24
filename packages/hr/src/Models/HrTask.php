@@ -3,10 +3,9 @@
 namespace Nami\Hr\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
-class HrTask extends Model
+class HrTask extends HrModel
 {
     use HasFactory;
     protected $table = 'hr_tasks';

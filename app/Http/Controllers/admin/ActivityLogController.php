@@ -353,6 +353,14 @@ class ActivityLogController extends Controller
 
     private function resolveSubjectTypeLabel(string $subjectType, $subject = null): string
     {
+        if (Str::startsWith($subjectType, 'Nami\\Finance\\Models\\')) {
+            return $this->resolvePackageSubjectLabel($subjectType, 'finance');
+        }
+
+        if (Str::startsWith($subjectType, 'Nami\\Hr\\Models\\')) {
+            return $this->resolvePackageSubjectLabel($subjectType, 'hr');
+        }
+
         return match ($subjectType) {
             Contract::class => $this->resolveContractLabelFromSubject($subject, 'عقد الاستقدام'),
             ContractInfo::class => 'بيانات العقد',
@@ -367,6 +375,71 @@ class ActivityLogController extends Controller
             Office::class => 'مكتب الاستقدام',
             default => $subjectType ? Str::headline(class_basename($subjectType)) : 'السجل',
         };
+    }
+
+    private function resolvePackageSubjectLabel(string $subjectType, string $package): string
+    {
+        $model = class_basename($subjectType);
+        $labels = [
+            'Account' => 'الحساب المالي',
+            'AccountTransfer' => 'التحويل بين الحسابات',
+            'Bank' => 'البنك',
+            'BankAccount' => 'الحساب البنكي',
+            'Bond' => 'السند المالي',
+            'Box' => 'الصندوق',
+            'Category' => 'التصنيف المالي',
+            'Client' => 'العميل المالي',
+            'Constraint' => 'القيد المحاسبي',
+            'ConstraintDetails' => 'تفاصيل القيد المحاسبي',
+            'CostCenter' => 'مركز التكلفة',
+            'FnYear' => 'السنة المالية',
+            'Inventory' => 'الجرد',
+            'Item' => 'الصنف',
+            'Purchase' => 'فاتورة المشتريات',
+            'PurchaseOrder' => 'أمر الشراء',
+            'Sale' => 'فاتورة المبيعات',
+            'SalesOrder' => 'أمر البيع',
+            'Stock' => 'المخزون',
+            'StockMovement' => 'حركة المخزون',
+            'Supplier' => 'المورد',
+            'TaxSetting' => 'إعدادات الضريبة',
+            'ZatcaInvoice' => 'فاتورة هيئة الزكاة والضريبة',
+            'Advance' => 'السلفة',
+            'Allowance' => 'البدل',
+            'Department' => 'القسم',
+            'Employee' => 'الموظف',
+            'EmployeeAllowance' => 'بدل الموظف',
+            'EmployeeAttendances' => 'حضور الموظف',
+            'EmployeeCustody' => 'عهدة الموظف',
+            'EmployeeDelay' => 'تأخر الموظف',
+            'EmployeeInsurance' => 'تأمين الموظف',
+            'EmployeePermission' => 'إذن الموظف',
+            'EmployeeReward' => 'مكافأة الموظف',
+            'EmployeeSalary' => 'راتب الموظف',
+            'EmployeeSanction' => 'جزاء الموظف',
+            'EmployeeShift' => 'وردية الموظف',
+            'EmployeeVacation' => 'إجازة الموظف',
+            'Insurance' => 'التأمين',
+            'Job' => 'المسمى الوظيفي',
+            'OfficialVacation' => 'الإجازة الرسمية',
+            'Payroll' => 'مسير الرواتب',
+            'PayrollItem' => 'بند مسير الرواتب',
+            'Permission' => 'نوع الإذن',
+            'Reward' => 'المكافأة',
+            'Sanction' => 'الجزاء',
+            'Shift' => 'الوردية',
+            'Tax' => 'الاستقطاع',
+            'Vacation' => 'نوع الإجازة',
+            'VacationYear' => 'سنة الإجازات',
+        ];
+
+        if (isset($labels[$model])) {
+            return $labels[$model];
+        }
+
+        $prefix = $package === 'finance' ? 'سجل مالي' : 'سجل موارد بشرية';
+
+        return $prefix . ' (' . Str::headline($model) . ')';
     }
 
     private function resolveContractLabelFromSubject($subject, string $fallback): string
@@ -505,6 +578,16 @@ class ActivityLogController extends Controller
             'contract_id' => 'العقد',
             'rental_contract_id' => 'عقد الإيجار',
             'account_id' => 'الحساب المالي',
+            'debit_account_id' => 'الحساب المدين',
+            'credit_account_id' => 'الحساب الدائن',
+            'constraint_id' => 'القيد المحاسبي',
+            'cost_center_id' => 'مركز التكلفة',
+            'employee_id' => 'الموظف',
+            'department_id' => 'القسم',
+            'deparment_id' => 'القسم',
+            'job_id' => 'المسمى الوظيفي',
+            'shift_id' => 'الوردية',
+            'payroll_id' => 'مسير الرواتب',
             'customer_id' => 'الموظف المسؤول',
             'admin_id' => 'الموظف المسؤول',
             'marketer_id' => 'المسوق',
@@ -537,6 +620,14 @@ class ActivityLogController extends Controller
             'request_type' => 'نوع الطلب',
             'price' => 'السعر',
             'salary' => 'الراتب',
+            'value' => 'القيمة',
+            'date' => 'التاريخ',
+            'code' => 'الرقم المرجعي',
+            'statement' => 'البيان',
+            'month_year' => 'شهر المسير',
+            'total_gross_salary' => 'إجمالي الرواتب',
+            'total_deductions' => 'إجمالي الاستقطاعات',
+            'total_net_salary' => 'صافي الرواتب',
             'birth_date' => 'تاريخ الميلاد',
             'arrival_date' => 'تاريخ الوصول',
             'has_passport' => 'وجود الجواز',

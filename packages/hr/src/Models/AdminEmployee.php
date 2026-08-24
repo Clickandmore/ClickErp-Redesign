@@ -3,9 +3,8 @@
 namespace Nami\Hr\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Illuminate\Database\Eloquent\Model;
 
-class AdminEmployee extends Model
+class AdminEmployee extends HrModel
 {
     use HasFactory;
     protected $table = 'admins_employees';
