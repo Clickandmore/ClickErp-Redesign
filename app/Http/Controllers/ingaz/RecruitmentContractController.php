@@ -610,6 +610,11 @@ class RecruitmentContractController extends Controller
         $query->where('status', $statusFilter);
     }
 
+    private function canViewShelterRecruitmentContracts(): bool
+    {
+        return @AdminGuardHasPerm(NewPermKeys::REC_CONTRACTS_VIEW_SHELTER);
+    }
+
     private function excludeShelterContracts($query): void
     {
         $query->where(function ($contractQuery) {
@@ -628,6 +633,12 @@ class RecruitmentContractController extends Controller
                 'success' => false,
                 'message' => 'ليس لديك صلاحية لعرض العقود'
             ], 403);
+        }
+
+        $shelterContractsMode = $request->boolean('shelter_contracts');
+
+        if ($shelterContractsMode && !$this->canViewShelterRecruitmentContracts()) {
+            abort(403, 'ليس لديك صلاحية لعرض عقود الإيواء من شاشة عقود الاستقدام');
         }
 
         if ($request->ajax()) {
@@ -666,9 +677,12 @@ class RecruitmentContractController extends Controller
             $statusFilter = $this->getStatusFilterForRequest($request);
 
             $query->whereIn('type', ['recruitment', 'maid']);
-            $this->excludeShelterContracts($query);
-
-            $this->applyStatusFilter($query, $statusFilter);
+            if ($shelterContractsMode) {
+                $query->where('status', ContractStatusEnum::Shelter->value);
+            } else {
+                $this->excludeShelterContracts($query);
+                $this->applyStatusFilter($query, $statusFilter);
+            }
 
             // فلاتر توفر المستندات والإجراءات المالية/التشغيلية
             $this->applyDocumentPresenceFilters($query, $request);
@@ -681,7 +695,7 @@ class RecruitmentContractController extends Controller
             }
 
             // فلتر حالة الضمان إذا تم تمريرها (حسب تاريخ انتهاء الضمان)
-            if (!$this->shouldTreatAsCompletedTotalRequest($request) && $request->filled('warranty_status')) {
+            if (!$shelterContractsMode && !$this->shouldTreatAsCompletedTotalRequest($request) && $request->filled('warranty_status')) {
                 $warrantyStatuses = array_filter(array_map('trim', explode(',', $request->warranty_status)));
                 if (!empty($warrantyStatuses)) {
                     $today = \Carbon\Carbon::now()->toDateString();
@@ -1829,6 +1843,7 @@ class RecruitmentContractController extends Controller
         $data["modalType"] = "modal-lg";
         $data["status"] = $status ?? $request->get('status', null);
         $data["filterOptions"] = $filterOptions;
+        $data['shelterContractsMode'] = $shelterContractsMode;
         $data['branchesEnabled'] = $this->branchesEnabledFor('contracts');
         $data['branches'] = $data['branchesEnabled']
             ? Branch::query()->active()->ordered()->get(['id', 'name_ar', 'name_en'])

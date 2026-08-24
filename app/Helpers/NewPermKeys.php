@@ -103,6 +103,7 @@ class NewPermKeys
     const REC_CONTRACTS_DELETE = 'rec_contracts_delete';
     const REC_CONTRACTS_EXPORT = 'rec_contracts_export';
     const REC_CONTRACTS_PRINT = 'rec_contracts_print';
+    const REC_CONTRACTS_VIEW_SHELTER = 'rec_contracts_view_shelter';
 
     // صلاحيات تغيير حالة العقد (مرحلة بمرحلة)
     const REC_CONTRACTS_CHANGE_TO_MSANED = 'rec_contracts_change_to_msaned'; // من بانتظار الاعتماد إلى عقود مساند
