@@ -18,6 +18,7 @@ use App\Services\ingaz\SponsorshipTransferPaymentService;
 use App\Services\ManagedFileStorage;
 use App\Services\AdminNotificationService;
 use App\Support\SystemModuleManager;
+use App\Support\InvoiceAuthorization;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
@@ -233,14 +234,16 @@ class SponsorshipTransferController extends Controller
                                 </a></li>';
 
                     $actions .= '<li><hr class="dropdown-divider"></li>';
-                    if ($transfer->invoice) {
+                    if ($transfer->invoice && InvoiceAuthorization::canView()) {
                         $actions .= '<li><a class="dropdown-item" href="' . route('invoices.show', $transfer->invoice->id) . '">
                                         <i class="fas fa-file-invoice text-success"></i> عرض الفاتورة
                                     </a></li>';
-                        $actions .= '<li><a class="dropdown-item" href="' . route('invoice.download', ['id' => $transfer->invoice->id, 'autoprint' => 1]) . '" target="_blank">
-                                        <i class="fas fa-print text-success"></i> تحميل / طباعة الفاتورة
-                                    </a></li>';
-                    } else {
+                        if (InvoiceAuthorization::canPrint()) {
+                            $actions .= '<li><a class="dropdown-item" href="' . route('invoice.download', ['id' => $transfer->invoice->id, 'autoprint' => 1]) . '" target="_blank">
+                                            <i class="fas fa-print text-success"></i> تحميل / طباعة الفاتورة
+                                        </a></li>';
+                        }
+                    } elseif (!$transfer->invoice && InvoiceAuthorization::canCreate()) {
                         $actions .= '<li><a class="dropdown-item fw-bold text-success" href="' . route('SponsorshipTransfer.invoice.create', $transfer->id) . '">
                                         <i class="fas fa-file-invoice-dollar"></i> إصدار الفاتورة
                                     </a></li>';
@@ -806,7 +809,9 @@ class SponsorshipTransferController extends Controller
                     . (!empty($financeResult['bond']) ? ' وإنشاء سند قبض رقم ' . ($financeResult['bond']->code ?: $financeResult['bond']->id) : ''),
                 'transfer_id' => $transfer->id,
                 'show_url' => route('SponsorshipTransfer.show', $transfer->id),
-                'invoice_create_url' => route('SponsorshipTransfer.invoice.create', $transfer->id),
+                'invoice_create_url' => InvoiceAuthorization::canCreate()
+                    ? route('SponsorshipTransfer.invoice.create', $transfer->id)
+                    : null,
             ]);
 
         } catch (ValidationException $e) {

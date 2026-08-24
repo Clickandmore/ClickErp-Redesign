@@ -1429,6 +1429,7 @@
                                                 <td>
                                                     {{ $extension->extension_value !== null ? number_format((float) $extension->extension_value, 2) . ' ريال' : 'غير مسجل' }}
                                                     <div class="mt-1">
+                                                        @if (\App\Support\InvoiceAuthorization::canPrint())
                                                         <a href="{{ route('rental.extension-invoice.download', ['id' => $extension->id, 'autoprint' => 1]) }}"
                                                             target="_blank" rel="noopener" class="small">
                                                             فاتورة التمديد
@@ -1574,16 +1575,20 @@
                             </ul>
 
                             <div class="d-flex flex-wrap gap-2 mt-3">
+                                @if (\App\Support\InvoiceAuthorization::canPrint())
                                 <a href="{{ route('rental.invoice.download', ['id' => $contract->financeInvoice->id, 'autoprint' => 1]) }}"
                                     target="_blank" class="btn btn-primary">
                                     <i class="fas fa-file-invoice me-1"></i>
                                     طباعة الفاتورة
                                 </a>
+                                @endif
+                                @if (\App\Support\InvoiceAuthorization::canView())
                                 <a href="{{ route('invoices.index') }}" class="btn btn-outline-primary">
                                     <i class="fas fa-list me-1"></i>
                                     جميع الفواتير
                                 </a>
-                                @if (AdminGuardHasAnyPerm([\App\PermKeys::INVOICE_CREDIT_NOTES_CREATE, \App\PermKeys::INVOICE_CREDIT_NOTES_CONTROL, \App\PermKeys::INVOICES_CONTROL]))
+                                @endif
+                                @if (\App\Support\InvoiceAuthorization::canCreateCreditNotes())
                                     <a href="{{ route('rental-invoices.credit-notes.create', $contract->financeInvoice->id) }}"
                                         class="btn btn-outline-danger">
                                         <i class="fas fa-file-invoice-dollar me-1"></i>
@@ -1646,11 +1651,14 @@
                                                     </td>
                                                     <td>{{ number_format((float) $adjustment->amount, 2) }} ريال</td>
                                                     <td>
+                                                        @if (\App\Support\InvoiceAuthorization::canPrintCreditNotes())
                                                         <a href="{{ route('rental.credit-note.download', ['id' => $adjustment->id, 'autoprint' => 1]) }}"
                                                             target="_blank" rel="noopener" class="btn btn-sm btn-outline-primary">
                                                             <i class="fas fa-file-invoice-dollar me-1"></i>
                                                             {{ $adjustment->type === 'expense' ? 'الإشعار الدائن' : 'الإشعار المدين' }}
                                                         </a>
+                                                        @endif
+                                                        @endif
                                                     </td>
                                                     <td>
                                                         @if ($adjustment->constraint_id)

@@ -364,11 +364,11 @@
                     <i class="fas fa-edit"></i>
                 </a>
             @endif
-            @if($transfer->invoice)
+            @if($transfer->invoice && \App\Support\InvoiceAuthorization::canView())
                 <a href="{{ route('invoices.show', $transfer->invoice->id) }}" class="btn-icon btn-print" title="عرض الفاتورة">
                     <i class="fas fa-file-invoice"></i>
                 </a>
-            @else
+            @elseif(!$transfer->invoice && \App\Support\InvoiceAuthorization::canCreate())
                 <a href="{{ route('SponsorshipTransfer.invoice.create', $transfer->id) }}" class="btn-icon btn-print" title="إصدار فاتورة">
                     <i class="fas fa-file-invoice-dollar"></i>
                 </a>
@@ -497,9 +497,13 @@
                         <div class="info-row">
                             <span class="info-label">فاتورة نقل الكفالة:</span>
                             <span class="info-value">
+                                @if (\App\Support\InvoiceAuthorization::canView())
                                 <a href="{{ route('invoices.show', $transfer->invoice->id) }}" target="_blank" class="text-primary">
                                     #{{ $transfer->invoice->id }}
                                 </a>
+                                @else
+                                    #{{ $transfer->invoice->id }}
+                                @endif
                                 @if($transfer->invoice->invoiceConstraint)
                                     —
                                     <a href="{{ route('finance.constraints.show', $transfer->invoice->invoiceConstraint->id) }}" target="_blank" class="text-primary">

@@ -11,7 +11,6 @@ use App\Models\RentalContractInvoice;
 use App\Models\RentalFinancialAdjustment;
 use App\Models\RecruitmentInvoiceCreditNote;
 use App\Models\SponsorshipTransfer;
-use App\PermKeys;
 use App\Models\ingaz\Invoice;
 use App\Models\ingaz\Nationality;
 use App\Models\ingaz\Setting;
@@ -21,6 +20,7 @@ use App\Services\ingaz\RentalContractFinanceService;
 use App\Support\AutomaticJournalEntries;
 use App\Support\InvoiceQrCode;
 use App\Support\IngazDelegationTimeline;
+use App\Support\InvoiceAuthorization;
 use App\Support\RentalContractPricing;
 use App\Support\SystemModuleManager;
 use Illuminate\Http\Request;
@@ -62,6 +62,17 @@ class InvoiceController extends Controller
     private const SETTING_DELEGATION_COST_ACCOUNT = 'ingaz_delegation_cost_account';
     private const SETTING_DELEGATION_FIXED_COST = 'ingaz_delegation_fixed_cost';
     private const DEFAULT_DELEGATION_FIXED_COST = 137.0;
+
+    public function __construct()
+    {
+        $this->middleware($this->permissionMiddleware(InvoiceAuthorization::viewPermissions()), ['only' => ['index', 'show']]);
+        $this->middleware($this->permissionMiddleware(InvoiceAuthorization::createPermissions()), ['only' => ['create', 'createSponsorshipTransfer', 'store', 'searchClients']]);
+        $this->middleware($this->permissionMiddleware(InvoiceAuthorization::exportPermissions()), ['only' => ['exportExcel', 'exportPdf']]);
+        $this->middleware($this->permissionMiddleware(InvoiceAuthorization::printPermissions()), ['only' => ['downloadInvoice', 'legacySourceFile']]);
+        $this->middleware($this->permissionMiddleware(InvoiceAuthorization::controlPermissions()), ['only' => ['edit', 'update', 'destroy', 'queueZatcaSale', 'queueRentalZatcaSale', 'queueRentalAdjustmentZatcaSale']]);
+        $this->middleware($this->permissionMiddleware(InvoiceAuthorization::creditNoteCreatePermissions()), ['only' => ['createRecruitmentCreditNote', 'storeRecruitmentCreditNote']]);
+        $this->middleware($this->permissionMiddleware(InvoiceAuthorization::creditNotePrintPermissions()), ['only' => ['downloadRecruitmentCreditNote']]);
+    }
 
     /**
      * Display a listing of the resource.
@@ -400,28 +411,43 @@ class InvoiceController extends Controller
     private function standardInvoiceNumberLink($row): string
     {
         if ($row->row_type === 'recruitment_credit_note') {
+            $label = 'إشعار دائن #' . e((string) $row->id);
+            if (!InvoiceAuthorization::canPrintCreditNotes()) {
+                return '<span class="fw-bold text-danger">' . $label . '</span>';
+            }
             $url = route('recruitment-credit-notes.download', ['id' => $row->id, 'autoprint' => 1]);
 
-            return '<a href="' . $url . '" target="_blank" rel="noopener" class="fw-bold text-danger text-decoration-none">إشعار دائن #' . e((string) $row->id) . '</a>';
+            return '<a href="' . $url . '" target="_blank" rel="noopener" class="fw-bold text-danger text-decoration-none">' . $label . '</a>';
         }
 
         if ($row->row_type === 'rental_adjustment') {
-            $url = route('rental.credit-note.download', ['id' => $row->id, 'autoprint' => 1]);
             $label = $row->adjustment_type === 'expense' ? 'إشعار دائن' : 'إشعار مدين';
+            $label .= ' #' . e((string) $row->id);
+            if (!InvoiceAuthorization::canPrintCreditNotes()) {
+                return '<span class="fw-bold">' . $label . '</span>';
+            }
+            $url = route('rental.credit-note.download', ['id' => $row->id, 'autoprint' => 1]);
 
-            return '<a href="' . $url . '" target="_blank" rel="noopener" class="fw-bold text-decoration-none">'
-                . $label . ' #' . e((string) $row->id) . '</a>';
+            return '<a href="' . $url . '" target="_blank" rel="noopener" class="fw-bold text-decoration-none">' . $label . '</a>';
         }
 
         if ($row->row_type === 'rental') {
+            $label = 'إيجار #' . e((string) $row->id);
+            if (!InvoiceAuthorization::canPrint()) {
+                return '<span class="fw-bold">' . $label . '</span>';
+            }
             $url = route('rental.invoice.download', ['id' => $row->id, 'autoprint' => 1]);
 
-            return '<a href="' . $url . '" target="_blank" rel="noopener" class="fw-bold text-decoration-none">إيجار #' . e((string) $row->id) . '</a>';
+            return '<a href="' . $url . '" target="_blank" rel="noopener" class="fw-bold text-decoration-none">' . $label . '</a>';
         }
 
+        $label = '#' . e((string) $row->invoice_sort_number);
+        if (!InvoiceAuthorization::canPrint()) {
+            return '<span class="fw-bold">' . $label . '</span>';
+        }
         $url = route('invoice.download', ['id' => $row->id, 'autoprint' => 1]);
 
-        return '<a href="' . $url . '" target="_blank" rel="noopener" class="fw-bold text-decoration-none">#' . e((string) $row->invoice_sort_number) . '</a>';
+        return '<a href="' . $url . '" target="_blank" rel="noopener" class="fw-bold text-decoration-none">' . $label . '</a>';
     }
 
     private function standardInvoiceSourceBadge($row): string
@@ -543,6 +569,9 @@ class InvoiceController extends Controller
     {
         if ($row->row_type === 'recruitment_credit_note') {
             $printUrl = route('recruitment-credit-notes.download', ['id' => $row->id, 'autoprint' => 1]);
+            $printButton = InvoiceAuthorization::canPrintCreditNotes()
+                ? '<a href="' . $printUrl . '" class="btn btn-sm btn-outline-secondary" target="_blank" rel="noopener" title="طباعة إشعار الدائن"><i class="fas fa-print"></i></a>'
+                : '';
             $constraintButton = $row->adjustment_constraint_id
                 ? '<a href="' . route('finance.add-constraint.show', ['add_constraint' => $row->adjustment_constraint_id])
                     . '" class="btn btn-sm btn-outline-dark" target="_blank" rel="noopener" title="عرض قيد إشعار الدائن"><i class="fas fa-book-open"></i></a>'
@@ -553,7 +582,7 @@ class InvoiceController extends Controller
 
             return '<div class="d-flex justify-content-end gap-2">'
                 . $constraintButton . $saleButton
-                . '<a href="' . $printUrl . '" class="btn btn-sm btn-outline-secondary" target="_blank" rel="noopener" title="طباعة إشعار الدائن"><i class="fas fa-print"></i></a>'
+                . $printButton
                 . '</div>';
         }
 
@@ -566,14 +595,17 @@ class InvoiceController extends Controller
                 : '';
             $saleButton = ($row->finance_sale_id ?? null)
                 ? '<a href="' . route('finance.bill-sales.show', $row->finance_sale_id) . '" class="btn btn-sm btn-outline-success" title="مرتجع المبيعات"><i class="fas fa-link"></i></a>'
-                : '<form method="post" action="' . route('rental-adjustments.queue-zatca-sale', $row->id) . '" class="d-inline queue-zatca-form">'
+                : (InvoiceAuthorization::canControl() ? '<form method="post" action="' . route('rental-adjustments.queue-zatca-sale', $row->id) . '" class="d-inline queue-zatca-form">'
                     . csrf_field()
-                    . '<button type="submit" class="btn btn-sm btn-outline-success" title="إدراج الإشعار في مستندات الزكاة"><i class="fas fa-receipt"></i></button></form>';
+                    . '<button type="submit" class="btn btn-sm btn-outline-success" title="إدراج الإشعار في مستندات الزكاة"><i class="fas fa-receipt"></i></button></form>' : '');
+            $printButton = InvoiceAuthorization::canPrintCreditNotes()
+                ? '<a href="' . $printUrl . '" class="btn btn-sm btn-outline-secondary" target="_blank" rel="noopener" title="طباعة مستند الإغلاق"><i class="fas fa-print"></i></a>'
+                : '';
 
             return '<div class="d-flex justify-content-end gap-2">
                         <a href="' . $contractUrl . '" class="btn btn-sm btn-outline-primary" title="عرض عقد التأجير"><i class="fas fa-eye"></i></a>
                         ' . $constraintButton . $saleButton . '
-                        <a href="' . $printUrl . '" class="btn btn-sm btn-outline-secondary" target="_blank" rel="noopener" title="طباعة مستند الإغلاق"><i class="fas fa-print"></i></a>
+                        ' . $printButton . '
                     </div>';
         }
 
@@ -584,25 +616,28 @@ class InvoiceController extends Controller
                 ? '<a href="' . route('rental-invoices.credit-notes.create', $row->id) . '" class="btn btn-sm btn-outline-danger" title="إنشاء إشعار دائن دون إنهاء عقد التأجير"><i class="fas fa-file-invoice-dollar"></i></a>'
                 : '';
             $queueButton = !$row->finance_sale_id
-                ? '<form method="post" action="' . route('rental-invoices.queue-zatca-sale', $row->id) . '" class="d-inline queue-zatca-form">'
+                ? (InvoiceAuthorization::canControl() ? '<form method="post" action="' . route('rental-invoices.queue-zatca-sale', $row->id) . '" class="d-inline queue-zatca-form">'
                     . csrf_field()
-                    . '<button type="submit" class="btn btn-sm btn-outline-success" title="إدراج فاتورة التأجير في فواتير الزكاة"><i class="fas fa-receipt"></i></button></form>'
+                    . '<button type="submit" class="btn btn-sm btn-outline-success" title="إدراج فاتورة التأجير في فواتير الزكاة"><i class="fas fa-receipt"></i></button></form>' : '')
                 : '<a href="' . route('finance.bill-sales.show', $row->finance_sale_id) . '" class="btn btn-sm btn-outline-success" title="فاتورة المبيعات المرسلة للهيئة"><i class="fas fa-link"></i></a>';
+            $printButton = InvoiceAuthorization::canPrint()
+                ? '<a href="' . $printUrl . '" class="btn btn-sm btn-outline-secondary" target="_blank" rel="noopener" title="طباعة الفاتورة"><i class="fas fa-print"></i></a>'
+                : '';
 
             return '<div class="d-flex justify-content-end gap-2">
                         ' . $queueButton . '
                         ' . $creditNoteButton . '
                         <a href="' . $contractUrl . '" class="btn btn-sm btn-outline-primary" title="عرض عقد التأجير"><i class="fas fa-eye"></i></a>
-                        <a href="' . $printUrl . '" class="btn btn-sm btn-outline-secondary" target="_blank" rel="noopener" title="طباعة الفاتورة"><i class="fas fa-print"></i></a>
+                        ' . $printButton . '
                     </div>';
         }
 
         $queueButton = (int) $row->legacy_zatca_shared === 1
             ? '<span class="btn btn-sm btn-outline-success disabled" title="مشاركة سابقة محفوظة من نظام الرافدين"><i class="fas fa-check-circle"></i></span>'
             : (!$row->finance_sale_id
-                ? '<form method="post" action="' . route('invoices.queue-zatca-sale', $row->id) . '" class="d-inline queue-zatca-form">'
+                ? (InvoiceAuthorization::canControl() ? '<form method="post" action="' . route('invoices.queue-zatca-sale', $row->id) . '" class="d-inline queue-zatca-form">'
                     . csrf_field()
-                    . '<button type="submit" class="btn btn-sm btn-outline-success" title="إدراج في فواتير الزكاة"><i class="fas fa-receipt"></i></button></form>'
+                    . '<button type="submit" class="btn btn-sm btn-outline-success" title="إدراج في فواتير الزكاة"><i class="fas fa-receipt"></i></button></form>' : '')
                 : '<a href="' . route('finance.bill-sales.show', $row->finance_sale_id) . '" class="btn btn-sm btn-outline-success" title="فاتورة المبيعات"><i class="fas fa-link"></i></a>');
         $showUrl = route('invoices.show', $row->id);
         $printUrl = route('invoice.download', ['id' => $row->id, 'autoprint' => 1]);
@@ -612,12 +647,15 @@ class InvoiceController extends Controller
             && $this->canCreateInvoiceCreditNote()
             ? '<a href="' . route('invoices.credit-notes.create', $row->id) . '" class="btn btn-sm btn-outline-danger" title="إنشاء إشعار دائن دون تغيير العقد أو التفويض أو الفاتورة الأصلية"><i class="fas fa-file-invoice-dollar"></i></a>'
             : '';
+        $printButton = InvoiceAuthorization::canPrint()
+            ? '<a href="' . $printUrl . '" class="btn btn-sm btn-outline-secondary" target="_blank" rel="noopener" title="طباعة الفاتورة"><i class="fas fa-print"></i></a>'
+            : '';
 
         return '<div class="d-flex justify-content-end gap-2">
                     ' . $queueButton . '
                     ' . $creditNoteButton . '
                     <a href="' . $showUrl . '" class="btn btn-sm btn-outline-primary" title="عرض التفاصيل"><i class="fas fa-eye"></i></a>
-                    <a href="' . $printUrl . '" class="btn btn-sm btn-outline-secondary" target="_blank" rel="noopener" title="طباعة الفاتورة"><i class="fas fa-print"></i></a>
+                    ' . $printButton . '
                 </div>';
     }
 
@@ -908,6 +946,10 @@ class InvoiceController extends Controller
                 ->findOrFail($contractId);
 
             if ($selectedContract->invoice) {
+                if (!InvoiceAuthorization::canView()) {
+                    return redirect()->route('invoices.create')
+                        ->with('warning', 'تم إصدار فاتورة لهذا العقد مسبقاً، وليست لديك صلاحية عرض الفواتير.');
+                }
                 return redirect()
                     ->route('invoices.show', $selectedContract->invoice->id)
                     ->with('success', 'تم إصدار فاتورة لهذا العقد مسبقاً.');
@@ -926,6 +968,10 @@ class InvoiceController extends Controller
                 ->findOrFail($ingazDelegationId);
 
             if ($selectedIngazDelegation->invoice) {
+                if (!InvoiceAuthorization::canView()) {
+                    return redirect()->route('invoices.create')
+                        ->with('warning', 'تم إصدار فاتورة لهذا التفويض مسبقاً، وليست لديك صلاحية عرض الفواتير.');
+                }
                 return redirect()
                     ->route('invoices.show', $selectedIngazDelegation->invoice->id)
                     ->with('success', 'تم إصدار فاتورة لهذا التفويض مسبقاً.');
@@ -973,6 +1019,10 @@ class InvoiceController extends Controller
         $this->assertCanAccessBranchModel($transfer, 'sponsorship_transfers');
 
         if ($transfer->invoice) {
+            if (!InvoiceAuthorization::canView()) {
+                return redirect()->route('invoices.create')
+                    ->with('warning', 'تم إصدار فاتورة لطلب نقل الكفالة مسبقاً، وليست لديك صلاحية عرض الفواتير.');
+            }
             return redirect()
                 ->route('invoices.show', $transfer->invoice->id)
                 ->with('success', 'تم إصدار فاتورة لطلب نقل الكفالة مسبقاً.');
@@ -1168,14 +1218,18 @@ class InvoiceController extends Controller
             'data' => $invoice,
             'invoice_number' => $invoice->id,
             'issued_at' => optional($invoice->updated_at)->format('d/m/Y - H:i') ?: now()->format('d/m/Y - H:i'),
-            'redirect' => route('invoices.show', $invoice->id),
-            'view_url' => route('invoices.show', $invoice->id),
-            'print_url' => route('invoice.download', ['id' => $invoice->id, 'autoprint' => 1]),
+            'redirect' => InvoiceAuthorization::canView()
+                ? route('invoices.show', $invoice->id)
+                : route('invoices.create'),
+            'view_url' => InvoiceAuthorization::canView() ? route('invoices.show', $invoice->id) : null,
+            'print_url' => InvoiceAuthorization::canPrint()
+                ? route('invoice.download', ['id' => $invoice->id, 'autoprint' => 1])
+                : null,
             'invoice_constraint_print_url' => $invoiceConstraint ? $this->buildConstraintPrintUrl($invoiceConstraint->id) : null,
             'receipt_bond_print_url' => $receiptBond ? $this->buildReceiptBondPrintUrl($receiptBond->id) : null,
             'receipt_constraint_print_url' => ($receiptBond && $receiptBond->constraint_id) ? $this->buildConstraintPrintUrl((int) $receiptBond->constraint_id) : null,
             'delegation_cost_constraint_print_url' => $delegationCostConstraint ? $this->buildConstraintPrintUrl($delegationCostConstraint->id) : null,
-            'index_url' => route('invoices.index'),
+            'index_url' => InvoiceAuthorization::canView() ? route('invoices.index') : null,
             'create_url' => route('invoices.create'),
         ]);
     }
@@ -3288,9 +3342,11 @@ class InvoiceController extends Controller
                 }
             }
 
-            return redirect()
-                ->route('recruitment-credit-notes.download', ['id' => $creditNote->id, 'autoprint' => 1])
-                ->with('success', 'تم إنشاء إشعار الدائن وقيده المالي دون تغيير حالة العقد أو التفويض.');
+            $redirect = InvoiceAuthorization::canPrintCreditNotes()
+                ? redirect()->route('recruitment-credit-notes.download', ['id' => $creditNote->id, 'autoprint' => 1])
+                : redirect()->route('invoices.credit-notes.create', $id);
+
+            return $redirect->with('success', 'تم إنشاء إشعار الدائن وقيده المالي دون تغيير حالة العقد أو التفويض.');
         } catch (\Throwable $e) {
             return back()->withInput()->with('error', $e->getMessage());
         }
@@ -4213,47 +4269,18 @@ class InvoiceController extends Controller
 
     private function canCreateInvoiceCreditNote(): bool
     {
-        $admin = Auth::guard('admin')->user();
-        if (!$admin) {
-            return false;
-        }
-
-        foreach ([
-            PermKeys::INVOICE_CREDIT_NOTES_CREATE,
-            PermKeys::INVOICE_CREDIT_NOTES_CONTROL,
-            PermKeys::INVOICES_CONTROL,
-            PermKeys::REC_CONTRACTS_MANAGE,
-            PermKeys::INGAZ_DELEGATIONS_CONTROL,
-        ] as $permission) {
-            if ($admin->can($permission)) {
-                return true;
-            }
-        }
-
-        return false;
+        return InvoiceAuthorization::canCreateCreditNotes();
     }
 
     private function canViewInvoiceCreditNote(): bool
     {
-        $admin = Auth::guard('admin')->user();
-        if (!$admin) {
-            return false;
-        }
+        return InvoiceAuthorization::canViewCreditNotes()
+            || InvoiceAuthorization::canPrintCreditNotes();
+    }
 
-        foreach ([
-            PermKeys::INVOICE_CREDIT_NOTES_VIEW,
-            PermKeys::INVOICE_CREDIT_NOTES_PRINT,
-            PermKeys::INVOICE_CREDIT_NOTES_CONTROL,
-            PermKeys::INVOICES_CONTROL,
-            PermKeys::REC_CONTRACTS_MANAGE,
-            PermKeys::INGAZ_DELEGATIONS_CONTROL,
-        ] as $permission) {
-            if ($admin->can($permission)) {
-                return true;
-            }
-        }
-
-        return false;
+    private function permissionMiddleware(array $permissions): string
+    {
+        return 'permission:' . implode('|', array_values(array_unique($permissions))) . ',admin';
     }
 
     private function allocateCreditNoteAmount($details, float $amount, string $valueColumn): array

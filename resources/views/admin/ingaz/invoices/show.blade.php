@@ -54,17 +54,19 @@
                 <div class="card-body">
                     <div class="invoice-header mb-4">
                         <div class="d-flex align-items-center gap-2 no-print">
+                            @if (\App\Support\InvoiceAuthorization::canPrint())
                             <a href="{{ route('invoice.download', ['id' => $invoice->id, 'autoprint' => 1]) }}" class="btn btn-light border"
                                 target="_blank" title="طباعة الفاتورة">
                                 <i class="fa-solid fa-print"></i>
                             </a>
-                            @if ($invoice->legacy_source_file)
+                            @endif
+                            @if ($invoice->legacy_source_file && \App\Support\InvoiceAuthorization::canPrint())
                                 <a href="{{ route('invoices.legacy-source-file', $invoice->id) }}" class="btn btn-light border"
                                     target="_blank" title="عرض ملف PDF الأصلي">
                                     <i class="fa-solid fa-file-pdf"></i>
                                 </a>
                             @endif
-                            @if (($invoice->contract_id || $invoice->ingaz_delegation_id || ($invoice->client_id && !$invoice->sponsorship_transfer_id)) && !$invoice->legacy_invoice_number && AdminGuardHasAnyPerm([\App\PermKeys::INVOICE_CREDIT_NOTES_CREATE, \App\PermKeys::INVOICE_CREDIT_NOTES_CONTROL, \App\PermKeys::INVOICES_CONTROL, \App\PermKeys::REC_CONTRACTS_MANAGE, \App\PermKeys::INGAZ_DELEGATIONS_CONTROL]))
+                            @if (($invoice->contract_id || $invoice->ingaz_delegation_id || ($invoice->client_id && !$invoice->sponsorship_transfer_id)) && !$invoice->legacy_invoice_number && \App\Support\InvoiceAuthorization::canCreateCreditNotes())
                                 <a href="{{ route('invoices.credit-notes.create', $invoice->id) }}"
                                    class="btn btn-light border text-danger" title="إنشاء إشعار دائن">
                                     <i class="fa-solid fa-file-invoice-dollar"></i>
@@ -229,7 +231,7 @@
                     </div>
 
                     <div class="d-flex gap-2 mt-4 no-print">
-                        @if (AdminGuardHasAnyPerm([\App\PermKeys::INVOICE_CREDIT_NOTES_VIEW, \App\PermKeys::INVOICE_CREDIT_NOTES_PRINT, \App\PermKeys::INVOICE_CREDIT_NOTES_CONTROL, \App\PermKeys::INVOICES_CONTROL, \App\PermKeys::REC_CONTRACTS_MANAGE, \App\PermKeys::INGAZ_DELEGATIONS_CONTROL]))
+                        @if (\App\Support\InvoiceAuthorization::canPrintCreditNotes())
                             @foreach ($invoice->recruitmentCreditNotes as $creditNote)
                                 <a href="{{ route('recruitment-credit-notes.download', ['id' => $creditNote->id, 'autoprint' => 1]) }}"
                                    target="_blank" rel="noopener" class="btn btn-outline-danger">

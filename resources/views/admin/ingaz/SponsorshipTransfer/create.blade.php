@@ -272,11 +272,11 @@
                             <button type="submit" class="btn btn-primary px-4" value="save">
                                 <i class="fas fa-plus-circle me-2"></i>إضافة طلب النقل
                             </button>
-                            @unless($isRentalWorkflow)
+                            @if(!$isRentalWorkflow && \App\Support\InvoiceAuthorization::canCreate())
                             <button type="submit" class="btn btn-success px-4 ms-2" value="save_and_invoice">
                                 <i class="fas fa-file-invoice-dollar me-2"></i>حفظ وإصدار فاتورة
                             </button>
-                            @endunless
+                            @endif
                         @endif
                     </div>
                 </form>

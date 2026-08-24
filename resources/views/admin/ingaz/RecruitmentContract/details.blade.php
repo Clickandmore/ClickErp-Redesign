@@ -1377,9 +1377,13 @@
                             <div class="info-row">
                                 <span class="info-label">رقم الفاتورة:</span>
                                 <span class="info-value">
+                                    @if (\App\Support\InvoiceAuthorization::canView())
                                     <a href="{{ route('invoices.show', $financialSummary['invoice_id']) }}" target="_blank">
                                         #{{ $financialSummary['invoice_number'] }}
                                     </a>
+                                    @else
+                                        #{{ $financialSummary['invoice_number'] }}
+                                    @endif
                                 </span>
                             </div>
                             <div class="info-row">
@@ -1452,10 +1456,12 @@
                                     <div class="fw-semibold mb-2"><i class="fas fa-file-invoice-dollar text-danger me-1"></i>إشعارات الدائن</div>
                                     @foreach ($contract->invoice->recruitmentCreditNotes as $creditNote)
                                         <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-2">
+                                            @if (\App\Support\InvoiceAuthorization::canPrintCreditNotes())
                                             <a class="btn btn-sm btn-outline-danger" target="_blank" rel="noopener"
                                                href="{{ route('recruitment-credit-notes.download', ['id' => $creditNote->id, 'autoprint' => 1]) }}">
                                                 إشعار #{{ $creditNote->id }} — {{ number_format((float) $creditNote->total, 2) }} ريال
                                             </a>
+                                            @endif
                                             @if ($creditNote->constraint_id)
                                                 <a class="btn btn-sm btn-outline-secondary" target="_blank" rel="noopener"
                                                    href="{{ route('finance.add-constraint.show', ['add_constraint' => $creditNote->constraint_id]) }}">
@@ -2381,7 +2387,7 @@
                     </a>
                 @endif
 
-                @if ($contract->invoice)
+                @if ($contract->invoice && \App\Support\InvoiceAuthorization::canView())
                     <a href="{{ route('invoices.show', $contract->invoice->id) }}" class="btn-icon btn-invoice"
                         title="عرض الفاتورة" target="_blank">
                         <i class="fas fa-file-pdf"></i>
