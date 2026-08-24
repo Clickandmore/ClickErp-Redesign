@@ -4115,9 +4115,16 @@ class RecruitmentContractController extends Controller
     private function recruitmentContractExportQuery(Request $request)
     {
         $query = Contract::query()->with([
-            'user',
-            'maid',
-            'info',
+            'user.nationality',
+            'maid.nationality',
+            'maid.religion',
+            'maid.jobTitles',
+            'maid.office.nationality',
+            'info.manualMaidNationality',
+            'info.manualMaidOffice.nationality',
+            'marketer',
+            'order.details.admin',
+            'order.customer',
             'sponsorshipTransfers.oldSponsor',
         ]);
 
@@ -4137,6 +4144,92 @@ class RecruitmentContractController extends Controller
         }
 
         return $query;
+    }
+
+    /** Keep both export formats aligned whenever contract columns are changed. */
+    private function recruitmentContractExportColumns(): array
+    {
+        return [
+            'contract_number' => 'رقم العقد',
+            'order_number' => 'رقم الطلب',
+            'client_name' => 'اسم العميل',
+            'client_document' => 'رقم الهوية / السجل التجاري',
+            'client_phone' => 'رقم هاتف العميل',
+            'client_email' => 'البريد الإلكتروني للعميل',
+            'maid_name' => 'اسم العاملة',
+            'maid_passport' => 'رقم جواز العاملة',
+            'maid_nationality' => 'جنسية العاملة',
+            'maid_religion' => 'ديانة العاملة',
+            'maid_job' => 'مهنة العاملة',
+            'external_office' => 'الوكيل / المكتب الخارجي',
+            'external_office_nationality' => 'دولة الوكيل الخارجي',
+            'external_office_phone' => 'هاتف الوكيل الخارجي',
+            'external_office_license' => 'رقم ترخيص الوكيل الخارجي',
+            'external_office_manager' => 'مدير الوكيل الخارجي',
+            'external_office_manager_phone' => 'هاتف مدير الوكيل الخارجي',
+            'external_office_manager_email' => 'بريد مدير الوكيل الخارجي',
+            'external_office_address' => 'عنوان الوكيل الخارجي',
+            'visa_number' => 'رقم التأشيرة',
+            'visa_milad_date' => 'تاريخ التأشيرة الميلادي',
+            'visa_hijry_date' => 'تاريخ التأشيرة الهجري',
+            'msaned_number' => 'رقم عقد مساند',
+            'tafwed_number' => 'رقم التفويض',
+            'contract_date' => 'تاريخ العقد',
+            'contract_duration' => 'مدة العقد',
+            'contract_value' => 'قيمة العقد',
+            'working_hours' => 'ساعات العمل',
+            'ingaz_from' => 'تاريخ البداية',
+            'ingaz_to' => 'تاريخ النهاية',
+            'arrival_date' => 'تاريخ الوصول',
+            'marketer' => 'المسوق',
+            'status' => 'الحالة',
+            'created_at' => 'تاريخ إنشاء العقد',
+        ];
+    }
+
+    private function recruitmentContractExportRow(Contract $contract): array
+    {
+        $info = $contract->info;
+        $maid = $contract->maid;
+        $office = $maid?->office ?? $maid?->recruitmentOffice ?? $info?->manualMaidOffice;
+        $marketer = $contract->marketer ?? $contract->order?->resolveResponsibleAdmin();
+
+        return [
+            'contract_number' => (string) $contract->id,
+            'order_number' => (string) ($contract->order?->order_code ?: $contract->order_id ?: ''),
+            'client_name' => (string) ($contract->user?->name ?? ''),
+            'client_document' => (string) ($contract->user?->documentNumber() ?? ''),
+            'client_phone' => (string) (($contract->user?->phone_code ?? '') . ($contract->user?->phone ?? '')),
+            'client_email' => (string) ($contract->user?->email ?? ''),
+            'maid_name' => (string) ($maid?->name ?? $info?->manual_maid_name ?? ''),
+            'maid_passport' => (string) ($maid?->passport_num ?? $info?->manual_maid_passport_num ?? ''),
+            'maid_nationality' => (string) ($maid?->nationality?->sub_title ?? $maid?->nationality?->title ?? $info?->manualMaidNationality?->sub_title ?? $info?->manualMaidNationality?->title ?? ''),
+            'maid_religion' => (string) ($maid?->religion?->title ?? ''),
+            'maid_job' => (string) ($maid?->jobTitles?->first()?->title ?? ''),
+            'external_office' => (string) ($office?->title ?? ''),
+            'external_office_nationality' => (string) ($office?->nationality?->sub_title ?? $office?->nationality?->title ?? ''),
+            'external_office_phone' => (string) ($office?->phone_office ?? ''),
+            'external_office_license' => (string) ($office?->license_number ?? ''),
+            'external_office_manager' => (string) ($office?->manager_name ?? ''),
+            'external_office_manager_phone' => (string) ($office?->manager_phone ?? ''),
+            'external_office_manager_email' => (string) ($office?->manager_email ?? ''),
+            'external_office_address' => (string) ($office?->street ?? ''),
+            'visa_number' => (string) ($info?->visa_number ?: $contract->visa_number ?: ''),
+            'visa_milad_date' => (string) ($info?->visa_milad_date ?? ''),
+            'visa_hijry_date' => (string) ($info?->visa_hijry_date ?? ''),
+            'msaned_number' => (string) ($info?->msaned_number ?: $contract->msaned_number ?: ''),
+            'tafwed_number' => (string) ($info?->tafwed_number ?: $contract->authorization_num ?: ''),
+            'contract_date' => (string) ($info?->contract_date ?: $contract->contract_date ?: ''),
+            'contract_duration' => (string) ($info?->contract_duration ?? ''),
+            'contract_value' => (string) ($info?->contract_value ?? $contract->contract_cost ?? ''),
+            'working_hours' => (string) ($info?->working_hours_num ?? ''),
+            'ingaz_from' => (string) ($info?->ingaz_from ?? ''),
+            'ingaz_to' => (string) ($info?->ingaz_to ?? ''),
+            'arrival_date' => (string) ($info?->arrival_date ?? $maid?->arrival_date ?? ''),
+            'marketer' => (string) ($marketer?->name ?? ''),
+            'status' => (string) getEnumValue('contract_statuses', $contract->status),
+            'created_at' => $contract->created_at?->format('Y-m-d H:i:s') ?? '',
+        ];
     }
 
     public function exportPdf(Request $request)
@@ -4210,6 +4303,9 @@ class RecruitmentContractController extends Controller
                     background-color: #f9f9f9;
                 }
                 @media print {
+                    @page {
+                        size: landscape;
+                    }
                     .print-button {
                         display: none;
                     }
@@ -4243,32 +4339,22 @@ class RecruitmentContractController extends Controller
             </div>
             <table>
                 <thead>
-                    <tr>
-                        <th>رقم العقد</th>
-                        <th>العميل</th>
-                        <th>رقم هاتف العميل</th>
-                        <th>العاملة</th>
-                        <th>رقم جواز العامل</th>
-                        <th>تاريخ العقد</th>
-                        <th>تاريخ البداية</th>
-                        <th>تاريخ النهاية</th>
-                        <th>الحالة</th>
-                    </tr>
+                    <tr>';
+
+        foreach ($this->recruitmentContractExportColumns() as $heading) {
+            $html .= '<th>' . e($heading) . '</th>';
+        }
+
+        $html .= '</tr>
                 </thead>
                 <tbody>';
 
         foreach ($contracts as $contract) {
-            $html .= '<tr>
-                <td>' . $contract->id . '</td>
-                <td>' . ($contract->user ? $contract->user->name : '') . '</td>
-                <td>' . ($contract->user ? getPhoneWithTag($contract->user->phone_code . $contract->user->phone) : '') . '</td>
-                <td>' . ($contract->maid ? $contract->maid->name : '') . '</td>
-                <td>' . ($contract->maid ? $contract->maid->passport_num : '') . '</td>
-                <td>' . ($contract->info ? $contract->info->contract_date : '') . '</td>
-                <td>' . ($contract->info ? $contract->info->ingaz_from : '') . '</td>
-                <td>' . ($contract->info ? $contract->info->ingaz_to : '') . '</td>
-                <td>' . getEnumValue('contract_statuses', $contract->status) . '</td>
-            </tr>';
+            $html .= '<tr>';
+            foreach ($this->recruitmentContractExportRow($contract) as $value) {
+                $html .= '<td>' . e($value) . '</td>';
+            }
+            $html .= '</tr>';
         }
 
         $html .= '</tbody></table></body></html>';
@@ -4303,17 +4389,7 @@ class RecruitmentContractController extends Controller
         $sheet->setRightToLeft(true);
 
         // Set headers
-        $headers = [
-            'رقم العقد',
-            'العميل',
-            'رقم هاتف العميل',
-            'العاملة',
-            'رقم جواز العامل',
-            'تاريخ العقد',
-            'تاريخ البداية',
-            'تاريخ النهاية',
-            'الحالة'
-        ];
+        $headers = array_values($this->recruitmentContractExportColumns());
 
         // Set headers in first row
         $sheet->fromArray($headers, NULL, 'A1');
@@ -4334,26 +4410,27 @@ class RecruitmentContractController extends Controller
                 ],
             ],
         ];
-        $sheet->getStyle('A1:I1')->applyFromArray($headerStyle);
+        $lastColumn = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex(count($headers));
+        $sheet->getStyle('A1:' . $lastColumn . '1')->applyFromArray($headerStyle);
 
         // Set data
         $row = 2;
         foreach ($contracts as $contract) {
-            $sheet->setCellValue('A' . $row, $contract->id);
-            $sheet->setCellValue('B' . $row, $contract->user ? $contract->user->name : '');
-            $sheet->setCellValue('C' . $row, $contract->user ? $contract->user->phone_code . $contract->user->phone : '');
-            $sheet->setCellValue('D' . $row, $contract->maid ? $contract->maid->name : '');
-            $sheet->setCellValue('E' . $row, $contract->maid ? $contract->maid->passport_num : '');
-            $sheet->setCellValue('F' . $row, $contract->info ? $contract->info->contract_date : '');
-            $sheet->setCellValue('G' . $row, $contract->info ? $contract->info->ingaz_from : '');
-            $sheet->setCellValue('H' . $row, $contract->info ? $contract->info->ingaz_to : '');
-            $sheet->setCellValue('I' . $row, getEnumValue('contract_statuses', $contract->status));
+            foreach (array_values($this->recruitmentContractExportRow($contract)) as $index => $value) {
+                $sheet->setCellValueExplicit(
+                    \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($index + 1) . $row,
+                    (string) $value,
+                    \PhpOffice\PhpSpreadsheet\Cell\DataType::TYPE_STRING
+                );
+            }
             $row++;
         }
 
         // Auto-size columns
-        foreach (range('A', 'I') as $column) {
-            $sheet->getColumnDimension($column)->setAutoSize(true);
+        for ($columnIndex = 1; $columnIndex <= count($headers); $columnIndex++) {
+            $sheet->getColumnDimension(
+                \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($columnIndex)
+            )->setAutoSize(true);
         }
 
         // Create Excel writer
