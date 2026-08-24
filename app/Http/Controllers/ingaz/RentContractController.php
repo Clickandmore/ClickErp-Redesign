@@ -24,12 +24,14 @@ use App\Models\RentalContractExtension;
 use App\Models\RentalContractInfo;
 use App\Models\RentalContractTerm;
 use App\Services\ingaz\RentalContractFinanceService;
+use App\Services\ingaz\RentalContractLedgerService;
 use App\Services\ManagedFileStorage;
 use App\Services\MoyasarService;
 use App\Services\RentalContractExpiryReminderService;
 use App\Services\RentalShelterPresenceService;
 use App\Support\MoyasarSettings;
 use App\Support\RentalContractPricing;
+use App\Support\RentalClosureReconciler;
 use App\Support\RentalContractSettlement;
 use App\Support\SystemModuleManager;
 use Carbon\Carbon;
@@ -1056,14 +1058,26 @@ class RentContractController extends Controller
             ->where('context', 'closure')
             ->where('type', 'expense')
             ->sum('amount'), 2);
-        $contractLedgerBalance = round(
-            (float) ($contract->financeInvoice?->total_due ?? $contract->info?->contract_value ?? 0)
-            + (float) $contract->extensions->sum('extension_value')
-            + $closureIncome
-            - $closureRefund
-            - $receiptBondsTotal,
-            2
-        );
+        // الرصيد يُقرأ من الأستاذ مباشرة: الاشتقاق الحسابي أدناه يحتسب تسويات
+        // context='closure' فقط، فتختفي منه الإشعارات الدائنة اليدوية ويظهر على
+        // الشاشة مطلوب من العميل أكبر من الحقيقة. القراءة من القيود تشمل كل
+        // مستند مرحَّل بالضرورة.
+        $contractLedgerBalance = app(RentalContractLedgerService::class)
+            ->balanceForContract($contract);
+        $contractLedgerBalanceFromJournal = $contractLedgerBalance !== null;
+
+        if (!$contractLedgerBalanceFromJournal) {
+            // لا قيود مرحَّلة للعقد أو لا حساب محاسبي للعميل: القيود التلقائية
+            // معطّلة، أو عقد مستورد بلا قيد فاتورة. يبقى الاشتقاق هو المتاح.
+            $contractLedgerBalance = round(
+                (float) ($contract->financeInvoice?->total_due ?? $contract->info?->contract_value ?? 0)
+                + (float) $contract->extensions->sum('extension_value')
+                + $closureIncome
+                - $closureRefund
+                - $receiptBondsTotal,
+                2
+            );
+        }
         $clientAccountBalance = null;
         $clientAccountApprovedBalance = null;
 
@@ -1101,6 +1115,7 @@ class RentContractController extends Controller
             'closureIncome',
             'closureRefund',
             'contractLedgerBalance',
+            'contractLedgerBalanceFromJournal',
             'clientAccountBalance',
             'clientAccountApprovedBalance',
             'receiptAccounts'
@@ -2732,11 +2747,32 @@ class RentContractController extends Controller
         $usedCost = $usedDays !== null ? $settlement['used_cost'] : 0.0;
         $calculatedRefundValue = $settlement['refund_value'];
         $calculatedCompanyDueValue = $settlement['company_due_value'];
-        $manualCreditAmount = round((float) $contract->financialAdjustments
-            ->where('context', 'manual_credit_note')
+        $documentSettlement = RentalClosureReconciler::settle(
+            $contractValue,
+            $paidAmount,
+            (float) $settlement['earned_amount']
+        );
+        $targetCreditNoteValue = (float) $documentSettlement['credit_note'];
+        $targetDebitNoteValue = (float) $documentSettlement['debit_note'];
+        $receivableAdjustments = $contract->financialAdjustments
+            ->whereIn('context', ['closure', 'manual_credit_note', 'closure_correction']);
+        $existingCreditNotes = round((float) $receivableAdjustments
             ->where('type', 'expense')
             ->sum('amount'), 2);
-        $calculatedRefundValue = max(0, round($calculatedRefundValue - $manualCreditAmount, 2));
+        $existingDebitNotes = round((float) $receivableAdjustments
+            ->where('type', 'income')
+            ->sum('amount'), 2);
+        $remainingReceivableAdjustment = round(
+            ($targetCreditNoteValue - $targetDebitNoteValue)
+            - ($existingCreditNotes - $existingDebitNotes),
+            2
+        );
+        $calculatedCreditNoteValue = $remainingReceivableAdjustment > 0
+            ? $remainingReceivableAdjustment
+            : 0.0;
+        $calculatedDebitNoteValue = $remainingReceivableAdjustment < 0
+            ? round(abs($remainingReceivableAdjustment), 2)
+            : 0.0;
 
         $storedRefundValue = (float) $contract->financialAdjustments()
             ->where('context', 'closure')
@@ -2750,6 +2786,16 @@ class RentContractController extends Controller
             ->whereNull('settled_at')
             ->sum('amount');
         $companyDueValue = $storedCompanyDueValue > 0 ? $storedCompanyDueValue : $calculatedCompanyDueValue;
+        // المستند الضريبي يُسوّي الذمة (المفوتر - المستحق)، ولا يعتمد على ما
+        // دُفع. رد النقد أو تحصيله نتيجة مستقلة ولا يُرحّل مرة ثانية على الذمة.
+        $documentType = $calculatedDebitNoteValue > 0
+            ? 'company_due'
+            : ($calculatedCreditNoteValue > 0 ? 'refund' : 'none');
+        $documentValue = match ($documentType) {
+            'company_due' => $calculatedDebitNoteValue,
+            'refund' => $calculatedCreditNoteValue,
+            default => 0.0,
+        };
         $settlementType = $companyDueValue > 0 ? 'company_due' : 'refund';
         $isEarlyClosure = $this->isRentalContractEarlyClosure($contract, $closureDate);
 
@@ -2779,8 +2825,18 @@ class RentContractController extends Controller
             'refund_value' => $refundValue,
             'calculated_company_due_value' => $calculatedCompanyDueValue,
             'company_due_value' => $companyDueValue,
+            'calculated_credit_note_value' => $calculatedCreditNoteValue,
+            'calculated_debit_note_value' => $calculatedDebitNoteValue,
+            'target_credit_note_value' => $targetCreditNoteValue,
+            'target_debit_note_value' => $targetDebitNoteValue,
+            'existing_credit_notes_value' => $existingCreditNotes,
+            'existing_debit_notes_value' => $existingDebitNotes,
+            'cash_refund_value' => $documentSettlement['refund_to_client'],
+            'cash_to_collect_value' => $documentSettlement['to_collect'],
             'settlement_type' => $settlementType,
             'settlement_value' => $settlementType === 'company_due' ? $companyDueValue : $refundValue,
+            'document_type' => $documentType,
+            'document_value' => $documentValue,
             'payment_status' => $info?->payment_status,
             'closure_client_iban' => $info?->closure_client_iban,
             'closure_client_iban_attachment_url' => $info?->closure_client_iban_attachment_url,
@@ -2953,6 +3009,16 @@ class RentContractController extends Controller
                 'refund_value' => $summary['refund_value'],
                 'calculated_company_due_value' => $summary['calculated_company_due_value'],
                 'company_due_value' => $summary['company_due_value'],
+                'calculated_credit_note_value' => $summary['calculated_credit_note_value'],
+                'calculated_debit_note_value' => $summary['calculated_debit_note_value'],
+                'target_credit_note_value' => $summary['target_credit_note_value'],
+                'target_debit_note_value' => $summary['target_debit_note_value'],
+                'existing_credit_notes_value' => $summary['existing_credit_notes_value'],
+                'existing_debit_notes_value' => $summary['existing_debit_notes_value'],
+                'cash_refund_value' => $summary['cash_refund_value'],
+                'cash_to_collect_value' => $summary['cash_to_collect_value'],
+                'document_type' => $summary['document_type'],
+                'document_value' => $summary['document_value'],
                 'settlement_type' => $summary['settlement_type'],
                 'settlement_value' => $summary['settlement_value'],
                 'payment_status' => $summary['payment_status'],
@@ -2989,9 +3055,8 @@ class RentContractController extends Controller
     {
         $validated = $request->validate([
             'closure_date' => 'nullable|date',
-            'adjustment_type' => 'nullable|in:refund,company_due',
+            'adjustment_type' => 'nullable|in:refund,company_due,none',
             'adjustment_amount' => 'required|numeric|min:0',
-            'clear_remaining_amount' => 'nullable|numeric|min:0',
             'closure_return_reason' => 'nullable|string|max:1000',
             'close_payment_status' => 'nullable|in:paid,partial,pending,later,bank_pending',
             'close_payment_receipt' => 'nullable|file|mimes:jpg,jpeg,png,pdf|max:4096',
@@ -3019,19 +3084,27 @@ class RentContractController extends Controller
             $this->assertClosureDateIsValidForContract($contract, $closureDate);
 
             $summary = $this->buildRentalClosureSummary($contract, $closureDate);
-            $adjustmentType = ($validated['adjustment_type'] ?? null) === 'company_due' ? 'company_due' : 'refund';
-            $adjustmentAmount = (float) ($validated['adjustment_amount'] ?? 0);
-            $clearRemainingAmount = (float) ($validated['clear_remaining_amount'] ?? 0);
-            $currentRemainingAmount = (float) ($summary['remaining_amount'] ?? 0);
-            $newRemainingAmount = max(0, $currentRemainingAmount - $clearRemainingAmount);
+            // لا نثق بمبلغ قادم من الواجهة في مستند ضريبي. المصدر الوحيد هو
+            // المحرك المصحح بعد قفل العقد داخل المعاملة.
+            $adjustmentType = ($summary['document_type'] ?? null) === 'company_due' ? 'company_due' : 'refund';
+            $adjustmentAmount = round((float) ($summary['document_value'] ?? 0), 2);
+            $newRemainingAmount = round(max(0.0, (float) ($summary['cash_to_collect_value'] ?? 0)), 2);
             $closureReturnReason = trim((string) ($validated['closure_return_reason'] ?? ''));
 
             if ($adjustmentType === 'refund' && $contract->financeInvoice) {
                 $alreadyCredited = (float) $contract->financialAdjustments
                     ->where('type', 'expense')
-                    ->whereIn('context', ['closure', 'manual_credit_note'])
+                    ->whereIn('context', ['closure', 'manual_credit_note', 'closure_correction'])
                     ->sum('amount');
-                $creditableBalance = max(0, round((float) $contract->financeInvoice->total_due - $alreadyCredited, 2));
+                $alreadyDebited = (float) $contract->financialAdjustments
+                    ->where('type', 'income')
+                    ->whereIn('context', ['closure', 'manual_credit_note', 'closure_correction'])
+                    ->sum('amount');
+                $netAlreadyCredited = round($alreadyCredited - $alreadyDebited, 2);
+                $creditableBalance = max(0, round(
+                    (float) ($summary['contract_value'] ?? 0) - $netAlreadyCredited,
+                    2
+                ));
                 if ($adjustmentAmount > $creditableBalance + 0.01) {
                     throw new \RuntimeException(
                         'قيمة إشعار الإنهاء تتجاوز رصيد الفاتورة غير المعكوس. الحد المتاح: '
@@ -3041,6 +3114,8 @@ class RentContractController extends Controller
             }
 
             $infoUpdates = [
+                // رصيد العقد التشغيلي مرآة للثابتة المحاسبية، لا قيمة يختار
+                // المستخدم تصفيرها: المستحق فعلياً ناقص المدفوع.
                 'remaining_amount' => $newRemainingAmount,
                 'closure_return_reason' => $closureReturnReason !== '' ? $closureReturnReason : null,
             ];
@@ -3114,11 +3189,11 @@ class RentContractController extends Controller
                     ? 'مستحق للشركة عند إغلاق العقد'
                     : 'استرجاع عند إغلاق العقد';
                 $suggestedAmount = $isCompanyDue
-                    ? (float) ($summary['calculated_company_due_value'] ?? 0)
-                    : (float) ($summary['calculated_refund_value'] ?? 0);
+                    ? (float) ($summary['calculated_debit_note_value'] ?? 0)
+                    : (float) ($summary['calculated_credit_note_value'] ?? 0);
                 $adjustmentNotes = ($isCompanyDue
-                    ? 'مستحق للشركة مسجل أثناء إنهاء عقد الإيجار. القيمة المقترحة حسب أيام ما بعد الانتهاء: '
-                    : 'استرجاع مسجل أثناء إنهاء عقد الإيجار. القيمة المقترحة حسب الأيام: ')
+                    ? 'إشعار مدين مسجل أثناء إنهاء عقد الإيجار. فرق الذمة حسب المستحق الفعلي: '
+                    : 'إشعار دائن مسجل أثناء إنهاء عقد الإيجار. فرق الذمة حسب المستحق الفعلي: ')
                     . number_format($suggestedAmount, 2) . ' ريال'
                     . ($closureReturnReason !== '' ? "\nسبب الإرجاع: " . $closureReturnReason : '');
                 $closureBreakdown = $contract->financeInvoice
@@ -3132,7 +3207,7 @@ class RentContractController extends Controller
                     'taxable_amount' => $closureBreakdown['taxable_subtotal'],
                     'non_taxable_amount' => $closureBreakdown['salary_exempt_amount'],
                     'vat_amount' => $closureBreakdown['vat_amount'],
-                    'send_to_zatca' => !$isCompanyDue,
+                    'send_to_zatca' => true,
                     'notes' => $adjustmentNotes,
                     'context' => 'closure',
                     'issue_date' => $closureDate->toDateString(),
@@ -3144,7 +3219,7 @@ class RentContractController extends Controller
                     $adjustment,
                     $closureDate
                 );
-                if (!$isCompanyDue && $closureConstraint && $contract->financeInvoice) {
+                if ($closureConstraint && $contract->financeInvoice) {
                     app(InvoiceController::class)->queueRentalCreditNoteForZatcaSale(
                         $adjustment->fresh(),
                         $contract->financeInvoice
@@ -3900,73 +3975,6 @@ class RentContractController extends Controller
                 'status' => 'active',
                 'trial_started_at' => now(),
                 'trial_started_by' => auth()->id()
-            ]);
-
-            return response()->json([
-                'success' => true,
-                'message' => 'تم تفعيل العقد بنجاح'
-            ]);
-
-            $contract = RentalContract::with(['maid', 'info', 'financialAdjustments'])->findOrFail($id);
-
-            if (!$contract->info) {
-                throw new \RuntimeException('بيانات عقد الإيجار غير مكتملة');
-            }
-
-            $summary = $this->buildRentalClosureSummary($contract);
-            $adjustmentAmount = (float) ($validated['adjustment_amount'] ?? 0);
-            $clearRemainingAmount = (float) ($validated['clear_remaining_amount'] ?? 0);
-            $currentRemainingAmount = (float) ($summary['remaining_amount'] ?? 0);
-            $newRemainingAmount = max(0, $currentRemainingAmount - $clearRemainingAmount);
-
-            $infoUpdates = [
-                'remaining_amount' => $newRemainingAmount,
-            ];
-
-            if (!empty($validated['close_payment_status'])) {
-                $infoUpdates['payment_status'] = $validated['close_payment_status'];
-
-                if ($validated['close_payment_status'] === 'paid') {
-                    $infoUpdates['paid_amount'] = (float) ($summary['base_contract_value'] ?? 0);
-                    $infoUpdates['remaining_amount'] = 0;
-                }
-            }
-
-            if (!empty($validated['close_client_iban'])) {
-                $infoUpdates['closure_client_iban'] = $validated['close_client_iban'];
-            }
-
-            if ($request->hasFile('close_payment_receipt')) {
-                $newPaymentReceiptPath = app(ManagedFileStorage::class)->uploadFile(
-                    $request->file('close_payment_receipt'),
-                    'rental-contracts/closures/receipts'
-                );
-                $infoUpdates = array_merge(
-                    $infoUpdates,
-                    $this->buildPaymentReceiptUpdatePayload($contract->info, $newPaymentReceiptPath)
-                );
-            }
-
-            if ($request->hasFile('close_client_iban_attachment')) {
-                $infoUpdates['closure_client_iban_attachment_path'] = app(ManagedFileStorage::class)->uploadFile(
-                    $request->file('close_client_iban_attachment'),
-                    'rental-contracts/closures/iban'
-                );
-            }
-
-            $contract->info->update($infoUpdates);
-
-            if (!$contract->canActivateContract()) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'لا يمكن تفعيل العقد في هذه المرحلة'
-                ], 400);
-            }
-
-            $contract->update([
-                'status' => 'active',
-                'trial_started_at' => now(), // نعيد تسمية هذا الحقل لاحقاً إلى activated_at
-                'trial_started_by' => auth()->id() // نعيد تسمية هذا الحقل لاحقاً إلى activated_by
             ]);
 
             return response()->json([

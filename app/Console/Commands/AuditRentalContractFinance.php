@@ -138,7 +138,7 @@ class AuditRentalContractFinance extends Command
                     }
                 }
 
-                foreach ($contract->financialAdjustments->where('context', 'closure') as $adjustment) {
+                foreach ($contract->financialAdjustments->whereIn('context', ['closure', 'closure_correction']) as $adjustment) {
                     if ((float) $adjustment->amount <= 0 || $adjustment->constraint_id) {
                         continue;
                     }

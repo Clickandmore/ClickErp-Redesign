@@ -724,7 +724,7 @@
             ];
             $closureCompanyDue = (float) ($closureSummary['company_due_value'] ?? $closureSummary['calculated_company_due_value'] ?? 0);
             $closureClientRefund = (float) ($closureSummary['refund_value'] ?? $closureSummary['calculated_refund_value'] ?? 0);
-            $closureAdjustments = $contract->financialAdjustments->whereIn('context', ['closure', 'manual_credit_note']);
+            $closureAdjustments = $contract->financialAdjustments->whereIn('context', ['closure', 'manual_credit_note', 'closure_correction']);
             $showClosureSettlement = $closureCompanyDue > 0 || $closureClientRefund > 0;
             $isEarlyClosure = (bool) ($closureSummary['is_early_closure'] ?? false);
             $cancelledRemainingDays = (int) ($closureSummary['remaining_days_value'] ?? 0);
@@ -1017,6 +1017,9 @@
                                     {{ number_format(abs($contractLedgerBalance), 2) }} ريال
                                     <small class="d-block">
                                         {{ $contractLedgerBalance > 0 ? 'مطلوب من العميل' : ($contractLedgerBalance < 0 ? 'رصيد دائن للعميل' : 'العقد مسوّى') }}
+                                    </small>
+                                    <small class="text-muted d-block">
+                                        {{ ($contractLedgerBalanceFromJournal ?? false) ? 'محسوب من قيود العقد في دفتر الأستاذ' : 'محسوب من بيانات الفاتورة - لا توجد قيود مرحّلة لهذا العقد' }}
                                     </small>
                                 </span>
                             </li>
@@ -1639,7 +1642,7 @@
                                             @foreach ($closureAdjustments as $adjustment)
                                                 <tr>
                                                     <td>
-                                                        {{ $adjustment->context === 'manual_credit_note' ? 'مرتجع مستقل' : ($adjustment->type === 'expense' ? 'استرجاع عند الإنهاء' : 'مستحق للشركة عند الإنهاء') }}
+                                                        {{ $adjustment->context === 'closure_correction' ? 'تصحيح تسوية الإنهاء' : ($adjustment->context === 'manual_credit_note' ? 'مرتجع مستقل' : ($adjustment->type === 'expense' ? 'إشعار دائن عند الإنهاء' : 'إشعار مدين عند الإنهاء')) }}
                                                     </td>
                                                     <td>{{ number_format((float) $adjustment->amount, 2) }} ريال</td>
                                                     <td>

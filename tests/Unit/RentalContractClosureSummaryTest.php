@@ -5,6 +5,7 @@ namespace Tests\Unit;
 use App\Http\Controllers\ingaz\RentContractController;
 use App\Models\RentalContract;
 use App\Models\RentalContractExtension;
+use App\Models\RentalFinancialAdjustment;
 use App\Models\RentalContractInfo;
 use App\Models\ingaz\Package;
 use Carbon\Carbon;
@@ -55,6 +56,11 @@ class RentalContractClosureSummaryTest extends TestCase
         $this->assertSame(0.0, $summary['calculated_refund_value']);
         $this->assertSame(573.83, $summary['calculated_company_due_value']);
         $this->assertSame('company_due', $summary['settlement_type']);
+        $this->assertSame(4121.17, $summary['calculated_credit_note_value']);
+        $this->assertSame(0.0, $summary['cash_refund_value']);
+        $this->assertSame(573.83, $summary['cash_to_collect_value']);
+        $this->assertSame('refund', $summary['document_type']);
+        $this->assertSame(4121.17, $summary['document_value']);
     }
 
     public function test_a_paid_extension_is_refunded_down_to_the_used_days(): void
@@ -71,6 +77,8 @@ class RentalContractClosureSummaryTest extends TestCase
         $this->assertSame(4695.00, round($summary['paid_amount'], 2));
         $this->assertSame(4121.17, $summary['calculated_refund_value']);
         $this->assertSame(0.0, $summary['calculated_company_due_value']);
+        $this->assertSame(4121.17, $summary['calculated_credit_note_value']);
+        $this->assertSame(4121.17, $summary['cash_refund_value']);
     }
 
     public function test_a_contract_without_extensions_keeps_its_original_period(): void
@@ -87,6 +95,28 @@ class RentalContractClosureSummaryTest extends TestCase
         $this->assertSame(1565.00, round($summary['contract_value'], 2));
         $this->assertSame(11, $summary['used_days']);
         $this->assertSame(991.17, $summary['calculated_refund_value']);
+    }
+
+    public function test_a_previous_full_credit_note_is_net_against_the_required_closure_note(): void
+    {
+        $summary = $this->buildSummary(
+            paidAmount: 1700.00,
+            paymentStatus: 'paid',
+            closureDate: '2026-08-24',
+            endDate: '2026-08-28',
+            startDate: '2026-07-29',
+            contractValue: 1700.00,
+            adjustments: [
+                ['type' => 'expense', 'context' => 'manual_credit_note', 'amount' => 1700.00],
+            ]
+        );
+
+        $this->assertSame(170.00, $summary['target_credit_note_value']);
+        $this->assertSame(0.0, $summary['calculated_credit_note_value']);
+        $this->assertSame(1530.00, $summary['calculated_debit_note_value']);
+        $this->assertSame('company_due', $summary['document_type']);
+        $this->assertSame(1530.00, $summary['document_value']);
+        $this->assertSame(170.00, $summary['cash_refund_value']);
     }
 
     /**
@@ -113,7 +143,10 @@ class RentalContractClosureSummaryTest extends TestCase
         string $paymentStatus = 'pending',
         array $extensions = [],
         string $closureDate = '2026-07-29',
-        string $endDate = '2026-10-17'
+        string $endDate = '2026-10-17',
+        string $startDate = '2026-07-19',
+        float $contractValue = 1565.00,
+        array $adjustments = []
     ): array {
         $package = new Package([
             'days_count' => 30,
@@ -124,13 +157,13 @@ class RentalContractClosureSummaryTest extends TestCase
 
         $info = new RentalContractInfo([
             'package_id' => 5,
-            'monthly_cost' => 1565.00,
+            'monthly_cost' => $contractValue,
             'contract_duration_months' => 1,
             'contract_duration_days' => 30,
-            'contract_value' => 1565.00,
+            'contract_value' => $contractValue,
             'paid_amount' => $paidAmount,
             'payment_status' => $paymentStatus,
-            'ingaz_from' => '2026-07-19',
+            'ingaz_from' => $startDate,
             'ingaz_to' => $endDate,
         ]);
         $info->setRelation('package', $package);
@@ -140,7 +173,10 @@ class RentalContractClosureSummaryTest extends TestCase
         $contract->setRelation('order', null);
         $contract->setRelation('maid', null);
         $contract->setRelation('financeInvoice', null);
-        $contract->setRelation('financialAdjustments', new Collection());
+        $contract->setRelation('financialAdjustments', new Collection(array_map(
+            fn (array $attributes) => new RentalFinancialAdjustment($attributes),
+            $adjustments
+        )));
         $contract->setRelation('extensions', new Collection(array_map(
             fn (array $attributes) => new RentalContractExtension($attributes),
             $extensions

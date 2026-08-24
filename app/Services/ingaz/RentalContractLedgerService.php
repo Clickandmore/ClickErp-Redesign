@@ -32,6 +32,13 @@ class RentalContractLedgerService
             return null;
         }
 
+        // بلا قيد فاتورة مرحَّل تكون صورة الأستاذ ناقصة الطرف المدين: سندات
+        // القبض وحدها ترحّل دائناً فيخرج رصيد دائن ضخم لا معنى له. الاشتقاق
+        // الحسابي أصدق في هذه الحالة لأنه يبدأ من قيمة الفاتورة المخزَّنة.
+        if (!$contract->financeInvoice?->invoice_constraint_id) {
+            return null;
+        }
+
         $constraintIds = $this->constraintIdsForContract($contract);
 
         if ($constraintIds->isEmpty()) {

@@ -935,27 +935,27 @@
                                             <p id="financialUsedCost">-</p>
                                         </div>
                                         <div class="col-md-3">
-                                            <strong>الاسترجاع المقترح:</strong>
+                                            <strong>الإشعار الدائن (فرق الذمة):</strong>
                                             <p id="financialSuggestedRefund">-</p>
                                         </div>
                                         <div class="col-md-3">
-                                            <strong>مستحق الشركة:</strong>
+                                            <strong>الإشعار المدين (فرق الذمة):</strong>
                                             <p id="financialCompanyDue">-</p>
                                         </div>
                                     </div>
                                     <div class="row g-3 mt-2 align-items-end">
                                         <div class="col-md-4">
                                             <label class="form-label">نوع التسوية</label>
-                                            <select class="form-select" id="closeAdjustmentType">
-                                                <option value="refund">استرجاع للعميل</option>
-                                                <option value="company_due">مستحق للشركة</option>
-                                            </select>
+                                            <input type="hidden" id="closeAdjustmentType" value="none">
+                                            <input type="text" class="form-control" id="closeAdjustmentTypeLabel"
+                                                value="يُحدد تلقائياً" readonly>
+                                            <div class="form-text">يُحدد من فرق المفوتر والمستحق الفعلي ولا يقبل التعديل.</div>
                                         </div>
                                         <div class="col-md-4">
-                                            <label class="form-label" id="closeAdjustmentAmountLabel">مبلغ
-                                                الاسترجاع</label>
+                                            <label class="form-label" id="closeAdjustmentAmountLabel">قيمة
+                                                الإشعار الضريبي</label>
                                             <input type="number" class="form-control" id="closeAdjustmentAmount"
-                                                min="0" step="0.01" value="0">
+                                                min="0" step="0.01" value="0" readonly>
                                         </div>
                                         <div class="col-md-4">
                                             <label class="form-label">المستحق النهائي</label>
@@ -967,28 +967,6 @@
                                             <label class="form-label">سبب الإرجاع / الإغلاق المبكر</label>
                                             <textarea class="form-control" id="closeReturnReason" rows="3"
                                                 placeholder="اكتب سبب إرجاع العاملة أو الإغلاق المبكر..."></textarea>
-                                        </div>
-                                    </div>
-                                    <div class="row g-3 mt-2 align-items-end">
-                                        <div class="col-md-4">
-                                            <div class="form-check mt-4">
-                                                <input class="form-check-input" type="checkbox"
-                                                    id="closeClearRemainingToggle">
-                                                <label class="form-check-label" for="closeClearRemainingToggle">
-                                                    تصفير المبلغ المتبقي
-                                                </label>
-                                            </div>
-                                        </div>
-                                        <div class="col-md-4">
-                                            <label class="form-label">مبلغ التصفير</label>
-                                            <input type="number" class="form-control" id="closeClearRemainingAmount"
-                                                min="0" step="0.01" value="0" disabled>
-                                        </div>
-                                        <div class="col-md-4">
-                                            <label class="form-label">المتبقي بعد التصفير</label>
-                                            <div class="fw-bold">
-                                                <span id="finalRemainingAmount">0.00 ريال</span>
-                                            </div>
                                         </div>
                                     </div>
                                     <div class="row g-3 mt-3">
@@ -1061,7 +1039,7 @@
                                 <ul class="close-option-list">
                                     <li>يتم إنهاء عقد الإيجار الحالي.</li>
                                     <li>تعود العاملة إلى حالة متاحة للتأجير.</li>
-                                    <li>يمكن تسجيل الاسترجاع أو تصفير المتبقي من البيان المالي أعلاه.</li>
+                                    <li>الرصيد النهائي يُحسب تلقائياً من المستحق الفعلي والمدفوع، ولا يُصفّر يدوياً.</li>
                                 </ul>
                                 <button type="button" class="btn btn-success w-100" id="closeAndMakeAvailableBtn">
                                     <i class="fas fa-check me-2"></i>
@@ -2236,25 +2214,14 @@
             });
 
             function updateCloseFinancialPreview() {
-                const remainingAmount = parseFloat($('#financialRemainingAmount').data('raw') || 0);
                 const adjustmentAmount = parseFloat($('#closeAdjustmentAmount').val() || 0);
-                const adjustmentType = $('#closeAdjustmentType').val() || 'refund';
-                const clearRemainingEnabled = $('#closeClearRemainingToggle').is(':checked');
-                let clearRemainingAmount = clearRemainingEnabled ? parseFloat($('#closeClearRemainingAmount')
-                .val() || 0) : 0;
+                const adjustmentType = $('#closeAdjustmentType').val() || 'none';
 
-                $('#closeAdjustmentAmountLabel').text(adjustmentType === 'company_due' ? 'مبلغ مستحق الشركة' :
-                    'مبلغ الاسترجاع');
-
-                if (clearRemainingAmount > remainingAmount) {
-                    clearRemainingAmount = remainingAmount;
-                    $('#closeClearRemainingAmount').val(clearRemainingAmount.toFixed(2));
-                }
-
-                const finalRemaining = Math.max(0, remainingAmount - clearRemainingAmount);
+                $('#closeAdjustmentAmountLabel').text(adjustmentType === 'company_due'
+                    ? 'قيمة الإشعار المدين'
+                    : (adjustmentType === 'refund' ? 'قيمة الإشعار الدائن' : 'قيمة الإشعار'));
 
                 $('#finalDueAmount').text(formatCurrency(adjustmentAmount) + ' ريال');
-                $('#finalRemainingAmount').text(formatCurrency(finalRemaining) + ' ريال');
             }
 
             function formatCloseRemainingDaysText(contract) {
@@ -2300,8 +2267,7 @@
                 $('#financialContractValue').text(formatCurrency(contract.contract_value || 0) + ' ريال');
                 $('#financialPaidAmount').text(formatCurrency(contract.paid_amount || 0) + ' ريال');
                 $('#financialRemainingAmount')
-                    .text(formatCurrency(contract.remaining_amount || 0) + ' ريال')
-                    .data('raw', contract.remaining_amount || 0);
+                    .text(formatCurrency(contract.remaining_amount || 0) + ' ريال');
                 $('#financialUsedDays').text(contract.used_days !== null && typeof contract.used_days !==
                     'undefined' ? (contract.used_days + ' يوم') : '-');
                 $('#financialRemainingDays').text(contract.remaining_days_value !== null && typeof contract
@@ -2310,20 +2276,21 @@
                     'undefined' ? (contract.overdue_days + ' يوم') : '-');
                 $('#financialDailyRate').text(formatCurrency(contract.daily_rate || 0) + ' ريال');
                 $('#financialUsedCost').text(formatCurrency(contract.used_cost || 0) + ' ريال');
-                $('#financialSuggestedRefund').text(formatCurrency(contract.calculated_refund_value || 0) +
+                $('#financialSuggestedRefund').text(formatCurrency(contract.calculated_credit_note_value || 0) +
                 ' ريال');
-                $('#financialCompanyDue').text(formatCurrency(contract.calculated_company_due_value || 0) +
+                $('#financialCompanyDue').text(formatCurrency(contract.calculated_debit_note_value || 0) +
                 ' ريال');
                 $('#earlyClosureNotice').toggleClass('d-none', !contract.is_early_closure);
                 if (contract.closure_status_text) {
                     $('#currentStatus').text((contract.status_text || '-') + ' / بعد الإنهاء: ' + contract
                         .closure_status_text);
                 }
-                $('#closeAdjustmentType')
-                    .data('refund-value', contract.refund_value || 0)
-                    .data('company-due-value', contract.company_due_value || 0)
-                    .val(contract.settlement_type || 'refund');
-                $('#closeAdjustmentAmount').val(parseFloat(contract.settlement_value || 0).toFixed(2));
+                const documentType = contract.document_type || 'none';
+                $('#closeAdjustmentType').val(documentType);
+                $('#closeAdjustmentTypeLabel').val(documentType === 'company_due'
+                    ? 'إشعار مدين'
+                    : (documentType === 'refund' ? 'إشعار دائن' : 'لا يوجد إشعار'));
+                $('#closeAdjustmentAmount').val(parseFloat(contract.document_value || 0).toFixed(2));
                 updateCloseFinancialPreview();
             }
 
@@ -2347,10 +2314,9 @@
             }
 
             function resetCloseFinancialFields() {
-                $('#closeAdjustmentType').val('refund');
+                $('#closeAdjustmentType').val('none');
+                $('#closeAdjustmentTypeLabel').val('يُحدد تلقائياً');
                 $('#closeAdjustmentAmount').val('0');
-                $('#closeClearRemainingToggle').prop('checked', false);
-                $('#closeClearRemainingAmount').val('0').prop('disabled', true);
                 $('#closePaymentStatus').val('');
                 $('#closePaymentReceipt').val('');
                 $('#closeClientIban').val('');
@@ -2360,8 +2326,6 @@
                 $('#closureDate').val('').removeAttr('min');
                 $('#closeClientIbanAttachmentCurrentWrapper').addClass('d-none');
                 $('#closeClientIbanAttachmentCurrent').attr('href', '#');
-                $('#closeAdjustmentType').data('refund-value', 0).data('company-due-value', 0);
-                $('#financialRemainingAmount').data('raw', 0);
                 $('#financialDailyRate').text('-');
                 $('#financialUsedCost').text('-');
                 $('#financialSuggestedRefund').text('-');
@@ -2374,26 +2338,7 @@
                 reloadCloseFinancialSummary();
             });
 
-            $('#closeAdjustmentType').on('change', function() {
-                const selectedType = $(this).val() || 'refund';
-                const defaultAmount = selectedType === 'company_due' ?
-                    $(this).data('company-due-value') :
-                    $(this).data('refund-value');
-
-                $('#closeAdjustmentAmount').val(parseFloat(defaultAmount || 0).toFixed(2));
-                updateCloseFinancialPreview();
-            });
-
-            $('#closeAdjustmentAmount, #closeClearRemainingAmount').on('input change', function() {
-                updateCloseFinancialPreview();
-            });
-
-            $('#closeClearRemainingToggle').on('change', function() {
-                const enabled = $(this).is(':checked');
-                $('#closeClearRemainingAmount').prop('disabled', !enabled);
-                if (!enabled) {
-                    $('#closeClearRemainingAmount').val('0');
-                }
+            $('#closeAdjustmentAmount').on('input change', function() {
                 updateCloseFinancialPreview();
             });
 
@@ -2608,8 +2553,7 @@
                             $('#financialPaidAmount').text(formatCurrency(contract
                                 .paid_amount || 0) + ' ريال');
                             $('#financialRemainingAmount')
-                                .text(formatCurrency(contract.remaining_amount || 0) + ' ريال')
-                                .data('raw', contract.remaining_amount || 0);
+                                .text(formatCurrency(contract.remaining_amount || 0) + ' ريال');
                             $('#financialUsedDays').text(contract.used_days !== null &&
                                 typeof contract.used_days !== 'undefined' ? (contract
                                     .used_days + ' يوم') : '-');
@@ -2622,8 +2566,8 @@
                             $('#financialUsedCost').text(formatCurrency(contract.used_cost ||
                                 0) + ' ريال');
                             $('#financialSuggestedRefund').text(formatCurrency(contract
-                                .calculated_refund_value || 0) + ' ريال');
-                            $('#closeAdjustmentAmount').val(parseFloat(contract.refund_value ||
+                                .calculated_credit_note_value || 0) + ' ريال');
+                            $('#closeAdjustmentAmount').val(parseFloat(contract.calculated_credit_note_value ||
                                 0).toFixed(2));
                             fillCloseFinancialFields(contract);
                             $('#closeReturnReason').val(contract.closure_return_reason || '');
@@ -2682,8 +2626,6 @@
                         formData.append('_token', '{{ csrf_token() }}');
                         formData.append('adjustment_type', $('#closeAdjustmentType').val());
                         formData.append('adjustment_amount', $('#closeAdjustmentAmount').val() || 0);
-                        formData.append('clear_remaining_amount', $('#closeClearRemainingToggle').is(
-                            ':checked') ? ($('#closeClearRemainingAmount').val() || 0) : 0);
                         formData.append('closure_date', $('#closureDate').val());
                         formData.append('closure_return_reason', $('#closeReturnReason').val());
                         formData.append('close_payment_status', $('#closePaymentStatus').val());

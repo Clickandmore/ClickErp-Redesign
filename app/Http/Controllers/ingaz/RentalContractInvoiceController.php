@@ -136,7 +136,7 @@ class RentalContractInvoiceController extends Controller
                 'rentalContract.info.package',
                 'rentalContract.financeInvoice',
             ])
-            ->whereIn('context', ['closure', 'manual_credit_note'])
+            ->whereIn('context', ['closure', 'manual_credit_note', 'closure_correction'])
             ->findOrFail($id);
         $contract = $adjustment->rentalContract;
         $invoice = $contract?->financeInvoice;
@@ -144,11 +144,21 @@ class RentalContractInvoiceController extends Controller
         abort_unless($contract && $invoice, 404);
 
         $viewData = $this->prepareInvoiceViewData($invoice->id);
-        $breakdown = $financeService->closureAdjustmentAmounts(
-            $invoice,
-            $contract,
-            (float) $adjustment->amount
-        );
+        $hasStoredBreakdown = $adjustment->taxable_amount !== null
+            && $adjustment->non_taxable_amount !== null
+            && $adjustment->vat_amount !== null;
+        $breakdown = $hasStoredBreakdown
+            ? [
+                'taxable_subtotal' => (float) $adjustment->taxable_amount,
+                'salary_exempt_amount' => (float) $adjustment->non_taxable_amount,
+                'vat_amount' => (float) $adjustment->vat_amount,
+                'total' => (float) $adjustment->amount,
+            ]
+            : $financeService->closureAdjustmentAmounts(
+                $invoice,
+                $contract,
+                (float) $adjustment->amount
+            );
         $isCreditNote = $adjustment->type === 'expense';
         $taxableSubtotal = (float) $breakdown['taxable_subtotal'];
         $salaryExemptAmount = (float) $breakdown['salary_exempt_amount'];
@@ -207,9 +217,13 @@ class RentalContractInvoiceController extends Controller
             'documentNumberLabel' => $isCreditNote ? 'رقم الإشعار الدائن' : 'رقم الإشعار المدين',
             'documentNumber' => $adjustment->id,
             'invoiceStatus' => 'معتمد',
-            'serviceDesc' => $adjustment->context === 'manual_credit_note' ? 'مرتجع فاتورة تأجير' : 'تسوية إنهاء عقد تأجير',
+            'serviceDesc' => in_array($adjustment->context, ['manual_credit_note', 'closure_correction'], true)
+                ? 'تصحيح فاتورة تأجير'
+                : 'تسوية إنهاء عقد تأجير',
             'serviceLongDescription' => ($isCreditNote ? 'استرجاع للعميل' : 'مستحق للشركة')
-                . ($adjustment->context === 'manual_credit_note' ? ' دون إنهاء عقد التأجير رقم ' : ' عند إنهاء عقد التأجير رقم ')
+                . (in_array($adjustment->context, ['manual_credit_note', 'closure_correction'], true)
+                    ? ' لتصحيح عقد التأجير رقم '
+                    : ' عند إنهاء عقد التأجير رقم ')
                 . ($contract->contract_number ?: $contract->id)
                 . ' المرتبط بالفاتورة #'
                 . $invoice->id,
@@ -250,7 +264,7 @@ class RentalContractInvoiceController extends Controller
         $credited = RentalFinancialAdjustment::query()
             ->where('rental_contract_id', $invoice->rental_contract_id)
             ->where('type', 'expense')
-            ->whereIn('context', ['closure', 'manual_credit_note'])
+            ->whereIn('context', ['closure', 'manual_credit_note', 'closure_correction'])
             ->sum('amount');
 
         return round(max(0, (float) $invoice->total_due - (float) $credited), 2);

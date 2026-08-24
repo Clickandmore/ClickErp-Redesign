@@ -480,6 +480,7 @@ Route::group(
             // Ø§Ù„ÙÙˆØ§ØªÙŠØ±
             Route::post('invoices/{id}/queue-zatca-sale', [InvoiceController::class, 'queueZatcaSale'])->name('invoices.queue-zatca-sale');
             Route::post('rental-invoices/{id}/queue-zatca-sale', [InvoiceController::class, 'queueRentalZatcaSale'])->name('rental-invoices.queue-zatca-sale');
+            Route::post('rental-adjustments/{id}/queue-zatca-sale', [InvoiceController::class, 'queueRentalAdjustmentZatcaSale'])->name('rental-adjustments.queue-zatca-sale');
             Route::get('SponsorshipTransfer/{id}/invoice/create', [InvoiceController::class, 'createSponsorshipTransfer'])->name('SponsorshipTransfer.invoice.create');
             Route::get('invoices/search-clients', [InvoiceController::class, 'searchClients'])->name('invoices.searchClients');
             Route::get('invoices/export/excel', [InvoiceController::class, 'exportExcel'])->name('invoices.export.excel');

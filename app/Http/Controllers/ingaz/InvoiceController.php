@@ -17,6 +17,7 @@ use App\Models\ingaz\Nationality;
 use App\Models\ingaz\Setting;
 use App\Models\ingaz\User as ClientUser;
 use App\Services\ingaz\InvoiceCalculationService;
+use App\Services\ingaz\RentalContractFinanceService;
 use App\Support\AutomaticJournalEntries;
 use App\Support\InvoiceQrCode;
 use App\Support\RentalContractPricing;
@@ -243,7 +244,7 @@ class InvoiceController extends Controller
             ->leftJoin('users as adjustment_client', 'adjustment_client.id', '=', 'adjustment_contract.user_id')
             ->leftJoin('fn_sales as adjustment_sale', 'adjustment_sale.id', '=', 'closure_adjustment.finance_sale_id')
             ->leftJoin('zatca_invoices as adjustment_zatca', 'adjustment_zatca.id', '=', 'adjustment_sale.zatca_invoice_id')
-            ->whereIn('closure_adjustment.context', ['closure', 'manual_credit_note'])
+            ->whereIn('closure_adjustment.context', ['closure', 'manual_credit_note', 'closure_correction'])
             ->where('closure_adjustment.amount', '>', 0);
 
         if ($rentalBranchesEnabled) {
@@ -564,7 +565,9 @@ class InvoiceController extends Controller
                 : '';
             $saleButton = ($row->finance_sale_id ?? null)
                 ? '<a href="' . route('finance.bill-sales.show', $row->finance_sale_id) . '" class="btn btn-sm btn-outline-success" title="مرتجع المبيعات"><i class="fas fa-link"></i></a>'
-                : '';
+                : '<form method="post" action="' . route('rental-adjustments.queue-zatca-sale', $row->id) . '" class="d-inline queue-zatca-form">'
+                    . csrf_field()
+                    . '<button type="submit" class="btn btn-sm btn-outline-success" title="إدراج الإشعار في مستندات الزكاة"><i class="fas fa-receipt"></i></button></form>';
 
             return '<div class="d-flex justify-content-end gap-2">
                         <a href="' . $contractUrl . '" class="btn btn-sm btn-outline-primary" title="عرض عقد التأجير"><i class="fas fa-eye"></i></a>
@@ -1526,6 +1529,30 @@ class InvoiceController extends Controller
         }
     }
 
+    public function queueRentalAdjustmentZatcaSale(int $id)
+    {
+        try {
+            $adjustment = RentalFinancialAdjustment::query()
+                ->with(['rentalContract.financeInvoice.financeSale'])
+                ->whereIn('context', ['closure', 'manual_credit_note', 'closure_correction'])
+                ->findOrFail($id);
+            $this->assertCanAccessBranchModel($adjustment, 'rental_financial_adjustments');
+            $invoice = $adjustment->rentalContract?->financeInvoice;
+
+            if (!$invoice) {
+                throw new \RuntimeException('لا توجد فاتورة أصلية مرتبطة بهذا الإشعار.');
+            }
+
+            DB::transaction(function () use ($adjustment, $invoice) {
+                $this->queueRentalCreditNoteForZatcaSale($adjustment, $invoice);
+            });
+
+            return back()->with('success', 'تم إدراج إشعار التأجير ضمن مستندات المبيعات المعلقة لهيئة الزكاة.');
+        } catch (\Throwable $e) {
+            return back()->with('error', $e->getMessage());
+        }
+    }
+
     public function legacySourceFile(int $id)
     {
         $invoice = Invoice::query()->findOrFail($id);
@@ -1723,22 +1750,52 @@ class InvoiceController extends Controller
             (int) ($contract->info?->contract_duration_months ?? 0)
         );
         $grossTotal = $this->roundMoney((float) $invoice->total_due);
+        $postedTotal = 0.0;
+        if ($invoice->invoice_constraint_id && $clientUser->account_id) {
+            $postedTotal = $this->roundMoney((float) DB::table('fn_constraint_details')
+                ->where('constraint_id', $invoice->invoice_constraint_id)
+                ->where('account_id', $clientUser->account_id)
+                ->whereNull('deleted_at')
+                ->sum('debtor_value'));
+        }
+        if ($postedTotal > 0) {
+            $grossTotal = $postedTotal;
+        }
         if ($grossTotal <= 0) {
             $grossTotal = $this->roundMoney(
                 max(0, (float) $invoice->subtotal - (float) $invoice->discount + (float) $invoice->vat_amount)
             );
         }
-        $zatcaAmounts = $this->rentalZatcaAmounts(RentalContractPricing::fromGrossPrice(
-            $grossTotal,
-            $monthlySalary,
-            $durationDays,
-            (int) ($contract->info?->contract_duration_months ?? 0)
-        ));
-        $salaryExemptAmount = $zatcaAmounts['salary_exempt_amount'];
-        $taxableSubtotal = $zatcaAmounts['taxable_subtotal'];
-        $vatAmount = $zatcaAmounts['vat_amount'];
-        $invoiceSubtotal = $zatcaAmounts['invoice_subtotal'];
-        $zatcaTotal = $zatcaAmounts['total'];
+        if ($postedTotal > 0) {
+            $postedBreakdown = app(RentalContractFinanceService::class)
+                ->closureAdjustmentAmounts($invoice, $contract, $grossTotal);
+            $salaryExemptAmount = (float) $postedBreakdown['salary_exempt_amount'];
+            $taxableSubtotal = (float) $postedBreakdown['taxable_subtotal'];
+            $vatAmount = (float) $postedBreakdown['vat_amount'];
+            $invoiceSubtotal = $this->roundMoney($salaryExemptAmount + $taxableSubtotal);
+            $zatcaTotal = $this->roundMoney($invoiceSubtotal + $vatAmount);
+
+            // سطر الفاتورة القديمة قد يخالف قيدها. قبل تكوين حمولة الهيئة نجعل
+            // السطر مرآة للقيد المرحّل، من دون المساس بالقيد أو رصيد العميل.
+            $storedDiscount = $this->roundMoney((float) $invoice->discount);
+            $invoice->update([
+                'subtotal' => $this->roundMoney($invoiceSubtotal + $storedDiscount),
+                'vat_amount' => $vatAmount,
+                'total_due' => $zatcaTotal,
+            ]);
+        } else {
+            $zatcaAmounts = $this->rentalZatcaAmounts(RentalContractPricing::fromGrossPrice(
+                $grossTotal,
+                $monthlySalary,
+                $durationDays,
+                (int) ($contract->info?->contract_duration_months ?? 0)
+            ));
+            $salaryExemptAmount = $zatcaAmounts['salary_exempt_amount'];
+            $taxableSubtotal = $zatcaAmounts['taxable_subtotal'];
+            $vatAmount = $zatcaAmounts['vat_amount'];
+            $invoiceSubtotal = $zatcaAmounts['invoice_subtotal'];
+            $zatcaTotal = $zatcaAmounts['total'];
+        }
 
         $accountId = $this->ensureClientUserAccountId($clientUser);
         $financeClient = $this->ensureFinanceClientForInvoice($clientUser, $accountId);
@@ -1830,6 +1887,7 @@ class InvoiceController extends Controller
         $taxable = $this->roundMoney((float) $adjustment->taxable_amount);
         $nonTaxable = $this->roundMoney((float) $adjustment->non_taxable_amount);
         $vat = $this->roundMoney((float) $adjustment->vat_amount);
+        $isCreditNote = $adjustment->type === 'expense';
 
         $sale = Sale::query()->create([
             'code' => $this->nextFinanceSaleCode(),
@@ -1838,22 +1896,23 @@ class InvoiceController extends Controller
             'date' => optional($adjustment->issue_date)->toDateString()
                 ?: optional($adjustment->created_at)->toDateString()
                 ?: now()->toDateString(),
-            'notes' => 'إشعار دائن تأجير #' . $adjustment->id . ' للفاتورة #' . $invoice->id,
+            'notes' => ($isCreditNote ? 'إشعار دائن' : 'إشعار مدين')
+                . ' تأجير #' . $adjustment->id . ' للفاتورة #' . $invoice->id,
             'adjustment_reason' => $adjustment->notes,
             'original_sale_id' => $originalSale->id,
             'total_item' => $this->roundMoney($taxable + $nonTaxable),
             'discount' => 0,
             'final_total' => (float) $adjustment->amount,
             'total_tax_value' => $vat,
-            'type' => SalesTypeEnum::BackSales->value,
+            'type' => $isCreditNote ? SalesTypeEnum::BackSales->value : SalesTypeEnum::Sales->value,
             'file' => 'no_file',
             'payment_type' => $invoice->payment_type ?: 'cash',
             'created_by_id' => Auth::guard('admin')->id() ?: Auth::id() ?: 1,
         ]);
 
         foreach ([
-            [$taxableItemId, 'عكس خدمات التأجير', $taxable, $vat, 15],
-            [$exemptItemId, 'عكس راتب العاملة المعفى من الضريبة', $nonTaxable, 0, 0],
+            [$taxableItemId, ($isCreditNote ? 'عكس' : 'إضافة') . ' خدمات التأجير', $taxable, $vat, 15],
+            [$exemptItemId, ($isCreditNote ? 'عكس' : 'إضافة') . ' راتب العاملة المعفى من الضريبة', $nonTaxable, 0, 0],
         ] as [$itemId, $label, $net, $itemVat, $taxRate]) {
             if ($net <= 0) {
                 continue;
