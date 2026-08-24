@@ -7,6 +7,7 @@ use App\Models\auth\Admin;
 use App\PermKeys;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Illuminate\Http\UploadedFile;
+use Spatie\Permission\PermissionRegistrar;
 use Tests\TestCase;
 
 class RentalClosureAdjustmentAuthorizationTest extends TestCase
@@ -52,6 +53,8 @@ class RentalClosureAdjustmentAuthorizationTest extends TestCase
             );
             $admin->givePermissionTo($permission);
         }
+
+        app(PermissionRegistrar::class)->forgetCachedPermissions();
 
         return $admin;
     }

@@ -3073,13 +3073,14 @@ class RentContractController extends Controller
         $currentAdmin = auth('admin')->user();
 
         if ($manualOverrideRequested) {
+            $currentPermissionNames = $currentAdmin?->getAllPermissions()->pluck('name') ?? collect();
             abort_unless(
-                $currentAdmin?->hasPermissionTo(PermKeys::RENT_CONTRACT_CLOSURE_ADJUSTMENT_OVERRIDE, 'admin'),
+                $currentPermissionNames->contains(PermKeys::RENT_CONTRACT_CLOSURE_ADJUSTMENT_OVERRIDE),
                 403,
                 'ليس لديك صلاحية تعديل قيمة تسوية إنهاء العقد.'
             );
             abort_unless(
-                $currentAdmin?->hasPermissionTo(PermKeys::RENT_CONTRACT_CLOSURE_ADJUSTMENT_APPROVE, 'admin'),
+                $currentPermissionNames->contains(PermKeys::RENT_CONTRACT_CLOSURE_ADJUSTMENT_APPROVE),
                 403,
                 'لا يمكن تنفيذ التسوية المعدلة قبل منح صلاحية اعتمادها.'
             );
