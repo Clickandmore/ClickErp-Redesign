@@ -1695,6 +1695,8 @@ return array (
   'rental_contract_accounts_section_hint' => 'Choose the accounts used by rental invoices, receipt vouchers, and contract closure settlements.',
   'rental_contract_revenue_account' => 'Rental Service / Deferred Revenue Account',
   'rental_contract_revenue_account_hint' => 'The credit account used for rental services and reversed on early closure.',
+  'rental_contract_exempt_salary_revenue_account' => 'Exempt Worker Salary Account - Rental Contracts',
+  'rental_contract_exempt_salary_revenue_account_hint' => 'A separate leaf credit account for the non-taxable worker salary component, reversed by closure notes.',
   'rental_contract_clients_parent_account' => 'Rental Clients Parent Account',
   'rental_contract_clients_parent_account_hint' => 'New rental client subaccounts are created below this account.',
   'rental_contract_cash_account' => 'Rental Cash Receipt Account',

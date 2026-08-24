@@ -534,6 +534,14 @@ class RentalContractFinanceService
         ];
     }
 
+    public function rentalRevenueAccountIds(): array
+    {
+        return [
+            'service' => $this->resolveDeferredRevenueAccountId(),
+            'salary_exempt' => $this->resolveExemptSalaryRevenueAccountId(),
+        ];
+    }
+
     public function recordClosureAdjustment(
         RentalContract $contract,
         RentalFinancialAdjustment $adjustment,
@@ -728,27 +736,24 @@ class RentalContractFinanceService
         $deferredRevenueAccountId = $this->resolveDeferredRevenueAccountId();
         $taxableSubtotal = $this->roundMoney((float) ($amounts['taxable_subtotal'] ?? $amounts['net_subtotal'] ?? 0));
         $salaryExemptAmount = $this->roundMoney((float) ($amounts['salary_exempt_amount'] ?? 0));
+        $salaryRevenueAccountId = $salaryExemptAmount > 0
+            ? $this->resolveExemptSalaryRevenueAccountId()
+            : $deferredRevenueAccountId;
 
-        if ($taxableSubtotal > 0) {
+        foreach ($this->invoiceRevenueAllocations(
+            $taxableSubtotal,
+            $salaryExemptAmount,
+            $deferredRevenueAccountId,
+            $salaryRevenueAccountId
+        ) as $allocation) {
             $this->appendConstraintPair(
                 $lines,
-                $this->resolveExemptSalaryRevenueAccountId(),
+                $allocation['account_id'],
                 $clientAccountId,
-                $taxableSubtotal,
-                $salaryExemptAmount > 0 ? $statement . ' / خدمات التأجير الخاضعة للضريبة' : $statement,
-                $costCenterId
-            );
-        }
-
-        if ($salaryExemptAmount > 0) {
-            $salaryStatement = $this->buildWorkerSalaryStatement($statement, $contract, $salaryExemptAmount);
-
-            $this->appendConstraintPair(
-                $lines,
-                $deferredRevenueAccountId,
-                $clientAccountId,
-                $salaryExemptAmount,
-                $salaryStatement,
+                $allocation['amount'],
+                $allocation['kind'] === 'salary'
+                    ? $this->buildWorkerSalaryStatement($statement, $contract, $allocation['amount'])
+                    : ($salaryExemptAmount > 0 ? $statement . ' / خدمات التأجير الخاضعة للضريبة' : $statement),
                 $costCenterId
             );
         }
@@ -1078,6 +1083,26 @@ class RentalContractFinanceService
             : (float) ($contract->maid?->resolved_salary ?? $contract->maid?->salary ?? 0);
     }
 
+    private function invoiceRevenueAllocations(
+        float $taxableSubtotal,
+        float $salaryExemptAmount,
+        int $serviceRevenueAccountId,
+        int $salaryRevenueAccountId
+    ): array {
+        return collect([
+            [
+                'kind' => 'service',
+                'account_id' => $serviceRevenueAccountId,
+                'amount' => $this->roundMoney($taxableSubtotal),
+            ],
+            [
+                'kind' => 'salary',
+                'account_id' => $salaryRevenueAccountId,
+                'amount' => $this->roundMoney($salaryExemptAmount),
+            ],
+        ])->filter(fn (array $allocation) => $allocation['amount'] > 0)->values()->all();
+    }
+
     private function resolveContractPricing(
         RentalContract $contract,
         ?Package $package,
@@ -1315,7 +1340,8 @@ class RentalContractFinanceService
     {
         $configuredAccountId = $this->configuredAccountId(
             self::RENTAL_REVENUE_ACCOUNT_SETTING,
-            'creditor'
+            'creditor',
+            true
         );
 
         if ($configuredAccountId) {
@@ -1395,7 +1421,8 @@ class RentalContractFinanceService
     {
         $configuredAccountId = $this->configuredAccountId(
             self::RENTAL_EXEMPT_SALARY_REVENUE_ACCOUNT_SETTING,
-            'creditor'
+            'creditor',
+            true
         );
 
         if ($configuredAccountId) {
@@ -1476,7 +1503,7 @@ class RentalContractFinanceService
             'tabby', 'tamara', 'moyasar' => self::RENTAL_ELECTRONIC_ACCOUNT_SETTING,
             default => self::RENTAL_BANK_ACCOUNT_SETTING,
         };
-        $configuredAccountId = $this->configuredAccountId($settingTitle, 'debtor');
+        $configuredAccountId = $this->configuredAccountId($settingTitle, 'debtor', true);
 
         if ($configuredAccountId) {
             return Account::query()->findOrFail($configuredAccountId);
@@ -1582,7 +1609,11 @@ class RentalContractFinanceService
         return round($amount, 2);
     }
 
-    private function configuredAccountId(string $settingTitle, string $expectedStatus): ?int
+    private function configuredAccountId(
+        string $settingTitle,
+        string $expectedStatus,
+        bool $mustBeLeaf = false
+    ): ?int
     {
         $accountId = ConfirmSetting::query()
             ->where('title', $settingTitle)
@@ -1597,9 +1628,13 @@ class RentalContractFinanceService
         $status = $account?->status;
         $statusValue = $status instanceof \BackedEnum ? $status->value : (string) $status;
 
-        if (!$account || $statusValue !== $expectedStatus) {
+        if (
+            !$account
+            || $statusValue !== $expectedStatus
+            || ($mustBeLeaf && $account->children()->exists())
+        ) {
             throw new \RuntimeException(
-                'الحساب المحدد في إعدادات عقود التأجير غير موجود أو طبيعته المحاسبية غير صحيحة.'
+                'الحساب المحدد في إعدادات عقود التأجير غير موجود أو طبيعته المحاسبية غير صحيحة أو ليس حساباً نهائياً.'
             );
         }
 

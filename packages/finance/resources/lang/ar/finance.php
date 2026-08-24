@@ -1695,6 +1695,8 @@ return array (
   'rental_contract_accounts_section_hint' => 'حدد الحسابات المستخدمة تلقائياً في فاتورة عقد التأجير وسند القبض وقيد تسوية الإنهاء.',
   'rental_contract_revenue_account' => 'حساب إيراد / إيراد مقدم خدمات التأجير',
   'rental_contract_revenue_account_hint' => 'الحساب الدائن المستخدم لإثبات خدمات التأجير، ويُعكس عند إنهاء العقد المبكر.',
+  'rental_contract_exempt_salary_revenue_account' => 'حساب راتب العاملة المعفى - عقود التأجير',
+  'rental_contract_exempt_salary_revenue_account_hint' => 'حساب دائن نهائي مستقل لإثبات جزء راتب العاملة غير الخاضع للضريبة، ويُعكس في إشعارات الإنهاء.',
   'rental_contract_clients_parent_account' => 'الحساب الرئيسي لعملاء التأجير',
   'rental_contract_clients_parent_account_hint' => 'تُنشأ الحسابات الفرعية لعملاء عقود التأجير تحت هذا الحساب.',
   'rental_contract_cash_account' => 'حساب قبض التأجير النقدي',

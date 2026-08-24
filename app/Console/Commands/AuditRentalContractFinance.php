@@ -17,10 +17,11 @@ class AuditRentalContractFinance extends Command
         {--repair-extensions : Recalculate extension values and create missing extension constraints}
         {--repair-closures : Create missing constraints for already recorded closure adjustments}';
 
-    protected $description = 'Audit rental VAT, extension values, and missing financial postings without altering posted invoices';
+    protected $description = 'Audit rental VAT, exempt salary allocation, extension values, and missing financial postings without altering posted invoices';
 
     public function handle(RentalContractFinanceService $financeService): int
     {
+        $revenueAccountIds = $financeService->rentalRevenueAccountIds();
         $contractIds = collect($this->option('contract'))
             ->filter(fn ($id) => ctype_digit((string) $id))
             ->map(fn ($id) => (int) $id)
@@ -37,7 +38,13 @@ class AuditRentalContractFinance extends Command
         }
 
         $query = RentalContract::query()
-            ->with(['info.package', 'maid', 'financeInvoice', 'extensions', 'financialAdjustments'])
+            ->with([
+                'info.package',
+                'maid',
+                'financeInvoice.invoiceConstraint.constraintDetails.account',
+                'extensions',
+                'financialAdjustments',
+            ])
             ->orderBy('id');
 
         if ($contractIds->isNotEmpty()) {
@@ -45,7 +52,7 @@ class AuditRentalContractFinance extends Command
         }
 
         $rows = [];
-        $query->chunkById(200, function ($contracts) use ($financeService, &$rows): void {
+        $query->chunkById(200, function ($contracts) use ($financeService, $revenueAccountIds, &$rows): void {
             foreach ($contracts as $contract) {
                 if (!$contract->info || !$contract->financeInvoice) {
                     $rows[] = $this->row($contract, 'missing_invoice', 0, 0, 0, 0, 'لا توجد فاتورة مالية مكتملة');
@@ -77,6 +84,60 @@ class AuditRentalContractFinance extends Command
                         ? 'لا تعدّل الفاتورة/القيد الأصلي؛ أنشئ إشعار تصحيح مستقل'
                         : ($isLegacy ? 'مرجع مستورد: طابقه مع مستند المصدر قبل أي تعديل' : '')
                 );
+
+                if ($posted && $invoice->invoiceConstraint) {
+                    $details = $invoice->invoiceConstraint->constraintDetails;
+                    $salaryDetails = $details->filter(fn ($detail) =>
+                        (float) $detail->creditor_value > 0
+                        && (str_contains((string) $detail->statement, 'مرتب العامل')
+                            || str_contains((string) $detail->statement, 'راتب العاملة'))
+                    );
+                    $mispostedSalary = $salaryDetails
+                        ->where('account_id', '!=', $revenueAccountIds['salary_exempt']);
+
+                    if ($mispostedSalary->isNotEmpty()) {
+                        $accounts = $mispostedSalary
+                            ->map(fn ($detail) => ($detail->account?->code ?: '-') . ' / ' . ($detail->account?->name ?: 'حساب محذوف'))
+                            ->unique()
+                            ->implode('، ');
+                        $rows[] = $this->row(
+                            $contract,
+                            'salary_account_reclassification_required',
+                            (float) $mispostedSalary->sum('creditor_value'),
+                            (float) ($expected['salary_exempt_amount'] ?? 0),
+                            0,
+                            0,
+                            'راتب العاملة مسجل على: ' . $accounts
+                                . '؛ المطلوب حساب #' . $revenueAccountIds['salary_exempt']
+                                . '. لا تعدّل القيد الأصلي؛ استخدم قيد إعادة تصنيف بعد اعتماد المحاسب.'
+                        );
+                    }
+
+                    $serviceDetails = $details->filter(fn ($detail) =>
+                        (float) $detail->creditor_value > 0
+                        && str_contains((string) $detail->statement, 'خدمات التأجير الخاضعة للضريبة')
+                    );
+                    $mispostedService = $serviceDetails
+                        ->where('account_id', '!=', $revenueAccountIds['service']);
+
+                    if ($mispostedService->isNotEmpty()) {
+                        $accounts = $mispostedService
+                            ->map(fn ($detail) => ($detail->account?->code ?: '-') . ' / ' . ($detail->account?->name ?: 'حساب محذوف'))
+                            ->unique()
+                            ->implode('، ');
+                        $rows[] = $this->row(
+                            $contract,
+                            'service_account_reclassification_required',
+                            (float) $mispostedService->sum('creditor_value'),
+                            (float) ($expected['taxable_subtotal'] ?? 0),
+                            0,
+                            0,
+                            'خدمة التأجير مسجلة على: ' . $accounts
+                                . '؛ المطلوب حساب #' . $revenueAccountIds['service']
+                                . '. لا تعدّل القيد الأصلي؛ استخدم قيد إعادة تصنيف بعد اعتماد المحاسب.'
+                        );
+                    }
+                }
 
                 if (
                     $this->option('apply-unposted')
@@ -183,7 +244,7 @@ class AuditRentalContractFinance extends Command
             $this->info('تم حفظ تقرير التدقيق: ' . $path);
         }
 
-        $this->info('التدقيق لا يعدّل الفواتير المنشورة أو قيودها. فروقاتها تتطلب إشعارات دائنة/مدينة بعد اعتماد المحاسب.');
+        $this->info('التدقيق لا يعدّل الفواتير المنشورة أو قيودها. فروقات المبالغ تتطلب إشعارات تصحيح، وفروق حساب الراتب تتطلب قيد إعادة تصنيف مستقل بعد اعتماد المحاسب.');
 
         return self::SUCCESS;
     }

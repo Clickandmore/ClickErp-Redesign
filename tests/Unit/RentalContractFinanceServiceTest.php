@@ -159,6 +159,21 @@ class RentalContractFinanceServiceTest extends TestCase
         $this->assertStringContainsString('1000.00 ريال', $statement);
     }
 
+    public function test_invoice_revenue_accounts_are_not_swapped(): void
+    {
+        $reflection = new ReflectionClass(RentalContractFinanceService::class);
+        $service = $reflection->newInstanceWithoutConstructor();
+        $method = $reflection->getMethod('invoiceRevenueAllocations');
+        $method->setAccessible(true);
+
+        $allocations = $method->invoke($service, 320.00, 1000.00, 4214, 4216);
+
+        $this->assertSame([
+            ['kind' => 'service', 'account_id' => 4214, 'amount' => 320.00],
+            ['kind' => 'salary', 'account_id' => 4216, 'amount' => 1000.00],
+        ], $allocations);
+    }
+
     public function test_it_splits_early_closure_credit_note_between_revenue_salary_and_vat(): void
     {
         $contract = new RentalContract();

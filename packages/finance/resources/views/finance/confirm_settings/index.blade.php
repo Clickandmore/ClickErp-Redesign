@@ -743,6 +743,26 @@
 
                         <div class="setting-field">
                             <div class="setting-field__top">
+                                <label for="rental_contract_exempt_salary_revenue_account">{{ __('finance::finance.rental_contract_exempt_salary_revenue_account') }}</label>
+                                <span class="setting-field__tools">
+                                    {!! addUpButton(route('finance.accounts.create'), 'rental_contract_exempt_salary_revenue_account', false, 'name', true) !!}
+                                </span>
+                            </div>
+                            <input type="hidden" value="rental_contract_exempt_salary_revenue_account"
+                                name="data[rental_contract_exempt_salary_revenue_account][title]">
+                            <select name="data[rental_contract_exempt_salary_revenue_account][value]"
+                                    id="rental_contract_exempt_salary_revenue_account"
+                                    class="form-control account-ajax-select" data-account-scope="creditor_leaf">
+                                <option value="">{{ __('finance::finance.choose') }}</option>
+                                @if ($item = $settingAccountOption('rental_contract_exempt_salary_revenue_account'))
+                                    <option value="{{ $item->id }}" selected>{{ $item->code }} / {{ $item->name }}</option>
+                                @endif
+                            </select>
+                            <small>{{ __('finance::finance.rental_contract_exempt_salary_revenue_account_hint') }}</small>
+                        </div>
+
+                        <div class="setting-field">
+                            <div class="setting-field__top">
                                 <label for="rental_contract_clients_parent_account">{{ __('finance::finance.rental_contract_clients_parent_account') }}</label>
                                 <span class="setting-field__tools">
                                     {!! addUpButton(route('finance.accounts.create'), 'rental_contract_clients_parent_account', false, 'name', true) !!}
