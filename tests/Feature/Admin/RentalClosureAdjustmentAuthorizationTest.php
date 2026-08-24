@@ -14,6 +14,20 @@ class RentalClosureAdjustmentAuthorizationTest extends TestCase
 {
     use DatabaseTransactions;
 
+    public function test_manual_adjustment_fields_are_rendered_for_an_authorized_admin(): void
+    {
+        $admin = $this->adminWithPermissions([
+            PermKeys::RENT_CONTRACT_VIEW,
+            PermKeys::RENT_CONTRACT_CLOSURE_ADJUSTMENT_OVERRIDE,
+            PermKeys::RENT_CONTRACT_CLOSURE_ADJUSTMENT_APPROVE,
+        ]);
+
+        $this->actingAs($admin, 'admin')
+            ->get(route('RentContract.index'))
+            ->assertOk()
+            ->assertSee('استخدام قيمة تسوية يدوية معتمدة');
+    }
+
     public function test_control_permission_alone_cannot_override_the_calculated_adjustment(): void
     {
         $admin = $this->adminWithPermissions([

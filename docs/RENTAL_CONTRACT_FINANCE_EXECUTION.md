@@ -441,3 +441,26 @@ php artisan rental-contracts:audit-finance --summary
 - [طريقة الاستعداد ومحظورات حلول الفوترة الإلكترونية](https://zatca.gov.sa/en/E-Invoicing/PreparingYourBusiness/Phase1/Pages/How-to-prepare.aspx)
 - [اللائحة التنفيذية لضريبة القيمة المضافة](https://zatca.gov.sa/en/RulesRegulations/VAT/Documents/Value-Added-Tax-Approved-Implementing-Regulations-Bilingual.pdf)
 - [قرار تطبيق ضوابط ومتطلبات الفوترة الإلكترونية](https://zatca.gov.sa/en/E-Invoicing/Introduction/LawsAndRegulations/Documents/20230519_E-Invoicing%20Implementation%20Resolution%20English.pdf)
+
+## 24. تنفيذ صلاحية تعديل قيمة تسوية الإنهاء
+
+تمت برمجة الصلاحيتين:
+
+```text
+rent_contract_closure_adjustment_override
+rent_contract_closure_adjustment_approve
+```
+
+صاحب صلاحية التعديل يرى خيار «استخدام قيمة تسوية يدوية معتمدة». لا يقبل الخادم تنفيذ القيمة اليدوية إلا إذا كان المستخدم يملك صلاحية الاعتماد أيضاً، وأدخل سبباً وأرفق مستند اعتماد. يظل نوع الإشعار محسوباً آلياً، وتحفظ قاعدة البيانات القيمة الآلية والقيمة النهائية والسبب والمرفق والمستخدم ووقت الاعتماد.
+
+أوامر النشر الخاصة بهذه الإضافة:
+
+```bash
+php artisan migrate --force
+php artisan db:seed --class=RentContractTermsPermissionsSeeder --force
+php artisan permission:cache-reset
+php artisan optimize:clear
+php artisan view:cache
+```
+
+بعد ذلك تُمنح الصلاحيتان للدور المالي المعتمد من شاشة الأدوار والصلاحيات. إذا مُنحت صلاحية التعديل دون الاعتماد، تظهر رسالة تنبيه ويبقى خيار الاستخدام معطلاً.

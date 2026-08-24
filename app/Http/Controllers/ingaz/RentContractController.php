@@ -3247,6 +3247,7 @@ class RentContractController extends Controller
                         ? "\nقيمة معتمدة يدوياً: " . number_format($adjustmentAmount, 2)
                             . ' ريال - السبب: ' . Str::limit($manualOverrideReason, 180)
                         : '');
+                $adjustmentNotes = Str::limit($adjustmentNotes, 500, '');
                 $closureBreakdown = $contract->financeInvoice
                     ? $rentalContractFinanceService->closureAdjustmentAmounts($contract->financeInvoice, $contract, $adjustmentAmount)
                     : ['taxable_subtotal' => 0, 'salary_exempt_amount' => 0, 'vat_amount' => 0];
