@@ -1526,6 +1526,8 @@ return array (
   'popup_settings' => 'Popup Settings',
   'show_popup' => 'Show Popup',
   'popup_image' => 'Popup Image',
+  'popup_link' => 'Announcement Link (Optional)',
+  'popup_link_hint' => 'When provided, clicking the announcement opens this link. Otherwise, it opens WhatsApp to ask about the offer.',
   'filters' => 'Filters',
   'role' => 'Role',
   'contract_expire_date' => 'Contract Expire Date',

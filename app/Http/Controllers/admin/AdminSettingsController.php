@@ -176,6 +176,7 @@ class AdminSettingsController extends Controller
             'sadad_transfer_data',
             'show_popup',
             'popup_image',
+            'popup_link',
         ];
 
         $data = [];
@@ -192,6 +193,7 @@ class AdminSettingsController extends Controller
             $request->validate([
                 'section' => 'required|in:announcements',
                 'popup_image' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg|max:2048',
+                'popup_link' => 'nullable|url|max:2048',
             ]);
 
             return;
@@ -230,6 +232,10 @@ class AdminSettingsController extends Controller
     {
         $show_popup = $request->has('show_popup') ? '1' : '0';
         $settings->setSetting('show_popup', $show_popup);
+
+        if (! $settings->setSetting('popup_link', trim((string) $request->input('popup_link', '')))) {
+            throw new \RuntimeException('Unable to persist the announcement link.');
+        }
 
         if ($request->hasFile('popup_image')) {
             $file = $request->file('popup_image');

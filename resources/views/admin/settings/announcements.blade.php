@@ -149,6 +149,21 @@
                         @endif
                     </div>
 
+                    <div class="col-lg-4">
+                        <label class="form-label">{{ __('admin.popup_link') }}</label>
+                    </div>
+                    <div class="col-lg-8">
+                        <input type="url"
+                               name="popup_link"
+                               class="form-control @error('popup_link') is-invalid @enderror"
+                               value="{{ old('popup_link', $data['popup_link'] ?? '') }}"
+                               placeholder="https://example.com/offer">
+                        <div class="form-text">{{ __('admin.popup_link_hint') }}</div>
+                        @error('popup_link')
+                            <div class="invalid-feedback">{{ $message }}</div>
+                        @enderror
+                    </div>
+
                     <div class="col-12 text-end">
                         <button type="submit" class="btn btn-primary">{{ __('admin.save') }}</button>
                     </div>
