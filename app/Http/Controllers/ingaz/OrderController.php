@@ -1067,7 +1067,7 @@ class OrderController extends Controller
             // Check if maid is already assigned to another active order
             $existingOrder = Order::where('maid_id', $newMaidId)
                 ->where('id', '!=', $id)
-                ->whereNotIn('status', ['completed', 'refused', 'done'])
+                ->whereNotIn('status', Order::nonBlockingMaidAssignmentStatuses())
                 ->first();
 
             if ($existingOrder) {

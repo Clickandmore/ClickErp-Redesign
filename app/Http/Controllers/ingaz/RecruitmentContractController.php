@@ -5021,11 +5021,7 @@ class RecruitmentContractController extends Controller
                     ]);
                 })
                 ->whereDoesntHave('orders', function ($q) {
-                    $q->whereIn('status', [
-                        'new',
-                        'under_process',
-                        'contracted'
-                    ]);
+                    $q->whereNotIn('status', Order::nonBlockingMaidAssignmentStatuses());
                 });
 
             logger()->info('Query built', ['sql' => $query->toSql()]);
