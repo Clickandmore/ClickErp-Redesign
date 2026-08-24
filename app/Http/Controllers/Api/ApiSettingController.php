@@ -7,7 +7,9 @@ use App\Http\Resources\Api\SettingPoliciesResource;
 use App\Http\Resources\Api\SettingResource as objResource;
 use App\Http\Traits\API\ApiResponse;
 use App\Models\ingaz\Setting as objModel;
+use App\Models\NewSettings;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Schema;
 
 class ApiSettingController extends Controller
 {
@@ -60,6 +62,30 @@ class ApiSettingController extends Controller
             __('api.All items'),
             200
         );
+    }
+
+    /**
+     * Redirect announcement image requests to a fresh storage URL.
+     *
+     * The optional version only busts browser caches. The current database value
+     * is deliberately used even for an older version so cached site settings can
+     * never keep pointing at an object that was replaced and deleted.
+     */
+    public function announcementImage(?string $version = null)
+    {
+        abort_unless(Schema::hasTable('new_settings'), 404);
+
+        $storedPath = (string) (new NewSettings())->getSetting('popup_image');
+        abort_if($storedPath === '', 404);
+
+        $imageUrl = (string) showFile($storedPath);
+        abort_unless(preg_match('#^https?://#i', $imageUrl), 404);
+
+        return redirect()->away($imageUrl, 302, [
+            'Cache-Control' => 'no-store, no-cache, must-revalidate, max-age=0',
+            'Pragma' => 'no-cache',
+            'Expires' => '0',
+        ]);
     }
 
     /**

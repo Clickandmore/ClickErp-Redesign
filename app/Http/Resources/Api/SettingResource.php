@@ -77,6 +77,8 @@ class SettingResource extends JsonResource
             'visitor_tracking_code' => $visitorTracking['embed_code'],
             'body' => $seo['body'],
 
+            'announcement_popup' => $this->announcementPopupPayload(),
+
             'privacy_policy' => (string)$this->privacy_policy,
             'terms_conditions' => (string)$this->terms_conditions,
             'return_conditions' => (string)$this->return_conditions,
@@ -95,6 +97,53 @@ class SettingResource extends JsonResource
             'uses_simplified_rental_ordering' => \App\Support\RentalOrderSettings::usesSimplifiedOrdering(),
 		];
 	}
+
+    /**
+     * الإعلان المنبثق للموقع الخارجي.
+     *
+     * القيم تُدار من /dash/settings/announcements وتُخزَّن في جدول new_settings،
+     * وليس في جدول settings الذي يغذّي بقية هذا الـ Resource — لذلك تُقرأ هنا مباشرةً.
+     *
+     * version توقيع للمسار المخزَّن لا للرابط الناتج: روابط R2 موقّعة وتتغيّر كل نصف
+     * ساعة، ولو بُني التوقيع عليها لعاد الإعلان للظهور لمن أغلقه. التوقيع على المسار
+     * يتغيّر فقط عند رفع صورة جديدة — وهو بالضبط السلوك المطلوب.
+     */
+    private function announcementPopupPayload(): array
+    {
+        $empty = [
+            'enabled' => false,
+            'image' => '',
+            'version' => null,
+        ];
+
+        if (! \Illuminate\Support\Facades\Schema::hasTable('new_settings')) {
+            return $empty;
+        }
+
+        $newSettings = new \App\Models\NewSettings();
+        $storedPath = (string) $newSettings->getSetting('popup_image');
+
+        // النافذة كلها صورة، فصورة مفقودة تعني لا إعلان مهما كان المفتاح مفعّلًا.
+        if ($storedPath === '') {
+            return $empty;
+        }
+
+        $version = substr(sha1($storedPath), 0, 12);
+
+        // لا نرسل رابط R2 الموقّع ضمن استجابة الإعدادات؛ المواقع الخارجية تخزّن
+        // الاستجابة مؤقتًا مدة قد تتجاوز صلاحية التوقيع، كما قد تحتفظ برابط الصورة
+        // السابقة بعد استبدالها. هذا الرابط الثابت يولّد تحويلًا جديدًا إلى الملف
+        // الحالي عند تحميل الصورة، فيظل صالحًا مهما طال كاش الإعدادات.
+        $image = route('api.client.public.settings.announcement-image', [
+            'version' => $version,
+        ]);
+
+        return [
+            'enabled' => $newSettings->getSetting('show_popup') === '1',
+            'image' => $image,
+            'version' => $version,
+        ];
+    }
 
     private function mediaValue($storedPath): string
     {
