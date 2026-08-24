@@ -358,6 +358,11 @@
         .backup-file { direction: ltr; text-align: left; font-family: monospace; }
         .restore-form { display: flex; gap: 6px; align-items: center; }
         .restore-form input { width: 94px; min-height: 38px; border: 1px solid var(--border-strong); border-radius: 8px; padding: 6px; }
+        .verification-request, .verification-confirm { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+        .verification-request select, .verification-confirm input { min-height: 38px; border: 1px solid var(--border-strong); border-radius: 8px; padding: 6px 8px; font: inherit; background: #fff; }
+        .verification-request select { max-width: 190px; }
+        .verification-confirm input { width: 105px; direction: ltr; }
+        .verification-note { width: 100%; margin: 0; color: var(--warning); font-size: .76rem; line-height: 1.6; }
         .btn-small { min-height: 36px; padding: 0 10px; font-size: .78rem; }
 
         .scheduler-summary {
@@ -1198,6 +1203,43 @@
             </div>
         </div>
         <div class="panel-body">
+            <div class="section-heading">
+                <div>
+                    <h2>أمان Super Admin</h2>
+                    <p>تحكم بجهات استلام رموز العمليات الخطرة وكلمة مرور الدخول. تُحفظ القيم في ملف خاص مشفّر ومستقل عن قاعدة البيانات.</p>
+                </div>
+            </div>
+            <form method="POST" action="{{ route('dev-superadmin.database-backups.security') }}" class="backup-settings" autocomplete="off">
+                @csrf
+                @method('PUT')
+                <div class="field">
+                    <label for="superAdminVerificationEmail">بريد التحقق</label>
+                    <input id="superAdminVerificationEmail" type="email" name="verification_email" maxlength="190" value="{{ old('verification_email', $devSuperAdminSecurity['email']) }}" placeholder="security@example.com" autocomplete="email">
+                </div>
+                <div class="field">
+                    <label for="superAdminVerificationPhone">جوال التحقق</label>
+                    <input id="superAdminVerificationPhone" type="tel" name="verification_phone" value="{{ old('verification_phone', $devSuperAdminSecurity['phone']) }}" placeholder="05xxxxxxxx" dir="ltr" autocomplete="tel">
+                </div>
+                <div class="field">
+                    <label for="superAdminCurrentPassword">كلمة المرور الحالية <span class="required">*</span></label>
+                    <input id="superAdminCurrentPassword" type="password" name="current_password" required autocomplete="current-password">
+                </div>
+                <div class="field">
+                    <label for="superAdminNewPassword">كلمة مرور جديدة (اختياري)</label>
+                    <input id="superAdminNewPassword" type="password" name="password" minlength="12" autocomplete="new-password">
+                </div>
+                <div class="field">
+                    <label for="superAdminNewPasswordConfirmation">تأكيد كلمة المرور الجديدة</label>
+                    <input id="superAdminNewPasswordConfirmation" type="password" name="password_confirmation" minlength="12" autocomplete="new-password">
+                </div>
+                <button class="btn btn-primary" type="submit" onclick="return confirm('سيتم تحديث إعدادات أمان Super Admin. هل تريد المتابعة؟')">حفظ إعدادات الأمان</button>
+            </form>
+            <p class="backup-status">
+                يجب إبقاء بريد أو جوال واحد على الأقل. كلمة المرور الجديدة لا تقل عن 12 حرفًا وتحتوي حرفًا كبيرًا وصغيرًا ورقمًا ورمزًا خاصًا. عند تغييرها سيتم تسجيل خروجك تلقائيًا.
+            </p>
+
+            <hr style="border:0;border-top:1px solid var(--border);margin:22px 0;">
+
             <form method="POST" action="{{ route('dev-superadmin.database-backups.settings') }}" class="backup-settings">
                 @csrf
                 @method('PUT')
@@ -1245,6 +1287,16 @@
                 النسخ الخاصة الموجودة على السيرفر: {{ count($localDatabaseBackups) }} — محفوظة داخل storage/app/database-backups وغير متاحة للعامة.
             </p>
 
+            @if (count($backupVerificationChannels) > 0)
+                <div class="alert alert-warning">
+                    الاستعادة والحذف محميان برمز تحقق أحادي الاستخدام. قبل كل استعادة ينشئ النظام نسخة أمان كاملة من قاعدة البيانات الحالية ويتحقق من رفعها إلى R2؛ وأي فشل في ذلك يلغي الاستعادة دون المساس بالبيانات.
+                </div>
+            @else
+                <div class="alert alert-danger">
+                    إجراءات الاستعادة والحذف مقفلة بالكامل. أضف بريد التحقق أو رقم الجوال من قسم «أمان Super Admin» أعلاه.
+                </div>
+            @endif
+
             @if ($backupListError)
                 <div class="alert alert-danger">تعذر قراءة قائمة النسخ: {{ $backupListError }}</div>
             @endif
@@ -1261,18 +1313,42 @@
                             <td>
                                 <div class="backup-actions">
                                     <a class="btn btn-small" href="{{ route('dev-superadmin.database-backups.download', ['key' => $backup['key']]) }}">تنزيل</a>
-                                    <form class="restore-form" method="POST" action="{{ route('dev-superadmin.database-backups.restore') }}" onsubmit="return confirm('سيتم استبدال قاعدة البيانات الحالية بهذه النسخة. هل أنت متأكد؟')">
-                                        @csrf
-                                        <input type="hidden" name="key" value="{{ $backup['key'] }}">
-                                        <input type="text" name="confirmation" required placeholder="RESTORE" autocomplete="off">
-                                        <button class="btn btn-small" type="submit">استعادة</button>
-                                    </form>
-                                    <form method="POST" action="{{ route('dev-superadmin.database-backups.destroy') }}" onsubmit="return confirm('حذف النسخة نهائيًا من R2؟')">
-                                        @csrf
-                                        @method('DELETE')
-                                        <input type="hidden" name="key" value="{{ $backup['key'] }}">
-                                        <button class="btn btn-danger btn-small" type="submit">حذف</button>
-                                    </form>
+                                    @if (count($backupVerificationChannels) > 0)
+                                        <form class="verification-request" method="POST" action="{{ route('dev-superadmin.database-backups.verification-code') }}">
+                                            @csrf
+                                            <input type="hidden" name="key" value="{{ $backup['key'] }}">
+                                            <select name="verification_channel" required aria-label="وسيلة إرسال رمز التحقق">
+                                                @foreach ($backupVerificationChannels as $channel => $details)
+                                                    <option value="{{ $channel }}">{{ $details['label'] }} — {{ $details['destination'] }}</option>
+                                                @endforeach
+                                            </select>
+                                            <button class="btn btn-small" type="submit" name="action" value="restore">طلب رمز الاستعادة</button>
+                                            <button class="btn btn-danger btn-small" type="submit" name="action" value="delete">طلب رمز الحذف</button>
+                                        </form>
+                                    @endif
+
+                                    @if ($backupVerificationChallenge && $backupVerificationChallenge['key'] === $backup['key'])
+                                        @if ($backupVerificationChallenge['action'] === 'restore')
+                                            <form class="verification-confirm" method="POST" action="{{ route('dev-superadmin.database-backups.restore') }}" onsubmit="return confirm('سيتم أولًا أخذ نسخة أمان من البيانات الحالية، ثم استبدال قاعدة البيانات. هل تريد المتابعة؟')">
+                                                @csrf
+                                                <input type="hidden" name="key" value="{{ $backup['key'] }}">
+                                                <input type="text" name="confirmation" required placeholder="RESTORE" autocomplete="off" aria-label="اكتب RESTORE">
+                                                <input type="text" name="verification_code" required inputmode="numeric" pattern="[0-9]{6}" maxlength="6" placeholder="رمز التحقق" autocomplete="one-time-code" aria-label="رمز التحقق">
+                                                <button class="btn btn-primary btn-small" type="submit">تأكيد الاستعادة</button>
+                                                <p class="verification-note">الرمز مرسل إلى {{ $backupVerificationChallenge['destination'] }} وصالح حتى {{ \Carbon\Carbon::createFromTimestamp($backupVerificationChallenge['expires_at'])->format('H:i') }}.</p>
+                                            </form>
+                                        @else
+                                            <form class="verification-confirm" method="POST" action="{{ route('dev-superadmin.database-backups.destroy') }}" onsubmit="return confirm('سيتم حذف ملف النسخة نهائيًا من R2. هل تريد المتابعة؟')">
+                                                @csrf
+                                                @method('DELETE')
+                                                <input type="hidden" name="key" value="{{ $backup['key'] }}">
+                                                <input type="text" name="confirmation" required placeholder="DELETE" autocomplete="off" aria-label="اكتب DELETE">
+                                                <input type="text" name="verification_code" required inputmode="numeric" pattern="[0-9]{6}" maxlength="6" placeholder="رمز التحقق" autocomplete="one-time-code" aria-label="رمز التحقق">
+                                                <button class="btn btn-danger btn-small" type="submit">تأكيد الحذف</button>
+                                                <p class="verification-note">الرمز مرسل إلى {{ $backupVerificationChallenge['destination'] }} وصالح حتى {{ \Carbon\Carbon::createFromTimestamp($backupVerificationChallenge['expires_at'])->format('H:i') }}.</p>
+                                            </form>
+                                        @endif
+                                    @endif
                                 </div>
                             </td>
                         </tr>

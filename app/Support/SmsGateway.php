@@ -76,9 +76,9 @@ class SmsGateway
         curl_close($ch);
 
         logger()->info('Msegat SMS Sent Successfully: ', [
-            'code' => $code,
+            'code' => self::safeLogCode($code),
             'phone' => $phone,
-            'msg' => $message,
+            'msg' => self::safeLogMessage($message, $code, $senderType),
             'sender_type' => $senderType,
             'sender' => $resolvedSender,
             'response' => $result,
@@ -126,9 +126,9 @@ class SmsGateway
                 ]);
         } catch (\Throwable $exception) {
             logger()->error('Taqnyat SMS request failed.', [
-                'code' => $code,
+                'code' => self::safeLogCode($code),
                 'phone' => $phone,
-                'msg' => $message,
+                'msg' => self::safeLogMessage($message, $code, $senderType),
                 'sender_type' => $senderType,
                 'sender' => $resolvedSender,
                 'error' => $exception->getMessage(),
@@ -141,9 +141,9 @@ class SmsGateway
 
         if (!$response->successful()) {
             logger()->warning('Taqnyat SMS rejected.', [
-                'code' => $code,
+                'code' => self::safeLogCode($code),
                 'phone' => $phone,
-                'msg' => $message,
+                'msg' => self::safeLogMessage($message, $code, $senderType),
                 'sender_type' => $senderType,
                 'sender' => $resolvedSender,
                 'status' => $response->status(),
@@ -154,9 +154,9 @@ class SmsGateway
         }
 
         logger()->info('Taqnyat SMS Sent Successfully: ', [
-            'code' => $code,
+            'code' => self::safeLogCode($code),
             'phone' => $phone,
-            'msg' => $message,
+            'msg' => self::safeLogMessage($message, $code, $senderType),
             'sender_type' => $senderType,
             'sender' => $resolvedSender,
             'status' => $response->status(),
@@ -164,6 +164,20 @@ class SmsGateway
         ]);
 
         return $result === '' ? null : $result;
+    }
+
+    private static function safeLogCode($code): ?string
+    {
+        return $code === null ? null : '[redacted]';
+    }
+
+    private static function safeLogMessage(string $message, $code, $senderType): string
+    {
+        if ($code !== null || strtolower((string) $senderType) === 'verification') {
+            return '[verification message redacted]';
+        }
+
+        return $message;
     }
 
     private static function normalizeRecipients($phone): array

@@ -5,8 +5,10 @@ namespace App\Http\Controllers\admin;
 use App\Http\Controllers\Controller;
 use App\Models\auth\Admin;
 use App\Services\DatabaseBackupService;
+use App\Services\DatabaseBackupVerificationService;
 use App\Services\SchedulerMonitorService;
 use App\Support\DatabaseBackupSettings;
+use App\Support\DevSuperAdminSecuritySettings;
 use App\Support\ClientSubscriptionSettings;
 use App\Support\R2StorageSettings;
 use App\Support\ProductUpdatesSettings;
@@ -36,7 +38,7 @@ class DevSuperAdminController extends Controller
 
         if (
             hash_equals((string) config('dev_superadmin.username'), (string) $data['username'])
-            && hash_equals((string) config('dev_superadmin.password'), (string) $data['password'])
+            && DevSuperAdminSecuritySettings::matchesPassword((string) $data['password'])
         ) {
             $request->session()->regenerate();
             $request->session()->put('dev_superadmin_authenticated', true);
@@ -52,6 +54,7 @@ class DevSuperAdminController extends Controller
     public function modules(
         Request $request,
         DatabaseBackupService $databaseBackups,
+        DatabaseBackupVerificationService $backupVerification,
         SchedulerMonitorService $schedulerMonitor
     )
     {
@@ -106,6 +109,9 @@ class DevSuperAdminController extends Controller
             'databaseBackups' => $backups,
             'localDatabaseBackups' => $activeSection === 'backups' ? $databaseBackups->localBackups() : [],
             'backupListError' => $backupListError,
+            'backupVerificationChannels' => $activeSection === 'backups' ? $backupVerification->availableChannels() : [],
+            'backupVerificationChallenge' => $activeSection === 'backups' ? $backupVerification->current($request) : null,
+            'devSuperAdminSecurity' => $activeSection === 'backups' ? DevSuperAdminSecuritySettings::all() : null,
             'r2Ready' => $activeSection === 'backups' && R2StorageSettings::isReady(),
             'schedulerStatus' => $activeSection === 'scheduler' ? $schedulerMonitor->status() : null,
             'subscription' => ClientSubscriptionSettings::all(),
@@ -202,6 +208,50 @@ class DevSuperAdminController extends Controller
 
             return back()->withErrors(['scheduler' => $exception->getMessage()]);
         }
+    }
+
+    public function updateSecurity(Request $request)
+    {
+        $data = $request->validate([
+            'current_password' => ['required', 'string'],
+            'verification_email' => ['nullable', 'required_without:verification_phone', 'email:rfc', 'max:190'],
+            'verification_phone' => ['nullable', 'required_without:verification_email', 'regex:/^\+?[0-9 ]{8,20}$/'],
+            'password' => ['nullable', 'string', 'min:12', 'confirmed', 'regex:/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).+$/'],
+        ], [
+            'verification_email.required_without' => 'أدخل بريد تحقق أو رقم جوال واحدًا على الأقل.',
+            'verification_phone.required_without' => 'أدخل رقم جوال أو بريد تحقق واحدًا على الأقل.',
+            'verification_phone.regex' => 'رقم الجوال غير صالح.',
+            'password.min' => 'كلمة المرور الجديدة يجب ألا تقل عن 12 حرفًا.',
+            'password.confirmed' => 'تأكيد كلمة المرور الجديدة غير مطابق.',
+            'password.regex' => 'كلمة المرور يجب أن تحتوي حرفًا كبيرًا وصغيرًا ورقمًا ورمزًا خاصًا.',
+        ]);
+
+        if (!DevSuperAdminSecuritySettings::matchesPassword($data['current_password'])) {
+            return back()->withErrors(['current_password' => 'كلمة مرور Super Admin الحالية غير صحيحة.']);
+        }
+
+        $passwordChanged = filled($data['password'] ?? null);
+        DevSuperAdminSecuritySettings::persist([
+            'email' => $data['verification_email'] ?? '',
+            'phone' => preg_replace('/\s+/', '', (string) ($data['verification_phone'] ?? '')),
+            'password' => $data['password'] ?? '',
+        ]);
+
+        logger()->warning('Dev Super Admin security settings updated.', [
+            'password_changed' => $passwordChanged,
+            'email_configured' => filled($data['verification_email'] ?? null),
+            'phone_configured' => filled($data['verification_phone'] ?? null),
+            'ip' => $request->ip(),
+        ]);
+
+        if ($passwordChanged) {
+            $request->session()->invalidate();
+            $request->session()->regenerateToken();
+
+            return redirect()->route('superadmin.login')->with('success', 'تم تحديث إعدادات الأمان وكلمة المرور. سجل الدخول بكلمة المرور الجديدة.');
+        }
+
+        return back()->with('success', 'تم تحديث جهات اتصال التحقق وحفظها في ملف مشفر مستقل عن قاعدة البيانات.');
     }
 
     public function impersonate(Request $request, int $admin)

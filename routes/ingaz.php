@@ -765,9 +765,11 @@ Route::group(
                 Route::put('product-updates', [DevSuperAdminController::class, 'updateProductUpdates'])->name('product-updates.update');
                 Route::post('scheduler/enable', [DevSuperAdminController::class, 'enableScheduler'])->name('scheduler.enable');
                 Route::put('database-backups/settings', [DevDatabaseBackupController::class, 'updateSettings'])->name('database-backups.settings');
+                Route::put('database-backups/security', [DevSuperAdminController::class, 'updateSecurity'])->name('database-backups.security');
                 Route::post('database-backups', [DevDatabaseBackupController::class, 'create'])->name('database-backups.create');
                 Route::post('database-backups/download-current', [DevDatabaseBackupController::class, 'downloadCurrent'])->name('database-backups.download-current');
                 Route::get('database-backups/download', [DevDatabaseBackupController::class, 'download'])->name('database-backups.download');
+                Route::post('database-backups/verification-code', [DevDatabaseBackupController::class, 'requestVerificationCode'])->name('database-backups.verification-code');
                 Route::post('database-backups/restore', [DevDatabaseBackupController::class, 'restore'])->name('database-backups.restore');
                 Route::delete('database-backups', [DevDatabaseBackupController::class, 'destroy'])->name('database-backups.destroy');
                 Route::post('impersonate/{admin}', [DevSuperAdminController::class, 'impersonate'])->name('impersonate');

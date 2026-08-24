@@ -4,12 +4,46 @@ namespace App\Http\Controllers\admin;
 
 use App\Http\Controllers\Controller;
 use App\Services\DatabaseBackupService;
+use App\Services\DatabaseBackupVerificationService;
 use App\Support\DatabaseBackupSettings;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class DevDatabaseBackupController extends Controller
 {
+    public function requestVerificationCode(
+        Request $request,
+        DatabaseBackupService $backups,
+        DatabaseBackupVerificationService $verification
+    ) {
+        $data = $request->validate([
+            'key' => ['required', 'string'],
+            'action' => ['required', 'in:restore,delete'],
+            'verification_channel' => ['required', 'in:email,phone'],
+        ]);
+
+        try {
+            $backups->assertBackupExists($data['key']);
+            $challenge = $verification->issue(
+                $request,
+                $data['action'],
+                $data['key'],
+                $data['verification_channel']
+            );
+
+            return back()->with(
+                'success',
+                'تم إرسال رمز التحقق إلى ' . $challenge['destination'] . '. أدخله قبل انتهاء صلاحيته لإكمال العملية.'
+            );
+        } catch (\Illuminate\Validation\ValidationException $exception) {
+            throw $exception;
+        } catch (\Throwable $exception) {
+            report($exception);
+
+            return back()->withErrors(['verification_code' => $exception->getMessage()]);
+        }
+    }
+
     public function updateSettings(Request $request)
     {
         $data = $request->validate([
@@ -79,12 +113,19 @@ class DevDatabaseBackupController extends Controller
         ]);
     }
 
-    public function restore(Request $request, DatabaseBackupService $backups)
+    public function restore(
+        Request $request,
+        DatabaseBackupService $backups,
+        DatabaseBackupVerificationService $verification
+    )
     {
         $data = $request->validate([
             'key' => ['required', 'string'],
             'confirmation' => ['required', 'in:RESTORE'],
+            'verification_code' => ['required', 'digits:6'],
         ], ['confirmation.in' => 'اكتب RESTORE لتأكيد الاستعادة.']);
+
+        $verification->verifyAndConsume($request, 'restore', $data['key'], $data['verification_code']);
 
         try {
             $backups->restore($data['key']);
@@ -95,9 +136,19 @@ class DevDatabaseBackupController extends Controller
         }
     }
 
-    public function destroy(Request $request, DatabaseBackupService $backups)
+    public function destroy(
+        Request $request,
+        DatabaseBackupService $backups,
+        DatabaseBackupVerificationService $verification
+    )
     {
-        $data = $request->validate(['key' => ['required', 'string']]);
+        $data = $request->validate([
+            'key' => ['required', 'string'],
+            'confirmation' => ['required', 'in:DELETE'],
+            'verification_code' => ['required', 'digits:6'],
+        ], ['confirmation.in' => 'اكتب DELETE لتأكيد الحذف النهائي.']);
+
+        $verification->verifyAndConsume($request, 'delete', $data['key'], $data['verification_code']);
 
         try {
             $backups->delete($data['key']);

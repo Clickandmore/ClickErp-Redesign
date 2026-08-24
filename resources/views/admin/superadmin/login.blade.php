@@ -131,6 +131,16 @@
             line-height: 1.7;
         }
 
+        .success {
+            margin-bottom: 16px;
+            padding: 12px 14px;
+            border-radius: 10px;
+            border: 1px solid #bbf7d0;
+            background: #f0fdf4;
+            color: #166534;
+            line-height: 1.7;
+        }
+
         .login-note {
             margin-top: 14px;
             color: var(--muted);
@@ -154,6 +164,10 @@
 
         @if (isset($errors) && $errors->any())
             <div class="error">{{ $errors->first() }}</div>
+        @endif
+
+        @if (session('success'))
+            <div class="success">{{ session('success') }}</div>
         @endif
 
         <label class="field">

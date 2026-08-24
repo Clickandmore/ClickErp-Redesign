@@ -152,8 +152,12 @@ class DatabaseBackupService
                 throw new RuntimeException('النسخة الاحتياطية المطلوبة غير موجودة في R2.');
             }
 
-            // Always leave a recovery point containing the state immediately before restore.
-            $this->createWithoutLock('pre-restore');
+            // Always leave a verified recovery point containing the state
+            // immediately before restore. Failure to create it aborts restore.
+            $safetyBackup = $this->createWithoutLock('pre-restore');
+            if (!$disk->exists($safetyBackup['key']) || $disk->size($safetyBackup['key']) <= 0) {
+                throw new RuntimeException('لم يتم التحقق من نسخة الأمان السابقة للاستعادة؛ تم إلغاء الاستعادة دون تغيير قاعدة البيانات.');
+            }
 
             $stream = $disk->readStream($key);
             if (!is_resource($stream)) {
@@ -227,6 +231,16 @@ class DatabaseBackupService
         }
     }
 
+    public function assertBackupExists(string $key): void
+    {
+        $this->assertValidKey($key);
+        $this->assertR2Ready();
+
+        if (!$this->disk()->exists($key)) {
+            throw new RuntimeException('النسخة الاحتياطية المطلوبة غير موجودة في R2.');
+        }
+    }
+
     public function readStream(string $key)
     {
         $this->assertValidKey($key);
@@ -265,7 +279,8 @@ class DatabaseBackupService
                 fclose($stream);
             }
 
-            $this->pruneR2();
+            // Do not prune during the safety checkpoint: the selected restore
+            // source may itself be older than the retention cutoff.
 
             return ['key' => $key, 'filename' => $filename, 'size' => filesize($gzipPath) ?: 0, 'local_path' => $localPath];
         } finally {
