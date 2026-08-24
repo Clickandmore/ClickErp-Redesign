@@ -29,6 +29,20 @@ class Order extends Model
         'branch_id' => 'integer',
     ];
 
+    /**
+     * الحالات التي لا تحجز العاملة ولا تمنع إسنادها إلى طلب آخر.
+     */
+    public static function nonBlockingMaidAssignmentStatuses(): array
+    {
+        return [
+            OrderEnum::Completed->value,
+            OrderEnum::Done->value,
+            OrderEnum::Refused->value,
+            OrderEnum::Return->value,
+            OrderEnum::CanceledBySystem->value,
+        ];
+    }
+
     protected static function booted()
     {
         static::creating(function (Order $order) {
