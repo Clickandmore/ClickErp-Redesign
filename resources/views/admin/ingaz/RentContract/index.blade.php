@@ -963,6 +963,48 @@
                                                 <span id="finalDueAmount">0.00 ريال</span>
                                             </div>
                                         </div>
+                                        @if (@AdminGuardHasPerm(\App\PermKeys::RENT_CONTRACT_CLOSURE_ADJUSTMENT_OVERRIDE))
+                                            <div class="col-12">
+                                                <div class="border rounded p-3 bg-light">
+                                                    <div class="form-check">
+                                                        <input class="form-check-input" type="checkbox"
+                                                            id="useManualClosureAdjustment"
+                                                            {{ @AdminGuardHasPerm(\App\PermKeys::RENT_CONTRACT_CLOSURE_ADJUSTMENT_APPROVE) ? '' : 'disabled' }}>
+                                                        <label class="form-check-label fw-bold"
+                                                            for="useManualClosureAdjustment">
+                                                            استخدام قيمة تسوية يدوية معتمدة
+                                                        </label>
+                                                    </div>
+                                                    @if (!@AdminGuardHasPerm(\App\PermKeys::RENT_CONTRACT_CLOSURE_ADJUSTMENT_APPROVE))
+                                                        <div class="alert alert-warning py-2 mt-2 mb-0">
+                                                            لديك صلاحية إدخال التسوية، لكن يلزم منح صلاحية اعتماد التسوية قبل استخدامها.
+                                                        </div>
+                                                    @endif
+                                                    <div class="row g-3 mt-1 d-none" id="manualClosureAdjustmentFields">
+                                                        <div class="col-md-4">
+                                                            <label class="form-label">القيمة النهائية المعتمدة</label>
+                                                            <input type="number" class="form-control"
+                                                                id="manualClosureAdjustmentAmount" min="0.01"
+                                                                step="0.01" value="0">
+                                                            <div class="form-text">نوع الإشعار يظل محسوباً آلياً ولا يمكن تغييره.</div>
+                                                        </div>
+                                                        <div class="col-md-4">
+                                                            <label class="form-label">سبب فرق التسوية</label>
+                                                            <textarea class="form-control" id="manualClosureAdjustmentReason" rows="2"
+                                                                maxlength="1000"
+                                                                placeholder="اذكر سبب الفرق والمرجع الخارجي..."></textarea>
+                                                        </div>
+                                                        <div class="col-md-4">
+                                                            <label class="form-label">مرفق اعتماد التسوية</label>
+                                                            <input type="file" class="form-control"
+                                                                id="manualClosureAdjustmentAttachment"
+                                                                accept=".jpg,.jpeg,.png,.pdf">
+                                                            <div class="form-text">PDF أو صورة، بحد أقصى 4 ميجابايت.</div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        @endif
                                         <div class="col-12">
                                             <label class="form-label">سبب الإرجاع / الإغلاق المبكر</label>
                                             <textarea class="form-control" id="closeReturnReason" rows="3"
@@ -2214,7 +2256,10 @@
             });
 
             function updateCloseFinancialPreview() {
-                const adjustmentAmount = parseFloat($('#closeAdjustmentAmount').val() || 0);
+                const useManualAdjustment = $('#useManualClosureAdjustment').is(':checked');
+                const adjustmentAmount = useManualAdjustment
+                    ? parseFloat($('#manualClosureAdjustmentAmount').val() || 0)
+                    : parseFloat($('#closeAdjustmentAmount').val() || 0);
                 const adjustmentType = $('#closeAdjustmentType').val() || 'none';
 
                 $('#closeAdjustmentAmountLabel').text(adjustmentType === 'company_due'
@@ -2291,6 +2336,11 @@
                     ? 'إشعار مدين'
                     : (documentType === 'refund' ? 'إشعار دائن' : 'لا يوجد إشعار'));
                 $('#closeAdjustmentAmount').val(parseFloat(contract.document_value || 0).toFixed(2));
+                $('#useManualClosureAdjustment').prop('checked', false);
+                $('#manualClosureAdjustmentFields').addClass('d-none');
+                $('#manualClosureAdjustmentAmount').val(parseFloat(contract.document_value || 0).toFixed(2));
+                $('#manualClosureAdjustmentReason').val('');
+                $('#manualClosureAdjustmentAttachment').val('');
                 updateCloseFinancialPreview();
             }
 
@@ -2317,6 +2367,11 @@
                 $('#closeAdjustmentType').val('none');
                 $('#closeAdjustmentTypeLabel').val('يُحدد تلقائياً');
                 $('#closeAdjustmentAmount').val('0');
+                $('#useManualClosureAdjustment').prop('checked', false);
+                $('#manualClosureAdjustmentFields').addClass('d-none');
+                $('#manualClosureAdjustmentAmount').val('0');
+                $('#manualClosureAdjustmentReason').val('');
+                $('#manualClosureAdjustmentAttachment').val('');
                 $('#closePaymentStatus').val('');
                 $('#closePaymentReceipt').val('');
                 $('#closeClientIban').val('');
@@ -2339,6 +2394,18 @@
             });
 
             $('#closeAdjustmentAmount').on('input change', function() {
+                updateCloseFinancialPreview();
+            });
+
+            $('#useManualClosureAdjustment').on('change', function() {
+                $('#manualClosureAdjustmentFields').toggleClass('d-none', !this.checked);
+                if (this.checked && !parseFloat($('#manualClosureAdjustmentAmount').val() || 0)) {
+                    $('#manualClosureAdjustmentAmount').val($('#closeAdjustmentAmount').val() || '0');
+                }
+                updateCloseFinancialPreview();
+            });
+
+            $('#manualClosureAdjustmentAmount').on('input change', function() {
                 updateCloseFinancialPreview();
             });
 
@@ -2611,6 +2678,21 @@
             });
 
             function executeCloseAndMakeAvailable() {
+                if ($('#useManualClosureAdjustment').is(':checked')) {
+                    const manualAmount = parseFloat($('#manualClosureAdjustmentAmount').val() || 0);
+                    const manualReason = ($('#manualClosureAdjustmentReason').val() || '').trim();
+                    const manualAttachment = $('#manualClosureAdjustmentAttachment')[0];
+
+                    if (manualAmount <= 0 || !manualReason || !manualAttachment?.files?.length) {
+                        Swal.fire({
+                            icon: 'warning',
+                            title: 'بيانات التسوية غير مكتملة',
+                            text: 'أدخل القيمة النهائية وسبب فرق التسوية وأرفق مستند الاعتماد.'
+                        });
+                        return;
+                    }
+                }
+
                 Swal.fire({
                     title: 'تأكيد الإغلاق',
                     text: 'هل أنت متأكد من إغلاق العقد وإرجاع العاملة متاحة؟',
@@ -2626,6 +2708,16 @@
                         formData.append('_token', '{{ csrf_token() }}');
                         formData.append('adjustment_type', $('#closeAdjustmentType').val());
                         formData.append('adjustment_amount', $('#closeAdjustmentAmount').val() || 0);
+                        const useManualAdjustment = $('#useManualClosureAdjustment').is(':checked');
+                        formData.append('use_manual_adjustment', useManualAdjustment ? 1 : 0);
+                        if (useManualAdjustment) {
+                            formData.append('manual_adjustment_amount', $('#manualClosureAdjustmentAmount').val() || 0);
+                            formData.append('manual_adjustment_reason', $('#manualClosureAdjustmentReason').val());
+                            const manualAttachment = $('#manualClosureAdjustmentAttachment')[0];
+                            if (manualAttachment && manualAttachment.files && manualAttachment.files[0]) {
+                                formData.append('manual_adjustment_attachment', manualAttachment.files[0]);
+                            }
+                        }
                         formData.append('closure_date', $('#closureDate').val());
                         formData.append('closure_return_reason', $('#closeReturnReason').val());
                         formData.append('close_payment_status', $('#closePaymentStatus').val());

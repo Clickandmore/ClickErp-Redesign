@@ -48,6 +48,20 @@ class RentContractTermsPermissionsSeeder extends Seeder
                 'display_name' => 'التحكم في عقود الإيجار',
             ],
             [
+                'name' => PermKeys::RENT_CONTRACT_CLOSURE_ADJUSTMENT_OVERRIDE,
+                'guard_name' => 'admin',
+                'group_name' => 'rent_contract',
+                'section_name' => 'rent_contracts',
+                'display_name' => 'تعديل تسوية إنهاء عقد الإيجار',
+            ],
+            [
+                'name' => PermKeys::RENT_CONTRACT_CLOSURE_ADJUSTMENT_APPROVE,
+                'guard_name' => 'admin',
+                'group_name' => 'rent_contract',
+                'section_name' => 'rent_contracts',
+                'display_name' => 'اعتماد تسوية إنهاء عقد الإيجار',
+            ],
+            [
                 'name' => PermKeys::RENT_CONTRACT_TERMS_VIEW,
                 'guard_name' => 'admin',
                 'group_name' => 'rent_contract',

@@ -21,6 +21,12 @@ class RentalFinancialAdjustment extends Model
         'type',
         'label',
         'amount',
+        'calculated_amount',
+        'manual_override_reason',
+        'manual_override_attachment_path',
+        'manual_override_by',
+        'manual_override_approved_by',
+        'manual_override_approved_at',
         'taxable_amount',
         'non_taxable_amount',
         'vat_amount',
@@ -37,6 +43,7 @@ class RentalFinancialAdjustment extends Model
 
     protected $casts = [
         'amount' => 'decimal:2',
+        'calculated_amount' => 'decimal:2',
         'taxable_amount' => 'decimal:2',
         'non_taxable_amount' => 'decimal:2',
         'vat_amount' => 'decimal:2',
@@ -44,6 +51,7 @@ class RentalFinancialAdjustment extends Model
         'send_to_zatca' => 'boolean',
         'issue_date' => 'date',
         'settled_at' => 'datetime',
+        'manual_override_approved_at' => 'datetime',
         'branch_id' => 'integer',
     ];
 
@@ -85,6 +93,16 @@ class RentalFinancialAdjustment extends Model
     public function settledBy()
     {
         return $this->belongsTo(\App\Models\auth\Admin::class, 'settled_by');
+    }
+
+    public function manualOverrideBy()
+    {
+        return $this->belongsTo(\App\Models\auth\Admin::class, 'manual_override_by');
+    }
+
+    public function manualOverrideApprovedBy()
+    {
+        return $this->belongsTo(\App\Models\auth\Admin::class, 'manual_override_approved_by');
     }
 
     protected function resolveBranchIdForCreate(): ?int

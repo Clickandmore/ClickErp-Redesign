@@ -23,6 +23,7 @@ use App\Models\RentalContract;
 use App\Models\RentalContractExtension;
 use App\Models\RentalContractInfo;
 use App\Models\RentalContractTerm;
+use App\PermKeys;
 use App\Services\ingaz\RentalContractFinanceService;
 use App\Services\ingaz\RentalContractLedgerService;
 use App\Services\ManagedFileStorage;
@@ -3057,6 +3058,10 @@ class RentContractController extends Controller
             'closure_date' => 'nullable|date',
             'adjustment_type' => 'nullable|in:refund,company_due,none',
             'adjustment_amount' => 'required|numeric|min:0',
+            'use_manual_adjustment' => 'nullable|boolean',
+            'manual_adjustment_amount' => 'nullable|required_if:use_manual_adjustment,1|numeric|min:0.01',
+            'manual_adjustment_reason' => 'nullable|required_if:use_manual_adjustment,1|string|max:1000',
+            'manual_adjustment_attachment' => 'nullable|required_if:use_manual_adjustment,1|file|mimes:jpg,jpeg,png,pdf|max:4096',
             'closure_return_reason' => 'nullable|string|max:1000',
             'close_payment_status' => 'nullable|in:paid,partial,pending,later,bank_pending',
             'close_payment_receipt' => 'nullable|file|mimes:jpg,jpeg,png,pdf|max:4096',
@@ -3064,6 +3069,21 @@ class RentContractController extends Controller
             'close_client_iban_attachment' => 'nullable|file|mimes:jpg,jpeg,png,pdf|max:4096',
             'send_closure_message' => 'nullable|boolean',
         ]);
+        $manualOverrideRequested = $request->boolean('use_manual_adjustment');
+        $currentAdmin = auth('admin')->user();
+
+        if ($manualOverrideRequested) {
+            abort_unless(
+                $currentAdmin?->hasPermissionTo(PermKeys::RENT_CONTRACT_CLOSURE_ADJUSTMENT_OVERRIDE, 'admin'),
+                403,
+                'ليس لديك صلاحية تعديل قيمة تسوية إنهاء العقد.'
+            );
+            abort_unless(
+                $currentAdmin?->hasPermissionTo(PermKeys::RENT_CONTRACT_CLOSURE_ADJUSTMENT_APPROVE, 'admin'),
+                403,
+                'لا يمكن تنفيذ التسوية المعدلة قبل منح صلاحية اعتمادها.'
+            );
+        }
         $sendClosureMessage = $request->boolean('send_closure_message');
         $messageResult = null;
 
@@ -3084,10 +3104,28 @@ class RentContractController extends Controller
             $this->assertClosureDateIsValidForContract($contract, $closureDate);
 
             $summary = $this->buildRentalClosureSummary($contract, $closureDate);
-            // لا نثق بمبلغ قادم من الواجهة في مستند ضريبي. المصدر الوحيد هو
-            // المحرك المصحح بعد قفل العقد داخل المعاملة.
+            // نوع المستند يبقى ناتج المحرك المصحح دائماً. يمكن لصاحب صلاحية
+            // مستقلة اعتماد قيمة بديلة موثقة، مع الاحتفاظ بالقيمة الآلية.
             $adjustmentType = ($summary['document_type'] ?? null) === 'company_due' ? 'company_due' : 'refund';
-            $adjustmentAmount = round((float) ($summary['document_value'] ?? 0), 2);
+            $calculatedAdjustmentAmount = round((float) ($summary['document_value'] ?? 0), 2);
+            $adjustmentAmount = $manualOverrideRequested
+                ? round((float) $validated['manual_adjustment_amount'], 2)
+                : $calculatedAdjustmentAmount;
+            $manualOverrideReason = $manualOverrideRequested
+                ? trim((string) $validated['manual_adjustment_reason'])
+                : null;
+
+            if ($manualOverrideRequested && ($summary['document_type'] ?? 'none') === 'none') {
+                throw \Illuminate\Validation\ValidationException::withMessages([
+                    'manual_adjustment_amount' => 'لا يمكن إنشاء إشعار يدوي عندما لا ينتج عن الحسبة مستند تسوية.',
+                ]);
+            }
+
+            if ($manualOverrideRequested && abs($adjustmentAmount - $calculatedAdjustmentAmount) < 0.01) {
+                throw \Illuminate\Validation\ValidationException::withMessages([
+                    'manual_adjustment_amount' => 'القيمة المعدلة مطابقة للقيمة المحسوبة؛ ألغِ خيار التسوية اليدوية.',
+                ]);
+            }
             $newRemainingAmount = round(max(0.0, (float) ($summary['cash_to_collect_value'] ?? 0)), 2);
             $closureReturnReason = trim((string) ($validated['closure_return_reason'] ?? ''));
 
@@ -3184,6 +3222,14 @@ class RentContractController extends Controller
             $this->completeLinkedRentalOrder($contract);
 
             if ($adjustmentAmount > 0) {
+                $manualOverrideAttachmentPath = null;
+                if ($manualOverrideRequested) {
+                    $manualOverrideAttachmentPath = app(ManagedFileStorage::class)->uploadFile(
+                        $request->file('manual_adjustment_attachment'),
+                        'rental-contracts/closures/adjustments'
+                    );
+                }
+
                 $isCompanyDue = $adjustmentType === 'company_due';
                 $adjustmentLabel = $isCompanyDue
                     ? 'مستحق للشركة عند إغلاق العقد'
@@ -3195,7 +3241,11 @@ class RentContractController extends Controller
                     ? 'إشعار مدين مسجل أثناء إنهاء عقد الإيجار. فرق الذمة حسب المستحق الفعلي: '
                     : 'إشعار دائن مسجل أثناء إنهاء عقد الإيجار. فرق الذمة حسب المستحق الفعلي: ')
                     . number_format($suggestedAmount, 2) . ' ريال'
-                    . ($closureReturnReason !== '' ? "\nسبب الإرجاع: " . $closureReturnReason : '');
+                    . ($closureReturnReason !== '' ? "\nسبب الإرجاع: " . $closureReturnReason : '')
+                    . ($manualOverrideRequested
+                        ? "\nقيمة معتمدة يدوياً: " . number_format($adjustmentAmount, 2)
+                            . ' ريال - السبب: ' . Str::limit($manualOverrideReason, 180)
+                        : '');
                 $closureBreakdown = $contract->financeInvoice
                     ? $rentalContractFinanceService->closureAdjustmentAmounts($contract->financeInvoice, $contract, $adjustmentAmount)
                     : ['taxable_subtotal' => 0, 'salary_exempt_amount' => 0, 'vat_amount' => 0];
@@ -3204,6 +3254,12 @@ class RentContractController extends Controller
                     'type' => $isCompanyDue ? 'income' : 'expense',
                     'label' => $adjustmentLabel,
                     'amount' => $adjustmentAmount,
+                    'calculated_amount' => $calculatedAdjustmentAmount,
+                    'manual_override_reason' => $manualOverrideReason,
+                    'manual_override_attachment_path' => $manualOverrideAttachmentPath,
+                    'manual_override_by' => $manualOverrideRequested ? $currentAdmin->id : null,
+                    'manual_override_approved_by' => $manualOverrideRequested ? $currentAdmin->id : null,
+                    'manual_override_approved_at' => $manualOverrideRequested ? now() : null,
                     'taxable_amount' => $closureBreakdown['taxable_subtotal'],
                     'non_taxable_amount' => $closureBreakdown['salary_exempt_amount'],
                     'vat_amount' => $closureBreakdown['vat_amount'],
@@ -3244,7 +3300,10 @@ class RentContractController extends Controller
                 'maid_id' => $contract->maid_id,
                 'closed_by' => auth()->id(),
                 'closure_date' => $closureDate->format('Y-m-d'),
-                'adjustment_amount' => $adjustmentAmount
+                'adjustment_amount' => $adjustmentAmount,
+                'calculated_adjustment_amount' => $calculatedAdjustmentAmount,
+                'manual_override' => $manualOverrideRequested,
+                'manual_override_by' => $manualOverrideRequested ? $currentAdmin?->id : null,
             ]);
 
             DB::commit();
@@ -3564,6 +3623,11 @@ class RentContractController extends Controller
 
         foreach ($contract->financialAdjustments as $adjustment) {
             $addAttachment($adjustment->receipt_path, 'مرفق إجراء مالي رقم ' . $adjustment->id, 'adjustment-' . $adjustment->id);
+            $addAttachment(
+                $adjustment->manual_override_attachment_path,
+                'اعتماد تعديل تسوية مالية رقم ' . $adjustment->id,
+                'adjustment-override-' . $adjustment->id
+            );
         }
 
         return $attachments;
