@@ -1,6 +1,15 @@
 <?php
 
 return [
+    'general_operations' => [
+        'name' => 'الموديل التشغيلي العام',
+        'description' => 'أساس العمليات العامة والميزات التي ستضاف لقائمة النظام العامة.',
+        'profiles' => ['general'],
+        'default_enabled' => true,
+        'route_patterns' => [],
+        'path_patterns' => [],
+    ],
+
     'operations' => [
         'name' => 'إدارة التشغيل',
         'description' => 'العقود، الطلبات، السير الذاتية، الشكاوى، النقل، السفر والتشغيل اليومي.',

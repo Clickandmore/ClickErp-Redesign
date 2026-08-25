@@ -26,6 +26,8 @@ class SystemProductProfileTest extends TestCase
 
         $this->assertSame('recruitment', SystemModuleManager::productProfileKey());
         $this->assertTrue(SystemModuleManager::isAvailableForProfile('operations'));
+        $this->assertTrue(SystemModuleManager::isRequiredForProfile('operations'));
+        $this->assertFalse(SystemModuleManager::isAvailableForProfile('general_operations'));
     }
 
     /** @test */
@@ -67,6 +69,27 @@ class SystemProductProfileTest extends TestCase
         SystemModuleManager::updateProductProfile('general');
 
         $this->assertTrue(SystemModuleManager::isEnabled('finance'));
+        $this->assertTrue(SystemModuleManager::isEnabled('general_operations'));
+        $this->assertTrue(SystemModuleManager::isRequiredForProfile('general_operations'));
         $this->assertSame('finance', SystemModuleManager::defaultDashboardForProfile());
+    }
+
+    /** @test */
+    public function changing_the_product_profile_requires_explicit_confirmation_and_password(): void
+    {
+        SystemModuleManager::updateProductProfile('recruitment');
+
+        $response = $this
+            ->withSession(['dev_superadmin_authenticated' => true])
+            ->put(route('dev-superadmin.modules.update'), [
+                'current_product_profile' => 'recruitment',
+                'product_profile' => 'general',
+                'default_dashboard' => 'recruitment',
+                'modules' => ['operations' => '1'],
+            ]);
+
+        $response
+            ->assertSessionHasErrors(['product_profile_confirmation', 'product_profile_change_reason', 'current_password']);
+        $this->assertSame('recruitment', SystemModuleManager::productProfileKey());
     }
 }

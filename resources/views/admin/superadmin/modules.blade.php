@@ -657,6 +657,50 @@
             background: var(--accent-soft);
         }
 
+        .profile-confirmation {
+            display: none;
+            margin: 0 0 16px;
+            padding: 16px;
+            border: 1px solid #fca5a5;
+            border-radius: 12px;
+            background: var(--danger-soft);
+        }
+
+        .profile-confirmation.is-visible {
+            display: grid;
+            gap: 12px;
+        }
+
+        .profile-confirmation strong { color: #991b1b; }
+        .profile-confirmation p { margin: 0; color: #7f1d1d; line-height: 1.8; }
+
+        .profile-confirmation-fields {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 12px;
+        }
+
+        .profile-confirmation-fields label {
+            display: grid;
+            gap: 7px;
+            color: #7f1d1d;
+            font-size: .86rem;
+            font-weight: 800;
+        }
+
+        .profile-confirmation-fields input,
+        .profile-confirmation-fields textarea {
+            width: 100%;
+            border: 1px solid #fca5a5;
+            border-radius: 10px;
+            padding: 10px 12px;
+            background: #fff;
+            font: inherit;
+        }
+
+        .profile-confirmation-fields input { min-height: 42px; }
+        .profile-confirmation-fields .wide { grid-column: 1 / -1; }
+
         .employee-tools {
             display: grid;
             gap: 10px;
@@ -1083,6 +1127,7 @@
                 <form method="POST" action="{{ route('dev-superadmin.modules.update') }}">
                     @csrf
                     @method('PUT')
+                    <input type="hidden" name="current_product_profile" value="{{ $productProfileKey }}">
 
                     <div class="panel-head" style="margin:-16px -16px 16px;border:0;border-bottom:1px solid var(--border)">
                         <div>
@@ -1099,6 +1144,28 @@
                                 <span class="dashboard-option-desc">{{ $profile['description'] ?? '' }}</span>
                             </label>
                         @endforeach
+                    </div>
+
+                    <div class="profile-confirmation" id="productProfileConfirmation" data-current-profile="{{ $productProfileKey }}">
+                        <strong>تغيير حساس في بنية البرنامج</strong>
+                        <p>
+                            سيتغير ظهور الموديولات والقوائم والوصول للمسارات. لن يتم حذف البيانات.
+                            للتأكيد اكتب <bdi id="productProfileConfirmationPhrase"></bdi> وأدخل كلمة مرور Super Admin.
+                        </p>
+                        <div class="profile-confirmation-fields">
+                            <label>
+                                عبارة التأكيد
+                                <input type="text" name="product_profile_confirmation" value="{{ old('product_profile_confirmation') }}" autocomplete="off">
+                            </label>
+                            <label>
+                                كلمة مرور Super Admin
+                                <input type="password" name="current_password" autocomplete="current-password">
+                            </label>
+                            <label class="wide">
+                                سبب تغيير نوع البرنامج
+                                <textarea name="product_profile_change_reason" rows="2" maxlength="1000" placeholder="اشرح سبب التحويل والجهة الطالبة له">{{ old('product_profile_change_reason') }}</textarea>
+                            </label>
+                        </div>
                     </div>
 
                     <div class="dashboard-options">
@@ -1510,6 +1577,31 @@
 </main>
 
 <script>
+    const productProfileConfirmation = document.getElementById('productProfileConfirmation');
+    const productProfileInputs = Array.from(document.querySelectorAll('input[name="product_profile"]'));
+    const productProfilePhrase = document.getElementById('productProfileConfirmationPhrase');
+    const profileConfirmationInput = document.querySelector('input[name="product_profile_confirmation"]');
+    const superadminPasswordInput = document.querySelector('input[name="current_password"]');
+    const productProfileReasonInput = document.querySelector('[name="product_profile_change_reason"]');
+
+    function refreshProductProfileConfirmation() {
+        if (!productProfileConfirmation) return;
+
+        const currentProfile = productProfileConfirmation.dataset.currentProfile;
+        const selectedProfile = productProfileInputs.find((input) => input.checked)?.value || currentProfile;
+        const isChanging = selectedProfile !== currentProfile;
+        const expectedPhrase = `تغيير إلى ${selectedProfile}`;
+
+        productProfileConfirmation.classList.toggle('is-visible', isChanging);
+        if (productProfilePhrase) productProfilePhrase.textContent = expectedPhrase;
+        if (profileConfirmationInput) profileConfirmationInput.required = isChanging;
+        if (superadminPasswordInput) superadminPasswordInput.required = isChanging;
+        if (productProfileReasonInput) productProfileReasonInput.required = isChanging;
+    }
+
+    productProfileInputs.forEach((input) => input.addEventListener('change', refreshProductProfileConfirmation));
+    refreshProductProfileConfirmation();
+
     const productUpdatesBuilder = document.getElementById('productUpdatesBuilder');
     const addProductUpdateButton = document.getElementById('addProductUpdate');
 

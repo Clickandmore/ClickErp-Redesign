@@ -5,13 +5,13 @@ return [
         'name' => 'نظام الاستقدام',
         'description' => 'النسخة الحالية بكامل عمليات الاستقدام والعقود والعمالة.',
         'default_dashboard' => 'recruitment',
-        'required_modules' => [],
+        'required_modules' => ['operations'],
     ],
 
     'general' => [
         'name' => 'نظام عام',
         'description' => 'نسخة ERP عامة بدون عمليات الاستقدام المتخصصة.',
         'default_dashboard' => 'finance',
-        'required_modules' => ['finance'],
+        'required_modules' => ['general_operations', 'finance'],
     ],
 ];

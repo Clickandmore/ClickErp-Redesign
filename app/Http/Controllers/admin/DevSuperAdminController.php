@@ -15,6 +15,7 @@ use App\Support\ProductUpdatesSettings;
 use App\Support\SystemModuleManager;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 
@@ -184,22 +185,70 @@ class DevSuperAdminController extends Controller
         $data = $request->validate([
             'branches_limit' => ['nullable', 'integer', 'min:0'],
             'product_profile' => ['required', 'string', 'in:' . implode(',', array_keys(SystemModuleManager::productProfiles()))],
+            'current_product_profile' => ['required', 'string'],
         ]);
 
         $productProfile = $data['product_profile'];
-        SystemModuleManager::updateProductProfile($productProfile);
-        SystemModuleManager::update(
-            array_values(array_unique(array_merge(
-                array_keys((array) $request->input('modules', [])),
-                SystemModuleManager::requiredModules($productProfile)
-            ))),
-            null
-        );
-        $dashboard = $productProfile === 'general'
-            ? SystemModuleManager::defaultDashboardForProfile($productProfile)
-            : (string) $request->input('default_dashboard', 'recruitment');
-        SystemModuleManager::updateDefaultDashboard($dashboard);
-        SystemModuleManager::updateBranchLimit($data['branches_limit'] ?? null);
+        $currentProductProfile = SystemModuleManager::productProfileKey();
+
+        if (! hash_equals($currentProductProfile, $data['current_product_profile'])) {
+            return back()
+                ->withErrors(['product_profile' => 'تغير نوع البرنامج من جلسة أخرى. حدّث الصفحة قبل المحاولة مرة أخرى.']);
+        }
+
+        if ($productProfile !== $currentProductProfile) {
+            $sensitiveData = $request->validate([
+                'product_profile_confirmation' => ['required', 'string', 'max:80'],
+                'product_profile_change_reason' => ['required', 'string', 'min:10', 'max:1000'],
+                'current_password' => ['required', 'string'],
+            ], [
+                'product_profile_confirmation.required' => 'اكتب عبارة التأكيد المطلوبة.',
+                'product_profile_change_reason.required' => 'اكتب سبب تغيير نوع البرنامج.',
+                'product_profile_change_reason.min' => 'سبب التغيير يجب ألا يقل عن 10 أحرف.',
+                'current_password.required' => 'أدخل كلمة مرور Super Admin لتغيير نوع البرنامج.',
+            ]);
+            $expectedConfirmation = 'تغيير إلى ' . $productProfile;
+
+            if (! hash_equals($expectedConfirmation, trim($sensitiveData['product_profile_confirmation']))) {
+                return back()
+                    ->withErrors(['product_profile_confirmation' => 'عبارة التأكيد غير مطابقة.'])
+                    ->withInput($request->except('current_password'));
+            }
+
+            if (! DevSuperAdminSecuritySettings::matchesPassword($sensitiveData['current_password'])) {
+                return back()
+                    ->withErrors(['current_password' => 'كلمة مرور Super Admin غير صحيحة.'])
+                    ->withInput($request->except('current_password'));
+            }
+        }
+
+        DB::transaction(function () use ($request, $data, $productProfile, $currentProductProfile) {
+            SystemModuleManager::updateProductProfile($productProfile);
+            SystemModuleManager::update(
+                array_values(array_unique(array_merge(
+                    array_keys((array) $request->input('modules', [])),
+                    SystemModuleManager::requiredModules($productProfile)
+                ))),
+                null
+            );
+            $dashboard = $productProfile === 'general'
+                ? SystemModuleManager::defaultDashboardForProfile($productProfile)
+                : (string) $request->input('default_dashboard', 'recruitment');
+            SystemModuleManager::updateDefaultDashboard($dashboard);
+            SystemModuleManager::updateBranchLimit($data['branches_limit'] ?? null);
+
+            if ($productProfile !== $currentProductProfile && Schema::hasTable('system_product_profile_changes')) {
+                DB::table('system_product_profile_changes')->insert([
+                    'from_profile' => $currentProductProfile,
+                    'to_profile' => $productProfile,
+                    'changed_by' => (string) config('dev_superadmin.username'),
+                    'reason' => trim((string) $request->input('product_profile_change_reason')),
+                    'ip_address' => $request->ip(),
+                    'user_agent' => Str::limit((string) $request->userAgent(), 500, ''),
+                    'created_at' => now(),
+                ]);
+            }
+        });
 
         return redirect()
             ->route('dev-superadmin.modules')
