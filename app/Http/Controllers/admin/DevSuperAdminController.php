@@ -242,6 +242,7 @@ class DevSuperAdminController extends Controller
             'currentDatabaseDetails' => $activeSection === 'backups' ? $databaseBackups->currentDatabaseDetails() : null,
             'databaseImportCommandPrefix' => $activeSection === 'backups' ? $databaseBackups->localImportCommandPrefix() : null,
             'databaseImportShell' => $activeSection === 'backups' ? $databaseBackups->terminalShell() : null,
+            'databaseEmptyCommand' => $activeSection === 'backups' ? $databaseBackups->emptyDatabaseCommand() : null,
             'backupListError' => $backupListError,
             'backupVerificationChannels' => $activeSection === 'backups' ? $backupVerification->availableChannels() : [],
             'backupVerificationChallenge' => $activeSection === 'backups' ? $backupVerification->current($request) : null,

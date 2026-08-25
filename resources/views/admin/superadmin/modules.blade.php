@@ -343,6 +343,10 @@
 
         .backup-status.is-ready { color: #166534; background: #f0fdf4; border-color: #bbf7d0; }
         .backup-status.is-off { color: var(--danger); background: var(--danger-soft); border-color: #fecaca; }
+        .settings-disclosure { margin-top: 14px; border: 1px solid var(--border); border-radius: 11px; background: #fff; }
+        .settings-disclosure > summary { padding: 13px 15px; cursor: pointer; font-weight: 900; color: #334155; background: var(--surface-soft); border-radius: 11px; }
+        .settings-disclosure[open] > summary { border-bottom: 1px solid var(--border); border-radius: 11px 11px 0 0; }
+        .settings-disclosure-content { padding: 15px; }
 
         .backup-actions {
             display: flex;
@@ -870,6 +874,7 @@
     $currentDatabaseDetails = $currentDatabaseDetails ?? [];
     $databaseImportCommandPrefix = $databaseImportCommandPrefix ?? '';
     $databaseImportShell = $databaseImportShell ?? 'terminal';
+    $databaseEmptyCommand = $databaseEmptyCommand ?? '';
     $backupListError = $backupListError ?? null;
     $r2Ready = $r2Ready ?? false;
     $schedulerStatus = $schedulerStatus ?? ['active' => false, 'last_heartbeat_at' => null, 'crontab_configured' => null, 'crontab_entries' => [], 'crontab_error' => null, 'recommended_entry' => '', 'jobs' => []];
@@ -1304,31 +1309,42 @@
     <section class="panel backup-panel" id="backups">
         <div class="panel-head">
             <div>
-                <h2 class="panel-title">نسخ قاعدة البيانات إلى R2 والسيرفر</h2>
-                <p class="panel-subtitle">نسخة MySQL مضغوطة يوميًا؛ 30 يومًا في R2 و7 أيام على السيرفر. التنزيل يحفظ ملف القاعدة على جهازك مباشرة.</p>
+                <h2 class="panel-title">النسخ الاحتياطية</h2>
+                <p class="panel-subtitle">استيراد القاعدة وإدارة النسخ المحلية وإعدادات التخزين.</p>
             </div>
             <div class="backup-actions">
-                <form method="POST" action="{{ route('dev-superadmin.database-backups.download-current') }}">
-                    @csrf
-                    <button class="btn btn-primary" type="submit" {{ $r2Ready ? '' : 'disabled' }}>تنزيل قاعدة البيانات الآن</button>
-                </form>
-                <form method="POST" action="{{ route('dev-superadmin.database-backups.create') }}">
-                    @csrf
-                    <button class="btn" type="submit" {{ $r2Ready ? '' : 'disabled' }}>إنشاء نسخة دون تنزيل</button>
-                </form>
+                @if ($r2Ready)
+                    <form method="POST" action="{{ route('dev-superadmin.database-backups.download-current') }}">
+                        @csrf
+                        <button class="btn btn-primary" type="submit">تنزيل نسخة جديدة</button>
+                    </form>
+                    <form method="POST" action="{{ route('dev-superadmin.database-backups.create') }}">
+                        @csrf
+                        <button class="btn" type="submit">إنشاء نسخة</button>
+                    </form>
+                @else
+                    <a class="btn" href="{{ route('storage.settings') }}">إعدادات التخزين</a>
+                @endif
             </div>
         </div>
         <div class="panel-body">
             <div class="section-heading">
                 <div>
                     <h2>قاعدة البيانات المستخدمة حاليًا</h2>
-                    <p>هذه هي إعدادات الاتصال الفعلية المحمّلة من <span dir="ltr">.env</span> وملف إعدادات Laravel. كلمة المرور مخفية دائمًا.</p>
+                    <p>البرنامج يعمل مباشرة على قاعدة MySQL الموضحة هنا.</p>
                 </div>
                 <span class="backup-status {{ ($currentDatabaseDetails['connected'] ?? false) ? 'is-ready' : 'is-off' }}">
                     {{ ($currentDatabaseDetails['connected'] ?? false) ? 'متصل الآن' : 'غير متصل' }}
                 </span>
             </div>
-            <div class="backup-settings database-connection-details" dir="ltr">
+            <p class="backup-status {{ ($currentDatabaseDetails['connected'] ?? false) ? 'is-ready' : 'is-off' }}">
+                القاعدة: <strong dir="ltr">{{ $currentDatabaseDetails['connected_database'] ?? ($currentDatabaseDetails['database'] ?? '—') }}</strong>
+                — الخادم: <span dir="ltr">{{ $currentDatabaseDetails['host'] ?? '—' }}:{{ $currentDatabaseDetails['port'] ?? '—' }}</span>
+                — MySQL <span dir="ltr">{{ $currentDatabaseDetails['server_version'] ?? '—' }}</span>
+            </p>
+            <details class="settings-disclosure">
+                <summary>عرض تفاصيل اتصال .env</summary>
+                <div class="settings-disclosure-content backup-settings database-connection-details" dir="ltr">
                 <div class="field">
                     <label>DB_CONNECTION</label>
                     <input type="text" readonly value="{{ $currentDatabaseDetails['driver'] ?? '—' }}">
@@ -1365,15 +1381,14 @@
                     <label>ترميز الاتصال</label>
                     <input type="text" readonly value="{{ $currentDatabaseDetails['charset'] ?? '—' }}">
                 </div>
-            </div>
+                </div>
+            </details>
             @if (!empty($currentDatabaseDetails['error']))
                 <p class="backup-status is-off">{{ $currentDatabaseDetails['error'] }}</p>
             @endif
-            <p class="backup-status">
-                الملفات الظاهرة في «النسخ الاحتياطية المحلية» هي ملفات حفظ واستعادة فقط، ولا يستخدم البرنامج أيًا منها مباشرة. البرنامج يعمل الآن على قاعدة
-                <strong dir="ltr">{{ $currentDatabaseDetails['connected_database'] ?? ($currentDatabaseDetails['database'] ?? '—') }}</strong>.
-            </p>
-
+            <details class="settings-disclosure">
+                <summary>أمان Super Admin</summary>
+                <div class="settings-disclosure-content">
             <div class="section-heading">
                 <div>
                     <h2>أمان Super Admin</h2>
@@ -1408,9 +1423,12 @@
             <p class="backup-status">
                 يجب إبقاء بريد أو جوال واحد على الأقل. كلمة المرور الجديدة لا تقل عن 12 حرفًا وتحتوي حرفًا كبيرًا وصغيرًا ورقمًا ورمزًا خاصًا. عند تغييرها سيتم تسجيل خروجك تلقائيًا.
             </p>
+                </div>
+            </details>
 
-            <hr style="border:0;border-top:1px solid var(--border);margin:22px 0;">
-
+            <details class="settings-disclosure">
+                <summary>الجدولة والتخزين وR2</summary>
+                <div class="settings-disclosure-content">
             <form method="POST" action="{{ route('dev-superadmin.database-backups.settings') }}" class="backup-settings">
                 @csrf
                 @method('PUT')
@@ -1453,69 +1471,73 @@
                 {{ $r2Ready ? 'اتصال R2 جاهز للحفظ والاستعادة.' : 'R2 غير جاهز. فعّله واختبر الاتصال من إعدادات التخزين أولًا.' }}
                 <a href="{{ route('storage.settings') }}">فتح إعدادات التخزين</a>
             </p>
+                </div>
+            </details>
 
             <p class="backup-status {{ $backupSettings['local_enabled'] ? 'is-ready' : '' }}">
-                النسخ الخاصة الموجودة على السيرفر: {{ count($localDatabaseBackups) }} — محفوظة داخل storage/app/database-backups وغير متاحة للعامة.
+                النسخ المحلية: {{ count($localDatabaseBackups) }} — محفوظة بشكل خاص داخل <span dir="ltr">storage/app/database-backups</span>.
             </p>
-
-            @if (count($backupVerificationChannels) > 0)
-                <div class="alert alert-warning">
-                    الاستعادة والحذف من R2 محميان برمز تحقق أحادي الاستخدام. الاستيراد المحلي محمي بكلمة مرور Super Admin الحالية، وينشئ نسخة أمان محلية قبل التنفيذ.
-                </div>
-            @else
-                <div class="alert alert-danger">
-                    الاستعادة والحذف من R2 مقفلان. يمكنك الاستيراد المحلي باستخدام كلمة مرور Super Admin الحالية دون بريد أو R2.
-                </div>
-            @endif
 
             @if ($backupListError)
                 <div class="alert alert-danger">تعذر قراءة قائمة النسخ: {{ $backupListError }}</div>
             @endif
 
             <div class="database-import-box">
-                <h3>استيراد قاعدة بيانات من الجهاز</h3>
-                <p>
-                    ارفع ملف <span dir="ltr">.sql</span> أو <span dir="ltr">.sql.gz</span> لاستبدال بيانات قاعدة المشروع الحالية.
-                    قبل التنفيذ سيحفظ النظام نسخة أمان كاملة محليًا داخل <span dir="ltr">storage/app/database-backups</span>، ولن يبدأ الاستيراد إذا تعذر التحقق منها.
-                    الحد من داخل التطبيق {{ number_format(config('database.backup_import_max_kb', 512000) / 1024, 0) }} MB، وقد يكون حد PHP أو خادم الويب أقل.
-                </p>
-
-                <form id="databaseImportForm" class="verification-confirm" method="POST" enctype="multipart/form-data" action="{{ route('dev-superadmin.database-backups.import') }}">
-                    @csrf
-                    <input id="databaseFileInput" type="file" name="database_file" required accept=".sql,.gz,application/sql,application/gzip" aria-label="ملف قاعدة البيانات">
-                    <input type="text" name="confirmation" required placeholder="IMPORT" autocomplete="off" aria-label="اكتب IMPORT">
-                    <input type="password" name="current_password" required placeholder="كلمة مرور Super Admin" autocomplete="current-password" aria-label="كلمة مرور Super Admin الحالية">
-                    <button id="databaseImportButton" class="btn btn-danger" type="submit">رفع واستيراد القاعدة</button>
-                </form>
-                <div id="databaseImportProgress" class="import-progress" hidden>
-                    <div class="import-progress-track" role="progressbar" aria-label="تقدم رفع قاعدة البيانات" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
-                        <div class="import-progress-bar"></div>
-                    </div>
-                    <p class="import-progress-text">جاري رفع الملف: 0%</p>
-                </div>
-                <div id="databaseImportMessage" class="import-progress-message" hidden></div>
+                <h3>استيراد قاعدة بيانات</h3>
+                <p>اختر ملف <span dir="ltr">SQL / SQL.GZ</span> ثم انسخ الأمر المناسب. ستُحفظ نسخة أمان تلقائيًا قبل استبدال البيانات.</p>
 
                 <div class="terminal-command-box">
-                    <p>
-                        <strong>الاستيراد من Terminal:</strong>
-                        اختر الملف هنا ثم انسخ الأمر؛ سيضيف اسم الملف ويبحث عنه تلقائيًا داخل <span dir="ltr">Downloads</span> و<span dir="ltr">Desktop</span> ومجلد النسخ المحلية. يولّد النظام أمر Terminal على macOS/Linux وأمر PowerShell على Windows، وتظهر تعليماته داخله باللغة الإنجليزية.
-                    </p>
+                    <input id="databaseFileInput" type="file" accept=".sql,.gz,application/sql,application/gzip" aria-label="اختر ملف قاعدة البيانات لإنشاء أمر الاستيراد">
                     <code id="databaseTerminalCommandPrefix" class="terminal-command">{{ $databaseImportCommandPrefix }}</code>
                     <div class="terminal-command-actions">
                         <button id="copyDatabaseTerminalPrefix" class="btn btn-small" type="button" data-command-prefix="{{ $databaseImportCommandPrefix }}" data-shell="{{ $databaseImportShell }}">نسخ أمر {{ $databaseImportShell === 'powershell' ? 'PowerShell' : 'Terminal' }}</button>
                         <span id="terminalSelectedFile" class="terminal-selected-file">لم يتم اختيار ملف بعد.</span>
                     </div>
-                    <p class="backup-status is-off">
-                        Terminal يتجاوز حدود حجم الرفع ومهلة طلب الويب فقط. خطأ <span dir="ltr">ERROR 1822</span> الحالي من MySQL وسيظهر أيضًا حتى تُصلح بنية الاستيراد.
-                    </p>
+                    <p class="verification-note">نفّذ الأمر على الجهاز الذي يعمل عليه المشروع، ثم اكتب <span dir="ltr">IMPORT</span> عند طلب التأكيد.</p>
                 </div>
+
+                <details class="settings-disclosure">
+                    <summary>طريقة بديلة: الرفع والاستيراد من المتصفح</summary>
+                    <div class="settings-disclosure-content">
+                        <form id="databaseImportForm" class="verification-confirm" method="POST" enctype="multipart/form-data" action="{{ route('dev-superadmin.database-backups.import') }}">
+                            @csrf
+                            <input id="databaseUploadFileInput" type="file" name="database_file" required accept=".sql,.gz,application/sql,application/gzip" aria-label="ملف قاعدة البيانات">
+                            <input type="text" name="confirmation" required placeholder="IMPORT" autocomplete="off" aria-label="اكتب IMPORT">
+                            <input type="password" name="current_password" required placeholder="كلمة مرور Super Admin" autocomplete="current-password" aria-label="كلمة مرور Super Admin الحالية">
+                            <button id="databaseImportButton" class="btn btn-danger" type="submit">رفع واستيراد القاعدة</button>
+                        </form>
+                        <p class="verification-note">الحد داخل التطبيق {{ number_format(config('database.backup_import_max_kb', 512000) / 1024, 0) }} MB، وقد يفرض PHP حدًا أقل.</p>
+                        <div id="databaseImportProgress" class="import-progress" hidden>
+                            <div class="import-progress-track" role="progressbar" aria-label="تقدم رفع قاعدة البيانات" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+                                <div class="import-progress-bar"></div>
+                            </div>
+                            <p class="import-progress-text">جاري رفع الملف: 0%</p>
+                        </div>
+                        <div id="databaseImportMessage" class="import-progress-message" hidden></div>
+                    </div>
+                </details>
+
+                <details class="settings-disclosure">
+                    <summary>خيار متقدم وخطر: تفريغ القاعدة قبل الاستيراد</summary>
+                    <div class="settings-disclosure-content">
+                        <div class="terminal-command-box" style="border-color:#fecaca;background:#fef2f2">
+                            <p style="color:#991b1b">ينشئ نسخة أمان ثم يحذف كل الجداول والـViews من <span dir="ltr">{{ $currentDatabaseDetails['database'] ?? '—' }}</span>.</p>
+                            <code class="terminal-command">{{ $databaseEmptyCommand }}</code>
+                            <div class="terminal-command-actions">
+                                <button class="btn btn-danger btn-small copy-terminal-command" type="button" data-command="{{ $databaseEmptyCommand }}">نسخ أمر التفريغ</button>
+                                <a class="btn btn-small" href="http://127.0.0.1:8001/dev-super-admin/recovery" target="_blank" rel="noopener">فتح شاشة الإنقاذ 8001</a>
+                            </div>
+                            <p class="verification-note">بعد التفريغ لن يعمل النظام على 8000 حتى يكتمل الاستيراد. شاشة 8001 مستقلة ولا تستعيد هذه القاعدة تلقائيًا.</p>
+                        </div>
+                    </div>
+                </details>
             </div>
 
             @if (count($localDatabaseBackups) > 0)
                 <div class="backup-table-wrap">
                     <h3>النسخ الاحتياطية المحلية</h3>
                     <table class="backup-table">
-                        <thead><tr><th>الملف</th><th>النوع</th><th>التاريخ</th><th>الحجم</th><th>مكان الحفظ</th><th>الإجراءات</th></tr></thead>
+                        <thead><tr><th>الملف</th><th>النوع</th><th>التاريخ</th><th>الحجم</th><th>الإجراءات</th></tr></thead>
                         <tbody>
                         @foreach ($localDatabaseBackups as $backup)
                             <tr>
@@ -1533,7 +1555,6 @@
                                 </td>
                                 <td>{{ \Carbon\Carbon::createFromTimestamp($backup['created_at'])->format('Y-m-d H:i:s') }}</td>
                                 <td>{{ number_format($backup['size'] / 1024 / 1024, 2) }} MB</td>
-                                <td class="backup-file">storage/app/{{ $backup['path'] }}</td>
                                 <td>
                                     @if (str_starts_with($backup['filename'], 'clickerp-uploaded-'))
                                         <button class="btn btn-small copy-terminal-command" type="button" data-command="{{ $backup['terminal_command'] }}">نسخ أمر Terminal</button>
@@ -1556,7 +1577,9 @@
                 </div>
             @endif
 
+            @if ($r2Ready || count($databaseBackups) > 0)
             <div class="backup-table-wrap">
+                <h3>نسخ R2</h3>
                 <table class="backup-table">
                     <thead><tr><th>الملف</th><th>التاريخ</th><th>الحجم</th><th>الإجراءات</th></tr></thead>
                     <tbody>
@@ -1613,6 +1636,7 @@
                     </tbody>
                 </table>
             </div>
+            @endif
         </div>
     </section>
     @endif

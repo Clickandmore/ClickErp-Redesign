@@ -126,15 +126,25 @@ class DatabaseBackupService
 
     public function localImportCommandPrefix(): string
     {
+        return $this->artisanCommandPrefix('database:import-local');
+    }
+
+    public function emptyDatabaseCommand(): string
+    {
+        return rtrim($this->artisanCommandPrefix('database:empty-configured'));
+    }
+
+    private function artisanCommandPrefix(string $command): string
+    {
         if ($this->terminalShell() === 'powershell') {
             return 'Set-Location ' . $this->terminalQuote(base_path())
                 . '; & ' . $this->terminalQuote(PHP_BINARY)
-                . ' artisan database:import-local ';
+                . ' artisan ' . $command . ' ';
         }
 
         return 'cd ' . $this->terminalQuote(base_path())
             . ' && ' . $this->terminalQuote(PHP_BINARY)
-            . ' artisan database:import-local ';
+            . ' artisan ' . $command . ' ';
     }
 
     public function terminalShell(): string
@@ -194,6 +204,68 @@ class DatabaseBackupService
         }
 
         return $details;
+    }
+
+    public function emptyConfiguredDatabase(): array
+    {
+        if (function_exists('set_time_limit')) {
+            set_time_limit(0);
+        }
+
+        return Cache::lock('database-backup-operation', 7200)->block(5, function (): array {
+            $safetyBackup = $this->createLocalSafetyBackup();
+            $connection = $this->connection();
+            $database = (string) $connection['database'];
+            $rows = DB::select(
+                'SELECT TABLE_NAME AS object_name, TABLE_TYPE AS object_type
+                 FROM information_schema.TABLES
+                 WHERE TABLE_SCHEMA = ?',
+                [$database]
+            );
+            $views = [];
+            $tables = [];
+
+            foreach ($rows as $row) {
+                $name = str_replace('`', '``', (string) $row->object_name);
+                if ((string) $row->object_type === 'VIEW') {
+                    $views[] = '`' . $name . '`';
+                } else {
+                    $tables[] = '`' . $name . '`';
+                }
+            }
+
+            DB::statement('SET FOREIGN_KEY_CHECKS=0');
+            try {
+                if ($views !== []) {
+                    DB::statement('DROP VIEW IF EXISTS ' . implode(', ', $views));
+                }
+                if ($tables !== []) {
+                    DB::statement('DROP TABLE IF EXISTS ' . implode(', ', $tables));
+                }
+            } catch (\Throwable $exception) {
+                throw new RuntimeException(
+                    'تعذر إكمال تفريغ قاعدة البيانات. نسخة الأمان محفوظة باسم '
+                    . $safetyBackup['filename'] . ': ' . $exception->getMessage(),
+                    0,
+                    $exception
+                );
+            } finally {
+                try {
+                    DB::statement('SET FOREIGN_KEY_CHECKS=1');
+                } catch (\Throwable $exception) {
+                    report($exception);
+                }
+            }
+
+            DB::disconnect();
+
+            return [
+                'database' => $database,
+                'tables' => count($tables),
+                'views' => count($views),
+                'safety_backup' => $safetyBackup,
+            ];
+        });
     }
 
     public function readLocalStream(string $path)
