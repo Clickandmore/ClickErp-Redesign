@@ -145,6 +145,9 @@ class DevDatabaseBackupSecurityTest extends TestCase
         $this->assertCount(1, $backups);
         $this->assertSame($path, $backups[0]['path']);
         $this->assertSame('clickerp-uploaded-20260825-120000-abcdefgh.sql.gz', $backups[0]['filename']);
+        $this->assertStringContainsString('artisan database:import-local', $backups[0]['terminal_command']);
+        $this->assertStringContainsString(Storage::disk('local')->path($path), $backups[0]['terminal_command']);
+        $this->assertStringNotContainsString('--force', $backups[0]['terminal_command']);
     }
 
     public function test_plain_sql_upload_is_saved_as_a_valid_compressed_local_backup(): void
@@ -248,4 +251,15 @@ class DevDatabaseBackupSecurityTest extends TestCase
 
         Storage::disk('local')->assertExists($path);
     }
+
+    public function test_current_database_details_never_expose_the_database_password(): void
+    {
+        $details = app(DatabaseBackupService::class)->currentDatabaseDetails();
+
+        $this->assertSame(config('database.default'), $details['connection']);
+        $this->assertSame(config('database.connections.' . config('database.default') . '.database'), $details['database']);
+        $this->assertArrayHasKey('password_configured', $details);
+        $this->assertArrayNotHasKey('password', $details);
+    }
+
 }

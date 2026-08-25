@@ -356,6 +356,11 @@
         .backup-table th { color: var(--muted); font-size: .8rem; background: var(--surface-soft); }
         .backup-table td { font-size: .86rem; }
         .backup-file { direction: ltr; text-align: left; font-family: monospace; }
+        .terminal-command-box { margin-top: 14px; padding: 14px; border: 1px solid #bfdbfe; border-radius: 10px; background: #eff6ff; }
+        .terminal-command-box p { margin: 0 0 10px; color: #1e3a8a; line-height: 1.7; }
+        .terminal-command { display: block; direction: ltr; text-align: left; overflow-x: auto; padding: 11px; border-radius: 8px; background: #0f172a; color: #e2e8f0; font: .78rem/1.7 monospace; white-space: pre; }
+        .terminal-command-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-top: 9px; }
+        .terminal-selected-file { color: var(--muted); font-size: .82rem; font-weight: 800; }
         .restore-form { display: flex; gap: 6px; align-items: center; }
         .restore-form input { width: 94px; min-height: 38px; border: 1px solid var(--border-strong); border-radius: 8px; padding: 6px; }
         .verification-request, .verification-confirm { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
@@ -862,6 +867,9 @@
     $backupSettings = $backupSettings ?? ['enabled' => true, 'daily_time' => '03:30', 'retention_days' => 30, 'local_enabled' => true, 'local_retention_days' => 7, 'path' => 'database-backups'];
     $databaseBackups = $databaseBackups ?? [];
     $localDatabaseBackups = $localDatabaseBackups ?? [];
+    $currentDatabaseDetails = $currentDatabaseDetails ?? [];
+    $databaseImportCommandPrefix = $databaseImportCommandPrefix ?? '';
+    $databaseImportShell = $databaseImportShell ?? 'terminal';
     $backupListError = $backupListError ?? null;
     $r2Ready = $r2Ready ?? false;
     $schedulerStatus = $schedulerStatus ?? ['active' => false, 'last_heartbeat_at' => null, 'crontab_configured' => null, 'crontab_entries' => [], 'crontab_error' => null, 'recommended_entry' => '', 'jobs' => []];
@@ -1312,6 +1320,61 @@
         <div class="panel-body">
             <div class="section-heading">
                 <div>
+                    <h2>قاعدة البيانات المستخدمة حاليًا</h2>
+                    <p>هذه هي إعدادات الاتصال الفعلية المحمّلة من <span dir="ltr">.env</span> وملف إعدادات Laravel. كلمة المرور مخفية دائمًا.</p>
+                </div>
+                <span class="backup-status {{ ($currentDatabaseDetails['connected'] ?? false) ? 'is-ready' : 'is-off' }}">
+                    {{ ($currentDatabaseDetails['connected'] ?? false) ? 'متصل الآن' : 'غير متصل' }}
+                </span>
+            </div>
+            <div class="backup-settings database-connection-details" dir="ltr">
+                <div class="field">
+                    <label>DB_CONNECTION</label>
+                    <input type="text" readonly value="{{ $currentDatabaseDetails['driver'] ?? '—' }}">
+                </div>
+                <div class="field">
+                    <label>DB_HOST</label>
+                    <input type="text" readonly value="{{ $currentDatabaseDetails['host'] ?? '—' }}">
+                </div>
+                <div class="field">
+                    <label>DB_PORT</label>
+                    <input type="text" readonly value="{{ $currentDatabaseDetails['port'] ?? '—' }}">
+                </div>
+                <div class="field">
+                    <label>DB_DATABASE</label>
+                    <input type="text" readonly value="{{ $currentDatabaseDetails['database'] ?? '—' }}">
+                </div>
+                <div class="field">
+                    <label>DB_USERNAME</label>
+                    <input type="text" readonly value="{{ $currentDatabaseDetails['username'] ?? '—' }}">
+                </div>
+                <div class="field">
+                    <label>DB_PASSWORD</label>
+                    <input type="text" readonly value="{{ ($currentDatabaseDetails['password_configured'] ?? false) ? '•••••••• (مخفية)' : 'غير مضبوطة' }}">
+                </div>
+                <div class="field">
+                    <label>قاعدة البيانات المؤكدة من MySQL</label>
+                    <input type="text" readonly value="{{ $currentDatabaseDetails['connected_database'] ?? '—' }}">
+                </div>
+                <div class="field">
+                    <label>إصدار خادم MySQL</label>
+                    <input type="text" readonly value="{{ $currentDatabaseDetails['server_version'] ?? '—' }}">
+                </div>
+                <div class="field">
+                    <label>ترميز الاتصال</label>
+                    <input type="text" readonly value="{{ $currentDatabaseDetails['charset'] ?? '—' }}">
+                </div>
+            </div>
+            @if (!empty($currentDatabaseDetails['error']))
+                <p class="backup-status is-off">{{ $currentDatabaseDetails['error'] }}</p>
+            @endif
+            <p class="backup-status">
+                الملفات الظاهرة في «النسخ الاحتياطية المحلية» هي ملفات حفظ واستعادة فقط، ولا يستخدم البرنامج أيًا منها مباشرة. البرنامج يعمل الآن على قاعدة
+                <strong dir="ltr">{{ $currentDatabaseDetails['connected_database'] ?? ($currentDatabaseDetails['database'] ?? '—') }}</strong>.
+            </p>
+
+            <div class="section-heading">
+                <div>
                     <h2>أمان Super Admin</h2>
                     <p>تحكم بجهات استلام رموز العمليات الخطرة وكلمة مرور الدخول. تُحفظ القيم في ملف خاص مشفّر ومستقل عن قاعدة البيانات.</p>
                 </div>
@@ -1418,7 +1481,7 @@
 
                 <form id="databaseImportForm" class="verification-confirm" method="POST" enctype="multipart/form-data" action="{{ route('dev-superadmin.database-backups.import') }}">
                     @csrf
-                    <input type="file" name="database_file" required accept=".sql,.gz,application/sql,application/gzip" aria-label="ملف قاعدة البيانات">
+                    <input id="databaseFileInput" type="file" name="database_file" required accept=".sql,.gz,application/sql,application/gzip" aria-label="ملف قاعدة البيانات">
                     <input type="text" name="confirmation" required placeholder="IMPORT" autocomplete="off" aria-label="اكتب IMPORT">
                     <input type="password" name="current_password" required placeholder="كلمة مرور Super Admin" autocomplete="current-password" aria-label="كلمة مرور Super Admin الحالية">
                     <button id="databaseImportButton" class="btn btn-danger" type="submit">رفع واستيراد القاعدة</button>
@@ -1430,6 +1493,21 @@
                     <p class="import-progress-text">جاري رفع الملف: 0%</p>
                 </div>
                 <div id="databaseImportMessage" class="import-progress-message" hidden></div>
+
+                <div class="terminal-command-box">
+                    <p>
+                        <strong>الاستيراد من Terminal:</strong>
+                        اختر الملف هنا ثم انسخ الأمر؛ سيضيف اسم الملف ويبحث عنه تلقائيًا داخل <span dir="ltr">Downloads</span> و<span dir="ltr">Desktop</span> ومجلد النسخ المحلية. يولّد النظام أمر Terminal على macOS/Linux وأمر PowerShell على Windows، وتظهر تعليماته داخله باللغة الإنجليزية.
+                    </p>
+                    <code id="databaseTerminalCommandPrefix" class="terminal-command">{{ $databaseImportCommandPrefix }}</code>
+                    <div class="terminal-command-actions">
+                        <button id="copyDatabaseTerminalPrefix" class="btn btn-small" type="button" data-command-prefix="{{ $databaseImportCommandPrefix }}" data-shell="{{ $databaseImportShell }}">نسخ أمر {{ $databaseImportShell === 'powershell' ? 'PowerShell' : 'Terminal' }}</button>
+                        <span id="terminalSelectedFile" class="terminal-selected-file">لم يتم اختيار ملف بعد.</span>
+                    </div>
+                    <p class="backup-status is-off">
+                        Terminal يتجاوز حدود حجم الرفع ومهلة طلب الويب فقط. خطأ <span dir="ltr">ERROR 1822</span> الحالي من MySQL وسيظهر أيضًا حتى تُصلح بنية الاستيراد.
+                    </p>
+                </div>
             </div>
 
             @if (count($localDatabaseBackups) > 0)
@@ -1457,6 +1535,7 @@
                                 <td class="backup-file">storage/app/{{ $backup['path'] }}</td>
                                 <td>
                                     @if (str_starts_with($backup['filename'], 'clickerp-uploaded-'))
+                                        <button class="btn btn-small copy-terminal-command" type="button" data-command="{{ $backup['terminal_command'] }}">نسخ أمر Terminal</button>
                                         <form class="verification-confirm" method="POST" action="{{ route('dev-superadmin.database-backups.local.destroy') }}" onsubmit="return confirm('سيُحذف ملف النسخة المحلية المرفوعة نهائيًا. هل تريد المتابعة؟')">
                                             @csrf
                                             @method('DELETE')
@@ -1795,6 +1874,64 @@
         });
 
         emptyState.style.display = visibleCount === 0 ? 'block' : 'none';
+    });
+
+    async function copyTerminalCommand(button, command) {
+        if (!command) return;
+
+        try {
+            await navigator.clipboard.writeText(command);
+        } catch (error) {
+            const helper = document.createElement('textarea');
+            helper.value = command;
+            helper.setAttribute('readonly', '');
+            helper.style.position = 'fixed';
+            helper.style.opacity = '0';
+            document.body.appendChild(helper);
+            helper.select();
+            document.execCommand('copy');
+            helper.remove();
+        }
+
+        const originalLabel = button.textContent;
+        button.textContent = 'تم النسخ';
+        window.setTimeout(() => button.textContent = originalLabel, 1800);
+    }
+
+    const databaseFileInput = document.getElementById('databaseFileInput');
+    const terminalSelectedFile = document.getElementById('terminalSelectedFile');
+    const copyDatabaseTerminalPrefix = document.getElementById('copyDatabaseTerminalPrefix');
+    const databaseTerminalCommandPrefix = document.getElementById('databaseTerminalCommandPrefix');
+    const terminalCommandPrefix = copyDatabaseTerminalPrefix?.dataset.commandPrefix || '';
+    const databaseImportShell = copyDatabaseTerminalPrefix?.dataset.shell || 'terminal';
+
+    function shellQuote(value) {
+        if (databaseImportShell === 'powershell') {
+            return `'${String(value).replaceAll("'", "''")}'`;
+        }
+        return `'${String(value).replaceAll("'", `'"'"'`)}'`;
+    }
+
+    databaseFileInput?.addEventListener('change', function () {
+        const file = this.files?.[0];
+        const command = file ? terminalCommandPrefix + shellQuote(file.name) : terminalCommandPrefix;
+        if (databaseTerminalCommandPrefix) databaseTerminalCommandPrefix.textContent = command;
+        if (copyDatabaseTerminalPrefix) copyDatabaseTerminalPrefix.dataset.commandPrefix = command;
+        if (terminalSelectedFile) {
+            terminalSelectedFile.textContent = file
+                ? `الملف المختار: ${file.name} — سيبحث الأمر عنه تلقائيًا في المجلدات المعتادة.`
+                : 'لم يتم اختيار ملف بعد.';
+        }
+    });
+
+    copyDatabaseTerminalPrefix?.addEventListener('click', function () {
+        copyTerminalCommand(this, this.dataset.commandPrefix || '');
+    });
+
+    document.querySelectorAll('.copy-terminal-command').forEach((button) => {
+        button.addEventListener('click', function () {
+            copyTerminalCommand(this, this.dataset.command || '');
+        });
     });
 
     const databaseImportForm = document.getElementById('databaseImportForm');

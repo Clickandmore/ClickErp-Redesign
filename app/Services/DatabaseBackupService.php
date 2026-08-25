@@ -113,12 +113,87 @@ class DatabaseBackupService
                 'filename' => $filename,
                 'size' => $disk->size($path),
                 'created_at' => $disk->lastModified($path),
+                'terminal_command' => str_starts_with($filename, 'clickerp-uploaded-')
+                    ? $this->localImportCommand($path)
+                    : null,
             ];
         }
 
         usort($items, fn (array $a, array $b) => $b['created_at'] <=> $a['created_at']);
 
         return $items;
+    }
+
+    public function localImportCommandPrefix(): string
+    {
+        if ($this->terminalShell() === 'powershell') {
+            return 'Set-Location ' . $this->terminalQuote(base_path())
+                . '; & ' . $this->terminalQuote(PHP_BINARY)
+                . ' artisan database:import-local ';
+        }
+
+        return 'cd ' . $this->terminalQuote(base_path())
+            . ' && ' . $this->terminalQuote(PHP_BINARY)
+            . ' artisan database:import-local ';
+    }
+
+    public function terminalShell(): string
+    {
+        return PHP_OS_FAMILY === 'Windows' ? 'powershell' : 'terminal';
+    }
+
+    public function localImportCommand(string $path): string
+    {
+        $filename = basename($path);
+        if ($path !== self::LOCAL_DIRECTORY . '/' . $filename
+            || !str_starts_with($filename, 'clickerp-uploaded-')
+            || !preg_match(self::FILE_PATTERN, $filename)) {
+            throw new RuntimeException('لا يمكن إنشاء أمر استيراد إلا لنسخة مرفوعة يدويًا صالحة.');
+        }
+
+        return $this->localImportCommandPrefix()
+            . $this->terminalQuote(Storage::disk('local')->path($path));
+    }
+
+    private function terminalQuote(string $value): string
+    {
+        return $this->terminalShell() === 'powershell'
+            ? "'" . str_replace("'", "''", $value) . "'"
+            : escapeshellarg($value);
+    }
+
+    public function currentDatabaseDetails(): array
+    {
+        $connectionName = (string) config('database.default');
+        $connection = DB::connection($connectionName);
+        $configuration = $connection->getConfig();
+        $details = [
+            'connection' => $connectionName,
+            'driver' => (string) ($configuration['driver'] ?? ''),
+            'host' => (string) ($configuration['host'] ?? ''),
+            'port' => (string) ($configuration['port'] ?? ''),
+            'database' => (string) ($configuration['database'] ?? ''),
+            'username' => (string) ($configuration['username'] ?? ''),
+            'socket' => (string) ($configuration['unix_socket'] ?? ''),
+            'charset' => (string) ($configuration['charset'] ?? ''),
+            'password_configured' => filled($configuration['password'] ?? null),
+            'connected' => false,
+            'connected_database' => null,
+            'server_version' => null,
+            'error' => null,
+        ];
+
+        try {
+            $selected = $connection->selectOne('SELECT DATABASE() AS database_name');
+            $details['connected_database'] = $selected->database_name ?? null;
+            $details['server_version'] = (string) $connection->getPdo()->getAttribute(\PDO::ATTR_SERVER_VERSION);
+            $details['connected'] = true;
+        } catch (\Throwable $exception) {
+            report($exception);
+            $details['error'] = 'تعذر تأكيد الاتصال بقاعدة البيانات حاليًا.';
+        }
+
+        return $details;
     }
 
     public function readLocalStream(string $path)

@@ -19,7 +19,7 @@ class ImportLocalDatabaseCommandTest extends TestCase
             $this->app->instance(DatabaseBackupService::class, $backups);
 
             $this->artisan('database:import-local', ['file' => $path, '--force' => true])
-                ->expectsOutput('تم استيراد قاعدة البيانات بنجاح وحفظ نسخة الأمان المحلية.')
+                ->expectsOutput('Database imported successfully. The local safety backup was preserved.')
                 ->assertExitCode(0);
         } finally {
             @unlink($path);
@@ -34,5 +34,51 @@ class ImportLocalDatabaseCommandTest extends TestCase
 
         $this->artisan('database:import-local', ['file' => '/tmp/clickerp-file-does-not-exist.sql', '--force' => true])
             ->assertExitCode(1);
+    }
+
+    public function test_missing_file_argument_prompts_for_a_finder_path(): void
+    {
+        $directory = sys_get_temp_dir() . '/clickerp command import ' . uniqid();
+        mkdir($directory);
+        $path = $directory . '/backup file.sql';
+        file_put_contents($path, 'SELECT 1;');
+        $draggedPath = str_replace(' ', '\\ ', $path);
+
+        try {
+            $backups = Mockery::mock(DatabaseBackupService::class);
+            $backups->shouldReceive('importFile')->once()->with(realpath($path));
+            $this->app->instance(DatabaseBackupService::class, $backups);
+
+            $this->artisan('database:import-local', ['--force' => true])
+                ->expectsQuestion('Drag the SQL or SQL.GZ file here, then press Enter', $draggedPath)
+                ->expectsOutput('Database imported successfully. The local safety backup was preserved.')
+                ->assertExitCode(0);
+        } finally {
+            @unlink($path);
+            @rmdir($directory);
+        }
+    }
+
+    public function test_a_selected_filename_is_found_in_a_configured_search_directory(): void
+    {
+        $directory = sys_get_temp_dir() . '/clickerp-command-search-' . uniqid();
+        mkdir($directory);
+        $filename = 'selected-backup.sql.gz';
+        $path = $directory . '/' . $filename;
+        file_put_contents($path, 'compressed-placeholder');
+        config(['database.backup_import_search_paths' => [$directory]]);
+
+        try {
+            $backups = Mockery::mock(DatabaseBackupService::class);
+            $backups->shouldReceive('importFile')->once()->with(realpath($path));
+            $this->app->instance(DatabaseBackupService::class, $backups);
+
+            $this->artisan('database:import-local', ['file' => $filename, '--force' => true])
+                ->expectsOutput('Database imported successfully. The local safety backup was preserved.')
+                ->assertExitCode(0);
+        } finally {
+            @unlink($path);
+            @rmdir($directory);
+        }
     }
 }
