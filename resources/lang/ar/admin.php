@@ -30,6 +30,7 @@ return array (
   'not_active' => 'غير نشط / مخفي',
   'not_active_invisible' => 'مخفي',
   'success' => 'تمت العملية بنجاح',
+  'updated_successfully' => 'تم التحديث بنجاح',
   'something_went_wrong' => 'حدث خطأ. يرجى المحاولة مرة أخرى.',
   'error' => 'خطأ',
   'deletedSuccessfully' => 'تم حذف البيانات بنجاح',
