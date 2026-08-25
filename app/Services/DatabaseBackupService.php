@@ -929,23 +929,56 @@ REGEX;
 
     private function binary(string $name): string
     {
-        $configured = (string) config('database.backup_binaries.' . $name, '');
-        $candidates = array_filter([
-            $configured,
+        $configured = trim((string) config('database.backup_binaries.' . $name, ''));
+
+        // A config cache copied from a Mac must never make a Linux server try
+        // to inspect or execute a local MAMP path.
+        if ($configured !== '' && !(
+            PHP_OS_FAMILY !== 'Darwin'
+            && Str::startsWith($configured, '/Applications/MAMP/')
+        )) {
+            return $configured;
+        }
+
+        // Linux/Windows servers should resolve the client through PATH. Apart
+        // from being portable, this avoids open_basedir warnings caused by
+        // calling is_file() on system binaries outside the website directory.
+        if (PHP_OS_FAMILY !== 'Darwin') {
+            return $name;
+        }
+
+        $candidates = [
             '/Applications/MAMP/Library/bin/mysql80/bin/' . $name,
             '/Applications/MAMP/Library/bin/mysql57/bin/' . $name,
             '/usr/local/bin/' . $name,
             '/usr/bin/' . $name,
             '/opt/homebrew/bin/' . $name,
-        ]);
+        ];
 
         foreach ($candidates as $candidate) {
-            if (is_file($candidate) && is_executable($candidate)) {
+            if ($this->pathCanBeInspected($candidate) && is_file($candidate) && is_executable($candidate)) {
                 return $candidate;
             }
         }
 
-        throw new RuntimeException("لم يتم العثور على أداة {$name} على الخادم.");
+        return $name;
+    }
+
+    private function pathCanBeInspected(string $path): bool
+    {
+        $restriction = trim((string) ini_get('open_basedir'));
+        if ($restriction === '') {
+            return true;
+        }
+
+        foreach (explode(PATH_SEPARATOR, $restriction) as $allowedPath) {
+            $allowedPath = rtrim(trim($allowedPath), DIRECTORY_SEPARATOR);
+            if ($allowedPath !== '' && ($path === $allowedPath || Str::startsWith($path, $allowedPath . DIRECTORY_SEPARATOR))) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private function directory(): string
