@@ -470,7 +470,12 @@ class DatabaseBackupService
 
         $connection = $this->connection();
         try {
-            $this->prepareRestoreInput($sql, $restoreInput);
+            $this->prepareRestoreInput(
+                $sql,
+                $restoreInput,
+                $this->schemaResetSql($connection),
+                $this->largeObjectDefaultMode()
+            );
         } finally {
             $gzip ? gzclose($sql) : fclose($sql);
         }
@@ -658,8 +663,17 @@ class DatabaseBackupService
      * @param resource $source
      * @param resource $destination
      */
-    private function prepareRestoreInput($source, $destination): void
+    private function prepareRestoreInput(
+        $source,
+        $destination,
+        string $prefix = '',
+        string $largeObjectDefaultMode = 'unchanged'
+    ): void
     {
+        if ($prefix !== '' && fwrite($destination, $prefix . "\n") === false) {
+            throw new RuntimeException('تعذر تجهيز قاعدة البيانات للاستبدال.');
+        }
+
         while (($line = fgets($source)) !== false) {
             if (preg_match('/^\s*(?:CREATE|DROP|ALTER)\s+DATABASE\b.*;\s*$/i', $line)) {
                 continue;
@@ -669,6 +683,7 @@ class DatabaseBackupService
                 continue;
             }
 
+            $line = $this->normalizeLargeObjectLiteralDefault($line, $largeObjectDefaultMode);
             if (fwrite($destination, $line) === false) {
                 throw new RuntimeException('تعذر تجهيز محتوى النسخة للاستعادة.');
             }
@@ -677,6 +692,127 @@ class DatabaseBackupService
         if (!feof($source)) {
             throw new RuntimeException('تعذر فك ضغط النسخة الاحتياطية.');
         }
+    }
+
+    /**
+     * MariaDB permits literal defaults on TEXT/BLOB columns, while MySQL 8
+     * requires the same literal to be written as an expression. MySQL versions
+     * before 8.0.13 do not support that expression default at all.
+     */
+    private function largeObjectDefaultMode(): string
+    {
+        $version = (string) (DB::selectOne('SELECT VERSION() AS version')->version ?? '');
+        if (stripos($version, 'mariadb') !== false) {
+            return 'unchanged';
+        }
+
+        return version_compare(preg_replace('/[^0-9.].*$/', '', $version), '8.0.13', '>=')
+            ? 'expression'
+            : 'remove';
+    }
+
+    private function normalizeLargeObjectLiteralDefault(string $line, string $mode): string
+    {
+        if ($mode === 'unchanged' || !preg_match(
+            '/^\s*`(?:``|[^`])+`\s+(?:(?:tiny|medium|long)?(?:blob|text)|json|geometry(?:collection)?|point|linestring|polygon|multipoint|multilinestring|multipolygon)\b/i',
+            $line
+        )) {
+            return $line;
+        }
+
+        $literal = <<<'REGEX'
+(?:'(?:\\.|''|[^'\\])*'|"(?:\\.|""|[^"\\])*"|(?:0x[0-9a-f]+|b'[01]+')|[-+]?\d+(?:\.\d+)?)
+REGEX;
+
+        if ($mode === 'expression') {
+            return preg_replace(
+                '/\bDEFAULT\s+(' . $literal . ')/i',
+                'DEFAULT ($1)',
+                $line,
+                1
+            ) ?? $line;
+        }
+
+        if ($mode === 'remove') {
+            return preg_replace('/\s+DEFAULT\s+' . $literal . '/i', '', $line, 1) ?? $line;
+        }
+
+        return $line;
+    }
+
+    /**
+     * Build the SQL that removes the current schema before replaying a dump.
+     *
+     * Uploaded dumps are not guaranteed to have been created with
+     * --add-drop-table. The import action promises to replace the current
+     * project database, so importing directly over the live schema can fail on
+     * the first CREATE TABLE and can also leave stale objects behind.
+     */
+    private function schemaResetSql(array $connection): string
+    {
+        $database = (string) $connection['database'];
+        $tables = DB::select(
+            'SELECT TABLE_NAME, TABLE_TYPE FROM information_schema.TABLES WHERE TABLE_SCHEMA = ?',
+            [$database]
+        );
+        $routines = DB::select(
+            'SELECT ROUTINE_NAME, ROUTINE_TYPE FROM information_schema.ROUTINES WHERE ROUTINE_SCHEMA = ?',
+            [$database]
+        );
+        $events = DB::select(
+            'SELECT EVENT_NAME FROM information_schema.EVENTS WHERE EVENT_SCHEMA = ?',
+            [$database]
+        );
+
+        return $this->schemaResetSqlForObjects($tables, $routines, $events);
+    }
+
+    private function schemaResetSqlForObjects(array $tables, array $routines, array $events): string
+    {
+        $views = [];
+        $baseTables = [];
+
+        foreach ($tables as $table) {
+            $name = $this->quoteIdentifier((string) $table->TABLE_NAME);
+            if (strtoupper((string) $table->TABLE_TYPE) === 'VIEW') {
+                $views[] = $name;
+            } else {
+                $baseTables[] = $name;
+            }
+        }
+
+        $statements = [
+            'SET FOREIGN_KEY_CHECKS=0;',
+            'SET UNIQUE_CHECKS=0;',
+        ];
+
+        if ($views !== []) {
+            $statements[] = 'DROP VIEW IF EXISTS ' . implode(', ', $views) . ';';
+        }
+        if ($baseTables !== []) {
+            $statements[] = 'DROP TABLE IF EXISTS ' . implode(', ', $baseTables) . ';';
+        }
+
+        foreach ($routines as $routine) {
+            $type = strtoupper((string) $routine->ROUTINE_TYPE);
+            if (!in_array($type, ['PROCEDURE', 'FUNCTION'], true)) {
+                continue;
+            }
+            $statements[] = 'DROP ' . $type . ' IF EXISTS '
+                . $this->quoteIdentifier((string) $routine->ROUTINE_NAME) . ';';
+        }
+
+        foreach ($events as $event) {
+            $statements[] = 'DROP EVENT IF EXISTS '
+                . $this->quoteIdentifier((string) $event->EVENT_NAME) . ';';
+        }
+
+        return implode("\n", $statements);
+    }
+
+    private function quoteIdentifier(string $identifier): string
+    {
+        return '`' . str_replace('`', '``', $identifier) . '`';
     }
 
     private function connectionArguments(array $connection): array

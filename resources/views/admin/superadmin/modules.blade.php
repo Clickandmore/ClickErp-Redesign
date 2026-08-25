@@ -932,6 +932,7 @@
     @endif
 
     <nav class="section-nav" aria-label="أقسام لوحة التحكم">
+        <a href="{{ route('dev-superadmin.recovery') }}"><span class="nav-dot"></span>الاستعادة والفحص</a>
         <a class="{{ $activeSection === 'subscription' ? 'active' : '' }}" href="{{ route('dev-superadmin.subscription') }}"><span class="nav-dot"></span>العميل والاشتراك</a>
         <a class="{{ $activeSection === 'modules' ? 'active' : '' }}" href="{{ route('dev-superadmin.modules') }}"><span class="nav-dot"></span>الموديلات</a>
         <a class="{{ $activeSection === 'employees' ? 'active' : '' }}" href="{{ route('dev-superadmin.employees') }}"><span class="nav-dot"></span>الموظفون</a>

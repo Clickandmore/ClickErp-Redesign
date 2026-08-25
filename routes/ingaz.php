@@ -756,6 +756,10 @@ Route::group(
             Route::post('login', [DevSuperAdminController::class, 'login'])->name('login.post');
 
             Route::middleware('dev.superadmin')->group(function () {
+                Route::get('recovery', [DevSuperAdminController::class, 'recovery'])->name('recovery');
+                Route::post('recovery/migrate', [DevSuperAdminController::class, 'runRecoveryMigrations'])
+                    ->middleware('throttle:3,1')
+                    ->name('recovery.migrate');
                 Route::get('modules', [DevSuperAdminController::class, 'modules'])->name('modules');
                 Route::get('subscription', [DevSuperAdminController::class, 'modules'])->name('subscription');
                 Route::get('product-updates', [DevSuperAdminController::class, 'modules'])->name('product-updates');

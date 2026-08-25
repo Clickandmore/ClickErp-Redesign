@@ -51,6 +51,14 @@ class AppServiceProvider extends ServiceProvider
         $directories = glob($migrationsPath . '/*', GLOB_ONLYDIR);
         $paths = array_merge([$migrationsPath], $directories);
         $this->loadMigrationsFrom($paths);
+
+        // The developer control plane must remain reachable when the tenant
+        // database is unavailable or only partially migrated. Nothing below
+        // this point is needed by its standalone views.
+        if (! $this->app->runningInConsole() && $this->isDevSuperAdminRequest()) {
+            return;
+        }
+
         CommunicationSettings::applyRuntimeConfig();
 
         if ($this->app->runningInConsole()) {
@@ -150,5 +158,17 @@ class AppServiceProvider extends ServiceProvider
             return Limit::perMinute(1)->by($request->phone);
         });
 
+    }
+
+    private function isDevSuperAdminRequest(): bool
+    {
+        return request()->is(
+            'superadmin',
+            '*/superadmin',
+            'dev-super-admin',
+            'dev-super-admin/*',
+            '*/dev-super-admin',
+            '*/dev-super-admin/*'
+        );
     }
 }
