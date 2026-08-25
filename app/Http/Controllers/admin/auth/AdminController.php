@@ -27,6 +27,7 @@ use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Session;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
+use Illuminate\Validation\Rule;
 use App\Mail\ResetPasswordMail;
 use Spatie\Permission\Models\Role;
 use Yajra\DataTables\DataTables;
@@ -987,20 +988,29 @@ class AdminController extends Controller
         $admin = ObjModel::findOrFail($id);
 
         $validator = Validator::make($request->all(), [
-            'role_id' => ['nullable', 'integer', 'exists:roles,id'],
+            'role_id' => [
+                'nullable',
+                'integer',
+                Rule::exists('roles', 'id')->where('guard_name', 'admin'),
+            ],
         ]);
         if ($validator->fails()) {
             return response()->json(['message' => $validator->errors()->first()], 422);
         }
 
-        DB::transaction(function () use ($admin, $request) {
-            $admin->syncRoles($request->filled('role_id') ? [$request->role_id] : []);
-            $admin->update(['role_id' => $request->filled('role_id') ? $request->role_id : null]);
+        $roleId = $request->filled('role_id') ? (int) $validator->validated()['role_id'] : null;
+        $role = $roleId ? Role::query()->where('guard_name', 'admin')->findOrFail($roleId) : null;
+
+        DB::transaction(function () use ($admin, $role) {
+            // Spatie treats integers as role names in syncRoles(), so pass the
+            // resolved Role model while keeping the legacy role_id in sync.
+            $admin->syncRoles($role ? [$role] : []);
+            $admin->update(['role_id' => $role?->id]);
         });
 
         app()[\Spatie\Permission\PermissionRegistrar::class]->forgetCachedPermissions();
 
-        return response()->json(['message' => __('admin.updated')]);
+        return jsonSuccess(null, __('admin.updated_successfully'));
     }
 
     public function quickAssignOffice(Request $request, $id)
@@ -1030,7 +1040,7 @@ class AdminController extends Controller
             DB::table('admin_offices')->insert($rows);
         }
 
-        return response()->json(['message' => __('admin.updated')]);
+        return jsonSuccess(null, __('admin.updated_successfully'));
     }
 
     public function quickAssignBranch(Request $request, $id)
@@ -1047,7 +1057,7 @@ class AdminController extends Controller
 
         $admin->update(['branch_id' => $request->filled('branch_id') ? $request->branch_id : null]);
 
-        return response()->json(['message' => __('admin.updated')]);
+        return jsonSuccess(null, __('admin.updated_successfully'));
     }
 
     private function defaultAdminRedirectUrl($admin): string

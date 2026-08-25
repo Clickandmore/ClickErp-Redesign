@@ -30,6 +30,7 @@ return array (
   'not_active' => 'Not Active / Hidden',
   'not_active_invisible' => 'Hidden',
   'success' => 'Operation completed successfully',
+  'updated_successfully' => 'Updated successfully',
   'something_went_wrong' => 'Error. Please try again.',
   'error' => 'An error occurred. Please try again.',
   'deletedSuccessfully' => 'Data deleted successfully',

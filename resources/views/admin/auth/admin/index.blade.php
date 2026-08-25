@@ -775,13 +775,14 @@
                     url: url,
                     data: Object.assign({_token: "{{ csrf_token() }}"}, data || {}),
                     success: function (response) {
-                        handleSuccessResponce(response);
                         if (adminSwal && typeof adminSwal.fire === 'function') {
                             adminSwal.fire({
                                 icon: 'success',
                                 title: response.message || successMessage,
                                 confirmButtonText: "{{ __('buttons.close') }}",
                             });
+                        } else {
+                            handleSuccessResponce(response);
                         }
                         reloadWithFilters();
                     },
@@ -872,7 +873,7 @@
                     customClass: { input: 'form-select mt-2' },
                 }).then(function (result) {
                     if (result.isConfirmed) {
-                        postAdminAction(url, { role_id: result.value }, '{{ __('admin.updated') }}');
+                        postAdminAction(url, { role_id: result.value }, '{{ __('admin.updated_successfully') }}');
                     }
                 });
             });
@@ -914,8 +915,7 @@
                             url: url,
                             data: { _token: "{{ csrf_token() }}", office_ids: result.value },
                             success: function (res) {
-                                handleSuccessResponce(res);
-                                adminSwal.fire({ icon: 'success', title: res.message || '{{ __('admin.updated') }}', confirmButtonText: '{{ __('buttons.close') }}' });
+                                adminSwal.fire({ icon: 'success', title: res.message || '{{ __('admin.updated_successfully') }}', confirmButtonText: '{{ __('buttons.close') }}' });
                                 reloadWithFilters();
                             },
                             error: handleErrorResponce
@@ -945,7 +945,7 @@
                     customClass: { input: 'form-select mt-2' },
                 }).then(function (result) {
                     if (result.isConfirmed) {
-                        postAdminAction(url, { branch_id: result.value }, '{{ __('admin.updated') }}');
+                        postAdminAction(url, { branch_id: result.value }, '{{ __('admin.updated_successfully') }}');
                     }
                 });
             });
