@@ -792,6 +792,9 @@
 @php
     $modules = $modules ?? [];
     $enabledMap = $enabledMap ?? [];
+    $configuredMap = $configuredMap ?? $enabledMap;
+    $productProfiles = $productProfiles ?? [];
+    $productProfileKey = $productProfileKey ?? 'recruitment';
     $dashboards = $dashboards ?? [];
     $defaultDashboardKey = $defaultDashboardKey ?? 'recruitment';
     $branchLimit = $branchLimit ?? null;
@@ -843,7 +846,7 @@
         </div>
 
         <div class="topbar-actions">
-            <a class="btn" href="{{ route('dashboard.index') }}">لوحة الإدارة</a>
+            <a class="btn" href="{{ \App\Support\SystemModuleManager::defaultDashboardUrl() }}">لوحة الإدارة</a>
             <form method="POST" action="{{ route('dev-superadmin.logout') }}">
                 @csrf
                 <button class="btn btn-danger" type="submit">خروج</button>
@@ -1081,6 +1084,23 @@
                     @csrf
                     @method('PUT')
 
+                    <div class="panel-head" style="margin:-16px -16px 16px;border:0;border-bottom:1px solid var(--border)">
+                        <div>
+                            <h3 class="panel-title">نوع البرنامج</h3>
+                            <p class="panel-subtitle">نظام الاستقدام هو الوضع الافتراضي الحالي. تغيير النوع لا يحذف أي بيانات أو إعدادات.</p>
+                        </div>
+                    </div>
+
+                    <div class="dashboard-options">
+                        @foreach ($productProfiles as $profileKey => $profile)
+                            <label class="dashboard-option">
+                                <input type="radio" name="product_profile" value="{{ $profileKey }}" {{ old('product_profile', $productProfileKey) === $profileKey ? 'checked' : '' }} required>
+                                <span class="dashboard-option-title">{{ $profile['name'] ?? $profileKey }}</span>
+                                <span class="dashboard-option-desc">{{ $profile['description'] ?? '' }}</span>
+                            </label>
+                        @endforeach
+                    </div>
+
                     <div class="dashboard-options">
                         @foreach ($dashboards as $dashboardKey => $dashboard)
                             <label class="dashboard-option">
@@ -1096,6 +1116,10 @@
                         @foreach ($modules as $key => $module)
                             @php
                                 $isEnabled = $enabledMap[$key] ?? true;
+                                $isConfigured = $configuredMap[$key] ?? true;
+                                $isAvailable = \App\Support\SystemModuleManager::isAvailableForProfile($key, $productProfileKey);
+                                $isRequired = \App\Support\SystemModuleManager::isRequiredForProfile($key, $productProfileKey);
+                                $isSwitchChecked = $isRequired || $isConfigured;
                             @endphp
                             <article class="module-card {{ $isEnabled ? 'is-on' : 'is-off' }}">
                                 <div>
@@ -1105,7 +1129,7 @@
                                             <span class="module-key">{{ $key }}</span>
                                         </div>
                                         <span class="status-badge {{ $isEnabled ? 'status-on' : 'status-off' }}">
-                                            {{ $isEnabled ? 'مفعل' : 'مغلق' }}
+                                            {{ !$isAvailable ? 'غير متاح لهذا النوع' : ($isRequired ? 'أساسي لهذا النوع' : ($isEnabled ? 'مفعل' : 'مغلق')) }}
                                         </span>
                                     </div>
                                     <p class="module-description">{{ $module['description'] ?? '' }}</p>
@@ -1114,7 +1138,10 @@
                                 <div class="switch-row">
                                     <span>حالة الموديل</span>
                                     <label class="switch" title="تفعيل أو إغلاق {{ $module['name'] ?? $key }}">
-                                        <input type="checkbox" name="modules[{{ $key }}]" value="1" {{ $isEnabled ? 'checked' : '' }}>
+                                        @if ($isRequired || (!$isAvailable && $isConfigured))
+                                            <input type="hidden" name="modules[{{ $key }}]" value="1">
+                                        @endif
+                                        <input type="checkbox" name="modules[{{ $key }}]" value="1" {{ $isSwitchChecked ? 'checked' : '' }} {{ (!$isAvailable || $isRequired) ? 'disabled' : '' }}>
                                         <span class="slider"></span>
                                     </label>
                                 </div>

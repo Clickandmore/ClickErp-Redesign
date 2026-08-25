@@ -48,7 +48,9 @@
 
         <div class="main-menu flex-grow-1">
 @php
-    $contractsCount = app(\App\Services\RecruitmentContractSidebarCountService::class)->counts(request());
+    $contractsCount = SystemModuleEnabled('operations')
+        ? app(\App\Services\RecruitmentContractSidebarCountService::class)->counts(request())
+        : [];
                 $newStatus = \App\Enums\ingaz\ContractStatusEnum::New;
                 $msanedStatus = \App\Enums\ingaz\ContractStatusEnum::Msaned;
                 $tafwedStatus = \App\Enums\ingaz\ContractStatusEnum::Tafwed;
@@ -79,7 +81,7 @@
                 @if (@AdminGuardCanAccessDashboard())
                     <li>
                         <a class="m-link {{ Route::currentRouteName() == 'dashboard.index' ? 'active' : '' }}"
-                            href="{{ route('dashboard.index') }}">
+                            href="{{ \App\Support\SystemModuleManager::defaultDashboardUrl() }}">
                             <i class="fa fa-home me-2"></i>
                             <span class="ms-2">{{ helperTrans('ingaz.home') }}</span>
                         </a>
@@ -110,6 +112,7 @@
                         request()->routeIs('commissions.marketers.approve') ||
                         request()->routeIs('commissions.settings.*');
                 @endphp
+                @if (@SystemModuleEnabled('operations'))
                 <li class="{{ $isOperationsManagementOpen ? '' : 'collapsed' }}">
                     <a class="m-link" data-bs-toggle="collapse" data-bs-target="#Operations_Management" href="#">
                         <i class="fa fa-tasks me-2"></i>
@@ -760,6 +763,7 @@
                         <!-- Website Management Section -->
                     </ul>
                 </li>
+                @endif
 
                 @if ($canViewCrm)
                     <li class="{{ $isCrm || request()->routeIs('admin.sms-templates.*') ? '' : 'collapsed' }}">
