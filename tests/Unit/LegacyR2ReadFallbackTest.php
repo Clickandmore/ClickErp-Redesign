@@ -110,6 +110,16 @@ class LegacyR2ReadFallbackTest extends TestCase
         );
     }
 
+    public function test_explicit_r2_path_fails_fast_when_r2_is_disabled(): void
+    {
+        $this->settings['enabled'] = false;
+        $this->settings['verified_at'] = null;
+        $this->setStaticProperty(R2StorageSettings::class, 'cached', $this->settings);
+
+        $this->assertNull($this->storage->url('r2://clickerp/images/photo.jpg'));
+        $this->assertFalse($this->storage->exists('r2://clickerp/images/photo.jpg'));
+    }
+
     public function test_deleting_legacy_path_removes_r2_and_local_copies(): void
     {
         $path = 'images/Maid/photo.jpg';

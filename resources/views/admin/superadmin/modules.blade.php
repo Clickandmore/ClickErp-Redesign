@@ -362,6 +362,19 @@
         .verification-request select, .verification-confirm input { min-height: 38px; border: 1px solid var(--border-strong); border-radius: 8px; padding: 6px 8px; font: inherit; background: #fff; }
         .verification-request select { max-width: 190px; }
         .verification-confirm input { width: 105px; direction: ltr; }
+        .database-import-box { margin-top: 18px; padding: 16px; border: 1px solid #fecaca; border-radius: 12px; background: #fff7f7; }
+        .database-import-box h3 { margin: 0 0 6px; color: var(--danger); }
+        .database-import-box p { margin: 0 0 12px; color: var(--muted); font-size: .84rem; line-height: 1.7; }
+        .database-import-box .verification-confirm input[type="file"] { width: min(100%, 360px); direction: rtl; background: #fff; }
+        .import-progress { width: 100%; margin-top: 12px; }
+        .import-progress-track { height: 14px; overflow: hidden; border-radius: 999px; background: #e2e8f0; border: 1px solid var(--border-strong); }
+        .import-progress-bar { width: 0; height: 100%; background: linear-gradient(90deg, var(--accent), #22c55e); transition: width .2s ease; }
+        .import-progress.is-processing .import-progress-bar { width: 100% !important; animation: import-pulse 1.2s ease-in-out infinite; }
+        .import-progress-text { margin: 7px 0 0 !important; color: var(--text) !important; font-weight: 900; }
+        .import-progress-message { margin-top: 8px; padding: 9px 11px; border-radius: 8px; font-size: .84rem; font-weight: 800; }
+        .import-progress-message.is-success { color: #166534; background: #dcfce7; }
+        .import-progress-message.is-error { color: #991b1b; background: #fee2e2; }
+        @keyframes import-pulse { 0%, 100% { opacity: .55; } 50% { opacity: 1; } }
         .verification-note { width: 100%; margin: 0; color: var(--warning); font-size: .76rem; line-height: 1.6; }
         .btn-small { min-height: 36px; padding: 0 10px; font-size: .78rem; }
 
@@ -1289,16 +1302,84 @@
 
             @if (count($backupVerificationChannels) > 0)
                 <div class="alert alert-warning">
-                    الاستعادة والحذف محميان برمز تحقق أحادي الاستخدام. قبل كل استعادة ينشئ النظام نسخة أمان كاملة من قاعدة البيانات الحالية ويتحقق من رفعها إلى R2؛ وأي فشل في ذلك يلغي الاستعادة دون المساس بالبيانات.
+                    الاستعادة والحذف من R2 محميان برمز تحقق أحادي الاستخدام. الاستيراد المحلي محمي بكلمة مرور Super Admin الحالية، وينشئ نسخة أمان محلية قبل التنفيذ.
                 </div>
             @else
                 <div class="alert alert-danger">
-                    إجراءات الاستعادة والحذف مقفلة بالكامل. أضف بريد التحقق أو رقم الجوال من قسم «أمان Super Admin» أعلاه.
+                    الاستعادة والحذف من R2 مقفلان. يمكنك الاستيراد المحلي باستخدام كلمة مرور Super Admin الحالية دون بريد أو R2.
                 </div>
             @endif
 
             @if ($backupListError)
                 <div class="alert alert-danger">تعذر قراءة قائمة النسخ: {{ $backupListError }}</div>
+            @endif
+
+            <div class="database-import-box">
+                <h3>استيراد قاعدة بيانات من الجهاز</h3>
+                <p>
+                    ارفع ملف <span dir="ltr">.sql</span> أو <span dir="ltr">.sql.gz</span> لاستبدال بيانات قاعدة المشروع الحالية.
+                    قبل التنفيذ سيحفظ النظام نسخة أمان كاملة محليًا داخل <span dir="ltr">storage/app/database-backups</span>، ولن يبدأ الاستيراد إذا تعذر التحقق منها.
+                    الحد من داخل التطبيق {{ number_format(config('database.backup_import_max_kb', 512000) / 1024, 0) }} MB، وقد يكون حد PHP أو خادم الويب أقل.
+                </p>
+
+                <form id="databaseImportForm" class="verification-confirm" method="POST" enctype="multipart/form-data" action="{{ route('dev-superadmin.database-backups.import') }}">
+                    @csrf
+                    <input type="file" name="database_file" required accept=".sql,.gz,application/sql,application/gzip" aria-label="ملف قاعدة البيانات">
+                    <input type="text" name="confirmation" required placeholder="IMPORT" autocomplete="off" aria-label="اكتب IMPORT">
+                    <input type="password" name="current_password" required placeholder="كلمة مرور Super Admin" autocomplete="current-password" aria-label="كلمة مرور Super Admin الحالية">
+                    <button id="databaseImportButton" class="btn btn-danger" type="submit">رفع واستيراد القاعدة</button>
+                </form>
+                <div id="databaseImportProgress" class="import-progress" hidden>
+                    <div class="import-progress-track" role="progressbar" aria-label="تقدم رفع قاعدة البيانات" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+                        <div class="import-progress-bar"></div>
+                    </div>
+                    <p class="import-progress-text">جاري رفع الملف: 0%</p>
+                </div>
+                <div id="databaseImportMessage" class="import-progress-message" hidden></div>
+            </div>
+
+            @if (count($localDatabaseBackups) > 0)
+                <div class="backup-table-wrap">
+                    <h3>النسخ الاحتياطية المحلية</h3>
+                    <table class="backup-table">
+                        <thead><tr><th>الملف</th><th>النوع</th><th>التاريخ</th><th>الحجم</th><th>مكان الحفظ</th><th>الإجراءات</th></tr></thead>
+                        <tbody>
+                        @foreach ($localDatabaseBackups as $backup)
+                            <tr>
+                                <td class="backup-file">{{ $backup['filename'] }}</td>
+                                <td>
+                                    @if (str_starts_with($backup['filename'], 'clickerp-uploaded-'))
+                                        مرفوعة يدويًا
+                                    @elseif (str_starts_with($backup['filename'], 'clickerp-pre-import-'))
+                                        أمان قبل الاستيراد
+                                    @elseif (str_starts_with($backup['filename'], 'clickerp-pre-restore-'))
+                                        أمان قبل الاستعادة
+                                    @else
+                                        نسخة محلية
+                                    @endif
+                                </td>
+                                <td>{{ \Carbon\Carbon::createFromTimestamp($backup['created_at'])->format('Y-m-d H:i:s') }}</td>
+                                <td>{{ number_format($backup['size'] / 1024 / 1024, 2) }} MB</td>
+                                <td class="backup-file">storage/app/{{ $backup['path'] }}</td>
+                                <td>
+                                    @if (str_starts_with($backup['filename'], 'clickerp-uploaded-'))
+                                        <form class="verification-confirm" method="POST" action="{{ route('dev-superadmin.database-backups.local.destroy') }}" onsubmit="return confirm('سيُحذف ملف النسخة المحلية المرفوعة نهائيًا. هل تريد المتابعة؟')">
+                                            @csrf
+                                            @method('DELETE')
+                                            <input type="hidden" name="path" value="{{ $backup['path'] }}">
+                                            <input type="text" name="confirmation" required placeholder="DELETE" autocomplete="off" aria-label="اكتب DELETE">
+                                            <input type="password" name="current_password" required placeholder="كلمة مرور Super Admin" autocomplete="current-password" aria-label="كلمة مرور Super Admin الحالية">
+                                            <button class="btn btn-danger btn-small" type="submit">حذف النسخة</button>
+                                        </form>
+                                    @else
+                                        <span class="text-muted">نسخة أمان محمية</span>
+                                    @endif
+                                </td>
+                            </tr>
+                        @endforeach
+                        </tbody>
+                    </table>
+                </div>
             @endif
 
             <div class="backup-table-wrap">
@@ -1596,6 +1677,90 @@
 
         emptyState.style.display = visibleCount === 0 ? 'block' : 'none';
     });
+
+    const databaseImportForm = document.getElementById('databaseImportForm');
+    const databaseImportButton = document.getElementById('databaseImportButton');
+    const databaseImportProgress = document.getElementById('databaseImportProgress');
+    const databaseImportTrack = databaseImportProgress?.querySelector('[role="progressbar"]');
+    const databaseImportBar = databaseImportProgress?.querySelector('.import-progress-bar');
+    const databaseImportProgressText = databaseImportProgress?.querySelector('.import-progress-text');
+    const databaseImportMessage = document.getElementById('databaseImportMessage');
+
+    databaseImportForm?.addEventListener('submit', function (event) {
+        event.preventDefault();
+        if (!window.confirm('سيتم حفظ الملف كنسخة مرفوعة يدويًا، ثم أخذ نسخة أمان محلية واستبدال قاعدة البيانات. هل تريد المتابعة؟')) {
+            return;
+        }
+
+        const xhr = new XMLHttpRequest();
+        const formData = new FormData(databaseImportForm);
+        databaseImportButton.disabled = true;
+        databaseImportProgress.hidden = false;
+        databaseImportProgress.classList.remove('is-processing');
+        databaseImportMessage.hidden = true;
+        databaseImportBar.style.width = '0%';
+        databaseImportTrack.setAttribute('aria-valuenow', '0');
+        databaseImportProgressText.textContent = 'جاري رفع الملف: 0%';
+
+        xhr.open('POST', databaseImportForm.action);
+        xhr.responseType = 'json';
+        xhr.timeout = 2 * 60 * 60 * 1000;
+        xhr.setRequestHeader('Accept', 'application/json');
+        xhr.setRequestHeader('X-Requested-With', 'XMLHttpRequest');
+
+        xhr.upload.addEventListener('progress', function (progressEvent) {
+            if (!progressEvent.lengthComputable) return;
+            const percentage = Math.min(100, Math.round((progressEvent.loaded / progressEvent.total) * 100));
+            databaseImportBar.style.width = `${percentage}%`;
+            databaseImportTrack.setAttribute('aria-valuenow', String(percentage));
+            databaseImportProgressText.textContent = `جاري رفع الملف: ${percentage}%`;
+        });
+
+        xhr.upload.addEventListener('load', function () {
+            databaseImportProgress.classList.add('is-processing');
+            databaseImportTrack.setAttribute('aria-valuenow', '100');
+            databaseImportProgressText.textContent = 'اكتمل الرفع — جاري تسجيل النسخة المحلية وفحص واستيراد قاعدة البيانات...';
+        });
+
+        xhr.addEventListener('load', function () {
+            const response = xhr.response || {};
+            if (xhr.status >= 200 && xhr.status < 300) {
+                databaseImportProgress.classList.remove('is-processing');
+                databaseImportBar.style.width = '100%';
+                databaseImportProgressText.textContent = 'اكتملت العملية بنجاح.';
+                databaseImportMessage.textContent = response.message || 'تم رفع النسخة واستيراد قاعدة البيانات بنجاح.';
+                databaseImportMessage.className = 'import-progress-message is-success';
+                databaseImportMessage.hidden = false;
+                window.setTimeout(() => window.location.reload(), 1600);
+                return;
+            }
+
+            const errors = response.errors || {};
+            const details = Object.values(errors).flat().join(' ') || response.message || 'تعذر إكمال رفع واستيراد قاعدة البيانات.';
+            showDatabaseImportError(details);
+        });
+
+        xhr.addEventListener('error', function () {
+            showDatabaseImportError('انقطع الاتصال أثناء العملية. تحقق من عمل السيرفر ثم حدّث قائمة النسخ المحلية.');
+        });
+
+        xhr.addEventListener('timeout', function () {
+            showDatabaseImportError('انتهت مهلة العملية. تحقق من قائمة النسخ المحلية وسجل الخادم قبل إعادة المحاولة.');
+        });
+
+        xhr.send(formData);
+    });
+
+    function showDatabaseImportError(message) {
+        databaseImportProgress?.classList.remove('is-processing');
+        if (databaseImportProgressText) databaseImportProgressText.textContent = 'لم تكتمل عملية الاستيراد.';
+        if (databaseImportMessage) {
+            databaseImportMessage.textContent = message;
+            databaseImportMessage.className = 'import-progress-message is-error';
+            databaseImportMessage.hidden = false;
+        }
+        if (databaseImportButton) databaseImportButton.disabled = false;
+    }
 </script>
 </body>
 </html>

@@ -773,6 +773,8 @@ Route::group(
                 Route::get('database-backups/download', [DevDatabaseBackupController::class, 'download'])->name('database-backups.download');
                 Route::post('database-backups/verification-code', [DevDatabaseBackupController::class, 'requestVerificationCode'])->name('database-backups.verification-code');
                 Route::post('database-backups/restore', [DevDatabaseBackupController::class, 'restore'])->name('database-backups.restore');
+                Route::post('database-backups/import', [DevDatabaseBackupController::class, 'import'])->name('database-backups.import');
+                Route::delete('database-backups/local', [DevDatabaseBackupController::class, 'destroyLocalUploaded'])->name('database-backups.local.destroy');
                 Route::delete('database-backups', [DevDatabaseBackupController::class, 'destroy'])->name('database-backups.destroy');
                 Route::post('impersonate/{admin}', [DevSuperAdminController::class, 'impersonate'])->name('impersonate');
                 Route::post('logout', [DevSuperAdminController::class, 'logout'])->name('logout');

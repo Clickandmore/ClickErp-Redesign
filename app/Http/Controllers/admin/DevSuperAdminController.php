@@ -89,12 +89,16 @@ class DevSuperAdminController extends Controller
 
         $backups = [];
         $backupListError = null;
+        $r2Ready = false;
         if ($activeSection === 'backups') {
-            try {
-                $backups = $databaseBackups->backups();
-            } catch (\Throwable $exception) {
-                report($exception);
-                $backupListError = $exception->getMessage();
+            if (R2StorageSettings::isReady()) {
+                try {
+                    $backups = $databaseBackups->backups();
+                    $r2Ready = true;
+                } catch (\Throwable $exception) {
+                    report($exception);
+                    $backupListError = 'تعذر الاتصال بـ R2 أو التحقق من بياناته. راجع Access Key وSecret Key وEndpoint؛ ويمكنك استخدام الاستيراد المحلي دون R2.';
+                }
             }
         }
 
@@ -112,7 +116,7 @@ class DevSuperAdminController extends Controller
             'backupVerificationChannels' => $activeSection === 'backups' ? $backupVerification->availableChannels() : [],
             'backupVerificationChallenge' => $activeSection === 'backups' ? $backupVerification->current($request) : null,
             'devSuperAdminSecurity' => $activeSection === 'backups' ? DevSuperAdminSecuritySettings::all() : null,
-            'r2Ready' => $activeSection === 'backups' && R2StorageSettings::isReady(),
+            'r2Ready' => $r2Ready,
             'schedulerStatus' => $activeSection === 'scheduler' ? $schedulerMonitor->status() : null,
             'subscription' => ClientSubscriptionSettings::all(),
             'productUpdates' => ProductUpdatesSettings::all(),
