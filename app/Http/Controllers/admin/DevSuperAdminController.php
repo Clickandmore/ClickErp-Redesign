@@ -105,6 +105,9 @@ class DevSuperAdminController extends Controller
         return view('admin.superadmin.modules', [
             'modules' => SystemModuleManager::modules(),
             'enabledMap' => SystemModuleManager::enabledMap(),
+            'configuredMap' => SystemModuleManager::configuredMap(),
+            'productProfiles' => SystemModuleManager::productProfiles(),
+            'productProfileKey' => SystemModuleManager::productProfileKey(),
             'dashboards' => SystemModuleManager::dashboards(),
             'defaultDashboardKey' => SystemModuleManager::defaultDashboardKey(),
             'branchLimit' => SystemModuleManager::branchLimit(),
@@ -184,13 +187,22 @@ class DevSuperAdminController extends Controller
     {
         $data = $request->validate([
             'branches_limit' => ['nullable', 'integer', 'min:0'],
+            'product_profile' => ['required', 'string', 'in:' . implode(',', array_keys(SystemModuleManager::productProfiles()))],
         ]);
 
+        $productProfile = $data['product_profile'];
+        SystemModuleManager::updateProductProfile($productProfile);
         SystemModuleManager::update(
-            array_keys((array) $request->input('modules', [])),
+            array_values(array_unique(array_merge(
+                array_keys((array) $request->input('modules', [])),
+                SystemModuleManager::requiredModules($productProfile)
+            ))),
             null
         );
-        SystemModuleManager::updateDefaultDashboard((string) $request->input('default_dashboard', 'recruitment'));
+        $dashboard = $productProfile === 'general'
+            ? SystemModuleManager::defaultDashboardForProfile($productProfile)
+            : (string) $request->input('default_dashboard', 'recruitment');
+        SystemModuleManager::updateDefaultDashboard($dashboard);
         SystemModuleManager::updateBranchLimit($data['branches_limit'] ?? null);
 
         return redirect()
