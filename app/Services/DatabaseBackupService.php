@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Support\DatabaseBackupSettings;
 use App\Support\R2StorageSettings;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
@@ -13,7 +14,7 @@ use Symfony\Component\Process\Process;
 
 class DatabaseBackupService
 {
-    private const FILE_PATTERN = '/^clickerp-(?:scheduled|manual|pre-restore)-\d{8}-\d{6}-[a-z0-9]{8}\.sql\.gz$/';
+    private const FILE_PATTERN = '/^clickerp-(?:scheduled|manual|uploaded|pre-restore|pre-import)-\d{8}-\d{6}-[a-z0-9]{8}\.sql\.gz$/';
     private const LOCAL_DIRECTORY = 'database-backups';
 
     public function create(string $reason = 'manual'): array
@@ -180,38 +181,7 @@ class DatabaseBackupService
                 fclose($stream);
                 $stream = null;
 
-                $sql = gzopen($temporaryPath, 'rb');
-                if (!is_resource($sql)) {
-                    throw new RuntimeException('ملف النسخة تالف أو ليس بصيغة SQL مضغوطة.');
-                }
-
-                $restoreInput = fopen('php://temp/maxmemory:5242880', 'w+b');
-                if (!is_resource($restoreInput)) {
-                    gzclose($sql);
-                    throw new RuntimeException('تعذر تجهيز محتوى النسخة للاستعادة.');
-                }
-
-                $connection = $this->connection();
-                try {
-                    $this->prepareRestoreInput($sql, $restoreInput);
-                } finally {
-                    gzclose($sql);
-                }
-                rewind($restoreInput);
-
-                DB::disconnect();
-                $process = new Process($this->mysqlCommand($connection), base_path(), $this->processEnvironment($connection));
-                $process->setTimeout(7200);
-                $process->setInput($restoreInput);
-                try {
-                    $process->run();
-                } finally {
-                    fclose($restoreInput);
-                }
-
-                if (!$process->isSuccessful()) {
-                    throw new RuntimeException('فشلت استعادة قاعدة البيانات: ' . trim($process->getErrorOutput()));
-                }
+                $this->restoreLocalFile($temporaryPath, true);
             } finally {
                 if (is_resource($stream)) {
                     fclose($stream);
@@ -219,6 +189,247 @@ class DatabaseBackupService
                 @unlink($temporaryPath);
             }
         });
+    }
+
+    public function importUploaded(UploadedFile $file): array
+    {
+        $path = $file->getRealPath();
+        if (!$file->isValid() || !is_string($path)) {
+            throw new RuntimeException('ملف قاعدة البيانات المرفوع غير صالح أو لم يكتمل رفعه.');
+        }
+
+        $uploadedBackup = $this->storeUploadedBackup($path, $file->getClientOriginalName());
+        try {
+            $this->importFile(storage_path('app/' . $uploadedBackup['path']), $uploadedBackup['filename']);
+        } catch (\Throwable $exception) {
+            throw new RuntimeException(
+                'تم حفظ الملف كنسخة محلية مرفوعة يدويًا باسم ' . $uploadedBackup['filename']
+                . '، لكن تعذر استيراده: ' . $exception->getMessage(),
+                0,
+                $exception
+            );
+        }
+
+        return $uploadedBackup;
+    }
+
+    public function importFile(string $filePath, ?string $originalName = null): void
+    {
+        $path = realpath($filePath);
+        if ($path === false || !is_file($path) || !is_readable($path) || filesize($path) === 0) {
+            throw new RuntimeException('ملف قاعدة البيانات غير موجود أو فارغ أو غير قابل للقراءة.');
+        }
+
+        $filename = strtolower($originalName ?: basename($path));
+        if (!str_ends_with($filename, '.sql') && !str_ends_with($filename, '.sql.gz')) {
+            throw new RuntimeException('الملفات المقبولة هي SQL أو SQL.GZ فقط.');
+        }
+
+        $handle = fopen($path, 'rb');
+        if (!is_resource($handle)) {
+            throw new RuntimeException('تعذرت قراءة ملف قاعدة البيانات.');
+        }
+        $magic = fread($handle, 2);
+        fclose($handle);
+        $isGzip = $magic === "\x1f\x8b";
+        $expectsGzip = str_ends_with($filename, '.gz');
+        if ($isGzip !== $expectsGzip) {
+            throw new RuntimeException('امتداد الملف لا يطابق محتواه؛ ارفع ملف SQL أو SQL.GZ صالحًا.');
+        }
+
+        if (function_exists('set_time_limit')) {
+            set_time_limit(0);
+        }
+        ignore_user_abort(true);
+
+        Cache::lock('database-backup-operation', 7200)->block(5, function () use ($path, $isGzip): void {
+            $safetyBackup = $this->createLocalSafetyBackup();
+            $disk = Storage::disk('local');
+            if (!$disk->exists($safetyBackup['path']) || $disk->size($safetyBackup['path']) <= 0) {
+                throw new RuntimeException('لم يتم التحقق من نسخة الأمان المحلية السابقة للاستيراد؛ تم إلغاء العملية دون تغيير قاعدة البيانات.');
+            }
+
+            $this->restoreLocalFile($path, $isGzip);
+        });
+    }
+
+    private function createLocalSafetyBackup(): array
+    {
+        $temporaryPath = tempnam(storage_path('app'), 'db-pre-import-');
+        if ($temporaryPath === false) {
+            throw new RuntimeException('تعذر إنشاء نسخة الأمان المحلية قبل الاستيراد.');
+        }
+        $gzipPath = $temporaryPath . '.sql.gz';
+
+        try {
+            $this->dumpDatabase($gzipPath);
+            $filename = 'clickerp-pre-import-' . now()->format('Ymd-His') . '-' . Str::lower(Str::random(8)) . '.sql.gz';
+            $path = self::LOCAL_DIRECTORY . '/' . $filename;
+            $stream = fopen($gzipPath, 'rb');
+            if (!is_resource($stream)) {
+                throw new RuntimeException('تعذرت قراءة نسخة الأمان المحلية.');
+            }
+
+            try {
+                if (!Storage::disk('local')->writeStream($path, $stream)) {
+                    throw new RuntimeException('تعذر حفظ نسخة الأمان المحلية قبل الاستيراد.');
+                }
+            } finally {
+                fclose($stream);
+            }
+
+            return ['path' => $path, 'filename' => $filename, 'size' => filesize($gzipPath) ?: 0];
+        } finally {
+            @unlink($gzipPath);
+            @unlink($temporaryPath);
+        }
+    }
+
+    private function storeUploadedBackup(string $sourcePath, string $originalName): array
+    {
+        $probe = fopen($sourcePath, 'rb');
+        if (!is_resource($probe)) {
+            throw new RuntimeException('تعذرت قراءة نسخة قاعدة البيانات المرفوعة.');
+        }
+        $isGzip = fread($probe, 2) === "\x1f\x8b";
+        fclose($probe);
+        if ($isGzip !== str_ends_with(strtolower($originalName), '.gz')) {
+            throw new RuntimeException('امتداد الملف لا يطابق محتواه؛ ارفع ملف SQL أو SQL.GZ صالحًا.');
+        }
+
+        $temporaryPath = tempnam(storage_path('app'), 'db-uploaded-');
+        if ($temporaryPath === false) {
+            throw new RuntimeException('تعذر تجهيز النسخة المرفوعة للحفظ المحلي.');
+        }
+        $gzipPath = $temporaryPath . '.sql.gz';
+        $source = null;
+        $destination = null;
+
+        try {
+            $source = fopen($sourcePath, 'rb');
+            if (!is_resource($source)) {
+                throw new RuntimeException('تعذرت قراءة نسخة قاعدة البيانات المرفوعة.');
+            }
+
+            if ($isGzip) {
+                $destination = fopen($gzipPath, 'wb');
+                if (!is_resource($destination) || stream_copy_to_stream($source, $destination) === false) {
+                    throw new RuntimeException('تعذر حفظ النسخة المرفوعة محليًا.');
+                }
+            } else {
+                $destination = gzopen($gzipPath, 'wb9');
+                if (!is_resource($destination)) {
+                    throw new RuntimeException('تعذر ضغط نسخة SQL المرفوعة.');
+                }
+
+                while (!feof($source)) {
+                    $chunk = fread($source, 1024 * 1024);
+                    if ($chunk === false || ($chunk !== '' && gzwrite($destination, $chunk) === false)) {
+                        throw new RuntimeException('تعذر ضغط نسخة SQL المرفوعة.');
+                    }
+                }
+            }
+
+            if ($isGzip) {
+                fclose($destination);
+            } else {
+                gzclose($destination);
+            }
+            $destination = null;
+            fclose($source);
+            $source = null;
+
+            $filename = 'clickerp-uploaded-' . now()->format('Ymd-His') . '-' . Str::lower(Str::random(8)) . '.sql.gz';
+            $path = self::LOCAL_DIRECTORY . '/' . $filename;
+            $stream = fopen($gzipPath, 'rb');
+            if (!is_resource($stream)) {
+                throw new RuntimeException('تعذرت قراءة النسخة المرفوعة بعد تجهيزها.');
+            }
+
+            try {
+                if (!Storage::disk('local')->writeStream($path, $stream)) {
+                    throw new RuntimeException('تعذر تسجيل النسخة المرفوعة ضمن النسخ المحلية.');
+                }
+            } finally {
+                fclose($stream);
+            }
+
+            $size = Storage::disk('local')->size($path);
+            if ($size <= 0) {
+                Storage::disk('local')->delete($path);
+                throw new RuntimeException('تم إنشاء ملف نسخة محلية فارغ؛ أُلغيت العملية.');
+            }
+
+            return [
+                'path' => $path,
+                'filename' => $filename,
+                'size' => $size,
+                'created_at' => now()->getTimestamp(),
+            ];
+        } finally {
+            if (is_resource($source)) {
+                fclose($source);
+            }
+            if (is_resource($destination)) {
+                str_ends_with(strtolower($originalName), '.gz') ? fclose($destination) : gzclose($destination);
+            }
+            @unlink($gzipPath);
+            @unlink($temporaryPath);
+        }
+    }
+
+    private function restoreLocalFile(string $path, bool $gzip): void
+    {
+        $sql = $gzip ? gzopen($path, 'rb') : fopen($path, 'rb');
+        if (!is_resource($sql)) {
+            throw new RuntimeException($gzip
+                ? 'ملف النسخة تالف أو ليس بصيغة SQL مضغوطة.'
+                : 'تعذرت قراءة ملف SQL.');
+        }
+
+        $restoreInput = fopen('php://temp/maxmemory:5242880', 'w+b');
+        if (!is_resource($restoreInput)) {
+            fclose($sql);
+            throw new RuntimeException('تعذر تجهيز محتوى النسخة للاستعادة.');
+        }
+
+        $connection = $this->connection();
+        try {
+            $this->prepareRestoreInput($sql, $restoreInput);
+        } finally {
+            $gzip ? gzclose($sql) : fclose($sql);
+        }
+        rewind($restoreInput);
+
+        DB::disconnect();
+        $process = new Process($this->mysqlCommand($connection), base_path(), $this->processEnvironment($connection));
+        $process->setTimeout(7200);
+        $process->setInput($restoreInput);
+        $previousErrorHandler = null;
+        $previousErrorHandler = set_error_handler(function (
+            int $severity,
+            string $message,
+            string $file = '',
+            int $line = 0
+        ) use (&$previousErrorHandler): bool {
+            if (str_contains($message, 'Broken pipe')) {
+                return true;
+            }
+
+            return is_callable($previousErrorHandler)
+                ? (bool) $previousErrorHandler($severity, $message, $file, $line)
+                : false;
+        });
+        try {
+            $process->run();
+        } finally {
+            restore_error_handler();
+            fclose($restoreInput);
+        }
+
+        if (!$process->isSuccessful()) {
+            throw new RuntimeException('فشلت استعادة قاعدة البيانات: ' . trim($process->getErrorOutput()));
+        }
     }
 
     public function delete(string $key): void
@@ -229,6 +440,27 @@ class DatabaseBackupService
         if (!$this->disk()->delete($key)) {
             throw new RuntimeException('تعذر حذف النسخة الاحتياطية من R2.');
         }
+    }
+
+    public function deleteLocalUploaded(string $path): void
+    {
+        $filename = basename($path);
+        if ($path !== self::LOCAL_DIRECTORY . '/' . $filename
+            || !str_starts_with($filename, 'clickerp-uploaded-')
+            || !preg_match(self::FILE_PATTERN, $filename)) {
+            throw new RuntimeException('يمكن حذف النسخ المرفوعة يدويًا فقط من هذا الإجراء.');
+        }
+
+        Cache::lock('database-backup-operation', 7200)->block(5, function () use ($path): void {
+            $disk = Storage::disk('local');
+            if (!$disk->exists($path)) {
+                throw new RuntimeException('النسخة المحلية المطلوبة غير موجودة.');
+            }
+
+            if (!$disk->delete($path)) {
+                throw new RuntimeException('تعذر حذف النسخة المحلية المرفوعة يدويًا.');
+            }
+        });
     }
 
     public function assertBackupExists(string $key): void

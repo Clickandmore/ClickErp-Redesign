@@ -86,6 +86,10 @@ class ManagedFileStorage
             $settings = R2StorageSettings::all();
 
             if ($this->isR2Path($storedPath)) {
+                if (!R2StorageSettings::isReady($settings)) {
+                    return null;
+                }
+
                 return $this->r2Url($this->path($storedPath), $settings);
             }
 
@@ -116,6 +120,10 @@ class ManagedFileStorage
 
         if ($this->isR2Path($storedPath)) {
             try {
+                if (!R2StorageSettings::isReady()) {
+                    return false;
+                }
+
                 return $this->r2Disk()->delete($this->path($storedPath));
             } catch (\Throwable $exception) {
                 report($exception);
@@ -333,6 +341,10 @@ class ManagedFileStorage
     private function readLocation(string $storedPath): array
     {
         if ($this->isR2Path($storedPath)) {
+            if (!R2StorageSettings::isReady()) {
+                throw new \RuntimeException('ملف R2 غير متاح لأن التخزين الخارجي غير مفعّل أو غير متحقق منه.');
+            }
+
             return [$this->r2Disk(), $this->path($storedPath), true];
         }
 
@@ -380,6 +392,11 @@ class ManagedFileStorage
 
     private function r2Disk(?array $settings = null)
     {
+        $settings ??= R2StorageSettings::all();
+        if (!filled($settings['access_key_id'] ?? null) || !filled($settings['secret_access_key'] ?? null)) {
+            throw new \RuntimeException('بيانات دخول R2 غير مكتملة.');
+        }
+
         $config = R2StorageSettings::diskConfig($settings);
         $hash = hash('sha256', serialize($config));
 

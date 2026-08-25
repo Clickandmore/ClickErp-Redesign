@@ -9,6 +9,9 @@ return [
         'mysql' => env('MYSQL_BINARY'),
     ],
 
+    // Laravel's value is in kilobytes. PHP/web-server upload limits still apply.
+    'backup_import_max_kb' => (int) env('DATABASE_BACKUP_IMPORT_MAX_KB', 512000),
+
     /*
     |--------------------------------------------------------------------------
     | Default Database Connection Name
