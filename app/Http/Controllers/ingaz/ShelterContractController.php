@@ -3629,7 +3629,13 @@ class ShelterContractController extends Controller
      */
     public function showDeportationProcedures($id)
     {
-        $contract = Contract::with(['maid', 'user', 'info'])->findOrFail($id);
+        $contract = Contract::with([
+            'maid.nationality.translations',
+            'user',
+            'info.manualMaidNationality.translations',
+            'travelHistory',
+            'latestShelterLog',
+        ])->findOrFail($id);
         $this->assertCanAccessBranchModel($contract, 'contracts');
 
         $procedure = \App\Models\DeportationProcedure::where('contract_id', $contract->id)
@@ -3641,7 +3647,57 @@ class ShelterContractController extends Controller
                 ->with('error', 'لا توجد إجراءات ترحيل لهذا العقد');
         }
 
-        return view('admin.ingaz.ShelterContract.deportation-procedures', compact('contract', 'procedure'));
+        $deportationDetails = $this->buildDeportationDetails($contract);
+
+        return view('admin.ingaz.ShelterContract.deportation-procedures', compact(
+            'contract',
+            'procedure',
+            'deportationDetails'
+        ));
+    }
+
+    private function buildDeportationDetails(Contract $contract): array
+    {
+        $info = $contract->info;
+        $maid = $contract->maid;
+        $nationality = $maid?->nationality ?: $info?->manualMaidNationality;
+        $translation = $nationality?->translations?->firstWhere('locale', app()->getLocale())
+            ?: $nationality?->translations?->first();
+
+        $formatDate = static function ($value): ?string {
+            if (!$value) {
+                return null;
+            }
+
+            try {
+                return Carbon::parse($value)->format('Y-m-d');
+            } catch (\Throwable) {
+                return null;
+            }
+        };
+
+        $arrivalDate = $info?->arrival_date
+            ?: $maid?->arrival_date
+            ?: $contract->travelHistory?->arrival_date
+            ?: $info?->visa_milad_date
+            ?: $info?->contract_date;
+
+        return [
+            'maid_name' => $info?->manual_maid_name ?: $maid?->name,
+            'passport_number' => $info?->manual_maid_passport_num ?: $maid?->passport_num,
+            'nationality' => $translation?->sub_title
+                ?: $translation?->title
+                ?: $nationality?->sub_title
+                ?: $nationality?->title,
+            'client_name' => $contract->user?->name,
+            'client_document' => $contract->user?->documentNumber(),
+            'client_phone' => $contract->user?->primaryPhoneValue(),
+            'contract_date' => $formatDate($info?->contract_date ?: $contract->created_at),
+            'arrival_date' => $formatDate($arrivalDate),
+            'shelter_entry_date' => $formatDate($info?->maid_date_back ?: $contract->latestShelterLog?->date),
+            'visa_number' => $info?->visa_number,
+            'musaned_number' => $info?->msaned_number,
+        ];
     }
 
     /**

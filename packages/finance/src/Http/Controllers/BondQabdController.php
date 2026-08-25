@@ -92,7 +92,7 @@ class BondQabdController extends Controller
                     $buttons = '<div class="bond-actions">';
                     $buttons .= printButton(route("finance.bonds-print.show", $row->id) . '?type=qabd', null, 'finance_bonds_export') . ' ';
                     $buttons .= '<button type="button" class="btn btn-dark editButton" data-bs-toggle="modal" data-bs-target="#createModal"'
-                        . ' model-route="' . route('finance.bonds-qabd.show', $row->id) . '" model-title="تفاصيل سند القبض" title="التفاصيل">'
+                        . ' model-route="' . route('finance.bonds-qabd.show', $row->code) . '" model-title="تفاصيل سند القبض" title="التفاصيل">'
                         . '<i class="fa fa-eye"></i></button> ';
                     $buttons .= editButton(route($this->mainRoute . ".edit", $row->id), $row->name) . " ";
                     $buttons .= deleteButton(route($this->mainRoute . ".destroy", $row->id)) . " ";
@@ -209,19 +209,28 @@ class BondQabdController extends Controller
      * @param int $id
      * @return \Illuminate\Http\Response
      */
-    public function show(Request $request, ObjService $service, $id)
+    public function show(Request $request, ObjService $service, $code)
     {
+        $obj = $service->findStandardBondByCode($code, BondTypes::Qabd)->loadMissing([
+            'debitAccount', 'creditAccount', 'costCenter', 'createdBy', 'check', 'bondTax', 'constraint',
+        ]);
+        $viewData = [
+            "bond_payment_type" => $service->getBondPaymentTypies(),
+            "accounts" => $service->getAccounts(),
+            "costCenters" => $service->getCostCenters(),
+            "obj" => $obj,
+            "edit_payment_type_view" => $service->getEditPaymentTypeView($obj->payment_type, "qabd"),
+        ];
+
         if ($request->ajax()) {
-            $obj = $service->find($id)->loadMissing(['debitAccount', 'creditAccount', 'costCenter', 'createdBy', 'check', 'bondTax', 'constraint']);
-            $returnHTML = view($this->folderPath . ".show")->with([
-                "bond_payment_type" => $service->getBondPaymentTypies(),
-                "accounts" => $service->getAccounts(),
-                "costCenters" => $service->getCostCenters(),
-                "obj" => $obj,
-                "edit_payment_type_view" => $service->getEditPaymentTypeView($obj->payment_type, "qabd"),
-            ])->render();
+            $returnHTML = view($this->folderPath . ".show", $viewData)->render();
             return jsonSuccess(["html" => $returnHTML]);
         }
+
+        return view($this->folderPath . '.details', $viewData + [
+            'bladeTitle' => 'تفاصيل سند القبض #' . ($obj->code ?: $obj->id),
+            'indexRoute' => route($this->mainRoute . '.index'),
+        ]);
     }
 
     public function downloadAttachment(ObjService $service, $bond, string $attachment)
