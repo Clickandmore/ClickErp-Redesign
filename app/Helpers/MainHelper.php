@@ -823,8 +823,17 @@ if (!function_exists('generalReturn')) {
 if (!function_exists('getWhatsAppNumber')) {
     function getWhatsAppNumber()
     {
-        $whatsappNumber = Setting::where('id', 1)->first()['whatsapp'] ?? null;
-        return $whatsappNumber ? preg_replace('/[^0-9]/', '', $whatsappNumber) : null;
+        try {
+            if (!\Illuminate\Support\Facades\Schema::hasTable('settings')) {
+                return null;
+            }
+
+            $whatsappNumber = Setting::query()->whereKey(1)->value('whatsapp');
+
+            return $whatsappNumber ? preg_replace('/[^0-9]/', '', $whatsappNumber) : null;
+        } catch (\Throwable $exception) {
+            return null;
+        }
     }
 }
 

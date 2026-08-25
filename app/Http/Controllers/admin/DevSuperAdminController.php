@@ -15,7 +15,9 @@ use App\Support\ProductUpdatesSettings;
 use App\Support\SystemModuleManager;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 
@@ -24,7 +26,7 @@ class DevSuperAdminController extends Controller
     public function loginForm()
     {
         if ((bool) session('dev_superadmin_authenticated')) {
-            return redirect()->route('dev-superadmin.modules');
+            return redirect()->route('dev-superadmin.recovery');
         }
 
         return view('admin.superadmin.login');
@@ -44,12 +46,133 @@ class DevSuperAdminController extends Controller
             $request->session()->regenerate();
             $request->session()->put('dev_superadmin_authenticated', true);
 
-            return redirect()->route('dev-superadmin.modules');
+            return redirect()->route('dev-superadmin.recovery');
         }
 
         return back()
             ->withInput(['username' => $data['username']])
             ->withErrors(['username' => 'بيانات دخول لوحة التطوير غير صحيحة.']);
+    }
+
+    public function recovery()
+    {
+        $database = [
+            'connected' => false,
+            'driver' => (string) config('database.default'),
+            'name' => (string) config('database.connections.' . config('database.default') . '.database'),
+            'error' => null,
+        ];
+        $tables = collect([
+            'migrations' => 'سجل migrations',
+            'settings' => 'إعدادات النظام',
+            'new_settings' => 'الإعدادات الموسعة',
+            'admins' => 'حسابات الإدارة',
+            'users' => 'العملاء',
+            'system_module_settings' => 'إعدادات الموديولات',
+            'dev_superadmin_settings' => 'إعدادات Super Admin',
+            'system_product_profile_changes' => 'سجل تغيير نوع البرنامج',
+        ])->map(fn (string $label, string $table) => [
+            'table' => $table,
+            'label' => $label,
+            'exists' => null,
+        ]);
+
+        try {
+            DB::connection()->getPdo();
+            $database['connected'] = true;
+            $database['driver'] = DB::connection()->getDriverName();
+            $database['name'] = DB::connection()->getDatabaseName();
+            $tables = $tables->map(function (array $item) {
+                $item['exists'] = Schema::hasTable($item['table']);
+
+                return $item;
+            });
+        } catch (\Throwable $exception) {
+            report($exception);
+            $database['error'] = $exception->getMessage();
+        }
+
+        $migrationFiles = collect(File::allFiles(database_path('migrations')))
+            ->filter(fn ($file) => $file->getExtension() === 'php')
+            ->map(fn ($file) => $file->getBasename('.php'))
+            ->unique()
+            ->sort()
+            ->values();
+        $appliedMigrations = collect();
+
+        if ($database['connected'] && $tables->firstWhere('table', 'migrations')['exists'] === true) {
+            try {
+                $appliedMigrations = DB::table('migrations')->pluck('migration')->unique();
+            } catch (\Throwable $exception) {
+                report($exception);
+            }
+        }
+
+        $pendingMigrations = $migrationFiles->diff($appliedMigrations)->values();
+
+        return view('admin.superadmin.recovery', [
+            'database' => $database,
+            'tables' => $tables,
+            'missingTableCount' => $tables->where('exists', false)->count(),
+            'migrationConfirmation' => 'MIGRATE ' . ($database['name'] ?: 'DATABASE'),
+            'migrationStatus' => [
+                'total' => $migrationFiles->count(),
+                'applied' => $appliedMigrations->count(),
+                'pending' => $pendingMigrations,
+            ],
+        ]);
+    }
+
+    public function runRecoveryMigrations(Request $request)
+    {
+        $databaseName = (string) config('database.connections.' . config('database.default') . '.database');
+
+        try {
+            DB::connection()->getPdo();
+            $databaseName = DB::connection()->getDatabaseName();
+        } catch (\Throwable $exception) {
+            return back()->withErrors([
+                'database' => 'لا يمكن تشغيل migrations قبل نجاح الاتصال بقاعدة البيانات.',
+            ]);
+        }
+
+        $data = $request->validate([
+            'confirmation' => ['required', 'string', 'max:255'],
+            'current_password' => ['required', 'string'],
+        ]);
+        $expected = 'MIGRATE ' . $databaseName;
+
+        if (! hash_equals($expected, trim($data['confirmation']))) {
+            return back()->withErrors([
+                'confirmation' => 'عبارة التأكيد غير مطابقة لقاعدة البيانات الحالية.',
+            ])->withInput($request->except('current_password'));
+        }
+
+        if (! DevSuperAdminSecuritySettings::matchesPassword($data['current_password'])) {
+            return back()->withErrors([
+                'current_password' => 'كلمة مرور Super Admin غير صحيحة.',
+            ])->withInput($request->except('current_password'));
+        }
+
+        try {
+            $exitCode = Artisan::call('migrate', ['--force' => true]);
+            $output = Str::limit(trim(Artisan::output()), 6000, "\n...");
+
+            if ($exitCode !== 0) {
+                return back()->withErrors([
+                    'migration' => 'انتهى أمر migrations بكود ' . $exitCode . ".\n" . $output,
+                ]);
+            }
+
+            return redirect()
+                ->route('dev-superadmin.recovery')
+                ->with('success', 'تم تشغيل migrations بنجاح.')
+                ->with('command_output', $output !== '' ? $output : 'لا توجد migrations جديدة.');
+        } catch (\Throwable $exception) {
+            report($exception);
+
+            return back()->withErrors(['migration' => $exception->getMessage()]);
+        }
     }
 
     public function modules(
