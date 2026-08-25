@@ -201,17 +201,33 @@ class ComplaintController extends Controller
 
     public function create()
     {
+        return view($this->folderPath . '.create', $this->complaintFormData() + ['isEdit' => false]);
+    }
+
+    private function complaintFormData(?objModel $complaint = null): array
+    {
         $users = User::orderBy('name')->get(['id', 'name', 'phone']);
         $nationalities = Nationality::with('translations')->get()->sortBy('title');
         $complaintTypes = ComplaintType::query()
-            ->where('is_active', true)
+            ->where(function ($query) use ($complaint) {
+                $query->where('is_active', true);
+                if ($complaint?->complaint_type_id) {
+                    $query->orWhere('id', $complaint->complaint_type_id);
+                }
+            })
             ->orderBy('sort_order')
             ->orderBy('name')
             ->get();
         $admins = Admin::query()->activeForOperations()->orderBy('name')->get();
         $orders = Order::query()->with(['user', 'maid'])->latest('id')->limit(1000)->get(['id', 'order_code', 'user_id', 'maid_id', 'status']);
+        if ($complaint?->order_id && !$orders->contains('id', $complaint->order_id)) {
+            $orders->prepend(Order::query()->with(['user', 'maid'])->findOrFail($complaint->order_id));
+        }
         $contracts = Contract::query()->with(['user', 'maid'])->latest('id')->limit(1000)
             ->get(['id', 'user_id', 'maid_id', 'order_id', 'status', 'type', 'contract_date']);
+        if ($complaint?->contract_id && !$contracts->contains('id', $complaint->contract_id)) {
+            $contracts->prepend(Contract::query()->with(['user', 'maid'])->findOrFail($complaint->contract_id));
+        }
         $contractOptions = $contracts->map(fn (Contract $contract) => [
             'id' => $contract->id,
             'label' => $this->contractSelectorLabel($contract),
@@ -219,10 +235,10 @@ class ComplaintController extends Controller
         $recruitmentOffices = RecruitmentOffices::query()->with('translations')->orderBy('id')->get();
         $partyTypes = ComplaintType::partyTypes();
 
-        return view($this->folderPath . '.create', compact(
+        return compact(
             'users', 'nationalities', 'complaintTypes', 'admins', 'orders', 'contracts',
             'contractOptions', 'recruitmentOffices', 'partyTypes'
-        ));
+        );
     }
 
     /**
@@ -247,10 +263,7 @@ class ComplaintController extends Controller
         try {
             $request->validate([
                 'complainant_name' => 'required|string|max:255',
-                'complainant_phone' => [
-                    'required',
-                    'regex:/^(05|5)[0-9]{8}$/',
-                ],
+                'complainant_phone' => $this->complainantPhoneRules(),
                 'complainant_type' => 'required|in:client,worker,internal_office,external_office,employee,other',
                 'subject' => 'required|string|max:255',
                 'complaint_type_id' => 'required|exists:complaint_types,id',
@@ -334,6 +347,11 @@ class ComplaintController extends Controller
             }
             return back()->with('error', 'حدث خطأ أثناء حفظ الشكوى')->withInput();
         }
+    }
+
+    private function complainantPhoneRules(): array
+    {
+        return ['required', 'regex:/^(05|5)[0-9]{8}$/'];
     }
 
     private function applyComplaintRelation(array &$data): void
@@ -473,15 +491,14 @@ class ComplaintController extends Controller
 
     public function edit($id)
     {
-        $complaint = objModel::findOrFail($id);
+        $complaint = objModel::with('attachmentFiles')->findOrFail($id);
         $this->assertCanAccessBranchModel($complaint);
 
-        $users = User::orderBy('name')->get();
-        $nationalities = Nationality::with('translations')->get()->sortBy('title');
-        $complaintTypes = ComplaintType::orderBy('name')->get();
-        $admins = Admin::query()->activeForOperations()->orderBy('name')->get();
+        $data = $this->complaintFormData($complaint);
+        $data['complaint'] = $complaint;
+        $data['isEdit'] = true;
 
-        return view($this->folderPath . '.edit', compact('complaint', 'users', 'nationalities', 'complaintTypes', 'admins'));
+        return view($this->folderPath . '.create', $data);
     }
 
     public function update(Request $request, $id)
@@ -492,7 +509,8 @@ class ComplaintController extends Controller
 
             $request->validate([
                 'complainant_name' => 'required|string|max:255',
-                'complainant_phone' => 'required|regex:/^05[0-9]{8}$/',
+                'complainant_phone' => $this->complainantPhoneRules(),
+                'complainant_type' => 'required|in:client,worker,internal_office,external_office,employee,other',
                 'subject' => 'required|string|max:255',
                 'complaint_type_id' => 'required|exists:complaint_types,id',
                 'details' => 'required|string',
@@ -502,11 +520,25 @@ class ComplaintController extends Controller
                 'maid_passport' => 'nullable|string|max:50',
                 'maid_nationality_id' => 'nullable|exists:nationalities,id',
                 'assigned_to' => 'nullable|exists:admins,id',
+                'relation_type' => 'required|in:none,order,contract,office,client,manual',
+                'order_id' => 'nullable|required_if:relation_type,order|exists:orders,id',
+                'contract_id' => 'nullable|required_if:relation_type,contract|exists:contracts,id',
+                'recruitment_office_id' => 'nullable|required_if:relation_type,office|exists:recruitment_offices,id',
+                'related_user_id' => 'nullable|required_if:relation_type,client|exists:users,id',
+                'against_name' => 'nullable|required_if:relation_type,manual|string|max:255',
+                'against_phone' => 'nullable|string|max:50',
+                'relation_reference' => 'nullable|string|max:255',
+                'relation_notes' => 'nullable|string|max:2000',
                 'attachments.*' => 'nullable|file|max:5120|mimes:jpg,jpeg,png,pdf,doc,docx,xls,xlsx'
             ]);
 
             $data = $request->except('attachments', 'attachment_names', '_method');
             $data['message'] = $request->details; // للتوافق مع الحقل القديم
+            $data['complainant_phone'] = ltrim((string) $data['complainant_phone'], '0');
+            $complaintType = ComplaintType::findOrFail($data['complaint_type_id']);
+            $data['complainant_type'] = $complaintType->complainant_type ?: $data['complainant_type'];
+            $data['against_type'] = $complaintType->against_type ?: ($data['against_type'] ?? $complaint->against_type);
+            $this->applyComplaintRelation($data);
 
             // تحديث حالة الحل إذا تم تغيير الحالة
             if ($request->status == 'resolved' && $complaint->status != 'resolved') {

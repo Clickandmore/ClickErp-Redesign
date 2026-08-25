@@ -1,11 +1,11 @@
 @extends('admin.layout.indexs.index')
 
-@section('page-title', 'إضافة شكوى جديدة')
+@section('page-title', $isEdit ? 'تعديل الشكوى #' . $complaint->id : 'إضافة شكوى جديدة')
 
 @section('links')
     <li class="breadcrumb-item"><a href="{{ route('dashboard.index') }}">الرئيسية</a></li>
     <li class="breadcrumb-item"><a href="{{ route('complaints.index') }}">الشكاوى</a></li>
-    <li class="breadcrumb-item active">إضافة شكوى</li>
+    <li class="breadcrumb-item active">{{ $isEdit ? 'تعديل الشكوى #' . $complaint->id : 'إضافة شكوى' }}</li>
 @endsection
 
 @section('style')
@@ -39,18 +39,19 @@
 @endsection
 
 @section('content')
-@if (@AdminGuardHasPerm(\App\PermKeys::COMPLAINT_CREATE))
+@if (@AdminGuardHasPerm($isEdit ? \App\PermKeys::COMPLAINT_EDIT : \App\PermKeys::COMPLAINT_CREATE))
 <div class="complaint-create">
     <div class="complaint-hero d-flex align-items-center gap-3">
         <div class="hero-icon"><i class="fas fa-headset"></i></div>
         <div>
-            <h3 class="mb-1">تسجيل شكوى جديدة</h3>
-            <div class="opacity-75">صنّف الشكوى واربطها بالسجل الصحيح، أو أدخل بيانات الطرف يدويًا.</div>
+            <h3 class="mb-1">{{ $isEdit ? 'تعديل الشكوى #' . $complaint->id : 'تسجيل شكوى جديدة' }}</h3>
+            <div class="opacity-75">{{ $isEdit ? 'راجع جميع بيانات الشكوى والربط والحالة ثم احفظ التعديلات.' : 'صنّف الشكوى واربطها بالسجل الصحيح، أو أدخل بيانات الطرف يدويًا.' }}</div>
         </div>
     </div>
 
-    <form action="{{ route('complaints.store') }}" method="POST" enctype="multipart/form-data" id="complaintForm" class="from-submit-global" novalidate>
+    <form action="{{ $isEdit ? route('complaints.update', $complaint->id) : route('complaints.store') }}" method="POST" enctype="multipart/form-data" id="complaintForm" class="from-submit-global" novalidate>
         @csrf
+        @if($isEdit) @method('PUT') @endif
 
         <section class="form-section">
             <div class="form-section-header"><span class="step-number">1</span><div><h5 class="mb-0">تصنيف الشكوى</h5><small class="text-muted">حدد نوع الشكوى ودرجة أهميتها</small></div></div>
@@ -60,7 +61,7 @@
                     <select name="complaint_type_id" id="complaintType" class="form-select select2 @error('complaint_type_id') is-invalid @enderror" required>
                         <option value="">اختر التصنيف</option>
                         @foreach($complaintTypes as $type)
-                            <option value="{{ $type->id }}" data-complainant="{{ $type->complainant_type }}" data-against="{{ $type->against_type }}" {{ old('complaint_type_id') == $type->id ? 'selected' : '' }}>
+                            <option value="{{ $type->id }}" data-complainant="{{ $type->complainant_type }}" data-against="{{ $type->against_type }}" {{ old('complaint_type_id', $complaint->complaint_type_id ?? null) == $type->id ? 'selected' : '' }}>
                                 {{ $type->name }} @if($type->complainant_type || $type->against_type) — {{ $type->classification_label }} @endif
                             </option>
                         @endforeach
@@ -69,25 +70,35 @@
                 </div>
                 <div class="col-lg-6 mb-3">
                     <label class="form-label">موضوع الشكوى <span class="required">*</span></label>
-                    <input type="text" name="subject" class="form-control @error('subject') is-invalid @enderror" value="{{ old('subject') }}" placeholder="ملخص واضح ومختصر للشكوى" required>
+                    <input type="text" name="subject" class="form-control @error('subject') is-invalid @enderror" value="{{ old('subject', $complaint->subject ?? null) }}" placeholder="ملخص واضح ومختصر للشكوى" required>
                     @error('subject')<div class="text-danger small mt-1">{{ $message }}</div>@enderror
                 </div>
-                <div class="col-md-6 mb-3">
+                <div class="col-md-{{ $isEdit ? '4' : '6' }} mb-3">
                     <label class="form-label">الأولوية <span class="required">*</span></label>
                     <select name="priority" class="form-select" required>
-                        <option value="low" {{ old('priority') === 'low' ? 'selected' : '' }}>منخفضة</option>
-                        <option value="medium" {{ old('priority', 'medium') === 'medium' ? 'selected' : '' }}>متوسطة</option>
-                        <option value="high" {{ old('priority') === 'high' ? 'selected' : '' }}>عالية</option>
-                        <option value="urgent" {{ old('priority') === 'urgent' ? 'selected' : '' }}>عاجلة</option>
+                        <option value="low" {{ old('priority', $complaint->priority ?? 'medium') === 'low' ? 'selected' : '' }}>منخفضة</option>
+                        <option value="medium" {{ old('priority', $complaint->priority ?? 'medium') === 'medium' ? 'selected' : '' }}>متوسطة</option>
+                        <option value="high" {{ old('priority', $complaint->priority ?? 'medium') === 'high' ? 'selected' : '' }}>عالية</option>
+                        <option value="urgent" {{ old('priority', $complaint->priority ?? 'medium') === 'urgent' ? 'selected' : '' }}>عاجلة</option>
                     </select>
                 </div>
-                <div class="col-md-6 mb-3">
+                <div class="col-md-{{ $isEdit ? '4' : '6' }} mb-3">
                     <label class="form-label">الموظف المسؤول</label>
                     <select name="assigned_to" class="form-select select2">
                         <option value="">يحدد لاحقًا</option>
-                        @foreach($admins as $admin)<option value="{{ $admin->id }}" {{ old('assigned_to') == $admin->id ? 'selected' : '' }}>{{ $admin->name }}</option>@endforeach
+                        @foreach($admins as $admin)<option value="{{ $admin->id }}" {{ old('assigned_to', $complaint->assigned_to ?? null) == $admin->id ? 'selected' : '' }}>{{ $admin->name }}</option>@endforeach
                     </select>
                 </div>
+                @if($isEdit)
+                    <div class="col-md-4 mb-3">
+                        <label class="form-label">حالة الشكوى <span class="required">*</span></label>
+                        <select name="status" class="form-select" required>
+                            @foreach(['pending' => 'قيد الانتظار', 'in_progress' => 'قيد المعالجة', 'resolved' => 'تم الحل', 'closed' => 'مغلقة', 'rejected' => 'مرفوضة'] as $value => $label)
+                                <option value="{{ $value }}" {{ old('status', $complaint->status) === $value ? 'selected' : '' }}>{{ $label }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+                @endif
             </div></div>
         </section>
 
@@ -98,23 +109,23 @@
                     <label class="form-label">عميل مسجل <span class="text-muted fw-normal">(اختياري)</span></label>
                     <select name="user_id" id="complainantUser" class="form-select select2">
                         <option value="">إدخال يدوي</option>
-                        @foreach($users as $user)<option value="{{ $user->id }}" data-name="{{ $user->name }}" data-phone="{{ $user->phone }}" {{ old('user_id') == $user->id ? 'selected' : '' }}>{{ $user->name }} — {{ $user->phone }}</option>@endforeach
+                        @foreach($users as $user)<option value="{{ $user->id }}" data-name="{{ $user->name }}" data-phone="{{ $user->phone }}" {{ old('user_id', $complaint->user_id ?? null) == $user->id ? 'selected' : '' }}>{{ $user->name }} — {{ $user->phone }}</option>@endforeach
                     </select>
                 </div>
                 <div class="col-lg-3 mb-3">
                     <label class="form-label">صفة مقدم الشكوى <span class="required">*</span></label>
                     <select name="complainant_type" id="complainantType" class="form-select" required>
-                        @foreach($partyTypes as $value => $label)<option value="{{ $value }}" {{ old('complainant_type', 'client') === $value ? 'selected' : '' }}>{{ $label }}</option>@endforeach
+                        @foreach($partyTypes as $value => $label)<option value="{{ $value }}" {{ old('complainant_type', $complaint->complainant_type ?? 'client') === $value ? 'selected' : '' }}>{{ $label }}</option>@endforeach
                     </select>
                 </div>
                 <div class="col-lg-3 mb-3">
                     <label class="form-label">الاسم <span class="required">*</span></label>
-                    <input type="text" name="complainant_name" class="form-control @error('complainant_name') is-invalid @enderror" value="{{ old('complainant_name') }}" required>
+                    <input type="text" name="complainant_name" class="form-control @error('complainant_name') is-invalid @enderror" value="{{ old('complainant_name', $complaint->complainant_name ?? null) }}" required>
                     @error('complainant_name')<div class="text-danger small mt-1">{{ $message }}</div>@enderror
                 </div>
                 <div class="col-lg-2 mb-3">
                     <label class="form-label">الجوال <span class="required">*</span></label>
-                    <input type="tel" name="complainant_phone" class="form-control @error('complainant_phone') is-invalid @enderror" value="{{ old('complainant_phone') }}" placeholder="05XXXXXXXX" required>
+                    <input type="tel" name="complainant_phone" class="form-control @error('complainant_phone') is-invalid @enderror" value="{{ old('complainant_phone', $complaint->complainant_phone ?? null) }}" placeholder="05XXXXXXXX" required>
                     @error('complainant_phone')<div class="text-danger small mt-1">{{ $message }}</div>@enderror
                 </div>
             </div></div>
@@ -123,7 +134,18 @@
         <section class="form-section">
             <div class="form-section-header"><span class="step-number">3</span><div><h5 class="mb-0">ربط الشكوى</h5><small class="text-muted">اختر السجل المرتبط أو أضف بيانات المشتكى عليه يدويًا</small></div></div>
             <div class="form-section-body">
-                @php($selectedRelation = old('relation_type', 'none'))
+                @php
+                    $currentRelation = 'none';
+                    if ($isEdit) {
+                        $currentRelation = $complaint->relation_type
+                            ?: ($complaint->order_id ? 'order'
+                                : ($complaint->contract_id ? 'contract'
+                                    : ($complaint->recruitment_office_id ? 'office'
+                                        : ($complaint->related_user_id ? 'client'
+                                            : ($complaint->against_name ? 'manual' : 'none')))));
+                    }
+                    $selectedRelation = old('relation_type', $currentRelation);
+                @endphp
                 <div class="relation-grid">
                     @foreach([
                         'order' => ['fa-shopping-cart','طلب'], 'contract' => ['fa-file-contract','عقد'],
@@ -136,41 +158,58 @@
 
                 <div class="relation-panel" data-relation="order">
                     <label class="form-label">اختر الطلب <span class="required">*</span></label>
-                    <select name="order_id" class="form-select select2 relation-input"><option value="">ابحث برقم الطلب أو اسم العميل أو العاملة</option>@foreach($orders as $order)<option value="{{ $order->id }}" {{ old('order_id') == $order->id ? 'selected' : '' }}>طلب #{{ $order->order_code ?: $order->id }} — {{ $order->user?->name ?: 'بدون عميل' }} @if($order->maid) — {{ $order->maid->name }} @endif</option>@endforeach</select>
+                    <select name="order_id" class="form-select select2 relation-input"><option value="">ابحث برقم الطلب أو اسم العميل أو العاملة</option>@foreach($orders as $order)<option value="{{ $order->id }}" {{ old('order_id', $complaint->order_id ?? null) == $order->id ? 'selected' : '' }}>طلب #{{ $order->order_code ?: $order->id }} — {{ $order->user?->name ?: 'بدون عميل' }} @if($order->maid) — {{ $order->maid->name }} @endif</option>@endforeach</select>
                 </div>
                 <div class="relation-panel" data-relation="contract">
                     <label class="form-label">اختر العقد <span class="required">*</span></label>
-                    <select name="contract_id" class="form-select select2 relation-input"><option value="">ابحث برقم العقد أو اسم العميل أو العاملة</option>@foreach($contractOptions as $contractOption)<option value="{{ $contractOption['id'] }}" {{ old('contract_id') == $contractOption['id'] ? 'selected' : '' }}>{{ $contractOption['label'] }}</option>@endforeach</select>
+                    <select name="contract_id" class="form-select select2 relation-input"><option value="">ابحث برقم العقد أو اسم العميل أو العاملة</option>@foreach($contractOptions as $contractOption)<option value="{{ $contractOption['id'] }}" {{ old('contract_id', $complaint->contract_id ?? null) == $contractOption['id'] ? 'selected' : '' }}>{{ $contractOption['label'] }}</option>@endforeach</select>
                 </div>
                 <div class="relation-panel" data-relation="office">
                     <label class="form-label">اختر المكتب الخارجي <span class="required">*</span></label>
-                    <select name="recruitment_office_id" class="form-select select2 relation-input"><option value="">ابحث باسم المكتب</option>@foreach($recruitmentOffices as $office)<option value="{{ $office->id }}" {{ old('recruitment_office_id') == $office->id ? 'selected' : '' }}>{{ $office->title ?: 'مكتب #' . $office->id }}</option>@endforeach</select>
+                    <select name="recruitment_office_id" class="form-select select2 relation-input"><option value="">ابحث باسم المكتب</option>@foreach($recruitmentOffices as $office)<option value="{{ $office->id }}" {{ old('recruitment_office_id', $complaint->recruitment_office_id ?? null) == $office->id ? 'selected' : '' }}>{{ $office->title ?: 'مكتب #' . $office->id }}</option>@endforeach</select>
                 </div>
                 <div class="relation-panel" data-relation="client">
                     <label class="form-label">اختر العميل المرتبط <span class="required">*</span></label>
-                    <select name="related_user_id" class="form-select select2 relation-input"><option value="">ابحث بالاسم أو الجوال</option>@foreach($users as $user)<option value="{{ $user->id }}" {{ old('related_user_id') == $user->id ? 'selected' : '' }}>{{ $user->name }} — {{ $user->phone }}</option>@endforeach</select>
+                    <select name="related_user_id" class="form-select select2 relation-input"><option value="">ابحث بالاسم أو الجوال</option>@foreach($users as $user)<option value="{{ $user->id }}" {{ old('related_user_id', $complaint->related_user_id ?? null) == $user->id ? 'selected' : '' }}>{{ $user->name }} — {{ $user->phone }}</option>@endforeach</select>
                 </div>
                 <div class="relation-panel" data-relation="manual"><div class="row">
-                    <div class="col-md-4 mb-3"><label class="form-label">اسم المشتكى عليه <span class="required">*</span></label><input type="text" name="against_name" class="form-control relation-input" value="{{ old('against_name') }}"></div>
-                    <div class="col-md-4 mb-3"><label class="form-label">الجوال / وسيلة التواصل</label><input type="text" name="against_phone" class="form-control relation-input" value="{{ old('against_phone') }}"></div>
-                    <div class="col-md-4 mb-3"><label class="form-label">رقم أو مرجع خارجي</label><input type="text" name="relation_reference" class="form-control relation-input" value="{{ old('relation_reference') }}"></div>
+                    <div class="col-md-4 mb-3"><label class="form-label">اسم المشتكى عليه <span class="required">*</span></label><input type="text" name="against_name" class="form-control relation-input" value="{{ old('against_name', $complaint->against_name ?? null) }}"></div>
+                    <div class="col-md-4 mb-3"><label class="form-label">الجوال / وسيلة التواصل</label><input type="text" name="against_phone" class="form-control relation-input" value="{{ old('against_phone', $complaint->against_phone ?? null) }}"></div>
+                    <div class="col-md-4 mb-3"><label class="form-label">رقم أو مرجع خارجي</label><input type="text" name="relation_reference" class="form-control relation-input" value="{{ old('relation_reference', $complaint->relation_reference ?? null) }}"></div>
                 </div></div>
                 <div class="relation-panel" data-relation="none"><div class="text-muted"><i class="fas fa-info-circle me-2"></i>ستُحفظ الشكوى دون ربط بسجل، ويمكن ربطها لاحقًا.</div></div>
-                <div class="mt-3"><label class="form-label">ملاحظات الربط <span class="text-muted fw-normal">(اختياري)</span></label><textarea name="relation_notes" class="form-control" rows="2" placeholder="أي معلومات تساعد في تحديد الطلب أو العقد أو الطرف المرتبط">{{ old('relation_notes') }}</textarea></div>
+                <div class="mt-3"><label class="form-label">ملاحظات الربط <span class="text-muted fw-normal">(اختياري)</span></label><textarea name="relation_notes" class="form-control" rows="2" placeholder="أي معلومات تساعد في تحديد الطلب أو العقد أو الطرف المرتبط">{{ old('relation_notes', $complaint->relation_notes ?? null) }}</textarea></div>
             </div>
         </section>
 
         <section class="form-section">
             <div class="form-section-header"><span class="step-number">4</span><div><h5 class="mb-0">تفاصيل الشكوى والمرفقات</h5><small class="text-muted">اكتب وصفًا كاملًا وأرفق المستندات المتاحة</small></div></div>
             <div class="form-section-body"><div class="row">
-                <div class="col-12 mb-3"><label class="form-label">تفاصيل الشكوى <span class="required">*</span></label><textarea name="details" class="form-control @error('details') is-invalid @enderror" rows="6" required placeholder="اكتب الوقائع والتواريخ والإجراء المطلوب بوضوح">{{ old('details') }}</textarea>@error('details')<div class="text-danger small mt-1">{{ $message }}</div>@enderror</div>
-                <div class="col-md-6 mb-3"><label class="form-label">رقم جواز العاملة</label><input type="text" name="maid_passport" class="form-control" value="{{ old('maid_passport') }}"></div>
-                <div class="col-md-6 mb-3"><label class="form-label">جنسية العاملة</label><select name="maid_nationality_id" class="form-select select2"><option value="">غير محدد</option>@foreach($nationalities as $nationality)<option value="{{ $nationality->id }}" {{ old('maid_nationality_id') == $nationality->id ? 'selected' : '' }}>{{ $nationality->title }}</option>@endforeach</select></div>
-                <div class="col-12"><label class="form-label">المرفقات</label><input type="file" name="attachments[]" class="form-control" multiple accept="image/*,application/pdf,.doc,.docx"><small class="text-muted">صور أو PDF أو Word، بحد أقصى 5MB لكل ملف.</small></div>
+                <div class="col-12 mb-3"><label class="form-label">تفاصيل الشكوى <span class="required">*</span></label><textarea name="details" class="form-control @error('details') is-invalid @enderror" rows="6" required placeholder="اكتب الوقائع والتواريخ والإجراء المطلوب بوضوح">{{ old('details', $complaint->details ?? $complaint->message ?? null) }}</textarea>@error('details')<div class="text-danger small mt-1">{{ $message }}</div>@enderror</div>
+                <div class="col-md-6 mb-3"><label class="form-label">رقم جواز العاملة</label><input type="text" name="maid_passport" class="form-control" value="{{ old('maid_passport', $complaint->maid_passport ?? null) }}"></div>
+                <div class="col-md-6 mb-3"><label class="form-label">جنسية العاملة</label><select name="maid_nationality_id" class="form-select select2"><option value="">غير محدد</option>@foreach($nationalities as $nationality)<option value="{{ $nationality->id }}" {{ old('maid_nationality_id', $complaint->maid_nationality_id ?? null) == $nationality->id ? 'selected' : '' }}>{{ $nationality->sub_title ?? $nationality->title }}</option>@endforeach</select></div>
+                @if($isEdit && ($complaint->attachmentFiles->isNotEmpty() || !empty($complaint->attachments)))
+                    <div class="col-12 mb-3">
+                        <label class="form-label">المرفقات الحالية</label>
+                        <div class="d-flex flex-wrap gap-2">
+                            @foreach($complaint->attachmentFiles as $attachment)
+                                <a href="{{ showFile($attachment->path) }}" target="_blank" rel="noopener" class="btn btn-sm btn-outline-secondary">
+                                    <i class="fas fa-paperclip me-1"></i>{{ $attachment->display_name ?: $attachment->original_name ?: basename($attachment->path) }}
+                                </a>
+                            @endforeach
+                            @foreach((array) $complaint->attachments as $attachment)
+                                <a href="{{ showFile($attachment) }}" target="_blank" rel="noopener" class="btn btn-sm btn-outline-secondary">
+                                    <i class="fas fa-paperclip me-1"></i>{{ basename($attachment) }}
+                                </a>
+                            @endforeach
+                        </div>
+                    </div>
+                @endif
+                <div class="col-12"><label class="form-label">{{ $isEdit ? 'إضافة مرفقات جديدة' : 'المرفقات' }}</label><input type="file" name="attachments[]" class="form-control" multiple accept="image/*,application/pdf,.doc,.docx"><small class="text-muted">صور أو PDF أو Word، بحد أقصى 5MB لكل ملف.</small></div>
             </div></div>
         </section>
 
-        <div class="footer-actions"><a href="{{ route('complaints.index') }}" class="btn btn-light border">إلغاء</a><button type="submit" class="btn btn-primary px-4"><i class="fas fa-save me-2"></i>حفظ الشكوى</button></div>
+        <div class="footer-actions"><a href="{{ route('complaints.index') }}" class="btn btn-light border">إلغاء</a><button type="submit" class="btn btn-primary px-4"><i class="fas fa-save me-2"></i>{{ $isEdit ? 'حفظ التعديلات' : 'حفظ الشكوى' }}</button></div>
     </form>
 </div>
 @else
@@ -215,7 +254,10 @@ $(function () {
             $('[name="complainant_phone"]').val(option.data('phone'));
             $('#complainantType').val('client');
         }
-    }).trigger('change');
+    });
+    @if(!$isEdit)
+        $('#complainantUser').trigger('change');
+    @endif
 
     $('#complaintType').on('change', function () {
         const option = $(this).find(':selected');
