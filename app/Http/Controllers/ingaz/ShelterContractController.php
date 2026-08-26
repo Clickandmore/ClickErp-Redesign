@@ -1455,7 +1455,7 @@ class ShelterContractController extends Controller
         return jsonSuccess(['success' => true], __('ingaz.shelter_contract_stored'), 200);
     }
 
-    private function syncShelterComplaint(Contract $contract, ShelterContactStore $request): void
+    private function syncShelterComplaint(Contract $contract, Request $request): void
     {
         if (!Schema::hasColumn('complaints', 'contract_id')) {
             return;
@@ -1541,13 +1541,21 @@ class ShelterContractController extends Controller
 
     public function edit($id)
     {
-        $contract = Contract::with(['info', 'maid.nationality', 'user'])->findOrFail($id);
+        $contract = Contract::with([
+            'info',
+            'maid.nationality',
+            'user',
+            'complaints' => function ($query) {
+                $query->whereNotIn('status', ['resolved', 'closed', 'rejected'])->latest();
+            },
+        ])->findOrFail($id);
         $this->assertCanAccessBranchModel($contract, 'contracts');
         $shelters = \App\Models\ShelterPlaces::latest()->get();
         $contracts = collect([$contract]);
         $selectedContractId = $contract->id;
         $nationalities = $this->shelterContractNationalities();
         $quickTagSuggestions = $this->getQuickTagSuggestions();
+        $complaintTypes = ComplaintType::orderBy('name')->get();
         $isEditMode = true;
         $editingContract = $contract;
         $rentalInstantReceiptEnabled = CvOptionsSettings::rentalTransferEnabled();
@@ -1561,6 +1569,7 @@ class ShelterContractController extends Controller
                 'selectedContractId',
                 'nationalities',
                 'quickTagSuggestions',
+                'complaintTypes',
                 'isEditMode',
                 'editingContract',
                 'rentalInstantReceiptEnabled',
@@ -1597,6 +1606,15 @@ class ShelterContractController extends Controller
             'shelter_quick_tags' => 'nullable|string|max:1000',
             'attachments' => 'nullable|array',
             'attachments.*' => 'nullable|file|max:10240|mimes:jpg,jpeg,png,pdf,doc,docx',
+            'complaint_action' => 'nullable|in:none,link,create',
+            'shelter_complaint_id' => 'required_if:complaint_action,link|nullable|exists:complaints,id',
+            'shelter_complaint_type_id' => 'nullable|exists:complaint_types,id',
+            'shelter_complaint_priority' => 'nullable|in:low,medium,high,urgent',
+            'shelter_complaint_subject' => 'nullable|string|max:255',
+            'shelter_complaint_details' => 'nullable|string|max:5000',
+            'client_name_snapshot' => 'nullable|string|max:255',
+            'maid_nationality_snapshot' => 'nullable|string|max:255',
+            'passport_number_snapshot' => 'nullable|string|max:255',
         ]);
 
         $contract = Contract::with('maid')->findOrFail($id);
@@ -1636,7 +1654,10 @@ class ShelterContractController extends Controller
             $infoPayload['shelter_quick_tags'] = $this->normalizeQuickTags($request->input('shelter_quick_tags'));
         }
 
-        $contract->info()->update($infoPayload);
+        DB::transaction(function () use ($contract, $infoPayload, $request) {
+            $contract->info()->update($infoPayload);
+            $this->syncShelterComplaint($contract, $request);
+        });
 
         $this->syncMaidInstantDisplay($contract, $displayOnSite);
 
@@ -3629,7 +3650,13 @@ class ShelterContractController extends Controller
      */
     public function showDeportationProcedures($id)
     {
-        $contract = Contract::with(['maid', 'user', 'info'])->findOrFail($id);
+        $contract = Contract::with([
+            'maid.nationality.translations',
+            'user',
+            'info.manualMaidNationality.translations',
+            'travelHistory',
+            'latestShelterLog',
+        ])->findOrFail($id);
         $this->assertCanAccessBranchModel($contract, 'contracts');
 
         $procedure = \App\Models\DeportationProcedure::where('contract_id', $contract->id)
@@ -3641,7 +3668,57 @@ class ShelterContractController extends Controller
                 ->with('error', 'لا توجد إجراءات ترحيل لهذا العقد');
         }
 
-        return view('admin.ingaz.ShelterContract.deportation-procedures', compact('contract', 'procedure'));
+        $deportationDetails = $this->buildDeportationDetails($contract);
+
+        return view('admin.ingaz.ShelterContract.deportation-procedures', compact(
+            'contract',
+            'procedure',
+            'deportationDetails'
+        ));
+    }
+
+    private function buildDeportationDetails(Contract $contract): array
+    {
+        $info = $contract->info;
+        $maid = $contract->maid;
+        $nationality = $maid?->nationality ?: $info?->manualMaidNationality;
+        $translation = $nationality?->translations?->firstWhere('locale', app()->getLocale())
+            ?: $nationality?->translations?->first();
+
+        $formatDate = static function ($value): ?string {
+            if (!$value) {
+                return null;
+            }
+
+            try {
+                return Carbon::parse($value)->format('Y-m-d');
+            } catch (\Throwable) {
+                return null;
+            }
+        };
+
+        $arrivalDate = $info?->arrival_date
+            ?: $maid?->arrival_date
+            ?: $contract->travelHistory?->arrival_date
+            ?: $info?->visa_milad_date
+            ?: $info?->contract_date;
+
+        return [
+            'maid_name' => $info?->manual_maid_name ?: $maid?->name,
+            'passport_number' => $info?->manual_maid_passport_num ?: $maid?->passport_num,
+            'nationality' => $translation?->sub_title
+                ?: $translation?->title
+                ?: $nationality?->sub_title
+                ?: $nationality?->title,
+            'client_name' => $contract->user?->name,
+            'client_document' => $contract->user?->documentNumber(),
+            'client_phone' => $contract->user?->primaryPhoneValue(),
+            'contract_date' => $formatDate($info?->contract_date ?: $contract->created_at),
+            'arrival_date' => $formatDate($arrivalDate),
+            'shelter_entry_date' => $formatDate($info?->maid_date_back ?: $contract->latestShelterLog?->date),
+            'visa_number' => $info?->visa_number,
+            'musaned_number' => $info?->msaned_number,
+        ];
     }
 
     /**

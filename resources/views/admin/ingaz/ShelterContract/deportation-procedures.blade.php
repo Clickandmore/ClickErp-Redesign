@@ -5,7 +5,7 @@
 @endphp
 
 @section('title')
-    إجراءات الترحيل - {{ $contract->maid->name ?? 'غير محدد' }}
+    إجراءات الترحيل - {{ $deportationDetails['maid_name'] ?? 'غير محدد' }}
 @endsection
 
 @php
@@ -259,7 +259,7 @@
         <div class="row mb-4">
             <div class="col-12">
                 <div class="page-title-box">
-                    <h4 class="page-title">إجراءات الترحيل - {{ $contract->maid->name ?? 'غير محدد' }}</h4>
+                    <h4 class="page-title">إجراءات الترحيل - {{ $deportationDetails['maid_name'] ?? 'غير محدد' }}</h4>
                 </div>
             </div>
         </div>
@@ -286,12 +286,39 @@
                                     </div>
                                     <div class="info-item">
                                         <span class="info-label">العميل</span>
-                                        <span class="info-value">{{ $contract->user->name ?? 'غير محدد' }}</span>
+                                        <span class="info-value">{{ $deportationDetails['client_name'] ?? 'غير محدد' }}</span>
+                                    </div>
+                                    @if (!empty($deportationDetails['client_document']))
+                                        <div class="info-item">
+                                            <span class="info-label">رقم هوية/سجل العميل</span>
+                                            <span class="info-value">{{ $deportationDetails['client_document'] }}</span>
+                                        </div>
+                                    @endif
+                                    @if (!empty($deportationDetails['client_phone']))
+                                        <div class="info-item">
+                                            <span class="info-label">جوال العميل</span>
+                                            <span class="info-value">{{ $deportationDetails['client_phone'] }}</span>
+                                        </div>
+                                    @endif
+                                    <div class="info-item">
+                                        <span class="info-label">تاريخ العقد</span>
+                                        <span class="info-value">{{ $deportationDetails['contract_date'] ?? 'غير محدد' }}</span>
+                                    </div>
+                                    <div class="info-item">
+                                        <span class="info-label">رقم التأشيرة</span>
+                                        <span class="info-value">{{ $deportationDetails['visa_number'] ?? 'غير محدد' }}</span>
+                                    </div>
+                                    <div class="info-item">
+                                        <span class="info-label">رقم مساند</span>
+                                        <span class="info-value">{{ $deportationDetails['musaned_number'] ?? 'غير محدد' }}</span>
                                     </div>
                                     <div class="info-item">
                                         <span class="info-label">تاريخ الوصول</span>
-                                        <span
-                                            class="info-value">{{ $contract->arrival_date ? \Carbon\Carbon::parse($contract->arrival_date)->format('Y-m-d') : 'غير محدد' }}</span>
+                                        <span class="info-value">{{ $deportationDetails['arrival_date'] ?? 'غير محدد' }}</span>
+                                    </div>
+                                    <div class="info-item">
+                                        <span class="info-label">تاريخ الدخول للإيواء</span>
+                                        <span class="info-value">{{ $deportationDetails['shelter_entry_date'] ?? 'غير محدد' }}</span>
                                     </div>
                                 </div>
                             </div>
@@ -300,16 +327,15 @@
                                     <h5><i class="fas fa-user"></i> معلومات العاملة</h5>
                                     <div class="info-item">
                                         <span class="info-label">اسم العاملة</span>
-                                        <span class="info-value">{{ $contract->maid->name ?? 'غير محدد' }}</span>
+                                        <span class="info-value">{{ $deportationDetails['maid_name'] ?? 'غير محدد' }}</span>
                                     </div>
                                     <div class="info-item">
                                         <span class="info-label">رقم الجواز</span>
-                                        <span class="info-value">{{ $contract->maid->passport ?? 'غير محدد' }}</span>
+                                        <span class="info-value">{{ $deportationDetails['passport_number'] ?? 'غير محدد' }}</span>
                                     </div>
                                     <div class="info-item">
                                         <span class="info-label">الجنسية</span>
-                                        <span
-                                            class="info-value">{{ $contract?->maid?->nationality?->translations?->first()->sub_title ?? 'غير محدد' }}</span>
+                                        <span class="info-value">{{ $deportationDetails['nationality'] ?? 'غير محدد' }}</span>
                                     </div>
                                 </div>
                             </div>

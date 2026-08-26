@@ -1479,7 +1479,7 @@
                                     @foreach ($financialSummary['linked_bonds'] as $bond)
                                         <div class="d-flex justify-content-between align-items-center gap-2 mb-2">
                                             <a class="btn btn-sm btn-outline-success" target="_blank"
-                                                href="{{ route($bond['type'] === 'qabd' ? 'finance.bonds-qabd.show' : 'finance.bonds-sarf.show', $bond['id']) }}">
+                                                href="{{ route($bond['type'] === 'qabd' ? 'finance.bonds-qabd.show' : 'finance.bonds-sarf.show', $bond['type'] === 'qabd' ? $bond['code'] : $bond['id']) }}">
                                                 {{ $bond['type_label'] }} #{{ $bond['code'] }}
                                             </a>
                                             <span class="fw-semibold">{{ number_format($bond['value'], 2) }} ريال</span>

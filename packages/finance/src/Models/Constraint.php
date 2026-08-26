@@ -299,7 +299,7 @@ class Constraint extends Finance
                 return $this->bond->id;
                 break;
            case ConstraintTypiesEnum::QapdBond:
-                return $this->bond->id;
+                return $this->bond->code;
                 break;
            case ConstraintTypiesEnum::TransferEntry:
                 return $this->transfer_entry->id;

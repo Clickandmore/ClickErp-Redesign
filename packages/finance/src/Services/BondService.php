@@ -28,6 +28,15 @@ class BondService extends MainService
         $this->files = ['file', 'transfer_file'];
     }
 
+    public function findStandardBondByCode(string|int $code, BondTypes $type): Bond
+    {
+        return $this->model->newQuery()
+            ->where('code', $code)
+            ->where('type', $type->value)
+            ->where('general_type', 0)
+            ->firstOrFail();
+    }
+
     public function getTaxSetting()
     {
         return $this->taxSettingService->get();

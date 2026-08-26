@@ -327,7 +327,6 @@
                         الإحصائيات والفلاتر السريعة بصفحة الإيواء.</small>
                 </div>
 
-                @if (!$isEditMode)
                     <div class="col-12 mt-4">
                         <div class="card border-secondary">
                             <div class="card-header bg-light">
@@ -423,7 +422,6 @@
                             </div>
                         </div>
                     </div>
-                @endif
 
                 <div class="col-12 mt-4">
                     <div class="card border-secondary">
