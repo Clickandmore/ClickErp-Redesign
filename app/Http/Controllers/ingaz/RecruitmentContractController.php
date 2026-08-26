@@ -1691,7 +1691,7 @@ class RecruitmentContractController extends Controller
                         }
 
                         // زر الحذف
-                        if (@AdminGuardHasPerm(\App\NewPermKeys::REC_CONTRACTS_DELETE)) {
+                        if (!$invoice && @AdminGuardHasPerm(\App\NewPermKeys::REC_CONTRACTS_DELETE)) {
                             $actions .= '<li><button class="dropdown-item delete-contract-btn" data-contract-id="' . $row->id . '" data-contract-number="' . $row->id . '">
                                             <i class="fas fa-trash"></i> حذف العقد
                                         </button></li>';
@@ -3974,6 +3974,14 @@ class RecruitmentContractController extends Controller
         }
         $this->assertCanAccessBranchModel($contract, 'contracts');
 
+        // لا يمكن حذف عقد ترتبت عليه فاتورة، بغض النظر عن حالة العقد أو الفاتورة.
+        if ($contract->invoice()->exists()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'لا يمكن حذف العقد لوجود فاتورة مرتبطة به'
+            ], 400);
+        }
+
         // منع حذف العقود المكتملة
         if (in_array($contract->status, [ContractStatusEnum::Completed->value, ContractStatusEnum::Refunded->value], true)) {
             return response()->json([
@@ -3998,28 +4006,34 @@ class RecruitmentContractController extends Controller
             ], 400);
         }
 
-        // التحقق من وجود عاملة في العقد
-        if ($contract->maid_id) {
-            $maidStatus = $request->input('maid_status', 'available');
+        DB::transaction(function () use ($contract, $request) {
+            // التحقق من وجود عاملة في العقد
+            if ($contract->maid_id) {
+                $maidStatus = $request->input('maid_status', 'available');
 
-            // تحديث حالة العاملة
-            $maid = \App\Models\ingaz\Maid::find($contract->maid_id);
-            if ($maid) {
-                if ($maidStatus === 'back_out') {
-                    $maid->update([
-                        'status' => 'back_out',
-                        'available' => false
-                    ]);
-                } else {
-                    $maid->update([
-                        'status' => 'available',
-                        'available' => true
-                    ]);
+                // تحديث حالة العاملة
+                $maid = Maid::find($contract->maid_id);
+                if ($maid) {
+                    if ($maidStatus === 'back_out') {
+                        $maid->update([
+                            'status' => 'back_out',
+                            'available' => false
+                        ]);
+                    } else {
+                        $maid->update([
+                            'status' => 'available',
+                            'available' => true
+                        ]);
+                    }
                 }
             }
-        }
 
-        $contract->delete();
+            // Some legacy/imported databases do not have the original cascade
+            // constraint, so remove the dependent data explicitly.
+            ContractInfo::where('contract_id', $contract->id)->delete();
+            $contract->delete();
+        });
+
         return response()->json([
             'success' => true,
             'message' => 'تم حذف العقد بنجاح'

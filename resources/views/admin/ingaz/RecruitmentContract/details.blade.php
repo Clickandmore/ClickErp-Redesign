@@ -2432,7 +2432,7 @@
                     </button>
                 @endif
 
-                @if (@AdminGuardHasPerm(\App\NewPermKeys::REC_CONTRACTS_DELETE))
+                @if (!$contract->invoice && @AdminGuardHasPerm(\App\NewPermKeys::REC_CONTRACTS_DELETE))
                     <button type="button" class="btn-icon btn-delete" onclick="deleteContract({{ $contract->id }})"
                         title="حذف العقد">
                         <i class="fas fa-trash"></i>

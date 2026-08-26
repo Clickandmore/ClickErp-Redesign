@@ -97,6 +97,90 @@
             flex: 0 0 auto;
         }
 
+        .exp-summary-tile {
+            height: 100%;
+            padding: .6rem .75rem;
+            border: 1px solid #e8eef5;
+            border-radius: 12px;
+            background: #f8fafc;
+        }
+
+        .exp-summary-tile .label {
+            font-size: .78rem;
+            font-weight: 600;
+            color: #7b8794;
+        }
+
+        .exp-summary-tile .value {
+            font-weight: 700;
+            color: #243447;
+            overflow-wrap: anywhere;
+        }
+
+        .exp-list {
+            display: flex;
+            flex-direction: column;
+            gap: .75rem;
+        }
+
+        .exp-item {
+            display: flex;
+            gap: .75rem;
+            padding: .85rem;
+            border: 1px solid #e8eef5;
+            border-radius: 14px;
+            background: #fff;
+        }
+
+        .exp-index {
+            flex: 0 0 auto;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(37, 99, 235, .1);
+            color: #2563eb;
+            font-weight: 700;
+            font-size: .85rem;
+        }
+
+        .exp-item-body {
+            flex: 1 1 auto;
+            min-width: 0;
+        }
+
+        .exp-field .label {
+            font-size: .78rem;
+            color: #7b8794;
+        }
+
+        .exp-field .value {
+            font-weight: 600;
+            color: #243447;
+            overflow-wrap: anywhere;
+        }
+
+        .exp-badge-period {
+            background: rgba(37, 99, 235, .1);
+            color: #2563eb;
+        }
+
+        .exp-badge-duration {
+            background: rgba(16, 185, 129, .12);
+            color: #0f766e;
+        }
+
+        .exp-empty {
+            padding: .75rem .9rem;
+            border: 1px dashed #d8e2ec;
+            border-radius: 12px;
+            background: #f8fafc;
+            color: #7b8794;
+            font-weight: 600;
+        }
+
         .maid-photo-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
@@ -556,7 +640,7 @@
                                 </div>
                                 <div class="col-md-6">
                                     <div class="text-muted small">سنوات الخبرة</div>
-                                    <div class="fw-semibold">{{ $maid->experience_years !== null && $maid->experience_years !== '' ? $maid->experience_years : '-' }}</div>
+                                    <div class="fw-semibold">{{ $experienceSummary['years_label'] ?: '-' }}</div>
                                 </div>
                                 <div class="col-md-6">
                                     <div class="text-muted small">خبرة الطبخ</div>
@@ -579,6 +663,122 @@
                                     <div class="fw-semibold">{{ $dateValue($maid->available_at) }}</div>
                                 </div>
                             </div>
+                        </div>
+                    </div>
+
+                    <div class="card maid-card" id="maid-experience">
+                        <div class="card-body">
+                            <h5 class="fw-bold mb-3 d-flex align-items-center gap-2 flex-wrap">
+                                <i class="fas fa-briefcase text-secondary"></i>تفاصيل الخبرة
+                                @if ($experienceSummary['entries_count'] > 0)
+                                    <span class="badge bg-primary-subtle text-primary">{{ $experienceSummary['entries_count'] }} سجل خبرة</span>
+                                @endif
+                            </h5>
+
+                            <div class="row g-2 mb-3">
+                                <div class="col-md-3 col-6">
+                                    <div class="exp-summary-tile">
+                                        <div class="label">حالة الخبرة</div>
+                                        <div class="value">{{ $experienceStatusLabels[$experienceSummary['status']] ?? '-' }}</div>
+                                    </div>
+                                </div>
+                                <div class="col-md-3 col-6">
+                                    <div class="exp-summary-tile">
+                                        <div class="label">إجمالي مدة الخبرة</div>
+                                        <div class="value">{{ $experienceSummary['years_label'] ?: '-' }}</div>
+                                    </div>
+                                </div>
+                                <div class="col-md-3 col-6">
+                                    <div class="exp-summary-tile">
+                                        <div class="label">خبرة الطبخ</div>
+                                        <div class="value">{{ $cookingExperienceLabels[$maid->cooking_experience] ?? '-' }}</div>
+                                    </div>
+                                </div>
+                                <div class="col-md-3 col-6">
+                                    <div class="exp-summary-tile">
+                                        <div class="label">عدد جهات العمل السابقة</div>
+                                        <div class="value">{{ $experienceSummary['entries_count'] ?: '-' }}</div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            @if ($experienceEntries->isNotEmpty())
+                                <div class="exp-list">
+                                    @foreach ($experienceEntries as $index => $entry)
+                                        <article class="exp-item">
+                                            <span class="exp-index">{{ $index + 1 }}</span>
+                                            <div class="exp-item-body">
+                                                <div class="d-flex justify-content-between align-items-start gap-2 flex-wrap mb-2">
+                                                    <h6 class="fw-bold mb-0">
+                                                        <i class="fas fa-user-tie text-muted me-1"></i>{{ $entry['job_title'] ?: 'مهنة غير محددة' }}
+                                                    </h6>
+                                                    <div class="d-flex gap-1 flex-wrap">
+                                                        @if ($entry['period_label'])
+                                                            <span class="badge exp-badge-period">{{ $entry['period_label'] }}</span>
+                                                        @endif
+                                                        @if ($entry['duration_label'])
+                                                            <span class="badge exp-badge-duration">{{ $entry['duration_label'] }}</span>
+                                                        @endif
+                                                        @if ($entry['legacy'])
+                                                            <span class="badge bg-secondary-subtle text-secondary" title="سجل مُستورد قبل تفعيل جدول الخبرات التفصيلي">سجل مستورد</span>
+                                                        @endif
+                                                    </div>
+                                                </div>
+                                                <div class="row g-2">
+                                                    <div class="col-md-4 col-6 exp-field">
+                                                        <div class="label">الدولة</div>
+                                                        <div class="value">{{ $entry['country'] ?: '-' }}</div>
+                                                    </div>
+                                                    @if (filled($entry['work_city']) || (!$entry['legacy'] && $entry['is_saudi']))
+                                                        <div class="col-md-4 col-6 exp-field">
+                                                            <div class="label">مدينة العمل</div>
+                                                            <div class="value">{{ filled($entry['work_city']) ? $entry['work_city'] : '-' }}</div>
+                                                        </div>
+                                                    @endif
+                                                    @if ($entry['legacy'])
+                                                        <div class="col-md-4 col-6 exp-field">
+                                                            <div class="label">التاريخ المسجل</div>
+                                                            <div class="value" dir="ltr">{{ $entry['start'] ?: '-' }}</div>
+                                                        </div>
+                                                    @else
+                                                        <div class="col-md-4 col-6 exp-field">
+                                                            <div class="label">من</div>
+                                                            <div class="value" dir="ltr">{{ $entry['start'] ?: '-' }}</div>
+                                                        </div>
+                                                        <div class="col-md-4 col-6 exp-field">
+                                                            <div class="label">إلى</div>
+                                                            <div class="value" dir="ltr">{{ $entry['end'] ?: '-' }}</div>
+                                                        </div>
+                                                        <div class="col-md-4 col-6 exp-field">
+                                                            <div class="label">المدة</div>
+                                                            <div class="value">{{ $entry['duration_label'] ?: '-' }}</div>
+                                                        </div>
+                                                    @endif
+                                                    @if ($entry['recorded_years'] !== null)
+                                                        <div class="col-md-4 col-6 exp-field">
+                                                            <div class="label">المدة المسجلة (سنوات)</div>
+                                                            <div class="value">{{ rtrim(rtrim(number_format($entry['recorded_years'], 2, '.', ''), '0'), '.') ?: '0' }}</div>
+                                                        </div>
+                                                    @endif
+                                                    @if ($entry['recorded_at'])
+                                                        <div class="col-md-4 col-6 exp-field">
+                                                            <div class="label">تاريخ الإدخال</div>
+                                                            <div class="value">{{ $dateValue($entry['recorded_at']) }}</div>
+                                                        </div>
+                                                    @endif
+                                                </div>
+                                            </div>
+                                        </article>
+                                    @endforeach
+                                </div>
+                            @else
+                                <div class="exp-empty">
+                                    <i class="fas fa-info-circle me-1"></i>
+                                    {{ $experienceSummary['status'] === 'no_experience'
+                                        ? 'العاملة مسجّلة بدون خبرة سابقة.'
+                                        : 'لم يتم إدخال تفاصيل الخبرة لهذه السيرة.' }}
+                                </div>
+                            @endif
                         </div>
                     </div>
 
@@ -1113,33 +1313,6 @@
                                                 <span>{{ $skillName }}</span>
                                             </span>
                                         @endif
-                                    @endforeach
-                                </div>
-                            @else
-                                <p class="text-muted mb-0">-</p>
-                            @endif
-                        </div>
-                    </div>
-
-                    <div class="card maid-card">
-                        <div class="card-body">
-                            <h5 class="fw-bold mb-3 d-flex align-items-center gap-2">
-                                <i
-                                    class="fas fa-briefcase text-secondary"></i>{{ helperTrans('ingaz.experience_information') }}
-                            </h5>
-                            @if ($maid->expertises->isNotEmpty())
-                                <div class="d-flex flex-column gap-2">
-                                    @foreach ($maid->expertises as $expertise)
-                                        <div class="border rounded-3 p-3">
-                                            <div class="row g-2">
-                                                <div class="col-md-6"><span class="text-muted small">المهنة:</span> <span class="fw-semibold">{{ $expertise->jobTitle?->title ?: '-' }}</span></div>
-                                                <div class="col-md-6"><span class="text-muted small">الدولة:</span> <span class="fw-semibold">{{ $expertise->country?->title ?: '-' }}</span></div>
-                                                <div class="col-md-6"><span class="text-muted small">مدينة العمل:</span> <span class="fw-semibold">{{ $expertise->work_city ?: '-' }}</span></div>
-                                                <div class="col-md-6"><span class="text-muted small">المدة:</span> <span class="fw-semibold">{{ $expertise->duration_label ?: '-' }}</span></div>
-                                                <div class="col-md-6"><span class="text-muted small">تاريخ البداية:</span> <span class="fw-semibold">{{ $dateValue($expertise->start_date) }}</span></div>
-                                                <div class="col-md-6"><span class="text-muted small">تاريخ النهاية:</span> <span class="fw-semibold">{{ $dateValue($expertise->end_date) }}</span></div>
-                                            </div>
-                                        </div>
                                     @endforeach
                                 </div>
                             @else

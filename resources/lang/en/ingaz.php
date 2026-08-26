@@ -4069,4 +4069,7 @@ return array (
   'video_value_will_be_removed' => 'The video file and link will be removed when the changes are saved.',
   'remove_uploaded_video' => 'Remove the current uploaded video',
   'maid_save_failed' => 'The CV could not be saved. Please try again.',
+  'experience_status_filter' => 'Experience',
+  'experience_status_has' => 'Has experience',
+  'experience_status_none' => 'No experience',
 );
