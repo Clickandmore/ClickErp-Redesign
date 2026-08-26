@@ -2516,4 +2516,7 @@ return array (
   'video_value_will_be_removed' => 'سيتم حذف ملف الفيديو ورابطه عند حفظ التعديلات.',
   'remove_uploaded_video' => 'حذف ملف الفيديو الحالي',
   'maid_save_failed' => 'تعذّر حفظ السيرة. يرجى المحاولة مرة أخرى.',
+  'experience_status_filter' => 'الخبرة',
+  'experience_status_has' => 'لديها خبرة',
+  'experience_status_none' => 'ليس لديها خبرة',
 );

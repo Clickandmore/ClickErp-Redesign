@@ -15,6 +15,7 @@ use App\Http\Controllers\admin\Controller;
 use App\Http\Requests\ingaz\MaidRequest;
 use App\Http\Requests\StoreRapidCv;
 use App\Models\Contract;
+use App\Models\Country;
 use App\Models\ingaz\JobType;
 use App\Models\ingaz\Maid;
 use App\Models\ingaz\Maid as objModel;
@@ -30,6 +31,7 @@ use App\Services\ingaz\MaidCvExtractionService;
 use App\Services\ingaz\MaidCvPdfGenerator;
 use App\Services\ingaz\RentalMaidFinanceService;
 use App\Services\ManagedFileStorage;
+use App\Support\ExperiencePeriod;
 use App\Support\MaidCvTemplateSettings;
 use App\Support\MaidLanguageCatalog;
 use App\Support\RecruitmentOrderStatusLabels;
@@ -183,6 +185,7 @@ class MaidController extends Controller
                     $cvCode = $row->cv_code ? e($row->cv_code) : null;
                     $requestType = e($row->request_type_label);
                     $videoBadge = $this->maidVideoBadge($row);
+                    $experienceBadge = $this->maidExperienceBadge($row);
 
                     $pinnedBadge = $row->is_pinned
                         ? '<span class="badge bg-warning-subtle text-warning ms-1"><i class="fas fa-thumbtack text-secondary"></i> ' . helperTrans('ingaz.pinned') . '</span>'
@@ -197,6 +200,7 @@ class MaidController extends Controller
                         . '<div class="d-flex align-items-center gap-2">'
                         . '<span class="fw-semibold text-dark maid-name notranslate" translate="no" dir="auto" data-maid-display="' . $name . '" aria-label="' . $name . '"></span>'
                         . $pinnedBadge
+                        . $experienceBadge
                         . '</div>'
                         . $cvCodeLine
                         . '<div class="text-muted text-medium">'
@@ -588,6 +592,10 @@ class MaidController extends Controller
             'offices' => $officeAct->getAllOffices(),
             'job_types' => $this->getRecruitmentIndexJobTypes(),
             'request_types' => objModel::getRequestTypeOptions(),
+            'experience_statuses' => [
+                'has_experience' => helperTrans('ingaz.experience_status_has'),
+                'no_experience' => helperTrans('ingaz.experience_status_none'),
+            ],
             'statuses' => [
                 'available' => helperTrans('ingaz.maid_status_available'),
                 'reserved' => helperTrans('ingaz.maid_status_reserved'),
@@ -1237,6 +1245,65 @@ class MaidController extends Controller
         return view($this->folderPath . '.cvs_deleted', $data, compact('filter', 'request'));
     }
 
+    /**
+     * تفاصيل الخبرة للسير القديمة المستوردة، حيث حُفظت على جدول `maids` مباشرة
+     * كمصفوفتَي JSON متوازيتين: `experience_years` (تاريخ شهر/سنة) و`experience_country`.
+     */
+    private function legacyExperienceEntries(objModel $maid): \Illuminate\Support\Collection
+    {
+        $decode = static function ($value): array {
+            if (is_array($value)) {
+                return $value;
+            }
+
+            if (!is_string($value) || trim($value) === '') {
+                return [];
+            }
+
+            $decoded = json_decode($value, true);
+
+            return json_last_error() === JSON_ERROR_NONE && is_array($decoded) ? $decoded : [];
+        };
+
+        $dates = array_values($decode($maid->experience_years));
+        $countryIds = array_values($decode($maid->experience_country));
+
+        if ($dates === [] && $countryIds === []) {
+            return collect();
+        }
+
+        $countries = Country::whereIn('id', collect($countryIds)->filter(fn ($id) => is_numeric($id))->map(fn ($id) => (int) $id)->unique())
+            ->get()
+            ->keyBy('id');
+
+        $count = max(count($dates), count($countryIds));
+
+        return collect(range(0, $count - 1))
+            ->map(function (int $index) use ($dates, $countryIds, $countries) {
+                $country = isset($countryIds[$index]) && is_numeric($countryIds[$index])
+                    ? $countries->get((int) $countryIds[$index])
+                    : null;
+                $start = ExperiencePeriod::toMonthInput($dates[$index] ?? null);
+
+                return [
+                    'legacy' => true,
+                    'job_title' => null,
+                    'country' => $country?->title,
+                    'is_saudi' => (bool) ($country?->is_saudi),
+                    'work_city' => null,
+                    'start' => $start,
+                    'end' => null,
+                    'period_label' => $start ? substr($start, 0, 4) . (app()->getLocale() === 'ar' ? 'م' : '') : null,
+                    'duration_label' => null,
+                    'duration_months' => null,
+                    'recorded_years' => null,
+                    'recorded_at' => null,
+                ];
+            })
+            ->filter(fn (array $entry) => filled($entry['country']) || filled($entry['start']))
+            ->values();
+    }
+
     public function showMaidDetails($id, objAction $action)
     {
         $maid = objModel::withTrashed()->with([
@@ -1330,7 +1397,66 @@ class MaidController extends Controller
         }
         $languagePercentages = collect($percentagesRaw ?? [])->filter()->toArray();
         $languageLevels = collect($maid->language_levels ?? [])->filter()->toArray();
+
         $externalOffice = $maid->recruitmentOffice;
+
+        // ===== تفاصيل الخبرة كما أُدخلت =====
+        $experienceEntries = $maid->expertises
+            ->sortBy(function (\App\Models\MaidExpertise $expertise) {
+                return $expertise->start_date ? $expertise->start_date->timestamp : PHP_INT_MAX;
+            })
+            ->values()
+            ->map(function (\App\Models\MaidExpertise $expertise) {
+                $months = $expertise->duration_months;
+                $recordedYears = is_numeric($expertise->number_of_years) ? (float) $expertise->number_of_years : null;
+
+                // السجلات الأقدم أُدخلت بعدد السنوات فقط دون تواريخ.
+                if ($months === null && $recordedYears !== null && $recordedYears > 0) {
+                    $months = (int) round($recordedYears * 12);
+                }
+
+                $country = $expertise->country;
+
+                return [
+                    'legacy' => false,
+                    'job_title' => $expertise->jobTitle?->title,
+                    'country' => $country?->title,
+                    'is_saudi' => (bool) ($country?->is_saudi),
+                    'work_city' => $expertise->work_city,
+                    'start' => ExperiencePeriod::toMonthInput($expertise->start_date),
+                    'end' => ExperiencePeriod::toMonthInput($expertise->end_date),
+                    'period_label' => $expertise->period_label,
+                    'duration_label' => $expertise->duration_label,
+                    'duration_months' => $months,
+                    'recorded_years' => $recordedYears,
+                    'recorded_at' => $expertise->created_at,
+                ];
+            });
+
+        // سير قديمة مستوردة: الخبرة محفوظة كمصفوفة JSON على جدول العاملات نفسه.
+        if ($experienceEntries->isEmpty()) {
+            $experienceEntries = $this->legacyExperienceEntries($maid);
+        }
+
+        $experienceTotalMonths = (int) $experienceEntries
+            ->pluck('duration_months')
+            ->filter(fn ($months) => $months !== null && $months > 0)
+            ->sum();
+
+        $experienceYearsLabel = null;
+        if ($experienceTotalMonths > 0) {
+            $experienceYearsLabel = ExperiencePeriod::durationLabel($experienceTotalMonths);
+        } elseif (is_numeric($maid->experience_years) && (float) $maid->experience_years > 0) {
+            $experienceYearsLabel = format_experience($maid->experience_years);
+        }
+
+        $experienceSummary = [
+            'status' => $maid->experience_status,
+            'cooking' => $maid->cooking_experience,
+            'entries_count' => $experienceEntries->count(),
+            'total_months' => $experienceTotalMonths,
+            'years_label' => $experienceYearsLabel,
+        ];
 
         $orders = $maid->orders->sortByDesc('created_at');
         $contracts = $maid->contracts->sortByDesc('created_at');
@@ -1494,7 +1620,9 @@ class MaidController extends Controller
             'hrEmployeeRecord',
             'maidImages',
             'generatedCvPath',
-            'generatedCvShareUrl'
+            'generatedCvShareUrl',
+            'experienceEntries',
+            'experienceSummary'
         ));
     }
 
@@ -4052,6 +4180,33 @@ class MaidController extends Controller
                 $query->where('status', $status);
                 break;
         }
+    }
+
+    /**
+     * بادج حالة الخبرة في جدول السير: أخضر لمن لديها خبرة ورمادي لمن ليس لديها.
+     */
+    private function maidExperienceBadge(Maid $maid): string
+    {
+        $hasExperience = $maid->experience_status === 'has_experience';
+
+        $classes = $hasExperience
+            ? 'bg-success-subtle text-success'
+            : 'bg-secondary-subtle text-secondary';
+        $icon = $hasExperience ? 'fa-briefcase' : 'fa-user-clock';
+        $label = helperTrans($hasExperience ? 'ingaz.experience_status_has' : 'ingaz.experience_status_none');
+
+        // مدة الخبرة تظهر كتلميح فقط — العمود المخصص لها هو "المؤشرات".
+        $tooltip = '';
+        if ($hasExperience) {
+            $duration = format_experience($maid->experience_years);
+            if (filled($duration)) {
+                $tooltip = ' title="' . e(helperTrans('ingaz.experience_years') . ': ' . $duration) . '"';
+            }
+        }
+
+        return '<span class="badge ' . $classes . '"' . $tooltip . '>'
+            . '<i class="fas ' . $icon . ' me-1"></i>' . e($label)
+            . '</span>';
     }
 
     private function maidVideoBadge(Maid $maid): string
