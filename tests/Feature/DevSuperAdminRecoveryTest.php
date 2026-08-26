@@ -2,7 +2,9 @@
 
 namespace Tests\Feature;
 
+use App\Http\Controllers\admin\DevSuperAdminController;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
+use Mockery;
 use Tests\TestCase;
 
 class DevSuperAdminRecoveryTest extends TestCase
@@ -41,5 +43,28 @@ class DevSuperAdminRecoveryTest extends TestCase
         $this->withSession(['dev_superadmin_authenticated' => true])
             ->post(route('dev-superadmin.recovery.migrate'), [])
             ->assertSessionHasErrors(['confirmation', 'current_password']);
+    }
+
+    /** @test */
+    public function migrations_are_blocked_when_a_recorded_core_table_is_missing(): void
+    {
+        $controller = Mockery::mock(DevSuperAdminController::class)
+            ->makePartial()
+            ->shouldAllowMockingProtectedMethods();
+        $controller->shouldReceive('missingRecordedCoreTables')->once()->andReturn(collect([
+            ['table' => 'users', 'migration' => '2014_10_12_000000_create_users_table'],
+        ]));
+        $this->app->instance(DevSuperAdminController::class, $controller);
+
+        $database = config('database.connections.' . config('database.default') . '.database');
+
+        $this->withSession(['dev_superadmin_authenticated' => true])
+            ->from(route('dev-superadmin.recovery'))
+            ->post(route('dev-superadmin.recovery.migrate'), [
+                'confirmation' => 'MIGRATE ' . $database,
+                'current_password' => 'recovery-test-password',
+            ])
+            ->assertRedirect(route('dev-superadmin.recovery'))
+            ->assertSessionHasErrors('migration_integrity');
     }
 }

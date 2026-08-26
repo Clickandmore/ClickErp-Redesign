@@ -154,7 +154,14 @@
             <p class="muted">يشغّل فقط migrations غير المطبقة على قاعدة البيانات المعروضة أعلاه. لا ينفذ rollback أو fresh ولا يمسح الجداول.</p>
         </div>
         <div class="panel-body">
-            @if ($database['connected'])
+            @if ($structuralDrift->isNotEmpty())
+                <div class="alert alert-danger">
+                    <strong>تعذر تشغيل الرقع بسبب عدم تطابق بنيوي.</strong>
+                    سجل <code>migrations</code> يعتبر رقع إنشاء الجداول التالية مطبقة، لكن الجداول نفسها مفقودة:
+                    <code>{{ $structuralDrift->pluck('table')->implode(', ') }}</code>.
+                    استعد هذه الجداول وبياناتها من آخر نسخة احتياطية سليمة، ثم أعد تحميل الصفحة. تشغيل migrations أو إنشاء جداول فارغة لن يستعيد بيانات العملاء والإعدادات المحذوفة.
+                </div>
+            @elseif ($database['connected'])
                 <form method="POST" action="{{ route('dev-superadmin.recovery.migrate') }}">
                     @csrf
                     <div class="form-grid">

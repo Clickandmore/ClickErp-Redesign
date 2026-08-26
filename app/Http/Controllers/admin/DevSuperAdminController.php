@@ -23,6 +23,23 @@ use Illuminate\Support\Str;
 
 class DevSuperAdminController extends Controller
 {
+    /**
+     * Core tables whose creation migration must agree with the live schema.
+     *
+     * A recorded creation migration with a missing table means data/schema was
+     * removed outside Laravel. Running later migrations cannot repair that and
+     * may make the partial restore harder to diagnose.
+     */
+    private const CORE_TABLE_CREATION_MIGRATIONS = [
+        'settings' => '2023_05_02_000115_create_settings_table',
+        'new_settings' => '2024_03_21_000000_create_new_settings_table',
+        'admins' => '2023_02_19_091453_create_admins_table',
+        'users' => '2014_10_12_000000_create_users_table',
+        'system_module_settings' => '2026_05_23_000001_create_system_module_settings_table',
+        'dev_superadmin_settings' => '2026_05_24_000001_create_dev_superadmin_settings_table',
+        'system_product_profile_changes' => '2026_08_25_000002_create_system_product_profile_changes_table',
+    ];
+
     public function loginForm()
     {
         if ((bool) session('dev_superadmin_authenticated')) {
@@ -109,6 +126,7 @@ class DevSuperAdminController extends Controller
         }
 
         $pendingMigrations = $migrationFiles->diff($appliedMigrations)->values();
+        $structuralDrift = $this->missingRecordedCoreTables($appliedMigrations);
 
         return view('admin.superadmin.recovery', [
             'database' => $database,
@@ -120,6 +138,7 @@ class DevSuperAdminController extends Controller
                 'applied' => $appliedMigrations->count(),
                 'pending' => $pendingMigrations,
             ],
+            'structuralDrift' => $structuralDrift,
         ]);
     }
 
@@ -145,6 +164,15 @@ class DevSuperAdminController extends Controller
         if (! hash_equals($expected, trim($data['confirmation']))) {
             return back()->withErrors([
                 'confirmation' => 'عبارة التأكيد غير مطابقة لقاعدة البيانات الحالية.',
+            ])->withInput($request->except('current_password'));
+        }
+
+        $structuralDrift = $this->missingRecordedCoreTables();
+        if ($structuralDrift->isNotEmpty()) {
+            return back()->withErrors([
+                'migration_integrity' => 'تم إيقاف التشغيل حمايةً للبيانات: سجل migrations يعتبر رقعة إنشاء الجداول التالية مطبقة، لكن الجداول غير موجودة فعليًا: '
+                    . $structuralDrift->pluck('table')->implode(', ')
+                    . '. استعد هذه الجداول من آخر نسخة احتياطية سليمة ثم أعد الفحص؛ migrations لا تستطيع استعادة الصفوف المحذوفة.',
             ])->withInput($request->except('current_password'));
         }
 
@@ -400,6 +428,25 @@ class DevSuperAdminController extends Controller
 
             return back()->withErrors(['scheduler' => $exception->getMessage()]);
         }
+    }
+
+    protected function missingRecordedCoreTables(?\Illuminate\Support\Collection $appliedMigrations = null): \Illuminate\Support\Collection
+    {
+        if (! Schema::hasTable('migrations')) {
+            return collect();
+        }
+
+        $appliedMigrations ??= DB::table('migrations')->pluck('migration')->unique();
+
+        return collect(self::CORE_TABLE_CREATION_MIGRATIONS)
+            ->filter(fn (string $migration, string $table) =>
+                $appliedMigrations->contains($migration) && ! Schema::hasTable($table)
+            )
+            ->map(fn (string $migration, string $table) => [
+                'table' => $table,
+                'migration' => $migration,
+            ])
+            ->values();
     }
 
     public function updateSecurity(Request $request)
