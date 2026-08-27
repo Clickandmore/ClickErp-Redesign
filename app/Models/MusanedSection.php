@@ -48,4 +48,12 @@ class MusanedSection extends Model implements TranslatableContract
         'recruitment_duration_rating' => 'float',
         'complaint_response_rating' => 'float',
     ];
+
+    public function metrics()
+    {
+        return $this->hasMany(MusanedSectionMetric::class)
+            ->orderBy('type')
+            ->orderBy('sort_order')
+            ->orderBy('id');
+    }
 }

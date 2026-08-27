@@ -21,30 +21,51 @@
 
     @php
         $canEdit = @AdminGuardHasAnyPerm([\App\PermKeys::MUSANED_SECTION_EDIT, \App\PermKeys::MUSANED_SECTION_CONTROL]);
-        $ratioFields = [
-            'allowed_period_commitment_rate' => 'allowed_period_commitment_title',
-            'workforce_arrival_rate' => 'workforce_arrival_title',
-            'complaint_handling_rate' => 'complaint_handling_title',
-            'arrival_duration_commitment_rate' => 'arrival_duration_commitment_title',
-        ];
-        $ratingFields = [
-            'customer_recommendation_rating' => 'customer_recommendation_title',
-            'inquiry_response_rating' => 'inquiry_response_title',
-            'recruitment_duration_rating' => 'recruitment_duration_title',
-            'complaint_response_rating' => 'complaint_response_title',
-        ];
-        $safeTextValue = static function (string $key, $storedValue = '', string $fallback = '') {
+        $safeTextValue = static function (string $key, $storedValue = '') {
             $oldValue = old($key);
 
             if ($oldValue !== null && trim((string) $oldValue) !== '1') {
                 return $oldValue;
             }
 
-            return $storedValue ?: $fallback;
+            return $storedValue;
+        };
+
+        $metricItems = static function (string $inputName, string $type) use ($section) {
+            $oldItems = old($inputName);
+
+            if (is_array($oldItems)) {
+                $existingMetrics = $section ? $section->metrics->keyBy('id') : collect();
+
+                return collect(array_values($oldItems))->map(function ($item) use ($existingMetrics) {
+                    $metric = !empty($item['id']) ? $existingMetrics->get((int) $item['id']) : null;
+                    $item['icon'] = $metric?->icon;
+
+                    return $item;
+                })->all();
+            }
+
+            return $section
+                ? $section->metrics->where('type', $type)->values()->map(function ($metric) {
+                    $titles = [];
+
+                    foreach (config('translatable.locales') as $locale) {
+                        $titles[$locale] = optional($metric->translate($locale))->title;
+                    }
+
+                    return [
+                        'id' => $metric->id,
+                        'title' => $titles,
+                        'value' => $metric->value,
+                        'icon' => $metric->icon,
+                        'is_visible' => $metric->is_visible,
+                    ];
+                })->all()
+                : [];
         };
     @endphp
 
-    <form method="post" action="{{ route('musaned-section.update') }}" class="row g-4">
+    <form method="post" action="{{ route('musaned-section.update') }}" enctype="multipart/form-data" class="row g-4">
         @csrf
         @method('PUT')
 
@@ -96,73 +117,56 @@
             </div>
         </div>
 
-        <div class="col-lg-6">
-            <div class="card h-100">
-                <div class="card-header"><h5 class="mb-0">{{ __('musaned_section.ratios') }}</h5></div>
-                <div class="card-body">
-                    <div class="row g-3">
-                        @foreach ($ratioFields as $valueField => $titleField)
-                            <div class="col-12 border rounded p-3">
-                                <div class="row g-2">
-                                    @foreach (config('translatable.locales') as $locale)
-                                        <div class="col-md-6">
-                                            <label class="form-label">
-                                                {{ __('musaned_section.metric_title') }} ({{ strtoupper($locale) }})
-                                            </label>
-                                                <input type="text" class="form-control"
-                                                    name="{{ $titleField }}:{{ $locale }}"
-                                                value="{{ $safeTextValue($titleField . ':' . $locale, $section ? optional($section->translate($locale))->{$titleField} : '', trans('musaned_section.' . $valueField, [], $locale)) }}"
-                                                maxlength="255" required @readonly(!$canEdit)>
-                                        </div>
-                                    @endforeach
-                                    <div class="col-12">
-                                        <label class="form-label">{{ __('musaned_section.percentage_value') }}</label>
-                                        <input type="number" class="form-control" name="{{ $valueField }}"
-                                            value="{{ old($valueField, $section->{$valueField} ?? 0) }}"
-                                            min="0" max="100" step="0.01" required @readonly(!$canEdit)>
-                                    </div>
-                                </div>
-                            </div>
-                        @endforeach
+        @foreach ([
+            ['name' => 'ratios', 'type' => 'ratio', 'title' => __('musaned_section.ratios'), 'value_label' => __('musaned_section.percentage_value'), 'max' => 100, 'suffix' => '%'],
+            ['name' => 'star_ratings', 'type' => 'rating', 'title' => __('musaned_section.star_ratings'), 'value_label' => __('musaned_section.rating_value'), 'max' => 5, 'suffix' => '★'],
+        ] as $group)
+            @php($items = $metricItems($group['name'], $group['type']))
+            <div class="col-lg-6">
+                <div class="card h-100 metric-group" data-metric-group="{{ $group['name'] }}">
+                    <div class="card-header d-flex align-items-center justify-content-between gap-2">
+                        <h5 class="mb-0">{{ $group['title'] }}</h5>
+                        @if ($canEdit)
+                            <button type="button" class="btn btn-sm btn-outline-primary add-metric">
+                                <i class="fa fa-plus me-1"></i> {{ __('musaned_section.add_metric') }}
+                            </button>
+                        @endif
                     </div>
-                </div>
-            </div>
-        </div>
+                    <div class="card-body">
+                        <div class="metric-list d-grid gap-3">
+                            @foreach ($items as $index => $item)
+                                @include('admin.ingaz.musaned_section._metric', [
+                                    'groupName' => $group['name'],
+                                    'index' => $index,
+                                    'item' => $item,
+                                    'valueLabel' => $group['value_label'],
+                                    'maxValue' => $group['max'],
+                                    'suffix' => $group['suffix'],
+                                    'canEdit' => $canEdit,
+                                ])
+                            @endforeach
+                        </div>
 
-        <div class="col-lg-6">
-            <div class="card h-100">
-                <div class="card-header"><h5 class="mb-0">{{ __('musaned_section.star_ratings') }}</h5></div>
-                <div class="card-body">
-                    <div class="row g-3">
-                        @foreach ($ratingFields as $valueField => $titleField)
-                            <div class="col-12 border rounded p-3">
-                                <div class="row g-2">
-                                    @foreach (config('translatable.locales') as $locale)
-                                        <div class="col-md-6">
-                                            <label class="form-label">
-                                                {{ __('musaned_section.metric_title') }} ({{ strtoupper($locale) }})
-                                            </label>
-                                                <input type="text" class="form-control"
-                                                    name="{{ $titleField }}:{{ $locale }}"
-                                                value="{{ $safeTextValue($titleField . ':' . $locale, $section ? optional($section->translate($locale))->{$titleField} : '', trans('musaned_section.' . $valueField, [], $locale)) }}"
-                                                maxlength="255" required @readonly(!$canEdit)>
-                                        </div>
-                                    @endforeach
-                                    <div class="col-12">
-                                        <label class="form-label">
-                                            {{ __('musaned_section.rating_value') }} (0–5 <i class="fa fa-star text-warning"></i>)
-                                        </label>
-                                        <input type="number" class="form-control" name="{{ $valueField }}"
-                                            value="{{ old($valueField, $section->{$valueField} ?? 0) }}"
-                                            min="0" max="5" step="0.01" required @readonly(!$canEdit)>
-                                    </div>
-                                </div>
+                        @if ($canEdit)
+                            <div class="metric-empty text-center text-muted py-4 {{ count($items) ? 'd-none' : '' }}">
+                                {{ __('musaned_section.no_metrics') }}
                             </div>
-                        @endforeach
+                            <template class="metric-template">
+                                @include('admin.ingaz.musaned_section._metric', [
+                                    'groupName' => $group['name'],
+                                    'index' => '__INDEX__',
+                                    'item' => ['id' => null, 'title' => [], 'value' => 0, 'icon' => null, 'is_visible' => true],
+                                    'valueLabel' => $group['value_label'],
+                                    'maxValue' => $group['max'],
+                                    'suffix' => $group['suffix'],
+                                    'canEdit' => true,
+                                ])
+                            </template>
+                        @endif
                     </div>
                 </div>
             </div>
-        </div>
+        @endforeach
 
         @if ($canEdit)
             <div class="col-12 text-end">
@@ -171,3 +175,64 @@
         @endif
     </form>
 @endsection
+
+@if ($canEdit)
+    @push('js')
+        <script>
+            document.addEventListener('DOMContentLoaded', function () {
+                document.querySelectorAll('[data-metric-group]').forEach(function (group) {
+                    const list = group.querySelector('.metric-list');
+                    const empty = group.querySelector('.metric-empty');
+                    const template = group.querySelector('.metric-template');
+                    const groupName = group.dataset.metricGroup;
+
+                    const refresh = function () {
+                        const rows = Array.from(list.querySelectorAll('.metric-item'));
+
+                        rows.forEach(function (row, index) {
+                            row.querySelectorAll('[name]').forEach(function (field) {
+                                field.name = field.name.replace(
+                                    new RegExp('^' + groupName + '\\[[^\\]]+\\]'),
+                                    groupName + '[' + index + ']'
+                                );
+                            });
+                            row.querySelector('.metric-number').textContent = index + 1;
+                            const visibility = row.querySelector('.form-check-input');
+                            const visibilityLabel = row.querySelector('.form-check-label');
+                            visibility.id = groupName + '-' + index + '-visible';
+                            visibilityLabel.htmlFor = visibility.id;
+                            row.querySelector('.move-up').disabled = index === 0;
+                            row.querySelector('.move-down').disabled = index === rows.length - 1;
+                        });
+
+                        empty.classList.toggle('d-none', rows.length > 0);
+                    };
+
+                    group.querySelector('.add-metric').addEventListener('click', function () {
+                        list.insertAdjacentHTML('beforeend', template.innerHTML.replaceAll('__INDEX__', list.children.length));
+                        refresh();
+                    });
+
+                    list.addEventListener('click', function (event) {
+                        const button = event.target.closest('button');
+                        const row = event.target.closest('.metric-item');
+
+                        if (!button || !row) return;
+
+                        if (button.classList.contains('remove-metric')) row.remove();
+                        if (button.classList.contains('move-up') && row.previousElementSibling) {
+                            list.insertBefore(row, row.previousElementSibling);
+                        }
+                        if (button.classList.contains('move-down') && row.nextElementSibling) {
+                            list.insertBefore(row.nextElementSibling, row);
+                        }
+
+                        refresh();
+                    });
+
+                    refresh();
+                });
+            });
+        </script>
+    @endpush
+@endif

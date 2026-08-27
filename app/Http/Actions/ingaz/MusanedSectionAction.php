@@ -14,6 +14,11 @@ class MusanedSectionAction extends MainAction
 
     public function visibleSection(): ?MusanedSection
     {
-        return $this->model->where('is_active', true)->first();
+        return $this->model
+            ->with(['metrics' => fn ($query) => $query
+                ->where('is_visible', true)
+                ->with('translations')])
+            ->where('is_active', true)
+            ->first();
     }
 }
