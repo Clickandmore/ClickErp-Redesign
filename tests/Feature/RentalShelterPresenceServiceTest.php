@@ -43,6 +43,78 @@ class RentalShelterPresenceServiceTest extends TestCase
         $this->assertSame('yes', $shelterContract->info->wants_to_work);
     }
 
+    public function test_closing_a_legacy_rental_creates_a_missing_shelter_contract(): void
+    {
+        [, $rentalContract, $maidId] = $this->makeStaleRentalShelterRecord('completed');
+
+        DB::table('contract_infos')->where('contract_id', function ($query) use ($maidId) {
+            $query->select('id')->from('contracts')->where('maid_id', $maidId)->limit(1);
+        })->delete();
+        DB::table('contracts')->where('maid_id', $maidId)->delete();
+
+        $returned = app(RentalShelterPresenceService::class)->returnInside($rentalContract);
+
+        $this->assertTrue($returned);
+        $shelterContract = Contract::query()
+            ->with('info')
+            ->where('maid_id', $maidId)
+            ->where('status', 'shelter')
+            ->sole();
+        $this->assertNotNull($shelterContract->user_id);
+        $this->assertFalse((bool) $shelterContract->info->is_outside_shelter);
+        $this->assertSame('yes', $shelterContract->info->wants_to_work);
+        $this->assertDatabaseHas('maids', [
+            'id' => $maidId,
+            'maid_accommodation_type' => 2,
+        ]);
+        $this->assertDatabaseHas('contract_status_logs', [
+            'contract_id' => $shelterContract->id,
+            'status' => 'shelter',
+        ]);
+    }
+
+    public function test_missing_shelter_is_not_created_while_another_rental_is_active(): void
+    {
+        [, $rentalContract, $maidId, $userId] = $this->makeStaleRentalShelterRecord('completed');
+
+        DB::table('contract_infos')->where('contract_id', function ($query) use ($maidId) {
+            $query->select('id')->from('contracts')->where('maid_id', $maidId)->limit(1);
+        })->delete();
+        DB::table('contracts')->where('maid_id', $maidId)->delete();
+        DB::table('rental_contracts')->insert([
+            'user_id' => $userId,
+            'maid_id' => $maidId,
+            'status' => 'active',
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $returned = app(RentalShelterPresenceService::class)->returnInside($rentalContract);
+
+        $this->assertFalse($returned);
+        $this->assertDatabaseMissing('contracts', [
+            'maid_id' => $maidId,
+            'status' => 'shelter',
+        ]);
+    }
+
+    public function test_missing_shelter_is_not_created_for_a_deported_maid(): void
+    {
+        [$shelterContract, $rentalContract, $maidId] = $this->makeStaleRentalShelterRecord('completed');
+
+        $shelterContract->info()->delete();
+        $shelterContract->delete();
+        DB::table('maids')->where('id', $maidId)->update(['status' => 'deported']);
+
+        $returned = app(RentalShelterPresenceService::class)->returnInside($rentalContract);
+
+        $this->assertFalse($returned);
+        $this->assertDatabaseMissing('contracts', [
+            'maid_id' => $maidId,
+            'status' => 'shelter',
+        ]);
+    }
+
     public function test_another_outside_rental_prevents_returning_maid_to_shelter(): void
     {
         [$shelterContract, $rentalContract, $maidId, $userId] = $this->makeStaleRentalShelterRecord('completed');

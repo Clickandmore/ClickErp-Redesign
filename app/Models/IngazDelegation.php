@@ -20,6 +20,7 @@ class IngazDelegation extends Model
 
     public const STATUS_UNDER_PROCESS = 'under_process';
     public const STATUS_EXECUTED = 'executed';
+    public const STATUS_CANCELLED = 'cancelled';
 
     private static ?array $statusOptionsCache = null;
 
@@ -48,7 +49,10 @@ class IngazDelegation extends Model
         'external_office_phone',
         'status',
         'ingaz_number',
+        'active_ingaz_number_key',
         'msaned_contract_number',
+        'active_msaned_contract_number_key',
+        'active_visa_number_key',
         'notes',
         'attachments',
     ];
@@ -61,12 +65,46 @@ class IngazDelegation extends Model
         'branch_id' => 'integer',
     ];
 
+    protected static function booted(): void
+    {
+        static::creating(function (self $delegation) {
+            $delegation->syncActiveDuplicateKeys();
+        });
+
+        static::updating(function (self $delegation) {
+            if (
+                $delegation->isDirty('status')
+                || $delegation->isDirty('ingaz_number')
+                || $delegation->isDirty('msaned_contract_number')
+                || $delegation->isDirty('visa_number')
+            ) {
+                $delegation->syncActiveDuplicateKeys();
+            }
+        });
+    }
+
+    public function syncActiveDuplicateKeys(): void
+    {
+        $active = $this->status !== self::STATUS_CANCELLED;
+        $this->active_ingaz_number_key = $active ? self::duplicateKey($this->ingaz_number) : null;
+        $this->active_msaned_contract_number_key = $active ? self::duplicateKey($this->msaned_contract_number) : null;
+        $this->active_visa_number_key = $active ? self::duplicateKey($this->visa_number) : null;
+    }
+
+    public static function duplicateKey(?string $value): ?string
+    {
+        $normalized = mb_strtolower(trim((string) $value));
+
+        return $normalized !== '' ? $normalized : null;
+    }
+
     public static function statusOptions(?string $includeStatus = null): array
     {
         if (!Schema::hasTable('ingaz_delegation_stages')) {
             return [
                 self::STATUS_UNDER_PROCESS => 'تحت المعالجة',
                 self::STATUS_EXECUTED => 'تم تنفيذ التفويض',
+                self::STATUS_CANCELLED => 'ملغي',
             ];
         }
 

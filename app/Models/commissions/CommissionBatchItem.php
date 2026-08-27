@@ -14,6 +14,7 @@ class CommissionBatchItem extends Model
         'order_id', 'contract_id', 'operation_reference',
         'client_name', 'operation_date', 'service_type',
         'base_amount', 'method', 'rate_or_amount', 'commission_amount',
+        'commission_reversal_transaction_id', 'commission_reversed_at', 'commission_reversal_reason',
         'legacy_source', 'legacy_source_file', 'legacy_source_row',
     ];
 
@@ -22,6 +23,7 @@ class CommissionBatchItem extends Model
         'rate_or_amount' => 'decimal:2',
         'commission_amount' => 'decimal:2',
         'operation_date' => 'date',
+        'commission_reversed_at' => 'datetime',
     ];
 
     public function batch()
@@ -32,5 +34,10 @@ class CommissionBatchItem extends Model
     public function delegation()
     {
         return $this->belongsTo(IngazDelegation::class, 'ingaz_delegation_id');
+    }
+
+    public function reversalTransaction()
+    {
+        return $this->belongsTo(CommissionBalanceTransaction::class, 'commission_reversal_transaction_id');
     }
 }
