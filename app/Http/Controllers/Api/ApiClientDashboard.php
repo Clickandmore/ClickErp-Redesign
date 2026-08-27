@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Actions\ingaz\UserAction;
 use App\Http\Controllers\admin\Controller;
 use App\Models\Country;
+use App\Http\Resources\Api\UserResource;
 use Illuminate\Http\Request;
 
 class ApiClientDashboard extends Controller
@@ -77,6 +78,12 @@ class ApiClientDashboard extends Controller
                 ->orWhere('new_sponsor_id', $user->id);
         })->orderBy('created_at', 'desc')->get();
 
+        $stats['sponsorship_transfers'] = [
+            'total' => $sponsorshipTransfers->count(),
+            'pending' => $sponsorshipTransfers->where('status', 'pending')->count(),
+            'transferred' => $sponsorshipTransfers->whereIn('status', ['transferred', 'completed'])->count(),
+        ];
+
         $notifications_count = \App\Models\ingaz\Notification::where('user_id', $user->id)->count();
 
         $data = [
@@ -123,6 +130,7 @@ class ApiClientDashboard extends Controller
             'workplace' => 'sometimes|nullable|string|max:255',
             'po_box' => 'sometimes|nullable|string|max:50',
             'postal_code' => 'sometimes|nullable|string|max:50',
+            'image' => 'sometimes|nullable|image|mimes:jpg,jpeg,png,webp|max:5120',
         ], [
             'name.required' => 'الاسم مطلوب.',
             'name.string'   => 'الاسم يجب أن يكون نصًا.',
@@ -134,17 +142,44 @@ class ApiClientDashboard extends Controller
             'marital_status.in' => 'الحالة الاجتماعية المختارة غير صحيحة.',
         ]);
 
+        $newImage = null;
+        $oldImage = null;
+
         try {
+            if ($request->hasFile('image')) {
+                $user = auth()->user();
+                $oldImage = $user->image;
+                $newImage = uploadFile($request->file('image'), 'images/User/');
+                $validated['image'] = $newImage;
+            }
+
             // Only validated keys sent by the caller are updated. Older API clients
             // that only send name/email therefore keep all optional profile data.
             $data = $action->updateUser(auth()->id(), $validated);
 
             if ($data) {
-                return apiResponse(true, helperTrans('api.data_updated_successfully'), [], 200);
+                if ($oldImage) {
+                    deleteFile($oldImage);
+                }
+
+                return apiResponse(
+                    true,
+                    helperTrans('api.data_updated_successfully'),
+                    UserResource::make(auth()->user()->fresh()),
+                    200
+                );
             } else {
+                if ($newImage) {
+                    deleteFile($newImage);
+                }
+
                 return apiResponse(false, helperTrans('api.error_updating_profile'), [], 400);
             }
         } catch (\Exception $e) {
+            if ($newImage) {
+                deleteFile($newImage);
+            }
+
             return apiResponse(false, helperTrans('api.error_updating_profile'), [], 500);
         }
     }

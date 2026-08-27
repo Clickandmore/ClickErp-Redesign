@@ -20,6 +20,8 @@ class UserResource extends JsonResource
 			'phone_code' => (string)$this->phone_code,
 			'phone' => (string)$this->phone,
 			'email' => (string)$this->email,
+			'image' => $this->image,
+			'image_url' => showFile($this->image),
 			'nationality_id' => $this->nationality_id ? (int) $this->nationality_id : null,
 			'nationality' => $this->whenLoaded('nationality', fn () => $this->nationality ? [
 				'id' => (int) $this->nationality->id,
