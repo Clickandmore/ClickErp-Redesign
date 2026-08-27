@@ -9,7 +9,9 @@ use App\Models\RentalFinancialAdjustment;
 use App\Models\RentalContractInfo;
 use App\Models\ingaz\Package;
 use Carbon\Carbon;
+use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
+use Mockery;
 use ReflectionMethod;
 use Tests\TestCase;
 
@@ -61,6 +63,60 @@ class RentalContractClosureSummaryTest extends TestCase
         $this->assertSame(573.83, $summary['cash_to_collect_value']);
         $this->assertSame('refund', $summary['document_type']);
         $this->assertSame(4121.17, $summary['document_value']);
+    }
+
+    public function test_early_closure_of_an_unpaid_contract_credits_unused_days_and_collects_only_used_days(): void
+    {
+        $summary = $this->buildSummary(
+            paidAmount: 0,
+            closureDate: '2026-08-10',
+            startDate: '2026-08-01',
+            endDate: '2026-08-30',
+            contractValue: 1900.00
+        );
+
+        $this->assertSame(10, $summary['used_days']);
+        $this->assertSame(633.33, $summary['used_cost']);
+        $this->assertSame('refund', $summary['document_type']);
+        $this->assertSame(1266.67, $summary['calculated_credit_note_value']);
+        $this->assertSame(0.0, $summary['cash_refund_value']);
+        $this->assertSame(633.33, $summary['cash_to_collect_value']);
+    }
+
+    public function test_early_closure_of_a_partially_paid_contract_does_not_treat_the_credit_note_as_cash_refund(): void
+    {
+        $summary = $this->buildSummary(
+            paidAmount: 500.00,
+            paymentStatus: 'partial',
+            closureDate: '2026-08-10',
+            startDate: '2026-08-01',
+            endDate: '2026-08-30',
+            contractValue: 1900.00
+        );
+
+        $this->assertSame(1266.67, $summary['calculated_credit_note_value']);
+        $this->assertSame(0.0, $summary['cash_refund_value']);
+        $this->assertSame(133.33, $summary['cash_to_collect_value']);
+    }
+
+    public function test_the_legacy_complete_action_uses_the_unified_financial_close_flow(): void
+    {
+        Carbon::setTestNow('2026-08-10 12:00:00');
+        $request = Request::create('/admin/RentContract/77/complete', 'POST');
+        $financeService = Mockery::mock(\App\Services\ingaz\RentalContractFinanceService::class);
+        $expectedResponse = response()->json(['success' => true]);
+        $controller = Mockery::mock(RentContractController::class)->makePartial();
+
+        $controller->shouldReceive('closeAndMakeAvailable')
+            ->once()
+            ->with(77, $request, $financeService)
+            ->andReturn($expectedResponse);
+
+        $actualResponse = $controller->completeContract($request, 77, $financeService);
+
+        $this->assertSame($expectedResponse, $actualResponse);
+        $this->assertSame('2026-08-10', $request->input('closure_date'));
+        $this->assertSame(0, $request->input('adjustment_amount'));
     }
 
     public function test_a_paid_extension_is_refunded_down_to_the_used_days(): void

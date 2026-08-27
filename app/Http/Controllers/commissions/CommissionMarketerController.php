@@ -160,6 +160,10 @@ class CommissionMarketerController extends Controller
 
     private function commissionStatusLabel(array $operation): string
     {
+        if ($operation['commission_reversed'] ?? false) {
+            return '<span class="badge bg-danger">تم عكس العمولة</span>';
+        }
+
         if ($operation['commission_paid_historically']) {
             return '<span class="badge bg-success">العمولة محتسبة ومسـددة سابقًا</span>';
         }

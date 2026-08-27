@@ -13,7 +13,8 @@ use Illuminate\Validation\ValidationException;
 class CommissionCalculationService
 {
     public function __construct(
-        private readonly CommissionOperationService $operationService
+        private readonly CommissionOperationService $operationService,
+        private readonly DelegationCommissionService $delegationCommissionService
     ) {}
 
     public function getApplicableSetting(int $marketerId, string $serviceType): ?array
@@ -95,6 +96,32 @@ class CommissionCalculationService
     {
         return DB::transaction(function () use ($marketerId, $operationKeys, $adjustments, $notes, $adminId) {
             $preview = $this->previewBatch($marketerId, $operationKeys, $adjustments);
+
+            $delegationIds = collect($operationKeys)
+                ->filter(fn ($key) => is_string($key) && str_starts_with($key, CommissionOperationService::SOURCE_DELEGATION . ':'))
+                ->map(fn ($key) => (int) substr($key, strlen(CommissionOperationService::SOURCE_DELEGATION . ':')))
+                ->filter()
+                ->unique()
+                ->values();
+
+            if ($delegationIds->isNotEmpty()) {
+                $lockedDelegations = \App\Models\IngazDelegation::query()
+                    ->with('invoice.recruitmentCreditNotes')
+                    ->whereIn('id', $delegationIds)
+                    ->lockForUpdate()
+                    ->get()
+                    ->keyBy('id');
+
+                foreach ($delegationIds as $delegationId) {
+                    $delegation = $lockedDelegations->get($delegationId);
+                    if (!$delegation) {
+                        throw ValidationException::withMessages([
+                            'operations' => 'تعذر اعتماد العمولة لأن أحد التفاويض لم يعد موجودًا.',
+                        ]);
+                    }
+                    $this->delegationCommissionService->assertEligible($delegation);
+                }
+            }
 
             if ($preview['total_requests'] !== count(array_unique($operationKeys))) {
                 throw ValidationException::withMessages([

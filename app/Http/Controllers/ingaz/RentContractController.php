@@ -1052,25 +1052,37 @@ class RentContractController extends Controller
             ->sortByDesc(fn ($bond) => sprintf('%s-%010d', $bond->date, $bond->id))
             ->values();
         $receiptBondsTotal = round((float) $receiptBonds->sum('value'), 2);
-        $closureIncome = round((float) $contract->financialAdjustments
-            ->where('context', 'closure')
+        $receivableAdjustmentContexts = ['closure', 'manual_credit_note', 'closure_correction'];
+        $receivableAdjustments = $contract->financialAdjustments
+            ->whereIn('context', $receivableAdjustmentContexts);
+        $closureIncome = round((float) $receivableAdjustments
             ->where('type', 'income')
             ->sum('amount'), 2);
-        $closureRefund = round((float) $contract->financialAdjustments
-            ->where('context', 'closure')
+        $closureRefund = round((float) $receivableAdjustments
             ->where('type', 'expense')
             ->sum('amount'), 2);
-        // الرصيد يُقرأ من الأستاذ مباشرة: الاشتقاق الحسابي أدناه يحتسب تسويات
-        // context='closure' فقط، فتختفي منه الإشعارات الدائنة اليدوية ويظهر على
-        // الشاشة مطلوب من العميل أكبر من الحقيقة. القراءة من القيود تشمل كل
-        // مستند مرحَّل بالضرورة.
+        $unpostedClosureIncome = round((float) $receivableAdjustments
+            ->where('type', 'income')
+            ->whereNull('constraint_id')
+            ->sum('amount'), 2);
+        $unpostedClosureRefund = round((float) $receivableAdjustments
+            ->where('type', 'expense')
+            ->whereNull('constraint_id')
+            ->sum('amount'), 2);
+        $hasUnpostedReceivableAdjustments = ($unpostedClosureIncome + $unpostedClosureRefund) > 0;
+
+        // Posted documents are read from the ledger. Operational documents
+        // awaiting posting still affect the net contract balance shown here.
         $contractLedgerBalance = app(RentalContractLedgerService::class)
             ->balanceForContract($contract);
         $contractLedgerBalanceFromJournal = $contractLedgerBalance !== null;
 
-        if (!$contractLedgerBalanceFromJournal) {
-            // لا قيود مرحَّلة للعقد أو لا حساب محاسبي للعميل: القيود التلقائية
-            // معطّلة، أو عقد مستورد بلا قيد فاتورة. يبقى الاشتقاق هو المتاح.
+        if ($contractLedgerBalanceFromJournal) {
+            $contractLedgerBalance = round(
+                $contractLedgerBalance + $unpostedClosureIncome - $unpostedClosureRefund,
+                2
+            );
+        } else {
             $contractLedgerBalance = round(
                 (float) ($contract->financeInvoice?->total_due ?? $contract->info?->contract_value ?? 0)
                 + (float) $contract->extensions->sum('extension_value')
@@ -1118,6 +1130,7 @@ class RentContractController extends Controller
             'closureRefund',
             'contractLedgerBalance',
             'contractLedgerBalanceFromJournal',
+            'hasUnpostedReceivableAdjustments',
             'clientAccountBalance',
             'clientAccountApprovedBalance',
             'receiptAccounts'
@@ -1619,70 +1632,21 @@ class RentContractController extends Controller
         return 'RC-' . $year . '-' . str_pad($number, 4, '0', STR_PAD_LEFT);
     }
 
-    public function completeContract(Request $request, $id)
+    public function completeContract(
+        Request $request,
+        $id,
+        RentalContractFinanceService $rentalContractFinanceService
+    )
     {
-        $sendClosureMessage = $request->boolean('send_closure_message');
-        $messageResult = null;
+        // Keep the legacy endpoint, but never allow it to bypass the financial
+        // settlement. The amount is calculated again on the server; this value
+        // only satisfies the request contract used by the unified close flow.
+        $request->merge([
+            'closure_date' => $request->input('closure_date', now()->toDateString()),
+            'adjustment_amount' => $request->input('adjustment_amount', 0),
+        ]);
 
-        try {
-            DB::beginTransaction();
-
-            $contract = RentalContract::with(['user', 'maid', 'info'])->lockForUpdate()->findOrFail($id);
-
-            if (!$contract->canCloseOrExtend()) {
-                DB::rollBack();
-
-                return response()->json([
-                    'success' => false,
-                    'message' => 'لا يمكن إنهاء العقد قبل تفعيله'
-                ], 400);
-            }
-
-            $closureDate = Carbon::now()->startOfDay();
-            $isEarlyClosure = $this->isRentalContractEarlyClosure($contract, $closureDate);
-
-            $contract->status = $isEarlyClosure ? 'cancelled' : 'completed';
-            $contract->closure_type = 'available';
-            $contract->closed_at = $closureDate;
-            $contract->warranty_status = $isEarlyClosure ? 'not_applicable' : 'active';
-            $contract->warranty_start_date = $isEarlyClosure ? null : now();
-            $contract->warranty_end_date = $isEarlyClosure ? null : now()->addMonths(3); // 3 أشهر ضمان افتراضي
-            $contract->save();
-
-            $this->completeLinkedRentalOrder($contract);
-            $this->returnShelterContractInsideForRental($contract);
-
-            if ($contract->maid_id) {
-                $maid = Maid::query()->lockForUpdate()->find($contract->maid_id);
-                if ($maid) {
-                    $this->syncMaidBookingState($maid);
-                }
-            }
-
-            DB::commit();
-
-            if ($sendClosureMessage) {
-                $messageResult = $this->sendRentalClosureMessageToClient($contract);
-            }
-
-            return response()->json([
-                'success' => true,
-                'message' => ($isEarlyClosure
-                    ? 'تم إلغاء العقد لأنه أُنهي قبل اكتمال مدة العقد'
-                    : 'تم إنهاء العقد بنجاح')
-                    . $this->formatClosureMessageResultText($messageResult)
-            ]);
-
-        } catch (\Exception $e) {
-            if (DB::transactionLevel() > 0) {
-                DB::rollBack();
-            }
-
-            return response()->json([
-                'success' => false,
-                'message' => 'حدث خطأ أثناء إنهاء العقد: ' . $e->getMessage()
-            ], 500);
-        }
+        return $this->closeAndMakeAvailable($id, $request, $rentalContractFinanceService);
     }
 
     private function sendRentalClosureMessageToClient(RentalContract $contract): array
@@ -3172,11 +3136,6 @@ class RentContractController extends Controller
 
             if (!empty($validated['close_payment_status'])) {
                 $infoUpdates['payment_status'] = $validated['close_payment_status'];
-
-                if ($validated['close_payment_status'] === 'paid') {
-                    $infoUpdates['paid_amount'] = (float) ($summary['base_contract_value'] ?? 0);
-                    $infoUpdates['remaining_amount'] = 0;
-                }
             }
 
             if (!empty($validated['close_client_iban'])) {
@@ -3278,7 +3237,13 @@ class RentContractController extends Controller
                     $adjustment,
                     $closureDate
                 );
-                if ($closureConstraint && $contract->financeInvoice) {
+                if (!$closureConstraint) {
+                    throw new \RuntimeException(
+                        'تعذر إنشاء القيد المالي لإشعار تسوية إنهاء العقد. تأكد من تفعيل القيود التلقائية.'
+                    );
+                }
+
+                if ($contract->financeInvoice) {
                     app(InvoiceController::class)->queueRentalCreditNoteForZatcaSale(
                         $adjustment->fresh(),
                         $contract->financeInvoice

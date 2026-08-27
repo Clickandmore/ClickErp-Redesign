@@ -887,7 +887,7 @@
                     <div class="sub-value">{{ $remainingMetricSubValue }}</div>
                 </div>
                 <div class="metric-card">
-                    <div class="label">الرصيد المحاسبي للعقد</div>
+                    <div class="label">صافي رصيد العقد</div>
                     <div class="value {{ $contractLedgerBalance > 0 ? 'text-danger' : ($contractLedgerBalance < 0 ? 'text-success' : '') }}">
                         {{ number_format(abs($contractLedgerBalance), 2) }}
                     </div>
@@ -997,7 +997,7 @@
                                 <span class="value">{{ number_format((float) ($contract->financeInvoice?->paid_amount ?? $contract->info?->paid_amount ?? 0), 2) }} ريال</span>
                             </li>
                             <li>
-                                <span class="label">متبقي الفاتورة الأساسية</span>
+                                <span class="label">متبقي الفاتورة الأصلية قبل الإشعارات</span>
                                 <span class="value">{{ number_format((float) ($contract->financeInvoice?->remaining_amount ?? $contract->info?->remaining_amount ?? 0), 2) }} ريال</span>
                             </li>
                             <li>
@@ -1005,21 +1005,24 @@
                                 <span class="value highlight">{{ number_format((float) $receiptBondsTotal, 2) }} ريال</span>
                             </li>
                             <li>
-                                <span class="label">صافي تسويات الإنهاء</span>
+                                <span class="label">صافي إشعارات العقد</span>
                                 <span class="value">
                                     {{ number_format($closureIncome - $closureRefund, 2) }} ريال
-                                    <small class="text-muted d-block">مستحقات {{ number_format($closureIncome, 2) }} - استرجاعات {{ number_format($closureRefund, 2) }}</small>
+                                    <small class="text-muted d-block">إشعارات مدينة {{ number_format($closureIncome, 2) }} - إشعارات دائنة {{ number_format($closureRefund, 2) }}</small>
                                 </span>
                             </li>
                             <li>
-                                <span class="label">رصيد هذا العقد</span>
+                                <span class="label">صافي رصيد العقد بعد الإشعارات والسداد</span>
                                 <span class="value {{ $contractLedgerBalance > 0 ? 'text-danger' : ($contractLedgerBalance < 0 ? 'text-success' : 'text-muted') }}">
                                     {{ number_format(abs($contractLedgerBalance), 2) }} ريال
                                     <small class="d-block">
                                         {{ $contractLedgerBalance > 0 ? 'مطلوب من العميل' : ($contractLedgerBalance < 0 ? 'رصيد دائن للعميل' : 'العقد مسوّى') }}
                                     </small>
                                     <small class="text-muted d-block">
-                                        {{ ($contractLedgerBalanceFromJournal ?? false) ? 'محسوب من قيود العقد في دفتر الأستاذ' : 'محسوب من بيانات الفاتورة - لا توجد قيود مرحّلة لهذا العقد' }}
+                                        {{ ($contractLedgerBalanceFromJournal ?? false) ? 'محسوب من قيود العقد في دفتر الأستاذ' : 'محسوب من مستندات العقد - لا توجد قيود مرحّلة لهذا العقد' }}
+                                        @if ($hasUnpostedReceivableAdjustments ?? false)
+                                            <span class="text-warning d-block">يشمل إشعارات محفوظة بانتظار الترحيل المحاسبي</span>
+                                        @endif
                                     </small>
                                 </span>
                             </li>
@@ -1566,7 +1569,7 @@
                                     <span class="value">{{ number_format((float) $contract->financeInvoice->paid_amount, 2) }} ريال</span>
                                 </li>
                                 <li>
-                                    <span class="label">متبقي الفاتورة</span>
+                                    <span class="label">متبقي الفاتورة الأصلية قبل الإشعارات</span>
                                     <span class="value">{{ number_format((float) $contract->financeInvoice->remaining_amount, 2) }} ريال</span>
                                 </li>
                                 <li>

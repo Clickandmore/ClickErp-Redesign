@@ -17,6 +17,7 @@ use App\Models\IngazDelegation;
 use App\Models\office\Office as RecruitmentOffice;
 use App\PermKeys;
 use App\Services\ManagedFileStorage;
+use App\Services\commissions\DelegationCommissionService;
 use App\Support\IngazDelegationTimeline;
 use App\Support\InvoiceAuthorization;
 use Illuminate\Http\JsonResponse;
@@ -478,7 +479,11 @@ class IngazDelegationController extends Controller
         ]);
     }
 
-    public function updateStatus(Request $request, IngazDelegation $ingazDelegation): JsonResponse
+    public function updateStatus(
+        Request $request,
+        IngazDelegation $ingazDelegation,
+        DelegationCommissionService $delegationCommissionService
+    ): JsonResponse
     {
         $this->assertCanAccessBranchModel($ingazDelegation);
 
@@ -489,9 +494,19 @@ class IngazDelegationController extends Controller
         $oldStatus = $ingazDelegation->status;
         $oldStatusLabel = $ingazDelegation->status_label;
 
-        $ingazDelegation->update([
-            'status' => $validated['status'],
-        ]);
+        DB::transaction(function () use ($validated, $ingazDelegation, $delegationCommissionService) {
+            $ingazDelegation->update([
+                'status' => $validated['status'],
+            ]);
+
+            if ($ingazDelegation->status === IngazDelegation::STATUS_CANCELLED) {
+                $delegationCommissionService->reverseApprovedCommission(
+                    $ingazDelegation,
+                    auth('admin')->id(),
+                    'تم إلغاء التفويض يدويًا.'
+                );
+            }
+        });
 
         if ($oldStatus !== $ingazDelegation->status) {
             IngazDelegationTimeline::record($ingazDelegation, 'delegation_status_updated', [
@@ -1034,7 +1049,10 @@ class IngazDelegationController extends Controller
 
     private function statusBadgeHtml(IngazDelegation $row): string
     {
-        if (!empty($row->ingaz_number) && !empty($row->msaned_contract_number)) {
+        if ($row->status === IngazDelegation::STATUS_CANCELLED) {
+            $label = 'ملغي';
+            $class = 'danger';
+        } elseif (!empty($row->ingaz_number) && !empty($row->msaned_contract_number)) {
             $label = 'مكتمل';
             $class = 'success';
         } elseif (!empty($row->ingaz_number) || !empty($row->msaned_contract_number)) {

@@ -4,7 +4,10 @@ namespace App\Services;
 
 use App\Enums\ingaz\ContractStatusEnum;
 use App\Models\Contract;
+use App\Models\ContractInfo;
 use App\Models\RentalContract;
+use App\Models\ShelterPlaces;
+use App\Models\ingaz\Maid;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\DB;
 
@@ -153,26 +156,123 @@ class RentalShelterPresenceService
                 ->with('info')
                 ->where('maid_id', $maidId)
                 ->where('status', ContractStatusEnum::Shelter->value)
-                ->whereHas('info', function ($infoQuery) {
-                    $infoQuery->where('is_outside_shelter', true)
-                        ->where('outside_shelter_reason', 'rental_delivery');
-                })
                 ->latest('id')
                 ->lockForUpdate()
                 ->first();
 
-            if (!$shelterContract?->info) {
+            if (!$shelterContract) {
+                $this->createMissingShelterContract($maidId, $note);
+
+                return true;
+            }
+
+            if (!$shelterContract->info) {
+                $shelterContract->info()->create([
+                    'contract_date' => now()->toDateString(),
+                    'msaned_number' => '',
+                    'shelter_id' => $this->defaultShelterId(),
+                    'wants_to_work' => 'yes',
+                    'receipt_source' => 'company',
+                    'is_outside_shelter' => false,
+                    'is_available_for_instant' => false,
+                ]);
+
+                $shelterContract->contract_status_logs()->create([
+                    'status' => ContractStatusEnum::Shelter->value,
+                    'date' => now(),
+                    'notes' => $note,
+                ]);
+
+                $this->markMaidAsShelterResident($maidId);
+
+                return true;
+            }
+
+            if ($shelterContract->info->is_outside_shelter
+                && $shelterContract->info->outside_shelter_reason !== 'rental_delivery') {
                 return false;
             }
 
+            if (! $shelterContract->info->is_outside_shelter) {
+                if ($shelterContract->info->wants_to_work !== 'yes') {
+                    $shelterContract->info->update(['wants_to_work' => 'yes']);
+                }
+
+                $this->markMaidAsShelterResident($maidId);
+
+                return true;
+            }
+
             $this->clearRentalOutsideFlag($shelterContract, $note);
+            $this->markMaidAsShelterResident($maidId);
 
             return true;
         });
     }
 
+    private function createMissingShelterContract(int $maidId, string $note): Contract
+    {
+        $maid = Maid::query()->lockForUpdate()->findOrFail($maidId);
+        $existingShelterContract = Contract::query()
+            ->where('maid_id', $maid->id)
+            ->where('status', ContractStatusEnum::Shelter->value)
+            ->latest('id')
+            ->lockForUpdate()
+            ->first();
+
+        if ($existingShelterContract) {
+            return $existingShelterContract;
+        }
+
+        $companyClient = app(ShelterCompanyClientResolver::class)->resolve();
+        $entryDate = now()->toDateString();
+
+        $contract = Contract::query()->create([
+            'user_id' => $companyClient->id,
+            'maid_id' => $maid->id,
+            'branch_id' => $maid->branch_id,
+            'status' => ContractStatusEnum::Shelter->value,
+            'contract_date' => $entryDate,
+        ]);
+
+        ContractInfo::query()->create([
+            'contract_id' => $contract->id,
+            'contract_date' => $entryDate,
+            'msaned_number' => '',
+            'shelter_id' => $this->defaultShelterId(),
+            'wants_to_work' => 'yes',
+            'receipt_source' => 'company',
+            'is_outside_shelter' => false,
+            'is_available_for_instant' => false,
+        ]);
+
+        $contract->contract_status_logs()->create([
+            'status' => ContractStatusEnum::Shelter->value,
+            'date' => now(),
+            'notes' => $note . ' وتم إنشاء عقد الإيواء تلقائيًا لعدم وجود عقد سابق.',
+        ]);
+
+        $maid->forceFill([
+            'maid_accommodation_type' => 2,
+            'available_at' => $entryDate,
+        ])->save();
+
+        return $contract;
+    }
+
+    private function defaultShelterId(): ?int
+    {
+        return ShelterPlaces::query()->whereKey(1)->value('id')
+            ?: ShelterPlaces::query()->orderBy('id')->value('id');
+    }
+
     private function canReturnMaidInside(int $maidId): bool
     {
+        $maidStatus = Maid::query()->whereKey($maidId)->value('status');
+        if ($maidStatus === null || in_array($maidStatus, ['backout', 'deported'], true)) {
+            return false;
+        }
+
         $hasOutsideRental = RentalContract::query()
             ->where('maid_id', $maidId)
             ->whereIn('status', self::OUTSIDE_RENTAL_STATUSES)
@@ -188,6 +288,13 @@ class RentalShelterPresenceService
                 $transferQuery->whereIn('status', self::OUTSIDE_TRANSFER_STATUSES);
             })
             ->exists();
+    }
+
+    private function markMaidAsShelterResident(int $maidId): void
+    {
+        Maid::query()->whereKey($maidId)->update([
+            'maid_accommodation_type' => 2,
+        ]);
     }
 
     private function clearRentalOutsideFlag(Contract $contract, string $note): void

@@ -3196,7 +3196,8 @@ class InvoiceController extends Controller
         Request $request,
         int $id,
         ObjService $service,
-        YearService $yearService
+        YearService $yearService,
+        \App\Services\commissions\DelegationCommissionService $delegationCommissionService
     ) {
         abort_unless($this->canCreateInvoiceCreditNote(), 403);
         $validated = $request->validate([
@@ -3208,7 +3209,7 @@ class InvoiceController extends Controller
         ]);
 
         try {
-            $creditNote = DB::transaction(function () use ($validated, $id, $service, $yearService) {
+            $creditNote = DB::transaction(function () use ($validated, $id, $service, $yearService, $delegationCommissionService) {
                 $invoice = Invoice::query()
                     ->with(['contract.user', 'ingazDelegation.user', 'client', 'financeSale.items', 'recruitmentCreditNotes'])
                     ->lockForUpdate()
@@ -3326,6 +3327,13 @@ class InvoiceController extends Controller
                     'finance_sale_id' => $sale->id,
                 ]);
 
+                if ($invoice->ingazDelegation) {
+                    $delegationCommissionService->cancelAfterFullCreditNote(
+                        $invoice->ingazDelegation,
+                        Auth::guard('admin')->id() ?: Auth::id()
+                    );
+                }
+
                 return $creditNote->fresh(['invoice', 'contract', 'constraint', 'financeSale']);
             });
 
@@ -3346,7 +3354,7 @@ class InvoiceController extends Controller
                 ? redirect()->route('recruitment-credit-notes.download', ['id' => $creditNote->id, 'autoprint' => 1])
                 : redirect()->route('invoices.credit-notes.create', $id);
 
-            return $redirect->with('success', 'تم إنشاء إشعار الدائن وقيده المالي دون تغيير حالة العقد أو التفويض.');
+            return $redirect->with('success', 'تم إنشاء إشعار الدائن وقيده المالي، ويُلغى التفويض تلقائيًا عند عكس كامل قيمة فاتورته.');
         } catch (\Throwable $e) {
             return back()->withInput()->with('error', $e->getMessage());
         }

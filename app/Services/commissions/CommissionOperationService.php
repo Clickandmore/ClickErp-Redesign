@@ -19,6 +19,10 @@ class CommissionOperationService
     public const SOURCE_TRANSFER_CONTRACT = 'transfer_service_contract';
     public const SOURCE_DELEGATION = 'ingaz_delegation';
 
+    public function __construct(
+        private readonly DelegationCommissionService $delegationCommissionService
+    ) {}
+
     public function getOperations(int $adminId, array $filters = []): Collection
     {
         $operations = collect()
@@ -40,7 +44,10 @@ class CommissionOperationService
             $item = $commissioned->get($operation['key']);
             $operation['commissioned'] = $item !== null;
             $operation['commission_batch_id'] = $item?->batch_id;
-            $operation['commission_amount'] = (float) ($item?->commission_amount ?? 0);
+            $operation['commission_reversed'] = (bool) $item?->commission_reversal_transaction_id;
+            $operation['commission_amount'] = $operation['commission_reversed']
+                ? 0.0
+                : (float) ($item?->commission_amount ?? 0);
             $operation['commission_paid_historically'] =
                 $item?->legacy_source === 'alrafedin_paid_commissions';
 
@@ -254,8 +261,9 @@ class CommissionOperationService
         );
 
         return $query
-            ->with(['user:id,name', 'invoice'])
+            ->with(['user:id,name', 'invoice.recruitmentCreditNotes'])
             ->get()
+            ->filter(fn (IngazDelegation $delegation) => $this->delegationCommissionService->isEligible($delegation))
             ->map(fn (IngazDelegation $delegation) => $this->operation(
                 self::SOURCE_DELEGATION,
                 $delegation->id,
