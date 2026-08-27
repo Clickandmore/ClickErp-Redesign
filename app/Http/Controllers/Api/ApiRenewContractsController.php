@@ -22,7 +22,7 @@ class ApiRenewContractsController extends Controller
     public function index(NationalityAction $nationalityAction)
     {
         // $nationalities = $nationalityAction->get();
-        $nationalities = Nationality::select(['id'])->get();
+        $nationalities = Nationality::all();
         $maritalStatus = MaritalStatusEnum::cases();
         $renewContracts = RenewContract::with('nationality')
             ->where('user_id', Auth::id())
@@ -40,7 +40,7 @@ class ApiRenewContractsController extends Controller
 
     public function page()
     {
-        $nationalities = Nationality::select(['id'])->get();
+        $nationalities = Nationality::all();
         $maritalStatus = MaritalStatusEnum::cases();
 
         $data = [

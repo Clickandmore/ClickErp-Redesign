@@ -204,6 +204,8 @@ class ApiAuthController extends Controller
                 'name'  => $user->name,
                 'phone' => $user->phone,
                 'email' => $user->email,
+                'image' => $user->image,
+                'image_url' => showFile($user->image),
             ],
             'token' => $token,
         ];
