@@ -8,7 +8,29 @@ class MusanedSectionRequest extends MainRequest
 {
     protected function prepareForValidation(): void
     {
-        $this->merge(['is_active' => $this->boolean('is_active')]);
+        $normalizeMetrics = static function ($metrics): array {
+            return collect(is_array($metrics) ? $metrics : [])
+                ->values()
+                ->map(function ($metric) {
+                    $metric['is_visible'] = filter_var(
+                        $metric['is_visible'] ?? false,
+                        FILTER_VALIDATE_BOOLEAN
+                    );
+                    $metric['remove_icon'] = filter_var(
+                        $metric['remove_icon'] ?? false,
+                        FILTER_VALIDATE_BOOLEAN
+                    );
+
+                    return $metric;
+                })
+                ->all();
+        };
+
+        $this->merge([
+            'is_active' => $this->boolean('is_active'),
+            'ratios' => $normalizeMetrics($this->input('ratios')),
+            'star_ratings' => $normalizeMetrics($this->input('star_ratings')),
+        ]);
     }
 
     public function rules(): array
@@ -20,31 +42,25 @@ class MusanedSectionRequest extends MainRequest
             'subtitle:en' => 'required|string|max:2000|not_in:1',
             'overall_performance:ar' => 'required|string|max:255|not_in:1',
             'overall_performance:en' => 'required|string|max:255|not_in:1',
-            'allowed_period_commitment_title:ar' => 'required|string|max:255|not_in:1',
-            'allowed_period_commitment_title:en' => 'required|string|max:255|not_in:1',
-            'workforce_arrival_title:ar' => 'required|string|max:255|not_in:1',
-            'workforce_arrival_title:en' => 'required|string|max:255|not_in:1',
-            'complaint_handling_title:ar' => 'required|string|max:255|not_in:1',
-            'complaint_handling_title:en' => 'required|string|max:255|not_in:1',
-            'arrival_duration_commitment_title:ar' => 'required|string|max:255|not_in:1',
-            'arrival_duration_commitment_title:en' => 'required|string|max:255|not_in:1',
-            'customer_recommendation_title:ar' => 'required|string|max:255|not_in:1',
-            'customer_recommendation_title:en' => 'required|string|max:255|not_in:1',
-            'inquiry_response_title:ar' => 'required|string|max:255|not_in:1',
-            'inquiry_response_title:en' => 'required|string|max:255|not_in:1',
-            'recruitment_duration_title:ar' => 'required|string|max:255|not_in:1',
-            'recruitment_duration_title:en' => 'required|string|max:255|not_in:1',
-            'complaint_response_title:ar' => 'required|string|max:255|not_in:1',
-            'complaint_response_title:en' => 'required|string|max:255|not_in:1',
             'is_active' => 'required|boolean',
-            'allowed_period_commitment_rate' => 'required|numeric|min:0|max:100',
-            'workforce_arrival_rate' => 'required|numeric|min:0|max:100',
-            'complaint_handling_rate' => 'required|numeric|min:0|max:100',
-            'arrival_duration_commitment_rate' => 'required|numeric|min:0|max:100',
-            'customer_recommendation_rating' => 'required|numeric|min:0|max:5',
-            'inquiry_response_rating' => 'required|numeric|min:0|max:5',
-            'recruitment_duration_rating' => 'required|numeric|min:0|max:5',
-            'complaint_response_rating' => 'required|numeric|min:0|max:5',
+            'ratios' => 'present|array|max:50',
+            'ratios.*.title' => 'required|array',
+            'ratios.*.title.ar' => 'required|string|max:255|not_in:1',
+            'ratios.*.title.en' => 'required|string|max:255|not_in:1',
+            'ratios.*.id' => 'nullable|integer|exists:musaned_section_metrics,id',
+            'ratios.*.value' => 'required|numeric|min:0|max:100',
+            'ratios.*.icon' => 'nullable|image|mimes:jpg,jpeg,png,webp,svg|max:5120',
+            'ratios.*.remove_icon' => 'required|boolean',
+            'ratios.*.is_visible' => 'required|boolean',
+            'star_ratings' => 'present|array|max:50',
+            'star_ratings.*.title' => 'required|array',
+            'star_ratings.*.title.ar' => 'required|string|max:255|not_in:1',
+            'star_ratings.*.title.en' => 'required|string|max:255|not_in:1',
+            'star_ratings.*.id' => 'nullable|integer|exists:musaned_section_metrics,id',
+            'star_ratings.*.value' => 'required|numeric|min:0|max:5',
+            'star_ratings.*.icon' => 'nullable|image|mimes:jpg,jpeg,png,webp,svg|max:5120',
+            'star_ratings.*.remove_icon' => 'required|boolean',
+            'star_ratings.*.is_visible' => 'required|boolean',
             'profile_url' => 'required|url|max:2048',
         ];
     }
