@@ -119,7 +119,7 @@ class MusanedSectionController extends Controller
             ]);
 
             foreach (config('translatable.locales') as $locale) {
-                $metric->translateOrNew($locale)->title = $item['title'][$locale];
+                $metric->translateOrNew($locale)->title = $item['title'][$locale] ?? '';
             }
 
             $metric->save();

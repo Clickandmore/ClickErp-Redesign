@@ -12,6 +12,15 @@ class MusanedSectionRequest extends MainRequest
             return collect(is_array($metrics) ? $metrics : [])
                 ->values()
                 ->map(function ($metric) {
+                    // A malformed nested field (for example, ratios[0][title]=1)
+                    // must be left for the validation rules to report, rather than
+                    // causing a TypeError while normalizing its sibling values.
+                    $metric = is_array($metric) ? $metric : [];
+
+                    if (array_key_exists('title', $metric) && ! is_array($metric['title'])) {
+                        $metric['title'] = [];
+                    }
+
                     $metric['is_visible'] = filter_var(
                         $metric['is_visible'] ?? false,
                         FILTER_VALIDATE_BOOLEAN
