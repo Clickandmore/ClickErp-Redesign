@@ -1931,12 +1931,18 @@ class SponsorshipTransferController extends Controller
             ->filter(fn ($value) => filled($value))
             ->isNotEmpty();
 
+        // حسابات الصرف مطلوبة في نافذة إلغاء النقل (فترة التجربة) لإصدار سند الصرف
+        $receiptAccounts = $page === 'trial'
+            ? SponsorshipTransferPaymentService::receiptAccounts()
+            : collect();
+
         return view($this->folderPath . '.status-overview', compact(
             'transfers',
             'pageConfig',
             'stats',
             'topFailureReasons',
-            'filtersActive'
+            'filtersActive',
+            'receiptAccounts'
         ));
     }
 

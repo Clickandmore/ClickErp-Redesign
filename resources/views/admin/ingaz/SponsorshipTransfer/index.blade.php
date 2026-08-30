@@ -664,7 +664,7 @@
                         }
                     },
                     error: function(xhr) {
-                        const message = xhr.responseJSON?.message || Object.values(xhr.responseJSON?.errors || {})[0]?.[0] || 'حدث خطأ غير متوقع';
+                        const message = Object.values(xhr.responseJSON?.errors || {})[0]?.[0] || xhr.responseJSON?.message || 'حدث خطأ غير متوقع';
                         Swal.fire('خطأ!', message, 'error');
                     }
                 });
