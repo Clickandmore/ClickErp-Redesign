@@ -3,6 +3,7 @@
 @section("style")
     <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet"/>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    @include('admin.ingaz.complaints.partials.related-record-styles')
     <style>
         /* إحصائيات محسنة */
         .stats-card {
@@ -293,15 +294,40 @@
             color: var(--cm-teal, #0f6b6e) !important;
         }
 
+        /* أسماء أنواع الشكاوى طويلة (شكوى عميل ضد عاملة) — شارة مستطيلة تلتف بسطرين
+           بدل الحلقة البيضاوية الناتجة عن border-radius دائري في عمود ضيق */
         .complaint-type-badge {
-            background: rgba(15, 107, 110, .09);
-            border: 1px solid rgba(15, 107, 110, .18);
-            border-radius: 999px;
+            align-items: center;
+            background: rgba(15, 107, 110, .08);
+            border: 1px solid rgba(15, 107, 110, .16);
+            border-radius: 8px;
             color: var(--cm-teal, #0f6b6e);
-            display: inline-block;
-            font-size: 11px;
+            display: inline-flex;
+            font-size: 11.5px;
             font-weight: 600;
+            gap: 6px;
+            line-height: 1.55;
+            max-width: 100%;
             padding: 5px 9px;
+            text-align: start;
+            white-space: normal;
+        }
+
+        .complaint-type-badge i {
+            flex: 0 0 auto;
+            font-size: 10px;
+            opacity: .65;
+        }
+
+        /* عمودا "متعلق بـ" و"النوع" يحتاجان عرضا كافيا حتى لا ينضغط محتواهما */
+        #complaintsTable th:nth-child(4),
+        #complaintsTable td:nth-child(4) {
+            min-width: 150px;
+        }
+
+        #complaintsTable th:nth-child(5),
+        #complaintsTable td:nth-child(5) {
+            min-width: 165px;
         }
 
         #complaintsTable thead th {
@@ -683,7 +709,7 @@
                                             <th width="80">{{ __('ingaz.ticket_number') }}</th>
                                             <th>{{ __('ingaz.complainant_name') }}</th>
                                             <th>{{ __('ingaz.subject') }}</th>
-                                            <th>عقد الإيواء</th>
+                                            <th>متعلق بـ</th>
                                             <th>{{ __('ingaz.type') }}</th>
                                             <th width="80">{{ __('ingaz.priority') }}</th>
                                             <th width="100">{{ __('ingaz.status') }}</th>
@@ -909,20 +935,17 @@
                         },searchable: true
                     },
                     {
-                        data: 'contract',
+                        data: 'related_record',
                         render: function (data) {
-                            if (!data) {
-                                return '<span class="text-muted">غير مرتبط</span>';
-                            }
-
-                            return '<a href="' + data.url + '" class="badge bg-secondary text-decoration-none">#' + data.id + '</a>';
-                        }, searchable: false
+                            return renderRelatedRecordBadge(data);
+                        }, searchable: false, orderable: false
                     },
                     {
                         data: 'complaint_type',
                         render: function (data, type, row) {
                             if (row.complaintType) {
-                                return '<span class="complaint-type-badge">' + row.complaintType.name + '</span>';
+                                return '<span class="complaint-type-badge" title="' + escapeHtml(row.complaintType.name) + '">' +
+                                    '<i class="fas fa-tag"></i><span>' + escapeHtml(row.complaintType.name) + '</span></span>';
                             }
                             return '<span class="text-muted">' + complaintsTranslations.notSpecified + '</span>';
                         },searchable: true
@@ -1302,9 +1325,10 @@
                         <span><i class="fas fa-calendar"></i>${new Date(ticket.created_at).toLocaleDateString('ar-SA')}</span>
                     </div>
 
-                    <div class="mt-3">
+                    <div class="mt-3 d-flex flex-wrap align-items-center gap-2">
                         ${priorityBadge}
-                        ${ticket.complaintType ? '<span class="complaint-type-badge ms-2">' + escapeHtml(ticket.complaintType.name) + '</span>' : ''}
+                        ${ticket.complaintType ? '<span class="complaint-type-badge"><i class="fas fa-tag"></i><span>' + escapeHtml(ticket.complaintType.name) + '</span></span>' : ''}
+                        ${renderRelatedRecordBadge(ticket.related_record)}
                     </div>
 
                     <div class="mt-3 d-flex flex-wrap gap-2">
@@ -1317,6 +1341,28 @@
 
             function escapeHtml(value) {
                 return $('<div>').text(value == null ? '' : String(value)).html();
+            }
+
+            // شارة "متعلق بـ": نوع الارتباط + رقمه، بلون وأيقونة خاصين بكل نوع
+            function renderRelatedRecordBadge(record) {
+                if (!record) {
+                    return '<span class="relation-badge relation-badge--empty">' +
+                        '<i class="fas fa-unlink"></i>غير مرتبط</span>';
+                }
+
+                const type = record.type || 'reference';
+                const icon = record.icon || 'fa-link';
+                const inner = '<i class="fas ' + escapeHtml(icon) + '"></i>' +
+                    '<span>' + escapeHtml(record.label) + '</span>' +
+                    (record.reference
+                        ? '<span class="relation-badge__ref">' + escapeHtml(record.reference) + '</span>'
+                        : '');
+                const classes = 'relation-badge relation-badge--' + escapeHtml(type);
+
+                return record.url
+                    ? '<a href="' + escapeHtml(record.url) + '" class="' + classes + '" title="' +
+                        escapeHtml(record.action_label || 'عرض المرتبط') + '">' + inner + '</a>'
+                    : '<span class="' + classes + '">' + inner + '</span>';
             }
 
             // Get status badge

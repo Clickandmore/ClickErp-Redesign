@@ -16,6 +16,11 @@ class RentalContractExtension extends Model
         'extension_months',
         'extension_days',
         'extension_value',
+        'gross_value',
+        'discount_type',
+        'discount_value',
+        'discount_amount',
+        'discount_notes',
         'start_date',
         'end_date',
         'payment_status',
@@ -37,6 +42,9 @@ class RentalContractExtension extends Model
         'extension_months' => 'integer',
         'extension_days' => 'integer',
         'extension_value' => 'decimal:2',
+        'gross_value' => 'decimal:2',
+        'discount_value' => 'decimal:2',
+        'discount_amount' => 'decimal:2',
         'payment_amount' => 'decimal:2',
         'payment_date' => 'date',
         'branch_id' => 'integer',
@@ -70,6 +78,24 @@ class RentalContractExtension extends Model
     public function receiptConstraint()
     {
         return $this->belongsTo(\Nami\Finance\Models\Constraint::class, 'receipt_constraint_id');
+    }
+
+    /**
+     * وصف الخصم كما يظهر في الشاشات: "10% (250.00 ريال)" أو "250.00 ريال".
+     */
+    public function getDiscountLabelAttribute(): ?string
+    {
+        $discountAmount = (float) ($this->discount_amount ?? 0);
+        if ($discountAmount <= 0) {
+            return null;
+        }
+
+        if ($this->discount_type === 'percentage') {
+            return rtrim(rtrim(number_format((float) $this->discount_value, 2), '0'), '.')
+                . '% (' . number_format($discountAmount, 2) . ' ريال)';
+        }
+
+        return number_format($discountAmount, 2) . ' ريال';
     }
 
     public function getPaymentReceiptUrlAttribute(): ?string

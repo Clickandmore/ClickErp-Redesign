@@ -14,22 +14,15 @@
     ];
     $statusKey = $complaint->status ?: 'pending';
     $priorityKey = $complaint->priority ?: 'medium';
-    $relationLabels = [
-        'order' => 'طلب استقدام',
-        'contract' => 'عقد',
-        'office' => 'مكتب خارجي',
-        'client' => 'عميل',
-        'manual' => 'ربط يدوي',
-        'none' => 'بدون ربط',
-    ];
+    $relatedRecord = $relatedRecord ?? null;
     // قناة التقديم: enum معروف، أو نص حر قادم من الاستيراد
     $submissionMethod = \App\Enums\ingaz\ComplaintSubmissionMethodEnum::tryFrom((string) $complaint->submission_method);
     $submissionMethodLabel = \App\Enums\ingaz\ComplaintSubmissionMethodEnum::label($complaint->submission_method);
-    // عقود الاستقدام (recruitment/maid) لها صفحة تفاصيل خاصة، وما عداها عقود إيواء
+    // عقد الإيواء يُعرف من حالته، أما بقية عقود هذا الجدول فهي عقود استقدام.
     $contractUrl = $complaint->contract
-        ? (in_array($complaint->contract->type, ['recruitment', 'maid'], true)
-            ? route('contracts.details', $complaint->contract->id)
-            : route('ShelterContract.show', $complaint->contract->id))
+        ? ($complaint->contract->status === 'shelter'
+            ? route('ShelterContract.show', $complaint->contract->id)
+            : route('contracts.details', $complaint->contract->id))
         : null;
 @endphp
 
@@ -162,7 +155,7 @@
                 </section>
             </div>
 
-            @if ($complaint->relation_type && $complaint->relation_type !== 'none')
+            @if ($relatedRecord)
                 <section class="detail-section relation-section">
                     <div class="detail-section__header">
                         <span class="section-icon section-icon--info"><i class="fas fa-link"></i></span>
@@ -170,23 +163,19 @@
                     </div>
                     <div class="detail-section__body relation-body">
                         <div>
-                            <span class="relation-type">{{ $relationLabels[$complaint->relation_type] ?? $complaint->relation_type }}</span>
-                            <strong>
-                                @if ($complaint->relation_type === 'order')
-                                    {{ $complaint->order?->order_code ?: $complaint->relation_reference ?: $complaint->order_id }}
-                                @elseif ($complaint->relation_type === 'contract')
-                                    #{{ $complaint->contract_id ?: $complaint->relation_reference }}
-                                @elseif ($complaint->relation_type === 'office')
-                                    {{ $complaint->recruitmentOffice?->title ?: $complaint->relation_reference }}
-                                @elseif ($complaint->relation_type === 'client')
-                                    {{ $complaint->relatedUser?->name ?: $complaint->relation_reference }}
-                                @else
-                                    {{ $complaint->relation_reference ?: $complaint->related_to }}
+                            <span class="relation-type">نوع السجل المرتبط</span>
+                            <span class="relation-badge relation-badge--{{ $relatedRecord['type'] ?? 'reference' }}">
+                                <i class="fas {{ $relatedRecord['icon'] ?? 'fa-link' }}"></i>
+                                <span>{{ $relatedRecord['label'] }}</span>
+                                @if ($relatedRecord['reference'] !== '')
+                                    <span class="relation-badge__ref">{{ $relatedRecord['reference'] }}</span>
                                 @endif
-                            </strong>
+                            </span>
                         </div>
-                        @if ($complaint->contract)
-                            <a href="{{ $contractUrl }}" class="btn btn-outline-primary btn-sm">عرض العقد</a>
+                        @if ($relatedRecord['url'])
+                            <a href="{{ $relatedRecord['url'] }}" class="btn btn-outline-primary btn-sm">
+                                <i class="fas fa-external-link-alt me-1"></i>{{ $relatedRecord['action_label'] ?: 'عرض المرتبط' }}
+                            </a>
                         @endif
                     </div>
                     @if ($complaint->relation_notes)

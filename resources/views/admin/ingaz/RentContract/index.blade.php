@@ -1403,6 +1403,7 @@
                         <input type="hidden" id="extend_contract_value_value">
                         <input type="hidden" id="extend_duration_days_value">
                         <input type="hidden" id="extend_daily_rate_value">
+                        <input type="hidden" id="extend_net_value">
 
                         <div class="row g-3">
                             <div class="col-md-3">
@@ -1424,20 +1425,49 @@
                                 <input type="text" class="form-control bg-light" id="extend_extension_end_date"
                                     readonly>
                             </div>
+                            <div class="col-md-4">
+                                <label for="extend_extension_discount_type" class="form-label">نوع الخصم</label>
+                                <select class="form-select" id="extend_extension_discount_type"
+                                    name="extension_discount_type">
+                                    <option value="">بدون خصم</option>
+                                    <option value="percentage">نسبة مئوية (%)</option>
+                                    <option value="amount">مبلغ مباشر (ريال)</option>
+                                </select>
+                            </div>
+                            <div class="col-md-4 extend-discount-fields d-none">
+                                <label for="extend_extension_discount_value" class="form-label">
+                                    قيمة الخصم <span class="text-danger">*</span>
+                                </label>
+                                <div class="input-group">
+                                    <input type="number" class="form-control" id="extend_extension_discount_value"
+                                        name="extension_discount_value" min="0" step="0.01" value="">
+                                    <span class="input-group-text" id="extend_extension_discount_unit">ريال</span>
+                                </div>
+                                <div class="form-text">الخصم يُطرح من إجمالي التمديد شامل الضريبة</div>
+                            </div>
+                            <div class="col-md-4 extend-discount-fields d-none">
+                                <label for="extend_extension_discount_notes" class="form-label">سبب الخصم</label>
+                                <input type="text" class="form-control" id="extend_extension_discount_notes"
+                                    name="extension_discount_notes" maxlength="255" placeholder="اختياري">
+                            </div>
                             <div class="col-12">
                                 <div class="extend-preview-box">
                                     <div class="row g-3">
-                                        <div class="col-md-4">
-                                            <div class="text-muted small">قيمة التمديد المتوقعة</div>
+                                        <div class="col-md-3">
+                                            <div class="text-muted small">قيمة التمديد قبل الخصم</div>
                                             <div class="fw-bold" id="extend_extension_value">-</div>
                                         </div>
-                                        <div class="col-md-4">
+                                        <div class="col-md-3">
+                                            <div class="text-muted small">الخصم</div>
+                                            <div class="fw-bold text-danger" id="extend_extension_discount_text">-</div>
+                                        </div>
+                                        <div class="col-md-3">
                                             <div class="text-muted small">مدة التمديد المحفوظة</div>
                                             <div class="fw-bold" id="extend_new_duration_text">-</div>
                                         </div>
-                                        <div class="col-md-4">
-                                            <div class="text-muted small">قيمة التمديد المحفوظة</div>
-                                            <div class="fw-bold" id="extend_new_contract_value_text">-</div>
+                                        <div class="col-md-3">
+                                            <div class="text-muted small">الصافي المستحق على العميل</div>
+                                            <div class="fw-bold text-success" id="extend_new_contract_value_text">-</div>
                                         </div>
                                     </div>
                                 </div>
@@ -2045,41 +2075,79 @@
                     currentDurationDays : 0);
                 const extensionDays = (months * 30) + extraDays;
 
-                if (!extensionDays || !endDateStr) {
+                const resetPreview = () => {
                     $('#extend_extension_days').val('');
                     $('#extend_extension_end_date').val('');
                     $('#extend_extension_value').text('-');
+                    $('#extend_extension_discount_text').text('-');
                     $('#extend_new_duration_text').text('-');
                     $('#extend_new_contract_value_text').text('-');
                     $('#extend_extension_payment_amount').val('');
+                    $('#extend_net_value').val('');
+                };
+
+                if (!extensionDays || !endDateStr) {
+                    resetPreview();
                     return;
                 }
 
                 const baseDate = new Date(endDateStr);
                 if (Number.isNaN(baseDate.getTime())) {
-                    $('#extend_extension_days').val('');
-                    $('#extend_extension_end_date').val('');
-                    $('#extend_extension_value').text('-');
-                    $('#extend_new_duration_text').text('-');
-                    $('#extend_new_contract_value_text').text('-');
-                    $('#extend_extension_payment_amount').val('');
+                    resetPreview();
                     return;
                 }
 
                 const newEndDate = new Date(baseDate.getTime() + (extensionDays * 24 * 60 * 60 * 1000));
                 const extensionValue = dailyRate * extensionDays;
+                const discount = calculateExtensionDiscount(extensionValue);
+                const netValue = Math.max(0, extensionValue - discount);
 
                 $('#extend_extension_days').val(extensionDays + ' يوم');
                 $('#extend_extension_end_date').val(formatDate(newEndDate));
                 $('#extend_extension_value').text(formatCurrency(extensionValue) + ' ريال');
+                $('#extend_extension_discount_text').text(discount > 0 ? '- ' + formatCurrency(discount) + ' ريال' : '-');
                 $('#extend_new_duration_text').text(extensionDays + ' يوم');
-                $('#extend_new_contract_value_text').text(formatCurrency(extensionValue) + ' ريال');
-                $('#extend_extension_payment_amount').val(extensionValue.toFixed(2));
+                $('#extend_new_contract_value_text').text(formatCurrency(netValue) + ' ريال');
+                $('#extend_extension_payment_amount').val(netValue.toFixed(2));
+                $('#extend_net_value').val(netValue.toFixed(2));
+                toggleExtendReceiptRequirement();
+            }
+
+            // الخصم: نسبة من إجمالي التمديد أو مبلغ مباشر — مقيد بقيمة التمديد
+            function calculateExtensionDiscount(extensionValue) {
+                const type = $('#extend_extension_discount_type').val();
+                const value = toNumber($('#extend_extension_discount_value').val());
+
+                if (!type || value <= 0 || extensionValue <= 0) {
+                    return 0;
+                }
+
+                const discount = type === 'percentage'
+                    ? extensionValue * (Math.min(100, value) / 100)
+                    : value;
+
+                return Math.min(extensionValue, discount);
+            }
+
+            function toggleExtendDiscountFields() {
+                const type = $('#extend_extension_discount_type').val();
+
+                $('.extend-discount-fields').toggleClass('d-none', !type);
+                $('#extend_extension_discount_value').prop('required', Boolean(type));
+                $('#extend_extension_discount_unit').text(type === 'percentage' ? '%' : 'ريال');
+                $('#extend_extension_discount_value').attr('max', type === 'percentage' ? 100 : null);
+
+                if (!type) {
+                    $('#extend_extension_discount_value').val('');
+                    $('#extend_extension_discount_notes').val('');
+                }
             }
 
             function toggleExtendReceiptRequirement() {
                 const paymentStatus = $('#extend_extension_payment_status').val();
-                const receiptRequired = paymentStatus === 'paid' || paymentStatus === 'partial';
+                const netValue = toNumber($('#extend_net_value').val());
+                // التمديد المجاني (خصم كامل) لا يحتاج سند قبض
+                const receiptRequired = (paymentStatus === 'paid' || paymentStatus === 'partial') && netValue > 0;
 
                 $('.extend-receipt-fields').toggleClass('d-none', !receiptRequired);
                 $('#extend_extension_payment_type, #extend_extension_receipt_account_id, #extend_extension_payment_amount, #extend_extension_payment_date')
@@ -2099,6 +2167,7 @@
                 $('#extend_contract_value_value').val('');
                 $('#extend_duration_days_value').val('');
                 $('#extend_daily_rate_value').val('');
+                $('#extend_net_value').val('');
                 $('#extend_contract_number').text('-');
                 $('#extend_current_start_text').text('-');
                 $('#extend_current_end_text').text('-');
@@ -2110,6 +2179,11 @@
                 $('#extend_extensions_count_text').text('-');
                 $('#extend_extension_months').val('0');
                 $('#extend_extension_extra_days').val('0');
+                $('#extend_extension_discount_type').val('');
+                $('#extend_extension_discount_value').val('');
+                $('#extend_extension_discount_notes').val('');
+                $('#extend_extension_discount_text').text('-');
+                toggleExtendDiscountFields();
                 $('#extend_extension_payment_date').val('{{ now()->format('Y-m-d') }}');
                 $('.extend-receipt-fields').addClass('d-none');
                 $('#extend_extension_payment_type, #extend_extension_receipt_account_id, #extend_extension_payment_amount, #extend_extension_payment_date')
@@ -2164,7 +2238,13 @@
                 $('#extendContractModal').modal('show');
             });
 
-            $('#extend_extension_months, #extend_extension_extra_days').on('input change', function() {
+            $('#extend_extension_months, #extend_extension_extra_days, #extend_extension_discount_value')
+                .on('input change', function() {
+                    updateExtensionPreview();
+                });
+
+            $('#extend_extension_discount_type').on('change', function() {
+                toggleExtendDiscountFields();
                 updateExtensionPreview();
             });
 
@@ -2184,8 +2264,7 @@
                 $('#extendContractErrors').addClass('d-none').empty();
                 submitBtn.prop('disabled', true);
 
-                if ((months * 30) + extraDays <= 0) {
-                    const message = 'يرجى تحديد مدة التمديد بالشهور أو الأيام.';
+                const failExtendValidation = (message) => {
                     $('#extendContractErrors').removeClass('d-none').html(message);
                     Swal.fire({
                         icon: 'error',
@@ -2193,6 +2272,30 @@
                         text: message
                     });
                     submitBtn.prop('disabled', false);
+                };
+
+                if ((months * 30) + extraDays <= 0) {
+                    failExtendValidation('يرجى تحديد مدة التمديد بالشهور أو الأيام.');
+                    return;
+                }
+
+                const discountType = $('#extend_extension_discount_type').val();
+                const discountValue = toNumber($('#extend_extension_discount_value').val());
+                const grossValue = toNumber($('#extend_daily_rate_value').val()) * ((months * 30) + extraDays);
+
+                if (discountType && discountValue <= 0) {
+                    failExtendValidation('يرجى إدخال قيمة الخصم أو اختيار "بدون خصم".');
+                    return;
+                }
+
+                if (discountType === 'percentage' && discountValue > 100) {
+                    failExtendValidation('نسبة الخصم لا يمكن أن تتجاوز 100%.');
+                    return;
+                }
+
+                if (discountType === 'amount' && grossValue > 0 && discountValue > grossValue) {
+                    failExtendValidation('مبلغ الخصم لا يمكن أن يتجاوز قيمة التمديد (' +
+                        formatCurrency(grossValue) + ' ريال).');
                     return;
                 }
 
