@@ -9,6 +9,7 @@ use App\Models\MusanedSectionMetric;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Collection;
+use Illuminate\Validation\ValidationException;
 
 class MusanedSectionController extends Controller
 {
@@ -95,6 +96,12 @@ class MusanedSectionController extends Controller
         array &$newImageFiles
     ): void {
         foreach (array_values($items) as $sortOrder => $item) {
+            if (! is_array($item) || ! is_array($item['title'] ?? null)) {
+                throw ValidationException::withMessages([
+                    'metrics' => __('validation.array', ['attribute' => 'metric']),
+                ]);
+            }
+
             $oldMetric = !empty($item['id'])
                 ? $oldMetrics->get((int) $item['id'])
                 : null;
