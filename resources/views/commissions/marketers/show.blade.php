@@ -76,8 +76,8 @@
         <div><h4 class="mb-1 fw-bold">{{ $admin->name }}</h4><div class="opacity-75">موظف خدمة عملاء · رقم #{{ $admin->id }}</div></div>
     </div>
     <div class="text-end">
-        <div class="small opacity-75">الرصيد المستحق</div>
-        <div class="fs-3 fw-bold">{{ number_format($balance, 2) }} <small class="fs-6">ر.س</small></div>
+        <div class="small opacity-75">{{ $balance < 0 ? 'مستحق للشركة على المسوق' : 'الرصيد المستحق للمسوق' }}</div>
+        <div class="fs-3 fw-bold">{{ number_format(abs($balance), 2) }} <small class="fs-6">ر.س</small></div>
         @if($balance > 0)
             <a href="{{ route('commissions.marketers.payments.index', $admin->id) }}" class="btn btn-light btn-sm"><i class="fa fa-money-bill-wave me-1"></i> إصدار سند صرف</a>
         @endif
@@ -115,7 +115,7 @@
                        class="quick-filter {{ empty($filters['service_type']) ? 'active' : '' }}">الكل</a>
                     @foreach([
                         'recruitment' => 'الاستقدام',
-                        'rental' => 'التأجير',
+                        'rental' => 'عقود التأجير',
                         'service_transfer' => 'نقل الخدمات',
                         'electronic_ingaz_delegation' => 'التفاويض',
                     ] as $type => $label)
@@ -222,7 +222,7 @@
                 تقرير الطلبات والعقود
                 @if($activeServiceLabel)<span class="text-primary">— {{ $activeServiceLabel }}</span>@endif
             </h5>
-            <div class="small text-muted">النتائج أدناه مطابقة للفلاتر المحددة، وتُعرض قيمة الفاتورة أو قيمة العقد/الباقة عند عدم وجودها.</div>
+            <div class="small text-muted">في عقود التأجير يُحتسب صافي الفوترة: قيمة الفاتورة + التمديدات − الإشعارات الدائنة. لا تظهر العمولة للاحتساب قبل إصدار فاتورة للعميل.</div>
         </div>
         <div class="d-flex gap-2">
             <button type="button" class="btn btn-sm btn-outline-primary" id="selectAllBtn">تحديد غير المحتسب في الصفحة</button>
@@ -234,7 +234,7 @@
         <div class="table-responsive">
             <table id="operationsTable" class="table table-hover align-middle mb-0" style="width:100%">
                 <thead class="table-light"><tr>
-                    <th></th><th>#</th><th>المصدر</th><th>رقم العملية</th><th>رقم الطلب</th><th>الخدمة</th><th>العميل</th><th>الحالة</th><th>التاريخ</th><th>قيمة الأساس</th><th>سداد العميل</th><th>حالة العمولة</th>
+                    <th></th><th>#</th><th>المصدر</th><th>رقم العملية</th><th>رقم الطلب</th><th>الخدمة</th><th>العميل</th><th>الحالة</th><th>التاريخ</th><th>بيانات الفوترة</th><th>قيمة الأساس</th><th>سداد العميل</th><th>حالة العمولة</th>
                 </tr></thead>
             </table>
         </div>
@@ -253,7 +253,7 @@
     <div class="table-responsive"><table class="table table-sm align-middle mb-0">
         <thead class="table-light"><tr><th>الحركة</th><th>المبلغ</th><th>الرصيد بعد</th><th>البيان</th><th>التاريخ</th></tr></thead>
         <tbody>@foreach($balanceTransactions as $tx)<tr>
-            <td><span class="badge {{ $tx->type === 'credit' ? 'bg-success' : 'bg-danger' }}">{{ $tx->type === 'credit' ? 'إضافة' : 'صرف' }}</span></td>
+            <td><span class="badge {{ $tx->type === 'credit' ? 'bg-success' : 'bg-danger' }}">{{ $tx->type === 'credit' ? 'إضافة' : ($tx->reference_type === 'commission_reversal' ? 'عكس عمولة' : ($tx->reference_type === 'commission_zero_adjustment' ? 'تصفير عمولة' : 'صرف')) }}</span></td>
             <td class="fw-bold">{{ $tx->type === 'credit' ? '+' : '-' }}{{ number_format($tx->amount, 2) }}</td>
             <td>{{ number_format($tx->balance_after, 2) }}</td><td>{{ $tx->notes }}</td><td>{{ $tx->created_at->format('Y-m-d H:i') }}</td>
         </tr>@endforeach</tbody>
@@ -268,14 +268,19 @@
 $(function () {
     function toggleDateFilters() {
         const type = $('#dateFilterType').val();
-        $('.filter-month-year').toggle(type === 'month_year');
-        $('.filter-range').toggle(type === 'range');
+        $('.filter-month-year')
+            .toggle(type === 'month_year')
+            .find(':input').prop('disabled', type !== 'month_year');
+        $('.filter-range')
+            .toggle(type === 'range')
+            .find(':input').prop('disabled', type !== 'range');
     }
     toggleDateFilters();
     $('#dateFilterType').on('change', toggleDateFilters);
 
     const table = $('#operationsTable').DataTable({
         responsive: true, processing: true, serverSide: true, ordering: false, searching: true,
+        stateSave: true, stateDuration: -1,
         language: { url: '{{ asset("admin/assets/js/bundle/ar.json") }}' },
         ajax: { url: '{{ route("commissions.marketers.show", $admin->id) }}', data: {
             service_type: @json($filters['service_type'] ?? ''),
@@ -290,7 +295,7 @@ $(function () {
             {data:'checkbox', searchable:false}, {data:'DT_RowIndex', searchable:false},
             {data:'source_label'}, {data:'reference'}, {data:'order_reference'},
             {data:'service_type_label'}, {data:'client_name'}, {data:'status'},
-            {data:'operation_date'}, {data:'base_amount', className:'text-end'},
+            {data:'operation_date'}, {data:'billing_label', searchable:false}, {data:'base_amount', className:'text-end'},
             {data:'is_paid_label', searchable:false}, {data:'commissioned_label', searchable:false}
         ],
         drawCallback: updateSummary
@@ -307,6 +312,35 @@ $(function () {
     $(document).on('change', '.operation-check', updateSummary);
     $('#selectAllBtn').on('click', function () { $('.operation-check').prop('checked', true); updateSummary(); });
     $('#deselectAllBtn').on('click', function () { $('.operation-check').prop('checked', false); updateSummary(); });
+
+    $(document).on('click', '.returned-commission-decision', async function () {
+        const button = $(this);
+        const decision = button.data('decision');
+        const message = decision === 'deducted'
+            ? 'سيتم خصم العمولة السابقة من رصيد المسوق وقد يصبح الرصيد مستحقًا للشركة. هل تريد الاعتماد؟'
+            : 'سيتم إقفال التسوية بصفر دون أي خصم من رصيد المسوق. هل تريد الاعتماد؟';
+        if (!window.confirm(message)) return;
+
+        button.closest('div').find('button').prop('disabled', true);
+        try {
+            const response = await fetch(button.data('url'), {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json',
+                    'X-CSRF-TOKEN': @json(csrf_token())
+                },
+                body: JSON.stringify({decision})
+            });
+            const data = await response.json();
+            if (!response.ok) throw new Error(data.message || Object.values(data.errors || {})[0]?.[0] || 'تعذر اعتماد التسوية.');
+            table.ajax.reload(null, false);
+            window.location.reload();
+        } catch (error) {
+            alert(error.message);
+            button.closest('div').find('button').prop('disabled', false);
+        }
+    });
 });
 </script>
 @endsection

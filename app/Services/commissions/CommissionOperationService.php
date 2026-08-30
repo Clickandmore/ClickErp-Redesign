@@ -20,16 +20,27 @@ class CommissionOperationService
     public const SOURCE_DELEGATION = 'ingaz_delegation';
 
     public function __construct(
-        private readonly DelegationCommissionService $delegationCommissionService
+        private readonly DelegationCommissionService $delegationCommissionService,
+        private readonly RecruitmentCommissionService $recruitmentCommissionService
     ) {}
 
     public function getOperations(int $adminId, array $filters = []): Collection
     {
-        $operations = collect()
-            ->concat($this->recruitmentContracts($adminId))
-            ->concat($this->rentalContracts($adminId))
-            ->concat($this->transferContracts($adminId))
-            ->concat($this->delegations($adminId));
+        $serviceType = $filters['service_type'] ?? null;
+        $operations = collect();
+
+        if (! $serviceType || $serviceType === 'recruitment') {
+            $operations = $operations->concat($this->recruitmentContracts($adminId));
+        }
+        if (! $serviceType || $serviceType === 'rental') {
+            $operations = $operations->concat($this->rentalContracts($adminId));
+        }
+        if (! $serviceType || $serviceType === 'service_transfer') {
+            $operations = $operations->concat($this->transferContracts($adminId));
+        }
+        if (! $serviceType || $serviceType === 'electronic_ingaz_delegation') {
+            $operations = $operations->concat($this->delegations($adminId));
+        }
 
         $commissioned = CommissionBatchItem::query()
             ->whereNotNull('source_type')
@@ -44,8 +55,17 @@ class CommissionOperationService
             $item = $commissioned->get($operation['key']);
             $operation['commissioned'] = $item !== null;
             $operation['commission_batch_id'] = $item?->batch_id;
+            $operation['commission_item_id'] = $item?->id;
             $operation['commission_reversed'] = (bool) $item?->commission_reversal_transaction_id;
-            $operation['commission_amount'] = $operation['commission_reversed']
+            $operation['return_settlement_status'] = $operation['commission_reversed']
+                ? RecruitmentCommissionService::SETTLEMENT_DEDUCTED
+                : ($item && $this->recruitmentCommissionService->isZeroed($item)
+                    ? RecruitmentCommissionService::SETTLEMENT_ZEROED
+                    : (! $operation['commission_eligible'] && $item && (float) $item->commission_amount > 0
+                        ? RecruitmentCommissionService::SETTLEMENT_PENDING
+                        : null));
+            $operation['commission_amount'] = ($operation['commission_reversed']
+                || $operation['return_settlement_status'] === RecruitmentCommissionService::SETTLEMENT_ZEROED)
                 ? 0.0
                 : (float) ($item?->commission_amount ?? 0);
             $operation['commission_paid_historically'] =
@@ -54,12 +74,10 @@ class CommissionOperationService
             return $operation;
         });
 
-        if (! empty($filters['service_type'])) {
-            $operations = $operations->where('service_type', $filters['service_type']);
-        }
-
         if (($filters['commission_status'] ?? '') === 'pending') {
-            $operations = $operations->where('commissioned', false);
+            $operations = $operations
+                ->where('commissioned', false)
+                ->where('commission_eligible', true);
         } elseif (($filters['commission_status'] ?? '') === 'commissioned') {
             $operations = $operations->where('commissioned', true);
         }
@@ -84,6 +102,7 @@ class CommissionOperationService
         return $this->getOperations($adminId)
             ->whereIn('key', $wanted)
             ->where('commissioned', false)
+            ->where('commission_eligible', true)
             ->values();
     }
 
@@ -95,7 +114,10 @@ class CommissionOperationService
 
             return [
                 'total' => $items->count(),
-                'pending' => $items->where('commissioned', false)->count(),
+                'pending' => $items
+                    ->where('commissioned', false)
+                    ->where('commission_eligible', true)
+                    ->count(),
                 'commissioned' => $items->where('commissioned', true)->count(),
             ];
         };
@@ -107,7 +129,10 @@ class CommissionOperationService
 
         return [
             'total' => $operations->count(),
-            'pending' => $operations->where('commissioned', false)->count(),
+            'pending' => $operations
+                ->where('commissioned', false)
+                ->where('commission_eligible', true)
+                ->count(),
             'commissioned' => $operations->where('commissioned', true)->count(),
             'commissioned_amount' => round((float) $operations->sum('commission_amount'), 2),
             'recruitment' => $recruitment['total'],
@@ -156,7 +181,7 @@ class CommissionOperationService
                     ?? $contract->contract_cost
                     ?? 0);
 
-                return $this->operation(
+                $operation = $this->operation(
                     self::SOURCE_RECRUITMENT_CONTRACT,
                     $contract->id,
                     'recruitment',
@@ -171,6 +196,13 @@ class CommissionOperationService
                     $contract->order_id,
                     $contract->id
                 );
+
+                $operation['commission_eligible'] = $this->recruitmentCommissionService->isEligible($contract);
+                $operation['commission_ineligible_reason'] = $operation['commission_eligible']
+                    ? null
+                    : 'عقد مسترد/مرتجع — العمولة صفر';
+
+                return $operation;
             });
     }
 
@@ -192,19 +224,40 @@ class CommissionOperationService
         );
 
         return $query
-            ->with(['user:id,name', 'order:id,order_code', 'financeInvoice', 'info'])
+            ->with([
+                'user:id,name',
+                'order:id,order_code',
+                'financeInvoice',
+                'info',
+                'extensions',
+                'financialAdjustments',
+            ])
             ->get()
             ->map(function (RentalContract $contract) {
-                $base = (float) ($contract->financeInvoice?->total_due
-                    ?? $contract->info?->contract_value
-                    ?? $contract->info?->package_total_with_tax
-                    ?? 0);
+                $invoice = $contract->financeInvoice;
+                $invoiceAmount = (float) ($invoice?->total_due ?? 0);
+                $creditNoteAmount = (float) $contract->financialAdjustments
+                    ->where('type', 'expense')
+                    ->whereIn('context', ['closure', 'manual_credit_note', 'closure_correction'])
+                    ->sum('amount');
+                $extensions = $contract->extensions;
+                $extensionAmount = (float) $extensions->sum(
+                    fn ($extension) => (float) ($extension->extension_value ?? 0)
+                );
+                $extensionDays = (int) $extensions->sum(function ($extension) {
+                    $days = (int) ($extension->extension_days ?? 0);
 
-                return $this->operation(
+                    return $days > 0
+                        ? $days
+                        : ((int) ($extension->extension_months ?? 0) * 30);
+                });
+                $base = round(max(0, $invoiceAmount + $extensionAmount - $creditNoteAmount), 2);
+
+                $operation = $this->operation(
                     self::SOURCE_RENTAL_CONTRACT,
                     $contract->id,
                     'rental',
-                    'عقد تأجير',
+                    'عقود التأجير',
                     $contract->contract_number ?: (string) $contract->id,
                     $contract->order?->order_code,
                     $contract->user?->name,
@@ -215,6 +268,25 @@ class CommissionOperationService
                     $contract->order_id,
                     $contract->id
                 );
+
+                $operation['billing'] = [
+                    'invoiced' => $invoice !== null,
+                    'invoice_number' => $invoice?->id,
+                    'invoice_amount' => round($invoiceAmount, 2),
+                    'credit_note_amount' => round($creditNoteAmount, 2),
+                    'extension_count' => $extensions->count(),
+                    'extension_days' => $extensionDays,
+                    'extension_amount' => round($extensionAmount, 2),
+                    'net_amount' => $base,
+                ];
+                // لا تُحتسب عمولة عقد التأجير قبل إصدار فاتورته، أو إذا تم عكس كامل
+                // القيمة بإشعارات دائنة. التمديدات تدخل ضمن صافي الفوترة عند وجودها.
+                $operation['commission_eligible'] = $invoice !== null && $base > 0;
+                $operation['commission_ineligible_reason'] = $invoice === null
+                    ? 'لم تُصدر فاتورة للعميل بعد'
+                    : ($base <= 0 ? 'تمت تسوية قيمة الفاتورة بالكامل بإشعار دائن' : null);
+
+                return $operation;
             });
     }
 
@@ -351,6 +423,8 @@ class CommissionOperationService
             'operation_date' => $date ? Carbon::parse($date)->startOfDay() : null,
             'order_id' => $orderId,
             'contract_id' => $contractId,
+            'commission_eligible' => true,
+            'commission_ineligible_reason' => null,
         ];
     }
 

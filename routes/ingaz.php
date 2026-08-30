@@ -827,9 +827,12 @@ Route::middleware(['admin', 'admin.route.permission'])
         Route::get('marketers/{admin}', [\App\Http\Controllers\commissions\CommissionMarketerController::class, 'show'])->name('marketers.show');
         Route::post('marketers/{admin}/calculate-preview', [\App\Http\Controllers\commissions\CommissionMarketerController::class, 'preview'])->name('marketers.preview');
         Route::post('marketers/{admin}/calculate-approve', [\App\Http\Controllers\commissions\CommissionMarketerController::class, 'approve'])->name('marketers.approve');
+        Route::post('marketers/{admin}/returned-commissions/{item}/resolve', [\App\Http\Controllers\commissions\CommissionMarketerController::class, 'resolveReturnedCommission'])->name('marketers.returned-commissions.resolve');
 
         Route::get('marketers/{admin}/payments', [\App\Http\Controllers\commissions\CommissionPaymentController::class, 'index'])->name('marketers.payments.index');
         Route::post('marketers/{admin}/payments', [\App\Http\Controllers\commissions\CommissionPaymentController::class, 'store'])->name('marketers.payments.store');
+        Route::post('marketers/{admin}/payments/adjustments', [\App\Http\Controllers\commissions\CommissionPaymentController::class, 'adjustBalance'])->name('marketers.payments.adjustments.store');
+        Route::post('marketers/{admin}/payments/batches/{batch}/rollback', [\App\Http\Controllers\commissions\CommissionPaymentController::class, 'rollbackBatch'])->name('marketers.payments.batches.rollback');
         Route::post('marketers/{admin}/payments/{payment}/finance-bond', [\App\Http\Controllers\commissions\CommissionPaymentController::class, 'linkFinanceBond'])->name('marketers.payments.finance-bond.store');
         Route::get('marketers/{admin}/payments/{payment}/print', [\App\Http\Controllers\commissions\CommissionPaymentController::class, 'print'])->name('marketers.payments.print');
 

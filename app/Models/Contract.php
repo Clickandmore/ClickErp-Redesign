@@ -32,6 +32,24 @@ class Contract extends Model
         'branch_id' => 'integer',
     ];
 
+    protected static function booted(): void
+    {
+        static::updated(function (Contract $contract): void {
+            if (! $contract->wasChanged('status')) {
+                return;
+            }
+
+            $service = app(\App\Services\commissions\RecruitmentCommissionService::class);
+            if (! $service->isEligible($contract)) {
+                $service->settleReturnedContract(
+                    $contract,
+                    auth('admin')->id(),
+                    'تغيرت حالة العقد إلى مسترد/مرتجع.'
+                );
+            }
+        });
+    }
+
     protected function resolveBranchIdForCreate(): ?int
     {
         $marketerId = (int) ($this->marketer_id ?? 0);

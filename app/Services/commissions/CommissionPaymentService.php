@@ -4,6 +4,7 @@ namespace App\Services\commissions;
 
 use App\Models\commissions\CommissionBalanceTransaction;
 use App\Models\commissions\CommissionPayment;
+use App\Models\commissions\CommissionBatch;
 use App\Models\auth\Admin;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
@@ -95,6 +96,103 @@ class CommissionPaymentService
         });
     }
 
+    /** Keep the original approval immutable and record the correction in the employee ledger. */
+    public function adjustApprovedBalance(
+        int $marketerId,
+        int $batchId,
+        float $amount,
+        string $reason,
+        int $adminId
+    ): CommissionBalanceTransaction {
+        return DB::transaction(function () use ($marketerId, $batchId, $amount, $reason, $adminId) {
+            Admin::query()->whereKey($marketerId)->lockForUpdate()->firstOrFail();
+            $batch = CommissionBatch::query()
+                ->whereKey($batchId)
+                ->where('marketer_id', $marketerId)
+                ->where('status', CommissionBatch::STATUS_APPROVED)
+                ->lockForUpdate()
+                ->firstOrFail();
+
+            $currentBalance = $this->profileService->getMarketerBalance($marketerId);
+            if ($amount <= 0 || $amount > $currentBalance) {
+                throw ValidationException::withMessages([
+                    'amount' => 'مبلغ التصحيح يجب أن يكون أكبر من صفر وألا يتجاوز الرصيد المتاح.',
+                ]);
+            }
+
+            return CommissionBalanceTransaction::create([
+                'marketer_id' => $marketerId,
+                'type' => CommissionBalanceTransaction::TYPE_DEBIT,
+                'amount' => $amount,
+                'reference_type' => 'commission_adjustment',
+                'reference_id' => $batch->id,
+                'balance_after' => round($currentBalance - $amount, 2),
+                'notes' => 'تصحيح اعتماد دفعة عمولة #' . $batch->id . ': ' . trim($reason),
+                'created_by' => $adminId,
+            ]);
+        });
+    }
+
+    /**
+     * Return an unpaid approval to the operations screen.
+     * This is intentionally only allowed before any later ledger movement exists,
+     * so deleting the approval cannot alter an already-issued payment history.
+     */
+    public function rollbackUnpaidBatch(int $marketerId, int $batchId): void
+    {
+        DB::transaction(function () use ($marketerId, $batchId) {
+            Admin::query()->whereKey($marketerId)->lockForUpdate()->firstOrFail();
+            $batch = CommissionBatch::query()
+                ->with('items')
+                ->whereKey($batchId)
+                ->where('marketer_id', $marketerId)
+                ->where('status', CommissionBatch::STATUS_APPROVED)
+                ->lockForUpdate()
+                ->firstOrFail();
+
+            if ($batch->items->contains(fn ($item) => ! empty($item->legacy_source))) {
+                throw ValidationException::withMessages([
+                    'batch' => 'لا يمكن إعادة فتح دفعة تاريخية أو مقفلة. استخدم قيد التصحيح عند الحاجة.',
+                ]);
+            }
+
+            $credit = CommissionBalanceTransaction::query()
+                ->where('marketer_id', $marketerId)
+                ->where('type', CommissionBalanceTransaction::TYPE_CREDIT)
+                ->where('reference_type', 'commission_batch')
+                ->where('reference_id', $batch->id)
+                ->lockForUpdate()
+                ->first();
+
+            if (! $credit) {
+                throw ValidationException::withMessages([
+                    'batch' => 'لا يمكن التراجع عن هذه الدفعة لأنها لا تملك قيد اعتماد قابلًا للإلغاء.',
+                ]);
+            }
+
+            if (CommissionBalanceTransaction::query()->where('marketer_id', $marketerId)->where('id', '>', $credit->id)->exists()) {
+                throw ValidationException::withMessages([
+                    'batch' => 'لا يمكن التراجع بعد وجود حركة لاحقة على رصيد الموظف. استخدم قيد التصحيح للحفاظ على التسلسل المالي.',
+                ]);
+            }
+
+            $delegationIds = $batch->items
+                ->where('source_type', CommissionOperationService::SOURCE_DELEGATION)
+                ->pluck('source_id')
+                ->filter()
+                ->all();
+            if ($delegationIds) {
+                \App\Models\IngazDelegation::query()
+                    ->whereIn('id', $delegationIds)
+                    ->where('commission_batch_id', $batch->id)
+                    ->update(['commissioned_at' => null, 'commission_batch_id' => null]);
+            }
+
+            $credit->delete();
+            $batch->delete(); // its items are removed by the database cascade.
+        });
+    }
+
     private function createFinanceBond(
         CommissionPayment $payment,
         Admin $marketer,
@@ -162,6 +260,15 @@ class CommissionPaymentService
             ->get();
     }
 
+    public function getBalanceTransactionsForMarketer(int $marketerId)
+    {
+        return CommissionBalanceTransaction::query()
+            ->with('createdBy')
+            ->where('marketer_id', $marketerId)
+            ->orderBy('id')
+            ->get();
+    }
+
     public function getPaymentSummary(int $marketerId): array
     {
         $approved = (float) CommissionBalanceTransaction::query()
@@ -172,12 +279,32 @@ class CommissionPaymentService
         $paid = (float) CommissionBalanceTransaction::query()
             ->where('marketer_id', $marketerId)
             ->where('type', CommissionBalanceTransaction::TYPE_DEBIT)
+            ->where('reference_type', 'commission_payment')
+            ->sum('amount');
+
+        $reversed = (float) CommissionBalanceTransaction::query()
+            ->where('marketer_id', $marketerId)
+            ->where('type', CommissionBalanceTransaction::TYPE_DEBIT)
+            ->where('reference_type', 'commission_reversal')
+            ->sum('amount');
+        $zeroAdjustments = (float) CommissionBalanceTransaction::query()
+            ->where('marketer_id', $marketerId)
+            ->where('type', CommissionBalanceTransaction::TYPE_DEBIT)
+            ->where('reference_type', 'commission_zero_adjustment')
+            ->sum('amount');
+        $adjustments = (float) CommissionBalanceTransaction::query()
+            ->where('marketer_id', $marketerId)
+            ->where('type', CommissionBalanceTransaction::TYPE_DEBIT)
+            ->where('reference_type', 'commission_adjustment')
             ->sum('amount');
 
         return [
             'approved' => round($approved, 2),
             'paid' => round($paid, 2),
-            'balance' => round($approved - $paid, 2),
+            'reversed' => round($reversed, 2),
+            'zero_adjustments' => round($zeroAdjustments, 2),
+            'adjustments' => round($adjustments, 2),
+            'balance' => round($approved - $paid - $reversed - $zeroAdjustments - $adjustments, 2),
             'payments_count' => CommissionPayment::query()
                 ->where('marketer_id', $marketerId)
                 ->count(),
@@ -204,7 +331,18 @@ class CommissionPaymentService
             ->sum('amount');
         $paidTotal = (float) CommissionBalanceTransaction::query()
             ->where('type', CommissionBalanceTransaction::TYPE_DEBIT)
+            ->where('reference_type', 'commission_payment')
             ->sum('amount');
+        $reversedTotal = (float) CommissionBalanceTransaction::query()
+            ->where('type', CommissionBalanceTransaction::TYPE_DEBIT)
+            ->where('reference_type', 'commission_reversal')
+            ->sum('amount');
+        $marketerBalances = CommissionBalanceTransaction::query()
+            ->selectRaw("marketer_id, SUM(CASE WHEN type = 'credit' THEN amount ELSE -amount END) as balance")
+            ->groupBy('marketer_id')
+            ->pluck('balance');
+        $outstandingTotal = (float) $marketerBalances->filter(fn ($balance) => (float) $balance > 0)->sum();
+        $companyReceivableTotal = abs((float) $marketerBalances->filter(fn ($balance) => (float) $balance < 0)->sum());
 
         return [
             'employees' => $employees,
@@ -216,7 +354,9 @@ class CommissionPaymentService
                 ->get(),
             'approvedTotal' => round($approvedTotal, 2),
             'paidTotal' => round($paidTotal, 2),
-            'outstandingTotal' => round($approvedTotal - $paidTotal, 2),
+            'reversedTotal' => round($reversedTotal, 2),
+            'outstandingTotal' => round($outstandingTotal, 2),
+            'companyReceivableTotal' => round($companyReceivableTotal, 2),
             'employeesWithBalance' => $employees->where('commission_balance', '>', 0)->count(),
             'vouchersCount' => (int) CommissionPayment::query()->count(),
         ];

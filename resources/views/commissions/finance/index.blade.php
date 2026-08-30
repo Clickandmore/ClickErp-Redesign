@@ -110,6 +110,8 @@
                         <div class="text-muted small">الرصيد المستحق</div>
                         <div class="fs-4 fw-bold text-danger">{{ number_format($outstandingTotal, 2) }} <small
                                 class="fs-6">ر.س</small></div>
+                        <div class="small text-muted">خصومات عكس العمولات: {{ number_format($reversedTotal, 2) }} ر.س</div>
+                        <div class="small text-danger">مستحق للشركة: {{ number_format($companyReceivableTotal, 2) }} ر.س</div>
                     </div>
                 </div>
             </div>
@@ -175,7 +177,7 @@
                         <th>الموظف</th>
                         <th class="text-end">إجمالي المصروف</th>
                         <th class="text-center">السندات</th>
-                        <th class="text-end">الرصيد المتاح</th>
+                        <th class="text-end">صافي الرصيد</th>
                         <th class="text-center">الإجراء المالي</th>
                     </tr>
                 </thead>
@@ -195,8 +197,8 @@
                                     class="badge bg-light text-dark border">{{ $employee->commission_vouchers_count }}</span>
                             </td>
                             <td
-                                class="text-end fw-bold {{ $employee->commission_balance > 0 ? 'text-danger' : 'text-muted' }}">
-                                {{ number_format($employee->commission_balance, 2) }} ر.س</td>
+                                class="text-end fw-bold {{ $employee->commission_balance > 0 ? 'text-success' : ($employee->commission_balance < 0 ? 'text-danger' : 'text-muted') }}">
+                                {{ $employee->commission_balance < 0 ? 'للشركة ' : '' }}{{ number_format(abs($employee->commission_balance), 2) }} ر.س</td>
                             <td class="text-center"><a
                                     href="{{ route('commissions.marketers.payments.index', $employee->id) }}"
                                     class="btn btn-sm {{ $employee->commission_balance > 0 ? 'btn-success' : 'btn-outline-secondary' }}"><i

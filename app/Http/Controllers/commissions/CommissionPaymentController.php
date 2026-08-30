@@ -4,6 +4,7 @@ namespace App\Http\Controllers\commissions;
 
 use App\Http\Controllers\Controller;
 use App\Models\auth\Admin;
+use App\Models\commissions\CommissionBatch;
 use App\Services\commissions\CommissionPaymentService;
 use App\Services\commissions\CommissionProfileService;
 use Illuminate\Http\Request;
@@ -75,11 +76,32 @@ class CommissionPaymentController extends Controller
         abort_unless($this->isCommissionMarketer($admin), 404);
 
         $payments = $this->paymentService->getPaymentsForMarketer($admin->id);
+        $balanceTransactions = $this->paymentService->getBalanceTransactionsForMarketer($admin->id);
+        $approvedBatches = CommissionBatch::query()
+            ->where('marketer_id', $admin->id)
+            ->where('status', CommissionBatch::STATUS_APPROVED)
+            ->where('total_commission', '>', 0)
+            ->latest('approved_at')
+            ->get();
+        $rollbackBatches = CommissionBatch::query()
+            ->where('marketer_id', $admin->id)
+            ->where('status', CommissionBatch::STATUS_APPROVED)
+            ->where('total_commission', '>', 0)
+            ->whereDoesntHave('items', fn ($query) => $query->whereNotNull('legacy_source'))
+            ->whereExists(function ($query) {
+                $query->selectRaw('1')
+                    ->from('commission_balance_transactions as cbt')
+                    ->whereColumn('cbt.reference_id', 'commission_batches.id')
+                    ->where('cbt.reference_type', 'commission_batch')
+                    ->where('cbt.type', 'credit');
+            })
+            ->latest('approved_at')
+            ->get();
         $balance = $this->profileService->getMarketerBalance($admin->id);
         $summary = $this->paymentService->getPaymentSummary($admin->id);
         $financialForm = $this->paymentService->getFinancialFormData();
 
-        return view('commissions.payments.index', compact('admin', 'payments', 'balance', 'summary', 'financialForm'));
+        return view('commissions.payments.index', compact('admin', 'payments', 'balance', 'summary', 'financialForm', 'balanceTransactions', 'approvedBatches', 'rollbackBatches'));
     }
 
     public function store(Request $request, Admin $admin)
@@ -110,6 +132,39 @@ class CommissionPaymentController extends Controller
         return redirect()
             ->route('commissions.marketers.payments.index', $admin->id)
             ->with('success', $message);
+    }
+
+    public function adjustBalance(Request $request, Admin $admin)
+    {
+        abort_unless($this->isCommissionMarketer($admin), 404);
+
+        $balance = $this->profileService->getMarketerBalance($admin->id);
+        $validated = $request->validate([
+            'batch_id' => ['required', 'integer', 'exists:commission_batches,id'],
+            'amount' => ['required', 'numeric', 'min:0.01', 'max:' . max(0, $balance)],
+            'reason' => ['required', 'string', 'min:5', 'max:1000'],
+        ]);
+
+        $this->paymentService->adjustApprovedBalance(
+            $admin->id,
+            (int) $validated['batch_id'],
+            (float) $validated['amount'],
+            $validated['reason'],
+            auth('admin')->id()
+        );
+
+        return redirect()->route('commissions.marketers.payments.index', $admin->id)
+            ->with('success', 'تم تسجيل تصحيح الرصيد بقيد مدين؛ بقي الاعتماد الأصلي محفوظًا للمراجعة ولم يعد المبلغ متاحًا للصرف.');
+    }
+
+    public function rollbackBatch(Admin $admin, int $batch)
+    {
+        abort_unless($this->isCommissionMarketer($admin), 404);
+
+        $this->paymentService->rollbackUnpaidBatch($admin->id, $batch);
+
+        return redirect()->route('commissions.marketers.show', $admin->id)
+            ->with('success', 'تم التراجع عن الاعتماد وإعادة فتح العقود. يمكنك الآن اختيارها وإعادة احتساب العمولة.');
     }
 
     public function linkFinanceBond(Request $request, Admin $admin, int $payment)

@@ -168,7 +168,8 @@
         'marketers' => $marketers->count(),
         'operations' => $marketers->sum(fn ($marketer) => $marketer->commission_summary['total']),
         'pending' => $marketers->sum(fn ($marketer) => $marketer->commission_summary['pending']),
-        'balances' => $marketers->sum('commission_balance'),
+        'balances' => $marketers->where('commission_balance', '>', 0)->sum('commission_balance'),
+        'receivables' => abs($marketers->where('commission_balance', '<', 0)->sum('commission_balance')),
     ];
 @endphp
 
@@ -208,6 +209,7 @@
         ['إجمالي العقود والخدمات', $overview['operations'], 'fa-file-contract', 'info'],
         ['بانتظار الاحتساب', $overview['pending'], 'fa-hourglass-half', 'warning'],
         ['إجمالي الأرصدة المستحقة', number_format($overview['balances'], 2) . ' ر.س', 'fa-wallet', 'success'],
+        ['مستحق للشركة من المسوقين', number_format($overview['receivables'], 2) . ' ر.س', 'fa-undo', 'danger'],
     ] as [$label, $value, $icon, $color])
         <div class="col-xl-3 col-md-6">
             <div class="card overview-card h-100">
@@ -359,9 +361,9 @@
                                 <strong class="text-success">{{ number_format($summary['commissioned_amount'], 2) }} ر.س</strong>
                             </div>
                             <div class="d-flex justify-content-between align-items-center mb-3">
-                                <span class="text-muted small">الرصيد المستحق</span>
-                                <strong class="{{ $employee->commission_balance > 0 ? 'text-success' : 'text-muted' }}">
-                                    {{ number_format($employee->commission_balance, 2) }} ر.س
+                                <span class="text-muted small">{{ $employee->commission_balance < 0 ? 'مستحق للشركة' : 'الرصيد المستحق' }}</span>
+                                <strong class="{{ $employee->commission_balance > 0 ? 'text-success' : ($employee->commission_balance < 0 ? 'text-danger' : 'text-muted') }}">
+                                    {{ number_format(abs($employee->commission_balance), 2) }} ر.س
                                 </strong>
                             </div>
                             <div class="d-flex gap-2">

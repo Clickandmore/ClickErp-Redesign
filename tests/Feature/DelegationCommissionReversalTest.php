@@ -10,6 +10,7 @@ use App\Models\commissions\CommissionBatchItem;
 use App\Services\commissions\CommissionOperationService;
 use App\Services\commissions\CommissionCalculationService;
 use App\Services\commissions\DelegationCommissionService;
+use App\Services\commissions\RecruitmentCommissionService;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;
@@ -149,7 +150,11 @@ class DelegationCommissionReversalTest extends TestCase
         $eligibility->shouldReceive('assertEligible')
             ->once()
             ->andThrow(ValidationException::withMessages(['operations' => 'تم إلغاء التفويض أثناء المراجعة.']));
-        $calculation = new CommissionCalculationService($operationService, $eligibility);
+        $calculation = new CommissionCalculationService(
+            $operationService,
+            $eligibility,
+            Mockery::mock(RecruitmentCommissionService::class)
+        );
 
         try {
             $calculation->approveBatch(

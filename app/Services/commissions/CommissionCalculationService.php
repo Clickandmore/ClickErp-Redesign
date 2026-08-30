@@ -14,7 +14,8 @@ class CommissionCalculationService
 {
     public function __construct(
         private readonly CommissionOperationService $operationService,
-        private readonly DelegationCommissionService $delegationCommissionService
+        private readonly DelegationCommissionService $delegationCommissionService,
+        private readonly RecruitmentCommissionService $recruitmentCommissionService
     ) {}
 
     public function getApplicableSetting(int $marketerId, string $serviceType): ?array
@@ -120,6 +121,31 @@ class CommissionCalculationService
                         ]);
                     }
                     $this->delegationCommissionService->assertEligible($delegation);
+                }
+            }
+
+            $recruitmentIds = collect($operationKeys)
+                ->filter(fn ($key) => is_string($key) && str_starts_with($key, CommissionOperationService::SOURCE_RECRUITMENT_CONTRACT . ':'))
+                ->map(fn ($key) => (int) substr($key, strlen(CommissionOperationService::SOURCE_RECRUITMENT_CONTRACT . ':')))
+                ->filter()
+                ->unique()
+                ->values();
+
+            if ($recruitmentIds->isNotEmpty()) {
+                $lockedContracts = \App\Models\Contract::query()
+                    ->whereIn('id', $recruitmentIds)
+                    ->lockForUpdate()
+                    ->get()
+                    ->keyBy('id');
+
+                foreach ($recruitmentIds as $contractId) {
+                    $contract = $lockedContracts->get($contractId);
+                    if (! $contract) {
+                        throw ValidationException::withMessages([
+                            'operations' => 'تعذر اعتماد العمولة لأن أحد عقود الاستقدام لم يعد موجودًا.',
+                        ]);
+                    }
+                    $this->recruitmentCommissionService->assertEligible($contract);
                 }
             }
 

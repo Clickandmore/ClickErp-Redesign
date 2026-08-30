@@ -38,11 +38,57 @@
         <div class="opacity-75">لا يمكن صرف أكثر من الرصيد الناتج عن عمولات معتمدة من التشغيل.</div>
     </div>
     <div class="d-flex gap-2">
+        @if($balance > 0 && $approvedBatches->isNotEmpty())
+            <button type="button" class="btn btn-outline-light" data-bs-toggle="collapse" data-bs-target="#balanceCorrection"><i class="fa fa-pen me-1"></i>تصحيح اعتماد</button>
+        @endif
         <a href="{{ route('finance.bonds-sarf.index') }}" class="btn btn-warning"><i class="fa fa-file-invoice-dollar me-1"></i> سندات الصرف المالية</a>
         <a href="{{ route('commissions.marketers.show', $admin->id) }}" class="btn btn-outline-light"><i class="fa fa-clipboard-list me-1"></i> ملف العمليات</a>
         <a href="{{ route('commissions.finance.index') }}" class="btn btn-light"><i class="fa fa-arrow-right me-1"></i> المركز المالي</a>
     </div>
 </div>
+
+@if($balance > 0 && $approvedBatches->isNotEmpty())
+<div class="collapse mb-4" id="balanceCorrection">
+    <div class="card border-warning shadow-sm">
+        <div class="card-header bg-warning bg-opacity-10"><strong><i class="fa fa-triangle-exclamation me-1"></i>تصحيح اعتماد عمولة</strong></div>
+        <div class="card-body">
+            <div class="alert alert-warning small">لا يتم تعديل أو حذف الاعتماد الأصلي حتى تبقى المراجعة المالية صحيحة. يسجل النظام قيدًا مدينًا لتخفيض رصيد الموظفة، فلا يصبح المبلغ المصحح متاحًا للصرف.</div>
+            <form method="POST" action="{{ route('commissions.marketers.payments.adjustments.store', $admin->id) }}" class="row g-3">
+                @csrf
+                <div class="col-md-5">
+                    <label class="form-label fw-semibold">دفعة الاعتماد المراد تصحيحها</label>
+                    <select name="batch_id" class="form-select" required>
+                        @foreach($approvedBatches as $batch)
+                            <option value="{{ $batch->id }}" @selected((string) old('batch_id') === (string) $batch->id)>دفعة #{{ $batch->id }} — {{ number_format($batch->total_commission, 2) }} ر.س — {{ optional($batch->approved_at)->format('Y-m-d') }}</option>
+                        @endforeach
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label fw-semibold">مبلغ التخفيض</label>
+                    <div class="input-group"><input type="number" name="amount" step="0.01" min="0.01" max="{{ $balance }}" class="form-control" value="{{ old('amount') }}" required><span class="input-group-text">ر.س</span></div>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label fw-semibold">سبب التصحيح</label>
+                    <input name="reason" class="form-control" value="{{ old('reason') }}" placeholder="مثال: اعتماد نسبة 100% بالخطأ" required>
+                </div>
+                <div class="col-12 d-flex justify-content-end"><button class="btn btn-warning"><i class="fa fa-save me-1"></i>تسجيل قيد التصحيح</button></div>
+            </form>
+            <hr>
+            <div class="d-flex flex-wrap justify-content-between align-items-center gap-2">
+                <div><strong>هل تريد إعادة حساب العقود بدل تسجيل قيد؟</strong><div class="small text-muted">متاح فقط للدفعة التي لم يُصرف منها شيء ولم تقع بعدها أي حركة على الرصيد.</div></div>
+                <div class="d-flex flex-wrap gap-2">
+                    @foreach($rollbackBatches as $batch)
+                        <form method="POST" action="{{ route('commissions.marketers.payments.batches.rollback', [$admin->id, $batch->id]) }}" onsubmit="return confirm('سيُلغى اعتماد الدفعة #{{ $batch->id }} وتعود عقودها إلى شاشة العمليات لإعادة الاحتساب. هل تريد المتابعة؟');">
+                            @csrf
+                            <button class="btn btn-outline-danger btn-sm"><i class="fa fa-rotate-left me-1"></i>التراجع عن دفعة #{{ $batch->id }}</button>
+                        </form>
+                    @endforeach
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+@endif
 
 <div class="row g-3 mb-4">
     <div class="col-lg-3 col-sm-6"><div class="payment-step done">
@@ -51,11 +97,11 @@
     </div></div>
     <div class="col-lg-3 col-sm-6"><div class="payment-step done">
         <div><span class="step-number"><i class="fa fa-check"></i></span><strong class="ms-2">تكوين الرصيد</strong></div>
-        <div class="small text-muted mt-2">المتاح حاليًا: {{ number_format($balance, 2) }} ر.س</div>
+        <div class="small text-muted mt-2">{{ $balance < 0 ? 'مستحق للشركة: ' . number_format(abs($balance), 2) : 'المتاح حاليًا: ' . number_format($balance, 2) }} ر.س</div>
     </div></div>
     <div class="col-lg-3 col-sm-6"><div class="payment-step {{ $balance > 0 ? 'current' : 'done' }}">
         <div><span class="step-number">3</span><strong class="ms-2">إصدار سند الصرف</strong></div>
-        <div class="small text-muted mt-2">{{ $balance > 0 ? 'حدد المبلغ والتاريخ ثم أصدر السند.' : 'لا يوجد رصيد بانتظار الصرف.' }}</div>
+        <div class="small text-muted mt-2">{{ $balance > 0 ? 'حدد المبلغ والتاريخ ثم أصدر السند.' : ($balance < 0 ? 'يوجد مبلغ مستحق للشركة بسبب عكس عمولات.' : 'لا يوجد رصيد بانتظار الصرف.') }}</div>
     </div></div>
     <div class="col-lg-3 col-sm-6"><div class="payment-step {{ $summary['payments_count'] > 0 ? 'done' : '' }}">
         <div><span class="step-number">4</span><strong class="ms-2">الاعتماد والقيد</strong></div>
@@ -160,9 +206,9 @@
                     </form>
                 @else
                     <div class="text-center py-5">
-                        <i class="fa fa-check-circle text-success mb-3" style="font-size:54px"></i>
-                        <h5 class="fw-bold">لا يوجد رصيد بانتظار الصرف</h5>
-                        <p class="text-muted">يجب اعتماد عمولات جديدة من شاشة التشغيل قبل إصدار سند آخر.</p>
+                        <i class="fa {{ $balance < 0 ? 'fa-undo text-danger' : 'fa-check-circle text-success' }} mb-3" style="font-size:54px"></i>
+                        <h5 class="fw-bold">{{ $balance < 0 ? 'يوجد مبلغ مستحق للشركة' : 'لا يوجد رصيد بانتظار الصرف' }}</h5>
+                        <p class="text-muted">{{ $balance < 0 ? 'القيمة ناتجة عن عكس عمولات عقود مستردة أو مرتجعة: ' . number_format(abs($balance), 2) . ' ر.س.' : 'يجب اعتماد عمولات جديدة من شاشة التشغيل قبل إصدار سند آخر.' }}</p>
                         <a href="{{ route('commissions.marketers.show', $admin->id) }}" class="btn btn-outline-primary">عرض ملف العمليات</a>
                     </div>
                 @endif
@@ -174,12 +220,15 @@
         <div class="card payment-card balance-panel h-100">
             <div class="card-body p-4">
                 <div class="text-center border-bottom pb-3 mb-3">
-                    <div class="text-muted small">الرصيد المتاح للصرف الآن</div>
-                    <div class="display-5 fw-bold text-success">{{ number_format($balance, 2) }} <small class="fs-6">ر.س</small></div>
+                    <div class="text-muted small">{{ $balance < 0 ? 'مستحق للشركة على المسوق' : 'الرصيد المتاح للصرف الآن' }}</div>
+                    <div class="display-5 fw-bold {{ $balance < 0 ? 'text-danger' : 'text-success' }}">{{ number_format(abs($balance), 2) }} <small class="fs-6">ر.س</small></div>
                 </div>
                 <div class="d-flex justify-content-between py-2"><span class="text-muted">إجمالي المعتمد</span><strong>{{ number_format($summary['approved'], 2) }} ر.س</strong></div>
                 <div class="d-flex justify-content-between py-2"><span class="text-muted">إجمالي ما صُرف</span><strong class="text-danger">- {{ number_format($summary['paid'], 2) }} ر.س</strong></div>
-                <div class="d-flex justify-content-between py-3 border-top mt-2"><span class="fw-bold">الرصيد الحالي</span><strong class="text-success fs-5">{{ number_format($summary['balance'], 2) }} ر.س</strong></div>
+                <div class="d-flex justify-content-between py-2"><span class="text-muted">عمولات معكوسة لعقود مستردة</span><strong class="text-danger">- {{ number_format($summary['reversed'], 2) }} ر.س</strong></div>
+                <div class="d-flex justify-content-between py-2"><span class="text-muted">عمولات مقفلة بصفر</span><strong class="text-danger">- {{ number_format($summary['zero_adjustments'], 2) }} ر.س</strong></div>
+                <div class="d-flex justify-content-between py-2"><span class="text-muted">تصحيحات الاعتمادات</span><strong class="text-danger">- {{ number_format($summary['adjustments'], 2) }} ر.س</strong></div>
+                <div class="d-flex justify-content-between py-3 border-top mt-2"><span class="fw-bold">{{ $summary['balance'] < 0 ? 'مستحق للشركة' : 'الرصيد الحالي' }}</span><strong class="{{ $summary['balance'] < 0 ? 'text-danger' : 'text-success' }} fs-5">{{ number_format(abs($summary['balance']), 2) }} ر.س</strong></div>
                 <div class="bg-white rounded p-3 mt-3 small text-muted">
                     <i class="fa fa-shield-alt text-success me-1"></i>
                     النظام يمنع تكرار الصرف أو إدخال مبلغ أكبر من الرصيد حتى عند وجود أكثر من مستخدم مالي.
@@ -187,6 +236,25 @@
             </div>
         </div>
     </div>
+</div>
+
+<div class="card payment-card mb-4">
+    <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+        <div><h5 class="mb-1 fw-bold"><i class="fa fa-book text-primary me-2"></i>كشف حساب الموظف</h5><div class="small text-muted">الاعتماد دائن للموظف، وسند الصرف أو التصحيح مدين عليه.</div></div>
+        <span class="badge bg-light text-dark border">{{ $balanceTransactions->count() }} حركة</span>
+    </div>
+    <div class="table-responsive"><table class="table table-hover align-middle mb-0">
+        <thead class="table-light"><tr><th>التاريخ</th><th>البيان</th><th>المرجع</th><th class="text-end">دائن للموظف</th><th class="text-end">مدين على الموظف</th><th class="text-end">الرصيد</th><th>بواسطة</th></tr></thead>
+        <tbody>@forelse($balanceTransactions as $tx)
+            <tr>
+                <td>{{ $tx->created_at->format('Y-m-d H:i') }}</td><td>{{ $tx->notes }}</td>
+                <td>#{{ $tx->reference_id }}</td>
+                <td class="text-end text-success fw-bold">{{ $tx->type === 'credit' ? number_format($tx->amount, 2) : '—' }}</td>
+                <td class="text-end text-danger fw-bold">{{ $tx->type === 'debit' ? number_format($tx->amount, 2) : '—' }}</td>
+                <td class="text-end fw-bold">{{ number_format($tx->balance_after, 2) }} ر.س</td><td>{{ $tx->createdBy?->name ?? 'النظام' }}</td>
+            </tr>
+        @empty<tr><td colspan="7" class="text-center text-muted py-4">لا توجد حركات مالية حتى الآن.</td></tr>@endforelse</tbody>
+    </table></div>
 </div>
 
 <div class="card payment-card">

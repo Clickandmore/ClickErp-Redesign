@@ -19,7 +19,7 @@ class CommissionSetting extends Model
             'electronic_ingaz_delegation' => 'تفويض إنجاز إلكتروني',
             'recruitment' => 'استقدام',
             'service_transfer' => 'نقل خدمة',
-            'rental' => 'تأجير للنقل',
+            'rental' => 'عقود التأجير',
         ];
     }
 
