@@ -27,6 +27,7 @@ class MusanedSectionController extends Controller
 
         try {
             DB::transaction(function () use ($request, &$oldImageFiles, &$newImageFiles) {
+                $validated = $request->validated();
                 $section = MusanedSection::firstOrNew();
                 $translatedFields = [
                     'title',
@@ -59,7 +60,7 @@ class MusanedSectionController extends Controller
                 $section->metrics()->delete();
                 $this->storeMetrics(
                     $section,
-                    $request->validated('ratios', []),
+                    $validated['ratios'] ?? [],
                     MusanedSectionMetric::TYPE_RATIO,
                     $oldMetrics,
                     $oldImageFiles,
@@ -67,7 +68,7 @@ class MusanedSectionController extends Controller
                 );
                 $this->storeMetrics(
                     $section,
-                    $request->validated('star_ratings', []),
+                    $validated['star_ratings'] ?? [],
                     MusanedSectionMetric::TYPE_RATING,
                     $oldMetrics,
                     $oldImageFiles,
