@@ -11,6 +11,7 @@ use App\Http\Traits\StoreMessageTrait;
 use App\Models\auth\Admin;
 use App\Models\Contract;
 use App\Models\RecruitmentOffices;
+use App\Models\RentalContract;
 use App\Models\ingaz\Complaint as objModel;
 use App\Models\ingaz\ComplaintAttachment;
 use App\Models\ingaz\ComplaintComment;
@@ -49,7 +50,10 @@ class ComplaintController extends Controller
         }
 
         if ($request->ajax()) {
-            $query = objModel::query()->with(['user', 'complaintType', 'assignedTo', 'maidNationality', 'contract']);
+            $query = objModel::query()->with([
+                'user', 'complaintType', 'assignedTo', 'maidNationality',
+                'contract', 'order', 'relatedUser', 'recruitmentOffice',
+            ]);
             $this->applyRequestBranchFilter($query, $request, 'complaints');
             $this->applyComplaintFilters($query, $request);
 
@@ -113,11 +117,8 @@ class ComplaintController extends Controller
                         'name' => $row->complaintType->name
                     ] : null;
                 })
-                ->addColumn('contract', function ($row) {
-                    return $row->contract ? [
-                        'id' => $row->contract->id,
-                        'url' => route('ShelterContract.show', $row->contract->id),
-                    ] : null;
+                ->addColumn('related_record', function ($row) {
+                    return $this->resolveComplaintRelatedRecord($row);
                 })
                 ->addColumn('actions', function ($row) {
                     $buttons = '<div class="btn-group" role="group" aria-label="Actions">';
@@ -138,6 +139,8 @@ class ComplaintController extends Controller
                                 ->orWhere('complainant_name', 'LIKE', "%{$search}%")
                                 ->orWhere('priority', 'LIKE', "%{$search}%")
                                 ->orWhere('status', 'LIKE', "%{$search}%")
+                                ->orWhere('related_to', 'LIKE', "%{$search}%")
+                                ->orWhere('relation_reference', 'LIKE', "%{$search}%")
                                 ->orWhereHas('complaintType', function ($qq) use ($search) {
                                     $qq->where('name', 'LIKE', "%{$search}%");
                                 })
@@ -354,6 +357,176 @@ class ComplaintController extends Controller
         return ['required', 'regex:/^(05|5)[0-9]{8}$/'];
     }
 
+    /**
+     * Normalize both current complaint relations and imported legacy `related_to`
+     * values into one payload used by the list and details pages.
+     */
+    private function resolveComplaintRelatedRecord(objModel $complaint): ?array
+    {
+        if ($complaint->relation_type === 'order' && $complaint->order) {
+            return $this->relatedRecordPayload(
+                'order',
+                'طلب استقدام',
+                $complaint->order->order_code ?: $complaint->order->id,
+                route('orders.show', $complaint->order->id),
+                'عرض الطلب'
+            );
+        }
+
+        if ($complaint->relation_type === 'contract' && $complaint->contract) {
+            $isShelterContract = $complaint->contract->status === 'shelter';
+
+            return $this->relatedRecordPayload(
+                $isShelterContract ? 'shelter_contract' : 'contract',
+                $isShelterContract ? 'عقد إيواء' : 'عقد استقدام',
+                $complaint->contract->id,
+                $isShelterContract
+                    ? route('ShelterContract.show', $complaint->contract->id)
+                    : route('contracts.details', $complaint->contract->id),
+                'عرض العقد'
+            );
+        }
+
+        if ($complaint->relation_type === 'office' && $complaint->recruitmentOffice) {
+            return $this->relatedRecordPayload(
+                'office',
+                'مكتب خارجي',
+                $complaint->recruitmentOffice->title ?: $complaint->recruitmentOffice->id,
+                route('recruitment-offices.show', $complaint->recruitmentOffice->id),
+                'عرض المكتب'
+            );
+        }
+
+        if ($complaint->relation_type === 'client' && $complaint->relatedUser) {
+            return $this->relatedRecordPayload(
+                'client',
+                'عميل',
+                $complaint->relatedUser->name ?: $complaint->relatedUser->id,
+                route('clients.show', $complaint->relatedUser->id),
+                'عرض العميل'
+            );
+        }
+
+        if ($complaint->relation_type === 'manual') {
+            $reference = trim((string) ($complaint->relation_reference ?: $complaint->related_to));
+
+            return $reference !== '' && $reference !== '-'
+                ? $this->relatedRecordPayload('manual', 'مرجع يدوي', $reference)
+                : null;
+        }
+
+        $legacyRelation = trim((string) $complaint->related_to);
+        if ($legacyRelation === '' || $legacyRelation === '-') {
+            return null;
+        }
+
+        if (preg_match('/^(?:طلب|عقد)\s+تأجير\s*#?\s*([\p{N}-]+)$/u', $legacyRelation, $matches)) {
+            return $this->legacyRentalContractRecord($matches[1]);
+        }
+
+        if (preg_match('/^طلب(?:\s+استقدام)?\s*#?\s*([\p{L}\p{N}-]+)$/u', $legacyRelation, $matches)) {
+            return $this->legacyOrderRecord($matches[1]);
+        }
+
+        if (preg_match('/^عقد\s+إيواء\s*#?\s*(\d+)$/u', $legacyRelation, $matches)) {
+            return $this->relatedRecordPayload(
+                'shelter_contract',
+                'عقد إيواء',
+                $matches[1],
+                route('ShelterContract.show', (int) $matches[1]),
+                'عرض العقد'
+            );
+        }
+
+        if (preg_match('/^عقد\s+استقدام\s*#?\s*(\d+)$/u', $legacyRelation, $matches)) {
+            return $this->relatedRecordPayload(
+                'contract',
+                'عقد استقدام',
+                $matches[1],
+                route('contracts.details', (int) $matches[1]),
+                'عرض العقد'
+            );
+        }
+
+        return $this->relatedRecordPayload('reference', 'مرجع', $legacyRelation);
+    }
+
+    /** ذاكرة مؤقتة داخل الطلب الواحد لمراجع الاستيراد حتى لا تتكرر الاستعلامات لكل صف. */
+    private array $legacyRecordCache = [];
+
+    /**
+     * مرجع الاستيراد يحمل رقم الطلب (order_code مثل ARB-2476) وليس معرّف الصف،
+     * لذلك نطابق الكود أولا ثم المعرّف حتى لا يقود الرابط إلى طلب خاطئ أو صفحة 404.
+     * الأولوية لكود ARB لأن الرقم المجرد يطابق أيضا طلبات قديمة تخص عملاء آخرين.
+     */
+    private function legacyOrderRecord(string $reference): array
+    {
+        $order = $this->legacyRecordCache['order:' . $reference] ??= (
+            Order::query()->where('order_code', 'ARB-' . $reference)->first(['id', 'order_code'])
+            ?: Order::query()->where('order_code', $reference)->first(['id', 'order_code'])
+            ?: (ctype_digit($reference) ? Order::query()->whereKey((int) $reference)->first(['id', 'order_code']) : null)
+        );
+
+        return $this->relatedRecordPayload(
+            'order',
+            'طلب استقدام',
+            $order?->order_code ?: $reference,
+            $order ? route('orders.show', $order->id) : null,
+            'عرض الطلب'
+        );
+    }
+
+    /**
+     * عقود التأجير المستوردة تُطابق برقم العقد (contract_number) ثم بالمعرّف.
+     */
+    private function legacyRentalContractRecord(string $reference): array
+    {
+        $rentalContract = $this->legacyRecordCache['rental:' . $reference] ??= (
+            RentalContract::query()->where('contract_number', $reference)->first(['id', 'contract_number'])
+            ?: (ctype_digit($reference) ? RentalContract::query()->whereKey((int) $reference)->first(['id', 'contract_number']) : null)
+        );
+
+        return $this->relatedRecordPayload(
+            'rental_contract',
+            'عقد تأجير',
+            $rentalContract?->contract_number ?: $reference,
+            $rentalContract ? route('RentContract.show', $rentalContract->id) : null,
+            'عرض عقد التأجير'
+        );
+    }
+
+    /**
+     * أيقونة كل نوع ارتباط — الألوان نفسها معرفة في partials/related-record-styles.blade.php
+     * عبر الصنف relation-badge--{type}.
+     */
+    private const RELATED_RECORD_ICONS = [
+        'order' => 'fa-clipboard-list',
+        'contract' => 'fa-file-contract',
+        'shelter_contract' => 'fa-home',
+        'rental_contract' => 'fa-handshake',
+        'office' => 'fa-building',
+        'client' => 'fa-user',
+        'manual' => 'fa-pen',
+        'reference' => 'fa-link',
+    ];
+
+    private function relatedRecordPayload(
+        string $type,
+        string $label,
+        string|int $reference,
+        ?string $url = null,
+        ?string $actionLabel = null
+    ): array {
+        return [
+            'type' => $type,
+            'label' => $label,
+            'reference' => (string) $reference,
+            'url' => $url,
+            'action_label' => $actionLabel,
+            'icon' => self::RELATED_RECORD_ICONS[$type] ?? self::RELATED_RECORD_ICONS['reference'],
+        ];
+    }
+
     private function applyComplaintRelation(array &$data): void
     {
         $relationType = $data['relation_type'] ?? 'none';
@@ -486,7 +659,9 @@ class ComplaintController extends Controller
         $complaint->statusBadge = $this->getStatusBadge($complaint->status);
         $complaint->priorityBadge = $this->getPriorityBadge($complaint->priority);
 
-        return view($this->folderPath . '.show', compact('complaint', 'admins', 'againstParty'));
+        $relatedRecord = $this->resolveComplaintRelatedRecord($complaint);
+
+        return view($this->folderPath . '.show', compact('complaint', 'admins', 'againstParty', 'relatedRecord'));
     }
 
     public function edit($id)
@@ -584,11 +759,20 @@ class ComplaintController extends Controller
 
     public function cards(Request $request)
     {
-        $query = objModel::with(['complaintType', 'assignedTo']);
+        $query = objModel::with([
+            'complaintType', 'assignedTo',
+            // نفس علاقات عمود "متعلق بـ" في الجدول حتى تعرض البطاقات الارتباط أيضا
+            'contract', 'order', 'relatedUser', 'recruitmentOffice',
+        ]);
         $this->applyRequestBranchFilter($query, $request, 'complaints');
         $this->applyComplaintFilters($query, $request);
 
-        $complaints = $query->orderBy('created_at', 'desc')->limit(50)->get();
+        $complaints = $query->orderBy('created_at', 'desc')->limit(50)->get()
+            ->map(function (objModel $complaint) {
+                return $complaint->toArray() + [
+                    'related_record' => $this->resolveComplaintRelatedRecord($complaint),
+                ];
+            });
 
         return response()->json(['data' => $complaints]);
     }

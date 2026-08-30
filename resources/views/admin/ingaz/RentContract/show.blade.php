@@ -1410,6 +1410,7 @@
                                             <th>المدة</th>
                                             <th>من</th>
                                             <th>إلى</th>
+                                            <th>الخصم</th>
                                             <th>قيمة التمديد</th>
                                             <th>حالة الدفع</th>
                                             <th>سند القبض / البنك</th>
@@ -1430,7 +1431,22 @@
                                                 <td>{{ optional($extension->start_date)->format('Y-m-d') ?? 'غير محدد' }}</td>
                                                 <td>{{ optional($extension->end_date)->format('Y-m-d') ?? 'غير محدد' }}</td>
                                                 <td>
+                                                    @if ($extension->discount_label)
+                                                        <span class="text-danger fw-bold">{{ $extension->discount_label }}</span>
+                                                        @if ($extension->discount_notes)
+                                                            <div class="small text-muted">{{ $extension->discount_notes }}</div>
+                                                        @endif
+                                                    @else
+                                                        <span class="text-muted">-</span>
+                                                    @endif
+                                                </td>
+                                                <td>
                                                     {{ $extension->extension_value !== null ? number_format((float) $extension->extension_value, 2) . ' ريال' : 'غير مسجل' }}
+                                                    @if ($extension->discount_label && $extension->gross_value)
+                                                        <div class="small text-muted">
+                                                            قبل الخصم: {{ number_format((float) $extension->gross_value, 2) }} ريال
+                                                        </div>
+                                                    @endif
                                                     <div class="mt-1">
                                                         @if (\App\Support\InvoiceAuthorization::canPrint())
                                                         <a href="{{ route('rental.extension-invoice.download', ['id' => $extension->id, 'autoprint' => 1]) }}"

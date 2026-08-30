@@ -76,6 +76,28 @@ final class RentalContractPricing
         ];
     }
 
+    /**
+     * حساب مبلغ الخصم من نوعه وقيمته المدخلة، مع تقييده بإجمالي المبلغ.
+     * النسبة تُحسب من الإجمالي شامل الضريبة، والمبلغ المباشر يؤخذ كما هو.
+     */
+    public static function discountAmount(?string $discountType, ?float $discountValue, float $grossTotal): float
+    {
+        $discountValue = max(0, (float) $discountValue);
+        $grossTotal = max(0, $grossTotal);
+
+        if ($discountValue <= 0 || $grossTotal <= 0) {
+            return 0.0;
+        }
+
+        $amount = match ($discountType) {
+            'percentage' => $grossTotal * (min(100, $discountValue) / 100),
+            'amount' => $discountValue,
+            default => 0.0,
+        };
+
+        return self::money(min($grossTotal, $amount));
+    }
+
     public static function durationDays(int $durationDays, int $durationMonths = 0): int
     {
         if ($durationDays > 0) {

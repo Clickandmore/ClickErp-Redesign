@@ -4167,23 +4167,64 @@ class RentContractController extends Controller
         }
     }
 
+    /**
+     * هل يحتاج التمديد إلى سند قبض؟ يُحسب الصافي المتوقع قبل التحقق
+     * حتى لا تُطلب حقول السند عندما يغطي الخصم قيمة التمديد بالكامل.
+     */
+    private function extensionRequiresReceipt(
+        Request $request,
+        RentalContractFinanceService $rentalContractFinanceService,
+        $id
+    ): bool {
+        $extensionDays = ((int) $request->input('extension_months', 0) * 30)
+            + (int) $request->input('extension_days', 0);
+        $contract = $extensionDays > 0 ? RentalContract::with('info')->find($id) : null;
+
+        if (!$contract || !$contract->info) {
+            return true;
+        }
+
+        $grossValue = round(
+            (float) $rentalContractFinanceService->extensionAmounts($contract, $extensionDays)['total_due'],
+            2
+        );
+        $discountAmount = RentalContractPricing::discountAmount(
+            $request->input('extension_discount_type'),
+            (float) $request->input('extension_discount_value', 0),
+            $grossValue
+        );
+
+        return round($grossValue - $discountAmount, 2) > 0;
+    }
+
     public function extend(Request $request, RentalContractFinanceService $rentalContractFinanceService, $id)
     {
+        // التمديد المجاني (خصم 100%) لا يحتاج سند قبض، لذلك تُخفف شروط حقول السند حينها
+        $receiptRequired = $this->extensionRequiresReceipt($request, $rentalContractFinanceService, $id);
+        $receiptRule = $receiptRequired ? 'required_if:extension_payment_status,paid,partial|' : '';
+
         $validated = $request->validate([
             'extension_months' => 'nullable|integer|min:0',
             'extension_days' => 'nullable|integer|min:0',
+            'extension_discount_type' => 'nullable|in:percentage,amount',
+            'extension_discount_value' => 'nullable|required_with:extension_discount_type|numeric|min:0',
+            'extension_discount_notes' => 'nullable|string|max:255',
             'extension_payment_status' => 'required|in:paid,partial,pending,later,bank_pending',
             'extension_payment_receipt' => 'nullable|file|mimes:jpg,jpeg,png,pdf|max:4096',
-            'extension_payment_type' => 'nullable|required_if:extension_payment_status,paid,partial|in:cash,bank_transfer,mada,tabby,tamara,moyasar,other',
-            'extension_receipt_account_id' => 'nullable|required_if:extension_payment_status,paid,partial|integer|exists:fn_accounts,id',
-            'extension_payment_amount' => 'nullable|required_if:extension_payment_status,paid,partial|numeric|gt:0',
-            'extension_payment_date' => 'nullable|required_if:extension_payment_status,paid,partial|date',
+            'extension_payment_type' => 'nullable|' . $receiptRule . 'in:cash,bank_transfer,mada,tabby,tamara,moyasar,other',
+            'extension_receipt_account_id' => 'nullable|' . $receiptRule . 'integer|exists:fn_accounts,id',
+            'extension_payment_amount' => 'nullable|' . $receiptRule . 'numeric|' . ($receiptRequired ? 'gt:0' : 'min:0'),
+            'extension_payment_date' => 'nullable|' . $receiptRule . 'date',
             'extension_notes' => 'nullable|string|max:1000',
         ], [
             'extension_months.integer' => 'مدة التمديد يجب أن تكون رقماً صحيحاً',
             'extension_months.min' => 'مدة التمديد بالشهور لا يمكن أن تكون أقل من صفر',
             'extension_days.integer' => 'أيام التمديد يجب أن تكون رقماً صحيحاً',
             'extension_days.min' => 'أيام التمديد لا يمكن أن تكون أقل من صفر',
+            'extension_discount_type.in' => 'نوع الخصم غير صحيح',
+            'extension_discount_value.required_with' => 'يرجى إدخال قيمة الخصم',
+            'extension_discount_value.numeric' => 'قيمة الخصم يجب أن تكون رقماً',
+            'extension_discount_value.min' => 'قيمة الخصم لا يمكن أن تكون أقل من صفر',
             'extension_payment_status.required' => 'يرجى تحديد حالة دفع التمديد',
             'extension_payment_status.in' => 'حالة دفع التمديد غير صحيحة',
             'extension_payment_receipt.file' => 'صيغة إيصال الدفع غير صحيحة',
@@ -4242,9 +4283,32 @@ class RentContractController extends Controller
                 );
             }
 
+            $grossAmounts = $rentalContractFinanceService->extensionAmounts($contract, $extensionDays);
+            $extensionGrossValue = round((float) $grossAmounts['total_due'], 2);
+
+            // خصم العميل: نسبة من إجمالي التمديد أو مبلغ مباشر، ويُطرح من الإجمالي شامل الضريبة
+            $discountType = $validated['extension_discount_type'] ?? null;
+            $discountInput = $discountType ? (float) ($validated['extension_discount_value'] ?? 0) : 0.0;
+
+            if ($discountType === 'percentage' && $discountInput > 100) {
+                throw new \RuntimeException('نسبة الخصم لا يمكن أن تتجاوز 100%.');
+            }
+
+            if ($discountType === 'amount' && round($discountInput, 2) > $extensionGrossValue) {
+                throw new \RuntimeException('مبلغ الخصم لا يمكن أن يتجاوز قيمة التمديد ('
+                    . number_format($extensionGrossValue, 2) . ' ريال).');
+            }
+
+            $discountAmount = RentalContractPricing::discountAmount(
+                $discountType,
+                $discountInput,
+                $extensionGrossValue
+            );
+
             $extensionAmounts = $rentalContractFinanceService->extensionAmounts(
                 $contract,
-                $extensionDays
+                $extensionDays,
+                $discountAmount
             );
             $extensionValue = round((float) $extensionAmounts['total_due'], 2);
 
@@ -4267,6 +4331,11 @@ class RentContractController extends Controller
                 'extension_months' => $extensionMonths,
                 'extension_days' => $extensionDays,
                 'extension_value' => $extensionValue,
+                'gross_value' => $extensionGrossValue,
+                'discount_type' => $discountAmount > 0 ? $discountType : null,
+                'discount_value' => $discountAmount > 0 ? round($discountInput, 2) : null,
+                'discount_amount' => $discountAmount,
+                'discount_notes' => $discountAmount > 0 ? ($validated['extension_discount_notes'] ?? null) : null,
                 'start_date' => $extensionStart,
                 'end_date' => $extensionEnd,
                 'payment_status' => $validated['extension_payment_status'],

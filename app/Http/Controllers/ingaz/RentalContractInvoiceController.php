@@ -324,7 +324,11 @@ class RentalContractInvoiceController extends Controller
         abort_unless($contract && $invoice, 404);
 
         $viewData = $this->prepareInvoiceViewData($invoice->id);
-        $amounts = $financeService->extensionAmounts($contract, (int) $extension->extension_days);
+        $amounts = $financeService->extensionAmountsFor($extension);
+        // قيم ما قبل الخصم لعرض سطر "خصم" متسق في ملخص الفاتورة
+        $amountsBeforeDiscount = (float) ($amounts['discount'] ?? 0) > 0
+            ? $financeService->extensionAmounts($contract, (int) $extension->extension_days)
+            : $amounts;
         $items = [];
 
         if ((float) $amounts['taxable_subtotal'] > 0 || (float) $amounts['vat_amount'] > 0) {
@@ -386,15 +390,21 @@ class RentalContractInvoiceController extends Controller
             'serviceLongDescription' => 'تمديد عقد التأجير رقم '
                 . ($contract->contract_number ?: $contract->id)
                 . ' من ' . optional($extension->start_date)->format('Y-m-d')
-                . ' إلى ' . optional($extension->end_date)->format('Y-m-d'),
+                . ' إلى ' . optional($extension->end_date)->format('Y-m-d')
+                . ($extension->discount_label
+                    ? ' — خصم ' . $extension->discount_label . ' شامل الضريبة'
+                    : ''),
             'items' => $items,
             'invoiceDate' => substr($documentDateTime, 0, 10),
             'invoiceDateTime' => $documentDateTime,
             'invoiceUrl' => $documentUrl,
             'invoiceBarcodeValue' => $barcodeValue,
             'qrImage' => InvoiceQrCode::render($barcodeValue, $viewData['qrImage']),
-            'subtotalBeforeDiscount' => (float) $amounts['net_subtotal'],
-            'discountTotal' => 0.0,
+            'subtotalBeforeDiscount' => (float) $amountsBeforeDiscount['net_subtotal'],
+            'discountTotal' => round(
+                (float) $amountsBeforeDiscount['net_subtotal'] - (float) $amounts['net_subtotal'],
+                2
+            ),
             'netSubtotal' => (float) $amounts['net_subtotal'],
             'vatAmount' => (float) $amounts['vat_amount'],
             'grandTotal' => (float) $amounts['total_due'],

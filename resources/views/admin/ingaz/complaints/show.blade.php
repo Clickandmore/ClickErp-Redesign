@@ -5,6 +5,7 @@
 @endsection
 
 @section('style')
+    @include('admin.ingaz.complaints.partials.related-record-styles')
     <style>
         /* Organized complaint details */
         .complaint-detail-page {

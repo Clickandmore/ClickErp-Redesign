@@ -7,6 +7,7 @@ use App\Models\RentalContract;
 use App\Models\RentalContractInfo;
 use App\Models\RentalContractInvoice;
 use App\Services\ingaz\RentalContractFinanceService;
+use App\Support\RentalContractPricing;
 use PHPUnit\Framework\TestCase;
 use ReflectionClass;
 
@@ -123,6 +124,89 @@ class RentalContractFinanceServiceTest extends TestCase
             $amounts['total_due'],
             round($amounts['taxable_subtotal'] + $amounts['salary_exempt_amount'] + $amounts['vat_amount'], 2)
         );
+    }
+
+    public function test_a_percentage_discount_reduces_the_extension_total_and_its_vat(): void
+    {
+        $service = $this->financeService();
+        $contract = $this->extensionContract();
+
+        $amounts = $service->extensionAmounts($contract, 30, RentalContractPricing::discountAmount(
+            'percentage',
+            10,
+            (float) $service->extensionAmounts($contract, 30)['total_due']
+        ));
+
+        // إجمالي التمديد 1700 × 10% = 170 خصماً، والخصم يخرج من الخدمة الخاضعة للضريبة
+        $this->assertSame(170.0, $amounts['discount']);
+        $this->assertSame(1700.0, $amounts['gross_total_before_discount']);
+        $this->assertSame(1530.0, $amounts['total_due']);
+        $this->assertSame(900.0, $amounts['salary_exempt_amount']);
+        $this->assertSame(
+            $amounts['total_due'],
+            round($amounts['taxable_subtotal'] + $amounts['salary_exempt_amount'] + $amounts['vat_amount'], 2)
+        );
+        // الضريبة تنخفض مع الخصم: 104.35 قبل الخصم مقابل 82.17 بعده
+        $this->assertSame(82.17, $amounts['vat_amount']);
+        $this->assertLessThan(
+            $service->extensionAmounts($contract, 30)['vat_amount'],
+            $amounts['vat_amount']
+        );
+    }
+
+    public function test_a_fixed_discount_is_capped_at_the_extension_total(): void
+    {
+        $service = $this->financeService();
+        $contract = $this->extensionContract();
+
+        $discount = RentalContractPricing::discountAmount('amount', 5000, 1700.0);
+        $amounts = $service->extensionAmounts($contract, 30, $discount);
+
+        $this->assertSame(1700.0, $discount);
+        $this->assertSame(0.0, $amounts['total_due']);
+        $this->assertSame(0.0, $amounts['vat_amount']);
+    }
+
+    public function test_extension_amounts_are_unchanged_without_a_discount(): void
+    {
+        $service = $this->financeService();
+        $amounts = $service->extensionAmounts($this->extensionContract(), 30);
+
+        $this->assertSame(0.0, $amounts['discount']);
+        $this->assertSame(1700.0, $amounts['total_due']);
+        $this->assertSame(1700.0, $amounts['gross_total_before_discount']);
+    }
+
+    public function test_discount_amount_helper_handles_types_and_bounds(): void
+    {
+        $this->assertSame(100.0, RentalContractPricing::discountAmount('amount', 100, 1000));
+        $this->assertSame(250.0, RentalContractPricing::discountAmount('percentage', 25, 1000));
+        $this->assertSame(1000.0, RentalContractPricing::discountAmount('percentage', 150, 1000));
+        $this->assertSame(0.0, RentalContractPricing::discountAmount(null, 100, 1000));
+        $this->assertSame(0.0, RentalContractPricing::discountAmount('amount', 0, 1000));
+        $this->assertSame(0.0, RentalContractPricing::discountAmount('amount', 100, 0));
+    }
+
+    private function financeService(): RentalContractFinanceService
+    {
+        return (new ReflectionClass(RentalContractFinanceService::class))->newInstanceWithoutConstructor();
+    }
+
+    private function extensionContract(): RentalContract
+    {
+        $contract = new RentalContract();
+        $info = new RentalContractInfo([
+            'monthly_salary' => 900,
+            'contract_duration_months' => 1,
+            'contract_duration_days' => 30,
+            'package_price_basis' => 'net',
+            'contract_value' => 1700,
+        ]);
+        $info->setRelation('package', null);
+        $contract->setRelation('info', $info);
+        $contract->setRelation('maid', null);
+
+        return $contract;
     }
 
     public function test_it_recovers_imported_invoice_total_from_paid_and_remaining_balance(): void

@@ -450,7 +450,11 @@ class RentalContractFinanceService
             throw new \RuntimeException('لا توجد سنة مالية نشطة لتاريخ تمديد عقد الإيجار المحدد.');
         }
 
-        $amounts = $this->extensionAmounts($contract, (int) $extension->extension_days);
+        $amounts = $this->extensionAmounts(
+            $contract,
+            (int) $extension->extension_days,
+            (float) ($extension->discount_amount ?? 0)
+        );
         $extensionValue = $this->roundMoney((float) $amounts['total_due']);
         $vatAmount = $this->roundMoney((float) $amounts['vat_amount']);
         $taxableSubtotal = $this->roundMoney((float) $amounts['taxable_subtotal']);
@@ -1043,7 +1047,20 @@ class RentalContractFinanceService
             . ' / المبلغ: ' . number_format($salaryAmount, 2, '.', '') . ' ريال';
     }
 
-    public function extensionAmounts(RentalContract $contract, int $extensionDays): array
+    /**
+     * قيم التمديد بعد خصم العميل — الخصم يُطرح من الإجمالي شامل الضريبة
+     * ثم يُعاد توزيع الباقي على راتب معفى + خدمة خاضعة للضريبة.
+     */
+    public function extensionAmountsFor(RentalContractExtension $extension): array
+    {
+        return $this->extensionAmounts(
+            $extension->contract,
+            (int) $extension->extension_days,
+            (float) ($extension->discount_amount ?? 0)
+        );
+    }
+
+    public function extensionAmounts(RentalContract $contract, int $extensionDays, float $discountAmount = 0.0): array
     {
         $contract->loadMissing(['info.package', 'maid']);
         $baseDays = RentalContractPricing::durationDays(
@@ -1067,11 +1084,20 @@ class RentalContractFinanceService
             ? $this->roundMoney(($baseGrossTotal / $baseDays) * max(0, $extensionDays))
             : 0.0;
 
-        return RentalContractPricing::fromGrossPrice(
-            $extensionGrossTotal,
+        $discountAmount = $this->roundMoney(min(max(0, $discountAmount), $extensionGrossTotal));
+        $netGrossTotal = $this->roundMoney(max(0, $extensionGrossTotal - $discountAmount));
+
+        $amounts = RentalContractPricing::fromGrossPrice(
+            $netGrossTotal,
             $this->resolveMonthlySalary($contract),
             max(0, $extensionDays)
         );
+
+        // subtotal يعكس الإجمالي قبل الخصم حتى تظهر القيمتان في الفاتورة والشاشات
+        $amounts['gross_total_before_discount'] = $extensionGrossTotal;
+        $amounts['discount'] = $discountAmount;
+
+        return $amounts;
     }
 
     private function resolveMonthlySalary(RentalContract $contract): float
