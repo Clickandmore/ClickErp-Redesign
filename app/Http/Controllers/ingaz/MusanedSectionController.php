@@ -118,8 +118,10 @@ class MusanedSectionController extends Controller
                 'sort_order' => $sortOrder,
             ]);
 
+            $titles = is_array($item['title'] ?? null) ? $item['title'] : [];
+
             foreach (config('translatable.locales') as $locale) {
-                $metric->translateOrNew($locale)->title = $item['title'][$locale] ?? '';
+                $metric->translateOrNew($locale)->title = $titles[$locale] ?? '';
             }
 
             $metric->save();
