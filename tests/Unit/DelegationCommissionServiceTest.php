@@ -24,6 +24,19 @@ class DelegationCommissionServiceTest extends TestCase
         $this->assertFalse($service->isEligible($cancelled));
     }
 
+    public function test_ineligible_delegation_reason_explains_why_commission_is_disabled(): void
+    {
+        $service = app(DelegationCommissionService::class);
+
+        $this->assertSame(
+            'لم يتم تنفيذ التفويض بعد — غير مؤهل للعمولة',
+            $service->ineligibilityReason($this->delegation(IngazDelegation::STATUS_UNDER_PROCESS))
+        );
+        $this->assertNull(
+            $service->ineligibilityReason($this->delegation(IngazDelegation::STATUS_EXECUTED))
+        );
+    }
+
     public function test_a_fully_credited_delegation_is_not_eligible(): void
     {
         $service = app(DelegationCommissionService::class);

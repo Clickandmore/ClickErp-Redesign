@@ -175,6 +175,28 @@ class DelegationCommissionReversalTest extends TestCase
         ]);
     }
 
+    public function test_non_executed_delegation_is_listed_but_cannot_be_selected_for_commission(): void
+    {
+        $admin = Admin::factory()->create();
+        $delegation = $this->createDelegation($admin, [
+            'status' => IngazDelegation::STATUS_UNDER_PROCESS,
+        ]);
+        $key = CommissionOperationService::SOURCE_DELEGATION . ':' . $delegation->id;
+        $service = app(CommissionOperationService::class);
+
+        $operation = $service->getOperations($admin->id, [
+            'service_type' => 'electronic_ingaz_delegation',
+        ])->firstWhere('key', $key);
+
+        $this->assertNotNull($operation);
+        $this->assertFalse($operation['commission_eligible']);
+        $this->assertSame(
+            'لم يتم تنفيذ التفويض بعد — غير مؤهل للعمولة',
+            $operation['commission_ineligible_reason']
+        );
+        $this->assertTrue($service->findSelected($admin->id, [$key])->isEmpty());
+    }
+
     public static function activeDuplicateFieldProvider(): array
     {
         return [

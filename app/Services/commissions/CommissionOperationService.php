@@ -335,22 +335,29 @@ class CommissionOperationService
         return $query
             ->with(['user:id,name', 'invoice.recruitmentCreditNotes'])
             ->get()
-            ->filter(fn (IngazDelegation $delegation) => $this->delegationCommissionService->isEligible($delegation))
-            ->map(fn (IngazDelegation $delegation) => $this->operation(
-                self::SOURCE_DELEGATION,
-                $delegation->id,
-                'electronic_ingaz_delegation',
-                'تفويض إنجاز',
-                $delegation->ingaz_number ?: (string) $delegation->id,
-                null,
-                $delegation->user?->name,
-                (string) ($delegation->status ?: '-'),
-                (float) ($delegation->invoice?->total_due ?? 0),
-                $delegation->invoice?->is_paid,
-                $delegation->delegation_date_gregorian ?: $delegation->created_at,
-                null,
-                null
-            ));
+            ->map(function (IngazDelegation $delegation) {
+                $operation = $this->operation(
+                    self::SOURCE_DELEGATION,
+                    $delegation->id,
+                    'electronic_ingaz_delegation',
+                    'تفويض إنجاز',
+                    $delegation->ingaz_number ?: (string) $delegation->id,
+                    null,
+                    $delegation->user?->name,
+                    (string) ($delegation->status ?: '-'),
+                    (float) ($delegation->invoice?->total_due ?? 0),
+                    $delegation->invoice?->is_paid,
+                    $delegation->delegation_date_gregorian ?: $delegation->created_at,
+                    null,
+                    null
+                );
+
+                $operation['commission_ineligible_reason'] =
+                    $this->delegationCommissionService->ineligibilityReason($delegation);
+                $operation['commission_eligible'] = $operation['commission_ineligible_reason'] === null;
+
+                return $operation;
+            });
     }
 
     private function scopeByCommissionMarketer(
