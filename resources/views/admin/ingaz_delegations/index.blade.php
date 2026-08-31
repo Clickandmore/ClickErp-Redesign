@@ -164,6 +164,17 @@
                             </select>
                         </div>
                         <div class="col-md-2">
+                            <label class="form-label">المسوق</label>
+                            <select name="marketer_id" class="form-select select2-marketer" data-placeholder="الكل">
+                                <option value="">الكل</option>
+                                @foreach ($marketers as $marketer)
+                                    <option value="{{ $marketer->id }}" @if(request('marketer_id') == $marketer->id) selected @endif>
+                                        {{ $marketer->name }}
+                                    </option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div class="col-md-2">
                             <label class="form-label">مرحلة التفويض</label>
                             <select name="status" class="form-select">
                                 <option value="">الكل</option>
@@ -196,7 +207,7 @@
                             <label class="form-label">إلى تاريخ التفويض</label>
                             <input type="date" name="to_date" value="{{ request('to_date') }}" class="form-control">
                         </div>
-                        <div class="col-12 d-flex gap-2">
+                        <div class="col-12 d-flex gap-2 flex-wrap">
                             <button type="submit" class="btn btn-primary">
                                 <i class="fa fa-filter me-1"></i>
                                 تصفية
@@ -205,6 +216,16 @@
                                 <i class="fa fa-rotate-right me-1"></i>
                                 إعادة تعيين
                             </a>
+                            @if ($canExportDelegations)
+                                <button type="button" class="btn btn-outline-success ms-auto" id="export-excel-btn">
+                                    <i class="fa fa-file-excel me-1"></i>
+                                    تصدير Excel
+                                </button>
+                                <button type="button" class="btn btn-outline-danger" id="export-pdf-btn">
+                                    <i class="fa fa-file-pdf me-1"></i>
+                                    تصدير PDF
+                                </button>
+                            @endif
                         </div>
                     </form>
                 </div>
@@ -220,6 +241,7 @@
                                     <th>تاريخ التفويض</th>
                                     <th>تاريخ الإضافة</th>
                                     <th>عميل</th>
+                                    <th>المسوق</th>
                                     <th>عقد مساند</th>
                                     <th>الدولة</th>
                                     <th>المهنة</th>
@@ -241,11 +263,29 @@
     <script>
         $(document).ready(function () {
             if ($.fn.select2) {
-                $('select[name="country_id"]').select2({
-                    width: '100%',
-                    allowClear: true,
-                    placeholder: $('select[name="country_id"]').data('placeholder') || 'الكل'
+                $('select[name="country_id"], select[name="marketer_id"]').each(function () {
+                    $(this).select2({
+                        width: '100%',
+                        allowClear: true,
+                        placeholder: $(this).data('placeholder') || 'الكل'
+                    });
                 });
+            }
+
+            // مصدر واحد لقيم المرشحات يستخدمه الجدول وأزرار التصدير معاً.
+            function currentFilters() {
+                return {
+                    branch_id: $('#branchFilter').val(),
+                    global_search: $('input[name="search"]').val(),
+                    country_id: $('select[name="country_id"]').val(),
+                    marketer_id: $('select[name="marketer_id"]').val(),
+                    client_source_type: $('select[name="client_source_type"]').val(),
+                    status: $('select[name="status"]').val(),
+                    has_invoice: $('select[name="has_invoice"]').val(),
+                    has_musaned_transfer: $('select[name="has_musaned_transfer"]').val(),
+                    from_date: $('input[name="from_date"]').val(),
+                    to_date: $('input[name="to_date"]').val()
+                };
             }
 
             const table = $('#ingaz-delegations-table').DataTable({
@@ -260,15 +300,7 @@
                     url: "{{ route('ingaz-delegations.index') }}",
                     type: 'GET',
                     data: function (d) {
-                        d.branch_id = $('#branchFilter').val();
-                        d.global_search = $('input[name="search"]').val();
-                        d.country_id = $('select[name="country_id"]').val();
-                        d.client_source_type = $('select[name="client_source_type"]').val();
-                        d.status = $('select[name="status"]').val();
-                        d.has_invoice = $('select[name="has_invoice"]').val();
-                        d.has_musaned_transfer = $('select[name="has_musaned_transfer"]').val();
-                        d.from_date = $('input[name="from_date"]').val();
-                        d.to_date = $('input[name="to_date"]').val();
+                        $.extend(d, currentFilters());
                     }
                 },
                 columns: [
@@ -276,6 +308,7 @@
                     { data: 'delegation_date_gregorian', name: 'delegation_date_gregorian', className: 'text-nowrap' },
                     { data: 'created_at', name: 'created_at', className: 'text-nowrap' },
                     { data: 'client', name: 'client', orderable: false, searchable: false },
+                    { data: 'marketer_name', name: 'marketer_name', orderable: false, searchable: false },
                     { data: 'msaned_transfer', name: 'msaned_contract_number' },
                     { data: 'country_name', name: 'country_name', orderable: false, searchable: false },
                     { data: 'profession_name', name: 'profession_name', orderable: false, searchable: false },
@@ -294,6 +327,25 @@
             $('#delegations-filter-form').on('submit', function (event) {
                 event.preventDefault();
                 table.ajax.reload();
+            });
+
+            function exportWith(baseUrl, newTab) {
+                const params = $.param(currentFilters());
+                const url = baseUrl + (baseUrl.indexOf('?') === -1 ? '?' : '&') + params;
+
+                if (newTab) {
+                    window.open(url, '_blank');
+                } else {
+                    window.location.href = url;
+                }
+            }
+
+            $('#export-excel-btn').on('click', function () {
+                exportWith("{{ route('ingaz-delegations.export.excel') }}", false);
+            });
+
+            $('#export-pdf-btn').on('click', function () {
+                exportWith("{{ route('ingaz-delegations.export.pdf') }}", true);
             });
 
             $(document).on('focus', '.delegation-status-select', function () {

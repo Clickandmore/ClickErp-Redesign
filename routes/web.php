@@ -412,6 +412,10 @@ Route::group(['prefix' => 'admin', 'middleware' => ['auth:admin', 'admin', 'admi
         // مسارات المدن
         Route::get('ingaz-delegations/find-maid-by-passport', [IngazDelegationController::class, 'findMaidByPassport'])
             ->name('ingaz-delegations.find-maid-by-passport');
+        Route::get('ingaz-delegations/export/excel', [IngazDelegationController::class, 'exportExcel'])
+            ->name('ingaz-delegations.export.excel');
+        Route::get('ingaz-delegations/export/pdf', [IngazDelegationController::class, 'exportPdf'])
+            ->name('ingaz-delegations.export.pdf');
         Route::get('ingaz-delegations/{ingazDelegation}/print', [IngazDelegationController::class, 'print'])
             ->name('ingaz-delegations.print');
         Route::patch('ingaz-delegations/{ingazDelegation}/status', [IngazDelegationController::class, 'updateStatus'])
