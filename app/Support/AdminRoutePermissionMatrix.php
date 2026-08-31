@@ -505,6 +505,13 @@ class AdminRoutePermissionMatrix
                 PermKeys::REC_CONTRACTS_PRINT,
                 PermKeys::REC_CONTRACTS_MANAGE,
             ],
+            'ingaz-delegations.export.*' => [
+                PermKeys::INGAZ_DELEGATIONS_PRINT,
+                PermKeys::INGAZ_DELEGATIONS_CONTROL,
+                PermKeys::REC_CONTRACTS_PRINT,
+                PermKeys::REC_CONTRACTS_VIEW,
+                PermKeys::REC_CONTRACTS_MANAGE,
+            ],
             'invoices.index' => InvoiceAuthorization::viewPermissions(),
             'invoices.show' => InvoiceAuthorization::viewPermissions(),
             'invoices.create' => InvoiceAuthorization::createPermissions(),

@@ -2,6 +2,7 @@
 
 namespace Nami\Finance\Services;
 
+use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;
 use Nami\Finance\Enums\ConstraintTypiesEnum;
 use Nami\Finance\MainService;
@@ -15,6 +16,7 @@ class ConstraintService extends MainService
     protected YearService $yearService;
     protected ConstraintFileService $constraintFileService;
     protected ConfirmSettingService $confirmSettingService;
+    protected ConstraintNumberService $constraintNumberService;
 
     public function __construct(
         Model                    $model,
@@ -23,7 +25,8 @@ class ConstraintService extends MainService
         ConstraintDetailsService $constraintDetailsService,
         YearService              $yearService,
         ConstraintFileService    $constraintFileService,
-        ConfirmSettingService    $confirmSettingService
+        ConfirmSettingService    $confirmSettingService,
+        ConstraintNumberService  $constraintNumberService
     )
     {
         $this->model = $model;
@@ -33,14 +36,36 @@ class ConstraintService extends MainService
         $this->yearService = $yearService;
         $this->constraintFileService = $constraintFileService;
         $this->confirmSettingService = $confirmSettingService;
+        $this->constraintNumberService = $constraintNumberService;
     }
 
     public function store($data)
     {
-        $constraint = parent::store($data);
-        $this->logConstraintActivity($constraint, 'created', __('finance::finance.constraint_created_log_description'));
+        for ($attempt = 1; $attempt <= 5; $attempt++) {
+            try {
+                return DB::transaction(function () use ($data) {
+                    // Never trust the preview number posted by a form. Reserve the
+                    // definitive number at the last possible moment on the server.
+                    $data['code'] = $this->constraintNumberService->nextCode();
+                    $constraint = parent::store($data);
+                    $this->logConstraintActivity($constraint, 'created', __('finance::finance.constraint_created_log_description'));
 
-        return $constraint;
+                    return $constraint;
+                });
+            } catch (QueryException $exception) {
+                if (!$this->isActiveCodeCollision($exception) || $attempt === 5) {
+                    throw $exception;
+                }
+            }
+        }
+
+        throw new \RuntimeException('Unable to reserve a unique constraint number.');
+    }
+
+    private function isActiveCodeCollision(QueryException $exception): bool
+    {
+        return (int) ($exception->errorInfo[1] ?? 0) === 1062
+            && str_contains($exception->getMessage(), 'fn_constraints_active_code_unique');
     }
 
     public function getAccounts($type = null)
@@ -74,8 +99,7 @@ class ConstraintService extends MainService
 
     public function lastCode()
     {
-        $row = $this->model->orderBy('code', 'DESC')->first();
-        return (isset($row->code)) ? ($row->code + 1) : 1;
+        return $this->constraintNumberService->previewNextCode();
     }
 
     public function storeConstraint($data,$getActiveYear,$type = ConstraintTypiesEnum::DailyEntry)

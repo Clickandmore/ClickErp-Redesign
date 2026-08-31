@@ -17,6 +17,10 @@ use Nami\Finance\Models\FiscalYearClosure;
 
 class FiscalYearClosingService
 {
+    public function __construct(private ConstraintNumberService $constraintNumberService)
+    {
+    }
+
     public function pageData(?int $yearId = null, ?string $closingDate = null): array
     {
         $years = FnYear::query()->orderByDesc('from_date')->get();
@@ -150,7 +154,7 @@ class FiscalYearClosingService
                 'date' => $closingDate,
                 'statement' => $statement,
                 'year_id' => $year->id,
-                'code' => ((int) Constraint::query()->lockForUpdate()->max('code')) + 1,
+                'code' => $this->constraintNumberService->nextCode(),
                 'created_by_id' => auth('admin')->id(),
                 'approval_status' => Constraint::APPROVAL_APPROVED,
                 'approved_at' => now(),
