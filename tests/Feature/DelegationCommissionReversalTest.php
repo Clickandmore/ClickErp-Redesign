@@ -54,6 +54,17 @@ class DelegationCommissionReversalTest extends TestCase
         $this->assertSame(IngazDelegation::duplicateKey($replacement->ingaz_number), $replacement->active_ingaz_number_key);
     }
 
+    public function test_zero_placeholder_ingaz_numbers_do_not_collide_when_delegations_become_active(): void
+    {
+        $admin = Admin::factory()->create();
+        $first = $this->createDelegation($admin, ['ingaz_number' => '0']);
+        $second = $this->createDelegation($admin, ['ingaz_number' => '0']);
+
+        $this->assertNotSame($first->id, $second->id);
+        $this->assertNull($first->active_ingaz_number_key);
+        $this->assertNull($second->active_ingaz_number_key);
+    }
+
     public function test_cancelling_after_payment_keeps_history_and_creates_one_negative_balance_reversal(): void
     {
         $admin = Admin::factory()->create();
@@ -175,7 +186,7 @@ class DelegationCommissionReversalTest extends TestCase
         ]);
     }
 
-    public function test_non_executed_delegation_is_listed_but_cannot_be_selected_for_commission(): void
+    public function test_non_cancelled_delegation_in_any_stage_can_be_selected_for_commission(): void
     {
         $admin = Admin::factory()->create();
         $delegation = $this->createDelegation($admin, [
@@ -189,12 +200,9 @@ class DelegationCommissionReversalTest extends TestCase
         ])->firstWhere('key', $key);
 
         $this->assertNotNull($operation);
-        $this->assertFalse($operation['commission_eligible']);
-        $this->assertSame(
-            'لم يتم تنفيذ التفويض بعد — غير مؤهل للعمولة',
-            $operation['commission_ineligible_reason']
-        );
-        $this->assertTrue($service->findSelected($admin->id, [$key])->isEmpty());
+        $this->assertTrue($operation['commission_eligible']);
+        $this->assertNull($operation['commission_ineligible_reason']);
+        $this->assertSame([$key], $service->findSelected($admin->id, [$key])->pluck('key')->all());
     }
 
     public static function activeDuplicateFieldProvider(): array
