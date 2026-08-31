@@ -6,5 +6,5 @@ use Illuminate\Database\Eloquent\Model;
 
 class WhyChooseUsTranslation extends Model
 {
-    protected $fillable = ['title', 'description'];
+    protected $fillable = ['title', 'description', 'cta_label'];
 }

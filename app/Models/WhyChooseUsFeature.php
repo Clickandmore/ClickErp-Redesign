@@ -10,8 +10,12 @@ class WhyChooseUsFeature extends Model implements TranslatableContract
 {
     use Translatable;
 
+    public const TYPE_FEATURE = 'feature';
+    public const TYPE_HIGHLIGHT = 'highlight';
+
     protected $fillable = [
         'why_choose_us_id',
+        'type',
         'icon',
         'sort_order',
     ];
@@ -23,4 +27,9 @@ class WhyChooseUsFeature extends Model implements TranslatableContract
     ];
 
     protected $with = ['translations'];
+
+    public static function types(): array
+    {
+        return [self::TYPE_FEATURE, self::TYPE_HIGHLIGHT];
+    }
 }

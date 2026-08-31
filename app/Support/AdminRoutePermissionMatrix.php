@@ -473,6 +473,7 @@ class AdminRoutePermissionMatrix
             'RecruitmentContract.edit' => [NewPermKeys::REC_CONTRACTS_EDIT, NewPermKeys::REC_CONTRACTS_MANAGE],
             'RecruitmentContract.update' => [NewPermKeys::REC_CONTRACTS_EDIT, NewPermKeys::REC_CONTRACTS_MANAGE],
             'RecruitmentContract.destroy' => [NewPermKeys::REC_CONTRACTS_DELETE, NewPermKeys::REC_CONTRACTS_MANAGE],
+            'RecruitmentContract.restoreReturned' => [NewPermKeys::REC_CONTRACTS_RETURN, NewPermKeys::REC_CONTRACTS_MANAGE],
             'RecruitmentContract.statistics' => [NewPermKeys::REC_CONTRACTS_VIEW, NewPermKeys::REC_CONTRACTS_MANAGE],
             'RecruitmentContract.export.pdf' => [NewPermKeys::REC_CONTRACTS_EXPORT, NewPermKeys::REC_CONTRACTS_MANAGE],
             'RecruitmentContract.export.excel' => [NewPermKeys::REC_CONTRACTS_EXPORT, NewPermKeys::REC_CONTRACTS_MANAGE],

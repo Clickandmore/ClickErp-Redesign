@@ -10,8 +10,11 @@ class WhyChooseUsResource extends JsonResource
     {
         return [
             'id' => $this->id,
+            // The title may wrap one phrase in [[ ]] to have the site colour it.
             'title' => $this->title,
             'description' => $this->description,
+            'cta_label' => $this->cta_label,
+            'cta_url' => $this->cta_url,
             'images' => $this->images->map(fn ($image) => [
                 'id' => $image->id,
                 'url' => $image->url,
@@ -23,6 +26,12 @@ class WhyChooseUsResource extends JsonResource
                 'description' => $feature->description,
                 'icon' => $feature->icon,
                 'sort_order' => $feature->sort_order,
+            ])->values(),
+            'highlights' => $this->highlights->map(fn ($highlight) => [
+                'id' => $highlight->id,
+                'title' => $highlight->title,
+                'icon' => $highlight->icon,
+                'sort_order' => $highlight->sort_order,
             ])->values(),
         ];
     }

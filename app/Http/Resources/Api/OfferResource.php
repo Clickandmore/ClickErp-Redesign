@@ -22,6 +22,7 @@ class OfferResource extends JsonResource
             'starts_at' => optional($this->starts_at)->toDateString(),
             'ends_at' => optional($this->ends_at)->toDateString(),
             'is_active' => (bool) $this->is_active,
+            'is_featured' => (bool) $this->is_featured,
             'sort_order' => (int) $this->sort_order,
             'nationalities' => NationalityResource::collection($this->whenLoaded('nationalities')),
             'maids' => MaidCardResource::collection($this->whenLoaded('maids')),
