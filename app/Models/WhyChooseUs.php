@@ -12,9 +12,9 @@ class WhyChooseUs extends Model implements TranslatableContract
 
     protected $table = 'why_choose_us';
 
-    protected $fillable = ['is_active'];
+    protected $fillable = ['is_active', 'cta_url'];
 
-    public $translatedAttributes = ['title', 'description'];
+    public $translatedAttributes = ['title', 'description', 'cta_label'];
 
     protected $casts = [
         'is_active' => 'boolean',
@@ -27,10 +27,29 @@ class WhyChooseUs extends Model implements TranslatableContract
             ->orderBy('id');
     }
 
-    public function features()
+    /**
+     * Every row regardless of type — used when syncing from the dashboard.
+     */
+    public function allFeatures()
     {
         return $this->hasMany(WhyChooseUsFeature::class)
             ->orderBy('sort_order')
             ->orderBy('id');
+    }
+
+    /**
+     * The cards rendered beside the section copy.
+     */
+    public function features()
+    {
+        return $this->allFeatures()->where('type', WhyChooseUsFeature::TYPE_FEATURE);
+    }
+
+    /**
+     * The short items in the strip over the section image.
+     */
+    public function highlights()
+    {
+        return $this->allFeatures()->where('type', WhyChooseUsFeature::TYPE_HIGHLIGHT);
     }
 }

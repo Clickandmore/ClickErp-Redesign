@@ -31,6 +31,17 @@
     <input type="number" name="sort_order" class="form-control" min="0" value="{{ $obj->sort_order ?? 0 }}">
 </div>
 
+<div class="col-md-6">
+    <label class="form-label">العرض الأفضل</label>
+    <select name="is_featured" class="form-control">
+        <option value="0" {{ (bool) ($obj->is_featured ?? false) ? '' : 'selected' }}>عرض عادي</option>
+        <option value="1" {{ (bool) ($obj->is_featured ?? false) ? 'selected' : '' }}>العرض الأفضل (يظهر في منتصف قسم العروض الحصرية)</option>
+    </select>
+    <small class="text-muted d-block mt-1">
+        يمكن تمييز عرض واحد فقط كـ «العرض الأفضل»؛ عند اختياره يتم إلغاء التمييز عن أي عرض آخر تلقائياً.
+    </small>
+</div>
+
 <div class="col-12">
     <label class="form-label">وصف العرض <span class="text-danger">*</span></label>
     <textarea name="description" class="form-control" rows="4" required>{{ $obj->description ?? '' }}</textarea>
@@ -40,6 +51,9 @@
     <label class="form-label">صورة العرض @if(empty($obj)) <span class="text-danger">*</span> @endif</label>
     <input type="file" name="image" class="dropify" data-default-file="{{ isset($obj) && $obj->image ? getFile($obj->image) : '' }}" {{ empty($obj) ? 'required' : '' }}>
     <small class="text-muted d-block mt-1">
+        الصورة هي تصميم الإعلان كاملاً (العلم والجنسية والعنوان والوصف)، فالموقع يعرضها كما هي
+        ولا يكتب العنوان أو الوصف فوقها — يظهران في صفحة تفاصيل العرض.
+        المقاس المقترح: 784×576 للعرض العادي، و1280×660 للعرض الأفضل.
         يُقبل الملف بأي امتداد أو حجم من جهة النظام. إذا تجاوز حجم الملف حد الخادم ({{ ini_get('upload_max_filesize') }}) ستظهر رسالة توضح ذلك.
     </small>
 </div>

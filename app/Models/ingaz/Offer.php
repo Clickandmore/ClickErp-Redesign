@@ -30,6 +30,7 @@ class Offer extends Model
         'starts_at',
         'ends_at',
         'is_active',
+        'is_featured',
         'sort_order',
     ];
 
@@ -40,6 +41,7 @@ class Offer extends Model
         'starts_at' => 'date',
         'ends_at' => 'date',
         'is_active' => 'boolean',
+        'is_featured' => 'boolean',
         'sort_order' => 'integer',
     ];
 

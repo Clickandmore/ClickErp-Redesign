@@ -45,6 +45,10 @@
                             <td>{{ $obj->is_active ? 'نشط' : 'غير نشط' }}</td>
                         </tr>
                         <tr>
+                            <th>العرض الأفضل</th>
+                            <td>{{ $obj->is_featured ? 'نعم' : 'لا' }}</td>
+                        </tr>
+                        <tr>
                             <th>الترتيب</th>
                             <td>{{ $obj->sort_order }}</td>
                         </tr>

@@ -37,6 +37,7 @@ use App\NewPermKeys;
 use App\PermKeys;
 use App\Services\ingaz\RecruitmentTripAccountingService;
 use App\Services\ingaz\RecruitmentContractRefundService;
+use App\Services\ingaz\RecruitmentContractReturnRestorationService;
 use App\Services\ingaz\RentalMaidArrivalService;
 use App\Services\ManagedFileStorage;
 use App\Support\SystemModuleManager;
@@ -387,11 +388,15 @@ class RecruitmentContractController extends Controller
         DB::transaction(function () use ($contract, $currentStatus, $nextStatus, $statusDate) {
             $contract->update(['status' => $nextStatus]);
 
-            $contract->contract_status_logs()->create([
+            $statusLogData = [
                 'status' => $nextStatus,
                 'date' => $statusDate,
                 'notes' => 'تم تحديث الحالة من ' . getContractStatus($currentStatus) . ' إلى ' . getContractStatus($nextStatus)
-            ]);
+            ];
+            if (Schema::hasColumn('contract_status_logs', 'previous_status')) {
+                $statusLogData['previous_status'] = $currentStatus;
+            }
+            $contract->contract_status_logs()->create($statusLogData);
         });
 
         $contract->refresh();
@@ -1751,6 +1756,14 @@ class RecruitmentContractController extends Controller
                             $actions .= '<li><span class="dropdown-item disabled">
                                             <span class="badge bg-warning">مرتجع</span>
                                         </span></li>';
+                            if (@AdminGuardHasAnyPerm([
+                                \App\NewPermKeys::REC_CONTRACTS_RETURN,
+                                \App\NewPermKeys::REC_CONTRACTS_MANAGE,
+                            ])) {
+                                $actions .= '<li><button class="dropdown-item text-success restore-returned-contract-btn" data-contract-id="' . $row->id . '">
+                                                <i class="fas fa-rotate-right"></i> التراجع عن الإرجاع
+                                            </button></li>';
+                            }
                         } else {
                             // التحقق من صلاحية إرجاع العقد
                             if (@AdminGuardHasPerm(\App\NewPermKeys::REC_CONTRACTS_RETURN)) {
@@ -6166,17 +6179,23 @@ class RecruitmentContractController extends Controller
             DB::beginTransaction();
 
             try {
+                $previousStatus = $contract->status;
+
                 // تحديث حالة العقد إلى مرتجع
                 $contract->update([
                     'status' => ContractStatusEnum::Back->value
                 ]);
 
                 // إنشاء سجل حالة العقد
-                $contract->contract_status_logs()->create([
+                $statusLogData = [
                     'status' => ContractStatusEnum::Back->value,
                     'date' => now(),
                     'notes' => 'تم إلغاء العقد - السبب: ' . $request->cancel_reason
-                ]);
+                ];
+                if (Schema::hasColumn('contract_status_logs', 'previous_status')) {
+                    $statusLogData['previous_status'] = $previousStatus;
+                }
+                $contract->contract_status_logs()->create($statusLogData);
 
                 // تحديث حالة العاملة
                 if ($contract->maid) {
@@ -6237,6 +6256,58 @@ class RecruitmentContractController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'حدث خطأ أثناء إلغاء العقد: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * التراجع عن إرجاع العقد وإعادته إلى آخر حالة موثقة قبل الإرجاع.
+     */
+    public function restoreReturned(
+        Request $request,
+        Contract $contract,
+        RecruitmentContractReturnRestorationService $restorationService
+    ) {
+        if (!@AdminGuardHasAnyPerm([
+            \App\NewPermKeys::REC_CONTRACTS_RETURN,
+            \App\NewPermKeys::REC_CONTRACTS_MANAGE,
+        ])) {
+            return response()->json([
+                'success' => false,
+                'message' => 'ليس لديك صلاحية للتراجع عن إرجاع العقود',
+            ], 403);
+        }
+
+        $this->assertCanAccessBranchModel($contract, 'contracts');
+
+        try {
+            $restoredContract = $restorationService->restore(
+                $contract,
+                Auth::guard('admin')->id(),
+                $request->input('previous_status')
+            );
+
+            return response()->json([
+                'success' => true,
+                'message' => 'تمت إعادة العقد إلى الحالة السابقة: ' . getContractStatus($restoredContract->status),
+                'status' => $restoredContract->status,
+            ]);
+        } catch (\Illuminate\Validation\ValidationException $exception) {
+            return response()->json([
+                'success' => false,
+                'message' => collect($exception->errors())->flatten()->first() ?: $exception->getMessage(),
+                'errors' => $exception->errors(),
+            ], 422);
+        } catch (\Throwable $exception) {
+            logger()->error('Failed to restore returned recruitment contract', [
+                'contract_id' => $contract->id,
+                'admin_id' => Auth::guard('admin')->id(),
+                'error' => $exception->getMessage(),
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'تعذر التراجع عن إرجاع العقد. لم يتم إجراء أي تغيير.',
             ], 500);
         }
     }
@@ -6378,15 +6449,20 @@ class RecruitmentContractController extends Controller
                     'reason' => $validated['reason'],
                 ]);
 
+                $previousStatus = $contract->status;
                 $contract->update([
                     'status' => ContractStatusEnum::Back->value,
                 ]);
 
-                $contract->contract_status_logs()->create([
+                $statusLogData = [
                     'status' => ContractStatusEnum::Back->value,
                     'date' => $validated['refund_date'],
                     'notes' => 'تم استرداد العقد - السبب: ' . $validated['reason'],
-                ]);
+                ];
+                if (Schema::hasColumn('contract_status_logs', 'previous_status')) {
+                    $statusLogData['previous_status'] = $previousStatus;
+                }
+                $contract->contract_status_logs()->create($statusLogData);
 
                 if ($contract->maid) {
                     $backoutReason = 'تم تحويل العاملة إلى باك آوت بعد استرداد العقد #' . $contract->id

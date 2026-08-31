@@ -15,7 +15,7 @@ class WhyChooseUsAction extends MainAction
     public function section(): ?WhyChooseUs
     {
         return $this->model
-            ->with(['images', 'features'])
+            ->with(['images', 'features', 'highlights'])
             ->first();
     }
 
@@ -23,7 +23,7 @@ class WhyChooseUsAction extends MainAction
     {
         return $this->model
             ->where('is_active', true)
-            ->with(['images', 'features'])
+            ->with(['images', 'features', 'highlights'])
             ->first();
     }
 }

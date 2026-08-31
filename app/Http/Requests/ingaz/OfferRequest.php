@@ -43,6 +43,7 @@ class OfferRequest extends MainRequest
             'starts_at' => ['nullable', 'date'],
             'ends_at' => ['nullable', 'date', 'after_or_equal:starts_at'],
             'is_active' => ['nullable', 'boolean'],
+            'is_featured' => ['nullable', 'boolean'],
             'sort_order' => ['nullable', 'integer', 'min:0'],
             'nationality_ids' => [Rule::requiredIf(in_array($this->input('type'), $typesWithNationalities, true)), 'array', 'min:1'],
             'nationality_ids.*' => ['integer', 'exists:nationalities,id'],
