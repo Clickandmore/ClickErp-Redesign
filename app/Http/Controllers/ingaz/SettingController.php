@@ -39,6 +39,7 @@ class SettingController extends Controller
         'phone',
         'other_phone',
         'map_link',
+        'find_us_mode',
         'header_link_1_title',
         'header_link_1_url',
         'header_link_2_title',

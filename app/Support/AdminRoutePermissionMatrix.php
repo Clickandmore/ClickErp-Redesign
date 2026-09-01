@@ -850,6 +850,9 @@ class AdminRoutePermissionMatrix
                 'update' => [PermKeys::FIND_US_EDIT, PermKeys::FIND_US_CONTROL],
                 'destroy' => [PermKeys::FIND_US_DELETE, PermKeys::FIND_US_CONTROL],
             ]),
+            [
+                'find-us.mode' => [PermKeys::FIND_US_EDIT, PermKeys::FIND_US_CONTROL],
+            ],
             self::resource('requiremens', [
                 'index' => [
                     PermKeys::RECRUITMENT_REQUIREMENTS_VIEW,

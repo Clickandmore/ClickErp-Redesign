@@ -147,6 +147,9 @@ Route::group(
                 ->name('guidelines.edit');
             Route::put('guidelines', [GuidelineSectionController::class, 'update'])
                 ->name('guidelines.update');
+            // يجب أن يسبق تعريف الـ resource حتى لا يبتلعه المسار find-us/{location}
+            Route::put('find-us/mode', [FindUsLocationController::class, 'updateMode'])
+                ->name('find-us.mode');
             Route::resource('find-us', FindUsLocationController::class)
                 ->except('show')
                 ->parameters(['find-us' => 'location']);

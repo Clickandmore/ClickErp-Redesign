@@ -71,6 +71,7 @@ class SettingRequest extends MainRequest
             'phone' => 'nullable',
             'other_phone' => 'nullable',
             'map_link' => 'nullable|string|max:2000',
+            'find_us_mode' => ['nullable', 'string', Rule::in(\App\Support\FindUsSettings::modes())],
             'header_link_1_title' => 'nullable|string|max:100',
             'header_link_1_url' => 'nullable|url|max:500',
             'header_link_2_title' => 'nullable|string|max:100',
