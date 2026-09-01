@@ -11,6 +11,7 @@ use App\Models\commissions\CommissionBatchItem;
 use App\Services\commissions\CommissionOperationService;
 use App\Services\commissions\CommissionPaymentService;
 use App\Services\commissions\CommissionCalculationService;
+use App\Services\commissions\CommissionAccrualService;
 use App\Services\commissions\DelegationCommissionService;
 use App\Services\commissions\RecruitmentCommissionService;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
@@ -214,7 +215,8 @@ class RecruitmentCommissionReturnTest extends TestCase
         $calculation = new CommissionCalculationService(
             $operationService,
             Mockery::mock(DelegationCommissionService::class),
-            app(RecruitmentCommissionService::class)
+            app(RecruitmentCommissionService::class),
+            Mockery::mock(CommissionAccrualService::class)
         );
 
         $this->expectException(ValidationException::class);

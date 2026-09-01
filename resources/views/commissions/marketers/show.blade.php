@@ -43,6 +43,9 @@
 @if(session('success'))
     <div class="alert alert-success">{{ session('success') }}</div>
 @endif
+@if(session('info'))
+    <div class="alert alert-info"><i class="fa fa-info-circle me-1"></i>{{ session('info') }}</div>
+@endif
 <div class="alert alert-info border-0 shadow-sm">
     <div class="fw-bold mb-1"><i class="fa fa-info-circle me-1"></i> تنبيه مهم عن حالات السداد</div>
     <div class="small">

@@ -15,7 +15,8 @@ class CommissionCalculationService
     public function __construct(
         private readonly CommissionOperationService $operationService,
         private readonly DelegationCommissionService $delegationCommissionService,
-        private readonly RecruitmentCommissionService $recruitmentCommissionService
+        private readonly RecruitmentCommissionService $recruitmentCommissionService,
+        private readonly CommissionAccrualService $accrualService
     ) {}
 
     public function getApplicableSetting(int $marketerId, string $serviceType): ?array
@@ -160,6 +161,30 @@ class CommissionCalculationService
                 ]);
             }
 
+            $currentBalance = app(CommissionProfileService::class)->getMarketerBalance($marketerId);
+            $existingAccrualBatch = CommissionBatch::query()
+                ->where('marketer_id', $marketerId)
+                ->whereNotNull('accrual_constraint_id')
+                ->latest('approved_at')
+                ->first(['id', 'payable_account_id']);
+
+            if ($currentBalance > 0 && ! $existingAccrualBatch) {
+                throw ValidationException::withMessages([
+                    'operations' => 'يوجد رصيد عمولات قديم بلا قيد استحقاق. يجب صرفه أو تسويته أولًا قبل اعتماد دفعة بالنظام المحاسبي الجديد.',
+                ]);
+            }
+
+            if ($currentBalance > 0
+                && $existingAccrualBatch?->payable_account_id
+                && ! \Nami\Finance\Models\Account::query()
+                    ->whereKey($existingAccrualBatch->payable_account_id)
+                    ->where('code', 223)
+                    ->exists()) {
+                throw ValidationException::withMessages([
+                    'operations' => 'الرصيد القائم مرتبط بحساب استحقاق مختلف عن الحساب التلقائي رقم 223؛ يجب تسويته أولًا.',
+                ]);
+            }
+
             $batch = CommissionBatch::create([
                 'marketer_id'       => $marketerId,
                 'total_requests'    => $preview['total_requests'],
@@ -204,7 +229,6 @@ class CommissionCalculationService
             }
 
             // Add to marketer balance
-            $currentBalance = app(CommissionProfileService::class)->getMarketerBalance($marketerId);
             $balanceAfter = $currentBalance + $preview['total_commission'];
 
             CommissionBalanceTransaction::create([
@@ -218,7 +242,9 @@ class CommissionCalculationService
                 'created_by'     => $adminId,
             ]);
 
-            return $batch;
+            $this->accrualService->createForBatch($batch, $adminId);
+
+            return $batch->fresh(['accrualConstraint', 'expenseAccount', 'payableAccount']);
         });
     }
 

@@ -83,6 +83,12 @@ class CommissionMarketerController extends Controller
     {
         abort_unless($this->isCommissionMarketer($admin), 404);
 
+        if ($request->isMethod('get')) {
+            return redirect()
+                ->route('commissions.marketers.show', $admin->id)
+                ->with('info', 'حدد العمليات المطلوبة ثم اضغط «مراجعة وتحديد العمولة» لفتح المعاينة.');
+        }
+
         $request->validate([
             'operations'   => ['required', 'array', 'min:1'],
             'operations.*' => ['required', 'string', 'max:100'],
@@ -138,7 +144,9 @@ class CommissionMarketerController extends Controller
 
         return redirect()
             ->route('commissions.marketers.show', $admin->id)
-            ->with('success', "تم اعتماد العمولة بنجاح. إجمالي العمولة: " . number_format($batch->total_commission, 2) . " ريال");
+            ->with('success', 'تم اعتماد العمولة وإنشاء قيد الاستحقاق #'
+                . ($batch->accrualConstraint?->code ?? $batch->accrual_constraint_id)
+                . '. إجمالي العمولة: ' . number_format($batch->total_commission, 2) . ' ريال');
     }
 
     public function resolveReturnedCommission(Request $request, Admin $admin, CommissionBatchItem $item)

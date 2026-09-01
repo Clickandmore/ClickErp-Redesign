@@ -829,7 +829,7 @@ Route::middleware(['admin', 'admin.route.permission'])
 
         Route::get('marketers', [\App\Http\Controllers\commissions\CommissionMarketerController::class, 'index'])->name('marketers.index');
         Route::get('marketers/{admin}', [\App\Http\Controllers\commissions\CommissionMarketerController::class, 'show'])->name('marketers.show');
-        Route::post('marketers/{admin}/calculate-preview', [\App\Http\Controllers\commissions\CommissionMarketerController::class, 'preview'])->name('marketers.preview');
+        Route::match(['get', 'post'], 'marketers/{admin}/calculate-preview', [\App\Http\Controllers\commissions\CommissionMarketerController::class, 'preview'])->name('marketers.preview');
         Route::post('marketers/{admin}/calculate-approve', [\App\Http\Controllers\commissions\CommissionMarketerController::class, 'approve'])->name('marketers.approve');
         Route::post('marketers/{admin}/returned-commissions/{item}/resolve', [\App\Http\Controllers\commissions\CommissionMarketerController::class, 'resolveReturnedCommission'])->name('marketers.returned-commissions.resolve');
 

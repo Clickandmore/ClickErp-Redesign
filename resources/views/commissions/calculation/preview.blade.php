@@ -76,7 +76,7 @@
         <div class="card review-card h-100"><div class="card-body">
             <label class="form-label fw-bold">ملاحظات دفعة العمولة</label>
             <textarea name="notes" class="form-control" rows="3" placeholder="ملاحظات اختيارية تظهر في سجل الدفعة...">{{ old('notes') }}</textarea>
-            <div class="alert alert-info small mt-3 mb-0"><i class="fa fa-info-circle me-1"></i> بعد الاعتماد تُقفل هذه العمليات ضد التكرار ويُضاف الإجمالي مباشرة إلى رصيد الموظف.</div>
+            <div class="alert alert-info small mt-3 mb-0"><i class="fa fa-info-circle me-1"></i> بعد الاعتماد تُقفل العمليات، ويُضاف الإجمالي إلى رصيد الموظف، ويُنشأ قيد الاستحقاق تلقائيًا على حسابات عمولات المسوقين.</div>
         </div></div>
     </div>
     <div class="col-lg-4">
@@ -136,7 +136,7 @@ $(function () {
             ? '\n\nتنبيه شديد: توجد نسبة عمولة 50% أو أكثر. تأكد أنك لم تقصد «مبلغًا ثابتًا».'
             : '';
 
-        if (!confirm(`سيتم اعتماد وإضافة ${formatted} ر.س إلى رصيد الموظف.${warning}\n\nهل تريد المتابعة؟`)) {
+        if (!confirm(`سيتم اعتماد وإضافة ${formatted} ر.س إلى رصيد الموظف وإنشاء قيد الاستحقاق.${warning}\n\nهل تريد المتابعة؟`)) {
             event.preventDefault();
         }
     });

@@ -19,7 +19,8 @@ class CommissionPaymentService
     public function __construct(
         private readonly CommissionProfileService $profileService,
         private readonly BondService $bondService,
-        private readonly YearService $yearService
+        private readonly YearService $yearService,
+        private readonly CommissionAccrualService $accrualService
     ) {}
 
     public function issuePayment(
@@ -40,6 +41,30 @@ class CommissionPaymentService
                     'amount' => 'مبلغ سند الصرف يجب أن يكون أكبر من صفر وألا يتجاوز الرصيد المتاح.',
                 ]);
             }
+
+            if ($this->hasPendingAccrualConstraint($marketerId)) {
+                throw ValidationException::withMessages([
+                    'payment' => 'لا يمكن إصدار سند الصرف قبل اعتماد جميع قيود استحقاق العمولة ماليًا.',
+                ]);
+            }
+
+            if ($this->hasAccrualBatches($marketerId)) {
+                $payableAccount = $this->getDefaultPayableAccount($marketerId);
+                if (! $payableAccount) {
+                    throw ValidationException::withMessages([
+                        'payment' => 'تعذر تحديد حساب استحقاق العمولة من قيد الاعتماد.',
+                    ]);
+                }
+                $financialData['debit_account_id'] = $payableAccount->id;
+            }
+
+            if ((int) ($financialData['debit_account_id'] ?? 0) === (int) $financialData['credit_account_id']) {
+                throw ValidationException::withMessages([
+                    'credit_account_id' => 'حساب الصندوق أو البنك يجب أن يختلف عن حساب استحقاق العمولة.',
+                ]);
+            }
+
+            $this->assertPayableAccount($marketerId, (int) $financialData['debit_account_id']);
 
             $payment = CommissionPayment::create([
                 'marketer_id'  => $marketerId,
@@ -188,6 +213,7 @@ class CommissionPaymentService
                     ->update(['commissioned_at' => null, 'commission_batch_id' => null]);
             }
 
+            $this->accrualService->deleteForBatch($batch);
             $credit->delete();
             $batch->delete(); // its items are removed by the database cascade.
         });
@@ -242,6 +268,62 @@ class CommissionPaymentService
             'paymentTypes' => $this->bondService->getBondPaymentTypies(),
             'costCenterRequired' => $this->isCostCenterRequired(),
         ];
+    }
+
+    public function getDefaultPayableAccount(int $marketerId): ?\Nami\Finance\Models\Account
+    {
+        $accountId = CommissionBatch::query()
+            ->where('marketer_id', $marketerId)
+            ->where('status', CommissionBatch::STATUS_APPROVED)
+            ->whereNotNull('payable_account_id')
+            ->whereHas('accrualConstraint', fn ($query) => $query->approved())
+            ->latest('approved_at')
+            ->value('payable_account_id');
+
+        return $accountId
+            ? \Nami\Finance\Models\Account::query()->find($accountId)
+            : null;
+    }
+
+    public function hasAccrualBatches(int $marketerId): bool
+    {
+        return CommissionBatch::query()
+            ->where('marketer_id', $marketerId)
+            ->whereNotNull('accrual_constraint_id')
+            ->exists();
+    }
+
+    public function hasPendingAccrualConstraint(int $marketerId): bool
+    {
+        return CommissionBatch::query()
+            ->where('marketer_id', $marketerId)
+            ->where('status', CommissionBatch::STATUS_APPROVED)
+            ->whereNotNull('accrual_constraint_id')
+            ->whereDoesntHave('accrualConstraint', fn ($query) => $query->approved())
+            ->exists();
+    }
+
+    private function assertPayableAccount(int $marketerId, int $accountId): void
+    {
+        $accrualBatchesExist = $this->hasAccrualBatches($marketerId);
+
+        if (! $accrualBatchesExist) {
+            return;
+        }
+
+        $valid = CommissionBatch::query()
+            ->where('marketer_id', $marketerId)
+            ->where('status', CommissionBatch::STATUS_APPROVED)
+            ->where('payable_account_id', $accountId)
+            ->whereNotNull('accrual_constraint_id')
+            ->whereHas('accrualConstraint', fn ($query) => $query->approved())
+            ->exists();
+
+        if (! $valid) {
+            throw ValidationException::withMessages([
+                'debit_account_id' => 'يجب اختيار حساب استحقاق العمولة المستخدم عند الاعتماد، ويجب أن يكون قيد الاستحقاق معتمدًا ماليًا.',
+            ]);
+        }
     }
 
     public function isCostCenterRequired(): bool

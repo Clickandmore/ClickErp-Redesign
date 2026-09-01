@@ -9,6 +9,7 @@ use App\Models\commissions\CommissionBatch;
 use App\Models\commissions\CommissionBatchItem;
 use App\Services\commissions\CommissionOperationService;
 use App\Services\commissions\CommissionCalculationService;
+use App\Services\commissions\CommissionAccrualService;
 use App\Services\commissions\DelegationCommissionService;
 use App\Services\commissions\RecruitmentCommissionService;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
@@ -164,7 +165,8 @@ class DelegationCommissionReversalTest extends TestCase
         $calculation = new CommissionCalculationService(
             $operationService,
             $eligibility,
-            Mockery::mock(RecruitmentCommissionService::class)
+            Mockery::mock(RecruitmentCommissionService::class),
+            Mockery::mock(CommissionAccrualService::class)
         );
 
         try {

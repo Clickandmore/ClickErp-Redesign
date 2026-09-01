@@ -84,4 +84,21 @@ return [
         'timeout' => (int) env('ZOHO_SALESIQ_TIMEOUT', 20),
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | متصفح توليد نماذج السير الذاتية
+    |--------------------------------------------------------------------------
+    | MaidCvPdfGenerator يلتقط صورة القالب عبر Chrome/Chromium بوضع headless.
+    | بدون متصفح يسقط التوليد إلى SVG يحتوي HTML داخل <foreignObject>، وعندها
+    | يعجز mPDF عن رسمه فيخرج ملف PDF مشوّه.
+    |
+    | كانت هذه القيم تُقرأ بـ env() مباشرة داخل الخدمة، وهو ما يُرجع null بعد
+    | php artisan config:cache في الإنتاج — فيُتجاهل المسار المضبوط في .env.
+    */
+    'chrome' => [
+        'path' => env('CV_PDF_BROWSER_PATH', ''),
+        'viewport_width' => (int) env('CV_IMAGE_VIEWPORT_WIDTH', 794),
+        'viewport_height' => (int) env('CV_IMAGE_VIEWPORT_HEIGHT', 1123),
+    ],
+
 ];

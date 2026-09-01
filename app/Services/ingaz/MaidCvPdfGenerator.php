@@ -84,6 +84,66 @@ class MaidCvPdfGenerator
         return $path;
     }
 
+    /**
+     * تجربة الخطوة التي تفشل فعلياً في الإنتاج — لقطة المتصفح — دون الكتابة في
+     * قاعدة البيانات ولا في التخزين. يستخدمها أمر cv:doctor.
+     *
+     * @return array{ok: bool, bytes: int, width: int, height: int, error: ?string}
+     */
+    public function probeBrowserRendering(Maid $maid): array
+    {
+        $failure = ['ok' => false, 'bytes' => 0, 'width' => 0, 'height' => 0, 'error' => null];
+
+        $settings = MaidCvTemplateSettings::current();
+        $template = trim((string) ($settings->cv_template_blade ?? ''));
+
+        if (!$settings || !$settings->cv_template_enabled || $template === '') {
+            return $failure + ['error' => 'قالب السيرة غير مفعّل أو غير مرفوع.'];
+        }
+
+        if (!function_exists('proc_open')) {
+            return $failure + ['error' => 'proc_open معطّلة في php.ini.'];
+        }
+
+        $browserPath = $this->browserExecutable();
+
+        if ($browserPath === null) {
+            return $failure + ['error' => 'لم يُعثر على Chrome/Chromium على هذا الخادم.'];
+        }
+
+        $maid->loadMissing([
+            'nationality',
+            'religion',
+            'jobTypes',
+            'jobTitles',
+            'expertises.country',
+            'expertises.jobTitle',
+            'office',
+            'recruitmentOffice',
+        ]);
+
+        try {
+            $html = $this->embedManagedMedia(
+                $this->renderTemplate($template, $this->viewData($maid, $settings, self::OUTPUT_IMAGE)),
+                $maid,
+                $settings
+            );
+
+            $png = $this->generatePngWithBrowser($browserPath, $html);
+            $dimensions = @getimagesizefromstring($png) ?: [0, 0];
+
+            return [
+                'ok' => true,
+                'bytes' => strlen($png),
+                'width' => (int) ($dimensions[0] ?? 0),
+                'height' => (int) ($dimensions[1] ?? 0),
+                'error' => null,
+            ];
+        } catch (\Throwable $exception) {
+            return $failure + ['error' => $exception->getMessage()];
+        }
+    }
+
     /** Render a PDF copy without changing the stored CV preview. */
     public function renderPdfContents(Maid $maid): string
     {
@@ -282,8 +342,8 @@ class MaidCvPdfGenerator
         $documentExtension = $documentExtension === 'svg' ? 'svg' : 'html';
         $htmlPath = $temporaryDirectory . DIRECTORY_SEPARATOR . 'cv.' . $documentExtension;
         $imagePath = $temporaryDirectory . DIRECTORY_SEPARATOR . 'cv.png';
-        $viewportWidth = max(320, (int) env('CV_IMAGE_VIEWPORT_WIDTH', 794));
-        $viewportHeight = max(480, (int) env('CV_IMAGE_VIEWPORT_HEIGHT', 1123));
+        $viewportWidth = max(320, (int) config('services.chrome.viewport_width', 794));
+        $viewportHeight = max(480, (int) config('services.chrome.viewport_height', 1123));
 
         try {
             File::put($htmlPath, $html);
@@ -391,8 +451,8 @@ class MaidCvPdfGenerator
      */
     private function generateSvgFallback(string $html): string
     {
-        $viewportWidth = max(320, (int) env('CV_IMAGE_VIEWPORT_WIDTH', 794));
-        $viewportHeight = max(480, (int) env('CV_IMAGE_VIEWPORT_HEIGHT', 1123));
+        $viewportWidth = max(320, (int) config('services.chrome.viewport_width', 794));
+        $viewportHeight = max(480, (int) config('services.chrome.viewport_height', 1123));
 
         if (!class_exists(\DOMDocument::class)) {
             $plainText = e(Str::limit(trim(preg_replace('/\s+/u', ' ', strip_tags($html)) ?? ''), 4000));
@@ -638,9 +698,11 @@ class MaidCvPdfGenerator
         }
     }
 
-    private function browserExecutable(): ?string
+    /** عام حتى يتمكّن أمر cv:doctor من عرض المسار المكتشف. */
+    public function browserExecutable(): ?string
     {
-        $configuredPath = trim((string) (config('services.chrome.path') ?: env('CV_PDF_BROWSER_PATH', '')));
+        // يُقرأ من config لا من env مباشرة: env() ترجع null بعد config:cache.
+        $configuredPath = trim((string) config('services.chrome.path', ''));
         $candidates = array_filter([
             $configuredPath,
             'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe',
