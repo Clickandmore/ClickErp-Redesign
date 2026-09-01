@@ -95,7 +95,11 @@ class IngazDelegation extends Model
     {
         $normalized = mb_strtolower(trim((string) $value));
 
-        return $normalized !== '' ? $normalized : null;
+        if ($normalized === '' || preg_match('/^0+$/', $normalized)) {
+            return null;
+        }
+
+        return $normalized;
     }
 
     public static function statusOptions(?string $includeStatus = null): array

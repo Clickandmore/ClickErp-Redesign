@@ -48,6 +48,10 @@ class OfferController extends Controller
                 ->addColumn('type_block', function (Offer $row) {
                     $parts = ['<span class="badge bg-info text-white">' . e($row->type_label) . '</span>'];
 
+                    if ($row->is_featured) {
+                        $parts[] = '<span class="badge bg-warning text-dark"><i class="fa fa-crown me-1"></i>العرض الأفضل</span>';
+                    }
+
                     if ($row->nationalities_count > 0) {
                         $parts[] = '<span class="badge bg-light text-dark border">جنسيات: ' . $row->nationalities_count . '</span>';
                     }
@@ -120,6 +124,7 @@ class OfferController extends Controller
         try {
             DB::transaction(function () use ($request, &$newFiles) {
                 $offer = Offer::create($this->validatedData($request, null, $newFiles));
+                $this->enforceSingleFeatured($offer);
                 $this->syncRelations($offer, $request);
             });
         } catch (\Throwable $exception) {
@@ -165,6 +170,7 @@ class OfferController extends Controller
                 }
 
                 $offer->update($this->validatedData($request, $offer, $newFiles));
+                $this->enforceSingleFeatured($offer);
                 $this->syncRelations($offer, $request);
             });
         } catch (\Throwable $exception) {
@@ -225,6 +231,9 @@ class OfferController extends Controller
             ? $request->boolean('is_active')
             : (bool) ($offer->is_active ?? true);
         $data['sort_order'] = (int) ($data['sort_order'] ?? 0);
+        $data['is_featured'] = $request->has('is_featured')
+            ? $request->boolean('is_featured')
+            : (bool) ($offer->is_featured ?? false);
         $data['discount_percentage'] = $this->resolveDiscountPercentage($data);
 
         if ($request->hasFile('image')) {
@@ -260,6 +269,22 @@ class OfferController extends Controller
         }
 
         return null;
+    }
+
+    /**
+     * Only one offer may carry the "العرض الأفضل" flag, because the website
+     * renders it as the single highlighted card in the middle of the grid.
+     */
+    private function enforceSingleFeatured(Offer $offer): void
+    {
+        if (! $offer->is_featured) {
+            return;
+        }
+
+        Offer::query()
+            ->whereKeyNot($offer->getKey())
+            ->where('is_featured', true)
+            ->update(['is_featured' => false]);
     }
 
     private function syncRelations(Offer $offer, OfferRequest $request): void

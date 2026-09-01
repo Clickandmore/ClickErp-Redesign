@@ -3199,6 +3199,97 @@
                 openCancelContractModal(contractId, contractNumber, clientName, maidName);
             });
 
+            @php
+                $restorableReturnedContractStatuses = collect(\App\Enums\ingaz\ContractStatusEnum::cases())
+                    ->reject(function ($status) {
+                        return in_array($status, [
+                            \App\Enums\ingaz\ContractStatusEnum::Back,
+                            \App\Enums\ingaz\ContractStatusEnum::Refunded,
+                            \App\Enums\ingaz\ContractStatusEnum::Closed,
+                            \App\Enums\ingaz\ContractStatusEnum::Sari,
+                        ], true);
+                    })
+                    ->mapWithKeys(function ($status) {
+                        return [$status->value => getContractStatus($status->value)];
+                    })
+                    ->all();
+            @endphp
+
+            $(document).on('click', '.restore-returned-contract-btn', function(e) {
+                e.preventDefault();
+                var contractId = $(this).data('contract-id');
+                var restorableStatuses = @json($restorableReturnedContractStatuses);
+
+                function submitRestoreReturnedContract(previousStatus) {
+                    var requestData = {
+                        _token: '{{ csrf_token() }}'
+                    };
+
+                    if (previousStatus) {
+                        requestData.previous_status = previousStatus;
+                    }
+
+                    $.ajax({
+                        url: '{{ route('RecruitmentContract.restoreReturned', ':contractId') }}'.replace(':contractId', contractId),
+                        method: 'POST',
+                        data: requestData,
+                        success: function(response) {
+                            Swal.fire('نجح', response.message, 'success');
+                            dataTable.ajax.reload(null, false);
+                        },
+                        error: function(xhr) {
+                            var message = xhr.responseJSON && xhr.responseJSON.message
+                                ? xhr.responseJSON.message
+                                : 'تعذر التراجع عن إرجاع العقد.';
+
+                            if (xhr.status === 422 && message.indexOf('تعذر تحديد حالة العقد السابقة') !== -1) {
+                                Swal.fire({
+                                    icon: 'warning',
+                                    title: 'حدد الحالة السابقة',
+                                    text: 'هذا العقد قديم ولا يوجد له سجل حالة سابق كافٍ، اختر الحالة التي كان عليها قبل الإرجاع.',
+                                    input: 'select',
+                                    inputOptions: restorableStatuses,
+                                    inputPlaceholder: 'اختر الحالة السابقة',
+                                    showCancelButton: true,
+                                    confirmButtonText: 'استعادة',
+                                    cancelButtonText: 'إلغاء',
+                                    confirmButtonColor: '#198754',
+                                    inputValidator: function(value) {
+                                        if (!value) {
+                                            return 'يجب اختيار الحالة السابقة';
+                                        }
+                                    }
+                                }).then(function(result) {
+                                    if (result.isConfirmed) {
+                                        submitRestoreReturnedContract(result.value);
+                                    }
+                                });
+
+                                return;
+                            }
+
+                            Swal.fire('تعذر الاستعادة', message, 'error');
+                        }
+                    });
+                }
+
+                Swal.fire({
+                    icon: 'question',
+                    title: 'التراجع عن إرجاع العقد؟',
+                    text: 'سيُعاد العقد إلى آخر حالة موثقة قبل الإرجاع بعد التأكد من عدم وجود ارتباطات تمنع ذلك.',
+                    showCancelButton: true,
+                    confirmButtonText: 'نعم، استعادة العقد',
+                    cancelButtonText: 'إلغاء',
+                    confirmButtonColor: '#198754'
+                }).then(function(result) {
+                    if (!result.isConfirmed) {
+                        return;
+                    }
+
+                    submitRestoreReturnedContract();
+                });
+            });
+
             function formatRefundMoney(value) {
                 return Number(value || 0).toLocaleString('en-US', {
                     minimumFractionDigits: 2,

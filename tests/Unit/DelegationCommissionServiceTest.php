@@ -11,7 +11,7 @@ use Tests\TestCase;
 
 class DelegationCommissionServiceTest extends TestCase
 {
-    public function test_only_executed_delegations_are_eligible(): void
+    public function test_every_non_cancelled_delegation_status_is_eligible(): void
     {
         $service = app(DelegationCommissionService::class);
 
@@ -19,9 +19,38 @@ class DelegationCommissionServiceTest extends TestCase
         $executed = $this->delegation(IngazDelegation::STATUS_EXECUTED);
         $cancelled = $this->delegation(IngazDelegation::STATUS_CANCELLED);
 
-        $this->assertFalse($service->isEligible($underProcess));
+        $this->assertTrue($service->isEligible($underProcess));
         $this->assertTrue($service->isEligible($executed));
         $this->assertFalse($service->isEligible($cancelled));
+    }
+
+    public function test_cancelled_delegation_reason_explains_why_commission_is_disabled(): void
+    {
+        $service = app(DelegationCommissionService::class);
+
+        $this->assertSame(
+            'التفويض ملغي — غير مؤهل للعمولة',
+            $service->ineligibilityReason($this->delegation(IngazDelegation::STATUS_CANCELLED))
+        );
+        $this->assertNull(
+            $service->ineligibilityReason($this->delegation(IngazDelegation::STATUS_EXECUTED))
+        );
+    }
+
+    public function test_any_custom_stage_is_eligible_for_commission(): void
+    {
+        $delegation = $this->delegation('stage_any_custom_status');
+
+        $this->assertTrue(app(DelegationCommissionService::class)->isEligible($delegation));
+    }
+
+    public function test_a_zero_value_invoice_does_not_block_a_fixed_commission(): void
+    {
+        $service = app(DelegationCommissionService::class);
+
+        $this->assertTrue($service->isEligible(
+            $this->delegation(IngazDelegation::STATUS_UNDER_PROCESS, 0)
+        ));
     }
 
     public function test_a_fully_credited_delegation_is_not_eligible(): void
@@ -52,6 +81,9 @@ class DelegationCommissionServiceTest extends TestCase
     {
         $this->assertSame('ing-100', IngazDelegation::duplicateKey('  ING-100  '));
         $this->assertNull(IngazDelegation::duplicateKey('   '));
+        $this->assertNull(IngazDelegation::duplicateKey('0'));
+        $this->assertNull(IngazDelegation::duplicateKey('0000'));
+        $this->assertSame('000123', IngazDelegation::duplicateKey('000123'));
     }
 
     private function delegation(string $status, ?float $invoiceTotal = null, array $credits = []): IngazDelegation

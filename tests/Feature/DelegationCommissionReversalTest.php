@@ -54,6 +54,17 @@ class DelegationCommissionReversalTest extends TestCase
         $this->assertSame(IngazDelegation::duplicateKey($replacement->ingaz_number), $replacement->active_ingaz_number_key);
     }
 
+    public function test_zero_placeholder_ingaz_numbers_do_not_collide_when_delegations_become_active(): void
+    {
+        $admin = Admin::factory()->create();
+        $first = $this->createDelegation($admin, ['ingaz_number' => '0']);
+        $second = $this->createDelegation($admin, ['ingaz_number' => '0']);
+
+        $this->assertNotSame($first->id, $second->id);
+        $this->assertNull($first->active_ingaz_number_key);
+        $this->assertNull($second->active_ingaz_number_key);
+    }
+
     public function test_cancelling_after_payment_keeps_history_and_creates_one_negative_balance_reversal(): void
     {
         $admin = Admin::factory()->create();
@@ -173,6 +184,25 @@ class DelegationCommissionReversalTest extends TestCase
             'source_type' => CommissionOperationService::SOURCE_DELEGATION,
             'source_id' => $delegation->id,
         ]);
+    }
+
+    public function test_non_cancelled_delegation_in_any_stage_can_be_selected_for_commission(): void
+    {
+        $admin = Admin::factory()->create();
+        $delegation = $this->createDelegation($admin, [
+            'status' => IngazDelegation::STATUS_UNDER_PROCESS,
+        ]);
+        $key = CommissionOperationService::SOURCE_DELEGATION . ':' . $delegation->id;
+        $service = app(CommissionOperationService::class);
+
+        $operation = $service->getOperations($admin->id, [
+            'service_type' => 'electronic_ingaz_delegation',
+        ])->firstWhere('key', $key);
+
+        $this->assertNotNull($operation);
+        $this->assertTrue($operation['commission_eligible']);
+        $this->assertNull($operation['commission_ineligible_reason']);
+        $this->assertSame([$key], $service->findSelected($admin->id, [$key])->pluck('key')->all());
     }
 
     public static function activeDuplicateFieldProvider(): array

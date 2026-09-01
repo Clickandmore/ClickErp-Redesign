@@ -23,14 +23,19 @@
     <span class="step-pill"><strong>4</strong> سند الصرف</span>
 </div>
 
-<form method="POST" action="{{ route('commissions.marketers.approve', $admin->id) }}" id="approveForm">
+@php
+    $bulkDefault = $preview['items'][0] ?? null;
+    $bulkDefaultMethod = $bulkDefault['method'] ?? 'fixed';
+    $bulkDefaultValue = $bulkDefault['rate_or_amount'] ?? 0;
+@endphp
+<form method="POST" action="{{ route('commissions.marketers.approve', $admin->id) }}" id="approveForm" autocomplete="off">
 @csrf
 <div class="card review-card mb-3">
     <div class="card-header bg-white py-3 d-flex flex-wrap justify-content-between align-items-center gap-3">
         <div><h5 class="mb-1 fw-bold">تفاصيل عمولة {{ $admin->name }}</h5><div class="text-muted small">يمكن تعديل طريقة وقيمة كل عملية بصورة مستقلة.</div></div>
         <div class="d-flex flex-wrap align-items-end gap-2 bg-light rounded p-2">
-            <div><label class="form-label small mb-1">تطبيق موحّد</label><select id="bulkMethod" class="form-select form-select-sm"><option value="percentage">نسبة %</option><option value="fixed">مبلغ ثابت</option></select></div>
-            <div><label class="form-label small mb-1">القيمة</label><input id="bulkValue" type="number" min="0" step=".01" class="form-control form-control-sm" value="1" style="width:120px"></div>
+            <div><label class="form-label small mb-1">تطبيق موحّد</label><select id="bulkMethod" class="form-select form-select-sm"><option value="percentage" @selected($bulkDefaultMethod === 'percentage')>نسبة %</option><option value="fixed" @selected($bulkDefaultMethod === 'fixed')>مبلغ ثابت</option></select></div>
+            <div><label class="form-label small mb-1">القيمة</label><input id="bulkValue" type="number" min="0" step=".01" class="form-control form-control-sm" value="{{ $bulkDefaultValue }}" style="width:120px"></div>
             <button type="button" id="applyBulk" class="btn btn-sm btn-outline-primary">تطبيق على الكل</button>
         </div>
     </div>
@@ -102,6 +107,7 @@ $(function () {
         });
         const formatted = total.toLocaleString('en-US', {minimumFractionDigits:2, maximumFractionDigits:2});
         $('#tableTotal, #grandTotal').text(formatted);
+        return total;
     }
     $(document).on('input change', '.method-input, .value-input', recalculate);
     $('#applyBulk').on('click', function () {
@@ -111,14 +117,33 @@ $(function () {
     });
     $('#approveForm').on('submit', function (event) {
         let valid = true;
+        let hasHighPercentage = false;
         $('.commission-row').each(function () {
-            if ($(this).find('.method-input').val() === 'percentage' && Number($(this).find('.value-input').val()) > 100) valid = false;
+            const method = $(this).find('.method-input').val();
+            const value = Number($(this).find('.value-input').val());
+            if (method === 'percentage' && value > 100) valid = false;
+            if (method === 'percentage' && value >= 50) hasHighPercentage = true;
         });
         if (!valid) {
             event.preventDefault();
             alert('نسبة العمولة لا يمكن أن تتجاوز 100%.');
+            return;
+        }
+
+        const total = recalculate();
+        const formatted = total.toLocaleString('en-US', {minimumFractionDigits:2, maximumFractionDigits:2});
+        const warning = hasHighPercentage
+            ? '\n\nتنبيه شديد: توجد نسبة عمولة 50% أو أكثر. تأكد أنك لم تقصد «مبلغًا ثابتًا».'
+            : '';
+
+        if (!confirm(`سيتم اعتماد وإضافة ${formatted} ر.س إلى رصيد الموظف.${warning}\n\nهل تريد المتابعة؟`)) {
+            event.preventDefault();
         }
     });
+
+    // قد يعيد المتصفح قيم الحقول من محاولة سابقة؛ لذلك يجب ألا نعتمد الإجمالي
+    // المطبوع من الخادم قبل مطابقته مع القيم الفعلية الظاهرة في النموذج.
+    recalculate();
 });
 </script>
 @endsection

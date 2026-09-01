@@ -14,7 +14,7 @@ class WhyChooseUsController extends Controller
 {
     public function edit()
     {
-        $section = WhyChooseUs::with(['images', 'features'])->first();
+        $section = WhyChooseUs::with(['images', 'allFeatures'])->first();
 
         return view('admin.ingaz.why_choose_us.edit', [
             'section' => $section,
@@ -36,6 +36,9 @@ class WhyChooseUsController extends Controller
                 $section->translateOrNew('ar')->description = $request->input('description:ar');
                 $section->translateOrNew('en')->title = $request->input('title:en');
                 $section->translateOrNew('en')->description = $request->input('description:en');
+                $section->cta_url = $request->input('cta_url');
+                $section->translateOrNew('ar')->cta_label = $request->input('cta_label:ar');
+                $section->translateOrNew('en')->cta_label = $request->input('cta_label:en');
                 $section->save();
 
                 $this->deleteSelectedImages(
@@ -44,7 +47,7 @@ class WhyChooseUsController extends Controller
                     $oldImageFiles
                 );
                 $this->storeImages($section, $request->file('images', []), $newImageFiles);
-                $this->syncFeatures($section, $request->input('features', []));
+                $this->syncFeatures($section, $request->featureRows());
             });
         } catch (\Throwable $exception) {
             $this->deleteImageFiles($newImageFiles);
@@ -66,7 +69,7 @@ class WhyChooseUsController extends Controller
             return;
         }
 
-        $section = WhyChooseUs::with('features')->first();
+        $section = WhyChooseUs::with('allFeatures')->first();
 
         if (!$section) {
             abort_unless(
@@ -78,8 +81,8 @@ class WhyChooseUsController extends Controller
             return;
         }
 
-        $submittedFeatures = collect($request->input('features', []));
-        $existingFeatures = $section->features->keyBy('id');
+        $submittedFeatures = collect($request->featureRows());
+        $existingFeatures = $section->allFeatures->keyBy('id');
         $submittedIds = $submittedFeatures->pluck('id')->filter()->map(fn ($id) => (int) $id);
 
         $requiresCreate = $request->hasFile('images')
@@ -97,11 +100,12 @@ class WhyChooseUsController extends Controller
                 $feature = $existingFeatures->get((int) $data['id']);
 
                 return (string) $feature->icon !== (string) $data['icon']
+                    || (string) $feature->type !== (string) ($data['type'] ?? '')
                     || (int) $feature->sort_order !== (int) ($data['sort_order'] ?? 0)
                     || (string) optional($feature->translate('ar'))->title !== (string) $data['ar']['title']
-                    || (string) optional($feature->translate('ar'))->description !== (string) $data['ar']['description']
+                    || (string) optional($feature->translate('ar'))->description !== (string) ($data['ar']['description'] ?? '')
                     || (string) optional($feature->translate('en'))->title !== (string) $data['en']['title']
-                    || (string) optional($feature->translate('en'))->description !== (string) $data['en']['description'];
+                    || (string) optional($feature->translate('en'))->description !== (string) ($data['en']['description'] ?? '');
             });
 
         if ($requiresCreate) {
@@ -135,7 +139,10 @@ class WhyChooseUsController extends Controller
             || (string) optional($section->translate('ar'))->title !== (string) $request->input('title:ar')
             || (string) optional($section->translate('ar'))->description !== (string) $request->input('description:ar')
             || (string) optional($section->translate('en'))->title !== (string) $request->input('title:en')
-            || (string) optional($section->translate('en'))->description !== (string) $request->input('description:en');
+            || (string) optional($section->translate('en'))->description !== (string) $request->input('description:en')
+            || (string) $section->cta_url !== (string) $request->input('cta_url')
+            || (string) optional($section->translate('ar'))->cta_label !== (string) $request->input('cta_label:ar')
+            || (string) optional($section->translate('en'))->cta_label !== (string) $request->input('cta_label:en');
     }
 
     private function deleteSelectedImages(
@@ -175,28 +182,32 @@ class WhyChooseUsController extends Controller
         }
     }
 
+    /**
+     * @param  array<int, array<string, mixed>>  $features  Rows of both types.
+     */
     private function syncFeatures(WhyChooseUs $section, array $features): void
     {
         $keptIds = [];
 
         foreach (array_values($features) as $index => $data) {
             $feature = !empty($data['id'])
-                ? $section->features()->findOrFail($data['id'])
+                ? $section->allFeatures()->findOrFail($data['id'])
                 : new WhyChooseUsFeature(['why_choose_us_id' => $section->id]);
 
             $feature->why_choose_us_id = $section->id;
+            $feature->type = $data['type'] ?? WhyChooseUsFeature::TYPE_FEATURE;
             $feature->icon = $data['icon'];
             $feature->sort_order = $data['sort_order'] ?? ($index + 1);
             $feature->translateOrNew('ar')->title = $data['ar']['title'];
-            $feature->translateOrNew('ar')->description = $data['ar']['description'];
+            $feature->translateOrNew('ar')->description = $data['ar']['description'] ?? null;
             $feature->translateOrNew('en')->title = $data['en']['title'];
-            $feature->translateOrNew('en')->description = $data['en']['description'];
+            $feature->translateOrNew('en')->description = $data['en']['description'] ?? null;
             $feature->save();
 
             $keptIds[] = $feature->id;
         }
 
-        $section->features()
+        $section->allFeatures()
             ->whereNotIn('id', $keptIds)
             ->delete();
     }
@@ -220,7 +231,7 @@ class WhyChooseUsController extends Controller
             'fa fa-certificate',
             'fa fa-check',
             'fa fa-check-circle',
-            'fa fa-clock',
+            'fa fa-clock-o',
             'fa fa-cog',
             'fa fa-compass',
             'fa fa-diamond',

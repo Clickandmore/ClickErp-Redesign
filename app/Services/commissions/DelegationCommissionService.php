@@ -12,25 +12,28 @@ class DelegationCommissionService
 {
     public function isEligible(IngazDelegation $delegation): bool
     {
-        if ($delegation->status !== IngazDelegation::STATUS_EXECUTED) {
-            return false;
+        return $this->ineligibilityReason($delegation) === null;
+    }
+
+    public function ineligibilityReason(IngazDelegation $delegation): ?string
+    {
+        if ($delegation->status === IngazDelegation::STATUS_CANCELLED) {
+            return 'التفويض ملغي — غير مؤهل للعمولة';
         }
 
         $delegation->loadMissing('invoice.recruitmentCreditNotes');
         $invoice = $delegation->invoice;
 
         if (!$invoice) {
-            return true;
+            return null;
         }
 
         $invoiceTotal = round(max(0, (float) $invoice->total_due), 2);
-        if ($invoiceTotal <= 0) {
-            return false;
-        }
-
         $creditedTotal = round((float) $invoice->recruitmentCreditNotes->sum('total'), 2);
 
-        return $creditedTotal + 0.01 < $invoiceTotal;
+        return $invoiceTotal > 0 && $creditedTotal + 0.01 >= $invoiceTotal
+            ? 'تم عكس قيمة فاتورة التفويض بالكامل بإشعار دائن — غير مؤهل للعمولة'
+            : null;
     }
 
     public function assertEligible(IngazDelegation $delegation): void
@@ -40,7 +43,7 @@ class DelegationCommissionService
         }
 
         throw ValidationException::withMessages([
-            'operations' => 'التفويض غير مؤهل للعمولة: يجب أن يكون منفذًا وألا يكون ملغيًا أو معكوسًا بالكامل بإشعار دائن.',
+            'operations' => 'التفويض غير مؤهل للعمولة: التفويض ملغي أو معكوس بالكامل بإشعار دائن.',
         ]);
     }
 

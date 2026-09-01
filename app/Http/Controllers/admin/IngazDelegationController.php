@@ -40,6 +40,7 @@ class IngazDelegationController extends Controller
         $this->middleware($this->permissionMiddleware($this->delegationEditPermissions()), ['only' => ['edit', 'update']]);
         $this->middleware($this->permissionMiddleware($this->delegationDeletePermissions()), ['only' => ['destroy']]);
         $this->middleware($this->permissionMiddleware($this->delegationPrintPermissions()), ['only' => ['print']]);
+        $this->middleware($this->permissionMiddleware($this->delegationExportPermissions()), ['only' => ['exportExcel', 'exportPdf']]);
         $this->middleware($this->permissionMiddleware($this->delegationStatusPermissions()), ['only' => ['updateStatus']]);
         $this->middleware($this->permissionMiddleware($this->delegationFormPermissions()), ['only' => ['findMaidByPassport']]);
     }
@@ -56,53 +57,7 @@ class IngazDelegationController extends Controller
             $relations[] = 'invoice.recruitmentCreditNotes.constraint';
         }
 
-        $query = IngazDelegation::with($relations);
-        $this->applyRequestBranchFilter($query, $request, 'ingaz_delegations');
-
-        $searchInput = $request->input('global_search', $request->query('search'));
-
-        if (is_string($searchInput) && trim($searchInput) !== '') {
-            $search = trim($searchInput);
-
-            $query->where(function ($inner) use ($search) {
-                $inner->where('ingaz_number', 'like', "%{$search}%")
-                    ->orWhere('msaned_contract_number', 'like', "%{$search}%")
-                    ->orWhere('visa_number', 'like', "%{$search}%")
-                    ->orWhere('worker_name', 'like', "%{$search}%")
-                    ->orWhere('worker_passport_number', 'like', "%{$search}%")
-                    ->orWhereHas('user', function ($userQuery) use ($search) {
-                        $userQuery->where('name', 'like', "%{$search}%")
-                            ->orWhere('national_num', 'like', "%{$search}%")
-                            ->orWhere('phone', 'like', "%{$search}%");
-                    });
-            });
-        }
-
-        if ($request->filled('country_id')) {
-            $query->where('country_id', $request->country_id);
-        }
-
-        if ($request->filled('client_source_type')) {
-            $query->where('client_source_type', $request->client_source_type);
-        }
-
-        if ($request->filled('status') && array_key_exists($request->status, IngazDelegation::statusOptions())) {
-            $query->where('status', $request->status);
-        }
-
-        if ($request->filled('marketer_id')) {
-            $query->where('marketer_id', (int) $request->marketer_id);
-        }
-
-        $this->applyDocumentPresenceFilters($query, $request);
-
-        if ($request->filled('from_date')) {
-            $query->whereDate('delegation_date_gregorian', '>=', $request->from_date);
-        }
-
-        if ($request->filled('to_date')) {
-            $query->whereDate('delegation_date_gregorian', '<=', $request->to_date);
-        }
+        $query = $this->filteredDelegationQuery($request, $relations);
 
         if ($request->ajax()) {
             $canViewDelegation = $this->adminCanAny($this->delegationViewPermissions());
@@ -153,6 +108,16 @@ class IngazDelegationController extends Controller
                     return '<div class="delegation-person-cell">
                         <span class="delegation-person-name">' . $name . '</span>
                         <small class="text-muted">' . $meta . '</small>
+                    </div>';
+                })
+                ->addColumn('marketer_name', function (IngazDelegation $row) {
+                    if (!$row->marketer) {
+                        return '<span class="text-muted">-</span>';
+                    }
+
+                    return '<div class="delegation-person-cell">
+                        <span class="delegation-person-name">' . e($row->marketer->name) . '</span>
+                        <small class="text-muted">المسوق</small>
                     </div>';
                 })
                 ->addColumn('msaned_transfer', function (IngazDelegation $row) {
@@ -297,15 +262,85 @@ class IngazDelegationController extends Controller
 
                     return '<div class="delegation-row-actions">' . implode('', $actions) . '</div>';
                 })
-                ->rawColumns(['delegation_date_gregorian', 'created_at', 'client', 'msaned_transfer', 'invoice', 'status', 'status_control', 'actions'])
+                ->rawColumns(['delegation_date_gregorian', 'created_at', 'client', 'marketer_name', 'msaned_transfer', 'invoice', 'status', 'status_control', 'actions'])
                 ->make(true);
         }
 
         $countries = Country::query()->ordered()->get(['id', 'name_ar', 'name_en', 'code', 'phone_code', 'sort_order']);
         $canCreateDelegation = $this->adminCanAny($this->delegationCreatePermissions());
+        $canExportDelegations = $this->adminCanAny($this->delegationExportPermissions());
         $statusOptions = IngazDelegation::statusOptions();
+        $marketers = Admin::query()->activeForOperations()->orderBy('name')->get(['id', 'name']);
 
-        return view('admin.ingaz_delegations.index', compact('countries', 'canCreateDelegation', 'statusOptions'));
+        return view('admin.ingaz_delegations.index', compact(
+            'countries',
+            'canCreateDelegation',
+            'canExportDelegations',
+            'statusOptions',
+            'marketers'
+        ));
+    }
+
+    /**
+     * بناء استعلام التفاويض مع كل مرشحات الصفحة، ويستخدمه الجدول والتصدير معاً
+     * حتى يخرج ملف التصدير مطابقاً تماماً لما يراه المستخدم على الشاشة.
+     */
+    private function filteredDelegationQuery(Request $request, array $relations = [])
+    {
+        $query = IngazDelegation::query();
+
+        if ($relations !== []) {
+            $query->with($relations);
+        }
+
+        $this->applyRequestBranchFilter($query, $request, 'ingaz_delegations');
+
+        $searchInput = $request->input('global_search', $request->query('search'));
+
+        if (is_string($searchInput) && trim($searchInput) !== '') {
+            $search = trim($searchInput);
+
+            $query->where(function ($inner) use ($search) {
+                $inner->where('ingaz_number', 'like', "%{$search}%")
+                    ->orWhere('msaned_contract_number', 'like', "%{$search}%")
+                    ->orWhere('visa_number', 'like', "%{$search}%")
+                    ->orWhere('worker_name', 'like', "%{$search}%")
+                    ->orWhere('worker_passport_number', 'like', "%{$search}%")
+                    ->orWhereHas('user', function ($userQuery) use ($search) {
+                        $userQuery->where('name', 'like', "%{$search}%")
+                            ->orWhere('national_num', 'like', "%{$search}%")
+                            ->orWhere('phone', 'like', "%{$search}%");
+                    });
+            });
+        }
+
+        if ($request->filled('country_id')) {
+            $query->where('country_id', $request->country_id);
+        }
+
+        if ($request->filled('client_source_type')) {
+            $query->where('client_source_type', $request->client_source_type);
+        }
+
+        if ($request->filled('status') && array_key_exists($request->status, IngazDelegation::statusOptions())) {
+            $query->where('status', $request->status);
+        }
+
+        if ($request->filled('marketer_id')) {
+            $query->where('marketer_id', (int) $request->marketer_id);
+        }
+
+        $this->applyDocumentPresenceFilters($query, $request);
+
+        if ($request->filled('from_date')) {
+            $query->whereDate('delegation_date_gregorian', '>=', $request->from_date);
+        }
+
+        if ($request->filled('to_date')) {
+            $query->whereDate('delegation_date_gregorian', '<=', $request->to_date);
+        }
+
+        return $query;
     }
 
     private function applyDocumentPresenceFilters($query, Request $request): void
@@ -324,6 +359,203 @@ class IngazDelegationController extends Controller
                 $query->whereDoesntHave($relation);
             }
         }
+    }
+
+    /**
+     * أعمدة تصدير التفاويض (إكسل و PDF) بترتيب واحد للمصدرين.
+     */
+    private function delegationExportColumns(): array
+    {
+        return [
+            '#',
+            'تاريخ التفويض',
+            'تاريخ الإضافة',
+            'رقم الإنجاز',
+            'رقم عقد مساند',
+            'رقم التأشيرة',
+            'العميل',
+            'جوال العميل',
+            'هوية العميل',
+            'نوع العميل',
+            'المسوق',
+            'العاملة',
+            'رقم الجواز',
+            'الدولة',
+            'الجنسية',
+            'المهنة',
+            'الفاتورة',
+            'تحويل مساند',
+            'الحالة',
+            'ملاحظات',
+        ];
+    }
+
+    private function delegationExportRow(IngazDelegation $delegation): array
+    {
+        $phone = $this->isInternalDelegationClientPhone($delegation->user?->phone) ? null : $delegation->user?->phone;
+        $phone = $phone ? trim(($delegation->user?->phone_code ?: '') . ' ' . $phone) : null;
+
+        $clientSourceLabels = [
+            'existing_in_program' => 'موجود في البرنامج',
+            'separate_client' => 'عميل منفصل',
+        ];
+
+        $statusOptions = IngazDelegation::statusOptions($delegation->status);
+        $transfer = $delegation->invoice?->musanedTransferItem?->transfer;
+
+        return [
+            $delegation->id,
+            $delegation->delegation_date_gregorian?->format('Y-m-d') ?: '-',
+            $delegation->created_at?->format('Y-m-d H:i') ?: '-',
+            $delegation->ingaz_number ?: '-',
+            $delegation->msaned_contract_number ?: '-',
+            $delegation->visa_number ?: '-',
+            $delegation->user?->name ?: '-',
+            $phone ?: '-',
+            $delegation->user?->national_num ?: '-',
+            $clientSourceLabels[$delegation->client_source_type] ?? '-',
+            $delegation->marketer?->name ?: '-',
+            $delegation->worker_name ?: ($delegation->maid?->name ?: '-'),
+            $delegation->worker_passport_number ?: '-',
+            $this->delegationCountryName($delegation),
+            $delegation->nationality?->title ?: '-',
+            $delegation->profession?->title ?: '-',
+            $delegation->invoice ? ('#' . $delegation->invoice->id) : 'بدون فاتورة',
+            $transfer ? 'تم تسجيل التحويل' : 'لم يسجل التحويل',
+            $statusOptions[$delegation->status] ?? ($delegation->status ?: '-'),
+            $delegation->notes ?: '-',
+        ];
+    }
+
+    private function delegationExportQuery(Request $request)
+    {
+        return $this->filteredDelegationQuery($request, [
+            'country', 'nationality', 'profession', 'user', 'maid', 'marketer',
+            'invoice.musanedTransferItem.transfer',
+        ]);
+    }
+
+    public function exportExcel(Request $request)
+    {
+        // نقرأ على دفعات حتى لا تستهلك التفاويض الكثيرة ذاكرة PHP كاملة.
+        $delegations = $this->delegationExportQuery($request)->lazyByIdDesc(250);
+
+        $spreadsheet = new \PhpOffice\PhpSpreadsheet\Spreadsheet();
+        $sheet = $spreadsheet->getActiveSheet();
+        $sheet->setTitle('تفاويض الإنجاز');
+        $sheet->setRightToLeft(true);
+
+        $columns = $this->delegationExportColumns();
+        $sheet->fromArray($columns, null, 'A1');
+
+        $lastColumn = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex(count($columns));
+        $sheet->getStyle('A1:' . $lastColumn . '1')->applyFromArray([
+            'font' => ['bold' => true, 'size' => 12],
+            'alignment' => ['horizontal' => \PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER],
+            'fill' => [
+                'fillType' => \PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID,
+                'startColor' => ['rgb' => 'F2F2F2'],
+            ],
+        ]);
+
+        $row = 2;
+
+        foreach ($delegations as $delegation) {
+            foreach (array_values($this->delegationExportRow($delegation)) as $index => $value) {
+                $sheet->setCellValueExplicit(
+                    \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($index + 1) . $row,
+                    (string) $value,
+                    \PhpOffice\PhpSpreadsheet\Cell\DataType::TYPE_STRING
+                );
+            }
+
+            $row++;
+        }
+
+        for ($columnIndex = 1; $columnIndex <= count($columns); $columnIndex++) {
+            $sheet->getColumnDimension(
+                \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($columnIndex)
+            )->setAutoSize(true);
+        }
+
+        $writer = new \PhpOffice\PhpSpreadsheet\Writer\Xlsx($spreadsheet);
+        $tempFile = tempnam(sys_get_temp_dir(), 'xlsx');
+        $writer->save($tempFile);
+        $spreadsheet->disconnectWorksheets();
+
+        return response()->download(
+            $tempFile,
+            'ingaz_delegations_' . date('Y-m-d') . '.xlsx',
+            ['Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet']
+        )->deleteFileAfterSend(true);
+    }
+
+    public function exportPdf(Request $request)
+    {
+        $delegations = $this->delegationExportQuery($request)->lazyByIdDesc(250);
+        $columns = $this->delegationExportColumns();
+
+        $html = '<!DOCTYPE html>
+        <html dir="rtl" lang="ar">
+        <head>
+            <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+            <title>قائمة تفاويض الإنجاز</title>
+            <style>
+                body { font-family: Arial, sans-serif; direction: rtl; margin: 20px; }
+                .header { text-align: center; margin-bottom: 20px; padding: 10px; background-color: #f8f9fa; border-radius: 5px; }
+                .header h1 { color: #333; margin-bottom: 10px; }
+                .print-button { display: inline-block; padding: 10px 20px; background-color: #4CAF50; color: #fff; border: none; border-radius: 5px; font-size: 16px; cursor: pointer; }
+                table { width: 100%; border-collapse: collapse; margin-top: 20px; font-size: 11px; }
+                th, td { border: 1px solid #ddd; padding: 6px; text-align: right; }
+                th { background-color: #f2f2f2; color: #333; font-weight: bold; }
+                tr:nth-child(even) { background-color: #f9f9f9; }
+                @media print {
+                    @page { size: landscape; }
+                    .print-button { display: none; }
+                    body { margin: 0; padding: 20px; }
+                    table { page-break-inside: auto; }
+                    tr { page-break-inside: avoid; page-break-after: auto; }
+                }
+            </style>
+            <script>
+                function printDocument() { window.print(); }
+                window.onload = function () { window.print(); }
+            </script>
+        </head>
+        <body>
+            <div class="header">
+                <h1>قائمة تفاويض الإنجاز</h1>
+                <p>تم التصدير في: ' . date('Y-m-d H:i:s') . '</p>
+                <button class="print-button" onclick="printDocument()">طباعة</button>
+            </div>
+            <table>
+                <thead>
+                    <tr>';
+
+        foreach ($columns as $heading) {
+            $html .= '<th>' . e($heading) . '</th>';
+        }
+
+        $html .= '</tr>
+                </thead>
+                <tbody>';
+
+        foreach ($delegations as $delegation) {
+            $html .= '<tr>';
+
+            foreach ($this->delegationExportRow($delegation) as $value) {
+                $html .= '<td>' . e((string) $value) . '</td>';
+            }
+
+            $html .= '</tr>';
+        }
+
+        $html .= '</tbody></table></body></html>';
+
+        return response($html, 200, [
+            'Content-Type' => 'text/html; charset=UTF-8',
+            'Content-Disposition' => 'inline; filename="ingaz_delegations.html"',
+        ]);
     }
 
     public function print(IngazDelegation $ingazDelegation): View
@@ -953,6 +1185,11 @@ class IngazDelegationController extends Controller
             PermKeys::REC_CONTRACTS_VIEW,
             PermKeys::REC_CONTRACTS_MANAGE,
         ];
+    }
+
+    private function delegationExportPermissions(): array
+    {
+        return $this->delegationPrintPermissions();
     }
 
     private function delegationStatusPermissions(): array

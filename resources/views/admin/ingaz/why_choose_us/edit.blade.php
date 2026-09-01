@@ -62,6 +62,7 @@
         $featureRows = $section && $section->features->isNotEmpty()
             ? $section->features
             : collect([(object) ['id' => null, 'icon' => 'fa fa-check-circle', 'sort_order' => 1]]);
+        $highlightRows = $section ? $section->highlights : collect();
         $canEditWhyChooseUs = @AdminGuardHasAnyPerm([\App\PermKeys::WHY_CHOOSE_US_EDIT, \App\PermKeys::WHY_CHOOSE_US_CONTROL]);
         $canCreateWhyChooseUs = @AdminGuardHasAnyPerm([\App\PermKeys::WHY_CHOOSE_US_CREATE, \App\PermKeys::WHY_CHOOSE_US_CONTROL]);
         $canDeleteWhyChooseUs = @AdminGuardHasAnyPerm([\App\PermKeys::WHY_CHOOSE_US_DELETE, \App\PermKeys::WHY_CHOOSE_US_CONTROL]);
@@ -101,6 +102,33 @@
                                     rows="5" maxlength="3000" required {{ !$canEditWhyChooseUs ? 'readonly' : '' }}>{{ old('description:' . $locale, $section ? optional($section->translate($locale))->description : '') }}</textarea>
                             </div>
                         @endforeach
+
+                        <div class="col-12">
+                            <small class="text-muted">{{ __('why_choose_us.title_hint') }}</small>
+                        </div>
+
+                        <div class="col-md-4">
+                            <label class="form-label">{{ __('why_choose_us.cta_label_ar') }}</label>
+                            <input type="text" name="cta_label:ar" class="form-control" maxlength="120"
+                                value="{{ old('cta_label:ar', $section ? optional($section->translate('ar'))->cta_label : '') }}"
+                                {{ !$canEditWhyChooseUs ? 'readonly' : '' }}>
+                        </div>
+
+                        <div class="col-md-4">
+                            <label class="form-label">{{ __('why_choose_us.cta_label_en') }}</label>
+                            <input type="text" name="cta_label:en" class="form-control" maxlength="120"
+                                value="{{ old('cta_label:en', $section ? optional($section->translate('en'))->cta_label : '') }}"
+                                {{ !$canEditWhyChooseUs ? 'readonly' : '' }}>
+                        </div>
+
+                        <div class="col-md-4">
+                            <label class="form-label">{{ __('why_choose_us.cta_url') }}</label>
+                            <input type="text" name="cta_url" class="form-control" maxlength="255"
+                                value="{{ old('cta_url', $section->cta_url ?? '') }}"
+                                placeholder="/professional-workers"
+                                {{ !$canEditWhyChooseUs ? 'readonly' : '' }}>
+                            <small class="text-muted">{{ __('why_choose_us.cta_url_hint') }}</small>
+                        </div>
 
                         <div class="col-12">
                             <div class="form-check form-switch">
@@ -228,6 +256,72 @@
             </div>
         </div>
 
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">{{ __('why_choose_us.highlights') }}</h5>
+                    @if ($canCreateWhyChooseUs)
+                        <button type="button" class="btn btn-sm btn-outline-primary" id="add-why-highlight">
+                            <i class="fa fa-plus"></i>
+                            {{ __('why_choose_us.add_highlight') }}
+                        </button>
+                    @endif
+                </div>
+                <div class="card-body">
+                    <small class="text-muted d-block mb-3">{{ __('why_choose_us.highlights_hint') }}</small>
+
+                    <div id="why-highlight-rows">
+                        @foreach ($highlightRows as $index => $highlight)
+                            <div class="why-highlight-row border rounded p-3 mb-3">
+                                <input type="hidden" name="highlights[{{ $index }}][id]"
+                                    value="{{ $highlight->id }}">
+                                <input type="hidden" class="highlight-icon-input"
+                                    name="highlights[{{ $index }}][icon]"
+                                    value="{{ $highlight->icon }}">
+
+                                <div class="row g-3">
+                                    <div class="col-md-4">
+                                        <label class="form-label">{{ __('why_choose_us.highlight_title_ar') }}</label>
+                                        <input type="text" name="highlights[{{ $index }}][ar][title]"
+                                            class="form-control" maxlength="255"
+                                            value="{{ optional($highlight->translate('ar'))->title }}"
+                                            required {{ !$canEditWhyChooseUs ? 'readonly' : '' }}>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <label class="form-label">{{ __('why_choose_us.highlight_title_en') }}</label>
+                                        <input type="text" name="highlights[{{ $index }}][en][title]"
+                                            class="form-control" maxlength="255"
+                                            value="{{ optional($highlight->translate('en'))->title }}"
+                                            required {{ !$canEditWhyChooseUs ? 'readonly' : '' }}>
+                                    </div>
+                                    <div class="col-md-2">
+                                        <label class="form-label">{{ __('why_choose_us.order') }}</label>
+                                        <input type="number" name="highlights[{{ $index }}][sort_order]"
+                                            class="form-control" min="1" max="9999"
+                                            value="{{ $highlight->sort_order ?: $index + 1 }}" required
+                                            {{ !$canEditWhyChooseUs ? 'readonly' : '' }}>
+                                    </div>
+                                    <div class="col-md-2 d-flex align-items-end gap-2">
+                                        <button type="button" class="btn btn-outline-primary choose-highlight-icon"
+                                            data-bs-toggle="modal" data-bs-target="#whyIconModal"
+                                            {{ !$canEditWhyChooseUs ? 'disabled' : '' }}>
+                                            <i class="{{ $highlight->icon }} feature-icon-preview"></i>
+                                        </button>
+                                        @if ($canDeleteWhyChooseUs)
+                                            <button type="button" class="btn btn-outline-danger remove-why-highlight"
+                                                title="{{ __('why_choose_us.remove_highlight') }}">
+                                                <i class="fa fa-trash"></i>
+                                            </button>
+                                        @endif
+                                    </div>
+                                </div>
+                            </div>
+                        @endforeach
+                    </div>
+                </div>
+            </div>
+        </div>
+
         @if ($canEditWhyChooseUs || $canCreateWhyChooseUs || $canDeleteWhyChooseUs)
             <div class="col-12 text-end">
                 <button type="submit" class="btn btn-primary px-5">
@@ -281,6 +375,39 @@
         </div>
     </template>
 
+    <template id="why-highlight-template">
+        <div class="why-highlight-row border rounded p-3 mb-3">
+            <input type="hidden" class="highlight-icon-input"
+                name="highlights[__INDEX__][icon]" value="fa fa-check-circle">
+            <div class="row g-3">
+                <div class="col-md-4">
+                    <label class="form-label">{{ __('why_choose_us.highlight_title_ar') }}</label>
+                    <input type="text" name="highlights[__INDEX__][ar][title]"
+                        class="form-control" maxlength="255" required>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">{{ __('why_choose_us.highlight_title_en') }}</label>
+                    <input type="text" name="highlights[__INDEX__][en][title]"
+                        class="form-control" maxlength="255" required>
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label">{{ __('why_choose_us.order') }}</label>
+                    <input type="number" name="highlights[__INDEX__][sort_order]"
+                        class="form-control" min="1" max="9999" value="__ORDER__" required>
+                </div>
+                <div class="col-md-2 d-flex align-items-end gap-2">
+                    <button type="button" class="btn btn-outline-primary choose-highlight-icon"
+                        data-bs-toggle="modal" data-bs-target="#whyIconModal">
+                        <i class="fa fa-check-circle feature-icon-preview"></i>
+                    </button>
+                    <button type="button" class="btn btn-outline-danger remove-why-highlight">
+                        <i class="fa fa-trash"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </template>
+
     <div class="modal fade" id="whyIconModal" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-lg">
             <div class="modal-content">
@@ -306,39 +433,64 @@
 @section('js')
     <script>
         document.addEventListener('DOMContentLoaded', () => {
-            const rowsContainer = document.getElementById('why-feature-rows');
-            const template = document.getElementById('why-feature-template');
-            const addButton = document.getElementById('add-why-feature');
             let activeRow = null;
-            let nextIndex = rowsContainer.querySelectorAll('.why-feature-row').length;
 
-            if (addButton) {
-                addButton.addEventListener('click', () => {
-                    const order = rowsContainer.querySelectorAll('.why-feature-row').length + 1;
-                    const html = template.innerHTML
-                        .replaceAll('__INDEX__', nextIndex)
-                        .replaceAll('__ORDER__', order);
-                    rowsContainer.insertAdjacentHTML('beforeend', html);
-                    nextIndex++;
+            // Both repeaters behave identically; only their selectors differ.
+            const lists = [
+                {
+                    rowClass: 'why-feature-row',
+                    container: document.getElementById('why-feature-rows'),
+                    template: document.getElementById('why-feature-template'),
+                    addButton: document.getElementById('add-why-feature'),
+                    removeClass: 'remove-why-feature',
+                    iconClass: 'choose-feature-icon',
+                    keepOne: true,
+                },
+                {
+                    rowClass: 'why-highlight-row',
+                    container: document.getElementById('why-highlight-rows'),
+                    template: document.getElementById('why-highlight-template'),
+                    addButton: document.getElementById('add-why-highlight'),
+                    removeClass: 'remove-why-highlight',
+                    iconClass: 'choose-highlight-icon',
+                    keepOne: false,
+                },
+            ];
+
+            lists.forEach(list => {
+                if (!list.container || !list.template) {
+                    return;
+                }
+
+                let nextIndex = list.container.querySelectorAll('.' + list.rowClass).length;
+
+                if (list.addButton) {
+                    list.addButton.addEventListener('click', () => {
+                        const order = list.container.querySelectorAll('.' + list.rowClass).length + 1;
+                        list.container.insertAdjacentHTML('beforeend', list.template.innerHTML
+                            .replaceAll('__INDEX__', nextIndex)
+                            .replaceAll('__ORDER__', order));
+                        nextIndex++;
+                    });
+                }
+
+                list.container.addEventListener('click', event => {
+                    const iconButton = event.target.closest('.' + list.iconClass);
+                    if (iconButton) {
+                        activeRow = iconButton.closest('.' + list.rowClass);
+                        return;
+                    }
+
+                    const removeButton = event.target.closest('.' + list.removeClass);
+                    if (!removeButton) {
+                        return;
+                    }
+
+                    const rows = list.container.querySelectorAll('.' + list.rowClass);
+                    if (!list.keepOne || rows.length > 1) {
+                        removeButton.closest('.' + list.rowClass).remove();
+                    }
                 });
-            }
-
-            rowsContainer.addEventListener('click', event => {
-                const iconButton = event.target.closest('.choose-feature-icon');
-                if (iconButton) {
-                    activeRow = iconButton.closest('.why-feature-row');
-                    return;
-                }
-
-                const removeButton = event.target.closest('.remove-why-feature');
-                if (!removeButton) {
-                    return;
-                }
-
-                const rows = rowsContainer.querySelectorAll('.why-feature-row');
-                if (rows.length > 1) {
-                    removeButton.closest('.why-feature-row').remove();
-                }
             });
 
             document.querySelectorAll('.why-icon-option').forEach(option => {
@@ -348,9 +500,16 @@
                     }
 
                     const icon = option.dataset.icon;
-                    activeRow.querySelector('.feature-icon-input').value = icon;
-                    activeRow.querySelector('.feature-icon-preview').className =
-                        icon + ' feature-icon-preview';
+                    const input = activeRow.querySelector('.feature-icon-input, .highlight-icon-input');
+                    const preview = activeRow.querySelector('.feature-icon-preview');
+
+                    if (input) {
+                        input.value = icon;
+                    }
+
+                    if (preview) {
+                        preview.className = icon + ' feature-icon-preview';
+                    }
                 });
             });
         });
