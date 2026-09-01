@@ -98,17 +98,17 @@ class MaidCvPdfGenerator
         $template = trim((string) ($settings->cv_template_blade ?? ''));
 
         if (!$settings || !$settings->cv_template_enabled || $template === '') {
-            return $failure + ['error' => 'قالب السيرة غير مفعّل أو غير مرفوع.'];
+            return array_merge($failure, ['error' => 'قالب السيرة غير مفعّل أو غير مرفوع.']);
         }
 
         if (!function_exists('proc_open')) {
-            return $failure + ['error' => 'proc_open معطّلة في php.ini.'];
+            return array_merge($failure, ['error' => 'proc_open معطّلة في php.ini.']);
         }
 
         $browserPath = $this->browserExecutable();
 
         if ($browserPath === null) {
-            return $failure + ['error' => 'لم يُعثر على Chrome/Chromium على هذا الخادم.'];
+            return array_merge($failure, ['error' => 'لم يُعثر على Chrome/Chromium على هذا الخادم.']);
         }
 
         $maid->loadMissing([
@@ -140,7 +140,7 @@ class MaidCvPdfGenerator
                 'error' => null,
             ];
         } catch (\Throwable $exception) {
-            return $failure + ['error' => $exception->getMessage()];
+            return array_merge($failure, ['error' => $exception->getMessage()]);
         }
     }
 
@@ -404,10 +404,17 @@ class MaidCvPdfGenerator
             }
 
             if ($contents === null || !Str::startsWith($contents, "\x89PNG\r\n\x1a\n")) {
-                throw new RuntimeException(
-                    'تعذر إنشاء صورة السيرة بواسطة المتصفح: '
-                    . trim($process->getErrorOutput() ?: $process->getOutput())
-                );
+                // Chromium يخرج أحياناً بصمت (حصر snap مثلاً) فلا يكتب شيئاً على
+                // stderr. بدون كود الخروج ومسار الملف تصبح الرسالة بلا معنى.
+                $output = trim($process->getErrorOutput() . "\n" . $process->getOutput());
+
+                throw new RuntimeException(sprintf(
+                    'تعذر إنشاء صورة السيرة بواسطة المتصفح [%s] — كود الخروج: %s، ملف اللقطة: %s. %s',
+                    $browserPath,
+                    $process->getExitCode() ?? 'غير متاح',
+                    is_file($imagePath) ? 'موجود لكنه ليس PNG صالحاً' : 'لم يُنشأ',
+                    $output !== '' ? 'مخرَج المتصفح: ' . $output : 'لم يُخرِج المتصفح أي رسالة.'
+                ));
             }
 
             return $contents;
