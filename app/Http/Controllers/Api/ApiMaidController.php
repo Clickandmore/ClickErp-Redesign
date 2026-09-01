@@ -15,6 +15,8 @@ use App\Models\auth\Admin;
 use App\Models\ingaz\Maid;
 use App\Models\ingaz\Package;
 use App\Models\ingaz\Skill;
+use App\Support\ApiTranslationLocales;
+use App\Support\MaidCvTranslations;
 use App\Support\SystemModuleManager;
 use Illuminate\Http\Request;
 
@@ -235,6 +237,14 @@ class ApiMaidController extends Controller
             'customerServices' => $customerServices,
             'skills' => $skills,
         ];
+
+        // كتلة اختيارية بلغتين تُطلب بالهيدر أو الباراميتر `langs=ar,en`.
+        // بدونها يبقى الرد مطابقًا تمامًا لما تستهلكه باقي المشاريع المرتبطة باللوحة.
+        $translationLocales = ApiTranslationLocales::requested($request);
+
+        if ($translationLocales !== []) {
+            $data['i18n'] = MaidCvTranslations::build($maid, $skills, $translationLocales);
+        }
 
         return apiResponse(true, 'تم جلب البيانات بنجاح.', $data, 200)
             ->header('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0')
