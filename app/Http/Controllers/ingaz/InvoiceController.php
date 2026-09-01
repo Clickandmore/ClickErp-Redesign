@@ -1420,6 +1420,7 @@ class InvoiceController extends Controller
                 [(float) $invoice->direct_recruitment_cost, (float) $invoicePayload['direct_recruitment_cost']],
                 [(float) $invoice->external_recruitment_cost, (float) $invoicePayload['external_recruitment_cost']],
                 [(float) $invoice->government_cost, (float) $invoicePayload['government_cost']],
+                [(float) $invoice->internal_ticket_cost, (float) $invoicePayload['internal_ticket_cost']],
                 [(float) $invoice->vat_amount, (float) $invoicePayload['vat_amount']],
                 [(float) $invoice->total_due, (float) $invoicePayload['total_due']],
             ])->contains(fn (array $values) => abs($values[0] - $values[1]) >= 0.01);

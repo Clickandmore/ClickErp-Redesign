@@ -163,37 +163,41 @@ class RecruitmentTripAccountingService
 
         if (!$invoice->external_office_cost_constraint_id) {
             $officeCostAmount = $this->resolveExternalOfficeCostAmount($contract);
-            $officeCostStatement = $this->buildExternalOfficeCostStatement($contract, $invoice);
-            $costCenterId = $this->ensureRecruitmentContractCostCenter($contract, $nationalityName)->id;
+            if ($officeCostAmount > 0) {
+                $officeCostStatement = $this->buildExternalOfficeCostStatement($contract, $invoice);
+                $costCenterId = $this->ensureRecruitmentContractCostCenter($contract, $nationalityName)->id;
 
-            $officeCostConstraint = $this->findExistingConstraint(
-                $officeCostStatement,
-                $date,
-                $officeCostAmount
-            );
-
-            if (!$officeCostConstraint) {
-                $officeCostConstraint = $this->createExternalOfficeCostConstraint(
-                    $contract,
-                    $invoice,
-                    $nationalityName,
-                    $costCenterId,
+                $officeCostConstraint = $this->findExistingConstraint(
+                    $officeCostStatement,
                     $date,
-                    $activeYear,
-                    $officeCostAmount,
-                    $officeCostStatement
+                    $officeCostAmount
                 );
-                $result['created_external_office_cost_constraint'] = (bool) $officeCostConstraint;
-            }
 
-            if ($officeCostConstraint) {
-                $this->syncExternalOfficeCostConstraintCostCenter(
-                    $officeCostConstraint->id,
-                    $contract,
-                    $nationalityName
-                );
-                $invoice->external_office_cost_constraint_id = $officeCostConstraint->id;
-                $result['external_office_cost_constraint_id'] = (int) $officeCostConstraint->id;
+                if (!$officeCostConstraint) {
+                    $officeCostConstraint = $this->createExternalOfficeCostConstraint(
+                        $contract,
+                        $invoice,
+                        $nationalityName,
+                        $costCenterId,
+                        $date,
+                        $activeYear,
+                        $officeCostAmount,
+                        $officeCostStatement
+                    );
+                    $result['created_external_office_cost_constraint'] = (bool) $officeCostConstraint;
+                }
+
+                if ($officeCostConstraint) {
+                    $this->syncExternalOfficeCostConstraintCostCenter(
+                        $officeCostConstraint->id,
+                        $contract,
+                        $nationalityName
+                    );
+                    $invoice->external_office_cost_constraint_id = $officeCostConstraint->id;
+                    $result['external_office_cost_constraint_id'] = (int) $officeCostConstraint->id;
+                }
+            } else {
+                $result['warnings'][] = 'لم يُنشأ قيد تكلفة مكتب خارجي لأن التكلفة المسجلة على الإرسالية صفر.';
             }
         }
 
@@ -632,10 +636,6 @@ class RecruitmentTripAccountingService
         $contract->loadMissing('externalOfficeDispatch');
 
         $usdAmount = $this->roundMoney((float) ($contract->externalOfficeDispatch?->office_contract_cost_usd ?? 0));
-        if ($usdAmount <= 0) {
-            throw new \RuntimeException('تكلفة المكتب الخارجي بالدولار غير مكتملة على إرسالية المكتب الخارجي.');
-        }
-
         return $this->roundMoney($usdAmount * self::USD_TO_SAR_RATE);
     }
 
@@ -663,7 +663,6 @@ class RecruitmentTripAccountingService
     {
         return $this->resolveAccountByCandidates(
             [
-                $nationalityName,
                 'التزامات عقود (' . $nationalityName . ')',
                 'التزامات عقود ' . $nationalityName,
                 'إلتزامات عقود ' . $nationalityName,
