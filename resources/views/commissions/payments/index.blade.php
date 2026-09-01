@@ -78,7 +78,7 @@
                 <div><strong>هل تريد إعادة حساب العقود بدل تسجيل قيد؟</strong><div class="small text-muted">متاح فقط للدفعة التي لم يُصرف منها شيء ولم تقع بعدها أي حركة على الرصيد.</div></div>
                 <div class="d-flex flex-wrap gap-2">
                     @foreach($rollbackBatches as $batch)
-                        <form method="POST" action="{{ route('commissions.marketers.payments.batches.rollback', [$admin->id, $batch->id]) }}" onsubmit="return confirm('سيُلغى اعتماد الدفعة #{{ $batch->id }} وتعود عقودها إلى شاشة العمليات لإعادة الاحتساب. هل تريد المتابعة؟');">
+                        <form method="POST" action="{{ route('commissions.marketers.payments.batches.rollback', [$admin->id, $batch->id]) }}" onsubmit="return confirm('سيُلغى اعتماد الدفعة #{{ $batch->id }} ويُحذف قيد استحقاقها وتعود عقودها إلى شاشة العمليات لإعادة الاحتساب. هل تريد المتابعة؟');">
                             @csrf
                             <button class="btn btn-outline-danger btn-sm"><i class="fa fa-rotate-left me-1"></i>التراجع عن دفعة #{{ $batch->id }}</button>
                         </form>
@@ -154,12 +154,19 @@
                                         <span class="badge bg-primary">مطلوب</span>
                                     </div>
                                     <div class="row g-3">
-                                        <div class="col-md-6">
-                                            <label class="form-label fw-semibold">حساب مصروف العمولة (مدين)</label>
-                                            <select name="debit_account_id" class="form-select commission-account-select" required>
-                                                <option value="">اختر حساب المصروف</option>
-                                            </select>
-                                        </div>
+                                        @if($hasAccrualBatches)
+                                            <div class="col-md-6">
+                                                <label class="form-label fw-semibold">حساب استحقاق الموظف (مدين)</label>
+                                                <input class="form-control bg-light" value="{{ $defaultPayableAccount ? trim(($defaultPayableAccount->code ? $defaultPayableAccount->code . ' - ' : '') . $defaultPayableAccount->name) : 'يُحدد تلقائيًا من قيد الاعتماد' }}" readonly>
+                                            </div>
+                                        @else
+                                            <div class="col-md-6">
+                                                <label class="form-label fw-semibold">حساب مصروف العمولة القديمة (مدين)</label>
+                                                <select name="debit_account_id" class="form-select commission-account-select" required>
+                                                    <option value="">اختر حساب المصروف</option>
+                                                </select>
+                                            </div>
+                                        @endif
                                         <div class="col-md-6">
                                             <label class="form-label fw-semibold">حساب الصندوق / البنك (دائن)</label>
                                             <select name="credit_account_id" class="form-select commission-account-select" required>
@@ -200,7 +207,12 @@
                             <i class="fa fa-info-circle me-1"></i>
                             عند الإصدار يُخصم المبلغ من رصيد الموظف وينشأ سند في «سندات الصرف». القيد ينشأ عند اعتماد السند وفق إعدادات المالية.
                         </div>
-                        <button type="submit" class="btn btn-success btn-lg w-100 fw-bold">
+                        @if($hasPendingAccrualConstraint)
+                            <div class="alert alert-danger small mb-3">
+                                <i class="fa fa-lock me-1"></i> يوجد قيد استحقاق عمولة بانتظار الاعتماد المالي؛ لا يمكن إصدار سند الصرف قبله.
+                            </div>
+                        @endif
+                        <button type="submit" class="btn btn-success btn-lg w-100 fw-bold" @disabled($hasPendingAccrualConstraint)>
                             <i class="fa fa-check-circle me-1"></i> إصدار سند الصرف وخصم الرصيد
                         </button>
                     </form>
@@ -318,9 +330,9 @@
                                 </div>
                                 <div class="row g-2 align-items-end">
                                     <div class="col-lg-3">
-                                        <label class="form-label small fw-bold">حساب مصروف العمولة (مدين)</label>
+                                        <label class="form-label small fw-bold">حساب المصروف للدفعة القديمة (مدين)</label>
                                         <select name="debit_account_id" class="form-select commission-account-select" required>
-                                            <option value="">اختر الحساب</option>
+                                            <option value="">اختر حساب المصروف</option>
                                         </select>
                                     </div>
                                     <div class="col-lg-3">
