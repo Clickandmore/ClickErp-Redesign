@@ -29,6 +29,7 @@ use App\Http\Controllers\admin\Controller;
 use App\Http\Requests\ingaz\API\DailyLabotDemandRequest;
 use App\Http\Resources\Api\PackageResource;
 use App\Http\Resources\Api\FindUsLocationResource;
+use App\Support\FindUsSettings;
 use App\Http\Resources\Api\RecruitmentRequirementResource;
 use App\Http\Resources\Api\WhyChooseUsResource;
 use App\Http\Resources\Api\MusanedSectionResource;
@@ -356,7 +357,7 @@ class HomeController extends Controller
         $whyChooseUs = $whyChooseUsAction->visibleSection();
         $musanedSection = $musanedSectionAction->visibleSection();
         $homeHeroSection = $homeHeroSectionAction->visibleSection();
-        $findUsLocations = $findUsLocationAction->ordered();
+        $findUsLocations = $findUsLocationAction->visible();
 
         $counts['number_recruitment_requests'] = DB::table('orders')->get()->count();
         $counts['number_contracts_requests'] = DB::table('contracts')->get()->count();
@@ -396,6 +397,8 @@ class HomeController extends Controller
             'hero' => $homeHeroSection
                 ? new HomeHeroSectionResource($homeHeroSection)
                 : null,
+            'find_us_mode' => FindUsSettings::mode(),
+            'find_us_single_link' => FindUsSettings::usesSingleLink() ? FindUsSettings::singleLink() : '',
             'find_us' => FindUsLocationResource::collection($findUsLocations),
             'requirements' => [
                 'visa' => RecruitmentRequirementResource::collection($Visa->values()),
