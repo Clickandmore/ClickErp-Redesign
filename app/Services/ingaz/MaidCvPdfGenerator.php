@@ -371,9 +371,19 @@ class MaidCvPdfGenerator
                 '--virtual-time-budget=3000',
                 '--force-device-scale-factor=2',
                 '--default-background-color=ffffffff',
+                '--crash-dumps-dir=' . $temporaryDirectory,
                 '--window-size=' . $viewportWidth . ',' . $viewportHeight,
                 '--screenshot=' . $imagePath,
                 $this->fileUrl($htmlPath),
+            ]);
+            // مستخدم الويب (www-data) بيته /var/www وهو غير قابل للكتابة، فيفشل
+            // غلاف google-chrome عند إنشاء ~/.local ثم يفشل crashpad بكود 133.
+            // نمنحه بيتاً مؤقتاً داخل مجلد العملية يُحذف معها.
+            $process->setEnv([
+                'HOME' => $temporaryDirectory,
+                'XDG_CONFIG_HOME' => $temporaryDirectory . DIRECTORY_SEPARATOR . '.config',
+                'XDG_CACHE_HOME' => $temporaryDirectory . DIRECTORY_SEPARATOR . '.cache',
+                'XDG_DATA_HOME' => $temporaryDirectory . DIRECTORY_SEPARATOR . '.local' . DIRECTORY_SEPARATOR . 'share',
             ]);
             $process->setTimeout(90);
             $process->start();

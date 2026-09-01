@@ -58,17 +58,28 @@ php artisan cv:doctor --maid=512   # يضيف تجربة لقطة متصفح ف�
 
 ## الإصلاح على الخادم
 
-### 1. تثبيت Chromium
+### 1. تثبيت متصفح **غير** snap
 
 ```bash
-# Ubuntu / Debian
-sudo apt-get update
-sudo apt-get install -y chromium-browser fonts-liberation
-# إن لم تتوفر الحزمة:  sudo snap install chromium
+# Ubuntu / Debian — الأفضل: Chrome كحزمة deb
+cd /tmp
+wget https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb
+sudo apt install -y ./google-chrome-stable_current_amd64.deb
+sudo apt install -y fonts-noto-core fonts-liberation
 
 # CentOS / RHEL / AlmaLinux
 sudo dnf install -y chromium
 ```
+
+> **لا تستخدم snap.** الحزمة `chromium-browser` على أوبنتو الحديث مجرد غلاف لـ snap،
+> و snap يرفض العمل بمستخدم خدمة مثل `www-data`:
+>
+> ```
+> cannot create snap home dir: mkdir /var/www/snap: permission denied
+> ... is not a snap cgroup for tag snap.chromium.chromium
+> ```
+>
+> للتأكّد مما هو مثبّت: `readlink -f /usr/bin/chromium-browser` و`snap list | grep chromium`.
 
 تحقّق من المسار وأنه يعمل:
 
@@ -120,6 +131,18 @@ php artisan cv:doctor --maid=<أي_معرّف>
 عندها يصبح `cv_preview` ملف `.png`، ويخرج التنزيل PDF سليمًا تلقائيًا دون أي تغيير إضافي.
 
 ---
+
+---
+
+## أخطاء شائعة ومعانيها
+
+| الرسالة في `cv:doctor` أو في المتصفح | السبب | الحل |
+|---|---|---|
+| `file_put_contents(.../storage/framework/views/...): Permission denied` | القالب مخزّن كنصّ في قاعدة البيانات، و`Blade::render()` يجب أن يكتبه ملفًا مصرَّفًا قبل تنفيذه | `sudo chown -R www-data:www-data storage bootstrap/cache` — وشغّل artisan دائمًا بـ `sudo -u www-data` |
+| `cannot create snap home dir: mkdir /var/www/snap` | المتصفح مثبّت عبر snap ولا يعمل بمستخدم خدمة | ثبّت Chrome كحزمة deb (القسم أعلاه) |
+| `mkdir: cannot create directory '/var/www/.local'` + `chrome_crashpad_handler: --database is required` (كود الخروج 133) | `$HOME` لمستخدم `www-data` هو `/var/www` غير القابل للكتابة | مُعالَج في الكود: تُمرَّر `HOME` و`XDG_*` مؤقتة داخل مجلد العملية |
+| `لم يُعثر على Chrome/Chromium على هذا الخادم` | لا متصفح، أو مسار غير قياسي | ثبّته، أو اضبط `CV_PDF_BROWSER_PATH` |
+| `proc_open معطّلة في php.ini` | الاستضافة تعطّلها | أزلها من `disable_functions` |
 
 ## ملاحظات
 
