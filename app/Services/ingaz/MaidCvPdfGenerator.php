@@ -901,11 +901,18 @@ class MaidCvPdfGenerator
     private function viewData(Maid $maid, Setting $settings, string $outputType): array
     {
         $expertises = $maid->expertises;
+        $skills = Skill::query()->with('translations')->get();
 
         return [
             'maid' => $maid,
             'settings' => $settings,
-            'skills' => Skill::query()->with('translations')->get(),
+            'skills' => $skills,
+            // القيم بالعربية والإنجليزية معًا حتى تعرض قوالب السيرة اللغتين جنبًا إلى جنب.
+            'i18n' => \App\Support\MaidCvTranslations::build(
+                $maid,
+                $skills,
+                \App\Support\ApiTranslationLocales::SUPPORTED
+            ),
             'experience' => [
                 'status' => $maid->experience_status,
                 'countries' => $expertises->pluck('country')->filter()->values(),
