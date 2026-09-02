@@ -20,6 +20,9 @@
     );
     $showBulkCreateForm = $isEditable && $bulkCompatibleContracts->isNotEmpty();
     $useUnifiedCreateForm = !$dispatch && $showBulkCreateForm && $currentContractIsBulkCompatible;
+    // An existing dispatch is an edit-mode state, not a blocked contract, so the
+    // availability card judges the contract by the reasons that actually block it.
+    $availabilityReasons = $dispatch ? $selectionBlockingReasons : $selectionUnavailableReasons;
 @endphp
 
 @section('content')
@@ -98,19 +101,29 @@
                         </h5>
                         <div class="small text-muted">حالة العقد الحالي #{{ $contract->id }} بحسب البيانات المسجلة الآن.</div>
                     </div>
-                    @if (empty($selectionUnavailableReasons))
-                        <span class="badge bg-success"><i class="fas fa-check me-1"></i>العقد متاح</span>
-                    @else
+                    @if (!empty($availabilityReasons))
                         <span class="badge bg-danger"><i class="fas fa-times me-1"></i>العقد غير متاح</span>
+                    @elseif ($dispatch)
+                        <span class="badge bg-info text-dark"><i class="fas fa-pen me-1"></i>الإرسالية مسجلة</span>
+                    @else
+                        <span class="badge bg-success"><i class="fas fa-check me-1"></i>العقد متاح</span>
                     @endif
                 </div>
             </div>
             <div class="card-body">
-                @if (!empty($selectionUnavailableReasons))
+                @if ($dispatch)
+                    <div class="alert alert-info mb-3">
+                        الإرسالية مسجلة لهذا العقد بتاريخ
+                        {{ optional($dispatch->dispatch_date)->format('Y-m-d') ?: 'غير محدد' }}،
+                        ويمكن تعديلها من النموذج بالأسفل بدل إنشاء إرسالية جديدة.
+                    </div>
+                @endif
+
+                @if (!empty($availabilityReasons))
                     <div class="alert alert-danger mb-3">
                         <div class="fw-semibold mb-2">سبب عدم إتاحة العقد:</div>
                         <ul class="mb-0 ps-3">
-                            @foreach ($selectionUnavailableReasons as $reason)
+                            @foreach ($availabilityReasons as $reason)
                                 <li>{{ $reason }}</li>
                             @endforeach
                         </ul>
@@ -119,10 +132,20 @@
 
                 <div class="row g-2 mb-3">
                     @foreach ($selectionEligibilityChecks as $check)
+                        @php
+                            // Only meaningful while creating a dispatch; in edit mode it is
+                            // an informational note, not a failed condition.
+                            $isEditModeNote = ($check['key'] ?? null) === 'no_existing_dispatch' && $dispatch;
+                            $checkLabel = $isEditModeNote ? 'الإرسالية مسجلة ويمكن تعديلها' : $check['label'];
+                            $checkBorder = $isEditModeNote ? 'border-info' : ($check['passed'] ? 'border-success' : 'border-danger');
+                            $checkIcon = $isEditModeNote
+                                ? 'fa-info-circle text-info'
+                                : ($check['passed'] ? 'fa-check-circle text-success' : 'fa-times-circle text-danger');
+                        @endphp
                         <div class="col-md-6 col-xl-4">
-                            <div class="d-flex align-items-start gap-2 border rounded-3 p-2 h-100 bg-light {{ $check['passed'] ? 'border-success' : 'border-danger' }}">
-                                <i class="fas {{ $check['passed'] ? 'fa-check-circle text-success' : 'fa-times-circle text-danger' }} mt-1"></i>
-                                <span class="small fw-semibold">{{ $check['label'] }}</span>
+                            <div class="d-flex align-items-start gap-2 border rounded-3 p-2 h-100 bg-light {{ $checkBorder }}">
+                                <i class="fas {{ $checkIcon }} mt-1"></i>
+                                <span class="small fw-semibold">{{ $checkLabel }}</span>
                             </div>
                         </div>
                     @endforeach

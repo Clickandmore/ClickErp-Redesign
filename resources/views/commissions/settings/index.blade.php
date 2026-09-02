@@ -41,8 +41,8 @@
                             <td class="fw-semibold">{{ $label }}</td>
                             <td>
                                 <select class="form-select form-select-sm" name="settings[{{ $type }}][method]">
+                                    <option value="fixed" {{ (!$s || $s->method === 'fixed') ? 'selected' : '' }}>مبلغ ثابت (ريال)</option>
                                     <option value="percentage" {{ ($s && $s->method === 'percentage') ? 'selected' : '' }}>نسبة مئوية (%)</option>
-                                    <option value="fixed" {{ ($s && $s->method === 'fixed') ? 'selected' : '' }}>مبلغ ثابت (ريال)</option>
                                 </select>
                             </td>
                             <td>
@@ -130,8 +130,8 @@
                     </div>
                     <div class="col-md-2">
                         <select class="form-select form-select-sm" name="overrides[__IDX__][method]">
+                            <option value="fixed" selected>مبلغ ثابت</option>
                             <option value="percentage">نسبة %</option>
-                            <option value="fixed">مبلغ ثابت</option>
                         </select>
                     </div>
                     <div class="col-md-2">

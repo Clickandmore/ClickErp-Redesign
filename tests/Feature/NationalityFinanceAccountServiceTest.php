@@ -2,7 +2,6 @@
 
 namespace Tests\Feature;
 
-use App\Models\auth\Admin;
 use App\Services\ingaz\NationalityFinanceAccountService;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Illuminate\Support\Facades\DB;
@@ -14,47 +13,41 @@ class NationalityFinanceAccountServiceTest extends TestCase
 {
     use DatabaseTransactions;
 
-    public function test_next_child_code_skips_a_code_used_by_another_parent(): void
+    public function test_next_child_code_skips_a_code_used_under_another_parent(): void
     {
-        $admin = Admin::factory()->create();
-        $baseCode = ((int) Account::query()->max('code')) + 1000;
-        $parent = $this->createAccount($admin->id, null, $baseCode, 1, 'Test parent');
-        $otherParent = $this->createAccount($admin->id, null, $baseCode + 1, 1, 'Other test parent');
-        $lastSiblingCode = $baseCode + 1000;
-
-        $this->createAccount($admin->id, $parent->id, $lastSiblingCode, 2, 'Test sibling');
-        $this->createAccount($admin->id, $otherParent->id, $lastSiblingCode + 1, 2, 'Test global collision');
-
-        $method = new ReflectionMethod(NationalityFinanceAccountService::class, 'nextChildCode');
-        $method->setAccessible(true);
-
-        $nextCode = $method->invoke(new NationalityFinanceAccountService(), $parent);
-
-        $this->assertSame($lastSiblingCode + 2, $nextCode);
-    }
-
-    private function createAccount(
-        int $adminId,
-        ?int $parentId,
-        int $code,
-        int $level,
-        string $name
-    ): Account
-    {
-        $accountId = DB::table('fn_accounts')->insertGetId([
-            'name' => $name,
+        $highestCode = (int) DB::table('fn_accounts')->max('code');
+        $parentCode = $highestCode + 1000;
+        $conflictingCode = ($parentCode * 100) + 1;
+        $attributes = [
             'operation_type' => 1,
             'status' => 'debtor',
             'statement_type' => 'income_statement',
-            'level' => $level,
-            'code' => $code,
             'type' => 1,
-            'parent_id' => $parentId,
-            'created_by_id' => $adminId,
+            'created_by_id' => DB::table('admins')->value('id') ?? 1,
             'created_at' => now(),
             'updated_at' => now(),
-        ]);
+        ];
 
-        return Account::query()->findOrFail($accountId);
+        $parentId = DB::table('fn_accounts')->insertGetId(array_merge($attributes, [
+            'name' => 'Nationality account code test parent',
+            'parent_id' => null,
+            'level' => 1,
+            'code' => $parentCode,
+        ]));
+
+        DB::table('fn_accounts')->insert(array_merge($attributes, [
+            'name' => 'Account using another parent candidate',
+            'parent_id' => null,
+            'level' => 1,
+            'code' => $conflictingCode,
+        ]));
+
+        $method = new ReflectionMethod(NationalityFinanceAccountService::class, 'nextChildCode');
+        $nextCode = DB::transaction(fn () => $method->invoke(
+            app(NationalityFinanceAccountService::class),
+            Account::query()->findOrFail($parentId)
+        ));
+
+        $this->assertSame($conflictingCode + 1, $nextCode);
     }
 }

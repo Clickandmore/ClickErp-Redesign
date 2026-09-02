@@ -52,6 +52,7 @@
 <script src="{{ asset('admin/assets/js/clickmore-loader.js') }}?v=2"></script>
 <script src="{{ asset('admin/assets/js/clickmore-sidebar-state.js') }}?v=5"></script>
 <script src="{{ asset('admin/assets/js/notifications.js') }}?v=2"></script>
+<script src="{{ asset('admin/custom/list-state.js') }}?v=1"></script>
 
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 

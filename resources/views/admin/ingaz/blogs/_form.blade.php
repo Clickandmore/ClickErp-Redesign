@@ -108,7 +108,154 @@
     </div>
 @endforeach
 
+@php
+    // الصفوف المحفوظة مسبقًا؛ الصف الأول يُعرض فارغًا عند إنشاء مقال جديد
+    // حتى يجد المحرر حقلًا جاهزًا للكتابة بدل الضغط على "إضافة" أولًا.
+    $existingFaqs = isset($obj) && $obj ? $obj->faqs : collect();
+@endphp
+
+<div class="col-12">
+    <div class="card border">
+        <div class="card-header bg-light d-flex justify-content-between align-items-center flex-wrap gap-2">
+            <span class="fw-bold">الأسئلة الشائعة للمقال</span>
+            <button type="button" class="btn btn-sm btn-primary" id="blog-faq-add">
+                <i class="fa fa-plus me-1"></i> إضافة سؤال
+            </button>
+        </div>
+        <div class="card-body">
+            <small class="text-muted d-block mb-3">
+                تظهر أسفل المقال في الموقع الخارجي كأكورديون، وتُرسل أيضًا لمحركات البحث كوسم
+                FAQ. الصف الذي يُترك فارغًا لا يُحفظ، والسؤال بلا نسخة إنجليزية يُعرض بالعربية.
+            </small>
+
+            <div id="blog-faq-rows">
+                @foreach ($existingFaqs as $index => $faq)
+                    <div class="border rounded p-3 mb-3 blog-faq-row">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <span class="fw-bold text-muted">سؤال <span class="blog-faq-number">{{ $index + 1 }}</span></span>
+                            <button type="button" class="btn btn-sm btn-outline-danger blog-faq-remove">
+                                <i class="fa fa-trash me-1"></i> حذف
+                            </button>
+                        </div>
+
+                        <input type="hidden" name="faqs[{{ $index }}][id]" value="{{ $faq->id }}">
+
+                        <div class="row g-3">
+                            @foreach ($locales as $locale)
+                                @php $faqTranslation = $faq->translate($locale); @endphp
+
+                                <div class="col-md-6">
+                                    <label class="form-label">السؤال — {{ $localeLabels[$locale] ?? $locale }}</label>
+                                    <input type="text" class="form-control" maxlength="500"
+                                        name="faqs[{{ $index }}][question:{{ $locale }}]"
+                                        value="{{ $faqTranslation->question ?? '' }}">
+
+                                    <label class="form-label mt-2">الإجابة — {{ $localeLabels[$locale] ?? $locale }}</label>
+                                    <textarea class="form-control" rows="3" maxlength="5000"
+                                        name="faqs[{{ $index }}][answer:{{ $locale }}]">{{ $faqTranslation->answer ?? '' }}</textarea>
+                                </div>
+                            @endforeach
+                        </div>
+                    </div>
+                @endforeach
+            </div>
+
+            <div class="text-muted small blog-faq-empty {{ $existingFaqs->count() ? 'd-none' : '' }}">
+                لا توجد أسئلة شائعة لهذا المقال بعد.
+            </div>
+        </div>
+    </div>
+</div>
+
+{{-- قالب الصف الجديد. داخل <template> حتى لا تُرسل حقوله مع النموذج،
+     و__INDEX__ يُستبدل بالرقم التالي عند الإضافة حتى لا تتصادم أسماء الحقول. --}}
+<template id="blog-faq-template">
+    <div class="border rounded p-3 mb-3 blog-faq-row">
+        <div class="d-flex justify-content-between align-items-center mb-2">
+            <span class="fw-bold text-muted">سؤال <span class="blog-faq-number"></span></span>
+            <button type="button" class="btn btn-sm btn-outline-danger blog-faq-remove">
+                <i class="fa fa-trash me-1"></i> حذف
+            </button>
+        </div>
+
+        <input type="hidden" name="faqs[__INDEX__][id]" value="">
+
+        <div class="row g-3">
+            @foreach ($locales as $locale)
+                <div class="col-md-6">
+                    <label class="form-label">السؤال — {{ $localeLabels[$locale] ?? $locale }}</label>
+                    <input type="text" class="form-control" maxlength="500"
+                        name="faqs[__INDEX__][question:{{ $locale }}]" value="">
+
+                    <label class="form-label mt-2">الإجابة — {{ $localeLabels[$locale] ?? $locale }}</label>
+                    <textarea class="form-control" rows="3" maxlength="5000"
+                        name="faqs[__INDEX__][answer:{{ $locale }}]"></textarea>
+                </div>
+            @endforeach
+        </div>
+    </div>
+</template>
+
 <div class="col-12 modal-footer">
     <button class="btn btn-primary" type="submit">{{ __('buttons.save') }}</button>
     <button class="btn btn-outline-secondary" type="button" data-bs-dismiss="modal">{{ __('buttons.close') }}</button>
 </div>
+
+<script>
+    // النموذج يُحمَّل داخل مودال عبر أجاكس، فلا يمر على $(document).ready —
+    // لذلك يُنفَّذ السكربت فور حقنه، ويُربط على العنصر الجذري لهذه النسخة فقط
+    // حتى لا يتضاعف السلوك عند فتح المودال أكثر من مرة.
+    (function () {
+        var container = document.getElementById('blog-faq-rows');
+        var template = document.getElementById('blog-faq-template');
+        var addButton = document.getElementById('blog-faq-add');
+
+        if (!container || !template || !addButton) {
+            return;
+        }
+
+        function renumber() {
+            var rows = container.querySelectorAll('.blog-faq-row');
+
+            rows.forEach(function (row, index) {
+                var label = row.querySelector('.blog-faq-number');
+
+                if (label) {
+                    label.textContent = index + 1;
+                }
+
+                // إعادة ترقيم أسماء الحقول بعد الحذف حتى تصل المصفوفة للخادم
+                // بمفاتيح متتابعة بلا فجوات.
+                row.querySelectorAll('[name]').forEach(function (field) {
+                    field.name = field.name.replace(/^faqs\[[^\]]*\]/, 'faqs[' + index + ']');
+                });
+            });
+
+            var empty = document.querySelector('.blog-faq-empty');
+
+            if (empty) {
+                empty.classList.toggle('d-none', rows.length > 0);
+            }
+        }
+
+        addButton.addEventListener('click', function () {
+            var markup = template.innerHTML.replace(/__INDEX__/g, container.querySelectorAll('.blog-faq-row').length);
+            container.insertAdjacentHTML('beforeend', markup);
+            renumber();
+            container.lastElementChild.querySelector('input[type="text"]').focus();
+        });
+
+        container.addEventListener('click', function (event) {
+            var button = event.target.closest('.blog-faq-remove');
+
+            if (!button) {
+                return;
+            }
+
+            button.closest('.blog-faq-row').remove();
+            renumber();
+        });
+
+        renumber();
+    })();
+</script>

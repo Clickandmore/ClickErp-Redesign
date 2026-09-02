@@ -1034,8 +1034,7 @@
         <div class="contract-details-container" id="printDiv">
             <div class="details-page-shell">
                 <div class="page-back-toolbar">
-                    <a href="{{ route('RecruitmentContract.index') }}" class="page-back-button"
-                        onclick="if (document.referrer && window.history.length > 1) { event.preventDefault(); window.history.back(); }"
+                    <a href="{{ route('RecruitmentContract.index') }}" class="page-back-button" data-list-back
                         aria-label="العودة للصفحة السابقة">
                         <i class="fas fa-arrow-right"></i>
                         <span>العودة للصفحة السابقة</span>

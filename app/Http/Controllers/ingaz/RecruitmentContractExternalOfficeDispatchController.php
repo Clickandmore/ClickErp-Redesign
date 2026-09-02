@@ -374,6 +374,7 @@ class RecruitmentContractExternalOfficeDispatchController extends Controller
                 'failure' => 'حالة العقد الحالية (' . getContractStatus($contract->status) . ') لا تسمح بإنشاء أو تعديل الإرسالية.',
             ],
             [
+                'key' => 'no_existing_dispatch',
                 'label' => 'لا توجد إرسالية مسجلة مسبقًا',
                 'passed' => !$dispatch,
                 'failure' => 'توجد إرسالية مسجلة لهذا العقد بالفعل؛ يمكن تعديلها بدل إنشاء إرسالية جديدة.',
@@ -424,6 +425,19 @@ class RecruitmentContractExternalOfficeDispatchController extends Controller
             ->values()
             ->all();
 
+        // A contract that already carries a dispatch is not "unavailable" — it simply
+        // moves from create mode to edit mode. Keep that out of the blocking reasons so
+        // the page stops reporting a normal, finished dispatch as a failure.
+        $selectionBlockingReasons = collect($selectionEligibilityChecks)
+            ->where('passed', false)
+            ->reject(fn (array $check) => ($check['key'] ?? null) === 'no_existing_dispatch')
+            ->pluck('failure')
+            ->merge($sourceErrors)
+            ->filter()
+            ->unique()
+            ->values()
+            ->all();
+
         $oldBulkContractIds = collect((array) old('contract_ids', [$contract->id]))
             ->map(fn ($id) => (int) $id)
             ->intersect($bulkCompatibleContracts->pluck('id'))
@@ -450,6 +464,7 @@ class RecruitmentContractExternalOfficeDispatchController extends Controller
             'oldBulkContractIds' => $oldBulkContractIds,
             'selectionEligibilityChecks' => $selectionEligibilityChecks,
             'selectionUnavailableReasons' => $selectionUnavailableReasons,
+            'selectionBlockingReasons' => $selectionBlockingReasons,
         ]);
     }
 
