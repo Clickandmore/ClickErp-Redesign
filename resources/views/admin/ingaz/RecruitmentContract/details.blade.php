@@ -82,6 +82,43 @@
         gap: 24px;
     }
 
+    .page-back-toolbar {
+        display: flex;
+        justify-content: flex-start;
+    }
+
+    .page-back-button {
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+        padding: 11px 18px;
+        color: #334155;
+        background: #fff;
+        border: 1px solid #d7e3ef;
+        border-radius: 14px;
+        font-size: 14px;
+        font-weight: 700;
+        text-decoration: none;
+        box-shadow: 0 8px 20px rgba(15, 23, 42, 0.08);
+        transition: color 0.2s ease, border-color 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .page-back-button i {
+        color: #1672a5;
+        transition: transform 0.2s ease;
+    }
+
+    .page-back-button:hover {
+        color: #0f5f8d;
+        border-color: #7dc3e6;
+        transform: translateY(-2px);
+        box-shadow: 0 12px 24px rgba(15, 95, 141, 0.14);
+    }
+
+    .page-back-button:hover i {
+        transform: translateX(3px);
+    }
+
     .contract-header {
         background: linear-gradient(135deg, #0f3d68 0%, #16608a 52%, #1d7cb0 100%);
         color: white;
@@ -908,6 +945,7 @@
     @media print {
 
         .action-buttons,
+        .page-back-toolbar,
         .modal {
             display: none !important;
         }
@@ -919,6 +957,11 @@
     }
 
     @media (max-width: 767.98px) {
+        .page-back-button {
+            width: 100%;
+            justify-content: center;
+        }
+
         .contract-details-container {
             padding: 16px;
             border-radius: 18px;
@@ -990,6 +1033,15 @@
 
         <div class="contract-details-container" id="printDiv">
             <div class="details-page-shell">
+                <div class="page-back-toolbar">
+                    <a href="{{ route('RecruitmentContract.index') }}" class="page-back-button"
+                        onclick="if (document.referrer && window.history.length > 1) { event.preventDefault(); window.history.back(); }"
+                        aria-label="العودة للصفحة السابقة">
+                        <i class="fas fa-arrow-right"></i>
+                        <span>العودة للصفحة السابقة</span>
+                    </a>
+                </div>
+
                 <!-- رأس العقد -->
                 <div class="contract-header">
                     <div class="contract-header-copy">

@@ -88,6 +88,59 @@
             </div>
         @endif
 
+        <div class="card shadow-sm border-0 mb-4 overflow-hidden">
+            <div class="card-header bg-white py-3">
+                <div class="d-flex flex-wrap justify-content-between align-items-center gap-2">
+                    <div>
+                        <h5 class="mb-1">
+                            <i class="fas fa-clipboard-check text-primary me-1"></i>
+                            شروط إتاحة العقد للإرسالية
+                        </h5>
+                        <div class="small text-muted">حالة العقد الحالي #{{ $contract->id }} بحسب البيانات المسجلة الآن.</div>
+                    </div>
+                    @if (empty($selectionUnavailableReasons))
+                        <span class="badge bg-success"><i class="fas fa-check me-1"></i>العقد متاح</span>
+                    @else
+                        <span class="badge bg-danger"><i class="fas fa-times me-1"></i>العقد غير متاح</span>
+                    @endif
+                </div>
+            </div>
+            <div class="card-body">
+                @if (!empty($selectionUnavailableReasons))
+                    <div class="alert alert-danger mb-3">
+                        <div class="fw-semibold mb-2">سبب عدم إتاحة العقد:</div>
+                        <ul class="mb-0 ps-3">
+                            @foreach ($selectionUnavailableReasons as $reason)
+                                <li>{{ $reason }}</li>
+                            @endforeach
+                        </ul>
+                    </div>
+                @endif
+
+                <div class="row g-2 mb-3">
+                    @foreach ($selectionEligibilityChecks as $check)
+                        <div class="col-md-6 col-xl-4">
+                            <div class="d-flex align-items-start gap-2 border rounded-3 p-2 h-100 bg-light {{ $check['passed'] ? 'border-success' : 'border-danger' }}">
+                                <i class="fas {{ $check['passed'] ? 'fa-check-circle text-success' : 'fa-times-circle text-danger' }} mt-1"></i>
+                                <span class="small fw-semibold">{{ $check['label'] }}</span>
+                            </div>
+                        </div>
+                    @endforeach
+                </div>
+
+                <div class="alert alert-info mb-0">
+                    <div class="fw-semibold mb-2">شروط حفظ الإرسالية:</div>
+                    <ul class="mb-0 ps-3 small">
+                        <li>إدخال تاريخ إرسالية صحيح وتكلفة العقد بالدولار بقيمة أكبر من صفر.</li>
+                        <li>تحديد محطة وصول موحدة، أو توفر محطة وصول مستقلة لكل عقد محدد.</li>
+                        <li>عند اختيار أكثر من عقد يجب أن تكون جميع العقود من نفس المكتب الخارجي ونفس الجنسية.</li>
+                        <li>يجب ألا تكون هناك إرسالية مسجلة مسبقًا لأي عقد مختار.</li>
+                        <li>رقم التأشيرة وعمر العاملة بيانات عرض وليسا شرطًا لمنع إنشاء الإرسالية.</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
         @if ($showBulkCreateForm)
             <form method="POST" action="{{ route('RecruitmentContract.externalOfficeDispatch.bulkStore') }}"
                 id="bulk-dispatch-card" class="card shadow-sm border-0 mb-4 overflow-hidden">
@@ -115,7 +168,7 @@
                             @if (!$currentContractIsBulkCompatible)
                                 <div class="small text-danger mt-1">
                                     العقد الحالي #{{ $contract->id }} غير متاح للاختيار:
-                                    {{ !empty($sourceErrors) ? implode(' ', $sourceErrors) : 'العقد لا يطابق شروط الإرسالية الحالية.' }}
+                                    {{ !empty($selectionUnavailableReasons) ? implode(' ', $selectionUnavailableReasons) : 'العقد ليس ضمن مجموعة المكتب والجنسية المعروضة.' }}
                                 </div>
                             @endif
                         </div>
