@@ -63,7 +63,9 @@ class CommissionCalculationService
             $serviceType = $operation['service_type'];
             $setting = $this->getApplicableSetting($marketerId, $serviceType);
             $adjustment = $adjustments[$operation['key']] ?? null;
-            $method = $adjustment['method'] ?? $setting['method'] ?? 'fixed';
+            // The review screen always starts with a fixed amount. A percentage is
+            // only used when the reviewer explicitly selects it for this approval.
+            $method = $adjustment['method'] ?? 'fixed';
             $rateOrAmount = (float) ($adjustment['value'] ?? $setting['value'] ?? 0);
             $commissionAmount = $this->calculateAmount($baseAmount, $method, $rateOrAmount);
 

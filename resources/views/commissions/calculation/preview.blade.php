@@ -25,16 +25,18 @@
 
 @php
     $bulkDefault = $preview['items'][0] ?? null;
-    $bulkDefaultMethod = $bulkDefault['method'] ?? 'fixed';
-    $bulkDefaultValue = $bulkDefault['rate_or_amount'] ?? 0;
+    $bulkDefaultValue = ($bulkDefault['method'] ?? null) === 'fixed'
+        ? ($bulkDefault['rate_or_amount'] ?? 0)
+        : 0;
 @endphp
 <form method="POST" action="{{ route('commissions.marketers.approve', $admin->id) }}" id="approveForm" autocomplete="off">
 @csrf
+<div id="approvalError" class="alert alert-danger d-none mb-3" role="alert"></div>
 <div class="card review-card mb-3">
     <div class="card-header bg-white py-3 d-flex flex-wrap justify-content-between align-items-center gap-3">
         <div><h5 class="mb-1 fw-bold">تفاصيل عمولة {{ $admin->name }}</h5><div class="text-muted small">يمكن تعديل طريقة وقيمة كل عملية بصورة مستقلة.</div></div>
         <div class="d-flex flex-wrap align-items-end gap-2 bg-light rounded p-2">
-            <div><label class="form-label small mb-1">تطبيق موحّد</label><select id="bulkMethod" class="form-select form-select-sm"><option value="percentage" @selected($bulkDefaultMethod === 'percentage')>نسبة %</option><option value="fixed" @selected($bulkDefaultMethod === 'fixed')>مبلغ ثابت</option></select></div>
+            <div><label class="form-label small mb-1">تطبيق موحّد</label><select id="bulkMethod" class="form-select form-select-sm" autocomplete="off"><option value="fixed" selected>مبلغ ثابت</option><option value="percentage">نسبة %</option></select></div>
             <div><label class="form-label small mb-1">القيمة</label><input id="bulkValue" type="number" min="0" step=".01" class="form-control form-control-sm" value="{{ $bulkDefaultValue }}" style="width:120px"></div>
             <button type="button" id="applyBulk" class="btn btn-sm btn-outline-primary">تطبيق على الكل</button>
         </div>
@@ -95,6 +97,11 @@
 @section('js')
 <script>
 $(function () {
+    // Some browsers restore the previous select value when returning to the page.
+    $('#bulkMethod').val('fixed');
+    $('#bulkValue').val(@json($bulkDefaultValue));
+    $('.method-input').val('fixed');
+
     function recalculate() {
         let total = 0;
         $('.commission-row').each(function () {
@@ -116,6 +123,12 @@ $(function () {
         recalculate();
     });
     $('#approveForm').on('submit', function (event) {
+        event.preventDefault();
+        const form = this;
+        const $button = $(form).find('button.btn-success').first();
+        const $error = $('#approvalError');
+        $error.addClass('d-none').empty();
+
         let valid = true;
         let hasHighPercentage = false;
         $('.commission-row').each(function () {
@@ -138,7 +151,38 @@ $(function () {
 
         if (!confirm(`سيتم اعتماد وإضافة ${formatted} ر.س إلى رصيد الموظف وإنشاء قيد الاستحقاق.${warning}\n\nهل تريد المتابعة؟`)) {
             event.preventDefault();
+            return;
         }
+
+        const originalButtonHtml = $button.html();
+        $button.prop('disabled', true).html('<span class="spinner-border spinner-border-sm me-1" aria-hidden="true"></span> جارٍ الاعتماد...');
+
+        $.ajax({
+            url: form.action,
+            method: 'POST',
+            data: $(form).serialize(),
+            headers: { 'Accept': 'application/json' },
+        }).done(function (response) {
+            window.location.href = response.redirect;
+        }).fail(function (xhr) {
+            const errors = xhr.responseJSON && xhr.responseJSON.errors
+                ? Object.values(xhr.responseJSON.errors).flat()
+                : [];
+            const messages = errors.length
+                ? errors
+                : [(xhr.responseJSON && xhr.responseJSON.message
+                    ? xhr.responseJSON.message
+                    : 'تعذر اعتماد العمولة بسبب خطأ غير متوقع. حاول مرة أخرى أو تواصل مع الدعم الفني.')];
+
+            $error.empty().append($('<strong>').text('لم يتم اعتماد العمولة:'));
+            messages.forEach(function (message) {
+                $error.append($('<div>').text(message));
+            });
+            $error.removeClass('d-none');
+            window.scrollTo({ top: Math.max(0, $error.offset().top - 120), behavior: 'smooth' });
+        }).always(function () {
+            $button.prop('disabled', false).html(originalButtonHtml);
+        });
     });
 
     // قد يعيد المتصفح قيم الحقول من محاولة سابقة؛ لذلك يجب ألا نعتمد الإجمالي

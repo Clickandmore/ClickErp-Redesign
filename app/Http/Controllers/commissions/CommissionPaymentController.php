@@ -78,6 +78,7 @@ class CommissionPaymentController extends Controller
         $payments = $this->paymentService->getPaymentsForMarketer($admin->id);
         $balanceTransactions = $this->paymentService->getBalanceTransactionsForMarketer($admin->id);
         $approvedBatches = CommissionBatch::query()
+            ->with('accrualConstraint')
             ->where('marketer_id', $admin->id)
             ->where('status', CommissionBatch::STATUS_APPROVED)
             ->where('total_commission', '>', 0)

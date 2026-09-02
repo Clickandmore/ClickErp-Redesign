@@ -81,6 +81,51 @@ class RentalContractExtension extends Model
     }
 
     /**
+     * Split the extension value into 30-day commission periods. The recorded
+     * start date is authoritative, not the date the extension was entered.
+     */
+    public function commissionPeriods(): array
+    {
+        $totalDays = (int) ($this->extension_days ?? 0);
+        if ($totalDays <= 0) {
+            $totalDays = max(0, (int) ($this->extension_months ?? 0) * 30);
+        }
+
+        $totalCents = (int) round((float) ($this->extension_value ?? 0) * 100);
+        if ($totalDays <= 0 || $totalCents <= 0) {
+            return [];
+        }
+
+        $periodCount = (int) ceil($totalDays / 30);
+        $startDate = $this->start_date
+            ? $this->start_date->copy()->startOfDay()
+            : optional($this->created_at)?->copy()->startOfDay();
+        $allocatedCents = 0;
+        $periods = [];
+
+        for ($index = 0; $index < $periodCount; $index++) {
+            $offsetDays = $index * 30;
+            $periodDays = min(30, $totalDays - $offsetDays);
+            $periodCents = $index === $periodCount - 1
+                ? $totalCents - $allocatedCents
+                : (int) round($totalCents * ($periodDays / $totalDays));
+            $allocatedCents += $periodCents;
+            $periodStart = $startDate?->copy()->addDays($offsetDays);
+
+            $periods[] = [
+                'sequence' => $index + 1,
+                'count' => $periodCount,
+                'days' => $periodDays,
+                'start_date' => $periodStart,
+                'end_date' => $periodStart?->copy()->addDays($periodDays - 1),
+                'amount' => round($periodCents / 100, 2),
+            ];
+        }
+
+        return $periods;
+    }
+
+    /**
      * وصف الخصم كما يظهر في الشاشات: "10% (250.00 ريال)" أو "250.00 ريال".
      */
     public function getDiscountLabelAttribute(): ?string

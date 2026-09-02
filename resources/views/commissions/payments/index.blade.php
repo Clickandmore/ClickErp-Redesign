@@ -251,6 +251,59 @@
 </div>
 
 <div class="card payment-card mb-4">
+    <div class="card-header bg-white py-3 d-flex flex-wrap justify-content-between align-items-center gap-2">
+        <div>
+            <h5 class="mb-1 fw-bold"><i class="fa fa-book-open text-primary me-2"></i>قيود اعتماد العمولات</h5>
+            <div class="small text-muted">القيد الذي تم إنشاؤه عند اعتماد كل دفعة عمولة.</div>
+        </div>
+        <span class="badge bg-light text-dark border">{{ $approvedBatches->count() }} دفعة اعتماد</span>
+    </div>
+    <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+            <thead class="table-light">
+                <tr>
+                    <th>دفعة الاعتماد</th>
+                    <th>تاريخ الاعتماد</th>
+                    <th class="text-end">مبلغ العمولة</th>
+                    <th>رقم القيد</th>
+                    <th>حالة القيد</th>
+                </tr>
+            </thead>
+            <tbody>
+            @forelse($approvedBatches as $batch)
+                @php $accrualConstraint = $batch->accrualConstraint; @endphp
+                <tr>
+                    <td class="fw-bold">#{{ $batch->id }}</td>
+                    <td>{{ optional($batch->approved_at)->format('Y-m-d H:i') ?: '—' }}</td>
+                    <td class="text-end fw-bold text-success">{{ number_format($batch->total_commission, 2) }} ر.س</td>
+                    <td>
+                        @if($accrualConstraint)
+                            <a href="{{ route('finance.add-constraint.show', $accrualConstraint->id) }}" target="_blank" rel="noopener" class="btn btn-sm btn-outline-primary" title="فتح القيد المحاسبي">
+                                <i class="fa fa-book me-1"></i>#{{ $accrualConstraint->code ?: $accrualConstraint->id }}
+                            </a>
+                        @else
+                            <span class="text-muted">لم يُنشأ قيد</span>
+                        @endif
+                    </td>
+                    <td>
+                        @if(!$accrualConstraint)
+                            <span class="badge bg-secondary">غير موجود</span>
+                        @elseif($accrualConstraint->approval_status === \Nami\Finance\Models\Constraint::APPROVAL_PENDING)
+                            <a href="{{ route('finance.constraints.pending', ['constraint_code' => $accrualConstraint->code ?: $accrualConstraint->id]) }}" class="badge bg-warning text-dark text-decoration-none" title="فتح قائمة القيود بانتظار الاعتماد">بانتظار الاعتماد المالي</a>
+                        @else
+                            <span class="badge bg-success">معتمد ماليًا</span>
+                        @endif
+                    </td>
+                </tr>
+            @empty
+                <tr><td colspan="5" class="text-center text-muted py-4">لا توجد دفعات عمولة معتمدة حتى الآن.</td></tr>
+            @endforelse
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<div class="card payment-card mb-4">
     <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
         <div><h5 class="mb-1 fw-bold"><i class="fa fa-book text-primary me-2"></i>كشف حساب الموظف</h5><div class="small text-muted">الاعتماد دائن للموظف، وسند الصرف أو التصحيح مدين عليه.</div></div>
         <span class="badge bg-light text-dark border">{{ $balanceTransactions->count() }} حركة</span>

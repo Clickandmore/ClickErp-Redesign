@@ -50,9 +50,41 @@ class BlogResource extends JsonResource
 
         if ($this->withContent) {
             $data['content'] = (string) $this->content;
+            // الأسئلة الشائعة تُرسل مع صفحة المقال فقط: البطاقات في القوائم لا
+            // تعرضها، وإرسالها هناك يضخّم الرد بلا فائدة تمامًا كـ content.
+            $data['faqs'] = $this->faqsPayload();
         }
 
         return $data;
+    }
+
+    /**
+     * الأسئلة الشائعة بلغة الطلب، مع الرجوع إلى اللغة الافتراضية عند غياب
+     * الترجمة — إعداد translatable.use_fallback مُطفأ، فبدون هذا الرجوع يفقد
+     * الزائر الإنجليزي سكشن الأسئلة كاملًا لمجرد أن المحرر لم يترجمه بعد.
+     *
+     * السؤال بلا نص في أي لغة يُستبعد بدل إرسال عنصر فارغ.
+     *
+     * @return array<int, array<string, string>>
+     */
+    private function faqsPayload(): array
+    {
+        $fallbackLocale = config('app.locale', 'ar');
+
+        return $this->faqs
+            ->map(function ($faq) use ($fallbackLocale) {
+                // اللغة الافتراضية أولًا، ثم أي ترجمة موجودة — سؤال كُتب
+                // بالإنجليزية وحدها يظل ظاهرًا للزائر العربي بدل أن يختفي.
+                $translation = $faq->translate($fallbackLocale) ?? $faq->translations->first();
+
+                return [
+                    'question' => trim((string) ($faq->question ?: ($translation->question ?? ''))),
+                    'answer' => trim((string) ($faq->answer ?: ($translation->answer ?? ''))),
+                ];
+            })
+            ->filter(fn(array $faq) => $faq['question'] !== '')
+            ->values()
+            ->all();
     }
 
     private function readingMinutes(): int

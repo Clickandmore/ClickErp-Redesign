@@ -329,7 +329,7 @@
             <div>
                 <label for="constraint_code">رقم القيد</label>
                 <input type="search" inputmode="numeric" class="form-control constraints-search-input"
-                    id="constraint_code" name="constraint_code" placeholder="مثال: 6052" autocomplete="off">
+                    id="constraint_code" name="constraint_code" value="{{ $request->input('constraint_code') }}" placeholder="مثال: 6052" autocomplete="off">
             </div>
             <div>
                 <label for="document_number">رقم السند أو الفاتورة</label>

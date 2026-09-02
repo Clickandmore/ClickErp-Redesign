@@ -2080,6 +2080,48 @@
                 },
             ];
 
+            // حفظ/استعادة حالة القائمة (الفلاتر + رقم الصفحة) عند الرجوع من صفحة تفاصيل العقد
+            const recruitmentListFilterSelectors = [
+                '#globalSearchFilter',
+                '#statusFilter',
+                '#warrantyStatusFilter',
+                '#dateFromFilter',
+                '#dateToFilter',
+                '#clientPhoneFilter',
+                '#clientNameFilter',
+                '#maidPassportFilter',
+                '#maidNameFilter',
+                '#contractNumberFilter',
+                '#nationalityFilter',
+                '#religionFilter',
+                '#officeFilter',
+                '#requestTypeFilter',
+                '#cityFilter',
+                '#marketerFilter',
+                '#branchFilter',
+                '#invoicePresenceFilter',
+                '#musanedTransferPresenceFilter',
+                '#externalDispatchPresenceFilter'
+            ];
+
+            // الحالة المحفوظة لها الأولوية على فلاتر الـ URL لأنها تُحفظ عند كل عرض للجدول
+            const recruitmentListState = window.ListState
+                ? window.ListState.create({
+                    key: 'recruitment-contracts' + (shelterContractsMode ? ':shelter' : ''),
+                    filters: recruitmentListFilterSelectors,
+                    onRestore: function(filters) {
+                        const hasActiveFilter = Object.keys(filters).some(function(selector) {
+                            return filters[selector];
+                        });
+
+                        if (hasActiveFilter) {
+                            $('#filtersCollapse').addClass('show');
+                            $('#filtersIcon').removeClass('fa-chevron-down').addClass('fa-chevron-up');
+                        }
+                    }
+                })
+                : null;
+
             // إظهار مؤشر التحميل
             $('#loadingOverlay').show();
             $('body').addClass('loading');
@@ -2095,7 +2137,6 @@
                     [10, 25, 50, 100],
                     [10, 25, 50, 100]
                 ], // خيارات عملية حتى لا يتأخر تحميل علاقات العقود
-                stateSave: false, // إيقاف حفظ الحالة لتسريع التحميل
                 deferRender: true, // تحسين الأداء للبيانات الكبيرة
                 scroller: false,
                 autoWidth: false, // إيقاف حساب العرض التلقائي
@@ -2164,7 +2205,13 @@
                     [10, 25, 50, 100],
                     [10, 25, 50, 100]
                 ], // خيارات عملية حتى لا يتأخر تحميل علاقات العقود
-                stateSave: false, // إيقاف حفظ الحالة لتسريع التحميل
+                // حفظ الحالة يقتصر على الرجوع من صفحة التفاصيل عبر زر العودة
+                stateSave: !!recruitmentListState,
+                stateDuration: 0,
+                stateSaveCallback: recruitmentListState ? recruitmentListState.saveCallback : undefined,
+                stateLoadCallback: recruitmentListState ? recruitmentListState.loadCallback : undefined,
+                stateSaveParams: recruitmentListState ? recruitmentListState.saveParams : undefined,
+                stateLoadParams: recruitmentListState ? recruitmentListState.loadParams : undefined,
                 deferRender: true, // تحسين الأداء للبيانات الكبيرة
                 scroller: false,
                 language: {
@@ -2739,6 +2786,12 @@
 
             // استعادة الفلاتر من localStorage (فقط إذا لم يكن هناك status في الـ URL)
             function loadFilters() {
+                // الفلاتر المستعادة عند الرجوع من صفحة التفاصيل لها الأولوية
+                if (recruitmentListState && recruitmentListState.restored) {
+                    console.log('Skipping localStorage load because list state was restored');
+                    return;
+                }
+
                 // لا تحمل الفلاتر من localStorage إذا كان هناك status في الـ URL
                 if (urlStatus || urlDateFrom || urlDateTo || urlExcludeBack) {
                     console.log('Skipping localStorage load because filters are in URL');

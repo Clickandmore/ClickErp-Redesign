@@ -57,7 +57,7 @@ class ApiBlogController extends Controller
 
     public function show(Request $request, string $slug)
     {
-        $blog = Blog::query()->published()->where('slug', $slug)->first();
+        $blog = Blog::query()->published()->with('faqs')->where('slug', $slug)->first();
 
         if (!$blog) {
             return apiResponse(false, __('api.not found'), null, 404);
