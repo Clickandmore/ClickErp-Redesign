@@ -2,6 +2,7 @@
 
 namespace App\Services\commissions;
 
+use App\Models\auth\Admin;
 use App\Models\commissions\CommissionBatch;
 use Illuminate\Validation\ValidationException;
 use Nami\Finance\Enums\ConstraintTypiesEnum;
@@ -31,7 +32,7 @@ class CommissionAccrualService
         }
 
         $expenseAccount = $this->expenseAccount();
-        $payableAccount = $this->marketerPayableAccount($batch);
+        $payableAccount = $this->payableAccountForMarketer((int) $batch->marketer_id);
 
         $date = $batch->approved_at?->toDateString() ?? now()->toDateString();
         $year = $this->yearService->checkDateRange($date);
@@ -124,9 +125,9 @@ class CommissionAccrualService
         return $account;
     }
 
-    private function marketerPayableAccount(CommissionBatch $batch): Account
+    public function payableAccountForMarketer(int $marketerId): Account
     {
-        $marketerName = trim((string) $batch->marketer?->name);
+        $marketerName = trim((string) Admin::withTrashed()->whereKey($marketerId)->value('name'));
         $parent = Account::query()
             ->where(function ($query) {
                 $query->where('code', self::MARKETERS_PARENT_ACCOUNT_CODE)

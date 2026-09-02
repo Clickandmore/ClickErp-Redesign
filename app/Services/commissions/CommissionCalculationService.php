@@ -177,14 +177,15 @@ class CommissionCalculationService
             }
 
             if ($currentBalance > 0
-                && $existingAccrualBatch?->payable_account_id
-                && ! \Nami\Finance\Models\Account::query()
-                    ->whereKey($existingAccrualBatch->payable_account_id)
-                    ->where('code', 223)
-                    ->exists()) {
-                throw ValidationException::withMessages([
-                    'operations' => 'الرصيد القائم مرتبط بحساب استحقاق مختلف عن الحساب التلقائي رقم 223؛ يجب تسويته أولًا.',
-                ]);
+                && $existingAccrualBatch?->payable_account_id) {
+                $automaticPayableAccount = $this->accrualService->payableAccountForMarketer($marketerId);
+
+                if ((int) $existingAccrualBatch->payable_account_id !== (int) $automaticPayableAccount->id) {
+                    throw ValidationException::withMessages([
+                        'operations' => 'الرصيد القائم مرتبط بحساب استحقاق مختلف عن حساب الموظف التلقائي رقم '
+                            . $automaticPayableAccount->code . '؛ يجب تسويته أولًا.',
+                    ]);
+                }
             }
 
             $batch = CommissionBatch::create([
