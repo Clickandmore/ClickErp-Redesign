@@ -37,10 +37,43 @@
         tinymce.init({
             selector: '.mytextarea',
             plugins: 'ai tinycomments mentions anchor autolink charmap codesample emoticons image link lists media searchreplace table visualblocks wordcount checklist mediaembed casechange export formatpainter pageembed permanentpen footnotes advtemplate advtable advcode editimage tableofcontents mergetags powerpaste tinymcespellchecker autocorrect a11ychecker typography inlinecss textcolor colorpicker',
-            toolbar: 'undo redo | formatselect | fontselect fontsizeselect | forecolor backcolor | bold italic underline strikethrough | align lineheight | tinycomments | checklist numlist bullist indent outdent | emoticons charmap | removeformat',
+            toolbar: 'undo redo | formatselect | fontselect fontsizeselect | forecolor backcolor | bold italic underline strikethrough | align lineheight | link unlink | tinycomments | checklist numlist bullist indent outdent | emoticons charmap | removeformat',
         });
     });
+
+    /*
+     * حقول نوافذ TinyMCE داخل مودال Bootstrap.
+     *
+     * مودال Bootstrap يحبس التركيز داخله: أي focus يقع على عنصر خارج المودال
+     * يُعاد فورًا إلى المودال. ونوافذ TinyMCE (Insert/Edit Link) تُلحق بـ<body>
+     * خارج المودال، فكان حقل URL يفقد التركيز لحظة النقر عليه ولا يقبل الكتابة.
+     *
+     * إيقاف انتشار focusin القادم من داخل نافذة TinyMCE يمنع مستمع المودال من
+     * رؤيته أصلًا، فيبقى التركيز في الحقل — بدل تعطيل حبس التركيز للمودال كله.
+     *
+     * المستمع في طور الصعود لا الالتقاط: Bootstrap يسجّل مستمعه على document
+     * لحظة فتح المودال، أي بعد هذا السطر، فيسبقه ترتيبًا ويوقفه
+     * stopImmediatePropagation — بينما الالتقاط كان سيحجب أيضًا مستمعي TinyMCE
+     * نفسها على النافذة.
+     */
+    document.addEventListener('focusin', function (event) {
+        var target = event.target;
+
+        if (target && target.closest && target.closest('.tox-tinymce-aux, .tox-dialog, .tox-dialog-wrap, .moxman-window, .tam-assetmanager-root')) {
+            event.stopImmediatePropagation();
+        }
+    });
 </script>
+
+<style>
+    /* مودال Bootstrap عند 1055، ونوافذ TinyMCE تُلحق بـ<body> بقيمة أقل،
+       فتظهر خلف المودال أو خلف طبقة التعتيم. */
+    .tox-tinymce-aux,
+    .tox.tox-tinymce-aux,
+    .tox-dialog-wrap {
+        z-index: 1200000 !important;
+    }
+</style>
 
 <script>
     $.ajaxSetup({

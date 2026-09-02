@@ -1590,10 +1590,54 @@
 
             let openRentContractActionMenu = null;
 
+            // حفظ/استعادة حالة القائمة (الفلاتر + رقم الصفحة) عند الرجوع من صفحة العقد
+            const rentListFilterSelectors = [
+                '#statusFilter',
+                '#dateFromFilter',
+                '#dateToFilter',
+                '#startDateFromFilter',
+                '#startDateToFilter',
+                '#endDateFromFilter',
+                '#endDateToFilter',
+                '#clientPhoneFilter',
+                '#clientNameFilter',
+                '#maidPassportFilter',
+                '#maidNameFilter',
+                '#contractNumberFilter',
+                '#marketerFilter',
+                '#branchFilter',
+                '#extensionFilter',
+                '#expiryFilter'
+            ];
+
+            const rentListState = window.ListState
+                ? window.ListState.create({
+                    key: 'rent-contracts',
+                    filters: rentListFilterSelectors,
+                    onRestore: function(filters) {
+                        // فتح لوحة الفلاتر إذا كان هناك فلتر مُستعاد
+                        const hasActiveFilter = Object.keys(filters).some(function(selector) {
+                            return filters[selector];
+                        });
+
+                        if (hasActiveFilter) {
+                            $('#filtersCollapse').addClass('show');
+                            $('#filtersIcon').removeClass('fa-chevron-down').addClass('fa-chevron-up');
+                        }
+                    }
+                })
+                : null;
+
             // Initialize DataTable with simplified settings
             let dataTable = $('#dataTableObject').DataTable({
                 processing: true,
                 serverSide: true,
+                stateSave: !!rentListState,
+                stateDuration: 0,
+                stateSaveCallback: rentListState ? rentListState.saveCallback : undefined,
+                stateLoadCallback: rentListState ? rentListState.loadCallback : undefined,
+                stateSaveParams: rentListState ? rentListState.saveParams : undefined,
+                stateLoadParams: rentListState ? rentListState.loadParams : undefined,
                 ajax: {
                     url: "{{ route('RentContract.index') }}",
                     data: function(d) {
@@ -1897,24 +1941,9 @@
                 }
             });
 
-            const filterFields = [
-                '#statusFilter',
-                '#dateFromFilter',
-                '#dateToFilter',
-                '#startDateFromFilter',
-                '#startDateToFilter',
-                '#endDateFromFilter',
-                '#endDateToFilter',
-                '#clientPhoneFilter',
-                '#clientNameFilter',
-                '#maidPassportFilter',
-                '#maidNameFilter',
-                '#contractNumberFilter',
-                '#marketerFilter',
-                '#branchFilter',
-                '#extensionFilter',
-                '#expiryFilter'
-            ].filter((selector) => $(selector).length).join(', ');
+            const filterFields = rentListFilterSelectors
+                .filter((selector) => $(selector).length)
+                .join(', ');
 
             const statisticsCards = $('.rent-stat-card[data-status-filter]');
 

@@ -44,6 +44,35 @@ class CommissionAccrualServiceTest extends TestCase
         ]);
     }
 
+    public function test_approval_uses_the_marketers_own_payable_account_when_available(): void
+    {
+        [$admin, $batch] = $this->financeFixture();
+        $parent = Account::query()->create([
+            'name' => 'المسوقين',
+            'status' => 'creditor',
+            'level' => 1,
+            'code' => 144,
+            'type' => AccountTypesEnum::Marketers->value,
+        ]);
+        $marketerAccount = Account::query()->create([
+            'name' => $admin->name,
+            'status' => 'creditor',
+            'level' => 2,
+            'code' => 14400,
+            'type' => AccountTypesEnum::Marketer->value,
+            'parent_id' => $parent->id,
+        ]);
+
+        app(CommissionAccrualService::class)->createForBatch($batch, $admin->id);
+
+        $this->assertSame($marketerAccount->id, (int) $batch->fresh()->payable_account_id);
+        $this->assertDatabaseHas('fn_constraint_details', [
+            'constraint_id' => $batch->fresh()->accrual_constraint_id,
+            'account_id' => $marketerAccount->id,
+            'type' => 'creditor',
+        ]);
+    }
+
     public function test_rolling_back_unpaid_approval_soft_deletes_its_accrual_constraint(): void
     {
         [$admin, $batch, $expense, $payable] = $this->financeFixture();

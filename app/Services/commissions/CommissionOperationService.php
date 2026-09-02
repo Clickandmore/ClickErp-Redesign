@@ -5,6 +5,7 @@ namespace App\Services\commissions;
 use App\Models\Contract;
 use App\Models\IngazDelegation;
 use App\Models\RentalContract;
+use App\Models\RentalContractExtension;
 use App\Models\TransferServiceContract;
 use App\Models\commissions\CommissionBatchItem;
 use Carbon\Carbon;
@@ -16,6 +17,7 @@ class CommissionOperationService
 {
     public const SOURCE_RECRUITMENT_CONTRACT = 'recruitment_contract';
     public const SOURCE_RENTAL_CONTRACT = 'rental_contract';
+    public const SOURCE_RENTAL_EXTENSION_PERIOD_PREFIX = 'rental_contract_extension_period_';
     public const SOURCE_TRANSFER_CONTRACT = 'transfer_service_contract';
     public const SOURCE_DELEGATION = 'ingaz_delegation';
 
@@ -53,9 +55,25 @@ class CommissionOperationService
 
         $operations = $operations->map(function (array $operation) use ($commissioned) {
             $item = $commissioned->get($operation['key']);
+            $coveredByLegacyRentalCommission = false;
+
+            if (!$item && !empty($operation['rental_extension_created_at'])) {
+                $legacyRentalItem = $commissioned->get($this->key(
+                    self::SOURCE_RENTAL_CONTRACT,
+                    (int) $operation['contract_id']
+                ));
+
+                if ($legacyRentalItem
+                    && Carbon::parse($operation['rental_extension_created_at'])->lte($legacyRentalItem->created_at)) {
+                    $item = $legacyRentalItem;
+                    $coveredByLegacyRentalCommission = true;
+                }
+            }
+
             $operation['commissioned'] = $item !== null;
             $operation['commission_batch_id'] = $item?->batch_id;
             $operation['commission_item_id'] = $item?->id;
+            $operation['commission_covered_by_legacy_batch'] = $coveredByLegacyRentalCommission;
             $operation['commission_reversed'] = (bool) $item?->commission_reversal_transaction_id;
             $operation['return_settlement_status'] = $operation['commission_reversed']
                 ? RecruitmentCommissionService::SETTLEMENT_DEDUCTED
@@ -64,7 +82,8 @@ class CommissionOperationService
                     : (! $operation['commission_eligible'] && $item && (float) $item->commission_amount > 0
                         ? RecruitmentCommissionService::SETTLEMENT_PENDING
                         : null));
-            $operation['commission_amount'] = ($operation['commission_reversed']
+            $operation['commission_amount'] = ($coveredByLegacyRentalCommission
+                || $operation['commission_reversed']
                 || $operation['return_settlement_status'] === RecruitmentCommissionService::SETTLEMENT_ZEROED)
                 ? 0.0
                 : (float) ($item?->commission_amount ?? 0);
@@ -233,61 +252,147 @@ class CommissionOperationService
                 'financialAdjustments',
             ])
             ->get()
-            ->map(function (RentalContract $contract) {
-                $invoice = $contract->financeInvoice;
-                $invoiceAmount = (float) ($invoice?->total_due ?? 0);
-                $creditNoteAmount = (float) $contract->financialAdjustments
-                    ->where('type', 'expense')
-                    ->whereIn('context', ['closure', 'manual_credit_note', 'closure_correction'])
-                    ->sum('amount');
-                $extensions = $contract->extensions;
-                $extensionAmount = (float) $extensions->sum(
-                    fn ($extension) => (float) ($extension->extension_value ?? 0)
-                );
-                $extensionDays = (int) $extensions->sum(function ($extension) {
-                    $days = (int) ($extension->extension_days ?? 0);
+            ->flatMap(fn (RentalContract $contract) => $this->rentalContractOperations($contract))
+            ->values();
+    }
 
-                    return $days > 0
-                        ? $days
-                        : ((int) ($extension->extension_months ?? 0) * 30);
-                });
-                $base = round(max(0, $invoiceAmount + $extensionAmount - $creditNoteAmount), 2);
+    private function rentalContractOperations(RentalContract $contract): Collection
+    {
+        $invoice = $contract->financeInvoice;
+        $invoiceAmount = round((float) ($invoice?->total_due ?? 0), 2);
+        $reference = $contract->contract_number ?: (string) $contract->id;
+        $operations = collect();
 
-                $operation = $this->operation(
-                    self::SOURCE_RENTAL_CONTRACT,
-                    $contract->id,
-                    'rental',
-                    'عقود التأجير',
-                    $contract->contract_number ?: (string) $contract->id,
-                    $contract->order?->order_code,
-                    $contract->user?->name,
-                    $this->rentalStatus($contract->status),
-                    $base,
-                    $contract->financeInvoice?->is_paid,
-                    $contract->contract_date ?: $contract->created_at,
-                    $contract->order_id,
-                    $contract->id
-                );
+        $baseOperation = $this->operation(
+            self::SOURCE_RENTAL_CONTRACT,
+            $contract->id,
+            'rental',
+            'عقد تأجير أساسي',
+            $reference,
+            $contract->order?->order_code,
+            $contract->user?->name,
+            $this->rentalStatus($contract->status),
+            $invoiceAmount,
+            $invoice?->is_paid,
+            $contract->contract_date ?: $invoice?->created_at ?: $contract->created_at,
+            $contract->order_id,
+            $contract->id
+        );
+        $baseOperation['billing'] = [
+            'kind' => 'base_invoice',
+            'invoiced' => $invoice !== null,
+            'invoice_number' => $invoice?->id,
+            'invoice_amount' => $invoiceAmount,
+            'credit_note_amount' => 0.0,
+            'net_amount' => $invoiceAmount,
+        ];
+        $baseOperation['commission_eligible'] = $invoice !== null && $invoiceAmount > 0;
+        $baseOperation['commission_ineligible_reason'] = $invoice === null
+            ? 'لم تُصدر فاتورة للعميل بعد'
+            : ($invoiceAmount <= 0 ? 'قيمة الفاتورة الأساسية لا تسمح باحتساب عمولة' : null);
+        $operations->push($baseOperation);
 
-                $operation['billing'] = [
-                    'invoiced' => $invoice !== null,
-                    'invoice_number' => $invoice?->id,
-                    'invoice_amount' => round($invoiceAmount, 2),
-                    'credit_note_amount' => round($creditNoteAmount, 2),
-                    'extension_count' => $extensions->count(),
-                    'extension_days' => $extensionDays,
-                    'extension_amount' => round($extensionAmount, 2),
-                    'net_amount' => $base,
-                ];
-                // لا تُحتسب عمولة عقد التأجير قبل إصدار فاتورته، أو إذا تم عكس كامل
-                // القيمة بإشعارات دائنة. التمديدات تدخل ضمن صافي الفوترة عند وجودها.
-                $operation['commission_eligible'] = $invoice !== null && $base > 0;
-                $operation['commission_ineligible_reason'] = $invoice === null
-                    ? 'لم تُصدر فاتورة للعميل بعد'
-                    : ($base <= 0 ? 'تمت تسوية قيمة الفاتورة بالكامل بإشعار دائن' : null);
+        foreach ($contract->extensions->sortBy(
+            fn (RentalContractExtension $extension) => ($extension->start_date?->format('Y-m-d') ?? '9999-12-31')
+                . '-' . str_pad((string) $extension->id, 20, '0', STR_PAD_LEFT)
+        ) as $extension) {
+            foreach ($extension->commissionPeriods() as $period) {
+                $operations->push($this->rentalExtensionPeriodOperation(
+                    $contract,
+                    $extension,
+                    $period,
+                    $reference,
+                    $invoice !== null
+                ));
+            }
+        }
 
-                return $operation;
-            });
+        $creditNoteAmount = round((float) $contract->financialAdjustments
+            ->where('type', 'expense')
+            ->whereIn('context', ['closure', 'manual_credit_note', 'closure_correction'])
+            ->sum('amount'), 2);
+
+        return $this->applyRentalCreditNotes($operations, $creditNoteAmount);
+    }
+
+    private function rentalExtensionPeriodOperation(
+        RentalContract $contract,
+        RentalContractExtension $extension,
+        array $period,
+        string $contractReference,
+        bool $hasBaseInvoice
+    ): array {
+        $amount = round((float) $period['amount'], 2);
+        $sequence = (int) $period['sequence'];
+        $count = (int) $period['count'];
+        $operation = $this->operation(
+            self::SOURCE_RENTAL_EXTENSION_PERIOD_PREFIX . $sequence,
+            $extension->id,
+            'rental',
+            'تمديد عقد تأجير',
+            $contractReference . ' / تمديد #' . $extension->id . ' (' . $sequence . '/' . $count . ')',
+            $contract->order?->order_code,
+            $contract->user?->name,
+            'فترة تمديد ' . $sequence . ' من ' . $count,
+            $amount,
+            $extension->payment_status === 'paid',
+            $period['start_date'] ?: $extension->created_at,
+            $contract->order_id,
+            $contract->id
+        );
+        $operation['rental_extension_created_at'] = $extension->created_at;
+        $operation['billing'] = [
+            'kind' => 'extension_period',
+            'invoiced' => $hasBaseInvoice,
+            'extension_id' => $extension->id,
+            'period_sequence' => $sequence,
+            'period_count' => $count,
+            'period_days' => (int) $period['days'],
+            'period_start' => $period['start_date'],
+            'period_end' => $period['end_date'],
+            'credit_note_amount' => 0.0,
+            'net_amount' => $amount,
+        ];
+        $operation['commission_eligible'] = $hasBaseInvoice && $amount > 0;
+        $operation['commission_ineligible_reason'] = !$hasBaseInvoice
+            ? 'لم تُصدر فاتورة العقد الأساسية بعد'
+            : ($amount <= 0 ? 'قيمة فترة التمديد لا تسمح باحتساب عمولة' : null);
+
+        return $operation;
+    }
+
+    private function applyRentalCreditNotes(Collection $operations, float $creditNoteAmount): Collection
+    {
+        $remainingCredit = max(0, round($creditNoteAmount, 2));
+        if ($remainingCredit <= 0) {
+            return $operations;
+        }
+
+        $orderedKeys = $operations
+            ->sortByDesc(fn (array $operation) => $operation['operation_date']?->timestamp ?? 0)
+            ->keys();
+
+        foreach ($orderedKeys as $key) {
+            if ($remainingCredit <= 0) {
+                break;
+            }
+
+            $operation = $operations->get($key);
+            $deduction = min((float) $operation['base_amount'], $remainingCredit);
+            $operation['base_amount'] = round((float) $operation['base_amount'] - $deduction, 2);
+            $operation['billing']['credit_note_amount'] = round($deduction, 2);
+            $operation['billing']['net_amount'] = $operation['base_amount'];
+            $remainingCredit = round($remainingCredit - $deduction, 2);
+
+            if ($operation['base_amount'] <= 0) {
+                $operation['commission_eligible'] = false;
+                $operation['commission_ineligible_reason'] = 'تمت تسوية قيمة هذه الفترة بالكامل بإشعار دائن';
+            }
+
+            $operations->put($key, $operation);
+        }
+
+        return $operations;
     }
 
     private function transferContracts(int $adminId): Collection

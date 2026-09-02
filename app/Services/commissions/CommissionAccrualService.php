@@ -14,6 +14,8 @@ class CommissionAccrualService
 {
     private const EXPENSE_ACCOUNT_CODE = 5417;
     private const PAYABLE_ACCOUNT_CODE = 223;
+    private const ALRAFEDAIN_EXPENSE_ACCOUNT_CODE = 52149;
+    private const MARKETERS_PARENT_ACCOUNT_CODE = 144;
 
     public function __construct(
         private readonly ConstraintService $constraintService,
@@ -28,14 +30,8 @@ class CommissionAccrualService
             ]);
         }
 
-        $expenseAccount = $this->accountByCode(
-            self::EXPENSE_ACCOUNT_CODE,
-            'حساب عمولات المسوقين'
-        );
-        $payableAccount = $this->accountByCode(
-            self::PAYABLE_ACCOUNT_CODE,
-            'حساب مصروفات عمولات المسوقين المستحقة'
-        );
+        $expenseAccount = $this->expenseAccount();
+        $payableAccount = $this->marketerPayableAccount($batch);
 
         $date = $batch->approved_at?->toDateString() ?? now()->toDateString();
         $year = $this->yearService->checkDateRange($date);
@@ -104,19 +100,70 @@ class CommissionAccrualService
         $this->constraintService->deleteConstraint($constraint->id);
     }
 
-    private function accountByCode(int $code, string $label): Account
+    private function expenseAccount(): Account
     {
         $account = Account::query()
-            ->where('code', $code)
+            ->whereIn('code', [self::ALRAFEDAIN_EXPENSE_ACCOUNT_CODE, self::EXPENSE_ACCOUNT_CODE])
+            ->where('status', 'debtor')
+            ->whereDoesntHave('children')
+            ->orderByRaw('CASE WHEN code = ? THEN 0 ELSE 1 END', [self::ALRAFEDAIN_EXPENSE_ACCOUNT_CODE])
+            ->first();
+
+        $account ??= Account::query()
+            ->where('name', 'عمولات مسوقين')
+            ->where('status', 'debtor')
             ->whereDoesntHave('children')
             ->first();
 
         if (! $account) {
             throw ValidationException::withMessages([
-                'accrual' => "تعذر إنشاء قيد الاستحقاق تلقائيًا: {$label} رقم {$code} غير موجود أو ليس حسابًا نهائيًا.",
+                'accrual' => 'تعذر اعتماد العمولة: حساب مصروف «عمولات مسوقين» غير موجود أو ليس حسابًا نهائيًا.',
             ]);
         }
 
         return $account;
+    }
+
+    private function marketerPayableAccount(CommissionBatch $batch): Account
+    {
+        $marketerName = trim((string) $batch->marketer?->name);
+        $parent = Account::query()
+            ->where(function ($query) {
+                $query->where('code', self::MARKETERS_PARENT_ACCOUNT_CODE)
+                    ->orWhere('name', 'المسوقين');
+            })
+            ->first();
+
+        $account = $parent && $marketerName !== ''
+            ? Account::query()
+                ->where('parent_id', $parent->id)
+                ->where('status', 'creditor')
+                ->whereDoesntHave('children')
+                ->get()
+                ->first(fn (Account $candidate) => $this->normalizeName($candidate->name) === $this->normalizeName($marketerName))
+            : null;
+
+        $account ??= Account::query()
+            ->where('code', self::PAYABLE_ACCOUNT_CODE)
+            ->where('status', 'creditor')
+            ->whereDoesntHave('children')
+            ->first();
+
+        if (! $account) {
+            throw ValidationException::withMessages([
+                'accrual' => "تعذر اعتماد العمولة: لا يوجد حساب مالي نهائي للمسوق «{$marketerName}» تحت حساب المسوقين رقم "
+                    . self::MARKETERS_PARENT_ACCOUNT_CODE . '.',
+            ]);
+        }
+
+        return $account;
+    }
+
+    private function normalizeName(?string $name): string
+    {
+        $name = preg_replace('/[\x{064B}-\x{065F}\x{0670}]/u', '', trim((string) $name));
+        $name = str_replace(['أ', 'إ', 'آ', 'ى', 'ة'], ['ا', 'ا', 'ا', 'ي', 'ه'], $name);
+
+        return preg_replace('/[^\p{Arabic}\p{L}\p{N}]+/u', '', mb_strtolower($name));
     }
 }

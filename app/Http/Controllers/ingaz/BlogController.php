@@ -5,6 +5,7 @@ namespace App\Http\Controllers\ingaz;
 use App\Http\Controllers\admin\Controller;
 use App\Http\Requests\ingaz\BlogRequest;
 use App\Models\ingaz\Blog;
+use App\Models\ingaz\BlogFaq;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -120,6 +121,7 @@ class BlogController extends Controller
                 $blog = new Blog();
                 $this->fill($blog, $request, $newFiles);
                 $blog->save();
+                $this->syncFaqs($blog, $request);
             });
         } catch (\Throwable $exception) {
             $this->deleteFiles($newFiles);
@@ -132,7 +134,7 @@ class BlogController extends Controller
     public function show(Request $request, $id)
     {
         if ($request->ajax()) {
-            $obj = Blog::with('translations')->findOrFail($id);
+            $obj = Blog::with(['translations', 'faqs'])->findOrFail($id);
 
             return jsonSuccess(['html' => view($this->folderPath . '.show', compact('obj'))->render()]);
         }
@@ -141,7 +143,7 @@ class BlogController extends Controller
     public function edit(Request $request, $id)
     {
         if ($request->ajax()) {
-            $obj = Blog::with('translations')->findOrFail($id);
+            $obj = Blog::with(['translations', 'faqs'])->findOrFail($id);
 
             return jsonSuccess(['html' => view($this->folderPath . '.edit', compact('obj'))->render()]);
         }
@@ -161,6 +163,7 @@ class BlogController extends Controller
 
                 $this->fill($blog, $request, $newFiles);
                 $blog->save();
+                $this->syncFaqs($blog, $request);
             });
         } catch (\Throwable $exception) {
             $this->deleteFiles($newFiles);
@@ -239,6 +242,94 @@ class BlogController extends Controller
             $blog->translateOrNew($locale)->meta_title = $data['meta_title:' . $locale] ?? null;
             $blog->translateOrNew($locale)->meta_description = $data['meta_description:' . $locale] ?? null;
         }
+    }
+
+    /**
+     * يحفظ الأسئلة الشائعة المرسلة مع النموذج ويحذف ما أزاله المحرر.
+     *
+     * يُستدعى بعد save() لأن السؤال الجديد يحتاج blog_id، ولأن الصفوف تصل
+     * كمصفوفة مستقلة عن حقول المقال نفسه.
+     */
+    private function syncFaqs(Blog $blog, BlogRequest $request): void
+    {
+        $locales = config('translatable.locales', ['ar']);
+        $rows = $request->input('faqs', []);
+
+        if (!is_array($rows)) {
+            $rows = [];
+        }
+
+        $keptIds = [];
+        $order = 0;
+
+        foreach ($rows as $row) {
+            if (!is_array($row)) {
+                continue;
+            }
+
+            // صف لم يُكتب فيه أي سؤال بأي لغة = صف فارغ تركه المحرر، يُتجاهل
+            // بدل حفظ سؤال بلا نص.
+            $hasQuestion = false;
+
+            foreach ($locales as $locale) {
+                if (filled($row['question:' . $locale] ?? null)) {
+                    $hasQuestion = true;
+                    break;
+                }
+            }
+
+            if (!$hasQuestion) {
+                continue;
+            }
+
+            $faq = null;
+
+            if (filled($row['id'] ?? null)) {
+                // القيد على blog_id يمنع تعديل سؤال يخص مقالًا آخر عبر id مزوّر.
+                $faq = $blog->faqs()->whereKey($row['id'])->first();
+            }
+
+            if (!$faq) {
+                $faq = new BlogFaq(['blog_id' => $blog->id]);
+            }
+
+            $faq->blog_id = $blog->id;
+            $faq->sort_order = $order++;
+            $faq->save();
+
+            $emptyLocales = [];
+
+            foreach ($locales as $locale) {
+                $question = $row['question:' . $locale] ?? null;
+
+                // لغة بلا سؤال لا تُنشأ لها ترجمة — الموقع يرجع عندها إلى
+                // اللغة الافتراضية، كما يفعل مع محتوى المقال.
+                if (blank($question)) {
+                    $emptyLocales[] = $locale;
+
+                    continue;
+                }
+
+                $faq->translateOrNew($locale)->question = $question;
+                $faq->translateOrNew($locale)->answer = $row['answer:' . $locale] ?? null;
+            }
+
+            $faq->save();
+
+            // حذف ترجمات اللغات التي أفرغها المحرر يأتي بعد save() عمدًا:
+            // deleteTranslations() يعيد تحميل علاقة translations، وهو ما كان
+            // ليمحو الترجمات التي أُنشئت للتو في الذاكرة ولم تُحفظ بعد.
+            if ($emptyLocales) {
+                $faq->deleteTranslations($emptyLocales);
+            }
+
+            $keptIds[] = $faq->id;
+        }
+
+        // get()->each->delete() لا delete() المجمّع: الأخير يتخطى أحداث الموديل،
+        // فتبقى ترجمات السؤال المحذوف يتيمة في القواعد بلا قيود foreign key.
+        $blog->faqs()->whereNotIn('id', $keptIds ?: [0])->get()->each->delete();
+        $blog->unsetRelation('faqs');
     }
 
     private function deleteFiles(array $paths): void

@@ -11,6 +11,7 @@ use App\Services\commissions\CommissionCalculationService;
 use App\Services\commissions\CommissionProfileService;
 use App\Services\commissions\RecruitmentCommissionService;
 use Illuminate\Http\Request;
+use Illuminate\Validation\ValidationException;
 use Yajra\DataTables\Facades\DataTables;
 
 class CommissionMarketerController extends Controller
@@ -121,7 +122,9 @@ class CommissionMarketerController extends Controller
 
         if (count($request->operations) !== count($request->methods) ||
             count($request->operations) !== count($request->values)) {
-            return back()->withErrors(['operations' => 'بيانات تفاصيل العمولة غير مكتملة.'])->withInput();
+            throw ValidationException::withMessages([
+                'operations' => 'بيانات تفاصيل العمولة غير مكتملة.',
+            ]);
         }
 
         $adjustments = [];
@@ -129,7 +132,9 @@ class CommissionMarketerController extends Controller
             $method = $request->methods[$index];
             $value = (float) $request->values[$index];
             if ($method === 'percentage' && $value > 100) {
-                return back()->withErrors(['values' => 'نسبة العمولة لا يمكن أن تتجاوز 100%.'])->withInput();
+                throw ValidationException::withMessages([
+                    'values' => 'نسبة العمولة لا يمكن أن تتجاوز 100%.',
+                ]);
             }
             $adjustments[$key] = ['method' => $method, 'value' => $value];
         }
@@ -142,11 +147,20 @@ class CommissionMarketerController extends Controller
             auth('admin')->id()
         );
 
-        return redirect()
-            ->route('commissions.marketers.show', $admin->id)
-            ->with('success', 'تم اعتماد العمولة وإنشاء قيد الاستحقاق #'
-                . ($batch->accrualConstraint?->code ?? $batch->accrual_constraint_id)
-                . '. إجمالي العمولة: ' . number_format($batch->total_commission, 2) . ' ريال');
+        $message = 'تم اعتماد العمولة وإنشاء قيد الاستحقاق #'
+            . ($batch->accrualConstraint?->code ?? $batch->accrual_constraint_id)
+            . '. إجمالي العمولة: ' . number_format($batch->total_commission, 2) . ' ريال';
+        $redirect = route('commissions.marketers.show', $admin->id);
+
+        if ($request->expectsJson()) {
+            return response()->json([
+                'success' => true,
+                'message' => $message,
+                'redirect' => $redirect,
+            ]);
+        }
+
+        return redirect($redirect)->with('success', $message);
     }
 
     public function resolveReturnedCommission(Request $request, Admin $admin, CommissionBatchItem $item)
@@ -207,6 +221,27 @@ class CommissionMarketerController extends Controller
             return '<span class="badge bg-warning text-dark">لم تُفوتر</span>';
         }
 
+        if (($billing['kind'] ?? null) === 'extension_period') {
+            $periodStart = optional($billing['period_start'] ?? null)?->format('Y-m-d') ?: '-';
+            $periodEnd = optional($billing['period_end'] ?? null)?->format('Y-m-d') ?: '-';
+            $parts = [
+                '<span class="badge bg-info text-dark">تمديد #' . e((string) $billing['extension_id'])
+                    . ' · الفترة ' . e((string) $billing['period_sequence'])
+                    . '/' . e((string) $billing['period_count']) . '</span>',
+                '<span class="small d-block mt-1">فترة الاستحقاق: ' . e($periodStart) . ' — ' . e($periodEnd) . '</span>',
+            ];
+
+            if ($billing['credit_note_amount'] > 0) {
+                $parts[] = '<span class="badge bg-danger">إشعار دائن −'
+                    . number_format($billing['credit_note_amount'], 2) . '</span>';
+            }
+
+            $parts[] = '<span class="small d-block mt-1">قيمة فترة التمديد: '
+                . number_format($billing['net_amount'], 2) . ' ر.س</span>';
+
+            return implode(' ', $parts);
+        }
+
         $parts = [
             '<span class="badge bg-success">فاتورة #' . e((string) $billing['invoice_number']) . '</span>',
         ];
@@ -214,20 +249,6 @@ class CommissionMarketerController extends Controller
         if ($billing['credit_note_amount'] > 0) {
             $parts[] = '<span class="badge bg-danger">إشعار دائن −'
                 . number_format($billing['credit_note_amount'], 2) . '</span>';
-        }
-
-        if ($billing['extension_count'] > 0) {
-            $extensionDays = (int) ($billing['extension_days'] ?? 0);
-            $months = intdiv($extensionDays, 30);
-            $days = $extensionDays % 30;
-            $duration = array_filter([
-                $months > 0 ? $months . ' شهر' : null,
-                $days > 0 ? $days . ' يوم' : null,
-            ]);
-
-            $parts[] = '<span class="badge bg-info text-dark">ممدد لمدة '
-                . e($duration ? implode(' و', $duration) : 'غير محددة')
-                . ' · +' . number_format($billing['extension_amount'], 2) . '</span>';
         }
 
         $parts[] = '<span class="small d-block mt-1">صافي الفوترة: '
@@ -238,6 +259,11 @@ class CommissionMarketerController extends Controller
 
     private function commissionStatusLabel(array $operation): string
     {
+        if ($operation['commission_covered_by_legacy_batch'] ?? false) {
+            return '<span class="badge bg-primary">مشمولة ضمن احتساب سابق للعقد — دفعة #'
+                . e((string) $operation['commission_batch_id']) . '</span>';
+        }
+
         if ($operation['commission_reversed'] ?? false) {
             return '<span class="badge bg-danger">تم عكس العمولة — مستحق للشركة</span>';
         }

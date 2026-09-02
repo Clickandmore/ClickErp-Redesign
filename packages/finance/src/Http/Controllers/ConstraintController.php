@@ -136,6 +136,10 @@ class ConstraintController extends Controller
 
     public function show($id, Request $request, ObjService $service)
     {
+        if (! $request->ajax()) {
+            return redirect()->route('finance.add-constraint.show', $id);
+        }
+
         if ($request->ajax()) {
             return jsonSuccess([
                 'html' => view($this->folderPath . ".show")->with([
