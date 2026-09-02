@@ -708,6 +708,7 @@
                                         <tr>
                                             <th width="80">{{ __('ingaz.ticket_number') }}</th>
                                             <th>{{ __('ingaz.complainant_name') }}</th>
+                                            <th>اسم العاملة</th>
                                             <th>{{ __('ingaz.subject') }}</th>
                                             <th>متعلق بـ</th>
                                             <th>{{ __('ingaz.type') }}</th>
@@ -927,6 +928,20 @@
                             html += '</div>';
                             return html;
                         },searchable: true
+                    },
+                    {
+                        data: 'maid_party',
+                        render: function (data) {
+                            if (!data || !data.name) {
+                                return '<span class="text-muted">' + complaintsTranslations.notSpecified + '</span>';
+                            }
+                            let html = '<div><strong>' + escapeHtml(data.name) + '</strong>';
+                            if (data.passport) {
+                                html += '<br><small class="text-muted"><i class="fas fa-passport fa-sm me-1"></i>' + escapeHtml(data.passport) + '</small>';
+                            }
+                            html += '</div>';
+                            return html;
+                        }, searchable: false, orderable: false
                     },
                     {
                         data: 'subject',
