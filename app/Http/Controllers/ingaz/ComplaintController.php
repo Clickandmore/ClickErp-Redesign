@@ -53,6 +53,9 @@ class ComplaintController extends Controller
             $query = objModel::query()->with([
                 'user', 'complaintType', 'assignedTo', 'maidNationality',
                 'contract', 'order', 'relatedUser', 'recruitmentOffice',
+                // مطلوبة لاستخراج اسم العاملة في عمود الجدول دون استعلام لكل صف
+                'contract.maid', 'contract.info',
+                'order.maid', 'order.contracts.maid', 'order.contracts.info',
             ]);
             $this->applyRequestBranchFilter($query, $request, 'complaints');
             $this->applyComplaintFilters($query, $request);
@@ -120,6 +123,9 @@ class ComplaintController extends Controller
                 ->addColumn('related_record', function ($row) {
                     return $this->resolveComplaintRelatedRecord($row);
                 })
+                ->addColumn('maid_party', function ($row) {
+                    return $this->resolveComplaintMaidParty($row);
+                })
                 ->addColumn('actions', function ($row) {
                     $buttons = '<div class="btn-group" role="group" aria-label="Actions">';
                     $buttons .= '<button class="btn btn-sm btn-primary response-btn" data-id="' . $row->id . '" data-response="' . htmlspecialchars($row->response ?? '', ENT_QUOTES) . '" data-status="' . $row->status . '">
@@ -137,6 +143,14 @@ class ComplaintController extends Controller
                             })
                                 ->orWhere('subject', 'LIKE', "%{$search}%")
                                 ->orWhere('complainant_name', 'LIKE', "%{$search}%")
+                                ->orWhere('against_name', 'LIKE', "%{$search}%")
+                                ->orWhere('maid_passport', 'LIKE', "%{$search}%")
+                                ->orWhereHas('contract.maid', function ($qq) use ($search) {
+                                    $qq->where('name', 'LIKE', "%{$search}%");
+                                })
+                                ->orWhereHas('order.maid', function ($qq) use ($search) {
+                                    $qq->where('name', 'LIKE', "%{$search}%");
+                                })
                                 ->orWhere('priority', 'LIKE', "%{$search}%")
                                 ->orWhere('status', 'LIKE', "%{$search}%")
                                 ->orWhere('related_to', 'LIKE', "%{$search}%")
@@ -163,7 +177,11 @@ class ComplaintController extends Controller
 
     private function exportComplaints(Request $request)
     {
-        $query = objModel::query()->with(['complaintType', 'assignedTo']);
+        $query = objModel::query()->with([
+            'complaintType', 'assignedTo',
+            'contract.maid', 'contract.info',
+            'order.maid', 'order.contracts.maid', 'order.contracts.info',
+        ]);
         $this->applyRequestBranchFilter($query, $request, 'complaints');
         $this->applyComplaintFilters($query, $request);
         $complaints = $query->latest('id')->get();
@@ -180,13 +198,14 @@ class ComplaintController extends Controller
         return response()->streamDownload(function () use ($complaints, $statuses, $priorities) {
             $output = fopen('php://output', 'w');
             fwrite($output, "\xEF\xBB\xBF");
-            fputcsv($output, ['رقم الشكوى', 'مقدم الشكوى', 'المشتكى عليه', 'الموضوع', 'النوع', 'الأولوية', 'الحالة', 'الموظف المختص', 'التاريخ']);
+            fputcsv($output, ['رقم الشكوى', 'مقدم الشكوى', 'المشتكى عليه', 'اسم العاملة', 'الموضوع', 'النوع', 'الأولوية', 'الحالة', 'الموظف المختص', 'التاريخ']);
 
             foreach ($complaints as $complaint) {
                 fputcsv($output, [
                     $complaint->id,
                     $complaint->complainant_name,
                     $complaint->against_name,
+                    $this->resolveComplaintMaidParty($complaint)['name'] ?? null,
                     $complaint->subject,
                     $complaint->complaintType?->name,
                     $priorities[$complaint->priority] ?? $complaint->priority,
@@ -604,6 +623,62 @@ class ComplaintController extends Controller
             'phone' => null,
             'maid_passport' => $contract->maid?->passport_num ?: $contract->info?->manual_maid_passport_num,
             'maid_nationality_id' => $contract->maid?->nationality_id ?: $contract->info?->manual_maid_nationality_id,
+        ];
+    }
+
+    /**
+     * هل الشكوى موجهة ضد عاملة؟ الشكاوى المستوردة تحمل نصا عربيا في against_type
+     * بدلا من المفتاح worker، ولذلك نفحص النص ونوع الشكوى أيضا.
+     */
+    private function complaintIsAgainstWorker(objModel $complaint): bool
+    {
+        $againstType = $complaint->against_type ?: $complaint->complaintType?->against_type;
+
+        if ($againstType === 'worker') {
+            return true;
+        }
+
+        if (is_string($againstType) && mb_strpos($againstType, 'عامل') !== false) {
+            return true;
+        }
+
+        return (bool) preg_match('/عميل.*ضد.*عامل/u', (string) $complaint->complaintType?->name);
+    }
+
+    /**
+     * اسم العاملة المعروض في جدول الشكاوى: من بيانات المشتكى عليه حين تكون الشكوى
+     * ضد عاملة، وإلا من العقد أو الطلب المرتبط بالشكوى.
+     */
+    private function resolveComplaintMaidParty(objModel $complaint): ?array
+    {
+        $isAgainstWorker = $this->complaintIsAgainstWorker($complaint);
+
+        if ($isAgainstWorker && filled($complaint->against_name)) {
+            return [
+                'name' => $complaint->against_name,
+                'passport' => $complaint->maid_passport,
+            ];
+        }
+
+        $party = [];
+        if ($complaint->relation_type === 'contract' && $complaint->contract) {
+            $party = $this->resolveContractAgainstParty($complaint->contract, 'worker');
+        } elseif ($complaint->relation_type === 'order' && $complaint->order) {
+            $party = $this->resolveOrderAgainstParty($complaint->order, 'worker');
+        }
+
+        $name = $party['name'] ?? null;
+        if (blank($name) && $isAgainstWorker) {
+            $name = $complaint->against_name;
+        }
+
+        if (blank($name)) {
+            return null;
+        }
+
+        return [
+            'name' => $name,
+            'passport' => $complaint->maid_passport ?: ($party['maid_passport'] ?? null),
         ];
     }
 
