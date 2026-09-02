@@ -601,17 +601,27 @@ class NationalityFinanceAccountService
 
     private function nextChildCode(Account $parent): int
     {
+        // Serialize code allocation for children of the same account. The account
+        // code is globally unique, so looking only at siblings is not sufficient.
+        $parent = Account::query()
+            ->whereKey($parent->getKey())
+            ->lockForUpdate()
+            ->firstOrFail();
+
         $lastChildCode = (int) Account::query()
             ->where('parent_id', $parent->id)
-            ->lockForUpdate()
             ->max('code');
 
-        if ($lastChildCode > 0) {
-            return $lastChildCode + 1;
+        $candidate = $lastChildCode > 0
+            ? $lastChildCode + 1
+            : ((int) $parent->code > 0
+                ? ((int) $parent->code * 100) + 1
+                : ((int) Account::query()->max('code')) + 1);
+
+        while (Account::query()->where('code', $candidate)->lockForUpdate()->exists()) {
+            $candidate++;
         }
 
-        return (int) $parent->code > 0
-            ? ((int) $parent->code * 100) + 1
-            : ((int) Account::query()->lockForUpdate()->max('code')) + 1;
+        return $candidate;
     }
 }
