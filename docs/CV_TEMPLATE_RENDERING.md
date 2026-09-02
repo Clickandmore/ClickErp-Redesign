@@ -134,6 +134,56 @@ php artisan cv:doctor --maid=<أي_معرّف>
 
 ---
 
+## خلاصة النشر على خادم جديد
+
+نُفِّذت هذه الخطوات بنجاح على `dashboard.tawssut.sa` بتاريخ 2026-09-01.
+شغّلها بالترتيب على كل خادم. **بدّل `www-data` بمستخدم PHP-FPM الفعلي إن اختلف.**
+
+```bash
+cd /var/www/<اسم_المشروع>
+
+# ── 0) تعرّف على مستخدم PHP-FPM ─────────────────────────────
+ps -eo user,comm | grep -E "php-fpm|nginx|apache2" | sort -u
+
+# ── 1) نشر الكود ────────────────────────────────────────────
+git pull
+
+# ── 2) صلاحيات التخزين ──────────────────────────────────────
+# Blade يصرّف قالب السيرة (المخزّن في قاعدة البيانات) إلى ملف مؤقت
+# داخل storage/framework/views قبل تنفيذه.
+sudo chown -R www-data:www-data storage bootstrap/cache
+sudo find storage bootstrap/cache -type d -exec chmod 775 {} \;
+sudo find storage bootstrap/cache -type f -exec chmod 664 {} \;
+
+# ── 3) تثبيت Chrome كحزمة deb (وليس snap) ───────────────────
+readlink -f /usr/bin/chromium-browser 2>/dev/null   # إن أشار إلى snap فتجاهله
+cd /tmp
+wget -q https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb
+sudo apt install -y ./google-chrome-stable_current_amd64.deb
+sudo apt install -y fonts-noto-core fonts-liberation
+cd -
+
+# ── 4) تثبيت المسار في .env ─────────────────────────────────
+grep -q '^CV_PDF_BROWSER_PATH=' .env \
+  && sudo -u www-data sed -i 's|^CV_PDF_BROWSER_PATH=.*|CV_PDF_BROWSER_PATH=/usr/bin/google-chrome|' .env \
+  || echo 'CV_PDF_BROWSER_PATH=/usr/bin/google-chrome' | sudo -u www-data tee -a .env
+
+# ── 5) مسح الكاش والتحقق ────────────────────────────────────
+sudo -u www-data php artisan optimize:clear
+sudo -u www-data php artisan cv:doctor --maid=<أي_معرّف_عاملة>
+```
+
+المطلوب في المخرَج: `[v]` على كل الفحوصات و`[v] نجحت لقطة المتصفح`.
+
+**الخطوة الأخيرة:** أعد إنشاء النماذج المحفوظة كـ `.svg` من الداشبورد عبر **الإنشاء الجماعي**،
+على دفعات صغيرة (~6–8 ثوانٍ لكل سيرة). بعدها يخرج «تنزيل النموذج PDF» سليمًا.
+
+> **قاعدة دائمة:** شغّل كل أوامر artisan على الخوادم بـ `sudo -u www-data php artisan …`.
+> تشغيلها كـ root يجعل الملفات المصرَّفة في `storage` و`bootstrap/cache` مملوكة لـ root
+> فيتكرّر خطأ `Permission denied` من جديد.
+
+---
+
 ## أخطاء شائعة ومعانيها
 
 | الرسالة في `cv:doctor` أو في المتصفح | السبب | الحل |
