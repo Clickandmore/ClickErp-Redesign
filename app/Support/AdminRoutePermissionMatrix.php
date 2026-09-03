@@ -315,6 +315,11 @@ class AdminRoutePermissionMatrix
             'dash.settings.zoho' => [PermKeys::SETTINGS_VIEW],
             'dash.settings.zoho.update' => [PermKeys::SETTINGS_CONTROL],
             'dash.settings.store' => [PermKeys::SETTINGS_CONTROL],
+            'dash.firebase-settings.index' => [PermKeys::SETTINGS_VIEW],
+            'dash.firebase-settings.update' => [PermKeys::SETTINGS_CONTROL],
+            'dash.firebase-settings.credentials.upload' => [PermKeys::SETTINGS_CONTROL],
+            'dash.firebase-settings.credentials.delete' => [PermKeys::SETTINGS_CONTROL],
+            'dash.firebase-settings.test' => [PermKeys::SETTINGS_CONTROL],
             'dash.roles.index' => [PermKeys::ROLES_VIEW],
             'dash.roles.store' => static fn (?Request $request) => filled($request?->input('edit_id'))
                 ? [PermKeys::ROLES_EDIT]

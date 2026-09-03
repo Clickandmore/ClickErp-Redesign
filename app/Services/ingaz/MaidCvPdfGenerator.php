@@ -979,7 +979,6 @@ class MaidCvPdfGenerator
 
     private function viewData(Maid $maid, Setting $settings, string $outputType): array
     {
-        $expertises = $maid->expertises;
         $skills = Skill::query()->with('translations')->get();
 
         return [
@@ -992,16 +991,27 @@ class MaidCvPdfGenerator
                 $skills,
                 \App\Support\ApiTranslationLocales::SUPPORTED
             ),
-            'experience' => [
-                'status' => $maid->experience_status,
-                'countries' => $expertises->pluck('country')->filter()->values(),
-                'details' => $expertises,
-            ],
+            'experience' => $this->experienceViewData($maid),
             'customerServices' => collect(),
             'type' => $maid->request_type ?: 'estqdam',
             'cvPdfMode' => $outputType === self::OUTPUT_PDF,
             'cvImageMode' => $outputType === self::OUTPUT_IMAGE,
             'cvOutputType' => $outputType,
+        ];
+    }
+
+    /**
+     * Keep each full expertise row available to CV templates. Passing only the
+     * related country drops the period, duration, city, and job title fields.
+     */
+    private function experienceViewData(Maid $maid): array
+    {
+        $expertises = $maid->expertises->values();
+
+        return [
+            'status' => $maid->experience_status,
+            'countries' => $expertises,
+            'details' => $expertises,
         ];
     }
 }

@@ -4,6 +4,7 @@ use App\Http\Controllers\admin\ActivityLogController;
 use App\Http\Controllers\admin\AdminContractController;
 use App\Http\Controllers\admin\AdminFullOrderContractController;
 use App\Http\Controllers\admin\AdminSettingsController;
+use App\Http\Controllers\admin\FirebaseSettingsController;
 use App\Http\Controllers\admin\AdminShelterWorkersContractCTLR;
 use App\Http\Controllers\admin\AdminTravelHistoryController;
 use App\Http\Controllers\admin\ContractReturnRequestController;
@@ -716,6 +717,13 @@ Route::group(
             Route::get('/settings/zoho', [AdminSettingsController::class, 'zoho'])->name('settings.zoho');
             Route::post('/settings/zoho', [AdminSettingsController::class, 'updateZoho'])->name('settings.zoho.update');
             Route::post('/settings/store', [AdminSettingsController::class, 'store'])->name('settings.store');
+
+            //** FIREBASE PUSH NOTIFICATIONS **//
+            Route::get('/firebase-settings', [FirebaseSettingsController::class, 'index'])->name('firebase-settings.index');
+            Route::put('/firebase-settings', [FirebaseSettingsController::class, 'update'])->name('firebase-settings.update');
+            Route::post('/firebase-settings/credentials', [FirebaseSettingsController::class, 'uploadCredentials'])->name('firebase-settings.credentials.upload');
+            Route::delete('/firebase-settings/credentials', [FirebaseSettingsController::class, 'deleteCredentials'])->name('firebase-settings.credentials.delete');
+            Route::post('/firebase-settings/test', [FirebaseSettingsController::class, 'test'])->name('firebase-settings.test');
 
             //** ROLES **//
             Route::name('roles.')->prefix('roles')->group(function () {

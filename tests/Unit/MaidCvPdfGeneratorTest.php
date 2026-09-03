@@ -3,14 +3,38 @@
 namespace Tests\Unit;
 
 use App\Models\ingaz\Maid;
+use App\Models\MaidExpertise;
 use App\Services\ingaz\MaidCvPdfGenerator;
 use App\Services\ManagedFileStorage;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Mockery;
+use ReflectionMethod;
 use Tests\TestCase;
 
 class MaidCvPdfGeneratorTest extends TestCase
 {
+    public function test_it_passes_complete_expertise_rows_to_the_cv_template(): void
+    {
+        $expertise = new MaidExpertise([
+            'work_city' => 'Riyadh',
+            'start_date' => '2020-01-01',
+            'end_date' => '2022-01-01',
+            'number_of_years' => 2,
+        ]);
+        $maid = new Maid(['experience_status' => 'has_experience']);
+        $maid->setRelation('expertises', collect([$expertise]));
+
+        $method = new ReflectionMethod(MaidCvPdfGenerator::class, 'experienceViewData');
+        $method->setAccessible(true);
+        $experience = $method->invoke(app(MaidCvPdfGenerator::class), $maid);
+
+        $this->assertSame('has_experience', $experience['status']);
+        $this->assertSame($expertise, $experience['countries']->first());
+        $this->assertSame('Riyadh', $experience['countries']->first()->work_city);
+        $this->assertNotNull($experience['countries']->first()->period_label);
+        $this->assertNotNull($experience['countries']->first()->duration_label);
+    }
+
     public function test_it_renders_a_database_blade_template_with_maid_data(): void
     {
         $maid = new Maid([
