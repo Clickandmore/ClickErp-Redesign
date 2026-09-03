@@ -5,6 +5,7 @@ namespace App\Services\commissions;
 use App\Models\auth\Admin;
 use App\Models\commissions\CommissionBatch;
 use Illuminate\Validation\ValidationException;
+use Nami\Finance\Enums\AccountTypesEnum;
 use Nami\Finance\Enums\ConstraintTypiesEnum;
 use Nami\Finance\Models\Account;
 use Nami\Finance\Models\Constraint;
@@ -127,7 +128,8 @@ class CommissionAccrualService
 
     public function payableAccountForMarketer(int $marketerId): Account
     {
-        $marketerName = trim((string) Admin::withTrashed()->whereKey($marketerId)->value('name'));
+        $marketer = Admin::withTrashed()->find($marketerId, ['id', 'name', 'commission_payable_account_id']);
+        $marketerName = trim((string) $marketer?->name);
         $parent = Account::query()
             ->where(function ($query) {
                 $query->where('code', self::MARKETERS_PARENT_ACCOUNT_CODE)
@@ -135,17 +137,38 @@ class CommissionAccrualService
             })
             ->first();
 
-        $account = $parent && $marketerName !== ''
+        if ($marketer?->commission_payable_account_id) {
+            $linkedAccount = Account::query()
+                ->whereKey($marketer->commission_payable_account_id)
+                ->where('parent_id', $parent?->id)
+                ->where('status', 'creditor')
+                ->whereDoesntHave('children')
+                ->first();
+
+            if (! $linkedAccount) {
+                throw ValidationException::withMessages([
+                    'accrual' => "تعذر اعتماد العمولة: الحساب المالي المرتبط بالمسوق «{$marketerName}» غير صالح أو ليس حسابًا نهائيًا تحت حساب المسوقين رقم "
+                        . self::MARKETERS_PARENT_ACCOUNT_CODE . '.',
+                ]);
+            }
+
+            return $linkedAccount;
+        }
+
+        $candidates = $parent && $marketerName !== ''
             ? Account::query()
                 ->where('parent_id', $parent->id)
                 ->where('status', 'creditor')
                 ->whereDoesntHave('children')
                 ->get()
-                ->first(fn (Account $candidate) => $this->normalizeName($candidate->name) === $this->normalizeName($marketerName))
-            : null;
+            : collect();
+
+        $account = $candidates
+            ->first(fn (Account $candidate) => $this->normalizeName($candidate->name) === $this->normalizeName($marketerName));
 
         $account ??= Account::query()
             ->where('code', self::PAYABLE_ACCOUNT_CODE)
+            ->where('type', AccountTypesEnum::Marketer->value)
             ->where('status', 'creditor')
             ->whereDoesntHave('children')
             ->first();

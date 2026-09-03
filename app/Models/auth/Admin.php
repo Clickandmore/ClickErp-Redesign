@@ -16,6 +16,7 @@ use Illuminate\Foundation\Auth\User as Authenticatable;
 use App\Models\commissions\CommissionMarketerOverride;
 use App\Models\IngazDelegation;
 use App\Models\ingaz\Maid;
+use Nami\Finance\Models\Account;
 
 class Admin extends Authenticatable
 {
@@ -112,6 +113,12 @@ class Admin extends Authenticatable
     {
         return $this->hasMany(CommissionMarketerOverride::class, 'admin_id');
     }
+
+    public function commissionPayableAccount()
+    {
+        return $this->belongsTo(Account::class, 'commission_payable_account_id');
+    }
+
     public function complaintComments()
     {
         return $this->hasMany(ComplaintComment::class);

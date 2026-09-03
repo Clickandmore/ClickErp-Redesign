@@ -78,6 +78,32 @@ class CommissionAccrualServiceTest extends TestCase
         ]);
     }
 
+    public function test_approval_uses_the_explicitly_linked_account_instead_of_matching_names(): void
+    {
+        [$admin, $batch] = $this->financeFixture();
+        $admin->update(['name' => 'LAYLA SHAMRUOKH']);
+        $parent = Account::query()->create([
+            'name' => 'المسوقين',
+            'status' => 'creditor',
+            'level' => 1,
+            'code' => 144,
+            'type' => AccountTypesEnum::Marketers->value,
+        ]);
+        $marketerAccount = Account::query()->create([
+            'name' => 'ليلى شمروخ',
+            'status' => 'creditor',
+            'level' => 2,
+            'code' => 1445,
+            'type' => AccountTypesEnum::Marketer->value,
+            'parent_id' => $parent->id,
+        ]);
+        $admin->update(['commission_payable_account_id' => $marketerAccount->id]);
+
+        app(CommissionAccrualService::class)->createForBatch($batch, $admin->id);
+
+        $this->assertSame($marketerAccount->id, (int) $batch->fresh()->payable_account_id);
+    }
+
     public function test_a_second_approval_accepts_the_same_automatic_marketer_payable_account(): void
     {
         [$admin, $firstBatch] = $this->financeFixture();

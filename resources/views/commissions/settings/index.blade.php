@@ -15,6 +15,16 @@
 <div class="alert alert-success">{{ session('success') }}</div>
 @endif
 
+@if($errors->any())
+<div class="alert alert-danger">
+    <ul class="mb-0">
+        @foreach($errors->all() as $error)
+            <li>{{ $error }}</li>
+        @endforeach
+    </ul>
+</div>
+@endif
+
 <form method="POST" action="{{ route('commissions.settings.store') }}">
     @csrf
 
@@ -52,6 +62,46 @@
                                        value="{{ $s ? $s->value : 0 }}">
                             </td>
                         </tr>
+                        @endforeach
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div class="card mb-4">
+        <div class="card-header">
+            <h6 class="mb-0 fw-bold"><i class="fa fa-link me-2"></i>ربط المسوقين بحسابات الاستحقاق</h6>
+        </div>
+        <div class="card-body">
+            <p class="text-muted small mb-3">
+                اختر رقم الحساب المالي النهائي لكل مسوق. هذا الربط هو المرجع الأساسي عند إنشاء قيد الاستحقاق، ولا يعتمد على تشابه الأسماء.
+            </p>
+            <div class="table-responsive">
+                <table class="table table-bordered align-middle mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>المسوق</th>
+                            <th>حساب استحقاق العمولة</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach($marketers as $marketer)
+                            <tr>
+                                <td class="fw-semibold">{{ $marketer->name }}</td>
+                                <td>
+                                    <select class="form-select form-select-sm"
+                                            name="payable_accounts[{{ $marketer->id }}]">
+                                        <option value="">غير محدد — استخدام تطابق الاسم القديم</option>
+                                        @foreach($marketerPayableAccounts as $account)
+                                            <option value="{{ $account->id }}"
+                                                {{ (int) old('payable_accounts.' . $marketer->id, $marketer->commission_payable_account_id) === (int) $account->id ? 'selected' : '' }}>
+                                                {{ $account->code }} — {{ $account->name }}
+                                            </option>
+                                        @endforeach
+                                    </select>
+                                </td>
+                            </tr>
                         @endforeach
                     </tbody>
                 </table>
