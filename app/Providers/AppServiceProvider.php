@@ -43,6 +43,10 @@ class AppServiceProvider extends ServiceProvider
     public function boot()
     {
         Schema::defaultStringLength(255);
+
+        // إعدادات إشعارات Firebase المحفوظة من لوحة التحكم تعلو قيم .env، فتستفيد
+        // منها خدمات الإرسال عبر config('firebase.*') دون تعديل فيها.
+        \App\Support\FirebaseSettings::applyToConfig();
         Validator::resolver(function ($translator, $data, $rules, $messages, $attributes) {
             return new CustomValidator($translator, $data, $rules, $messages, $attributes);
         });

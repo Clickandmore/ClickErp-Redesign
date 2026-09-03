@@ -54,8 +54,12 @@ class ComplaintController extends Controller
                 'user', 'complaintType', 'assignedTo', 'maidNationality',
                 'contract', 'order', 'relatedUser', 'recruitmentOffice',
                 // مطلوبة لاستخراج اسم العاملة في عمود الجدول دون استعلام لكل صف
-                'contract.maid', 'contract.info',
-                'order.maid', 'order.contracts.maid', 'order.contracts.info',
+                'contract.maid.nationality', 'contract.maid.office', 'contract.info',
+                'contract.requiredMaidNationality', 'contract.travelHistory',
+                'order.maid.nationality', 'order.maid.office',
+                'order.contracts.maid.nationality', 'order.contracts.maid.office',
+                'order.contracts.info', 'order.contracts.requiredMaidNationality',
+                'order.contracts.travelHistory',
             ]);
             $this->applyRequestBranchFilter($query, $request, 'complaints');
             $this->applyComplaintFilters($query, $request);
@@ -178,9 +182,13 @@ class ComplaintController extends Controller
     private function exportComplaints(Request $request)
     {
         $query = objModel::query()->with([
-            'complaintType', 'assignedTo',
-            'contract.maid', 'contract.info',
-            'order.maid', 'order.contracts.maid', 'order.contracts.info',
+            'complaintType', 'assignedTo', 'maidNationality',
+            'contract.maid.nationality', 'contract.maid.office', 'contract.info',
+            'contract.requiredMaidNationality', 'contract.travelHistory',
+            'order.maid.nationality', 'order.maid.office',
+            'order.contracts.maid.nationality', 'order.contracts.maid.office',
+            'order.contracts.info', 'order.contracts.requiredMaidNationality',
+            'order.contracts.travelHistory',
         ]);
         $this->applyRequestBranchFilter($query, $request, 'complaints');
         $this->applyComplaintFilters($query, $request);
@@ -652,33 +660,80 @@ class ComplaintController extends Controller
     private function resolveComplaintMaidParty(objModel $complaint): ?array
     {
         $isAgainstWorker = $this->complaintIsAgainstWorker($complaint);
-
-        if ($isAgainstWorker && filled($complaint->against_name)) {
-            return [
-                'name' => $complaint->against_name,
-                'passport' => $complaint->maid_passport,
-            ];
-        }
-
         $party = [];
+        $contract = null;
+        $maid = null;
+
         if ($complaint->relation_type === 'contract' && $complaint->contract) {
+            $contract = $complaint->contract;
+            $maid = $contract->maid;
             $party = $this->resolveContractAgainstParty($complaint->contract, 'worker');
         } elseif ($complaint->relation_type === 'order' && $complaint->order) {
+            $contract = $complaint->order->contracts->first(function (Contract $contract) {
+                return $contract->maid || filled($contract->info?->manual_maid_name);
+            });
+            $maid = $complaint->order->maid ?: $contract?->maid;
             $party = $this->resolveOrderAgainstParty($complaint->order, 'worker');
         }
 
-        $name = $party['name'] ?? null;
-        if (blank($name) && $isAgainstWorker) {
-            $name = $complaint->against_name;
-        }
+        $name = $isAgainstWorker && filled($complaint->against_name)
+            ? $complaint->against_name
+            : ($party['name'] ?? null);
 
         if (blank($name)) {
             return null;
         }
 
+        $nationality = $complaint->maidNationality?->title
+            ?: $maid?->nationality?->title
+            ?: $contract?->requiredMaidNationality?->title;
+        $warranty = $this->resolveComplaintWarrantyDetails($contract);
+
         return [
             'name' => $name,
             'passport' => $complaint->maid_passport ?: ($party['maid_passport'] ?? null),
+            'office' => $maid?->office?->title,
+            'nationality' => $nationality,
+            'days_since_arrival' => $warranty['days_since_arrival'],
+            'warranty_status' => $warranty['status'],
+            'warranty_remaining_days' => $warranty['remaining_days'],
+        ];
+    }
+
+    private function resolveComplaintWarrantyDetails(?Contract $contract): array
+    {
+        if (!$contract) {
+            return ['days_since_arrival' => null, 'status' => null, 'remaining_days' => null];
+        }
+
+        $startDate = $contract->warranty_start_date;
+        if (!$startDate && $contract->travelHistory?->status === 'completed') {
+            $startDate = $contract->travelHistory->resolveArrivalDateTime();
+        }
+        $startDate ??= $contract->info?->arrival_date;
+        $startDate ??= $contract->maid?->arrival_date;
+
+        $daysSinceArrival = $startDate
+            ? max(0, (int) \Carbon\Carbon::parse($startDate)->startOfDay()->diffInDays(today(), false))
+            : null;
+
+        if (!$contract->warranty_end_date) {
+            return [
+                'days_since_arrival' => $daysSinceArrival,
+                'status' => null,
+                'remaining_days' => null,
+            ];
+        }
+
+        $endDate = \Carbon\Carbon::parse($contract->warranty_end_date)->startOfDay();
+        $isExpired = $endDate->copy()->endOfDay()->isPast();
+
+        return [
+            'days_since_arrival' => $daysSinceArrival,
+            'status' => $isExpired ? 'expired' : 'active',
+            'remaining_days' => $isExpired
+                ? 0
+                : max(0, (int) today()->diffInDays($endDate, false)),
         ];
     }
 

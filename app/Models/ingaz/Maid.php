@@ -107,6 +107,7 @@ class Maid extends Model
         'language_levels',
         'childrens_count',
         'education',
+        'education_en',
         'has_driving_license',
         'additional_notes',
         'duration',

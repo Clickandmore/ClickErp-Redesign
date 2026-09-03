@@ -196,7 +196,7 @@
                             </td>
                             <td>
                                 @if($row->maid_id)
-                                    <a href="{{ route('maids.show', $row->maid_id) }}" class="btn btn-xs btn-outline-primary" style="font-size:11px;">
+                                    <a href="{{ route('showMaidDetails', $row->maid_id) }}" class="btn btn-xs btn-outline-primary" style="font-size:11px;">
                                         #{{ $row->maid_id }}
                                     </a>
                                 @else

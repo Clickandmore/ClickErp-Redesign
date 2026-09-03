@@ -1876,6 +1876,16 @@
 
                                         @if (@AdminGuardHasPerm(\App\PermKeys::SETTINGS_VIEW))
                                             <li>
+                                                <a class="m-link {{ request()->routeIs('dash.firebase-settings.*') ? 'active' : '' }}"
+                                                    href="{{ route('dash.firebase-settings.index') }}">
+                                                    <i class="fa fa-bell"></i>
+                                                    <span class="ms-2">إشعارات Firebase</span>
+                                                </a>
+                                            </li>
+                                        @endif
+
+                                        @if (@AdminGuardHasPerm(\App\PermKeys::SETTINGS_VIEW))
+                                            <li>
                                                 <a class="m-link {{ request()->routeIs('istiqdam.*') ? 'active' : '' }}" href="{{ route('istiqdam.index') }}">
                                                     <i class="fa fa-building"></i>
                                                     <span
