@@ -379,6 +379,8 @@ Route::group(
             Route::get('packages/{id}/offer', [PackageController::class, 'offer'])->name('packages.offer');
             Route::put('packages/{id}/offer', [PackageController::class, 'updateOffer'])->name('packages.offer.update');
             Route::resource('packages', PackageController::class);
+            Route::get('complaints/search-contracts', [ComplaintController::class, 'searchContracts'])->name('complaints.search-contracts');
+            Route::get('complaints/search-orders', [ComplaintController::class, 'searchOrders'])->name('complaints.search-orders');
             Route::resource('complaints', ComplaintController::class);
             Route::get('complaints/cards/view', [ComplaintController::class, 'cards'])->name('complaints.cards');
             Route::post('complaints/quick-response', [ComplaintController::class, 'quickResponse'])->name('complaints.quick-response');
@@ -558,6 +560,9 @@ Route::group(
                     'index' => '[0-9]+',
                 ])
                 ->name('SponsorshipTransfer.attachment.download');
+            Route::get('SponsorshipTransfer/{id}/maid-receipt', [SponsorshipTransferController::class, 'downloadMaidReceipt'])
+                ->where('id', '[0-9]+')
+                ->name('SponsorshipTransfer.maid-receipt');
 
             Route::resource('SponsorshipTransfer', SponsorshipTransferController::class);
             Route::get('Contract/searchClients', [SponsorshipTransferController::class, 'searchClients'])->name('SponsorshipTransfer.searchClients');

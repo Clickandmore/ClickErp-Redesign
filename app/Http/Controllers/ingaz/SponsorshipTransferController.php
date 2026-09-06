@@ -895,6 +895,23 @@ class SponsorshipTransferController extends Controller
         return $storage->downloadResponse($path, $downloadName, $storage->mimeType($path));
     }
 
+    /**
+     * تحميل نموذج استلام العاملة (Word) معبأً ببيانات طلب نقل الخدمات.
+     */
+    public function downloadMaidReceipt(int $id, \App\Services\ingaz\SponsorshipTransferMaidReceiptDocument $document)
+    {
+        $transfer = SponsorshipTransfer::query()->findOrFail($id);
+        $this->assertCanAccessBranchModel($transfer);
+
+        [$path, $downloadName] = $document->generate($transfer);
+
+        return response()->download(
+            $path,
+            $downloadName,
+            ['Content-Type' => 'application/vnd.openxmlformats-officedocument.wordprocessingml.document']
+        )->deleteFileAfterSend(true);
+    }
+
     private function resolveTransferAttachmentDownload(SponsorshipTransfer $transfer, ?int $index): array
     {
         $attachments = array_values((array) $transfer->attachments);
