@@ -4,54 +4,65 @@ namespace App\Services\ingaz;
 
 use App\Models\SponsorshipTransfer;
 use Illuminate\Support\Str;
-use PhpOffice\PhpWord\TemplateProcessor;
+use PDF;
 
 /**
- * يولّد "نموذج استلام عاملة نقل الخدمات" كملف Word انطلاقاً من القالب الأصلي
- * مع تعبئة البيانات الديناميكية (الشركة، العميل، العاملة، المبالغ، فترة التجربة).
+ * يولّد "نموذج استلام عاملة نقل الخدمات" كملف PDF بنفس قالب نماذج النظام
+ * (ترويسة الشركة، جداول البيانات، صندوق الإقرار، التوقيعات، التذييل)
+ * مع تعبئة البيانات الديناميكية من طلب نقل الخدمات.
  */
 class SponsorshipTransferMaidReceiptDocument
 {
-    public const TEMPLATE = 'templates/docx/sponsorship-transfer-maid-receipt.docx';
+    public const VIEW = 'admin.print.sponsorship-transfer-maid-receipt';
 
     private const EMPTY = '..................';
 
     /**
-     * يبني الملف في مجلد مؤقت ويعيد مساره واسم التحميل.
+     * يبني ملف PDF ويعيد محتواه واسم التحميل.
      *
-     * @return array{0: string, 1: string} [مسار الملف المؤقت، اسم التحميل]
+     * @return array{0: string, 1: string} [محتوى الـ PDF، اسم التحميل]
      */
     public function generate(SponsorshipTransfer $transfer): array
     {
-        $transfer->loadMissing(['contract.maid.nationality', 'newSponsor']);
+        $previousErrorReporting = error_reporting();
+        error_reporting($previousErrorReporting & ~E_DEPRECATED & ~E_USER_DEPRECATED);
 
-        $processor = new TemplateProcessor(resource_path(self::TEMPLATE));
+        try {
+            // نفس إعدادات نموذج استلام عاملة الإيواء حتى يتطابق الخط والمقاس.
+            $pdf = PDF::loadView(self::VIEW, $this->values($transfer), [], [
+                'format' => 'A4',
+                'mode' => 'utf-8',
+            ]);
 
-        foreach ($this->values($transfer) as $key => $value) {
-            $processor->setValue($key, $value);
+            $contents = $pdf->output();
+        } finally {
+            error_reporting($previousErrorReporting);
         }
 
-        $path = tempnam(sys_get_temp_dir(), 'maid-receipt-');
-        $processor->saveAs($path);
-
-        return [$path, 'نموذج استلام عاملة نقل الخدمات - عقد ' . ($transfer->contract_id ?: $transfer->id) . '.docx'];
+        return [
+            $contents,
+            'نموذج استلام عاملة نقل الخدمات - عقد ' . ($transfer->contract_id ?: $transfer->id) . '.pdf',
+        ];
     }
 
     /**
-     * قيم العلامات الموجودة في القالب.
+     * قيم الحقول الديناميكية في النموذج.
      */
     public function values(SponsorshipTransfer $transfer): array
     {
+        $transfer->loadMissing(['contract.maid.nationality', 'newSponsor']);
+
         $client = $transfer->newSponsor;
         $maid = $transfer->contract?->maid;
 
         return [
-            'issue_date' => now()->format('d/m/Y'),
+            'issue_date' => now()->format('Y-m-d'),
             'company_name' => $this->companyName(),
             'client_name' => $this->text($client?->name),
             'client_id_number' => $this->text($client?->documentNumber()),
             'maid_name' => $this->text($maid?->name),
             'maid_passport' => $this->text($maid?->passport_num ?: $maid?->border_number),
+            'maid_nationality' => $this->text($maid?->nationality?->sub_title ?? $maid?->nationality?->title),
             'contract_value' => $this->money($transfer->contract_value),
             'paid_amount' => $this->money($transfer->paid_amount),
             'remaining_amount' => $this->money($transfer->remaining_amount),

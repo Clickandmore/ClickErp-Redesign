@@ -2927,6 +2927,19 @@ class InvoiceController extends Controller
         int $clientAccountId
     ): ?Constraint
     {
+        return app(\App\Services\ingaz\DelegationInvoiceJournalService::class)->ensure(
+            $invoice,
+            fn () => $this->createInvoiceConstraintForIngazDelegation($invoice, $service, $yearService, $clientAccountId)
+        );
+    }
+
+    private function createInvoiceConstraintForIngazDelegation(
+        Invoice $invoice,
+        ObjService $service,
+        YearService $yearService,
+        int $clientAccountId
+    ): ?Constraint
+    {
         $amounts = $this->buildInvoiceFinanceBreakdown($invoice);
         if ($amounts['total_due'] <= 0) {
             return null;
