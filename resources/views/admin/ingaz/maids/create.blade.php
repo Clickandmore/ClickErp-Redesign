@@ -924,6 +924,8 @@
                                     </td>
                                     <td>
                                         <div class="experience-duration-wrapper">
+                                            <input type="number" class="form-control exp-manual-years mb-1" min="0" step="any" placeholder="أدخل المدة بالسنوات" aria-label="مدة الخبرة بالسنوات">
+                                            <small class="text-muted">مثال: 1.5 = سنة ونصف. تُقرّب لأقرب شهر، وتُملأ التواريخ تلقائيًا حتى النهاية المحددة أو الشهر الحالي إذا لم تُحدد البداية.</small>
                                             <input type="text" class="form-control exp-duration-label"
                                                 placeholder="تُحسب تلقائياً" readonly tabindex="-1">
                                             <input type="hidden" name="expertises[0][number_of_years]"
@@ -2615,7 +2617,7 @@
                 $('#experience_section').find('.experience-work-city')
                     .val('')
                     .prop('required', false);
-                $('#experience_section').find('.exp-duration-label, .exp-duration-years').val('');
+                $('#experience_section').find('.exp-duration-label, .exp-duration-years, .exp-manual-years').val('');
                 $('#experience_section').find('.exp-duration-error').text('');
                 $('#json_array tr.y-group').slice(1).remove();
                 if (typeof window.reindexRows === 'function') {
