@@ -48,6 +48,7 @@ return [
             'nationalities.*',
             'religions.*',
             'languages.*',
+            'education-qualifications.*',
             'social-statuses.*',
             'skills.*',
             'country-polices.*',

@@ -263,6 +263,10 @@ Route::group(
             Route::patch('languages/{language}/toggle-visibility', [MaidLanguageController::class, 'toggleVisibility'])
                 ->name('languages.toggle-visibility');
             Route::resource('languages', MaidLanguageController::class)->except('show');
+            Route::resource('education-qualifications', \App\Http\Controllers\ingaz\EducationQualificationController::class)
+                ->only(['index', 'create', 'store', 'edit', 'update', 'destroy']);
+            Route::patch('education-qualifications/{educationQualification}/toggle-visibility', [\App\Http\Controllers\ingaz\EducationQualificationController::class, 'toggleVisibility'])
+                ->name('education-qualifications.toggle-visibility');
             Route::resource('social-statuses', SocialStatusController::class);
             Route::resource('questions', QuestionController::class);
             Route::resource('contact', ContactController::class);

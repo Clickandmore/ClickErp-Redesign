@@ -3693,6 +3693,8 @@ class MaidController extends Controller
 
     private function applyRecruitmentMaidsScope($query): void
     {
+        $query->approvedSubmission();
+
         $rentalJobTypeId = $this->getRentalJobTypeId();
 
         if (!$rentalJobTypeId) {

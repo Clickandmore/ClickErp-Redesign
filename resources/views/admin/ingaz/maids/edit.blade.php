@@ -1334,18 +1334,7 @@
                                                     class="form-control" maxlength="255"
                                                     value="{{ old('residence_city', $obj->residence_city) }}">
                                             </div>
-                                            <div class="col-md-4">
-                                                <label for="education" class="form-label">المؤهل التعليمي (بالعربية)</label>
-                                                <input type="text" name="education" id="education"
-                                                    class="form-control" maxlength="255"
-                                                    value="{{ old('education', $obj->education) }}">
-                                            </div>
-                                            <div class="col-md-4">
-                                                <label for="education_en" class="form-label">المؤهل التعليمي (بالإنجليزية)</label>
-                                                <input type="text" name="education_en" id="education_en"
-                                                    class="form-control" maxlength="255" dir="ltr"
-                                                    value="{{ old('education_en', $obj->education_en) }}">
-                                            </div>
+                                            @include('shared.education-selects', ['educationMaid' => $obj])
                                             @php
                                                 $selectedExperienceStatus = old('experience_status', $obj->experience_status);
                                                 $selectedCookingExperience = old('cooking_experience', $obj->cooking_experience);
