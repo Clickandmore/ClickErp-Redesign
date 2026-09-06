@@ -10,14 +10,31 @@ use Nami\Finance\Services\ConstraintService;
 
 class RepairDelegationInvoiceJournals extends Command
 {
-    protected $signature = 'finance:repair-delegation-journals {--apply}';
+    protected $signature = 'finance:repair-delegation-journals
+        {--invoice= : Process one invoice only}
+        {--apply : Apply the verified repair}';
     protected $description = 'Audit delegation invoice links and repair the verified duplicate for invoice 8306';
 
     public function handle(): int
     {
         return DB::transaction(function () {
             $plan = [];
-            foreach (Invoice::whereNotNull('ingaz_delegation_id')->orderBy('id')->lockForUpdate()->get() as $invoice) {
+            $invoiceId = $this->option('invoice');
+            if ($invoiceId !== null && (!ctype_digit((string) $invoiceId) || (int) $invoiceId < 1)) {
+                throw new \InvalidArgumentException('The --invoice option must be a positive invoice ID.');
+            }
+
+            $invoices = Invoice::whereNotNull('ingaz_delegation_id')
+                ->when($invoiceId !== null, fn ($query) => $query->whereKey((int) $invoiceId))
+                ->orderBy('id')
+                ->lockForUpdate()
+                ->get();
+
+            if ($invoiceId !== null && $invoices->isEmpty()) {
+                throw new \RuntimeException("Delegation invoice {$invoiceId} was not found.");
+            }
+
+            foreach ($invoices as $invoice) {
                 $journals = Constraint::without('admin')->where('statement', 'like',
                     "قيد فاتورة تفويض إنجاز #{$invoice->ingaz_delegation_id} / الفاتورة #{$invoice->id} /%"
                 )->orderBy('id')->lockForUpdate()->get();
