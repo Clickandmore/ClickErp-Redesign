@@ -21,6 +21,19 @@ if (!function_exists('toObject')) {
     }
 }
 
+if (!function_exists('apiJsonEncodingOptions')) {
+    function apiJsonEncodingOptions(): int
+    {
+        $options = JSON_UNESCAPED_UNICODE;
+
+        if (!app()->environment('production')) {
+            $options |= JSON_PRETTY_PRINT;
+        }
+
+        return $options;
+    }
+}
+
 /**
  * Show the form for creating a new resource.
  *
@@ -38,7 +51,7 @@ if (!function_exists('jsonSuccess')) {
             'code' => $code,
             'data' => $data,
             'message' => $msg,
-        ], 200);
+        ], 200, [], apiJsonEncodingOptions());
     }
 }
 if (!function_exists('submitButton')) {
@@ -71,7 +84,7 @@ if (!function_exists('jsonError')) {
         return response()->json([
             'code' => $code,
             'message' => $msg,
-        ], $code);
+        ], $code, [], apiJsonEncodingOptions());
     }
 }
 
@@ -88,7 +101,7 @@ if (!function_exists('jsonValid')) {
             'code' => $code,
             'data' => $data,
             'message' => $message,
-        ], 422);
+        ], 422, [], apiJsonEncodingOptions());
     }
 }
 
@@ -1203,6 +1216,6 @@ if (!function_exists('apiResponse')) {
             'status'  => $status,
             'message' => $message,
             'data'    => $data
-        ], $statusCode);
+        ], $statusCode, [], apiJsonEncodingOptions());
     }
 }
