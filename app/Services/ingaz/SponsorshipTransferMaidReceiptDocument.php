@@ -3,6 +3,7 @@
 namespace App\Services\ingaz;
 
 use App\Models\SponsorshipTransfer;
+use Illuminate\Support\Facades\File;
 use Illuminate\Support\Str;
 use PDF;
 
@@ -27,11 +28,17 @@ class SponsorshipTransferMaidReceiptDocument
         $previousErrorReporting = error_reporting();
         error_reporting($previousErrorReporting & ~E_DEPRECATED & ~E_USER_DEPRECATED);
 
+        // المجلد المؤقت الافتراضي للحزمة هو base_path('../temp') خارج المشروع،
+        // وغالباً غير قابل للكتابة على الخادم الحي، لذا نستخدم مجلداً داخل storage.
+        $temporaryDirectory = storage_path('framework/cache/mpdf');
+        File::ensureDirectoryExists($temporaryDirectory);
+
         try {
             // نفس إعدادات نموذج استلام عاملة الإيواء حتى يتطابق الخط والمقاس.
             $pdf = PDF::loadView(self::VIEW, $this->values($transfer), [], [
                 'format' => 'A4',
                 'mode' => 'utf-8',
+                'tempDir' => $temporaryDirectory,
             ]);
 
             $contents = $pdf->output();
