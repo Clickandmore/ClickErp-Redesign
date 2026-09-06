@@ -768,7 +768,7 @@ $permissions = ['printSettings.create', 'letters.index', 'officialVacations.inde
         <li>
             <a class="m-link {{ Route::currentRouteName() == 'finance.cash-movements.index' ? 'active' : '' }}"
                 href="{{ route('finance.cash-movements.index') }}">
-                <span class="ms-2"> {{ trans('finance::finance.cash-movement') }} </span>
+                <span class="ms-2"> حركة الصندوق والبنوك اليومية </span>
             </a>
         </li>
         {{--        @endif --}}
@@ -817,6 +817,7 @@ $permissions = ['printSettings.create', 'letters.index', 'officialVacations.inde
     <a class="m-link
     {{ in_array(Route::currentRouteName(), [
         'finance.income-list.index',
+        'finance.finance-center-list.index',
         'finance.profit-loss.index',
         'finance.audit-budget-supplier.index',
         'finance.trail-balance.index',
@@ -834,6 +835,7 @@ $permissions = ['printSettings.create', 'letters.index', 'officialVacations.inde
     <ul class="sub-menu collapse
                                      {{ in_array(Route::currentRouteName(), [
                                          'finance.income-list.index',
+                                         'finance.finance-center-list.index',
                                          'finance.profit-loss.index',
                                          'finance.audit-budget-supplier.index',
                                          'finance.trail-balance.index',
@@ -843,6 +845,12 @@ $permissions = ['printSettings.create', 'letters.index', 'officialVacations.inde
                                          ? 'show'
                                          : '' }}"
         id="Financial-Lists">
+        <li>
+            <a class="m-link {{ Route::currentRouteName() == 'finance.finance-center-list.index' ? 'active' : '' }}" href="{{ route('finance.finance-center-list.index') }}">
+                <span class="ms-2">قائمة المركز المالي (الميزانية العمومية)</span>
+            </a>
+        </li>
+
 
         {{--        @if (in_array('finance.income-list-read', $user_permission_list)) --}}
         <li>

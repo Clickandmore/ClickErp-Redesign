@@ -43,7 +43,7 @@ class DevSuperAdminController extends Controller
     public function loginForm()
     {
         if ((bool) session('dev_superadmin_authenticated')) {
-            return redirect()->route('dev-superadmin.recovery');
+            return $this->redirectAfterLogin();
         }
 
         return view('admin.superadmin.login');
@@ -63,12 +63,31 @@ class DevSuperAdminController extends Controller
             $request->session()->regenerate();
             $request->session()->put('dev_superadmin_authenticated', true);
 
-            return redirect()->route('dev-superadmin.recovery');
+            return $this->redirectAfterLogin();
         }
 
         return back()
             ->withInput(['username' => $data['username']])
             ->withErrors(['username' => 'بيانات دخول لوحة التطوير غير صحيحة.']);
+    }
+
+    private function redirectAfterLogin()
+    {
+        try {
+            DB::connection()->getPdo();
+
+            foreach (array_merge(['migrations'], array_keys(self::CORE_TABLE_CREATION_MIGRATIONS)) as $table) {
+                if (! Schema::hasTable($table)) {
+                    return redirect()->route('dev-superadmin.recovery');
+                }
+            }
+        } catch (\Throwable $exception) {
+            report($exception);
+
+            return redirect()->route('dev-superadmin.recovery');
+        }
+
+        return redirect()->route('dev-superadmin.modules');
     }
 
     public function recovery()

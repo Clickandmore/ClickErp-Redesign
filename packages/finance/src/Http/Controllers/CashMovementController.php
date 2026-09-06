@@ -3,120 +3,58 @@
 namespace Nami\Finance\Http\Controllers;
 
 use App\Http\Controllers\admin\Controller;
-use Exception;
-use Illuminate\Contracts\Foundation\Application;
-use Illuminate\Contracts\View\Factory;
-use Illuminate\Contracts\View\View;
-use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Nami\Finance\Enums\AccountTypesEnum;
-use Nami\Finance\Services\ConstraintService as ObjService;
-use Throwable;
+use Illuminate\Validation\Rule;
+use Nami\Finance\Services\CashMovementReportService;
 
 class CashMovementController extends Controller
 {
-    public string $folderPath = "finance::finance.account_statement.cash_movements";
-    public $getData = ["from_date", "to_date", "type", 'account_id', 'other_account'];
-    public string $mainRoute = "finance.cash-movements";
-
-    /**
-     * Display a listing of the resource.
-     *
-     * @return Application|Factory|View|\Illuminate\Foundation\Application|JsonResponse|\Illuminate\View\View
-     * @throws Exception
-     */
-
-    public function index(Request $request, ObjService $service)
+    public function index(Request $request, CashMovementReportService $service)
     {
-        $dataSearch = $request->only($this->getData);
-        if ($request->ajax()) {
-            $data = $service->filterAccount($dataSearch);
-            $firstBalance  = $service->getFirstBalance($dataSearch);
-            $otherAccount = ($dataSearch["other_account"] == "yes") ? $service->filterConstraints($dataSearch) : [];
-            $returnHTML = view($this->folderPath . ".result")->with([
-                "data" => $data,
-                "firstBalance" => $firstBalance,
-                "otherAccount" => $otherAccount,
-                "show_other_account" => $dataSearch["other_account"],
-            ])->render();
-            return jsonSuccess(["html" => $returnHTML,'count'=>$data->count()]);
+        $request->validate(['view' => ['nullable', 'in:reference,movement']]);
+        if ($request->input('view', 'reference') === 'reference') {
+            $input = $request->validate([
+                'from_date' => ['nullable', 'date_format:Y-m-d'],
+                'to_date' => ['sometimes', 'required', 'date_format:Y-m-d'],
+                'approval' => ['nullable', 'in:approved,all'],
+                'export' => ['nullable', 'in:xlsx'],
+            ]);
+            $from = $input['from_date'] ?? null;
+            $to = $input['to_date'] ?? now()->toDateString();
+            if ($from && $from > $to) {
+                throw \Illuminate\Validation\ValidationException::withMessages(['from_date' => 'تاريخ البداية يجب ألا يتجاوز تاريخ النهاية.']);
+            }
+            $report = app(\Nami\Finance\Services\DailyCashReferenceService::class)->report($from, $to, $input['approval'] ?? 'approved');
+            if (($input['export'] ?? null) === 'xlsx') {
+                return app(\Nami\Finance\Services\CashMovementExportService::class)->downloadReference($report);
+            }
+            return view('finance::finance.account_statement.cash_movements.reference', ['bladeTitle'=>'تقرير حركة صندوق اليومية', 'report'=>$report]);
         }
-        $data["accounts"] = $service->getAccounts(AccountTypesEnum::Box->value);
-        $data["ajaxRoute"] = route($this->mainRoute . ".index");
-        $data["bladeTitle"] = __("finance::finance.account-statement-clients");
-        return view($this->folderPath . '.index', $data);
-    }
-
-    /**
-     * @param Request $request
-     * @param ObjService $service
-     * @return JsonResponse|void
-     * @throws Throwable
-     */
-    public function create(Request $request, ObjService $service)
-    {
-        //
-    }
-
-    /**
-     * Store a newly created resource in storage.
-     *
-     * @param ObjRequest $request
-     * @param ObjService $service
-     * @return JsonResponse
-     */
-    public function store(Request $request, ObjService $service)
-    {
-        //
-    }
-
-    /**
-     * Display the specified resource.
-     *
-     * @param int $id
-     * @return void
-     */
-    public function show(int $id)
-    {
-        //
-    }
-
-    /**
-     * Show the form for editing the specified resource.
-     *
-     * @param int $id
-     * @param Request $request
-     * @param ObjService $service
-     * @return JsonResponse|void
-     * @throws Throwable
-     */
-    public function edit(int $id, Request $request, ObjService $service)
-    {
-        //
-    }
-
-    /**
-     * Update the specified resource in storage.
-     *
-     * @param ObjRequest $request
-     * @param int $id
-     * @param ObjService $service
-     * @return JsonResponse
-     */
-    public function update(Request $request, int $id, ObjService $service)
-    {
-        //
-    }
-
-    /**
-     * Remove the specified resource from storage.
-     *
-     * @param int $id
-     * @param ObjService $service
-     * @return JsonResponse
-     */
-    public function destroy(int $id, ObjService $service)
-    {
-        //
+        $accounts = $service->accounts();
+        $request->merge([
+            'from_date' => $request->input('from_date', now()->startOfMonth()->toDateString()),
+            'to_date' => $request->input('to_date', now()->toDateString()),
+        ]);
+        $input = $request->validate([
+            'from_date' => ['required', 'date_format:Y-m-d'],
+            'to_date' => ['required', 'date_format:Y-m-d', 'after_or_equal:from_date'],
+            'account_id' => ['nullable', 'integer', Rule::in(array_keys($accounts))],
+            'export' => ['nullable', 'in:xlsx'],
+            'scope' => ['nullable', 'in:all,cash,bank,wallet'],
+            'page' => ['nullable', 'integer', 'min:1'],
+        ]);
+        $scope = $input['scope'] ?? 'all';
+        $selected = array_filter($accounts, fn ($account) =>
+            (!empty($input['account_id']) ? (int) $account->id === (int) $input['account_id'] : ($scope === 'all' || $account->kind === $scope)));
+        if (($input['export'] ?? null) === 'xlsx') {
+            return app(\Nami\Finance\Services\CashMovementExportService::class)->download(
+                $service->report($selected, $input['from_date'], $input['to_date'], 1, false)
+            );
+        }
+        return view('finance::finance.account_statement.cash_movements.index', [
+            'bladeTitle' => 'حركة الصندوق والبنوك اليومية', 'accounts' => $accounts, 'scope' => $scope,
+            'selectedAccount' => $input['account_id'] ?? '',
+            'report' => $service->report($selected, $input['from_date'], $input['to_date'], (int) ($input['page'] ?? 1)),
+        ]);
     }
 }
