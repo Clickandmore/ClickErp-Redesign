@@ -654,8 +654,9 @@
             : (isset($settings) && !empty($settings->logo_header)
                 ? showFile($settings->logo_header)
                 : asset('admin/assets/img/company_logo.jpeg'));
-        $englishUrl = request()->fullUrlWithQuery(['agent_locale' => 'en']);
-        $arabicUrl = request()->fullUrlWithQuery(['agent_locale' => 'ar']);
+        $languageUrl = request()->fullUrlWithoutQuery('agent_locale');
+        $englishUrl = \Mcamara\LaravelLocalization\Facades\LaravelLocalization::getLocalizedURL('en', $languageUrl, [], true);
+        $arabicUrl = \Mcamara\LaravelLocalization\Facades\LaravelLocalization::getLocalizedURL('ar', $languageUrl, [], true);
     @endphp
 
     <div class="agent-shell">

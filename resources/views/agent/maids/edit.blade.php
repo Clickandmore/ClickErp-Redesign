@@ -144,11 +144,7 @@
                     <input class="form-control" name="passport_issue_place" maxlength="255"
                         value="{{ old('passport_issue_place', $maid->passport_issue_place) }}">
                 </div>
-                <div class="col-md-4">
-                    <label class="form-label">{{ $isAr ? 'المؤهل التعليمي' : 'Education' }}</label>
-                    <input class="form-control" name="education" maxlength="255"
-                        value="{{ old('education', $maid->education) }}">
-                </div>
+                @include('shared.education-selects', ['educationMaid' => $maid])
                 @php
                     $selectedExperienceStatus = old('experience_status', $maid->experience_status);
                     $selectedCookingExperience = old('cooking_experience', $maid->cooking_experience);

@@ -4,6 +4,8 @@
     $isAr = app()->getLocale() === 'ar';
     $defaultTypeId = $defaultTypeId ?? null;
     $selectedTypeId = (int) old('type_id', $defaultTypeId ?? 0);
+    $agentOffice = $offices->first();
+    $selectedNationalityId = (int) old('nationality_id', optional($agentOffice)->nationality_id);
 @endphp
 
 @section('page-title', $isAr ? 'إضافة سيرة ذاتية' : 'Add CV')
@@ -662,7 +664,7 @@
                                     data-salary="{{ $nationality->monthly_salary }}"
                                     data-service_transportation_cost="{{ $nationality->service_transportation_cost }}"
                                     data-rental_cost="{{ $nationality->rental_cost }}"
-                                    {{ (int) old('nationality_id') === (int) $nationality->id ? 'selected' : '' }}>
+                                    {{ $selectedNationalityId === (int) $nationality->id ? 'selected' : '' }}>
                                     {{ $nationality->sub_title ?: $nationality->title }}
                                 </option>
                             @endforeach
@@ -677,7 +679,6 @@
                             {{ $isAr ? 'مكتب الاستقدام' : 'Recruitment Office' }}
                             <i class="fa fa-lock text-muted ms-1" title="{{ $isAr ? 'مكتبك المسجل' : 'Your registered office' }}"></i>
                         </label>
-                        @php $agentOffice = $offices->first(); @endphp
                         @if ($agentOffice)
                             <div class="mc-locked-field">
                                 <span class="mc-locked-icon"><i class="fa fa-building"></i></span>
@@ -845,10 +846,7 @@
                     <label class="mc-field-label">{{ $isAr ? 'مكان إصدار الجواز' : 'Passport Issue Place' }}<span class="mc-required">*</span></label>
                     <input type="text" name="passport_issue_place" class="form-control" maxlength="255" value="{{ old('passport_issue_place') }}" required>
                 </div></div>
-                <div class="col-md-4"><div class="mc-field">
-                    <label class="mc-field-label">{{ $isAr ? 'المؤهل التعليمي' : 'Education' }}<span class="mc-required">*</span></label>
-                    <input type="text" name="education" class="form-control" maxlength="255" value="{{ old('education') }}" required>
-                </div></div>
+                @include('shared.education-selects', ['educationMaid' => null, 'educationRequired' => true])
                 <div class="col-md-4" id="cooking_experience_field"
                     style="{{ old('experience_status') === 'has_experience' ? '' : 'display: none;' }}">
                     <div class="mc-field">

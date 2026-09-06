@@ -496,6 +496,14 @@ class Maid extends Model
         return $query->where('submission_status', self::SUBMISSION_PENDING);
     }
 
+    public function scopeApprovedSubmission($query)
+    {
+        return $query->where(function ($query) {
+            $query->whereNull('submission_status')
+                ->orWhere('submission_status', self::SUBMISSION_APPROVED);
+        });
+    }
+
     public function scopeFromExternalOffice($query)
     {
         return $query->whereNotNull('office_id');

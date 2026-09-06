@@ -952,6 +952,13 @@ class AdminRoutePermissionMatrix
                 'edit' => [PermKeys::MAID_LANGUAGES_EDIT],
                 'destroy' => [PermKeys::MAID_LANGUAGES_DELETE],
             ]),
+            self::resource('education-qualifications', [
+                'index' => [PermKeys::SETTINGS_CV_OPTIONS],
+                'create' => [PermKeys::SETTINGS_CV_OPTIONS],
+                'edit' => [PermKeys::SETTINGS_CV_OPTIONS],
+                'destroy' => [PermKeys::SETTINGS_CV_OPTIONS],
+            ]),
+            ['education-qualifications.toggle-visibility' => [PermKeys::SETTINGS_CV_OPTIONS]],
             [
                 'languages.toggle-visibility' => [PermKeys::MAID_LANGUAGES_TOGGLE_VISIBILITY],
             ],

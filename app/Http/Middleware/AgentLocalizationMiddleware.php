@@ -34,6 +34,16 @@ class AgentLocalizationMiddleware
 
         LaravelLocalization::setLocale($locale);
 
+        // Register routes again on the selected URL locale before rendering navigation.
+        if ($request->isMethodSafe() && $urlLocale !== $locale) {
+            return redirect()->to(LaravelLocalization::getLocalizedURL(
+                $locale,
+                $request->fullUrlWithoutQuery('agent_locale'),
+                [],
+                true
+            ));
+        }
+
         return $next($request);
     }
 }
