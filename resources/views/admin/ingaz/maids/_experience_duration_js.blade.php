@@ -99,15 +99,51 @@
             window.syncExperienceRow($row);
         };
 
+        function syncManualDuration($row, input) {
+            if (!input.checkValidity() || input.value === '') {
+                return;
+            }
+
+            const months = Math.round(Number(input.value) * 12);
+            const $start = $row.find('.exp-start-date');
+            const $end = $row.find('.exp-end-date');
+            const now = new Date();
+            const anchor = MONTH_PATTERN.exec($end.val() || $start.val() ||
+                (now.getFullYear() + '-' + (now.getMonth() + 1)));
+            const anchorMonth = Number(anchor[1]) * 12 + Number(anchor[2]) - 1;
+            const useStart = !$end.val() && !!$start.val();
+            const startMonth = useStart ? anchorMonth : anchorMonth - months;
+            const endMonth = startMonth + months;
+            const formatMonth = value => String(Math.floor(value / 12)).padStart(4, '0') + '-' +
+                String(value % 12 + 1).padStart(2, '0');
+
+            if (startMonth < 12 || endMonth >= 120000) {
+                input.setCustomValidity('المدة المدخلة تتجاوز نطاق التاريخ المتاح.');
+                return;
+            }
+
+            $start.val(formatMonth(startMonth));
+            $end.val(formatMonth(endMonth));
+            window.syncExperienceRow($row);
+        }
+
         window.attachExperienceHandlers = function(context) {
             const $scope = context ? $(context) : $('#experience_section');
 
-            $scope.find('tr.y-group').each(function() {
+            $scope.find('tr.y-group').add($scope.filter('tr.y-group')).each(function() {
                 const $row = $(this);
+
+                $row.find('.exp-manual-years').off('.exp').on('input.exp change.exp', function() {
+                    this.setCustomValidity('');
+                    syncManualDuration($row, this);
+                });
 
                 $row.find('.exp-start-date, .exp-end-date')
                     .off('.exp')
                     .on('input.exp change.exp', function() {
+                        $row.find('.exp-manual-years').val('').each(function() {
+                            this.setCustomValidity('');
+                        });
                         window.syncExperienceRow($row);
                     });
 
