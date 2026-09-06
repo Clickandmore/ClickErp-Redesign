@@ -40,21 +40,19 @@ class SponsorshipTransferMaidReceiptTest extends TestCase
         $this->assertStringStartsWith('شركة', $values['company_name']);
     }
 
-    public function test_generated_document_has_no_unfilled_placeholders(): void
+    public function test_generated_document_is_a_pdf_with_the_transfer_data(): void
     {
         $transfer = $this->makeTrialTransfer();
 
-        [$path] = app(SponsorshipTransferMaidReceiptDocument::class)->generate($transfer);
+        [$contents, $name] = app(SponsorshipTransferMaidReceiptDocument::class)->generate($transfer);
 
-        $zip = new \ZipArchive();
-        $this->assertTrue($zip->open($path));
-        $xml = $zip->getFromName('word/document.xml');
-        $zip->close();
-        @unlink($path);
+        $this->assertStringStartsWith('%PDF-', $contents);
+        $this->assertStringEndsWith('.pdf', $name);
 
-        $this->assertStringNotContainsString('${', $xml);
-        $this->assertStringContainsString('New sponsor', $xml);
-        $this->assertStringContainsString('Receipt maid', $xml);
+        $html = view(SponsorshipTransferMaidReceiptDocument::VIEW, app(SponsorshipTransferMaidReceiptDocument::class)->values($transfer))->render();
+        $this->assertStringContainsString('New sponsor', $html);
+        $this->assertStringContainsString('Receipt maid', $html);
+        $this->assertStringContainsString('12,000.00 ريال', $html);
     }
 
     public function test_admin_with_view_permission_can_download_the_receipt(): void
@@ -67,8 +65,9 @@ class SponsorshipTransferMaidReceiptTest extends TestCase
             ->get(route('SponsorshipTransfer.maid-receipt', $transfer->id));
 
         $response->assertOk();
-        $response->assertHeader('content-type', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document');
+        $response->assertHeader('content-type', 'application/pdf');
         $this->assertStringContainsString('attachment', (string) $response->headers->get('content-disposition'));
+        $this->assertStringStartsWith('%PDF-', $response->getContent());
     }
 
     public function test_admin_without_permission_cannot_download_the_receipt(): void

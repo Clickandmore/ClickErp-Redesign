@@ -849,6 +849,10 @@
                 background: #315a63 !important;
             }
         }
+
+        .table-responsive {
+            overflow-x: auto !important;
+        }
     </style>
 @endsection
 
