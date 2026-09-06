@@ -674,6 +674,8 @@ class AdminRoutePermissionMatrix
             ]),
             [
                 'complaints.cards' => [PermKeys::COMPLAINT_VIEW, PermKeys::COMPLAINT_CONTROL],
+                'complaints.search-contracts' => [PermKeys::COMPLAINT_CREATE, PermKeys::COMPLAINT_EDIT, PermKeys::COMPLAINT_CONTROL],
+                'complaints.search-orders' => [PermKeys::COMPLAINT_CREATE, PermKeys::COMPLAINT_EDIT, PermKeys::COMPLAINT_CONTROL],
                 'complaints.quick-response' => [PermKeys::COMPLAINT_RESPONSE, PermKeys::COMPLAINT_EDIT],
                 'complaints.add-comment' => [PermKeys::COMPLAINT_RESPONSE, PermKeys::COMPLAINT_EDIT],
                 'complaints.update-status' => [PermKeys::COMPLAINT_EDIT],
@@ -706,6 +708,7 @@ class AdminRoutePermissionMatrix
                 'SponsorshipTransfer.transferred' => [PermKeys::SPONSOR_TRANSFER_VIEW, PermKeys::SPONSOR_TRANSFER_CONTROL],
                 'SponsorshipTransfer.failed' => [PermKeys::SPONSOR_TRANSFER_VIEW, PermKeys::SPONSOR_TRANSFER_CONTROL],
                 'SponsorshipTransfer.trial-details' => [PermKeys::SPONSOR_TRANSFER_VIEW, PermKeys::SPONSOR_TRANSFER_CONTROL],
+                'SponsorshipTransfer.maid-receipt' => [PermKeys::SPONSOR_TRANSFER_VIEW, PermKeys::SPONSOR_TRANSFER_CONTROL],
                 'SponsorshipTransfer.approve' => [PermKeys::SPONSOR_TRANSFER_CONTROL],
                 'SponsorshipTransfer.reject' => [PermKeys::SPONSOR_TRANSFER_CONTROL],
                 'SponsorshipTransfer.complete' => [PermKeys::SPONSOR_TRANSFER_CONTROL],

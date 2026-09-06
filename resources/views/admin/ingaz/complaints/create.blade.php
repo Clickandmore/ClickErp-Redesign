@@ -220,6 +220,10 @@
 @section('js')
 <script>
 $(function () {
+    const pageLoaded = new Promise(function (resolve) {
+        if (document.readyState === 'complete') resolve();
+        else window.addEventListener('load', resolve, { once: true });
+    });
     $('.select2').each(function () {
         const $select = $(this);
 
@@ -227,13 +231,51 @@ $(function () {
             $select.select2('destroy');
         }
 
-        $select.select2({
+        const options = {
             dir: 'rtl',
             width: '100%',
             allowClear: true,
             placeholder: 'اختر أو ابحث',
             dropdownParent: $select.closest('.form-section-body')
-        });
+        };
+        if (['contract_id', 'order_id'].includes($select.attr('name'))) {
+            const searchUrl = $select.attr('name') === 'order_id'
+                ? @json(route('complaints.search-orders'))
+                : @json(route('complaints.search-contracts'));
+            let initialRequest = null;
+            function firstPage() {
+                if (!initialRequest) {
+                    initialRequest = $.ajax({ url: searchUrl, dataType: 'json', data: { q: '', page: 1 } });
+                    initialRequest.fail(function () { initialRequest = null; });
+                }
+                return initialRequest;
+            }
+            pageLoaded.then(function () { firstPage(); });
+            options.ajax = {
+                url: searchUrl,
+                dataType: 'json',
+                delay: 250,
+                data: function (params) { return { q: params.term || '', page: params.page || 1 }; },
+                processResults: function (data) { return data; },
+                transport: function (params, success, failure) {
+                    let cancelled = false;
+                    let request = null;
+                    let shared = false;
+                    pageLoaded.then(function () {
+                        if (cancelled) return;
+                        shared = !params.data.q && Number(params.data.page) === 1;
+                        request = shared ? firstPage() : $.ajax(params);
+                        request.done(function (data) { if (!cancelled) success(data); });
+                        request.fail(function () { if (!cancelled) failure.apply(null, arguments); });
+                    });
+                    return { abort: function () {
+                        cancelled = true;
+                        if (request && !shared) request.abort();
+                    } };
+                }
+            };
+        }
+        $select.select2(options);
     });
 
     function refreshRelationPanels() {
