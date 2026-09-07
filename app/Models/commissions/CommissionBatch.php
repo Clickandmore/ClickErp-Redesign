@@ -7,6 +7,9 @@ use App\Models\Concerns\BranchScoped;
 
 use App\Models\auth\Admin;
 use Illuminate\Database\Eloquent\Model;
+use Nami\Finance\Models\Account;
+use Nami\Finance\Models\Constraint;
+use Nami\Finance\Models\CostCenter;
 
 class CommissionBatch extends Model
 {
@@ -17,7 +20,8 @@ class CommissionBatch extends Model
     protected $fillable = [
         'branch_id',
         'marketer_id', 'total_requests', 'total_base_amount',
-        'total_commission', 'status', 'notes',
+        'total_commission', 'accrual_constraint_id', 'expense_account_id',
+        'payable_account_id', 'cost_center_id', 'status', 'notes',
         'approved_by', 'approved_at', 'created_by',
     ];
 
@@ -55,5 +59,25 @@ class CommissionBatch extends Model
     {
         return $this->hasMany(CommissionBalanceTransaction::class, 'reference_id')
             ->where('reference_type', 'commission_batch');
+    }
+
+    public function accrualConstraint()
+    {
+        return $this->belongsTo(Constraint::class, 'accrual_constraint_id');
+    }
+
+    public function expenseAccount()
+    {
+        return $this->belongsTo(Account::class, 'expense_account_id');
+    }
+
+    public function payableAccount()
+    {
+        return $this->belongsTo(Account::class, 'payable_account_id');
+    }
+
+    public function costCenter()
+    {
+        return $this->belongsTo(CostCenter::class, 'cost_center_id');
     }
 }

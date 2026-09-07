@@ -41,6 +41,7 @@ class SupplierService extends MainService
 
     public function storeSupplier($data)
     {
+        $data += ['address' => '', 'email' => '', 'commercial_register_number' => 0, 'credit_limit' => 0];
         $data = $this->prepareSupplierData($data);
         $parent = $this->getParentOrFail();
 
@@ -177,6 +178,13 @@ class SupplierService extends MainService
 
     protected function prepareSupplierData(array $data): array
     {
+        // These legacy columns are not nullable; blank optional inputs use empty defaults.
+        foreach (['address' => '', 'email' => '', 'tax_number' => 0, 'commercial_register_number' => 0, 'credit_limit' => 0] as $field => $default) {
+            if (array_key_exists($field, $data) && ($data[$field] === null || $data[$field] === '')) {
+                $data[$field] = $default;
+            }
+        }
+
         $data['supplier_type_id'] = $this->resolveSupplierTypeId($data);
         unset($data['supplier_type_name']);
 

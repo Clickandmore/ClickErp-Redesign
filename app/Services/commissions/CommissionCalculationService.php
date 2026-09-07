@@ -15,7 +15,8 @@ class CommissionCalculationService
     public function __construct(
         private readonly CommissionOperationService $operationService,
         private readonly DelegationCommissionService $delegationCommissionService,
-        private readonly RecruitmentCommissionService $recruitmentCommissionService
+        private readonly RecruitmentCommissionService $recruitmentCommissionService,
+        private readonly CommissionAccrualService $accrualService
     ) {}
 
     public function getApplicableSetting(int $marketerId, string $serviceType): ?array
@@ -62,7 +63,9 @@ class CommissionCalculationService
             $serviceType = $operation['service_type'];
             $setting = $this->getApplicableSetting($marketerId, $serviceType);
             $adjustment = $adjustments[$operation['key']] ?? null;
-            $method = $adjustment['method'] ?? $setting['method'] ?? 'fixed';
+            // The review screen always starts with a fixed amount. A percentage is
+            // only used when the reviewer explicitly selects it for this approval.
+            $method = $adjustment['method'] ?? 'fixed';
             $rateOrAmount = (float) ($adjustment['value'] ?? $setting['value'] ?? 0);
             $commissionAmount = $this->calculateAmount($baseAmount, $method, $rateOrAmount);
 
@@ -160,6 +163,31 @@ class CommissionCalculationService
                 ]);
             }
 
+            $currentBalance = app(CommissionProfileService::class)->getMarketerBalance($marketerId);
+            $existingAccrualBatch = CommissionBatch::query()
+                ->where('marketer_id', $marketerId)
+                ->whereNotNull('accrual_constraint_id')
+                ->latest('approved_at')
+                ->first(['id', 'payable_account_id']);
+
+            if ($currentBalance > 0 && ! $existingAccrualBatch) {
+                throw ValidationException::withMessages([
+                    'operations' => 'يوجد رصيد عمولات قديم بلا قيد استحقاق. يجب صرفه أو تسويته أولًا قبل اعتماد دفعة بالنظام المحاسبي الجديد.',
+                ]);
+            }
+
+            if ($currentBalance > 0
+                && $existingAccrualBatch?->payable_account_id) {
+                $automaticPayableAccount = $this->accrualService->payableAccountForMarketer($marketerId);
+
+                if ((int) $existingAccrualBatch->payable_account_id !== (int) $automaticPayableAccount->id) {
+                    throw ValidationException::withMessages([
+                        'operations' => 'الرصيد القائم مرتبط بحساب استحقاق مختلف عن حساب الموظف التلقائي رقم '
+                            . $automaticPayableAccount->code . '؛ يجب تسويته أولًا.',
+                    ]);
+                }
+            }
+
             $batch = CommissionBatch::create([
                 'marketer_id'       => $marketerId,
                 'total_requests'    => $preview['total_requests'],
@@ -204,7 +232,6 @@ class CommissionCalculationService
             }
 
             // Add to marketer balance
-            $currentBalance = app(CommissionProfileService::class)->getMarketerBalance($marketerId);
             $balanceAfter = $currentBalance + $preview['total_commission'];
 
             CommissionBalanceTransaction::create([
@@ -218,7 +245,9 @@ class CommissionCalculationService
                 'created_by'     => $adminId,
             ]);
 
-            return $batch;
+            $this->accrualService->createForBatch($batch, $adminId);
+
+            return $batch->fresh(['accrualConstraint', 'expenseAccount', 'payableAccount']);
         });
     }
 

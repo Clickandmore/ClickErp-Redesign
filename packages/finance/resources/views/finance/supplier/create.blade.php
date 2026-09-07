@@ -1,12 +1,12 @@
 <form class="row g-3 from-submit-global" method="post" action="{{$storeRoute}}"
       enctype="multipart/form-data">
 
-    <div class="col-3">
+    <div class="col-12 col-md-6">
         <label for="name" class="form-label">{{ __('finance::finance.name') }}</label>
         <input type="text" name="name" class="form-control" id="name" data-validation="required,length"
                data-validation-length="max255">
     </div>
-    <div class="col-6">
+    <div class="col-12 col-md-6">
         <label class="form-label">{{ __('finance::finance.suppliers_types') }} </label>
         <input type="text" name="supplier_type_name" id="supplier_type_name" class="form-control"
                list="supplier_types_list" data-validation="required,length" data-validation-length="max255"
@@ -18,52 +18,55 @@
         </datalist>
         <small class="text-muted">إذا لم تكن الفئة موجودة، اكتب اسمها وسيتم إضافتها تلقائيًا.</small>
     </div>
-    <div class="col-3">
+    <div class="col-12 col-md-6">
         <label for="TextInput" class="form-label">{{ __('finance::finance.code') }}</label>
         <input type="text" value="{{ @$code }}" name="code" class="form-control" data-validation="required" disabled>
         <input type="hidden" name="code" value="{{ @$code }}">
     </div>
 
-    <div class="col-3">
+    <div class="col-12 col-md-6">
         <label for="phone" class="form-label">{{ __('finance::finance.phone') }}</label>
         <input type="text" name="phone" class="form-control" id="phone" data-validation="required,length"
                data-validation-length="max20">
     </div>
 
-    <div class="col-3">
+    <details class="col-12 border rounded p-3">
+        <summary class="fw-bold">{{ __('finance::finance.supplier_optional_details') }}</summary>
+        <div class="row g-3 mt-1">
+    <div class="col-12 col-md-6">
         <label for="address" class="form-label">{{ __('finance::finance.address') }}</label>
-        <input type="text" name="address" class="form-control" id="address" data-validation="required,length"
+        <input type="text" name="address" class="form-control" id="address" data-validation-optional="true" data-validation="length"
                data-validation-length="max255">
     </div>
 
-    <div class="col-3">
+    <div class="col-12 col-md-6">
         <label for="tax_number" class="form-label">{{ __('finance::finance.tax_number') }}</label>
-        <input type="number" name="tax_number" class="form-control" id="tax_number" data-validation="number"
+        <input type="number" name="tax_number" class="form-control" id="tax_number" data-validation-optional="true" data-validation="number"
                data-validation-length="max255">
     </div>
 
-    <div class="col-3">
+    <div class="col-12 col-md-6">
         <label for="commercial_register_number"
                class="form-label">{{ __('finance::finance.commercial_register_number') }}</label>
         <input type="number" name="commercial_register_number" class="form-control" id="commercial_register_number"
-               data-validation="required,number" data-validation-length="max255">
+               data-validation-optional="true" data-validation="number" data-validation-length="max255">
     </div>
 
-    <div class="col-3">
+    <div class="col-12 col-md-6">
         <label for="email" class="form-label">{{ __('finance::finance.email') }}</label>
-        <input type="text" name="email" class="form-control" id="email" data-validation="required,length"
+        <input type="text" name="email" class="form-control" id="email" data-validation-optional="true" data-validation="length"
                data-validation-length="max255">
     </div>
 
-    <div class="col-3">
+    <div class="col-12 col-md-6">
         <label for="credit_limit" class="form-label">{{ __('finance::finance.credit_limit') }}</label>
         <input type="number" name="credit_limit" class="form-control" id="credit_limit"
-               data-validation="required,number">
+               data-validation-optional="true" data-validation="number">
     </div>
 
     <div class="col-md-6">
         <label for="days_number" class="form-label">{{ __('finance::finance.days_credit_period') }}</label>
-        <input type="number" name="days_number" class="form-control" id="days_number" data-validation="required">
+        <input type="number" name="days_number" class="form-control" id="days_number" data-validation-optional="true" data-validation="number">
     </div>
 
     <div class="col-md-6">
@@ -78,17 +81,17 @@
 
     </div>
 
-    <div class="col-6">
+    <div class="col-12 col-md-6">
         <label for="commercial_register_image" class="form-label">{{ __("finance::finance.commercial_register_image") }}</label>
         <input type="file" id="commercial_register_image" name="commercial_register_image" class="dropify">
     </div>
 
-    <div class="col-6">
+    <div class="col-12 col-md-6">
         <label for="tax_image" class="form-label">{{ __("finance::finance.tax_image") }}</label>
         <input type="file" id="tax_image" name="tax_image" class="dropify">
     </div>
 
-    <div class="col-6">
+    <div class="col-12 col-md-6">
         <label for="national_address" class="form-label">{{ __("finance::finance.national_address") }}</label>
         <input type="file" id="national_address" name="national_address" class="dropify">
     </div>
@@ -106,6 +109,9 @@
             </label>
         </div>
     </div>
+
+        </div>
+    </details>
 
     <div class="col-12 modal-footer">
         {!! submitButton($storeRoute) !!}

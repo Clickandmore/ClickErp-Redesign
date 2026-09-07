@@ -84,6 +84,66 @@ class MaidCvPdfGenerator
         return $path;
     }
 
+    /**
+     * تجربة الخطوة التي تفشل فعلياً في الإنتاج — لقطة المتصفح — دون الكتابة في
+     * قاعدة البيانات ولا في التخزين. يستخدمها أمر cv:doctor.
+     *
+     * @return array{ok: bool, bytes: int, width: int, height: int, error: ?string}
+     */
+    public function probeBrowserRendering(Maid $maid): array
+    {
+        $failure = ['ok' => false, 'bytes' => 0, 'width' => 0, 'height' => 0, 'error' => null];
+
+        $settings = MaidCvTemplateSettings::current();
+        $template = trim((string) ($settings->cv_template_blade ?? ''));
+
+        if (!$settings || !$settings->cv_template_enabled || $template === '') {
+            return array_merge($failure, ['error' => 'قالب السيرة غير مفعّل أو غير مرفوع.']);
+        }
+
+        if (!function_exists('proc_open')) {
+            return array_merge($failure, ['error' => 'proc_open معطّلة في php.ini.']);
+        }
+
+        $browserPath = $this->browserExecutable();
+
+        if ($browserPath === null) {
+            return array_merge($failure, ['error' => 'لم يُعثر على Chrome/Chromium على هذا الخادم.']);
+        }
+
+        $maid->loadMissing([
+            'nationality',
+            'religion',
+            'jobTypes',
+            'jobTitles',
+            'expertises.country',
+            'expertises.jobTitle',
+            'office',
+            'recruitmentOffice',
+        ]);
+
+        try {
+            $html = $this->embedManagedMedia(
+                $this->renderTemplate($template, $this->viewData($maid, $settings, self::OUTPUT_IMAGE)),
+                $maid,
+                $settings
+            );
+
+            $png = $this->generatePngWithBrowser($browserPath, $html);
+            $dimensions = @getimagesizefromstring($png) ?: [0, 0];
+
+            return [
+                'ok' => true,
+                'bytes' => strlen($png),
+                'width' => (int) ($dimensions[0] ?? 0),
+                'height' => (int) ($dimensions[1] ?? 0),
+                'error' => null,
+            ];
+        } catch (\Throwable $exception) {
+            return array_merge($failure, ['error' => $exception->getMessage()]);
+        }
+    }
+
     /** Render a PDF copy without changing the stored CV preview. */
     public function renderPdfContents(Maid $maid): string
     {
@@ -282,8 +342,8 @@ class MaidCvPdfGenerator
         $documentExtension = $documentExtension === 'svg' ? 'svg' : 'html';
         $htmlPath = $temporaryDirectory . DIRECTORY_SEPARATOR . 'cv.' . $documentExtension;
         $imagePath = $temporaryDirectory . DIRECTORY_SEPARATOR . 'cv.png';
-        $viewportWidth = max(320, (int) env('CV_IMAGE_VIEWPORT_WIDTH', 794));
-        $viewportHeight = max(480, (int) env('CV_IMAGE_VIEWPORT_HEIGHT', 1123));
+        $viewportWidth = max(320, (int) config('services.chrome.viewport_width', 794));
+        $viewportHeight = max(480, (int) config('services.chrome.viewport_height', 1123));
 
         try {
             File::put($htmlPath, $html);
@@ -311,9 +371,19 @@ class MaidCvPdfGenerator
                 '--virtual-time-budget=3000',
                 '--force-device-scale-factor=2',
                 '--default-background-color=ffffffff',
+                '--crash-dumps-dir=' . $temporaryDirectory,
                 '--window-size=' . $viewportWidth . ',' . $viewportHeight,
                 '--screenshot=' . $imagePath,
                 $this->fileUrl($htmlPath),
+            ]);
+            // مستخدم الويب (www-data) بيته /var/www وهو غير قابل للكتابة، فيفشل
+            // غلاف google-chrome عند إنشاء ~/.local ثم يفشل crashpad بكود 133.
+            // نمنحه بيتاً مؤقتاً داخل مجلد العملية يُحذف معها.
+            $process->setEnv([
+                'HOME' => $temporaryDirectory,
+                'XDG_CONFIG_HOME' => $temporaryDirectory . DIRECTORY_SEPARATOR . '.config',
+                'XDG_CACHE_HOME' => $temporaryDirectory . DIRECTORY_SEPARATOR . '.cache',
+                'XDG_DATA_HOME' => $temporaryDirectory . DIRECTORY_SEPARATOR . '.local' . DIRECTORY_SEPARATOR . 'share',
             ]);
             $process->setTimeout(90);
             $process->start();
@@ -344,10 +414,17 @@ class MaidCvPdfGenerator
             }
 
             if ($contents === null || !Str::startsWith($contents, "\x89PNG\r\n\x1a\n")) {
-                throw new RuntimeException(
-                    'تعذر إنشاء صورة السيرة بواسطة المتصفح: '
-                    . trim($process->getErrorOutput() ?: $process->getOutput())
-                );
+                // Chromium يخرج أحياناً بصمت (حصر snap مثلاً) فلا يكتب شيئاً على
+                // stderr. بدون كود الخروج ومسار الملف تصبح الرسالة بلا معنى.
+                $output = trim($process->getErrorOutput() . "\n" . $process->getOutput());
+
+                throw new RuntimeException(sprintf(
+                    'تعذر إنشاء صورة السيرة بواسطة المتصفح [%s] — كود الخروج: %s، ملف اللقطة: %s. %s',
+                    $browserPath,
+                    $process->getExitCode() ?? 'غير متاح',
+                    is_file($imagePath) ? 'موجود لكنه ليس PNG صالحاً' : 'لم يُنشأ',
+                    $output !== '' ? 'مخرَج المتصفح: ' . $output : 'لم يُخرِج المتصفح أي رسالة.'
+                ));
             }
 
             return $contents;
@@ -391,8 +468,8 @@ class MaidCvPdfGenerator
      */
     private function generateSvgFallback(string $html): string
     {
-        $viewportWidth = max(320, (int) env('CV_IMAGE_VIEWPORT_WIDTH', 794));
-        $viewportHeight = max(480, (int) env('CV_IMAGE_VIEWPORT_HEIGHT', 1123));
+        $viewportWidth = max(320, (int) config('services.chrome.viewport_width', 794));
+        $viewportHeight = max(480, (int) config('services.chrome.viewport_height', 1123));
 
         if (!class_exists(\DOMDocument::class)) {
             $plainText = e(Str::limit(trim(preg_replace('/\s+/u', ' ', strip_tags($html)) ?? ''), 4000));
@@ -638,9 +715,11 @@ class MaidCvPdfGenerator
         }
     }
 
-    private function browserExecutable(): ?string
+    /** عام حتى يتمكّن أمر cv:doctor من عرض المسار المكتشف. */
+    public function browserExecutable(): ?string
     {
-        $configuredPath = trim((string) (config('services.chrome.path') ?: env('CV_PDF_BROWSER_PATH', '')));
+        // يُقرأ من config لا من env مباشرة: env() ترجع null بعد config:cache.
+        $configuredPath = trim((string) config('services.chrome.path', ''));
         $candidates = array_filter([
             $configuredPath,
             'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe',
@@ -900,22 +979,39 @@ class MaidCvPdfGenerator
 
     private function viewData(Maid $maid, Setting $settings, string $outputType): array
     {
-        $expertises = $maid->expertises;
+        $skills = Skill::query()->with('translations')->get();
 
         return [
             'maid' => $maid,
             'settings' => $settings,
-            'skills' => Skill::query()->with('translations')->get(),
-            'experience' => [
-                'status' => $maid->experience_status,
-                'countries' => $expertises->pluck('country')->filter()->values(),
-                'details' => $expertises,
-            ],
+            'skills' => $skills,
+            // القيم بالعربية والإنجليزية معًا حتى تعرض قوالب السيرة اللغتين جنبًا إلى جنب.
+            'i18n' => \App\Support\MaidCvTranslations::build(
+                $maid,
+                $skills,
+                \App\Support\ApiTranslationLocales::SUPPORTED
+            ),
+            'experience' => $this->experienceViewData($maid),
             'customerServices' => collect(),
             'type' => $maid->request_type ?: 'estqdam',
             'cvPdfMode' => $outputType === self::OUTPUT_PDF,
             'cvImageMode' => $outputType === self::OUTPUT_IMAGE,
             'cvOutputType' => $outputType,
+        ];
+    }
+
+    /**
+     * Keep each full expertise row available to CV templates. Passing only the
+     * related country drops the period, duration, city, and job title fields.
+     */
+    private function experienceViewData(Maid $maid): array
+    {
+        $expertises = $maid->expertises->values();
+
+        return [
+            'status' => $maid->experience_status,
+            'countries' => $expertises,
+            'details' => $expertises,
         ];
     }
 }

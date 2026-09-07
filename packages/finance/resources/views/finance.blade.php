@@ -11,6 +11,8 @@ $permissions = ['printSettings.create', 'letters.index', 'officialVacations.inde
     </a>
 </li>
 {{-- @endif --}}
+
+
 <li class="collapsed">
     <a class="m-link
             {{ in_array(Route::currentRouteName(), [
@@ -523,6 +525,37 @@ $permissions = ['printSettings.create', 'letters.index', 'officialVacations.inde
     </ul>
 </li>
 
+<li class="{{ request()->routeIs('finance.procurement.*') ? '' : 'collapsed' }}">
+    <a class="m-link {{ request()->routeIs('finance.procurement.*') ? 'active' : '' }}"
+        data-bs-toggle="collapse" data-bs-target="#procurement_section" href="#procurement_section"
+        aria-controls="procurement_section" aria-expanded="{{ request()->routeIs('finance.procurement.*') ? 'true' : 'false' }}">
+        <i class="fa fa-shopping-cart"></i><span class="ms-2">المشتريات</span>
+        <span class="arrow fa fa-angle-left ms-auto text-end"></span>
+    </a>
+    <ul class="sub-menu collapse {{ request()->routeIs('finance.procurement.*') ? 'show' : '' }}" id="procurement_section">
+        <li>
+            <a class="m-link {{ request()->routeIs('finance.procurement.index') && !request()->filled('kind') ? 'active' : '' }}"
+                href="{{ route('finance.procurement.index') }}"><span class="ms-2">جميع المشتريات</span></a>
+        </li>
+        <li>
+            <a class="m-link {{ request()->routeIs('finance.procurement.index') && request('kind') === 'request' ? 'active' : '' }}"
+                href="{{ route('finance.procurement.index', ['kind' => 'request']) }}"><span class="ms-2">طلبات الشراء</span></a>
+        </li>
+        <li>
+            <a class="m-link {{ request()->routeIs('finance.procurement.create') && request('kind') === 'request' ? 'active' : '' }}"
+                href="{{ route('finance.procurement.create', ['kind' => 'request']) }}"><span class="ms-2">إضافة طلب شراء</span></a>
+        </li>
+        <li>
+            <a class="m-link {{ request()->routeIs('finance.procurement.index') && request('kind') === 'invoice' ? 'active' : '' }}"
+                href="{{ route('finance.procurement.index', ['kind' => 'invoice']) }}"><span class="ms-2">فواتير الشراء</span></a>
+        </li>
+        <li>
+            <a class="m-link {{ request()->routeIs('finance.procurement.create') && request('kind') !== 'request' ? 'active' : '' }}"
+                href="{{ route('finance.procurement.create', ['kind' => 'invoice']) }}"><span class="ms-2">إضافة فاتورة شراء</span></a>
+        </li>
+    </ul>
+</li>
+
 <li class="collapsed">
     <a class="m-link
                                 {{ in_array(Route::currentRouteName(), [
@@ -768,7 +801,7 @@ $permissions = ['printSettings.create', 'letters.index', 'officialVacations.inde
         <li>
             <a class="m-link {{ Route::currentRouteName() == 'finance.cash-movements.index' ? 'active' : '' }}"
                 href="{{ route('finance.cash-movements.index') }}">
-                <span class="ms-2"> {{ trans('finance::finance.cash-movement') }} </span>
+                <span class="ms-2"> حركة الصندوق والبنوك اليومية </span>
             </a>
         </li>
         {{--        @endif --}}
@@ -817,6 +850,7 @@ $permissions = ['printSettings.create', 'letters.index', 'officialVacations.inde
     <a class="m-link
     {{ in_array(Route::currentRouteName(), [
         'finance.income-list.index',
+        'finance.finance-center-list.index',
         'finance.profit-loss.index',
         'finance.audit-budget-supplier.index',
         'finance.trail-balance.index',
@@ -834,6 +868,7 @@ $permissions = ['printSettings.create', 'letters.index', 'officialVacations.inde
     <ul class="sub-menu collapse
                                      {{ in_array(Route::currentRouteName(), [
                                          'finance.income-list.index',
+                                         'finance.finance-center-list.index',
                                          'finance.profit-loss.index',
                                          'finance.audit-budget-supplier.index',
                                          'finance.trail-balance.index',
@@ -843,6 +878,12 @@ $permissions = ['printSettings.create', 'letters.index', 'officialVacations.inde
                                          ? 'show'
                                          : '' }}"
         id="Financial-Lists">
+        <li>
+            <a class="m-link {{ Route::currentRouteName() == 'finance.finance-center-list.index' ? 'active' : '' }}" href="{{ route('finance.finance-center-list.index') }}">
+                <span class="ms-2">قائمة المركز المالي (الميزانية العمومية)</span>
+            </a>
+        </li>
+
 
         {{--        @if (in_array('finance.income-list-read', $user_permission_list)) --}}
         <li>

@@ -78,6 +78,7 @@ class CommissionPaymentController extends Controller
         $payments = $this->paymentService->getPaymentsForMarketer($admin->id);
         $balanceTransactions = $this->paymentService->getBalanceTransactionsForMarketer($admin->id);
         $approvedBatches = CommissionBatch::query()
+            ->with('accrualConstraint')
             ->where('marketer_id', $admin->id)
             ->where('status', CommissionBatch::STATUS_APPROVED)
             ->where('total_commission', '>', 0)
@@ -100,8 +101,11 @@ class CommissionPaymentController extends Controller
         $balance = $this->profileService->getMarketerBalance($admin->id);
         $summary = $this->paymentService->getPaymentSummary($admin->id);
         $financialForm = $this->paymentService->getFinancialFormData();
+        $defaultPayableAccount = $this->paymentService->getDefaultPayableAccount($admin->id);
+        $hasAccrualBatches = $this->paymentService->hasAccrualBatches($admin->id);
+        $hasPendingAccrualConstraint = $this->paymentService->hasPendingAccrualConstraint($admin->id);
 
-        return view('commissions.payments.index', compact('admin', 'payments', 'balance', 'summary', 'financialForm', 'balanceTransactions', 'approvedBatches', 'rollbackBatches'));
+        return view('commissions.payments.index', compact('admin', 'payments', 'balance', 'summary', 'financialForm', 'defaultPayableAccount', 'hasAccrualBatches', 'hasPendingAccrualConstraint', 'balanceTransactions', 'approvedBatches', 'rollbackBatches'));
     }
 
     public function store(Request $request, Admin $admin)
@@ -109,12 +113,13 @@ class CommissionPaymentController extends Controller
         abort_unless($this->isCommissionMarketer($admin), 404);
 
         $balance = $this->profileService->getMarketerBalance($admin->id);
+        $hasAccrualBatches = $this->paymentService->hasAccrualBatches($admin->id);
 
         $validated = $request->validate([
             'amount'       => ['required', 'numeric', 'min:0.01', 'max:' . $balance],
             'payment_date' => ['required', 'date'],
             'notes'        => ['nullable', 'string', 'max:1000'],
-        ] + $this->financialRules());
+        ] + $this->financialRules(! $hasAccrualBatches));
 
         $payment = $this->paymentService->issuePayment(
             $admin->id,
@@ -164,7 +169,7 @@ class CommissionPaymentController extends Controller
         $this->paymentService->rollbackUnpaidBatch($admin->id, $batch);
 
         return redirect()->route('commissions.marketers.show', $admin->id)
-            ->with('success', 'تم التراجع عن الاعتماد وإعادة فتح العقود. يمكنك الآن اختيارها وإعادة احتساب العمولة.');
+            ->with('success', 'تم التراجع عن الاعتماد وحذف قيد الاستحقاق وإعادة فتح العقود. يمكنك الآن اختيارها وإعادة احتساب العمولة.');
     }
 
     public function linkFinanceBond(Request $request, Admin $admin, int $payment)
@@ -199,17 +204,20 @@ class CommissionPaymentController extends Controller
         return view('commissions.payments.print', compact('admin', 'payment'));
     }
 
-    private function financialRules(): array
+    private function financialRules(bool $requireDebitAccount = true): array
     {
         $paymentTypeValues = array_map(
             static fn (BondPaymentTypes $type) => $type->value,
             BondPaymentTypes::cases()
         );
 
-        return [
+        $rules = [
             'payment_type' => ['required', 'integer', Rule::in($paymentTypeValues)],
-            'debit_account_id' => ['required', 'integer', 'exists:fn_accounts,id'],
-            'credit_account_id' => ['required', 'integer', 'different:debit_account_id', 'exists:fn_accounts,id'],
+            'credit_account_id' => array_values(array_filter([
+                'required', 'integer',
+                $requireDebitAccount ? 'different:debit_account_id' : null,
+                'exists:fn_accounts,id',
+            ])),
             'cost_center_id' => [
                 Rule::requiredIf($this->paymentService->isCostCenterRequired()),
                 'nullable',
@@ -229,6 +237,12 @@ class CommissionPaymentController extends Controller
                 'date',
             ],
         ];
+
+        if ($requireDebitAccount) {
+            $rules['debit_account_id'] = ['required', 'integer', 'exists:fn_accounts,id'];
+        }
+
+        return $rules;
     }
 
     private function isCommissionMarketer(Admin $admin): bool

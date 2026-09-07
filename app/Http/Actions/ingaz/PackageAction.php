@@ -45,7 +45,10 @@ class PackageAction extends MainAction
 
         if (!$isTaxable) {
             $priceWithTax = $originalPrice;
-        } elseif ($priceWithTax > 0 && abs($priceWithTax - round($originalPrice * 1.15, 2)) >= 0.05) {
+        } elseif ($priceWithTax > 0) {
+            // الإجمالي شامل الضريبة هو السعر المعلن للعميل، فيُحفظ كما أُدخل ويُشتق
+            // منه الصافي. إعادة اشتقاقه من الصافي المقرَّب كانت تزيحه بالهللة:
+            // 3000 ÷ 1.15 = 2608.6957 ← 2608.70، ثم × 1.15 = 3000.005 ← 3000.01.
             $originalPrice = round($priceWithTax / 1.15, 2);
         } else {
             $priceWithTax = round($originalPrice * 1.15, 2);

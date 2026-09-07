@@ -47,7 +47,6 @@ use Nami\Finance\Models\CostCenter;
 use Nami\Finance\Models\Item;
 use Nami\Finance\Models\Sale;
 use Nami\Finance\Models\SaleItem;
-use Nami\Finance\Models\TaxSetting;
 use Nami\Finance\Models\Unit;
 use Nami\Finance\Services\BondService;
 use Nami\Finance\Services\ConstraintService as ObjService;
@@ -2928,6 +2927,19 @@ class InvoiceController extends Controller
         int $clientAccountId
     ): ?Constraint
     {
+        return app(\App\Services\ingaz\DelegationInvoiceJournalService::class)->ensure(
+            $invoice,
+            fn () => $this->createInvoiceConstraintForIngazDelegation($invoice, $service, $yearService, $clientAccountId)
+        );
+    }
+
+    private function createInvoiceConstraintForIngazDelegation(
+        Invoice $invoice,
+        ObjService $service,
+        YearService $yearService,
+        int $clientAccountId
+    ): ?Constraint
+    {
         $amounts = $this->buildInvoiceFinanceBreakdown($invoice);
         if ($amounts['total_due'] <= 0) {
             return null;
@@ -4560,48 +4572,7 @@ class InvoiceController extends Controller
 
     private function resolveRevenueTaxAccountId(): ?int
     {
-        $directAccountId = ConfirmSetting::query()
-            ->where('title', ConfirmSettingTypes::RevenueTaxAccount->value)
-            ->latest('updated_at')
-            ->value('value');
-
-        if ($directAccountId) {
-            $account = Account::query()
-                ->whereKey($directAccountId)
-                ->where('status', 'creditor')
-                ->first();
-
-            if ($account) {
-                return (int) $account->id;
-            }
-        }
-
-        $taxSettingId = ConfirmSetting::query()
-            ->where('title', ConfirmSettingTypes::TaxRateRevenue->value)
-            ->latest('updated_at')
-            ->value('value');
-
-        if ($taxSettingId) {
-            $taxAccountId = TaxSetting::query()
-                ->whereKey($taxSettingId)
-                ->value('account_id');
-
-            if ($taxAccountId) {
-                return (int) $taxAccountId;
-            }
-        }
-
-        $taxAccountId = Account::query()
-            ->where(function ($query) {
-                $query->where('name', 'like', '%ضريبة%إيراد%')
-                    ->orWhere('name', 'like', '%ضريبة%إيرادات%')
-                    ->orWhere('name', 'like', '%ضريبة%قيمة%مضافة%');
-            })
-            ->where('status', 'creditor')
-            ->orderBy('code')
-            ->value('id');
-
-        return $taxAccountId ? (int) $taxAccountId : null;
+        return app(\Nami\Finance\Services\TaxAccountResolver::class)->resolve('revenue_tax_account')?->id;
     }
 
     private function ensureClientAccountId(Contract $contract): int

@@ -107,6 +107,11 @@
                                                             </a>
                                                         </li>
                                                         <li>
+                                                            <a class="dropdown-item" href="{{ route('SponsorshipTransfer.maid-receipt', $transfer->id) }}">
+                                                                <i class="fas fa-file-word text-primary"></i> تحميل نموذج استلام العاملة
+                                                            </a>
+                                                        </li>
+                                                        <li>
                                                             <a class="dropdown-item confirm-action" href="#"
                                                                data-action="confirm-transfer"
                                                                data-id="{{ $transfer->id }}"

@@ -708,6 +708,7 @@
                                         <tr>
                                             <th width="80">{{ __('ingaz.ticket_number') }}</th>
                                             <th>{{ __('ingaz.complainant_name') }}</th>
+                                            <th>العاملة</th>
                                             <th>{{ __('ingaz.subject') }}</th>
                                             <th>متعلق بـ</th>
                                             <th>{{ __('ingaz.type') }}</th>
@@ -852,6 +853,13 @@
                 expandFilters: @json(__('ingaz.expand_filters')),
                 collapseFilters: @json(__('ingaz.collapse_filters')),
                 activeFilters: @json(__('ingaz.active_filters_count', ['count' => '__COUNT__'])),
+                office: @json('المكتب'),
+                nationality: @json('الجنسية'),
+                daysSinceArrival: @json('منذ الوصول'),
+                day: @json('يوم'),
+                underWarranty: @json('في الضمان'),
+                warrantyExpired: @json('انتهى الضمان'),
+                warrantyRemaining: @json('متبقي'),
             };
 
             const complaintUrls = {
@@ -927,6 +935,38 @@
                             html += '</div>';
                             return html;
                         },searchable: true
+                    },
+                    {
+                        data: 'maid_party',
+                        render: function (data) {
+                            if (!data || !data.name) {
+                                return '<span class="text-muted">' + complaintsTranslations.notSpecified + '</span>';
+                            }
+                            let html = '<div><strong>' + escapeHtml(data.name) + '</strong>';
+                            if (data.passport) {
+                                html += '<br><small class="text-muted"><i class="fas fa-passport fa-sm me-1"></i>' + escapeHtml(data.passport) + '</small>';
+                            }
+                            if (data.office) {
+                                html += '<br><small class="text-muted"><i class="fas fa-building fa-sm me-1"></i>' + complaintsTranslations.office + ': ' + escapeHtml(data.office) + '</small>';
+                            }
+                            if (data.nationality) {
+                                html += '<br><small class="text-muted"><i class="fas fa-flag fa-sm me-1"></i>' + complaintsTranslations.nationality + ': ' + escapeHtml(data.nationality) + '</small>';
+                            }
+                            if (data.days_since_arrival !== null && data.days_since_arrival !== undefined) {
+                                html += '<br><small class="text-muted"><i class="fas fa-calendar-day fa-sm me-1"></i>' + complaintsTranslations.daysSinceArrival + ': ' + escapeHtml(data.days_since_arrival) + ' ' + complaintsTranslations.day + '</small>';
+                            }
+                            if (data.warranty_status === 'active') {
+                                html += '<br><span class="badge bg-success mt-1"><i class="fas fa-shield-alt me-1"></i>' + complaintsTranslations.underWarranty;
+                                if (data.warranty_remaining_days !== null && data.warranty_remaining_days !== undefined) {
+                                    html += ' — ' + complaintsTranslations.warrantyRemaining + ' ' + escapeHtml(data.warranty_remaining_days) + ' ' + complaintsTranslations.day;
+                                }
+                                html += '</span>';
+                            } else if (data.warranty_status === 'expired') {
+                                html += '<br><span class="badge bg-danger mt-1"><i class="fas fa-shield-alt me-1"></i>' + complaintsTranslations.warrantyExpired + '</span>';
+                            }
+                            html += '</div>';
+                            return html;
+                        }, searchable: false, orderable: false
                     },
                     {
                         data: 'subject',

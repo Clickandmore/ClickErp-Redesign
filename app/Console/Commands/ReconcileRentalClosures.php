@@ -498,7 +498,7 @@ class ReconcileRentalClosures extends Command
 
             $invoiceVat = (float) DB::table('fn_constraint_details')
                 ->where('constraint_id', $invoice->invoice_constraint_id)
-                ->where('account_id', $this->revenueTaxAccountId())
+                ->whereIn('account_id', $this->revenueTaxAccountIds())
                 ->whereNull('deleted_at')
                 ->sum('creditor_value');
             $invoiceTotal = (float) DB::table('fn_constraint_details')
@@ -519,7 +519,7 @@ class ReconcileRentalClosures extends Command
 
             $postedVat = (float) DB::table('fn_constraint_details')
                 ->where('constraint_id', $adjustment->constraint_id)
-                ->where('account_id', $this->revenueTaxAccountId())
+                ->whereIn('account_id', $this->revenueTaxAccountIds())
                 ->whereNull('deleted_at')
                 ->selectRaw('COALESCE(SUM(ABS(debtor_value - creditor_value)), 0) AS vat')
                 ->value('vat');
@@ -562,18 +562,16 @@ class ReconcileRentalClosures extends Command
         ));
     }
 
-    private function revenueTaxAccountId(): ?int
+    /**
+     * فحص قيود تاريخية: كل حساب سبق ضبطه لضريبة الإيرادات، حتى لا تُقرأ ضريبة
+     * مُرحَّلة على حساب قديم كأنها صفر بعد تغيير الإعداد.
+     */
+    private function revenueTaxAccountIds(): array
     {
-        static $accountId = null;
+        static $accountIds = null;
 
-        if ($accountId === null) {
-            $accountId = (int) DB::table('fn_confirm_settings')
-                ->where('title', 'revenue_tax_account')
-                ->latest('updated_at')
-                ->value('value');
-        }
-
-        return $accountId ?: null;
+        return $accountIds ??= app(\Nami\Finance\Services\TaxAccountResolver::class)
+            ->historicalAccountIds('revenue_tax_account');
     }
 
     private function exportCsv(string $path, array $rows): void

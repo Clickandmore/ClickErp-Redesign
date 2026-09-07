@@ -18,12 +18,12 @@ function successResponse($message = null, $data = null, $status = 200, array $he
         'data' => $data,
     ];
 
-    return new JsonResponse($response, $status, $headers);
+    return new JsonResponse($response, $status, $headers, apiJsonEncodingOptions());
 }
 
 function errorResponse($message = null, $status = Response::HTTP_BAD_REQUEST, array $headers = [])
 {
-    return new JsonResponse($message ?? __('api.error'), $status, $headers);
+    return new JsonResponse($message ?? __('api.error'), $status, $headers, apiJsonEncodingOptions());
 }
 
 function throwResponseExceptionJson(Validator $validator)
@@ -33,7 +33,7 @@ function throwResponseExceptionJson(Validator $validator)
         'message' => 'Validation errors',
         'data' => null,
         'errors' => $validator->errors(),
-    ]));
+    ], 422, [], apiJsonEncodingOptions()));
 }
 
 function removeSpaces($string)

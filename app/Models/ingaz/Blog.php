@@ -6,6 +6,7 @@ use Astrotomic\Translatable\Translatable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Str;
 use Spatie\Activitylog\LogOptions;
@@ -48,9 +49,30 @@ class Blog extends Model
 
     protected $appends = ['image_url'];
 
+    /**
+     * حذف المقال يحذف أسئلته الشائعة (وترجماتها عبر هوك BlogFaq)، دون
+     * الاعتماد على قيد foreign key وحده — انظر التعليق في BlogFaq::booted().
+     */
+    protected static function booted(): void
+    {
+        static::deleting(function (Blog $blog) {
+            $blog->faqs->each->delete();
+        });
+    }
+
     public function getImageUrlAttribute()
     {
         return $this->image ? showFile($this->image) : null;
+    }
+
+    /**
+     * الأسئلة الشائعة الخاصة بالمقال، مرتّبة كما رتّبها المحرر في النموذج.
+     */
+    public function faqs(): HasMany
+    {
+        return $this->hasMany(BlogFaq::class, 'blog_id')
+            ->orderBy('sort_order')
+            ->orderBy('id');
     }
 
     /**

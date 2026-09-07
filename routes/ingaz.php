@@ -4,6 +4,7 @@ use App\Http\Controllers\admin\ActivityLogController;
 use App\Http\Controllers\admin\AdminContractController;
 use App\Http\Controllers\admin\AdminFullOrderContractController;
 use App\Http\Controllers\admin\AdminSettingsController;
+use App\Http\Controllers\admin\FirebaseSettingsController;
 use App\Http\Controllers\admin\AdminShelterWorkersContractCTLR;
 use App\Http\Controllers\admin\AdminTravelHistoryController;
 use App\Http\Controllers\admin\ContractReturnRequestController;
@@ -147,6 +148,9 @@ Route::group(
                 ->name('guidelines.edit');
             Route::put('guidelines', [GuidelineSectionController::class, 'update'])
                 ->name('guidelines.update');
+            // يجب أن يسبق تعريف الـ resource حتى لا يبتلعه المسار find-us/{location}
+            Route::put('find-us/mode', [FindUsLocationController::class, 'updateMode'])
+                ->name('find-us.mode');
             Route::resource('find-us', FindUsLocationController::class)
                 ->except('show')
                 ->parameters(['find-us' => 'location']);
@@ -259,6 +263,10 @@ Route::group(
             Route::patch('languages/{language}/toggle-visibility', [MaidLanguageController::class, 'toggleVisibility'])
                 ->name('languages.toggle-visibility');
             Route::resource('languages', MaidLanguageController::class)->except('show');
+            Route::resource('education-qualifications', \App\Http\Controllers\ingaz\EducationQualificationController::class)
+                ->only(['index', 'create', 'store', 'edit', 'update', 'destroy']);
+            Route::patch('education-qualifications/{educationQualification}/toggle-visibility', [\App\Http\Controllers\ingaz\EducationQualificationController::class, 'toggleVisibility'])
+                ->name('education-qualifications.toggle-visibility');
             Route::resource('social-statuses', SocialStatusController::class);
             Route::resource('questions', QuestionController::class);
             Route::resource('contact', ContactController::class);
@@ -371,6 +379,8 @@ Route::group(
             Route::get('packages/{id}/offer', [PackageController::class, 'offer'])->name('packages.offer');
             Route::put('packages/{id}/offer', [PackageController::class, 'updateOffer'])->name('packages.offer.update');
             Route::resource('packages', PackageController::class);
+            Route::get('complaints/search-contracts', [ComplaintController::class, 'searchContracts'])->name('complaints.search-contracts');
+            Route::get('complaints/search-orders', [ComplaintController::class, 'searchOrders'])->name('complaints.search-orders');
             Route::resource('complaints', ComplaintController::class);
             Route::get('complaints/cards/view', [ComplaintController::class, 'cards'])->name('complaints.cards');
             Route::post('complaints/quick-response', [ComplaintController::class, 'quickResponse'])->name('complaints.quick-response');
@@ -550,6 +560,9 @@ Route::group(
                     'index' => '[0-9]+',
                 ])
                 ->name('SponsorshipTransfer.attachment.download');
+            Route::get('SponsorshipTransfer/{id}/maid-receipt', [SponsorshipTransferController::class, 'downloadMaidReceipt'])
+                ->where('id', '[0-9]+')
+                ->name('SponsorshipTransfer.maid-receipt');
 
             Route::resource('SponsorshipTransfer', SponsorshipTransferController::class);
             Route::get('Contract/searchClients', [SponsorshipTransferController::class, 'searchClients'])->name('SponsorshipTransfer.searchClients');
@@ -714,6 +727,13 @@ Route::group(
             Route::post('/settings/zoho', [AdminSettingsController::class, 'updateZoho'])->name('settings.zoho.update');
             Route::post('/settings/store', [AdminSettingsController::class, 'store'])->name('settings.store');
 
+            //** FIREBASE PUSH NOTIFICATIONS **//
+            Route::get('/firebase-settings', [FirebaseSettingsController::class, 'index'])->name('firebase-settings.index');
+            Route::put('/firebase-settings', [FirebaseSettingsController::class, 'update'])->name('firebase-settings.update');
+            Route::post('/firebase-settings/credentials', [FirebaseSettingsController::class, 'uploadCredentials'])->name('firebase-settings.credentials.upload');
+            Route::delete('/firebase-settings/credentials', [FirebaseSettingsController::class, 'deleteCredentials'])->name('firebase-settings.credentials.delete');
+            Route::post('/firebase-settings/test', [FirebaseSettingsController::class, 'test'])->name('firebase-settings.test');
+
             //** ROLES **//
             Route::name('roles.')->prefix('roles')->group(function () {
                 Route::get('/{id?}', [RolesController::class, 'index'])->name('index');
@@ -826,7 +846,7 @@ Route::middleware(['admin', 'admin.route.permission'])
 
         Route::get('marketers', [\App\Http\Controllers\commissions\CommissionMarketerController::class, 'index'])->name('marketers.index');
         Route::get('marketers/{admin}', [\App\Http\Controllers\commissions\CommissionMarketerController::class, 'show'])->name('marketers.show');
-        Route::post('marketers/{admin}/calculate-preview', [\App\Http\Controllers\commissions\CommissionMarketerController::class, 'preview'])->name('marketers.preview');
+        Route::match(['get', 'post'], 'marketers/{admin}/calculate-preview', [\App\Http\Controllers\commissions\CommissionMarketerController::class, 'preview'])->name('marketers.preview');
         Route::post('marketers/{admin}/calculate-approve', [\App\Http\Controllers\commissions\CommissionMarketerController::class, 'approve'])->name('marketers.approve');
         Route::post('marketers/{admin}/returned-commissions/{item}/resolve', [\App\Http\Controllers\commissions\CommissionMarketerController::class, 'resolveReturnedCommission'])->name('marketers.returned-commissions.resolve');
 

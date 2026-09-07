@@ -35,6 +35,10 @@ class BlogRequest extends MainRequest
             'is_featured' => ['nullable', 'boolean'],
             'sort_order' => ['nullable', 'integer', 'min:0'],
             'published_at' => ['nullable', 'date'],
+            // الأسئلة الشائعة للمقال: صفوف يضيفها المحرر ديناميكيًا في النموذج.
+            'faqs' => ['nullable', 'array', 'max:50'],
+            'faqs.*.id' => ['nullable', 'integer'],
+            'faqs.*.sort_order' => ['nullable', 'integer', 'min:0'],
         ];
 
         foreach (config('translatable.locales', ['ar']) as $locale) {
@@ -47,6 +51,16 @@ class BlogRequest extends MainRequest
             $rules['content:' . $locale] = [$required, 'string'];
             $rules['meta_title:' . $locale] = ['nullable', 'string', 'max:255'];
             $rules['meta_description:' . $locale] = ['nullable', 'string', 'max:500'];
+
+            // كل الأسئلة اختيارية — الصف الفارغ يُتجاهل عند الحفظ، لكن الصف
+            // الذي كُتب فيه جواب دون سؤال يُرفض حتى لا يظهر في الموقع بلا عنوان.
+            $rules['faqs.*.question:' . $locale] = [
+                'nullable',
+                'string',
+                'max:500',
+                'required_with:faqs.*.answer:' . $locale,
+            ];
+            $rules['faqs.*.answer:' . $locale] = ['nullable', 'string', 'max:5000'];
         }
 
         return $rules;
@@ -59,6 +73,7 @@ class BlogRequest extends MainRequest
             'category' => 'التصنيف',
             'image' => 'صورة المقال',
             'published_at' => 'تاريخ النشر',
+            'faqs' => 'الأسئلة الشائعة',
         ];
 
         foreach (config('translatable.locales', ['ar']) as $locale) {
@@ -67,6 +82,8 @@ class BlogRequest extends MainRequest
             $attributes['content:' . $locale] = 'المحتوى (' . $locale . ')';
             $attributes['meta_title:' . $locale] = 'عنوان SEO (' . $locale . ')';
             $attributes['meta_description:' . $locale] = 'وصف SEO (' . $locale . ')';
+            $attributes['faqs.*.question:' . $locale] = 'سؤال شائع (' . $locale . ')';
+            $attributes['faqs.*.answer:' . $locale] = 'إجابة السؤال الشائع (' . $locale . ')';
         }
 
         return $attributes;

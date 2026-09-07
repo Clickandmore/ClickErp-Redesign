@@ -174,6 +174,53 @@
         </a>
     </div>
 
+    @php
+        // القسم يظهر بعد تشغيل الترحيل الذي يضيف العمود، حتى لا تنكسر النسخ غير المُرحّلة.
+        $findUsModeAvailable = \Illuminate\Support\Facades\Schema::hasColumn('settings', 'find_us_mode');
+        $findUsMode = old(
+            'find_us_mode',
+            ($findUsModeAvailable ? $settings->find_us_mode : null) ?: \App\Support\FindUsSettings::MODE_SINGLE
+        );
+    @endphp
+
+    @if ($findUsModeAvailable)
+        <div class="row g-2 mb-3">
+            <div class="col-12">
+                <div class="small fw-semibold">{{ __('admin.settings_find_us_mode') }}</div>
+                <div class="text-muted small mb-1">{{ __('admin.settings_find_us_mode_hint') }}</div>
+            </div>
+
+            <div class="col-md-6">
+                <label class="card h-100 border p-3 mb-0" for="find_us_mode_single" style="cursor: pointer;">
+                    <div class="form-check">
+                        <input class="form-check-input" type="radio" name="find_us_mode" id="find_us_mode_single"
+                               value="{{ \App\Support\FindUsSettings::MODE_SINGLE }}"
+                               {{ $findUsMode === \App\Support\FindUsSettings::MODE_SINGLE ? 'checked' : '' }}>
+                        <span class="form-check-label fw-bold">{{ __('admin.settings_find_us_mode_single') }}</span>
+                    </div>
+                    <small class="text-muted d-block mt-2">{{ __('admin.settings_find_us_mode_single_hint') }}</small>
+                </label>
+            </div>
+
+            <div class="col-md-6">
+                <label class="card h-100 border p-3 mb-0" for="find_us_mode_branches" style="cursor: pointer;">
+                    <div class="form-check">
+                        <input class="form-check-input" type="radio" name="find_us_mode" id="find_us_mode_branches"
+                               value="{{ \App\Support\FindUsSettings::MODE_BRANCHES }}"
+                               {{ $findUsMode === \App\Support\FindUsSettings::MODE_BRANCHES ? 'checked' : '' }}>
+                        <span class="form-check-label fw-bold">{{ __('admin.settings_find_us_mode_branches') }}</span>
+                    </div>
+                    <small class="text-muted d-block mt-2">{{ __('admin.settings_find_us_mode_branches_hint') }}</small>
+                    @if (@AdminGuardHasAnyPerm([\App\PermKeys::FIND_US_VIEW, \App\PermKeys::FIND_US_CONTROL]))
+                        <a href="{{ route('find-us.index') }}" class="small mt-2">
+                            <i class="fa fa-map-location-dot me-1"></i>{{ __('admin.settings_find_us_mode_manage_branches') }}
+                        </a>
+                    @endif
+                </label>
+            </div>
+        </div>
+    @endif
+
     <div class="map-embed-field__steps">
         <div class="map-embed-field__step">
             <span class="map-embed-field__step-num">1</span>

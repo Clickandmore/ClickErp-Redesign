@@ -17,6 +17,8 @@ class CommissionMarketerOverride extends Model
     protected $fillable = [
         'branch_id','admin_id', 'service_type', 'method', 'value', 'created_by'];
 
+    protected $attributes = ['method' => 'fixed'];
+
     protected $casts = ['value' => 'decimal:2'];
 
     public function marketer()

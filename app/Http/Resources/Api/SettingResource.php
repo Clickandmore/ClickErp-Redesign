@@ -30,6 +30,7 @@ class SettingResource extends JsonResource
             'tax_number' => (string)$this->tax_number,
             'location' => (string)$this->location,
             'map_link' => (string)$this->map_link,
+            'find_us_mode' => \App\Support\FindUsSettings::mode(),
 
             'experience_years' => (int)$this->experience_years,
             'copyright' => (string)$this->copyright,

@@ -22,6 +22,7 @@ class CommissionProfileService
                 $query->where('admin_type', 'customer_service')
                     ->orWhereIn('id', $marketerIds);
             })
+            ->activeForOperations()
             ->with('role')
             ->orderBy('name')
             ->get()

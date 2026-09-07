@@ -52,6 +52,10 @@ class AppServiceProvider extends ServiceProvider
     {
         Schema::defaultStringLength(255);
 
+        // إعدادات إشعارات Firebase المحفوظة من لوحة التحكم تعلو قيم .env، فتستفيد
+        // منها خدمات الإرسال عبر config('firebase.*') دون تعديل فيها.
+        \App\Support\FirebaseSettings::applyToConfig();
+
         // فرع المستخدم الحالي مخزّن داخل الطلب؛ أي تغيّر في هوية المستخدم يُبطله.
         Event::listen([Login::class, Logout::class, Authenticated::class], function () {
             BranchQueryContext::flush();

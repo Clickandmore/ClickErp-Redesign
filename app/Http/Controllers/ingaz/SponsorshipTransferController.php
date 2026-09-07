@@ -131,7 +131,7 @@ class SponsorshipTransferController extends Controller
                         return '<div class="maid-info">
                                     <strong>' . $maid->name . '</strong><br>
                                     <small class="text-muted">جواز: ' . ($maid->passport_num ?? 'غير محدد') . '</small><br>
-                                    <small class="text-muted">جنسية: ' . ($maid->nationality->title ?? 'غير محدد') . '</small>
+                                    <small class="text-muted">جنسية: ' . ($maid->nationality->sub_title ?? $maid->nationality->title ?? 'غير محدد') . '</small>
                                 </div>';
                     }
                     return 'غير محدد';
@@ -893,6 +893,22 @@ class SponsorshipTransferController extends Controller
         }
 
         return $storage->downloadResponse($path, $downloadName, $storage->mimeType($path));
+    }
+
+    /**
+     * تحميل نموذج استلام العاملة (PDF) معبأً ببيانات طلب نقل الخدمات.
+     */
+    public function downloadMaidReceipt(int $id, \App\Services\ingaz\SponsorshipTransferMaidReceiptDocument $document)
+    {
+        $transfer = SponsorshipTransfer::query()->findOrFail($id);
+        $this->assertCanAccessBranchModel($transfer);
+
+        [$contents, $downloadName] = $document->generate($transfer);
+
+        return response($contents, 200, [
+            'Content-Type' => 'application/pdf',
+            'Content-Disposition' => 'attachment; filename="maid-receipt-transfer-' . $transfer->id . '.pdf"; filename*=UTF-8\'\'' . rawurlencode($downloadName),
+        ]);
     }
 
     private function resolveTransferAttachmentDownload(SponsorshipTransfer $transfer, ?int $index): array

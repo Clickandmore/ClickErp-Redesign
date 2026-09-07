@@ -345,6 +345,99 @@ class RecruitmentContractExternalOfficeDispatchController extends Controller
                 ->values();
         }
 
+        $currentContractSelectionEligible = in_array($contract->type, ['recruitment', 'maid'], true)
+            && $contract->canManageExternalOfficeDispatch()
+            && !$dispatch
+            && !empty($bulkGroup['office_id'])
+            && !empty($bulkGroup['nationality_id'])
+            && empty($sourceErrors);
+
+        // Keep the current contract available whenever it satisfies the actual
+        // business rules, even if a relation-based query did not return it.
+        if ($currentContractSelectionEligible
+            && !$bulkCompatibleContracts->contains(fn (Contract $candidate) => (int) $candidate->id === (int) $contract->id)) {
+            $bulkCompatibleContracts = $bulkCompatibleContracts
+                ->prepend($contract)
+                ->sortByDesc('id')
+                ->values();
+        }
+
+        $selectionEligibilityChecks = [
+            [
+                'label' => 'نوع العقد استقدام أو عقد عاملة',
+                'passed' => in_array($contract->type, ['recruitment', 'maid'], true),
+                'failure' => 'نوع العقد الحالي لا يدعم إرسالية المكتب الخارجي.',
+            ],
+            [
+                'label' => 'العقد ضمن الحالات الجارية المسموح بها',
+                'passed' => $contract->canManageExternalOfficeDispatch(),
+                'failure' => 'حالة العقد الحالية (' . getContractStatus($contract->status) . ') لا تسمح بإنشاء أو تعديل الإرسالية.',
+            ],
+            [
+                'key' => 'no_existing_dispatch',
+                'label' => 'لا توجد إرسالية مسجلة مسبقًا',
+                'passed' => !$dispatch,
+                'failure' => 'توجد إرسالية مسجلة لهذا العقد بالفعل؛ يمكن تعديلها بدل إنشاء إرسالية جديدة.',
+            ],
+            [
+                'label' => 'العقد مرتبط بعاملة فعلية',
+                'passed' => (bool) $contract->maid,
+                'failure' => 'يجب ربط عاملة فعلية بالعقد.',
+            ],
+            [
+                'label' => 'المكتب الخارجي محدد',
+                'passed' => !empty($bulkGroup['office_id']),
+                'failure' => 'المكتب الخارجي غير محدد على بيانات العاملة.',
+            ],
+            [
+                'label' => 'جنسية العاملة محددة',
+                'passed' => !empty($bulkGroup['nationality_id']),
+                'failure' => 'جنسية العاملة غير محددة.',
+            ],
+            [
+                'label' => 'اسم العميل ورقم هويته مكتملان',
+                'passed' => filled($sourceSnapshot['sponsor_name']) && filled($sourceSnapshot['sponsor_identity_number']),
+                'failure' => 'يجب استكمال اسم العميل ورقم هويته.',
+            ],
+            [
+                'label' => 'اسم العاملة ورقم جوازها مكتملان',
+                'passed' => filled($sourceSnapshot['worker_name']) && filled($sourceSnapshot['passport_number']),
+                'failure' => 'يجب استكمال اسم العاملة ورقم جوازها.',
+            ],
+            [
+                'label' => 'خبرة العاملة وديانتها مكتملتان',
+                'passed' => filled($sourceSnapshot['worker_experience']) && filled($sourceSnapshot['worker_religion']),
+                'failure' => 'يجب استكمال خبرة العاملة وديانتها.',
+            ],
+            [
+                'label' => 'لديك صلاحية تحديث عقود الاستقدام',
+                'passed' => $this->canUpdateRecruitmentContracts(),
+                'failure' => 'لا توجد لديك صلاحية تحديث عقود الاستقدام أو إنشاء الإرسالية.',
+            ],
+        ];
+
+        $selectionUnavailableReasons = collect($selectionEligibilityChecks)
+            ->where('passed', false)
+            ->pluck('failure')
+            ->merge($sourceErrors)
+            ->filter()
+            ->unique()
+            ->values()
+            ->all();
+
+        // A contract that already carries a dispatch is not "unavailable" — it simply
+        // moves from create mode to edit mode. Keep that out of the blocking reasons so
+        // the page stops reporting a normal, finished dispatch as a failure.
+        $selectionBlockingReasons = collect($selectionEligibilityChecks)
+            ->where('passed', false)
+            ->reject(fn (array $check) => ($check['key'] ?? null) === 'no_existing_dispatch')
+            ->pluck('failure')
+            ->merge($sourceErrors)
+            ->filter()
+            ->unique()
+            ->values()
+            ->all();
+
         $oldBulkContractIds = collect((array) old('contract_ids', [$contract->id]))
             ->map(fn ($id) => (int) $id)
             ->intersect($bulkCompatibleContracts->pluck('id'))
@@ -369,6 +462,9 @@ class RecruitmentContractExternalOfficeDispatchController extends Controller
             'bulkGroup' => $bulkGroup,
             'bulkCompatibleContracts' => $bulkCompatibleContracts,
             'oldBulkContractIds' => $oldBulkContractIds,
+            'selectionEligibilityChecks' => $selectionEligibilityChecks,
+            'selectionUnavailableReasons' => $selectionUnavailableReasons,
+            'selectionBlockingReasons' => $selectionBlockingReasons,
         ]);
     }
 

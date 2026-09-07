@@ -45,7 +45,7 @@ class HomeController extends Controller
         $Visa = $requirments->where('type', RequirementEnum::VisaIssuance->value);
         $Domestic = $requirments->where('type', RequirementEnum::RecruitDomestic->value);
         $whyChooseUs = $whyChooseUsAction->visibleSection();
-        $findUsLocations = $findUsLocationAction->ordered();
+        $findUsLocations = $findUsLocationAction->visible();
 
         // $counts['number_recruitment_requests'] = DB::table('recruitment_requests')->where('status', OrderEnum::Contracted->value)->count();
         // $counts['number_contracts_requests'] = DB::table('istiqdam_contracts')->where('status', ContractStatusEnum::ClientContracted->value)->count();

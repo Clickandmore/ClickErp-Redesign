@@ -51,17 +51,22 @@
     <li class="breadcrumb-item active" aria-current="page"> {{ $bladeTitle }}</li>
 @endsection
 @section('content')
+    <div class="d-flex justify-content-end m-2 to_hide">
+        <a class="btn btn-outline-success" href="{{ route('finance.finance-center-list.index') }}">
+            <i class="fa fa-balance-scale me-1"></i> قائمة المركز المالي
+        </a>
+    </div>
     <div class="row g-3 m-2 to_hide">
         <div class="col">
             <label for="TextInput" class="form-label"> {{ __('finance::finance.From Date') }}</label>
-            <input type="date" name="from_date" value="{{ $report_period->from_date ?? '' }}" class="form-control search_keys"
-                id="from_date">
+            <input type="date" name="from_date" value="{{ $report_period->from_date ?? '' }}"
+                class="form-control search_keys" id="from_date">
         </div>
 
         <div class="col">
             <label for="TextInput" class="form-label"> {{ __('finance::finance.To Date') }}</label>
-            <input type="date" name="to_date" value="{{ $report_period->to_date ?? '' }}" class="form-control search_keys"
-                id="to_date">
+            <input type="date" name="to_date" value="{{ $report_period->to_date ?? '' }}"
+                class="form-control search_keys" id="to_date">
         </div>
 
         <div class="col">
@@ -77,6 +82,7 @@
 @section('js')
     <script>
         $('.select2').select2();
+
         function loadIncomeList() {
             var emptyFields = $(".search_keys").filter(function() {
                 return $(this).val() === "";

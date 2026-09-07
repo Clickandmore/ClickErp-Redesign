@@ -21,6 +21,19 @@ if (!function_exists('toObject')) {
     }
 }
 
+if (!function_exists('apiJsonEncodingOptions')) {
+    function apiJsonEncodingOptions(): int
+    {
+        $options = JSON_UNESCAPED_UNICODE;
+
+        if (!app()->environment('production')) {
+            $options |= JSON_PRETTY_PRINT;
+        }
+
+        return $options;
+    }
+}
+
 /**
  * Show the form for creating a new resource.
  *
@@ -38,7 +51,7 @@ if (!function_exists('jsonSuccess')) {
             'code' => $code,
             'data' => $data,
             'message' => $msg,
-        ], 200);
+        ], 200, [], apiJsonEncodingOptions());
     }
 }
 if (!function_exists('submitButton')) {
@@ -71,7 +84,7 @@ if (!function_exists('jsonError')) {
         return response()->json([
             'code' => $code,
             'message' => $msg,
-        ], $code);
+        ], $code, [], apiJsonEncodingOptions());
     }
 }
 
@@ -88,7 +101,7 @@ if (!function_exists('jsonValid')) {
             'code' => $code,
             'data' => $data,
             'message' => $message,
-        ], 422);
+        ], 422, [], apiJsonEncodingOptions());
     }
 }
 
@@ -520,6 +533,67 @@ if (!function_exists('documentLogoPath')) {
         $path = public_path('storage/' . ltrim($logo, '/'));
 
         return file_exists($path) ? $path : null;
+    }
+}
+
+if (!function_exists('documentLogoDataUri')) {
+    /**
+     * شعار المستندات كـ data URI صالح لمولّدات PDF (mPDF/dompdf).
+     * يجلب الشعار من التخزين المحلي أو R2، ويحوّل WebP إلى PNG لأن mPDF لا يدعمها،
+     * ويحفظ النتيجة في الكاش لتجنّب تكرار الجلب والتحويل.
+     */
+    function documentLogoDataUri(): ?string
+    {
+        $logo = documentSetting('document_logo') ?: documentSetting('logo_header');
+
+        if (!is_string($logo) || $logo === '') {
+            return null;
+        }
+
+        return \Illuminate\Support\Facades\Cache::remember(
+            'document_logo_data_uri:' . md5($logo),
+            now()->addHours(6),
+            function () use ($logo): ?string {
+                try {
+                    $localPath = documentLogoPath();
+                    if ($localPath) {
+                        $contents = file_get_contents($localPath);
+                    } else {
+                        $storage = app(\App\Services\ManagedFileStorage::class);
+                        $contents = $storage->exists($logo) ? $storage->contents($logo) : null;
+                    }
+
+                    if (!$contents) {
+                        return null;
+                    }
+
+                    $info = @getimagesizefromstring($contents);
+                    $mime = $info['mime'] ?? '';
+
+                    if (in_array($mime, ['image/png', 'image/jpeg', 'image/gif'], true)) {
+                        return 'data:' . $mime . ';base64,' . base64_encode($contents);
+                    }
+
+                    // WebP وغيرها: التحويل إلى PNG مع الحفاظ على الشفافية.
+                    $image = @imagecreatefromstring($contents);
+                    if ($image === false) {
+                        return null;
+                    }
+
+                    imagesavealpha($image, true);
+                    ob_start();
+                    imagepng($image);
+                    $png = (string) ob_get_clean();
+                    imagedestroy($image);
+
+                    return $png !== '' ? 'data:image/png;base64,' . base64_encode($png) : null;
+                } catch (\Throwable $e) {
+                    report($e);
+
+                    return null;
+                }
+            }
+        );
     }
 }
 
@@ -1203,6 +1277,6 @@ if (!function_exists('apiResponse')) {
             'status'  => $status,
             'message' => $message,
             'data'    => $data
-        ], $statusCode);
+        ], $statusCode, [], apiJsonEncodingOptions());
     }
 }

@@ -153,6 +153,11 @@ Route::group(
     ], function () {
     Route::group(["middleware" => ['web', 'admin', 'package.route.permission:finance'], "prefix" => "finance", "as" => "finance."], function () {
         Route::resource('home', HomeController::class);
+        Route::resource('procurement', \Nami\Finance\Http\Controllers\ProcurementController::class)->except('destroy');
+        foreach (['approve', 'convert', 'cancel', 'pay'] as $action) {
+            Route::post('procurement/{id}/'.$action, [\Nami\Finance\Http\Controllers\ProcurementController::class, $action])->name('procurement.'.$action);
+        }
+
         Route::resource('years', YearController::class);
         Route::resource('year-status', ChangeYearStatusController::class);
 
@@ -225,7 +230,7 @@ Route::group(
         Route::resource('account-statement-suppliers', AccountStatementSupplierController::class);
         Route::resource('account-statement-supplier-print', AccountStatementSuppliePrintController::class);
         Route::resource('account-cost-centers', AccountCostCenterController::class);
-        Route::resource('cash-movements', CashMovementController::class);
+        Route::resource('cash-movements', CashMovementController::class)->only('index');
         Route::get('bank-account-statement/export/{format}', [BankAccountStatementController::class, 'export'])
             ->where('format', 'pdf|excel|xlsx')
             ->name('bank-account-statement.export');
@@ -361,6 +366,7 @@ Route::group(
         Route::resource('account-balance-differed-normal', AccountBalanceDifferedNormalController::class);
 
         Route::resource('client-files', ClientFilesController::class);
+        Route::get('finance-center-list', [\Nami\Finance\Http\Controllers\FinancialPositionController::class, 'index'])->name('finance-center-list.index');
         Route::resource('income-list', IncomeListController::class);
         Route::resource('profit-loss', ProfitLossController::class);
 

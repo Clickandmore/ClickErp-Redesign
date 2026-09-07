@@ -48,6 +48,7 @@ class MaidRequest extends MainRequest
             'residence_city' => 'nullable|string|max:255',
             'passport_issue_place' => 'nullable|string|max:255',
             'education' => 'nullable|string|max:255',
+            'education_en' => 'nullable|string|max:255',
             'has_driving_license' => 'nullable|boolean',
             'price' => 'nullable|numeric',
             'salary' => 'nullable|numeric',

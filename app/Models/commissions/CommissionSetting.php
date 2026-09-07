@@ -11,6 +11,8 @@ class CommissionSetting extends Model
 
     protected $fillable = ['service_type', 'method', 'value', 'created_by'];
 
+    protected $attributes = ['method' => 'fixed'];
+
     protected $casts = ['value' => 'decimal:2'];
 
     public static function serviceTypeOptions(): array

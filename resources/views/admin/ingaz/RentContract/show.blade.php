@@ -14,6 +14,44 @@
             margin-bottom: 24px;
         }
 
+        .page-back-toolbar {
+            display: flex;
+            justify-content: flex-start;
+            margin-bottom: 16px;
+        }
+
+        .page-back-button {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            padding: 11px 18px;
+            color: #334155;
+            background: #fff;
+            border: 1px solid #dbe4ef;
+            border-radius: 14px;
+            font-size: 14px;
+            font-weight: 700;
+            text-decoration: none;
+            box-shadow: 0 8px 20px rgba(15, 23, 42, 0.08);
+            transition: color 0.2s ease, border-color 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .page-back-button i {
+            color: #2563eb;
+            transition: transform 0.2s ease;
+        }
+
+        .page-back-button:hover {
+            color: #1d4ed8;
+            border-color: #93c5fd;
+            transform: translateY(-2px);
+            box-shadow: 0 12px 24px rgba(37, 99, 235, 0.14);
+        }
+
+        .page-back-button:hover i {
+            transform: translateX(3px);
+        }
+
         .hero-card {
             background: linear-gradient(135deg, #0f766e 0%, #1d4ed8 52%, #1e293b 100%);
             color: #fff;
@@ -622,6 +660,11 @@
         }
 
         @media (max-width: 991px) {
+            .page-back-button {
+                width: 100%;
+                justify-content: center;
+            }
+
             .hero-top,
             .section-header,
             .profile-card,
@@ -804,6 +847,14 @@
         @endphp
 
         <div class="rental-show-page">
+            <div class="page-back-toolbar no-print">
+                <a href="{{ route('RentContract.index') }}" class="page-back-button" data-list-back
+                    aria-label="العودة للصفحة السابقة">
+                    <i class="fas fa-arrow-right"></i>
+                    <span>العودة للصفحة السابقة</span>
+                </a>
+            </div>
+
             <div class="hero-card">
                 <div class="hero-top">
                     <div>

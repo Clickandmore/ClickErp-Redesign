@@ -252,8 +252,20 @@ class RecruitmentContractWarrantyReturnService
         );
     }
 
+    /**
+     * ضريبة قيد الضمان يجب أن تُعكس على نفس حساب ضريبة الفاتورة. الإعداد الموحد
+     * أولاً — التخمين بالاسم يبقى احتياطاً للنسخ التي لم يُضبط فيها الإعداد بعد،
+     * لأن الشجرة المالية تختلف بين النسخ فقد يختار حساباً غير حساب الفاتورة.
+     */
     private function resolveVatAccountId(): ?int
     {
+        $configured = app(\Nami\Finance\Services\TaxAccountResolver::class)
+            ->resolve('revenue_tax_account')?->id;
+
+        if ($configured) {
+            return (int) $configured;
+        }
+
         return $this->resolveAccountByCandidates(
             [
                 'حساب الضريبة على الإيرادات',

@@ -612,47 +612,8 @@
                         </div>
 
                         <div class="setting-field">
-                            <div class="setting-field__top">
-                                <label for="revenue_tax_account">{{ __('finance::finance.revenue_tax_account') }}</label>
-                                <span class="setting-field__tools">
-                                    {!! addUpButton(route('finance.accounts.create'), 'revenue_tax_account', false, 'name', true) !!}
-                                    <span class="setting-info" title="{{ __('finance::finance.revenue_tax_account_tree_hint') }}"><i class="fa fa-info"></i></span>
-                                </span>
-                            </div>
-                            <input type="hidden" value="revenue_tax_account" name="data[revenue_tax_account][title]">
-                            <select name="data[revenue_tax_account][value]" id="revenue_tax_account"
-                                    class="form-control account-ajax-select" data-account-scope="creditor_leaf">
-                                <option value="">{{ __('finance::finance.choose') }}</option>
-                                @if ($item = $settingAccountOption('revenue_tax_account'))
-                                    <option value="{{ $item->id }}" selected>{{ $item->code }} / {{ $item->name }}</option>
-                                @endif
-                            </select>
-                            <small>{{ __('finance::finance.revenue_tax_account_hint') }}</small>
-                            <div class="setting-field__tree">
-                                <strong>{{ $accountTreeLabel }}:</strong> {{ __('finance::finance.revenue_tax_account_tree_hint') }}
-                            </div>
-                        </div>
-
-                        <div class="setting-field">
-                            <div class="setting-field__top">
-                                <label for="expense_tax_account">{{ __('finance::finance.Expense Tax Account') }}</label>
-                                <span class="setting-field__tools">
-                                    {!! addUpButton(route('finance.accounts.create'), 'expense_tax_account', false, 'name', true) !!}
-                                    <span class="setting-info" title="{{ __('finance::finance.expense_tax_account_tree_hint') }}"><i class="fa fa-info"></i></span>
-                                </span>
-                            </div>
-                            <input type="hidden" value="expense_tax_account" name="data[expense_tax_account][title]">
-                            <select name="data[expense_tax_account][value]" id="expense_tax_account"
-                                    class="form-control account-ajax-select" data-account-scope="debtor_leaf">
-                                <option value="">{{ __('finance::finance.choose') }}</option>
-                                @if ($item = $settingAccountOption('expense_tax_account'))
-                                    <option value="{{ $item->id }}" selected>{{ $item->code }} / {{ $item->name }}</option>
-                                @endif
-                            </select>
-                            <small>{{ __('finance::finance.expense_tax_account_hint') }}</small>
-                            <div class="setting-field__tree">
-                                <strong>{{ $accountTreeLabel }}:</strong> {{ __('finance::finance.expense_tax_account_tree_hint') }}
-                            </div>
+                            <p>{{ __('finance::finance.tax_single_source_hint') }}</p>
+                            <a href="{{ route('finance.tax-setting.index') }}" class="btn btn-outline-primary">{{ __('finance::finance.taxSettings') }}</a>
                         </div>
                     </div>
                 </div>

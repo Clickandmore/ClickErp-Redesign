@@ -2672,6 +2672,28 @@ class RentContractController extends Controller
             $paidAmount = max($paidAmount, (float) $contract->financeInvoice->paid_amount);
         }
 
+        // Extensions created before the July 2026 finance fields have their
+        // duration and payment status, but `extension_value`/`payment_amount`
+        // are null. Counting those days at zero dilutes the displayed daily
+        // rate and every closure calculation based on it. Reconstruct the
+        // value using the base rate that the legacy extension screen used.
+        $baseDailyRate = $durationDays > 0 ? ($contractValue / $durationDays) : 0.0;
+        $extensionValue = 0.0;
+        $extensionPaidAmount = 0.0;
+
+        foreach ($extensions as $extension) {
+            $days = max(0, (int) ($extension->extension_days ?? 0));
+            $value = is_numeric($extension->extension_value)
+                ? (float) $extension->extension_value
+                : round($baseDailyRate * $days, 2);
+            $payment = is_numeric($extension->payment_amount)
+                ? (float) $extension->payment_amount
+                : (($extension->payment_status ?? null) === 'paid' ? $value : 0.0);
+
+            $extensionValue += $value;
+            $extensionPaidAmount += $payment;
+        }
+
         // Kept separate from the totals below: `contract_*` columns describe the
         // contract as it was sold, and the extension rows own the rest. Writing
         // a total back into them would make the next settlement count the

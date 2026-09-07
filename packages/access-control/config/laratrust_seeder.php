@@ -132,6 +132,7 @@ return [
                 'finance.bonds-print' => 'c,r,u,d',
                 'finance.bill-sales-attachments' => 'c,r,u,d',
                 'finance.income-list' => 'r',
+                'finance.finance-center-list' => 'r',
                 'finance.sales-analysis' => 'r',
                 'finance.purchases-analysis' => 'r',
                 'finance.tax-declaration' => 'r',

@@ -36,6 +36,7 @@ class ComplaintController extends Controller
 
     function __construct()
     {
+        $this->middleware('permission:' . PermKeys::COMPLAINT_CREATE . '|' . PermKeys::COMPLAINT_EDIT . '|' . PermKeys::COMPLAINT_CONTROL . ',admin')->only(['searchContracts', 'searchOrders']);
         $this->middleware('permission:' . PermKeys::COMPLAINT_VIEW . '|' . PermKeys::COMPLAINT_CONTROL . ',admin', ['only' => ['cards']]);
         // $this->middleware('permission:الشكاوى-قراءة,admin', ['only' => ['index']]);
         // $this->middleware('permission:الشكاوى-انشاء,admin', ['only' => ['create', 'store']]);
@@ -53,6 +54,13 @@ class ComplaintController extends Controller
             $query = objModel::query()->with([
                 'user', 'complaintType', 'assignedTo', 'maidNationality',
                 'contract', 'order', 'relatedUser', 'recruitmentOffice',
+                // مطلوبة لاستخراج اسم العاملة في عمود الجدول دون استعلام لكل صف
+                'contract.maid.nationality', 'contract.maid.office', 'contract.info',
+                'contract.requiredMaidNationality', 'contract.travelHistory',
+                'order.maid.nationality', 'order.maid.office',
+                'order.contracts.maid.nationality', 'order.contracts.maid.office',
+                'order.contracts.info', 'order.contracts.requiredMaidNationality',
+                'order.contracts.travelHistory',
             ]);
             $this->applyRequestBranchFilter($query, $request, 'complaints');
             $this->applyComplaintFilters($query, $request);
@@ -120,6 +128,9 @@ class ComplaintController extends Controller
                 ->addColumn('related_record', function ($row) {
                     return $this->resolveComplaintRelatedRecord($row);
                 })
+                ->addColumn('maid_party', function ($row) {
+                    return $this->resolveComplaintMaidParty($row);
+                })
                 ->addColumn('actions', function ($row) {
                     $buttons = '<div class="btn-group" role="group" aria-label="Actions">';
                     $buttons .= '<button class="btn btn-sm btn-primary response-btn" data-id="' . $row->id . '" data-response="' . htmlspecialchars($row->response ?? '', ENT_QUOTES) . '" data-status="' . $row->status . '">
@@ -137,6 +148,14 @@ class ComplaintController extends Controller
                             })
                                 ->orWhere('subject', 'LIKE', "%{$search}%")
                                 ->orWhere('complainant_name', 'LIKE', "%{$search}%")
+                                ->orWhere('against_name', 'LIKE', "%{$search}%")
+                                ->orWhere('maid_passport', 'LIKE', "%{$search}%")
+                                ->orWhereHas('contract.maid', function ($qq) use ($search) {
+                                    $qq->where('name', 'LIKE', "%{$search}%");
+                                })
+                                ->orWhereHas('order.maid', function ($qq) use ($search) {
+                                    $qq->where('name', 'LIKE', "%{$search}%");
+                                })
                                 ->orWhere('priority', 'LIKE', "%{$search}%")
                                 ->orWhere('status', 'LIKE', "%{$search}%")
                                 ->orWhere('related_to', 'LIKE', "%{$search}%")
@@ -163,7 +182,15 @@ class ComplaintController extends Controller
 
     private function exportComplaints(Request $request)
     {
-        $query = objModel::query()->with(['complaintType', 'assignedTo']);
+        $query = objModel::query()->with([
+            'complaintType', 'assignedTo', 'maidNationality',
+            'contract.maid.nationality', 'contract.maid.office', 'contract.info',
+            'contract.requiredMaidNationality', 'contract.travelHistory',
+            'order.maid.nationality', 'order.maid.office',
+            'order.contracts.maid.nationality', 'order.contracts.maid.office',
+            'order.contracts.info', 'order.contracts.requiredMaidNationality',
+            'order.contracts.travelHistory',
+        ]);
         $this->applyRequestBranchFilter($query, $request, 'complaints');
         $this->applyComplaintFilters($query, $request);
         $complaints = $query->latest('id')->get();
@@ -180,13 +207,14 @@ class ComplaintController extends Controller
         return response()->streamDownload(function () use ($complaints, $statuses, $priorities) {
             $output = fopen('php://output', 'w');
             fwrite($output, "\xEF\xBB\xBF");
-            fputcsv($output, ['رقم الشكوى', 'مقدم الشكوى', 'المشتكى عليه', 'الموضوع', 'النوع', 'الأولوية', 'الحالة', 'الموظف المختص', 'التاريخ']);
+            fputcsv($output, ['رقم الشكوى', 'مقدم الشكوى', 'المشتكى عليه', 'اسم العاملة', 'الموضوع', 'النوع', 'الأولوية', 'الحالة', 'الموظف المختص', 'التاريخ']);
 
             foreach ($complaints as $complaint) {
                 fputcsv($output, [
                     $complaint->id,
                     $complaint->complainant_name,
                     $complaint->against_name,
+                    $this->resolveComplaintMaidParty($complaint)['name'] ?? null,
                     $complaint->subject,
                     $complaint->complaintType?->name,
                     $priorities[$complaint->priority] ?? $complaint->priority,
@@ -207,6 +235,70 @@ class ComplaintController extends Controller
         return view($this->folderPath . '.create', $this->complaintFormData() + ['isEdit' => false]);
     }
 
+    public function searchContracts(Request $request)
+    {
+        $data = $request->validate(['q' => 'nullable|string|max:255', 'page' => 'nullable|integer|min:1']);
+        $search = trim($data['q'] ?? '');
+        $query = Contract::query()->with(['user', 'maid', 'info']);
+        if ($search !== '') {
+            $query->where(function ($query) use ($search) {
+                $query->where('id', $search)
+                    ->orWhereHas('user', function ($user) use ($search) {
+                        $user->where('name', 'like', "%{$search}%")
+                            ->orWhere('phone', 'like', "%{$search}%");
+                    })
+                    ->orWhereHas('maid', function ($maid) use ($search) {
+                        $maid->where('name', 'like', "%{$search}%")
+                            ->orWhere('passport_num', 'like', "%{$search}%");
+                    });
+            });
+        }
+        $contracts = $query->latest('id')->simplePaginate(25);
+
+        return response()->json([
+            'results' => $contracts->getCollection()->map(fn (Contract $contract) => [
+                'id' => $contract->id, 'text' => $this->contractSelectorLabel($contract),
+            ])->values(),
+            'pagination' => ['more' => $contracts->hasMorePages()],
+        ]);
+    }
+
+    public function searchOrders(Request $request)
+    {
+        $data = $request->validate(['q' => 'nullable|string|max:255', 'page' => 'nullable|integer|min:1']);
+        $search = trim($data['q'] ?? '');
+        $query = Order::query()->with(['user', 'maid']);
+        if ($search !== '') {
+            $query->where(function ($query) use ($search) {
+                $query->where('order_code', 'like', "%{$search}%")
+                    ->orWhereHas('user', function ($user) use ($search) {
+                        $user->where('name', 'like', "%{$search}%")
+                            ->orWhere('phone', 'like', "%{$search}%");
+                    })
+                    ->orWhereHas('maid', function ($maid) use ($search) {
+                        $maid->where('name', 'like', "%{$search}%")
+                            ->orWhere('passport_num', 'like', "%{$search}%");
+                    });
+                if (ctype_digit($search)) {
+                    $query->orWhere('id', $search);
+                }
+            });
+        }
+        $orders = $query->latest('id')->simplePaginate(25, ['*'], 'page', (int) ($data['page'] ?? 1));
+
+        return response()->json([
+            'results' => $orders->getCollection()->map(fn (Order $order) => [
+                'id' => $order->id,
+                'text' => implode(' — ', array_filter([
+                    'طلب #' . ($order->order_code ?: $order->id),
+                    $order->user?->name ?: 'بدون عميل',
+                    $order->maid?->name,
+                ])),
+            ])->values(),
+            'pagination' => ['more' => $orders->hasMorePages()],
+        ]);
+    }
+
     private function complaintFormData(?objModel $complaint = null): array
     {
         $users = User::orderBy('name')->get(['id', 'name', 'phone']);
@@ -222,14 +314,27 @@ class ComplaintController extends Controller
             ->orderBy('name')
             ->get();
         $admins = Admin::query()->activeForOperations()->orderBy('name')->get();
-        $orders = Order::query()->with(['user', 'maid'])->latest('id')->limit(1000)->get(['id', 'order_code', 'user_id', 'maid_id', 'status']);
+        $orders = collect();
         if ($complaint?->order_id && !$orders->contains('id', $complaint->order_id)) {
             $orders->prepend(Order::query()->with(['user', 'maid'])->findOrFail($complaint->order_id));
         }
-        $contracts = Contract::query()->with(['user', 'maid'])->latest('id')->limit(1000)
-            ->get(['id', 'user_id', 'maid_id', 'order_id', 'status', 'type', 'contract_date']);
+        $oldOrderId = old('order_id');
+        if ($oldOrderId && !$orders->contains('id', $oldOrderId)) {
+            $oldOrder = Order::with(['user', 'maid'])->find($oldOrderId);
+            if ($oldOrder) {
+                $orders->prepend($oldOrder);
+            }
+        }
+        $contracts = collect();
         if ($complaint?->contract_id && !$contracts->contains('id', $complaint->contract_id)) {
             $contracts->prepend(Contract::query()->with(['user', 'maid'])->findOrFail($complaint->contract_id));
+        }
+        $oldContractId = old('contract_id');
+        if ($oldContractId && !$contracts->contains('id', $oldContractId)) {
+            $oldContract = Contract::with(['user', 'maid', 'info'])->find($oldContractId);
+            if ($oldContract) {
+                $contracts->prepend($oldContract);
+            }
         }
         $contractOptions = $contracts->map(fn (Contract $contract) => [
             'id' => $contract->id,
@@ -604,6 +709,108 @@ class ComplaintController extends Controller
             'phone' => null,
             'maid_passport' => $contract->maid?->passport_num ?: $contract->info?->manual_maid_passport_num,
             'maid_nationality_id' => $contract->maid?->nationality_id ?: $contract->info?->manual_maid_nationality_id,
+        ];
+    }
+
+    /**
+     * هل الشكوى موجهة ضد عاملة؟ الشكاوى المستوردة تحمل نصا عربيا في against_type
+     * بدلا من المفتاح worker، ولذلك نفحص النص ونوع الشكوى أيضا.
+     */
+    private function complaintIsAgainstWorker(objModel $complaint): bool
+    {
+        $againstType = $complaint->against_type ?: $complaint->complaintType?->against_type;
+
+        if ($againstType === 'worker') {
+            return true;
+        }
+
+        if (is_string($againstType) && mb_strpos($againstType, 'عامل') !== false) {
+            return true;
+        }
+
+        return (bool) preg_match('/عميل.*ضد.*عامل/u', (string) $complaint->complaintType?->name);
+    }
+
+    /**
+     * اسم العاملة المعروض في جدول الشكاوى: من بيانات المشتكى عليه حين تكون الشكوى
+     * ضد عاملة، وإلا من العقد أو الطلب المرتبط بالشكوى.
+     */
+    private function resolveComplaintMaidParty(objModel $complaint): ?array
+    {
+        $isAgainstWorker = $this->complaintIsAgainstWorker($complaint);
+        $party = [];
+        $contract = null;
+        $maid = null;
+
+        if ($complaint->relation_type === 'contract' && $complaint->contract) {
+            $contract = $complaint->contract;
+            $maid = $contract->maid;
+            $party = $this->resolveContractAgainstParty($complaint->contract, 'worker');
+        } elseif ($complaint->relation_type === 'order' && $complaint->order) {
+            $contract = $complaint->order->contracts->first(function (Contract $contract) {
+                return $contract->maid || filled($contract->info?->manual_maid_name);
+            });
+            $maid = $complaint->order->maid ?: $contract?->maid;
+            $party = $this->resolveOrderAgainstParty($complaint->order, 'worker');
+        }
+        $name = $isAgainstWorker && filled($complaint->against_name)
+            ? $complaint->against_name
+            : ($party['name'] ?? null);
+
+        if (blank($name)) {
+            return null;
+        }
+
+        $nationality = $complaint->maidNationality?->title
+            ?: $maid?->nationality?->title
+            ?: $contract?->requiredMaidNationality?->title;
+        $warranty = $this->resolveComplaintWarrantyDetails($contract);
+
+        return [
+            'name' => $name,
+            'passport' => $complaint->maid_passport ?: ($party['maid_passport'] ?? null),
+            'office' => $maid?->office?->title,
+            'nationality' => $nationality,
+            'days_since_arrival' => $warranty['days_since_arrival'],
+            'warranty_status' => $warranty['status'],
+            'warranty_remaining_days' => $warranty['remaining_days'],
+        ];
+    }
+
+    private function resolveComplaintWarrantyDetails(?Contract $contract): array
+    {
+        if (!$contract) {
+            return ['days_since_arrival' => null, 'status' => null, 'remaining_days' => null];
+        }
+
+        $startDate = $contract->warranty_start_date;
+        if (!$startDate && $contract->travelHistory?->status === 'completed') {
+            $startDate = $contract->travelHistory->resolveArrivalDateTime();
+        }
+        $startDate ??= $contract->info?->arrival_date;
+        $startDate ??= $contract->maid?->arrival_date;
+
+        $daysSinceArrival = $startDate
+            ? max(0, (int) \Carbon\Carbon::parse($startDate)->startOfDay()->diffInDays(today(), false))
+            : null;
+
+        if (!$contract->warranty_end_date) {
+            return [
+                'days_since_arrival' => $daysSinceArrival,
+                'status' => null,
+                'remaining_days' => null,
+            ];
+        }
+
+        $endDate = \Carbon\Carbon::parse($contract->warranty_end_date)->startOfDay();
+        $isExpired = $endDate->copy()->endOfDay()->isPast();
+
+        return [
+            'days_since_arrival' => $daysSinceArrival,
+            'status' => $isExpired ? 'expired' : 'active',
+            'remaining_days' => $isExpired
+                ? 0
+                : max(0, (int) today()->diffInDays($endDate, false)),
         ];
     }
 

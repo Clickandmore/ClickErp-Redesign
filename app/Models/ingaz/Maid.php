@@ -124,6 +124,7 @@ class Maid extends Model
         'language_levels',
         'childrens_count',
         'education',
+        'education_en',
         'has_driving_license',
         'additional_notes',
         'duration',
@@ -510,6 +511,14 @@ class Maid extends Model
     public function scopePendingSubmission($query)
     {
         return $query->where('submission_status', self::SUBMISSION_PENDING);
+    }
+
+    public function scopeApprovedSubmission($query)
+    {
+        return $query->where(function ($query) {
+            $query->whereNull('submission_status')
+                ->orWhere('submission_status', self::SUBMISSION_APPROVED);
+        });
     }
 
     public function scopeFromExternalOffice($query)

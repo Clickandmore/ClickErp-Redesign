@@ -105,6 +105,7 @@ class MaidAction extends MainAction
 
     public function storeMaid($data, $request)
     {
+        $data = \App\Support\EducationQualificationCatalog::normalize($data);
         \Log::info('Raw data received in storeMaid:', $data);
         \Log::info('Languages data type: ' . gettype($data['languages'] ?? 'not set'));
         \Log::info('Languages data: ', is_array($data['languages'] ?? null) ? $data['languages'] : [$data['languages'] ?? 'not set']);
@@ -377,6 +378,7 @@ class MaidAction extends MainAction
             'residence_city' => $data['residence_city'] ?? null,
             'passport_issue_place' => $data['passport_issue_place'] ?? null,
             'education' => $data['education'] ?? null,
+            'education_en' => $data['education_en'] ?? null,
             'has_driving_license' => $data['has_driving_license'] ?? null,
             'id_number' => $data['id_number'],
             'id_expiry_date' => $data['id_expiry_date'],
@@ -412,6 +414,12 @@ class MaidAction extends MainAction
             'is_show' => $data['is_show'],
             'name' => $data['name'],
         ];
+
+        foreach (['submission_status', 'submission_type'] as $submissionField) {
+            if (array_key_exists($submissionField, $data)) {
+                $createData[$submissionField] = $data[$submissionField];
+            }
+        }
 
         if (!empty($data['id'])) {
             $createData['id'] = $data['id'];
@@ -1307,6 +1315,7 @@ class MaidAction extends MainAction
 
     public function updateMaid($id, $data, $request)
     {
+        $data = \App\Support\EducationQualificationCatalog::normalize($data);
         \Log::info('updateMaid called with data:', $data);
         \Log::info('Request data:', $request->all());
 

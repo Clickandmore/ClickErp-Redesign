@@ -34,6 +34,80 @@
         </div>
     @endif
 
+    @php
+        $branchesMode = $findUsMode === \App\Support\FindUsSettings::MODE_BRANCHES;
+        $canEditMode = @AdminGuardHasAnyPerm([\App\PermKeys::FIND_US_EDIT, \App\PermKeys::FIND_US_CONTROL]);
+    @endphp
+
+    <div class="card find-us-card mb-4">
+        <div class="card-body">
+            <h6 class="fw-bold mb-1">{{ __('find_us.mode') }}</h6>
+            <p class="text-muted small mb-3">{{ __('find_us.mode_hint') }}</p>
+
+            <form method="POST" action="{{ route('find-us.mode') }}" class="row g-3">
+                @csrf
+                @method('PUT')
+
+                <div class="col-md-6">
+                    <label class="card h-100 border p-3 mb-0" for="find_us_mode_single" style="cursor: pointer;">
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="find_us_mode" id="find_us_mode_single"
+                                   value="{{ \App\Support\FindUsSettings::MODE_SINGLE }}"
+                                   {{ $branchesMode ? '' : 'checked' }} {{ $canEditMode ? '' : 'disabled' }}>
+                            <span class="form-check-label fw-bold">{{ __('find_us.mode_single') }}</span>
+                        </div>
+                        <small class="text-muted d-block mt-2">{{ __('find_us.mode_single_hint') }}</small>
+                    </label>
+                </div>
+
+                <div class="col-md-6">
+                    <label class="card h-100 border p-3 mb-0" for="find_us_mode_branches" style="cursor: pointer;">
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="find_us_mode" id="find_us_mode_branches"
+                                   value="{{ \App\Support\FindUsSettings::MODE_BRANCHES }}"
+                                   {{ $branchesMode ? 'checked' : '' }} {{ $canEditMode ? '' : 'disabled' }}>
+                            <span class="form-check-label fw-bold">{{ __('find_us.mode_branches') }}</span>
+                        </div>
+                        <small class="text-muted d-block mt-2">{{ __('find_us.mode_branches_hint') }}</small>
+                    </label>
+                </div>
+
+                @unless($branchesMode)
+                    <div class="col-12">
+                        <div class="border rounded-3 p-3 bg-light">
+                            <div class="small fw-semibold mb-1">{{ __('find_us.single_link_title') }}</div>
+                            @if($findUsSingleLink !== '')
+                                <div class="small text-muted text-break">{{ $findUsSingleLink }}</div>
+                            @else
+                                <div class="small text-danger">{{ __('find_us.single_link_empty') }}</div>
+                            @endif
+                            @if (@AdminGuardHasAnyPerm([\App\PermKeys::SETTINGS_VIEW, \App\PermKeys::SETTINGS_CONTROL]))
+                                <a href="{{ route('settings.section', 'general') }}" class="small">
+                                    <i class="fa fa-pen me-1"></i>{{ __('find_us.single_link_edit') }}
+                                </a>
+                            @endif
+                        </div>
+                    </div>
+                @endunless
+
+                @if($canEditMode)
+                    <div class="col-12">
+                        <button class="btn btn-primary px-4">
+                            <i class="fa fa-floppy-disk me-1"></i> {{ __('find_us.mode_save') }}
+                        </button>
+                    </div>
+                @endif
+            </form>
+        </div>
+    </div>
+
+    @if(!$branchesMode && $locations->isNotEmpty())
+        <div class="alert alert-warning d-flex align-items-start gap-2">
+            <i class="fa fa-triangle-exclamation mt-1"></i>
+            <span>{{ __('find_us.mode_single_notice') }}</span>
+        </div>
+    @endif
+
     <div class="card find-us-card">
         @if($locations->isEmpty())
             <div class="find-us-empty">

@@ -153,6 +153,32 @@ class RentalContractClosureSummaryTest extends TestCase
         $this->assertSame(991.17, $summary['calculated_refund_value']);
     }
 
+    public function test_a_legacy_paid_extension_uses_the_original_daily_rate(): void
+    {
+        $summary = $this->buildSummary(
+            paidAmount: 3500.00,
+            paymentStatus: 'paid',
+            extensions: [
+                [
+                    'extension_days' => 30,
+                    'extension_value' => null,
+                    'payment_amount' => null,
+                    'payment_status' => 'paid',
+                ],
+            ],
+            closureDate: '2026-08-11',
+            startDate: '2026-05-04',
+            endDate: '2026-07-03',
+            contractValue: 3500.00
+        );
+
+        $this->assertSame(60, $summary['duration_days']);
+        $this->assertSame(7000.00, $summary['contract_value']);
+        $this->assertSame(7000.00, $summary['paid_amount']);
+        $this->assertSame(3500.00, $summary['extension_value']);
+        $this->assertSame(116.67, $summary['daily_rate']);
+    }
+
     public function test_a_previous_full_credit_note_is_net_against_the_required_closure_note(): void
     {
         $summary = $this->buildSummary(

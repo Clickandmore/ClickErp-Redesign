@@ -188,6 +188,7 @@
                 <div class="as-of"><i class="fa-regular fa-clock"></i> {{ __('finance::finance.balances_as_of') }} {{ $as_of_date ?? now()->toDateString() }}</div>
             </div>
             <div class="hero-actions">
+                <a class="hero-btn" href="{{ route('finance.procurement.index') }}"><i class="fa-solid fa-cart-shopping"></i>المشتريات</a>
                 <a class="hero-btn primary" href="{{ route('finance.add-constraint.create') }}"><i class="fa-solid fa-plus"></i> {{ __('finance::finance.new_journal_entry') }}</a>
                 <a class="hero-btn" href="{{ route('finance.bonds-qabd.create') }}"><i class="fa-solid fa-arrow-down"></i> {{ __('finance::finance.receipt_voucher') }}</a>
                 <a class="hero-btn" href="{{ route('finance.bonds-sarf.create') }}"><i class="fa-solid fa-arrow-up"></i> {{ __('finance::finance.payment_voucher') }}</a>
@@ -297,6 +298,7 @@
                         <a class="quick-action" href="{{ route('finance.account-statement.index') }}"><i class="fa-solid fa-book-open"></i>{{ __('finance::finance.account_statement') }}</a>
                         <a class="quick-action" href="{{ route('finance.trail-balance.index') }}"><i class="fa-solid fa-scale-unbalanced-flip"></i>{{ __('finance::finance.trial_balance') }}</a>
                         <a class="quick-action" href="{{ route('finance.clients.index') }}"><i class="fa-solid fa-users"></i>{{ __('finance::finance.clients') }}</a>
+                        <a class="quick-action" href="{{ route('finance.procurement.index') }}"><i class="fa-solid fa-cart-shopping"></i>المشتريات</a>
                         <a class="quick-action" href="{{ route('finance.suppliers.index') }}"><i class="fa-solid fa-truck"></i>{{ __('finance::finance.suppliers') }}</a>
                     </div>
                 </section>

@@ -24,7 +24,7 @@
             <div class="form-icon position-absolute">
                 <i class="fa fa-percentage"></i>
             </div>
-            <input type="number" name="value" class="form-control" min="1" max="100" id="value" data-validation="required,number">
+            <input type="number" name="value" class="form-control" min="0" max="100" id="value" data-validation="required,number">
         </fieldset>
     </div>
 

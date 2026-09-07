@@ -1214,6 +1214,7 @@
                             request()->routeIs('rent-contract-terms.*') ||
                             request()->routeIs('packages.*');
                         $isCvSettingsRoute =
+                            request()->routeIs('education-qualifications.*') ||
                             request()->routeIs('settings.cv-options.*') ||
                             request()->routeIs('settings.cv-template.*') ||
                             request()->routeIs('languages.*') ||
@@ -1605,6 +1606,15 @@
                                         id="cvSettings">
                                         @if (@AdminGuardHasPerm(\App\PermKeys::SETTINGS_CV_OPTIONS))
                                             <li>
+                                                <a class="m-link {{ request()->routeIs('education-qualifications.*') ? 'active' : '' }}"
+                                                    href="{{ route('education-qualifications.index') }}">
+                                                    <i class="fa fa-graduation-cap"></i>
+                                                    <span class="ms-2">المؤهلات التعليمية</span>
+                                                </a>
+                                            </li>
+                                        @endif
+                                        @if (@AdminGuardHasPerm(\App\PermKeys::SETTINGS_CV_OPTIONS))
+                                            <li>
                                                 <a class="m-link {{ request()->routeIs('settings.cv-options.*') ? 'active' : '' }}"
                                                     href="{{ route('settings.cv-options.edit') }}">
                                                     <i class="fa fa-sliders"></i>
@@ -1870,6 +1880,16 @@
                                                     href="{{ route('dash.settings.zoho') }}">
                                                     <i class="fa fa-comments"></i>
                                                     <span class="ms-2">إعدادات Zoho SalesIQ</span>
+                                                </a>
+                                            </li>
+                                        @endif
+
+                                        @if (@AdminGuardHasPerm(\App\PermKeys::SETTINGS_VIEW))
+                                            <li>
+                                                <a class="m-link {{ request()->routeIs('dash.firebase-settings.*') ? 'active' : '' }}"
+                                                    href="{{ route('dash.firebase-settings.index') }}">
+                                                    <i class="fa fa-bell"></i>
+                                                    <span class="ms-2">إشعارات Firebase</span>
                                                 </a>
                                             </li>
                                         @endif

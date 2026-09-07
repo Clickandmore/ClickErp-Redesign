@@ -74,6 +74,31 @@
             </div>
         </div>
     @endforeach
+
+    @if ($obj->faqs->isNotEmpty())
+        <div class="col-12">
+            <div class="card border">
+                <div class="card-header bg-light fw-bold">الأسئلة الشائعة ({{ $obj->faqs->count() }})</div>
+                <div class="card-body">
+                    @foreach ($obj->faqs as $faq)
+                        <div class="border rounded p-3 {{ $loop->last ? '' : 'mb-3' }}">
+                            @foreach ($locales as $locale)
+                                @php $faqTranslation = $faq->translate($locale); @endphp
+
+                                @if ($faqTranslation && filled($faqTranslation->question))
+                                    <div class="{{ $loop->first ? '' : 'mt-3 pt-3 border-top' }}">
+                                        <span class="badge bg-light text-dark border mb-1">{{ $localeLabels[$locale] ?? $locale }}</span>
+                                        <div class="fw-bold">{{ $faqTranslation->question }}</div>
+                                        <div class="text-muted">{!! nl2br(e($faqTranslation->answer)) !!}</div>
+                                    </div>
+                                @endif
+                            @endforeach
+                        </div>
+                    @endforeach
+                </div>
+            </div>
+        </div>
+    @endif
 </div>
 
 <div class="modal-footer">

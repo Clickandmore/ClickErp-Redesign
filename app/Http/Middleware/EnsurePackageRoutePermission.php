@@ -76,6 +76,16 @@ class EnsurePackageRoutePermission
 
     private function financePermissions(string $routeName): array
     {
+        if (Str::startsWith($routeName, 'finance.procurement.')) {
+            $action = Str::after($routeName, 'finance.procurement.');
+            $ability = match ($action) {
+                'approve' => 'approve', 'pay' => 'pay',
+                'convert', 'create', 'store' => 'create',
+                'edit', 'update', 'cancel' => 'edit', default => 'view',
+            };
+            return ['finance_procurement_'.$ability, 'finance_module'];
+        }
+
         $exportPermission = $this->financeExportPermission($routeName);
 
         if ($exportPermission !== null) {

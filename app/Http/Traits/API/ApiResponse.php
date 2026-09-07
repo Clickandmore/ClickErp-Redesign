@@ -12,7 +12,7 @@ trait ApiResponse
             'data' => $data,
         ];
 
-        return response()->json($response, $code);
+        return response()->json($response, $code, [], apiJsonEncodingOptions());
     }
 
     public function errorResponse($message = null, $code = 400, $data = null)
@@ -23,6 +23,6 @@ trait ApiResponse
             'data' => $data,
         ];
 
-        return response()->json($response, $code);
+        return response()->json($response, $code, [], apiJsonEncodingOptions());
     }
 }
