@@ -7,6 +7,29 @@
         : route('SponsorshipTransfer.store');
     $workflowSource = $workflowSource ?? ($transfer->workflow_source ?? 'standard');
     $isRentalWorkflow = $workflowSource === 'rental';
+
+    // حدود الرفع من إعدادات PHP لتنبيه المستخدم قبل الإرسال بدلاً من فشل صامت (0 = بلا حد)
+    $iniToBytes = static function ($value): int {
+        $value = trim((string) $value);
+        if ($value === '' || $value === '-1') {
+            return 0;
+        }
+        $number = (float) $value;
+        return (int) match (strtolower(substr($value, -1))) {
+            'g' => $number * 1024 ** 3,
+            'm' => $number * 1024 ** 2,
+            'k' => $number * 1024,
+            default => $number,
+        };
+    };
+    $uploadLimitBytes = [
+        'total' => $iniToBytes(ini_get('post_max_size')),
+        'file' => $iniToBytes(ini_get('upload_max_filesize')),
+    ];
+    $uploadLimitLabels = [
+        'total' => (string) ini_get('post_max_size'),
+        'file' => (string) ini_get('upload_max_filesize'),
+    ];
 @endphp
 <div class="row justify-content-center">
     <div class="col-lg-10 col-md-12">
@@ -383,6 +406,20 @@ $(document).ready(function() {
             .replace(/'/g, '&#039;');
     }
 
+    // حدود الرفع على الخادم (تُقرأ من إعدادات PHP) لفحص حجم الملفات قبل الإرسال
+    const uploadLimits = {
+        totalBytes: {{ (int) ($uploadLimitBytes['total'] ?? 0) }},
+        totalLabel: '{{ $uploadLimitLabels['total'] ?? '' }}',
+        fileBytes: {{ (int) ($uploadLimitBytes['file'] ?? 0) }},
+        fileLabel: '{{ $uploadLimitLabels['file'] ?? '' }}'
+    };
+
+    function formatBytes(bytes) {
+        if (bytes >= 1024 * 1024) return (bytes / (1024 * 1024)).toFixed(1) + ' ميجابايت';
+        if (bytes >= 1024) return Math.round(bytes / 1024) + ' كيلوبايت';
+        return bytes + ' بايت';
+    }
+
     function collectErrorMessages(response) {
         const messages = [];
 
@@ -402,12 +439,60 @@ $(document).ready(function() {
             });
         }
 
-        return messages.length ? messages : ['حدث خطأ غير متوقع'];
+        return messages;
     }
 
-    function showErrorResponse(response, fallbackMessage) {
-        const messages = collectErrorMessages(response || { message: fallbackMessage });
+    // يحوّل حالة HTTP / نوع الفشل إلى شرح واضح بالعربية يفهمه المستخدم
+    function describeHttpError(xhr, textStatus) {
+        const status = xhr && typeof xhr.status === 'number' ? xhr.status : 0;
+        const body = xhr && typeof xhr.responseText === 'string' ? xhr.responseText : '';
+        const looksLikeLoginPage = status === 200 && /type="password"|name="password"/i.test(body);
+
+        if (textStatus === 'timeout') {
+            return { title: 'انتهت مهلة الاتصال', message: 'استغرق الخادم وقتاً أطول من المتوقع ولم تصل نتيجة الحفظ. تحقق من سرعة الاتصال ثم أعد المحاولة، وراجع قائمة الطلبات للتأكد من عدم تكرار الحفظ.' };
+        }
+        if (status === 0) {
+            return { title: 'تعذر الاتصال بالخادم', message: 'لم يصل الطلب إلى الخادم. تحقق من اتصالك بالإنترنت أو أن النظام يعمل، ثم أعد المحاولة.' };
+        }
+        if (status === 401 || status === 419 || looksLikeLoginPage) {
+            return { title: 'انتهت الجلسة', message: 'انتهت صلاحية جلسة الدخول أو رمز الحماية بسبب بقاء الصفحة مفتوحة لفترة طويلة، ولم يتم حفظ الطلب. حدّث الصفحة وسجّل الدخول من جديد ثم أعد إدخال الطلب.', reload: true };
+        }
+        if (status === 403) {
+            return { title: 'غير مصرح لك', message: 'لا تملك صلاحية إنشاء طلب نقل الكفالة، أو أن العقد أو العميل يتبع فرعاً آخر لا يمكنك التعامل معه. تواصل مع مدير النظام لمنحك الصلاحية.' };
+        }
+        if (status === 404) {
+            return { title: 'مسار الحفظ غير موجود', message: 'لم يعثر الخادم على مسار حفظ الطلب أو على أحد السجلات المطلوبة. حدّث الصفحة وأعد المحاولة، وإن استمرت المشكلة أبلغ الدعم الفني.' };
+        }
+        if (status === 413) {
+            return { title: 'حجم الملفات كبير جداً', message: 'إجمالي حجم إيصال الدفع والمرفقات يتجاوز الحد المسموح على الخادم' + (uploadLimits.totalLabel ? ' (' + uploadLimits.totalLabel + ')' : '') + '. قلّل حجم الملفات أو أرسل مرفقات أقل ثم أعد المحاولة.' };
+        }
+        if (status === 422) {
+            return { title: 'تحقق من البيانات المدخلة', message: 'بعض الحقول غير مكتملة أو غير صحيحة. راجع الملاحظات التالية ثم أعد المحاولة.' };
+        }
+        if (status === 429) {
+            return { title: 'محاولات كثيرة', message: 'تم إرسال طلبات كثيرة خلال وقت قصير. انتظر دقيقة ثم أعد المحاولة.' };
+        }
+        if (status === 503) {
+            return { title: 'النظام تحت الصيانة', message: 'الخادم في وضع الصيانة حالياً ولم يتم الحفظ. أعد المحاولة بعد قليل.' };
+        }
+        if (status >= 500) {
+            return { title: 'خطأ في الخادم', message: 'حدث خطأ داخلي أثناء حفظ الطلب ولم يتم الحفظ. تم تسجيل الخطأ تلقائياً؛ أبلغ الدعم الفني مع ذكر وقت المحاولة (' + new Date().toLocaleTimeString('ar-SA') + ').' };
+        }
+        if (textStatus === 'parsererror') {
+            return { title: 'استجابة غير متوقعة', message: 'أعاد الخادم صفحة غير متوقعة بدلاً من نتيجة الحفظ، وغالباً يعني ذلك انتهاء الجلسة. حدّث الصفحة وأعد المحاولة.', reload: true };
+        }
+        return { title: 'خطأ غير متوقع', message: 'تعذر حفظ الطلب لسبب غير معروف (رمز الاستجابة ' + status + '). حدّث الصفحة وأعد المحاولة، وإن تكرر الأمر أبلغ الدعم الفني.' };
+    }
+
+    function showErrorResponse(response, fallbackMessage, options) {
+        options = options || {};
+        const serverMessages = collectErrorMessages(response);
+        const messages = serverMessages.length ? serverMessages : [fallbackMessage || 'حدث خطأ غير متوقع'];
         let html = '<div class="text-start" dir="rtl">';
+
+        if (options.intro && serverMessages.length) {
+            html += '<p class="mb-2">' + escapeHtml(options.intro) + '</p>';
+        }
 
         if (messages.length === 1) {
             html += '<p class="mb-0">' + escapeHtml(messages[0]) + '</p>';
@@ -419,22 +504,101 @@ $(document).ready(function() {
             html += '</ul>';
         }
 
+        const details = [];
+        if (options.status) {
+            details.push('رمز الاستجابة: ' + options.status + (options.statusText ? ' (' + options.statusText + ')' : ''));
+        }
+        if (options.serverNote) {
+            details.push('رسالة الخادم: ' + options.serverNote);
+        }
+        if (details.length) {
+            html += '<div class="small text-muted mt-3">' + details.map(escapeHtml).join('<br>') + '</div>';
+        }
+
         if (response && response.debug) {
             html += '<hr class="my-3">';
             html += '<div class="small text-muted" dir="ltr" style="text-align:left; white-space:normal;">';
             html += '<div><strong>Exception:</strong> ' + escapeHtml(response.debug.exception) + '</div>';
+            if (response.debug.message) {
+                html += '<div><strong>Message:</strong> ' + escapeHtml(response.debug.message) + '</div>';
+            }
             html += '<div><strong>File:</strong> ' + escapeHtml(response.debug.file) + ':' + escapeHtml(response.debug.line) + '</div>';
             html += '</div>';
         }
 
         html += '</div>';
 
-        Swal.fire({
-            icon: 'error',
-            title: 'خطأ!',
+        const swalOptions = {
+            icon: options.icon || 'error',
+            title: options.title || 'خطأ!',
             html: html,
             width: 650
+        };
+
+        if (options.reload) {
+            swalOptions.showCancelButton = true;
+            swalOptions.confirmButtonText = '<i class="fas fa-sync-alt"></i> تحديث الصفحة';
+            swalOptions.cancelButtonText = 'إغلاق';
+        }
+
+        Swal.fire(swalOptions).then(function(result) {
+            if (options.reload && result.isConfirmed) {
+                window.location.reload();
+            }
         });
+    }
+
+    // يقرر ما يُعرض عند فشل طلب AJAX: رسالة الخادم إن كانت مفهومة، وإلا شرح مبني على حالة HTTP
+    function handleAjaxFailure(xhr, textStatus) {
+        const json = xhr && xhr.responseJSON && typeof xhr.responseJSON === 'object' ? xhr.responseJSON : null;
+        const info = describeHttpError(xhr, textStatus);
+        const status = xhr && xhr.status ? xhr.status : 0;
+        const serverExplains = json && (json.errors || (json.message && [400, 404, 409, 422].includes(status)));
+
+        if (serverExplains) {
+            showErrorResponse(json, info.message, {
+                title: info.title,
+                intro: status === 422 ? info.message : null,
+                status: status,
+                statusText: xhr.statusText
+            });
+            return;
+        }
+
+        showErrorResponse({ message: info.message, debug: json ? json.debug : null }, info.message, {
+            title: info.title,
+            reload: !!info.reload,
+            status: status,
+            statusText: xhr ? xhr.statusText : '',
+            serverNote: json && json.message ? json.message : null
+        });
+    }
+
+    // فحص حجم الملفات قبل الإرسال حتى لا يفشل الطلب بصمت على الخادم
+    function findUploadSizeProblem(formElement) {
+        let total = 0;
+        let tooBigFile = null;
+
+        formElement.querySelectorAll('input[type="file"]').forEach(function(input) {
+            Array.prototype.forEach.call(input.files || [], function(file) {
+                total += file.size;
+                if (uploadLimits.fileBytes > 0 && file.size > uploadLimits.fileBytes && !tooBigFile) {
+                    tooBigFile = file;
+                }
+            });
+        });
+
+        if (tooBigFile) {
+            return 'الملف "' + tooBigFile.name + '" حجمه ' + formatBytes(tooBigFile.size)
+                + ' ويتجاوز الحد المسموح للملف الواحد على الخادم (' + uploadLimits.fileLabel + '). اختر ملفاً أصغر ثم أعد المحاولة.';
+        }
+
+        if (uploadLimits.totalBytes > 0 && total > uploadLimits.totalBytes) {
+            return 'إجمالي حجم الملفات المرفقة ' + formatBytes(total)
+                + ' ويتجاوز الحد المسموح على الخادم (' + uploadLimits.totalLabel + '). قلّل عدد المرفقات أو حجمها ثم أعد المحاولة.';
+        }
+
+        return null;
     }
 
     // إرسال الطلب
@@ -449,6 +613,13 @@ $(document).ready(function() {
         const formData = new FormData(this);
 
         formData.set('submit_action', submitAction);
+
+        const uploadProblem = findUploadSizeProblem(this);
+        if (uploadProblem) {
+            showErrorResponse({ message: uploadProblem }, uploadProblem, { title: 'حجم الملفات كبير جداً', icon: 'warning' });
+            return;
+        }
+
         buttons.each(function() {
             $(this).data('original-html', $(this).html());
         }).prop('disabled', true);
@@ -460,7 +631,15 @@ $(document).ready(function() {
             data: formData,
             processData: false,
             contentType: false,
+            dataType: 'json',
+            headers: { 'Accept': 'application/json' },
+            timeout: 120000,
             success: function(response) {
+                if (!response || typeof response !== 'object') {
+                    handleAjaxFailure({ status: 200, statusText: 'OK', responseText: String(response ?? '') }, 'parsererror');
+                    return;
+                }
+
                 if (response.success) {
                     if (submitAction === 'save_and_invoice' && response.invoice_create_url) {
                         Swal.fire({
@@ -485,11 +664,14 @@ $(document).ready(function() {
                         window.location.href = response.show_url || '{{ route("SponsorshipTransfer.index") }}';
                     });
                 } else {
-                    showErrorResponse(response, 'حدث خطأ في حفظ طلب نقل الكفالة');
+                    showErrorResponse(response, 'لم يتم حفظ طلب نقل الكفالة. راجع البيانات وأعد المحاولة.', {
+                        title: 'لم يتم الحفظ',
+                        status: 200
+                    });
                 }
             },
-            error: function(xhr) {
-                showErrorResponse(xhr.responseJSON, 'حدث خطأ غير متوقع');
+            error: function(xhr, textStatus) {
+                handleAjaxFailure(xhr, textStatus);
             },
             complete: function() {
                 buttons.each(function() {
