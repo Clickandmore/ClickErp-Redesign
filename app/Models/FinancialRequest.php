@@ -14,6 +14,8 @@ use App\Models\Concerns\BranchScoped;
 
 class FinancialRequest extends Model
 {
+    use \App\Models\Concerns\AuditsChanges;
+
     use AssignsBranch, SoftDeletes, BranchScoped;
 
     public const STATUS_PREPARING = 'preparing';

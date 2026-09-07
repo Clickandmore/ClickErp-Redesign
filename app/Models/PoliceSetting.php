@@ -8,6 +8,8 @@ use Illuminate\Database\Eloquent\Model;
 
 class PoliceSetting extends Model implements TranslatableContract
 {
+    use \App\Models\Concerns\AuditsChanges;
+
     use Translatable;
 
     protected $table = 'police_settings';

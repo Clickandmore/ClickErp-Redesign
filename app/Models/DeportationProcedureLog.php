@@ -8,6 +8,8 @@ use App\Models\Auth\Admin;
 
 class DeportationProcedureLog extends Model
 {
+    use \App\Models\Concerns\AuditsChanges;
+
     use \App\Models\Concerns\AssignsBranch, \App\Models\Concerns\BranchScoped;
     use HasFactory;
 

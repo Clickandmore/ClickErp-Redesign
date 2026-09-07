@@ -8,6 +8,8 @@ use Illuminate\Database\Eloquent\Model;
 
 class Requirement extends Model
 {
+    use \App\Models\Concerns\AuditsChanges;
+
     use Translatable;
 
     protected $fillable = [

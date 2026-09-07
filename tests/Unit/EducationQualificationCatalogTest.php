@@ -10,12 +10,15 @@ use Tests\TestCase;
 
 class EducationQualificationCatalogTest extends TestCase
 {
+    use \Tests\Concerns\CreatesActivityLogTable;
+
     protected function setUp(): void
     {
         parent::setUp();
         view()->share('errors', new \Illuminate\Support\ViewErrorBag());
         config(['database.default' => 'sqlite', 'database.connections.sqlite.database' => ':memory:']);
         DB::purge('sqlite');
+        $this->createActivityLogTable();
         require_once database_path('migrations/2026_09_06_120000_create_education_qualifications_table.php');
         (new \CreateEducationQualificationsTable())->up();
         $visibilityMigration = require database_path('migrations/2026_09_06_130000_add_visibility_to_education_qualifications.php');

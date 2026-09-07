@@ -12,6 +12,8 @@ use App\Models\Concerns\BranchScoped;
 
 class ClientAttachment extends Model
 {
+    use \App\Models\Concerns\AuditsChanges;
+
     use AssignsBranch, HasFactory, BranchScoped;
 
     protected $fillable = [

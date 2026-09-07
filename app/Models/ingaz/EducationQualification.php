@@ -6,6 +6,8 @@ use Illuminate\Database\Eloquent\Model;
 
 class EducationQualification extends Model
 {
+    use \App\Models\Concerns\AuditsChanges;
+
     protected $fillable = ['title_ar', 'title_en', 'is_active'];
 
     protected $casts = ['is_active' => 'boolean'];

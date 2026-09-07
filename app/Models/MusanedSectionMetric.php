@@ -8,6 +8,8 @@ use Illuminate\Database\Eloquent\Model;
 
 class MusanedSectionMetric extends Model implements TranslatableContract
 {
+    use \App\Models\Concerns\AuditsChanges;
+
     use Translatable;
 
     public const TYPE_RATIO = 'ratio';

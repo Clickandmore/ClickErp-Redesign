@@ -8,6 +8,8 @@ use Illuminate\Database\Eloquent\Model;
 
 class FastNew extends Model
 {
+    use \App\Models\Concerns\AuditsChanges;
+
     use Translatable,HasFactory;
 
     protected $guarded = [];

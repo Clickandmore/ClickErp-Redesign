@@ -8,6 +8,8 @@ use Illuminate\Database\Eloquent\Model;
 
 class WhyChooseUsFeature extends Model implements TranslatableContract
 {
+    use \App\Models\Concerns\AuditsChanges;
+
     use Translatable;
 
     public const TYPE_FEATURE = 'feature';

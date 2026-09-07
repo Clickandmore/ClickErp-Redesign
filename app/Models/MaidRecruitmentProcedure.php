@@ -11,6 +11,8 @@ use App\Models\Concerns\BranchScoped;
 
 class MaidRecruitmentProcedure extends Model
 {
+    use \App\Models\Concerns\AuditsChanges;
+
     use AssignsBranch, BranchScoped;
 
     protected $fillable = [

@@ -7,6 +7,8 @@ use Illuminate\Database\Eloquent\Model;
 
 class WhatDoSettingTranslation extends Model
 {
+    use \App\Models\Concerns\AuditsChanges;
+
     use HasFactory;
 
     public $timestamps = false;

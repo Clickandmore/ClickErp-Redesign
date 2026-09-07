@@ -9,6 +9,8 @@ use Illuminate\Database\Eloquent\Model;
 
 class MaidExpertise extends Model
 {
+    use \App\Models\Concerns\AuditsChanges;
+
     use \App\Models\Concerns\AssignsBranch, \App\Models\Concerns\BranchScoped;
     protected $fillable = ['maid_id', 'country_id', 'work_city', 'start_date', 'end_date', 'number_of_years', 'job_title_id'];
 

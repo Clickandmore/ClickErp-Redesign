@@ -6,6 +6,8 @@ use Illuminate\Database\Eloquent\Model;
 
 class WhyChooseUsImage extends Model
 {
+    use \App\Models\Concerns\AuditsChanges;
+
     protected $fillable = [
         'why_choose_us_id',
         'path',

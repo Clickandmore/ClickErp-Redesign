@@ -14,6 +14,8 @@ use Illuminate\Database\Eloquent\Model;
  */
 class Question extends Model
 {
+    use \App\Models\Concerns\AuditsChanges;
+
     protected $table = 'crm_questions';
     /**
      * The "type" of the auto-incrementing ID.

@@ -6,6 +6,8 @@ use Illuminate\Database\Eloquent\Model;
 
 class GuidelineVideo extends Model
 {
+    use \App\Models\Concerns\AuditsChanges;
+
     protected $fillable = ['youtube_url'];
 
     public function section()

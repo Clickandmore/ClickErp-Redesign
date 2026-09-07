@@ -4,7 +4,7 @@ namespace App\Console\Commands;
 
 use Illuminate\Console\Command;
 use App\Models\Permission;
-use Spatie\Permission\Models\Role;
+use App\Models\Role;
 
 class TestContractPermissionsCommand extends Command
 {

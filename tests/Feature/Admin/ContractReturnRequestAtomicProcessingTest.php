@@ -16,6 +16,8 @@ use Tests\TestCase;
 
 class ContractReturnRequestAtomicProcessingTest extends TestCase
 {
+    use \Tests\Concerns\CreatesActivityLogTable;
+
     private string $originalConnection;
 
     protected function setUp(): void
@@ -33,6 +35,7 @@ class ContractReturnRequestAtomicProcessingTest extends TestCase
             ],
         ]);
         DB::purge('return_request_test');
+        $this->createActivityLogTable();
 
         Schema::create('contracts', function (Blueprint $table) {
             $table->id();

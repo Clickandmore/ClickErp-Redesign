@@ -26,6 +26,11 @@ class LegacyActivityLogImportService
 
     public function import(UploadedFile $file, ?int $adminId): array
     {
+        $database = DB::connection()->getDatabaseName();
+        if (!in_array($database, config('legacy_activity_import.alrafedin_databases', []), true)) {
+            throw new \RuntimeException('استيراد سجل الرافدين غير مسموح لقاعدة البيانات الحالية. يجب التحقق من الشركة وتحديد قاعدة الرافدين المصرح بها صراحةً قبل الاستيراد.');
+        }
+
         $this->ensureSchemaIsReady();
 
         $storedPath = $this->templates->storeUploadedFile('legacy_activity_logs', $file, $adminId);
@@ -67,10 +72,6 @@ class LegacyActivityLogImportService
                     $existingIds[$legacyId] = true;
                 }
 
-                if (count($pending) >= self::CHUNK_SIZE) {
-                    $this->upsert($pending);
-                    $pending = [];
-                }
             } catch (\Throwable $exception) {
                 $result['skipped']++;
                 $result['error_count']++;
@@ -78,6 +79,11 @@ class LegacyActivityLogImportService
                 if (count($result['errors']) < self::MAX_ERROR_DETAILS) {
                     $result['errors'][] = "صف {$rowNumber}: {$exception->getMessage()}";
                 }
+            }
+
+            if (count($pending) >= self::CHUNK_SIZE) {
+                $this->upsert($pending);
+                $pending = [];
             }
         }
 
@@ -265,10 +271,12 @@ class LegacyActivityLogImportService
 
     private function adminNameMap(): array
     {
-        return Admin::query()
+        return Admin::withTrashed()
             ->whereNotNull('name')
             ->get(['id', 'name'])
-            ->mapWithKeys(fn (Admin $admin) => [$this->normalizeName($admin->name) => $admin->id])
+            ->groupBy(fn (Admin $admin) => $this->normalizeName($admin->name))
+            ->filter(fn ($admins) => $admins->count() === 1)
+            ->map(fn ($admins) => $admins->first()->id)
             ->all();
     }
 

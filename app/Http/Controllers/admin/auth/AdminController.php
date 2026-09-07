@@ -29,7 +29,7 @@ use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use App\Mail\ResetPasswordMail;
-use Spatie\Permission\Models\Role;
+use App\Models\Role;
 use Yajra\DataTables\DataTables;
 
 
@@ -689,6 +689,11 @@ class AdminController extends Controller
             return response()->json(['message' => __('admin.cannot_impersonate_suspended_employee')], 422);
         }
 
+        activity('authentication')->causedBy(Auth::guard('admin')->user())
+            ->performedOn($admin)->event('impersonated')
+            ->withProperties(['impersonator_admin_id' => Auth::guard('admin')->id(), 'target_admin_id' => $admin->id])
+            ->log('الدخول بحساب مستخدم آخر');
+
         $request->session()->put('impersonator_admin_id', Auth::guard('admin')->id());
         Auth::guard('admin')->login($admin);
         $this->startAdminSession($request, $admin);
@@ -827,39 +832,35 @@ class AdminController extends Controller
     private function reassignAdminWork(int $fromAdminId, int $toAdminId): void
     {
         if (Schema::hasColumn('orders', 'customer_id')) {
-            DB::table('orders')
-                ->where('customer_id', $fromAdminId)
-                ->update([
-                    'customer_id' => $toAdminId,
-                    'updated_at' => now(),
-                ]);
+            \App\Support\Audit\AuditedBulkUpdate::update(
+                DB::table('orders')->where('customer_id', $fromAdminId),
+                \App\Models\ingaz\Order::class,
+                ['customer_id' => $toAdminId, 'updated_at' => now()]
+            );
         }
 
         if (Schema::hasTable('order_details') && Schema::hasColumn('order_details', 'admin_id')) {
-            DB::table('order_details')
-                ->where('admin_id', $fromAdminId)
-                ->update([
-                    'admin_id' => $toAdminId,
-                    'updated_at' => now(),
-                ]);
+            \App\Support\Audit\AuditedBulkUpdate::update(
+                DB::table('order_details')->where('admin_id', $fromAdminId),
+                \App\Models\ingaz\OrderDetail::class,
+                ['admin_id' => $toAdminId, 'updated_at' => now()]
+            );
         }
 
         if (Schema::hasTable('contracts') && Schema::hasColumn('contracts', 'marketer_id')) {
-            DB::table('contracts')
-                ->where('marketer_id', $fromAdminId)
-                ->update([
-                    'marketer_id' => $toAdminId,
-                    'updated_at' => now(),
-                ]);
+            \App\Support\Audit\AuditedBulkUpdate::update(
+                DB::table('contracts')->where('marketer_id', $fromAdminId),
+                \App\Models\Contract::class,
+                ['marketer_id' => $toAdminId, 'updated_at' => now()]
+            );
         }
 
         if (Schema::hasTable('rental_contracts') && Schema::hasColumn('rental_contracts', 'marketer_id')) {
-            DB::table('rental_contracts')
-                ->where('marketer_id', $fromAdminId)
-                ->update([
-                    'marketer_id' => $toAdminId,
-                    'updated_at' => now(),
-                ]);
+            \App\Support\Audit\AuditedBulkUpdate::update(
+                DB::table('rental_contracts')->where('marketer_id', $fromAdminId),
+                \App\Models\RentalContract::class,
+                ['marketer_id' => $toAdminId, 'updated_at' => now()]
+            );
         }
     }
 

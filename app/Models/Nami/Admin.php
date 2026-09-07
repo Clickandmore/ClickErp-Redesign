@@ -6,12 +6,21 @@ use App\Models\Branch;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
-use Spatie\Permission\Models\Role;
+use App\Models\Role;
 use Spatie\Permission\Traits\HasRoles;
 
 class Admin extends Authenticatable
 {
-    use HasFactory, HasRoles;
+    use \App\Models\Concerns\AuditsChanges;
+
+    use HasFactory;
+    use HasRoles { syncPermissions as protected syncPermissionsWithoutAudit; }
+
+    public function syncPermissions(...$permissions)
+    {
+        return \App\Support\Audit\PermissionSync::run($this, fn () => $this->syncPermissionsWithoutAudit(...$permissions));
+    }
+
     protected $table ='admins';
     // protected $guard = 'admin';
     protected $guarded = [];

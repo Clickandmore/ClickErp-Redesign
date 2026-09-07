@@ -9,6 +9,8 @@ use Illuminate\Database\Eloquent\Model;
 
 class ClientPollAnswer extends Model
 {
+    use \App\Models\Concerns\AuditsChanges;
+
     use \App\Models\Concerns\AssignsBranch, \App\Models\Concerns\BranchScoped;
     use HasFactory;
     protected $table = "crm_client_poll_answers";

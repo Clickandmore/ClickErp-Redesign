@@ -18,6 +18,8 @@ use App\Models\Concerns\BranchScoped;
 
 class IngazDelegation extends Model
 {
+    use \App\Models\Concerns\AuditsChanges;
+
     use AssignsBranch, HasFactory, BranchScoped;
 
     public const STATUS_UNDER_PROCESS = 'under_process';

@@ -7,6 +7,8 @@ use Illuminate\Database\Eloquent\Model;
 
 class SmsTemplate extends Model
 {
+    use \App\Models\Concerns\AuditsChanges;
+
     use HasFactory;
 
     public const CHANNEL_SMS = 'sms';

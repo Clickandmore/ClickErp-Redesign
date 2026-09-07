@@ -9,6 +9,8 @@ use Astrotomic\Translatable\Translatable;
 
 class Testimonial extends Model implements TranslatableContract
 {
+    use \App\Models\Concerns\AuditsChanges;
+
     use Translatable;
     public $translatedAttributes = ['name', 'job', 'message'];
     protected $fillable = ['image'];

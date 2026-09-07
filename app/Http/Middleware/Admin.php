@@ -4,7 +4,6 @@ namespace App\Http\Middleware;
 
 use Closure;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Schema;
 
 class Admin
@@ -12,7 +11,7 @@ class Admin
 
     public function handle($request, Closure $next = null, $guard = null)
     {
-        Config::set('auth.defaults.guard', 'admin');
+        Auth::shouldUse('admin');
         if (Auth::guard('admin')->check()) {
             $admin = Auth::guard('admin')->user();
 

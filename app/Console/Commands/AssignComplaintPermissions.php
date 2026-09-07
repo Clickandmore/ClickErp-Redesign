@@ -5,7 +5,7 @@ namespace App\Console\Commands;
 use Illuminate\Console\Command;
 use App\Models\auth\Admin;
 use Spatie\Permission\Models\Permission;
-use Spatie\Permission\Models\Role;
+use App\Models\Role;
 
 class AssignComplaintPermissions extends Command
 {

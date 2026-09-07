@@ -9,6 +9,8 @@ use Astrotomic\Translatable\Translatable;
 
 class WhatDo extends Model implements TranslatableContract
 {
+    use \App\Models\Concerns\AuditsChanges;
+
     use Translatable, Concerns\ResolvesMediaUrls;
 
     protected array $mediaUrlColumns = ['image'];

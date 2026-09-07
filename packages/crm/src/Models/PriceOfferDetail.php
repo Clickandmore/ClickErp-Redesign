@@ -8,6 +8,8 @@ use PhpOffice\PhpSpreadsheet\Calculation\Web\Service;
 
 class PriceOfferDetail extends Model
 {
+    use \App\Models\Concerns\AuditsChanges;
+
     use HasFactory;
     protected $table = 'crm_price_offers_details';
     protected $fillable = ['price_offer_id', 'service_id', 'amount', 'price', 'discount', 'description'];

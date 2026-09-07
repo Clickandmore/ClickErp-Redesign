@@ -562,7 +562,9 @@ class Contract extends Model
     {
         return LogOptions::defaults()
             ->logOnly(['*'])
-            ->logOnlyDirty();
+            ->logOnlyDirty()
+            ->dontLogIfAttributesChangedOnly(['updated_at'])
+            ->dontSubmitEmptyLogs();
     }
 
     /**

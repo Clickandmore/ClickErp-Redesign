@@ -30,6 +30,8 @@ use Illuminate\Database\Eloquent\Model;
 
 class Setting extends Model
 {
+    use \App\Models\Concerns\AuditsChanges;
+
     use Translatable, HasFactory;
     protected $with = ['translations'];
     protected $translationForeignKey = 'setting_id';

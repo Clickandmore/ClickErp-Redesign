@@ -11,7 +11,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rule;
-use Spatie\Permission\Models\Role;
+use App\Models\Role;
 use Spatie\Permission\PermissionRegistrar;
 
 class PermissionsController extends Controller

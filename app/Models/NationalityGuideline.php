@@ -7,6 +7,8 @@ use Illuminate\Database\Eloquent\Model;
 
 class NationalityGuideline extends Model
 {
+    use \App\Models\Concerns\AuditsChanges;
+
     protected $fillable = ['nationality_id'];
 
     public function section()

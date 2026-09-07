@@ -13,6 +13,8 @@ use Nami\Finance\Models\CostCenter;
 
 class CommissionBatch extends Model
 {
+    use \App\Models\Concerns\AuditsChanges;
+
     use AssignsBranch, BranchScoped;
 
     protected $table = 'commission_batches';

@@ -9,6 +9,8 @@ use App\Models\Message;
 
 class Conversation extends Model
 {
+    use \App\Models\Concerns\AuditsChanges;
+
     use HasFactory;
 
     protected $guarded = [];

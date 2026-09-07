@@ -7,6 +7,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class ClientImportDetail extends Model
 {
+    use \App\Models\Concerns\AuditsChanges;
+
     use \App\Models\Concerns\AssignsBranch, \App\Models\Concerns\BranchScoped;
     protected $guarded = [];
 

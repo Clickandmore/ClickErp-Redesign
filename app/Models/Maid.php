@@ -12,6 +12,8 @@ use App\Models\Concerns\BranchScoped;
 
 class Maid extends Model
 {
+    use \App\Models\Concerns\AuditsChanges;
+
     use BranchScoped;
 
 

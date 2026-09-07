@@ -26,6 +26,7 @@ class AdminSuspensionMiddlewareTest extends TestCase
         $guard->shouldReceive('user')->once()->andReturn((object) ['status' => 'suspended']);
         $guard->shouldReceive('logout')->once();
 
+        Auth::shouldReceive('shouldUse')->once()->with('admin');
         Auth::shouldReceive('guard')->times(3)->with('admin')->andReturn($guard);
 
         $nextWasCalled = false;
@@ -56,6 +57,7 @@ class AdminSuspensionMiddlewareTest extends TestCase
             'current_session_id' => null,
         ]);
 
+        Auth::shouldReceive('shouldUse')->once()->with('admin');
         Auth::shouldReceive('guard')->twice()->with('admin')->andReturn($guard);
 
         $response = app(Admin::class)->handle($request, fn () => response('allowed'));

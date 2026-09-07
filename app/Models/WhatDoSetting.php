@@ -8,6 +8,8 @@ use Illuminate\Database\Eloquent\Model;
 
 class WhatDoSetting extends Model  implements TranslatableContract
 {
+    use \App\Models\Concerns\AuditsChanges;
+
     use \Astrotomic\Translatable\Translatable;
 
     public $translatedAttributes = ['title', 'description'];

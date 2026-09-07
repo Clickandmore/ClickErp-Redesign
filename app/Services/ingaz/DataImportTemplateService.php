@@ -16,22 +16,6 @@ class DataImportTemplateService
     public function templates(): array
     {
         $templates = [
-            'legacy_activity_logs' => [
-                'label' => 'سجل النشاط القديم (الرافدين)',
-                'route_hint' => '/dash/activity-log?log_name=legacy_activity',
-                'icon' => 'fas fa-history',
-                'description' => 'استيراد تقرير سجل العمل اليومي من النظام السابق مع حفظ الرقم والملاحظة والتاريخ والوقت واسم المستخدم، ومنع تكرار السجل عند إعادة رفع الملف.',
-                'filename' => 'legacy-activity-log.xlsx',
-                'downloadable' => false,
-                'columns' => [
-                    ['key' => 'legacy_id', 'label' => 'م', 'required' => true, 'example' => '1'],
-                    ['key' => 'note', 'label' => 'ملاحظة', 'required' => true, 'example' => 'أضاف عميل جديد: اسم العميل / 1'],
-                    ['key' => 'hijri_date', 'label' => 'تاريخ هجري', 'required' => false, 'example' => '08-04-1439'],
-                    ['key' => 'gregorian_date', 'label' => 'تاريخ ميلادي', 'required' => true, 'example' => '2017-12-26'],
-                    ['key' => 'time', 'label' => 'الوقت', 'required' => true, 'example' => '10:34:32'],
-                    ['key' => 'user_name', 'label' => 'بواسطة المستخدم', 'required' => true, 'example' => 'System Admin'],
-                ],
-            ],
             'clients' => [
                 'label' => 'العملاء',
                 'route_hint' => '/admin/clients',

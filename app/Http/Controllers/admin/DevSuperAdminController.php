@@ -520,9 +520,15 @@ class DevSuperAdminController extends Controller
             return back()->withErrors(['admin' => 'لا يمكن الدخول كموظف موقوف.']);
         }
 
+        activity('authentication')->causedByAnonymous()->performedOn($admin)
+            ->event('impersonated')->withProperties([
+                'actor_name' => 'مدير النظام المطور',
+                'dev_superadmin_impersonating' => true,
+                'target_admin_id' => $admin->id,
+            ])->log('الدخول بحساب مستخدم من لوحة المطور');
+        $request->session()->put('dev_superadmin_impersonating', true);
         Auth::guard('admin')->login($admin);
         $this->startAdminSession($request, $admin);
-        $request->session()->put('dev_superadmin_impersonating', true);
 
         return redirect(SystemModuleManager::defaultDashboardUrl());
     }

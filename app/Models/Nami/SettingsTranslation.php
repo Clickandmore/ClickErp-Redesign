@@ -18,6 +18,8 @@ use Illuminate\Database\Eloquent\Model;
  */
 class SettingsTranslation extends Model
 {
+    use \App\Models\Concerns\AuditsChanges;
+
     /**
      * The "type" of the auto-incrementing ID.
      *

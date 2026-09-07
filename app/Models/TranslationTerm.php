@@ -6,6 +6,8 @@ use Illuminate\Database\Eloquent\Model;
 
 class TranslationTerm extends Model
 {
+    use \App\Models\Concerns\AuditsChanges;
+
     protected $fillable = [
         'group',
         'key',

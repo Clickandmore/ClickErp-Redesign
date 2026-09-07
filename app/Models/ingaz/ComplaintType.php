@@ -6,6 +6,8 @@ use Illuminate\Database\Eloquent\Model;
 
 class ComplaintType extends Model
 {
+    use \App\Models\Concerns\AuditsChanges;
+
     protected $fillable = [
         'name', 'complainant_type', 'against_type', 'description', 'is_active', 'sort_order',
     ];

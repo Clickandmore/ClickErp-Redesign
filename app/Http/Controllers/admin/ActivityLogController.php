@@ -3,7 +3,6 @@
 namespace App\Http\Controllers\admin;
 
 use App\Enums\ingaz\ContractStatusEnum;
-use App\Keys;
 use App\Models\auth\Admin;
 use App\Models\Contract;
 use App\Models\ContractInfo;
@@ -35,13 +34,22 @@ class ActivityLogController extends Controller
 
     public function index(Request $request)
     {
+        $request->validate([
+            'date_from' => ['nullable', 'date_format:Y-m-d'],
+            'date_to' => array_merge(['nullable', 'date_format:Y-m-d'], $request->filled('date_from') ? ['after_or_equal:date_from'] : []),
+            'subject_id' => ['nullable', 'integer', 'min:1'],
+            'employee_id' => ['nullable', 'integer', 'min:1'],
+        ]);
+
         $query = Activity::query()
-            ->with(['causer', 'subject'])
-            ->orderBy(Keys::id, Keys::desc);
+            ->orderByDesc('created_at')
+            ->orderByDesc('id');
 
         $this->applyFilters($query, $request);
 
         $data = $query->paginate(self::PER_PAGE)->withQueryString();
+
+        \App\Support\Audit\ActivityRelations::load($data->getCollection());
 
         $data->setCollection(
             $data->getCollection()->map(fn(Activity $activity) => $this->transformActivity($activity))
@@ -107,7 +115,7 @@ class ActivityLogController extends Controller
     private function buildFilterOptions(): array
     {
         $employees = Admin::query()
-            ->activeForOperations()
+            ->withTrashed()
             ->whereIn(
                 'id',
                 Activity::query()
@@ -157,7 +165,7 @@ class ActivityLogController extends Controller
                 ->mapWithKeys(fn ($logName) => [
                     $logName => $logName === LegacyActivityLogImportService::LOG_NAME
                         ? 'سجل النظام السابق'
-                        : ($logName === 'default' ? 'سجل النظام الحالي' : Str::headline((string) $logName)),
+                        : (['default' => 'سجل النظام الحالي', 'domain_history' => 'السجلات التاريخية المدمجة', 'finance' => 'المالية', 'hr' => 'الموارد البشرية', 'crm' => 'علاقات العملاء', 'authentication' => 'الدخول والحسابات', 'permissions' => 'الصلاحيات', 'settings' => 'إعدادات النظام'][$logName] ?? Str::headline((string) $logName)),
                 ])
                 ->all(),
         ];
@@ -178,6 +186,7 @@ class ActivityLogController extends Controller
 
     private function transformActivity(Activity $activity): array
     {
+        $activity->properties = \App\Support\Audit\AuditProperties::sanitize($activity->properties?->toArray() ?? []);
         $event = strtolower((string) ($activity->event ?: $activity->description ?: ''));
         $isLegacy = $activity->log_name === LegacyActivityLogImportService::LOG_NAME;
         $subjectType = (string) $activity->subject_type;
@@ -204,9 +213,11 @@ class ActivityLogController extends Controller
             'subject_id' => $subjectId,
             'subject_label' => $subjectLabel,
             'subject_descriptor' => $subjectDescriptor,
-            'summary' => $isLegacy
+            'summary' => data_get($activity, 'properties.historical_import')
+                ? 'سجل تاريخي — ' . trim((string) $activity->description)
+                : ($isLegacy
                 ? trim((string) $activity->description)
-                : $this->buildSummary($activity, $event, $subjectLabel, $subjectDescriptor),
+                : $this->buildSummary($activity, $event, $subjectLabel, $subjectDescriptor)),
             'description' => $isLegacy
                 ? 'سجل مستورد من نظام الرافدين السابق.'
                 : $this->buildDescription($activity, $event, $changes),
@@ -227,7 +238,11 @@ class ActivityLogController extends Controller
     {
         $actor = $this->resolveActivityCauserName($activity);
         $action = $this->resolveActivityActionLabel($event);
-        $summary = 'قام ' . $actor . ' بـ' . $action . ' ' . $subjectLabel;
+        $hasActor = $activity->causer_id || filled(data_get($activity, 'properties.actor_name'));
+        $summary = $hasActor
+            ? 'قام ' . $actor . ' بـ' . $action . ' ' . $subjectLabel
+            : 'تم ' . $action . ' ' . $subjectLabel;
+
 
         if ($subjectDescriptor) {
             $summary .= ' - ' . $subjectDescriptor;
@@ -244,6 +259,16 @@ class ActivityLogController extends Controller
             return $customDescription;
         }
 
+        if ($event === 'updated' && empty($changes)) {
+            $fields = array_unique(array_merge(
+                array_keys((array) data_get($activity, 'properties.attributes', [])),
+                array_keys((array) data_get($activity, 'properties.old', []))
+            ));
+            if ($fields !== [] && array_diff($fields, ['updated_at']) === []) {
+                return 'تم تحديث توقيت حفظ السجل فقط، دون تغيير بياناته.';
+            }
+        }
+
         if ($event === 'updated' && !empty($changes)) {
             $fieldLabels = collect($changes)->pluck('label')->take(4)->implode('، ');
             $suffix = count($changes) > 4 ? ' وغير ذلك' : '';
@@ -254,6 +279,8 @@ class ActivityLogController extends Controller
         return match ($event) {
             'created' => 'تم إنشاء هذا السجل وإضافة بياناته الأساسية.',
             'deleted' => 'تم حذف هذا السجل أو إزالته من سياق العمل.',
+            'force_deleted' => 'تم حذف هذا السجل نهائياً ولا يمكن استرجاعه.',
+            'restored' => 'تمت إعادة هذا السجل بعد حذفه.',
             default => 'تم تنفيذ هذا الإجراء على السجل المحدد.',
         };
     }
@@ -305,7 +332,17 @@ class ActivityLogController extends Controller
             'created' => 'إضافة',
             'updated' => 'تحديث',
             'deleted' => 'حذف',
+            'force_deleted' => 'حذف نهائي',
+            'restored' => 'استرجاع',
             'legacy' => 'نشاط سابق',
+            'login' => 'تسجيل الدخول',
+            'logout' => 'تسجيل الخروج',
+            'login_failed' => 'محاولة دخول فاشلة',
+            'impersonated' => 'الدخول بحساب آخر',
+            'role_attached' => 'إسناد دور',
+            'role_detached' => 'إلغاء دور',
+            'permission_attached' => 'منح صلاحية',
+            'permission_detached' => 'إلغاء صلاحية',
             default => 'تنفيذ إجراء',
         };
     }
@@ -315,7 +352,8 @@ class ActivityLogController extends Controller
         return match ($event) {
             'created' => 'is-created',
             'updated' => 'is-updated',
-            'deleted' => 'is-deleted',
+            'deleted', 'force_deleted' => 'is-deleted',
+            'restored' => 'is-created',
             default => 'is-generic',
         };
     }
@@ -326,8 +364,12 @@ class ActivityLogController extends Controller
             return 'مستخدم النظام السابق';
         }
 
+        if (data_get($activity, 'properties.execution_source') === 'console') {
+            return 'تنفيذ آلي للنظام';
+        }
+
         if (!$activity->causer) {
-            return 'تنفيذ آلي';
+            return $activity->causer_id ? 'مستخدم سابق' : 'لم تُحفظ هوية المنفذ عند تسجيل العملية';
         }
 
         if ((string) $activity->causer_type === Admin::class) {
@@ -353,6 +395,11 @@ class ActivityLogController extends Controller
 
     private function resolveSubjectTypeLabel(string $subjectType, $subject = null): string
     {
+        $label = config('audit.subject_labels.' . $subjectType);
+        if ($label) {
+            return $label;
+        }
+
         if (Str::startsWith($subjectType, 'Nami\\Finance\\Models\\')) {
             return $this->resolvePackageSubjectLabel($subjectType, 'finance');
         }
@@ -372,6 +419,7 @@ class ActivityLogController extends Controller
             Invoice::class => 'الفاتورة',
             Maid::class => 'السيرة الذاتية',
             User::class => 'العميل',
+            Admin::class => 'مستخدم النظام',
             Office::class => 'مكتب الاستقدام',
             default => $subjectType ? Str::headline(class_basename($subjectType)) : 'السجل',
         };
@@ -465,20 +513,12 @@ class ActivityLogController extends Controller
 
     private function resolveSubjectDescriptor(Activity $activity): ?string
     {
-        $candidates = [
-            data_get($activity, 'subject.name'),
-            data_get($activity, 'subject.title'),
-            data_get($activity, 'subject.contract_number'),
-            data_get($activity, 'subject.passport_num'),
-            data_get($activity, 'subject.phone'),
-            data_get($activity, 'subject.email'),
-            data_get($activity, 'properties.attributes.name'),
-            data_get($activity, 'properties.attributes.title'),
-            data_get($activity, 'properties.attributes.contract_number'),
-            data_get($activity, 'properties.attributes.passport_num'),
-            data_get($activity, 'properties.attributes.phone'),
-            data_get($activity, 'properties.attributes.email'),
-        ];
+        $candidates = [];
+        foreach (['properties.attributes', 'properties.old', 'subject'] as $source) {
+            foreach (['name', 'title', 'contract_number', 'passport_num', 'phone', 'email'] as $field) {
+                $candidates[] = data_get($activity, $source . '.' . $field);
+            }
+        }
 
         $value = collect($candidates)->first(fn($candidate) => filled($candidate));
 
@@ -490,8 +530,24 @@ class ActivityLogController extends Controller
         $subject = $activity->subject;
         $subjectType = (string) $activity->subject_type;
 
-        if (!$subject && $event === 'deleted') {
+        if (!$subject) {
             return null;
+        }
+
+        if (in_array($subjectType, [\App\Models\ContractStatusLog::class, \App\Models\RecruitmentContractRefund::class, \App\Models\ContractPayment::class, \App\Models\DeportationProcedure::class], true)) {
+            return $subject->contract_id ? $this->resolveContractUrl((int) $subject->contract_id) : null;
+        }
+        if ($subjectType === \App\Models\DeportationProcedureLog::class) {
+            $procedure = \App\Models\DeportationProcedure::find($subject->deportation_procedure_id);
+            return $procedure?->contract_id ? $this->resolveContractUrl((int) $procedure->contract_id) : null;
+        }
+        if ($subjectType === \App\Models\FinancialRequestStatusLog::class) {
+            return \App\Models\FinancialRequest::whereKey($subject->financial_request_id)->exists()
+                ? $this->routeIfExists('financial-requests.show', (int) $subject->financial_request_id) : null;
+        }
+        if (in_array($subjectType, [\App\Models\RentalContractInvoice::class, \App\Models\RentalFinancialAdjustment::class, \App\Models\RentalContractExtension::class], true)) {
+            return RentalContract::whereKey($subject->rental_contract_id)->exists()
+                ? $this->routeIfExists('RentContract.show', (int) $subject->rental_contract_id) : null;
         }
 
         if ($subjectType === ContractInfo::class) {
@@ -510,6 +566,9 @@ class ActivityLogController extends Controller
 
         return match ($subjectType) {
             Contract::class => $this->resolveContractUrl($subjectId, $subject),
+            \App\Models\MusanedTransfer::class => $this->routeIfExists('musaned-transfers.show', $subjectId),
+            \App\Models\IngazDelegation::class => $this->routeIfExists('ingaz-delegations.show', $subjectId),
+            \App\Models\FinancialRequest::class => $this->routeIfExists('financial-requests.show', $subjectId),
             RentalContract::class => $this->routeIfExists('RentContract.show', $subjectId),
             SponsorshipTransfer::class => $this->routeIfExists('SponsorshipTransfer.show', $subjectId),
             TransferServiceContract::class => $this->routeIfExists('TransferServiceContract.show', $subjectId),
@@ -525,6 +584,10 @@ class ActivityLogController extends Controller
 
     private function resolveContractUrl(int $contractId, $subject = null): ?string
     {
+        if (!$subject && !Contract::whereKey($contractId)->exists()) {
+            return null;
+        }
+
         $status = data_get($subject, 'status') ?: $this->resolveContractStatus($contractId);
         $route = $status === ContractStatusEnum::Shelter->value
             ? 'ShelterContract.show'
@@ -637,6 +700,37 @@ class ActivityLogController extends Controller
             'has_final_exit' => 'الخروج النهائي',
             'old_sponsor_id' => 'الكفيل السابق',
             'new_sponsor_id' => 'الكفيل الجديد',
+            'username' => 'اسم الدخول',
+            'role_id' => 'الصلاحية',
+            'branch_id' => 'الفرع',
+            'is_branch_manager' => 'مدير الفرع',
+            'admin_type' => 'نوع المستخدم',
+            'is_developer' => 'حساب مطوّر',
+            'identity_number' => 'رقم الهوية',
+            'identity_expiry_date' => 'انتهاء الهوية',
+            'whatsapp' => 'واتساب',
+            'lang' => 'اللغة',
+            'note' => 'الملاحظات',
+            'previous_status' => 'الحالة السابقة',
+            'from_status' => 'من الحالة',
+            'to_status' => 'إلى الحالة',
+            'old_value' => 'القيمة السابقة',
+            'new_value' => 'القيمة الجديدة',
+            'field_name' => 'الحقل المعدل',
+            'performed_by_id' => 'منفذ الإجراء',
+            'action_type' => 'نوع الإجراء',
+            'description' => 'الوصف',
+            'key' => 'مفتاح الإعداد',
+            'permission_ids' => 'الصلاحيات',
+            'amount' => 'المبلغ',
+            'subtotal' => 'الإجمالي قبل الضريبة',
+            'vat_amount' => 'قيمة الضريبة',
+            'total_due' => 'الإجمالي المستحق',
+            'refund_amount' => 'المبلغ المسترد',
+            'penalty_amount' => 'مبلغ الخصم',
+            'commission_amount' => 'قيمة العمولة',
+            'attachments' => 'المرفقات',
+            'remarks' => 'ملاحظات الإجراء',
         ];
 
         return $labels[$field] ?? Str::headline(str_replace('_', ' ', $field));

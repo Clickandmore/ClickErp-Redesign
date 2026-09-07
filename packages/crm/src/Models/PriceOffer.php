@@ -10,6 +10,8 @@ use Illuminate\Database\Eloquent\Model;
 
 class PriceOffer extends Model
 {
+    use \App\Models\Concerns\AuditsChanges;
+
     use \App\Models\Concerns\AssignsBranch, \App\Models\Concerns\BranchScoped;
     use HasFactory;
     protected $table = 'crm_price_offers';

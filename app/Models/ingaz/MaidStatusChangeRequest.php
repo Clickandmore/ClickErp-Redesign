@@ -8,6 +8,8 @@ use Illuminate\Database\Eloquent\Model;
 
 class MaidStatusChangeRequest extends Model
 {
+    use \App\Models\Concerns\AuditsChanges;
+
     use \App\Models\Concerns\AssignsBranch, \App\Models\Concerns\BranchScoped;
     public const TYPE_SUSPEND = 'suspend';
     public const TYPE_BACKOUT = 'backout';

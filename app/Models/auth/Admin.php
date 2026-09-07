@@ -6,13 +6,16 @@ use App\Models\ingaz\ComplaintComment;
 use App\Models\Branch;
 use App\Models\office\AdminOffice;
 use App\Models\office\Office;
-use Spatie\Permission\Models\Role;
+use App\Models\Role;
 use Spatie\Permission\Traits\HasRoles;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
+use Spatie\Activitylog\Contracts\Activity as ActivityContract;
+use Spatie\Activitylog\LogOptions;
+use Spatie\Activitylog\Traits\LogsActivity;
 use App\Models\commissions\CommissionMarketerOverride;
 use App\Models\IngazDelegation;
 use App\Models\ingaz\Maid;
@@ -20,7 +23,14 @@ use Nami\Finance\Models\Account;
 
 class Admin extends Authenticatable
 {
-    use HasFactory, HasRoles, Notifiable, SoftDeletes;
+    use HasFactory, LogsActivity, Notifiable, SoftDeletes;
+    use HasRoles { syncPermissions as protected syncPermissionsWithoutAudit; }
+
+    public function syncPermissions(...$permissions)
+    {
+        return \App\Support\Audit\PermissionSync::run($this, fn () => $this->syncPermissionsWithoutAudit(...$permissions));
+    }
+
     protected $table ='admins';
     protected $guarded = [];
     protected $guard_name = 'admin';
@@ -30,6 +40,50 @@ class Admin extends Authenticatable
         'last_login_at' => 'datetime',
         'last_activity_at' => 'datetime',
     ];
+
+    /**
+     * تسجيل حركات إضافة/تعديل/حذف/استرجاع المستخدمين في سجل حركة النظام.
+     *
+     * الحقول الحساسة (كلمة المرور، التوكنات، بصمة الجلسة) مستثناة عمداً،
+     * وكذلك last_activity_at لأن ميدلوير Admin يحدّثه كل دقيقة فيغرق السجل.
+     */
+    public function getActivitylogOptions(): LogOptions
+    {
+        return LogOptions::defaults()
+            ->logOnly([
+                'name',
+                'username',
+                'phone',
+                'whatsapp',
+                'email',
+                'image',
+                'admin_type',
+                'status',
+                'note',
+                'sort',
+                'role_id',
+                'branch_id',
+                'is_branch_manager',
+                'lang',
+                'is_developer',
+                'sex_type',
+                'identity_number',
+                'identity_expiry_date',
+            ])
+            ->logOnlyDirty()
+            ->dontSubmitEmptyLogs();
+    }
+
+    /**
+     * تمييز الحذف النهائي عن الحذف المؤقت، لأن Eloquent يطلق حدث deleted في الحالتين.
+     */
+    public function tapActivity(ActivityContract $activity, string $eventName): void
+    {
+        if ($eventName === 'deleted' && $this->isForceDeleting()) {
+            $activity->event = 'force_deleted';
+            $activity->description = 'force_deleted';
+        }
+    }
 
     public function scopeNotSuspended(Builder $query): Builder
     {

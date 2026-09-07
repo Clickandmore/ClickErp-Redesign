@@ -10,6 +10,8 @@ use Illuminate\Database\Eloquent\Model;
 
 class PrintSetting extends Model implements TranslatableContract
 {
+    use \App\Models\Concerns\AuditsChanges;
+
     use Translatable;
 
     protected $table = 'print_setting';

@@ -15,6 +15,13 @@ class EventServiceProvider extends ServiceProvider
      * @var array<class-string, array<int, class-string>>
      */
     protected $listen = [
+        \Illuminate\Auth\Events\Login::class => [\App\Listeners\RecordAuthenticationActivity::class],
+        \Illuminate\Auth\Events\Logout::class => [\App\Listeners\RecordAuthenticationActivity::class],
+        \Illuminate\Auth\Events\Failed::class => [\App\Listeners\RecordAuthenticationActivity::class],
+        \Spatie\Permission\Events\RoleAttached::class => [\App\Listeners\RecordPermissionActivity::class],
+        \Spatie\Permission\Events\RoleDetached::class => [\App\Listeners\RecordPermissionActivity::class],
+        \Spatie\Permission\Events\PermissionAttached::class => [\App\Listeners\RecordPermissionActivity::class],
+        \Spatie\Permission\Events\PermissionDetached::class => [\App\Listeners\RecordPermissionActivity::class],
         Registered::class => [
             SendEmailVerificationNotification::class,
         ],
@@ -27,6 +34,12 @@ class EventServiceProvider extends ServiceProvider
      */
     public function boot()
     {
-        //
+        $this->app->singleton(\App\Support\Audit\ExecutionContext::class);
+        Event::listen(\Illuminate\Console\Events\CommandStarting::class, function ($event) {
+            app(\App\Support\Audit\ExecutionContext::class)->start($event->command);
+        });
+        Event::listen(\Illuminate\Console\Events\CommandFinished::class, function () {
+            app(\App\Support\Audit\ExecutionContext::class)->finish();
+        });
     }
 }

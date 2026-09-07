@@ -53,7 +53,7 @@ use Nami\Hr\Models\Job as HrJob;
 use Nami\Hr\Models\Shift as HrShift;
 use PhpOffice\PhpSpreadsheet\IOFactory;
 use PhpOffice\PhpSpreadsheet\Shared\Date as ExcelDate;
-use Spatie\Permission\Models\Role;
+use App\Models\Role;
 
 class DataImportExecutionService
 {

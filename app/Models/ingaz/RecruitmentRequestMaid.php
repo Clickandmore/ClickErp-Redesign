@@ -8,6 +8,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class RecruitmentRequestMaid extends Model
 {
+    use \App\Models\Concerns\AuditsChanges;
+
     protected $table = 'recruitment_requests';
 
     protected $fillable = [

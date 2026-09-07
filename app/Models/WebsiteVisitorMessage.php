@@ -7,6 +7,8 @@ use Illuminate\Database\Eloquent\Model;
 
 class WebsiteVisitorMessage extends Model
 {
+    use \App\Models\Concerns\AuditsChanges;
+
     use \App\Models\Concerns\AssignsBranch, \App\Models\Concerns\BranchScoped;
     protected $fillable = [
         'website_visitor_id',

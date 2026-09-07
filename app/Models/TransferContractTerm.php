@@ -7,6 +7,8 @@ use Illuminate\Database\Eloquent\Model;
 
 class TransferContractTerm extends Model
 {
+    use \App\Models\Concerns\AuditsChanges;
+
     use HasFactory;
 
     protected $fillable = [

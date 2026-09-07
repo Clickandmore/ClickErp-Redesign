@@ -8,6 +8,8 @@ use Illuminate\Support\Facades\Log;
 
 class NewSettings extends Model
 {
+    use \App\Models\Concerns\AuditsChanges;
+
     use HasFactory;
 
     protected $table = 'new_settings';
@@ -33,10 +35,10 @@ class NewSettings extends Model
             $setting = $this->where('key', $key)->first();
 
             if ($setting) {
-                Log::info("Updating setting: {$key} with value: {$value}");
+                Log::info("Updating setting: {$key}");
                 $setting->update(['value' => $value]);
             } else {
-                Log::info("Creating new setting: {$key} with value: {$value}");
+                Log::info("Creating new setting: {$key}");
                 $this->create([
                     'key' => $key,
                     'value' => $value

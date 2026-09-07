@@ -13,6 +13,8 @@ use Illuminate\Database\Eloquent\Model;
 
 class MainSetting extends Model
 {
+    use \App\Models\Concerns\AuditsChanges;
+
     use Translatable, HasFactory;
     protected $with = ['translations'];
     protected $translationForeignKey = 'main_setting_id';
