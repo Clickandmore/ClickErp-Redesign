@@ -263,6 +263,10 @@ Route::group(
             Route::patch('languages/{language}/toggle-visibility', [MaidLanguageController::class, 'toggleVisibility'])
                 ->name('languages.toggle-visibility');
             Route::resource('languages', MaidLanguageController::class)->except('show');
+            Route::resource('education-qualifications', \App\Http\Controllers\ingaz\EducationQualificationController::class)
+                ->only(['index', 'create', 'store', 'edit', 'update', 'destroy']);
+            Route::patch('education-qualifications/{educationQualification}/toggle-visibility', [\App\Http\Controllers\ingaz\EducationQualificationController::class, 'toggleVisibility'])
+                ->name('education-qualifications.toggle-visibility');
             Route::resource('social-statuses', SocialStatusController::class);
             Route::resource('questions', QuestionController::class);
             Route::resource('contact', ContactController::class);
@@ -375,6 +379,8 @@ Route::group(
             Route::get('packages/{id}/offer', [PackageController::class, 'offer'])->name('packages.offer');
             Route::put('packages/{id}/offer', [PackageController::class, 'updateOffer'])->name('packages.offer.update');
             Route::resource('packages', PackageController::class);
+            Route::get('complaints/search-contracts', [ComplaintController::class, 'searchContracts'])->name('complaints.search-contracts');
+            Route::get('complaints/search-orders', [ComplaintController::class, 'searchOrders'])->name('complaints.search-orders');
             Route::resource('complaints', ComplaintController::class);
             Route::get('complaints/cards/view', [ComplaintController::class, 'cards'])->name('complaints.cards');
             Route::post('complaints/quick-response', [ComplaintController::class, 'quickResponse'])->name('complaints.quick-response');
@@ -554,6 +560,9 @@ Route::group(
                     'index' => '[0-9]+',
                 ])
                 ->name('SponsorshipTransfer.attachment.download');
+            Route::get('SponsorshipTransfer/{id}/maid-receipt', [SponsorshipTransferController::class, 'downloadMaidReceipt'])
+                ->where('id', '[0-9]+')
+                ->name('SponsorshipTransfer.maid-receipt');
 
             Route::resource('SponsorshipTransfer', SponsorshipTransferController::class);
             Route::get('Contract/searchClients', [SponsorshipTransferController::class, 'searchClients'])->name('SponsorshipTransfer.searchClients');

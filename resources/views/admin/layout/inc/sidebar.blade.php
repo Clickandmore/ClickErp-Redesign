@@ -1214,6 +1214,7 @@
                             request()->routeIs('rent-contract-terms.*') ||
                             request()->routeIs('packages.*');
                         $isCvSettingsRoute =
+                            request()->routeIs('education-qualifications.*') ||
                             request()->routeIs('settings.cv-options.*') ||
                             request()->routeIs('settings.cv-template.*') ||
                             request()->routeIs('languages.*') ||
@@ -1603,6 +1604,15 @@
                                     </a>
                                     <ul class="sub-menu collapse {{ $isCvSettingsRoute ? 'show' : '' }}"
                                         id="cvSettings">
+                                        @if (@AdminGuardHasPerm(\App\PermKeys::SETTINGS_CV_OPTIONS))
+                                            <li>
+                                                <a class="m-link {{ request()->routeIs('education-qualifications.*') ? 'active' : '' }}"
+                                                    href="{{ route('education-qualifications.index') }}">
+                                                    <i class="fa fa-graduation-cap"></i>
+                                                    <span class="ms-2">المؤهلات التعليمية</span>
+                                                </a>
+                                            </li>
+                                        @endif
                                         @if (@AdminGuardHasPerm(\App\PermKeys::SETTINGS_CV_OPTIONS))
                                             <li>
                                                 <a class="m-link {{ request()->routeIs('settings.cv-options.*') ? 'active' : '' }}"
