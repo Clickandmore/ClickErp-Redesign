@@ -32,6 +32,15 @@ use App\Models\Concerns\BranchScoped;
 
 class Maid extends Model
 {
+    protected static function booted(): void
+    {
+        static::saving(function (self $maid) {
+            if ($maid->gender !== 'male') {
+                $maid->has_driving_license = null;
+            }
+        });
+    }
+
     use BranchScoped;
 
     use HasFactory, Translatable, LogsActivity, SoftDeletes, \App\Models\Concerns\ResolvesMediaUrls;
