@@ -147,9 +147,14 @@ class ContractReturnRequestAtomicProcessingTest extends TestCase
 
     private function mockAdminId(int $id): void
     {
+        // The branch scope consults the admin guard on every query it touches,
+        // so the guard has to answer check()/user() as well as id(), and
+        // guard() is no longer called exactly once per request.
         $guard = Mockery::mock();
-        $guard->shouldReceive('id')->once()->andReturn($id);
-        Auth::shouldReceive('guard')->once()->with('admin')->andReturn($guard);
+        $guard->shouldReceive('id')->andReturn($id);
+        $guard->shouldReceive('check')->andReturn(false);
+        $guard->shouldReceive('user')->andReturnNull();
+        Auth::shouldReceive('guard')->with('admin')->andReturn($guard);
     }
 
     private function controller(): ContractReturnRequestController

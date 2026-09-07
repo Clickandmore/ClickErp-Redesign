@@ -22,6 +22,7 @@
             <th>{{ __("crm.title") }} </th>
             <th>{{ __("crm.end_date") }} </th>
             <th>{{ __("crm.attach") }} </th>
+            <th>{{ __('financial_requests.branch') }}</th>
             <th class="notPrintable">{{ __("hr.replies_actions") }} </th>
             <th class="notPrintable">{{ __('crm.actions') }}</th>
         </tr>
@@ -57,6 +58,11 @@
                     "data": "file",
                     orderable: false,
                     searchable: true
+                },
+                {
+                    "data": "branch",
+                    orderable: false,
+                    searchable: false
                 },
                 {
                     "data": "replies",

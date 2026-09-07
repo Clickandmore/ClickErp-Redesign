@@ -2,6 +2,9 @@
 
 namespace App\Http\Controllers\ingaz;
 
+use App\Support\BranchQueryContext;
+use App\Support\BranchSharingSettings;
+use App\Support\BranchReportFilter;
 use App\Enums\ingaz\ContractStatusEnum;
 use App\Enums\ingaz\OrderEnum;
 use App\Http\Controllers\admin\Controller;
@@ -1096,7 +1099,7 @@ class RentContractController extends Controller
         $clientAccountApprovedBalance = null;
 
         if ($contract->user?->account_id) {
-            $clientBalanceQuery = DB::table('fn_constraint_details as details')
+            $clientBalanceQuery = BranchReportFilter::apply(DB::table('fn_constraint_details as details'), 'details')
                 ->join('fn_constraints as constraints', 'constraints.id', '=', 'details.constraint_id')
                 ->where('details.account_id', $contract->user->account_id)
                 ->whereNull('details.deleted_at')
@@ -1610,6 +1613,10 @@ class RentContractController extends Controller
         }
 
         return Account::query()
+            ->when(
+                BranchSharingSettings::accountsPerBranch(),
+                fn ($query) => $query->assignableTo(BranchQueryContext::activeBranchId())
+            )
             ->where('status', 'debtor')
             ->whereIn('type', [
                 AccountTypesEnum::Bank->value,

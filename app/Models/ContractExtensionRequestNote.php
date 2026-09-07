@@ -5,9 +5,11 @@ namespace App\Models;
 use App\Models\Concerns\AssignsBranch;
 use Illuminate\Database\Eloquent\Model;
 
+use App\Models\Concerns\BranchScoped;
+
 class ContractExtensionRequestNote extends Model
 {
-    use AssignsBranch;
+    use AssignsBranch, BranchScoped;
 
     protected $fillable = ['extension_request_id', 'admin_id', 'branch_id', 'note'];
 

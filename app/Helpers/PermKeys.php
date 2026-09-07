@@ -81,6 +81,7 @@ const PARTENR_CONTROL = 'partenr_control';
     const MAIDS_CONTROL = 'maids_control';
     const MAIDS_RENTAL_VIEW = 'maids_rental_view';
     const MAIDS_CHANGE_BRANCH = 'maids_change_branch';
+    const MAIDS_VIEW_ALL_BRANCHES = 'maids_view_all_branches';
     const MAIDS_BACKOUT_VIEW = 'maids_backout_view';
     const MAIDS_DELETED_VIEW = 'maids_deleted_view';
 
@@ -465,6 +466,7 @@ const PARTENR_CONTROL = 'partenr_control';
     const RECRUITMENT_OFFICES_EDIT = 'recruitment_offices_edit';
     const RECRUITMENT_OFFICES_DELETE = 'recruitment_offices_delete';
     const RECRUITMENT_OFFICES_CONTROL = 'recruitment_offices_control';
+    const OFFICES_VIEW_ALL_BRANCHES = 'offices_view_all_branches';
 
     // ========================================
     // عقود الإيجار (Rent Contracts)

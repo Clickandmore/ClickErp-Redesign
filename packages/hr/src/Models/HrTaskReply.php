@@ -6,8 +6,9 @@ namespace Nami\Hr\Models;
 
 class HrTaskReply extends HrModel
 {
+    use \App\Models\Concerns\AssignsBranch, \App\Models\Concerns\BranchScoped;
     protected $table = 'hr_task_replies';
-    protected $fillable = ['title', 'description', 'task_id','employee_id','file'];
+    protected $fillable = ['title', 'description', 'task_id','employee_id','file','branch_id'];
 
     public function employee()
     {

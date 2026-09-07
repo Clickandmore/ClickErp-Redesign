@@ -47,7 +47,9 @@ class BranchModeTest extends TestCase
         $admin = $factory->create();
         $admin->assignRole('Administrator');
 
-        return $admin;
+        // The seeded Administrator role grants branches_view_all; a branch employee
+        // in these scenarios is explicitly locked to their own branch.
+        return $branch ? $this->lockToOwnBranch($admin) : $admin;
     }
 
     private function financialRequestPayload(?int $branchId): array
@@ -326,7 +328,14 @@ class BranchModeTest extends TestCase
         $this->enableBranchesModule(true);
         $this->actingAsAdmin($this->staffOf($own));
 
-        $this->get(route('financial-requests.show', $foreign))->assertStatus(403);
+        $response = $this->get(route('financial-requests.show', $foreign));
+
+        // 403 from the controller's explicit check, 404 once the branch scope has
+        // already filtered the record out of the query. Both refuse; 404 leaks less.
+        $this->assertContains($response->getStatusCode(), [403, 404], sprintf(
+            'A branch user opened another branch\'s financial request (HTTP %d).',
+            $response->getStatusCode()
+        ));
     }
 
     /** @test */

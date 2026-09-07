@@ -10,6 +10,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 
 class Employee extends HrModel
 {
+    use \App\Models\Concerns\AssignsBranch, \App\Models\Concerns\BranchScoped;
     use HasFactory;
 
     public const CATEGORY_EMPLOYEE = 'employee';
@@ -53,10 +54,15 @@ class Employee extends HrModel
         $query = $query->withoutGlobalScope('employee_category');
 
         if (!static::hasEmployeeCategoryColumn()) {
-            return $query;
+            return Schema::hasColumn($this->getTable(), 'maid_id')
+                ? $query->whereNull($this->getTable() . '.maid_id')
+                : $query;
         }
 
-        return $query->whereNull($this->getTable() . '.maid_id');
+        return $query->where(
+            $this->getTable() . '.employee_category',
+            static::CATEGORY_EMPLOYEE
+        );
     }
 
     public function scopeOnlyMaids($query)
@@ -67,7 +73,10 @@ class Employee extends HrModel
             return $query->whereRaw('1 = 0');
         }
 
-        return $query->whereNotNull($this->getTable() . '.maid_id');
+        return $query->where(
+            $this->getTable() . '.employee_category',
+            static::CATEGORY_MAID
+        );
     }
 
     public function scopeAdminType($query)

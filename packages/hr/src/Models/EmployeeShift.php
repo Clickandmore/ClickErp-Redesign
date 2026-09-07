@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 
 class EmployeeShift extends HrModel
 {
+    use \App\Models\Concerns\AssignsBranch, \App\Models\Concerns\BranchScoped;
     use HasFactory;
     protected $table = 'hr_employee_shift';
     protected $fillable = ['employee_id','shift_id'];

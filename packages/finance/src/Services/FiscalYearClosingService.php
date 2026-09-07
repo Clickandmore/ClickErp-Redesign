@@ -2,6 +2,7 @@
 
 namespace Nami\Finance\Services;
 
+use App\Support\BranchReportFilter;
 use Carbon\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
@@ -285,7 +286,7 @@ class FiscalYearClosingService
 
     private function balances(FnYear $year, string $closingDate): Collection
     {
-        $query = DB::table('fn_constraint_details as details')
+        $query = BranchReportFilter::apply(DB::table('fn_constraint_details as details'), 'details')
             ->join('fn_constraints as constraints', 'constraints.id', '=', 'details.constraint_id')
             ->whereNull('details.deleted_at')
             ->whereNull('constraints.deleted_at')

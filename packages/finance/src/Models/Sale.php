@@ -2,6 +2,9 @@
 
 namespace Nami\Finance\Models;
 
+use App\Models\Concerns\AssignsBranch;
+use App\Models\Concerns\BranchScoped;
+
 use App\Models\ingaz\Invoice;
 use App\Models\RentalContractInvoice;
 use App\Models\auth\Admin;
@@ -11,6 +14,9 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 
 class Sale extends Finance
 {
+    // عزل الفروع: المستند يخص فرع منشئه، والسجلات القديمة للفرع الرئيسي.
+    use AssignsBranch, BranchScoped;
+
     use HasFactory;
     protected $table = 'fn_sales';
     protected $guarded = [];

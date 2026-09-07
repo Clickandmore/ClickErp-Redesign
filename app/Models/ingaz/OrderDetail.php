@@ -10,6 +10,7 @@ use Spatie\Activitylog\Traits\LogsActivity;
 
 class OrderDetail extends Model
 {
+    use \App\Models\Concerns\AssignsBranch, \App\Models\Concerns\BranchScoped;
     use HasFactory, LogsActivity;
 
     protected $guarded = [];

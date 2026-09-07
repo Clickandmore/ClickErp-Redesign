@@ -2,6 +2,10 @@
 
 namespace Nami\Finance\Services;
 
+use App\Services\BranchAccessService;
+use App\Support\BranchSharingSettings;
+use App\Support\BranchQueryContext;
+use App\Models\Branch;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 use Illuminate\Support\Facades\DB;
@@ -14,7 +18,11 @@ use Nami\Finance\Models\ConstraintDetails;
 class AccountService extends MainService
 {
 
-    function __construct(Account $model, protected BankAccountService $bankAccountService)
+    function __construct(
+        Account $model,
+        protected BankAccountService $bankAccountService,
+        private BranchAccessService $branchAccess,
+    )
     {
         $this->model = $model;
     }
@@ -43,6 +51,8 @@ class AccountService extends MainService
     public function storeAccount($data)
     {
         return DB::transaction(function () use ($data) {
+            [$branchScopePresent, $branchIds] = $this->extractBranchAssignmentInput($data);
+
             if ($data["parent_id"] == 'without') {
                 $data["level"] = 1;
                 $data["parent_id"] = null;
@@ -59,7 +69,10 @@ class AccountService extends MainService
                 $data["statement_type"] = $data["statement_type"] ?? $parent->statement_type;
             }
 
-            return $this->store($data);
+            $account = $this->store($data);
+            $this->syncBranchAssignmentsFromInput($account, $branchScopePresent, $branchIds, $account->branch_id ?? null);
+
+            return $account;
         });
     }
 
@@ -77,6 +90,8 @@ class AccountService extends MainService
     public function updateAccount(int $id, $data, $getLevelParentById, $getLastChildByParentID)
     {
         return DB::transaction(function () use ($id, $data) {
+            [$branchScopePresent, $branchIds] = $this->extractBranchAssignmentInput($data);
+
             $obj = $this->model->newQuery()
                 ->whereKey($id)
                 ->lockForUpdate()
@@ -110,6 +125,7 @@ class AccountService extends MainService
 
             $data["type"] = $data["type"] ?? $obj->type;
             $obj->update($data);
+            $this->syncBranchAssignmentsFromInput($obj, $branchScopePresent, $branchIds, $data['branch_id'] ?? $obj->branch_id ?? null);
 
             if ((int) $obj->code !== $oldCode) {
                 $this->updateChildrenCode($obj->fresh(['children']));
@@ -133,6 +149,22 @@ class AccountService extends MainService
 
     public function getAccountTree()
     {
+        $branchId = BranchQueryContext::activeBranchId();
+
+        if ($branchId === null && $this->branchAccess->enabled()) {
+            $adminBranchId = $this->branchAccess->adminBranchId();
+            if ($adminBranchId !== null && ! $this->branchAccess->canViewAllBranches()) {
+                $branchId = $adminBranchId;
+            }
+        }
+
+        $usePivotAssignments = BranchSharingSettings::accountsPerBranch();
+        $includeUnassigned = $branchId !== null
+            && ! $usePivotAssignments
+            && $this->branchAccess->isMainBranchId($branchId);
+        $filterAtQueryLevel = $branchId !== null
+            && ($usePivotAssignments || $this->branchAccess->isMainBranchId($branchId));
+
         $accounts = $this->model
             ->select([
                 'id',
@@ -145,11 +177,17 @@ class AccountService extends MainService
                 'operation_type',
                 'statement_type',
                 'created_by_id',
+                'branch_id',
             ])
+            ->when($filterAtQueryLevel, fn ($query) => $this->filterAccountAvailability($query, $branchId, $includeUnassigned))
             ->withCount('constraintDetails')
             ->orderBy('code')
             ->orderBy('id')
             ->get();
+
+        if ($branchId !== null && ! BranchSharingSettings::accountsPerBranch() && ! $this->branchAccess->isMainBranchId($branchId)) {
+            $accounts = $this->treeAccountsForBranch($accounts, $branchId);
+        }
 
         $accountsById = $accounts->keyBy('id');
         $childrenByParent = [];
@@ -222,6 +260,38 @@ class AccountService extends MainService
         }
 
         return false;
+    }
+
+    private function treeAccountsForBranch(EloquentCollection $accounts, int $branchId): EloquentCollection
+    {
+        $accountsById = $accounts->keyBy('id');
+        $visibleIds = [];
+
+        foreach ($accounts as $account) {
+            if ((int) ($account->branch_id ?? 0) !== $branchId) {
+                continue;
+            }
+
+            $current = $account;
+            $seen = [];
+
+            while ($current) {
+                $currentId = (int) $current->id;
+                if (isset($seen[$currentId])) {
+                    break;
+                }
+
+                $seen[$currentId] = true;
+                $visibleIds[$currentId] = true;
+
+                $parentId = $current->parent_id ? (int) $current->parent_id : null;
+                $current = $parentId ? $accountsById->get($parentId) : null;
+            }
+        }
+
+        return $accounts
+            ->filter(fn ($account) => isset($visibleIds[(int) $account->id]))
+            ->values();
     }
 
     private function attachAccountTreeChildren(EloquentCollection $accounts, array $childrenByParent): void
@@ -403,11 +473,105 @@ class AccountService extends MainService
         return $this->model->where('parent_id', $parent_id)->get();
     }
 
-    public function getAccountWithNoChild($type = null)
+    public function getAccountWithNoChild($type = null, ?int $branchId = null)
     {
-        return $this->model->doesnthave('children')->when($type, function ($query) use ($type) {
-            return $query->where('type', $type);
-        })->get();
+        if (! BranchSharingSettings::accountsPerBranch()) {
+            return $this->model
+                ->doesntHave('children')
+                ->when($type, function ($query) use ($type) {
+                    return $query->where('type', $type);
+                })
+                ->get();
+        }
+
+        $includeUnassigned = $branchId !== null
+            && $this->branchAccess->isMainBranchId($branchId);
+
+        return $this->model
+            ->when(
+                $branchId !== null,
+                fn ($query) => $query->whereDoesntHave(
+                    'children',
+                    fn ($children) => $this->filterAccountAvailability($children, $branchId, $includeUnassigned)
+                ),
+                fn ($query) => $query->doesntHave('children')
+            )
+            ->when($branchId !== null, fn ($query) => $this->filterAccountAvailability($query, $branchId, $includeUnassigned))
+            ->when($type, function ($query) use ($type) {
+                return $query->where('type', $type);
+            })
+            ->get();
+    }
+
+    private function filterAccountAvailability($query, int $branchId, bool $includeUnassigned = false)
+    {
+        if (BranchSharingSettings::accountsPerBranch()) {
+            return $query->assignableTo($branchId);
+        }
+
+        return $this->visibleForBranch($query, $branchId, $includeUnassigned);
+    }
+
+    private function extractBranchAssignmentInput(array &$data): array
+    {
+        $branchScopePresent = array_key_exists('account_branch_scope_present', $data);
+        $branchIds = collect($data['branch_ids'] ?? [])
+            ->filter(fn ($branchId) => (int) $branchId > 0)
+            ->map(fn ($branchId) => (int) $branchId)
+            ->unique()
+            ->values()
+            ->all();
+
+        unset($data['account_branch_scope_present'], $data['branch_ids']);
+
+        return [$branchScopePresent, $branchIds];
+    }
+
+    private function syncBranchAssignmentsFromInput(Account $account, bool $branchScopePresent, array $branchIds, mixed $legacyBranchId): void
+    {
+        if (! BranchSharingSettings::accountsPerBranch()) {
+            return;
+        }
+
+        if ($branchScopePresent) {
+            $account->branches()->sync($branchIds);
+            return;
+        }
+
+        $this->syncBranchAssignment($account, $legacyBranchId);
+    }
+
+    private function syncBranchAssignment(Account $account, mixed $branchId): void
+    {
+        $branchId = (int) ($branchId ?? 0);
+
+        if ($branchId <= 0 || ! BranchSharingSettings::accountsPerBranch()) {
+            return;
+        }
+
+        $account->branches()->syncWithoutDetaching([$branchId]);
+    }
+
+    private function branchesForAccountAssignment()
+    {
+        return Branch::query()
+            ->active()
+            ->ordered()
+            ->get(['id', 'name_ar', 'name_en', 'code']);
+    }
+
+    /** الفرع الرئيسي يرى الحسابات غير المنسوبة، وباقي الفروع ترى حساباتها فقط. */
+    private function visibleForBranch($query, int $branchId, bool $includeUnassigned = true)
+    {
+        $branchColumn = $query->getModel()->getTable() . '.branch_id';
+
+        if (! $includeUnassigned) {
+            return $query->where($branchColumn, $branchId);
+        }
+
+        return $query->where(function ($query) use ($branchColumn, $branchId) {
+            $query->whereNull($branchColumn)->orWhere($branchColumn, $branchId);
+        });
     }
 
     public function getSupplierStatementAccounts()
@@ -771,6 +935,8 @@ class AccountService extends MainService
             "types" => $this->getAccountTypesList(),
             "operationTypes" => $this->getOperationTypesList(),
             "storeRoute" => route($this->mainRoute . ".store"),
+            "branches" => $this->branchesForAccountAssignment(),
+            "accountBranchAssignmentsEnabled" => BranchSharingSettings::accountsPerBranch(),
         ])->render();
 
         return jsonSuccess(["html" => $returnHTML]);

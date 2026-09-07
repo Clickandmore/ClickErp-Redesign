@@ -11,10 +11,16 @@ use App\Models\ingaz\JobType;
 use App\Models\ingaz\Setting;
 use App\Models\ingaz\DevelopSetting;
 use App\Models\ingaz\FastNew;
+use App\Services\BranchAccessService;
+use App\Support\BranchQueryContext;
 use App\Support\CommunicationSettings;
 use App\Support\ZohoSalesIqSettings;
 use App\Validation\CustomValidator;
+use Illuminate\Auth\Events\Authenticated;
+use Illuminate\Auth\Events\Login;
+use Illuminate\Auth\Events\Logout;
 use Illuminate\Cache\RateLimiting\Limit;
+use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\View;
 use Illuminate\Support\Facades\Cache;
@@ -32,7 +38,9 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register()
     {
-        //
+        // الـ global scope للفروع يستدعي هذه الخدمة على كل استعلام،
+        // فتُحفظ نسخة واحدة لكل طلب حتى لا يتكرر فحص المخطط وجلب الفرع الرئيسي.
+        $this->app->singleton(BranchAccessService::class);
     }
 
     /**
@@ -43,6 +51,12 @@ class AppServiceProvider extends ServiceProvider
     public function boot()
     {
         Schema::defaultStringLength(255);
+
+        // فرع المستخدم الحالي مخزّن داخل الطلب؛ أي تغيّر في هوية المستخدم يُبطله.
+        Event::listen([Login::class, Logout::class, Authenticated::class], function () {
+            BranchQueryContext::flush();
+        });
+
         Validator::resolver(function ($translator, $data, $rules, $messages, $attributes) {
             return new CustomValidator($translator, $data, $rules, $messages, $attributes);
         });

@@ -2,6 +2,7 @@
 
 namespace Nami\Finance\Services;
 
+use App\Models\Scopes\BranchScope;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -484,7 +485,15 @@ class BondService extends MainService
 
     public function lastCode($type)
     {
-        $row = $this->model->where("type", $type)->orderBy('code', 'DESC')->first();
+        // ترقيم السندات يبقى متصلاً على مستوى الشركة كما كان قبل الفروع.
+        // بدون هذا التجاوز يرى كل فرع آخر رقم في سنداته هو، فيبدأ من رقم
+        // مستعمل في فرع آخر. (دفتر سندات مستقل لكل فرع قرار منفصل.)
+        $row = $this->model->newQuery()
+            ->withoutGlobalScope(BranchScope::class)
+            ->where("type", $type)
+            ->orderBy('code', 'DESC')
+            ->first();
+
         return (isset($row->code)) ? ($row->code + 1) : 1;
     }
 }

@@ -2,14 +2,20 @@
 
 namespace App\Models\commissions;
 
+use App\Models\Concerns\AssignsBranch;
+use App\Models\Concerns\BranchScoped;
+
 use App\Models\auth\Admin;
 use Illuminate\Database\Eloquent\Model;
 
 class CommissionBalanceTransaction extends Model
 {
+    use AssignsBranch, BranchScoped;
+
     protected $table = 'commission_balance_transactions';
 
     protected $fillable = [
+        'branch_id',
         'marketer_id', 'type', 'amount',
         'reference_type', 'reference_id',
         'balance_after', 'notes', 'created_by',

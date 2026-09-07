@@ -2,13 +2,19 @@
 
 namespace Nami\Finance\Models;
 
+use App\Models\Concerns\AssignsBranch;
+use App\Models\Concerns\BranchScoped;
+
 use App\Models\auth\Admin;
 use Nami\Finance\Enums\PerishedTypeEnum;
 
 class Principle extends Finance
 {
+    use AssignsBranch, BranchScoped;
+
     protected $table = 'fn_principles';
     protected $fillable = [
+        'branch_id',
         'name',
         'created_by_id',
         'parent_account_id',

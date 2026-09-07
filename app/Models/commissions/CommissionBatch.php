@@ -2,14 +2,20 @@
 
 namespace App\Models\commissions;
 
+use App\Models\Concerns\AssignsBranch;
+use App\Models\Concerns\BranchScoped;
+
 use App\Models\auth\Admin;
 use Illuminate\Database\Eloquent\Model;
 
 class CommissionBatch extends Model
 {
+    use AssignsBranch, BranchScoped;
+
     protected $table = 'commission_batches';
 
     protected $fillable = [
+        'branch_id',
         'marketer_id', 'total_requests', 'total_base_amount',
         'total_commission', 'status', 'notes',
         'approved_by', 'approved_at', 'created_by',

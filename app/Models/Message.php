@@ -9,6 +9,7 @@ use App\Models\ingaz\User;
 
 class Message extends Model
 {
+    use \App\Models\Concerns\AssignsBranch, \App\Models\Concerns\BranchScoped;
     use HasFactory;
     protected $table = 'messages';
     protected $guarded = [];

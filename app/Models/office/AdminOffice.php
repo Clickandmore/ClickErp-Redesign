@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class AdminOffice extends Model
 {
+    use \App\Models\Concerns\AssignsBranch, \App\Models\Concerns\BranchScoped;
     use HasFactory;
 
     protected $guarded = [];

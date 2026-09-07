@@ -2,13 +2,19 @@
 
 namespace Nami\Finance\Models;
 
+use App\Models\Concerns\AssignsBranch;
+use App\Models\Concerns\BranchScoped;
+
 
 use App\Models\auth\Admin;
 
 class PrincipleSale extends Finance
 {
+    use AssignsBranch, BranchScoped;
+
     protected $table = 'fn_principle_sales';
     protected $fillable = [
+        'branch_id',
         'principle_id',
         'principle_value',
         'sales_value',

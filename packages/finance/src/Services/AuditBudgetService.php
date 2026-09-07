@@ -2,6 +2,7 @@
 
 namespace Nami\Finance\Services;
 
+use App\Support\BranchReportFilter;
 use Illuminate\Support\Facades\DB;
 use Nami\Finance\Enums\ConstraintTypiesEnum;
 use Nami\Finance\MainService;
@@ -88,6 +89,10 @@ class AuditBudgetService extends MainService
                 $join->on('fn_constraint_details.account_id', '=', 'fn_accounts.id')
                     ->whereNull('fn_constraint_details.deleted_at');
 
+                // الشرط داخل الـ ON وليس في WHERE: لو وُضع خارجاً لتحوّل الـ
+                // LEFT JOIN إلى INNER JOIN واختفت الحسابات التي لا حركة لها.
+                BranchReportFilter::apply($join, 'fn_constraint_details');
+
                 if (($dataSearch['from_date'] ?? '') != '') {
                     $join->whereDate('fn_constraint_details.date', '>=', $dataSearch['from_date']);
                 }
@@ -126,6 +131,10 @@ class AuditBudgetService extends MainService
                 $join->on('fn_constraint_details.account_id', '=', 'fn_accounts.id')
                     ->whereNull('fn_constraint_details.deleted_at');
 
+                // الشرط داخل الـ ON وليس في WHERE: لو وُضع خارجاً لتحوّل الـ
+                // LEFT JOIN إلى INNER JOIN واختفت الحسابات التي لا حركة لها.
+                BranchReportFilter::apply($join, 'fn_constraint_details');
+
                 if (($dataSearch['start_date'] ?? '') != '') {
                     $join->whereDate('fn_constraint_details.date', '>=', $dataSearch['start_date']);
                 }
@@ -159,7 +168,7 @@ class AuditBudgetService extends MainService
             ->get()
             ->keyBy('account_id');
 
-        $accountStatements = DB::table('fn_constraint_details')
+        $accountStatements = BranchReportFilter::apply(DB::table('fn_constraint_details'), 'fn_constraint_details')
             ->select([
                 'fn_constraint_details.account_id',
                 DB::raw('DATE_FORMAT(fn_constraint_details.date, "%Y-%m") as month'),
@@ -237,6 +246,10 @@ class AuditBudgetService extends MainService
             ->leftJoin('fn_constraint_details', function ($join) use ($dataSearch) {
                 $join->on('fn_constraint_details.account_id', '=', 'fn_accounts.id')
                     ->whereNull('fn_constraint_details.deleted_at');
+
+                // الشرط داخل الـ ON وليس في WHERE: لو وُضع خارجاً لتحوّل الـ
+                // LEFT JOIN إلى INNER JOIN واختفت الحسابات التي لا حركة لها.
+                BranchReportFilter::apply($join, 'fn_constraint_details');
 
                 if (($dataSearch['start_date'] ?? '') != '') {
                     $join->whereDate('fn_constraint_details.date', '>=', $dataSearch['start_date']);

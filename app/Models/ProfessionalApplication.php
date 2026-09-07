@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class ProfessionalApplication extends Model
 {
+    use \App\Models\Concerns\AssignsBranch, \App\Models\Concerns\BranchScoped;
     use HasFactory;
 
     protected $fillable = ['user_id', 'facility_name', 'phone', 'number_of_workers_required',

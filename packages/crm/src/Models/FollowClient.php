@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class FollowClient extends Model
 {
+    use \App\Models\Concerns\AssignsBranch, \App\Models\Concerns\BranchScoped;
     use HasFactory;
     protected $table = 'crm_follow_client';
     protected $fillable = ['client_id','admin_id', 'follow_clients_category_id', 'date', 'content', 'notes', 'result'];

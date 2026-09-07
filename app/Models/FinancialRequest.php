@@ -10,9 +10,11 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Nami\Finance\Models\Bond;
 
+use App\Models\Concerns\BranchScoped;
+
 class FinancialRequest extends Model
 {
-    use AssignsBranch, SoftDeletes;
+    use AssignsBranch, SoftDeletes, BranchScoped;
 
     public const STATUS_PREPARING = 'preparing';
     public const STATUS_FOR_APPROVAL = 'for_approval';

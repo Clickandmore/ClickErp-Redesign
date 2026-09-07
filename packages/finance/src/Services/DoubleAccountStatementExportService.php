@@ -2,6 +2,7 @@
 
 namespace Nami\Finance\Services;
 
+use App\Support\BranchReportFilter;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -31,6 +32,7 @@ class DoubleAccountStatementExportService
             ->join('fn_double_accounts', 'fn_double_accounts.id', '=', 'fn_double_account_details.double_account_id')
             ->join('fn_accounts', 'fn_accounts.id', '=', 'fn_double_account_details.account_id')
             ->join('fn_constraint_details', 'fn_constraint_details.account_id', '=', 'fn_accounts.id')
+            ->tap(fn ($q) => BranchReportFilter::apply($q, 'fn_constraint_details'))
             ->join('fn_constraints', 'fn_constraints.id', '=', 'fn_constraint_details.constraint_id')
             ->leftJoin('admins', 'admins.id', '=', 'fn_constraints.created_by_id')
             ->whereNull('fn_constraint_details.deleted_at')

@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 
 class PrincipleWebsite extends Finance
 {
+    use \App\Models\Concerns\AssignsBranch, \App\Models\Concerns\BranchScoped;
     protected $table = 'fn_principle_websites';
     protected $fillable = ['title','created_by_id'];
 

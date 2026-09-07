@@ -8,9 +8,11 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use App\Services\ManagedFileStorage;
 
+use App\Models\Concerns\BranchScoped;
+
 class MaidAttachment extends Model
 {
-    use AssignsBranch, HasFactory;
+    use AssignsBranch, HasFactory, BranchScoped;
 
     protected $fillable = [
         'maid_id',

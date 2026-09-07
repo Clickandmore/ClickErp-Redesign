@@ -2,14 +2,20 @@
 
 namespace Nami\Finance\Models;
 
+use App\Models\Concerns\AssignsBranch;
+use App\Models\Concerns\BranchScoped;
+
 use App\Models\auth\Admin;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 
 class DepreciationPrinciple extends Finance
 {
+    use AssignsBranch, BranchScoped;
+
     use HasFactory;
     protected $table = "fn_depreciation_principles";
-    protected $fillable =['principle_id','account_id','constraint_id','created_by_id'];
+    protected $fillable =[
+        'branch_id','principle_id','account_id','constraint_id','created_by_id'];
 
     public function principle()
     {

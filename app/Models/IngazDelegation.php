@@ -14,9 +14,11 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Schema;
 
+use App\Models\Concerns\BranchScoped;
+
 class IngazDelegation extends Model
 {
-    use AssignsBranch, HasFactory;
+    use AssignsBranch, HasFactory, BranchScoped;
 
     public const STATUS_UNDER_PROCESS = 'under_process';
     public const STATUS_EXECUTED = 'executed';

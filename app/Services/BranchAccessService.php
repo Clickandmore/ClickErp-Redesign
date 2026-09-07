@@ -19,9 +19,13 @@ class BranchAccessService
         return SystemModuleManager::isEnabled('branches');
     }
 
+    /** @var array<string, bool> */
+    private array $branchColumnCache = [];
+
     public function tableHasBranchColumn(string $table): bool
     {
-        return Schema::hasTable($table) && Schema::hasColumn($table, 'branch_id');
+        return $this->branchColumnCache[$table] ??= Schema::hasTable($table)
+            && Schema::hasColumn($table, 'branch_id');
     }
 
     public function adminBranchId($admin = null): ?int
@@ -44,8 +48,16 @@ class BranchAccessService
             && AdminRoutePermissionMatrix::adminHasAnyPermission($admin, [PermKeys::BRANCHES_VIEW_ALL]);
     }
 
+    /** يُستدعى من الـ global scope على كل استعلام، فيُحفظ داخل نسخة الخدمة. */
+    private ?int $memoizedMainBranchId = null;
+    private bool $mainBranchIdResolved = false;
+
     public function mainBranchId(): ?int
     {
+        if ($this->mainBranchIdResolved) {
+            return $this->memoizedMainBranchId;
+        }
+
         if (! $this->enabled() || ! Schema::hasTable('branches')) {
             return null;
         }
@@ -53,7 +65,16 @@ class BranchAccessService
         $branch = Branch::query()->where('is_main', true)->first(['id'])
             ?: Branch::query()->active()->ordered()->first(['id']);
 
-        return $branch ? (int) $branch->id : null;
+        $this->mainBranchIdResolved = true;
+        $this->memoizedMainBranchId = $branch ? (int) $branch->id : null;
+
+        return $this->memoizedMainBranchId;
+    }
+
+    public function forgetMainBranchId(): void
+    {
+        $this->mainBranchIdResolved = false;
+        $this->memoizedMainBranchId = null;
     }
 
     public function isMainBranchId(?int $branchId): bool

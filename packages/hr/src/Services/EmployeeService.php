@@ -42,17 +42,14 @@ class EmployeeService extends MainService
             ? $this->model->query()->onlyMaids()->latest()
             : $this->model->query()->onlyEmployees()->latest();
 
-        $query->with($category === Employee::CATEGORY_MAID ? 'maid.branch' : 'admin.branch');
+        $query->with(['branch', $category === Employee::CATEGORY_MAID ? 'maid' : 'admin']);
 
-        $branchId = app(BranchAccessService::class)->selectedBranchId($request);
+        $branchAccess = app(BranchAccessService::class);
+        $branchId = $branchAccess->selectedBranchId($request);
 
         return $query
-            ->when($branchId, function ($builder) use ($branchId, $category) {
-                $relation = $category === Employee::CATEGORY_MAID ? 'maid' : 'admin';
-
-                $builder->whereHas($relation, function ($relationQuery) use ($branchId) {
-                    $relationQuery->where('branch_id', $branchId);
-                });
+            ->when($branchId, function ($builder) use ($branchId, $branchAccess) {
+                $branchAccess->applyBranchIdToQuery($builder, $branchId, 'hr_employee');
             })
             ->when($request->filled('department_id'), function ($builder) use ($request) {
                 $builder->where('deparment_id', $request->department_id);

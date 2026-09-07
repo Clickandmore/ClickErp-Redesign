@@ -2,6 +2,7 @@
 
 namespace Nami\Finance\Services;
 
+use App\Support\BranchReportFilter;
 use Illuminate\Support\Facades\DB;
 use Nami\Finance\Enums\ConstraintTypiesEnum;
 use Nami\Finance\MainService;
@@ -168,7 +169,7 @@ class AccountCostCenterService extends MainService
     /* ----------NEW------------ */
     public function filterAccount($dataSearch)
     {
-        $accountStatment = DB::table('fn_constraint_details')
+        $accountStatment = BranchReportFilter::apply(DB::table('fn_constraint_details'), 'fn_constraint_details')
             ->select([
                 'fn_constraint_details.date',
                 'fn_constraint_details.statement',
@@ -216,7 +217,7 @@ class AccountCostCenterService extends MainService
             return [];
         }
 
-        $linked = DB::table('fn_constraint_details')
+        $linked = BranchReportFilter::apply(DB::table('fn_constraint_details'), 'fn_constraint_details')
             ->whereNull('deleted_at')
             ->where('cost_center_id', $costCenterId);
 

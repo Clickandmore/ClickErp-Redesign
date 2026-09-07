@@ -18,9 +18,11 @@ use Spatie\Activitylog\LogOptions;
 use Spatie\Activitylog\Traits\LogsActivity;
 use Nami\Finance\Models\Bond;
 
+use App\Models\Concerns\BranchScoped;
+
 class Contract extends Model
 {
-    use AssignsBranch, HasFactory, LogsActivity;
+    use AssignsBranch, HasFactory, LogsActivity, BranchScoped;
 
     protected $guarded = [];
     protected $with = ['info'];

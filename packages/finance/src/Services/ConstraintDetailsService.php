@@ -2,6 +2,7 @@
 
 namespace Nami\Finance\Services;
 
+use App\Support\BranchReportFilter;
 use Carbon\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
@@ -162,7 +163,7 @@ class ConstraintDetailsService extends MainService
 
     public function balancesReport(string $scope = 'all', array $filters = [])
     {
-        $query = DB::table('fn_constraint_details as detail')
+        $query = BranchReportFilter::apply(DB::table('fn_constraint_details as detail'), 'detail')
             ->join('fn_constraints as constraint', function ($join) {
                 $join->on('constraint.id', '=', 'detail.constraint_id')
                     ->whereNull('constraint.deleted_at');
@@ -235,7 +236,7 @@ class ConstraintDetailsService extends MainService
 
     public function normalizeBalanceMovementFilters(array $filters): array
     {
-        $firstMovementDate = DB::table('fn_constraint_details as detail')
+        $firstMovementDate = BranchReportFilter::apply(DB::table('fn_constraint_details as detail'), 'detail')
             ->join('fn_constraints as constraint', function ($join) {
                 $join->on('constraint.id', '=', 'detail.constraint_id')
                     ->whereNull('constraint.deleted_at');
@@ -313,7 +314,7 @@ class ConstraintDetailsService extends MainService
             return collect();
         }
 
-        $movementQuery = DB::table('fn_constraint_details as detail')
+        $movementQuery = BranchReportFilter::apply(DB::table('fn_constraint_details as detail'), 'detail')
             ->join('fn_constraints as constraint', function ($join) {
                 $join->on('constraint.id', '=', 'detail.constraint_id')
                     ->whereNull('constraint.deleted_at');

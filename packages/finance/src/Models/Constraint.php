@@ -2,6 +2,9 @@
 
 namespace Nami\Finance\Models;
 
+use App\Models\Concerns\AssignsBranch;
+use App\Models\Concerns\BranchScoped;
+
 use App\Models\RentalContractInvoice;
 use App\Models\auth\Admin;
 use App\Models\ingaz\Invoice;
@@ -13,6 +16,9 @@ use Nami\Finance\Enums\ConstraintTypiesEnum;
 
 class Constraint extends Finance
 {
+    // عزل الفروع: المستند يخص فرع منشئه، والسجلات القديمة للفرع الرئيسي.
+    use AssignsBranch, BranchScoped;
+
     use SoftDeletes;
 
     public const APPROVAL_PENDING = 'pending';
@@ -23,6 +29,7 @@ class Constraint extends Finance
     protected $table = 'fn_constraints';
 
     protected $fillable = [
+        'branch_id',
         'type',
         'value',
         'date',

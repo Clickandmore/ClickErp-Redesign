@@ -3,6 +3,7 @@
 namespace Nami\Finance\Http\Controllers;
 
 use App\Http\Controllers\admin\Controller;
+use App\Services\BranchAccessService;
 use Illuminate\Http\Request;
 use Nami\Finance\Http\Middleware\CheckActiveYear;
 use Nami\Finance\Http\Requests\ConstraintRequest as ObjRequest;
@@ -26,20 +27,70 @@ class AddConstraintController extends Controller
 
     public function create(Request $request, ObjService $service)
     {
+        $branchAccess = app(BranchAccessService::class);
+        $branchSelector = $branchAccess->selectorData($request);
+        $selectedBranchId = $branchSelector['selected_branch_id'];
+
         return view($this->folderPath . ".add_constraint")->with([
-            'accounts' => $service->getAccounts(),
+            // صاحب رؤية كل الفروع يختار الفرع أولاً؛ بعدها لا تظهر له في
+            // القيد إلا الحسابات المشتركة وحسابات الفرع الذي اختاره.
+            'accounts' => $branchSelector['enabled'] && $branchSelector['can_view_all_branches'] && $selectedBranchId === null
+                ? collect()
+                : $service->getAccounts(null, $selectedBranchId),
             'lastCode' => $service->lastCode(),
             "bladeTitle" => __("finance::finance.Add daily constraint"),
-            "cost_centers" => $service->getCostCenters(),
-            "storeRoute" => route($this->mainRoute . ".store"),
+            "cost_centers" => $service->getCostCenters($selectedBranchId),
+            'branchSelector' => $branchSelector,
+            'selectedBranchId' => $selectedBranchId,
+            'createRoute' => route($this->mainRoute . ".create"),
+            "storeRoute" => route($this->mainRoute . ".store", $selectedBranchId ? ['branch_id' => $selectedBranchId] : []),
+            "storeBaseRoute" => route($this->mainRoute . ".store"),
+            "branchOptionsRoute" => route($this->mainRoute . ".branch-options"),
             "cost_center_required" => null,
             "indexRoute" => route("finance.constraints.index"),
+        ]);
+    }
+
+    public function branchOptions(Request $request, ObjService $service)
+    {
+        $branchAccess = app(BranchAccessService::class);
+        $branchSelector = $branchAccess->selectorData($request);
+        $selectedBranchId = $branchSelector['selected_branch_id'];
+
+        if (($branchSelector['enabled'] ?? false) && ($branchSelector['can_view_all_branches'] ?? false) && $selectedBranchId === null) {
+            return response()->json([
+                'message' => 'اختر الفرع أولاً.',
+                'accounts' => [],
+                'cost_centers' => [],
+            ], 422);
+        }
+
+        return response()->json([
+            'selected_branch_id' => $selectedBranchId,
+            'accounts' => $service->getAccounts(null, $selectedBranchId)
+                ->map(fn ($account) => [
+                    'id' => (int) $account->id,
+                    'name' => (string) $account->name,
+                ])
+                ->values(),
+            'cost_centers' => $service->getCostCenters($selectedBranchId)
+                ->map(fn ($costCenter) => [
+                    'id' => (int) $costCenter->id,
+                    'title' => (string) $costCenter->title,
+                ])
+                ->values(),
         ]);
     }
 
     public function store(ObjRequest $request, ObjService $service, YearService $yearService)
     {
         $data = $request->validated();
+        $branchAccess = app(BranchAccessService::class);
+        if ($branchAccess->enabled()) {
+            // لا نثق في branch_id القادم من النموذج: الموظف المقيد يُثبت على
+            // فرعه، وصاحب رؤية الجميع لا يُقبل منه إلا فرع موجود اختاره صراحة.
+            $data['branch_id'] = $branchAccess->selectedBranchId($request);
+        }
         if (!$yearService->checkDateRange($data['date'])) {
             return jsonValid(['error' => [__("finance.the year is not exist")]], '');
         }

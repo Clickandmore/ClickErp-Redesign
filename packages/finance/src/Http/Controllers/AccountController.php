@@ -3,6 +3,8 @@
 namespace Nami\Finance\Http\Controllers;
 
 use App\Http\Controllers\admin\Controller;
+use App\Models\Branch;
+use App\Support\BranchSharingSettings;
 use Exception;
 use Illuminate\Contracts\Foundation\Application;
 use Illuminate\Contracts\View\Factory;
@@ -78,13 +80,16 @@ class AccountController extends Controller
     public function edit(int $id, Request $request, ObjService $service)
     {
         if ($request->ajax()) {
+            $obj = $service->find($id)->load('branches');
             $returnHTML = view($this->folderPath . ".edit")->with([
                 "accountTypes" => $service->getAccountTypes(),
                 "accounts" => $service->getValidParents(),
-                "obj" => $service->find($id),
+                "obj" => $obj,
                 "types" => $service->getAccountTypesList(),
                 "operationTypes" => $service->getOperationTypesList(),
                 "updateRoute" => route($this->mainRoute . ".update", $id),
+                "branches" => Branch::query()->active()->ordered()->get(['id', 'name_ar', 'name_en', 'code']),
+                "accountBranchAssignmentsEnabled" => BranchSharingSettings::accountsPerBranch(),
             ])->render();
             return jsonSuccess(["html" => $returnHTML]);
         }

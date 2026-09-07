@@ -7,9 +7,11 @@ use Illuminate\Database\Eloquent\Model;
 use App\Models\ingaz\Maid;
 use App\Models\Contract;
 
+use App\Models\Concerns\BranchScoped;
+
 class MaidRecruitmentProcedure extends Model
 {
-    use AssignsBranch;
+    use AssignsBranch, BranchScoped;
 
     protected $fillable = [
         'maid_id',

@@ -400,7 +400,8 @@ class RecruitmentTripAccountingService
         $statement = $this->buildExternalOfficeCostStatement($contract, $invoice);
         $purchase = Purchase::query()->create([
             'created_by_id' => Auth::guard('admin')->id() ?: Auth::id() ?: 1,
-            'code' => ((int) Purchase::query()->lockForUpdate()->max('code')) + 1,
+            // ترقيم فواتير المشتريات يبقى متصلاً على مستوى الشركة رغم عزل الفروع.
+            'code' => ((int) Purchase::query()->acrossBranches()->lockForUpdate()->max('code')) + 1,
             'supplier_id' => $supplier->id,
             'credit_supplier_id' => $officeAccount->id,
             'supplier_bill_number' => (string) ($contract->externalOfficeDispatch?->contract_number ?: ('CLOSE-' . $contract->id)),

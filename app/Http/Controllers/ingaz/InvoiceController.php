@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\ingaz;
 
+use App\Support\BranchReportFilter;
 use App\Enums\ingaz\ContractStatusEnum;
 use App\Http\Controllers\admin\Controller;
 use App\Models\Branch;
@@ -1822,7 +1823,7 @@ class InvoiceController extends Controller
         $grossTotal = $this->roundMoney((float) $invoice->total_due);
         $postedTotal = 0.0;
         if ($invoice->invoice_constraint_id && $clientUser->account_id) {
-            $postedTotal = $this->roundMoney((float) DB::table('fn_constraint_details')
+            $postedTotal = $this->roundMoney((float) BranchReportFilter::apply(DB::table('fn_constraint_details'), 'fn_constraint_details')
                 ->where('constraint_id', $invoice->invoice_constraint_id)
                 ->where('account_id', $clientUser->account_id)
                 ->whereNull('deleted_at')
@@ -4234,7 +4235,8 @@ class InvoiceController extends Controller
         $itemId = (int) ($originalSale->items->first()?->item_id ?: $this->ensureIngazZatcaServiceItem()->id);
 
         $sale = Sale::query()->create([
-            'code' => ((int) Sale::query()->max('code')) + 1,
+            // ترقيم فواتير المبيعات يبقى متصلاً على مستوى الشركة رغم عزل الفروع.
+            'code' => ((int) Sale::query()->acrossBranches()->max('code')) + 1,
             'client_id' => $originalSale->client_id,
             'debit_client_id' => $originalSale->debit_client_id,
             'date' => $creditNote->issue_date->format('Y-m-d'),

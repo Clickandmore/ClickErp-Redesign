@@ -14,9 +14,11 @@ use Illuminate\Support\Carbon;
 use Spatie\Activitylog\LogOptions;
 use Spatie\Activitylog\Traits\LogsActivity;
 
+use App\Models\Concerns\BranchScoped;
+
 class Order extends Model
 {
-    use AssignsOrderBranch, HasFactory, LogsActivity, SoftDeletes;
+    use AssignsOrderBranch, HasFactory, LogsActivity, SoftDeletes, BranchScoped;
 
     protected $guarded = [];
 

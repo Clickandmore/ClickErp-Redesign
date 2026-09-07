@@ -118,8 +118,16 @@ class ShelterContractBranchScopeTest extends TestCase
         $this->grant($viewer, \App\PermKeys::SHELTER_CONTRACT_VIEW);
         $foreignContractId = $this->makeShelterContract($other->id);
 
-        $this->actingAsAdmin($viewer)
-            ->get(route('ShelterContract.show', $foreignContractId))
-            ->assertForbidden();
+        $response = $this->actingAsAdmin($viewer)
+            ->get(route('ShelterContract.show', $foreignContractId));
+
+        // Either answer denies access. Which one comes out depends on whether the
+        // record is filtered out before the controller's own branch check runs:
+        // the branch scope hides it (404), the explicit check refuses it (403).
+        // 404 leaks less — it does not confirm the record exists.
+        $this->assertContains($response->getStatusCode(), [403, 404], sprintf(
+            'A branch user opened another branch\'s shelter contract (HTTP %d).',
+            $response->getStatusCode()
+        ));
     }
 }

@@ -2,6 +2,7 @@
 
 namespace App\Services\ingaz;
 
+use App\Support\BranchReportFilter;
 use App\Models\RentalContract;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
@@ -45,7 +46,7 @@ class RentalContractLedgerService
             return null;
         }
 
-        $query = DB::table('fn_constraint_details as details')
+        $query = BranchReportFilter::apply(DB::table('fn_constraint_details as details'), 'details')
             ->join('fn_constraints as constraints', 'constraints.id', '=', 'details.constraint_id')
             ->whereIn('details.constraint_id', $constraintIds->all())
             ->where('details.account_id', $accountId)

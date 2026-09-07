@@ -3,6 +3,7 @@
 namespace Nami\Finance\Services;
 
 use Nami\Finance\MainService;
+use App\Support\BranchReportFilter;
 use Illuminate\Support\Facades\DB;
 use Nami\Finance\Models\Account;
 use Nami\Finance\Models\ConstraintDetails as Model;
@@ -51,6 +52,9 @@ class AccountStatementService extends MainService
             ->whereNull('fn_constraint_details.deleted_at')
             ->whereNull('fn_constraints.deleted_at')
             ->whereIn('fn_constraint_details.account_id',$acoounts )
+            // استعلام خام لا يراه الـ global scope؛ بدون هذا السطر يعرض كشف
+            // الحساب حركة كل الفروع لموظف فرع واحد.
+            ->tap(fn ($q) => BranchReportFilter::apply($q, 'fn_constraint_details'))
             ->when($dataSearch["type"] != "both", function ($q) use ($dataSearch) {
                 return $q->where("fn_constraint_details.type", $dataSearch["type"]);
             })

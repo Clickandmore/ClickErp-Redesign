@@ -15,6 +15,7 @@ use Spatie\Activitylog\Traits\LogsActivity;
 
 class TravelHistory extends Model
 {
+    use \App\Models\Concerns\AssignsBranch, \App\Models\Concerns\BranchScoped;
     use HasFactory, SoftDeletes, LogsActivity;
 
     protected $fillable = [

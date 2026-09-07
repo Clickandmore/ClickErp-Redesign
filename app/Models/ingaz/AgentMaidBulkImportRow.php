@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class AgentMaidBulkImportRow extends Model
 {
+    use \App\Models\Concerns\AssignsBranch, \App\Models\Concerns\BranchScoped;
     protected $fillable = [
         'agent_maid_bulk_import_id',
         'row_number',

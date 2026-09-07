@@ -9,9 +9,11 @@ use App\Models\ingaz\User;
 use App\Models\ingaz\Maid;
 use App\Models\auth\Admin;
 
+use App\Models\Concerns\BranchScoped;
+
 class TransferServiceContract extends Model
 {
-    use AssignsBranch, HasFactory;
+    use AssignsBranch, HasFactory, BranchScoped;
 
     protected $fillable = [
         'external_source',

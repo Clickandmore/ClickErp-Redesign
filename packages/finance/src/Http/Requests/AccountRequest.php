@@ -32,6 +32,9 @@ class AccountRequest extends MainRequest
             'parent_id' => 'nullable',
             'type' => 'nullable',
             'operation_type' => 'nullable',
+            'account_branch_scope_present' => 'nullable|boolean',
+            'branch_ids' => 'nullable|array',
+            'branch_ids.*' => 'integer|exists:branches,id',
         ];
     }
 
@@ -44,6 +47,9 @@ class AccountRequest extends MainRequest
             'parent_id' => 'nullable',
             'type' => 'nullable',
             'operation_type' => 'nullable',
+            'account_branch_scope_present' => 'nullable|boolean',
+            'branch_ids' => 'nullable|array',
+            'branch_ids.*' => 'integer|exists:branches,id',
         ];
     }
 

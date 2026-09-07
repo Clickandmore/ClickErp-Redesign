@@ -9,6 +9,7 @@ use Spatie\Activitylog\Traits\LogsActivity;
 
 class ReturnRequest extends Model
 {
+    use \App\Models\Concerns\AssignsBranch, \App\Models\Concerns\BranchScoped;
     use HasFactory, LogsActivity;
 
     protected $fillable = ['order_id', 'user_id', 'maid_id', 'notes', 'status', 'file'];

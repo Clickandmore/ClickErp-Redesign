@@ -10,9 +10,11 @@ use App\Models\ingaz\User;
 use App\Models\auth\Admin;
 use Nami\Finance\Models\Constraint;
 
+use App\Models\Concerns\BranchScoped;
+
 class SponsorshipTransfer extends Model
 {
-    use AssignsBranch, HasFactory, SoftDeletes;
+    use AssignsBranch, HasFactory, SoftDeletes, BranchScoped;
 
     protected $fillable = [
         'external_source',

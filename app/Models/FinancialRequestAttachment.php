@@ -5,9 +5,11 @@ namespace App\Models;
 use App\Models\Concerns\AssignsBranch;
 use Illuminate\Database\Eloquent\Model;
 
+use App\Models\Concerns\BranchScoped;
+
 class FinancialRequestAttachment extends Model
 {
-    use AssignsBranch;
+    use AssignsBranch, BranchScoped;
 
     protected $guarded = [];
 

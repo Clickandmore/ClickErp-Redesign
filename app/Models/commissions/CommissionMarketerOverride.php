@@ -2,14 +2,20 @@
 
 namespace App\Models\commissions;
 
+use App\Models\Concerns\AssignsBranch;
+use App\Models\Concerns\BranchScoped;
+
 use App\Models\auth\Admin;
 use Illuminate\Database\Eloquent\Model;
 
 class CommissionMarketerOverride extends Model
 {
+    use AssignsBranch, BranchScoped;
+
     protected $table = 'commission_marketer_overrides';
 
-    protected $fillable = ['admin_id', 'service_type', 'method', 'value', 'created_by'];
+    protected $fillable = [
+        'branch_id','admin_id', 'service_type', 'method', 'value', 'created_by'];
 
     protected $casts = ['value' => 'decimal:2'];
 

@@ -59,6 +59,7 @@
                         </th>
                         <th>#</th>
                         <th>الشهر</th>
+                        <th>الفرع</th>
                         <th>عدد العاملات</th>
                         <th>إجمالي الراتب</th>
                         <th>إجمالي الخصومات</th>
@@ -80,6 +81,7 @@
                             </td>
                             <td>{{ $loop->iteration }}</td>
                             <td>{{ \Carbon\Carbon::createFromFormat('Y-m', $payroll->month_year)->locale(app()->getLocale())->translatedFormat('F Y') }}</td>
+                            <td>{{ $payroll->branch?->name ?? '-' }}</td>
                             <td>{{ $payroll->workers_count }}</td>
                             <td>{{ number_format((float) $payroll->total_gross_salary, 2) }}</td>
                             <td>{{ number_format((float) $payroll->total_deductions, 2) }}</td>
@@ -99,7 +101,7 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="9" class="payroll-empty">لا توجد مسيرات رواتب محفوظة حتى الآن.</td>
+                            <td colspan="10" class="payroll-empty">لا توجد مسيرات رواتب محفوظة حتى الآن.</td>
                         </tr>
                     @endforelse
                     </tbody>

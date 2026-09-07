@@ -11,6 +11,30 @@
         </div>
 
         <div class="row g-3">
+            @if (($branchSelector['enabled'] ?? false))
+                <div class="col-lg-3 col-md-4 col-12">
+                    <label for="constraint_branch_id" class="form-label">الفرع <span class="text-danger">*</span></label>
+                    @if (($branchSelector['can_view_all_branches'] ?? false))
+                        <select id="constraint_branch_id" name="branch_id_picker" class="form-control" required>
+                            <option value="">اختر الفرع</option>
+                            @foreach (($branchSelector['branches'] ?? collect()) as $branch)
+                                <option value="{{ $branch->id }}" @selected((int) $selectedBranchId === (int) $branch->id)>
+                                    {{ $branch->name_ar ?: $branch->name_en }}
+                                </option>
+                            @endforeach
+                        </select>
+                        <input id="constraint_branch_id_mirror" type="hidden" name="branch_id" value="{{ $selectedBranchId }}">
+                        <small class="text-muted">اختيار الفرع يحدد الحسابات ومركز التكلفة المتاحين للقيد.</small>
+                    @else
+                        @php $forcedBranch = ($branchSelector['branches'] ?? collect())->first(); @endphp
+                        <input type="hidden" name="branch_id" value="{{ $selectedBranchId }}">
+                        <div class="summary-box">
+                            <span class="summary-value">{{ $forcedBranch?->name_ar ?: $forcedBranch?->name_en }}</span>
+                        </div>
+                    @endif
+                </div>
+            @endif
+
             <div class="col-lg-3 col-md-4 col-12">
                 <label class="form-label">{{ __('finance::finance.Journal Entry Number') }} <span
                         class="text-danger">*</span></label>

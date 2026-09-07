@@ -2,12 +2,21 @@
 
 namespace Nami\Finance\Models;
 
+use App\Models\Branch;
+use App\Models\Concerns\AssignsBranch;
+
 use App\Models\auth\Admin;
 use Nami\Finance\Enums\AccountStatusEnum;
 use Nami\Finance\Enums\AccountTypesEnum;
 
 class Account extends Finance
 {
+    // الفرع يُسجَّل على الحساب للتقارير، لكن بلا عزل قراءة تلقائي:
+    // `code` فريد على مستوى الشجرة كلها، وعشرة مواضع تولّده من
+    // `max('code')` — استعلام معزول ينتج كوداً مستعملاً في فرع آخر.
+    // عزل أرصدة الفروع يتحقق من عزل القيود والسندات، لا من إخفاء الحسابات.
+    use AssignsBranch;
+
     public const MUSANED_PARENT_CODES = [122, 156];
 
     protected $guarded =[];
@@ -23,6 +32,25 @@ class Account extends Finance
     {
         return $this->hasMany(Account::class, 'parent_id', 'id');
     }
+
+    public function branches()
+    {
+        return $this->belongsToMany(Branch::class, 'fn_account_branch', 'account_id', 'branch_id')
+            ->withTimestamps();
+    }
+
+    public function scopeAssignableTo($query, ?int $branchId)
+    {
+        if ($branchId === null) {
+            return $query;
+        }
+
+        return $query->where(function ($query) use ($branchId) {
+            $query->whereDoesntHave('branches')
+                ->orWhereHas('branches', fn ($branches) => $branches->whereKey($branchId));
+        });
+    }
+
     public function constraintDetails()
     {
         return $this->hasMany(ConstraintDetails::class, 'account_id', 'id')

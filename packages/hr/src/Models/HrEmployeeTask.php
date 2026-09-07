@@ -6,9 +6,10 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 
 class HrEmployeeTask extends HrModel
 {
+    use \App\Models\Concerns\AssignsBranch, \App\Models\Concerns\BranchScoped;
     use HasFactory;
     protected $table = 'hr_employee_tasks';
-    protected $fillable = ['task_id', 'employee_id', 'status'];
+    protected $fillable = ['task_id', 'employee_id', 'status', 'branch_id'];
 
     public $timestamps = true;
 

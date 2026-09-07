@@ -105,6 +105,7 @@
 
         <form class="from-submit-global" method="POST" action="{{ $storeRoute }}">
             @csrf
+            <input type="hidden" name="branch_id" value="{{ $selectedBranchId }}">
             <input type="hidden" name="month_year" value="{{ $selectedMonth }}">
             <input type="hidden" name="month_days_display_option" value="{{ $monthDaysDisplayOption }}">
 

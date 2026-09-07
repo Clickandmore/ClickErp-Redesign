@@ -2,6 +2,7 @@
 
 namespace App\Models\ingaz;
 
+use App\PermKeys;
 use App\Enums\ingaz\ContractStatusEnum;
 use App\Enums\ingaz\OrderEnum;
 use App\Http\Controllers\ingaz\RecruitmentOffice;
@@ -9,6 +10,7 @@ use App\Models\Contract;
 use App\Models\RecruitmentOffices;
 use App\Models\Branch;
 use App\Support\CvOptionsSettings;
+use App\Support\BranchSharingSettings;
 use Astrotomic\Translatable\Translatable;
 use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 use Illuminate\Database\Eloquent\Builder;
@@ -25,9 +27,24 @@ use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\URL;
 
+use App\Models\Concerns\BranchScoped;
+
 class Maid extends Model
 {
+    use BranchScoped;
+
     use HasFactory, Translatable, LogsActivity, SoftDeletes, \App\Models\Concerns\ResolvesMediaUrls;
+
+    /** السيرة الذاتية بلا فرع تبقى في المخزون المشترك المرئي لكل الفروع. */
+    public function branchScopeSharesUnassigned(): bool
+    {
+        return BranchSharingSettings::shareMaids();
+    }
+
+    public function branchScopeViewAllPermission(): ?string
+    {
+        return PermKeys::MAIDS_VIEW_ALL_BRANCHES;
+    }
 
     protected array $mediaUrlColumns = ['image', 'cv_file', 'cv_preview', 'video'];
 

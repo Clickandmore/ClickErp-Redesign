@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class ComplaintAttachment extends Model
 {
+    use \App\Models\Concerns\AssignsBranch, \App\Models\Concerns\BranchScoped;
     protected $guarded = [];
 
     protected $casts = [

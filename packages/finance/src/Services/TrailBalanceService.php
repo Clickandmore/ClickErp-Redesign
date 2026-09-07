@@ -3,6 +3,7 @@
 namespace Nami\Finance\Services;
 
 use Nami\Finance\MainService;
+use App\Support\BranchReportFilter;
 use Illuminate\Support\Facades\DB;
 use Nami\Finance\Models\Account;
 use Nami\Finance\Models\Account as Model;
@@ -91,6 +92,12 @@ class TrailBalanceService extends MainService
         $rootFilter = $allLevels ? '' : 'WHERE level = ?';
         $finalFilter = $allLevels ? '' : 'WHERE root_acc.level = ?';
 
+        // الـ global scope لا يرى DB::select. الشرط يُبنى مرة ويُحقن في موضعين
+        // (period_balance و first_balance)، ولكل موضع binding خاص به.
+        // عند غياب العزل يكون الشرط `1 = 1` بلا bindings، فيبقى الاستعلام
+        // مطابقاً تماماً لما كان قبل الفروع.
+        [$branchCondition, $branchBindings] = BranchReportFilter::sqlCondition('cd');
+
         $firstBalanceSelect = $includeFirstBalance
             ? 'COALESCE(first_balance.total_debtor, 0) as first_debtor,
                COALESCE(first_balance.total_creditor, 0) as first_creditor'
@@ -107,12 +114,18 @@ class TrailBalanceService extends MainService
             INNER JOIN fn_constraint_details cd ON cd.account_id = account_tree.account_id
             INNER JOIN fn_constraints c ON c.id = cd.constraint_id
             WHERE cd.date < ?
+              AND {$branchCondition}
               AND cd.deleted_at IS NULL
               AND c.deleted_at IS NULL
             GROUP BY account_tree.root_id
         ) first_balance ON first_balance.root_id = root_acc.id"
             : '';
 
+        // الترتيب هنا يجب أن يطابق ترتيب ظهور `?` في نص الاستعلام حرفياً:
+        //   1) account_tree   : level
+        //   2) period_balance : from, to, ثم شرط الفرع
+        //   3) first_balance  : from, ثم شرط الفرع   (عند طلب الرصيد الافتتاحي)
+        //   4) finalFilter    : level
         $bindings = [];
 
         if (!$allLevels) {
@@ -120,9 +133,11 @@ class TrailBalanceService extends MainService
         }
 
         array_push($bindings, $fromDate, $toDate);
+        $bindings = array_merge($bindings, $branchBindings);
 
         if ($includeFirstBalance) {
             $bindings[] = $fromDate;
+            $bindings = array_merge($bindings, $branchBindings);
         }
 
         if (!$allLevels) {
@@ -149,6 +164,7 @@ class TrailBalanceService extends MainService
             INNER JOIN fn_constraint_details cd ON cd.account_id = account_tree.account_id
             INNER JOIN fn_constraints c ON c.id = cd.constraint_id
             WHERE cd.date BETWEEN ? AND ?
+              AND {$branchCondition}
               AND cd.deleted_at IS NULL
               AND c.deleted_at IS NULL
             GROUP BY account_tree.root_id

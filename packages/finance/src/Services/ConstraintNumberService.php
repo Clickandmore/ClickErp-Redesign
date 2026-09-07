@@ -32,6 +32,9 @@ class ConstraintNumberService
 
             // Keep the sequence safe if constraints were imported with explicit
             // historical numbers after the sequence was initialized.
+            //
+            // DB::table عمداً وليس Eloquent: ترقيم القيود متصل على مستوى الشركة،
+            // فلو مرّ بالموديل المعزول لبدأ كل فرع من رقمه هو وتكرّرت الأرقام.
             $highestStoredCode = (int) DB::table('fn_constraints')->max('code');
             $nextCode = max((int) $sequence->last_code, $highestStoredCode) + 1;
 

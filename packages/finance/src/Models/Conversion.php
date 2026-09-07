@@ -7,6 +7,7 @@ use App\Models\auth\Admin;
 
 class Conversion extends Finance
 {
+    use \App\Models\Concerns\AssignsBranch, \App\Models\Concerns\BranchScoped;
     protected $table = 'fn_conversions';
 
     // Fillable fields for mass assignment
@@ -43,4 +44,3 @@ class Conversion extends Finance
         return $this->hasMany(ConversionItem::class, 'conversion_id');
     }
 }
-

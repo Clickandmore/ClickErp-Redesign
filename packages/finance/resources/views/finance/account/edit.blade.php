@@ -45,6 +45,27 @@
         </div>
     @endif
 
+    @if($accountBranchAssignmentsEnabled ?? false)
+        @php($selectedBranchIds = $obj->relationLoaded('branches') ? $obj->branches->pluck('id')->map(fn($id) => (int) $id)->all() : [])
+        <div class="col-12">
+            <label class="form-label">الفروع المتاح لها الحساب</label>
+            <input type="hidden" name="account_branch_scope_present" value="1">
+            <select class="form-control select2" name="branch_ids[]" multiple>
+                @foreach($branches ?? [] as $branch)
+                    <option value="{{ $branch->id }}" {{ in_array((int) $branch->id, $selectedBranchIds, true) ? 'selected' : '' }}>
+                        {{ $branch->name_ar ?: $branch->name_en }}
+                        @if(!empty($branch->code))
+                            - {{ $branch->code }}
+                        @endif
+                    </option>
+                @endforeach
+            </select>
+            <small class="text-muted d-block mt-1">
+                لا توجد فروع محددة = الحساب متاح لكل الفروع. اختيار فروع يحصر استخدام الحساب عليها فقط.
+            </small>
+        </div>
+    @endif
+
     <div class="col-12 modal-footer">
         {!! submitButton($updateRoute) !!}
         {!! closeButton() !!}

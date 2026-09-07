@@ -2,10 +2,15 @@
 
 namespace Nami\Finance\Models;
 
+use App\Models\Concerns\AssignsBranch;
+use App\Models\Concerns\BranchScoped;
+
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 
 class StockMovement extends Finance
 {
+    use AssignsBranch, BranchScoped;
+
     use HasFactory;
     protected $guarded = [];
     protected $table ='fn_stock_movements';

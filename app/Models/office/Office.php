@@ -2,12 +2,16 @@
 
 namespace App\Models\office;
 
+use App\Models\Concerns\AssignsBranch;
+use App\Models\Concerns\BranchScoped;
 use App\Models\ingaz\JobTitle;
 use App\Models\ingaz\JobType;
 use App\Models\ingaz\Maid;
 use App\Models\ingaz\Nationality;
 use App\Models\OfficeAttachment;
 use App\Models\RecruitmentOfficeTranslation;
+use App\PermKeys;
+use App\Support\BranchSharingSettings;
 use Astrotomic\Translatable\Translatable;
 use Spatie\Activitylog\LogOptions;
 use Spatie\Activitylog\Traits\LogsActivity;
@@ -19,7 +23,7 @@ use Nami\Finance\Models\Account;
 
 class Office extends Model
 {
-    use HasFactory, Translatable, LogsActivity;
+    use AssignsBranch, BranchScoped, HasFactory, Translatable, LogsActivity;
 
     protected $guarded = [];
     public $translatedAttributes = ['title'];
@@ -27,6 +31,16 @@ class Office extends Model
     public $translationModel = RecruitmentOfficeTranslation::class;
     protected $with = ['translations'];
     protected $table = 'recruitment_offices';
+
+    public function branchScopeSharedAcrossBranches(): bool
+    {
+        return BranchSharingSettings::shareExternalOffices();
+    }
+
+    public function branchScopeViewAllPermission(): ?string
+    {
+        return PermKeys::OFFICES_VIEW_ALL_BRANCHES;
+    }
 
     public function nationality()
     {

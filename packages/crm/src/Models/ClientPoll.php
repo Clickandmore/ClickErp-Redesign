@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class ClientPoll extends Model
 {
+    use \App\Models\Concerns\AssignsBranch, \App\Models\Concerns\BranchScoped;
     use HasFactory;
     protected $table = "crm_client_polls";
     protected $fillable = ["client_id", "poll_id", "status"];

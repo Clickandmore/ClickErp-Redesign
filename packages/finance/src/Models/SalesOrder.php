@@ -2,15 +2,21 @@
 
 namespace Nami\Finance\Models;
 
+use App\Models\Concerns\AssignsBranch;
+use App\Models\Concerns\BranchScoped;
+
 
 use App\Models\auth\Admin;
 
 class SalesOrder extends Finance
 {
+    use AssignsBranch, BranchScoped;
+
     protected $table = 'fn_sales_orders';
 
     // Fillable fields for mass assignment
     protected $fillable = [
+        'branch_id',
         'code',
         'date',
         'client_id',

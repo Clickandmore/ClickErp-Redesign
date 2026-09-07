@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 
 class EmployeeReward extends HrModel
 {
+    use \App\Models\Concerns\AssignsBranch, \App\Models\Concerns\BranchScoped;
     use HasFactory;
     protected $table = 'hr_reward_employee';
     protected $fillable = ['employee_id','reward_id','salary','exchange_timing','date','value','net_value'];

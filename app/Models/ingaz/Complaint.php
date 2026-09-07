@@ -14,9 +14,11 @@ use Illuminate\Database\Eloquent\Model;
 use Spatie\Activitylog\LogOptions;
 use Spatie\Activitylog\Traits\LogsActivity;
 
+use App\Models\Concerns\BranchScoped;
+
 class Complaint extends Model
 {
-    use AssignsBranch, HasFactory, LogsActivity;
+    use AssignsBranch, HasFactory, LogsActivity, BranchScoped;
 
     protected $guarded = [];
     

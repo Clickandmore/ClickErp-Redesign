@@ -51,6 +51,27 @@
         <input type="hidden" name="type" value="1" >
         <input type="hidden" name="operation_type" value="3" >
     @endif
+
+    @if($accountBranchAssignmentsEnabled ?? false)
+        <div class="col-12">
+            <label class="form-label">الفروع المتاح لها الحساب</label>
+            <input type="hidden" name="account_branch_scope_present" value="1">
+            <select class="form-control select2" name="branch_ids[]" multiple>
+                @foreach($branches ?? [] as $branch)
+                    <option value="{{ $branch->id }}">
+                        {{ $branch->name_ar ?: $branch->name_en }}
+                        @if(!empty($branch->code))
+                            - {{ $branch->code }}
+                        @endif
+                    </option>
+                @endforeach
+            </select>
+            <small class="text-muted d-block mt-1">
+                اترك التحديد فارغاً ليظل الحساب متاحاً لكل الفروع. اختيار فرع أو أكثر يجعل الحساب متاحاً لهذه الفروع فقط.
+            </small>
+        </div>
+    @endif
+
     <div class="col-12 modal-footer">
         {!! submitButton($storeRoute) !!}
         {!! closeButton() !!}

@@ -6,9 +6,11 @@ use App\Models\Concerns\AssignsBranch;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
+use App\Models\Concerns\BranchScoped;
+
 class RentalFinancialAdjustment extends Model
 {
-    use AssignsBranch, HasFactory;
+    use AssignsBranch, HasFactory, BranchScoped;
 
     protected $fillable = [
         'rental_contract_id',

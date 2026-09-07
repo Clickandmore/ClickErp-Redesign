@@ -34,7 +34,57 @@ trait AssignsBranch
 
     protected function resolveBranchIdForCreate(): ?int
     {
+        // السجل التابع يرث فرع أبيه قبل الاعتماد على مستخدم الشاشة. هذا مهم
+        // للإدارة العامة ومديري المناطق الذين قد ينشئون سجلاً لفرع آخر.
+        $attributes = $this->getAttributes();
+
+        if (! empty($attributes['payroll_id'])) {
+            $branchId = $this->resolveBranchIdFromTable('hr_payrolls', (int) $attributes['payroll_id']);
+            if ($branchId) {
+                return $branchId;
+            }
+        }
+
+        if (! empty($attributes['task_id'])) {
+            $branchId = $this->resolveBranchIdFromTable('hr_tasks', (int) $attributes['task_id']);
+            if ($branchId) {
+                return $branchId;
+            }
+        }
+
+        if (! empty($attributes['employee_id'])) {
+            $branchId = $this->resolveBranchIdFromTable('hr_employee', (int) $attributes['employee_id']);
+            if ($branchId) {
+                return $branchId;
+            }
+        }
+
+        if (! empty($attributes['admin_id'])) {
+            $branchId = $this->resolveBranchIdFromAdmin((int) $attributes['admin_id']);
+            if ($branchId) {
+                return $branchId;
+            }
+        }
+
+        if (! empty($attributes['maid_id'])) {
+            $branchId = $this->resolveBranchIdFromMaid((int) $attributes['maid_id']);
+            if ($branchId) {
+                return $branchId;
+            }
+        }
+
         return $this->resolveBranchIdFromCurrentAdmin();
+    }
+
+    protected function resolveBranchIdFromTable(string $table, ?int $id): ?int
+    {
+        if (! $id || ! Schema::hasTable($table) || ! Schema::hasColumn($table, 'branch_id')) {
+            return null;
+        }
+
+        $branchId = DB::table($table)->where('id', $id)->value('branch_id');
+
+        return $branchId ? (int) $branchId : null;
     }
 
     protected function resolveBranchIdFromCurrentAdmin(): ?int

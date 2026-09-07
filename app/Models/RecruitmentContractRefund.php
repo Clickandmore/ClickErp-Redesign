@@ -8,9 +8,11 @@ use App\Models\ingaz\Invoice;
 use Illuminate\Database\Eloquent\Model;
 use Nami\Finance\Models\Constraint;
 
+use App\Models\Concerns\BranchScoped;
+
 class RecruitmentContractRefund extends Model
 {
-    use AssignsBranch;
+    use AssignsBranch, BranchScoped;
 
     protected $guarded = [];
 

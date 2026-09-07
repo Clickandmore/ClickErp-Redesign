@@ -50,6 +50,24 @@
             margin-top: 18px;
         }
 
+        .permissions-field-label {
+            display: block;
+            margin-bottom: 6px;
+            color: #475569;
+            font-size: 0.82rem;
+            font-weight: 800;
+        }
+
+        .permissions-scope-banner {
+            margin-top: 16px;
+            padding: 12px 14px;
+            border: 1px solid #99f6e4;
+            border-radius: 12px;
+            background: #f0fdfa;
+            color: #115e59;
+            line-height: 1.7;
+        }
+
         .permissions-toolbar select,
         .permissions-toolbar input {
             width: 100%;
@@ -710,30 +728,50 @@
                     </p>
 
                     <div class="permissions-toolbar-grid">
-                        <select id="roleSwitcher">
-                            @foreach ($availableRoles as $singleRole)
-                                <option value="{{ route('dash.perms.setPerms', array_filter(['id' => $singleRole->id, 'branch_id' => $selectedBranchId])) }}"
-                                    {{ (int) $singleRole->id === (int) $role->id ? 'selected' : '' }}>
-                                    {{ $singleRole->name }} ({{ (int) ($singleRole->permissions_count ?? 0) }} صلاحية)
-                                </option>
-                            @endforeach
-                        </select>
-
-                        @if ($branchesEnabled && $branches->isNotEmpty())
-                            <select id="branchSwitcher">
-                                @foreach ($branches as $branch)
-                                    <option value="{{ route('dash.perms.setPerms', ['id' => $role->id, 'branch_id' => $branch->id]) }}"
-                                        {{ (int) $selectedBranchId === (int) $branch->id ? 'selected' : '' }}>
-                                        {{ $branch->name }}
+                        <div>
+                            <label class="permissions-field-label" for="roleSwitcher">الدور الذي تعدّل صلاحياته</label>
+                            <select id="roleSwitcher">
+                                @foreach ($availableRoles as $singleRole)
+                                    <option value="{{ route('dash.perms.setPerms', array_filter(['id' => $singleRole->id, 'branch_id' => $selectedBranchId])) }}"
+                                        {{ (int) $singleRole->id === (int) $role->id ? 'selected' : '' }}>
+                                        {{ $singleRole->name }} ({{ (int) ($singleRole->permissions_count ?? 0) }} صلاحية)
                                     </option>
                                 @endforeach
                             </select>
+                        </div>
+
+                        @if ($branchesEnabled && $branches->isNotEmpty())
+                            <div>
+                                <label class="permissions-field-label" for="branchSwitcher">الفرع الذي ستُحفظ له الصلاحيات</label>
+                                <select id="branchSwitcher">
+                                    @foreach ($branches as $branch)
+                                        <option value="{{ route('dash.perms.setPerms', ['id' => $role->id, 'branch_id' => $branch->id]) }}"
+                                            {{ (int) $selectedBranchId === (int) $branch->id ? 'selected' : '' }}>
+                                            {{ $branch->name }}
+                                        </option>
+                                    @endforeach
+                                </select>
+                            </div>
                         @endif
 
-                        <input id="permissionsSearch"
-                               type="search"
-                               placeholder="ابحث باسم العنصر أو الصلاحية الإضافية أو المفتاح">
+                        <div>
+                            <label class="permissions-field-label" for="permissionsSearch">البحث داخل الصلاحيات</label>
+                            <input id="permissionsSearch"
+                                   type="search"
+                                   placeholder="ابحث باسم العنصر أو الصلاحية الإضافية أو المفتاح">
+                        </div>
                     </div>
+
+                    @if ($branchesEnabled && $selectedBranchId)
+                        @php $selectedBranch = $branches->firstWhere('id', $selectedBranchId); @endphp
+                        <div class="permissions-scope-banner">
+                            <i class="fas fa-map-marker-alt"></i>
+                            <strong>نطاق الحفظ الحالي:</strong>
+                            فرع <strong>{{ $selectedBranch?->name ?? ('#' . $selectedBranchId) }}</strong>
+                            — دور <strong>{{ $role->name }}</strong>.
+                            أي حفظ في هذه الصفحة يخص هذا الفرع والدور فقط.
+                        </div>
+                    @endif
 
                     <div class="permissions-toolbar-actions">
                         <button type="button" class="btn btn-outline-secondary" id="expandSectionsButton">فتح الكل</button>

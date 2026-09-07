@@ -7,9 +7,11 @@ use App\Models\Concerns\AssignsOrderBranch;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
+use App\Models\Concerns\BranchScoped;
+
 class RecruitmentRequest extends Model
 {
-    use AssignsOrderBranch;
+    use AssignsOrderBranch, BranchScoped;
 
     protected $table = 'orders';
 

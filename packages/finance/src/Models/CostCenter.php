@@ -2,13 +2,22 @@
 
 namespace Nami\Finance\Models;
 
+use App\Models\Concerns\AssignsBranch;
+
 use App\Models\auth\Admin;
 use Illuminate\Support\Facades\DB;
 
 class CostCenter extends Finance
 {
+    // الفرع يُسجَّل على الحساب للتقارير، لكن بلا عزل قراءة تلقائي:
+    // `code` فريد على مستوى الشجرة كلها، وعشرة مواضع تولّده من
+    // `max('code')` — استعلام معزول ينتج كوداً مستعملاً في فرع آخر.
+    // عزل أرصدة الفروع يتحقق من عزل القيود والسندات، لا من إخفاء الحسابات.
+    use AssignsBranch;
+
     protected $table ='fn_cost_centers';
     protected $fillable =[
+        'branch_id',
         'title', 'parent_id', 'table_name', 'table_related_id', 'code', 'admin_id', 'created_by_id',
         'legacy_source_code', 'legacy_level', 'legacy_full_path', 'legacy_debtor_total', 'legacy_creditor_total',
         'legacy_balance', 'legacy_balance_type', 'legacy_opening_balance',

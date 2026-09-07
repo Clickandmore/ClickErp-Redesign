@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 
 class Bank extends Finance
 {
+    use \App\Models\Concerns\AssignsBranch, \App\Models\Concerns\BranchScoped;
     use Translatable, HasFactory;
     ## Initialization
     protected $table = 'banks';

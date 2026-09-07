@@ -1,13 +1,20 @@
 <?php
 
 namespace Nami\Finance\Models;
+
+use App\Models\Concerns\AssignsBranch;
+use App\Models\Concerns\BranchScoped;
 use App\Models\Nami\Admin;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 
 class BondTax extends Finance
 {
+    // عزل الفروع: المستند يخص فرع منشئه، والسجلات القديمة للفرع الرئيسي.
+    use AssignsBranch, BranchScoped;
+
     use HasFactory;
-    protected $fillable = ['bond_id','tax_rate','tax_amount','tax_setting_id','tax_account_id'];
+    protected $fillable = [
+        'branch_id','bond_id','tax_rate','tax_amount','tax_setting_id','tax_account_id'];
     protected $table = 'fn_bonds_taxs';
 
     public function bond()

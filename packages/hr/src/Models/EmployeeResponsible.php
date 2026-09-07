@@ -5,6 +5,7 @@ namespace Nami\Hr\Models;
 
 class EmployeeResponsible extends HrModel
 {
+    use \App\Models\Concerns\AssignsBranch, \App\Models\Concerns\BranchScoped;
     protected $guarded = [];
     protected $table = 'hr_employee_responsible';
     public function employees()

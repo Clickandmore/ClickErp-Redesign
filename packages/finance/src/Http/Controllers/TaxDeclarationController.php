@@ -2,6 +2,7 @@
 
 namespace Nami\Finance\Http\Controllers;
 
+use App\Support\BranchReportFilter;
 use App\Http\Controllers\admin\Controller;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Http\Request;
@@ -67,7 +68,7 @@ class TaxDeclarationController extends Controller
             return collect();
         }
 
-        $summary = DB::table('fn_constraint_details')
+        $summary = BranchReportFilter::apply(DB::table('fn_constraint_details'), 'fn_constraint_details')
             ->join('fn_constraints', 'fn_constraints.id', '=', 'fn_constraint_details.constraint_id')
             ->whereNull('fn_constraint_details.deleted_at')
             ->whereNull('fn_constraints.deleted_at')
@@ -100,7 +101,7 @@ class TaxDeclarationController extends Controller
             return null;
         }
 
-        return DB::table('fn_constraint_details')
+        return BranchReportFilter::apply(DB::table('fn_constraint_details'), 'fn_constraint_details')
             ->join('fn_constraints', 'fn_constraints.id', '=', 'fn_constraint_details.constraint_id')
             ->whereNull('fn_constraint_details.deleted_at')
             ->whereNull('fn_constraints.deleted_at')

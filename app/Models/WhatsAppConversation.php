@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class WhatsAppConversation extends Model
 {
+    use \App\Models\Concerns\AssignsBranch, \App\Models\Concerns\BranchScoped;
     protected $table = 'whatsapp_conversations';
 
     protected $guarded = [];

@@ -1019,6 +1019,8 @@ class PermissionsController extends Controller
             'hr_module' => 'نظام الموارد البشرية',
             'finance_module' => 'النظام المحاسبي',
             'finance_constraints' => 'القيود المحاسبية',
+            'finance_procurement' => 'المشتريات',
+            'procurement' => 'المشتريات',
             'rec_contracts' => 'عقود الاستقدام',
             'ingaz_delegations' => 'تفاويض الإنجاز',
             'invoices' => 'الفواتير',

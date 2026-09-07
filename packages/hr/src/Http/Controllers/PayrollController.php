@@ -22,17 +22,15 @@ class PayrollController extends Controller
     public function index(Request $request)
     {
         $month = $request->input('month');
-        $branchId = app(BranchAccessService::class)->selectedBranchId($request);
+        $branchAccess = app(BranchAccessService::class);
+        $branchId = $branchAccess->selectedBranchId($request);
 
         $payrolls = Payroll::query()
+            ->with('branch')
             ->when($month, function ($query) use ($month) {
                 $query->where('month_year', $month);
             })
-            ->when($branchId, function ($query) use ($branchId) {
-                $query->whereHas('items.maid', function ($maidQuery) use ($branchId) {
-                    $maidQuery->where('branch_id', $branchId);
-                });
-            })
+            ->when($branchId, fn ($query) => $branchAccess->applyBranchIdToQuery($query, $branchId, 'hr_payrolls'))
             ->latest('month_year')
             ->latest('id')
             ->get();
@@ -51,7 +49,19 @@ class PayrollController extends Controller
     public function create(Request $request, \App\Http\Actions\ingaz\MaidAction $maidAction)
     {
         $maidAction->syncAllRentalMaidsToHr();
-        $branchId = app(BranchAccessService::class)->selectedBranchId($request);
+        $branchAccess = app(BranchAccessService::class);
+        $branchId = $branchAccess->selectedBranchId($request);
+
+        if ($branchAccess->enabled() && ! $branchId && $branchAccess->mainBranchId()) {
+            return redirect()->route('payrolls.create', array_filter([
+                'month' => $request->input('month'),
+                'branch_id' => $branchAccess->mainBranchId(),
+                'month_days_display_option' => $request->input('month_days_display_option'),
+                'passport_num' => $request->input('passport_num'),
+                'residence_num' => $request->input('residence_num'),
+                'worker_scope' => $request->input('worker_scope'),
+            ]));
+        }
 
         [$monthYear, $monthDate, $actualMonthDays] = $this->resolveMonthContext($request->input('month'));
         [$monthDaysDisplayOption, $monthDays] = $this->resolveMonthDaysDisplayOption(
@@ -65,9 +75,13 @@ class PayrollController extends Controller
         $rows = Employee::query()
             ->onlyMaids()
             ->whereNotNull('maid_id')
-            ->when($branchId, function ($query) use ($branchId) {
-                $query->whereHas('maid', function ($maidQuery) use ($branchId) {
-                    $maidQuery->where('branch_id', $branchId);
+            ->when($branchId, function ($query) use ($branchId, $branchAccess) {
+                $query->where(function ($branchQuery) use ($branchId, $branchAccess) {
+                    $branchQuery->where('hr_employee.branch_id', $branchId);
+
+                    if ($branchAccess->isMainBranchId($branchId)) {
+                        $branchQuery->orWhereNull('hr_employee.branch_id');
+                    }
                 });
             })
             ->when($passportNumber !== '', function ($query) use ($passportNumber) {
@@ -88,8 +102,17 @@ class PayrollController extends Controller
             ->when($workerScope === 'all', function ($query) {
                 $query->whereHas('maid');
             })
-            ->whereDoesntHave('payrollItems.payroll', function ($query) use ($monthYear) {
-                $query->where('month_year', $monthYear);
+            ->whereDoesntHave('payrollItems.payroll', function ($query) use ($monthYear, $branchId, $branchAccess) {
+                $query->where('month_year', $monthYear)
+                    ->when($branchId, function ($payrollQuery) use ($branchId, $branchAccess) {
+                        $payrollQuery->where(function ($branchQuery) use ($branchId, $branchAccess) {
+                            $branchQuery->where('branch_id', $branchId);
+
+                            if ($branchAccess->isMainBranchId($branchId)) {
+                                $branchQuery->orWhereNull('branch_id');
+                            }
+                        });
+                    });
             })
             ->with([
                 'maid.nationality',
@@ -135,7 +158,7 @@ class PayrollController extends Controller
 
     public function show(Payroll $payroll)
     {
-        $payroll->load('items.maid');
+        $payroll->load(['branch', 'items.maid']);
 
         return view('hr::hr.payrolls.show', [
             'bladeTitle' => 'تفاصيل مسير الرواتب',
@@ -150,6 +173,8 @@ class PayrollController extends Controller
 
     public function export(Request $request)
     {
+        $branchAccess = app(BranchAccessService::class);
+        $branchId = $branchAccess->selectedBranchId($request);
         $payrollIds = collect((array) $request->input('payroll_ids', []))
             ->push($request->input('payroll_id'))
             ->filter()
@@ -159,6 +184,7 @@ class PayrollController extends Controller
             ->values();
 
         $payrolls = Payroll::query()
+            ->when($branchId, fn ($query) => $branchAccess->applyBranchIdToQuery($query, $branchId, 'hr_payrolls'))
             ->when($payrollIds->isNotEmpty(), function ($query) use ($payrollIds) {
                 $query->whereIn('id', $payrollIds->all());
             })

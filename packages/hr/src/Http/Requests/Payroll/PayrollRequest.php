@@ -3,6 +3,8 @@
 namespace Nami\Hr\Http\Requests\Payroll;
 
 use App\Http\Requests\MainRequest;
+use App\Services\BranchAccessService;
+use Illuminate\Validation\Rule;
 
 class PayrollRequest extends MainRequest
 {
@@ -14,6 +16,12 @@ class PayrollRequest extends MainRequest
     public function rules()
     {
         return [
+            'branch_id' => [
+                Rule::requiredIf(fn () => app(BranchAccessService::class)->enabled()),
+                'nullable',
+                'integer',
+                'exists:branches,id',
+            ],
             'month_year' => 'required|date_format:Y-m',
             'month_days_display_option' => 'required|in:30,28,31,current',
             'employee_id' => 'required|array|min:1',
@@ -49,6 +57,8 @@ class PayrollRequest extends MainRequest
         return [
             'month_year.required' => 'يرجى تحديد الشهر.',
             'month_year.date_format' => 'صيغة الشهر غير صحيحة.',
+            'branch_id.required' => 'يرجى تحديد الفرع قبل إنشاء مسير الرواتب.',
+            'branch_id.exists' => 'الفرع المحدد غير صالح.',
             'employee_id.required' => 'لا توجد عاملات متاحة لإنشاء المسير.',
             'employee_id.*.exists' => 'تم اختيار عاملة غير صالحة.',
         ];

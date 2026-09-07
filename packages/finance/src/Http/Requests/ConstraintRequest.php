@@ -2,8 +2,13 @@
 
 namespace Nami\Finance\Http\Requests;
 
+use App\Services\BranchAccessService;
 use App\Http\Requests\MainRequest;
+use App\Support\BranchSharingSettings;
+use Illuminate\Validation\Rule;
 use Illuminate\Validation\Validator;
+use Illuminate\Support\Facades\DB;
+use Nami\Finance\Models\Account;
 
 class ConstraintRequest extends MainRequest
 {
@@ -35,7 +40,13 @@ class ConstraintRequest extends MainRequest
 
     protected function store(): array
     {
+        $branchAccess = app(BranchAccessService::class);
+        $admin = auth('admin')->user();
+        $branchMustBeSelected = $branchAccess->enabled()
+            && ($branchAccess->adminBranchId($admin) === null || $branchAccess->canViewAllBranches($admin));
+
         return [
+            'branch_id' => [Rule::requiredIf($branchMustBeSelected), 'nullable', 'integer', 'exists:branches,id'],
             'type' => 'nullable',
             'value' => 'required|numeric|gt:0',
             'date' => 'required|date_format:Y-m-d',
@@ -113,7 +124,72 @@ class ConstraintRequest extends MainRequest
             if ($debtorTotal <= 0 || round($debtorTotal, 2) !== round($creditorTotal, 2)) {
                 $validator->errors()->add('value', __('finance::finance.debit_credit_totals_must_match'));
             }
+
+            $branchAccess = app(BranchAccessService::class);
+            if (! $branchAccess->enabled()) {
+                return;
+            }
+
+            $branchId = $this->branchIdForAccountValidation($branchAccess);
+            if ($branchId === null) {
+                return;
+            }
+
+            $accountIds = collect($this->input('account_id', []))->filter()->map(fn ($id) => (int) $id);
+
+            if (BranchSharingSettings::accountsPerBranch()) {
+                $invalid = Account::query()
+                    ->whereIn('id', $accountIds)
+                    ->whereHas('branches')
+                    ->whereDoesntHave('branches', fn ($branches) => $branches->whereKey($branchId))
+                    ->pluck('code');
+
+                if ($invalid->isNotEmpty()) {
+                    $validator->errors()->add(
+                        'account_id',
+                        'حسابات غير متاحة لفرع القيد: ' . $invalid->implode(', ')
+                    );
+                }
+
+                return;
+            }
         });
+    }
+
+    private function branchIdForAccountValidation(BranchAccessService $branchAccess): ?int
+    {
+        if ($this->method() === 'POST') {
+            return $branchAccess->selectedBranchId($this);
+        }
+
+        if (! in_array($this->method(), ['PUT', 'PATCH'], true)) {
+            return null;
+        }
+
+        $constraintId = $this->routeConstraintId();
+        if ($constraintId <= 0) {
+            return null;
+        }
+
+        $branchId = (int) (DB::table('fn_constraints')
+            ->where('id', $constraintId)
+            ->value('branch_id') ?? 0);
+
+        return $branchId > 0 ? $branchId : null;
+    }
+
+    private function routeConstraintId(): int
+    {
+        $routeValue = $this->route('add_constraint')
+            ?? $this->route('add-constraint')
+            ?? $this->route('constraint')
+            ?? $this->route('id');
+
+        if (is_object($routeValue) && method_exists($routeValue, 'getKey')) {
+            return (int) $routeValue->getKey();
+        }
+
+        return (int) $routeValue;
     }
 
     private function normalizeNumericValue($value)

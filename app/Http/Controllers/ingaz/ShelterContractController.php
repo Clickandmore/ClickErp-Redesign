@@ -20,6 +20,8 @@ use App\PermKeys;
 use App\Services\ingaz\ShelterLivingExpenseAccountingService;
 use App\Services\ManagedFileStorage;
 use App\Support\AutomationSettings;
+use App\Support\BranchQueryContext;
+use App\Support\BranchSharingSettings;
 use App\Support\CvOptionsSettings;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
@@ -340,6 +342,10 @@ class ShelterContractController extends Controller
             ->orderBy('code')
             ->get(['id', 'code', 'name']);
         $paymentAccounts = Account::query()
+            ->when(
+                BranchSharingSettings::accountsPerBranch(),
+                fn ($query) => $query->assignableTo(BranchQueryContext::activeBranchId())
+            )
             ->whereDoesntHave('children')
             ->whereIn('type', [AccountTypesEnum::Bank->value, AccountTypesEnum::Box->value])
             ->orderBy('code')

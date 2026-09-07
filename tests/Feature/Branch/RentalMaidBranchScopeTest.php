@@ -7,6 +7,7 @@ use App\Models\ingaz\Maid;
 use App\Models\Permission;
 use App\Models\RentalContract;
 use App\Models\ingaz\Order;
+use App\Support\BranchSharingSettings;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -23,6 +24,7 @@ class RentalMaidBranchScopeTest extends TestCase
         parent::setUp();
         $this->setUpBranches();
         $this->enableBranchesModule();
+        BranchSharingSettings::flush();
     }
 
     /** @test */
@@ -44,6 +46,42 @@ class RentalMaidBranchScopeTest extends TestCase
         $response->assertOk()
             ->assertSee($ownMaid->name, false)
             ->assertDontSee($otherMaid->name, false);
+    }
+
+    /** @test */
+    public function unassigned_maid_visibility_follows_the_company_sharing_setting(): void
+    {
+        $main = $this->makeBranch(['is_main' => true]);
+        $own = $this->makeBranch();
+        $admin = $this->branchAdmin($own);
+        $maid = $this->makeRentalMaid('Unassigned shared maid', $main->id);
+        $maid->updateQuietly(['branch_id' => null]);
+
+        $this->actingAsAdmin($admin);
+
+        BranchSharingSettings::persist(['share_maids' => false]);
+        BranchSharingSettings::flush();
+        $this->assertFalse(Maid::query()->whereKey($maid->id)->exists());
+
+        BranchSharingSettings::persist(['share_maids' => true]);
+        BranchSharingSettings::flush();
+        $this->assertTrue(Maid::query()->whereKey($maid->id)->exists());
+    }
+
+    /** @test */
+    public function maid_view_all_permission_bypasses_maid_branch_isolation(): void
+    {
+        $own = $this->makeBranch(['is_main' => true]);
+        $other = $this->makeBranch();
+        $admin = $this->branchAdmin($own);
+        $this->grant($admin, \App\PermKeys::MAIDS_VIEW_ALL_BRANCHES);
+        $maid = $this->makeRentalMaid('Cross branch permission maid', $other->id);
+
+        BranchSharingSettings::persist(['share_maids' => false]);
+        BranchSharingSettings::flush();
+
+        $this->actingAsAdmin($admin);
+        $this->assertTrue(Maid::query()->whereKey($maid->id)->exists());
     }
 
     /** @test */
@@ -235,7 +273,9 @@ class RentalMaidBranchScopeTest extends TestCase
             'updated_at' => now(),
         ]);
 
-        return Maid::query()->findOrFail($maidId);
+        // The fixture builds maids across several branches while acting as one
+        // branch's staff, so it has to look past the branch scope on purpose.
+        return Maid::query()->withoutBranchScope()->findOrFail($maidId);
     }
 
     private function makeClient(): int

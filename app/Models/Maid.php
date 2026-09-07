@@ -2,12 +2,29 @@
 
 namespace App\Models;
 
+use App\PermKeys;
 use App\Models\ingaz\JobTitle;
 use App\Models\ingaz\MaidJobTitles;
+use App\Support\BranchSharingSettings;
 use Illuminate\Database\Eloquent\Model;
+
+use App\Models\Concerns\BranchScoped;
 
 class Maid extends Model
 {
+    use BranchScoped;
+
+
+    /** السيرة الذاتية بلا فرع تبقى في المخزون المشترك المرئي لكل الفروع. */
+    public function branchScopeSharesUnassigned(): bool
+    {
+        return BranchSharingSettings::shareMaids();
+    }
+
+    public function branchScopeViewAllPermission(): ?string
+    {
+        return PermKeys::MAIDS_VIEW_ALL_BRANCHES;
+    }
     protected $fillable = [
         'name',
         'gender',

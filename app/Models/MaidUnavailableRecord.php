@@ -10,6 +10,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class MaidUnavailableRecord extends Model
 {
+    use \App\Models\Concerns\AssignsBranch, \App\Models\Concerns\BranchScoped;
     use HasFactory;
 
     protected $fillable = [

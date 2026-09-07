@@ -10,9 +10,11 @@ use Nami\Finance\Models\Account;
 use Nami\Finance\Models\Bond;
 use Nami\Finance\Models\Constraint;
 
+use App\Models\Concerns\BranchScoped;
+
 class RentalContractInvoice extends Model
 {
-    use AssignsBranch, HasFactory;
+    use AssignsBranch, HasFactory, BranchScoped;
 
     protected $guarded = [];
 

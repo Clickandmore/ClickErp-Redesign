@@ -2,14 +2,20 @@
 
 namespace App\Models\commissions;
 
+use App\Models\Concerns\AssignsBranch;
+use App\Models\Concerns\BranchScoped;
+
 use App\Models\IngazDelegation;
 use Illuminate\Database\Eloquent\Model;
 
 class CommissionBatchItem extends Model
 {
+    use AssignsBranch, BranchScoped;
+
     protected $table = 'commission_batch_items';
 
     protected $fillable = [
+        'branch_id',
         'batch_id', 'ingaz_delegation_id', 'source_type', 'source_id',
         'order_id', 'contract_id', 'operation_reference',
         'client_name', 'operation_date', 'service_type',

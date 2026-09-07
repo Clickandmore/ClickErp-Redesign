@@ -270,6 +270,8 @@ Route::group(
         Route::resource('accounting-guide-management', AccountGuideManagementController::class);
         Route::resource('cost-center-management', CostCenterManagementController::class);
         Route::resource('cost-center-notification', CostCenterNotificationController::class);
+        Route::get('add-constraint/branch-options', [AddConstraintController::class, 'branchOptions'])
+            ->name('add-constraint.branch-options');
         Route::resource('add-constraint', AddConstraintController::class);
 
         Route::resource('banks', BankController::class);

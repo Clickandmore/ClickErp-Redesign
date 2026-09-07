@@ -9,9 +9,11 @@ use Illuminate\Database\Eloquent\Model;
 use Nami\Finance\Models\Account;
 use Nami\Finance\Models\Constraint;
 
+use App\Models\Concerns\BranchScoped;
+
 class MusanedTransfer extends Model
 {
-    use AssignsBranch, HasFactory;
+    use AssignsBranch, HasFactory, BranchScoped;
 
     protected $guarded = [];
 

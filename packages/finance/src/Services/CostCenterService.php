@@ -2,6 +2,9 @@
 
 namespace Nami\Finance\Services;
 
+use App\Services\BranchAccessService;
+use App\Support\BranchSharingSettings;
+use App\Support\BranchReportFilter;
 use Illuminate\Support\Facades\DB;
 use Nami\Finance\MainService;
 use Nami\Finance\Models\CostCenter;
@@ -11,7 +14,11 @@ class CostCenterService extends MainService
 {
     protected EmployeeService $employeeService;
 
-    public function __construct(CostCenter $model, private StockService $stockService)
+    public function __construct(
+        CostCenter $model,
+        private StockService $stockService,
+        private BranchAccessService $branchAccess,
+    )
     {
         $this->model = $model;
         $this->fileFolder = 'cost_centers/';
@@ -24,6 +31,26 @@ class CostCenterService extends MainService
     {
         $stocks = $this->getWhere(['table_name' => 'stocks'])->pluck('table_related_id')->toArray();
         return $this->stockService->getWhereNotIn('id', $stocks);
+    }
+
+    /** المراكز المشتركة + مركز تكلفة الفرع المحدد فقط. */
+    public function getForBranch(?int $branchId)
+    {
+        $includeUnassigned = $branchId !== null
+            && (BranchSharingSettings::sharedCostCenterRoot() || $this->branchAccess->isMainBranchId($branchId));
+
+        return $this->model
+            ->when($branchId !== null, function ($query) use ($branchId, $includeUnassigned) {
+                if (! $includeUnassigned) {
+                    return $query->where('fn_cost_centers.branch_id', $branchId);
+                }
+
+                return $query->where(function ($query) use ($branchId) {
+                    $query->whereNull('fn_cost_centers.branch_id')
+                        ->orWhere('fn_cost_centers.branch_id', $branchId);
+                });
+            })
+            ->get();
     }
     public function getStocksWithCostCenter()
     {
@@ -109,7 +136,7 @@ class CostCenterService extends MainService
 
     public function getConDetails()
     {
-        return DB::table('fn_constraint_details')
+        return BranchReportFilter::apply(DB::table('fn_constraint_details'), 'fn_constraint_details')
             ->selectRaw('cost_center_id, SUM(debtor_value) as debtor_value, SUM(creditor_value) as creditor_value, MAX(id) as id')
             ->whereNotNull('cost_center_id')
             ->whereNull('deleted_at')

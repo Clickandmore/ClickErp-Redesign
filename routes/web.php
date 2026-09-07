@@ -430,6 +430,7 @@ Route::group(['prefix' => 'admin', 'middleware' => ['auth:admin', 'admin', 'admi
 
         Route::get('branches/report', [BranchController::class, 'report'])->name('branches.report');
         Route::get('branches/settings', [BranchController::class, 'settings'])->name('branches.settings');
+        Route::post('branches/settings', [BranchController::class, 'updateSettings'])->name('branches.settings.update');
         Route::post('branches/{branch}/assign-manager', [BranchController::class, 'assignManager'])->name('branches.assign-manager');
         Route::get('branches/{branch}/admins', [BranchController::class, 'branchAdmins'])->name('branches.admins');
         Route::get('branches/{branch}/available-admins', [BranchController::class, 'availableAdmins'])->name('branches.available-admins');

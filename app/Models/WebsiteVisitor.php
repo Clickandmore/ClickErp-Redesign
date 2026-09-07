@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class WebsiteVisitor extends Model
 {
+    use \App\Models\Concerns\AssignsBranch, \App\Models\Concerns\BranchScoped;
     protected $fillable = [
         'token',
         'website_visitor_site_id',

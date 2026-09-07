@@ -2,6 +2,7 @@
 
 namespace Nami\Finance\Services;
 
+use App\Support\BranchReportFilter;
 use Illuminate\Support\Facades\DB;
 use Nami\Finance\Enums\ConstraintTypiesEnum;
 use Nami\Finance\MainService;
@@ -171,7 +172,7 @@ class BankAccountStatementService extends MainService
         if($dataSearch["from_date"] != ""){
             $accountId = $dataSearch["account_id"];  // Replace with your desired account_id
             $customDate = $dataSearch["from_date"];  // Replace with your desired date
-            return  DB::table('fn_constraint_details')->select(\DB::raw('SUM(fn_constraint_details.debtor_value) as sum_debtor_value, fn_accounts.status ,
+            return  BranchReportFilter::apply(DB::table('fn_constraint_details'), 'fn_constraint_details')->select(\DB::raw('SUM(fn_constraint_details.debtor_value) as sum_debtor_value, fn_accounts.status ,
                                            SUM(fn_constraint_details.creditor_value) as sum_creditor_value'))
                                         ->join('fn_accounts', 'fn_accounts.id', '=', 'fn_constraint_details.account_id')
                                         ->join('fn_constraints', 'fn_constraints.id', '=', 'fn_constraint_details.constraint_id')
@@ -185,7 +186,7 @@ class BankAccountStatementService extends MainService
     }
     public function filterAccount($dataSearch)
     {
-        $accountStatment = DB::table('fn_constraint_details')
+        $accountStatment = BranchReportFilter::apply(DB::table('fn_constraint_details'), 'fn_constraint_details')
             ->select([
                 'fn_constraint_details.date',
                 'fn_bond_checks.check_num',

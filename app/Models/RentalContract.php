@@ -13,9 +13,11 @@ use Spatie\Activitylog\LogOptions;
 use Spatie\Activitylog\Traits\LogsActivity;
 use Nami\Finance\Models\Bond;
 
+use App\Models\Concerns\BranchScoped;
+
 class RentalContract extends Model
 {
-    use AssignsBranch, HasFactory, LogsActivity;
+    use AssignsBranch, HasFactory, LogsActivity, BranchScoped;
 
     protected $fillable = [
         'user_id',

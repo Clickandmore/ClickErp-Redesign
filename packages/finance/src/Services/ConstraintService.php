@@ -2,10 +2,14 @@
 
 namespace Nami\Finance\Services;
 
+use App\Support\BranchSharingSettings;
+use App\Support\BranchReportFilter;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 use Nami\Finance\Enums\ConstraintTypiesEnum;
 use Nami\Finance\MainService;
+use Nami\Finance\Models\Account;
 use Nami\Finance\Models\Constraint as Model;
 
 class ConstraintService extends MainService
@@ -68,9 +72,9 @@ class ConstraintService extends MainService
             && str_contains($exception->getMessage(), 'fn_constraints_active_code_unique');
     }
 
-    public function getAccounts($type = null)
+    public function getAccounts($type = null, ?int $branchId = null)
     {
-        return $this->accountService->getAccountWithNoChild($type);
+        return $this->accountService->getAccountWithNoChild($type, $branchId);
     }
 
     public function getAccountsForConstraint(Model|int $constraint)
@@ -92,9 +96,9 @@ class ConstraintService extends MainService
             ->values();
     }
 
-    public function getCostCenters()
+    public function getCostCenters(?int $branchId = null)
     {
-        return $this->costCenterService->get();
+        return $this->costCenterService->getForBranch($branchId);
     }
 
     public function lastCode()
@@ -104,12 +108,35 @@ class ConstraintService extends MainService
 
     public function storeConstraint($data,$getActiveYear,$type = ConstraintTypiesEnum::DailyEntry)
     {
+        $this->assertAccountsAssignableToBranch($data['account_id'] ?? [], $data['branch_id'] ?? null);
+
         $year = $getActiveYear;
         $data['year_id'] = $year->id;
         $data['type'] = $type;
         $data['statement'] = $data['statement'] ?? '-';
         $data['created_by_id'] = $data['created_by_id'] ?? auth('admin')->id();
         return $this->store($data);
+    }
+
+    private function assertAccountsAssignableToBranch(array $accountIds, ?int $branchId): void
+    {
+        if ($branchId === null || ! BranchSharingSettings::accountsPerBranch() || empty($accountIds)) {
+            return;
+        }
+
+        $invalid = Account::query()
+            ->whereIn('id', collect($accountIds)->filter()->map(fn ($id) => (int) $id))
+            ->whereHas('branches')
+            ->whereDoesntHave('branches', fn ($branches) => $branches->whereKey($branchId))
+            ->pluck('code');
+
+        if ($invalid->isEmpty()) {
+            return;
+        }
+
+        throw ValidationException::withMessages([
+            'account_id' => 'حسابات غير متاحة لفرع القيد: ' . $invalid->implode(', '),
+        ]);
     }
 
     public function storeFiles($constraint, $data)
@@ -150,6 +177,8 @@ class ConstraintService extends MainService
         $year = $getActiveYear;
         $data['year_id'] = $year->id;
         $constraint = $this->find($id);
+        $data['branch_id'] = $constraint->branch_id;
+        $this->assertAccountsAssignableToBranch($data['account_id'] ?? [], $constraint->branch_id);
         $data['type'] = $data['type'] ?? $constraint->getRawOriginal('type') ?? ConstraintTypiesEnum::DailyEntry->value;
         $constraint->update($data);
         return $constraint;
@@ -240,15 +269,15 @@ class ConstraintService extends MainService
     public function getFirstBalance($dataSearch)
     {
         if($dataSearch["from_date"] != ""){
-            $accountId = $dataSearch["account_id"];  // Replace with your desired account_id
+            $accountIds = $this->accountStatementAccountIds((int) $dataSearch["account_id"]);
             $customDate = $dataSearch["from_date"];  // Replace with your desired date
-            return  DB::table('fn_constraint_details')->select(\DB::raw('SUM(fn_constraint_details.debtor_value) as sum_debtor_value, fn_accounts.status ,
+            return  BranchReportFilter::apply(DB::table('fn_constraint_details'), 'fn_constraint_details')->select(\DB::raw('SUM(fn_constraint_details.debtor_value) as sum_debtor_value, fn_accounts.status ,
                                            SUM(fn_constraint_details.creditor_value) as sum_creditor_value'))
                                         ->join('fn_accounts', 'fn_accounts.id', '=', 'fn_constraint_details.account_id')
                                         ->join('fn_constraints', 'fn_constraints.id', '=', 'fn_constraint_details.constraint_id')
                                         ->whereNull('fn_constraint_details.deleted_at')
                                         ->whereNull('fn_constraints.deleted_at')
-                                        ->where('fn_constraint_details.account_id', $accountId)
+                                        ->whereIn('fn_constraint_details.account_id', $accountIds)
                                         ->where('fn_constraint_details.date', '<', $customDate)
                                         ->first();
         }
@@ -256,8 +285,13 @@ class ConstraintService extends MainService
     }
     public function filterAccount($dataSearch)
     {
-        $accountStatment = DB::table('fn_constraint_details')
+        $accountIds = $this->accountStatementAccountIds((int) $dataSearch['account_id']);
+
+        $accountStatment = BranchReportFilter::apply(DB::table('fn_constraint_details'), 'fn_constraint_details')
             ->select([
+                'fn_constraint_details.account_id',
+                'fn_accounts.name as account_name',
+                'fn_accounts.code as account_code',
                 'fn_constraint_details.date',
                 'fn_constraint_details.statement',
                 'fn_constraint_details.debtor_value',
@@ -274,7 +308,7 @@ class ConstraintService extends MainService
             ->leftJoin('admins', 'admins.id', '=', 'fn_constraints.created_by_id')
             ->whereNull('fn_constraint_details.deleted_at')
             ->whereNull('fn_constraints.deleted_at')
-            ->where('fn_constraint_details.account_id', '=', $dataSearch['account_id'])
+            ->whereIn('fn_constraint_details.account_id', $accountIds)
             ->when($dataSearch['type'] != 'both', function ($q) use ($dataSearch) {
                 return $q->where('fn_constraint_details.type', $dataSearch['type']);
             })
@@ -295,13 +329,13 @@ class ConstraintService extends MainService
 
     public function filterConstraints($dataSearch)
     {
-        $account_id = $dataSearch['account_id'];
+        $accountIds = $this->accountStatementAccountIds((int) $dataSearch['account_id']);
         $otherAccounts = $this->model->select([
             'fn_constraints.id',
         ])
         ->join('fn_constraint_details', 'fn_constraints.id', '=', 'fn_constraint_details.constraint_id')
         ->whereNull('fn_constraint_details.deleted_at')
-        ->where('fn_constraint_details.account_id', '=', $dataSearch['account_id'])
+        ->whereIn('fn_constraint_details.account_id', $accountIds)
         ->when($dataSearch['type'] != 'both', function ($q) use ($dataSearch) {
             return $q->where('fn_constraint_details.type', $dataSearch['type']);
         })
@@ -311,8 +345,8 @@ class ConstraintService extends MainService
         ->when($dataSearch['to_date'] != '', function ($q) use ($dataSearch) {
             return $q->whereDate('fn_constraint_details.date', '<=', $dataSearch['to_date']);
         })
-        ->with(['accounts' => function ($query) use ($account_id) {
-            return $query->where('account_id', '!=', $account_id);
+        ->with(['accounts' => function ($query) use ($accountIds) {
+            return $query->whereNotIn('account_id', $accountIds);
         }])
         ->get();
         $result = [];
@@ -320,6 +354,35 @@ class ConstraintService extends MainService
             $result[$one->id]['accounts'] = $one->accounts;
         }
         return $result;
+    }
+
+    private function accountStatementAccountIds(int $accountId): array
+    {
+        if ($accountId <= 0) {
+            return [];
+        }
+
+        $ids = [$accountId];
+        $frontier = [$accountId];
+
+        while (!empty($frontier)) {
+            $children = Account::query()
+                ->whereIn('parent_id', $frontier)
+                ->pluck('id')
+                ->map(fn ($id) => (int) $id)
+                ->diff($ids)
+                ->values()
+                ->all();
+
+            if (empty($children)) {
+                break;
+            }
+
+            $ids = array_values(array_unique(array_merge($ids, $children)));
+            $frontier = $children;
+        }
+
+        return $ids;
     }
 
     public function getIndexData() {

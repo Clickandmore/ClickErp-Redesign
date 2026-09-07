@@ -7,9 +7,10 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class HrTask extends HrModel
 {
+    use \App\Models\Concerns\AssignsBranch, \App\Models\Concerns\BranchScoped;
     use HasFactory;
     protected $table = 'hr_tasks';
-    protected $fillable = ['title', 'description', 'end_date','end_time','file','status'];
+    protected $fillable = ['title', 'description', 'end_date','end_time','file','status','branch_id'];
 
     public function employees()
     {

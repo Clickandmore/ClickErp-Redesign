@@ -9,9 +9,11 @@ use Illuminate\Database\Eloquent\Model;
 use Nami\Finance\Models\Constraint;
 use Nami\Finance\Models\Sale;
 
+use App\Models\Concerns\BranchScoped;
+
 class RecruitmentInvoiceCreditNote extends Model
 {
-    use AssignsBranch;
+    use AssignsBranch, BranchScoped;
 
     protected $guarded = [];
 

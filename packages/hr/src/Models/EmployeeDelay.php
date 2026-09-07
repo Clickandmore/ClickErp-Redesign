@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 
 class EmployeeDelay extends HrModel
 {
+    use \App\Models\Concerns\AssignsBranch, \App\Models\Concerns\BranchScoped;
     use HasFactory;
     protected $table = 'hr_employee_delays';
     protected $fillable = ['month_year','value','employee_id','employee_attendances_id','sanction_id'];

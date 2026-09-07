@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class RentalOrderPayment extends Model
 {
+    use \App\Models\Concerns\AssignsBranch, \App\Models\Concerns\BranchScoped;
     public const PROVIDER_MOYASAR = 'moyasar';
     public const STATUS_CREATING = 'creating';
     public const STATUS_PENDING = 'pending';

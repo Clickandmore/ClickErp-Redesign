@@ -11,6 +11,8 @@ namespace App;
 class NewPermKeys
 {
     const BRANCHES_VIEW_ALL = 'branches_view_all';
+    const MAIDS_VIEW_ALL_BRANCHES = 'maids_view_all_branches';
+    const OFFICES_VIEW_ALL_BRANCHES = 'offices_view_all_branches';
 
     // ========================================
     // الصلاحيات الأساسية (Basic Permissions)

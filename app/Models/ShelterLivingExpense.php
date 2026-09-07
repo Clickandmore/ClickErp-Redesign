@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class ShelterLivingExpense extends Model
 {
+    use \App\Models\Concerns\AssignsBranch, \App\Models\Concerns\BranchScoped;
     protected $fillable = [
         'shelter_id',
         'expense_account_id',

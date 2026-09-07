@@ -2,6 +2,10 @@
 
 namespace Nami\Finance\Models;
 
+use App\Models\Concerns\AssignsBranch;
+use App\Services\Finance\BranchChartOfAccountsService;
+use App\Models\Concerns\BranchScoped;
+
 use App\Models\auth\Admin;
 use App\Models\Contract;
 use App\Models\RentalContract;
@@ -9,10 +13,29 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 
 class Bond extends Finance
 {
+    // عزل الفروع: المستند يخص فرع منشئه، والسجلات القديمة للفرع الرئيسي.
+    use AssignsBranch, BranchScoped;
+
+    /**
+     * فرع السند: فرع الموظف المنشئ، وإلا الفرع المالك للحساب المدين/الدائن،
+     * فسند مُنشأ من الإدارة العامة على صندوق فرع يبقى محسوباً على ذلك الفرع.
+     */
+    protected function resolveBranchIdForCreate(): ?int
+    {
+        return $this->resolveBranchIdFromCurrentAdmin()
+            ?: app(BranchChartOfAccountsService::class)->branchIdForAccount(
+                (int) ($this->debit_account_id ?? 0) ?: null
+            )
+            ?: app(BranchChartOfAccountsService::class)->branchIdForAccount(
+                (int) ($this->credit_account_id ?? 0) ?: null
+            );
+    }
+
     use HasFactory;
 
     protected $table ='fn_bonds';
-    protected $fillable = ['type','payment_type','bond_book_num','debit_account_id',
+    protected $fillable = [
+        'branch_id','type','payment_type','bond_book_num','debit_account_id',
         'credit_account_id','value','date','statement','file','transfer_number','code',
         'transfer_file','is_confirm','constraint_id','created_by_id','year_id','cost_center_id',
         'is_tax','net','account_text','general_type',

@@ -4,6 +4,7 @@ namespace Tests\Feature\Branch;
 
 use App\Models\ingaz\User;
 use App\Models\Permission;
+use App\Support\BranchSharingSettings;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Tests\Concerns\InteractsWithBranches;
 use Tests\TestCase;
@@ -18,6 +19,8 @@ class ClientBranchScopeTest extends TestCase
         parent::setUp();
         $this->setUpBranches();
         $this->enableBranchesModule();
+        BranchSharingSettings::persist(['share_clients' => false]);
+        BranchSharingSettings::flush();
     }
 
     private function grant($admin, string $permission): void
@@ -91,6 +94,24 @@ class ClientBranchScopeTest extends TestCase
         $response->assertOk()
             ->assertDontSee($ownClient->name, false)
             ->assertSee($otherClient->name, false);
+    }
+
+    /** @test */
+    public function company_sharing_setting_exposes_clients_without_a_cross_branch_permission(): void
+    {
+        $own = $this->makeBranch();
+        $other = $this->makeBranch();
+        $viewer = $this->branchAdmin($own);
+        $this->grant($viewer, \App\PermKeys::CLIENTS_VIEW);
+        $otherClient = $this->makeClient('Shared company client', $other->id);
+
+        BranchSharingSettings::persist(['share_clients' => true]);
+        BranchSharingSettings::flush();
+
+        $this->actingAsAdmin($viewer)->get(
+            route('clients.index'),
+            ['X-Requested-With' => 'XMLHttpRequest']
+        )->assertOk()->assertSee($otherClient->name, false);
     }
 
     /** @test */

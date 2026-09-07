@@ -7,6 +7,7 @@ use Nami\Finance\Models\Account;
 
 class EmployeeCustody extends HrModel
 {
+    use \App\Models\Concerns\AssignsBranch, \App\Models\Concerns\BranchScoped;
     use HasFactory;
 
     public const STATUS_ACTIVE = 'active';

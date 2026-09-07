@@ -1008,6 +1008,7 @@ class AdminRoutePermissionMatrix
                 'cities.destroy' => [PermKeys::COUNTRIES_DELETE, PermKeys::COUNTRIES_CONTROL],
                 'branches.index' => [PermKeys::BRANCHES_VIEW, PermKeys::BRANCHES_CONTROL],
                 'branches.settings' => [PermKeys::BRANCHES_VIEW, PermKeys::BRANCHES_CONTROL],
+                'branches.settings.update' => [PermKeys::BRANCHES_CONTROL],
                 'branches.report' => [PermKeys::BRANCHES_VIEW, PermKeys::BRANCHES_CONTROL],
                 'branches.create' => [PermKeys::BRANCHES_CREATE, PermKeys::BRANCHES_CONTROL],
                 'branches.store' => [PermKeys::BRANCHES_CREATE, PermKeys::BRANCHES_CONTROL],

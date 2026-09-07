@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 
 class Advance extends HrModel
 {
+    use \App\Models\Concerns\AssignsBranch, \App\Models\Concerns\BranchScoped;
     use HasFactory;
     protected $table = 'hr_advances';
     protected $fillable = ['employee_id','value','file','date','notes','from_date','to_date','payment_method','delivery_method'];

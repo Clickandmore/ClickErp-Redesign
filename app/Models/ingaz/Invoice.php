@@ -14,9 +14,11 @@ use Nami\Finance\Models\Constraint;
 use Nami\Finance\Models\Purchase;
 use Nami\Finance\Models\Sale;
 
+use App\Models\Concerns\BranchScoped;
+
 class Invoice extends Model
 {
-    use AssignsBranch, HasFactory;
+    use AssignsBranch, HasFactory, BranchScoped;
 
     protected $guarded = [];
     protected $table = 'invoices';

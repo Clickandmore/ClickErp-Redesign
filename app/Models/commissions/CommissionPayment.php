@@ -2,15 +2,21 @@
 
 namespace App\Models\commissions;
 
+use App\Models\Concerns\AssignsBranch;
+use App\Models\Concerns\BranchScoped;
+
 use App\Models\auth\Admin;
 use Illuminate\Database\Eloquent\Model;
 use Nami\Finance\Models\Bond;
 
 class CommissionPayment extends Model
 {
+    use AssignsBranch, BranchScoped;
+
     protected $table = 'commission_payments';
 
     protected $fillable = [
+        'branch_id',
         'marketer_id', 'bond_id', 'amount', 'payment_date',
         'notes', 'status', 'approved_by', 'approved_at', 'created_by',
     ];

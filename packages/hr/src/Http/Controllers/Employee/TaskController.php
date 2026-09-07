@@ -38,6 +38,9 @@ class TaskController extends MainController
                         return "لا يوجد";
                     }
                 })
+                ->addColumn('branch', function ($row) {
+                    return $row->branch?->name ?? '-';
+                })
                 ->editColumn('replies', function ($row) {
                    return editButton(route($this->mainRoute.".replies",$row->id),__('hr.replies'),'reply-all',true);
                 })

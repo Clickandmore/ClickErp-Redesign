@@ -2,15 +2,21 @@
 
 namespace Nami\Finance\Models;
 
+use App\Models\Concerns\AssignsBranch;
+use App\Models\Concerns\BranchScoped;
+
 
 use App\Models\auth\Admin;
 
 class Inventory extends Finance
 {
+    use AssignsBranch, BranchScoped;
+
     protected $table = 'fn_inventories';
 
     // Fillable fields for mass assignment
     protected $fillable = [
+        'branch_id',
         'stock_id',
         'date',
         'responsible',

@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 
 class PayrollItem extends HrModel
 {
+    use \App\Models\Concerns\AssignsBranch, \App\Models\Concerns\BranchScoped;
     use HasFactory;
 
     protected $table = 'hr_payroll_items';
@@ -28,6 +29,7 @@ class PayrollItem extends HrModel
         'total_deductions',
         'net_salary',
         'notes',
+        'branch_id',
     ];
 
     public function payroll()

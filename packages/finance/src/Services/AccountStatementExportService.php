@@ -2,6 +2,7 @@
 
 namespace Nami\Finance\Services;
 
+use App\Support\BranchReportFilter;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use PhpOffice\PhpSpreadsheet\Cell\Coordinate;
@@ -54,7 +55,7 @@ class AccountStatementExportService
 
     private function query(array $filters, ?int $accountType)
     {
-        return DB::table('fn_constraint_details')
+        return BranchReportFilter::apply(DB::table('fn_constraint_details'), 'fn_constraint_details')
             ->select([
                 'fn_constraint_details.account_id',
                 'fn_constraint_details.date',

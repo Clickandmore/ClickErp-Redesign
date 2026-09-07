@@ -2,8 +2,10 @@
 
 namespace Nami\Hr\Services;
 
+use App\Services\BranchAccessService;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
+use Nami\Hr\Models\Employee;
 use Nami\Hr\Models\Payroll;
 use Nami\Hr\Models\PayrollItem;
 
@@ -11,6 +13,17 @@ class PayrollService
 {
     public function createPayroll($request): array
     {
+        $branchAccess = app(BranchAccessService::class);
+        $branchId = $branchAccess->selectedBranchId($request);
+
+        if ($branchAccess->enabled() && ! $branchId) {
+            return [
+                'code' => 422,
+                'data' => null,
+                'message' => 'يرجى تحديد الفرع قبل إنشاء مسير الرواتب.',
+            ];
+        }
+
         $selectedRows = $request->input('selected_rows', []);
 
         if (empty($selectedRows)) {
@@ -27,7 +40,50 @@ class PayrollService
             Carbon::createFromFormat('Y-m', $monthYear)->daysInMonth
         );
 
-        if (Payroll::query()->where('month_year', $monthYear)->exists()) {
+        $selectedEmployeeIds = collect($request->input('employee_id', []))
+            ->filter(fn ($employeeId, $key) => isset($selectedRows[$key]))
+            ->map(fn ($employeeId) => (int) $employeeId)
+            ->filter()
+            ->unique()
+            ->values();
+
+        $validEmployeeIds = Employee::query()
+            ->onlyMaids()
+            ->withoutBranchScope()
+            ->whereIn('id', $selectedEmployeeIds)
+            ->when($branchId, function ($query) use ($branchId, $branchAccess) {
+                $query->where(function ($branchQuery) use ($branchId, $branchAccess) {
+                    $branchQuery->where('branch_id', $branchId);
+
+                    if ($branchAccess->isMainBranchId($branchId)) {
+                        $branchQuery->orWhereNull('branch_id');
+                    }
+                });
+            })
+            ->pluck('id')
+            ->map(fn ($employeeId) => (int) $employeeId);
+
+        if ($selectedEmployeeIds->diff($validEmployeeIds)->isNotEmpty()) {
+            return [
+                'code' => 422,
+                'data' => null,
+                'message' => 'تتضمن القائمة موظفاً لا يتبع الفرع المحدد.',
+            ];
+        }
+
+        if (Payroll::query()
+            ->withoutBranchScope()
+            ->where('month_year', $monthYear)
+            ->when($branchId, function ($query) use ($branchId, $branchAccess) {
+                $query->where(function ($branchQuery) use ($branchId, $branchAccess) {
+                    $branchQuery->where('branch_id', $branchId);
+
+                    if ($branchAccess->isMainBranchId($branchId)) {
+                        $branchQuery->orWhereNull('branch_id');
+                    }
+                });
+            }, fn ($query) => $query->whereNull('branch_id'))
+            ->exists()) {
             return [
                 'code' => 401,
                 'data' => null,
@@ -35,8 +91,9 @@ class PayrollService
             ];
         }
 
-        $payroll = DB::transaction(function () use ($request, $selectedRows, $monthYear, $monthDays) {
+        $payroll = DB::transaction(function () use ($request, $selectedRows, $monthYear, $monthDays, $branchId) {
             $payroll = Payroll::create([
+                'branch_id' => $branchId,
                 'month_year' => $monthYear,
                 'month_days' => $monthDays,
                 'workers_count' => 0,
@@ -70,6 +127,7 @@ class PayrollService
                 $netSalary = round($grossSalary - $rowTotalDeductions, 2);
 
                 PayrollItem::create([
+                    'branch_id' => $branchId,
                     'payroll_id' => $payroll->id,
                     'employee_id' => $employeeId,
                     'maid_id' => $request->input("maid_id.$key"),

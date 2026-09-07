@@ -2,10 +2,15 @@
 
 namespace Nami\Finance\Models;
 
+use App\Models\Concerns\AssignsBranch;
+use App\Models\Concerns\BranchScoped;
+
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 
 class SaleItem extends Finance
 {
+    use AssignsBranch, BranchScoped;
+
     use HasFactory;
     protected $table = 'fn_sale_items';
     protected $guarded = [];

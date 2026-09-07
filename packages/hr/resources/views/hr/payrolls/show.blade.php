@@ -45,6 +45,10 @@
                         <input type="text" class="form-control" value="{{ $monthLabel }}" readonly>
                     </div>
                     <div class="col-md-3">
+                        <label class="form-label">الفرع</label>
+                        <input type="text" class="form-control" value="{{ $payroll->branch?->name ?? '-' }}" readonly>
+                    </div>
+                    <div class="col-md-3">
                         <label class="form-label">عدد العاملات</label>
                         <input type="text" class="form-control" value="{{ $payroll->workers_count }}" readonly>
                     </div>

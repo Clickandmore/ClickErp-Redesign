@@ -8,9 +8,11 @@ use App\Models\Contract;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
+use App\Models\Concerns\BranchScoped;
+
 class ContractNote extends Model
 {
-    use AssignsBranch, HasFactory;
+    use AssignsBranch, HasFactory, BranchScoped;
 
     protected $guarded = [];
     protected $fillable = ['contract_id', 'branch_id', 'admin_id', 'note'];

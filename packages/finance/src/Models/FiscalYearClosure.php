@@ -2,10 +2,16 @@
 
 namespace Nami\Finance\Models;
 
+use App\Models\Concerns\AssignsBranch;
+use App\Models\Concerns\BranchScoped;
+
 use App\Models\auth\Admin;
 
 class FiscalYearClosure extends Finance
 {
+    // عزل الفروع: المستند يخص فرع منشئه، والسجلات القديمة للفرع الرئيسي.
+    use AssignsBranch, BranchScoped;
+
     protected $table = 'fn_fiscal_year_closures';
 
     protected $guarded = [];

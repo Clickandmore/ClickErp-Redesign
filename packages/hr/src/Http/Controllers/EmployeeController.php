@@ -97,12 +97,8 @@ class EmployeeController extends Controller
                 ->editColumn('deparment_id', function ($row) {
                     return optional($row->departments)->title ?? '-';
                 })
-                ->addColumn('branch', function ($row) use ($isMaidListing) {
-                    $branch = $isMaidListing
-                        ? optional($row->maid)->branch
-                        : optional($row->admin)->branch;
-
-                    return $branch?->name ?? '-';
+                ->addColumn('branch', function ($row) {
+                    return $row->branch?->name ?? '-';
                 })
                 ->addColumn('status', function ($row) {
                     return updateStatusButton('hr_employee', $row->status, $row->id);

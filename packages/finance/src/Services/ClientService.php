@@ -2,6 +2,7 @@
 
 namespace Nami\Finance\Services;
 
+use App\Support\BranchReportFilter;
 use App\Models\ingaz\User as CoreClient;
 use Illuminate\Database\Query\Builder;
 use Illuminate\Support\Facades\DB;
@@ -237,7 +238,7 @@ class ClientService extends MainService
 
     private function clientAccountBalancesQuery(): Builder
     {
-        return DB::table('fn_constraint_details as detail')
+        return BranchReportFilter::apply(DB::table('fn_constraint_details as detail'), 'detail')
             ->join('fn_constraints as constraint', 'constraint.id', '=', 'detail.constraint_id')
             ->whereNull('detail.deleted_at')
             ->whereNull('constraint.deleted_at')

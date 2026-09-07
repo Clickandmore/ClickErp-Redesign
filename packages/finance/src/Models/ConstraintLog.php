@@ -2,13 +2,19 @@
 
 namespace Nami\Finance\Models;
 
+use App\Models\Concerns\AssignsBranch;
+use App\Models\Concerns\BranchScoped;
+
 use App\Models\auth\Admin;
 
 class ConstraintLog extends Finance
 {
+    use AssignsBranch, BranchScoped;
+
     protected $table = 'fn_constraint_logs';
 
     protected $fillable = [
+        'branch_id',
         'constraint_id',
         'admin_id',
         'action',

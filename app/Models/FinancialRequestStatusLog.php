@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class FinancialRequestStatusLog extends Model
 {
+    use \App\Models\Concerns\AssignsBranch, \App\Models\Concerns\BranchScoped;
     protected $guarded = [];
 
     public function financialRequest()

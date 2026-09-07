@@ -5,6 +5,7 @@ namespace Nami\Finance\Models;
 
 class ClientImage extends Finance
 {
+    use \App\Models\Concerns\AssignsBranch, \App\Models\Concerns\BranchScoped;
     protected $table = 'client_iamages';
 
     protected $fillable = [

@@ -2,15 +2,24 @@
 
 namespace Nami\Finance\Models;
 
+use App\Models\Concerns\AssignsBranch;
+
 use App\Models\auth\Admin;
 
 class Supplier extends Finance
 {
+    // الفرع يُسجَّل على الحساب للتقارير، لكن بلا عزل قراءة تلقائي:
+    // `code` فريد على مستوى الشجرة كلها، وعشرة مواضع تولّده من
+    // `max('code')` — استعلام معزول ينتج كوداً مستعملاً في فرع آخر.
+    // عزل أرصدة الفروع يتحقق من عزل القيود والسندات، لا من إخفاء الحسابات.
+    use AssignsBranch;
+
     protected $guarded =[];
 
     protected $table = 'fn_suppliers';
 
     protected $fillable = [
+        'branch_id',
         'name',
         'code',
         'address',

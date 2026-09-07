@@ -4,6 +4,8 @@ namespace App\Services\ingaz;
 
 use App\Models\SponsorshipTransfer;
 use App\Models\ingaz\User;
+use App\Support\BranchQueryContext;
+use App\Support\BranchSharingSettings;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Auth;
 use Nami\Finance\Enums\AccountTypesEnum;
@@ -24,6 +26,10 @@ class SponsorshipTransferPaymentService
     public static function receiptAccounts()
     {
         return Account::query()
+            ->when(
+                BranchSharingSettings::accountsPerBranch(),
+                fn ($query) => $query->assignableTo(BranchQueryContext::activeBranchId())
+            )
             ->where('status', 'debtor')
             ->whereIn('type', [
                 AccountTypesEnum::Bank->value,

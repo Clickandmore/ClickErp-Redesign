@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class Client extends Model
 {
+    use \App\Models\Concerns\AssignsBranch, \App\Models\Concerns\BranchScoped;
     use HasFactory;
     protected $table = 'crm_clients';
     protected $fillable = ['name', 'phone', 'whatsapp',  'vat_number', 'email', 'notes', 'code', 'social_contact_id', 'city_id', 'area_id', 'status', 'address', 'admin_id', 'client_id'];

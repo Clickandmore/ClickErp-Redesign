@@ -342,6 +342,12 @@
             const debtorBadge = form.querySelector('#debtor_total_badge');
             const creditorBadge = form.querySelector('#creditor_total_badge');
             const balanceAlert = form.querySelector('#balance_alert');
+            const branchSelect = form.querySelector('#constraint_branch_id');
+            const branchMirror = form.querySelector('#constraint_branch_id_mirror');
+            const storeBaseRoute = @json($storeBaseRoute ?? $storeRoute);
+            const branchOptionsRoute = @json($branchOptionsRoute ?? null);
+            let accountOptionsHtml = @json(showSelectElement($accounts, 'name'));
+            let costCenterOptionsHtml = @json(showSelectElement($cost_centers, 'title'));
 
             $.validate({
                 ignore: 'input[type=hidden]',
@@ -429,6 +435,8 @@
             function createRow(type) {
                 const template = document.getElementById('constraint-row-template-' + type);
                 const row = template.content.firstElementChild.cloneNode(true);
+                $(row).find('.select-account').html(accountOptionsHtml);
+                $(row).find('select[name="cost_center_id[]"]').html(costCenterOptionsHtml);
                 return row;
             }
 
@@ -481,6 +489,86 @@
                 disableSelectedAccounts();
                 updateTotals();
             });
+
+            function optionHtml(items, labelKey, emptyText) {
+                if (!items || !items.length) {
+                    return '<option value="">' + emptyText + '</option>';
+                }
+
+                return '<option value="">اختر </option>' + items.map(function(item) {
+                    return '<option value="' + item.id + '">' + $('<div>').text(item[labelKey] || '').html() +
+                        '</option>';
+                }).join('');
+            }
+
+            function updateFormBranch(branchId) {
+                if (branchMirror) {
+                    branchMirror.value = branchId || '';
+                }
+
+                const actionUrl = new URL(storeBaseRoute, window.location.origin);
+                if (branchId) {
+                    actionUrl.searchParams.set('branch_id', branchId);
+                }
+                form.action = actionUrl.toString();
+
+                const pageUrl = new URL(window.location.href);
+                if (branchId) {
+                    pageUrl.searchParams.set('branch_id', branchId);
+                } else {
+                    pageUrl.searchParams.delete('branch_id');
+                }
+                window.history.replaceState({}, '', pageUrl.toString());
+            }
+
+            function replaceLineOptions() {
+                $('.select-account').each(function() {
+                    $(this).html(accountOptionsHtml).val('').trigger('change.select2');
+                });
+
+                $('select[name="cost_center_id[]"]').each(function() {
+                    $(this).html(costCenterOptionsHtml).val('').trigger('change.select2');
+                });
+
+                disableSelectedAccounts();
+            }
+
+            if (branchSelect && branchOptionsRoute) {
+                $(branchSelect).on('change', function() {
+                    const branchId = this.value;
+                    updateFormBranch(branchId);
+
+                    if (!branchId) {
+                        accountOptionsHtml = '<option value="">اختر الفرع أولاً</option>';
+                        costCenterOptionsHtml = '<option value="">اختر الفرع أولاً</option>';
+                        replaceLineOptions();
+                        return;
+                    }
+
+                    const optionsUrl = new URL(branchOptionsRoute, window.location.origin);
+                    optionsUrl.searchParams.set('branch_id', branchId);
+
+                    $.ajax({
+                        url: optionsUrl.toString(),
+                        type: 'GET',
+                        beforeSend: function() {
+                            $(branchSelect).prop('disabled', true);
+                        },
+                        success: function(result) {
+                            accountOptionsHtml = optionHtml(result.accounts, 'name', 'لا يوجد حسابات لهذا الفرع');
+                            costCenterOptionsHtml = optionHtml(result.cost_centers, 'title',
+                                'لا يوجد مراكز تكلفة لهذا الفرع');
+                            replaceLineOptions();
+                        },
+                        error: function(errorObj) {
+                            handleErrorResponce(errorObj);
+                        },
+                        complete: function() {
+                            $(branchSelect).prop('disabled', false);
+                        }
+                    });
+                });
+            }
 
             $(document).on('submit', '#constraint-create-form', function(event) {
                 event.preventDefault();

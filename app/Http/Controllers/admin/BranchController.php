@@ -4,6 +4,7 @@ namespace App\Http\Controllers\admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Branch;
+use App\Support\BranchSharingSettings;
 use App\Support\SystemModuleManager;
 use App\Support\ZohoSalesIqSettings;
 use Illuminate\Http\Request;
@@ -61,21 +62,49 @@ class BranchController extends Controller
             'branchesCount' => Branch::query()->count(),
             'activeBranchesCount' => Branch::query()->where('is_active', true)->count(),
             'branchLimit' => SystemModuleManager::branchLimit(),
+            'sharingSettings' => BranchSharingSettings::all(),
         ]);
+    }
+
+    public function updateSettings(Request $request)
+    {
+        $validated = $request->validate([
+            'share_clients' => ['nullable', 'boolean'],
+            'share_maids' => ['nullable', 'boolean'],
+            'share_external_offices' => ['nullable', 'boolean'],
+            'shared_cost_center_root' => ['nullable', 'boolean'],
+            'accounts_per_branch' => ['nullable', 'boolean'],
+        ]);
+
+        BranchSharingSettings::persist([
+            'share_clients' => (bool) ($validated['share_clients'] ?? false),
+            'share_maids' => (bool) ($validated['share_maids'] ?? false),
+            'share_external_offices' => (bool) ($validated['share_external_offices'] ?? false),
+            'shared_cost_center_root' => (bool) ($validated['shared_cost_center_root'] ?? false),
+            'accounts_per_branch' => (bool) ($validated['accounts_per_branch'] ?? false),
+        ]);
+
+        return redirect()
+            ->route('branches.settings')
+            ->with('success', 'تم تحديث سياسة الفروع العامة بنجاح');
     }
 
     public function report(Request $request)
     {
         $branchService = app(\App\Services\BranchAccessService::class);
         $adminBranchId = $branchService->adminBranchId();
+        $canViewAllBranches = ! $adminBranchId || $branchService->canViewAllBranches();
 
         $branches = Branch::query()
             ->ordered()
-            ->when($adminBranchId, fn ($q) => $q->whereKey($adminBranchId))
+            ->when(! $canViewAllBranches, fn ($q) => $q->whereKey($adminBranchId))
             ->get(['id', 'name_ar', 'name_en', 'code', 'is_active']);
 
-        $selectedBranchId = $adminBranchId ?: (int) $request->query('branch_id', 0);
-        $reportBranches = $selectedBranchId > 0
+        // نفس عقد العزل المستعمل في بقية الشاشات: الموظف المقيّد لا يستطيع
+        // تبديل فرعه من query string، وصاحب branches_view_all يستطيع ذلك،
+        // والقيمة غير الموجودة تُعامل كاختيار "كل الفروع".
+        $selectedBranchId = $branchService->selectedBranchId($request);
+        $reportBranches = $selectedBranchId !== null
             ? $branches->where('id', $selectedBranchId)
             : $branches;
 
