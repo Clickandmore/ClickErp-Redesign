@@ -14,6 +14,8 @@ use App\Models\Concerns\BranchScoped;
 
 class SponsorshipTransfer extends Model
 {
+    use \App\Models\Concerns\AuditsChanges;
+
     use AssignsBranch, HasFactory, SoftDeletes, BranchScoped;
 
     protected $fillable = [

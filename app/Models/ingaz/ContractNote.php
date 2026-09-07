@@ -12,6 +12,8 @@ use App\Models\Concerns\BranchScoped;
 
 class ContractNote extends Model
 {
+    use \App\Models\Concerns\AuditsChanges;
+
     use AssignsBranch, HasFactory, BranchScoped;
 
     protected $guarded = [];

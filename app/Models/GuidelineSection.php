@@ -6,6 +6,8 @@ use Illuminate\Database\Eloquent\Model;
 
 class GuidelineSection extends Model
 {
+    use \App\Models\Concerns\AuditsChanges;
+
     protected $fillable = ['client_file_path', 'worker_file_path'];
 
     public function videos()

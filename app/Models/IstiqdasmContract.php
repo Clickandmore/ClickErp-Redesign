@@ -9,6 +9,8 @@ use Carbon\Carbon;
 
 class IstiqdasmContract extends Model
 {
+    use \App\Models\Concerns\AuditsChanges;
+
     use HasFactory;
 
     protected $table = 'istiqdam_contracts';

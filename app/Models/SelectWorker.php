@@ -9,6 +9,8 @@ use Astrotomic\Translatable\Translatable;
 
 class SelectWorker extends Model implements TranslatableContract
 {
+    use \App\Models\Concerns\AuditsChanges;
+
     use Translatable;
 
     public $translatedAttributes = ['title'];

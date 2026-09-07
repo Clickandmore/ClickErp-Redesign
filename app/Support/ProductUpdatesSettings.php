@@ -90,7 +90,7 @@ class ProductUpdatesSettings
                 ->all(),
         ];
 
-        DB::table('dev_superadmin_settings')->updateOrInsert(
+        \App\Support\Audit\AuditedSettings::updateOrInsert('dev_superadmin_settings',
             ['key' => self::SETTINGS_KEY],
             [
                 'value' => json_encode($settings, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),

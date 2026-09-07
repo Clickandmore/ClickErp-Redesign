@@ -16,6 +16,8 @@ use Illuminate\Database\Eloquent\Model;
  */
 class QuestionsAnswer extends Model
 {
+    use \App\Models\Concerns\AuditsChanges;
+
     protected $table = 'crm_questions_answers';
 
     /**

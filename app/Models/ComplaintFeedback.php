@@ -11,6 +11,8 @@ use App\Models\Concerns\BranchScoped;
 
 class ComplaintFeedback extends Model
 {
+    use \App\Models\Concerns\AuditsChanges;
+
     use AssignsBranch, HasFactory, BranchScoped;
 
     // "feedback" is uncountable, so Eloquent would infer `complaint_feedback`.

@@ -9,7 +9,7 @@ use App\Support\PermissionCatalog;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Schema;
 use Nami\AccessControl\Services\PermissionRegistryService;
-use Spatie\Permission\Models\Role;
+use App\Models\Role;
 use Spatie\Permission\PermissionRegistrar;
 
 class PrepareServerPermissionsCommand extends Command

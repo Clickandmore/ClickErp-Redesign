@@ -11,6 +11,8 @@ use App\Models\Concerns\BranchScoped;
 
 class RecruitmentRequest extends Model
 {
+    use \App\Models\Concerns\AuditsChanges;
+
     use AssignsOrderBranch, BranchScoped;
 
     protected $table = 'orders';

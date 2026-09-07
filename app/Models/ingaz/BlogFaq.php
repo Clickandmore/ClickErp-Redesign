@@ -15,6 +15,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  */
 class BlogFaq extends Model
 {
+    use \App\Models\Concerns\AuditsChanges;
+
     use Translatable, HasFactory;
 
     public $translatedAttributes = ['question', 'answer'];

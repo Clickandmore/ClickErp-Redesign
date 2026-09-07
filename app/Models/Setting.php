@@ -6,6 +6,8 @@ use Illuminate\Database\Eloquent\Model;
 
 class Setting extends Model
 {
+    use \App\Models\Concerns\AuditsChanges;
+
     protected $fillable = ['key', 'value', 'group' ,'years' , 'show_customer_service_during_booking' , 'note_ar' , 'note_en'
     ,'experience_image','qr_image','second_qr_image'];
 

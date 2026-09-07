@@ -8,6 +8,8 @@ use Illuminate\Database\Eloquent\Model;
 
 class MusanedSection extends Model implements TranslatableContract
 {
+    use \App\Models\Concerns\AuditsChanges;
+
     use Translatable;
 
     protected $fillable = [

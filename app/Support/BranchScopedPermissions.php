@@ -93,6 +93,9 @@ class BranchScopedPermissions
             return collect();
         }
 
+        $before = DB::table('role_branch_permissions')->where('role_id', $roleId)
+            ->where('branch_id', $branchId)->pluck('permission_id')->map(fn ($id) => (int) $id)->sort()->values()->all();
+
         $permissions = DB::table('permissions')
             ->where('guard_name', 'admin')
             ->whereIn('name', $permissionNames->values())
@@ -120,6 +123,15 @@ class BranchScopedPermissions
 
         if ($rows !== []) {
             DB::table('role_branch_permissions')->insert($rows);
+        }
+
+        $after = $permissions->pluck('id')->map(fn ($id) => (int) $id)->sort()->values()->all();
+        if ($before !== $after) {
+            activity('permissions')->event('updated')->withProperties([
+                'role_id' => $roleId, 'branch_id' => $branchId,
+                'old' => ['permission_ids' => $before],
+                'attributes' => ['permission_ids' => $after],
+            ])->log('تغيير صلاحيات الدور داخل الفرع');
         }
 
         return $permissions->pluck('name');

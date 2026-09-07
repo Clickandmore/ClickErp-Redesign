@@ -9,29 +9,37 @@ use Tests\TestCase;
 
 class LegacyActivityLogImportTest extends TestCase
 {
-    public function test_activity_import_type_is_available_on_reports_import_page(): void
+    public function test_activity_import_type_is_not_available_on_reports_import_page(): void
     {
         $template = app(DataImportTemplateService::class)->template('legacy_activity_logs');
 
-        $this->assertNotNull($template);
-        $this->assertSame('سجل النشاط القديم (الرافدين)', $template['label']);
-        $this->assertFalse($template['downloadable']);
+        $this->assertNull($template);
+        $this->assertArrayNotHasKey('activitylog:import-legacy', \Illuminate\Support\Facades\Artisan::all());
     }
 
-    public function test_real_alrafedin_activity_report_is_read_completely(): void
+    public function test_activity_report_reader_handles_rows_and_skips_blank_rows(): void
     {
-        $path = base_path('migration_system/data/alrafedin/logs/سجل العمل اليومي __2026-07-13.xlsx');
-
-        $this->assertFileExists($path);
-
-        $rows = iterator_to_array(app(LegacyActivityLogImportService::class)->readRows($path));
-
-        $this->assertCount(44494, $rows);
-        $this->assertSame('1', (string) $rows[2]['legacy_id']);
-        $this->assertSame('أضاف عميل جديد: سكينة  حسن العبادي / 1', $rows[2]['note']);
-        $this->assertSame('2017-12-26', $rows[2]['gregorian_date']);
-        $this->assertSame('System Admin', $rows[2]['user_name']);
-        $this->assertSame('44494', (string) $rows[44495]['legacy_id']);
+        $spreadsheet = new \PhpOffice\PhpSpreadsheet\Spreadsheet();
+        $spreadsheet->getActiveSheet()->fromArray([
+            ['م', 'ملاحظة', 'تاريخ هجري', 'تاريخ ميلادي', 'الوقت', 'بواسطة المستخدم'],
+            [1, 'إضافة سجل تجريبي', '', '2020-01-02', '10:34:32', 'Test Actor'],
+            ['', '', '', '', '', ''],
+            [2, 'تحديث سجل تجريبي', '', '2020-01-03', '11:22:33', 'Test Actor'],
+        ]);
+        $path = tempnam(sys_get_temp_dir(), 'activity-reader-');
+        try {
+            (new \PhpOffice\PhpSpreadsheet\Writer\Xlsx($spreadsheet))->save($path);
+            $rows = iterator_to_array(app(LegacyActivityLogImportService::class)->readRows($path));
+            $this->assertCount(2, $rows);
+            $this->assertSame('1', (string) $rows[2]['legacy_id']);
+            $this->assertSame('إضافة سجل تجريبي', $rows[2]['note']);
+            $this->assertSame('2020-01-02', $rows[2]['gregorian_date']);
+            $this->assertSame('Test Actor', $rows[2]['user_name']);
+            $this->assertSame('2', (string) $rows[4]['legacy_id']);
+        } finally {
+            $spreadsheet->disconnectWorksheets();
+            unlink($path);
+        }
     }
 
     public function test_source_date_and_time_are_combined_without_changing_timezone(): void

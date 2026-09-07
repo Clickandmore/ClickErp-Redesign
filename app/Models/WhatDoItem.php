@@ -9,7 +9,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class  WhatDoItem extends Model implements TranslatableContract
 {
-    use Translatable;
+    use Translatable, \App\Models\Concerns\AuditsChanges;
 
     public $translatedAttributes = ['title'];
     protected $fillable = ['what_do_id'];

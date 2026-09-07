@@ -8,6 +8,8 @@ use Illuminate\Database\Eloquent\Model;
 
 class HomeHeroSection extends Model implements TranslatableContract
 {
+    use \App\Models\Concerns\AuditsChanges;
+
     use Translatable;
 
     protected $fillable = ['is_active', 'video_type', 'video_path', 'video_url'];

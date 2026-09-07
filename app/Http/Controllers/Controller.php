@@ -80,10 +80,16 @@ class Controller extends BaseController
 
     protected function resolveActivityCauserName($activity): string
     {
-        return optional($activity->causer)->name
+        if ($activity->log_name === \App\Services\ingaz\LegacyActivityLogImportService::LOG_NAME
+            && filled(data_get($activity, 'properties.legacy_user_name'))) {
+            return (string) data_get($activity, 'properties.legacy_user_name');
+        }
+
+        return data_get($activity, 'properties.actor_name')
+            ?? optional($activity->causer)->name
             ?? optional($activity->causer)->email
             ?? data_get($activity, 'properties.legacy_user_name')
-            ?? 'النظام';
+            ?? ($activity->causer_id ? 'مستخدم سابق #' . $activity->causer_id : 'هوية المنفذ غير محفوظة');
     }
 
     protected function resolveActivityCauserRole($activity): ?string

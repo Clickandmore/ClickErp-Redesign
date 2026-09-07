@@ -8,6 +8,8 @@ use Illuminate\Database\Eloquent\Model;
 
 class JobType extends Model
 {
+    use \App\Models\Concerns\AuditsChanges;
+
     use Translatable,HasFactory;
     protected $guarded = [];
     public $translatedAttributes = ['title','description'];

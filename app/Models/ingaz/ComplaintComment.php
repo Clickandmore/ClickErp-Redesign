@@ -11,6 +11,8 @@ use App\Models\Concerns\BranchScoped;
 
 class ComplaintComment extends Model
 {
+    use \App\Models\Concerns\AuditsChanges;
+
     use AssignsBranch, HasFactory, BranchScoped;
 
     protected $guarded = [];

@@ -6,6 +6,8 @@ use Illuminate\Database\Eloquent\Model;
 
 class Country extends Model
 {
+    use \App\Models\Concerns\AuditsChanges;
+
     protected $fillable = [
         'name_ar',
         'name_en',

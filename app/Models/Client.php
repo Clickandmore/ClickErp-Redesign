@@ -6,6 +6,8 @@ namespace App\Models;
 
 class Client extends Model
 {
+    use \App\Models\Concerns\AuditsChanges;
+
     use Concerns\ResolvesMediaUrls;
 
     protected array $mediaUrlColumns = ['image'];

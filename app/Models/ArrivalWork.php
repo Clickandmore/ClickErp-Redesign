@@ -9,6 +9,8 @@ use Illuminate\Database\Eloquent\Model;
 
 class ArrivalWork extends Model implements TranslatableContract
 {
+    use \App\Models\Concerns\AuditsChanges;
+
     use Translatable;
     public $translatedAttributes = ['title', 'sub_title', 'body'];
     protected $fillable = ['image'];

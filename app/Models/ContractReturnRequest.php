@@ -10,6 +10,8 @@ use App\Models\Concerns\BranchScoped;
 
 class ContractReturnRequest extends Model
 {
+    use \App\Models\Concerns\AuditsChanges;
+
     use AssignsBranch, HasFactory, BranchScoped;
 
     protected $fillable = [

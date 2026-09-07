@@ -8,6 +8,8 @@ use Illuminate\Database\Eloquent\Model;
 
 class ClientAttachment extends Model
 {
+    use \App\Models\Concerns\AuditsChanges;
+
     use \App\Models\Concerns\AssignsBranch, \App\Models\Concerns\BranchScoped;
     use HasFactory;
 

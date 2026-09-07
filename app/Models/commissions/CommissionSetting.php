@@ -7,6 +7,8 @@ use Illuminate\Database\Eloquent\Model;
 
 class CommissionSetting extends Model
 {
+    use \App\Models\Concerns\AuditsChanges;
+
     protected $table = 'commission_settings';
 
     protected $fillable = ['service_type', 'method', 'value', 'created_by'];

@@ -7,6 +7,8 @@ use Illuminate\Support\Facades\Crypt;
 
 class IstiqdamSetting extends Model
 {
+    use \App\Models\Concerns\AuditsChanges;
+
     use \App\Models\Concerns\AssignsBranch, \App\Models\Concerns\BranchScoped;
     protected $fillable = [
         'establishment_name',

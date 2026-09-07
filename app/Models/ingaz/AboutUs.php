@@ -8,6 +8,8 @@ use Illuminate\Database\Eloquent\Model;
 
 class AboutUs extends Model
 {
+    use \App\Models\Concerns\AuditsChanges;
+
     use Translatable,HasFactory, \App\Models\Concerns\ResolvesMediaUrls;
 
     protected array $mediaUrlColumns = ['image', 'image_vision', 'image_message', 'image_value'];

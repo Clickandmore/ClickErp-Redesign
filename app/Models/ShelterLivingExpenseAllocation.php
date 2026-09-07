@@ -6,6 +6,8 @@ use Illuminate\Database\Eloquent\Model;
 
 class ShelterLivingExpenseAllocation extends Model
 {
+    use \App\Models\Concerns\AuditsChanges;
+
     use \App\Models\Concerns\AssignsBranch, \App\Models\Concerns\BranchScoped;
     protected $fillable = [
         'shelter_living_expense_id',

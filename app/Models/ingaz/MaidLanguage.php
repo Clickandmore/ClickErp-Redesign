@@ -8,6 +8,8 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 
 class MaidLanguage extends Model
 {
+    use \App\Models\Concerns\AuditsChanges;
+
     use HasFactory, SoftDeletes;
 
     protected $fillable = [

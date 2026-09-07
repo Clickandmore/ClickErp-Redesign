@@ -6,7 +6,7 @@ use App\Enums\auth\AdminTypes;
 use App\Models\Nami\Admin;
 use App\Services\MainService;
 use Illuminate\Support\Facades\Auth;
-use Spatie\Permission\Models\Role;
+use App\Models\Role;
 
 class AdminService extends MainService
 {

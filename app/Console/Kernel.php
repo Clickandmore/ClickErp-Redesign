@@ -21,6 +21,13 @@ class Kernel extends ConsoleKernel
      */
     protected function schedule(Schedule $schedule): void
     {
+        if (config('activitylog.scheduled_cleanup_enabled', false)) {
+            $schedule->command('activitylog:clean --force')
+                ->dailyAt('03:30')
+                ->withoutOverlapping()
+                ->appendOutputTo(storage_path('logs/activity-log-cleanup.log'));
+        }
+
         $schedule->call([SchedulerMonitorService::class, 'writeHeartbeat'])
             ->everyMinute()
             ->description('scheduler-heartbeat');

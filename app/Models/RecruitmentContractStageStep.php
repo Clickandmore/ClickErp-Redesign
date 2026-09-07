@@ -8,6 +8,8 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 
 class RecruitmentContractStageStep extends Model
 {
+    use \App\Models\Concerns\AuditsChanges;
+
     use SoftDeletes;
 
     protected $guarded = [];

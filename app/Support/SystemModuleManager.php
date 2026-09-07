@@ -84,7 +84,7 @@ class SystemModuleManager
             return;
         }
 
-        DB::table('dev_superadmin_settings')->updateOrInsert(
+        \App\Support\Audit\AuditedSettings::updateOrInsert('dev_superadmin_settings',
             ['key' => self::PRODUCT_PROFILE_KEY],
             [
                 'value' => $key,
@@ -150,7 +150,7 @@ class SystemModuleManager
                 continue;
             }
 
-            DB::table('system_module_settings')->updateOrInsert(
+            \App\Support\Audit\AuditedSettings::updateOrInsert('system_module_settings',
                 ['key' => $key],
                 [
                     'name' => $module['name'] ?? $key,
@@ -194,7 +194,7 @@ class SystemModuleManager
             return;
         }
 
-        DB::table('dev_superadmin_settings')->updateOrInsert(
+        \App\Support\Audit\AuditedSettings::updateOrInsert('dev_superadmin_settings',
             ['key' => 'default_dashboard'],
             [
                 'value' => $key,
@@ -227,7 +227,7 @@ class SystemModuleManager
             return;
         }
 
-        DB::table('dev_superadmin_settings')->updateOrInsert(
+        \App\Support\Audit\AuditedSettings::updateOrInsert('dev_superadmin_settings',
             ['key' => self::BRANCH_LIMIT_KEY],
             [
                 'value' => $limit === null ? null : (string) max($limit, 0),

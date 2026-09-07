@@ -9,6 +9,8 @@ use App\Models\Concerns\BranchScoped;
 
 class ContractExtensionRequestNote extends Model
 {
+    use \App\Models\Concerns\AuditsChanges;
+
     use AssignsBranch, BranchScoped;
 
     protected $fillable = ['extension_request_id', 'admin_id', 'branch_id', 'note'];

@@ -8,6 +8,8 @@ use Illuminate\Database\Eloquent\Model;
 
 class Statistic extends Model
 {
+    use \App\Models\Concerns\AuditsChanges;
+
     use Translatable, HasFactory;
 
     // ملاحظة: عمود image هنا كلاس أيقونة (FontAwesome) وليس ملفًا مرفوعًا،

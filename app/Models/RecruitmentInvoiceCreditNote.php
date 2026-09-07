@@ -13,6 +13,8 @@ use App\Models\Concerns\BranchScoped;
 
 class RecruitmentInvoiceCreditNote extends Model
 {
+    use \App\Models\Concerns\AuditsChanges;
+
     use AssignsBranch, BranchScoped;
 
     protected $guarded = [];

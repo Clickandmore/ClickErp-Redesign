@@ -7,6 +7,8 @@ use Illuminate\Database\Eloquent\Model;
 
 class Area extends Model
 {
+    use \App\Models\Concerns\AuditsChanges;
+
     use HasFactory;
     protected $table = 'crm_areas';
     protected $fillable = ['title','parent_id'];

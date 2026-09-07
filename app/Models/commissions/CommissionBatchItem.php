@@ -10,6 +10,8 @@ use Illuminate\Database\Eloquent\Model;
 
 class CommissionBatchItem extends Model
 {
+    use \App\Models\Concerns\AuditsChanges;
+
     use AssignsBranch, BranchScoped;
 
     protected $table = 'commission_batch_items';

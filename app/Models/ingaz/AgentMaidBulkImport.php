@@ -7,6 +7,8 @@ use Illuminate\Database\Eloquent\Model;
 
 class AgentMaidBulkImport extends Model
 {
+    use \App\Models\Concerns\AuditsChanges;
+
     protected $fillable = [
         'agent_id',
         'office_id',

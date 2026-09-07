@@ -7,7 +7,7 @@ use App\Enums\auth\AdminTypes;
 use App\Http\Actions\MainAction;
 use App\Support\SystemModuleManager;
 use Illuminate\Support\Facades\Schema;
-use Spatie\Permission\Models\Role;
+use App\Models\Role;
 
 
 class AdminAction extends MainAction

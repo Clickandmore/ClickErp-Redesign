@@ -6,6 +6,8 @@ use Illuminate\Database\Eloquent\Model;
 
 class IngazDelegationStage extends Model
 {
+    use \App\Models\Concerns\AuditsChanges;
+
     protected $guarded = [];
 
     protected $casts = [

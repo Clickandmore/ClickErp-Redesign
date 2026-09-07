@@ -8,6 +8,8 @@ use Illuminate\Database\Eloquent\Model;
 
 class Step extends Model
 {
+    use \App\Models\Concerns\AuditsChanges;
+
     use Translatable, HasFactory;
 
     protected $guarded = [];

@@ -6,6 +6,8 @@ use Illuminate\Database\Eloquent\Model;
 
 class NationalityGuidelineVersion extends Model
 {
+    use \App\Models\Concerns\AuditsChanges;
+
     protected $fillable = ['language', 'client_file_path', 'worker_file_path'];
 
     public function nationalityGuideline()

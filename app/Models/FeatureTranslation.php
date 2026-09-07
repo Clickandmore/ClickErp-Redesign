@@ -6,6 +6,8 @@ namespace App\Models;
 
 class FeatureTranslation extends Model
 {
+    use \App\Models\Concerns\AuditsChanges;
+
 
     protected $fillable = [
         'title',

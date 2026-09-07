@@ -7,6 +7,8 @@ use Illuminate\Database\Eloquent\Model;
 
 class Poll extends Model
 {
+    use \App\Models\Concerns\AuditsChanges;
+
     use HasFactory;
     protected $table = 'crm_polls';
     protected $fillable = ['title'];

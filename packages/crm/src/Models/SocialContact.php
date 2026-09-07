@@ -7,6 +7,8 @@ use Illuminate\Database\Eloquent\Model;
 
 class SocialContact extends Model
 {
+    use \App\Models\Concerns\AuditsChanges;
+
     use HasFactory;
     protected $table = 'crm_social_contacts';
     protected $fillable = ['title', 'is_shown'];

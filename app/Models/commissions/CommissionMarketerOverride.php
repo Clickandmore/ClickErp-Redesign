@@ -10,6 +10,8 @@ use Illuminate\Database\Eloquent\Model;
 
 class CommissionMarketerOverride extends Model
 {
+    use \App\Models\Concerns\AuditsChanges;
+
     use AssignsBranch, BranchScoped;
 
     protected $table = 'commission_marketer_overrides';

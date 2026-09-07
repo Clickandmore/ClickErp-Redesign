@@ -7,6 +7,8 @@ use Illuminate\Database\Eloquent\Model;
 
 class WhatsAppMessage extends Model
 {
+    use \App\Models\Concerns\AuditsChanges;
+
     protected $table = 'whatsapp_messages';
 
     protected $guarded = [];
