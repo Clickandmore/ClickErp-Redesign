@@ -1113,15 +1113,16 @@
                 @endif
                 {{--                @include('finance::stock') --}}
                 {{-- اعدادات الرسائل النصية --}}
-                @if ($canViewSms)
-                    <li class="sidebar-module sidebar-module--messages collapsed">
+                @if ($canViewSms || \App\Support\AdminDispatchPermissions::allows(auth('admin')->user(), \App\Support\AdminDispatchPermissions::VIEW))
+                    <li class="sidebar-module sidebar-module--messages {{ request()->routeIs('admin.dispatch.*') ? '' : 'collapsed' }}">
                         <a class="m-link" data-bs-toggle="collapse" data-bs-target="#smsManagement" href="#">
                             <i class="fa fa-sms"></i>
                             <span class="ms-2">{{ __('admin.sidebar.messages_management') }}</span>
                             <span class="arrow fa fa-angle-left ms-auto text-end"></span>
                         </a>
-                        <ul class="sub-menu collapse {{ in_array(Route::currentRouteName(), ['notifications.index', 'notifications.settings', 'notifications.settings.alerts']) || Request::is('admin/sms-templates*') ? 'show' : '' }}"
+                        <ul class="sub-menu collapse {{ in_array(Route::currentRouteName(), ['notifications.index', 'notifications.settings', 'notifications.settings.alerts']) || request()->routeIs('admin.dispatch.*') || Request::is('admin/sms-templates*') ? 'show' : '' }}"
                             id="smsManagement">
+                            @include('admin.notifications.sidebar-link')
                             @if (@AdminGuardHasPerm(\App\PermKeys::NOTIFICATIONS_CONTROL))
                                 <li>
                                     <a class="m-link {{ Route::currentRouteName() == 'notifications.index' ? 'active' : '' }}"
@@ -1149,6 +1150,7 @@
                                     </a>
                                 </li>
                             @endif
+                            @if ($canViewSms)
                             <li>
                                 <a class="m-link {{ Request::is('admin/sms-templates*') ? 'active' : '' }}"
                                     href="/admin/sms-templates">
@@ -1156,6 +1158,7 @@
                                     <span class="ms-2">{{ __('admin.sidebar.sms_templates') }}</span>
                                 </a>
                             </li>
+                            @endif
                         </ul>
                     </li>
                 @endif
