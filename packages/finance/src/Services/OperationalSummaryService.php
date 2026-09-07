@@ -17,7 +17,8 @@ use Nami\Finance\Models\Constraint;
  * كم بعنا، كم حصّلنا، كم بقي علينا تحصيله، وكم علينا للمكاتب.
  *
  * مصادر الأرقام مقصودة ومختلفة عن قائمة الدخل المحاسبية:
- *   - المبيعات   = قيمة الفواتير الصادرة فعلياً (تأجير + استقدام + تسويات التأجير).
+ *   - المبيعات   = قيمة الفواتير الصادرة فعلياً (تأجير + استقدام + تفاويض + تسويات التأجير).
+ *     فواتير التفاويض مستثناة من عمود الاستقدام لأنها تُعرض في عمودها الخاص.
  *   - المحصّل    = paid_amount / is_paid على نفس الفواتير، لا سندات القبض.
  *   - الاستحقاقات للمكاتب = رصيد حساب المكتب في الأستاذ (دائن - مدين)، لأن هذا
  *     هو الرقم الذي تُسدَّد عليه الحوالة فعلياً وليس تكلفة العقد المعلنة.
@@ -67,6 +68,7 @@ class OperationalSummaryService extends MainService
             (int) ($options['recruitment_page'] ?? 1),
             $perPage
         );
+        $delegations = $this->delegations($from, $to);
         $musaned = $this->musaned($from, $to);
         $offices = $this->externalOffices($from, $to);
 
@@ -89,6 +91,7 @@ class OperationalSummaryService extends MainService
             'sales' => $sales,
             'rental_receivables' => $rental,
             'recruitment_receivables' => $recruitment,
+            'delegations' => $delegations,
             'musaned' => $musaned,
             'external_offices' => $offices,
             'kpis' => [
@@ -101,6 +104,10 @@ class OperationalSummaryService extends MainService
                 'receivables_total' => $rental['totals']['remaining'] + $recruitment['totals']['remaining'],
                 'rental_receivables' => $rental['totals']['remaining'],
                 'recruitment_receivables' => $recruitment['totals']['remaining'],
+                'delegation_revenue' => $delegations['totals']['revenue'],
+                'delegation_cost' => $delegations['totals']['cost'],
+                'delegation_net' => $delegations['totals']['net'],
+                'delegation_count' => $delegations['totals']['delegations'],
                 'musaned_commission_net' => $musaned['totals']['commission_net'],
                 'musaned_commission_gross' => $musaned['totals']['commission'],
                 'offices_payable' => $offices['totals']['payable'],
@@ -149,6 +156,12 @@ class OperationalSummaryService extends MainService
             ->selectRaw('COALESCE(SUM(commission_net_total), 0) as commission_net')
             ->first();
 
+        $delegations = $this->delegationQuery($from, $to)
+            ->selectRaw('COUNT(*) as delegations')
+            ->selectRaw('COALESCE(SUM(invoices.total_due), 0) as revenue')
+            ->selectRaw('COALESCE(SUM(cost.value), 0) as cost')
+            ->first();
+
         $officeAccountIds = DB::table('recruitment_offices')->whereNotNull('account_id')->pluck('account_id')->all();
         $officesPayable = $this->officeAccountBalances($officeAccountIds, $to)
             ->reduce(function (float $carry, $row) {
@@ -172,6 +185,9 @@ class OperationalSummaryService extends MainService
             'musaned_transfers' => (int) $musaned->transfers,
             'musaned_commission' => (float) $musaned->commission,
             'musaned_commission_net' => (float) $musaned->commission_net,
+            'delegation_count' => (int) $delegations->delegations,
+            'delegation_revenue' => (float) $delegations->revenue,
+            'delegation_net' => (float) $delegations->revenue - (float) $delegations->cost,
             'offices_payable' => $officesPayable,
         ];
     }
@@ -187,19 +203,23 @@ class OperationalSummaryService extends MainService
     {
         $rental = $this->monthlyRentalSales($from, $to);
         $recruitment = $this->monthlyRecruitmentSales($from, $to);
+        $delegations = $this->monthlyDelegationSales($from, $to);
         $adjustments = $this->monthlyRentalAdjustments($from, $to);
 
         $months = [];
         foreach ($this->monthKeys($from, $to) as $key) {
             $rentalRow = $rental[$key] ?? null;
             $recruitmentRow = $recruitment[$key] ?? null;
+            $delegationRow = $delegations[$key] ?? null;
             $adjustmentRow = $adjustments[$key] ?? null;
 
             $invoiced = (float) ($rentalRow->invoiced ?? 0)
                 + (float) ($recruitmentRow->invoiced ?? 0)
+                + (float) ($delegationRow->invoiced ?? 0)
                 + (float) ($adjustmentRow->invoiced ?? 0);
             $collected = (float) ($rentalRow->collected ?? 0)
                 + (float) ($recruitmentRow->collected ?? 0)
+                + (float) ($delegationRow->collected ?? 0)
                 + (float) ($adjustmentRow->collected ?? 0);
 
             $months[] = [
@@ -209,6 +229,8 @@ class OperationalSummaryService extends MainService
                 'rental_count' => (int) ($rentalRow->documents ?? 0),
                 'recruitment' => (float) ($recruitmentRow->invoiced ?? 0),
                 'recruitment_count' => (int) ($recruitmentRow->documents ?? 0),
+                'delegations' => (float) ($delegationRow->invoiced ?? 0),
+                'delegations_count' => (int) ($delegationRow->documents ?? 0),
                 'adjustments' => (float) ($adjustmentRow->invoiced ?? 0),
                 'adjustments_count' => (int) ($adjustmentRow->documents ?? 0),
                 'invoiced' => $invoiced,
@@ -226,6 +248,8 @@ class OperationalSummaryService extends MainService
                 'rental_count' => $sum('rental_count'),
                 'recruitment' => $sum('recruitment'),
                 'recruitment_count' => $sum('recruitment_count'),
+                'delegations' => $sum('delegations'),
+                'delegations_count' => $sum('delegations_count'),
                 'adjustments' => $sum('adjustments'),
                 'adjustments_count' => $sum('adjustments_count'),
                 'invoiced' => $sum('invoiced'),
@@ -251,6 +275,24 @@ class OperationalSummaryService extends MainService
     private function monthlyRecruitmentSales(string $from, string $to): Collection
     {
         return $this->scoped('invoices')
+            ->whereNull('invoices.ingaz_delegation_id')
+            ->whereBetween(DB::raw('DATE(invoices.created_at)'), [$from, $to])
+            ->selectRaw("DATE_FORMAT(invoices.created_at, '%Y-%m') as period")
+            ->selectRaw('COUNT(*) as documents')
+            ->selectRaw('COALESCE(SUM(total_due), 0) as invoiced')
+            ->selectRaw('COALESCE(SUM(CASE WHEN is_paid = 1 THEN total_due ELSE 0 END), 0) as collected')
+            ->groupBy('period')
+            ->get()
+            ->keyBy('period');
+    }
+
+    /**
+     * فواتير تفاويض الإنجاز — تُعرض في عمود مستقل عن الاستقدام لا فوقه.
+     */
+    private function monthlyDelegationSales(string $from, string $to): Collection
+    {
+        return $this->scoped('invoices')
+            ->whereNotNull('invoices.ingaz_delegation_id')
             ->whereBetween(DB::raw('DATE(invoices.created_at)'), [$from, $to])
             ->selectRaw("DATE_FORMAT(invoices.created_at, '%Y-%m') as period")
             ->selectRaw('COUNT(*) as documents')
@@ -516,6 +558,146 @@ class OperationalSummaryService extends MainService
         }
 
         return 'over';
+    }
+
+    /* ------------------------------------------------------------------ */
+    /* إيرادات التفاويض الرجالية (تفاويض الإنجاز)                          */
+    /* ------------------------------------------------------------------ */
+
+    /**
+     * إيرادات تفاويض الإنجاز — التفويض الإلكتروني للعمالة الرجالية (سائق خاص،
+     * عامل منزلي، مزارع منزلي).
+     *
+     * الإيراد من فاتورة التفويض نفسها، والتكلفة من قيد تكلفة التفويض المرتبط
+     * بها؛ فالصافي هنا هامش الخدمة لا ربح القائمة المحاسبية. وهذه الفواتير
+     * مستثناة من عمود «فواتير الاستقدام» حتى لا يُحتسب الإيراد مرتين.
+     */
+    private function delegations(string $from, string $to): array
+    {
+        $monthly = $this->delegationQuery($from, $to)
+            ->selectRaw("DATE_FORMAT(invoices.created_at, '%Y-%m') as period")
+            ->selectRaw('COUNT(*) as delegations')
+            ->selectRaw('COALESCE(SUM(invoices.total_due), 0) as revenue')
+            ->selectRaw('COALESCE(SUM(CASE WHEN invoices.is_paid = 1 THEN invoices.total_due ELSE 0 END), 0) as collected')
+            ->selectRaw('COALESCE(SUM(cost.value), 0) as cost')
+            ->groupBy('period')
+            ->get()
+            ->keyBy('period');
+
+        $months = [];
+        foreach ($this->monthKeys($from, $to) as $key) {
+            $row = $monthly[$key] ?? null;
+            $revenue = (float) ($row->revenue ?? 0);
+            $cost = (float) ($row->cost ?? 0);
+            $count = (int) ($row->delegations ?? 0);
+
+            $months[] = [
+                'key' => $key,
+                'label' => Carbon::createFromFormat('Y-m-d', $key . '-01')->translatedFormat('M Y'),
+                'delegations' => $count,
+                'revenue' => $revenue,
+                'collected' => (float) ($row->collected ?? 0),
+                'outstanding' => $revenue - (float) ($row->collected ?? 0),
+                'cost' => $cost,
+                'net' => $revenue - $cost,
+                'average_revenue' => $count > 0 ? round($revenue / $count, 2) : 0.0,
+            ];
+        }
+
+        $sum = fn (string $column) => array_sum(array_column($months, $column));
+        $revenue = $sum('revenue');
+        $cost = $sum('cost');
+        $count = $sum('delegations');
+
+        return [
+            'months' => $months,
+            'professions' => $this->delegationsByProfession($from, $to),
+            'pending_cost' => $this->delegationPendingCost($from, $to),
+            'totals' => [
+                'delegations' => $count,
+                'revenue' => $revenue,
+                'collected' => $sum('collected'),
+                'outstanding' => $sum('outstanding'),
+                'cost' => $cost,
+                'net' => $revenue - $cost,
+                'average_revenue' => $count > 0 ? round($revenue / $count, 2) : 0.0,
+                'margin_rate' => $revenue > 0 ? round(($revenue - $cost) / $revenue * 100, 1) : null,
+            ],
+        ];
+    }
+
+    /**
+     * قيود تكلفة تفاويض لم تُعتمد بعد. الصافي أعلاه يحتسب المعتمد وحده — كما في
+     * بقية التقرير — فلو بقيت هذه معلّقة بدا الهامش أكبر من حقيقته، ولذلك تُعرض
+     * صراحة بدل أن تُدمج بصمت.
+     *
+     * @return array{entries: int, amount: float}
+     */
+    private function delegationPendingCost(string $from, string $to): array
+    {
+        if (!Constraint::hasApprovalColumns()) {
+            return ['entries' => 0, 'amount' => 0.0];
+        }
+
+        $row = $this->scoped('invoices')
+            ->join('fn_constraints as cost', 'cost.id', '=', 'invoices.ingaz_delegation_cost_constraint_id')
+            ->whereNotNull('invoices.ingaz_delegation_id')
+            ->whereNull('cost.deleted_at')
+            ->where('cost.approval_status', '!=', Constraint::APPROVAL_APPROVED)
+            ->whereBetween(DB::raw('DATE(invoices.created_at)'), [$from, $to])
+            ->selectRaw('COUNT(*) as entries')
+            ->selectRaw('COALESCE(SUM(cost.value), 0) as amount')
+            ->first();
+
+        return ['entries' => (int) $row->entries, 'amount' => (float) $row->amount];
+    }
+
+    /**
+     * توزيع التفاويض على المهن — يقرأ أين يتولّد الإيراد فعلاً.
+     */
+    private function delegationsByProfession(string $from, string $to): Collection
+    {
+        return $this->delegationQuery($from, $to)
+            ->leftJoin('job_titles_translations as profession', function ($join) {
+                $join->on('profession.job_title_id', '=', 'delegation.profession_id')
+                    ->where('profession.locale', '=', app()->getLocale());
+            })
+            ->selectRaw('COALESCE(profession.title, ?) as profession', [__('finance::finance.ops_unspecified')])
+            ->selectRaw('COUNT(*) as delegations')
+            ->selectRaw('COALESCE(SUM(invoices.total_due), 0) as revenue')
+            ->selectRaw('COALESCE(SUM(cost.value), 0) as cost')
+            ->groupBy('profession')
+            ->orderByDesc('revenue')
+            ->get()
+            ->map(function ($row) {
+                $row->revenue = (float) $row->revenue;
+                $row->cost = (float) $row->cost;
+                $row->delegations = (int) $row->delegations;
+                $row->net = $row->revenue - $row->cost;
+                $row->average_revenue = $row->delegations > 0 ? round($row->revenue / $row->delegations, 2) : 0.0;
+
+                return $row;
+            });
+    }
+
+    /**
+     * فواتير التفاويض داخل الفترة، مع قيد التكلفة المعتمد المرتبط بكل فاتورة.
+     */
+    private function delegationQuery(string $from, string $to): Builder
+    {
+        $query = $this->scoped('invoices')
+            ->join('ingaz_delegations as delegation', 'delegation.id', '=', 'invoices.ingaz_delegation_id')
+            ->leftJoin('fn_constraints as cost', function ($join) {
+                $join->on('cost.id', '=', 'invoices.ingaz_delegation_cost_constraint_id')
+                    ->whereNull('cost.deleted_at');
+
+                if (Constraint::hasApprovalColumns()) {
+                    $join->where('cost.approval_status', '=', Constraint::APPROVAL_APPROVED);
+                }
+            })
+            ->whereBetween(DB::raw('DATE(invoices.created_at)'), [$from, $to]);
+
+        return $query;
     }
 
     /* ------------------------------------------------------------------ */

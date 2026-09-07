@@ -26,6 +26,7 @@ class OperationalSummaryController extends Controller
             'rental_page' => ['nullable', 'integer', 'min:1'],
             'recruitment_page' => ['nullable', 'integer', 'min:1'],
             'export' => ['nullable', 'in:xlsx'],
+            'print' => ['nullable', 'in:1'],
         ]);
 
         if ($input['from_date'] > $input['to_date']) {
@@ -36,18 +37,22 @@ class OperationalSummaryController extends Controller
 
         $scope = $input['scope'] ?? OperationalSummaryService::SCOPE_PERIOD;
         $perPage = (int) ($input['per_page'] ?? OperationalSummaryService::DEFAULT_PER_PAGE);
+        $exporting = ($input['export'] ?? null) === 'xlsx';
+        $printing = ($input['print'] ?? null) === '1';
 
-        // التصدير يحمل كل الصفوف، لا صفحة واحدة منها.
+        // التصدير والطباعة يحملان كل الصفوف، لا صفحة واحدة منها.
         $report = $service->report($input['from_date'], $input['to_date'], [
             'scope' => $scope,
-            'per_page' => ($input['export'] ?? null) === 'xlsx' ? null : $perPage,
+            'per_page' => $exporting || $printing ? null : $perPage,
             'rental_page' => (int) ($input['rental_page'] ?? 1),
             'recruitment_page' => (int) ($input['recruitment_page'] ?? 1),
         ]);
 
-        if (($input['export'] ?? null) === 'xlsx') {
+        if ($exporting) {
             return app(OperationalSummaryExportService::class)->download($report);
         }
+
+        $report['print'] = $printing;
 
         // كل رابط صفحة يحتفظ بالفلاتر وبصفحة الجدول الآخر.
         $base = ['from_date' => $input['from_date'], 'to_date' => $input['to_date'], 'scope' => $scope, 'per_page' => $perPage];

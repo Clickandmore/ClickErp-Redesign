@@ -5,6 +5,7 @@ namespace Tests\Feature\Finance;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Illuminate\Support\Facades\DB;
 use Nami\Finance\Models\Constraint;
+use Nami\Finance\Services\OperationalSummaryExportService;
 use Nami\Finance\Services\OperationalSummaryService;
 use Tests\TestCase;
 
@@ -26,6 +27,7 @@ class OperationalSummaryReportTest extends TestCase
     private int $officeAccountId;
     private int $officeId;
     private int $contractId;
+    private int $nationalityId;
 
     protected function setUp(): void
     {
@@ -52,7 +54,7 @@ class OperationalSummaryReportTest extends TestCase
             'updated_at' => now(),
         ]);
 
-        $nationalityId = DB::table('nationalities')->insertGetId([
+        $this->nationalityId = $nationalityId = DB::table('nationalities')->insertGetId([
             'created_at' => now(),
             'updated_at' => now(),
         ]);
@@ -106,6 +108,51 @@ class OperationalSummaryReportTest extends TestCase
             'is_paid' => $paid,
             'created_at' => $date . ' 11:00:00',
             'updated_at' => $date . ' 11:00:00',
+        ]);
+    }
+
+    /**
+     * تفويض إنجاز بفاتورته وقيد تكلفته. $costApproval يحدد إن كان القيد معتمداً.
+     */
+    private function delegation(string $date, float $revenue, float $cost, string $profession, string $costApproval = Constraint::APPROVAL_APPROVED): void
+    {
+        $jobTitleId = DB::table('job_titles')->insertGetId(['created_at' => now(), 'updated_at' => now()]);
+        DB::table('job_titles_translations')->insert([
+            'job_title_id' => $jobTitleId,
+            'title' => $profession,
+            'locale' => app()->getLocale(),
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $delegationId = DB::table('ingaz_delegations')->insertGetId([
+            'delegation_date_gregorian' => $date,
+            'nationality_id' => $this->nationalityId,
+            'profession_id' => $jobTitleId,
+            'visa_number' => 'V-' . $date . '-' . $jobTitleId,
+            'created_at' => $date . ' 12:00:00',
+            'updated_at' => $date . ' 12:00:00',
+        ]);
+
+        $costConstraintId = DB::table('fn_constraints')->insertGetId([
+            'type' => 1,
+            'code' => random_int(700000, 799999),
+            'value' => $cost,
+            'date' => $date,
+            'statement' => 'تكلفة تفويض',
+            'approval_status' => $costApproval,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        DB::table('invoices')->insert([
+            'ingaz_delegation_id' => $delegationId,
+            'ingaz_delegation_cost_constraint_id' => $costConstraintId,
+            'client_id' => $this->userId,
+            'total_due' => $revenue,
+            'is_paid' => 1,
+            'created_at' => $date . ' 12:30:00',
+            'updated_at' => $date . ' 12:30:00',
         ]);
     }
 
@@ -329,5 +376,95 @@ class OperationalSummaryReportTest extends TestCase
         $this->assertSame($expected, $second['totals']['remaining']);
         $this->assertSame($expected, array_sum($first['aging']), 'التقادم كذلك يغطي كل الصفوف.');
         $this->assertSame(7, $first['totals']['documents']);
+    }
+
+    public function test_export_writes_every_row_with_money_formatting_and_a_totals_line(): void
+    {
+        $this->rentalInvoice('2031-02-10', 8000, 3000, 'RC-31-PARTIAL');
+        $this->rentalInvoice('2031-03-20', 4000, 0, 'RC-31-LATER');
+
+        // per_page: null هو ما يمرره المتحكم عند التصدير والطباعة.
+        $report = $this->report(['per_page' => null]);
+        $book = app(OperationalSummaryExportService::class)->workbook($report);
+
+        $this->assertSame(
+            ['المبيعات الشهرية', 'ذمم التأجير', 'ذمم الاستقدام', 'التفاويض الرجالية', 'عمولات مساند', 'المكاتب الخارجية'],
+            $book->getSheetNames()
+        );
+
+        $sheet = $book->getSheetByName('ذمم التأجير');
+
+        $this->assertSame('رقم العقد', $sheet->getCell('A3')->getValue(), 'رأس الجدول في السطر الثالث بعد العنوان وسطر النطاق.');
+        $this->assertSame('RC-31-PARTIAL', $sheet->getCell('A4')->getValue());
+        $this->assertSame('RC-31-LATER', $sheet->getCell('A5')->getValue());
+        $this->assertSame('الإجمالي', $sheet->getCell('A6')->getValue(), 'سطر الإجمالي يلي آخر صف بيانات مباشرة.');
+        $this->assertSame(9000.0, $sheet->getCell('I6')->getValue());
+
+        $this->assertSame('4,000.00', $sheet->getCell('I5')->getFormattedValue(), 'أعمدة المبالغ بفواصل آلاف وخانتين عشريتين.');
+        $this->assertTrue($sheet->getStyle('A6')->getFont()->getBold());
+        $this->assertSame('A3:J3', (string) $sheet->getAutoFilter()->getRange());
+
+        $book->disconnectWorksheets();
+    }
+
+    public function test_delegation_revenue_is_reported_separately_and_not_double_counted_in_recruitment(): void
+    {
+        $this->recruitmentInvoice('2031-01-20', 25000, true);
+        $this->delegation('2031-02-12', 1600, 140, 'سائق خاص');
+        $this->delegation('2031-02-18', 1600, 140, 'سائق خاص');
+        $this->delegation('2031-03-04', 1600, 140, 'عامل منزلي');
+
+        $report = $this->report();
+        $sales = $report['sales']['totals'];
+        $delegations = $report['delegations'];
+
+        $this->assertSame(4800.0, $sales['delegations'], 'فواتير التفاويض لها عمودها الخاص.');
+        $this->assertSame(3, $sales['delegations_count']);
+        $this->assertSame(25000.0, $sales['recruitment'], 'وهي مستثناة من عمود الاستقدام حتى لا تُحتسب مرتين.');
+        $this->assertSame(1, $sales['recruitment_count']);
+        $this->assertSame(29800.0, $sales['invoiced'], 'الإجمالي يساوي الاستقدام زائد التفاويض دون تكرار.');
+
+        $months = collect($delegations['months'])->keyBy('key');
+        $this->assertSame(2, $months['2031-02']['delegations']);
+        $this->assertSame(3200.0, $months['2031-02']['revenue']);
+        $this->assertSame(280.0, $months['2031-02']['cost']);
+        $this->assertSame(2920.0, $months['2031-02']['net']);
+        $this->assertSame(1600.0, $months['2031-02']['average_revenue']);
+
+        $t = $delegations['totals'];
+        $this->assertSame(3, $t['delegations']);
+        $this->assertSame(4800.0, $t['revenue']);
+        $this->assertSame(420.0, $t['cost']);
+        $this->assertSame(4380.0, $t['net']);
+        $this->assertSame(91.3, $t['margin_rate']);
+
+        $professions = $delegations['professions']->keyBy('profession');
+        $this->assertSame(2, $professions['سائق خاص']->delegations);
+        $this->assertSame(3200.0, $professions['سائق خاص']->revenue);
+        $this->assertSame(1600.0, $professions['عامل منزلي']->revenue);
+    }
+
+    public function test_unapproved_delegation_cost_is_excluded_from_net_but_reported_on_its_own(): void
+    {
+        $this->delegation('2031-02-12', 1600, 140, 'سائق خاص');
+        $this->delegation('2031-02-18', 1600, 140, 'سائق خاص', Constraint::APPROVAL_PENDING);
+
+        $delegations = $this->report()['delegations'];
+
+        $this->assertSame(140.0, $delegations['totals']['cost'], 'الصافي يحتسب التكلفة المعتمدة وحدها، كبقية التقرير.');
+        $this->assertSame(3060.0, $delegations['totals']['net']);
+        $this->assertSame(1, $delegations['pending_cost']['entries'], 'والتكلفة المعلّقة تُعرض صراحة حتى لا يبدو الهامش أكبر من حقيقته.');
+        $this->assertSame(140.0, $delegations['pending_cost']['amount']);
+    }
+
+    public function test_headline_reports_delegation_revenue_for_the_finance_dashboard(): void
+    {
+        $this->delegation('2031-02-12', 1600, 140, 'سائق خاص');
+
+        $headline = app(OperationalSummaryService::class)->headline(self::FROM, self::TO);
+
+        $this->assertSame(1, $headline['delegation_count']);
+        $this->assertSame(1600.0, $headline['delegation_revenue']);
+        $this->assertSame(1460.0, $headline['delegation_net']);
     }
 }

@@ -7,8 +7,10 @@
     $currency = __('finance::finance.sar');
     $money = fn($value) => number_format((float) ($value ?? 0), 2) . ' ' . $currency;
     $short = fn($value) => number_format((float) ($value ?? 0), 0);
+    $printing = (bool) ($report['print'] ?? false);
     $sales = $report['sales'];
     $kpis = $report['kpis'];
+    $delegations = $report['delegations'];
     $musaned = $report['musaned'];
     $offices = $report['external_offices'];
     $agingLabels = [
@@ -56,12 +58,42 @@
     .ops-summary .aging-cell span { display:block; color:var(--muted); font-size:.75rem; font-weight:700; }
     .ops-summary .aging-cell strong { display:block; font-size:1rem; margin-top:4px; direction:ltr; text-align:start; }
     .ops-summary .aging-cell.is-hot { background:#fdeceb; }
+    .ops-summary .print-only { display:none; }
     .ops-summary .empty-state { text-align:center; color:var(--muted); padding:26px 12px; font-size:.88rem; }
     .ops-summary .pill { display:inline-block; padding:2px 9px; border-radius:999px; font-size:.72rem;
         font-weight:700; background:var(--soft); color:#3a4658; }
     .ops-summary .pill.is-hot { background:#fdeceb; color:#b42318; }
     .ops-summary .table-scroll { overflow-x:auto; }
-    @media print { .ops-summary .no-print { display:none !important; } .ops-summary .ops-panel { border:0; padding:0; } }
+    @media print {
+        /* هيكل لوحة التحكم ليس جزءاً من التقرير */
+        .sidebar, header.page-header, .page-footer, #scroll-controls,
+        .page-loader, .modal, .offcanvas, .breadcrumb { display:none !important; }
+        .wrapper { margin:0 !important; padding:0 !important; width:100% !important; }
+        body { background:#fff !important; }
+
+        .ops-summary { padding:0 !important; }
+        .ops-summary .no-print { display:none !important; }
+        .ops-summary .print-only { display:block !important; margin-bottom:12px; font-size:11px; }
+        .ops-summary .ops-panel { border:0; padding:0; margin-bottom:14px; break-inside:avoid; }
+        .ops-summary .ops-hero { background:none !important; color:#000 !important; padding:0 0 8px;
+            border-bottom:2px solid #000; border-radius:0; box-shadow:none; }
+        .ops-summary .ops-hero h3 { color:#000 !important; }
+        .ops-summary .ops-hero p { opacity:1; }
+        .ops-summary .kpi-grid { grid-template-columns:repeat(3,1fr); }
+        .ops-summary .kpi { border:1px solid #999; break-inside:avoid; }
+        .ops-summary .kpi strong { color:#000 !important; }
+
+        /* الجداول: رأس متكرر على كل ورقة، صفوف لا تنكسر، ولا قص أفقي */
+        .ops-summary .table-scroll { overflow:visible !important; }
+        .ops-summary table { font-size:10.5px; page-break-inside:auto; }
+        .ops-summary thead { display:table-header-group; }
+        .ops-summary tfoot { display:table-footer-group; }
+        .ops-summary tr { break-inside:avoid; page-break-inside:avoid; }
+        .ops-summary th, .ops-summary td { padding:4px 6px; white-space:normal; word-break:break-word; }
+        .ops-summary .pill { background:none !important; padding:0; }
+        .ops-summary .positive, .ops-summary .negative { color:#000 !important; }
+    }
+    @page { margin: 12mm 10mm; }
 </style>
 @endsection
 
@@ -73,7 +105,14 @@
         <p>{{ __('finance::finance.ops_summary_subtitle') }}</p>
     </div>
 
-    <form class="ops-panel no-print" method="GET" action="{{ route('finance.operational-summary.index') }}">
+    <div class="print-only">
+        <strong>{{ __('finance::finance.from_date') }}:</strong> {{ $report['from'] }} &nbsp;
+        <strong>{{ __('finance::finance.to_date') }}:</strong> {{ $report['to'] }} &nbsp;
+        <strong>{{ __('finance::finance.ops_receivables_scope') }}:</strong>
+        {{ $report['scope'] === 'period' ? __('finance::finance.ops_scope_period') : __('finance::finance.ops_scope_outstanding') }}
+    </div>
+
+    <form class="ops-panel {{ $printing ? 'd-none' : '' }} no-print" method="GET" action="{{ route('finance.operational-summary.index') }}">
         <div class="row g-3 align-items-end">
             <div class="col-md-3">
                 <label for="ops-from">{{ __('finance::finance.from_date') }}</label>
@@ -101,7 +140,8 @@
             <div class="col-md-12">
                 <button class="btn btn-success" type="submit">{{ __('finance::finance.filter') }}</button>
                 <a class="btn btn-outline-success" href="{{ route('finance.operational-summary.index', ['from_date' => $report['from'], 'to_date' => $report['to'], 'scope' => $report['scope'], 'export' => 'xlsx']) }}">{{ __('finance::finance.ops_export_excel') }}</a>
-                <button class="btn btn-outline-secondary" type="button" onclick="window.print()">{{ __('finance::finance.print') }}</button>
+                <a class="btn btn-outline-secondary" target="_blank" rel="noopener"
+                   href="{{ route('finance.operational-summary.index', ['from_date' => $report['from'], 'to_date' => $report['to'], 'scope' => $report['scope'], 'print' => 1]) }}">{{ __('finance::finance.print') }}</a>
                 <span class="panel-subtitle d-inline-block ms-2">{{ $report['scope'] === 'period' ? __('finance::finance.ops_scope_period_hint') : __('finance::finance.ops_scope_outstanding_hint') }}</span>
             </div>
         </div>
@@ -134,6 +174,11 @@
             @endif
         </div>
         <div class="kpi is-green">
+            <span>{{ __('finance::finance.ops_kpi_delegation_net') }}</span>
+            <strong>{{ $money($kpis['delegation_net']) }}</strong>
+            <small>{{ $short($kpis['delegation_count']) }} {{ __('finance::finance.ops_delegations_count') }} — {{ __('finance::finance.ops_delegation_revenue') }}: {{ $short($kpis['delegation_revenue']) }}</small>
+        </div>
+        <div class="kpi is-green">
             <span>{{ __('finance::finance.ops_kpi_musaned_net') }}</span>
             <strong>{{ $money($kpis['musaned_commission_net']) }}</strong>
             <small>{{ __('finance::finance.ops_gross_commission') }}: {{ $short($kpis['musaned_commission_gross']) }}</small>
@@ -163,6 +208,8 @@
                         <th class="num">{{ __('finance::finance.ops_count') }}</th>
                         <th class="num">{{ __('finance::finance.ops_recruitment_invoices') }}</th>
                         <th class="num">{{ __('finance::finance.ops_count') }}</th>
+                        <th class="num">{{ __('finance::finance.ops_delegation_invoices') }}</th>
+                        <th class="num">{{ __('finance::finance.ops_count') }}</th>
                         <th class="num">{{ __('finance::finance.ops_rental_adjustments') }}</th>
                         <th class="num">{{ __('finance::finance.ops_invoiced') }}</th>
                         <th class="num">{{ __('finance::finance.ops_collected') }}</th>
@@ -177,6 +224,8 @@
                             <td class="num">{{ $month['rental_count'] }}</td>
                             <td class="num">{{ number_format($month['recruitment'], 2) }}</td>
                             <td class="num">{{ $month['recruitment_count'] }}</td>
+                            <td class="num">{{ number_format($month['delegations'], 2) }}</td>
+                            <td class="num">{{ $month['delegations_count'] }}</td>
                             <td class="num">{{ number_format($month['adjustments'], 2) }}</td>
                             <td class="num"><strong>{{ number_format($month['invoiced'], 2) }}</strong></td>
                             <td class="num positive">{{ number_format($month['collected'], 2) }}</td>
@@ -191,6 +240,8 @@
                         <td class="num">{{ $sales['totals']['rental_count'] }}</td>
                         <td class="num">{{ number_format($sales['totals']['recruitment'], 2) }}</td>
                         <td class="num">{{ $sales['totals']['recruitment_count'] }}</td>
+                        <td class="num">{{ number_format($sales['totals']['delegations'], 2) }}</td>
+                        <td class="num">{{ $sales['totals']['delegations_count'] }}</td>
                         <td class="num">{{ number_format($sales['totals']['adjustments'], 2) }}</td>
                         <td class="num">{{ number_format($sales['totals']['invoiced'], 2) }}</td>
                         <td class="num positive">{{ number_format($sales['totals']['collected'], 2) }}</td>
@@ -292,6 +343,104 @@
             @endif
         </section>
     @endforeach
+
+    {{-- إيرادات التفاويض الرجالية --}}
+    <section class="ops-panel">
+        <div class="panel-head">
+            <div>
+                <h5 class="panel-title">{{ __('finance::finance.ops_delegations') }}</h5>
+                <div class="panel-subtitle">{{ __('finance::finance.ops_delegations_hint') }}</div>
+            </div>
+            @if($delegations['pending_cost']['entries'] > 0)
+                <div class="panel-subtitle">
+                    <span class="pill is-hot">{{ __('finance::finance.ops_delegation_pending_cost') }}: {{ $delegations['pending_cost']['entries'] }} — {{ $money($delegations['pending_cost']['amount']) }}</span>
+                    <div>{{ __('finance::finance.ops_delegation_pending_cost_hint') }}</div>
+                </div>
+            @endif
+        </div>
+        @if($delegations['totals']['delegations'] === 0)
+            <div class="empty-state">{{ __('finance::finance.ops_no_delegations') }}</div>
+        @else
+            <div class="aging-strip">
+                <div class="aging-cell"><span>{{ __('finance::finance.ops_delegations_count') }}</span><strong>{{ number_format($delegations['totals']['delegations']) }}</strong></div>
+                <div class="aging-cell"><span>{{ __('finance::finance.ops_delegation_revenue') }}</span><strong>{{ number_format($delegations['totals']['revenue'], 2) }}</strong></div>
+                <div class="aging-cell"><span>{{ __('finance::finance.ops_delegation_cost') }}</span><strong>{{ number_format($delegations['totals']['cost'], 2) }}</strong></div>
+                <div class="aging-cell"><span>{{ __('finance::finance.ops_delegation_net') }}</span><strong>{{ number_format($delegations['totals']['net'], 2) }}</strong></div>
+                <div class="aging-cell"><span>{{ __('finance::finance.ops_delegation_average') }}</span><strong>{{ number_format($delegations['totals']['average_revenue'], 2) }}</strong></div>
+            </div>
+
+            <div class="table-scroll">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>{{ __('finance::finance.ops_month') }}</th>
+                            <th class="num">{{ __('finance::finance.ops_delegations_count') }}</th>
+                            <th class="num">{{ __('finance::finance.ops_delegation_revenue') }}</th>
+                            <th class="num">{{ __('finance::finance.ops_collected') }}</th>
+                            <th class="num">{{ __('finance::finance.ops_outstanding') }}</th>
+                            <th class="num">{{ __('finance::finance.ops_delegation_cost') }}</th>
+                            <th class="num">{{ __('finance::finance.ops_delegation_net') }}</th>
+                            <th class="num">{{ __('finance::finance.ops_delegation_average') }}</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach($delegations['months'] as $month)
+                            <tr>
+                                <td>{{ $month['label'] }}</td>
+                                <td class="num">{{ $month['delegations'] }}</td>
+                                <td class="num">{{ number_format($month['revenue'], 2) }}</td>
+                                <td class="num positive">{{ number_format($month['collected'], 2) }}</td>
+                                <td class="num {{ $month['outstanding'] > 0 ? 'negative' : '' }}">{{ number_format($month['outstanding'], 2) }}</td>
+                                <td class="num">{{ number_format($month['cost'], 2) }}</td>
+                                <td class="num positive"><strong>{{ number_format($month['net'], 2) }}</strong></td>
+                                <td class="num">{{ number_format($month['average_revenue'], 2) }}</td>
+                            </tr>
+                        @endforeach
+                    </tbody>
+                    <tfoot>
+                        <tr>
+                            <td>{{ __('finance::finance.total') }}</td>
+                            <td class="num">{{ $delegations['totals']['delegations'] }}</td>
+                            <td class="num">{{ number_format($delegations['totals']['revenue'], 2) }}</td>
+                            <td class="num positive">{{ number_format($delegations['totals']['collected'], 2) }}</td>
+                            <td class="num negative">{{ number_format($delegations['totals']['outstanding'], 2) }}</td>
+                            <td class="num">{{ number_format($delegations['totals']['cost'], 2) }}</td>
+                            <td class="num positive">{{ number_format($delegations['totals']['net'], 2) }}</td>
+                            <td class="num">{{ number_format($delegations['totals']['average_revenue'], 2) }}</td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+
+            <div class="panel-subtitle mt-3 mb-2"><strong>{{ __('finance::finance.ops_by_profession') }}</strong></div>
+            <div class="table-scroll">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>{{ __('finance::finance.ops_profession') }}</th>
+                            <th class="num">{{ __('finance::finance.ops_delegations_count') }}</th>
+                            <th class="num">{{ __('finance::finance.ops_delegation_revenue') }}</th>
+                            <th class="num">{{ __('finance::finance.ops_delegation_cost') }}</th>
+                            <th class="num">{{ __('finance::finance.ops_delegation_net') }}</th>
+                            <th class="num">{{ __('finance::finance.ops_delegation_average') }}</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach($delegations['professions'] as $profession)
+                            <tr>
+                                <td>{{ $profession->profession }}</td>
+                                <td class="num">{{ $profession->delegations }}</td>
+                                <td class="num">{{ number_format($profession->revenue, 2) }}</td>
+                                <td class="num">{{ number_format($profession->cost, 2) }}</td>
+                                <td class="num positive">{{ number_format($profession->net, 2) }}</td>
+                                <td class="num">{{ number_format($profession->average_revenue, 2) }}</td>
+                            </tr>
+                        @endforeach
+                    </tbody>
+                </table>
+            </div>
+        @endif
+    </section>
 
     {{-- عمولات مساند --}}
     <section class="ops-panel">
@@ -427,6 +576,9 @@
 @section('js')
 <script src="{{ asset('admin') }}/assets/js/bundle/apexcharts.bundle.js"></script>
 <script>
+    @if($printing)
+        window.addEventListener('load', function () { window.setTimeout(function () { window.print(); }, 400); });
+    @endif
     document.addEventListener('DOMContentLoaded', function () {
         if (typeof ApexCharts === 'undefined') return;
         const currency = @json($currency);
@@ -446,11 +598,12 @@
             series: [
                 { name: @json(__('finance::finance.ops_rental_invoices')), type: 'column', data: @json(array_map(fn($m) => round($m['rental'], 2), $sales['months'])) },
                 { name: @json(__('finance::finance.ops_recruitment_invoices')), type: 'column', data: @json(array_map(fn($m) => round($m['recruitment'], 2), $sales['months'])) },
+                { name: @json(__('finance::finance.ops_delegation_invoices')), type: 'column', data: @json(array_map(fn($m) => round($m['delegations'], 2), $sales['months'])) },
                 { name: @json(__('finance::finance.ops_collected')), type: 'line', data: @json(array_map(fn($m) => round($m['collected'], 2), $sales['months'])) }
             ],
             chart: { ...common.chart, type: 'line', height: 320, stacked: false },
-            colors: ['#2878ff', '#12a7b7', '#119b70'],
-            stroke: { width: [0, 0, 3], curve: 'smooth' },
+            colors: ['#2878ff', '#12a7b7', '#e5a43b', '#119b70'],
+            stroke: { width: [0, 0, 0, 3], curve: 'smooth' },
             plotOptions: { bar: { borderRadius: 4, columnWidth: '52%' } },
             xaxis: { categories: labels, axisBorder: { show: false }, axisTicks: { show: false } }
         }).render();
