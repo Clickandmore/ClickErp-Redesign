@@ -55,6 +55,7 @@ class Order extends Model
 
         static::updating(function (Order $order) {
             if ($order->isDirty('status')) {
+                $order->status_changed_at = now();
                 if (self::shouldTrackDeadline($order->status)) {
                     $order->deadline_at = now()->addHours($order->getDeadlineHours());
                 } else {
@@ -332,12 +333,12 @@ class Order extends Model
      */
     public function getEffectiveDeadline(): ?Carbon
     {
-        if ($this->deadline_at) {
-            return $this->deadline_at;
-        }
-
         if (!self::shouldTrackDeadline($this->status)) {
             return null;
+        }
+
+        if ($this->deadline_at) {
+            return $this->deadline_at;
         }
 
         $baseTime = $this->status_changed_at ?: $this->created_at;

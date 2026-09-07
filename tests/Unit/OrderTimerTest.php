@@ -78,4 +78,15 @@ class OrderTimerTest extends TestCase
 
         $this->assertSame('', (new OrderController())->getTimerHtml($order));
     }
+
+    public function test_canceled_order_ignores_a_stale_stored_deadline(): void
+    {
+        $order = new Order([
+            'status' => OrderEnum::CanceledBySystem->value,
+            'deadline_at' => now()->subDay(),
+        ]);
+
+        $this->assertNull($order->getEffectiveDeadline());
+        $this->assertFalse($order->isOverdue());
+    }
 }

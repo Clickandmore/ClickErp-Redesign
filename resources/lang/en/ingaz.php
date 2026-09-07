@@ -3900,6 +3900,8 @@ return array (
   'last' => 'Last',
   'previous' => 'Previous',
   'search_by_maid_name' => 'Search by maid name',
+  'order_maid_name' => 'Maid Name',
+  'order_maid_details' => 'Maid Details',
   'search_by_maid_passport' => 'Search by maid passport',
   'search_by_maid_job' => 'Search by maid job',
   'search_by_maid_nationality' => 'Search by maid nationality',

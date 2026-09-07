@@ -2,87 +2,72 @@
 
 namespace App\Console\Commands;
 
-use App\Models\ingaz\Order;
-use App\Models\ingaz\Notification;
 use App\Enums\ingaz\OrderEnum;
-use App\Support\AutomationSettings;
+use App\Models\ingaz\Maid;
+use App\Models\ingaz\Order;
 use Illuminate\Console\Command;
-use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\DB;
 
 class CancelExpiredOrders extends Command
 {
-    protected $signature = 'orders:cancel-expired';
-    protected $description = 'إلغاء الطلبات التي انتهت مهلة متابعتها التلقائية';
+    protected $signature = 'orders:cancel-expired {--dry-run : List eligible orders without changing data}';
+    protected $description = 'Cancel new orders at their alert deadline and release their maids';
 
-    public function handle()
+    public function handle(): int
     {
-        try {
-            $deadlineHours = AutomationSettings::orderNewDeadlineHours();
-
-            // البحث عن الطلبات الجديدة التي انتهت مهلة متابعتها
-            $query = Order::where('status', OrderEnum::New->value)
-                ->where('deadline_at', '<=', now())
-                ->whereNotNull('deadline_at');
-
-            $canceledCount = 0;
-
-            $query->chunkById(100, function ($orders) use (&$canceledCount, $deadlineHours): void {
-                foreach ($orders as $order) {
-                    Log::info('Canceling expired order', [
-                        'order_id' => $order->id,
-                        'deadline_at' => $order->deadline_at,
-                    ]);
-
-                // تحديث حالة الطلب إلى ملغي
-                    $order->status = OrderEnum::Return->value; // أو استخدم القيمة المناسبة
-                    $order->refuse_reason = "تم إلغاء الطلب تلقائياً بسبب انتهاء المهلة ({$deadlineHours} ساعة) دون تأكيد من المندوب";
-                    $order->status_changed_at = now();
-                    $order->save();
-
-                // تحرير العاملة وإعادتها لحالة متاحة
-                    $this->releaseMaid($order);
-
-                // إرسال إشعار للعميل
-                    Notification::create([
-                        'title' => 'إلغاء الطلب',
-                        'description' => "تم إلغاء طلبك رقم {$order->id} تلقائياً بسبب عدم تأكيده خلال {$deadlineHours} ساعة",
-                        'order_id' => $order->id,
-                        'user_id' => $order->user_id,
-                        'type' => 'order_canceled',
-                    ]);
-
-                    $canceledCount++;
+        $count = 0;
+        Order::withoutBranchScope()->where('status', OrderEnum::New->value)
+            ->where(function ($query) {
+                $query->where('deadline_at', '<=', now())->orWhereNull('deadline_at');
+            })->chunkById(100, function ($orders) use (&$count) {
+                foreach ($orders as $candidate) {
+                    DB::transaction(function () use ($candidate, &$count) {
+                        $order = Order::withoutBranchScope()->lockForUpdate()->find($candidate->id);
+                        if (!$order || $order->status !== OrderEnum::New->value
+                            || !$order->getEffectiveDeadline()?->lessThanOrEqualTo(now())) {
+                            return;
+                        }
+                        if ($order->contracts()->withoutBranchScope()->exists()
+                            || $order->rentalContracts()->withoutBranchScope()->exists()) {
+                            return;
+                        }
+                        if ($this->option('dry-run')) {
+                            $this->line("Eligible order: {$order->id}");
+                            $count++;
+                            return;
+                        }
+                        $maid = Maid::withoutBranchScope()->lockForUpdate()->find($order->maid_id);
+                        $order->update([
+                            'status' => OrderEnum::CanceledBySystem->value,
+                            'status_changed_at' => now(),
+                            'expiration_time' => null,
+                            'refuse_reason' => 'تم إلغاء الطلب تلقائياً لانتهاء مهلة الطلب الجديد دون تأكيد.',
+                        ]);
+                        if ($order->user_id) {
+                            \App\Models\ingaz\Notification::create([
+                                'title' => ['ar' => 'إلغاء الطلب تلقائياً', 'en' => 'Order automatically canceled'],
+                                'description' => [
+                                    'ar' => "تم إلغاء الطلب رقم {$order->order_code} لانتهاء مهلة التأكيد.",
+                                    'en' => "Order {$order->order_code} was canceled because its confirmation deadline expired.",
+                                ],
+                                'order_id' => $order->id,
+                                'user_id' => $order->user_id,
+                                'type' => 'order_canceled',
+                            ]);
+                        }
+                        if ($maid && !Order::withoutBranchScope()->where('maid_id', $maid->id)
+                            ->whereNotIn('status', Order::nonBlockingMaidAssignmentStatuses())->exists()
+                            && !\App\Models\Contract::withoutBranchScope()->where('maid_id', $maid->id)
+                                ->whereNotIn('status', ['closed', 'back', 'cancelled', 'canceled'])->exists()
+                            && !\App\Models\RentalContract::withoutBranchScope()->where('maid_id', $maid->id)
+                                ->whereNotIn('status', ['cancelled', 'completed'])->exists()) {
+                            $maid->update(['status' => 'available', 'available' => true, 'available_at' => now()]);
+                        }
+                        $count++;
+                    }, 3);
                 }
             });
-
-            $this->info("تم إلغاء {$canceledCount} طلب منتهي الصلاحية");
-            Log::info("Auto-canceled {$canceledCount} expired orders");
-
-            return Command::SUCCESS;
-        } catch (\Exception $e) {
-            Log::error('Error in CancelExpiredOrders command', [
-                'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
-            ]);
-            
-            $this->error('حدث خطأ: ' . $e->getMessage());
-            return Command::FAILURE;
-        }
-    }
-
-    /**
-     * تحرير العاملة وإعادتها لحالة متاحة
-     */
-    private function releaseMaid(Order $order)
-    {
-        if ($order->maid) {
-            $order->maid->status = 'available'; // أو القيمة المناسبة
-            $order->maid->save();
-
-            Log::info('Maid released', [
-                'maid_id' => $order->maid->id,
-                'order_id' => $order->id,
-            ]);
-        }
+        $this->info(($this->option('dry-run') ? 'Eligible orders: ' : 'Canceled orders: ') . $count);
+        return self::SUCCESS;
     }
 }

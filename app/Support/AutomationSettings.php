@@ -76,7 +76,7 @@ class AutomationSettings
     {
         $updated = 0;
 
-        Order::query()
+        Order::withoutBranchScope()
             ->whereIn('status', [OrderEnum::New->value, OrderEnum::UnderProcess->value])
             ->chunkById(200, function ($orders) use (&$updated): void {
                 foreach ($orders as $order) {
