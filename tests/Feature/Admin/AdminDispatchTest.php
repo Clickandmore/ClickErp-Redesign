@@ -36,6 +36,19 @@ class AdminDispatchTest extends TestCase
         $this->postJson(route('admin.dispatch.store'), [])->assertForbidden();
     }
 
+    public function test_system_only_saves_without_dispatching_external_channels(): void
+    {
+        $actor = $this->actor([Permissions::VIEW, Permissions::SEND, Permissions::AUDIENCES['users']]);
+        $recipient = Admin::factory()->create();
+        $this->postJson(route('admin.dispatch.store'), [
+            'title' => 'Internal only', 'message' => 'Message', 'audience' => 'users',
+            'users' => [$recipient->id], 'system_only' => '1', 'channels' => ['email', 'sms'],
+        ])->assertRedirect(route('admin.dispatch.index'));
+        $notification = AdminNotification::where('admin_id', $recipient->id)->where('created_by', $actor->id)->firstOrFail();
+        $this->assertEmpty($notification->data['delivery']);
+        Bus::assertNothingDispatched();
+    }
+
     public function test_page_renders_and_history_is_private_to_sender(): void
     {
         $actor = $this->actor([Permissions::VIEW]);

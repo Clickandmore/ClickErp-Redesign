@@ -937,15 +937,16 @@
                         </div>
                     </div>
                     <div class="channel-grid">
-                        <div class="channel-card is-locked" data-channel="system">
-                            <span class="channel-card__lock"><i class="fa-solid fa-lock"></i> دائماً</span>
+                        <input type="checkbox" class="btn-check" name="system_only" value="1" id="channel-system"
+                            autocomplete="off" @checked(old('system_only', empty(old('channels', []))))>
+                        <label class="channel-card" data-channel="system" for="channel-system">
                             <span class="channel-card__icon"><i class="fa-solid fa-bell"></i></span>
                             <span class="channel-card__text">
-                                <strong>داخل النظام</strong>
+                                <strong>داخل النظام فقط</strong>
                                 <span>يُحفظ في قاعدة البيانات ويظهر في الجرس</span>
                             </span>
                             <span class="channel-card__check"><i class="fa-solid fa-check"></i></span>
-                        </div>
+                        </label>
                         @foreach($allowedChannels as $key => $channel)
                             <input type="checkbox" class="btn-check" name="channels[]" value="{{ $key }}" id="channel-{{ $key }}"
                                 autocomplete="off" @checked(in_array($key, (array) old('channels', [])))>
@@ -1125,6 +1126,18 @@ document.addEventListener('DOMContentLoaded', function () {
     updateAudience();
 
     // character counters
+    const systemOnly = document.getElementById('channel-system');
+    const externalChannels = Array.from(form.querySelectorAll('input[name="channels[]"]'));
+    systemOnly.addEventListener('change', function () {
+        if (systemOnly.checked) externalChannels.forEach(input => { input.checked = false; });
+        if (!externalChannels.some(input => input.checked)) systemOnly.checked = true;
+    });
+    externalChannels.forEach(function (input) {
+        input.addEventListener('change', function () {
+            systemOnly.checked = !externalChannels.some(channel => channel.checked);
+        });
+    });
+
     form.querySelectorAll('[data-counter]').forEach(function (field) {
         const counter = form.querySelector('[data-counter-for="' + field.id + '"]');
         const max = Number(field.getAttribute('maxlength')) || 0;
