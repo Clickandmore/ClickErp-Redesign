@@ -122,10 +122,10 @@
         background: #fff;
         box-shadow: 0 10px 30px -22px rgba(17, 24, 39, 0.35);
         margin-bottom: 22px;
-        overflow: hidden;
     }
 
     .dispatch-card__header {
+        border-radius: var(--dp-radius) var(--dp-radius) 0 0;
         display: flex;
         flex-wrap: wrap;
         align-items: center;
@@ -239,7 +239,8 @@
 
     .field-counter {
         display: flex;
-        justify-content: flex-end;
+        justify-content: flex-start;
+        direction: ltr;
         margin-top: 4px;
         font-size: 0.72rem;
         color: var(--dp-muted);
@@ -325,11 +326,28 @@
     }
 
     .audience-target {
+        position: relative;
         margin-top: 14px;
         padding: 16px;
         border-radius: 12px;
         border: 1px solid var(--dp-border);
         background: #fbfbfd;
+    }
+
+    .dispatch-page .audience-picker,
+    .dispatch-page .channel-grid {
+        position: relative;
+    }
+
+    .dispatch-page .btn-check {
+        width: 1px;
+        height: 1px;
+        inset-block-start: 0;
+        inset-inline-start: 0;
+    }
+
+    .dispatch-page .audience-target[hidden] {
+        display: none !important;
     }
 
     /* select2 tweaks (scoped) */
@@ -731,6 +749,7 @@
     }
 
     .history-pagination {
+        border-radius: 0 0 var(--dp-radius) var(--dp-radius);
         padding: 14px 22px;
         border-top: 1px solid var(--dp-border);
         background: #fafafe;
@@ -906,7 +925,7 @@
                         <select class="form-select js-select2" id="dispatch-users" name="users[]" multiple
                             data-placeholder="ابحث باسم المستخدم...">
                             @foreach($admins as $recipient)
-                                <option value="{{ $recipient->id }}" @selected(in_array($recipient->id, (array) old('users', [])))>{{ $recipient->name }} (#{{ $recipient->id }})</option>
+                                <option value="{{ $recipient->id }}" @if(in_array($recipient->id, (array) old('users', []))) selected @endif>{{ $recipient->name }} (#{{ $recipient->id }})</option>
                             @endforeach
                         </select>
                         <div class="field-help"><i class="fa-solid fa-circle-info me-1"></i>يمكنك اختيار أكثر من مستخدم، واكتب للبحث السريع.</div>
@@ -919,7 +938,7 @@
                         <select class="form-select js-select2" id="dispatch-roles" name="roles[]" multiple
                             data-placeholder="ابحث باسم الدور...">
                             @foreach($roles as $role)
-                                <option value="{{ $role->id }}" @selected(in_array($role->id, (array) old('roles', [])))>{{ $role->name }}</option>
+                                <option value="{{ $role->id }}" @if(in_array($role->id, (array) old('roles', []))) selected @endif  >{{ $role->name }}</option>
                             @endforeach
                         </select>
                         <div class="field-help"><i class="fa-solid fa-circle-info me-1"></i>يصل الإشعار لكل أدمن يحمل أياً من الأدوار المختارة.</div>
@@ -1090,17 +1109,18 @@ document.addEventListener('DOMContentLoaded', function () {
     const form = document.getElementById('admin-dispatch-form');
     if (!form) return;
 
-    // select2 for multi-selects
-    if (window.jQuery && jQuery.fn.select2) {
-        jQuery(form).find('.js-select2').each(function () {
-            jQuery(this).select2({
+    // Initialise only after the recipient field becomes visible.
+    function initializeRecipientSelect(select) {
+        if (window.jQuery && jQuery.fn.select2 && !jQuery(select).hasClass('select2-hidden-accessible')) {
+            jQuery(select).select2({
                 width: '100%',
                 dir: 'rtl',
-                placeholder: this.dataset.placeholder || '',
+                placeholder: select.dataset.placeholder || '',
                 allowClear: true,
                 closeOnSelect: false,
+                dropdownParent: jQuery(select).closest('.audience-target'),
             });
-        });
+        }
     }
 
     // audience toggle
@@ -1114,9 +1134,13 @@ document.addEventListener('DOMContentLoaded', function () {
         form.querySelectorAll('[data-audience]').forEach(function (group) {
             const active = group.dataset.audience === value;
             const select = group.querySelector('select');
+            if (!active && window.jQuery && jQuery(select).hasClass('select2-hidden-accessible')) {
+                jQuery(select).select2('close');
+            }
             group.hidden = !active;
             select.disabled = !active;
             select.required = active;
+            if (active) initializeRecipientSelect(select);
             if (window.jQuery && jQuery.fn.select2) {
                 jQuery(select).prop('disabled', !active);
             }
