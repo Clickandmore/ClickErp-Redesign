@@ -1190,6 +1190,7 @@
 @endsection
 
 @section('js')
+    @include('admin.ingaz.maids.partials.driving-license-gender')
     <script src="{{ asset('admin') }}/assets/js/bundle/dropify.bundle.js"></script>
     <script src="{{ asset('admin') }}/assets/js/bundle/select2.bundle.js"></script>
     <script src="{{ asset('admin') }}/assets/js/bundle/sweetalert2.bundle.js"></script>
