@@ -1,6 +1,7 @@
 <?php
 
 return array (
+  'tax_single_source_hint' => 'The selected tax definition determines the posting account. Edit the rate and chart account in Tax Settings.',
   'home' => 'Home',
   'bank_number' => 'Bank Number',
   'iban' => 'Iban',

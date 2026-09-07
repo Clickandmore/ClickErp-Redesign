@@ -11,7 +11,9 @@ use Nami\Finance\MainService;
 use Nami\Finance\Enums\AccountTypesEnum;
 use Nami\Finance\Enums\AccountStatusEnum;
 use Nami\Finance\Models\Account;
+use Illuminate\Support\Facades\DB;
 use Nami\Finance\Models\ConfirmSetting;
+use Nami\Finance\Models\TaxSetting;
 
 class ConfirmSettingService extends MainService
 {
@@ -163,24 +165,74 @@ class ConfirmSettingService extends MainService
 
     public function storeData($data)
     {
-        foreach (($data['data'] ?? []) as $value) {
-            if (!isset($value['title'])) {
+        $rows = $data['data'] ?? [];
+
+        foreach ($rows as $key => $setting) {
+            $title = $setting['title'] ?? null;
+
+            if (!in_array($title, TaxAccountResolver::RATE_SETTINGS, true) || empty($setting['value'])) {
                 continue;
             }
 
-            $setting = $this->model->updateOrCreate(
-                ['title' => $value['title']],
-                [
-                    'value' => $value['value'] ?? null,
-                    'created_by_id' => auth('admin')->user()->id,
-                ]
-            );
+            $tax = TaxSetting::find($setting['value']);
+            if ($tax && ((int) $tax->value <= 0 || (int) $tax->value > 100)) {
+                throw \Illuminate\Validation\ValidationException::withMessages([
+                    "data.$key.value" => 'اختر ضريبة افتراضية بنسبة أكبر من صفر وحتى 100.',
+                ]);
+            }
+            $status = $title === 'tax_rate_revenue' ? 'creditor' : 'debtor';
 
-            // Clean up older duplicated rows for the same setting title.
-            $this->model->where('title', $value['title'])
-                ->whereKeyNot($setting->id)
-                ->delete();
+            if (!$tax || !Account::whereKey($tax->account_id)->where('status', $status)->whereDoesntHave('children')->exists()) {
+                throw \Illuminate\Validation\ValidationException::withMessages([
+                    "data.$key.value" => $status === 'creditor'
+                        ? 'اختر ضريبة مرتبطة بحساب دائن طرفي لضريبة الإيرادات.'
+                        : 'اختر ضريبة مرتبطة بحساب مدين طرفي لضريبة المصروفات.',
+                ]);
+            }
         }
+
+        DB::transaction(function () use ($rows) {
+            foreach ($rows as $value) {
+                $title = $value['title'] ?? null;
+
+                // حقول الحساب القديمة لم تعد تُعرض ولا تُكتب من هذه الصفحة.
+                if ($title === null || isset(TaxAccountResolver::RATE_SETTINGS[$title])) {
+                    continue;
+                }
+
+                $legacyTitle = array_search($title, TaxAccountResolver::RATE_SETTINGS, true);
+
+                // الصفحة تُرسل كل الإعدادات في كل حفظ. اختيار ضريبة فارغ يعني
+                // «لم يُلمس هذا الحقل»، فلا يجوز أن يمحو الاختيار أو الحساب القديم.
+                if ($legacyTitle !== false && blank($value['value'] ?? null)) {
+                    continue;
+                }
+
+                if ($legacyTitle !== false) {
+                    app(TaxAccountResolver::class)->remember($legacyTitle, (int) auth('admin')->id());
+                }
+
+                $setting = $this->model->updateOrCreate(
+                    ['title' => $title],
+                    [
+                        'value' => $value['value'] ?? null,
+                        'created_by_id' => auth('admin')->user()->id,
+                    ]
+                );
+
+                if ($legacyTitle !== false) {
+                    app(TaxAccountResolver::class)->remember($legacyTitle, (int) auth('admin')->id());
+                }
+
+                // الحساب القديم يبقى احتياطياً للقراءة فقط بعد اعتماد تعريف الضريبة،
+                // ولا يُصفَّر حتى لا تفقد الإعدادات حسابها الوحيد.
+
+                // Clean up older duplicated rows for the same setting title.
+                $this->model->where('title', $title)
+                    ->whereKeyNot($setting->id)
+                    ->delete();
+            }
+        });
     }
 
     public function getAllSettings()
@@ -229,6 +281,12 @@ class ConfirmSettingService extends MainService
 
     public function getConfirmSetting($type)
     {
+        if (isset(TaxAccountResolver::RATE_SETTINGS[$type])) {
+            $account = app(TaxAccountResolver::class)->resolve($type);
+
+            return $account ? new ConfirmSetting(['title' => $type, 'value' => $account->id]) : null;
+        }
+
         return $this->model->where('title', $type)->latest('updated_at')->first();
     }
 }

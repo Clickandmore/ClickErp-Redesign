@@ -5,7 +5,6 @@ namespace Nami\Finance\Http\Controllers;
 use App\Http\Controllers\admin\Controller;
 use Illuminate\Http\Request;
 use Nami\Finance\Enums\ConfirmSettingTypes;
-use Nami\Finance\Models\Account;
 use Nami\Finance\Services\AccountService;
 use Nami\Finance\Services\ConfirmSettingService;
 use Nami\Finance\Services\ConstraintService;
@@ -82,42 +81,8 @@ class SalesAnalysisController extends Controller
 
     private function taxAccounts(ConfirmSettingService $confirmSettingService, string $settingType)
     {
-        $accountId = $confirmSettingService->getConfirmSetting($settingType)?->value;
+        $account = app(\Nami\Finance\Services\TaxAccountResolver::class)->resolve($settingType);
 
-        if ($accountId) {
-            $configuredAccount = Account::query()
-                ->whereKey((int) $accountId)
-                ->whereDoesntHave('children')
-                ->where('status', 'creditor')
-                ->first();
-
-            if ($configuredAccount) {
-                return collect([$configuredAccount]);
-            }
-        }
-
-        // Imported charts of accounts can change the internal account ID while
-        // preserving the accounting code. Prefer the known revenue VAT account
-        // before falling back to its Arabic description.
-        $vatAccount = Account::query()
-            ->whereDoesntHave('children')
-            ->where('status', 'creditor')
-            ->where('code', 1281)
-            ->first();
-
-        if ($vatAccount) {
-            return collect([$vatAccount]);
-        }
-
-        return Account::query()
-            ->whereDoesntHave('children')
-            ->where('status', 'creditor')
-            ->where(function ($query) {
-                $query->where('name', 'like', '%ضريبة%إيراد%')
-                    ->orWhere('name', 'like', '%ضريبة%إيرادات%')
-                    ->orWhere('name', 'like', '%ضريبة%قيمة%مضافة%');
-            })
-            ->orderBy('code')
-            ->get();
+        return $account ? collect([$account]) : collect();
     }
 }

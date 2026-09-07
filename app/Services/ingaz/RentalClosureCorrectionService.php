@@ -149,7 +149,7 @@ class RentalClosureCorrectionService
         float $amount
     ): array {
         $clientAccountId = (int) ($contract->user?->account_id ?? 0);
-        $taxAccountId = $this->revenueTaxAccountId();
+        $taxAccountIds = $this->revenueTaxAccountIds();
 
         $creditLines = DB::table('fn_constraint_details')
             ->where('constraint_id', $invoiceConstraintId)
@@ -177,7 +177,7 @@ class RentalClosureCorrectionService
                 'account_id' => (int) $line->account_id,
                 'amount' => $share,
                 'cost_center_id' => $line->cost_center_id ? (int) $line->cost_center_id : null,
-                'is_tax' => $taxAccountId && (int) $line->account_id === $taxAccountId,
+                'is_tax' => in_array((int) $line->account_id, $taxAccountIds, true),
                 'statement' => (string) $line->statement,
             ];
         }
@@ -289,13 +289,13 @@ class RentalClosureCorrectionService
         return $constraint;
     }
 
-    private function revenueTaxAccountId(): ?int
+    /**
+     * تفسير قيد تاريخي يعتمد على كل حساب سبق ضبطه لضريبة الإيرادات، لا الحساب
+     * الحالي وحده، وإلا حُسب سطر ضريبة مُرحَّل على حساب قديم إيراداً وتغيّر التقسيم.
+     */
+    private function revenueTaxAccountIds(): array
     {
-        $accountId = (int) DB::table('fn_confirm_settings')
-            ->where('title', 'revenue_tax_account')
-            ->latest('updated_at')
-            ->value('value');
-
-        return $accountId ?: null;
+        return app(\Nami\Finance\Services\TaxAccountResolver::class)
+            ->historicalAccountIds('revenue_tax_account');
     }
 }

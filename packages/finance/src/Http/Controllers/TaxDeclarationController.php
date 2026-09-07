@@ -56,14 +56,14 @@ class TaxDeclarationController extends Controller
     private function settingRate(ConfirmSettingService $confirmSettingService, string $settingType): float
     {
         $value = $confirmSettingService->getConfirmSetting($settingType)?->value;
-        $rate = is_numeric($value) ? (float) $value : 15.0;
+        $rate = $value ? \Nami\Finance\Models\TaxSetting::whereKey($value)->value('value') : null;
 
-        return $rate > 0 ? $rate : 15.0;
+        return $rate !== null ? (float) $rate : 15.0;
     }
 
     private function taxSummaryRows(?int $accountId, array $filters, string $normalSide, float $taxRate)
     {
-        if (!$accountId) {
+        if (!$accountId || $taxRate <= 0) {
             return collect();
         }
 

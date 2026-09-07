@@ -23,7 +23,8 @@ class TaxSetting extends Finance
 
     public function confirmSetting()
     {
-        return $this->hasMany(ConfirmSetting::class, 'value', 'id');
+        return $this->hasMany(ConfirmSetting::class, 'value', 'id')
+            ->whereIn('title', ['tax_rate_revenue', 'tax_rate_expenditure']);
     }
 
     public function itemTax()
@@ -46,6 +47,8 @@ class TaxSetting extends Finance
         return  $this->bondTax()->count() > 0 ||
                 $this->confirmSetting()->count() > 0 ||
                 $this->itemTax()->count() > 0 ||
-                $this->principle()->count() > 0;
+                $this->principle()->count() > 0 ||
+                Principle::where('second_tax', $this->id)->exists() ||
+                PrincipleSale::where('tax_setting_id', $this->id)->exists();
     }
 }

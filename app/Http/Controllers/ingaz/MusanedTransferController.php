@@ -583,46 +583,7 @@ class MusanedTransferController extends Controller
 
     private function resolveExpenseTaxAccount(): ?Account
     {
-        $directAccountId = ConfirmSetting::query()
-            ->where('title', ConfirmSettingTypes::ExpenseTaxAccount->value)
-            ->latest('updated_at')
-            ->value('value');
-
-        if ($directAccountId) {
-            $directAccount = $this->findValidDebtorLeafAccount((int) $directAccountId);
-            if ($directAccount) {
-                return $directAccount;
-            }
-        }
-
-        $taxSettingId = ConfirmSetting::query()
-            ->where('title', ConfirmSettingTypes::TaxRateExpenditure->value)
-            ->latest('updated_at')
-            ->value('value');
-
-        if ($taxSettingId) {
-            $taxAccountId = TaxSetting::query()->whereKey($taxSettingId)->value('account_id');
-            if ($taxAccountId) {
-                $taxAccount = $this->findValidDebtorLeafAccount((int) $taxAccountId);
-                if ($taxAccount) {
-                    return $taxAccount;
-                }
-            }
-        }
-
-        $fallbackAccountId = Account::query()
-            ->whereDoesntHave('children')
-            ->where('status', 'debtor')
-            ->where(function ($query) {
-                $query->where('name', 'like', '%ضريبة%مصروف%')
-                    ->orWhere('name', 'like', '%الضريبة على المصروفات%');
-            })
-            ->orderBy('code')
-            ->value('id');
-
-        return $fallbackAccountId
-            ? Account::query()->find((int) $fallbackAccountId)
-            : null;
+        return app(\Nami\Finance\Services\TaxAccountResolver::class)->resolve('expense_tax_account');
     }
 
     private function resolveExpenseTaxRate(): float

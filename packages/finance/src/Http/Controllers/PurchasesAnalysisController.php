@@ -5,7 +5,6 @@ namespace Nami\Finance\Http\Controllers;
 use App\Http\Controllers\admin\Controller;
 use Illuminate\Http\Request;
 use Nami\Finance\Enums\ConfirmSettingTypes;
-use Nami\Finance\Models\Account;
 use Nami\Finance\Services\AccountService;
 use Nami\Finance\Services\ConfirmSettingService;
 use Nami\Finance\Services\ConstraintService;
@@ -83,39 +82,8 @@ class PurchasesAnalysisController extends Controller
 
     private function taxAccounts(ConfirmSettingService $confirmSettingService, string $settingType)
     {
-        $accountId = $confirmSettingService->getConfirmSetting($settingType)?->value;
+        $account = app(\Nami\Finance\Services\TaxAccountResolver::class)->resolve($settingType);
 
-        if ($accountId) {
-            $configuredAccount = Account::query()
-                ->whereKey((int) $accountId)
-                ->whereDoesntHave('children')
-                ->where('status', 'debtor')
-                ->first();
-
-            if ($configuredAccount) {
-                return collect([$configuredAccount]);
-            }
-        }
-
-        $vatAccount = Account::query()
-            ->whereDoesntHave('children')
-            ->where('status', 'debtor')
-            ->where('code', 1282)
-            ->first();
-
-        if ($vatAccount) {
-            return collect([$vatAccount]);
-        }
-
-        return Account::query()
-            ->whereDoesntHave('children')
-            ->where('status', 'debtor')
-            ->where(function ($query) {
-                $query->where('name', 'like', '%ضريبة%مصروف%')
-                    ->orWhere('name', 'like', '%ضريبة%مشتريات%')
-                    ->orWhere('name', 'like', '%ضريبة%قيمة%مضافة%');
-            })
-            ->orderBy('code')
-            ->get();
+        return $account ? collect([$account]) : collect();
     }
 }

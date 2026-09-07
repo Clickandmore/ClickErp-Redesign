@@ -153,6 +153,11 @@ Route::group(
     ], function () {
     Route::group(["middleware" => ['web', 'admin', 'package.route.permission:finance'], "prefix" => "finance", "as" => "finance."], function () {
         Route::resource('home', HomeController::class);
+        Route::resource('procurement', \Nami\Finance\Http\Controllers\ProcurementController::class)->except('destroy');
+        foreach (['approve', 'convert', 'cancel', 'pay'] as $action) {
+            Route::post('procurement/{id}/'.$action, [\Nami\Finance\Http\Controllers\ProcurementController::class, $action])->name('procurement.'.$action);
+        }
+
         Route::resource('years', YearController::class);
         Route::resource('year-status', ChangeYearStatusController::class);
 
