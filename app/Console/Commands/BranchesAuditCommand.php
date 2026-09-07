@@ -25,12 +25,12 @@ use Symfony\Component\Finder\Finder;
 class BranchesAuditCommand extends Command
 {
     protected $signature = 'branches:audit
-        {--json : إخراج التقرير بصيغة JSON}
-        {--details : عرض القوائم الكاملة}
-        {--section= : قصر الفحص على قسم واحد: tables|models|controllers|data|raw}
-        {--limit=40 : أقصى عدد أسطر لكل قائمة في العرض النصي}';
+        {--json : Output the report as JSON}
+        {--details : Show the complete detail lists}
+        {--section= : Limit the audit to one section: tables|models|controllers|data|raw}
+        {--limit=40 : Maximum rows per list in text output}';
 
-    protected $description = 'فحص تغطية الفروع: الجداول والموديلات والمتحكمات والبيانات التي لم تُعمَّم عليها الفروع بعد.';
+    protected $description = 'Audit branch coverage across tables, models, controllers, raw queries, and data.';
 
     /** جداول لا معنى لربطها بفرع (مرجعية، ترجمات، بنية النظام). */
     private const IGNORED_TABLE_PATTERNS = [
@@ -63,14 +63,14 @@ class BranchesAuditCommand extends Command
      * انظر docs/BRANCHES_TECHNICAL_SPEC.md §3.
      */
     private const DELIBERATELY_UNSCOPED = [
-        'App\\Models\\auth\\Admin' => 'حارس admin يقرأ من نفس الجدول — عزله يكسر تسجيل الدخول',
-        'App\\Models\\Nami\\Admin' => 'نفس جدول admins',
-        'App\\Models\\ingaz\\User' => 'له منطق فروع خاص مكتمل في UserController',
-        'Nami\\Finance\\Models\\Account' => 'code فريد على مستوى الشجرة و10 مواضع تولّده من max(code)',
-        'Nami\\Finance\\Models\\CostCenter' => 'بيانات أساسية مشتركة',
-        'Nami\\Finance\\Models\\Client' => 'بيانات أساسية مشتركة',
-        'Nami\\Finance\\Models\\Supplier' => 'بيانات أساسية مشتركة',
-        'Nami\\Finance\\Models\\Box' => 'بيانات أساسية مشتركة',
+        'App\\Models\\auth\\Admin' => 'The admin guard reads the same table; scoping it would break login',
+        'App\\Models\\Nami\\Admin' => 'Uses the same admins table',
+        'App\\Models\\ingaz\\User' => 'Has complete custom branch logic in UserController',
+        'Nami\\Finance\\Models\\Account' => 'Codes are tree-wide and generated from max(code) in 10 locations',
+        'Nami\\Finance\\Models\\CostCenter' => 'Shared master data',
+        'Nami\\Finance\\Models\\Client' => 'Shared master data',
+        'Nami\\Finance\\Models\\Supplier' => 'Shared master data',
+        'Nami\\Finance\\Models\\Box' => 'Shared master data',
     ];
 
     /**
@@ -78,11 +78,11 @@ class BranchesAuditCommand extends Command
      * الفرع يُسنَد لها بإجراء صريح من المستخدم، لا باشتقاقه من منشئ السجل.
      */
     private const DELIBERATELY_UNSTAMPED = [
-        'App\\Models\\auth\\Admin' => 'فرع الموظف يُختار في شاشة الموظفين',
-        'App\\Models\\Nami\\Admin' => 'نفس جدول admins',
-        'App\\Models\\Maid' => 'فرع العاملة يُنقل بصلاحية maids_change_branch',
-        'App\\Models\\ingaz\\Maid' => 'فرع العاملة يُنقل بصلاحية maids_change_branch',
-        'App\\Models\\ingaz\\RecruitmentRequestMaid' => 'جدوله recruitment_requests يُختَم عبر RecruitmentRequest',
+        'App\\Models\\auth\\Admin' => 'The employee branch is selected on the employee screen',
+        'App\\Models\\Nami\\Admin' => 'Uses the same admins table',
+        'App\\Models\\Maid' => 'The maid branch is moved using the maids_change_branch permission',
+        'App\\Models\\ingaz\\Maid' => 'The maid branch is moved using the maids_change_branch permission',
+        'App\\Models\\ingaz\\RecruitmentRequestMaid' => 'The recruitment_requests table is stamped through RecruitmentRequest',
     ];
 
     /**
@@ -91,23 +91,23 @@ class BranchesAuditCommand extends Command
      * محمي، وعزل سطوره قد يُصفّر قيمة فاتورة قديمة بلا فرع.
      */
     private const RAW_QUERY_EXCEPTIONS = [
-        'app/Console/Commands/' => 'أوامر artisan والكرون تعمل على مستوى الشركة',
-        'app/Http/Controllers/site/' => 'حارس web — مسار العميل له فلترته الخاصة',
-        'app/Http/Controllers/Api/' => 'حارس api',
-        'app/Http/Controllers/APPAPIControllers/' => 'حارس api للتطبيق',
-        'packages/finance/src/Services/AccountService.php' => 'توليد أكواد الحسابات — يجب أن يرى الشجرة كاملة',
-        'packages/finance/src/Services/ConstraintNumberService.php' => 'ترقيم القيود متصل على مستوى الشركة',
-        'packages/finance/src/Services/PurchaseService.php' => 'الأساس موديل Purchase المعزول',
-        'packages/finance/src/Services/PurchaseItemService.php' => 'الأساس موديل PurchaseItem المعزول',
-        'packages/finance/src/Services/BillSalesService.php' => 'الأساس موديل Sale المعزول',
-        'packages/finance/src/Services/BillSalesItemService.php' => 'الأساس موديل SaleItem المعزول',
-        'packages/finance/src/Traits/ZatcaInvoicesTrait.php' => 'تطابق داخل تعليق نصي',
-        'app/Services/ingaz/RentalContractFinanceService.php' => 'مرتبط بقيد فاتورة محدّد بالمعرّف',
-        'app/Services/ingaz/RentalClosureCorrectionService.php' => 'مرتبط بقيد فاتورة محدّد بالمعرّف',
-        'app/Http/Controllers/ingaz/ShelterContractController.php' => 'استعلام مترابط داخل استعلام معزول أصلاً',
-        'app/Services/ingaz/NationalityFinanceAccountReconciliationService.php' => 'أداة مطابقة على مستوى شجرة الحسابات',
-        'app/Services/commissions/CommissionProfileService.php' => 'قائمة الموظفين المسوّقين — Admin مستثنى من العزل',
-        'app/Http/Controllers/admin/office/OfficeController.php' => 'المكاتب الخارجية كيانات على مستوى الشركة',
+        'app/Console/Commands/' => 'Artisan and cron commands operate company-wide',
+        'app/Http/Controllers/site/' => 'Web guard; the customer route has its own filtering',
+        'app/Http/Controllers/Api/' => 'API guard',
+        'app/Http/Controllers/APPAPIControllers/' => 'Mobile application API guard',
+        'packages/finance/src/Services/AccountService.php' => 'Account code generation must see the complete tree',
+        'packages/finance/src/Services/ConstraintNumberService.php' => 'Journal entry numbering is company-wide',
+        'packages/finance/src/Services/PurchaseService.php' => 'The scoped Purchase model is the query root',
+        'packages/finance/src/Services/PurchaseItemService.php' => 'The scoped PurchaseItem model is the query root',
+        'packages/finance/src/Services/BillSalesService.php' => 'The scoped Sale model is the query root',
+        'packages/finance/src/Services/BillSalesItemService.php' => 'The scoped SaleItem model is the query root',
+        'packages/finance/src/Traits/ZatcaInvoicesTrait.php' => 'Match occurs inside a text comment',
+        'app/Services/ingaz/RentalContractFinanceService.php' => 'Linked to a specific invoice entry by ID',
+        'app/Services/ingaz/RentalClosureCorrectionService.php' => 'Linked to a specific invoice entry by ID',
+        'app/Http/Controllers/ingaz/ShelterContractController.php' => 'Nested query inside an already scoped query',
+        'app/Services/ingaz/NationalityFinanceAccountReconciliationService.php' => 'Company-wide chart-of-accounts reconciliation tool',
+        'app/Services/commissions/CommissionProfileService.php' => 'Marketer employee list; Admin is deliberately unscoped',
+        'app/Http/Controllers/admin/office/OfficeController.php' => 'External offices are company-wide entities',
     ];
 
     /** استدعاءات تُعتبر فلترة فرع صحيحة داخل الكنترولر. */
@@ -232,14 +232,14 @@ class BranchesAuditCommand extends Command
     private function tableGroup(string $table): string
     {
         return match (true) {
-            Str::startsWith($table, 'fn_') => 'المالية',
-            Str::startsWith($table, 'hr_') => 'الموارد البشرية',
+            Str::startsWith($table, 'fn_') => 'Finance',
+            Str::startsWith($table, 'hr_') => 'Human Resources',
             Str::startsWith($table, 'crm_') => 'CRM',
-            Str::startsWith($table, 'commission') => 'العمولات',
-            Str::startsWith($table, 'maid') => 'السير الذاتية',
-            Str::startsWith($table, ['contract', 'rental', 'recruitment', 'order']) => 'العقود والطلبات',
-            Str::startsWith($table, ['travel', 'deportation', 'shelter']) => 'السفر والإيواء',
-            default => 'أخرى',
+            Str::startsWith($table, 'commission') => 'Commissions',
+            Str::startsWith($table, 'maid') => 'Maid Profiles',
+            Str::startsWith($table, ['contract', 'rental', 'recruitment', 'order']) => 'Contracts and Orders',
+            Str::startsWith($table, ['travel', 'deportation', 'shelter']) => 'Travel and Shelter',
+            default => 'Other',
         };
     }
 
@@ -678,47 +678,47 @@ class BranchesAuditCommand extends Command
 
     private function renderReport(array $report): void
     {
-        $this->info('=== فحص تعميم الفروع على البرنامج ===');
-        $this->line('جداول تحمل branch_id حالياً: ' . $report['branch_tables']);
+        $this->info('=== Branch Coverage Audit ===');
+        $this->line('Tables currently containing branch_id: ' . $report['branch_tables']);
         $this->newLine();
 
         $rows = [];
 
         if (isset($report['tables'])) {
-            $rows[] = ['جداول تشغيلية بلا branch_id', $report['tables']['missing_count'], 'تغطية مؤجّلة'];
+            $rows[] = ['Operational tables without branch_id', $report['tables']['missing_count'], 'Deferred coverage'];
         }
 
         if (isset($report['models'])) {
-            $rows[] = ['موديلات معزولة تلقائياً (BranchScoped)', $report['models']['scoped'], 'سليم'];
-            $rows[] = ['موديلات بلا عزل بقرار موثّق', count(self::DELIBERATELY_UNSCOPED), 'مقصود'];
-            $rows[] = ['موديلات بلا ختم تلقائي بقرار موثّق', count(self::DELIBERATELY_UNSTAMPED), 'مقصود'];
-            $rows[] = ['موديلات مختومة بالفرع (AssignsBranch)', $report['models']['stamped'], 'سليم'];
-            $rows[] = ['موديلات جدولها فيه branch_id بلا AssignsBranch', $report['models']['unstamped_count'], $this->flag($report['models']['unstamped_count'], 'كتابة بلا ختم')];
-            $rows[] = ['موديلات تستعمل AssignsBranch بلا عمود', $report['models']['orphan_trait_count'], $this->flag($report['models']['orphan_trait_count'])];
+            $rows[] = ['Automatically scoped models (BranchScoped)', $report['models']['scoped'], 'OK'];
+            $rows[] = ['Models deliberately left unscoped', count(self::DELIBERATELY_UNSCOPED), 'Intentional'];
+            $rows[] = ['Models deliberately left unstamped', count(self::DELIBERATELY_UNSTAMPED), 'Intentional'];
+            $rows[] = ['Branch-stamped models (AssignsBranch)', $report['models']['stamped'], 'OK'];
+            $rows[] = ['Models with branch_id but without AssignsBranch', $report['models']['unstamped_count'], $this->flag($report['models']['unstamped_count'], 'Unstamped writes')];
+            $rows[] = ['Models using AssignsBranch without branch_id', $report['models']['orphan_trait_count'], $this->flag($report['models']['orphan_trait_count'])];
         }
 
         if (isset($report['controllers'])) {
-            $rows[] = ['متحكمات تُطبّق فلترة فرع', $report['controllers']['filtered_count'], 'سليم'];
-            $rows[] = ['شاشات موظفين تقرأ بلا فلترة فرع', $report['controllers']['back_office_count'], $this->flag($report['controllers']['back_office_count'], 'تسريب قراءة')];
-            $rows[] = ['واجهات عميل/تطبيق/وكيل بلا فلترة فرع', $report['controllers']['external_count'], 'للمراجعة'];
+            $rows[] = ['Controllers applying branch filters', $report['controllers']['filtered_count'], 'OK'];
+            $rows[] = ['Back-office screens reading without branch filters', $report['controllers']['back_office_count'], $this->flag($report['controllers']['back_office_count'], 'Read leak')];
+            $rows[] = ['Customer/app/agent endpoints without branch filters', $report['controllers']['external_count'], 'Review'];
         }
 
         if (isset($report['raw'])) {
-            $rows[] = ['استعلامات خام في ملفات لا تعرف الفروع', $report['raw']['unfiltered_count'], $this->flag($report['raw']['unfiltered_count'], 'تسريب مؤكد')];
-            $rows[] = ['استعلامات خام تحتاج مراجعة يدوية', $report['raw']['review_count'], 'للمراجعة'];
-            $rows[] = ['استعلامات خام بلا عزل بقرار موثّق', $report['raw']['intentional_count'], 'مقصود'];
+            $rows[] = ['Raw queries in files with no branch awareness', $report['raw']['unfiltered_count'], $this->flag($report['raw']['unfiltered_count'], 'Confirmed leak')];
+            $rows[] = ['Raw queries requiring manual review', $report['raw']['review_count'], 'Review'];
+            $rows[] = ['Raw queries deliberately left unscoped', $report['raw']['intentional_count'], 'Intentional'];
         }
 
         if (isset($report['data'])) {
-            $rows[] = ['جداول فيها صفوف branch_id = NULL', $report['data']['gap_count'], $this->flag($report['data']['gap_count'], 'يحتاج backfill')];
-            $rows[] = ['إجمالي الصفوف بلا فرع', $report['data']['null_rows'], $this->flag($report['data']['null_rows'], 'يحتاج backfill')];
+            $rows[] = ['Tables containing rows with branch_id = NULL', $report['data']['gap_count'], $this->flag($report['data']['gap_count'], 'Backfill required')];
+            $rows[] = ['Total rows without a branch', $report['data']['null_rows'], $this->flag($report['data']['null_rows'], 'Backfill required')];
         }
 
-        $this->table(['البند', 'العدد', 'الحالة'], $rows);
+        $this->table(['Check', 'Count', 'Status'], $rows);
 
         if (isset($report['tables']['by_group']) && $report['tables']['by_group'] !== []) {
             $this->newLine();
-            $this->warn('الجداول الناقصة حسب المنظومة');
+            $this->warn('Missing tables by module');
             foreach ($report['tables']['by_group'] as $group => $count) {
                 $this->line('  - ' . $group . ': ' . $count);
             }
@@ -726,7 +726,7 @@ class BranchesAuditCommand extends Command
 
         if (!$this->option('details')) {
             $this->newLine();
-            $this->line('استخدم --details لعرض القوائم الكاملة، أو --json للتصدير.');
+            $this->line('Use --details to show complete lists, or --json to export the report.');
 
             return;
         }
@@ -734,37 +734,37 @@ class BranchesAuditCommand extends Command
         $limit = (int) $this->option('limit');
 
         if (isset($report['tables'])) {
-            $this->printList('جداول بلا branch_id (الأكبر أولاً)', collect($report['tables']['missing'])
-                ->map(fn ($row) => sprintf('%s — %s صف — روابط: %s', $row['table'], number_format($row['rows']), implode(', ', $row['links'])))
+            $this->printList('Tables without branch_id (largest first)', collect($report['tables']['missing'])
+                ->map(fn ($row) => sprintf('%s — %s rows — links: %s', $row['table'], number_format($row['rows']), implode(', ', $row['links'])))
                 ->all(), $limit);
         }
 
         if (isset($report['models'])) {
-            $this->printList('موديلات بلا AssignsBranch رغم وجود العمود', collect($report['models']['unstamped'])
+            $this->printList('Models without AssignsBranch despite having branch_id', collect($report['models']['unstamped'])
                 ->map(fn ($row) => $row['model'] . ' (' . $row['table'] . ')')->all(), $limit);
-            $this->printList('موديلات تستعمل AssignsBranch بلا عمود branch_id', collect($report['models']['orphan_trait'])
+            $this->printList('Models using AssignsBranch without a branch_id column', collect($report['models']['orphan_trait'])
                 ->map(fn ($row) => $row['model'] . ' (' . $row['table'] . ')')->all(), $limit);
         }
 
         if (isset($report['controllers'])) {
-            $this->printList('شاشات موظفين تقرأ موديلات فرعية بلا فلترة', collect($report['controllers']['back_office'])
+            $this->printList('Back-office screens reading branch models without filtering', collect($report['controllers']['back_office'])
                 ->map(fn ($row) => $row['controller'] . ' => ' . implode(', ', $row['models']))->all(), $limit);
-            $this->printList('واجهات عميل/تطبيق/وكيل بلا فلترة فرع (للمراجعة)', collect($report['controllers']['external'])
+            $this->printList('Customer/app/agent endpoints without branch filters (review)', collect($report['controllers']['external'])
                 ->map(fn ($row) => $row['controller'] . ' => ' . implode(', ', $row['models']))->all(), $limit);
         }
 
         if (isset($report['raw'])) {
-            $this->printList('تسريب مؤكد — استعلام خام في ملف لا يعرف الفروع', collect($report['raw']['unfiltered'])
+            $this->printList('Confirmed leak — raw query in a branch-unaware file', collect($report['raw']['unfiltered'])
                 ->map(fn ($hit) => sprintf('%s:%d [%s] %s', $hit['file'], $hit['line'], $hit['table'], Str::limit($hit['snippet'], 90)))
                 ->all(), $limit);
-            $this->printList('يحتاج مراجعة يدوية — الملف يفلتر بالفرع في مكان آخر', collect($report['raw']['review'])
+            $this->printList('Manual review required — the file filters by branch elsewhere', collect($report['raw']['review'])
                 ->map(fn ($hit) => sprintf('%s:%d [%s]', $hit['file'], $hit['line'], $hit['table']))
                 ->all(), $limit);
         }
 
         if (isset($report['data'])) {
-            $this->printList('فجوات البيانات (branch_id = NULL)', collect($report['data']['gaps'])
-                ->map(fn ($row) => sprintf('%s — %s من %s (%s%%)', $row['table'], number_format($row['null_branch']), number_format($row['rows']), $row['percent']))
+            $this->printList('Data gaps (branch_id = NULL)', collect($report['data']['gaps'])
+                ->map(fn ($row) => sprintf('%s — %s of %s (%s%%)', $row['table'], number_format($row['null_branch']), number_format($row['rows']), $row['percent']))
                 ->all(), $limit);
         }
     }
@@ -781,13 +781,13 @@ class BranchesAuditCommand extends Command
         }
 
         if ($limit > 0 && count($items) > $limit) {
-            $this->line('  ... و' . (count($items) - $limit) . ' غيرها (--limit=0 للكل)');
+            $this->line('  ... and ' . (count($items) - $limit) . ' more (--limit=0 for all)');
         }
     }
 
-    private function flag(int $count, string $label = 'يحتاج معالجة'): string
+    private function flag(int $count, string $label = 'Action required'): string
     {
-        return $count === 0 ? 'سليم' : $label;
+        return $count === 0 ? 'OK' : $label;
     }
 
     private function exitCode(array $report): int

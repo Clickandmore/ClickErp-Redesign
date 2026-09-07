@@ -28,12 +28,12 @@ class BranchesBackfillCommand extends Command
     ];
 
     protected $signature = 'branches:backfill
-        {--dry-run : عرض الأعداد دون تنفيذ}
-        {--table= : قصر التنفيذ على جدول واحد}
-        {--fallback-main : إسناد ما تعذّر اشتقاقه إلى الفرع الرئيسي بدلاً من إبقائه NULL}
-        {--passes=2 : عدد المرات — القواعد متتابعة فالحفيد يحتاج مروراً بعد أبيه}';
+        {--dry-run : Show counts without applying updates}
+        {--table= : Limit processing to one table}
+        {--fallback-main : Assign unresolved rows to the main branch instead of leaving them NULL}
+        {--passes=2 : Number of passes; dependent rules may require another pass}';
 
-    protected $description = 'إسناد branch_id للسجلات القديمة من الموظف/الطلب/العقد المرتبط بها.';
+    protected $description = 'Backfill branch_id on existing rows from linked employees, orders, or contracts.';
 
     /**
      * كل قاعدة: الجدول الهدف، الجدول المصدر، عمود الربط، وعمود الفرع في المصدر.
@@ -159,7 +159,7 @@ class BranchesBackfillCommand extends Command
         $mainBranchId = $fallbackMain ? $this->mainBranchId() : null;
 
         if ($fallbackMain && ! $mainBranchId) {
-            $this->error('تعذّر تحديد الفرع الرئيسي. لم يُنفّذ أي تحديث.');
+            $this->error('Unable to determine the main branch. No updates were applied.');
 
             return 1;
         }
@@ -169,7 +169,7 @@ class BranchesBackfillCommand extends Command
 
             if ($rows === []) {
                 if ($pass === 1) {
-                    $this->info('لا توجد سجلات بلا فرع.');
+                    $this->info('No rows without a branch were found.');
                 }
 
                 break;
@@ -177,14 +177,14 @@ class BranchesBackfillCommand extends Command
 
             if ($passes > 1) {
                 $this->newLine();
-                $this->info("المرور {$pass} من {$passes}");
+                $this->info("Pass {$pass} of {$passes}");
             }
 
             $this->renderRows($rows, $dryRun);
         }
 
         if ($dryRun) {
-            $this->warn('dry-run — لم يُنفَّذ أي تحديث.');
+            $this->warn('Dry run — no updates were applied.');
         }
 
         return 0;
@@ -310,8 +310,8 @@ class BranchesBackfillCommand extends Command
     private function renderRows(array $rows, bool $dryRun): void
     {
         $header = $dryRun
-            ? ['الجدول', 'المصدر', 'بلا فرع', 'سيُسنَد', 'سيبقى بلا فرع']
-            : ['الجدول', 'المصدر', 'قبل', 'تم إسناده', 'متبقٍ'];
+            ? ['Table', 'Source', 'Without branch', 'Will assign', 'Will remain']
+            : ['Table', 'Source', 'Before', 'Assigned', 'Remaining'];
 
         $this->table($header, $rows);
     }
