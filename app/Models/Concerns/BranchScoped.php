@@ -4,6 +4,7 @@ namespace App\Models\Concerns;
 
 use App\Models\Branch;
 use App\Models\Scopes\BranchScope;
+use App\Services\BranchDataSharingService;
 use App\Support\BranchQueryContext;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -28,6 +29,12 @@ trait BranchScoped
 
     /** صلاحية عامة تستثني صاحبها من عزل هذا الكيان وحده. */
     public function branchScopeViewAllPermission(): ?string
+    {
+        return null;
+    }
+
+    /** Entity key used by per-source-branch sharing policies. */
+    public function branchScopeSharingEntity(): ?string
     {
         return null;
     }
@@ -89,6 +96,17 @@ trait BranchScoped
         $branchId = (int) ($this->branch_id ?? 0);
 
         if ($branchId === $activeBranchId) {
+            return true;
+        }
+
+        $sharingEntity = $this->branchScopeSharingEntity();
+        if ($branchId > 0
+            && $sharingEntity
+            && in_array(
+                $branchId,
+                app(BranchDataSharingService::class)->sharedSourceBranchIds($sharingEntity),
+                true
+            )) {
             return true;
         }
 

@@ -6,6 +6,7 @@ use App\PermKeys;
 use App\Models\ingaz\JobTitle;
 use App\Models\ingaz\MaidJobTitles;
 use App\Support\BranchSharingSettings;
+use App\Services\BranchDataSharingService;
 use Illuminate\Database\Eloquent\Model;
 
 use App\Models\Concerns\BranchScoped;
@@ -24,6 +25,11 @@ class Maid extends Model
     public function branchScopeViewAllPermission(): ?string
     {
         return PermKeys::MAIDS_VIEW_ALL_BRANCHES;
+    }
+
+    public function branchScopeSharingEntity(): ?string
+    {
+        return BranchDataSharingService::MAIDS;
     }
     protected $fillable = [
         'name',

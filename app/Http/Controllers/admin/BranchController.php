@@ -4,6 +4,7 @@ namespace App\Http\Controllers\admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Branch;
+use App\Services\BranchDataSharingService;
 use App\Support\BranchSharingSettings;
 use App\Support\SystemModuleManager;
 use App\Support\ZohoSalesIqSettings;
@@ -56,37 +57,40 @@ class BranchController extends Controller
         ]);
     }
 
-    public function settings()
+    public function settings(BranchDataSharingService $sharingService)
     {
         return view('admin.branches.settings', [
             'branchesCount' => Branch::query()->count(),
             'activeBranchesCount' => Branch::query()->where('is_active', true)->count(),
             'branchLimit' => SystemModuleManager::branchLimit(),
             'sharingSettings' => BranchSharingSettings::all(),
+            'sharingBranches' => Branch::query()->active()->ordered()->get(['id', 'name_ar', 'name_en', 'code']),
+            'branchSharingPolicies' => $sharingService->policies(),
         ]);
     }
 
-    public function updateSettings(Request $request)
+    public function updateSettings(Request $request, BranchDataSharingService $sharingService)
     {
         $validated = $request->validate([
-            'share_clients' => ['nullable', 'boolean'],
             'share_maids' => ['nullable', 'boolean'],
-            'share_external_offices' => ['nullable', 'boolean'],
             'shared_cost_center_root' => ['nullable', 'boolean'],
             'accounts_per_branch' => ['nullable', 'boolean'],
+            'sharing_policies' => ['nullable', 'array'],
+            'sharing_policies.*' => ['array'],
+            'sharing_policies.*.*' => ['nullable', 'boolean'],
         ]);
 
         BranchSharingSettings::persist([
-            'share_clients' => (bool) ($validated['share_clients'] ?? false),
             'share_maids' => (bool) ($validated['share_maids'] ?? false),
-            'share_external_offices' => (bool) ($validated['share_external_offices'] ?? false),
             'shared_cost_center_root' => (bool) ($validated['shared_cost_center_root'] ?? false),
             'accounts_per_branch' => (bool) ($validated['accounts_per_branch'] ?? false),
         ]);
 
+        $sharingService->sync((array) ($validated['sharing_policies'] ?? []));
+
         return redirect()
             ->route('branches.settings')
-            ->with('success', 'تم تحديث سياسة الفروع العامة بنجاح');
+            ->with('success', 'تم تحديث سياسات الشركة ومشاركة بيانات الفروع بنجاح');
     }
 
     public function report(Request $request)

@@ -4,6 +4,7 @@ namespace App\Support;
 
 use App\NewPermKeys;
 use App\Services\BranchAccessService;
+use App\Services\BranchDataSharingService;
 use Illuminate\Support\Facades\Auth;
 
 /**
@@ -74,6 +75,7 @@ class BranchQueryContext
     {
         self::$resolvedKey = null;
         self::$resolvedBranchId = null;
+        BranchDataSharingService::flush();
     }
 
     /**

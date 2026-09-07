@@ -5,7 +5,7 @@ namespace App\Models;
 use App\Models\Concerns\AssignsBranch;
 use App\Models\Concerns\BranchScoped;
 use App\PermKeys;
-use App\Support\BranchSharingSettings;
+use App\Services\BranchDataSharingService;
 use App\Models\ingaz\Nationality;
 use Astrotomic\Translatable\Translatable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -26,12 +26,17 @@ class RecruitmentOffices extends Model
 
     public function branchScopeSharedAcrossBranches(): bool
     {
-        return BranchSharingSettings::shareExternalOffices();
+        return false;
     }
 
     public function branchScopeViewAllPermission(): ?string
     {
         return PermKeys::OFFICES_VIEW_ALL_BRANCHES;
+    }
+
+    public function branchScopeSharingEntity(): ?string
+    {
+        return BranchDataSharingService::EXTERNAL_OFFICES;
     }
 
     public function nationality()

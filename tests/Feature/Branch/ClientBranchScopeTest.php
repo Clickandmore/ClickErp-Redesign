@@ -4,7 +4,7 @@ namespace Tests\Feature\Branch;
 
 use App\Models\ingaz\User;
 use App\Models\Permission;
-use App\Support\BranchSharingSettings;
+use App\Services\BranchDataSharingService;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Tests\Concerns\InteractsWithBranches;
 use Tests\TestCase;
@@ -19,8 +19,6 @@ class ClientBranchScopeTest extends TestCase
         parent::setUp();
         $this->setUpBranches();
         $this->enableBranchesModule();
-        BranchSharingSettings::persist(['share_clients' => false]);
-        BranchSharingSettings::flush();
     }
 
     private function grant($admin, string $permission): void
@@ -97,7 +95,7 @@ class ClientBranchScopeTest extends TestCase
     }
 
     /** @test */
-    public function company_sharing_setting_exposes_clients_without_a_cross_branch_permission(): void
+    public function a_source_policy_exposes_clients_to_other_branches(): void
     {
         $own = $this->makeBranch();
         $other = $this->makeBranch();
@@ -105,13 +103,50 @@ class ClientBranchScopeTest extends TestCase
         $this->grant($viewer, \App\PermKeys::CLIENTS_VIEW);
         $otherClient = $this->makeClient('Shared company client', $other->id);
 
-        BranchSharingSettings::persist(['share_clients' => true]);
-        BranchSharingSettings::flush();
+        app(BranchDataSharingService::class)->sync([
+            $other->id => [BranchDataSharingService::CLIENTS => true],
+        ]);
 
         $this->actingAsAdmin($viewer)->get(
             route('clients.index'),
             ['X-Requested-With' => 'XMLHttpRequest']
         )->assertOk()->assertSee($otherClient->name, false);
+    }
+
+    /** @test */
+    public function a_source_policy_does_not_expose_an_unshared_branch(): void
+    {
+        $target = $this->makeBranch();
+        $source = $this->makeBranch();
+        $unrelated = $this->makeBranch();
+        $viewer = $this->branchAdmin($target);
+        $this->grant($viewer, \App\PermKeys::CLIENTS_VIEW);
+        $sharedClient = $this->makeClient('Directionally shared client', $source->id);
+        $hiddenClient = $this->makeClient('Unrelated branch client', $unrelated->id);
+
+        app(BranchDataSharingService::class)->sync([
+            $source->id => [
+                BranchDataSharingService::CLIENTS => true,
+            ],
+        ]);
+
+        $this->assertDatabaseHas('branch_data_sharing_policies', [
+            'entity_type' => BranchDataSharingService::CLIENTS,
+            'branch_id' => $source->id,
+        ]);
+        $this->assertSame(
+            [$source->id],
+            app(BranchDataSharingService::class)->sharedSourceBranchIds(BranchDataSharingService::CLIENTS)
+        );
+
+        $response = $this->actingAsAdmin($viewer)->get(
+            route('clients.index'),
+            ['X-Requested-With' => 'XMLHttpRequest']
+        );
+
+        $response->assertOk()
+            ->assertSee($sharedClient->name, false)
+            ->assertDontSee($hiddenClient->name, false);
     }
 
     /** @test */

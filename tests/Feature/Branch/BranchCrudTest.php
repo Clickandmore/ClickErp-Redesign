@@ -4,6 +4,7 @@ namespace Tests\Feature\Branch;
 
 use App\Models\Branch;
 use App\Models\RecruitmentOffices;
+use App\Services\BranchDataSharingService;
 use App\Support\BranchSharingSettings;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Illuminate\Support\Facades\DB;
@@ -228,15 +229,11 @@ class BranchCrudTest extends TestCase
     public function it_updates_branch_sharing_settings(): void
     {
         BranchSharingSettings::persist([
-            'share_clients' => true,
             'share_maids' => true,
-            'share_external_offices' => true,
         ]);
 
         $this->post(route('branches.settings.update'), [
-            'share_clients' => 1,
             'share_maids' => 0,
-            'share_external_offices' => 0,
             'shared_cost_center_root' => 1,
             'accounts_per_branch' => 1,
         ])
@@ -245,9 +242,7 @@ class BranchCrudTest extends TestCase
 
         BranchSharingSettings::flush();
 
-        $this->assertTrue(BranchSharingSettings::shareClients());
         $this->assertFalse(BranchSharingSettings::shareMaids());
-        $this->assertFalse(BranchSharingSettings::shareExternalOffices());
         $this->assertTrue(BranchSharingSettings::sharedCostCenterRoot());
         $this->assertTrue(BranchSharingSettings::accountsPerBranch());
     }
@@ -255,14 +250,46 @@ class BranchCrudTest extends TestCase
     /** @test */
     public function settings_page_distinguishes_company_policy_from_branch_permissions(): void
     {
+        $this->makeBranch(['name_ar' => 'الفرع الرئيسي', 'is_main' => true]);
+
         $this->get(route('branches.settings'))
             ->assertOk()
             ->assertSee('نطاق هذه الشاشة: الشركة بالكامل (جميع الفروع).', false)
-            ->assertSee('السياسات العامة الفعّالة', false)
-            ->assertSee('share_clients', false)
-            ->assertSee('name="share_clients"', false)
-            ->assertSee('maids_view_all_branches', false)
-            ->assertSee('offices_view_all_branches', false);
+            ->assertSee('سياسات الشركة العامة', false)
+            ->assertSee('name="share_maids"', false)
+            ->assertSee('مشاركة بيانات كل فرع', false)
+            ->assertSee('صلاحية view_all', false)
+            ->assertSee('name="sharing_policies[', false)
+            ->assertDontSee('targetBranch', false)
+            ->assertDontSee('data_get($sharingRuleMatrix', false);
+    }
+
+    /** @test */
+    public function it_saves_source_branch_sharing_policies(): void
+    {
+        $source = $this->makeBranch(['name_ar' => 'فرع الدمام']);
+
+        $this->post(route('branches.settings.update'), [
+            'share_maids' => 0,
+            'shared_cost_center_root' => 1,
+            'accounts_per_branch' => 0,
+            'sharing_policies' => [
+                $source->id => [
+                    BranchDataSharingService::CLIENTS => 1,
+                ],
+            ],
+        ])->assertRedirect(route('branches.settings'))->assertSessionHasNoErrors();
+
+        $this->assertDatabaseHas('branch_data_sharing_policies', [
+            'entity_type' => BranchDataSharingService::CLIENTS,
+            'branch_id' => $source->id,
+            'access_level' => 'view',
+        ]);
+
+        $this->get(route('branches.settings'))
+            ->assertOk()
+            ->assertSee('مشاركة بيانات كل فرع', false)
+            ->assertSee('فرع الدمام', false);
     }
 
     /** @test */
@@ -283,7 +310,7 @@ class BranchCrudTest extends TestCase
     }
 
     /** @test */
-    public function external_office_visibility_follows_the_company_sharing_setting(): void
+    public function external_offices_are_isolated_without_a_source_branch_policy(): void
     {
         $own = $this->makeBranch(['is_main' => true]);
         $other = $this->makeBranch();
@@ -302,13 +329,38 @@ class BranchCrudTest extends TestCase
 
         $this->actingAsAdmin($admin);
 
-        BranchSharingSettings::persist(['share_external_offices' => false]);
-        BranchSharingSettings::flush();
         $this->assertTrue(RecruitmentOffices::query()->whereKey($ownOfficeId)->exists());
         $this->assertFalse(RecruitmentOffices::query()->whereKey($otherOfficeId)->exists());
+    }
 
-        BranchSharingSettings::persist(['share_external_offices' => true]);
-        BranchSharingSettings::flush();
-        $this->assertTrue(RecruitmentOffices::query()->whereKey($otherOfficeId)->exists());
+    /** @test */
+    public function a_source_policy_shares_external_offices_with_all_other_branches(): void
+    {
+        $target = $this->makeBranch(['is_main' => true]);
+        $source = $this->makeBranch();
+        $unrelated = $this->makeBranch();
+        $admin = $this->lockToOwnBranch($this->branchAdmin($target)->assignRole('Administrator'));
+
+        $sharedOfficeId = DB::table('recruitment_offices')->insertGetId([
+            'branch_id' => $source->id,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        $hiddenOfficeId = DB::table('recruitment_offices')->insertGetId([
+            'branch_id' => $unrelated->id,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        app(BranchDataSharingService::class)->sync([
+            $source->id => [
+                BranchDataSharingService::EXTERNAL_OFFICES => true,
+            ],
+        ]);
+
+        $this->actingAsAdmin($admin);
+
+        $this->assertTrue(RecruitmentOffices::query()->whereKey($sharedOfficeId)->exists());
+        $this->assertFalse(RecruitmentOffices::query()->whereKey($hiddenOfficeId)->exists());
     }
 }

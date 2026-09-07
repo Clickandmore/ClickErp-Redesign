@@ -11,6 +11,7 @@ use App\Models\RecruitmentOffices;
 use App\Models\Branch;
 use App\Support\CvOptionsSettings;
 use App\Support\BranchSharingSettings;
+use App\Services\BranchDataSharingService;
 use Astrotomic\Translatable\Translatable;
 use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 use Illuminate\Database\Eloquent\Builder;
@@ -44,6 +45,11 @@ class Maid extends Model
     public function branchScopeViewAllPermission(): ?string
     {
         return PermKeys::MAIDS_VIEW_ALL_BRANCHES;
+    }
+
+    public function branchScopeSharingEntity(): ?string
+    {
+        return BranchDataSharingService::MAIDS;
     }
 
     protected array $mediaUrlColumns = ['image', 'cv_file', 'cv_preview', 'video'];

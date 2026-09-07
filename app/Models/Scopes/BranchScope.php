@@ -3,6 +3,7 @@
 namespace App\Models\Scopes;
 
 use App\Services\BranchAccessService;
+use App\Services\BranchDataSharingService;
 use App\Support\BranchQueryContext;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
@@ -38,16 +39,20 @@ class BranchScope implements Scope
         }
 
         $column = $table . '.branch_id';
+        $visibleBranchIds = array_values(array_unique(array_merge(
+            [$branchId],
+            $this->sharedSourceBranchIds($model)
+        )));
 
         if ($this->includesUnassigned($model, $branchId)) {
-            $builder->where(function (Builder $query) use ($column, $branchId) {
-                $query->where($column, $branchId)->orWhereNull($column);
+            $builder->where(function (Builder $query) use ($column, $visibleBranchIds) {
+                $query->whereIn($column, $visibleBranchIds)->orWhereNull($column);
             });
 
             return;
         }
 
-        $builder->where($column, $branchId);
+        $builder->whereIn($column, $visibleBranchIds);
     }
 
     private function sharedAcrossBranches(Model $model): bool
@@ -79,6 +84,20 @@ class BranchScope implements Scope
             // أثناء النشر قد يسبق الكود migration إضافة الصلاحية؛ يبقى العزل آمناً.
             return false;
         }
+    }
+
+    /** @return array<int, int> */
+    private function sharedSourceBranchIds(Model $model): array
+    {
+        if (! method_exists($model, 'branchScopeSharingEntity')) {
+            return [];
+        }
+
+        $entityType = $model->branchScopeSharingEntity();
+
+        return is_string($entityType) && $entityType !== ''
+            ? app(BranchDataSharingService::class)->sharedSourceBranchIds($entityType)
+            : [];
     }
 
     /**

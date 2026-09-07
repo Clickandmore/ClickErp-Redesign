@@ -148,13 +148,23 @@ class BranchAccessService
         return $query;
     }
 
-    public function applyBranchIdToQuery($query, int $branchId, string $table, ?string $qualifiedColumn = null)
+    public function applyBranchIdToQuery(
+        $query,
+        int $branchId,
+        string $table,
+        ?string $qualifiedColumn = null,
+        array $sharedSourceBranchIds = []
+    )
     {
         if (! $this->enabled() || ! $this->tableHasBranchColumn($table)) {
             return $query;
         }
 
         $column = $qualifiedColumn ?: "{$table}.branch_id";
+        $visibleBranchIds = array_values(array_unique(array_map(
+            'intval',
+            array_merge([$branchId], $sharedSourceBranchIds)
+        )));
 
         $tableReference = $qualifiedColumn && str_contains($qualifiedColumn, '.')
             ? substr($qualifiedColumn, 0, strrpos($qualifiedColumn, '.'))
@@ -164,8 +174,8 @@ class BranchAccessService
         if ($unassignedBranch) {
             [$expression, $bindings] = $unassignedBranch;
 
-            $query->where(function ($branchQuery) use ($column, $branchId, $expression, $bindings) {
-                $branchQuery->where($column, $branchId)
+            $query->where(function ($branchQuery) use ($column, $branchId, $visibleBranchIds, $expression, $bindings) {
+                $branchQuery->whereIn($column, $visibleBranchIds)
                     ->orWhere(function ($legacyQuery) use ($column, $branchId, $expression, $bindings) {
                         $legacyQuery->whereNull($column)
                             ->whereRaw("({$expression}) = ?", [...$bindings, $branchId]);
@@ -176,14 +186,14 @@ class BranchAccessService
         }
 
         if ($this->isMainBranchId($branchId)) {
-            $query->where(function ($branchQuery) use ($column, $branchId) {
-                $branchQuery->where($column, $branchId)->orWhereNull($column);
+            $query->where(function ($branchQuery) use ($column, $visibleBranchIds) {
+                $branchQuery->whereIn($column, $visibleBranchIds)->orWhereNull($column);
             });
 
             return $query;
         }
 
-        return $query->where($column, $branchId);
+        return $query->whereIn($column, $visibleBranchIds);
     }
 
     public function canAccessModel(Model $model, $admin = null, ?string $table = null): bool
@@ -209,7 +219,23 @@ class BranchAccessService
         $modelBranchId = (int) ($model->getAttribute('branch_id') ?? 0);
 
         if ($modelBranchId > 0) {
-            return $modelBranchId === $adminBranchId;
+            if ($modelBranchId === $adminBranchId) {
+                return true;
+            }
+
+            $sharingEntity = match ($table) {
+                'users' => BranchDataSharingService::CLIENTS,
+                'maids' => BranchDataSharingService::MAIDS,
+                'recruitment_offices' => BranchDataSharingService::EXTERNAL_OFFICES,
+                default => null,
+            };
+
+            return $sharingEntity !== null
+                && in_array(
+                    $modelBranchId,
+                    app(BranchDataSharingService::class)->sharedSourceBranchIds($sharingEntity),
+                    true
+                );
         }
 
         $resolvedBranchId = $this->resolveUnassignedModelBranchId($model, $table);

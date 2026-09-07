@@ -10,9 +10,7 @@ class BranchSharingSettings
     private const SETTINGS_KEY = 'branch_sharing_settings';
 
     private const DEFAULTS = [
-        'share_clients' => true,
         'share_maids' => true,
-        'share_external_offices' => true,
         'shared_cost_center_root' => true,
         'accounts_per_branch' => false,
     ];
@@ -63,19 +61,9 @@ class BranchSharingSettings
         return self::boolValue('accounts_per_branch');
     }
 
-    public static function shareClients(): bool
-    {
-        return self::boolValue('share_clients');
-    }
-
     public static function shareMaids(): bool
     {
         return self::boolValue('share_maids');
-    }
-
-    public static function shareExternalOffices(): bool
-    {
-        return self::boolValue('share_external_offices');
     }
 
     public static function sharedCostCenterRoot(): bool

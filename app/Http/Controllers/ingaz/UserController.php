@@ -16,7 +16,7 @@ use App\Models\RentalContract;
 use App\Models\SponsorshipTransfer;
 use App\Services\ManagedFileStorage;
 use App\Support\SystemModuleManager;
-use App\Support\BranchSharingSettings;
+use App\Services\BranchDataSharingService;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -1352,7 +1352,6 @@ class UserController extends Controller
     private function canViewAllClientBranches(): bool
     {
         return !$this->branchesEnabled()
-            || BranchSharingSettings::shareClients()
             || @AdminGuardHasPerm(\App\PermKeys::BRANCHES_VIEW_ALL)
             || @AdminGuardHasPerm(\App\PermKeys::CLIENTS_VIEW_ALL_BRANCHES);
     }
@@ -1366,8 +1365,11 @@ class UserController extends Controller
         $branchId = Auth::guard('admin')->user()?->branch_id;
 
         if ($branchId) {
+            $sharedSourceBranchIds = app(BranchDataSharingService::class)
+                ->sharedSourceBranchIds(BranchDataSharingService::CLIENTS);
+
             app(\App\Services\BranchAccessService::class)
-                ->applyBranchIdToQuery($query, (int) $branchId, 'users');
+                ->applyBranchIdToQuery($query, (int) $branchId, 'users', null, $sharedSourceBranchIds);
             return;
         }
 

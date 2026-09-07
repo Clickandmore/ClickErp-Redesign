@@ -5,7 +5,6 @@ namespace Tests\Feature\Branch;
 use App\Models\Concerns\BranchScoped;
 use App\Models\auth\Admin;
 use App\Support\BranchQueryContext;
-use App\Support\BranchSharingSettings;
 use App\Support\SystemModuleManager;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
@@ -44,8 +43,6 @@ class BranchesDisabledRegressionTest extends TestCase
     {
         parent::setUp();
         $this->setUpBranches();
-        BranchSharingSettings::persist(['share_external_offices' => false]);
-        BranchSharingSettings::flush();
         BranchQueryContext::reset();
     }
 

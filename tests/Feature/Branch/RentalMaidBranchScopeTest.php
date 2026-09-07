@@ -8,6 +8,7 @@ use App\Models\Permission;
 use App\Models\RentalContract;
 use App\Models\ingaz\Order;
 use App\Support\BranchSharingSettings;
+use App\Services\BranchDataSharingService;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -82,6 +83,30 @@ class RentalMaidBranchScopeTest extends TestCase
 
         $this->actingAsAdmin($admin);
         $this->assertTrue(Maid::query()->whereKey($maid->id)->exists());
+    }
+
+    /** @test */
+    public function a_source_policy_shares_assigned_maids_with_all_other_branches(): void
+    {
+        $target = $this->makeBranch();
+        $source = $this->makeBranch();
+        $unrelated = $this->makeBranch();
+        $admin = $this->branchAdmin($target);
+        $sharedMaid = $this->makeRentalMaid('Directionally shared maid', $source->id);
+        $hiddenMaid = $this->makeRentalMaid('Unrelated branch maid', $unrelated->id);
+
+        BranchSharingSettings::persist(['share_maids' => false]);
+        BranchSharingSettings::flush();
+        app(BranchDataSharingService::class)->sync([
+            $source->id => [
+                BranchDataSharingService::MAIDS => true,
+            ],
+        ]);
+
+        $this->actingAsAdmin($admin);
+
+        $this->assertTrue(Maid::query()->whereKey($sharedMaid->id)->exists());
+        $this->assertFalse(Maid::query()->whereKey($hiddenMaid->id)->exists());
     }
 
     /** @test */

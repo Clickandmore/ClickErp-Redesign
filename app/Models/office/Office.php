@@ -11,7 +11,7 @@ use App\Models\ingaz\Nationality;
 use App\Models\OfficeAttachment;
 use App\Models\RecruitmentOfficeTranslation;
 use App\PermKeys;
-use App\Support\BranchSharingSettings;
+use App\Services\BranchDataSharingService;
 use Astrotomic\Translatable\Translatable;
 use Spatie\Activitylog\LogOptions;
 use Spatie\Activitylog\Traits\LogsActivity;
@@ -34,12 +34,17 @@ class Office extends Model
 
     public function branchScopeSharedAcrossBranches(): bool
     {
-        return BranchSharingSettings::shareExternalOffices();
+        return false;
     }
 
     public function branchScopeViewAllPermission(): ?string
     {
         return PermKeys::OFFICES_VIEW_ALL_BRANCHES;
+    }
+
+    public function branchScopeSharingEntity(): ?string
+    {
+        return BranchDataSharingService::EXTERNAL_OFFICES;
     }
 
     public function nationality()

@@ -16,6 +16,10 @@ php artisan migrate --force
 php artisan optimize:clear
 ```
 
+ينشئ `migrate` جدول `branch_data_sharing_policies` الخاص بسياسات مشاركة بيانات
+كل فرع. لا يحتاج الجدول إلى backfill؛ اختر الفرع ثم حدد مشاركة العملاء أو السير
+المخصصة أو المكاتب من شاشة **إعدادات الفروع**.
+
 ## 3. تجهيز حسابات ومراكز تكلفة الفروع
 
 ```bash
