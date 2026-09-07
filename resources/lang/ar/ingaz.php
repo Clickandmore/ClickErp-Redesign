@@ -601,6 +601,8 @@ return array (
   'to_date' => 'إلى تاريخ',
   'from_date' => 'من تاريخ',
   'search_by_maid_name' => 'ابحث باسم العاملة',
+  'order_maid_name' => 'اسم العاملة',
+  'order_maid_details' => 'بيانات العاملة',
   'search_by_maid_passport' => 'ابحث برقم الجواز',
   'search_by_maid_job' => 'ابحث بالمهنة',
   'search_by_maid_nationality' => 'ابحث بالجنسية',

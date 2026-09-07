@@ -118,6 +118,12 @@ class OrderController extends Controller
                 });
             }
 
+            if ($request->filled('maid_name')) {
+                $query->whereHas('maid', function ($q) use ($request) {
+                    $q->where('name', 'like', '%' . trim($request->maid_name) . '%');
+                });
+            }
+
             // Apply passport number search
             if ($request->filled('passport_num')) {
                 $query->whereHas('maid', function ($q) use ($request) {
@@ -167,6 +173,20 @@ class OrderController extends Controller
             }
 
             return DataTables::of($query)
+                ->orderColumn('maid_passport_num', function ($query, $direction) {
+                    $query->orderBy(
+                        Maid::query()->select('name')->whereColumn('maids.id', 'orders.maid_id')->limit(1),
+                        $direction
+                    );
+                })
+                ->filterColumn('maid_passport_num', function ($query, $keyword) {
+                    $query->whereHas('maid', function ($maidQuery) use ($keyword) {
+                        $maidQuery->where(function ($detailsQuery) use ($keyword) {
+                            $detailsQuery->where('name', 'like', '%' . $keyword . '%')
+                                ->orWhere('passport_num', 'like', '%' . $keyword . '%');
+                        });
+                    });
+                })
                 ->addIndexColumn()
                 ->addColumn('admin_name', function ($row) {
                     return $row->resolveResponsibleAdmin()?->name ?? '-';
@@ -232,7 +252,11 @@ class OrderController extends Controller
                     $officeTitle = $office?->title ?? '-';
 
                     return '<div class="d-flex flex-column gap-1">'
-                        . '<span>' . e($row->maid->passport_num) . '</span>'
+                        . '<span class="fw-bold">' . e($row->maid->name ?: '-') . '</span>'
+                        . '<span class="maid-passport-badge" dir="ltr" title="' . e(helperTrans('ingaz.passport_num')) . '">'
+                        . '<i class="fas fa-passport"></i>'
+                        . '<span>' . e($row->maid->passport_num ?: '-') . '</span>'
+                        . '</span>'
                         . '<small class="text-muted">' . helperTrans('ingaz.request_type') . ': ' . e($row->maid->request_type_label) . '</small>'
                         . '<small class="text-muted d-flex align-items-center gap-1">'
                         . '<i class="fas fa-building text-secondary"></i>'

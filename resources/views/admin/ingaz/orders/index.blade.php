@@ -221,6 +221,27 @@
             border-radius: 999px;
         }
 
+        .maid-passport-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            width: fit-content;
+            padding: 3px 10px;
+            border-radius: 999px;
+            background: #eef2ff;
+            color: #3730a3;
+            border: 1px solid #c7d2fe;
+            font-size: 0.8rem;
+            font-weight: 700;
+            letter-spacing: 0.04em;
+            white-space: nowrap;
+        }
+
+        .maid-passport-badge i {
+            font-size: 0.75rem;
+            opacity: 0.8;
+        }
+
         .order-notes-indicator {
             display: inline-flex;
             align-items: center;
@@ -405,6 +426,7 @@
                     </div>
                     <a class="orders-overview-settings" href="{{ route('notifications.settings.alerts') }}#alert-rules-settings">
                         <i class="fas fa-clock me-1"></i>
+                        إدارة مدد الطلبات ·
                         مهلة الجديد: {{ $orderNewDeadlineHours ?? 24 }} ساعة
                         ·
                         مهلة تحت الإجراء: {{ $orderUnderProcessDeadlineHours ?? 48 }} ساعة
@@ -571,6 +593,11 @@
                                             placeholder="{{ helperTrans('ingaz.search_by_phone') }}">
                                     </div>
                                     <div class="col-md-4">
+                                        <label class="form-label" for="maid_name">{{ helperTrans('ingaz.order_maid_name') }}</label>
+                                        <input type="text" class="form-control" name="maid_name" id="maid_name"
+                                            placeholder="{{ helperTrans('ingaz.search_by_maid_name') }}">
+                                    </div>
+                                    <div class="col-md-2">
                                         <label class="form-label">{{ helperTrans('ingaz.passport_num') }}</label>
                                         <input type="text" class="form-control" name="passport_num" id="passport_num"
                                             placeholder="{{ helperTrans('ingaz.search_by_passport') }}">
@@ -614,7 +641,7 @@
                                         <th>{{ helperTrans('ingaz.client') }}</th>
                                         <th>{{ helperTrans('ingaz.phone') }}</th>
                                         <th>{{ helperTrans('ingaz.nationality') }}</th>
-                                        <th>{{ helperTrans('ingaz.passport_num') }}</th>
+                                        <th>{{ helperTrans('ingaz.order_maid_details') }}</th>
                                         {{-- <th>{{helperTrans("ingaz.maid")}}</th> --}}
                                         {{-- <th>{{helperTrans("ingaz.deliver_status")}}</th> --}}
                                         <th>{{ helperTrans('ingaz.order_job_type') }}</th>
@@ -940,6 +967,7 @@
                         d.client_name = $('#client_name').val();
                         d.phone = $('#phone').val();
                         d.passport_num = $('#passport_num').val();
+                        d.maid_name = $('#maid_name').val();
                         d.office_name = $('#office_name').val();
                     },
                     error: function(xhr, error, thrown) {
@@ -1879,7 +1907,7 @@
 
             // Clear filters
             $('#clearFilters').on('click', function() {
-                $('#from_date, #to_date, #status, #job_type, #admin_id, #branch_id, #timer_status, #client_name, #phone, #passport_num, #office_name')
+                $('#from_date, #to_date, #status, #job_type, #admin_id, #branch_id, #timer_status, #client_name, #phone, #maid_name, #passport_num, #office_name')
                     .val('');
                 dataTable.ajax.reload();
             });

@@ -40,9 +40,6 @@ class Kernel extends ConsoleKernel
         $ordersTimerCron = AutomationSettings::minutesCronExpression(
             AutomationSettings::ordersTimerIntervalMinutes()
         );
-        $ordersExpiredHandlerCron = AutomationSettings::minutesCronExpression(
-            AutomationSettings::ordersExpiredHandlerIntervalMinutes()
-        );
         $ordersAutoCancelCron = AutomationSettings::minutesCronExpression(
             AutomationSettings::ordersAutoCancelIntervalMinutes()
         );
@@ -154,12 +151,8 @@ class Kernel extends ConsoleKernel
         
         $schedule->command('orders:cancel-expired')
              ->cron($ordersAutoCancelCron)
-             ->withoutOverlapping();
-
-        // Auto-refuse expired orders
-        $schedule->command('orders:handle-expired')
-            ->cron($ordersExpiredHandlerCron)
-            ->withoutOverlapping();
+             ->withoutOverlapping()
+             ->appendOutputTo(storage_path('logs/orders-auto-cancel.log'));
 
         $schedule->command('rental-contracts:send-expiry-reminders')
             ->dailyAt('09:00')
