@@ -725,6 +725,7 @@ $permissions = ['printSettings.create', 'letters.index', 'officialVacations.inde
     <a class="m-link
     {{ in_array(Route::currentRouteName(), [
         'finance.account-cost-centers.index',
+        'finance.operational-summary.index',
         'finance.cash-movements.index',
         'finance.account-statement.index',
         'finance.debtor-accounts.index',
@@ -747,6 +748,7 @@ $permissions = ['printSettings.create', 'letters.index', 'officialVacations.inde
     <ul class="sub-menu collapse
                                      {{ in_array(Route::currentRouteName(), [
                                          'finance.account-cost-centers.index',
+                                         'finance.operational-summary.index',
                                          'finance.cash-movements.index',
                                          'finance.account-statement.index',
                                          'finance.debtor-accounts.index',
@@ -765,6 +767,12 @@ $permissions = ['printSettings.create', 'letters.index', 'officialVacations.inde
                                          : '' }}"
         id="reports">
 
+        <li>
+            <a class="m-link {{ Route::currentRouteName() == 'finance.operational-summary.index' ? 'active' : '' }}"
+                href="{{ route('finance.operational-summary.index') }}">
+                <span class="ms-2"> {{ trans('finance::finance.operational_summary') }} </span>
+            </a>
+        </li>
         {{--        @if (in_array('finance.account-statement-read', $user_permission_list)) --}}
         <li>
             <a class="m-link {{ Route::currentRouteName() == 'finance.account-statement.index' ? 'active' : '' }}"

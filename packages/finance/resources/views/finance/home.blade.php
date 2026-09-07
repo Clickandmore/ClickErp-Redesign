@@ -20,6 +20,7 @@
             'text' => number_format(abs($value), 1) . '% ' . __('finance::finance.vs_previous_month'),
         ];
     };
+    $ops = $operational ?? [];
     $incomeChange = $changeBadge($income_change ?? null);
     $expenseChange = $changeBadge($expense_change ?? null, true);
 @endphp
@@ -246,6 +247,23 @@
         </div>
 
         <div class="row g-3 mt-1">
+            <div class="col-12">
+                <section class="hub-panel">
+                    <div class="panel-head">
+                        <div><h5 class="panel-title">{{ __('finance::finance.operational_summary') }}</h5><div class="panel-subtitle">{{ __('finance::finance.ops_summary_subtitle') }}</div></div>
+                        <a class="panel-link" href="{{ route('finance.operational-summary.index') }}">{{ __('finance::finance.operational_summary') }} <i class="fa-solid fa-arrow-left-long"></i></a>
+                    </div>
+                    <div class="cash-strip">
+                        <div class="cash-item"><span>{{ __('finance::finance.ops_kpi_total_sales') }}</span><strong>{{ $money($ops['sales_invoiced'] ?? 0) }}</strong><div class="account-code">{{ __('finance::finance.ops_collection_rate') }}: {{ ($ops['collection_rate'] ?? null) === null ? '—' : number_format($ops['collection_rate'], 1) . '%' }}</div></div>
+                        <div class="cash-item"><span>{{ __('finance::finance.ops_kpi_receivables') }}</span><strong class="negative-text">{{ $money($ops['receivables_total'] ?? 0) }}</strong><div class="account-code">{{ number_format($ops['receivables_documents'] ?? 0) }} {{ __('finance::finance.ops_documents') }}</div></div>
+                        <div class="cash-item"><span>{{ __('finance::finance.ops_kpi_musaned_net') }}</span><strong class="positive-text">{{ $money($ops['musaned_commission_net'] ?? 0) }}</strong><div class="account-code">{{ number_format($ops['musaned_transfers'] ?? 0) }} {{ __('finance::finance.ops_transfers') }}</div></div>
+                        <div class="cash-item"><span>{{ __('finance::finance.ops_kpi_offices_payable') }}</span><strong class="negative-text">{{ $money($ops['offices_payable'] ?? 0) }}</strong><div class="account-code">{{ __('finance::finance.ops_offices_hint') }}</div></div>
+                    </div>
+                </section>
+            </div>
+        </div>
+
+        <div class="row g-3 mt-1">
             <div class="col-xl-4 col-lg-6">
                 <section class="hub-panel">
                     <div class="panel-head"><div><h5 class="panel-title">{{ __('finance::finance.bank_cash_balances') }}</h5><div class="panel-subtitle">{{ __('finance::finance.net_posted_balance') }}</div></div><a class="panel-link" href="{{ route('finance.treasury-and-banks-balances.index') }}">{{ __('finance::finance.all_balances') }}</a></div>
@@ -300,6 +318,7 @@
                         <a class="quick-action" href="{{ route('finance.clients.index') }}"><i class="fa-solid fa-users"></i>{{ __('finance::finance.clients') }}</a>
                         <a class="quick-action" href="{{ route('finance.procurement.index') }}"><i class="fa-solid fa-cart-shopping"></i>المشتريات</a>
                         <a class="quick-action" href="{{ route('finance.suppliers.index') }}"><i class="fa-solid fa-truck"></i>{{ __('finance::finance.suppliers') }}</a>
+                        <a class="quick-action" href="{{ route('finance.operational-summary.index') }}"><i class="fa-solid fa-chart-pie"></i>{{ __('finance::finance.operational_summary') }}</a>
                     </div>
                 </section>
             </div>

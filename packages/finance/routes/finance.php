@@ -41,6 +41,7 @@ use Nami\Finance\Http\Controllers\BondQabdController;
 use Nami\Finance\Http\Controllers\BondSarfController;
 use Nami\Finance\Http\Controllers\BoxController;
 use Nami\Finance\Http\Controllers\CashMovementController;
+use Nami\Finance\Http\Controllers\OperationalSummaryController;
 use Nami\Finance\Http\Controllers\CatchCheckController;
 use Nami\Finance\Http\Controllers\CategoryController;
 use Nami\Finance\Http\Controllers\ChangeYearStatusController;
@@ -231,6 +232,7 @@ Route::group(
         Route::resource('account-statement-supplier-print', AccountStatementSuppliePrintController::class);
         Route::resource('account-cost-centers', AccountCostCenterController::class);
         Route::resource('cash-movements', CashMovementController::class)->only('index');
+        Route::resource('operational-summary', OperationalSummaryController::class)->only('index');
         Route::get('bank-account-statement/export/{format}', [BankAccountStatementController::class, 'export'])
             ->where('format', 'pdf|excel|xlsx')
             ->name('bank-account-statement.export');

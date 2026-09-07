@@ -138,6 +138,10 @@ class HomeService extends MainService
                 'pending_constraints' => $pendingConstraints,
             ],
             'recent_constraints' => $recentConstraints,
+            'operational' => app(OperationalSummaryService::class)->headline(
+                $yearStart->toDateString(),
+                $today->toDateString()
+            ),
         ];
     }
 
