@@ -463,6 +463,8 @@ Route::group(['prefix' => 'admin', 'middleware' => ['auth:admin', 'admin', 'admi
 
 // Notification routes
 Route::prefix('admin')->middleware(['auth:admin', 'admin', 'admin.route.permission'])->group(function () {
+    Route::get('/admin-dispatch', [App\Http\Controllers\admin\AdminDispatchController::class, 'index'])->name('admin.dispatch.index');
+    Route::post('/admin-dispatch', [App\Http\Controllers\admin\AdminDispatchController::class, 'store'])->name('admin.dispatch.store');
     Route::get('/notifications', [App\Http\Controllers\admin\NotificationController::class, 'index'])->name('admin.notifications.dropdown');
     Route::post('/notifications/{id}/mark-as-read', [App\Http\Controllers\admin\NotificationController::class, 'markAsRead'])->name('admin.notifications.mark-as-read');
     Route::post('/notifications/mark-all-read', [App\Http\Controllers\admin\NotificationController::class, 'markAllAsRead'])->name('admin.notifications.mark-all-read');

@@ -99,6 +99,7 @@ class AdminRoutePermissionMatrix
             'SponsorshipTransfer.index',
             'SponsorshipTransfer.webRequests',
             'notifications.index',
+            'admin.dispatch.index',
             'whatsapp.notifications.index',
             'whatsapp.inbox.index',
             'messages.index',
@@ -250,7 +251,7 @@ class AdminRoutePermissionMatrix
         return array_values(array_unique(array_merge($permissions, [
             PermKeys::ROLES_CREATE,
             PermKeys::ROLES_EDIT,
-        ])));
+        ], array_keys(AdminDispatchPermissions::definitions()))));
     }
 
     private static function definitions(): array
@@ -722,6 +723,8 @@ class AdminRoutePermissionMatrix
                 'sponsorship-transfer.save-signature' => [PermKeys::SPONSOR_TRANSFER_CONTROL],
                 'sponsorship-transfer.save-company-signature' => [PermKeys::SPONSOR_TRANSFER_CONTROL],
                 'notifications.index' => [PermKeys::NOTIFICATIONS_CONTROL],
+                'admin.dispatch.index' => [AdminDispatchPermissions::VIEW],
+                'admin.dispatch.store' => [AdminDispatchPermissions::SEND],
                 'notifications.store' => [PermKeys::NOTIFICATIONS_CONTROL],
                 'whatsapp.notifications.index' => [PermKeys::NOTIFICATIONS_CONTROL],
                 'whatsapp.notifications.store' => [PermKeys::NOTIFICATIONS_CONTROL],
