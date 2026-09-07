@@ -43,9 +43,13 @@ class AdminDispatchController extends Controller
             'roles' => ['required_if:audience,roles', 'nullable', 'array', 'max:100'],
             'roles.*' => ['integer', 'distinct', Rule::exists('roles', 'id')->where('guard_name', 'admin')],
             'channels' => ['nullable', 'array', 'max:3'],
+            'system_only' => ['sometimes', 'boolean'],
             'channels.*' => ['required', 'distinct', Rule::in(array_keys(Permissions::CHANNELS))],
         ]);
         abort_unless(Permissions::allows($admin, Permissions::AUDIENCES[$data['audience']]), 403);
+        if ($request->boolean('system_only')) {
+            $data['channels'] = [];
+        }
         foreach ($data['channels'] ?? [] as $channel) {
             abort_unless(Permissions::allows($admin, Permissions::CHANNELS[$channel]), 403);
         }
