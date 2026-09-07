@@ -18,6 +18,15 @@ class SchedulerMonitorService
     {
         $heartbeat = $this->heartbeat();
         $crontab = $this->crontabStatus();
+        $recommendedEntry = '';
+
+        try {
+            $recommendedEntry = $this->cronEntry();
+        } catch (\RuntimeException $exception) {
+            $crontab['error'] = implode(' | ', array_filter([
+                $crontab['error'], $exception->getMessage(),
+            ]));
+        }
 
         return [
             'active' => $heartbeat['active'],
@@ -26,7 +35,7 @@ class SchedulerMonitorService
             'crontab_configured' => $crontab['configured'],
             'crontab_entries' => $crontab['entries'],
             'crontab_error' => $crontab['error'],
-            'recommended_entry' => $this->cronEntry(),
+            'recommended_entry' => $recommendedEntry,
             'jobs' => $this->jobs($heartbeat['active']),
         ];
     }
@@ -371,7 +380,7 @@ class SchedulerMonitorService
         $configured = trim((string) config('scheduler.php_binary', ''));
         $candidates = array_filter([
             $configured,
-            !preg_match('/(?:fpm|cgi)$/i', PHP_BINARY) ? PHP_BINARY : null,
+            in_array(PHP_SAPI, ['cli', 'cli-server'], true) ? PHP_BINARY : null,
             '/Applications/MAMP/bin/php/php8.3.30/bin/php',
             '/opt/homebrew/bin/php',
             '/usr/local/bin/php',
@@ -379,12 +388,19 @@ class SchedulerMonitorService
         ]);
 
         foreach ($candidates as $candidate) {
-            if (is_file($candidate) && is_executable($candidate)) {
+            // FPM/CGI binaries cannot run Artisan, including versioned names.
+            if (preg_match('/(?:fpm|cgi)/i', basename($candidate))) {
+                continue;
+            }
+
+            // Hosting open_basedir restrictions can deny metadata probes.
+            // Treat inaccessible candidates as unavailable, not as page errors.
+            if (@is_file($candidate) && @is_executable($candidate)) {
                 return $candidate;
             }
         }
 
-        throw new \RuntimeException('لم يتم العثور على PHP CLI. عيّن SCHEDULER_PHP_BINARY في ملف البيئة.');
+        throw new \RuntimeException('لم يتم العثور على PHP CLI قابل للفحص والتنفيذ. عيّن SCHEDULER_PHP_BINARY في ملف البيئة لمسار PHP CLI وتأكد أن open_basedir يسمح بفحصه.');
     }
 
     private function cronEntry(): string
