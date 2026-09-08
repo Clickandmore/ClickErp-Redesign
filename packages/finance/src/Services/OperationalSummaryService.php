@@ -304,7 +304,7 @@ class OperationalSummaryService extends MainService
     }
 
     /**
-     * تسويات التأجير من نوع إيراد (إغلاق/نقل كفالة) — فوترة حقيقية خارج فاتورة الباقة.
+     * تسويات التأجير من نوع إيراد (إغلاق/نقل الخدمات) — فوترة حقيقية خارج فاتورة الباقة.
      */
     private function monthlyRentalAdjustments(string $from, string $to): Collection
     {

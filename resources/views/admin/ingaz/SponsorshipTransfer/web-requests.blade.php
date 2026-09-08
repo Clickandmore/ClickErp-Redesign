@@ -6,7 +6,7 @@
 
 @endsection
 @section('page-title')
-    طلبات نقل الكفالة من الموقع الخارجي
+    طلبات نقل الخدمات من الموقع الخارجي
 @endsection
 @section('content')
 <div class="container-fluid">
@@ -16,18 +16,18 @@
             <div class="col">
                 <h3 class="page-title">
                     <i class="fas fa-globe text-primary me-2"></i>
-                    طلبات نقل الكفالة من الموقع الخارجي
+                    طلبات نقل الخدمات من الموقع الخارجي
                 </h3>
                 <ul class="breadcrumb">
                     <li class="breadcrumb-item"><a href="{{ route('dashboard.index') }}">لوحة التحكم</a></li>
-                    <li class="breadcrumb-item"><a href="{{ route('SponsorshipTransfer.index') }}">إدارة نقل الكفالة</a></li>
+                    <li class="breadcrumb-item"><a href="{{ route('SponsorshipTransfer.index') }}">إدارة نقل الخدمات</a></li>
                     <li class="breadcrumb-item active">طلبات الموقع الخارجي</li>
                 </ul>
             </div>
             <div class="col-auto">
                 <a href="{{ route('SponsorshipTransfer.index') }}" class="btn btn-secondary">
                     <i class="fas fa-arrow-left me-2"></i>
-                    العودة لإدارة نقل الكفالة
+                    العودة لإدارة نقل الخدمات
                 </a>
             </div>
         </div>
@@ -115,7 +115,7 @@
                 <div class="card-header bg-white">
                     <h5 class="card-title mb-0">
                         <i class="fas fa-table me-2"></i>
-                        قائمة طلبات نقل الكفالة من الموقع الخارجي
+                        قائمة طلبات نقل الخدمات من الموقع الخارجي
                     </h5>
                 </div>
                 <div class="card-body">

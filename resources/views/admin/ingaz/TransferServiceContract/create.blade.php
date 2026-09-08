@@ -61,7 +61,7 @@
                 <div class="page-title-right">
                     <ol class="breadcrumb m-0">
                         <li class="breadcrumb-item"><a href="{{ route('dashboard.index') }}">الرئيسية</a></li>
-                        <li class="breadcrumb-item"><a href="{{ route('SponsorshipTransfer.index') }}">طلبات نقل الكفالة</a></li>
+                        <li class="breadcrumb-item"><a href="{{ route('SponsorshipTransfer.index') }}">طلبات نقل الخدمات</a></li>
                         <li class="breadcrumb-item active">إنشاء عقد نقل الخدمات</li>
                     </ol>
                 </div>

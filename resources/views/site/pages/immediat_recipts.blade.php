@@ -543,7 +543,7 @@
             {{--                        return;--}}
             {{--                    }--}}
 
-            {{--                    alert('تم إرسال طلب نقل الكفالة بنجاح');--}}
+            {{--                    alert('تم إرسال طلب نقل الخدمات بنجاح');--}}
             {{--                    window.location.href = '{{ route('site.profile.index') }}';--}}
             {{--                } catch (e) {--}}
             {{--                    console.error('Error parsing response:', e);--}}

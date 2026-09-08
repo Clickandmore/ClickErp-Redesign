@@ -129,7 +129,7 @@
                         <div class="text-center py-5">
                             <i class="fas fa-check-circle fa-3x text-success mb-3"></i>
                             <h5 class="text-muted">لا توجد طلبات نقل مكتملة</h5>
-                            <p class="text-muted">عندما يتم تأكيد نقل الكفالة، ستظهر الطلبات هنا</p>
+                            <p class="text-muted">عندما يتم تأكيد نقل الخدمات، ستظهر الطلبات هنا</p>
                         </div>
                     @endif
                 </div>

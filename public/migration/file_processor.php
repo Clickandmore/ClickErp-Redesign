@@ -526,7 +526,7 @@ try {
                     $results[] = processCvSponsorImport($_FILES['cv_sponsor_bulk_file']['tmp_name'], $db);
                 }
 
-                // ملفات حجوزات نقل الكفالة
+                // ملفات حجوزات نقل الخدمات
                 if (isset($_FILES['reservation_sponsor_bulk_file']) && $_FILES['reservation_sponsor_bulk_file']['error'] == 0) {
                     $results[] = processReservationSponsorImport($_FILES['reservation_sponsor_bulk_file']['tmp_name'], $db);
                 }
@@ -1565,13 +1565,13 @@ function migrateReservationSponsor()
         $newDb->rollBack();
         return [
             'success' => false,
-            'message' => 'فشل نقل حجوزات نقل الكفالة: ' . $e->getMessage()
+            'message' => 'فشل نقل حجوزات نقل الخدمات: ' . $e->getMessage()
         ];
     }
 
     return [
         'success' => true,
-        'message' => 'تم نقل حجوزات نقل الكفالة بنجاح',
+        'message' => 'تم نقل حجوزات نقل الخدمات بنجاح',
         'processed' => $processed,
         'inserted' => $inserted,
         'updated' => $updated,
@@ -3919,9 +3919,9 @@ function processCvSponsorImport($filePath, $db) {
 
 function processReservationSponsorImport($filePath, $db) {
     $data = processCsv($filePath);
-    if (empty($data)) return "ملف حجوزات نقل الكفالة فارغ";
+    if (empty($data)) return "ملف حجوزات نقل الخدمات فارغ";
     $successCount = count($data);
-    return "تم استيراد $successCount عنصر من حجوزات نقل الكفالة";
+    return "تم استيراد $successCount عنصر من حجوزات نقل الخدمات";
 }
 
 function processLodgingNotesImport($filePath, $db) {

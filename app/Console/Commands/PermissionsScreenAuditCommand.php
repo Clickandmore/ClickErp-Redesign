@@ -40,7 +40,7 @@ class PermissionsScreenAuditCommand extends Command
         ['label' => 'عقود التأجير', 'section' => 'rent_contracts'],
         ['label' => 'تفاويض الإنجاز', 'section' => null],
         ['label' => 'إدارة الإيواء', 'section' => 'shelter_management'],
-        ['label' => 'تحويل الكفالة', 'section' => 'additional_services'],
+        ['label' => 'نقل الخدمات', 'section' => 'additional_services'],
         ['label' => 'الخدمات اللوجستية', 'section' => 'travel_management'],
         ['label' => 'إدارة الشكاوى', 'section' => 'complaints'],
         ['label' => 'إدارة الوكلاء', 'section' => null],

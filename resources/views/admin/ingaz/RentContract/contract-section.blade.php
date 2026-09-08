@@ -39,13 +39,13 @@
                 <input type="number" class="form-control" id="monthly_salary" name="monthly_salary" min="0" step="0.01" required>
             </div>
 
-            <!-- معلومات نقل الكفالة -->
+            <!-- معلومات نقل الخدمات -->
             <div class="col-md-6 mb-3">
-                <label for="sponsorship_transfer_amount" class="form-label">مبلغ نقل الكفالة (ريال) <span class="required">*</span></label>
+                <label for="sponsorship_transfer_amount" class="form-label">مبلغ نقل الخدمات (ريال) <span class="required">*</span></label>
                 <input type="number" class="form-control" id="sponsorship_transfer_amount" name="sponsorship_transfer_amount" min="0" step="0.01" required>
             </div>
             <div class="col-md-6 mb-3">
-                <label for="salary_after_sponsorship" class="form-label">الراتب بعد نقل الكفالة (ريال) <span class="required">*</span></label>
+                <label for="salary_after_sponsorship" class="form-label">الراتب بعد نقل الخدمات (ريال) <span class="required">*</span></label>
                 <input type="number" class="form-control" id="salary_after_sponsorship" name="salary_after_sponsorship" min="0" step="0.01" required>
             </div>
 

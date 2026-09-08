@@ -262,7 +262,7 @@ Route::group(
                 Route::get('return-requests/{returnRequest}', [\App\Http\Controllers\Web\ContractReturnRequestController::class, 'show'])->name('contract-return-requests.show');
                 Route::delete('return-requests/{returnRequest}', [\App\Http\Controllers\Web\ContractReturnRequestController::class, 'cancel'])->name('contract-return-requests.cancel');
 
-                // طلبات نقل الكفالة
+                // طلبات نقل الخدمات
                 Route::get('sponsorship-transfers', [\App\Http\Controllers\Web\SponsorshipTransferController::class, 'index'])->name('sponsorship-transfers.index');
                 Route::get('sponsorship-transfers/{transfer}', [\App\Http\Controllers\Web\SponsorshipTransferController::class, 'show'])->name('sponsorship-transfers.show');
                 Route::post('sponsorship-transfers', [\App\Http\Controllers\Web\SponsorshipTransferController::class, 'store'])->name('sponsorship-transfers.store');

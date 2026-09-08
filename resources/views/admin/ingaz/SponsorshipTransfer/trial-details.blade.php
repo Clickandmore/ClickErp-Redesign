@@ -15,7 +15,7 @@
                 <div class="page-title-right">
                     <ol class="breadcrumb m-0">
                         <li class="breadcrumb-item"><a href="{{ route('dashboard.index') }}">الرئيسية</a></li>
-                        <li class="breadcrumb-item"><a href="{{ route('SponsorshipTransfer.index') }}">طلبات نقل الكفالة</a></li>
+                        <li class="breadcrumb-item"><a href="{{ route('SponsorshipTransfer.index') }}">طلبات نقل الخدمات</a></li>
                         <li class="breadcrumb-item active">تفاصيل فترة التجربة</li>
                     </ol>
                 </div>
@@ -132,7 +132,7 @@
                                         <li class="mb-2"><i class="fas fa-check text-success me-2"></i> مدة التجربة {{ $transfer->trial_days }} يوماً كاملة</li>
                                         <li class="mb-2"><i class="fas fa-check text-success me-2"></i> يحق للعميل إرجاع العاملة خلال فترة التجربة دون إبداء أسباب</li>
                                         <li class="mb-2"><i class="fas fa-check text-success me-2"></i> في حالة الإرجاع، تعود العاملة إلى الإيواء وتُرد المبالغ المدفوعة</li>
-                                        <li class="mb-2"><i class="fas fa-check text-success me-2"></i> في حالة النجاح، يتم تأكيد نقل الكفالة نهائياً</li>
+                                        <li class="mb-2"><i class="fas fa-check text-success me-2"></i> في حالة النجاح، يتم تأكيد نقل الخدمات نهائياً</li>
                                         <li class="mb-2"><i class="fas fa-check text-success me-2"></i> يجب على العميل التعامل مع العاملة وفقاً لأحكام الشريعة الإسلامية والأنظمة السعودية</li>
                                     </ul>
                                 </div>

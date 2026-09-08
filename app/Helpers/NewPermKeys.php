@@ -363,7 +363,7 @@ class NewPermKeys
     const TRAVEL_REJECT = 'travel_reject';
     const TRAVEL_MANAGE = 'travel_manage';
 
-    // تحويل الكفالة (Sponsor Transfer)
+    // نقل الخدمات (Sponsor Transfer)
     const SPONSOR_TRANSFER_VIEW = 'sponsor_transfer_view';
     const SPONSOR_TRANSFER_CREATE = 'sponsor_transfer_create';
     const SPONSOR_TRANSFER_EDIT = 'sponsor_transfer_edit';

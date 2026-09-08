@@ -8,12 +8,11 @@
                 <div class="col">
                     <h3 class="page-title">
                         <i class="fas fa-eye text-primary me-2"></i>
-                        تفاصيل طلب نقل الكفالة
+                        تفاصيل طلب نقل الخدمات
                     </h3>
                     <ul class="breadcrumb">
                         <li class="breadcrumb-item"><a href="{{ route('dashboard.index') }}">لوحة التحكم</a></li>
-                        <li class="breadcrumb-item"><a href="{{ route('SponsorshipTransfer.index') }}">إدارة نقل
-                                الكفالة</a></li>
+                        <li class="breadcrumb-item"><a href="{{ route('SponsorshipTransfer.index') }}">إدارة نقل الخدمات</a></li>
                         <li class="breadcrumb-item"><a href="{{ route('SponsorshipTransfer.webRequests') }}">طلبات
                                 الموقع الخارجي</a></li>
                         <li class="breadcrumb-item active">تفاصيل الطلب</li>

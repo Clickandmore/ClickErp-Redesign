@@ -1,6 +1,6 @@
 @extends('admin.layout.indexs.index')
 
-@section('title', 'إضافة بند جديد - عقد نقل الكفالة')
+@section('title', 'إضافة بند جديد - عقد نقل الخدمات')
 <style>
     .loader {
         border: 3px solid #f3f3f3;
@@ -34,7 +34,7 @@
                         <ol class="breadcrumb m-0">
                             <li class="breadcrumb-item"><a href="{{ route('dashboard.index') }}">الرئيسية</a></li>
                             <li class="breadcrumb-item"><a href="{{ route('transfer-contract-terms.index') }}">بنود عقد
-                                    نقل الكفالة</a></li>
+                                    نقل الخدمات</a></li>
                             <li class="breadcrumb-item active">إضافة بند جديد</li>
                         </ol>
                     </div>
@@ -48,7 +48,7 @@
                 <div class="card">
                     <div class="card-header">
                         <h4 class="card-title mb-0">
-                            <i class="fas fa-plus"></i> إضافة بند جديد لعقد نقل الكفالة
+                            <i class="fas fa-plus"></i> إضافة بند جديد لعقد نقل الخدمات
                         </h4>
                     </div>
                     <div class="card-body">

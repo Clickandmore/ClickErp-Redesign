@@ -213,7 +213,7 @@ class DashboardController extends Controller
             'no_orders' => max(0, $clientTotal - $clientsWithOrders),
         ];
 
-        // الإيجار ونقل الكفالة
+        // الإيجار ونقل الخدمات
         $rentalMaidActiveContractStatuses = [
             'new',
             'waiting_contract_send',

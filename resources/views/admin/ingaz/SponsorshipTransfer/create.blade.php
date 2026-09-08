@@ -37,7 +37,7 @@
             <div class="card-header bg-white border-bottom-0 pb-0">
                 <h3 class="card-title mb-0" style="font-weight:700;font-size:1.5rem;">
                     <i class="fas fa-exchange-alt text-primary me-2"></i>
-                    {{ $isEditMode ? 'تعديل طلب نقل الكفالة' : helperTrans("ingaz.add_sponsorship_transfer_request") }}
+                    {{ $isEditMode ? 'تعديل طلب نقل الخدمات' : helperTrans("ingaz.add_sponsorship_transfer_request") }}
                 </h3>
                 @if(!$isEditMode && isset($selectedOrder) && $selectedOrder)
                     <div class="alert alert-info mt-3">
@@ -73,7 +73,7 @@
                         <div class="col-12">
                             <div class="alert alert-info mb-0">
                                 <i class="fas fa-info-circle me-2"></i>
-                                هذا نقل كفالة لعاملة إيجار. سيستمر تسلسل النقل والتجربة كالمعتاد دون إنشاء قيود أو سندات أو فاتورة مالية.
+                                هذا نقل الخدمات لعاملة إيجار. سيستمر تسلسل النقل والتجربة كالمعتاد دون إنشاء قيود أو سندات أو فاتورة مالية.
                             </div>
                         </div>
                     @endif
@@ -244,13 +244,13 @@
                                     @if($receiptAccounts->isEmpty())
                                         <div class="form-text text-danger">لا توجد حسابات بنك أو صندوق أو محفظة صالحة في الدليل المحاسبي.</div>
                                     @else
-                                        <div class="form-text">سيُصدر سند القبض على هذا الحساب ويرتبط بطلب نقل الكفالة والعميل.</div>
+                                        <div class="form-text">سيُصدر سند القبض على هذا الحساب ويرتبط بطلب نقل الخدمات والعميل.</div>
                                     @endif
                                 </div>
                                 <div class="col-12">
                                     <label for="attachments" class="form-label fw-bold">مرفقات إضافية</label>
                                     <input type="file" name="attachments[]" id="attachments" class="form-control" accept=".jpg,.jpeg,.png,.pdf,.doc,.docx" multiple>
-                                    <div class="form-text">يمكن رفع أكثر من ملف متعلق بطلب نقل الكفالة.</div>
+                                    <div class="form-text">يمكن رفع أكثر من ملف متعلق بطلب نقل الخدمات.</div>
                                     @if($isEditMode && !empty($transfer->attachments))
                                         <div class="form-text text-success">عدد المرفقات المحفوظة حالياً: {{ count($transfer->attachments) }}. رفع مرفقات جديدة سيضيفها إلى القائمة.</div>
                                     @endif
@@ -278,7 +278,7 @@
                                 <i class="fas fa-file-invoice-dollar mt-1"></i>
                                 <div>
                                     <strong class="d-block">اختر طريقة الحفظ</strong>
-                                    يمكنك حفظ طلب نقل الكفالة فقط، أو حفظه والانتقال مباشرة لإعداد وإصدار الفاتورة.
+                                    يمكنك حفظ طلب نقل الخدمات فقط، أو حفظه والانتقال مباشرة لإعداد وإصدار الفاتورة.
                                 </div>
                             </div>
                         </div>
@@ -458,7 +458,7 @@ $(document).ready(function() {
             return { title: 'انتهت الجلسة', message: 'انتهت صلاحية جلسة الدخول أو رمز الحماية بسبب بقاء الصفحة مفتوحة لفترة طويلة، ولم يتم حفظ الطلب. حدّث الصفحة وسجّل الدخول من جديد ثم أعد إدخال الطلب.', reload: true };
         }
         if (status === 403) {
-            return { title: 'غير مصرح لك', message: 'لا تملك صلاحية إنشاء طلب نقل الكفالة، أو أن العقد أو العميل يتبع فرعاً آخر لا يمكنك التعامل معه. تواصل مع مدير النظام لمنحك الصلاحية.' };
+            return { title: 'غير مصرح لك', message: 'لا تملك صلاحية إنشاء طلب نقل الخدمات، أو أن العقد أو العميل يتبع فرعاً آخر لا يمكنك التعامل معه. تواصل مع مدير النظام لمنحك الصلاحية.' };
         }
         if (status === 404) {
             return { title: 'مسار الحفظ غير موجود', message: 'لم يعثر الخادم على مسار حفظ الطلب أو على أحد السجلات المطلوبة. حدّث الصفحة وأعد المحاولة، وإن استمرت المشكلة أبلغ الدعم الفني.' };
@@ -664,7 +664,7 @@ $(document).ready(function() {
                         window.location.href = response.show_url || '{{ route("SponsorshipTransfer.index") }}';
                     });
                 } else {
-                    showErrorResponse(response, 'لم يتم حفظ طلب نقل الكفالة. راجع البيانات وأعد المحاولة.', {
+                    showErrorResponse(response, 'لم يتم حفظ طلب نقل الخدمات. راجع البيانات وأعد المحاولة.', {
                         title: 'لم يتم الحفظ',
                         status: 200
                     });

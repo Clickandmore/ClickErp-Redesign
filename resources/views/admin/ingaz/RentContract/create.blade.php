@@ -1065,7 +1065,7 @@
                                     </div>
 
                                     {{-- <div class="col-6">
-                                        <label class="form-label">نقل الكفالة <small class="text-muted">(اختياري)</small></label>
+                                        <label class="form-label">نقل الخدمات <small class="text-muted">(اختياري)</small></label>
                                         <select name="sponsorship_transfer" id="sponsorship_transfer" class="form-select">
                                             <option value="">اختر</option>
                                             <option value="yes">نعم</option>

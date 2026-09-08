@@ -1094,7 +1094,7 @@
                                 <div class="close-option-icon bg-warning text-dark">
                                     <i class="fas fa-exchange-alt"></i>
                                 </div>
-                                <h6 class="fw-bold mb-2">إغلاق ونقل الكفالة</h6>
+                                <h6 class="fw-bold mb-2">إغلاق ونقل الخدمات</h6>
                                 <ul class="close-option-list">
                                     <li>يتم إنهاء عقد الإيجار الحالي بحالة تم النقل.</li>
                                     <li>تبقى العاملة غير متاحة لأنها خرجت بنقل خدمات.</li>
@@ -1102,19 +1102,19 @@
                                 </ul>
                                 <button type="button" class="btn btn-warning w-100" id="transferSponsorshipBtn">
                                     <i class="fas fa-exchange-alt me-2"></i>
-                                    اختيار نقل الكفالة
+                                    اختيار نقل الخدمات
                                 </button>
                             </div>
                         </div>
                     </div>
 
-                    <!-- نموذج نقل الكفالة (مخفي في البداية) -->
+                    <!-- نموذج نقل الخدمات (مخفي في البداية) -->
                     <div id="transferSponsorshipForm" style="display: none;" class="mt-4">
                         <div class="card border-warning">
                             <div class="card-header bg-warning text-dark">
                                 <h6 class="mb-0">
                                     <i class="fas fa-exchange-alt me-2"></i>
-                                    تأكيد نقل الكفالة
+                                    تأكيد نقل الخدمات
                                 </h6>
                             </div>
                             <div class="card-body">
@@ -1151,7 +1151,7 @@
                                         <div class="col-12">
                                             <div class="transfer-summary-box mb-3">
                                                 <i class="fas fa-info-circle me-1"></i>
-                                                نقل الكفالة لا ينشئ عقداً جديداً. أدخل المبلغ الكامل للنقل، وسيتم استخدامه
+                                                نقل الخدمات لا ينشئ عقداً جديداً. أدخل المبلغ الكامل للنقل، وسيتم استخدامه
                                                 في التوثيق والبنود المالية.
                                             </div>
                                         </div>
@@ -1251,7 +1251,7 @@
                                             <div class="mb-3">
                                                 <label for="transferNotes" class="form-label">ملاحظات</label>
                                                 <textarea class="form-control" id="transferNotes" name="transferNotes" rows="3"
-                                                    placeholder="ملاحظات إضافية حول عملية نقل الكفالة..."></textarea>
+                                                    placeholder="ملاحظات إضافية حول عملية نقل الخدمات..."></textarea>
                                             </div>
                                         </div>
                                         <div class="col-12">
@@ -1322,7 +1322,7 @@
                                         </button>
                                         <button type="submit" class="btn btn-warning">
                                             <i class="fas fa-check me-2"></i>
-                                            تأكيد نقل الكفالة
+                                            تأكيد نقل الخدمات
                                         </button>
                                     </div>
                                 </form>
@@ -2783,7 +2783,7 @@
 
                             updateCloseFinancialPreview();
 
-                            // تعبئة اسم العميل في نموذج نقل الكفالة
+                            // تعبئة اسم العميل في نموذج نقل الخدمات
                             $('#transferClientName').text(contract.client_name || '-');
 
                             // إظهار الـ modal
@@ -2961,7 +2961,7 @@
                 });
             }
 
-            // إظهار نموذج نقل الكفالة
+            // إظهار نموذج نقل الخدمات
             $('#transferSponsorshipBtn').click(function() {
                 $('#transferSponsorshipForm').show();
                 $('#closeContractAttachmentsRow').hide();
@@ -2979,7 +2979,7 @@
                 }
             });
 
-            // إلغاء نقل الكفالة
+            // إلغاء نقل الخدمات
             $('#cancelTransferBtn').click(function() {
                 $('#transferSponsorshipForm').hide();
                 $('#closeContractAttachmentsRow').hide();
@@ -3006,7 +3006,7 @@
                 }
             });
 
-            // تأكيد نقل الكفالة
+            // تأكيد نقل الخدمات
             $('#sponsorshipTransferForm').submit(function(e) {
                 e.preventDefault();
 
@@ -3053,7 +3053,7 @@
                                 icon: 'success',
                                 title: 'تم بنجاح',
                                 text: response.message ||
-                                    'تم إغلاق العقد ونقل الكفالة بنجاح'
+                                    'تم إغلاق العقد ونقل الخدمات بنجاح'
                             }).then(() => {
                                 $('#closeContractModal').modal('hide');
                                 dataTable.ajax.reload();
@@ -3062,12 +3062,12 @@
                             Swal.fire({
                                 icon: 'error',
                                 title: 'خطأ',
-                                text: response.message || 'حدث خطأ أثناء نقل الكفالة'
+                                text: response.message || 'حدث خطأ أثناء نقل الخدمات'
                             });
                         }
                     },
                     error: function(xhr) {
-                        let message = 'حدث خطأ أثناء نقل الكفالة';
+                        let message = 'حدث خطأ أثناء نقل الخدمات';
                         if (xhr.responseJSON && xhr.responseJSON.errors) {
                             const firstKey = Object.keys(xhr.responseJSON.errors)[0];
                             if (firstKey) {

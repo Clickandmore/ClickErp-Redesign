@@ -92,7 +92,7 @@ class RentalContractLedgerService
     }
 
     /**
-     * مجموع سندات القبض المعتمدة للعقد. رسوم نقل الكفالة تُستبعد لأنها مقابل
+     * مجموع سندات القبض المعتمدة للعقد. رسوم نقل الخدمات تُستبعد لأنها مقابل
      * خدمة أخرى لا علاقة لها بقيمة عقد الإيجار.
      */
     public function confirmedReceiptsTotal(RentalContract $contract, bool $excludeTransferFees = true): float
@@ -104,7 +104,7 @@ class RentalContractLedgerService
             ->where('is_confirm', 1)
             ->reject(function ($bond) use ($excludeTransferFees) {
                 return $excludeTransferFees
-                    && str_contains((string) $bond->statement, 'نقل كفالة');
+                    && str_contains((string) $bond->statement, 'نقل الخدمات');
             })
             ->sum('value');
 

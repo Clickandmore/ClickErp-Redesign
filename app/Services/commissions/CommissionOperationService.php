@@ -64,6 +64,8 @@ class CommissionOperationService
                 ));
 
                 if ($legacyRentalItem
+                    // A zero historical closure covers only its explicitly recorded operation.
+                    && $legacyRentalItem->legacy_source !== 'historical_zero_before_2026_09'
                     && Carbon::parse($operation['rental_extension_created_at'])->lte($legacyRentalItem->created_at)) {
                     $item = $legacyRentalItem;
                     $coveredByLegacyRentalCommission = true;
@@ -88,7 +90,7 @@ class CommissionOperationService
                 ? 0.0
                 : (float) ($item?->commission_amount ?? 0);
             $operation['commission_paid_historically'] =
-                $item?->legacy_source === 'alrafedin_paid_commissions';
+                in_array($item?->legacy_source, ['alrafedin_paid_commissions', 'historical_paid_before_2026_09', 'historical_zero_before_2026_09'], true);
 
             return $operation;
         });

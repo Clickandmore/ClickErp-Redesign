@@ -431,11 +431,11 @@ $newDb = [
             <div id="previous_sponsor_result" class="result"></div>
         </div>
 
-        <!-- نقل حجوزات نقل الكفالة (reservation_sponsor) -->
+        <!-- نقل حجوزات نقل الخدمات (reservation_sponsor) -->
         <div class="section">
-            <h3>1️⃣5️⃣ نقل حجوزات نقل الكفالة (reservation_sponsor → sponsorship_transfers)</h3>
+            <h3>1️⃣5️⃣ نقل حجوزات نقل الخدمات (reservation_sponsor → sponsorship_transfers)</h3>
             <div class="buttons">
-                <button onclick="transferReservationSponsor()" class="btn-success">نقل حجوزات نقل الكفالة</button>
+                <button onclick="transferReservationSponsor()" class="btn-success">نقل حجوزات نقل الخدمات</button>
             </div>
             <div id="reservation_sponsor_result" class="result"></div>
         </div>
@@ -2658,7 +2658,7 @@ function analyzeNationalitiesStructure() {
                 .then(data => {
                     if (data.success) {
                         const lines = [
-                            data.message || 'تم نقل حجوزات نقل الكفالة بنجاح',
+                            data.message || 'تم نقل حجوزات نقل الخدمات بنجاح',
                             'الإجمالي: ' + (data.processed ?? 0),
                             'مضاف: ' + (data.inserted ?? 0),
                             'محدث: ' + (data.updated ?? 0),
@@ -2675,7 +2675,7 @@ function analyzeNationalitiesStructure() {
                 })
                 .finally(() => {
                     btn.disabled = false;
-                    btn.textContent = 'نقل حجوزات نقل الكفالة';
+                    btn.textContent = 'نقل حجوزات نقل الخدمات';
                 });
         }
 

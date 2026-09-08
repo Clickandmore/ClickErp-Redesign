@@ -1419,7 +1419,7 @@
                     html: `
                         <div class="text-start">
                             <div class="alert alert-warning small">
-                                سيخرج العقد من الإيواء ولن يكون متاحاً لنقل الكفالة أو الترحيل.
+                                سيخرج العقد من الإيواء ولن يكون متاحاً لنقل الخدمات أو الترحيل.
                             </div>
                             <label for="escapeReportNote" class="form-label">الملاحظة</label>
                             <textarea id="escapeReportNote" class="form-control mb-3" rows="4" maxlength="3000"

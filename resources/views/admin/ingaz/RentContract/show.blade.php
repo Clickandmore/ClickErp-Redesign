@@ -1329,7 +1329,7 @@
                             @endif
                             @if ((float) ($contract->info?->sponsorship_transfer_amount ?? 0) > 0)
                                 <li>
-                                    <span class="label">مبلغ نقل الكفالة</span>
+                                    <span class="label">مبلغ نقل الخدمات</span>
                                     <span class="value">{{ number_format((float) $contract->info->sponsorship_transfer_amount, 2) }} ريال</span>
                                 </li>
                             @endif
@@ -1353,28 +1353,28 @@
                                     ];
                                 @endphp
                                 <li>
-                                    <span class="label">إجمالي نقل الكفالة</span>
+                                    <span class="label">إجمالي نقل الخدمات</span>
                                     <span class="value">{{ number_format((float) $contract->info->sponsorship_transfer_total_amount, 2) }} ريال</span>
                                 </li>
                                 <li>
-                                    <span class="label">مدفوع نقل الكفالة</span>
+                                    <span class="label">مدفوع نقل الخدمات</span>
                                     <span class="value">{{ number_format((float) $contract->info->sponsorship_transfer_paid_amount, 2) }} ريال</span>
                                 </li>
                                 <li>
-                                    <span class="label">متبقي نقل الكفالة</span>
+                                    <span class="label">متبقي نقل الخدمات</span>
                                     <span class="value">{{ number_format((float) $contract->info->sponsorship_transfer_remaining_amount, 2) }} ريال</span>
                                 </li>
                                 <li>
-                                    <span class="label">طريقة دفع نقل الكفالة</span>
+                                    <span class="label">طريقة دفع نقل الخدمات</span>
                                     <span class="value">{{ $transferPaymentTypes[$contract->info->sponsorship_transfer_payment_type] ?? 'غير محدد' }}</span>
                                 </li>
                                 <li>
-                                    <span class="label">حالة دفع نقل الكفالة</span>
+                                    <span class="label">حالة دفع نقل الخدمات</span>
                                     <span class="value">{{ $transferPaymentStatuses[$contract->info->sponsorship_transfer_payment_status] ?? 'غير محدد' }}</span>
                                 </li>
                                 @if($contract->info->sponsorship_transfer_payment_receipt_url)
                                     <li>
-                                        <span class="label">إيصال دفع نقل الكفالة</span>
+                                        <span class="label">إيصال دفع نقل الخدمات</span>
                                         <span class="value">
                                             <a href="{{ $contract->info->sponsorship_transfer_payment_receipt_url }}" target="_blank">عرض الإيصال</a>
                                         </span>
@@ -1383,7 +1383,7 @@
                             @endif
                             @if ((float) ($contract->info?->salary_after_sponsorship ?? 0) > 0)
                                 <li>
-                                    <span class="label">الراتب بعد نقل الكفالة</span>
+                                    <span class="label">الراتب بعد نقل الخدمات</span>
                                     <span class="value">{{ number_format((float) $contract->info->salary_after_sponsorship, 2) }} ريال</span>
                                 </li>
                             @endif

@@ -693,7 +693,7 @@
 
                         <div class="report-filter-section {{ $selectedReport === 'sponsorship_transfers' ? '' : 'd-none' }}"
                             data-report-section="sponsorship_transfers">
-                            <div class="report-section-title">فلاتر نقل الكفالة</div>
+                            <div class="report-section-title">فلاتر نقل الخدمات</div>
                             <div class="row g-3">
                                 <div class="col-lg-3">
                                     <label for="sponsor-transfer-status" class="form-label">الحالة</label>

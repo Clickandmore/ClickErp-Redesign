@@ -5744,7 +5744,7 @@ class RecruitmentContractController extends Controller
                 ->orWhere('order_id', 'like', $likeSearch)
                 ->orWhere('status', 'like', $likeSearch);
 
-            // بيانات العميل المعروض في الجدول، مع الحفاظ على الكفيل القديم بعد نقل الكفالة.
+            // بيانات العميل المعروض في الجدول، مع الحفاظ على الكفيل القديم بعد نقل الخدمات.
             $q->orWhere(function ($clientSearchQuery) use ($likeSearch) {
                 $this->applyDisplayedClientFilter($clientSearchQuery, function ($userQuery) use ($likeSearch) {
                     $userQuery->where('name', 'like', $likeSearch)

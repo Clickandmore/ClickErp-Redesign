@@ -92,7 +92,7 @@
                         <div class="text-end">
                             <div class="invoice-title">فاتورة إلكترونية</div>
                             <div class="invoice-meta">
-                                {{ $invoice->sponsorship_transfer_id ? 'طلب نقل كفالة رقم: ' . $invoice->sponsorship_transfer_id : ($invoice->contract_id ? 'رقم العقد: ' . $invoice->contract_id : ($invoice->ingaz_delegation_id ? 'رقم التفويض: ' . $invoice->ingaz_delegation_id : 'فاتورة عامة')) }}
+                                {{ $invoice->sponsorship_transfer_id ? 'طلب نقل الخدمات رقم: ' . $invoice->sponsorship_transfer_id : ($invoice->contract_id ? 'رقم العقد: ' . $invoice->contract_id : ($invoice->ingaz_delegation_id ? 'رقم التفويض: ' . $invoice->ingaz_delegation_id : 'فاتورة عامة')) }}
                             </div>
                         </div>
                     </div>
@@ -100,7 +100,7 @@
                     <div class="row g-3 mb-4">
                         <div class="col-lg-6 gap-4">
                             <div class="d-flex justify-content-between mb-2">
-                                <strong>{{ $invoice->sponsorship_transfer_id ? 'رقم طلب نقل الكفالة' : ($invoice->contract_id ? 'رقم العقد' : ($invoice->ingaz_delegation_id ? 'رقم التفويض' : 'نوع الفاتورة')) }}</strong>
+                                <strong>{{ $invoice->sponsorship_transfer_id ? 'رقم طلب نقل الخدمات' : ($invoice->contract_id ? 'رقم العقد' : ($invoice->ingaz_delegation_id ? 'رقم التفويض' : 'نوع الفاتورة')) }}</strong>
                                 <span>{{ $invoice->sponsorship_transfer_id ?: ($invoice->contract_id ?: ($invoice->ingaz_delegation_id ?: 'فاتورة عامة')) }}</span>
                             </div>
                             <div class="d-flex justify-content-between mb-2">

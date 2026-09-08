@@ -637,7 +637,7 @@
                                                             </a>
                                                         </li>
                                                         <li>
-                                                            <a class="dropdown-item confirm-action" href="#" data-action="confirm-transfer" data-id="{{ $transfer->id }}" data-text="تأكيد نقل الكفالة وإنهاء فترة التجربة">
+                                                            <a class="dropdown-item confirm-action" href="#" data-action="confirm-transfer" data-id="{{ $transfer->id }}" data-text="تأكيد نقل الخدمات وإنهاء فترة التجربة">
                                                                 <i class="fas fa-check-circle"></i> تأكيد النقل
                                                             </a>
                                                         </li>
@@ -979,7 +979,7 @@
 
                     Swal.fire({
                         title: 'إعادة العاملة إلى الإيواء؟',
-                        text: `سيتم إدخال ${maid} إلى الإيواء وإتاحتها لنقل الكفالة من ${sponsor} إلى كفيل آخر.`,
+                        text: `سيتم إدخال ${maid} إلى الإيواء وإتاحتها لنقل الخدمات من ${sponsor} إلى كفيل آخر.`,
                         icon: 'question',
                         showCancelButton: true,
                         confirmButtonColor: '#198754',

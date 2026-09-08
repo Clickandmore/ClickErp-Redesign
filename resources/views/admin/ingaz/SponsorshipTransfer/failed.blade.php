@@ -170,7 +170,7 @@
                         <div class="text-center py-5">
                             <i class="fas fa-times-circle fa-3x text-danger mb-3"></i>
                             <h5 class="text-muted">لا توجد طلبات فاشلة</h5>
-                            <p class="text-muted">عندما يتم إلغاء طلبات نقل الكفالة، ستظهر هنا</p>
+                            <p class="text-muted">عندما يتم إلغاء طلبات نقل الخدمات، ستظهر هنا</p>
                         </div>
                     @endif
                 </div>

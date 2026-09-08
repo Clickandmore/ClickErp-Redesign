@@ -407,9 +407,9 @@ class ReportExportService
                 'description' => 'تقرير الإيواء الموحّد مع الضمان والرغبة في العمل ومكان الإيواء.',
             ],
             'sponsorship_transfers' => [
-                'label' => 'نقل الكفالة',
+                'label' => 'نقل الخدمات',
                 'icon' => 'fas fa-exchange-alt',
-                'description' => 'تقرير معاملات نقل الكفالة مع بيانات الكفلاء والعاملة والحالة والمدفوعات.',
+                'description' => 'تقرير معاملات نقل الخدمات مع بيانات الكفلاء والعاملة والحالة والمدفوعات.',
             ],
             'deportation_travel' => [
                 'label' => 'رحلات الترحيل',
@@ -1044,7 +1044,7 @@ class ReportExportService
         $transfers = $query->get();
 
         return [
-            'title' => 'تقرير نقل الكفالة',
+            'title' => 'تقرير نقل الخدمات',
             'filename_prefix' => 'sponsorship_transfers_report',
             'headings' => [
                 'رقم النقل',

@@ -1,6 +1,6 @@
 @extends('admin.layout.indexs.index')
 
-@section('page-title', 'إصدار فاتورة نقل كفالة')
+@section('page-title', 'إصدار فاتورة نقل الخدمات')
 
 @section('style')
     <style>
@@ -25,7 +25,7 @@
     <div class="container-fluid transfer-invoice-page py-4">
         <div class="d-flex align-items-center justify-content-between gap-3 flex-wrap mb-3">
             <div>
-                <h3 class="mb-1">إصدار فاتورة نقل كفالة #{{ $transfer->id }}</h3>
+                <h3 class="mb-1">إصدار فاتورة نقل الخدمات #{{ $transfer->id }}</h3>
                 <p class="text-muted mb-0">الضريبة ثابتة على تكاليف المرخص له فقط، ويمكن تحديدها لكل بند إضافي.</p>
             </div>
             <a href="{{ route('SponsorshipTransfer.show', $transfer->id) }}" class="btn btn-outline-secondary">العودة إلى الطلب</a>
@@ -51,7 +51,7 @@
                     <div class="col-md-8">
                         <label class="form-label fw-bold">وصف الفاتورة</label>
                         <input type="text" name="general_description" class="form-control" maxlength="2000"
-                               value="{{ old('general_description', 'عملية نقل كفالة رقم ' . $transfer->id . ' - العاملة ' . ($transfer->contract?->maid?->name ?: 'غير محدد')) }}">
+                               value="{{ old('general_description', 'عملية نقل الخدمات رقم ' . $transfer->id . ' - العاملة ' . ($transfer->contract?->maid?->name ?: 'غير محدد')) }}">
                     </div>
                 </div>
 

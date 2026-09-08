@@ -258,7 +258,7 @@
 
                         <div class="col-md-6">
                             <div class="form-group">
-                                <label class="form-label">مبلغ نقل الكفالة</label>
+                                <label class="form-label">مبلغ نقل الخدمات</label>
                                 <input type="number" class="form-control" id="sponsorship_transfer" name="sponsorship_transfer" step="0.01">
                             </div>
                         </div>

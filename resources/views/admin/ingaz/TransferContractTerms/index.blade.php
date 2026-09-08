@@ -1,6 +1,6 @@
 @extends('admin.layout.indexs.index')
 
-@section('title', 'إدارة بنود عقد نقل الكفالة')
+@section('title', 'إدارة بنود عقد نقل الخدمات')
 
 @section('content')
     <div class="container-fluid">
@@ -11,10 +11,10 @@
                     <div class="page-title-right">
                         <ol class="breadcrumb m-0">
                             <li class="breadcrumb-item"><a href="{{ route('dashboard.index') }}">الرئيسية</a></li>
-                            <li class="breadcrumb-item active">بنود عقد نقل الكفالة</li>
+                            <li class="breadcrumb-item active">بنود عقد نقل الخدمات</li>
                         </ol>
                     </div>
-                    <h4 class="page-title">إدارة بنود عقد نقل الكفالة</h4>
+                    <h4 class="page-title">إدارة بنود عقد نقل الخدمات</h4>
                 </div>
             </div>
         </div>

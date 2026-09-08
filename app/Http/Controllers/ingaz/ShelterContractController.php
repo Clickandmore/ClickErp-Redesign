@@ -2192,7 +2192,7 @@ class ShelterContractController extends Controller
                                 break;
                             case SponsorshipTransfer::class:
                                 $url = route('SponsorshipTransfer.show', $reference->id);
-                                $label = 'عرض طلب نقل الكفالة';
+                                $label = 'عرض طلب نقل الخدمات';
                                 break;
                         }
 
@@ -2225,7 +2225,7 @@ class ShelterContractController extends Controller
 
                         if ($reference instanceof SponsorshipTransfer) {
                             $actions .= '<li><a class="dropdown-item" href="' . route('SponsorshipTransfer.show', $reference->id) . '">
-                                            <i class="fas fa-people-carry"></i> عرض طلب نقل الكفالة
+                                            <i class="fas fa-people-carry"></i> عرض طلب نقل الخدمات
                                         </a></li>';
                         }
 
@@ -3613,7 +3613,7 @@ class ShelterContractController extends Controller
             if ($contract->info && $contract->info->wants_to_work === 'yes') {
                 return response()->json([
                     'success' => false,
-                    'message' => 'العاملة ترغب بالعمل - يمكن نقل الكفالة بدلاً من الترحيل'
+                    'message' => 'العاملة ترغب بالعمل - يمكن نقل الخدمات بدلاً من الترحيل'
                 ], 400);
             }
 

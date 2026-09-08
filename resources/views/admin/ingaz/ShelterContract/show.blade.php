@@ -364,7 +364,7 @@
         @if($contract->hasEscapeReport())
             <div class="alert alert-danger mt-4">
                 <div class="fw-bold mb-1"><i class="fas fa-running me-1"></i> يوجد بلاغ هروب على العاملة</div>
-                <div>تم إخراجها من الإيواء، ولا يمكن بدء نقل الكفالة أو إجراءات الترحيل لهذا العقد.</div>
+                <div>تم إخراجها من الإيواء، ولا يمكن بدء نقل الخدمات أو إجراءات الترحيل لهذا العقد.</div>
                 @if($contract->info?->escape_report_note)
                     <div class="mt-2"><strong>الملاحظة:</strong> {{ $contract->info->escape_report_note }}</div>
                 @endif
@@ -590,7 +590,7 @@
                 @if(!$contract->hasEscapeReport() && $contract->info && $contract->info->wants_to_work == 'yes' && $canCreateTransferRequest)
                     <a href="{{ route('SponsorshipTransfer.create', ['contract_id' => $contract->id, 'workflow_source' => $isRentalWorker ? 'rental' : 'standard']) }}" class="action-card action-card--transfer">
                         <i class="fas fa-exchange-alt"></i>
-                        <span>بدء نقل الكفالة</span>
+                        <span>بدء نقل الخدمات</span>
                     </a>
                 @elseif(!$contract->hasEscapeReport() && $contract->info && $contract->info->wants_to_work == 'no')
                     @php

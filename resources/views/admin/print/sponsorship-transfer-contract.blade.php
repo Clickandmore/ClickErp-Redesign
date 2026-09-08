@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>طباعة عقد نقل الكفالة - {{ $transfer->id ?? 'غير محدد' }}</title>
+    <title>طباعة عقد نقل الخدمات - {{ $transfer->id ?? 'غير محدد' }}</title>
     <meta name="csrf-token" content="{{ csrf_token() }}">
 
     <style>

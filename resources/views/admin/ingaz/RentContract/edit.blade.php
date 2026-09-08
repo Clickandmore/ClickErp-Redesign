@@ -674,7 +674,7 @@
 
                 <div class="col-md-6">
                     <div class="form-group">
-                        <label class="form-label">مبلغ نقل الكفالة (ريال)</label>
+                        <label class="form-label">مبلغ نقل الخدمات (ريال)</label>
                         <input type="number" class="form-control" id="sponsorship_transfer_amount" name="sponsorship_transfer_amount"
                                value="{{ $contract->info->sponsorship_transfer_amount ?? '' }}" min="0" step="0.01">
                     </div>
@@ -682,7 +682,7 @@
 
                 <div class="col-md-6">
                     <div class="form-group">
-                        <label class="form-label">الراتب بعد نقل الكفالة (ريال)</label>
+                        <label class="form-label">الراتب بعد نقل الخدمات (ريال)</label>
                         <input type="number" class="form-control" id="salary_after_sponsorship" name="salary_after_sponsorship"
                                value="{{ $contract->info->salary_after_sponsorship ?? '' }}" min="0" step="0.01">
                     </div>

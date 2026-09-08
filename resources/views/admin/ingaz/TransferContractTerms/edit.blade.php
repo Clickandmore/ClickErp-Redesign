@@ -1,6 +1,6 @@
 @extends('admin.layout.indexs.index')
 
-@section('title', 'تعديل البند - عقد نقل الكفالة')
+@section('title', 'تعديل البند - عقد نقل الخدمات')
 
 @section('content')
 <div class="container-fluid">
@@ -11,7 +11,7 @@
                 <div class="page-title-right">
                     <ol class="breadcrumb m-0">
                         <li class="breadcrumb-item"><a href="{{ route('dashboard.index') }}">الرئيسية</a></li>
-                        <li class="breadcrumb-item"><a href="{{ route('transfer-contract-terms.index') }}">بنود عقد نقل الكفالة</a></li>
+                        <li class="breadcrumb-item"><a href="{{ route('transfer-contract-terms.index') }}">بنود عقد نقل الخدمات</a></li>
                         <li class="breadcrumb-item active">تعديل البند</li>
                     </ol>
                 </div>
@@ -25,7 +25,7 @@
             <div class="card">
                 <div class="card-header">
                     <h4 class="card-title mb-0">
-                        <i class="fas fa-edit"></i> تعديل بند عقد نقل الكفالة
+                        <i class="fas fa-edit"></i> تعديل بند عقد نقل الخدمات
                     </h4>
                 </div>
                 <div class="card-body">

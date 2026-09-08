@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>طباعة عقد نقل الكفالة - {{ $transfer->id ?? 'غير محدد' }}</title>
+    <title>طباعة عقد نقل الخدمات - {{ $transfer->id ?? 'غير محدد' }}</title>
     <meta name="csrf-token" content="{{ csrf_token() }}">
 
     <style>
@@ -323,7 +323,7 @@
 
         <!-- تفاصيل العقد -->
         <div class="contract-details">
-            <h3 style="margin-top: 0; color: #007bff;">تفاصيل طلب نقل الكفالة</h3>
+            <h3 style="margin-top: 0; color: #007bff;">تفاصيل طلب نقل الخدمات</h3>
             <div class="detail-row">
                 <span class="detail-label">رقم طلب النقل:</span>
                 <span class="detail-value">#{{ $transfer->id }}</span>

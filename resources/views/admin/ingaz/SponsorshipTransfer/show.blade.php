@@ -338,7 +338,7 @@
 @endsection
 
 @section('page-title')
-    تفاصيل طلب نقل الكفالة
+    تفاصيل طلب نقل الخدمات
 @endsection
 
 @section('content')
@@ -347,7 +347,7 @@
         <div class="details-header">
             <h3>
                 <i class="fas fa-exchange-alt me-2"></i>
-                تفاصيل طلب نقل الكفالة رقم: {{ $transfer->id }}
+                تفاصيل طلب نقل الخدمات رقم: {{ $transfer->id }}
             </h3>
             <div class="status-info">
                 <span class="{{ $transfer->status_badge }}">{{ $transfer->status_text }}</span>
@@ -495,7 +495,7 @@
                     @endif
                     @if($transfer->invoice)
                         <div class="info-row">
-                            <span class="info-label">فاتورة نقل الكفالة:</span>
+                            <span class="info-label">فاتورة نقل الخدمات:</span>
                             <span class="info-value">
                                 @if (\App\Support\InvoiceAuthorization::canView())
                                 <a href="{{ route('invoices.show', $transfer->invoice->id) }}" target="_blank" class="text-primary">

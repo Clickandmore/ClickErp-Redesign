@@ -279,7 +279,7 @@ class DataImportTemplateService
                 'label' => 'طلبات النقل',
                 'route_hint' => '/admin/SponsorshipTransfer',
                 'icon' => 'fas fa-exchange-alt',
-                'description' => 'طلبات نقل الكفالة ومراحلها وبيانات العميل والعاملة.',
+                'description' => 'طلبات نقل الخدمات ومراحلها وبيانات العميل والعاملة.',
                 'filename' => 'sponsorship-transfers-import-template.xlsx',
                 'columns' => [
                     ['key' => 'request_number', 'label' => 'رقم الطلب', 'required' => false, 'example' => 'ST-0001'],
@@ -493,7 +493,7 @@ class DataImportTemplateService
         ];
 
         $templates['alrafedin_transfer_services'] = [
-            'label' => 'نقل الخدمات والكفالة (الرافدين)',
+            'label' => 'نقل الخدمات (الرافدين)',
             'route_hint' => '/admin/TransferServiceContract',
             'icon' => 'fas fa-people-arrows',
             'description' => 'استيراد تقرير الرافدين المدمج أو تقرير نقل الخدمات، وربط العملية بعميل أربيا وطلب الاستقدام والسيرة، وإنشاء طلب نقل وعقد نقل خدمات مكتمل مع حفظ جميع تفاصيل الصف الأصلي ومنع التكرار.',

@@ -45,6 +45,6 @@ class AddSponsorshipTransferPermissionsSeeder extends Seeder
             }
         }
 
-        $this->command->info('تم إضافة صلاحيات نقل الكفالة بنجاح!');
+        $this->command->info('تم إضافة صلاحيات نقل الخدمات بنجاح!');
     }
 }

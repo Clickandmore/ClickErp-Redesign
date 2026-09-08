@@ -159,7 +159,7 @@ class AlrafedinTransferServicesImportService
         }
 
         if ($parsed === []) {
-            throw new \InvalidArgumentException('لم يتم العثور على جدول نقل الكفالة أو نقل الخدمات داخل الملف.');
+            throw new \InvalidArgumentException('لم يتم العثور على جدول نقل الخدمات داخل الملف.');
         }
 
         return $parsed;
@@ -643,7 +643,7 @@ class AlrafedinTransferServicesImportService
 
     private function importNotes(string $source, string $operation, array $data): string
     {
-        $type = $source === 'transfer_service' ? 'نقل الخدمات' : 'نقل الكفالة السابق';
+        $type = $source === 'transfer_service' ? 'نقل الخدمات' : 'نقل الخدمات السابق';
         $status = trim((string) ($data['source_status'] ?? ''));
 
         return "مستورد من تقرير الرافدين ({$type})، رقم العملية {$operation}."

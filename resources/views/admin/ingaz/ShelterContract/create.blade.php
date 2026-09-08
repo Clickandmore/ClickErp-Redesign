@@ -470,7 +470,7 @@
                                     </select>
                                 </div>
                                 <div class="col-md-6 col-lg-3">
-                                    <label class="form-label">سعر نقل الكفالة</label>
+                                    <label class="form-label">سعر نقل الخدمات</label>
                                     <input readonly type="number" step="0.01" name="sponsorship_price"
                                         id="sponsorship_price" class="form-control"
                                         value="{{ old('sponsorship_price', optional($editingInfo)->sponsorship_price) }}">

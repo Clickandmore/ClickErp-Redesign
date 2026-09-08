@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>دليل الاختبار الكامل — نقل الكفالة والقيود المحاسبية</title>
+<title>دليل الاختبار الكامل — نقل الخدمات والقيود المحاسبية</title>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body { font-family: 'Segoe UI', Tahoma, Arial, sans-serif; background: #f0f2f5; color: #1a1a2e; direction: rtl; }
@@ -133,7 +133,7 @@
 <body>
 
 <div class="page-header">
-  <h1>🧾 دليل الاختبار الكامل — نقل الكفالة</h1>
+  <h1>🧾 دليل الاختبار الكامل — نقل الخدمات</h1>
   <p>الإعداد المسبق + خطوات الداشبورد + القيود المحاسبية الثلاثة</p>
 </div>
 
@@ -154,7 +154,7 @@
 
   <div class="error-box">
     <h3>❌ المشكلة: "No results found" في الـ Dropdown</h3>
-    <p>عند فتح <strong>نقل الكفالة ← إضافة طلب جديد</strong>، حقل "اختيار العقد المتاح للنقل" لا يعرض أي عقود لأن لا يوجد عقد يحقق الشرطين معاً.</p>
+    <p>عند فتح <strong>نقل الخدمات ← إضافة طلب جديد</strong>، حقل "اختيار العقد المتاح للنقل" لا يعرض أي عقود لأن لا يوجد عقد يحقق الشرطين معاً.</p>
   </div>
 
   <div class="conditions">
@@ -226,7 +226,7 @@
       </ol>
       <div class="error-box" style="margin-bottom:0;">
         <h3>⚠️ مشكلة شائعة — العقد لا يظهر في القائمة؟</h3>
-        <p>إذا أنشأت العقد ولم يظهر في dropdown نقل الكفالة، السبب هو أن حقل <strong>"رغبة العمل"</strong> لم يُختَر كـ <strong>"نعم"</strong> أثناء الإنشاء.</p>
+        <p>إذا أنشأت العقد ولم يظهر في dropdown نقل الخدمات، السبب هو أن حقل <strong>"رغبة العمل"</strong> لم يُختَر كـ <strong>"نعم"</strong> أثناء الإنشاء.</p>
         <p style="margin-top:8px;"><strong>الحل:</strong> اذهب إلى عقد الإيواء ← تعديل ← اختر "رغبة العمل = نعم" ← احفظ. ثم يظهر العقد فوراً.</p>
       </div>
       <hr class="divider">
@@ -257,13 +257,13 @@
       </ol>
       <div class="screen-hint">
         <strong>📌 بعد التغيير مباشرة:</strong>
-        يظهر زر <strong>"بدء نقل الكفالة"</strong> في صفحة تفاصيل العقد — اضغطه للانتقال مباشرة لإنشاء طلب النقل.
+        يظهر زر <strong>"بدء نقل الخدمات"</strong> في صفحة تفاصيل العقد — اضغطه للانتقال مباشرة لإنشاء طلب النقل.
       </div>
       <hr class="divider">
       <p class="section-title">الطريقة 2 — من "المتاح للنقل"</p>
       <ol class="steps">
         <li>اذهب إلى: <span class="nav">الإيواء ← المتاح للنقل</span></li>
-        <li>إذا ظهر العقد اضغط مباشرة <strong>"بدء نقل الكفالة"</strong></li>
+        <li>إذا ظهر العقد اضغط مباشرة <strong>"بدء نقل الخدمات"</strong></li>
       </ol>
       <hr class="divider">
       <p class="section-title">SQL — للاختبار السريع</p>
@@ -311,8 +311,8 @@
 
   <div class="ok-box">
     <strong>✅ بعد الانتهاء من الخطوات الأربعة:</strong><br>
-    اذهب إلى <strong>نقل الكفالة ← إضافة طلب جديد</strong> — العقد سيظهر في القائمة.
-    أو اضغط <strong>"بدء نقل الكفالة"</strong> مباشرة من صفحة تفاصيل عقد الإيواء.
+    اذهب إلى <strong>نقل الخدمات ← إضافة طلب جديد</strong> — العقد سيظهر في القائمة.
+    أو اضغط <strong>"بدء نقل الخدمات"</strong> مباشرة من صفحة تفاصيل عقد الإيواء.
   </div>
 
 </div>
@@ -348,7 +348,7 @@
         <a class="quick-link" href="/admin/ingaz/SponsorshipTransfer/create" target="_blank">➕ إضافة طلب نقل خدمات</a>
       </div>
       <ol class="steps">
-        <li>اضغط الرابط أعلاه أو اذهب إلى: <span class="nav">نقل الكفالة ← إضافة طلب جديد</span></li>
+        <li>اضغط الرابط أعلاه أو اذهب إلى: <span class="nav">نقل الخدمات ← إضافة طلب جديد</span></li>
         <li>اختر العقد من القائمة (بعد إتمام الإعداد المسبق)</li>
         <li>أدخل: قيمة العقد = <code>20,500</code> — المدفوع مقدماً = <code>5,000</code> — أيام التجربة = <code>90</code></li>
         <li>احفظ ← الحالة: <strong>pending</strong></li>

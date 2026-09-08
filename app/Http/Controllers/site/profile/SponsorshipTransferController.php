@@ -49,7 +49,7 @@ class SponsorshipTransferController extends Controller
             if (!auth()->check()) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'يجب تسجيل الدخول لإرسال طلب نقل الكفالة'
+                    'message' => 'يجب تسجيل الدخول لإرسال طلب نقل الخدمات'
                 ], 401);
             }
 
@@ -117,7 +117,7 @@ class SponsorshipTransferController extends Controller
             if ($contract->hasEscapeReport() || $contract->info->is_outside_shelter) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'لا يمكن نقل كفالة العاملة لوجود بلاغ هروب عليها'
+                    'message' => 'لا يمكن نقل الخدمات العاملة لوجود بلاغ هروب عليها'
                 ], 422);
             }
 
@@ -164,7 +164,7 @@ class SponsorshipTransferController extends Controller
 
             return response()->json([
                 'success' => true,
-                'message' => 'تم إرسال طلب نقل الكفالة بنجاح'
+                'message' => 'تم إرسال طلب نقل الخدمات بنجاح'
             ]);
 
         } catch (\Exception $e) {
@@ -173,7 +173,7 @@ class SponsorshipTransferController extends Controller
 
             return response()->json([
                 'success' => false,
-                'message' => 'حدث خطأ في إرسال طلب نقل الكفالة'
+                'message' => 'حدث خطأ في إرسال طلب نقل الخدمات'
             ], 500);
         }
     }

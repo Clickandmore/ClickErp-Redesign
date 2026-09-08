@@ -148,7 +148,7 @@ class TransferServiceContractController extends Controller
 
         if (!$transferId) {
             return redirect()->route('SponsorshipTransfer.index')
-                ->with('error', 'يجب تحديد طلب نقل الكفالة');
+                ->with('error', 'يجب تحديد طلب نقل الخدمات');
         }
 
         $transfer = SponsorshipTransfer::with([

@@ -115,7 +115,7 @@
                                                             <a class="dropdown-item confirm-action" href="#"
                                                                data-action="confirm-transfer"
                                                                data-id="{{ $transfer->id }}"
-                                                               data-text="تأكيد نقل الكفالة">
+                                                               data-text="تأكيد نقل الخدمات">
                                                                 <i class="fas fa-check-circle"></i> تأكيد النقل
                                                             </a>
                                                         </li>
@@ -143,7 +143,7 @@
                         <div class="text-center py-5">
                             <i class="fas fa-clock-o fa-3x text-muted mb-3"></i>
                             <h5 class="text-muted">لا توجد طلبات في فترة التجربة</h5>
-                            <p class="text-muted">عندما يتم الموافقة على طلبات نقل الكفالة، ستظهر هنا في فترة التجربة</p>
+                            <p class="text-muted">عندما يتم الموافقة على طلبات نقل الخدمات، ستظهر هنا في فترة التجربة</p>
                         </div>
                     @endif
                 </div>

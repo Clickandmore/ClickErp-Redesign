@@ -5754,7 +5754,7 @@ class DataImportExecutionService
     {
         $normalizedStatus = $this->normalizeArabicText($status);
 
-        if (in_array($normalizedStatus, ['transferred', 'تم النقل', 'منقول', 'نقل الكفاله'], true)) {
+        if (in_array($normalizedStatus, ['transferred', 'تم النقل', 'منقول', 'نقل الكفاله', 'نقل الكفالة', 'نقل الخدمات'], true)) {
             return 'transferred';
         }
 

@@ -73,7 +73,7 @@ class SponsorshipTransferPaymentService
             'credit_account_id' => $clientAccountId,
             'value' => round((float) $transfer->paid_amount, 2),
             'date' => $paymentDate,
-            'statement' => 'سند قبض طلب نقل كفالة رقم ' . $transfer->id
+            'statement' => 'سند قبض طلب نقل الخدمات رقم ' . $transfer->id
                 . ' / العميل ' . ($transfer->newSponsor?->name ?: 'غير محدد')
                 . ' / العاملة ' . ($transfer->contract?->maid?->name ?: 'غير محدد')
                 . ' / إلى حساب ' . $receiptAccount->name,
@@ -127,7 +127,7 @@ class SponsorshipTransferPaymentService
             'credit_account_id' => $paymentAccount->id,
             'value' => round($amount, 2),
             'date' => $paymentDate,
-            'statement' => 'سند صرف استرجاع طلب نقل كفالة رقم ' . $transfer->id
+            'statement' => 'سند صرف استرجاع طلب نقل الخدمات رقم ' . $transfer->id
                 . ' / العميل ' . ($transfer->newSponsor?->name ?: 'غير محدد')
                 . ' / من حساب ' . $paymentAccount->name,
             'code' => $this->bondService->lastCode(BondTypes::Sarf->value),

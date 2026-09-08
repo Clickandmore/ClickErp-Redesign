@@ -324,12 +324,12 @@ class SponsorshipTransferController extends Controller
 
                     // تأكيد النقل (فقط إذا كان في فترة التجربة)
                     // if ($transfer->status == 'trial') {
-                    //     $actions .= '<li><a class="dropdown-item confirm-action" href="#" data-action="confirm-transfer" data-id="' . $transfer->id . '" data-text="تأكيد نقل الكفالة">
+                    //     $actions .= '<li><a class="dropdown-item confirm-action" href="#" data-action="confirm-transfer" data-id="' . $transfer->id . '" data-text="تأكيد نقل الخدمات">
                     //                     <i class="fas fa-check-circle"></i> تأكيد النقل
                     //                 </a></li>';
                     // }
                     if ($transfer->status == 'trial_started') {
-                        $actions .= '<li><a class="dropdown-item confirm-action" href="#" data-action="confirm-transfer" data-id="' . $transfer->id . '" data-text="تأكيد نقل الكفالة">
+                        $actions .= '<li><a class="dropdown-item confirm-action" href="#" data-action="confirm-transfer" data-id="' . $transfer->id . '" data-text="تأكيد نقل الخدمات">
                                         <i class="fas fa-check-circle"></i> تأكيد النقل
                                     </a></li>';
                     }
@@ -408,7 +408,7 @@ class SponsorshipTransferController extends Controller
     }
 
     /**
-     * عرض طلبات نقل الكفالة من الموقع الخارجي
+     * عرض طلبات نقل الخدمات من الموقع الخارجي
      */
     public function webRequests(Request $request)
     {
@@ -431,7 +431,7 @@ class SponsorshipTransferController extends Controller
 
         if ($request->ajax()) {
             $query = Order::with(['user', 'maid.nationality', 'details.admin'])
-                ->where('job_type_id', 3) // طلبات نقل الكفالة
+                ->where('job_type_id', 3) // طلبات نقل الخدمات
                 ->orderBy('created_at', 'desc');
             $this->applyRequestBranchFilter($query, $request, 'orders');
 
@@ -529,7 +529,7 @@ class SponsorshipTransferController extends Controller
     }
 
     /**
-     * عرض تفاصيل طلب نقل الكفالة من الموقع الخارجي
+     * عرض تفاصيل طلب نقل الخدمات من الموقع الخارجي
      */
     public function showWebRequest($id)
     {
@@ -689,7 +689,7 @@ class SponsorshipTransferController extends Controller
                 : 'standard';
             if ($workflowSource === 'rental' && !$this->contractIsRentalWorker($contract)) {
                 throw ValidationException::withMessages([
-                    'contract_id' => 'مسار نقل الكفالة غير المالي مخصص لعاملات الإيجار فقط.',
+                    'contract_id' => 'مسار نقل الخدمات غير المالي مخصص لعاملات الإيجار فقط.',
                 ]);
             }
 
@@ -721,7 +721,7 @@ class SponsorshipTransferController extends Controller
             if ($contract->hasEscapeReport() || $contract->info->is_outside_shelter) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'لا يمكن نقل كفالة العاملة لوجود بلاغ هروب عليها'
+                    'message' => 'لا يمكن نقل الخدمات العاملة لوجود بلاغ هروب عليها'
                 ], 422);
             }
 
@@ -766,7 +766,7 @@ class SponsorshipTransferController extends Controller
                 ];
             }
 
-            // حفظ بيانات طلب نقل الكفالة
+            // حفظ بيانات طلب نقل الخدمات
             $transferData = [
                 'workflow_source' => $workflowSource,
                 'contract_id' => $contract->id,
@@ -805,7 +805,7 @@ class SponsorshipTransferController extends Controller
 
             return response()->json([
                 'success' => true,
-                'message' => 'تم حفظ طلب نقل الكفالة بنجاح'
+                'message' => 'تم حفظ طلب نقل الخدمات بنجاح'
                     . (!empty($financeResult['bond']) ? ' وإنشاء سند قبض رقم ' . ($financeResult['bond']->code ?: $financeResult['bond']->id) : ''),
                 'transfer_id' => $transfer->id,
                 'show_url' => route('SponsorshipTransfer.show', $transfer->id),
@@ -836,7 +836,7 @@ class SponsorshipTransferController extends Controller
 
             return response()->json([
                 'success' => false,
-                'message' => $this->exceptionMessage('حدث خطأ في حفظ طلب نقل الكفالة', $e),
+                'message' => $this->exceptionMessage('حدث خطأ في حفظ طلب نقل الخدمات', $e),
                 'debug' => $this->exceptionDebug($e),
             ], 500);
         }
@@ -1038,7 +1038,7 @@ class SponsorshipTransferController extends Controller
 
             if (!$contract->user_id) {
                 throw ValidationException::withMessages([
-                    'contract_id' => 'لا يمكن تحديث طلب نقل الكفالة بهذا العقد لأنه لا يحتوي على كفيل حالي. يرجى ربط العقد بالعميل الحالي أولا.',
+                    'contract_id' => 'لا يمكن تحديث طلب نقل الخدمات بهذا العقد لأنه لا يحتوي على كفيل حالي. يرجى ربط العقد بالعميل الحالي أولا.',
                 ]);
             }
 
@@ -1129,7 +1129,7 @@ class SponsorshipTransferController extends Controller
 
             return response()->json([
                 'success' => true,
-                'message' => 'تم تحديث طلب نقل الكفالة بنجاح'
+                'message' => 'تم تحديث طلب نقل الخدمات بنجاح'
             ]);
 
         } catch (ValidationException $e) {
@@ -1155,7 +1155,7 @@ class SponsorshipTransferController extends Controller
 
             return response()->json([
                 'success' => false,
-                'message' => $this->exceptionMessage('حدث خطأ في تحديث طلب نقل الكفالة', $e),
+                'message' => $this->exceptionMessage('حدث خطأ في تحديث طلب نقل الخدمات', $e),
                 'debug' => $this->exceptionDebug($e),
             ], 500);
         }
@@ -1253,7 +1253,7 @@ class SponsorshipTransferController extends Controller
 
             return response()->json([
                 'success' => true,
-                'message' => 'تم رفض طلب نقل الكفالة'
+                'message' => 'تم رفض طلب نقل الخدمات'
             ]);
 
         } catch (\Exception $e) {
@@ -1295,7 +1295,7 @@ class SponsorshipTransferController extends Controller
 
             return response()->json([
                 'success' => true,
-                'message' => 'تم إكمال طلب نقل الكفالة بنجاح'
+                'message' => 'تم إكمال طلب نقل الخدمات بنجاح'
             ]);
 
         } catch (\Exception $e) {
@@ -1328,7 +1328,7 @@ class SponsorshipTransferController extends Controller
 
             return response()->json([
                 'success' => true,
-                'message' => 'تم حذف طلب نقل الكفالة من القائمة بنجاح'
+                'message' => 'تم حذف طلب نقل الخدمات من القائمة بنجاح'
             ]);
 
         } catch (\Exception $e) {
@@ -1537,7 +1537,7 @@ class SponsorshipTransferController extends Controller
 
             return response()->json([
                 'success' => true,
-                'message' => 'تم تأكيد نقل الكفالة بنجاح'
+                'message' => 'تم تأكيد نقل الخدمات بنجاح'
             ]);
 
         } catch (\Exception $e) {
@@ -1568,13 +1568,13 @@ class SponsorshipTransferController extends Controller
 
             if ($transfer->status !== 'transferred') {
                 throw ValidationException::withMessages([
-                    'transfer' => 'يمكن إعادة العاملة إلى الإيواء بعد اكتمال نقل الكفالة فقط.',
+                    'transfer' => 'يمكن إعادة العاملة إلى الإيواء بعد اكتمال نقل الخدمات فقط.',
                 ]);
             }
 
             if (!$transfer->contract) {
                 throw ValidationException::withMessages([
-                    'contract' => 'لا يوجد عقد مرتبط بحركة نقل الكفالة.',
+                    'contract' => 'لا يوجد عقد مرتبط بحركة نقل الخدمات.',
                 ]);
             }
 
@@ -1609,7 +1609,7 @@ class SponsorshipTransferController extends Controller
 
             if ($hasLaterTransfer) {
                 throw ValidationException::withMessages([
-                    'transfer' => 'توجد حركة نقل كفالة أحدث لهذه العاملة؛ لا يمكن الإرجاع من الحركة السابقة.',
+                    'transfer' => 'توجد حركة نقل الخدمات أحدث لهذه العاملة؛ لا يمكن الإرجاع من الحركة السابقة.',
                 ]);
             }
 
@@ -1657,7 +1657,7 @@ class SponsorshipTransferController extends Controller
             $contract->contract_status_logs()->create([
                 'status' => ContractStatusEnum::Shelter->value,
                 'date' => $returnedAt,
-                'notes' => 'تمت إعادة العاملة إلى داخل الإيواء بعد اكتمال نقل الكفالة رقم ' . $transfer->id
+                'notes' => 'تمت إعادة العاملة إلى داخل الإيواء بعد اكتمال نقل الخدمات رقم ' . $transfer->id
                     . '، مع إبقاء الكفيل الحالي تمهيداً لإمكانية نقلها إلى كفيل آخر.',
             ]);
 
@@ -1665,7 +1665,7 @@ class SponsorshipTransferController extends Controller
 
             return response()->json([
                 'success' => true,
-                'message' => 'تمت إعادة العاملة إلى الإيواء وأصبحت متاحة لنقل الكفالة من الكفيل الحالي إلى كفيل آخر.',
+                'message' => 'تمت إعادة العاملة إلى الإيواء وأصبحت متاحة لنقل الخدمات من الكفيل الحالي إلى كفيل آخر.',
                 'redirect' => route('ShelterContract.availableForTransfer'),
             ]);
         } catch (ValidationException $e) {
@@ -1850,7 +1850,7 @@ class SponsorshipTransferController extends Controller
     }
 
     /**
-     * إلغاء طلب نقل الكفالة وإرجاع العاملة متاحة
+     * إلغاء طلب نقل الخدمات وإرجاع العاملة متاحة
      */
     public function cancelOrder(Request $request, $id)
     {
@@ -1975,7 +1975,7 @@ class SponsorshipTransferController extends Controller
                 'date_label' => 'بداية التجربة',
                 'empty_icon' => 'fas fa-hourglass-half',
                 'empty_title' => 'لا توجد طلبات في فترة التجربة',
-                'empty_message' => 'عند بدء فترة التجربة لطلبات نقل الكفالة ستظهر هنا.',
+                'empty_message' => 'عند بدء فترة التجربة لطلبات نقل الخدمات ستظهر هنا.',
                 'sort_options' => [
                     'trial_end_date' => 'نهاية التجربة',
                     'trial_start_date' => 'بداية التجربة',
@@ -1997,7 +1997,7 @@ class SponsorshipTransferController extends Controller
                 'date_label' => 'تاريخ النقل',
                 'empty_icon' => 'fas fa-check-circle',
                 'empty_title' => 'لا توجد طلبات تم نقلها',
-                'empty_message' => 'عند تأكيد نقل الكفالة ستظهر الطلبات هنا.',
+                'empty_message' => 'عند تأكيد نقل الخدمات ستظهر الطلبات هنا.',
                 'sort_options' => [
                     'status_date' => 'تاريخ النقل',
                     'contract_value' => 'قيمة العقد',
@@ -2017,7 +2017,7 @@ class SponsorshipTransferController extends Controller
                 'date_label' => 'تاريخ الفشل',
                 'empty_icon' => 'fas fa-times-circle',
                 'empty_title' => 'لا توجد حالات فشل نقل',
-                'empty_message' => 'عند إلغاء نقل الكفالة وإرجاع العقد إلى الإيواء ستظهر الحالات هنا.',
+                'empty_message' => 'عند إلغاء نقل الخدمات وإرجاع العقد إلى الإيواء ستظهر الحالات هنا.',
                 'sort_options' => [
                     'status_date' => 'تاريخ الفشل',
                     'contract_value' => 'قيمة العقد',
@@ -2530,8 +2530,8 @@ class SponsorshipTransferController extends Controller
 
         app(AdminNotificationService::class)->sendToAdmins(
             $recipients,
-            'تم تحديث نقل الكفالة #' . $transfer->id,
-            'تغيرت حالة نقل الكفالة من "' . $this->sponsorshipTransferStatusLabel($previousStatus) . '" إلى "' . $transfer->status_text . '".',
+            'تم تحديث نقل الخدمات #' . $transfer->id,
+            'تغيرت حالة نقل الخدمات من "' . $this->sponsorshipTransferStatusLabel($previousStatus) . '" إلى "' . $transfer->status_text . '".',
             'sponsorship_transfer_status_changed',
             route('SponsorshipTransfer.show', $transfer->id),
             [
@@ -2728,7 +2728,7 @@ class SponsorshipTransferController extends Controller
     }
 
     /**
-     * طباعة عقد نقل الكفالة
+     * طباعة عقد نقل الخدمات
      */
     public function printContract($id)
     {
@@ -2782,7 +2782,7 @@ class SponsorshipTransferController extends Controller
     }
 
     /**
-     * حفظ التوقيع على عقد نقل الكفالة
+     * حفظ التوقيع على عقد نقل الخدمات
      */
     public function saveSignature(Request $request, $id)
     {
@@ -2869,7 +2869,7 @@ class SponsorshipTransferController extends Controller
     }
 
     /**
-     * حفظ توقيع الشركة على عقد نقل الكفالة
+     * حفظ توقيع الشركة على عقد نقل الخدمات
      */
     public function saveCompanySignature(Request $request, $id)
     {
@@ -2946,7 +2946,7 @@ class SponsorshipTransferController extends Controller
     {
         return response()->json([
             'success' => false,
-            'message' => 'لا يمكن متابعة نقل الكفالة لوجود بلاغ هروب على العاملة',
+            'message' => 'لا يمكن متابعة نقل الخدمات لوجود بلاغ هروب على العاملة',
         ], 422);
     }
 }

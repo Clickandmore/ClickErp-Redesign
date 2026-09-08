@@ -1723,7 +1723,7 @@ class RentContractController extends Controller
         $lines = [
             'عميلنا ' . $clientName . '،',
             $contract->closure_type === 'transferred'
-                ? 'تم إغلاق عقد الإيجار رقم ' . $contractNumber . ' وتوثيق نقل الكفالة بتاريخ ' . $closedDate . '.'
+                ? 'تم إغلاق عقد الإيجار رقم ' . $contractNumber . ' وتوثيق نقل الخدمات بتاريخ ' . $closedDate . '.'
                 : 'تم إنهاء عقد الإيجار رقم ' . $contractNumber . ' بتاريخ ' . $closedDate . '.',
         ];
 
@@ -3310,7 +3310,7 @@ class RentContractController extends Controller
             }
 
             $newContract = (object) ['id' => null];
-            $message = 'تم إغلاق عقد الإيجار وتوثيق نقل الكفالة بنجاح.';
+            $message = 'تم إغلاق عقد الإيجار وتوثيق نقل الخدمات بنجاح.';
 
             return response()->json([
                 'success' => true,
@@ -3602,7 +3602,7 @@ class RentContractController extends Controller
             $addAttachment($receipt['path'], $receipt['label'], 'payment-receipt');
         }
 
-        $addAttachment($contract->info?->sponsorship_transfer_payment_receipt_path, 'إيصال دفع نقل الكفالة', 'transfer-payment-receipt');
+        $addAttachment($contract->info?->sponsorship_transfer_payment_receipt_path, 'إيصال دفع نقل الخدمات', 'transfer-payment-receipt');
         $addAttachment($contract->info?->closure_client_iban_attachment_path, 'مرفق آيبان العميل', 'closure-iban');
         $addAttachment($contract->maid?->cv_file, 'سيرة العاملة', 'maid-cv');
         $addAttachment($contract->maid?->cv_preview, 'معاينة سيرة العاملة', 'maid-cv-preview');
@@ -3611,7 +3611,7 @@ class RentContractController extends Controller
         foreach ((array) ($contract->info?->sponsorship_transfer_attachments ?? []) as $index => $transferAttachment) {
             $path = is_array($transferAttachment) ? ($transferAttachment['path'] ?? null) : null;
             $name = is_array($transferAttachment) ? ($transferAttachment['name'] ?? null) : null;
-            $addAttachment($path, 'مرفق نقل الكفالة' . ($name ? ' - ' . $name : ' رقم ' . ($index + 1)), 'transfer-attachment-' . $index);
+            $addAttachment($path, 'مرفق نقل الخدمات' . ($name ? ' - ' . $name : ' رقم ' . ($index + 1)), 'transfer-attachment-' . $index);
         }
 
         foreach ($contract->extensions as $extension) {
@@ -3683,7 +3683,7 @@ class RentContractController extends Controller
             $oldContract = RentalContract::with(['info', 'user', 'maid'])->findOrFail($id);
 
             if (!$oldContract->canCloseOrExtend()) {
-                throw new \RuntimeException('لا يمكن إنهاء العقد أو نقل الكفالة قبل تفعيله');
+                throw new \RuntimeException('لا يمكن إنهاء العقد أو نقل الخدمات قبل تفعيله');
             }
 
             $closureDate = $this->closureDateFromRequest($request);
@@ -3708,8 +3708,8 @@ class RentContractController extends Controller
             $oldContract->save();
 
             // Use the existing client from the rental contract
-            $transferDetails = "تفاصيل نقل الكفالة بتاريخ " . $closureDate->format('Y-m-d') . ":\n" .
-                "- مبلغ نقل الكفالة: " . number_format($transferAmount, 2) . " ريال\n" .
+            $transferDetails = "تفاصيل نقل الخدمات بتاريخ " . $closureDate->format('Y-m-d') . ":\n" .
+                "- مبلغ نقل الخدمات: " . number_format($transferAmount, 2) . " ريال\n" .
                 "- المبلغ الإجمالي: " . number_format($request->total_amount, 2) . " ريال\n" .
                 "- المبلغ المدفوع: " . number_format($transferPaidAmount, 2) . " ريال\n" .
                 "- المبلغ المتبقي: " . number_format($transferRemainingAmount, 2) . " ريال";
@@ -3819,7 +3819,7 @@ class RentContractController extends Controller
                     (string) $request->payment_type,
                     (int) $request->receipt_account_id,
                     $closureDate,
-                    'سند قبض نقل كفالة من عقد التأجير رقم ' . ($oldContract->contract_number ?: $oldContract->id)
+                    'سند قبض نقل الخدمات من عقد التأجير رقم ' . ($oldContract->contract_number ?: $oldContract->id)
                 );
                 $transferReceiptBond = $receiptResult['bond'] ?? null;
             }
@@ -3849,8 +3849,8 @@ class RentContractController extends Controller
             }
 
             $message = $isEarlyClosure
-                ? 'تم إلغاء عقد الإيجار لأنه أُنهي قبل اكتمال مدته، وتم توثيق نقل الكفالة بنجاح.'
-                : 'تم إغلاق عقد الإيجار وتوثيق نقل الكفالة بنجاح.';
+                ? 'تم إلغاء عقد الإيجار لأنه أُنهي قبل اكتمال مدته، وتم توثيق نقل الخدمات بنجاح.'
+                : 'تم إغلاق عقد الإيجار وتوثيق نقل الخدمات بنجاح.';
             if ($transferReceiptBond) {
                 $message .= ' تم إنشاء سند قبض رقم ' . ($transferReceiptBond->code ?: $transferReceiptBond->id) . '.';
             }
@@ -3875,7 +3875,7 @@ class RentContractController extends Controller
 
             return response()->json([
                 'success' => false,
-                'message' => 'حدث خطأ أثناء نقل الكفالة: ' . $e->getMessage()
+                'message' => 'حدث خطأ أثناء نقل الخدمات: ' . $e->getMessage()
             ], 500);
         }
     }
@@ -3933,7 +3933,7 @@ class RentContractController extends Controller
         }
     }
 
-    // طرق workflow الجديدة مثل نقل الكفالة
+    // طرق workflow الجديدة مثل نقل الخدمات
     public function sendContract(Request $request, $id)
     {
         return response()->json([

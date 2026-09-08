@@ -169,16 +169,16 @@ return array (
       'name' => 'dashboard_sponsorship_transfers_count',
       'group' => 'dashboard',
       'section' => 'dashboard',
-      'display_name' => 'عرض معاملات نقل الكفالة',
-      'description' => 'إمكانية عرض بطاقة معاملات نقل الكفالة في لوحة التحكم.',
+      'display_name' => 'عرض معاملات نقل الخدمات',
+      'description' => 'إمكانية عرض بطاقة معاملات نقل الخدمات في لوحة التحكم.',
     ),
     16 => 
     array (
       'name' => 'dashboard_sponsorship_transfer_requests_count',
       'group' => 'dashboard',
       'section' => 'dashboard',
-      'display_name' => 'عرض طلبات نقل الكفالة من الموقع',
-      'description' => 'إمكانية عرض بطاقة طلبات نقل الكفالة من الموقع في لوحة التحكم.',
+      'display_name' => 'عرض طلبات نقل الخدمات من الموقع',
+      'description' => 'إمكانية عرض بطاقة طلبات نقل الخدمات من الموقع في لوحة التحكم.',
     ),
     17 => 
     array (
@@ -324,16 +324,16 @@ return array (
       'name' => 'sponsor_transfer_web_requests_view',
       'group' => 'sponsor_transfer_web_requests',
       'section' => 'additional_services',
-      'display_name' => 'عرض طلبات الموقع الخارجي لنقل الكفالة',
-      'description' => 'إمكانية عرض طلبات نقل الكفالة الواردة من الموقع الخارجي.',
+      'display_name' => 'عرض طلبات الموقع الخارجي لنقل الخدمات',
+      'description' => 'إمكانية عرض طلبات نقل الخدمات الواردة من الموقع الخارجي.',
     ),
     36 => 
     array (
       'name' => 'sponsor_transfer_view',
       'group' => 'sponsor_transfer',
       'section' => 'additional_services',
-      'display_name' => 'عرض طلبات نقل الكفالة',
-      'description' => 'إمكانية عرض طلبات نقل الكفالة من لوحة التحكم.',
+      'display_name' => 'عرض طلبات نقل الخدمات',
+      'description' => 'إمكانية عرض طلبات نقل الخدمات من لوحة التحكم.',
     ),
     37 => 
     array (
@@ -348,24 +348,24 @@ return array (
       'name' => 'sponsor_transfer_edit',
       'group' => 'sponsor_transfer',
       'section' => 'additional_services',
-      'display_name' => 'تعديل طلبات نقل الكفالة',
-      'description' => 'إمكانية تعديل بيانات طلبات نقل الكفالة.',
+      'display_name' => 'تعديل طلبات نقل الخدمات',
+      'description' => 'إمكانية تعديل بيانات طلبات نقل الخدمات.',
     ),
     39 => 
     array (
       'name' => 'sponsor_transfer_delete',
       'group' => 'sponsor_transfer',
       'section' => 'additional_services',
-      'display_name' => 'حذف طلبات نقل الكفالة',
-      'description' => 'إمكانية حذف طلبات نقل الكفالة.',
+      'display_name' => 'حذف طلبات نقل الخدمات',
+      'description' => 'إمكانية حذف طلبات نقل الخدمات.',
     ),
     40 => 
     array (
       'name' => 'sponsor_transfer_control',
       'group' => 'sponsor_transfer',
       'section' => 'additional_services',
-      'display_name' => 'التحكم في طلبات نقل الكفالة',
-      'description' => 'إمكانية إدارة خطوات طلبات نقل الكفالة والتحكم بها.',
+      'display_name' => 'التحكم في طلبات نقل الخدمات',
+      'description' => 'إمكانية إدارة خطوات طلبات نقل الخدمات والتحكم بها.',
     ),
     41 => 
     array (

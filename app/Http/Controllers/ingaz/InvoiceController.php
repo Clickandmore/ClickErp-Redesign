@@ -483,7 +483,7 @@ class InvoiceController extends Controller
         }
 
         if ($row->sponsorship_transfer_id) {
-            return '<span class="badge bg-success-subtle text-success border">نقل كفالة #' . e((string) $row->sponsorship_transfer_id) . '</span>';
+            return '<span class="badge bg-success-subtle text-success border">نقل الخدمات #' . e((string) $row->sponsorship_transfer_id) . '</span>';
         }
 
         if ($row->ingaz_delegation_id) {
@@ -856,7 +856,7 @@ class InvoiceController extends Controller
         }
 
         if ($invoice->sponsorship_transfer_id) {
-            return '<span class="badge bg-success-subtle text-success border">نقل كفالة #' . $invoice->sponsorship_transfer_id . '</span>';
+            return '<span class="badge bg-success-subtle text-success border">نقل الخدمات #' . $invoice->sponsorship_transfer_id . '</span>';
         }
 
         if ($invoice->ingaz_delegation_id) {
@@ -1021,11 +1021,11 @@ class InvoiceController extends Controller
         if ($transfer->invoice) {
             if (!InvoiceAuthorization::canView()) {
                 return redirect()->route('invoices.create')
-                    ->with('warning', 'تم إصدار فاتورة لطلب نقل الكفالة مسبقاً، وليست لديك صلاحية عرض الفواتير.');
+                    ->with('warning', 'تم إصدار فاتورة لطلب نقل الخدمات مسبقاً، وليست لديك صلاحية عرض الفواتير.');
             }
             return redirect()
                 ->route('invoices.show', $transfer->invoice->id)
-                ->with('success', 'تم إصدار فاتورة لطلب نقل الكفالة مسبقاً.');
+                ->with('success', 'تم إصدار فاتورة لطلب نقل الخدمات مسبقاً.');
         }
 
         $grossContractValue = round((float) $transfer->contract_value, 2);
@@ -1095,7 +1095,7 @@ class InvoiceController extends Controller
         if ($referenceCount !== 1) {
             return response()->json([
                 'success' => false,
-                'message' => 'يجب ربط الفاتورة بعقد أو تفويض إنجاز أو عميل أو طلب نقل كفالة واحد فقط.'
+                'message' => 'يجب ربط الفاتورة بعقد أو تفويض إنجاز أو عميل أو طلب نقل الخدمات واحد فقط.'
             ], 422);
         }
 
@@ -1114,7 +1114,7 @@ class InvoiceController extends Controller
                 'message' => $request->filled('contract_id')
                     ? 'هذا العقد لديه فاتورة سابقة'
                     : ($request->filled('sponsorship_transfer_id')
-                        ? 'طلب نقل الكفالة لديه فاتورة سابقة'
+                        ? 'طلب نقل الخدمات لديه فاتورة سابقة'
                         : 'هذا التفويض لديه فاتورة سابقة')
             ], 422);
         }
@@ -2716,11 +2716,11 @@ class InvoiceController extends Controller
         $this->assertCanAccessBranchModel($transfer, 'sponsorship_transfers');
 
         if ($transfer->invoice()->exists()) {
-            throw new \RuntimeException('طلب نقل الكفالة لديه فاتورة سابقة');
+            throw new \RuntimeException('طلب نقل الخدمات لديه فاتورة سابقة');
         }
 
         if (!$transfer->newSponsor) {
-            throw new \RuntimeException('طلب نقل الكفالة غير مرتبط بالعميل الجديد، لا يمكن إصدار الفاتورة.');
+            throw new \RuntimeException('طلب نقل الخدمات غير مرتبط بالعميل الجديد، لا يمكن إصدار الفاتورة.');
         }
 
         $items = $this->normalizeSponsorshipTransferItems((array) $request->input('line_items', []));
@@ -2798,7 +2798,7 @@ class InvoiceController extends Controller
 
         $revenueAccountId = $this->resolveSettingAccountId(
             self::SETTING_DELEGATION_REVENUE_ACCOUNT,
-            'حساب إيراد فواتير نقل الكفالة غير محدد. الرجاء تحديد حساب إيراد تفاويض إنجاز من صفحة إعدادات الحسابات أولاً.',
+            'حساب إيراد فواتير نقل الخدمات غير محدد. الرجاء تحديد حساب إيراد تفاويض إنجاز من صفحة إعدادات الحسابات أولاً.',
             'creditor'
         );
         $statement = $this->buildInvoiceStatement($invoice);
@@ -2882,7 +2882,7 @@ class InvoiceController extends Controller
 
             if (array_key_exists($key, $coreTaxRules)) {
                 if (isset($seenCoreKeys[$key])) {
-                    throw new \RuntimeException('لا يمكن تكرار أحد البنود الأساسية في فاتورة نقل الكفالة.');
+                    throw new \RuntimeException('لا يمكن تكرار أحد البنود الأساسية في فاتورة نقل الخدمات.');
                 }
                 $seenCoreKeys[$key] = true;
                 $taxable = $coreTaxRules[$key];
@@ -2910,7 +2910,7 @@ class InvoiceController extends Controller
         }
 
         if (!isset($seenCoreKeys['licensee_cost'])) {
-            throw new \RuntimeException('بند تكاليف المرخص له مطلوب في فاتورة نقل الكفالة.');
+            throw new \RuntimeException('بند تكاليف المرخص له مطلوب في فاتورة نقل الخدمات.');
         }
 
         if ($items === [] || array_sum(array_column($items, 'line_total')) <= 0) {
@@ -3576,7 +3576,7 @@ class InvoiceController extends Controller
         $invoiceFooterText = (string) replaceDocumentPlaceholders(documentSetting('invoice_footer_text', ''));
 
         $serviceDesc = $invoice->sponsorship_transfer_id
-            ? 'نقل كفالة'
+            ? 'نقل الخدمات'
             : ($invoice->ingaz_delegation_id ? 'تفويض إنجاز' : ($invoice->client_id ? 'فاتورة عامة' : 'طلب تعاقد'));
         $serviceLongDescription = $this->buildServiceDescription($invoice);
         $items = $this->buildInvoiceItems($invoice);
@@ -3861,7 +3861,7 @@ class InvoiceController extends Controller
             $maidName = $transfer?->contract?->maid?->name ?: 'غير محدد';
             $description = trim((string) ($invoice->general_description ?? ''));
 
-            return 'عملية نقل كفالة - رقم الطلب: ' . $invoice->sponsorship_transfer_id
+            return 'عملية نقل الخدمات - رقم الطلب: ' . $invoice->sponsorship_transfer_id
                 . ' - العميل: ' . $clientName
                 . ' - العاملة: ' . $maidName
                 . ($description !== '' ? ' - التفاصيل: ' . $description : '');
@@ -4397,7 +4397,7 @@ class InvoiceController extends Controller
                 ?: 'غير محدد';
             $itemsSummary = $this->buildInvoiceItemsSummary($invoice);
 
-            return "قيد فاتورة نقل كفالة #{$invoice->sponsorship_transfer_id} / الفاتورة #{$invoice->id} / العميل: {$clientName}"
+            return "قيد فاتورة نقل الخدمات #{$invoice->sponsorship_transfer_id} / الفاتورة #{$invoice->id} / العميل: {$clientName}"
                 . ($itemsSummary !== '' ? " / البنود: {$itemsSummary}" : '');
         }
 
