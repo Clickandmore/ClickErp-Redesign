@@ -64,6 +64,8 @@ Route::group(
                 Route::post('admins/{id}/send-reset-link', 'AdminController@sendResetLink')->name('admins.send-reset-link');
                 Route::post('admins/{id}/terminate-session', 'AdminController@terminateSession')->name('admins.terminate-session');
                 Route::post('admins/{id}/impersonate', 'AdminController@impersonate')->name('admins.impersonate');
+                // يجب أن يسبق resource حتى لا يلتقط admins/{admin} كلمة trashed
+                Route::get('admins/trashed', 'AdminController@trashed')->name('admins.trashed');
                 Route::resource('admins', 'AdminController');
                 Route::post('admins/{id}/toggle-status', 'AdminController@toggleStatus')->name('admins.toggle-status');
                 Route::post('admins/{id}/restore', 'AdminController@restore')->name('admins.restore');

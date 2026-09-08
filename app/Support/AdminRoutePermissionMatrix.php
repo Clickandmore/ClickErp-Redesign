@@ -337,6 +337,10 @@ class AdminRoutePermissionMatrix
             'admins.reset-password' => [PermKeys::USERS_EDIT],
             'admins.terminate-session' => [PermKeys::USERS_EDIT],
             'admins.toggle-status' => [PermKeys::USERS_EDIT],
+            // الموظفون المحذوفون: العرض والاستعادة والحذف النهائي صلاحيات مستقلة عن users_delete
+            'admins.trashed' => [PermKeys::USERS_TRASHED_VIEW, PermKeys::USERS_CONTROL],
+            'admins.restore' => [PermKeys::USERS_RESTORE, PermKeys::USERS_CONTROL],
+            'admins.force-delete' => [PermKeys::USERS_FORCE_DELETE, PermKeys::USERS_CONTROL],
             // بوابة المسار = اتحاد كل صلاحية تصدير معرفة في ReportExportService،
             // والفحص الدقيق لكل تقرير/صيغة يبقى داخل الخدمة نفسها.
             'reports.index' => ReportExportService::allExportPermissions(),

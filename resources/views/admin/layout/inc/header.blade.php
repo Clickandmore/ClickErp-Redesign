@@ -609,6 +609,10 @@ $quickLinks = collect([
                                         <a class="list-group-item list-group-item-action border-0" href="{{route('admins.index')}}"><i
                                                 class="w30 fa fa-users"></i>{{ __('auth.users') }}</a>
                                         {{-- @endif --}}
+                                        @if (@AdminGuardHasAnyPerm([\App\PermKeys::USERS_TRASHED_VIEW, \App\PermKeys::USERS_CONTROL]))
+                                            <a class="list-group-item list-group-item-action border-0" href="{{ route('admins.trashed') }}"><i
+                                                    class="w30 fa fa-user-times"></i>{{ __('admin.trashed_admins.title') }}</a>
+                                        @endif
                                         {{--<a class="list-group-item list-group-item-action border-0" href="#"><i
                                                 class="w30 fa fa-tag"></i>Support Ticket</a>--}}
                                     @else

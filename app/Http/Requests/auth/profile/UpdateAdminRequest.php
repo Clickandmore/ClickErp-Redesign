@@ -4,12 +4,21 @@ namespace App\Http\Requests\auth\profile;
 
 use App\Enums\auth\AdminTypes;
 use App\Http\Requests\MainRequest;
+use App\Http\Requests\auth\profile\Concerns\ExplainsAdminUniqueConflicts;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Rules\Enum;
 
 
 class UpdateAdminRequest extends MainRequest
 {
+    use ExplainsAdminUniqueConflicts;
+
+    protected function ignoredAdminId(): ?int
+    {
+        $id = $this->route('admin');
+
+        return is_numeric($id) ? (int) $id : null;
+    }
 
     /**
      * Get the validation rules that apply to the request.
@@ -41,8 +50,8 @@ class UpdateAdminRequest extends MainRequest
 
     public function messages()
     {
-        return [
+        return array_merge([
             'username.regex' => __('validation.username_format'),
-        ];
+        ], $this->uniqueConflictMessages());
     }
 }

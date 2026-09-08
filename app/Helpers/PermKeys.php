@@ -300,6 +300,10 @@ const PARTENR_CONTROL = 'partenr_control';
     const USERS_EDIT = 'users_edit';
     const USERS_DELETE = 'users_delete';
     const USERS_CONTROL = 'users_control';
+    // صفحة الموظفين المحذوفين (soft-deleted) وأزرارها: الاستعادة والحذف النهائي مفصولان عن الحذف العادي
+    const USERS_TRASHED_VIEW = 'users_trashed_view';
+    const USERS_RESTORE = 'users_restore';
+    const USERS_FORCE_DELETE = 'users_force_delete';
 
     const ROLES_VIEW = 'roles_view';
     const ROLES_CREATE = 'roles_create';
