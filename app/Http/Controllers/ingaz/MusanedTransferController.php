@@ -607,7 +607,11 @@ class MusanedTransferController extends Controller
     {
         $receiptBond = Bond::query()
             ->where('type', BondTypes::Qabd->value)
-            ->where('statement', 'like', '%الفاتورة #' . $invoice->id . '%')
+            ->whereNull('rental_contract_id')
+            ->when($invoice->contract_id, function ($query) use ($invoice) {
+                $query->where('recruitment_contract_id', $invoice->contract_id);
+            })
+            ->where('statement', 'regexp', 'الفاتورة #' . (int) $invoice->id . '([^0-9]|$)')
             ->latest('id')
             ->first();
 
