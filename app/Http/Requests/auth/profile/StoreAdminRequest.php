@@ -4,11 +4,13 @@ namespace App\Http\Requests\auth\profile;
 
 use App\Enums\auth\AdminTypes;
 use App\Http\Requests\MainRequest;
+use App\Http\Requests\auth\profile\Concerns\ExplainsAdminUniqueConflicts;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Rules\Enum;
 
 class StoreAdminRequest extends MainRequest
 {
+    use ExplainsAdminUniqueConflicts;
 
     /**
      * Get the validation rules that apply to the request.
@@ -41,8 +43,8 @@ class StoreAdminRequest extends MainRequest
 
     public function messages()
     {
-        return [
+        return array_merge([
             'username.regex' => __('validation.username_format'),
-        ];
+        ], $this->uniqueConflictMessages());
     }
 }

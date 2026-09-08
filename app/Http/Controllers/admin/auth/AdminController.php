@@ -46,7 +46,116 @@ class AdminController extends Controller
         $this->middleware('permission:users_view,admin', ['only' => ['index']]);
         $this->middleware('permission:users_create,admin', ['only' => ['create', 'store']]);
         $this->middleware('permission:users_edit,admin', ['only' => ['edit', 'update', 'toggleStatus', 'terminateSession']]);
-        $this->middleware('permission:users_delete,admin', ['only' => ['destroy', 'restore', 'forceDelete']]);
+        $this->middleware('permission:users_delete,admin', ['only' => ['destroy']]);
+        // trashed / restore / forceDelete: صلاحياتها المستقلة (users_trashed_view, users_restore,
+        // users_force_delete أو users_control) تُفحص في AdminRoutePermissionMatrix عبر
+        // ميدلوير admin.route.permission. لا نكررها هنا بصيغة "a|b" لأن PermissionCatalog
+        // يقرأ middleware permission: كاسم صلاحية واحد ولا يفهم الفاصل |.
+    }
+
+    /**
+     * صفحة الموظفين المحذوفين (soft-deleted) مع الاستعادة أو الحذف النهائي.
+     * الطلب العادي يعرض الصفحة، وطلب AJAX يرجع صفوف الجدول.
+     */
+    public function trashed(Request $request, ObjAction $action)
+    {
+        $branchesEnabled = SystemModuleManager::isEnabled('branches');
+        $adminUser = Auth::guard('admin')->user();
+        $canRestore = AdminRoutePermissionMatrix::adminHasAnyPermission($adminUser, [PermKeys::USERS_RESTORE, PermKeys::USERS_CONTROL]);
+        $canForceDelete = AdminRoutePermissionMatrix::adminHasAnyPermission($adminUser, [PermKeys::USERS_FORCE_DELETE, PermKeys::USERS_CONTROL]);
+
+        $trashedQuery = ObjModel::onlyTrashed()
+            ->notExternalOfficeAgents()
+            ->with(['role', 'branch']);
+        $this->applyRequestBranchFilter($trashedQuery, $request, 'admins');
+
+        if ($request->ajax()) {
+            $rows = $trashedQuery->orderByDesc('deleted_at')->get();
+
+            return DataTables::of($rows)
+                ->addIndexColumn()
+                ->editColumn('name', function ($row) {
+                    return '<div class="trashed-admin-name">'
+                        . '<span class="trashed-admin-avatar">' . e(mb_substr((string) $row->name, 0, 1)) . '</span>'
+                        . '<div><div class="fw-bold">' . e($row->name) . '</div>'
+                        . '<div class="text-muted small">#' . (int) $row->id . '</div></div>'
+                        . '</div>';
+                })
+                ->addColumn('username', fn ($row) => $row->username ? e($row->username) : '<span class="text-muted">—</span>')
+                ->editColumn('email', fn ($row) => e($row->email))
+                ->editColumn('phone', fn ($row) => e($row->phone ?: '—'))
+                ->addColumn('role', fn ($row) => $row->role ? e($row->role->name) : '<span class="text-muted">—</span>')
+                ->addColumn('branch', function ($row) use ($branchesEnabled) {
+                    if (!$branchesEnabled) {
+                        return '';
+                    }
+
+                    return $row->branch ? e($row->branch->name) : '<span class="text-muted">—</span>';
+                })
+                ->addColumn('deleted_at', function ($row) {
+                    $deletedAt = $row->deleted_at;
+
+                    return '<div class="trashed-admin-date">'
+                        . '<div class="fw-bold">' . e($deletedAt->format('Y-m-d H:i')) . '</div>'
+                        . '<div class="text-muted small">' . e($deletedAt->diffForHumans()) . '</div>'
+                        . '</div>';
+                })
+                ->addColumn('actions', function ($row) use ($canRestore, $canForceDelete) {
+                    $buttons = [];
+
+                    if ($canRestore) {
+                        $buttons[] = '<button type="button" class="btn btn-sm btn-success trashed-restore-button"'
+                            . ' data-id="' . (int) $row->id . '"'
+                            . ' data-name="' . e($row->name) . '"'
+                            . ' data-restore-route="' . route($this->mainRoute . '.restore', $row->id) . '"'
+                            . ' title="' . e(__('ingaz.restore')) . '">'
+                            . '<i class="fa fa-undo"></i> <span>' . __('ingaz.restore') . '</span>'
+                            . '</button>';
+                    }
+
+                    if ($canForceDelete) {
+                        $buttons[] = '<button type="button" class="btn btn-sm btn-outline-danger trashed-force-delete-button"'
+                            . ' data-id="' . (int) $row->id . '"'
+                            . ' data-name="' . e($row->name) . '"'
+                            . ' data-delete-route="' . route($this->mainRoute . '.force-delete', $row->id) . '"'
+                            . ' title="' . e(__('admin.force_delete')) . '">'
+                            . '<i class="fa fa-trash-o"></i> <span>' . __('admin.force_delete') . '</span>'
+                            . '</button>';
+                    }
+
+                    if ($buttons === []) {
+                        return '<span class="text-muted small">' . __('admin.no_actions') . '</span>';
+                    }
+
+                    return '<div class="trashed-admin-actions">' . implode('', $buttons) . '</div>';
+                })
+                ->rawColumns(['name', 'username', 'email', 'phone', 'role', 'branch', 'deleted_at', 'actions'])
+                ->make(true);
+        }
+
+        $statsQuery = clone $trashedQuery;
+        $data['bladeTitle'] = __('admin.trashed_admins.title');
+        $data['dataTableRoute'] = route($this->mainRoute . '.trashed');
+        $data['branchesEnabled'] = $branchesEnabled;
+        $data['canRestore'] = $canRestore;
+        $data['canForceDelete'] = $canForceDelete;
+        $data['totalTrashed'] = (clone $statsQuery)->count();
+        $data['trashedLast30Days'] = (clone $statsQuery)->where('deleted_at', '>=', now()->subDays(30))->count();
+        $data['latestDeletion'] = (clone $statsQuery)->max('deleted_at');
+        $data['initialSearch'] = trim((string) $request->get('search', ''));
+        $branchSelector = $this->branchSelectorData($request);
+        $data['branches'] = $branchSelector['branches'];
+
+        $reassignmentAdmins = ObjModel::query()
+            ->notExternalOfficeAgents()
+            ->select('id', 'name')
+            ->whereNull('deleted_at')
+            ->where('status', 'active')
+            ->orderBy('name');
+        $this->applyRequestBranchFilter($reassignmentAdmins, $request, 'admins');
+        $data['reassignmentAdmins'] = $reassignmentAdmins->get();
+
+        return view($this->folderPath . '.trashed', $data);
     }
 
 
@@ -84,9 +193,8 @@ class AdminController extends Controller
                 $statusFilter = 'suspended';
             }
 
-            if ($statusFilter === 'deleted') {
-                $dataTable->onlyTrashed();
-            } elseif (in_array($statusFilter, ['active', 'suspended'], true)) {
+            // المحذوفون لهم صفحة مستقلة (admins.trashed) بصلاحياتها الخاصة
+            if (in_array($statusFilter, ['active', 'suspended'], true)) {
                 $dataTable->where('status', $statusFilter);
             }
 
@@ -182,27 +290,6 @@ class AdminController extends Controller
                 })
                 ->addColumn('actions', function ($row) use ($branchesEnabled) {
                     $menuItems = [];
-
-                    if ($row->trashed()) {
-                        if (Auth::guard('admin')->user()->can('users_delete')) {
-                            $menuItems[] = '<li><button type="button" class="dropdown-item restore-admin" data-id="' . $row->id . '">'
-                                . '<i class="fa fa-undo"></i> ' . __('ingaz.restore')
-                                . '</button></li>';
-                            $menuItems[] = '<li><button type="button" class="dropdown-item text-danger admin-force-delete-button"'
-                                . ' data-id="' . $row->id . '"'
-                                . ' data-name="' . e($row->name) . '"'
-                                . ' data-delete-route="' . route($this->mainRoute . ".force-delete", $row->id) . '"'
-                                . ' data-requires-reassignment="0"'
-                                . ' data-orders-count="0"'
-                                . ' data-bookings-count="0"'
-                                . ' data-contracts-count="0"'
-                                . ' title="' . e(__('admin.force_delete')) . '">'
-                                . '<i class="fa fa-trash-o"></i> ' . __('admin.force_delete')
-                                . '</button></li>';
-                        }
-
-                        return $this->renderAdminActionsDropdown($menuItems);
-                    }
 
                     $menuItems[] = '<li>' . $this->renderAdminActivityButton($row, false) . '</li>';
 
@@ -332,6 +419,13 @@ class AdminController extends Controller
         $data["createRoute"] = route($this->mainRoute . ".create");
         $data["dataTableRoute"] = route($this->mainRoute . ".index");
         $data["bladeTitle"] = __("auth.admins");
+        $data["canViewTrashed"] = AdminRoutePermissionMatrix::adminHasAnyPermission(
+            Auth::guard('admin')->user(),
+            [PermKeys::USERS_TRASHED_VIEW, PermKeys::USERS_CONTROL]
+        );
+        $data["trashedCount"] = $data["canViewTrashed"]
+            ? ObjModel::onlyTrashed()->notExternalOfficeAgents()->count()
+            : 0;
         $data["addButtonText"] = __("auth.admin");
         $data["branchesEnabled"] = SystemModuleManager::isEnabled('branches');
         $data["filters"] = [
@@ -604,8 +698,37 @@ class AdminController extends Controller
             ], 422);
         }
 
+        // لو أُنشئ حساب نشط بنفس البريد/اسم المستخدم بعد الحذف، فالاستعادة ستنتج حسابين متطابقين
+        // ويصبح الدخول بالبريد ملتبساً؛ نوقفها برسالة واضحة بدل السماح بالتكرار.
+        $conflicts = [];
+        foreach (['email' => __('auth.email'), 'username' => __('admin.username')] as $column => $label) {
+            if (blank($admin->{$column})) {
+                continue;
+            }
+
+            $duplicate = ObjModel::query()
+                ->where($column, $admin->{$column})
+                ->whereKeyNot($admin->id)
+                ->first(['id', 'name']);
+
+            if ($duplicate) {
+                $conflicts[] = __('admin.trashed_admins.restore_conflict', [
+                    'field' => $label,
+                    'value' => $admin->{$column},
+                    'name' => $duplicate->name,
+                ]);
+            }
+        }
+
+        if ($conflicts !== []) {
+            return response()->json([
+                'message' => __('admin.trashed_admins.restore_blocked'),
+                'errors' => ['admin' => $conflicts],
+            ], 422);
+        }
+
         $admin->restore();
-        return jsonSuccess(['id' => $admin->id], __('admin.employee_restored_successfully'));
+        return jsonSuccess(['id' => $admin->id], __('admin.employee_restored_successfully', ['name' => $admin->name]));
     }
 
     public function resetPassword($id, Request $request)

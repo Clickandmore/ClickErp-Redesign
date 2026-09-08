@@ -308,9 +308,21 @@
     @if(@AdminGuardHasPerm(\App\PermKeys::USERS_VIEW))
         <div class="admins-management-page">
 
-        @if(@AdminGuardHasPerm(\App\PermKeys::USERS_CONTROL))
-            {!! addButton(route("admins.create") , __("auth.admin")) !!}
-        @endif
+        <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3 admins-header-actions">
+            <div>
+                @if($canViewTrashed ?? false)
+                    <a href="{{ route('admins.trashed') }}" class="btn btn-outline-danger admins-trashed-link">
+                        <i class="fa fa-user-times"></i> {{ __('admin.trashed_admins.open_page') }}
+                        <span class="badge bg-danger ms-1">{{ $trashedCount ?? 0 }}</span>
+                    </a>
+                @endif
+            </div>
+            <div class="admins-add-button">
+                @if(@AdminGuardHasPerm(\App\PermKeys::USERS_CONTROL))
+                    {!! addButton(route("admins.create") , __("auth.admin")) !!}
+                @endif
+            </div>
+        </div>
 
         <div class="card admins-toolbar mb-3">
             <div class="card-body">
@@ -338,7 +350,6 @@
                             <option value="">{{ __('admin.all') }}</option>
                             <option value="active">{{ __('admin.active') }}</option>
                             <option value="suspended">{{ __('admin.suspended') }}</option>
-                            <option value="deleted">{{ __('ingaz.deleted') }}</option>
                         </select>
                     </div>
                     @if($branchesEnabled ?? false)
@@ -401,7 +412,7 @@
         $(document).ready(function () {
             let baseUrl = "{{route("admins.index")}}";
             let filterScope = "{{ request()->get('filter_scope', '') }}";
-            const restoreAdminRouteTemplate = "{{ route('admins.restore', ['id' => 'ADMIN_ID']) }}";
+            const adminStoreUrl = "{{ route('admins.store') }}";
             const reassignmentAdmins = @json($reassignmentAdmins->map(fn($admin) => ['id' => $admin->id, 'name' => $admin->name])->values());
             const adminSwal = window.Swal || window.swal;
             let tableInstance;
@@ -645,21 +656,53 @@
                 });
             });
 
-            $(document).on('click', '.restore-admin', function (e) {
-                e.preventDefault();
-                let adminId = $(this).data('id');
-                let restoreUrl = restoreAdminRouteTemplate.replace('ADMIN_ID', adminId);
+            // عند محاولة إنشاء/تعديل مستخدم ببريد أو اسم مستخدم يعود لحساب محذوف، يرجع الخادم 422 مع
+            // trashed_conflict؛ نعرض هنا نافذة توضيحية مع زر انتقال مباشر لصفحة المحذوفين.
+            $(document).on('ajaxError', function (event, jqxhr, settings) {
+                if (!jqxhr || jqxhr.status !== 422 || !settings || !settings.url) {
+                    return;
+                }
 
-                $.post({
-                    url: restoreUrl,
-                    data: {
-                        _token: "{{ csrf_token() }}"
-                    },
-                    success: function () {
-                        reloadWithFilters();
-                    },
-                    error: handleErrorResponce
-                });
+                const isAdminForm = settings.url.indexOf(adminStoreUrl) === 0;
+                if (!isAdminForm) {
+                    return;
+                }
+
+                let payload = jqxhr.responseJSON;
+                if (!payload) {
+                    try { payload = $.parseJSON(jqxhr.responseText); } catch (err) { payload = null; }
+                }
+
+                const conflict = payload && payload.trashed_conflict;
+                if (!conflict) {
+                    return;
+                }
+
+                const escape = function (value) { return $('<div>').text(value == null ? '' : String(value)).html(); };
+                const messages = payload.errors && payload.errors[conflict.field] ? payload.errors[conflict.field] : [];
+                const html = '<div class="text-start" style="line-height:1.8">'
+                    + '<p class="mb-2">' + escape(messages[0] || '') + '</p>'
+                    + '<div class="border rounded p-2 bg-light small">'
+                    + '<div><strong>{{ __('auth.name') }}:</strong> ' + escape(conflict.name) + '</div>'
+                    + '<div><strong>' + escape(conflict.label) + ':</strong> ' + escape(conflict.value) + '</div>'
+                    + '<div><strong>{{ __('admin.trashed_admins.deleted_at') }}:</strong> ' + escape(conflict.deleted_at || '-') + '</div>'
+                    + '</div></div>';
+
+                if (adminSwal && typeof adminSwal.fire === 'function') {
+                    adminSwal.fire({
+                        icon: 'warning',
+                        title: "{{ __('admin.trashed_admins.conflict_title') }}",
+                        html: html,
+                        showCancelButton: true,
+                        confirmButtonText: conflict.trashed_url ? "{{ __('admin.trashed_admins.conflict_go') }}" : "{{ __('buttons.close') }}",
+                        cancelButtonText: "{{ __('buttons.close') }}",
+                        confirmButtonColor: '#dc2626'
+                    }).then(function (result) {
+                        if (result.isConfirmed && conflict.trashed_url) {
+                            window.location.href = conflict.trashed_url;
+                        }
+                    });
+                }
             });
 
             function deleteAdmin(button, isPermanent, forcedCounts) {

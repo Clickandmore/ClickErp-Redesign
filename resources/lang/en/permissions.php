@@ -284,6 +284,9 @@ return [
     'users_edit' => 'Edit Users',
     'users_delete' => 'Delete Users',
     'users_control' => 'Control Users',
+    'users_trashed_view' => 'View Deleted Employees',
+    'users_restore' => 'Restore Deleted Employee',
+    'users_force_delete' => 'Permanently Delete Employee',
 
     'roles_view' => 'View Roles',
     'roles_create' => 'Create Role',
