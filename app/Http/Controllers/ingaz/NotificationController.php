@@ -41,6 +41,15 @@ class NotificationController extends Controller
         $appUsers = $this->eligibleUsers();
         $totalEligibleUsers = $appUsers->count();
         $whatsAppSettings = CommunicationSettings::whatsapp();
+        $chatwootTemplates = [];
+        $chatwootTemplateError = null;
+        if ($whatsAppService->driver() === 'chatwoot') {
+            try {
+                $chatwootTemplates = app(\App\Services\WhatsApp\ChatwootWhatsAppService::class)->templates();
+            } catch (\Throwable $e) {
+                $chatwootTemplateError = 'تعذر جلب القوالب. تحقق من الاتصال وإعدادات الصندوق ثم حدّث الصفحة.';
+            }
+        }
 
         $whatsappConfig = [
             'driver' => $whatsAppService->driver(),
@@ -57,7 +66,7 @@ class NotificationController extends Controller
             'default_sender_key' => $whatsAppService->defaultSenderKey(),
         ];
 
-        return view($this->folderPath . '.whatsapp', compact('appUsers', 'totalEligibleUsers', 'whatsappConfig'));
+        return view($this->folderPath . '.whatsapp', compact('appUsers', 'totalEligibleUsers', 'whatsappConfig', 'chatwootTemplates', 'chatwootTemplateError'));
     }
 
     public function store(StoreNotificationRequest $request, NotificationAction $action)
@@ -85,9 +94,20 @@ class NotificationController extends Controller
         $result = $action->storeNotification($request->validated(), $request);
 
         if ($channel === 'whatsapp') {
+            if (($result['driver'] ?? '') === 'chatwoot') {
+                $message = "قبلت Widers {$result['sent_count']} طلب إرسال، وتعذر إرسال {$result['failed_count']}. قبول الطلب لا يؤكد وصول الرسالة للهاتف.";
+                if (!empty($result['failure_reason'])) { $message .= ' السبب: '.$result['failure_reason']; }
+                return ($result['sent_count'] ?? 0) > 0 ? jsonSuccess($result, $message, 201) : jsonError($message, 422);
+            }
             $message = 'تم إرسال رسائل واتساب بنجاح.';
             if (($result['failed_count'] ?? 0) > 0) {
                 $message = "تم إرسال {$result['sent_count']} رسالة واتساب وتعذر إرسال {$result['failed_count']} رسالة.";
+                if (!empty($result['failure_reason'])) {
+                    $message .= ' السبب: ' . $result['failure_reason'];
+                }
+                if ((int) ($result['sent_count'] ?? 0) === 0) {
+                    return jsonError($message, 422);
+                }
             } elseif (isset($result['sent_count'])) {
                 $message = "تم إرسال {$result['sent_count']} رسالة واتساب بنجاح.";
             }

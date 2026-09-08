@@ -5,6 +5,7 @@
 @endsection
 
 @section('content')
+    <form id="chatwootConnectionTest" method="POST" action="{{ route('notifications.settings.whatsapp.test') }}">@csrf</form>
 @if (@AdminGuardHasPerm(\App\PermKeys::NOTIFICATIONS_CONTROL))
     @php
         $oldSection = old('section');
@@ -383,7 +384,7 @@
             <div class="card-header d-flex flex-wrap justify-content-between align-items-center gap-2">
                 <div>
                     <h5 class="mb-1">إعدادات WhatsApp</h5>
-                    <div class="text-muted small">هذا القسم خاص باختيار المزود بين Meta API وUltraMsg مع دعم أكثر من رقم واتساب.</div>
+                    <div class="text-muted small">هذا القسم خاص باختيار المزود بين Meta API وUltraMsg وWiders / Chatwoot مع دعم أكثر من رقم واتساب.</div>
                 </div>
                 <span class="badge bg-light text-dark">WhatsApp</span>
             </div>
@@ -391,7 +392,7 @@
                 <div class="bg-light rounded-3 p-3 mb-3">
                     <div class="fw-semibold mb-2">الإعدادات الحالية</div>
                     <div class="row g-3 small">
-                        <div class="col-md-3"><strong>المزود الحالي:</strong> {{ data_get($currentSettings, 'whatsapp.driver') === 'ultramsg' ? 'UltraMsg' : 'Meta API' }}</div>
+                        <div class="col-md-3"><strong>المزود الحالي:</strong> {{ app(\App\Services\WhatsApp\WhatsAppMessagingService::class)->providerLabel() }}</div>
                         <div class="col-md-2"><strong>رمز الدولة:</strong> {{ data_get($currentSettings, 'whatsapp.default_country_code', '966') }}</div>
                         <div class="col-md-2"><strong>Timeout:</strong> {{ data_get($currentSettings, 'whatsapp.timeout', 15) }}</div>
                         <div class="col-md-2"><strong>حد الإرسال:</strong> {{ data_get($currentSettings, 'whatsapp.bulk_send_limit', 200) }}</div>
@@ -411,6 +412,7 @@
                     <div class="col-md-3">
                         <label class="form-label">مزود واتساب</label>
                         <select name="whatsapp[driver]" id="whatsappDriver" class="form-control">
+                            <option value="chatwoot" {{ data_get($whatsappData, 'driver') === 'chatwoot' ? 'selected' : '' }}>Widers / Chatwoot</option>
                             <option value="meta" {{ data_get($whatsappData, 'driver') === 'meta' ? 'selected' : '' }}>Meta API</option>
                             <option value="ultramsg" {{ data_get($whatsappData, 'driver') === 'ultramsg' ? 'selected' : '' }}>UltraMsg</option>
                         </select>
@@ -455,6 +457,25 @@
                     </div>
 
                     <div class="col-12">
+                        <div id="chatwootSettingsBox" class="{{ data_get($whatsappData, 'driver') === 'chatwoot' ? '' : 'd-none' }}">
+                            <h5>ربط Widers / Chatwoot</h5>
+                            <p class="text-muted">احفظ عنوان المنصة ومعرف الحساب والرمز، ثم اختبر الاتصال لمعرفة صناديق الوارد. يلزم اختيار صندوق WhatsApp قبل الإرسال.</p>
+                            <div class="row">
+                                @foreach (['base_url' => 'عنوان المنصة HTTPS', 'account_id' => 'معرف الحساب Account ID', 'inbox_id' => 'معرف صندوق الوارد Inbox ID'] as $key => $label)
+                                    <div class="col-md-4 mb-3"><label>{{ $label }}</label><input class="form-control" name="whatsapp[chatwoot][{{ $key }}]" value="{{ data_get($whatsappData, 'chatwoot.'.$key) }}" dir="ltr"></div>
+                                @endforeach
+                                <div class="col-md-6 mb-3"><label>رمز الوصول API Access Token</label><input type="password" autocomplete="new-password" class="form-control" name="whatsapp[chatwoot][access_token]" value=""><small>اتركه فارغًا للاحتفاظ بالرمز المحفوظ.</small></div>
+                            </div>
+                            <button type="submit" form="chatwootConnectionTest" class="btn btn-outline-primary mb-3">اختبار الاتصال وجلب الصناديق المحفوظة</button>
+                            @if(session()->has('chatwoot_inboxes'))
+                                <table class="table"><thead><tr><th>المعرف</th><th>الاسم</th><th>القناة</th><th>الرقم</th></tr></thead><tbody>
+                                @foreach(session('chatwoot_inboxes', []) as $inbox)
+                                    <tr><td>{{ $inbox['id'] }}</td><td>{{ $inbox['name'] }}</td><td>{{ $inbox['channel_type'] }}</td><td>{{ $inbox['phone_number'] }}</td></tr>
+                                @endforeach
+                                </tbody></table>
+                            @endif
+                            <p class="text-muted">هذا الربط للإرسال. إدارة الردود تتم في Widers. الرسائل خارج نافذة خدمة واتساب قد تتطلب قالبًا معتمدًا.</p>
+                        </div>
                         <div id="metaSettingsBox" class="{{ data_get($whatsappData, 'driver') === 'meta' ? '' : 'd-none' }}">
                             <div class="bg-light rounded-3 p-3">
                                 <h6 class="mb-3">إعدادات Meta API</h6>
@@ -714,6 +735,7 @@
 
     function toggleWhatsAppDriverSettings() {
         const driver = $('#whatsappDriver').val();
+        $('#chatwootSettingsBox').toggleClass('d-none', driver !== 'chatwoot');
         $('#metaSettingsBox').toggleClass('d-none', driver !== 'meta');
         $('#ultraMsgSettingsBox').toggleClass('d-none', driver !== 'ultramsg');
     }

@@ -132,6 +132,7 @@ class CommunicationSettings
                 'services.taqnyat.sms.bearer_token' => $settings['sms']['taqnyat']['bearer_token'],
 
                 'services.whatsapp.driver' => $settings['whatsapp']['driver'],
+                'services.whatsapp.chatwoot' => $settings['whatsapp']['chatwoot'],
                 'services.whatsapp.graph_version' => $settings['whatsapp']['meta']['graph_version'],
                 'services.whatsapp.phone_number_id' => $settings['whatsapp']['meta']['phone_number_id'],
                 'services.whatsapp.business_account_id' => $settings['whatsapp']['meta']['business_account_id'],
@@ -278,7 +279,7 @@ class CommunicationSettings
             $preserveSecrets
         );
 
-        $data['whatsapp']['driver'] = in_array((string) ($data['whatsapp']['driver'] ?? ''), ['meta', 'ultramsg'], true)
+        $data['whatsapp']['driver'] = in_array((string) ($data['whatsapp']['driver'] ?? ''), ['meta', 'ultramsg', 'chatwoot'], true)
             ? (string) $data['whatsapp']['driver']
             : $defaults['whatsapp']['driver'];
         $data['whatsapp']['default_country_code'] = self::digitsOnly($data['whatsapp']['default_country_code'] ?? $defaults['whatsapp']['default_country_code']);
@@ -297,6 +298,14 @@ class CommunicationSettings
             $data['whatsapp']['default_purpose'] = 'verification';
         }
 
+        foreach (['base_url', 'account_id', 'inbox_id'] as $key) {
+            $data['whatsapp']['chatwoot'][$key] = self::trimString($data['whatsapp']['chatwoot'][$key] ?? '');
+        }
+        $data['whatsapp']['chatwoot']['base_url'] = rtrim($data['whatsapp']['chatwoot']['base_url'], '/');
+        $data['whatsapp']['chatwoot']['access_token'] = self::preserveSecret(
+            $data['whatsapp']['chatwoot']['access_token'] ?? '',
+            $current['whatsapp']['chatwoot']['access_token'] ?? '', $preserveSecrets
+        );
         $data['whatsapp']['meta']['graph_version'] = self::trimString($data['whatsapp']['meta']['graph_version'] ?? '')
             ?: $defaults['whatsapp']['meta']['graph_version'];
         $data['whatsapp']['meta']['phone_number_id'] = self::trimString($data['whatsapp']['meta']['phone_number_id'] ?? '');
@@ -406,6 +415,22 @@ class CommunicationSettings
             }
         }
 
+        if (in_array('whatsapp', $validatedSections, true) && $payload['whatsapp']['driver'] === 'chatwoot') {
+            $cw = $payload['whatsapp']['chatwoot'];
+            $url = parse_url($cw['base_url']);
+            if (($url['scheme'] ?? '') !== 'https' || empty($url['host']) || isset($url['user']) || isset($url['pass']) || isset($url['query']) || isset($url['fragment'])) {
+                $errors['whatsapp.chatwoot.base_url'] = 'أدخل عنوان HTTPS صالحًا للمنصة.';
+            }
+            if (!ctype_digit($cw['account_id']) || (int) $cw['account_id'] <= 0) {
+                $errors['whatsapp.chatwoot.account_id'] = 'معرف الحساب مطلوب ويجب أن يكون رقمًا موجبًا.';
+            }
+            if ($cw['inbox_id'] !== '' && (!ctype_digit($cw['inbox_id']) || (int) $cw['inbox_id'] <= 0)) {
+                $errors['whatsapp.chatwoot.inbox_id'] = 'معرف صندوق الوارد يجب أن يكون رقمًا موجبًا.';
+            }
+            if ($cw['access_token'] === '') {
+                $errors['whatsapp.chatwoot.access_token'] = 'رمز الوصول مطلوب.';
+            }
+        }
         if (in_array('whatsapp', $validatedSections, true) && $payload['whatsapp']['driver'] === 'meta') {
             $embeddedSignupReady = $payload['whatsapp']['meta']['app_id'] !== ''
                 && $payload['whatsapp']['meta']['configuration_id'] !== ''
@@ -490,6 +515,12 @@ class CommunicationSettings
                 'bulk_confirmation_keyword' => (string) config('services.whatsapp.bulk_confirmation_keyword', 'SEND_ALL_WHATSAPP'),
                 'default_purpose' => (string) config('services.whatsapp.default_purpose', 'verification'),
                 'allow_advertising' => (bool) config('services.whatsapp.allow_advertising', false),
+                'chatwoot' => [
+                    'base_url' => (string) config('services.whatsapp.chatwoot.base_url', 'https://chat.widers.net'),
+                    'account_id' => (string) config('services.whatsapp.chatwoot.account_id', ''),
+                    'inbox_id' => (string) config('services.whatsapp.chatwoot.inbox_id', ''),
+                    'access_token' => (string) config('services.whatsapp.chatwoot.access_token', ''),
+                ],
                 'meta' => [
                     'graph_version' => (string) config('services.whatsapp.graph_version', 'v23.0'),
                     'phone_number_id' => (string) config('services.whatsapp.phone_number_id', ''),
@@ -582,6 +613,7 @@ class CommunicationSettings
             'email.password',
             'sms.api_key',
             'sms.taqnyat.bearer_token',
+            'whatsapp.chatwoot.access_token',
             'whatsapp.meta.access_token',
             'whatsapp.meta.webhook_verify_token',
             'whatsapp.meta.app_secret',
@@ -612,6 +644,7 @@ class CommunicationSettings
             'email.password',
             'sms.api_key',
             'sms.taqnyat.bearer_token',
+            'whatsapp.chatwoot.access_token',
             'whatsapp.meta.access_token',
             'whatsapp.meta.webhook_verify_token',
             'whatsapp.meta.app_secret',

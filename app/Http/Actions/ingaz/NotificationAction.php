@@ -111,6 +111,18 @@ class NotificationAction extends MainAction
         $purpose = (string) $request->input('whatsapp_purpose', $whatsAppSettings['default_purpose'] ?? 'verification');
         $message = trim((string) $request->input('message_override', ''));
         $senderKey = trim((string) $request->input('whatsapp_sender_key', ''));
+        $templateContext = [];
+        if ($this->whatsAppService->driver() === 'chatwoot' && $request->filled('chatwoot_template')) {
+            try {
+                $prepared = app(\App\Services\WhatsApp\ChatwootWhatsAppService::class)->prepareTemplate(
+                    (string) $request->input('chatwoot_template'), (array) $request->input('chatwoot_variables', [])
+                );
+                $message = $prepared['message'];
+                $templateContext = ['template_params' => $prepared['template_params']];
+            } catch (\Throwable $e) {
+                throw ValidationException::withMessages(['chatwoot_template' => get_class($e) === \RuntimeException::class ? $e->getMessage() : 'تعذر التحقق من القالب.']);
+            }
+        }
 
         $allowedPurposes = ['verification', 'follow_up'];
         if ((bool) ($whatsAppSettings['allow_advertising'] ?? false)) {
@@ -167,10 +179,14 @@ class NotificationAction extends MainAction
                 'purpose' => $purpose,
                 'user_id' => $user->id,
                 'sender_key' => $senderKey,
+                ...$templateContext,
             ]);
 
             if (!$this->isSuccessfulWhatsAppResponse($response)) {
                 $failedCount++;
+                if ($this->whatsAppService->driver() === 'chatwoot') {
+                    $failureReason = (string) data_get($response, 'response.message', 'تعذر إرسال الرسالة عبر Widers.');
+                }
                 continue;
             }
 
@@ -182,6 +198,7 @@ class NotificationAction extends MainAction
             'channel' => 'whatsapp',
             'purpose' => $purpose,
             'driver' => $this->whatsAppService->driver(),
+            'failure_reason' => $failureReason ?? null,
             'sender_key' => $senderKey !== '' ? $senderKey : null,
             'sender_name' => $resolvedSender['name'] ?? null,
             'total_count' => $users->count(),

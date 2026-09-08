@@ -107,6 +107,18 @@
                     </div>
 
                     <div class="col-12">
+                        @if(($whatsappConfig['driver'] ?? '') === 'chatwoot')
+                            <label for="chatwootTemplate">قالب Widers المعتمد</label>
+                            <select id="chatwootTemplate" name="chatwoot_template" class="form-control mb-3">
+                                <option value="">نص حر — يتطلب نافذة رد مفتوحة خلال 24 ساعة</option>
+                                @foreach(($chatwootTemplates ?? []) as $template)
+                                    <option value="{{ $template['name'].'|'.$template['language'] }}">{{ $template['name'] }} — {{ $template['language'] }} — {{ $template['category'] }}</option>
+                                @endforeach
+                            </select>
+                            <div id="chatwootVariables"></div>
+                            <p class="text-muted">اختر قالبًا لبدء المحادثة. القائمة تدعم قوالب النص دون رؤوس أو أزرار. القيم المدخلة مشتركة لكل المستلمين المحددين.</p>
+                            @if($chatwootTemplateError ?? null)<div class="alert alert-warning">{{ $chatwootTemplateError }}</div>@endif
+                        @endif
                         <label for="message_override" class="form-label">نص رسالة واتساب</label>
                         <textarea name="message_override" id="message_override" class="form-control" rows="6" required
                             placeholder="اكتب رسالة التحقق أو المتابعة هنا"></textarea>
@@ -158,6 +170,26 @@
 
 @section('js')
 <script>
+    const cwTemplates = @json($chatwootTemplates ?? []);
+    document.getElementById('chatwootTemplate')?.addEventListener('change', function () {
+        const template = cwTemplates.find(t => t.name + '|' + t.language === this.value);
+        const container = document.getElementById('chatwootVariables');
+        const textarea = document.getElementById('message_override');
+        container.replaceChildren();
+        textarea.readOnly = !!template;
+        if (!template) { textarea.value = ''; return; }
+        const body = (template.components || []).find(c => c.type.toUpperCase() === 'BODY')?.text || '';
+        const variables = [...new Set([...body.matchAll(/\{\{\s*(\w+)\s*\}\}/g)].map(m => m[1]))];
+        const inputs = {};
+        const render = () => { textarea.value = body.replace(/\{\{\s*(\w+)\s*\}\}/g, (match, key) => inputs[key]?.value || match); };
+        variables.forEach(key => {
+            const label = document.createElement('label'); label.textContent = 'قيمة المتغير ' + key;
+            const input = document.createElement('input'); input.name = 'chatwoot_variables[' + key + ']';
+            input.className = 'form-control mb-2'; input.required = true; input.maxLength = 1000;
+            inputs[key] = input; input.addEventListener('input', render); container.append(label, input);
+        });
+        render();
+    });
     const totalEligibleUsers = {{ (int) $totalEligibleUsers }};
 
     function updateRecipientCount() {

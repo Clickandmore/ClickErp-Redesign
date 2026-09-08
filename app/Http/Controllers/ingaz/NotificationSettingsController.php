@@ -106,7 +106,7 @@ class NotificationSettingsController extends Controller
 
             return redirect()
                 ->to(route($fallbackRoute) . '#' . $this->sectionAnchor($section))
-                ->withInput()
+                ->withInput($request->except('whatsapp.chatwoot.access_token'))
                 ->with('error', $section === 'alerts'
                     ? 'تعذر حفظ إعدادات التنبيهات. لم يتم حفظ أي جزء من التغييرات.'
                     : 'تعذر حفظ إعدادات الربط حالياً.');
@@ -119,6 +119,13 @@ class NotificationSettingsController extends Controller
             abort(403, __('admin.no_permissions'));
         }
 
+        if (config('services.whatsapp.driver') === 'chatwoot') {
+            $result = app(\App\Services\WhatsApp\ChatwootWhatsAppService::class)->connectionStatus();
+            return redirect()->to(route('notifications.settings').'#whatsapp-settings')
+                ->with(($result['success'] ?? false) ? 'success' : 'error',
+                    ($result['success'] ?? false) ? 'تم الاتصال بـ Widers. اختر معرف صندوق واتساب من القائمة ثم احفظ.' : data_get($result, 'response.message'))
+                ->with('chatwoot_inboxes', $result['inboxes'] ?? []);
+        }
         $result = $metaWhatsAppService->connectionStatus();
 
         if ($result['success'] ?? false) {
@@ -368,7 +375,7 @@ class NotificationSettingsController extends Controller
         $validated = $request->validate([
             'section' => 'required|in:whatsapp',
             'whatsapp' => 'required|array',
-            'whatsapp.driver' => 'required|in:meta,ultramsg',
+            'whatsapp.driver' => 'required|in:meta,ultramsg,chatwoot',
             'whatsapp.default_country_code' => 'required|string|max:10',
             'whatsapp.timeout' => 'required|integer|min:5|max:120',
             'whatsapp.bulk_send_limit' => 'required|integer|min:1|max:10000',
@@ -376,6 +383,11 @@ class NotificationSettingsController extends Controller
             'whatsapp.default_purpose' => 'required|in:verification,follow_up,advertising',
             'whatsapp.allow_advertising' => 'nullable|boolean',
 
+            'whatsapp.chatwoot' => 'nullable|array',
+            'whatsapp.chatwoot.base_url' => 'nullable|url:https|max:500',
+            'whatsapp.chatwoot.account_id' => 'nullable|integer|min:1',
+            'whatsapp.chatwoot.inbox_id' => 'nullable|integer|min:1',
+            'whatsapp.chatwoot.access_token' => 'nullable|string|max:5000',
             'whatsapp.meta' => 'required|array',
             'whatsapp.meta.graph_version' => 'nullable|string|max:20',
             'whatsapp.meta.phone_number_id' => 'nullable|string|max:255',

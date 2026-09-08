@@ -17,16 +17,17 @@ class WhatsAppMessagingService
     {
         $driver = trim((string) config('services.whatsapp.driver', 'meta'));
 
-        return in_array($driver, ['meta', 'ultramsg'], true) ? $driver : 'meta';
+        return in_array($driver, ['meta', 'ultramsg', 'chatwoot'], true) ? $driver : 'meta';
     }
 
     public function providerLabel(): string
     {
-        return $this->driver() === 'ultramsg' ? 'UltraMsg' : 'Meta API';
+        return match ($this->driver()) { 'chatwoot' => 'Widers / Chatwoot', 'ultramsg' => 'UltraMsg', default => 'Meta API' };
     }
 
     public function isConfigured(): bool
     {
+        if ($this->driver() === 'chatwoot') { return app(ChatwootWhatsAppService::class)->missingConfigKeys() === []; }
         if ($this->driver() === 'ultramsg') {
             return $this->resolveSender() !== null;
         }
@@ -36,6 +37,7 @@ class WhatsAppMessagingService
 
     public function missingConfigKeys(): array
     {
+        if ($this->driver() === 'chatwoot') { return app(ChatwootWhatsAppService::class)->missingConfigKeys(); }
         if ($this->driver() === 'ultramsg') {
             $sender = $this->resolveSender();
 
@@ -95,6 +97,7 @@ class WhatsAppMessagingService
 
     public function sendText(string $to, string $message, array $context = []): array
     {
+        if ($this->driver() === 'chatwoot') { return app(ChatwootWhatsAppService::class)->sendText($to, $message, $context); }
         if ($this->driver() === 'ultramsg') {
             return $this->sendViaUltraMsg($to, $message, $context);
         }
