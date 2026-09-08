@@ -10,6 +10,12 @@ return [
         'mysql' => env('MYSQL_BINARY'),
     ],
 
+    'backup_ssh' => [
+        'target' => env('DATABASE_BACKUP_SSH_TARGET', 'clickadmin@130.110.98.217'),
+        'project_path' => env('DATABASE_BACKUP_SSH_PROJECT_PATH', '/var/www/QawafillDashboard'),
+        'php_binary' => env('DATABASE_BACKUP_SSH_PHP_BINARY', '/usr/bin/php8.3'),
+    ],
+
     // Laravel's value is in kilobytes. PHP/web-server upload limits still apply.
     'backup_import_max_kb' => (int) env('DATABASE_BACKUP_IMPORT_MAX_KB', 512000),
 

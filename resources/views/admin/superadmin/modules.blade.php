@@ -1484,38 +1484,24 @@
 
             <div class="database-import-box">
                 <h3>استيراد قاعدة بيانات</h3>
-                <p>اختر ملف <span dir="ltr">SQL / SQL.GZ</span> أو أدخل مساره على السيرفر ثم انسخ الأمر. ستُحفظ نسخة أمان تلقائيًا قبل استبدال البيانات.</p>
+                <p>اختر ملف <span dir="ltr">SQL / SQL.GZ</span> ثم انسخ أمر الرفع وأمر الاستيراد. ستُحفظ نسخة أمان تلقائيًا قبل استبدال البيانات.</p>
 
                 <div class="terminal-command-box">
                     <input id="databaseFileInput" type="file" accept=".sql,.gz,application/sql,application/gzip" aria-label="اختر ملف قاعدة البيانات لإنشاء أمر الاستيراد">
-                    <label for="databaseLocalFilePath">مسار الملف الكامل على جهازك (للرفع من Terminal)</label>
-                    <input id="databaseLocalFilePath" type="text" dir="ltr" placeholder="/Users/your-name/Downloads/backup.sql.gz">
-                    <p class="verification-note">المتصفح لا يكشف مسار الملف الكامل. الصق المسار هنا بدون علامات اقتباس.</p>
-                    <label for="databaseSshHost">عنوان السيرفر أو IP</label>
-                    <input id="databaseSshHost" type="text" dir="ltr" placeholder="server.example.com">
-                    <label for="databaseSshUser">مستخدم SSH</label>
-                    <input id="databaseSshUser" type="text" dir="ltr" placeholder="deploy">
-                    <label for="databaseSshPort">منفذ SSH</label>
-                    <input id="databaseSshPort" type="number" min="1" max="65535" value="22" dir="ltr">
-                    <label for="databaseUploadShell">Terminal على جهازك</label>
-                    <select id="databaseUploadShell">
-                        <option value="terminal">macOS / Linux</option>
-                        <option value="powershell">Windows PowerShell</option>
-                    </select>
-                    <label for="databaseServerFilePath">مسار الملف على السيرفر (يُملأ تلقائيًا من اسم الملف)</label>
-                    <input id="databaseServerFilePath" type="text" dir="ltr" placeholder="/var/www/project/storage/app/database-backups/backup.sql.gz" aria-label="المسار الكامل لملف قاعدة البيانات على السيرفر">
+                    <label for="databaseSshConnection">اتصال السيرفر</label>
+                    <input id="databaseSshConnection" type="text" dir="ltr" value="ssh {{ config('database.backup_ssh.target') }}" placeholder="ssh clickadmin@130.110.98.217">
                     <p>١. نفّذ أمر الرفع على جهازك:</p>
-                    <code id="databaseUploadCommand" class="terminal-command">أدخل مسار الملف وبيانات SSH لإنشاء أمر الرفع.</code>
+                    <code id="databaseUploadCommand" class="terminal-command">اختر الملف لإنشاء أمر الرفع.</code>
                     <button id="copyDatabaseUploadCommand" class="btn btn-small" type="button" disabled>نسخ أمر الرفع</button>
-                    <p class="verification-note">ينشئ الأمر مجلد النسخ ثم يرفع الملف عبر SCP. يجب أن يملك مستخدم SSH صلاحية الكتابة في المجلد وأن يستطيع مستخدم الاستيراد قراءة الملف.</p>
+                    <p class="verification-note">يبحث أمر الرفع عن الملف المختار في المجلد الحالي وDownloads وDesktop وDocuments. إذا لم يجده يطلب مساره في Terminal. المتصفح يتيح اسم الملف فقط، ولا يتيح مساره الكامل.</p>
                     <p>٢. بعد نجاح الرفع، نفّذ أمر الاستيراد داخل جلسة SSH على السيرفر:</p>
-                    <code id="databaseTerminalCommandPrefix" class="terminal-command">{{ $databaseImportCommandPrefix }}</code>
+                    <code id="databaseTerminalCommandPrefix" class="terminal-command">اختر الملف لإنشاء أمر الاستيراد بعد الرفع.</code>
                     <div class="terminal-command-actions">
-                        <button id="copyDatabaseTerminalPrefix" class="btn btn-small" type="button" data-command-prefix="{{ $databaseImportCommandPrefix }}" data-shell="{{ $databaseImportShell }}">نسخ أمر {{ $databaseImportShell === 'powershell' ? 'PowerShell' : 'Terminal' }}</button>
+                        <button id="copyDatabaseTerminalPrefix" class="btn btn-small" type="button" disabled>نسخ أمر الاستيراد</button>
                         <span id="terminalSelectedFile" class="terminal-selected-file">لم يتم اختيار ملف بعد.</span>
                     </div>
                     <p class="verification-note">نفّذ الأمر على الجهاز الذي يعمل عليه المشروع، ثم اكتب <span dir="ltr">IMPORT</span> عند طلب التأكيد.</p>
-                    <p class="verification-note">اختيار الملف هنا لا يرفعه. على اللايف ارفع الملف إلى السيرفر أولًا وأدخل مساره الكامل أعلاه، أو ضعه داخل <span dir="ltr">{{ \Illuminate\Support\Facades\Storage::disk('local')->path('database-backups') }}</span> ليجده الأمر باسمه. إذا احتجت صلاحيات مستخدم الويب، أضف <span dir="ltr">sudo -u www-data</span> قبل مسار PHP بعد <span dir="ltr">&amp;&amp;</span>؛ لا تضع <span dir="ltr">sudo</span> قبل <span dir="ltr">cd</span>.</p>
+                    <p class="verification-note">اختيار الملف لا يرفعه تلقائيًا. نفّذ أمر الرفع على جهازك أولًا، ثم ادخل للسيرفر باتصال SSH أعلاه ونفّذ أمر الاستيراد.</p>
                 </div>
 
                 <details class="settings-disclosure">
@@ -1946,92 +1932,87 @@
     }
 
     const databaseFileInput = document.getElementById('databaseFileInput');
-    const databaseServerFilePath = document.getElementById('databaseServerFilePath');
-    const databaseLocalFilePath = document.getElementById('databaseLocalFilePath');
-    const databaseSshHost = document.getElementById('databaseSshHost');
-    const databaseSshUser = document.getElementById('databaseSshUser');
-    const databaseSshPort = document.getElementById('databaseSshPort');
-    const databaseUploadShell = document.getElementById('databaseUploadShell');
+    const databaseSshConnection = document.getElementById('databaseSshConnection');
     const databaseUploadCommand = document.getElementById('databaseUploadCommand');
     const copyDatabaseUploadCommand = document.getElementById('copyDatabaseUploadCommand');
-    const databaseBackupDirectory = @json(\Illuminate\Support\Facades\Storage::disk('local')->path('database-backups'));
-    let suggestedDatabaseServerPath = '';
     const terminalSelectedFile = document.getElementById('terminalSelectedFile');
     const copyDatabaseTerminalPrefix = document.getElementById('copyDatabaseTerminalPrefix');
     const databaseTerminalCommandPrefix = document.getElementById('databaseTerminalCommandPrefix');
-    const terminalCommandPrefix = copyDatabaseTerminalPrefix?.dataset.commandPrefix || '';
-    const databaseImportShell = copyDatabaseTerminalPrefix?.dataset.shell || 'terminal';
+    const databaseRemoteProject = @json(config('database.backup_ssh.project_path'));
+    const databaseRemotePhp = @json(config('database.backup_ssh.php_binary'));
+    const databaseClientIsWindows = /Windows/i.test(navigator.userAgent);
 
-    function shellQuote(value) {
-        if (databaseImportShell === 'powershell') {
-            return `'${String(value).replaceAll("'", "''")}'`;
-        }
+    function posixQuote(value) {
         return `'${String(value).replaceAll("'", `'"'"'`)}'`;
     }
 
     function updateDatabaseImportCommand() {
+        if (!databaseUploadCommand || !copyDatabaseUploadCommand) return;
         const file = databaseFileInput?.files?.[0];
-        const localPath = databaseLocalFilePath?.value.trim() || '';
-        const filename = localPath ? localPath.split(/[\\/]/).pop() : file?.name;
-        if (databaseServerFilePath && (!databaseServerFilePath.value || databaseServerFilePath.value === suggestedDatabaseServerPath)) {
-            suggestedDatabaseServerPath = filename ? databaseBackupDirectory.replace(/[\\/]$/, '') + '/' + filename : '';
-            databaseServerFilePath.value = suggestedDatabaseServerPath;
-        }
-        const serverPath = databaseServerFilePath?.value.trim();
-        const path = serverPath || file?.name;
-        const command = path ? terminalCommandPrefix + shellQuote(path) : terminalCommandPrefix;
-        if (databaseTerminalCommandPrefix) databaseTerminalCommandPrefix.textContent = command;
-        if (copyDatabaseTerminalPrefix) copyDatabaseTerminalPrefix.dataset.commandPrefix = command;
-        if (terminalSelectedFile) {
-            terminalSelectedFile.textContent = serverPath
-                ? `مسار الملف على السيرفر: ${serverPath}`
-                : file ? `الملف المختار: ${file.name} — تأكد من وجوده على السيرفر؛ الاختيار هنا لا يرفعه.`
-                : 'لم يتم اختيار ملف بعد.';
-        }
-        updateDatabaseUploadCommand(localPath, serverPath);
-    }
-
-    function updateDatabaseUploadCommand(localPath, serverPath) {
-        if (!copyDatabaseUploadCommand || !databaseUploadCommand) return;
-        const host = databaseSshHost.value.trim();
-        const user = databaseSshUser.value.trim();
-        const port = databaseSshPort.value;
-        const valid = /^(?:[A-Za-z0-9][A-Za-z0-9.-]*|\[[A-Fa-f0-9:]+\])$/.test(host)
-            && /^[A-Za-z_][A-Za-z0-9_.-]*$/.test(user)
-            && /^\d+$/.test(port) && Number(port) >= 1 && Number(port) <= 65535
-            && /^(?:\/|[A-Za-z]:[\\/])/.test(localPath)
-            && serverPath?.startsWith('/') && !serverPath.endsWith('/')
-            && /\.sql(?:\.gz)?$/i.test(localPath)
-            && /\.sql(?:\.gz)?$/i.test(serverPath)
-            && !/[\r\n\0]/.test(localPath + serverPath);
+        const connection = databaseSshConnection.value.trim().replace(/\\@/g, '@').replace(/^ssh\s+/, '');
+        // Accept only a destination, never arbitrary SSH options or shell commands.
+        const validConnection = /^[A-Za-z_][A-Za-z0-9_.-]*@(?:[A-Za-z0-9][A-Za-z0-9.-]*|\[[A-Fa-f0-9:]+\])$/.test(connection);
+        const validFile = file && /\.sql(?:\.gz)?$/i.test(file.name) && !/[\/\\\r\n\0]/.test(file.name);
+        const valid = Boolean(validConnection && validFile);
         copyDatabaseUploadCommand.disabled = !valid;
+        copyDatabaseTerminalPrefix.disabled = !valid;
         copyDatabaseUploadCommand.dataset.command = '';
+        copyDatabaseTerminalPrefix.dataset.commandPrefix = '';
         if (!valid) {
-            databaseUploadCommand.textContent = 'أدخل مسار SQL أو SQL.GZ الكامل على جهازك وعلى السيرفر، وعنوان السيرفر ومستخدم SSH ومنفذه الصحيح.';
+            databaseUploadCommand.textContent = validConnection ? 'اختر ملف SQL أو SQL.GZ لإنشاء أمر الرفع.' : 'اكتب الاتصال بصيغة ssh user@IP.';
+            databaseTerminalCommandPrefix.textContent = 'اختر الملف لإنشاء أمر الاستيراد بعد الرفع.';
+            terminalSelectedFile.textContent = file ? `الملف المختار: ${file.name}` : 'لم يتم اختيار ملف بعد.';
             return;
         }
-        const powershell = databaseUploadShell.value === 'powershell';
-        const quote = (value) => powershell
-            ? `'${String(value).replaceAll("'", "''")}'`
-            : `'${String(value).replaceAll("'", `'"'"'`)}'`;
-        const remoteQuote = (value) => `'${String(value).replaceAll("'", `'"'"'`)}'`;
-        const target = user + '@' + host;
-        const directory = serverPath.slice(0, serverPath.lastIndexOf('/')) || '/';
-        const mkdir = 'ssh -p ' + port + ' ' + quote(target) + ' ' + quote('mkdir -p -- ' + remoteQuote(directory));
-        const upload = 'scp -P ' + port + ' ' + quote(localPath) + ' ' + quote(target + ':' + serverPath);
-        const command = powershell ? mkdir + '; if ($LASTEXITCODE -eq 0) { ' + upload + ' }' : mkdir + ' && ' + upload;
-        databaseUploadCommand.textContent = command;
-        copyDatabaseUploadCommand.dataset.command = command;
+
+        const directory = databaseRemoteProject.replace(/\/$/, '') + '/storage/app/database-backups';
+        const serverPath = directory + '/' + file.name;
+        const importCommand = 'cd ' + posixQuote(databaseRemoteProject)
+            + ' && sudo -u www-data ' + posixQuote(databaseRemotePhp)
+            + ' artisan database:import-local ' + posixQuote(serverPath);
+        const quote = databaseClientIsWindows
+            ? (value) => `'${String(value).replaceAll("'", "''")}'`
+            : posixQuote;
+        const mkdir = 'ssh ' + quote(connection) + ' ' + quote('mkdir -p -- ' + posixQuote(directory));
+        const destination = quote(connection + ':' + serverPath);
+        let uploadCommand;
+        if (databaseClientIsWindows) {
+            uploadCommand = [
+                '$backupName = ' + quote(file.name),
+                '$backupFile = $null',
+                'foreach ($backupDir in @((Get-Location).Path, [Environment]::GetFolderPath("UserProfile") + "\\Downloads", [Environment]::GetFolderPath("Desktop"), [Environment]::GetFolderPath("MyDocuments"))) { if ($backupDir) { $backupCandidate = Join-Path $backupDir $backupName; if ((Test-Path -LiteralPath $backupCandidate -PathType Leaf) -and (Get-Item -LiteralPath $backupCandidate).Length -eq ' + file.size + ') { $backupFile = $backupCandidate; break } } }',
+                'if (!$backupFile) { $backupFile = Read-Host "Paste the full file path without quotes" }',
+                'if (Test-Path -LiteralPath $backupFile -PathType Leaf) { ' + mkdir + '; if ($LASTEXITCODE -eq 0) { scp "$backupFile" ' + destination + ' } } else { Write-Error "Backup file not found; upload cancelled." }',
+            ].join('\n');
+        } else {
+            uploadCommand = [
+                'backup_name=' + quote(file.name),
+                'backup_file=',
+                'for backup_dir in "$PWD" "$HOME/Downloads" "$HOME/Desktop" "$HOME/Documents"; do',
+                '  if [ -f "$backup_dir/$backup_name" ] && [ "$(wc -c < "$backup_dir/$backup_name" | tr -d \' \')" = ' + quote(String(file.size)) + ' ]; then backup_file="$backup_dir/$backup_name"; break; fi',
+                'done',
+                'if [ -z "$backup_file" ]; then printf \'Paste the full file path without quotes: \'; IFS= read -r backup_file; fi',
+                'if [ -f "$backup_file" ]; then',
+                '  ' + mkdir + ' && scp "$backup_file" ' + destination,
+                'else',
+                '  printf \'Backup file not found; upload cancelled.\\n\' >&2',
+                'fi',
+            ].join('\n');
+        }
+        // Parse the whole pasted command before a possible interactive path prompt.
+        uploadCommand = databaseClientIsWindows ? '& {\n' + uploadCommand + '\n}' : '(\n' + uploadCommand + '\n)';
+        databaseUploadCommand.textContent = uploadCommand;
+        copyDatabaseUploadCommand.dataset.command = uploadCommand;
+        databaseTerminalCommandPrefix.textContent = importCommand;
+        copyDatabaseTerminalPrefix.dataset.commandPrefix = importCommand;
+        terminalSelectedFile.textContent = `الملف المختار: ${file.name}`;
     }
     databaseFileInput?.addEventListener('change', updateDatabaseImportCommand);
-    databaseServerFilePath?.addEventListener('input', updateDatabaseImportCommand);
-    [databaseLocalFilePath, databaseSshHost, databaseSshUser, databaseSshPort].forEach((input) => {
-        input?.addEventListener('input', updateDatabaseImportCommand);
-    });
-    databaseUploadShell?.addEventListener('change', updateDatabaseImportCommand);
+    databaseSshConnection?.addEventListener('input', updateDatabaseImportCommand);
     copyDatabaseUploadCommand?.addEventListener('click', function () {
         if (this.dataset.command) copyTerminalCommand(this, this.dataset.command);
     });
+    updateDatabaseImportCommand();
 
     copyDatabaseTerminalPrefix?.addEventListener('click', function () {
         copyTerminalCommand(this, this.dataset.commandPrefix || '');
