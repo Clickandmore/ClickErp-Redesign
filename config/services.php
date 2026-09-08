@@ -45,6 +45,12 @@ return [
 
     'whatsapp' => [
         'driver' => env('WHATSAPP_DRIVER', 'meta'),
+        'chatwoot' => [
+            'base_url' => env('CHATWOOT_BASE_URL', 'https://chat.widers.net'),
+            'account_id' => env('CHATWOOT_ACCOUNT_ID'),
+            'inbox_id' => env('CHATWOOT_INBOX_ID'),
+            'access_token' => env('CHATWOOT_ACCESS_TOKEN'),
+        ],
         'graph_version' => env('WHATSAPP_GRAPH_VERSION', 'v23.0'),
         'phone_number_id' => env('WHATSAPP_PHONE_NUMBER_ID'),
         'business_account_id' => env('WHATSAPP_BUSINESS_ACCOUNT_ID'),
