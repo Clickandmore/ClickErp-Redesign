@@ -194,7 +194,8 @@ class AppHomeController extends Controller
             'attachments',
         ])
             ->where('is_show', true)
-            ->whereNull('deleted_at');
+            ->whereNull('deleted_at')
+            ->withoutActiveOrders();
 
         if ($request->filled('nationality_id')) {
             $query->where('nationality_id', $request->nationality_id);
@@ -280,6 +281,7 @@ class AppHomeController extends Controller
             ])
             ->where('is_show', true)
             ->whereNull('deleted_at')
+            ->withoutActiveOrders()
             ->orderBy('is_pinned', 'desc')
             ->orderBy('created_at', 'desc')
             ->orderBy('id', 'desc');
@@ -480,6 +482,7 @@ class AppHomeController extends Controller
             'nationality_id' => (int) $maid->nationality_id,
             'religion_id' => (int) $maid->religion_id,
             'job_id' => (int) ($jobTitle?->id ?? 0),
+            'job_type_id' => (int) ($jobType?->id ?? 0),
             'type' => (string) ($jobType?->title ?? ''),
             'nationality' => (string) ($maid->nationality?->title ?? ''),
             'passport_num' => (string) ($maid->passport_num ?? ''),
