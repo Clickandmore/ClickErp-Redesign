@@ -138,18 +138,42 @@ class DatabaseBackupService
     {
         if ($this->terminalShell() === 'powershell') {
             return 'Set-Location ' . $this->terminalQuote(base_path())
-                . '; & ' . $this->terminalQuote(PHP_BINARY)
+                . '; & ' . $this->terminalQuote($this->phpCliBinary())
                 . ' artisan ' . $command . ' ';
         }
 
         return 'cd ' . $this->terminalQuote(base_path())
-            . ' && ' . $this->terminalQuote(PHP_BINARY)
+            . ' && ' . $this->terminalQuote($this->phpCliBinary())
             . ' artisan ' . $command . ' ';
     }
 
     public function terminalShell(): string
     {
         return PHP_OS_FAMILY === 'Windows' ? 'powershell' : 'terminal';
+    }
+
+    private function phpCliBinary(string $binary = PHP_BINARY, string $sapi = PHP_SAPI): string
+    {
+        $configured = trim((string) config('database.backup_binaries.php', ''));
+        $candidates = [
+            $configured,
+            in_array($sapi, ['cli', 'cli-server'], true) ? $binary : '',
+            PHP_BINDIR . DIRECTORY_SEPARATOR . (PHP_OS_FAMILY === 'Windows' ? 'php.exe' : 'php'),
+            '/usr/bin/php' . PHP_MAJOR_VERSION . '.' . PHP_MINOR_VERSION,
+            '/usr/local/bin/php',
+            '/usr/bin/php',
+            '/opt/homebrew/bin/php',
+        ];
+
+        foreach ($candidates as $candidate) {
+            if ($candidate !== '' && !preg_match('/(?:fpm|cgi)/i', basename($candidate))
+                && @is_file($candidate) && @is_executable($candidate)) {
+                return $candidate;
+            }
+        }
+
+        // The terminal can resolve PHP via PATH even when web open_basedir hides it.
+        return PHP_OS_FAMILY === 'Windows' ? 'php.exe' : 'php';
     }
 
     public function localImportCommand(string $path): string

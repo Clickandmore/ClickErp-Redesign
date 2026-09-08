@@ -3,11 +3,43 @@
 namespace Tests\Feature;
 
 use App\Services\DatabaseBackupService;
+use Illuminate\Support\Facades\Storage;
 use Mockery;
 use Tests\TestCase;
 
 class ImportLocalDatabaseCommandTest extends TestCase
 {
+    public function test_filename_is_resolved_from_the_configured_local_disk(): void
+    {
+        Storage::fake('local');
+        Storage::disk('local')->put('database-backups/selected.sql.gz', 'placeholder');
+        $path = Storage::disk('local')->path('database-backups/selected.sql.gz');
+        $backups = Mockery::mock(DatabaseBackupService::class);
+        $backups->shouldReceive('importFile')->once()->with(realpath($path));
+        $this->app->instance(DatabaseBackupService::class, $backups);
+
+        $this->artisan('database:import-local', ['file' => 'selected.sql.gz', '--force' => true])
+            ->assertExitCode(0);
+    }
+
+    public function test_fpm_is_never_selected_for_terminal_commands(): void
+    {
+        config(['database.backup_binaries.php' => '/usr/sbin/php-fpm8.3']);
+        $method = new \ReflectionMethod(DatabaseBackupService::class, 'phpCliBinary');
+        $method->setAccessible(true);
+        $binary = $method->invoke(new DatabaseBackupService(), '/usr/sbin/php-fpm8.3', 'fpm-fcgi');
+
+        $this->assertDoesNotMatchRegularExpression('/fpm|cgi/i', $binary);
+    }
+
+    public function test_terminal_commands_use_the_configured_cli_binary(): void
+    {
+        config(['database.backup_binaries.php' => PHP_BINARY]);
+        $service = new DatabaseBackupService();
+        $this->assertStringContainsString(escapeshellarg(PHP_BINARY), $service->localImportCommandPrefix());
+        $this->assertStringContainsString(escapeshellarg(PHP_BINARY), $service->emptyDatabaseCommand());
+    }
+
     public function test_force_option_imports_an_existing_local_sql_file(): void
     {
         $path = tempnam(sys_get_temp_dir(), 'clickerp-command-import-') . '.sql';

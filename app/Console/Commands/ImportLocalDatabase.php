@@ -4,6 +4,7 @@ namespace App\Console\Commands;
 
 use App\Services\DatabaseBackupService;
 use Illuminate\Console\Command;
+use Illuminate\Support\Facades\Storage;
 
 class ImportLocalDatabase extends Command
 {
@@ -26,6 +27,8 @@ class ImportLocalDatabase extends Command
 
         if ($path === null) {
             $this->error('Database file not found: ' . $input);
+            $this->line('Upload the file to this server first, then pass its absolute path. Selecting a file in the browser does not upload it.');
+            $this->line('Local backup directory: ' . Storage::disk('local')->path('database-backups'));
 
             return self::FAILURE;
         }
@@ -71,6 +74,7 @@ class ImportLocalDatabase extends Command
             $searchDirectories = array_filter(array_merge(
                 (array) config('database.backup_import_search_paths', []),
                 [
+                    Storage::disk('local')->path('database-backups'),
                     storage_path('app/database-backups'),
                     $userDirectory !== '' ? $userDirectory . DIRECTORY_SEPARATOR . 'Downloads' : null,
                     $userDirectory !== '' ? $userDirectory . DIRECTORY_SEPARATOR . 'Desktop' : null,

@@ -5,6 +5,7 @@ use Illuminate\Support\Str;
 return [
 
     'backup_binaries' => [
+        'php' => env('DATABASE_BACKUP_PHP_BINARY'),
         'mysqldump' => env('MYSQLDUMP_BINARY'),
         'mysql' => env('MYSQL_BINARY'),
     ],

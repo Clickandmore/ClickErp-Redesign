@@ -1484,16 +1484,18 @@
 
             <div class="database-import-box">
                 <h3>استيراد قاعدة بيانات</h3>
-                <p>اختر ملف <span dir="ltr">SQL / SQL.GZ</span> ثم انسخ الأمر المناسب. ستُحفظ نسخة أمان تلقائيًا قبل استبدال البيانات.</p>
+                <p>اختر ملف <span dir="ltr">SQL / SQL.GZ</span> أو أدخل مساره على السيرفر ثم انسخ الأمر. ستُحفظ نسخة أمان تلقائيًا قبل استبدال البيانات.</p>
 
                 <div class="terminal-command-box">
                     <input id="databaseFileInput" type="file" accept=".sql,.gz,application/sql,application/gzip" aria-label="اختر ملف قاعدة البيانات لإنشاء أمر الاستيراد">
+                    <input id="databaseServerFilePath" type="text" dir="ltr" placeholder="/var/www/project/storage/app/database-backups/backup.sql.gz" aria-label="المسار الكامل لملف قاعدة البيانات على السيرفر">
                     <code id="databaseTerminalCommandPrefix" class="terminal-command">{{ $databaseImportCommandPrefix }}</code>
                     <div class="terminal-command-actions">
                         <button id="copyDatabaseTerminalPrefix" class="btn btn-small" type="button" data-command-prefix="{{ $databaseImportCommandPrefix }}" data-shell="{{ $databaseImportShell }}">نسخ أمر {{ $databaseImportShell === 'powershell' ? 'PowerShell' : 'Terminal' }}</button>
                         <span id="terminalSelectedFile" class="terminal-selected-file">لم يتم اختيار ملف بعد.</span>
                     </div>
                     <p class="verification-note">نفّذ الأمر على الجهاز الذي يعمل عليه المشروع، ثم اكتب <span dir="ltr">IMPORT</span> عند طلب التأكيد.</p>
+                    <p class="verification-note">اختيار الملف هنا لا يرفعه. على اللايف ارفع الملف إلى السيرفر أولًا وأدخل مساره الكامل أعلاه، أو ضعه داخل <span dir="ltr">{{ \Illuminate\Support\Facades\Storage::disk('local')->path('database-backups') }}</span> ليجده الأمر باسمه. إذا احتجت صلاحيات مستخدم الويب، أضف <span dir="ltr">sudo -u www-data</span> قبل مسار PHP بعد <span dir="ltr">&amp;&amp;</span>؛ لا تضع <span dir="ltr">sudo</span> قبل <span dir="ltr">cd</span>.</p>
                 </div>
 
                 <details class="settings-disclosure">
@@ -1924,6 +1926,7 @@
     }
 
     const databaseFileInput = document.getElementById('databaseFileInput');
+    const databaseServerFilePath = document.getElementById('databaseServerFilePath');
     const terminalSelectedFile = document.getElementById('terminalSelectedFile');
     const copyDatabaseTerminalPrefix = document.getElementById('copyDatabaseTerminalPrefix');
     const databaseTerminalCommandPrefix = document.getElementById('databaseTerminalCommandPrefix');
@@ -1937,17 +1940,22 @@
         return `'${String(value).replaceAll("'", `'"'"'`)}'`;
     }
 
-    databaseFileInput?.addEventListener('change', function () {
-        const file = this.files?.[0];
-        const command = file ? terminalCommandPrefix + shellQuote(file.name) : terminalCommandPrefix;
+    function updateDatabaseImportCommand() {
+        const file = databaseFileInput?.files?.[0];
+        const serverPath = databaseServerFilePath?.value.trim();
+        const path = serverPath || file?.name;
+        const command = path ? terminalCommandPrefix + shellQuote(path) : terminalCommandPrefix;
         if (databaseTerminalCommandPrefix) databaseTerminalCommandPrefix.textContent = command;
         if (copyDatabaseTerminalPrefix) copyDatabaseTerminalPrefix.dataset.commandPrefix = command;
         if (terminalSelectedFile) {
-            terminalSelectedFile.textContent = file
-                ? `الملف المختار: ${file.name} — سيبحث الأمر عنه تلقائيًا في المجلدات المعتادة.`
+            terminalSelectedFile.textContent = serverPath
+                ? `مسار الملف على السيرفر: ${serverPath}`
+                : file ? `الملف المختار: ${file.name} — تأكد من وجوده على السيرفر؛ الاختيار هنا لا يرفعه.`
                 : 'لم يتم اختيار ملف بعد.';
         }
-    });
+    }
+    databaseFileInput?.addEventListener('change', updateDatabaseImportCommand);
+    databaseServerFilePath?.addEventListener('input', updateDatabaseImportCommand);
 
     copyDatabaseTerminalPrefix?.addEventListener('click', function () {
         copyTerminalCommand(this, this.dataset.commandPrefix || '');
