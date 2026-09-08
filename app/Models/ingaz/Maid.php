@@ -4,7 +4,6 @@ namespace App\Models\ingaz;
 
 use App\PermKeys;
 use App\Enums\ingaz\ContractStatusEnum;
-use App\Enums\ingaz\OrderEnum;
 use App\Http\Controllers\ingaz\RecruitmentOffice;
 use App\Models\Contract;
 use App\Models\RecruitmentOffices;
@@ -548,11 +547,10 @@ class Maid extends Model
     public function scopeWithoutActiveOrders($query)
     {
         return $query->whereDoesntHave('orders', function ($orderQuery) {
-            $orderQuery->whereIn('status', [
-                OrderEnum::New->value,
-                OrderEnum::UnderProcess->value,
-                OrderEnum::Contracted->value,
-            ]);
+            $orderQuery->withoutGlobalScopes()->where(function ($statusQuery) {
+                $statusQuery->whereNull('status')
+                    ->orWhereNotIn('status', Order::nonBlockingMaidAssignmentStatuses());
+            });
         });
     }
 
