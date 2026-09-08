@@ -1488,7 +1488,27 @@
 
                 <div class="terminal-command-box">
                     <input id="databaseFileInput" type="file" accept=".sql,.gz,application/sql,application/gzip" aria-label="اختر ملف قاعدة البيانات لإنشاء أمر الاستيراد">
+                    <label for="databaseLocalFilePath">مسار الملف الكامل على جهازك (للرفع من Terminal)</label>
+                    <input id="databaseLocalFilePath" type="text" dir="ltr" placeholder="/Users/your-name/Downloads/backup.sql.gz">
+                    <p class="verification-note">المتصفح لا يكشف مسار الملف الكامل. الصق المسار هنا بدون علامات اقتباس.</p>
+                    <label for="databaseSshHost">عنوان السيرفر أو IP</label>
+                    <input id="databaseSshHost" type="text" dir="ltr" placeholder="server.example.com">
+                    <label for="databaseSshUser">مستخدم SSH</label>
+                    <input id="databaseSshUser" type="text" dir="ltr" placeholder="deploy">
+                    <label for="databaseSshPort">منفذ SSH</label>
+                    <input id="databaseSshPort" type="number" min="1" max="65535" value="22" dir="ltr">
+                    <label for="databaseUploadShell">Terminal على جهازك</label>
+                    <select id="databaseUploadShell">
+                        <option value="terminal">macOS / Linux</option>
+                        <option value="powershell">Windows PowerShell</option>
+                    </select>
+                    <label for="databaseServerFilePath">مسار الملف على السيرفر (يُملأ تلقائيًا من اسم الملف)</label>
                     <input id="databaseServerFilePath" type="text" dir="ltr" placeholder="/var/www/project/storage/app/database-backups/backup.sql.gz" aria-label="المسار الكامل لملف قاعدة البيانات على السيرفر">
+                    <p>١. نفّذ أمر الرفع على جهازك:</p>
+                    <code id="databaseUploadCommand" class="terminal-command">أدخل مسار الملف وبيانات SSH لإنشاء أمر الرفع.</code>
+                    <button id="copyDatabaseUploadCommand" class="btn btn-small" type="button" disabled>نسخ أمر الرفع</button>
+                    <p class="verification-note">ينشئ الأمر مجلد النسخ ثم يرفع الملف عبر SCP. يجب أن يملك مستخدم SSH صلاحية الكتابة في المجلد وأن يستطيع مستخدم الاستيراد قراءة الملف.</p>
+                    <p>٢. بعد نجاح الرفع، نفّذ أمر الاستيراد داخل جلسة SSH على السيرفر:</p>
                     <code id="databaseTerminalCommandPrefix" class="terminal-command">{{ $databaseImportCommandPrefix }}</code>
                     <div class="terminal-command-actions">
                         <button id="copyDatabaseTerminalPrefix" class="btn btn-small" type="button" data-command-prefix="{{ $databaseImportCommandPrefix }}" data-shell="{{ $databaseImportShell }}">نسخ أمر {{ $databaseImportShell === 'powershell' ? 'PowerShell' : 'Terminal' }}</button>
@@ -1927,6 +1947,15 @@
 
     const databaseFileInput = document.getElementById('databaseFileInput');
     const databaseServerFilePath = document.getElementById('databaseServerFilePath');
+    const databaseLocalFilePath = document.getElementById('databaseLocalFilePath');
+    const databaseSshHost = document.getElementById('databaseSshHost');
+    const databaseSshUser = document.getElementById('databaseSshUser');
+    const databaseSshPort = document.getElementById('databaseSshPort');
+    const databaseUploadShell = document.getElementById('databaseUploadShell');
+    const databaseUploadCommand = document.getElementById('databaseUploadCommand');
+    const copyDatabaseUploadCommand = document.getElementById('copyDatabaseUploadCommand');
+    const databaseBackupDirectory = @json(\Illuminate\Support\Facades\Storage::disk('local')->path('database-backups'));
+    let suggestedDatabaseServerPath = '';
     const terminalSelectedFile = document.getElementById('terminalSelectedFile');
     const copyDatabaseTerminalPrefix = document.getElementById('copyDatabaseTerminalPrefix');
     const databaseTerminalCommandPrefix = document.getElementById('databaseTerminalCommandPrefix');
@@ -1942,6 +1971,12 @@
 
     function updateDatabaseImportCommand() {
         const file = databaseFileInput?.files?.[0];
+        const localPath = databaseLocalFilePath?.value.trim() || '';
+        const filename = localPath ? localPath.split(/[\\/]/).pop() : file?.name;
+        if (databaseServerFilePath && (!databaseServerFilePath.value || databaseServerFilePath.value === suggestedDatabaseServerPath)) {
+            suggestedDatabaseServerPath = filename ? databaseBackupDirectory.replace(/[\\/]$/, '') + '/' + filename : '';
+            databaseServerFilePath.value = suggestedDatabaseServerPath;
+        }
         const serverPath = databaseServerFilePath?.value.trim();
         const path = serverPath || file?.name;
         const command = path ? terminalCommandPrefix + shellQuote(path) : terminalCommandPrefix;
@@ -1953,9 +1988,50 @@
                 : file ? `الملف المختار: ${file.name} — تأكد من وجوده على السيرفر؛ الاختيار هنا لا يرفعه.`
                 : 'لم يتم اختيار ملف بعد.';
         }
+        updateDatabaseUploadCommand(localPath, serverPath);
+    }
+
+    function updateDatabaseUploadCommand(localPath, serverPath) {
+        if (!copyDatabaseUploadCommand || !databaseUploadCommand) return;
+        const host = databaseSshHost.value.trim();
+        const user = databaseSshUser.value.trim();
+        const port = databaseSshPort.value;
+        const valid = /^(?:[A-Za-z0-9][A-Za-z0-9.-]*|\[[A-Fa-f0-9:]+\])$/.test(host)
+            && /^[A-Za-z_][A-Za-z0-9_.-]*$/.test(user)
+            && /^\d+$/.test(port) && Number(port) >= 1 && Number(port) <= 65535
+            && /^(?:\/|[A-Za-z]:[\\/])/.test(localPath)
+            && serverPath?.startsWith('/') && !serverPath.endsWith('/')
+            && /\.sql(?:\.gz)?$/i.test(localPath)
+            && /\.sql(?:\.gz)?$/i.test(serverPath)
+            && !/[\r\n\0]/.test(localPath + serverPath);
+        copyDatabaseUploadCommand.disabled = !valid;
+        copyDatabaseUploadCommand.dataset.command = '';
+        if (!valid) {
+            databaseUploadCommand.textContent = 'أدخل مسار SQL أو SQL.GZ الكامل على جهازك وعلى السيرفر، وعنوان السيرفر ومستخدم SSH ومنفذه الصحيح.';
+            return;
+        }
+        const powershell = databaseUploadShell.value === 'powershell';
+        const quote = (value) => powershell
+            ? `'${String(value).replaceAll("'", "''")}'`
+            : `'${String(value).replaceAll("'", `'"'"'`)}'`;
+        const remoteQuote = (value) => `'${String(value).replaceAll("'", `'"'"'`)}'`;
+        const target = user + '@' + host;
+        const directory = serverPath.slice(0, serverPath.lastIndexOf('/')) || '/';
+        const mkdir = 'ssh -p ' + port + ' ' + quote(target) + ' ' + quote('mkdir -p -- ' + remoteQuote(directory));
+        const upload = 'scp -P ' + port + ' ' + quote(localPath) + ' ' + quote(target + ':' + serverPath);
+        const command = powershell ? mkdir + '; if ($LASTEXITCODE -eq 0) { ' + upload + ' }' : mkdir + ' && ' + upload;
+        databaseUploadCommand.textContent = command;
+        copyDatabaseUploadCommand.dataset.command = command;
     }
     databaseFileInput?.addEventListener('change', updateDatabaseImportCommand);
     databaseServerFilePath?.addEventListener('input', updateDatabaseImportCommand);
+    [databaseLocalFilePath, databaseSshHost, databaseSshUser, databaseSshPort].forEach((input) => {
+        input?.addEventListener('input', updateDatabaseImportCommand);
+    });
+    databaseUploadShell?.addEventListener('change', updateDatabaseImportCommand);
+    copyDatabaseUploadCommand?.addEventListener('click', function () {
+        if (this.dataset.command) copyTerminalCommand(this, this.dataset.command);
+    });
 
     copyDatabaseTerminalPrefix?.addEventListener('click', function () {
         copyTerminalCommand(this, this.dataset.commandPrefix || '');
