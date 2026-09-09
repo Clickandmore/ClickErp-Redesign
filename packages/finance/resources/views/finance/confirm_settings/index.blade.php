@@ -392,6 +392,9 @@
         $selected = fn (string $key, $id) => $settingValue($key) === (string) $id ? 'selected' : '';
         $dailyConstraintsApproval = $settingValue('daily_constraints', 'off');
         $automaticJournalEntries = $settingValue('automatic_journal_entries', 'on');
+        $recruitmentRevenueRecognition = \App\Support\RecruitmentRevenueRecognition::normalize(
+            $settingValue(\App\Support\RecruitmentRevenueRecognition::SETTING_KEY, 'on_arrival')
+        );
         $accountTreeLabel = __('finance::finance.account_tree_position');
         $accountOption = fn ($id) => $selected_accounts->get((int) $id);
         $settingAccountOption = fn (string $key) => $accountOption($settingValue($key));
@@ -416,6 +419,13 @@
                     <span class="settings-nav__icon"><i class="fa fa-cogs"></i></span>
                     <span>
                         <span class="settings-nav__title">{{ __('finance::finance.automatic_journal_entries') }}</span>
+                        <span class="settings-nav__count">1 {{ __('finance::finance.settings_fields') }}</span>
+                    </span>
+                </a>
+                <a class="settings-nav__item" href="#recruitment-revenue-recognition-section">
+                    <span class="settings-nav__icon"><i class="fa fa-file-invoice-dollar"></i></span>
+                    <span>
+                        <span class="settings-nav__title">{{ __('finance::finance.recruitment_revenue_recognition') }}</span>
                         <span class="settings-nav__count">1 {{ __('finance::finance.settings_fields') }}</span>
                     </span>
                 </a>
@@ -520,6 +530,39 @@
                     <small class="text-muted d-block mt-3">
                         <i class="fa fa-info-circle"></i>
                         {{ __('finance::finance.automatic_journal_entries_scope_hint') }}
+                    </small>
+                </div>
+            </details>
+
+            <details class="settings-section" id="recruitment-revenue-recognition-section" open>
+                <summary>
+                    <div>
+                        <h3 class="settings-section-title">{{ __('finance::finance.recruitment_revenue_recognition') }}</h3>
+                        <p class="settings-section-hint">{{ __('finance::finance.recruitment_revenue_recognition_hint') }}</p>
+                    </div>
+                    <span class="settings-section-icon"><i class="fa fa-chevron-down"></i></span>
+                </summary>
+                <div class="settings-section-body">
+                    <input type="hidden" value="recruitment_revenue_recognition" name="data[recruitment_revenue_recognition][title]">
+                    <div class="approval-options">
+                        <label class="approval-option" for="recruitmentRevenueOnArrival">
+                            <input type="radio" id="recruitmentRevenueOnArrival" name="data[recruitment_revenue_recognition][value]" value="on_arrival" {{ $recruitmentRevenueRecognition !== 'on_invoice' ? 'checked' : '' }}>
+                            <span>
+                                <strong>{{ __('finance::finance.recruitment_revenue_on_arrival') }}</strong>
+                                <span>{{ __('finance::finance.recruitment_revenue_on_arrival_hint') }}</span>
+                            </span>
+                        </label>
+                        <label class="approval-option" for="recruitmentRevenueOnInvoice">
+                            <input type="radio" id="recruitmentRevenueOnInvoice" name="data[recruitment_revenue_recognition][value]" value="on_invoice" {{ $recruitmentRevenueRecognition === 'on_invoice' ? 'checked' : '' }}>
+                            <span>
+                                <strong>{{ __('finance::finance.recruitment_revenue_on_invoice') }}</strong>
+                                <span>{{ __('finance::finance.recruitment_revenue_on_invoice_hint') }}</span>
+                            </span>
+                        </label>
+                    </div>
+                    <small class="text-muted d-block mt-3">
+                        <i class="fa fa-info-circle"></i>
+                        {{ __('finance::finance.recruitment_revenue_recognition_scope_hint') }}
                     </small>
                 </div>
             </details>

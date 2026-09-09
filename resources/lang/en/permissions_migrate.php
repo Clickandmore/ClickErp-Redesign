@@ -380,6 +380,12 @@ return [
 
     // Sponsor Transfer Permissions
     [
+        'name' => 'sponsor_transfer_add_payment',
+        'group_name' => 'sponsor_transfer',
+        'section_name' => 'organization_management',
+        'guard_name' => 'admin',
+    ],
+    [
         'name' => 'sponsor_transfer_view',
         'group_name' => 'sponsor_transfer',
         'section_name' => 'organization_management',

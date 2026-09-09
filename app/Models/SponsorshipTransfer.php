@@ -149,6 +149,12 @@ class SponsorshipTransfer extends Model
         return $this->belongsTo(\Nami\Finance\Models\Bond::class, 'receipt_bond_id');
     }
 
+    public function receiptBonds()
+    {
+        return $this->hasMany(\Nami\Finance\Models\Bond::class, 'sponsorship_transfer_id')
+            ->where('type', \Nami\Finance\Enums\BondTypes::Qabd->value)->orderBy('id');
+    }
+
     public function receiptConstraint()
     {
         return $this->belongsTo(Constraint::class, 'receipt_constraint_id');

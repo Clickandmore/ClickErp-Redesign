@@ -705,12 +705,22 @@
                                     </select>
                                 </div>
                                 <div class="col-lg-3">
-                                    <label for="sponsor-transfer-date-from" class="form-label">من تاريخ</label>
+                                    <label for="sponsor-transfer-date-from" class="form-label">تاريخ الإنشاء من</label>
                                     <input type="date" class="form-control" id="sponsor-transfer-date-from" name="date_from">
                                 </div>
                                 <div class="col-lg-3">
-                                    <label for="sponsor-transfer-date-to" class="form-label">إلى تاريخ</label>
+                                    <label for="sponsor-transfer-date-to" class="form-label">تاريخ الإنشاء إلى</label>
                                     <input type="date" class="form-control" id="sponsor-transfer-date-to" name="date_to">
+                                </div>
+                                <div class="col-lg-3">
+                                    <label for="sponsor-transfer-transferred-from" class="form-label">تاريخ النقل من</label>
+                                    <input type="date" class="form-control" id="sponsor-transfer-transferred-from"
+                                        name="transfer_date_from">
+                                </div>
+                                <div class="col-lg-3">
+                                    <label for="sponsor-transfer-transferred-to" class="form-label">تاريخ النقل إلى</label>
+                                    <input type="date" class="form-control" id="sponsor-transfer-transferred-to"
+                                        name="transfer_date_to">
                                 </div>
                                 <div class="col-lg-3">
                                     <label for="sponsor-transfer-contract-number" class="form-label">رقم العقد</label>

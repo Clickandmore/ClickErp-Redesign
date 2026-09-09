@@ -3,12 +3,14 @@
 namespace App\Services\ingaz;
 
 use App\Models\Contract;
+use App\Models\ingaz\Invoice;
 use App\Models\MusanedTransferItem;
 use App\Models\RecruitmentContractRefund;
 use App\Http\Controllers\ingaz\InvoiceController;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Auth;
 use App\Support\AutomaticJournalEntries;
+use App\Support\RecruitmentRevenueRecognition;
 use Nami\Finance\Enums\AccountStatusEnum;
 use Nami\Finance\Enums\AccountTypesEnum;
 use Nami\Finance\Models\Account;
@@ -21,8 +23,27 @@ class RecruitmentContractRefundService
 {
     public function __construct(
         protected ConstraintService $constraintService,
-        protected YearService $yearService
+        protected YearService $yearService,
+        protected RecruitmentTripAccountingService $tripAccountingService
     ) {
+    }
+
+    public const EXTERNAL_OFFICE_REVERSAL_SECTION = 'استرداد فاتورة المورد الخارجي';
+
+    public static function externalOfficeReversalStatement(Contract $contract): string
+    {
+        return 'استرداد فاتورة المورد الخارجي - استرداد عقد استقدام #' . $contract->id;
+    }
+
+    /**
+     * في وضع «إثبات الإيراد عند الفاتورة» تُعكس فاتورة المورد الخارجي مع استرداد العقد
+     * (مدين المكتب الخارجي / دائن تكلفة المبيعات) فتعود فاتورة المكتب إلى صفر.
+     */
+    private function shouldReverseExternalOfficeCost(Invoice $invoice): bool
+    {
+        return RecruitmentRevenueRecognition::invoiceRecognizesOnInvoice($invoice)
+            && (bool) $invoice->external_office_cost_constraint_id
+            && AutomaticJournalEntries::enabled();
     }
 
     public function preview(Contract $contract, string $refundDate, ?string $cancelledBy = null): array
@@ -101,6 +122,15 @@ class RecruitmentContractRefundService
         /** @var MusanedTransferItem|null $transferItem */
         $transferItem = $summary['transfer_item'];
 
+        if ($this->shouldReverseExternalOfficeCost($invoice)) {
+            $this->tripAccountingService->reverseExternalOfficeCostEntries(
+                $contract,
+                $invoice,
+                $refundDate,
+                self::externalOfficeReversalStatement($contract)
+            );
+        }
+
         if ($summary['has_musaned_transfer']
             && (float) $summary['penalty_amount'] > 0
             && AutomaticJournalEntries::enabled()) {
@@ -157,6 +187,18 @@ class RecruitmentContractRefundService
             $lines = array_merge($lines, $this->withSection($reverseLines, 'إشعار الدائن للرصيد غير المعكوس'));
         } else {
             $warnings[] = 'تم عكس كامل قيمة الفاتورة بإشعارات دائنة سابقة، ولن ينشأ إشعار إضافي.';
+        }
+
+        if ($this->shouldReverseExternalOfficeCost($invoice)) {
+            if ($invoice->external_office_cost_reversal_constraint_id ?? null) {
+                $warnings[] = 'تم عكس فاتورة المورد الخارجي مسبقاً، ولن يُنشأ قيد عكس إضافي.';
+            } else {
+                $reversalLines = $this->tripAccountingService->buildExternalOfficeCostReversalLines(
+                    $invoice,
+                    self::externalOfficeReversalStatement($contract)
+                );
+                $lines = array_merge($lines, $this->withSection($reversalLines, self::EXTERNAL_OFFICE_REVERSAL_SECTION));
+            }
         }
 
         if ($summary['has_musaned_transfer'] && !AutomaticJournalEntries::enabled()

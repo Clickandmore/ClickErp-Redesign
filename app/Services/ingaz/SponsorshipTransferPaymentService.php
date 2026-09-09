@@ -8,6 +8,8 @@ use App\Support\BranchQueryContext;
 use App\Support\BranchSharingSettings;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 use Nami\Finance\Enums\AccountTypesEnum;
 use Nami\Finance\Enums\BondPaymentTypes;
 use Nami\Finance\Enums\BondTypes;
@@ -56,6 +58,49 @@ class SponsorshipTransferPaymentService
             return ['bond' => $transfer->receiptBond, 'constraint' => $transfer->receiptBond?->constraint];
         }
 
+        return $this->issueReceipt($transfer, $receiptAccountId, (float) $transfer->paid_amount, (string) $transfer->payment_type, $date);
+    }
+
+    public function addPayment(SponsorshipTransfer $transfer, array $data): array
+    {
+        return DB::transaction(function () use ($transfer, $data) {
+            $transfer = SponsorshipTransfer::query()->lockForUpdate()->findOrFail($transfer->id);
+            $amount = round((float) $data['amount'], 2);
+            $remaining = round((float) $transfer->remaining_amount, 2);
+            $paid = round((float) $transfer->paid_amount, 2);
+
+            if ($transfer->isRentalWorkflow() || $amount <= 0 || $amount > $remaining) {
+                throw ValidationException::withMessages(['amount' => 'يجب أن تكون الدفعة أكبر من صفر ولا تتجاوز المتبقي، ولا يمكن تسجيل دفعات نقل الخدمات لطلبات التأجير.']);
+            }
+            if (round((float) $data['expected_paid_amount'], 2) !== $paid) {
+                throw ValidationException::withMessages(['amount' => 'تم تحديث الدفعات. حدّث الصفحة قبل تسجيل دفعة أخرى.']);
+            }
+
+            $result = $this->issueReceipt($transfer, (int) $data['receipt_account_id'], $amount, $data['payment_type'], $data['payment_date']);
+            $remaining = round($remaining - $amount, 2);
+            if (!empty($data['payment_receipt'])) {
+                $attachments = (array) $transfer->attachments;
+                $attachments[] = [
+                    'path' => app(\App\Services\ManagedFileStorage::class)->uploadFile($data['payment_receipt'], 'sponsorship-transfers/receipts'),
+                    'name' => 'إيصال دفعة سند قبض ' . $result['bond']->id,
+                ];
+                $transfer->attachments = $attachments;
+            }
+            $transfer->update([
+                'paid_amount' => round($paid + $amount, 2),
+                'remaining_amount' => $remaining,
+                'payment_status' => $remaining > 0 ? 'partial' : 'paid',
+                'payment_confirmed_at' => now(),
+                'payment_confirmed_by' => Auth::guard('admin')->id(),
+            ]);
+
+            return $result;
+        });
+    }
+
+    protected function issueReceipt(SponsorshipTransfer $transfer, int $receiptAccountId, float $amount, string $paymentType, Carbon|string|null $date): array
+    {
+        $transfer->loadMissing(['newSponsor', 'contract.maid']);
         $receiptAccount = $this->resolveReceiptAccount($receiptAccountId);
         $clientAccountId = $this->ensureClientAccountId($transfer->newSponsor);
         $paymentDate = $date instanceof Carbon
@@ -67,11 +112,11 @@ class SponsorshipTransferPaymentService
         }
 
         $bond = $this->bondService->storeQabdBond([
-            'payment_type' => $this->mapPaymentType((string) $transfer->payment_type)->value,
+            'payment_type' => $this->mapPaymentType($paymentType)->value,
             'bond_book_num' => ' ',
             'debit_account_id' => $receiptAccount->id,
             'credit_account_id' => $clientAccountId,
-            'value' => round((float) $transfer->paid_amount, 2),
+            'value' => round($amount, 2),
             'date' => $paymentDate,
             'statement' => 'سند قبض طلب نقل الخدمات رقم ' . $transfer->id
                 . ' / العميل ' . ($transfer->newSponsor?->name ?: 'غير محدد')
@@ -88,11 +133,13 @@ class SponsorshipTransferPaymentService
             $bond = $bond->fresh();
         }
 
-        $transfer->update([
-            'receipt_account_id' => $receiptAccount->id,
-            'receipt_bond_id' => $bond->id,
-            'receipt_constraint_id' => $bond->constraint_id,
-        ]);
+        if (!$transfer->receipt_bond_id) {
+            $transfer->update([
+                'receipt_account_id' => $receiptAccount->id,
+                'receipt_bond_id' => $bond->id,
+                'receipt_constraint_id' => $bond->constraint_id,
+            ]);
+        }
 
         return ['bond' => $bond, 'constraint' => $bond->constraint];
     }
@@ -152,7 +199,11 @@ class SponsorshipTransferPaymentService
 
     private function resolveReceiptAccount(int $accountId): Account
     {
-        $account = Account::query()->find($accountId);
+        $account = Account::query()
+            ->when(
+                BranchSharingSettings::accountsPerBranch(),
+                fn ($query) => $query->assignableTo(BranchQueryContext::activeBranchId())
+            )->find($accountId);
         $allowedTypes = [
             AccountTypesEnum::Bank->value,
             AccountTypesEnum::Box->value,

@@ -17,8 +17,10 @@ use App\Models\ingaz\Nationality;
 use App\Models\ingaz\Setting;
 use App\Models\ingaz\User as ClientUser;
 use App\Services\ingaz\InvoiceCalculationService;
+use App\Services\ingaz\RecruitmentTripAccountingService;
 use App\Services\ingaz\RentalContractFinanceService;
 use App\Support\AutomaticJournalEntries;
+use App\Support\RecruitmentRevenueRecognition;
 use App\Support\InvoiceQrCode;
 use App\Support\IngazDelegationTimeline;
 use App\Support\InvoiceAuthorization;
@@ -1274,22 +1276,25 @@ class InvoiceController extends Controller
 
             $clientAccountId = null;
             $nationalityAccountId = null;
+            // يُثبَّت وضع إثبات الإيراد على الفاتورة وقت إنشائها حتى لا يتأثر إقفالها بتغيير الإعداد لاحقاً.
+            $revenueMode = RecruitmentRevenueRecognition::mode();
 
             if ($automaticEntriesEnabled) {
                 $clientAccountId = $this->ensureClientAccountId($contract);
-                $nationalityAccountId = $this->resolveContractNationalityLiabilityAccountId($nationality);
+                $nationalityAccountId = $this->resolveRecruitmentInvoiceCreditAccountId($nationality, $revenueMode);
 
                 if (!$nationalityAccountId) {
                     throw new \RuntimeException(
-                        'لا يوجد حساب التزامات عقود صالح لهذه الجنسية'
-                        . ($nationalityName ? " : {$nationalityName}" : '')
-                        . '، الرجاء ربط حساب الالتزام من إعدادات حسابات الجنسيات أولاً.'
+                        $this->recruitmentInvoiceCreditAccountMissingMessage($revenueMode, $nationalityName)
                     );
                 }
             }
 
             $invoice = Invoice::query()->create([
                 'contract_id' => $contract->id,
+                ...(RecruitmentRevenueRecognition::invoiceColumnExists()
+                    ? [RecruitmentRevenueRecognition::INVOICE_COLUMN => $revenueMode]
+                    : []),
                 'client_id' => null,
                 'insurance_company' => $invoicePayload['insurance_company'] ?? null,
                 'general_description' => $invoicePayload['general_description'] ?? null,
@@ -1364,6 +1369,44 @@ class InvoiceController extends Controller
                 'receipt_bond' => $receiptBond,
             ];
         });
+    }
+
+    /**
+     * الحساب الدائن في قيد فاتورة الاستقدام حسب وضع إثبات الإيراد:
+     * التزامات عقود الجنسية (عند الوصول) أو مبيعات الجنسية (عند الفاتورة).
+     */
+    private function resolveRecruitmentInvoiceCreditAccountId(?Nationality $nationality, string $revenueMode): ?int
+    {
+        if ($revenueMode === RecruitmentRevenueRecognition::MODE_ON_INVOICE) {
+            return $this->resolveContractNationalitySalesAccountId($nationality);
+        }
+
+        return $this->resolveContractNationalityLiabilityAccountId($nationality);
+    }
+
+    private function recruitmentInvoiceCreditAccountMissingMessage(string $revenueMode, ?string $nationalityName): string
+    {
+        $suffix = $nationalityName ? " : {$nationalityName}" : '';
+
+        if ($revenueMode === RecruitmentRevenueRecognition::MODE_ON_INVOICE) {
+            return 'لا يوجد حساب مبيعات صالح لهذه الجنسية' . $suffix
+                . '، الرجاء ربط حساب المبيعات من إعدادات حسابات الجنسيات أولاً.';
+        }
+
+        return 'لا يوجد حساب التزامات عقود صالح لهذه الجنسية' . $suffix
+            . '، الرجاء ربط حساب الالتزام من إعدادات حسابات الجنسيات أولاً.';
+    }
+
+    public function resolveContractNationalitySalesAccountId(?Nationality $nationality): ?int
+    {
+        if (!$nationality) {
+            return null;
+        }
+
+        $nationalityName = trim((string) ($nationality->sub_title ?: $nationality->title));
+
+        return app(RecruitmentTripAccountingService::class)
+            ->resolveSalesAccountId($nationalityName, (int) $nationality->id);
     }
 
     public function reconcileRecruitmentContractInvoice(
@@ -1519,9 +1562,14 @@ class InvoiceController extends Controller
             $this->assertRecruitmentInvoiceAccountingConfiguration($invoiceDate, $yearService);
             $nationality = $contract->maid?->nationality ?? $contract->requiredMaidNationality;
             $nationalityName = $nationality?->sub_title ?? $nationality?->title ?? null;
-            $nationalityAccountId = $this->resolveContractNationalityLiabilityAccountId($nationality);
+            $revenueMode = RecruitmentRevenueRecognition::modeForInvoice($invoice);
+            $nationalityAccountId = $this->resolveRecruitmentInvoiceCreditAccountId($nationality, $revenueMode);
             if (!$nationalityAccountId) {
-                throw new \RuntimeException('حساب التزامات عقود الجنسية غير مربوط أو غير صالح.');
+                throw new \RuntimeException(
+                    $revenueMode === RecruitmentRevenueRecognition::MODE_ON_INVOICE
+                        ? 'حساب مبيعات الجنسية غير مربوط أو غير صالح.'
+                        : 'حساب التزامات عقود الجنسية غير مربوط أو غير صالح.'
+                );
             }
             $clientAccountId = $this->ensureClientAccountId($contract);
             $contractCostCenter = $this->ensureRecruitmentContractCostCenter($contract, $nationalityName);
@@ -3512,9 +3560,14 @@ class InvoiceController extends Controller
         $this->assertRecruitmentInvoiceAccountingConfiguration($invoiceDate, $yearService);
         $nationality = $contract->maid?->nationality ?? $contract->requiredMaidNationality;
         $nationalityName = $nationality?->sub_title ?? $nationality?->title ?? null;
-        $nationalityAccountId = $this->resolveContractNationalityLiabilityAccountId($nationality);
+        $revenueMode = RecruitmentRevenueRecognition::modeForInvoice($invoice);
+        $nationalityAccountId = $this->resolveRecruitmentInvoiceCreditAccountId($nationality, $revenueMode);
         if (!$nationalityAccountId) {
-            throw new \RuntimeException('حساب التزامات عقود الجنسية غير مربوط أو غير صالح.');
+            throw new \RuntimeException(
+                $revenueMode === RecruitmentRevenueRecognition::MODE_ON_INVOICE
+                    ? 'حساب مبيعات الجنسية غير مربوط أو غير صالح.'
+                    : 'حساب التزامات عقود الجنسية غير مربوط أو غير صالح.'
+            );
         }
 
         $constraint = $this->storeInvoiceConstraintForInvoice(
@@ -4122,7 +4175,7 @@ class InvoiceController extends Controller
             $netSourceColumn = 'debtor_value';
         }
         if ($netCreditDetails->isEmpty() && (float) $creditNote->subtotal > 0) {
-            throw new \RuntimeException('تعذر تحديد حساب الالتزام في قيد الفاتورة الأصلي.');
+            throw new \RuntimeException('تعذر تحديد حساب الالتزام أو المبيعات في قيد الفاتورة الأصلي.');
         }
 
         $sourceName = $invoice->contract_id

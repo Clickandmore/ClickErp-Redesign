@@ -427,6 +427,7 @@
                     <div class="card-title">
                         <i class="fas fa-money-bill-wave"></i>المعلومات المالية
                     </div>
+                    @include('admin.ingaz.SponsorshipTransfer.partials.add-payment')
                     <div class="info-row">
                         <span class="info-label">قيمة العقد:</span>
                         <span class="info-value info">{{ number_format($transfer->contract_value, 2) }} ريال</span>
@@ -493,6 +494,18 @@
                             </span>
                         </div>
                     @endif
+                    @foreach ($transfer->receiptBonds as $bond)
+                        @if ((int) $bond->id !== (int) $transfer->receipt_bond_id)
+                            <div class="info-row">
+                                <span class="info-label">سند قبض إضافي:</span>
+                                <span class="info-value">
+                                    <a href="{{ route('finance.bonds-print.show', ['bonds_print' => $bond->id, 'type' => 'qabd']) }}" target="_blank">
+                                        {{ $bond->code ?: ('#' . $bond->id) }} — {{ number_format((float) $bond->value, 2) }} ريال
+                                    </a>
+                                </span>
+                            </div>
+                        @endif
+                    @endforeach
                     @if($transfer->invoice)
                         <div class="info-row">
                             <span class="info-label">فاتورة نقل الخدمات:</span>

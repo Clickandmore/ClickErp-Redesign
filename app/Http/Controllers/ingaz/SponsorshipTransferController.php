@@ -862,7 +862,41 @@ class SponsorshipTransferController extends Controller
         ])->findOrFail($id);
         $this->assertCanAccessBranchModel($transfer);
 
-        return view($this->folderPath . '.show', compact('transfer'));
+        $transfer->load('receiptBonds');
+        $receiptAccounts = auth('admin')->user()->can(PermKeys::SPONSOR_TRANSFER_ADD_PAYMENT)
+            && !$transfer->isRentalWorkflow() && (float) $transfer->remaining_amount > 0
+            ? SponsorshipTransferPaymentService::receiptAccounts() : collect();
+
+        return view($this->folderPath . '.show', compact('transfer', 'receiptAccounts'));
+    }
+
+    public function addPayment(Request $request, int $id, SponsorshipTransferPaymentService $payments)
+    {
+        abort_unless(auth('admin')->user()->can(PermKeys::SPONSOR_TRANSFER_ADD_PAYMENT), 403);
+        $data = $request->validate([
+            'amount' => ['required', 'numeric', 'min:0.01', 'regex:/^\d+(\.\d{1,2})?$/'],
+            'expected_paid_amount' => 'required|numeric|min:0',
+            'payment_date' => 'required|date_format:Y-m-d',
+            'payment_type' => 'required|in:cash,bank_transfer,mada,tabby,tamara',
+            'receipt_account_id' => 'required|integer|exists:fn_accounts,id',
+            'payment_receipt' => 'required|file|mimes:jpg,jpeg,png,pdf|max:4096',
+        ]);
+
+        try {
+            DB::transaction(function () use ($id, $data, $payments) {
+                $transfer = SponsorshipTransfer::query()->lockForUpdate()->findOrFail($id);
+                $this->assertCanAccessBranchModel($transfer);
+                $payments->addPayment($transfer, $data);
+            });
+        } catch (\RuntimeException $exception) {
+            if (get_class($exception) !== \RuntimeException::class) {
+                throw $exception;
+            }
+            report($exception);
+            return back()->withInput($request->except('payment_receipt'))->withErrors(['amount' => $exception->getMessage()]);
+        }
+
+        return redirect()->route('SponsorshipTransfer.show', $id)->with('payment_success', 'تم تسجيل الدفعة وإصدار سند القبض بنجاح.');
     }
 
     public function downloadAttachment(int $id, string $type, ?int $index = null)

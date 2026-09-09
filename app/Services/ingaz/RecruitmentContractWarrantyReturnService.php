@@ -7,10 +7,12 @@ use App\Models\ContractReturnRequest;
 use App\Models\TravelHistory;
 use App\Support\AutomationSettings;
 use App\Support\AutomaticJournalEntries;
+use App\Support\RecruitmentRevenueRecognition;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Auth;
 use Nami\Finance\Models\Account;
 use Nami\Finance\Models\Constraint;
+use Nami\Finance\Models\ConstraintDetails;
 use Nami\Finance\Services\ConstraintService;
 use Nami\Finance\Services\YearService;
 
@@ -20,8 +22,19 @@ class RecruitmentContractWarrantyReturnService
 
     public function __construct(
         protected ConstraintService $constraintService,
-        protected YearService $yearService
+        protected YearService $yearService,
+        protected RecruitmentTripAccountingService $tripAccountingService
     ) {
+    }
+
+    public static function statementFor(Contract $contract): string
+    {
+        return 'رجوع عاملة داخل الضمان — عقد استقدام #' . $contract->id;
+    }
+
+    public static function externalOfficeReversalStatement(Contract $contract): string
+    {
+        return 'استرداد فاتورة المورد الخارجي - رجوع عاملة داخل الضمان - عقد استقدام #' . $contract->id;
     }
 
     /**
@@ -71,6 +84,21 @@ class RecruitmentContractWarrantyReturnService
         $stayAmount    = $this->calculateStayAmount($contract, $returnDate, $netInvoice);
         $officeCost    = $this->resolveExternalOfficeCostAmount($contract);
 
+        if (RecruitmentRevenueRecognition::invoiceRecognizesOnInvoice($invoice)) {
+            return $this->recordDirectSalesReversal(
+                $contract,
+                $invoice,
+                $nationalityName,
+                $returnDate,
+                $activeYear,
+                $clientAccountId,
+                $totalDue,
+                $vatAmount,
+                $netInvoice,
+                $stayAmount
+            );
+        }
+
         $accommodationAccountId  = $this->resolveAccommodationAccountId($nationalityName);
         $salesReturnsAccountId   = $this->resolveSalesReturnsAccountId($nationalityName);
         $vatAccountId            = $this->resolveVatAccountId();
@@ -93,7 +121,7 @@ class RecruitmentContractWarrantyReturnService
             throw new \RuntimeException('لا يوجد حساب مردودات تكلفة مرتبط بجنسية العقد: ' . $nationalityName);
         }
 
-        $statement = 'رجوع عاملة داخل الضمان — عقد استقدام #' . $contract->id;
+        $statement = self::statementFor($contract);
         $lines = [];
 
         // 1. نقل تكلفة المكتب الخارجي إلى حساب الإيواء (أصل — عاملة متاحة لإعادة التسكين)
@@ -131,6 +159,114 @@ class RecruitmentContractWarrantyReturnService
             $this->appendLine($lines, $costReturnsAccountId, 'creditor', $officeCost, $statement);
         }
 
+        return $this->storeLines($lines, $statement, $returnDate, $activeYear);
+    }
+
+    /**
+     * وضع «إثبات الإيراد عند إنشاء الفاتورة»: يُعكس قيد الفاتورة على نفس حسابات المبيعات
+     * والضريبة (لا عبر مردود المبيعات)، ويُعاد كامل المبلغ لذمة العميل مع خصم مدة البقاء،
+     * وتُعكس فاتورة المورد الخارجي بقيد مستقل (مدين المكتب / دائن تكلفة المبيعات).
+     */
+    private function recordDirectSalesReversal(
+        Contract $contract,
+        $invoice,
+        string $nationalityName,
+        string $returnDate,
+        $activeYear,
+        int $clientAccountId,
+        float $totalDue,
+        float $vatAmount,
+        float $netInvoice,
+        float $stayAmount
+    ): ?Constraint {
+        $vatAccountId = $vatAmount > 0 ? $this->resolveVatAccountId() : null;
+        if ($vatAmount > 0 && !$vatAccountId) {
+            throw new \RuntimeException('لا يوجد حساب ضريبة إيرادات في النظام.');
+        }
+
+        $salesRecoveryAccountId = $stayAmount > 0 ? $this->resolveSalesRecoveryAccountId() : null;
+        if ($stayAmount > 0 && !$salesRecoveryAccountId) {
+            throw new \RuntimeException('لا يوجد حساب إيراد استرداد مبيعات في النظام.');
+        }
+
+        $salesLines = $this->resolveInvoiceSalesLines($invoice, $vatAccountId);
+        if (empty($salesLines) && $netInvoice > 0) {
+            $salesAccountId = $this->tripAccountingService->resolveSalesAccountId(
+                $nationalityName,
+                $this->resolveNationalityId($contract)
+            );
+            if (!$salesAccountId) {
+                throw new \RuntimeException('لا يوجد حساب مبيعات مرتبط بجنسية العقد: ' . $nationalityName);
+            }
+            $salesLines = [['account_id' => $salesAccountId, 'amount' => $netInvoice, 'cost_center_id' => null]];
+        }
+
+        $statement = self::statementFor($contract);
+        $lines = [];
+
+        // 1. عكس المبيعات على نفس حسابات قيد الفاتورة (مدين)
+        foreach ($salesLines as $salesLine) {
+            $this->appendLine($lines, (int) $salesLine['account_id'], 'debtor', (float) $salesLine['amount'], $statement, $salesLine['cost_center_id'] ?? null);
+        }
+
+        // 2. عكس ضريبة القيمة المضافة
+        if ($vatAmount > 0) {
+            $this->appendLine($lines, $vatAccountId, 'debtor', $vatAmount, $statement);
+        }
+
+        // 3. إعادة كامل قيمة العقد لذمة العميل (دائن)
+        if ($totalDue > 0) {
+            $this->appendLine($lines, $clientAccountId, 'creditor', $totalDue, $statement);
+        }
+
+        // 4. خصم مدة البقاء على العميل (مدين) مقابل إيراد مدة البقاء (دائن)
+        if ($stayAmount > 0) {
+            $this->appendLine($lines, $clientAccountId, 'debtor', $stayAmount, $statement);
+            $this->appendLine($lines, $salesRecoveryAccountId, 'creditor', $stayAmount, $statement);
+        }
+
+        $constraint = $this->storeLines($lines, $statement, $returnDate, $activeYear);
+
+        // 5. عكس فاتورة المورد الخارجي بقيد مستقل حتى تعود فاتورة المكتب إلى صفر
+        if ($invoice->external_office_cost_constraint_id) {
+            $this->tripAccountingService->reverseExternalOfficeCostEntries(
+                $contract,
+                $invoice,
+                $returnDate,
+                self::externalOfficeReversalStatement($contract)
+            );
+        }
+
+        return $constraint;
+    }
+
+    /**
+     * أطراف المبيعات الدائنة في قيد الفاتورة الأصلي (بدون طرف الضريبة) لعكسها بنفس المبالغ.
+     */
+    private function resolveInvoiceSalesLines($invoice, ?int $vatAccountId): array
+    {
+        if (!$invoice->invoice_constraint_id) {
+            return [];
+        }
+
+        return ConstraintDetails::query()
+            ->where('constraint_id', $invoice->invoice_constraint_id)
+            ->where('creditor_value', '>', 0)
+            ->when($vatAccountId, fn ($query) => $query->where('account_id', '!=', $vatAccountId))
+            ->orderBy('id')
+            ->get()
+            ->map(fn (ConstraintDetails $detail) => [
+                'account_id' => (int) $detail->account_id,
+                'amount' => $this->roundMoney((float) $detail->creditor_value),
+                'cost_center_id' => $detail->cost_center_id,
+            ])
+            ->filter(fn (array $line) => $line['amount'] > 0)
+            ->values()
+            ->all();
+    }
+
+    private function storeLines(array $lines, string $statement, string $returnDate, $activeYear): ?Constraint
+    {
         if (empty($lines)) {
             return null;
         }
@@ -155,6 +291,13 @@ class RecruitmentContractWarrantyReturnService
         $this->constraintService->storeFiles($constraint, $data);
 
         return $constraint;
+    }
+
+    private function resolveNationalityId(Contract $contract): ?int
+    {
+        $nationality = $contract->maid?->nationality ?? $contract->requiredMaidNationality;
+
+        return $nationality?->id ? (int) $nationality->id : null;
     }
 
     private function calculateStayAmount(Contract $contract, string $returnDate, float $netInvoice): float
@@ -183,8 +326,10 @@ class RecruitmentContractWarrantyReturnService
 
     private function resolveArrivalDate(Contract $contract): ?string
     {
+        // travel_histories يربط الرحلة بالعقد عبر order_id (انظر Contract::travelHistory)؛
+        // لا يوجد عمود contract_id، وكان الاستعلام القديم يفشل عند كل موافقة على طلب إرجاع.
         $travelHistory = TravelHistory::query()
-            ->where('contract_id', $contract->id)
+            ->where('order_id', $contract->id)
             ->whereNotNull('arrival_date')
             ->orderByDesc('arrival_date')
             ->first();
