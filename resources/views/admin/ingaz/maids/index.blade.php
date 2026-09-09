@@ -439,8 +439,8 @@
                                                 #
                                             @endif
                                         </th>
-                                        <th>{{ helperTrans('ingaz.maid_photo') }}</th>
-                                        <th>{{ helperTrans('ingaz.maid_data') }}</th>
+                                        <th>{{ helperTrans('ingaz.cv_photo') }}</th>
+                                        <th>{{ helperTrans('ingaz.cv_data') }}</th>
                                         <th>{{ helperTrans('ingaz.added_details') }}</th>
                                         <th>{{ helperTrans('ingaz.status') }}</th>
                                         <th>{{ helperTrans('ingaz.job_information') }}</th>
@@ -918,6 +918,8 @@
             const offerDurationPreview = $('#offerDurationPreview');
             const offerRouteTemplate = "{{ route('maids.offer', ['id' => 'MAID_ID']) }}";
             const offerSubtitleTemplate = "{{ helperTrans('ingaz.offer_for_maid') }}";
+            // صيغة المذكّر لعنوان مودال العرض؛ يُختار حسب data-gender على زر إدارة العرض.
+            const offerSubtitleTemplateMale = "{{ helperTransGendered('ingaz.offer_for_maid', 'male') }}";
             const csrfToken = $('meta[name=\"csrf-token\"]').attr('content');
             const daysLabel = "{{ helperTrans('ingaz.days') }}";
             const notSpecifiedLabel = "{{ helperTrans('ingaz.not_specified') }}";
@@ -1121,6 +1123,7 @@
                 const btn = $(this);
                 const maidId = btn.data('id');
                 const maidName = btn.data('name') || '';
+                const maidGender = btn.data('gender') || 'female';
                 const offerPrice = btn.data('offerPrice');
                 const offerDuration = btn.data('offerDuration') || '';
                 const offerDescription = btn.data('offerDescription') || '';
@@ -1133,7 +1136,7 @@
                 resetOfferErrors();
 
                 if (maidName) {
-                    offerSubtitle.text(offerSubtitleTemplate.replace(':name', maidName));
+                    offerSubtitle.text((maidGender === 'male' ? offerSubtitleTemplateMale : offerSubtitleTemplate).replace(':name', maidName));
                 } else {
                     offerSubtitle.text('');
                 }

@@ -108,6 +108,8 @@ class MaidController extends Controller
                 'office_id',
                 'experience_years',
                 'experience_status',
+                // مطلوب لاختيار صيغة النصوص (لديها خبرة / لديه خبرة) حسب جنس العامل.
+                'gender',
                 'maid_accommodation_type',
                 'added_by',
                 'request_type',
@@ -534,7 +536,7 @@ class MaidController extends Controller
                             $menuItems .= '<li><button type="button" class="dropdown-item generate-maid-cv" data-url="' . route('maids.generate-cv', $row->id) . '"><i class="fas ' . $generationIcon . ' me-2"></i>' . $generationLabel . '</button></li>';
                         }
                         if ($row->available && $row->status === 'available') {
-                            $menuItems .= '<li><button type="button" class="dropdown-item manage-offer" data-id="' . $row->id . '" data-name="' . e($row->name ?? '') . '" data-offer-price="' . e($row->offer_price ?? '') . '" data-offer-duration="' . e($row->offer_duration ?? '') . '" data-offer-description="' . e($row->offer_description ?? '') . '" data-offer-start="' . ($row->offer_starts_at ? $row->offer_starts_at->format('Y-m-d') : '') . '" data-offer-expire="' . ($row->offer_expires_at ? $row->offer_expires_at->format('Y-m-d') : '') . '" data-offer-active="' . ($offerActive ? 'true' : 'false') . '"><i class="fas fa-tags text-warning me-2"></i>' . helperTrans('ingaz.manage_offer') . '</button></li>';
+                            $menuItems .= '<li><button type="button" class="dropdown-item manage-offer" data-id="' . $row->id . '" data-gender="' . $row->gender_key . '" data-name="' . e($row->name ?? '') . '" data-offer-price="' . e($row->offer_price ?? '') . '" data-offer-duration="' . e($row->offer_duration ?? '') . '" data-offer-description="' . e($row->offer_description ?? '') . '" data-offer-start="' . ($row->offer_starts_at ? $row->offer_starts_at->format('Y-m-d') : '') . '" data-offer-expire="' . ($row->offer_expires_at ? $row->offer_expires_at->format('Y-m-d') : '') . '" data-offer-active="' . ($offerActive ? 'true' : 'false') . '"><i class="fas fa-tags text-warning me-2"></i>' . helperTrans('ingaz.manage_offer') . '</button></li>';
                         }
                     }
 
@@ -682,6 +684,8 @@ class MaidController extends Controller
                     'office_id',
                     'experience_years',
                     'experience_status',
+                    // مطلوب لصيغة الاسم البديل (عاملة / عامل #id) حسب الجنس.
+                    'gender',
                     'maid_accommodation_type',
                     'id_expiry_date',
                     'request_type',
@@ -706,7 +710,7 @@ class MaidController extends Controller
                         . '</a>';
                 })
                 ->addColumn('name', function (Maid $row) {
-                    $name = e($row->name ?: helperTrans('ingaz.maid') . ' #' . $row->id);
+                    $name = e($row->name ?: helperTransGendered('ingaz.maid', $row->gender_key) . ' #' . $row->id);
                     $passport = e($row->passport_num ?: '-');
                     $cvCode = $row->cv_code ? '<span class="small text-muted">' . helperTrans('ingaz.cv_code') . ': ' . e($row->cv_code) . '</span>' : '';
                     $requestType = e($row->request_type_label);
@@ -752,7 +756,7 @@ class MaidController extends Controller
                     $incomeTotal = $items->where('type', 'income')->sum('amount');
 
                     return '<button type="button" class="btn btn-sm btn-outline-info rental-finance-view"'
-                        . ' data-maid-name="' . e($row->name ?: (helperTrans('ingaz.maid') . ' #' . $row->id)) . '"'
+                        . ' data-maid-name="' . e($row->name ?: (helperTransGendered('ingaz.maid', $row->gender_key) . ' #' . $row->id)) . '"'
                         . ' data-items="' . e($items->toJson(JSON_UNESCAPED_UNICODE)) . '">'
                         . '<i class="fa fa-wallet"></i> ' . $items->count() . ' ' . helperTrans('ingaz.items')
                         . '</button>'
@@ -1977,6 +1981,7 @@ class MaidController extends Controller
         $offices = $officeAct->getAllOffices();
         $skills = $skillAction->get();
         $maidLanguages = app(MaidLanguageCatalog::class)->active();
+        $socialStatuses = app(\App\Http\Actions\ingaz\SocialStatusAction::class)->getSocialStatuses();
         $rentalFinanceItems = $this->buildCreateRentalFinanceItems();
         $branchSelector = $this->maidBranchSelector($request);
 
@@ -1996,6 +2001,7 @@ class MaidController extends Controller
                 'types',
                 'skills',
                 'maidLanguages',
+                'socialStatuses',
                 'defaultTypeId',
                 'defaultShelterContract',
                 'defaultIsShow',
@@ -2043,6 +2049,7 @@ class MaidController extends Controller
         $offices = $officeAct->getAllOffices();
         $skills = $skillAction->get();
         $maidLanguages = app(MaidLanguageCatalog::class)->active();
+        $socialStatuses = app(\App\Http\Actions\ingaz\SocialStatusAction::class)->getSocialStatuses();
         $rentalFinanceItems = $this->buildCreateRentalFinanceItems();
         $branchSelector = $this->maidBranchSelector($request);
 
@@ -2063,6 +2070,7 @@ class MaidController extends Controller
                 'types',
                 'skills',
                 'maidLanguages',
+                'socialStatuses',
                 'defaultTypeId',
                 'defaultShelterContract',
                 'defaultIsShow',
@@ -2325,6 +2333,7 @@ class MaidController extends Controller
     {
         $obj = objModel::with('jobTypes')->findOrFail($id);
         $maidLanguages = app(MaidLanguageCatalog::class)->forForm($obj->languages);
+        $socialStatuses = app(\App\Http\Actions\ingaz\SocialStatusAction::class)->getSocialStatuses();
         $rentalTypeId = $this->getRentalJobTypeId();
         $isRentalMaid = $rentalTypeId ? $obj->jobTypes->contains('id', $rentalTypeId) : false;
         if ($isRentalMaid) {
@@ -2369,6 +2378,7 @@ class MaidController extends Controller
             'types',
             'skills',
             'maidLanguages',
+            'socialStatuses',
             'defaultShelterContract',
             'isRentalForm',
             'formRedirectRoute',
@@ -3540,11 +3550,12 @@ class MaidController extends Controller
         $skills = app(SkillAction::class)->get();
         $selectedLanguageCodes = isset($extraData['obj']) ? (array) $extraData['obj']->languages : [];
         $maidLanguages = $extraData['maidLanguages'] ?? app(MaidLanguageCatalog::class)->forForm($selectedLanguageCodes);
+        $socialStatuses = app(\App\Http\Actions\ingaz\SocialStatusAction::class)->getSocialStatuses();
         $branchSelector = $this->maidBranchSelector(request(), $extraData['obj'] ?? null);
 
         unset($extraData['types']);
 
-        $data = array_merge(compact('nationalities', 'offices', 'religions', 'jobs', 'types', 'skills', 'maidLanguages', 'branchSelector'), $extraData);
+        $data = array_merge(compact('nationalities', 'offices', 'religions', 'jobs', 'types', 'skills', 'maidLanguages', 'socialStatuses', 'branchSelector'), $extraData);
         $returnHTML = view("{$this->folderPath}.{$viewName}", $data)->render();
         return jsonSuccess(['html' => $returnHTML]);
     }
@@ -4195,7 +4206,8 @@ class MaidController extends Controller
             ? 'bg-success-subtle text-success'
             : 'bg-secondary-subtle text-secondary';
         $icon = $hasExperience ? 'fa-briefcase' : 'fa-user-clock';
-        $label = helperTrans($hasExperience ? 'ingaz.experience_status_has' : 'ingaz.experience_status_none');
+        // صيغة الشارة تتبع جنس العامل (لديها خبرة / لديه خبرة).
+        $label = helperTransGendered($hasExperience ? 'ingaz.experience_status_has' : 'ingaz.experience_status_none', $maid->gender_key);
 
         // مدة الخبرة تظهر كتلميح فقط — العمود المخصص لها هو "المؤشرات".
         $tooltip = '';

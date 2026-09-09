@@ -1,6 +1,16 @@
 @extends('admin.layout.indexs.index')
 
 @php
+    $maritalStatusOptions = [];
+    $maritalStatusTranslations = [];
+    foreach ($socialStatuses as $socialStatus) {
+        $arabicTitle = (string) optional($socialStatus->translate('ar'))->title;
+        $englishTitle = (string) optional($socialStatus->translate('en'))->title;
+        if ($arabicTitle !== '') {
+            $maritalStatusOptions[$arabicTitle] = $socialStatus->title ?: $arabicTitle;
+            $maritalStatusTranslations[$arabicTitle] = $englishTitle ?: $arabicTitle;
+        }
+    }
     $defaultTypeId = $defaultTypeId ?? null;
     $defaultShelterContract = $defaultShelterContract ?? '0';
     $defaultIsShow = isset($defaultIsShow) ? (bool) $defaultIsShow : true;
@@ -652,10 +662,10 @@
                     <div class="col-4">
                         <label for="TextInput" class="form-label">{{ helperTrans('ingaz.marital status') }} </label>
                         <select name="marital_status:ar" class="form-control" required>
-                            <option value="عازبة">{{ helperTrans('ingaz.female_single') }}</option>
-                            <option value="أعزب">{{ helperTrans('ingaz.male_single') }}</option>
-                            <option value="متزوجة">{{ helperTrans('ingaz.female_married') }}</option>
-                            <option value="متزوج">{{ helperTrans('ingaz.male_married') }}</option>
+                            <option value="" disabled {{ old('marital_status:ar') ? '' : 'selected' }}>{{ helperTrans('ingaz.choose') }}</option>
+                            @foreach ($maritalStatusOptions as $maritalStatusValue => $maritalStatusLabel)
+                                <option value="{{ $maritalStatusValue }}" {{ old('marital_status:ar') === $maritalStatusValue ? 'selected' : '' }}>{{ $maritalStatusLabel }}</option>
+                            @endforeach
                         </select>
                         <input type="hidden" name="marital_status:en" id="marital_status_en" value="">
                     </div>
@@ -1846,12 +1856,7 @@
             reindexRentalFinanceRows();
 
             var maritalStatusEnField = $('#marital_status_en');
-            var maritalStatusTranslations = {
-                'عازبة': 'single',
-                'أعزب': 'single',
-                'متزوجة': 'married',
-                'متزوج': 'married'
-            };
+            var maritalStatusTranslations = @json($maritalStatusTranslations);
 
             function updateMaritalStatusTranslation() {
                 var selectedStatus = $('select[name="marital_status:ar"]').val();

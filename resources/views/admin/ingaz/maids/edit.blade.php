@@ -1,6 +1,16 @@
 @extends('admin.layout.indexs.index')
 
 @php
+    $maritalStatusOptions = [];
+    $maritalStatusTranslations = [];
+    foreach ($socialStatuses as $socialStatus) {
+        $arabicTitle = (string) optional($socialStatus->translate('ar'))->title;
+        $englishTitle = (string) optional($socialStatus->translate('en'))->title;
+        if ($arabicTitle !== '') {
+            $maritalStatusOptions[$arabicTitle] = $socialStatus->title ?: $arabicTitle;
+            $maritalStatusTranslations[$arabicTitle] = $englishTitle ?: $arabicTitle;
+        }
+    }
     $defaultShelterContract = $defaultShelterContract ?? (($obj->maid_accommodation_type ?? null) == 2 ? '1' : '0');
     $isRentalForm = $isRentalForm ?? false;
     $formRedirectRoute = $formRedirectRoute ?? route('maids.index');
@@ -756,12 +766,6 @@
                     </div>
 
                     @php
-                        $maritalStatusOptions = [
-                            'عازبة' => helperTrans('ingaz.female_single'),
-                            'أعزب' => helperTrans('ingaz.male_single'),
-                            'متزوجة' => helperTrans('ingaz.female_married'),
-                            'متزوج' => helperTrans('ingaz.male_married'),
-                        ];
                         $currentMaritalStatus = trim((string) old('marital_status:ar', optional($obj->translate('ar'))->marital_status));
                     @endphp
 
@@ -2167,12 +2171,7 @@
             reindexRentalFinanceRows();
 
             var maritalStatusEnField = $('#marital_status_en');
-            var maritalStatusTranslations = {
-                'عازبة': 'single',
-                'أعزب': 'single',
-                'متزوجة': 'married',
-                'متزوج': 'married'
-            };
+            var maritalStatusTranslations = @json($maritalStatusTranslations);
 
             function updateMaritalStatusTranslation() {
                 var selectedStatus = $('select[name="marital_status:ar"]').val();

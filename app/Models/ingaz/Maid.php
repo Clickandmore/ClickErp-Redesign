@@ -867,6 +867,15 @@ class Maid extends Model
         };
     }
 
+    /**
+     * جنس العامل كمفتاح موحّد (male / female) لاختيار صيغة النصوص المذكّرة أو المؤنثة.
+     * الافتراضي أنثى لأن أغلب السير لعاملات ولأن القيمة قد تكون فارغة في السجلات القديمة.
+     */
+    public function getGenderKeyAttribute(): string
+    {
+        return $this->gender_label === 'ذكر' ? 'male' : 'female';
+    }
+
     // public function getCvCodeAttribute(): ?string
     // {
     //     if (!$this->office_id || !$this->office?->title) {
