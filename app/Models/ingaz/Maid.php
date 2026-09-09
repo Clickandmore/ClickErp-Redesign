@@ -37,6 +37,11 @@ class Maid extends Model
             if ($maid->gender !== 'male') {
                 $maid->has_driving_license = null;
             }
+
+            // مرفق الرخصة لا معنى له بدون رخصة قيادة.
+            if (!$maid->has_driving_license) {
+                $maid->driving_license_file = null;
+            }
         });
     }
 
@@ -60,7 +65,7 @@ class Maid extends Model
         return BranchDataSharingService::MAIDS;
     }
 
-    protected array $mediaUrlColumns = ['image', 'cv_file', 'cv_preview', 'video'];
+    protected array $mediaUrlColumns = ['image', 'cv_file', 'cv_preview', 'video', 'driving_license_file'];
 
     public const REQUEST_TYPE_KNOWN = 'known';
     public const REQUEST_TYPE_SPECIFIC = 'specific';
@@ -140,6 +145,7 @@ class Maid extends Model
         'education',
         'education_en',
         'has_driving_license',
+        'driving_license_file',
         'additional_notes',
         'duration',
         'languages',

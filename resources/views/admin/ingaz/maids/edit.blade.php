@@ -1384,6 +1384,27 @@
                                                     <option value="0" {{ (string) $selectedDrivingLicense === '0' ? 'selected' : '' }}>لا</option>
                                                 </select>
                                             </div>
+                                            <div class="col-md-4" id="driving_license_file_field" hidden style="display:none">
+                                                <label for="driving_license_file" class="form-label">
+                                                    {{ helperTrans('ingaz.driving_license_file') }}
+                                                    <small class="text-muted">({{ helperTrans('ingaz.optional') }})</small>
+                                                </label>
+                                                <input type="file" name="driving_license_file" id="driving_license_file"
+                                                    class="form-control" accept="application/pdf,.pdf,image/*">
+                                                <div class="form-text">{{ helperTrans('ingaz.driving_license_file_hint') }}</div>
+
+                                                @if (filled($obj->driving_license_file))
+                                                    <div class="d-flex flex-wrap align-items-center gap-2 mt-2">
+                                                        <span class="badge bg-primary-subtle text-primary">
+                                                            <i class="fas fa-id-card me-1"></i>{{ helperTrans('ingaz.driving_license_file_current') }}
+                                                        </span>
+                                                        <a href="{{ showFile($obj->driving_license_file) }}" target="_blank"
+                                                            rel="noopener" class="btn btn-outline-primary btn-sm">
+                                                            <i class="fas fa-eye me-1"></i>{{ helperTrans('ingaz.view') }}
+                                                        </a>
+                                                    </div>
+                                                @endif
+                                            </div>
                                         </div>
                                     </div>
                                 </div>

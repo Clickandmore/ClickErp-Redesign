@@ -558,6 +558,15 @@
                                     <div class="text-muted small">رخصة قيادة</div>
                                     <div class="fw-semibold">{{ $maid->has_driving_license === null ? '-' : ($maid->has_driving_license ? 'نعم' : 'لا') }}</div>
                                 </div>
+                                @if ($maid->has_driving_license && filled($maid->driving_license_file))
+                                    <div class="col-md-6">
+                                        <div class="text-muted small">{{ helperTrans('ingaz.driving_license_file') }}</div>
+                                        <a href="{{ showFile($maid->driving_license_file) }}" target="_blank" rel="noopener"
+                                            class="fw-semibold">
+                                            <i class="fas fa-id-card me-1"></i>{{ helperTrans('ingaz.view') }}
+                                        </a>
+                                    </div>
+                                @endif
                             </div>
                         </div>
                     </div>

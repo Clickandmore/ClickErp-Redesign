@@ -61,7 +61,7 @@
         </div>
     @endforeach
     <div class="col-12 mt-4">
-        <label class="form-label fw-bold">{{ helperTrans('ingaz.items') }}</label>
+        <label class="form-label fw-bold">{{ helperTrans('ingaz.items') }} ({{ helperTrans('ingaz.optional') }})</label>
         <table class="table table-bordered align-middle card-table my-2">
             <thead class="table-light">
             <tr>
@@ -77,13 +77,13 @@
                 class="content"
                 data-mfield-options='{"section": ".y-group","btnAdd":"#btnAdd-2","btnRemove":".btnRemove"}'
             >
-            @foreach($obj->items as $key => $item)
+            @foreach($obj->items->isNotEmpty() ? $obj->items : collect([null]) as $key => $item)
                 <tr class="y-group">
                     <td class="text-center">{{ $loop->iteration }}</td>
                     @foreach (config('translatable.locales') as $locale)
                         <td>
-                            <input type="text" name="titles[{{ $key }}][{{ $locale }}][title]" data-validation="required"
-                                   value="{{ $item->translate($locale)->title }}" class="form-control index-plus">
+                            <input type="text" name="titles[{{ $key }}][{{ $locale }}][title]"
+                                   value="{{ $item ? optional($item->translate($locale))->title : '' }}" class="form-control index-plus">
                         </td>
                     @endforeach
                     <td class="text-center">

@@ -128,6 +128,15 @@ class MaidAction extends MainAction
             $file = $data['maid_cv_file'];
             $data['maid_cv_file'] = uploadMaidFile($file, $this->fileFolder);
         }
+        // مرفق رخصة القيادة يُحفظ فقط عندما تكون الإجابة "نعم"، وإلا يُتجاهل.
+        $hasDrivingLicense = $this->normalizeNullableBoolean($data['has_driving_license'] ?? null);
+        if ($hasDrivingLicense === true
+            && isset($data['driving_license_file'])
+            && $data['driving_license_file'] instanceof \Illuminate\Http\UploadedFile) {
+            $data['driving_license_file'] = uploadMaidFile($data['driving_license_file'], $this->fileFolder);
+        } else {
+            unset($data['driving_license_file']);
+        }
         if (isset($data['video']) && $data['video'] instanceof \Illuminate\Http\UploadedFile) {
             $video = $data['video'];
             $data['video'] = $this->uploadMaidVideo($video);
@@ -380,6 +389,7 @@ class MaidAction extends MainAction
             'education' => $data['education'] ?? null,
             'education_en' => $data['education_en'] ?? null,
             'has_driving_license' => $data['has_driving_license'] ?? null,
+            'driving_license_file' => $data['driving_license_file'] ?? null,
             'id_number' => $data['id_number'],
             'id_expiry_date' => $data['id_expiry_date'],
             'price' => $data['price'],
@@ -1455,6 +1465,25 @@ class MaidAction extends MainAction
                 $image = $data['image'];
                 $data['image'] = uploadMaidFile($image, $this->fileFolder);
                 $newMediaFiles[] = $data['image'];
+            }
+            // مرفق رخصة القيادة: يُرفع مع "نعم" فقط، ويُحذف المرفق القديم عند تغيير الإجابة إلى "لا" أو عند استبداله.
+            $hasDrivingLicense = array_key_exists('has_driving_license', $data)
+                ? $this->normalizeNullableBoolean($data['has_driving_license'])
+                : $maid->has_driving_license;
+            if (($data['gender'] ?? $maid->gender) !== 'male') {
+                $hasDrivingLicense = null;
+            }
+            if ($hasDrivingLicense === true
+                && isset($data['driving_license_file'])
+                && $data['driving_license_file'] instanceof \Illuminate\Http\UploadedFile) {
+                $oldMediaFiles[] = $maid->driving_license_file;
+                $data['driving_license_file'] = uploadMaidFile($data['driving_license_file'], $this->fileFolder);
+                $newMediaFiles[] = $data['driving_license_file'];
+            } elseif ($hasDrivingLicense !== true && filled($maid->driving_license_file)) {
+                $oldMediaFiles[] = $maid->driving_license_file;
+                $data['driving_license_file'] = null;
+            } else {
+                unset($data['driving_license_file']);
             }
             if ($removeVideo) {
                 $oldMediaFiles[] = $maid->video;

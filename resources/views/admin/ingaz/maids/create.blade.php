@@ -1180,6 +1180,15 @@
                                                     <option value="0" {{ old('has_driving_license') === '0' ? 'selected' : '' }}>لا</option>
                                                 </select>
                                             </div>
+                                            <div class="col-md-4" id="driving_license_file_field" hidden style="display:none">
+                                                <label for="driving_license_file" class="form-label">
+                                                    {{ helperTrans('ingaz.driving_license_file') }}
+                                                    <small class="text-muted">({{ helperTrans('ingaz.optional') }})</small>
+                                                </label>
+                                                <input type="file" name="driving_license_file" id="driving_license_file"
+                                                    class="form-control" accept="application/pdf,.pdf,image/*">
+                                                <div class="form-text">{{ helperTrans('ingaz.driving_license_file_hint') }}</div>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>

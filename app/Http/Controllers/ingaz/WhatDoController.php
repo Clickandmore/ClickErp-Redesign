@@ -75,7 +75,7 @@ class WhatDoController extends Controller
         $data = $request->validated();
         unset($data['titles']);
         $obj = $action->store($data);
-        $whatDoItemAction->storeItems($request->titles, $obj);
+        $whatDoItemAction->storeItems($request->validated()['titles'] ?? [], $obj);
         return jsonSuccess($obj);
 
     }
@@ -98,7 +98,7 @@ class WhatDoController extends Controller
         unset($updatedData['titles']);
         $obj = $action->updateWhatDo($id, $updatedData);
         $obj->items()->delete();
-        $whatDoItemAction->storeItems($request->titles, $obj);
+        $whatDoItemAction->storeItems($request->validated()['titles'] ?? [], $obj);
         return jsonSuccess($obj);
     }
 
