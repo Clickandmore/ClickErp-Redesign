@@ -1280,3 +1280,20 @@ if (!function_exists('apiResponse')) {
         ], $statusCode, [], apiJsonEncodingOptions());
     }
 }
+
+if (!function_exists('helperTransGendered')) {
+    /**
+     * ترجمة تراعي جنس العامل/العاملة: تستخدم المفتاح "{key}_{gender}" إن وُجد في ملف اللغة
+     * (مثل ingaz.experience_status_has_male)، وإلا تعود إلى المفتاح الأصلي بصيغته الحالية.
+     */
+    function helperTransGendered(string $key, string $gender): string
+    {
+        $genderedKey = $key . '_' . $gender;
+
+        if (\Illuminate\Support\Facades\Lang::has($genderedKey, get_api_lang())) {
+            return helperTrans($genderedKey);
+        }
+
+        return helperTrans($key);
+    }
+}

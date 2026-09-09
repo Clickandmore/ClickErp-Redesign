@@ -267,18 +267,21 @@
                 ? 'https://wa.me/?text=' . rawurlencode('نموذج السيرة الذاتية - ' . ($maid->name ?: $maid->cv_code ?: $maid->id) . "\n" . $generatedCvShareUrl)
                 : null;
             $genderLabels = ['male' => 'ذكر', 'female' => 'أنثى'];
+            // جنس العامل يحدد صيغة النصوص (لديها/لديه، متزوجة/متزوج...)؛ الافتراضي أنثى.
+            $genderKey = $maid->gender_key;
+            $isMaleMaid = $genderKey === 'male';
             $maritalStatusLabels = [
-                'single' => 'أعزب / عزباء',
-                'married' => 'متزوج / متزوجة',
-                'divorced' => 'مطلق / مطلقة',
-                'widowed' => 'أرمل / أرملة',
+                'single' => $isMaleMaid ? 'أعزب' : 'عزباء',
+                'married' => $isMaleMaid ? 'متزوج' : 'متزوجة',
+                'divorced' => $isMaleMaid ? 'مطلق' : 'مطلقة',
+                'widowed' => $isMaleMaid ? 'أرمل' : 'أرملة',
             ];
-            $experienceStatusLabels = ['has_experience' => 'لديها خبرة', 'no_experience' => 'بدون خبرة'];
+            $experienceStatusLabels = ['has_experience' => $isMaleMaid ? 'لديه خبرة' : 'لديها خبرة', 'no_experience' => 'بدون خبرة'];
             $cookingExperienceLabels = [
-                'arabic_cooking' => 'لديها خبرة بالطبخ العربي',
-                'regular_cooking' => 'لديها خبرة بالطبخ العادي',
-                'willing_to_learn' => 'قابلة لتعلم الطبخ',
-                'general_cooking' => 'لديها خبرة عامة بالطبخ',
+                'arabic_cooking' => $isMaleMaid ? 'لديه خبرة بالطبخ العربي' : 'لديها خبرة بالطبخ العربي',
+                'regular_cooking' => $isMaleMaid ? 'لديه خبرة بالطبخ العادي' : 'لديها خبرة بالطبخ العادي',
+                'willing_to_learn' => $isMaleMaid ? 'قابل لتعلم الطبخ' : 'قابلة لتعلم الطبخ',
+                'general_cooking' => $isMaleMaid ? 'لديه خبرة عامة بالطبخ' : 'لديها خبرة عامة بالطبخ',
                 'no_cooking_experience' => 'بدون خبرة في الطبخ',
             ];
             $languageLevelLabels = [
@@ -383,7 +386,7 @@
                             <form method="POST" action="{{ route('hr.maids.employ', $maid->id) }}">
                                 @csrf
                                 <button type="submit" class="btn btn-success">
-                                    <i class="fas fa-user-plus me-1"></i>{{ helperTrans('ingaz.employ_maid') }}
+                                    <i class="fas fa-user-plus me-1"></i>{{ helperTransGendered('ingaz.employ_maid', $genderKey) }}
                                 </button>
                             </form>
                         @endif
@@ -655,7 +658,7 @@
                                     <div class="fw-semibold">{{ $dateValue($maid->arrival_date) }}</div>
                                 </div>
                                 <div class="col-md-6">
-                                    <div class="text-muted small">وجود العاملة داخل / خارج المملكة</div>
+                                    <div class="text-muted small">{{ $isMaleMaid ? 'وجود العامل' : 'وجود العاملة' }} داخل / خارج المملكة</div>
                                     <div class="fw-semibold">{{ $isRentalMaid ? ($maid->arrival_date ? 'داخل المملكة' : 'خارج المملكة') : '-' }}</div>
                                 </div>
                                 <div class="col-md-6">
@@ -775,7 +778,7 @@
                                 <div class="exp-empty">
                                     <i class="fas fa-info-circle me-1"></i>
                                     {{ $experienceSummary['status'] === 'no_experience'
-                                        ? 'العاملة مسجّلة بدون خبرة سابقة.'
+                                        ? ($isMaleMaid ? 'العامل مسجّل بدون خبرة سابقة.' : 'العاملة مسجّلة بدون خبرة سابقة.')
                                         : 'لم يتم إدخال تفاصيل الخبرة لهذه السيرة.' }}
                                 </div>
                             @endif
@@ -991,7 +994,7 @@
                     <div class="card maid-card" id="maid-attachments">
                         <div class="card-body">
                             <h5 class="fw-bold mb-3 d-flex align-items-center gap-2">
-                                <i class="fas fa-paperclip text-info"></i>{{ helperTrans('ingaz.maid_attachments') }}
+                                <i class="fas fa-paperclip text-info"></i>{{ helperTransGendered('ingaz.maid_attachments', $genderKey) }}
                             </h5>
 
                             <div class="row g-2 mb-3">
@@ -1039,7 +1042,7 @@
                                         <i class="fas fa-file-pdf text-danger fs-2"></i>
                                         <div class="flex-grow-1">
                                             <div class="fw-semibold">ملف السيرة الذاتية الأساسي</div>
-                                            <div class="text-muted small">الملف المستورد والمرتبط بهذه العاملة</div>
+                                            <div class="text-muted small">الملف المستورد والمرتبط {{ $isMaleMaid ? 'بهذا العامل' : 'بهذه العاملة' }}</div>
                                         </div>
                                     </div>
                                     <div class="d-flex gap-2 mt-3">
@@ -1059,7 +1062,7 @@
                                     <div class="d-flex align-items-center gap-3">
                                         <i class="fas fa-file-pdf text-danger fs-2"></i>
                                         <div class="flex-grow-1">
-                                            <div class="fw-semibold">{{ helperTrans('ingaz.maid_cv_file') }}</div>
+                                            <div class="fw-semibold">{{ helperTransGendered('ingaz.maid_cv_file', $genderKey) }}</div>
                                             <div class="text-muted small">
                                                 {{ helperTrans('ingaz.maid_cv_file_description') }}
                                             </div>
@@ -1159,12 +1162,12 @@
                                     @endforeach
                                 </div>
                             @else
-                                <p class="text-muted mb-0">{{ helperTrans('ingaz.no_maid_attachments') }}</p>
+                                <p class="text-muted mb-0">{{ helperTransGendered('ingaz.no_maid_attachments', $genderKey) }}</p>
                             @endif
 
                             <div class="mt-4 pt-3 border-top">
                                 <h6 class="fw-bold mb-3 d-flex align-items-center gap-2">
-                                    <i class="fas fa-images text-primary"></i>صور العاملة
+                                    <i class="fas fa-images text-primary"></i>{{ $isMaleMaid ? 'صور العامل' : 'صور العاملة' }}
                                 </h6>
 
                                 @if (($maidImages ?? collect())->isNotEmpty())
@@ -1178,7 +1181,7 @@
                                         @endforeach
                                     </div>
                                 @else
-                                    <p class="text-muted mb-0">لا توجد صور مسجلة للعاملة.</p>
+                                    <p class="text-muted mb-0">{{ $isMaleMaid ? 'لا توجد صور مسجلة للعامل.' : 'لا توجد صور مسجلة للعاملة.' }}</p>
                                 @endif
                             </div>
                         </div>
@@ -1194,7 +1197,7 @@
                                     <div class="d-flex justify-content-between">
                                         <span class="text-muted">{{ helperTrans('ingaz.current_status') }}</span>
                                         <span class="fw-semibold">
-                                            {{ $hrEmployeeRecord->employee_category === \Nami\Hr\Models\Employee::CATEGORY_EMPLOYEE ? helperTrans('ingaz.company_employee') : helperTrans('ingaz.rental_worker_in_hr') }}
+                                            {{ $hrEmployeeRecord->employee_category === \Nami\Hr\Models\Employee::CATEGORY_EMPLOYEE ? helperTrans('ingaz.company_employee') : helperTransGendered('ingaz.rental_worker_in_hr', $genderKey) }}
                                         </span>
                                     </div>
                                     <div class="d-flex justify-content-between">
@@ -1215,7 +1218,7 @@
                                         <form method="POST" action="{{ route('hr.maids.employ', $maid->id) }}">
                                             @csrf
                                             <button type="submit" class="btn btn-success btn-sm">
-                                                <i class="fas fa-user-plus me-1"></i>{{ helperTrans('ingaz.employ_maid') }}
+                                                <i class="fas fa-user-plus me-1"></i>{{ helperTransGendered('ingaz.employ_maid', $genderKey) }}
                                             </button>
                                         </form>
                                     @endif
@@ -1226,12 +1229,12 @@
                                     @endif
                                 </div>
                             @else
-                                <p class="text-muted mb-3">{{ helperTrans('ingaz.no_hr_record_for_maid') }}</p>
+                                <p class="text-muted mb-3">{{ helperTransGendered('ingaz.no_hr_record_for_maid', $genderKey) }}</p>
                                 @if ($isRentalMaid && Route::has('hr.maids.employ'))
                                     <form method="POST" action="{{ route('hr.maids.employ', $maid->id) }}">
                                         @csrf
                                         <button type="submit" class="btn btn-success btn-sm">
-                                            <i class="fas fa-user-plus me-1"></i>{{ helperTrans('ingaz.create_hr_record_and_employ_maid') }}
+                                            <i class="fas fa-user-plus me-1"></i>{{ helperTransGendered('ingaz.create_hr_record_and_employ_maid', $genderKey) }}
                                         </button>
                                     </form>
                                 @endif
