@@ -6,6 +6,30 @@ use App\Http\Requests\MainRequest;
 
 class WhatDoRequest extends MainRequest
 {
+    protected function prepareForValidation()
+    {
+        $titles = $this->input('titles', []);
+
+        if (is_array($titles)) {
+            // Ignore unused repeater rows while still validating entered items.
+            $titles = array_filter($titles, function ($item) {
+                if (!is_array($item)) {
+                    return true;
+                }
+
+                foreach ($item as $translation) {
+                    if (!is_array($translation) || filled($translation['title'] ?? null)) {
+                        return true;
+                    }
+                }
+
+                return false;
+            });
+        }
+
+        $this->merge(['titles' => $titles ?? []]);
+    }
+
     /**
      * Determine if the user is authorized to make this request.
      *
@@ -31,7 +55,7 @@ class WhatDoRequest extends MainRequest
             'description:en' => 'string',
             'icon' => 'string',
             'type' => 'string',
-            'titles' => 'required|array',
+            'titles' => 'present|array',
             'titles.*' => 'array',
             'titles.*.*.title' => 'required|string|max:255',
             'image' => 'nullable|image|mimes:jpg,jpeg,png,webp,svg|max:5120',

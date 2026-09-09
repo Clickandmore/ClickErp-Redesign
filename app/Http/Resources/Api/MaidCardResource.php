@@ -27,6 +27,7 @@ class MaidCardResource extends JsonResource
             'education' => $this->education,
             'education_en' => $this->education_en,
             'has_driving_license' => $this->has_driving_license,
+            'driving_license_file' => (string) showFile($this->driving_license_file),
 
             'image' => (string) showFile($this->image),
             'cv_file' => (string) showFile($this->cv_file),

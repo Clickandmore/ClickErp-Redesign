@@ -31,6 +31,7 @@ class MaidResource extends JsonResource
 			'education' => $this->education,
 			'education_en' => $this->education_en,
 			'has_driving_license' => $this->has_driving_license,
+			'driving_license_file' => (string) showFile($this->driving_license_file),
 			// 'price' => (float) $this->price,
 			'price' => (string)($this->resolved_price ?? 0),
 			// 'salary' => (float) $this->salary,

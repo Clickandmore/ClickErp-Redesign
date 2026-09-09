@@ -44,7 +44,7 @@
     @endforeach
 
     <label for="TextInput" class="form-label">
-        {{helperTrans("ingaz.items")}}
+        {{helperTrans("ingaz.items")}} ({{ helperTrans('ingaz.optional') }})
     </label>
     <table class="table align-middle card-table my-2">
         <thead>
@@ -63,7 +63,7 @@
             <td></td>
             @foreach (config('translatable.locales') as $locale)
                 <td>
-                    <input type="text" name="titles[0][{{ $locale }}][title]" class="form-control index-plus" data-validation="required">
+                    <input type="text" name="titles[0][{{ $locale }}][title]" class="form-control index-plus">
                 </td>
             @endforeach
             <td>
