@@ -715,6 +715,7 @@ class AdminRoutePermissionMatrix
                 'SponsorshipTransfer.trial-details' => [PermKeys::SPONSOR_TRANSFER_VIEW, PermKeys::SPONSOR_TRANSFER_CONTROL],
                 'SponsorshipTransfer.maid-receipt' => [PermKeys::SPONSOR_TRANSFER_VIEW, PermKeys::SPONSOR_TRANSFER_CONTROL],
                 'SponsorshipTransfer.approve' => [PermKeys::SPONSOR_TRANSFER_CONTROL],
+                'SponsorshipTransfer.addPayment' => [PermKeys::SPONSOR_TRANSFER_ADD_PAYMENT],
                 'SponsorshipTransfer.reject' => [PermKeys::SPONSOR_TRANSFER_CONTROL],
                 'SponsorshipTransfer.complete' => [PermKeys::SPONSOR_TRANSFER_CONTROL],
                 'SponsorshipTransfer.confirmTransfer' => [PermKeys::SPONSOR_TRANSFER_CONTROL],

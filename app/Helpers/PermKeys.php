@@ -219,6 +219,7 @@ const PARTENR_CONTROL = 'partenr_control';
     const SPONSOR_TRANSFER_EDIT = 'sponsor_transfer_edit';
     const SPONSOR_TRANSFER_DELETE = 'sponsor_transfer_delete';
     const SPONSOR_TRANSFER_CONTROL = 'sponsor_transfer_control';
+    const SPONSOR_TRANSFER_ADD_PAYMENT = 'sponsor_transfer_add_payment';
 
     // ========================================
     // الإعدادات

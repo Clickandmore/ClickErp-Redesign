@@ -225,6 +225,7 @@ return [
     'sponsor_transfer_edit' => 'Edit Sponsor Transfer',
     'sponsor_transfer_delete' => 'Delete Sponsor Transfer',
     'sponsor_transfer_control' => 'Control Sponsor Transfer',
+    'sponsor_transfer_add_payment' => 'Add sponsorship transfer payment',
 
     // ========================================
     // Settings

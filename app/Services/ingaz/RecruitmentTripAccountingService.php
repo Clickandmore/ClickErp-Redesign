@@ -8,8 +8,11 @@ use App\Models\ingaz\Invoice;
 use App\Models\office\Office;
 use App\Services\office\OfficeFinanceAccountService;
 use App\Support\AutomaticJournalEntries;
+use App\Support\RecruitmentRevenueRecognition;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Schema;
+use Nami\Finance\Models\ConfirmSetting;
 use Nami\Finance\Enums\CostCenterTypeEnum;
 use Nami\Finance\Enums\PurchaseItemStatusEnum;
 use Nami\Finance\Enums\PurchaseTypeEnum;
@@ -125,7 +128,10 @@ class RecruitmentTripAccountingService
             );
         }
 
-        if (!$invoice->arrival_revenue_constraint_id) {
+        if (RecruitmentRevenueRecognition::invoiceRecognizesOnInvoice($invoice)) {
+            // الإيراد أُثبت في قيد الفاتورة نفسه (إعداد «عند إنشاء الفاتورة»)، فلا قيد تحويل عند الوصول.
+            $result['revenue_skipped_reason'] = 'revenue_recognized_on_invoice';
+        } elseif (!$invoice->arrival_revenue_constraint_id) {
             $liabilityAccountId = $this->resolveLiabilityAccountId($nationalityName);
 
             if (!$liabilityAccountId) {
@@ -228,6 +234,81 @@ class RecruitmentTripAccountingService
         }
 
         return $result;
+    }
+
+    /**
+     * يعكس قيد فاتورة المورد الخارجي بقيد مقابل (مدين المكتب الخارجي / دائن تكلفة المبيعات)
+     * بنفس الحسابات والمبالغ المرحّلة أصلاً، فتعود فاتورة المكتب إلى صفر.
+     * يُستخدم عند استرداد العقد أو إرجاع العاملة في وضع «إثبات الإيراد عند إنشاء الفاتورة».
+     */
+    public function reverseExternalOfficeCostEntries(
+        Contract $contract,
+        Invoice $invoice,
+        string $date,
+        string $statement
+    ): ?Constraint {
+        if (!$invoice->external_office_cost_constraint_id) {
+            return null;
+        }
+
+        $hasReversalColumn = Schema::hasColumn('invoices', 'external_office_cost_reversal_constraint_id');
+        if ($hasReversalColumn && $invoice->external_office_cost_reversal_constraint_id) {
+            return Constraint::query()->find($invoice->external_office_cost_reversal_constraint_id);
+        }
+
+        $activeYear = $this->yearService->checkDateRange($date);
+        if (!$activeYear) {
+            throw new \RuntimeException('لا يوجد سنة مالية نشطة لتاريخ عكس فاتورة المورد الخارجي.');
+        }
+
+        $lines = $this->buildExternalOfficeCostReversalLines($invoice, $statement);
+        if (empty($lines)) {
+            return null;
+        }
+
+        $value = $this->roundMoney(array_sum(array_column($lines, 'debtor_value')));
+        $constraint = $this->findExistingConstraint($statement, $date, $value)
+            ?: $this->storeConstraint($lines, $statement, $date, $value, $activeYear);
+
+        if ($constraint && $hasReversalColumn) {
+            $invoice->external_office_cost_reversal_constraint_id = $constraint->id;
+            $invoice->save();
+        }
+
+        return $constraint;
+    }
+
+    /**
+     * أسطر عكس قيد المورد الخارجي (للمعاينة أو الترحيل): كل طرف يُقلب إلى الطرف المقابل.
+     */
+    public function buildExternalOfficeCostReversalLines(Invoice $invoice, string $statement): array
+    {
+        if (!$invoice->external_office_cost_constraint_id) {
+            return [];
+        }
+
+        return ConstraintDetails::query()
+            ->where('constraint_id', $invoice->external_office_cost_constraint_id)
+            ->orderBy('id')
+            ->get()
+            ->map(function (ConstraintDetails $detail) use ($statement) {
+                $debtor = $this->roundMoney((float) $detail->creditor_value);
+                $creditor = $this->roundMoney((float) $detail->debtor_value);
+
+                return [
+                    'account_id' => (int) $detail->account_id,
+                    'account_type' => $debtor > 0 ? 'debtor' : 'creditor',
+                    'debtor_value' => $debtor,
+                    'creditor_value' => $creditor,
+                    'statement' => $statement,
+                    'cost_center_id' => $detail->cost_center_id,
+                ];
+            })
+            ->filter(fn (array $line) => $line['debtor_value'] > 0 || $line['creditor_value'] > 0)
+            // الطرف المدين (المكتب الخارجي) أولاً ثم الدائن (تكلفة المبيعات) كما تُعرض القيود.
+            ->sortBy(fn (array $line) => $line['account_type'] === 'debtor' ? 0 : 1)
+            ->values()
+            ->all();
     }
 
     private function createArrivalRevenueConstraint(
@@ -660,9 +741,10 @@ class RecruitmentTripAccountingService
         return (int) $account->id;
     }
 
-    private function resolveLiabilityAccountId(string $nationalityName): ?int
+    public function resolveLiabilityAccountId(string $nationalityName, ?int $nationalityId = null): ?int
     {
-        return $this->resolveAccountByCandidates(
+        return $this->resolveConfiguredNationalityAccountId($nationalityId, 'contract_liability')
+            ?? $this->resolveAccountByCandidates(
             [
                 'التزامات عقود (' . $nationalityName . ')',
                 'التزامات عقود ' . $nationalityName,
@@ -705,9 +787,10 @@ class RecruitmentTripAccountingService
             ->exists();
     }
 
-    private function resolveSalesAccountId(string $nationalityName): ?int
+    public function resolveSalesAccountId(string $nationalityName, ?int $nationalityId = null): ?int
     {
-        return $this->resolveAccountByCandidates(
+        return $this->resolveConfiguredNationalityAccountId($nationalityId, 'recruitment_sales')
+            ?? $this->resolveAccountByCandidates(
             [
                 'مبيعات (' . $nationalityName . ')',
                 'مبيعات ' . $nationalityName,
@@ -722,9 +805,10 @@ class RecruitmentTripAccountingService
         );
     }
 
-    private function resolveCostOfSalesAccountId(string $nationalityName): ?int
+    public function resolveCostOfSalesAccountId(string $nationalityName, ?int $nationalityId = null): ?int
     {
-        return $this->resolveAccountByCandidates(
+        return $this->resolveConfiguredNationalityAccountId($nationalityId, 'recruitment_cost')
+            ?? $this->resolveAccountByCandidates(
             [
                 'تكاليف مبيعات (' . $nationalityName . ')',
                 'تكاليف مبيعات ' . $nationalityName,
@@ -844,6 +928,29 @@ class RecruitmentTripAccountingService
             ->max('code');
 
         return (string) (((int) $lastCode) + 1);
+    }
+
+    /**
+     * الحساب المربوط صراحةً بالجنسية من صفحة إعدادات الحسابات (nationality_account_{id}_{type}).
+     * يُستخدم فقط عندما يُمرَّر رقم الجنسية (وضع «إثبات الإيراد عند الفاتورة»)؛ مسار الوصول
+     * الافتراضي يبقى على المطابقة بالاسم كما كان.
+     */
+    private function resolveConfiguredNationalityAccountId(?int $nationalityId, string $accountType): ?int
+    {
+        if (!$nationalityId) {
+            return null;
+        }
+
+        $accountId = ConfirmSetting::query()
+            ->where('title', 'nationality_account_' . $nationalityId . '_' . $accountType)
+            ->latest('updated_at')
+            ->value('value');
+
+        if (!$accountId || !is_numeric($accountId)) {
+            return null;
+        }
+
+        return Account::query()->whereKey((int) $accountId)->exists() ? (int) $accountId : null;
     }
 
     private function resolveNationalityName(Contract $contract): string

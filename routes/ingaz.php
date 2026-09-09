@@ -565,6 +565,7 @@ Route::group(
                 ->name('SponsorshipTransfer.maid-receipt');
 
             Route::resource('SponsorshipTransfer', SponsorshipTransferController::class);
+            Route::post('SponsorshipTransfer/{id}/payments', [SponsorshipTransferController::class, 'addPayment'])->name('SponsorshipTransfer.addPayment');
             Route::get('Contract/searchClients', [SponsorshipTransferController::class, 'searchClients'])->name('SponsorshipTransfer.searchClients');
             Route::post('SponsorshipTransfer/{id}/approve', [SponsorshipTransferController::class, 'approve'])->name('SponsorshipTransfer.approve');
             Route::post('SponsorshipTransfer/{id}/reject', [SponsorshipTransferController::class, 'reject'])->name('SponsorshipTransfer.reject');

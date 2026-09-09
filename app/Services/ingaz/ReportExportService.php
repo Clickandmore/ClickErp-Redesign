@@ -2083,6 +2083,14 @@ class ReportExportService
 
     private function applySponsorshipTransferFilters(Request $request, $query): void
     {
+        if ($request->filled('transfer_date_from')) {
+            $query->whereDate('transferred_at', '>=', $request->transfer_date_from);
+        }
+
+        if ($request->filled('transfer_date_to')) {
+            $query->whereDate('transferred_at', '<=', $request->transfer_date_to);
+        }
+
         if ($request->filled('status')) {
             if ($request->status === 'trial_period') {
                 $query->whereIn('status', ['trial', 'trial_started']);

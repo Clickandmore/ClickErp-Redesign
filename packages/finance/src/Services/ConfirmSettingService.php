@@ -248,6 +248,7 @@ class ConfirmSettingService extends MainService
             'general_qabd_bond',
             'daily_constraints',
             'automatic_journal_entries',
+            \App\Support\RecruitmentRevenueRecognition::SETTING_KEY,
             'bill_sales',
             'bill_purchases',
             'bond_sarf_account',
