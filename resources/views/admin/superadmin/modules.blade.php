@@ -1,858 +1,7 @@
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>لوحة Super Admin التطويرية</title>
-    <style>
-        :root {
-            --bg: #f3f6f8;
-            --surface: #ffffff;
-            --surface-soft: #f8fafb;
-            --border: #dfe7eb;
-            --border-strong: #c4d1da;
-            --text: #152431;
-            --muted: #64748b;
-            --accent: #087f72;
-            --accent-dark: #06665d;
-            --accent-soft: #e6f7f3;
-            --navy: #16324f;
-            --navy-soft: #edf3f8;
-            --danger: #b91c1c;
-            --danger-soft: #fef2f2;
-            --warning: #a16207;
-            --warning-soft: #fffbeb;
-        }
-
-        * {
-            box-sizing: border-box;
-        }
-
-        body {
-            margin: 0;
-            background: var(--bg);
-            color: var(--text);
-            font-family: Tahoma, Arial, sans-serif;
-        }
-
-        .dev-shell {
-            width: min(1320px, calc(100% - 32px));
-            margin: 20px auto 40px;
-        }
-
-        .topbar {
-            min-height: 74px;
-            display: grid;
-            grid-template-columns: minmax(0, 1fr) auto;
-            gap: 16px;
-            align-items: center;
-            padding: 16px 18px;
-            background: var(--surface);
-            border: 1px solid var(--border);
-            border-radius: 18px;
-            box-shadow: 0 14px 35px rgba(23, 32, 51, .06);
-            margin-bottom: 16px;
-        }
-
-        .brand {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            min-width: 0;
-        }
-
-        .brand-mark {
-            width: 44px;
-            height: 44px;
-            border-radius: 12px;
-            display: grid;
-            place-items: center;
-            background: linear-gradient(145deg, var(--navy), var(--accent));
-            color: #fff;
-            font-weight: 900;
-            flex: 0 0 auto;
-        }
-
-        .brand-title {
-            margin: 0;
-            font-size: 1.25rem;
-            font-weight: 900;
-            color: #0f172a;
-        }
-
-        .brand-text {
-            margin: 5px 0 0;
-            color: var(--muted);
-            line-height: 1.7;
-            font-size: .9rem;
-        }
-
-        .topbar-actions {
-            display: flex;
-            gap: 10px;
-            align-items: center;
-        }
-
-        .btn {
-            min-height: 40px;
-            padding: 0 14px;
-            border-radius: 10px;
-            border: 1px solid var(--border-strong);
-            background: #fff;
-            color: var(--text);
-            font: inherit;
-            font-weight: 900;
-            text-decoration: none;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            white-space: nowrap;
-        }
-
-        .btn-primary {
-            border-color: var(--accent);
-            background: var(--accent);
-            color: #fff;
-        }
-
-        .btn-primary:hover {
-            background: var(--accent-dark);
-        }
-
-        .btn-danger {
-            border-color: #f2c3c3;
-            color: var(--danger);
-        }
-
-        .alerts {
-            display: grid;
-            gap: 10px;
-            margin-bottom: 16px;
-        }
-
-        .section-nav {
-            position: sticky;
-            top: 10px;
-            z-index: 20;
-            display: flex;
-            gap: 8px;
-            padding: 8px;
-            margin-bottom: 16px;
-            overflow-x: auto;
-            background: rgba(255, 255, 255, .94);
-            border: 1px solid var(--border);
-            border-radius: 14px;
-            box-shadow: 0 8px 22px rgba(23, 50, 79, .07);
-            backdrop-filter: blur(12px);
-        }
-
-        .section-nav a {
-            min-height: 38px;
-            display: inline-flex;
-            align-items: center;
-            gap: 7px;
-            padding: 0 13px;
-            border-radius: 9px;
-            color: #526174;
-            text-decoration: none;
-            font-size: .84rem;
-            font-weight: 900;
-            white-space: nowrap;
-        }
-
-        .section-nav a.active,
-        .section-nav a:hover {
-            color: var(--accent-dark);
-            background: var(--accent-soft);
-        }
-
-        .nav-dot { width: 7px; height: 7px; border-radius: 50%; background: currentColor; opacity: .65; }
-
-        .page-heading {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            gap: 16px;
-            margin: 0 0 16px;
-            padding: 18px 20px;
-            background: var(--navy);
-            color: #fff;
-            border-radius: 16px;
-        }
-
-        .page-heading h2 { margin: 0; font-size: 1.1rem; }
-        .page-heading p { margin: 5px 0 0; color: rgba(255,255,255,.72); font-size: .84rem; }
-        .layout.is-single { grid-template-columns: minmax(0, 1fr); }
-
-        .subscription-panel {
-            display: grid;
-            grid-template-columns: minmax(300px, .8fr) minmax(0, 1.55fr);
-            margin-bottom: 16px;
-            border: 1px solid #cfe1e3;
-            border-radius: 18px;
-            overflow: hidden;
-            background: var(--surface);
-            box-shadow: 0 16px 36px rgba(23, 50, 79, .07);
-            scroll-margin-top: 72px;
-        }
-
-        .subscription-overview {
-            position: relative;
-            padding: 26px;
-            overflow: hidden;
-            color: #fff;
-            background: linear-gradient(145deg, #16324f 0%, #0b625e 100%);
-        }
-
-        .subscription-overview::after {
-            content: "";
-            position: absolute;
-            width: 210px;
-            height: 210px;
-            inset-inline-end: -90px;
-            bottom: -120px;
-            border: 42px solid rgba(255,255,255,.07);
-            border-radius: 50%;
-        }
-
-        .eyebrow { margin: 0 0 12px; font-size: .78rem; font-weight: 900; opacity: .72; }
-        .client-title { margin: 0; font-size: 1.6rem; line-height: 1.45; }
-        .client-code { margin: 8px 0 22px; font-size: .84rem; opacity: .75; direction: ltr; text-align: right; }
-        .subscription-state { display: inline-flex; align-items: center; gap: 8px; min-height: 34px; padding: 0 12px; border-radius: 999px; background: rgba(255,255,255,.14); font-weight: 900; font-size: .84rem; }
-        .subscription-state::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: #64f1c2; box-shadow: 0 0 0 4px rgba(100,241,194,.14); }
-        .subscription-state.is-expired::before, .subscription-state.is-paused::before { background: #fca5a5; box-shadow: 0 0 0 4px rgba(252,165,165,.14); }
-        .subscription-plan { margin: 26px 0 0; padding-top: 18px; border-top: 1px solid rgba(255,255,255,.15); }
-        .subscription-plan small { display: block; opacity: .68; margin-bottom: 6px; }
-        .subscription-plan strong { font-size: 1.05rem; }
-
-        .subscription-content { padding: 22px; }
-        .section-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; margin-bottom: 18px; }
-        .section-heading h2 { margin: 0; font-size: 1.08rem; }
-        .section-heading p { margin: 6px 0 0; color: var(--muted); font-size: .85rem; line-height: 1.7; }
-
-        .subscription-form { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 13px; }
-        .subscription-form .span-2 { grid-column: span 2; }
-        .subscription-form .span-4 { grid-column: 1 / -1; }
-        .field select, .field textarea {
-            width: 100%;
-            border: 1px solid var(--border-strong);
-            border-radius: 9px;
-            padding: 8px 10px;
-            font: inherit;
-            background: #fff;
-        }
-        .field select { min-height: 42px; }
-        .field textarea { min-height: 68px; resize: vertical; }
-        .field input:focus, .field select:focus, .field textarea:focus { outline: none; border-color: #58aaa3; box-shadow: 0 0 0 4px rgba(15,118,110,.09); }
-        .form-actions { display: flex; justify-content: flex-end; align-items: center; }
-
-        .alert {
-            padding: 12px 14px;
-            border-radius: 10px;
-            border: 1px solid #bbf7d0;
-            background: #f0fdf4;
-            color: #166534;
-            line-height: 1.7;
-        }
-
-        .alert-danger {
-            border-color: #fecaca;
-            background: #fef2f2;
-            color: #991b1b;
-        }
-
-        .alert-warning {
-            border-color: #fde68a;
-            background: #fffbeb;
-            color: #92400e;
-        }
-
-        .stats {
-            display: grid;
-            grid-template-columns: repeat(4, minmax(0, 1fr));
-            gap: 12px;
-            margin-bottom: 16px;
-        }
-
-        .stat {
-            background: var(--surface);
-            border: 1px solid var(--border);
-            border-radius: 14px;
-            padding: 16px;
-            border-top: 3px solid var(--accent);
-        }
-
-        .stat-label {
-            color: var(--muted);
-            font-size: .82rem;
-            font-weight: 800;
-        }
-
-        .stat-value {
-            margin-top: 8px;
-            font-size: 1.45rem;
-            font-weight: 900;
-            color: #0f172a;
-        }
-
-        .layout {
-            display: grid;
-            grid-template-columns: minmax(0, 1fr) 420px;
-            gap: 16px;
-            align-items: start;
-        }
-
-        .backup-panel {
-            margin-top: 16px;
-        }
-
-        .backup-settings {
-            display: grid;
-            grid-template-columns: repeat(3, minmax(150px, 1fr));
-            gap: 12px;
-            align-items: end;
-        }
-
-        .field label {
-            display: block;
-            margin-bottom: 7px;
-            font-size: .82rem;
-            font-weight: 900;
-            color: var(--muted);
-        }
-
-        .field input {
-            width: 100%;
-            min-height: 42px;
-            border: 1px solid var(--border-strong);
-            border-radius: 9px;
-            padding: 8px 10px;
-            font: inherit;
-            background: #fff;
-        }
-
-        .backup-status {
-            padding: 11px 12px;
-            border-radius: 9px;
-            background: var(--surface-soft);
-            border: 1px solid var(--border);
-            font-weight: 800;
-            font-size: .84rem;
-        }
-
-        .backup-status.is-ready { color: #166534; background: #f0fdf4; border-color: #bbf7d0; }
-        .backup-status.is-off { color: var(--danger); background: var(--danger-soft); border-color: #fecaca; }
-        .settings-disclosure { margin-top: 14px; border: 1px solid var(--border); border-radius: 11px; background: #fff; }
-        .settings-disclosure > summary { padding: 13px 15px; cursor: pointer; font-weight: 900; color: #334155; background: var(--surface-soft); border-radius: 11px; }
-        .settings-disclosure[open] > summary { border-bottom: 1px solid var(--border); border-radius: 11px 11px 0 0; }
-        .settings-disclosure-content { padding: 15px; }
-
-        .backup-actions {
-            display: flex;
-            gap: 8px;
-            flex-wrap: wrap;
-        }
-
-        .backup-table-wrap { overflow-x: auto; margin-top: 18px; }
-        .backup-table { width: 100%; border-collapse: collapse; min-width: 760px; }
-        .backup-table th, .backup-table td { text-align: right; padding: 11px; border-bottom: 1px solid var(--border); }
-        .backup-table th { color: var(--muted); font-size: .8rem; background: var(--surface-soft); }
-        .backup-table td { font-size: .86rem; }
-        .backup-file { direction: ltr; text-align: left; font-family: monospace; }
-        .terminal-command-box { margin-top: 14px; padding: 14px; border: 1px solid #bfdbfe; border-radius: 10px; background: #eff6ff; }
-        .terminal-command-box p { margin: 0 0 10px; color: #1e3a8a; line-height: 1.7; }
-        .terminal-command { display: block; direction: ltr; text-align: left; overflow-x: auto; padding: 11px; border-radius: 8px; background: #0f172a; color: #e2e8f0; font: .78rem/1.7 monospace; white-space: pre; }
-        .terminal-command-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-top: 9px; }
-        .terminal-selected-file { color: var(--muted); font-size: .82rem; font-weight: 800; }
-        .restore-form { display: flex; gap: 6px; align-items: center; }
-        .restore-form input { width: 94px; min-height: 38px; border: 1px solid var(--border-strong); border-radius: 8px; padding: 6px; }
-        .verification-request, .verification-confirm { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
-        .verification-request select, .verification-confirm input { min-height: 38px; border: 1px solid var(--border-strong); border-radius: 8px; padding: 6px 8px; font: inherit; background: #fff; }
-        .verification-request select { max-width: 190px; }
-        .verification-confirm input { width: 105px; direction: ltr; }
-        .database-import-box { margin-top: 18px; padding: 16px; border: 1px solid #fecaca; border-radius: 12px; background: #fff7f7; }
-        .database-import-box h3 { margin: 0 0 6px; color: var(--danger); }
-        .database-import-box p { margin: 0 0 12px; color: var(--muted); font-size: .84rem; line-height: 1.7; }
-        .database-import-box .verification-confirm input[type="file"] { width: min(100%, 360px); direction: rtl; background: #fff; }
-        .import-progress { width: 100%; margin-top: 12px; }
-        .import-progress-track { height: 14px; overflow: hidden; border-radius: 999px; background: #e2e8f0; border: 1px solid var(--border-strong); }
-        .import-progress-bar { width: 0; height: 100%; background: linear-gradient(90deg, var(--accent), #22c55e); transition: width .2s ease; }
-        .import-progress.is-processing .import-progress-bar { width: 100% !important; animation: import-pulse 1.2s ease-in-out infinite; }
-        .import-progress-text { margin: 7px 0 0 !important; color: var(--text) !important; font-weight: 900; }
-        .import-progress-message { margin-top: 8px; padding: 9px 11px; border-radius: 8px; font-size: .84rem; font-weight: 800; }
-        .import-progress-message.is-success { color: #166534; background: #dcfce7; }
-        .import-progress-message.is-error { color: #991b1b; background: #fee2e2; }
-        @keyframes import-pulse { 0%, 100% { opacity: .55; } 50% { opacity: 1; } }
-        .verification-note { width: 100%; margin: 0; color: var(--warning); font-size: .76rem; line-height: 1.6; }
-        .btn-small { min-height: 36px; padding: 0 10px; font-size: .78rem; }
-
-        .scheduler-summary {
-            display: grid;
-            grid-template-columns: repeat(3, minmax(0, 1fr));
-            gap: 12px;
-            margin-bottom: 14px;
-        }
-
-        .scheduler-stat {
-            padding: 14px;
-            border: 1px solid var(--border);
-            border-radius: 10px;
-            background: var(--surface-soft);
-        }
-
-        .scheduler-stat strong { display: block; margin-top: 7px; font-size: 1rem; }
-        .scheduler-stat.is-active { border-color: #bbf7d0; background: #f0fdf4; color: #166534; }
-        .scheduler-stat.is-inactive { border-color: #fecaca; background: #fef2f2; color: #991b1b; }
-        .cron-expression { direction: ltr; text-align: left; font-family: monospace; white-space: nowrap; }
-        .cron-command { direction: ltr; text-align: left; font-family: monospace; font-size: .75rem; max-width: 420px; overflow-wrap: anywhere; }
-        .cron-entry { direction: ltr; text-align: left; padding: 10px; border-radius: 8px; background: #0f172a; color: #e2e8f0; overflow-wrap: anywhere; font-family: monospace; font-size: .76rem; }
-        .risk-badge { display: inline-flex; padding: 5px 9px; border-radius: 999px; font-size: .75rem; font-weight: 900; margin-bottom: 6px; }
-        .risk-low { color: #166534; background: #dcfce7; }
-        .risk-medium { color: #92400e; background: #fef3c7; }
-        .risk-high, .risk-invalid { color: #991b1b; background: #fee2e2; }
-        .risk-unknown { color: #475569; background: #e2e8f0; }
-        .job-explanation { min-width: 220px; line-height: 1.7; }
-        .job-effect { min-width: 250px; line-height: 1.7; }
-        .job-safety { min-width: 230px; line-height: 1.7; }
-
-        .panel {
-            background: var(--surface);
-            border: 1px solid var(--border);
-            border-radius: 14px;
-            box-shadow: 0 12px 28px rgba(23, 32, 51, .05);
-            overflow: hidden;
-            scroll-margin-top: 72px;
-        }
-
-        .panel-head {
-            padding: 16px 18px;
-            border-bottom: 1px solid var(--border);
-            background: var(--surface-soft);
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 12px;
-        }
-
-        .panel-title {
-            margin: 0;
-            font-size: 1.05rem;
-            font-weight: 900;
-            color: #0f172a;
-        }
-
-        .panel-subtitle {
-            margin: 6px 0 0;
-            color: var(--muted);
-            font-size: .88rem;
-            line-height: 1.7;
-        }
-
-        .panel-body {
-            padding: 16px;
-        }
-
-        .module-grid {
-            display: grid;
-            grid-template-columns: repeat(2, minmax(0, 1fr));
-            gap: 12px;
-        }
-
-        .module-card {
-            min-height: 154px;
-            border: 1px solid var(--border);
-            border-radius: 12px;
-            background: #fff;
-            padding: 14px;
-            display: grid;
-            gap: 14px;
-            align-content: space-between;
-        }
-
-        .module-card.is-off {
-            background: var(--danger-soft);
-            border-color: #fecaca;
-        }
-
-        .module-card.is-on {
-            background: #ffffff;
-        }
-
-        .module-top {
-            display: flex;
-            justify-content: space-between;
-            align-items: flex-start;
-            gap: 10px;
-        }
-
-        .module-name {
-            margin: 0;
-            font-size: 1rem;
-            font-weight: 900;
-            color: #0f172a;
-        }
-
-        .module-key {
-            margin-top: 7px;
-            display: inline-flex;
-            min-height: 24px;
-            align-items: center;
-            padding: 0 8px;
-            border-radius: 8px;
-            background: #eef3f5;
-            color: #526174;
-            font-size: .76rem;
-            direction: ltr;
-        }
-
-        .module-description {
-            margin: 0;
-            color: var(--muted);
-            line-height: 1.7;
-            font-size: .88rem;
-        }
-
-        .status-badge {
-            min-height: 28px;
-            display: inline-flex;
-            align-items: center;
-            padding: 0 10px;
-            border-radius: 999px;
-            font-size: .78rem;
-            font-weight: 900;
-            white-space: nowrap;
-        }
-
-        .status-on {
-            background: var(--accent-soft);
-            color: var(--accent-dark);
-        }
-
-        .status-off {
-            background: #fee2e2;
-            color: var(--danger);
-        }
-
-        .switch-row {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 10px;
-            border-top: 1px solid var(--border);
-            padding-top: 12px;
-            color: #334155;
-            font-weight: 900;
-        }
-
-        .limit-row {
-            display: grid;
-            gap: 7px;
-            border-top: 1px solid var(--border);
-            padding-top: 12px;
-        }
-
-        .limit-row label {
-            color: #334155;
-            font-weight: 900;
-            font-size: .84rem;
-        }
-
-        .limit-input {
-            width: 100%;
-            min-height: 38px;
-            border: 1px solid var(--border-strong);
-            border-radius: 10px;
-            padding: 0 12px;
-            font: inherit;
-            background: #fff;
-        }
-
-        .limit-help {
-            margin: 0;
-            color: var(--muted);
-            font-size: .78rem;
-            line-height: 1.6;
-        }
-
-        .switch {
-            position: relative;
-            width: 48px;
-            height: 26px;
-            flex: 0 0 auto;
-        }
-
-        .switch input {
-            opacity: 0;
-            width: 0;
-            height: 0;
-        }
-
-        .slider {
-            position: absolute;
-            inset: 0;
-            cursor: pointer;
-            background: #cbd5e1;
-            border-radius: 999px;
-            transition: .18s ease;
-        }
-
-        .slider:before {
-            content: "";
-            position: absolute;
-            height: 20px;
-            width: 20px;
-            left: 3px;
-            bottom: 3px;
-            background: #fff;
-            border-radius: 50%;
-            box-shadow: 0 2px 6px rgba(15, 23, 42, .22);
-            transition: .18s ease;
-        }
-
-        .switch input:checked + .slider {
-            background: var(--accent);
-        }
-
-        .switch input:checked + .slider:before {
-            transform: translateX(22px);
-        }
-
-        .save-row {
-            margin-top: 14px;
-            display: flex;
-            justify-content: flex-end;
-        }
-
-        .dashboard-options {
-            display: grid;
-            grid-template-columns: repeat(2, minmax(0, 1fr));
-            gap: 12px;
-            margin-bottom: 16px;
-        }
-
-        .dashboard-option {
-            position: relative;
-            display: grid;
-            gap: 8px;
-            padding: 14px;
-            border: 1px solid var(--border);
-            border-radius: 12px;
-            background: #fff;
-            cursor: pointer;
-        }
-
-        .dashboard-option input {
-            position: absolute;
-            inset-inline-start: 14px;
-            top: 16px;
-        }
-
-        .dashboard-option-title {
-            padding-inline-start: 28px;
-            font-weight: 900;
-            color: #0f172a;
-        }
-
-        .dashboard-option-desc {
-            padding-inline-start: 28px;
-            color: var(--muted);
-            line-height: 1.7;
-            font-size: .86rem;
-        }
-
-        .dashboard-option-url {
-            justify-self: start;
-            direction: ltr;
-            display: inline-flex;
-            min-height: 24px;
-            align-items: center;
-            padding: 0 8px;
-            border-radius: 8px;
-            background: #eef3f5;
-            color: #526174;
-            font-size: .76rem;
-        }
-
-        .dashboard-option:has(input:checked) {
-            border-color: #58aaa3;
-            background: var(--accent-soft);
-        }
-
-        .profile-confirmation {
-            display: none;
-            margin: 0 0 16px;
-            padding: 16px;
-            border: 1px solid #fca5a5;
-            border-radius: 12px;
-            background: var(--danger-soft);
-        }
-
-        .profile-confirmation.is-visible {
-            display: grid;
-            gap: 12px;
-        }
-
-        .profile-confirmation strong { color: #991b1b; }
-        .profile-confirmation p { margin: 0; color: #7f1d1d; line-height: 1.8; }
-
-        .profile-confirmation-fields {
-            display: grid;
-            grid-template-columns: repeat(2, minmax(0, 1fr));
-            gap: 12px;
-        }
-
-        .profile-confirmation-fields label {
-            display: grid;
-            gap: 7px;
-            color: #7f1d1d;
-            font-size: .86rem;
-            font-weight: 800;
-        }
-
-        .profile-confirmation-fields input,
-        .profile-confirmation-fields textarea {
-            width: 100%;
-            border: 1px solid #fca5a5;
-            border-radius: 10px;
-            padding: 10px 12px;
-            background: #fff;
-            font: inherit;
-        }
-
-        .profile-confirmation-fields input { min-height: 42px; }
-        .profile-confirmation-fields .wide { grid-column: 1 / -1; }
-
-        .employee-tools {
-            display: grid;
-            gap: 10px;
-            margin-bottom: 12px;
-        }
-
-        .search-input {
-            width: 100%;
-            min-height: 42px;
-            border: 1px solid var(--border-strong);
-            border-radius: 10px;
-            padding: 0 12px;
-            font: inherit;
-            background: #fff;
-        }
-
-        .search-input:focus {
-            outline: none;
-            border-color: #58aaa3;
-            box-shadow: 0 0 0 4px rgba(15, 118, 110, .10);
-        }
-
-        .employee-list {
-            display: grid;
-            gap: 10px;
-            max-height: 676px;
-            overflow: auto;
-            padding-inline-end: 4px;
-        }
-
-        .employee-card {
-            display: grid;
-            grid-template-columns: minmax(0, 1fr) auto;
-            gap: 12px;
-            align-items: center;
-            padding: 12px;
-            border: 1px solid var(--border);
-            border-radius: 12px;
-            background: #fff;
-        }
-
-        .employee-card.is-suspended {
-            background: var(--warning-soft);
-            border-color: #fde68a;
-        }
-
-        .employee-name {
-            margin: 0;
-            font-size: .95rem;
-            font-weight: 900;
-            color: #0f172a;
-        }
-
-        .employee-meta {
-            margin: 6px 0 0;
-            color: var(--muted);
-            font-size: .82rem;
-            line-height: 1.65;
-            word-break: break-word;
-        }
-
-        .employee-role {
-            display: inline-flex;
-            min-height: 24px;
-            align-items: center;
-            margin-top: 8px;
-            padding: 0 8px;
-            border-radius: 8px;
-            background: #eef3f5;
-            color: #526174;
-            font-size: .76rem;
-            font-weight: 800;
-        }
-
-        .empty-state {
-            display: none;
-            padding: 24px 12px;
-            color: var(--muted);
-            text-align: center;
-            border: 1px dashed var(--border-strong);
-            border-radius: 12px;
-        }
-
-        @media (max-width: 1050px) {
-            .layout,
-            .stats {
-                grid-template-columns: 1fr 1fr;
-            }
-
-            .layout {
-                grid-template-columns: 1fr;
-            }
-
-            .subscription-panel { grid-template-columns: 1fr; }
-            .subscription-form { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-            .subscription-form .span-4 { grid-column: 1 / -1; }
-        }
-
-        @media (max-width: 720px) {
-            .dev-shell {
-                width: min(100% - 20px, 1240px);
-                margin: 12px auto;
-            }
-
-            .topbar,
-            .stats,
-            .module-grid,
-            .dashboard-options {
-                grid-template-columns: 1fr;
-            }
-
-            .topbar-actions,
-            .panel-head {
-                align-items: stretch;
-                flex-direction: column;
-            }
-
-            .topbar-actions .btn,
-            .topbar-actions form,
-            .save-row .btn {
-                width: 100%;
-            }
-
-            .backup-settings { grid-template-columns: 1fr; }
-            .scheduler-summary { grid-template-columns: 1fr; }
-            .subscription-form { grid-template-columns: 1fr; }
-            .subscription-form .span-2, .subscription-form .span-4 { grid-column: auto; }
-            .subscription-overview, .subscription-content { padding: 19px; }
-        }
-    </style>
+    @include('admin.superadmin.partials.head', ['pageTitle' => 'لوحة Super Admin التطويرية'])
 </head>
 <body>
 @php
@@ -903,6 +52,58 @@
         'backups' => ['title' => 'النسخ الاحتياطية', 'description' => 'إدارة النسخ التلقائية والتنزيل والاستعادة.'],
         'scheduler' => ['title' => 'المهام المجدولة', 'description' => 'متابعة حالة Scheduler والمهام الآلية القادمة.'],
     ][$activeSection] ?? ['title' => 'لوحة التطوير', 'description' => 'إدارة إعدادات النظام.'];
+
+    // أيقونات التنقّل — SVG مضمّن حتى لا تعتمد اللوحة على أي مكتبة خارجية
+    $navIcons = [
+        'recovery' => '<path d="M12 3l7.5 3.4v5.1c0 4.6-3.1 7.9-7.5 9.3-4.4-1.4-7.5-4.7-7.5-9.3V6.4L12 3z"/><path d="M9.2 12.2l2 2 3.6-3.9"/>',
+        'subscription' => '<rect x="3" y="5" width="18" height="14" rx="2.5"/><circle cx="8.6" cy="10.8" r="2"/><path d="M5.1 16.6c.8-1.6 2-2.4 3.5-2.4s2.7.8 3.5 2.4"/><path d="M15 10h4M15 13.4h4"/>',
+        'modules' => '<rect x="3.5" y="3.5" width="7" height="7" rx="1.8"/><rect x="13.5" y="3.5" width="7" height="7" rx="1.8"/><rect x="3.5" y="13.5" width="7" height="7" rx="1.8"/><rect x="13.5" y="13.5" width="7" height="7" rx="1.8"/>',
+        'employees' => '<circle cx="9.5" cy="8.5" r="3.2"/><path d="M3.5 19.4c.7-3 3.1-4.7 6-4.7s5.3 1.7 6 4.7"/><path d="M16.4 5.7a3 3 0 010 5.7M17.6 14.9c2 .6 3.4 2.1 3.9 4.5"/>',
+        'product-updates' => '<path d="M12 3.5l2.3 4.8 5.2.7-3.8 3.7.9 5.2-4.6-2.5-4.6 2.5.9-5.2L4.5 9l5.2-.7z"/>',
+        'backups' => '<ellipse cx="12" cy="6" rx="7.5" ry="3"/><path d="M4.5 6v6c0 1.7 3.4 3 7.5 3s7.5-1.3 7.5-3V6"/><path d="M4.5 12v6c0 1.7 3.4 3 7.5 3s7.5-1.3 7.5-3v-6"/>',
+        'scheduler' => '<circle cx="12" cy="12" r="8.5"/><path d="M12 7.2V12l3.2 2"/>',
+    ];
+
+    $navItems = [
+        ['key' => 'recovery', 'label' => 'الاستعادة والفحص', 'url' => route('dev-superadmin.recovery')],
+        ['key' => 'subscription', 'label' => 'العميل والاشتراك', 'url' => route('dev-superadmin.subscription')],
+        ['key' => 'modules', 'label' => 'الموديلات', 'url' => route('dev-superadmin.modules')],
+        ['key' => 'employees', 'label' => 'الموظفون', 'url' => route('dev-superadmin.employees')],
+        ['key' => 'product-updates', 'label' => 'ما الجديد', 'url' => route('dev-superadmin.product-updates')],
+        ['key' => 'backups', 'label' => 'النسخ الاحتياطية', 'url' => route('dev-superadmin.database-backups')],
+        ['key' => 'scheduler', 'label' => 'المهام المجدولة', 'url' => route('dev-superadmin.scheduler')],
+    ];
+
+    // شرائح ملخّص تظهر في رأس كل قسم لتعطي الحالة قبل النزول للتفاصيل
+    $headingChips = match ($activeSection) {
+        'subscription' => [
+            ['label' => 'الحالة', 'value' => $subscriptionStatuses[$subscriptionStatus] ?? 'غير محدد', 'tone' => in_array($subscriptionStatus, ['expired', 'paused'], true) ? 'is-bad' : 'is-good'],
+            ['label' => 'المتبقي', 'value' => ($subscription['days_remaining'] ?? null) === null ? '—' : (($subscription['days_remaining'] < 0) ? 'منتهي' : number_format($subscription['days_remaining']) . ' يوم'), 'tone' => ''],
+        ],
+        'modules' => [
+            ['label' => 'مفعّل', 'value' => $enabledCount . ' من ' . count($modules), 'tone' => 'is-good'],
+            ['label' => 'مغلق', 'value' => (string) $disabledCount, 'tone' => $disabledCount > 0 ? 'is-bad' : ''],
+            ['label' => 'نوع البرنامج', 'value' => $productProfiles[$productProfileKey]['name'] ?? $productProfileKey, 'tone' => ''],
+        ],
+        'employees' => [
+            ['label' => 'نشط', 'value' => (string) $activeAdminsCount, 'tone' => 'is-good'],
+            ['label' => 'الإجمالي', 'value' => (string) $admins->count(), 'tone' => ''],
+        ],
+        'product-updates' => [
+            ['label' => 'بطاقات منشورة', 'value' => (string) count($productUpdates['updates'] ?? []), 'tone' => ''],
+        ],
+        'backups' => [
+            ['label' => 'R2', 'value' => $r2Ready ? 'جاهز' : 'غير جاهز', 'tone' => $r2Ready ? 'is-good' : 'is-bad'],
+            ['label' => 'نسخ محلية', 'value' => (string) count($localDatabaseBackups), 'tone' => ''],
+            ['label' => 'قاعدة البيانات', 'value' => ($currentDatabaseDetails['connected'] ?? false) ? 'متصلة' : 'غير متصلة', 'tone' => ($currentDatabaseDetails['connected'] ?? false) ? 'is-good' : 'is-bad'],
+        ],
+        'scheduler' => [
+            ['label' => 'Scheduler', 'value' => $schedulerStatus['active'] ? 'يعمل' : 'متوقف', 'tone' => $schedulerStatus['active'] ? 'is-good' : 'is-bad'],
+            ['label' => 'مهام عالية التأثير', 'value' => (string) $highRiskCronCount, 'tone' => $highRiskCronCount > 0 ? 'is-bad' : ''],
+            ['label' => 'أوامر غير موجودة', 'value' => (string) $invalidCronCount, 'tone' => $invalidCronCount > 0 ? 'is-bad' : ''],
+        ],
+        default => [],
+    };
 @endphp
 
 <main class="dev-shell">
@@ -937,13 +138,19 @@
     @endif
 
     <nav class="section-nav" aria-label="أقسام لوحة التحكم">
-        <a href="{{ route('dev-superadmin.recovery') }}"><span class="nav-dot"></span>الاستعادة والفحص</a>
-        <a class="{{ $activeSection === 'subscription' ? 'active' : '' }}" href="{{ route('dev-superadmin.subscription') }}"><span class="nav-dot"></span>العميل والاشتراك</a>
-        <a class="{{ $activeSection === 'modules' ? 'active' : '' }}" href="{{ route('dev-superadmin.modules') }}"><span class="nav-dot"></span>الموديلات</a>
-        <a class="{{ $activeSection === 'employees' ? 'active' : '' }}" href="{{ route('dev-superadmin.employees') }}"><span class="nav-dot"></span>الموظفون</a>
-        <a class="{{ $activeSection === 'product-updates' ? 'active' : '' }}" href="{{ route('dev-superadmin.product-updates') }}"><span class="nav-dot"></span>ما الجديد</a>
-        <a class="{{ $activeSection === 'backups' ? 'active' : '' }}" href="{{ route('dev-superadmin.database-backups') }}"><span class="nav-dot"></span>النسخ الاحتياطية</a>
-        <a class="{{ $activeSection === 'scheduler' ? 'active' : '' }}" href="{{ route('dev-superadmin.scheduler') }}"><span class="nav-dot"></span>المهام المجدولة</a>
+        @foreach ($navItems as $navItem)
+            @php $isActiveNav = $activeSection === $navItem['key']; @endphp
+            <a
+                class="{{ $isActiveNav ? 'active' : '' }}"
+                href="{{ $navItem['url'] }}"
+                @if ($isActiveNav) aria-current="page" @endif
+            >
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    {!! $navIcons[$navItem['key']] !!}
+                </svg>
+                {{ $navItem['label'] }}
+            </a>
+        @endforeach
     </nav>
 
     <div class="page-heading">
@@ -951,6 +158,14 @@
             <h2>{{ $sectionMeta['title'] }}</h2>
             <p>{{ $sectionMeta['description'] }}</p>
         </div>
+
+        @if (count($headingChips) > 0)
+            <div class="page-heading-meta">
+                @foreach ($headingChips as $chip)
+                    <span class="heading-chip {{ $chip['tone'] }}">{{ $chip['label'] }}: <b>{{ $chip['value'] }}</b></span>
+                @endforeach
+            </div>
+        @endif
     </div>
 
     @if ($activeSection === 'subscription')
@@ -1049,19 +264,6 @@
 
     @if ($activeSection === 'product-updates')
     <section class="panel" id="product-updates" style="margin-bottom:24px;">
-        <style>
-            .product-updates-builder { display:grid; gap:14px; }
-            .product-update-editor { border:1px solid #dfe7ef; border-radius:14px; padding:16px; background:#f8fafc; }
-            .product-update-editor-head { display:flex; justify-content:space-between; align-items:center; gap:12px; margin-bottom:14px; }
-            .product-update-order { display:flex; gap:6px; }
-            .product-update-order button { width:34px; height:32px; border:1px solid #d7e0e8; border-radius:8px; background:#fff; cursor:pointer; }
-            .product-update-order button:disabled { opacity:.3; cursor:not-allowed; }
-            .product-update-fields { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
-            .product-update-fields .wide { grid-column:1 / -1; }
-            .product-update-remove { width:auto !important; padding:0 8px; border:0 !important; background:transparent !important; color:#dc3545; cursor:pointer; font-weight:700; }
-            .product-updates-add { justify-self:start; border:1px dashed #0f6b6e; background:#effafa; color:#0f6b6e; border-radius:10px; padding:10px 16px; font-weight:700; cursor:pointer; }
-            @media (max-width: 760px) { .product-update-fields { grid-template-columns:1fr; } .product-update-fields .wide { grid-column:auto; } }
-        </style>
         <div class="panel-head">
             <div>
                 <h2 class="panel-title">ما الجديد في كليك</h2>
@@ -1082,7 +284,7 @@
                 </div>
                 <div class="field">
                     <label for="productUpdateEnabled">حالة الظهور</label>
-                    <label class="switch-row" for="productUpdateEnabled" style="min-height:46px;margin:0;">
+                    <label class="switch-row" for="productUpdateEnabled">
                         <span>إظهار في الهيدر</span>
                         <span class="switch">
                             <input name="is_enabled" type="hidden" value="0">
@@ -1156,10 +358,10 @@
                     @method('PUT')
                     <input type="hidden" name="current_product_profile" value="{{ $productProfileKey }}">
 
-                    <div class="panel-head" style="margin:-16px -16px 16px;border:0;border-bottom:1px solid var(--border)">
+                    <div class="section-heading">
                         <div>
-                            <h3 class="panel-title">نوع البرنامج</h3>
-                            <p class="panel-subtitle">نظام الاستقدام هو الوضع الافتراضي الحالي. تغيير النوع لا يحذف أي بيانات أو إعدادات.</p>
+                            <h3>نوع البرنامج</h3>
+                            <p>نظام الاستقدام هو الوضع الافتراضي الحالي. تغيير النوع لا يحذف أي بيانات أو إعدادات.</p>
                         </div>
                     </div>
 
@@ -1195,6 +397,13 @@
                         </div>
                     </div>
 
+                    <div class="section-heading">
+                        <div>
+                            <h3>لوحة التحكم الافتراضية</h3>
+                            <p>الصفحة التي يفتحها المستخدم مباشرة بعد تسجيل الدخول للوحة الإدارة.</p>
+                        </div>
+                    </div>
+
                     <div class="dashboard-options">
                         @foreach ($dashboards as $dashboardKey => $dashboard)
                             <label class="dashboard-option">
@@ -1206,7 +415,42 @@
                         @endforeach
                     </div>
 
+                    <div class="section-heading">
+                        <div>
+                            <h3>مكوّنات النظام</h3>
+                            <p>{{ $enabledCount }} مفعّل من {{ count($modules) }} — إغلاق أي موديل يخفيه من القائمة ويمنع الوصول لمساراته.</p>
+                        </div>
+                    </div>
+
                     <div class="module-grid">
+                        <article class="module-card is-on">
+                            <div>
+                                <div class="module-top">
+                                    <div>
+                                        <h3 class="module-name">إدارة المستخدمين</h3>
+                                        <span class="module-key">users</span>
+                                    </div>
+                                    <span class="status-badge status-on">حد النسخة</span>
+                                </div>
+                                <p class="module-description">التحكم في إجمالي حسابات مستخدمي لوحة الإدارة المسموح بها في هذه النسخة.</p>
+                            </div>
+
+                            <div class="limit-row">
+                                <label for="usersLimit">عدد المستخدمين المسموح به</label>
+                                <input
+                                    id="usersLimit"
+                                    class="limit-input"
+                                    type="number"
+                                    name="users_limit"
+                                    min="0"
+                                    step="1"
+                                    value="{{ old('users_limit', $userLimit) }}"
+                                    placeholder="غير محدود"
+                                >
+                                <p class="limit-help">اترك الحقل فارغًا للسماح بعدد غير محدود من المستخدمين.</p>
+                            </div>
+                        </article>
+
                         @foreach ($modules as $key => $module)
                             @php
                                 $isEnabled = $enabledMap[$key] ?? true;
@@ -1279,7 +523,12 @@
 
             <div class="panel-body">
                 <div class="employee-tools">
-                    <input class="search-input" type="search" id="employeeSearch" placeholder="بحث عن موظف..." autocomplete="off">
+                    <div class="search-field">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true">
+                            <circle cx="11" cy="11" r="6.5"/><path d="M16 16l4.5 4.5"/>
+                        </svg>
+                        <input class="search-input" type="search" id="employeeSearch" placeholder="بحث بالاسم أو البريد أو رقم الجوال..." autocomplete="off">
+                    </div>
                 </div>
 
                 <div class="employee-list" id="employeeList">
@@ -1333,15 +582,24 @@
                     <h2>قاعدة البيانات المستخدمة حاليًا</h2>
                     <p>البرنامج يعمل مباشرة على قاعدة MySQL الموضحة هنا.</p>
                 </div>
-                <span class="backup-status {{ ($currentDatabaseDetails['connected'] ?? false) ? 'is-ready' : 'is-off' }}">
+                <span class="badge {{ ($currentDatabaseDetails['connected'] ?? false) ? 'ok' : 'bad' }}">
                     {{ ($currentDatabaseDetails['connected'] ?? false) ? 'متصل الآن' : 'غير متصل' }}
                 </span>
             </div>
-            <p class="backup-status {{ ($currentDatabaseDetails['connected'] ?? false) ? 'is-ready' : 'is-off' }}">
-                القاعدة: <strong dir="ltr">{{ $currentDatabaseDetails['connected_database'] ?? ($currentDatabaseDetails['database'] ?? '—') }}</strong>
-                — الخادم: <span dir="ltr">{{ $currentDatabaseDetails['host'] ?? '—' }}:{{ $currentDatabaseDetails['port'] ?? '—' }}</span>
-                — MySQL <span dir="ltr">{{ $currentDatabaseDetails['server_version'] ?? '—' }}</span>
-            </p>
+            <div class="status-grid">
+                <div class="status-card">
+                    <span>اسم القاعدة</span>
+                    <strong dir="ltr">{{ $currentDatabaseDetails['connected_database'] ?? ($currentDatabaseDetails['database'] ?? '—') }}</strong>
+                </div>
+                <div class="status-card">
+                    <span>الخادم</span>
+                    <strong dir="ltr">{{ $currentDatabaseDetails['host'] ?? '—' }}:{{ $currentDatabaseDetails['port'] ?? '—' }}</strong>
+                </div>
+                <div class="status-card">
+                    <span>إصدار MySQL</span>
+                    <strong dir="ltr">{{ $currentDatabaseDetails['server_version'] ?? '—' }}</strong>
+                </div>
+            </div>
             <details class="settings-disclosure">
                 <summary>عرض تفاصيل اتصال .env</summary>
                 <div class="settings-disclosure-content backup-settings database-connection-details" dir="ltr">
@@ -1391,7 +649,6 @@
                 <div class="settings-disclosure-content">
             <div class="section-heading">
                 <div>
-                    <h2>أمان Super Admin</h2>
                     <p>تحكم بجهات استلام رموز العمليات الخطرة وكلمة مرور الدخول. تُحفظ القيم في ملف خاص مشفّر ومستقل عن قاعدة البيانات.</p>
                 </div>
             </div>
@@ -1487,12 +744,15 @@
                 <p>اختر ملف <span dir="ltr">SQL / SQL.GZ</span> ثم انسخ أمر الرفع وأمر الاستيراد. ستُحفظ نسخة أمان تلقائيًا قبل استبدال البيانات.</p>
 
                 <div class="terminal-command-box">
+                    <label for="databaseFileInput">ملف قاعدة البيانات</label>
                     <input id="databaseFileInput" type="file" accept=".sql,.gz,application/sql,application/gzip" aria-label="اختر ملف قاعدة البيانات لإنشاء أمر الاستيراد">
                     <label for="databaseSshConnection">اتصال السيرفر</label>
                     <input id="databaseSshConnection" type="text" dir="ltr" value="ssh {{ config('database.backup_ssh.target') }}" placeholder="ssh clickadmin@130.110.98.217">
                     <p>١. نفّذ أمر الرفع على جهازك:</p>
                     <code id="databaseUploadCommand" class="terminal-command">اختر الملف لإنشاء أمر الرفع.</code>
-                    <button id="copyDatabaseUploadCommand" class="btn btn-small" type="button" disabled>نسخ أمر الرفع</button>
+                    <div class="terminal-command-actions">
+                        <button id="copyDatabaseUploadCommand" class="btn btn-small" type="button" disabled>نسخ أمر الرفع</button>
+                    </div>
                     <p class="verification-note">يبحث أمر الرفع عن الملف المختار في المجلد الحالي وDownloads وDesktop وDocuments. إذا لم يجده يطلب مساره في Terminal. المتصفح يتيح اسم الملف فقط، ولا يتيح مساره الكامل.</p>
                     <p>٢. بعد نجاح الرفع، نفّذ أمر الاستيراد داخل جلسة SSH على السيرفر:</p>
                     <code id="databaseTerminalCommandPrefix" class="terminal-command">اختر الملف لإنشاء أمر الاستيراد بعد الرفع.</code>
@@ -1561,8 +821,8 @@
                                         نسخة محلية
                                     @endif
                                 </td>
-                                <td>{{ \Carbon\Carbon::createFromTimestamp($backup['created_at'])->format('Y-m-d H:i:s') }}</td>
-                                <td>{{ number_format($backup['size'] / 1024 / 1024, 2) }} MB</td>
+                                <td class="cell-ltr">{{ \Carbon\Carbon::createFromTimestamp($backup['created_at'])->format('Y-m-d H:i:s') }}</td>
+                                <td class="cell-ltr">{{ number_format($backup["size"] / 1024 / 1024, 2) }} MB</td>
                                 <td>
                                     @if (str_starts_with($backup['filename'], 'clickerp-uploaded-'))
                                         <button class="btn btn-small copy-terminal-command" type="button" data-command="{{ $backup['terminal_command'] }}">نسخ أمر Terminal</button>
@@ -1594,8 +854,8 @@
                     @forelse ($databaseBackups as $backup)
                         <tr>
                             <td class="backup-file">{{ $backup['filename'] }}</td>
-                            <td>{{ \Carbon\Carbon::createFromTimestamp($backup['created_at'])->format('Y-m-d H:i:s') }}</td>
-                            <td>{{ number_format($backup['size'] / 1024 / 1024, 2) }} MB</td>
+                            <td class="cell-ltr">{{ \Carbon\Carbon::createFromTimestamp($backup['created_at'])->format('Y-m-d H:i:s') }}</td>
+                            <td class="cell-ltr">{{ number_format($backup["size"] / 1024 / 1024, 2) }} MB</td>
                             <td>
                                 <div class="backup-actions">
                                     <a class="btn btn-small" href="{{ route('dev-superadmin.database-backups.download', ['key' => $backup['key']]) }}">تنزيل</a>
@@ -1712,7 +972,7 @@
             @endif
 
             <div class="backup-table-wrap">
-                <table class="backup-table">
+                <table class="backup-table scheduler-table">
                     <thead>
                         <tr>
                             <th>المهمة</th>
@@ -1748,7 +1008,7 @@
                             </td>
                             <td>
                                 <div class="cron-expression">{{ $job['expression'] }}</div>
-                                <div>{{ $job['next_run_at'] ? $job['next_run_at']->format('Y-m-d H:i:s') : '—' }}</div>
+                                <div class="cell-ltr">{{ $job['next_run_at'] ? $job['next_run_at']->format('Y-m-d H:i:s') : '—' }}</div>
                             </td>
                             <td>
                                 <div class="cron-command">{{ $job['command'] }}</div>

@@ -48,7 +48,7 @@ class StoreIngazDelegationRequest extends FormRequest
             'external_office_address' => ['nullable', 'string', 'max:500'],
             'external_office_phone' => ['nullable', 'string', 'max:50'],
 
-            'marketer_id' => ['nullable', 'exists:admins,id'],
+            'marketer_id' => ['required', 'exists:admins,id'],
             'ingaz_number' => ['required', 'string', 'max:100', $activeUnique('ingaz_number')],
             'msaned_contract_number' => ['required', 'string', 'max:100', $activeUnique('msaned_contract_number')],
             'notes' => ['nullable', 'string'],
@@ -75,6 +75,8 @@ class StoreIngazDelegationRequest extends FormRequest
             'client_source_type.required' => 'يرجى اختيار نوع العميل.',
             'existing_user_id.required_if' => 'يرجى اختيار العميل من قائمة العملاء.',
             'separate_client_name.required_if' => 'اسم العميل المنفصل مطلوب.',
+            'marketer_id.required' => 'يرجى اختيار المسوق.',
+            'marketer_id.exists' => 'المسوق المختار غير موجود.',
             'visa_type.required' => 'يرجى اختيار نوع التأشيرة.',
             'visa_number.required' => 'رقم التأشيرة مطلوب.',
             'ingaz_number.required' => 'رقم إنجاز مطلوب.',

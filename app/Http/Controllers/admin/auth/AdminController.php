@@ -427,6 +427,8 @@ class AdminController extends Controller
             ? ObjModel::onlyTrashed()->notExternalOfficeAgents()->count()
             : 0;
         $data["addButtonText"] = __("auth.admin");
+        $data["canCreateUser"] = $this->canCreateUser();
+        $data["userLimit"] = SystemModuleManager::userLimit();
         $data["branchesEnabled"] = SystemModuleManager::isEnabled('branches');
         $data["filters"] = [
             'admin_type' => Constant::globalArray['admin_typeis'],
@@ -497,6 +499,13 @@ class AdminController extends Controller
 
     public function create(Request $request, ObjAction $action)
     {
+        if (! $this->canCreateUser()) {
+            return response()->json([
+                'message' => $this->userLimitMessage(),
+                'errors' => ['users_limit' => [$this->userLimitMessage()]],
+            ], 422);
+        }
+
         if ($request->ajax()) {
             $roles = $this->adminRolesQuery()->pluck('name', 'id')->all();
             $branchesEnabled = SystemModuleManager::isEnabled('branches');
@@ -512,6 +521,13 @@ class AdminController extends Controller
 
     public function store(StoreRequest $request, ObjAction $action)
     {
+        if (! $this->canCreateUser()) {
+            return response()->json([
+                'message' => $this->userLimitMessage(),
+                'errors' => ['users_limit' => [$this->userLimitMessage()]],
+            ], 422);
+        }
+
         $dataInsert = $request->only($this->postData);
         $data = $action->storeAdmin($dataInsert, $request);
         return jsonSuccess($data);
@@ -698,6 +714,13 @@ class AdminController extends Controller
             ], 422);
         }
 
+        if (! $this->canCreateUser()) {
+            return response()->json([
+                'message' => $this->userLimitMessage(),
+                'errors' => ['users_limit' => [$this->userLimitMessage()]],
+            ], 422);
+        }
+
         // لو أُنشئ حساب نشط بنفس البريد/اسم المستخدم بعد الحذف، فالاستعادة ستنتج حسابين متطابقين
         // ويصبح الدخول بالبريد ملتبساً؛ نوقفها برسالة واضحة بدل السماح بالتكرار.
         $conflicts = [];
@@ -729,6 +752,22 @@ class AdminController extends Controller
 
         $admin->restore();
         return jsonSuccess(['id' => $admin->id], __('admin.employee_restored_successfully', ['name' => $admin->name]));
+    }
+
+    private function canCreateUser(): bool
+    {
+        $limit = SystemModuleManager::userLimit();
+
+        return $limit === null || ObjModel::query()->count() < $limit;
+    }
+
+    private function userLimitMessage(): string
+    {
+        $limit = SystemModuleManager::userLimit();
+
+        return $limit === null
+            ? 'لا يمكن إضافة مستخدم جديد حاليًا.'
+            : "تم الوصول إلى الحد الأقصى لعدد المستخدمين في هذه النسخة ({$limit}).";
     }
 
     public function resetPassword($id, Request $request)

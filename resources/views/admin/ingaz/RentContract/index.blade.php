@@ -963,6 +963,43 @@
                                                 <span id="finalDueAmount">0.00 ريال</span>
                                             </div>
                                         </div>
+                                        <div class="col-12">
+                                            <div class="border rounded p-3 bg-light">
+                                                    <div class="form-check mb-2">
+                                                        <input class="form-check-input" type="checkbox"
+                                                            id="useDailyClosureDiscount">
+                                                        <label class="form-check-label fw-bold"
+                                                            for="useDailyClosureDiscount">
+                                                            تطبيق خصم على تكلفة اليوم
+                                                        </label>
+                                                    </div>
+                                                    <div class="row g-3 mb-3 d-none" id="dailyClosureDiscountFields">
+                                                        <div class="col-md-3">
+                                                            <label class="form-label">نوع الخصم</label>
+                                                            <select class="form-select" id="dailyClosureDiscountType">
+                                                                <option value="fixed">قيمة ثابتة من اليوم</option>
+                                                                <option value="percentage">نسبة مئوية من اليوم</option>
+                                                            </select>
+                                                        </div>
+                                                        <div class="col-md-3">
+                                                            <label class="form-label">قيمة الخصم</label>
+                                                            <input type="number" class="form-control"
+                                                                id="dailyClosureDiscountValue" min="0.01" step="0.01">
+                                                        </div>
+                                                        <div class="col-md-3">
+                                                            <label class="form-label">تكلفة اليوم بعد الخصم</label>
+                                                            <input type="text" class="form-control"
+                                                                id="discountedClosureDailyRate" readonly>
+                                                        </div>
+                                                        <div class="col-md-3">
+                                                            <label class="form-label">سبب الخصم</label>
+                                                            <input type="text" class="form-control"
+                                                                id="dailyClosureDiscountReason" maxlength="1000"
+                                                                placeholder="سبب اعتماد الخصم...">
+                                                        </div>
+                                                    </div>
+                                            </div>
+                                        </div>
                                         @if (@AdminGuardHasPerm(\App\PermKeys::RENT_CONTRACT_CLOSURE_ADJUSTMENT_OVERRIDE))
                                             <div class="col-12">
                                                 <div class="border rounded p-3 bg-light">
@@ -2453,6 +2490,7 @@
                     'undefined' ? (contract.overdue_days + ' يوم') : '-');
                 $('#financialDailyRate').text(formatCurrency(contract.daily_rate || 0) + ' ريال');
                 $('#financialUsedCost').text(formatCurrency(contract.used_cost || 0) + ' ريال');
+                $('#discountedClosureDailyRate').val(formatCurrency(contract.adjusted_daily_rate || contract.daily_rate || 0) + ' ريال');
                 $('#financialSuggestedRefund').text(formatCurrency(contract.calculated_credit_note_value || 0) +
                 ' ريال');
                 $('#financialCompanyDue').text(formatCurrency(contract.calculated_debit_note_value || 0) +
@@ -2485,7 +2523,11 @@
                     url: `/admin/RentContract/${selectedContractId}/details`,
                     type: 'GET',
                     data: {
-                        closure_date: $('#closureDate').val()
+                        closure_date: $('#closureDate').val(),
+                        daily_discount_type: $('#useDailyClosureDiscount').is(':checked')
+                            ? $('#dailyClosureDiscountType').val() : null,
+                        daily_discount_value: $('#useDailyClosureDiscount').is(':checked')
+                            ? $('#dailyClosureDiscountValue').val() : null
                     },
                     success: function(response) {
                         if (response.success) {
@@ -2504,6 +2546,12 @@
                 $('#manualClosureAdjustmentAmount').val('0');
                 $('#manualClosureAdjustmentReason').val('');
                 $('#manualClosureAdjustmentAttachment').val('');
+                $('#useDailyClosureDiscount').prop('checked', false);
+                $('#dailyClosureDiscountFields').addClass('d-none');
+                $('#dailyClosureDiscountType').val('fixed');
+                $('#dailyClosureDiscountValue').val('');
+                $('#dailyClosureDiscountReason').val('');
+                $('#discountedClosureDailyRate').val('');
                 $('#closePaymentStatus').val('');
                 $('#closePaymentReceipt').val('');
                 $('#closeClientIban').val('');
@@ -2530,6 +2578,11 @@
             });
 
             $('#useManualClosureAdjustment').on('change', function() {
+                if (this.checked) {
+                    $('#useDailyClosureDiscount').prop('checked', false);
+                    $('#dailyClosureDiscountFields').addClass('d-none');
+                    reloadCloseFinancialSummary();
+                }
                 $('#manualClosureAdjustmentFields').toggleClass('d-none', !this.checked);
                 if (this.checked && !parseFloat($('#manualClosureAdjustmentAmount').val() || 0)) {
                     $('#manualClosureAdjustmentAmount').val($('#closeAdjustmentAmount').val() || '0');
@@ -2540,6 +2593,23 @@
             $('#manualClosureAdjustmentAmount').on('input change', function() {
                 updateCloseFinancialPreview();
             });
+
+            let dailyDiscountReloadTimer = null;
+            function scheduleDailyDiscountPreview() {
+                clearTimeout(dailyDiscountReloadTimer);
+                dailyDiscountReloadTimer = setTimeout(reloadCloseFinancialSummary, 250);
+            }
+
+            $('#useDailyClosureDiscount').on('change', function() {
+                $('#dailyClosureDiscountFields').toggleClass('d-none', !this.checked);
+                if (this.checked) {
+                    $('#useManualClosureAdjustment').prop('checked', false);
+                    $('#manualClosureAdjustmentFields').addClass('d-none');
+                }
+                scheduleDailyDiscountPreview();
+            });
+
+            $('#dailyClosureDiscountType, #dailyClosureDiscountValue').on('input change', scheduleDailyDiscountPreview);
 
             function addTransferAdjustmentRow(item = null) {
                 const template = document.querySelector('#transfer-adjustment-row-template');
@@ -2810,6 +2880,20 @@
             });
 
             function executeCloseAndMakeAvailable() {
+                if ($('#useDailyClosureDiscount').is(':checked')) {
+                    const discountValue = parseFloat($('#dailyClosureDiscountValue').val() || 0);
+                    const discountReason = ($('#dailyClosureDiscountReason').val() || '').trim();
+
+                    if (discountValue <= 0 || !discountReason) {
+                        Swal.fire({
+                            icon: 'warning',
+                            title: 'بيانات الخصم غير مكتملة',
+                            text: 'اختر نوع الخصم وأدخل قيمته وسبب اعتماده.'
+                        });
+                        return;
+                    }
+                }
+
                 if ($('#useManualClosureAdjustment').is(':checked')) {
                     const manualAmount = parseFloat($('#manualClosureAdjustmentAmount').val() || 0);
                     const manualReason = ($('#manualClosureAdjustmentReason').val() || '').trim();
@@ -2849,6 +2933,13 @@
                             if (manualAttachment && manualAttachment.files && manualAttachment.files[0]) {
                                 formData.append('manual_adjustment_attachment', manualAttachment.files[0]);
                             }
+                        }
+                        const useDailyDiscount = $('#useDailyClosureDiscount').is(':checked');
+                        formData.append('use_daily_discount', useDailyDiscount ? 1 : 0);
+                        if (useDailyDiscount) {
+                            formData.append('daily_discount_type', $('#dailyClosureDiscountType').val());
+                            formData.append('daily_discount_value', $('#dailyClosureDiscountValue').val());
+                            formData.append('daily_discount_reason', $('#dailyClosureDiscountReason').val());
                         }
                         formData.append('closure_date', $('#closureDate').val());
                         formData.append('closure_return_reason', $('#closeReturnReason').val());

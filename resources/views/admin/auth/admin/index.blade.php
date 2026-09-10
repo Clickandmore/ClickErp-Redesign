@@ -318,8 +318,10 @@
                 @endif
             </div>
             <div class="admins-add-button">
-                @if(@AdminGuardHasPerm(\App\PermKeys::USERS_CONTROL))
+                @if(@AdminGuardHasPerm(\App\PermKeys::USERS_CONTROL) && ($canCreateUser ?? true))
                     {!! addButton(route("admins.create") , __("auth.admin")) !!}
+                @elseif(@AdminGuardHasPerm(\App\PermKeys::USERS_CONTROL) && isset($userLimit))
+                    <span class="text-danger small">تم الوصول إلى حد المستخدمين ({{ $userLimit }})</span>
                 @endif
             </div>
         </div>

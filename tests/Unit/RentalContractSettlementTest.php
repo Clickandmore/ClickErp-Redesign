@@ -148,4 +148,37 @@ class RentalContractSettlementTest extends TestCase
 
         $this->assertSame(435.00, $settlement['refund_value']);
     }
+
+    public function test_a_fixed_daily_discount_changes_only_the_earned_amount(): void
+    {
+        $settlement = RentalContractSettlement::calculate(
+            contractValue: 2000.00,
+            durationDays: 30,
+            paidAmount: 2000.00,
+            usedDays: 2,
+            dailyDiscountType: 'fixed',
+            dailyDiscountValue: 16.67
+        );
+
+        $this->assertSame(66.67, $settlement['daily_rate']);
+        $this->assertSame(50.00, $settlement['adjusted_daily_rate']);
+        $this->assertSame(100.00, $settlement['used_cost']);
+        $this->assertSame(1900.00, $settlement['refund_value']);
+    }
+
+    public function test_a_percentage_daily_discount_is_capped_at_one_hundred_percent(): void
+    {
+        $settlement = RentalContractSettlement::calculate(
+            contractValue: 2000.00,
+            durationDays: 30,
+            paidAmount: 2000.00,
+            usedDays: 2,
+            dailyDiscountType: 'percentage',
+            dailyDiscountValue: 150
+        );
+
+        $this->assertSame(0.0, $settlement['adjusted_daily_rate']);
+        $this->assertSame(0.0, $settlement['used_cost']);
+        $this->assertSame(2000.00, $settlement['refund_value']);
+    }
 }

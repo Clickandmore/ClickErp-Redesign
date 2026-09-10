@@ -693,6 +693,10 @@
                         <i class="fas fa-clock"></i>معلومات فترة التجربة
                     </div>
                     <div class="info-row">
+                        <span class="info-label">المسوق:</span>
+                        <span class="info-value">{{ $transfer->marketer?->name ?: 'غير محدد' }}</span>
+                    </div>
+                    <div class="info-row">
                         <span class="info-label">مدة التجربة:</span>
                         <span class="info-value">{{ $transfer->trial_days }} يوم</span>
                     </div>

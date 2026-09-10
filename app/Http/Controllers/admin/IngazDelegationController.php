@@ -821,7 +821,7 @@ class IngazDelegationController extends Controller
             'profession_id' => $request->filled('profession_id') ? $request->profession_id : null,
             'user_id' => $client->id,
             'maid_id' => $maid?->id,
-            'marketer_id' => $request->filled('marketer_id') ? $request->marketer_id : null,
+            'marketer_id' => $request->marketer_id,
             'client_source_type' => $request->client_source_type,
             'visa_type' => $request->filled('visa_type') ? $request->visa_type : 'electronic_ingaz_delegation',
             'worker_name' => $request->filled('worker_name') ? $request->worker_name : null,
