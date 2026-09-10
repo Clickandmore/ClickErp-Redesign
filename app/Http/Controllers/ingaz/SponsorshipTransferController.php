@@ -599,11 +599,19 @@ class SponsorshipTransferController extends Controller
         $this->applyRequestBranchFilter($contractsQuery, request(), 'contracts');
         $contracts = $contractsQuery->latest()->get();
 
-        if ($workflowSource === 'rental') {
-            $contracts = $contracts
-                ->filter(fn (Contract $contract) => $this->contractIsRentalWorker($contract))
-                ->values();
+        // مصدر المسار يُشتق من العقد نفسه وليس من رابط الصفحة فقط؛ عدة مداخل في الواجهة
+        // لا تمرّر workflow_source، وكانت عاملة الإيجار تُفتح على المسار المالي فتتكرر قيودها.
+        if ($selectedContractId) {
+            $selectedContract = $contracts->firstWhere('id', (int) $selectedContractId)
+                ?? Contract::with('maid.jobTypes')->find($selectedContractId);
+            if ($selectedContract && $this->contractIsRentalWorker($selectedContract)) {
+                $workflowSource = 'rental';
+            }
         }
+
+        $contracts = $workflowSource === 'rental'
+            ? $contracts->filter(fn (Contract $contract) => $this->contractIsRentalWorker($contract))->values()
+            : $contracts->reject(fn (Contract $contract) => $this->contractIsRentalWorker($contract))->values();
 
         $receiptAccounts = SponsorshipTransferPaymentService::receiptAccounts();
 
@@ -690,6 +698,15 @@ class SponsorshipTransferController extends Controller
             if ($workflowSource === 'rental' && !$this->contractIsRentalWorker($contract)) {
                 throw ValidationException::withMessages([
                     'contract_id' => 'مسار نقل الخدمات غير المالي مخصص لعاملات الإيجار فقط.',
+                ]);
+            }
+
+            // الاتجاه المعاكس: عاملة إيجار أُرسلت على المسار المالي تُنتج قيوداً مكررة
+            // (إيراد مؤجل + إيراد إتمام + فاتورة بإيراد وضريبة) فوق قيود عقد التأجير.
+            if ($workflowSource === 'standard' && $this->contractIsRentalWorker($contract)) {
+                throw ValidationException::withMessages([
+                    'contract_id' => 'هذه العاملة على عقد تأجير، ويجب إنشاء نقل الخدمات لها من مسار الإيجار غير المالي '
+                        . 'حتى لا تتكرر القيود المحاسبية المسجَّلة على عقد التأجير.',
                 ]);
             }
 
@@ -809,7 +826,7 @@ class SponsorshipTransferController extends Controller
                     . (!empty($financeResult['bond']) ? ' وإنشاء سند قبض رقم ' . ($financeResult['bond']->code ?: $financeResult['bond']->id) : ''),
                 'transfer_id' => $transfer->id,
                 'show_url' => route('SponsorshipTransfer.show', $transfer->id),
-                'invoice_create_url' => InvoiceAuthorization::canCreate()
+                'invoice_create_url' => !$transfer->isRentalWorkflow() && InvoiceAuthorization::canCreate()
                     ? route('SponsorshipTransfer.invoice.create', $transfer->id)
                     : null,
             ]);

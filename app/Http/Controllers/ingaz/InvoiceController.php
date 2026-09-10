@@ -1020,6 +1020,13 @@ class InvoiceController extends Controller
             ->findOrFail($id);
         $this->assertCanAccessBranchModel($transfer, 'sponsorship_transfers');
 
+        // مسار الإيجار غير مالي؛ القيود تُنشأ من عقد التأجير وليس من هنا.
+        if ($transfer->isRentalWorkflow()) {
+            return redirect()
+                ->route('SponsorshipTransfer.show', $transfer->id)
+                ->with('warning', 'طلب نقل الخدمات هذا صادر عن عقد تأجير، وتُصدر فاتورته وقيوده من عقد التأجير نفسه.');
+        }
+
         if ($transfer->invoice) {
             if (!InvoiceAuthorization::canView()) {
                 return redirect()->route('invoices.create')
@@ -2765,6 +2772,15 @@ class InvoiceController extends Controller
 
         if ($transfer->invoice()->exists()) {
             throw new \RuntimeException('طلب نقل الخدمات لديه فاتورة سابقة');
+        }
+
+        // مسار الإيجار غير مالي: الإيراد والضريبة والتحصيل تُسجَّل كلها على عقد التأجير.
+        // إصدار فاتورة هنا يعيد ترحيل نفس الإيراد ونفس الضريبة مرة ثانية.
+        if ($transfer->isRentalWorkflow()) {
+            throw new \RuntimeException(
+                'لا يمكن إصدار فاتورة لطلب نقل خدمات صادر عن عقد تأجير؛ '
+                . 'الفاتورة والقيود المحاسبية تُصدر من عقد التأجير نفسه حتى لا تتكرر القيود.'
+            );
         }
 
         if (!$transfer->newSponsor) {

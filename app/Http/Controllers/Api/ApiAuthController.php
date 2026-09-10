@@ -81,6 +81,7 @@ class ApiAuthController extends Controller
             'encrypted_phone' => $encryptedPhone,
             'next_step'       => 'verify_otp',
             'sms_gateway_status' => CommunicationSettings::smsGatewayStatus(),
+            'phone_verification_disabled' => CommunicationSettings::phoneVerificationIsDisabled(),
         ];
         return apiResponse(true,  __('ingaz.register_successfully'), $data, 201);
 
@@ -166,6 +167,7 @@ class ApiAuthController extends Controller
                 'phone_code' => $request->phone_code,
                 'next_step' => 'verify_otp',
                 'sms_gateway_status' => CommunicationSettings::smsGatewayStatus(),
+                'phone_verification_disabled' => CommunicationSettings::phoneVerificationIsDisabled(),
             ], 200);
         }
 
