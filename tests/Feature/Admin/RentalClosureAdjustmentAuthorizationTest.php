@@ -14,6 +14,18 @@ class RentalClosureAdjustmentAuthorizationTest extends TestCase
 {
     use DatabaseTransactions;
 
+    public function test_daily_discount_fields_are_visible_to_a_rental_contract_viewer(): void
+    {
+        $admin = $this->adminWithPermissions([
+            PermKeys::RENT_CONTRACT_VIEW,
+        ]);
+
+        $this->actingAs($admin, 'admin')
+            ->get(route('RentContract.index'))
+            ->assertOk()
+            ->assertSee('تطبيق خصم على تكلفة اليوم');
+    }
+
     public function test_manual_adjustment_fields_are_rendered_for_an_authorized_admin(): void
     {
         $admin = $this->adminWithPermissions([
@@ -25,6 +37,7 @@ class RentalClosureAdjustmentAuthorizationTest extends TestCase
         $this->actingAs($admin, 'admin')
             ->get(route('RentContract.index'))
             ->assertOk()
+            ->assertSee('تطبيق خصم على تكلفة اليوم')
             ->assertSee('استخدام قيمة تسوية يدوية معتمدة');
     }
 

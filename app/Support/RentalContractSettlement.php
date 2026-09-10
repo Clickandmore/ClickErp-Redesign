@@ -23,7 +23,9 @@ final class RentalContractSettlement
         int $durationDays,
         float $paidAmount,
         int $usedDays,
-        int $overdueDays = 0
+        int $overdueDays = 0,
+        ?string $dailyDiscountType = null,
+        float $dailyDiscountValue = 0
     ): array {
         $contractValue = self::money(max(0, $contractValue));
         $paidAmount = self::money(max(0, $paidAmount));
@@ -33,15 +35,34 @@ final class RentalContractSettlement
 
         $rawDailyRate = $durationDays > 0 ? ($contractValue / $durationDays) : 0.0;
 
-        $usedCost = self::money(min($contractValue, $rawDailyRate * $usedDays));
-        $overdueCost = self::money($rawDailyRate * $overdueDays);
+        $dailyDiscountValue = max(0, $dailyDiscountValue);
+        $discountBaseDailyRate = self::money($rawDailyRate);
+        $discountPerDay = match ($dailyDiscountType) {
+            'percentage' => $discountBaseDailyRate * min(100, $dailyDiscountValue) / 100,
+            'fixed' => min($discountBaseDailyRate, $dailyDiscountValue),
+            default => 0.0,
+        };
+        $adjustedDailyRate = $dailyDiscountType
+            ? max(0, $discountBaseDailyRate - $discountPerDay)
+            : $rawDailyRate;
+
+        $usedCost = self::money(min($contractValue, $adjustedDailyRate * $usedDays));
+        $overdueCost = self::money($adjustedDailyRate * $overdueDays);
         $earnedAmount = self::money($usedCost + $overdueCost);
+        $undiscountedEarnedAmount = self::money(
+            min($contractValue, $rawDailyRate * $usedDays) + ($rawDailyRate * $overdueDays)
+        );
 
         $balance = self::money($paidAmount - $earnedAmount);
 
         return [
             'daily_rate' => self::money($rawDailyRate),
             'raw_daily_rate' => $rawDailyRate,
+            'adjusted_daily_rate' => self::money($adjustedDailyRate),
+            'daily_discount_type' => $dailyDiscountType,
+            'daily_discount_value' => self::money($dailyDiscountValue),
+            'discount_per_day' => self::money($discountPerDay),
+            'total_discount' => self::money(max(0, $undiscountedEarnedAmount - $earnedAmount)),
             'used_days' => $usedDays,
             'used_cost' => $usedCost,
             'overdue_days' => $overdueDays,

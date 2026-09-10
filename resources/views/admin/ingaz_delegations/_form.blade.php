@@ -364,8 +364,8 @@
             <div class="card-body">
                 <div class="row g-3">
                     <div class="col-md-4">
-                        <label class="form-label">المسوق</label>
-                        <select name="marketer_id" class="form-select @error('marketer_id') is-invalid @enderror">
+                        <label class="form-label">المسوق <span class="text-danger">*</span></label>
+                        <select name="marketer_id" class="form-select @error('marketer_id') is-invalid @enderror" required>
                             <option value="">اختر المسوق</option>
                             @foreach ($marketers as $marketer)
                                 <option value="{{ $marketer->id }}" {{ $selectedMarketerId == $marketer->id ? 'selected' : '' }}>
