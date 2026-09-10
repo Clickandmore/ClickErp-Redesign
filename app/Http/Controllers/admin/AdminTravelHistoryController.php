@@ -123,6 +123,7 @@ class AdminTravelHistoryController extends Controller
                                 }
                                 $html .= '<br><small class="text-muted">الجنسية: ' . e($nationality) . '</small>';
                             }
+                            $html .= '<br><small class="text-muted">' . e(helperTrans('ingaz.outside_agent')) . ': ' . e($maid->recruitmentOffice?->title ?: 'غير محدد') . '</small>';
                             $html .= '</div>';
                         });
 
@@ -1497,7 +1498,8 @@ class AdminTravelHistoryController extends Controller
 
     private function travelIndexQuery(Request $request)
     {
-        $query = TravelHistory::with(['user', 'maid', 'maid.nationality', 'maid.nationality.translations'])
+        // The legacy maids.office attribute shadows the office relationship on full models.
+        $query = TravelHistory::with(['user', 'maid', 'maid.nationality', 'maid.nationality.translations', 'maid.recruitmentOffice.translations'])
             ->where('travel_type', '!=', 'deportation')
             ->orderBy('id', 'desc');
 

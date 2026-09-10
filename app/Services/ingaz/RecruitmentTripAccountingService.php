@@ -1019,7 +1019,7 @@ class RecruitmentTripAccountingService
 
     private function buildExternalOfficeCostStatement(Contract $contract, Invoice $invoice): string
     {
-        return 'فاتورة مورد: إغلاق طلب: ' . $contract->id
+        return 'فاتورة مورد: إثبات تكلفة إرسالية المكتب الخارجي لعقد استقدام: ' . $contract->id
             . ', فاتورة رقم: ' . $invoice->id
             . ' العميل: ' . $this->resolveClientReference($contract);
     }
@@ -1038,8 +1038,15 @@ class RecruitmentTripAccountingService
             return null;
         }
 
+        // Retain matching for supplier entries created before the description changed.
+        $statements = [$statement];
+        $supplierPrefix = 'فاتورة مورد: إثبات تكلفة إرسالية المكتب الخارجي لعقد استقدام: ';
+        if (str_starts_with($statement, $supplierPrefix)) {
+            $statements[] = 'فاتورة مورد: إغلاق طلب: ' . substr($statement, strlen($supplierPrefix));
+        }
+
         return Constraint::query()
-            ->where('statement', $statement)
+            ->whereIn('statement', $statements)
             ->whereDate('date', $date)
             ->where('value', $this->roundMoney($value))
             ->latest('id')
