@@ -328,9 +328,11 @@
                 const action = $(this).data('action');
                 const id = $(this).data('id');
                 const text = $(this).data('text') || 'هل أنت متأكد من هذا الإجراء؟';
+                const workflow = $(this).data('workflow') || 'standard';
 
                 if (action === 'transfer') {
-                    window.location.href = '{{ route('SponsorshipTransfer.create') }}?contract_id=' + id;
+                    window.location.href = '{{ route('SponsorshipTransfer.create') }}?contract_id=' + id +
+                        '&workflow_source=' + encodeURIComponent(workflow);
                 } else if (action === 'back') {
                     Swal.fire({
                         title: 'تأكيد',
