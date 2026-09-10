@@ -8,6 +8,49 @@ use Illuminate\Support\Facades\Schema;
 
 class BranchScopedPermissions
 {
+    private static ?array $renderPermissions = null;
+
+    /** Reuse permission reads only while rendering navigation, never across requests or writes. */
+    public static function withCachedPermissions(\Closure $render): mixed
+    {
+        $previous = self::$renderPermissions;
+        self::$renderPermissions = [];
+
+        try {
+            return $render();
+        } finally {
+            self::$renderPermissions = $previous;
+        }
+    }
+
+    private static function cachedPermissionNames($admin): ?Collection
+    {
+        if (!$admin) {
+            return null;
+        }
+
+        $key = implode(':', [spl_object_id($admin), $admin->role_id, $admin->branch_id]);
+        if (array_key_exists($key, self::$renderPermissions)) {
+            return self::$renderPermissions[$key];
+        }
+
+        $names = null;
+        if (self::appliesToAdmin($admin)) {
+            $roleIds = self::roleIdsForAdmin($admin);
+            $branchId = (int) $admin->branch_id;
+            if (self::hasConfiguredBranchPermissions($roleIds, $branchId)) {
+                $names = DB::table('role_branch_permissions')
+                    ->join('permissions', 'permissions.id', '=', 'role_branch_permissions.permission_id')
+                    ->whereIn('role_branch_permissions.role_id', $roleIds)
+                    ->where('role_branch_permissions.branch_id', $branchId)
+                    ->where('permissions.guard_name', 'admin')
+                    ->pluck('permissions.name');
+            }
+        }
+
+        return self::$renderPermissions[$key] = $names;
+    }
+
     public static function appliesToAdmin($admin): bool
     {
         return $admin
@@ -22,6 +65,10 @@ class BranchScopedPermissions
 
     public static function adminHasPermission($admin, string $permission): ?bool
     {
+        if (self::$renderPermissions !== null) {
+            return self::cachedPermissionNames($admin)?->contains($permission);
+        }
+
         if (!self::appliesToAdmin($admin)) {
             return null;
         }
@@ -44,6 +91,12 @@ class BranchScopedPermissions
 
     public static function adminHasAnyPermission($admin, array $permissions): ?bool
     {
+        if (self::$renderPermissions !== null) {
+            $names = self::cachedPermissionNames($admin);
+
+            return $names === null ? null : $names->intersect($permissions)->isNotEmpty();
+        }
+
         if (!self::appliesToAdmin($admin)) {
             return null;
         }

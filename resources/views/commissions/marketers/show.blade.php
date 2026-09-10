@@ -3,7 +3,6 @@
 @section('page-title', 'مراجعة عمولات ' . $admin->name)
 
 @section('css')
-    <link rel="stylesheet" href="{{ asset('admin') }}/assets/cssbundle/dataTables.min.css">
     <style>
         .employee-head { background: linear-gradient(135deg, #075985, #0f766e); color: #fff; border-radius: 16px; }
         .summary-tile { border: 0; border-radius: 13px; box-shadow: 0 3px 14px rgba(15, 23, 42, .07); }
@@ -266,7 +265,6 @@
 @endsection
 
 @section('js')
-<script src="{{ asset('admin') }}/assets/js/bundle/dataTables.bundle.js"></script>
 <script>
 $(function () {
     function toggleDateFilters() {

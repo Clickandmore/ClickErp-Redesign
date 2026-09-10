@@ -295,3 +295,16 @@ https://www.platinumeastern.com/finance/accounts
 - الترقية: `php artisan migrate --force` ثم `php artisan optimize:clear`، وبعد ذلك
   `php artisan test:db-provision` لبيئة الاختبار.
 - الاختبارات: `vendor/bin/phpunit tests/Feature/RecruitmentRevenueRecognitionTest.php`.
+
+## 10. دليل ترتيب الشجرة الحالية على شجرة البرنامج (قراءة فقط)
+
+يولّد ملف إكسل توجيهياً للمحاسب يقارن `fn_accounts` ببذرتي `AccountSeeder` و`RecruitmentRentalAccountsSeeder`:
+ورقة لكل إجراء (إعادة تسمية، إنشاء، نقل، دمج، حذف، قرار المحاسب، بلا تغيير). الأمر لا يعدّل أي بيانات.
+
+```bash
+php artisan finance:chart-merge-guide                       # finance_tree/chart-merge-guide-<تاريخ>.xlsx
+php artisan finance:chart-merge-guide --output=/tmp/guide.xlsx
+```
+
+القرارات الخاصة بالحسابات التي لا يكفي اسمها للمطابقة مكتوبة في ثابت `OVERRIDES` داخل
+`app/Console/Commands/ChartMergeGuideCommand.php`؛ عدّلها هناك ثم أعد التوليد.

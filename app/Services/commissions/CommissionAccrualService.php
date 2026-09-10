@@ -2,10 +2,8 @@
 
 namespace App\Services\commissions;
 
-use App\Models\auth\Admin;
 use App\Models\commissions\CommissionBatch;
 use Illuminate\Validation\ValidationException;
-use Nami\Finance\Enums\AccountTypesEnum;
 use Nami\Finance\Enums\ConstraintTypiesEnum;
 use Nami\Finance\Models\Account;
 use Nami\Finance\Models\Constraint;
@@ -15,13 +13,12 @@ use Nami\Finance\Services\YearService;
 class CommissionAccrualService
 {
     private const EXPENSE_ACCOUNT_CODE = 5417;
-    private const PAYABLE_ACCOUNT_CODE = 223;
     private const ALRAFEDAIN_EXPENSE_ACCOUNT_CODE = 52149;
-    private const MARKETERS_PARENT_ACCOUNT_CODE = 144;
 
     public function __construct(
         private readonly ConstraintService $constraintService,
-        private readonly YearService $yearService
+        private readonly YearService $yearService,
+        private readonly CommissionMarketerAccountService $marketerAccountService
     ) {}
 
     public function createForBatch(CommissionBatch $batch, int $adminId): Constraint
@@ -128,66 +125,6 @@ class CommissionAccrualService
 
     public function payableAccountForMarketer(int $marketerId): Account
     {
-        $marketer = Admin::withTrashed()->find($marketerId, ['id', 'name', 'commission_payable_account_id']);
-        $marketerName = trim((string) $marketer?->name);
-        $parent = Account::query()
-            ->where(function ($query) {
-                $query->where('code', self::MARKETERS_PARENT_ACCOUNT_CODE)
-                    ->orWhere('name', 'المسوقين');
-            })
-            ->first();
-
-        if ($marketer?->commission_payable_account_id) {
-            $linkedAccount = Account::query()
-                ->whereKey($marketer->commission_payable_account_id)
-                ->where('parent_id', $parent?->id)
-                ->where('status', 'creditor')
-                ->whereDoesntHave('children')
-                ->first();
-
-            if (! $linkedAccount) {
-                throw ValidationException::withMessages([
-                    'accrual' => "تعذر اعتماد العمولة: الحساب المالي المرتبط بالمسوق «{$marketerName}» غير صالح أو ليس حسابًا نهائيًا تحت حساب المسوقين رقم "
-                        . self::MARKETERS_PARENT_ACCOUNT_CODE . '.',
-                ]);
-            }
-
-            return $linkedAccount;
-        }
-
-        $candidates = $parent && $marketerName !== ''
-            ? Account::query()
-                ->where('parent_id', $parent->id)
-                ->where('status', 'creditor')
-                ->whereDoesntHave('children')
-                ->get()
-            : collect();
-
-        $account = $candidates
-            ->first(fn (Account $candidate) => $this->normalizeName($candidate->name) === $this->normalizeName($marketerName));
-
-        $account ??= Account::query()
-            ->where('code', self::PAYABLE_ACCOUNT_CODE)
-            ->where('type', AccountTypesEnum::Marketer->value)
-            ->where('status', 'creditor')
-            ->whereDoesntHave('children')
-            ->first();
-
-        if (! $account) {
-            throw ValidationException::withMessages([
-                'accrual' => "تعذر اعتماد العمولة: لا يوجد حساب مالي نهائي للمسوق «{$marketerName}» تحت حساب المسوقين رقم "
-                    . self::MARKETERS_PARENT_ACCOUNT_CODE . '.',
-            ]);
-        }
-
-        return $account;
-    }
-
-    private function normalizeName(?string $name): string
-    {
-        $name = preg_replace('/[\x{064B}-\x{065F}\x{0670}]/u', '', trim((string) $name));
-        $name = str_replace(['أ', 'إ', 'آ', 'ى', 'ة'], ['ا', 'ا', 'ا', 'ي', 'ه'], $name);
-
-        return preg_replace('/[^\p{Arabic}\p{L}\p{N}]+/u', '', mb_strtolower($name));
+        return $this->marketerAccountService->resolve($marketerId);
     }
 }

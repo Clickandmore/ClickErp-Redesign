@@ -72,6 +72,8 @@
         </div>
     </section>
 
+    @include('admin.ingaz.complaints.partials.management')
+
     <div class="row g-4 align-items-start">
         <main class="col-xl-8">
             <section class="detail-section">
@@ -102,14 +104,6 @@
                                 @endif
                             </strong>
                         </div>
-                        <div class="detail-data-item">
-                            <span>جواز العاملة</span>
-                            <strong>{{ $complaint->maid_passport ?: __('ingaz.not_specified') }}</strong>
-                        </div>
-                        <div class="detail-data-item">
-                            <span>الجنسية</span>
-                            <strong>{{ $complaint->maidNationality?->title ?: __('ingaz.not_specified') }}</strong>
-                        </div>
                     </div>
 
                     @if ($complaint->last_response)
@@ -120,6 +114,18 @@
                     @endif
                 </div>
             </section>
+
+            @if ($maidParty)
+                <section class="detail-section">
+                    <div class="detail-section__header"><span class="section-icon"><i class="fas fa-user"></i></span><h5>بيانات العاملة</h5></div>
+                    <div class="detail-section__body detail-data-grid">
+                        <div class="detail-data-item"><span>العاملة</span><strong>{{ $maidParty['name'] }}</strong></div>
+                        <div class="detail-data-item"><span>الوكيل الخارجي</span><strong>{{ $maidParty['office'] ?: 'غير محدد' }}</strong></div>
+                        <div class="detail-data-item"><span>جواز العاملة</span><strong>{{ $maidParty['passport'] ?: 'غير محدد' }}</strong></div>
+                        <div class="detail-data-item"><span>الجنسية</span><strong>{{ $maidParty['nationality'] ?: 'غير محدد' }}</strong></div>
+                    </div>
+                </section>
+            @endif
 
             <div class="party-cards-grid">
                 <section class="party-card party-card--complainant">
@@ -249,8 +255,8 @@
                                 <strong>{{ $contract->requiredMaidJobTitle?->title ?: $notSet }}</strong>
                             </div>
                             <div class="detail-data-item">
-                                <span>المكتب الخارجي</span>
-                                <strong>{{ $contract->maid?->office?->title ?: $notSet }}</strong>
+                                <span>الوكيل الخارجي</span>
+                                <strong>{{ $complaint->external_office?->title ?: $notSet }}</strong>
                             </div>
                             <div class="detail-data-item">
                                 <span>رقم التأشيرة</span>
@@ -347,6 +353,7 @@
                 </div>
             </section>
 
+            @include('admin.ingaz.complaints.partials.history')
             <section class="detail-section conversation-section">
                 <div class="detail-section__header">
                     <span class="section-icon section-icon--success"><i class="fas fa-comments"></i></span>
@@ -399,6 +406,7 @@
                                     </select>
                                 </div>
                             </div>
+                            @include('admin.ingaz.complaints.partials.notification-channels')
                             <button type="submit" class="btn btn-primary mt-3"><i class="fas fa-paper-plane me-1"></i>{{ __('ingaz.send_update') }}</button>
                         </form>
                     @endif
@@ -413,6 +421,7 @@
                     <div class="sidebar-list">
                         <div><span>الحالة</span><strong class="detail-pill status-{{ $statusKey }}">{{ $statusLabels[$statusKey] ?? $statusKey }}</strong></div>
                         <div><span>الأولوية</span><strong class="detail-pill priority-{{ $priorityKey }}">{{ $priorityLabels[$priorityKey] ?? $priorityKey }}</strong></div>
+                        <div><span>الموعد المستهدف</span><strong class="{{ $complaint->due_at?->isPast() && !in_array($complaint->status, ['resolved', 'closed', 'rejected']) ? 'text-danger' : '' }}">{{ $complaint->due_at?->format('Y-m-d H:i') ?: 'غير محدد' }}</strong></div>
                         <div><span>الموظف المختص</span><strong>{{ $complaint->assignedTo?->name ?: __('ingaz.not_specified') }}</strong></div>
                         <div><span>تاريخ الإنشاء</span><strong>{{ $complaint->created_at->format('Y-m-d H:i') }}</strong></div>
                         <div><span>آخر تحديث</span><strong>{{ $complaint->updated_at->format('Y-m-d H:i') }}</strong></div>
@@ -429,7 +438,7 @@
                             @if ($complaint->status !== 'closed')
                                 <button class="sidebar-action" id="closeTicket"><i class="fas fa-lock"></i><span>{{ __('ingaz.close_ticket') }}</span></button>
                             @endif
-                            <button class="sidebar-action" id="assignTicket"><i class="fas fa-user-tag"></i><span>{{ __('ingaz.assign_to_another_employee') }}</span></button>
+                            <button class="sidebar-action assign-ticket" id="assignTicket"><i class="fas fa-user-tag"></i><span>{{ __('ingaz.assign_to_another_employee') }}</span></button>
                             <button class="sidebar-action sidebar-action--warning" id="changePriority"><i class="fas fa-flag"></i><span>{{ __('ingaz.change_priority') }}</span></button>
                         </div>
                     </section>

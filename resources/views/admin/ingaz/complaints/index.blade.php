@@ -853,7 +853,7 @@
                 expandFilters: @json(__('ingaz.expand_filters')),
                 collapseFilters: @json(__('ingaz.collapse_filters')),
                 activeFilters: @json(__('ingaz.active_filters_count', ['count' => '__COUNT__'])),
-                office: @json('المكتب'),
+                office: @json('الوكيل الخارجي'),
                 nationality: @json('الجنسية'),
                 daysSinceArrival: @json('منذ الوصول'),
                 day: @json('يوم'),
@@ -1369,6 +1369,7 @@
                         ${priorityBadge}
                         ${ticket.complaintType ? '<span class="complaint-type-badge"><i class="fas fa-tag"></i><span>' + escapeHtml(ticket.complaintType.name) + '</span></span>' : ''}
                         ${renderRelatedRecordBadge(ticket.related_record)}
+                        <span>الوكيل الخارجي: ${escapeHtml(ticket.external_office || complaintsTranslations.notSpecified)}</span>
                     </div>
 
                     <div class="mt-3 d-flex flex-wrap gap-2">

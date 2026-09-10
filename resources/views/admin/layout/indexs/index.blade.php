@@ -23,12 +23,17 @@
 
     {{-- Table some styles --}}
     <link rel="stylesheet" type="text/css" href="{{ asset('admin/assets/css/tables.css') }}">
-    <link rel="stylesheet" href="{{ asset('admin/assets/css/theme-clickmore.css') }}?v=16">
+    <link rel="stylesheet" href="{{ asset('admin/assets/css/theme-clickmore.css') }}?v=17">
 
 </head>
 <body class="layout-1  @if (app()->getLocale() == 'ar') rtl_mode @endif " data-luno="theme-blue"> <!-- h-menu  -->
 
-@include("admin.layout.inc.sidebar")
+@php
+    $sidebarViewData = get_defined_vars();
+    echo \App\Support\BranchScopedPermissions::withCachedPermissions(
+        fn () => view('admin.layout.inc.sidebar', $sidebarViewData)->render()
+    );
+@endphp
 
 
 <div class="wrapper">
@@ -54,7 +59,7 @@
 <script src="{{ asset('admin/assets/js/notifications.js') }}?v=2"></script>
 <script src="{{ asset('admin/custom/list-state.js') }}?v=1"></script>
 
-<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script src="{{ asset('admin/assets/vendor/sweetalert2/sweetalert2.all.min.js') }}"></script>
 
 @yield("js")
 @stack("js")

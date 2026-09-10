@@ -381,6 +381,8 @@ Route::group(
             Route::resource('packages', PackageController::class);
             Route::get('complaints/search-contracts', [ComplaintController::class, 'searchContracts'])->name('complaints.search-contracts');
             Route::get('complaints/search-orders', [ComplaintController::class, 'searchOrders'])->name('complaints.search-orders');
+            Route::post('complaints/{complaint}/link', [ComplaintController::class, 'linkRecord'])->name('complaints.link');
+            Route::post('complaints/{complaint}/schedule', [ComplaintController::class, 'schedule'])->name('complaints.schedule');
             Route::resource('complaints', ComplaintController::class);
             Route::get('complaints/cards/view', [ComplaintController::class, 'cards'])->name('complaints.cards');
             Route::post('complaints/quick-response', [ComplaintController::class, 'quickResponse'])->name('complaints.quick-response');

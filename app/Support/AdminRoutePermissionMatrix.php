@@ -684,6 +684,8 @@ class AdminRoutePermissionMatrix
                 'complaints.quick-response' => [PermKeys::COMPLAINT_RESPONSE, PermKeys::COMPLAINT_EDIT],
                 'complaints.add-comment' => [PermKeys::COMPLAINT_RESPONSE, PermKeys::COMPLAINT_EDIT],
                 'complaints.update-status' => [PermKeys::COMPLAINT_EDIT],
+                'complaints.link' => [PermKeys::COMPLAINT_EDIT, PermKeys::COMPLAINT_CONTROL],
+                'complaints.schedule' => [PermKeys::COMPLAINT_EDIT, PermKeys::COMPLAINT_CONTROL],
                 'complaints.assign' => [PermKeys::COMPLAINT_EDIT],
                 'complaints.change-priority' => [PermKeys::COMPLAINT_EDIT],
                 'complaints.attachments.store' => [PermKeys::COMPLAINT_EDIT],

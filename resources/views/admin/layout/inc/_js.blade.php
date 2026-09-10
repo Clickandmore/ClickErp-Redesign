@@ -1,4 +1,4 @@
-<script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+<script src="{{ asset('admin/assets/vendor/jquery/jquery-3.7.1.min.js') }}"></script>
 
 
 <!------------------------ main -------------------------------------------------->
@@ -26,10 +26,6 @@
 <script src="{{ asset('admin') }}/assets/js/popper.min.js"
     integrity="sha384-ApNbgh9B+Y1QKtv3Rn7W3mgPxhU9K/ScQsAP7hUibX39j7fakFPskvXusvfa0b4Q" crossorigin="anonymous">
 </script>
-
-
-<script type="text/javascript"
-    src="https://www.codehim.com/demo/jquery-image-uploader-preview-and-delete/dist/image-uploader.min.js"></script>
 
 <script src="{{ asset('admin') }}/assets/js/tinymce.min.js"></script>
 <script>
@@ -122,10 +118,10 @@
 
 
 <!-- DataTables -->
-  <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
-  <script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
-  <script src="https://cdn.datatables.net/responsive/2.5.0/js/dataTables.responsive.min.js"></script>
-  <script src="https://cdn.datatables.net/responsive/2.5.0/js/responsive.bootstrap5.min.js"></script>
+  <script src="{{ asset('admin/assets/vendor/datatables/jquery.dataTables.min.js') }}"></script>
+  <script src="{{ asset('admin/assets/vendor/datatables/dataTables.bootstrap5.min.js') }}"></script>
+  <script src="{{ asset('admin/assets/vendor/datatables/dataTables.responsive.min.js') }}"></script>
+  <script src="{{ asset('admin/assets/vendor/datatables/responsive.bootstrap5.min.js') }}"></script>
 
 <script>
     $(document).ready(function() {
@@ -133,7 +129,7 @@
             responsive: true,
             @if (app()->getLocale() === 'ar')
                 language: {
-                    url: '//cdn.datatables.net/plug-ins/1.13.6/i18n/ar.json'
+                    url: '{{ asset('admin/assets/js/bundle/ar.json') }}'
                 }
             @endif
         });

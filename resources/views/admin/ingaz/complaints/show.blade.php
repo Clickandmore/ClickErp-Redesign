@@ -5,6 +5,7 @@
 @endsection
 
 @section('style')
+    <link rel="stylesheet" href="{{ asset('admin/assets/plugins/select2/dist/css/select2.min.css') }}">
     @include('admin.ingaz.complaints.partials.related-record-styles')
     <style>
         /* Organized complaint details */
@@ -265,6 +266,7 @@
                             </select>
                         </div>
 
+                        @include('admin.ingaz.complaints.partials.notification-channels')
                         <div class="mb-3">
                             <label class="form-label">{{ __('ingaz.notes_optional') }}</label>
                             <textarea name="notes" class="form-control" rows="3"></textarea>
@@ -323,6 +325,7 @@
 @endsection
 
 @section('js')
+    <script src="{{ asset('admin/assets/plugins/select2/dist/js/select2.min.js') }}"></script>
     <script>
         $(document).ready(function() {
             const complaintShowTranslations = {
@@ -383,6 +386,7 @@
                     data: $(this).serialize(),
                     success: function(response) {
                         if (response.success) {
+                            if (response.notification_results && Object.keys(response.notification_results).length) alert(Object.values(response.notification_results).join('\n'));
                             if (typeof successToster !== 'undefined') {
                                 successToster(complaintShowTranslations.successTitle, complaintShowTranslations.successUpdateAdded);
                             } else if (typeof toastr !== 'undefined') {
@@ -446,7 +450,7 @@
             });
 
             // تحويل التذكرة
-            $('#assignTicket').click(function() {
+            $('.assign-ticket').click(function() {
                 $('#assignModal').modal('show');
             });
 
@@ -458,6 +462,9 @@
                     success: function(response) {
                         if (response.success) {
                             $('#assignModal').modal('hide');
+                            if (response.notification_results && Object.keys(response.notification_results).length) {
+                                alert(Object.values(response.notification_results).join('\n'));
+                            }
                             if (typeof successToster !== 'undefined') {
                                 successToster(complaintShowTranslations.successTitle, complaintShowTranslations.ticketAssignedSuccessfully);
                             } else if (typeof toastr !== 'undefined') {

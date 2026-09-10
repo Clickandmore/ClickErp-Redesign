@@ -1,14 +1,14 @@
 <!-- DataTables + Bootstrap + Responsive -->
-<link href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css" rel="stylesheet">
-<link href="https://cdn.datatables.net/responsive/2.5.0/css/responsive.bootstrap5.min.css" rel="stylesheet">
+<link href="{{ asset('admin/assets/vendor/datatables/dataTables.bootstrap5.min.css') }}" rel="stylesheet">
+<link href="{{ asset('admin/assets/vendor/datatables/responsive.bootstrap5.min.css') }}" rel="stylesheet">
 <!------------------------ bundle -------------------------------------------------->
 <link rel="stylesheet" href="{{ asset('admin') }}/assets/cssbundle/select2.min.css">
 <!------------------------ vendor -------------------------------------------------->
 <link rel="stylesheet" href="{{ asset('admin') }}/assets/vendor/toster/css/jquery.toast.css">
 <!------------------------ Font Awesome -------------------------------------------------->
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+<link rel="stylesheet" href="{{ asset('admin/assets/vendor/fontawesome/css/all.min.css') }}">
 <!------------------------ main -------------------------------------------------->
-<link rel="stylesheet" href="{{ asset('admin') }}/assets/css/luno-style.css">
+<link rel="stylesheet" href="{{ asset('admin') }}/assets/css/luno-style.css?v=2">
 <!------------------------ dropify -------------------------------------------------->
 <link rel="stylesheet" href="{{ url('/') }}/admin/assets/cssbundle/dropify.min.css">
 <!------------------------ loader -------------------------------------------------->

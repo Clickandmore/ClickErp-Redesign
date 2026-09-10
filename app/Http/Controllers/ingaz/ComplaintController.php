@@ -36,6 +36,7 @@ class ComplaintController extends Controller
 
     function __construct()
     {
+        $this->middleware('permission:' . PermKeys::COMPLAINT_EDIT . '|' . PermKeys::COMPLAINT_CONTROL . ',admin')->only(['linkRecord', 'schedule']);
         $this->middleware('permission:' . PermKeys::COMPLAINT_CREATE . '|' . PermKeys::COMPLAINT_EDIT . '|' . PermKeys::COMPLAINT_CONTROL . ',admin')->only(['searchContracts', 'searchOrders']);
         $this->middleware('permission:' . PermKeys::COMPLAINT_VIEW . '|' . PermKeys::COMPLAINT_CONTROL . ',admin', ['only' => ['cards']]);
         // $this->middleware('permission:الشكاوى-قراءة,admin', ['only' => ['index']]);
@@ -53,13 +54,14 @@ class ComplaintController extends Controller
         if ($request->ajax()) {
             $query = objModel::query()->with([
                 'user', 'complaintType', 'assignedTo', 'maidNationality',
-                'contract', 'order', 'relatedUser', 'recruitmentOffice',
+                'contract.maid.recruitmentOffice', 'order.contracts.maid.recruitmentOffice',
+                'relatedUser', 'recruitmentOffice',
                 // مطلوبة لاستخراج اسم العاملة في عمود الجدول دون استعلام لكل صف
-                'contract.maid.nationality', 'contract.maid.office', 'contract.info',
+                'contract.maid.nationality', 'contract.maid.office', 'contract.info.manualMaidOffice',
                 'contract.requiredMaidNationality', 'contract.travelHistory',
                 'order.maid.nationality', 'order.maid.office',
                 'order.contracts.maid.nationality', 'order.contracts.maid.office',
-                'order.contracts.info', 'order.contracts.requiredMaidNationality',
+                'order.contracts.info.manualMaidOffice', 'order.contracts.requiredMaidNationality',
                 'order.contracts.travelHistory',
             ]);
             $this->applyRequestBranchFilter($query, $request, 'complaints');
@@ -125,6 +127,7 @@ class ComplaintController extends Controller
                         'name' => $row->complaintType->name
                     ] : null;
                 })
+                ->addColumn('external_office', fn ($row) => $row->external_office?->title)
                 ->addColumn('related_record', function ($row) {
                     return $this->resolveComplaintRelatedRecord($row);
                 })
@@ -183,12 +186,12 @@ class ComplaintController extends Controller
     private function exportComplaints(Request $request)
     {
         $query = objModel::query()->with([
-            'complaintType', 'assignedTo', 'maidNationality',
-            'contract.maid.nationality', 'contract.maid.office', 'contract.info',
+            'complaintType', 'assignedTo', 'maidNationality', 'recruitmentOffice',
+            'contract.maid.nationality', 'contract.maid.office', 'contract.info.manualMaidOffice',
             'contract.requiredMaidNationality', 'contract.travelHistory',
             'order.maid.nationality', 'order.maid.office',
             'order.contracts.maid.nationality', 'order.contracts.maid.office',
-            'order.contracts.info', 'order.contracts.requiredMaidNationality',
+            'order.contracts.info.manualMaidOffice', 'order.contracts.requiredMaidNationality',
             'order.contracts.travelHistory',
         ]);
         $this->applyRequestBranchFilter($query, $request, 'complaints');
@@ -207,7 +210,7 @@ class ComplaintController extends Controller
         return response()->streamDownload(function () use ($complaints, $statuses, $priorities) {
             $output = fopen('php://output', 'w');
             fwrite($output, "\xEF\xBB\xBF");
-            fputcsv($output, ['رقم الشكوى', 'مقدم الشكوى', 'المشتكى عليه', 'اسم العاملة', 'الموضوع', 'النوع', 'الأولوية', 'الحالة', 'الموظف المختص', 'التاريخ']);
+            fputcsv($output, ['رقم الشكوى', 'مقدم الشكوى', 'المشتكى عليه', 'اسم العاملة', 'الوكيل الخارجي', 'الموعد المستهدف', 'الموضوع', 'النوع', 'الأولوية', 'الحالة', 'الموظف المختص', 'التاريخ']);
 
             foreach ($complaints as $complaint) {
                 fputcsv($output, [
@@ -215,6 +218,8 @@ class ComplaintController extends Controller
                     $complaint->complainant_name,
                     $complaint->against_name,
                     $this->resolveComplaintMaidParty($complaint)['name'] ?? null,
+                    $complaint->external_office?->title,
+                    $complaint->due_at?->format('Y-m-d H:i'),
                     $complaint->subject,
                     $complaint->complaintType?->name,
                     $priorities[$complaint->priority] ?? $complaint->priority,
@@ -769,7 +774,7 @@ class ComplaintController extends Controller
         return [
             'name' => $name,
             'passport' => $complaint->maid_passport ?: ($party['maid_passport'] ?? null),
-            'office' => $maid?->office?->title,
+            'office' => $complaint->external_office?->title,
             'nationality' => $nationality,
             'days_since_arrival' => $warranty['days_since_arrival'],
             'warranty_status' => $warranty['status'],
@@ -833,7 +838,7 @@ class ComplaintController extends Controller
             'user', 'complaintType', 'assignedTo', 'resolvedBy', 'maidNationality',
             // بيانات العقد المرتبط تُعرض داخل صفحة تفاصيل الشكوى
             'contract.user', 'contract.maid.nationality', 'contract.maid.office',
-            'contract.marketer', 'contract.info', 'contract.requiredMaidNationality',
+            'contract.marketer', 'contract.info.manualMaidOffice', 'contract.requiredMaidNationality',
             'contract.requiredMaidJobTitle',
             'order.user', 'order.maid', 'order.contracts.maid', 'relatedUser', 'recruitmentOffice',
             'comments.admin', 'attachmentFiles.addedBy',
@@ -868,7 +873,13 @@ class ComplaintController extends Controller
 
         $relatedRecord = $this->resolveComplaintRelatedRecord($complaint);
 
-        return view($this->folderPath . '.show', compact('complaint', 'admins', 'againstParty', 'relatedRecord'));
+        $historyService = app(\App\Services\Complaints\ComplaintHistory::class);
+        $history = $historyService->forComplaint($complaint);
+        $historySummary = $historyService->summary($complaint);
+        $maidParty = $this->resolveComplaintMaidParty($complaint);
+        $recruitmentOffices = RecruitmentOffices::with('translations')->get();
+        $relatedClients = User::orderBy('name')->get(['id', 'name']);
+        return view($this->folderPath . '.show', compact('complaint', 'admins', 'againstParty', 'relatedRecord', 'history', 'historySummary', 'maidParty', 'recruitmentOffices', 'relatedClients'));
     }
 
     public function edit($id)
@@ -914,7 +925,7 @@ class ComplaintController extends Controller
                 'attachments.*' => 'nullable|file|max:5120|mimes:jpg,jpeg,png,pdf,doc,docx,xls,xlsx'
             ]);
 
-            $data = $request->except('attachments', 'attachment_names', '_method');
+            $data = $request->except('attachments', 'attachment_names', '_method', '_token');
             $data['message'] = $request->details; // للتوافق مع الحقل القديم
             $data['complainant_phone'] = ltrim((string) $data['complainant_phone'], '0');
             $complaintType = ComplaintType::findOrFail($data['complaint_type_id']);
@@ -969,7 +980,9 @@ class ComplaintController extends Controller
         $query = objModel::with([
             'complaintType', 'assignedTo',
             // نفس علاقات عمود "متعلق بـ" في الجدول حتى تعرض البطاقات الارتباط أيضا
-            'contract', 'order', 'relatedUser', 'recruitmentOffice',
+            'contract.maid.office', 'contract.maid.recruitmentOffice', 'contract.info.manualMaidOffice',
+            'order.maid.office', 'order.contracts.maid.office', 'order.contracts.maid.recruitmentOffice',
+            'order.contracts.info.manualMaidOffice', 'relatedUser', 'recruitmentOffice',
         ]);
         $this->applyRequestBranchFilter($query, $request, 'complaints');
         $this->applyComplaintFilters($query, $request);
@@ -978,6 +991,7 @@ class ComplaintController extends Controller
             ->map(function (objModel $complaint) {
                 return $complaint->toArray() + [
                     'related_record' => $this->resolveComplaintRelatedRecord($complaint),
+                    'external_office' => $complaint->external_office?->title,
                 ];
             });
 
@@ -1062,6 +1076,8 @@ class ComplaintController extends Controller
 
     public function addComment(Request $request)
     {
+        $this->validateAssignment($request);
+        $request->validate(['comment' => 'required|string|max:10000', 'status' => 'nullable|in:pending,in_progress,resolved,closed,rejected']);
         $complaint = objModel::findOrFail($request->complaint_id);
         $this->assertCanAccessBranchModel($complaint);
         $previousStatus = $complaint->status;
@@ -1090,18 +1106,18 @@ class ComplaintController extends Controller
         ComplaintComment::create([
             'comment' => $request->comment ?? '-',
             'complaint_id' => $request->complaint_id,
-            'added_by' => auth()->user()->id,
+            'added_by' => auth('admin')->id(),
             'attachments' => $request->attachments ?? null
         ]);
 
         $this->notifyComplaintStatusChanged($complaint, $previousStatus);
-        $this->notifyComplaintAssignmentChanged($complaint, $previousAssignedTo);
+        $notificationResults = $this->notifyComplaintAssignmentChanged($complaint, $previousAssignedTo, $request->input('notification_channels', $request->boolean('notification_channels_present') ? [] : ['database']), $request->input('notes'));
 
         if ($previousStatus === $complaint->status && (int) $previousAssignedTo === (int) $complaint->assigned_to) {
             $this->notifyComplaintUpdated($complaint, 'تم إضافة تحديث على الشكوى');
         }
 
-        return response()->json(['success' => true, 'message' => 'تم إضافة التحديث بنجاح']);
+        return response()->json(['success' => true, 'message' => 'تم إضافة التحديث بنجاح', 'notification_results' => $notificationResults]);
     }
 
     public function updateStatus(Request $request)
@@ -1134,14 +1150,15 @@ class ComplaintController extends Controller
 
     public function assign(Request $request)
     {
+        $this->validateAssignment($request, true);
         $complaint = objModel::findOrFail($request->complaint_id);
         $this->assertCanAccessBranchModel($complaint);
         $previousAssignedTo = $complaint->assigned_to;
         $complaint->assigned_to = $request->assigned_to;
         $complaint->save();
-        $this->notifyComplaintAssignmentChanged($complaint, $previousAssignedTo);
+        $notificationResults = $this->notifyComplaintAssignmentChanged($complaint, $previousAssignedTo, $request->input('notification_channels', $request->boolean('notification_channels_present') ? [] : ['database']), $request->input('notes'));
 
-        return response()->json(['success' => true, 'message' => 'تم تحويل التذكرة بنجاح']);
+        return response()->json(['success' => true, 'message' => 'تم تحويل التذكرة بنجاح', 'notification_results' => $notificationResults]);
     }
 
     public function changePriority(Request $request)
@@ -1282,42 +1299,63 @@ class ComplaintController extends Controller
         );
     }
 
-    private function notifyComplaintAssignmentChanged(objModel $complaint, $previousAssignedTo): void
+    private function notifyComplaintAssignmentChanged(objModel $complaint, $previousAssignedTo, array $channels = ['database'], ?string $notes = null): array
     {
         if ((int) $previousAssignedTo === (int) $complaint->assigned_to) {
-            return;
+            return [];
         }
+        return app(\App\Services\Complaints\ComplaintAssignmentNotifier::class)
+            ->send($complaint, $channels, $notes);
+    }
 
-        $ticketNumber = str_pad((string) $complaint->id, 6, '0', STR_PAD_LEFT);
-        $link = route('complaints.show', $complaint->id);
+    private function validateAssignment(Request $request, bool $required = false): void
+    {
+        $request->validate([
+            'assigned_to' => ($required ? 'required' : 'nullable') . '|integer|exists:admins,id',
+            'notification_channels' => 'sometimes|array',
+            'notification_channels.*' => 'in:database,sms,email',
+            'notes' => 'nullable|string|max:2000',
+        ]);
+        if ($request->filled('assigned_to') && !Admin::activeForOperations()->whereKey($request->assigned_to)->exists()) {
+            throw ValidationException::withMessages(['assigned_to' => 'اختر موظفاً نشطاً.']);
+        }
+    }
 
-        $this->notificationService()->sendToAdmin(
-            $complaint->assigned_to,
-            'تم إسناد شكوى إليك #' . $ticketNumber,
-            'تم تحويل الشكوى "' . ($complaint->subject ?: 'بدون عنوان') . '" إليك للمتابعة.',
-            'complaint_assigned',
-            $link,
-            [
-                'model' => objModel::class,
-                'model_id' => $complaint->id,
-                'old_assigned_to' => $previousAssignedTo,
-                'new_assigned_to' => $complaint->assigned_to,
-            ]
-        );
+    public function schedule(Request $request, objModel $complaint)
+    {
+        $this->assertCanAccessBranchModel($complaint);
+        $data = $request->validate([
+            'due_at' => 'nullable|date|after:now',
+            'schedule_notes' => 'nullable|string|max:2000',
+        ]);
+        $complaint->update($data);
+        return back()->with('success', 'تم تحديث موعد معالجة الشكوى');
+    }
 
-        $this->notificationService()->sendToAdmin(
-            $previousAssignedTo,
-            'تم تحويل شكوى من عهدتك #' . $ticketNumber,
-            'تم تحويل الشكوى "' . ($complaint->subject ?: 'بدون عنوان') . '" إلى موظف آخر.',
-            'complaint_reassigned',
-            $link,
-            [
-                'model' => objModel::class,
-                'model_id' => $complaint->id,
-                'old_assigned_to' => $previousAssignedTo,
-                'new_assigned_to' => $complaint->assigned_to,
-            ]
-        );
+    public function linkRecord(Request $request, objModel $complaint)
+    {
+        $this->assertCanAccessBranchModel($complaint);
+        $data = $request->validate([
+            'relation_type' => 'required|in:contract,order,office,client,manual',
+            'contract_id' => 'nullable|required_if:relation_type,contract|integer',
+            'order_id' => 'nullable|required_if:relation_type,order|integer',
+            'recruitment_office_id' => 'nullable|required_if:relation_type,office|integer',
+            'related_user_id' => 'nullable|required_if:relation_type,client|integer',
+            'against_name' => 'nullable|required_if:relation_type,manual|string|max:255',
+            'relation_reference' => 'nullable|string|max:255',
+            'relation_notes' => 'nullable|string|max:2000',
+        ]);
+        $models = ['contract' => [Contract::class, 'contract_id'], 'order' => [Order::class, 'order_id'],
+            'office' => [RecruitmentOffices::class, 'recruitment_office_id'], 'client' => [User::class, 'related_user_id']];
+        if (isset($models[$data['relation_type']])) {
+            [$model, $key] = $models[$data['relation_type']];
+            $record = $model::findOrFail($data[$key]);
+            $this->assertCanAccessBranchModel($record);
+        }
+        $data['against_type'] = $complaint->against_type ?: $complaint->complaintType?->against_type;
+        $this->applyComplaintRelation($data);
+        $complaint->update($data);
+        return back()->with('success', 'تم ربط الشكوى بنجاح');
     }
 
     private function notifyComplaintPriorityChanged(objModel $complaint, ?string $previousPriority): void

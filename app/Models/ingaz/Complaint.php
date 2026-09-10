@@ -28,6 +28,7 @@ class Complaint extends Model
         'complaint_date' => 'date',
         'source_created_at' => 'datetime',
         'closed_at' => 'datetime',
+        'due_at' => 'datetime',
         'resolved_at' => 'datetime',
         'branch_id' => 'integer',
     ];
@@ -109,6 +110,14 @@ class Complaint extends Model
         return $this->belongsTo(RecruitmentOffices::class, 'recruitment_office_id');
     }
     
+    public function getExternalOfficeAttribute(): ?RecruitmentOffices
+    {
+        return $this->recruitmentOffice
+            ?: $this->contract?->resolveExternalOfficeDispatchOffice()
+            ?: $this->order?->maid?->office
+            ?: $this->order?->contracts->map(fn ($contract) => $contract->resolveExternalOfficeDispatchOffice())->filter()->first();
+    }
+
     public function resolvedBy()
     {
         return $this->belongsTo(Admin::class, 'resolved_by');
