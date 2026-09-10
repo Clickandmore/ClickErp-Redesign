@@ -429,6 +429,13 @@
                         <span class="settings-nav__count">1 {{ __('finance::finance.settings_fields') }}</span>
                     </span>
                 </a>
+                <a class="settings-nav__item" href="#recruitment-supplier-cost-recognition-section">
+                    <span class="settings-nav__icon"><i class="fa fa-truck"></i></span>
+                    <span>
+                        <span class="settings-nav__title">إثبات تكلفة المورد الخارجي</span>
+                        <span class="settings-nav__count">1 {{ __('finance::finance.settings_fields') }}</span>
+                    </span>
+                </a>
                 <a class="settings-nav__item" href="#constraints-approval-section">
                     <span class="settings-nav__icon"><i class="fa fa-check-circle"></i></span>
                     <span>
@@ -564,6 +571,28 @@
                         <i class="fa fa-info-circle"></i>
                         {{ __('finance::finance.recruitment_revenue_recognition_scope_hint') }}
                     </small>
+                </div>
+            </details>
+
+            <details class="settings-section" id="recruitment-supplier-cost-recognition-section" open>
+                <summary>
+                    <div>
+                        <h3 class="settings-section-title">إثبات تكلفة المورد الخارجي</h3>
+                        <p class="settings-section-hint">إعداد مستقل عن توقيت إثبات إيراد عقد الاستقدام.</p>
+                    </div>
+                    <span class="settings-section-icon"><i class="fa fa-chevron-down"></i></span>
+                </summary>
+                <div class="settings-section-body">
+                    <input type="hidden" name="data[recruitment_supplier_cost_recognition][title]" value="recruitment_supplier_cost_recognition">
+                    <div class="approval-options">
+                        @foreach (['on_arrival' => 'عند وصول العاملة (الافتراضي)', 'on_dispatch' => 'عند عمل إرسالية الوكيل الخارجي'] as $mode => $label)
+                            <label class="approval-option">
+                                <input type="radio" name="data[recruitment_supplier_cost_recognition][value]" value="{{ $mode }}" {{ \App\Support\RecruitmentSupplierCostRecognition::normalize($settingValue('recruitment_supplier_cost_recognition')) === $mode ? 'checked' : '' }}>
+                                <span><strong>{{ $label }}</strong></span>
+                            </label>
+                        @endforeach
+                    </div>
+                    <p class="text-muted mt-3 mb-0">يُثبت القيد مدينًا على تكلفة المبيعات ودائنًا على حساب المورد، بقيمة تكلفة الإرسالية بالدولار × 3.75. عند اختيار الإرسالية يلزم وجود فاتورة للعقد، ويُثبت القيد بتاريخ الإرسالية دون تكراره عند الوصول. يسري على العمليات التالية للحفظ ولا ينشئ أو يغيّر القيود السابقة؛ تُستكمل التكلفة غير المثبتة عند الوصول. يخضع لتفعيل القيود التلقائية.</p>
                 </div>
             </details>
 

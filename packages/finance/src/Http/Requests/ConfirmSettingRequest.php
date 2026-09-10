@@ -31,7 +31,9 @@ class ConfirmSettingRequest extends MainRequest
             'status' => 'nullable',
             'tax_rate_revenue' => 'nullable',
             'tax_rate_expenditure' => 'nullable',
-            'data' => 'nullable',
+            'data' => 'nullable|array',
+            'data.recruitment_supplier_cost_recognition.title' => 'sometimes|in:recruitment_supplier_cost_recognition',
+            'data.recruitment_supplier_cost_recognition.value' => 'sometimes|required|in:on_arrival,on_dispatch',
         ];
     }
 
@@ -43,7 +45,9 @@ class ConfirmSettingRequest extends MainRequest
             'status' => 'nullable',
             'tax_rate_revenue' => 'nullable',
             'tax_rate_expenditure' => 'nullable',
-            'data' => 'nullable',
+            'data' => 'nullable|array',
+            'data.recruitment_supplier_cost_recognition.title' => 'sometimes|in:recruitment_supplier_cost_recognition',
+            'data.recruitment_supplier_cost_recognition.value' => 'sometimes|required|in:on_arrival,on_dispatch',
         ];
     }
 

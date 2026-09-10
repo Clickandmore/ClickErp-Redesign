@@ -822,7 +822,17 @@ class RecruitmentContractExternalOfficeDispatchController extends Controller
         $sourceSnapshot = $contract->buildExternalOfficeDispatchSourceData($officeContractCostUsd);
 
         DB::transaction(function () use ($contract, $dispatchDate, $arrivalStation, $sourceSnapshot, $adminId, $officeContractCostUsd) {
+            Contract::query()->whereKey($contract->id)->lockForUpdate()->firstOrFail();
+            $contract->unsetRelation('externalOfficeDispatch');
             $existingDispatch = $contract->externalOfficeDispatch;
+            $invoice = $contract->invoice()->first();
+            if ($existingDispatch && $invoice?->external_office_cost_constraint_id
+                && ((string) $existingDispatch->office_contract_cost_usd !== $officeContractCostUsd
+                    || (int) $existingDispatch->recruitment_office_id !== (int) ($sourceSnapshot['recruitment_office_id'] ?? 0))) {
+                throw \Illuminate\Validation\ValidationException::withMessages([
+                    'office_contract_cost_usd' => 'تم إثبات تكلفة المورد لهذا العقد؛ يجب تسوية القيد المحاسبي قبل تغيير التكلفة أو المكتب الخارجي.',
+                ]);
+            }
 
             $payload = array_merge($sourceSnapshot, [
                 'dispatch_date' => $dispatchDate,
@@ -839,6 +849,14 @@ class RecruitmentContractExternalOfficeDispatchController extends Controller
                 ['contract_id' => $contract->id],
                 $payload
             );
+
+            try {
+                app(\App\Services\ingaz\RecruitmentTripAccountingService::class)->recordDispatchCostEntries($contract);
+            } catch (\RuntimeException $exception) {
+                throw \Illuminate\Validation\ValidationException::withMessages([
+                    'office_contract_cost_usd' => $exception->getMessage(),
+                ]);
+            }
 
             $travelHistory = $contract->travelHistory()->latest('id')->first();
             if ($travelHistory && $travelHistory->arrival_airport !== $payload['arrival_station']) {

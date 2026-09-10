@@ -26,6 +26,14 @@
 @endphp
 
 @section('content')
+    <div class="alert alert-info">
+        <strong>إثبات تكلفة المورد الخارجي:</strong>
+        @if (\App\Support\RecruitmentSupplierCostRecognition::mode() === 'on_dispatch')
+            عند حفظ الإرسالية بتاريخها، بشرط وجود فاتورة للعقد وتفعيل القيود التلقائية. لا يتكرر القيد عند الوصول.
+        @else
+            عند وصول العاملة؛ حفظ الإرسالية لا ينشئ قيد التكلفة.
+        @endif
+    </div>
     <div class="container-fluid">
         <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-4">
             <div>

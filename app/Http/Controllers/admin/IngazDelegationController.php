@@ -630,6 +630,7 @@ class IngazDelegationController extends Controller
             'canCreateMusanedTransfers' => $this->adminCanAny($this->musanedTransferCreatePermissions()),
             'canDeleteMusanedTransfers' => $this->adminCanAny($this->musanedTransferDeletePermissions()),
             'timeline' => $timeline,
+            'financialDocuments' => \App\Support\IngazDelegationFinancialDocuments::for($ingazDelegation),
         ]);
     }
 

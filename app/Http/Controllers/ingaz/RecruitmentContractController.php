@@ -2266,6 +2266,7 @@ class RecruitmentContractController extends Controller
             'invoice.musanedTransferItem.transfer',
             'recruitmentRefund.refundConstraint',
             'externalOfficeDispatch',
+            'financeBonds',
         ]);
 
         $documents = [];
@@ -2287,7 +2288,13 @@ class RecruitmentContractController extends Controller
                 $addFinancialDocument('invoice-view', 'عرض الفاتورة', route('invoices.show', $contract->invoice->id), 'fas fa-file-invoice');
             }
             if (InvoiceAuthorization::canPrint()) {
-                $addFinancialDocument('invoice-download', 'تنزيل الفاتورة', route('invoice.download', ['id' => $contract->invoice->id, 'autoprint' => 1]), 'fas fa-download');
+                $addFinancialDocument('invoice-download', 'طباعة / حفظ الفاتورة PDF', route('invoice.download', ['id' => $contract->invoice->id, 'autoprint' => 1]), 'fas fa-download');
+            }
+
+            if ($contract->invoice->invoice_constraint_id) {
+                $addFinancialDocument('invoice-constraint', 'القيد المالي للفاتورة', route('finance.add-constraint.show', [
+                    'add_constraint' => $contract->invoice->invoice_constraint_id,
+                ]), 'fas fa-book');
             }
 
             if ($contract->invoice->finance_sale_id) {
@@ -2345,6 +2352,25 @@ class RecruitmentContractController extends Controller
                         'autoprint' => 1,
                     ]), 'fas fa-book-open');
                 }
+            }
+        }
+
+        foreach ($contract->financeBonds->where('type', 'qabd')->sortBy('id') as $bond) {
+            $bondLabel = 'سند قبض العميل #' . ($bond->code ?: $bond->id);
+            $addFinancialDocument(
+                'receipt-bond-' . $bond->id,
+                $bondLabel,
+                route('finance.bonds-print.show', ['bonds_print' => $bond->id, 'type' => 'qabd']),
+                'fas fa-receipt'
+            );
+
+            if ($bond->constraint_id) {
+                $addFinancialDocument(
+                    'receipt-bond-constraint-' . $bond->id,
+                    'القيد المالي — ' . $bondLabel,
+                    route('finance.add-constraint.show', ['add_constraint' => $bond->constraint_id]),
+                    'fas fa-book-open'
+                );
             }
         }
 

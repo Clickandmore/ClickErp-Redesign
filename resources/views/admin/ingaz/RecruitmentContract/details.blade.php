@@ -2364,6 +2364,7 @@
                             </div>
 
                             @if ($financialDocuments->isNotEmpty())
+                                <p class="text-muted small">افتح الفاتورة أو سند القبض أو القيد المالي، ثم اختر الطباعة وحفظ كملف PDF لتنزيل نسخة.</p>
                                 <div class="contract-document-list">
                                     @foreach ($financialDocuments as $item)
                                         <a href="{{ $item['url'] }}" target="_blank" rel="noopener"
@@ -2371,14 +2372,14 @@
                                             <i class="{{ $item['icon'] }}"></i>
                                             <span>
                                                 <strong class="d-block">{{ $item['label'] }}</strong>
-                                                <small class="text-muted">فاتورة / قيد مالي</small>
+                                                <small class="text-muted">فتح المستند</small>
                                             </span>
                                         </a>
                                     @endforeach
                                 </div>
                             @else
                                 <div class="alert alert-info mb-0">
-                                    لا توجد فاتورة أو قيود مالية مرتبطة بهذا العقد حالياً.
+                                    لا توجد فواتير أو سندات قبض أو قيود مالية مرتبطة بهذا العقد حالياً.
                                 </div>
                             @endif
                         </div>

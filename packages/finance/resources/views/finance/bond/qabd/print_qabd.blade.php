@@ -447,7 +447,7 @@
 <body>
     <div class="print-actions">
         <button type="button" class="print-button" onclick="window.print()">
-            طباعة السند
+            طباعة / حفظ السند PDF
         </button>
     </div>
 

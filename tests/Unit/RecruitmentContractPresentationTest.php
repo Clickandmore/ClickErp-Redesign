@@ -169,6 +169,35 @@ class RecruitmentContractPresentationTest extends TestCase
         $this->assertNull($arrival['time_label']);
     }
 
+    public function test_financial_documents_include_invoice_entry_and_each_receipt_with_its_entry(): void
+    {
+        $contract = new Contract(['status' => ContractStatusEnum::New->value]);
+        $invoice = new \App\Models\ingaz\Invoice();
+        $invoice->forceFill(['id' => 10, 'invoice_constraint_id' => 101]);
+        $invoice->setRelation('financeSale', null);
+        $invoice->setRelation('recruitmentCreditNotes', new Collection());
+        $invoice->setRelation('musanedTransferItem', null);
+        $contract->setRelation('invoice', $invoice);
+        $contract->setRelation('recruitmentRefund', null);
+        $contract->setRelation('externalOfficeDispatch', null);
+        $bonds = collect([
+            ['id' => 20, 'code' => 'R20', 'type' => 'qabd', 'constraint_id' => 102],
+            ['id' => 21, 'code' => 'R21', 'type' => 'qabd', 'constraint_id' => null],
+            ['id' => 22, 'code' => 'S22', 'type' => 'sarf', 'constraint_id' => 103],
+        ])->map(fn ($attributes) => (new \Nami\Finance\Models\Bond())->forceFill($attributes));
+        $contract->setRelation('financeBonds', new Collection($bonds));
+
+        $documents = collect($this->invoke('collectRecruitmentContractDocuments', $contract));
+        $items = collect($documents->firstWhere('key', 'financial-attachments')['items'])->keyBy('key');
+
+        $this->assertSame(route('finance.add-constraint.show', 101), $items['invoice-constraint']['url']);
+        $this->assertSame(route('finance.bonds-print.show', ['bonds_print' => 20, 'type' => 'qabd']), $items['receipt-bond-20']['url']);
+        $this->assertSame(route('finance.add-constraint.show', 102), $items['receipt-bond-constraint-20']['url']);
+        $this->assertTrue($items->has('receipt-bond-21'));
+        $this->assertFalse($items->has('receipt-bond-constraint-21'));
+        $this->assertFalse($items->has('receipt-bond-22'));
+    }
+
     private function invoke(string $method, Contract $contract): array
     {
         $reflection = new ReflectionMethod($this->controller, $method);

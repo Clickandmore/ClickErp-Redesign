@@ -276,6 +276,24 @@
                                 <div class="p-3 bg-light rounded">{{ $delegation->notes ?: 'لا توجد ملاحظات.' }}</div>
                             </div>
 
+                            <div class="mb-4">
+                                <strong class="d-block mb-2">المستندات المالية والقيود المرتبطة بالتفويض</strong>
+                                @if (!empty($financialDocuments))
+                                    <p class="text-muted small">افتح الفاتورة أو سند القبض أو القيد المالي، ثم اختر الطباعة وحفظ كملف PDF لتنزيل نسخة.</p>
+                                    <div class="list-group">
+                                        @foreach ($financialDocuments as $document)
+                                            <a href="{{ $document['url'] }}" target="_blank" rel="noopener"
+                                               class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
+                                                <span>{{ $document['label'] }}</span>
+                                                <span class="btn btn-sm btn-outline-primary">فتح</span>
+                                            </a>
+                                        @endforeach
+                                    </div>
+                                @else
+                                    <div class="text-muted">لا توجد فواتير أو سندات قبض أو قيود مالية مرتبطة بهذا التفويض حالياً.</div>
+                                @endif
+                            </div>
+
                             <strong class="d-block mb-2">المرفقات</strong>
                             @if (!empty($delegation->attachments))
                                 <div class="list-group">

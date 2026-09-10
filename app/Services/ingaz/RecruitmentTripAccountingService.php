@@ -9,6 +9,8 @@ use App\Models\office\Office;
 use App\Services\office\OfficeFinanceAccountService;
 use App\Support\AutomaticJournalEntries;
 use App\Support\RecruitmentRevenueRecognition;
+use App\Support\RecruitmentSupplierCostRecognition;
+use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Schema;
@@ -39,6 +41,34 @@ class RecruitmentTripAccountingService
     }
 
     public function recordCompletionEntries(Contract $contract, ?TravelHistory $travelHistory = null): array
+    {
+        return DB::transaction(function () use ($contract, $travelHistory) {
+            Contract::query()->whereKey($contract->id)->lockForUpdate()->firstOrFail();
+            $contract->unsetRelation('invoice');
+            return $this->recordEntries($contract, $travelHistory);
+        });
+    }
+
+    public function recordDispatchCostEntries(Contract $contract): array
+    {
+        if (RecruitmentSupplierCostRecognition::mode() !== RecruitmentSupplierCostRecognition::MODE_ON_DISPATCH) {
+            return ['skipped_reason' => 'cost_on_arrival'];
+        }
+
+        return DB::transaction(function () use ($contract) {
+            Contract::query()->whereKey($contract->id)->lockForUpdate()->firstOrFail();
+            $contract->unsetRelation('invoice');
+            $contract->unsetRelation('externalOfficeDispatch');
+            if (AutomaticJournalEntries::enabled() && !$contract->invoice) {
+                throw \Illuminate\Validation\ValidationException::withMessages([
+                    'office_contract_cost_usd' => 'يجب إنشاء فاتورة العقد قبل الإرسالية لإثبات تكلفة المورد الخارجي.',
+                ]);
+            }
+            return $this->recordEntries($contract, null, true);
+        });
+    }
+
+    private function recordEntries(Contract $contract, ?TravelHistory $travelHistory = null, bool $dispatchOnly = false): array
     {
         if (!AutomaticJournalEntries::enabled()) {
             return [
@@ -83,11 +113,13 @@ class RecruitmentTripAccountingService
             ];
         }
 
-        $date = $this->resolveEntryDate($travelHistory);
+        $date = $dispatchOnly
+            ? $contract->externalOfficeDispatch->dispatch_date->toDateString()
+            : $this->resolveEntryDate($travelHistory);
         $activeYear = $this->yearService->checkDateRange($date);
 
         if (!$activeYear) {
-            throw new \RuntimeException('لا يوجد سنة مالية نشطة بتاريخ الوصول المحدد.');
+            throw new \RuntimeException('لا يوجد سنة مالية نشطة بتاريخ العملية المحدد.');
         }
 
         $nationalityName = $this->resolveNationalityName($contract);
@@ -128,7 +160,9 @@ class RecruitmentTripAccountingService
             );
         }
 
-        if (RecruitmentRevenueRecognition::invoiceRecognizesOnInvoice($invoice)) {
+        if ($dispatchOnly) {
+            $result['revenue_skipped_reason'] = 'supplier_cost_only';
+        } elseif (RecruitmentRevenueRecognition::invoiceRecognizesOnInvoice($invoice)) {
             // الإيراد أُثبت في قيد الفاتورة نفسه (إعداد «عند إنشاء الفاتورة»)، فلا قيد تحويل عند الوصول.
             $result['revenue_skipped_reason'] = 'revenue_recognized_on_invoice';
         } elseif (!$invoice->arrival_revenue_constraint_id) {

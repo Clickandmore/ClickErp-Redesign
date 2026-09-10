@@ -647,6 +647,11 @@
 
 @section('content')
     @if (@AdminGuardHasPerm(\App\NewPermKeys::REC_CONTRACTS_VIEW))
+        <div class="alert alert-info">
+            <strong>إثبات تكلفة المورد الخارجي:</strong>
+            {{ \App\Support\RecruitmentSupplierCostRecognition::mode() === 'on_dispatch' ? 'عند عمل إرسالية الوكيل الخارجي' : 'عند وصول العاملة' }}.
+            إعداد مستقل عن إثبات الإيراد؛ لا يتكرر قيد التكلفة عند الوصول إذا سبق إثباته.
+        </div>
         @php
             $requestedStatus = request()->get('status');
             $showBackStatsInitially = !$requestedStatus || $requestedStatus === 'back';

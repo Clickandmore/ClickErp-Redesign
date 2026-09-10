@@ -217,6 +217,115 @@ class RecruitmentRevenueRecognitionTest extends TestCase
         ], $this->lines(Constraint::query()->findOrFail($reversalId)));
     }
 
+    public function test_refund_reverses_sales_vat_and_supplier_directly_in_on_invoice_mode(): void
+    {
+        $nationality = $this->createNationality('اثيوبيا');
+        $contract = $this->createContract($nationality, withClientAccount: true);
+        $client = $contract->user->account_id;
+        $sales = $this->createAccount('مبيعات اثيوبيا', 'creditor');
+        $vat = $this->createAccount('ضريبة القيمة المضافة', 'creditor');
+        $cost = $this->createAccount('تكلفة مبيعات اثيوبيا', 'debtor');
+        $office = $this->createAccount('مكتب شريف ادام', 'creditor');
+        ConfirmSetting::query()->create(['title' => 'revenue_tax_account', 'value' => $vat->id, 'created_by_id' => $this->admin->id]);
+
+        // قيد الفاتورة في وضع «عند الفاتورة»: مدين العميل / دائن المبيعات + الضريبة، بلا حساب التزام.
+        $invoiceConstraint = $this->storeConstraint('قيد فاتورة اختبار', [
+            [$sales->id, 'creditor', 0, 285],
+            [$client, 'debtor', 285, 0],
+            [$sales->id, 'creditor', 0, 3653],
+            [$client, 'debtor', 3653, 0],
+            [$vat->id, 'creditor', 0, 42.75],
+            [$client, 'debtor', 42.75, 0],
+        ]);
+        $supplierConstraint = $this->storeConstraint('فاتورة مورد اختبار', [
+            [$cost->id, 'debtor', 2250, 0],
+            [$office->id, 'creditor', 0, 2250],
+        ]);
+        $invoice = $this->createInvoice($contract, [
+            'revenue_recognition_mode' => 'on_invoice',
+            'invoice_constraint_id' => $invoiceConstraint->id,
+            'external_office_cost_constraint_id' => $supplierConstraint->id,
+        ]);
+
+        $refund = app(RecruitmentContractRefundService::class)->refund($contract->fresh(), [
+            'refund_date' => now()->toDateString(),
+            'reason' => 'اختبار الاسترداد',
+        ]);
+
+        $this->assertNotNull($refund->credit_note_id);
+        $creditNote = $refund->creditNote;
+        $this->assertSame(3980.75, (float) $creditNote->total);
+        $this->assertSame(42.75, (float) $creditNote->vat_amount);
+
+        // الإشعار الدائن يعكس المبيعات والضريبة على العميل مباشرة، بلا مرور على حساب الالتزام.
+        $this->assertSame([
+            [$sales->id, 285.0, 0.0],
+            [$client, 0.0, 285.0],
+            [$sales->id, 3653.0, 0.0],
+            [$client, 0.0, 3653.0],
+            [$vat->id, 42.75, 0.0],
+            [$client, 0.0, 42.75],
+        ], $this->lines(Constraint::query()->findOrFail($creditNote->constraint_id)));
+
+        // فاتورة المورد الخارجي تُعكس مع الاسترداد فيعود رصيد المكتب وتكلفة المبيعات إلى صفر.
+        $reversalId = $invoice->fresh()->external_office_cost_reversal_constraint_id;
+        $this->assertNotNull($reversalId);
+        $this->assertSame([
+            [$office->id, 2250.0, 0.0],
+            [$cost->id, 0.0, 2250.0],
+        ], $this->lines(Constraint::query()->findOrFail($reversalId)));
+
+        $this->assertNull($refund->refund_constraint_id, 'لا قيد غرامة بلا تحويل مساند.');
+        $this->assertSame(3980.75, (float) $refund->refund_amount);
+    }
+
+    public function test_refund_in_on_arrival_mode_reverses_the_liability_and_keeps_the_supplier_invoice(): void
+    {
+        $nationality = $this->createNationality('اثيوبيا');
+        $contract = $this->createContract($nationality, withClientAccount: true);
+        $client = $contract->user->account_id;
+        $liability = $this->createAccount('التزامات عقود اثيوبيا', 'creditor');
+        $vat = $this->createAccount('ضريبة القيمة المضافة', 'creditor');
+        $cost = $this->createAccount('تكلفة مبيعات اثيوبيا', 'debtor');
+        $office = $this->createAccount('مكتب شريف ادام', 'creditor');
+        ConfirmSetting::query()->create(['title' => 'revenue_tax_account', 'value' => $vat->id, 'created_by_id' => $this->admin->id]);
+
+        $invoiceConstraint = $this->storeConstraint('قيد فاتورة اختبار', [
+            [$liability->id, 'creditor', 0, 285],
+            [$client, 'debtor', 285, 0],
+            [$liability->id, 'creditor', 0, 3653],
+            [$client, 'debtor', 3653, 0],
+            [$vat->id, 'creditor', 0, 42.75],
+            [$client, 'debtor', 42.75, 0],
+        ]);
+        $supplierConstraint = $this->storeConstraint('فاتورة مورد اختبار', [
+            [$cost->id, 'debtor', 2250, 0],
+            [$office->id, 'creditor', 0, 2250],
+        ]);
+        $invoice = $this->createInvoice($contract, [
+            'revenue_recognition_mode' => 'on_arrival',
+            'invoice_constraint_id' => $invoiceConstraint->id,
+            'external_office_cost_constraint_id' => $supplierConstraint->id,
+        ]);
+
+        $refund = app(RecruitmentContractRefundService::class)->refund($contract->fresh(), [
+            'refund_date' => now()->toDateString(),
+            'reason' => 'اختبار الاسترداد',
+        ]);
+
+        $this->assertSame([
+            [$liability->id, 285.0, 0.0],
+            [$client, 0.0, 285.0],
+            [$liability->id, 3653.0, 0.0],
+            [$client, 0.0, 3653.0],
+            [$vat->id, 42.75, 0.0],
+            [$client, 0.0, 42.75],
+        ], $this->lines(Constraint::query()->findOrFail($refund->creditNote->constraint_id)));
+
+        // في الوضع الافتراضي لا تُعكس فاتورة المورد الخارجي عند الاسترداد.
+        $this->assertNull($invoice->fresh()->external_office_cost_reversal_constraint_id);
+    }
+
     public function test_refund_preview_shows_the_supplier_reversal_section_only_in_on_invoice_mode(): void
     {
         $nationality = $this->createNationality('اثيوبيا');
@@ -251,6 +360,90 @@ class RecruitmentRevenueRecognitionTest extends TestCase
             $preview['lines'],
             fn (array $line) => ($line['section'] ?? null) === RecruitmentContractRefundService::EXTERNAL_OFFICE_REVERSAL_SECTION
         ));
+    }
+
+    public function test_dispatch_setting_defaults_to_arrival_and_is_independent_of_revenue(): void
+    {
+        ConfirmSetting::query()->where('title', \App\Support\RecruitmentSupplierCostRecognition::SETTING_KEY)->delete();
+        $this->setMode('on_invoice');
+        $this->assertSame('on_arrival', \App\Support\RecruitmentSupplierCostRecognition::mode());
+        $contract = $this->createContract($this->createNationality('اختبار التكلفة'));
+        $this->assertSame('cost_on_arrival', app(RecruitmentTripAccountingService::class)->recordDispatchCostEntries($contract)['skipped_reason']);
+    }
+
+    public function test_dispatch_requires_invoice_when_automatic_cost_posting_is_enabled(): void
+    {
+        $this->setSupplierCostMode('on_dispatch');
+        $contract = $this->createContract($this->createNationality('اختبار التكلفة'));
+        $this->expectException(\Illuminate\Validation\ValidationException::class);
+        app(RecruitmentTripAccountingService::class)->recordDispatchCostEntries($contract);
+    }
+
+    public function test_dispatch_respects_disabled_automatic_entries(): void
+    {
+        $this->setSupplierCostMode('on_dispatch');
+        ConfirmSetting::query()->where('title', 'automatic_journal_entries')->update(['value' => 'off']);
+        $contract = $this->createContract($this->createNationality('اختبار التكلفة'));
+        $this->assertSame('automatic_entries_disabled', app(RecruitmentTripAccountingService::class)->recordDispatchCostEntries($contract)['skipped_reason']);
+    }
+
+    public function test_dispatch_posts_cost_only_once_for_both_revenue_modes(): void
+    {
+        $this->setSupplierCostMode('on_dispatch');
+        if (!Account::query()->where('code', 221)->exists()) {
+            $this->createAccount('الوكلاء الخارجيين', 'creditor')->update(['code' => 221]);
+        }
+        foreach (['on_arrival', 'on_invoice'] as $revenueMode) {
+            $nationality = $this->createNationality('تكلفة اختبار ' . $revenueMode);
+            $contract = $this->createContract($nationality);
+            $invoice = $this->createInvoice($contract, ['revenue_recognition_mode' => $revenueMode]);
+            $cost = $this->createAccount('تكلفة مبيعات ' . $nationality->display_name, 'debtor');
+            if (!\Nami\Finance\Models\Item::query()->where('type', 'service')->exists()) {
+                $categoryId = DB::table('fn_categories')->insertGetId(['title' => 'خدمات اختبار']);
+                $unitId = DB::table('fn_units')->insertGetId(['title' => 'خدمة اختبار']);
+                \Nami\Finance\Models\Item::query()->create([
+                    'name' => 'خدمة اختبار', 'type' => 'service', 'code' => 999999,
+                    'main_category_id' => $categoryId, 'sale_unit_id' => $unitId, 'purchase_unit_id' => $unitId,
+                    'details' => 'اختبار', 'sale_account_id' => $cost->id, 'stock_account_id' => $cost->id,
+                ]);
+            }
+            $officeAccount = $this->createAccount('مكتب اختبار ' . $contract->id, 'creditor');
+            $office = \App\Models\office\Office::query()->create([
+                'ar' => ['title' => $officeAccount->name],
+                'account_id' => $officeAccount->id,
+            ]);
+            $contract->info()->create(['manual_maid_office_id' => $office->id]);
+            $contract->externalOfficeDispatch()->create([
+                'recruitment_office_id' => $office->id,
+                'office_contract_cost_usd' => 600,
+                'dispatch_date' => now()->toDateString(),
+            ]);
+            $service = app(RecruitmentTripAccountingService::class);
+            $result = $service->recordDispatchCostEntries($contract->fresh());
+            $this->assertTrue($result['created_external_office_cost_constraint']);
+            $this->assertFalse($result['created_revenue_constraint']);
+            $this->assertNull($invoice->fresh()->arrival_revenue_constraint_id);
+            $constraint = Constraint::query()->findOrFail($result['external_office_cost_constraint_id']);
+            $this->assertSame([
+                [$cost->id, 2250.0, 0.0],
+                [$officeAccount->id, 0.0, 2250.0],
+            ], $this->lines($constraint));
+            $this->assertSame(now()->toDateString(), substr((string) $constraint->date, 0, 10));
+            $again = $service->recordDispatchCostEntries($contract->fresh());
+            $this->assertFalse($again['created_external_office_cost_constraint']);
+            $arrival = $service->recordCompletionEntries($contract->fresh());
+            $this->assertFalse($arrival['created_external_office_cost_constraint']);
+            $this->assertFalse($arrival['created_supplier_purchase']);
+            $this->assertSame($result['external_office_cost_constraint_id'], $arrival['external_office_cost_constraint_id']);
+        }
+    }
+
+    private function setSupplierCostMode(string $mode): void
+    {
+        foreach (['recruitment_supplier_cost_recognition' => $mode, 'automatic_journal_entries' => 'on'] as $key => $value) {
+            ConfirmSetting::query()->where('title', $key)->delete();
+            ConfirmSetting::query()->create(['title' => $key, 'value' => $value, 'created_by_id' => $this->admin->id]);
+        }
     }
 
     // ── helpers ────────────────────────────────────────────────────────────────
