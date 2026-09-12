@@ -395,7 +395,7 @@ class CommissionPaymentService
 
     public function getFinancialOverview(): array
     {
-        $employees = $this->profileService->getCustomerServiceEmployeesWithBalance();
+        $employees = $this->profileService->getPaymentMarketersWithBalance();
         $paymentTotals = CommissionPayment::query()
             ->selectRaw('marketer_id, COUNT(*) as vouchers_count, COALESCE(SUM(amount), 0) as paid_total')
             ->groupBy('marketer_id')

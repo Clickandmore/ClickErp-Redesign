@@ -178,7 +178,7 @@ class CommissionCalculationService
 
             if ($currentBalance > 0
                 && $existingAccrualBatch?->payable_account_id) {
-                $automaticPayableAccount = $this->accrualService->payableAccountForMarketer($marketerId);
+                $automaticPayableAccount = $this->accrualService->payableAccountForMarketer($marketerId, $adminId);
 
                 if ((int) $existingAccrualBatch->payable_account_id !== (int) $automaticPayableAccount->id) {
                     throw ValidationException::withMessages([

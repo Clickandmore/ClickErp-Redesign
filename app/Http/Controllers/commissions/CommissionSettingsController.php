@@ -4,33 +4,33 @@ namespace App\Http\Controllers\commissions;
 
 use App\Http\Controllers\Controller;
 use App\Models\auth\Admin;
+use App\Services\commissions\CommissionProfileService;
+use App\Services\commissions\CommissionMarketerAccountService;
 use App\Models\commissions\CommissionMarketerOverride;
 use App\Models\commissions\CommissionSetting;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
-use Nami\Finance\Models\Account;
 
 class CommissionSettingsController extends Controller
 {
+    public function __construct(
+        private readonly CommissionProfileService $profileService,
+        private readonly CommissionMarketerAccountService $accountService
+    ) {}
+
     public function index()
     {
         $settings = CommissionSetting::all()->keyBy('service_type');
         $serviceTypeOptions = CommissionSetting::serviceTypeOptions();
 
-        $marketers = Admin::query()
-            ->where('admin_type', 'customer_service')
+        $marketers = $this->profileService->marketersQuery()
             ->activeForOperations()
             ->with(['commissionOverrides', 'commissionPayableAccount'])
             ->orderBy('name')
             ->get();
 
-        $marketerPayableAccounts = Account::query()
-            ->where('status', 'creditor')
-            ->whereDoesntHave('children')
-            ->whereHas('parent', function ($query) {
-                $query->where('code', 144)->orWhere('name', 'المسوقين');
-            })
+        $marketerPayableAccounts = $this->accountService->payableAccounts()
             ->orderBy('code')
             ->get(['id', 'code', 'name']);
 
@@ -63,13 +63,8 @@ class CommissionSettingsController extends Controller
             $payableAccounts = collect($request->input('payable_accounts', []))
                 ->map(fn ($accountId) => $accountId ? (int) $accountId : null);
             $selectedAccountIds = $payableAccounts->filter()->unique()->values();
-            $validAccountIds = Account::query()
+            $validAccountIds = $this->accountService->payableAccounts()
                 ->whereIn('id', $selectedAccountIds)
-                ->where('status', 'creditor')
-                ->whereDoesntHave('children')
-                ->whereHas('parent', function ($query) {
-                    $query->where('code', 144)->orWhere('name', 'المسوقين');
-                })
                 ->pluck('id')
                 ->map(fn ($id) => (int) $id);
 
@@ -79,13 +74,28 @@ class CommissionSettingsController extends Controller
                 ]);
             }
 
-            $editableMarketers = Admin::query()
-                ->where('admin_type', 'customer_service')
+            $editableMarketers = $this->profileService->marketersQuery()
                 ->activeForOperations()
                 ->whereIn('id', $payableAccounts->keys()->map(fn ($id) => (int) $id))
                 ->get(['id']);
 
+            if ($payableAccounts->keys()->map(fn ($id) => (int) $id)->diff($editableMarketers->pluck('id'))->isNotEmpty()) {
+                throw ValidationException::withMessages(['payable_accounts' => 'أحد المستخدمين غير متاح ضمن مسوقي العمولات.']);
+            }
+
             DB::transaction(function () use ($editableMarketers, $payableAccounts) {
+                // Use the same allocation lock as approval so an account cannot be claimed concurrently.
+                \Nami\Finance\Models\Account::query()->whereKey($this->accountService->parentAccount()->id)
+                    ->lockForUpdate()->firstOrFail();
+                foreach ($editableMarketers as $marketer) {
+                    $accountId = $payableAccounts->get($marketer->id);
+                    if ($accountId) {
+                        $account = $this->accountService->payableAccounts()->findOrFail($accountId);
+                        if ($this->accountService->belongsToAnotherMarketer($account, $marketer->id)) {
+                            throw ValidationException::withMessages(['payable_accounts' => 'حساب الاستحقاق المختار مرتبط بمسوق آخر.']);
+                        }
+                    }
+                }
                 $editableMarketerIds = $editableMarketers->pluck('id');
                 Admin::query()
                     ->whereIn('id', $editableMarketerIds)

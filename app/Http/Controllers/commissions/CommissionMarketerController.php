@@ -196,8 +196,7 @@ class CommissionMarketerController extends Controller
 
     private function isCommissionMarketer(Admin $admin): bool
     {
-        return $admin->admin_type === 'customer_service'
-            || $this->profileService->hasOperations($admin->id);
+        return $this->profileService->marketersQuery()->whereKey($admin->id)->exists();
     }
 
     private function isPaidLabel(?bool $isPaid): string

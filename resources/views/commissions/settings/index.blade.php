@@ -75,7 +75,7 @@
         </div>
         <div class="card-body">
             <p class="text-muted small mb-3">
-                اختر رقم الحساب المالي النهائي لكل مسوق. هذا الربط هو المرجع الأساسي عند إنشاء قيد الاستحقاق، ولا يعتمد على تشابه الأسماء.
+                اختر رقم الحساب المالي النهائي لكل مسوق. هذا الربط هو المرجع الأساسي عند إنشاء قيد الاستحقاق. عند تركه تلقائيًا، يُربط الحساب الموجود أو يُنشأ حساب مستقل عند الاعتماد. تشمل القائمة موظفي خدمة العملاء وأصحاب العمليات من جميع أنواع المستخدمين.
             </p>
             <div class="table-responsive">
                 <table class="table table-bordered align-middle mb-0">
@@ -92,7 +92,7 @@
                                 <td>
                                     <select class="form-select form-select-sm"
                                             name="payable_accounts[{{ $marketer->id }}]">
-                                        <option value="">غير محدد — استخدام تطابق الاسم القديم</option>
+                                        <option value="">تلقائي — ربط أو إنشاء حساب مستقل عند الاعتماد</option>
                                         @foreach($marketerPayableAccounts as $account)
                                             <option value="{{ $account->id }}"
                                                 {{ (int) old('payable_accounts.' . $marketer->id, $marketer->commission_payable_account_id) === (int) $account->id ? 'selected' : '' }}>
@@ -112,7 +112,7 @@
     {{-- استثناءات الموظفين --}}
     <div class="card mb-4">
         <div class="card-header d-flex justify-content-between align-items-center">
-            <h6 class="mb-0 fw-bold"><i class="fa fa-user-edit me-2"></i>استثناءات موظفي خدمة العملاء</h6>
+            <h6 class="mb-0 fw-bold"><i class="fa fa-user-edit me-2"></i>استثناءات المسوقين</h6>
             <button type="button" class="btn btn-sm btn-outline-primary" id="addOverrideBtn">
                 <i class="fa fa-plus me-1"></i>إضافة استثناء
             </button>

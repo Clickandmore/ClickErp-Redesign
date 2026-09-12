@@ -5,6 +5,7 @@ namespace App\Services\commissions;
 use App\Models\auth\Admin;
 use App\Models\commissions\CommissionBalanceTransaction;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Database\Eloquent\Builder;
 
 class CommissionProfileService
 {
@@ -15,13 +16,7 @@ class CommissionProfileService
 
     public function getMarketersWithBalance()
     {
-        $marketerIds = $this->operationMarketerIds();
-
-        return Admin::query()
-            ->where(function ($query) use ($marketerIds) {
-                $query->where('admin_type', 'customer_service')
-                    ->orWhereIn('id', $marketerIds);
-            })
+        return $this->marketersQuery()
             ->activeForOperations()
             ->with('role')
             ->orderBy('name')
@@ -38,13 +33,18 @@ class CommissionProfileService
 
     public function hasOperations(int $marketerId): bool
     {
-        return in_array($marketerId, $this->operationMarketerIds(), true);
+        foreach ($this->operationSources() as $table => $column) {
+            if (DB::table($table)->where($column, $marketerId)->exists()) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
-    public function getCustomerServiceEmployeesWithBalance()
+    public function getPaymentMarketersWithBalance()
     {
-        return Admin::query()
-            ->where('admin_type', 'customer_service')
+        return $this->marketersQuery()
             ->activeForOperations()
             ->with('role')
             ->orderBy('name')
@@ -81,21 +81,27 @@ class CommissionProfileService
         return $this->operationService->summary($marketerId);
     }
 
-    private function operationMarketerIds(): array
+    public function marketersQuery(): Builder
     {
-        return collect()
-            ->merge(DB::table('contracts')->whereNotNull('marketer_id')->pluck('marketer_id'))
-            ->merge(DB::table('rental_contracts')->whereNotNull('marketer_id')->pluck('marketer_id'))
-            ->merge(DB::table('transfer_service_contracts')->whereNotNull('created_by')->pluck('created_by'))
-            ->merge(DB::table('ingaz_delegations')->whereNotNull('marketer_id')->pluck('marketer_id'))
-            ->merge(DB::table('commission_batches')->whereNotNull('marketer_id')->pluck('marketer_id'))
-            ->merge(DB::table('orders')->whereNotNull('customer_id')->pluck('customer_id'))
-            ->merge(DB::table('order_details')->whereNotNull('admin_id')->pluck('admin_id'))
-            ->map(fn ($id) => (int) $id)
-            ->filter()
-            ->unique()
-            ->values()
-            ->all();
+        return Admin::query()->where(function (Builder $query) {
+            $query->where('admin_type', 'customer_service')
+                ->orWhereNotNull('commission_payable_account_id');
+            foreach ($this->operationSources() as $table => $column) {
+                $query->orWhereIn('admins.id', DB::table($table)->select($column)->whereNotNull($column));
+            }
+        });
     }
 
+    private function operationSources(): array
+    {
+        return [
+            'contracts' => 'marketer_id',
+            'rental_contracts' => 'marketer_id',
+            'transfer_service_contracts' => 'created_by',
+            'ingaz_delegations' => 'marketer_id',
+            'commission_batches' => 'marketer_id',
+            'orders' => 'customer_id',
+            'order_details' => 'admin_id',
+        ];
+    }
 }

@@ -51,14 +51,8 @@ class CommissionAccrualServiceTest extends TestCase
 
     public function test_approval_uses_the_marketers_own_payable_account_when_available(): void
     {
-        [$admin, $batch] = $this->financeFixture();
-        $parent = Account::query()->create([
-            'name' => 'المسوقين',
-            'status' => 'creditor',
-            'level' => 1,
-            'code' => 144,
-            'type' => AccountTypesEnum::Marketers->value,
-        ]);
+        [$admin, $batch] = $this->financeFixture(false);
+        $parent = Account::query()->where('code', 144)->firstOrFail();
         $marketerAccount = Account::query()->create([
             'name' => $admin->name,
             'status' => 'creditor',
@@ -80,15 +74,9 @@ class CommissionAccrualServiceTest extends TestCase
 
     public function test_approval_uses_the_explicitly_linked_account_instead_of_matching_names(): void
     {
-        [$admin, $batch] = $this->financeFixture();
+        [$admin, $batch] = $this->financeFixture(false);
         $admin->update(['name' => 'LAYLA SHAMRUOKH']);
-        $parent = Account::query()->create([
-            'name' => 'المسوقين',
-            'status' => 'creditor',
-            'level' => 1,
-            'code' => 144,
-            'type' => AccountTypesEnum::Marketers->value,
-        ]);
+        $parent = Account::query()->where('code', 144)->firstOrFail();
         $marketerAccount = Account::query()->create([
             'name' => 'ليلى شمروخ',
             'status' => 'creditor',
@@ -106,14 +94,8 @@ class CommissionAccrualServiceTest extends TestCase
 
     public function test_a_second_approval_accepts_the_same_automatic_marketer_payable_account(): void
     {
-        [$admin, $firstBatch] = $this->financeFixture();
-        $parent = Account::query()->create([
-            'name' => 'المسوقين',
-            'status' => 'creditor',
-            'level' => 1,
-            'code' => 144,
-            'type' => AccountTypesEnum::Marketers->value,
-        ]);
+        [$admin, $firstBatch] = $this->financeFixture(false);
+        $parent = Account::query()->where('code', 144)->firstOrFail();
         $marketerAccount = Account::query()->create([
             'name' => $admin->name,
             'status' => 'creditor',
@@ -190,7 +172,79 @@ class CommissionAccrualServiceTest extends TestCase
         $this->assertSoftDeleted('fn_constraint_details', ['constraint_id' => $constraint->id]);
     }
 
-    private function financeFixture(): array
+    public function test_missing_account_is_created_and_linked_for_an_administrator_and_reused(): void
+    {
+        [$admin, $batch] = $this->financeFixture(false);
+        $admin->update(['name' => 'مشرف', 'admin_type' => 'super_admin']);
+        $wrongFallback = Account::query()->create([
+            'name' => 'دفعات مقدمة نقل خدمات', 'status' => 'creditor', 'level' => 1,
+            'code' => 223, 'type' => AccountTypesEnum::ShortLiabilities->value,
+        ]);
+        $service = app(CommissionAccrualService::class);
+        $service->createForBatch($batch, $admin->id);
+        $account = $service->payableAccountForMarketer($admin->id);
+
+        $this->assertSame($account->id, (int) $admin->fresh()->commission_payable_account_id);
+        $this->assertSame($account->id, (int) $batch->fresh()->payable_account_id);
+        $this->assertNotSame($wrongFallback->id, $account->id);
+        $this->assertSame('مشرف', $account->name);
+        $this->assertSame(AccountTypesEnum::Marketer, $account->type);
+        $this->assertSame('144', (string) $account->parent->code);
+        $this->assertSame(1, Account::where('parent_id', $account->parent_id)->where('name', 'مشرف')->count());
+    }
+
+    public function test_known_legacy_name_is_linked_without_creating_a_duplicate(): void
+    {
+        [$admin] = $this->financeFixture(false);
+        $admin->update(['name' => 'LAYLA SHAMRUOKH', 'email' => 'laylashamruk@gmail.com']);
+        $parent = Account::where('code', 144)->firstOrFail();
+        $account = Account::create([
+            'name' => 'ليلى شمروخ', 'status' => 'creditor', 'level' => 2,
+            'code' => 1445, 'parent_id' => $parent->id, 'type' => AccountTypesEnum::Marketer->value,
+        ]);
+        $this->assertSame($account->id, app(CommissionAccrualService::class)->payableAccountForMarketer($admin->id)->id);
+        $this->assertSame($account->id, (int) $admin->fresh()->commission_payable_account_id);
+    }
+
+    public function test_failed_accrual_rolls_back_automatic_account_creation_and_link(): void
+    {
+        [$admin, $batch] = $this->financeFixture(false);
+        $batch->update(['approved_at' => '1900-01-01']);
+        $count = Account::count();
+        try {
+            app(CommissionAccrualService::class)->createForBatch($batch, $admin->id);
+            $this->fail('An inactive financial year must reject accrual.');
+        } catch (\Illuminate\Validation\ValidationException $exception) {
+            $this->assertArrayHasKey('accrual', $exception->errors());
+        }
+        $this->assertSame($count, Account::count());
+        $this->assertNull($admin->fresh()->commission_payable_account_id);
+        $this->assertNull($batch->fresh()->accrual_constraint_id);
+    }
+
+    public function test_an_account_owned_by_another_marketer_is_not_reused_by_name(): void
+    {
+        [$owner, , , $account] = $this->financeFixture();
+        $marketer = Admin::factory()->create(['name' => $account->name]);
+        $this->expectException(\Illuminate\Validation\ValidationException::class);
+        app(CommissionAccrualService::class)->payableAccountForMarketer($marketer->id);
+    }
+
+    public function test_ambiguous_name_matches_require_an_explicit_link(): void
+    {
+        [$admin] = $this->financeFixture(false);
+        $parent = Account::where('code', 144)->firstOrFail();
+        foreach ([1441, 1442] as $code) {
+            Account::create([
+                'name' => $admin->name, 'status' => 'creditor', 'level' => 2,
+                'code' => $code, 'parent_id' => $parent->id, 'type' => AccountTypesEnum::Marketer->value,
+            ]);
+        }
+        $this->expectException(\Illuminate\Validation\ValidationException::class);
+        app(CommissionAccrualService::class)->payableAccountForMarketer($admin->id);
+    }
+
+    private function financeFixture(bool $linked = true): array
     {
         DB::table('fn_constraint_code_sequences')->updateOrInsert(
             ['id' => 1],
@@ -210,13 +264,24 @@ class CommissionAccrualServiceTest extends TestCase
             'code' => 5417,
             'type' => AccountTypesEnum::MarketerExpenses->value,
         ]);
+        $parent = Account::query()->create([
+            'name' => 'المسوقين',
+            'status' => 'creditor',
+            'level' => 1,
+            'code' => 144,
+            'type' => AccountTypesEnum::Marketers->value,
+        ]);
         $payable = Account::query()->create([
             'name' => 'عمولات الموظف المستحقة',
             'status' => 'creditor',
             'level' => 1,
-            'code' => 223,
+            'code' => 14499,
+            'parent_id' => $parent->id,
             'type' => AccountTypesEnum::Marketer->value,
         ]);
+        if ($linked) {
+            $admin->update(['commission_payable_account_id' => $payable->id]);
+        }
         $batch = CommissionBatch::query()->create([
             'marketer_id' => $admin->id,
             'total_requests' => 1,

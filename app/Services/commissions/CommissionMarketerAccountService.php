@@ -42,9 +42,9 @@ class CommissionMarketerAccountService
             ->whereDoesntHave('children');
     }
 
-    public function resolve(int $marketerId): Account
+    public function resolve(int $marketerId, ?int $actorId = null): Account
     {
-        return DB::transaction(function () use ($marketerId) {
+        return DB::transaction(function () use ($marketerId, $actorId) {
             // Serialize allocation for all marketers under this parent, including account-code generation.
             $parent = $this->parentAccount();
             Account::query()->whereKey($parent->id)->lockForUpdate()->firstOrFail();
@@ -53,7 +53,7 @@ class CommissionMarketerAccountService
 
             if ($marketer->commission_payable_account_id) {
                 $account = (clone $query)->find($marketer->commission_payable_account_id);
-                if (!$account) {
+                if (!$account || $this->belongsToAnotherMarketer($account, $marketerId)) {
                     $this->invalidAccount($marketer);
                 }
 
@@ -74,9 +74,9 @@ class CommissionMarketerAccountService
                 }
             } else {
                 $names = collect([$marketer->name, $this->nameResolver->displayName($marketer)])
-                    ->map(fn ($name) => $this->nameResolver->normalize((string) $name))->filter()->unique();
+                    ->map(fn ($name) => $this->normalizeName((string) $name))->filter()->unique();
                 $matches = (clone $query)->get()->filter(
-                    fn (Account $candidate) => $names->contains($this->nameResolver->normalize($candidate->name))
+                    fn (Account $candidate) => $names->contains($this->normalizeName($candidate->name))
                 );
                 if ($matches->count() > 1) {
                     $this->invalidAccount($marketer);
@@ -86,12 +86,16 @@ class CommissionMarketerAccountService
                     $this->invalidAccount($marketer);
                 }
                 if (!$account) {
+                    $actorId ??= auth('admin')->id();
+                    if (!$actorId) {
+                        throw ValidationException::withMessages(['accrual' => 'يجب تحديد المستخدم الذي يعتمد العمولة لإنشاء حساب المسوق.']);
+                    }
                     $account = $this->accountService->storeAccount([
                         'name' => trim($marketer->name) ?: 'مسوق #' . $marketerId,
                         'parent_id' => $parent->id,
                         'status' => 'creditor',
                         'type' => AccountTypesEnum::Marketer->value,
-                        'created_by_id' => auth('admin')->id(),
+                        'created_by_id' => $actorId,
                         'branch_id' => $marketer->branch_id,
                     ]);
                 }
@@ -109,6 +113,11 @@ class CommissionMarketerAccountService
             ->where('commission_payable_account_id', $account->id)->exists()
             || CommissionBatch::query()->where('marketer_id', '<>', $marketerId)
                 ->where('payable_account_id', $account->id)->whereNotNull('accrual_constraint_id')->exists();
+    }
+
+    private function normalizeName(string $name): string
+    {
+        return $this->nameResolver->normalize(preg_replace('/[\x{064B}-\x{065F}\x{0670}]/u', '', $name));
     }
 
     private function invalidAccount(Admin $marketer): never
