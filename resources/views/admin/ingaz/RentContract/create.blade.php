@@ -1038,12 +1038,12 @@
                                     <div class="col-md-6">
                                         <label class="form-label">المسوق <span class="text-danger">*</span></label>
                                         <select name="marketer_id" id="marketer_id" class="form-select"
-                                                data-validation="required">
+                                                data-validation="required" required>
                                             <option value="">اختر المسوق</option>
-                                            @php $currentAdmin = auth('admin')->user(); @endphp
+                                            {{-- بدون اختيار مسبق للمستخدم الحالي: المسوق اختيار صريح مطلوب --}}
                                             @foreach($marketers as $marketer)
                                                 <option value="{{ $marketer->id }}"
-                                                        @if($currentAdmin && $currentAdmin->id == $marketer->id) selected @endif>
+                                                        {{ old('marketer_id') == $marketer->id ? 'selected' : '' }}>
                                                     {{ $marketer->name }}
                                                 </option>
                                             @endforeach

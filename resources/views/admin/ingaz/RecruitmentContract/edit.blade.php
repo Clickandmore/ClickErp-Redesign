@@ -163,7 +163,8 @@
             $documentNumber = old('client_national_num', $client?->documentNumber());
             $cityValue = old('city', $client?->city);
             $selectedClientNationalityId = old('client_nationality_id', $client?->nationality_id ?: ($defaultClientNationalityId ?? null));
-            $selectedMarketerId = old('marketer_id', $contract->marketer?->id ?: $contract->order?->resolveResponsibleAdmin()?->id ?: $currentAdmin?->id);
+            // يُعرض مسوق العقد المحفوظ فقط؛ العقود القديمة بلا مسوق تُترك فارغة ليختارها المحرِّر صراحة.
+            $selectedMarketerId = old('marketer_id', $contract->marketer?->id ?: $contract->order?->resolveResponsibleAdmin()?->id);
             $displayMarketerName = $contract->marketer?->name ?: $contract->order?->resolveResponsibleAdmin()?->name ?: $currentAdmin?->name ?: 'المستخدم الحالي';
         @endphp
 
@@ -474,7 +475,8 @@
                                                 <select name="marketer_id" id="marketer_id" class="form-select select2" data-placeholder="اختر المسوق" required>
                                                     <option value="">اختر المسوق...</option>
                                                     @foreach ($marketers ?? collect() as $marketer)
-                                                        <option value="{{ $marketer->id }}" @selected((string) $selectedMarketerId === (string) $marketer->id)>
+                                                        {{-- @selected من Laravel 9 ولا يُترجم هنا (Laravel 8) --}}
+                                                        <option value="{{ $marketer->id }}" {{ (string) $selectedMarketerId === (string) $marketer->id ? 'selected' : '' }}>
                                                             {{ $marketer->name }}
                                                         </option>
                                                     @endforeach

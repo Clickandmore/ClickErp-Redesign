@@ -26,6 +26,7 @@ class SponsorshipTransfer extends Model
         'branch_id',
         'old_sponsor_id',
         'new_sponsor_id',
+        'marketer_id',
         'trial_days',
         'trial_start_date',
         'contract_value',
@@ -107,6 +108,11 @@ class SponsorshipTransfer extends Model
     public function newSponsor()
     {
         return $this->belongsTo(User::class, 'new_sponsor_id');
+    }
+
+    public function marketer()
+    {
+        return $this->belongsTo(\App\Models\auth\Admin::class, 'marketer_id');
     }
 
     public function approvedBy()

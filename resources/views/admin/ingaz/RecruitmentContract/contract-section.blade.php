@@ -48,15 +48,17 @@
             <label class="form-label">المسوق <span class="text-danger">*</span></label>
             @php
                 $currentAdmin = $currentUser ?? auth('admin')->user();
-                $selectedMarketerId = old('marketer_id', $contract->marketer_id ?? $currentAdmin?->id);
+                // بدون رجوع للمستخدم الحالي: عقد جديد يبدأ بحقل مسوق فارغ ليختاره الموظف صراحة.
+                $selectedMarketerId = old('marketer_id', $contract->marketer_id ?? null);
                 $displayAdminName = trim(preg_replace('/\s+/u', ' ', html_entity_decode(strip_tags((string) ($currentAdmin?->name ?? '')), ENT_QUOTES, 'UTF-8')));
             @endphp
 
             @if (!empty($canSelectAnyMarketer))
-                <select name="marketer_id" id="marketer_id" class="form-select select2" data-placeholder="اختر المسوق">
+                <select name="marketer_id" id="marketer_id" class="form-select select2" data-placeholder="اختر المسوق" required>
                     <option value="">اختر المسوق...</option>
                     @foreach ($marketers ?? collect() as $marketer)
-                        <option value="{{ $marketer->id }}" @selected((string) $selectedMarketerId === (string) $marketer->id)>
+                        {{-- ملاحظة: @selected من Laravel 9 ولا يُترجم على Laravel 8، لذا تُستخدم صيغة صريحة --}}
+                        <option value="{{ $marketer->id }}" {{ (string) $selectedMarketerId === (string) $marketer->id ? 'selected' : '' }}>
                             {{ $marketer->name }}
                         </option>
                     @endforeach

@@ -3171,8 +3171,9 @@ class RecruitmentContractController extends Controller
         }
 
         $canSelectAnyMarketer = $this->canSelectAnyMarketer($currentAdmin);
+        // المسوق مطلوب في StoreContractRequest، فلا يوجد رجوع تلقائي للمستخدم الحالي هنا.
         $marketerId = $canSelectAnyMarketer
-            ? (int) $request->input('marketer_id', $currentAdmin->id)
+            ? (int) $request->input('marketer_id')
             : (int) $currentAdmin->id;
 
         if (!\App\Models\auth\Admin::query()->activeForOperations()->whereKey($marketerId)->exists()) {
@@ -3816,7 +3817,8 @@ class RecruitmentContractController extends Controller
         $request->merge([
             'account_client_type' => $request->input('account_client_type') === 'company' ? 'company' : 'person',
             'client_nationality_id' => $request->input('client_nationality_id') ?: $defaultClientNationalityId,
-            'marketer_id' => $request->input('marketer_id') ?: $fallbackMarketerId,
+            // بدون رجوع تلقائي للمستخدم الحالي: المسوق اختيار صريح مطلوب حتى عند التعديل.
+            'marketer_id' => $request->input('marketer_id') ?: null,
         ]);
 
         $hasClient = (bool) $contract->user;

@@ -165,6 +165,23 @@
                             </div>
                         </div>
                     </div>
+                    <!-- المسوق المسؤول عن الطلب -->
+                    <div class="col-md-12">
+                        <label class="form-label fw-bold">المسوق <span class="text-danger">*</span></label>
+                        <select name="marketer_id" id="marketer_id" class="form-select @error('marketer_id') is-invalid @enderror" required>
+                            <option value="">اختر المسوق</option>
+                            @foreach ($marketers ?? collect() as $marketer)
+                                <option value="{{ $marketer->id }}" {{ old('marketer_id', $transfer->marketer_id ?? null) == $marketer->id ? 'selected' : '' }}>
+                                    {{ $marketer->name }}
+                                </option>
+                            @endforeach
+                        </select>
+                        @error('marketer_id')
+                            <div class="invalid-feedback">{{ $message }}</div>
+                        @enderror
+                        <div class="form-text">الموظف/المسوق المسؤول عن طلب نقل الخدمات.</div>
+                    </div>
+
                     <!-- معلومات العمل التجريبي والتكاليف -->
                     <div class="col-md-6">
                         <label class="form-label fw-bold">عدد أيام العمل التجريبي <span class="text-danger">*</span></label>

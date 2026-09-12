@@ -3050,15 +3050,11 @@
                 }
 
                 if (!marketerId) {
+                    // المسوق إلزامي في التبويبين؛ لا استثناء لتبويب الطلب.
                     isValid = false;
-                    if (isNewContractTab) {
-                        $('#tab-new-pane #marketer_id').addClass('is-invalid');
-                        $('#tab-new-pane #err_marketer_id').text('يرجى اختيار المسوق');
-                    } else {
-                        $('#tab-order-pane #marketer_id').addClass('is-invalid');
-                        $('#tab-order-pane #err_marketer_id').text('يرجى اختيار المسوق');
-                        isValid = true;
-                    }
+                    var marketerPane = isNewContractTab ? '#tab-new-pane' : '#tab-order-pane';
+                    $(marketerPane + ' #marketer_id').addClass('is-invalid');
+                    $(marketerPane + ' #err_marketer_id').text('يرجى اختيار المسوق');
                     console.log('Marketer validation failed: empty');
                 } else {
                     if (isNewContractTab) {

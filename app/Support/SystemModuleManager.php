@@ -12,6 +12,7 @@ class SystemModuleManager
     private const CACHE_KEY = 'superadmin.modules.enabled_map';
     private const SETTINGS_CACHE_KEY = 'superadmin.settings';
     private const BRANCH_LIMIT_KEY = 'branches_limit';
+    private const USER_LIMIT_KEY = 'users_limit';
     private const PRODUCT_PROFILE_KEY = 'product_profile';
 
     public static function modules(): array
@@ -237,6 +238,39 @@ class SystemModuleManager
         );
 
         Cache::forget(self::SETTINGS_CACHE_KEY . '.' . self::BRANCH_LIMIT_KEY);
+    }
+
+    public static function userLimit(): ?int
+    {
+        if (! Schema::hasTable('dev_superadmin_settings')) {
+            return null;
+        }
+
+        $value = Cache::remember(self::SETTINGS_CACHE_KEY . '.' . self::USER_LIMIT_KEY, now()->addMinutes(5), function () {
+            return DB::table('dev_superadmin_settings')
+                ->where('key', self::USER_LIMIT_KEY)
+                ->value('value');
+        });
+
+        return is_numeric($value) ? max((int) $value, 0) : null;
+    }
+
+    public static function updateUserLimit(?int $limit): void
+    {
+        if (! Schema::hasTable('dev_superadmin_settings')) {
+            return;
+        }
+
+        \App\Support\Audit\AuditedSettings::updateOrInsert('dev_superadmin_settings',
+            ['key' => self::USER_LIMIT_KEY],
+            [
+                'value' => $limit === null ? null : (string) max($limit, 0),
+                'updated_at' => now(),
+                'created_at' => now(),
+            ]
+        );
+
+        Cache::forget(self::SETTINGS_CACHE_KEY . '.' . self::USER_LIMIT_KEY);
     }
 
     public static function defaultDashboardUrl(): string

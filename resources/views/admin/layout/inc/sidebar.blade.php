@@ -110,19 +110,23 @@
                 $canViewReports = @AdminGuardHasAnyPerm(\App\Services\ingaz\ReportExportService::allExportPermissions());
                 $canViewOfficeManagement = @AdminGuardHasPerm(\App\PermKeys::OFFICE_VIEW);
 
+                // كل قسم يظهر داخل "العمليات" يجب أن يكون ضمن هذا الشرط،
+                // وإلا اختفى القسم بالكامل عن مستخدم يملك صلاحيته وحدها.
                 $canViewOperations =
                     $canViewCv ||
                     $canViewOrders ||
                     $canViewFinancialRequests ||
                     $canViewRecruitmentContracts ||
                     $canViewRentContracts ||
+                    $canViewIngazDelegations ||
                     $canViewShelterContracts ||
                     $canViewLogistics ||
                     $canViewComplaints ||
                     $canViewSponsorshipTransfer ||
                     $canViewContactRequests ||
                     $canViewOfficeManagement ||
-                    $canViewOperationalCommissions;
+                    $canViewOperationalCommissions ||
+                    $canViewReports;
 
                 $canViewSms = @AdminGuardHasAnyPerm([\App\PermKeys::NOTIFICATIONS_CONTROL, \App\PermKeys::NOTIFICATIONS_VIEW]);
 

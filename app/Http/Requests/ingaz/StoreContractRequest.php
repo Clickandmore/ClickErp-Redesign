@@ -34,7 +34,9 @@ class StoreContractRequest extends MainRequest
         $normalizedData = [];
         $currentAdmin = Auth::guard('admin')->user();
 
-        if ($currentAdmin && (!$this->canSelectAnyMarketer($currentAdmin) || !$this->filled('marketer_id'))) {
+        // لا يُعبأ المسوق تلقائيًا عند تركه فارغًا؛ الاختيار الصريح مطلوب حتى لا يُنسب
+        // العقد لمن أنشأه بدل المسوق الفعلي. التعبئة تبقى فقط لمن لا يملك حق الاختيار.
+        if ($currentAdmin && !$this->canSelectAnyMarketer($currentAdmin)) {
             $normalizedData['marketer_id'] = $currentAdmin->id;
         }
 

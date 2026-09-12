@@ -599,15 +599,26 @@ class SponsorshipTransferController extends Controller
         $this->applyRequestBranchFilter($contractsQuery, request(), 'contracts');
         $contracts = $contractsQuery->latest()->get();
 
-        if ($workflowSource === 'rental') {
-            $contracts = $contracts
-                ->filter(fn (Contract $contract) => $this->contractIsRentalWorker($contract))
-                ->values();
+        // مصدر المسار يُشتق من العقد نفسه وليس من رابط الصفحة فقط؛ عدة مداخل في الواجهة
+        // لا تمرّر workflow_source، وكانت عاملة الإيجار تُفتح على المسار المالي فتتكرر قيودها.
+        if ($selectedContractId) {
+            $selectedContract = $contracts->firstWhere('id', (int) $selectedContractId)
+                ?? Contract::with('maid.jobTypes')->find($selectedContractId);
+            if ($selectedContract && $this->contractIsRentalWorker($selectedContract)) {
+                $workflowSource = 'rental';
+            }
         }
+
+        $contracts = $workflowSource === 'rental'
+            ? $contracts->filter(fn (Contract $contract) => $this->contractIsRentalWorker($contract))->values()
+            : $contracts->reject(fn (Contract $contract) => $this->contractIsRentalWorker($contract))->values();
 
         $receiptAccounts = SponsorshipTransferPaymentService::receiptAccounts();
 
-        return view($this->folderPath . '.create', compact('contracts', 'selectedContractId', 'selectedOrder', 'selectedNewSponsorId', 'selectedNewSponsor', 'receiptAccounts', 'workflowSource'));
+        // المسوقون النشطون لاختيار المسؤول عن طلب النقل
+        $marketers = Admin::query()->activeForOperations()->orderBy('name')->get(['id', 'name']);
+
+        return view($this->folderPath . '.create', compact('contracts', 'selectedContractId', 'selectedOrder', 'selectedNewSponsorId', 'selectedNewSponsor', 'receiptAccounts', 'workflowSource', 'marketers'));
     }
 
 
@@ -622,6 +633,7 @@ class SponsorshipTransferController extends Controller
                 'new_sponsor_name' => 'required_if:new_sponsor_mode,new|nullable|string|max:255',
                 'new_sponsor_phone' => 'required_if:new_sponsor_mode,new|nullable|string|max:20',
                 'new_sponsor_national_num' => 'nullable|string|max:50',
+                'marketer_id' => 'required|exists:admins,id',
                 'trial_days' => 'required|integer|min:1|max:90',
                 'trial_start_date' => 'required|date',
                 'contract_value' => 'required|numeric|min:0',
@@ -644,6 +656,8 @@ class SponsorshipTransferController extends Controller
                 'new_sponsor_phone.required_if' => 'يجب إدخال رقم جوال العميل الجديد',
                 'new_sponsor_phone.max' => 'رقم الجوال يجب أن يكون أقل من 20 خانة',
                 'new_sponsor_national_num.max' => 'رقم الهوية يجب أن يكون أقل من 50 خانة',
+                'marketer_id.required' => 'يجب اختيار المسوق',
+                'marketer_id.exists' => 'المسوق المختار غير موجود',
                 'trial_days.required' => 'يجب إدخال عدد أيام العمل التجريبي',
                 'trial_days.integer' => 'عدد أيام العمل التجريبي يجب أن يكون رقماً صحيحاً',
                 'trial_days.min' => 'عدد أيام العمل التجريبي يجب أن يكون 1 يوم على الأقل',
@@ -690,6 +704,15 @@ class SponsorshipTransferController extends Controller
             if ($workflowSource === 'rental' && !$this->contractIsRentalWorker($contract)) {
                 throw ValidationException::withMessages([
                     'contract_id' => 'مسار نقل الخدمات غير المالي مخصص لعاملات الإيجار فقط.',
+                ]);
+            }
+
+            // الاتجاه المعاكس: عاملة إيجار أُرسلت على المسار المالي تُنتج قيوداً مكررة
+            // (إيراد مؤجل + إيراد إتمام + فاتورة بإيراد وضريبة) فوق قيود عقد التأجير.
+            if ($workflowSource === 'standard' && $this->contractIsRentalWorker($contract)) {
+                throw ValidationException::withMessages([
+                    'contract_id' => 'هذه العاملة على عقد تأجير، ويجب إنشاء نقل الخدمات لها من مسار الإيجار غير المالي '
+                        . 'حتى لا تتكرر القيود المحاسبية المسجَّلة على عقد التأجير.',
                 ]);
             }
 
@@ -772,6 +795,7 @@ class SponsorshipTransferController extends Controller
                 'contract_id' => $contract->id,
                 'old_sponsor_id' => $contract->user_id,
                 'new_sponsor_id' => $newSponsor->id,
+                'marketer_id' => $validated['marketer_id'],
                 'trial_days' => $validated['trial_days'],
                 'trial_start_date' => $validated['trial_start_date'],
                 'contract_value' => $validated['contract_value'],
@@ -809,7 +833,7 @@ class SponsorshipTransferController extends Controller
                     . (!empty($financeResult['bond']) ? ' وإنشاء سند قبض رقم ' . ($financeResult['bond']->code ?: $financeResult['bond']->id) : ''),
                 'transfer_id' => $transfer->id,
                 'show_url' => route('SponsorshipTransfer.show', $transfer->id),
-                'invoice_create_url' => InvoiceAuthorization::canCreate()
+                'invoice_create_url' => !$transfer->isRentalWorkflow() && InvoiceAuthorization::canCreate()
                     ? route('SponsorshipTransfer.invoice.create', $transfer->id)
                     : null,
             ]);
@@ -851,6 +875,7 @@ class SponsorshipTransferController extends Controller
             'contract.maid.nationality',
             'oldSponsor',
             'newSponsor',
+            'marketer',
             'approvedBy',
             'transferredBy',
             'failedBy',
@@ -988,6 +1013,7 @@ class SponsorshipTransferController extends Controller
         $selectedNewSponsor = $transfer->newSponsor;
         $selectedOrder = null;
         $receiptAccounts = SponsorshipTransferPaymentService::receiptAccounts();
+        $marketers = Admin::query()->activeForOperations()->orderBy('name')->get(['id', 'name']);
 
         return view($this->folderPath . '.create', compact(
             'transfer',
@@ -998,7 +1024,8 @@ class SponsorshipTransferController extends Controller
             'selectedNewSponsorId',
             'selectedNewSponsor',
             'receiptAccounts',
-            'workflowSource'
+            'workflowSource',
+            'marketers'
         ));
     }
 
@@ -1027,6 +1054,7 @@ class SponsorshipTransferController extends Controller
                 'new_sponsor_name' => 'required_if:new_sponsor_mode,new|nullable|string|max:255',
                 'new_sponsor_phone' => 'required_if:new_sponsor_mode,new|nullable|string|max:20',
                 'new_sponsor_national_num' => 'nullable|string|max:50',
+                'marketer_id' => 'required|exists:admins,id',
                 'trial_days' => 'required|integer|min:1|max:90',
                 'trial_start_date' => 'required|date',
                 'contract_value' => 'required|numeric|min:0',
@@ -1136,6 +1164,7 @@ class SponsorshipTransferController extends Controller
                 'contract_id' => $contract->id,
                 'old_sponsor_id' => $oldSponsorId,
                 'new_sponsor_id' => $newSponsor->id,
+                'marketer_id' => $validated['marketer_id'],
                 'trial_days' => $validated['trial_days'],
                 'trial_start_date' => $validated['trial_start_date'],
                 'contract_value' => $validated['contract_value'],

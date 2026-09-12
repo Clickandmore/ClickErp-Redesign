@@ -16,7 +16,7 @@ use Nami\Finance\Services\YearService;
  * يُسجّل عند تسليم العاملة للكفيل الجديد وبداية فترة التجربة.
  * - يُثبت قيمة العقد كإيراد مؤجل في حساب الدفعات المقدمة (2291).
  * - ينقل تكلفة الإيواء من حساب إيواء الجنسية (1521) إلى إيواء التجربة (1541).
- * - يُثبت الدفعة المقدمة المحصّلة من البنك وخصمها من ذمة العميل الجديد.
+ * التحصيل لا يُسجّل هنا؛ سند القبض الخاص بالطلب هو المصدر المحاسبي الوحيد له.
  */
 class SponsorshipTransferTrialStartService
 {
@@ -61,13 +61,11 @@ class SponsorshipTransferTrialStartService
         }
 
         $contractValue = $this->roundMoney((float) $transfer->contract_value);
-        $paidAmount    = $this->roundMoney((float) $transfer->paid_amount);
         $housingCost   = $this->resolveHousingCost($transfer);
 
         $advancePaymentsAccountId = $this->resolveAdvancePaymentsAccountId($nationalityName);
         $trialHousingAccountId    = $this->resolveTrialHousingAccountId();
         $mainHousingAccountId     = $this->resolveMainHousingAccountId($nationalityName);
-        $bankAccountId            = $this->resolveBankAccountId();
 
         if (!$advancePaymentsAccountId) {
             throw new \RuntimeException('لا يوجد حساب دفعات مقدمة نقل خدمات مرتبط بالجنسية: ' . $nationalityName);
@@ -78,10 +76,6 @@ class SponsorshipTransferTrialStartService
         if (!$mainHousingAccountId) {
             throw new \RuntimeException('لا يوجد حساب مصروفات مدفوعة مقدماً - إيواء مرتبط بالجنسية: ' . $nationalityName);
         }
-        if (!$bankAccountId) {
-            throw new \RuntimeException('لا يوجد حساب بنكي رئيسي في النظام.');
-        }
-
         $statement = 'خروج العاملة للتجربة — نقل الخدمات #' . $transfer->id;
         $lines = [];
 
@@ -97,15 +91,9 @@ class SponsorshipTransferTrialStartService
             $this->appendLine($lines, $mainHousingAccountId, 'creditor', $housingCost, 'تخفيض أصل الإيواء');
         }
 
-        // 4. تسجيل الدفعة المقدمة المحصّلة من البنك
-        if ($paidAmount > 0) {
-            $this->appendLine($lines, $bankAccountId, 'debtor', $paidAmount, 'وارد دفعة مقدمة من العميل الجديد');
-            $this->appendLine($lines, $newClientAccountId, 'creditor', $paidAmount, 'سداد دفعة مقدمة');
-        }
-
         if (empty($lines)) {
             throw new \RuntimeException(
-                'لا توجد قيمة عقد أو دفعة محصلة أو تكلفة إيواء أكبر من صفر لإنشاء قيد بداية التجربة.'
+                'لا توجد قيمة عقد أو تكلفة إيواء أكبر من صفر لإنشاء قيد بداية التجربة.'
             );
         }
 
@@ -192,19 +180,6 @@ class SponsorshipTransferTrialStartService
                 $inner->where('name', 'like', '%ايواء%' )
                       ->orWhere('name', 'like', '%إيواء%');
             })->where('name', 'like', '%' . $nationalityName . '%')
-        );
-    }
-
-    private function resolveBankAccountId(): ?int
-    {
-        return $this->resolveAccountByCandidates(
-            ['البنك الأهلي رئيسي', 'البنك الرئيسي', 'بنك'],
-            [],
-            fn ($q) => $q->where('status', 'debtor')
-                         ->where(function ($inner) {
-                             $inner->where('name', 'like', '%بنك%')
-                                   ->orWhere('name', 'like', '%bank%');
-                         })->whereDoesntHave('children')
         );
     }
 

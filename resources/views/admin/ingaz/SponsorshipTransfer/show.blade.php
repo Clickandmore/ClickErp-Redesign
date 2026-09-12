@@ -368,7 +368,7 @@
                 <a href="{{ route('invoices.show', $transfer->invoice->id) }}" class="btn-icon btn-print" title="عرض الفاتورة">
                     <i class="fas fa-file-invoice"></i>
                 </a>
-            @elseif(!$transfer->invoice && \App\Support\InvoiceAuthorization::canCreate())
+            @elseif(!$transfer->invoice && !$transfer->isRentalWorkflow() && \App\Support\InvoiceAuthorization::canCreate())
                 <a href="{{ route('SponsorshipTransfer.invoice.create', $transfer->id) }}" class="btn-icon btn-print" title="إصدار فاتورة">
                     <i class="fas fa-file-invoice-dollar"></i>
                 </a>
@@ -691,6 +691,10 @@
                 <div class="info-card trial-info">
                     <div class="card-title">
                         <i class="fas fa-clock"></i>معلومات فترة التجربة
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">المسوق:</span>
+                        <span class="info-value">{{ $transfer->marketer?->name ?: 'غير محدد' }}</span>
                     </div>
                     <div class="info-row">
                         <span class="info-label">مدة التجربة:</span>

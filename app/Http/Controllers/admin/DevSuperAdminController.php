@@ -282,6 +282,7 @@ class DevSuperAdminController extends Controller
             'dashboards' => SystemModuleManager::dashboards(),
             'defaultDashboardKey' => SystemModuleManager::defaultDashboardKey(),
             'branchLimit' => SystemModuleManager::branchLimit(),
+            'userLimit' => SystemModuleManager::userLimit(),
             'admins' => $admins,
             'backupSettings' => $activeSection === 'backups' ? DatabaseBackupSettings::all() : null,
             'databaseBackups' => $backups,
@@ -362,6 +363,7 @@ class DevSuperAdminController extends Controller
     {
         $data = $request->validate([
             'branches_limit' => ['nullable', 'integer', 'min:0'],
+            'users_limit' => ['nullable', 'integer', 'min:0'],
             'product_profile' => ['required', 'string', 'in:' . implode(',', array_keys(SystemModuleManager::productProfiles()))],
             'current_product_profile' => ['required', 'string'],
         ]);
@@ -414,6 +416,7 @@ class DevSuperAdminController extends Controller
                 : (string) $request->input('default_dashboard', 'recruitment');
             SystemModuleManager::updateDefaultDashboard($dashboard);
             SystemModuleManager::updateBranchLimit($data['branches_limit'] ?? null);
+            SystemModuleManager::updateUserLimit($data['users_limit'] ?? null);
 
             if ($productProfile !== $currentProductProfile && Schema::hasTable('system_product_profile_changes')) {
                 DB::table('system_product_profile_changes')->insert([
