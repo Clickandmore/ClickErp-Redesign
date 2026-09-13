@@ -6,7 +6,9 @@ use App\Enums\ingaz\ContractStatusEnum;
 use App\Models\Contract;
 use App\Models\ShelterLivingExpense;
 use App\Services\BranchAccessService;
+use App\Models\ShelterLivingExpenseAllocation;
 use App\Support\AutomaticJournalEntries;
+use App\Support\ShelterAccountingSettings;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
@@ -25,7 +27,8 @@ class ShelterLivingExpenseAccountingService
 
     public function __construct(
         protected ConstraintService $constraintService,
-        protected YearService $yearService
+        protected YearService $yearService,
+        protected ShelterCostLedgerService $shelterLedger
     ) {
     }
 
@@ -81,6 +84,9 @@ class ShelterLivingExpenseAccountingService
                 throw new \RuntimeException('قيمة مصروف الإعاشة يجب أن تكون أكبر من صفر.');
             }
 
+            $this->assertNotDuplicateSubmission($data, $totalAmount);
+            $capitalize = ShelterAccountingSettings::livingExpenseCapitalized();
+
             $workerCount = $contracts->count();
             $allocations = $this->splitAmount($totalAmount, $workerCount);
             $entryDate = (string) $data['expense_date'];
@@ -103,20 +109,28 @@ class ShelterLivingExpenseAccountingService
             ]);
 
             $lines = [];
+            $createdAllocations = [];
             foreach ($contracts as $index => $contract) {
                 $amount = $allocations[$index] ?? 0;
-                $costCenter = $this->ensureMaidCostCenter($contract);
+                $costCenter = $this->shelterLedger->ensureMaidCostCenter($contract);
                 $statement = $this->allocationStatement($expense, $contract);
 
-                $expense->allocations()->create([
+                $allocation = $expense->allocations()->create([
                     'contract_id' => $contract->id,
                     'maid_id' => $contract->maid_id,
                     'cost_center_id' => $costCenter->id,
                     'amount' => $amount,
                 ]);
+                $createdAllocations[] = [$contract, $allocation, $amount];
+
+                // عند الرسملة يُدان أصل الإيواء لجنسية العاملة (S2) بدل حساب مصروف الإعاشة،
+                // فيحمل رصيدها كل ما أُنفق عليها ويُفرج عنه عند الخروج.
+                $debitAccountId = $capitalize
+                    ? $this->shelterLedger->assetAccountIdForContract($contract)
+                    : $expenseAccount->id;
 
                 $lines[] = [
-                    'account_id' => $expenseAccount->id,
+                    'account_id' => $debitAccountId,
                     'account_type' => 'debtor',
                     'debtor_value' => $amount,
                     'creditor_value' => 0,
@@ -139,8 +153,90 @@ class ShelterLivingExpenseAccountingService
                 : null;
             $expense->update(['constraint_id' => $constraint?->id]);
 
+            if ($capitalize) {
+                foreach ($createdAllocations as [$contract, $allocation, $amount]) {
+                    $this->shelterLedger->recordLivingExpenseAllocation($contract, (float) $amount, $constraint, $allocation);
+                }
+            }
+
             return $expense->fresh(['constraint']);
         });
+    }
+
+    /**
+     * عكس مصروف إعاشة بقيد مقابل (لا حذف): دائن حسابات المدين الأصلية / مدين حساب الصرف،
+     * مع إفراج مقابل في دفتر الإيواء إن كان المصروف مرسملاً.
+     */
+    public function reverse(ShelterLivingExpense $expense, ?string $reason = null): ?Constraint
+    {
+        return DB::transaction(function () use ($expense, $reason) {
+            $expense = ShelterLivingExpense::query()->lockForUpdate()->findOrFail($expense->id);
+
+            if (Schema::hasColumn('shelter_living_expenses', 'reversed_by_constraint_id') && $expense->reversed_by_constraint_id) {
+                return Constraint::query()->find($expense->reversed_by_constraint_id);
+            }
+
+            $original = $expense->constraint_id ? Constraint::query()->with('constraintDetails')->find($expense->constraint_id) : null;
+            $reversal = null;
+
+            if ($original && AutomaticJournalEntries::enabled()) {
+                $statement = 'عكس ' . $this->constraintStatement($expense) . ($reason ? ' — ' . $reason : '');
+                $lines = $original->constraintDetails
+                    ->map(fn ($detail) => [
+                        'account_id' => (int) $detail->account_id,
+                        'account_type' => (float) $detail->creditor_value > 0 ? 'debtor' : 'creditor',
+                        'debtor_value' => $this->roundMoney((float) $detail->creditor_value),
+                        'creditor_value' => $this->roundMoney((float) $detail->debtor_value),
+                        'statement' => $statement,
+                        'cost_center_id' => $detail->cost_center_id,
+                    ])
+                    ->sortByDesc('debtor_value')
+                    ->values()
+                    ->all();
+
+                $reversal = $this->storeConstraint(
+                    $lines,
+                    $statement,
+                    now()->toDateString(),
+                    (float) $expense->total_amount,
+                    $this->resolveYear(now()->toDateString())
+                );
+            }
+
+            $expense->loadMissing('allocations.contract');
+            foreach ($expense->allocations as $allocation) {
+                if ($allocation->contract && $this->shelterLedger->findEntry($allocation, \App\Models\ShelterCostEntry::KIND_LIVING_EXPENSE)) {
+                    $this->shelterLedger->recordLivingExpenseReversal($allocation->contract, (float) $allocation->amount, $reversal, $allocation);
+                }
+            }
+
+            if (Schema::hasColumn('shelter_living_expenses', 'reversed_by_constraint_id')) {
+                $expense->forceFill([
+                    'reversed_by_constraint_id' => $reversal?->id,
+                    'reversed_at' => now(),
+                ])->save();
+            }
+
+            return $reversal;
+        });
+    }
+
+    /**
+     * حماية من الإرسال المزدوج: نفس مكان الإيواء والتاريخ والمبلغ من نفس المستخدم خلال دقيقة.
+     */
+    private function assertNotDuplicateSubmission(array $data, float $totalAmount): void
+    {
+        $duplicate = ShelterLivingExpense::query()
+            ->where('expense_date', (string) $data['expense_date'])
+            ->where('total_amount', $totalAmount)
+            ->where('created_by', Auth::guard('admin')->id() ?: Auth::id())
+            ->when($data['shelter_id'] ?? null, fn ($q, $shelterId) => $q->where('shelter_id', $shelterId))
+            ->where('created_at', '>=', now()->subMinute())
+            ->exists();
+
+        if ($duplicate) {
+            throw new \RuntimeException('تم تسجيل مصروف إعاشة مطابق قبل أقل من دقيقة. تحقق من القائمة قبل إعادة الإرسال.');
+        }
     }
 
     private function eligibleContracts(?int $shelterId, ?int $contractId = null)
@@ -185,64 +281,8 @@ class ShelterLivingExpenseAccountingService
         return $amounts;
     }
 
-    private function ensureMaidCostCenter(Contract $contract): CostCenter
-    {
-        $root = $this->ensureShelterRootCostCenter();
-        $maidId = (int) $contract->maid_id;
 
-        $costCenter = CostCenter::query()
-            ->lockForUpdate()
-            ->where('parent_id', $root->id)
-            ->where('table_name', CostCenterTypeEnum::General->value)
-            ->where('table_related_id', $maidId)
-            ->first();
 
-        if ($costCenter) {
-            return $costCenter;
-        }
-
-        $title = 'إيواء عاملة #' . $maidId;
-        $maidName = trim((string) ($contract->maid?->name ?? ''));
-        if ($maidName !== '') {
-            $title .= ' - ' . $maidName;
-        }
-
-        return CostCenter::query()->create([
-            'title' => $title,
-            'parent_id' => $root->id,
-            'table_name' => CostCenterTypeEnum::General->value,
-            'table_related_id' => $maidId,
-            'code' => $this->nextCostCenterCode(),
-            'created_by_id' => Auth::guard('admin')->id() ?: Auth::id() ?: 1,
-        ]);
-    }
-
-    private function ensureShelterRootCostCenter(): CostCenter
-    {
-        $costCenter = CostCenter::query()
-            ->lockForUpdate()
-            ->whereNull('parent_id')
-            ->where('title', 'عاملات الإيواء')
-            ->first();
-
-        if ($costCenter) {
-            return $costCenter;
-        }
-
-        return CostCenter::query()->create([
-            'title' => 'عاملات الإيواء',
-            'parent_id' => null,
-            'table_name' => CostCenterTypeEnum::General->value,
-            'table_related_id' => 0,
-            'code' => $this->nextCostCenterCode(),
-            'created_by_id' => Auth::guard('admin')->id() ?: Auth::id() ?: 1,
-        ]);
-    }
-
-    private function nextCostCenterCode(): string
-    {
-        return (string) (((int) CostCenter::query()->lockForUpdate()->max('code')) + 1);
-    }
 
     private function resolveYear(string $date)
     {

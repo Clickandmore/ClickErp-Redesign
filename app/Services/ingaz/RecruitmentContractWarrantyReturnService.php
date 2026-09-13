@@ -2,20 +2,34 @@
 
 namespace App\Services\ingaz;
 
+use App\Http\Controllers\ingaz\InvoiceController;
 use App\Models\Contract;
 use App\Models\ContractReturnRequest;
 use App\Models\TravelHistory;
 use App\Support\AutomationSettings;
 use App\Support\AutomaticJournalEntries;
 use App\Support\RecruitmentRevenueRecognition;
+use App\Support\ShelterAccountingSettings;
 use Carbon\Carbon;
-use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Schema;
 use Nami\Finance\Models\Account;
 use Nami\Finance\Models\Constraint;
-use Nami\Finance\Models\ConstraintDetails;
 use Nami\Finance\Services\ConstraintService;
 use Nami\Finance\Services\YearService;
 
+/**
+ * الإرجاع داخل الضمان (القيد 9 في دليل القيود) بعد فصله إلى ثلاثة مستندات:
+ *
+ *  1. إشعار دائن بكامل قيمة الفاتورة (InvoiceController::createSystemCreditNoteForRecruitmentRefund):
+ *     مدين مردودات مبيعات استقدام (الجنسية) + الضريبة / دائن العميل. يُرسل لزاتكا كإشعار دائن.
+ *     في وضع «عند الفاتورة» يُعكس معه قيد فاتورة المورد الخارجي.
+ *  2. قيد تسويات الإرجاع: خصم مدة البقاء (مدين العميل / دائن إيراد استرداد مبيعات).
+ *  3. قيد إيواء S1 عبر ShelterCostLedgerService: مدين أصل الإيواء / دائن مردودات تكلفة
+ *     بتكلفة المكتب الخارجي (الوضع الافتراضي فقط؛ في وضع «عند الفاتورة» تُعكس فاتورة المورد بدلاً منه).
+ *
+ * الأرقام الثلاثة تُحفظ على طلب الإرجاع (credit_note_id, return_constraint_id, shelter_constraint_id)
+ * فلا تتكرر عند إعادة المعالجة.
+ */
 class RecruitmentContractWarrantyReturnService
 {
     private const USD_TO_SAR_RATE = 3.75;
@@ -23,7 +37,8 @@ class RecruitmentContractWarrantyReturnService
     public function __construct(
         protected ConstraintService $constraintService,
         protected YearService $yearService,
-        protected RecruitmentTripAccountingService $tripAccountingService
+        protected RecruitmentTripAccountingService $tripAccountingService,
+        protected ShelterCostLedgerService $shelterLedger
     ) {
     }
 
@@ -32,15 +47,18 @@ class RecruitmentContractWarrantyReturnService
         return 'رجوع عاملة داخل الضمان — عقد استقدام #' . $contract->id;
     }
 
+    public static function shelterStatementFor(Contract $contract): string
+    {
+        return 'إيواء — استلام عاملة من إرجاع داخل الضمان — عقد #' . $contract->id;
+    }
+
     public static function externalOfficeReversalStatement(Contract $contract): string
     {
         return 'استرداد فاتورة المورد الخارجي - رجوع عاملة داخل الضمان - عقد استقدام #' . $contract->id;
     }
 
     /**
-     * ينشئ القيد المحاسبي عند الموافقة على طلب رجوع العاملة داخل فترة الضمان.
-     * القيد #9: يعكس المبيعات والضريبة، يُعيد قيمة العقد لذمة العميل،
-     * يُثبت خصم مدة البقاء، وينقل تكلفة المكتب الخارجي لحساب الإيواء.
+     * يُستدعى عند الموافقة على طلب الإرجاع. يعيد قيد التسويات إن وُجد، وإلا قيد إشعار الدائن.
      */
     public function record(Contract $contract, ContractReturnRequest $returnRequest): ?Constraint
     {
@@ -78,191 +96,85 @@ class RecruitmentContractWarrantyReturnService
             throw new \RuntimeException('لا يوجد حساب محاسبي للعميل المرتبط بالعقد.');
         }
 
-        $totalDue      = $this->roundMoney((float) $invoice->total_due);
-        $vatAmount     = $this->roundMoney((float) $invoice->vat_amount);
-        $netInvoice    = $this->roundMoney($totalDue - $vatAmount);
-        $stayAmount    = $this->calculateStayAmount($contract, $returnDate, $netInvoice);
-        $officeCost    = $this->resolveExternalOfficeCostAmount($contract);
+        $totalDue   = $this->roundMoney((float) $invoice->total_due);
+        $vatAmount  = $this->roundMoney((float) $invoice->vat_amount);
+        $netInvoice = $this->roundMoney($totalDue - $vatAmount);
+        $stayAmount = $this->calculateStayAmount($contract, $returnDate, $netInvoice);
+        $officeCost = $this->resolveExternalOfficeCostAmount($contract);
+        $onInvoiceMode = RecruitmentRevenueRecognition::invoiceRecognizesOnInvoice($invoice);
+        $hasTracking = Schema::hasColumn('contract_return_requests', 'credit_note_id');
 
-        if (RecruitmentRevenueRecognition::invoiceRecognizesOnInvoice($invoice)) {
-            return $this->recordDirectSalesReversal(
-                $contract,
+        // 1. إشعار دائن بكامل قيمة الفاتورة (يعكس المبيعات أو الالتزام + الضريبة على العميل).
+        $creditNote = null;
+        if (!$hasTracking || !$returnRequest->credit_note_id) {
+            $creditNote = app(InvoiceController::class)->createSystemCreditNoteForRecruitmentRefund(
                 $invoice,
-                $nationalityName,
                 $returnDate,
-                $activeYear,
-                $clientAccountId,
-                $totalDue,
-                $vatAmount,
-                $netInvoice,
-                $stayAmount
+                'إرجاع داخل الضمان — عقد استقدام #' . $contract->id . ': ' . trim((string) ($returnRequest->admin_notes ?: $returnRequest->notes ?: 'إرجاع العاملة')),
+                $this->constraintService,
+                $this->yearService
             );
+            if ($creditNote && $hasTracking) {
+                $returnRequest->forceFill(['credit_note_id' => $creditNote->id])->saveQuietly();
+            }
         }
 
-        $accommodationAccountId  = $this->resolveAccommodationAccountId($nationalityName);
-        $salesReturnsAccountId   = $this->resolveSalesReturnsAccountId($nationalityName);
-        $vatAccountId            = $this->resolveVatAccountId();
-        $salesRecoveryAccountId  = $this->resolveSalesRecoveryAccountId();
-        $costReturnsAccountId    = $this->resolveCostReturnsAccountId($nationalityName);
+        // 2. قيد تسويات الإرجاع: خصم مدة البقاء.
+        $adjustments = null;
+        if (!$hasTracking || !$returnRequest->return_constraint_id) {
+            $adjustments = $this->recordStayDeduction($contract, $returnDate, $activeYear, $clientAccountId, $stayAmount);
+            if ($adjustments && $hasTracking) {
+                $returnRequest->forceFill(['return_constraint_id' => $adjustments->id])->saveQuietly();
+            }
+        }
 
-        if (!$accommodationAccountId) {
-            throw new \RuntimeException('لا يوجد حساب إيواء مرتبط بجنسية العقد: ' . $nationalityName);
+        // 3. تكلفة المكتب الخارجي: أصل إيواء في الوضع الافتراضي، أو عكس فاتورة المورد في وضع «عند الفاتورة».
+        if ($onInvoiceMode) {
+            if ($invoice->external_office_cost_constraint_id) {
+                $this->tripAccountingService->reverseExternalOfficeCostEntries(
+                    $contract,
+                    $invoice,
+                    $returnDate,
+                    self::externalOfficeReversalStatement($contract)
+                );
+            }
+        } elseif ($officeCost > 0 && (!$hasTracking || !$returnRequest->shelter_constraint_id)) {
+            $shelter = $this->shelterLedger->capitalizeOfficeCost(
+                $contract,
+                $officeCost,
+                $returnDate,
+                $returnRequest,
+                self::shelterStatementFor($contract)
+            );
+            if (($shelter['constraint'] ?? null) && $hasTracking) {
+                $returnRequest->forceFill(['shelter_constraint_id' => $shelter['constraint']->id])->saveQuietly();
+            }
         }
-        if (!$salesReturnsAccountId) {
-            throw new \RuntimeException('لا يوجد حساب مردود مبيعات مرتبط بجنسية العقد: ' . $nationalityName);
+
+        if ($adjustments) {
+            return $adjustments;
         }
-        if (!$vatAccountId) {
-            throw new \RuntimeException('لا يوجد حساب ضريبة إيرادات في النظام.');
+
+        return $creditNote?->constraint_id ? Constraint::query()->find($creditNote->constraint_id) : null;
+    }
+
+    private function recordStayDeduction(Contract $contract, string $returnDate, $activeYear, int $clientAccountId, float $stayAmount): ?Constraint
+    {
+        if ($stayAmount <= 0) {
+            return null;
         }
+
+        $salesRecoveryAccountId = $this->resolveSalesRecoveryAccountId();
         if (!$salesRecoveryAccountId) {
             throw new \RuntimeException('لا يوجد حساب إيراد استرداد مبيعات في النظام.');
         }
-        if (!$costReturnsAccountId) {
-            throw new \RuntimeException('لا يوجد حساب مردودات تكلفة مرتبط بجنسية العقد: ' . $nationalityName);
-        }
 
-        $statement = self::statementFor($contract);
+        $statement = self::statementFor($contract) . ' — خصم مدة البقاء';
         $lines = [];
-
-        // 1. نقل تكلفة المكتب الخارجي إلى حساب الإيواء (أصل — عاملة متاحة لإعادة التسكين)
-        if ($officeCost > 0) {
-            $this->appendLine($lines, $accommodationAccountId, 'debtor', $officeCost, $statement);
-        }
-
-        // 2. إلغاء قيمة البيع عبر مردود مبيعات
-        if ($netInvoice > 0) {
-            $this->appendLine($lines, $salesReturnsAccountId, 'debtor', $netInvoice, $statement);
-        }
-
-        // 3. عكس ضريبة القيمة المضافة
-        if ($vatAmount > 0) {
-            $this->appendLine($lines, $vatAccountId, 'debtor', $vatAmount, $statement);
-        }
-
-        // 4. إعادة كامل قيمة العقد لذمة العميل (دائن)
-        if ($totalDue > 0) {
-            $this->appendLine($lines, $clientAccountId, 'creditor', $totalDue, $statement);
-        }
-
-        // 5. خصم مدة البقاء على العميل (مدين)
-        if ($stayAmount > 0) {
-            $this->appendLine($lines, $clientAccountId, 'debtor', $stayAmount, $statement);
-        }
-
-        // 6. إيراد مدة البقاء
-        if ($stayAmount > 0) {
-            $this->appendLine($lines, $salesRecoveryAccountId, 'creditor', $stayAmount, $statement);
-        }
-
-        // 7. عكس التكلفة عبر مردودات تكلفة
-        if ($officeCost > 0) {
-            $this->appendLine($lines, $costReturnsAccountId, 'creditor', $officeCost, $statement);
-        }
+        $this->appendLine($lines, $clientAccountId, 'debtor', $stayAmount, $statement);
+        $this->appendLine($lines, $salesRecoveryAccountId, 'creditor', $stayAmount, $statement);
 
         return $this->storeLines($lines, $statement, $returnDate, $activeYear);
-    }
-
-    /**
-     * وضع «إثبات الإيراد عند إنشاء الفاتورة»: يُعكس قيد الفاتورة على نفس حسابات المبيعات
-     * والضريبة (لا عبر مردود المبيعات)، ويُعاد كامل المبلغ لذمة العميل مع خصم مدة البقاء،
-     * وتُعكس فاتورة المورد الخارجي بقيد مستقل (مدين المكتب / دائن تكلفة المبيعات).
-     */
-    private function recordDirectSalesReversal(
-        Contract $contract,
-        $invoice,
-        string $nationalityName,
-        string $returnDate,
-        $activeYear,
-        int $clientAccountId,
-        float $totalDue,
-        float $vatAmount,
-        float $netInvoice,
-        float $stayAmount
-    ): ?Constraint {
-        $vatAccountId = $vatAmount > 0 ? $this->resolveVatAccountId() : null;
-        if ($vatAmount > 0 && !$vatAccountId) {
-            throw new \RuntimeException('لا يوجد حساب ضريبة إيرادات في النظام.');
-        }
-
-        $salesRecoveryAccountId = $stayAmount > 0 ? $this->resolveSalesRecoveryAccountId() : null;
-        if ($stayAmount > 0 && !$salesRecoveryAccountId) {
-            throw new \RuntimeException('لا يوجد حساب إيراد استرداد مبيعات في النظام.');
-        }
-
-        $salesLines = $this->resolveInvoiceSalesLines($invoice, $vatAccountId);
-        if (empty($salesLines) && $netInvoice > 0) {
-            $salesAccountId = $this->tripAccountingService->resolveSalesAccountId(
-                $nationalityName,
-                $this->resolveNationalityId($contract)
-            );
-            if (!$salesAccountId) {
-                throw new \RuntimeException('لا يوجد حساب مبيعات مرتبط بجنسية العقد: ' . $nationalityName);
-            }
-            $salesLines = [['account_id' => $salesAccountId, 'amount' => $netInvoice, 'cost_center_id' => null]];
-        }
-
-        $statement = self::statementFor($contract);
-        $lines = [];
-
-        // 1. عكس المبيعات على نفس حسابات قيد الفاتورة (مدين)
-        foreach ($salesLines as $salesLine) {
-            $this->appendLine($lines, (int) $salesLine['account_id'], 'debtor', (float) $salesLine['amount'], $statement, $salesLine['cost_center_id'] ?? null);
-        }
-
-        // 2. عكس ضريبة القيمة المضافة
-        if ($vatAmount > 0) {
-            $this->appendLine($lines, $vatAccountId, 'debtor', $vatAmount, $statement);
-        }
-
-        // 3. إعادة كامل قيمة العقد لذمة العميل (دائن)
-        if ($totalDue > 0) {
-            $this->appendLine($lines, $clientAccountId, 'creditor', $totalDue, $statement);
-        }
-
-        // 4. خصم مدة البقاء على العميل (مدين) مقابل إيراد مدة البقاء (دائن)
-        if ($stayAmount > 0) {
-            $this->appendLine($lines, $clientAccountId, 'debtor', $stayAmount, $statement);
-            $this->appendLine($lines, $salesRecoveryAccountId, 'creditor', $stayAmount, $statement);
-        }
-
-        $constraint = $this->storeLines($lines, $statement, $returnDate, $activeYear);
-
-        // 5. عكس فاتورة المورد الخارجي بقيد مستقل حتى تعود فاتورة المكتب إلى صفر
-        if ($invoice->external_office_cost_constraint_id) {
-            $this->tripAccountingService->reverseExternalOfficeCostEntries(
-                $contract,
-                $invoice,
-                $returnDate,
-                self::externalOfficeReversalStatement($contract)
-            );
-        }
-
-        return $constraint;
-    }
-
-    /**
-     * أطراف المبيعات الدائنة في قيد الفاتورة الأصلي (بدون طرف الضريبة) لعكسها بنفس المبالغ.
-     */
-    private function resolveInvoiceSalesLines($invoice, ?int $vatAccountId): array
-    {
-        if (!$invoice->invoice_constraint_id) {
-            return [];
-        }
-
-        return ConstraintDetails::query()
-            ->where('constraint_id', $invoice->invoice_constraint_id)
-            ->where('creditor_value', '>', 0)
-            ->when($vatAccountId, fn ($query) => $query->where('account_id', '!=', $vatAccountId))
-            ->orderBy('id')
-            ->get()
-            ->map(fn (ConstraintDetails $detail) => [
-                'account_id' => (int) $detail->account_id,
-                'amount' => $this->roundMoney((float) $detail->creditor_value),
-                'cost_center_id' => $detail->cost_center_id,
-            ])
-            ->filter(fn (array $line) => $line['amount'] > 0)
-            ->values()
-            ->all();
     }
 
     private function storeLines(array $lines, string $statement, string $returnDate, $activeYear): ?Constraint
@@ -273,17 +185,17 @@ class RecruitmentContractWarrantyReturnService
 
         $value = $this->roundMoney(array_sum(array_column($lines, 'debtor_value')));
         $data = [
-            'code'               => $this->constraintService->lastCode(),
-            'date'               => $returnDate,
-            'statement'          => $statement,
-            'account_id'         => array_column($lines, 'account_id'),
-            'account_type'       => array_column($lines, 'account_type'),
-            'debtor_value'       => array_column($lines, 'debtor_value'),
-            'creditor_value'     => array_column($lines, 'creditor_value'),
-            'statement_account'  => array_column($lines, 'statement'),
+            'code'                 => $this->constraintService->lastCode(),
+            'date'                 => $returnDate,
+            'statement'            => $statement,
+            'account_id'           => array_column($lines, 'account_id'),
+            'account_type'         => array_column($lines, 'account_type'),
+            'debtor_value'         => array_column($lines, 'debtor_value'),
+            'creditor_value'       => array_column($lines, 'creditor_value'),
+            'statement_account'    => array_column($lines, 'statement'),
             'cost_center_required' => 'off',
-            'cost_center_id'     => array_column($lines, 'cost_center_id'),
-            'value'              => $value,
+            'cost_center_id'       => array_column($lines, 'cost_center_id'),
+            'value'                => $value,
         ];
 
         $constraint = $this->constraintService->storeConstraint($data, $activeYear);
@@ -293,14 +205,7 @@ class RecruitmentContractWarrantyReturnService
         return $constraint;
     }
 
-    private function resolveNationalityId(Contract $contract): ?int
-    {
-        $nationality = $contract->maid?->nationality ?? $contract->requiredMaidNationality;
-
-        return $nationality?->id ? (int) $nationality->id : null;
-    }
-
-    private function calculateStayAmount(Contract $contract, string $returnDate, float $netInvoice): float
+    public function calculateStayAmount(Contract $contract, string $returnDate, float $netInvoice): float
     {
         $arrivalDate = $this->resolveArrivalDate($contract);
         if (!$arrivalDate) {
@@ -326,8 +231,7 @@ class RecruitmentContractWarrantyReturnService
 
     private function resolveArrivalDate(Contract $contract): ?string
     {
-        // travel_histories يربط الرحلة بالعقد عبر order_id (انظر Contract::travelHistory)؛
-        // لا يوجد عمود contract_id، وكان الاستعلام القديم يفشل عند كل موافقة على طلب إرجاع.
+        // travel_histories يربط الرحلة بالعقد عبر order_id (انظر Contract::travelHistory).
         $travelHistory = TravelHistory::query()
             ->where('order_id', $contract->id)
             ->whereNotNull('arrival_date')
@@ -346,7 +250,7 @@ class RecruitmentContractWarrantyReturnService
         return null;
     }
 
-    private function resolveExternalOfficeCostAmount(Contract $contract): float
+    public function resolveExternalOfficeCostAmount(Contract $contract): float
     {
         $usdAmount = $this->roundMoney(
             (float) ($contract->externalOfficeDispatch?->office_contract_cost_usd ?? 0)
@@ -365,139 +269,30 @@ class RecruitmentContractWarrantyReturnService
         return trim((string) ($nationality?->sub_title ?? $nationality?->title ?? ''));
     }
 
-    // ── Account lookups ────────────────────────────────────────────────────────
-
-    private function resolveAccommodationAccountId(string $nationalityName): ?int
-    {
-        return $this->resolveAccountByCandidates(
-            [
-                'إيواء (' . $nationalityName . ')',
-                'إيواء ' . $nationalityName,
-                'مصروفات مدفوعة مقدماً - إيواء (' . $nationalityName . ')',
-                'مصروفات مدفوعة مقدماً - إيواء ' . $nationalityName,
-            ],
-            ['إيواء الفلبين', 'إيواء'],
-            fn ($query) => $query->where('name', 'like', '%إيواء%')
-                                 ->where('name', 'like', '%' . $nationalityName . '%')
-        );
-    }
-
-    private function resolveSalesReturnsAccountId(string $nationalityName): ?int
-    {
-        return $this->resolveAccountByCandidates(
-            [
-                'مردود مبيعات استقدام (' . $nationalityName . ')',
-                'مردود مبيعات استقدام ' . $nationalityName,
-                'مردود مبيعات (' . $nationalityName . ')',
-                'مردود مبيعات ' . $nationalityName,
-            ],
-            ['مردود مبيعات الاستقدام', 'مردود مبيعات'],
-            fn ($query) => $query->where('name', 'like', '%مردود مبيعات%')
-                                 ->where('name', 'like', '%' . $nationalityName . '%')
-        );
-    }
-
     /**
-     * ضريبة قيد الضمان يجب أن تُعكس على نفس حساب ضريبة الفاتورة. الإعداد الموحد
-     * أولاً — التخمين بالاسم يبقى احتياطاً للنسخ التي لم يُضبط فيها الإعداد بعد،
-     * لأن الشجرة المالية تختلف بين النسخ فقد يختار حساباً غير حساب الفاتورة.
+     * إيراد استرداد المبيعات (4217): من إعدادات الحسابات أولاً ثم بالاسم.
      */
-    private function resolveVatAccountId(): ?int
-    {
-        $configured = app(\Nami\Finance\Services\TaxAccountResolver::class)
-            ->resolve('revenue_tax_account')?->id;
-
-        if ($configured) {
-            return (int) $configured;
-        }
-
-        return $this->resolveAccountByCandidates(
-            [
-                'حساب الضريبة على الإيرادات',
-                'الضريبة على الإيرادات',
-                'ضريبة القيمة المضافة',
-                'ضريبة الإيرادات',
-            ],
-            [],
-            fn ($query) => $query->where(function ($q) {
-                $q->where('name', 'like', '%ضريبة%إيراد%')
-                  ->orWhere('name', 'like', '%ضريبة القيمة المضافة%');
-            })
-        );
-    }
-
     private function resolveSalesRecoveryAccountId(): ?int
     {
-        return $this->resolveAccountByCandidates(
-            [
-                'إيراد استرداد مبيعات',
-                'إيراد استرداد',
-                'إيراد الاسترداد',
-            ],
-            [],
-            fn ($query) => $query->where('name', 'like', '%إيراد استرداد%')
-        );
-    }
+        $configured = ShelterAccountingSettings::salesRecoveryIncomeAccountId();
+        if ($configured) {
+            return $configured;
+        }
 
-    private function resolveCostReturnsAccountId(string $nationalityName): ?int
-    {
-        return $this->resolveAccountByCandidates(
-            [
-                'مردودات تكلفة (' . $nationalityName . ')',
-                'مردودات تكلفة ' . $nationalityName,
-                'مردودات تكلفة الفلبين',
-            ],
-            ['مردودات تكلفة'],
-            fn ($query) => $query->where('name', 'like', '%مردودات تكلفة%')
-                                 ->where('name', 'like', '%' . $nationalityName . '%')
-        );
-    }
-
-    private function resolveAccountByCandidates(array $directCandidates, array $rootCandidates, callable $descendantFilter): ?int
-    {
-        foreach ($directCandidates as $candidate) {
-            $candidate = trim((string) $candidate);
-            if ($candidate === '') {
-                continue;
-            }
-
+        foreach (['إيراد استرداد مبيعات', 'إيراد استرداد', 'إيراد الاسترداد'] as $candidate) {
             $accountId = Account::query()->where('name', $candidate)->value('id');
             if ($accountId) {
                 return (int) $accountId;
             }
         }
 
-        foreach ($rootCandidates as $rootName) {
-            $root = Account::query()
-                ->with('childrenRecursive')
-                ->where('name', $rootName)
-                ->first();
+        $accountId = Account::query()
+            ->whereDoesntHave('children')
+            ->where('name', 'like', '%إيراد استرداد%')
+            ->orderBy('id')
+            ->value('id');
 
-            if (!$root) {
-                continue;
-            }
-
-            $relatedIds = array_merge([$root->id], $root->getAllChildrenIds());
-            $query = Account::query()->whereIn('id', $relatedIds);
-            $descendantFilter($query);
-
-            $accountId = $query->orderBy('id')->value('id');
-            if ($accountId) {
-                return (int) $accountId;
-            }
-        }
-
-        // Fallback: no root restriction
-        if (!empty($directCandidates)) {
-            $query = Account::query()->whereDoesntHave('children');
-            $descendantFilter($query);
-            $accountId = $query->orderBy('id')->value('id');
-            if ($accountId) {
-                return (int) $accountId;
-            }
-        }
-
-        return null;
+        return $accountId ? (int) $accountId : null;
     }
 
     private function appendLine(array &$lines, int $accountId, string $type, float $amount, string $statement, ?int $costCenterId = null): void
@@ -510,7 +305,7 @@ class RecruitmentContractWarrantyReturnService
         $lines[] = [
             'account_id'     => $accountId,
             'account_type'   => $type,
-            'debtor_value'   => $type === 'debtor'   ? $amount : 0,
+            'debtor_value'   => $type === 'debtor' ? $amount : 0,
             'creditor_value' => $type === 'creditor' ? $amount : 0,
             'statement'      => $statement,
             'cost_center_id' => $costCenterId,

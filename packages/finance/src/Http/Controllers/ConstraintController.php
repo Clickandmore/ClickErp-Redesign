@@ -4,7 +4,9 @@ namespace Nami\Finance\Http\Controllers;
 
 use App\Http\Controllers\admin\Controller;
 use App\Models\ingaz\Invoice;
+use App\Support\ConstraintReferenceGuard;
 use Illuminate\Http\Request;
+use Illuminate\Validation\ValidationException;
 use Nami\Finance\Enums\ConfirmSettingTypes;
 use Nami\Finance\Enums\ConstraintTypiesEnum;
 use Nami\Finance\Http\Requests\ConstraintRequest as ObjRequest;
@@ -190,7 +192,15 @@ class ConstraintController extends Controller
 
     public function destroy($id, ObjService $service)
     {
-        $service->deleteConstraint($id);
+        try {
+            $service->deleteConstraint((int) $id);
+        } catch (ValidationException $exception) {
+            $errors = $exception->errors();
+            $message = (string) (collect($errors)->flatten()->first() ?: 'لا يمكن حذف هذا القيد.');
+
+            return jsonValid($errors, $message);
+        }
+
         return jsonSuccess();
     }
 
@@ -420,6 +430,14 @@ class ConstraintController extends Controller
         $printUrl = $this->resolveConstraintPrintUrl($constraint);
         $document = $this->resolveConstraintDocument($constraint);
 
+        // القيود الآلية (المرتبطة بفاتورة/تحويل/استرداد/...) تُعكس ولا تُحذف.
+        $deleteItem = ConstraintReferenceGuard::isReferenced((int) $constraint->id)
+            ? '<li><span class="dropdown-item disabled text-muted" aria-disabled="true" title="'
+                . e(ConstraintReferenceGuard::describe((int) $constraint->id)) . '">'
+                . '<i class="fa fa-lock"></i> قيد آلي – يُعكس ولا يُحذف</span></li>'
+            : '<li><button type="button" class="dropdown-item text-danger deleteConstraintButton" data-action="' . e($deleteUrl) . '">'
+                . '<i class="fa fa-trash"></i> ' . e(__('finance::finance.Delete')) . '</button></li>';
+
         return '<div class="dropdown constraint-actions-dropdown">'
             . '<button class="btn btn-sm btn-light border constraint-actions-toggle" type="button" aria-expanded="false">'
             . '<i class="fa fa-ellipsis-v"></i> ' . e(__('finance::finance.actions'))
@@ -432,8 +450,7 @@ class ConstraintController extends Controller
             . '<li><hr class="dropdown-divider"></li>'
             . '<li><a class="dropdown-item" href="' . e($editUrl) . '">'
             . '<i class="fa fa-pencil"></i> ' . e(__('finance::finance.edit')) . '</a></li>'
-            . '<li><button type="button" class="dropdown-item text-danger deleteConstraintButton" data-action="' . e($deleteUrl) . '">'
-            . '<i class="fa fa-trash"></i> ' . e(__('finance::finance.Delete')) . '</button></li>'
+            . $deleteItem
             . '</ul>'
             . '</div>';
     }

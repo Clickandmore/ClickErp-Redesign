@@ -572,8 +572,23 @@ class Contract extends Model
      */
     public function resolveRecruitmentArrivalDateTime(): ?\Carbon\Carbon
     {
-        if ($this->warranty_start_date) {
-            return \Carbon\Carbon::parse($this->warranty_start_date);
+        // التواريخ الصفرية الموروثة من الاستيراد (0000-00-00 / 0001-01-01) لا تمثل وصولاً حقيقياً.
+        $realDate = static function ($value): ?\Carbon\Carbon {
+            if (!$value) {
+                return null;
+            }
+
+            try {
+                $date = \Carbon\Carbon::parse($value);
+            } catch (\Throwable) {
+                return null;
+            }
+
+            return $date->year >= 1900 ? $date : null;
+        };
+
+        if ($warrantyStart = $realDate($this->warranty_start_date)) {
+            return $warrantyStart;
         }
 
         $travelHistory = $this->exists
@@ -583,10 +598,10 @@ class Contract extends Model
         $arrivalDateTime = null;
 
         if ($travelHistory?->status === 'completed') {
-            $arrivalDateTime = $travelHistory->resolveArrivalDateTime();
+            $arrivalDateTime = $realDate($travelHistory->resolveArrivalDateTime());
 
             if (!$arrivalDateTime && !empty($travelHistory->arrived_at)) {
-                $arrivalDateTime = \Carbon\Carbon::parse($travelHistory->arrived_at);
+                $arrivalDateTime = $realDate($travelHistory->arrived_at);
             }
         }
 
@@ -595,12 +610,12 @@ class Contract extends Model
             ContractStatusEnum::Completed->value,
         ], true);
 
-        if (!$arrivalDateTime && $hasReachedArrivalStage && $this->info?->arrival_date) {
-            $arrivalDateTime = \Carbon\Carbon::parse($this->info->arrival_date);
+        if (!$arrivalDateTime && $hasReachedArrivalStage) {
+            $arrivalDateTime = $realDate($this->info?->arrival_date);
         }
 
-        if (!$arrivalDateTime && $hasReachedArrivalStage && $this->maid?->arrival_date) {
-            $arrivalDateTime = \Carbon\Carbon::parse($this->maid->arrival_date);
+        if (!$arrivalDateTime && $hasReachedArrivalStage) {
+            $arrivalDateTime = $realDate($this->maid?->arrival_date);
         }
 
         return $arrivalDateTime;

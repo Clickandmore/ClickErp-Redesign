@@ -269,7 +269,7 @@ class ConfirmSettingService extends MainService
             'cost_center_general_sarf_bond',
             'cost_center_general_qabd_bond',
             'cost_center_account_transfer',
-        ], RentalContractFinanceService::confirmSettingTitles(), RentalMaidFinanceService::confirmSettingTitles(), ShelterLivingExpenseAccountingService::confirmSettingTitles(), NationalityFinanceAccountService::confirmSettingTitles());
+        ], RentalContractFinanceService::confirmSettingTitles(), RentalMaidFinanceService::confirmSettingTitles(), ShelterLivingExpenseAccountingService::confirmSettingTitles(), NationalityFinanceAccountService::confirmSettingTitles(), \App\Support\ShelterAccountingSettings::confirmSettingTitles());
 
         return $this->model->where(function ($query) use ($titles) {
             $query->whereIn('title', $titles)

@@ -374,28 +374,18 @@ class DeportationTravelController extends Controller
             'completed_at' => now()
         ]);
 
-        // تحديث إجراءات الترحيل إلى مكتملة
+        // تحديث إجراءات الترحيل إلى مكتملة (القيد 18 + حالة العاملة + سجل حالة العقد من خدمة واحدة)
         $procedure = DeportationProcedure::where('trip_id', $travel->id)->first();
         if ($procedure && $procedure->isAllProceduresCompleted()) {
-            $procedure->update([
-                'status' => 'completed',
-                'completed_at' => now(),
-                'completed_by' => auth('admin')->id()
-            ]);
+            try {
+                app(\App\Services\ingaz\DeportationCompletionService::class)->complete($procedure, $travel->arrival_date ?? null);
+            } catch (\RuntimeException $e) {
+                $travel->update(['status' => 'scheduled', 'completed_at' => null]);
 
-            // تحديث حالة العقد
-            $procedure->contract->update([
-                'status' => \App\Enums\ingaz\ContractStatusEnum::Back->value
-            ]);
-
-            // إزالة من الإيواء
-            if ($procedure->contract->info) {
-                $procedure->contract->info->update([
-                    'shelter_id' => null,
-                    'wants_to_work' => null,
-                    'maid_date_back' => now(),
-                    'receipt_source' => null
-                ]);
+                return response()->json([
+                    'success' => false,
+                    'message' => 'فشل إنشاء قيد الترحيل ولم يتم إنهاء الرحلة: ' . $e->getMessage(),
+                ], 422);
             }
         }
 

@@ -43,6 +43,8 @@ class ShelterContractController extends Controller
 
     public function __construct()
     {
+        $this->middleware($this->permissionMiddleware([PermKeys::SHELTER_AGENT_COST_RECOVERY]), ['only' => ['storeAgentRecovery']]);
+        $this->middleware($this->permissionMiddleware([PermKeys::SHELTER_AGENT_COST_RECOVERY_REVERSE]), ['only' => ['reverseAgentRecovery']]);
         $this->middleware($this->permissionMiddleware($this->shelterInsideViewPermissions()), ['only' => ['index', 'getData', 'outsideShelter']]);
         $this->middleware($this->permissionMiddleware($this->shelterAvailableForTransferViewPermissions()), ['only' => ['availableForTransfer']]);
         $this->middleware($this->permissionMiddleware($this->shelterDeportationStageViewPermissions()), ['only' => ['deportationStage']]);
@@ -65,7 +67,7 @@ class ShelterContractController extends Controller
         $this->middleware($this->permissionMiddleware($this->shelterRemoveFromShelterPermissions()), ['only' => ['back', 'leaveForVacation', 'returnFromVacation']]);
         $this->middleware($this->permissionMiddleware($this->shelterQuickTagsEditPermissions()), ['only' => ['updateQuickTags']]);
         $this->middleware($this->permissionMiddleware($this->shelterDeportationProceduresEditPermissions()), [
-            'only' => ['startDeportation', 'updateDeportationProcedures'],
+            'only' => ['startDeportation', 'updateDeportationProcedures', 'cancelDeportation'],
         ]);
         $this->middleware($this->permissionMiddleware($this->shelterWorkDesireEditPermissions()), ['only' => ['changeWorkDesire']]);
         $this->middleware($this->permissionMiddleware(array_merge(
@@ -1513,6 +1515,38 @@ class ShelterContractController extends Controller
     }
 
 
+    public function storeAgentRecovery(Request $request, $id)
+    {
+        $contract = Contract::findOrFail($id);
+        $this->assertCanAccessBranchModel($contract, 'contracts');
+        $data = $request->validate([
+            'receipt_entry_id' => 'required|integer', 'date' => 'required|date_format:Y-m-d|before_or_equal:today',
+            'reason' => 'required|string|max:1000', 'request_key' => 'required|uuid',
+        ]);
+        try {
+            $result = app(\App\Services\ingaz\ShelterAgentCostRecoveryService::class)->recover(
+                $contract, (int) $data['receipt_entry_id'], $data['date'], $data['reason'], $data['request_key']);
+        } catch (\RuntimeException $e) {
+            return back()->withErrors(['agent_recovery' => $e->getMessage()])->withInput();
+        }
+        return redirect()->to(route('ShelterContract.show', $contract->id) . '#agent-cost-recovery')
+            ->with('agent_recovery_success', 'تم إثبات استرداد تكلفة الوكيل؛ رقم القيد: ' . $result->constraint?->code);
+    }
+
+    public function reverseAgentRecovery(Request $request, $id, $recovery)
+    {
+        $contract = Contract::findOrFail($id);
+        $this->assertCanAccessBranchModel($contract, 'contracts');
+        $data = $request->validate(['reason' => 'required|string|max:1000']);
+        try {
+            $result = app(\App\Services\ingaz\ShelterAgentCostRecoveryService::class)->reverse($contract, (int) $recovery, $data['reason']);
+        } catch (\RuntimeException $e) {
+            return back()->withErrors(['agent_recovery' => $e->getMessage()]);
+        }
+        return redirect()->to(route('ShelterContract.show', $contract->id) . '#agent-cost-recovery')
+            ->with('agent_recovery_success', 'تم عكس استرداد تكلفة الوكيل؛ رقم قيد العكس: ' . $result->reversalConstraint?->code);
+    }
+
     public function show($id)
     {
         $contract = Contract::with([
@@ -1541,7 +1575,20 @@ class ShelterContractController extends Controller
 
         $isRentalWorker = $this->determineShelterServiceCategory($contract->maid) === 'rental';
 
-        return view('admin.ingaz.ShelterContract.show', compact('contract', 'warrantyStatus', 'warrantyDays', 'isRentalWorker'));
+        $canRecoverAgentCost = $this->adminCanAny([PermKeys::SHELTER_AGENT_COST_RECOVERY]);
+        $canReverseAgentCost = $this->adminCanAny([PermKeys::SHELTER_AGENT_COST_RECOVERY_REVERSE]);
+        $agentCostSummary = null;
+        $agentRecoveries = collect();
+        if ($canRecoverAgentCost || $canReverseAgentCost) {
+            $agentCostSummary = app(\App\Services\ingaz\ShelterAgentCostRecoveryService::class)->summary($contract);
+            if (Schema::hasTable('shelter_agent_cost_recoveries')) {
+                $agentRecoveries = \App\Models\ShelterAgentCostRecovery::query()->where('contract_id', $contract->id)
+                    ->with(['officeAccount', 'constraint', 'reversalConstraint'])->orderByDesc('id')->get();
+            }
+        }
+        $workerHistory = app(\App\Services\ingaz\ShelterWorkerHistoryService::class)->build($contract);
+        return view('admin.ingaz.ShelterContract.show', compact('contract', 'warrantyStatus', 'warrantyDays', 'isRentalWorker',
+            'canRecoverAgentCost', 'canReverseAgentCost', 'agentCostSummary', 'agentRecoveries', 'workerHistory'));
     }
 
 
@@ -1671,9 +1718,13 @@ class ShelterContractController extends Controller
     }
 
 
+    /**
+     * «حذف» عقد من الإيواء يعني إخراج العاملة من الإيواء فقط (العقد يعود «مكتمل»)،
+     * فالمسار يفوَّض إلى back() ويحتفظ بصلاحياته الخاصة المعرفة في المُنشئ.
+     */
     public function destroy($id)
     {
-        //
+        return $this->back($id);
     }
 
     private function prepareShelterAttachments(Request $request, array $existing = []): array
@@ -2838,6 +2889,23 @@ class ShelterContractController extends Controller
                 ], 400);
             }
 
+            // حارس الخروج: لا يُخرَج عقد من الإيواء ورصيد إيواء العاملة مفتوح إلا بتصفية صريحة.
+            $ledger = app(\App\Services\ingaz\ShelterCostLedgerService::class);
+            $shelterBalance = $ledger->balanceForContract($contract);
+            if ($shelterBalance > 0) {
+                $writeOffReason = trim((string) request()->input('write_off_reason', ''));
+                if ($writeOffReason === '') {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'للعاملة رصيد إيواء ' . number_format($shelterBalance, 2)
+                            . ' لم يُصفَّ. اختر مسار الخروج (نقل خدمات أو ترحيل أو عقد جديد) أو أرسل سبب التصفية في write_off_reason.',
+                        'shelter_balance' => $shelterBalance,
+                    ], 422);
+                }
+
+                $ledger->writeOff($contract, now()->toDateString(), $writeOffReason, $contract);
+            }
+
             // إرجاع العقد إلى حالة "مكتمل" لأن العقود في الإيواء هي عقود مكتملة أصلاً
             $contract->status = ContractStatusEnum::Completed->value;
 
@@ -3585,6 +3653,32 @@ class ShelterContractController extends Controller
     }
 
     /**
+     * إلغاء إجراء ترحيل بدأ خطأً (قبل اكتمال رحلة السفر). لا قيد؛ العقد يبقى في الإيواء.
+     */
+    public function cancelDeportation(Request $request, $id)
+    {
+        $validated = $request->validate([
+            'reason' => ['required', 'string', 'max:1000'],
+        ]);
+
+        $procedure = \App\Models\DeportationProcedure::with('contract')->findOrFail($id);
+        if ($procedure->contract) {
+            $this->assertCanAccessBranchModel($procedure->contract, 'contracts');
+        }
+
+        try {
+            app(\App\Services\ingaz\DeportationCompletionService::class)->cancel($procedure, $validated['reason']);
+        } catch (\DomainException $e) {
+            return response()->json(['success' => false, 'message' => $e->getMessage()], 400);
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => 'تم إلغاء إجراء الترحيل والعقد ما زال في الإيواء',
+        ]);
+    }
+
+    /**
      * بدء إجراءات الترحيل
      */
     public function startDeportation($id)
@@ -3829,45 +3923,23 @@ class ShelterContractController extends Controller
                     ], 400);
                 }
 
-                $oldStatus = $procedure->status;
-                // إكمال الترحيل
-                $procedure->update([
-                    'status' => 'completed',
-                    'completed_at' => now(),
-                    'completed_by' => auth('admin')->id()
-                ]);
-
-                // تسجيل التحرك
-                \App\Models\DeportationProcedureLog::logCompletion(
-                    $procedure->id,
-                    auth('admin')->id(),
-                    'تم إكمال إجراءات الترحيل'
-                );
-
-                // تحديث حالة العقد إلى "تم الترحيل"
-                $procedure->contract->update([
-                    'status' => ContractStatusEnum::Back->value
-                ]);
-
-                // إزالة معلومات الإيواء
-                if ($procedure->contract->info) {
-                    $infoResetPayload = [
-                        'shelter_id' => null,
-                        'wants_to_work' => null,
-                        'maid_date_back' => now(),
-                        'receipt_source' => null,
-                    ];
-
-                    if ($this->supportsQuickTags()) {
-                        $infoResetPayload['shelter_quick_tags'] = null;
-                    }
-
-                    $procedure->contract->info->update($infoResetPayload);
+                // إكمال الترحيل: القيد 18 + حالة العاملة + سجل حالة العقد من خدمة واحدة
+                try {
+                    $completion = app(\App\Services\ingaz\DeportationCompletionService::class)
+                        ->complete($procedure, null, $this->supportsQuickTags());
+                } catch (\RuntimeException $e) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'فشل إنشاء قيد الترحيل ولم يتم إنهاء الإجراء: ' . $e->getMessage(),
+                    ], 422);
                 }
 
                 return response()->json([
                     'success' => true,
-                    'message' => 'تم إكمال إجراءات الترحيل بنجاح',
+                    'message' => 'تم إكمال إجراءات الترحيل بنجاح'
+                        . (($completion['amount'] ?? 0) > 0
+                            ? ' وإنشاء قيد الترحيل بمبلغ ' . number_format((float) $completion['amount'], 2)
+                            : ''),
                     'redirect' => route('ShelterContract.deported')
                 ]);
             }

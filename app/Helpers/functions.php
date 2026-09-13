@@ -571,15 +571,12 @@ function AdminGuardCanReject($section)
 
 function contractBackStatus($status)
 {
-    return match ($status) {
-        ContractStatusEnum::Arrival->value => ContractStatusEnum::Tazker,
-        ContractStatusEnum::Tazker->value => ContractStatusEnum::Taffez,
-        ContractStatusEnum::Taffez->value => ContractStatusEnum::Tafwed,
-        ContractStatusEnum::Tafwed->value => ContractStatusEnum::Msaned,
-        ContractStatusEnum::Msaned->value => ContractStatusEnum::New,
-        ContractStatusEnum::AccreditationContracts->value => ContractStatusEnum::New,
-        default => ContractStatusEnum::tryFrom($status) ?? ContractStatusEnum::New,
-    };
+    // المصدر الوحيد لتسلسل الإرجاع: خطوة واحدة إلى الوراء ضمن مراحل الاستقدام.
+    $previous = app(\App\Services\ingaz\RecruitmentContractStageRollbackService::class)->previousStatusFor($status);
+
+    return ContractStatusEnum::tryFrom((string) $previous)
+        ?? ContractStatusEnum::tryFrom((string) $status)
+        ?? ContractStatusEnum::New;
 }
 
 function contractStatusConfirmBtnText($status)

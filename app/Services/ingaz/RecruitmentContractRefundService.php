@@ -488,6 +488,12 @@ class RecruitmentContractRefundService
 
     private function ensurePenaltyIncomeAccountId(): int
     {
+        // حساب الغرامة من إعدادات الحسابات أولاً (الدليل يستخدم 4217 «إيراد غرامة إلغاء / خصم الكفالة»).
+        $configured = \App\Support\ShelterAccountingSettings::refundPenaltyAccountId();
+        if ($configured) {
+            return $configured;
+        }
+
         $account = $this->findPenaltyIncomeAccount();
 
         if ($account) {

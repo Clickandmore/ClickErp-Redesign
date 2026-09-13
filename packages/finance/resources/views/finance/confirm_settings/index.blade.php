@@ -396,6 +396,8 @@
             $settingValue(\App\Support\RecruitmentRevenueRecognition::SETTING_KEY, 'on_arrival')
         );
         $accountTreeLabel = __('finance::finance.account_tree_position');
+        $shelterLivingCapitalize = $settingValue(\App\Support\ShelterAccountingSettings::LIVING_EXPENSE_CAPITALIZE, 'on');
+        $deportationChargeExternalOffice = $settingValue(\App\Support\ShelterAccountingSettings::DEPORTATION_CHARGE_EXTERNAL_OFFICE, 'on');
         $accountOption = fn ($id) => $selected_accounts->get((int) $id);
         $settingAccountOption = fn (string $key) => $accountOption($settingValue($key));
     @endphp
@@ -504,6 +506,13 @@
                     <span>
                         <span class="settings-nav__title">{{ __('finance::finance.shelter_living_expense_account') }}</span>
                         <span class="settings-nav__count">1 {{ __('finance::finance.settings_fields') }}</span>
+                    </span>
+                </a>
+                <a class="settings-nav__item" href="#shelter-deportation-accounts-section">
+                    <span class="settings-nav__icon"><i class="fa fa-plane-departure"></i></span>
+                    <span>
+                        <span class="settings-nav__title">{{ __('finance::finance.shelter_deportation_accounts_section') }}</span>
+                        <span class="settings-nav__count">7 {{ __('finance::finance.settings_fields') }}</span>
                     </span>
                 </a>
             </div>
@@ -1209,6 +1218,177 @@
                             </div>
                         </div>
                     </div>
+                </div>
+            </details>
+
+            <details class="settings-section" id="shelter-deportation-accounts-section" open>
+                <summary>
+                    <div>
+                        <h3 class="settings-section-title">{{ __('finance::finance.shelter_deportation_accounts_section') }}</h3>
+                        <p class="settings-section-hint">{{ __('finance::finance.shelter_deportation_accounts_section_hint') }}</p>
+                    </div>
+                    <span class="settings-section-icon"><i class="fa fa-chevron-down"></i></span>
+                </summary>
+                <div class="settings-section-body">
+                    <div class="settings-grid">
+                        <div class="setting-field">
+                            <div class="setting-field__top">
+                                <label>{{ __('finance::finance.shelter_living_expense_capitalize') }}</label>
+                            </div>
+                            <input type="hidden" value="shelter_living_expense_capitalize" name="data[shelter_living_expense_capitalize][title]">
+                            <div class="approval-options">
+                                <label class="approval-option" for="shelterLivingExpenseCapitalizeOn">
+                                    <input type="radio" id="shelterLivingExpenseCapitalizeOn" name="data[shelter_living_expense_capitalize][value]" value="on" {{ $shelterLivingCapitalize !== 'off' ? 'checked' : '' }}>
+                                    <span>
+                                        <strong>{{ __('finance::finance.shelter_living_expense_capitalize_on') }}</strong>
+                                        <span>{{ __('finance::finance.shelter_living_expense_capitalize_on_hint') }}</span>
+                                    </span>
+                                </label>
+                                <label class="approval-option" for="shelterLivingExpenseCapitalizeOff">
+                                    <input type="radio" id="shelterLivingExpenseCapitalizeOff" name="data[shelter_living_expense_capitalize][value]" value="off" {{ $shelterLivingCapitalize === 'off' ? 'checked' : '' }}>
+                                    <span>
+                                        <strong>{{ __('finance::finance.shelter_living_expense_capitalize_off') }}</strong>
+                                        <span>{{ __('finance::finance.shelter_living_expense_capitalize_off_hint') }}</span>
+                                    </span>
+                                </label>
+                            </div>
+                        </div>
+                        <div class="setting-field">
+                            <div class="setting-field__top">
+                                <label>{{ __('finance::finance.deportation_charge_external_office') }}</label>
+                            </div>
+                            <input type="hidden" value="deportation_charge_external_office" name="data[deportation_charge_external_office][title]">
+                            <div class="approval-options">
+                                <label class="approval-option" for="deportationChargeExternalOfficeOn">
+                                    <input type="radio" id="deportationChargeExternalOfficeOn" name="data[deportation_charge_external_office][value]" value="on" {{ $deportationChargeExternalOffice !== 'off' ? 'checked' : '' }}>
+                                    <span>
+                                        <strong>{{ __('finance::finance.deportation_charge_external_office_on') }}</strong>
+                                        <span>{{ __('finance::finance.deportation_charge_external_office_on_hint') }}</span>
+                                    </span>
+                                </label>
+                                <label class="approval-option" for="deportationChargeExternalOfficeOff">
+                                    <input type="radio" id="deportationChargeExternalOfficeOff" name="data[deportation_charge_external_office][value]" value="off" {{ $deportationChargeExternalOffice === 'off' ? 'checked' : '' }}>
+                                    <span>
+                                        <strong>{{ __('finance::finance.deportation_charge_external_office_off') }}</strong>
+                                        <span>{{ __('finance::finance.deportation_charge_external_office_off_hint') }}</span>
+                                    </span>
+                                </label>
+                            </div>
+                        </div>
+                        <div class="setting-field">
+                            <label for="deportationLivingChargeOffice">تحميل الإعاشة المتبقية عند الترحيل</label>
+                            <input type="hidden" name="data[deportation_living_charge_office][title]" value="deportation_living_charge_office">
+                            <select id="deportationLivingChargeOffice" class="form-control" name="data[deportation_living_charge_office][value]">
+                                <option value="off" {{ $settingValue('deportation_living_charge_office', 'off') !== 'on' ? 'selected' : '' }}>على حساب خسائر الإيواء (الافتراضي)</option>
+                                <option value="on" {{ $settingValue('deportation_living_charge_office', 'off') === 'on' ? 'selected' : '' }}>على المكتب الأصلي المثبت</option>
+                            </select>
+                            <p class="text-muted">استرداد تكلفة الوكيل من شاشة الإيواء يشمل التكلفة الأصلية فقط. هذا الاختيار يخص الإعاشة عند الترحيل؛ يلزم تحديد حساب الخسائر عند اختيار تحميلها على الشركة.</p>
+                        </div>
+                        <div class="setting-field">
+                            <div class="setting-field__top">
+                                <label for="shelter_trial_prepaid_account">{{ __('finance::finance.shelter_trial_prepaid_account') }}</label>
+                                <span class="setting-field__tools">
+                                    {!! addUpButton(route('finance.accounts.create'), 'shelter_trial_prepaid_account', false, 'name', true) !!}
+                                    <span class="setting-info" title="{{ __('finance::finance.shelter_trial_prepaid_account_hint') }}"><i class="fa fa-info"></i></span>
+                                </span>
+                            </div>
+                            <input type="hidden" value="shelter_trial_prepaid_account" name="data[shelter_trial_prepaid_account][title]">
+                            <select name="data[shelter_trial_prepaid_account][value]" id="shelter_trial_prepaid_account"
+                                    class="form-control account-ajax-select" data-account-scope="debtor_leaf">
+                                <option value="">{{ __('finance::finance.choose') }}</option>
+                                @if ($item = $settingAccountOption('shelter_trial_prepaid_account'))
+                                    <option value="{{ $item->id }}" selected>{{ $item->code }} / {{ $item->name }}</option>
+                                @endif
+                            </select>
+                            <div class="setting-field__tree">
+                                <strong>{{ $accountTreeLabel }}:</strong> {{ __('finance::finance.shelter_trial_prepaid_account_hint') }}
+                            </div>
+                        </div>
+                        <div class="setting-field">
+                            <div class="setting-field__top">
+                                <label for="sales_recovery_income_account">{{ __('finance::finance.sales_recovery_income_account') }}</label>
+                                <span class="setting-field__tools">
+                                    {!! addUpButton(route('finance.accounts.create'), 'sales_recovery_income_account', false, 'name', true) !!}
+                                    <span class="setting-info" title="{{ __('finance::finance.sales_recovery_income_account_hint') }}"><i class="fa fa-info"></i></span>
+                                </span>
+                            </div>
+                            <input type="hidden" value="sales_recovery_income_account" name="data[sales_recovery_income_account][title]">
+                            <select name="data[sales_recovery_income_account][value]" id="sales_recovery_income_account"
+                                    class="form-control account-ajax-select" data-account-scope="creditor_leaf">
+                                <option value="">{{ __('finance::finance.choose') }}</option>
+                                @if ($item = $settingAccountOption('sales_recovery_income_account'))
+                                    <option value="{{ $item->id }}" selected>{{ $item->code }} / {{ $item->name }}</option>
+                                @endif
+                            </select>
+                            <div class="setting-field__tree">
+                                <strong>{{ $accountTreeLabel }}:</strong> {{ __('finance::finance.sales_recovery_income_account_hint') }}
+                            </div>
+                        </div>
+                        <div class="setting-field">
+                            <div class="setting-field__top">
+                                <label for="recruitment_refund_penalty_account">{{ __('finance::finance.recruitment_refund_penalty_account') }}</label>
+                                <span class="setting-field__tools">
+                                    {!! addUpButton(route('finance.accounts.create'), 'recruitment_refund_penalty_account', false, 'name', true) !!}
+                                    <span class="setting-info" title="{{ __('finance::finance.recruitment_refund_penalty_account_hint') }}"><i class="fa fa-info"></i></span>
+                                </span>
+                            </div>
+                            <input type="hidden" value="recruitment_refund_penalty_account" name="data[recruitment_refund_penalty_account][title]">
+                            <select name="data[recruitment_refund_penalty_account][value]" id="recruitment_refund_penalty_account"
+                                    class="form-control account-ajax-select" data-account-scope="creditor_leaf">
+                                <option value="">{{ __('finance::finance.choose') }}</option>
+                                @if ($item = $settingAccountOption('recruitment_refund_penalty_account'))
+                                    <option value="{{ $item->id }}" selected>{{ $item->code }} / {{ $item->name }}</option>
+                                @endif
+                            </select>
+                            <div class="setting-field__tree">
+                                <strong>{{ $accountTreeLabel }}:</strong> {{ __('finance::finance.recruitment_refund_penalty_account_hint') }}
+                            </div>
+                        </div>
+                        <div class="setting-field">
+                            <div class="setting-field__top">
+                                <label for="deportation_loss_account">{{ __('finance::finance.deportation_loss_account') }}</label>
+                                <span class="setting-field__tools">
+                                    {!! addUpButton(route('finance.accounts.create'), 'deportation_loss_account', false, 'name', true) !!}
+                                    <span class="setting-info" title="{{ __('finance::finance.deportation_loss_account_hint') }}"><i class="fa fa-info"></i></span>
+                                </span>
+                            </div>
+                            <input type="hidden" value="deportation_loss_account" name="data[deportation_loss_account][title]">
+                            <select name="data[deportation_loss_account][value]" id="deportation_loss_account"
+                                    class="form-control account-ajax-select" data-account-scope="debtor_leaf">
+                                <option value="">{{ __('finance::finance.choose') }}</option>
+                                @if ($item = $settingAccountOption('deportation_loss_account'))
+                                    <option value="{{ $item->id }}" selected>{{ $item->code }} / {{ $item->name }}</option>
+                                @endif
+                            </select>
+                            <div class="setting-field__tree">
+                                <strong>{{ $accountTreeLabel }}:</strong> {{ __('finance::finance.deportation_loss_account_hint') }}
+                            </div>
+                        </div>
+                        <div class="setting-field">
+                            <div class="setting-field__top">
+                                <label for="shelter_write_off_account">{{ __('finance::finance.shelter_write_off_account') }}</label>
+                                <span class="setting-field__tools">
+                                    {!! addUpButton(route('finance.accounts.create'), 'shelter_write_off_account', false, 'name', true) !!}
+                                    <span class="setting-info" title="{{ __('finance::finance.shelter_write_off_account_hint') }}"><i class="fa fa-info"></i></span>
+                                </span>
+                            </div>
+                            <input type="hidden" value="shelter_write_off_account" name="data[shelter_write_off_account][title]">
+                            <select name="data[shelter_write_off_account][value]" id="shelter_write_off_account"
+                                    class="form-control account-ajax-select" data-account-scope="debtor_leaf">
+                                <option value="">{{ __('finance::finance.choose') }}</option>
+                                @if ($item = $settingAccountOption('shelter_write_off_account'))
+                                    <option value="{{ $item->id }}" selected>{{ $item->code }} / {{ $item->name }}</option>
+                                @endif
+                            </select>
+                            <div class="setting-field__tree">
+                                <strong>{{ $accountTreeLabel }}:</strong> {{ __('finance::finance.shelter_write_off_account_hint') }}
+                            </div>
+                        </div>
+                    </div>
+                    <small class="text-muted d-block mt-3">
+                        <i class="fa fa-info-circle"></i>
+                        {{ __('finance::finance.shelter_deportation_accounts_scope_hint') }}
+                    </small>
                 </div>
             </details>
 

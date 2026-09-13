@@ -4,6 +4,7 @@ namespace Nami\Finance\Services;
 
 use App\Support\BranchSharingSettings;
 use App\Support\BranchReportFilter;
+use App\Support\ConstraintReferenceGuard;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
@@ -440,8 +441,18 @@ class ConstraintService extends MainService
         return $constraint->refresh();
     }
 
-    public function deleteConstraint(int $id): Model
+    /**
+     * حذف قيد يدوي. القيود الآلية (المرتبطة بفاتورة/تحويل/استرداد/...) تُرفض
+     * برسالة عربية؛ `$force = true` مخصص لمسارات العكس الداخلية التي تملك القيد.
+     */
+    public function deleteConstraint(int $id, bool $force = false): Model
     {
+        if (! $force && ConstraintReferenceGuard::isReferenced($id)) {
+            throw ValidationException::withMessages([
+                'constraint' => ConstraintReferenceGuard::describe($id),
+            ]);
+        }
+
         return DB::transaction(function () use ($id) {
             $constraint = $this->find($id);
             $snapshot = $this->constraintSnapshot($constraint);

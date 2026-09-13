@@ -484,6 +484,16 @@ class AdminRoutePermissionMatrix
             'RecruitmentContract.update' => [NewPermKeys::REC_CONTRACTS_EDIT, NewPermKeys::REC_CONTRACTS_MANAGE],
             'RecruitmentContract.destroy' => [NewPermKeys::REC_CONTRACTS_DELETE, NewPermKeys::REC_CONTRACTS_MANAGE],
             'RecruitmentContract.restoreReturned' => [NewPermKeys::REC_CONTRACTS_RETURN, NewPermKeys::REC_CONTRACTS_MANAGE],
+            'RecruitmentContract.back' => [NewPermKeys::REC_CONTRACTS_RETURN, NewPermKeys::REC_CONTRACTS_MANAGE],
+            'RecruitmentContract.updateStatus' => [
+                NewPermKeys::REC_CONTRACTS_UPDATE,
+                NewPermKeys::REC_CONTRACTS_CHANGE_TO_MSANED,
+                NewPermKeys::REC_CONTRACTS_CHANGE_TO_TAFWED,
+                NewPermKeys::REC_CONTRACTS_CHANGE_TO_TAFFEZ,
+                NewPermKeys::REC_CONTRACTS_CHANGE_TO_TAZKER,
+                NewPermKeys::REC_CONTRACTS_RETURN,
+                NewPermKeys::REC_CONTRACTS_MANAGE,
+            ],
             'RecruitmentContract.statistics' => [NewPermKeys::REC_CONTRACTS_VIEW, NewPermKeys::REC_CONTRACTS_MANAGE],
             'RecruitmentContract.export.pdf' => [NewPermKeys::REC_CONTRACTS_EXPORT, NewPermKeys::REC_CONTRACTS_MANAGE],
             'RecruitmentContract.export.excel' => [NewPermKeys::REC_CONTRACTS_EXPORT, NewPermKeys::REC_CONTRACTS_MANAGE],
@@ -629,6 +639,8 @@ class AdminRoutePermissionMatrix
     private static function shelterDefinitions(): array
     {
         return [
+            'ShelterContract.agentRecovery.store' => [PermKeys::SHELTER_AGENT_COST_RECOVERY],
+            'ShelterContract.agentRecovery.reverse' => [PermKeys::SHELTER_AGENT_COST_RECOVERY_REVERSE],
             'ShelterContract.index' => [PermKeys::SHELTER_CONTRACT_INSIDE_VIEW, PermKeys::SHELTER_CONTRACT_VIEW, PermKeys::SHELTER_CONTRACT_CONTROL],
             'ShelterContract.create' => [PermKeys::SHELTER_CONTRACT_ADDITION_CREATE, PermKeys::SHELTER_CONTRACT_CREATE, PermKeys::SHELTER_CONTRACT_CONTROL],
             'ShelterContract.availableForTransfer' => [PermKeys::SHELTER_CONTRACT_AVAILABLE_FOR_TRANSFER_VIEW, PermKeys::SHELTER_CONTRACT_VIEW, PermKeys::SHELTER_CONTRACT_CONTROL],

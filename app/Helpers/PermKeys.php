@@ -496,6 +496,9 @@ const PARTENR_CONTROL = 'partenr_control';
     // ========================================
     // عقود الإيواء (Shelter Contracts)
     // ========================================
+    const SHELTER_AGENT_COST_RECOVERY = 'shelter_agent_cost_recovery';
+    const SHELTER_AGENT_COST_RECOVERY_REVERSE = 'shelter_agent_cost_recovery_reverse';
+
     const SHELTER_CONTRACT_VIEW = 'shelter_contract_view';
     const SHELTER_CONTRACT_CREATE = 'shelter_contract_create';
     const SHELTER_CONTRACT_EDIT = 'shelter_contract_edit';

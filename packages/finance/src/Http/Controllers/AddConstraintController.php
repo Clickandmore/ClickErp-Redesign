@@ -187,7 +187,14 @@ class AddConstraintController extends Controller
 
     public function destroy($id, ObjService $service)
     {
-        $service->deleteConstraint($id);
+        try {
+            $service->deleteConstraint((int) $id);
+        } catch (\Illuminate\Validation\ValidationException $exception) {
+            $errors = $exception->errors();
+            $message = (string) (collect($errors)->flatten()->first() ?: 'لا يمكن حذف هذا القيد.');
+
+            return jsonValid($errors, $message);
+        }
 
         return jsonSuccess();
     }

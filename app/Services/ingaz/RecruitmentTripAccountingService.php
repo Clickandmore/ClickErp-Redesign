@@ -281,8 +281,29 @@ class RecruitmentTripAccountingService
         string $date,
         string $statement
     ): ?Constraint {
+        return DB::transaction(function () use ($contract, $invoice, $date, $statement) {
+            if ($contract->maid_id) {
+                \App\Models\ingaz\Maid::query()->whereKey($contract->maid_id)->lockForUpdate()->firstOrFail();
+            }
+            return $this->reverseExternalOfficeCostEntriesLocked($contract, $invoice->fresh(), $date, $statement);
+        });
+    }
+
+    private function reverseExternalOfficeCostEntriesLocked(
+        Contract $contract,
+        Invoice $invoice,
+        string $date,
+        string $statement
+    ): ?Constraint {
         if (!$invoice->external_office_cost_constraint_id) {
             return null;
+        }
+
+        if (Schema::hasTable('shelter_agent_cost_recoveries') && DB::table('shelter_agent_cost_recoveries as r')
+            ->join('shelter_cost_entries as e', 'e.id', '=', 'r.receipt_entry_id')
+            ->where('e.supplier_constraint_id', $invoice->external_office_cost_constraint_id)
+            ->whereNull('r.reversal_constraint_id')->exists()) {
+            throw new \RuntimeException('سبق استرداد تكلفة الوكيل من الإيواء؛ لا يمكن عكس تكلفة المورد مرة أخرى.');
         }
 
         $hasReversalColumn = Schema::hasColumn('invoices', 'external_office_cost_reversal_constraint_id');

@@ -826,6 +826,15 @@ class AdminTravelHistoryController extends Controller
     {
         try {
             $travel = TravelHistory::findOrFail($id);
+
+            // رحلات الترحيل تُنهى من شاشة الترحيل فقط، وإلا يعود العقد إلى «وصول» وتتكرر قيود الوصول.
+            if ($travel->travel_type === 'deportation') {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'رحلات الترحيل تُنهى من شاشة رحلات الترحيل، لا من شاشة السفر.',
+                ], 422);
+            }
+
             $tripRecords = $this->resolveTripRecords($travel);
             $updatedContracts = 0;
             $accountingCreatedContracts = 0;

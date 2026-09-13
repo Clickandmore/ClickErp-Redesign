@@ -12,6 +12,7 @@ use App\Support\IngazDelegationTimeline;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Validation\ValidationException;
 use Nami\Finance\Enums\AccountTypesEnum;
 use Nami\Finance\Enums\BondTypes;
@@ -438,6 +439,13 @@ class MusanedTransferController extends Controller
             ->filter(fn (MusanedTransferItem $item) => $item->ingazDelegation)
             ->values();
 
+        // استرداد العقد يُبنى على بند التحويل وقيده؛ حذف التحويل يترك الاسترداد بلا أصل.
+        if ($this->transferHasContractRefunds($transfer)) {
+            return back()->withErrors([
+                'delete' => 'لا يمكن حذف تحويل مساند بُني عليه استرداد عقد. اعكس الاسترداد أولاً.',
+            ]);
+        }
+
         try {
             $deletedConstraintsCount = DB::transaction(function () use ($transfer, $service) {
                 $lockedTransfer = MusanedTransfer::query()
@@ -455,7 +463,8 @@ class MusanedTransferController extends Controller
                     ->get();
 
                 foreach ($constraints as $constraint) {
-                    $service->deleteConstraint((int) $constraint->id);
+                    // التحويل يملك قيديه، لذا يتجاوز حارس القيود الآلية (بعد فحص الاستردادات أعلاه).
+                    $service->deleteConstraint((int) $constraint->id, true);
                 }
 
                 // Explicitly remove items as a safeguard for installations
@@ -488,6 +497,23 @@ class MusanedTransferController extends Controller
         return redirect()
             ->route('musaned-transfers.index')
             ->with('success', 'تم حذف تحويل مساند وحذف ' . $deletedConstraintsCount . ' من القيود المحاسبية المرتبطة به بنجاح.');
+    }
+
+    private function transferHasContractRefunds(MusanedTransfer $transfer): bool
+    {
+        if (! Schema::hasTable('recruitment_contract_refunds')
+            || ! Schema::hasColumn('recruitment_contract_refunds', 'musaned_transfer_item_id')) {
+            return false;
+        }
+
+        $itemIds = $transfer->items->pluck('id')->filter()->values();
+        if ($itemIds->isEmpty()) {
+            return false;
+        }
+
+        return DB::table('recruitment_contract_refunds')
+            ->whereIn('musaned_transfer_item_id', $itemIds)
+            ->exists();
     }
 
     private function getEligibleInvoicesQuery()

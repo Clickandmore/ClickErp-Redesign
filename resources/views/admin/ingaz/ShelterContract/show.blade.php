@@ -127,6 +127,11 @@
             gap: 20px;
         }
 
+        .maid-info { order: -2; }
+        .shelter-info { order: -1; }
+        .worker-timeline { padding-inline-start: 24px; margin-top: 24px; }
+        .worker-summary strong { font-size: 1.6rem; }
+
         .info-card {
             background: #fff;
             border-radius: 20px;
@@ -287,7 +292,7 @@
 @endsection
 
 @section('title')
-    عرض تفاصيل عقد الملجأ
+    ملف العاملة في السكن
 @endsection
 
 @php
@@ -314,19 +319,20 @@
     <div class="details-content">
         <div class="hero-card">
             <div>
-                <p class="hero-label">تفاصيل عقد الملجأ</p>
-                <h2>عقد رقم #{{ $contract->id }}</h2>
+                <p class="hero-label">ملف العاملة في السكن</p>
+                <h2>{{ $contract->maid?->name ?: "عاملة غير محددة" }}</h2>
+                <p>رقم العاملة: {{ $contract->maid_id ?? "غير مسجل" }} · عقد السكن #{{ $contract->id }}</p>
                 <p class="hero-description">
                     @if($contract->user)
-                        العميل: {{ $contract->user->name }}
+                        الكفيل المرتبط بالعقد: {{ $contract->user->name }}
                     @else
-                        العميل غير موجود ضمن السجلات.
+                        لا يوجد كفيل مرتبط بالعقد.
                     @endif
                 </p>
                 <div class="hero-meta">
                     <div>
                         <span class="meta-title">حالة الضمان</span>
-                        <span class="status-pill {{ $warrantyStatus == '���.�� ���"���.����' ? 'status-pill--success' : 'status-pill--danger' }}">
+                        <span class="status-pill {{ $warrantyStatus == 'ضمن الضمان' ? 'status-pill--success' : 'status-pill--danger' }}">
                             {{ $warrantyStatus }}
                             @if($warrantyDays > 0)
                                 ({{ $warrantyDays }} يوم)
@@ -378,7 +384,9 @@
             </div>
         @endif
 
-        <div class="info-grid">
+        @include('admin.ingaz.ShelterContract.partials.worker-history')
+
+        <div class="info-grid" id="worker-details">
             <section class="info-card contract-info">
                 <div class="section-title">
                     <i class="fas fa-file-contract"></i>معلومات العقد
@@ -410,7 +418,7 @@
 
             <section class="info-card client-info">
                 <div class="section-title">
-                    <i class="fas fa-user"></i>بيانات العميل
+                    <i class="fas fa-user"></i>بيانات الكفيل المرتبط بالعقد
                 </div>
                 @if($contract->user)
                     <div class="info-row">
@@ -446,13 +454,22 @@
 
             <section class="info-card maid-info">
                 <div class="section-title">
-                    <i class="fas fa-female"></i>بيانات الخادمة
+                    <i class="fas fa-female"></i>بيانات العاملة
                 </div>
                 @if($contract->maid)
                     <div class="info-row">
                         <span class="info-label">الاسم</span>
                         <span class="info-value">{{ $contract->maid->name }}</span>
                     </div>
+                    @foreach(['id_number' => 'رقم الإقامة / الهوية', 'border_number' => 'رقم الحدود', 'residence_city' => 'مدينة الإقامة', 'experience_years' => 'سنوات الخبرة'] as $field => $label)
+                        <div class="info-row"><span class="info-label">{{ $label }}</span><span class="info-value">{{ $contract->maid->$field ?? 'غير مسجل' }}</span></div>
+                    @endforeach
+                    @if($contract->maid->phone)
+                        <div class="info-row"><span class="info-label">الهاتف</span><span class="info-value">{{ $contract->maid->phone }}</span></div>
+                    @endif
+                    @if($contract->maid->passport_expiry_date)
+                        <div class="info-row"><span class="info-label">انتهاء الجواز</span><span class="info-value">{{ $contract->maid->passport_expiry_date->format('Y-m-d') }}</span></div>
+                    @endif
                     <div class="info-row">
                         <span class="info-label">رقم جواز السفر</span>
                         <span class="info-value">{{ $contract->maid->passport_num ?? 'غير متوفر' }}</span>
@@ -491,18 +508,18 @@
                     </div>
                 @else
                     <div class="info-empty">
-                        <i class="fas fa-exclamation-triangle"></i> لا يوجد خادمة مربوطة بالعقد.
+                        <i class="fas fa-exclamation-triangle"></i> لا توجد عاملة مرتبطة بالعقد.
                     </div>
                 @endif
             </section>
 
             <section class="info-card shelter-info">
                 <div class="section-title">
-                    <i class="fas fa-building"></i>بيانات الملجأ
+                    <i class="fas fa-building"></i>بيانات السكن
                 </div>
                 @if($contract->info)
                     <div class="info-row">
-                        <span class="info-label">اسم الملجأ</span>
+                        <span class="info-label">اسم السكن</span>
                         <span class="info-value">
                             @if($contract->info->shelter)
                                 {{ $contract->info->shelter->title ?? 'غير متوفر' }}
@@ -514,7 +531,7 @@
                     <div class="info-row">
                         <span class="info-label">تاريخ الوصول للمملكة</span>
                         <span class="info-value">
-                            {{ $contract->info->arrival_date ?? $contract->info->visa_milad_date ?? $contract->info->contract_date ?? 'غير متوفر' }}
+                            {{ $contract->info->arrival_date ?? 'غير متوفر' }}
                         </span>
                     </div>
                     <div class="info-row">
@@ -553,7 +570,7 @@
                         <span class="info-label">رغبة العمل</span>
                         <span class="info-value">
                             @if($contract->info->wants_to_work == 'yes')
-                                <span class="badge bg-success">تفضل البقاء</span>
+                                <span class="badge bg-success">ترغب بالعمل</span>
                             @elseif($contract->info->wants_to_work == 'no')
                                 <span class="badge bg-warning">لا ترغب بالعمل</span>
                             @else
@@ -561,6 +578,14 @@
                             @endif
                         </span>
                     </div>
+                    <div class="info-row"><span class="info-label">التواجد في السكن</span><span class="info-value">{{ $contract->info->is_outside_shelter ? 'خارج السكن' : ($contract->status === 'shelter' ? 'داخل السكن' : 'العقد خارج مرحلة الإيواء') }}</span></div>
+                    @foreach(['back_reasons' => 'أسباب الإرجاع', 'outside_shelter_at' => 'تاريخ الخروج من السكن'] as $field => $label)
+                        @if($contract->info->$field)
+                            <div class="info-row"><span class="info-label">{{ $label }}</span><span class="info-value">{{ $contract->info->$field }}</span></div>
+                        @endif
+                    @endforeach
+                    <div class="info-row"><span class="info-label">وجود إقامة</span><span class="info-value">{{ ['yes' => 'نعم', 'no' => 'لا'][$contract->info->workers_have_residency] ?? 'غير مسجل' }}</span></div>
+                    <div class="info-row"><span class="info-label">الفحص الطبي</span><span class="info-value">{{ ['yes' => 'تم', 'no' => 'لم يتم'][$contract->info->performing_medical_examination] ?? 'غير مسجل' }}</span></div>
                     @if($contract->info->notes)
                     <div class="info-row">
                         <span class="info-label">ملاحظات</span>
@@ -569,17 +594,24 @@
                     @endif
                 @else
                     <div class="info-empty">
-                        <i class="fas fa-exclamation-triangle"></i> لم يتم إدخال بيانات الملجأ.
+                        <i class="fas fa-exclamation-triangle"></i> لم يتم إدخال بيانات السكن.
                     </div>
                 @endif
             </section>
         </div>
+
+        @include('admin.ingaz.ShelterContract.partials.worker-records')
+
+        @include('admin.ingaz.ShelterContract.partials.agent-cost-recovery')
 
         <div class="operations-panel">
             <div class="section-title">
                 <i class="fas fa-cogs"></i>خيارات إضافية
             </div>
             <div class="action-grid">
+                <a href="#agent-cost-recovery" class="action-card action-card--edit">
+                    <i class="fas fa-receipt"></i><span>استرداد تكلفة الوكيل</span>
+                </a>
                 @if ($canEditShelterContract)
                     <a href="{{ route('ShelterContract.edit', $contract->id) }}" class="action-card action-card--edit">
                         <i class="fas fa-edit"></i>

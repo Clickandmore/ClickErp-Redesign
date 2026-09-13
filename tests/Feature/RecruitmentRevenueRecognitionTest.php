@@ -201,12 +201,16 @@ class RecruitmentRevenueRecognitionTest extends TestCase
 
         $constraint = app(RecruitmentContractWarrantyReturnService::class)->record($contract->fresh(), $returnRequest);
 
+        // الإرجاع الآن يصدر إشعار دائن (قيد بسطر مدين ودائن لكل بند) بدل قيد واحد مجمّع.
         $this->assertNotNull($constraint);
+        $this->assertNotNull($returnRequest->fresh()->credit_note_id);
         $this->assertSame([
             [$sales->id, 285.0, 0.0],
+            [$client, 0.0, 285.0],
             [$sales->id, 3653.0, 0.0],
+            [$client, 0.0, 3653.0],
             [$vat->id, 42.75, 0.0],
-            [$client, 0.0, 3980.75],
+            [$client, 0.0, 42.75],
         ], $this->lines($constraint));
 
         $reversalId = $invoice->fresh()->external_office_cost_reversal_constraint_id;
