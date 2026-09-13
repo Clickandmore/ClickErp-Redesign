@@ -554,6 +554,8 @@ Route::group(
 
             // Routes Ù„Ù„ØµÙØ­Ø§Øª Ø§Ù„Ù…Ø®ØªÙ„ÙØ© Ø­Ø³Ø¨ Ø§Ù„Ø­Ø§Ù„Ø© - ÙŠØ¬Ø¨ Ø£Ù† ØªÙƒÙˆÙ† Ù‚Ø¨Ù„ resource route
             Route::get('SponsorshipTransfer/status/trial', [SponsorshipTransferController::class, 'trial'])->name('SponsorshipTransfer.trial');
+            Route::get('SponsorshipTransfer/{id}/replacement-maids', [SponsorshipTransferController::class, 'replacementMaids'])->name('SponsorshipTransfer.replacementMaids');
+            Route::post('SponsorshipTransfer/{id}/replace-maid', [SponsorshipTransferController::class, 'replaceMaid'])->name('SponsorshipTransfer.replaceMaid');
             Route::get('SponsorshipTransfer/status/transferred', [SponsorshipTransferController::class, 'transferred'])->name('SponsorshipTransfer.transferred');
             Route::get('SponsorshipTransfer/status/failed', [SponsorshipTransferController::class, 'failed'])->name('SponsorshipTransfer.failed');
             Route::get('SponsorshipTransfer/{id}/trial-details', [SponsorshipTransferController::class, 'trialDetails'])->name('SponsorshipTransfer.trial-details');

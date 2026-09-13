@@ -631,6 +631,14 @@
                                                     </li>
 
                                                     @if($pageConfig['page'] === 'trial')
+                                                        @if(!$transfer->invoice && (@AdminGuardHasPerm(\App\PermKeys::SPONSOR_TRANSFER_REPLACE_MAID) || @AdminGuardHasPerm(\App\PermKeys::SPONSOR_TRANSFER_CONTROL)))
+                                                        <li>
+                                                            <a class="dropdown-item replace-maid-action" href="#"
+                                                               data-id="{{ $transfer->id }}" data-maid="{{ $maid?->name }}">
+                                                                <i class="fas fa-exchange-alt text-warning"></i> تغيير العاملة
+                                                            </a>
+                                                        </li>
+                                                        @endif
                                                         <li>
                                                             <a class="dropdown-item" href="{{ route('SponsorshipTransfer.maid-receipt', $transfer->id) }}">
                                                                 <i class="fas fa-file-word text-primary"></i> تحميل نموذج استلام العاملة
@@ -729,6 +737,26 @@
             </div>
         @endif
     </div>
+    @if($pageConfig['page'] === 'trial')
+    <div class="modal fade" id="replaceMaidModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered"><form class="modal-content" id="replaceMaidForm">
+            <div class="modal-header"><h5 class="modal-title">تغيير العاملة خلال فترة التجربة</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+            <div class="modal-body">
+                <div class="alert alert-warning py-2">
+                    سيبقى العميل وقيمة نقل الكفالة والمدفوعات كما هي، وسيتم استبدال العاملة والعقد المرتبط فقط.
+                    لا يمكن تنفيذ التغيير بعد إصدار الفاتورة.
+                </div>
+                <div class="mb-3"><strong>العاملة الحالية:</strong> <span id="replaceCurrentMaid">—</span></div>
+                <div class="alert alert-info py-2" id="replacementSelectionExplanation">جارٍ تحديد نوع العاملات المتاح اختيارهن...</div>
+                <div class="mb-3"><label class="form-label" id="replacementMaidLabel">العاملة البديلة</label><select class="form-select" id="replacementContractId" required><option value="">اختر العاملة...</option></select></div>
+                <label class="form-label d-block">هل تصبح العاملة القديمة متاحة؟</label>
+                <div class="form-check mb-2"><input class="form-check-input" type="radio" name="make_old_maid_available" id="oldAvailableYes" value="1" checked><label class="form-check-label" for="oldAvailableYes"><strong>نعم:</strong> تُعاد إلى الإيواء وتظهر كعاملة متاحة للعمل والنقل مرة أخرى.</label></div>
+                <div class="form-check"><input class="form-check-input" type="radio" name="make_old_maid_available" id="oldAvailableNo" value="0"><label class="form-check-label" for="oldAvailableNo"><strong>لا:</strong> تُعاد إلى الإيواء مع الاحتفاظ بها كغير متاحة، ولا تظهر ضمن العاملات المتاحات.</label></div>
+            </div>
+            <div class="modal-footer"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button><button class="btn btn-warning" type="submit">تأكيد تغيير العاملة</button></div>
+        </form></div>
+    </div>
+    @endif
 @else
     @include('components.no_permissions')
 @endif
@@ -739,6 +767,95 @@
     <script src="{{asset("admin")}}/custom/admin-tables.js"></script>
     <script>
         $(document).ready(function () {
+            @if($pageConfig['page'] === 'trial')
+            let replacementTransferId = null;
+            const replacementModalElement = document.getElementById('replaceMaidModal');
+            const replacementModal = replacementModalElement ? new bootstrap.Modal(replacementModalElement) : null;
+
+            $(document).on('click', '.replace-maid-action', function (event) {
+                event.preventDefault();
+                replacementTransferId = $(this).data('id');
+                $('#replaceCurrentMaid').text($(this).data('maid') || 'غير محددة');
+                $('#replacementSelectionExplanation').text('اكتب اسم العاملة أو رقم جوازها للبحث في العاملات المتاحات.');
+                replacementModal.show();
+
+                const url = @json(route('SponsorshipTransfer.replacementMaids', ['id' => '__ID__'])).replace('__ID__', replacementTransferId);
+                const select = $('#replacementContractId');
+                if (select.hasClass('select2-hidden-accessible')) {
+                    select.select2('destroy');
+                }
+                select.empty().append(new Option('', '', true, false)).select2({
+                    width: '100%',
+                    dir: 'rtl',
+                    dropdownParent: $('#replaceMaidModal'),
+                    placeholder: 'ابحث باسم العاملة أو رقم الجواز...',
+                    allowClear: true,
+                    minimumInputLength: 0,
+                    ajax: {
+                        url: url,
+                        dataType: 'json',
+                        delay: 300,
+                        cache: true,
+                        data: params => ({q: params.term || ''}),
+                        processResults: function (response) {
+                            $('#replacementSelectionExplanation').text(response.selection_explanation || 'تظهر العاملات الموجودات داخل الإيواء والراغبات في العمل.');
+                            $('#replacementMaidLabel').text(response.current_worker_type === 'company'
+                                ? 'العاملة البديلة من عاملات الشركة'
+                                : 'العاملة البديلة من العاملات داخل الإيواء');
+                            return {results: response.results || []};
+                        },
+                        error: function (xhr) {
+                            Swal.fire('تعذر التحميل', xhr.responseJSON?.message || 'تعذر تحميل العاملات المتاحة.', 'error');
+                        }
+                    },
+                    language: {
+                        inputTooShort: () => 'اكتب للبحث عن العاملة',
+                        searching: () => 'جارٍ البحث...',
+                        noResults: () => 'لا توجد عاملات مطابقات ومتاحات'
+                    }
+                });
+
+                $(replacementModalElement).one('shown.bs.modal', () => select.select2('open'));
+            });
+
+            $('#replaceMaidForm').on('submit', function (event) {
+                event.preventDefault();
+                const submit = $(this).find('button[type="submit"]').prop('disabled', true);
+                const url = @json(route('SponsorshipTransfer.replaceMaid', ['id' => '__ID__'])).replace('__ID__', replacementTransferId);
+                const replacementName = $('#replacementContractId option:selected').text();
+                const makeAvailable = $('input[name="make_old_maid_available"]:checked').val();
+                const oldMaidResult = makeAvailable === '1'
+                    ? 'ستعود العاملة القديمة للإيواء وستصبح متاحة للعمل.'
+                    : 'ستعود العاملة القديمة للإيواء ولكن ستظل غير متاحة.';
+
+                Swal.fire({
+                    title: 'تأكيد استبدال العاملة',
+                    text: `سيتم اختيار ${replacementName} بدلاً من العاملة الحالية. ${oldMaidResult} لن تتغير بيانات العميل أو المبالغ والمدفوعات.`,
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonText: 'نعم، تنفيذ التغيير',
+                    cancelButtonText: 'رجوع'
+                }).then(function (result) {
+                    if (!result.isConfirmed) {
+                        submit.prop('disabled', false);
+                        return;
+                    }
+
+                    $.ajax({url, type: 'POST', data: {
+                        _token: @json(csrf_token()),
+                        replacement_contract_id: $('#replacementContractId').val(),
+                        make_old_maid_available: makeAvailable
+                    }}).done(function (response) {
+                        replacementModal.hide();
+                        Swal.fire('تم بنجاح', response.message, 'success').then(() => window.location.reload());
+                    }).fail(function (xhr) {
+                        const errors = xhr.responseJSON?.errors || {};
+                        Swal.fire('تعذر التغيير', Object.values(errors)[0]?.[0] || xhr.responseJSON?.message || 'حدث خطأ غير متوقع.', 'error');
+                    }).always(() => submit.prop('disabled', false));
+                });
+            });
+            @endif
+
             const filtersCollapse = document.getElementById('filtersCollapse');
             const filtersIcon = document.getElementById('filtersIcon');
 

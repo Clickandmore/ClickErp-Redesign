@@ -211,6 +211,11 @@ class SponsorshipTransfer extends Model
         return $this->hasOne(\App\Models\TransferServiceContract::class);
     }
 
+    public function maidReplacements()
+    {
+        return $this->hasMany(SponsorshipTransferMaidReplacement::class)->latest();
+    }
+
     // Scopes
     public function scopePending($query)
     {
