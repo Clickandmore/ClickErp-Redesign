@@ -3,6 +3,8 @@
 namespace Tests\Unit;
 
 use App\Http\Controllers\ingaz\MaidController;
+use App\Models\Contract;
+use App\Models\SponsorshipTransfer;
 use App\Models\ingaz\Maid;
 use App\Models\RentalContract;
 use Illuminate\Database\Eloquent\Collection as EloquentCollection;
@@ -18,7 +20,10 @@ class RentalMaidAccommodationStatusTest extends TestCase
             'available' => false,
             'maid_accommodation_type' => 2,
         ]);
-        $maid->setRelation('contracts', new EloquentCollection());
+        $shelterContract = new Contract(['status' => 'shelter']);
+        $shelterContract->setRelation('info', null);
+        $shelterContract->setRelation('sponsorshipTransfers', new EloquentCollection());
+        $maid->setRelation('contracts', new EloquentCollection([$shelterContract]));
         $maid->setRelation('orders', new EloquentCollection());
         $maid->setRelation('rentalContracts', new EloquentCollection());
 
@@ -43,6 +48,27 @@ class RentalMaidAccommodationStatusTest extends TestCase
         $status = $this->invoke('resolveRentalMaidCvStatus', $maid);
 
         $this->assertSame('active_rental_contract', $status);
+    }
+
+    public function test_active_sponsorship_transfer_prevents_ready_for_contract_status(): void
+    {
+        $transfer = new SponsorshipTransfer(['status' => 'trial_started']);
+        $transfer->id = 28;
+
+        $contract = new Contract(['status' => 'trial']);
+        $contract->setRelation('sponsorshipTransfers', new EloquentCollection([$transfer]));
+
+        $maid = new Maid([
+            'status' => 'available',
+            'available' => true,
+            'maid_accommodation_type' => 2,
+        ]);
+        $maid->setRelation('contracts', new EloquentCollection([$contract]));
+        $maid->setRelation('orders', new EloquentCollection());
+        $maid->setRelation('rentalContracts', new EloquentCollection());
+
+        $this->assertSame('active_sponsorship_transfer', $this->invoke('resolveRentalMaidCvStatus', $maid));
+        $this->assertFalse($this->invoke('canCreateRentalContractForMaid', $maid));
     }
 
     private function invoke(string $method, mixed ...$arguments): mixed
