@@ -1059,6 +1059,9 @@ class InvoiceController extends Controller
      */
     public function store(Request $request, ObjService $service, YearService $yearService, BondService $bondService)
     {
+        $requiresExternalRecruitmentCost = $request->filled('contract_id')
+            || $request->filled('ingaz_delegation_id');
+
         $request->validate([
             'invoice_date' => ['required', 'date_format:Y-m-d'],
             'contract_id' => 'nullable|required_without_all:ingaz_delegation_id,client_id,sponsorship_transfer_id|exists:contracts,id',
@@ -1078,7 +1081,11 @@ class InvoiceController extends Controller
             'general_ticket_label' => 'nullable|string|max:255',
             'insurance_company' => 'nullable|string|max:255',
             'direct_recruitment_cost' => 'nullable|numeric|min:0',
-            'external_recruitment_cost' => 'nullable|numeric|min:0',
+            'external_recruitment_cost' => [
+                $requiresExternalRecruitmentCost ? 'required' : 'nullable',
+                'numeric',
+                $requiresExternalRecruitmentCost ? 'gt:0' : 'min:0',
+            ],
             'government_cost' => 'nullable|numeric|min:0',
             'internal_ticket_cost' => 'nullable|numeric|min:0',
             'visa_recruited_count' => 'nullable|integer|min:0',
@@ -1092,6 +1099,10 @@ class InvoiceController extends Controller
             'vat_amount' => 'nullable|numeric|min:0',
             'total_due' => 'nullable|numeric|min:0',
             'send_to_zatca' => 'nullable|boolean',
+        ], [
+            'external_recruitment_cost.required' => 'قيمة الاستقدام الخارجي مطلوبة لفواتير العقود والتفاويض.',
+            'external_recruitment_cost.numeric' => 'قيمة الاستقدام الخارجي يجب أن تكون رقماً.',
+            'external_recruitment_cost.gt' => 'قيمة الاستقدام الخارجي يجب أن تكون أكبر من صفر لفواتير العقود والتفاويض.',
         ]);
 
         $referenceCount = collect([
