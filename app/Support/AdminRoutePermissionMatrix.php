@@ -724,6 +724,8 @@ class AdminRoutePermissionMatrix
                 'SponsorshipTransfer.webRequest.show' => [PermKeys::SPONSOR_TRANSFER_WEB_REQUESTS_VIEW, PermKeys::SPONSOR_TRANSFER_CONTROL],
                 'SponsorshipTransfer.webRequest.cancel' => [PermKeys::SPONSOR_TRANSFER_EDIT, PermKeys::SPONSOR_TRANSFER_CONTROL],
                 'SponsorshipTransfer.trial' => [PermKeys::SPONSOR_TRANSFER_VIEW, PermKeys::SPONSOR_TRANSFER_CONTROL],
+                'SponsorshipTransfer.replacementMaids' => [PermKeys::SPONSOR_TRANSFER_REPLACE_MAID, PermKeys::SPONSOR_TRANSFER_CONTROL],
+                'SponsorshipTransfer.replaceMaid' => [PermKeys::SPONSOR_TRANSFER_REPLACE_MAID, PermKeys::SPONSOR_TRANSFER_CONTROL],
                 'SponsorshipTransfer.transferred' => [PermKeys::SPONSOR_TRANSFER_VIEW, PermKeys::SPONSOR_TRANSFER_CONTROL],
                 'SponsorshipTransfer.failed' => [PermKeys::SPONSOR_TRANSFER_VIEW, PermKeys::SPONSOR_TRANSFER_CONTROL],
                 'SponsorshipTransfer.trial-details' => [PermKeys::SPONSOR_TRANSFER_VIEW, PermKeys::SPONSOR_TRANSFER_CONTROL],
