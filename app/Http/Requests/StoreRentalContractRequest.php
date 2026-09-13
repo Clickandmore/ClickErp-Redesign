@@ -235,6 +235,16 @@ class StoreRentalContractRequest extends FormRequest
             $maid = $this->maid_id
                 ? Maid::with('nationality.translations')->find($this->maid_id)
                 : null;
+
+            if ($this->isMethod('post') && $maid) {
+                if (trim((string) $maid->name) === '') {
+                    $validator->errors()->add('maid_id', 'اسم العاملة مطلوب؛ يرجى استكماله قبل إنشاء العقد.');
+                }
+
+                if (trim((string) $maid->passport_num) === '') {
+                    $validator->errors()->add('maid_id', 'رقم جواز العاملة مطلوب؛ يرجى استكماله قبل إنشاء العقد.');
+                }
+            }
             $isCurrentContractMaid = (bool) (
                 $maid
                 && $currentContract

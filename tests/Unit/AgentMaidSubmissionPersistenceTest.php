@@ -56,6 +56,7 @@ class AgentMaidSubmissionPersistenceTest extends TestCase
             $this->assertSame(Maid::SUBMISSION_TYPE_CREATE, $data['submission_type'] ?? null);
             $this->assertSame(0, $data['is_show']);
             $this->assertSame(9, $data['office_id']);
+            $this->assertSame('agents/original-cv.pdf', $data['maid_cv_file']);
 
             return true;
         }))->andThrow(new \RuntimeException('Persistence boundary reached'));
@@ -70,6 +71,7 @@ class AgentMaidSubmissionPersistenceTest extends TestCase
             'is_show' => 0,
             'submission_status' => Maid::SUBMISSION_PENDING,
             'submission_type' => Maid::SUBMISSION_TYPE_CREATE,
+            'maid_cv_file' => 'agents/original-cv.pdf',
             'preserve_null_arrival_date' => true,
         ], Request::create('/agent/maids/store', 'POST', ['type_id' => 1]));
     }

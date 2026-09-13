@@ -57,6 +57,7 @@ class OperationalSummaryExportService
             $this->salesSheet($report),
             $this->receivablesSheet($report['rental_receivables'], 'ذمم التأجير', 'عملاء عقود التأجير — مفوترون ولم يسددوا', $report, true),
             $this->receivablesSheet($report['recruitment_receivables'], 'ذمم الاستقدام', 'فواتير الاستقدام غير المحصّلة', $report, false),
+            $this->receivablesSheet($report['sponsorship_receivables'], 'ذمم نقل الكفالة', 'فواتير عقود نقل الكفالة غير المحصّلة', $report, true),
             $this->delegationsSheet($report),
             $this->musanedSheet($report),
             $this->officesSheet($report),
@@ -196,6 +197,7 @@ class OperationalSummaryExportService
                 $month['label'], $month['rental'], $month['rental_count'],
                 $month['recruitment'], $month['recruitment_count'],
                 $month['delegations'], $month['delegations_count'],
+                $month['sponsorship'], $month['sponsorship_count'],
                 $month['adjustments'], $month['adjustments_count'],
                 $month['invoiced'], $month['collected'], $month['outstanding'],
             ];
@@ -207,12 +209,13 @@ class OperationalSummaryExportService
             'name' => 'المبيعات الشهرية',
             'title' => 'إجمالي المبيعات الشهرية',
             'caption' => 'قيمة الفواتير الصادرة من ' . $report['from'] . ' إلى ' . $report['to'] . ' — ليست قيود الإيراد المحاسبية.',
-            'headers' => ['الشهر', 'فواتير التأجير', 'عدد', 'فواتير الاستقدام', 'عدد', 'فواتير التفاويض', 'عدد', 'تسويات التأجير', 'عدد', 'إجمالي المبيعات', 'المحصّل', 'غير المحصّل'],
-            'types' => ['code', 'money', 'int', 'money', 'int', 'money', 'int', 'money', 'int', 'money', 'money', 'money'],
+            'headers' => ['الشهر', 'فواتير التأجير', 'عدد', 'فواتير الاستقدام', 'عدد', 'فواتير التفاويض', 'عدد', 'فواتير نقل الكفالة', 'عدد', 'تسويات التأجير', 'عدد', 'إجمالي المبيعات', 'المحصّل', 'غير المحصّل'],
+            'types' => ['code', 'money', 'int', 'money', 'int', 'money', 'int', 'money', 'int', 'money', 'int', 'money', 'money', 'money'],
             'rows' => $rows,
             'total' => [
                 'الإجمالي', $t['rental'], $t['rental_count'], $t['recruitment'], $t['recruitment_count'],
-                $t['delegations'], $t['delegations_count'], $t['adjustments'], $t['adjustments_count'],
+                $t['delegations'], $t['delegations_count'], $t['sponsorship'], $t['sponsorship_count'],
+                $t['adjustments'], $t['adjustments_count'],
                 $t['invoiced'], $t['collected'], $t['outstanding'],
             ],
         ];

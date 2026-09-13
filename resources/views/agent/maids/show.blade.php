@@ -113,8 +113,9 @@
             </h4>
             
             <div style="display: flex; flex-direction: column; gap: 10px;">
-                @if($maid->cv_file)
-                    <a href="{{ $maid->cv_file_url }}" target="_blank" class="agent-button" style="justify-content: center; background: #f8fafc; color: var(--agent-ink); border: 1px solid var(--agent-line);">
+                @php $agentCvPath = $maid->maid_cv_file ?: ($maid->submission_status ? $maid->cv_file : null); @endphp
+                @if($agentCvPath)
+                    <a href="{{ showFile($agentCvPath) }}" target="_blank" class="agent-button" style="justify-content: center; background: #f8fafc; color: var(--agent-ink); border: 1px solid var(--agent-line);">
                         <i class="fa fa-download" style="color: var(--agent-accent);"></i>
                         {{ $isAr ? 'تحميل السيرة الذاتية (الأصل)' : 'Download Original CV' }}
                     </a>
@@ -134,7 +135,7 @@
                     </a>
                 @endif
 
-                @if(!$maid->cv_file && !$maid->cv_preview && !$maid->video_link)
+                @if(!$agentCvPath && !$maid->cv_preview && !$maid->video_link)
                     <p class="agent-empty">{{ $isAr ? 'لا توجد مرفقات.' : 'No attachments available.' }}</p>
                 @endif
             </div>

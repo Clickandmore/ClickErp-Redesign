@@ -14,6 +14,7 @@ enum ComplaintSubmissionMethodEnum: string
     case Website = 'website';     // نموذج الشكاوى في الموقع الإلكتروني
     case MobileApp = 'mobile_app'; // تطبيق الجوال
     case Import = 'import';       // استيراد بيانات
+    case AgentPortal = 'agent_portal'; // بوابة المكتب الخارجي (الوكيل)
 
     public function lang(): string
     {
@@ -22,6 +23,7 @@ enum ComplaintSubmissionMethodEnum: string
             self::Website => 'الموقع الإلكتروني',
             self::MobileApp => 'تطبيق الجوال',
             self::Import => 'استيراد بيانات',
+            self::AgentPortal => 'بوابة المكتب الخارجي',
         };
     }
 
@@ -32,6 +34,7 @@ enum ComplaintSubmissionMethodEnum: string
             self::Website => 'info',
             self::MobileApp => 'success',
             self::Import => 'secondary',
+            self::AgentPortal => 'warning',
         };
     }
 
@@ -42,6 +45,7 @@ enum ComplaintSubmissionMethodEnum: string
             self::Website => 'fa-globe',
             self::MobileApp => 'fa-mobile-screen-button',
             self::Import => 'fa-file-import',
+            self::AgentPortal => 'fa-building-user',
         };
     }
 

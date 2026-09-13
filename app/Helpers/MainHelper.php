@@ -1207,20 +1207,24 @@ if (!function_exists('getNextContractStatus')) {
 if (!function_exists('formatSaudiPhone')) {
     function formatSaudiPhone($phone)
     {
-        // إزالة كل شيء ما عدا الأرقام
-        $phone = preg_replace('/\D/', '', $phone);
+        $phone = preg_replace('/\D+/', '', (string) $phone);
 
-        // لو بدأ بـ 05 → حوله إلى 9665...
-        if (strlen($phone) === 10 && str_starts_with($phone, '5')) {
-            $phone = '966' . $phone;
+        if (str_starts_with($phone, '00966')) {
+            $phone = substr($phone, 2);
         }
-        // لو بدأ بـ 05 → حوله إلى 9665...
-        elseif (strlen($phone) === 9 && str_starts_with($phone, '5')) {
-            $phone = '966' . $phone;
+
+        // Some user records contain a country code as well as a local/international
+        // phone number. Collapse those combinations before sending to the gateway.
+        while (str_starts_with($phone, '966966')) {
+            $phone = substr($phone, 3);
         }
-        // لو +966 → شيل الـ +
-        elseif (str_starts_with($phone, '+966')) {
+
+        if (str_starts_with($phone, '9660')) {
             $phone = '966' . substr($phone, 4);
+        } elseif (strlen($phone) === 10 && str_starts_with($phone, '05')) {
+            $phone = '966' . substr($phone, 1);
+        } elseif (strlen($phone) === 9 && str_starts_with($phone, '5')) {
+            $phone = '966' . $phone;
         }
 
         return $phone;

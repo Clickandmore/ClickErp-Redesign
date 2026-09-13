@@ -60,6 +60,13 @@
     .ops-summary .aging-cell.is-hot { background:#fdeceb; }
     .ops-summary .print-only { display:none; }
     .ops-summary .empty-state { text-align:center; color:var(--muted); padding:26px 12px; font-size:.88rem; }
+    .ops-summary .empty-state-detail { margin-top:8px; font-size:.82rem; line-height:1.9; color:#6b7280; }
+    .ops-summary .ops-field-hint { display:block; margin-top:4px; font-size:.74rem; color:var(--muted); line-height:1.6; }
+    .ops-summary .ops-filter-reset { display:inline-block; margin-inline-start:6px; font-weight:700; color:#1d4ed8; }
+    /* شريط يوضّح أن فلتر مساند استبعد صفوفاً من هذا القسم وحده */
+    .ops-summary .ops-filter-note { display:flex; align-items:flex-start; gap:8px; margin:0 0 12px;
+        padding:9px 12px; border:1px solid #fde68a; border-radius:10px; background:#fffbeb;
+        color:#92400e; font-size:.82rem; font-weight:600; line-height:1.8; }
     .ops-summary .pill { display:inline-block; padding:2px 9px; border-radius:999px; font-size:.72rem;
         font-weight:700; background:var(--soft); color:#3a4658; }
     .ops-summary .pill.is-hot { background:#fdeceb; color:#b42318; }
@@ -109,16 +116,18 @@
         <strong>{{ __('finance::finance.from_date') }}:</strong> {{ $report['from'] }} &nbsp;
         <strong>{{ __('finance::finance.to_date') }}:</strong> {{ $report['to'] }} &nbsp;
         <strong>{{ __('finance::finance.ops_receivables_scope') }}:</strong>
-        {{ $report['scope'] === 'period' ? __('finance::finance.ops_scope_period') : __('finance::finance.ops_scope_outstanding') }}
+        {{ $report['scope'] === 'period' ? __('finance::finance.ops_scope_period') : __('finance::finance.ops_scope_outstanding') }} &nbsp;
+        <strong>{{ __('finance::finance.ops_musaned_status') }}:</strong>
+        {{ __('finance::finance.ops_musaned_status_' . $report['musaned_status']) }}
     </div>
 
     <form class="ops-panel {{ $printing ? 'd-none' : '' }} no-print" method="GET" action="{{ route('finance.operational-summary.index') }}">
         <div class="row g-3 align-items-end">
-            <div class="col-md-3">
+            <div class="col-md-2">
                 <label for="ops-from">{{ __('finance::finance.from_date') }}</label>
                 <input class="form-control" id="ops-from" type="date" name="from_date" value="{{ $report['from'] }}" required>
             </div>
-            <div class="col-md-3">
+            <div class="col-md-2">
                 <label for="ops-to">{{ __('finance::finance.to_date') }}</label>
                 <input class="form-control" id="ops-to" type="date" name="to_date" value="{{ $report['to'] }}" required>
             </div>
@@ -130,6 +139,15 @@
                 </select>
             </div>
             <div class="col-md-3">
+                <label for="ops-musaned-status">{{ __('finance::finance.ops_musaned_status') }}</label>
+                <select class="form-control" id="ops-musaned-status" name="musaned_status">
+                    <option value="all" @selected($report['musaned_status'] === 'all')>{{ __('finance::finance.ops_musaned_status_all') }}</option>
+                    <option value="transferred" @selected($report['musaned_status'] === 'transferred')>{{ __('finance::finance.ops_musaned_status_transferred') }}</option>
+                    <option value="not_transferred" @selected($report['musaned_status'] === 'not_transferred')>{{ __('finance::finance.ops_musaned_status_not_transferred') }}</option>
+                </select>
+                <small class="ops-field-hint">{{ __('finance::finance.ops_musaned_status_hint') }}</small>
+            </div>
+            <div class="col-md-2">
                 <label for="ops-per-page">{{ __('finance::finance.ops_per_page') }}</label>
                 <select class="form-control" id="ops-per-page" name="per_page">
                     @foreach(\Nami\Finance\Services\OperationalSummaryService::PER_PAGE_OPTIONS as $size)
@@ -139,9 +157,9 @@
             </div>
             <div class="col-md-12">
                 <button class="btn btn-success" type="submit">{{ __('finance::finance.filter') }}</button>
-                <a class="btn btn-outline-success" href="{{ route('finance.operational-summary.index', ['from_date' => $report['from'], 'to_date' => $report['to'], 'scope' => $report['scope'], 'export' => 'xlsx']) }}">{{ __('finance::finance.ops_export_excel') }}</a>
+                <a class="btn btn-outline-success" href="{{ route('finance.operational-summary.index', ['from_date' => $report['from'], 'to_date' => $report['to'], 'scope' => $report['scope'], 'musaned_status' => $report['musaned_status'], 'export' => 'xlsx']) }}">{{ __('finance::finance.ops_export_excel') }}</a>
                 <a class="btn btn-outline-secondary" target="_blank" rel="noopener"
-                   href="{{ route('finance.operational-summary.index', ['from_date' => $report['from'], 'to_date' => $report['to'], 'scope' => $report['scope'], 'print' => 1]) }}">{{ __('finance::finance.print') }}</a>
+                   href="{{ route('finance.operational-summary.index', ['from_date' => $report['from'], 'to_date' => $report['to'], 'scope' => $report['scope'], 'musaned_status' => $report['musaned_status'], 'print' => 1]) }}">{{ __('finance::finance.print') }}</a>
                 <span class="panel-subtitle d-inline-block ms-2">{{ $report['scope'] === 'period' ? __('finance::finance.ops_scope_period_hint') : __('finance::finance.ops_scope_outstanding_hint') }}</span>
             </div>
         </div>
@@ -152,7 +170,7 @@
         <div class="kpi">
             <span>{{ __('finance::finance.ops_kpi_total_sales') }}</span>
             <strong>{{ $money($kpis['total_sales']) }}</strong>
-            <small>{{ __('finance::finance.ops_of_which_rental') }}: {{ $short($sales['totals']['rental']) }} — {{ __('finance::finance.ops_of_which_recruitment') }}: {{ $short($sales['totals']['recruitment']) }}</small>
+            <small>{{ __('finance::finance.ops_of_which_rental') }}: {{ $short($sales['totals']['rental']) }} — {{ __('finance::finance.ops_of_which_recruitment') }}: {{ $short($sales['totals']['recruitment']) }} — {{ __('finance::finance.ops_sponsorship_invoices') }}: {{ $short($sales['totals']['sponsorship']) }}</small>
         </div>
         <div class="kpi is-green">
             <span>{{ __('finance::finance.ops_kpi_collected') }}</span>
@@ -168,7 +186,7 @@
             <span>{{ __('finance::finance.ops_kpi_receivables') }}</span>
             <strong>{{ $money($kpis['receivables_total']) }}</strong>
             <small>{{ __('finance::finance.ops_of_which_rental') }}: {{ $short($kpis['rental_receivables']) }} — {{ __('finance::finance.ops_of_which_recruitment') }}: {{ $short($kpis['recruitment_receivables']) }}</small>
-            @php $allOutstanding = ($report['rental_receivables']['outstanding_all'] ?? null) !== null ? $report['rental_receivables']['outstanding_all'] + $report['recruitment_receivables']['outstanding_all'] : null; @endphp
+            @php $allOutstanding = ($report['rental_receivables']['outstanding_all'] ?? null) !== null ? $report['rental_receivables']['outstanding_all'] + $report['recruitment_receivables']['outstanding_all'] + $report['sponsorship_receivables']['outstanding_all'] : null; @endphp
             @if($allOutstanding !== null && abs($allOutstanding - $kpis['receivables_total']) > .005)
                 <small>{{ __('finance::finance.ops_outstanding_all') }}: {{ $short($allOutstanding) }}</small>
             @endif
@@ -210,6 +228,8 @@
                         <th class="num">{{ __('finance::finance.ops_count') }}</th>
                         <th class="num">{{ __('finance::finance.ops_delegation_invoices') }}</th>
                         <th class="num">{{ __('finance::finance.ops_count') }}</th>
+                        <th class="num">{{ __('finance::finance.ops_sponsorship_invoices') }}</th>
+                        <th class="num">{{ __('finance::finance.ops_count') }}</th>
                         <th class="num">{{ __('finance::finance.ops_rental_adjustments') }}</th>
                         <th class="num">{{ __('finance::finance.ops_invoiced') }}</th>
                         <th class="num">{{ __('finance::finance.ops_collected') }}</th>
@@ -226,6 +246,8 @@
                             <td class="num">{{ $month['recruitment_count'] }}</td>
                             <td class="num">{{ number_format($month['delegations'], 2) }}</td>
                             <td class="num">{{ $month['delegations_count'] }}</td>
+                            <td class="num">{{ number_format($month['sponsorship'], 2) }}</td>
+                            <td class="num">{{ $month['sponsorship_count'] }}</td>
                             <td class="num">{{ number_format($month['adjustments'], 2) }}</td>
                             <td class="num"><strong>{{ number_format($month['invoiced'], 2) }}</strong></td>
                             <td class="num positive">{{ number_format($month['collected'], 2) }}</td>
@@ -242,6 +264,8 @@
                         <td class="num">{{ $sales['totals']['recruitment_count'] }}</td>
                         <td class="num">{{ number_format($sales['totals']['delegations'], 2) }}</td>
                         <td class="num">{{ $sales['totals']['delegations_count'] }}</td>
+                        <td class="num">{{ number_format($sales['totals']['sponsorship'], 2) }}</td>
+                        <td class="num">{{ $sales['totals']['sponsorship_count'] }}</td>
                         <td class="num">{{ number_format($sales['totals']['adjustments'], 2) }}</td>
                         <td class="num">{{ number_format($sales['totals']['invoiced'], 2) }}</td>
                         <td class="num positive">{{ number_format($sales['totals']['collected'], 2) }}</td>
@@ -256,6 +280,7 @@
     @foreach([
         ['section' => $report['rental_receivables'], 'title' => __('finance::finance.ops_rental_receivables'), 'hint' => __('finance::finance.ops_rental_receivables_hint'), 'show_paid' => true],
         ['section' => $report['recruitment_receivables'], 'title' => __('finance::finance.ops_recruitment_receivables'), 'hint' => __('finance::finance.ops_recruitment_receivables_hint'), 'show_paid' => false],
+        ['section' => $report['sponsorship_receivables'], 'title' => __('finance::finance.ops_sponsorship_receivables'), 'hint' => __('finance::finance.ops_sponsorship_receivables_hint'), 'show_paid' => true],
     ] as $block)
         @php $section = $block['section']; @endphp
         <section class="ops-panel">
@@ -284,8 +309,48 @@
                 @endforeach
             </div>
 
+            @php
+                // فلتر «تحويل مساند» يخص قسم ذمم الاستقدام وحده، فنوضّح أثره هنا
+                // حتى لا يبدو الفلتر معطّلاً عند خلو القسم.
+                $musanedFilter = $section['musaned_filter'] ?? null;
+            @endphp
+
+            @if($musanedFilter && $musanedFilter['active'] && $musanedFilter['excluded_documents'] > 0)
+                <div class="ops-filter-note no-print">
+                    <i class="fa fa-filter"></i>
+                    <span>
+                        {{ __('finance::finance.ops_musaned_filter_applied', [
+                            'status' => __('finance::finance.ops_musaned_status_' . $musanedFilter['status']),
+                            'excluded' => number_format($musanedFilter['excluded_documents']),
+                            'amount' => $money($musanedFilter['excluded_remaining']),
+                        ]) }}
+                    </span>
+                </div>
+            @endif
+
             @if($section['rows']->isEmpty())
-                <div class="empty-state">{{ __('finance::finance.ops_no_receivables') }}</div>
+                <div class="empty-state">
+                    {{ __('finance::finance.ops_no_receivables') }}
+
+                    @if($musanedFilter && $musanedFilter['active'])
+                        <div class="empty-state-detail">
+                            @if($musanedFilter['unfiltered_documents'] === 0)
+                                {{-- القسم فارغ بغض النظر عن الفلتر: لا ذمم استقدام في النطاق --}}
+                                {{ __('finance::finance.ops_musaned_filter_no_base_rows') }}
+                            @else
+                                {{-- توجد ذمم لكن الفلتر استبعدها كلها --}}
+                                {{ __('finance::finance.ops_musaned_filter_hid_all', [
+                                    'status' => __('finance::finance.ops_musaned_status_' . $musanedFilter['status']),
+                                    'total' => number_format($musanedFilter['unfiltered_documents']),
+                                ]) }}
+                            @endif
+                            <a class="ops-filter-reset no-print"
+                               href="{{ route('finance.operational-summary.index', array_merge(request()->query(), ['musaned_status' => 'all', 'recruitment_page' => null])) }}">
+                                {{ __('finance::finance.ops_musaned_filter_clear') }}
+                            </a>
+                        </div>
+                    @endif
+                </div>
             @else
                 <div class="table-scroll">
                     <table>
@@ -598,6 +663,7 @@
             series: [
                 { name: @json(__('finance::finance.ops_rental_invoices')), type: 'column', data: @json(array_map(fn($m) => round($m['rental'], 2), $sales['months'])) },
                 { name: @json(__('finance::finance.ops_recruitment_invoices')), type: 'column', data: @json(array_map(fn($m) => round($m['recruitment'], 2), $sales['months'])) },
+                { name: @json(__('finance::finance.ops_sponsorship_invoices')), type: 'column', data: @json(array_map(fn($m) => round($m['sponsorship'], 2), $sales['months'])) },
                 { name: @json(__('finance::finance.ops_delegation_invoices')), type: 'column', data: @json(array_map(fn($m) => round($m['delegations'], 2), $sales['months'])) },
                 { name: @json(__('finance::finance.ops_collected')), type: 'line', data: @json(array_map(fn($m) => round($m['collected'], 2), $sales['months'])) }
             ],

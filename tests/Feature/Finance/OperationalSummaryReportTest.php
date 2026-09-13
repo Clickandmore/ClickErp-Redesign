@@ -99,9 +99,9 @@ class OperationalSummaryReportTest extends TestCase
         ]);
     }
 
-    private function recruitmentInvoice(string $date, float $due, bool $paid): void
+    private function recruitmentInvoice(string $date, float $due, bool $paid): int
     {
-        DB::table('invoices')->insert([
+        return DB::table('invoices')->insertGetId([
             'contract_id' => $this->contractId,
             'client_id' => $this->userId,
             'total_due' => $due,
@@ -111,10 +111,38 @@ class OperationalSummaryReportTest extends TestCase
         ]);
     }
 
+    private function markAsTransferredFromMusaned(int $invoiceId, string $date): void
+    {
+        $transferId = DB::table('musaned_transfers')->insertGetId([
+            'transfer_date' => $date,
+            'contracts_count' => 1,
+            'customer_paid_total' => 12000,
+            'transferred_total' => 11640,
+            'commission_total' => 360,
+            'expense_tax_total' => 54,
+            'commission_net_total' => 306,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        DB::table('musaned_transfer_items')->insert([
+            'musaned_transfer_id' => $transferId,
+            'contract_id' => $this->contractId,
+            'invoice_id' => $invoiceId,
+            'customer_paid_amount' => 12000,
+            'transferred_amount' => 11640,
+            'commission_amount' => 360,
+            'expense_tax_amount' => 54,
+            'commission_net_amount' => 306,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+    }
+
     /**
      * تفويض إنجاز بفاتورته وقيد تكلفته. $costApproval يحدد إن كان القيد معتمداً.
      */
-    private function delegation(string $date, float $revenue, float $cost, string $profession, string $costApproval = Constraint::APPROVAL_APPROVED): void
+    private function delegation(string $date, float $revenue, float $cost, string $profession, string $costApproval = Constraint::APPROVAL_APPROVED): array
     {
         $jobTitleId = DB::table('job_titles')->insertGetId(['created_at' => now(), 'updated_at' => now()]);
         DB::table('job_titles_translations')->insert([
@@ -145,7 +173,7 @@ class OperationalSummaryReportTest extends TestCase
             'updated_at' => now(),
         ]);
 
-        DB::table('invoices')->insert([
+        $invoiceId = DB::table('invoices')->insertGetId([
             'ingaz_delegation_id' => $delegationId,
             'ingaz_delegation_cost_constraint_id' => $costConstraintId,
             'client_id' => $this->userId,
@@ -154,6 +182,65 @@ class OperationalSummaryReportTest extends TestCase
             'created_at' => $date . ' 12:30:00',
             'updated_at' => $date . ' 12:30:00',
         ]);
+
+        return ['delegation_id' => $delegationId, 'invoice_id' => $invoiceId];
+    }
+
+    private function markDelegationAsTransferredFromMusaned(array $delegation, string $date): void
+    {
+        $transferId = DB::table('musaned_transfers')->insertGetId([
+            'transfer_date' => $date,
+            'contracts_count' => 1,
+            'customer_paid_total' => 1600,
+            'transferred_total' => 1552,
+            'commission_total' => 48,
+            'expense_tax_total' => 7.2,
+            'commission_net_total' => 40.8,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        DB::table('musaned_transfer_items')->insert([
+            'musaned_transfer_id' => $transferId,
+            'contract_id' => null,
+            'ingaz_delegation_id' => $delegation['delegation_id'],
+            'invoice_id' => $delegation['invoice_id'],
+            'customer_paid_amount' => 1600,
+            'transferred_amount' => 1552,
+            'commission_amount' => 48,
+            'expense_tax_amount' => 7.2,
+            'commission_net_amount' => 40.8,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+    }
+
+    private function sponsorshipTransferInvoice(string $date, float $due, float $paid): int
+    {
+        $transferId = DB::table('sponsorship_transfers')->insertGetId([
+            'contract_id' => $this->contractId,
+            'old_sponsor_id' => $this->userId,
+            'new_sponsor_id' => $this->userId,
+            'trial_days' => 30,
+            'trial_start_date' => $date,
+            'contract_value' => $due,
+            'paid_amount' => $paid,
+            'remaining_amount' => $due - $paid,
+            'status' => 'approved',
+            'created_at' => $date . ' 10:00:00',
+            'updated_at' => $date . ' 10:00:00',
+        ]);
+
+        DB::table('invoices')->insert([
+            'sponsorship_transfer_id' => $transferId,
+            'client_id' => $this->userId,
+            'total_due' => $due,
+            'is_paid' => $paid >= $due,
+            'created_at' => $date . ' 11:00:00',
+            'updated_at' => $date . ' 11:00:00',
+        ]);
+
+        return $transferId;
     }
 
     private function ledgerEntry(string $date, float $debtor, float $creditor, string $approval = Constraint::APPROVAL_APPROVED): void
@@ -255,6 +342,71 @@ class OperationalSummaryReportTest extends TestCase
         $this->assertSame('3100001', (string) $section['rows']->first()->contract_number);
     }
 
+    public function test_recruitment_receivables_can_be_filtered_by_musaned_transfer_status(): void
+    {
+        $transferredInvoiceId = $this->recruitmentInvoice('2031-02-05', 12000, false);
+        $this->recruitmentInvoice('2031-02-10', 8000, false);
+        $this->markAsTransferredFromMusaned($transferredInvoiceId, '2031-02-15');
+
+        $transferred = $this->report(['musaned_status' => OperationalSummaryService::MUSANED_STATUS_TRANSFERRED]);
+        $notTransferred = $this->report(['musaned_status' => OperationalSummaryService::MUSANED_STATUS_NOT_TRANSFERRED]);
+
+        $this->assertSame(OperationalSummaryService::MUSANED_STATUS_TRANSFERRED, $transferred['musaned_status']);
+        $this->assertSame([$transferredInvoiceId], $transferred['recruitment_receivables']['rows']->pluck('id')->all());
+        $this->assertSame(12000.0, $transferred['recruitment_receivables']['totals']['remaining']);
+        $this->assertSame(1, $notTransferred['recruitment_receivables']['totals']['documents']);
+        $this->assertSame(8000.0, $notTransferred['recruitment_receivables']['totals']['remaining']);
+    }
+
+    /**
+     * فلتر مساند يبدو بلا أثر لسببين مختلفين، والواجهة تحتاج التمييز بينهما:
+     * إما لا توجد ذمم استقدام في النطاق أصلاً، أو توجد والفلتر استبعدها.
+     */
+    public function test_musaned_filter_reports_how_many_documents_it_excluded(): void
+    {
+        $transferredInvoiceId = $this->recruitmentInvoice('2031-02-05', 12000, false);
+        $this->recruitmentInvoice('2031-02-10', 8000, false);
+        $this->markAsTransferredFromMusaned($transferredInvoiceId, '2031-02-15');
+
+        $all = $this->report()['recruitment_receivables']['musaned_filter'];
+        $this->assertFalse($all['active'], 'الفلتر على «الكل» غير مفعّل، فلا يُحسب أي استبعاد.');
+        $this->assertSame(0, $all['excluded_documents']);
+
+        $notTransferred = $this->report([
+            'musaned_status' => OperationalSummaryService::MUSANED_STATUS_NOT_TRANSFERRED,
+        ])['recruitment_receivables']['musaned_filter'];
+
+        $this->assertTrue($notTransferred['active']);
+        $this->assertSame(2, $notTransferred['unfiltered_documents']);
+        $this->assertSame(1, $notTransferred['filtered_documents']);
+        $this->assertSame(1, $notTransferred['excluded_documents']);
+        $this->assertSame(12000.0, $notTransferred['excluded_remaining']);
+    }
+
+    public function test_musaned_filter_distinguishes_an_empty_section_from_a_filtered_out_one(): void
+    {
+        // لا فواتير استقدام غير محصّلة في النطاق — الفلتر لا شيء ليعمل عليه.
+        $emptyBase = $this->report([
+            'musaned_status' => OperationalSummaryService::MUSANED_STATUS_TRANSFERRED,
+        ])['recruitment_receivables']['musaned_filter'];
+
+        $this->assertTrue($emptyBase['active']);
+        $this->assertSame(0, $emptyBase['unfiltered_documents'], 'صفر يعني: لا ذمم استقدام أصلاً.');
+        $this->assertSame(0, $emptyBase['excluded_documents']);
+
+        // الآن توجد ذمة واحدة غير محوّلة، وفلتر «محوّل لها» يستبعدها كلها.
+        $this->recruitmentInvoice('2031-02-10', 8000, false);
+
+        $filteredOut = $this->report([
+            'musaned_status' => OperationalSummaryService::MUSANED_STATUS_TRANSFERRED,
+        ])['recruitment_receivables']['musaned_filter'];
+
+        $this->assertSame(0, $filteredOut['filtered_documents']);
+        $this->assertSame(1, $filteredOut['unfiltered_documents'], 'وجود ذمم مع نتيجة فارغة يعني أن الفلتر أخفاها.');
+        $this->assertSame(1, $filteredOut['excluded_documents']);
+        $this->assertSame(8000.0, $filteredOut['excluded_remaining']);
+    }
+
     public function test_musaned_commissions_aggregate_per_month_with_net_and_rate(): void
     {
         DB::table('musaned_transfers')->insert([
@@ -288,6 +440,42 @@ class OperationalSummaryReportTest extends TestCase
         $this->assertSame(3.0, $musaned['totals']['commission_rate']);
         $this->assertSame(2, $musaned['unposted']['transfers'], 'حوالة بلا قيد بنكي مرحّل تُعد نقداً في الطريق.');
         $this->assertSame(145500.0, $musaned['unposted']['amount']);
+    }
+
+    public function test_sponsorship_transfer_invoices_have_separate_sales_and_receivables(): void
+    {
+        $this->recruitmentInvoice('2031-02-05', 8000, false);
+        $this->sponsorshipTransferInvoice('2031-02-10', 12000, 5000);
+
+        $report = $this->report();
+
+        $this->assertSame(8000.0, $report['sales']['totals']['recruitment']);
+        $this->assertSame(12000.0, $report['sales']['totals']['sponsorship']);
+        $this->assertSame(1, $report['sponsorship_receivables']['totals']['documents']);
+        $this->assertSame(5000.0, $report['sponsorship_receivables']['totals']['paid']);
+        $this->assertSame(7000.0, $report['sponsorship_receivables']['totals']['remaining']);
+        $this->assertSame(15000.0, $report['kpis']['receivables_total']);
+    }
+
+    public function test_musaned_status_filter_also_covers_ingaz_delegations(): void
+    {
+        $transferredDelegation = $this->delegation('2031-02-12', 1600, 140, 'سائق خاص');
+        $this->delegation('2031-02-18', 1200, 100, 'عامل منزلي');
+        $this->markDelegationAsTransferredFromMusaned($transferredDelegation, '2031-02-20');
+
+        $transferred = $this->report([
+            'musaned_status' => OperationalSummaryService::MUSANED_STATUS_TRANSFERRED,
+        ]);
+        $notTransferred = $this->report([
+            'musaned_status' => OperationalSummaryService::MUSANED_STATUS_NOT_TRANSFERRED,
+        ]);
+
+        $this->assertSame(1, $transferred['delegations']['totals']['delegations']);
+        $this->assertSame(1600.0, $transferred['delegations']['totals']['revenue']);
+        $this->assertSame(1600.0, $transferred['sales']['totals']['delegations']);
+        $this->assertSame(1, $notTransferred['delegations']['totals']['delegations']);
+        $this->assertSame(1200.0, $notTransferred['delegations']['totals']['revenue']);
+        $this->assertSame(1200.0, $notTransferred['sales']['totals']['delegations']);
     }
 
     public function test_external_office_dues_come_from_approved_ledger_balance_only(): void
@@ -388,7 +576,7 @@ class OperationalSummaryReportTest extends TestCase
         $book = app(OperationalSummaryExportService::class)->workbook($report);
 
         $this->assertSame(
-            ['المبيعات الشهرية', 'ذمم التأجير', 'ذمم الاستقدام', 'التفاويض الرجالية', 'عمولات مساند', 'المكاتب الخارجية'],
+            ['المبيعات الشهرية', 'ذمم التأجير', 'ذمم الاستقدام', 'ذمم نقل الكفالة', 'التفاويض الرجالية', 'عمولات مساند', 'المكاتب الخارجية'],
             $book->getSheetNames()
         );
 

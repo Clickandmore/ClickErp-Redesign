@@ -629,7 +629,7 @@
                             {{ $isAr ? 'ملف السيرة الكامل' : 'Full CV File' }}
                             <span class="mc-optional">({{ $isAr ? 'اختياري' : 'optional' }})</span>
                         </label>
-                        <input type="file" data-default-file="" name="cv_file" id="cv_file"
+                        <input type="file" data-default-file="" name="maid_cv_file" id="cv_file"
                             class="dropify" accept=".pdf,image/*">
                     </div>
                 </div>

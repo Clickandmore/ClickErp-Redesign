@@ -10,6 +10,7 @@ return [
     'procedures_tracking' => 'تتبع الإجراءات',
     'dispatches' => 'الإرساليات',
     'invoices' => 'الفواتير',
+    'complaints' => 'الشكاوى',
     'logout' => 'تسجيل الخروج',
     'dashboard_title' => 'لوحة تحكم الوكيل',
     'external_workspace' => 'مساحة المكتب الخارجي',

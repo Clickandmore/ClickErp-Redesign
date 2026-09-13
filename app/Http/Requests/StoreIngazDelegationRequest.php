@@ -3,8 +3,10 @@
 namespace App\Http\Requests;
 
 use App\Models\IngazDelegation;
+use App\Models\ingaz\User;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\Validator;
 
 class StoreIngazDelegationRequest extends FormRequest
 {
@@ -30,13 +32,13 @@ class StoreIngazDelegationRequest extends FormRequest
             'client_source_type' => ['required', 'in:existing_in_program,separate_client'],
             'existing_user_id' => ['required_if:client_source_type,existing_in_program', 'nullable', 'exists:users,id'],
             'separate_client_name' => ['required_if:client_source_type,separate_client', 'nullable', 'string', 'max:255'],
-            'separate_client_identity_number' => ['nullable', 'string', 'max:50'],
+            'separate_client_identity_number' => [Rule::requiredIf($this->isMethod('post') && $this->input('client_source_type') === 'separate_client'), 'nullable', 'string', 'max:50'],
             'separate_client_address' => ['nullable', 'string', 'max:500'],
-            'separate_client_phone' => ['nullable', 'string', 'max:50'],
+            'separate_client_phone' => [Rule::requiredIf($this->isMethod('post') && $this->input('client_source_type') === 'separate_client'), 'nullable', 'string', 'max:50'],
 
             'visa_type' => ['required', 'string', 'in:electronic_ingaz_delegation'],
-            'worker_name' => ['nullable', 'string', 'max:255'],
-            'worker_passport_number' => ['nullable', 'string', 'max:100'],
+            'worker_name' => [$this->isMethod('post') ? 'required' : 'nullable', 'string', 'max:255'],
+            'worker_passport_number' => [$this->isMethod('post') ? 'required' : 'nullable', 'string', 'max:100'],
             'worker_passport_issue_date' => ['nullable', 'date'],
             'visa_number' => ['required', 'string', 'max:100', $activeUnique('visa_number')],
             'visa_date' => ['nullable', 'date'],
@@ -58,6 +60,29 @@ class StoreIngazDelegationRequest extends FormRequest
         ];
     }
 
+    public function withValidator(Validator $validator): void
+    {
+        $validator->after(function (Validator $validator) {
+            if (! $this->isMethod('post') || $this->input('client_source_type') !== 'existing_in_program') {
+                return;
+            }
+
+            $user = User::find($this->input('existing_user_id'));
+
+            if (! $user) {
+                return;
+            }
+
+            if (trim((string) $user->national_num) === '') {
+                $validator->errors()->add('existing_user_id', 'هوية العميل المختار مطلوبة؛ يرجى استكمالها قبل إنشاء التفويض.');
+            }
+
+            if (trim((string) $user->phone) === '' || str_starts_with($user->phone, 'ingaz-delegation-')) {
+                $validator->errors()->add('existing_user_id', 'جوال العميل المختار مطلوب؛ يرجى استكماله قبل إنشاء التفويض.');
+            }
+        });
+    }
+
     protected function prepareForValidation(): void
     {
         $this->merge([
@@ -75,6 +100,10 @@ class StoreIngazDelegationRequest extends FormRequest
             'client_source_type.required' => 'يرجى اختيار نوع العميل.',
             'existing_user_id.required_if' => 'يرجى اختيار العميل من قائمة العملاء.',
             'separate_client_name.required_if' => 'اسم العميل المنفصل مطلوب.',
+            'separate_client_identity_number.required' => 'هوية العميل مطلوبة.',
+            'separate_client_phone.required' => 'جوال العميل مطلوب.',
+            'worker_name.required' => 'اسم العاملة مطلوب.',
+            'worker_passport_number.required' => 'رقم جواز العاملة مطلوب.',
             'marketer_id.required' => 'يرجى اختيار المسوق.',
             'marketer_id.exists' => 'المسوق المختار غير موجود.',
             'visa_type.required' => 'يرجى اختيار نوع التأشيرة.',

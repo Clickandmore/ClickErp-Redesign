@@ -1564,7 +1564,7 @@ class RentContractController extends Controller
     {
         $contract->loadMissing(['user', 'maid', 'info']);
 
-        $phone = trim((string) ($contract->user?->phone_code ?? '') . (string) ($contract->user?->phone ?? ''));
+        $phone = trim((string) ($contract->user?->phone ?? ''));
 
         if ($phone === '') {
             return [
@@ -4734,7 +4734,7 @@ class RentContractController extends Controller
         $contract->info->update($moyasarUpdates);
 
         // إرسال SMS للعميل
-        $phone = trim((string) ($contract->user?->phone_code ?? '') . (string) ($contract->user?->phone ?? ''));
+        $phone = trim((string) ($contract->user?->phone ?? ''));
 
         if (empty($phone)) {
             Log::warning('Moyasar: client has no phone, payment link created but not sent', ['contract_id' => $contract->id]);
