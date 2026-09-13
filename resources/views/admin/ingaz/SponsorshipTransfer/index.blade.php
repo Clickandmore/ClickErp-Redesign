@@ -276,14 +276,31 @@
                                 <option value="waiting_contract_send" {{ $currentStatus === 'waiting_contract_send' ? 'selected' : '' }}>بانتظار تسجيل الاستلام</option>
                                 <option value="contract_sent" {{ $currentStatus === 'contract_sent' ? 'selected' : '' }}>تم إرسال العقد</option>
                                 <option value="contract_signed" {{ $currentStatus === 'contract_signed' ? 'selected' : '' }}>تم توقيع العقد</option>
-                                <option value="maid_delivered" {{ $currentStatus === 'maid_delivered' ? 'selected' : '' }}>تم تسليم العاملة</option>
+                                <option value="maid_delivered" {{ $currentStatus === 'maid_delivered' ? 'selected' : '' }}>تم استلام العاملة</option>
                                 <option value="trial_period" {{ $currentStatus === 'trial_period' ? 'selected' : '' }}>فترة التجربة</option>
                                 <option value="trial_started" {{ $currentStatus === 'trial_started' ? 'selected' : '' }}>بدأت التجربة</option>
+                                <option value="partially_paid" {{ $currentStatus === 'partially_paid' ? 'selected' : '' }}>مدفوع جزئي</option>
                                 <option value="approved" {{ $currentStatus === 'approved' ? 'selected' : '' }}>{{helperTrans("ingaz.approved")}}</option>
                                 <option value="transferred" {{ $currentStatus === 'transferred' ? 'selected' : '' }}>تم النقل</option>
-                                <option value="failed" {{ $currentStatus === 'failed' ? 'selected' : '' }}>فشل النقل</option>
+                                <option value="cancelled" {{ $currentStatus === 'cancelled' ? 'selected' : '' }}>ملغي</option>
                                 <option value="rejected" {{ $currentStatus === 'rejected' ? 'selected' : '' }}>{{helperTrans("ingaz.rejected")}}</option>
                                 <option value="completed" {{ $currentStatus === 'completed' ? 'selected' : '' }}>{{helperTrans("ingaz.completed")}}</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label for="maidPassportFilter" class="form-label">رقم جواز العاملة</label>
+                            <input type="text" class="form-control" id="maidPassportFilter"
+                                   value="{{ request('maid_passport') }}" placeholder="ابحث برقم الجواز">
+                        </div>
+                        <div class="col-md-3">
+                            <label for="maidNationalityFilter" class="form-label">جنسية العاملة</label>
+                            <select class="form-select" id="maidNationalityFilter">
+                                <option value="">كل الجنسيات</option>
+                                @foreach($nationalities as $nationality)
+                                    <option value="{{ $nationality->id }}" {{ (string) request('maid_nationality_id') === (string) $nationality->id ? 'selected' : '' }}>
+                                        {{ $nationality->display_name }}
+                                    </option>
+                                @endforeach
                             </select>
                         </div>
                         <div class="col-md-3">
@@ -434,6 +451,8 @@
                         d.date_from = $('#dateFromFilter').val();
                         d.date_to = $('#dateToFilter').val();
                         d.contract_number = $('#contractNumberFilter').val();
+                        d.maid_passport = $('#maidPassportFilter').val();
+                        d.maid_nationality_id = $('#maidNationalityFilter').val();
                         d.old_sponsor = $('#oldSponsorFilter').val();
                         d.new_sponsor = $('#newSponsorFilter').val();
                         d.trial_days = $('#trialDaysFilter').val();
@@ -482,6 +501,8 @@
                 $('#dateFromFilter').val('');
                 $('#dateToFilter').val('');
                 $('#contractNumberFilter').val('');
+                $('#maidPassportFilter').val('');
+                $('#maidNationalityFilter').val('');
                 $('#oldSponsorFilter').val('');
                 $('#newSponsorFilter').val('');
                 $('#trialDaysFilter').val('');

@@ -8,6 +8,7 @@ use App\Http\Requests\ingaz\makeTransferRequest;
 use App\Models\auth\Admin;
 use App\Models\Contract;
 use App\Models\ingaz\Order;
+use App\Models\ingaz\Nationality;
 use App\Models\ingaz\User;
 use App\Models\SponsorshipTransfer;
 use App\PermKeys;
@@ -50,11 +51,39 @@ class SponsorshipTransferController extends Controller
 
             // تطبيق الفلاتر
             if ($request->filled('status')) {
-                if ($request->status === 'trial_period') {
-                    $query->whereIn('status', ['trial', 'trial_started']);
-                } else {
-                    $query->where('status', $request->status);
+                switch ($request->status) {
+                    case 'trial_period':
+                        $query->whereIn('status', ['trial', 'trial_started']);
+                        break;
+                    case 'partially_paid':
+                        $query->where(function ($paymentQuery) {
+                            $paymentQuery->where('payment_status', 'partial')
+                                ->orWhere(function ($amountQuery) {
+                                    $amountQuery->where('paid_amount', '>', 0)
+                                        ->where('remaining_amount', '>', 0);
+                                });
+                        });
+                        break;
+                    case 'cancelled':
+                        // زر إلغاء نقل الكفالة يسجل الطلب كفشل، مع دعم القيمة القديمة cancelled.
+                        $query->whereIn('status', ['failed', 'cancelled']);
+                        break;
+                    default:
+                        $query->where('status', $request->status);
                 }
+            }
+
+            if ($request->filled('maid_passport')) {
+                $passport = trim((string) $request->maid_passport);
+                $query->whereHas('contract.maid', function ($maidQuery) use ($passport) {
+                    $maidQuery->whereRaw('LOWER(passport_num) LIKE ?', ['%' . mb_strtolower($passport) . '%']);
+                });
+            }
+
+            if ($request->filled('maid_nationality_id')) {
+                $query->whereHas('contract.maid', function ($maidQuery) use ($request) {
+                    $maidQuery->where('nationality_id', $request->maid_nationality_id);
+                });
             }
 
             if ($request->filled('date_from')) {
@@ -393,6 +422,7 @@ class SponsorshipTransferController extends Controller
         $approvedCount = (clone $statsQuery)->where('status', 'approved')->count();
         $completedCount = (clone $statsQuery)->where('status', 'completed')->count();
         $receiptAccounts = SponsorshipTransferPaymentService::receiptAccounts();
+        $nationalities = Nationality::query()->orderBy('sort_order')->orderBy('id')->get();
 
         return view($this->folderPath . '.index', compact(
             'totalCount',
@@ -403,7 +433,8 @@ class SponsorshipTransferController extends Controller
             'rejectedCount',
             'approvedCount',
             'completedCount',
-            'receiptAccounts'
+            'receiptAccounts',
+            'nationalities'
         ));
     }
 
