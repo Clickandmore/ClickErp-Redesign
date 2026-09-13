@@ -663,6 +663,14 @@ return array (
       'display_name' => 'إدارة إجراءات الترحيل',
       'description' => 'إمكانية بدء وتحديث واستكمال إجراءات الترحيل.',
     ),
+    'shelter_agent_cost_recovery' => array (
+      'name' => 'shelter_agent_cost_recovery', 'group' => 'shelter_contract', 'section' => 'shelter_management',
+      'display_name' => 'استرداد تكلفة الوكيل من الإيواء', 'description' => 'إثبات استرداد تكلفة المكتب الأصلية دون الإعاشة.',
+    ),
+    'shelter_agent_cost_recovery_reverse' => array (
+      'name' => 'shelter_agent_cost_recovery_reverse', 'group' => 'shelter_contract', 'section' => 'shelter_management',
+      'display_name' => 'عكس استرداد تكلفة الوكيل', 'description' => 'عكس استرداد الوكيل قبل وجود حركة خروج لاحقة.',
+    ),
     78 => 
     array (
       'name' => 'shelter_contract_work_desire_edit',

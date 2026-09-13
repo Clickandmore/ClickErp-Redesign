@@ -2,7 +2,6 @@
 
 namespace App\Services\ingaz;
 
-use App\Models\ShelterLivingExpenseAllocation;
 use App\Models\SponsorshipTransfer;
 use App\Support\AutomaticJournalEntries;
 use Nami\Finance\Models\Account;
@@ -22,7 +21,8 @@ class SponsorshipTransferCompletionService
 {
     public function __construct(
         protected ConstraintService $constraintService,
-        protected YearService $yearService
+        protected YearService $yearService,
+        protected ShelterCostLedgerService $shelterLedger
     ) {}
 
     public function record(SponsorshipTransfer $transfer): ?Constraint
@@ -130,16 +130,12 @@ class SponsorshipTransferCompletionService
         return $constraint;
     }
 
+    /**
+     * تكلفة الإيواء التي خرجت للتجربة بقيد S3 (رصيد العاملة وقت الخروج)، لا مجموع الإعاشة.
+     */
     private function resolveHousingCost(SponsorshipTransfer $transfer): float
     {
-        $contractId = $transfer->contract_id;
-        if (!$contractId) {
-            return 0.0;
-        }
-
-        return $this->roundMoney(
-            (float) ShelterLivingExpenseAllocation::where('contract_id', $contractId)->sum('amount')
-        );
+        return $this->shelterLedger->trialReleasedAmount($transfer);
     }
 
     private function resolveNationalityName(SponsorshipTransfer $transfer): string
@@ -179,6 +175,11 @@ class SponsorshipTransferCompletionService
 
     private function resolveTrialHousingAccountId(): ?int
     {
+        $configured = \App\Support\ShelterAccountingSettings::trialPrepaidAccountId();
+        if ($configured) {
+            return $configured;
+        }
+
         return $this->resolveAccountByCandidates(
             [
                 'مصروفات مدفوعة مقدما - ايواء التجربة',

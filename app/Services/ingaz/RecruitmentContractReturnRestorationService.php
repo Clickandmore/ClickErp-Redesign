@@ -194,8 +194,8 @@ class RecruitmentContractReturnRestorationService
         if ($contract->returnRequests()->where('status', 'pending')->exists()) {
             $blockers[] = 'وجود طلب إرجاع قيد المعالجة';
         }
-        if ($contract->deportationProcedure()->exists()) {
-            $blockers[] = 'وجود إجراء ترحيل مرتبط بالعقد';
+        if ($contract->deportationProcedure()->where('status', 'completed')->exists()) {
+            $blockers[] = 'وجود إجراء ترحيل مكتمل مرتبط بالعقد';
         }
 
         if ($contract->maid_id && $contract->maid) {

@@ -54,8 +54,10 @@ class RentalSponsorshipTransferAccountingTest extends TestCase
         $yearService = Mockery::mock(YearService::class);
         $transfer = new SponsorshipTransfer(['workflow_source' => 'rental']);
 
-        $this->assertNull((new SponsorshipTransferTrialStartService($constraintService, $yearService))->record($transfer));
-        $this->assertNull((new SponsorshipTransferCompletionService($constraintService, $yearService))->record($transfer));
-        $this->assertNull((new SponsorshipTransferFailureService($constraintService, $yearService))->record($transfer));
+        $ledger = Mockery::mock(\App\Services\ingaz\ShelterCostLedgerService::class);
+
+        $this->assertNull((new SponsorshipTransferTrialStartService($constraintService, $yearService, $ledger))->record($transfer));
+        $this->assertNull((new SponsorshipTransferCompletionService($constraintService, $yearService, $ledger))->record($transfer));
+        $this->assertNull((new SponsorshipTransferFailureService($constraintService, $yearService, $ledger))->record($transfer));
     }
 }

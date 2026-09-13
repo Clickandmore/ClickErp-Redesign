@@ -2,7 +2,6 @@
 
 namespace App\Services\ingaz;
 
-use App\Models\ShelterLivingExpenseAllocation;
 use App\Models\SponsorshipTransfer;
 use App\Support\AutomaticJournalEntries;
 use Nami\Finance\Models\Account;
@@ -15,14 +14,15 @@ use Nami\Finance\Services\YearService;
  *
  * يُسجّل عند تسليم العاملة للكفيل الجديد وبداية فترة التجربة.
  * - يُثبت قيمة العقد كإيراد مؤجل في حساب الدفعات المقدمة (2291).
- * - ينقل تكلفة الإيواء من حساب إيواء الجنسية (1521) إلى إيواء التجربة (1541).
+ * - تكلفة الإيواء تخرج بقيد S3 مستقل من ShelterCostLedgerService (1521 → 1541) برصيد العاملة الفعلي.
  * - يُثبت الدفعة المقدمة المحصّلة من البنك وخصمها من ذمة العميل الجديد.
  */
 class SponsorshipTransferTrialStartService
 {
     public function __construct(
         protected ConstraintService $constraintService,
-        protected YearService $yearService
+        protected YearService $yearService,
+        protected ShelterCostLedgerService $shelterLedger
     ) {}
 
     public function record(SponsorshipTransfer $transfer): ?Constraint
@@ -62,21 +62,12 @@ class SponsorshipTransferTrialStartService
 
         $contractValue = $this->roundMoney((float) $transfer->contract_value);
         $paidAmount    = $this->roundMoney((float) $transfer->paid_amount);
-        $housingCost   = $this->resolveHousingCost($transfer);
 
         $advancePaymentsAccountId = $this->resolveAdvancePaymentsAccountId($nationalityName);
-        $trialHousingAccountId    = $this->resolveTrialHousingAccountId();
-        $mainHousingAccountId     = $this->resolveMainHousingAccountId($nationalityName);
         $bankAccountId            = $this->resolveBankAccountId();
 
         if (!$advancePaymentsAccountId) {
             throw new \RuntimeException('لا يوجد حساب دفعات مقدمة نقل خدمات مرتبط بالجنسية: ' . $nationalityName);
-        }
-        if (!$trialHousingAccountId) {
-            throw new \RuntimeException('لا يوجد حساب مصروفات مدفوعة مقدماً - إيواء التجربة.');
-        }
-        if (!$mainHousingAccountId) {
-            throw new \RuntimeException('لا يوجد حساب مصروفات مدفوعة مقدماً - إيواء مرتبط بالجنسية: ' . $nationalityName);
         }
         if (!$bankAccountId) {
             throw new \RuntimeException('لا يوجد حساب بنكي رئيسي في النظام.');
@@ -91,11 +82,8 @@ class SponsorshipTransferTrialStartService
         // 2. إيراد مؤجل في حساب الدفعات المقدمة نقل خدمات
         $this->appendLine($lines, $advancePaymentsAccountId, 'creditor', $contractValue, 'إيراد مؤجل لحن إتمام النقل');
 
-        // 3. نقل تكلفة الإيواء إلى حساب إيواء التجربة
-        if ($housingCost > 0) {
-            $this->appendLine($lines, $trialHousingAccountId, 'debtor', $housingCost, 'نقل تكلفة الإيواء إلى التجربة');
-            $this->appendLine($lines, $mainHousingAccountId, 'creditor', $housingCost, 'تخفيض أصل الإيواء');
-        }
+        // 3. تكلفة الإيواء: قيد S3 مستقل يكتبه دفتر الإيواء (مدين إيواء التجربة / دائن أصل الإيواء برصيد العاملة).
+        $this->shelterLedger->releaseToTrial($transfer, $date);
 
         // 4. تسجيل الدفعة المقدمة المحصّلة من البنك
         if ($paidAmount > 0) {
@@ -105,7 +93,7 @@ class SponsorshipTransferTrialStartService
 
         if (empty($lines)) {
             throw new \RuntimeException(
-                'لا توجد قيمة عقد أو دفعة محصلة أو تكلفة إيواء أكبر من صفر لإنشاء قيد بداية التجربة.'
+                'لا توجد قيمة عقد أو دفعة محصلة أكبر من صفر لإنشاء قيد بداية التجربة.'
             );
         }
 
@@ -133,17 +121,6 @@ class SponsorshipTransferTrialStartService
         return $constraint;
     }
 
-    private function resolveHousingCost(SponsorshipTransfer $transfer): float
-    {
-        $contractId = $transfer->contract_id;
-        if (!$contractId) {
-            return 0.0;
-        }
-
-        return $this->roundMoney(
-            (float) ShelterLivingExpenseAllocation::where('contract_id', $contractId)->sum('amount')
-        );
-    }
 
     private function resolveNationalityName(SponsorshipTransfer $transfer): string
     {
@@ -165,35 +142,7 @@ class SponsorshipTransferTrialStartService
         );
     }
 
-    private function resolveTrialHousingAccountId(): ?int
-    {
-        return $this->resolveAccountByCandidates(
-            [
-                'مصروفات مدفوعة مقدما - ايواء التجربة',
-                'مصروفات مدفوعة مقدماً - إيواء التجربة',
-                'ايواء التجربة',
-            ],
-            [],
-            fn ($q) => $q->where('name', 'like', '%ايواء التجربة%')
-                         ->orWhere('name', 'like', '%إيواء التجربة%')
-        );
-    }
 
-    private function resolveMainHousingAccountId(string $nationalityName): ?int
-    {
-        return $this->resolveAccountByCandidates(
-            [
-                'مصروفات مدفوعة مقدما - الايواء - ' . $nationalityName,
-                'مصروفات مدفوعة مقدما - الايواء (' . $nationalityName . ')',
-                'مصروفات مدفوعة مقدماً - إيواء ' . $nationalityName,
-            ],
-            ['مصروفات مدفوعة مقدما - الايواء', 'إيواء ' . $nationalityName],
-            fn ($q) => $q->where(function ($inner) use ($nationalityName) {
-                $inner->where('name', 'like', '%ايواء%' )
-                      ->orWhere('name', 'like', '%إيواء%');
-            })->where('name', 'like', '%' . $nationalityName . '%')
-        );
-    }
 
     private function resolveBankAccountId(): ?int
     {

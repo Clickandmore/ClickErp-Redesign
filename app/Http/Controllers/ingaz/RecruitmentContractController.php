@@ -38,6 +38,7 @@ use App\PermKeys;
 use App\Services\ingaz\RecruitmentTripAccountingService;
 use App\Services\ingaz\RecruitmentContractRefundService;
 use App\Services\ingaz\RecruitmentContractReturnRestorationService;
+use App\Services\ingaz\RecruitmentContractStageRollbackService;
 use App\Services\ingaz\RentalMaidArrivalService;
 use App\Services\ManagedFileStorage;
 use App\Support\SystemModuleManager;
@@ -195,7 +196,7 @@ class RecruitmentContractController extends Controller
             ContractStatusEnum::PendingMaidSelection->value => 'يجب اختيار العاملة أولاً قبل تحديث حالة العقد',
             ContractStatusEnum::Tazker->value => 'هذه المرحلة تتطلب إضافة رحلة أو إكمالها قبل الانتقال',
             ContractStatusEnum::Arrival->value => 'هذا العقد في مرحلة الوصول ويتم استكماله تلقائياً حسب حالة الضمان',
-            ContractStatusEnum::Completed->value => 'العقد مكتمل ولا يمكن تحديث حالته يدوياً',
+            ContractStatusEnum::Completed->value => 'العقد مكتمل؛ لا يمكن تقديمه، ويمكن فقط إرجاعه خطوة واحدة إلى مرحلة الوصول من زر الإرجاع',
             ContractStatusEnum::Refunded->value => 'العقد مسترد ومكتمل ولا يمكن تحديث حالته يدوياً',
             ContractStatusEnum::Shelter->value => 'العقد موجود في الإيواء ولا يقبل التحديث من هذه الشاشة',
             ContractStatusEnum::Back->value => 'العقد مرتجع ولا يمكن تحديثه من المراحل الجارية',
@@ -1561,7 +1562,6 @@ class RecruitmentContractController extends Controller
                                 break;
                             case ContractStatusEnum::Completed->value:
                                 // إضافة زر إكمال الرحلة إذا كان العقد لديه رحلة
-                                $availableStatuses = $this->getCompletedContractStatusChangeOptions();
                                 $travelHistory = $row->travelHistory;
                                 if ($travelHistory && $travelHistory->status !== 'completed' && @AdminGuardHasPerm(\App\NewPermKeys::REC_CONTRACTS_COMPLETE_TRAVEL)) {
                                     return '<button class="btn btn-success btn-sm complete-trip-btn btn-action" data-trip-id="' . $travelHistory->id . '" title="إكمال الرحلة">
@@ -1569,22 +1569,26 @@ class RecruitmentContractController extends Controller
                                     </button>';
                                 }
 
+                                // العقد المكتمل لا يُقدَّم ولا يقفز بين المراحل؛ يُرجع خطوة واحدة فقط (إلى الوصول)
+                                // بعد فحص القيود المالية في RecruitmentContractStageRollbackService.
+                                $completedActions = [];
                                 if ($travelHistory) {
                                     $travelActions = $this->buildTravelManagementActions($travelHistory);
                                     if ($travelActions !== '') {
-                                        return $travelActions;
+                                        $completedActions[] = $travelActions;
                                     }
                                 }
 
-                                if (!empty($availableStatuses)) {
-                                    $lastContractStatusLog = $row->getLastContractStatusLog();
-                                    $targetStatusesJson = htmlspecialchars(json_encode($availableStatuses, JSON_UNESCAPED_UNICODE), ENT_QUOTES, 'UTF-8');
-
-                                    return '<button class="btn btn-warning btn-sm update-status-btn btn-action" data-bs-toggle="modal" data-bs-target="#updateStatusModal" data-row-id="' . $row->id . '" data-status="' . $row->status . '" data-next-status="" data-manual-status-select="1" data-target-statuses="' . $targetStatusesJson . '" data-date="' . ($lastContractStatusLog ? $lastContractStatusLog->date : \Carbon\Carbon::now()->format('Y-m-d')) . '" title="تعديل الحالة">
-                                        <i class="fas fa-random me-1"></i>تعديل الحالة
-                                    </button>';
+                                $backButton = $this->renderStageRollbackButton($row);
+                                if ($backButton !== '') {
+                                    $completedActions[] = $backButton;
                                 }
-                                break;
+
+                                if ($completedActions !== []) {
+                                    return '<div class="d-flex flex-column align-items-start gap-2">' . implode('', $completedActions) . '</div>';
+                                }
+
+                                return '<span class="badge bg-success">عقد مكتمل</span>';
                             default:
                                 break;
                         }
@@ -1750,8 +1754,8 @@ class RecruitmentContractController extends Controller
                                     </button></li>';
                     }
 
-                    // زر الإرجاع - لا يظهر للعقود المكتملة أو التي في الإيواء
-                    if (!in_array($row->status, [ContractStatusEnum::Completed->value, ContractStatusEnum::Refunded->value, ContractStatusEnum::Shelter->value], true)) {
+                    // زر الإرجاع - خطوة واحدة إلى الوراء ضمن تسلسل المراحل (لا يظهر للمسترد أو الذي في الإيواء)
+                    if (!in_array($row->status, [ContractStatusEnum::Refunded->value, ContractStatusEnum::Shelter->value], true)) {
                         if ($row->status == ContractStatusEnum::Back->value) {
                             $actions .= '<li><span class="dropdown-item disabled">
                                             <span class="badge bg-warning">مرتجع</span>
@@ -1767,12 +1771,12 @@ class RecruitmentContractController extends Controller
                         } else {
                             // التحقق من صلاحية إرجاع العقد
                             if (@AdminGuardHasPerm(\App\NewPermKeys::REC_CONTRACTS_RETURN)) {
-                                $backStatus = contractBackStatus($row->status);
+                                $backStatus = app(RecruitmentContractStageRollbackService::class)->previousStatus($row);
 
-                                if ($backStatus->value !== $row->status) {
-                                    $backStatusLabel = e(getContractStatus($backStatus->value));
+                                if ($backStatus) {
+                                    $backStatusLabel = e(getContractStatus($backStatus));
 
-                                    $actions .= '<li><button class="dropdown-item backContract" data-row-id="' . $row->id . '" data-target-status="' . e($backStatus->value) . '" data-target-label="' . $backStatusLabel . '">
+                                    $actions .= '<li><button class="dropdown-item backContract" data-row-id="' . $row->id . '" data-target-status="' . e($backStatus) . '" data-target-label="' . $backStatusLabel . '">
                                                     <i class="fas fa-undo"></i> إرجاع إلى ' . $backStatusLabel . '
                                                 </button></li>';
                                 }
@@ -3637,63 +3641,42 @@ class RecruitmentContractController extends Controller
 
     public function back($id)
     {
+        // التحقق من صلاحية إرجاع العقد
+        if (!@AdminGuardHasPerm(\App\NewPermKeys::REC_CONTRACTS_RETURN)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'ليس لديك صلاحية لإرجاع العقد'
+            ], 403);
+        }
+
+        $contract = Contract::find($id);
+        if (!$contract) {
+            logger()->warning('Contract not found in back function', ['id' => $id]);
+            return response()->json([
+                'success' => false,
+                'message' => 'العقد غير موجود'
+            ], 404);
+        }
+
+        $this->assertCanAccessBranchModel($contract, 'contracts');
+
+        // الإرجاع خطوة واحدة فقط ضمن تسلسل المراحل، مع فحص القيود المالية المرتبطة بالعقد.
         try {
-            // التحقق من صلاحية إرجاع العقد
-            if (!@AdminGuardHasPerm(\App\NewPermKeys::REC_CONTRACTS_RETURN)) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'ليس لديك صلاحية لإرجاع العقد'
-                ], 403);
-            }
-
-            $contract = Contract::find($id);
-            if (!$contract) {
-                logger()->warning('Contract not found in back function', ['id' => $id]);
-                return response()->json([
-                    'success' => false,
-                    'message' => 'العقد غير موجود'
-                ], 404);
-            }
-
-            // منع إرجاع العقود في الإيواء
-            if ($contract->status === ContractStatusEnum::Shelter->value) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'لا يمكن إرجاع العقد الذي في الإيواء. يجب حذفه من الإيواء أولاً'
-                ], 400);
-            }
-
-            // منع إرجاع العقود المكتملة
-            if ($contract->status === ContractStatusEnum::Refunded->value) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'العقد مسترد ومكتمل ولا يمكن تغيير حالته',
-                ], 422);
-            }
-
-            if ($contract->status === ContractStatusEnum::Completed->value) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'لا يمكن إرجاع العقد المكتمل'
-                ], 400);
-            }
-
-            $newStatus = contractBackStatus($contract->status);
-            if ($newStatus->value === $contract->status) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'لا يمكن إرجاع العقد من مرحلة ' . getContractStatus($contract->status)
-                ], 400);
-            }
-
-            $contract->update(['status' => $newStatus->value]);
-            $contract->contract_status_logs()->create(['status' => $newStatus->value]);
+            $rolledBack = app(RecruitmentContractStageRollbackService::class)
+                ->rollback($contract, Auth::guard('admin')->id());
 
             return response()->json([
                 'success' => true,
-                'message' => 'تم إرجاع العقد بنجاح إلى ' . getContractStatus($newStatus->value)
+                'message' => 'تم إرجاع العقد بنجاح إلى ' . getContractStatus($rolledBack->status),
+                'status' => $rolledBack->status,
             ]);
-        } catch (\Exception $e) {
+        } catch (\Illuminate\Validation\ValidationException $exception) {
+            return response()->json([
+                'success' => false,
+                'message' => collect($exception->errors())->flatten()->first() ?: $exception->getMessage(),
+                'errors' => $exception->errors(),
+            ], 422);
+        } catch (\Throwable $e) {
             logger()->error('Error in back contract', [
                 'id' => $id,
                 'message' => $e->getMessage(),
@@ -3702,17 +3685,11 @@ class RecruitmentContractController extends Controller
 
             return response()->json([
                 'success' => false,
-                'message' => 'حدث خطأ أثناء إرجاع العقد: ' . $e->getMessage()
+                'message' => 'حدث خطأ أثناء إرجاع العقد. لم يتم إجراء أي تغيير.'
             ], 500);
         }
     }
 
-    /**
-     * Show the form for editing the specified resource.
-     *
-     * @param int $id
-     * @return \Illuminate\Http\Response
-     */
     public function edit($id)
     {
         // التحقق من صلاحية تعديل العقد
@@ -4021,6 +3998,23 @@ class RecruitmentContractController extends Controller
             ], 400);
         }
 
+        // لا يمكن حذف عقد له سند مالي (قبض/صرف) مرتبط به.
+        if (Schema::hasColumn('fn_bonds', 'recruitment_contract_id')
+            && DB::table('fn_bonds')->where('recruitment_contract_id', $contract->id)->exists()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'لا يمكن حذف العقد لوجود سند مالي مرتبط به'
+            ], 400);
+        }
+
+        // لا يمكن حذف عقد بدأ له إجراء ترحيل.
+        if ($contract->deportationProcedure()->exists()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'لا يمكن حذف العقد لوجود إجراء ترحيل مرتبط به'
+            ], 400);
+        }
+
         // منع حذف العقود المكتملة
         if (in_array($contract->status, [ContractStatusEnum::Completed->value, ContractStatusEnum::Refunded->value], true)) {
             return response()->json([
@@ -4054,8 +4048,9 @@ class RecruitmentContractController extends Controller
                 $maid = Maid::find($contract->maid_id);
                 if ($maid) {
                     if ($maidStatus === 'back_out') {
+                        // القيمة المخزنة في النظام هي 'backout' (بلا شرطة سفلية).
                         $maid->update([
-                            'status' => 'back_out',
+                            'status' => 'backout',
                             'available' => false
                         ]);
                     } else {
@@ -4733,43 +4728,27 @@ class RecruitmentContractController extends Controller
         }
     }
 
-    private function getCompletedContractStatusChangeOptions(): array
+    /**
+     * زر الإرجاع خطوة واحدة ضمن تسلسل المراحل (نفس زر «إرجاع إلى» في قائمة الإجراءات).
+     */
+    private function renderStageRollbackButton(Contract $row): string
     {
-        $statuses = [
-            ContractStatusEnum::PendingMaidSelection->value,
-            ContractStatusEnum::New->value,
-            ContractStatusEnum::Msaned->value,
-            ContractStatusEnum::Tafwed->value,
-            ContractStatusEnum::Taffez->value,
-            ContractStatusEnum::Tazker->value,
-            ContractStatusEnum::Arrival->value,
-            ContractStatusEnum::Back->value,
-        ];
+        if (!@AdminGuardHasPerm(\App\NewPermKeys::REC_CONTRACTS_RETURN)) {
+            return '';
+        }
 
-        return collect($statuses)
-            ->filter(fn(string $status) => $this->canMoveCompletedContractToStatus($status))
-            ->map(fn(string $status) => [
-                'value' => $status,
-                'label' => getContractStatus($status) ?? getEnumValue('contract_statuses', $status),
-            ])
-            ->values()
-            ->all();
+        $backStatus = app(RecruitmentContractStageRollbackService::class)->previousStatus($row);
+        if (!$backStatus) {
+            return '';
+        }
+
+        $backStatusLabel = e(getContractStatus($backStatus));
+
+        return '<button type="button" class="btn btn-outline-warning btn-sm backContract btn-action" data-row-id="' . $row->id . '" data-target-status="' . e($backStatus) . '" data-target-label="' . $backStatusLabel . '" title="إرجاع خطوة واحدة إلى ' . $backStatusLabel . '">
+                    <i class="fas fa-undo me-1"></i>إرجاع إلى ' . $backStatusLabel . '
+                </button>';
     }
 
-    private function canMoveCompletedContractToStatus(string $status): bool
-    {
-        return match ($status) {
-            ContractStatusEnum::PendingMaidSelection->value,
-            ContractStatusEnum::New->value,
-            ContractStatusEnum::Arrival->value => @AdminGuardHasPerm(\App\NewPermKeys::REC_CONTRACTS_UPDATE),
-            ContractStatusEnum::Msaned->value => @AdminGuardHasPerm(\App\NewPermKeys::REC_CONTRACTS_CHANGE_TO_MSANED),
-            ContractStatusEnum::Tafwed->value => @AdminGuardHasPerm(\App\NewPermKeys::REC_CONTRACTS_CHANGE_TO_TAFWED),
-            ContractStatusEnum::Taffez->value => @AdminGuardHasPerm(\App\NewPermKeys::REC_CONTRACTS_CHANGE_TO_TAFFEZ),
-            ContractStatusEnum::Tazker->value => @AdminGuardHasPerm(\App\NewPermKeys::REC_CONTRACTS_CHANGE_TO_TAZKER),
-            ContractStatusEnum::Back->value => @AdminGuardHasPerm(\App\NewPermKeys::REC_CONTRACTS_RETURN),
-            default => false,
-        };
-    }
 
     public function bulkUpdateStatus(Request $request)
     {
@@ -4948,14 +4927,42 @@ class RecruitmentContractController extends Controller
             }
 
             if ($contract->status === ContractStatusEnum::Completed->value) {
-                $allowedStatuses = collect($this->getCompletedContractStatusChangeOptions())->pluck('value')->all();
+                // العقد المكتمل مرتبط بقيود وفواتير؛ لا يقبل إلا الإرجاع خطوة واحدة إلى الوصول.
+                $rollbackService = app(RecruitmentContractStageRollbackService::class);
+                $previousStatus = $rollbackService->previousStatus($contract);
 
-                if (!in_array($nextStatus, $allowedStatuses, true)) {
+                if ($nextStatus !== $previousStatus) {
                     return response()->json([
                         'success' => false,
-                        'message' => 'ليس لديك صلاحية لتغيير حالة العقد المكتمل إلى الحالة المحددة'
+                        'message' => 'العقد مكتمل ولا يمكن نقله إلا إلى المرحلة السابقة مباشرة (' . getContractStatus($previousStatus) . ') عبر زر الإرجاع',
+                    ], 422);
+                }
+
+                if (!@AdminGuardHasPerm(\App\NewPermKeys::REC_CONTRACTS_RETURN)) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'ليس لديك صلاحية لإرجاع العقد'
                     ], 403);
                 }
+
+                try {
+                    $rolledBack = $rollbackService->rollback($contract, Auth::guard('admin')->id(), $date);
+                } catch (\Illuminate\Validation\ValidationException $exception) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => collect($exception->errors())->flatten()->first() ?: $exception->getMessage(),
+                        'errors' => $exception->errors(),
+                    ], 422);
+                }
+
+                return response()->json([
+                    'success' => true,
+                    'message' => 'تم إرجاع العقد من ' . getContractStatus($contract->status) . ' إلى ' . getContractStatus($rolledBack->status),
+                    'contract_id' => $contract->id,
+                    'current_status' => $contract->status,
+                    'next_status' => $rolledBack->status,
+                    'sms_sent' => false,
+                ]);
             } else {
                 $transitionContext = $this->resolveContractTransitionContext($contract);
 

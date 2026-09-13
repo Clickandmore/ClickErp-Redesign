@@ -135,7 +135,7 @@
             <div class="form-section-header"><span class="step-number">3</span><div><h5 class="mb-0">ربط الشكوى</h5><small class="text-muted">اختر السجل المرتبط أو أضف بيانات المشتكى عليه يدويًا</small></div></div>
             <div class="form-section-body">
                 @php
-                    $currentRelation = 'none';
+                    $currentRelation = !empty($prefillContractId) ? 'contract' : 'none';
                     if ($isEdit) {
                         $currentRelation = $complaint->relation_type
                             ?: ($complaint->order_id ? 'order'
@@ -162,7 +162,7 @@
                 </div>
                 <div class="relation-panel" data-relation="contract">
                     <label class="form-label">اختر العقد <span class="required">*</span></label>
-                    <select name="contract_id" class="form-select select2 relation-input"><option value="">ابحث برقم العقد أو اسم العميل أو العاملة</option>@foreach($contractOptions as $contractOption)<option value="{{ $contractOption['id'] }}" {{ old('contract_id', $complaint->contract_id ?? null) == $contractOption['id'] ? 'selected' : '' }}>{{ $contractOption['label'] }}</option>@endforeach</select>
+                    <select name="contract_id" class="form-select select2 relation-input"><option value="">ابحث برقم العقد أو اسم العميل أو العاملة</option>@foreach($contractOptions as $contractOption)<option value="{{ $contractOption['id'] }}" {{ old('contract_id', $complaint->contract_id ?? $prefillContractId ?? null) == $contractOption['id'] ? 'selected' : '' }}>{{ $contractOption['label'] }}</option>@endforeach</select>
                 </div>
                 <div class="relation-panel" data-relation="office">
                     <label class="form-label">اختر المكتب الخارجي <span class="required">*</span></label>

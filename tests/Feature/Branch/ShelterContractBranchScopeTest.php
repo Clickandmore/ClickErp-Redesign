@@ -46,6 +46,22 @@ class ShelterContractBranchScopeTest extends TestCase
         ]);
     }
 
+    public function test_agent_cost_recovery_endpoints_refuse_another_branch_contract(): void
+    {
+        $this->makeBranch(['is_main' => true]);
+        $own = $this->makeBranch();
+        $other = $this->makeBranch();
+        $viewer = $this->branchAdmin($own);
+        $this->grant($viewer, \App\PermKeys::SHELTER_AGENT_COST_RECOVERY);
+        $this->grant($viewer, \App\PermKeys::SHELTER_AGENT_COST_RECOVERY_REVERSE);
+        $contractId = $this->makeShelterContract($other->id);
+        $this->actingAsAdmin($viewer)->postJson(route('ShelterContract.agentRecovery.store', $contractId), [
+            'receipt_entry_id' => 1, 'date' => now()->toDateString(), 'reason' => 'test',
+            'request_key' => (string) \Illuminate\Support\Str::uuid(),
+        ])->assertNotFound();
+        $this->actingAsAdmin($viewer)->postJson(route('ShelterContract.agentRecovery.reverse', [$contractId, 1]), ['reason' => 'test'])->assertNotFound();
+    }
+
     /** @test */
     public function shelter_statistics_only_count_the_logged_in_branch(): void
     {

@@ -237,7 +237,16 @@ class ComplaintController extends Controller
 
     public function create()
     {
-        return view($this->folderPath . '.create', $this->complaintFormData() + ['isEdit' => false]);
+        $prefill = null;
+        if (request()->filled('contract_id')) {
+            request()->validate(['contract_id' => 'required|integer']);
+            $contract = Contract::findOrFail(request('contract_id'));
+            $this->assertCanAccessBranchModel($contract, 'contracts');
+            $prefill = new objModel(['contract_id' => $contract->id, 'relation_type' => 'contract']);
+        }
+        return view($this->folderPath . '.create', $this->complaintFormData($prefill) + [
+            'isEdit' => false, 'prefillContractId' => $prefill?->contract_id,
+        ]);
     }
 
     public function searchContracts(Request $request)

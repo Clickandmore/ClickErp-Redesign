@@ -1620,6 +1620,7 @@ class PermissionsController extends Controller
             'shelter_contract_deportation_stage' => 40,
             'shelter_contract_deported' => 50,
             'shelter_contract_deportation_procedures' => 60,
+            'shelter_agent_cost_recovery' => 65,
             'shelter_places' => 70,
             'shelter_contract_work_desire' => 80,
             'shelter_contract_quick_tags' => 90,
@@ -1634,6 +1635,17 @@ class PermissionsController extends Controller
 
     private function buildPermissionMatrixEntry(Permission $permission): array
     {
+        if (in_array($permission->name, [\App\PermKeys::SHELTER_AGENT_COST_RECOVERY, \App\PermKeys::SHELTER_AGENT_COST_RECOVERY_REVERSE], true)) {
+            $label = $permission->name === \App\PermKeys::SHELTER_AGENT_COST_RECOVERY
+                ? 'استرداد تكلفة الوكيل من الإيواء' : 'عكس استرداد تكلفة الوكيل';
+            return [
+                'name' => $permission->name, 'display_name' => $label,
+                'description' => $this->getPermissionDescription($permission),
+                'resource_key' => 'shelter_agent_cost_recovery', 'resource_title' => 'استرداد تكلفة الوكيل',
+                'matrix_column' => null, 'extra_label' => $label,
+            ];
+        }
+
         ['resource' => $resource, 'action' => $action] = $this->splitPermissionName($permission->name);
 
         $resourceKey = $resource !== '' ? $resource : str_replace('-', '_', $permission->name);

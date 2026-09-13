@@ -1334,6 +1334,9 @@ class InvoiceController extends Controller
                 );
                 $invoice->update(['invoice_constraint_id' => $invoiceConstraint?->id]);
 
+                // S4: عاملة تُباع من الإيواء — يُفرج عن رصيد إيوائها إلى تكاليف مبيعات الجنسية.
+                $this->releaseShelterBalanceForResoldMaid($contract, $invoiceDate->toDateString(), (int) $contractCostCenter->id);
+
                 $musandAccount = $this->resolveMusanedReceiptAccount();
                 $receiptBond = $this->storeReceiptBondForInvoice(
                     $invoice,
@@ -1375,6 +1378,20 @@ class InvoiceController extends Controller
      * الحساب الدائن في قيد فاتورة الاستقدام حسب وضع إثبات الإيراد:
      * التزامات عقود الجنسية (عند الوصول) أو مبيعات الجنسية (عند الفاتورة).
      */
+    /**
+     * S4 في دفتر الإيواء: عاملة داخل الإيواء (نوع سكن 2 أو عقد إيواء نشط) تُفوتر لعقد جديد،
+     * فيُفرج عن رصيد إيوائها إلى تكاليف مبيعات الجنسية على مركز تكلفة العقد الجديد.
+     */
+    private function releaseShelterBalanceForResoldMaid(Contract $contract, string $date, ?int $costCenterId): void
+    {
+        if (!$contract->maid_id || !Schema::hasTable('shelter_cost_entries')) {
+            return;
+        }
+
+        $ledger = app(\App\Services\ingaz\ShelterCostLedgerService::class);
+        $ledger->releaseToSale($contract, $date, $costCenterId);
+    }
+
     private function resolveRecruitmentInvoiceCreditAccountId(?Nationality $nationality, string $revenueMode): ?int
     {
         if ($revenueMode === RecruitmentRevenueRecognition::MODE_ON_INVOICE) {
@@ -4186,14 +4203,25 @@ class InvoiceController extends Controller
             . ' - ' . $creditNote->reason;
         $lines = [];
 
-        foreach ($this->recruitmentCreditNoteNetAllocations(
-            $creditNote,
-            $invoice,
-            $netCreditDetails,
-            $netSourceColumn
-        ) as $allocation) {
-            $this->appendCreditNoteLine($lines, (int) $allocation['account_id'], 'debtor', $allocation['amount'], $statement, $allocation['cost_center_id']);
-            $this->appendCreditNoteLine($lines, $clientAccountId, 'creditor', $allocation['amount'], $statement);
+        // بعد إثبات الإيراد (وصلت العاملة، أو وضع «عند الفاتورة») يُعكس البيع عبر حساب
+        // «مردودات مبيعات استقدام (الجنسية)» كما في دليل القيود (القيدان 9 و10) بدل إدانة
+        // المبيعات مباشرة. قبل إثبات الإيراد يبقى عكس الالتزام لأنه الحساب المفتوح.
+        $salesReturnAccountId = $this->resolveRecruitmentSalesReturnAccountId($invoice);
+
+        if ($salesReturnAccountId && (float) $creditNote->subtotal > 0) {
+            $salesReturnCostCenterId = $netCreditDetails->first()?->cost_center_id;
+            $this->appendCreditNoteLine($lines, $salesReturnAccountId, 'debtor', (float) $creditNote->subtotal, $statement, $salesReturnCostCenterId);
+            $this->appendCreditNoteLine($lines, $clientAccountId, 'creditor', (float) $creditNote->subtotal, $statement);
+        } else {
+            foreach ($this->recruitmentCreditNoteNetAllocations(
+                $creditNote,
+                $invoice,
+                $netCreditDetails,
+                $netSourceColumn
+            ) as $allocation) {
+                $this->appendCreditNoteLine($lines, (int) $allocation['account_id'], 'debtor', $allocation['amount'], $statement, $allocation['cost_center_id']);
+                $this->appendCreditNoteLine($lines, $clientAccountId, 'creditor', $allocation['amount'], $statement);
+            }
         }
         if ((float) $creditNote->vat_amount > 0) {
             if (!$taxAccountId) {
@@ -4203,7 +4231,9 @@ class InvoiceController extends Controller
             $this->appendCreditNoteLine($lines, $clientAccountId, 'creditor', (float) $creditNote->vat_amount, $statement);
         }
 
-        if ($invoice->arrival_revenue_constraint_id) {
+        // مع حساب المردودات لا يُعكس قيد إيراد الوصول: الالتزام أُقفل عند الوصول والمبيعات
+        // تُعالَج عبر المردودات، فيبقى قيد الوصول كما هو.
+        if ($invoice->arrival_revenue_constraint_id && !$salesReturnAccountId) {
             $arrivalDebit = $arrivalDetails->filter(fn ($detail) => (float) $detail->debtor_value > 0)->values();
             $arrivalCredit = $arrivalDetails->filter(fn ($detail) => (float) $detail->creditor_value > 0)->values();
 
@@ -4243,6 +4273,29 @@ class InvoiceController extends Controller
         $service->storeFiles($constraint, $data);
 
         return $constraint;
+    }
+
+    /**
+     * حساب «مردودات مبيعات استقدام (الجنسية)» لإشعار الدائن، فقط عندما يكون الإيراد قد أُثبت:
+     * وصلت العاملة (قيد إيراد الوصول موجود) أو فُوترت على وضع «عند الفاتورة».
+     * يُعاد null لفواتير التفويض والفواتير العامة ولفواتير الاستقدام قبل الوصول.
+     */
+    private function resolveRecruitmentSalesReturnAccountId(Invoice $invoice): ?int
+    {
+        if (!$invoice->contract_id) {
+            return null;
+        }
+
+        $revenueRecognized = (bool) $invoice->arrival_revenue_constraint_id
+            || RecruitmentRevenueRecognition::invoiceRecognizesOnInvoice($invoice);
+        if (!$revenueRecognized) {
+            return null;
+        }
+
+        $invoice->loadMissing(['contract.maid.nationality', 'contract.requiredMaidNationality']);
+        $nationality = $invoice->contract?->maid?->nationality ?? $invoice->contract?->requiredMaidNationality;
+
+        return \App\Support\NationalityAccountResolver::forNationality($nationality, 'recruitment_sales_return');
     }
 
     private function recruitmentCreditNoteNetAllocations(

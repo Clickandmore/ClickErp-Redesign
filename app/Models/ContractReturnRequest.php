@@ -22,8 +22,26 @@ class ContractReturnRequest extends Model
         'status',
         'admin_notes',
         'processed_by',
-        'processed_at'
+        'processed_at',
+        'credit_note_id',
+        'return_constraint_id',
+        'shelter_constraint_id',
     ];
+
+    public function creditNote()
+    {
+        return $this->belongsTo(RecruitmentInvoiceCreditNote::class, 'credit_note_id');
+    }
+
+    public function returnConstraint()
+    {
+        return $this->belongsTo(\Nami\Finance\Models\Constraint::class, 'return_constraint_id');
+    }
+
+    public function shelterConstraint()
+    {
+        return $this->belongsTo(\Nami\Finance\Models\Constraint::class, 'shelter_constraint_id');
+    }
 
     protected $casts = [
         'processed_at' => 'datetime',

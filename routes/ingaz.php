@@ -502,7 +502,8 @@ Route::group(
             Route::get('invoices/{id}/credit-notes/create', [InvoiceController::class, 'createRecruitmentCreditNote'])->name('invoices.credit-notes.create');
             Route::post('invoices/{id}/credit-notes', [InvoiceController::class, 'storeRecruitmentCreditNote'])->name('invoices.credit-notes.store');
             Route::get('recruitment-credit-notes/{id}/download', [InvoiceController::class, 'downloadRecruitmentCreditNote'])->name('recruitment-credit-notes.download');
-            Route::resource('invoices', InvoiceController::class);
+            // InvoiceController::destroy is an intentional no-op; invoices are reversed via credit notes, never deleted.
+            Route::resource('invoices', InvoiceController::class)->except(['destroy']);
             Route::get('invoices/download/{id}', [InvoiceController::class, 'downloadInvoice'])->name('invoice.download');
             Route::get('musaned-transfers/search', [MusanedTransferController::class, 'search'])->name('musaned-transfers.search');
             Route::resource('musaned-transfers', MusanedTransferController::class)->only(['index', 'create', 'store', 'show', 'destroy']);
@@ -629,9 +630,12 @@ Route::group(
             Route::get('shelter_contract_form/download/{id}', [ShelterContractController::class, 'deliveryShelterContractDownload'])->name('shelter_contract_form.download');
 
             // Deportation routes
+            Route::post('ShelterContract/{id}/agent-cost-recoveries', [ShelterContractController::class, 'storeAgentRecovery'])->name('ShelterContract.agentRecovery.store');
+            Route::post('ShelterContract/{id}/agent-cost-recoveries/{recovery}/reverse', [ShelterContractController::class, 'reverseAgentRecovery'])->name('ShelterContract.agentRecovery.reverse');
             Route::post('ShelterContract/{id}/deportation/start', [ShelterContractController::class, 'startDeportation'])->name('ShelterContract.deportation.start');
             Route::get('ShelterContract/{id}/deportation/procedures', [ShelterContractController::class, 'showDeportationProcedures'])->name('ShelterContract.deportation.procedures');
             Route::post('ShelterContract/deportation/{id}/update', [ShelterContractController::class, 'updateDeportationProcedures'])->name('ShelterContract.deportation.update');
+            Route::post('ShelterContract/deportation/{id}/cancel', [ShelterContractController::class, 'cancelDeportation'])->name('ShelterContract.deportation.cancel');
             Route::get('ShelterContract/deportation/{id}/activity-log', [ShelterContractController::class, 'getActivityLog'])->name('ShelterContract.deportation.activity-log');
             Route::get('ShelterContract/deported', [ShelterContractController::class, 'deported'])->name('ShelterContract.deported');
 
