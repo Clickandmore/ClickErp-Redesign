@@ -467,4 +467,42 @@ class OperationalSummaryReportTest extends TestCase
         $this->assertSame(1600.0, $headline['delegation_revenue']);
         $this->assertSame(1460.0, $headline['delegation_net']);
     }
+
+    public function test_rental_invoices_mirrored_into_the_invoices_table_are_counted_once(): void
+    {
+        // فاتورة تأجير مسدّدة جزئياً، لها نسخة في جدول invoices كما يفعل الترحيل
+        // القديم عبر legacy_invoice_id — النسخة لا تحمل المدفوع ولا المتبقّي.
+        $this->rentalInvoice('2031-02-10', 8000, 6000, 'RC-31-MIRROR');
+        $rentalInvoiceId = DB::table('rental_contract_invoices')->max('id');
+
+        $mirrorId = DB::table('invoices')->insertGetId([
+            'client_id' => $this->userId,
+            'total_due' => 8000,
+            'is_paid' => 0,
+            'created_at' => '2031-02-10 09:00:00',
+            'updated_at' => '2031-02-10 09:00:00',
+        ]);
+        DB::table('rental_contract_invoices')->where('id', $rentalInvoiceId)
+            ->update(['legacy_invoice_id' => $mirrorId]);
+
+        $this->recruitmentInvoice('2031-03-05', 12000, false);
+
+        $report = $this->report();
+        $sales = $report['sales']['totals'];
+
+        $this->assertSame(8000.0, $sales['rental'], 'فاتورة التأجير تُحتسب في عمودها وحده.');
+        $this->assertSame(12000.0, $sales['recruitment'], 'ولا تتكرّر في عمود الاستقدام.');
+        $this->assertSame(1, $sales['recruitment_count']);
+        $this->assertSame(20000.0, $sales['invoiced'], 'الإجمالي لا يحتسب الفاتورة مرّتين.');
+
+        $rentalDue = $report['rental_receivables'];
+        $this->assertSame(2000.0, $rentalDue['totals']['remaining'], 'المتبقّي من الجانب التأجيري لأنه وحده يحمل المدفوع.');
+
+        $recruitmentDue = $report['recruitment_receivables'];
+        $this->assertSame([12000.0], $recruitmentDue['rows']->pluck('remaining_amount')->all(), 'النسخة المرآة لا تظهر كذمّة بكامل قيمتها.');
+        $this->assertSame(12000.0, $recruitmentDue['totals']['remaining']);
+
+        $headline = app(OperationalSummaryService::class)->headline(self::FROM, self::TO);
+        $this->assertSame(14000.0, $headline['receivables_total'], 'ولوحة المالية تقرأ نفس الرقم.');
+    }
 }

@@ -73,6 +73,44 @@ class RentalContract extends Model
         'legacy_created_at' => 'datetime',
     ];
 
+    /** Match every search word across the contract, client and worker identifiers. */
+    public function scopeQuickSearch($query, string $search)
+    {
+        $search = strtr(trim($search), array_combine(
+            preg_split('//u', '٠١٢٣٤٥٦٧٨٩۰۱۲۳۴۵۶۷۸۹', -1, PREG_SPLIT_NO_EMPTY),
+            str_split('01234567890123456789')
+        ));
+        $terms = preg_split('/\s+/u', $search, -1, PREG_SPLIT_NO_EMPTY);
+
+        foreach ($terms as $term) {
+            // Treat SQL wildcard characters as literal user input.
+            $pattern = '%' . str_replace(['!', '%', '_'], ['!!', '!%', '!_'], $term) . '%';
+            $query->where(function ($match) use ($pattern) {
+                foreach (['id', 'legacy_order_id', 'contract_number', 'order_id', 'contract_date'] as $column) {
+                    $match->orWhereRaw("rental_contracts.{$column} LIKE ? ESCAPE '!'", [$pattern]);
+                }
+                $match->orWhereHas('user', function ($client) use ($pattern) {
+                    $client->where(function ($fields) use ($pattern) {
+                        foreach (['id', 'arabia_client_number', 'name', 'national_num', 'tax_number',
+                            'license_number', 'phone', 'phone2', 'source_phone', 'source_phone2', 'email'] as $column) {
+                            $fields->orWhereRaw("users.{$column} LIKE ? ESCAPE '!'", [$pattern]);
+                        }
+                        $fields->orWhereRaw("CONCAT(phone_code, phone) LIKE ? ESCAPE '!'", [$pattern]);
+                    });
+                })->orWhereHas('maid', function ($maid) use ($pattern) {
+                    $maid->where(function ($fields) use ($pattern) {
+                        foreach (['id', 'arabia_worker_number', 'name', 'passport_num', 'id_number',
+                            'border_number', 'phone'] as $column) {
+                            $fields->orWhereRaw("maids.{$column} LIKE ? ESCAPE '!'", [$pattern]);
+                        }
+                    });
+                });
+            });
+        }
+
+        return $query;
+    }
+
     protected function resolveBranchIdForCreate(): ?int
     {
         return $this->resolveBranchIdFromOrder($this->order_id ?? null)

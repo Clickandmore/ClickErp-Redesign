@@ -111,103 +111,7 @@ class RentContractController extends Controller
                 $this->applyRentalContractStatusFilter($query, $status);
             }
 
-            // Apply other filters
-            if ($request->filled('status_filter')) {
-                $this->applyRentalContractStatusFilter($query, $request->status_filter);
-            }
-
-            if ($request->filled('date_from')) {
-                $query->whereDate('contract_date', '>=', $request->date_from);
-            }
-
-            if ($request->filled('date_to')) {
-                $query->whereDate('contract_date', '<=', $request->date_to);
-            }
-
-            if ($request->filled('start_date_from')) {
-                $query->whereHas('info', function ($infoQuery) use ($request) {
-                    $infoQuery->whereDate('ingaz_from', '>=', $request->start_date_from);
-                });
-            }
-
-            if ($request->filled('start_date_to')) {
-                $query->whereHas('info', function ($infoQuery) use ($request) {
-                    $infoQuery->whereDate('ingaz_from', '<=', $request->start_date_to);
-                });
-            }
-
-            if ($request->filled('end_date_from')) {
-                $query->whereHas('info', function ($infoQuery) use ($request) {
-                    $infoQuery->whereDate('ingaz_to', '>=', $request->end_date_from);
-                });
-            }
-
-            if ($request->filled('end_date_to')) {
-                $query->whereHas('info', function ($infoQuery) use ($request) {
-                    $infoQuery->whereDate('ingaz_to', '<=', $request->end_date_to);
-                });
-            }
-
-            if ($request->filled('marketer_id')) {
-                $query->where('marketer_id', $request->marketer_id);
-            }
-
-            $this->applyRequestBranchFilter($query, $request, 'rental_contracts');
-
-            if ($request->filled('client_phone')) {
-                $phone = $request->client_phone;
-                $query->whereHas('user', function ($q) use ($phone) {
-                    $q->where('phone', 'like', "%{$phone}%")
-                        ->orWhereRaw("CONCAT(phone_code, phone) LIKE ?", ["%{$phone}%"]);
-                });
-            }
-
-            if ($request->filled('client_name')) {
-                $name = $request->client_name;
-                $query->whereHas('user', function ($q) use ($name) {
-                    $q->where('name', 'like', "%{$name}%");
-                });
-            }
-
-            if ($request->filled('maid_passport')) {
-                $passport = $request->maid_passport;
-                $query->whereHas('maid', function ($q) use ($passport) {
-                    $q->where('passport_num', 'like', "%{$passport}%");
-                });
-            }
-
-            if ($request->filled('maid_name')) {
-                $maidName = $request->maid_name;
-                $query->whereHas('maid', function ($q) use ($maidName) {
-                    $q->where('name', 'like', "%{$maidName}%");
-                });
-            }
-
-            if ($request->filled('contract_number')) {
-                $query->where('contract_number', 'like', '%' . $request->contract_number . '%');
-            }
-
-            if ($request->filled('request_type')) {
-                $query->whereHas('maid', function ($q) use ($request) {
-                    $q->ofRequestType($request->request_type);
-                });
-            }
-
-            if ($request->filled('warranty_status')) {
-                $query->where('warranty_status', $request->warranty_status);
-            }
-
-            if ($request->filled('extension_filter')) {
-                if ($request->extension_filter === 'extended') {
-                    $query->whereHas('extensions');
-                } elseif ($request->extension_filter === 'not_extended') {
-                    $query->whereDoesntHave('extensions');
-                }
-            }
-
-            if ($request->filled('expiry_filter')) {
-                $this->applyRentalContractExpiryFilter($query, $request->expiry_filter);
-            }
+            $this->applyRentalContractIndexFilters($query, $request);
 
             // Imported rows keep their original Excel ID in legacy_order_id. The
             // importer inserts the sheet from newest to oldest, so the database ID
@@ -1936,86 +1840,10 @@ class RentContractController extends Controller
         try {
             $query = RentalContract::with(['user', 'maid', 'info', 'marketer']);
 
-            // Apply filters
-            if ($request->status) {
+            if ($request->filled('status')) {
                 $this->applyRentalContractStatusFilter($query, $request->status);
             }
-            if ($request->date_from) {
-                $query->whereDate('contract_date', '>=', $request->date_from);
-            }
-            if ($request->date_to) {
-                $query->whereDate('contract_date', '<=', $request->date_to);
-            }
-            if ($request->start_date_from) {
-                $query->whereHas('info', function ($infoQuery) use ($request) {
-                    $infoQuery->whereDate('ingaz_from', '>=', $request->start_date_from);
-                });
-            }
-            if ($request->start_date_to) {
-                $query->whereHas('info', function ($infoQuery) use ($request) {
-                    $infoQuery->whereDate('ingaz_from', '<=', $request->start_date_to);
-                });
-            }
-            if ($request->end_date_from) {
-                $query->whereHas('info', function ($infoQuery) use ($request) {
-                    $infoQuery->whereDate('ingaz_to', '>=', $request->end_date_from);
-                });
-            }
-            if ($request->end_date_to) {
-                $query->whereHas('info', function ($infoQuery) use ($request) {
-                    $infoQuery->whereDate('ingaz_to', '<=', $request->end_date_to);
-                });
-            }
-            if ($request->marketer_id) {
-                $query->where('marketer_id', $request->marketer_id);
-            }
-            $this->applyRequestBranchFilter($query, $request, 'rental_contracts');
-            if ($request->client_phone) {
-                $phone = $request->client_phone;
-                $query->whereHas('user', function ($userQuery) use ($phone) {
-                    $userQuery->where('phone', 'like', "%{$phone}%")
-                        ->orWhereRaw("CONCAT(phone_code, phone) LIKE ?", ["%{$phone}%"]);
-                });
-            }
-            if ($request->client_name) {
-                $name = $request->client_name;
-                $query->whereHas('user', function ($userQuery) use ($name) {
-                    $userQuery->where('name', 'like', "%{$name}%");
-                });
-            }
-            if ($request->maid_passport) {
-                $passport = $request->maid_passport;
-                $query->whereHas('maid', function ($maidQuery) use ($passport) {
-                    $maidQuery->where('passport_num', 'like', "%{$passport}%");
-                });
-            }
-            if ($request->maid_name) {
-                $maidName = $request->maid_name;
-                $query->whereHas('maid', function ($maidQuery) use ($maidName) {
-                    $maidQuery->where('name', 'like', "%{$maidName}%");
-                });
-            }
-            if ($request->contract_number) {
-                $query->where('contract_number', 'like', '%' . $request->contract_number . '%');
-            }
-            if ($request->request_type) {
-                $query->whereHas('maid', function ($maidQuery) use ($request) {
-                    $maidQuery->ofRequestType($request->request_type);
-                });
-            }
-            if ($request->warranty_status) {
-                $query->where('warranty_status', $request->warranty_status);
-            }
-            if ($request->extension_filter) {
-                if ($request->extension_filter === 'extended') {
-                    $query->whereHas('extensions');
-                } elseif ($request->extension_filter === 'not_extended') {
-                    $query->whereDoesntHave('extensions');
-                }
-            }
-            if ($request->expiry_filter) {
-                $this->applyRentalContractExpiryFilter($query, $request->expiry_filter);
-            }
+            $this->applyRentalContractIndexFilters($query, $request);
 
             $contracts = $query->get();
 
@@ -2088,6 +1916,8 @@ class RentContractController extends Controller
 
     private function applyRentalContractIndexFilters($query, Request $request, bool $includeStatus = true): void
     {
+        $query->quickSearch((string) $request->input('quick_search', ''));
+
         if ($includeStatus && $request->filled('status_filter')) {
             $this->applyRentalContractStatusFilter($query, $request->status_filter);
         }

@@ -594,6 +594,21 @@
         </div>
 
         <!-- Filters Section -->
+        <div class="card mb-4">
+            <div class="card-body">
+                <label for="quickSearchFilter" class="form-label fw-bold">بحث شامل في عقود التأجير</label>
+                <div class="input-group">
+                    <span class="input-group-text"><i class="fas fa-search" aria-hidden="true"></i></span>
+                    <input type="search" id="quickSearchFilter" class="form-control"
+                        value="{{ request('quick_search') }}" autocomplete="off"
+                        placeholder="رقم العقد، هوية العميل، الاسم، الجوال، جواز أو إقامة العاملة..."
+                        aria-describedby="quickSearchHelp">
+                    <button type="button" class="btn btn-outline-secondary" id="clearQuickSearch">مسح البحث</button>
+                </div>
+                <small id="quickSearchHelp" class="text-muted">تظهر النتائج تلقائيًا أثناء الكتابة ضمن الفلاتر المحددة. يمكنك كتابة أكثر من معلومة معًا، مثل اسم العميل واسم العاملة.</small>
+            </div>
+        </div>
+
         <div class="card filter-card mb-4">
             <div class="card-header d-flex justify-content-between align-items-center">
                 <div class="d-flex justify-content-between align-items-center">
@@ -1629,6 +1644,7 @@
 
             // حفظ/استعادة حالة القائمة (الفلاتر + رقم الصفحة) عند الرجوع من صفحة العقد
             const rentListFilterSelectors = [
+                '#quickSearchFilter',
                 '#statusFilter',
                 '#dateFromFilter',
                 '#dateToFilter',
@@ -1669,6 +1685,7 @@
             let dataTable = $('#dataTableObject').DataTable({
                 processing: true,
                 serverSide: true,
+                searching: false,
                 stateSave: !!rentListState,
                 stateDuration: 0,
                 stateSaveCallback: rentListState ? rentListState.saveCallback : undefined,
@@ -1678,6 +1695,7 @@
                 ajax: {
                     url: "{{ route('RentContract.index') }}",
                     data: function(d) {
+                        d.quick_search = $('#quickSearchFilter').val();
                         d.status_filter = $('#statusFilter').val();
                         d.date_from = $('#dateFromFilter').val();
                         d.date_to = $('#dateToFilter').val();
@@ -2008,7 +2026,10 @@
                 window.history.replaceState({}, '', url.toString());
             }
 
+            let quickSearchTimer;
+
             function applyRentContractFilters() {
+                clearTimeout(quickSearchTimer);
                 syncStatisticsCardSelection();
                 syncStatusFilterUrl();
                 updateStatistics();
@@ -2017,6 +2038,16 @@
 
             statisticsCards.on('click', function() {
                 $('#statusFilter').val(String($(this).data('status-filter') || ''));
+                applyRentContractFilters();
+            });
+
+            $('#quickSearchFilter').on('input', function() {
+                clearTimeout(quickSearchTimer);
+                quickSearchTimer = setTimeout(applyRentContractFilters, 350);
+            });
+
+            $('#clearQuickSearch').on('click', function() {
+                $('#quickSearchFilter').val('').trigger('focus');
                 applyRentContractFilters();
             });
 
@@ -2036,7 +2067,7 @@
             $('#clearFilters').click(function() {
                 $('#statusFilter, #marketerFilter, #branchFilter, #extensionFilter, #expiryFilter')
                     .val('');
-                $('#dateFromFilter, #dateToFilter, #startDateFromFilter, #startDateToFilter, #endDateFromFilter, #endDateToFilter, #clientPhoneFilter, #clientNameFilter, #maidPassportFilter, #maidNameFilter, #contractNumberFilter')
+                $('#quickSearchFilter, #dateFromFilter, #dateToFilter, #startDateFromFilter, #startDateToFilter, #endDateFromFilter, #endDateToFilter, #clientPhoneFilter, #clientNameFilter, #maidPassportFilter, #maidNameFilter, #contractNumberFilter')
                     .val('');
                 applyRentContractFilters();
             });
@@ -2044,6 +2075,7 @@
             // Export Excel
             $('#exportExcel').click(function() {
                 window.location.href = "{{ route('RentContract.export.excel') }}?" + $.param({
+                    quick_search: $('#quickSearchFilter').val(),
                     status: $('#statusFilter').val(),
                     date_from: $('#dateFromFilter').val(),
                     date_to: $('#dateToFilter').val(),
@@ -2726,11 +2758,14 @@
             });
 
             // Update Statistics
+            let statisticsRequest;
             function updateStatistics() {
-                $.ajax({
+                if (statisticsRequest) statisticsRequest.abort();
+                statisticsRequest = $.ajax({
                     url: "{{ route('RentContract.statistics') }}",
                     method: 'GET',
                     data: {
+                        quick_search: $('#quickSearchFilter').val(),
                         status_filter: $('#statusFilter').val(),
                         date_from: $('#dateFromFilter').val(),
                         date_to: $('#dateToFilter').val(),

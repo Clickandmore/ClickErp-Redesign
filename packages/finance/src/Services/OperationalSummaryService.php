@@ -38,6 +38,9 @@ class OperationalSummaryService extends MainService
 
     public const PER_PAGE_OPTIONS = [25, 50, 100];
 
+    /** هل يحمل جدول فواتير التأجير عمود الربط بالنسخة القديمة؟ */
+    private static ?bool $rentalMirrorColumn = null;
+
     /**
      * @param  array{scope?: string, per_page?: int|null, rental_page?: int, recruitment_page?: int}  $options
      *         scope: 'period' يقصر الذمم على فواتير الفترة، 'outstanding' يعرض كل رصيد قائم حتى $to.
@@ -128,7 +131,8 @@ class OperationalSummaryService extends MainService
             ->selectRaw('COALESCE(SUM(paid_amount), 0) as collected')
             ->first();
 
-        $recruitmentSales = $this->scoped('invoices')
+        // التفاويض تبقى محتسبة هنا لأن هذا الرقم هو إجمالي المبيعات للوحة المالية.
+        $recruitmentSales = $this->withoutRentalMirrors($this->scoped('invoices'))
             ->whereBetween(DB::raw('DATE(invoices.created_at)'), [$from, $to])
             ->selectRaw('COALESCE(SUM(total_due), 0) as invoiced')
             ->selectRaw('COALESCE(SUM(CASE WHEN is_paid = 1 THEN total_due ELSE 0 END), 0) as collected')
@@ -141,7 +145,7 @@ class OperationalSummaryService extends MainService
             ->selectRaw('COALESCE(SUM(remaining_amount), 0) as remaining')
             ->first();
 
-        $recruitmentOutstanding = $this->scoped('invoices')
+        $recruitmentOutstanding = $this->withoutRentalMirrors($this->scoped('invoices'))
             ->whereDate('invoices.created_at', '<=', $to)
             ->where('is_paid', 0)
             ->where('total_due', '>', 0)
@@ -274,7 +278,7 @@ class OperationalSummaryService extends MainService
 
     private function monthlyRecruitmentSales(string $from, string $to): Collection
     {
-        return $this->scoped('invoices')
+        return $this->withoutRentalMirrors($this->scoped('invoices'))
             ->whereNull('invoices.ingaz_delegation_id')
             ->whereBetween(DB::raw('DATE(invoices.created_at)'), [$from, $to])
             ->selectRaw("DATE_FORMAT(invoices.created_at, '%Y-%m') as period")
@@ -349,7 +353,7 @@ class OperationalSummaryService extends MainService
      */
     private function recruitmentReceivableQuery(?string $from, string $to): Builder
     {
-        $query = $this->scoped('invoices')
+        $query = $this->withoutRentalMirrors($this->scoped('invoices'))
             ->leftJoin('users', 'users.id', '=', 'invoices.client_id')
             ->leftJoin('contracts', 'contracts.id', '=', 'invoices.contract_id')
             ->whereDate('invoices.created_at', '<=', $to)
@@ -898,6 +902,36 @@ class OperationalSummaryService extends MainService
         }
 
         return $query;
+    }
+
+    /**
+     * فواتير عقود التأجير مُرحَّلة أيضاً إلى جدول `invoices` بمعرّفها القديم
+     * (`rental_contract_invoices.legacy_invoice_id`). فبدون استبعادها من جانب
+     * الاستقدام تُحتسب الفاتورة الواحدة مرّتين: مرّة في عمود التأجير ومرّة في
+     * عمود الاستقدام — ويظهر كامل مبلغها غير محصّل لأن نسخة `invoices` لا تحمل
+     * المدفوع ولا المتبقّي. الجانب التأجيري هو المرجع لأنه وحده يحملهما.
+     */
+    private function withoutRentalMirrors(Builder $query): Builder
+    {
+        if (!$this->rentalMirrorColumnExists()) {
+            return $query;
+        }
+
+        return $query->whereNotExists(function ($sub) {
+            $sub->selectRaw('1')
+                ->from('rental_contract_invoices as rental_mirror')
+                ->whereColumn('rental_mirror.legacy_invoice_id', 'invoices.id');
+        });
+    }
+
+    private function rentalMirrorColumnExists(): bool
+    {
+        if (self::$rentalMirrorColumn === null) {
+            self::$rentalMirrorColumn = DB::getSchemaBuilder()
+                ->hasColumn('rental_contract_invoices', 'legacy_invoice_id');
+        }
+
+        return self::$rentalMirrorColumn;
     }
 
     /**
