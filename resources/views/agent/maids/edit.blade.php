@@ -250,8 +250,9 @@
                 </div>
                 <div class="col-md-6">
                     <label class="form-label">{{ $isAr ? 'استبدال ملف السيرة' : 'Replace CV File' }}</label>
-                    <input type="file" class="form-control" name="cv_file" accept=".pdf,image/*">
-                    @if ($maid->cv_file)<a href="{{ $maid->cv_file_url }}" target="_blank" class="small">{{ $isAr ? 'عرض الملف الحالي' : 'View current file' }}</a>@endif
+                    <input type="file" class="form-control" name="maid_cv_file" accept=".pdf,image/*">
+                    @php $agentCvPath = $maid->maid_cv_file ?: ($maid->submission_status ? $maid->cv_file : null); @endphp
+                    @if ($agentCvPath)<a href="{{ showFile($agentCvPath) }}" target="_blank" class="small">{{ $isAr ? 'عرض الملف الحالي' : 'View current file' }}</a>@endif
                 </div>
             </div>
         </section>

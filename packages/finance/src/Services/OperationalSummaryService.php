@@ -25,6 +25,9 @@ use Nami\Finance\Models\Constraint;
  */
 class OperationalSummaryService extends MainService
 {
+    /** Cache schema inspection for legacy rental invoice mirrors during this PHP process. */
+    private static ?bool $rentalMirrorColumn = null;
+
     /** حدود شرائح التقادم بالأيام. */
     private const AGING_BUCKETS = [30, 60, 90];
 
@@ -38,11 +41,20 @@ class OperationalSummaryService extends MainService
 
     public const PER_PAGE_OPTIONS = [25, 50, 100];
 
-    /** هل يحمل جدول فواتير التأجير عمود الربط بالنسخة القديمة؟ */
-    private static ?bool $rentalMirrorColumn = null;
+    public const MUSANED_STATUS_ALL = 'all';
+
+    public const MUSANED_STATUS_TRANSFERRED = 'transferred';
+
+    public const MUSANED_STATUS_NOT_TRANSFERRED = 'not_transferred';
+
+    public const MUSANED_STATUS_OPTIONS = [
+        self::MUSANED_STATUS_ALL,
+        self::MUSANED_STATUS_TRANSFERRED,
+        self::MUSANED_STATUS_NOT_TRANSFERRED,
+    ];
 
     /**
-     * @param  array{scope?: string, per_page?: int|null, rental_page?: int, recruitment_page?: int}  $options
+     * @param  array{scope?: string, musaned_status?: string, per_page?: int|null, rental_page?: int, recruitment_page?: int}  $options
      *         scope: 'period' يقصر الذمم على فواتير الفترة، 'outstanding' يعرض كل رصيد قائم حتى $to.
      *         per_page: null تعني بلا ترقيم (يستخدمه التصدير).
      */
@@ -52,9 +64,12 @@ class OperationalSummaryService extends MainService
             ? self::SCOPE_OUTSTANDING
             : self::SCOPE_PERIOD;
         $perPage = array_key_exists('per_page', $options) ? $options['per_page'] : self::DEFAULT_PER_PAGE;
+        $musanedStatus = in_array($options['musaned_status'] ?? null, self::MUSANED_STATUS_OPTIONS, true)
+            ? $options['musaned_status']
+            : self::MUSANED_STATUS_ALL;
         $receivablesFrom = $scope === self::SCOPE_PERIOD ? $from : null;
 
-        $sales = $this->sales($from, $to);
+        $sales = $this->sales($from, $to, $musanedStatus);
         $rental = $this->receivableSection(
             fn () => $this->rentalReceivableQuery($receivablesFrom, $to),
             'rental_contract_invoices.created_at',
@@ -64,14 +79,19 @@ class OperationalSummaryService extends MainService
             $perPage
         );
         $recruitment = $this->receivableSection(
-            fn () => $this->recruitmentReceivableQuery($receivablesFrom, $to),
+            fn () => $this->recruitmentReceivableQuery($receivablesFrom, $to, $musanedStatus),
             'invoices.created_at',
             'invoices.total_due',
             $to,
             (int) ($options['recruitment_page'] ?? 1),
             $perPage
         );
-        $delegations = $this->delegations($from, $to);
+        $sponsorship = $this->receivableSection(
+            fn () => $this->sponsorshipReceivableQuery($receivablesFrom, $to),
+            'invoices.created_at', 'GREATEST(invoices.total_due - sponsorship_transfers.paid_amount, 0)', $to,
+            (int) ($options['sponsorship_page'] ?? 1), $perPage
+        );
+        $delegations = $this->delegations($from, $to, $musanedStatus);
         $musaned = $this->musaned($from, $to);
         $offices = $this->externalOffices($from, $to);
 
@@ -81,19 +101,31 @@ class OperationalSummaryService extends MainService
                 'rental_contract_invoices.remaining_amount'
             );
             $recruitment['outstanding_all'] = $this->receivableGrandTotal(
-                fn () => $this->recruitmentReceivableQuery(null, $to),
+                fn () => $this->recruitmentReceivableQuery(null, $to, $musanedStatus),
                 'invoices.total_due'
             );
+            $sponsorship['outstanding_all'] = $this->receivableGrandTotal(
+                fn () => $this->sponsorshipReceivableQuery(null, $to), 'GREATEST(invoices.total_due - sponsorship_transfers.paid_amount, 0)'
+            );
         }
+
+        $recruitment['musaned_filter'] = $this->musanedFilterDiagnostics(
+            $musanedStatus,
+            $receivablesFrom,
+            $to,
+            (int) $recruitment['totals']['documents']
+        );
 
         return [
             'from' => $from,
             'to' => $to,
             'scope' => $scope,
+            'musaned_status' => $musanedStatus,
             'per_page' => $perPage,
             'sales' => $sales,
             'rental_receivables' => $rental,
             'recruitment_receivables' => $recruitment,
+            'sponsorship_receivables' => $sponsorship,
             'delegations' => $delegations,
             'musaned' => $musaned,
             'external_offices' => $offices,
@@ -104,9 +136,10 @@ class OperationalSummaryService extends MainService
                 'collection_rate' => $sales['totals']['invoiced'] > 0
                     ? round($sales['totals']['collected'] / $sales['totals']['invoiced'] * 100, 1)
                     : null,
-                'receivables_total' => $rental['totals']['remaining'] + $recruitment['totals']['remaining'],
+                'receivables_total' => $rental['totals']['remaining'] + $recruitment['totals']['remaining'] + $sponsorship['totals']['remaining'],
                 'rental_receivables' => $rental['totals']['remaining'],
                 'recruitment_receivables' => $recruitment['totals']['remaining'],
+                'sponsorship_receivables' => $sponsorship['totals']['remaining'],
                 'delegation_revenue' => $delegations['totals']['revenue'],
                 'delegation_cost' => $delegations['totals']['cost'],
                 'delegation_net' => $delegations['totals']['net'],
@@ -203,11 +236,12 @@ class OperationalSummaryService extends MainService
     /**
      * إجمالي المبيعات الشهرية موزعة على مصادرها الثلاثة، مع المحصّل من كل شهر.
      */
-    private function sales(string $from, string $to): array
+    private function sales(string $from, string $to, string $musanedStatus = self::MUSANED_STATUS_ALL): array
     {
         $rental = $this->monthlyRentalSales($from, $to);
-        $recruitment = $this->monthlyRecruitmentSales($from, $to);
-        $delegations = $this->monthlyDelegationSales($from, $to);
+        $recruitment = $this->monthlyRecruitmentSales($from, $to, $musanedStatus);
+        $delegations = $this->monthlyDelegationSales($from, $to, $musanedStatus);
+        $sponsorship = $this->monthlySponsorshipSales($from, $to);
         $adjustments = $this->monthlyRentalAdjustments($from, $to);
 
         $months = [];
@@ -215,15 +249,18 @@ class OperationalSummaryService extends MainService
             $rentalRow = $rental[$key] ?? null;
             $recruitmentRow = $recruitment[$key] ?? null;
             $delegationRow = $delegations[$key] ?? null;
+            $sponsorshipRow = $sponsorship[$key] ?? null;
             $adjustmentRow = $adjustments[$key] ?? null;
 
             $invoiced = (float) ($rentalRow->invoiced ?? 0)
                 + (float) ($recruitmentRow->invoiced ?? 0)
                 + (float) ($delegationRow->invoiced ?? 0)
+                + (float) ($sponsorshipRow->invoiced ?? 0)
                 + (float) ($adjustmentRow->invoiced ?? 0);
             $collected = (float) ($rentalRow->collected ?? 0)
                 + (float) ($recruitmentRow->collected ?? 0)
                 + (float) ($delegationRow->collected ?? 0)
+                + (float) ($sponsorshipRow->collected ?? 0)
                 + (float) ($adjustmentRow->collected ?? 0);
 
             $months[] = [
@@ -235,6 +272,8 @@ class OperationalSummaryService extends MainService
                 'recruitment_count' => (int) ($recruitmentRow->documents ?? 0),
                 'delegations' => (float) ($delegationRow->invoiced ?? 0),
                 'delegations_count' => (int) ($delegationRow->documents ?? 0),
+                'sponsorship' => (float) ($sponsorshipRow->invoiced ?? 0),
+                'sponsorship_count' => (int) ($sponsorshipRow->documents ?? 0),
                 'adjustments' => (float) ($adjustmentRow->invoiced ?? 0),
                 'adjustments_count' => (int) ($adjustmentRow->documents ?? 0),
                 'invoiced' => $invoiced,
@@ -254,6 +293,8 @@ class OperationalSummaryService extends MainService
                 'recruitment_count' => $sum('recruitment_count'),
                 'delegations' => $sum('delegations'),
                 'delegations_count' => $sum('delegations_count'),
+                'sponsorship' => $sum('sponsorship'),
+                'sponsorship_count' => $sum('sponsorship_count'),
                 'adjustments' => $sum('adjustments'),
                 'adjustments_count' => $sum('adjustments_count'),
                 'invoiced' => $sum('invoiced'),
@@ -276,11 +317,14 @@ class OperationalSummaryService extends MainService
             ->keyBy('period');
     }
 
-    private function monthlyRecruitmentSales(string $from, string $to): Collection
+    private function monthlyRecruitmentSales(string $from, string $to, string $musanedStatus): Collection
     {
-        return $this->withoutRentalMirrors($this->scoped('invoices'))
+        $query = $this->withoutRentalMirrors($this->scoped('invoices'))
             ->whereNull('invoices.ingaz_delegation_id')
-            ->whereBetween(DB::raw('DATE(invoices.created_at)'), [$from, $to])
+            ->whereNull('invoices.sponsorship_transfer_id')
+            ->whereBetween(DB::raw('DATE(invoices.created_at)'), [$from, $to]);
+
+        return $this->applyMusanedStatus($query, $musanedStatus)
             ->selectRaw("DATE_FORMAT(invoices.created_at, '%Y-%m') as period")
             ->selectRaw('COUNT(*) as documents')
             ->selectRaw('COALESCE(SUM(total_due), 0) as invoiced')
@@ -293,11 +337,13 @@ class OperationalSummaryService extends MainService
     /**
      * فواتير تفاويض الإنجاز — تُعرض في عمود مستقل عن الاستقدام لا فوقه.
      */
-    private function monthlyDelegationSales(string $from, string $to): Collection
+    private function monthlyDelegationSales(string $from, string $to, string $musanedStatus): Collection
     {
-        return $this->scoped('invoices')
+        $query = $this->scoped('invoices')
             ->whereNotNull('invoices.ingaz_delegation_id')
-            ->whereBetween(DB::raw('DATE(invoices.created_at)'), [$from, $to])
+            ->whereBetween(DB::raw('DATE(invoices.created_at)'), [$from, $to]);
+
+        return $this->applyMusanedStatus($query, $musanedStatus)
             ->selectRaw("DATE_FORMAT(invoices.created_at, '%Y-%m') as period")
             ->selectRaw('COUNT(*) as documents')
             ->selectRaw('COALESCE(SUM(total_due), 0) as invoiced')
@@ -305,6 +351,18 @@ class OperationalSummaryService extends MainService
             ->groupBy('period')
             ->get()
             ->keyBy('period');
+    }
+
+    private function monthlySponsorshipSales(string $from, string $to): Collection
+    {
+        return $this->scoped('invoices')
+            ->whereNotNull('invoices.sponsorship_transfer_id')
+            ->whereBetween(DB::raw('DATE(invoices.created_at)'), [$from, $to])
+            ->selectRaw("DATE_FORMAT(invoices.created_at, '%Y-%m') as period")
+            ->selectRaw('COUNT(*) as documents')
+            ->selectRaw('COALESCE(SUM(total_due), 0) as invoiced')
+            ->selectRaw('COALESCE(SUM(CASE WHEN is_paid = 1 THEN total_due ELSE 0 END), 0) as collected')
+            ->groupBy('period')->get()->keyBy('period');
     }
 
     /**
@@ -351,18 +409,62 @@ class OperationalSummaryService extends MainService
      * فواتير الاستقدام غير المحصّلة — لا يوجد سداد جزئي على هذا الجدول،
      * فالمتبقي هو كامل قيمة الفاتورة.
      */
-    private function recruitmentReceivableQuery(?string $from, string $to): Builder
+    private function recruitmentReceivableQuery(?string $from, string $to, string $musanedStatus = self::MUSANED_STATUS_ALL): Builder
     {
         $query = $this->withoutRentalMirrors($this->scoped('invoices'))
             ->leftJoin('users', 'users.id', '=', 'invoices.client_id')
             ->leftJoin('contracts', 'contracts.id', '=', 'invoices.contract_id')
+            ->leftJoin('transfer_service_contracts', 'transfer_service_contracts.sponsorship_transfer_id', '=', 'invoices.sponsorship_transfer_id')
+            ->leftJoin('sponsorship_transfers', 'sponsorship_transfers.id', '=', 'invoices.sponsorship_transfer_id')
+            ->whereNull('invoices.sponsorship_transfer_id')
             ->whereDate('invoices.created_at', '<=', $to)
             ->where('invoices.is_paid', 0)
             ->where('invoices.total_due', '>', 0);
 
+        $this->applyMusanedStatus($query, $musanedStatus);
+
         if ($from !== null) {
             $query->whereDate('invoices.created_at', '>=', $from);
         }
+
+        return $query;
+    }
+
+    private function sponsorshipReceivableQuery(?string $from, string $to): Builder
+    {
+        $query = $this->scoped('invoices')
+            ->join('sponsorship_transfers', 'sponsorship_transfers.id', '=', 'invoices.sponsorship_transfer_id')
+            ->leftJoin('transfer_service_contracts', 'transfer_service_contracts.sponsorship_transfer_id', '=', 'sponsorship_transfers.id')
+            ->leftJoin('contracts', 'contracts.id', '=', 'sponsorship_transfers.contract_id')
+            ->leftJoin('users', 'users.id', '=', 'sponsorship_transfers.new_sponsor_id')
+            ->whereDate('invoices.created_at', '<=', $to)
+            ->whereRaw('GREATEST(invoices.total_due - sponsorship_transfers.paid_amount, 0) > 0');
+
+        if ($from !== null) {
+            $query->whereDate('invoices.created_at', '>=', $from);
+        }
+
+        return $query;
+    }
+
+    private function applyMusanedStatus(Builder $query, string $musanedStatus): Builder
+    {
+        if ($musanedStatus === self::MUSANED_STATUS_ALL) {
+            return $query;
+        }
+
+        $method = $musanedStatus === self::MUSANED_STATUS_TRANSFERRED ? 'whereExists' : 'whereNotExists';
+        $query->{$method}(function (Builder $subQuery) {
+            $subQuery->selectRaw('1')
+                ->from('musaned_transfer_items')
+                ->where(function (Builder $relation) {
+                    $relation->whereColumn('musaned_transfer_items.invoice_id', 'invoices.id')
+                        ->orWhere(function (Builder $delegation) {
+                            $delegation->whereNotNull('invoices.ingaz_delegation_id')
+                                ->whereColumn('musaned_transfer_items.ingaz_delegation_id', 'invoices.ingaz_delegation_id');
+                        });
+                });
+        });
 
         return $query;
     }
@@ -380,10 +482,10 @@ class OperationalSummaryService extends MainService
                 'invoices.id',
                 'invoices.contract_id',
                 'invoices.total_due',
-                DB::raw('0 as paid_amount'),
-                DB::raw('invoices.total_due as remaining_amount'),
+                DB::raw('COALESCE(sponsorship_transfers.paid_amount, 0) as paid_amount'),
+                DB::raw('GREATEST(invoices.total_due - COALESCE(sponsorship_transfers.paid_amount, 0), 0) as remaining_amount'),
                 'invoices.created_at as invoiced_at',
-                DB::raw('COALESCE(contracts.arabia_order_number, invoices.legacy_invoice_number, invoices.id) as contract_number'),
+                DB::raw('COALESCE(transfer_service_contracts.contract_number, contracts.arabia_order_number, invoices.legacy_invoice_number, invoices.id) as contract_number'),
                 'users.id as client_id',
                 'users.name as client_name',
                 'users.phone as client_phone',
@@ -439,10 +541,11 @@ class OperationalSummaryService extends MainService
         $paid = (float) $totals->invoiced - (float) $totals->remaining;
         $aging = $this->receivableAging($query, $dateColumn, $remainingColumn, $to);
 
-        $rowsQuery = $query()
-            ->select($this->receivableColumns($dateColumn))
-            ->orderByDesc($remainingColumn)
-            ->orderBy($dateColumn);
+        $rowsQuery = $query()->select($this->receivableColumns($dateColumn));
+        str_contains($remainingColumn, '(')
+            ? $rowsQuery->orderByRaw("{$remainingColumn} DESC")
+            : $rowsQuery->orderByDesc($remainingColumn);
+        $rowsQuery->orderBy($dateColumn);
 
         $total = (int) $totals->documents;
 
@@ -535,6 +638,57 @@ class OperationalSummaryService extends MainService
     }
 
     /**
+     * يفسّر أثر فلتر «حالة التحويل من مساند» على قسم ذمم الاستقدام وحده.
+     *
+     * الفلتر يشمل أقساماً أخرى (المبيعات والتفاويض)، لكن قسم الذمم هو الوحيد
+     * الذي يَظهر فيه الفراغ التام لأنه مقيّد أصلاً بالفواتير غير المحصّلة، فقد
+     * يبدو بلا أثر لسببين مختلفين تماماً: إما لا توجد ذمم استقدام في الفترة
+     * أصلاً، أو توجد والفلتر استبعد جزءاً منها. نحسب هنا العدد بلا فلتر حتى
+     * تستطيع الواجهة قول أي السببين هو الجاري، بدل رسالة فراغ صامتة.
+     *
+     * لا يُنفَّذ أي استعلام إضافي عندما يكون الفلتر على «الكل».
+     *
+     * @return array{status: string, active: bool, filtered_documents: int, unfiltered_documents: int, excluded_documents: int, excluded_remaining: float}
+     */
+    private function musanedFilterDiagnostics(
+        string $musanedStatus,
+        ?string $from,
+        string $to,
+        int $filteredDocuments
+    ): array {
+        if ($musanedStatus === self::MUSANED_STATUS_ALL) {
+            return [
+                'status' => $musanedStatus,
+                'active' => false,
+                'filtered_documents' => $filteredDocuments,
+                'unfiltered_documents' => $filteredDocuments,
+                'excluded_documents' => 0,
+                'excluded_remaining' => 0.0,
+            ];
+        }
+
+        $unfiltered = $this->recruitmentReceivableQuery($from, $to)
+            ->selectRaw('COUNT(*) as documents')
+            ->selectRaw('COALESCE(SUM(invoices.total_due), 0) as remaining')
+            ->first();
+
+        $unfilteredDocuments = (int) $unfiltered->documents;
+        $excludedRemaining = (float) $unfiltered->remaining - (float) $this->receivableGrandTotal(
+            fn () => $this->recruitmentReceivableQuery($from, $to, $musanedStatus),
+            'invoices.total_due'
+        );
+
+        return [
+            'status' => $musanedStatus,
+            'active' => true,
+            'filtered_documents' => $filteredDocuments,
+            'unfiltered_documents' => $unfilteredDocuments,
+            'excluded_documents' => max(0, $unfilteredDocuments - $filteredDocuments),
+            'excluded_remaining' => round(max(0, $excludedRemaining), 2),
+        ];
+    }
+
+    /**
      * يضيف عمر الفاتورة وشريحة التقادم إلى السطر.
      */
     private function decorateAge(object $row, string $to): object
@@ -576,9 +730,9 @@ class OperationalSummaryService extends MainService
      * بها؛ فالصافي هنا هامش الخدمة لا ربح القائمة المحاسبية. وهذه الفواتير
      * مستثناة من عمود «فواتير الاستقدام» حتى لا يُحتسب الإيراد مرتين.
      */
-    private function delegations(string $from, string $to): array
+    private function delegations(string $from, string $to, string $musanedStatus = self::MUSANED_STATUS_ALL): array
     {
-        $monthly = $this->delegationQuery($from, $to)
+        $monthly = $this->delegationQuery($from, $to, $musanedStatus)
             ->selectRaw("DATE_FORMAT(invoices.created_at, '%Y-%m') as period")
             ->selectRaw('COUNT(*) as delegations')
             ->selectRaw('COALESCE(SUM(invoices.total_due), 0) as revenue')
@@ -615,8 +769,8 @@ class OperationalSummaryService extends MainService
 
         return [
             'months' => $months,
-            'professions' => $this->delegationsByProfession($from, $to),
-            'pending_cost' => $this->delegationPendingCost($from, $to),
+            'professions' => $this->delegationsByProfession($from, $to, $musanedStatus),
+            'pending_cost' => $this->delegationPendingCost($from, $to, $musanedStatus),
             'totals' => [
                 'delegations' => $count,
                 'revenue' => $revenue,
@@ -637,18 +791,20 @@ class OperationalSummaryService extends MainService
      *
      * @return array{entries: int, amount: float}
      */
-    private function delegationPendingCost(string $from, string $to): array
+    private function delegationPendingCost(string $from, string $to, string $musanedStatus): array
     {
         if (!Constraint::hasApprovalColumns()) {
             return ['entries' => 0, 'amount' => 0.0];
         }
 
-        $row = $this->scoped('invoices')
+        $query = $this->scoped('invoices')
             ->join('fn_constraints as cost', 'cost.id', '=', 'invoices.ingaz_delegation_cost_constraint_id')
             ->whereNotNull('invoices.ingaz_delegation_id')
             ->whereNull('cost.deleted_at')
             ->where('cost.approval_status', '!=', Constraint::APPROVAL_APPROVED)
-            ->whereBetween(DB::raw('DATE(invoices.created_at)'), [$from, $to])
+            ->whereBetween(DB::raw('DATE(invoices.created_at)'), [$from, $to]);
+
+        $row = $this->applyMusanedStatus($query, $musanedStatus)
             ->selectRaw('COUNT(*) as entries')
             ->selectRaw('COALESCE(SUM(cost.value), 0) as amount')
             ->first();
@@ -659,9 +815,9 @@ class OperationalSummaryService extends MainService
     /**
      * توزيع التفاويض على المهن — يقرأ أين يتولّد الإيراد فعلاً.
      */
-    private function delegationsByProfession(string $from, string $to): Collection
+    private function delegationsByProfession(string $from, string $to, string $musanedStatus): Collection
     {
-        return $this->delegationQuery($from, $to)
+        return $this->delegationQuery($from, $to, $musanedStatus)
             ->leftJoin('job_titles_translations as profession', function ($join) {
                 $join->on('profession.job_title_id', '=', 'delegation.profession_id')
                     ->where('profession.locale', '=', app()->getLocale());
@@ -687,7 +843,7 @@ class OperationalSummaryService extends MainService
     /**
      * فواتير التفاويض داخل الفترة، مع قيد التكلفة المعتمد المرتبط بكل فاتورة.
      */
-    private function delegationQuery(string $from, string $to): Builder
+    private function delegationQuery(string $from, string $to, string $musanedStatus = self::MUSANED_STATUS_ALL): Builder
     {
         $query = $this->scoped('invoices')
             ->join('ingaz_delegations as delegation', 'delegation.id', '=', 'invoices.ingaz_delegation_id')
@@ -701,7 +857,7 @@ class OperationalSummaryService extends MainService
             })
             ->whereBetween(DB::raw('DATE(invoices.created_at)'), [$from, $to]);
 
-        return $query;
+        return $this->applyMusanedStatus($query, $musanedStatus);
     }
 
     /* ------------------------------------------------------------------ */

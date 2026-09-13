@@ -411,6 +411,7 @@ class MaidAction extends MainAction
             'percentage' => $data['percentage'] ?? null,
             'language_levels' => $data['language_levels'] ?? null,
             'cv_file' => $data['cv_file'] ?? '',
+            'maid_cv_file' => $data['maid_cv_file'] ?? null,
             'image' => $data['image'] ?? '',
             'video_link' => $data['video_link'] ?? null,
             'video' => $data['video'] ?? null,
@@ -1459,6 +1460,12 @@ class MaidAction extends MainAction
                 $image = $data['cv_preview'];
                 $data['cv_preview'] = uploadMaidFile($image, $this->fileFolder);
                 $newMediaFiles[] = $data['cv_preview'];
+            }
+            if (isset($data['maid_cv_file'])) {
+                $oldMediaFiles[] = $maid->maid_cv_file;
+                $file = $data['maid_cv_file'];
+                $data['maid_cv_file'] = uploadMaidFile($file, $this->fileFolder);
+                $newMediaFiles[] = $data['maid_cv_file'];
             }
             if (isset($data['image'])) {
                 $oldMediaFiles[] = $maid->image;

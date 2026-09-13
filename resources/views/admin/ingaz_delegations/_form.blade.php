@@ -177,7 +177,7 @@
                                 @enderror
                             </div>
                             <div class="col-md-6">
-                                <label class="form-label">رقم الهوية</label>
+                                <label class="form-label">رقم الهوية <span class="text-danger">*</span></label>
                                 <input type="text" name="separate_client_identity_number"
                                        value="{{ old('separate_client_identity_number', $clientSourceType === 'separate_client' ? ($linkedUser?->national_num ?? '') : '') }}"
                                        class="form-control @error('separate_client_identity_number') is-invalid @enderror">
@@ -195,7 +195,7 @@
                                 @enderror
                             </div>
                             <div class="col-md-4">
-                                <label class="form-label">جوال العميل</label>
+                                <label class="form-label">جوال العميل <span class="text-danger">*</span></label>
                                 <input type="text" name="separate_client_phone"
                                        value="{{ old('separate_client_phone', $clientSourceType === 'separate_client' ? $linkedUserPhone : '') }}"
                                        class="form-control @error('separate_client_phone') is-invalid @enderror">
@@ -232,19 +232,19 @@
                         @enderror
                     </div>
                     <div class="col-md-4">
-                        <label class="form-label">اسم العامل</label>
+                        <label class="form-label">اسم العامل <span class="text-danger">*</span></label>
                         <input type="text" name="worker_name" id="worker_name"
                                value="{{ old('worker_name', $delegation->worker_name ?? $linkedMaid?->name ?? '') }}"
-                               class="form-control @error('worker_name') is-invalid @enderror">
+                               class="form-control @error('worker_name') is-invalid @enderror" @if(!isset($delegation)) required @endif>
                         @error('worker_name')
                             <div class="invalid-feedback">{{ $message }}</div>
                         @enderror
                     </div>
                     <div class="col-md-4">
-                        <label class="form-label">رقم جواز العامل</label>
+                        <label class="form-label">رقم جواز العامل <span class="text-danger">*</span></label>
                         <input type="text" name="worker_passport_number" id="worker_passport_number"
                                value="{{ old('worker_passport_number', $delegation->worker_passport_number ?? $linkedMaid?->passport_num ?? '') }}"
-                               class="form-control @error('worker_passport_number') is-invalid @enderror">
+                               class="form-control @error('worker_passport_number') is-invalid @enderror" @if(!isset($delegation)) required @endif>
                         @error('worker_passport_number')
                             <div class="invalid-feedback">{{ $message }}</div>
                         @enderror
@@ -484,6 +484,11 @@
 
             existingSection.style.display = isExisting ? '' : 'none';
             separateSection.style.display = isExisting ? 'none' : '';
+
+            if (!@json(isset($delegation))) {
+                separateSection.querySelector('[name="separate_client_identity_number"]').required = !isExisting;
+                separateSection.querySelector('[name="separate_client_phone"]').required = !isExisting;
+            }
         }
 
         function updateExistingPreview() {

@@ -437,7 +437,12 @@
                 </div>
                 <div class="sub special-img full-photo-card">
                     @php
-                        $galleryImage = $maid->cv_file ?: ($maid->cv_preview ?: $maid->image);
+                        // Agent uploads use a dedicated CV-document field. Legacy
+                        // agent submissions stored that document in cv_file, so it
+                        // must never be rendered as the worker's full-body photo.
+                        $galleryImage = $maid->submission_status
+                            ? ($maid->image ?: $maid->cv_preview)
+                            : ($maid->cv_file ?: ($maid->cv_preview ?: $maid->image));
                     @endphp
                     <div class="cv-full-photo-wrapper">
                         <img class="cv-full-photo"

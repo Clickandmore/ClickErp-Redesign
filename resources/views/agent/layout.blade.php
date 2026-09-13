@@ -700,6 +700,11 @@
                     <i class="fa fa-file-invoice-dollar"></i>
                     <span>{{ __('agent.invoices') }}</span>
                 </a>
+                <a href="{{ route('agent.complaints.index') }}"
+                    class="{{ request()->routeIs('agent.complaints.*') ? 'active' : '' }}">
+                    <i class="fa fa-comment-dots"></i>
+                    <span>{{ __('agent.complaints') }}</span>
+                </a>
 
                 <form action="{{ route('agent.logout') }}" method="POST">
                     @csrf

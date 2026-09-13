@@ -407,7 +407,9 @@ class AdminController extends Controller
                         $isSuspended = $row->status === 'suspended';
                         $menuItems[] = '<li><a href="' . route("admins.toggle-status", $row->id) . '" class="dropdown-item '
                             . ($isSuspended ? 'text-success' : 'text-warning')
-                            . ' toggle-status" data-id="' . $row->id . '">'
+                            . ' toggle-status" data-id="' . $row->id . '"'
+                            . ' data-name="' . e($row->name) . '"'
+                            . ' data-current-status="' . e((string) $row->status) . '">'
                             . '<i class="fa ' . ($isSuspended ? 'fa-check-circle' : 'fa-ban') . '"></i> '
                             . ($isSuspended ? __('admin.activate') : __('admin.suspend'))
                             . '</a></li>';
@@ -467,28 +469,52 @@ class AdminController extends Controller
     public function toggleStatus($id, Request $request)
     {
         $admin = ObjModel::findOrFail($id);
+        $newStatus = $admin->status === 'suspended' ? 'active' : 'suspended';
 
         $validator = Validator::make($request->all(), [
-            'note' => ['nullable', 'string', 'max:1000'],
+            'note' => [$newStatus === 'suspended' ? 'required' : 'nullable', 'string', 'max:1000'],
+            'reassign_work' => [$newStatus === 'suspended' ? 'required' : 'nullable', 'boolean'],
+            'reassigned_admin_id' => [
+                'nullable',
+                'required_if:reassign_work,1',
+                'integer',
+                function ($attribute, $value, $fail) use ($admin) {
+                    if ($value === null || $value === '') {
+                        return;
+                    }
+
+                    if ((int) $value === (int) $admin->id) {
+                        $fail(__('admin.replacement_employee_must_be_different'));
+                        return;
+                    }
+
+                    $exists = ObjModel::query()
+                        ->whereKey($value)
+                        ->whereNull('deleted_at')
+                        ->where('status', 'active')
+                        ->exists();
+
+                    if (! $exists) {
+                        $fail(__('admin.replacement_employee_invalid'));
+                    }
+                },
+            ],
         ]);
 
         if ($validator->fails()) {
             return response()->json(['message' => $validator->errors()->first()], 422);
         }
 
-        $newStatus = $admin->status === 'suspended' ? 'active' : 'suspended';
-
-        if ($newStatus === 'suspended') {
-            $assignmentCounts = $this->getActiveAssignmentCounts((int) $admin->id);
-            if ($assignmentCounts['total'] > 0) {
-                return $this->assignmentBlockedResponse($assignmentCounts);
+        DB::transaction(function () use ($admin, $request, $newStatus) {
+            if ($newStatus === 'suspended' && $request->boolean('reassign_work')) {
+                $this->reassignAdminActiveWork((int) $admin->id, (int) $request->reassigned_admin_id);
             }
-        }
 
-        $admin->update([
-            'status' => $newStatus,
-            'note' => $request->note ?? $admin->note,
-        ]);
+            $admin->update([
+                'status' => $newStatus,
+                'note' => $request->note ?? $admin->note,
+            ]);
+        });
 
         return response()->json([
             'message' => __('admin.updated'),
@@ -917,48 +943,6 @@ class AdminController extends Controller
             ->first();
     }
 
-    private function getActiveAssignmentCounts(int $adminId): array
-    {
-        $ordersQuery = Order::query()
-            ->whereNotIn('status', ['done', 'refused', 'return', 'cancelled', 'canceled', 'completed'])
-            ->where(function ($query) use ($adminId) {
-                if (Schema::hasColumn('orders', 'customer_id')) {
-                    $query->where('customer_id', $adminId)
-                        ->orWhereHas('details', function ($detailsQuery) use ($adminId) {
-                            $detailsQuery->where('admin_id', $adminId);
-                        });
-                    return;
-                }
-
-                $query->whereHas('details', function ($detailsQuery) use ($adminId) {
-                    $detailsQuery->where('admin_id', $adminId);
-                });
-            });
-
-        $ordersCount = $ordersQuery->count();
-
-        $bookingsCount = Schema::hasTable('rental_contracts')
-            ? RentalContract::query()
-                ->where('marketer_id', $adminId)
-                ->whereNotIn('status', ['completed', 'cancelled', 'closed'])
-                ->count()
-            : 0;
-
-        $contractsCount = Schema::hasTable('contracts')
-            ? Contract::query()
-                ->where('marketer_id', $adminId)
-                ->whereNotIn('status', ['completed', 'back', 'closed'])
-                ->count()
-            : 0;
-
-        return [
-            'orders' => $ordersCount,
-            'bookings' => $bookingsCount,
-            'contracts' => $contractsCount,
-            'total' => $ordersCount + $bookingsCount + $contractsCount,
-        ];
-    }
-
     private function getReassignmentCounts(int $adminId): array
     {
         $ordersCount = Order::query()
@@ -1026,20 +1010,46 @@ class AdminController extends Controller
         }
     }
 
-    private function assignmentBlockedResponse(array $assignmentCounts)
+    private function reassignAdminActiveWork(int $fromAdminId, int $toAdminId): void
     {
-        $message = __('admin.reassignment_required_before_action', [
-            'orders' => $assignmentCounts['orders'],
-            'bookings' => $assignmentCounts['bookings'],
-            'contracts' => $assignmentCounts['contracts'],
-        ]);
+        if (Schema::hasColumn('orders', 'customer_id')) {
+            \App\Support\Audit\AuditedBulkUpdate::update(
+                DB::table('orders')
+                    ->where('customer_id', $fromAdminId)
+                    ->whereNotIn('status', ['done', 'refused', 'return', 'cancelled', 'canceled', 'completed']),
+                \App\Models\ingaz\Order::class,
+                ['customer_id' => $toAdminId, 'updated_at' => now()]
+            );
+        }
 
-        return response()->json([
-            'message' => $message,
-            'errors' => [
-                'admin' => [$message],
-            ],
-        ], 422);
+        if (Schema::hasTable('order_details') && Schema::hasColumn('order_details', 'admin_id')) {
+            $activeOrderIds = DB::table('orders')
+                ->whereNotIn('status', ['done', 'refused', 'return', 'cancelled', 'canceled', 'completed'])
+                ->select('id');
+            \App\Support\Audit\AuditedBulkUpdate::update(
+                DB::table('order_details')->where('admin_id', $fromAdminId)->whereIn('order_id', $activeOrderIds),
+                \App\Models\ingaz\OrderDetail::class,
+                ['admin_id' => $toAdminId, 'updated_at' => now()]
+            );
+        }
+
+        if (Schema::hasTable('contracts') && Schema::hasColumn('contracts', 'marketer_id')) {
+            \App\Support\Audit\AuditedBulkUpdate::update(
+                DB::table('contracts')->where('marketer_id', $fromAdminId)
+                    ->whereNotIn('status', ['completed', 'back', 'closed']),
+                \App\Models\Contract::class,
+                ['marketer_id' => $toAdminId, 'updated_at' => now()]
+            );
+        }
+
+        if (Schema::hasTable('rental_contracts') && Schema::hasColumn('rental_contracts', 'marketer_id')) {
+            \App\Support\Audit\AuditedBulkUpdate::update(
+                DB::table('rental_contracts')->where('marketer_id', $fromAdminId)
+                    ->whereNotIn('status', ['completed', 'cancelled', 'closed']),
+                \App\Models\RentalContract::class,
+                ['marketer_id' => $toAdminId, 'updated_at' => now()]
+            );
+        }
     }
 
     private function adminRolesQuery()

@@ -757,13 +757,13 @@
                                 <div class="card-body" id="maid-section-card">
                                     <div class="row">
                                     <div class="col-md-6 mb-2">
-                                        <label class="form-label">الاسم</label>
-                                        <input type="text" id="maid_name" name="maid_name" class="form-control">
+                                        <label class="form-label">الاسم <span class="text-danger">*</span></label>
+                                        <input type="text" id="maid_name" name="maid_name" class="form-control" data-validation="required" required>
                                         <div class="invalid-feedback" id="err_maid_name"></div>
                                     </div>
                                     <div class="col-md-6 mb-2">
-                                        <label class="form-label">رقم الجواز</label>
-                                        <input type="text" id="maid_passport" name="maid_passport" class="form-control">
+                                        <label class="form-label">رقم الجواز <span class="text-danger">*</span></label>
+                                        <input type="text" id="maid_passport" name="maid_passport" class="form-control" data-validation="required" required>
                                     </div>
                                     <div class="col-md-6 mb-2">
                                         <label class="form-label">الديانة</label>

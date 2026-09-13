@@ -10,6 +10,7 @@ return [
     'procedures_tracking' => 'Procedures Tracking',
     'dispatches' => 'Dispatches',
     'invoices' => 'Invoices',
+    'complaints' => 'Complaints',
     'logout' => 'Logout',
     'dashboard_title' => 'Agent Dashboard',
     'external_workspace' => 'External office workspace',

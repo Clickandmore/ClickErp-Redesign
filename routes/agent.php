@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Agent\AgentBulkImportController;
+use App\Http\Controllers\Agent\AgentComplaintController;
 use App\Http\Controllers\Agent\AgentRecruitmentProcedureController;
 use App\Http\Controllers\Agent\AuthController;
 use App\Http\Controllers\Agent\DashboardController;
@@ -43,6 +44,12 @@ Route::group(
                 Route::get('contracts/{contract}', [DashboardController::class, 'showContract'])->name('contracts.show');
                 Route::get('external-office-dispatches', [DashboardController::class, 'dispatches'])->name('dispatches.index');
                 Route::get('invoices', [DashboardController::class, 'invoices'])->name('invoices.index');
+                Route::get('complaints', [AgentComplaintController::class, 'index'])->name('complaints.index');
+                Route::get('complaints/create', [AgentComplaintController::class, 'create'])->name('complaints.create');
+                Route::get('complaints/search-contracts', [AgentComplaintController::class, 'searchContracts'])->name('complaints.search-contracts');
+                Route::post('complaints', [AgentComplaintController::class, 'store'])->name('complaints.store');
+                Route::get('complaints/{complaint}', [AgentComplaintController::class, 'show'])->name('complaints.show');
+                Route::post('complaints/{complaint}/comments', [AgentComplaintController::class, 'addComment'])->name('complaints.comments.store');
                 Route::get('philippines-tracking', [AgentRecruitmentProcedureController::class, 'index'])->name('philippines-tracking.index');
                 Route::post('philippines-tracking/{maid}/update-step', [AgentRecruitmentProcedureController::class, 'updateStep'])->name('philippines-tracking.update-step');
                 Route::post('philippines-tracking/{maid}/bulk-update', [AgentRecruitmentProcedureController::class, 'bulkUpdate'])->name('philippines-tracking.bulk-update');
