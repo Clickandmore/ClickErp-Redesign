@@ -92,6 +92,23 @@
         padding: 0.75rem 0 0;
         border-top: 1px solid var(--form-border);
     }
+
+    .admin-user-form .employee-toggle-card {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 1rem;
+        padding: 0.9rem 1rem;
+        border: 1px solid #bbf7d0;
+        border-radius: 8px;
+        background: #f0fdf4;
+    }
+
+    .admin-user-form .employee-toggle-card .form-check-input {
+        width: 2.5rem;
+        height: 1.3rem;
+        cursor: pointer;
+    }
 </style>
 
 <form class="admin-user-form from-submit-global" method="post" action="{{ $action }}" enctype="multipart/form-data">
@@ -233,6 +250,98 @@
         </div>
     @endif
 
+    @if(! $isEdit && ($canCreateEmployee ?? false))
+        <div class="form-section">
+            <div class="employee-toggle-card">
+                <div>
+                    <div class="fw-bold"><i class="fa fa-id-card text-success"></i> إنشاء ملف موظف لهذا المستخدم</div>
+                    <div class="field-hint">عند تفعيل الخيار سيتم إنشاء حساب المستخدم وملف الموظف وربطهما معًا في نفس العملية.</div>
+                </div>
+                <div class="form-check form-switch m-0">
+                    <input type="hidden" name="create_employee" value="0">
+                    <input class="form-check-input" type="checkbox" role="switch" id="create_employee" name="create_employee" value="1"
+                           @checked(old('create_employee'))>
+                </div>
+            </div>
+
+            <div id="employeeFields" class="mt-3" @if(!old('create_employee')) style="display:none" @endif>
+                <div class="section-title">
+                    <i class="fa fa-briefcase"></i>
+                    <span>بيانات ملف الموظف</span>
+                </div>
+                <div class="alert alert-info py-2">
+                    الاسم والجوال والبريد ورقم الهوية وتاريخ انتهائها سيتم أخذها تلقائيًا من بيانات المستخدم أعلاه.
+                </div>
+                <div class="row g-3">
+                    <div class="col-md-4">
+                        <label class="form-label" for="employee_code">كود الموظف</label>
+                        <input class="form-control" id="employee_code" name="employee_code" value="{{ old('employee_code') }}" placeholder="يُنشأ تلقائيًا عند تركه فارغًا">
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label" for="employee_birthday">تاريخ الميلاد <span class="text-danger">*</span></label>
+                        <input type="date" class="form-control employee-required" id="employee_birthday" name="employee_birthday" value="{{ old('employee_birthday') }}">
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label" for="employee_country_id">الجنسية <span class="text-danger">*</span></label>
+                        <select class="form-select employee-required" id="employee_country_id" name="employee_country_id">
+                            <option value="">{{ __('admin.choose') }}</option>
+                            @foreach(($hrCountries ?? collect()) as $country)
+                                <option value="{{ $country->id }}" @selected((string)old('employee_country_id') === (string)$country->id)>{{ $country->name ?: '#'.$country->id }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label" for="employee_department_id">القسم <span class="text-danger">*</span></label>
+                        <select class="form-select employee-required" id="employee_department_id" name="employee_department_id">
+                            <option value="">{{ __('admin.choose') }}</option>
+                            @foreach(($departments ?? collect()) as $department)
+                                <option value="{{ $department->id }}" @selected((string)old('employee_department_id') === (string)$department->id)>{{ $department->title }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label" for="employee_job_id">الوظيفة <span class="text-danger">*</span></label>
+                        <select class="form-select employee-required" id="employee_job_id" name="employee_job_id">
+                            <option value="">{{ __('admin.choose') }}</option>
+                            @foreach(($jobs ?? collect()) as $job)
+                                <option value="{{ $job->id }}" @selected((string)old('employee_job_id') === (string)$job->id)>{{ $job->title }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label" for="employee_shift_id">الوردية <span class="text-danger">*</span></label>
+                        <select class="form-select employee-required" id="employee_shift_id" name="employee_shift_id">
+                            <option value="">{{ __('admin.choose') }}</option>
+                            @foreach(($shifts ?? collect()) as $shift)
+                                <option value="{{ $shift->id }}" @selected((string)old('employee_shift_id') === (string)$shift->id)>{{ $shift->name }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label" for="employee_hired_date">تاريخ التعيين <span class="text-danger">*</span></label>
+                        <input type="date" class="form-control employee-required" id="employee_hired_date" name="employee_hired_date" value="{{ old('employee_hired_date') }}">
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label" for="employee_contract_end_date">تاريخ انتهاء العقد <span class="text-danger">*</span></label>
+                        <input type="date" class="form-control employee-required" id="employee_contract_end_date" name="employee_contract_end_date" value="{{ old('employee_contract_end_date') }}">
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label" for="employee_salary">الراتب <span class="text-danger">*</span></label>
+                        <input type="number" min="0" step="0.01" class="form-control employee-required" id="employee_salary" name="employee_salary" value="{{ old('employee_salary') }}">
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label" for="employee_net_salary">صافي الراتب</label>
+                        <input type="number" min="0" step="0.01" class="form-control" id="employee_net_salary" name="employee_net_salary" value="{{ old('employee_net_salary') }}" placeholder="نفس الراتب عند تركه فارغًا">
+                    </div>
+                    <div class="col-md-8">
+                        <label class="form-label" for="employee_address">العنوان</label>
+                        <input class="form-control" id="employee_address" name="employee_address" value="{{ old('employee_address') }}">
+                    </div>
+                </div>
+            </div>
+        </div>
+    @endif
+
     <div class="form-section">
         <div class="section-title">
             <i class="fa fa-sticky-note"></i>
@@ -252,3 +361,23 @@
         @endif
     </div>
 </form>
+
+@if(! $isEdit && ($canCreateEmployee ?? false))
+    <script>
+        (function () {
+            const toggle = document.getElementById('create_employee');
+            const fields = document.getElementById('employeeFields');
+            if (!toggle || !fields) return;
+
+            const updateEmployeeFields = function () {
+                fields.style.display = toggle.checked ? '' : 'none';
+                fields.querySelectorAll('.employee-required').forEach(function (input) {
+                    input.required = toggle.checked;
+                });
+            };
+
+            toggle.addEventListener('change', updateEmployeeFields);
+            updateEmployeeFields();
+        })();
+    </script>
+@endif

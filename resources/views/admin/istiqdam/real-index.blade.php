@@ -40,7 +40,7 @@
                 <button class="list-group-item list-group-item-action d-flex justify-content-between align-items-center py-3" id="permit-action" type="button" {{ $isConfigured ? '' : 'disabled' }}><span><i class="fas fa-id-card text-warning me-2"></i><strong>إسناد تصريح عمل</strong><small class="d-block text-muted me-4">ربط تصريح العمل والعاملة بعقد قائم في المنصة</small></span><i class="fas fa-chevron-left"></i></button>
                 <a class="list-group-item list-group-item-action d-flex justify-content-between align-items-center py-3 {{ $isConfigured ? '' : 'disabled' }}" href="{{ $isConfigured ? route('istiqdam.contracts.create') : '#' }}"><span><i class="fas fa-file-circle-plus text-success me-2"></i><strong>إنشاء عقد</strong><small class="d-block text-muted me-4">يرسل بيانات المستفيد والباقة والالتزامات إلى تكامل</small></span><i class="fas fa-chevron-left"></i></a>
             </div></div></div>
-            <div class="col-xl-4"><div class="card h-100"><div class="card-header bg-white"><strong>حالة الإعداد</strong></div><div class="card-body"><dl class="row mb-0 small"><dt class="col-5 text-muted">البيئة</dt><dd class="col-7">{{ $environment }}</dd><dt class="col-5 text-muted">المهلة</dt><dd class="col-7">{{ config('istiqdam.timeout') }} ثانية</dd><dt class="col-5 text-muted">المصادقة</dt><dd class="col-7"><span id="auth-state" class="badge bg-secondary">لم تُفحص</span></dd></dl><button class="btn btn-sm btn-outline-secondary mt-3" id="diagnose-action" type="button">تشخيص آمن للإعداد</button></div></div></div>
+            <div class="col-xl-4"><div class="card h-100"><div class="card-header bg-white"><strong>حالة الإعداد</strong></div><div class="card-body"><dl class="row mb-0 small"><dt class="col-5 text-muted">البيئة</dt><dd class="col-7">{{ $environment }}</dd><dt class="col-5 text-muted">المهلة</dt><dd class="col-7">{{ $connectionTimeout }} ثانية</dd><dt class="col-5 text-muted">المصادقة</dt><dd class="col-7"><span id="auth-state" class="badge bg-secondary">لم تُفحص</span></dd></dl><button class="btn btn-sm btn-outline-secondary mt-3" id="diagnose-action" type="button">تشخيص آمن للإعداد</button></div></div></div>
         </div>
 
         <div class="card mt-4"><div class="card-header bg-white"><strong>أحدث العقود المحفوظة محلياً</strong></div><div class="table-responsive"><table class="table table-hover align-middle mb-0"><thead><tr><th>رقم المنصة</th><th>المستفيد</th><th>الحالة</th><th>آخر مزامنة</th><th></th></tr></thead><tbody>
@@ -66,9 +66,53 @@
     const notice = (kind, message) => { const box = document.getElementById('connection-result'); box.className = `alert alert-${kind} mb-4`; box.textContent = message; };
     const contractUrl = id => '{{ route('istiqdam.contracts.show', ':contractId') }}'.replace(':contractId', encodeURIComponent(id));
 
+    const supportReportText = (message, provider, steps) => {
+        const lines = ['فشل الاتصال بمنصة تكامل', message || '', ''];
+        const labels = {stage_label: 'المرحلة التي فشلت', environment: 'البيئة', endpoint: 'الرابط المستدعى', client_id: 'Client ID', http_status: 'رمز HTTP', provider_message: 'رسالة تكامل', raw_error: 'خطأ الشبكة الخام', server_ip: 'عنوان الخادم (SERVER_ADDR)', captured_at: 'وقت المحاولة'};
+        Object.keys(labels).forEach(key => { if (provider?.[key] !== undefined && provider[key] !== null) lines.push(`${labels[key]}: ${provider[key]}`); });
+        if (provider?.api_key_sent !== undefined) lines.push(`تم إرسال API KEY: ${provider.api_key_sent ? 'نعم' : 'لا'}`);
+        Object.entries(provider?.gateway_trace || {}).forEach(([key, value]) => lines.push(`${key}: ${value}`));
+        if (provider?.provider_body) lines.push('', 'رد البوابة الحرفي:', provider.provider_body);
+        if (steps?.length) lines.push('', 'الخطوات المقترحة:', ...steps.map(step => `- ${step}`));
+        return lines.join('\n');
+    };
+
+    const renderConnectionFailure = xhr => {
+        const box = document.getElementById('connection-result');
+        const payload = xhr.responseJSON || {};
+        const provider = payload.provider_error || {};
+        const steps = payload.next_steps || [];
+        const rows = [
+            ['المرحلة التي فشلت', provider.stage_label],
+            ['رمز HTTP', provider.http_status],
+            ['رسالة تكامل', provider.provider_message],
+            ['خطأ الشبكة الخام', provider.raw_error],
+            ['الرابط المستدعى', provider.endpoint],
+            ['Client ID المستخدم', provider.client_id],
+            ['تم إرسال API KEY', provider.api_key_sent === undefined ? null : (provider.api_key_sent ? 'نعم' : 'لا')],
+            ['عنوان الخادم (SERVER_ADDR)', provider.server_ip],
+            ['وقت المحاولة', provider.captured_at],
+            ...Object.entries(provider.gateway_trace || {}),
+        ].filter(([, value]) => value !== null && value !== undefined && value !== '')
+         .map(([label, value]) => `<dt class="col-sm-4 text-muted">${escapeHtml(label)}</dt><dd class="col-sm-8" dir="auto">${escapeHtml(value)}</dd>`).join('');
+
+        box.className = 'alert alert-danger mb-4';
+        box.innerHTML = `<div class="d-flex justify-content-between align-items-start gap-2">
+            <div><strong>${escapeHtml(error(xhr))}</strong></div>
+            <button class="btn btn-sm btn-outline-dark flex-shrink-0" id="copy-support-report" type="button"><i class="fas fa-copy me-1"></i> نسخ التقرير للدعم</button>
+        </div>
+        ${steps.length ? `<ul class="small mt-2 mb-0">${steps.map(step => `<li>${escapeHtml(step)}</li>`).join('')}</ul>` : ''}
+        ${rows ? `<hr><dl class="row small mb-0">${rows}</dl>` : ''}
+        ${provider.provider_body ? `<div class="small mt-2"><strong>رد بوابة تكامل الحرفي:</strong><pre class="bg-white border rounded p-2 mt-1 mb-0 small" dir="ltr" style="max-height:220px;overflow:auto">${escapeHtml(provider.provider_body)}</pre></div>` : ''}`;
+
+        box.querySelector('#copy-support-report')?.addEventListener('click', function () {
+            navigator.clipboard?.writeText(supportReportText(error(xhr), provider, steps)).then(() => { this.innerHTML = '<i class="fas fa-check me-1"></i> تم النسخ'; }, () => { this.textContent = 'تعذّر النسخ'; });
+        });
+    };
+
     document.getElementById('connection-test').addEventListener('click', function () {
         this.disabled = true; notice('info', 'جاري اختبار المصادقة وجلب باقة واحدة…');
-        $.get('{{ route('istiqdam.test.connection') }}').done(response => { notice('success', response.message); $('#auth-state').attr('class', 'badge bg-success').text('متصل'); }).fail(xhr => { notice('danger', error(xhr)); $('#auth-state').attr('class', 'badge bg-danger').text('فشل'); }).always(() => this.disabled = false);
+        $.get('{{ route('istiqdam.test.connection') }}').done(response => { notice('success', response.message); $('#auth-state').attr('class', 'badge bg-success').text('متصل'); }).fail(xhr => { renderConnectionFailure(xhr); $('#auth-state').attr('class', 'badge bg-danger').text('فشل'); }).always(() => this.disabled = false);
     });
     document.getElementById('packages-action').addEventListener('click', () => {
         open('الباقات المتاحة', '<div class="text-center py-4 text-muted"><span class="spinner-border spinner-border-sm"></span> جارِ جلب الباقات…</div>');

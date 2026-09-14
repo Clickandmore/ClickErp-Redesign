@@ -12,10 +12,25 @@ class IstiqdamSetting extends Model
     use \App\Models\Concerns\AssignsBranch, \App\Models\Concerns\BranchScoped;
     protected $fillable = [
         'establishment_name',
+        'environment',
+        'base_url',
+        'oauth_url',
         'client_id',
         'client_secret',
         'api_key',
+        'scope',
+        'timeout',
+        'connect_timeout',
+        'token_cache_ttl',
+        'logging_enabled',
         'updated_by',
+    ];
+
+    protected $casts = [
+        'timeout' => 'integer',
+        'connect_timeout' => 'integer',
+        'token_cache_ttl' => 'integer',
+        'logging_enabled' => 'boolean',
     ];
 
     public function setClientSecretAttribute(?string $value): void
