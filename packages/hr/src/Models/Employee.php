@@ -79,6 +79,30 @@ class Employee extends HrModel
         );
     }
 
+    /**
+     * Limit maid employees to workers whose sponsorship has not been
+     * successfully transferred away from the company.
+     */
+    public function scopeCurrentlyCompanySponsoredMaids($query)
+    {
+        return $query
+            ->onlyMaids()
+            ->whereNotNull($this->getTable() . '.maid_id')
+            ->whereHas('maid', function ($maidQuery) {
+                $maidQuery
+                    ->where(function ($statusQuery) {
+                        $statusQuery->whereNull('status')
+                            ->orWhere('status', '!=', 'deported');
+                    })
+                    ->whereDoesntHave('contracts.sponsorshipTransfers', function ($transferQuery) {
+                        $transferQuery->where(function ($completedTransferQuery) {
+                            $completedTransferQuery->where('status', 'transferred')
+                                ->orWhereNotNull('transferred_at');
+                        });
+                    });
+            });
+    }
+
     public function scopeAdminType($query)
     {
 

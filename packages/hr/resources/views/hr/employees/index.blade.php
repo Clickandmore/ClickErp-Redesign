@@ -10,6 +10,17 @@
 @endsection
 @section('content')
 
+    @if (!empty($isMaidListing))
+        <div class="alert alert-info d-flex align-items-start gap-2 mb-3" role="alert">
+            <i class="fa fa-info-circle mt-1" aria-hidden="true"></i>
+            <div>
+                <strong>من تظهر في هذه الصفحة؟</strong>
+                تعرض هذه القائمة عاملات التأجير اللاتي ما زلن على كفالة الشركة فقط.
+                تُستبعد العاملة بعد اكتمال نقل خدماتها أو ترحيلها، بينما تظل ظاهرة إذا فشل طلب النقل لأنها ما زالت على كفالة الشركة.
+            </div>
+        </div>
+    @endif
+
     <div class="row mb-2">
         <div class="col-3">
             <div class="form-group">

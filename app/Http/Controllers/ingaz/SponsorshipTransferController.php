@@ -272,7 +272,7 @@ class SponsorshipTransferController extends Controller
                                             <i class="fas fa-print text-success"></i> تحميل / طباعة الفاتورة
                                         </a></li>';
                         }
-                    } elseif (!$transfer->invoice && InvoiceAuthorization::canCreate()) {
+                    } elseif ($transfer->canIssueInvoice() && InvoiceAuthorization::canCreate()) {
                         $actions .= '<li><a class="dropdown-item fw-bold text-success" href="' . route('SponsorshipTransfer.invoice.create', $transfer->id) . '">
                                         <i class="fas fa-file-invoice-dollar"></i> إصدار الفاتورة
                                     </a></li>';
@@ -1826,7 +1826,9 @@ class SponsorshipTransferController extends Controller
 
             $settlementType = $validated['failure_settlement_type'] ?? 'refund';
             $settlementAmount = round((float) ($validated['failure_settlement_amount'] ?? $transfer->paid_amount), 2);
-            $clearRemainingAmount = round((float) ($validated['failure_clear_remaining_amount'] ?? $transfer->remaining_amount), 2);
+            // Failure is not a payment. Keep the outstanding balance unless the user
+            // explicitly chooses to write off part of it in the settlement form.
+            $clearRemainingAmount = round((float) ($validated['failure_clear_remaining_amount'] ?? 0), 2);
             $paidAmount = round((float) $transfer->paid_amount, 2);
             $remainingAmount = round((float) $transfer->remaining_amount, 2);
 
