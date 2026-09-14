@@ -531,6 +531,59 @@ class ShelterCostLedgerTest extends TestCase
 
     // ── helpers ────────────────────────────────────────────────────────────────
 
+    public function test_missing_shelter_cost_command_previews_then_posts_once(): void
+    {
+        [$contract, $invoice] = $this->arrivedContractWithInvoice(1400);
+        $contract->update(['status' => 'shelter']);
+        $contract->info->update(['maid_date_back' => now()->toDateString(), 'is_outside_shelter' => false]);
+        $arguments = ['contracts' => [$contract->id]];
+        $before = Constraint::count();
+        $this->artisan('finance:capitalize-missing-shelter-costs', $arguments)->assertExitCode(0);
+        $this->assertSame($before, Constraint::count());
+        $this->assertFalse(ShelterCostEntry::where('maid_id', $contract->maid_id)->exists());
+
+        $arguments += ['--apply' => true, '--expected-database' => DB::connection()->getDatabaseName()];
+        $this->artisan('finance:capitalize-missing-shelter-costs', $arguments)->assertExitCode(0);
+        $receipt = ShelterCostEntry::where('maid_id', $contract->maid_id)->sole();
+        $this->assertEquals(5250, $receipt->amount);
+        $this->assertEquals($invoice->external_office_cost_constraint_id, $receipt->supplier_constraint_id);
+        $this->assertSame($before + 1, Constraint::count());
+        $this->artisan('finance:capitalize-missing-shelter-costs', $arguments)->assertExitCode(0);
+        $this->assertSame($before + 1, Constraint::count());
+        $this->assertSame(1, ShelterCostEntry::where('maid_id', $contract->maid_id)->count());
+    }
+
+    public function test_missing_shelter_cost_command_refuses_wrong_database_and_reversed_supplier(): void
+    {
+        [$contract, $invoice] = $this->arrivedContractWithInvoice(1400);
+        $contract->update(['status' => 'shelter']);
+        $contract->info->update(['maid_date_back' => now()->toDateString(), 'is_outside_shelter' => false]);
+        $this->artisan('finance:capitalize-missing-shelter-costs', [
+            'contracts' => [$contract->id], '--apply' => true, '--expected-database' => 'wrong_database',
+        ])->assertExitCode(1);
+        $invoice->update(['external_office_cost_reversal_constraint_id' => $invoice->external_office_cost_constraint_id]);
+        $this->artisan('finance:capitalize-missing-shelter-costs', [
+            'contracts' => [$contract->id], '--apply' => true, '--expected-database' => DB::connection()->getDatabaseName(),
+        ])->assertExitCode(1);
+        $this->assertFalse(ShelterCostEntry::where('maid_id', $contract->maid_id)->exists());
+    }
+
+    public function test_missing_shelter_cost_command_refuses_unlinked_asset_journal(): void
+    {
+        [$contract] = $this->arrivedContractWithInvoice(1400);
+        $contract->update(['status' => 'shelter']);
+        $contract->info->update(['maid_date_back' => now()->toDateString(), 'is_outside_shelter' => false]);
+        $this->storeConstraint('تكلفة إيواء قديمة للعقد #' . $contract->id, [
+            [$this->asset->id, 'debtor', 5250, 0], [$this->costReturns->id, 'creditor', 0, 5250],
+        ]);
+        $before = Constraint::count();
+        $this->artisan('finance:capitalize-missing-shelter-costs', [
+            'contracts' => [$contract->id], '--apply' => true, '--expected-database' => DB::connection()->getDatabaseName(),
+        ])->assertExitCode(1);
+        $this->assertSame($before, Constraint::count());
+        $this->assertFalse(ShelterCostEntry::where('maid_id', $contract->maid_id)->exists());
+    }
+
     private function capitalize(ShelterCostLedgerService $ledger, Contract $contract, float $amount): void
     {
         $source = ContractReturnRequest::query()->create([
