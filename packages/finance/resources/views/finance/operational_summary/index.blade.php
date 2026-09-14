@@ -371,7 +371,12 @@
                         <tbody>
                             @foreach($section['rows'] as $row)
                                 <tr>
-                                    <td>{{ $row->contract_number ?: '—' }}</td>
+                                    <td>
+                                        {{ $row->contract_number ?: '—' }}
+                                        @if(isset($row->document_type))
+                                            <small class="d-block">{{ $row->document_type === 'extension' ? 'تمديد' : 'فاتورة أساسية' }} #{{ $row->id }}</small>
+                                        @endif
+                                    </td>
                                     <td>{{ $row->client_name ?: '—' }}</td>
                                     <td class="num">{{ $row->client_phone ?: '—' }}</td>
                                     <td class="num">{{ $row->client_identity ?: '—' }}</td>

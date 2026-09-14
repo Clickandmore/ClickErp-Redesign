@@ -1051,6 +1051,12 @@
                                 <span class="label">متبقي الفاتورة الأصلية قبل الإشعارات</span>
                                 <span class="value">{{ number_format((float) ($contract->financeInvoice?->remaining_amount ?? $contract->info?->remaining_amount ?? 0), 2) }} ريال</span>
                             </li>
+                            @if($contract->extensions->isNotEmpty())
+                                <li>
+                                    <span class="label">إجمالي قيمة التمديدات</span>
+                                    <span class="value">{{ number_format((float) $contract->extensions->sum('extension_value'), 2) }} ريال</span>
+                                </li>
+                            @endif
                             <li>
                                 <span class="label">إجمالي سندات القبض المرتبطة بالعقد</span>
                                 <span class="value highlight">{{ number_format((float) $receiptBondsTotal, 2) }} ريال</span>
