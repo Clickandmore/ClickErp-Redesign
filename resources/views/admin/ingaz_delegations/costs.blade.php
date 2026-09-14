@@ -18,14 +18,14 @@
             <div class="col-md-3"><label class="form-label">مرجع التحويل أو الصرف</label><input class="form-control" name="reference" maxlength="100" required value="{{ old('reference') }}"></div>
             <div class="col-md-3"><label class="form-label">مصدر الدفع</label><select class="form-select" name="payment_source_type" id="cost-source">
                 @foreach (['bank' => 'تحويل بنكي', 'custody' => 'عهدة موظف', 'ingaz' => 'حساب إنجاز'] as $key => $label)
-                    <option value="{{ $key }}" @selected(old('payment_source_type', 'bank') === $key)>{{ $label }}</option>
+                    <option value="{{ $key }}" @if(old('payment_source_type', 'bank') === $key) selected @endif>{{ $label }}</option>
                 @endforeach
             </select></div>
             <div class="col-md-3"><label class="form-label">حساب الدفع</label><select class="form-select" name="payment_account_id" id="cost-account" required>
                 <option value="">اختر الحساب</option>
                 @foreach ($accounts as $source => $sourceAccounts)
                     @foreach ($sourceAccounts as $account)
-                        <option data-source="{{ $source }}" value="{{ $account->id }}" @selected(old('payment_account_id') == $account->id && old('payment_source_type', 'bank') === $source)>{{ $account->code }} — {{ $account->name }}</option>
+                        <option data-source="{{ $source }}" value="{{ $account->id }}" @if(old('payment_account_id') == $account->id && old('payment_source_type', 'bank') === $source) selected @endif>{{ $account->code }} — {{ $account->name }}</option>
                     @endforeach
                 @endforeach
             </select></div>
@@ -42,7 +42,7 @@
         <div class="table-responsive"><table class="table"><thead><tr><th>اختيار</th><th>التفويض</th><th>مساند</th><th>العميل</th><th>تكلفة التفويض</th></tr></thead><tbody id="cost-rows">
             @forelse ($delegations as $delegation)
                 <tr class="cost-row" data-id="{{ $delegation->id }}" data-client="{{ $delegation->user?->name }}">
-                    <td><input type="checkbox" class="cost-check" name="delegation_ids[]" value="{{ $delegation->id }}" @checked(in_array($delegation->id, old('delegation_ids', $selectedIds)))></td>
+                    <td><input type="checkbox" class="cost-check" name="delegation_ids[]" value="{{ $delegation->id }}" @if(in_array($delegation->id, old('delegation_ids', $selectedIds))) checked @endif></td>
                     <td><a href="{{ route('ingaz-delegations.show', $delegation) }}">#{{ $delegation->id }}</a> / {{ $delegation->ingaz_number }}</td>
                     <td>{{ $delegation->msaned_contract_number }}</td><td>{{ $delegation->user?->name }}</td>
                     <td><input class="form-control cost-amount" type="number" min="0.01" max="999999999.99" step="0.01" data-name="amounts[{{ $delegation->id }}]" value="{{ old('amounts.'.$delegation->id, $defaultAmount) }}"></td>
@@ -53,7 +53,7 @@
         </tbody></table></div>
         <div class="bg-light rounded p-3 mt-3"><p>عدد التفويضات: <strong id="cost-count">0</strong> — إجمالي التكلفة: <strong id="cost-total">0.00</strong> ريال</p>
         <label class="mb-3"><input type="checkbox" id="cost-confirmed" name="confirmed" value="1" required> أؤكد صحة التكلفة ومصدر الدفع ومرجع العملية للتفويضات المختارة.</label>
-        <div><button id="save-costs" class="btn btn-primary" type="submit" @disabled($delegations->isEmpty())>تأكيد وحفظ تكلفة التفويض</button> <a class="btn btn-light" href="{{ route('ingaz-delegations.index') }}">رجوع</a></div>
+        <div><button id="save-costs" class="btn btn-primary" type="submit" @if($delegations->isEmpty()) disabled @endif>تأكيد وحفظ تكلفة التفويض</button> <a class="btn btn-light" href="{{ route('ingaz-delegations.index') }}">رجوع</a></div>
         </div>
     </form>
 </div></div>
