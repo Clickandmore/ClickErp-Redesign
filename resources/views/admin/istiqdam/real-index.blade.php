@@ -68,7 +68,7 @@
 
     const supportReportText = (message, provider, steps) => {
         const lines = ['فشل الاتصال بمنصة تكامل', message || '', ''];
-        const labels = {stage_label: 'المرحلة التي فشلت', environment: 'البيئة', endpoint: 'الرابط المستدعى', client_id: 'Client ID', http_status: 'رمز HTTP', provider_message: 'رسالة تكامل', raw_error: 'خطأ الشبكة الخام', server_ip: 'عنوان الخادم (SERVER_ADDR)', captured_at: 'وقت المحاولة'};
+        const labels = {stage_label: 'المرحلة التي فشلت', environment: 'البيئة', endpoint: 'الرابط المستدعى', client_id: 'Client ID', http_status: 'رمز HTTP', provider_message: 'رسالة تكامل', raw_error: 'خطأ الشبكة الخام', outbound_public_ip: 'عنوان الخروج العام (Whitelist)', internal_server_ip: 'عنوان الخادم الداخلي (SERVER_ADDR)', captured_at: 'وقت المحاولة'};
         Object.keys(labels).forEach(key => { if (provider?.[key] !== undefined && provider[key] !== null) lines.push(`${labels[key]}: ${provider[key]}`); });
         if (provider?.api_key_sent !== undefined) lines.push(`تم إرسال API KEY: ${provider.api_key_sent ? 'نعم' : 'لا'}`);
         Object.entries(provider?.gateway_trace || {}).forEach(([key, value]) => lines.push(`${key}: ${value}`));
@@ -90,7 +90,8 @@
             ['الرابط المستدعى', provider.endpoint],
             ['Client ID المستخدم', provider.client_id],
             ['تم إرسال API KEY', provider.api_key_sent === undefined ? null : (provider.api_key_sent ? 'نعم' : 'لا')],
-            ['عنوان الخادم (SERVER_ADDR)', provider.server_ip],
+            ['عنوان الخروج العام المطلوب للـ Whitelist', provider.outbound_public_ip],
+            ['عنوان الخادم الداخلي (SERVER_ADDR)', provider.internal_server_ip],
             ['وقت المحاولة', provider.captured_at],
             ...Object.entries(provider.gateway_trace || {}),
         ].filter(([, value]) => value !== null && value !== undefined && value !== '')

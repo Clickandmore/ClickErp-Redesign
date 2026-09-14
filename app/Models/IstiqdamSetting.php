@@ -15,6 +15,7 @@ class IstiqdamSetting extends Model
         'environment',
         'base_url',
         'oauth_url',
+        'outbound_public_ip',
         'client_id',
         'client_secret',
         'api_key',
