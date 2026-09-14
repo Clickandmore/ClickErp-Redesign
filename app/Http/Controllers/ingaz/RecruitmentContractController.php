@@ -6361,6 +6361,8 @@ class RecruitmentContractController extends Controller
                 'contract_id' => 'required|exists:contracts,id',
                 'refund_date' => 'required|date',
                 'cancelled_by' => 'nullable|in:client,office,external_office',
+                'penalty_percent' => 'nullable|numeric|between:0,100',
+                'penalty_amount' => 'nullable|numeric|min:0',
             ]);
 
             $contract = Contract::with([
@@ -6397,9 +6399,12 @@ class RecruitmentContractController extends Controller
                 'preview' => $refundService->previewDetails(
                     $contract,
                     $validated['refund_date'],
-                    $validated['cancelled_by'] ?? null
+                    $validated['cancelled_by'] ?? null,
+                    $validated
                 ),
             ]);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return response()->json(['success' => false, 'message' => $e->getMessage(), 'errors' => $e->errors()], 422);
         } catch (\Throwable $e) {
             logger()->error('Error previewing recruitment contract refund:', [
                 'contract_id' => $request->contract_id ?? null,
@@ -6428,6 +6433,8 @@ class RecruitmentContractController extends Controller
                 'contract_id' => 'required|exists:contracts,id',
                 'refund_date' => 'required|date',
                 'cancelled_by' => 'nullable|in:client,office,external_office',
+                'penalty_percent' => 'nullable|numeric|between:0,100',
+                'penalty_amount' => 'nullable|numeric|min:0',
                 'reason' => 'required|string|max:500',
             ]);
 
@@ -6482,6 +6489,8 @@ class RecruitmentContractController extends Controller
                     'refund_date' => $validated['refund_date'],
                     'cancelled_by' => $validated['cancelled_by'] ?? null,
                     'reason' => $validated['reason'],
+                    'penalty_percent' => $validated['penalty_percent'] ?? null,
+                    'penalty_amount' => $validated['penalty_amount'] ?? null,
                 ]);
 
                 $previousStatus = $contract->status;
@@ -6539,6 +6548,8 @@ class RecruitmentContractController extends Controller
                     . '، الطرف: ' . $partyLabel,
                 'refund' => $refund,
             ]);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return response()->json(['success' => false, 'message' => $e->getMessage(), 'errors' => $e->errors()], 422);
         } catch (\Throwable $e) {
             logger()->error('Error refunding recruitment contract:', [
                 'contract_id' => $request->contract_id ?? null,

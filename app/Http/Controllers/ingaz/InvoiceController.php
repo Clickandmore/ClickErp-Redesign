@@ -3608,6 +3608,12 @@ class InvoiceController extends Controller
         ObjService $service,
         YearService $yearService
     ): Constraint {
+        if ($invoice->legacy_invoice_number) {
+            $source = app(\App\Services\ingaz\LegacyInvoiceConstraintLinker::class)->link($invoice);
+            $invoice->refresh();
+            return $source;
+        }
+
         $invoice->loadMissing([
             'contract.user',
             'contract.maid.nationality',
@@ -3800,6 +3806,39 @@ class InvoiceController extends Controller
 
     private function buildInvoiceItems(Invoice $invoice): array
     {
+        // The legacy report contains totals, not a direct/external/government breakdown.
+        // Its importer stores the entire subtotal in the direct field as a placeholder.
+        // Use the same tax bases as credit notes instead of labelling that total as 15% taxable.
+        if ($invoice->legacy_invoice_number && $invoice->legacy_source_payload
+            && !$invoice->line_items && !(float) $invoice->discount
+            && (int) $invoice->direct_recruitment_count === 1
+            && abs((float) $invoice->direct_recruitment_cost - (float) $invoice->subtotal) < 0.01
+            && !(float) $invoice->external_recruitment_cost
+            && !(float) $invoice->government_cost
+            && !(float) $invoice->internal_ticket_cost) {
+            $net = $this->roundMoney((float) $invoice->total_due - (float) $invoice->vat_amount);
+            $vat = $this->roundMoney((float) $invoice->vat_amount);
+            $taxable = $this->roundMoney(min($net, $vat > 0 ? $vat / InvoiceCalculationService::VAT_RATE : 0));
+            $nonTaxable = $this->roundMoney($net - $taxable);
+            $items = [];
+            foreach ([
+                ['legacy_taxable', 'خدمات خاضعة للضريبة - فاتورة منقولة', $taxable, $vat],
+                ['legacy_non_taxable', 'مبالغ غير خاضعة للضريبة - فاتورة منقولة', $nonTaxable, 0.0],
+            ] as [$key, $label, $amount, $tax]) {
+                if ($amount <= 0) {
+                    continue;
+                }
+                $items[] = [
+                    'key' => $key, 'label' => $label, 'qty' => 1, 'unit' => $amount,
+                    'line_subtotal' => $amount, 'line_discount' => 0.0, 'line_total' => $amount,
+                    'vat_rate' => $tax > 0 ? InvoiceCalculationService::VAT_RATE : 0.0,
+                    'vat_amount' => $tax, 'line_grand_total' => $this->roundMoney($amount + $tax),
+                ];
+            }
+
+            return $items;
+        }
+
         if ($invoice->sponsorship_transfer_id && is_array($invoice->line_items)) {
             return collect($invoice->line_items)
                 ->map(function (array $item) {

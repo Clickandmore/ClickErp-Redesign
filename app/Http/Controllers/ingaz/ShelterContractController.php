@@ -1579,7 +1579,18 @@ class ShelterContractController extends Controller
         $canReverseAgentCost = $this->adminCanAny([PermKeys::SHELTER_AGENT_COST_RECOVERY_REVERSE]);
         $agentCostSummary = null;
         $agentRecoveries = collect();
+        $shelterStatement = collect();
+        $supplierStatementAccounts = collect();
         if ($canRecoverAgentCost || $canReverseAgentCost) {
+            $contract->loadMissing(['externalOfficeDispatch', 'invoice.externalOfficeCostConstraint.constraintDetails.account']);
+            $supplierStatementAccounts = collect($contract->invoice?->externalOfficeCostConstraint?->constraintDetails ?? [])
+                ->where('creditor_value', '>', 0)->pluck('account')->filter()->unique('id');
+            if ($contract->maid_id && Schema::hasTable('shelter_cost_entries')) {
+                $shelterStatement = app(\App\Services\ingaz\ShelterCostLedgerService::class)->entriesFor((int) $contract->maid_id)
+                    ->sortBy(fn ($entry) => sprintf('%s-%020d-%020d',
+                        substr((string) ($entry->constraint?->date ?: $entry->created_at), 0, 10),
+                        $entry->constraint_id ?: PHP_INT_MAX, $entry->id))->values();
+            }
             $agentCostSummary = app(\App\Services\ingaz\ShelterAgentCostRecoveryService::class)->summary($contract);
             if (Schema::hasTable('shelter_agent_cost_recoveries')) {
                 $agentRecoveries = \App\Models\ShelterAgentCostRecovery::query()->where('contract_id', $contract->id)
@@ -1588,7 +1599,8 @@ class ShelterContractController extends Controller
         }
         $workerHistory = app(\App\Services\ingaz\ShelterWorkerHistoryService::class)->build($contract);
         return view('admin.ingaz.ShelterContract.show', compact('contract', 'warrantyStatus', 'warrantyDays', 'isRentalWorker',
-            'canRecoverAgentCost', 'canReverseAgentCost', 'agentCostSummary', 'agentRecoveries', 'workerHistory'));
+            'canRecoverAgentCost', 'canReverseAgentCost', 'agentCostSummary', 'agentRecoveries', 'workerHistory',
+            'shelterStatement', 'supplierStatementAccounts'));
     }
 
 

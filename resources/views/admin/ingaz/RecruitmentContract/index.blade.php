@@ -1492,6 +1492,18 @@
                                 </div>
                             </div>
 
+                            <div class="row mb-3" id="refundPenaltyFields">
+                                <div class="col-md-6">
+                                    <label for="refund_penalty_percent" class="form-label">نسبة الخصم (%)</label>
+                                    <input type="number" class="form-control" id="refund_penalty_percent" name="penalty_percent" min="0" max="100" step="0.0001" placeholder="تلقائي">
+                                </div>
+                                <div class="col-md-6">
+                                    <label for="refund_penalty_amount" class="form-label">مبلغ الخصم</label>
+                                    <input type="number" class="form-control" id="refund_penalty_amount" name="penalty_amount" min="0" step="0.01" placeholder="تلقائي">
+                                </div>
+                                <div class="col-12 form-text">يمكن تعديل النسبة أو المبلغ؛ يتم تحديث الآخر وصافي المسترد تلقائيًا. امسح القيمة للعودة للحساب التلقائي.</div>
+                            </div>
+
                             <div class="row">
                                 <div class="col-12">
                                     <div class="form-group mb-3">
@@ -3379,6 +3391,8 @@
                 var totals = preview.totals || {};
                 var warnings = preview.warnings || [];
 
+                $('#refund_penalty_percent').val(summary.penalty_percent);
+                $('#refund_penalty_amount').val(Number(summary.penalty_amount).toFixed(2)).attr('max', summary.contract_amount);
                 $('#refundPreviewContractAmount').text(formatRefundMoney(summary.contract_amount));
                 $('#refundPreviewPenaltyPercent').text(formatRefundMoney(summary.penalty_percent) + '%');
                 $('#refundPreviewPenaltyAmount').text(formatRefundMoney(summary.penalty_amount));
@@ -3418,7 +3432,15 @@
                 $('#refundPreviewWrapper').show();
             }
 
+            var refundPreviewRequest = null;
+            var refundPenaltySource = null;
+            function refundFormData() {
+                return $('#refundContractForm').serializeArray().filter(function(field) {
+                    return !['penalty_percent', 'penalty_amount'].includes(field.name) || field.name === refundPenaltySource;
+                });
+            }
             function loadRefundPreview() {
+                if (refundPreviewRequest) refundPreviewRequest.abort();
                 var hasMusanedTransfer = $('#refundContractForm').data('has-musaned-transfer') === 1;
                 var cancelledBy = $('input[name="cancelled_by"]:checked').val() || '';
 
@@ -3427,10 +3449,10 @@
                     return;
                 }
 
-                $.ajax({
+                refundPreviewRequest = $.ajax({
                     url: '{{ route('RecruitmentContract.refundPreview') }}',
                     method: 'POST',
-                    data: $('#refundContractForm').serialize(),
+                    data: refundFormData(),
                     headers: {
                         'X-CSRF-TOKEN': '{{ csrf_token() }}'
                     },
@@ -3445,6 +3467,7 @@
                         var message = xhr.responseJSON && xhr.responseJSON.message
                             ? xhr.responseJSON.message
                             : 'تعذر تحميل معاينة الاسترداد.';
+                        if (xhr.statusText === 'abort') return;
                         resetRefundPreview(message);
                         $('#refundPreviewPlaceholder')
                             .removeClass('alert-info')
@@ -3462,6 +3485,10 @@
                 $('#refundContractNumber').text(button.data('contract-number'));
                 $('#refundClientName').text(button.data('client-name'));
                 $('#refundContractAmount').text(Number(button.data('contract-amount') || 0).toFixed(2));
+                if (refundPreviewRequest) refundPreviewRequest.abort();
+                refundPenaltySource = null;
+                $('#refundPenaltyFields').toggle(hasMusanedTransfer);
+                $('#refund_penalty_percent, #refund_penalty_amount').val('').prop('disabled', !hasMusanedTransfer);
                 $('#refund_reason').val('');
                 $('#refund_date').val('{{ date('Y-m-d') }}');
                 $('input[name="cancelled_by"]').prop('checked', false).prop('required', hasMusanedTransfer);
@@ -3480,7 +3507,17 @@
                 $('#refundContractModal').modal('show');
             });
 
-            $('#refund_date').on('change', loadRefundPreview);
+            $('#refund_penalty_percent, #refund_penalty_amount').on('input', function() {
+                if (refundPreviewRequest) refundPreviewRequest.abort();
+                refundPenaltySource = this.value === '' ? null : this.name;
+                $(this.id === 'refund_penalty_percent' ? '#refund_penalty_amount' : '#refund_penalty_percent').val('');
+                resetRefundPreview('اضغط خارج الحقل لتحديث معاينة الاسترداد.');
+            }).on('change', loadRefundPreview);
+            $('#refund_date').on('change', function() {
+                refundPenaltySource = null;
+                $('#refund_penalty_percent, #refund_penalty_amount').val('');
+                loadRefundPreview();
+            });
             $(document).on('change', 'input[name="cancelled_by"]', loadRefundPreview);
 
             $('#submitRefundContractBtn').on('click', function() {
@@ -3498,7 +3535,7 @@
                 $.ajax({
                     url: '{{ route('RecruitmentContract.refund') }}',
                     method: 'POST',
-                    data: $('#refundContractForm').serialize(),
+                    data: refundFormData(),
                     headers: {
                         'X-CSRF-TOKEN': '{{ csrf_token() }}'
                     },

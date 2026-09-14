@@ -6,6 +6,30 @@
         </div>
     @else
     <p>مطالبة المكتب بتكلفته الأصلية فقط، مع بقاء العاملة في الإيواء. تسجيل التحصيل من المكتب عملية منفصلة.</p>
+    @if($dispatch = $contract->externalOfficeDispatch)
+        <div class="card mb-3"><div class="card-body">
+            <h4>تفاصيل تكلفة الإرسالية</h4>
+            <p>المكتب الخارجي: <strong>{{ $dispatch->office_name ?: 'غير مسجل' }}</strong></p>
+            <p>تاريخ الإرسالية: {{ optional($dispatch->dispatch_date)->format('Y-m-d') ?: 'غير مسجل' }}
+                — تكلفة المكتب: <strong>{{ number_format((float) $dispatch->office_contract_cost_usd, 2) }} دولار</strong></p>
+            <p>قيد تكلفة المورد:
+                @if($supplierJournal = $contract->invoice?->externalOfficeCostConstraint)
+                    <a href="{{ route('finance.constraints.show', $supplierJournal->id) }}">#{{ $supplierJournal->code ?: $supplierJournal->id }}</a>
+                    — {{ substr((string) $supplierJournal->date, 0, 10) }}
+                    — <strong>{{ number_format((float) $supplierJournal->constraintDetails->sum('creditor_value'), 2) }} ريال</strong>
+                @else
+                    غير مثبت
+                @endif
+            </p>
+            <a href="{{ route('RecruitmentContract.externalOfficeDispatch.edit', $contract->id) }}" class="btn btn-outline-primary">عرض الإرسالية</a>
+            @foreach($supplierStatementAccounts as $officeAccount)
+                <a href="{{ route('finance.account-statement-suppliers.index', ['account_id' => $officeAccount->id, 'type' => 'both', 'other_account' => 'yes']) }}" class="btn btn-outline-primary">كشف حساب المورد — {{ $officeAccount->name }}</a>
+            @endforeach
+            @if(!$agentCostSummary['settled'] && $agentCostSummary['posted'] <= 0)
+                <p class="alert alert-warning mt-3 mb-0">الإرسالية موجودة، لكن لم تُسجل تكلفة الوكيل في دفتر الإيواء. يلزم مراجعة قيد نقل التكلفة إلى الإيواء قبل إتاحتها للاسترداد.</p>
+            @endif
+        </div></div>
+    @endif
     @if(session('agent_recovery_success'))
         <div class="alert alert-success">{{ session('agent_recovery_success') }}</div>
     @endif
@@ -19,6 +43,7 @@
         <div class="col-md-3">الإعاشة المتبقية: <strong>{{ number_format($agentCostSummary['living'], 2) }}</strong></div>
     </div>
     @foreach($agentCostSummary['issues'] as $issue)<div class="alert alert-warning">{{ $issue }}</div>@endforeach
+    @include('admin.ingaz.ShelterContract.partials.cost-statement')
     @if($agentCostSummary['settled'])
         <p class="alert alert-info">تمت تسوية تكلفة الوكيل بعكس قيد المورد؛ لا تُسترد مرة أخرى.</p>
     @elseif($agentCostSummary['available'] <= 0)

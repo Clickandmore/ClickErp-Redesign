@@ -14,6 +14,30 @@ use Tests\TestCase;
 
 class RecruitmentInvoiceCreditNoteTest extends TestCase
 {
+    public function test_imported_8150_keeps_report_totals_and_supports_both_credit_note_tax_bases(): void
+    {
+        $invoice = new Invoice([
+            'legacy_invoice_number' => 8150,
+            'legacy_source_payload' => ['source_row' => 8149],
+            'direct_recruitment_count' => 1,
+            'direct_recruitment_cost' => 11378,
+            'subtotal' => 11378,
+            'vat_amount' => 622.80,
+            'total_due' => 12000.80,
+        ]);
+        $controller = app(InvoiceController::class);
+        $items = $this->invoke($controller, 'buildInvoiceItems', $invoice);
+        $this->assertCount(2, $items);
+        $this->assertSame(4152.0, $items[0]['line_total']);
+        $this->assertSame(7226.0, $items[1]['line_total']);
+        $this->assertEqualsWithDelta(12000.80, array_sum(array_column($items, 'line_grand_total')), 0.001);
+        $creditItems = $this->invoke($controller, 'buildRecruitmentCreditNoteItems', $invoice, 4152.0, 7226.0);
+        $this->assertCount(2, $creditItems);
+        $this->assertSame(622.8, $creditItems[0]['vat_amount']);
+        $this->assertSame(0.0, $creditItems[1]['vat_amount']);
+        $this->assertEqualsWithDelta(12000.80, array_sum(array_column($creditItems, 'line_total')), 0.001);
+    }
+
     public function test_remaining_amounts_are_split_between_taxable_non_taxable_and_vat(): void
     {
         $invoice = new Invoice([

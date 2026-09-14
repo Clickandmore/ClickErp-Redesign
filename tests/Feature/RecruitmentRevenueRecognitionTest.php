@@ -450,6 +450,66 @@ class RecruitmentRevenueRecognitionTest extends TestCase
         }
     }
 
+    public function test_legacy_linker_checks_identity_and_balance_and_preserves_original_sales_mode(): void
+    {
+        $contract = $this->createContract($this->createNationality('اختبار ربط'), withClientAccount: true);
+        $income = $this->createAccount('الايرادات', 'creditor');
+        $number = random_int(90000000, 99999999);
+        $invoice = $this->createInvoice($contract, ['legacy_invoice_number' => $number]);
+        $source = $this->storeConstraint('فاتورة: ' . $number, [
+            [$income->id, 'creditor', 0, 3980.75],
+            [$contract->user->account_id, 'debtor', 3980.75, 0],
+        ]);
+        $linker = app(\App\Services\ingaz\LegacyInvoiceConstraintLinker::class);
+        $this->assertSame('ready', $linker->inspect($invoice)['status']);
+        $invoice->total_due = 5000;
+        $this->assertSame('header_mismatch', $linker->inspect($invoice)['status']);
+        $invoice->total_due = 3980.75;
+        $invoice->branch_id = 999999;
+        $this->assertSame('header_mismatch', $linker->inspect($invoice)['status']);
+        $invoice->refresh();
+        $debit = ConstraintDetails::where('constraint_id', $source->id)->where('debtor_value', '>', 0)->firstOrFail();
+        $debit->update(['account_id' => $income->id]);
+        $this->assertSame('lines_mismatch', $linker->inspect($invoice)['status']);
+        $debit->update(['account_id' => $contract->user->account_id]);
+        $invoice->invoice_constraint_id = $source->id + 1;
+        $this->assertSame('link_conflict', $linker->inspect($invoice)['status']);
+        $invoice->refresh();
+        $count = Constraint::count();
+        $this->assertSame($source->id, $linker->link($invoice)->id);
+        $this->assertSame('on_invoice', $invoice->fresh()->revenue_recognition_mode);
+        $this->assertSame($source->id, $linker->link($invoice)->id);
+        $this->assertSame($count, Constraint::count());
+        $anotherInvoice = clone $invoice;
+        $anotherInvoice->id = $invoice->id + 1000000;
+        $this->assertSame('source_already_linked', $linker->inspect($anotherInvoice)['status']);
+        $source->update(['legacy_invoice_number' => $number + 1]);
+        $this->assertSame('identity_mismatch', $linker->inspect($invoice)['status']);
+        $source->update(['legacy_invoice_number' => null]);
+        $this->storeConstraint('فاتورة: ' . $number, [
+            [$income->id, 'creditor', 0, 3980.75],
+            [$contract->user->account_id, 'debtor', 3980.75, 0],
+        ]);
+        $this->assertSame('ambiguous', $linker->inspect($invoice->fresh())['status']);
+    }
+
+    public function test_unmatched_legacy_refund_does_not_create_a_synthetic_original_constraint(): void
+    {
+        $contract = $this->createContract($this->createNationality('غير مطابق'), withClientAccount: true);
+        $invoice = $this->createInvoice($contract, ['legacy_invoice_number' => random_int(90000000, 99999999)]);
+        $count = Constraint::count();
+        try {
+            app(\App\Http\Controllers\ingaz\InvoiceController::class)->createSystemCreditNoteForRecruitmentRefund(
+                $invoice, now()->toDateString(), 'اختبار', app(ConstraintService::class), app(\Nami\Finance\Services\YearService::class)
+            );
+            $this->fail('An unmatched imported invoice must not create a replacement source.');
+        } catch (\RuntimeException $e) {
+            $this->assertStringContainsString('missing', $e->getMessage());
+        }
+        $this->assertSame($count, Constraint::count());
+        $this->assertNull($invoice->fresh()->invoice_constraint_id);
+    }
+
     // ── helpers ────────────────────────────────────────────────────────────────
 
     private function setMode(string $mode): void
