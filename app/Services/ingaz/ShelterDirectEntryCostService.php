@@ -33,6 +33,12 @@ class ShelterDirectEntryCostService
         $invoice = $contract->invoice()->lockForUpdate()->first();
         $contract->setRelation('invoice', $invoice);
         $supplier = $invoice?->externalOfficeCostConstraint()->lockForUpdate()->first();
+        if ($invoice && !$invoice->external_office_cost_constraint_id && !$invoice->external_office_cost_reversal_constraint_id) {
+            $supplier = app(LegacySupplierCostResolver::class)->resolve($contract);
+            if ($supplier && $apply) {
+                $invoice->update(['external_office_cost_constraint_id' => $supplier->id]);
+            }
+        }
         if (!$supplier || $invoice->external_office_cost_reversal_constraint_id) {
             throw new \RuntimeException('قيد تكلفة المورد مفقود أو معكوس؛ لن تُحسب التكلفة من الإرسالية.');
         }

@@ -119,18 +119,6 @@
                                 } elseif ($contract->status === \App\Enums\ingaz\ContractStatusEnum::Closed->value) {
                                     $warrantyStatus = ' (مكتمل)';
                                 }
-                                $shelterComplaintOptions = ($contract->complaints ?? collect())
-                                    ->map(function ($complaint) {
-                                        return [
-                                            'id' => $complaint->id,
-                                            'label' =>
-                                                '#' .
-                                                str_pad((string) $complaint->id, 6, '0', STR_PAD_LEFT) .
-                                                ' - ' .
-                                                ($complaint->subject ?: 'بدون عنوان'),
-                                        ];
-                                    })
-                                    ->values();
                             @endphp
                             <option value="{{ $contract->id }}" data-passport="{{ $passportNumber }}"
                                 data-passport-snapshot="{{ $passportNumber }}" data-maid-name="{{ $maidName }}"
@@ -145,7 +133,6 @@
                                 data-service-type="{{ optional($contract->info)->worker_service_type }}"
                                 data-service-category="{{ ($contractServiceCategories ?? [])[$contract->id] ?? 'recruitment' }}"
                                 data-arrival-date="{{ $arrivalDate }}"
-                                data-shelter-complaints='@json($shelterComplaintOptions)'
                                 data-status="{{ $contract->status }}"
                                 {{ $selectedContractId == $contract->id ? 'selected' : '' }}>
                                 {{ $contract->desc }}{{ $warrantyStatus }}
@@ -339,13 +326,13 @@
                                         <div class="form-check form-check-inline">
                                             <input class="form-check-input" type="radio" name="complaint_action"
                                                 id="complaint_action_none" value="none"
-                                                {{ old('complaint_action', 'none') === 'none' ? 'checked' : '' }}>
+                                                {{ old('complaint_action', request('shelter_complaint_id') ? 'link' : 'none') === 'none' ? 'checked' : '' }}>
                                             <label class="form-check-label" for="complaint_action_none">بدون شكوى</label>
                                         </div>
                                         <div class="form-check form-check-inline">
                                             <input class="form-check-input" type="radio" name="complaint_action"
                                                 id="complaint_action_link" value="link"
-                                                {{ old('complaint_action') === 'link' ? 'checked' : '' }}>
+                                                {{ old('complaint_action', request('shelter_complaint_id') ? 'link' : 'none') === 'link' ? 'checked' : '' }}>
                                             <label class="form-check-label" for="complaint_action_link">ربط بشكوى
                                                 موجودة</label>
                                         </div>
@@ -359,13 +346,12 @@
                                     </div>
 
                                     <div class="col-12" id="link_complaint_wrapper" style="display:none;">
-                                        <label class="form-label" for="shelter_complaint_id">الشكاوى المقترحة</label>
+                                        <label class="form-label" for="shelter_complaint_id">اختر الشكوى</label>
                                         <select name="shelter_complaint_id" id="shelter_complaint_id"
-                                            class="form-select">
+                                            class="form-select select2">
                                             <option value="">اختر شكوى</option>
                                         </select>
-                                        <small class="form-text text-muted" id="shelter_complaint_hint">اختر العقد أولاً
-                                            لعرض الشكاوى المرتبطة به.</small>
+                                        <small class="form-text text-muted" id="shelter_complaint_hint">ابحث برقم الشكوى أو الموضوع أو اسم مقدمها أو الجوال أو جواز العاملة.</small>
                                     </div>
 
                                     <div class="col-12" id="create_complaint_wrapper" style="display:none;">
@@ -836,50 +822,20 @@
                     'data-service-type': contract.service_type || '',
                     'data-service-category': contract.service_category || 'recruitment',
                     'data-arrival-date': contract.arrival_date || '',
-                    'data-shelter-complaints': JSON.stringify(contract.shelter_complaints || []),
                     'data-status': contract.status || ''
                 });
             }
 
-            function selectedContractComplaints() {
-                let selectedOption = $('#contract_id').find('option:selected');
-                let complaints = selectedOption.data('shelterComplaints');
-
-                if (typeof complaints === 'string') {
-                    try {
-                        complaints = JSON.parse(complaints);
-                    } catch (e) {
-                        complaints = [];
-                    }
-                }
-
-                return Array.isArray(complaints) ? complaints : [];
-            }
-
             function updateShelterComplaintOptions() {
-                let complaints = selectedContractComplaints();
-                let selectedOldValue = @json(old('shelter_complaint_id'));
-                let $select = $('#shelter_complaint_id');
-
-                if (!$select.length) {
-                    return;
-                }
-
-                $select.empty().append('<option value="">اختر شكوى</option>');
-
+                const $select = $('#shelter_complaint_id');
+                if ($select.data('complaintsLoaded')) return;
+                const complaints = @json($shelterComplaintOptions);
+                const selectedValue = @json(old('shelter_complaint_id', request('shelter_complaint_id')));
                 complaints.forEach(function(complaint) {
-                    $('<option>')
-                        .val(complaint.id)
-                        .text(complaint.label)
-                        .prop('selected', String(complaint.id) === String(selectedOldValue))
-                        .appendTo($select);
+                    $select.append(new Option(complaint.label, complaint.id, false,
+                        String(complaint.id) === String(selectedValue)));
                 });
-
-                $('#shelter_complaint_hint').text(
-                    complaints.length ?
-                    'تم العثور على شكاوى مفتوحة مرتبطة بهذا العقد.' :
-                    'لا توجد شكاوى مفتوحة مرتبطة بهذا العقد. يمكنك إنشاء شكوى جديدة.'
-                );
+                $select.data('complaintsLoaded', true).trigger('change');
             }
 
             function toggleShelterComplaintFields() {

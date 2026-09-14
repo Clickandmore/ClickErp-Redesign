@@ -1186,10 +1186,18 @@ class ShelterContractController extends Controller
         $nationalities = $this->shelterContractNationalities();
         $quickTagSuggestions = $this->getQuickTagSuggestions();
         $complaintTypes = ComplaintType::orderBy('name')->get();
+        $shelterComplaintOptions = Complaint::query()->latest('id')->get(['id', 'subject', 'complainant_name', 'complainant_phone', 'maid_passport'])
+            ->map(fn (Complaint $complaint) => [
+                'id' => $complaint->id,
+                'label' => implode(' — ', array_filter([
+                    '#' . $complaint->id, $complaint->subject ?: 'بدون عنوان',
+                    $complaint->complainant_name, $complaint->complainant_phone, $complaint->maid_passport,
+                ])),
+            ]);
         $rentalInstantReceiptEnabled = CvOptionsSettings::rentalTransferEnabled();
         $contractServiceCategories = $this->mapContractServiceCategories($contracts);
 
-        return view($this->folderPath . '.create', compact('shelters', 'contracts', 'selectedContractId', 'nationalities', 'quickTagSuggestions', 'complaintTypes', 'rentalInstantReceiptEnabled', 'contractServiceCategories'));
+        return view($this->folderPath . '.create', compact('shelterComplaintOptions', 'shelters', 'contracts', 'selectedContractId', 'nationalities', 'quickTagSuggestions', 'complaintTypes', 'rentalInstantReceiptEnabled', 'contractServiceCategories'));
     }
 
     /**
@@ -1458,7 +1466,8 @@ class ShelterContractController extends Controller
             // Direct shelter admission must transfer the posted supplier cost just
             // like a warranty return, without creating another supplier charge.
             $invoice = $contract->invoice()->first();
-            if ($invoice?->external_office_cost_constraint_id && !$invoice->external_office_cost_reversal_constraint_id) {
+            if ($invoice && ($invoice->external_office_cost_constraint_id || $contract->arabia_supplier_invoice_number)
+                && !$invoice->external_office_cost_reversal_constraint_id) {
                 try {
                     app(\App\Services\ingaz\ShelterDirectEntryCostService::class)->reconcile($contract->id);
                 } catch (\RuntimeException $exception) {
@@ -1495,6 +1504,10 @@ class ShelterContractController extends Controller
         if ($action === 'link' && $request->filled('shelter_complaint_id')) {
             Complaint::whereKey($request->input('shelter_complaint_id'))->update([
                 'contract_id' => $contract->id,
+                'relation_type' => 'contract',
+                'order_id' => null,
+                'recruitment_office_id' => null,
+                'related_user_id' => null,
                 'maid_passport' => $request->input('passport_number_snapshot') ?: optional($contract->maid)->passport_num,
                 'maid_nationality_id' => $request->input('maid_nationality_snapshot') ?: optional($contract->maid)->nationality_id,
             ]);
@@ -1519,6 +1532,7 @@ class ShelterContractController extends Controller
             ?: ComplaintType::query()->orderBy('id')->value('id');
 
         Complaint::create([
+            'relation_type' => 'contract',
             'contract_id' => $contract->id,
             'user_id' => $user->id,
             'address' => 'إيواء العاملة',

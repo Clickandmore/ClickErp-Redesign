@@ -575,6 +575,48 @@ class ShelterCostLedgerTest extends TestCase
         $this->assertFalse(ShelterCostEntry::where('maid_id', $contract->maid_id)->exists());
     }
 
+    public function test_legacy_supplier_cost_is_linked_on_admission_without_a_second_supplier_charge(): void
+    {
+        [$contract, $invoice] = $this->arrivedContractWithInvoice(1400);
+        $supplierId = $invoice->external_office_cost_constraint_id;
+        $number = 900000 + $contract->id;
+        $contract->update(['status' => ContractStatusEnum::Completed->value,
+            'arabia_order_number' => $number, 'arabia_supplier_invoice_number' => $number]);
+        Constraint::findOrFail($supplierId)->update(['statement' => 'فاتورة رقم: ' . $number]);
+        ConstraintDetails::where('constraint_id', $supplierId)->where('creditor_value', '>', 0)
+            ->update(['statement' => "إغلاق طلب:  {$number}, فاتورة رقم: {$number} العميل: اختبار"]);
+        $invoice->update(['external_office_cost_constraint_id' => null]);
+        $before = Constraint::count();
+        $request = \App\Http\Requests\ingaz\ShelterContactStore::create('/', 'POST', [
+            'contract_id' => $contract->id, 'maid_date_back' => now()->toDateString(),
+            'arrival_date' => now()->subDays(30)->toDateString(), 'receipt_source' => 'client', 'duration_from_enter' => 0,
+        ]);
+        app(\App\Http\Controllers\ingaz\ShelterContractController::class)->store($request);
+        $this->assertEquals($supplierId, $invoice->fresh()->external_office_cost_constraint_id);
+        $this->assertSame($before + 1, Constraint::count());
+        $this->assertEquals(5250, app(\App\Services\ingaz\ShelterAgentCostRecoveryService::class)->summary($contract->fresh())['available']);
+    }
+
+    public function test_legacy_supplier_preview_does_not_link_and_ambiguous_journals_are_rejected(): void
+    {
+        [$contract, $invoice] = $this->arrivedContractWithInvoice(1400);
+        $number = 900000 + $contract->id;
+        $contract->update(['status' => 'shelter', 'arabia_order_number' => $number, 'arabia_supplier_invoice_number' => $number]);
+        $contract->info->update(['maid_date_back' => now()->toDateString(), 'is_outside_shelter' => false]);
+        $statement = "إغلاق طلب: {$number}, فاتورة رقم: {$number}";
+        Constraint::findOrFail($invoice->external_office_cost_constraint_id)->update(['statement' => $statement]);
+        $invoice->update(['external_office_cost_constraint_id' => null]);
+        $this->artisan('finance:capitalize-missing-shelter-costs', ['contracts' => [$contract->id]])->assertExitCode(0);
+        $this->assertNull($invoice->fresh()->external_office_cost_constraint_id);
+        $this->storeConstraint('إلغاء ' . $statement, [
+            [$this->office->id, 'debtor', 5250, 0], [$this->costOfSales->id, 'creditor', 0, 5250],
+        ]);
+        $this->artisan('finance:capitalize-missing-shelter-costs', ['contracts' => [$contract->id],
+            '--apply' => true, '--expected-database' => DB::connection()->getDatabaseName()])->assertExitCode(1);
+        $this->assertNull($invoice->fresh()->external_office_cost_constraint_id);
+        $this->assertFalse(ShelterCostEntry::where('maid_id', $contract->maid_id)->exists());
+    }
+
     public function test_missing_shelter_cost_command_previews_then_posts_once(): void
     {
         [$contract, $invoice] = $this->arrivedContractWithInvoice(1400);

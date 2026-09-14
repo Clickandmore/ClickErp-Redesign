@@ -60,10 +60,6 @@ class InvoiceController extends Controller
 {
     private const SETTING_GENERAL_INVOICE_REVENUE_ACCOUNT = 'general_invoice_revenue_account';
     private const SETTING_DELEGATION_REVENUE_ACCOUNT = 'ingaz_delegation_revenue_account';
-    private const SETTING_DELEGATION_INGAZ_ACCOUNT = 'ingaz_delegation_ingaz_account';
-    private const SETTING_DELEGATION_COST_ACCOUNT = 'ingaz_delegation_cost_account';
-    private const SETTING_DELEGATION_FIXED_COST = 'ingaz_delegation_fixed_cost';
-    private const DEFAULT_DELEGATION_FIXED_COST = 137.0;
 
     public function __construct()
     {
@@ -2698,17 +2694,7 @@ class InvoiceController extends Controller
                 (int) $this->resolveMusanedReceiptAccount()->id
             );
 
-            $delegationCostConstraint = $this->storeIngazDelegationFixedCostConstraint(
-                $invoice,
-                $service,
-                $yearService
-            );
-        }
-
-        if ($delegationCostConstraint) {
-            $invoice->update([
-                'ingaz_delegation_cost_constraint_id' => $delegationCostConstraint->id,
-            ]);
+            // Delegation costs are posted separately after payment confirmation.
         }
 
         if ($invoice->send_to_zatca) {
@@ -3146,41 +3132,6 @@ class InvoiceController extends Controller
         }
 
         return $this->storeConstraintFromLines($service, $yearService, $invoice, $statement, $lines, $amounts['total_due']);
-    }
-
-    private function storeIngazDelegationFixedCostConstraint(
-        Invoice $invoice,
-        ObjService $service,
-        YearService $yearService
-    ): ?Constraint
-    {
-        $amount = $this->resolveDelegationFixedCostAmount();
-        if ($amount <= 0) {
-            return null;
-        }
-
-        $ingazAccountId = $this->resolveSettingAccountId(
-            self::SETTING_DELEGATION_INGAZ_ACCOUNT,
-            'حساب إنجاز غير محدد. الرجاء تحديده من صفحة إعدادات الحسابات أولاً.',
-            'creditor'
-        );
-        $costAccountId = $this->resolveSettingAccountId(
-            self::SETTING_DELEGATION_COST_ACCOUNT,
-            'حساب تكلفة تفاويض إنجاز غير محدد. الرجاء تحديده من صفحة إعدادات الحسابات أولاً.',
-            'debtor'
-        );
-        $statement = $this->buildDelegationFixedCostStatement($invoice);
-        $lines = [];
-
-        $this->appendConstraintPair(
-            $lines,
-            $ingazAccountId,
-            $costAccountId,
-            $amount,
-            $statement
-        );
-
-        return $this->storeConstraintFromLines($service, $yearService, $invoice, $statement, $lines, $amount);
     }
 
     private function storeConstraintFromLines(
@@ -4645,14 +4596,6 @@ class InvoiceController extends Controller
         return "سند قبض سداد فاتورة طلب استقدام للعقد #{$contractId} / الفاتورة #{$invoice->id} / إلى حساب مساند الوسيط / مساند {$msanedNumber}";
     }
 
-    private function buildDelegationFixedCostStatement(Invoice $invoice): string
-    {
-        $delegation = $invoice->ingazDelegation;
-        $ingazNumber = $delegation?->ingaz_number ?: '-';
-
-        return "قيد تكلفة تفويض إنجاز #{$invoice->ingaz_delegation_id} / الفاتورة #{$invoice->id} / إنجاز {$ingazNumber}";
-    }
-
     private function buildInvoiceItemsSummary(Invoice $invoice): string
     {
         return collect($this->buildInvoiceItems($invoice))
@@ -5080,20 +5023,6 @@ class InvoiceController extends Controller
         }
 
         return (int) $account->id;
-    }
-
-    private function resolveDelegationFixedCostAmount(): float
-    {
-        $amount = ConfirmSetting::query()
-            ->where('title', self::SETTING_DELEGATION_FIXED_COST)
-            ->latest('updated_at')
-            ->value('value');
-
-        if ($amount === null || $amount === '') {
-            return self::DEFAULT_DELEGATION_FIXED_COST;
-        }
-
-        return $this->roundMoney((float) $amount);
     }
 
     private function printableSetting(string $key, string $default = '-'): string

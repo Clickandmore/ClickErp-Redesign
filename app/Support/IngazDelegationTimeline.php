@@ -18,6 +18,7 @@ class IngazDelegationTimeline
         'delegation_created' => ['title' => 'تمت إضافة التفويض', 'icon' => 'fa-plus', 'color' => 'success'],
         'delegation_updated' => ['title' => 'تم تعديل بيانات التفويض', 'icon' => 'fa-pen', 'color' => 'primary'],
         'delegation_status_updated' => ['title' => 'تم تغيير حالة التفويض', 'icon' => 'fa-exchange-alt', 'color' => 'warning'],
+        'delegation_cost_confirmed' => ['title' => 'تم تأكيد تكلفة التفويض', 'icon' => 'fa-money-check-alt', 'color' => 'success'],
         'invoice_created' => ['title' => 'تمت إضافة فاتورة', 'icon' => 'fa-file-invoice-dollar', 'color' => 'success'],
         'musaned_transfer_created' => ['title' => 'تمت إضافة تحويل مساند', 'icon' => 'fa-money-check-alt', 'color' => 'info'],
         'musaned_transfer_deleted' => ['title' => 'تم حذف تحويل مساند', 'icon' => 'fa-trash-alt', 'color' => 'danger'],

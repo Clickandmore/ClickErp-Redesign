@@ -395,7 +395,8 @@ class ComplaintController extends Controller
                 'maid_passport' => 'nullable|string|max:50',
                 'maid_nationality_id' => 'nullable|exists:nationalities,id',
                 'assigned_to' => 'nullable|exists:admins,id',
-                'relation_type' => 'required|in:none,order,contract,office,client,manual',
+                'after_save' => 'nullable|in:list,shelter',
+                'relation_type' => 'required|in:none,order,contract,office,client,manual' . ($request->input('after_save') === 'shelter' ? '|in:contract' : ''),
                 'order_id' => 'nullable|required_if:relation_type,order|exists:orders,id',
                 'contract_id' => 'nullable|required_if:relation_type,contract|exists:contracts,id',
                 'recruitment_office_id' => 'nullable|required_if:relation_type,office|exists:recruitment_offices,id',
@@ -407,7 +408,7 @@ class ComplaintController extends Controller
                 'attachments.*' => 'nullable|file|max:5120|mimes:jpg,jpeg,png,pdf,doc,docx,xls,xlsx'
             ]);
 
-            $data = $request->except('attachments', 'attachment_names');
+            $data = $request->except('attachments', 'attachment_names', 'after_save');
             $data['status'] = 'pending';
             $data['message'] = $request->details; // للتوافق مع الحقل القديم
             // الشكاوى المُدخلة من لوحة التحكم تُحفظ دائماً بهذه القناة — تُفرض بعد except حتى لا تُزوَّر من الطلب
@@ -438,18 +439,22 @@ class ComplaintController extends Controller
                 // يمكن إضافة إشعار هنا
             }
 
+            $redirectUrl = $request->input('after_save') === 'shelter'
+                ? route('ShelterContract.create', ['contract_id' => $complaint->contract_id, 'shelter_complaint_id' => $complaint->id])
+                : route($this->mainRoute . '.index');
+
             // إرجاع استجابة JSON للـ AJAX
             if ($request->ajax()) {
                 return response()->json([
                     'code' => 201,
                     'message' => 'تم إضافة الشكوى بنجاح',
                     'data' => [
-                        'url' => route($this->mainRoute . '.index')
+                        'url' => $redirectUrl
                     ]
                 ]);
             }
 
-            return redirect()->route($this->mainRoute . '.index')
+            return redirect()->to($redirectUrl)
                 ->with('success', 'تم إضافة الشكوى بنجاح');
         } catch (\Illuminate\Validation\ValidationException $e) {
             if ($request->ajax()) {

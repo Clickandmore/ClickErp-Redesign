@@ -35,6 +35,7 @@ class IngazDelegationController extends Controller
 {
     public function __construct()
     {
+        $this->middleware($this->permissionMiddleware($this->musanedTransferCreatePermissions()), ['only' => ['createCosts', 'storeCosts']]);
         $this->middleware($this->permissionMiddleware($this->delegationViewPermissions()), ['only' => ['index', 'show']]);
         $this->middleware($this->permissionMiddleware($this->delegationCreatePermissions()), ['only' => ['create', 'store']]);
         $this->middleware($this->permissionMiddleware($this->delegationEditPermissions()), ['only' => ['edit', 'update']]);
@@ -267,6 +268,7 @@ class IngazDelegationController extends Controller
         }
 
         $countries = Country::query()->ordered()->get(['id', 'name_ar', 'name_en', 'code', 'phone_code', 'sort_order']);
+        $canCreateCosts = $this->adminCanAny($this->musanedTransferCreatePermissions());
         $canCreateDelegation = $this->adminCanAny($this->delegationCreatePermissions());
         $canExportDelegations = $this->adminCanAny($this->delegationExportPermissions());
         $statusOptions = IngazDelegation::statusOptions();
@@ -275,6 +277,7 @@ class IngazDelegationController extends Controller
         return view('admin.ingaz_delegations.index', compact(
             'countries',
             'canCreateDelegation',
+            'canCreateCosts',
             'canExportDelegations',
             'statusOptions',
             'marketers'
@@ -598,6 +601,42 @@ class IngazDelegationController extends Controller
         return redirect()
             ->route('ingaz-delegations.index')
             ->with('success', 'تم إضافة تفويض الإنجاز بنجاح.');
+    }
+
+    public function createCosts(Request $request, \App\Services\ingaz\DelegationCostService $service): View
+    {
+        $delegations = IngazDelegation::query()->with(['user', 'invoice'])
+            ->where('status', '!=', IngazDelegation::STATUS_CANCELLED)
+            ->whereHas('invoice', fn ($q) => $q->whereNull('ingaz_delegation_cost_constraint_id'))
+            ->orderByDesc('id')->get();
+
+        return view('admin.ingaz_delegations.costs', [
+            'delegations' => $delegations,
+            'accounts' => $service->paymentAccounts(),
+            'defaultAmount' => $service->defaultAmount(),
+            'selectedIds' => array_map('intval', (array) $request->input('delegation_ids', [])),
+        ]);
+    }
+
+    public function storeCosts(Request $request, \App\Services\ingaz\DelegationCostService $service): RedirectResponse
+    {
+        $data = $request->validate([
+            'date' => ['required', 'date_format:Y-m-d'],
+            'reference' => ['required', 'string', 'max:100'],
+            'payment_source_type' => ['required', 'in:bank,custody,ingaz'],
+            'payment_account_id' => ['required', 'integer'],
+            'confirmed' => ['accepted'],
+            'delegation_ids' => ['required', 'array', 'min:1', 'max:200'],
+            'delegation_ids.*' => ['required', 'integer', 'distinct'],
+            'amounts' => ['required', 'array'],
+        ]);
+        foreach ($data['delegation_ids'] as $id) {
+            $this->assertCanAccessBranchModel(IngazDelegation::findOrFail($id));
+        }
+        $count = $service->post($data);
+
+        return redirect()->route('delegation-costs.create')
+            ->with('success', "تم تأكيد تكلفة {$count} تفويض وإنشاء القيود المرتبطة بها.");
     }
 
     public function show(IngazDelegation $ingazDelegation): View
