@@ -97,7 +97,7 @@ class NotificationAlertSettings
             'rent_contract_expiry' => [
                 'label' => 'انتهاء عقود الإيجار',
                 'description' => 'تنبيه قبل انتهاء عقد الإيجار.',
-                'default_lead_time_value' => 14,
+                'default_lead_time_value' => 5,
                 'default_lead_time_unit' => 'days',
                 'route' => 'RentContract.index',
                 'url' => url('/admin/RentContract'),
