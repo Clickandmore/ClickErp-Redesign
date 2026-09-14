@@ -1413,6 +1413,8 @@ class ShelterContractController extends Controller
             'shelter_id' => $request->shelter_id,
             'receipt_source' => $request->receipt_source,
             'maid_date_back' => $request->maid_date_back,
+            'is_outside_shelter' => false,
+            'outside_shelter_at' => null,
             'salary_final_status' => $request->salary_final_status,
             'duration_from_enter' => $request->duration_from_enter,
             'wants_to_work' => $wantsToWork,
@@ -1438,6 +1440,12 @@ class ShelterContractController extends Controller
         }
 
         DB::transaction(function () use ($contract, $infoPayload, $request) {
+            $lockedContract = Contract::query()->lockForUpdate()->findOrFail($contract->id);
+            if (!$this->contractCanBeAddedToShelter($lockedContract)) {
+                throw \Illuminate\Validation\ValidationException::withMessages([
+                    'contract_id' => 'تغيرت حالة العقد؛ لا يمكن إضافته للإيواء مرة أخرى.',
+                ]);
+            }
             if ($contract->info) {
                 $contract->info()->update($infoPayload);
             } else {
@@ -1446,6 +1454,19 @@ class ShelterContractController extends Controller
 
             $contract->status = ContractStatusEnum::Shelter->value;
             $contract->save();
+
+            // Direct shelter admission must transfer the posted supplier cost just
+            // like a warranty return, without creating another supplier charge.
+            $invoice = $contract->invoice()->first();
+            if ($invoice?->external_office_cost_constraint_id && !$invoice->external_office_cost_reversal_constraint_id) {
+                try {
+                    app(\App\Services\ingaz\ShelterDirectEntryCostService::class)->reconcile($contract->id);
+                } catch (\RuntimeException $exception) {
+                    throw \Illuminate\Validation\ValidationException::withMessages([
+                        'contract_id' => $exception->getMessage(),
+                    ]);
+                }
+            }
 
             $contract->contract_status_logs()->create([
                 'contract_id' => $contract->id,

@@ -531,6 +531,50 @@ class ShelterCostLedgerTest extends TestCase
 
     // ── helpers ────────────────────────────────────────────────────────────────
 
+    public function test_completed_contract_admission_automatically_makes_supplier_cost_recoverable(): void
+    {
+        [$contract, $invoice] = $this->arrivedContractWithInvoice(1400);
+        $contract->update(['status' => ContractStatusEnum::Completed->value]);
+        $contract->info->update(['is_outside_shelter' => true, 'outside_shelter_at' => now()]);
+        $request = \App\Http\Requests\ingaz\ShelterContactStore::create('/', 'POST', [
+            'contract_id' => $contract->id, 'maid_date_back' => now()->toDateString(),
+            'arrival_date' => now()->subDays(30)->toDateString(), 'receipt_source' => 'client',
+            'duration_from_enter' => 0,
+        ]);
+        app(\App\Http\Controllers\ingaz\ShelterContractController::class)->store($request);
+        $this->assertSame('shelter', $contract->fresh()->status);
+        $this->assertFalse((bool) $contract->info->fresh()->is_outside_shelter);
+        $summary = app(\App\Services\ingaz\ShelterAgentCostRecoveryService::class)->summary($contract->fresh());
+        $this->assertEquals(5250, $summary['available']);
+        $this->assertEmpty($summary['issues']);
+        $this->assertTrue(collect($summary['lots'])->first()['valid']);
+        $this->assertEquals($invoice->external_office_cost_constraint_id,
+            ShelterCostEntry::where('maid_id', $contract->maid_id)->sole()->supplier_constraint_id);
+        // A retry cannot add another admission or cost.
+        app(\App\Http\Controllers\ingaz\ShelterContractController::class)->store($request);
+        $this->assertSame(1, ShelterCostEntry::where('maid_id', $contract->maid_id)->count());
+    }
+
+    public function test_admission_rolls_back_when_supplier_cost_cannot_be_posted(): void
+    {
+        [$contract, $invoice] = $this->arrivedContractWithInvoice(1400);
+        $contract->update(['status' => ContractStatusEnum::Completed->value]);
+        $request = \App\Http\Requests\ingaz\ShelterContactStore::create('/', 'POST', [
+            'contract_id' => $contract->id, 'maid_date_back' => now()->subDays(1)->toDateString(),
+            'arrival_date' => now()->subDays(30)->toDateString(), 'receipt_source' => 'client',
+            'duration_from_enter' => 0,
+        ]);
+        try {
+            app(\App\Http\Controllers\ingaz\ShelterContractController::class)->store($request);
+            $this->fail('Admission must reject a date before the supplier journal.');
+        } catch (\Illuminate\Validation\ValidationException $exception) {
+            $this->assertArrayHasKey('contract_id', $exception->errors());
+        }
+        $this->assertSame(ContractStatusEnum::Completed->value, $contract->fresh()->status);
+        $this->assertNull($contract->info->fresh()->maid_date_back);
+        $this->assertFalse(ShelterCostEntry::where('maid_id', $contract->maid_id)->exists());
+    }
+
     public function test_missing_shelter_cost_command_previews_then_posts_once(): void
     {
         [$contract, $invoice] = $this->arrivedContractWithInvoice(1400);
