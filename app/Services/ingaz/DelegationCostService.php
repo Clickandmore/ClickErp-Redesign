@@ -39,14 +39,44 @@ class DelegationCostService
         $custodyIds = Schema::hasTable('hr_employee_custodies')
             ? DB::table('hr_employee_custodies')->where('status', 'active')->pluck('account_id') : [];
 
+        $accounts = Account::query()->get(['id', 'parent_id', 'type', 'code', 'name']);
+        $bankIds = self::accountFamilyIds($accounts, 'bank');
+        $custodyFamilyIds = self::accountFamilyIds($accounts, 'custody');
+
         return [
-            'bank' => (clone $leaf)->where('type', AccountTypesEnum::Bank->value)->orderBy('code')->get(),
-            'custody' => (clone $leaf)->where(function ($q) use ($custodyIds) {
-                $q->whereIn('id', $custodyIds)->orWhereHas('parent', fn ($p) => $p
-                    ->where('type', AccountTypesEnum::Custody->value)->orWhere('code', 126));
+            'bank' => (clone $leaf)->whereIn('id', $bankIds)->orderBy('code')->get(),
+            'custody' => (clone $leaf)->where(function ($q) use ($custodyIds, $custodyFamilyIds) {
+                $q->whereIn('id', $custodyIds)->orWhereIn('id', $custodyFamilyIds);
             })->orderBy('code')->get(),
             'ingaz' => (clone $leaf)->whereKey((int) $this->setting('ingaz_delegation_ingaz_account'))->get(),
         ];
+    }
+
+    /** Include legacy accounts and descendants even when their individual type is generic. */
+    public static function accountFamilyIds(iterable $accounts, string $source): array
+    {
+        $accounts = collect($accounts);
+        $ids = [];
+        foreach ($accounts as $account) {
+            $type = $account->type instanceof AccountTypesEnum ? $account->type->value : (int) $account->type;
+            $matches = $source === 'bank'
+                ? in_array($type, [AccountTypesEnum::Banks->value, AccountTypesEnum::Bank->value, AccountTypesEnum::BankName->value], true)
+                : ($type === AccountTypesEnum::Custody->value
+                    || in_array((string) $account->code, ['126', '1216'], true)
+                    || preg_match('/^(?:عهدة|عهده|عهد)(?:\s|$)/u', trim((string) $account->name)));
+            if ($matches) $ids[(int) $account->id] = true;
+        }
+        do {
+            $changed = false;
+            foreach ($accounts as $account) {
+                if (!isset($ids[(int) $account->id]) && isset($ids[(int) $account->parent_id])) {
+                    $ids[(int) $account->id] = true;
+                    $changed = true;
+                }
+            }
+        } while ($changed);
+
+        return array_keys($ids);
     }
 
     public function post(array $data): int
