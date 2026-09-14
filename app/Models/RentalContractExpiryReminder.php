@@ -14,6 +14,7 @@ class RentalContractExpiryReminder extends Model
         'rental_contract_id',
         'token',
         'channel',
+        'notification_type',
         'status',
         'response',
         'expires_on',

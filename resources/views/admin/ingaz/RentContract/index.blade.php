@@ -1099,7 +1099,7 @@
                                         <div class="col-md-4">
                                             <div class="form-check mt-4">
                                                 <input class="form-check-input" type="checkbox"
-                                                    id="sendClosureMessageToggle">
+                                                    id="sendClosureMessageToggle" checked>
                                                 <label class="form-check-label" for="sendClosureMessageToggle">
                                                     إرسال رسالة إنهاء العقد للعميل
                                                 </label>
@@ -1309,7 +1309,7 @@
                                         <div class="col-12">
                                             <div class="form-check mb-3">
                                                 <input class="form-check-input" type="checkbox"
-                                                    id="sendTransferClosureMessageToggle">
+                                                    id="sendTransferClosureMessageToggle" checked>
                                                 <label class="form-check-label" for="sendTransferClosureMessageToggle">
                                                     إرسال رسالة إغلاق ونقل خدمات للعميل
                                                 </label>
@@ -1592,6 +1592,15 @@
                                 <label for="extend_extension_notes" class="form-label">ملاحظات</label>
                                 <textarea class="form-control" id="extend_extension_notes" name="extension_notes" rows="3"
                                     placeholder="أي ملاحظات إضافية حول التمديد"></textarea>
+                            </div>
+                            <div class="col-12">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" value="1"
+                                        id="sendExtensionMessageToggle" name="send_extension_message" checked>
+                                    <label class="form-check-label" for="sendExtensionMessageToggle">
+                                        إرسال رسالة نصية للعميل بتأكيد التمديد وتاريخ النهاية الجديد
+                                    </label>
+                                </div>
                             </div>
                         </div>
                     </form>
@@ -2588,7 +2597,7 @@
                 $('#closePaymentReceipt').val('');
                 $('#closeClientIban').val('');
                 $('#closeClientIbanAttachment').val('');
-                $('#sendClosureMessageToggle').prop('checked', false);
+                $('#sendClosureMessageToggle').prop('checked', true);
                 $('#closeReturnReason').val('');
                 $('#closureDate').val('').removeAttr('min');
                 $('#closeClientIbanAttachmentCurrentWrapper').addClass('d-none');
@@ -2680,7 +2689,7 @@
                 $('#transferPaymentReceipt').val('');
                 $('#transferReceiptAccount').val('');
                 $('#transferAttachments').val('');
-                $('#sendTransferClosureMessageToggle').prop('checked', false);
+                $('#sendTransferClosureMessageToggle').prop('checked', true);
                 toggleTransferReceiptRequirement();
             }
 

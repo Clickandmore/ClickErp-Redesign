@@ -1653,6 +1653,47 @@ class RentContractController extends Controller
         return '، لكن تعذر إرسال رسالة إنهاء العقد للعميل.';
     }
 
+    private function sendRentalExtensionMessageToClient(RentalContract $contract): array
+    {
+        $contract->loadMissing(['user', 'info']);
+        $phone = trim((string) ($contract->user?->phone_code ?? '') . (string) ($contract->user?->phone ?? ''));
+
+        if ($phone === '') {
+            return ['success' => false, 'error' => 'missing_phone'];
+        }
+
+        $contractNumber = $contract->contract_number ?: $contract->id;
+        $clientName = $contract->user?->name ?: 'عميلنا العزيز';
+        $newEndDate = optional($contract->info?->ingaz_to)->format('Y-m-d');
+        $message = implode("\n", [
+            "عميلنا {$clientName}،",
+            "تم تمديد عقد الإيجار رقم {$contractNumber} حتى تاريخ {$newEndDate}.",
+            'شكراً لتعاملكم معنا.',
+        ]);
+
+        try {
+            $response = $this->sendSMS(formatSaudiPhone($phone), $message);
+            $sent = $this->smsWasSent($response);
+            $result = [
+                'success' => $sent,
+                'error' => $sent ? null : 'provider_rejected',
+                'response' => $response,
+            ];
+        } catch (\Throwable $exception) {
+            $result = ['success' => false, 'error' => $exception->getMessage()];
+        }
+
+        Log::info('Rental contract extension message attempted', [
+            'contract_id' => $contract->id,
+            'client_id' => $contract->user_id,
+            'channel' => 'sms',
+            'success' => (bool) ($result['success'] ?? false),
+            'error' => $result['error'] ?? null,
+        ]);
+
+        return $result;
+    }
+
     private function getStatusBadge($status, $closureType = null, ?RentalContract $contract = null)
     {
         if ($status === 'completed') {
@@ -4146,6 +4187,7 @@ class RentContractController extends Controller
             'extension_payment_amount' => 'nullable|' . $receiptRule . 'numeric|' . ($receiptRequired ? 'gt:0' : 'min:0'),
             'extension_payment_date' => 'nullable|' . $receiptRule . 'date',
             'extension_notes' => 'nullable|string|max:1000',
+            'send_extension_message' => 'nullable|boolean',
         ], [
             'extension_months.integer' => 'مدة التمديد يجب أن تكون رقماً صحيحاً',
             'extension_months.min' => 'مدة التمديد بالشهور لا يمكن أن تكون أقل من صفر',
@@ -4317,10 +4359,21 @@ class RentContractController extends Controller
 
             DB::commit();
 
+            $messageResult = $request->boolean('send_extension_message')
+                ? $this->sendRentalExtensionMessageToClient($contract->fresh(['user', 'info']))
+                : null;
+
+            $messageResultText = $messageResult === null
+                ? ''
+                : ((bool) ($messageResult['success'] ?? false)
+                    ? '، وتم إرسال رسالة التمديد للعميل.'
+                    : '، لكن تعذر إرسال رسالة التمديد للعميل.');
+
             return response()->json([
                 'success' => true,
                 'message' => 'تم تمديد عقد التأجير بنجاح'
-                    . ($receiptBond ? ' وإصدار سند قبض رقم ' . ($receiptBond->code ?: $receiptBond->id) : ''),
+                    . ($receiptBond ? ' وإصدار سند قبض رقم ' . ($receiptBond->code ?: $receiptBond->id) : '')
+                    . $messageResultText,
                 'receipt_bond_print_url' => $receiptBond
                     ? route('finance.bonds-print.show', ['bonds_print' => $receiptBond->id, 'type' => 'qabd'])
                     : null,

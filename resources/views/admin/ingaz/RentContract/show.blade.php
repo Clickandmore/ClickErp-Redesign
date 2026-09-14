@@ -2308,7 +2308,7 @@
                     title: 'تأكيد إنهاء العقد',
                     html: '<div class="text-end">هل أنت متأكد من إنهاء هذا العقد؟</div>' +
                         '<div class="form-check mt-3 text-end">' +
-                        '<input class="form-check-input" type="checkbox" id="sendClosureMessageFromShow">' +
+                        '<input class="form-check-input" type="checkbox" id="sendClosureMessageFromShow" checked>' +
                         '<label class="form-check-label" for="sendClosureMessageFromShow">إرسال رسالة إنهاء العقد للعميل</label>' +
                         '</div>',
                     icon: 'warning',

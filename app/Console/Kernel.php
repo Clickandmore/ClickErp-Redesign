@@ -154,8 +154,13 @@ class Kernel extends ConsoleKernel
              ->withoutOverlapping()
              ->appendOutputTo(storage_path('logs/orders-auto-cancel.log'));
 
-        $schedule->command('rental-contracts:send-expiry-reminders')
+        $schedule->command('rental-contracts:send-expiry-reminders --type=advance')
             ->dailyAt('09:00')
+            ->withoutOverlapping()
+            ->appendOutputTo(storage_path('logs/rental-contract-expiry-reminders.log'));
+
+        $schedule->command('rental-contracts:send-expiry-reminders --type=expired')
+            ->dailyAt('00:00')
             ->withoutOverlapping()
             ->appendOutputTo(storage_path('logs/rental-contract-expiry-reminders.log'));
 
