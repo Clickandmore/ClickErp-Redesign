@@ -30,6 +30,9 @@ use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use App\Mail\ResetPasswordMail;
 use App\Models\Role;
+use Nami\Hr\Models\Employee as HrEmployee;
+use Nami\Hr\Models\EmployeeShift;
+use Nami\Hr\Services\EmployeeService;
 use Yajra\DataTables\DataTables;
 
 
@@ -523,7 +526,7 @@ class AdminController extends Controller
     }
 
 
-    public function create(Request $request, ObjAction $action)
+    public function create(Request $request, ObjAction $action, EmployeeService $employeeService)
     {
         if (! $this->canCreateUser()) {
             return response()->json([
@@ -539,7 +542,15 @@ class AdminController extends Controller
                 ? Branch::query()->active()->ordered()->get(['id', 'name_ar', 'name_en'])
                 : collect();
             $admin_typeis = $action->getAdminTypies(); // Assuming this method exists in ObjAction
-            $returnHTML = view($this->folderPath . ".create", compact('roles', 'branches', 'branchesEnabled', 'admin_typeis'))->render();
+            $canCreateEmployee = $this->canCreateLinkedHrEmployee();
+            $hrCountries = $canCreateEmployee ? $employeeService->getCountries() : collect();
+            $departments = $canCreateEmployee ? $employeeService->getdepartment() : collect();
+            $jobs = $canCreateEmployee ? $employeeService->getJob() : collect();
+            $shifts = $canCreateEmployee ? $employeeService->getShift() : collect();
+            $returnHTML = view($this->folderPath . ".create", compact(
+                'roles', 'branches', 'branchesEnabled', 'admin_typeis', 'canCreateEmployee',
+                'hrCountries', 'departments', 'jobs', 'shifts'
+            ))->render();
             return jsonSuccess(["html" => $returnHTML]);
         }
     }
@@ -554,8 +565,54 @@ class AdminController extends Controller
             ], 422);
         }
 
-        $dataInsert = $request->only($this->postData);
-        $data = $action->storeAdmin($dataInsert, $request);
+        if ($request->boolean('create_employee') && ! $this->canCreateLinkedHrEmployee()) {
+            return response()->json([
+                'message' => 'تعذر إنشاء ملف الموظف لأن جداول الموارد البشرية غير جاهزة.',
+                'errors' => ['create_employee' => ['تعذر إنشاء ملف الموظف لأن جداول الموارد البشرية غير جاهزة.']],
+            ], 422);
+        }
+
+        $data = DB::transaction(function () use ($request, $action) {
+            $dataInsert = $request->only($this->postData);
+            $admin = $action->storeAdmin($dataInsert, $request);
+
+            if ($request->boolean('create_employee')) {
+                $employeeData = [
+                    'admin_id' => $admin->id,
+                    'name' => $admin->name,
+                    'code' => $request->input('employee_code') ?: 'USR-' . $admin->id,
+                    'address' => $request->input('employee_address') ?: ' ',
+                    'phone' => $admin->phone,
+                    'birthday' => $request->input('employee_birthday'),
+                    'email' => $admin->email,
+                    'national_num' => $admin->identity_number,
+                    'identity_expiry_date' => $admin->identity_expiry_date,
+                    'country_id' => $request->input('employee_country_id'),
+                    'deparment_id' => $request->input('employee_department_id'),
+                    'job_id' => $request->input('employee_job_id'),
+                    'hired_date' => $request->input('employee_hired_date'),
+                    'contract_end_date' => $request->input('employee_contract_end_date'),
+                    'salary' => $request->input('employee_salary'),
+                    'net_salary' => $request->input('employee_net_salary') ?: $request->input('employee_salary'),
+                    'status' => $admin->status === 'active' ? 1 : 0,
+                ];
+
+                if (Schema::hasColumn('hr_employee', 'branch_id')) {
+                    $employeeData['branch_id'] = $admin->branch_id;
+                }
+                if (Schema::hasColumn('hr_employee', 'employee_category')) {
+                    $employeeData['employee_category'] = HrEmployee::CATEGORY_EMPLOYEE;
+                }
+
+                $employee = HrEmployee::query()->create($employeeData);
+                EmployeeShift::query()->create([
+                    'employee_id' => $employee->id,
+                    'shift_id' => $request->input('employee_shift_id'),
+                ]);
+            }
+
+            return $admin;
+        });
         return jsonSuccess($data);
     }
 
@@ -785,6 +842,17 @@ class AdminController extends Controller
         $limit = SystemModuleManager::userLimit();
 
         return $limit === null || ObjModel::query()->count() < $limit;
+    }
+
+    private function canCreateLinkedHrEmployee(): bool
+    {
+        return class_exists(HrEmployee::class)
+            && Schema::hasTable('hr_employee')
+            && Schema::hasColumn('hr_employee', 'admin_id')
+            && Schema::hasTable('hr_employee_shift')
+            && Schema::hasTable('hr_department')
+            && Schema::hasTable('hr_jobs')
+            && Schema::hasTable('hr_shifts');
     }
 
     private function userLimitMessage(): string

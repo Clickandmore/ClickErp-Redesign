@@ -6,7 +6,6 @@ use App\Models\IstiqdamSetting;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Cache;
-use Illuminate\Support\Facades\Config;
 
 class IstiqdasmService
 {
@@ -22,47 +21,38 @@ class IstiqdasmService
     protected string $tokenCacheKey;
     protected int $tokenCacheTtl;
     protected ?string $lastAuthenticationError = null;
+    protected bool $loggingEnabled;
+
+    /** Raw failure details from the gateway, to be shown to the admin and forwarded to Takamol support. */
+    protected array $lastAuthenticationDetails = [];
 
     public function __construct()
     {
-        $env    = Config::get('istiqdam.current_env', 'staging');
-        $config = Config::get("istiqdam.environments.{$env}");
-
-        // The working Asuss installation calls this environment "stage" while
-        // this project historically used "staging". Accept both names.
-        if (!is_array($config) && $env === 'stage') {
-            $config = Config::get('istiqdam.environments.staging');
-        }
-
-        if (!is_array($config)) {
-            throw new \RuntimeException("Istiqdam environment [{$env}] is not configured.");
-        }
-
-        // Keep the integration usable during a staged deployment before the
-        // settings migration has been applied; environment values remain the fallback.
         try {
             $storedSettings = IstiqdamSetting::query()->first();
         } catch (\Throwable $exception) {
             $storedSettings = null;
         }
-        if ($storedSettings) {
-            $config['client_id'] = $storedSettings->client_id ?: $config['client_id'];
-            $config['client_secret'] = $storedSettings->client_secret ?: $config['client_secret'];
-            $config['api_key'] = $storedSettings->api_key ?: $config['api_key'];
-        }
 
-        $this->environment   = $env;
-        $this->baseUrl       = rtrim($config['base_url'], '/');
-        $this->oauthUrl      = $config['oauth_url'];
-        $this->clientId      = $config['client_id'];
-        $this->clientSecret  = $config['client_secret'];
-        $this->apiKey        = $config['api_key'];
-        $this->scope         = $config['scope'];
-        $this->timeout       = Config::get('istiqdam.timeout', 30);
-        $this->connectTimeout = Config::get('istiqdam.connect_timeout', 10);
-        $this->tokenCacheKey = Config::get('istiqdam.token_cache_key', 'istiqdam_oauth_token');
-        $this->tokenCacheTtl = Config::get('istiqdam.token_cache_ttl', 3500);
+        $this->environment = (string) ($storedSettings?->environment ?: 'staging');
+        $this->baseUrl = rtrim((string) ($storedSettings?->base_url ?: 'https://gw-apic.qiwa.info'), '/');
+        $this->oauthUrl = (string) ($storedSettings?->oauth_url ?: 'https://gw-apic.qiwa.info/takamol/staging/takamol-oauth/oauth2/token');
+        $this->clientId = (string) ($storedSettings?->client_id ?: '');
+        $this->clientSecret = (string) ($storedSettings?->client_secret ?: '');
+        $this->apiKey = (string) ($storedSettings?->api_key ?: '');
+        $this->scope = (string) ($storedSettings?->scope ?: 'IntegrationScope');
+        $this->timeout = (int) ($storedSettings?->timeout ?: 30);
+        $this->connectTimeout = (int) ($storedSettings?->connect_timeout ?: 10);
+        $this->tokenCacheTtl = (int) ($storedSettings?->token_cache_ttl ?: 3500);
+        $this->loggingEnabled = (bool) ($storedSettings?->logging_enabled ?? true);
+        $this->tokenCacheKey = 'istiqdam_oauth_token_' . sha1($this->environment . '|' . $this->baseUrl . '|' . $this->clientId);
     }
+
+    public function environment(): string { return $this->environment; }
+    public function baseUrl(): string { return $this->baseUrl; }
+    public function oauthUrl(): string { return $this->oauthUrl; }
+    public function timeout(): int { return $this->timeout; }
+    public function clearTokenCache(): void { Cache::forget($this->tokenCacheKey); }
 
     // -------------------------------------------------------------------------
     // OAuth2 Authentication
@@ -94,12 +84,9 @@ class IstiqdasmService
     {
         try {
             $response = Http::timeout($this->timeout)
-                ->withHeaders([
-                    'X-IBM-Client-Id'     => $this->clientId,
-                    'X-IBM-Client-Secret' => $this->clientSecret,
-                    'API-KEY'             => $this->apiKey,
-                    'Content-Type'        => 'application/x-www-form-urlencoded',
-                ])
+                ->withHeaders($this->gatewayHeaders([
+                    'Content-Type' => 'application/x-www-form-urlencoded',
+                ]))
                 ->withOptions([
                     'verify' => true,
                     'http_errors' => false,
@@ -112,7 +99,7 @@ class IstiqdasmService
                 ]);
 
             // OAuth responses contain the access token, so never pass the response body to the API logger.
-            if (Config::get('istiqdam.logging.enabled')) {
+            if ($this->loggingEnabled) {
                 Log::channel('istiqdam')->info('Istiqdam OAuth2 token request', [
                     'endpoint' => $this->oauthUrl,
                     'status' => $response->status(),
@@ -124,28 +111,58 @@ class IstiqdasmService
                 $this->lastAuthenticationError = $token
                     ? null
                     : 'استجابة OAuth لا تحتوي على access_token.';
+                $this->lastAuthenticationDetails = $token ? [] : [
+                    'stage'          => 'oauth',
+                    'http_status'    => $response->status(),
+                    'endpoint'       => $this->oauthUrl,
+                    'provider_body'  => 'استجابة ناجحة بلا access_token (الجسم غير معروض لأنه قد يحتوي على بيانات اعتماد).',
+                    'gateway_trace'  => $this->gatewayTrace($response),
+                    'captured_at'    => now()->toDateTimeString(),
+                ];
 
                 return $token;
             }
 
             $responseBody = $response->json();
-            $providerMessage = is_array($responseBody)
-                ? ($responseBody['error_description'] ?? $responseBody['description'] ?? $responseBody['message'] ?? $responseBody['error'] ?? null)
-                : null;
+            $providerMessage = $this->providerMessage($responseBody);
             $this->lastAuthenticationError = 'رفضت بوابة OAuth الطلب (HTTP ' . $response->status() . ')' . ($providerMessage ? ': ' . $providerMessage : '.');
+            $this->lastAuthenticationDetails = [
+                'stage'            => 'oauth',
+                'http_status'      => $response->status(),
+                'endpoint'         => $this->oauthUrl,
+                'provider_message' => $providerMessage,
+                'provider_body'    => $this->readableBody($responseBody ?: $response->body()),
+                'gateway_trace'    => $this->gatewayTrace($response),
+                'captured_at'      => now()->toDateTimeString(),
+            ];
 
             Log::channel('istiqdam')->error('Istiqdam OAuth2 token fetch failed', [
                 'status'   => $response->status(),
                 'response' => $responseBody,
+                'trace'    => $this->gatewayTrace($response),
             ]);
 
             return null;
 
         } catch (\Exception $e) {
             $this->lastAuthenticationError = $this->connectionErrorMessage($e);
+            $this->lastAuthenticationDetails = [
+                'stage'         => 'network',
+                'endpoint'      => $this->oauthUrl,
+                'raw_error'     => $e->getMessage(),
+                'captured_at'   => now()->toDateTimeString(),
+            ];
             Log::channel('istiqdam')->error('Istiqdam OAuth2 exception', ['error' => $e->getMessage()]);
             return null;
         }
+    }
+
+    /**
+     * تفاصيل آخر فشل في المصادقة، كما جاءت من بوابة تكامل، لعرضها للمسؤول وإرسالها للدعم.
+     */
+    public function lastAuthenticationDetails(): array
+    {
+        return $this->lastAuthenticationDetails;
     }
 
     // -------------------------------------------------------------------------
@@ -160,14 +177,11 @@ class IstiqdasmService
         $token = $this->getAccessToken();
 
         return Http::timeout($this->timeout)
-            ->withHeaders([
-                'Authorization'   => 'Bearer ' . $token,
-                'X-IBM-Client-Id' => $this->clientId,
-                'X-IBM-Client-Secret' => $this->clientSecret,
-                'API-KEY'         => $this->apiKey,
-                'Accept'          => 'application/json',
-                'Content-Type'    => 'application/json',
-            ])
+            ->withHeaders($this->gatewayHeaders([
+                'Authorization' => 'Bearer ' . $token,
+                'Accept'        => 'application/json',
+                'Content-Type'  => 'application/json',
+            ]))
             ->withOptions([
                 'verify' => true,
                 'http_errors' => false,
@@ -181,7 +195,7 @@ class IstiqdasmService
 
     private function logApiCall(string $method, string $endpoint, $requestData = null, $response = null, $error = null): void
     {
-        if (!Config::get('istiqdam.logging.enabled')) {
+        if (!$this->loggingEnabled) {
             return;
         }
 
@@ -442,9 +456,11 @@ class IstiqdasmService
         $token = $this->getAccessToken();
         if (!$token) {
             return [
-                'success' => false,
-                'error'   => $this->lastAuthenticationError
-                    ?: 'فشل الحصول على OAuth2 Token؛ تحقق من Client ID وClient Secret وAPI Key.',
+                'success'  => false,
+                'error'    => $this->lastAuthenticationError
+                    ?: 'فشل الحصول على OAuth2 Token؛ تحقق من Client ID وClient Secret.',
+                'stage'    => 'oauth',
+                'provider' => $this->lastAuthenticationDetails,
             ];
         }
 
@@ -460,9 +476,22 @@ class IstiqdasmService
         }
 
         return [
-            'success' => false,
-            'error'   => $result['error'] ?? 'خطأ غير معروف',
-            'details' => $result,
+            'success'  => false,
+            'error'    => $result['error'] ?? 'خطأ غير معروف',
+            'stage'    => 'api',
+            'provider' => [
+                'stage'            => 'api',
+                'http_status'      => $result['status_code'] ?? null,
+                'endpoint'         => $this->baseUrl . $this->endpoint(
+                    '/takamol/staging/api/v1/external/packages',
+                    '/api/protected/istiqdam/packages'
+                ),
+                'provider_message' => $result['provider_message'] ?? null,
+                'provider_body'    => $result['provider_body'] ?? null,
+                'gateway_trace'    => $result['gateway_trace'] ?? [],
+                'captured_at'      => now()->toDateTimeString(),
+            ],
+            'details'  => $result,
         ];
     }
 
@@ -471,11 +500,9 @@ class IstiqdasmService
      */
     public function diagnoseConnection(): array
     {
-        $env = Config::get('istiqdam.current_env');
-
         $diagnosis = [
             'timestamp'         => now()->toISOString(),
-            'environment'       => $env,
+            'environment'       => $this->environment,
             'base_url'          => $this->baseUrl,
             'oauth_url'         => $this->oauthUrl,
             'client_id'         => $this->clientId,
@@ -523,11 +550,92 @@ class IstiqdasmService
         }
 
         return [
-            'success'     => false,
-            'error'       => $body['description'] ?? ($body['message'] ?? $defaultMsg),
-            'status_code' => $response->status(),
-            'body'        => $body,
+            'success'          => false,
+            'error'            => $body['description'] ?? ($body['message'] ?? $defaultMsg),
+            'status_code'      => $response->status(),
+            'body'             => $body,
+            'provider_message' => $this->providerMessage($body),
+            'provider_body'    => $this->readableBody($body ?: $response->body()),
+            'gateway_trace'    => $this->gatewayTrace($response),
         ];
+    }
+
+    /**
+     * النص الذي ترسله بوابة تكامل نفسها لشرح سبب الرفض.
+     */
+    private function providerMessage($body): ?string
+    {
+        if (!is_array($body)) {
+            return null;
+        }
+
+        $message = $body['error_description']
+            ?? $body['description']
+            ?? $body['moreInformation']
+            ?? $body['message']
+            ?? $body['httpMessage']
+            ?? $body['error']
+            ?? null;
+
+        if (is_array($message)) {
+            $message = json_encode($message, JSON_UNESCAPED_UNICODE);
+        }
+
+        return $message !== null ? (string) $message : null;
+    }
+
+    /**
+     * معرّفات التتبّع التي يطلبها دعم تكامل لمطابقة الطلب في سجلاتهم.
+     */
+    private function gatewayTrace($response): array
+    {
+        $wanted = ['X-Global-Transaction-ID', 'X-Global-Transaction-Id', 'X-Request-Id', 'X-Correlation-Id', 'Transaction-Id', 'Date'];
+        $trace  = [];
+
+        foreach ($wanted as $header) {
+            $value = $response->header($header);
+            if ($value !== null && $value !== '') {
+                $trace[$header] = $value;
+            }
+        }
+
+        return $trace;
+    }
+
+    /**
+     * جسم الاستجابة بصيغة قابلة للنسخ في رسالة الدعم، مع حدّ أقصى للطول.
+     */
+    private function readableBody($body): ?string
+    {
+        if ($body === null || $body === '' || $body === []) {
+            return null;
+        }
+
+        $text = is_string($body) ? $body : json_encode($body, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT);
+
+        return mb_strlen((string) $text) > 4000
+            ? mb_substr((string) $text, 0, 4000) . '…'
+            : (string) $text;
+    }
+
+    /**
+     * Headers required by the Takamol gateway.
+     *
+     * تكامل تصدر Client-Id وClient-Secret فقط، وهيدر API-KEY اختياري؛
+     * إرساله فارغاً يجعل بوابة IBM ترفض الطلب، لذلك لا نرسله إلا إذا كان مضبوطاً.
+     */
+    private function gatewayHeaders(array $extra = []): array
+    {
+        $headers = [
+            'X-IBM-Client-Id'     => $this->clientId,
+            'X-IBM-Client-Secret' => $this->clientSecret,
+        ];
+
+        if ($this->apiKey !== '') {
+            $headers['API-KEY'] = $this->apiKey;
+        }
+
+        return array_merge($headers, $extra);
     }
 
     private function usesTakamolGateway(): bool
