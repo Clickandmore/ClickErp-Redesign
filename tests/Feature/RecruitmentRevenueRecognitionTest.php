@@ -493,6 +493,38 @@ class RecruitmentRevenueRecognitionTest extends TestCase
         $this->assertSame('ambiguous', $linker->inspect($invoice->fresh())['status']);
     }
 
+    public function test_legacy_null_branch_matches_only_the_main_branch_without_reassigning_records(): void
+    {
+        $contract = $this->createContract($this->createNationality('فرع قديم'), withClientAccount: true);
+        $income = $this->createAccount('الايرادات', 'creditor');
+        $number = random_int(90000000, 99999999);
+        $invoice = $this->createInvoice($contract, ['legacy_invoice_number' => $number]);
+        $source = $this->storeConstraint('فاتورة: ' . $number, [
+            [$income->id, 'creditor', 0, 3980.75],
+            [$contract->user->account_id, 'debtor', 3980.75, 0],
+        ]);
+        $branchId = \App\Models\Branch::factory()->create()->id;
+        $otherBranchId = \App\Models\Branch::factory()->create()->id;
+        $invoice->update(['branch_id' => $branchId]);
+        $this->mock(\App\Services\BranchAccessService::class, function ($mock) use ($branchId) {
+            $mock->shouldReceive('mainBranchId')->andReturn($branchId);
+        });
+        DB::table('fn_constraints')->where('id', $source->id)->update(['branch_id' => null]);
+        DB::table('fn_constraint_details')->where('constraint_id', $source->id)->update(['branch_id' => null]);
+        $linker = app(\App\Services\ingaz\LegacyInvoiceConstraintLinker::class);
+        $this->assertSame('ready', $linker->inspect($invoice)['status']);
+        $invoice->branch_id = $otherBranchId;
+        $this->assertSame('header_mismatch', $linker->inspect($invoice)['status']);
+        $invoice->refresh();
+        $lineId = DB::table('fn_constraint_details')->where('constraint_id', $source->id)->value('id');
+        DB::table('fn_constraint_details')->where('id', $lineId)->update(['branch_id' => $otherBranchId]);
+        $this->assertSame('lines_mismatch', $linker->inspect($invoice)['status']);
+        DB::table('fn_constraint_details')->where('id', $lineId)->update(['branch_id' => null]);
+        $this->assertSame($source->id, $linker->link($invoice)->id);
+        $this->assertNull(DB::table('fn_constraints')->where('id', $source->id)->value('branch_id'));
+        $this->assertSame(0, DB::table('fn_constraint_details')->where('constraint_id', $source->id)->whereNotNull('branch_id')->count());
+    }
+
     public function test_unmatched_legacy_refund_does_not_create_a_synthetic_original_constraint(): void
     {
         $contract = $this->createContract($this->createNationality('غير مطابق'), withClientAccount: true);

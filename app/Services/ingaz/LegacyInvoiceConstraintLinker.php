@@ -31,15 +31,23 @@ class LegacyInvoiceConstraintLinker
             return $base + ['status' => 'source_already_linked'];
         }
 
-        if ((int) $source->branch_id !== (int) $invoice->branch_id
-            || $source->date !== $invoice->created_at->toDateString()
-            || abs((float) $source->value - (float) $invoice->total_due) > 0.009) {
-            return $base + ['status' => 'header_mismatch'];
+        $headerDifferences = [];
+        if (!$this->branchesMatch($source->branch_id, $invoice->branch_id)) {
+            $headerDifferences['branch_id'] = ['invoice' => $invoice->branch_id, 'constraint' => $source->branch_id];
+        }
+        if ($source->date !== $invoice->created_at->toDateString()) {
+            $headerDifferences['date'] = ['invoice' => $invoice->created_at->toDateString(), 'constraint' => $source->date];
+        }
+        if (abs((float) $source->value - (float) $invoice->total_due) > 0.009) {
+            $headerDifferences['amount'] = ['invoice' => $invoice->total_due, 'constraint' => $source->value];
+        }
+        if ($headerDifferences) {
+            return $base + ['status' => 'header_mismatch', 'differences' => $headerDifferences];
         }
         $lines = DB::table('fn_constraint_details')->where('constraint_id', $source->id)->whereNull('deleted_at')->get();
         $clientAccount = $invoice->contract?->user?->account_id ?: $invoice->client?->account_id;
         if (!$clientAccount || $lines->isEmpty()
-            || $lines->contains(fn ($line) => (int) $line->branch_id !== (int) $invoice->branch_id)
+            || $lines->contains(fn ($line) => !$this->branchesMatch($line->branch_id, $invoice->branch_id))
             || abs((float) $lines->sum('debtor_value') - (float) $invoice->total_due) > 0.009
             || abs((float) $lines->sum('creditor_value') - (float) $invoice->total_due) > 0.009
             || abs((float) $lines->where('account_id', $clientAccount)->sum('debtor_value') - (float) $invoice->total_due) > 0.009
@@ -73,6 +81,20 @@ class LegacyInvoiceConstraintLinker
                 ? 'link_conflict' : ((int) $invoice->invoice_constraint_id === (int) $source->id ? 'linked' : 'ready'),
             'mode' => $mode,
         ];
+    }
+
+    private function branchesMatch(?int $sourceBranchId, ?int $invoiceBranchId): bool
+    {
+        if ($sourceBranchId === $invoiceBranchId) {
+            return true;
+        }
+        // BranchScoped treats unassigned documents as belonging only to the main branch.
+        // Keep historical branch fields intact; never match an explicit different branch.
+        if ($sourceBranchId !== null && $invoiceBranchId !== null) {
+            return false;
+        }
+        $mainBranchId = app(\App\Services\BranchAccessService::class)->mainBranchId();
+        return $mainBranchId !== null && ($sourceBranchId ?? $invoiceBranchId) === $mainBranchId;
     }
 
     public function link(Invoice $invoice): Constraint
