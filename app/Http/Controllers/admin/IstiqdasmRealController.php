@@ -60,6 +60,7 @@ class IstiqdasmRealController extends Controller
             'environment' => ['required', 'in:staging,uat,production'],
             'base_url' => ['required', 'url', 'starts_with:https://', 'max:1000'],
             'oauth_url' => ['required', 'url', 'starts_with:https://', 'max:1000'],
+            'outbound_public_ip' => ['required', 'ip'],
             'client_id' => ['required', 'string', 'max:255'],
             'client_secret' => ['nullable', 'string', 'max:2000'],
             'api_key' => ['nullable', 'string', 'max:2000'],
@@ -76,6 +77,7 @@ class IstiqdasmRealController extends Controller
         $settings->environment = $validated['environment'];
         $settings->base_url = rtrim($validated['base_url'], '/');
         $settings->oauth_url = $validated['oauth_url'];
+        $settings->outbound_public_ip = $validated['outbound_public_ip'];
         $settings->client_id = $validated['client_id'];
         $settings->scope = $validated['scope'];
         $settings->timeout = $validated['timeout'];
@@ -173,7 +175,8 @@ class IstiqdasmRealController extends Controller
             'provider_body' => $provider['provider_body'] ?? null,
             'raw_error' => $provider['raw_error'] ?? null,
             'gateway_trace' => $provider['gateway_trace'] ?? [],
-            'server_ip' => request()->server('SERVER_ADDR'),
+            'outbound_public_ip' => $settings?->outbound_public_ip,
+            'internal_server_ip' => request()->server('SERVER_ADDR'),
             'captured_at' => $provider['captured_at'] ?? now()->toDateTimeString(),
         ];
 

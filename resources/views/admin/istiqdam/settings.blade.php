@@ -46,6 +46,12 @@
                         @error('oauth_url')<div class="invalid-feedback">{{ $message }}</div>@enderror
                     </div>
                     <div class="col-md-6">
+                        <label class="form-label" for="outbound_public_ip">عنوان الخروج العام للخادم <span class="text-danger">*</span></label>
+                        <input dir="ltr" class="form-control @error('outbound_public_ip') is-invalid @enderror" id="outbound_public_ip" name="outbound_public_ip" value="{{ old('outbound_public_ip', $istiqdamSettings?->outbound_public_ip ?: '130.110.98.217') }}" required>
+                        <div class="form-text">Public Outbound IP الذي يجب إضافته لدى تكامل في قائمة السماح (Whitelist)، وليس عنوان الشبكة الداخلي.</div>
+                        @error('outbound_public_ip')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                    </div>
+                    <div class="col-md-6">
                         <label class="form-label" for="establishment_name">English establishment name <span class="text-muted">(اختياري)</span></label>
                         <input class="form-control @error('establishment_name') is-invalid @enderror" id="establishment_name" name="establishment_name" value="{{ old('establishment_name', $istiqdamSettings?->establishment_name) }}" autocomplete="organization">
                         <div class="form-text">للتعريف داخل النظام فقط؛ لا يدخل في مصادقة OAuth.</div>
