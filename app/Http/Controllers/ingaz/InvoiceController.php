@@ -1027,6 +1027,12 @@ class InvoiceController extends Controller
                 ->with('warning', 'طلب نقل الخدمات هذا صادر عن عقد تأجير، وتُصدر فاتورته وقيوده من عقد التأجير نفسه.');
         }
 
+        if (!$transfer->canIssueInvoice() && !$transfer->invoice) {
+            return redirect()
+                ->route('SponsorshipTransfer.show', $transfer->id)
+                ->with('warning', 'لا يمكن إصدار فاتورة لطلب نقل خدمات فاشل أو ملغي.');
+        }
+
         if ($transfer->invoice) {
             if (!InvoiceAuthorization::canView()) {
                 return redirect()->route('invoices.create')
@@ -1137,6 +1143,18 @@ class InvoiceController extends Controller
                         ? 'طلب نقل الخدمات لديه فاتورة سابقة'
                         : 'هذا التفويض لديه فاتورة سابقة')
             ], 422);
+        }
+
+        if ($request->filled('sponsorship_transfer_id')) {
+            $transferCanBeInvoiced = SponsorshipTransfer::query()
+                ->find($request->sponsorship_transfer_id)?->canIssueInvoice() ?? false;
+
+            if (!$transferCanBeInvoiced) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'لا يمكن إصدار فاتورة لطلب نقل خدمات فاشل أو ملغي أو تابع لمسار التأجير.'
+                ], 422);
+            }
         }
 
         if ($request->filled('contract_id')) {

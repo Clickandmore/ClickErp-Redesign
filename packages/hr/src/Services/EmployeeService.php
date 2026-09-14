@@ -39,7 +39,7 @@ class EmployeeService extends MainService
     public function GetFilterEmployees($request, string $category = Employee::CATEGORY_EMPLOYEE)
     {
         $query = $category === Employee::CATEGORY_MAID
-            ? $this->model->query()->onlyMaids()->latest()
+            ? $this->model->query()->currentlyCompanySponsoredMaids()->latest()
             : $this->model->query()->onlyEmployees()->latest();
 
         $query->with(['branch', $category === Employee::CATEGORY_MAID ? 'maid' : 'admin']);

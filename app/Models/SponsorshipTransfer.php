@@ -395,6 +395,18 @@ class SponsorshipTransfer extends Model
         return $this->workflow_source === 'rental';
     }
 
+    /** A cancelled/failed request, and the non-financial rental workflow, cannot be invoiced here. */
+    public function canIssueInvoice(): bool
+    {
+        $hasInvoice = $this->relationLoaded('invoice')
+            ? $this->invoice !== null
+            : $this->invoice()->exists();
+
+        return !$this->isRentalWorkflow()
+            && !in_array($this->status, ['failed', 'rejected', 'cancelled'], true)
+            && !$hasInvoice;
+    }
+
     public function scopeTransferred($query)
     {
         return $query->where('status', 'transferred');
