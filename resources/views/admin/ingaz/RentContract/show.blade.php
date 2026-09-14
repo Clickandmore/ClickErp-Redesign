@@ -966,6 +966,12 @@
                                 <i class="fas fa-user"></i>
                                 بيانات العميل
                             </h3>
+                            @if ($contract->user?->account_id && \Illuminate\Support\Facades\Route::has('finance.account-statement-clients.index'))
+                                <a href="{{ route('finance.account-statement-clients.index', ['account_id' => $contract->user->account_id]) }}"
+                                    class="btn btn-sm btn-outline-primary" target="_blank" rel="noopener">
+                                    <i class="fas fa-file-invoice-dollar me-1"></i> كشف حساب العميل
+                                </a>
+                            @endif
                         </div>
 
                         <ul class="detail-list">

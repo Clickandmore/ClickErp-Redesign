@@ -657,6 +657,16 @@
                     </div>
 
                     <div class="col-md-3">
+                        <label for="paymentStatusFilter" class="form-label">حالة الدفع:</label>
+                        <select id="paymentStatusFilter" class="form-select">
+                            <option value="">جميع حالات الدفع</option>
+                            @foreach (['paid' => 'تم الدفع', 'partial' => 'مدفوع جزئياً', 'pending' => 'معلق', 'later' => 'الدفع لاحقاً', 'bank_pending' => 'بانتظار التحويل'] as $paymentStatus => $paymentLabel)
+                                <option value="{{ $paymentStatus }}" {{ request('payment_status') === $paymentStatus ? 'selected' : '' }}>{{ $paymentLabel }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+
+                    <div class="col-md-3">
                         <label for="dateFromFilter" class="form-label">تاريخ إنشاء العقد من:</label>
                         <input type="date" id="dateFromFilter" class="form-control">
                     </div>
@@ -1655,6 +1665,7 @@
             const rentListFilterSelectors = [
                 '#quickSearchFilter',
                 '#statusFilter',
+                '#paymentStatusFilter',
                 '#dateFromFilter',
                 '#dateToFilter',
                 '#startDateFromFilter',
@@ -1706,6 +1717,7 @@
                     data: function(d) {
                         d.quick_search = $('#quickSearchFilter').val();
                         d.status_filter = $('#statusFilter').val();
+                        d.payment_status = $('#paymentStatusFilter').val();
                         d.date_from = $('#dateFromFilter').val();
                         d.date_to = $('#dateToFilter').val();
                         d.start_date_from = $('#startDateFromFilter').val();
@@ -2032,6 +2044,13 @@
                     url.searchParams.delete('status');
                 }
 
+                const paymentStatus = $('#paymentStatusFilter').val();
+                if (paymentStatus) {
+                    url.searchParams.set('payment_status', paymentStatus);
+                } else {
+                    url.searchParams.delete('payment_status');
+                }
+
                 window.history.replaceState({}, '', url.toString());
             }
 
@@ -2074,7 +2093,7 @@
 
             // Clear Filters
             $('#clearFilters').click(function() {
-                $('#statusFilter, #marketerFilter, #branchFilter, #extensionFilter, #expiryFilter')
+                $('#statusFilter, #paymentStatusFilter, #marketerFilter, #branchFilter, #extensionFilter, #expiryFilter')
                     .val('');
                 $('#quickSearchFilter, #dateFromFilter, #dateToFilter, #startDateFromFilter, #startDateToFilter, #endDateFromFilter, #endDateToFilter, #clientPhoneFilter, #clientNameFilter, #maidPassportFilter, #maidNameFilter, #contractNumberFilter')
                     .val('');
@@ -2086,6 +2105,7 @@
                 window.location.href = "{{ route('RentContract.export.excel') }}?" + $.param({
                     quick_search: $('#quickSearchFilter').val(),
                     status: $('#statusFilter').val(),
+                    payment_status: $('#paymentStatusFilter').val(),
                     date_from: $('#dateFromFilter').val(),
                     date_to: $('#dateToFilter').val(),
                     start_date_from: $('#startDateFromFilter').val(),
@@ -2776,6 +2796,7 @@
                     data: {
                         quick_search: $('#quickSearchFilter').val(),
                         status_filter: $('#statusFilter').val(),
+                        payment_status: $('#paymentStatusFilter').val(),
                         date_from: $('#dateFromFilter').val(),
                         date_to: $('#dateToFilter').val(),
                         start_date_from: $('#startDateFromFilter').val(),

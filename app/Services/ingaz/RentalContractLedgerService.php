@@ -19,6 +19,32 @@ use Illuminate\Support\Facades\Schema;
 class RentalContractLedgerService
 {
     /**
+     * Net operational balance used by both the contract list and details.
+     * Posted adjustments already belong to the ledger; only unposted ones are added.
+     */
+    public function netBalanceForContract(RentalContract $contract, ?float $ledgerBalance = null): float
+    {
+        $contract->loadMissing(['info', 'financeInvoice', 'extensions', 'financialAdjustments', 'financeBonds']);
+        $ledgerBalance = $ledgerBalance ?? $this->balanceForContract($contract);
+        $adjustments = $contract->financialAdjustments
+            ->whereIn('context', ['closure', 'manual_credit_note', 'closure_correction']);
+
+        if ($ledgerBalance !== null) {
+            $adjustments = $adjustments->whereNull('constraint_id');
+            $balance = $ledgerBalance;
+        } else {
+            $receipts = $contract->financeBonds->where('type', 'qabd')->where('is_confirm', 1);
+            $balance = (float) ($contract->financeInvoice?->total_due ?? $contract->info?->contract_value ?? 0)
+                + (float) $contract->extensions->sum('extension_value')
+                - round((float) $receipts->sum('value'), 2);
+        }
+
+        return round($balance
+            + round((float) $adjustments->where('type', 'income')->sum('amount'), 2)
+            - round((float) $adjustments->where('type', 'expense')->sum('amount'), 2), 2);
+    }
+
+    /**
      * Σ(مدين − دائن) على حساب العميل، مقصورة على القيود التي أنشأها هذا العقد.
      *
      * تُرجع null إذا تعذّر الحساب من الأستاذ — لا حساب محاسبي للعميل، أو لا قيود

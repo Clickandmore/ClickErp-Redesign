@@ -98,7 +98,7 @@ class RentContractController extends Controller
             $status = $request->get('status', $status);
             $branchesEnabled = $this->branchesEnabledFor('rental_contracts');
 
-            $relations = ['user', 'maid', 'info', 'marketer', 'financeInvoice'];
+            $relations = ['user', 'maid', 'info', 'marketer', 'financeInvoice', 'extensions', 'financialAdjustments', 'financeBonds'];
             if ($branchesEnabled) {
                 $relations[] = 'branch';
             }
@@ -213,6 +213,9 @@ class RentContractController extends Controller
                         $startDate = optional($row->info->ingaz_from)->format('Y-m-d') ?: 'غير محدد';
                         $endDate = optional($row->info->ingaz_to)->format('Y-m-d') ?: 'غير محدد';
                         $paymentStatusBadge = $this->getPaymentStatusBadge($row->info->payment_status ?? null);
+                        $balance = app(RentalContractLedgerService::class)->netBalanceForContract($row);
+                        $balanceLabel = $balance < 0 ? 'رصيد لصالح العميل' : 'المطلوب من العميل';
+                        $balanceClass = $balance > 0 ? 'text-danger' : 'text-success';
 
                         $extensionBadgeHtml = $extensionBadge
                             ? '<div class="d-flex justify-content-between align-items-center mb-1">' . $extensionBadge . '</div>'
@@ -227,6 +230,7 @@ class RentContractController extends Controller
                                     <div class="rent-period-money">
                                         <div><strong>التكلفة الشهرية:</strong> ' . number_format($row->info->monthly_cost ?? 0, 2) . ' ريال</div>
                                         <div><strong>قيمة العقد:</strong> ' . number_format($row->info->contract_value ?? 0, 2) . ' ريال</div>
+                                        <div class="' . $balanceClass . '"><strong>' . $balanceLabel . ':</strong> ' . number_format(abs($balance), 2) . ' ريال</div>
                                     </div>
                                 </div>';
                     }
@@ -984,21 +988,8 @@ class RentContractController extends Controller
             ->balanceForContract($contract);
         $contractLedgerBalanceFromJournal = $contractLedgerBalance !== null;
 
-        if ($contractLedgerBalanceFromJournal) {
-            $contractLedgerBalance = round(
-                $contractLedgerBalance + $unpostedClosureIncome - $unpostedClosureRefund,
-                2
-            );
-        } else {
-            $contractLedgerBalance = round(
-                (float) ($contract->financeInvoice?->total_due ?? $contract->info?->contract_value ?? 0)
-                + (float) $contract->extensions->sum('extension_value')
-                + $closureIncome
-                - $closureRefund
-                - $receiptBondsTotal,
-                2
-            );
-        }
+        $contractLedgerBalance = app(RentalContractLedgerService::class)
+            ->netBalanceForContract($contract, $contractLedgerBalance);
         $clientAccountBalance = null;
         $clientAccountApprovedBalance = null;
 
@@ -1958,6 +1949,12 @@ class RentContractController extends Controller
     private function applyRentalContractIndexFilters($query, Request $request, bool $includeStatus = true): void
     {
         $query->quickSearch((string) $request->input('quick_search', ''));
+
+        if ($request->filled('payment_status')) {
+            $query->whereHas('info', function ($infoQuery) use ($request) {
+                $infoQuery->where('payment_status', $request->input('payment_status'));
+            });
+        }
 
         if ($includeStatus && $request->filled('status_filter')) {
             $this->applyRentalContractStatusFilter($query, $request->status_filter);
