@@ -145,6 +145,14 @@
                                     <span>{{ $invoice->legacy_source_sheet ?: '-' }}، صف {{ $invoice->legacy_source_row ?: '-' }}</span>
                                 </div>
                             @endif
+                            @if ($invoice->invoice_constraint_id)
+                                <div class="d-flex justify-content-between mb-2">
+                                    <strong>القيد المالي للفاتورة</strong>
+                                    <a href="{{ route('finance.add-constraint.show', ['add_constraint' => $invoice->invoice_constraint_id]) }}">
+                                        #{{ $invoice->invoice_constraint_id }}
+                                    </a>
+                                </div>
+                            @endif
                             @if ($invoice->finance_sale_id)
                                 <div class="d-flex justify-content-between mb-2">
                                     <strong>فاتورة المبيعات المرتبطة</strong>
