@@ -2870,6 +2870,39 @@
                 addTravel($(this).data('contract-id'));
             });
 
+            $(document).on('submit', '.release-completed-maid-form', function(e) {
+                e.preventDefault();
+
+                const form = this;
+                const maidName = $(form).data('maid-name');
+                const contractId = $(form).data('contract-id');
+
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'اكتمال العقد وتسفير العاملة',
+                    html: 'سيتم اعتماد اكتمال مدة العقد <strong>#' + escapeHtml(String(contractId)) + '</strong> وتسفير العاملة <strong>' + escapeHtml(String(maidName)) + '</strong> وإتاحتها لإنشاء عقد استقدام جديد.<br><br>هل تريد المتابعة؟',
+                    showCancelButton: true,
+                    confirmButtonText: '<i class="fas fa-check me-1"></i> نعم، تنفيذ الإجراء',
+                    cancelButtonText: 'إلغاء',
+                    confirmButtonColor: '#198754',
+                    cancelButtonColor: '#6c757d',
+                    reverseButtons: true,
+                    focusCancel: true
+                }).then(function(result) {
+                    if (result.isConfirmed) {
+                        Swal.fire({
+                            title: 'جاري تنفيذ الإجراء...',
+                            allowOutsideClick: false,
+                            allowEscapeKey: false,
+                            didOpen: function() {
+                                Swal.showLoading();
+                            }
+                        });
+                        form.submit();
+                    }
+                });
+            });
+
             // معالج زر الإرجاع من عمود المرحلة التالية
             var pendingBackContractId = null;
             var pendingBackTargetLabel = null;

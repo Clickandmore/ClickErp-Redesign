@@ -133,6 +133,11 @@ class RecruitmentContractsPermissionsSeeder extends Seeder
                 'display_name' => 'إغلاق العقد بعد انتهاء الضمان',
                 'guard_name' => 'admin'
             ],
+            [
+                'name' => NewPermKeys::REC_CONTRACTS_RELEASE_MAID_AFTER_COMPLETION,
+                'display_name' => 'اكتمال العقد وتسفير العاملة وإتاحتها للاستقدام',
+                'guard_name' => 'admin'
+            ],
 
             // صلاحيات المرتجعات
             [
@@ -222,6 +227,7 @@ class RecruitmentContractsPermissionsSeeder extends Seeder
             NewPermKeys::REC_CONTRACTS_WARRANTY_VIEW => 'إمكانية عرض عقود الاستقدام ضمن فترة الضمان.',
             NewPermKeys::REC_CONTRACTS_WARRANTY_MANAGE => 'إمكانية إدارة فترة الضمان لعقود الاستقدام.',
             NewPermKeys::REC_CONTRACTS_CLOSE_AFTER_WARRANTY => 'إمكانية إغلاق العقد بعد انتهاء الضمان.',
+            NewPermKeys::REC_CONTRACTS_RELEASE_MAID_AFTER_COMPLETION => 'إتاحة العاملة لعقد استقدام جديد بعد اكتمال مدة عقدها وعدم وجودها في الإيواء.',
             NewPermKeys::REC_CONTRACTS_CANCEL_VIEW => 'إمكانية عرض طلبات إلغاء عقود الاستقدام.',
             NewPermKeys::REC_CONTRACTS_CANCEL_CREATE => 'إمكانية إنشاء طلب إلغاء لعقد الاستقدام.',
             NewPermKeys::REC_CONTRACTS_CANCEL_EDIT => 'إمكانية تعديل طلب إلغاء عقد الاستقدام.',

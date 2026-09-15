@@ -469,6 +469,7 @@ Route::group(
             Route::post('RecruitmentContract/refund/preview', [RecruitmentContractController::class, 'refundPreview'])->name('RecruitmentContract.refundPreview');
             Route::post('RecruitmentContract/refund', [RecruitmentContractController::class, 'refund'])->name('RecruitmentContract.refund');
             Route::post('RecruitmentContract/{contract}/restore-returned', [RecruitmentContractController::class, 'restoreReturned'])->name('RecruitmentContract.restoreReturned');
+            Route::post('RecruitmentContract/{contract}/release-maid', [RecruitmentContractController::class, 'releaseMaidAfterCompletion'])->name('RecruitmentContract.releaseMaidAfterCompletion');
 
             Route::resource('RecruitmentContract', RecruitmentContractController::class);
             Route::get('RecruitmentContractBack/{id}', [RecruitmentContractController::class, 'back'])->name('RecruitmentContract.back');

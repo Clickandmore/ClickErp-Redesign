@@ -39,6 +39,7 @@ use App\Services\ingaz\RecruitmentTripAccountingService;
 use App\Services\ingaz\RecruitmentContractRefundService;
 use App\Services\ingaz\RecruitmentContractReturnRestorationService;
 use App\Services\ingaz\RecruitmentContractStageRollbackService;
+use App\Services\ingaz\CompletedRecruitmentMaidReleaseService;
 use App\Services\ingaz\RentalMaidArrivalService;
 use App\Services\ManagedFileStorage;
 use App\Support\SystemModuleManager;
@@ -1608,7 +1609,7 @@ class RecruitmentContractController extends Controller
                         }
                     }
                 })
-                ->addColumn('actions', function ($row) {
+                ->addColumn('actions', function ($row) use ($statusFilter) {
                     $actions = '<div class="dropdown actions-dropdown">
                                     <button class="btn btn-sm btn-primary dropdown-toggle actions-btn" type="button"  aria-expanded="false" title="الإجراءات المتاحة">
                                         <i class="fas fa-cogs me-1"></i> الإجراءات
@@ -1619,6 +1620,20 @@ class RecruitmentContractController extends Controller
                     $actions .= '<li><a class="dropdown-item" href="' . route('contracts.details', $row->id) . '">
                                     <i class="fas fa-eye"></i> عرض تفاصيل العقد
                                 </a></li>';
+
+                    if (
+                        in_array($statusFilter, ['completed_stage', ContractStatusEnum::Completed->value], true)
+                        && $row->status === ContractStatusEnum::Completed->value
+                        && @AdminGuardHasPerm(NewPermKeys::REC_CONTRACTS_RELEASE_MAID_AFTER_COMPLETION)
+                    ) {
+                        $releaseEligibility = app(CompletedRecruitmentMaidReleaseService::class)->eligibility($row);
+                        if ($releaseEligibility['eligible']) {
+                            $actions .= '<li><form method="POST" class="release-completed-maid-form" action="' . e(route('RecruitmentContract.releaseMaidAfterCompletion', $row->id)) . '" data-contract-id="' . e($row->id) . '" data-maid-name="' . e($row->maid?->name ?: ('العاملة #' . $row->maid_id)) . '">'
+                                . csrf_field()
+                                . '<button type="submit" class="dropdown-item text-success"><i class="fas fa-plane-departure"></i> اكتمال العقد وتسفير العاملة</button>'
+                                . '</form></li>';
+                        }
+                    }
 
                     if (
                         in_array($row->status, [
@@ -5035,6 +5050,29 @@ class RecruitmentContractController extends Controller
     /**
      * جلب العاملات المتاحة
      */
+    public function releaseMaidAfterCompletion(
+        Contract $contract,
+        CompletedRecruitmentMaidReleaseService $service
+    ) {
+        abort_unless(
+            @AdminGuardHasPerm(NewPermKeys::REC_CONTRACTS_RELEASE_MAID_AFTER_COMPLETION),
+            403,
+            'ليس لديك صلاحية إتاحة العاملة بعد اكتمال العقد.'
+        );
+
+        try {
+            $maid = $service->release($contract, auth('admin')->id());
+
+            return redirect()
+                ->route('RecruitmentContract.index', ['status' => 'completed_stage'])
+                ->with('success', 'تم اكتمال العقد وتسفير العاملة وإتاحة ' . ($maid->name ?: ('العاملة #' . $maid->id)) . ' لعقد استقدام جديد.');
+        } catch (\RuntimeException $exception) {
+            return redirect()
+                ->route('RecruitmentContract.index', ['status' => 'completed_stage'])
+                ->with('error', $exception->getMessage());
+        }
+    }
+
     public function getAvailableMaids(Request $request)
     {
         logger()->info('getAvailableMaids called', ['request' => $request->all()]);
