@@ -18,6 +18,7 @@ use App\Models\ingaz\OrderDetail;
 use App\Models\ingaz\RecruitmentRequest;
 use App\Models\ingaz\ReturnRequest;
 use App\Models\TravelHistory;
+use App\Services\ExternalOrderAdminSmsNotifier;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Auth;
@@ -96,7 +97,7 @@ class ApiOrderController extends Controller
         //
     }
 
-    public function store(Request $request, MaidAction $maidAction, AdminAction $adminAction)
+    public function store(Request $request, MaidAction $maidAction, AdminAction $adminAction, ExternalOrderAdminSmsNotifier $adminSmsNotifier)
     {
         $request->validate([
             'maid_id' => ['required', 'exists:maids,id'],
@@ -141,7 +142,7 @@ class ApiOrderController extends Controller
             return apiResponse(false, __("web.there_are_order_in_prograss"), null, 403);
         }
 
-        return DB::transaction(function () use ($request, $maid, $jobTypeId, $adminAction) {
+        return DB::transaction(function () use ($request, $maid, $jobTypeId, $adminAction, $adminSmsNotifier) {
             $order = RecruitmentRequest::create([
                 'user_id' => auth()->id(),
                 'maid_id' => $maid->id,
@@ -160,7 +161,7 @@ class ApiOrderController extends Controller
                 }
             }
 
-            $customerService = (object) [];
+            $customerService = null;
 
             if ($request->filled('customer')) {
                 $customerService = $adminAction->find($request->customer);
@@ -172,13 +173,9 @@ class ApiOrderController extends Controller
                     ['admin_id' => $customerService->id]
                 );
 
-                $customerPhone = formatSaudiPhone($customerService->phone);
-
-                if ($customerPhone) {
-                    $customerMsg = "يوجد لديكم حجز باسم {$user->name} برقم جوال {$userPhone}";
-                    $this->sendSMS($customerPhone, $customerMsg);
-                }
             }
+
+            DB::afterCommit(fn () => $adminSmsNotifier->send($order, $user, $maid, $customerService));
 
             return apiResponse(true, __('api.Order created successfully'), [
                 'order' => $order,

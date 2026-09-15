@@ -342,6 +342,12 @@ class NotificationSettingsController extends Controller
 
     private function validateSmsSection(Request $request): array
     {
+        $validateUnifiedPhone = $request->boolean('sms.external_order_admin_notification.enabled')
+            && $request->input('sms.external_order_admin_notification.recipient_mode') === 'unified';
+        $unifiedPhoneRules = $validateUnifiedPhone
+            ? ['required', 'regex:/^(?:\+?9665|05|5)\d{8}$/']
+            : ['nullable'];
+
         $validated = $request->validate([
             'section' => 'required|in:sms',
             'sms' => 'required|array',
@@ -359,12 +365,18 @@ class NotificationSettingsController extends Controller
             'sms.bulk_send_limit' => 'required|integer|min:1|max:10000',
             'sms.bulk_confirmation_keyword' => 'required|string|max:50',
             'sms.disable_phone_verification' => 'nullable|boolean',
+            'sms.external_order_admin_notification' => 'required|array',
+            'sms.external_order_admin_notification.enabled' => 'nullable|boolean',
+            'sms.external_order_admin_notification.recipient_mode' => 'required|in:selected_marketer,unified',
+            'sms.external_order_admin_notification.unified_phone' => $unifiedPhoneRules,
             'sms.taqnyat' => 'required|array',
             'sms.taqnyat.base_url' => 'nullable|url|max:255',
             'sms.taqnyat.bearer_token' => 'nullable|string|max:5000',
         ], [
             'sms.url.url' => 'رابط مزود الرسائل النصية غير صحيح.',
             'sms.taqnyat.base_url.url' => 'رابط بوابة تقنيات غير صحيح.',
+            'sms.external_order_admin_notification.unified_phone.required' => 'أدخل الرقم الموحد الذي سيستقبل تنبيهات حجوزات الموقع الخارجي.',
+            'sms.external_order_admin_notification.unified_phone.regex' => 'صيغة الرقم الموحد غير صحيحة. استخدم 05XXXXXXXX أو 5XXXXXXXX أو 9665XXXXXXXX أو +9665XXXXXXXX.',
         ]);
 
         return $validated['sms'];
