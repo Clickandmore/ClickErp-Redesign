@@ -27,50 +27,117 @@
     .ops-summary { --ink:#172033; --muted:#738095; --line:#e7ebf1; --soft:#f4f7fb; --navy:#132238;
         --green:#119b70; --red:#df5a63; --amber:#e5a43b; --blue:#2878ff; color:var(--ink); }
     .ops-summary a { text-decoration:none; }
-    .ops-summary .ops-hero { padding:24px 28px; border-radius:16px; color:#fff;
-        background:linear-gradient(125deg,#132238 0%,#1d3553 70%,#244c73 100%); margin-bottom:18px; }
-    .ops-summary .ops-hero h3 { color:#fff; margin:0 0 6px; font-weight:800; }
+
+    /* ——— تحييد أنماط الجداول العامة في style.css / style-rtl.css ———
+       هذان الملفان يُحمَّلان بعد هذا القسم ويفرضان ظلاً وهوامش على كل <table>،
+       و padding:16px !important على رؤوس الأعمدة، وتحريك الصفوف عند المرور،
+       فيتداخل ذلك مع تنسيق التقرير. نعيد ضبطه داخل .ops-summary وحدها. */
+    .ops-summary table { width:100%; margin:0; background:transparent; box-shadow:none;
+        border-collapse:collapse; border-spacing:0; font-size:.86rem; }
+    .ops-summary thead { background:none; box-shadow:none; }
+    .ops-summary tbody tr { transition:background-color .15s ease; }
+    .ops-summary tbody tr:hover { background:#f7f9fc; transform:none; }
+    .ops-summary th, .ops-summary td { padding:10px 12px !important; vertical-align:middle;
+        border-bottom:1px solid var(--line); }
+    .ops-summary thead th { background:var(--soft); font-weight:700; color:#3a4658;
+        border-bottom:1px solid #dde3ec; white-space:nowrap; }
+    .ops-summary tfoot td { background:var(--soft); font-weight:800; border-top:1px solid #dde3ec;
+        border-bottom:0; }
+
+    /* ——— الهيكل العام ——— */
+    .ops-summary .ops-hero { padding:22px 26px; border-radius:16px; color:#fff;
+        background:linear-gradient(125deg,#132238 0%,#1d3553 70%,#244c73 100%); margin-bottom:16px; }
+    .ops-summary .ops-hero h3 { color:#fff; margin:0 0 6px; font-weight:800; font-size:1.3rem; }
     .ops-summary .ops-hero p { margin:0; opacity:.78; font-size:.9rem; }
     .ops-summary .ops-panel { background:#fff; border:1px solid var(--line); border-radius:14px;
-        padding:18px 20px; margin-bottom:18px; }
+        padding:18px 20px; margin-bottom:16px; }
     .ops-summary .panel-head { display:flex; align-items:flex-start; justify-content:space-between;
-        gap:16px; flex-wrap:wrap; margin-bottom:14px; }
-    .ops-summary .panel-title { margin:0; font-size:1.02rem; font-weight:800; }
-    .ops-summary .panel-subtitle { color:var(--muted); font-size:.8rem; margin-top:3px; }
-    .ops-summary .kpi-grid { display:grid; gap:14px; grid-template-columns:repeat(auto-fit,minmax(210px,1fr)); margin-bottom:18px; }
-    .ops-summary .kpi { background:#fff; border:1px solid var(--line); border-radius:14px; padding:16px 18px; }
-    .ops-summary .kpi span { display:block; color:var(--muted); font-size:.78rem; font-weight:700; }
-    .ops-summary .kpi strong { display:block; font-size:1.32rem; font-weight:800; margin-top:6px;
-        direction:ltr; text-align:start; font-variant-numeric:tabular-nums; }
-    .ops-summary .kpi small { display:block; color:var(--muted); font-size:.74rem; margin-top:5px; }
+        gap:10px 20px; flex-wrap:wrap; margin-bottom:14px; }
+    .ops-summary .panel-head > * { min-width:0; }
+    .ops-summary .panel-headline { flex:1 1 300px; }
+    .ops-summary .panel-meta { flex:0 1 auto; max-width:100%; text-align:end; }
+    .ops-summary .panel-meta .pill { margin-bottom:4px; }
+    .ops-summary .panel-title { margin:0; font-size:1.02rem; font-weight:800; line-height:1.6; }
+    .ops-summary .panel-subtitle { color:var(--muted); font-size:.8rem; margin-top:3px; line-height:1.8; }
+
+    /* ——— شريط الفلاتر: كل الحقول على استقامة واحدة مهما طال عنوانها ——— */
+    .ops-summary .ops-filters label { display:flex; align-items:flex-end; min-height:2.5em;
+        margin:0 0 6px; font-size:.82rem; font-weight:700; color:#42506b; line-height:1.25; }
+    .ops-summary .ops-filters .form-control { width:100%; }
+    .ops-summary .ops-filters-actions { display:flex; flex-wrap:wrap; align-items:center; gap:8px;
+        margin-top:4px; padding-top:14px; border-top:1px dashed var(--line); }
+    .ops-summary .ops-filters-actions .panel-subtitle { margin:0; flex:1 1 220px; }
+    .ops-summary .ops-field-hint { display:block; margin-top:6px; font-size:.74rem;
+        color:var(--muted); line-height:1.6; }
+
+    /* ——— بطاقات المؤشرات ——— */
+    .ops-summary .kpi-grid { display:grid; gap:12px;
+        grid-template-columns:repeat(auto-fill,minmax(230px,1fr)); margin-bottom:16px; }
+    .ops-summary .kpi { background:#fff; border:1px solid var(--line); border-radius:14px;
+        padding:15px 17px; display:flex; flex-direction:column; }
+    .ops-summary .kpi span { display:block; color:var(--muted); font-size:.78rem; font-weight:700; line-height:1.6; }
+    .ops-summary .kpi strong { display:block; font-size:1.3rem; font-weight:800; margin-top:6px;
+        direction:ltr; text-align:right; font-variant-numeric:tabular-nums; }
+    .ops-summary .kpi small { display:block; color:var(--muted); font-size:.74rem; margin-top:5px; line-height:1.7; }
     .ops-summary .kpi.is-green strong { color:var(--green); }
     .ops-summary .kpi.is-red strong { color:var(--red); }
     .ops-summary .kpi.is-amber strong { color:var(--amber); }
-    .ops-summary table { width:100%; border-collapse:collapse; font-size:.86rem; }
-    .ops-summary th, .ops-summary td { border-bottom:1px solid var(--line); padding:9px 12px; white-space:nowrap; }
-    .ops-summary thead th { background:var(--soft); font-weight:700; color:#3a4658; }
-    .ops-summary tfoot td { background:var(--soft); font-weight:800; }
-    .ops-summary .num { direction:ltr; text-align:start; font-variant-numeric:tabular-nums; }
+
+    /* ——— الأرقام تُحاذى على حافة بداية الصفحة كي تتطابق مع عناوين الأعمدة ——— */
+    .ops-summary .num { text-align:right; white-space:nowrap; font-variant-numeric:tabular-nums; }
+    .ops-summary td.num { direction:ltr; }
+    [dir="ltr"] .ops-summary .num { text-align:left; }
+    [dir="ltr"] .ops-summary .kpi strong,
+    [dir="ltr"] .ops-summary .aging-cell strong { text-align:left; }
     .ops-summary .positive { color:var(--green); }
     .ops-summary .negative { color:var(--red); }
-    .ops-summary .aging-strip { display:grid; gap:10px; grid-template-columns:repeat(auto-fit,minmax(140px,1fr)); margin-bottom:14px; }
-    .ops-summary .aging-cell { background:var(--soft); border-radius:10px; padding:11px 13px; }
+
+    .ops-summary .table-scroll { overflow-x:auto; overflow-y:hidden; background:#fff;
+        border:1px solid var(--line); border-radius:12px; }
+    .ops-summary .table-scroll + .table-scroll { margin-top:12px; }
+
+    .ops-summary .aging-strip { display:grid; gap:10px;
+        grid-template-columns:repeat(auto-fill,minmax(150px,1fr)); margin-bottom:14px; }
+    .ops-summary .aging-cell { background:var(--soft); border:1px solid var(--line);
+        border-radius:10px; padding:11px 13px; }
     .ops-summary .aging-cell span { display:block; color:var(--muted); font-size:.75rem; font-weight:700; }
-    .ops-summary .aging-cell strong { display:block; font-size:1rem; margin-top:4px; direction:ltr; text-align:start; }
-    .ops-summary .aging-cell.is-hot { background:#fdeceb; }
+    .ops-summary .aging-cell strong { display:block; font-size:1rem; margin-top:4px;
+        direction:ltr; text-align:right; font-variant-numeric:tabular-nums; }
+    .ops-summary .aging-cell.is-hot { background:#fdeceb; border-color:#f6d5d3; }
+
+    .ops-summary .ops-chart { min-height:290px; max-width:100%; margin-bottom:14px; }
+    .ops-summary .ops-chart .apexcharts-canvas { margin-inline:auto; }
+
     .ops-summary .print-only { display:none; }
     .ops-summary .empty-state { text-align:center; color:var(--muted); padding:26px 12px; font-size:.88rem; }
     .ops-summary .empty-state-detail { margin-top:8px; font-size:.82rem; line-height:1.9; color:#6b7280; }
-    .ops-summary .ops-field-hint { display:block; margin-top:4px; font-size:.74rem; color:var(--muted); line-height:1.6; }
+    .ops-summary .ops-data-basis-hint { margin:0 0 16px; border:1px solid #bfdbfe; border-radius:12px;
+        background:#eff6ff; color:#1e3a5f; padding:12px 15px; font-size:.84rem; line-height:1.85; }
+    .ops-summary .ops-data-basis-hint strong { color:#1d4ed8; }
+    .ops-summary .ops-data-basis-hint summary { cursor:pointer; font-weight:800; color:#1d4ed8; list-style:none; }
+    .ops-summary .ops-data-basis-hint summary::-webkit-details-marker { display:none; }
+    .ops-summary .ops-guide-intro { margin:8px 0 10px; }
+    .ops-summary .ops-guide-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(240px,1fr)); gap:9px; }
+    .ops-summary .ops-guide-item { background:#fff; border:1px solid #dbeafe; border-radius:9px; padding:9px 11px; }
+    .ops-summary .ops-guide-item b { display:block; color:#1e3a5f; margin-bottom:2px; }
     .ops-summary .ops-filter-reset { display:inline-block; margin-inline-start:6px; font-weight:700; color:#1d4ed8; }
     /* شريط يوضّح أن فلتر مساند استبعد صفوفاً من هذا القسم وحده */
     .ops-summary .ops-filter-note { display:flex; align-items:flex-start; gap:8px; margin:0 0 12px;
         padding:9px 12px; border:1px solid #fde68a; border-radius:10px; background:#fffbeb;
         color:#92400e; font-size:.82rem; font-weight:600; line-height:1.8; }
     .ops-summary .pill { display:inline-block; padding:2px 9px; border-radius:999px; font-size:.72rem;
-        font-weight:700; background:var(--soft); color:#3a4658; }
+        font-weight:700; background:var(--soft); color:#3a4658; white-space:nowrap; }
     .ops-summary .pill.is-hot { background:#fdeceb; color:#b42318; }
-    .ops-summary .table-scroll { overflow-x:auto; }
+    .ops-summary .ops-pager { display:flex; align-items:center; justify-content:space-between;
+        flex-wrap:wrap; gap:10px; margin-top:14px; }
+    .ops-summary .ops-pager .pagination { margin:0; }
+
+    @media (max-width:575.98px) {
+        .ops-summary .ops-hero { padding:18px; }
+        .ops-summary .ops-panel { padding:14px; }
+        .ops-summary .panel-meta { text-align:start; }
+    }
+
     @media print {
         /* هيكل لوحة التحكم ليس جزءاً من التقرير */
         .sidebar, header.page-header, .page-footer, #scroll-controls,
@@ -89,14 +156,17 @@
         .ops-summary .kpi-grid { grid-template-columns:repeat(3,1fr); }
         .ops-summary .kpi { border:1px solid #999; break-inside:avoid; }
         .ops-summary .kpi strong { color:#000 !important; }
+        .ops-summary .aging-strip { grid-template-columns:repeat(5,1fr); }
 
         /* الجداول: رأس متكرر على كل ورقة، صفوف لا تنكسر، ولا قص أفقي */
-        .ops-summary .table-scroll { overflow:visible !important; }
+        .ops-summary .table-scroll { overflow:visible !important; border:0; border-radius:0; }
         .ops-summary table { font-size:10.5px; page-break-inside:auto; }
         .ops-summary thead { display:table-header-group; }
         .ops-summary tfoot { display:table-footer-group; }
         .ops-summary tr { break-inside:avoid; page-break-inside:avoid; }
-        .ops-summary th, .ops-summary td { padding:4px 6px; white-space:normal; word-break:break-word; }
+        .ops-summary tbody tr:hover { background:none; }
+        .ops-summary th, .ops-summary td { padding:4px 6px !important; white-space:normal; word-break:break-word; }
+        .ops-summary .num { white-space:nowrap; }
         .ops-summary .pill { background:none !important; padding:0; }
         .ops-summary .positive, .ops-summary .negative { color:#000 !important; }
     }
@@ -105,7 +175,7 @@
 @endsection
 
 @section('content')
-<div class="ops-summary p-3">
+<div class="ops-summary">
 
     <div class="ops-hero">
         <h3>{{ __('finance::finance.operational_summary') }}</h3>
@@ -122,23 +192,23 @@
     </div>
 
     <form class="ops-panel {{ $printing ? 'd-none' : '' }} no-print" method="GET" action="{{ route('finance.operational-summary.index') }}">
-        <div class="row g-3 align-items-end">
-            <div class="col-md-2">
+        <div class="row g-3 ops-filters">
+            <div class="col-6 col-md-3 col-xl-2">
                 <label for="ops-from">{{ __('finance::finance.from_date') }}</label>
                 <input class="form-control" id="ops-from" type="date" name="from_date" value="{{ $report['from'] }}" required>
             </div>
-            <div class="col-md-2">
+            <div class="col-6 col-md-3 col-xl-2">
                 <label for="ops-to">{{ __('finance::finance.to_date') }}</label>
                 <input class="form-control" id="ops-to" type="date" name="to_date" value="{{ $report['to'] }}" required>
             </div>
-            <div class="col-md-3">
+            <div class="col-md-6 col-xl-3">
                 <label for="ops-scope">{{ __('finance::finance.ops_receivables_scope') }}</label>
                 <select class="form-control" id="ops-scope" name="scope">
                     <option value="period" {{ $report['scope'] === 'period' ? 'selected' : '' }}>{{ __('finance::finance.ops_scope_period') }}</option>
                     <option value="outstanding" {{ $report['scope'] === 'outstanding' ? 'selected' : '' }}>{{ __('finance::finance.ops_scope_outstanding') }}</option>
                 </select>
             </div>
-            <div class="col-md-3">
+            <div class="col-md-6 col-xl-3">
                 <label for="ops-musaned-status">{{ __('finance::finance.ops_musaned_status') }}</label>
                 <select class="form-control" id="ops-musaned-status" name="musaned_status">
                     <option value="all" @selected($report['musaned_status'] === 'all')>{{ __('finance::finance.ops_musaned_status_all') }}</option>
@@ -147,7 +217,7 @@
                 </select>
                 <small class="ops-field-hint">{{ __('finance::finance.ops_musaned_status_hint') }}</small>
             </div>
-            <div class="col-md-2">
+            <div class="col-6 col-md-3 col-xl-2">
                 <label for="ops-per-page">{{ __('finance::finance.ops_per_page') }}</label>
                 <select class="form-control" id="ops-per-page" name="per_page">
                     @foreach(\Nami\Finance\Services\OperationalSummaryService::PER_PAGE_OPTIONS as $size)
@@ -155,16 +225,33 @@
                     @endforeach
                 </select>
             </div>
-            <div class="col-md-12">
-                <button class="btn btn-success" type="submit">{{ __('finance::finance.filter') }}</button>
-                <a class="btn btn-outline-success" href="{{ route('finance.operational-summary.index', ['from_date' => $report['from'], 'to_date' => $report['to'], 'scope' => $report['scope'], 'musaned_status' => $report['musaned_status'], 'export' => 'xlsx']) }}">{{ __('finance::finance.ops_export_excel') }}</a>
-                <a class="btn btn-outline-secondary" target="_blank" rel="noopener"
-                   href="{{ route('finance.operational-summary.index', ['from_date' => $report['from'], 'to_date' => $report['to'], 'scope' => $report['scope'], 'musaned_status' => $report['musaned_status'], 'print' => 1]) }}">{{ __('finance::finance.print') }}</a>
-                <span class="panel-subtitle d-inline-block ms-2">{{ $report['scope'] === 'period' ? __('finance::finance.ops_scope_period_hint') : __('finance::finance.ops_scope_outstanding_hint') }}</span>
+            <div class="col-12">
+                <div class="ops-filters-actions">
+                    <button class="btn btn-success" type="submit">{{ __('finance::finance.filter') }}</button>
+                    <a class="btn btn-outline-success" href="{{ route('finance.operational-summary.index', ['from_date' => $report['from'], 'to_date' => $report['to'], 'scope' => $report['scope'], 'musaned_status' => $report['musaned_status'], 'export' => 'xlsx']) }}">{{ __('finance::finance.ops_export_excel') }}</a>
+                    <a class="btn btn-outline-secondary" target="_blank" rel="noopener"
+                       href="{{ route('finance.operational-summary.index', ['from_date' => $report['from'], 'to_date' => $report['to'], 'scope' => $report['scope'], 'musaned_status' => $report['musaned_status'], 'print' => 1]) }}">{{ __('finance::finance.print') }}</a>
+                    <span class="panel-subtitle">{{ $report['scope'] === 'period' ? __('finance::finance.ops_scope_period_hint') : __('finance::finance.ops_scope_outstanding_hint') }}</span>
+                </div>
             </div>
         </div>
         @if($errors->any())<div class="alert alert-danger mt-3 mb-0">{{ $errors->first() }}</div>@endif
     </form>
+
+    <details class="ops-data-basis-hint">
+        <summary><i class="fas fa-info-circle me-1"></i>{{ __('finance::finance.ops_page_guide_title') }}</summary>
+        <div class="ops-guide-intro">{{ __('finance::finance.ops_data_basis_hint') }}</div>
+        <div class="ops-guide-grid">
+            @foreach([
+                'filters', 'sales', 'collection', 'receivables', 'aging', 'delegations', 'musaned', 'offices'
+            ] as $guide)
+                <div class="ops-guide-item">
+                    <b>{{ __('finance::finance.ops_guide_' . $guide . '_title') }}</b>
+                    <span>{{ __('finance::finance.ops_guide_' . $guide . '_hint') }}</span>
+                </div>
+            @endforeach
+        </div>
+    </details>
 
     <div class="kpi-grid">
         <div class="kpi">
@@ -211,12 +298,12 @@
     {{-- إجمالي المبيعات الشهرية --}}
     <section class="ops-panel">
         <div class="panel-head">
-            <div>
+            <div class="panel-headline">
                 <h5 class="panel-title">{{ __('finance::finance.ops_monthly_sales') }}</h5>
                 <div class="panel-subtitle">{{ __('finance::finance.ops_monthly_sales_hint') }}</div>
             </div>
         </div>
-        <div id="opsSalesChart" class="no-print mb-3"></div>
+        <div id="opsSalesChart" class="ops-chart no-print"></div>
         <div class="table-scroll">
             <table>
                 <thead>
@@ -285,11 +372,11 @@
         @php $section = $block['section']; @endphp
         <section class="ops-panel">
             <div class="panel-head">
-                <div>
+                <div class="panel-headline">
                     <h5 class="panel-title">{{ $block['title'] }}</h5>
                     <div class="panel-subtitle">{{ $block['hint'] }} — {{ __('finance::finance.ops_top_rows_note') }}</div>
                 </div>
-                <div class="panel-subtitle">
+                <div class="panel-subtitle panel-meta">
                     {{ $section['totals']['documents'] }} {{ __('finance::finance.ops_documents') }} —
                     {{ __('finance::finance.ops_clients_count') }}: {{ $section['totals']['clients'] }} —
                     {{ __('finance::finance.ops_oldest_debt') }}: {{ $section['totals']['oldest_days'] }} {{ __('finance::finance.ops_days') }}
@@ -401,7 +488,7 @@
                     </table>
                 </div>
                 @if($section['paginator'] && $section['paginator']->hasPages())
-                    <div class="no-print mt-3 d-flex align-items-center justify-content-between flex-wrap gap-2">
+                    <div class="ops-pager no-print">
                         <div class="panel-subtitle">
                             {{ __('finance::finance.ops_showing') }}
                             {{ $section['paginator']->firstItem() }}–{{ $section['paginator']->lastItem() }}
@@ -417,12 +504,12 @@
     {{-- إيرادات التفاويض الرجالية --}}
     <section class="ops-panel">
         <div class="panel-head">
-            <div>
+            <div class="panel-headline">
                 <h5 class="panel-title">{{ __('finance::finance.ops_delegations') }}</h5>
                 <div class="panel-subtitle">{{ __('finance::finance.ops_delegations_hint') }}</div>
             </div>
             @if($delegations['pending_cost']['entries'] > 0)
-                <div class="panel-subtitle">
+                <div class="panel-subtitle panel-meta">
                     <span class="pill is-hot">{{ __('finance::finance.ops_delegation_pending_cost') }}: {{ $delegations['pending_cost']['entries'] }} — {{ $money($delegations['pending_cost']['amount']) }}</span>
                     <div>{{ __('finance::finance.ops_delegation_pending_cost_hint') }}</div>
                 </div>
@@ -515,12 +602,12 @@
     {{-- عمولات مساند --}}
     <section class="ops-panel">
         <div class="panel-head">
-            <div>
+            <div class="panel-headline">
                 <h5 class="panel-title">{{ __('finance::finance.ops_musaned') }}</h5>
                 <div class="panel-subtitle">{{ __('finance::finance.ops_musaned_hint') }}</div>
             </div>
             @if($musaned['unposted']['transfers'] > 0)
-                <div class="panel-subtitle">
+                <div class="panel-subtitle panel-meta">
                     <span class="pill is-hot">{{ __('finance::finance.ops_musaned_unposted') }}: {{ $musaned['unposted']['transfers'] }} — {{ $money($musaned['unposted']['amount']) }}</span>
                 </div>
             @endif
@@ -528,7 +615,7 @@
         @if($musaned['totals']['transfers'] === 0)
             <div class="empty-state">{{ __('finance::finance.ops_no_musaned') }}</div>
         @else
-            <div id="opsMusanedChart" class="no-print mb-3"></div>
+            <div id="opsMusanedChart" class="ops-chart no-print"></div>
             <div class="table-scroll">
                 <table>
                     <thead>
@@ -580,12 +667,12 @@
     {{-- استحقاقات المكاتب الخارجية --}}
     <section class="ops-panel">
         <div class="panel-head">
-            <div>
+            <div class="panel-headline">
                 <h5 class="panel-title">{{ __('finance::finance.ops_offices') }}</h5>
                 <div class="panel-subtitle">{{ __('finance::finance.ops_offices_hint') }}</div>
             </div>
             @if($offices['unlinked_offices'] > 0)
-                <div class="panel-subtitle"><span class="pill is-hot">{{ __('finance::finance.ops_offices_unlinked') }}: {{ $offices['unlinked_offices'] }}</span></div>
+                <div class="panel-subtitle panel-meta"><span class="pill is-hot">{{ __('finance::finance.ops_offices_unlinked') }}: {{ $offices['unlinked_offices'] }}</span></div>
             @endif
         </div>
         @if($offices['rows']->isEmpty())

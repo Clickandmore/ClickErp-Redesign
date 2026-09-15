@@ -124,6 +124,7 @@ class NewPermKeys
     const REC_CONTRACTS_WARRANTY_VIEW = 'rec_contracts_warranty_view';
     const REC_CONTRACTS_WARRANTY_MANAGE = 'rec_contracts_warranty_manage';
     const REC_CONTRACTS_CLOSE_AFTER_WARRANTY = 'rec_contracts_close_after_warranty';
+    const REC_CONTRACTS_RELEASE_MAID_AFTER_COMPLETION = 'rec_contracts_release_maid_after_completion';
 
     // صلاحيات طلبات الإلغاء
     const REC_CONTRACTS_CANCEL_VIEW = 'rec_contracts_cancel_view';
