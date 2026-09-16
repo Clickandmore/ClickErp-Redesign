@@ -11,6 +11,20 @@ use Illuminate\Support\Facades\Schema;
  */
 class CvOptionsSettings
 {
+    public const SITE_SORT_ORDER_COLUMN = 'cv_site_sort_order';
+    public const SITE_SORT_ORDERS = ['random', 'oldest', 'newest'];
+
+    public static function siteSortOrder(): string
+    {
+        if (!Schema::hasColumn('settings', self::SITE_SORT_ORDER_COLUMN)) {
+            return 'random';
+        }
+
+        $order = Setting::query()->without('translations')->value(self::SITE_SORT_ORDER_COLUMN);
+
+        return in_array($order, self::SITE_SORT_ORDERS, true) ? $order : 'random';
+    }
+
     public const RENTAL_TRANSFER_COLUMN = 'rental_cv_transfer_enabled';
     public const MAID_TRANSACTION_EDIT_OVERRIDE_COLUMN = 'maid_transaction_edit_override_enabled';
 

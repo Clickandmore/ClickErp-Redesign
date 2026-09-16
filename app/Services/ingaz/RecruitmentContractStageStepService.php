@@ -59,15 +59,39 @@ class RecruitmentContractStageStepService
 
     public function assertCurrentStep(Contract $contract, RecruitmentContractStageStep $step): void
     {
-        $current = $this->currentStep($contract);
-
-        if (!$current || (int) $current->id !== (int) $step->id) {
-            $message = $current
-                ? 'يجب إنجاز الخطوة الحالية أولاً: ' . $current->displayName('ar')
-                : 'هذه الخطوة ليست الخطوة الحالية للعقد.';
-
-            throw ValidationException::withMessages(['stage_step' => $message]);
+        if (!$this->applicableSteps($contract)->contains('id', $step->id)) {
+            throw ValidationException::withMessages(['stage_step' => 'هذه الخطوة لا تنطبق على مرحلة العقد أو جنسية العاملة الحالية.']);
         }
+    }
+
+    public function completeMany(Contract $contract, string $stage, array $entries, ?int $adminId): void
+    {
+        DB::transaction(function () use ($contract, $stage, $entries, $adminId) {
+            $contract = Contract::query()->lockForUpdate()->findOrFail($contract->id);
+            if ($contract->status !== $stage) {
+                throw ValidationException::withMessages(['stage' => 'تغيرت مرحلة العقد. يرجى إعادة فتح نافذة المراحل.']);
+            }
+            $steps = $this->applicableSteps($contract, true)->keyBy('id');
+            foreach ($entries as $entry) {
+                if (!$steps->has($entry['id'])) {
+                    throw ValidationException::withMessages(['steps' => 'إحدى المراحل المحددة لا تنطبق على العقد الحالي.']);
+                }
+            }
+            foreach ($entries as $entry) {
+                $completion = RecruitmentContractStepCompletion::firstOrNew([
+                    'contract_id' => $contract->id,
+                    'stage_step_id' => $entry['id'],
+                ]);
+                // Repeated submissions must not overwrite an already recorded completion.
+                if ($completion->completed_at) {
+                    continue;
+                }
+                $completion->completed_at = $entry['completed_at'];
+                $completion->completed_by_id = $adminId;
+                $completion->notes = trim((string) ($entry['notes'] ?? '')) ?: null;
+                $completion->save();
+            }
+        });
     }
 
     public function assertStageComplete(Contract $contract): void
@@ -96,7 +120,7 @@ class RecruitmentContractStageStepService
 
             RecruitmentContractStepCompletion::query()
                 ->where('contract_id', $contract->id)
-                ->whereIn('stage_step_id', $steps->slice($position)->pluck('id'))
+                ->where('stage_step_id', $step->id)
                 ->update([
                     'completed_at' => null,
                     'completed_by_id' => null,

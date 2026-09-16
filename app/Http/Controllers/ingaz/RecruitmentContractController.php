@@ -1407,9 +1407,9 @@ class RecruitmentContractController extends Controller
                             . ' data-step-id="' . e($currentStageStep->id) . '"'
                             . ' data-step-name="' . e($currentStageStep->displayName(app()->getLocale())) . '"'
                             . ' data-stage-name="' . e(\App\Support\RecruitmentContractStageLabels::label($row->status) ?: $row->status) . '"'
-                            . ' data-url="' . e(route('RecruitmentContract.stageSteps.update', [$row->id, $currentStageStep->id])) . '"'
-                            . ' title="تأكيد إنجاز الخطوة الحالية">'
-                            . '<i class="fas fa-list-check me-1"></i>إكمال: ' . e($currentStageStep->displayName(app()->getLocale()))
+                            . ' data-url="' . e(route('RecruitmentContract.stageSteps.index', $row->id)) . '"'
+                            . ' title="تنفيذ المراحل الفرعية">'
+                            . '<i class="fas fa-list-check me-1"></i>مراحل ' . e(\App\Support\RecruitmentContractStageLabels::label($row->status) ?: $row->status)
                             . '</button>';
                     }
 
@@ -2069,6 +2069,45 @@ class RecruitmentContractController extends Controller
             ->get();
     }
 
+    public function stageSteps(Contract $contract)
+    {
+        abort_unless($this->canUpdateRecruitmentContracts(), 403);
+        abort_unless(in_array($contract->type, ['recruitment', 'maid'], true), 404);
+        $steps = app(RecruitmentContractStageStepService::class)->applicableSteps($contract);
+        $completions = RecruitmentContractStepCompletion::query()
+            ->where('contract_id', $contract->id)->whereIn('stage_step_id', $steps->pluck('id'))
+            ->get()->keyBy('stage_step_id');
+
+        return response()->json([
+            'stage' => $contract->status,
+            'today' => now()->toDateString(),
+            'steps' => $steps->map(fn ($step) => [
+                'id' => $step->id,
+                'name' => $step->displayName(app()->getLocale()),
+                'completed_at' => $completions->get($step->id)?->completed_at?->format('Y-m-d'),
+                'notes' => $completions->get($step->id)?->notes,
+            ]),
+        ])->header('Cache-Control', 'no-store');
+    }
+
+    public function completeStageSteps(Request $request, Contract $contract)
+    {
+        abort_unless($this->canUpdateRecruitmentContracts(), 403);
+        abort_unless(in_array($contract->type, ['recruitment', 'maid'], true), 404);
+        $validated = $request->validate([
+            'stage' => ['required', 'string'],
+            'steps' => ['required', 'array', 'min:1', 'max:100'],
+            'steps.*.id' => ['required', 'integer', 'distinct'],
+            'steps.*.completed_at' => ['required', 'date_format:Y-m-d', 'before_or_equal:today'],
+            'steps.*.notes' => ['nullable', 'string', 'max:2000'],
+        ]);
+        app(RecruitmentContractStageStepService::class)->completeMany(
+            $contract, $validated['stage'], $validated['steps'], Auth::guard('admin')->id()
+        );
+
+        return response()->json(['success' => true, 'message' => 'تم تنفيذ المراحل المحددة بنجاح.']);
+    }
+
     public function updateStageStep(Request $request, Contract $contract, RecruitmentContractStageStep $step)
     {
         abort_unless($this->canUpdateRecruitmentContracts(), 403);
@@ -2076,6 +2115,7 @@ class RecruitmentContractController extends Controller
 
         $validated = $request->validate([
             'completed' => ['required', 'boolean'],
+            'completed_at' => ['nullable', 'date_format:Y-m-d', 'before_or_equal:today'],
             'notes' => ['nullable', 'string', 'max:2000'],
         ]);
 
@@ -2112,7 +2152,7 @@ class RecruitmentContractController extends Controller
             ]);
             $completion->notes = trim((string) ($validated['notes'] ?? '')) ?: null;
             if (!$completion->completed_at) {
-                $completion->completed_at = now();
+                $completion->completed_at = $validated['completed_at'] ?? now();
                 $completion->completed_by_id = Auth::guard('admin')->id();
             }
             $completion->save();

@@ -35,6 +35,20 @@
                 <div class="col-12">
                     <div class="card border-0 shadow-sm">
                         <div class="card-body">
+                            <label class="form-label fw-bold" for="cv_site_sort_order">ترتيب السير الذاتية في الموقع الخارجي</label>
+                            <select class="form-select" name="cv_site_sort_order" id="cv_site_sort_order" required>
+                                @foreach (['random' => 'عشوائي', 'oldest' => 'من الأقدم إلى الأحدث', 'newest' => 'من الأحدث إلى الأقدم'] as $value => $label)
+                                    <option value="{{ $value }}" @selected(old('cv_site_sort_order', $settings->cv_site_sort_order ?? 'random') === $value)>{{ $label }}</option>
+                                @endforeach
+                            </select>
+                            <p class="text-muted mt-2 mb-0">يعتمد الترتيب على تاريخ إضافة السيرة، مع ظهور السير المثبّتة أولًا في جميع الخيارات.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-12">
+                    <div class="card border-0 shadow-sm">
+                        <div class="card-body">
                             <input type="hidden" name="rental_cv_transfer_enabled" value="0">
                             <div class="form-check form-switch mb-2">
                                 <input class="form-check-input" type="checkbox" role="switch"

@@ -478,6 +478,8 @@ Route::group(
             Route::resource('RecruitmentContract', RecruitmentContractController::class);
             Route::get('RecruitmentContractBack/{id}', [RecruitmentContractController::class, 'back'])->name('RecruitmentContract.back');
             Route::get('contractsDetails/{id}', [RecruitmentContractController::class, 'details'])->name('contracts.details');
+            Route::get('RecruitmentContract/{contract}/stage-steps', [RecruitmentContractController::class, 'stageSteps'])->name('RecruitmentContract.stageSteps.index');
+            Route::post('RecruitmentContract/{contract}/stage-steps', [RecruitmentContractController::class, 'completeStageSteps'])->name('RecruitmentContract.stageSteps.complete');
             Route::post('RecruitmentContract/{contract}/stage-steps/{step}', [RecruitmentContractController::class, 'updateStageStep'])->name('RecruitmentContract.stageSteps.update');
             Route::post('RecruitmentContract/{contractId}/add-maid', [RecruitmentContractController::class, 'addMaidToContract'])->name('RecruitmentContract.addMaid');
             Route::get('RecruitmentContract/{contractId}/select-maid', [RecruitmentContractController::class, 'selectMaidForContract'])->name('RecruitmentContract.selectMaid');

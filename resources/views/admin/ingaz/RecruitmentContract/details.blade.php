@@ -1957,7 +1957,7 @@
                                                     @elseif ($isCurrentWorkflowStep)
                                                         <span class="badge bg-warning text-dark">الخطوة الحالية</span>
                                                     @elseif (!$isCompleted)
-                                                        <span class="badge bg-light text-dark border">بانتظار الخطوة السابقة</span>
+                                                        <span class="badge bg-light text-dark border">متاحة للتنفيذ</span>
                                                     @endif
                                                 </div>
                                                 @if ($isCompleted)
@@ -1971,10 +1971,17 @@
                                             </div>
                                         </div>
 
-                                        @if ($isCurrentStageStep && ($isCompleted || $isCurrentWorkflowStep) && $canUpdateContractStageSteps)
+                                        @if ($isCurrentStageStep && $canUpdateContractStageSteps)
                                             <form method="POST" action="{{ route('RecruitmentContract.stageSteps.update', [$contract->id, $step->id]) }}" class="mt-3">
                                                 @csrf
                                                 <div class="row g-2 align-items-center">
+                                                    @if (!$isCompleted)
+                                                        <div class="col-lg-auto">
+                                                            <label class="form-label" for="step-date-{{ $step->id }}">تاريخ التنفيذ</label>
+                                                            <input type="date" id="step-date-{{ $step->id }}" name="completed_at" class="form-control"
+                                                                value="{{ now()->toDateString() }}" max="{{ now()->toDateString() }}" required>
+                                                        </div>
+                                                    @endif
                                                     <div class="col-lg">
                                                         <input type="text" name="notes" class="form-control"
                                                             value="{{ $completion?->notes }}" maxlength="2000"
@@ -1988,7 +1995,7 @@
                                                             <button type="submit" name="completed" value="0" class="btn btn-outline-warning">
                                                                 <i class="fas fa-rotate-left me-1"></i> إعادة فتح
                                                             </button>
-                                                        @elseif ($isCurrentWorkflowStep)
+                                                        @else
                                                             <button type="submit" name="completed" value="1" class="btn btn-success">
                                                                 <i class="fas fa-check me-1"></i> تم الإنجاز
                                                             </button>
