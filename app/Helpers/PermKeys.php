@@ -401,9 +401,19 @@ const PARTENR_CONTROL = 'partenr_control';
     const WHY_CHOOSE_US_DELETE = 'why_choose_us_delete';
     const WHY_CHOOSE_US_CONTROL = 'why_choose_us_control';
 
+    const WHY_US_VIEW = 'why_us_view';
+    const WHY_US_CREATE = 'why_us_create';
+    const WHY_US_EDIT = 'why_us_edit';
+    const WHY_US_DELETE = 'why_us_delete';
+    const WHY_US_CONTROL = 'why_us_control';
+
     const MUSANED_SECTION_VIEW = 'musaned_section_view';
     const MUSANED_SECTION_EDIT = 'musaned_section_edit';
     const MUSANED_SECTION_CONTROL = 'musaned_section_control';
+
+    const HOME_SECTIONS_VIEW = 'home_sections_view';
+    const HOME_SECTIONS_EDIT = 'home_sections_edit';
+    const HOME_SECTIONS_CONTROL = 'home_sections_control';
 
     const HOME_HERO_VIEW = 'home_hero_view';
     const HOME_HERO_CREATE = 'home_hero_create';

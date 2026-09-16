@@ -15,6 +15,7 @@ class Requirement extends Model
     protected $fillable = [
         'image',
         'type',
+        'icon',
         'sort_order',
         'is_active',
     ];

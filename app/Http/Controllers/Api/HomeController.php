@@ -30,6 +30,7 @@ use App\Http\Requests\ingaz\API\DailyLabotDemandRequest;
 use App\Http\Resources\Api\PackageResource;
 use App\Http\Resources\Api\FindUsLocationResource;
 use App\Support\FindUsSettings;
+use App\Support\HomeSectionSettings;
 use App\Support\SystemModuleManager;
 use App\Http\Resources\Api\RecruitmentRequirementResource;
 use App\Http\Resources\Api\WhyChooseUsResource;
@@ -355,7 +356,7 @@ class HomeController extends Controller
         $requirments = $requirement_action->getVisible();
         $Visa = $requirments->where('type', RequirementEnum::VisaIssuance->value);
         $Domestic = $requirments->where('type', RequirementEnum::RecruitDomestic->value);
-        $whyUs = $whyUsAction->get();
+        $whyUs = $whyUsAction->getVisible();
         $whyChooseUs = $whyChooseUsAction->visibleSection();
         $musanedSection = $musanedSectionAction->visibleSection();
         $homeHeroSection = $homeHeroSectionAction->visibleSection();
@@ -444,6 +445,9 @@ class HomeController extends Controller
                 'domestic' => RecruitmentRequirementResource::collection($Domestic->values()),
             ],
             'counts' => $counts,
+            // مفتاح إضافي فقط: المواقع التي لا تقرؤه يبقى شكلها كما هو، والتي
+            // تقرؤه تعتبر أي قسم غير موجود فيه ظاهراً.
+            'sections_visibility' => HomeSectionSettings::all(),
         ];
 
         return $this->successResponse($data, $this->localizedText('تم جلب بيانات الصفحة الرئيسية بنجاح', 'Home data retrieved successfully'), 200);
@@ -474,7 +478,7 @@ class HomeController extends Controller
 
     public function whyUs(Request $request, WhyUsAction $whyUsAction)
     {
-        $whyUs = $whyUsAction->get();
+        $whyUs = $whyUsAction->getVisible();
         return $this->successResponse($whyUs, $this->localizedText('تم جلب بيانات لماذا نحن بنجاح', 'Why Us data retrieved successfully'), 200);
     }
     public function testimonials(Request $request, TestimonialsAction $testimonialsAction)

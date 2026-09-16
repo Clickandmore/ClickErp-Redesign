@@ -14,10 +14,11 @@ class RequirementItem extends Model implements TranslatableContract
 
     protected $fillable = [
         'requirement_id',
+        'icon',
         'sort_order',
     ];
 
-    public $translatedAttributes = ['text'];
+    public $translatedAttributes = ['text', 'description'];
 
     protected $casts = [
         'sort_order' => 'integer',

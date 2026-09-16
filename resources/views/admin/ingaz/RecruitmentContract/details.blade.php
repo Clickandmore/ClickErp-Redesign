@@ -45,8 +45,11 @@
     $currentContractStageLabel = $statusTimeline['current_stage_label']
         ?? getContractStatus($contract->status)
         ?? 'غير محددة';
+    $currentContractStageDisplayLabel = $currentContractStageStep
+        ? $currentContractStageLabel . ' — ' . $currentContractStageStep->displayName(app()->getLocale())
+        : $currentContractStageLabel;
     $contractExpiryPendingMessage = 'لم يبدأ الاحتساب؛ العاملة لم تصل حتى الآن. المرحلة الحالية: '
-        . $currentContractStageLabel;
+        . $currentContractStageDisplayLabel;
     $contractDurationLabel = match ((int) ($info->contract_duration ?? 0)) {
         1 => 'سنة واحدة',
         2 => 'سنتان',
@@ -1102,7 +1105,7 @@
                         @else
                             <div class="overview-meta">
                                 لم يبدأ الاحتساب؛ العاملة لم تصل حتى الآن.<br>
-                                المرحلة الحالية: {{ $currentContractStageLabel }}
+                                المرحلة الحالية: {{ $currentContractStageDisplayLabel }}
                             </div>
                         @endif
                     </div>
@@ -1919,7 +1922,7 @@
                                     الخطوات التفصيلية للعقد
                                 </span>
                                 <span class="badge bg-light text-dark border">
-                                    المرحلة الحالية: {{ $currentContractStageLabel }}
+                                    المرحلة الحالية: {{ $currentContractStageDisplayLabel }}
                                 </span>
                             </div>
                             <div class="text-muted mb-3">
@@ -1932,6 +1935,9 @@
                                         $completion = $step->completions->first();
                                         $isCompleted = (bool) optional($completion)->completed_at;
                                         $isCurrentStageStep = $step->stage === $contract->status && !$step->trashed() && $step->is_active;
+                                        $isCurrentWorkflowStep = $isCurrentStageStep
+                                            && $currentContractStageStep
+                                            && (int) $currentContractStageStep->id === (int) $step->id;
                                         $stageLabel = \App\Support\RecruitmentContractStageLabels::label($step->stage) ?: $step->stage;
                                     @endphp
                                     <div class="border rounded-3 p-3 {{ $isCompleted ? 'bg-success bg-opacity-10 border-success' : 'bg-white' }}">
@@ -1948,6 +1954,10 @@
                                                     </span>
                                                     @if (!$isCurrentStageStep)
                                                         <span class="badge bg-light text-dark border">خطوة سابقة</span>
+                                                    @elseif ($isCurrentWorkflowStep)
+                                                        <span class="badge bg-warning text-dark">الخطوة الحالية</span>
+                                                    @elseif (!$isCompleted)
+                                                        <span class="badge bg-light text-dark border">بانتظار الخطوة السابقة</span>
                                                     @endif
                                                 </div>
                                                 @if ($isCompleted)
@@ -1961,7 +1971,7 @@
                                             </div>
                                         </div>
 
-                                        @if ($isCurrentStageStep && $canUpdateContractStageSteps)
+                                        @if ($isCurrentStageStep && ($isCompleted || $isCurrentWorkflowStep) && $canUpdateContractStageSteps)
                                             <form method="POST" action="{{ route('RecruitmentContract.stageSteps.update', [$contract->id, $step->id]) }}" class="mt-3">
                                                 @csrf
                                                 <div class="row g-2 align-items-center">
@@ -1978,7 +1988,7 @@
                                                             <button type="submit" name="completed" value="0" class="btn btn-outline-warning">
                                                                 <i class="fas fa-rotate-left me-1"></i> إعادة فتح
                                                             </button>
-                                                        @else
+                                                        @elseif ($isCurrentWorkflowStep)
                                                             <button type="submit" name="completed" value="1" class="btn btn-success">
                                                                 <i class="fas fa-check me-1"></i> تم الإنجاز
                                                             </button>

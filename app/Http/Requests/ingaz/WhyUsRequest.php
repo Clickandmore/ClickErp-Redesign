@@ -3,33 +3,34 @@
 namespace App\Http\Requests\ingaz;
 
 use App\Http\Requests\MainRequest;
-use Illuminate\Foundation\Http\FormRequest;
-use Illuminate\Validation\Rule;
 
 class WhyUsRequest extends MainRequest
 {
-    /**
-     * Determine if the user is authorized to make this request.
-     *
-     * @return bool
-     */
     public function authorize()
     {
         return true;
     }
 
-    /**
-     * Get the validation rules that apply to the request.
-     *
-     * @return array
-     */
+    protected function prepareForValidation(): void
+    {
+        $this->merge([
+            'is_active' => $this->boolean('is_active'),
+        ]);
+    }
+
     public function rules()
     {
+        $rules = [
+            'icon' => 'required|string|max:100',
+            'sort_order' => 'required|integer|min:1|max:9999',
+            'is_active' => 'required|boolean',
+        ];
+
         foreach (config('translatable.locales') as $locale) {
-            $rules["title:$locale"] = ['required'];
-            $rules["description:$locale"] = ['required'];
+            $rules["title:$locale"] = 'required|string|max:255';
+            $rules["description:$locale"] = 'required|string|max:1000';
         }
-        $rules['icon'] = ['required'];
+
         return $rules;
     }
 }

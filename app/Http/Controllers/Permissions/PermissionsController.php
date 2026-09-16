@@ -687,6 +687,7 @@ class PermissionsController extends Controller
             'faq_' => ['section' => 'content_management', 'group' => 'faq'],
             'about_us_' => ['section' => 'content_management', 'group' => 'about_us'],
             'musaned_section_' => ['section' => 'content_management', 'group' => 'musaned_section'],
+            'home_sections_' => ['section' => 'content_management', 'group' => 'home_sections'],
             'home_hero_' => ['section' => 'content_management', 'group' => 'home_hero'],
             'guidelines_' => ['section' => 'content_management', 'group' => 'guidelines'],
             'contact_' => ['section' => 'orders', 'group' => 'contact'],
