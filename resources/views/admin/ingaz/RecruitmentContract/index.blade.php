@@ -1273,33 +1273,30 @@
 
         <div class="modal fade" id="completeStageStepModal" tabindex="-1"
             aria-labelledby="completeStageStepModalLabel" aria-hidden="true">
-            <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-dialog modal-dialog-centered modal-lg">
                 <div class="modal-content">
                     <div class="modal-header">
                         <h5 class="modal-title" id="completeStageStepModalLabel">
                             <i class="fas fa-list-check text-success me-1"></i>
-                            تأكيد المرحلة الفرعية
+                            تنفيذ المراحل الفرعية
                         </h5>
                         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="إغلاق"></button>
                     </div>
                     <div class="modal-body">
                         <input type="hidden" id="stageStepUpdateUrl">
+                        <input type="hidden" id="stageStepParentValue">
                         <div class="alert alert-light border mb-3">
                             <div class="text-muted small mb-1">المرحلة الأم</div>
                             <strong id="stageStepParentName">—</strong>
-                            <div class="text-muted small mt-3 mb-1">الخطوة المطلوب تأكيدها</div>
-                            <strong class="text-success" id="stageStepName">—</strong>
+                            <div class="text-muted small mt-2">اختر مرحلة أو أكثر وحدد تاريخ تنفيذ كل مرحلة، ثم اضغط حفظ.</div>
                         </div>
-                        <div class="mb-0">
-                            <label for="stageStepNotes" class="form-label">ملاحظة عن التنفيذ (اختياري)</label>
-                            <textarea id="stageStepNotes" class="form-control" rows="3" maxlength="2000"
-                                placeholder="يمكن إضافة تفاصيل تنفيذ الخطوة"></textarea>
-                        </div>
+                        <div id="stageStepsError" class="alert alert-danger d-none" role="alert"></div>
+                        <div id="stageStepsRows"></div>
                     </div>
                     <div class="modal-footer">
                         <button type="button" class="btn btn-light" data-bs-dismiss="modal">إلغاء</button>
                         <button type="button" class="btn btn-success" id="confirmStageStepBtn">
-                            <i class="fas fa-check me-1"></i> تأكيد الإنجاز
+                            <i class="fas fa-check me-1"></i> حفظ المراحل المحددة
                         </button>
                     </div>
                 </div>
@@ -3034,9 +3031,48 @@
                 const button = $(this);
                 $('#stageStepUpdateUrl').val(button.data('url'));
                 $('#stageStepParentName').text(button.data('stage-name') || '—');
-                $('#stageStepName').text(button.data('step-name') || '—');
-                $('#stageStepNotes').val('');
+                $('#stageStepsError').addClass('d-none').text('');
+                $('#stageStepsRows').empty().text('جارٍ تحميل المراحل...');
+                $('#confirmStageStepBtn').prop('disabled', true);
                 $('#completeStageStepModal').modal('show');
+                const url = button.data('url');
+                $.ajax({ url: url, headers: { 'Accept': 'application/json' }, cache: false })
+                    .done(function(response) {
+                        if ($('#stageStepUpdateUrl').val() !== url) return;
+                        $('#stageStepParentValue').val(response.stage);
+                        const rows = $('#stageStepsRows').empty();
+                        response.steps.forEach(function(step) {
+                            const completed = !!step.completed_at;
+                            const row = $('<div class="border rounded p-3 mb-2 stage-step-row">').attr('data-id', step.id);
+                            const label = $('<label class="d-flex align-items-center gap-2 fw-bold mb-2">');
+                            label.append($('<input type="checkbox" class="form-check-input stage-step-select">').prop('disabled', completed));
+                            label.append($('<span>').text(step.name));
+                            if (completed) label.append($('<span class="badge bg-success">').text('تم التنفيذ'));
+                            row.append(label);
+                            const fields = $('<div class="row g-2">');
+                            const dateId = 'stage-step-date-' + step.id;
+                            const notesId = 'stage-step-notes-' + step.id;
+                            fields.append($('<div class="col-md-4">')
+                                .append($('<label class="form-label">').attr('for', dateId).text('تاريخ التنفيذ'))
+                                .append($('<input type="date" class="form-control stage-step-date">')
+                                    .attr({ id: dateId, max: response.today }).val(step.completed_at || response.today).prop('disabled', true)));
+                            fields.append($('<div class="col-md-8">')
+                                .append($('<label class="form-label">').attr('for', notesId).text('ملاحظة (اختياري)'))
+                                .append($('<input type="text" maxlength="2000" class="form-control stage-step-notes">')
+                                    .attr('id', notesId).val(step.notes || '').prop('disabled', true)));
+                            rows.append(row.append(fields));
+                        });
+                        if (!response.steps.length) rows.text('لا توجد مراحل فرعية لهذه المرحلة.');
+                    }).fail(function(xhr) {
+                        if ($('#stageStepUpdateUrl').val() !== url) return;
+                        $('#stageStepsRows').empty();
+                        $('#stageStepsError').removeClass('d-none').text(xhr.responseJSON?.message || 'تعذر تحميل المراحل.');
+                    });
+            });
+
+            $(document).on('change', '.stage-step-select', function() {
+                $(this).closest('.stage-step-row').find('.stage-step-date, .stage-step-notes').prop('disabled', !this.checked);
+                $('#confirmStageStepBtn').prop('disabled', !$('#stageStepsRows .stage-step-select:checked').length);
             });
 
             $('#confirmStageStepBtn').on('click', function() {
@@ -3045,40 +3081,55 @@
                 const url = $('#stageStepUpdateUrl').val();
 
                 if (!url) return;
+                const steps = [];
+                let valid = true;
+                $('#stageStepsRows .stage-step-select:checked').each(function() {
+                    const row = $(this).closest('.stage-step-row');
+                    const date = row.find('.stage-step-date')[0];
+                    date.required = true;
+                    if (!date.reportValidity()) valid = false;
+                    steps.push({ id: row.data('id'), completed_at: date.value, notes: row.find('.stage-step-notes').val() });
+                });
+                if (!valid || !steps.length) return;
+                $('#stageStepsError').addClass('d-none');
 
                 button.prop('disabled', true).html('<i class="fas fa-spinner fa-spin me-1"></i> جارٍ الحفظ');
+                $('#stageStepsRows :input').prop('disabled', true);
 
                 $.ajax({
                     url: url,
                     method: 'POST',
                     headers: { 'Accept': 'application/json' },
                     data: {
-                        completed: 1,
-                        notes: $('#stageStepNotes').val(),
+                        stage: $('#stageStepParentValue').val(),
+                        steps: steps,
                         _token: '{{ csrf_token() }}'
                     },
                     success: function(response) {
                         $('#completeStageStepModal').modal('hide');
                         Swal.fire({
                             icon: 'success',
-                            title: 'تم تأكيد الخطوة',
-                            text: response.next_step
-                                ? 'الخطوة التالية: ' + response.next_step.name
-                                : 'اكتملت جميع الخطوات الفرعية لهذه المرحلة.',
+                            title: 'تم تنفيذ المراحل',
+                            text: response.message,
                             timer: 2200,
                             showConfirmButton: false
                         });
                         dataTable.ajax.reload(null, false);
                     },
                     error: function(xhr) {
-                        Swal.fire({
-                            icon: 'error',
-                            title: 'تعذر تأكيد الخطوة',
-                            text: xhr.responseJSON?.message || 'حدث خطأ أثناء حفظ الخطوة.'
-                        });
+                        const errors = xhr.responseJSON?.errors;
+                        $('#stageStepsError').removeClass('d-none').text(errors
+                            ? Object.values(errors).flat().join(' ')
+                            : (xhr.responseJSON?.message || 'حدث خطأ أثناء حفظ المراحل.'));
                     },
                     complete: function() {
                         button.prop('disabled', false).html(originalHtml);
+                        $('#stageStepsRows .stage-step-row').each(function() {
+                            const row = $(this);
+                            if (row.find('.badge').length) return;
+                            row.find('.stage-step-select').prop('disabled', false);
+                            row.find('.stage-step-date, .stage-step-notes').prop('disabled', !row.find('.stage-step-select').prop('checked'));
+                        });
                     }
                 });
             });

@@ -2086,7 +2086,7 @@ class MaidAction extends MainAction
 
         $today = now()->toDateString();
 
-        $orderSeed = $this->resolvePaginationOrderSeed($request);
+        $sortOrder = CvOptionsSettings::siteSortOrder();
 
         return $this->availableQuery()
             ->with([
@@ -2192,9 +2192,14 @@ class MaidAction extends MainAction
                 fn ($query) => $query->where('branch_id', (int) $request->input('branch_id'))
             )
             ->orderBy('is_pinned', 'desc')
-            // Stable random order (same seed) to avoid duplicates between pagination pages.
-            ->orderByRaw('MD5(CONCAT(maids.id, ?))', [$orderSeed])
-            ->orderBy('id', 'desc')
+            ->when($sortOrder === 'random', function ($query) use ($request) {
+                // Keep random ordering stable between pagination pages.
+                $query->orderByRaw('MD5(CONCAT(maids.id, ?))', [$this->resolvePaginationOrderSeed($request)])
+                    ->orderBy('maids.id', 'desc');
+            }, function ($query) use ($sortOrder) {
+                $direction = $sortOrder === 'oldest' ? 'asc' : 'desc';
+                $query->orderBy('maids.created_at', $direction)->orderBy('maids.id', $direction);
+            })
             ->paginate($limit);
     }
 
