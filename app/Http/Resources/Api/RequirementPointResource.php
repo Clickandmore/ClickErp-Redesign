@@ -10,7 +10,9 @@ class RequirementPointResource extends JsonResource
     {
         return [
             'id' => $this->id,
+            'icon' => $this->icon,
             'text' => $this->text,
+            'description' => $this->description,
             'sort_order' => $this->sort_order,
         ];
     }

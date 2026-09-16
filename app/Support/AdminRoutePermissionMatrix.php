@@ -112,7 +112,9 @@ class AdminRoutePermissionMatrix
             'recruitment-contract-stages.edit',
             'sliders.index',
             'why-choose-us.edit',
+            'why-us.index',
             'musaned-section.edit',
+            'home-sections.edit',
             'home-hero.edit',
             'guidelines.edit',
             'find-us.index',
@@ -854,6 +856,15 @@ class AdminRoutePermissionMatrix
                     PermKeys::MUSANED_SECTION_EDIT,
                     PermKeys::MUSANED_SECTION_CONTROL,
                 ],
+                'home-sections.edit' => [
+                    PermKeys::HOME_SECTIONS_VIEW,
+                    PermKeys::HOME_SECTIONS_EDIT,
+                    PermKeys::HOME_SECTIONS_CONTROL,
+                ],
+                'home-sections.update' => [
+                    PermKeys::HOME_SECTIONS_EDIT,
+                    PermKeys::HOME_SECTIONS_CONTROL,
+                ],
                 'home-hero.edit' => [
                     PermKeys::HOME_HERO_VIEW,
                     PermKeys::HOME_HERO_CONTROL,
@@ -886,6 +897,14 @@ class AdminRoutePermissionMatrix
             [
                 'find-us.mode' => [PermKeys::FIND_US_EDIT, PermKeys::FIND_US_CONTROL],
             ],
+            self::resource('why-us', [
+                'index' => [PermKeys::WHY_US_VIEW, PermKeys::WHY_US_CONTROL],
+                // show يبدّل حالة التفعيل من الجدول
+                'show' => [PermKeys::WHY_US_EDIT, PermKeys::WHY_US_CONTROL],
+                'create' => [PermKeys::WHY_US_CREATE, PermKeys::WHY_US_CONTROL],
+                'edit' => [PermKeys::WHY_US_EDIT, PermKeys::WHY_US_CONTROL],
+                'destroy' => [PermKeys::WHY_US_DELETE, PermKeys::WHY_US_CONTROL],
+            ]),
             self::resource('requiremens', [
                 'index' => [
                     PermKeys::RECRUITMENT_REQUIREMENTS_VIEW,

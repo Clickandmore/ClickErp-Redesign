@@ -130,9 +130,9 @@
 
                 $canViewSms = @AdminGuardHasAnyPerm([\App\PermKeys::NOTIFICATIONS_CONTROL, \App\PermKeys::NOTIFICATIONS_VIEW]);
 
-                $canViewWebsiteManagement = @SystemModuleEnabled('website') && @AdminGuardHasAnyPerm([\App\PermKeys::SETTINGS_VIEW, \App\PermKeys::FAQ_VIEW, \App\PermKeys::STATISTICS_VIEW, \App\PermKeys::OFFERS_VIEW, \App\PermKeys::OFFERS_CONTROL, \App\PermKeys::WHY_CHOOSE_US_VIEW, \App\PermKeys::WHY_CHOOSE_US_CONTROL, \App\PermKeys::FIND_US_VIEW, \App\PermKeys::FIND_US_CONTROL, \App\PermKeys::RECRUITMENT_REQUIREMENTS_VIEW, \App\PermKeys::RECRUITMENT_REQUIREMENTS_CONTROL, \App\PermKeys::GUIDELINES_VIEW, \App\PermKeys::GUIDELINES_CONTROL, \App\PermKeys::DEVELOPERS_PERMS]);
+                $canViewWebsiteManagement = @SystemModuleEnabled('website') && @AdminGuardHasAnyPerm([\App\PermKeys::HOME_SECTIONS_VIEW, \App\PermKeys::HOME_SECTIONS_EDIT, \App\PermKeys::HOME_SECTIONS_CONTROL, \App\PermKeys::SETTINGS_VIEW, \App\PermKeys::FAQ_VIEW, \App\PermKeys::STATISTICS_VIEW, \App\PermKeys::OFFERS_VIEW, \App\PermKeys::OFFERS_CONTROL, \App\PermKeys::WHY_CHOOSE_US_VIEW, \App\PermKeys::WHY_CHOOSE_US_CONTROL, \App\PermKeys::WHY_US_VIEW, \App\PermKeys::WHY_US_CONTROL, \App\PermKeys::FIND_US_VIEW, \App\PermKeys::FIND_US_CONTROL, \App\PermKeys::RECRUITMENT_REQUIREMENTS_VIEW, \App\PermKeys::RECRUITMENT_REQUIREMENTS_CONTROL, \App\PermKeys::GUIDELINES_VIEW, \App\PermKeys::GUIDELINES_CONTROL, \App\PermKeys::DEVELOPERS_PERMS]);
 
-                $canViewHomeSettings = @AdminGuardHasAnyPerm([\App\PermKeys::SETTINGS_VIEW, \App\PermKeys::SLIDERS_VIEW, \App\PermKeys::OFFERS_VIEW, \App\PermKeys::OFFERS_CONTROL, \App\PermKeys::ABOUT_US_VIEW, \App\PermKeys::FAQ_VIEW, \App\PermKeys::STATISTICS_VIEW, \App\PermKeys::STEPS_VIEW, \App\PermKeys::SERVICES_VIEW, \App\PermKeys::PARTENR_VIEW, \App\PermKeys::WHY_CHOOSE_US_VIEW, \App\PermKeys::WHY_CHOOSE_US_CONTROL, \App\PermKeys::FIND_US_VIEW, \App\PermKeys::FIND_US_CONTROL, \App\PermKeys::RECRUITMENT_REQUIREMENTS_VIEW, \App\PermKeys::RECRUITMENT_REQUIREMENTS_CONTROL]);
+                $canViewHomeSettings = @AdminGuardHasAnyPerm([\App\PermKeys::HOME_SECTIONS_VIEW, \App\PermKeys::HOME_SECTIONS_EDIT, \App\PermKeys::HOME_SECTIONS_CONTROL, \App\PermKeys::SETTINGS_VIEW, \App\PermKeys::SLIDERS_VIEW, \App\PermKeys::OFFERS_VIEW, \App\PermKeys::OFFERS_CONTROL, \App\PermKeys::ABOUT_US_VIEW, \App\PermKeys::FAQ_VIEW, \App\PermKeys::STATISTICS_VIEW, \App\PermKeys::STEPS_VIEW, \App\PermKeys::SERVICES_VIEW, \App\PermKeys::PARTENR_VIEW, \App\PermKeys::WHY_CHOOSE_US_VIEW, \App\PermKeys::WHY_CHOOSE_US_CONTROL, \App\PermKeys::WHY_US_VIEW, \App\PermKeys::WHY_US_CONTROL, \App\PermKeys::FIND_US_VIEW, \App\PermKeys::FIND_US_CONTROL, \App\PermKeys::RECRUITMENT_REQUIREMENTS_VIEW, \App\PermKeys::RECRUITMENT_REQUIREMENTS_CONTROL]);
 
                 $canViewBranches = @SystemModuleEnabled('branches') && @AdminGuardHasAnyPerm([\App\PermKeys::BRANCHES_VIEW, \App\PermKeys::BRANCHES_CREATE, \App\PermKeys::BRANCHES_EDIT, \App\PermKeys::BRANCHES_DELETE, \App\PermKeys::BRANCHES_CONTROL]);
                 $canViewMaidsData = @SystemModuleEnabled('operations') && @AdminGuardHasAnyPerm([\App\PermKeys::NATIONALITIES_VIEW, \App\PermKeys::REC_OFFICES_VIEW, \App\PermKeys::JOB_TITLES_VIEW, \App\PermKeys::RELIGIONS_VIEW, \App\PermKeys::SKILLS_VIEW, \App\PermKeys::MAID_LANGUAGES_VIEW, \App\PermKeys::COUNTRIES_VIEW, \App\PermKeys::SOCIAL_STATUS_VIEW, \App\PermKeys::USERS_VIEW, \App\PermKeys::MAIDS_VIEW]);
@@ -1194,7 +1194,9 @@
                             request()->routeIs('what-do.*') ||
                             request()->routeIs('what-do-setting.*') ||
                             request()->routeIs('why-choose-us.*') ||
+                            request()->routeIs('why-us.*') ||
                             request()->routeIs('musaned-section.*') ||
+                            request()->routeIs('home-sections.*') ||
                             request()->routeIs('home-hero.*') ||
                             request()->routeIs('find-us.*') ||
                             request()->routeIs('about-us.*') ||
@@ -1401,6 +1403,28 @@
                                                                 <span class="ms-2">
                                                                     {{ __('why_choose_us.sidebar_title') }}
                                                                 </span>
+                                                            </a>
+                                                        </li>
+                                                    @endif
+
+                                                    @if (@AdminGuardHasAnyPerm([\App\PermKeys::WHY_US_VIEW, \App\PermKeys::WHY_US_CONTROL]))
+                                                        <li>
+                                                            <a class="m-link {{ request()->routeIs('why-us.*') ? 'active' : '' }}"
+                                                                href="{{ route('why-us.index') }}">
+                                                                <i class="fa fa-star"></i>
+                                                                <span class="ms-2">
+                                                                    {{ __('why_us.sidebar_title') }}
+                                                                </span>
+                                                            </a>
+                                                        </li>
+                                                    @endif
+
+                                                    @if (@AdminGuardHasAnyPerm([\App\PermKeys::HOME_SECTIONS_VIEW, \App\PermKeys::HOME_SECTIONS_EDIT, \App\PermKeys::HOME_SECTIONS_CONTROL]))
+                                                        <li>
+                                                            <a class="m-link {{ request()->routeIs('home-sections.*') ? 'active' : '' }}"
+                                                                href="{{ route('home-sections.edit') }}">
+                                                                <i class="fa fa-toggle-on"></i>
+                                                                <span class="ms-2">{{ __('home_sections.sidebar_title') }}</span>
                                                             </a>
                                                         </li>
                                                     @endif

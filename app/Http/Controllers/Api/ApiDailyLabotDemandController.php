@@ -22,7 +22,7 @@ class ApiDailyLabotDemandController extends Controller
         TestimonialsAction $testimonialsAction
     ) {
         $jobTitles = $jobTitleAction->get();
-        $whyUs = $whyUsAction->get();
+        $whyUs = $whyUsAction->getVisible();
         $testimonials = $testimonialsAction->get();
 
         return apiResponse(true, __('api.All items'), [

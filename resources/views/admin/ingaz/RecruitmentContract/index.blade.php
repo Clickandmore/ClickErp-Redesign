@@ -1271,6 +1271,41 @@
             </div>
         </div>
 
+        <div class="modal fade" id="completeStageStepModal" tabindex="-1"
+            aria-labelledby="completeStageStepModalLabel" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="completeStageStepModalLabel">
+                            <i class="fas fa-list-check text-success me-1"></i>
+                            تأكيد المرحلة الفرعية
+                        </h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="إغلاق"></button>
+                    </div>
+                    <div class="modal-body">
+                        <input type="hidden" id="stageStepUpdateUrl">
+                        <div class="alert alert-light border mb-3">
+                            <div class="text-muted small mb-1">المرحلة الأم</div>
+                            <strong id="stageStepParentName">—</strong>
+                            <div class="text-muted small mt-3 mb-1">الخطوة المطلوب تأكيدها</div>
+                            <strong class="text-success" id="stageStepName">—</strong>
+                        </div>
+                        <div class="mb-0">
+                            <label for="stageStepNotes" class="form-label">ملاحظة عن التنفيذ (اختياري)</label>
+                            <textarea id="stageStepNotes" class="form-control" rows="3" maxlength="2000"
+                                placeholder="يمكن إضافة تفاصيل تنفيذ الخطوة"></textarea>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-light" data-bs-dismiss="modal">إلغاء</button>
+                        <button type="button" class="btn btn-success" id="confirmStageStepBtn">
+                            <i class="fas fa-check me-1"></i> تأكيد الإنجاز
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <!-- Modal -->
         <div class="modal fade" id="updateStatusModal" tabindex="-1" role="dialog"
             aria-labelledby="updateStatusModalLabel" aria-hidden="true">
@@ -2995,6 +3030,59 @@
             });
 
             // معالج زر تحديث الحالة
+            $(document).on('click', '.complete-stage-step-btn', function() {
+                const button = $(this);
+                $('#stageStepUpdateUrl').val(button.data('url'));
+                $('#stageStepParentName').text(button.data('stage-name') || '—');
+                $('#stageStepName').text(button.data('step-name') || '—');
+                $('#stageStepNotes').val('');
+                $('#completeStageStepModal').modal('show');
+            });
+
+            $('#confirmStageStepBtn').on('click', function() {
+                const button = $(this);
+                const originalHtml = button.html();
+                const url = $('#stageStepUpdateUrl').val();
+
+                if (!url) return;
+
+                button.prop('disabled', true).html('<i class="fas fa-spinner fa-spin me-1"></i> جارٍ الحفظ');
+
+                $.ajax({
+                    url: url,
+                    method: 'POST',
+                    headers: { 'Accept': 'application/json' },
+                    data: {
+                        completed: 1,
+                        notes: $('#stageStepNotes').val(),
+                        _token: '{{ csrf_token() }}'
+                    },
+                    success: function(response) {
+                        $('#completeStageStepModal').modal('hide');
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'تم تأكيد الخطوة',
+                            text: response.next_step
+                                ? 'الخطوة التالية: ' + response.next_step.name
+                                : 'اكتملت جميع الخطوات الفرعية لهذه المرحلة.',
+                            timer: 2200,
+                            showConfirmButton: false
+                        });
+                        dataTable.ajax.reload(null, false);
+                    },
+                    error: function(xhr) {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'تعذر تأكيد الخطوة',
+                            text: xhr.responseJSON?.message || 'حدث خطأ أثناء حفظ الخطوة.'
+                        });
+                    },
+                    complete: function() {
+                        button.prop('disabled', false).html(originalHtml);
+                    }
+                });
+            });
+
             $(document).on('click', '.update-status-btn', function() {
                 var rowId = $(this).data('row-id');
                 var status = $(this).data('status');

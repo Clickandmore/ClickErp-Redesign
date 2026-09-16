@@ -11,6 +11,7 @@ class RecruitmentRequirementResource extends JsonResource
         return [
             'id' => $this->id,
             'type' => $this->type,
+            'icon' => $this->icon,
             'title' => $this->title,
             'sort_order' => $this->sort_order,
             'points' => RequirementPointResource::collection(

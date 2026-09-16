@@ -26,6 +26,7 @@ class RequirementRequest extends MainRequest
             'type' => ['required', Rule::in(array_column(RequirementEnum::cases(), 'value'))],
             'title:ar' => 'required|string|max:255',
             'title:en' => 'required|string|max:255',
+            'icon' => 'nullable|string|max:100',
             'sort_order' => 'required|integer|min:1|max:9999',
             'is_active' => 'required|boolean',
             'points' => 'required|array|min:1|max:30',
@@ -33,6 +34,9 @@ class RequirementRequest extends MainRequest
             'points.*.sort_order' => 'required|integer|min:1|max:9999',
             'points.*.ar.text' => 'required|string|max:500',
             'points.*.en.text' => 'required|string|max:500',
+            'points.*.icon' => 'nullable|string|max:100',
+            'points.*.ar.description' => 'nullable|string|max:1000',
+            'points.*.en.description' => 'nullable|string|max:1000',
         ];
     }
 }

@@ -934,6 +934,16 @@
                                             </li>
                                         @endif
 
+                                        @if (@AdminGuardHasAnyPerm([\App\PermKeys::WHY_US_VIEW, \App\PermKeys::WHY_US_CONTROL]))
+                                            <li>
+                                                <a class="m-link {{ request()->routeIs('why-us.*') ? 'active' : '' }}"
+                                                    href="{{ route('why-us.index') }}">
+                                                    <i class="fa fa-star"></i>
+                                                    <span class="ms-2">{{ __('why_us.sidebar_title') }}</span>
+                                                </a>
+                                            </li>
+                                        @endif
+
                                         @if (@AdminGuardHasAnyPerm([\App\PermKeys::FIND_US_VIEW, \App\PermKeys::FIND_US_CONTROL]))
                                             <li>
                                                 <a class="m-link {{ request()->routeIs('find-us.*') ? 'active' : '' }}"

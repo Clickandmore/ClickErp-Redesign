@@ -140,6 +140,10 @@ Route::group(
                 ->name('musaned-section.edit');
             Route::put('musaned-section', [MusanedSectionController::class, 'update'])
                 ->name('musaned-section.update');
+            Route::get('home-sections', [\App\Http\Controllers\ingaz\HomeSectionSettingsController::class, 'edit'])
+                ->name('home-sections.edit');
+            Route::put('home-sections', [\App\Http\Controllers\ingaz\HomeSectionSettingsController::class, 'update'])
+                ->name('home-sections.update');
             Route::get('home-hero', [HomeHeroSectionController::class, 'edit'])
                 ->name('home-hero.edit');
             Route::put('home-hero', [HomeHeroSectionController::class, 'update'])
@@ -798,6 +802,7 @@ Route::group(
                 Route::get('database-backups', [DevSuperAdminController::class, 'modules'])->name('database-backups');
                 Route::get('scheduler', [DevSuperAdminController::class, 'modules'])->name('scheduler');
                 Route::put('modules', [DevSuperAdminController::class, 'updateModules'])->name('modules.update');
+                Route::put('home-sections/available', [\App\Http\Controllers\ingaz\HomeSectionSettingsController::class, 'updateAvailable'])->name('home-sections.available');
                 Route::put('subscription', [DevSuperAdminController::class, 'updateSubscription'])->name('subscription.update');
                 Route::put('product-updates', [DevSuperAdminController::class, 'updateProductUpdates'])->name('product-updates.update');
                 Route::post('scheduler/enable', [DevSuperAdminController::class, 'enableScheduler'])->name('scheduler.enable');

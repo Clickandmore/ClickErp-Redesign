@@ -458,6 +458,12 @@ class NewPermKeys
     const WHY_CHOOSE_US_DELETE = 'why_choose_us_delete';
     const WHY_CHOOSE_US_MANAGE = 'why_choose_us_control';
 
+    const WHY_US_VIEW = 'why_us_view';
+    const WHY_US_CREATE = 'why_us_create';
+    const WHY_US_EDIT = 'why_us_edit';
+    const WHY_US_DELETE = 'why_us_delete';
+    const WHY_US_MANAGE = 'why_us_control';
+
     const FIND_US_VIEW = 'find_us_view';
     const FIND_US_CREATE = 'find_us_create';
     const FIND_US_EDIT = 'find_us_edit';
@@ -572,6 +578,7 @@ class NewPermKeys
             self::STEPS_VIEW,
             self::SERVICES_VIEW,
             self::WHY_CHOOSE_US_VIEW,
+            self::WHY_US_VIEW,
             self::FIND_US_VIEW,
             self::RECRUITMENT_REQUIREMENTS_VIEW,
             self::COMMUNICATIONS_VIEW,
@@ -622,6 +629,7 @@ class NewPermKeys
             self::STEPS_MANAGE,
             self::SERVICES_MANAGE,
             self::WHY_CHOOSE_US_MANAGE,
+            self::WHY_US_MANAGE,
             self::FIND_US_MANAGE,
             self::RECRUITMENT_REQUIREMENTS_MANAGE,
             self::COMMUNICATIONS_MANAGE,

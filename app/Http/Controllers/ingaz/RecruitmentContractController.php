@@ -39,6 +39,7 @@ use App\Services\ingaz\RecruitmentTripAccountingService;
 use App\Services\ingaz\RecruitmentContractRefundService;
 use App\Services\ingaz\RecruitmentContractReturnRestorationService;
 use App\Services\ingaz\RecruitmentContractStageRollbackService;
+use App\Services\ingaz\RecruitmentContractStageStepService;
 use App\Services\ingaz\CompletedRecruitmentMaidReleaseService;
 use App\Services\ingaz\RentalMaidArrivalService;
 use App\Services\ManagedFileStorage;
@@ -53,6 +54,7 @@ use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 use PDF;
 use Yajra\DataTables\Facades\DataTables;
 
@@ -388,6 +390,7 @@ class RecruitmentContractController extends Controller
         $statusDate = $date ?: now()->toDateString();
 
         DB::transaction(function () use ($contract, $currentStatus, $nextStatus, $statusDate) {
+            app(RecruitmentContractStageStepService::class)->assertStageComplete($contract);
             $contract->update(['status' => $nextStatus]);
 
             $statusLogData = [
@@ -1397,6 +1400,19 @@ class RecruitmentContractController extends Controller
                     return $office?->title ?  '<span class="text-muted">' . $office?->title .'</span>' : '<span class="text-muted">غير محدد</span>';
                 })
                 ->addColumn('updateStatus', function ($row) {
+                    $currentStageStep = app(RecruitmentContractStageStepService::class)->currentStep($row);
+                    if ($currentStageStep) {
+                        return '<button type="button" class="btn btn-warning btn-sm btn-action complete-stage-step-btn"'
+                            . ' data-contract-id="' . e($row->id) . '"'
+                            . ' data-step-id="' . e($currentStageStep->id) . '"'
+                            . ' data-step-name="' . e($currentStageStep->displayName(app()->getLocale())) . '"'
+                            . ' data-stage-name="' . e(\App\Support\RecruitmentContractStageLabels::label($row->status) ?: $row->status) . '"'
+                            . ' data-url="' . e(route('RecruitmentContract.stageSteps.update', [$row->id, $currentStageStep->id])) . '"'
+                            . ' title="تأكيد إنجاز الخطوة الحالية">'
+                            . '<i class="fas fa-list-check me-1"></i>إكمال: ' . e($currentStageStep->displayName(app()->getLocale()))
+                            . '</button>';
+                    }
+
                     if ($row->status == ContractStatusEnum::PendingMaidSelection->value) {
                         // زر إضافة عاملة للعقود التي في حالة بانتظار اختيار العاملة
                         return '<a href="' . route('RecruitmentContract.selectMaid', $row->id) . '" class="btn btn-warning btn-sm btn-action" title="إضافة عاملة">
@@ -1991,6 +2007,7 @@ class RecruitmentContractController extends Controller
         $canViewInvoiceCreditNotes = $this->canViewInvoiceCreditNotes();
         $canCreateInvoiceCreditNotes = $this->canCreateInvoiceCreditNotes();
         $contractStageSteps = $this->getContractStageSteps($contract);
+        $currentContractStageStep = app(RecruitmentContractStageStepService::class)->currentStep($contract);
         $canUpdateContractStageSteps = $this->canUpdateRecruitmentContracts();
 
         $contractExtensionRequests = \App\Models\ContractExtensionRequest::with(['requestedBy', 'processedBy'])
@@ -2012,6 +2029,7 @@ class RecruitmentContractController extends Controller
             'canViewInvoiceCreditNotes',
             'canCreateInvoiceCreditNotes',
             'contractStageSteps',
+            'currentContractStageStep',
             'canUpdateContractStageSteps'
         ));
     }
@@ -2070,25 +2088,53 @@ class RecruitmentContractController extends Controller
 
         abort_unless($appliesToContract, 422, 'هذه الخطوة لا تنطبق على مرحلة العقد أو جنسية العاملة الحالية.');
 
-        $completion = RecruitmentContractStepCompletion::firstOrNew([
-            'contract_id' => $contract->id,
-            'stage_step_id' => $step->id,
-        ]);
-        $completion->notes = trim((string) ($validated['notes'] ?? '')) ?: null;
+        $stepService = app(RecruitmentContractStageStepService::class);
 
-        if ($validated['completed'] && !$completion->completed_at) {
-            $completion->completed_at = now();
-            $completion->completed_by_id = Auth::guard('admin')->id();
-        } elseif (!$validated['completed']) {
-            $completion->completed_at = null;
-            $completion->completed_by_id = null;
+        if (!$validated['completed']) {
+            $stepService->reopenFrom($contract, $step);
+            RecruitmentContractStepCompletion::query()
+                ->where('contract_id', $contract->id)
+                ->where('stage_step_id', $step->id)
+                ->update(['notes' => trim((string) ($validated['notes'] ?? '')) ?: null]);
+        } else {
+            $existingCompletion = RecruitmentContractStepCompletion::query()
+                ->where('contract_id', $contract->id)
+                ->where('stage_step_id', $step->id)
+                ->first();
+
+            if (!$existingCompletion?->completed_at) {
+                $stepService->assertCurrentStep($contract, $step);
+            }
+
+            $completion = RecruitmentContractStepCompletion::firstOrNew([
+                'contract_id' => $contract->id,
+                'stage_step_id' => $step->id,
+            ]);
+            $completion->notes = trim((string) ($validated['notes'] ?? '')) ?: null;
+            if (!$completion->completed_at) {
+                $completion->completed_at = now();
+                $completion->completed_by_id = Auth::guard('admin')->id();
+            }
+            $completion->save();
         }
 
-        $completion->save();
+        $message = $validated['completed'] ? 'تم إنجاز خطوة العقد بنجاح.' : 'تمت إعادة فتح خطوة العقد.';
 
-        return redirect()
-            ->route('contracts.details', $contract->id)
-            ->with('success', $validated['completed'] ? 'تم إنجاز خطوة العقد بنجاح.' : 'تمت إعادة فتح خطوة العقد.');
+        if ($request->expectsJson() || $request->ajax()) {
+            $nextStep = $stepService->currentStep($contract->fresh());
+
+            return response()->json([
+                'success' => true,
+                'message' => $message,
+                'stage_complete' => $nextStep === null,
+                'next_step' => $nextStep ? [
+                    'id' => $nextStep->id,
+                    'name' => $nextStep->displayName(app()->getLocale()),
+                ] : null,
+            ]);
+        }
+
+        return redirect()->route('contracts.details', $contract->id)->with('success', $message);
     }
 
     public function storeAttachments(Request $request, $contractId)
@@ -3563,9 +3609,17 @@ class RecruitmentContractController extends Controller
 
             // إذا كان الطلب لتحديث الحالة
             if ($request->has('status') && $request->has('next_status')) {
-                $currentStatus = $request->status;
+                $currentStatus = $row->status;
                 $nextStatus = $request->next_status;
                 $statusDate = $request->date ?? now()->format('Y-m-d');
+
+                $expectedTransition = $this->getManualStatusTransition($currentStatus);
+                if (!$expectedTransition || $nextStatus !== $expectedTransition['next_status']) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'المرحلة التالية المحددة لا تطابق المرحلة الحالية للعقد',
+                    ], 422);
+                }
 
                 // منع الإغلاق اليدوي للعقود في مرحلة الضمان
                 if ($nextStatus === ContractStatusEnum::Closed->value) {
@@ -3619,6 +3673,8 @@ class RecruitmentContractController extends Controller
                     ], 403);
                 }
 
+                app(RecruitmentContractStageStepService::class)->assertStageComplete($row);
+
                 // تحديث حالة العقد
                 $row->status = $nextStatus;
                 $row->save();
@@ -3641,6 +3697,12 @@ class RecruitmentContractController extends Controller
                 'message' => 'تم تحميل معلومات العقد بنجاح',
                 'contract' => $row->load(['user', 'maid', 'info'])
             ]);
+        } catch (ValidationException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => collect($e->errors())->flatten()->first() ?: $e->getMessage(),
+                'errors' => $e->errors(),
+            ], 422);
         } catch (\Exception $e) {
             logger()->error('Error in show contract:', [
                 'error' => $e->getMessage(),
@@ -4579,6 +4641,7 @@ class RecruitmentContractController extends Controller
             DB::beginTransaction();
 
             try {
+                app(RecruitmentContractStageStepService::class)->assertStageComplete($contract);
                 $travelHistory->normalizeArrivalDateAndTime();
 
                 RecruitmentContractExternalOfficeDispatchController::syncArrivalStationFromDispatch($contract, $travelHistory);
@@ -4653,6 +4716,12 @@ class RecruitmentContractController extends Controller
                 DB::rollBack();
                 throw $e;
             }
+        } catch (ValidationException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => collect($e->errors())->flatten()->first() ?: $e->getMessage(),
+                'errors' => $e->errors(),
+            ], 422);
         } catch (\Exception $e) {
             logger()->error('Error in completeTrip', [
                 'tripId' => $tripId,
@@ -4707,6 +4776,10 @@ class RecruitmentContractController extends Controller
             $movedToTickets = false;
 
             DB::transaction(function () use ($contract, $contractId, &$movedToTickets) {
+                if ($contract->status === ContractStatusEnum::Taffez->value) {
+                    app(RecruitmentContractStageStepService::class)->assertStageComplete($contract);
+                }
+
                 TravelHistory::create([
                     'order_id' => $contractId,
                     'status' => 'active',
@@ -4731,6 +4804,12 @@ class RecruitmentContractController extends Controller
                     ? 'تم إضافة الرحلة بنجاح ونقل العقد إلى مرحلة التذاكر'
                     : 'تم إضافة الرحلة بنجاح'
             ]);
+        } catch (ValidationException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => collect($e->errors())->flatten()->first() ?: $e->getMessage(),
+                'errors' => $e->errors(),
+            ], 422);
         } catch (\Exception $e) {
             logger()->error('Error in addTravel', [
                 'contractId' => $request->contract_id,
@@ -4853,7 +4932,9 @@ class RecruitmentContractController extends Controller
                     $skippedCount++;
                     $skippedContracts[] = [
                         'id' => $rowId,
-                        'message' => 'حدث خطأ أثناء تحديث هذا العقد',
+                        'message' => $contractException instanceof ValidationException
+                            ? (collect($contractException->errors())->flatten()->first() ?: $contractException->getMessage())
+                            : 'حدث خطأ أثناء تحديث هذا العقد',
                     ];
                 }
             }
@@ -4879,6 +4960,12 @@ class RecruitmentContractController extends Controller
                 'updated_contracts' => $updatedContracts,
                 'skipped_contracts' => $skippedContracts,
             ], $updatedCount > 0 ? 200 : 422);
+        } catch (ValidationException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => collect($e->errors())->flatten()->first() ?: $e->getMessage(),
+                'errors' => $e->errors(),
+            ], 422);
         } catch (\Exception $e) {
             logger()->error('Error in bulkUpdateStatus', [
                 'rowIds' => $request->input('row_ids', []),
@@ -5033,6 +5120,12 @@ class RecruitmentContractController extends Controller
                 'next_status' => $statusUpdate['next_status'],
                 'sms_sent' => $smsResult,
             ]);
+        } catch (ValidationException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => collect($e->errors())->flatten()->first() ?: $e->getMessage(),
+                'errors' => $e->errors(),
+            ], 422);
         } catch (\Exception $e) {
             logger()->error('Error in updateStatus', [
                 'rowId' => $request->input('row_id'),
