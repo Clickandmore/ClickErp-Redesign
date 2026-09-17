@@ -205,7 +205,7 @@
                     <option value="">{{ __('finance::finance.All main accounts') }}</option>
                     @foreach ($main_accounts ?? [] as $main_account)
                         <option value="{{ $main_account->id }}">
-                            {{ $showCodeColumn ? $main_account->code . ' - ' : '' }}{{ $main_account->name }}
+                            {{ $main_account->code }} - {{ $main_account->name }}
                         </option>
                     @endforeach
                 </select>
@@ -271,8 +271,6 @@
     <script>
         $(document).ready(function() {
             const exportRouteTemplate = @json($exportRouteTemplate);
-            const showCodeColumn = @json($showCodeColumn);
-
             $('.account-guide-filter').select2({
                 width: '100%'
             });
@@ -293,8 +291,7 @@
                     data: 'code',
                     name: 'code',
                     orderable: true,
-                    searchable: false,
-                    visible: showCodeColumn
+                    searchable: false
                 },
                 {
                     data: 'type',
@@ -368,7 +365,7 @@
                 },
                 dom: 'rt<"d-flex justify-content-between align-items-center flex-wrap gap-2 mt-3"lip>',
                 order: [
-                    [showCodeColumn ? 2 : 1, "asc"]
+                    [2, "asc"]
                 ],
                 drawCallback: function() {
                     const info = this.api().page.info();

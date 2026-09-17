@@ -77,6 +77,9 @@
             <p class="text-muted small mb-3">
                 اختر رقم الحساب المالي النهائي لكل مسوق. هذا الربط هو المرجع الأساسي عند إنشاء قيد الاستحقاق. عند تركه تلقائيًا، يُربط الحساب الموجود أو يُنشأ حساب مستقل عند الاعتماد. تشمل القائمة موظفي خدمة العملاء وأصحاب العمليات من جميع أنواع المستخدمين.
             </p>
+            @if($payableAccountError)
+                <div class="alert alert-warning">{{ $payableAccountError }} يمكن حفظ إعدادات العمولات الأخرى بعد إنشاء هذا الحساب.</div>
+            @endif
             <div class="table-responsive">
                 <table class="table table-bordered align-middle mb-0">
                     <thead class="table-light">
@@ -91,7 +94,7 @@
                                 <td class="fw-semibold">{{ $marketer->name }}</td>
                                 <td>
                                     <select class="form-select form-select-sm"
-                                            name="payable_accounts[{{ $marketer->id }}]">
+                                            name="payable_accounts[{{ $marketer->id }}]" {{ $payableAccountError ? 'disabled' : '' }}>
                                         <option value="">تلقائي — ربط أو إنشاء حساب مستقل عند الاعتماد</option>
                                         @foreach($marketerPayableAccounts as $account)
                                             <option value="{{ $account->id }}"
