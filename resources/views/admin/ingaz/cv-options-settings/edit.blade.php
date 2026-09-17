@@ -38,7 +38,7 @@
                             <label class="form-label fw-bold" for="cv_site_sort_order">ترتيب السير الذاتية في الموقع الخارجي</label>
                             <select class="form-select" name="cv_site_sort_order" id="cv_site_sort_order" required>
                                 @foreach (['random' => 'عشوائي', 'oldest' => 'من الأقدم إلى الأحدث', 'newest' => 'من الأحدث إلى الأقدم'] as $value => $label)
-                                    <option value="{{ $value }}" @selected(old('cv_site_sort_order', $settings->cv_site_sort_order ?? 'random') === $value)>{{ $label }}</option>
+                                    <option value="{{ $value }}" {{ old('cv_site_sort_order', $settings->cv_site_sort_order ?? 'random') === $value ? 'selected' : '' }}>{{ $label }}</option>
                                 @endforeach
                             </select>
                             <p class="text-muted mt-2 mb-0">يعتمد الترتيب على تاريخ إضافة السيرة، مع ظهور السير المثبّتة أولًا في جميع الخيارات.</p>
