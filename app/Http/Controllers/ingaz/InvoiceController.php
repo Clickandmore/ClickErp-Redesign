@@ -60,10 +60,6 @@ class InvoiceController extends Controller
 {
     private const SETTING_GENERAL_INVOICE_REVENUE_ACCOUNT = 'general_invoice_revenue_account';
     private const SETTING_DELEGATION_REVENUE_ACCOUNT = 'ingaz_delegation_revenue_account';
-    private const SETTING_DELEGATION_INGAZ_ACCOUNT = 'ingaz_delegation_ingaz_account';
-    private const SETTING_DELEGATION_COST_ACCOUNT = 'ingaz_delegation_cost_account';
-    private const SETTING_DELEGATION_FIXED_COST = 'ingaz_delegation_fixed_cost';
-    private const DEFAULT_DELEGATION_FIXED_COST = 137.0;
 
     public function __construct()
     {
@@ -1027,6 +1023,12 @@ class InvoiceController extends Controller
                 ->with('warning', 'طلب نقل الخدمات هذا صادر عن عقد تأجير، وتُصدر فاتورته وقيوده من عقد التأجير نفسه.');
         }
 
+        if (!$transfer->canIssueInvoice() && !$transfer->invoice) {
+            return redirect()
+                ->route('SponsorshipTransfer.show', $transfer->id)
+                ->with('warning', 'لا يمكن إصدار فاتورة لطلب نقل خدمات فاشل أو ملغي.');
+        }
+
         if ($transfer->invoice) {
             if (!InvoiceAuthorization::canView()) {
                 return redirect()->route('invoices.create')
@@ -1059,6 +1061,9 @@ class InvoiceController extends Controller
      */
     public function store(Request $request, ObjService $service, YearService $yearService, BondService $bondService)
     {
+        $requiresExternalRecruitmentCost = $request->filled('contract_id')
+            || $request->filled('ingaz_delegation_id');
+
         $request->validate([
             'invoice_date' => ['required', 'date_format:Y-m-d'],
             'contract_id' => 'nullable|required_without_all:ingaz_delegation_id,client_id,sponsorship_transfer_id|exists:contracts,id',
@@ -1078,7 +1083,11 @@ class InvoiceController extends Controller
             'general_ticket_label' => 'nullable|string|max:255',
             'insurance_company' => 'nullable|string|max:255',
             'direct_recruitment_cost' => 'nullable|numeric|min:0',
-            'external_recruitment_cost' => 'nullable|numeric|min:0',
+            'external_recruitment_cost' => [
+                $requiresExternalRecruitmentCost ? 'required' : 'nullable',
+                'numeric',
+                $requiresExternalRecruitmentCost ? 'gt:0' : 'min:0',
+            ],
             'government_cost' => 'nullable|numeric|min:0',
             'internal_ticket_cost' => 'nullable|numeric|min:0',
             'visa_recruited_count' => 'nullable|integer|min:0',
@@ -1092,6 +1101,10 @@ class InvoiceController extends Controller
             'vat_amount' => 'nullable|numeric|min:0',
             'total_due' => 'nullable|numeric|min:0',
             'send_to_zatca' => 'nullable|boolean',
+        ], [
+            'external_recruitment_cost.required' => 'قيمة الاستقدام الخارجي مطلوبة لفواتير العقود والتفاويض.',
+            'external_recruitment_cost.numeric' => 'قيمة الاستقدام الخارجي يجب أن تكون رقماً.',
+            'external_recruitment_cost.gt' => 'قيمة الاستقدام الخارجي يجب أن تكون أكبر من صفر لفواتير العقود والتفاويض.',
         ]);
 
         $referenceCount = collect([
@@ -1126,6 +1139,18 @@ class InvoiceController extends Controller
                         ? 'طلب نقل الخدمات لديه فاتورة سابقة'
                         : 'هذا التفويض لديه فاتورة سابقة')
             ], 422);
+        }
+
+        if ($request->filled('sponsorship_transfer_id')) {
+            $transferCanBeInvoiced = SponsorshipTransfer::query()
+                ->find($request->sponsorship_transfer_id)?->canIssueInvoice() ?? false;
+
+            if (!$transferCanBeInvoiced) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'لا يمكن إصدار فاتورة لطلب نقل خدمات فاشل أو ملغي أو تابع لمسار التأجير.'
+                ], 422);
+            }
         }
 
         if ($request->filled('contract_id')) {
@@ -2669,17 +2694,7 @@ class InvoiceController extends Controller
                 (int) $this->resolveMusanedReceiptAccount()->id
             );
 
-            $delegationCostConstraint = $this->storeIngazDelegationFixedCostConstraint(
-                $invoice,
-                $service,
-                $yearService
-            );
-        }
-
-        if ($delegationCostConstraint) {
-            $invoice->update([
-                'ingaz_delegation_cost_constraint_id' => $delegationCostConstraint->id,
-            ]);
+            // Delegation costs are posted separately after payment confirmation.
         }
 
         if ($invoice->send_to_zatca) {
@@ -3119,41 +3134,6 @@ class InvoiceController extends Controller
         return $this->storeConstraintFromLines($service, $yearService, $invoice, $statement, $lines, $amounts['total_due']);
     }
 
-    private function storeIngazDelegationFixedCostConstraint(
-        Invoice $invoice,
-        ObjService $service,
-        YearService $yearService
-    ): ?Constraint
-    {
-        $amount = $this->resolveDelegationFixedCostAmount();
-        if ($amount <= 0) {
-            return null;
-        }
-
-        $ingazAccountId = $this->resolveSettingAccountId(
-            self::SETTING_DELEGATION_INGAZ_ACCOUNT,
-            'حساب إنجاز غير محدد. الرجاء تحديده من صفحة إعدادات الحسابات أولاً.',
-            'creditor'
-        );
-        $costAccountId = $this->resolveSettingAccountId(
-            self::SETTING_DELEGATION_COST_ACCOUNT,
-            'حساب تكلفة تفاويض إنجاز غير محدد. الرجاء تحديده من صفحة إعدادات الحسابات أولاً.',
-            'debtor'
-        );
-        $statement = $this->buildDelegationFixedCostStatement($invoice);
-        $lines = [];
-
-        $this->appendConstraintPair(
-            $lines,
-            $ingazAccountId,
-            $costAccountId,
-            $amount,
-            $statement
-        );
-
-        return $this->storeConstraintFromLines($service, $yearService, $invoice, $statement, $lines, $amount);
-    }
-
     private function storeConstraintFromLines(
         ObjService $service,
         YearService $yearService,
@@ -3579,6 +3559,12 @@ class InvoiceController extends Controller
         ObjService $service,
         YearService $yearService
     ): Constraint {
+        if ($invoice->legacy_invoice_number) {
+            $source = app(\App\Services\ingaz\LegacyInvoiceConstraintLinker::class)->link($invoice);
+            $invoice->refresh();
+            return $source;
+        }
+
         $invoice->loadMissing([
             'contract.user',
             'contract.maid.nationality',
@@ -3771,6 +3757,39 @@ class InvoiceController extends Controller
 
     private function buildInvoiceItems(Invoice $invoice): array
     {
+        // The legacy report contains totals, not a direct/external/government breakdown.
+        // Its importer stores the entire subtotal in the direct field as a placeholder.
+        // Use the same tax bases as credit notes instead of labelling that total as 15% taxable.
+        if ($invoice->legacy_invoice_number && $invoice->legacy_source_payload
+            && !$invoice->line_items && !(float) $invoice->discount
+            && (int) $invoice->direct_recruitment_count === 1
+            && abs((float) $invoice->direct_recruitment_cost - (float) $invoice->subtotal) < 0.01
+            && !(float) $invoice->external_recruitment_cost
+            && !(float) $invoice->government_cost
+            && !(float) $invoice->internal_ticket_cost) {
+            $net = $this->roundMoney((float) $invoice->total_due - (float) $invoice->vat_amount);
+            $vat = $this->roundMoney((float) $invoice->vat_amount);
+            $taxable = $this->roundMoney(min($net, $vat > 0 ? $vat / InvoiceCalculationService::VAT_RATE : 0));
+            $nonTaxable = $this->roundMoney($net - $taxable);
+            $items = [];
+            foreach ([
+                ['legacy_taxable', 'خدمات خاضعة للضريبة - فاتورة منقولة', $taxable, $vat],
+                ['legacy_non_taxable', 'مبالغ غير خاضعة للضريبة - فاتورة منقولة', $nonTaxable, 0.0],
+            ] as [$key, $label, $amount, $tax]) {
+                if ($amount <= 0) {
+                    continue;
+                }
+                $items[] = [
+                    'key' => $key, 'label' => $label, 'qty' => 1, 'unit' => $amount,
+                    'line_subtotal' => $amount, 'line_discount' => 0.0, 'line_total' => $amount,
+                    'vat_rate' => $tax > 0 ? InvoiceCalculationService::VAT_RATE : 0.0,
+                    'vat_amount' => $tax, 'line_grand_total' => $this->roundMoney($amount + $tax),
+                ];
+            }
+
+            return $items;
+        }
+
         if ($invoice->sponsorship_transfer_id && is_array($invoice->line_items)) {
             return collect($invoice->line_items)
                 ->map(function (array $item) {
@@ -4577,14 +4596,6 @@ class InvoiceController extends Controller
         return "سند قبض سداد فاتورة طلب استقدام للعقد #{$contractId} / الفاتورة #{$invoice->id} / إلى حساب مساند الوسيط / مساند {$msanedNumber}";
     }
 
-    private function buildDelegationFixedCostStatement(Invoice $invoice): string
-    {
-        $delegation = $invoice->ingazDelegation;
-        $ingazNumber = $delegation?->ingaz_number ?: '-';
-
-        return "قيد تكلفة تفويض إنجاز #{$invoice->ingaz_delegation_id} / الفاتورة #{$invoice->id} / إنجاز {$ingazNumber}";
-    }
-
     private function buildInvoiceItemsSummary(Invoice $invoice): string
     {
         return collect($this->buildInvoiceItems($invoice))
@@ -5012,20 +5023,6 @@ class InvoiceController extends Controller
         }
 
         return (int) $account->id;
-    }
-
-    private function resolveDelegationFixedCostAmount(): float
-    {
-        $amount = ConfirmSetting::query()
-            ->where('title', self::SETTING_DELEGATION_FIXED_COST)
-            ->latest('updated_at')
-            ->value('value');
-
-        if ($amount === null || $amount === '') {
-            return self::DEFAULT_DELEGATION_FIXED_COST;
-        }
-
-        return $this->roundMoney((float) $amount);
     }
 
     private function printableSetting(string $key, string $default = '-'): string

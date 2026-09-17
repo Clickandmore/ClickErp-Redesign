@@ -26,7 +26,8 @@ class IstiqdasmRealController extends Controller
         $settings = IstiqdamSetting::query()->first();
 
         return view('admin.istiqdam.real-index', [
-            'environment' => config('istiqdam.current_env'),
+            'environment' => $this->istiqdasmService->environment(),
+            'connectionTimeout' => $this->istiqdasmService->timeout(),
             'istiqdamSettings' => $settings,
             'isConfigured' => $this->isConfigured($settings),
             'contractSummary' => [
@@ -45,7 +46,7 @@ class IstiqdasmRealController extends Controller
         $settings = IstiqdamSetting::query()->first();
 
         return view('admin.istiqdam.settings', [
-            'environment' => config('istiqdam.current_env'),
+            'environment' => $settings?->environment ?: 'staging',
             'istiqdamSettings' => $settings,
             'isConfigured' => $this->isConfigured($settings),
         ]);
@@ -56,26 +57,49 @@ class IstiqdasmRealController extends Controller
     {
         $validated = $request->validate([
             'establishment_name' => ['nullable', 'string', 'max:255'],
+            'environment' => ['required', 'in:staging,uat,production'],
+            'base_url' => ['required', 'url', 'starts_with:https://', 'max:1000'],
+            'oauth_url' => ['required', 'url', 'starts_with:https://', 'max:1000'],
+            'outbound_public_ip' => ['required', 'ip'],
             'client_id' => ['required', 'string', 'max:255'],
             'client_secret' => ['nullable', 'string', 'max:2000'],
             'api_key' => ['nullable', 'string', 'max:2000'],
+            'remove_api_key' => ['nullable', 'boolean'],
+            'scope' => ['required', 'string', 'max:255'],
+            'timeout' => ['required', 'integer', 'min:1', 'max:300'],
+            'connect_timeout' => ['required', 'integer', 'min:1', 'max:120', 'lte:timeout'],
+            'token_cache_ttl' => ['required', 'integer', 'min:60', 'max:86400'],
+            'logging_enabled' => ['nullable', 'boolean'],
         ]);
 
         $settings = IstiqdamSetting::query()->firstOrNew();
         $settings->establishment_name = $validated['establishment_name'] ?? null;
+        $settings->environment = $validated['environment'];
+        $settings->base_url = rtrim($validated['base_url'], '/');
+        $settings->oauth_url = $validated['oauth_url'];
+        $settings->outbound_public_ip = $validated['outbound_public_ip'];
         $settings->client_id = $validated['client_id'];
+        $settings->scope = $validated['scope'];
+        $settings->timeout = $validated['timeout'];
+        $settings->connect_timeout = $validated['connect_timeout'];
+        $settings->token_cache_ttl = $validated['token_cache_ttl'];
+        $settings->logging_enabled = $request->boolean('logging_enabled');
         if ($request->filled('client_secret')) {
             $settings->client_secret = $validated['client_secret'];
         }
-        if ($request->filled('api_key')) {
+        // API KEY اختياري: تكامل تصدر Client-Id/Secret فقط في الغالب.
+        if ($request->boolean('remove_api_key')) {
+            $settings->api_key = null;
+        } elseif ($request->filled('api_key')) {
             $settings->api_key = $validated['api_key'];
         }
         $settings->updated_by = auth('admin')->id();
 
-        if (!$settings->exists && (!$request->filled('client_secret') || !$request->filled('api_key'))) {
-            return back()->withErrors(['client_secret' => 'أدخل Client Secret وAPI KEY عند حفظ الإعداد لأول مرة.'])->withInput();
+        if (!$settings->exists && !$request->filled('client_secret')) {
+            return back()->withErrors(['client_secret' => 'أدخل Client Secret عند حفظ الإعداد لأول مرة.'])->withInput();
         }
 
+        $this->istiqdasmService->clearTokenCache();
         $settings->save();
 
         return redirect()->route('istiqdam.settings')->with('success', 'تم حفظ إعدادات الربط بأمان. يمكنك الآن اختبار الاتصال وتشغيل العمليات.');
@@ -94,37 +118,97 @@ class IstiqdasmRealController extends Controller
                     'success' => true,
                     'message' => 'تم الاتصال بمنصة الاستقدام الحكومية بنجاح!',
                     'data' => [
-                        'environment' => config('istiqdam.current_env'),
-                        'base_url' => config('istiqdam.environments.' . config('istiqdam.current_env') . '.base_url'),
+                        'environment' => $this->istiqdasmService->environment(),
+                        'base_url' => $this->istiqdasmService->baseUrl(),
                         'timestamp' => now()->toISOString(),
                         'api_response' => $result['data'] ?? null
                     ]
                 ]);
             } else {
-                // إضافة معلومات تشخيص إضافية
-                $diagnosis = [
-                    'timestamp' => now()->toISOString(),
-                ];
-
                 return response()->json([
                     'success' => false,
                     'message' => 'فشل الاتصال بمنصة الاستقدام: ' . ($result['error'] ?? 'خطأ غير معروف'),
+                    'provider_error' => $this->providerErrorReport($result),
                     'error_details' => $result,
-                    'diagnosis' => $diagnosis,
-                    'next_steps' => [
-                        'تواصل مع الدعم الفني للمنصة الحكومية',
-                        'قدم Support ID: ' . ($result['support_id'] ?? 'غير متوفر'),
-                        'تحقق من إعدادات IP الخادم',
-                        'تأكد من صحة بيانات الاعتماد'
-                    ]
+                    'next_steps' => $this->nextSteps($result),
                 ], 500);
             }
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'حدث خطأ أثناء الاتصال: ' . $e->getMessage()
+                'message' => 'حدث خطأ أثناء الاتصال: ' . $e->getMessage(),
+                'provider_error' => $this->providerErrorReport([
+                    'stage' => 'exception',
+                    'provider' => ['raw_error' => $e->getMessage()],
+                ]),
             ], 500);
         }
+    }
+
+    /**
+     * تقرير جاهز للنسخ وإرساله لدعم تكامل: ما الذي فشل، وماذا ردّت البوابة حرفياً.
+     * لا يتضمّن Client Secret ولا API KEY.
+     */
+    private function providerErrorReport(array $result): array
+    {
+        $provider = $result['provider'] ?? [];
+        $settings = IstiqdamSetting::query()->first();
+        $env = $this->istiqdasmService->environment();
+
+        $stageLabels = [
+            'oauth' => 'مصادقة OAuth (طلب التوكن)',
+            'api' => 'استدعاء واجهة الباقات بعد نجاح المصادقة',
+            'network' => 'فتح اتصال شبكي مع البوابة',
+            'exception' => 'خطأ داخلي أثناء الطلب',
+        ];
+        $stage = $provider['stage'] ?? ($result['stage'] ?? 'unknown');
+
+        $report = [
+            'stage' => $stage,
+            'stage_label' => $stageLabels[$stage] ?? 'غير محدد',
+            'environment' => $env,
+            'endpoint' => $provider['endpoint'] ?? $this->istiqdasmService->oauthUrl(),
+            'client_id' => $settings?->client_id,
+            'api_key_sent' => (bool) $settings?->api_key,
+            'http_status' => $provider['http_status'] ?? ($result['status_code'] ?? null),
+            'provider_message' => $provider['provider_message'] ?? null,
+            'provider_body' => $provider['provider_body'] ?? null,
+            'raw_error' => $provider['raw_error'] ?? null,
+            'gateway_trace' => $provider['gateway_trace'] ?? [],
+            'outbound_public_ip' => $settings?->outbound_public_ip,
+            'internal_server_ip' => request()->server('SERVER_ADDR'),
+            'captured_at' => $provider['captured_at'] ?? now()->toDateTimeString(),
+        ];
+
+        return array_filter($report, static fn ($value) => $value !== null && $value !== [] && $value !== '');
+    }
+
+    /**
+     * خطوات المعالجة المقترحة حسب المرحلة التي فشلت فعلياً.
+     */
+    private function nextSteps(array $result): array
+    {
+        $stage = $result['provider']['stage'] ?? ($result['stage'] ?? null);
+
+        if ($stage === 'network') {
+            return [
+                'الطلب لم يصل إلى تكامل أصلاً؛ المشكلة شبكية وليست في بيانات الاعتماد.',
+                'أرسل عنوان IP الخاص بالخادم لدعم تكامل واطلب إضافته إلى قائمة السماح (Whitelist).',
+                'تأكد من أن جدار الحماية يسمح بالمنفذ 443 نحو بوابة تكامل.',
+            ];
+        }
+
+        if ($stage === 'oauth') {
+            return [
+                'رفضت بوابة تكامل بيانات الاعتماد؛ أعد التحقق من Client ID وClient Secret في صفحة الإعدادات.',
+                'أرسل نص رد البوابة أدناه مع معرّف التتبّع لدعم تكامل.',
+            ];
+        }
+
+        return [
+            'نجحت المصادقة وفشل الاستدعاء بعدها؛ المشكلة في الصلاحيات أو الباقة وليست في المفاتيح.',
+            'أرسل نص رد البوابة أدناه مع معرّف التتبّع لدعم تكامل.',
+        ];
     }
 
     /**
@@ -155,7 +239,7 @@ class IstiqdasmRealController extends Controller
                     'recordsFiltered' => $totalRecords,
                     'data' => $data,
                     'api_info' => [
-                        'environment' => config('istiqdam.current_env'),
+                        'environment' => $this->istiqdasmService->environment(),
                         'real_api' => true
                     ]
                 ]);
@@ -190,7 +274,7 @@ class IstiqdasmRealController extends Controller
         return view('admin.istiqdam.real-create-contract', [
             'packages' => $payload['content'] ?? [],
             'totalRecords' => $payload['total'] ?? ($payload['totalElements'] ?? 0),
-            'apiEnvironment' => config('istiqdam.current_env'),
+            'apiEnvironment' => $this->istiqdasmService->environment(),
         ]);
     }
 
@@ -207,7 +291,7 @@ class IstiqdasmRealController extends Controller
                     'success' => true,
                     'data' => $result['data'],
                     'api_info' => [
-                        'environment' => config('istiqdam.current_env'),
+                        'environment' => $this->istiqdasmService->environment(),
                         'real_api' => true,
                         'package_id' => $packageId
                     ]
@@ -398,7 +482,7 @@ class IstiqdasmRealController extends Controller
                     'contract_number' => $localContract->contract_number,
                 ],
                 'api_info' => [
-                    'environment' => config('istiqdam.current_env'),
+                    'environment' => $this->istiqdasmService->environment(),
                     'real_api'    => true,
                 ],
             ]);
@@ -461,7 +545,7 @@ class IstiqdasmRealController extends Controller
                     'message' => 'تم إضافة العاملة للعقد بنجاح',
                     'data'    => $result['data'],
                     'api_info' => [
-                        'environment' => config('istiqdam.current_env'),
+                        'environment' => $this->istiqdasmService->environment(),
                         'real_api'    => true,
                     ],
                 ]);
@@ -494,7 +578,7 @@ class IstiqdasmRealController extends Controller
                     'success' => true,
                     'data' => $result['data'],
                     'api_info' => [
-                        'environment' => config('istiqdam.current_env'),
+                        'environment' => $this->istiqdasmService->environment(),
                         'real_api' => true,
                         'contract_id' => $contractId
                     ]
@@ -534,7 +618,7 @@ class IstiqdasmRealController extends Controller
                     'message' => 'تم إلغاء العقد في منصة الاستقدام بنجاح',
                     'data' => $result['data'],
                     'api_info' => [
-                        'environment' => config('istiqdam.current_env'),
+                        'environment' => $this->istiqdasmService->environment(),
                         'real_api' => true
                     ]
                 ]);
@@ -586,16 +670,13 @@ class IstiqdasmRealController extends Controller
     {
         try {
             $storedSettings = IstiqdamSetting::query()->first();
-            $credentialsConfigured = (bool) ($storedSettings?->client_id && $storedSettings?->client_secret && $storedSettings?->api_key)
-                || ((bool) config('istiqdam.environments.' . config('istiqdam.current_env') . '.client_id')
-                    && (bool) config('istiqdam.environments.' . config('istiqdam.current_env') . '.client_secret')
-                    && (bool) config('istiqdam.environments.' . config('istiqdam.current_env') . '.api_key'));
+            $credentialsConfigured = (bool) ($storedSettings?->client_id && $storedSettings?->client_secret);
 
             $diagnosis = [
                 'timestamp' => now()->toISOString(),
-                'environment' => config('istiqdam.current_env'),
-                'base_url' => config('istiqdam.environments.' . config('istiqdam.current_env') . '.base_url'),
-                'api_key_length' => strlen(config('istiqdam.environments.' . config('istiqdam.current_env') . '.api_key')),
+                'environment' => $this->istiqdasmService->environment(),
+                'base_url' => $this->istiqdasmService->baseUrl(),
+                'api_key_length' => strlen((string) $storedSettings?->api_key),
                 'credentials_configured' => $credentialsConfigured,
             ];
 
@@ -632,9 +713,8 @@ class IstiqdasmRealController extends Controller
 
     private function isConfigured(?IstiqdamSetting $settings): bool
     {
-        return (bool) ($settings?->client_id
-            && $settings?->client_secret
-            && $settings?->api_key);
+        // API KEY ليس شرطاً؛ المصادقة تتم بـ Client-Id وClient-Secret.
+        return (bool) ($settings?->client_id && $settings?->client_secret);
     }
 
 }

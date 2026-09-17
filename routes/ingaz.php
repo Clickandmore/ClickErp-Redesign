@@ -140,6 +140,10 @@ Route::group(
                 ->name('musaned-section.edit');
             Route::put('musaned-section', [MusanedSectionController::class, 'update'])
                 ->name('musaned-section.update');
+            Route::get('home-sections', [\App\Http\Controllers\ingaz\HomeSectionSettingsController::class, 'edit'])
+                ->name('home-sections.edit');
+            Route::put('home-sections', [\App\Http\Controllers\ingaz\HomeSectionSettingsController::class, 'update'])
+                ->name('home-sections.update');
             Route::get('home-hero', [HomeHeroSectionController::class, 'edit'])
                 ->name('home-hero.edit');
             Route::put('home-hero', [HomeHeroSectionController::class, 'update'])
@@ -469,10 +473,13 @@ Route::group(
             Route::post('RecruitmentContract/refund/preview', [RecruitmentContractController::class, 'refundPreview'])->name('RecruitmentContract.refundPreview');
             Route::post('RecruitmentContract/refund', [RecruitmentContractController::class, 'refund'])->name('RecruitmentContract.refund');
             Route::post('RecruitmentContract/{contract}/restore-returned', [RecruitmentContractController::class, 'restoreReturned'])->name('RecruitmentContract.restoreReturned');
+            Route::post('RecruitmentContract/{contract}/release-maid', [RecruitmentContractController::class, 'releaseMaidAfterCompletion'])->name('RecruitmentContract.releaseMaidAfterCompletion');
 
             Route::resource('RecruitmentContract', RecruitmentContractController::class);
             Route::get('RecruitmentContractBack/{id}', [RecruitmentContractController::class, 'back'])->name('RecruitmentContract.back');
             Route::get('contractsDetails/{id}', [RecruitmentContractController::class, 'details'])->name('contracts.details');
+            Route::get('RecruitmentContract/{contract}/stage-steps', [RecruitmentContractController::class, 'stageSteps'])->name('RecruitmentContract.stageSteps.index');
+            Route::post('RecruitmentContract/{contract}/stage-steps', [RecruitmentContractController::class, 'completeStageSteps'])->name('RecruitmentContract.stageSteps.complete');
             Route::post('RecruitmentContract/{contract}/stage-steps/{step}', [RecruitmentContractController::class, 'updateStageStep'])->name('RecruitmentContract.stageSteps.update');
             Route::post('RecruitmentContract/{contractId}/add-maid', [RecruitmentContractController::class, 'addMaidToContract'])->name('RecruitmentContract.addMaid');
             Route::get('RecruitmentContract/{contractId}/select-maid', [RecruitmentContractController::class, 'selectMaidForContract'])->name('RecruitmentContract.selectMaid');
@@ -554,6 +561,8 @@ Route::group(
 
             // Routes Ù„Ù„ØµÙØ­Ø§Øª Ø§Ù„Ù…Ø®ØªÙ„ÙØ© Ø­Ø³Ø¨ Ø§Ù„Ø­Ø§Ù„Ø© - ÙŠØ¬Ø¨ Ø£Ù† ØªÙƒÙˆÙ† Ù‚Ø¨Ù„ resource route
             Route::get('SponsorshipTransfer/status/trial', [SponsorshipTransferController::class, 'trial'])->name('SponsorshipTransfer.trial');
+            Route::get('SponsorshipTransfer/{id}/replacement-maids', [SponsorshipTransferController::class, 'replacementMaids'])->name('SponsorshipTransfer.replacementMaids');
+            Route::post('SponsorshipTransfer/{id}/replace-maid', [SponsorshipTransferController::class, 'replaceMaid'])->name('SponsorshipTransfer.replaceMaid');
             Route::get('SponsorshipTransfer/status/transferred', [SponsorshipTransferController::class, 'transferred'])->name('SponsorshipTransfer.transferred');
             Route::get('SponsorshipTransfer/status/failed', [SponsorshipTransferController::class, 'failed'])->name('SponsorshipTransfer.failed');
             Route::get('SponsorshipTransfer/{id}/trial-details', [SponsorshipTransferController::class, 'trialDetails'])->name('SponsorshipTransfer.trial-details');
@@ -795,6 +804,7 @@ Route::group(
                 Route::get('database-backups', [DevSuperAdminController::class, 'modules'])->name('database-backups');
                 Route::get('scheduler', [DevSuperAdminController::class, 'modules'])->name('scheduler');
                 Route::put('modules', [DevSuperAdminController::class, 'updateModules'])->name('modules.update');
+                Route::put('home-sections/available', [\App\Http\Controllers\ingaz\HomeSectionSettingsController::class, 'updateAvailable'])->name('home-sections.available');
                 Route::put('subscription', [DevSuperAdminController::class, 'updateSubscription'])->name('subscription.update');
                 Route::put('product-updates', [DevSuperAdminController::class, 'updateProductUpdates'])->name('product-updates.update');
                 Route::post('scheduler/enable', [DevSuperAdminController::class, 'enableScheduler'])->name('scheduler.enable');

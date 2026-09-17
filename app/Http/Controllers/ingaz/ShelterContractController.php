@@ -1186,10 +1186,18 @@ class ShelterContractController extends Controller
         $nationalities = $this->shelterContractNationalities();
         $quickTagSuggestions = $this->getQuickTagSuggestions();
         $complaintTypes = ComplaintType::orderBy('name')->get();
+        $shelterComplaintOptions = Complaint::query()->latest('id')->get(['id', 'subject', 'complainant_name', 'complainant_phone', 'maid_passport'])
+            ->map(fn (Complaint $complaint) => [
+                'id' => $complaint->id,
+                'label' => implode(' — ', array_filter([
+                    '#' . $complaint->id, $complaint->subject ?: 'بدون عنوان',
+                    $complaint->complainant_name, $complaint->complainant_phone, $complaint->maid_passport,
+                ])),
+            ]);
         $rentalInstantReceiptEnabled = CvOptionsSettings::rentalTransferEnabled();
         $contractServiceCategories = $this->mapContractServiceCategories($contracts);
 
-        return view($this->folderPath . '.create', compact('shelters', 'contracts', 'selectedContractId', 'nationalities', 'quickTagSuggestions', 'complaintTypes', 'rentalInstantReceiptEnabled', 'contractServiceCategories'));
+        return view($this->folderPath . '.create', compact('shelterComplaintOptions', 'shelters', 'contracts', 'selectedContractId', 'nationalities', 'quickTagSuggestions', 'complaintTypes', 'rentalInstantReceiptEnabled', 'contractServiceCategories'));
     }
 
     /**
@@ -1413,6 +1421,8 @@ class ShelterContractController extends Controller
             'shelter_id' => $request->shelter_id,
             'receipt_source' => $request->receipt_source,
             'maid_date_back' => $request->maid_date_back,
+            'is_outside_shelter' => false,
+            'outside_shelter_at' => null,
             'salary_final_status' => $request->salary_final_status,
             'duration_from_enter' => $request->duration_from_enter,
             'wants_to_work' => $wantsToWork,
@@ -1438,6 +1448,12 @@ class ShelterContractController extends Controller
         }
 
         DB::transaction(function () use ($contract, $infoPayload, $request) {
+            $lockedContract = Contract::query()->lockForUpdate()->findOrFail($contract->id);
+            if (!$this->contractCanBeAddedToShelter($lockedContract)) {
+                throw \Illuminate\Validation\ValidationException::withMessages([
+                    'contract_id' => 'تغيرت حالة العقد؛ لا يمكن إضافته للإيواء مرة أخرى.',
+                ]);
+            }
             if ($contract->info) {
                 $contract->info()->update($infoPayload);
             } else {
@@ -1446,6 +1462,20 @@ class ShelterContractController extends Controller
 
             $contract->status = ContractStatusEnum::Shelter->value;
             $contract->save();
+
+            // Direct shelter admission must transfer the posted supplier cost just
+            // like a warranty return, without creating another supplier charge.
+            $invoice = $contract->invoice()->first();
+            if ($invoice && ($invoice->external_office_cost_constraint_id || $contract->arabia_supplier_invoice_number)
+                && !$invoice->external_office_cost_reversal_constraint_id) {
+                try {
+                    app(\App\Services\ingaz\ShelterDirectEntryCostService::class)->reconcile($contract->id);
+                } catch (\RuntimeException $exception) {
+                    throw \Illuminate\Validation\ValidationException::withMessages([
+                        'contract_id' => $exception->getMessage(),
+                    ]);
+                }
+            }
 
             $contract->contract_status_logs()->create([
                 'contract_id' => $contract->id,
@@ -1474,6 +1504,10 @@ class ShelterContractController extends Controller
         if ($action === 'link' && $request->filled('shelter_complaint_id')) {
             Complaint::whereKey($request->input('shelter_complaint_id'))->update([
                 'contract_id' => $contract->id,
+                'relation_type' => 'contract',
+                'order_id' => null,
+                'recruitment_office_id' => null,
+                'related_user_id' => null,
                 'maid_passport' => $request->input('passport_number_snapshot') ?: optional($contract->maid)->passport_num,
                 'maid_nationality_id' => $request->input('maid_nationality_snapshot') ?: optional($contract->maid)->nationality_id,
             ]);
@@ -1498,6 +1532,7 @@ class ShelterContractController extends Controller
             ?: ComplaintType::query()->orderBy('id')->value('id');
 
         Complaint::create([
+            'relation_type' => 'contract',
             'contract_id' => $contract->id,
             'user_id' => $user->id,
             'address' => 'إيواء العاملة',
@@ -1579,7 +1614,18 @@ class ShelterContractController extends Controller
         $canReverseAgentCost = $this->adminCanAny([PermKeys::SHELTER_AGENT_COST_RECOVERY_REVERSE]);
         $agentCostSummary = null;
         $agentRecoveries = collect();
+        $shelterStatement = collect();
+        $supplierStatementAccounts = collect();
         if ($canRecoverAgentCost || $canReverseAgentCost) {
+            $contract->loadMissing(['externalOfficeDispatch', 'invoice.externalOfficeCostConstraint.constraintDetails.account']);
+            $supplierStatementAccounts = collect($contract->invoice?->externalOfficeCostConstraint?->constraintDetails ?? [])
+                ->where('creditor_value', '>', 0)->pluck('account')->filter()->unique('id');
+            if ($contract->maid_id && Schema::hasTable('shelter_cost_entries')) {
+                $shelterStatement = app(\App\Services\ingaz\ShelterCostLedgerService::class)->entriesFor((int) $contract->maid_id)
+                    ->sortBy(fn ($entry) => sprintf('%s-%020d-%020d',
+                        substr((string) ($entry->constraint?->date ?: $entry->created_at), 0, 10),
+                        $entry->constraint_id ?: PHP_INT_MAX, $entry->id))->values();
+            }
             $agentCostSummary = app(\App\Services\ingaz\ShelterAgentCostRecoveryService::class)->summary($contract);
             if (Schema::hasTable('shelter_agent_cost_recoveries')) {
                 $agentRecoveries = \App\Models\ShelterAgentCostRecovery::query()->where('contract_id', $contract->id)
@@ -1588,7 +1634,8 @@ class ShelterContractController extends Controller
         }
         $workerHistory = app(\App\Services\ingaz\ShelterWorkerHistoryService::class)->build($contract);
         return view('admin.ingaz.ShelterContract.show', compact('contract', 'warrantyStatus', 'warrantyDays', 'isRentalWorker',
-            'canRecoverAgentCost', 'canReverseAgentCost', 'agentCostSummary', 'agentRecoveries', 'workerHistory'));
+            'canRecoverAgentCost', 'canReverseAgentCost', 'agentCostSummary', 'agentRecoveries', 'workerHistory',
+            'shelterStatement', 'supplierStatementAccounts'));
     }
 
 

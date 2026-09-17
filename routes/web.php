@@ -420,6 +420,8 @@ Route::group(['prefix' => 'admin', 'middleware' => ['auth:admin', 'admin', 'admi
             ->name('ingaz-delegations.print');
         Route::patch('ingaz-delegations/{ingazDelegation}/status', [IngazDelegationController::class, 'updateStatus'])
             ->name('ingaz-delegations.update-status');
+        Route::get('delegation-costs/create', [IngazDelegationController::class, 'createCosts'])->name('delegation-costs.create');
+        Route::post('delegation-costs', [IngazDelegationController::class, 'storeCosts'])->name('delegation-costs.store');
         Route::resource('ingaz-delegations', IngazDelegationController::class);
         Route::get('cities', [CountryController::class, 'citiesIndex'])->name('cities.index');
         Route::get('cities/create', [CountryController::class, 'createCity'])->name('cities.create');

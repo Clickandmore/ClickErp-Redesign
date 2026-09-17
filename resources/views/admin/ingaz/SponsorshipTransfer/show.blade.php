@@ -368,7 +368,7 @@
                 <a href="{{ route('invoices.show', $transfer->invoice->id) }}" class="btn-icon btn-print" title="عرض الفاتورة">
                     <i class="fas fa-file-invoice"></i>
                 </a>
-            @elseif(!$transfer->invoice && !$transfer->isRentalWorkflow() && \App\Support\InvoiceAuthorization::canCreate())
+            @elseif($transfer->canIssueInvoice() && \App\Support\InvoiceAuthorization::canCreate())
                 <a href="{{ route('SponsorshipTransfer.invoice.create', $transfer->id) }}" class="btn-icon btn-print" title="إصدار فاتورة">
                     <i class="fas fa-file-invoice-dollar"></i>
                 </a>
@@ -682,6 +682,36 @@
                                 <span class="info-value">{{ $transfer->contract->maid->age }} سنة</span>
                             </div>
                         @endif
+                    </div>
+                </div>
+            @endif
+
+            <!-- سجل تغيير العاملات -->
+            @php
+                $maidReplacements = $transfer->maidReplacements()
+                    ->with(['oldMaid', 'newMaid', 'changedBy'])
+                    ->get();
+            @endphp
+            @if($maidReplacements->isNotEmpty())
+                <div class="col-12">
+                    <div class="info-card">
+                        <div class="card-title"><i class="fas fa-exchange-alt"></i> سجل تغيير العاملات</div>
+                        <div class="table-responsive">
+                            <table class="table table-sm align-middle mb-0">
+                                <thead><tr><th>العاملة القديمة</th><th>العاملة الجديدة</th><th>حالة القديمة بعد التغيير</th><th>تم التغيير بواسطة</th><th>وقت التغيير</th></tr></thead>
+                                <tbody>
+                                @foreach($maidReplacements as $replacement)
+                                    <tr>
+                                        <td><strong>{{ $replacement->oldMaid?->name ?: 'غير محددة' }}</strong><br><small>{{ $replacement->oldMaid?->passport_num }}</small></td>
+                                        <td><strong>{{ $replacement->newMaid?->name ?: 'غير محددة' }}</strong><br><small>{{ $replacement->newMaid?->passport_num }}</small></td>
+                                        <td>{{ $replacement->old_maid_made_available ? 'متاحة لنقل جديد' : 'غير متاحة' }}</td>
+                                        <td>{{ $replacement->changedBy?->name ?: 'غير محدد' }}</td>
+                                        <td>{{ $replacement->created_at?->format('Y-m-d H:i') }}</td>
+                                    </tr>
+                                @endforeach
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
                 </div>
             @endif

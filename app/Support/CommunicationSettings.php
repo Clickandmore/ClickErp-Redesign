@@ -268,6 +268,17 @@ class CommunicationSettings
             $data['sms']['disable_phone_verification'] ?? false,
             FILTER_VALIDATE_BOOLEAN
         );
+        $data['sms']['external_order_admin_notification']['enabled'] = filter_var(
+            data_get($data, 'sms.external_order_admin_notification.enabled', false),
+            FILTER_VALIDATE_BOOLEAN
+        );
+        $recipientMode = (string) data_get($data, 'sms.external_order_admin_notification.recipient_mode', 'selected_marketer');
+        $data['sms']['external_order_admin_notification']['recipient_mode'] = in_array($recipientMode, ['selected_marketer', 'unified'], true)
+            ? $recipientMode
+            : 'selected_marketer';
+        $data['sms']['external_order_admin_notification']['unified_phone'] = self::digitsOnly(
+            data_get($data, 'sms.external_order_admin_notification.unified_phone', '')
+        );
         $data['sms']['taqnyat']['base_url'] = rtrim(
             self::trimString($data['sms']['taqnyat']['base_url'] ?? $defaults['sms']['taqnyat']['base_url'])
                 ?: $defaults['sms']['taqnyat']['base_url'],
@@ -502,6 +513,11 @@ class CommunicationSettings
                 'bulk_confirmation_keyword' => 'SEND_ALL_SMS',
                 'disable_phone_verification' => false,
                 'gateway_status' => 'on',
+                'external_order_admin_notification' => [
+                    'enabled' => false,
+                    'recipient_mode' => 'selected_marketer',
+                    'unified_phone' => '',
+                ],
                 'taqnyat' => [
                     'base_url' => 'https://api.taqnyat.sa',
                     'bearer_token' => '',

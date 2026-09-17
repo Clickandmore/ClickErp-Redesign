@@ -73,8 +73,7 @@ class PayrollController extends Controller
         $workerScope = $request->input('worker_scope') === 'all' ? 'all' : 'current';
 
         $rows = Employee::query()
-            ->onlyMaids()
-            ->whereNotNull('maid_id')
+            ->currentlyCompanySponsoredMaids()
             ->when($branchId, function ($query) use ($branchId, $branchAccess) {
                 $query->where(function ($branchQuery) use ($branchId, $branchAccess) {
                     $branchQuery->where('hr_employee.branch_id', $branchId);

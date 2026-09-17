@@ -8,6 +8,7 @@ use App\Http\Requests\ingaz\makeTransferRequest;
 use App\Models\auth\Admin;
 use App\Models\Contract;
 use App\Models\ingaz\Order;
+use App\Models\ingaz\Nationality;
 use App\Models\ingaz\User;
 use App\Models\SponsorshipTransfer;
 use App\PermKeys;
@@ -50,11 +51,39 @@ class SponsorshipTransferController extends Controller
 
             // تطبيق الفلاتر
             if ($request->filled('status')) {
-                if ($request->status === 'trial_period') {
-                    $query->whereIn('status', ['trial', 'trial_started']);
-                } else {
-                    $query->where('status', $request->status);
+                switch ($request->status) {
+                    case 'trial_period':
+                        $query->whereIn('status', ['trial', 'trial_started']);
+                        break;
+                    case 'partially_paid':
+                        $query->where(function ($paymentQuery) {
+                            $paymentQuery->where('payment_status', 'partial')
+                                ->orWhere(function ($amountQuery) {
+                                    $amountQuery->where('paid_amount', '>', 0)
+                                        ->where('remaining_amount', '>', 0);
+                                });
+                        });
+                        break;
+                    case 'cancelled':
+                        // زر إلغاء نقل الكفالة يسجل الطلب كفشل، مع دعم القيمة القديمة cancelled.
+                        $query->whereIn('status', ['failed', 'cancelled']);
+                        break;
+                    default:
+                        $query->where('status', $request->status);
                 }
+            }
+
+            if ($request->filled('maid_passport')) {
+                $passport = trim((string) $request->maid_passport);
+                $query->whereHas('contract.maid', function ($maidQuery) use ($passport) {
+                    $maidQuery->whereRaw('LOWER(passport_num) LIKE ?', ['%' . mb_strtolower($passport) . '%']);
+                });
+            }
+
+            if ($request->filled('maid_nationality_id')) {
+                $query->whereHas('contract.maid', function ($maidQuery) use ($request) {
+                    $maidQuery->where('nationality_id', $request->maid_nationality_id);
+                });
             }
 
             if ($request->filled('date_from')) {
@@ -243,7 +272,7 @@ class SponsorshipTransferController extends Controller
                                             <i class="fas fa-print text-success"></i> تحميل / طباعة الفاتورة
                                         </a></li>';
                         }
-                    } elseif (!$transfer->invoice && InvoiceAuthorization::canCreate()) {
+                    } elseif ($transfer->canIssueInvoice() && InvoiceAuthorization::canCreate()) {
                         $actions .= '<li><a class="dropdown-item fw-bold text-success" href="' . route('SponsorshipTransfer.invoice.create', $transfer->id) . '">
                                         <i class="fas fa-file-invoice-dollar"></i> إصدار الفاتورة
                                     </a></li>';
@@ -393,6 +422,7 @@ class SponsorshipTransferController extends Controller
         $approvedCount = (clone $statsQuery)->where('status', 'approved')->count();
         $completedCount = (clone $statsQuery)->where('status', 'completed')->count();
         $receiptAccounts = SponsorshipTransferPaymentService::receiptAccounts();
+        $nationalities = Nationality::query()->orderBy('sort_order')->orderBy('id')->get();
 
         return view($this->folderPath . '.index', compact(
             'totalCount',
@@ -403,7 +433,8 @@ class SponsorshipTransferController extends Controller
             'rejectedCount',
             'approvedCount',
             'completedCount',
-            'receiptAccounts'
+            'receiptAccounts',
+            'nationalities'
         ));
     }
 
@@ -1795,7 +1826,9 @@ class SponsorshipTransferController extends Controller
 
             $settlementType = $validated['failure_settlement_type'] ?? 'refund';
             $settlementAmount = round((float) ($validated['failure_settlement_amount'] ?? $transfer->paid_amount), 2);
-            $clearRemainingAmount = round((float) ($validated['failure_clear_remaining_amount'] ?? $transfer->remaining_amount), 2);
+            // Failure is not a payment. Keep the outstanding balance unless the user
+            // explicitly chooses to write off part of it in the settlement form.
+            $clearRemainingAmount = round((float) ($validated['failure_clear_remaining_amount'] ?? 0), 2);
             $paidAmount = round((float) $transfer->paid_amount, 2);
             $remainingAmount = round((float) $transfer->remaining_amount, 2);
 
@@ -1966,6 +1999,136 @@ class SponsorshipTransferController extends Controller
         return $this->renderStatusListingPage($request, 'trial');
     }
 
+    public function replacementMaids(Request $request, int $id)
+    {
+        $transfer = SponsorshipTransfer::with('contract.maid.jobTypes')->findOrFail($id);
+        $this->assertCanAccessBranchModel($transfer);
+        $this->assertMaidCanBeReplaced($transfer);
+        $companyWorker = $transfer->contract
+            ? $this->contractIsRentalWorker($transfer->contract)
+            : false;
+
+        $term = trim((string) $request->input('q'));
+        $query = Contract::insideShelter()
+            ->with(['maid.nationality', 'maid.jobTypes'])
+            ->where('contracts.id', '!=', $transfer->contract_id)
+            ->whereHas('info', fn ($q) => $q->where('wants_to_work', 'yes'))
+            ->whereHas('maid', function ($q) use ($term) {
+                if ($term !== '') {
+                    $q->where(fn ($search) => $search->where('name', 'like', "%{$term}%")
+                        ->orWhere('passport_num', 'like', "%{$term}%"));
+                }
+            });
+        $this->applyRequestBranchFilter($query, $request, 'contracts');
+
+        $contracts = $query->latest()->get()
+            ->filter(fn (Contract $contract) => !$companyWorker || $this->contractIsRentalWorker($contract))
+            ->map(fn ($contract) => [
+            'id' => $contract->id,
+            'text' => ($contract->maid?->name ?: 'عاملة بدون اسم') . ' — ' . ($contract->maid?->passport_num ?: 'بدون جواز'),
+        ])->values();
+
+        return response()->json([
+            'results' => $contracts,
+            'current_worker_type' => $companyWorker ? 'company' : 'customer_sponsored',
+            'selection_explanation' => $companyWorker
+                ? 'العاملة الحالية من عاملات الشركة؛ لذلك تظهر عاملات الشركة الموجودات داخل الإيواء والراغبات في العمل فقط.'
+                : 'العاملة الحالية على كفالة عميل سابق؛ لذلك تظهر العاملات الموجودات داخل الإيواء والراغبات في العمل.',
+        ]);
+    }
+
+    public function replaceMaid(Request $request, int $id)
+    {
+        $validated = $request->validate([
+            'replacement_contract_id' => ['required', 'integer', 'exists:contracts,id'],
+            'make_old_maid_available' => ['required', 'boolean'],
+        ]);
+
+        DB::transaction(function () use ($id, $validated, $request) {
+            $transfer = SponsorshipTransfer::with(['contract.info', 'contract.maid', 'transferServiceContract'])
+                ->lockForUpdate()->findOrFail($id);
+            $this->assertCanAccessBranchModel($transfer);
+            $this->assertMaidCanBeReplaced($transfer);
+
+            $replacement = Contract::insideShelter()->with(['info', 'maid'])->lockForUpdate()
+                ->whereHas('info', fn ($q) => $q->where('wants_to_work', 'yes'))
+                ->findOrFail($validated['replacement_contract_id']);
+            $this->assertCanAccessBranchModel($replacement, 'contracts');
+
+            if (!$replacement->maid || !$replacement->user_id
+                || (int) $replacement->id === (int) $transfer->contract_id) {
+                throw ValidationException::withMessages(['replacement_contract_id' => 'العاملة البديلة غير متاحة لنقل الكفالة.']);
+            }
+
+            $oldContract = $transfer->contract;
+            $oldMaid = $oldContract?->maid;
+            if (!$oldContract || !$oldMaid) {
+                throw ValidationException::withMessages(['replacement_contract_id' => 'بيانات العاملة الحالية غير مكتملة.']);
+            }
+
+            $oldContract->loadMissing('maid.jobTypes');
+            $replacement->loadMissing('maid.jobTypes');
+            if ($this->contractIsRentalWorker($oldContract) && !$this->contractIsRentalWorker($replacement)) {
+                throw ValidationException::withMessages([
+                    'replacement_contract_id' => 'العاملة الحالية من عاملات الشركة، ويجب اختيار عاملة بديلة من عاملات الشركة فقط.',
+                ]);
+            }
+
+            $makeAvailable = (bool) $validated['make_old_maid_available'];
+            $oldContract->update(['status' => ContractStatusEnum::Shelter->value]);
+            $oldContract->info()->updateOrCreate([], [
+                'wants_to_work' => $makeAvailable ? 'yes' : 'unknown',
+                'is_available_for_instant' => $makeAvailable,
+                'is_outside_shelter' => false,
+                'outside_shelter_at' => null,
+                'outside_shelter_reason' => null,
+                'outside_shelter_reference_type' => null,
+                'outside_shelter_reference_id' => null,
+                'outside_shelter_by' => null,
+            ]);
+            $oldMaidUpdate = ['available' => $makeAvailable];
+            if ($makeAvailable) {
+                $oldMaidUpdate += ['status' => 'available', 'available_at' => now()->toDateString(), 'maid_accommodation_type' => 2];
+            }
+            $oldMaid->update($oldMaidUpdate);
+
+            $replacement->update(['status' => ContractStatusEnum::Trial->value]);
+            $transfer->update(['contract_id' => $replacement->id, 'old_sponsor_id' => $replacement->user_id]);
+            $transfer->transferServiceContract?->update([
+                'contract_id' => $replacement->id,
+                'maid_id' => $replacement->maid_id,
+                'old_sponsor_id' => $replacement->user_id,
+            ]);
+            $transfer->setRelation('contract', $replacement);
+            $this->markShelterContractOutsideForTransfer($transfer);
+
+            \App\Models\SponsorshipTransferMaidReplacement::create([
+                'sponsorship_transfer_id' => $transfer->id,
+                'old_contract_id' => $oldContract->id,
+                'new_contract_id' => $replacement->id,
+                'old_maid_id' => $oldMaid->id,
+                'new_maid_id' => $replacement->maid_id,
+                'changed_by' => auth('admin')->id(),
+                'old_maid_made_available' => $makeAvailable,
+            ]);
+        });
+
+        return response()->json(['success' => true, 'message' => 'تم تغيير العاملة وتسجيل تفاصيل العملية بنجاح.']);
+    }
+
+    private function assertMaidCanBeReplaced(SponsorshipTransfer $transfer): void
+    {
+        abort_unless(auth('admin')->user()?->can(PermKeys::SPONSOR_TRANSFER_REPLACE_MAID)
+            || auth('admin')->user()?->can(PermKeys::SPONSOR_TRANSFER_CONTROL), 403);
+
+        if (!in_array($transfer->status, ['trial', 'trial_started'], true)) {
+            throw ValidationException::withMessages(['transfer' => 'يمكن تغيير العاملة خلال فترة التجربة فقط.']);
+        }
+        if ($transfer->invoice()->exists()) {
+            throw ValidationException::withMessages(['transfer' => 'لا يمكن تغيير العاملة بعد إصدار فاتورة نقل الكفالة.']);
+        }
+    }
+
     /**
      * Show completed transfers
      */
@@ -2033,7 +2196,7 @@ class SponsorshipTransferController extends Controller
                 'title' => helperTrans('ingaz.trial_period'),
                 'route' => route('SponsorshipTransfer.trial'),
                 'statuses' => ['trial', 'trial_started'],
-                'relations' => ['contract.maid.nationality', 'oldSponsor', 'newSponsor'],
+                'relations' => ['contract.maid.nationality', 'oldSponsor', 'newSponsor', 'invoice'],
                 'theme' => 'primary',
                 'date_label' => 'بداية التجربة',
                 'empty_icon' => 'fas fa-hourglass-half',

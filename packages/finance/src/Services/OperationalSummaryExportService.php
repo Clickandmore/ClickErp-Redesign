@@ -228,7 +228,8 @@ class OperationalSummaryExportService
 
         foreach ($section['rows'] as $row) {
             $line = [
-                (string) ($row->contract_number ?: '—'),
+                (string) ($row->contract_number ?: '—')
+                    . (isset($row->document_type) ? ' / ' . ($row->document_type === 'extension' ? 'تمديد' : 'فاتورة أساسية') . ' #' . $row->id : ''),
                 (string) ($row->client_name ?: '—'),
                 (string) ($row->client_phone ?: '—'),
                 (string) ($row->client_identity ?: '—'),

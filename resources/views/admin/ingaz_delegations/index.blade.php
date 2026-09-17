@@ -123,6 +123,9 @@
                     <h3 class="mb-1">إدارة تفاويض الإنجاز</h3>
                     <p class="text-muted mb-0">متابعة تاريخ التفويض وتاريخ الإضافة وبيانات العميل والفاتورة وتحويل مساند.</p>
                 </div>
+                @if ($canCreateCosts)
+                    <a href="{{ route('delegation-costs.create') }}" class="btn btn-outline-primary">تسجيل تكلفة التفويض</a>
+                @endif
                 @if ($canCreateDelegation)
                     <a href="{{ route('reports.import.index', ['type' => 'ingaz_delegations']) }}" class="btn btn-outline-success">
                         <i class="fa fa-file-import me-1"></i>

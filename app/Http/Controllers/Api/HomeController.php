@@ -30,6 +30,8 @@ use App\Http\Requests\ingaz\API\DailyLabotDemandRequest;
 use App\Http\Resources\Api\PackageResource;
 use App\Http\Resources\Api\FindUsLocationResource;
 use App\Support\FindUsSettings;
+use App\Support\HomeSectionSettings;
+use App\Support\SystemModuleManager;
 use App\Http\Resources\Api\RecruitmentRequirementResource;
 use App\Http\Resources\Api\WhyChooseUsResource;
 use App\Http\Resources\Api\MusanedSectionResource;
@@ -38,6 +40,7 @@ use App\Http\Traits\API\ApiResponse;
 use App\Http\Traits\SendSMSTrait;
 use App\Http\Traits\StoreMessageTrait;
 use App\Models\auth\Admin;
+use App\Models\Branch;
 use App\Models\Contract;
 use App\Models\ingaz\Complaint;
 use App\Models\ingaz\Nationality;
@@ -353,7 +356,7 @@ class HomeController extends Controller
         $requirments = $requirement_action->getVisible();
         $Visa = $requirments->where('type', RequirementEnum::VisaIssuance->value);
         $Domestic = $requirments->where('type', RequirementEnum::RecruitDomestic->value);
-        $whyUs = $whyUsAction->get();
+        $whyUs = $whyUsAction->getVisible();
         $whyChooseUs = $whyChooseUsAction->visibleSection();
         $musanedSection = $musanedSectionAction->visibleSection();
         $homeHeroSection = $homeHeroSectionAction->visibleSection();
@@ -364,11 +367,46 @@ class HomeController extends Controller
 
         $counts['clients'] = DB::table('users')->count();
 
+        // موظفو خدمة العملاء. عند تفعيل وحدة الأفرع نرفق الفرع مع كل موظف
+        // بالإضافة إلى قائمة الأفرع، ليعرضها الموقع الخارجي كتبويبات وبادج
+        // على الكارد. عند تعطيلها يبقى الشكل القديم (بدون فرع).
+        $branchesEnabled = SystemModuleManager::isEnabled('branches')
+            && Schema::hasColumn('admins', 'branch_id');
+
         $customerService = Admin::query()
             ->activeForOperations()
             ->where('admin_type', AdminTypes::CustomerService->value)
-            ->select('id', 'name', 'phone', 'whatsapp')
-            ->get();
+            ->when($branchesEnabled, fn ($query) => $query->with('branch:id,name_ar,name_en'))
+            ->select(array_filter(['id', 'name', 'phone', 'whatsapp', $branchesEnabled ? 'branch_id' : null]))
+            ->get()
+            ->map(function (Admin $admin) use ($branchesEnabled) {
+                $branch = $branchesEnabled ? $admin->branch : null;
+
+                return [
+                    'id' => (int) $admin->id,
+                    'name' => (string) $admin->name,
+                    'phone' => (string) $admin->phone,
+                    'whatsapp' => (string) $admin->whatsapp,
+                    'branch_id' => $branch ? (int) $branch->id : null,
+                    'branch' => $branch
+                        ? ['id' => (int) $branch->id, 'name' => (string) $branch->name]
+                        : null,
+                ];
+            })
+            ->values();
+
+        // نرسل فقط الأفرع التي بها موظفو خدمة عملاء، بترتيب الأفرع المعتمد،
+        // حتى لا يظهر تبويب فارغ في الموقع الخارجي.
+        $usedBranchIds = $customerService->pluck('branch_id')->filter()->unique()->all();
+
+        $customerServiceBranches = $branchesEnabled && $usedBranchIds !== []
+            ? Branch::query()->whereIn('id', $usedBranchIds)->ordered()->get(['id', 'name_ar', 'name_en'])
+                ->map(fn (Branch $branch) => [
+                    'id' => (int) $branch->id,
+                    'name' => (string) $branch->name,
+                ])
+                ->values()
+            : collect();
 
         $data = [
             'sliders' => $sliders,
@@ -384,6 +422,8 @@ class HomeController extends Controller
             'questions' => $questions,
             'nationalities' => $nationalities,
             'customerService' => $customerService,
+            'customer_service_branches' => $customerServiceBranches,
+            'branches_enabled' => $branchesEnabled,
             'recruitment_requirements' => RecruitmentRequirementResource::collection(
                 $requirments->values()
             ),
@@ -405,6 +445,9 @@ class HomeController extends Controller
                 'domestic' => RecruitmentRequirementResource::collection($Domestic->values()),
             ],
             'counts' => $counts,
+            // مفتاح إضافي فقط: المواقع التي لا تقرؤه يبقى شكلها كما هو، والتي
+            // تقرؤه تعتبر أي قسم غير موجود فيه ظاهراً.
+            'sections_visibility' => HomeSectionSettings::all(),
         ];
 
         return $this->successResponse($data, $this->localizedText('تم جلب بيانات الصفحة الرئيسية بنجاح', 'Home data retrieved successfully'), 200);
@@ -435,7 +478,7 @@ class HomeController extends Controller
 
     public function whyUs(Request $request, WhyUsAction $whyUsAction)
     {
-        $whyUs = $whyUsAction->get();
+        $whyUs = $whyUsAction->getVisible();
         return $this->successResponse($whyUs, $this->localizedText('تم جلب بيانات لماذا نحن بنجاح', 'Why Us data retrieved successfully'), 200);
     }
     public function testimonials(Request $request, TestimonialsAction $testimonialsAction)

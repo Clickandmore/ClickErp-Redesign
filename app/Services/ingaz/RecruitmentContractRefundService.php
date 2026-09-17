@@ -46,7 +46,7 @@ class RecruitmentContractRefundService
             && AutomaticJournalEntries::enabled();
     }
 
-    public function preview(Contract $contract, string $refundDate, ?string $cancelledBy = null): array
+    public function preview(Contract $contract, string $refundDate, ?string $cancelledBy = null, array $overrides = []): array
     {
         $contract->loadMissing(['invoice.musanedTransferItem.transfer', 'invoice.recruitmentCreditNotes', 'info']);
         $invoice = $contract->invoice;
@@ -61,6 +61,27 @@ class RecruitmentContractRefundService
         $days = $this->daysFromContract($contract, $refundDate);
         $penaltyPercent = $hasMusanedTransfer ? $this->penaltyPercentForDays($days) : 0.0;
         $penaltyAmount = $this->roundMoney($contractAmount * ($penaltyPercent / 100));
+
+        if ($hasMusanedTransfer) {
+            if (isset($overrides['penalty_amount'])) {
+                $penaltyAmount = $this->roundMoney((float) $overrides['penalty_amount']);
+                if (!is_finite($penaltyAmount) || $penaltyAmount < 0 || $penaltyAmount > $contractAmount) {
+                    throw \Illuminate\Validation\ValidationException::withMessages([
+                        'penalty_amount' => 'مبلغ الخصم يجب أن يكون بين صفر وقيمة العقد.',
+                    ]);
+                }
+                $penaltyPercent = $contractAmount > 0 ? round($penaltyAmount / $contractAmount * 100, 4) : 0.0;
+            } elseif (isset($overrides['penalty_percent'])) {
+                $penaltyPercent = (float) $overrides['penalty_percent'];
+                if (!is_finite($penaltyPercent) || $penaltyPercent < 0 || $penaltyPercent > 100) {
+                    throw \Illuminate\Validation\ValidationException::withMessages([
+                        'penalty_percent' => 'نسبة الخصم يجب أن تكون بين صفر و100.',
+                    ]);
+                }
+                $penaltyPercent = round($penaltyPercent, 4);
+                $penaltyAmount = $this->roundMoney($contractAmount * $penaltyPercent / 100);
+            }
+        }
 
         if (!$hasMusanedTransfer) {
             $cancelledBy = 'none_before_transfer';
@@ -105,7 +126,7 @@ class RecruitmentContractRefundService
         }
 
         $refundDate = $data['refund_date'] ?? now()->toDateString();
-        $summary = $this->preview($contract, $refundDate, $data['cancelled_by'] ?? null);
+        $summary = $this->preview($contract, $refundDate, $data['cancelled_by'] ?? null, $data);
 
         if ($summary['has_musaned_transfer'] && !$summary['cancelled_by']) {
             throw new \RuntimeException('يجب تحديد الطرف المتسبب في الإلغاء بعد تحويل مبلغ العقد من مساند.');
@@ -160,10 +181,10 @@ class RecruitmentContractRefundService
         ]);
     }
 
-    public function previewDetails(Contract $contract, string $refundDate, ?string $cancelledBy = null): array
+    public function previewDetails(Contract $contract, string $refundDate, ?string $cancelledBy = null, array $overrides = []): array
     {
         $contract->loadMissing(['invoice.musanedTransferItem.transfer', 'user', 'info']);
-        $summary = $this->preview($contract, $refundDate, $cancelledBy);
+        $summary = $this->preview($contract, $refundDate, $cancelledBy, $overrides);
         $invoice = $contract->invoice;
         $statement = $this->buildStatement($contract, $summary);
         $warnings = [];
@@ -505,6 +526,17 @@ class RecruitmentContractRefundService
             ->orderBy('id')
             ->lockForUpdate()
             ->first();
+
+        // Imported charts may retain the normal-account type on the revenue root.
+        if (!$parent) {
+            $parent = Account::query()
+                ->whereNull('parent_id')
+                ->where('status', AccountStatusEnum::Creditor->value)
+                ->whereIn('name', ['الإيرادات', 'الايرادات'])
+                ->orderBy('id')
+                ->lockForUpdate()
+                ->first();
+        }
 
         if (!$parent) {
             throw new \RuntimeException('لا يوجد حساب إيرادات رئيسي لإنشاء حساب غرامات الاسترداد.');

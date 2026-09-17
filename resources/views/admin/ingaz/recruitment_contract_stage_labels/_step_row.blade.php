@@ -8,7 +8,7 @@
         <select name="steps[{{ $index }}][stage]" class="form-select" required>
             <option value="">اختر المرحلة</option>
             @foreach ($labels as $status => $locales)
-                <option value="{{ $status }}" @selected($value('stage') === $status)>
+                <option value="{{ $status }}" {{ (string) $value('stage') === (string) $status ? 'selected' : '' }}>
                     {{ $locales['ar'] ?? $status }}
                 </option>
             @endforeach
@@ -26,7 +26,7 @@
         <select name="steps[{{ $index }}][nationality_id]" class="form-select">
             <option value="">جميع الجنسيات</option>
             @foreach ($nationalities as $nationality)
-                <option value="{{ $nationality->id }}" @selected((string) $value('nationality_id') === (string) $nationality->id)>
+                <option value="{{ $nationality->id }}" {{ (string) $value('nationality_id') === (string) $nationality->id ? 'selected' : '' }}>
                     {{ $nationality->display_name }}
                 </option>
             @endforeach
@@ -39,7 +39,7 @@
     <td class="text-center">
         <input type="hidden" name="steps[{{ $index }}][is_active]" value="0">
         <input type="checkbox" name="steps[{{ $index }}][is_active]" value="1"
-            class="form-check-input" @checked((bool) $value('is_active', true))>
+            class="form-check-input" {{ (bool) $value('is_active', true) ? 'checked' : '' }}>
     </td>
     <td class="text-center">
         <button type="button" class="btn btn-sm btn-outline-danger" data-remove-step title="حذف الخطوة">

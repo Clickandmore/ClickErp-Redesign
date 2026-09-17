@@ -158,7 +158,7 @@ class OperationalSummaryService extends MainService
      */
     public function headline(string $from, string $to): array
     {
-        $rentalSales = $this->scoped('rental_contract_invoices')
+        $rentalSales = $this->rentalBillingQuery()
             ->whereBetween(DB::raw('DATE(rental_contract_invoices.created_at)'), [$from, $to])
             ->selectRaw('COALESCE(SUM(total_due), 0) as invoiced')
             ->selectRaw('COALESCE(SUM(paid_amount), 0) as collected')
@@ -171,7 +171,7 @@ class OperationalSummaryService extends MainService
             ->selectRaw('COALESCE(SUM(CASE WHEN is_paid = 1 THEN total_due ELSE 0 END), 0) as collected')
             ->first();
 
-        $rentalOutstanding = $this->scoped('rental_contract_invoices')
+        $rentalOutstanding = $this->rentalBillingQuery()
             ->whereDate('rental_contract_invoices.created_at', '<=', $to)
             ->where('remaining_amount', '>', 0)
             ->selectRaw('COUNT(*) as documents')
@@ -304,9 +304,31 @@ class OperationalSummaryService extends MainService
         ];
     }
 
+    /** Base invoices and separately billed extensions share one reporting source. */
+    private function rentalBillingQuery(): Builder
+    {
+        $invoices = $this->scoped('rental_contract_invoices')->select([
+            'id', 'rental_contract_id', 'total_due', 'paid_amount', 'remaining_amount',
+            'payment_type', 'payment_status', 'created_at',
+        ])->selectRaw("'invoice' as document_type");
+
+        // Older extensions without a stored value are not issued financial documents.
+        // A missing payment amount on a fully paid legacy extension means full payment.
+        $paid = "COALESCE(payment_amount, CASE WHEN payment_status = 'paid' THEN extension_value ELSE 0 END)";
+        $extensions = $this->scoped('rental_contract_extensions')
+            ->whereNotNull('extension_value')
+            ->select(['id', 'rental_contract_id'])
+            ->selectRaw("extension_value as total_due, {$paid} as paid_amount")
+            ->selectRaw("GREATEST(extension_value - {$paid}, 0) as remaining_amount")
+            ->addSelect(['payment_type', 'payment_status', 'created_at'])
+            ->selectRaw("'extension' as document_type");
+
+        return DB::query()->fromSub($invoices->unionAll($extensions), 'rental_contract_invoices');
+    }
+
     private function monthlyRentalSales(string $from, string $to): Collection
     {
-        return $this->scoped('rental_contract_invoices')
+        return $this->rentalBillingQuery()
             ->whereBetween(DB::raw('DATE(rental_contract_invoices.created_at)'), [$from, $to])
             ->selectRaw("DATE_FORMAT(rental_contract_invoices.created_at, '%Y-%m') as period")
             ->selectRaw('COUNT(*) as documents')
@@ -392,7 +414,7 @@ class OperationalSummaryService extends MainService
      */
     private function rentalReceivableQuery(?string $from, string $to): Builder
     {
-        $query = $this->scoped('rental_contract_invoices')
+        $query = $this->rentalBillingQuery()
             ->join('rental_contracts', 'rental_contracts.id', '=', 'rental_contract_invoices.rental_contract_id')
             ->leftJoin('users', 'users.id', '=', 'rental_contracts.user_id')
             ->whereDate('rental_contract_invoices.created_at', '<=', $to)
@@ -496,6 +518,7 @@ class OperationalSummaryService extends MainService
 
         return [
             'rental_contract_invoices.id',
+            'rental_contract_invoices.document_type',
             'rental_contract_invoices.rental_contract_id',
             'rental_contract_invoices.total_due',
             'rental_contract_invoices.paid_amount',

@@ -98,7 +98,7 @@ class RentContractController extends Controller
             $status = $request->get('status', $status);
             $branchesEnabled = $this->branchesEnabledFor('rental_contracts');
 
-            $relations = ['user', 'maid', 'info', 'marketer', 'financeInvoice'];
+            $relations = ['user', 'maid', 'info', 'marketer', 'financeInvoice', 'extensions', 'financialAdjustments', 'financeBonds'];
             if ($branchesEnabled) {
                 $relations[] = 'branch';
             }
@@ -213,6 +213,9 @@ class RentContractController extends Controller
                         $startDate = optional($row->info->ingaz_from)->format('Y-m-d') ?: 'غير محدد';
                         $endDate = optional($row->info->ingaz_to)->format('Y-m-d') ?: 'غير محدد';
                         $paymentStatusBadge = $this->getPaymentStatusBadge($row->info->payment_status ?? null);
+                        $balance = app(RentalContractLedgerService::class)->netBalanceForContract($row);
+                        $balanceLabel = $balance < 0 ? 'رصيد لصالح العميل' : 'المطلوب من العميل';
+                        $balanceClass = $balance > 0 ? 'text-danger' : 'text-success';
 
                         $extensionBadgeHtml = $extensionBadge
                             ? '<div class="d-flex justify-content-between align-items-center mb-1">' . $extensionBadge . '</div>'
@@ -227,6 +230,7 @@ class RentContractController extends Controller
                                     <div class="rent-period-money">
                                         <div><strong>التكلفة الشهرية:</strong> ' . number_format($row->info->monthly_cost ?? 0, 2) . ' ريال</div>
                                         <div><strong>قيمة العقد:</strong> ' . number_format($row->info->contract_value ?? 0, 2) . ' ريال</div>
+                                        <div class="' . $balanceClass . '"><strong>' . $balanceLabel . ':</strong> ' . number_format(abs($balance), 2) . ' ريال</div>
                                     </div>
                                 </div>';
                     }
@@ -984,21 +988,8 @@ class RentContractController extends Controller
             ->balanceForContract($contract);
         $contractLedgerBalanceFromJournal = $contractLedgerBalance !== null;
 
-        if ($contractLedgerBalanceFromJournal) {
-            $contractLedgerBalance = round(
-                $contractLedgerBalance + $unpostedClosureIncome - $unpostedClosureRefund,
-                2
-            );
-        } else {
-            $contractLedgerBalance = round(
-                (float) ($contract->financeInvoice?->total_due ?? $contract->info?->contract_value ?? 0)
-                + (float) $contract->extensions->sum('extension_value')
-                + $closureIncome
-                - $closureRefund
-                - $receiptBondsTotal,
-                2
-            );
-        }
+        $contractLedgerBalance = app(RentalContractLedgerService::class)
+            ->netBalanceForContract($contract, $contractLedgerBalance);
         $clientAccountBalance = null;
         $clientAccountApprovedBalance = null;
 
@@ -1653,6 +1644,47 @@ class RentContractController extends Controller
         return '، لكن تعذر إرسال رسالة إنهاء العقد للعميل.';
     }
 
+    private function sendRentalExtensionMessageToClient(RentalContract $contract): array
+    {
+        $contract->loadMissing(['user', 'info']);
+        $phone = trim((string) ($contract->user?->phone_code ?? '') . (string) ($contract->user?->phone ?? ''));
+
+        if ($phone === '') {
+            return ['success' => false, 'error' => 'missing_phone'];
+        }
+
+        $contractNumber = $contract->contract_number ?: $contract->id;
+        $clientName = $contract->user?->name ?: 'عميلنا العزيز';
+        $newEndDate = optional($contract->info?->ingaz_to)->format('Y-m-d');
+        $message = implode("\n", [
+            "عميلنا {$clientName}،",
+            "تم تمديد عقد الإيجار رقم {$contractNumber} حتى تاريخ {$newEndDate}.",
+            'شكراً لتعاملكم معنا.',
+        ]);
+
+        try {
+            $response = $this->sendSMS(formatSaudiPhone($phone), $message);
+            $sent = $this->smsWasSent($response);
+            $result = [
+                'success' => $sent,
+                'error' => $sent ? null : 'provider_rejected',
+                'response' => $response,
+            ];
+        } catch (\Throwable $exception) {
+            $result = ['success' => false, 'error' => $exception->getMessage()];
+        }
+
+        Log::info('Rental contract extension message attempted', [
+            'contract_id' => $contract->id,
+            'client_id' => $contract->user_id,
+            'channel' => 'sms',
+            'success' => (bool) ($result['success'] ?? false),
+            'error' => $result['error'] ?? null,
+        ]);
+
+        return $result;
+    }
+
     private function getStatusBadge($status, $closureType = null, ?RentalContract $contract = null)
     {
         if ($status === 'completed') {
@@ -1917,6 +1949,12 @@ class RentContractController extends Controller
     private function applyRentalContractIndexFilters($query, Request $request, bool $includeStatus = true): void
     {
         $query->quickSearch((string) $request->input('quick_search', ''));
+
+        if ($request->filled('payment_status')) {
+            $query->whereHas('info', function ($infoQuery) use ($request) {
+                $infoQuery->where('payment_status', $request->input('payment_status'));
+            });
+        }
 
         if ($includeStatus && $request->filled('status_filter')) {
             $this->applyRentalContractStatusFilter($query, $request->status_filter);
@@ -4146,6 +4184,7 @@ class RentContractController extends Controller
             'extension_payment_amount' => 'nullable|' . $receiptRule . 'numeric|' . ($receiptRequired ? 'gt:0' : 'min:0'),
             'extension_payment_date' => 'nullable|' . $receiptRule . 'date',
             'extension_notes' => 'nullable|string|max:1000',
+            'send_extension_message' => 'nullable|boolean',
         ], [
             'extension_months.integer' => 'مدة التمديد يجب أن تكون رقماً صحيحاً',
             'extension_months.min' => 'مدة التمديد بالشهور لا يمكن أن تكون أقل من صفر',
@@ -4317,10 +4356,21 @@ class RentContractController extends Controller
 
             DB::commit();
 
+            $messageResult = $request->boolean('send_extension_message')
+                ? $this->sendRentalExtensionMessageToClient($contract->fresh(['user', 'info']))
+                : null;
+
+            $messageResultText = $messageResult === null
+                ? ''
+                : ((bool) ($messageResult['success'] ?? false)
+                    ? '، وتم إرسال رسالة التمديد للعميل.'
+                    : '، لكن تعذر إرسال رسالة التمديد للعميل.');
+
             return response()->json([
                 'success' => true,
                 'message' => 'تم تمديد عقد التأجير بنجاح'
-                    . ($receiptBond ? ' وإصدار سند قبض رقم ' . ($receiptBond->code ?: $receiptBond->id) : ''),
+                    . ($receiptBond ? ' وإصدار سند قبض رقم ' . ($receiptBond->code ?: $receiptBond->id) : '')
+                    . $messageResultText,
                 'receipt_bond_print_url' => $receiptBond
                     ? route('finance.bonds-print.show', ['bonds_print' => $receiptBond->id, 'type' => 'qabd'])
                     : null,

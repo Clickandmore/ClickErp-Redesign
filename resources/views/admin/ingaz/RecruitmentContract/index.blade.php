@@ -1271,6 +1271,38 @@
             </div>
         </div>
 
+        <div class="modal fade" id="completeStageStepModal" tabindex="-1"
+            aria-labelledby="completeStageStepModalLabel" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered modal-lg">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="completeStageStepModalLabel">
+                            <i class="fas fa-list-check text-success me-1"></i>
+                            تنفيذ المراحل الفرعية
+                        </h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="إغلاق"></button>
+                    </div>
+                    <div class="modal-body">
+                        <input type="hidden" id="stageStepUpdateUrl">
+                        <input type="hidden" id="stageStepParentValue">
+                        <div class="alert alert-light border mb-3">
+                            <div class="text-muted small mb-1">المرحلة الأم</div>
+                            <strong id="stageStepParentName">—</strong>
+                            <div class="text-muted small mt-2">اختر مرحلة أو أكثر وحدد تاريخ تنفيذ كل مرحلة، ثم اضغط حفظ.</div>
+                        </div>
+                        <div id="stageStepsError" class="alert alert-danger d-none" role="alert"></div>
+                        <div id="stageStepsRows"></div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-light" data-bs-dismiss="modal">إلغاء</button>
+                        <button type="button" class="btn btn-success" id="confirmStageStepBtn">
+                            <i class="fas fa-check me-1"></i> حفظ المراحل المحددة
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <!-- Modal -->
         <div class="modal fade" id="updateStatusModal" tabindex="-1" role="dialog"
             aria-labelledby="updateStatusModalLabel" aria-hidden="true">
@@ -1490,6 +1522,18 @@
                                         </div>
                                     </div>
                                 </div>
+                            </div>
+
+                            <div class="row mb-3" id="refundPenaltyFields">
+                                <div class="col-md-6">
+                                    <label for="refund_penalty_percent" class="form-label">نسبة الخصم (%)</label>
+                                    <input type="number" class="form-control" id="refund_penalty_percent" name="penalty_percent" min="0" max="100" step="0.0001" placeholder="تلقائي">
+                                </div>
+                                <div class="col-md-6">
+                                    <label for="refund_penalty_amount" class="form-label">مبلغ الخصم</label>
+                                    <input type="number" class="form-control" id="refund_penalty_amount" name="penalty_amount" min="0" step="0.01" placeholder="تلقائي">
+                                </div>
+                                <div class="col-12 form-text">يمكن تعديل النسبة أو المبلغ؛ يتم تحديث الآخر وصافي المسترد تلقائيًا. امسح القيمة للعودة للحساب التلقائي.</div>
                             </div>
 
                             <div class="row">
@@ -2870,6 +2914,39 @@
                 addTravel($(this).data('contract-id'));
             });
 
+            $(document).on('submit', '.release-completed-maid-form', function(e) {
+                e.preventDefault();
+
+                const form = this;
+                const maidName = $(form).data('maid-name');
+                const contractId = $(form).data('contract-id');
+
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'اكتمال العقد وتسفير العاملة',
+                    html: 'سيتم اعتماد اكتمال مدة العقد <strong>#' + escapeHtml(String(contractId)) + '</strong> وتسفير العاملة <strong>' + escapeHtml(String(maidName)) + '</strong> وإتاحتها لإنشاء عقد استقدام جديد.<br><br>هل تريد المتابعة؟',
+                    showCancelButton: true,
+                    confirmButtonText: '<i class="fas fa-check me-1"></i> نعم، تنفيذ الإجراء',
+                    cancelButtonText: 'إلغاء',
+                    confirmButtonColor: '#198754',
+                    cancelButtonColor: '#6c757d',
+                    reverseButtons: true,
+                    focusCancel: true
+                }).then(function(result) {
+                    if (result.isConfirmed) {
+                        Swal.fire({
+                            title: 'جاري تنفيذ الإجراء...',
+                            allowOutsideClick: false,
+                            allowEscapeKey: false,
+                            didOpen: function() {
+                                Swal.showLoading();
+                            }
+                        });
+                        form.submit();
+                    }
+                });
+            });
+
             // معالج زر الإرجاع من عمود المرحلة التالية
             var pendingBackContractId = null;
             var pendingBackTargetLabel = null;
@@ -2950,6 +3027,113 @@
             });
 
             // معالج زر تحديث الحالة
+            $(document).on('click', '.complete-stage-step-btn', function() {
+                const button = $(this);
+                $('#stageStepUpdateUrl').val(button.data('url'));
+                $('#stageStepParentName').text(button.data('stage-name') || '—');
+                $('#stageStepsError').addClass('d-none').text('');
+                $('#stageStepsRows').empty().text('جارٍ تحميل المراحل...');
+                $('#confirmStageStepBtn').prop('disabled', true);
+                $('#completeStageStepModal').modal('show');
+                const url = button.data('url');
+                $.ajax({ url: url, headers: { 'Accept': 'application/json' }, cache: false })
+                    .done(function(response) {
+                        if ($('#stageStepUpdateUrl').val() !== url) return;
+                        $('#stageStepParentValue').val(response.stage);
+                        const rows = $('#stageStepsRows').empty();
+                        response.steps.forEach(function(step) {
+                            const completed = !!step.completed_at;
+                            const row = $('<div class="border rounded p-3 mb-2 stage-step-row">').attr('data-id', step.id);
+                            const label = $('<label class="d-flex align-items-center gap-2 fw-bold mb-2">');
+                            label.append($('<input type="checkbox" class="form-check-input stage-step-select">').prop('disabled', completed));
+                            label.append($('<span>').text(step.name));
+                            if (completed) label.append($('<span class="badge bg-success">').text('تم التنفيذ'));
+                            row.append(label);
+                            const fields = $('<div class="row g-2">');
+                            const dateId = 'stage-step-date-' + step.id;
+                            const notesId = 'stage-step-notes-' + step.id;
+                            fields.append($('<div class="col-md-4">')
+                                .append($('<label class="form-label">').attr('for', dateId).text('تاريخ التنفيذ'))
+                                .append($('<input type="date" class="form-control stage-step-date">')
+                                    .attr({ id: dateId, max: response.today }).val(step.completed_at || response.today).prop('disabled', true)));
+                            fields.append($('<div class="col-md-8">')
+                                .append($('<label class="form-label">').attr('for', notesId).text('ملاحظة (اختياري)'))
+                                .append($('<input type="text" maxlength="2000" class="form-control stage-step-notes">')
+                                    .attr('id', notesId).val(step.notes || '').prop('disabled', true)));
+                            rows.append(row.append(fields));
+                        });
+                        if (!response.steps.length) rows.text('لا توجد مراحل فرعية لهذه المرحلة.');
+                    }).fail(function(xhr) {
+                        if ($('#stageStepUpdateUrl').val() !== url) return;
+                        $('#stageStepsRows').empty();
+                        $('#stageStepsError').removeClass('d-none').text(xhr.responseJSON?.message || 'تعذر تحميل المراحل.');
+                    });
+            });
+
+            $(document).on('change', '.stage-step-select', function() {
+                $(this).closest('.stage-step-row').find('.stage-step-date, .stage-step-notes').prop('disabled', !this.checked);
+                $('#confirmStageStepBtn').prop('disabled', !$('#stageStepsRows .stage-step-select:checked').length);
+            });
+
+            $('#confirmStageStepBtn').on('click', function() {
+                const button = $(this);
+                const originalHtml = button.html();
+                const url = $('#stageStepUpdateUrl').val();
+
+                if (!url) return;
+                const steps = [];
+                let valid = true;
+                $('#stageStepsRows .stage-step-select:checked').each(function() {
+                    const row = $(this).closest('.stage-step-row');
+                    const date = row.find('.stage-step-date')[0];
+                    date.required = true;
+                    if (!date.reportValidity()) valid = false;
+                    steps.push({ id: row.data('id'), completed_at: date.value, notes: row.find('.stage-step-notes').val() });
+                });
+                if (!valid || !steps.length) return;
+                $('#stageStepsError').addClass('d-none');
+
+                button.prop('disabled', true).html('<i class="fas fa-spinner fa-spin me-1"></i> جارٍ الحفظ');
+                $('#stageStepsRows :input').prop('disabled', true);
+
+                $.ajax({
+                    url: url,
+                    method: 'POST',
+                    headers: { 'Accept': 'application/json' },
+                    data: {
+                        stage: $('#stageStepParentValue').val(),
+                        steps: steps,
+                        _token: '{{ csrf_token() }}'
+                    },
+                    success: function(response) {
+                        $('#completeStageStepModal').modal('hide');
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'تم تنفيذ المراحل',
+                            text: response.message,
+                            timer: 2200,
+                            showConfirmButton: false
+                        });
+                        dataTable.ajax.reload(null, false);
+                    },
+                    error: function(xhr) {
+                        const errors = xhr.responseJSON?.errors;
+                        $('#stageStepsError').removeClass('d-none').text(errors
+                            ? Object.values(errors).flat().join(' ')
+                            : (xhr.responseJSON?.message || 'حدث خطأ أثناء حفظ المراحل.'));
+                    },
+                    complete: function() {
+                        button.prop('disabled', false).html(originalHtml);
+                        $('#stageStepsRows .stage-step-row').each(function() {
+                            const row = $(this);
+                            if (row.find('.badge').length) return;
+                            row.find('.stage-step-select').prop('disabled', false);
+                            row.find('.stage-step-date, .stage-step-notes').prop('disabled', !row.find('.stage-step-select').prop('checked'));
+                        });
+                    }
+                });
+            });
+
             $(document).on('click', '.update-status-btn', function() {
                 var rowId = $(this).data('row-id');
                 var status = $(this).data('status');
@@ -3379,6 +3563,8 @@
                 var totals = preview.totals || {};
                 var warnings = preview.warnings || [];
 
+                $('#refund_penalty_percent').val(summary.penalty_percent);
+                $('#refund_penalty_amount').val(Number(summary.penalty_amount).toFixed(2)).attr('max', summary.contract_amount);
                 $('#refundPreviewContractAmount').text(formatRefundMoney(summary.contract_amount));
                 $('#refundPreviewPenaltyPercent').text(formatRefundMoney(summary.penalty_percent) + '%');
                 $('#refundPreviewPenaltyAmount').text(formatRefundMoney(summary.penalty_amount));
@@ -3418,7 +3604,15 @@
                 $('#refundPreviewWrapper').show();
             }
 
+            var refundPreviewRequest = null;
+            var refundPenaltySource = null;
+            function refundFormData() {
+                return $('#refundContractForm').serializeArray().filter(function(field) {
+                    return !['penalty_percent', 'penalty_amount'].includes(field.name) || field.name === refundPenaltySource;
+                });
+            }
             function loadRefundPreview() {
+                if (refundPreviewRequest) refundPreviewRequest.abort();
                 var hasMusanedTransfer = $('#refundContractForm').data('has-musaned-transfer') === 1;
                 var cancelledBy = $('input[name="cancelled_by"]:checked').val() || '';
 
@@ -3427,10 +3621,10 @@
                     return;
                 }
 
-                $.ajax({
+                refundPreviewRequest = $.ajax({
                     url: '{{ route('RecruitmentContract.refundPreview') }}',
                     method: 'POST',
-                    data: $('#refundContractForm').serialize(),
+                    data: refundFormData(),
                     headers: {
                         'X-CSRF-TOKEN': '{{ csrf_token() }}'
                     },
@@ -3445,6 +3639,7 @@
                         var message = xhr.responseJSON && xhr.responseJSON.message
                             ? xhr.responseJSON.message
                             : 'تعذر تحميل معاينة الاسترداد.';
+                        if (xhr.statusText === 'abort') return;
                         resetRefundPreview(message);
                         $('#refundPreviewPlaceholder')
                             .removeClass('alert-info')
@@ -3462,6 +3657,10 @@
                 $('#refundContractNumber').text(button.data('contract-number'));
                 $('#refundClientName').text(button.data('client-name'));
                 $('#refundContractAmount').text(Number(button.data('contract-amount') || 0).toFixed(2));
+                if (refundPreviewRequest) refundPreviewRequest.abort();
+                refundPenaltySource = null;
+                $('#refundPenaltyFields').toggle(hasMusanedTransfer);
+                $('#refund_penalty_percent, #refund_penalty_amount').val('').prop('disabled', !hasMusanedTransfer);
                 $('#refund_reason').val('');
                 $('#refund_date').val('{{ date('Y-m-d') }}');
                 $('input[name="cancelled_by"]').prop('checked', false).prop('required', hasMusanedTransfer);
@@ -3480,7 +3679,17 @@
                 $('#refundContractModal').modal('show');
             });
 
-            $('#refund_date').on('change', loadRefundPreview);
+            $('#refund_penalty_percent, #refund_penalty_amount').on('input', function() {
+                if (refundPreviewRequest) refundPreviewRequest.abort();
+                refundPenaltySource = this.value === '' ? null : this.name;
+                $(this.id === 'refund_penalty_percent' ? '#refund_penalty_amount' : '#refund_penalty_percent').val('');
+                resetRefundPreview('اضغط خارج الحقل لتحديث معاينة الاسترداد.');
+            }).on('change', loadRefundPreview);
+            $('#refund_date').on('change', function() {
+                refundPenaltySource = null;
+                $('#refund_penalty_percent, #refund_penalty_amount').val('');
+                loadRefundPreview();
+            });
             $(document).on('change', 'input[name="cancelled_by"]', loadRefundPreview);
 
             $('#submitRefundContractBtn').on('click', function() {
@@ -3498,7 +3707,7 @@
                 $.ajax({
                     url: '{{ route('RecruitmentContract.refund') }}',
                     method: 'POST',
-                    data: $('#refundContractForm').serialize(),
+                    data: refundFormData(),
                     headers: {
                         'X-CSRF-TOKEN': '{{ csrf_token() }}'
                     },

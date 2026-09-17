@@ -26,6 +26,7 @@ use App\Models\ingaz\Skill;
 use App\Models\MaidUnavailableRecord;
 use App\Models\RecruitmentOffices;
 use App\Models\Branch;
+use App\Models\SponsorshipTransfer;
 use App\Services\BranchAccessService;
 use App\Services\ingaz\MaidCvExtractionService;
 use App\Services\ingaz\MaidCvPdfGenerator;
@@ -786,12 +787,19 @@ class MaidController extends Controller
                 })
                 ->addColumn('cv_status', function (Maid $row) {
                     $effectiveStatus = $this->resolveRentalMaidCvStatus($row);
+                    $activeSponsorshipTransfer = $this->resolveActiveSponsorshipTransfer($row);
                     $insideShelterContract = $this->resolveInsideShelterContract($row);
                     $hasStaleShelterFlag = (int) $row->maid_accommodation_type === 2
                         && !$insideShelterContract;
 
                     if ($effectiveStatus === 'backout') {
                         return '<span class="badge bg-danger">' . helperTrans('ingaz.backout') . '</span>';
+                    }
+
+                    if ($effectiveStatus === 'active_sponsorship_transfer' && $activeSponsorshipTransfer) {
+                        return '<span class="badge bg-warning text-dark"><i class="fas fa-exchange-alt me-1"></i>'
+                            . 'في طلب نقل كفالة #' . e($activeSponsorshipTransfer->id) . '</span> '
+                            . '<span class="badge bg-primary">' . e($activeSponsorshipTransfer->status_text) . '</span>';
                     }
 
                     if ($effectiveStatus === 'ready') {
@@ -3896,6 +3904,9 @@ class MaidController extends Controller
             })
             ->whereDoesntHave('rentalContracts', function ($rentalQuery) {
                 $rentalQuery->whereIn('status', $this->rentalActiveContractStatuses());
+            })
+            ->whereDoesntHave('contracts.sponsorshipTransfers', function ($transferQuery) {
+                $transferQuery->whereIn('status', $this->activeSponsorshipTransferStatuses());
             });
     }
 
@@ -3916,6 +3927,9 @@ class MaidController extends Controller
                     })
                     ->orWhereHas('rentalContracts', function ($rentalQuery) {
                         $rentalQuery->whereIn('status', $this->rentalActiveContractStatuses());
+                    })
+                    ->orWhereHas('contracts.sponsorshipTransfers', function ($transferQuery) {
+                        $transferQuery->whereIn('status', $this->activeSponsorshipTransferStatuses());
                     });
             });
     }
@@ -3924,6 +3938,10 @@ class MaidController extends Controller
     {
         if ($maid->status === 'backout') {
             return 'backout';
+        }
+
+        if ($this->resolveActiveSponsorshipTransfer($maid)) {
+            return 'active_sponsorship_transfer';
         }
 
         if ($this->canCreateRentalContractForMaid($maid)) {
@@ -4060,12 +4078,41 @@ class MaidController extends Controller
         $hasActiveRecruitmentContracts = $maid->contracts->whereIn('status', $this->recruitmentContractStatuses())->isNotEmpty();
         $hasActiveOrders = $maid->orders->whereIn('status', $this->activeOrderStatuses())->isNotEmpty();
         $hasActiveRentalContracts = $maid->rentalContracts->whereIn('status', $this->rentalActiveContractStatuses())->isNotEmpty();
+        $hasActiveSponsorshipTransfer = (bool) $this->resolveActiveSponsorshipTransfer($maid);
 
         return (bool) $maid->available
             && in_array($maid->status, ['available', 'completed'], true)
             && !$hasActiveRecruitmentContracts
             && !$hasActiveOrders
-            && !$hasActiveRentalContracts;
+            && !$hasActiveRentalContracts
+            && !$hasActiveSponsorshipTransfer;
+    }
+
+    private function resolveActiveSponsorshipTransfer(Maid $maid): ?SponsorshipTransfer
+    {
+        return $maid->contracts
+            ->flatMap(function (Contract $contract) {
+                return $contract->relationLoaded('sponsorshipTransfers')
+                    ? $contract->sponsorshipTransfers
+                    : $contract->sponsorshipTransfers()->get();
+            })
+            ->whereIn('status', $this->activeSponsorshipTransferStatuses())
+            ->sortByDesc('id')
+            ->first();
+    }
+
+    private function activeSponsorshipTransferStatuses(): array
+    {
+        return [
+            'pending',
+            'approved',
+            'waiting_contract_send',
+            'contract_sent',
+            'contract_signed',
+            'maid_delivered',
+            'trial',
+            'trial_started',
+        ];
     }
 
     private function isRentalFilterSelected($request): bool

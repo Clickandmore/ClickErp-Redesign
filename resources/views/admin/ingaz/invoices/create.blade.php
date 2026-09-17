@@ -735,10 +735,18 @@
                                         value="{{ old('direct_recruitment_cost', $currentNationalityCosts['direct_recruitment_cost']) }}">
                                 </div>
                                 <div class="col-md-6 col-lg-4">
-                                    <label class="form-label" for="external_recruitment_cost" id="externalCostLabel">الاستقدام الخارجي</label>
-                                    <input type="number" step="0.01" min="0" name="external_recruitment_cost"
+                                    <label class="form-label" for="external_recruitment_cost" id="externalCostLabel">
+                                        <span id="externalCostLabelText">الاستقدام الخارجي</span>
+                                        @if (!$isGeneralInvoice)
+                                            <span class="text-danger" id="externalCostRequiredMark">*</span>
+                                        @else
+                                            <span class="text-danger d-none" id="externalCostRequiredMark">*</span>
+                                        @endif
+                                    </label>
+                                    <input type="number" step="0.01" min="{{ $isGeneralInvoice ? 0 : 0.01 }}" name="external_recruitment_cost"
                                         id="external_recruitment_cost" class="form-control calc-input"
-                                        value="{{ old('external_recruitment_cost', $currentNationalityCosts['external_recruitment_cost']) }}">
+                                        value="{{ old('external_recruitment_cost', $currentNationalityCosts['external_recruitment_cost']) }}"
+                                        {{ !$isGeneralInvoice ? 'required' : '' }}>
                                 </div>
                                 <div class="col-md-6 col-lg-4">
                                     <label class="form-label" for="government_cost" id="governmentCostLabel">تكاليف حكومية</label>
@@ -1111,7 +1119,11 @@
                 $('#client_id').prop('disabled', mode !== 'general');
                 $('.general-label-input, #general_description').prop('disabled', mode !== 'general');
                 $('#directCostLabel').text(mode === 'general' ? 'بند خدمة خاضع للضريبة' : 'الاستقدام المباشر');
-                $('#externalCostLabel').text(mode === 'general' ? 'بند خدمة غير خاضع' : 'الاستقدام الخارجي');
+                $('#externalCostLabelText').text(mode === 'general' ? 'بند خدمة غير خاضع' : 'الاستقدام الخارجي');
+                $('#externalCostRequiredMark').toggleClass('d-none', mode === 'general');
+                $('#external_recruitment_cost')
+                    .prop('required', mode !== 'general')
+                    .attr('min', mode === 'general' ? '0' : '0.01');
                 $('#governmentCostLabel').text(mode === 'general' ? 'رسوم حكومية' : 'تكاليف حكومية');
                 $('#ticketCostLabel').text(mode === 'general' ? 'بند إضافي خاضع للضريبة' : 'التذكرة الداخلية');
 

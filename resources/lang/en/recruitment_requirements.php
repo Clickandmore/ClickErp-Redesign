@@ -12,4 +12,7 @@ return [
     'point_ar' => 'Point in Arabic',
     'point_en' => 'Point in English',
     'point_order' => 'Order',
+    'icon' => 'Icon',
+    'description_ar' => 'Description in Arabic',
+    'description_en' => 'Description in English',
 ];

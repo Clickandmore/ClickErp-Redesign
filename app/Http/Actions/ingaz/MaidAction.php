@@ -2086,7 +2086,7 @@ class MaidAction extends MainAction
 
         $today = now()->toDateString();
 
-        $orderSeed = $this->resolvePaginationOrderSeed($request);
+        $sortOrder = CvOptionsSettings::siteSortOrder();
 
         return $this->availableQuery()
             ->with([
@@ -2140,6 +2140,15 @@ class MaidAction extends MainAction
             ->when(isset($request->nationality_id), function ($query) use ($request) {
                 $query->where('nationality_id', $request->nationality_id);
             })
+            // فلاتر اختيارية من بحث الصفحة الرئيسية في المواقع الخارجية؛ لا تؤثر
+            // على أي موقع لا يرسلها. رقم الجواز مطابقة كاملة فقط حتى لا يُستخدم
+            // البحث الجزئي لاستعراض الجوازات.
+            ->when($request->filled('religion_id'), function ($query) use ($request) {
+                $query->where('religion_id', (int) $request->input('religion_id'));
+            })
+            ->when($request->filled('passport_num'), function ($query) use ($request) {
+                $query->where('passport_num', trim((string) $request->input('passport_num')));
+            })
             ->when(isset($request->experience_country_id), function ($query) use ($request) {
                 $query->whereHas('expertises', function ($q) use ($request) {
                     $q->where('country_id', $request->experience_country_id);
@@ -2183,9 +2192,14 @@ class MaidAction extends MainAction
                 fn ($query) => $query->where('branch_id', (int) $request->input('branch_id'))
             )
             ->orderBy('is_pinned', 'desc')
-            // Stable random order (same seed) to avoid duplicates between pagination pages.
-            ->orderByRaw('MD5(CONCAT(maids.id, ?))', [$orderSeed])
-            ->orderBy('id', 'desc')
+            ->when($sortOrder === 'random', function ($query) use ($request) {
+                // Keep random ordering stable between pagination pages.
+                $query->orderByRaw('MD5(CONCAT(maids.id, ?))', [$this->resolvePaginationOrderSeed($request)])
+                    ->orderBy('maids.id', 'desc');
+            }, function ($query) use ($sortOrder) {
+                $direction = $sortOrder === 'oldest' ? 'asc' : 'desc';
+                $query->orderBy('maids.created_at', $direction)->orderBy('maids.id', $direction);
+            })
             ->paginate($limit);
     }
 

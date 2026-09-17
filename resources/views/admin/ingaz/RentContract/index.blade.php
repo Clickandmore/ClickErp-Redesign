@@ -657,6 +657,16 @@
                     </div>
 
                     <div class="col-md-3">
+                        <label for="paymentStatusFilter" class="form-label">حالة الدفع:</label>
+                        <select id="paymentStatusFilter" class="form-select">
+                            <option value="">جميع حالات الدفع</option>
+                            @foreach (['paid' => 'تم الدفع', 'partial' => 'مدفوع جزئياً', 'pending' => 'معلق', 'later' => 'الدفع لاحقاً', 'bank_pending' => 'بانتظار التحويل'] as $paymentStatus => $paymentLabel)
+                                <option value="{{ $paymentStatus }}" {{ request('payment_status') === $paymentStatus ? 'selected' : '' }}>{{ $paymentLabel }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+
+                    <div class="col-md-3">
                         <label for="dateFromFilter" class="form-label">تاريخ إنشاء العقد من:</label>
                         <input type="date" id="dateFromFilter" class="form-control">
                     </div>
@@ -1099,7 +1109,7 @@
                                         <div class="col-md-4">
                                             <div class="form-check mt-4">
                                                 <input class="form-check-input" type="checkbox"
-                                                    id="sendClosureMessageToggle">
+                                                    id="sendClosureMessageToggle" checked>
                                                 <label class="form-check-label" for="sendClosureMessageToggle">
                                                     إرسال رسالة إنهاء العقد للعميل
                                                 </label>
@@ -1309,7 +1319,7 @@
                                         <div class="col-12">
                                             <div class="form-check mb-3">
                                                 <input class="form-check-input" type="checkbox"
-                                                    id="sendTransferClosureMessageToggle">
+                                                    id="sendTransferClosureMessageToggle" checked>
                                                 <label class="form-check-label" for="sendTransferClosureMessageToggle">
                                                     إرسال رسالة إغلاق ونقل خدمات للعميل
                                                 </label>
@@ -1593,6 +1603,15 @@
                                 <textarea class="form-control" id="extend_extension_notes" name="extension_notes" rows="3"
                                     placeholder="أي ملاحظات إضافية حول التمديد"></textarea>
                             </div>
+                            <div class="col-12">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" value="1"
+                                        id="sendExtensionMessageToggle" name="send_extension_message" checked>
+                                    <label class="form-check-label" for="sendExtensionMessageToggle">
+                                        إرسال رسالة نصية للعميل بتأكيد التمديد وتاريخ النهاية الجديد
+                                    </label>
+                                </div>
+                            </div>
                         </div>
                     </form>
                 </div>
@@ -1646,6 +1665,7 @@
             const rentListFilterSelectors = [
                 '#quickSearchFilter',
                 '#statusFilter',
+                '#paymentStatusFilter',
                 '#dateFromFilter',
                 '#dateToFilter',
                 '#startDateFromFilter',
@@ -1697,6 +1717,7 @@
                     data: function(d) {
                         d.quick_search = $('#quickSearchFilter').val();
                         d.status_filter = $('#statusFilter').val();
+                        d.payment_status = $('#paymentStatusFilter').val();
                         d.date_from = $('#dateFromFilter').val();
                         d.date_to = $('#dateToFilter').val();
                         d.start_date_from = $('#startDateFromFilter').val();
@@ -2023,6 +2044,13 @@
                     url.searchParams.delete('status');
                 }
 
+                const paymentStatus = $('#paymentStatusFilter').val();
+                if (paymentStatus) {
+                    url.searchParams.set('payment_status', paymentStatus);
+                } else {
+                    url.searchParams.delete('payment_status');
+                }
+
                 window.history.replaceState({}, '', url.toString());
             }
 
@@ -2065,7 +2093,7 @@
 
             // Clear Filters
             $('#clearFilters').click(function() {
-                $('#statusFilter, #marketerFilter, #branchFilter, #extensionFilter, #expiryFilter')
+                $('#statusFilter, #paymentStatusFilter, #marketerFilter, #branchFilter, #extensionFilter, #expiryFilter')
                     .val('');
                 $('#quickSearchFilter, #dateFromFilter, #dateToFilter, #startDateFromFilter, #startDateToFilter, #endDateFromFilter, #endDateToFilter, #clientPhoneFilter, #clientNameFilter, #maidPassportFilter, #maidNameFilter, #contractNumberFilter')
                     .val('');
@@ -2077,6 +2105,7 @@
                 window.location.href = "{{ route('RentContract.export.excel') }}?" + $.param({
                     quick_search: $('#quickSearchFilter').val(),
                     status: $('#statusFilter').val(),
+                    payment_status: $('#paymentStatusFilter').val(),
                     date_from: $('#dateFromFilter').val(),
                     date_to: $('#dateToFilter').val(),
                     start_date_from: $('#startDateFromFilter').val(),
@@ -2588,7 +2617,7 @@
                 $('#closePaymentReceipt').val('');
                 $('#closeClientIban').val('');
                 $('#closeClientIbanAttachment').val('');
-                $('#sendClosureMessageToggle').prop('checked', false);
+                $('#sendClosureMessageToggle').prop('checked', true);
                 $('#closeReturnReason').val('');
                 $('#closureDate').val('').removeAttr('min');
                 $('#closeClientIbanAttachmentCurrentWrapper').addClass('d-none');
@@ -2680,7 +2709,7 @@
                 $('#transferPaymentReceipt').val('');
                 $('#transferReceiptAccount').val('');
                 $('#transferAttachments').val('');
-                $('#sendTransferClosureMessageToggle').prop('checked', false);
+                $('#sendTransferClosureMessageToggle').prop('checked', true);
                 toggleTransferReceiptRequirement();
             }
 
@@ -2767,6 +2796,7 @@
                     data: {
                         quick_search: $('#quickSearchFilter').val(),
                         status_filter: $('#statusFilter').val(),
+                        payment_status: $('#paymentStatusFilter').val(),
                         date_from: $('#dateFromFilter').val(),
                         date_to: $('#dateToFilter').val(),
                         start_date_from: $('#startDateFromFilter').val(),

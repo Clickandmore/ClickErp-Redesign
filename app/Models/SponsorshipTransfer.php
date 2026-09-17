@@ -211,6 +211,11 @@ class SponsorshipTransfer extends Model
         return $this->hasOne(\App\Models\TransferServiceContract::class);
     }
 
+    public function maidReplacements()
+    {
+        return $this->hasMany(SponsorshipTransferMaidReplacement::class)->latest();
+    }
+
     // Scopes
     public function scopePending($query)
     {
@@ -388,6 +393,18 @@ class SponsorshipTransfer extends Model
     public function isRentalWorkflow(): bool
     {
         return $this->workflow_source === 'rental';
+    }
+
+    /** A cancelled/failed request, and the non-financial rental workflow, cannot be invoiced here. */
+    public function canIssueInvoice(): bool
+    {
+        $hasInvoice = $this->relationLoaded('invoice')
+            ? $this->invoice !== null
+            : $this->invoice()->exists();
+
+        return !$this->isRentalWorkflow()
+            && !in_array($this->status, ['failed', 'rejected', 'cancelled'], true)
+            && !$hasInvoice;
     }
 
     public function scopeTransferred($query)

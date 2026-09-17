@@ -209,6 +209,16 @@
             </div></div>
         </section>
 
+        @if(!$isEdit)
+            <div class="mt-3" id="shelter-after-save">
+                <label class="form-label" for="after_save">بعد حفظ الشكوى</label>
+                <select name="after_save" id="after_save" class="form-select">
+                    <option value="list">حفظ الشكوى فقط</option>
+                    <option value="shelter" {{ old('after_save') === 'shelter' ? 'selected' : '' }}>حفظ وربط الشكوى والانتقال لإدخال الإيواء</option>
+                </select>
+                <small class="text-muted">اختر العقد المرتبط، ثم أكمل بيانات استلام العاملة في صفحة الإيواء.</small>
+            </div>
+        @endif
         <div class="footer-actions"><a href="{{ route('complaints.index') }}" class="btn btn-light border">إلغاء</a><button type="submit" class="btn btn-primary px-4"><i class="fas fa-save me-2"></i>{{ $isEdit ? 'حفظ التعديلات' : 'حفظ الشكوى' }}</button></div>
     </form>
 </div>
@@ -285,6 +295,8 @@ $(function () {
             $(this).toggle(active).find('.relation-input').prop('disabled', !active);
         });
         $('[name="relation_notes"]').closest('.mt-3').toggle(type !== 'none');
+        $('#shelter-after-save').toggle(type === 'contract');
+        $('#after_save').prop('disabled', type !== 'contract');
     }
     $('[name="relation_type"]').on('change', refreshRelationPanels);
     refreshRelationPanels();

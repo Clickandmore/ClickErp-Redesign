@@ -165,9 +165,12 @@ class RequirementsController extends Controller
                 : new RequirementItem(['requirement_id' => $requirement->id]);
 
             $item->requirement_id = $requirement->id;
+            $item->icon = $point['icon'] ?? null;
             $item->sort_order = $point['sort_order'] ?? ($index + 1);
             $item->translateOrNew('ar')->text = $point['ar']['text'];
+            $item->translateOrNew('ar')->description = $point['ar']['description'] ?? null;
             $item->translateOrNew('en')->text = $point['en']['text'];
+            $item->translateOrNew('en')->description = $point['en']['description'] ?? null;
             $item->save();
 
             $keptIds[] = $item->id;

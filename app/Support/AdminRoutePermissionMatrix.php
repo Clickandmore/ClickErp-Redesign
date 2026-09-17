@@ -112,7 +112,9 @@ class AdminRoutePermissionMatrix
             'recruitment-contract-stages.edit',
             'sliders.index',
             'why-choose-us.edit',
+            'why-us.index',
             'musaned-section.edit',
+            'home-sections.edit',
             'home-hero.edit',
             'guidelines.edit',
             'find-us.index',
@@ -484,6 +486,7 @@ class AdminRoutePermissionMatrix
             'RecruitmentContract.update' => [NewPermKeys::REC_CONTRACTS_EDIT, NewPermKeys::REC_CONTRACTS_MANAGE],
             'RecruitmentContract.destroy' => [NewPermKeys::REC_CONTRACTS_DELETE, NewPermKeys::REC_CONTRACTS_MANAGE],
             'RecruitmentContract.restoreReturned' => [NewPermKeys::REC_CONTRACTS_RETURN, NewPermKeys::REC_CONTRACTS_MANAGE],
+            'RecruitmentContract.releaseMaidAfterCompletion' => [NewPermKeys::REC_CONTRACTS_RELEASE_MAID_AFTER_COMPLETION],
             'RecruitmentContract.back' => [NewPermKeys::REC_CONTRACTS_RETURN, NewPermKeys::REC_CONTRACTS_MANAGE],
             'RecruitmentContract.updateStatus' => [
                 NewPermKeys::REC_CONTRACTS_UPDATE,
@@ -499,6 +502,8 @@ class AdminRoutePermissionMatrix
             'RecruitmentContract.export.excel' => [NewPermKeys::REC_CONTRACTS_EXPORT, NewPermKeys::REC_CONTRACTS_MANAGE],
             'contracts.details' => [NewPermKeys::REC_CONTRACTS_VIEW, NewPermKeys::REC_CONTRACTS_MANAGE],
             'RecruitmentContract.stageSteps.update' => [NewPermKeys::REC_CONTRACTS_UPDATE, NewPermKeys::REC_CONTRACTS_MANAGE],
+            'RecruitmentContract.stageSteps.index' => [NewPermKeys::REC_CONTRACTS_UPDATE, NewPermKeys::REC_CONTRACTS_MANAGE],
+            'RecruitmentContract.stageSteps.complete' => [NewPermKeys::REC_CONTRACTS_UPDATE, NewPermKeys::REC_CONTRACTS_MANAGE],
             'contract-return-requests.index' => [NewPermKeys::REC_CONTRACTS_VIEW, NewPermKeys::REC_CONTRACTS_MANAGE],
             'contract-return-requests.show' => [NewPermKeys::REC_CONTRACTS_VIEW, NewPermKeys::REC_CONTRACTS_MANAGE],
             'contract-return-requests.process' => [NewPermKeys::REC_CONTRACTS_EDIT, NewPermKeys::REC_CONTRACTS_MANAGE],
@@ -724,6 +729,8 @@ class AdminRoutePermissionMatrix
                 'SponsorshipTransfer.webRequest.show' => [PermKeys::SPONSOR_TRANSFER_WEB_REQUESTS_VIEW, PermKeys::SPONSOR_TRANSFER_CONTROL],
                 'SponsorshipTransfer.webRequest.cancel' => [PermKeys::SPONSOR_TRANSFER_EDIT, PermKeys::SPONSOR_TRANSFER_CONTROL],
                 'SponsorshipTransfer.trial' => [PermKeys::SPONSOR_TRANSFER_VIEW, PermKeys::SPONSOR_TRANSFER_CONTROL],
+                'SponsorshipTransfer.replacementMaids' => [PermKeys::SPONSOR_TRANSFER_REPLACE_MAID, PermKeys::SPONSOR_TRANSFER_CONTROL],
+                'SponsorshipTransfer.replaceMaid' => [PermKeys::SPONSOR_TRANSFER_REPLACE_MAID, PermKeys::SPONSOR_TRANSFER_CONTROL],
                 'SponsorshipTransfer.transferred' => [PermKeys::SPONSOR_TRANSFER_VIEW, PermKeys::SPONSOR_TRANSFER_CONTROL],
                 'SponsorshipTransfer.failed' => [PermKeys::SPONSOR_TRANSFER_VIEW, PermKeys::SPONSOR_TRANSFER_CONTROL],
                 'SponsorshipTransfer.trial-details' => [PermKeys::SPONSOR_TRANSFER_VIEW, PermKeys::SPONSOR_TRANSFER_CONTROL],
@@ -851,6 +858,15 @@ class AdminRoutePermissionMatrix
                     PermKeys::MUSANED_SECTION_EDIT,
                     PermKeys::MUSANED_SECTION_CONTROL,
                 ],
+                'home-sections.edit' => [
+                    PermKeys::HOME_SECTIONS_VIEW,
+                    PermKeys::HOME_SECTIONS_EDIT,
+                    PermKeys::HOME_SECTIONS_CONTROL,
+                ],
+                'home-sections.update' => [
+                    PermKeys::HOME_SECTIONS_EDIT,
+                    PermKeys::HOME_SECTIONS_CONTROL,
+                ],
                 'home-hero.edit' => [
                     PermKeys::HOME_HERO_VIEW,
                     PermKeys::HOME_HERO_CONTROL,
@@ -883,6 +899,14 @@ class AdminRoutePermissionMatrix
             [
                 'find-us.mode' => [PermKeys::FIND_US_EDIT, PermKeys::FIND_US_CONTROL],
             ],
+            self::resource('why-us', [
+                'index' => [PermKeys::WHY_US_VIEW, PermKeys::WHY_US_CONTROL],
+                // show يبدّل حالة التفعيل من الجدول
+                'show' => [PermKeys::WHY_US_EDIT, PermKeys::WHY_US_CONTROL],
+                'create' => [PermKeys::WHY_US_CREATE, PermKeys::WHY_US_CONTROL],
+                'edit' => [PermKeys::WHY_US_EDIT, PermKeys::WHY_US_CONTROL],
+                'destroy' => [PermKeys::WHY_US_DELETE, PermKeys::WHY_US_CONTROL],
+            ]),
             self::resource('requiremens', [
                 'index' => [
                     PermKeys::RECRUITMENT_REQUIREMENTS_VIEW,

@@ -966,6 +966,12 @@
                                 <i class="fas fa-user"></i>
                                 بيانات العميل
                             </h3>
+                            @if ($contract->user?->account_id && \Illuminate\Support\Facades\Route::has('finance.account-statement-clients.index'))
+                                <a href="{{ route('finance.account-statement-clients.index', ['account_id' => $contract->user->account_id]) }}"
+                                    class="btn btn-sm btn-outline-primary" target="_blank" rel="noopener">
+                                    <i class="fas fa-file-invoice-dollar me-1"></i> كشف حساب العميل
+                                </a>
+                            @endif
                         </div>
 
                         <ul class="detail-list">
@@ -1051,6 +1057,12 @@
                                 <span class="label">متبقي الفاتورة الأصلية قبل الإشعارات</span>
                                 <span class="value">{{ number_format((float) ($contract->financeInvoice?->remaining_amount ?? $contract->info?->remaining_amount ?? 0), 2) }} ريال</span>
                             </li>
+                            @if($contract->extensions->isNotEmpty())
+                                <li>
+                                    <span class="label">إجمالي قيمة التمديدات</span>
+                                    <span class="value">{{ number_format((float) $contract->extensions->sum('extension_value'), 2) }} ريال</span>
+                                </li>
+                            @endif
                             <li>
                                 <span class="label">إجمالي سندات القبض المرتبطة بالعقد</span>
                                 <span class="value highlight">{{ number_format((float) $receiptBondsTotal, 2) }} ريال</span>
@@ -2308,7 +2320,7 @@
                     title: 'تأكيد إنهاء العقد',
                     html: '<div class="text-end">هل أنت متأكد من إنهاء هذا العقد؟</div>' +
                         '<div class="form-check mt-3 text-end">' +
-                        '<input class="form-check-input" type="checkbox" id="sendClosureMessageFromShow">' +
+                        '<input class="form-check-input" type="checkbox" id="sendClosureMessageFromShow" checked>' +
                         '<label class="form-check-label" for="sendClosureMessageFromShow">إرسال رسالة إنهاء العقد للعميل</label>' +
                         '</div>',
                     icon: 'warning',

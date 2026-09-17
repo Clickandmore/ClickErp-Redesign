@@ -163,6 +163,7 @@ class EmployeeController extends Controller
         $data["dataTableRoute"] = $isMaidListing ? route('hr.maids.index') : route($this->mainRoute . ".index");
         $data["bladeTitle"] = $isMaidListing ? __('hr::hr.maids') : __('hr::hr.employees');
         $data["addButtonText"] = $isMaidListing ? __('hr::hr.maid') : __('hr::hr.employee');
+        $data['isMaidListing'] = $isMaidListing;
         $data["identityColumnLabel"] = $isMaidListing
             ? __('hr::hr.maid_identity')
             : __('hr::hr.Employee ID number');

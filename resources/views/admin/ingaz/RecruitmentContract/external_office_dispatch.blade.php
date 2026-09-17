@@ -20,9 +20,10 @@
     );
     $showBulkCreateForm = $isEditable && $bulkCompatibleContracts->isNotEmpty();
     $useUnifiedCreateForm = !$dispatch && $showBulkCreateForm && $currentContractIsBulkCompatible;
-    // An existing dispatch is an edit-mode state, not a blocked contract, so the
-    // availability card judges the contract by the reasons that actually block it.
-    $availabilityReasons = $dispatch ? $selectionBlockingReasons : $selectionUnavailableReasons;
+    // Creation eligibility no longer applies after a dispatch has been recorded.
+    // In particular, reaching arrival/completion must not make a completed dispatch
+    // look invalid merely because the contract is no longer in a current status.
+    $availabilityReasons = $dispatch ? [] : $selectionUnavailableReasons;
 @endphp
 
 @section('content')
@@ -99,6 +100,7 @@
             </div>
         @endif
 
+        @if (!$dispatch)
         <div class="card shadow-sm border-0 mb-4 overflow-hidden">
             <div class="card-header bg-white py-3">
                 <div class="d-flex flex-wrap justify-content-between align-items-center gap-2">
@@ -171,6 +173,7 @@
                 </div>
             </div>
         </div>
+        @endif
 
         @if ($showBulkCreateForm)
             <form method="POST" action="{{ route('RecruitmentContract.externalOfficeDispatch.bulkStore') }}"

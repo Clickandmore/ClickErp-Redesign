@@ -14,6 +14,7 @@ use App\Models\ingaz\OrderDetail;
 use App\Models\ingaz\RecruitmentRequest;
 use App\Models\ingaz\User;
 use App\Support\ExternalOrderSettings;
+use App\Services\ExternalOrderAdminSmsNotifier;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
@@ -24,7 +25,7 @@ class ApiSimplifiedOrderController extends Controller
 {
     use SendSMSTrait, StoreMessageTrait;
 
-    public function store(Request $request)
+    public function store(Request $request, ExternalOrderAdminSmsNotifier $adminSmsNotifier)
     {
         if (!ExternalOrderSettings::usesSimplifiedOrdering()) {
             return apiResponse(false, __('api.not found'), null, 404);
@@ -63,7 +64,7 @@ class ApiSimplifiedOrderController extends Controller
             return apiResponse(false, __('ingaz.job_type_not_found'), null, 404);
         }
 
-        return DB::transaction(function () use ($data, $maid, $jobTypeId) {
+        return DB::transaction(function () use ($data, $maid, $jobTypeId, $adminSmsNotifier) {
             $user = User::query()->where('phone', $data['phone'])->lockForUpdate()->first();
 
             if ($user && (int) $user->is_blocked === 1) {
@@ -124,13 +125,7 @@ class ApiSimplifiedOrderController extends Controller
                 }
             }
 
-            $customerPhone = formatSaudiPhone($customerService->phone);
-            if ($customerPhone) {
-                $this->sendSMS(
-                    $customerPhone,
-                    "يوجد لديكم حجز باسم {$user->name} برقم جوال {$userPhone}"
-                );
-            }
+            DB::afterCommit(fn () => $adminSmsNotifier->send($order, $user, $maid, $customerService));
 
             return apiResponse(true, __('api.Order created successfully'), [
                 'order' => $order,

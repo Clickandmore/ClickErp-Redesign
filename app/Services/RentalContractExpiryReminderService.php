@@ -67,7 +67,10 @@ class RentalContractExpiryReminderService
         return in_array('sms', $channels, true) ? 'sms' : 'none';
     }
 
-    public function createAndSendReminder(RentalContract $contract): ?RentalContractExpiryReminder
+    public function createAndSendReminder(
+        RentalContract $contract,
+        string $notificationType = 'advance'
+    ): ?RentalContractExpiryReminder
     {
         $contract->loadMissing(['user', 'info', 'marketer']);
 
@@ -80,6 +83,7 @@ class RentalContractExpiryReminderService
         $existingReminder = RentalContractExpiryReminder::query()
             ->where('rental_contract_id', $contract->id)
             ->whereDate('expires_on', $expiresOn)
+            ->where('notification_type', $notificationType)
             ->first();
 
         if ($existingReminder) {
@@ -99,6 +103,7 @@ class RentalContractExpiryReminderService
             'rental_contract_id' => $contract->id,
             'token' => Str::random(64),
             'channel' => $this->channel(),
+            'notification_type' => $notificationType,
             'status' => 'pending',
             'expires_on' => $expiresOn,
         ]);
@@ -662,7 +667,9 @@ class RentalContractExpiryReminderService
         $contractNumber = $contract->contract_number ?: $contract->id;
         $expiresOn = optional($contract->info?->ingaz_to)->format('Y-m-d');
         $url = route('rental-contract-reminders.show', $reminder->token);
-        $template = NotificationAlertSettings::template('rent_contract_expiry');
+        $template = $reminder->notification_type === 'advance'
+            ? NotificationAlertSettings::template('rent_contract_expiry')
+            : null;
 
         if ($template) {
             return $template->processMessage([
@@ -674,6 +681,15 @@ class RentalContractExpiryReminderService
                 'expires_on' => (string) $expiresOn,
                 'action_url' => $url,
                 'url' => $url,
+            ]);
+        }
+
+        if ($reminder->notification_type === 'expired') {
+            return implode("\n", [
+                "عميلنا {$clientName}،",
+                "نحيطكم علماً بأن عقد الإيجار رقم {$contractNumber} انتهى بتاريخ {$expiresOn}.",
+                "يرجى التواصل معنا لاستكمال إجراءات التمديد أو تسليم العاملة.",
+                "شكراً لتعاملكم معنا.",
             ]);
         }
 

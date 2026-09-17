@@ -276,14 +276,31 @@
                                 <option value="waiting_contract_send" {{ $currentStatus === 'waiting_contract_send' ? 'selected' : '' }}>بانتظار تسجيل الاستلام</option>
                                 <option value="contract_sent" {{ $currentStatus === 'contract_sent' ? 'selected' : '' }}>تم إرسال العقد</option>
                                 <option value="contract_signed" {{ $currentStatus === 'contract_signed' ? 'selected' : '' }}>تم توقيع العقد</option>
-                                <option value="maid_delivered" {{ $currentStatus === 'maid_delivered' ? 'selected' : '' }}>تم تسليم العاملة</option>
+                                <option value="maid_delivered" {{ $currentStatus === 'maid_delivered' ? 'selected' : '' }}>تم استلام العاملة</option>
                                 <option value="trial_period" {{ $currentStatus === 'trial_period' ? 'selected' : '' }}>فترة التجربة</option>
                                 <option value="trial_started" {{ $currentStatus === 'trial_started' ? 'selected' : '' }}>بدأت التجربة</option>
+                                <option value="partially_paid" {{ $currentStatus === 'partially_paid' ? 'selected' : '' }}>مدفوع جزئي</option>
                                 <option value="approved" {{ $currentStatus === 'approved' ? 'selected' : '' }}>{{helperTrans("ingaz.approved")}}</option>
                                 <option value="transferred" {{ $currentStatus === 'transferred' ? 'selected' : '' }}>تم النقل</option>
-                                <option value="failed" {{ $currentStatus === 'failed' ? 'selected' : '' }}>فشل النقل</option>
+                                <option value="cancelled" {{ $currentStatus === 'cancelled' ? 'selected' : '' }}>ملغي</option>
                                 <option value="rejected" {{ $currentStatus === 'rejected' ? 'selected' : '' }}>{{helperTrans("ingaz.rejected")}}</option>
                                 <option value="completed" {{ $currentStatus === 'completed' ? 'selected' : '' }}>{{helperTrans("ingaz.completed")}}</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label for="maidPassportFilter" class="form-label">رقم جواز العاملة</label>
+                            <input type="text" class="form-control" id="maidPassportFilter"
+                                   value="{{ request('maid_passport') }}" placeholder="ابحث برقم الجواز">
+                        </div>
+                        <div class="col-md-3">
+                            <label for="maidNationalityFilter" class="form-label">جنسية العاملة</label>
+                            <select class="form-select" id="maidNationalityFilter">
+                                <option value="">كل الجنسيات</option>
+                                @foreach($nationalities as $nationality)
+                                    <option value="{{ $nationality->id }}" {{ (string) request('maid_nationality_id') === (string) $nationality->id ? 'selected' : '' }}>
+                                        {{ $nationality->display_name }}
+                                    </option>
+                                @endforeach
                             </select>
                         </div>
                         <div class="col-md-3">
@@ -434,6 +451,8 @@
                         d.date_from = $('#dateFromFilter').val();
                         d.date_to = $('#dateToFilter').val();
                         d.contract_number = $('#contractNumberFilter').val();
+                        d.maid_passport = $('#maidPassportFilter').val();
+                        d.maid_nationality_id = $('#maidNationalityFilter').val();
                         d.old_sponsor = $('#oldSponsorFilter').val();
                         d.new_sponsor = $('#newSponsorFilter').val();
                         d.trial_days = $('#trialDaysFilter').val();
@@ -482,6 +501,8 @@
                 $('#dateFromFilter').val('');
                 $('#dateToFilter').val('');
                 $('#contractNumberFilter').val('');
+                $('#maidPassportFilter').val('');
+                $('#maidNationalityFilter').val('');
                 $('#oldSponsorFilter').val('');
                 $('#newSponsorFilter').val('');
                 $('#trialDaysFilter').val('');
@@ -553,10 +574,10 @@
                             <input type="text" id="failureClientIban" class="form-control mb-2" dir="ltr" maxlength="34" placeholder="SA0000000000000000000000">
                             <label class="form-label">مرفق الآيبان <span class="text-danger">*</span></label>
                             <input type="file" id="failureClientIbanAttachment" class="form-control mb-2" accept=".jpg,.jpeg,.png,.pdf">
-                            <div class="alert alert-warning py-2 mb-2">سيتم تصفير المبلغ المتبقي عند إلغاء النقل حسب المبلغ المحدد أدناه.</div>
-                            <label class="form-label">مبلغ تصفير المتبقي</label>
-                            <input type="number" id="failureClearRemainingAmount" class="form-control mb-1" min="0" step="0.01" value="${remainingAmount.toFixed(2)}">
-                            <div class="form-text mb-2">يمكنك تعديل مبلغ التصفير حسب الحاجة</div>
+                            <div class="alert alert-warning py-2 mb-2">فشل النقل لا يُعد سداداً؛ سيبقى المتبقي كما هو ما لم تسجل مبلغ شطب صراحةً أدناه.</div>
+                            <label class="form-label">مبلغ شطب المتبقي</label>
+                            <input type="number" id="failureClearRemainingAmount" class="form-control mb-1" min="0" step="0.01" value="0.00">
+                            <div class="form-text mb-2">اتركه صفراً إذا لم يحدث سداد أو شطب فعلي</div>
                             <div class="alert alert-info mb-2" id="failureSettlementPreview"></div>
                             <label class="form-label">سبب الفشل</label>
                             <textarea id="failureReason" class="form-control" rows="3" placeholder="اكتب سبب الفشل أو الإلغاء"></textarea>

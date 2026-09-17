@@ -303,6 +303,47 @@ class OperationalSummaryReportTest extends TestCase
         $this->assertSame(37000.0, $sales['totals']['recruitment']);
     }
 
+    public function test_extensions_are_included_in_sales_receivables_aging_and_headline(): void
+    {
+        $this->rentalInvoice('2031-01-10', 3300, 0, 'RC-EXT');
+        $contractId = DB::table('rental_contracts')->where('contract_number', 'RC-EXT')->value('id');
+        foreach ([
+            ['2031-02-10', 3300, null, 'later'],
+            ['2031-03-20', 1000, 400, 'partial'],
+            ['2031-03-21', 500, null, 'paid'],
+            ['2031-04-01', 900, null, 'later'],
+            ['2030-12-01', 700, null, 'later'],
+            ['2031-03-22', null, null, 'later'],
+        ] as [$date, $value, $paid, $status]) {
+            DB::table('rental_contract_extensions')->insert([
+                'rental_contract_id' => $contractId,
+                'extension_value' => $value,
+                'payment_amount' => $paid,
+                'payment_status' => $status,
+                'created_at' => $date . ' 10:00:00',
+                'updated_at' => $date . ' 10:00:00',
+            ]);
+        }
+
+        $report = $this->report(['per_page' => 1]);
+        $section = $report['rental_receivables'];
+        $this->assertSame(8100.0, $report['sales']['totals']['rental']);
+        $this->assertSame(4, $report['sales']['totals']['rental_count']);
+        $this->assertSame(900.0, $report['sales']['totals']['collected']);
+        $this->assertSame(3, $section['totals']['documents']);
+        $this->assertSame(7200.0, $section['totals']['remaining']);
+        $this->assertSame(7900.0, $section['outstanding_all']);
+        $this->assertEquals(7200, array_sum($section['aging']));
+        $this->assertCount(1, $section['rows']);
+
+        $all = $this->report(['per_page' => null])['rental_receivables']['rows'];
+        $this->assertCount(2, $all->where('document_type', 'extension'));
+        $this->assertEquals(600, $all->where('payment_status', 'partial')->first()->remaining_amount);
+        $headline = app(OperationalSummaryService::class)->headline(self::FROM, self::TO);
+        $this->assertSame(8100.0, $headline['sales_invoiced']);
+        $this->assertSame(7900.0, $headline['rental_receivables']);
+    }
+
     public function test_rental_receivables_list_only_unpaid_invoices_with_client_and_aging(): void
     {
         $this->rentalInvoice('2031-01-10', 10000, 10000, 'RC-31-PAID');
@@ -583,8 +624,8 @@ class OperationalSummaryReportTest extends TestCase
         $sheet = $book->getSheetByName('ذمم التأجير');
 
         $this->assertSame('رقم العقد', $sheet->getCell('A3')->getValue(), 'رأس الجدول في السطر الثالث بعد العنوان وسطر النطاق.');
-        $this->assertSame('RC-31-PARTIAL', $sheet->getCell('A4')->getValue());
-        $this->assertSame('RC-31-LATER', $sheet->getCell('A5')->getValue());
+        $this->assertSame('RC-31-PARTIAL / فاتورة أساسية #' . $report['rental_receivables']['rows'][0]->id, $sheet->getCell('A4')->getValue());
+        $this->assertSame('RC-31-LATER / فاتورة أساسية #' . $report['rental_receivables']['rows'][1]->id, $sheet->getCell('A5')->getValue());
         $this->assertSame('الإجمالي', $sheet->getCell('A6')->getValue(), 'سطر الإجمالي يلي آخر صف بيانات مباشرة.');
         $this->assertSame(9000.0, $sheet->getCell('I6')->getValue());
 

@@ -45,8 +45,11 @@
     $currentContractStageLabel = $statusTimeline['current_stage_label']
         ?? getContractStatus($contract->status)
         ?? 'غير محددة';
+    $currentContractStageDisplayLabel = $currentContractStageStep
+        ? $currentContractStageLabel . ' — ' . $currentContractStageStep->displayName(app()->getLocale())
+        : $currentContractStageLabel;
     $contractExpiryPendingMessage = 'لم يبدأ الاحتساب؛ العاملة لم تصل حتى الآن. المرحلة الحالية: '
-        . $currentContractStageLabel;
+        . $currentContractStageDisplayLabel;
     $contractDurationLabel = match ((int) ($info->contract_duration ?? 0)) {
         1 => 'سنة واحدة',
         2 => 'سنتان',
@@ -1102,7 +1105,7 @@
                         @else
                             <div class="overview-meta">
                                 لم يبدأ الاحتساب؛ العاملة لم تصل حتى الآن.<br>
-                                المرحلة الحالية: {{ $currentContractStageLabel }}
+                                المرحلة الحالية: {{ $currentContractStageDisplayLabel }}
                             </div>
                         @endif
                     </div>
@@ -1919,7 +1922,7 @@
                                     الخطوات التفصيلية للعقد
                                 </span>
                                 <span class="badge bg-light text-dark border">
-                                    المرحلة الحالية: {{ $currentContractStageLabel }}
+                                    المرحلة الحالية: {{ $currentContractStageDisplayLabel }}
                                 </span>
                             </div>
                             <div class="text-muted mb-3">
@@ -1932,6 +1935,9 @@
                                         $completion = $step->completions->first();
                                         $isCompleted = (bool) optional($completion)->completed_at;
                                         $isCurrentStageStep = $step->stage === $contract->status && !$step->trashed() && $step->is_active;
+                                        $isCurrentWorkflowStep = $isCurrentStageStep
+                                            && $currentContractStageStep
+                                            && (int) $currentContractStageStep->id === (int) $step->id;
                                         $stageLabel = \App\Support\RecruitmentContractStageLabels::label($step->stage) ?: $step->stage;
                                     @endphp
                                     <div class="border rounded-3 p-3 {{ $isCompleted ? 'bg-success bg-opacity-10 border-success' : 'bg-white' }}">
@@ -1948,6 +1954,10 @@
                                                     </span>
                                                     @if (!$isCurrentStageStep)
                                                         <span class="badge bg-light text-dark border">خطوة سابقة</span>
+                                                    @elseif ($isCurrentWorkflowStep)
+                                                        <span class="badge bg-warning text-dark">الخطوة الحالية</span>
+                                                    @elseif (!$isCompleted)
+                                                        <span class="badge bg-light text-dark border">متاحة للتنفيذ</span>
                                                     @endif
                                                 </div>
                                                 @if ($isCompleted)
@@ -1965,6 +1975,13 @@
                                             <form method="POST" action="{{ route('RecruitmentContract.stageSteps.update', [$contract->id, $step->id]) }}" class="mt-3">
                                                 @csrf
                                                 <div class="row g-2 align-items-center">
+                                                    @if (!$isCompleted)
+                                                        <div class="col-lg-auto">
+                                                            <label class="form-label" for="step-date-{{ $step->id }}">تاريخ التنفيذ</label>
+                                                            <input type="date" id="step-date-{{ $step->id }}" name="completed_at" class="form-control"
+                                                                value="{{ now()->toDateString() }}" max="{{ now()->toDateString() }}" required>
+                                                        </div>
+                                                    @endif
                                                     <div class="col-lg">
                                                         <input type="text" name="notes" class="form-control"
                                                             value="{{ $completion?->notes }}" maxlength="2000"
