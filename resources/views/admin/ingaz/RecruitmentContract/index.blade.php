@@ -2918,6 +2918,9 @@
                 e.preventDefault();
 
                 const form = this;
+                // The floating menu removes its form while confirmation is open.
+                // Keep a copy with the action and CSRF token for the confirmed submission.
+                const submissionForm = form.cloneNode(true);
                 const maidName = $(form).data('maid-name');
                 const contractId = $(form).data('contract-id');
 
@@ -2942,7 +2945,9 @@
                                 Swal.showLoading();
                             }
                         });
-                        form.submit();
+                        submissionForm.hidden = true;
+                        document.body.appendChild(submissionForm);
+                        HTMLFormElement.prototype.submit.call(submissionForm);
                     }
                 });
             });
