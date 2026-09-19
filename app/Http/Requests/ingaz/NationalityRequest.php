@@ -35,6 +35,8 @@ class NationalityRequest extends MainRequest
             'direct_recruitment_cost' => "nullable|numeric|min:0",
             'external_recruitment_cost' => "nullable|numeric|min:0",
             'government_cost' => "nullable|numeric|min:0",
+            'salary_with_no_experience' => "nullable|numeric|min:0",
+            'salary_with_experience' => "nullable|numeric|min:0",
             'service_transportation_cost' => "nullable|numeric|min:0",
             'rental_cost' => "nullable|numeric|min:0",
             "expected_duration"=> "required|integer|min:45",

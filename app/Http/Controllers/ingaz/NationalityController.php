@@ -188,9 +188,12 @@ class NationalityController extends Controller
                 })
                 ->addColumn('actions', function ($row) {
                     $items = '';
+                    $editAction = '';
                     $title = e($row->display_name ?: helperTrans('ingaz.not_specified'));
 
                     if (@AdminGuardHasPerm(\App\PermKeys::NATIONALITIES_CONTROL)) {
+                        $editAction = '<a class="btn btn-sm btn-primary" href="' . route($this->mainRoute . '.edit', $row->id) . '">'
+                            . '<i class="fas fa-pencil-alt me-1"></i>تعديل</a>';
                         $items .= '<li><button type="button" class="dropdown-item manage-nationality-offer"'
                             . ' data-id="' . $row->id . '" data-name="' . $title . '"'
                             . ' data-route="' . route('nationalities.offer', $row->id) . '"'
@@ -200,9 +203,6 @@ class NationalityController extends Controller
                             . ' data-offer-expire="' . ($row->offer_expires_at?->format('Y-m-d') ?? '') . '"'
                             . ' data-has-offer="' . ($row->offer_price !== null ? '1' : '0') . '">'
                             . '<i class="fas fa-tags text-warning me-2"></i>إدارة العرض</button></li>';
-                        $items .= '<li><button type="button" class="dropdown-item editButton" data-bs-toggle="modal" data-bs-target="#createModal"'
-                            . ' model-route="' . route($this->mainRoute . '.edit', $row->id) . '" model-title="تعديل ' . $title . '">'
-                            . '<i class="fas fa-pencil-alt text-primary me-2"></i>تعديل الجنسية</button></li>';
                         $items .= '<li><button type="button" class="dropdown-item generate-nationality-accounts"'
                             . ' data-route="' . route('nationalities.generate-financial-accounts', $row->id) . '" data-name="' . $title . '">'
                             . '<i class="fas fa-sitemap text-info me-2"></i>إنشاء الحسابات المالية</button></li>';
@@ -214,10 +214,16 @@ class NationalityController extends Controller
                             . '<i class="fas fa-trash-alt me-2"></i>حذف الجنسية</button></li>';
                     }
 
-                    return $items === '' ? '—' : '<div class="dropdown actions-dropdown">'
+                    if ($editAction === '' && $items === '') {
+                        return '—';
+                    }
+
+                    $menu = $items === '' ? '' : '<div class="dropdown actions-dropdown">'
                         . '<button class="btn btn-light border btn-sm dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">'
-                        . '<i class="fas fa-ellipsis-v me-1"></i>الإجراءات</button>'
+                        . '<i class="fas fa-ellipsis-v me-1"></i>المزيد</button>'
                         . '<ul class="dropdown-menu dropdown-menu-end shadow-sm">' . $items . '</ul></div>';
+
+                    return '<div class="d-flex align-items-center justify-content-center gap-2 flex-wrap">' . $editAction . $menu . '</div>';
                 })
                 ->addColumn('visibility_key', fn ($row) => $row->is_show ? 'visible' : 'hidden')
                 ->addColumn('offer_state_key', fn ($row) => $row->offer_state)
@@ -280,12 +286,15 @@ class NationalityController extends Controller
 
     public function edit(Request $request, $id)
     {
+        $obj = Nationality::findOrFail($id);
+
         if ($request->ajax()) {
-            $obj = Nationality::findorfail($id);
             $returnHTML = view($this->folderPath . '.edit')
                 ->with(['obj' => $obj])->render();
             return jsonSuccess(["html" => $returnHTML]);
         }
+
+        return view($this->folderPath . '.edit-page', compact('obj'));
     }
 
     public function update(NationalityRequest $request, objAction $action, $id)
