@@ -33,6 +33,7 @@
     $subscription = $subscription ?? [];
     $activeSection = $activeSection ?? 'modules';
     $productUpdates = $productUpdates ?? \App\Support\ProductUpdatesSettings::all();
+    $maintenanceSettings = $maintenanceSettings ?? \App\Support\DashboardMaintenanceSettings::all();
     $editableProductUpdates = old('updates', $productUpdates['updates'] ?? []);
     if (empty($editableProductUpdates)) {
         $editableProductUpdates = [['title' => '', 'details' => '', 'url' => '', 'link_label' => 'عرض الميزة']];
@@ -81,6 +82,7 @@
             ['label' => 'المتبقي', 'value' => ($subscription['days_remaining'] ?? null) === null ? '—' : (($subscription['days_remaining'] < 0) ? 'منتهي' : number_format($subscription['days_remaining']) . ' يوم'), 'tone' => ''],
         ],
         'modules' => [
+            ['label' => 'النظام', 'value' => $maintenanceSettings['enabled'] ? 'تحت التحديث' : 'متاح للموظفين', 'tone' => $maintenanceSettings['enabled'] ? 'is-bad' : 'is-good'],
             ['label' => 'مفعّل', 'value' => $enabledCount . ' من ' . count($modules), 'tone' => 'is-good'],
             ['label' => 'مغلق', 'value' => (string) $disabledCount, 'tone' => $disabledCount > 0 ? 'is-bad' : ''],
             ['label' => 'نوع البرنامج', 'value' => $productProfiles[$productProfileKey]['name'] ?? $productProfileKey, 'tone' => ''],
@@ -344,6 +346,34 @@
     @if (in_array($activeSection, ['modules', 'employees'], true))
     <div class="layout is-single">
         @if ($activeSection === 'modules')
+        <section class="maintenance-control {{ $maintenanceSettings['enabled'] ? 'is-active' : '' }}" id="maintenance-mode">
+            <div class="maintenance-control-status">
+                <div class="maintenance-control-icon" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M12 3a9 9 0 1 0 9 9"/><path d="M12 7v5l3 2"/><path d="M17 3h4v4M21 3l-5 5"/>
+                    </svg>
+                </div>
+                <div>
+                    <span class="maintenance-control-label">حالة دخول الموظفين</span>
+                    <h2>{{ $maintenanceSettings['enabled'] ? 'لوحة التحكم مغلقة للتحديث' : 'لوحة التحكم متاحة' }}</h2>
+                    <p>لوحة التطوير هذه تظل متاحة دائمًا لتستطيع إلغاء وضع التحديث.</p>
+                </div>
+            </div>
+
+            <form method="POST" action="{{ route('dev-superadmin.maintenance-mode.update') }}">
+                @csrf
+                @method('PUT')
+                <input type="hidden" name="enabled" value="{{ $maintenanceSettings['enabled'] ? '0' : '1' }}">
+                <div class="field maintenance-message-field">
+                    <label for="maintenanceMessage">الرسالة التي ستظهر للموظفين</label>
+                    <textarea id="maintenanceMessage" name="message" maxlength="500" required>{{ old('message', $maintenanceSettings['message']) }}</textarea>
+                </div>
+                <button class="btn {{ $maintenanceSettings['enabled'] ? 'btn-primary' : 'btn-danger' }}" type="submit">
+                    {{ $maintenanceSettings['enabled'] ? 'إنهاء التحديث وفتح اللوحة' : 'تفعيل وضع التحديث وإغلاق اللوحة' }}
+                </button>
+            </form>
+        </section>
+
         <section class="panel" id="modules">
             <div class="panel-head">
                 <div>

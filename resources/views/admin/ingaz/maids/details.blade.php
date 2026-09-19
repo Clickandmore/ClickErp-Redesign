@@ -800,11 +800,14 @@
                                 <i class="fas fa-tags text-danger"></i>بيانات العرض
                             </h5>
                             <div class="row g-3">
-                                <div class="col-md-6"><div class="text-muted small">سعر العرض</div><div class="fw-semibold">{{ $maid->offer_price !== null ? number_format((float) $maid->offer_price, 2) : '-' }}</div></div>
-                                <div class="col-md-6"><div class="text-muted small">مدة العرض</div><div class="fw-semibold">{{ $maid->offer_duration ?: '-' }}</div></div>
-                                <div class="col-md-6"><div class="text-muted small">بداية العرض</div><div class="fw-semibold">{{ $dateValue($maid->offer_starts_at) }}</div></div>
-                                <div class="col-md-6"><div class="text-muted small">نهاية العرض</div><div class="fw-semibold">{{ $dateValue($maid->offer_expires_at) }}</div></div>
-                                <div class="col-md-12"><div class="text-muted small">وصف العرض</div><div class="fw-semibold">{{ $maid->offer_description ?: '-' }}</div></div>
+                                <div class="col-md-6"><div class="text-muted small">سعر العرض</div><div class="fw-semibold">{{ $maid->effective_offer_price !== null ? number_format((float) $maid->effective_offer_price, 2) : '-' }}</div></div>
+                                <div class="col-md-6"><div class="text-muted small">مدة العرض</div><div class="fw-semibold">{{ $maid->effective_offer_duration ?: '-' }}</div></div>
+                                <div class="col-md-6"><div class="text-muted small">بداية العرض</div><div class="fw-semibold">{{ $dateValue($maid->effective_offer_starts_at) }}</div></div>
+                                <div class="col-md-6"><div class="text-muted small">نهاية العرض</div><div class="fw-semibold">{{ $dateValue($maid->effective_offer_expires_at) }}</div></div>
+                                <div class="col-md-12"><div class="text-muted small">وصف العرض</div><div class="fw-semibold">{{ $maid->effective_offer_description ?: '-' }}</div></div>
+                                @if($maid->effective_offer_source === 'nationality')
+                                    <div class="col-12"><span class="badge bg-info-subtle text-info"><i class="fas fa-flag me-1"></i>عرض موروث من الجنسية</span></div>
+                                @endif
                             </div>
                         </div>
                     </div>

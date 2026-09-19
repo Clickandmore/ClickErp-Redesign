@@ -114,6 +114,9 @@ class SettingResource extends JsonResource
         $empty = [
             'enabled' => false,
             'image' => '',
+            'link' => '',
+            'destination_type' => 'general',
+            'nationality_ids' => [],
             'version' => null,
         ];
 
@@ -142,9 +145,41 @@ class SettingResource extends JsonResource
         return [
             'enabled' => $newSettings->getSetting('show_popup') === '1',
             'image' => $image,
-            'link' => (string) $newSettings->getSetting('popup_link'),
+            'link' => $this->announcementPopupLink($newSettings),
+            'destination_type' => $newSettings->getSetting('popup_destination_type') ?: 'general',
+            'nationality_ids' => $this->announcementNationalityIds($newSettings),
             'version' => $version,
         ];
+    }
+
+    private function announcementPopupLink(\App\Models\NewSettings $settings): string
+    {
+        if ($settings->getSetting('popup_destination_type') !== 'nationalities') {
+            return (string) $settings->getSetting('popup_link');
+        }
+
+        $nationalityIds = $this->announcementNationalityIds($settings);
+        if ($nationalityIds === []) {
+            return '';
+        }
+
+        $parameters = ['type' => 'estqdam'];
+        if (count($nationalityIds) === 1) {
+            $parameters['nationality_id'] = $nationalityIds[0];
+        } else {
+            $parameters['nationality_ids'] = implode(',', $nationalityIds);
+        }
+
+        return route('site.all-workers.index', $parameters);
+    }
+
+    private function announcementNationalityIds(\App\Models\NewSettings $settings): array
+    {
+        $decoded = json_decode((string) $settings->getSetting('popup_nationality_ids'), true);
+
+        return is_array($decoded)
+            ? array_values(array_unique(array_filter(array_map('intval', $decoded))))
+            : [];
     }
 
     private function mediaValue($storedPath): string

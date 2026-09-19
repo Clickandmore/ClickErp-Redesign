@@ -14,7 +14,7 @@ class AllWorkerController extends Controller
 {
     public function index(Request $request, MaidAction $maidAction, JobTitleAction $jobTitleAction, NationalityAction $nationalityAction)
     {
-        if (!$request->filled('type') && $request->filled('nationality_id')) {
+        if (!$request->filled('type') && ($request->filled('nationality_id') || $request->filled('nationality_ids'))) {
             $request->merge(['type' => 'estqdam']);
         }
 

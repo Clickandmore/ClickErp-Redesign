@@ -2137,8 +2137,19 @@ class MaidAction extends MainAction
                     }
                 }
             })
-            ->when(isset($request->nationality_id), function ($query) use ($request) {
-                $query->where('nationality_id', $request->nationality_id);
+            ->when($request->filled('nationality_id') || $request->filled('nationality_ids'), function ($query) use ($request) {
+                $nationalityIds = collect(is_array($request->input('nationality_ids'))
+                    ? $request->input('nationality_ids')
+                    : explode(',', (string) $request->input('nationality_ids', '')))
+                    ->push($request->input('nationality_id'))
+                    ->filter(fn ($id) => is_numeric($id) && (int) $id > 0)
+                    ->map(fn ($id) => (int) $id)
+                    ->unique()
+                    ->values();
+
+                if ($nationalityIds->isNotEmpty()) {
+                    $query->whereIn('nationality_id', $nationalityIds->all());
+                }
             })
             // فلاتر اختيارية من بحث الصفحة الرئيسية في المواقع الخارجية؛ لا تؤثر
             // على أي موقع لا يرسلها. رقم الجواز مطابقة كاملة فقط حتى لا يُستخدم

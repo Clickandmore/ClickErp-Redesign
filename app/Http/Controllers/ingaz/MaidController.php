@@ -99,6 +99,11 @@ class MaidController extends Controller
                 'passport_num',
                 'price',
                 'salary',
+                'offer_price',
+                'offer_duration',
+                'offer_description',
+                'offer_starts_at',
+                'offer_expires_at',
                 'age',
                 'is_show',
                 'available',
@@ -307,9 +312,9 @@ class MaidController extends Controller
                     $today = Carbon::today();
 
                     $offerBadge = '';
-                    if ($row->offer_price !== null) {
-                        $startsAt = $row->offer_starts_at;
-                        $expiresAt = $row->offer_expires_at;
+                    if ($row->effective_offer_price !== null) {
+                        $startsAt = $row->effective_offer_starts_at;
+                        $expiresAt = $row->effective_offer_expires_at;
 
                         $state = 'expired';
                         if ((!$startsAt || $startsAt->lte($today)) && (!$expiresAt || $expiresAt->gte($today))) {
@@ -329,7 +334,7 @@ class MaidController extends Controller
                             'expired' => helperTrans('ingaz.offer_badge_expired'),
                         ];
 
-                        $offerBadge = '<span class="badge d-flex align-items-center gap-2 p-0' . ($offerClasses[$state] ?? 'bg-light text-muted border') . ' d-inline-flex align-items-center gap-2">'
+                        $offerBadge = '<span class="badge d-flex align-items-center gap-2 p-0 ' . ($offerClasses[$state] ?? 'bg-light text-muted border') . ' d-inline-flex align-items-center gap-2">'
                             . '<i class="fas fa-tags"></i>' . ($offerLabels[$state] ?? helperTrans('ingaz.offer_badge'))
                             . '</span>';
                     }
@@ -388,9 +393,9 @@ class MaidController extends Controller
                         . '<span>' . helperTrans('ingaz.request_type') . ': </span>' . e($row->request_type_label)
                         . '</span>';
 
-                    if ($row->offer_price !== null) {
-                        $startsAt = $row->offer_starts_at;
-                        $expiresAt = $row->offer_expires_at;
+                    if ($row->effective_offer_price !== null) {
+                        $startsAt = $row->effective_offer_starts_at;
+                        $expiresAt = $row->effective_offer_expires_at;
 
                         $state = 'expired';
                         if ((!$startsAt || $startsAt->lte($today)) && (!$expiresAt || $expiresAt->gte($today))) {
@@ -410,8 +415,8 @@ class MaidController extends Controller
                             'expired' => 'fa-history',
                         ];
 
-                        $offerPrice = number_format((float) $row->offer_price, 2);
-                        $description = $row->offer_description ? e(Str::limit($row->offer_description, 80)) : null;
+                        $offerPrice = number_format((float) $row->effective_offer_price, 2);
+                        $description = $row->effective_offer_description ? e(Str::limit($row->effective_offer_description, 80)) : null;
 
                         $offerInfo = '<div class="text-medium rounded-3 px-3 py-2 mt-1 ' . ($stateClasses[$state] ?? 'bg-light text-muted border') . '">'
                             . '<div class="fw-semibold d-flex align-items-center gap-2">'
@@ -506,9 +511,7 @@ class MaidController extends Controller
                 ->addColumn('actions', function (Maid $row) use ($cvGenerationAvailable, $cvOutputType) {
                     $menuItems = '';
                     $today = Carbon::today();
-                    $offerActive = $row->offer_price !== null
-                        && (!$row->offer_starts_at || $row->offer_starts_at->lte($today))
-                        && (!$row->offer_expires_at || $row->offer_expires_at->gte($today));
+                    $offerActive = $row->hasActiveEffectiveOffer();
 
                     if (@AdminGuardHasPerm(\App\PermKeys::MAIDS_SHOW)) {
                         $menuItems .= '<li><a class="dropdown-item" href="' . route('showMaidDetails', $row->id) . '"><i class="fas fa-eye text-primary me-2"></i>' . helperTrans('ingaz.view_details') . '</a></li>';

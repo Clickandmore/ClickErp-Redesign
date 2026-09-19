@@ -22,14 +22,33 @@
         });
     });
 
+    const adPopup = document.getElementById('ad-popup');
     const closeAdButton = document.getElementById('close-ad');
-    if (closeAdButton) {
-        closeAdButton.onclick = function () {
-            const adPopup = document.getElementById('ad-popup');
-            if (adPopup) {
+    if (adPopup) {
+        const storageKey = `announcement-popup-${adPopup.dataset.announcementVersion || 'current'}`;
+        try {
+            if (sessionStorage.getItem(storageKey) === 'closed') {
                 adPopup.style.display = 'none';
             }
+        } catch (error) {
+            // Private browsing may disable storage; the popup can still be closed normally.
+        }
+
+        const closeAnnouncement = function () {
+            adPopup.style.display = 'none';
+            try {
+                sessionStorage.setItem(storageKey, 'closed');
+            } catch (error) {}
         };
+
+        if (closeAdButton) {
+            closeAdButton.addEventListener('click', closeAnnouncement);
+        }
+        adPopup.addEventListener('click', function (event) {
+            if (event.target === adPopup) {
+                closeAnnouncement();
+            }
+        });
     }
 
     function checkInternetConnection() {

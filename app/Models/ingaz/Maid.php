@@ -218,11 +218,100 @@ class Maid extends Model
     protected $appends = [
         'resolved_price',
         'resolved_salary',
+        'effective_offer_price',
+        'effective_offer_duration',
+        'effective_offer_description',
+        'effective_offer_starts_at',
+        'effective_offer_expires_at',
+        'effective_offer_source',
         'image_url',
         'cv_preview_url',
         'cv_file_url',
         'cv_download_url',
     ];
+
+    /**
+     * An individual offer always has priority. Otherwise an available worker
+     * inherits the offer currently configured for her nationality.
+     */
+    public function getEffectiveOfferPriceAttribute()
+    {
+        if ($this->hasIndividualOfferValue()) {
+            return $this->offer_price;
+        }
+
+        return $this->nationalityOfferApplies() ? $this->nationality?->offer_price : null;
+    }
+
+    public function getEffectiveOfferDurationAttribute(): ?string
+    {
+        if ($this->hasIndividualOfferValue()) {
+            return $this->offer_duration;
+        }
+
+        return $this->nationalityOfferApplies() ? $this->nationality?->offer_duration : null;
+    }
+
+    public function getEffectiveOfferDescriptionAttribute(): ?string
+    {
+        if ($this->hasIndividualOfferValue()) {
+            return $this->offer_description;
+        }
+
+        return $this->nationalityOfferApplies() ? $this->nationality?->offer_description : null;
+    }
+
+    public function getEffectiveOfferStartsAtAttribute()
+    {
+        if ($this->hasIndividualOfferValue()) {
+            return $this->offer_starts_at;
+        }
+
+        return $this->nationalityOfferApplies() ? $this->nationality?->offer_starts_at : null;
+    }
+
+    public function getEffectiveOfferExpiresAtAttribute()
+    {
+        if ($this->hasIndividualOfferValue()) {
+            return $this->offer_expires_at;
+        }
+
+        return $this->nationalityOfferApplies() ? $this->nationality?->offer_expires_at : null;
+    }
+
+    public function getEffectiveOfferSourceAttribute(): ?string
+    {
+        if ($this->hasIndividualOfferValue()) {
+            return 'maid';
+        }
+
+        return $this->nationalityOfferApplies() ? 'nationality' : null;
+    }
+
+    public function hasActiveEffectiveOffer(): bool
+    {
+        if ($this->effective_offer_price === null) {
+            return false;
+        }
+
+        $today = now()->startOfDay();
+
+        return (!$this->effective_offer_starts_at || $this->effective_offer_starts_at->lte($today))
+            && (!$this->effective_offer_expires_at || $this->effective_offer_expires_at->gte($today));
+    }
+
+    private function nationalityOfferApplies(): bool
+    {
+        return (bool) $this->available
+            && $this->status === 'available'
+            && $this->nationality?->offer_price !== null;
+    }
+
+    private function hasIndividualOfferValue(): bool
+    {
+        return array_key_exists('offer_price', $this->getAttributes())
+            && $this->getAttributes()['offer_price'] !== null;
+    }
 
     public function getImageURLAttribute()
     {

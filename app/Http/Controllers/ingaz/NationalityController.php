@@ -8,6 +8,7 @@ use App\Http\Requests\ingaz\NationalityRequest;
 use App\Models\ingaz\Nationality;
 use App\Models\ingaz\Nationality as objModel;
 use App\Services\ingaz\NationalityFinanceAccountService;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 use Throwable;
@@ -58,6 +59,11 @@ class NationalityController extends Controller
                     'phone_code',
                     'sort_order',
                     'price',
+                    'offer_price',
+                    'offer_duration',
+                    'offer_description',
+                    'offer_starts_at',
+                    'offer_expires_at',
                     'direct_recruitment_cost',
                     'external_recruitment_cost',
                     'government_cost',
@@ -70,6 +76,9 @@ class NationalityController extends Controller
                     'is_show',
                     'created_at',
                 ])
+                ->withCount(['maids as available_maids_count' => function ($query) {
+                    $query->where('available', true)->where('status', 'available');
+                }])
                 ->ordered();
 
             $currency = helperTrans('ingaz.currency_sar');
@@ -154,33 +163,71 @@ class NationalityController extends Controller
                     return '<button type="button" class="btn btn-sm ' . $statusClass . ' update-status" data-id="'
                         . $row->id . '"><i class="fas fa-eye' . ($row->is_show ? '-slash' : '') . ' me-1"></i>' . $statusLabel . '</button>';
                 })
+                ->addColumn('offer', function (objModel $row) use ($currency) {
+                    if ($row->offer_price === null) {
+                        return '<div class="offer-summary offer-summary--empty">'
+                            . '<i class="fas fa-tag"></i><span>لا يوجد عرض</span>'
+                            . '<small>' . number_format($row->available_maids_count) . ' عاملة متاحة</small></div>';
+                    }
+
+                    $states = [
+                        'active' => ['عرض نشط', 'success', 'fa-bolt'],
+                        'scheduled' => ['عرض مجدول', 'info', 'fa-clock'],
+                        'expired' => ['عرض منتهي', 'secondary', 'fa-history'],
+                    ];
+                    [$label, $color, $icon] = $states[$row->offer_state] ?? $states['expired'];
+                    $dates = ($row->offer_starts_at?->format('Y-m-d') ?: 'غير محدد')
+                        . ' — ' . ($row->offer_expires_at?->format('Y-m-d') ?: 'غير محدد');
+
+                    return '<div class="offer-summary">'
+                        . '<div><span class="badge bg-' . $color . '-subtle text-' . $color . '"><i class="fas ' . $icon . ' me-1"></i>' . $label . '</span></div>'
+                        . '<strong>' . number_format((float) $row->offer_price, 2) . ' ' . $currency . '</strong>'
+                        . '<small><i class="far fa-calendar-alt me-1"></i>' . e($dates) . '</small>'
+                        . '<small><i class="fas fa-users me-1"></i>يطبق على ' . number_format($row->available_maids_count) . ' عاملة متاحة</small>'
+                        . '</div>';
+                })
                 ->addColumn('actions', function ($row) {
-                    $menu = '';
+                    $items = '';
                     $title = e($row->display_name ?: helperTrans('ingaz.not_specified'));
 
                     if (@AdminGuardHasPerm(\App\PermKeys::NATIONALITIES_CONTROL)) {
-                        $menu .= '<button type="button" class="btn btn-sm btn-info text-white generate-nationality-accounts ms-1"
-                            data-route="' . route('nationalities.generate-financial-accounts', $row->id) . '"
-                            data-name="' . $title . '"
-                            title="إنشاء الحسابات المالية">
-                            <i class="fas fa-sitemap"></i>
-                        </button> ';
-
-                        $menu .= editButton(route($this->mainRoute . ".edit", $row->id), $row->display_name);
+                        $items .= '<li><button type="button" class="dropdown-item manage-nationality-offer"'
+                            . ' data-id="' . $row->id . '" data-name="' . $title . '"'
+                            . ' data-route="' . route('nationalities.offer', $row->id) . '"'
+                            . ' data-offer-price="' . e($row->offer_price ?? '') . '"'
+                            . ' data-offer-description="' . e($row->offer_description ?? '') . '"'
+                            . ' data-offer-start="' . ($row->offer_starts_at?->format('Y-m-d') ?? '') . '"'
+                            . ' data-offer-expire="' . ($row->offer_expires_at?->format('Y-m-d') ?? '') . '"'
+                            . ' data-has-offer="' . ($row->offer_price !== null ? '1' : '0') . '">'
+                            . '<i class="fas fa-tags text-warning me-2"></i>إدارة العرض</button></li>';
+                        $items .= '<li><button type="button" class="dropdown-item editButton" data-bs-toggle="modal" data-bs-target="#createModal"'
+                            . ' model-route="' . route($this->mainRoute . '.edit', $row->id) . '" model-title="تعديل ' . $title . '">'
+                            . '<i class="fas fa-pencil-alt text-primary me-2"></i>تعديل الجنسية</button></li>';
+                        $items .= '<li><button type="button" class="dropdown-item generate-nationality-accounts"'
+                            . ' data-route="' . route('nationalities.generate-financial-accounts', $row->id) . '" data-name="' . $title . '">'
+                            . '<i class="fas fa-sitemap text-info me-2"></i>إنشاء الحسابات المالية</button></li>';
                     }
 
                     if (@AdminGuardHasPerm(\App\PermKeys::NATIONALITIES_DELETE)) {
-                        $menu .= ' ' . deleteButton(route($this->mainRoute . ".destroy", $row->id));
+                        $items .= '<li><hr class="dropdown-divider"></li><li><button type="button" class="dropdown-item text-danger deleteButton"'
+                            . ' delete-route="' . route($this->mainRoute . '.destroy', $row->id) . '">'
+                            . '<i class="fas fa-trash-alt me-2"></i>حذف الجنسية</button></li>';
                     }
-                    return $menu;
+
+                    return $items === '' ? '—' : '<div class="dropdown actions-dropdown">'
+                        . '<button class="btn btn-light border btn-sm dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">'
+                        . '<i class="fas fa-ellipsis-v me-1"></i>الإجراءات</button>'
+                        . '<ul class="dropdown-menu dropdown-menu-end shadow-sm">' . $items . '</ul></div>';
                 })
+                ->addColumn('visibility_key', fn ($row) => $row->is_show ? 'visible' : 'hidden')
+                ->addColumn('offer_state_key', fn ($row) => $row->offer_state)
                 ->addColumn('sub_title_plain', function ($row) {
                     return $row->display_name;
                 })
                 ->filterColumn('sub_title_plain', function ($query, $keyword) {
                     $query->whereTranslationLike('sub_title', '%' . $keyword . '%');
                 })
-                ->rawColumns(['meta', 'financials', 'visibility_toggle', 'actions'])
+                ->rawColumns(['meta', 'financials', 'offer', 'visibility_toggle', 'actions'])
                 ->make(true);
         }
 
@@ -193,6 +240,7 @@ class NationalityController extends Controller
             'total' => objModel::count(),
             'visible' => objModel::where('is_show', true)->count(),
             'hidden' => objModel::where('is_show', false)->count(),
+            'offers' => objModel::whereNotNull('offer_price')->count(),
         ];
 
         return view($this->folderPath . '.index', $data);
@@ -246,6 +294,59 @@ class NationalityController extends Controller
         // dd($updatedData);
         $data = $action->updateNationality($id, $updatedData);
         return jsonSuccess($data);
+    }
+
+    public function updateOffer(Request $request, int $id)
+    {
+        if (!@AdminGuardHasPerm(\App\PermKeys::NATIONALITIES_CONTROL)) {
+            return response()->json(['success' => false, 'message' => helperTrans('ingaz.permission_denied')], 403);
+        }
+
+        $nationality = objModel::findOrFail($id);
+
+        if ($request->boolean('clear_offer')) {
+            $nationality->update([
+                'offer_price' => null,
+                'offer_duration' => null,
+                'offer_description' => null,
+                'offer_starts_at' => null,
+                'offer_expires_at' => null,
+            ]);
+
+            return response()->json(['success' => true, 'message' => 'تم حذف عرض الجنسية بنجاح.']);
+        }
+
+        $validated = $request->validate([
+            'offer_price' => ['required', 'numeric', 'min:0'],
+            'offer_description' => ['nullable', 'string', 'max:500'],
+            'offer_starts_at' => ['nullable', 'date'],
+            'offer_expires_at' => ['nullable', 'date', 'after_or_equal:offer_starts_at'],
+        ], [
+            'offer_expires_at.after_or_equal' => 'تاريخ نهاية العرض يجب أن يكون بعد تاريخ البداية أو مساوياً له.',
+        ], [
+            'offer_price' => 'سعر العرض',
+            'offer_description' => 'وصف العرض',
+            'offer_starts_at' => 'بداية العرض',
+            'offer_expires_at' => 'نهاية العرض',
+        ]);
+
+        $startsAt = filled($validated['offer_starts_at'] ?? null) ? Carbon::parse($validated['offer_starts_at']) : null;
+        $expiresAt = filled($validated['offer_expires_at'] ?? null) ? Carbon::parse($validated['offer_expires_at']) : null;
+
+        $nationality->update([
+            'offer_price' => round((float) $validated['offer_price'], 2),
+            'offer_duration' => $startsAt && $expiresAt ? (string) ($startsAt->diffInDays($expiresAt) + 1) : null,
+            'offer_description' => filled($validated['offer_description'] ?? null) ? trim($validated['offer_description']) : null,
+            'offer_starts_at' => $startsAt?->toDateString(),
+            'offer_expires_at' => $expiresAt?->toDateString(),
+        ]);
+
+        $availableMaids = $nationality->maids()->where('available', true)->where('status', 'available')->count();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'تم حفظ العرض وتطبيقه تلقائياً على ' . number_format($availableMaids) . ' عاملة متاحة.',
+        ]);
     }
 
     private function syncTitleWithSubTitle(array $data): array

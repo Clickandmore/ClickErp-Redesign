@@ -1021,6 +1021,11 @@
                     };
                 @endphp
                 @forelse($nationalities as $nationalty)
+                    @php
+                        $nationalityOfferActive = $nationalty->offer_price !== null
+                            && (!$nationalty->offer_starts_at || $nationalty->offer_starts_at->isToday() || $nationalty->offer_starts_at->isPast())
+                            && (!$nationalty->offer_expires_at || $nationalty->offer_expires_at->isToday() || $nationalty->offer_expires_at->isFuture());
+                    @endphp
                     <div class="col-12 col-md-6 col-lg-4 p-3" data-aos="fade-up"
                         data-aos-delay="{{ $loop->index * 100 }}">
                         <div class="modern-card">
@@ -1034,6 +1039,9 @@
                             </div>
                             <div class="cost-highlight">
                                 <span class="label title">{{ $localizedModelText($nationalty, 'title', app()->getLocale() === 'ar' ? 'غير محدد' : $nationalty->display_name) }}</span>
+                                @if($nationalityOfferActive)
+                                    <span class="badge rounded-pill bg-warning text-dark mb-2"><i class="fas fa-tags me-1"></i>عرض على العاملات: {{ $formatNumber($nationalty->offer_price) }} ريال</span>
+                                @endif
                                 <h2 class="price">{{ $formatNumber($nationalty->price) }} <small>ريال</small></h2>
                                 <span class="label">تكلفة الاستقدام شامل الضريبة</span>
                             </div>

@@ -92,6 +92,9 @@ class AppServiceProvider extends ServiceProvider
             'sadad_transfer_data' => null,
             'show_popup' => false,
             'popup_image' => null,
+            'popup_link' => null,
+            'popup_destination_type' => 'general',
+            'popup_nationality_ids' => [],
         ];
 
         if (Schema::hasTable('new_settings')) {
@@ -100,6 +103,12 @@ class AppServiceProvider extends ServiceProvider
             $setting['sadad_transfer_data'] = $new_settings->getSetting('sadad_transfer_data');
             $setting['show_popup'] = $new_settings->getSetting('show_popup') === '1';
             $setting['popup_image'] = $new_settings->getSetting('popup_image');
+            $setting['popup_link'] = $new_settings->getSetting('popup_link');
+            $setting['popup_destination_type'] = $new_settings->getSetting('popup_destination_type') ?: 'general';
+            $decodedNationalityIds = json_decode((string) $new_settings->getSetting('popup_nationality_ids'), true);
+            $setting['popup_nationality_ids'] = is_array($decodedNationalityIds)
+                ? array_values(array_unique(array_map('intval', $decodedNationalityIds)))
+                : [];
         }
         View::share('setting', $setting);
         View::share('zohoSalesIqWidgetUrl', ZohoSalesIqSettings::publicWidgetUrl());

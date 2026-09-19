@@ -12,14 +12,9 @@
                 ];
                 $targetJobTypeId = $typeToJobTypeId[$currentType] ?? null;
                 $todayDate = now()->toDateString();
-                $offerStartsRaw = $maid->getRawOriginal('offer_starts_at');
-                $offerExpiresRaw = $maid->getRawOriginal('offer_expires_at');
-                $offerStarts =
-                    is_string($offerStartsRaw) && $offerStartsRaw !== '' ? substr($offerStartsRaw, 0, 10) : null;
-                $offerExpires =
-                    is_string($offerExpiresRaw) && $offerExpiresRaw !== '' ? substr($offerExpiresRaw, 0, 10) : null;
-
-                $offerPriceRaw = $maid->offer_price !== null ? (float) $maid->offer_price : null;
+                $offerStarts = optional($maid->effective_offer_starts_at)->format('Y-m-d');
+                $offerExpires = optional($maid->effective_offer_expires_at)->format('Y-m-d');
+                $offerPriceRaw = $maid->effective_offer_price !== null ? (float) $maid->effective_offer_price : null;
                 $salaryRaw = $maid->resolved_salary !== null ? (float) $maid->resolved_salary : null;
                 $recruitmentPriceRaw = $maid->resolvePriceForService('estqdam');
                 $rentalPriceRaw = $maid->resolvePriceForService('egar');
@@ -30,16 +25,12 @@
                 $offerExpiresOk = empty($offerExpires) || $offerExpires >= $todayDate;
                 $offerActive = $offerPriceRaw !== null && $offerStartsOk && $offerExpiresOk;
 
-                /* الحساب دايمًا يكون بالقيم الخام */
-                $salaryAfterOfferRaw = $offerActive && $salaryRaw !== null ? $salaryRaw - $offerPriceRaw : null;
-
                 /* التنسيق للعرض فقط */
                 $offerPriceDisplay = $offerPriceRaw !== null ? formatMoney($offerPriceRaw) : null;
                 $salaryDisplay = $salaryRaw !== null ? formatMoney($salaryRaw) : null;
                 $priceDisplay = $priceRaw !== null ? formatMoney($priceRaw) : null;
                 $rentalPriceDisplay = $rentalPriceRaw !== null ? formatMoney($rentalPriceRaw) : null;
                 $transferPriceDisplay = $transferPriceRaw !== null ? formatMoney($transferPriceRaw) : null;
-                $salaryAfterOffer = $salaryAfterOfferRaw !== null ? formatMoney($salaryAfterOfferRaw) : null;
                 $cvFile = $maid->cv_file ?? $maid->cv_preview;
                 $cv_code = $maid->cv_code ? $maid->cv_code : null;
                 $listingJobTypes = $maid->site_listing_job_types ?? $maid->jobTypes;
@@ -139,12 +130,12 @@
                                             @if ($priceRaw !== null && $offerPriceRaw < $priceRaw && $priceDisplay)
                                                 <p class="old-salary mb-1">
                                                     {{ __('ingaz.before_discount') }} :
-                                                    <span>{{ $salaryDisplay }} {{ __('ingaz.SAR') }}</span>
+                                                    <span>{{ $priceDisplay }} {{ __('ingaz.SAR') }}</span>
                                                 </p>
                                             @endif
                                             <p class="new-salary mb-0">
                                                 {{ __('ingaz.now_price') }} :
-                                                <span>{{ $salaryAfterOffer }} {{ __('ingaz.SAR') }}</span>
+                                                <span>{{ $offerPriceDisplay }} {{ __('ingaz.SAR') }}</span>
                                             </p>
                                         @elseif($priceDisplay)
                                             <p class="new-salary mb-0">
@@ -152,10 +143,10 @@
                                                 <span>{{ $priceDisplay }} {{ __('ingaz.SAR') }}</span>
                                             </p>
                                         @endif
-                                        @if ($maid->offer_description)
+                                        @if ($maid->effective_offer_description)
                                             <p class="offer-note text-muted small mt-2 w-100">
                                                 <i
-                                                    class="fa-regular fa-comment-dots me-1"></i>{{ $maid->offer_description }}
+                                                    class="fa-regular fa-comment-dots me-1"></i>{{ $maid->effective_offer_description }}
                                             </p>
                                         @endif
                                     </div>

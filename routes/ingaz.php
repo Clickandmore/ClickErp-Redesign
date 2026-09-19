@@ -257,6 +257,7 @@ Route::group(
             Route::resource('develop-settings', DevelopSettingController::class);
             Route::resource('job-titles', JobTitleController::class);
             Route::post('nationalities/{id}/generate-financial-accounts', [NationalityController::class, 'generateFinancialAccounts'])->name('nationalities.generate-financial-accounts');
+            Route::post('nationalities/{id}/offer', [NationalityController::class, 'updateOffer'])->name('nationalities.offer');
             Route::resource('nationalities', NationalityController::class);
             Route::post('offers/{id}/toggle-status', [OfferController::class, 'toggleStatus'])->name('offers.toggle-status');
             Route::resource('offers', OfferController::class);
@@ -804,6 +805,7 @@ Route::group(
                 Route::get('database-backups', [DevSuperAdminController::class, 'modules'])->name('database-backups');
                 Route::get('scheduler', [DevSuperAdminController::class, 'modules'])->name('scheduler');
                 Route::put('modules', [DevSuperAdminController::class, 'updateModules'])->name('modules.update');
+                Route::put('maintenance-mode', [DevSuperAdminController::class, 'updateMaintenanceMode'])->name('maintenance-mode.update');
                 Route::put('home-sections/available', [\App\Http\Controllers\ingaz\HomeSectionSettingsController::class, 'updateAvailable'])->name('home-sections.available');
                 Route::put('subscription', [DevSuperAdminController::class, 'updateSubscription'])->name('subscription.update');
                 Route::put('product-updates', [DevSuperAdminController::class, 'updateProductUpdates'])->name('product-updates.update');

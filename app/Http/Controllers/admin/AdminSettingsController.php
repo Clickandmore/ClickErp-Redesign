@@ -4,6 +4,7 @@ namespace App\Http\Controllers\admin;
 
 use App\Models\Branch;
 use App\Models\ingaz\FastNew;
+use App\Models\ingaz\Nationality;
 use App\Models\NewSettings;
 use App\Support\AutomationSettings;
 use App\Support\ZohoSalesIqSettings;
@@ -39,8 +40,9 @@ class AdminSettingsController extends Controller
             $data = $this->getSettingsPayload();
             $recentFastNews = FastNew::query()->latest()->take(5)->get();
             $fastNewsCount = FastNew::query()->count();
+            $nationalities = Nationality::query()->ordered()->get();
 
-            return view('admin.settings.announcements', compact('data', 'recentFastNews', 'fastNewsCount'));
+            return view('admin.settings.announcements', compact('data', 'recentFastNews', 'fastNewsCount', 'nationalities'));
         } catch (\Exception $e) {
             Log::error('Error loading announcements settings: ' . $e->getMessage());
             return redirect()->back()->with('error', __('admin.error_loading_settings'));
@@ -177,6 +179,8 @@ class AdminSettingsController extends Controller
             'show_popup',
             'popup_image',
             'popup_link',
+            'popup_destination_type',
+            'popup_nationality_ids',
         ];
 
         $data = [];
@@ -193,7 +197,10 @@ class AdminSettingsController extends Controller
             $request->validate([
                 'section' => 'required|in:announcements',
                 'popup_image' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg|max:2048',
+                'popup_destination_type' => 'required|in:general,nationalities',
                 'popup_link' => 'nullable|url|max:2048',
+                'popup_nationality_ids' => 'nullable|required_if:popup_destination_type,nationalities|array|min:1',
+                'popup_nationality_ids.*' => 'integer|distinct|exists:nationalities,id',
             ]);
 
             return;
@@ -232,6 +239,16 @@ class AdminSettingsController extends Controller
     {
         $show_popup = $request->has('show_popup') ? '1' : '0';
         $settings->setSetting('show_popup', $show_popup);
+
+        $destinationType = (string) $request->input('popup_destination_type', 'general');
+        $nationalityIds = $destinationType === 'nationalities'
+            ? collect($request->input('popup_nationality_ids', []))->map(fn ($id) => (int) $id)->unique()->values()->all()
+            : [];
+
+        if (! $settings->setSetting('popup_destination_type', $destinationType)
+            || ! $settings->setSetting('popup_nationality_ids', json_encode($nationalityIds))) {
+            throw new \RuntimeException('Unable to persist the announcement destination.');
+        }
 
         if (! $settings->setSetting('popup_link', trim((string) $request->input('popup_link', '')))) {
             throw new \RuntimeException('Unable to persist the announcement link.');

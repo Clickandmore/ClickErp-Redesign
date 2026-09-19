@@ -373,6 +373,31 @@
     .layout { display: grid; grid-template-columns: minmax(0, 1fr) 420px; gap: 18px; align-items: start; }
     .layout.is-single { grid-template-columns: minmax(0, 1fr); }
 
+    .maintenance-control {
+        display: grid;
+        grid-template-columns: minmax(260px, .9fr) minmax(360px, 1.25fr);
+        gap: 24px;
+        align-items: center;
+        margin-bottom: 18px;
+        padding: 22px;
+        border: 1px solid var(--success-line);
+        border-radius: var(--r-lg);
+        background: linear-gradient(135deg, #f4fcf8 0%, #fff 65%);
+        box-shadow: var(--shadow-sm);
+    }
+
+    .maintenance-control.is-active { border-color: var(--warning-line); background: linear-gradient(135deg, #fff9eb 0%, #fff 65%); }
+    .maintenance-control-status { display: flex; align-items: flex-start; gap: 15px; }
+    .maintenance-control-icon { width: 48px; height: 48px; flex: 0 0 auto; display: grid; place-items: center; border-radius: var(--r-md); color: var(--success); background: var(--success-soft); border: 1px solid var(--success-line); }
+    .maintenance-control.is-active .maintenance-control-icon { color: var(--warning); background: var(--warning-soft); border-color: var(--warning-line); }
+    .maintenance-control-icon svg { width: 25px; height: 25px; }
+    .maintenance-control-label { display: block; margin-bottom: 3px; color: var(--muted); font-size: .76rem; font-weight: 700; }
+    .maintenance-control h2 { font-size: 1.06rem; }
+    .maintenance-control p { margin-top: 5px; color: var(--muted); font-size: .82rem; line-height: 1.7; }
+    .maintenance-control form { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 12px; align-items: end; }
+    .maintenance-message-field textarea { min-height: 76px; }
+    .maintenance-control form > .btn { min-height: 44px; margin-bottom: 1px; }
+
     /* عنوان فرعي داخل اللوحة */
     .section-heading {
         display: flex;
@@ -1091,6 +1116,8 @@
     @media (max-width: 1080px) {
         .dev-shell, .shell { width: calc(100% - 28px); }
         .layout { grid-template-columns: 1fr; }
+        .maintenance-control { grid-template-columns: 1fr; }
+        .maintenance-control form { grid-template-columns: 1fr; }
         .stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
         .subscription-panel { grid-template-columns: 1fr; }
         .subscription-form { grid-template-columns: repeat(2, minmax(0, 1fr)); }

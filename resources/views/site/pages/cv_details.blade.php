@@ -300,9 +300,9 @@
 @section('content')
     @php
         $todayDate = now()->toDateString();
-        $offerStarts = optional($maid->offer_starts_at)->format('Y-m-d');
-        $offerExpires = optional($maid->offer_expires_at)->format('Y-m-d');
-        $offerPriceRaw = $maid->offer_price !== null ? (float) $maid->offer_price : null;
+        $offerStarts = optional($maid->effective_offer_starts_at)->format('Y-m-d');
+        $offerExpires = optional($maid->effective_offer_expires_at)->format('Y-m-d');
+        $offerPriceRaw = $maid->effective_offer_price !== null ? (float) $maid->effective_offer_price : null;
         $salaryRaw = $maid->resolved_salary !== null ? (float) $maid->resolved_salary : null;
         $servicePrice = $maid->resolvePriceForService($type);
         $priceRaw = $servicePrice !== null ? (float) $servicePrice : null;
@@ -362,8 +362,8 @@
                             <p class="dis text-muted text-decoration-line-through">{{ $priceDisplay }}
                                 {{ __('ingaz.SAR') }}</p>
                         @endif
-                        @if ($maid->offer_description)
-                            <p class="dis mt-2">{{ $maid->offer_description }}</p>
+                        @if ($maid->effective_offer_description)
+                            <p class="dis mt-2">{{ $maid->effective_offer_description }}</p>
                         @endif
                     </div>
                 @else

@@ -9,6 +9,7 @@ use App\Services\DatabaseBackupVerificationService;
 use App\Services\SchedulerMonitorService;
 use App\Support\DatabaseBackupSettings;
 use App\Support\DevSuperAdminSecuritySettings;
+use App\Support\DashboardMaintenanceSettings;
 use App\Support\ClientSubscriptionSettings;
 use App\Support\R2StorageSettings;
 use App\Support\ProductUpdatesSettings;
@@ -299,8 +300,29 @@ class DevSuperAdminController extends Controller
             'schedulerStatus' => $activeSection === 'scheduler' ? $schedulerMonitor->status() : null,
             'subscription' => ClientSubscriptionSettings::all(),
             'productUpdates' => ProductUpdatesSettings::all(),
+            'maintenanceSettings' => DashboardMaintenanceSettings::all(),
             'activeSection' => $activeSection,
         ]);
+    }
+
+    public function updateMaintenanceMode(Request $request)
+    {
+        $data = $request->validate([
+            'enabled' => ['required', 'boolean'],
+            'message' => ['required', 'string', 'min:10', 'max:500'],
+        ], [
+            'message.required' => 'اكتب الرسالة التي ستظهر للموظفين أثناء التحديث.',
+            'message.min' => 'رسالة التحديث يجب ألا تقل عن 10 أحرف.',
+            'message.max' => 'رسالة التحديث يجب ألا تزيد على 500 حرف.',
+        ]);
+
+        DashboardMaintenanceSettings::persist($data);
+
+        return redirect()
+            ->route('dev-superadmin.modules')
+            ->with('success', $data['enabled']
+                ? 'تم تفعيل وضع التحديث وإغلاق لوحة التحكم أمام الموظفين.'
+                : 'تم إلغاء وضع التحديث وإتاحة لوحة التحكم للموظفين.');
     }
 
     public function updateProductUpdates(Request $request)
