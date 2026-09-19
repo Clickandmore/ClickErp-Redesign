@@ -1089,7 +1089,7 @@ return array (
     'pre_arrival' => 'قبل الوصول',
     'arrival_stage' => 'مرحلة الوصول',
   'filters' => 'الفلاتر',
-  'layout' => 
+  'layout' =>
   array (
     'default_musaned_pro' => 'مساند برو',
     'default_musaned_tawtheeq' => 'مساند توثيق',
@@ -1112,7 +1112,7 @@ return array (
     'saudi_arabia' => 'العربية',
     'english' => 'الإنجليزية',
   ),
-  'sidebar' => 
+  'sidebar' =>
   array (
     'sms_templates' => 'نماذج الرسائل',
     'private_requests' => 'طلبات خاصة',
@@ -1249,7 +1249,7 @@ return array (
         'social_statuses' => 'الحالات الاجتماعية',
         'dashboard_settings' => 'إعدادات لوحة التحكم',
         'client_website_settings' => 'إعدادات موقع العميل',
-        'external_website_data' => 'بيانات الموقع الخارجي',
+        'external_website_data' => 'اعدادت عامة لموقع العميل',
         'home_page' => 'الصفحة الرئيسية',
         'internal_system_settings' => 'إعدادات النظام الداخلية',
         'rental_settings' => 'إعدادات التأجير',
@@ -1490,7 +1490,7 @@ return array (
     'knowledge_center' => 'مركز المعرفة',
     'support_tickets' => 'تذاكر الدعم',
   ),
-  'dashboard_new' => 
+  'dashboard_new' =>
   array (
     'active' => 'نشطة',
     'active_employees' => 'نشطون',
