@@ -3,6 +3,8 @@
 namespace App\Http\Controllers\admin;
 
 use App\Http\Requests\StoreIngazDelegationRequest;
+use App\Enums\ingaz\ContractStatusEnum;
+use App\Models\Contract;
 use App\Models\Country;
 use App\Models\auth\Admin;
 use App\Models\ingaz\JobTitle;
@@ -610,11 +612,28 @@ class IngazDelegationController extends Controller
             ->whereHas('invoice', fn ($q) => $q->whereNull('ingaz_delegation_cost_constraint_id'))
             ->orderByDesc('id')->get();
 
+        $contracts = Contract::query()->with(['user', 'invoice'])->without('info')
+            ->whereIn('type', ['recruitment', 'maid'])
+            ->whereIn('status', [
+                ContractStatusEnum::PendingMaidSelection->value,
+                ContractStatusEnum::New->value,
+                ContractStatusEnum::Msaned->value,
+                ContractStatusEnum::Tafwed->value,
+                ContractStatusEnum::Taffez->value,
+                ContractStatusEnum::Tazker->value,
+                ContractStatusEnum::Sari->value,
+            ])
+            ->whereDoesntHave('travelHistory', fn ($q) => $q->where('status', 'completed'))
+            ->whereHas('invoice', fn ($q) => $q->whereNull('ingaz_delegation_cost_constraint_id'))
+            ->orderByDesc('id')->get();
+
         return view('admin.ingaz_delegations.costs', [
             'delegations' => $delegations,
+            'contracts' => $contracts,
             'accounts' => $service->paymentAccounts(),
             'defaultAmount' => $service->defaultAmount(),
             'selectedIds' => array_map('intval', (array) $request->input('delegation_ids', [])),
+            'selectedContractIds' => array_map('intval', (array) $request->input('contract_ids', [])),
         ]);
     }
 
@@ -626,17 +645,23 @@ class IngazDelegationController extends Controller
             'payment_source_type' => ['required', 'in:bank,custody,ingaz'],
             'payment_account_id' => ['required', 'integer'],
             'confirmed' => ['accepted'],
-            'delegation_ids' => ['required', 'array', 'min:1', 'max:200'],
+            'delegation_ids' => ['nullable', 'array', 'max:200'],
             'delegation_ids.*' => ['required', 'integer', 'distinct'],
-            'amounts' => ['required', 'array'],
+            'contract_ids' => ['nullable', 'array', 'max:200'],
+            'contract_ids.*' => ['required', 'integer', 'distinct'],
+            'amounts' => ['nullable', 'array'],
+            'contract_amounts' => ['nullable', 'array'],
         ]);
-        foreach ($data['delegation_ids'] as $id) {
+        foreach ($data['delegation_ids'] ?? [] as $id) {
             $this->assertCanAccessBranchModel(IngazDelegation::findOrFail($id));
+        }
+        foreach ($data['contract_ids'] ?? [] as $id) {
+            $this->assertCanAccessBranchModel(Contract::query()->findOrFail($id));
         }
         $count = $service->post($data);
 
         return redirect()->route('delegation-costs.create')
-            ->with('success', "تم تأكيد تكلفة {$count} تفويض وإنشاء القيود المرتبطة بها.");
+            ->with('success', "تم تأكيد تكلفة {$count} تفويض/عقد استقدام وإنشاء القيود المرتبطة بها.");
     }
 
     public function show(IngazDelegation $ingazDelegation): View

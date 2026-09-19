@@ -3,7 +3,7 @@
 @section('content')
 <div class="page-body"><div class="container-fluid">
     <h3>تسجيل تكلفة التفويض</h3>
-    <p class="text-muted">اختر تفويضًا أو أكثر وأدخل التكلفة الفعلية لكل تفويض. عند التأكيد يُنشأ قيد لكل فاتورة: مدين تكلفة التفويض، ودائن حساب الدفع المختار.</p>
+    <p class="text-muted">اختر تفويض إنجاز أو عقد استقدام أو أكثر وأدخل التكلفة الفعلية لكل عنصر. عند التأكيد يُنشأ قيد لكل فاتورة: مدين تكلفة التفويض، ودائن حساب الدفع المختار.</p>
     @if (session('success'))
         <div class="alert alert-success" role="status">{{ session('success') }}</div>
     @endif
@@ -30,30 +30,39 @@
                 @endforeach
             </select></div>
         </div>
-        <h5 class="mt-3">اختيار التفويضات وتعديل التكلفة</h5>
-        <p class="text-muted">يمكن تعديل مبلغ كل تفويض مباشرة؛ تعديل المبلغ يحدد التفويض تلقائيًا للحفظ.</p>
+        <h5 class="mt-3">اختيار التفويضات وعقود الاستقدام وتعديل التكلفة</h5>
+        <p class="text-muted">تعرض القائمة العناصر التي لها فاتورة ولم تُسجل عليها تكلفة التفويض. تعديل المبلغ يحدد العنصر تلقائيًا للحفظ.</p>
         <div class="row g-3 mb-3">
-            <div class="col-md-5"><label for="cost-search" class="form-label">بحث</label><input type="search" class="form-control" id="cost-search" placeholder="رقم التفويض أو إنجاز أو مساند أو العميل"></div>
-            <div class="col-md-3"><label for="cost-sort" class="form-label">ترتيب التفويضات</label><select id="cost-sort" class="form-select"><option value="newest">الأحدث أولًا</option><option value="oldest">الأقدم أولًا</option><option value="client">اسم العميل</option><option value="amount">التكلفة من الأقل للأعلى</option></select></div>
-            <div class="col-md-4"><label for="bulk-cost" class="form-label">مبلغ موحد للتفويضات المحددة</label><div class="input-group"><input id="bulk-cost" class="form-control" type="number" min="0.01" max="999999999.99" step="0.01" placeholder="المبلغ بالريال"><button type="button" id="apply-bulk-cost" class="btn btn-outline-primary">تطبيق</button></div></div>
+            <div class="col-md-5"><label for="cost-search" class="form-label">بحث</label><input type="search" class="form-control" id="cost-search" placeholder="نوع العنصر أو رقمه أو مساند أو العميل"></div>
+            <div class="col-md-3"><label for="cost-sort" class="form-label">ترتيب العناصر</label><select id="cost-sort" class="form-select"><option value="newest">الأحدث أولًا</option><option value="oldest">الأقدم أولًا</option><option value="client">اسم العميل</option><option value="amount">التكلفة من الأقل للأعلى</option></select></div>
+            <div class="col-md-4"><label for="bulk-cost" class="form-label">مبلغ موحد للعناصر المحددة</label><div class="input-group"><input id="bulk-cost" class="form-control" type="number" min="0.01" max="999999999.99" step="0.01" placeholder="المبلغ بالريال"><button type="button" id="apply-bulk-cost" class="btn btn-outline-primary">تطبيق</button></div></div>
         </div>
         <div class="d-flex gap-2 mb-3"><button type="button" id="select-visible-costs" class="btn btn-sm btn-outline-primary">تحديد نتائج البحث</button><button type="button" id="clear-costs" class="btn btn-sm btn-outline-secondary">إلغاء كل التحديد</button></div>
         <div id="cost-form-warning" class="alert alert-warning" role="alert" hidden></div>
-        <div class="table-responsive"><table class="table"><thead><tr><th>اختيار</th><th>التفويض</th><th>مساند</th><th>العميل</th><th>تكلفة التفويض</th></tr></thead><tbody id="cost-rows">
-            @forelse ($delegations as $delegation)
+        <div class="table-responsive"><table class="table"><thead><tr><th>اختيار</th><th>المصدر</th><th>مساند</th><th>العميل</th><th>تكلفة التفويض</th></tr></thead><tbody id="cost-rows">
+            @foreach ($delegations as $delegation)
                 <tr class="cost-row" data-id="{{ $delegation->id }}" data-client="{{ $delegation->user?->name }}">
                     <td><input type="checkbox" class="cost-check" name="delegation_ids[]" value="{{ $delegation->id }}" @if(in_array($delegation->id, old('delegation_ids', $selectedIds))) checked @endif></td>
-                    <td><a href="{{ route('ingaz-delegations.show', $delegation) }}">#{{ $delegation->id }}</a> / {{ $delegation->ingaz_number }}</td>
+                    <td><span class="badge bg-primary mb-1">تفويض إنجاز</span><br><a href="{{ route('ingaz-delegations.show', $delegation) }}">#{{ $delegation->id }}</a> / {{ $delegation->ingaz_number }}</td>
                     <td>{{ $delegation->msaned_contract_number }}</td><td>{{ $delegation->user?->name }}</td>
                     <td><input class="form-control cost-amount" type="number" min="0.01" max="999999999.99" step="0.01" data-name="amounts[{{ $delegation->id }}]" value="{{ old('amounts.'.$delegation->id, $defaultAmount) }}"></td>
                 </tr>
-            @empty
-                <tr><td colspan="5">لا توجد تفويضات بفواتير تنتظر تسجيل التكلفة.</td></tr>
-            @endforelse
+            @endforeach
+            @foreach ($contracts as $contract)
+                <tr class="cost-row" data-id="{{ $contract->id }}" data-client="{{ $contract->user?->name }}">
+                    <td><input type="checkbox" class="cost-check" name="contract_ids[]" value="{{ $contract->id }}" @if(in_array($contract->id, old('contract_ids', $selectedContractIds))) checked @endif></td>
+                    <td><span class="badge bg-info text-dark mb-1">عقد استقدام</span><br><a href="{{ route('RecruitmentContract.show', $contract) }}">#{{ $contract->id }}</a></td>
+                    <td>{{ $contract->msaned_number }}</td><td>{{ $contract->user?->name }}</td>
+                    <td><input class="form-control cost-amount" type="number" min="0.01" max="999999999.99" step="0.01" data-name="contract_amounts[{{ $contract->id }}]" value="{{ old('contract_amounts.'.$contract->id, $defaultAmount) }}"></td>
+                </tr>
+            @endforeach
+            @if ($delegations->isEmpty() && $contracts->isEmpty())
+                <tr><td colspan="5">لا توجد تفويضات أو عقود استقدام بفواتير تنتظر تسجيل التكلفة.</td></tr>
+            @endif
         </tbody></table></div>
-        <div class="bg-light rounded p-3 mt-3"><p>عدد التفويضات: <strong id="cost-count">0</strong> — إجمالي التكلفة: <strong id="cost-total">0.00</strong> ريال</p>
-        <label class="mb-3"><input type="checkbox" id="cost-confirmed" name="confirmed" value="1" required> أؤكد صحة التكلفة ومصدر الدفع ومرجع العملية للتفويضات المختارة.</label>
-        <div><button id="save-costs" class="btn btn-primary" type="submit" @if($delegations->isEmpty()) disabled @endif>تأكيد وحفظ تكلفة التفويض</button> <a class="btn btn-light" href="{{ route('ingaz-delegations.index') }}">رجوع</a></div>
+        <div class="bg-light rounded p-3 mt-3"><p>عدد العناصر: <strong id="cost-count">0</strong> — إجمالي التكلفة: <strong id="cost-total">0.00</strong> ريال</p>
+        <label class="mb-3"><input type="checkbox" id="cost-confirmed" name="confirmed" value="1" required> أؤكد صحة التكلفة ومصدر الدفع ومرجع العملية للعناصر المختارة.</label>
+        <div><button id="save-costs" class="btn btn-primary" type="submit" @if($delegations->isEmpty() && $contracts->isEmpty()) disabled @endif>تأكيد وحفظ تكلفة التفويض</button> <a class="btn btn-light" href="{{ route('ingaz-delegations.index') }}">رجوع</a></div>
         </div>
     </form>
 </div></div>
@@ -85,7 +94,7 @@ document.addEventListener('DOMContentLoaded', function () {
         document.getElementById('cost-count').textContent = count;
         document.getElementById('cost-total').textContent = (cents / 100).toFixed(2);
         document.getElementById('save-costs').disabled = count === 0 || count > 200;
-        warn(count > 200 ? 'الحد الأقصى 200 تفويض في العملية الواحدة.' : '');
+        warn(count > 200 ? 'الحد الأقصى 200 عنصر في العملية الواحدة.' : '');
     }
     function changed() { confirmed.checked = false; updateTotal(); }
     source.addEventListener('change', updateAccounts);
@@ -126,7 +135,7 @@ document.addEventListener('DOMContentLoaded', function () {
     });
     form.addEventListener('submit', function (event) {
         const count = rows.filter(row => row.querySelector('.cost-check').checked).length;
-        if (!count || count > 200) { event.preventDefault(); warn('اختر من تفويض واحد إلى 200 تفويض.'); return; }
+        if (!count || count > 200) { event.preventDefault(); warn('اختر من عنصر واحد إلى 200 عنصر.'); return; }
         document.getElementById('save-costs').disabled = true;
         document.getElementById('save-costs').textContent = 'جارٍ تسجيل التكلفة…';
     });

@@ -695,6 +695,17 @@
                     <i class="fas fa-money-bill-transfer"></i>
                     تحويل مساند
                 </a>
+                @if (AdminGuardHasAnyPerm([
+                    \App\PermKeys::MUSANED_TRANSFERS_CREATE,
+                    \App\PermKeys::MUSANED_TRANSFERS_CONTROL,
+                    \App\PermKeys::REC_CONTRACTS_CREATE,
+                    \App\PermKeys::REC_CONTRACTS_MANAGE,
+                ]))
+                    <a href="{{ route('delegation-costs.create') }}" class="btn btn-outline-primary">
+                        <i class="fas fa-money-check-alt"></i>
+                        تسجيل تكلفة التفويض
+                    </a>
+                @endif
                 @if (AdminGuardHasAnyPerm([\App\NewPermKeys::REC_CONTRACTS_CREATE, \App\NewPermKeys::REC_CONTRACTS_MANAGE]))
                     <a href="{{ route('RecruitmentContract.create') }}" class="btn btn-primary">
                         <i class="fas fa-plus"></i>

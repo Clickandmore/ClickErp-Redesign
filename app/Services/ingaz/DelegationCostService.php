@@ -2,6 +2,8 @@
 
 namespace App\Services\ingaz;
 
+use App\Enums\ingaz\ContractStatusEnum;
+use App\Models\Contract;
 use App\Models\IngazDelegation;
 use App\Models\ingaz\Invoice;
 use App\Support\AutomaticJournalEntries;
@@ -85,16 +87,30 @@ class DelegationCostService
             'date' => 'required|date_format:Y-m-d', 'reference' => 'required|string|max:100',
             'confirmed' => 'accepted', 'payment_source_type' => 'required|in:bank,custody,ingaz',
             'payment_account_id' => 'required|integer',
-            'delegation_ids' => 'required|array|min:1|max:200', 'delegation_ids.*' => 'required|integer|distinct',
-            'amounts' => 'required|array',
+            'delegation_ids' => 'nullable|array|max:200', 'delegation_ids.*' => 'required|integer|distinct',
+            'contract_ids' => 'nullable|array|max:200', 'contract_ids.*' => 'required|integer|distinct',
+            'amounts' => 'nullable|array', 'contract_amounts' => 'nullable|array',
         ])->validate();
-        foreach ($data['delegation_ids'] as $id) {
-            Validator::make(['amounts' => $data['amounts']], [
+
+        $delegationIds = array_values($data['delegation_ids'] ?? []);
+        $contractIds = array_values($data['contract_ids'] ?? []);
+        $itemCount = count($delegationIds) + count($contractIds);
+        if ($itemCount < 1 || $itemCount > 200) {
+            $this->fail('اختر من تفويض أو عقد استقدام واحد إلى 200 عنصر.');
+        }
+
+        foreach ($delegationIds as $id) {
+            Validator::make(['amounts' => $data['amounts'] ?? []], [
+                "amounts.$id" => ['required', 'numeric', 'min:0.01', 'max:999999999.99', 'regex:/^\d+(\.\d{1,2})?$/'],
+            ])->validate();
+        }
+        foreach ($contractIds as $id) {
+            Validator::make(['amounts' => $data['contract_amounts'] ?? []], [
                 "amounts.$id" => ['required', 'numeric', 'min:0.01', 'max:999999999.99', 'regex:/^\d+(\.\d{1,2})?$/'],
             ])->validate();
         }
 
-        return DB::transaction(function () use ($data) {
+        return DB::transaction(function () use ($data, $delegationIds, $contractIds, $itemCount) {
             if (!AutomaticJournalEntries::enabled()) {
                 $this->fail('القيود التلقائية غير مفعلة؛ فعّلها قبل تأكيد تكلفة التفويض.');
             }
@@ -108,8 +124,8 @@ class DelegationCostService
             if (!$year) {
                 $this->fail('لا توجد سنة مالية نشطة لتاريخ التكلفة.');
             }
-            $delegations = IngazDelegation::whereIn('id', $data['delegation_ids'])->orderBy('id')->lockForUpdate()->get();
-            if ($delegations->count() !== count($data['delegation_ids'])) {
+            $delegations = IngazDelegation::whereIn('id', $delegationIds)->orderBy('id')->lockForUpdate()->get();
+            if ($delegations->count() !== count($delegationIds)) {
                 $this->fail('بعض التفويضات غير متاحة لهذا الفرع.');
             }
             foreach ($delegations as $delegation) {
@@ -140,7 +156,52 @@ class DelegationCostService
                     'summary' => "تم تأكيد تكلفة التفويض بمبلغ {$amount} من {$source}، مرجع {$data['reference']}، قيد #{$journal->id}.",
                 ]);
             }
-            return $delegations->count();
+
+            $currentStatuses = [
+                ContractStatusEnum::PendingMaidSelection->value,
+                ContractStatusEnum::New->value,
+                ContractStatusEnum::Msaned->value,
+                ContractStatusEnum::Tafwed->value,
+                ContractStatusEnum::Taffez->value,
+                ContractStatusEnum::Tazker->value,
+                ContractStatusEnum::Sari->value,
+            ];
+            $contracts = Contract::query()->without('info')
+                ->whereIn('id', $contractIds)
+                ->whereIn('type', ['recruitment', 'maid'])
+                ->whereIn('status', $currentStatuses)
+                ->whereDoesntHave('travelHistory', fn ($q) => $q->where('status', 'completed'))
+                ->orderBy('id')->lockForUpdate()->get();
+            if ($contracts->count() !== count($contractIds)) {
+                $this->fail('بعض عقود الاستقدام غير سارية أو غير متاحة لهذا الفرع.');
+            }
+            foreach ($contracts as $contract) {
+                $invoice = Invoice::where('contract_id', $contract->id)->lockForUpdate()->first();
+                $prefix = "قيد تكلفة تفويض عقد الاستقدام #{$contract->id} / الفاتورة #{$invoice?->id} /";
+                if (!$invoice) {
+                    $this->fail("عقد الاستقدام #{$contract->id} ليست له فاتورة متاحة.");
+                }
+                if ($invoice->ingaz_delegation_cost_constraint_id || Constraint::where('statement', 'like', $prefix.'%')->exists()) {
+                    $this->fail("تكلفة التفويض لعقد الاستقدام #{$contract->id} مسجلة مسبقًا؛ راجع قيد التكلفة الموجود.");
+                }
+                $amount = round((float) $data['contract_amounts'][$contract->id], 2);
+                $source = ['bank' => 'تحويل بنكي', 'custody' => 'عهدة موظف', 'ingaz' => 'حساب إنجاز'][$data['payment_source_type']];
+                $statement = $prefix . " {$source} / مرجع {$data['reference']}";
+                $payload = [
+                    'date' => $data['date'], 'branch_id' => $contract->branch_id,
+                    'statement' => $statement, 'value' => $amount,
+                    'account_id' => [$expense->id, $payment->id],
+                    'account_type' => ['debtor', 'creditor'],
+                    'debtor_value' => [$amount, 0], 'creditor_value' => [0, $amount],
+                    'statement_account' => [$statement, $statement],
+                    'cost_center_required' => 'off', 'cost_center_id' => [null, null],
+                ];
+                $journal = $this->journals->storeConstraint($payload, $year);
+                $this->journals->storeConstraintDetails($payload['account_id'], $journal->id, $payload);
+                $invoice->update(['ingaz_delegation_cost_constraint_id' => $journal->id]);
+            }
+
+            return $itemCount;
         });
     }
 
