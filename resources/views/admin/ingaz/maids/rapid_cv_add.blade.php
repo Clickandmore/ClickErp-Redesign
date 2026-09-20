@@ -159,6 +159,15 @@
                         </div>
                     </div>
 
+                    <div class="col-12">
+                        <input type="hidden" name="is_show" value="0">
+                        <div class="form-check form-switch">
+                            <input type="checkbox" class="form-check-input" name="is_show" id="rapid_is_show"
+                                value="1" {{ old('is_show', $defaultIsShow) ? 'checked' : '' }}>
+                            <label class="form-check-label" for="rapid_is_show">إظهار السيرة</label>
+                        </div>
+                    </div>
+
                     <div class="col-12 d-flex flex-wrap gap-2">
                         <button class="btn btn-primary" type="submit">
                             <i class="fas fa-save me-1"></i>

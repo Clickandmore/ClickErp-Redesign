@@ -2551,7 +2551,7 @@
                     'undefined' ? (contract.overdue_days + ' يوم') : '-');
                 $('#financialDailyRate').text(formatCurrency(contract.daily_rate || 0) + ' ريال');
                 $('#financialUsedCost').text(formatCurrency(contract.used_cost || 0) + ' ريال');
-                $('#discountedClosureDailyRate').val(formatCurrency(contract.adjusted_daily_rate || contract.daily_rate || 0) + ' ريال');
+                $('#discountedClosureDailyRate').val(formatCurrency(contract.adjusted_daily_rate ?? contract.daily_rate ?? 0) + ' ريال');
                 $('#financialSuggestedRefund').text(formatCurrency(contract.calculated_credit_note_value || 0) +
                 ' ريال');
                 $('#financialCompanyDue').text(formatCurrency(contract.calculated_debit_note_value || 0) +

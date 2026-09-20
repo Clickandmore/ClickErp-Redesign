@@ -4310,16 +4310,6 @@ class RecruitmentContractController extends Controller
 
         $this->applyContractFilters($query, $request);
 
-        if ($request->filled('marketer_id')) {
-            $query->where(function ($marketerQuery) use ($request) {
-                $marketerQuery
-                    ->where('marketer_id', $request->marketer_id)
-                    ->orWhereHas('order.details', function ($orderDetailsQuery) use ($request) {
-                        $orderDetailsQuery->where('admin_id', $request->marketer_id);
-                    });
-            });
-        }
-
         return $query;
     }
 
@@ -5667,8 +5657,8 @@ class RecruitmentContractController extends Controller
                 ->whereIn('type', ['recruitment', 'maid']);
             $this->excludeShelterContracts($baseQuery);
 
-            // تطبيق نفس فلاتر البحث (بدون الحالة وحالة الضمان) للحصول على إحصائيات قابلة للتنقل
-            $this->applyContractFilters($baseQuery, $request, true, true);
+            // إحصائيات العقود المطابقة لجميع فلاتر الجدول الحالية.
+            $this->applyContractFilters($baseQuery, $request);
 
             $today = \Carbon\Carbon::now()->toDateString();
             $currentStatuses = $this->getCurrentContractStatuses();
@@ -5798,6 +5788,15 @@ class RecruitmentContractController extends Controller
     private function applyContractFilters($query, Request $request, bool $ignoreStatus = false, bool $ignoreWarranty = false): void
     {
         $this->applyRequestBranchFilter($query, $request, 'contracts');
+
+        if ($request->filled('marketer_id')) {
+            $query->where(function ($q) use ($request) {
+                $q->where('marketer_id', $request->marketer_id)
+                    ->orWhereHas('order.details', function ($orderQuery) use ($request) {
+                        $orderQuery->where('admin_id', $request->marketer_id);
+                    });
+            });
+        }
 
         // فلتر الحالة - استخدام query parameter فقط
         if (!$ignoreStatus) {

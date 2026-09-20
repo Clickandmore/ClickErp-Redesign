@@ -220,6 +220,34 @@ class RentalContractClosureSummaryTest extends TestCase
         $this->assertSame(3130.00, $summary['extension_value']);
     }
 
+    /** @dataProvider fullDailyDiscountProvider */
+    public function test_a_full_daily_discount_clears_an_unpaid_contract(string $discountType, float $discountValue, string $closureDate): void
+    {
+        $summary = $this->buildSummary(
+            closureDate: $closureDate,
+            startDate: '2026-08-01',
+            endDate: '2026-08-30',
+            contractValue: 1500.00,
+            dailyDiscountType: $discountType,
+            dailyDiscountValue: $discountValue
+        );
+
+        $this->assertSame(0.0, $summary['adjusted_daily_rate']);
+        $this->assertSame(0.0, $summary['earned_amount']);
+        $this->assertSame(0.0, $summary['cash_to_collect_value']);
+        $this->assertSame(0.0, $summary['cash_refund_value']);
+        $this->assertSame(1500.00, $summary['calculated_credit_note_value']);
+    }
+
+    public function fullDailyDiscountProvider(): array
+    {
+        return [
+            'percentage, early closure' => ['percentage', 100.0, '2026-08-10'],
+            'percentage, overdue closure' => ['percentage', 100.0, '2026-09-05'],
+            'fixed, early closure' => ['fixed', 50.0, '2026-08-10'],
+        ];
+    }
+
     private function buildSummary(
         float $paidAmount = 0.0,
         string $paymentStatus = 'pending',
@@ -228,7 +256,9 @@ class RentalContractClosureSummaryTest extends TestCase
         string $endDate = '2026-10-17',
         string $startDate = '2026-07-19',
         float $contractValue = 1565.00,
-        array $adjustments = []
+        array $adjustments = [],
+        ?string $dailyDiscountType = null,
+        float $dailyDiscountValue = 0.0
     ): array {
         $package = new Package([
             'days_count' => 30,
@@ -270,7 +300,9 @@ class RentalContractClosureSummaryTest extends TestCase
         return $method->invoke(
             app(RentContractController::class),
             $contract,
-            Carbon::parse($closureDate)
+            Carbon::parse($closureDate),
+            $dailyDiscountType,
+            $dailyDiscountValue
         );
     }
 }
