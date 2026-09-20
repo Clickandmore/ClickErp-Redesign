@@ -68,6 +68,93 @@ class RecruitmentContractStatisticsBranchScopeTest extends TestCase
     }
 
     /** @test */
+    public function statistics_follow_status_and_reset_to_all_contracts(): void
+    {
+        $own = $this->makeBranch();
+        $viewer = $this->branchAdmin($own);
+        $this->grantViewPermission($viewer);
+        $this->makeContract($own->id, 'new');
+        $this->makeContract($own->id, 'back');
+
+        $this->actingAsAdmin($viewer)->getJson(route('RecruitmentContract.statistics', ['status' => 'new']))
+            ->assertOk()
+            ->assertJsonPath('data.total', 1)
+            ->assertJsonPath('data.stage_new', 1)
+            ->assertJsonPath('data.stage_back', 0);
+
+        $this->getJson(route('RecruitmentContract.statistics', ['status' => 'arrival']))
+            ->assertOk()
+            ->assertJsonPath('data.total', 0);
+
+        $this->getJson(route('RecruitmentContract.statistics'))
+            ->assertOk()
+            ->assertJsonPath('data.total', 2);
+    }
+
+    /** @test */
+    public function statistics_follow_warranty_and_marketer_filters_together(): void
+    {
+        $own = $this->makeBranch();
+        $viewer = $this->branchAdmin($own);
+        $otherMarketer = $this->branchAdmin($own);
+        $this->grantViewPermission($viewer);
+
+        foreach ([
+            [$viewer->id, now()->addDays(10)->toDateString()],
+            [$viewer->id, now()->subDays(10)->toDateString()],
+            [$otherMarketer->id, now()->addDays(10)->toDateString()],
+        ] as [$marketerId, $warrantyEnd]) {
+            $id = $this->makeContract($own->id, 'arrival');
+            DB::table('contracts')->where('id', $id)->update([
+                'marketer_id' => $marketerId,
+                'warranty_end_date' => $warrantyEnd,
+            ]);
+        }
+
+        $this->actingAsAdmin($viewer)->getJson(route('RecruitmentContract.statistics', [
+            'status' => 'arrival',
+            'warranty_status' => 'active',
+            'marketer_id' => $viewer->id,
+        ]))
+            ->assertOk()
+            ->assertJsonPath('data.total', 1)
+            ->assertJsonPath('data.stage_arrival', 1)
+            ->assertJsonPath('data.warranty_active', 1);
+    }
+
+    /** @test */
+    public function sidebar_current_count_matches_statistics_for_legacy_status_and_completed_arrivals(): void
+    {
+        $own = $this->makeBranch();
+        $other = $this->makeBranch();
+        $viewer = $this->branchAdmin($own);
+        $this->grantViewPermission($viewer);
+        $this->makeContract($own->id, 'new');
+        $this->makeContract($own->id, 'sari');
+        $this->makeContract($other->id, 'sari');
+        $arrivedId = $this->makeContract($own->id, 'tazker');
+        DB::table('travel_histories')->insert([
+            'order_id' => $arrivedId,
+            'branch_id' => $own->id,
+            'user_id' => 1,
+            'maid_id' => 1,
+            'travel_type' => 'arrival',
+            'travel_with' => 'none',
+            'status' => 'completed',
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $this->actingAsAdmin($viewer)->getJson(route('RecruitmentContract.statistics'))
+            ->assertOk()
+            ->assertJsonPath('data.current_total', 2);
+
+        $counts = app(\App\Services\RecruitmentContractSidebarCountService::class)
+            ->counts(request());
+        $this->assertSame(2, $counts['are_valid']);
+    }
+
+    /** @test */
     public function sidebar_contract_badges_only_count_the_logged_in_branch(): void
     {
         $this->makeBranch(['is_main' => true]);

@@ -264,6 +264,10 @@ class DashboardController extends Controller
 
     public function storeMaid(Request $request, MaidAction $maidAction)
     {
+        $request->merge([
+            'video_link' => \App\Support\MaidVideoLink::normalize($request->input('video_link')),
+        ]);
+
         $request->validate([
             'name:en' => 'required|string|max:255',
             'passport_num' => 'required|string|max:255|unique:maids,passport_num',
@@ -287,7 +291,7 @@ class DashboardController extends Controller
             'experience_years' => 'nullable',
             'cooking_experience' => 'nullable|required_if:experience_status,has_experience|in:arabic_cooking,regular_cooking,willing_to_learn,general_cooking,no_cooking_experience',
             'video' => 'nullable|file|mimes:mp4,mov,avi,wmv,webm,mkv,m4v|max:102400',
-            'video_link' => 'nullable|string|max:2000',
+            'video_link' => 'nullable|url|max:2000',
             'additional_notes' => 'nullable|string',
             'phone' => 'nullable|string|max:50',
             'relative_name' => 'nullable|string|max:255',

@@ -30,6 +30,7 @@ class MaidRequest extends MainRequest
     public function rules()
     {
         return [
+            'is_show' => 'sometimes|boolean',
             'name:en' => 'required|string|max:255',
             'gender' => 'nullable|in:male,female',
             'cv_file' => 'nullable',
@@ -153,7 +154,7 @@ class MaidRequest extends MainRequest
     protected function prepareForValidation()
     {
         $data = [
-            'video_link' => $this->normalizeVideoLink($this->input('video_link')),
+            'video_link' => \App\Support\MaidVideoLink::normalize($this->input('video_link')),
             'cooking_experience' => $this->input('experience_status') === 'has_experience'
                 ? $this->input('cooking_experience')
                 : null,
@@ -183,37 +184,6 @@ class MaidRequest extends MainRequest
         }
 
         $this->merge($data);
-    }
-
-    private function normalizeVideoLink($value): ?string
-    {
-        if (!is_string($value)) {
-            return null;
-        }
-
-        $value = trim($value);
-        if ($value === '') {
-            return null;
-        }
-
-        if (preg_match('/<iframe\b[^>]*\bsrc\s*=\s*(["\']?)([^"\'\s>]+)\1/iu', $value, $matches)) {
-            $value = $matches[2];
-        }
-
-        $value = html_entity_decode(trim($value), ENT_QUOTES, 'UTF-8');
-
-        if (preg_match('~^https?://(?:drive|docs)\.google\.com/file/d/([^/?#]+)~i', $value, $matches)) {
-            return 'https://drive.google.com/file/d/' . $matches[1] . '/preview';
-        }
-
-        if (preg_match('~^https?://drive\.google\.com/(?:open|uc)~i', $value)) {
-            parse_str((string) parse_url($value, PHP_URL_QUERY), $query);
-            if (filled($query['id'] ?? null)) {
-                return 'https://drive.google.com/file/d/' . $query['id'] . '/preview';
-            }
-        }
-
-        return $value ?: null;
     }
 
     public function messages()

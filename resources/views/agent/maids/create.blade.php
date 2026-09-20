@@ -980,9 +980,12 @@
                             {{ $isAr ? 'رفع فيديو' : 'Upload Video' }}
                             <span class="mc-optional">({{ $isAr ? 'اختياري' : 'optional' }})</span>
                         </label>
-                        <input type="file" name="video" class="form-control"
+                        <input type="file" name="video" id="maid_video" class="form-control"
                             accept="video/mp4,video/quicktime,video/x-msvideo,video/x-ms-wmv,video/webm,video/x-matroska,video/x-m4v">
                         <small class="text-muted">{{ $isAr ? 'يمكن رفع ملف فيديو أو استخدام الرابط، والحد الأقصى 100 ميجابايت.' : 'Upload a video file or use the link; maximum size is 100 MB.' }}</small>
+                        <button type="button" class="btn btn-outline-danger btn-sm mt-2 js-clear-maid-video">
+                            {{ __('ingaz.clear_video_value') }}
+                        </button>
                     </div>
                 </div>
 
@@ -1321,6 +1324,11 @@
             $('.js-video-link-input').on('input change paste', function () { setTimeout(updatePreview, 0); });
             updatePreview();
 
+            $('.js-clear-maid-video').on('click', function () {
+                $('#maid_video').val('');
+                $('.js-video-link-input').val('').trigger('change');
+            });
+
             // ---------- CV extract from PDF (upload-then-read flow) ----------
             // Step 1: clicking the hero button opens the hidden file picker.
             $('#extract_cv_data_btn').on('click', function () {
@@ -1454,6 +1462,13 @@
             }
 
             $('#maidForm').on('submit', function (e) {
+                var videoFile = $('#maid_video')[0].files[0];
+                if (videoFile && videoFile.size > 100 * 1024 * 1024) {
+                    e.preventDefault();
+                    Swal.fire({ icon: 'error', text: @json(__('ingaz.maid_video_too_large')) });
+                    return false;
+                }
+                $('.js-video-link-input').val(extractVideoLink($('.js-video-link-input').val()));
                 var firstInvalid = validateForm();
                 if (firstInvalid) {
                     e.preventDefault();

@@ -672,7 +672,7 @@
                 {{ $shelterContractsMode ? 'عقود الإيواء' : helperTrans('ingaz.All Recruitment contracts') }}
             </h3>
             <div class="contracts-header-actions">
-                <a href="{{ route('RecruitmentContract.index') }}" class="btn btn-outline-dark">
+                <a href="{{ route('RecruitmentContract.index', ['all_contracts' => 1]) }}" class="btn btn-outline-dark">
                     <i class="fas fa-list"></i>
                     كل العقود
                 </a>
@@ -2844,6 +2844,11 @@
                 // الفلاتر المستعادة عند الرجوع من صفحة التفاصيل لها الأولوية
                 if (recruitmentListState && recruitmentListState.restored) {
                     console.log('Skipping localStorage load because list state was restored');
+                    return;
+                }
+
+                // فتح جميع العقود من القائمة يبدأ بدون فلاتر بحث محفوظة.
+                if (new URLSearchParams(window.location.search).get('all_contracts') === '1') {
                     return;
                 }
 

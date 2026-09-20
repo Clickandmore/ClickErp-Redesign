@@ -50,13 +50,22 @@ class AgentMaidSubmissionPersistenceTest extends TestCase
 
     public function test_full_cv_creation_passes_pending_review_metadata_to_persistence(): void
     {
+        $video = \Illuminate\Http\UploadedFile::fake()->create('video.mp4', 1024, 'video/mp4');
+        $storage = Mockery::mock(\App\Services\ManagedFileStorage::class);
+        $storage->shouldReceive('uploadMaidFile')->once()->with($video, Mockery::type('string'))
+            ->andReturn('maids/video.mp4');
+        $this->app->instance(\App\Services\ManagedFileStorage::class, $storage);
         $action = Mockery::mock(MaidAction::class)->makePartial()->shouldAllowMockingProtectedMethods();
+        $folder = new \ReflectionProperty(MaidAction::class, 'fileFolder');
+        $folder->setAccessible(true);
+        $folder->setValue($action, 'images/Maid/');
         $action->shouldReceive('createMaidRecord')->once()->with(Mockery::on(function (array $data) {
             $this->assertSame(Maid::SUBMISSION_PENDING, $data['submission_status'] ?? null);
             $this->assertSame(Maid::SUBMISSION_TYPE_CREATE, $data['submission_type'] ?? null);
             $this->assertSame(0, $data['is_show']);
             $this->assertSame(9, $data['office_id']);
             $this->assertSame('agents/original-cv.pdf', $data['maid_cv_file']);
+            $this->assertSame('maids/video.mp4', $data['video']);
 
             return true;
         }))->andThrow(new \RuntimeException('Persistence boundary reached'));
@@ -72,6 +81,7 @@ class AgentMaidSubmissionPersistenceTest extends TestCase
             'submission_status' => Maid::SUBMISSION_PENDING,
             'submission_type' => Maid::SUBMISSION_TYPE_CREATE,
             'maid_cv_file' => 'agents/original-cv.pdf',
+            'video' => $video,
             'preserve_null_arrival_date' => true,
         ], Request::create('/agent/maids/store', 'POST', ['type_id' => 1]));
     }

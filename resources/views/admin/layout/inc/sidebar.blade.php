@@ -456,6 +456,13 @@
                                         @endif
                                         @if (@AdminGuardHasPerm(\App\NewPermKeys::REC_CONTRACTS_VIEW))
                                             <li>
+                                                <a class="m-link {{ Route::currentRouteName() == 'RecruitmentContract.index' && !request()->filled('status') && !request()->boolean('shelter_contracts') ? 'active' : '' }}"
+                                                    href="{{ route('RecruitmentContract.index', ['all_contracts' => 1]) }}">
+                                                    <i class="fa fa-file-alt"></i>
+                                                    <span class="ms-2">جميع عقود الاستقدام</span>
+                                                </a>
+                                            </li>
+                                            <li>
                                                 <a class="m-link {{ Route::currentRouteName() == 'RecruitmentContract.index' && request()->input('status') == 'current' ? 'active' : '' }}"
                                                     href="{{ route('RecruitmentContract.index', ['status' => 'current']) }}">
                                                     <i class="fa fa-list"></i>
