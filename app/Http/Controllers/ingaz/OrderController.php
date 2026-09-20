@@ -1275,53 +1275,69 @@ class OrderController extends Controller
 
     public function refuseReturn(Request $request, $id)
     {
-        try {
-            $validated = $request->validate([
-                'action' => ['required', Rule::in([OrderEnum::Refused->value, OrderEnum::Return->value])],
-                'reason' => ['nullable', 'string', 'max:500'],
-            ]);
+        $validated = $request->validate([
+            'action' => ['required', Rule::in([OrderEnum::Refused->value, OrderEnum::Return->value])],
+            'reason' => ['nullable', 'string', 'max:500'],
+        ]);
 
-            $order = Order::findOrFail($id);
-            if ($this->isCompletedOrder($order)) {
+        $order = Order::findOrFail($id);
+        $this->assertCanAccessBranchModel($order, 'orders');
+        try {
+            $locked = DB::transaction(function () use (&$order, $validated) {
+                $order = Order::lockForUpdate()->findOrFail($order->id);
+                if ($this->isCompletedOrder($order)) {
+                    return true;
+                }
+
+                $order->status = $validated['action'];
+                $order->status_changed_at = now();
+                $order->refuse_reason = $this->resolveRefuseReason($validated['reason'] ?? null, $validated['action']);
+                $order->save();
+                $this->releaseMaid($order);
+                return false;
+            });
+            if ($locked) {
                 return $this->completedOrderLockedResponse();
             }
+        } catch (\Throwable $e) {
+            report($e);
+            return jsonError(['message' => 'تعذر تحديث حالة الطلب. لم يتم حفظ التغيير، يرجى المحاولة مرة أخرى.']);
+        }
 
-            $order->status = $validated['action'];
-            $order->status_changed_at = now();
-            $order->refuse_reason = $this->resolveRefuseReason($validated['reason'] ?? null, $validated['action']);
-            $order->save();
-
+        // Notification failures must not leave a returned order reserving its maid.
+        // Legacy orders may reference a customer permanently deleted in the past.
+        try {
             // Send SMS
             if ($validated['action'] == "refused") {
                 $body = "عزيزي العميل، تم رفض طلب الاستقدام رقم {$order->order_code}. لمزيد من التفاصيل يرجى التواصل مع خدمة العملاء.";
             } else if ($validated['action'] == "return") {
                 $body = "عزيزي العميل، نود إشعاركم بأنه تم إرجاع طلب الاستقدام رقم {$order->order_code}. يرجى مراجعة الطلب عبر حسابكم.";
             }
-            $userPhone = formatSaudiPhone($order->user->phone);
+            $user = $order->user;
+            $userPhone = $user?->phone ? formatSaudiPhone($user->phone) : null;
             $customerPhone = $order->customer?->formatted_verification_phone;
             $recipients = array_values(array_filter([$userPhone, $customerPhone]));
             $result = !empty($recipients) ? $this->sendSMS($recipients, $body) : null;
 
-            if (isset($result['code']) && $result['code'] == "1") {
-                $this->storeMessage('ارسال رسالة نصية الى العميل', $body, NotificationActionEnum::SMS->value, $order->user->id);
+            if ($user && isset($result['code']) && $result['code'] == "1") {
+                $this->storeMessage('ارسال رسالة نصية الى العميل', $body, NotificationActionEnum::SMS->value, $user->id);
             }
 
 
             // Refuse/Return Notification
-            Notification::create([
-                'title' => __('ingaz.update_order_status'),
-                'description' => __('ingaz.order_status_updated', ['order_id' => $order->id]) . " " . __('ingaz.' . $order->status),
-                'order_id' => $order->id,
-                'user_id' => $order->user_id,
-                'type' => 'order_status',
-            ]);
-
-            $this->releaseMaid($order);
-
-            return jsonSuccess(['success' => true], __('ingaz.status_updated'), 200);
-        } catch (\Exception $e) {
-            return jsonError(['message' => 'An error occurred while updating the order status']);
+            if ($user) {
+                Notification::create([
+                    'title' => __('ingaz.update_order_status'),
+                    'description' => __('ingaz.order_status_updated', ['order_id' => $order->id]) . " " . __('ingaz.' . $order->status),
+                    'order_id' => $order->id,
+                    'user_id' => $order->user_id,
+                    'type' => 'order_status',
+                ]);
+            }
+        } catch (\Throwable $e) {
+            report($e);
         }
+        return jsonSuccess(['success' => true], __('ingaz.status_updated'), 200);
     }
 
     private function isRefusalStatus(string $status): bool
