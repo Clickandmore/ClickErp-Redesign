@@ -102,12 +102,12 @@ class SponsorshipTransfer extends Model
 
     public function oldSponsor()
     {
-        return $this->belongsTo(User::class, 'old_sponsor_id');
+        return $this->belongsTo(User::class, 'old_sponsor_id')->withTrashed();
     }
 
     public function newSponsor()
     {
-        return $this->belongsTo(User::class, 'new_sponsor_id');
+        return $this->belongsTo(User::class, 'new_sponsor_id')->withTrashed();
     }
 
     public function marketer()

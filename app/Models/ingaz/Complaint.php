@@ -72,7 +72,7 @@ class Complaint extends Model
 
     public function user()
     {
-        return $this->belongsTo(User::class, 'user_id');
+        return $this->belongsTo(User::class, 'user_id')->withTrashed();
     }
 
     public function complaintType()
@@ -102,7 +102,7 @@ class Complaint extends Model
 
     public function relatedUser()
     {
-        return $this->belongsTo(User::class, 'related_user_id');
+        return $this->belongsTo(User::class, 'related_user_id')->withTrashed();
     }
 
     public function recruitmentOffice()

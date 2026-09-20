@@ -55,7 +55,7 @@ class ContractReturnRequest extends Model
 
     public function user()
     {
-        return $this->belongsTo(\App\Models\ingaz\User::class);
+        return $this->belongsTo(\App\Models\ingaz\User::class)->withTrashed();
     }
 
     public function processedBy()

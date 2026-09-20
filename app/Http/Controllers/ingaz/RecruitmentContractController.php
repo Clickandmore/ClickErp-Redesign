@@ -664,6 +664,7 @@ class RecruitmentContractController extends Controller
                 'info.shelter.translations', // بيانات الإيواء
                 'contract_status_logs',
                 'latestContractStatusLog', // آخر تحديث للحالة بدون تحميل كامل السجل
+                'latestEscapeReport',
                 'invoice.musanedTransferItem.transfer',
                 'recruitmentRefund',
                 'sponsorshipTransfers.oldSponsor.nationality',
@@ -856,6 +857,9 @@ class RecruitmentContractController extends Controller
                             </div>';
                 })
                 ->editColumn('status', function ($row) {
+                    if ($row->latestEscapeReport) {
+                        return '<span class="badge bg-danger"><i class="fas fa-running me-1"></i>بلاغ هروب</span>';
+                    }
                     $statusText = getContractStatus($row->status);
                     $statusColor = getContractStatusColor($row->status);
                     $statusDisplay = '<span class="badge bg-' . $statusColor . '">' . $statusText . '</span>';
@@ -1631,6 +1635,13 @@ class RecruitmentContractController extends Controller
                                         <i class="fas fa-cogs me-1"></i> الإجراءات
                                     </button>
                                     <ul class="dropdown-menu dropdown-menu-end shadow-lg">';
+
+                    if ($row->status === 'completed') {
+                        $escapePermission = $row->latestEscapeReport ? PermKeys::REC_CONTRACTS_ESCAPE_REPORTS_VIEW : PermKeys::REC_CONTRACTS_ESCAPE_REPORT_CREATE;
+                        if (@AdminGuardHasPerm($escapePermission)) {
+                            $actions .= '<li><a class="dropdown-item text-danger" href="' . e(route('RecruitmentContract.escapeReports.show', $row->id)) . '"><i class="fas fa-running"></i> ' . ($row->latestEscapeReport ? 'إدارة بلاغ الهروب' : 'إضافة بلاغ هروب') . '</a></li>';
+                        }
+                    }
 
                     // تفاصيل العقد
                     $actions .= '<li><a class="dropdown-item" href="' . route('contracts.details', $row->id) . '">

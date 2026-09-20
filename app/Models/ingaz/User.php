@@ -26,7 +26,7 @@ use Nami\Finance\Models\ClientCategory;
 
 class User extends Authenticatable implements JWTSubject
 {
-    use HasFactory, Notifiable, LogsActivity, HasRoles;
+    use HasFactory, Notifiable, LogsActivity, HasRoles, \Illuminate\Database\Eloquent\SoftDeletes;
 
     protected $table = 'users';
     protected $guarded = [];
@@ -158,6 +158,9 @@ class User extends Authenticatable implements JWTSubject
 
     protected static function booted(): void
     {
+        static::deleting(function (User $user) {
+            app(\App\Services\ClientDeletionService::class)->assertDeletable($user, $user->isForceDeleting());
+        });
         static::creating(function (User $user) {
             if (!$user->branchesFeatureAvailable() || !empty($user->branch_id)) {
                 return;

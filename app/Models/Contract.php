@@ -77,7 +77,7 @@ class Contract extends Model
     }
     public function user()
     {
-        return $this->belongsTo(User::class, 'user_id');
+        return $this->belongsTo(User::class, 'user_id')->withTrashed();
     }
 
     public function maid()
@@ -113,6 +113,16 @@ class Contract extends Model
     public function info()
     {
         return $this->hasOne(\App\Models\ContractInfo::class, 'contract_id');
+    }
+
+    public function escapeReports()
+    {
+        return $this->hasMany(ContractEscapeReport::class);
+    }
+
+    public function latestEscapeReport()
+    {
+        return $this->hasOne(ContractEscapeReport::class)->latestOfMany();
     }
 
     public function get_info()
@@ -555,7 +565,8 @@ class Contract extends Model
 
     public function hasEscapeReport(): bool
     {
-        return $this->info?->outside_shelter_reason === 'escape_report';
+        return $this->info?->outside_shelter_reason === 'escape_report'
+            || $this->escapeReports()->exists();
     }
 
     public function getActivitylogOptions(): LogOptions

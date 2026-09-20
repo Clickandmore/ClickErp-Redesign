@@ -125,6 +125,24 @@ class UserController extends Controller
 
             $this->applyBranchScope($units);
 
+            // Check all links, including archived records and links in other branches.
+            // Correlated subqueries avoid one extra lookup per client row.
+            foreach ([
+                'orders' => ['user_id'],
+                'contracts' => ['user_id'],
+                'rental_contracts' => ['user_id'],
+                'sponsorship_transfers' => ['old_sponsor_id', 'new_sponsor_id'],
+                'transfer_service_contracts' => ['old_sponsor_id', 'new_sponsor_id'],
+                'known_service_requests' => ['user_id'],
+            ] as $table => $columns) {
+                $units->addSelect(['deletion_link_' . $table => DB::table($table)->select('id')
+                    ->where(function ($query) use ($columns, $table) {
+                        foreach ($columns as $column) {
+                            $query->orWhereColumn($table . '.' . $column, 'users.id');
+                        }
+                    })->limit(1)]);
+            }
+
             if ($request->filled('status')) {
                 $status = $request->get('status');
                 if ($status === 'active') {
@@ -467,7 +485,10 @@ class UserController extends Controller
                         </button></li>';
                     }
 
-                    if (@AdminGuardHasPerm(\App\PermKeys::CLIENTS_DELETE)) {
+                    $hasDeletionLinks = $row->deletion_link_orders || $row->deletion_link_contracts
+                        || $row->deletion_link_rental_contracts || $row->deletion_link_sponsorship_transfers
+                        || $row->deletion_link_transfer_service_contracts || $row->deletion_link_known_service_requests;
+                    if (@AdminGuardHasPerm(\App\PermKeys::CLIENTS_DELETE) && !$hasDeletionLinks) {
                         if ($menuItems !== '' && !$hasManagementDivider) {
                             $menuItems .= '<li><hr class="dropdown-divider"></li>';
                             $hasManagementDivider = true;
@@ -596,13 +617,13 @@ class UserController extends Controller
 
         $rules = [
             'name' => 'required|string|max:255',
-            'phone' => ['required', 'string', 'max:20', 'regex:/^[0-9+()\s.\-]+$/'],
-            'email' => 'nullable|email|max:255|unique:users,email',
+            'phone' => ['required', 'string', 'max:20', 'regex:/^[0-9+()\s.\-]+$/', $this->duplicateClientRule('phone', 'رقم الجوال')],
+            'email' => ['nullable', 'email', 'max:255', $this->duplicateClientRule('email', 'البريد الإلكتروني')],
             'client_category_id' => 'nullable|exists:fn_client_categories,id',
             'client_type' => 'required|string|in:person,company',
             'nationality_id' => 'nullable|exists:countries,id',
-            'national_num' => 'nullable|required_if:client_type,person|string|max:50|unique:users,national_num',
-            'tax_number' => 'nullable|required_if:client_type,company|string|max:50|unique:users,tax_number',
+            'national_num' => ['nullable', 'required_if:client_type,person', 'string', 'max:50', $this->duplicateClientRule('national_num', 'رقم الهوية أو الإقامة')],
+            'tax_number' => ['nullable', 'required_if:client_type,company', 'string', 'max:50', $this->duplicateClientRule('tax_number', 'الرقم الضريبي')],
             'license_number' => 'nullable|required_if:client_type,company|string|max:100',
             'birthdate' => 'nullable|date',
             'marital_status' => 'nullable|string|in:single,married,divorced,widowed',
@@ -1248,7 +1269,7 @@ class UserController extends Controller
                 '+966' . $normalizedPhone,
             ])));
 
-            if (objModel::where('id', '!=', $client->id)->whereIn('phone', $phoneCandidates)->exists()) {
+            if (objModel::withTrashed()->where('id', '!=', $client->id)->whereIn('phone', $phoneCandidates)->exists()) {
                 throw ValidationException::withMessages([
                     'phone' => __('ingaz.client_phone_already_exists'),
                 ]);
@@ -1458,9 +1479,73 @@ class UserController extends Controller
             ], 403);
         }
 
-        $this->findClientForCurrentAdmin($id);
-        $action->delete($id);
-        return jsonSuccess();
+        $client = $this->findClientForCurrentAdmin($id);
+        try {
+            DB::transaction(function () use ($client) {
+                objModel::lockForUpdate()->findOrFail($client->id)->delete();
+            });
+        } catch (ValidationException $exception) {
+            return response()->json(['success' => false, 'message' => implode(' ', $exception->errors()['client']), 'errors' => $exception->errors()], 422);
+        }
+        return jsonSuccess([], 'تم نقل العميل إلى العملاء المحذوفين ويمكن استعادته.');
+    }
+
+    private function duplicateClientRule(string $column, string $label): \Closure
+    {
+        return function ($attribute, $value, $fail) use ($column, $label) {
+            $query = objModel::withTrashed();
+            if ($column === 'phone') {
+                $phone = $this->normalizeSaudiPhone((string) $value);
+                if (!$phone) { return; }
+                $query->whereRaw($this->canonicalPhoneSql() . ' = ?', [$phone]);
+            } else {
+                $query->where($column, trim((string) $value));
+            }
+            foreach ($query->get(['id', 'deleted_at']) as $duplicate) {
+                $fail($label . ' مستخدم بالفعل للعميل رقم ' . $duplicate->id . '. '
+                    . ($duplicate->trashed()
+                        ? 'العميل محذوف وموجود في صفحة العملاء المحذوفين؛ استعده بدلاً من إنشاء عميل مكرر.'
+                        : 'العميل موجود في قائمة العملاء؛ استخدم سجله الحالي بدلاً من إنشاء سجل مكرر.'));
+            }
+        };
+    }
+
+    public function trashedClients(Request $request)
+    {
+        abort_unless(@AdminGuardHasPerm(\App\PermKeys::CLIENTS_DELETE), 403);
+        $query = objModel::onlyTrashed()->with('nationality');
+        $this->applyBranchScope($query);
+        if ($request->filled('search')) {
+            $search = trim((string) $request->input('search'));
+            $query->where(function ($q) use ($search) {
+                $q->where('name', 'like', '%' . $search . '%')->orWhere('phone', 'like', '%' . $search . '%')
+                    ->orWhere('national_num', $search)->orWhere('email', $search)->orWhere('id', $search);
+            });
+        }
+        $clients = $query->latest('deleted_at')->paginate(25);
+        return view('admin.ingaz.clients.trashed', compact('clients'));
+    }
+
+    public function restoreClient($id)
+    {
+        abort_unless(@AdminGuardHasPerm(\App\PermKeys::CLIENTS_DELETE), 403);
+        DB::transaction(function () use ($id) {
+            $query = objModel::onlyTrashed();
+            $this->applyBranchScope($query);
+            $query->lockForUpdate()->findOrFail($id)->restore();
+        });
+        return back()->with('success', 'تمت استعادة العميل بنجاح.');
+    }
+
+    public function forceDeleteClient($id)
+    {
+        abort_unless(@AdminGuardHasPerm(\App\PermKeys::CLIENTS_DELETE), 403);
+        DB::transaction(function () use ($id) {
+            $query = objModel::onlyTrashed();
+            $this->applyBranchScope($query);
+            $query->lockForUpdate()->findOrFail($id)->forceDelete();
+        });
+        return back()->with('success', 'تم حذف العميل نهائيًا.');
     }
 
     public function exportDuplicatePhones()

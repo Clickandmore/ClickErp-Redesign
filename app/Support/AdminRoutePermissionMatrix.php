@@ -478,7 +478,15 @@ class AdminRoutePermissionMatrix
     private static function recruitmentContractsDefinitions(): array
     {
         return [
+            'clients.trashed' => [PermKeys::CLIENTS_DELETE],
+            'clients.restore' => [PermKeys::CLIENTS_DELETE],
+            'clients.forceDelete' => [PermKeys::CLIENTS_DELETE],
             'RecruitmentContract.index' => [NewPermKeys::REC_CONTRACTS_VIEW, NewPermKeys::REC_CONTRACTS_MANAGE],
+            'RecruitmentContract.escapeReports.index' => [PermKeys::REC_CONTRACTS_ESCAPE_REPORTS_VIEW],
+            'RecruitmentContract.escapeReports.show' => [PermKeys::REC_CONTRACTS_ESCAPE_REPORTS_VIEW, PermKeys::REC_CONTRACTS_ESCAPE_REPORT_CREATE],
+            'RecruitmentContract.escapeReports.store' => [PermKeys::REC_CONTRACTS_ESCAPE_REPORT_CREATE],
+            'RecruitmentContract.escapeReports.destroy' => [PermKeys::REC_CONTRACTS_ESCAPE_REPORT_DELETE],
+            'RecruitmentContract.escapeReports.attachment' => [PermKeys::REC_CONTRACTS_ESCAPE_REPORTS_VIEW],
             'RecruitmentContract.create' => [NewPermKeys::REC_CONTRACTS_CREATE, NewPermKeys::REC_CONTRACTS_MANAGE],
             'RecruitmentContract.store' => [NewPermKeys::REC_CONTRACTS_CREATE, NewPermKeys::REC_CONTRACTS_MANAGE],
             'RecruitmentContract.show' => [NewPermKeys::REC_CONTRACTS_VIEW, NewPermKeys::REC_CONTRACTS_MANAGE],
