@@ -207,6 +207,9 @@
                         </a>
                         <ul class="sub-menu collapse {{ $isCrm || request()->routeIs('clients.*') || request()->routeIs('website-visitors.*') || request()->routeIs('whatsapp.inbox.*') || request()->routeIs('whatsapp.notifications.*') || request()->routeIs('messages.*') ? 'show' : '' }}"
                             id="crm">
+                            @if (@AdminGuardHasPerm(\App\PermKeys::CLIENTS_DELETE))
+                                <li><a class="m-link {{ request()->routeIs('clients.trashed') ? 'active' : '' }}" href="{{ route('clients.trashed') }}"><i class="fas fa-trash-restore"></i><span class="ms-2">العملاء المحذوفون</span></a></li>
+                            @endif
                             @if (@AdminGuardHasPerm(\App\PermKeys::CLIENTS_VIEW))
                                 <li>
                                     <a class="m-link {{ Route::currentRouteName() == 'clients.index' ? 'active' : '' }}"
@@ -442,7 +445,7 @@
                                         <span class="ms-2"> {{ helperTrans('ingaz.Recruitment contracts') }} </span>
                                         <span class="arrow fa fa-angle-left ms-auto text-end"></span>
                                     </a>
-                                    <ul class="sub-menu collapse {{ in_array(Route::currentRouteName(), ['RecruitmentContracts.index', 'RecruitmentContract.index', 'RecruitmentContract.create', 'RecruitmentContract.externalOfficeDispatch.index', 'RecruitmentContract.externalOfficeDispatch.edit', 'RecruitmentContract.externalOfficeDispatch.print', 'contract-return-requests.index', 'invoices.index', 'contract-extension-requests.index', 'contract-extension-requests.show']) ? 'show' : '' }}"
+                                    <ul class="sub-menu collapse {{ in_array(Route::currentRouteName(), ['RecruitmentContracts.index', 'RecruitmentContract.index', 'RecruitmentContract.escapeReports.index', 'RecruitmentContract.escapeReports.show', 'RecruitmentContract.create', 'RecruitmentContract.externalOfficeDispatch.index', 'RecruitmentContract.externalOfficeDispatch.edit', 'RecruitmentContract.externalOfficeDispatch.print', 'contract-return-requests.index', 'invoices.index', 'contract-extension-requests.index', 'contract-extension-requests.show']) ? 'show' : '' }}"
                                         id="contracts">
                                         @if (@AdminGuardHasPerm(\App\NewPermKeys::REC_CONTRACTS_CREATE))
                                             <li>
@@ -455,6 +458,7 @@
                                             </li>
                                         @endif
                                         @if (@AdminGuardHasPerm(\App\NewPermKeys::REC_CONTRACTS_VIEW))
+                                            
                                             <li>
                                                 <a class="m-link {{ Route::currentRouteName() == 'RecruitmentContract.index' && !request()->filled('status') && !request()->boolean('shelter_contracts') ? 'active' : '' }}"
                                                     href="{{ route('RecruitmentContract.index', ['all_contracts' => 1]) }}">
@@ -496,6 +500,11 @@
                                                         class="badge bg-danger ms-2">{{ $contractsCount['back'] }}</span>
                                                 </a>
                                             </li>
+
+                                            @if (@AdminGuardHasPerm(\App\PermKeys::REC_CONTRACTS_ESCAPE_REPORTS_VIEW))
+                                                <li><a class="m-link {{ request()->routeIs('RecruitmentContract.escapeReports.*') ? 'active' : '' }}" href="{{ route('RecruitmentContract.escapeReports.index') }}"><i class="fas fa-running"></i><span class="ms-2">بلاغات الهروب</span></a></li>
+                                            @endif
+                                            
                                             <li>
                                                 <a class="m-link {{ request()->routeIs('RecruitmentContract.externalOfficeDispatch.*') ? 'active' : '' }}"
                                                     href="{{ route('RecruitmentContract.externalOfficeDispatch.index') }}">

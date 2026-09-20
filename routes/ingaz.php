@@ -292,6 +292,9 @@ Route::group(
             Route::post('clients/bulk-update-status', [UserController::class, 'bulkUpdateStatus'])->name('clients.bulk-update-status');
             Route::get('clients/reports/duplicate-phones', [UserController::class, 'exportDuplicatePhones'])
                 ->name('clients.reports.duplicate-phones');
+            Route::get('clients/trashed', [UserController::class, 'trashedClients'])->name('clients.trashed');
+            Route::post('clients/{id}/restore', [UserController::class, 'restoreClient'])->name('clients.restore');
+            Route::delete('clients/{id}/force-delete', [UserController::class, 'forceDeleteClient'])->name('clients.forceDelete');
             Route::resource('clients', UserController::class);
             Route::post('clients/{id}/attachments', [UserController::class, 'storeAttachments'])->name('clients.attachments.store');
             Route::get('clients/{id}/attachments/download', [UserController::class, 'downloadAttachments'])->name('clients.attachments.download');
@@ -456,6 +459,11 @@ Route::group(
             });
 
             // RecruitmentContract specific routes - MUST come before resource route
+            Route::get('RecruitmentContract/escape-reports', [\App\Http\Controllers\ingaz\RecruitmentEscapeReportController::class, 'index'])->name('RecruitmentContract.escapeReports.index');
+            Route::get('RecruitmentContract/{contractId}/escape-reports', [\App\Http\Controllers\ingaz\RecruitmentEscapeReportController::class, 'show'])->name('RecruitmentContract.escapeReports.show');
+            Route::post('RecruitmentContract/{contractId}/escape-reports', [\App\Http\Controllers\ingaz\RecruitmentEscapeReportController::class, 'store'])->name('RecruitmentContract.escapeReports.store');
+            Route::delete('RecruitmentContract/{contractId}/escape-reports/{reportId}', [\App\Http\Controllers\ingaz\RecruitmentEscapeReportController::class, 'destroy'])->name('RecruitmentContract.escapeReports.destroy');
+            Route::get('RecruitmentContract/{contractId}/escape-reports/{reportId}/attachments/{attachment}', [\App\Http\Controllers\ingaz\RecruitmentEscapeReportController::class, 'attachment'])->name('RecruitmentContract.escapeReports.attachment');
             Route::get('RecruitmentContract/available-maids', [RecruitmentContractController::class, 'getAvailableMaids'])->name('RecruitmentContract.availableMaids');
             Route::get('RecruitmentContract/search-clients', [RecruitmentContractController::class, 'searchClients'])->name('RecruitmentContract.searchClients');
             Route::get('RecruitmentContract/filter-options', [RecruitmentContractController::class, 'getFilterOptions'])->name('RecruitmentContract.filterOptions');

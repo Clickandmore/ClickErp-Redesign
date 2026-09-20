@@ -13,7 +13,7 @@ class RecruitmentRequest extends Model
 {
     use \App\Models\Concerns\AuditsChanges;
 
-    use AssignsOrderBranch, BranchScoped;
+    use AssignsOrderBranch, BranchScoped, \Illuminate\Database\Eloquent\SoftDeletes;
 
     protected $table = 'orders';
 
@@ -30,7 +30,7 @@ class RecruitmentRequest extends Model
 
     public function client(): BelongsTo
     {
-        return $this->belongsTo(User::class, 'user_id');
+        return $this->belongsTo(User::class, 'user_id')->withTrashed();
     }
 
     public function customer(): BelongsTo

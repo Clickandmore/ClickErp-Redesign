@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers\ingaz;
 
+use Illuminate\Support\Facades\DB;
+
 use App\Enums\ingaz\NotificationActionEnum;
 use App\Enums\ingaz\OrderEnum;
 use App\Http\Actions\ingaz\OrderAction as objAction;
@@ -725,11 +727,18 @@ class OrderController extends Controller
         if ($this->isCompletedOrder($order)) {
             return $this->completedOrderLockedResponse();
         }
-        if ($order->trashed()) {
-            $order->forceDelete();
-        } else {
-            $order->delete();
-        }
+        DB::transaction(function () use ($order) {
+            $order = Order::withTrashed()->lockForUpdate()->findOrFail($order->id);
+            if ($order->contracts()->exists() || \App\Models\RentalContract::where('order_id', $order->id)->exists()) {
+                throw \Illuminate\Validation\ValidationException::withMessages(['order' => 'لا يمكن حذف طلب مرتبط بعقد.']);
+            }
+            if ($order->trashed()) {
+                $order->forceDelete();
+            } else {
+                $order->delete();
+            }
+            app(\App\Services\OrderMaidReservationService::class)->release($order);
+        });
         return jsonSuccess(['success' => true], __("ingaz.order_deleted_successfully"), 200);
     }
 
@@ -737,7 +746,17 @@ class OrderController extends Controller
     {
         try {
             $order = Order::withTrashed()->findOrFail($id);
-            $order->restore();
+            $this->assertCanAccessBranchModel($order, 'orders');
+            DB::transaction(function () use ($order) {
+                $order = Order::withTrashed()->lockForUpdate()->findOrFail($order->id);
+                if (!$order->trashed()) { return; }
+                $client = \App\Models\ingaz\User::withTrashed()->find($order->user_id);
+                if (!$client || $client->trashed()) {
+                    throw \Illuminate\Validation\ValidationException::withMessages(['order' => 'يجب استعادة العميل أولاً قبل استعادة الطلب.']);
+                }
+                app(\App\Services\OrderMaidReservationService::class)->reserveForRestore($order);
+                $order->restore();
+            });
 
             // Restore Notification
             Notification::create([
@@ -749,6 +768,8 @@ class OrderController extends Controller
             ]);
 
             return jsonSuccess(['success' => 'تم استعادة الطلب بنجاح']);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            throw $e;
         } catch (\Exception $e) {
             return jsonError(['success' => 'حدث خطأ أثناء استعادة الطلب']);
         }
@@ -1322,41 +1343,7 @@ class OrderController extends Controller
 
     private function releaseMaid(Order $order): void
     {
-        $order->loadMissing('maid');
-
-        if (!$order->maid) {
-            return;
-        }
-
-        $maidId = $order->maid->id;
-
-        $hasOtherActiveOrders = Order::where('maid_id', $maidId)
-            ->where('id', '!=', $order->id)
-            ->whereNotIn('status', [
-                OrderEnum::Completed->value,
-                OrderEnum::Done->value,
-                OrderEnum::Refused->value,
-                OrderEnum::Return->value,
-            ])->exists();
-
-        if ($hasOtherActiveOrders) {
-            \Log::info('Maid not released due to other active orders', [
-                'maid_id' => $maidId,
-                'order_id' => $order->id,
-            ]);
-            return;
-        }
-
-        $order->maid->update([
-            'status' => 'available',
-            'available' => true,
-            'available_at' => now(),
-        ]);
-
-        \Log::info('Maid released after order refusal/return', [
-            'maid_id' => $maidId,
-            'order_id' => $order->id,
-        ]);
+        app(\App\Services\OrderMaidReservationService::class)->release($order);
     }
 
     private function getStatusColor(string $status): string

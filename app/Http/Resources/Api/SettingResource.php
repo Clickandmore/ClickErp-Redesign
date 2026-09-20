@@ -205,6 +205,16 @@ class SettingResource extends JsonResource
             'hotjar_tag' => (string) ($this->hotjar_tag ?? ''),
             'meta_pixel_tag' => (string) ($this->meta_pixel_tag ?? ''),
             'live_chat_tag' => (string) ($this->live_chat_tag ?? ''),
+
+            // فهرسة الموقع الخارجي. canonical_base فارغًا يعني "لم يُضبط"،
+            // فيرجع الموقع إلى إعداده المحلي بدل أن يبني روابط على نص فارغ.
+            'canonical_base' => trim((string) ($this->seo_canonical_base ?? '')),
+            'sitemap' => [
+                'worker_pages' => (bool) ($this->seo_sitemap_worker_pages ?? true),
+                'worker_limit' => (int) ($this->seo_sitemap_worker_limit ?? 2000),
+                'offer_pages' => (bool) ($this->seo_sitemap_offer_pages ?? true),
+                'cache_minutes' => (int) ($this->seo_sitemap_cache_minutes ?? 360),
+            ],
         ];
     }
 
