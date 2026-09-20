@@ -25,7 +25,7 @@ class ClientDeletionLifecycleTest extends TestCase
         $this->enableBranchesModule();
         $this->branch = $this->makeBranch();
         $this->admin = $this->branchAdmin($this->branch);
-        foreach ([PermKeys::CLIENTS_DELETE, PermKeys::CLIENTS_CREATE, PermKeys::CLIENTS_VIEW, PermKeys::ORDERS_DELETE] as $name) {
+        foreach ([PermKeys::CLIENTS_DELETE, PermKeys::CLIENTS_CREATE, PermKeys::CLIENTS_VIEW, PermKeys::ORDERS_DELETE, PermKeys::ORDERS_EDIT] as $name) {
             Permission::updateOrCreate(['name' => $name, 'guard_name' => 'admin'], ['display_name' => $name, 'group_name' => 'clients', 'section_name' => 'users_management', 'is_active' => true]);
             $this->admin->givePermissionTo($name);
         }
@@ -35,6 +35,33 @@ class ClientDeletionLifecycleTest extends TestCase
     private function client(): User
     {
         return User::create(['name' => 'Lifecycle client', 'phone' => '5' . random_int(10000000, 99999999), 'phone_code' => '+966', 'password' => bcrypt('test'), 'branch_id' => $this->branch->id]);
+    }
+
+    public function test_return_of_legacy_order_without_client_releases_maid(): void
+    {
+        $maid = $this->maid();
+        $order = $this->order($this->client(), 'return', $maid->id);
+        DB::table('orders')->where('id', $order->id)->update(['user_id' => null]);
+        $deletedOrder = $this->order($this->client(), 'under_process', $maid->id);
+        $deletedOrder->delete();
+        $this->postJson(route('orders.refuseReturn', $order->id), ['action' => 'return'])
+            ->assertOk()->assertJsonPath('data.success', true);
+        $this->assertSame('return', $order->fresh()->status);
+        $this->assertSame('available', $maid->fresh()->status);
+        $this->assertTrue((bool) $maid->fresh()->available);
+    }
+
+    public function test_sms_failure_does_not_prevent_return_and_maid_release(): void
+    {
+        $controller = \Mockery::mock(\App\Http\Controllers\ingaz\OrderController::class)->makePartial();
+        $controller->shouldReceive('sendSMS')->once()->andThrow(new \RuntimeException('Test SMS outage'));
+        $this->app->instance(\App\Http\Controllers\ingaz\OrderController::class, $controller);
+        $maid = $this->maid();
+        $order = $this->order($this->client(), 'under_process', $maid->id);
+        $this->postJson(route('orders.refuseReturn', $order->id), ['action' => 'return'])
+            ->assertOk()->assertJsonPath('data.success', true);
+        $this->assertSame('return', $order->fresh()->status);
+        $this->assertTrue((bool) $maid->fresh()->available);
     }
 
     private function order(User $client, string $status = 'new', ?int $maidId = null): Order
