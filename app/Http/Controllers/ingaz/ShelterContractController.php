@@ -1186,14 +1186,7 @@ class ShelterContractController extends Controller
         $nationalities = $this->shelterContractNationalities();
         $quickTagSuggestions = $this->getQuickTagSuggestions();
         $complaintTypes = ComplaintType::orderBy('name')->get();
-        $shelterComplaintOptions = Complaint::query()->latest('id')->get(['id', 'subject', 'complainant_name', 'complainant_phone', 'maid_passport'])
-            ->map(fn (Complaint $complaint) => [
-                'id' => $complaint->id,
-                'label' => implode(' — ', array_filter([
-                    '#' . $complaint->id, $complaint->subject ?: 'بدون عنوان',
-                    $complaint->complainant_name, $complaint->complainant_phone, $complaint->maid_passport,
-                ])),
-            ]);
+        $shelterComplaintOptions = $this->shelterComplaintOptions();
         $rentalInstantReceiptEnabled = CvOptionsSettings::rentalTransferEnabled();
         $contractServiceCategories = $this->mapContractServiceCategories($contracts);
 
@@ -1656,6 +1649,7 @@ class ShelterContractController extends Controller
         $nationalities = $this->shelterContractNationalities();
         $quickTagSuggestions = $this->getQuickTagSuggestions();
         $complaintTypes = ComplaintType::orderBy('name')->get();
+        $shelterComplaintOptions = $this->shelterComplaintOptions();
         $isEditMode = true;
         $editingContract = $contract;
         $rentalInstantReceiptEnabled = CvOptionsSettings::rentalTransferEnabled();
@@ -1670,12 +1664,25 @@ class ShelterContractController extends Controller
                 'nationalities',
                 'quickTagSuggestions',
                 'complaintTypes',
+                'shelterComplaintOptions',
                 'isEditMode',
                 'editingContract',
                 'rentalInstantReceiptEnabled',
                 'contractServiceCategories'
             )
         );
+    }
+
+    private function shelterComplaintOptions()
+    {
+        return Complaint::query()->latest('id')->get(['id', 'subject', 'complainant_name', 'complainant_phone', 'maid_passport'])
+            ->map(fn (Complaint $complaint) => [
+                'id' => $complaint->id,
+                'label' => implode(' — ', array_filter([
+                    '#' . $complaint->id, $complaint->subject ?: 'بدون عنوان',
+                    $complaint->complainant_name, $complaint->complainant_phone, $complaint->maid_passport,
+                ])),
+            ]);
     }
 
     private function shelterContractNationalities()
