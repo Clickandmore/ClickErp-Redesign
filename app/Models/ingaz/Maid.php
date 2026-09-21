@@ -97,7 +97,7 @@ class Maid extends Model
         return BranchDataSharingService::MAIDS;
     }
 
-    protected array $mediaUrlColumns = ['image', 'cv_file', 'cv_preview', 'video', 'driving_license_file'];
+    protected array $mediaUrlColumns = ['image', 'cv_file', 'cv_preview', 'maid_cv_file', 'video', 'driving_license_file'];
 
     public const REQUEST_TYPE_KNOWN = 'known';
     public const REQUEST_TYPE_SPECIFIC = 'specific';
