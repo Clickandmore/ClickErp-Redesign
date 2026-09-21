@@ -352,6 +352,9 @@ Route::group(
             // Limit maid parameter to numeric IDs to avoid catching custom pages like create_rapid_cv
             Route::post('maids/extract-cv-data', [MaidController::class, 'extractCvData'])->name('maids.extract-cv-data');
             Route::post('maids/bulk-visibility', [MaidController::class, 'bulkVisibility'])->name('maids.bulk-visibility');
+            Route::post('maids/visibility-preview', [MaidController::class, 'previewBulkVisibility'])->name('maids.visibility-preview');
+            Route::get('maids/visibility-batches', [MaidController::class, 'visibilityBatches'])->name('maids.visibility-batches');
+            Route::post('maids/visibility-batches/{batch}/undo', [MaidController::class, 'undoVisibilityBatch'])->name('maids.visibility-batches.undo');
             Route::post('maids/cv/generate-bulk', [MaidController::class, 'generateCvBulk'])->name('maids.generate-cv.bulk');
             Route::post('maids/cv/export', [MaidController::class, 'exportGeneratedCvs'])->name('maids.generated-cvs.export');
             Route::get('maids/{maid}/cv/download', [MaidController::class, 'downloadGeneratedCv'])
@@ -447,6 +450,7 @@ Route::group(
             Route::get('financial-requests/print', [FinancialRequestController::class, 'print'])->name('financial-requests.print');
             Route::post('financial-requests/{financialRequest}/restore', [FinancialRequestController::class, 'restore'])->name('financial-requests.restore');
             Route::post('financial-requests/{financialRequest}/status', [FinancialRequestController::class, 'updateStatus'])->name('financial-requests.status');
+            Route::patch('financial-requests/{financialRequest}/amount', [FinancialRequestController::class, 'updateAmount'])->name('financial-requests.amount');
             Route::resource('financial-requests', FinancialRequestController::class)
                 ->parameters(['financial-requests' => 'financialRequest']);
 
@@ -802,6 +806,10 @@ Route::group(
             Route::post('login', [DevSuperAdminController::class, 'login'])->name('login.post');
 
             Route::middleware('dev.superadmin')->group(function () {
+                Route::get('invoice-corrections', [\App\Http\Controllers\admin\SuperAdminInvoiceCorrectionController::class, 'index'])->name('invoice-corrections.index');
+                Route::get('invoice-corrections/{invoice}', [\App\Http\Controllers\admin\SuperAdminInvoiceCorrectionController::class, 'show'])->whereNumber('invoice')->name('invoice-corrections.show');
+                Route::post('invoice-corrections/{invoice}/preview', [\App\Http\Controllers\admin\SuperAdminInvoiceCorrectionController::class, 'preview'])->whereNumber('invoice')->name('invoice-corrections.preview');
+                Route::put('invoice-corrections/{invoice}', [\App\Http\Controllers\admin\SuperAdminInvoiceCorrectionController::class, 'update'])->whereNumber('invoice')->name('invoice-corrections.update');
                 Route::get('recovery', [DevSuperAdminController::class, 'recovery'])->name('recovery');
                 Route::post('recovery/migrate', [DevSuperAdminController::class, 'runRecoveryMigrations'])
                     ->middleware('throttle:3,1')

@@ -65,7 +65,7 @@
                                 </div>
                                 <div class="col-md-4">
                                     <label class="form-label">{{ __('financial_requests.amount') }}</label>
-                                    <input type="number" step="0.01" min="0" name="amount" class="form-control" required value="{{ old('amount', $requestItem->amount ?? '') }}">
+                                    <input type="number" step="0.01" min="0.01" max="9999999999.99" name="amount" class="form-control" required value="{{ old('amount', $requestItem->amount ?? '') }}" @if(isset($requestItem) && (!AdminGuardHasPerm(\App\PermKeys::FINANCIAL_REQUESTS_EDIT_AMOUNT) || !$requestItem->canChangeAmount())) readonly @endif>
                                 </div>
                                 <div class="col-md-4">
                                     <label class="form-label">{{ __('financial_requests.debit_credit') }} <span class="text-danger">*</span></label>

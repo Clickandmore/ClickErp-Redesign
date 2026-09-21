@@ -1,6 +1,7 @@
 <?php
 
 return [
+    'financial_requests_edit_amount' => 'Edit Financial Request Amount',
     // ========================================
     // Main Dashboard Sections
     // ========================================
@@ -75,7 +76,7 @@ return [
     'maids_export_excel' => 'Export CVs as Excel',
     'maids_show' => 'Show CV Details',
     'maids_toggle_status' => 'Toggle Visibility Status',
-    'maids_bulk_visibility' => 'Show or Hide All CVs',
+    'maids_bulk_visibility' => 'Bulk Show / Hide CVs',
     'maids_toggle_pin' => 'Toggle Pin Status',
     'maids_control' => 'Control CVs',
     'maids_rental_view' => 'View Rental Maids CVs',
@@ -111,6 +112,9 @@ return [
     'orders_delete' => 'Delete Orders',
     'orders_export' => 'Export Orders',
     'orders_change_status' => 'Change Order Status',
+    'orders_reject' => 'Reject / Return Order',
+    'orders_change_maid' => 'Change Order Maid',
+    'orders_change_responsible' => 'Change Responsible Employee',
     'orders_mark_in_progress' => 'Mark Order In Progress',
     'orders_mark_cancelled' => 'Cancel Order',
     'orders_mark_completed' => 'Complete Order',
@@ -352,6 +356,7 @@ return [
     'office_edit' => 'Edit Offices',
     'office_delete' => 'Delete Offices',
     'office_control' => 'Control Offices',
+  'office_suspend_cvs' => 'Suspend an external agent CVs',
 
     'steps_view' => 'View Steps',
     'steps_create' => 'Create Step',

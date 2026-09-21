@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\admin\office\OfficeController;
+use App\Http\Controllers\admin\office\OfficeCvsSuspensionController;
 use App\Http\Controllers\admin\office\OfficeFileController;
 use App\Http\Controllers\admin\office\OfficeManagementController;
 use App\Http\Controllers\admin\office\OfficeStatusController;
@@ -42,6 +43,9 @@ Route::group(
                 ->name('offices.users.activate');
             Route::get('offices/files', [OfficeManagementController::class, 'files'])
                 ->name('offices.files.index');
+            Route::post('offices/{office}/cvs-suspension', [OfficeCvsSuspensionController::class, 'update'])
+                ->whereNumber('office')
+                ->name('offices.cvs-suspension.update');
             Route::resource('offices', OfficeController::class);
             Route::resource('offices-status', OfficeStatusController::class);
             Route::resource('offices-file', OfficeFileController::class);

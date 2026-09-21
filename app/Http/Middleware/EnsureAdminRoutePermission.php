@@ -35,6 +35,20 @@ class EnsureAdminRoutePermission
 
         $admin = auth('admin')->user();
 
+        // Status forms must not bypass the dedicated refusal action permission.
+        $additionalPermission = null;
+        if (in_array($routeName, ['orders.update', 'orders.changeStatus'], true)
+            && in_array($request->input('status'), ['refused', 'return'], true)) {
+            $additionalPermission = \App\PermKeys::ORDERS_REJECT;
+        }
+        if (in_array($routeName, ['RecruitmentContract.create', 'RecruitmentContract.store'], true)
+            && ($request->filled('orderId') || $request->filled('order_id'))) {
+            $additionalPermission = \App\PermKeys::ORDERS_ADD_CONTRACT;
+        }
+        if ($additionalPermission && !AdminRoutePermissionMatrix::adminHasAnyPermission($admin, [$additionalPermission])) {
+            abort(403, __('ingaz.permission_denied'));
+        }
+
         if (AdminRoutePermissionMatrix::adminHasAnyPermission($admin, $requiredPermissions)) {
             return $next($request);
         }

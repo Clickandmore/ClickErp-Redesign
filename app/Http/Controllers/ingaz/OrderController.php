@@ -315,35 +315,35 @@ class OrderController extends Controller
 
 
                     // A linked contract makes the order complete and locks its status.
-                    if (@AdminGuardHasPerm(\App\PermKeys::ORDERS_EDIT) && !$isCompletedOrder) {
+                    if (@AdminGuardHasPerm(\App\PermKeys::ORDERS_CHANGE_STATUS) && !$isCompletedOrder) {
                         $actions .= '<li><button class="dropdown-item edit-status" data-id="' . $row->id . '">
                             <i class="fa fa-edit"></i> تعديل الحالة
                         </button></li>';
                     }
 
                     // Add Contract button for open orders and legacy ended orders that still have no contract.
-                    if ($this->canAddRecruitmentContract($row)) {
+                    if (@AdminGuardHasPerm(\App\PermKeys::ORDERS_ADD_CONTRACT) && $this->canAddRecruitmentContract($row)) {
                         $actions .= '<li><button class="dropdown-item addNewContract" data-id="' . $row->id . '">
                             <i class="fa fa-plus"></i> إضافة عقد
                         </button></li>';
                     }
 
                     // Change Maid button for new orders
-                    if (@AdminGuardHasPerm(\App\PermKeys::ORDERS_EDIT) && $row->status == OrderEnum::New->value) {
+                    if (@AdminGuardHasPerm(\App\PermKeys::ORDERS_CHANGE_MAID) && $row->status == OrderEnum::New->value) {
                         $actions .= '<li><button class="dropdown-item change-maid" data-id="' . $row->id . '">
                             <i class="fa fa-user"></i> تغيير العاملة
                         </button></li>';
                     }
 
                     // Change Responsible Employee button
-                    if (@AdminGuardHasPerm(\App\PermKeys::ORDERS_EDIT) && !$isCompletedOrder) {
+                    if (@AdminGuardHasPerm(\App\PermKeys::ORDERS_CHANGE_RESPONSIBLE) && !$isCompletedOrder) {
                         $actions .= '<li><button class="dropdown-item change-responsible" data-id="' . $row->id . '">
                             <i class="fa fa-user-secret"></i> تغيير الموظف المسؤول
                         </button></li>';
                     }
 
                     // Refuse/Return button for new and under_process orders
-                    if (@AdminGuardHasPerm(\App\PermKeys::ORDERS_EDIT) && !$isCompletedOrder) {
+                    if (@AdminGuardHasPerm(\App\PermKeys::ORDERS_REJECT) && !$isCompletedOrder) {
                         if (in_array($row->status, [OrderEnum::New->value, OrderEnum::UnderProcess->value])) {
                             $actions .= '<li><button class="dropdown-item refuse-order" data-id="' . $row->id . '">
                                 <i class="fa fa-times"></i> رفض/إرجاع الطلب

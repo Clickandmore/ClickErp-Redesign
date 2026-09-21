@@ -623,7 +623,7 @@
                     <div class="order-info-body">
                         <div class="action-buttons">
                             <!-- Edit Status Button -->
-                            @if (@AdminGuardHasPerm(\App\PermKeys::ORDERS_EDIT))
+                            @if (@AdminGuardHasPerm(\App\PermKeys::ORDERS_CHANGE_STATUS) && !$isCompletedOrder)
                                 <button class="btn btn-primary edit-status" data-id="{{ $data->id }}">
                                     <i class="fa fa-edit"></i> {{ helperTrans('ingaz.edit_status') }}
                                 </button>
@@ -646,7 +646,7 @@
                             @endif
 
                             <!-- Refuse/Return Order Button -->
-                            @if (@AdminGuardHasPerm(\App\PermKeys::ORDERS_EDIT) && !$isCompletedOrder)
+                            @if (@AdminGuardHasPerm(\App\PermKeys::ORDERS_REJECT) && !$isCompletedOrder)
                                 @if ($data->status != 'refused' && $data->status != 'done')
                                     <button class="btn btn-danger" onclick="refuseReturnOrder({{ $data->id }})">
                                         <i class="fa fa-times"></i> {{ helperTrans('ingaz.refuse_return_order') }}

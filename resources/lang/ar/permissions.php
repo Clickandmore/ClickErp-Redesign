@@ -1,6 +1,7 @@
 <?php
 
 return array (
+  'financial_requests_edit_amount' => 'تعديل مبلغ الطلب المالي',
   'dashboard' => 'لوحة التحكم',
   'clients_maids' => 'العملاء',
   'orders' => 'الطلبات',
@@ -57,6 +58,9 @@ return array (
   'orders_delete' => 'حذف الطلبات',
   'orders_export' => 'تصدير الطلبات',
   'orders_change_status' => 'تغيير حالة الطلب',
+  'orders_reject' => 'رفض/إرجاع الطلب',
+  'orders_change_maid' => 'تغيير العاملة في الطلب',
+  'orders_change_responsible' => 'تغيير الموظف المسؤول عن الطلب',
   'orders_mark_in_progress' => 'تحديد الطلب تحت الإجراء',
   'orders_mark_cancelled' => 'إلغاء الطلب',
   'orders_mark_completed' => 'إكمال الطلب',
@@ -242,6 +246,7 @@ return array (
   'office_edit' => 'تعديل الوكلاء الخارجيين',
   'office_delete' => 'حذف الوكلاء الخارجيين',
   'office_control' => 'إدارة الوكلاء الخارجيين',
+  'office_suspend_cvs' => 'تعليق السير الذاتية لوكيل خارجي',
   'steps_view' => 'عرض الخطوات',
   'steps_create' => 'إضافة خطوة',
   'steps_edit' => 'تعديل الخطوات',
@@ -313,7 +318,7 @@ return array (
   'maids_export_excel' => 'تصدير السير الذاتية بصيغة Excel',
   'maids_show' => 'عرض تفاصيل السيرة الذاتية',
   'maids_toggle_status' => 'تغيير حالة الظهور',
-  'maids_bulk_visibility' => 'إظهار وإخفاء جميع السير',
+  'maids_bulk_visibility' => 'إظهار/إخفاء السير جماعيًا',
   'maids_toggle_pin' => 'تثبيت/إلغاء تثبيت',
   'maids_control' => 'التحكم في السير الذاتية',
   'maids_rental_view' => 'عرض سير عاملات الإيجار',

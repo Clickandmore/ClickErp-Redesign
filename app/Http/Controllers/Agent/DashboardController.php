@@ -484,6 +484,7 @@ class DashboardController extends Controller
             'experience_status' => ['required', 'in:has_experience,no_experience'],
             'cooking_experience' => ['nullable', 'required_if:experience_status,has_experience', 'in:arabic_cooking,regular_cooking,willing_to_learn,general_cooking,no_cooking_experience'],
             'video_link' => ['nullable', 'string', 'max:2000'],
+            'video' => ['nullable', 'file', 'mimes:mp4,mov,avi,wmv,webm,mkv,m4v', 'max:102400'],
             'additional_notes' => ['nullable', 'string', 'max:1000'],
             'phone' => ['nullable', 'string', 'max:50'],
             'relative_name' => ['nullable', 'string', 'max:255'],

@@ -767,6 +767,15 @@ class PermissionsController extends Controller
             ];
         }
 
+        // اشتقاق المجموعة من الاسم يعطي office_suspend لصلاحية تعليق سير المكتب،
+        // ومكانها الصحيح بطاقة الوكلاء الخارجيين نفسها لا بطاقة مستقلة.
+        if ($group === 'office_suspend' || $normalizedName === 'office_suspend_cvs') {
+            return [
+                'section' => 'modules',
+                'group' => 'office',
+            ];
+        }
+
         if (
             $section === 'modules' ||
             in_array($group, ['hr', 'finance', 'employee', 'zatca'], true) ||

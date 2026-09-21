@@ -68,7 +68,7 @@ class MaidController extends Controller
         $this->middleware('permission:maids_edit,admin', ['only' => ['edit', 'update', 'update_cv', 'updateMedia', 'updateOffer', 'backout', 'clearBackout', 'suspendCv', 'generateCv', 'generateCvBulk', 'approveSubmission', 'rejectSubmission', 'bulkApproveSubmissions', 'approveStatusChangeRequest', 'bulkApproveStatusChangeRequests', 'rejectStatusChangeRequest']]);
         $this->middleware('permission:maids_delete,admin', ['only' => ['destroy', 'restore']]);
         $this->middleware('permission:maids_toggle_status,admin', ['only' => ['show']]);
-        $this->middleware('permission:maids_bulk_visibility,admin', ['only' => ['bulkVisibility']]);
+        $this->middleware('permission:maids_bulk_visibility,admin', ['only' => ['bulkVisibility', 'previewBulkVisibility', 'visibilityBatches', 'undoVisibilityBatch']]);
         $this->middleware('permission:maids_toggle_pin,admin', ['only' => ['togglePin']]);
         $this->middleware('permission:maids_change_branch,admin', ['only' => ['changeBranch']]);
         $this->middleware('permission:maids_export|maids_export_pdf,admin', ['only' => ['exportPdf', 'downloadGeneratedCv', 'exportGeneratedCvs']]);
@@ -2303,41 +2303,89 @@ class MaidController extends Controller
 
     public function bulkVisibility(Request $request)
     {
-        $validated = $request->validate([
-            'is_show' => ['required', 'boolean'],
-        ]);
+        abort_unless(AdminGuardHasPerm(\App\PermKeys::MAIDS_BULK_VISIBILITY), 403);
+        $filters = $this->visibilityFilters($request);
+        $request->validate(['preview_token' => ['required', 'string', 'size:64']]);
+        $result = app(\App\Services\MaidVisibilityBatchService::class)->apply(
+            $this->visibilityQuery($filters), $filters, auth('admin')->id(), $request->preview_token
+        );
+        return response()->json($result + ['success' => true, 'message' => 'تم تحديث ظهور ' . $result['updated_count'] . ' سيرة ذاتية.']);
+    }
 
-        $isVisible = (bool) $validated['is_show'];
-        $query = objModel::query();
-        $this->applyRecruitmentMaidsScope($query);
-
-        $totalCount = (clone $query)->count();
-        $updatedCount = (clone $query)
-            ->where(function ($visibilityQuery) use ($isVisible) {
-                $visibilityQuery->where('is_show', '!=', $isVisible)
-                    ->orWhereNull('is_show');
-            })
-            ->update([
-                'is_show' => $isVisible,
-                'updated_at' => now(),
-            ]);
-
-        \Log::info('Maid visibility updated in bulk', [
-            'new_status' => $isVisible,
-            'updated_count' => $updatedCount,
-            'total_count' => $totalCount,
-            'admin_id' => auth('admin')->id(),
-        ]);
-
+    public function previewBulkVisibility(Request $request)
+    {
+        abort_unless(AdminGuardHasPerm(\App\PermKeys::MAIDS_BULK_VISIBILITY), 403);
+        $filters = $this->visibilityFilters($request);
+        $maids = $this->visibilityQuery($filters)->reorder('maids.id')->get();
         return response()->json([
-            'success' => true,
-            'message' => __($isVisible
-                ? 'ingaz.maids_bulk_visibility_shown'
-                : 'ingaz.maids_bulk_visibility_hidden', ['count' => $updatedCount]),
-            'is_show' => $isVisible,
-            'updated_count' => $updatedCount,
-            'total_count' => $totalCount,
+            'count' => $maids->count(),
+            'preview_token' => app(\App\Services\MaidVisibilityBatchService::class)->previewToken($maids, $filters),
         ]);
+    }
+
+    public function visibilityBatches()
+    {
+        abort_unless(AdminGuardHasPerm(\App\PermKeys::MAIDS_BULK_VISIBILITY), 403);
+        $batches = \DB::table('maid_visibility_batches')->where('admin_id', auth('admin')->id())->orderByDesc('created_at')->orderByDesc('id')->paginate(20);
+        return response()->json(['batches' => $batches->items(), 'page' => $batches->currentPage(), 'last_page' => $batches->lastPage()]);
+    }
+
+    public function undoVisibilityBatch(string $batch)
+    {
+        abort_unless(AdminGuardHasPerm(\App\PermKeys::MAIDS_BULK_VISIBILITY), 403);
+        $query = $this->visibilityQuery(['is_show' => true, 'statuses' => ['available', 'reserved']]);
+        $result = app(\App\Services\MaidVisibilityBatchService::class)->undo($query, $batch, auth('admin')->id());
+        return response()->json($result + ['message' => 'تم إظهار ' . $result['restored_count'] . ' سيرة، وتخطي ' . $result['skipped_count'] . ' سيرة تغيرت أو لم تعد مؤهلة.']);
+    }
+
+    private function visibilityFilters(Request $request): array
+    {
+        $data = $request->validate([
+            'is_show' => ['required', 'boolean'],
+            'nationality_id' => ['nullable', 'integer', 'exists:nationalities,id'],
+            'office_ids' => ['required', 'array', 'min:1'],
+            'office_ids.*' => ['required', 'integer', 'distinct', 'exists:recruitment_offices,id'],
+            'statuses' => ['required', 'array', 'min:1'],
+            'statuses.*' => ['required', 'distinct', 'in:available,reserved'],
+        ]);
+        $data['is_show'] = (bool) $data['is_show'];
+        $data['nationality_id'] = empty($data['nationality_id']) ? null : (int) $data['nationality_id'];
+        $data['office_ids'] = array_map('intval', $data['office_ids']);
+        sort($data['office_ids']);
+        sort($data['statuses']);
+        return $data;
+    }
+
+    private function visibilityQuery(array $filters)
+    {
+        $query = objModel::query()->without('translations');
+        $this->applyRecruitmentMaidsScope($query);
+        $this->applyEffectiveStatusFilter($query, $filters['statuses']);
+        if (!empty($filters['nationality_id'])) {
+            $query->where('nationality_id', $filters['nationality_id']);
+        }
+        if (!empty($filters['office_ids'])) {
+            $query->whereIn('office_id', $filters['office_ids']);
+        }
+        // Contract checks must include contracts outside the current branch as well.
+        $query->whereDoesntHave('contracts', function ($contracts) {
+            $contracts->withoutGlobalScope(\App\Models\Scopes\BranchScope::class)
+                ->whereNotIn('status', ['closed', 'cancelled', 'canceled', 'refunded', 'back']);
+        });
+        $query->whereDoesntHave('rentalContracts', function ($contracts) {
+            $contracts->withoutGlobalScope(\App\Models\Scopes\BranchScope::class)
+                ->whereNotIn('status', ['closed', 'cancelled', 'canceled', 'completed', 'ended']);
+        });
+        if ($filters['is_show']) {
+            $query->whereNotIn('office_id', \DB::table('recruitment_offices')->whereNotNull('cvs_suspended_at')->select('id'));
+        }
+        $query->where(function ($visibility) use ($filters) {
+            $visibility->where('is_show', '!=', $filters['is_show']);
+            if ($filters['is_show']) {
+                $visibility->orWhereNull('is_show');
+            }
+        });
+        return $query;
     }
 
     public function edit(Request $request, $id, NationalityAction $act, RecruitmentOfficeAction $officeAct, ReligionAction $relAct, JobTitleAction $jobTitleAction, JobTypeAction $jobTypesAction, SkillAction $skillAction)

@@ -32,6 +32,19 @@ class Office extends Model
     protected $with = ['translations'];
     protected $table = 'recruitment_offices';
 
+    protected $casts = [
+        'cvs_suspended_at' => 'datetime',
+        'cvs_suspension_snapshot' => 'array',
+    ];
+
+    /**
+     * هل السير الذاتية الخاصة بهذا المكتب معلّقة حالياً (مخفية عن الموقع والتطبيق)؟
+     */
+    public function cvsAreSuspended(): bool
+    {
+        return $this->cvs_suspended_at !== null;
+    }
+
     public function branchScopeSharedAcrossBranches(): bool
     {
         return false;
