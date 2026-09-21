@@ -13,7 +13,7 @@ final class InvoiceAuthorization
 
     public static function createPermissions(): array
     {
-        return [PermKeys::INVOICES_CREATE, PermKeys::INVOICES_CONTROL];
+        return [PermKeys::INVOICES_CREATE];
     }
 
     public static function exportPermissions(): array

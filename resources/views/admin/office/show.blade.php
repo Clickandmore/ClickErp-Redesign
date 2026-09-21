@@ -179,7 +179,12 @@
                                 </div>
                                 <div class="detail-item">
                                     <span class="detail-label">{{ helperTrans('ingaz.linked_cvs') }}</span>
-                                    <span class="detail-value">{{ $office->maids_count ?? 0 }}</span>
+                                    <span class="detail-value">
+                                        {{ $office->maids_count ?? 0 }}
+                                        @if (($office->cvs_suspended_at ?? null) !== null)
+                                            <span class="badge bg-warning text-dark">{{ helperTrans('ingaz.office_cvs_suspended_badge') }}</span>
+                                        @endif
+                                    </span>
                                 </div>
                                 <div class="detail-item">
                                     <span class="detail-label">{{ helperTrans('ingaz.bank_address') }}</span>

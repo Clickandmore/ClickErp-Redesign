@@ -17,6 +17,7 @@ use App\Models\ContractExternalOfficeDispatch;
 use App\Models\ContractInfo;
 use App\Models\office\Office as objModel;
 use App\Models\ingaz\Maid;
+use App\PermKeys;
 use App\Services\ManagedFileStorage;
 use App\Services\office\OfficeFinanceAccountService;
 use Illuminate\Http\Request;
@@ -44,6 +45,9 @@ class OfficeController extends Controller
         "manager_email", "password", "bank_address", "bank_account", "bank_account_name", 'file', 'file_name',
         "bank_swift_code", "bank_iban", "cost_of_dollar", "cost_of_other", 'job_title_id'];
     public $mainRoute = "offices";
+
+    /** نتيجة فحص عمود تعليق السير، تُحسب مرة واحدة لكل طلب. */
+    private ?bool $supportsCvsSuspension = null;
 
     /**
      * Display a listing of the resource.
@@ -82,8 +86,15 @@ class OfficeController extends Controller
                 ->addColumn('linked_cvs', function ($row) {
                     $count = (int) ($row->linked_cvs_count ?? 0);
                     $url = route('maids.index', ['office_id' => $row->id]);
+                    $badge = $this->renderRelatedCountBadge($count, $url, 'linked-cvs-link');
 
-                    return $this->renderRelatedCountBadge($count, $url, 'linked-cvs-link');
+                    if ($this->officeCvsAreSuspended($row)) {
+                        $badge .= '<div class="cvs-suspended-wrapper"><span class="badge bg-warning text-dark">'
+                            . __('ingaz.office_cvs_suspended_badge')
+                            . '</span></div>';
+                    }
+
+                    return $badge;
                 })
                 ->addColumn('linked_contracts', function ($row) {
                     $count = (int) ($row->linked_contracts_count ?? 0);
@@ -200,6 +211,20 @@ class OfficeController extends Controller
                             . '</a>';
                     }
 
+                    // زر تعليق / فك تعليق السير الذاتية: صلاحية مستقلة عن باقي إجراءات المكتب.
+                    $suspendCvsButton = '';
+                    if (AdminGuardHasPerm(PermKeys::OFFICE_SUSPEND_CVS)) {
+                        $isSuspended = $this->officeCvsAreSuspended($row);
+                        $suspendCvsButton = '<button type="button" class="dropdown-item toggleOfficeCvsSuspension"'
+                            . ' data-id="' . $row->id . '"'
+                            . ' data-suspended="' . ($isSuspended ? '1' : '0') . '"'
+                            . ' data-office-title="' . e($row->title ?? '') . '"'
+                            . ' data-linked-cvs="' . (int) ($row->linked_cvs_count ?? 0) . '">'
+                            . '<i class="fa ' . ($isSuspended ? 'fa-eye' : 'fa-eye-slash') . '"></i> '
+                            . __($isSuspended ? 'ingaz.office_cvs_resume' : 'ingaz.office_cvs_suspend')
+                            . '</button>';
+                    }
+
                     // Action Buttons
                     $actions = '
                                 <div class="actions-dropdown office-actions-dropdown">
@@ -209,6 +234,7 @@ class OfficeController extends Controller
                                     <ul class="office-actions-template">
                                         <li>' . $showButton . '</li>
                                         <li>' . $editButton . '</li>
+                                        <li>' . $suspendCvsButton . '</li>
                                         <li>' . $deleteButton . '</li>
                                         <li>' . $fileButton . '</li>
                                         <li>' . $sendEmailButton . '</li>
@@ -630,6 +656,23 @@ class OfficeController extends Controller
         return DB::table('contract_external_office_dispatches')
             ->selectRaw('COUNT(*)')
             ->whereColumn('contract_external_office_dispatches.recruitment_office_id', 'recruitment_offices.id');
+    }
+
+    /**
+     * هل سير هذا المكتب معلّقة؟ محمي بفحص العمود لأن قواعد بيانات قديمة قد لا تحمل الترحيل بعد.
+     * الفحص يُجرى مرة واحدة لكل طلب لا مرة لكل صف في الجدول.
+     */
+    private function officeCvsAreSuspended($office): bool
+    {
+        if ($this->supportsCvsSuspension === null) {
+            $this->supportsCvsSuspension = Schema::hasColumn('recruitment_offices', 'cvs_suspended_at');
+        }
+
+        if (! $this->supportsCvsSuspension) {
+            return false;
+        }
+
+        return ($office->cvs_suspended_at ?? null) !== null;
     }
 
     private function renderRelatedCountBadge(int $count, string $url, string $class): string

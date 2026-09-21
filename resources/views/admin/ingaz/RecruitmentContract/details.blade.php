@@ -2456,6 +2456,14 @@
                     </a>
                 @endif
 
+                @if (!$contract->invoice && $contract->isInvoiceEligible() && \App\Support\InvoiceAuthorization::canCreate())
+                    <a href="{{ route('invoices.create', ['contract_id' => $contract->id]) }}"
+                        class="btn-icon btn-invoice" title="إضافة فاتورة" aria-label="إضافة فاتورة"
+                        target="_blank" rel="noopener">
+                        <i class="fas fa-file-invoice-dollar"></i>
+                    </a>
+                @endif
+
                 @if ($contract->invoice && \App\Support\InvoiceAuthorization::canView())
                     <a href="{{ route('invoices.show', $contract->invoice->id) }}" class="btn-icon btn-invoice"
                         title="عرض الفاتورة" target="_blank">

@@ -45,7 +45,7 @@ class AdminRoutePermissionMatrixTest extends TestCase
             $permissions = AdminRoutePermissionMatrix::resolve($routeName, Request::create('/'));
 
             $this->assertSame(
-                [PermKeys::INVOICES_CREATE, PermKeys::INVOICES_CONTROL],
+                [PermKeys::INVOICES_CREATE],
                 $permissions,
                 "Route [{$routeName}] must use invoice permissions only."
             );

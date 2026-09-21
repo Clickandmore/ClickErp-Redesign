@@ -119,6 +119,7 @@
         </div>
 
         <div class="topbar-actions">
+            <a class="btn" href="{{ route('dev-superadmin.invoice-corrections.index') }}">تصحيح الفواتير</a>
             <a class="btn" href="{{ \App\Support\SystemModuleManager::defaultDashboardUrl() }}">لوحة الإدارة</a>
             <form method="POST" action="{{ route('dev-superadmin.logout') }}">
                 @csrf

@@ -53,6 +53,12 @@ class FinancialRequest extends Model
         return trans('financial_requests.types');
     }
 
+    public function canChangeAmount(): bool
+    {
+        return ! $this->finance_bond_id && ! $this->paid_at && ! $this->closed_at
+            && in_array($this->status, [self::STATUS_PREPARING, self::STATUS_FOR_APPROVAL, self::STATUS_REJECTED, self::STATUS_APPROVED], true);
+    }
+
     public static function typeFields(): array
     {
         $fields = trans('financial_requests.fields');

@@ -31,8 +31,20 @@ use App\Models\Concerns\BranchScoped;
 
 class Maid extends Model
 {
+    /**
+     * راية داخلية (ليست عموداً): هل أخفى تعليقُ المكتب هذه السيرة عند إنشائها؟
+     * مُعرَّفة صراحةً حتى لا يعاملها Eloquent كخاصية عبر __set فيحاول حفظها.
+     */
+    public bool $hiddenByOfficeSuspension = false;
+
     protected static function booted(): void
     {
+        static::updating(function (self $maid) {
+            // A later edit invalidates automatic rollback, even within the same second.
+            if ($maid->getRawOriginal('visibility_batch_id') && $maid->isDirty()) {
+                $maid->visibility_batch_id = null;
+            }
+        });
         static::saving(function (self $maid) {
             if ($maid->gender !== 'male') {
                 $maid->has_driving_license = null;
@@ -41,6 +53,26 @@ class Maid extends Model
             // مرفق الرخصة لا معنى له بدون رخصة قيادة.
             if (!$maid->has_driving_license) {
                 $maid->driving_license_file = null;
+            }
+        });
+
+        // سيرة تُضاف لمكتب خارجي سيره معلّقة تبقى مخفية، وإلا تسرّب التعليق.
+        static::creating(function (self $maid) {
+            $maid->hiddenByOfficeSuspension = $maid->office_id
+                && app(\App\Services\office\OfficeCvsSuspensionService::class)
+                    ->isSuspendedOffice((int) $maid->office_id);
+
+            if ($maid->hiddenByOfficeSuspension) {
+                $maid->is_show = false;
+            }
+        });
+
+        // تُسجَّل في لقطة التعليق حتى تعود للظهور مع باقي سير المكتب عند فك التعليق.
+        static::created(function (self $maid) {
+            if ($maid->hiddenByOfficeSuspension) {
+                app(\App\Services\office\OfficeCvsSuspensionService::class)
+                    ->recordSuspendedCv((int) $maid->office_id, (int) $maid->getKey());
+                $maid->hiddenByOfficeSuspension = false;
             }
         });
     }
