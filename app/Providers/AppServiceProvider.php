@@ -20,6 +20,7 @@ use Illuminate\Auth\Events\Authenticated;
 use Illuminate\Auth\Events\Login;
 use Illuminate\Auth\Events\Logout;
 use Illuminate\Cache\RateLimiting\Limit;
+use Illuminate\Support\Facades\Blade;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\View;
@@ -48,9 +49,29 @@ class AppServiceProvider extends ServiceProvider
      *
      * @return void
      */
+    /**
+     * ‏@selected و @checked و @disabled و @readonly و @required أُضيفت إلى Blade في Laravel 9؛
+     * على Laravel 8 تُطبع كنص حرفي داخل الوسم (فيظهر الكود بجانب خيارات القوائم).
+     * نسجّلها هنا بنفس سلوك Laravel 9 حتى تعمل كل الواجهات التي تستخدمها.
+     */
+    private function registerConditionalAttributeDirectives(): void
+    {
+        foreach (['selected', 'checked', 'disabled', 'readonly', 'required'] as $attribute) {
+            if (array_key_exists($attribute, Blade::getCustomDirectives())) {
+                continue;
+            }
+
+            Blade::directive($attribute, function ($condition) use ($attribute) {
+                return "<?php if ({$condition}): echo '{$attribute}'; endif; ?>";
+            });
+        }
+    }
+
     public function boot()
     {
         Schema::defaultStringLength(255);
+
+        $this->registerConditionalAttributeDirectives();
 
         // إعدادات إشعارات Firebase المحفوظة من لوحة التحكم تعلو قيم .env، فتستفيد
         // منها خدمات الإرسال عبر config('firebase.*') دون تعديل فيها.
