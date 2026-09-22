@@ -674,7 +674,8 @@ class Maid extends Model
     public function scopeWithoutActiveOrders($query)
     {
         return $query->whereDoesntHave('orders', function ($orderQuery) {
-            $orderQuery->withoutGlobalScopes()->where(function ($statusQuery) {
+            // Check reservations across branches, but deleted orders no longer reserve the maid.
+            $orderQuery->withoutGlobalScopes()->whereNull('orders.deleted_at')->where(function ($statusQuery) {
                 $statusQuery->whereNull('status')
                     ->orWhereNotIn('status', Order::nonBlockingMaidAssignmentStatuses());
             });
