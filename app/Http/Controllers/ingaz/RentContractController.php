@@ -3150,8 +3150,8 @@ class RentContractController extends Controller
 
                 $isCompanyDue = $adjustmentType === 'company_due';
                 $adjustmentLabel = $isCompanyDue
-                    ? 'مستحق للشركة عند إغلاق العقد'
-                    : 'استرجاع عند إغلاق العقد';
+                    ? 'إشعار مدين لتسوية فاتورة العقد عند الإنهاء'
+                    : 'إشعار دائن لتخفيض فاتورة العقد عند الإنهاء';
                 $suggestedAmount = $isCompanyDue
                     ? (float) ($summary['calculated_debit_note_value'] ?? 0)
                     : (float) ($summary['calculated_credit_note_value'] ?? 0);

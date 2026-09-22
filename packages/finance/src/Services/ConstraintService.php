@@ -284,7 +284,7 @@ class ConstraintService extends MainService
         }
         return null;
     }
-    public function filterAccount($dataSearch)
+    public function filterAccount($dataSearch, bool $paginate = false)
     {
         $accountIds = $this->accountStatementAccountIds((int) $dataSearch['account_id']);
 
@@ -322,13 +322,12 @@ class ConstraintService extends MainService
             ->orderBy('fn_constraint_details.date')
             ->orderByRaw('COALESCE(fn_constraints.code, fn_constraints.id)')
             ->orderBy('fn_constraints.id')
-            ->orderBy('fn_constraint_details.id')
-            ->get();
+            ->orderBy('fn_constraint_details.id');
 
-        return $accountStatment;
+        return $paginate ? StatementPaginator::fromQuery($accountStatment) : $accountStatment->get();
     }
 
-    public function filterConstraints($dataSearch)
+    public function filterConstraints($dataSearch, ?array $constraintIds = null)
     {
         $accountIds = $this->accountStatementAccountIds((int) $dataSearch['account_id']);
         $otherAccounts = $this->model->select([
@@ -346,6 +345,8 @@ class ConstraintService extends MainService
         ->when($dataSearch['to_date'] != '', function ($q) use ($dataSearch) {
             return $q->whereDate('fn_constraint_details.date', '<=', $dataSearch['to_date']);
         })
+        ->when($constraintIds !== null, fn ($q) => $q->whereIn('fn_constraints.id', $constraintIds))
+        ->distinct()
         ->with(['accounts' => function ($query) use ($accountIds) {
             return $query->whereNotIn('account_id', $accountIds);
         }])

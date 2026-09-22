@@ -43,9 +43,9 @@ class AccountStatementSupplierController extends Controller
             $selectedAccount = null;
 
             if (!empty($dataSearch['account_id'])) {
-                $data = $service->filterAccount($dataSearch);
+                $data = $service->filterAccount($dataSearch, true);
                 $firstBalance = $service->getFirstBalance($dataSearch);
-                $otherAccount = ($dataSearch["other_account"] == "yes") ? $service->filterConstraints($dataSearch) : [];
+                $otherAccount = ($dataSearch["other_account"] == "yes") ? $service->filterConstraints($dataSearch, $data->pluck('constraint_id')->all()) : [];
                 $selectedAccount = $accountService->find($dataSearch['account_id']);
             }
 

@@ -1,3 +1,4 @@
+@php $pagination = $data instanceof \Nami\Finance\Services\StatementPaginator ? $data : null; @endphp
 @if($data->count() > 0 )
     @php
         $colspan = ($show_other_account == "yes" )? 7:6;
@@ -24,7 +25,7 @@
         </thead>
         <tbody>
         @php
-            $balance = 0 ;
+            $balance = $pagination->previous->balance ?? 0;
             $balanceOther = 0 ;
             $sumCreditorValue = $sumDebtorValue = 0  ;
         @endphp
@@ -36,7 +37,7 @@
                  $trClass = ( $row->debtor_value  == 0  &&  $row->creditor_value == 0 )? "currency-usd":"currency-egp";
             @endphp
             <tr class="{{$trClass}}">
-                <td>{{ ++$key}}</td>
+                <td>{{ $key + ($pagination ? $pagination->firstItem() : 1) }}</td>
                 <td>{{ $row->account_name }}</td>
                 <td>{{ $row->date }}</td>
                 <td>{{ $row->constraint_id }}</td>
@@ -55,6 +56,13 @@
                 <td>{{ $row->name }}</td>
             </tr>
         @endforeach
+        @php
+            if ($pagination) {
+                $sumDebtorValue = $pagination->totals->debtor;
+                $sumCreditorValue = $pagination->totals->creditor;
+                $balance = $pagination->totals->balance;
+            }
+        @endphp
         <tr>
             <td colspan="{{$colspan}}" class="text-center"> {{__('finance::finance.Balance')}}</td>
             <td class="currency-egp">{{ $sumDebtorValue }}</td>
@@ -68,5 +76,6 @@
     <div role="alert" class="alert alert-danger text-center"> {{__('finance::finance.no_data_found')}}</div>
 
 @endif
+@include('finance::finance.account_statement.partials.pagination')
 
 

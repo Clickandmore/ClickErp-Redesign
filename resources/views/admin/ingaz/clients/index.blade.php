@@ -111,10 +111,10 @@
 @endsection
 
 @section('content')
-    <div class="alert alert-info mx-3 mt-3" role="note">
+    {{-- <div class="alert alert-info mx-3 mt-3" role="note">
         <i class="fas fa-info-circle me-1" aria-hidden="true"></i>
         يظهر خيار الحذف فقط للعملاء غير المرتبطين بأي طلبات أو عقود، بما فيها المنتهية والمحذوفة، حفاظًا على بيانات التعاملات. عند حذف العميل يُنقل إلى صفحة العملاء المحذوفين ويمكن استعادته.
-    </div>
+    </div> --}}
     @if (@AdminGuardHasPerm(\App\PermKeys::CLIENTS_VIEW))
         @php
             $stats = $stats ?? [
