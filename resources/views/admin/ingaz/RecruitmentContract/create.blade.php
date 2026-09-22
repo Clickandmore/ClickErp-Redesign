@@ -1180,7 +1180,7 @@
                                                 data-client-phone2="{{ $plainTextValue($order->user->phone2 ?? '') }}"
                                                 data-client-address="{{ $plainTextValue($order->user->address ?? '') }}"
                                                 data-client-city="{{ $plainTextValue($order->user->city ?? '') }}"
-                                                data-client-beds-num="{{ $order->user->beds_num ?? '' }}"
+                                                data-client-beds-num="{{ $order->user->rooms_num ?? $order->user->beds_num ?? '' }}"
                                                 data-client-family-num="{{ $order->user->family_num ?? '' }}"
                                                 data-client-children="{{ $order->user->children ?? '' }}"
                                                 data-client-job="{{ $plainTextValue($order->user->job ?? '') }}"
@@ -3280,6 +3280,12 @@
                     formData.append('account_client_type', $('#tab-order-pane input[name="account_client_type"]:checked').val() || 'person');
                     formData.append('client_national_num', $('#client_national_num').val() || '');
                     formData.append('client_license_number', $('#client_license_number').val() || '');
+                    ['name', 'phone', 'email', 'nationality_id', 'birthdate'].forEach(function(field) {
+                        formData.append('client_' + field, $('#tab-order-pane #client_' + field).val() || '');
+                    });
+                    ['phone2', 'address', 'city', 'beds_num', 'family_num', 'children', 'job'].forEach(function(field) {
+                        formData.append('client_' + field, $('#tab-order-pane #' + field).val() || '');
+                    });
                 }
 
                 console.log('Client data prepared:', {

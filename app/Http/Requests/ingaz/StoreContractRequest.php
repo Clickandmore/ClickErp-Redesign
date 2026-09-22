@@ -48,6 +48,11 @@ class StoreContractRequest extends MainRequest
 
         if ($this->filled('order_id')) {
             $normalizedData['client_type'] = 'ex_client';
+            foreach (['phone2', 'address', 'city', 'beds_num', 'family_num', 'children', 'job'] as $field) {
+                if (!$this->has('client_' . $field) && $this->has($field)) {
+                    $normalizedData['client_' . $field] = $this->input($field);
+                }
+            }
         }
 
         if (
