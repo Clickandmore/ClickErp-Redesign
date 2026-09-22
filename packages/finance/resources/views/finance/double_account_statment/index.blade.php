@@ -148,9 +148,8 @@
             }
             window.location.href = url;
         });
-        $("#search_button").on("click", function(e) {
-            e.preventDefault()
-            var data = $(".search_keys").serialize();
+        function searchAccountStatement(urlOverride = null) {
+            var data = urlOverride ? null : $(".search_keys").serialize();
             let accountId = $("#account_id").val();
 
             if (!accountId || accountId === "") {
@@ -159,7 +158,7 @@
             }
             let url = '{{ route('finance.double-account-statement.index') }}';
             $.ajax({
-                url: url,
+                url: urlOverride || url,
                 type: 'GET',
                 data: data,
                 beforeSend: function() {
@@ -180,14 +179,23 @@
                     handleErrorResponce(errorObj);
                 }
             });
+        }
+        $('#search_button').on('click', function(e) {
+            e.preventDefault();
+            searchAccountStatement();
+        });
+        $('#account_list').on('click', '.statement-pagination a', function(e) {
+            e.preventDefault();
+            searchAccountStatement(this.href);
         });
     </script>
     <script src="{{ asset('plugins') }}/exelJs/dist/tableToExcel.517b1af9.js"></script>
+    <script src="{{ asset('admin/assets/js/statement-export.js') }}"></script>
     <script>
         var button = document.querySelector('#toExcel');
-        button.addEventListener('click', function(e) {
+        if (button) button.addEventListener('click', function(e) {
             var table = document.querySelector('#simpleTable4');
-            TableToExcel.convert(table);
+            exportFullStatement(@json(route('finance.double-account-statement-print.index')) + '?' + $('.search_keys').serialize(), this);
         });
     </script>
 @endsection

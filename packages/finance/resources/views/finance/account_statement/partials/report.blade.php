@@ -1,7 +1,8 @@
 @php
     $filters = $filters ?? [];
     $isPrint = $isPrint ?? false;
-    $rows = collect($data ?? []);
+    $pagination = $data instanceof \Nami\Finance\Services\StatementPaginator ? $data : null;
+    $rows = $pagination ? $pagination->getCollection() : collect($data ?? []);
     $showOtherAccount = ($show_other_account ?? data_get($filters, 'other_account', 'no')) === 'yes';
     $colspan = $showOtherAccount ? 6 : 5;
     $showDollarEquivalent = $showDollarEquivalent ?? false;
@@ -87,7 +88,7 @@
         }
     }
 
-    $runningBalance = $openingBalance;
+    $runningBalance = $openingBalance + ($pagination->previous->balance ?? 0);
     $totalDebtor = $openingDebtor;
     $totalCreditor = $openingCreditor;
     $preparedRows = [];
@@ -114,7 +115,7 @@
         }
 
         $preparedRows[] = [
-            'index' => $index + 1,
+            'index' => $index + ($pagination ? $pagination->firstItem() : 1),
             'date' => $row->date,
             'formatted_date' => filled($row->date) ? \Carbon\Carbon::parse($row->date)->format('d/m/Y') : '-',
             'constraint_id' => $row->constraint_id,
@@ -132,6 +133,12 @@
             'other_accounts' => collect(data_get($otherAccount ?? [], $row->constraint_id . '.accounts', [])),
             'is_zero' => $rowDebtorValue === 0.0 && $rowCreditorValue === 0.0,
         ];
+    }
+
+    if ($pagination) {
+        $totalDebtor = $openingDebtor + $pagination->totals->debtor;
+        $totalCreditor = $openingCreditor + $pagination->totals->creditor;
+        $runningBalance = round($openingBalance + $pagination->totals->balance, 2);
     }
 
     $hasData = $hasOpeningBalance || count($preparedRows) > 0;
@@ -196,7 +203,7 @@
     <div class="statement-summary-grid">
         <article class="statement-summary-card">
             <span>عدد القيود</span>
-            <strong>{{ count($preparedRows) }}</strong>
+            <strong>{{ $pagination ? $pagination->total() : count($preparedRows) }}</strong>
             <small>خلال الفترة المحددة فقط</small>
         </article>
 
@@ -292,6 +299,14 @@
                             </tr>
                         @endif
 
+                        @if ($pagination && $pagination->currentPage() > 1)
+                            <tr class="statement-row statement-row--opening">
+                                <td colspan="{{ $colspan + 2 }}" class="text-center">الرصيد المرحّل من الصفحة السابقة</td>
+                                <td class="statement-balance-cell">{!! $formatStatementMoney($openingBalance + $pagination->previous->balance) !!}</td>
+                                <td>-</td>
+                            </tr>
+                        @endif
+
                         @foreach ($preparedRows as $item)
                             <tr class="statement-row {{ $item['is_zero'] ? 'statement-row--muted' : '' }}">
                                 <td class="statement-cell--index">{{ $item['index'] }}</td>
@@ -369,3 +384,6 @@
         </div>
     @endif
 </div>
+@if (! $isPrint)
+    @include('finance::finance.account_statement.partials.pagination')
+@endif

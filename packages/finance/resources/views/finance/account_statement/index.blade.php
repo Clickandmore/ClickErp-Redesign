@@ -1068,13 +1068,13 @@
             `);
         }
 
-        function searchAccountStatement() {
+        function searchAccountStatement(urlOverride = null) {
             const data = filtersContainer.find('.search_keys').serialize();
 
             $.ajax({
-                url: statementBaseUrl,
+                url: urlOverride || statementBaseUrl,
                 type: 'GET',
-                data: data,
+                data: urlOverride ? null : data,
                 beforeSend: function() {
                     renderLoadingState();
                 },
@@ -1099,6 +1099,11 @@
             searchAccountStatement();
         });
 
+        resultsContainer.on('click', '.statement-pagination a', function(e) {
+            e.preventDefault();
+            searchAccountStatement(this.href);
+        });
+
         filtersContainer.on('keydown', function(e) {
             if (e.key === 'Enter') {
                 e.preventDefault();
@@ -1112,6 +1117,7 @@
     </script>
 
     <script src="{{ asset('plugins') }}/exelJs/dist/tableToExcel.517b1af9.js"></script>
+    <script src="{{ asset('admin/assets/js/statement-export.js') }}"></script>
     <script>
         const excelButton = document.querySelector('#toExcel');
 
@@ -1123,7 +1129,7 @@
                     return;
                 }
 
-                TableToExcel.convert(table);
+                exportFullStatement(printBaseUrl + '?' + filtersContainer.find('.search_keys').serialize(), this);
             });
         }
     </script>
