@@ -3380,9 +3380,8 @@ class RecruitmentContractController extends Controller
                     ], 422);
                 }
 
-                // بيانات العميل تُدار من صفحة العملاء فقط. إنشاء العقد لا يجوز أن
-                // يغيّر هوية العميل أو بياناته لأن كل العقود السابقة تشير للسجل نفسه.
                 $user = $order->user;
+                app(\App\Services\ingaz\RecruitmentOrderClientCompletionService::class)->complete($user, $request);
 
                 $contractData['user_id'] = $order->user_id;
                 $contractData['maid_id'] = $shouldCreateWithoutAssignedMaid ? null : $order->maid_id;
@@ -3575,6 +3574,14 @@ class RecruitmentContractController extends Controller
                 'contract_id' => $contract->id,
                 'contract' => $contract->load(['user', 'maid', 'info'])
             ]);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            DB::rollBack();
+
+            return response()->json([
+                'success' => false,
+                'message' => 'يرجى مراجعة بيانات العميل',
+                'errors' => $e->errors(),
+            ], 422);
         } catch (QueryException $e) {
             DB::rollBack();
 
