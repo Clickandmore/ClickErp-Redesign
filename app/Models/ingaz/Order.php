@@ -47,6 +47,10 @@ class Order extends Model
 
     protected static function booted()
     {
+        static::deleted(function (Order $order) {
+            app(\App\Services\OrderMaidReservationService::class)->release($order);
+        });
+
         static::creating(function (Order $order) {
             if (self::shouldTrackDeadline($order->status)) {
                 $order->deadline_at = now()->addHours($order->getDeadlineHours());

@@ -737,7 +737,6 @@ class OrderController extends Controller
             } else {
                 $order->delete();
             }
-            app(\App\Services\OrderMaidReservationService::class)->release($order);
         });
         return jsonSuccess(['success' => true], __("ingaz.order_deleted_successfully"), 200);
     }
