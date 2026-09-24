@@ -46,7 +46,9 @@
           enctype="multipart/form-data">
         @csrf
         @method('PUT')
+        @if (@AdminGuardHasPerm(\App\PermKeys::SETTINGS_CONTROL))
         <input type="hidden" name="admin_quick_links_empty" value="1">
+        @endif
 
         <div class="col-12">
             <h6 class="text-muted mb-2">{{ __('admin.settings_site_data') }}</h6>
@@ -87,6 +89,7 @@
             <hr>
         </div>
 
+        @if (@AdminGuardHasPerm(\App\PermKeys::SETTINGS_VIEW))
         <div class="col-12">
             <div class="alert alert-info mb-0">
                 {{ __('admin.settings_forms_moved_notice_before') }}
@@ -94,6 +97,8 @@
                 {{ __('admin.settings_forms_moved_notice_after') }}
             </div>
         </div>
+
+        @endif
 
         <div class="col-12">
             <hr>
@@ -155,6 +160,7 @@
             <hr>
         </div>
 
+        @if (@AdminGuardHasPerm(\App\PermKeys::SETTINGS_CONTROL))
         <div class="col-12">
             <h6 class="text-muted mb-2">{{ __('admin.settings_quick_header_links') }}</h6>
             <p class="text-muted small mb-3">{{ __('admin.settings_quick_header_links_table_hint') }}</p>
@@ -276,6 +282,7 @@
                 });
             </script>
         </div>
+        @endif
 
         <div class="col-12">
             <hr>
@@ -336,7 +343,7 @@
         </div>
 
         <div class="col-12 text-end">
-            @if (@AdminGuardHasPerm(\App\PermKeys::SETTINGS_CONTROL))
+            @if (@AdminGuardHasAnyPerm([\App\PermKeys::SETTINGS_CONTROL, \App\PermKeys::WEBSITE_SETTINGS_CONTROL]))
                 <button class="btn btn-primary" type="submit">{{ __('buttons.save') }}</button>
             @endif
         </div>

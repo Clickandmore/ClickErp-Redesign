@@ -225,6 +225,11 @@ class AdminRoutePermissionMatrix
             return [];
         }
 
+        if ($routeName === 'settings.section'
+            && WebsiteSettingsAccess::isWebsiteSection($request?->route('section'))) {
+            return [PermKeys::SETTINGS_VIEW, PermKeys::WEBSITE_SETTINGS_CONTROL];
+        }
+
         foreach (self::definitions() as $pattern => $resolver) {
             if (!Str::is($pattern, $routeName)) {
                 continue;
@@ -804,14 +809,14 @@ class AdminRoutePermissionMatrix
     private static function settingsDefinitions(): array
     {
         return [
-            'settings.index' => [PermKeys::SETTINGS_VIEW],
+            'settings.index' => [PermKeys::SETTINGS_VIEW, PermKeys::WEBSITE_SETTINGS_CONTROL],
             'settings.section' => [PermKeys::SETTINGS_VIEW],
             'settings.cv-template.edit' => [PermKeys::SETTINGS_CV_TEMPLATE],
             'settings.cv-template.update' => [PermKeys::SETTINGS_CV_TEMPLATE],
             'settings.cv-options.edit' => [PermKeys::SETTINGS_CV_OPTIONS],
             'settings.cv-options.update' => [PermKeys::SETTINGS_CV_OPTIONS],
             'settings.store' => [PermKeys::SETTINGS_CONTROL],
-            'settings.update' => [PermKeys::SETTINGS_CONTROL],
+            'settings.update' => [PermKeys::SETTINGS_CONTROL, PermKeys::WEBSITE_SETTINGS_CONTROL],
             'moyasar-settings.edit' => [PermKeys::MOYASAR_SETTINGS],
             'moyasar-settings.update' => [PermKeys::MOYASAR_SETTINGS],
             'recruitment-contract-stages.edit' => [PermKeys::SETTINGS_VIEW],

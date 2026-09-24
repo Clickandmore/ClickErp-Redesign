@@ -234,6 +234,7 @@ return [
     // ========================================
     // Settings
     // ========================================
+    'website_settings_control' => 'Manage External Website Settings',
     'settings_view' => 'View Settings',
     'settings_edit' => 'Edit Settings',
     'settings_control' => 'Control Settings',

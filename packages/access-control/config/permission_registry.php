@@ -44,6 +44,13 @@ return array (
   ),
   'permissions' => 
   array (
+    'website_settings_control' => array (
+      'name' => 'website_settings_control',
+      'group' => 'settings',
+      'section' => 'settings',
+      'display_name' => 'إدارة إعدادات الموقع الخارجي',
+      'description' => 'عرض وتعديل إعدادات الموقع الخارجي وSEO دون إعدادات النظام الداخلية',
+    ),
     0 => 
     array (
       'name' => 'dashboard_view',
