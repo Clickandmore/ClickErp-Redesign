@@ -14,7 +14,13 @@ class SettingRequest extends MainRequest
      */
     public function authorize()
     {
-        return true;
+        $admin = auth('admin')->user();
+        if (\App\Support\AdminRoutePermissionMatrix::adminHasAnyPermission($admin, [\App\PermKeys::SETTINGS_CONTROL])) {
+            return true;
+        }
+
+        return \App\Support\AdminRoutePermissionMatrix::adminHasAnyPermission($admin, [\App\PermKeys::WEBSITE_SETTINGS_CONTROL])
+            && \App\Support\WebsiteSettingsAccess::allowsPayload($this->all());
     }
 
     /**

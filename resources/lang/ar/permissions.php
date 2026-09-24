@@ -144,6 +144,7 @@ return array (
   'sponsor_transfer_delete' => 'حذف نقل الخدمات',
   'sponsor_transfer_control' => 'التحكم في نقل الخدمات',
   'sponsor_transfer_add_payment' => 'إضافة دفعة لطلب نقل الخدمات',
+    'website_settings_control' => 'إدارة إعدادات الموقع الخارجي',
   'settings_view' => 'عرض الإعدادات',
   'settings_edit' => 'تعديل الإعدادات',
   'settings_control' => 'التحكم في الإعدادات',

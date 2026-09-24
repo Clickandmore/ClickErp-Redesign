@@ -105,6 +105,7 @@
                     <a class="nav-link {{ $activeSection === 'seo' ? 'active' : '' }}" href="{{ route('settings.section', 'seo') }}">
                         <span class="fw-semibold">{{ __('admin.settings_section_seo') }}</span>
                     </a>
+                    @if (@AdminGuardHasPerm(\App\PermKeys::SETTINGS_VIEW))
                     <a class="nav-link {{ $activeSection === 'zoho' ? 'active' : '' }}" href="{{ route('dash.settings.zoho') }}">
                         <span class="fw-semibold">إعدادات Zoho SalesIQ</span>
                     </a>
@@ -114,6 +115,7 @@
                     <a class="nav-link {{ $activeSection === 'announcements' ? 'active' : '' }}" href="{{ route('dash.settings.announcements') }}">
                         <span class="fw-semibold">{{ __('admin.settings_section_announcements') }}</span>
                     </a>
+                    @endif
                 </nav>
             </div>
 
@@ -126,7 +128,7 @@
                                 default => \App\PermKeys::SETTINGS_VIEW,
                             };
                         @endphp
-                        @if (@AdminGuardHasPerm($sectionPermission))
+                        @if (@AdminGuardHasPerm($sectionPermission) || (\App\Support\WebsiteSettingsAccess::isWebsiteSection($activeSection) && @AdminGuardHasPerm(\App\PermKeys::WEBSITE_SETTINGS_CONTROL)))
                             <div class="d-flex flex-wrap align-items-center justify-content-between mb-3">
                                 <div>
                                     <h5 class="mb-1">@yield('settings-title')</h5>

@@ -236,6 +236,7 @@ const PARTENR_CONTROL = 'partenr_control';
     // ========================================
     // الإعدادات
     // ========================================
+    const WEBSITE_SETTINGS_CONTROL = 'website_settings_control';
     const SETTINGS_VIEW = 'settings_view';
     const SETTINGS_EDIT = 'settings_edit';
     const SETTINGS_CONTROL = 'settings_control';
