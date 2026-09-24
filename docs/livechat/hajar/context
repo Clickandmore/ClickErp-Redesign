@@ -3,11 +3,9 @@ info answers;
 companyName = "شركة هجر للاستقدام";
 webUrl = "https://hajar.sa";
 apiUrl = "https://hajar.sa/api";
-riyadhOperator = "live-chat1@hajar.sa";
-ahsaOperator = "live-chat2@hajar.sa";
+supportOperators = { "live-chat1@hajar.sa", "live-chat2@hajar.sa" };
 mainOptions = { "طلب استقدام", "تأجير", "نقل كفالة", "متابعة طلب", "شكوى", "اتصال", "إنهاء"};
 afterOptions = { "القائمة الرئيسية", "متابعة طلب", "إنهاء"};
-branchOptions = { "فرع الرياض", "فرع الأحساء", "القائمة الرئيسية", "إنهاء"};
 welcomeReplies = {
     "حياكم وبياكم في موقع شركة هجر للاستقدام ✨",
     "نفرح بزيارتكم، ونسعد بخدمتكم على أكمل وجه.",
@@ -35,33 +33,6 @@ catch (e) {
 response.put("action", "context");
 response.put("context_id", context_id);
 if (context_id.equals("service_estqdam")) {
-    branchName = answers.get("branch").get("text");
-    if (branchName.containsIgnoreCase("انهاء") || branchName.containsIgnoreCase("إنهاء")) {
-        response.put("action", "end");
-        response.put("replies", {
-            "شكراً لتواصلك مع " + companyName + ".",
-            "يسعدنا خدمتك دائماً."
-        });
-        return response;
-    }
-    if (branchName.containsIgnoreCase("الرئيسية") || branchName.containsIgnoreCase("القائمة الرئيسية")) {
-        response.put("action", "reply");
-        response.put("replies", welcomeReplies);
-        response.put("input", { "type": "select", "options": mainOptions });
-        return response;
-    }
-    if (branchName.containsIgnoreCase("فرع الرياض")) {
-        response.put("action", "forward");
-        response.put("operators", { riyadhOperator });
-        response.put("replies", { "جاري تحويلك إلى المختص بقسم فرع الرياض."});
-        return response;
-    }
-    if (branchName.containsIgnoreCase("فرع الأحساء") || branchName.containsIgnoreCase("فرع الاحساء")) {
-        response.put("action", "forward");
-        response.put("operators", { ahsaOperator });
-        response.put("replies", { "جاري تحويلك إلى المختص بقسم فرع الأحساء."});
-        return response;
-    }
     if (!answers.containsKey("new_request")) {
         optionList = Collection();
         optionValues = Collection();
@@ -85,10 +56,6 @@ if (context_id.equals("service_estqdam")) {
         question = { "name": "new_request", "replies": { "اختر الجنسية:"}, "input": { "type": "select", "options": optionList, "values": optionValues } };
         response.put("questions", { question });
         return response;
-    }
-    branchCode = "riyadh";
-    if (branchName.containsIgnoreCase("الأحساء") || branchName.containsIgnoreCase("الاحساء") || branchName.containsIgnoreCase("أحساء") || branchName.containsIgnoreCase("احساء")) {
-        branchCode = "ahsa";
     }
     new_request = answers.get("new_request").get("text");
     new_request_value = new_request;
@@ -115,7 +82,7 @@ if (context_id.equals("service_estqdam")) {
         return response;
     }
     if (new_request.containsIgnoreCase("جميع") || new_request_value == "all") {
-        url = webUrl + "/all-workers?type=estqdam&branch=" + branchCode;
+        url = webUrl + "/all-workers?type=estqdam";
     }
     else {
         id_nationality = new_request_value;
@@ -129,56 +96,25 @@ if (context_id.equals("service_estqdam")) {
             response.put("input", { "type": "select", "options": afterOptions });
             return response;
         }
-        url = webUrl + "/all-workers?type=estqdam&branch=" + branchCode + "&nationality_id=" + id_nationality;
+        url = webUrl + "/all-workers?type=estqdam&nationality_id=" + id_nationality;
     }
     response.put("action", "reply");
-    question = { "type": "links", "text": "السير الذاتية المتاحة - " + branchName + ":", "links": {{ "url": url, "text": "عرض السير الذاتية" }
+    question = { "type": "links", "text": "السير الذاتية المتاحة:", "links": {{ "url": url, "text": "عرض السير الذاتية" }
 }};
 response.put("replies", { question });
 response.put("input", { "type": "select", "options": afterOptions });
 return response;
 }
 else if (context_id.equals("service_rent") || context_id.equals("service_transfer")) {
-    branchName = answers.get("branch").get("text");
-    if (branchName.containsIgnoreCase("انهاء") || branchName.containsIgnoreCase("إنهاء")) {
-        response.put("action", "end");
-        response.put("replies", {
-            "شكراً لتواصلك مع " + companyName + ".",
-            "يسعدنا خدمتك دائماً."
-        });
-        return response;
-    }
-    if (branchName.containsIgnoreCase("الرئيسية") || branchName.containsIgnoreCase("القائمة الرئيسية")) {
-        response.put("action", "reply");
-        response.put("replies", welcomeReplies);
-        response.put("input", { "type": "select", "options": mainOptions });
-        return response;
-    }
-    if (branchName.containsIgnoreCase("فرع الرياض")) {
-        response.put("action", "forward");
-        response.put("operators", { riyadhOperator });
-        response.put("replies", { "جاري تحويلك إلى المختص بقسم فرع الرياض."});
-        return response;
-    }
-    if (branchName.containsIgnoreCase("فرع الأحساء") || branchName.containsIgnoreCase("فرع الاحساء")) {
-        response.put("action", "forward");
-        response.put("operators", { ahsaOperator });
-        response.put("replies", { "جاري تحويلك إلى المختص بقسم فرع الأحساء."});
-        return response;
-    }
-    branchCode = "riyadh";
-    if (branchName.containsIgnoreCase("الأحساء") || branchName.containsIgnoreCase("الاحساء") || branchName.containsIgnoreCase("أحساء") || branchName.containsIgnoreCase("احساء")) {
-        branchCode = "ahsa";
-    }
     serviceType = "egar";
     serviceText = "التأجير";
     if (context_id.equals("service_transfer")) {
         serviceType = "transfer";
         serviceText = "نقل كفالة";
     }
-    url = webUrl + "/all-workers?type=" + serviceType + "&branch=" + branchCode;
+    url = webUrl + "/all-workers?type=" + serviceType;
     response.put("action", "reply");
-    question = { "type": "links", "text": "المتاح لخدمة " + serviceText + " - " + branchName + ":", "links": {{ "url": url, "text": "عرض المتاح" }
+    question = { "type": "links", "text": "المتاح لخدمة " + serviceText + ":", "links": {{ "url": url, "text": "عرض المتاح" }
 }};
 response.put("replies", { question });
 response.put("input", { "type": "select", "options": afterOptions });
@@ -240,23 +176,17 @@ else if (context_id.equals("help")) {
 }
 else if (context_id.equals("call_request")) {
     if (answers.containsKey("callUserName")) {
-        branchName = answers.get("branch").get("text");
         callUserName = answers.get("callUserName").get("text");
         callUserPhone = visitor.get("phone");
         if (callUserPhone == null || callUserPhone == "") {
             response.put("action", "forward");
-            if (branchName.containsIgnoreCase("الرياض")) {
-                response.put("operators", { riyadhOperator });
-            }
-            else {
-                response.put("operators", { ahsaOperator });
-            }
-            response.put("replies", { "تعذر قراءة رقم واتساب تلقائياً، جاري تحويلك إلى مختص الفرع."});
+            response.put("operators", supportOperators);
+            response.put("replies", { "تعذر قراءة رقم واتساب تلقائياً، جاري تحويلك إلى أحد المختصين."});
             return response;
         }
         payload = Map();
-        payload.put("subject", "طلب اتصال عبر الشات - " + branchName);
-        payload.put("message", "طلب اتصال عبر الشات - الفرع: " + branchName);
+        payload.put("subject", "طلب اتصال عبر الشات");
+        payload.put("message", "طلب اتصال عبر الشات");
         payload.put("phone", callUserPhone);
         payload.put("name", callUserName);
         payload.put("complaint_type_name", "طلب اتصال");
@@ -282,7 +212,7 @@ else if (context_id.equals("call_request")) {
             response.put("action", "reply");
             response.put("replies", {
                 "تم إرسال طلب الاتصال بنجاح.",
-                "الفرع: " + branchName + " | الاسم: " + callUserName,
+                "الاسم: " + callUserName,
                 "تم اعتماد رقم واتساب المسجل في المحادثة تلقائياً.",
                 "سيتواصل معك أحد موظفينا قريباً."
             });
@@ -297,24 +227,18 @@ else if (context_id.equals("call_request")) {
 }
 else if (context_id.equals("complaints")) {
     if (answers.containsKey("complaintUserDetails")) {
-        branchName = answers.get("branch").get("text");
         complaintUserDetails = answers.get("complaintUserDetails").get("text");
         complaintUserPhone = visitor.get("phone");
         complaintUserName = answers.get("complaintUserName").get("text");
         if (complaintUserPhone == null || complaintUserPhone == "") {
             response.put("action", "forward");
-            if (branchName.containsIgnoreCase("الرياض")) {
-                response.put("operators", { riyadhOperator });
-            }
-            else {
-                response.put("operators", { ahsaOperator });
-            }
-            response.put("replies", { "تعذر قراءة رقم واتساب تلقائياً، جاري تحويلك إلى مختص الفرع."});
+            response.put("operators", supportOperators);
+            response.put("replies", { "تعذر قراءة رقم واتساب تلقائياً، جاري تحويلك إلى أحد المختصين."});
             return response;
         }
         payload = Map();
-        payload.put("subject", "شكوى عبر الشات - " + branchName);
-        payload.put("message", "الفرع: " + branchName + " - تفاصيل الشكوى: " + complaintUserDetails);
+        payload.put("subject", "شكوى عبر الشات");
+        payload.put("message", "تفاصيل الشكوى: " + complaintUserDetails);
         payload.put("phone", complaintUserPhone);
         payload.put("name", complaintUserName);
         payload.put("complaint_type_name", "شكوى عبر الشات");
@@ -339,7 +263,7 @@ else if (context_id.equals("complaints")) {
         if (submit_info != null && submit_info.get('status') == 1) {
             success_replies = Collection();
             success_replies.insert("تم تسجيل الشكوى بنجاح.");
-            success_replies.insert("الفرع: " + branchName + " | الاسم: " + complaintUserName);
+            success_replies.insert("الاسم: " + complaintUserName);
             success_replies.insert("تم اعتماد رقم واتساب المسجل في المحادثة تلقائياً.");
             ticket_code = submit_info.get("ticket_code");
             if (ticket_code != null) {

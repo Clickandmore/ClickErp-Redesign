@@ -25,9 +25,10 @@ class OrderMaidReservationService
 
     public function release(Order $order): void
     {
+        if (!$order->maid_id) { return; }
         DB::transaction(function () use ($order) {
             $maid = Maid::withoutGlobalScopes()->lockForUpdate()->find($order->maid_id);
-            if (!$maid || !in_array($maid->status, ['reserved', 'available'], true)
+            if (!$maid || $maid->trashed() || !in_array($maid->status, ['reserved', 'available'], true)
                 || $this->hasOtherCommitment($maid->id, $order->id)) { return; }
             $maid->update(['status' => 'available', 'available' => true, 'available_at' => now()]);
         });
