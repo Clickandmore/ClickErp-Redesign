@@ -151,9 +151,7 @@ class PostArrivalRefundService
         return DB::transaction(function () use ($settlement) {
             $settlement = ContractReturnSettlement::query()->with(['contract.invoice.recruitmentCreditNotes', 'contract.user', 'contract.maid.office', 'lines'])->lockForUpdate()->findOrFail($settlement->id);
             if ($settlement->status !== 'draft') return $settlement;
-            $eligibleOperationalState = in_array((string) $settlement->contract->status, ['back', 'refunded', 'shelter'], true)
-                || $settlement->contract->returnRequests()->where('status', 'approved')->exists()
-                || (bool) $settlement->contract->info?->shelter_id;
+            $eligibleOperationalState = $this->commissionService->isReturned($settlement->contract);
             if (! $eligibleOperationalState) {
                 throw ValidationException::withMessages([
                     'contract_id' => 'يمكن تجهيز المسودة الآن، لكن يجب اعتماد طلب الإرجاع أو إدخال العاملة إلى الإيواء قبل اعتماد المستند وإنشاء القيود.',

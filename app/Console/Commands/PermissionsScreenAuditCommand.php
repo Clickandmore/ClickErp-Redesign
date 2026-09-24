@@ -4,6 +4,7 @@ namespace App\Console\Commands;
 
 use App\Http\Controllers\Permissions\PermissionsController;
 use App\Models\Permission;
+use App\Support\AdminPermissionNavigation;
 use Illuminate\Console\Command;
 use ReflectionMethod;
 
@@ -24,41 +25,6 @@ class PermissionsScreenAuditCommand extends Command
         {--guard=admin : الحارس المراد فحصه}';
 
     protected $description = 'فحص شاشة الصلاحيات /dash/perms: تطابق المسميات مع القائمة الجانبية، الترتيب، والتكرار.';
-
-    /**
-     * ترتيب القائمة الجانبية المرجعي: كل عنصر قائمة والقسم الذي يُفترض أن يقابله في الشاشة.
-     * المصدر: resources/views/admin/layout/inc/sidebar.blade.php
-     *
-     * @var array<int, array{label: string, section: string|null}>
-     */
-    private const SIDEBAR_ORDER = [
-        ['label' => 'الرئيسية', 'section' => 'dashboard'],
-        ['label' => 'إدارة العملاء (CRM)', 'section' => 'clients'],
-        ['label' => 'إدارة السير الذاتية', 'section' => 'cv_management'],
-        ['label' => 'إدارة الطلبات (الحجوزات)', 'section' => 'orders'],
-        ['label' => 'عقود الاستقدام', 'section' => 'recruitment_contracts'],
-        ['label' => 'عقود التأجير', 'section' => 'rent_contracts'],
-        ['label' => 'تفاويض الإنجاز', 'section' => null],
-        ['label' => 'إدارة الإيواء', 'section' => 'shelter_management'],
-        ['label' => 'نقل الخدمات', 'section' => 'additional_services'],
-        ['label' => 'الخدمات اللوجستية', 'section' => 'travel_management'],
-        ['label' => 'إدارة الشكاوى', 'section' => 'complaints'],
-        ['label' => 'إدارة الوكلاء', 'section' => null],
-        ['label' => 'إدارة الطلبات المالية', 'section' => null],
-        ['label' => 'إدارة التقارير', 'section' => 'reports'],
-        ['label' => 'إدارة الموارد البشرية', 'section' => null],
-        ['label' => 'إدارة الماليات', 'section' => null],
-        ['label' => 'إدارة الرسائل', 'section' => null],
-        ['label' => 'إعدادات لوحة التحكم', 'section' => 'settings'],
-        ['label' => 'إعدادات موقع العميل', 'section' => 'content_management'],
-        ['label' => 'إعدادات التأجير', 'section' => 'packages_management'],
-        ['label' => 'إعدادات السير الذاتية', 'section' => 'maids_settings'],
-        ['label' => 'إعدادات الاستقدام', 'section' => null],
-        ['label' => 'إدارة الفروع', 'section' => null],
-        ['label' => 'التحكم بالوصول', 'section' => 'users_management'],
-        ['label' => 'الدعم', 'section' => null],
-        ['label' => 'إعدادات النظام الداخلية', 'section' => null],
-    ];
 
     public function handle(): int
     {
@@ -118,15 +84,6 @@ class PermissionsScreenAuditCommand extends Command
     }
 
     /**
-     * العنوان الخام يُكتشف بغياب أي حرف عربي فيه: getSectionTitle/getGroupTitle
-     * ترجع المفتاح نفسه عندما لا يوجد له عنوان معرّف.
-     */
-    private function isRawKey(string $title): bool
-    {
-        return !preg_match('/\p{Arabic}/u', $title);
-    }
-
-    /**
      * @param array<int, array<string, mixed>> $sections
      * @return array<int, array{key: string, permissions: int}>
      */
@@ -134,7 +91,7 @@ class PermissionsScreenAuditCommand extends Command
     {
         return array_values(array_map(
             fn (array $section) => ['key' => $section['key'], 'permissions' => (int) $section['permissions_count']],
-            array_filter($sections, fn (array $section) => $this->isRawKey((string) $section['title']))
+            array_filter($sections, fn (array $section) => !AdminPermissionNavigation::hasSection((string) $section['key']))
         ));
     }
 
@@ -148,7 +105,7 @@ class PermissionsScreenAuditCommand extends Command
 
         foreach ($sections as $section) {
             foreach ($section['groups'] as $group) {
-                if ($this->isRawKey((string) $group['title'])) {
+                if (!AdminPermissionNavigation::hasGroup((string) $group['key'])) {
                     $rows[] = [
                         'section' => $section['key'],
                         'key' => $group['key'],
@@ -224,15 +181,11 @@ class PermissionsScreenAuditCommand extends Command
     private function sidebarGaps(array $sections): array
     {
         $present = array_column($sections, 'key');
-        $gaps = [];
 
-        foreach (self::SIDEBAR_ORDER as $item) {
-            if ($item['section'] === null || !in_array($item['section'], $present, true)) {
-                $gaps[] = $item['label'];
-            }
-        }
-
-        return $gaps;
+        return array_values(array_map(
+            fn (string $section) => AdminPermissionNavigation::sectionTitle($section),
+            array_diff(AdminPermissionNavigation::sectionOrder(), $present)
+        ));
     }
 
     /**
@@ -244,13 +197,10 @@ class PermissionsScreenAuditCommand extends Command
     private function orderMismatches(array $sections): array
     {
         $screenPosition = array_flip(array_column($sections, 'key'));
-        $expected = [];
-
-        foreach (self::SIDEBAR_ORDER as $item) {
-            if ($item['section'] !== null && isset($screenPosition[$item['section']])) {
-                $expected[] = $item['section'];
-            }
-        }
+        $expected = array_values(array_filter(
+            AdminPermissionNavigation::sectionOrder(),
+            fn (string $section) => isset($screenPosition[$section])
+        ));
 
         $actual = $expected;
         usort($actual, fn (string $first, string $second) => $screenPosition[$first] <=> $screenPosition[$second]);
@@ -304,13 +254,7 @@ class PermissionsScreenAuditCommand extends Command
      */
     private function declaredSectionOrder(): array
     {
-        return [
-            'dashboard', 'clients', 'cv_management', 'orders', 'operations',
-            'recruitment_contracts', 'rent_contracts', 'shelter_management',
-            'travel_management', 'complaints', 'additional_services', 'reports',
-            'packages_management', 'modules', 'content_management', 'settings',
-            'maids_settings', 'users_management', 'other',
-        ];
+        return AdminPermissionNavigation::sectionOrder();
     }
 
     /**

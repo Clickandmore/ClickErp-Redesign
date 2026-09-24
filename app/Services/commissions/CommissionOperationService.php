@@ -194,7 +194,7 @@ class CommissionOperationService
         );
 
         return $query
-            ->with(['user:id,name', 'order:id,order_code', 'invoice', 'info'])
+            ->with(['user:id,name', 'order:id,order_code', 'invoice', 'info', 'returnRequests:id,contract_id,status'])
             ->get()
             ->map(function (Contract $contract) {
                 $base = (float) ($contract->invoice?->total_due

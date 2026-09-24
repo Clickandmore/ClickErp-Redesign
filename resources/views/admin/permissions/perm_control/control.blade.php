@@ -240,11 +240,13 @@
             justify-content: flex-end;
         }
 
+        /* قسم واحد في كل صف. العمودان السابقان كانا يضغطان جدول الصلاحيات
+           حتى يُقص عمود «حذف» خارج البطاقة. */
         .permissions-grid {
             display: grid;
-            grid-template-columns: repeat(2, minmax(0, 1fr));
-            gap: 18px;
-            margin-top: 16px;
+            grid-template-columns: minmax(0, 1fr);
+            gap: 16px;
+            margin-top: 14px;
         }
 
         .permission-section-card {
@@ -418,14 +420,15 @@
         }
 
         .permissions-table-wrap {
-            padding: 12px;
+            padding: 0 12px 12px;
             overflow-x: auto;
         }
 
         .permissions-table {
             width: 100%;
             margin: 0;
-            border-collapse: collapse;
+            border-collapse: separate;
+            border-spacing: 0;
             border: 1px solid var(--permissions-border);
             border-radius: 14px;
             overflow: hidden;
@@ -433,18 +436,27 @@
 
         .permissions-table th,
         .permissions-table td {
-            padding: 12px 10px;
+            padding: 10px;
             border-bottom: 1px solid var(--permissions-border);
             vertical-align: middle;
             text-align: center;
             white-space: nowrap;
         }
 
+        /* رأس ثابت حتى تبقى أسماء الأعمدة ظاهرة أثناء التمرير في القوائم الطويلة. */
         .permissions-table thead th {
-            background: #f8fafc;
-            color: #475569;
-            font-size: 0.78rem;
+            position: sticky;
+            top: 0;
+            z-index: 2;
+            background: #eef2f7;
+            color: #334155;
+            font-size: 0.8rem;
             font-weight: 800;
+            border-bottom: 2px solid var(--permissions-border-strong);
+        }
+
+        .permissions-table tbody tr:hover td {
+            background: #f8fafc;
         }
 
         .permissions-table tbody tr:nth-child(even) {
@@ -468,21 +480,27 @@
         }
 
         .permission-master-col {
-            width: 62px;
-            min-width: 62px;
+            width: 72px;
+            min-width: 72px;
+            background: #fbfdfc;
+            border-left: 1px solid var(--permissions-border);
         }
 
         .permission-action-col {
-            width: 58px;
-            min-width: 58px;
+            width: 72px;
+            min-width: 72px;
         }
 
         .permission-checkbox,
         .permission-row-toggle {
-            width: 18px;
-            height: 18px;
+            width: 19px;
+            height: 19px;
             cursor: pointer;
-            accent-color: #4b5563;
+            accent-color: #0f766e;
+        }
+
+        .permission-row-toggle {
+            accent-color: #115e59;
         }
 
         .permission-resource-title {
@@ -517,26 +535,28 @@
             font-weight: 800;
         }
 
+        /* شرائح مرنة بعرض المحتوى بدل عمودين ثابتين يقصّان النص الطويل. */
         .permission-extra-list {
-            display: grid;
-            grid-template-columns: repeat(2, minmax(0, 1fr));
-            gap: 8px;
-            margin-top: 8px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            margin-top: 6px;
         }
 
         .permission-extra-item {
-            display: flex;
+            display: inline-flex;
             align-items: center;
-            gap: 8px;
-            min-height: 42px;
-            padding: 8px 10px;
+            gap: 7px;
+            min-height: 32px;
+            padding: 4px 10px;
             border: 1px solid #e2e8f0;
-            border-radius: 12px;
+            border-radius: 999px;
             background: #f8fafc;
             color: #334155;
-            font-size: 0.77rem;
+            font-size: 0.76rem;
             font-weight: 700;
             line-height: 1.5;
+            white-space: nowrap;
         }
 
         .permission-extra-item:hover {
@@ -810,11 +830,7 @@
                             <div id="permissionsGrid">
                                 @foreach ($permissionMatrixLanes as $laneIndex => $lane)
                                     @php
-                                        $laneLabel = match ($lane['key']) {
-                                            'systems' => 'نظام مستقل',
-                                            'additional' => 'فوق الأنظمة',
-                                            default => 'ترتيب القائمة',
-                                        };
+                                        $laneLabel = 'وحدة من القائمة الجانبية';
                                     @endphp
 
                                     <section class="permission-lane"
@@ -828,9 +844,8 @@
                                             </div>
 
                                             <div class="permission-lane__meta">
-                                                <span class="permissions-pill">{{ $lane['sections_count'] }} أقسام</span>
-                                                <span class="permissions-pill">{{ $lane['groups_count'] }} مجموعات</span>
-                                                <span class="permissions-pill">{{ $lane['permissions_count'] }} صلاحيات</span>
+                                                <span class="permissions-pill">{{ $lane['sections_count'] }} قسم</span>
+                                                <span class="permissions-pill">{{ $lane['permissions_count'] }} صلاحية</span>
                                             </div>
                                         </div>
 
@@ -853,12 +868,10 @@
                                                                     aria-controls="{{ $collapseId }}">
                                                                 <span>{{ $section['title'] }}</span>
                                                             </button>
-                                                            <p class="permission-section-card__hint">تحديد وحفظ الصلاحيات الخاصة بهذا القسم دفعة واحدة بدون التأثير على الأقسام الأخرى.</p>
                                                         </div>
 
                                                         <div class="permission-section-card__meta">
-                                                            <span class="permissions-pill">{{ count($section['groups']) }} مجموعات</span>
-                                                            <span class="permissions-pill">{{ $section['permissions_count'] }} صلاحيات</span>
+                                                            <span class="permissions-pill">{{ $section['permissions_count'] }} صلاحية</span>
                                                         </div>
 
                                                         <div class="permission-section-card__actions">
@@ -881,12 +894,10 @@
                                                                 <div class="permission-group__header">
                                                                     <div class="permission-group__heading">
                                                                         <h4 class="permission-group__title">{{ $group['title'] }}</h4>
-                                                                        <p class="permission-group__subtitle">تنظيم عناصر هذه المجموعة قبل حفظ القسم بالكامل.</p>
                                                                     </div>
 
                                                                     <div class="permission-group__actions">
-                                                                        <span class="permissions-pill">{{ count($group['rows']) }} عناصر</span>
-                                                                        <span class="permissions-pill">{{ $group['permissions_count'] }} صلاحيات</span>
+                                                                        <span class="permissions-pill">{{ count($group['rows']) }} شاشة</span>
                                                                         <button type="button" class="scope-btn" data-toggle-scope="group">تحديد المجموعة</button>
                                                                     </div>
                                                                 </div>
@@ -895,10 +906,10 @@
                                                                     <table class="permissions-table">
                                                                         <thead>
                                                                             <tr>
-                                                                                <th class="permission-resource-col">العنصر</th>
+                                                                                <th class="permission-resource-col">الشاشة</th>
                                                                                 <th class="permission-master-col">الكل</th>
                                                                                 <th class="permission-action-col">إضافة</th>
-                                                                                <th class="permission-action-col">قراءة</th>
+                                                                                <th class="permission-action-col">عرض</th>
                                                                                 <th class="permission-action-col">تعديل</th>
                                                                                 <th class="permission-action-col">حذف</th>
                                                                             </tr>
@@ -920,15 +931,9 @@
                                                                                 <tr data-permission-row data-search="{{ $searchText }}">
                                                                                     <td class="permission-resource-col">
                                                                                         <div class="permission-resource-title">{{ $row['title'] }}</div>
-                                                                                        <div class="permission-resource-meta">
-                                                                                            <span class="permission-resource-stat">{{ count($row['permissions']) }} صلاحية</span>
-                                                                                            @if (!empty($row['extras']))
-                                                                                                <span class="permission-resource-stat">{{ count($row['extras']) }} خيار إضافي</span>
-                                                                                            @endif
-                                                                                        </div>
 
                                                                                         @if (!empty($row['extras']))
-                                                                                            <div class="permission-extra-title">خيارات إضافية</div>
+                                                                                            <div class="permission-extra-title">صلاحيات إضافية لهذه الشاشة</div>
                                                                                             <div class="permission-extra-list">
                                                                                                 @foreach ($row['extras'] as $extra)
                                                                                                     <label class="permission-extra-item">

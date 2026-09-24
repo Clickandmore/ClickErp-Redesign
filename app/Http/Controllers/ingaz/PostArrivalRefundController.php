@@ -51,7 +51,9 @@ class PostArrivalRefundController extends Controller
         return view('admin.ingaz.post_arrival_refunds.create', [
             'contracts' => $contracts, 'selected' => $selected, 'proposal' => $proposal,
             'reasons' => ReturnReasonCode::query()->where('is_active', true)->orderBy('sort_order')->get(),
-            'accounts' => Account::query()->whereDoesntHave('children')->orderBy('code')->get(['id', 'code', 'name']),
+            'accounts' => Account::query()->whereDoesntHave('children')->orderBy('code')->orderBy('id')->get(['id', 'code', 'name'])
+                ->sort(fn ($left, $right) => strnatcasecmp((string) $left->code, (string) $right->code) ?: strnatcasecmp((string) $left->name, (string) $right->name))
+                ->values(),
         ]);
     }
 

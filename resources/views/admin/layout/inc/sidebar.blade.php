@@ -202,7 +202,7 @@
                         class="sidebar-module sidebar-module--crm {{ $isCrm || request()->routeIs('whatsapp.inbox.*') || request()->routeIs('whatsapp.notifications.*') || request()->routeIs('messages.*') ? '' : 'collapsed' }}">
                         <a class="m-link" data-bs-toggle="collapse" data-bs-target="#crm" href="#">
                             <i class="fa-regular fa-file-lines me-2"></i>
-                            <span class="ms-2">{{ __('ingaz.crm') }}</span>
+                            <span class="ms-2">{{ \App\Support\AdminPermissionNavigation::unitTitle('crm') }}</span>
                             <span class="arrow fa fa-angle-left ms-auto text-end"></span>
                         </a>
                         <ul class="sub-menu collapse {{ $isCrm || request()->routeIs('clients.*') || request()->routeIs('website-visitors.*') || request()->routeIs('whatsapp.inbox.*') || request()->routeIs('whatsapp.notifications.*') || request()->routeIs('messages.*') ? 'show' : '' }}"
@@ -245,7 +245,7 @@
                         <a class="m-link" data-bs-toggle="collapse" data-bs-target="#Operations_Management"
                             href="#">
                             <i class="fa fa-tasks me-2"></i>
-                            <span class="ms-2">{{ helperTrans('ingaz.Operations_Management') }}</span>
+                            <span class="ms-2">{{ \App\Support\AdminPermissionNavigation::unitTitle('operations') }}</span>
                             <span class="arrow fa fa-angle-left ms-auto text-end"></span>
                         </a>
                         <ul class="sub-menu collapse {{ $isOperationsManagementOpen ? 'show' : '' }}"
@@ -1104,7 +1104,7 @@
                     <li class="sidebar-module sidebar-module--hr {{ $isHr ? '' : 'collapsed' }}">
                         <a class="m-link" data-bs-toggle="collapse" data-bs-target="#hr" href="#">
                             <i class="fa fa-user-tie me-2"></i>
-                            <span class="ms-2">{{ __('ingaz.hr') }}</span>
+                            <span class="ms-2">{{ \App\Support\AdminPermissionNavigation::unitTitle('hr') }}</span>
                             <span class="arrow fa fa-angle-left ms-auto text-end"></span>
                         </a>
                         <ul class="sub-menu collapse {{ $isHr ? 'show' : '' }}" id="hr">
@@ -1123,7 +1123,7 @@
                     <li class="sidebar-module sidebar-module--finance {{ $isFinance ? '' : 'collapsed' }}">
                         <a class="m-link" data-bs-toggle="collapse" data-bs-target="#finance" href="#">
                             <i class="fa fa-dollar-sign me-2"></i>
-                            <span class="ms-2">{{ __('ingaz.finance') }}</span>
+                            <span class="ms-2">{{ \App\Support\AdminPermissionNavigation::unitTitle('finance') }}</span>
                             <span class="arrow fa fa-angle-left ms-auto text-end"></span>
                         </a>
                         <ul class="sub-menu collapse {{ $isFinance ? 'show' : '' }}" id="finance">
@@ -1137,7 +1137,7 @@
                     <li class="sidebar-module sidebar-module--messages {{ request()->routeIs('admin.dispatch.*') ? '' : 'collapsed' }}">
                         <a class="m-link" data-bs-toggle="collapse" data-bs-target="#smsManagement" href="#">
                             <i class="fa fa-sms"></i>
-                            <span class="ms-2">{{ __('admin.sidebar.messages_management') }}</span>
+                            <span class="ms-2">{{ \App\Support\AdminPermissionNavigation::unitTitle('messages') }}</span>
                             <span class="arrow fa fa-angle-left ms-auto text-end"></span>
                         </a>
                         <ul class="sub-menu collapse {{ in_array(Route::currentRouteName(), ['notifications.index', 'notifications.settings', 'notifications.settings.alerts']) || request()->routeIs('admin.dispatch.*') || Request::is('admin/sms-templates*') ? 'show' : '' }}"
@@ -1292,7 +1292,7 @@
                         <a class="m-link" data-bs-toggle="collapse" data-bs-target="#settingsOperation"
                             href="#">
                             <i class="fa fa-cog fa-lg"></i>
-                            <span class="ms-2">{{ __('admin.sidebar.system_settings') }}</span>
+                            <span class="ms-2">{{ \App\Support\AdminPermissionNavigation::unitTitle('settings') }}</span>
                             <span class="arrow fa fa-angle-left ms-auto text-end"></span>
                         </a>
                         <ul class="sub-menu collapse {{ $settingsOperationOpen ? 'show' : '' }}"
