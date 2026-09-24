@@ -81,8 +81,8 @@ class RecruitmentEscapeReportController extends Controller
         try {
             DB::transaction(function () use ($contract, $request, $storage, $data, &$attachments) {
                 $contract = Contract::lockForUpdate()->findOrFail($contract->id);
-                if ($contract->status !== 'completed') {
-                    throw ValidationException::withMessages(['contract' => 'يمكن إضافة بلاغ هروب للعقود المكتملة فقط']);
+                if (!in_array($contract->status, ['arrival', 'completed'], true)) {
+                    throw ValidationException::withMessages(['contract' => 'يمكن إضافة بلاغ هروب للعقود في مرحلة الوصول أو المكتملة فقط']);
                 }
                 if ($contract->escapeReports()->exists()) {
                     throw ValidationException::withMessages(['contract' => 'يوجد بلاغ هروب مسجل لهذا العقد. يرجى حذف البلاغ الحالي قبل إضافة بلاغ جديد.']);

@@ -9,7 +9,14 @@
 @endsection
 
 @php
-    $canEditDeportationProcedures = @AdminGuardHasAnyPerm([\App\PermKeys::SHELTER_CONTRACT_DEPORTATION_PROCEDURES_EDIT, \App\PermKeys::SHELTER_CONTRACT_EDIT, \App\PermKeys::SHELTER_CONTRACT_CONTROL]);
+    $fromRecruitment = request()->routeIs('RecruitmentContract.deportation.*');
+    $deportationRoutePrefix = $fromRecruitment ? 'RecruitmentContract.deportation' : 'ShelterContract.deportation';
+    $deportationReturnUrl = $fromRecruitment ? route('RecruitmentContract.index') : route('ShelterContract.show', $contract->id);
+    $deportationCompletedUrl = $fromRecruitment ? route('RecruitmentContract.index') : route('ShelterContract.deported');
+    $canEditDeportationProcedures = $fromRecruitment
+        ? @AdminGuardHasPerm(\App\PermKeys::REC_CONTRACTS_DEPORTATION)
+        : @AdminGuardHasAnyPerm([\App\PermKeys::SHELTER_CONTRACT_DEPORTATION_PROCEDURES_EDIT, \App\PermKeys::SHELTER_CONTRACT_EDIT, \App\PermKeys::SHELTER_CONTRACT_CONTROL]);
+    $canEditDeportationProcedures = $canEditDeportationProcedures && $procedure->status !== 'cancelled';
 @endphp
 
 @section('style')
@@ -451,7 +458,7 @@
                         @endif
 
                         <form id="deportationForm"
-                            action="{{ route('ShelterContract.deportation.update', $procedure->id) }}" method="POST"
+                            action="{{ route($deportationRoutePrefix . '.update', $procedure->id) }}" method="POST"
                             enctype="multipart/form-data">
                             @csrf
 
@@ -921,7 +928,7 @@
                                     </button>
                                 @endif
 
-                                <a href="{{ route('ShelterContract.show', $contract->id) }}" class="btn btn-cancel">
+                                <a href="{{ $deportationReturnUrl }}" class="btn btn-cancel">
                                     <i class="fa fa-times"></i>
                                     {{ $procedure->status === 'completed' ? 'رجوع' : 'إلغاء' }}
                                 </a>
@@ -1111,7 +1118,7 @@
                 }).then((result) => {
                     if (result.isConfirmed) {
                         $.ajax({
-                            url: '{{ route('ShelterContract.deportation.update', $procedure->id) }}',
+                            url: '{{ route($deportationRoutePrefix . '.update', $procedure->id) }}',
                             type: 'POST',
                             data: {
                                 _token: '{{ csrf_token() }}',
@@ -1176,7 +1183,7 @@
                 }).then((result) => {
                     if (result.isConfirmed) {
                         $.ajax({
-                            url: '{{ route('ShelterContract.deportation.update', $procedure->id) }}',
+                            url: '{{ route($deportationRoutePrefix . '.update', $procedure->id) }}',
                             type: 'POST',
                             data: {
                                 _token: '{{ csrf_token() }}',
@@ -1193,7 +1200,7 @@
                                         window.location.href = response.redirect;
                                     } else {
                                         window.location.href =
-                                            '{{ route('ShelterContract.deported') }}';
+                                            '{{ $deportationCompletedUrl }}';
                                     }
                                 });
                             },
@@ -1344,7 +1351,7 @@
                         '<div class="text-center"><i class="fas fa-spinner fa-spin"></i> جاري التحميل...</div>');
 
                     $.ajax({
-                        url: "{{ route('ShelterContract.deportation.activity-log', $procedure->id) }}",
+                        url: "{{ route($deportationRoutePrefix . '.activity-log', $procedure->id) }}",
                         type: "GET",
                         success: function(response) {
                             if (response.success && response.html) {
