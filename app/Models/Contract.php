@@ -208,6 +208,11 @@ class Contract extends Model
         return $this->hasOne(\App\Models\DeportationProcedure::class, "contract_id");
     }
 
+    public function latestDeportationProcedure()
+    {
+        return $this->hasOne(\App\Models\DeportationProcedure::class, 'contract_id')->latestOfMany();
+    }
+
     public function travelHistory()
     {
         return $this->hasOne(\App\Models\TravelHistory::class, 'order_id', 'id')->latestOfMany();

@@ -748,6 +748,7 @@ class RecruitmentContractController extends Controller
                 'latestContractStatusLog', // آخر تحديث للحالة بدون تحميل كامل السجل
                 'latestEscapeReport',
                 'deportationProcedure',
+                'latestDeportationProcedure',
                 'invoice.musanedTransferItem.transfer',
                 'recruitmentRefund',
                 'returnRequests',
@@ -1730,10 +1731,18 @@ class RecruitmentContractController extends Controller
                                     </button>
                                     <ul class="dropdown-menu dropdown-menu-end shadow-lg">';
 
-                    if ($row->status === 'completed') {
+                    if (in_array($row->status, ['arrival', 'completed'], true)) {
                         $escapePermission = $row->latestEscapeReport ? PermKeys::REC_CONTRACTS_ESCAPE_REPORTS_VIEW : PermKeys::REC_CONTRACTS_ESCAPE_REPORT_CREATE;
                         if (@AdminGuardHasPerm($escapePermission)) {
                             $actions .= '<li><a class="dropdown-item text-danger" href="' . e(route('RecruitmentContract.escapeReports.show', $row->id)) . '"><i class="fas fa-running"></i> ' . ($row->latestEscapeReport ? 'إدارة بلاغ الهروب' : 'إضافة بلاغ هروب') . '</a></li>';
+                        }
+                    }
+
+                    if (in_array($row->status, ['arrival', 'completed'], true) && @AdminGuardHasPerm(PermKeys::REC_CONTRACTS_DEPORTATION)) {
+                        if ($row->latestDeportationProcedure && $row->latestDeportationProcedure->status !== 'cancelled') {
+                            $actions .= '<li><a class="dropdown-item text-danger" href="' . e(route('RecruitmentContract.deportation.procedures', $row->id)) . '"><i class="fas fa-plane-departure"></i> متابعة إجراءات الترحيل</a></li>';
+                        } elseif (!$row->latestEscapeReport && !$row->info?->is_outside_shelter) {
+                            $actions .= '<li><a class="dropdown-item text-danger start-recruitment-deportation" href="#" data-url="' . e(route('RecruitmentContract.deportation.start', $row->id)) . '"><i class="fas fa-plane-departure"></i> ترحيل العاملة</a></li>';
                         }
                     }
 

@@ -3,6 +3,7 @@ namespace App;
 
 class PermKeys
 {
+    const REC_CONTRACTS_DEPORTATION = 'rec_contracts_deportation';
     const REC_CONTRACTS_ESCAPE_REPORTS_VIEW = 'rec_contracts_escape_reports_view';
     const REC_CONTRACTS_ESCAPE_REPORT_CREATE = 'rec_contracts_escape_report_create';
     const REC_CONTRACTS_ESCAPE_REPORT_DELETE = 'rec_contracts_escape_report_delete';

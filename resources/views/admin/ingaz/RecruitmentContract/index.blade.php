@@ -2930,6 +2930,29 @@
                 addTravel($(this).data('contract-id'));
             });
 
+            $(document).on('click', '.start-recruitment-deportation', function(e) {
+                e.preventDefault();
+                const url = $(this).data('url');
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'ترحيل العاملة',
+                    text: 'هل تريد بدء إجراءات ترحيل العاملة؟ سيبقى العقد في مرحلته الحالية حتى إتمام الترحيل.',
+                    showCancelButton: true,
+                    confirmButtonText: 'بدء الإجراءات',
+                    cancelButtonText: 'إلغاء'
+                }).then(function(result) {
+                    if (!result.isConfirmed) return;
+                    Swal.fire({title: 'جاري بدء الإجراءات...', allowOutsideClick: false, didOpen: () => Swal.showLoading()});
+                    $.ajax({
+                        url: url,
+                        method: 'POST',
+                        data: {_token: @json(csrf_token())},
+                        success: function(response) { window.location.href = response.redirect; },
+                        error: function(xhr) { Swal.fire('تعذر بدء الترحيل', xhr.responseJSON?.message || 'حدث خطأ أثناء بدء الإجراءات', 'error'); }
+                    });
+                });
+            });
+
             $(document).on('submit', '.release-completed-maid-form', function(e) {
                 e.preventDefault();
 

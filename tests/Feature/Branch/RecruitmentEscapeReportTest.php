@@ -65,7 +65,16 @@ class RecruitmentEscapeReportTest extends TestCase
         $this->assertSame('completed', $contract->fresh()->status);
     }
 
-    public function test_duplicate_and_non_completed_contracts_are_rejected(): void
+    public function test_arrival_contract_can_have_a_report_without_changing_its_status(): void
+    {
+        $contract = $this->contract('arrival');
+        $this->get(route('RecruitmentContract.escapeReports.show', $contract->id))->assertOk()->assertSee('escape_attachments');
+        $this->post(route('RecruitmentContract.escapeReports.store', $contract->id), $this->payload())->assertRedirect()->assertSessionHasNoErrors();
+        $this->assertTrue($contract->fresh()->hasEscapeReport());
+        $this->assertSame('arrival', $contract->fresh()->status);
+    }
+
+    public function test_duplicate_and_ineligible_contracts_are_rejected(): void
     {
         $contract = $this->contract();
         $url = route('RecruitmentContract.escapeReports.store', $contract->id);
