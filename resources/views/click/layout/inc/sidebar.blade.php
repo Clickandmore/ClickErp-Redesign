@@ -296,6 +296,15 @@
                                             <span class="badge bg-primary ms-2">{{ $contractsCount['all'] }}</span>
                                         </a>
                                     </li>
+                                    @if (@AdminGuardHasPerm(\App\PermKeys::POST_ARRIVAL_REFUND_VIEW))
+                                        <li>
+                                            <a class="m-link {{ str_starts_with((string) Route::currentRouteName(), 'post-arrival-refunds.') ? 'active' : '' }}"
+                                                href="{{ route('post-arrival-refunds.index') }}">
+                                                <i class="fa fa-undo"></i>
+                                                <span class="ms-2">الاسترداد بعد الوصول</span>
+                                            </a>
+                                        </li>
+                                    @endif
                                     @if (@AdminGuardHasPerm(\App\NewPermKeys::REC_CONTRACTS_CHANGE_TO_MSANED))
                                         <li>
                                             <a class="m-link"

@@ -6,6 +6,7 @@ use App\Enums\ingaz\ContractStatusEnum;
 use App\Models\Contract;
 use App\Models\ShelterAgentCostRecovery;
 use App\Models\ShelterCostEntry;
+use App\Models\ContractReturnSettlementLine;
 use App\Models\ingaz\Maid;
 use App\Support\AutomaticJournalEntries;
 use Illuminate\Support\Facades\DB;
@@ -174,6 +175,16 @@ class ShelterAgentCostRecoveryService
                 return $existing;
             }
             $this->assertInShelter($contract);
+            $hasPostArrivalOfficeCharge = ContractReturnSettlementLine::query()
+                ->where('type', 'office_charge')
+                ->where('status', '!=', 'reversed')
+                ->whereHas('settlement', fn ($query) => $query
+                    ->where('contract_id', $contract->id)
+                    ->where('status', '!=', 'cancelled'))
+                ->exists();
+            if ($hasPostArrivalOfficeCharge) {
+                throw new \RuntimeException('تحميل المكتب مسجل ضمن مستند الاسترداد بعد الوصول؛ لا يمكن تكراره من استرداد تكلفة الوكيل. افتح مستند الاسترداد المرتبط.');
+            }
             if (!AutomaticJournalEntries::enabled()) { throw new \RuntimeException('يلزم تفعيل القيود الآلية لتنفيذ الاسترداد.'); }
             $summary = $this->summary($contract);
             if ($summary['issues']) { throw new \RuntimeException(implode(' ', $summary['issues'])); }

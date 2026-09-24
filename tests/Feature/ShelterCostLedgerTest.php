@@ -17,6 +17,7 @@ use App\Services\ingaz\DeportationCompletionService;
 use App\Services\ingaz\RecruitmentContractWarrantyReturnService;
 use App\Services\ingaz\ShelterCostLedgerService;
 use App\Support\ShelterAccountingSettings;
+use App\Support\PostArrivalRefundSettings;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
@@ -87,6 +88,7 @@ class ShelterCostLedgerTest extends TestCase
 
     public function test_warranty_return_after_arrival_issues_credit_note_stay_deduction_and_shelter_capitalization(): void
     {
+        ConfirmSetting::query()->create(['title' => PostArrivalRefundSettings::POSTING_MODE, 'value' => 'auto', 'created_by_id' => $this->admin->id]);
         [$contract, $invoice] = $this->arrivedContractWithInvoice(officeCostUsd: 600);
         $client = $contract->user->account_id;
 
@@ -543,6 +545,10 @@ class ShelterCostLedgerTest extends TestCase
         ]);
         app(\App\Http\Controllers\ingaz\ShelterContractController::class)->store($request);
         $this->assertSame('shelter', $contract->fresh()->status);
+        $this->assertSame(
+            ContractStatusEnum::Completed->value,
+            $contract->contract_status_logs()->latest('id')->value('previous_status')
+        );
         $this->assertFalse((bool) $contract->info->fresh()->is_outside_shelter);
         $summary = app(\App\Services\ingaz\ShelterAgentCostRecoveryService::class)->summary($contract->fresh());
         $this->assertEquals(5250, $summary['available']);

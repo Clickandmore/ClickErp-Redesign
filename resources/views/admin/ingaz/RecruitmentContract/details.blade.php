@@ -65,6 +65,10 @@
         \App\NewPermKeys::REC_CONTRACTS_UPDATE,
         \App\NewPermKeys::REC_CONTRACTS_MANAGE,
     ]);
+    $activePostArrivalRefund = $contract->returnSettlements
+        ->first(fn ($settlement) => $settlement->status !== 'cancelled');
+    $isPostArrivalRefundCandidate = $contract->invoice
+        && $contract->info?->arrival_date;
 @endphp
 
 <style>
@@ -2437,6 +2441,18 @@
 
             <!-- أزرار الإجراءات -->
             <div class="action-buttons">
+                @if ($activePostArrivalRefund && AdminGuardHasPerm(\App\PermKeys::POST_ARRIVAL_REFUND_VIEW))
+                    <a href="{{ route('post-arrival-refunds.show', $activePostArrivalRefund) }}"
+                        class="btn-icon btn-invoice" title="عرض استرداد ما بعد الوصول">
+                        <i class="fas fa-file-invoice-dollar"></i>
+                    </a>
+                @elseif ($isPostArrivalRefundCandidate && AdminGuardHasPerm(\App\PermKeys::POST_ARRIVAL_REFUND_CREATE))
+                    <a href="{{ route('post-arrival-refunds.create', ['contract_id' => $contract->id]) }}"
+                        class="btn-icon btn-invoice" title="إنشاء استرداد ما بعد الوصول">
+                        <i class="fas fa-file-circle-plus"></i>
+                    </a>
+                @endif
+
                 @if ($canManageExternalOfficeDispatch)
                     <a href="{{ $externalOfficeDispatchFormUrl }}" class="btn-icon btn-edit"
                         title="إدارة إرسالية المكتب الخارجي">

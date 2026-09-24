@@ -609,6 +609,17 @@
                 <i class="fas fa-cogs"></i>خيارات إضافية
             </div>
             <div class="action-grid">
+                @if ($postArrivalRefund && AdminGuardHasPerm(\App\PermKeys::POST_ARRIVAL_REFUND_VIEW))
+                    <a href="{{ route('post-arrival-refunds.show', $postArrivalRefund) }}" class="action-card action-card--edit">
+                        <i class="fas fa-file-invoice-dollar"></i>
+                        <span>عرض استرداد ما بعد الوصول #{{ $postArrivalRefund->id }}</span>
+                    </a>
+                @elseif ($contract->invoice && $contract->info?->arrival_date && AdminGuardHasPerm(\App\PermKeys::POST_ARRIVAL_REFUND_CREATE))
+                    <a href="{{ route('post-arrival-refunds.create', ['contract_id' => $contract->id]) }}" class="action-card action-card--edit">
+                        <i class="fas fa-plus-circle"></i>
+                        <span>إنشاء استرداد ما بعد الوصول</span>
+                    </a>
+                @endif
                 <a href="#agent-cost-recovery" class="action-card action-card--edit">
                     <i class="fas fa-receipt"></i><span>استرداد تكلفة الوكيل</span>
                 </a>

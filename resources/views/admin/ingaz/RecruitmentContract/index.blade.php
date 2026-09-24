@@ -3662,6 +3662,13 @@
                             : 'تعذر تحميل معاينة الاسترداد.';
                         if (xhr.statusText === 'abort') return;
                         resetRefundPreview(message);
+                        if (xhr.responseJSON && xhr.responseJSON.redirect_url) {
+                            $('#refundPreviewPlaceholder').append(
+                                '<div class="mt-2"><a class="btn btn-sm btn-primary" href="' +
+                                escapeRefundHtml(xhr.responseJSON.redirect_url) +
+                                '">فتح شاشة الاسترداد بعد الوصول</a></div>'
+                            );
+                        }
                         $('#refundPreviewPlaceholder')
                             .removeClass('alert-info')
                             .addClass('alert-danger');
@@ -3745,7 +3752,13 @@
                         var message = xhr.responseJSON && xhr.responseJSON.message
                             ? xhr.responseJSON.message
                             : 'حدث خطأ أثناء تسجيل الاسترداد';
-                        Swal.fire('خطأ', message, 'error');
+                        var redirectUrl = xhr.responseJSON && xhr.responseJSON.redirect_url;
+                        if (redirectUrl) {
+                            Swal.fire({title: 'المسار المالي المستقل', text: message, icon: 'info', showCancelButton: true, confirmButtonText: 'فتح الشاشة', cancelButtonText: 'إلغاء'})
+                                .then(function(result) { if (result.isConfirmed) window.location.href = redirectUrl; });
+                        } else {
+                            Swal.fire('خطأ', message, 'error');
+                        }
                     },
                     complete: function() {
                         button.prop('disabled', false).html(originalHtml);

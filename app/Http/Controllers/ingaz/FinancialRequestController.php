@@ -4,6 +4,7 @@ namespace App\Http\Controllers\ingaz;
 
 use App\Http\Controllers\Controller;
 use App\Models\Contract;
+use App\Models\ContractReturnSettlement;
 use App\Models\FinancialRequest;
 use App\Models\Branch;
 use App\Models\ingaz\Maid;
@@ -289,6 +290,19 @@ class FinancialRequestController extends Controller
         });
 
         $financialRequest->refresh();
+        if ($financialRequest->return_settlement_id) {
+            $settlement = ContractReturnSettlement::query()->find($financialRequest->return_settlement_id);
+            if ($settlement) {
+                $paid = (float) FinancialRequest::query()
+                    ->where('return_settlement_id', $settlement->id)
+                    ->whereNotNull('paid_at')
+                    ->sum('amount');
+                $settlement->update([
+                    'client_paid_amount' => min((float) $settlement->client_due_amount, round($paid, 2)),
+                    'status' => $paid > 0 && $paid < (float) $settlement->client_due_amount ? 'partially_paid' : 'posted',
+                ]);
+            }
+        }
         $this->notifyFinancialRequestChanged($financialRequest, $previousStatus, $previousPriority);
 
         return back()->with('success', 'تم تحديث حالة الطلب المالي.');

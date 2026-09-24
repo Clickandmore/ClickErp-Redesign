@@ -134,6 +134,12 @@ const PARTENR_CONTROL = 'partenr_control';
     const FINANCIAL_REQUESTS_EXPORT = 'financial_requests_export';
     const FINANCIAL_REQUESTS_CONTROL = 'financial_requests_control';
 
+    const POST_ARRIVAL_REFUND_VIEW = 'post_arrival_refund_view';
+    const POST_ARRIVAL_REFUND_CREATE = 'post_arrival_refund_create';
+    const POST_ARRIVAL_REFUND_POST = 'post_arrival_refund_post';
+    const POST_ARRIVAL_REFUND_PAYOUT = 'post_arrival_refund_payout';
+    const POST_ARRIVAL_REFUND_REVERSE = 'post_arrival_refund_reverse';
+
     // صلاحيات قوائم الطلبات الفرعية في السايدبار
     const PROFESSIONAL_APPLICATION_VIEW = 'professional_application_view';
     const RECRUITMENT_REQUESTS_VIEW = 'recruitment_requests_view';

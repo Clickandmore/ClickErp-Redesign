@@ -55,6 +55,7 @@ use App\Http\Controllers\ingaz\OfferController;
 use App\Http\Controllers\ingaz\OrderController;
 use App\Http\Controllers\ingaz\PackageController;
 use App\Http\Controllers\ingaz\PoliceSettingController;
+use App\Http\Controllers\ingaz\PostArrivalRefundController;
 use App\Http\Controllers\ingaz\ProfessionalApplicationController;
 use App\Http\Controllers\ingaz\QuestionController;
 use App\Http\Controllers\ingaz\RecruitmentContractController;
@@ -453,6 +454,15 @@ Route::group(
             Route::patch('financial-requests/{financialRequest}/amount', [FinancialRequestController::class, 'updateAmount'])->name('financial-requests.amount');
             Route::resource('financial-requests', FinancialRequestController::class)
                 ->parameters(['financial-requests' => 'financialRequest']);
+
+            Route::get('post-arrival-refunds/proposal', [PostArrivalRefundController::class, 'proposal'])->name('post-arrival-refunds.proposal');
+            Route::get('post-arrival-refunds/search-contracts', [PostArrivalRefundController::class, 'searchContracts'])->name('post-arrival-refunds.search-contracts');
+            Route::post('post-arrival-refunds/{postArrivalRefund}/post', [PostArrivalRefundController::class, 'post'])->name('post-arrival-refunds.post');
+            Route::post('post-arrival-refunds/{postArrivalRefund}/payout', [PostArrivalRefundController::class, 'payout'])->name('post-arrival-refunds.payout');
+            Route::post('post-arrival-refunds/{postArrivalRefund}/lines/{line}/reverse', [PostArrivalRefundController::class, 'reverse'])->name('post-arrival-refunds.lines.reverse');
+            Route::resource('post-arrival-refunds', PostArrivalRefundController::class)
+                ->only(['index', 'create', 'store', 'show'])
+                ->parameters(['post-arrival-refunds' => 'postArrivalRefund']);
 
             // Messages
             Route::get('messages', [\App\Http\Controllers\ingaz\MessageController::class, 'index'])->name('messages.index');

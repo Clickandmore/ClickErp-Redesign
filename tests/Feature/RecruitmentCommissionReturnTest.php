@@ -14,14 +14,22 @@ use App\Services\commissions\CommissionCalculationService;
 use App\Services\commissions\CommissionAccrualService;
 use App\Services\commissions\DelegationCommissionService;
 use App\Services\commissions\RecruitmentCommissionService;
+use App\Support\PostArrivalRefundSettings;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Illuminate\Validation\ValidationException;
 use Mockery;
+use Nami\Finance\Models\ConfirmSetting;
 use Tests\TestCase;
 
 class RecruitmentCommissionReturnTest extends TestCase
 {
     use DatabaseTransactions;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+        ConfirmSetting::query()->create(['title' => PostArrivalRefundSettings::POSTING_MODE, 'value' => 'auto']);
+    }
 
     public function test_returned_uncommissioned_contract_is_closed_at_zero_and_cannot_be_selected(): void
     {

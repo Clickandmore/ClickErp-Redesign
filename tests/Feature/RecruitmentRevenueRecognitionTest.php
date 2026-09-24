@@ -13,6 +13,7 @@ use App\Services\ingaz\RecruitmentContractRefundService;
 use App\Services\ingaz\RecruitmentContractWarrantyReturnService;
 use App\Services\ingaz\RecruitmentTripAccountingService;
 use App\Support\RecruitmentRevenueRecognition;
+use App\Support\PostArrivalRefundSettings;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Illuminate\Support\Facades\DB;
 use Nami\Finance\Models\Account;
@@ -163,6 +164,7 @@ class RecruitmentRevenueRecognitionTest extends TestCase
 
     public function test_warranty_return_reverses_sales_vat_and_supplier_directly_in_on_invoice_mode(): void
     {
+        ConfirmSetting::query()->create(['title' => PostArrivalRefundSettings::POSTING_MODE, 'value' => 'auto', 'created_by_id' => $this->admin->id]);
         $nationality = $this->createNationality('اثيوبيا');
         $contract = $this->createContract($nationality, withClientAccount: true);
         $client = $contract->user->account_id;

@@ -80,10 +80,41 @@ class RecruitmentContractShelterViewTest extends TestCase
     }
 
     /** @test */
-    public function regular_mode_never_returns_shelter_contracts_even_with_a_shelter_status_filter(): void
+    public function regular_mode_treats_shelter_as_an_operational_state_not_a_recruitment_stage(): void
     {
         $admin = $this->adminWithPermissions([NewPermKeys::REC_CONTRACTS_VIEW]);
-        $this->makeContract('shelter');
+        $shelterContractId = $this->makeContract('shelter');
+
+        DB::table('contract_status_logs')->insert([
+            'contract_id' => $shelterContractId,
+            'status' => 'shelter',
+            'previous_status' => 'arrival',
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $allContractsResponse = $this->actingAs($admin, 'admin')
+            ->get(route('RecruitmentContract.index', [
+                'all_contracts' => 1,
+                'contract_number' => $shelterContractId,
+            ]), ['X-Requested-With' => 'XMLHttpRequest']);
+
+        $allContractsResponse
+            ->assertOk()
+            ->assertJsonCount(1, 'data')
+            ->assertJsonPath('data.0.id', $shelterContractId);
+        $this->assertStringContainsString(
+            'العاملة داخل الإيواء',
+            (string) $allContractsResponse->json('data.0.status')
+        );
+
+        $this->actingAs($admin, 'admin')
+            ->get(route('RecruitmentContract.index', [
+                'status' => 'arrival',
+                'contract_number' => $shelterContractId,
+            ]), ['X-Requested-With' => 'XMLHttpRequest'])
+            ->assertOk()
+            ->assertJsonCount(1, 'data');
 
         $this->actingAs($admin, 'admin')
             ->get(route('RecruitmentContract.index', ['status' => 'shelter']), [

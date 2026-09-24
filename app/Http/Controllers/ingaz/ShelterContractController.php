@@ -1447,6 +1447,7 @@ class ShelterContractController extends Controller
                     'contract_id' => 'تغيرت حالة العقد؛ لا يمكن إضافته للإيواء مرة أخرى.',
                 ]);
             }
+            $previousStatus = $lockedContract->status;
             if ($contract->info) {
                 $contract->info()->update($infoPayload);
             } else {
@@ -1470,10 +1471,14 @@ class ShelterContractController extends Controller
                 }
             }
 
-            $contract->contract_status_logs()->create([
+            $statusLog = [
                 'contract_id' => $contract->id,
                 'status' => ContractStatusEnum::Shelter->value,
-            ]);
+            ];
+            if (Schema::hasColumn('contract_status_logs', 'previous_status')) {
+                $statusLog['previous_status'] = $previousStatus;
+            }
+            $contract->contract_status_logs()->create($statusLog);
 
             $this->syncShelterComplaint($contract, $request);
         });
@@ -1582,7 +1587,9 @@ class ShelterContractController extends Controller
             'maid.nationality',
             'maid.religion',
             'maid.job_types.job_type',
-            'info.shelter'
+            'info.shelter',
+            'invoice',
+            'returnSettlements.lines',
         ])->findOrFail($id);
 
         $this->assertCanAccessBranchModel($contract, 'contracts');
@@ -1626,9 +1633,13 @@ class ShelterContractController extends Controller
             }
         }
         $workerHistory = app(\App\Services\ingaz\ShelterWorkerHistoryService::class)->build($contract);
+        $postArrivalRefund = $contract->returnSettlements
+            ->first(fn ($settlement) => $settlement->status !== 'cancelled');
+        $postArrivalOfficeChargeLine = $postArrivalRefund?->lines
+            ->first(fn ($line) => $line->type === 'office_charge' && $line->status !== 'reversed');
         return view('admin.ingaz.ShelterContract.show', compact('contract', 'warrantyStatus', 'warrantyDays', 'isRentalWorker',
             'canRecoverAgentCost', 'canReverseAgentCost', 'agentCostSummary', 'agentRecoveries', 'workerHistory',
-            'shelterStatement', 'supplierStatementAccounts'));
+            'shelterStatement', 'supplierStatementAccounts', 'postArrivalRefund', 'postArrivalOfficeChargeLine'));
     }
 
 
@@ -2790,7 +2801,9 @@ class ShelterContractController extends Controller
                             $q->with('translations');
                         }]);
                     },
-                    'latestShelterLog'
+                    'latestShelterLog',
+                    'invoice',
+                    'returnSettlements.lines',
                 ]);
 
             // Apply filters
@@ -3415,6 +3428,19 @@ class ShelterContractController extends Controller
                                     </a></li>';
                         $actions .= '<li><a class="dropdown-item" href="' . route('shelter_contract_form.download', $row->id) . '" target="_blank">
                                         <i class="fas fa-eye"></i> عرض نموذج الاستلام
+                                    </a></li>';
+                    }
+
+                    $postArrivalRefund = $row->returnSettlements
+                        ->first(fn ($settlement) => $settlement->status !== 'cancelled');
+                    if ($postArrivalRefund && $this->adminCanAny([PermKeys::POST_ARRIVAL_REFUND_VIEW])) {
+                        $actions .= '<li><a class="dropdown-item" href="' . e(route('post-arrival-refunds.show', $postArrivalRefund)) . '">
+                                        <i class="fas fa-file-invoice-dollar"></i> عرض استرداد ما بعد الوصول
+                                    </a></li>';
+                    } elseif ($row->invoice && $row->info?->arrival_date
+                        && $this->adminCanAny([PermKeys::POST_ARRIVAL_REFUND_CREATE])) {
+                        $actions .= '<li><a class="dropdown-item" href="' . e(route('post-arrival-refunds.create', ['contract_id' => $row->id])) . '">
+                                        <i class="fas fa-plus-circle"></i> إنشاء استرداد ما بعد الوصول
                                     </a></li>';
                     }
 

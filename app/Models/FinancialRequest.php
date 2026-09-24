@@ -177,6 +177,11 @@ class FinancialRequest extends Model
         return $this->belongsTo(Bond::class, 'finance_bond_id');
     }
 
+    public function returnSettlement()
+    {
+        return $this->belongsTo(ContractReturnSettlement::class, 'return_settlement_id');
+    }
+
     public function statusLogs()
     {
         return $this->hasMany(FinancialRequestStatusLog::class)->oldest();

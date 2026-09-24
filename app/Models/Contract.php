@@ -12,6 +12,7 @@ use App\Models\ingaz\ContractNote;
 use App\Models\ingaz\Invoice;
 use App\Models\ingaz\RecruitmentContractAttachment;
 use App\Support\AutomationSettings;
+use App\Support\PostArrivalRefundSettings;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Spatie\Activitylog\LogOptions;
@@ -38,6 +39,10 @@ class Contract extends Model
     {
         static::updated(function (Contract $contract): void {
             if (! $contract->wasChanged('status')) {
+                return;
+            }
+
+            if (PostArrivalRefundSettings::manualScreen()) {
                 return;
             }
 
@@ -148,6 +153,11 @@ class Contract extends Model
     public function recruitmentCreditNotes()
     {
         return $this->hasMany(RecruitmentInvoiceCreditNote::class, 'contract_id');
+    }
+
+    public function returnSettlements()
+    {
+        return $this->hasMany(ContractReturnSettlement::class, 'contract_id');
     }
 
     public function financeBonds()

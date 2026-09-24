@@ -10,6 +10,7 @@ use App\Support\AutomationSettings;
 use App\Support\AutomaticJournalEntries;
 use App\Support\RecruitmentRevenueRecognition;
 use App\Support\ShelterAccountingSettings;
+use App\Support\PostArrivalRefundSettings;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Schema;
 use Nami\Finance\Models\Account;
@@ -62,6 +63,12 @@ class RecruitmentContractWarrantyReturnService
      */
     public function record(Contract $contract, ContractReturnRequest $returnRequest): ?Constraint
     {
+        // في الوضع المعتمد، الموافقة حدث تشغيلي فقط. المحاسب ينشئ المستند المالي
+        // لاحقاً من شاشة «الاسترداد بعد الوصول» ولا تُكتب هنا أي قيود.
+        if (PostArrivalRefundSettings::manualScreen()) {
+            return null;
+        }
+
         if (!AutomaticJournalEntries::enabled()) {
             return null;
         }
