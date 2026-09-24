@@ -2,10 +2,9 @@ response = Map();
 msg = message.get("text");
 companyName = "شركة هجر للاستقدام";
 webUrl = "https://hajar.sa";
-riyadhOperator = "live-chat1@hajar.sa";
-ahsaOperator = "live-chat2@hajar.sa";
+apiUrl = "https://hajar.sa/api";
+afterOptions = { "القائمة الرئيسية", "متابعة طلب", "إنهاء"};
 mainOptions = { "طلب استقدام", "تأجير", "نقل كفالة", "متابعة طلب", "شكوى", "اتصال", "إنهاء"};
-branchOptions = { "فرع الرياض", "فرع الأحساء", "القائمة الرئيسية", "إنهاء"};
 welcomeReplies = {
     "حياكم وبياكم في موقع شركة هجر للاستقدام ✨",
     "نفرح بزيارتكم، ونسعد بخدمتكم على أكمل وجه.",
@@ -27,34 +26,52 @@ if (!msg.isNull()) {
         response.put("input", { "type": "select", "options": mainOptions });
         return response;
     }
-    if (msg.containsIgnoreCase("فرع الرياض")) {
-        response.put("action", "forward");
-        response.put("operators", { riyadhOperator });
-        response.put("replies", { "جاري تحويلك إلى المختص بقسم فرع الرياض."});
-        return response;
-    }
-    if (msg.containsIgnoreCase("فرع الأحساء") || msg.containsIgnoreCase("فرع الاحساء")) {
-        response.put("action", "forward");
-        response.put("operators", { ahsaOperator });
-        response.put("replies", { "جاري تحويلك إلى المختص بقسم فرع الأحساء."});
-        return response;
-    }
     if (msg.containsIgnoreCase("استقدام")) {
         response.put("context_id", "service_estqdam");
-        question = { "name": "branch", "replies": { "اختر الفرع:"}, "input": { "type": "select", "options": branchOptions } };
+        optionList = Collection();
+        optionValues = Collection();
+        try {
+            data_info = invokeurl
+            [
+                url : apiUrl + "/nationalites"
+                type: GET
+                headers: { "Content-Type": "application/json" }
+            ];
+            nationalities = data_info.get("data");
+            if (nationalities != null) {
+                for each nat_key in nationalities.keys()
+                {
+                    optionList.insert(nat_key);
+                    optionValues.insert(nationalities.get(nat_key));
+                }
+            }
+        }
+        catch (e) {
+        }
+        optionList.insert("عرض جميع الجنسيات");
+        optionValues.insert("all");
+        optionList.insert("القائمة الرئيسية");
+        optionValues.insert("القائمة الرئيسية");
+        optionList.insert("إنهاء");
+        optionValues.insert("إنهاء");
+        question = { "name": "new_request", "replies": { "اختر الجنسية:"}, "input": { "type": "select", "options": optionList, "values": optionValues } };
         response.put("questions", { question });
         return response;
     }
     if (msg.containsIgnoreCase("تأجير") || msg.containsIgnoreCase("تاجير") || msg.containsIgnoreCase("ايجار") || msg.containsIgnoreCase("إيجار")) {
-        response.put("context_id", "service_rent");
-        question = { "name": "branch", "replies": { "اختر الفرع:"}, "input": { "type": "select", "options": branchOptions } };
-        response.put("questions", { question });
+        response.put("action", "reply");
+        url = webUrl + "/all-workers?type=egar";
+        question = { "type": "links", "text": "المتاح لخدمة التأجير:", "links": {{ "url": url, "text": "عرض المتاح" }} };
+        response.put("replies", { question });
+        response.put("input", { "type": "select", "options": afterOptions });
         return response;
     }
     if (msg.containsIgnoreCase("نقل")) {
-        response.put("context_id", "service_transfer");
-        question = { "name": "branch", "replies": { "اختر الفرع:"}, "input": { "type": "select", "options": branchOptions } };
-        response.put("questions", { question });
+        response.put("action", "reply");
+        url = webUrl + "/all-workers?type=transfer";
+        question = { "type": "links", "text": "المتاح لخدمة نقل كفالة:", "links": {{ "url": url, "text": "عرض المتاح" }} };
+        response.put("replies", { question });
+        response.put("input", { "type": "select", "options": afterOptions });
         return response;
     }
     if (msg.containsIgnoreCase("متابعة")) {
@@ -66,7 +83,6 @@ if (!msg.isNull()) {
     if (msg.containsIgnoreCase("شكوى") || msg.containsIgnoreCase("شكوي")) {
         response.put("context_id", "complaints");
         questions = Collection();
-        questions.insert({ "name": "branch", "replies": { "اختر الفرع:"}, "input": { "type": "select", "options": { "فرع الرياض", "فرع الأحساء"} } });
         questions.insert({ "name": "complaintUserName", "replies": { "اكتب اسمك:"}, "input": { "type": "name", "placeholder": "الاسم" } });
         questions.insert({ "name": "complaintUserDetails", "replies": { "اكتب تفاصيل الشكوى:"}, "input": { "type": "name", "placeholder": "التفاصيل" } });
         response.put("questions", questions);
@@ -75,7 +91,6 @@ if (!msg.isNull()) {
     if (msg.containsIgnoreCase("اتصال")) {
         response.put("context_id", "call_request");
         questions = Collection();
-        questions.insert({ "name": "branch", "replies": { "اختر الفرع:"}, "input": { "type": "select", "options": { "فرع الرياض", "فرع الأحساء"} } });
         questions.insert({ "name": "callUserName", "replies": { "اكتب اسمك:"}, "input": { "type": "name", "placeholder": "الاسم" } });
         response.put("questions", questions);
         return response;
