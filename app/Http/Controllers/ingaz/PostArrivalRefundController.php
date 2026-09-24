@@ -34,13 +34,14 @@ class PostArrivalRefundController extends Controller
     public function create(Request $request, PostArrivalRefundService $service)
     {
         $contractId = $request->filled('contract_id') ? (int) $request->input('contract_id') : null;
-        $contracts = Contract::query()->with(['user', 'maid.office', 'invoice.recruitmentCreditNotes', 'info'])
+        $contractRelations = ['user', 'maid.office', 'maid.nationality', 'invoice.recruitmentCreditNotes', 'info', 'marketer', 'branch', 'returnRequests'];
+        $contracts = Contract::query()->with($contractRelations)
             ->whereIn('type', ['recruitment', 'maid'])->whereHas('invoice')->whereHas('info', fn ($q) => $q->whereNotNull('arrival_date'))
             ->whereDoesntHave('returnSettlements', fn ($q) => $q->whereNotIn('status', ['cancelled']))
             ->latest('id')->limit(150)->get();
         $selected = $contractId ? $contracts->firstWhere('id', $contractId) : null;
         if ($contractId && ! $selected) {
-            $selected = Contract::query()->with(['user', 'maid.office', 'invoice.recruitmentCreditNotes', 'info'])
+            $selected = Contract::query()->with($contractRelations)
                 ->whereIn('type', ['recruitment', 'maid'])
                 ->whereHas('invoice')
                 ->whereHas('info', fn ($q) => $q->whereNotNull('arrival_date'))
