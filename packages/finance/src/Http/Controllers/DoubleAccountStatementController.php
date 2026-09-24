@@ -20,8 +20,8 @@ class DoubleAccountStatementController extends Controller
         if ($request->ajax()) {
             $dataSearch = $request->only($this->getData);
             $accountList = $service->getDoubleAccountSubAccountsArr($dataSearch["double_account_id"]);
-            $data = $service->filterDoubleAccount($dataSearch,$accountList);
-            $otherAccount = ($dataSearch["other_account"] == "yes")? $service->filterConstraints($dataSearch,$accountList):[];
+            $data = $service->filterDoubleAccount($dataSearch, $accountList, true);
+            $otherAccount = ($dataSearch["other_account"] == "yes")? $service->filterConstraints($dataSearch, $accountList, $data->pluck('constraint_id')->all()):[];
             $returnHTML = view($this->folderPath . ".result")->with([
                 "data" => $data,
                 "otherAccount" => $otherAccount,

@@ -32,7 +32,7 @@ class AccountStatementService extends MainService
         return $doubleAccount->details()->pluck("account_id");
     }
 
-    public function filterDoubleAccount($dataSearch ,$acoounts)
+    public function filterDoubleAccount($dataSearch, $acoounts, bool $paginate = false)
     {
         $doubleAccountStatment = DB::table('fn_constraint_details')
             ->select([
@@ -65,11 +65,11 @@ class AccountStatementService extends MainService
                 return $q->whereDate("fn_constraint_details.date", "<=", $dataSearch["to_date"]);
             })
             ->orderBy('fn_constraint_details.date') // Order by fn_constraint_details.date
-            ->orderBy('fn_constraints.id')->get(); // Then order by constraints.id
-        return  $doubleAccountStatment;
+            ->orderBy('fn_constraints.id')->orderBy('fn_constraint_details.id'); // Then order by constraints.id
+        return $paginate ? StatementPaginator::fromQuery($doubleAccountStatment, false) : $doubleAccountStatment->get();
     }
 
-    public function filterConstraints($dataSearch,$acoounts)
+    public function filterConstraints($dataSearch, $acoounts, ?array $constraintIds = null)
     {
         $otherAccounts = $this->constraintService->model->select([
             'fn_constraints.id',
@@ -86,6 +86,8 @@ class AccountStatementService extends MainService
             ->when($dataSearch["to_date"] != "", function ($q) use ($dataSearch) {
                 return $q->whereDate("fn_constraint_details.date", "<=", $dataSearch["to_date"]);
             })
+            ->when($constraintIds !== null, fn ($q) => $q->whereIn('fn_constraints.id', $constraintIds))
+            ->distinct()
             ->with(['accounts'=> function ($query) use ($acoounts) {
                 return $query->whereNotIn("account_id", $acoounts);
             }])

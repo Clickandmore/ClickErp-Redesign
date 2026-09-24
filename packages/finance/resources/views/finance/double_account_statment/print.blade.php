@@ -166,7 +166,7 @@
             $width = $show_other_account == 'yes' ? 35 : 25;
         @endphp
         <div class="Tabel">
-            <table>
+            <table id="simpleTable4">
 
                 <tr>
                     <th>#</th>

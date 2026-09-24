@@ -960,17 +960,33 @@
                                             <p id="financialUsedCost">-</p>
                                         </div>
                                         <div class="col-md-3">
-                                            <strong>الإشعار الدائن (فرق الذمة):</strong>
+                                            <strong>الإشعار الدائن لتخفيض الفاتورة:</strong>
                                             <p id="financialSuggestedRefund">-</p>
                                         </div>
                                         <div class="col-md-3">
-                                            <strong>الإشعار المدين (فرق الذمة):</strong>
+                                            <strong>الإشعار المدين لزيادة الفاتورة:</strong>
                                             <p id="financialCompanyDue">-</p>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <div class="border rounded p-3">
+                                                <strong>المطلوب تحصيله من العميل حسب مدة الاستخدام والمدفوع:</strong>
+                                                <p id="financialCashToCollect" class="fw-bold mb-0" aria-live="polite">-</p>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <div class="border rounded p-3">
+                                                <strong>المبلغ المسترد للعميل حسب مدة الاستخدام والمدفوع:</strong>
+                                                <p id="financialCashRefund" class="fw-bold mb-0" aria-live="polite">-</p>
+                                            </div>
+                                        </div>
+                                        <div class="col-12">
+                                            <p class="text-muted mb-1">الإشعار الدائن يخفض قيمة الفاتورة السابقة، ولا يعني صرف هذا المبلغ للعميل. المبلغ المسترد يعتمد على ما دفعه العميل مقابل تكلفة الاستخدام.</p>
+                                            <p class="text-muted mb-0">حساب الأيام الحالي يشمل يوم البداية ويوم الإنهاء ضمن مدة العقد.</p>
                                         </div>
                                     </div>
                                     <div class="row g-3 mt-2 align-items-end">
                                         <div class="col-md-4">
-                                            <label class="form-label">نوع التسوية</label>
+                                            <label class="form-label">نوع إشعار تعديل الفاتورة</label>
                                             <input type="hidden" id="closeAdjustmentType" value="none">
                                             <input type="text" class="form-control" id="closeAdjustmentTypeLabel"
                                                 value="يُحدد تلقائياً" readonly>
@@ -983,10 +999,13 @@
                                                 min="0" step="0.01" value="0" readonly>
                                         </div>
                                         <div class="col-md-4">
-                                            <label class="form-label">المستحق النهائي</label>
+                                            <label class="form-label">قيمة الإشعار المعتمدة</label>
                                             <div class="fw-bold">
-                                                <span id="finalDueAmount">0.00 ريال</span>
+                                                <span id="approvedClosureNoteAmount">0.00 ريال</span>
                                             </div>
+                                        </div>
+                                        <div id="manualClosureCashNotice" class="col-12 text-muted d-none">
+                                            مبالغ التحصيل والاسترداد أعلاه حسب الحسبة الآلية قبل تعديل قيمة الإشعار يدويًا.
                                         </div>
                                         <div class="col-12">
                                             <div class="border rounded p-3 bg-light">
@@ -2496,7 +2515,8 @@
                     ? 'قيمة الإشعار المدين'
                     : (adjustmentType === 'refund' ? 'قيمة الإشعار الدائن' : 'قيمة الإشعار'));
 
-                $('#finalDueAmount').text(formatCurrency(adjustmentAmount) + ' ريال');
+                $('#approvedClosureNoteAmount').text(formatCurrency(adjustmentAmount) + ' ريال');
+                $('#manualClosureCashNotice').toggleClass('d-none', !useManualAdjustment);
             }
 
             function formatCloseRemainingDaysText(contract) {
@@ -2556,6 +2576,8 @@
                 ' ريال');
                 $('#financialCompanyDue').text(formatCurrency(contract.calculated_debit_note_value || 0) +
                 ' ريال');
+                $('#financialCashToCollect').text(formatCurrency(contract.cash_to_collect_value || 0) + ' ريال');
+                $('#financialCashRefund').text(formatCurrency(contract.cash_refund_value || 0) + ' ريال');
                 $('#earlyClosureNotice').toggleClass('d-none', !contract.is_early_closure);
                 if (contract.closure_status_text) {
                     $('#currentStatus').text((contract.status_text || '-') + ' / بعد الإنهاء: ' + contract
@@ -2627,6 +2649,8 @@
                 $('#financialSuggestedRefund').text('-');
                 $('#financialOverdueDays').text('-');
                 $('#financialCompanyDue').text('-');
+                $('#financialCashToCollect').text('-');
+                $('#financialCashRefund').text('-');
                 updateCloseFinancialPreview();
             }
 

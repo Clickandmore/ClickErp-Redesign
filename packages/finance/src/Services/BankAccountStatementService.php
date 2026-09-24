@@ -184,7 +184,7 @@ class BankAccountStatementService extends MainService
         }
         return null;
     }
-    public function filterAccount($dataSearch)
+    public function filterAccount($dataSearch, bool $paginate = false)
     {
         $accountStatment = BranchReportFilter::apply(DB::table('fn_constraint_details'), 'fn_constraint_details')
             ->select([
@@ -221,12 +221,14 @@ class BankAccountStatementService extends MainService
             })
             ->orderBy('fn_constraint_details.date')
             ->orderBy('fn_constraints.id')
-            ->get();
+            ->orderBy('fn_constraint_details.id')
+            ->orderBy('fn_bond_checks.id')
+            ->orderBy('fn_bonds.id');
 //dd($accountStatment);
-        return $accountStatment;
+        return $paginate ? StatementPaginator::fromQuery($accountStatment) : $accountStatment->get();
     }
 
-    public function filterConstraints($dataSearch)
+    public function filterConstraints($dataSearch, ?array $constraintIds = null)
     {
         $account_id = $dataSearch['account_id'];
         $otherAccounts = $this->model->select([
@@ -243,6 +245,8 @@ class BankAccountStatementService extends MainService
         ->when($dataSearch['to_date'] != '', function ($q) use ($dataSearch) {
             return $q->whereDate('fn_constraint_details.date', '<=', $dataSearch['to_date']);
         })
+        ->when($constraintIds !== null, fn ($q) => $q->whereIn('fn_constraints.id', $constraintIds))
+        ->distinct()
         ->with(['accounts' => function ($query) use ($account_id) {
             return $query->where('account_id', '!=', $account_id);
         }])

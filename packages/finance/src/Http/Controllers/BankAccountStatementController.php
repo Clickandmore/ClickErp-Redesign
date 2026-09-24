@@ -31,9 +31,9 @@ class BankAccountStatementController extends Controller
     {
         $dataSearch = $request->only($this->getData);
         if ($request->ajax()) {
-            $data = $service->filterAccount($dataSearch);
+            $data = $service->filterAccount($dataSearch, true);
             $firstBalance  = $service->getFirstBalance($dataSearch);
-            $otherAccount = ($dataSearch["other_account"] == "yes") ? $service->filterConstraints($dataSearch) : [];
+            $otherAccount = ($dataSearch["other_account"] == "yes") ? $service->filterConstraints($dataSearch, $data->pluck('constraint_id')->all()) : [];
             $returnHTML = view($this->folderPath . ".result")->with([
                 "data" => $data,
                 "firstBalance" => $firstBalance,

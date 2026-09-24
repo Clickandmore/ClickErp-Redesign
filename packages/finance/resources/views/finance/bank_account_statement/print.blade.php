@@ -165,7 +165,7 @@
             $width = 100 / $colspan;
         @endphp
         <div class="Tabel">
-            <table>
+            <table id="simpleTable4">
 
                 <tr>
                     <th>#</th>
