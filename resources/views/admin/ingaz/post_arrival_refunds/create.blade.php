@@ -2,6 +2,43 @@
 
 @section('page-title', 'إنشاء استرداد بعد الوصول')
 
+@section('style')
+<style>
+    .account-search-menu {
+        position: fixed;
+        z-index: 2050;
+        max-height: 300px;
+        overflow-y: auto;
+        direction: rtl;
+        background: #fff;
+        border: 1px solid #ced4da;
+        border-radius: .375rem;
+        box-shadow: 0 .5rem 1rem rgba(0, 0, 0, .15);
+    }
+    .account-search-option {
+        display: grid;
+        grid-template-columns: minmax(90px, auto) minmax(180px, 1fr);
+        gap: .75rem;
+        width: 100%;
+        padding: .55rem .75rem;
+        color: #212529;
+        text-align: right;
+        background: #fff;
+        border: 0;
+        border-bottom: 1px solid #f0f0f0;
+    }
+    .account-search-option:hover,
+    .account-search-option.is-active { background: #eef5ff; }
+    .account-search-code {
+        direction: ltr;
+        text-align: left;
+        font-family: monospace;
+        font-weight: 700;
+    }
+    .account-search-empty { padding: .75rem; color: #6c757d; text-align: center; }
+</style>
+@endsection
+
 @section('content')
 <div class="container-fluid">
     <div class="d-flex justify-content-between mb-3"><div><h4>إنشاء مستند استرداد بعد الوصول</h4><div class="text-muted">الحفظ ينشئ مسودة فقط، ولا ينشئ أي قيد.</div></div><a href="{{ route('post-arrival-refunds.index') }}" class="btn btn-outline-secondary">رجوع</a></div>
@@ -21,6 +58,14 @@
             $initialOfficeCreditLabel = $initialOfficeCreditId
                 ? trim(($initialProposal['office_charge_credit_account_code'] ?? '') . ' — ' . ($initialProposal['office_charge_credit_account_name'] ?? ''))
                 : 'غير مربوط؛ اختره يدوياً';
+            $accountSearchItems = $accounts->map(function ($account) {
+                return [
+                    'id' => (int) $account->id,
+                    'code' => (string) $account->code,
+                    'name' => (string) $account->name,
+                    'label' => trim($account->code . ' — ' . $account->name),
+                ];
+            })->values();
         @endphp
         <div class="alert alert-info" id="facts">
             @if($selected && $proposal)
@@ -64,7 +109,7 @@
                             $officeCreditAccount = $accounts->firstWhere('id', $officeCreditId);
                             $officeCreditText = $officeCreditAccount ? $officeCreditAccount->code . ' — ' . $officeCreditAccount->name : '';
                         @endphp
-                        <input type="search" class="form-control account-search-input line-value" list="refundLeafAccounts" value="{{ $officeCreditText }}" placeholder="اكتب رقم الحساب أو اسمه ثم اختر النتيجة" autocomplete="off">
+                        <input type="search" class="form-control account-search-input line-value" value="{{ $officeCreditText }}" placeholder="اكتب رقم الحساب أو اسمه ثم اختر النتيجة" autocomplete="off" aria-autocomplete="list" aria-expanded="false">
                         <input type="hidden" class="line-credit-account" name="lines[{{ $loop->index }}][credit_account_id]" value="{{ $officeCreditId ?: '' }}">
                         <small class="form-text {{ $initialOfficeCreditId ? 'text-success' : 'text-muted' }} office-account-source">@if($initialOfficeCreditId) اختير تلقائياً من {{ ($initialProposal['office_charge_account_source'] ?? null)==='shelter_receipt' ? 'مرجع استلام تكلفة الإيواء #'.($initialProposal['office_charge_receipt_entry_id'] ?? '') : 'حساب مردودات تكلفة الجنسية' }} @else سيُختار حساب تكلفة الجنسية تلقائياً عند وجود مرجع موثق. @endif</small>
                     @elseif($type==='client_deduction')
@@ -73,7 +118,7 @@
                             $clientCreditAccount = $accounts->firstWhere('id', $clientCreditId);
                             $clientCreditText = $clientCreditAccount ? $clientCreditAccount->code . ' — ' . $clientCreditAccount->name : '';
                         @endphp
-                        <input type="search" class="form-control account-search-input line-value" list="refundLeafAccounts" value="{{ $clientCreditText }}" placeholder="اكتب رقم الحساب أو اسمه ثم اختر النتيجة" autocomplete="off">
+                        <input type="search" class="form-control account-search-input line-value" value="{{ $clientCreditText }}" placeholder="اكتب رقم الحساب أو اسمه ثم اختر النتيجة" autocomplete="off" aria-autocomplete="list" aria-expanded="false">
                         <input type="hidden" class="line-credit-account" name="lines[{{ $loop->index }}][credit_account_id]" value="{{ $clientCreditId ?: '' }}">
                     @elseif($type==='client_payout')
                         <select class="form-select line-value" name="lines[{{ $loop->index }}][settlement_method]"><option value="financial_request" @selected(old("lines.$loop->index.settlement_method",'financial_request')==='financial_request')>طلب مالي مربوط</option><option value="balance_only" @selected(old("lines.$loop->index.settlement_method")==='balance_only')>إبقاء رصيد فقط</option></select>
@@ -83,14 +128,10 @@
             </tr>
             @endforeach
         </tbody></table></div>
-        <datalist id="refundLeafAccounts">
-            @foreach($accounts as $account)
-                <option value="{{ $account->code }} — {{ $account->name }}" data-account-id="{{ $account->id }}"></option>
-            @endforeach
-        </datalist>
         <div class="card-footer text-end"><button class="btn btn-primary">حفظ المسودة</button></div></div>
     </form>
 </div>
+<div id="accountSearchMenu" class="account-search-menu d-none" role="listbox"></div>
 @endsection
 
 @section('js')
@@ -98,6 +139,131 @@
 (() => {
     const contract = document.getElementById('contractId'), date = document.getElementById('settlementDate'), reason = document.getElementById('reasonCode');
     const money = n => Number(n || 0).toFixed(2);
+    const refundAccounts = @json($accountSearchItems);
+    refundAccounts.sort((left, right) => left.code.localeCompare(right.code, 'en', {numeric: true}) || left.name.localeCompare(right.name, 'ar'));
+    const accountById = new Map(refundAccounts.map(account => [String(account.id), account]));
+    const accountMenu = document.getElementById('accountSearchMenu');
+    let activeAccountInput = null, visibleAccounts = [], activeAccountIndex = -1;
+
+    function normalizeAccountTerm(value) {
+        return String(value || '').toLocaleLowerCase('ar')
+            .replace(/[إأآٱ]/g, 'ا')
+            .replace(/[ًٌٍَُِّْ]/g, '')
+            .replace(/\s+/g, ' ')
+            .trim();
+    }
+
+    function accountHiddenInput(input) {
+        return input.closest('[data-line]').querySelector('.line-credit-account');
+    }
+
+    function positionAccountMenu() {
+        if (!activeAccountInput || accountMenu.classList.contains('d-none')) return;
+        const rect = activeAccountInput.getBoundingClientRect();
+        const width = Math.min(Math.max(rect.width, 380), window.innerWidth - 16);
+        const left = Math.max(8, Math.min(rect.right - width, window.innerWidth - width - 8));
+        accountMenu.style.width = `${width}px`;
+        accountMenu.style.left = `${left}px`;
+        accountMenu.style.top = `${rect.bottom + 4}px`;
+    }
+
+    function hideAccountMenu() {
+        if (activeAccountInput) activeAccountInput.setAttribute('aria-expanded', 'false');
+        accountMenu.classList.add('d-none');
+        accountMenu.replaceChildren();
+        activeAccountInput = null;
+        visibleAccounts = [];
+        activeAccountIndex = -1;
+    }
+
+    function selectAccount(input, account) {
+        input.value = account.label;
+        accountHiddenInput(input).value = String(account.id);
+        input.setCustomValidity('');
+        hideAccountMenu();
+        input.focus();
+    }
+
+    function setActiveAccountIndex(index) {
+        if (!visibleAccounts.length) return;
+        activeAccountIndex = (index + visibleAccounts.length) % visibleAccounts.length;
+        accountMenu.querySelectorAll('.account-search-option').forEach((option, optionIndex) => {
+            option.classList.toggle('is-active', optionIndex === activeAccountIndex);
+            if (optionIndex === activeAccountIndex) option.scrollIntoView({block: 'nearest'});
+        });
+    }
+
+    function showAccountMenu(input) {
+        activeAccountInput = input;
+        activeAccountIndex = -1;
+        const term = normalizeAccountTerm(input.value);
+        visibleAccounts = refundAccounts.filter(account => !term || normalizeAccountTerm(`${account.code} ${account.name}`).includes(term)).slice(0, 80);
+        accountMenu.replaceChildren();
+
+        if (!visibleAccounts.length) {
+            const empty = document.createElement('div');
+            empty.className = 'account-search-empty';
+            empty.textContent = 'لا توجد حسابات طرفية مطابقة';
+            accountMenu.appendChild(empty);
+        } else {
+            visibleAccounts.forEach(account => {
+                const option = document.createElement('button');
+                option.type = 'button';
+                option.className = 'account-search-option';
+                option.setAttribute('role', 'option');
+                const code = document.createElement('span');
+                code.className = 'account-search-code';
+                code.textContent = account.code;
+                const name = document.createElement('span');
+                name.textContent = account.name;
+                option.append(code, name);
+                option.addEventListener('mousedown', event => {
+                    event.preventDefault();
+                    selectAccount(input, account);
+                });
+                accountMenu.appendChild(option);
+            });
+        }
+
+        accountMenu.classList.remove('d-none');
+        input.setAttribute('aria-expanded', 'true');
+        positionAccountMenu();
+    }
+
+    function resolveAccountSearch(input) {
+        const hidden = accountHiddenInput(input);
+        const selected = accountById.get(String(hidden.value || ''));
+        if (selected && normalizeAccountTerm(input.value) === normalizeAccountTerm(selected.label)) {
+            input.setCustomValidity('');
+            return true;
+        }
+        const exact = refundAccounts.find(account => normalizeAccountTerm(account.label) === normalizeAccountTerm(input.value));
+        hidden.value = exact ? String(exact.id) : '';
+        input.setCustomValidity(input.required && !exact ? 'اختر الحساب من قائمة نتائج البحث.' : '');
+        return Boolean(exact);
+    }
+
+    document.querySelectorAll('.account-search-input').forEach(input => {
+        input.addEventListener('focus', () => showAccountMenu(input));
+        input.addEventListener('input', () => {
+            accountHiddenInput(input).value = '';
+            input.setCustomValidity('');
+            showAccountMenu(input);
+        });
+        input.addEventListener('keydown', event => {
+            if (event.key === 'ArrowDown') { event.preventDefault(); setActiveAccountIndex(activeAccountIndex + 1); }
+            else if (event.key === 'ArrowUp') { event.preventDefault(); setActiveAccountIndex(activeAccountIndex - 1); }
+            else if (event.key === 'Enter' && activeAccountIndex >= 0) { event.preventDefault(); selectAccount(input, visibleAccounts[activeAccountIndex]); }
+            else if (event.key === 'Escape') hideAccountMenu();
+        });
+        input.addEventListener('blur', () => window.setTimeout(() => resolveAccountSearch(input), 100));
+    });
+
+    document.addEventListener('mousedown', event => {
+        if (activeAccountInput && !accountMenu.contains(event.target) && event.target !== activeAccountInput) hideAccountMenu();
+    });
+    window.addEventListener('resize', positionAccountMenu);
+    window.addEventListener('scroll', positionAccountMenu, true);
     async function loadProposal() {
         if (!contract.value || !date.value) return;
         const facts=document.getElementById('facts');
@@ -120,17 +286,25 @@
         applyReason();
         } catch(error) { facts.className='alert alert-danger'; facts.textContent='تعذر تحديث الاقتراحات: '+error.message; }
     }
-    const accountOptions=Array.from(document.querySelectorAll('#refundLeafAccounts option'));
-    const accountByText=new Map(accountOptions.map(option=>[option.value.trim(),option.dataset.accountId]));
-    function resolveAccountSearch(input){ const hidden=input.closest('[data-line]').querySelector('.line-credit-account'); const id=accountByText.get(input.value.trim())||''; hidden.value=id; input.setCustomValidity(input.required&&!id?'اختر حساباً من نتائج البحث.':''); return Boolean(id); }
-    document.querySelectorAll('.account-search-input').forEach(input=>{ input.addEventListener('input',()=>resolveAccountSearch(input)); input.addEventListener('change',()=>resolveAccountSearch(input)); });
     function syncLineState(){ document.querySelectorAll('[data-line]').forEach(row=>{ const enabled=row.querySelector('.line-enabled').checked; row.classList.toggle('opacity-75',!enabled); const account=row.querySelector('.line-credit-account'), search=row.querySelector('.account-search-input'), method=row.querySelector('.settlement-method'); if(search){ search.required=enabled&&(!method||method.value!=='next_dispatch_deduction'); resolveAccountSearch(search); } }); }
     function applyReason(){ const option=reason.options[reason.selectedIndex]; if(!option)return; const d=document.querySelector('[data-line="client_deduction"] .line-enabled'), o=document.querySelector('[data-line="office_charge"] .line-enabled'); d.checked=option.dataset.deduction==='1'; o.checked=option.dataset.office==='1'; syncLineState(); }
     if (window.jQuery && jQuery.fn.select2) {
         jQuery(contract).select2({width:'100%', dir:'rtl', placeholder:'ابحث برقم العقد أو العميل أو العاملة أو مساند', ajax:{url:@json(route('post-arrival-refunds.search-contracts')), dataType:'json', delay:250, data:params=>({q:params.term||''}), processResults:data=>data}})
             .on('change', loadProposal);
     } else contract.addEventListener('change',loadProposal);
-    date.addEventListener('change',loadProposal); reason.addEventListener('change',applyReason); document.querySelectorAll('.line-enabled,.settlement-method').forEach(element=>element.addEventListener('change',syncLineState)); syncLineState();
+    date.addEventListener('change',loadProposal); reason.addEventListener('change',applyReason); document.querySelectorAll('.line-enabled,.settlement-method').forEach(element=>element.addEventListener('change',syncLineState));
+    document.getElementById('refundForm').addEventListener('submit', event => {
+        for (const input of document.querySelectorAll('.account-search-input[required]')) {
+            if (!resolveAccountSearch(input)) {
+                event.preventDefault();
+                input.reportValidity();
+                input.focus();
+                showAccountMenu(input);
+                break;
+            }
+        }
+    });
+    syncLineState();
 })();
 </script>
 @endsection

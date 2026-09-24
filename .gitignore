@@ -41,7 +41,6 @@ storage/framework/scheduler-heartbeat.json
 
 # Documentation files
 /docs/finance_tree
-/docs/livechat
 /docs/updates
 
 # Local package artifacts
