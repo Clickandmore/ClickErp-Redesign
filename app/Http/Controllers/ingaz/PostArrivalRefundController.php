@@ -10,6 +10,7 @@ use App\Models\ReturnReasonCode;
 use App\Services\ingaz\PostArrivalRefundService;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 use Nami\Finance\Models\Account;
 
 class PostArrivalRefundController extends Controller
@@ -48,12 +49,21 @@ class PostArrivalRefundController extends Controller
             if ($selected) $contracts->prepend($selected);
         }
         $proposal = $selected ? $service->proposal($selected, now()->toDateString()) : null;
+        $accountsQuery = Account::query()->whereDoesntHave('children');
+        $accounts = $accountsQuery->orderBy('code')->orderBy('id')->get(['id', 'code', 'name']);
+        $suggestedAccountId = (int) ($proposal['office_charge_credit_account_id'] ?? 0);
+        if ($suggestedAccountId > 0 && ! $accounts->contains('id', $suggestedAccountId)) {
+            $suggestedAccount = Account::query()->whereKey($suggestedAccountId)->whereDoesntHave('children')->first(['id', 'code', 'name']);
+            if ($suggestedAccount) $accounts->push($suggestedAccount);
+        }
+        $accounts = $accounts
+            ->sort(fn ($left, $right) => strnatcasecmp((string) $left->code, (string) $right->code) ?: strnatcasecmp((string) $left->name, (string) $right->name))
+            ->values();
+
         return view('admin.ingaz.post_arrival_refunds.create', [
             'contracts' => $contracts, 'selected' => $selected, 'proposal' => $proposal,
             'reasons' => ReturnReasonCode::query()->where('is_active', true)->orderBy('sort_order')->get(),
-            'accounts' => Account::query()->whereDoesntHave('children')->orderBy('code')->orderBy('id')->get(['id', 'code', 'name'])
-                ->sort(fn ($left, $right) => strnatcasecmp((string) $left->code, (string) $right->code) ?: strnatcasecmp((string) $left->name, (string) $right->name))
-                ->values(),
+            'accounts' => $accounts,
         ]);
     }
 
@@ -93,9 +103,22 @@ class PostArrivalRefundController extends Controller
             'lines.*.type' => ['required', Rule::in(['credit_note', 'client_deduction', 'client_payout', 'office_charge', 'shelter_cost', 'marketer_commission', 'adjustment'])],
             'lines.*.approved_amount' => 'nullable|numeric|min:0|max:9999999999.99',
             'lines.*.credit_account_id' => 'nullable|integer|exists:fn_accounts,id',
+            'lines.*.credit_account_query' => 'nullable|string|max:500',
             'lines.*.settlement_method' => 'nullable|in:claim,next_dispatch_deduction,financial_request,balance_only',
             'lines.*.reason' => 'nullable|string|max:1000',
         ]);
+        foreach ($data['lines'] as $index => &$line) {
+            $accountQuery = trim((string) ($line['credit_account_query'] ?? ''));
+            if ($accountQuery === '') continue;
+            $account = $this->resolveLeafAccountQuery($accountQuery);
+            if (! $account) {
+                throw ValidationException::withMessages([
+                    "lines.{$index}.credit_account_query" => 'اختر حساباً محدداً من نتائج البحث في مربع الحساب.',
+                ]);
+            }
+            $line['credit_account_id'] = (int) $account->id;
+        }
+        unset($line);
         $settlement = $service->createDraft(Contract::query()->findOrFail($data['contract_id']), $data);
         return redirect()->route('post-arrival-refunds.show', $settlement)->with('success', 'تم إنشاء مسودة الاسترداد من دون إنشاء أي قيد.');
     }
@@ -125,5 +148,29 @@ class PostArrivalRefundController extends Controller
         $data = $request->validate(['amount' => 'required|numeric|min:0.01|max:9999999999.99', 'method' => 'required|in:financial_request,balance_only']);
         $service->requestPayout($postArrivalRefund, (float) $data['amount'], $data['method']);
         return back()->with('success', $data['method'] === 'financial_request' ? 'تم إنشاء طلب مالي مربوط بالمستند.' : 'تم تثبيت المبلغ كرصيد للعميل من دون طلب مالي.');
+    }
+
+    private function resolveLeafAccountQuery(string $value): ?Account
+    {
+        if (preg_match('/\[#(\d+)\]\s*$/u', $value, $matches)) {
+            return Account::query()->whereKey((int) $matches[1])->whereDoesntHave('children')->first();
+        }
+
+        $parts = preg_split('/\s+—\s+/u', $value, 2);
+        if (count($parts) === 2) {
+            return Account::query()->whereDoesntHave('children')
+                ->where('code', trim($parts[0]))
+                ->where('name', trim($parts[1]))
+                ->first();
+        }
+
+        $matches = Account::query()->whereDoesntHave('children')
+            ->where(function ($query) use ($value) {
+                $query->where('code', $value)->orWhere('name', $value);
+            })
+            ->limit(2)
+            ->get();
+
+        return $matches->count() === 1 ? $matches->first() : null;
     }
 }

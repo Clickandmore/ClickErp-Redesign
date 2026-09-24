@@ -244,9 +244,16 @@
            حتى يُقص عمود «حذف» خارج البطاقة. */
         .permissions-grid {
             display: grid;
-            grid-template-columns: minmax(0, 1fr);
+            grid-template-columns: repeat(auto-fill, minmax(440px, 1fr));
+            grid-auto-flow: dense;
+            align-items: start;
             gap: 16px;
             margin-top: 14px;
+        }
+
+        /* قسم كبير يأخذ عرض الصف كاملاً حتى لا يضيق جدوله، والصغير يصطف بجانب غيره */
+        .permission-section-card--wide {
+            grid-column: 1 / -1;
         }
 
         .permission-section-card {
@@ -347,6 +354,50 @@
 
         .permission-group.permission-group--simple .permission-group__header {
             background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+        }
+
+        /* مجموعة وحيدة بنفس عنوان القسم: رأسها تكرار بلا فائدة، فيُخفى */
+        .permission-group--only.permission-group--same-title > .permission-group__header {
+            display: none;
+        }
+
+        .permission-group--only {
+            border: 0;
+            border-radius: 0;
+            margin-bottom: 0;
+            box-shadow: none;
+        }
+
+        /* مجموعة وحيدة بعنوان مختلف: سطر واحد رفيع بدل كتلة كاملة */
+        .permission-group--only:not(.permission-group--same-title) > .permission-group__header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            padding: 8px 12px;
+            background: transparent;
+        }
+
+        .permission-group--only .permission-group__title {
+            font-size: 0.88rem;
+        }
+
+        .permission-group--only .permissions-table-wrap {
+            padding: 0;
+        }
+
+        /* بطاقة مدمجة: شاشات قليلة، فلا تُهدر ارتفاعاً */
+        .permission-section-card--compact .permission-section-card__header {
+            padding: 12px 14px;
+            gap: 8px;
+        }
+
+        .permission-section-card--compact .permission-section-card__actions {
+            padding-top: 8px;
+        }
+
+        .permission-section-card--compact .permission-section-card__body {
+            padding: 10px;
         }
 
         .permission-group__header {
@@ -666,14 +717,13 @@
             gap: 10px;
         }
 
-        @media (min-width: 1650px) {
-            .permissions-grid {
-                grid-template-columns: repeat(3, minmax(0, 1fr));
+        @media (max-width: 1199.98px) {
+            .permissions-toolbar-grid {
+                grid-template-columns: 1fr;
             }
         }
 
-        @media (max-width: 1199.98px) {
-            .permissions-toolbar-grid,
+        @media (max-width: 991.98px) {
             .permissions-grid {
                 grid-template-columns: 1fr;
             }
@@ -853,10 +903,17 @@
                                             @foreach ($lane['sections'] as $sectionIndex => $section)
                                                 @php
                                                     $collapseId = 'permission-section-' . $lane['key'] . '-' . $section['key'] . '-' . $sectionIndex;
+                                                    // قسم بشاشات قليلة يصطف أفقياً بجانب غيره، والكبير يأخذ الصف كاملاً
+                                                    $sectionRowsCount = collect($section['groups'])->sum(fn ($sectionGroup) => count($sectionGroup['rows']));
+                                                    // القسم الوحيد في الوحدة يأخذ العرض كاملاً حتى لا يترك فراغاً بجانبه
+                                                    $sectionSizeClass = count($lane['sections']) === 1 || $sectionRowsCount > 5
+                                                        ? 'permission-section-card--wide'
+                                                        : 'permission-section-card--compact';
                                                 @endphp
 
-                                                <div class="permission-section-card"
+                                                <div class="permission-section-card {{ $sectionSizeClass }}"
                                                      data-section-card
+                                                     data-section-rows="{{ $sectionRowsCount }}"
                                                      data-scope-label="{{ $section['title'] }}">
                                                     <div class="permission-section-card__header">
                                                         <div class="permission-section-card__heading">
@@ -885,10 +942,18 @@
                                                     <div id="{{ $collapseId }}" class="collapse show permission-section-card__body">
                                                         @foreach ($section['groups'] as $groupIndex => $group)
                                                             @php
-                                                                $isSimpleGroup = count($section['groups']) === 1 && $group['title'] === $section['title'];
+                                                                $isOnlyGroup = count($section['groups']) === 1;
+                                                                $isSameTitle = $group['title'] === $section['title'];
+                                                                $isSimpleGroup = $isOnlyGroup && $isSameTitle;
+                                                                $groupClasses = array_filter([
+                                                                    'permission-group',
+                                                                    $isSimpleGroup ? 'permission-group--simple' : null,
+                                                                    $isOnlyGroup ? 'permission-group--only' : null,
+                                                                    $isOnlyGroup && $isSameTitle ? 'permission-group--same-title' : null,
+                                                                ]);
                                                             @endphp
 
-                                                            <div class="permission-group {{ $isSimpleGroup ? 'permission-group--simple' : '' }}"
+                                                            <div class="{{ implode(' ', $groupClasses) }}"
                                                                  data-group-card
                                                                  data-scope-label="{{ $group['title'] }}">
                                                                 <div class="permission-group__header">

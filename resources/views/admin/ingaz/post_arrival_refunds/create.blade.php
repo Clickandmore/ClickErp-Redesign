@@ -2,37 +2,6 @@
 
 @section('page-title', 'إنشاء استرداد بعد الوصول')
 
-@section('style')
-<style>
-    .account-picker { min-width: 360px; }
-    .account-picker-results {
-        max-height: 260px;
-        overflow-y: auto;
-        margin-top: .25rem;
-        background: #fff;
-        border: 1px solid #ced4da;
-        border-radius: .375rem;
-        box-shadow: 0 .25rem .75rem rgba(0, 0, 0, .08);
-    }
-    .account-picker-result {
-        display: grid;
-        grid-template-columns: minmax(90px, auto) 1fr;
-        gap: .75rem;
-        width: 100%;
-        padding: .5rem .65rem;
-        color: #212529;
-        text-align: right;
-        background: #fff;
-        border: 0;
-        border-bottom: 1px solid #eee;
-    }
-    .account-picker-result:hover,
-    .account-picker-result.is-active { background: #eaf3ff; }
-    .account-picker-code { direction: ltr; text-align: left; font-family: monospace; font-weight: 700; }
-    .account-picker-empty { padding: .65rem; color: #6c757d; text-align: center; }
-</style>
-@endsection
-
 @section('content')
 <div class="container-fluid">
     <div class="d-flex justify-content-between mb-3"><div><h4>إنشاء مستند استرداد بعد الوصول</h4><div class="text-muted">الحفظ ينشئ مسودة فقط، ولا ينشئ أي قيد.</div></div><a href="{{ route('post-arrival-refunds.index') }}" class="btn btn-outline-secondary">رجوع</a></div>
@@ -92,34 +61,20 @@
                         <select class="form-select mb-1 settlement-method line-value" name="lines[{{ $loop->index }}][settlement_method]"><option value="claim" @selected(old("lines.$loop->index.settlement_method",'claim')==='claim')>مطالبة على كشف المكتب</option><option value="next_dispatch_deduction" @selected(old("lines.$loop->index.settlement_method")==='next_dispatch_deduction')>خصم من الإرسالية التالية</option></select>
                         @php
                             $officeCreditId = (int) old("lines.$loop->index.credit_account_id", $initialOfficeCreditId);
+                            $officeCreditAccount = $accounts->firstWhere('id', $officeCreditId);
+                            $officeCreditQuery = old("lines.$loop->index.credit_account_query", $officeCreditAccount ? $officeCreditAccount->code . ' — ' . $officeCreditAccount->name . ' [#' . $officeCreditAccount->id . ']' : '');
                         @endphp
-                        <div class="account-picker">
-                            <input type="search" class="form-control account-picker-search" placeholder="اكتب رقم الحساب أو اسمه" autocomplete="off">
-                            <div class="account-picker-results d-none"></div>
-                            <select class="form-select account-select line-value mt-1" name="lines[{{ $loop->index }}][credit_account_id]">
-                                <option value="">اختر الحساب المالي</option>
-                                @foreach($accounts as $account)
-                                    <option value="{{ $account->id }}" data-code="{{ $account->code }}" @selected($officeCreditId === (int) $account->id)>{{ $account->code }} — {{ $account->name }}</option>
-                                @endforeach
-                            </select>
-                            <small class="form-text account-picker-selected">الحساب المختار: <strong>{{ $officeCreditId ? $accounts->firstWhere('id', $officeCreditId)?->code . ' — ' . $accounts->firstWhere('id', $officeCreditId)?->name : 'لم يتم الاختيار' }}</strong></small>
-                        </div>
+                        <input type="search" class="form-control account-query line-value" name="lines[{{ $loop->index }}][credit_account_query]" list="refundLeafAccounts" value="{{ $officeCreditQuery }}" placeholder="ابحث برقم الحساب أو الاسم ثم اختر النتيجة" autocomplete="off" spellcheck="false" onfocus="this.select()">
+                        <small class="form-text text-muted">اختيار النتيجة يثبت رقم الحساب تلقائياً عند الحفظ.</small>
                         <small class="form-text {{ $initialOfficeCreditId ? 'text-success' : 'text-muted' }} office-account-source">@if($initialOfficeCreditId) اختير تلقائياً من {{ ($initialProposal['office_charge_account_source'] ?? null)==='shelter_receipt' ? 'مرجع استلام تكلفة الإيواء #'.($initialProposal['office_charge_receipt_entry_id'] ?? '') : 'حساب مردودات تكلفة الجنسية' }} @else سيُختار حساب تكلفة الجنسية تلقائياً عند وجود مرجع موثق. @endif</small>
                     @elseif($type==='client_deduction')
                         @php
                             $clientCreditId = (int) old("lines.$loop->index.credit_account_id");
+                            $clientCreditAccount = $accounts->firstWhere('id', $clientCreditId);
+                            $clientCreditQuery = old("lines.$loop->index.credit_account_query", $clientCreditAccount ? $clientCreditAccount->code . ' — ' . $clientCreditAccount->name . ' [#' . $clientCreditAccount->id . ']' : '');
                         @endphp
-                        <div class="account-picker">
-                            <input type="search" class="form-control account-picker-search" placeholder="اكتب رقم الحساب أو اسمه" autocomplete="off">
-                            <div class="account-picker-results d-none"></div>
-                            <select class="form-select account-select line-value mt-1" name="lines[{{ $loop->index }}][credit_account_id]">
-                                <option value="">اختر الحساب المالي</option>
-                                @foreach($accounts as $account)
-                                    <option value="{{ $account->id }}" data-code="{{ $account->code }}" @selected($clientCreditId === (int) $account->id)>{{ $account->code }} — {{ $account->name }}</option>
-                                @endforeach
-                            </select>
-                            <small class="form-text account-picker-selected">الحساب المختار: <strong>{{ $clientCreditId ? $accounts->firstWhere('id', $clientCreditId)?->code . ' — ' . $accounts->firstWhere('id', $clientCreditId)?->name : 'لم يتم الاختيار' }}</strong></small>
-                        </div>
+                        <input type="search" class="form-control account-query line-value" name="lines[{{ $loop->index }}][credit_account_query]" list="refundLeafAccounts" value="{{ $clientCreditQuery }}" placeholder="ابحث برقم الحساب أو الاسم ثم اختر النتيجة" autocomplete="off" spellcheck="false" onfocus="this.select()">
+                        <small class="form-text text-muted">اختيار النتيجة يثبت رقم الحساب تلقائياً عند الحفظ.</small>
                     @elseif($type==='client_payout')
                         <select class="form-select line-value" name="lines[{{ $loop->index }}][settlement_method]"><option value="financial_request" @selected(old("lines.$loop->index.settlement_method",'financial_request')==='financial_request')>طلب مالي مربوط</option><option value="balance_only" @selected(old("lines.$loop->index.settlement_method")==='balance_only')>إبقاء رصيد فقط</option></select>
                     @else — @endif
@@ -128,6 +83,11 @@
             </tr>
             @endforeach
         </tbody></table></div>
+        <datalist id="refundLeafAccounts">
+            @foreach($accounts as $account)
+                <option value="{{ $account->code }} — {{ $account->name }} [#{{ $account->id }}]"></option>
+            @endforeach
+        </datalist>
         <div class="card-footer text-end"><button class="btn btn-primary">حفظ المسودة</button></div></div>
     </form>
 </div>
@@ -138,86 +98,6 @@
 (() => {
     const contract = document.getElementById('contractId'), date = document.getElementById('settlementDate'), reason = document.getElementById('reasonCode');
     const money = n => Number(n || 0).toFixed(2);
-    const normalizeAccountTerm = value => String(value || '').toLocaleLowerCase('ar')
-        .replace(/[إأآٱ]/g, 'ا')
-        .replace(/[ًٌٍَُِّْ]/g, '')
-        .replace(/\s+/g, ' ')
-        .trim();
-
-    document.querySelectorAll('.account-picker').forEach(picker => {
-        const search = picker.querySelector('.account-picker-search');
-        const results = picker.querySelector('.account-picker-results');
-        const select = picker.querySelector('.account-select');
-        const selectedText = picker.querySelector('.account-picker-selected strong');
-        const accounts = Array.from(select.options).slice(1).map(option => ({
-            id: option.value,
-            code: option.dataset.code || '',
-            label: option.textContent.trim(),
-            searchable: normalizeAccountTerm(option.textContent),
-        }));
-        let visible = [], activeIndex = -1;
-
-        const updateSelectedText = () => {
-            selectedText.textContent = select.value ? select.options[select.selectedIndex].textContent.trim() : 'لم يتم الاختيار';
-        };
-        const choose = account => {
-            select.value = account.id;
-            select.dispatchEvent(new Event('change', {bubbles: true}));
-            search.value = '';
-            results.classList.add('d-none');
-            search.focus();
-        };
-        const setActive = index => {
-            if (!visible.length) return;
-            activeIndex = (index + visible.length) % visible.length;
-            results.querySelectorAll('.account-picker-result').forEach((button, buttonIndex) => {
-                button.classList.toggle('is-active', buttonIndex === activeIndex);
-                if (buttonIndex === activeIndex) button.scrollIntoView({block: 'nearest'});
-            });
-        };
-        const render = () => {
-            const term = normalizeAccountTerm(search.value);
-            visible = accounts.filter(account => !term || account.searchable.includes(term)).slice(0, 60);
-            activeIndex = -1;
-            results.replaceChildren();
-            if (!visible.length) {
-                const empty = document.createElement('div');
-                empty.className = 'account-picker-empty';
-                empty.textContent = 'لا توجد حسابات طرفية مطابقة';
-                results.appendChild(empty);
-            } else {
-                visible.forEach(account => {
-                    const button = document.createElement('button');
-                    button.type = 'button';
-                    button.className = 'account-picker-result';
-                    const code = document.createElement('span');
-                    code.className = 'account-picker-code';
-                    code.textContent = account.code;
-                    const name = document.createElement('span');
-                    name.textContent = account.label.replace(`${account.code} — `, '');
-                    button.append(code, name);
-                    button.addEventListener('mousedown', event => {
-                        event.preventDefault();
-                        choose(account);
-                    });
-                    results.appendChild(button);
-                });
-            }
-            results.classList.remove('d-none');
-        };
-
-        search.addEventListener('focus', render);
-        search.addEventListener('input', render);
-        search.addEventListener('keydown', event => {
-            if (event.key === 'ArrowDown') { event.preventDefault(); setActive(activeIndex + 1); }
-            else if (event.key === 'ArrowUp') { event.preventDefault(); setActive(activeIndex - 1); }
-            else if (event.key === 'Enter' && activeIndex >= 0) { event.preventDefault(); choose(visible[activeIndex]); }
-            else if (event.key === 'Escape') results.classList.add('d-none');
-        });
-        search.addEventListener('blur', () => window.setTimeout(() => results.classList.add('d-none'), 150));
-        select.addEventListener('change', updateSelectedText);
-        updateSelectedText();
-    });
     async function loadProposal() {
         if (!contract.value || !date.value) return;
         const facts=document.getElementById('facts');
@@ -234,13 +114,13 @@
         const officeCreditLabel=p.office_charge_credit_account_id ? `${p.office_charge_credit_account_code||''} — ${p.office_charge_credit_account_name||''}` : 'غير مربوط؛ اختره يدوياً';
         document.getElementById('facts').textContent=`الفاتورة ${money(p.invoice_total)} — إشعارات سابقة ${money(p.previous_credit)} — حساب العميل ${p.client_account_id||'غير مضبوط'} — حساب المكتب ${p.office_account_id||'غير مضبوط'} — حساب تكلفة الجنسية ${officeCreditLabel}`;
         document.querySelectorAll('[data-line]').forEach(row => { const t=row.dataset.line; let v=p[t]||0; if(t==='client_payout') v=Math.max(0,(p.credit_note||0)-(p.client_deduction||0)); row.querySelector('.proposal').textContent=money(v); if(!row.querySelector('.amount').value) row.querySelector('.amount').value=money(v); });
-        const officeRow=document.querySelector('[data-line="office_charge"]'), officeAccount=officeRow?.querySelector('.account-select'), officeSource=officeRow?.querySelector('.office-account-source');
-        if(officeAccount && p.office_charge_credit_account_id && !officeAccount.value){ officeAccount.value=String(p.office_charge_credit_account_id); officeAccount.dispatchEvent(new Event('change', {bubbles:true})); }
+        const officeRow=document.querySelector('[data-line="office_charge"]'), officeAccount=officeRow?.querySelector('.account-query'), officeSource=officeRow?.querySelector('.office-account-source');
+        if(officeAccount && p.office_charge_credit_account_id && !officeAccount.value){ officeAccount.value=`${p.office_charge_credit_account_code||''} — ${p.office_charge_credit_account_name||''} [#${p.office_charge_credit_account_id}]`; }
         if(officeSource){ officeSource.textContent=p.office_charge_credit_account_id ? `اختير تلقائياً من ${p.office_charge_account_source==='shelter_receipt' ? 'مرجع استلام تكلفة الإيواء #'+p.office_charge_receipt_entry_id : 'حساب مردودات تكلفة الجنسية'}: 'تعذر إثبات الحساب من المرجع؛ اختر حساباً طرفياً يدوياً.'; officeSource.className='form-text '+(p.office_charge_credit_account_id?'text-success':'text-warning'); }
         applyReason();
         } catch(error) { facts.className='alert alert-danger'; facts.textContent='تعذر تحديث الاقتراحات: '+error.message; }
     }
-    function syncLineState(){ document.querySelectorAll('[data-line]').forEach(row=>{ const enabled=row.querySelector('.line-enabled').checked; row.classList.toggle('opacity-75',!enabled); const account=row.querySelector('.account-select'), method=row.querySelector('.settlement-method'); if(account) account.required=enabled&&(!method||method.value!=='next_dispatch_deduction'); }); }
+    function syncLineState(){ document.querySelectorAll('[data-line]').forEach(row=>{ const enabled=row.querySelector('.line-enabled').checked; row.classList.toggle('opacity-75',!enabled); const account=row.querySelector('.account-query'), method=row.querySelector('.settlement-method'); if(account) account.required=enabled&&(!method||method.value!=='next_dispatch_deduction'); }); }
     function applyReason(){ const option=reason.options[reason.selectedIndex]; if(!option)return; const d=document.querySelector('[data-line="client_deduction"] .line-enabled'), o=document.querySelector('[data-line="office_charge"] .line-enabled'); d.checked=option.dataset.deduction==='1'; o.checked=option.dataset.office==='1'; syncLineState(); }
     if (window.jQuery && jQuery.fn.select2) {
         jQuery(contract).select2({width:'100%', dir:'rtl', placeholder:'ابحث برقم العقد أو العميل أو العاملة أو مساند', ajax:{url:@json(route('post-arrival-refunds.search-contracts')), dataType:'json', delay:250, data:params=>({q:params.term||''}), processResults:data=>data}})

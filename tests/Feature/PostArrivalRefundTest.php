@@ -224,6 +224,31 @@ class PostArrivalRefundTest extends TestCase
         }
     }
 
+    public function test_account_search_box_value_resolves_to_the_selected_leaf_account(): void
+    {
+        $contract = $this->contractWithArrivalInvoice();
+        $reason = ReturnReasonCode::query()->firstOrCreate(['code' => 'account-box'], ['name' => 'اختبار مربع الحساب']);
+        $creditAccount = $this->account('شركة ولاء لاختبار البحث', 'creditor');
+        $proposal = app(PostArrivalRefundService::class)->proposal($contract, now()->toDateString());
+        $request = Request::create('/admin/post-arrival-refunds', 'POST', [
+            'contract_id' => $contract->id,
+            'return_reason_code_id' => $reason->id,
+            'settlement_date' => now()->toDateString(),
+            'reason' => 'اختبار اختيار الحساب من مربع البحث',
+            'lines' => [[
+                'enabled' => true,
+                'type' => 'client_deduction',
+                'approved_amount' => $proposal['client_deduction'],
+                'credit_account_query' => $creditAccount->code . ' — ' . $creditAccount->name . ' [#' . $creditAccount->id . ']',
+            ]],
+        ]);
+
+        app(PostArrivalRefundController::class)->store($request, app(PostArrivalRefundService::class));
+
+        $settlement = ContractReturnSettlement::query()->where('contract_id', $contract->id)->latest('id')->firstOrFail();
+        $this->assertSame($creditAccount->id, (int) $settlement->lines()->firstOrFail()->credit_account_id);
+    }
+
     private function contractWithArrivalInvoice(): Contract
     {
         $user = User::query()->create([
