@@ -3841,10 +3841,11 @@ class ShelterContractController extends Controller
 
         $procedure = \App\Models\DeportationProcedure::where('contract_id', $contract->id)
             ->with(['createdBy', 'completedBy'])
+            ->latest('id')
             ->first();
 
         if (!$procedure) {
-            return redirect()->route('ShelterContract.show', $id)
+            return redirect()->route(request()->routeIs('RecruitmentContract.deportation.*') ? 'RecruitmentContract.index' : 'ShelterContract.show', request()->routeIs('RecruitmentContract.deportation.*') ? [] : [$id])
                 ->with('error', 'لا توجد إجراءات ترحيل لهذا العقد');
         }
 
@@ -4020,7 +4021,7 @@ class ShelterContractController extends Controller
                         . (($completion['amount'] ?? 0) > 0
                             ? ' وإنشاء قيد الترحيل بمبلغ ' . number_format((float) $completion['amount'], 2)
                             : ''),
-                    'redirect' => route('ShelterContract.deported')
+                    'redirect' => route($request->routeIs('RecruitmentContract.deportation.*') ? 'RecruitmentContract.index' : 'ShelterContract.deported')
                 ]);
             }
 

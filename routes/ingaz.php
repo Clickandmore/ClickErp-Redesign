@@ -473,6 +473,13 @@ Route::group(
             });
 
             // RecruitmentContract specific routes - MUST come before resource route
+            Route::controller(\App\Http\Controllers\ingaz\RecruitmentDeportationController::class)->group(function () {
+                Route::post('RecruitmentContract/{id}/deportation/start', 'startDeportation')->name('RecruitmentContract.deportation.start');
+                Route::get('RecruitmentContract/{id}/deportation/procedures', 'showDeportationProcedures')->name('RecruitmentContract.deportation.procedures');
+                Route::post('RecruitmentContract/deportation/{id}/update', 'updateDeportationProcedures')->name('RecruitmentContract.deportation.update');
+                Route::post('RecruitmentContract/deportation/{id}/cancel', 'cancelDeportation')->name('RecruitmentContract.deportation.cancel');
+                Route::get('RecruitmentContract/deportation/{id}/activity-log', 'getActivityLog')->name('RecruitmentContract.deportation.activity-log');
+            });
             Route::get('RecruitmentContract/escape-reports', [\App\Http\Controllers\ingaz\RecruitmentEscapeReportController::class, 'index'])->name('RecruitmentContract.escapeReports.index');
             Route::get('RecruitmentContract/{contractId}/escape-reports', [\App\Http\Controllers\ingaz\RecruitmentEscapeReportController::class, 'show'])->name('RecruitmentContract.escapeReports.show');
             Route::post('RecruitmentContract/{contractId}/escape-reports', [\App\Http\Controllers\ingaz\RecruitmentEscapeReportController::class, 'store'])->name('RecruitmentContract.escapeReports.store');

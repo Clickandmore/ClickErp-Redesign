@@ -51,6 +51,13 @@ return array (
       'display_name' => 'إدارة إعدادات الموقع الخارجي',
       'description' => 'عرض وتعديل إعدادات الموقع الخارجي وSEO دون إعدادات النظام الداخلية',
     ),
+    'rec_contracts_deportation' => array (
+      'name' => 'rec_contracts_deportation',
+      'group' => 'recruitment_contracts',
+      'section' => 'operations_management',
+      'display_name' => 'ترحيل العاملة من عقود الاستقدام',
+      'description' => 'بدء ومتابعة إجراءات ترحيل العاملة من عقود الاستقدام دون إدخالها للإيواء.',
+    ),
     0 => 
     array (
       'name' => 'dashboard_view',

@@ -22,7 +22,7 @@
                     <button class="btn btn-danger mt-3">حذف البلاغ</button>
                 </form>
             @endif
-        @elseif($contract->status === 'completed' && AdminGuardHasPerm(\App\PermKeys::REC_CONTRACTS_ESCAPE_REPORT_CREATE))
+        @elseif(in_array($contract->status, ['arrival', 'completed'], true) && AdminGuardHasPerm(\App\PermKeys::REC_CONTRACTS_ESCAPE_REPORT_CREATE))
             <form method="POST" action="{{ route('RecruitmentContract.escapeReports.store', $contract->id) }}" enctype="multipart/form-data">
                 @csrf
                 <div class="mb-3"><label for="escape_date" class="form-label">تاريخ هروب العاملة</label>
@@ -57,7 +57,7 @@
                 })();
             </script>
         @else
-            <div class="alert alert-info">يمكن إضافة بلاغ هروب للعقود المكتملة فقط وبصلاحية إضافة بلاغ.</div>
+            <div class="alert alert-info">يمكن إضافة بلاغ هروب للعقود في مرحلة الوصول أو المكتملة فقط وبصلاحية إضافة بلاغ.</div>
         @endif
     </div>
 </div>
