@@ -99,6 +99,14 @@
             </select>
         </div>
 
+        @include('admin.partials.branch-filter', [
+            'name' => 'branch_id',
+            'label' => __('financial_requests.branch'),
+            'id' => 'double_branch_id',
+            'containerClass' => 'col-md-2',
+            'selectClass' => 'form-control search_keys',
+        ])
+
         <div class="col-md-1 mt-4">
             <br>
             <button type="button" id="search_button" class="btn btn-sm btn-success float-right">

@@ -926,6 +926,15 @@
                     </select>
                 </div>
 
+                @include('admin.partials.branch-filter', [
+                    'name' => 'branch_id',
+                    'label' => __('financial_requests.branch'),
+                    'id' => 'statement_branch_id',
+                    'containerClass' => 'statement-field statement-field--select',
+                    'selectClass' => 'form-control search_keys',
+                    'labelClass' => '',
+                ])
+
                 <div class="statement-field statement-field--select">
                     <label for="other_account">{{ __('finance::finance.Show Counter Account') }}</label>
                     <select name="other_account" id="other_account" class="form-control search_keys">

@@ -2,6 +2,7 @@
 
 namespace Nami\Finance\Services;
 
+use App\Services\BranchAccessService;
 use Carbon\Carbon;
 use PhpOffice\PhpSpreadsheet\Cell\Coordinate;
 use PhpOffice\PhpSpreadsheet\Cell\DataType;
@@ -92,7 +93,7 @@ class OperationalSummaryExportService
         $sheet->getStyle('A1')->getFont()->setBold(true)->setSize(14);
         $sheet->getStyle('A1')->getAlignment()->setHorizontal(Alignment::HORIZONTAL_RIGHT);
 
-        $sheet->setCellValue('A2', $spec['caption']);
+        $sheet->setCellValue('A2', $spec['caption'] . $this->branchCaption());
         $sheet->mergeCells("A2:{$lastColumn}2");
         $sheet->getStyle('A2')->getFont()->setSize(10)->getColor()->setARGB('FF667585');
         $sheet->getStyle('A2')->getAlignment()->setHorizontal(Alignment::HORIZONTAL_RIGHT);
@@ -172,6 +173,19 @@ class OperationalSummaryExportService
      * @param  array<int, mixed>  $row
      * @param  array<int, string>  $types
      */
+    /**
+     * الفرع الذي تغطيه أرقام الملف، يُلحق بسطر الوصف في كل ورقة.
+     *
+     * ملف Excel يعيش بعد الشاشة التي خرج منها، فإن لم يحمل اسم الفرع صار
+     * رقم فرع واحد غير مميَّز عن رقم الشركة كلها.
+     */
+    private function branchCaption(): string
+    {
+        $label = app(BranchAccessService::class)->reportBranchLabel();
+
+        return $label ? ' — الفرع: ' . $label : '';
+    }
+
     private function writeRow(Worksheet $sheet, int $rowNumber, array $row, array $types): void
     {
         foreach (array_values($row) as $i => $value) {

@@ -5,6 +5,7 @@ namespace App\Services;
 use App\PermKeys;
 use App\Models\Branch;
 use App\Support\AdminRoutePermissionMatrix;
+use App\Support\BranchQueryContext;
 use App\Support\SystemModuleManager;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\Request;
@@ -131,6 +132,30 @@ class BranchAccessService
             'forced_branch_id' => $this->enabled() && $adminBranchId && ! $canViewAllBranches ? $adminBranchId : null,
             'can_view_all_branches' => $this->enabled() && (! $adminBranchId || $canViewAllBranches),
         ];
+    }
+
+    /**
+     * اسم الفرع الذي يغطيه التقرير المعروض الآن، أو "كل الفروع".
+     *
+     * تُطبع في ترويسة كل قائمة مالية وكشف حساب حتى لا تخرج ورقة أو ملف Excel
+     * لا يُعرف من أي فرع هو — وهو أخطر ما في تقرير متعدد الفروع.
+     * تُرجع null عند تعطيل الموديول فتختفي الترويسة كما كانت.
+     */
+    public function reportBranchLabel(): ?string
+    {
+        if (! $this->enabled()) {
+            return null;
+        }
+
+        $branchId = BranchQueryContext::reportBranchId();
+
+        if ($branchId === null) {
+            return (string) __('financial_requests.all_branches');
+        }
+
+        $branch = Branch::query()->find($branchId, ['id', 'name_ar', 'name_en', 'code']);
+
+        return $branch ? $branch->name : (string) __('financial_requests.all_branches');
     }
 
     public function applyToQuery($query, Request $request, string $table, ?string $qualifiedColumn = null, $admin = null)

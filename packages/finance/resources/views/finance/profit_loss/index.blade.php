@@ -199,6 +199,15 @@
                         </select>
                     </div>
 
+                    @include('admin.partials.branch-filter', [
+                        'name' => 'branch_id',
+                        'label' => __('financial_requests.branch'),
+                        'id' => 'profit_branch_id',
+                        'containerClass' => 'profit-field',
+                        'selectClass' => 'form-control search_keys',
+                        'labelClass' => '',
+                    ])
+
                     <div class="profit-field profit-field--action">
                         <button type="button" id="search_button" class="btn btn-success profit-search-btn">
                             <i class="fa fa-search"></i> {{ __('finance::finance.Search') }}
@@ -218,7 +227,7 @@
 @section('js')
     <script>
         function loadProfitLoss() {
-            var emptyFields = $(".search_keys").filter(function() {
+            var emptyFields = $(".search_keys").not("[data-branch-filter]").filter(function() {
                 return $(this).val() === "";
             });
 

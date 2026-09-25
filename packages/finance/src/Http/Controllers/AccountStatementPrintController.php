@@ -41,7 +41,9 @@ class AccountStatementPrintController extends Controller
         if (!empty($dataSearch['account_id'])) {
             $data = $service->filterAccount($dataSearch);
             $firstBalance = $service->getFirstBalance($dataSearch);
-            $otherAccount = ($dataSearch["other_account"] == "yes") ? $service->filterConstraints($dataSearch) : [];
+            $otherAccount = ($dataSearch["other_account"] == "yes")
+                ? $service->filterCounterAccountsForStatement($data)
+                : [];
             $accountName = optional($accountService->find($dataSearch["account_id"]))->name;
         }
 

@@ -155,6 +155,7 @@
                         'to' => request('to_date'),
                     ]) }}
                 </div>
+                @include('admin.partials.branch-report-scope', ['scopeTag' => 'div'])
             </div>
 
             <div class="profit-report__grid">

@@ -2,6 +2,7 @@
 
 namespace Nami\Finance\Services;
 
+use App\Support\BranchReportFilter;
 use Illuminate\Support\Facades\DB;
 use Nami\Finance\Models\Constraint;
 
@@ -22,7 +23,7 @@ class FinancialPositionService
     {
         // Include opening and closing entries: the remaining P&L balance is the
         // undistributed result, so a posted closing entry cannot count twice.
-        $query = DB::table('fn_constraint_details as d')
+        $query = BranchReportFilter::apply(DB::table('fn_constraint_details as d'), 'd')
             ->join('fn_constraints as c', 'c.id', '=', 'd.constraint_id')
             ->whereNull('d.deleted_at')->whereNull('c.deleted_at')
             ->where('d.date', '<', \Carbon\Carbon::parse($date)->addDay()->toDateString());
@@ -34,7 +35,10 @@ class FinancialPositionService
         $accounts = DB::table('fn_accounts')->select('id', 'parent_id', 'code', 'name', 'type')->orderBy('code')->get();
         $report = $this->build($accounts->all(), $balances->all());
         $report['date'] = $date;
-        $report['pending_count'] = Constraint::query()->pendingApproval()->whereDate('date', '<=', $date)->count();
+        $report['pending_count'] = BranchReportFilter::apply(
+            Constraint::query()->pendingApproval()->whereDate('date', '<=', $date),
+            'fn_constraints'
+        )->count();
         return $report;
     }
 

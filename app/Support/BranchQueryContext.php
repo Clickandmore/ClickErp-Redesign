@@ -33,6 +33,13 @@ class BranchQueryContext
     private static ?int $resolvedBranchId = null;
     private static ?string $resolvedKey = null;
 
+    /**
+     * الفرع المختار يدوياً من شاشة التقرير — ذاكرة مؤقتة داخل الطلب الواحد.
+     * المفتاح يضم قيمة branch_id المطلوبة، فتغيّرها بين طلبين يُبطل الذاكرة.
+     */
+    private static ?int $resolvedReportBranchId = null;
+    private static ?string $resolvedReportKey = null;
+
     /** تشغيل كتلة بدون عزل فرع (تقارير تجميعية، مهام إدارية). */
     public static function withoutBranchScope(callable $callback)
     {
@@ -75,6 +82,8 @@ class BranchQueryContext
     {
         self::$resolvedKey = null;
         self::$resolvedBranchId = null;
+        self::$resolvedReportKey = null;
+        self::$resolvedReportBranchId = null;
         BranchDataSharingService::flush();
     }
 
@@ -142,5 +151,77 @@ class BranchQueryContext
         $branchId = self::activeBranchId();
 
         return $branchId !== null && app(BranchAccessService::class)->isMainBranchId($branchId);
+    }
+
+    /**
+     * الفرع الذي يجب أن يُقيَّد به التقرير الآن.
+     *
+     * يختلف عن activeBranchId() في حالة واحدة: المحاسب الذي يرى كل الفروع
+     * (إدارة عامة، أو موظف يملك branches_view_all). لا عزل تلقائي عليه —
+     * وهو المطلوب، لأن رقمه الافتراضي هو رقم الشركة كلها — لكنه يحتاج أن
+     * يفصل القوائم المالية وكشوفات الحساب على فرع بعينه عند المراجعة.
+     * فيختار الفرع من شاشة التقرير (`branch_id`) فيُقرأ من هنا.
+     *
+     * موظف الفرع المقيّد لا يتأثر: عزله التلقائي يسبق الاختيار اليدوي، فلا
+     * يستطيع الوصول إلى فرع غيره بتمرير branch_id في الرابط.
+     */
+    public static function reportBranchId(): ?int
+    {
+        $activeBranchId = self::activeBranchId();
+
+        if ($activeBranchId !== null) {
+            return $activeBranchId;
+        }
+
+        if (self::$suspensions > 0) {
+            return null;
+        }
+
+        return self::selectedReportBranchId();
+    }
+
+    /** هل فرع التقرير الحالي هو الفرع الرئيسي؟ (يضمّ السجلات القديمة بلا فرع). */
+    public static function reportBranchIsMain(): bool
+    {
+        $branchId = self::reportBranchId();
+
+        return $branchId !== null && app(BranchAccessService::class)->isMainBranchId($branchId);
+    }
+
+    private static function selectedReportBranchId(): ?int
+    {
+        $admin = self::currentAdmin();
+        $request = request();
+        $key = ($admin ? 'admin:' . $admin->getAuthIdentifier() : 'guest')
+            . '|' . (string) $request->input('branch_id', '');
+
+        if (self::$resolvedReportKey === $key) {
+            return self::$resolvedReportBranchId;
+        }
+
+        self::$resolvedReportKey = $key;
+        self::$resolvedReportBranchId = self::resolveSelected($admin, $request);
+
+        return self::$resolvedReportBranchId;
+    }
+
+    private static function resolveSelected($admin, $request): ?int
+    {
+        if (app()->runningInConsole() && ! app()->runningUnitTests()) {
+            return null;
+        }
+
+        if (! $admin || ! SystemModuleManager::isEnabled('branches')) {
+            return null;
+        }
+
+        // اختيار الفرع في التقرير قراءة فقط. في طلبات الكتابة يحمل `branch_id`
+        // معنى آخر تماماً — الفرع الذي يُنشأ فيه القيد أو الحساب — فقراءته هنا
+        // كانت ستفلتر استعلامات الأرصدة المصاحبة للحفظ على فرع السجل الجديد.
+        if (! $request->isMethodSafe()) {
+            return null;
+        }
+
+        return app(BranchAccessService::class)->selectedBranchId($request, $admin);
     }
 }

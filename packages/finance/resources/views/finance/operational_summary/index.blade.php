@@ -49,6 +49,7 @@
         background:linear-gradient(125deg,#132238 0%,#1d3553 70%,#244c73 100%); margin-bottom:16px; }
     .ops-summary .ops-hero h3 { color:#fff; margin:0 0 6px; font-weight:800; font-size:1.3rem; }
     .ops-summary .ops-hero p { margin:0; opacity:.78; font-size:.9rem; }
+    .ops-summary .ops-hero-branch { margin-top:8px !important; opacity:.92; font-weight:700; }
     .ops-summary .ops-panel { background:#fff; border:1px solid var(--line); border-radius:14px;
         padding:18px 20px; margin-bottom:16px; }
     .ops-summary .panel-head { display:flex; align-items:flex-start; justify-content:space-between;
@@ -180,6 +181,7 @@
     <div class="ops-hero">
         <h3>{{ __('finance::finance.operational_summary') }}</h3>
         <p>{{ __('finance::finance.ops_summary_subtitle') }}</p>
+        @include('admin.partials.branch-report-scope', ['scopeTag' => 'p', 'scopeClass' => 'ops-hero-branch'])
     </div>
 
     <div class="print-only">
@@ -189,6 +191,7 @@
         {{ $report['scope'] === 'period' ? __('finance::finance.ops_scope_period') : __('finance::finance.ops_scope_outstanding') }} &nbsp;
         <strong>{{ __('finance::finance.ops_musaned_status') }}:</strong>
         {{ __('finance::finance.ops_musaned_status_' . $report['musaned_status']) }}
+        @include('admin.partials.branch-report-scope')
     </div>
 
     <form class="ops-panel {{ $printing ? 'd-none' : '' }} no-print" method="GET" action="{{ route('finance.operational-summary.index') }}">
@@ -217,6 +220,14 @@
                 </select>
                 <small class="ops-field-hint">{{ __('finance::finance.ops_musaned_status_hint') }}</small>
             </div>
+            @include('admin.partials.branch-filter', [
+                'name' => 'branch_id',
+                'label' => __('financial_requests.branch'),
+                'id' => 'ops-branch',
+                'containerClass' => 'col-6 col-md-3 col-xl-2',
+                'selectClass' => 'form-control',
+                'labelClass' => '',
+            ])
             <div class="col-6 col-md-3 col-xl-2">
                 <label for="ops-per-page">{{ __('finance::finance.ops_per_page') }}</label>
                 <select class="form-control" id="ops-per-page" name="per_page">
@@ -228,9 +239,9 @@
             <div class="col-12">
                 <div class="ops-filters-actions">
                     <button class="btn btn-success" type="submit">{{ __('finance::finance.filter') }}</button>
-                    <a class="btn btn-outline-success" href="{{ route('finance.operational-summary.index', ['from_date' => $report['from'], 'to_date' => $report['to'], 'scope' => $report['scope'], 'musaned_status' => $report['musaned_status'], 'export' => 'xlsx']) }}">{{ __('finance::finance.ops_export_excel') }}</a>
+                    <a class="btn btn-outline-success" href="{{ route('finance.operational-summary.index', ['from_date' => $report['from'], 'to_date' => $report['to'], 'scope' => $report['scope'], 'musaned_status' => $report['musaned_status'], 'branch_id' => $branchId ?? null, 'export' => 'xlsx']) }}">{{ __('finance::finance.ops_export_excel') }}</a>
                     <a class="btn btn-outline-secondary" target="_blank" rel="noopener"
-                       href="{{ route('finance.operational-summary.index', ['from_date' => $report['from'], 'to_date' => $report['to'], 'scope' => $report['scope'], 'musaned_status' => $report['musaned_status'], 'print' => 1]) }}">{{ __('finance::finance.print') }}</a>
+                       href="{{ route('finance.operational-summary.index', ['from_date' => $report['from'], 'to_date' => $report['to'], 'scope' => $report['scope'], 'musaned_status' => $report['musaned_status'], 'branch_id' => $branchId ?? null, 'print' => 1]) }}">{{ __('finance::finance.print') }}</a>
                     <span class="panel-subtitle">{{ $report['scope'] === 'period' ? __('finance::finance.ops_scope_period_hint') : __('finance::finance.ops_scope_outstanding_hint') }}</span>
                 </div>
             </div>

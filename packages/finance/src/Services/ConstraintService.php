@@ -301,6 +301,7 @@ class ConstraintService extends MainService
                 'fn_constraints.type as constraints_type',
                 'fn_constraint_details.constraint_id',
                 'fn_constraint_details.id as constraint_detail_id',
+                'fn_constraint_details.type as movement_type',
                 'fn_constraints.code as constraint_code',
                 'admins.name',
             ])
@@ -355,6 +356,85 @@ class ConstraintService extends MainService
         foreach ($otherAccounts as $one) {
             $result[$one->id]['accounts'] = $one->accounts;
         }
+        return $result;
+    }
+
+    /**
+     * Resolve counter accounts for each statement row rather than for the
+     * entire journal entry. In a compound entry only the lines on the opposite
+     * side are accounting counterparts to the selected movement.
+     */
+    public function filterCounterAccountsForStatement($statementRows): array
+    {
+        $rows = $statementRows instanceof StatementPaginator
+            ? $statementRows->getCollection()
+            : collect($statementRows);
+
+        $rows = $rows
+            ->filter(fn ($row) => filled($row->constraint_id ?? null) && filled($row->constraint_detail_id ?? null))
+            ->values();
+
+        if ($rows->isEmpty()) {
+            return [];
+        }
+
+        $details = BranchReportFilter::apply(DB::table('fn_constraint_details'), 'fn_constraint_details')
+            ->select([
+                'fn_constraint_details.id',
+                'fn_constraint_details.constraint_id',
+                'fn_constraint_details.account_id',
+                'fn_constraint_details.type',
+                'fn_constraint_details.debtor_value',
+                'fn_constraint_details.creditor_value',
+                'fn_accounts.code',
+                'fn_accounts.name',
+            ])
+            ->join('fn_accounts', 'fn_accounts.id', '=', 'fn_constraint_details.account_id')
+            ->join('fn_constraints', 'fn_constraints.id', '=', 'fn_constraint_details.constraint_id')
+            ->whereNull('fn_constraint_details.deleted_at')
+            ->whereNull('fn_constraints.deleted_at')
+            ->whereIn('fn_constraint_details.constraint_id', $rows->pluck('constraint_id')->unique()->all())
+            ->orderBy('fn_constraint_details.id')
+            ->get()
+            ->groupBy('constraint_id');
+
+        $result = [];
+
+        foreach ($rows as $row) {
+            $rowIsDebtor = round((float) ($row->debtor_value ?? 0), 2) > 0
+                || (
+                    round((float) ($row->creditor_value ?? 0), 2) === 0.0
+                    && ($row->movement_type ?? null) === 'debtor'
+                );
+
+            $counterAccounts = collect($details->get($row->constraint_id, []))
+                ->filter(function ($detail) use ($row, $rowIsDebtor) {
+                    if ((int) $detail->id === (int) $row->constraint_detail_id) {
+                        return false;
+                    }
+
+                    return $rowIsDebtor
+                        ? round((float) $detail->creditor_value, 2) > 0
+                        : round((float) $detail->debtor_value, 2) > 0;
+                })
+                ->groupBy('account_id')
+                ->map(function ($accountLines) use ($rowIsDebtor) {
+                    $account = $accountLines->first();
+
+                    return (object) [
+                        'id' => (int) $account->account_id,
+                        'code' => $account->code,
+                        'name' => $account->name,
+                        'amount' => round((float) $accountLines->sum(
+                            $rowIsDebtor ? 'creditor_value' : 'debtor_value'
+                        ), 2),
+                    ];
+                })
+                ->values();
+
+            $result['details'][(int) $row->constraint_detail_id]['accounts'] = $counterAccounts;
+        }
+
         return $result;
     }
 

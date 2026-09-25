@@ -29,6 +29,9 @@ class OperationalSummaryController extends Controller
             'sponsorship_page' => ['nullable', 'integer', 'min:1'],
             'export' => ['nullable', 'in:xlsx'],
             'print' => ['nullable', 'in:1'],
+            // الفرع يُقرأ من الطلب داخل BranchReportFilter، ويُحمل هنا فقط
+            // ليبقى في روابط الترقيم والتصدير والطباعة.
+            'branch_id' => ['nullable', 'integer'],
         ]);
 
         if ($input['from_date'] > $input['to_date']) {
@@ -60,7 +63,8 @@ class OperationalSummaryController extends Controller
         $report['print'] = $printing;
 
         // كل رابط صفحة يحتفظ بالفلاتر وبصفحة الجدول الآخر.
-        $base = ['from_date' => $input['from_date'], 'to_date' => $input['to_date'], 'scope' => $scope, 'musaned_status' => $musanedStatus, 'per_page' => $perPage];
+        $branchId = $input['branch_id'] ?? null;
+        $base = ['from_date' => $input['from_date'], 'to_date' => $input['to_date'], 'scope' => $scope, 'musaned_status' => $musanedStatus, 'per_page' => $perPage, 'branch_id' => $branchId];
         $this->linkPaginator($report['rental_receivables'], $base + ['recruitment_page' => (int) ($input['recruitment_page'] ?? 1), 'sponsorship_page' => (int) ($input['sponsorship_page'] ?? 1)], 'rental_page');
         $this->linkPaginator($report['recruitment_receivables'], $base + ['rental_page' => (int) ($input['rental_page'] ?? 1), 'sponsorship_page' => (int) ($input['sponsorship_page'] ?? 1)], 'recruitment_page');
         $this->linkPaginator($report['sponsorship_receivables'], $base + [
@@ -71,6 +75,7 @@ class OperationalSummaryController extends Controller
         return view('finance::finance.operational_summary.index', [
             'bladeTitle' => __('finance::finance.operational_summary'),
             'report' => $report,
+            'branchId' => $branchId,
         ]);
     }
 

@@ -6,6 +6,7 @@
             {{ __('finance::finance.from_date') }}: {{ request('from_date') }}
             <br>
             {{ __('finance::finance.to_date') }}: {{ request('to_date') }}
+            @include('admin.partials.branch-report-scope', ['scopeTag' => 'div'])
         </div>
     </div>
 

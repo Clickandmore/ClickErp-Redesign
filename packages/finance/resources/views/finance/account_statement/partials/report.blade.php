@@ -114,6 +114,11 @@
             $runningBalance = 0.0;
         }
 
+        $detailCounterAccounts = data_get($otherAccount ?? [], 'details.' . $row->constraint_detail_id . '.accounts');
+        // Client/supplier statements still provide the legacy constraint-level
+        // shape, so retain that as a compatibility fallback for this shared view.
+        $detailCounterAccounts ??= data_get($otherAccount ?? [], $row->constraint_id . '.accounts', []);
+
         $preparedRows[] = [
             'index' => $index + ($pagination ? $pagination->firstItem() : 1),
             'date' => $row->date,
@@ -130,7 +135,7 @@
             'running_balance_label' => $resolveBalanceLabel($runningBalance, $rowAccountStatus),
             'running_balance_class' => $resolveBalanceClass($runningBalance, $rowAccountStatus),
             'user_name' => $row->name,
-            'other_accounts' => collect(data_get($otherAccount ?? [], $row->constraint_id . '.accounts', [])),
+            'other_accounts' => collect($detailCounterAccounts),
             'is_zero' => $rowDebtorValue === 0.0 && $rowCreditorValue === 0.0,
         ];
     }

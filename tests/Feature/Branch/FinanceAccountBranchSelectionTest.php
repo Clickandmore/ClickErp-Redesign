@@ -459,6 +459,84 @@ class FinanceAccountBranchSelectionTest extends TestCase
     }
 
     /** @test */
+    public function an_account_statement_only_shows_accounts_on_the_opposite_side_of_a_compound_entry(): void
+    {
+        $selectedDebit = $this->account('الحساب المحدد في القيد المركب');
+        $unrelatedDebit = $this->account('مدين آخر غير مقابل للحساب المحدد');
+        $counterCredit = $this->account('الدائن المقابل للحساب المحدد');
+        $admin = $this->branchAdmin($this->riyadh);
+
+        DB::table('fn_years')->update(['status' => 0]);
+        $yearId = DB::table('fn_years')->insertGetId([
+            'title' => 'سنة اختبار الحساب المقابل',
+            'from_date' => now()->startOfYear()->toDateString(),
+            'to_date' => now()->endOfYear()->toDateString(),
+            'status' => 1,
+            'created_by_id' => $admin->id,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        $constraintId = DB::table('fn_constraints')->insertGetId([
+            'code' => 999007,
+            'value' => 150,
+            'date' => now()->toDateString(),
+            'statement' => 'قيد مركب لاختبار الحساب المقابل',
+            'type' => 1,
+            'year_id' => $yearId,
+            'branch_id' => $this->riyadh->id,
+            'created_by_id' => $admin->id,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $selectedDetailId = null;
+        foreach ([
+            [$selectedDebit, 'debtor', 100, 0, 'حركة الحساب المحدد'],
+            [$unrelatedDebit, 'debtor', 50, 0, 'حركة مدينة مستقلة'],
+            [$counterCredit, 'creditor', 0, 150, 'الحركة الدائنة المقابلة'],
+        ] as [$accountId, $type, $debtor, $creditor, $statement]) {
+            $detailId = DB::table('fn_constraint_details')->insertGetId([
+                'constraint_id' => $constraintId,
+                'account_id' => $accountId,
+                'date' => now()->toDateString(),
+                'type' => $type,
+                'debtor_value' => $debtor,
+                'creditor_value' => $creditor,
+                'statement' => $statement,
+                'year_id' => $yearId,
+                'branch_id' => $this->riyadh->id,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+
+            if ($accountId === $selectedDebit) {
+                $selectedDetailId = (int) $detailId;
+            }
+        }
+
+        $this->actingAsAdmin($admin);
+        BranchQueryContext::flush();
+
+        $filters = [
+            'account_id' => $selectedDebit,
+            'from_date' => '',
+            'to_date' => now()->toDateString(),
+            'type' => 'both',
+            'other_account' => 'yes',
+        ];
+        $service = app(ConstraintService::class);
+        $statementRows = $service->filterAccount($filters);
+        $counterAccounts = collect(data_get(
+            $service->filterCounterAccountsForStatement($statementRows),
+            'details.' . $selectedDetailId . '.accounts',
+            []
+        ));
+
+        $this->assertSame(['الدائن المقابل للحساب المحدد'], $counterAccounts->pluck('name')->all());
+        $this->assertSame(150.0, (float) $counterAccounts->first()->amount);
+    }
+
+    /** @test */
     public function the_selected_branch_in_the_create_url_is_enough_when_posting_the_entry(): void
     {
         $debit = $this->account('مدين رياض من الرابط', $this->riyadh->id);
