@@ -59,8 +59,6 @@ class AccountGuideManagementController extends Controller
                     return $addButton . " " . $editButton . " " . $deleteButton;
                 })->rawColumns(['actions'])->make(true);
         }
-        $showCodeColumn = auth('admin')->user()->admin_type == \App\Enums\AdminTypeisEnum::Developer->value;
-
         $data["createRoute"] = route($this->accountMainRoute . ".create");
         $data["dataTableRoute"] = route($this->mainRoute . ".index");
         $data["exportRouteTemplate"] = route($this->mainRoute . ".export", ['format' => '__FORMAT__']);
@@ -70,7 +68,6 @@ class AccountGuideManagementController extends Controller
         $data['account_types'] = $service->getAccountTypesList();
         $data['account_statuses'] = $service->getAccountTypes();
         $data['levels'] = $service->getLevels();
-        $data['showCodeColumn'] = $showCodeColumn;
         return view($this->folderPath . '.index', $data);
     }
 
@@ -82,10 +79,9 @@ class AccountGuideManagementController extends Controller
         }
 
         $format = $format === 'excel' ? 'xlsx' : $format;
-        $showCodeColumn = auth('admin')->user()->admin_type == \App\Enums\AdminTypeisEnum::Developer->value;
         $accounts = $service->getDatatableData()->get();
-        $headers = $this->exportHeadings($showCodeColumn);
-        $rows = $this->exportRows($accounts, $showCodeColumn);
+        $headers = $this->exportHeadings();
+        $rows = $this->exportRows($accounts);
 
         return $format === 'csv'
             ? $this->exportCsvFile($rows, $headers)
@@ -187,41 +183,29 @@ class AccountGuideManagementController extends Controller
         return jsonSuccess(null, null, 201);
     }
 
-    private function exportHeadings(bool $showCodeColumn): array
+    private function exportHeadings(): array
     {
-        $headings = [
+        return [
             __('finance::finance.name'),
-        ];
-
-        if ($showCodeColumn) {
-            $headings[] = __('finance::finance.code');
-        }
-
-        return array_merge($headings, [
+            __('finance::finance.code'),
             __('finance::finance.type'),
             __('finance::finance.status'),
             __('finance::finance.level'),
             __('finance::finance.main account'),
-        ]);
+        ];
     }
 
-    private function exportRows($accounts, bool $showCodeColumn): array
+    private function exportRows($accounts): array
     {
-        return $accounts->map(function ($account) use ($showCodeColumn) {
-            $row = [
+        return $accounts->map(function ($account) {
+            return [
                 $account->name,
-            ];
-
-            if ($showCodeColumn) {
-                $row[] = $account->code;
-            }
-
-            return array_merge($row, [
+                $account->code,
                 $account->type?->lang() ?? '',
                 $account->status?->lang() ?? '',
                 $account->level,
                 $account->parent->name ?? __('finance::finance.without'),
-            ]);
+            ];
         })->values()->all();
     }
 
