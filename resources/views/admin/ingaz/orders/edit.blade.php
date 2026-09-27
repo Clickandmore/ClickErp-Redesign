@@ -109,7 +109,7 @@
                         @endphp
 
                         @foreach($availableStatuses as $status)
-                            @continue(in_array($status, ['refused', 'return'], true) && !AdminGuardHasPerm(\App\PermKeys::ORDERS_REJECT))
+                            @continue(in_array($status, ['refused', 'return'], true) && !$obj->adminCanReject(auth('admin')->user()))
                             <div class="col-md-6 mb-2">
                                 <div class="form-check">
                                     <input class="form-check-input" type="radio" name="status" value="{{ $status }}" id="{{ $status }}">

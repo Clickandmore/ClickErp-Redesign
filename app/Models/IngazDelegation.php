@@ -110,13 +110,14 @@ class IngazDelegation extends Model
     {
         if (!Schema::hasTable('ingaz_delegation_stages')) {
             return [
-                self::STATUS_UNDER_PROCESS => 'تحت المعالجة',
-                self::STATUS_EXECUTED => 'تم تنفيذ التفويض',
-                self::STATUS_CANCELLED => 'ملغي',
+                self::STATUS_UNDER_PROCESS => __('delegations.under_process'),
+                self::STATUS_EXECUTED => __('delegations.executed'),
+                self::STATUS_CANCELLED => __('delegations.cancelled'),
             ];
         }
 
-        self::$statusOptionsCache ??= IngazDelegationStage::query()
+        $locale = app()->getLocale();
+        self::$statusOptionsCache[$locale] ??= IngazDelegationStage::query()
             ->orderBy('sort_order')
             ->orderBy('id')
             ->get()
@@ -124,7 +125,7 @@ class IngazDelegation extends Model
                 $stage->key => ['label' => $stage->displayName(), 'active' => $stage->is_active],
             ])->all();
 
-        return collect(self::$statusOptionsCache)
+        return collect(self::$statusOptionsCache[$locale])
             ->filter(fn (array $stage, string $key) => $stage['active'] || $key === $includeStatus)
             ->map(fn (array $stage) => $stage['label'])
             ->all();
