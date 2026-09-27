@@ -291,8 +291,10 @@
             const initialLng = parseFloat(lngInput.value || '46.6752957');
 
             const map = L.map('branch-map').setView([initialLat, initialLng], 12);
-            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
                 maxZoom: 19,
+                // خوادم OSM ترفض الطلبات بدون Referer (403 Access blocked)
+                referrerPolicy: 'strict-origin-when-cross-origin',
                 attribution: '&copy; OpenStreetMap'
             }).addTo(map);
 

@@ -912,6 +912,10 @@
                     <div class="hero-chip">
                         <span class="label">المسوق</span>
                         <span class="value">{{ $contract->marketer?->name ?? 'غير محدد' }}</span>
+                        @if(AdminGuardHasPerm(\App\PermKeys::RENT_CONTRACT_CHANGE_MARKETER))
+                            <button type="button" class="btn btn-sm btn-outline-primary mt-2"
+                                data-bs-toggle="modal" data-bs-target="#changeMarketerModal">تغيير المسوق</button>
+                        @endif
                     </div>
                 </div>
             </div>
@@ -2059,6 +2063,34 @@
             </div>
         </div>
 
+        @if(AdminGuardHasPerm(\App\PermKeys::RENT_CONTRACT_CHANGE_MARKETER))
+            <div class="modal fade" id="changeMarketerModal" tabindex="-1" aria-labelledby="changeMarketerModalLabel" aria-hidden="true">
+                <div class="modal-dialog modal-dialog-centered">
+                    <form id="changeMarketerForm" class="modal-content" method="POST" action="{{ route('RentContract.changeMarketer', $contract->id) }}">
+                        @csrf
+                        <div class="modal-header">
+                            <h5 class="modal-title" id="changeMarketerModalLabel">تغيير المسوق في عقد التأجير</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="إغلاق"></button>
+                        </div>
+                        <div class="modal-body">
+                            <p>المسوق الحالي: {{ $contract->marketer?->name ?? 'غير محدد' }}</p>
+                            <label for="new_marketer_id" class="form-label">المسوق الجديد</label>
+                            <select id="new_marketer_id" name="marketer_id" class="form-select" required>
+                                <option value="">اختر المسوق</option>
+                                @foreach($marketers as $marketer)
+                                    <option value="{{ $marketer->id }}" {{ (int) $contract->marketer_id === (int) $marketer->id ? 'disabled' : '' }}>{{ $marketer->name }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
+                            <button type="submit" class="btn btn-primary">حفظ المسوق</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        @endif
+
         @if (@AdminGuardHasPerm(\App\PermKeys::RENT_CONTRACT_EDIT) && !in_array($contract->status, ['completed', 'cancelled'], true))
             <div class="modal fade" id="changeMaidModal" tabindex="-1" aria-labelledby="changeMaidModalLabel"
                 aria-hidden="true">
@@ -2178,6 +2210,33 @@
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script>
         $(document).ready(function() {
+            $('#changeMarketerForm').on('submit', function(event) {
+                event.preventDefault();
+                const form = $(this);
+                const button = form.find('button[type="submit"]');
+                button.prop('disabled', true);
+                $.ajax({
+                    url: form.attr('action'),
+                    type: 'POST',
+                    data: form.serialize(),
+                    headers: { 'Accept': 'application/json' },
+                    success: function(response) {
+                        Swal.fire({ icon: 'success', text: response.message, confirmButtonText: 'حسناً' })
+                            .then(function() { window.location.reload(); });
+                    },
+                    error: function(xhr) {
+                        const response = xhr.responseJSON || {};
+                        const errors = response.errors ? Object.values(response.errors).flat().join('\n') : '';
+                        Swal.fire({
+                            icon: 'error',
+                            text: errors || response.message || 'تعذر تغيير المسوق. يرجى التحقق من الاتصال والمحاولة مجدداً.',
+                            confirmButtonText: 'حسناً'
+                        });
+                    },
+                    complete: function() { button.prop('disabled', false); }
+                });
+            });
+
             function copyTextToClipboard(text) {
                 if (navigator.clipboard && window.isSecureContext) {
                     return navigator.clipboard.writeText(text);

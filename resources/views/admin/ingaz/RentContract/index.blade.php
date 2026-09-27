@@ -1662,6 +1662,49 @@
         console.log('DataTable available:', typeof $.fn.DataTable);
 
         $(document).ready(function() {
+            @if(AdminGuardHasPerm(\App\PermKeys::RENT_CONTRACT_CHANGE_MARKETER))
+            const contractMarketers = @json($marketers->pluck('name', 'id'));
+            $(document).on('click', '.change-contract-marketer', function() {
+                const button = $(this);
+                const options = Object.assign({}, contractMarketers);
+                delete options[String(button.attr('data-marketer-id'))];
+
+                Swal.fire({
+                    title: 'تغيير المسوق',
+                    text: 'المسوق الحالي: ' + button.attr('data-marketer-name'),
+                    input: 'select',
+                    inputOptions: options,
+                    inputPlaceholder: 'اختر المسوق الجديد',
+                    showCancelButton: true,
+                    confirmButtonText: 'حفظ المسوق',
+                    cancelButtonText: 'إلغاء',
+                    showLoaderOnConfirm: true,
+                    allowOutsideClick: () => !Swal.isLoading(),
+                    allowEscapeKey: () => !Swal.isLoading(),
+                    inputValidator: value => value ? undefined : 'يرجى اختيار المسوق الجديد',
+                    preConfirm: function(marketerId) {
+                        return $.ajax({
+                            url: button.attr('data-url'),
+                            type: 'POST',
+                            headers: { 'Accept': 'application/json' },
+                            data: { _token: @json(csrf_token()), marketer_id: marketerId }
+                        }).catch(function(xhr) {
+                            const response = xhr.responseJSON || {};
+                            const errors = response.errors ? Object.values(response.errors).flat().join('\n') : '';
+                            const message = errors || response.message || 'تعذر تغيير المسوق. يرجى التحقق من الاتصال والمحاولة مجدداً.';
+                            Swal.showValidationMessage($('<div>').text(message).html());
+                            return false;
+                        });
+                    }
+                }).then(function(result) {
+                    if (result.isConfirmed && result.value && result.value.success) {
+                        $('#dataTableObject').DataTable().ajax.reload(null, false);
+                        Swal.fire({ icon: 'success', text: result.value.message, confirmButtonText: 'حسناً' });
+                    }
+                });
+            });
+            @endif
+
             console.log('Document ready, initializing DataTable...');
             console.log('Table element found:', $('#dataTableObject').length);
 
