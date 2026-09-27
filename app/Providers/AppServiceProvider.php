@@ -20,6 +20,7 @@ use Illuminate\Auth\Events\Authenticated;
 use Illuminate\Auth\Events\Login;
 use Illuminate\Auth\Events\Logout;
 use Illuminate\Cache\RateLimiting\Limit;
+use Illuminate\Support\Facades\Blade;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\View;
@@ -48,9 +49,29 @@ class AppServiceProvider extends ServiceProvider
      *
      * @return void
      */
+    /**
+     * ‏@selected و @checked و @disabled و @readonly و @required أُضيفت إلى Blade في Laravel 9؛
+     * على Laravel 8 تُطبع كنص حرفي داخل الوسم (فيظهر الكود بجانب خيارات القوائم).
+     * نسجّلها هنا بنفس سلوك Laravel 9 حتى تعمل كل الواجهات التي تستخدمها.
+     */
+    private function registerConditionalAttributeDirectives(): void
+    {
+        foreach (['selected', 'checked', 'disabled', 'readonly', 'required'] as $attribute) {
+            if (array_key_exists($attribute, Blade::getCustomDirectives())) {
+                continue;
+            }
+
+            Blade::directive($attribute, function ($condition) use ($attribute) {
+                return "<?php if ({$condition}): echo '{$attribute}'; endif; ?>";
+            });
+        }
+    }
+
     public function boot()
     {
         Schema::defaultStringLength(255);
+
+        $this->registerConditionalAttributeDirectives();
 
         // إعدادات إشعارات Firebase المحفوظة من لوحة التحكم تعلو قيم .env، فتستفيد
         // منها خدمات الإرسال عبر config('firebase.*') دون تعديل فيها.
@@ -92,6 +113,9 @@ class AppServiceProvider extends ServiceProvider
             'sadad_transfer_data' => null,
             'show_popup' => false,
             'popup_image' => null,
+            'popup_link' => null,
+            'popup_destination_type' => 'general',
+            'popup_nationality_ids' => [],
         ];
 
         if (Schema::hasTable('new_settings')) {
@@ -100,6 +124,12 @@ class AppServiceProvider extends ServiceProvider
             $setting['sadad_transfer_data'] = $new_settings->getSetting('sadad_transfer_data');
             $setting['show_popup'] = $new_settings->getSetting('show_popup') === '1';
             $setting['popup_image'] = $new_settings->getSetting('popup_image');
+            $setting['popup_link'] = $new_settings->getSetting('popup_link');
+            $setting['popup_destination_type'] = $new_settings->getSetting('popup_destination_type') ?: 'general';
+            $decodedNationalityIds = json_decode((string) $new_settings->getSetting('popup_nationality_ids'), true);
+            $setting['popup_nationality_ids'] = is_array($decodedNationalityIds)
+                ? array_values(array_unique(array_map('intval', $decodedNationalityIds)))
+                : [];
         }
         View::share('setting', $setting);
         View::share('zohoSalesIqWidgetUrl', ZohoSalesIqSettings::publicWidgetUrl());

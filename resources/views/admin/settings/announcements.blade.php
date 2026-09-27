@@ -150,9 +150,25 @@
                     </div>
 
                     <div class="col-lg-4">
-                        <label class="form-label">{{ __('admin.popup_link') }}</label>
+                        <label class="form-label">{{ __('admin.popup_destination_type') }}</label>
                     </div>
                     <div class="col-lg-8">
+                        @php
+                            $destinationType = old('popup_destination_type', $data['popup_destination_type'] ?: 'general');
+                            $storedNationalityIds = json_decode((string) ($data['popup_nationality_ids'] ?? '[]'), true);
+                            $selectedNationalityIds = collect(old('popup_nationality_ids', is_array($storedNationalityIds) ? $storedNationalityIds : []))
+                                ->map(fn ($id) => (string) $id)->all();
+                        @endphp
+                        <select name="popup_destination_type" id="popup_destination_type" class="form-control">
+                            <option value="general" {{ $destinationType === 'general' ? 'selected' : '' }}>{{ __('admin.popup_destination_general') }}</option>
+                            <option value="nationalities" {{ $destinationType === 'nationalities' ? 'selected' : '' }}>{{ __('admin.popup_destination_nationalities') }}</option>
+                        </select>
+                    </div>
+
+                    <div class="col-lg-4 popup-general-destination">
+                        <label class="form-label">{{ __('admin.popup_link') }}</label>
+                    </div>
+                    <div class="col-lg-8 popup-general-destination">
                         <input type="url"
                                name="popup_link"
                                class="form-control @error('popup_link') is-invalid @enderror"
@@ -164,11 +180,42 @@
                         @enderror
                     </div>
 
+                    <div class="col-lg-4 popup-nationalities-destination">
+                        <label class="form-label">{{ __('admin.popup_nationalities') }}</label>
+                    </div>
+                    <div class="col-lg-8 popup-nationalities-destination">
+                        <select name="popup_nationality_ids[]" class="form-control select2" multiple data-placeholder="{{ __('admin.popup_nationalities_hint') }}">
+                            @foreach($nationalities as $nationality)
+                                <option value="{{ $nationality->id }}" {{ in_array((string) $nationality->id, $selectedNationalityIds, true) ? 'selected' : '' }}>
+                                    {{ $nationality->display_name }}
+                                </option>
+                            @endforeach
+                        </select>
+                        <div class="form-text">{{ __('admin.popup_nationalities_hint') }}</div>
+                        @error('popup_nationality_ids')
+                            <div class="text-danger small">{{ $message }}</div>
+                        @enderror
+                    </div>
+
                     <div class="col-12 text-end">
                         <button type="submit" class="btn btn-primary">{{ __('admin.save') }}</button>
                     </div>
                 </form>
             </div>
         </div>
+
+        <script>
+            document.addEventListener('DOMContentLoaded', function () {
+                const destination = document.getElementById('popup_destination_type');
+                const syncDestinationFields = function () {
+                    const usesNationalities = destination.value === 'nationalities';
+                    document.querySelectorAll('.popup-general-destination').forEach((element) => element.classList.toggle('d-none', usesNationalities));
+                    document.querySelectorAll('.popup-nationalities-destination').forEach((element) => element.classList.toggle('d-none', !usesNationalities));
+                };
+
+                destination.addEventListener('change', syncDestinationFields);
+                syncDestinationFields();
+            });
+        </script>
     @endif
 @endsection

@@ -305,6 +305,11 @@
                 if (modalResult.is(":visible")) {
                     modalResult.modal('toggle');
                 }
+                let successUrl = $(form).data('success-url');
+                if (successUrl) {
+                    window.location.href = successUrl;
+                    return;
+                }
                 console.log(modalResult.is(':visible'));
             },
             error: function (errorObj, errorText, errorThrown) {
@@ -423,4 +428,3 @@
         loadJqerySelectors();
     }
 </script>
-

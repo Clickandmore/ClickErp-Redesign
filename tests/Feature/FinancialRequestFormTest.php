@@ -126,6 +126,10 @@ class FinancialRequestFormTest extends TestCase
 
     public function test_request_can_be_edited_while_waiting_for_approval(): void
     {
+        auth('admin')->user()->givePermissionTo(\App\Models\Permission::firstOrCreate([
+            'name' => \App\PermKeys::FINANCIAL_REQUESTS_EDIT_AMOUNT,
+            'guard_name' => 'admin',
+        ]));
         $this->post(route('financial-requests.store'), $this->validPayload('cash'))
             ->assertSessionHasNoErrors();
 
@@ -142,7 +146,7 @@ class FinancialRequestFormTest extends TestCase
         $this->assertSame(FinancialRequest::STATUS_FOR_APPROVAL, $requestItem->status);
         $this->assertSame('275.00', $requestItem->amount);
         $this->assertSame('تم تعديل الطلب قبل الاعتماد', $requestItem->description);
-        $this->assertCount(2, $requestItem->statusLogs);
+        $this->assertCount(3, $requestItem->statusLogs);
     }
 
     public function test_approved_request_cannot_be_edited(): void

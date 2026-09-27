@@ -14,7 +14,13 @@ class SettingRequest extends MainRequest
      */
     public function authorize()
     {
-        return true;
+        $admin = auth('admin')->user();
+        if (\App\Support\AdminRoutePermissionMatrix::adminHasAnyPermission($admin, [\App\PermKeys::SETTINGS_CONTROL])) {
+            return true;
+        }
+
+        return \App\Support\AdminRoutePermissionMatrix::adminHasAnyPermission($admin, [\App\PermKeys::WEBSITE_SETTINGS_CONTROL])
+            && \App\Support\WebsiteSettingsAccess::allowsPayload($this->all());
     }
 
     /**
@@ -92,6 +98,11 @@ class SettingRequest extends MainRequest
             'hotjar_tag' => 'nullable|string',
             'meta_pixel_tag' => 'nullable|string',
             'live_chat_tag' => 'nullable|string',
+            'seo_canonical_base' => 'nullable|string|max:255|url',
+            'seo_sitemap_worker_pages' => 'nullable|boolean',
+            'seo_sitemap_worker_limit' => 'nullable|integer|min:0|max:50000',
+            'seo_sitemap_offer_pages' => 'nullable|boolean',
+            'seo_sitemap_cache_minutes' => 'nullable|integer|min:1|max:10080',
             'website_visitor_site_id' => [
                 'nullable',
                 'integer',

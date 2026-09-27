@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers\ingaz;
 
+use Illuminate\Support\Facades\DB;
+
 use App\Enums\ingaz\NotificationActionEnum;
 use App\Enums\ingaz\OrderEnum;
 use App\Http\Actions\ingaz\OrderAction as objAction;
@@ -313,35 +315,35 @@ class OrderController extends Controller
 
 
                     // A linked contract makes the order complete and locks its status.
-                    if (@AdminGuardHasPerm(\App\PermKeys::ORDERS_EDIT) && !$isCompletedOrder) {
+                    if (@AdminGuardHasPerm(\App\PermKeys::ORDERS_CHANGE_STATUS) && !$isCompletedOrder) {
                         $actions .= '<li><button class="dropdown-item edit-status" data-id="' . $row->id . '">
                             <i class="fa fa-edit"></i> تعديل الحالة
                         </button></li>';
                     }
 
                     // Add Contract button for open orders and legacy ended orders that still have no contract.
-                    if ($this->canAddRecruitmentContract($row)) {
+                    if (@AdminGuardHasPerm(\App\PermKeys::ORDERS_ADD_CONTRACT) && $this->canAddRecruitmentContract($row)) {
                         $actions .= '<li><button class="dropdown-item addNewContract" data-id="' . $row->id . '">
                             <i class="fa fa-plus"></i> إضافة عقد
                         </button></li>';
                     }
 
                     // Change Maid button for new orders
-                    if (@AdminGuardHasPerm(\App\PermKeys::ORDERS_EDIT) && $row->status == OrderEnum::New->value) {
+                    if (@AdminGuardHasPerm(\App\PermKeys::ORDERS_CHANGE_MAID) && $row->status == OrderEnum::New->value) {
                         $actions .= '<li><button class="dropdown-item change-maid" data-id="' . $row->id . '">
                             <i class="fa fa-user"></i> تغيير العاملة
                         </button></li>';
                     }
 
                     // Change Responsible Employee button
-                    if (@AdminGuardHasPerm(\App\PermKeys::ORDERS_EDIT) && !$isCompletedOrder) {
+                    if (@AdminGuardHasPerm(\App\PermKeys::ORDERS_CHANGE_RESPONSIBLE) && !$isCompletedOrder) {
                         $actions .= '<li><button class="dropdown-item change-responsible" data-id="' . $row->id . '">
                             <i class="fa fa-user-secret"></i> تغيير الموظف المسؤول
                         </button></li>';
                     }
 
                     // Refuse/Return button for new and under_process orders
-                    if (@AdminGuardHasPerm(\App\PermKeys::ORDERS_EDIT) && !$isCompletedOrder) {
+                    if ($row->adminCanReject(auth('admin')->user()) && !$isCompletedOrder) {
                         if (in_array($row->status, [OrderEnum::New->value, OrderEnum::UnderProcess->value])) {
                             $actions .= '<li><button class="dropdown-item refuse-order" data-id="' . $row->id . '">
                                 <i class="fa fa-times"></i> رفض/إرجاع الطلب
@@ -350,7 +352,7 @@ class OrderController extends Controller
                     }
 
                     // Delete button
-                    if (@AdminGuardHasPerm(\App\PermKeys::ORDERS_DELETE) && !$isCompletedOrder) {
+                    if ($row->adminCanDelete(auth('admin')->user()) && !$isCompletedOrder) {
                         $actions .= '<li><hr class="dropdown-divider"></li>
                         <li><button class="dropdown-item delete-order" data-id="' . $row->id . '">
                             <i class="fa fa-trash"></i> حذف الطلب
@@ -725,11 +727,17 @@ class OrderController extends Controller
         if ($this->isCompletedOrder($order)) {
             return $this->completedOrderLockedResponse();
         }
-        if ($order->trashed()) {
-            $order->forceDelete();
-        } else {
-            $order->delete();
-        }
+        DB::transaction(function () use ($order) {
+            $order = Order::withTrashed()->lockForUpdate()->findOrFail($order->id);
+            if ($order->contracts()->exists() || \App\Models\RentalContract::where('order_id', $order->id)->exists()) {
+                throw \Illuminate\Validation\ValidationException::withMessages(['order' => 'لا يمكن حذف طلب مرتبط بعقد.']);
+            }
+            if ($order->trashed()) {
+                $order->forceDelete();
+            } else {
+                $order->delete();
+            }
+        });
         return jsonSuccess(['success' => true], __("ingaz.order_deleted_successfully"), 200);
     }
 
@@ -737,7 +745,17 @@ class OrderController extends Controller
     {
         try {
             $order = Order::withTrashed()->findOrFail($id);
-            $order->restore();
+            $this->assertCanAccessBranchModel($order, 'orders');
+            DB::transaction(function () use ($order) {
+                $order = Order::withTrashed()->lockForUpdate()->findOrFail($order->id);
+                if (!$order->trashed()) { return; }
+                $client = \App\Models\ingaz\User::withTrashed()->find($order->user_id);
+                if (!$client || $client->trashed()) {
+                    throw \Illuminate\Validation\ValidationException::withMessages(['order' => 'يجب استعادة العميل أولاً قبل استعادة الطلب.']);
+                }
+                app(\App\Services\OrderMaidReservationService::class)->reserveForRestore($order);
+                $order->restore();
+            });
 
             // Restore Notification
             Notification::create([
@@ -749,6 +767,8 @@ class OrderController extends Controller
             ]);
 
             return jsonSuccess(['success' => 'تم استعادة الطلب بنجاح']);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            throw $e;
         } catch (\Exception $e) {
             return jsonError(['success' => 'حدث خطأ أثناء استعادة الطلب']);
         }
@@ -1254,53 +1274,69 @@ class OrderController extends Controller
 
     public function refuseReturn(Request $request, $id)
     {
-        try {
-            $validated = $request->validate([
-                'action' => ['required', Rule::in([OrderEnum::Refused->value, OrderEnum::Return->value])],
-                'reason' => ['nullable', 'string', 'max:500'],
-            ]);
+        $validated = $request->validate([
+            'action' => ['required', Rule::in([OrderEnum::Refused->value, OrderEnum::Return->value])],
+            'reason' => ['nullable', 'string', 'max:500'],
+        ]);
 
-            $order = Order::findOrFail($id);
-            if ($this->isCompletedOrder($order)) {
+        $order = Order::findOrFail($id);
+        $this->assertCanAccessBranchModel($order, 'orders');
+        try {
+            $locked = DB::transaction(function () use (&$order, $validated) {
+                $order = Order::lockForUpdate()->findOrFail($order->id);
+                if ($this->isCompletedOrder($order)) {
+                    return true;
+                }
+
+                $order->status = $validated['action'];
+                $order->status_changed_at = now();
+                $order->refuse_reason = $this->resolveRefuseReason($validated['reason'] ?? null, $validated['action']);
+                $order->save();
+                $this->releaseMaid($order);
+                return false;
+            });
+            if ($locked) {
                 return $this->completedOrderLockedResponse();
             }
+        } catch (\Throwable $e) {
+            report($e);
+            return jsonError(['message' => 'تعذر تحديث حالة الطلب. لم يتم حفظ التغيير، يرجى المحاولة مرة أخرى.']);
+        }
 
-            $order->status = $validated['action'];
-            $order->status_changed_at = now();
-            $order->refuse_reason = $this->resolveRefuseReason($validated['reason'] ?? null, $validated['action']);
-            $order->save();
-
+        // Notification failures must not leave a returned order reserving its maid.
+        // Legacy orders may reference a customer permanently deleted in the past.
+        try {
             // Send SMS
             if ($validated['action'] == "refused") {
                 $body = "عزيزي العميل، تم رفض طلب الاستقدام رقم {$order->order_code}. لمزيد من التفاصيل يرجى التواصل مع خدمة العملاء.";
             } else if ($validated['action'] == "return") {
                 $body = "عزيزي العميل، نود إشعاركم بأنه تم إرجاع طلب الاستقدام رقم {$order->order_code}. يرجى مراجعة الطلب عبر حسابكم.";
             }
-            $userPhone = formatSaudiPhone($order->user->phone);
+            $user = $order->user;
+            $userPhone = $user?->phone ? formatSaudiPhone($user->phone) : null;
             $customerPhone = $order->customer?->formatted_verification_phone;
             $recipients = array_values(array_filter([$userPhone, $customerPhone]));
             $result = !empty($recipients) ? $this->sendSMS($recipients, $body) : null;
 
-            if (isset($result['code']) && $result['code'] == "1") {
-                $this->storeMessage('ارسال رسالة نصية الى العميل', $body, NotificationActionEnum::SMS->value, $order->user->id);
+            if ($user && isset($result['code']) && $result['code'] == "1") {
+                $this->storeMessage('ارسال رسالة نصية الى العميل', $body, NotificationActionEnum::SMS->value, $user->id);
             }
 
 
             // Refuse/Return Notification
-            Notification::create([
-                'title' => __('ingaz.update_order_status'),
-                'description' => __('ingaz.order_status_updated', ['order_id' => $order->id]) . " " . __('ingaz.' . $order->status),
-                'order_id' => $order->id,
-                'user_id' => $order->user_id,
-                'type' => 'order_status',
-            ]);
-
-            $this->releaseMaid($order);
-
-            return jsonSuccess(['success' => true], __('ingaz.status_updated'), 200);
-        } catch (\Exception $e) {
-            return jsonError(['message' => 'An error occurred while updating the order status']);
+            if ($user) {
+                Notification::create([
+                    'title' => __('ingaz.update_order_status'),
+                    'description' => __('ingaz.order_status_updated', ['order_id' => $order->id]) . " " . __('ingaz.' . $order->status),
+                    'order_id' => $order->id,
+                    'user_id' => $order->user_id,
+                    'type' => 'order_status',
+                ]);
+            }
+        } catch (\Throwable $e) {
+            report($e);
         }
+        return jsonSuccess(['success' => true], __('ingaz.status_updated'), 200);
     }
 
     private function isRefusalStatus(string $status): bool
@@ -1322,41 +1358,7 @@ class OrderController extends Controller
 
     private function releaseMaid(Order $order): void
     {
-        $order->loadMissing('maid');
-
-        if (!$order->maid) {
-            return;
-        }
-
-        $maidId = $order->maid->id;
-
-        $hasOtherActiveOrders = Order::where('maid_id', $maidId)
-            ->where('id', '!=', $order->id)
-            ->whereNotIn('status', [
-                OrderEnum::Completed->value,
-                OrderEnum::Done->value,
-                OrderEnum::Refused->value,
-                OrderEnum::Return->value,
-            ])->exists();
-
-        if ($hasOtherActiveOrders) {
-            \Log::info('Maid not released due to other active orders', [
-                'maid_id' => $maidId,
-                'order_id' => $order->id,
-            ]);
-            return;
-        }
-
-        $order->maid->update([
-            'status' => 'available',
-            'available' => true,
-            'available_at' => now(),
-        ]);
-
-        \Log::info('Maid released after order refusal/return', [
-            'maid_id' => $maidId,
-            'order_id' => $order->id,
-        ]);
+        app(\App\Services\OrderMaidReservationService::class)->release($order);
     }
 
     private function getStatusColor(string $status): string

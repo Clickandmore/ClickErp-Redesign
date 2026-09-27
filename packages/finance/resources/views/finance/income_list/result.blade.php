@@ -190,6 +190,7 @@
         <div class="income-report">
             <div class="text-center" style="margin: 10px auto 16px">
                 <h5>{{ __("finance::finance.Income statement") }} {{ request('from_date') ? __('finance::finance.from_date') : '' }} {{ request('from_date') }} {{ request('to_date') ? __('finance::finance.to_date') : '' }} {{ request('to_date') }}</h5>
+                @include('admin.partials.branch-report-scope', ['scopeTag' => 'div'])
             </div>
 
             <table>

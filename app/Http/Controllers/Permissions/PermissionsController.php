@@ -5,6 +5,8 @@ namespace App\Http\Controllers\Permissions;
 use App\Http\Controllers\admin\Controller;
 use App\Models\Branch;
 use App\Models\Permission;
+use App\Support\AdminPermissionNavigation;
+use App\Support\PermissionLabelDictionary;
 use App\Support\BranchScopedPermissions;
 use App\Support\SystemModuleManager;
 use Illuminate\Http\Request;
@@ -116,6 +118,14 @@ class PermissionsController extends Controller
                 $group
             );
 
+            // طبّق الخريطة المركزية دائماً، حتى على البيانات القديمة التي تحمل
+            // section_name/group_name متعارضين أو أسماء مجموعات تاريخية.
+            ['section' => $section, 'group' => $group] = AdminPermissionNavigation::placementForPermission(
+                $permission->name,
+                $section,
+                $group
+            );
+
             if (!isset($organized[$section])) {
                 $organized[$section] = [];
             }
@@ -131,86 +141,8 @@ class PermissionsController extends Controller
 
     private function sortOrganizedPermissions(array $organized): array
     {
-        $sectionOrder = array_flip([
-            'dashboard',
-            'clients',
-            'cv_management',
-            'orders',
-            'operations',
-            'recruitment_contracts',
-            'rent_contracts',
-            'shelter_management',
-            'travel_management',
-            'complaints',
-            'additional_services',
-            'reports',
-            'packages_management',
-            'modules',
-            'content_management',
-            'settings',
-            'maids_settings',
-            'users_management',
-            'other',
-        ]);
-        $groupOrder = array_flip([
-            'dashboard',
-            'clients',
-            'maids',
-            'maids_rental',
-            'maids_backout',
-            'maids_deleted',
-            'cv_legacy',
-            'orders',
-            'return_request',
-            'professional_application',
-            'recruitment_requests',
-            'renew_contracts',
-            'contact',
-            'financial_requests',
-            'rec_contracts',
-            'ingaz_delegations',
-            'cancel_contract',
-            'rent_contract',
-            'rental_orders',
-            'shelter_contract',
-            'shelter_places',
-            'shelter_workers',
-            'travel',
-            'complaint',
-            'complaint_type',
-            'sponsor_transfer',
-            'sponsor_transfer_web_requests',
-            'crm',
-            'hr',
-            'finance',
-            'employee',
-            'zatca',
-            'job_titles',
-            'social_status',
-            'packages',
-            'nationalities',
-            'religions',
-            'skills',
-            'countries',
-            'external_agents',
-            'office',
-            'offices',
-            'rec_offices',
-            'statistics',
-            'notifications',
-            'sliders',
-            'faq',
-            'about_us',
-            'steps',
-            'services',
-            'settings',
-            'activity_log',
-            'admins',
-            'users',
-            'roles',
-            'permissions',
-            'role_permissions',
-        ]);
+        $sectionOrder = array_flip(AdminPermissionNavigation::sectionOrder());
+        $groupOrder = array_flip(AdminPermissionNavigation::groupOrder());
 
         uksort($organized, function (string $first, string $second) use ($sectionOrder) {
             $firstOrder = $sectionOrder[$first] ?? 999;
@@ -359,46 +291,7 @@ class PermissionsController extends Controller
      */
     private function getSectionTitle($sectionName)
     {
-        $titles = [
-            'dashboard' => 'لوحة التحكم',
-            'clients' => 'إدارة العملاء',
-            'cv_management' => 'إدارة السير الذاتية',
-            'orders' => 'الطلبات',
-            'operations' => 'إدارة التشغيل للعمليات',
-            'recruitment_contracts' => 'عقود الاستقدام ',
-            'rent_contracts' => 'عقود الإيجار',
-            'shelter_management' => 'إدارة الإيواء',
-            'travel_management' => 'الخدمات اللوجستية',
-            'contracts' => 'العقود',
-            'complaints' => 'الشكاوى',
-            'additional_services' => 'خدمات إضافية',
-            'settings' => 'الإعدادات',
-            'maids_settings' => 'إعدادات السير الذاتية',
-            'users_management' => 'التحكم بالوصول',
-            'content_management' => 'إدارة المحتوى',
-            'organization_management' => 'إدارة المنظمة',
-            'customer_service' => 'خدمة العملاء',
-            'reports' => 'التقارير',
-            'statistics' => 'الإحصائيات',
-            'process_management' => 'إدارة العمليات',
-            'communications' => 'الاتصالات',
-            'system_management' => 'إدارة النظام',
-            'order_management' => 'إدارة الطلبات',
-            'contract_management' => 'إدارة العقود',
-            'complaint_management' => 'إدارة الشكاوى',
-            'service_management' => 'إدارة الخدمات',
-            'user_management' => 'إدارة المستخدمين',
-            'role_management' => 'إدارة الأدوار',
-            'permission_management' => 'إدارة الصلاحيات',
-            'setting_management' => 'إدارة الإعدادات',
-            'activity_management' => 'إدارة النشاطات',
-            'backup_management' => 'إدارة النسخ الاحتياطية',
-            'packages_management' => 'الباقات',
-            'modules' => 'الأنظمة',
-            'other' => 'أخرى',
-        ];
-
-        return $titles[$sectionName] ?? $sectionName;
+        return AdminPermissionNavigation::sectionTitle((string) $sectionName);
     }
 
     /**
@@ -406,99 +299,7 @@ class PermissionsController extends Controller
      */
     private function getGroupTitle($groupName)
     {
-        $titles = [
-            'dashboard' => 'لوحة التحكم',
-            'clients' => 'العملاء',
-            'maids' => 'السير الذاتية',
-            'maids_rental' => 'سير عاملات الإيجار',
-            'maids_backout' => 'عاملات باك أوت',
-            'maids_deleted' => 'السير الذاتية المحذوفة',
-            'cv' => 'صلاحيات السير الذاتية القديمة',
-            'cv_legacy' => 'صلاحيات السير الذاتية القديمة',
-            'social_status' => 'الحالة الاجتماعية',
-            'orders' => 'الطلبات',
-            'return_request' => 'طلبات الاسترجاع',
-            'professional_application' => 'طلبات العمالة المهنية',
-            'recruitment_requests' => 'الطلبات الخاصة',
-            'renew_contracts' => 'طلبات تجديد العقود',
-            'financial_requests' => 'إدارة الطلبات المالية',
-            'rec_contract' => 'عقود التوظيف',
-            'rec_contracts' => 'عقود الاستقدام',
-            'ingaz_delegations' => 'تفاويض الإنجاز',
-            'invoices' => 'الفواتير',
-            'musaned_transfers' => 'تحويلات مساند',
-            'cancel_contract' => 'عقود الإلغاء',
-            'rent_contract' => 'عقود الإيجار',
-            'rental_orders' => 'طلبات الإيجار',
-            'shelter_contract' => 'عقود الإيواء',
-            'shelter_workers' => 'عمال الإيواء',
-            'shelter_places' => 'مقرات الإيواء',
-            'travel' => 'رحلات الاستقدام والترحيل',
-            'external_agents' => 'إدارة الوكلاء الخارجيين',
-            'office' => 'إدارة الوكلاء الخارجيين',
-            'offices' => 'إدارة الوكلاء الخارجيين',
-            'rec_offices' => 'مكاتب التوظيف',
-            'complaint' => 'الشكاوى',
-            'complaint_type' => 'أنواع الشكاوى',
-            'sponsor_transfer' => 'نقل الخدمات',
-            'sponsor_transfer_web_requests' => 'طلبات الموقع الخارجي',
-            'settings' => 'الإعدادات',
-            'activity_log' => 'سجل النشاط',
-            'job_titles' => 'المسميات الوظيفية',
-            'packages' => 'الباقات',
-            'nationalities' => 'الجنسيات',
-            'religions' => 'الأديان',
-            'skills' => 'المهارات',
-            'countries' => 'الدول',
-            'branches' => 'الفروع',
-            'users' => 'المستخدمين',
-            'admins' => 'المشرفين',
-            'roles' => 'الأدوار',
-            'permissions' => 'الصلاحيات',
-            'role_permissions' => 'صلاحيات الأدوار',
-            'statistics' => 'الإحصائيات',
-            'notifications' => 'إشعارات الموقع',
-            'sliders' => 'سلايدر الموقع',
-            'faq' => 'الأسئلة الشائعة',
-            'about_us' => 'صفحة من نحن',
-            'contact' => 'طلبات التواصل',
-            'steps' => 'خطوات الموقع',
-            'services' => 'خدمات الموقع',
-            'content' => 'المحتوى',
-            'organization' => 'المنظمة',
-            'customer_service' => 'خدمة العملاء',
-            'reports' => 'التقارير',
-            'process' => 'العمليات',
-            'communications' => 'الاتصالات',
-            'system' => 'النظام',
-            'backup' => 'النسخ الاحتياطية',
-            'contract_settings' => 'إعدادات العقد',
-            'activity' => 'النشاطات',
-            'job_title' => 'المسميات الوظيفية',
-            'package' => 'الباقات',
-            'nationality' => 'الجنسيات',
-            'religion' => 'الأديان',
-            'skill' => 'المهارات',
-            'country' => 'الدول',
-            'branch' => 'الفروع',
-            'user' => 'المستخدمين',
-            'role' => 'الأدوار',
-            'permission' => 'الصلاحيات',
-            'statistic' => 'الإحصائيات',
-            'notification' => 'الإشعارات',
-            'slider' => 'الشرائح',
-            'about' => 'من نحن',
-            'step' => 'الخطوات',
-            'service' => 'الخدمات',
-            'report' => 'التقارير',
-            'crm' => 'نظام إدارة العملاء',
-            'hr' => 'نظام الموارد البشرية',
-            'finance' => 'النظام المحاسبي',
-            'employee' => 'بوابة الموظفين',
-            'zatca' => 'هيئة الزكاة',
-        ];
-
-        return $titles[$groupName] ?? $groupName;
+        return AdminPermissionNavigation::groupTitle((string) $groupName);
     }
 
     /**
@@ -506,8 +307,10 @@ class PermissionsController extends Controller
      */
     private function getPermissionDisplayName($permission)
     {
-        // إذا كان هناك display_name محفوظ في قاعدة البيانات، استخدمه
-        if (!empty($permission->display_name)) {
+        // استخدم المسمى المحفوظ ما دام عربياً بالكامل. الصفوف القديمة تحمل نصاً
+        // نصفه إنجليزي («إضافة الحساب statement») فنتجاوزها إلى القاموس.
+        if (!empty($permission->display_name)
+            && !PermissionLabelDictionary::needsTranslation($permission->display_name)) {
             return $permission->display_name;
         }
 
@@ -569,7 +372,11 @@ class PermissionsController extends Controller
             return $displayNames[$permissionName];
         }
 
-        return $this->buildPermissionDisplayName($permissionName);
+        $built = $this->buildPermissionDisplayName($permissionName);
+
+        return PermissionLabelDictionary::needsTranslation($built)
+            ? PermissionLabelDictionary::label($permissionName)
+            : $built;
     }
 
     /**
@@ -687,6 +494,7 @@ class PermissionsController extends Controller
             'faq_' => ['section' => 'content_management', 'group' => 'faq'],
             'about_us_' => ['section' => 'content_management', 'group' => 'about_us'],
             'musaned_section_' => ['section' => 'content_management', 'group' => 'musaned_section'],
+            'home_sections_' => ['section' => 'content_management', 'group' => 'home_sections'],
             'home_hero_' => ['section' => 'content_management', 'group' => 'home_hero'],
             'guidelines_' => ['section' => 'content_management', 'group' => 'guidelines'],
             'contact_' => ['section' => 'orders', 'group' => 'contact'],
@@ -766,6 +574,15 @@ class PermissionsController extends Controller
             ];
         }
 
+        // اشتقاق المجموعة من الاسم يعطي office_suspend لصلاحية تعليق سير المكتب،
+        // ومكانها الصحيح بطاقة الوكلاء الخارجيين نفسها لا بطاقة مستقلة.
+        if ($group === 'office_suspend' || $normalizedName === 'office_suspend_cvs') {
+            return [
+                'section' => 'modules',
+                'group' => 'office',
+            ];
+        }
+
         if (
             $section === 'modules' ||
             in_array($group, ['hr', 'finance', 'employee', 'zatca'], true) ||
@@ -777,10 +594,10 @@ class PermissionsController extends Controller
             ];
         }
 
-        return [
-            'section' => $section ?: 'other',
-            'group' => $group ?: 'other',
-        ];
+        return AdminPermissionNavigation::canonicalPlacement(
+            (string) ($section ?: 'settings'),
+            (string) ($group ?: 'other')
+        );
     }
 
     private function buildPermissionDisplayName(string $permissionName): string
@@ -908,8 +725,11 @@ class PermissionsController extends Controller
         }
 
         $fallback = end($candidates) ?: $resource;
+        $humanized = $this->humanizePermissionResource($fallback, $group);
 
-        return $this->humanizePermissionResource($fallback, $group);
+        return PermissionLabelDictionary::needsTranslation($humanized)
+            ? PermissionLabelDictionary::resourceLabel($resource)
+            : $humanized;
     }
 
     private function splitPermissionName(string $permissionName): array
@@ -1519,45 +1339,7 @@ class PermissionsController extends Controller
 
     private function buildPermissionMatrixLanes(array $sections): array
     {
-        $laneConfig = [
-            'core' => [
-                'title' => 'صلاحيات النظام الأساسية',
-                'description' => 'مرتبة لتقارب تسلسل الواجهات الرئيسية في القائمة الجانبية.',
-                'tone' => 'core',
-            ],
-            'additional' => [
-                'title' => 'الصلاحيات الإضافية',
-                'description' => 'الإعدادات والمحتوى والباقات والصلاحيات الملحقة تظهر هنا قبل صلاحيات الأنظمة.',
-                'tone' => 'management',
-            ],
-            'systems' => [
-                'title' => 'صلاحيات الأنظمة',
-                'description' => 'كل نظام يظهر في قائمة مستقلة لتسهيل المراجعة والتحديد.',
-                'tone' => 'packages',
-            ],
-        ];
-
-        $sectionLaneMap = [
-            'dashboard' => 'core',
-            'clients' => 'core',
-            'cv_management' => 'core',
-            'orders' => 'core',
-            'operations' => 'core',
-            'recruitment_contracts' => 'core',
-            'rent_contracts' => 'core',
-            'shelter_management' => 'core',
-            'travel_management' => 'core',
-            'complaints' => 'core',
-            'additional_services' => 'core',
-            'reports' => 'core',
-            'packages_management' => 'additional',
-            'modules' => 'systems',
-            'content_management' => 'additional',
-            'settings' => 'additional',
-            'maids_settings' => 'additional',
-            'users_management' => 'additional',
-            'other' => 'additional',
-        ];
+        $laneConfig = AdminPermissionNavigation::units();
 
         $lanes = [];
 
@@ -1575,25 +1357,7 @@ class PermissionsController extends Controller
         }
 
         foreach ($sections as $section) {
-            $laneKey = $sectionLaneMap[$section['key']] ?? 'additional';
-
-            if ($laneKey === 'systems') {
-                foreach ($section['groups'] as $group) {
-                    $systemSection = [
-                        'key' => 'module_' . $group['key'],
-                        'title' => $group['title'],
-                        'groups' => [$group],
-                        'permissions_count' => (int) ($group['permissions_count'] ?? 0),
-                    ];
-
-                    $lanes[$laneKey]['sections'][] = $systemSection;
-                    $lanes[$laneKey]['sections_count']++;
-                    $lanes[$laneKey]['groups_count']++;
-                    $lanes[$laneKey]['permissions_count'] += (int) ($group['permissions_count'] ?? 0);
-                }
-
-                continue;
-            }
+            $laneKey = AdminPermissionNavigation::unitForSection($section['key']);
 
             $lanes[$laneKey]['sections'][] = $section;
             $lanes[$laneKey]['sections_count']++;

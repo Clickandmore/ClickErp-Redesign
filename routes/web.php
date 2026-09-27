@@ -204,6 +204,30 @@ Route::get('/migration/legacy', function () {
     return redirect('/migration/file_only_migration.php');
 })->name('migration.legacy');
 
+Route::group([
+    'prefix' => LaravelLocalization::setLocale(),
+    'middleware' => ['localeSessionRedirect', 'localizationRedirect', 'localeViewPath'],
+], function () {
+    Route::group([
+        'prefix' => 'admin/ingaz',
+        'middleware' => ['auth:admin', 'admin', 'admin.route.permission'],
+    ], function () {
+        Route::get('ingaz-delegations/find-maid-by-passport', [IngazDelegationController::class, 'findMaidByPassport'])
+            ->name('ingaz-delegations.find-maid-by-passport');
+        Route::get('ingaz-delegations/export/excel', [IngazDelegationController::class, 'exportExcel'])
+            ->name('ingaz-delegations.export.excel');
+        Route::get('ingaz-delegations/export/pdf', [IngazDelegationController::class, 'exportPdf'])
+            ->name('ingaz-delegations.export.pdf');
+        Route::get('ingaz-delegations/{ingazDelegation}/print', [IngazDelegationController::class, 'print'])
+            ->name('ingaz-delegations.print');
+        Route::patch('ingaz-delegations/{ingazDelegation}/status', [IngazDelegationController::class, 'updateStatus'])
+            ->name('ingaz-delegations.update-status');
+        Route::get('delegation-costs/create', [IngazDelegationController::class, 'createCosts'])->name('delegation-costs.create');
+        Route::post('delegation-costs', [IngazDelegationController::class, 'storeCosts'])->name('delegation-costs.store');
+        Route::resource('ingaz-delegations', IngazDelegationController::class);
+    });
+});
+
 Route::group(['prefix' => 'admin', 'middleware' => ['auth:admin', 'admin', 'admin.route.permission']], function () {
     Route::group(['prefix' => 'ingaz'], function () {
         Route::get('/', [HomeController::class, 'index'])->name('home');
@@ -410,19 +434,6 @@ Route::group(['prefix' => 'admin', 'middleware' => ['auth:admin', 'admin', 'admi
         Route::post('countries/update-order', [CountryController::class, 'updateOrder'])->name('countries.update-order');
 
         // مسارات المدن
-        Route::get('ingaz-delegations/find-maid-by-passport', [IngazDelegationController::class, 'findMaidByPassport'])
-            ->name('ingaz-delegations.find-maid-by-passport');
-        Route::get('ingaz-delegations/export/excel', [IngazDelegationController::class, 'exportExcel'])
-            ->name('ingaz-delegations.export.excel');
-        Route::get('ingaz-delegations/export/pdf', [IngazDelegationController::class, 'exportPdf'])
-            ->name('ingaz-delegations.export.pdf');
-        Route::get('ingaz-delegations/{ingazDelegation}/print', [IngazDelegationController::class, 'print'])
-            ->name('ingaz-delegations.print');
-        Route::patch('ingaz-delegations/{ingazDelegation}/status', [IngazDelegationController::class, 'updateStatus'])
-            ->name('ingaz-delegations.update-status');
-        Route::get('delegation-costs/create', [IngazDelegationController::class, 'createCosts'])->name('delegation-costs.create');
-        Route::post('delegation-costs', [IngazDelegationController::class, 'storeCosts'])->name('delegation-costs.store');
-        Route::resource('ingaz-delegations', IngazDelegationController::class);
         Route::get('cities', [CountryController::class, 'citiesIndex'])->name('cities.index');
         Route::get('cities/create', [CountryController::class, 'createCity'])->name('cities.create');
         Route::post('cities', [CountryController::class, 'storeCity'])->name('cities.store');

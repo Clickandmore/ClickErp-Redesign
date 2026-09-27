@@ -28,6 +28,24 @@ class ShelterComplaintLinkTest extends TestCase
         $this->assertContains($complaint->id, $view->getData()['shelterComplaintOptions']->pluck('id')->all());
     }
 
+    public function test_edit_form_includes_closed_and_unlinked_complaint_options(): void
+    {
+        Cache::put('superadmin.modules.enabled_map', ['branches' => false], 60);
+        $contractId = DB::table('contracts')->insertGetId([
+            'type' => 'recruitment', 'status' => 'shelter', 'created_at' => now(), 'updated_at' => now(),
+        ]);
+        $complaint = Complaint::withoutEvents(fn () => Complaint::create([
+            'subject' => 'شكوى غير مرتبطة', 'message' => 'تفاصيل',
+            'status' => 'closed', 'priority' => 'medium', 'contract_id' => null,
+        ]));
+
+        $view = app(ShelterContractController::class)->edit($contractId);
+
+        $this->assertSame('admin.ingaz.ShelterContract.create', $view->name());
+        $this->assertTrue($view->getData()['isEditMode']);
+        $this->assertContains($complaint->id, $view->getData()['shelterComplaintOptions']->pluck('id')->all());
+    }
+
     public function test_creating_complaint_can_redirect_to_shelter_with_explicit_link(): void
     {
         Cache::put('superadmin.modules.enabled_map', ['branches' => false], 60);

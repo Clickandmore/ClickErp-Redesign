@@ -3,6 +3,7 @@
 namespace Nami\Finance\Services;
 
 use App\Services\BranchAccessService;
+use App\Support\BranchReportFilter;
 use App\Support\BranchSharingSettings;
 use App\Support\BranchQueryContext;
 use App\Models\Branch;
@@ -149,7 +150,9 @@ class AccountService extends MainService
 
     public function getAccountTree()
     {
-        $branchId = BranchQueryContext::activeBranchId();
+        // فرع التقرير لا العزل التلقائي فقط: المحاسب الذي يرى كل الفروع يختار
+        // الفرع من رأس الشاشة، فتنفصل الشجرة وأرصدتها مثل بقية التقارير المالية.
+        $branchId = BranchQueryContext::reportBranchId();
 
         if ($branchId === null && $this->branchAccess->enabled()) {
             $adminBranchId = $this->branchAccess->adminBranchId();
@@ -180,7 +183,9 @@ class AccountService extends MainService
                 'branch_id',
             ])
             ->when($filterAtQueryLevel, fn ($query) => $this->filterAccountAvailability($query, $branchId, $includeUnassigned))
-            ->withCount('constraintDetails')
+            // العدّاد هو ما يقرر ظهور رابط كشف الحساب. بلا نفس شرط الفرع يظهر
+            // الرابط لحساب كل حركته في فرع آخر، فيُفتح كشف فارغ.
+            ->withCount(['constraintDetails' => fn ($query) => BranchReportFilter::apply($query, 'fn_constraint_details')])
             ->orderBy('code')
             ->orderBy('id')
             ->get();
@@ -346,7 +351,10 @@ class AccountService extends MainService
 
     public function getConDetails()
     {
-        return ConstraintDetails::query()
+        // الـ global scope يعزل موظف الفرع، لكنه لا يرى الاختيار اليدوي لمن
+        // يملك رؤية كل الفروع — وهذا هو الشرط الذي يجعل رصيد الشجرة يطابق
+        // كشف الحساب وميزان المراجعة لنفس الفرع المختار.
+        return BranchReportFilter::apply(ConstraintDetails::query(), 'fn_constraint_details')
             ->join('fn_constraints', 'fn_constraints.id', '=', 'fn_constraint_details.constraint_id')
             ->whereNull('fn_constraints.deleted_at')
             ->select(

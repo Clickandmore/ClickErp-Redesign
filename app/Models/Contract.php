@@ -12,6 +12,7 @@ use App\Models\ingaz\ContractNote;
 use App\Models\ingaz\Invoice;
 use App\Models\ingaz\RecruitmentContractAttachment;
 use App\Support\AutomationSettings;
+use App\Support\PostArrivalRefundSettings;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Spatie\Activitylog\LogOptions;
@@ -27,6 +28,16 @@ class Contract extends Model
     protected $guarded = [];
     protected $with = ['info'];
 
+    public function scopeForCompanyRecruitment($query, bool $company = true)
+    {
+        $identityFilter = fn ($userQuery) => app(\App\Services\ShelterCompanyClientResolver::class)
+            ->applyCompanyIdentityFilter($userQuery);
+
+        return $company
+            ? $query->whereHas('user', $identityFilter)
+            : $query->whereDoesntHave('user', $identityFilter);
+    }
+
     // إضافة الحقول الجديدة للضمان
     protected $casts = [
         'warranty_start_date' => 'datetime',
@@ -38,6 +49,10 @@ class Contract extends Model
     {
         static::updated(function (Contract $contract): void {
             if (! $contract->wasChanged('status')) {
+                return;
+            }
+
+            if (PostArrivalRefundSettings::manualScreen()) {
                 return;
             }
 
@@ -77,7 +92,7 @@ class Contract extends Model
     }
     public function user()
     {
-        return $this->belongsTo(User::class, 'user_id');
+        return $this->belongsTo(User::class, 'user_id')->withTrashed();
     }
 
     public function maid()
@@ -115,6 +130,16 @@ class Contract extends Model
         return $this->hasOne(\App\Models\ContractInfo::class, 'contract_id');
     }
 
+    public function escapeReports()
+    {
+        return $this->hasMany(ContractEscapeReport::class);
+    }
+
+    public function latestEscapeReport()
+    {
+        return $this->hasOne(ContractEscapeReport::class)->latestOfMany();
+    }
+
     public function get_info()
     {
         return $this->belongsTo(ContractInfo::class, 'contract_id');
@@ -138,6 +163,11 @@ class Contract extends Model
     public function recruitmentCreditNotes()
     {
         return $this->hasMany(RecruitmentInvoiceCreditNote::class, 'contract_id');
+    }
+
+    public function returnSettlements()
+    {
+        return $this->hasMany(ContractReturnSettlement::class, 'contract_id');
     }
 
     public function financeBonds()
@@ -186,6 +216,11 @@ class Contract extends Model
     public function deportationProcedure()
     {
         return $this->hasOne(\App\Models\DeportationProcedure::class, "contract_id");
+    }
+
+    public function latestDeportationProcedure()
+    {
+        return $this->hasOne(\App\Models\DeportationProcedure::class, 'contract_id')->latestOfMany();
     }
 
     public function travelHistory()
@@ -555,7 +590,8 @@ class Contract extends Model
 
     public function hasEscapeReport(): bool
     {
-        return $this->info?->outside_shelter_reason === 'escape_report';
+        return $this->info?->outside_shelter_reason === 'escape_report'
+            || $this->escapeReports()->exists();
     }
 
     public function getActivitylogOptions(): LogOptions

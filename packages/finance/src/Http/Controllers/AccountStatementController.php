@@ -102,10 +102,10 @@ class AccountStatementController extends Controller
         $selectedAccount = null;
 
         if (!empty($filters['account_id'])) {
-            $statementData = $service->filterAccount($filters);
+            $statementData = $service->filterAccount($filters, true);
             $firstBalance = $service->getFirstBalance($filters);
             $otherAccount = $filters['other_account'] === 'yes'
-                ? $service->filterConstraints($filters)
+                ? $service->filterCounterAccountsForStatement($statementData)
                 : [];
             $selectedAccount = $accountService->find($filters['account_id']);
         }

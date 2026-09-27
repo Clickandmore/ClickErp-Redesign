@@ -6,6 +6,13 @@
         </div>
     @else
     <p>مطالبة المكتب بتكلفته الأصلية فقط، مع بقاء العاملة في الإيواء. تسجيل التحصيل من المكتب عملية منفصلة.</p>
+    @if($postArrivalOfficeChargeLine)
+        <div class="alert alert-warning">
+            تحميل المكتب الخارجي موجود ضمن
+            <a href="{{ route('post-arrival-refunds.show', $postArrivalRefund) }}">مستند الاسترداد بعد الوصول #{{ $postArrivalRefund->id }}</a>.
+            لا تنفذ «استرداد تكلفة الوكيل» هنا حتى لا يتكرر تحميل المكتب.
+        </div>
+    @endif
     @if($dispatch = $contract->externalOfficeDispatch)
         <div class="card mb-3"><div class="card-body">
             <h4>تفاصيل تكلفة الإرسالية</h4>
@@ -57,7 +64,7 @@
                 @if(!$lot['valid'])
                     <p class="alert alert-warning">مرجع التكلفة أو حساب المكتب غير مكتمل، أو سبق عكس قيد المورد. يلزم مراجعة المحاسب قبل الاسترداد.</p>
                 @endif
-                @if($canRecoverAgentCost && $lot['valid'] && !$agentCostSummary['settled'] && !$agentCostSummary['issues'] && (int)$lot['entry']->contract_id === (int)$contract->id && $contract->status === 'shelter' && !$contract->info?->is_outside_shelter)
+                @if(!$postArrivalOfficeChargeLine && $canRecoverAgentCost && $lot['valid'] && !$agentCostSummary['settled'] && !$agentCostSummary['issues'] && (int)$lot['entry']->contract_id === (int)$contract->id && $contract->status === 'shelter' && !$contract->info?->is_outside_shelter)
                     <form method="POST" action="{{ route('ShelterContract.agentRecovery.store', $contract->id) }}">
                         @csrf
                         <input type="hidden" name="receipt_entry_id" value="{{ $receiptId }}">

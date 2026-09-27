@@ -31,8 +31,20 @@ use App\Models\Concerns\BranchScoped;
 
 class Maid extends Model
 {
+    /**
+     * راية داخلية (ليست عموداً): هل أخفى تعليقُ المكتب هذه السيرة عند إنشائها؟
+     * مُعرَّفة صراحةً حتى لا يعاملها Eloquent كخاصية عبر __set فيحاول حفظها.
+     */
+    public bool $hiddenByOfficeSuspension = false;
+
     protected static function booted(): void
     {
+        static::updating(function (self $maid) {
+            // A later edit invalidates automatic rollback, even within the same second.
+            if ($maid->getRawOriginal('visibility_batch_id') && $maid->isDirty()) {
+                $maid->visibility_batch_id = null;
+            }
+        });
         static::saving(function (self $maid) {
             if ($maid->gender !== 'male') {
                 $maid->has_driving_license = null;
@@ -41,6 +53,26 @@ class Maid extends Model
             // مرفق الرخصة لا معنى له بدون رخصة قيادة.
             if (!$maid->has_driving_license) {
                 $maid->driving_license_file = null;
+            }
+        });
+
+        // سيرة تُضاف لمكتب خارجي سيره معلّقة تبقى مخفية، وإلا تسرّب التعليق.
+        static::creating(function (self $maid) {
+            $maid->hiddenByOfficeSuspension = $maid->office_id
+                && app(\App\Services\office\OfficeCvsSuspensionService::class)
+                    ->isSuspendedOffice((int) $maid->office_id);
+
+            if ($maid->hiddenByOfficeSuspension) {
+                $maid->is_show = false;
+            }
+        });
+
+        // تُسجَّل في لقطة التعليق حتى تعود للظهور مع باقي سير المكتب عند فك التعليق.
+        static::created(function (self $maid) {
+            if ($maid->hiddenByOfficeSuspension) {
+                app(\App\Services\office\OfficeCvsSuspensionService::class)
+                    ->recordSuspendedCv((int) $maid->office_id, (int) $maid->getKey());
+                $maid->hiddenByOfficeSuspension = false;
             }
         });
     }
@@ -65,7 +97,7 @@ class Maid extends Model
         return BranchDataSharingService::MAIDS;
     }
 
-    protected array $mediaUrlColumns = ['image', 'cv_file', 'cv_preview', 'video', 'driving_license_file'];
+    protected array $mediaUrlColumns = ['image', 'cv_file', 'cv_preview', 'maid_cv_file', 'video', 'driving_license_file'];
 
     public const REQUEST_TYPE_KNOWN = 'known';
     public const REQUEST_TYPE_SPECIFIC = 'specific';
@@ -218,11 +250,100 @@ class Maid extends Model
     protected $appends = [
         'resolved_price',
         'resolved_salary',
+        'effective_offer_price',
+        'effective_offer_duration',
+        'effective_offer_description',
+        'effective_offer_starts_at',
+        'effective_offer_expires_at',
+        'effective_offer_source',
         'image_url',
         'cv_preview_url',
         'cv_file_url',
         'cv_download_url',
     ];
+
+    /**
+     * An individual offer always has priority. Otherwise an available worker
+     * inherits the offer currently configured for her nationality.
+     */
+    public function getEffectiveOfferPriceAttribute()
+    {
+        if ($this->hasIndividualOfferValue()) {
+            return $this->offer_price;
+        }
+
+        return $this->nationalityOfferApplies() ? $this->nationality?->offer_price : null;
+    }
+
+    public function getEffectiveOfferDurationAttribute(): ?string
+    {
+        if ($this->hasIndividualOfferValue()) {
+            return $this->offer_duration;
+        }
+
+        return $this->nationalityOfferApplies() ? $this->nationality?->offer_duration : null;
+    }
+
+    public function getEffectiveOfferDescriptionAttribute(): ?string
+    {
+        if ($this->hasIndividualOfferValue()) {
+            return $this->offer_description;
+        }
+
+        return $this->nationalityOfferApplies() ? $this->nationality?->offer_description : null;
+    }
+
+    public function getEffectiveOfferStartsAtAttribute()
+    {
+        if ($this->hasIndividualOfferValue()) {
+            return $this->offer_starts_at;
+        }
+
+        return $this->nationalityOfferApplies() ? $this->nationality?->offer_starts_at : null;
+    }
+
+    public function getEffectiveOfferExpiresAtAttribute()
+    {
+        if ($this->hasIndividualOfferValue()) {
+            return $this->offer_expires_at;
+        }
+
+        return $this->nationalityOfferApplies() ? $this->nationality?->offer_expires_at : null;
+    }
+
+    public function getEffectiveOfferSourceAttribute(): ?string
+    {
+        if ($this->hasIndividualOfferValue()) {
+            return 'maid';
+        }
+
+        return $this->nationalityOfferApplies() ? 'nationality' : null;
+    }
+
+    public function hasActiveEffectiveOffer(): bool
+    {
+        if ($this->effective_offer_price === null) {
+            return false;
+        }
+
+        $today = now()->startOfDay();
+
+        return (!$this->effective_offer_starts_at || $this->effective_offer_starts_at->lte($today))
+            && (!$this->effective_offer_expires_at || $this->effective_offer_expires_at->gte($today));
+    }
+
+    private function nationalityOfferApplies(): bool
+    {
+        return (bool) $this->available
+            && $this->status === 'available'
+            && $this->nationality?->offer_price !== null;
+    }
+
+    private function hasIndividualOfferValue(): bool
+    {
+        return array_key_exists('offer_price', $this->getAttributes())
+            && $this->getAttributes()['offer_price'] !== null;
+    }
 
     public function getImageURLAttribute()
     {
@@ -553,7 +674,8 @@ class Maid extends Model
     public function scopeWithoutActiveOrders($query)
     {
         return $query->whereDoesntHave('orders', function ($orderQuery) {
-            $orderQuery->withoutGlobalScopes()->where(function ($statusQuery) {
+            // Check reservations across branches, but deleted orders no longer reserve the maid.
+            $orderQuery->withoutGlobalScopes()->whereNull('orders.deleted_at')->where(function ($statusQuery) {
                 $statusQuery->whereNull('status')
                     ->orWhereNotIn('status', Order::nonBlockingMaidAssignmentStatuses());
             });

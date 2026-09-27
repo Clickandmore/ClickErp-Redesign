@@ -368,6 +368,7 @@
                                     <option value="">{{ helperTrans('ingaz.all') }}</option>
                                     @foreach ($filters['offices'] as $office)
                                         <option value="{{ $office->id }}"
+                                            data-nationality-id="{{ $office->nationality_id }}"
                                             {{ (string) request('office_id') === (string) $office->id ? 'selected' : '' }}>
                                             {{ $office->title ?? '-' }}</option>
                                     @endforeach
@@ -600,6 +601,8 @@
     @else
         @include('components.no_permissions')
     @endif
+
+    @include('admin.ingaz.maids.partials.bulk-visibility-modal')
 
     <div class="modal fade" id="maidCvPreviewModal" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
@@ -864,6 +867,19 @@
             const statsCards = $('.filter-stat-card');
             const defaultStatCard = statsCards.filter('[data-card="total"]').first();
             const maidFiltersForm = document.getElementById('maidFilters');
+            const officeFilter = $('#filter-office');
+            const allOfficeOptions = officeFilter.find('option').clone();
+            const updateOfficeFilter = () => {
+                const nationalityId = String($('#filter-nationality').val() || '');
+                const selectedOffice = officeFilter.val();
+                const options = allOfficeOptions.filter(function() {
+                    return !this.value || !nationalityId || this.dataset.nationalityId === nationalityId;
+                }).clone();
+                officeFilter.empty().append(options);
+                const selectionStillAvailable = options.toArray().some(option => option.value === selectedOffice);
+                officeFilter.val(selectionStillAvailable ? selectedOffice : '');
+            };
+            updateOfficeFilter();
 
             const highlightStatCard = (card) => {
                 statsCards.removeClass('active');
@@ -878,7 +894,9 @@
 
             const resetFiltersForm = () => {
                 if (maidFiltersForm) {
+                    officeFilter.empty().append(allOfficeOptions.clone());
                     maidFiltersForm.reset();
+                    updateOfficeFilter();
                 }
             };
 
@@ -1027,55 +1045,7 @@
                 setTimeout(() => form.remove(), 1000);
             });
 
-            $('#bulkMaidVisibilityButton').on('click', function() {
-                const button = $(this);
-
-                Swal.fire({
-                    icon: 'question',
-                    title: @json(helperTrans('ingaz.maids_bulk_visibility_confirm_title')),
-                    text: @json(helperTrans('ingaz.maids_bulk_visibility_confirm_text')),
-                    showDenyButton: true,
-                    showCancelButton: true,
-                    confirmButtonText: @json(helperTrans('ingaz.show_all_maids')),
-                    denyButtonText: @json(helperTrans('ingaz.hide_all_maids')),
-                    cancelButtonText: @json(helperTrans('ingaz.cancel')),
-                    confirmButtonColor: '#198754',
-                    denyButtonColor: '#dc3545'
-                }).then((result) => {
-                    if (!result.isConfirmed && !result.isDenied) {
-                        return;
-                    }
-
-                    button.prop('disabled', true);
-                    $.ajax({
-                        url: @json(route('maids.bulk-visibility')),
-                        method: 'POST',
-                        data: {
-                            _token: csrfToken,
-                            is_show: result.isConfirmed ? 1 : 0
-                        },
-                        success: function(response) {
-                            table.ajax.reload(null, false);
-                            Swal.fire({
-                                icon: 'success',
-                                title: response.message || @json(helperTrans('ingaz.updated_successfully')),
-                                timer: 2500,
-                                showConfirmButton: false
-                            });
-                        },
-                        error: function(xhr) {
-                            Swal.fire({
-                                icon: 'error',
-                                title: @json(helperTrans('ingaz.error')),
-                                text: xhr.responseJSON?.message || @json(helperTrans('ingaz.unexpected_error'))
-                            });
-                        },
-                        complete: function() {
-                            button.prop('disabled', false);
-                        }
-                    });
-                });
-            });
+            @include('admin.ingaz.maids.partials.bulk-visibility-js')
 
             const resetOfferErrors = () => {
                 offerErrors.addClass('d-none').empty();
@@ -1294,6 +1264,9 @@
             });
 
             $('.filter-trigger').on('change', function() {
+                if (this.id === 'filter-nationality') {
+                    updateOfficeFilter();
+                }
                 clearStatHighlights();
                 table.draw();
             });

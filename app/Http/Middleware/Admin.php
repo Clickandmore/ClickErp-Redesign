@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use App\Support\DashboardMaintenanceSettings;
 use Closure;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Schema;
@@ -23,6 +24,22 @@ class Admin
                 return redirect()
                     ->route('admin.form.login')
                     ->with('status', __('admin.account_suspended_now'));
+            }
+
+            if (DashboardMaintenanceSettings::enabled()) {
+                $settings = DashboardMaintenanceSettings::all();
+
+                if ($request->expectsJson() || $request->ajax()) {
+                    return response()->json([
+                        'message' => $settings['message'],
+                        'maintenance' => true,
+                    ], 503)->header('Retry-After', '300');
+                }
+
+                return response()
+                    ->view('admin.maintenance', ['maintenance' => $settings], 503)
+                    ->header('Retry-After', '300')
+                    ->header('Cache-Control', 'no-store, private');
             }
 
             $lastCheck = (int) $request->session()->get('admin_session_checked_at', 0);

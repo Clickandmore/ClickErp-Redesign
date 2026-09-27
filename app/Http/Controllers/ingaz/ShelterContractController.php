@@ -1186,14 +1186,7 @@ class ShelterContractController extends Controller
         $nationalities = $this->shelterContractNationalities();
         $quickTagSuggestions = $this->getQuickTagSuggestions();
         $complaintTypes = ComplaintType::orderBy('name')->get();
-        $shelterComplaintOptions = Complaint::query()->latest('id')->get(['id', 'subject', 'complainant_name', 'complainant_phone', 'maid_passport'])
-            ->map(fn (Complaint $complaint) => [
-                'id' => $complaint->id,
-                'label' => implode(' — ', array_filter([
-                    '#' . $complaint->id, $complaint->subject ?: 'بدون عنوان',
-                    $complaint->complainant_name, $complaint->complainant_phone, $complaint->maid_passport,
-                ])),
-            ]);
+        $shelterComplaintOptions = $this->shelterComplaintOptions();
         $rentalInstantReceiptEnabled = CvOptionsSettings::rentalTransferEnabled();
         $contractServiceCategories = $this->mapContractServiceCategories($contracts);
 
@@ -1454,6 +1447,7 @@ class ShelterContractController extends Controller
                     'contract_id' => 'تغيرت حالة العقد؛ لا يمكن إضافته للإيواء مرة أخرى.',
                 ]);
             }
+            $previousStatus = $lockedContract->status;
             if ($contract->info) {
                 $contract->info()->update($infoPayload);
             } else {
@@ -1477,10 +1471,14 @@ class ShelterContractController extends Controller
                 }
             }
 
-            $contract->contract_status_logs()->create([
+            $statusLog = [
                 'contract_id' => $contract->id,
                 'status' => ContractStatusEnum::Shelter->value,
-            ]);
+            ];
+            if (Schema::hasColumn('contract_status_logs', 'previous_status')) {
+                $statusLog['previous_status'] = $previousStatus;
+            }
+            $contract->contract_status_logs()->create($statusLog);
 
             $this->syncShelterComplaint($contract, $request);
         });
@@ -1589,7 +1587,9 @@ class ShelterContractController extends Controller
             'maid.nationality',
             'maid.religion',
             'maid.job_types.job_type',
-            'info.shelter'
+            'info.shelter',
+            'invoice',
+            'returnSettlements.lines',
         ])->findOrFail($id);
 
         $this->assertCanAccessBranchModel($contract, 'contracts');
@@ -1633,9 +1633,13 @@ class ShelterContractController extends Controller
             }
         }
         $workerHistory = app(\App\Services\ingaz\ShelterWorkerHistoryService::class)->build($contract);
+        $postArrivalRefund = $contract->returnSettlements
+            ->first(fn ($settlement) => $settlement->status !== 'cancelled');
+        $postArrivalOfficeChargeLine = $postArrivalRefund?->lines
+            ->first(fn ($line) => $line->type === 'office_charge' && $line->status !== 'reversed');
         return view('admin.ingaz.ShelterContract.show', compact('contract', 'warrantyStatus', 'warrantyDays', 'isRentalWorker',
             'canRecoverAgentCost', 'canReverseAgentCost', 'agentCostSummary', 'agentRecoveries', 'workerHistory',
-            'shelterStatement', 'supplierStatementAccounts'));
+            'shelterStatement', 'supplierStatementAccounts', 'postArrivalRefund', 'postArrivalOfficeChargeLine'));
     }
 
 
@@ -1656,6 +1660,7 @@ class ShelterContractController extends Controller
         $nationalities = $this->shelterContractNationalities();
         $quickTagSuggestions = $this->getQuickTagSuggestions();
         $complaintTypes = ComplaintType::orderBy('name')->get();
+        $shelterComplaintOptions = $this->shelterComplaintOptions();
         $isEditMode = true;
         $editingContract = $contract;
         $rentalInstantReceiptEnabled = CvOptionsSettings::rentalTransferEnabled();
@@ -1670,12 +1675,25 @@ class ShelterContractController extends Controller
                 'nationalities',
                 'quickTagSuggestions',
                 'complaintTypes',
+                'shelterComplaintOptions',
                 'isEditMode',
                 'editingContract',
                 'rentalInstantReceiptEnabled',
                 'contractServiceCategories'
             )
         );
+    }
+
+    private function shelterComplaintOptions()
+    {
+        return Complaint::query()->latest('id')->get(['id', 'subject', 'complainant_name', 'complainant_phone', 'maid_passport'])
+            ->map(fn (Complaint $complaint) => [
+                'id' => $complaint->id,
+                'label' => implode(' — ', array_filter([
+                    '#' . $complaint->id, $complaint->subject ?: 'بدون عنوان',
+                    $complaint->complainant_name, $complaint->complainant_phone, $complaint->maid_passport,
+                ])),
+            ]);
     }
 
     private function shelterContractNationalities()
@@ -2783,7 +2801,9 @@ class ShelterContractController extends Controller
                             $q->with('translations');
                         }]);
                     },
-                    'latestShelterLog'
+                    'latestShelterLog',
+                    'invoice',
+                    'returnSettlements.lines',
                 ]);
 
             // Apply filters
@@ -3411,6 +3431,19 @@ class ShelterContractController extends Controller
                                     </a></li>';
                     }
 
+                    $postArrivalRefund = $row->returnSettlements
+                        ->first(fn ($settlement) => $settlement->status !== 'cancelled');
+                    if ($postArrivalRefund && $this->adminCanAny([PermKeys::POST_ARRIVAL_REFUND_VIEW])) {
+                        $actions .= '<li><a class="dropdown-item" href="' . e(route('post-arrival-refunds.show', $postArrivalRefund)) . '">
+                                        <i class="fas fa-file-invoice-dollar"></i> عرض استرداد ما بعد الوصول
+                                    </a></li>';
+                    } elseif ($row->invoice && $row->info?->arrival_date
+                        && $this->adminCanAny([PermKeys::POST_ARRIVAL_REFUND_CREATE])) {
+                        $actions .= '<li><a class="dropdown-item" href="' . e(route('post-arrival-refunds.create', ['contract_id' => $row->id])) . '">
+                                        <i class="fas fa-plus-circle"></i> إنشاء استرداد ما بعد الوصول
+                                    </a></li>';
+                    }
+
                     if ($canEditContract) {
                         $actions .= '<li><a class="dropdown-item" href="' . route('ShelterContract.edit', $row->id) . '">
                                         <i class="fas fa-edit"></i> تحرير
@@ -3808,10 +3841,11 @@ class ShelterContractController extends Controller
 
         $procedure = \App\Models\DeportationProcedure::where('contract_id', $contract->id)
             ->with(['createdBy', 'completedBy'])
+            ->latest('id')
             ->first();
 
         if (!$procedure) {
-            return redirect()->route('ShelterContract.show', $id)
+            return redirect()->route(request()->routeIs('RecruitmentContract.deportation.*') ? 'RecruitmentContract.index' : 'ShelterContract.show', request()->routeIs('RecruitmentContract.deportation.*') ? [] : [$id])
                 ->with('error', 'لا توجد إجراءات ترحيل لهذا العقد');
         }
 
@@ -3987,7 +4021,7 @@ class ShelterContractController extends Controller
                         . (($completion['amount'] ?? 0) > 0
                             ? ' وإنشاء قيد الترحيل بمبلغ ' . number_format((float) $completion['amount'], 2)
                             : ''),
-                    'redirect' => route('ShelterContract.deported')
+                    'redirect' => route($request->routeIs('RecruitmentContract.deportation.*') ? 'RecruitmentContract.index' : 'ShelterContract.deported')
                 ]);
             }
 

@@ -35,8 +35,14 @@ class DelegationCostTest extends TestCase
         Schema::create('ingaz_delegations', function (Blueprint $t) {
             $t->id(); $t->string('status'); $t->integer('branch_id')->nullable();
         });
+        Schema::create('contracts', function (Blueprint $t) {
+            $t->id(); $t->string('status'); $t->string('type'); $t->integer('branch_id')->nullable(); $t->timestamps();
+        });
+        Schema::create('travel_histories', function (Blueprint $t) {
+            $t->id(); $t->integer('order_id'); $t->string('status'); $t->softDeletes();
+        });
         Schema::create('invoices', function (Blueprint $t) {
-            $t->id(); $t->integer('ingaz_delegation_id'); $t->integer('ingaz_delegation_cost_constraint_id')->nullable(); $t->timestamps();
+            $t->id(); $t->integer('ingaz_delegation_id')->nullable(); $t->integer('contract_id')->nullable(); $t->integer('ingaz_delegation_cost_constraint_id')->nullable(); $t->timestamps();
         });
         Schema::create('fn_constraints', function (Blueprint $t) {
             $t->id(); $t->string('statement'); $t->decimal('value'); $t->softDeletes();
@@ -124,5 +130,44 @@ class DelegationCostTest extends TestCase
     {
         $this->expectException(ValidationException::class);
         $this->service->post(array_replace($this->data(), ['confirmed' => 0]));
+    }
+
+    public function test_posts_delegation_cost_to_current_recruitment_contract_invoice(): void
+    {
+        DB::table('contracts')->insert([
+            'id' => 30, 'status' => 'tafwed', 'type' => 'recruitment',
+            'created_at' => now(), 'updated_at' => now(),
+        ]);
+        DB::table('invoices')->insert(['id' => 30, 'contract_id' => 30]);
+
+        $data = array_replace($this->data(), [
+            'delegation_ids' => [],
+            'amounts' => [],
+            'contract_ids' => [30],
+            'contract_amounts' => [30 => '225.75'],
+        ]);
+
+        $this->assertSame(1, Invoice::withoutEvents(fn () => $this->service->post($data)));
+        $this->assertNotNull(DB::table('invoices')->where('contract_id', 30)->value('ingaz_delegation_cost_constraint_id'));
+        $this->assertSame([1, 2], $this->lines[0]['account_id']);
+        $this->assertSame(225.75, (float) $this->lines[0]['value']);
+        $this->assertStringContainsString('عقد الاستقدام #30', $this->lines[0]['statement']);
+    }
+
+    public function test_rejects_non_current_recruitment_contract(): void
+    {
+        DB::table('contracts')->insert([
+            'id' => 31, 'status' => 'completed', 'type' => 'recruitment',
+            'created_at' => now(), 'updated_at' => now(),
+        ]);
+        DB::table('invoices')->insert(['id' => 31, 'contract_id' => 31]);
+
+        $this->expectException(ValidationException::class);
+        $this->service->post(array_replace($this->data(), [
+            'delegation_ids' => [],
+            'amounts' => [],
+            'contract_ids' => [31],
+            'contract_amounts' => [31 => '137.00'],
+        ]));
     }
 }

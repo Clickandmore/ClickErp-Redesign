@@ -55,23 +55,80 @@
 </head>
 
 <body>
-    <div class="preloader">
+    <div class="preloader" role="status" aria-label="{{ app()->getLocale() === 'ar' ? 'جاري تحميل الصفحة' : 'Loading page' }}">
         <div class="preloaderImg"></div>
     </div>
+    <script>
+        (function () {
+            let preloaderDismissed = false;
+
+            function dismissPreloader() {
+                if (preloaderDismissed) {
+                    return;
+                }
+
+                const preloader = document.querySelector('.preloader');
+                if (!preloader) {
+                    return;
+                }
+
+                preloaderDismissed = true;
+                preloader.setAttribute('aria-hidden', 'true');
+                preloader.style.pointerEvents = 'none';
+                preloader.style.opacity = '0';
+                preloader.style.transition = 'opacity 200ms ease';
+
+                window.setTimeout(function () {
+                    preloader.style.display = 'none';
+                }, 200);
+            }
+
+            if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', dismissPreloader, { once: true });
+            } else {
+                dismissPreloader();
+            }
+
+            window.addEventListener('load', dismissPreloader, { once: true });
+
+            // External scripts must never be able to keep the page covered indefinitely.
+            window.setTimeout(dismissPreloader, 2500);
+        })();
+    </script>
     <header class="sticky-top">
         @include('site.layouts.header')
     </header>
     <main>
-        @if (isset($settings))
-            @if ($settings->there_are_offer == 1)
-                <div id="ad-popup" class="ad-popup">
-                    <div class="ad-popup-content">
-                        <h5 class="ad-popup-title">{{ __('ingaz.Special offer!') }}</h5>
-                        <p class="ad-popup-desc">{{ $settings->offer_text }}</p>
-                    </div>
-                    <button id="close-ad" class="ad-popup-close" aria-label="إغلاق">&times;</button>
+        @php
+            $announcementImage = (string) ($setting['popup_image'] ?? '');
+            $announcementEnabled = (bool) ($setting['show_popup'] ?? false) && $announcementImage !== '';
+            $announcementLink = trim((string) ($setting['popup_link'] ?? ''));
+            $announcementNationalityIds = collect($setting['popup_nationality_ids'] ?? [])->filter()->unique()->values();
+
+            if (($setting['popup_destination_type'] ?? 'general') === 'nationalities' && $announcementNationalityIds->isNotEmpty()) {
+                $announcementParams = ['type' => 'estqdam'];
+                if ($announcementNationalityIds->count() === 1) {
+                    $announcementParams['nationality_id'] = $announcementNationalityIds->first();
+                } else {
+                    $announcementParams['nationality_ids'] = $announcementNationalityIds->implode(',');
+                }
+                $announcementLink = route('site.all-workers.index', $announcementParams);
+            }
+            $announcementVersion = substr(sha1($announcementImage), 0, 12);
+        @endphp
+        @if ($announcementEnabled)
+            <div id="ad-popup" class="ad-popup announcement-popup" data-announcement-version="{{ $announcementVersion }}" role="dialog" aria-modal="true" aria-label="{{ __('admin.popup_settings') }}">
+                <div class="announcement-popup__card">
+                    <button id="close-ad" class="ad-popup-close announcement-popup__close" type="button" aria-label="{{ app()->getLocale() === 'ar' ? 'إغلاق' : 'Close' }}">&times;</button>
+                    @if ($announcementLink !== '')
+                        <a href="{{ $announcementLink }}" class="announcement-popup__link">
+                            <img src="{{ showFile($announcementImage) }}" alt="{{ __('admin.popup_settings') }}" class="announcement-popup__image">
+                        </a>
+                    @else
+                        <img src="{{ showFile($announcementImage) }}" alt="{{ __('admin.popup_settings') }}" class="announcement-popup__image">
+                    @endif
                 </div>
-            @endif
+            </div>
         @endif
 
 

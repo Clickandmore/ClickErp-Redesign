@@ -25,6 +25,12 @@
             <div class="col-md-3"><label for="position-date" class="form-label">المركز المالي كما في</label><input id="position-date" type="date" name="to_date" value="{{ $report['date'] }}" required class="form-control"></div>
             <div class="col-md-3"><label for="position-compare" class="form-label">تاريخ المقارنة (اختياري)</label><input id="position-compare" type="date" name="compare_date" value="{{ $comparison['date'] ?? '' }}" class="form-control"></div>
             <div class="col-md-2"><label for="position-level" class="form-label">تفصيل الحسابات</label><select id="position-level" name="level" class="form-control">@foreach(['0'=>'رئيسي','1'=>'متوسط','2'=>'تفصيلي','all'=>'جميع الحسابات'] as $value=>$label)<option value="{{ $value }}" {{ (string)$level === (string)$value ? 'selected' : '' }}>{{ $label }}</option>@endforeach</select></div>
+            @include('admin.partials.branch-filter', [
+                'name' => 'branch_id',
+                'label' => __('financial_requests.branch'),
+                'id' => 'position-branch',
+                'containerClass' => 'col-md-2',
+            ])
             <div class="col-md-2"><label><input type="checkbox" name="show_zero" value="1" {{ $showZero ? 'checked' : '' }}> إظهار الأرصدة الصفرية</label></div>
             <div class="col-md-2"><button class="btn btn-success w-100" type="submit"><i class="fa fa-search me-1"></i> عرض القائمة</button></div>
         </div>
@@ -36,7 +42,7 @@
     </div>
     <div id="position-print-content">
         @include('finance::finance.print-header')
-        <div class="text-center mb-4"><h4>قائمة المركز المالي (الميزانية العمومية)</h4><div>كما في {{ $report['date'] }} @if($comparison) — المقارنة: {{ $comparison['date'] }} @endif</div><small class="text-muted">جميع المبالغ بالريال السعودي</small></div>
+        <div class="text-center mb-4"><h4>قائمة المركز المالي (الميزانية العمومية)</h4><div>كما في {{ $report['date'] }} @if($comparison) — المقارنة: {{ $comparison['date'] }} @endif</div>@include('admin.partials.branch-report-scope', ['scopeTag' => 'div'])<small class="text-muted">جميع المبالغ بالريال السعودي</small></div>
         <div class="position-metrics">
             @foreach(['assets'=>'إجمالي الأصول','liabilities'=>'إجمالي الالتزامات','equity'=>'إجمالي حقوق الملكية','difference'=>'فرق المعادلة المحاسبية'] as $key=>$label)
                 <div class="position-metric"><span>{{ $label }}</span><strong class="position-number {{ $report[$key] < 0 ? 'position-negative' : '' }}">{{ $money($report[$key]) }}</strong>@if($comparison)<small>المقارنة: {{ $money($comparison[$key]) }}</small>@endif</div>

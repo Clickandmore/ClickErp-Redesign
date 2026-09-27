@@ -1,4 +1,4 @@
-@if (@AdminGuardHasPerm(\App\PermKeys::ORDERS_CONTROL))
+@if (@AdminGuardHasPerm(\App\PermKeys::ORDERS_CHANGE_STATUS))
 
     <form class="row g-3 from-submit-global" method="post" action="{{route("orders.update", $obj->id)}}">
         @csrf
@@ -109,6 +109,7 @@
                         @endphp
 
                         @foreach($availableStatuses as $status)
+                            @continue(in_array($status, ['refused', 'return'], true) && !$obj->adminCanReject(auth('admin')->user()))
                             <div class="col-md-6 mb-2">
                                 <div class="form-check">
                                     <input class="form-check-input" type="radio" name="status" value="{{ $status }}" id="{{ $status }}">
@@ -137,7 +138,7 @@
                     </button>
 
                     @if($canAddContract)
-                        @if (@AdminGuardHasPerm(\App\PermKeys::FULL_CONTRACT))
+                        @if (@AdminGuardHasPerm(\App\PermKeys::ORDERS_ADD_CONTRACT))
                             <button type="button" class="btn btn-success addNewContract" data-id="{{ $obj->id }}">
                                 <i class="fa fa-plus"></i> {{__("admin.add_new_contract")}}
                             </button>

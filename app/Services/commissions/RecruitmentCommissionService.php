@@ -19,10 +19,28 @@ class RecruitmentCommissionService
 
     public function isEligible(Contract $contract): bool
     {
-        return ! in_array((string) $contract->status, [
+        return ! $this->isReturned($contract);
+    }
+
+    public function isReturned(Contract $contract): bool
+    {
+        if (in_array((string) $contract->status, [
             ContractStatusEnum::Refunded->value,
             ContractStatusEnum::Back->value,
-        ], true);
+            ContractStatusEnum::Shelter->value,
+        ], true)) {
+            return true;
+        }
+
+        if ((bool) $contract->info?->shelter_id) {
+            return true;
+        }
+
+        if ($contract->relationLoaded('returnRequests')) {
+            return $contract->returnRequests->contains('status', 'approved');
+        }
+
+        return $contract->returnRequests()->where('status', 'approved')->exists();
     }
 
     public function assertEligible(Contract $contract): void
@@ -254,9 +272,11 @@ class RecruitmentCommissionService
 
     private function defaultReason(Contract $contract): string
     {
-        return $contract->status === ContractStatusEnum::Refunded->value
-            ? 'العقد مسترد ولا يستحق عمولة.'
-            : 'العقد مرتجع ولا يستحق عمولة.';
+        return match ((string) $contract->status) {
+            ContractStatusEnum::Refunded->value => 'العقد مسترد ولا يستحق عمولة.',
+            ContractStatusEnum::Back->value => 'العقد مرتجع ولا يستحق عمولة.',
+            default => 'العقد في مسار استرداد بعد الوصول ولا يستحق عمولة.',
+        };
     }
 
     public function isZeroed(CommissionBatchItem $item): bool

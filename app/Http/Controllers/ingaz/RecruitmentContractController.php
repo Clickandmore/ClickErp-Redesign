@@ -39,10 +39,13 @@ use App\Services\ingaz\RecruitmentTripAccountingService;
 use App\Services\ingaz\RecruitmentContractRefundService;
 use App\Services\ingaz\RecruitmentContractReturnRestorationService;
 use App\Services\ingaz\RecruitmentContractStageRollbackService;
+use App\Services\ingaz\RecruitmentContractStageStepService;
+use App\Services\ingaz\CompletedRecruitmentMaidReleaseService;
 use App\Services\ingaz\RentalMaidArrivalService;
 use App\Services\ManagedFileStorage;
 use App\Support\SystemModuleManager;
 use App\Support\InvoiceAuthorization;
+use App\Support\PostArrivalRefundSettings;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Database\QueryException;
@@ -52,6 +55,7 @@ use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 use PDF;
 use Yajra\DataTables\Facades\DataTables;
 
@@ -387,6 +391,7 @@ class RecruitmentContractController extends Controller
         $statusDate = $date ?: now()->toDateString();
 
         DB::transaction(function () use ($contract, $currentStatus, $nextStatus, $statusDate) {
+            app(RecruitmentContractStageStepService::class)->assertStageComplete($contract);
             $contract->update(['status' => $nextStatus]);
 
             $statusLogData = [
@@ -555,7 +560,8 @@ class RecruitmentContractController extends Controller
         }
 
         if ($statusFilter === 'current') {
-            $query->whereIn('status', $this->getCurrentContractStatuses())
+            $this->whereLifecycleStatusIn($query, $this->getCurrentContractStatuses());
+            $query
                 ->whereDoesntHave('travelHistory', function ($travelQuery) {
                     $travelQuery->where('status', 'completed');
                 });
@@ -564,25 +570,25 @@ class RecruitmentContractController extends Controller
 
         if ($statusFilter === 'completed_stage') {
             $query->where(function ($completedQuery) {
-                $completedQuery
-                    ->whereIn('status', $this->getCompletedStageStatuses())
-                    ->orWhereHas('travelHistory', function ($travelQuery) {
-                        $travelQuery->where('status', 'completed');
-                    });
+                $this->whereLifecycleStatusIn($completedQuery, $this->getCompletedStageStatuses());
+                $completedQuery->orWhereHas('travelHistory', function ($travelQuery) {
+                    $travelQuery->where('status', 'completed');
+                });
             });
             return;
         }
 
         if ($statusFilter === 'completed') {
-            $query->where('status', ContractStatusEnum::Completed->value);
+            $this->whereLifecycleStatusIn($query, [ContractStatusEnum::Completed->value]);
             return;
         }
 
         if ($statusFilter === 'arrival_today') {
-            $query->whereIn('status', [
+            $this->whereLifecycleStatusIn($query, [
                 ContractStatusEnum::Tazker->value,
                 ContractStatusEnum::Arrival->value,
-            ])->whereRaw(
+            ]);
+            $query->whereRaw(
                 "DATE((SELECT th.arrival_date FROM travel_histories as th WHERE th.order_id = contracts.id AND th.deleted_at IS NULL ORDER BY th.id DESC LIMIT 1)) = ?",
                 [Carbon::today()->toDateString()]
             );
@@ -590,7 +596,8 @@ class RecruitmentContractController extends Controller
         }
 
         if ($statusFilter === 'delayed_arrival') {
-            $query->whereIn('status', $this->getDelayedArrivalStatuses())
+            $this->whereLifecycleStatusIn($query, $this->getDelayedArrivalStatuses());
+            $query
                 ->whereRaw($this->getEffectiveContractDateSql() . ' < ?', [
                     Carbon::today()->subDays(self::DELAYED_ARRIVAL_DAYS)->toDateString(),
                 ]);
@@ -604,7 +611,96 @@ class RecruitmentContractController extends Controller
             return;
         }
 
-        $query->where('status', $statusFilter);
+        $this->whereLifecycleStatusIn($query, [$statusFilter]);
+    }
+
+    /**
+     * Filter by the recruitment lifecycle without losing contracts whose worker
+     * is temporarily managed by the shelter workflow.
+     */
+    private function whereLifecycleStatusIn($query, array $statuses): void
+    {
+        $statuses = array_values(array_unique(array_filter($statuses)));
+        if ($statuses === []) {
+            $query->whereRaw('1 = 0');
+            return;
+        }
+
+        $placeholders = implode(',', array_fill(0, count($statuses), '?'));
+        $query->whereRaw($this->getLifecycleStatusSql() . " IN ({$placeholders})", $statuses);
+    }
+
+    private function getLifecycleStatusSql(): string
+    {
+        $previousStatusSql = Schema::hasColumn('contract_status_logs', 'previous_status')
+            ? "(SELECT NULLIF(csl.previous_status, '')
+                FROM contract_status_logs csl
+                WHERE csl.contract_id = contracts.id
+                    AND csl.status = 'shelter'
+                    AND NULLIF(csl.previous_status, '') IS NOT NULL
+                ORDER BY csl.id DESC LIMIT 1),"
+            : '';
+
+        return "CASE WHEN contracts.status = 'shelter' THEN COALESCE(
+            {$previousStatusSql}
+            (SELECT csl2.status
+                FROM contract_status_logs csl2
+                WHERE csl2.contract_id = contracts.id AND csl2.status <> 'shelter'
+                ORDER BY csl2.id DESC LIMIT 1),
+            'arrival'
+        ) ELSE contracts.status END";
+    }
+
+    private function resolveRecruitmentLifecycleStatus(Contract $contract): string
+    {
+        if ($contract->status !== ContractStatusEnum::Shelter->value) {
+            return (string) $contract->status;
+        }
+
+        $logs = $contract->relationLoaded('contract_status_logs')
+            ? $contract->contract_status_logs->sortByDesc('id')
+            : $contract->contract_status_logs()->latest('id')->get();
+        $shelterLog = $logs->first(
+            fn ($log) => $log->status === ContractStatusEnum::Shelter->value && filled($log->previous_status)
+        );
+        $previousStatus = $shelterLog?->previous_status
+            ?: $logs->first(fn ($log) => $log->status !== ContractStatusEnum::Shelter->value)?->status;
+
+        return $previousStatus ?: ContractStatusEnum::Arrival->value;
+    }
+
+    private function renderShelterOperationalStatus(Contract $contract): string
+    {
+        if ($contract->status !== ContractStatusEnum::Shelter->value) {
+            return '';
+        }
+
+        if ($contract->deportationProcedure
+            && in_array($contract->deportationProcedure->status, ['pending', 'in_progress'], true)) {
+            return '<span class="badge bg-danger"><i class="fas fa-plane-departure me-1"></i>العاملة في إجراءات الترحيل</span>';
+        }
+
+        $activeTransfer = $contract->sponsorshipTransfers
+            ->whereIn('status', ['maid_delivered', 'trial', 'trial_started'])
+            ->sortByDesc('id')
+            ->first();
+
+        if ($activeTransfer) {
+            return '<span class="badge bg-warning text-dark"><i class="fas fa-user-clock me-1"></i>العاملة في فترة التجربة</span>';
+        }
+
+        if ($contract->info?->is_outside_shelter) {
+            $outsideLabel = match ($contract->info->outside_shelter_reason) {
+                'vacation' => 'العاملة خارج الإيواء - إجازة',
+                'rental_delivery' => 'العاملة خارج الإيواء - عقد تأجير',
+                'transfer_delivery' => 'العاملة خارج الإيواء - نقل خدمات',
+                default => 'العاملة خارج الإيواء مؤقتاً',
+            };
+
+            return '<span class="badge bg-secondary"><i class="fas fa-person-walking-arrow-right me-1"></i>' . e($outsideLabel) . '</span>';
+        }
+
+        return '<span class="badge bg-info text-dark"><i class="fas fa-house-user me-1"></i>العاملة داخل الإيواء</span>';
     }
 
     private function canViewShelterRecruitmentContracts(): bool
@@ -612,15 +708,12 @@ class RecruitmentContractController extends Controller
         return @AdminGuardHasPerm(NewPermKeys::REC_CONTRACTS_VIEW_SHELTER);
     }
 
-    private function excludeShelterContracts($query): void
+    public function companyIndex(Request $request)
     {
-        $query->where(function ($contractQuery) {
-            $contractQuery
-                ->whereNull('status')
-                ->orWhere('status', '!=', ContractStatusEnum::Shelter->value);
-        });
-    }
+        $request->merge(['company_contracts' => true]);
 
+        return $this->index($request);
+    }
 
     public function index(Request $request)
     {
@@ -633,6 +726,7 @@ class RecruitmentContractController extends Controller
         }
 
         $shelterContractsMode = $request->boolean('shelter_contracts');
+        $companyContractsMode = $request->boolean('company_contracts');
 
         if ($shelterContractsMode && !$this->canViewShelterRecruitmentContracts()) {
             abort(403, 'ليس لديك صلاحية لعرض عقود الإيواء من شاشة عقود الاستقدام');
@@ -660,8 +754,13 @@ class RecruitmentContractController extends Controller
                 'info.shelter.translations', // بيانات الإيواء
                 'contract_status_logs',
                 'latestContractStatusLog', // آخر تحديث للحالة بدون تحميل كامل السجل
+                'latestEscapeReport',
+                'deportationProcedure',
+                'latestDeportationProcedure',
                 'invoice.musanedTransferItem.transfer',
                 'recruitmentRefund',
+                'returnRequests',
+                'returnSettlements',
                 'sponsorshipTransfers.oldSponsor.nationality',
                 'order', // بيانات الطلب
                 'order.details', // تفاصيل الطلب
@@ -674,10 +773,10 @@ class RecruitmentContractController extends Controller
             $statusFilter = $this->getStatusFilterForRequest($request);
 
             $query->whereIn('type', ['recruitment', 'maid']);
+            $query->forCompanyRecruitment($companyContractsMode);
             if ($shelterContractsMode) {
                 $query->where('status', ContractStatusEnum::Shelter->value);
             } else {
-                $this->excludeShelterContracts($query);
                 $this->applyStatusFilter($query, $statusFilter);
             }
 
@@ -851,10 +950,23 @@ class RecruitmentContractController extends Controller
                                     data-next-status-text="' . e($bulkActionContext['next_status_text']) . '">
                             </div>';
                 })
-                ->editColumn('status', function ($row) {
-                    $statusText = getContractStatus($row->status);
-                    $statusColor = getContractStatusColor($row->status);
+                ->editColumn('status', function ($row) use ($shelterContractsMode) {
+                    if ($row->latestEscapeReport) {
+                        return '<span class="badge bg-danger"><i class="fas fa-running me-1"></i>بلاغ هروب</span>';
+                    }
+                    $lifecycleStatus = $shelterContractsMode
+                        ? $row->status
+                        : $this->resolveRecruitmentLifecycleStatus($row);
+                    $statusText = getContractStatus($lifecycleStatus);
+                    $statusColor = getContractStatusColor($lifecycleStatus);
                     $statusDisplay = '<span class="badge bg-' . $statusColor . '">' . $statusText . '</span>';
+
+                    if (!$shelterContractsMode) {
+                        $shelterStatus = $this->renderShelterOperationalStatus($row);
+                        if ($shelterStatus !== '') {
+                            $statusDisplay .= '<br><span class="d-inline-block mt-1">' . $shelterStatus . '</span>';
+                        }
+                    }
 
                     // إضافة تاريخ آخر تحديث
                     $lastUpdate = $row->updated_at ? $row->updated_at->format('Y-m-d') : '';
@@ -863,7 +975,7 @@ class RecruitmentContractController extends Controller
                     }
 
                     // إضافة حالة الضمان للعقود المكتملة، مع دعم حالة الوصول القديمة
-                    if (in_array($row->status, [ContractStatusEnum::Arrival->value, ContractStatusEnum::Completed->value], true)) {
+                    if (in_array($lifecycleStatus, [ContractStatusEnum::Arrival->value, ContractStatusEnum::Completed->value], true)) {
                         $warrantyStatus = $row->warranty_status ?? 'not_applicable';
 
                         // حساب الأيام المتبقية من تاريخ انتهاء الضمان
@@ -1396,6 +1508,19 @@ class RecruitmentContractController extends Controller
                     return $office?->title ?  '<span class="text-muted">' . $office?->title .'</span>' : '<span class="text-muted">غير محدد</span>';
                 })
                 ->addColumn('updateStatus', function ($row) {
+                    $currentStageStep = app(RecruitmentContractStageStepService::class)->currentStep($row);
+                    if ($currentStageStep) {
+                        return '<button type="button" class="btn btn-warning btn-sm btn-action complete-stage-step-btn"'
+                            . ' data-contract-id="' . e($row->id) . '"'
+                            . ' data-step-id="' . e($currentStageStep->id) . '"'
+                            . ' data-step-name="' . e($currentStageStep->displayName(app()->getLocale())) . '"'
+                            . ' data-stage-name="' . e(\App\Support\RecruitmentContractStageLabels::label($row->status) ?: $row->status) . '"'
+                            . ' data-url="' . e(route('RecruitmentContract.stageSteps.index', $row->id)) . '"'
+                            . ' title="تنفيذ المراحل الفرعية">'
+                            . '<i class="fas fa-list-check me-1"></i>مراحل ' . e(\App\Support\RecruitmentContractStageLabels::label($row->status) ?: $row->status)
+                            . '</button>';
+                    }
+
                     if ($row->status == ContractStatusEnum::PendingMaidSelection->value) {
                         // زر إضافة عاملة للعقود التي في حالة بانتظار اختيار العاملة
                         return '<a href="' . route('RecruitmentContract.selectMaid', $row->id) . '" class="btn btn-warning btn-sm btn-action" title="إضافة عاملة">
@@ -1608,17 +1733,46 @@ class RecruitmentContractController extends Controller
                         }
                     }
                 })
-                ->addColumn('actions', function ($row) {
+                ->addColumn('actions', function ($row) use ($statusFilter) {
                     $actions = '<div class="dropdown actions-dropdown">
                                     <button class="btn btn-sm btn-primary dropdown-toggle actions-btn" type="button"  aria-expanded="false" title="الإجراءات المتاحة">
                                         <i class="fas fa-cogs me-1"></i> الإجراءات
                                     </button>
                                     <ul class="dropdown-menu dropdown-menu-end shadow-lg">';
 
+                    if (in_array($row->status, ['arrival', 'completed'], true)) {
+                        $escapePermission = $row->latestEscapeReport ? PermKeys::REC_CONTRACTS_ESCAPE_REPORTS_VIEW : PermKeys::REC_CONTRACTS_ESCAPE_REPORT_CREATE;
+                        if (@AdminGuardHasPerm($escapePermission)) {
+                            $actions .= '<li><a class="dropdown-item text-danger" href="' . e(route('RecruitmentContract.escapeReports.show', $row->id)) . '"><i class="fas fa-running"></i> ' . ($row->latestEscapeReport ? 'إدارة بلاغ الهروب' : 'إضافة بلاغ هروب') . '</a></li>';
+                        }
+                    }
+
+                    if (in_array($row->status, ['arrival', 'completed'], true) && @AdminGuardHasPerm(PermKeys::REC_CONTRACTS_DEPORTATION)) {
+                        if ($row->latestDeportationProcedure && $row->latestDeportationProcedure->status !== 'cancelled') {
+                            $actions .= '<li><a class="dropdown-item text-danger" href="' . e(route('RecruitmentContract.deportation.procedures', $row->id)) . '"><i class="fas fa-plane-departure"></i> متابعة إجراءات الترحيل</a></li>';
+                        } elseif (!$row->latestEscapeReport && !$row->info?->is_outside_shelter) {
+                            $actions .= '<li><a class="dropdown-item text-danger start-recruitment-deportation" href="#" data-url="' . e(route('RecruitmentContract.deportation.start', $row->id)) . '"><i class="fas fa-plane-departure"></i> ترحيل العاملة</a></li>';
+                        }
+                    }
+
                     // تفاصيل العقد
                     $actions .= '<li><a class="dropdown-item" href="' . route('contracts.details', $row->id) . '">
                                     <i class="fas fa-eye"></i> عرض تفاصيل العقد
                                 </a></li>';
+
+                    if (
+                        in_array($statusFilter, ['completed_stage', ContractStatusEnum::Completed->value], true)
+                        && $row->status === ContractStatusEnum::Completed->value
+                        && @AdminGuardHasPerm(NewPermKeys::REC_CONTRACTS_RELEASE_MAID_AFTER_COMPLETION)
+                    ) {
+                        $releaseEligibility = app(CompletedRecruitmentMaidReleaseService::class)->eligibility($row);
+                        if ($releaseEligibility['eligible']) {
+                            $actions .= '<li><form method="POST" class="release-completed-maid-form" action="' . e(route('RecruitmentContract.releaseMaidAfterCompletion', $row->id)) . '" data-contract-id="' . e($row->id) . '" data-maid-name="' . e($row->maid?->name ?: ('العاملة #' . $row->maid_id)) . '">'
+                                . csrf_field()
+                                . '<button type="submit" class="dropdown-item text-success"><i class="fas fa-plane-departure"></i> اكتمال العقد وتسفير العاملة</button>'
+                                . '</form></li>';
+                        }
+                    }
 
                     if (
                         in_array($row->status, [
@@ -1681,6 +1835,21 @@ class RecruitmentContractController extends Controller
                     if ($row->recruitmentRefund) {
                         $actions .= '<li><a class="dropdown-item" href="' . route('contracts.details', $row->id) . '#contractRefundSection">
                                         <i class="fas fa-receipt"></i> عرض تفاصيل الاسترداد
+                                    </a></li>';
+                    }
+
+                    $activePostArrivalRefund = $row->returnSettlements
+                        ->first(fn ($settlement) => $settlement->status !== 'cancelled');
+                    $isPostArrivalRefundCandidate = $invoice
+                        && $row->info?->arrival_date;
+
+                    if ($activePostArrivalRefund && @AdminGuardHasPerm(\App\PermKeys::POST_ARRIVAL_REFUND_VIEW)) {
+                        $actions .= '<li><a class="dropdown-item" href="' . e(route('post-arrival-refunds.show', $activePostArrivalRefund)) . '">
+                                        <i class="fas fa-file-invoice-dollar"></i> عرض استرداد ما بعد الوصول
+                                    </a></li>';
+                    } elseif ($isPostArrivalRefundCandidate && @AdminGuardHasPerm(\App\PermKeys::POST_ARRIVAL_REFUND_CREATE)) {
+                        $actions .= '<li><a class="dropdown-item action-refund" href="' . e(route('post-arrival-refunds.create', ['contract_id' => $row->id])) . '">
+                                        <i class="fas fa-file-circle-plus"></i> إنشاء استرداد ما بعد الوصول
                                     </a></li>';
                     }
 
@@ -1852,6 +2021,7 @@ class RecruitmentContractController extends Controller
         $data["status"] = $status ?? $request->get('status', null);
         $data["filterOptions"] = $filterOptions;
         $data['shelterContractsMode'] = $shelterContractsMode;
+        $data['companyContractsMode'] = $companyContractsMode;
         $data['branchesEnabled'] = $this->branchesEnabledFor('contracts');
         $data['branches'] = $data['branchesEnabled']
             ? Branch::query()->active()->ordered()->get(['id', 'name_ar', 'name_en'])
@@ -1888,6 +2058,8 @@ class RecruitmentContractController extends Controller
             'recruitmentRefund.creditNote.constraint',
             'recruitmentRefund.creditNote.financeSale',
             'recruitmentRefund.createdBy',
+            'returnRequests',
+            'returnSettlements',
             'attachments.uploader',
             'invoice.financeSale',
             'invoice.recruitmentCreditNotes.constraint',
@@ -1976,6 +2148,7 @@ class RecruitmentContractController extends Controller
         $canViewInvoiceCreditNotes = $this->canViewInvoiceCreditNotes();
         $canCreateInvoiceCreditNotes = $this->canCreateInvoiceCreditNotes();
         $contractStageSteps = $this->getContractStageSteps($contract);
+        $currentContractStageStep = app(RecruitmentContractStageStepService::class)->currentStep($contract);
         $canUpdateContractStageSteps = $this->canUpdateRecruitmentContracts();
 
         $contractExtensionRequests = \App\Models\ContractExtensionRequest::with(['requestedBy', 'processedBy'])
@@ -1997,6 +2170,7 @@ class RecruitmentContractController extends Controller
             'canViewInvoiceCreditNotes',
             'canCreateInvoiceCreditNotes',
             'contractStageSteps',
+            'currentContractStageStep',
             'canUpdateContractStageSteps'
         ));
     }
@@ -2036,6 +2210,45 @@ class RecruitmentContractController extends Controller
             ->get();
     }
 
+    public function stageSteps(Contract $contract)
+    {
+        abort_unless($this->canUpdateRecruitmentContracts(), 403);
+        abort_unless(in_array($contract->type, ['recruitment', 'maid'], true), 404);
+        $steps = app(RecruitmentContractStageStepService::class)->applicableSteps($contract);
+        $completions = RecruitmentContractStepCompletion::query()
+            ->where('contract_id', $contract->id)->whereIn('stage_step_id', $steps->pluck('id'))
+            ->get()->keyBy('stage_step_id');
+
+        return response()->json([
+            'stage' => $contract->status,
+            'today' => now()->toDateString(),
+            'steps' => $steps->map(fn ($step) => [
+                'id' => $step->id,
+                'name' => $step->displayName(app()->getLocale()),
+                'completed_at' => $completions->get($step->id)?->completed_at?->format('Y-m-d'),
+                'notes' => $completions->get($step->id)?->notes,
+            ]),
+        ])->header('Cache-Control', 'no-store');
+    }
+
+    public function completeStageSteps(Request $request, Contract $contract)
+    {
+        abort_unless($this->canUpdateRecruitmentContracts(), 403);
+        abort_unless(in_array($contract->type, ['recruitment', 'maid'], true), 404);
+        $validated = $request->validate([
+            'stage' => ['required', 'string'],
+            'steps' => ['required', 'array', 'min:1', 'max:100'],
+            'steps.*.id' => ['required', 'integer', 'distinct'],
+            'steps.*.completed_at' => ['required', 'date_format:Y-m-d', 'before_or_equal:today'],
+            'steps.*.notes' => ['nullable', 'string', 'max:2000'],
+        ]);
+        app(RecruitmentContractStageStepService::class)->completeMany(
+            $contract, $validated['stage'], $validated['steps'], Auth::guard('admin')->id()
+        );
+
+        return response()->json(['success' => true, 'message' => 'تم تنفيذ المراحل المحددة بنجاح.']);
+    }
+
     public function updateStageStep(Request $request, Contract $contract, RecruitmentContractStageStep $step)
     {
         abort_unless($this->canUpdateRecruitmentContracts(), 403);
@@ -2043,6 +2256,7 @@ class RecruitmentContractController extends Controller
 
         $validated = $request->validate([
             'completed' => ['required', 'boolean'],
+            'completed_at' => ['nullable', 'date_format:Y-m-d', 'before_or_equal:today'],
             'notes' => ['nullable', 'string', 'max:2000'],
         ]);
 
@@ -2055,25 +2269,53 @@ class RecruitmentContractController extends Controller
 
         abort_unless($appliesToContract, 422, 'هذه الخطوة لا تنطبق على مرحلة العقد أو جنسية العاملة الحالية.');
 
-        $completion = RecruitmentContractStepCompletion::firstOrNew([
-            'contract_id' => $contract->id,
-            'stage_step_id' => $step->id,
-        ]);
-        $completion->notes = trim((string) ($validated['notes'] ?? '')) ?: null;
+        $stepService = app(RecruitmentContractStageStepService::class);
 
-        if ($validated['completed'] && !$completion->completed_at) {
-            $completion->completed_at = now();
-            $completion->completed_by_id = Auth::guard('admin')->id();
-        } elseif (!$validated['completed']) {
-            $completion->completed_at = null;
-            $completion->completed_by_id = null;
+        if (!$validated['completed']) {
+            $stepService->reopenFrom($contract, $step);
+            RecruitmentContractStepCompletion::query()
+                ->where('contract_id', $contract->id)
+                ->where('stage_step_id', $step->id)
+                ->update(['notes' => trim((string) ($validated['notes'] ?? '')) ?: null]);
+        } else {
+            $existingCompletion = RecruitmentContractStepCompletion::query()
+                ->where('contract_id', $contract->id)
+                ->where('stage_step_id', $step->id)
+                ->first();
+
+            if (!$existingCompletion?->completed_at) {
+                $stepService->assertCurrentStep($contract, $step);
+            }
+
+            $completion = RecruitmentContractStepCompletion::firstOrNew([
+                'contract_id' => $contract->id,
+                'stage_step_id' => $step->id,
+            ]);
+            $completion->notes = trim((string) ($validated['notes'] ?? '')) ?: null;
+            if (!$completion->completed_at) {
+                $completion->completed_at = $validated['completed_at'] ?? now();
+                $completion->completed_by_id = Auth::guard('admin')->id();
+            }
+            $completion->save();
         }
 
-        $completion->save();
+        $message = $validated['completed'] ? 'تم إنجاز خطوة العقد بنجاح.' : 'تمت إعادة فتح خطوة العقد.';
 
-        return redirect()
-            ->route('contracts.details', $contract->id)
-            ->with('success', $validated['completed'] ? 'تم إنجاز خطوة العقد بنجاح.' : 'تمت إعادة فتح خطوة العقد.');
+        if ($request->expectsJson() || $request->ajax()) {
+            $nextStep = $stepService->currentStep($contract->fresh());
+
+            return response()->json([
+                'success' => true,
+                'message' => $message,
+                'stage_complete' => $nextStep === null,
+                'next_step' => $nextStep ? [
+                    'id' => $nextStep->id,
+                    'name' => $nextStep->displayName(app()->getLocale()),
+                ] : null,
+            ]);
+        }
+
+        return redirect()->route('contracts.details', $contract->id)->with('success', $message);
     }
 
     public function storeAttachments(Request $request, $contractId)
@@ -3268,9 +3510,8 @@ class RecruitmentContractController extends Controller
                     ], 422);
                 }
 
-                // بيانات العميل تُدار من صفحة العملاء فقط. إنشاء العقد لا يجوز أن
-                // يغيّر هوية العميل أو بياناته لأن كل العقود السابقة تشير للسجل نفسه.
                 $user = $order->user;
+                app(\App\Services\ingaz\RecruitmentOrderClientCompletionService::class)->complete($user, $request);
 
                 $contractData['user_id'] = $order->user_id;
                 $contractData['maid_id'] = $shouldCreateWithoutAssignedMaid ? null : $order->maid_id;
@@ -3463,10 +3704,20 @@ class RecruitmentContractController extends Controller
                 'contract_id' => $contract->id,
                 'contract' => $contract->load(['user', 'maid', 'info'])
             ]);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            DB::rollBack();
+
+            return response()->json([
+                'success' => false,
+                'message' => 'يرجى مراجعة بيانات العميل',
+                'errors' => $e->errors(),
+            ], 422);
         } catch (QueryException $e) {
             DB::rollBack();
 
+            $errorId = (string) Str::uuid();
             logger()->error('Error creating contract:', [
+                'error_id' => $errorId,
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString(),
                 'request_data' => $request->all(),
@@ -3488,12 +3739,15 @@ class RecruitmentContractController extends Controller
 
             return response()->json([
                 'success' => false,
-                'message' => 'حدث خطأ أثناء إنشاء العقد'
+                'message' => \App\Support\ContractCreationError::message($e) . ' مرجع الخطأ: ' . $errorId,
+                'error_id' => $errorId,
             ], 500);
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             DB::rollBack();
 
+            $errorId = (string) Str::uuid();
             logger()->error('Error creating contract:', [
+                'error_id' => $errorId,
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString(),
                 'request_data' => $request->all(),
@@ -3503,7 +3757,8 @@ class RecruitmentContractController extends Controller
 
             return response()->json([
                 'success' => false,
-                'message' => 'حدث خطأ أثناء إنشاء العقد'
+                'message' => \App\Support\ContractCreationError::message($e) . ' مرجع الخطأ: ' . $errorId,
+                'error_id' => $errorId,
             ], 500);
         }
     }
@@ -3548,9 +3803,17 @@ class RecruitmentContractController extends Controller
 
             // إذا كان الطلب لتحديث الحالة
             if ($request->has('status') && $request->has('next_status')) {
-                $currentStatus = $request->status;
+                $currentStatus = $row->status;
                 $nextStatus = $request->next_status;
                 $statusDate = $request->date ?? now()->format('Y-m-d');
+
+                $expectedTransition = $this->getManualStatusTransition($currentStatus);
+                if (!$expectedTransition || $nextStatus !== $expectedTransition['next_status']) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'المرحلة التالية المحددة لا تطابق المرحلة الحالية للعقد',
+                    ], 422);
+                }
 
                 // منع الإغلاق اليدوي للعقود في مرحلة الضمان
                 if ($nextStatus === ContractStatusEnum::Closed->value) {
@@ -3604,6 +3867,8 @@ class RecruitmentContractController extends Controller
                     ], 403);
                 }
 
+                app(RecruitmentContractStageStepService::class)->assertStageComplete($row);
+
                 // تحديث حالة العقد
                 $row->status = $nextStatus;
                 $row->save();
@@ -3626,6 +3891,12 @@ class RecruitmentContractController extends Controller
                 'message' => 'تم تحميل معلومات العقد بنجاح',
                 'contract' => $row->load(['user', 'maid', 'info'])
             ]);
+        } catch (ValidationException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => collect($e->errors())->flatten()->first() ?: $e->getMessage(),
+                'errors' => $e->errors(),
+            ], 422);
         } catch (\Exception $e) {
             logger()->error('Error in show contract:', [
                 'error' => $e->getMessage(),
@@ -4186,22 +4457,12 @@ class RecruitmentContractController extends Controller
             'order.details.admin',
             'order.customer',
             'sponsorshipTransfers.oldSponsor',
+            'contract_status_logs',
         ]);
 
         $query->whereIn('type', ['recruitment', 'maid']);
-        $this->excludeShelterContracts($query);
 
         $this->applyContractFilters($query, $request);
-
-        if ($request->filled('marketer_id')) {
-            $query->where(function ($marketerQuery) use ($request) {
-                $marketerQuery
-                    ->where('marketer_id', $request->marketer_id)
-                    ->orWhereHas('order.details', function ($orderDetailsQuery) use ($request) {
-                        $orderDetailsQuery->where('admin_id', $request->marketer_id);
-                    });
-            });
-        }
 
         return $query;
     }
@@ -4287,7 +4548,7 @@ class RecruitmentContractController extends Controller
             'ingaz_to' => (string) ($info?->ingaz_to ?? ''),
             'arrival_date' => (string) ($info?->arrival_date ?? $maid?->arrival_date ?? ''),
             'marketer' => (string) ($marketer?->name ?? ''),
-            'status' => (string) getEnumValue('contract_statuses', $contract->status),
+            'status' => (string) getEnumValue('contract_statuses', $this->resolveRecruitmentLifecycleStatus($contract)),
             'created_at' => $contract->created_at?->format('Y-m-d H:i:s') ?? '',
         ];
     }
@@ -4564,6 +4825,7 @@ class RecruitmentContractController extends Controller
             DB::beginTransaction();
 
             try {
+                app(RecruitmentContractStageStepService::class)->assertStageComplete($contract);
                 $travelHistory->normalizeArrivalDateAndTime();
 
                 RecruitmentContractExternalOfficeDispatchController::syncArrivalStationFromDispatch($contract, $travelHistory);
@@ -4638,6 +4900,12 @@ class RecruitmentContractController extends Controller
                 DB::rollBack();
                 throw $e;
             }
+        } catch (ValidationException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => collect($e->errors())->flatten()->first() ?: $e->getMessage(),
+                'errors' => $e->errors(),
+            ], 422);
         } catch (\Exception $e) {
             logger()->error('Error in completeTrip', [
                 'tripId' => $tripId,
@@ -4692,6 +4960,10 @@ class RecruitmentContractController extends Controller
             $movedToTickets = false;
 
             DB::transaction(function () use ($contract, $contractId, &$movedToTickets) {
+                if ($contract->status === ContractStatusEnum::Taffez->value) {
+                    app(RecruitmentContractStageStepService::class)->assertStageComplete($contract);
+                }
+
                 TravelHistory::create([
                     'order_id' => $contractId,
                     'status' => 'active',
@@ -4716,6 +4988,12 @@ class RecruitmentContractController extends Controller
                     ? 'تم إضافة الرحلة بنجاح ونقل العقد إلى مرحلة التذاكر'
                     : 'تم إضافة الرحلة بنجاح'
             ]);
+        } catch (ValidationException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => collect($e->errors())->flatten()->first() ?: $e->getMessage(),
+                'errors' => $e->errors(),
+            ], 422);
         } catch (\Exception $e) {
             logger()->error('Error in addTravel', [
                 'contractId' => $request->contract_id,
@@ -4838,7 +5116,9 @@ class RecruitmentContractController extends Controller
                     $skippedCount++;
                     $skippedContracts[] = [
                         'id' => $rowId,
-                        'message' => 'حدث خطأ أثناء تحديث هذا العقد',
+                        'message' => $contractException instanceof ValidationException
+                            ? (collect($contractException->errors())->flatten()->first() ?: $contractException->getMessage())
+                            : 'حدث خطأ أثناء تحديث هذا العقد',
                     ];
                 }
             }
@@ -4864,6 +5144,12 @@ class RecruitmentContractController extends Controller
                 'updated_contracts' => $updatedContracts,
                 'skipped_contracts' => $skippedContracts,
             ], $updatedCount > 0 ? 200 : 422);
+        } catch (ValidationException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => collect($e->errors())->flatten()->first() ?: $e->getMessage(),
+                'errors' => $e->errors(),
+            ], 422);
         } catch (\Exception $e) {
             logger()->error('Error in bulkUpdateStatus', [
                 'rowIds' => $request->input('row_ids', []),
@@ -5018,6 +5304,12 @@ class RecruitmentContractController extends Controller
                 'next_status' => $statusUpdate['next_status'],
                 'sms_sent' => $smsResult,
             ]);
+        } catch (ValidationException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => collect($e->errors())->flatten()->first() ?: $e->getMessage(),
+                'errors' => $e->errors(),
+            ], 422);
         } catch (\Exception $e) {
             logger()->error('Error in updateStatus', [
                 'rowId' => $request->input('row_id'),
@@ -5035,6 +5327,29 @@ class RecruitmentContractController extends Controller
     /**
      * جلب العاملات المتاحة
      */
+    public function releaseMaidAfterCompletion(
+        Contract $contract,
+        CompletedRecruitmentMaidReleaseService $service
+    ) {
+        abort_unless(
+            @AdminGuardHasPerm(NewPermKeys::REC_CONTRACTS_RELEASE_MAID_AFTER_COMPLETION),
+            403,
+            'ليس لديك صلاحية إتاحة العاملة بعد اكتمال العقد.'
+        );
+
+        try {
+            $maid = $service->release($contract, auth('admin')->id());
+
+            return redirect()
+                ->route('RecruitmentContract.index', ['status' => 'completed_stage'])
+                ->with('success', 'تم اكتمال العقد وتسفير العاملة وإتاحة ' . ($maid->name ?: ('العاملة #' . $maid->id)) . ' لعقد استقدام جديد.');
+        } catch (\RuntimeException $exception) {
+            return redirect()
+                ->route('RecruitmentContract.index', ['status' => 'completed_stage'])
+                ->with('error', $exception->getMessage());
+        }
+    }
+
     public function getAvailableMaids(Request $request)
     {
         logger()->info('getAvailableMaids called', ['request' => $request->all()]);
@@ -5494,14 +5809,14 @@ class RecruitmentContractController extends Controller
 
             $baseQuery = Contract::query()
                 ->whereIn('type', ['recruitment', 'maid']);
-            $this->excludeShelterContracts($baseQuery);
 
-            // تطبيق نفس فلاتر البحث (بدون الحالة وحالة الضمان) للحصول على إحصائيات قابلة للتنقل
-            $this->applyContractFilters($baseQuery, $request, true, true);
+            // إحصائيات العقود المطابقة لجميع فلاتر الجدول الحالية.
+            $this->applyContractFilters($baseQuery, $request);
 
             $today = \Carbon\Carbon::now()->toDateString();
             $currentStatuses = $this->getCurrentContractStatuses();
             $completedStageStatuses = $this->getCompletedStageStatuses();
+            $lifecycleStatusSql = $this->getLifecycleStatusSql();
 
             $aggregateBindings = array_merge(
                 $currentStatuses,
@@ -5529,33 +5844,33 @@ class RecruitmentContractController extends Controller
                 ->selectRaw(
                     '
                     COUNT(*) as total,
-                    SUM(CASE WHEN status IN (' . implode(',', array_fill(0, count($currentStatuses), '?')) . ')
+                    SUM(CASE WHEN ' . $lifecycleStatusSql . ' IN (' . implode(',', array_fill(0, count($currentStatuses), '?')) . ')
                         AND NOT EXISTS (
                             SELECT 1 FROM travel_histories th_current
                             WHERE th_current.order_id = contracts.id
                                 AND th_current.status = \'completed\'
                                 AND th_current.deleted_at IS NULL
                         ) THEN 1 ELSE 0 END) as current_total,
-                    SUM(CASE WHEN status IN (' . implode(',', array_fill(0, count($completedStageStatuses), '?')) . ')
+                    SUM(CASE WHEN ' . $lifecycleStatusSql . ' IN (' . implode(',', array_fill(0, count($completedStageStatuses), '?')) . ')
                         OR EXISTS (
                             SELECT 1 FROM travel_histories th_completed
                             WHERE th_completed.order_id = contracts.id
                                 AND th_completed.status = \'completed\'
                                 AND th_completed.deleted_at IS NULL
                         ) THEN 1 ELSE 0 END) as completed_total,
-                    SUM(CASE WHEN status = ? THEN 1 ELSE 0 END) as stage_back,
-                    SUM(CASE WHEN status = ? THEN 1 ELSE 0 END) as stage_refunded,
-                    SUM(CASE WHEN status = ? THEN 1 ELSE 0 END) as stage_pending_maid_selection,
-                    SUM(CASE WHEN status = ? THEN 1 ELSE 0 END) as stage_new,
-                    SUM(CASE WHEN status = ? THEN 1 ELSE 0 END) as stage_msaned,
-                    SUM(CASE WHEN status = ? THEN 1 ELSE 0 END) as stage_tafwed,
-                    SUM(CASE WHEN status = ? THEN 1 ELSE 0 END) as stage_taffez,
-                    SUM(CASE WHEN status = ? THEN 1 ELSE 0 END) as stage_tazker,
-                    SUM(CASE WHEN status = ? THEN 1 ELSE 0 END) as stage_arrival,
-                    SUM(CASE WHEN status = ? THEN 1 ELSE 0 END) as stage_completed,
-                    SUM(CASE WHEN status = ? AND warranty_end_date IS NOT NULL AND DATE(warranty_end_date) >= ? THEN 1 ELSE 0 END) as warranty_active,
-                    SUM(CASE WHEN status = ? AND warranty_end_date IS NOT NULL AND DATE(warranty_end_date) < ? THEN 1 ELSE 0 END) as warranty_expired,
-                    SUM(CASE WHEN status = ? AND warranty_end_date IS NULL THEN 1 ELSE 0 END) as warranty_not_applicable
+                    SUM(CASE WHEN ' . $lifecycleStatusSql . ' = ? THEN 1 ELSE 0 END) as stage_back,
+                    SUM(CASE WHEN ' . $lifecycleStatusSql . ' = ? THEN 1 ELSE 0 END) as stage_refunded,
+                    SUM(CASE WHEN ' . $lifecycleStatusSql . ' = ? THEN 1 ELSE 0 END) as stage_pending_maid_selection,
+                    SUM(CASE WHEN ' . $lifecycleStatusSql . ' = ? THEN 1 ELSE 0 END) as stage_new,
+                    SUM(CASE WHEN ' . $lifecycleStatusSql . ' = ? THEN 1 ELSE 0 END) as stage_msaned,
+                    SUM(CASE WHEN ' . $lifecycleStatusSql . ' = ? THEN 1 ELSE 0 END) as stage_tafwed,
+                    SUM(CASE WHEN ' . $lifecycleStatusSql . ' = ? THEN 1 ELSE 0 END) as stage_taffez,
+                    SUM(CASE WHEN ' . $lifecycleStatusSql . ' = ? THEN 1 ELSE 0 END) as stage_tazker,
+                    SUM(CASE WHEN ' . $lifecycleStatusSql . ' = ? THEN 1 ELSE 0 END) as stage_arrival,
+                    SUM(CASE WHEN ' . $lifecycleStatusSql . ' = ? THEN 1 ELSE 0 END) as stage_completed,
+                    SUM(CASE WHEN ' . $lifecycleStatusSql . ' = ? AND warranty_end_date IS NOT NULL AND DATE(warranty_end_date) >= ? THEN 1 ELSE 0 END) as warranty_active,
+                    SUM(CASE WHEN ' . $lifecycleStatusSql . ' = ? AND warranty_end_date IS NOT NULL AND DATE(warranty_end_date) < ? THEN 1 ELSE 0 END) as warranty_expired,
+                    SUM(CASE WHEN ' . $lifecycleStatusSql . ' = ? AND warranty_end_date IS NULL THEN 1 ELSE 0 END) as warranty_not_applicable
                     ',
                     $aggregateBindings
                 )
@@ -5626,7 +5941,17 @@ class RecruitmentContractController extends Controller
 
     private function applyContractFilters($query, Request $request, bool $ignoreStatus = false, bool $ignoreWarranty = false): void
     {
+        $query->forCompanyRecruitment($request->boolean('company_contracts'));
         $this->applyRequestBranchFilter($query, $request, 'contracts');
+
+        if ($request->filled('marketer_id')) {
+            $query->where(function ($q) use ($request) {
+                $q->where('marketer_id', $request->marketer_id)
+                    ->orWhereHas('order.details', function ($orderQuery) use ($request) {
+                        $orderQuery->where('admin_id', $request->marketer_id);
+                    });
+            });
+        }
 
         // فلتر الحالة - استخدام query parameter فقط
         if (!$ignoreStatus) {
@@ -6387,6 +6712,16 @@ class RecruitmentContractController extends Controller
                 ], 422);
             }
 
+            if (PostArrivalRefundSettings::manualScreen()
+                && $contract->info?->arrival_date
+                && Carbon::parse($validated['refund_date'])->startOfDay()->greaterThanOrEqualTo(Carbon::parse($contract->info->arrival_date)->startOfDay())) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'الاسترداد بعد الوصول يُسجل من شاشة «الاسترداد بعد الوصول» ولا ينشئ قيداً من نافذة العقد.',
+                    'redirect_url' => route('post-arrival-refunds.create', ['contract_id' => $contract->id]),
+                ], 422);
+            }
+
             if ($contract->recruitmentRefund) {
                 return response()->json([
                     'success' => false,
@@ -6457,6 +6792,16 @@ class RecruitmentContractController extends Controller
                 return response()->json([
                     'success' => false,
                     'message' => 'لا يمكن استرداد العقد قبل إضافة فاتورة له'
+                ], 422);
+            }
+
+            if (PostArrivalRefundSettings::manualScreen()
+                && $contract->info?->arrival_date
+                && Carbon::parse($validated['refund_date'])->startOfDay()->greaterThanOrEqualTo(Carbon::parse($contract->info->arrival_date)->startOfDay())) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'الاسترداد بعد الوصول يُسجل من شاشة «الاسترداد بعد الوصول» ولا ينشئ قيداً من نافذة العقد.',
+                    'redirect_url' => route('post-arrival-refunds.create', ['contract_id' => $contract->id]),
                 ], 422);
             }
 

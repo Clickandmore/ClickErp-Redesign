@@ -4,6 +4,117 @@
 إعدادات الربط والإرسال
 @endsection
 
+@section('style')
+<style>
+    .notif-settings { --ns-ink:#172033; --ns-muted:#6b7688; --ns-line:#e6eaf0; --ns-soft:#f6f8fb;
+        --ns-blue:#2563eb; color:var(--ns-ink); }
+
+    /* ——— تحييد أنماط الجداول العامة في style.css / style-rtl.css التي تفرض
+       ظلاً وهوامش على كل <table> و padding:16px !important على رؤوس الأعمدة ——— */
+    .notif-settings table { margin:0; box-shadow:none; border-collapse:collapse; border-spacing:0; }
+    .notif-settings thead { background:none; box-shadow:none; }
+    .notif-settings tbody tr:hover { transform:none; }
+    .notif-settings th, .notif-settings td { padding:9px 12px !important; vertical-align:middle;
+        border-bottom:1px solid var(--ns-line); font-size:.83rem; }
+    .notif-settings thead th { background:var(--ns-soft); color:#3a4658; font-weight:700;
+        white-space:nowrap; border-bottom:1px solid #dde3ec; }
+    .notif-settings .table-responsive { border:1px solid var(--ns-line); border-radius:10px;
+        overflow:hidden; background:#fff; }
+
+    /* ——— ترويسة الصفحة وأزرار التنقل ——— */
+    .notif-settings .ns-hero { display:flex; flex-wrap:wrap; align-items:center;
+        justify-content:space-between; gap:14px; padding:18px 20px; margin-bottom:16px;
+        border-radius:16px; color:#fff;
+        background:linear-gradient(125deg,#132238 0%,#1d3553 68%,#27507a 100%); }
+    .notif-settings .ns-hero h4 { color:#fff; margin:0 0 4px; font-weight:800; font-size:1.18rem; }
+    .notif-settings .ns-hero .ns-hero-sub { margin:0; font-size:.82rem; opacity:.75; line-height:1.8; }
+    .notif-settings .ns-hero-actions { display:flex; flex-wrap:wrap; gap:8px; }
+    .notif-settings .ns-hero-actions .btn { --bs-btn-padding-y:.34rem; --bs-btn-padding-x:.7rem;
+        font-size:.79rem; font-weight:700; border-radius:9px; background:rgba(255,255,255,.1);
+        border-color:rgba(255,255,255,.28); color:#fff; }
+    .notif-settings .ns-hero-actions .btn:hover { background:rgba(255,255,255,.22); color:#fff;
+        border-color:rgba(255,255,255,.45); }
+
+    /* ——— شريط الانتقال بين الأقسام ——— */
+    .notif-settings .ns-nav { display:flex; flex-wrap:wrap; gap:8px; margin-bottom:18px; }
+    .notif-settings .ns-nav a { display:inline-flex; align-items:center; gap:7px; padding:7px 14px;
+        border:1px solid var(--ns-line); border-radius:999px; background:#fff; color:#3a4658;
+        font-size:.82rem; font-weight:700; text-decoration:none; transition:all .15s ease; }
+    .notif-settings .ns-nav a:hover { border-color:#bfd4ff; background:#eff5ff; color:var(--ns-blue); }
+    .notif-settings .ns-nav a i { color:var(--ns-blue); }
+
+    /* ——— بطاقات الأقسام ——— */
+    .notif-settings .ns-card { border:1px solid var(--ns-line); border-radius:16px;
+        margin-bottom:20px; box-shadow:0 2px 10px rgba(15,27,45,.04); scroll-margin-top:96px; }
+    .notif-settings .ns-card > .card-header { background:#fbfcfe; border-bottom:1px solid var(--ns-line);
+        border-radius:16px 16px 0 0; padding:15px 20px; }
+    .notif-settings .ns-card > .card-header h5 { margin:0 0 3px; font-size:1rem; font-weight:800; }
+    .notif-settings .ns-card > .card-body { padding:20px; }
+    .notif-settings .ns-card .card-header .badge { font-size:.7rem; font-weight:700;
+        padding:.42em .75em; border-radius:999px; }
+
+    /* ——— صندوق «الإعدادات الحالية»: شبكة موحّدة بدل أعمدة متفاوتة ——— */
+    .notif-settings .cfg-box { background:var(--ns-soft); border:1px solid var(--ns-line);
+        border-radius:12px; padding:14px 16px; margin-bottom:18px; }
+    .notif-settings .cfg-box > .cfg-box-title { display:flex; align-items:center; gap:7px;
+        margin-bottom:11px; font-size:.83rem; font-weight:800; color:#3a4658; }
+    .notif-settings .cfg-grid { display:grid; gap:9px;
+        grid-template-columns:repeat(auto-fill,minmax(210px,1fr)); }
+    .notif-settings .cfg-item { min-width:0; background:#fff; border:1px solid var(--ns-line);
+        border-radius:10px; padding:9px 11px; }
+    .notif-settings .cfg-item > span { display:block; margin-bottom:3px; color:var(--ns-muted);
+        font-size:.71rem; font-weight:700; line-height:1.5; }
+    .notif-settings .cfg-item > b { display:block; font-size:.82rem; font-weight:700;
+        line-height:1.6; overflow-wrap:anywhere; }
+    .notif-settings .cfg-item.is-wide { grid-column:span 2; }
+    @media (max-width:575.98px) { .notif-settings .cfg-item.is-wide { grid-column:auto; } }
+
+    /* ——— صناديق فرعية داخل النموذج ——— */
+    .notif-settings .ns-subcard { background:#fff; border:1px solid var(--ns-line);
+        border-radius:12px; padding:16px; }
+    .notif-settings .ns-subcard > .ns-subcard-head { display:flex; flex-wrap:wrap;
+        align-items:flex-start; justify-content:space-between; gap:10px 16px; margin-bottom:14px; }
+    .notif-settings .ns-subcard > .ns-subcard-head > * { min-width:0; }
+    .notif-settings .ns-subcard h6 { margin:0 0 3px; font-size:.9rem; font-weight:800; }
+    .notif-settings .ns-subcard .text-muted.small { line-height:1.8; }
+
+    /* ——— خانات التفعيل: صندوق مستقل كي لا تتداخل مع الحقول المجاورة ——— */
+    .notif-settings .ns-toggle { display:block; height:100%; background:var(--ns-soft);
+        border:1px solid var(--ns-line); border-radius:11px; padding:11px 13px; }
+    .notif-settings .ns-toggle .form-check { margin:0; min-height:auto; }
+    .notif-settings .ns-toggle .form-check-label { font-size:.83rem; font-weight:700; cursor:pointer; }
+    .notif-settings .ns-toggle .form-text { margin-top:5px; font-size:.73rem; line-height:1.7; }
+
+    /* ——— الحقول ——— */
+    .notif-settings .form-label { margin-bottom:5px; font-size:.79rem; font-weight:700; color:#42506b; }
+    .notif-settings .form-text { color:var(--ns-muted); font-size:.73rem; line-height:1.7; }
+    .notif-settings code { background:#eef2f8; border-radius:5px; padding:1px 5px;
+        color:#1d4ed8; font-size:.78rem; }
+    .notif-settings .ns-actions { display:flex; justify-content:flex-end; gap:8px;
+        padding-top:14px; margin-top:4px; border-top:1px dashed var(--ns-line); }
+
+    /* ——— بطاقات أرقام UltraMsg ——— */
+    .notif-settings .ultramsg-instance { border:1px solid var(--ns-line) !important;
+        border-radius:12px; background:var(--ns-soft); }
+    .notif-settings .ultramsg-instance .card-body { padding:14px 16px; }
+    .notif-settings .ns-instance-footer { display:flex; flex-wrap:wrap; align-items:center; gap:10px 20px;
+        padding-top:11px; border-top:1px dashed var(--ns-line); }
+    .notif-settings .ns-instance-footer .form-check { margin:0; min-height:auto; }
+    .notif-settings .ns-instance-footer .form-check-label { font-size:.81rem; font-weight:700; cursor:pointer; }
+    .notif-settings .ns-instance-footer .btn { margin-inline-start:auto; }
+
+    /* ——— التنبيهات داخل النموذج ——— */
+    .notif-settings .alert { border-radius:11px; }
+    .notif-settings .alert.small, .notif-settings .alert-info.small { line-height:1.9; }
+
+    @media (max-width:575.98px) {
+        .notif-settings .ns-hero { padding:15px; }
+        .notif-settings .ns-card > .card-body { padding:14px; }
+        .notif-settings .ns-hero-actions { width:100%; }
+    }
+</style>
+@endsection
+
 @section('content')
     <form id="chatwootConnectionTest" method="POST" action="{{ route('notifications.settings.whatsapp.test') }}">@csrf</form>
 @if (@AdminGuardHasPerm(\App\PermKeys::NOTIFICATIONS_CONTROL))
@@ -67,40 +178,46 @@
         $defaultUltraMsgKey = data_get($whatsappData, 'ultramsg.default_instance_key', '');
     @endphp
 
-    <div class="container-fluid">
-        <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+    <div class="container-fluid notif-settings">
+        <div class="ns-hero">
             <div>
-                <h4 class="mb-1">
+                <h4>
                     <i class="fa fa-plug me-2"></i>
                     إعدادات الربط والإرسال
                 </h4>
-                <div class="text-muted small">
+                <p class="ns-hero-sub">
                     تم فصل الحفظ إلى أقسام مستقلة: البريد الإلكتروني، الرسائل النصية، وواتساب.
-                </div>
+                </p>
             </div>
-            <div class="d-flex gap-2">
-                <a href="{{ route('notifications.settings.alerts') }}" class="btn btn-outline-warning">
+            <div class="ns-hero-actions">
+                <a href="{{ route('notifications.settings.alerts') }}" class="btn">
                     <i class="fa fa-bell me-1"></i>
                     إعدادات التنبيهات
                 </a>
-                <a href="{{ route('notifications.index') }}" class="btn btn-outline-primary">
+                <a href="{{ route('notifications.index') }}" class="btn">
                     <i class="fa fa-sms me-1"></i>
                     إرسال SMS
                 </a>
-                <a href="{{ route('whatsapp.notifications.index') }}" class="btn btn-outline-success">
+                <a href="{{ route('whatsapp.notifications.index') }}" class="btn">
                     <i class="fa fa-whatsapp me-1"></i>
                     إرسال واتساب
                 </a>
-                <a href="{{ route('whatsapp.inbox.index') }}" class="btn btn-success">
+                <a href="{{ route('whatsapp.inbox.index') }}" class="btn">
                     <i class="fa fa-comments me-1"></i>
                     محادثات واتساب
                 </a>
-                <a href="{{ route('messages.index') }}" class="btn btn-outline-secondary">
+                <a href="{{ route('messages.index') }}" class="btn">
                     <i class="fa fa-inbox me-1"></i>
                     سجل الرسائل
                 </a>
             </div>
         </div>
+
+        <nav class="ns-nav">
+            <a href="#email-settings"><i class="fa fa-envelope"></i> البريد الإلكتروني</a>
+            <a href="#sms-settings"><i class="fa fa-sms"></i> الرسائل النصية SMS</a>
+            <a href="#whatsapp-settings"><i class="fa fa-whatsapp"></i> واتساب</a>
+        </nav>
 
         @if(session('success'))
             <div class="alert alert-success">{{ session('success') }}</div>
@@ -120,26 +237,26 @@
             </div>
         @endif
 
-        <div class="card mb-4" id="email-settings">
+        <div class="card ns-card" id="email-settings">
             <div class="card-header d-flex flex-wrap justify-content-between align-items-center gap-2">
                 <div>
-                    <h5 class="mb-1">إعدادات البريد الإلكتروني</h5>
+                    <h5>إعدادات البريد الإلكتروني</h5>
                     <div class="text-muted small">هذا القسم خاص برسائل البريد مثل إعادة تعيين كلمة المرور والتنبيهات البريدية.</div>
                 </div>
                 <span class="badge bg-light text-dark">Mail</span>
             </div>
             <div class="card-body">
-                <div class="bg-light rounded-3 p-3 mb-3">
-                    <div class="fw-semibold mb-2">الإعدادات الحالية</div>
-                    <div class="row g-3 small">
-                        <div class="col-md-2"><strong>النوع:</strong> {{ data_get($currentSettings, 'email.mailer', 'smtp') }}</div>
-                        <div class="col-md-3"><strong>Host:</strong> {{ data_get($currentSettings, 'email.host') ?: 'غير محدد' }}</div>
-                        <div class="col-md-2"><strong>Port:</strong> {{ data_get($currentSettings, 'email.port', 587) }}</div>
-                        <div class="col-md-2"><strong>Encryption:</strong> {{ data_get($currentSettings, 'email.encryption') ?: 'بدون' }}</div>
-                        <div class="col-md-3"><strong>بريد المرسل:</strong> {{ data_get($currentSettings, 'email.from_address') ?: 'غير محدد' }}</div>
-                        <div class="col-md-3"><strong>اسم المرسل:</strong> {{ data_get($currentSettings, 'email.from_name') ?: 'غير محدد' }}</div>
-                        <div class="col-md-3"><strong>اسم المستخدم:</strong> {{ data_get($currentSettings, 'email.username') ?: 'غير محدد' }}</div>
-                        <div class="col-md-3"><strong>كلمة المرور:</strong> {{ $maskSecret(data_get($currentSettings, 'email.password')) }}</div>
+                <div class="cfg-box">
+                    <div class="cfg-box-title"><i class="fa fa-circle-info"></i> الإعدادات الحالية</div>
+                    <div class="cfg-grid">
+                        <div class="cfg-item"><span>النوع</span><b>{{ data_get($currentSettings, 'email.mailer', 'smtp') }}</b></div>
+                        <div class="cfg-item"><span>Host</span><b>{{ data_get($currentSettings, 'email.host') ?: 'غير محدد' }}</b></div>
+                        <div class="cfg-item"><span>Port</span><b>{{ data_get($currentSettings, 'email.port', 587) }}</b></div>
+                        <div class="cfg-item"><span>Encryption</span><b>{{ data_get($currentSettings, 'email.encryption') ?: 'بدون' }}</b></div>
+                        <div class="cfg-item"><span>بريد المرسل</span><b>{{ data_get($currentSettings, 'email.from_address') ?: 'غير محدد' }}</b></div>
+                        <div class="cfg-item"><span>اسم المرسل</span><b>{{ data_get($currentSettings, 'email.from_name') ?: 'غير محدد' }}</b></div>
+                        <div class="cfg-item"><span>اسم المستخدم</span><b>{{ data_get($currentSettings, 'email.username') ?: 'غير محدد' }}</b></div>
+                        <div class="cfg-item"><span>كلمة المرور</span><b>{{ $maskSecret(data_get($currentSettings, 'email.password')) }}</b></div>
                     </div>
                 </div>
 
@@ -193,7 +310,7 @@
                         <input type="email" name="email[from_address]" class="form-control"
                             value="{{ data_get($emailData, 'from_address') }}">
                     </div>
-                    <div class="col-12 d-flex justify-content-end">
+                    <div class="col-12 ns-actions">
                         <button type="submit" class="btn btn-primary">
                             <i class="fa fa-save me-1"></i>
                             حفظ إعدادات البريد
@@ -203,38 +320,48 @@
             </div>
         </div>
 
-        <div class="card mb-4" id="sms-settings">
+        <div class="card ns-card" id="sms-settings">
             <div class="card-header d-flex flex-wrap justify-content-between align-items-center gap-2">
                 <div>
-                    <h5 class="mb-1">إعدادات الرسائل النصية SMS</h5>
+                    <h5>إعدادات الرسائل النصية SMS</h5>
                     <div class="text-muted small">هذا القسم خاص بمزود الرسائل النصية وأسماء المرسل وحدود الإرسال الجماعي.</div>
                 </div>
                 <span class="badge bg-light text-dark">SMS API</span>
             </div>
             <div class="card-body">
-                <div class="bg-light rounded-3 p-3 mb-3">
-                    <div class="fw-semibold mb-2">الإعدادات الحالية</div>
-                    <div class="row g-3 small">
-                        <div class="col-md-2"><strong>البوابة:</strong> {{ $currentSmsProvider === 'taqnyat' ? 'تقنيات' : 'Msegat' }}</div>
-                        <div class="col-md-2"><strong>حالة بوابة SMS:</strong> {{ data_get($currentSettings, 'sms.gateway_status', 'on') === 'off' ? 'متوقفة' : 'مفعلة' }}</div>
+                <div class="cfg-box">
+                    <div class="cfg-box-title"><i class="fa fa-circle-info"></i> الإعدادات الحالية</div>
+                    <div class="cfg-grid">
+                        <div class="cfg-item"><span>البوابة</span><b>{{ $currentSmsProvider === 'taqnyat' ? 'تقنيات' : 'Msegat' }}</b></div>
+                        <div class="cfg-item"><span>حالة بوابة SMS</span><b>{{ data_get($currentSettings, 'sms.gateway_status', 'on') === 'off' ? 'متوقفة' : 'مفعلة' }}</b></div>
                         @if ($currentSmsProvider === 'taqnyat')
-                            <div class="col-md-4"><strong>Base URL:</strong> {{ $currentTaqnyatBaseUrl }}</div>
-                            <div class="col-md-3"><strong>مسار الإرسال:</strong> POST {{ $currentTaqnyatBaseUrl }}/v1/messages</div>
-                            <div class="col-md-3"><strong>Authorization:</strong> Bearer {{ $maskSecret(data_get($currentSettings, 'sms.taqnyat.bearer_token')) }}</div>
+                            <div class="cfg-item is-wide"><span>Base URL</span><b dir="ltr">{{ $currentTaqnyatBaseUrl }}</b></div>
+                            <div class="cfg-item is-wide"><span>مسار الإرسال</span><b dir="ltr">POST {{ $currentTaqnyatBaseUrl }}/v1/messages</b></div>
+                            <div class="cfg-item is-wide"><span>Authorization</span><b dir="ltr">Bearer {{ $maskSecret(data_get($currentSettings, 'sms.taqnyat.bearer_token')) }}</b></div>
                         @else
-                            <div class="col-md-4"><strong>رابط API:</strong> {{ data_get($currentSettings, 'sms.url') ?: 'غير محدد' }}</div>
-                            <div class="col-md-2"><strong>اسم المستخدم:</strong> {{ data_get($currentSettings, 'sms.username') ?: 'غير محدد' }}</div>
-                            <div class="col-md-2"><strong>API Key:</strong> {{ $maskSecret(data_get($currentSettings, 'sms.api_key')) }}</div>
+                            <div class="cfg-item is-wide"><span>رابط API</span><b dir="ltr">{{ data_get($currentSettings, 'sms.url') ?: 'غير محدد' }}</b></div>
+                            <div class="cfg-item"><span>اسم المستخدم</span><b>{{ data_get($currentSettings, 'sms.username') ?: 'غير محدد' }}</b></div>
+                            <div class="cfg-item"><span>API Key</span><b dir="ltr">{{ $maskSecret(data_get($currentSettings, 'sms.api_key')) }}</b></div>
                         @endif
-                        <div class="col-md-2"><strong>المرسل الافتراضي:</strong> {{ data_get($currentSettings, 'sms.sender') ?: 'غير محدد' }}</div>
-                        <div class="col-md-2"><strong>النوع الافتراضي:</strong> {{ data_get($currentSettings, 'sms.default_sender_type') === 'verification' ? 'تحقق' : 'إعلاني' }}</div>
-                        <div class="col-md-3"><strong>مرسل الإعلانات:</strong> {{ data_get($currentSettings, 'sms.advertising_sender') ?: 'غير محدد' }}</div>
-                        <div class="col-md-3"><strong>مرسل التحقق:</strong> {{ data_get($currentSettings, 'sms.verification_sender') ?: 'غير محدد' }}</div>
-                        <div class="col-md-3"><strong>App Domain:</strong> {{ data_get($currentSettings, 'sms.app_domain_for_msegat', 'aqro.sa') ?: 'aqro.sa' }}</div>
-                        <div class="col-md-2"><strong>الترميز:</strong> {{ data_get($currentSettings, 'sms.encoding', 'UTF8') }}</div>
-                        <div class="col-md-2"><strong>حد الإرسال:</strong> {{ data_get($currentSettings, 'sms.bulk_send_limit', 200) }}</div>
-                        <div class="col-md-2"><strong>كلمة التأكيد:</strong> {{ data_get($currentSettings, 'sms.bulk_confirmation_keyword', 'SEND_ALL_SMS') }}</div>
-                        <div class="col-md-3"><strong>التحقق بالجوال:</strong> {{ data_get($currentSettings, 'sms.disable_phone_verification') ? 'ملغى - الرمز 12345' : 'مفعل' }}</div>
+                        <div class="cfg-item"><span>المرسل الافتراضي</span><b>{{ data_get($currentSettings, 'sms.sender') ?: 'غير محدد' }}</b></div>
+                        <div class="cfg-item"><span>النوع الافتراضي</span><b>{{ data_get($currentSettings, 'sms.default_sender_type') === 'verification' ? 'تحقق' : 'إعلاني' }}</b></div>
+                        <div class="cfg-item"><span>مرسل الإعلانات</span><b>{{ data_get($currentSettings, 'sms.advertising_sender') ?: 'غير محدد' }}</b></div>
+                        <div class="cfg-item"><span>مرسل التحقق</span><b>{{ data_get($currentSettings, 'sms.verification_sender') ?: 'غير محدد' }}</b></div>
+                        <div class="cfg-item"><span>App Domain</span><b dir="ltr">{{ data_get($currentSettings, 'sms.app_domain_for_msegat', 'aqro.sa') ?: 'aqro.sa' }}</b></div>
+                        <div class="cfg-item"><span>الترميز</span><b>{{ data_get($currentSettings, 'sms.encoding', 'UTF8') }}</b></div>
+                        <div class="cfg-item"><span>حد الإرسال</span><b>{{ data_get($currentSettings, 'sms.bulk_send_limit', 200) }}</b></div>
+                        <div class="cfg-item"><span>كلمة التأكيد</span><b dir="ltr">{{ data_get($currentSettings, 'sms.bulk_confirmation_keyword', 'SEND_ALL_SMS') }}</b></div>
+                        <div class="cfg-item"><span>التحقق بالجوال</span><b>{{ data_get($currentSettings, 'sms.disable_phone_verification') ? 'ملغى - الرمز 12345' : 'مفعل' }}</b></div>
+                        <div class="cfg-item is-wide">
+                            <span>تنبيه حجوزات الموقع الخارجي</span>
+                            <b>
+                                @if (data_get($currentSettings, 'sms.external_order_admin_notification.enabled'))
+                                    مفعل — {{ data_get($currentSettings, 'sms.external_order_admin_notification.recipient_mode', 'selected_marketer') === 'unified' ? 'إلى الرقم الموحد' : 'إلى المسوق المختار' }}
+                                @else
+                                    غير مفعل
+                                @endif
+                            </b>
+                        </div>
                     </div>
                 </div>
 
@@ -249,32 +376,77 @@
                             <option value="taqnyat" {{ data_get($smsData, 'provider') === 'taqnyat' ? 'selected' : '' }}>تقنيات Taqnyat</option>
                         </select>
                     </div>
-                    <div class="col-md-3 d-flex align-items-end">
-                        <div class="form-check">
-                            <input type="hidden" name="sms[gateway_status]" value="on">
-                            <input class="form-check-input" type="checkbox" name="sms[gateway_status]" id="smsGatewayDisabled" value="off"
-                                {{ data_get($smsData, 'gateway_status', 'on') === 'off' ? 'checked' : '' }}>
-                            <label class="form-check-label" for="smsGatewayDisabled">
-                                إلغاء بوابة الرسائل النصية SMS
-                            </label>
+                    <div class="col-md-4">
+                        <div class="ns-toggle">
+                            <div class="form-check">
+                                <input type="hidden" name="sms[gateway_status]" value="on">
+                                <input class="form-check-input" type="checkbox" name="sms[gateway_status]" id="smsGatewayDisabled" value="off"
+                                    {{ data_get($smsData, 'gateway_status', 'on') === 'off' ? 'checked' : '' }}>
+                                <label class="form-check-label" for="smsGatewayDisabled">
+                                    إلغاء بوابة الرسائل النصية SMS
+                                </label>
+                            </div>
                             <div class="form-text">عند التفعيل يتم حفظ حالة البوابة بقيمة off.</div>
                         </div>
                     </div>
-                    <div class="col-md-6 d-flex align-items-end">
-                        <div class="form-check">
-                            <input type="hidden" name="sms[disable_phone_verification]" value="0">
-                            <input class="form-check-input" type="checkbox" name="sms[disable_phone_verification]" id="smsDisablePhoneVerification" value="1"
-                                {{ data_get($smsData, 'disable_phone_verification') ? 'checked' : '' }}>
-                            <label class="form-check-label" for="smsDisablePhoneVerification">
-                                إلغاء التحقق عن طريق الجوال
-                            </label>
+                    <div class="col-md-5">
+                        <div class="ns-toggle">
+                            <div class="form-check">
+                                <input type="hidden" name="sms[disable_phone_verification]" value="0">
+                                <input class="form-check-input" type="checkbox" name="sms[disable_phone_verification]" id="smsDisablePhoneVerification" value="1"
+                                    {{ data_get($smsData, 'disable_phone_verification') ? 'checked' : '' }}>
+                                <label class="form-check-label" for="smsDisablePhoneVerification">
+                                    إلغاء التحقق عن طريق الجوال
+                                </label>
+                            </div>
                             <div class="form-text">عند التفعيل يتم قبول الرمز 12345 ولا يتم إرسال رسالة تحقق للعميل.</div>
                         </div>
                     </div>
 
                     <div class="col-12">
+                        <div class="ns-subcard" id="externalOrderAdminNotificationBox">
+                            <div>
+                                <div class="ns-subcard-head">
+                                    <div>
+                                        <h6>تنبيه المسؤول عند وصول حجز من الموقع الخارجي</h6>
+                                        <div class="text-muted small">يرسل النظام رسالة SMS بعد إنشاء الطلب بنجاح، ولا يتم الإرسال إذا كانت بوابة الرسائل متوقفة.</div>
+                                    </div>
+                                    <div class="form-check form-switch">
+                                        <input type="hidden" name="sms[external_order_admin_notification][enabled]" value="0">
+                                        <input class="form-check-input" type="checkbox"
+                                            name="sms[external_order_admin_notification][enabled]"
+                                            id="externalOrderAdminNotificationEnabled" value="1"
+                                            {{ data_get($smsData, 'external_order_admin_notification.enabled') ? 'checked' : '' }}>
+                                        <label class="form-check-label" for="externalOrderAdminNotificationEnabled">تفعيل التنبيه</label>
+                                    </div>
+                                </div>
+
+                                <div class="row g-3" id="externalOrderAdminNotificationFields">
+                                    <div class="col-md-6">
+                                        <label class="form-label">إرسال التنبيه إلى</label>
+                                        <select class="form-control" name="sms[external_order_admin_notification][recipient_mode]" id="externalOrderAdminRecipientMode">
+                                            <option value="selected_marketer" {{ data_get($smsData, 'external_order_admin_notification.recipient_mode', 'selected_marketer') === 'selected_marketer' ? 'selected' : '' }}>المسوق الذي اختاره العميل من الموقع</option>
+                                            <option value="unified" {{ data_get($smsData, 'external_order_admin_notification.recipient_mode') === 'unified' ? 'selected' : '' }}>رقم مسؤول موحد</option>
+                                        </select>
+                                        <div class="form-text">عند اختيار المسوق، يستخدم النظام رقم جواله المسجل. إذا لم يكن له رقم صالح فلن يرسل التنبيه.</div>
+                                    </div>
+                                    <div class="col-md-6" id="externalOrderUnifiedPhoneWrapper">
+                                        <label class="form-label">رقم المسؤول الموحد</label>
+                                        <input type="text" class="form-control" dir="ltr"
+                                            name="sms[external_order_admin_notification][unified_phone]"
+                                            id="externalOrderUnifiedPhone"
+                                            value="{{ data_get($smsData, 'external_order_admin_notification.unified_phone') }}"
+                                            placeholder="9665XXXXXXXX">
+                                        <div class="form-text">الصيغ المقبولة: <span dir="ltr">05XXXXXXXX</span> أو <span dir="ltr">5XXXXXXXX</span> أو <span dir="ltr">9665XXXXXXXX</span> أو <span dir="ltr">+9665XXXXXXXX</span>.</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-12">
                         <div id="msegatSettingsBox" class="{{ $smsProvider === 'msegat' ? '' : 'd-none' }}">
-                            <div class="bg-light rounded-3 p-3">
+                            <div class="ns-subcard">
                                 <h6 class="mb-3">إعدادات Msegat</h6>
                                 <div class="row g-3">
                                     <div class="col-md-5">
@@ -299,7 +471,7 @@
 
                     <div class="col-12">
                         <div id="taqnyatSettingsBox" class="{{ $smsProvider === 'taqnyat' ? '' : 'd-none' }}">
-                            <div class="bg-light rounded-3 p-3">
+                            <div class="ns-subcard">
                                 <div class="d-flex flex-wrap justify-content-between align-items-start gap-2 mb-3">
                                     <div>
                                         <h6 class="mb-1">إعدادات تقنيات Taqnyat</h6>
@@ -370,7 +542,7 @@
                         <input type="text" name="sms[bulk_confirmation_keyword]" class="form-control"
                             value="{{ data_get($smsData, 'bulk_confirmation_keyword', 'SEND_ALL_SMS') }}">
                     </div>
-                    <div class="col-12 d-flex justify-content-end">
+                    <div class="col-12 ns-actions">
                         <button type="submit" class="btn btn-primary">
                             <i class="fa fa-save me-1"></i>
                             حفظ إعدادات SMS
@@ -380,28 +552,29 @@
             </div>
         </div>
 
-        <div class="card" id="whatsapp-settings">
+        <div class="card ns-card" id="whatsapp-settings">
             <div class="card-header d-flex flex-wrap justify-content-between align-items-center gap-2">
                 <div>
-                    <h5 class="mb-1">إعدادات WhatsApp</h5>
+                    <h5>إعدادات WhatsApp</h5>
                     <div class="text-muted small">هذا القسم خاص باختيار المزود بين Meta API وUltraMsg وWiders / Chatwoot مع دعم أكثر من رقم واتساب.</div>
                 </div>
                 <span class="badge bg-light text-dark">WhatsApp</span>
             </div>
             <div class="card-body">
-                <div class="bg-light rounded-3 p-3 mb-3">
-                    <div class="fw-semibold mb-2">الإعدادات الحالية</div>
-                    <div class="row g-3 small">
-                        <div class="col-md-3"><strong>المزود الحالي:</strong> {{ app(\App\Services\WhatsApp\WhatsAppMessagingService::class)->providerLabel() }}</div>
-                        <div class="col-md-2"><strong>رمز الدولة:</strong> {{ data_get($currentSettings, 'whatsapp.default_country_code', '966') }}</div>
-                        <div class="col-md-2"><strong>Timeout:</strong> {{ data_get($currentSettings, 'whatsapp.timeout', 15) }}</div>
-                        <div class="col-md-2"><strong>حد الإرسال:</strong> {{ data_get($currentSettings, 'whatsapp.bulk_send_limit', 200) }}</div>
-                        <div class="col-md-3"><strong>الغرض الافتراضي:</strong>
+                <div class="cfg-box">
+                    <div class="cfg-box-title"><i class="fa fa-circle-info"></i> الإعدادات الحالية</div>
+                    <div class="cfg-grid">
+                        <div class="cfg-item"><span>المزود الحالي</span><b>{{ app(\App\Services\WhatsApp\WhatsAppMessagingService::class)->providerLabel() }}</b></div>
+                        <div class="cfg-item"><span>رمز الدولة</span><b dir="ltr">{{ data_get($currentSettings, 'whatsapp.default_country_code', '966') }}</b></div>
+                        <div class="cfg-item"><span>Timeout</span><b dir="ltr">{{ data_get($currentSettings, 'whatsapp.timeout', 15) }}</b></div>
+                        <div class="cfg-item"><span>حد الإرسال</span><b dir="ltr">{{ data_get($currentSettings, 'whatsapp.bulk_send_limit', 200) }}</b></div>
+                        <div class="cfg-item">
+                            <span>الغرض الافتراضي</span>
                             @php $purpose = data_get($currentSettings, 'whatsapp.default_purpose', 'verification'); @endphp
-                            {{ $purpose === 'follow_up' ? 'متابعة' : ($purpose === 'advertising' ? 'دعائي' : 'تحقق') }}
+                            <b>{{ $purpose === 'follow_up' ? 'متابعة' : ($purpose === 'advertising' ? 'دعائي' : 'تحقق') }}</b>
                         </div>
-                        <div class="col-md-4"><strong>كلمة التأكيد:</strong> {{ data_get($currentSettings, 'whatsapp.bulk_confirmation_keyword', 'SEND_ALL_WHATSAPP') }}</div>
-                        <div class="col-md-4"><strong>الإرسال الدعائي:</strong> {{ data_get($currentSettings, 'whatsapp.allow_advertising') ? 'مفعّل' : 'غير مفعّل' }}</div>
+                        <div class="cfg-item is-wide"><span>كلمة التأكيد</span><b dir="ltr">{{ data_get($currentSettings, 'whatsapp.bulk_confirmation_keyword', 'SEND_ALL_WHATSAPP') }}</b></div>
+                        <div class="cfg-item"><span>الإرسال الدعائي</span><b>{{ data_get($currentSettings, 'whatsapp.allow_advertising') ? 'مفعّل' : 'غير مفعّل' }}</b></div>
                     </div>
                 </div>
 
@@ -445,92 +618,121 @@
                         <input type="text" name="whatsapp[bulk_confirmation_keyword]" class="form-control"
                             value="{{ data_get($whatsappData, 'bulk_confirmation_keyword', 'SEND_ALL_WHATSAPP') }}">
                     </div>
-                    <div class="col-md-6 d-flex align-items-end">
-                        <div class="form-check">
-                            <input type="hidden" name="whatsapp[allow_advertising]" value="0">
-                            <input class="form-check-input" type="checkbox" name="whatsapp[allow_advertising]" id="whatsappAllowAdvertising" value="1"
-                                {{ data_get($whatsappData, 'allow_advertising') ? 'checked' : '' }}>
-                            <label class="form-check-label" for="whatsappAllowAdvertising">
-                                السماح بالإرسال الدعائي عبر واتساب
-                            </label>
+                    <div class="col-md-6">
+                        <div class="ns-toggle">
+                            <div class="form-check">
+                                <input type="hidden" name="whatsapp[allow_advertising]" value="0">
+                                <input class="form-check-input" type="checkbox" name="whatsapp[allow_advertising]" id="whatsappAllowAdvertising" value="1"
+                                    {{ data_get($whatsappData, 'allow_advertising') ? 'checked' : '' }}>
+                                <label class="form-check-label" for="whatsappAllowAdvertising">
+                                    السماح بالإرسال الدعائي عبر واتساب
+                                </label>
+                            </div>
+                            <div class="form-text">يُستخدم للرسائل الدعائية خارج نافذة خدمة واتساب.</div>
                         </div>
                     </div>
 
                     <div class="col-12">
                         <div id="chatwootSettingsBox" class="{{ data_get($whatsappData, 'driver') === 'chatwoot' ? '' : 'd-none' }}">
-                            <h5>ربط Widers / Chatwoot</h5>
-                            <p class="text-muted">احفظ عنوان المنصة ومعرف الحساب والرمز، ثم اختبر الاتصال لمعرفة صناديق الوارد. يلزم اختيار صندوق WhatsApp قبل الإرسال.</p>
-                            <div class="row">
-                                @foreach (['base_url' => 'عنوان المنصة HTTPS', 'account_id' => 'معرف الحساب Account ID', 'inbox_id' => 'معرف صندوق الوارد Inbox ID'] as $key => $label)
-                                    <div class="col-md-4 mb-3"><label>{{ $label }}</label><input class="form-control" name="whatsapp[chatwoot][{{ $key }}]" value="{{ data_get($whatsappData, 'chatwoot.'.$key) }}" dir="ltr"></div>
-                                @endforeach
-                                <div class="col-md-6 mb-3"><label>رمز الوصول API Access Token</label><input type="password" autocomplete="new-password" class="form-control" name="whatsapp[chatwoot][access_token]" value=""><small>اتركه فارغًا للاحتفاظ بالرمز المحفوظ.</small></div>
-                            </div>
-                            <button type="submit" form="chatwootConnectionTest" class="btn btn-outline-primary mb-3">اختبار الاتصال وجلب الصناديق المحفوظة</button>
-                            @if(session()->has('chatwoot_inboxes'))
-                                <table class="table"><thead><tr><th>المعرف</th><th>الاسم</th><th>القناة</th><th>الرقم</th></tr></thead><tbody>
-                                @foreach(session('chatwoot_inboxes', []) as $inbox)
-                                    <tr><td>{{ $inbox['id'] }}</td><td>{{ $inbox['name'] }}</td><td>{{ $inbox['channel_type'] }}</td><td>{{ $inbox['phone_number'] }}</td></tr>
-                                @endforeach
-                                </tbody></table>
-                            @endif
-                            <p class="text-muted">هذا الربط للإرسال. إدارة الردود تتم في Widers. الرسائل خارج نافذة خدمة واتساب قد تتطلب قالبًا معتمدًا.</p>
-                        </div>
-                        <div id="metaSettingsBox" class="{{ data_get($whatsappData, 'driver') === 'meta' ? '' : 'd-none' }}">
-                            <div class="bg-light rounded-3 p-3">
-                                <h6 class="mb-3">إعدادات Meta API</h6>
-                                <div class="card border-success mb-3">
-                                    <div class="card-body bg-white">
-                                        <div class="d-flex flex-wrap justify-content-between align-items-start gap-3">
-                                            <div>
-                                                <h6 class="text-success mb-1">
-                                                    <i class="fab fa-facebook me-1"></i>
-                                                    الربط المباشر مع Meta
-                                                </h6>
-                                                <div class="text-muted small">
-                                                    احفظ App ID وConfiguration ID وApp Secret أولًا، ثم افتح معالج Meta لإكمال اختيار النشاط والرقم.
-                                                </div>
-                                            </div>
-                                            <span class="badge {{ $metaConnected ? 'bg-success' : 'bg-secondary' }}">
-                                                {{ $metaConnected ? 'الحساب متصل' : 'غير متصل' }}
-                                            </span>
+                            <div class="ns-subcard">
+                                <div class="ns-subcard-head">
+                                    <div>
+                                        <h6>ربط Widers / Chatwoot</h6>
+                                        <div class="text-muted small">احفظ عنوان المنصة ومعرف الحساب والرمز، ثم اختبر الاتصال لمعرفة صناديق الوارد. يلزم اختيار صندوق WhatsApp قبل الإرسال.</div>
+                                    </div>
+                                    <button type="submit" form="chatwootConnectionTest" class="btn btn-outline-primary btn-sm">
+                                        <i class="fa fa-plug me-1"></i>
+                                        اختبار الاتصال وجلب الصناديق
+                                    </button>
+                                </div>
+
+                                <div class="row g-3">
+                                    @foreach (['base_url' => 'عنوان المنصة HTTPS', 'account_id' => 'معرف الحساب Account ID', 'inbox_id' => 'معرف صندوق الوارد Inbox ID'] as $key => $label)
+                                        <div class="col-md-4">
+                                            <label class="form-label">{{ $label }}</label>
+                                            <input class="form-control" name="whatsapp[chatwoot][{{ $key }}]" value="{{ data_get($whatsappData, 'chatwoot.'.$key) }}" dir="ltr">
                                         </div>
-                                        <div class="row g-3 align-items-end mt-1">
-                                            <div class="col-md-3">
-                                                <label class="form-label">PIN تسجيل الرقم (اختياري)</label>
-                                                <input type="text" id="metaRegistrationPin" class="form-control" inputmode="numeric"
-                                                    pattern="\d{6}" maxlength="6" placeholder="6 أرقام">
-                                            </div>
-                                            <div class="col-md-5">
-                                                <button type="button" id="launchMetaEmbeddedSignup" class="btn btn-success"
-                                                    {{ $metaEmbeddedSignupAvailable ? '' : 'disabled' }}>
-                                                    <i class="fab fa-facebook me-1"></i>
-                                                    {{ $metaConnected ? 'إعادة الربط أو تغيير الرقم' : 'فتح Meta ومتابعة الربط' }}
-                                                </button>
-                                            </div>
-                                            <div class="col-12">
-                                                <div id="metaEmbeddedStatus" class="alert d-none mb-0"></div>
-                                                @unless($metaEmbeddedSignupReady)
-                                                    <div class="alert alert-warning mb-0">
-                                                        أدخل بيانات تطبيق Meta أدناه واضغط «حفظ إعدادات واتساب»، ثم سيعمل زر الربط المباشر.
-                                                    </div>
-                                                @endunless
-                                                @if($metaEmbeddedSignupReady && !request()->secure())
-                                                    <div class="alert alert-warning mb-0">
-                                                        Meta تمنع Embedded Signup على HTTP. افتح هذه الصفحة من رابط عام HTTPS أو نفق تطوير HTTPS لتفعيل الزر.
-                                                    </div>
-                                                @endif
-                                            </div>
-                                        </div>
+                                    @endforeach
+                                    <div class="col-md-6">
+                                        <label class="form-label">رمز الوصول API Access Token</label>
+                                        <input type="password" autocomplete="new-password" class="form-control" name="whatsapp[chatwoot][access_token]" value="">
+                                        <div class="form-text">اتركه فارغًا للاحتفاظ بالرمز المحفوظ.</div>
                                     </div>
                                 </div>
-                                <div class="row g-3 small mb-3">
-                                    <div class="col-md-3"><strong>Graph Version:</strong> {{ data_get($currentSettings, 'whatsapp.meta.graph_version', 'v23.0') }}</div>
-                                    <div class="col-md-3"><strong>WABA ID:</strong> {{ data_get($currentSettings, 'whatsapp.meta.business_account_id') ?: 'غير محدد' }}</div>
-                                    <div class="col-md-3"><strong>Phone Number ID:</strong> {{ data_get($currentSettings, 'whatsapp.meta.phone_number_id') ?: 'غير محدد' }}</div>
-                                    <div class="col-md-2"><strong>Access Token:</strong> {{ $maskSecret(data_get($currentSettings, 'whatsapp.meta.access_token')) }}</div>
-                                    <div class="col-md-2"><strong>Webhook Verify Token:</strong> {{ $maskSecret(data_get($currentSettings, 'whatsapp.meta.webhook_verify_token')) }}</div>
-                                    <div class="col-md-2"><strong>App Secret:</strong> {{ $maskSecret(data_get($currentSettings, 'whatsapp.meta.app_secret')) }}</div>
+
+                                @if(session()->has('chatwoot_inboxes'))
+                                    <div class="table-responsive mt-3">
+                                        <table class="table mb-0">
+                                            <thead><tr><th>المعرف</th><th>الاسم</th><th>القناة</th><th>الرقم</th></tr></thead>
+                                            <tbody>
+                                                @foreach(session('chatwoot_inboxes', []) as $inbox)
+                                                    <tr><td>{{ $inbox['id'] }}</td><td>{{ $inbox['name'] }}</td><td>{{ $inbox['channel_type'] }}</td><td dir="ltr">{{ $inbox['phone_number'] }}</td></tr>
+                                                @endforeach
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                @endif
+
+                                <div class="alert alert-light border small mt-3 mb-0">
+                                    هذا الربط للإرسال. إدارة الردود تتم في Widers. الرسائل خارج نافذة خدمة واتساب قد تتطلب قالبًا معتمدًا.
+                                </div>
+                            </div>
+                        </div>
+                        <div id="metaSettingsBox" class="{{ data_get($whatsappData, 'driver') === 'meta' ? '' : 'd-none' }}">
+                            <div class="ns-subcard">
+                                <div class="ns-subcard-head">
+                                    <div>
+                                        <h6>
+                                            <i class="fab fa-facebook text-primary me-1"></i>
+                                            إعدادات Meta API — الربط المباشر
+                                        </h6>
+                                        <div class="text-muted small">
+                                            احفظ App ID وConfiguration ID وApp Secret أولًا، ثم افتح معالج Meta لإكمال اختيار النشاط والرقم.
+                                        </div>
+                                    </div>
+                                    <span class="badge {{ $metaConnected ? 'bg-success' : 'bg-secondary' }}">
+                                        {{ $metaConnected ? 'الحساب متصل' : 'غير متصل' }}
+                                    </span>
+                                </div>
+
+                                <div class="row g-3 align-items-end mb-3">
+                                    <div class="col-md-3">
+                                        <label class="form-label">PIN تسجيل الرقم (اختياري)</label>
+                                        <input type="text" id="metaRegistrationPin" class="form-control" inputmode="numeric"
+                                            pattern="\d{6}" maxlength="6" placeholder="6 أرقام">
+                                    </div>
+                                    <div class="col-md-5">
+                                        <button type="button" id="launchMetaEmbeddedSignup" class="btn btn-success w-100"
+                                            {{ $metaEmbeddedSignupAvailable ? '' : 'disabled' }}>
+                                            <i class="fab fa-facebook me-1"></i>
+                                            {{ $metaConnected ? 'إعادة الربط أو تغيير الرقم' : 'فتح Meta ومتابعة الربط' }}
+                                        </button>
+                                    </div>
+                                    <div class="col-12">
+                                        <div id="metaEmbeddedStatus" class="alert d-none mb-0"></div>
+                                        @unless($metaEmbeddedSignupReady)
+                                            <div class="alert alert-warning small mb-0">
+                                                أدخل بيانات تطبيق Meta أدناه واضغط «حفظ إعدادات واتساب»، ثم سيعمل زر الربط المباشر.
+                                            </div>
+                                        @endunless
+                                        @if($metaEmbeddedSignupReady && !request()->secure())
+                                            <div class="alert alert-warning small mb-0">
+                                                Meta تمنع Embedded Signup على HTTP. افتح هذه الصفحة من رابط عام HTTPS أو نفق تطوير HTTPS لتفعيل الزر.
+                                            </div>
+                                        @endif
+                                    </div>
+                                </div>
+
+                                <div class="cfg-box">
+                                    <div class="cfg-box-title"><i class="fa fa-circle-info"></i> بيانات Meta المحفوظة</div>
+                                    <div class="cfg-grid">
+                                        <div class="cfg-item"><span>Graph Version</span><b dir="ltr">{{ data_get($currentSettings, 'whatsapp.meta.graph_version', 'v23.0') }}</b></div>
+                                        <div class="cfg-item"><span>WABA ID</span><b dir="ltr">{{ data_get($currentSettings, 'whatsapp.meta.business_account_id') ?: 'غير محدد' }}</b></div>
+                                        <div class="cfg-item"><span>Phone Number ID</span><b dir="ltr">{{ data_get($currentSettings, 'whatsapp.meta.phone_number_id') ?: 'غير محدد' }}</b></div>
+                                        <div class="cfg-item"><span>Access Token</span><b dir="ltr">{{ $maskSecret(data_get($currentSettings, 'whatsapp.meta.access_token')) }}</b></div>
+                                        <div class="cfg-item"><span>Webhook Verify Token</span><b dir="ltr">{{ $maskSecret(data_get($currentSettings, 'whatsapp.meta.webhook_verify_token')) }}</b></div>
+                                        <div class="cfg-item"><span>App Secret</span><b dir="ltr">{{ $maskSecret(data_get($currentSettings, 'whatsapp.meta.app_secret')) }}</b></div>
+                                    </div>
                                 </div>
                                 <div class="alert alert-info small">
                                     <div><strong>Callback URL داخل Meta:</strong> <code>{{ route('api.webhooks.whatsapp.receive') }}</code></div>
@@ -599,11 +801,11 @@
 
                     <div class="col-12">
                         <div id="ultraMsgSettingsBox" class="{{ data_get($whatsappData, 'driver') === 'ultramsg' ? '' : 'd-none' }}">
-                            <div class="bg-light rounded-3 p-3">
-                                <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+                            <div class="ns-subcard">
+                                <div class="ns-subcard-head">
                                     <div>
-                                        <h6 class="mb-1">ربط UltraMsg</h6>
-                                        <div class="text-muted small">أضف أكثر من رقم واتساب عبر `instance_id` و`token`، وحدد الرقم الافتراضي المستخدم في الإرسال.</div>
+                                        <h6>ربط UltraMsg</h6>
+                                        <div class="text-muted small">أضف أكثر من رقم واتساب عبر <code>instance_id</code> و<code>token</code>، وحدد الرقم الافتراضي المستخدم في الإرسال.</div>
                                     </div>
                                     <button type="button" class="btn btn-outline-primary btn-sm" id="addUltraMsgInstance">
                                         <i class="fa fa-plus me-1"></i>
@@ -655,47 +857,46 @@
                                         @endphp
                                         <div class="card border mb-3 ultramsg-instance" data-instance-key="{{ $instanceKey }}">
                                             <div class="card-body">
-                                                <div class="row g-3 align-items-end">
+                                                <div class="row g-3">
                                                     <input type="hidden" name="whatsapp[ultramsg][instances][{{ $index }}][key]" value="{{ $instanceKey }}" class="ultramsg-instance-key">
-                                                    <div class="col-md-3">
+                                                    <div class="col-sm-6 col-lg-3">
                                                         <label class="form-label">اسم الرقم</label>
                                                         <input type="text" name="whatsapp[ultramsg][instances][{{ $index }}][name]" class="form-control"
                                                             value="{{ $instance['name'] ?? '' }}" placeholder="مثال: خدمة العملاء">
                                                     </div>
-                                                    <div class="col-md-3">
+                                                    <div class="col-sm-6 col-lg-3">
                                                         <label class="form-label">رقم الواتساب</label>
                                                         <input type="text" name="whatsapp[ultramsg][instances][{{ $index }}][phone_number]" class="form-control"
-                                                            value="{{ $instance['phone_number'] ?? '' }}" placeholder="مثال: 9665xxxxxxxx">
+                                                            value="{{ $instance['phone_number'] ?? '' }}" placeholder="مثال: 9665xxxxxxxx" dir="ltr">
                                                     </div>
-                                                    <div class="col-md-2">
+                                                    <div class="col-sm-6 col-lg-3">
                                                         <label class="form-label">Instance ID</label>
                                                         <input type="text" name="whatsapp[ultramsg][instances][{{ $index }}][instance_id]" class="form-control"
-                                                            value="{{ $instance['instance_id'] ?? '' }}" placeholder="instance167619">
+                                                            value="{{ $instance['instance_id'] ?? '' }}" placeholder="instance167619" dir="ltr">
                                                     </div>
-                                                    <div class="col-md-2">
+                                                    <div class="col-sm-6 col-lg-3">
                                                         <label class="form-label">Token</label>
                                                         <input type="password" name="whatsapp[ultramsg][instances][{{ $index }}][token]" class="form-control"
                                                             placeholder="{{ !empty($instance['token']) ? 'هناك Token محفوظ' : 'أدخل Token' }}">
                                                     </div>
-                                                    <div class="col-md-1">
-                                                        <div class="form-check">
-                                                            <input type="hidden" name="whatsapp[ultramsg][instances][{{ $index }}][enabled]" value="0">
-                                                            <input class="form-check-input" type="checkbox" name="whatsapp[ultramsg][instances][{{ $index }}][enabled]" value="1"
-                                                                {{ !empty($instance['enabled']) ? 'checked' : '' }}>
-                                                            <label class="form-check-label">مفعل</label>
+                                                    <div class="col-12">
+                                                        <div class="ns-instance-footer">
+                                                            <div class="form-check">
+                                                                <input type="hidden" name="whatsapp[ultramsg][instances][{{ $index }}][enabled]" value="0">
+                                                                <input class="form-check-input" type="checkbox" id="ultramsgEnabled{{ $instanceKey }}" name="whatsapp[ultramsg][instances][{{ $index }}][enabled]" value="1"
+                                                                    {{ !empty($instance['enabled']) ? 'checked' : '' }}>
+                                                                <label class="form-check-label" for="ultramsgEnabled{{ $instanceKey }}">مفعل</label>
+                                                            </div>
+                                                            <div class="form-check">
+                                                                <input class="form-check-input ultramsg-default-radio" type="radio" id="ultramsgDefault{{ $instanceKey }}" name="whatsapp[ultramsg][default_instance_key]" value="{{ $instanceKey }}"
+                                                                    {{ $defaultUltraMsgKey === $instanceKey ? 'checked' : '' }}>
+                                                                <label class="form-check-label" for="ultramsgDefault{{ $instanceKey }}">الرقم الافتراضي</label>
+                                                            </div>
+                                                            <button type="button" class="btn btn-outline-danger btn-sm js-remove-ultramsg-instance">
+                                                                <i class="fa fa-trash me-1"></i>
+                                                                حذف الرقم
+                                                            </button>
                                                         </div>
-                                                    </div>
-                                                    <div class="col-md-1">
-                                                        <div class="form-check">
-                                                            <input class="form-check-input ultramsg-default-radio" type="radio" name="whatsapp[ultramsg][default_instance_key]" value="{{ $instanceKey }}"
-                                                                {{ $defaultUltraMsgKey === $instanceKey ? 'checked' : '' }}>
-                                                            <label class="form-check-label">افتراضي</label>
-                                                        </div>
-                                                    </div>
-                                                    <div class="col-md-1 text-end">
-                                                        <button type="button" class="btn btn-outline-danger btn-sm js-remove-ultramsg-instance">
-                                                            <i class="fa fa-trash"></i>
-                                                        </button>
                                                     </div>
                                                 </div>
                                             </div>
@@ -706,7 +907,7 @@
                         </div>
                     </div>
 
-                    <div class="col-12 d-flex justify-content-end">
+                    <div class="col-12 ns-actions">
                         <button type="submit" class="btn btn-primary">
                             <i class="fa fa-save me-1"></i>
                             حفظ إعدادات واتساب
@@ -731,6 +932,16 @@
         const provider = $('#smsProvider').val();
         $('#msegatSettingsBox').toggleClass('d-none', provider !== 'msegat');
         $('#taqnyatSettingsBox').toggleClass('d-none', provider !== 'taqnyat');
+    }
+
+    function toggleExternalOrderAdminNotificationSettings() {
+        const enabled = $('#externalOrderAdminNotificationEnabled').is(':checked');
+        const unified = $('#externalOrderAdminRecipientMode').val() === 'unified';
+
+        $('#externalOrderAdminNotificationFields').toggleClass('opacity-50', !enabled);
+        $('#externalOrderAdminRecipientMode').prop('disabled', false);
+        $('#externalOrderUnifiedPhoneWrapper').toggleClass('d-none', !unified);
+        $('#externalOrderUnifiedPhone').prop('required', enabled && unified);
     }
 
     function toggleWhatsAppDriverSettings() {
@@ -758,41 +969,40 @@
         return `
             <div class="card border mb-3 ultramsg-instance" data-instance-key="${key}">
                 <div class="card-body">
-                    <div class="row g-3 align-items-end">
+                    <div class="row g-3">
                         <input type="hidden" name="whatsapp[ultramsg][instances][${index}][key]" value="${key}" class="ultramsg-instance-key">
-                        <div class="col-md-3">
+                        <div class="col-sm-6 col-lg-3">
                             <label class="form-label">اسم الرقم</label>
                             <input type="text" name="whatsapp[ultramsg][instances][${index}][name]" class="form-control" placeholder="مثال: خدمة العملاء">
                         </div>
-                        <div class="col-md-3">
+                        <div class="col-sm-6 col-lg-3">
                             <label class="form-label">رقم الواتساب</label>
-                            <input type="text" name="whatsapp[ultramsg][instances][${index}][phone_number]" class="form-control" placeholder="مثال: 9665xxxxxxxx">
+                            <input type="text" name="whatsapp[ultramsg][instances][${index}][phone_number]" class="form-control" placeholder="مثال: 9665xxxxxxxx" dir="ltr">
                         </div>
-                        <div class="col-md-2">
+                        <div class="col-sm-6 col-lg-3">
                             <label class="form-label">Instance ID</label>
-                            <input type="text" name="whatsapp[ultramsg][instances][${index}][instance_id]" class="form-control" placeholder="instance167619">
+                            <input type="text" name="whatsapp[ultramsg][instances][${index}][instance_id]" class="form-control" placeholder="instance167619" dir="ltr">
                         </div>
-                        <div class="col-md-2">
+                        <div class="col-sm-6 col-lg-3">
                             <label class="form-label">Token</label>
                             <input type="password" name="whatsapp[ultramsg][instances][${index}][token]" class="form-control">
                         </div>
-                        <div class="col-md-1">
-                            <div class="form-check">
-                                <input type="hidden" name="whatsapp[ultramsg][instances][${index}][enabled]" value="0">
-                                <input class="form-check-input" type="checkbox" name="whatsapp[ultramsg][instances][${index}][enabled]" value="1" checked>
-                                <label class="form-check-label">مفعل</label>
+                        <div class="col-12">
+                            <div class="ns-instance-footer">
+                                <div class="form-check">
+                                    <input type="hidden" name="whatsapp[ultramsg][instances][${index}][enabled]" value="0">
+                                    <input class="form-check-input" type="checkbox" id="ultramsgEnabled${key}" name="whatsapp[ultramsg][instances][${index}][enabled]" value="1" checked>
+                                    <label class="form-check-label" for="ultramsgEnabled${key}">مفعل</label>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input ultramsg-default-radio" type="radio" id="ultramsgDefault${key}" name="whatsapp[ultramsg][default_instance_key]" value="${key}">
+                                    <label class="form-check-label" for="ultramsgDefault${key}">الرقم الافتراضي</label>
+                                </div>
+                                <button type="button" class="btn btn-outline-danger btn-sm js-remove-ultramsg-instance">
+                                    <i class="fa fa-trash me-1"></i>
+                                    حذف الرقم
+                                </button>
                             </div>
-                        </div>
-                        <div class="col-md-1">
-                            <div class="form-check">
-                                <input class="form-check-input ultramsg-default-radio" type="radio" name="whatsapp[ultramsg][default_instance_key]" value="${key}">
-                                <label class="form-check-label">افتراضي</label>
-                            </div>
-                        </div>
-                        <div class="col-md-1 text-end">
-                            <button type="button" class="btn btn-outline-danger btn-sm js-remove-ultramsg-instance">
-                                <i class="fa fa-trash"></i>
-                            </button>
                         </div>
                     </div>
                 </div>
@@ -802,9 +1012,11 @@
 
     $(document).ready(function () {
         toggleSmsProviderSettings();
+        toggleExternalOrderAdminNotificationSettings();
         toggleWhatsAppDriverSettings();
 
         $('#smsProvider').on('change', toggleSmsProviderSettings);
+        $('#externalOrderAdminNotificationEnabled, #externalOrderAdminRecipientMode').on('change', toggleExternalOrderAdminNotificationSettings);
         $('#whatsappDriver').on('change', toggleWhatsAppDriverSettings);
 
         $('#addUltraMsgInstance').on('click', function () {

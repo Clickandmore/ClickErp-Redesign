@@ -111,6 +111,10 @@
 @endsection
 
 @section('content')
+    {{-- <div class="alert alert-info mx-3 mt-3" role="note">
+        <i class="fas fa-info-circle me-1" aria-hidden="true"></i>
+        يظهر خيار الحذف فقط للعملاء غير المرتبطين بأي طلبات أو عقود، بما فيها المنتهية والمحذوفة، حفاظًا على بيانات التعاملات. عند حذف العميل يُنقل إلى صفحة العملاء المحذوفين ويمكن استعادته.
+    </div> --}}
     @if (@AdminGuardHasPerm(\App\PermKeys::CLIENTS_VIEW))
         @php
             $stats = $stats ?? [
@@ -135,6 +139,9 @@
                             : {{ number_format($stats['total']) }}</div>
                     </div>
                     <div class="btn-toolbar gap-2">
+                        @if (@AdminGuardHasPerm(\App\PermKeys::CLIENTS_DELETE))
+                            <a href="{{ route('clients.trashed') }}" class="btn btn-outline-danger btn-sm"><i class="fas fa-trash-restore me-1"></i>العملاء المحذوفون</a>
+                        @endif
                         @if (@AdminGuardHasPerm(\App\PermKeys::CLIENTS_CREATE))
                             <a href="{{ route('clients.create') }}" class="btn btn-primary btn-sm">
                                 <i class="fa fa-plus me-1"></i>{{ helperTrans('ingaz.add_client') }}

@@ -43,10 +43,11 @@ class MaidCardResource extends JsonResource
             'salary' => (string) ($this->resolved_salary ?? $this->salary ?? 0),
             'price' => (string) ($this->resolved_price ?? $this->price ?? 0),
 
-            'offer_price' => $this->offer_price,
-            'offer_description' => $this->offer_description,
-            'offer_starts_at' => $this->offer_starts_at,
-            'offer_expires_at' => $this->offer_expires_at,
+            'offer_price' => $this->effective_offer_price,
+            'offer_description' => $this->effective_offer_description,
+            'offer_starts_at' => $this->effective_offer_starts_at,
+            'offer_expires_at' => $this->effective_offer_expires_at,
+            'offer_source' => $this->effective_offer_source,
 
             'duration' => (string) $this->duration,
 

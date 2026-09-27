@@ -110,7 +110,26 @@
                             <div class="col-md-6 detail-item"><div class="detail-label">المدفوع له</div><div class="detail-value">{{ data_get($requestItem->payload, 'paid_to', '-') ?: '-' }}</div></div>
                             <div class="col-md-6 detail-item"><div class="detail-label">الفرع</div><div class="detail-value">{{ $requestItem->branch?->name_ar ?: $requestItem->branch?->name_en ?: '-' }}</div></div>
                             <div class="col-md-6 detail-item"><div class="detail-label">تاريخ الطلب</div><div class="detail-value" dir="ltr">{{ $requestItem->request_date?->format('Y-m-d') ?: '-' }}</div></div>
-                            <div class="col-md-6 detail-item"><div class="detail-label">المبلغ</div><div class="detail-value amount-value">{{ $requestItem->amount ? number_format((float) $requestItem->amount, 2) : '-' }} <small>ر.س</small></div></div>
+                            <div class="col-md-6 detail-item">
+                                <div class="detail-label">المبلغ</div>
+                                <div class="detail-value amount-value">{{ $requestItem->amount ? number_format((float) $requestItem->amount, 2) : '-' }} <small>ر.س</small></div>
+                                @if(AdminGuardHasPerm(\App\PermKeys::FINANCIAL_REQUESTS_EDIT_AMOUNT) && $requestItem->canChangeAmount())
+                                    <details class="mt-2" @if($errors->has('amount')) open @endif>
+                                        <summary class="text-primary">تعديل المبلغ</summary>
+                                        <form method="POST" action="{{ route('financial-requests.amount', $requestItem) }}" class="mt-2">
+                                            @csrf
+                                            @method('PATCH')
+                                            <label for="request-amount" class="form-label">المبلغ الجديد (ر.س)</label>
+                                            <input id="request-amount" type="number" name="amount" min="0.01" max="9999999999.99" step="0.01" required class="form-control" value="{{ old('amount', $requestItem->amount) }}">
+                                            @error('amount')<div class="text-danger">{{ $message }}</div>@enderror
+                                            @if($requestItem->status === \App\Models\FinancialRequest::STATUS_APPROVED)
+                                                <small class="text-muted d-block mt-1">تعديل المبلغ يعيد الطلب للاعتماد.</small>
+                                            @endif
+                                            <button type="submit" class="btn btn-primary btn-sm mt-2">حفظ المبلغ</button>
+                                        </form>
+                                    </details>
+                                @endif
+                            </div>
                             <div class="col-md-6 detail-item"><div class="detail-label">العميل</div><div class="detail-value">{{ $requestItem->client_name ?: '-' }} @if($requestItem->client_identity)<small class="text-muted d-block">{{ $requestItem->client_identity }}</small>@endif</div></div>
                             <div class="col-md-6 detail-item"><div class="detail-label">العاملة</div><div class="detail-value">{{ $requestItem->maid_name ?: '-' }} @if($requestItem->maid_passport)<small class="text-muted d-block">{{ $requestItem->maid_passport }}</small>@endif</div></div>
                             <div class="col-md-6 detail-item"><div class="detail-label">العقد</div><div class="detail-value">{{ $requestItem->contract_number ?: '-' }} @if($requestItem->contract_number)<small class="text-muted d-block">{{ $contractTypeLabel }}</small>@endif</div></div>

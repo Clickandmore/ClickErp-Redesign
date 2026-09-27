@@ -1,46 +1,53 @@
+# Root files
 .DS_Store
-/node_modules
-/public/hot
-/public/storage
-/storage/*.key
-/vendor
 .env
 .env.backup
-/storage/app/firebase
 .phpunit.result.cache
-error_log
 docker-compose.override.yml
+error_log
 Homestead.json
 Homestead.yaml
 npm-debug.log
 yarn-error.log
+
+# Root directories
 /.idea
+/.package-backups
 /.vscode
+/certificate
+/node_modules
+/reports
+/vendor
+/migration_system/data
+
+# Public files
+/public/analyses
+/public/hot
+/public/storage
+/public/upload-data
+public/upload/
 /public/storage/app/public/images/maids
+
+# Storage files
+/storage/*.key
+/storage/app/firebase
 /storage/debugbar
-/storage/logs
-/storage/framework/views
 /storage/framework/cache
+storage/framework/scheduler-heartbeat.json
 /storage/framework/sessions
 /storage/framework/testing
-/storage/framework/testing
-/finance_tree
+/storage/framework/views
+/storage/logs
 
-migration_system/data
-
-# Local package artifacts
-/packages/*/vendor/
-/packages/*/node_modules/
-/packages/*/.idea/
-/packages/*/.vscode/
-/.package-backups/
-public/upload/
-error_log
-/certificate
-
-/migration_system/data
-.claude/settings.local.json
-storage/framework/scheduler-heartbeat.json
+# Documentation files
+/docs/finance_tree
 /docs/updates
 
-/public/analyses
+# Local package artifacts
+/packages/*/.idea/
+/packages/*/.vscode/
+/packages/*/node_modules/
+/packages/*/vendor/
+
+# Local tool settings
+.claude/settings.local.json

@@ -4,6 +4,7 @@ namespace App\Http\Controllers\ingaz;
 
 use App\Http\Controllers\Controller;
 use App\Models\Contract;
+use App\Models\ContractReturnSettlement;
 use App\Models\FinancialRequest;
 use App\Models\Branch;
 use App\Models\ingaz\Maid;
@@ -153,9 +154,21 @@ class FinancialRequestController extends Controller
         $data['status'] = FinancialRequest::STATUS_FOR_APPROVAL;
 
         DB::transaction(function () use ($request, $financialRequest, $data) {
+            $financialRequest = FinancialRequest::query()->lockForUpdate()->findOrFail($financialRequest->id);
+            abort_unless($this->canEdit($financialRequest), 403);
+            $amountChanged = number_format((float) $financialRequest->amount, 2, '.', '') !== number_format((float) $data['amount'], 2, '.', '');
+            if ($amountChanged) {
+                abort_unless(AdminGuardHasPerm(\App\PermKeys::FINANCIAL_REQUESTS_EDIT_AMOUNT), 403);
+                abort_unless($financialRequest->canChangeAmount(), 422, 'لا يمكن تعديل المبلغ بعد السداد أو الإقفال.');
+            }
+            $previousAmount = $financialRequest->amount;
             $previousStatus = $financialRequest->status;
             $financialRequest->update($data);
             $this->storeAttachments($financialRequest, $request);
+
+            if ($amountChanged) {
+                $this->logStatus($financialRequest, $previousStatus, $financialRequest->status, 'تم تعديل المبلغ من ' . $previousAmount . ' إلى ' . $financialRequest->amount . ' ر.س.');
+            }
 
             if ($previousStatus !== FinancialRequest::STATUS_FOR_APPROVAL) {
                 $this->logStatus($financialRequest, $previousStatus, FinancialRequest::STATUS_FOR_APPROVAL, 'تم استكمال الطلب وإعادة إرساله للاعتماد.');
@@ -163,6 +176,36 @@ class FinancialRequestController extends Controller
         });
 
         return redirect()->route('financial-requests.show', $financialRequest)->with('success', 'تم تحديث الطلب المالي.');
+    }
+
+    public function updateAmount(Request $request, FinancialRequest $financialRequest)
+    {
+        abort_unless(AdminGuardHasPerm(\App\PermKeys::FINANCIAL_REQUESTS_EDIT_AMOUNT), 403);
+        abort_unless($this->canAccessRequest($financialRequest), 403);
+        $data = $request->validate([
+            'amount' => ['required', 'numeric', 'min:0.01', 'max:9999999999.99', 'regex:/^\d+(\.\d{1,2})?$/'],
+        ]);
+
+        DB::transaction(function () use ($financialRequest, $data) {
+            $item = FinancialRequest::query()->lockForUpdate()->findOrFail($financialRequest->id);
+            abort_unless($this->canAccessRequest($item), 403);
+            abort_unless($item->canChangeAmount(), 422, 'لا يمكن تعديل المبلغ بعد السداد أو الإقفال.');
+            $previousAmount = $item->amount;
+            $item->amount = $data['amount'];
+            if (! $item->isDirty('amount')) {
+                return;
+            }
+            $previousStatus = $item->status;
+            if ($item->status === FinancialRequest::STATUS_APPROVED) {
+                $item->status = FinancialRequest::STATUS_FOR_APPROVAL;
+                $item->approved_by_id = null;
+            }
+            $item->updated_by_id = auth('admin')->id();
+            $item->save();
+            $this->logStatus($item, $previousStatus, $item->status, 'تم تعديل المبلغ من ' . $previousAmount . ' إلى ' . $item->amount . ' ر.س.');
+        });
+
+        return redirect()->route('financial-requests.show', $financialRequest)->with('success', 'تم تحديث مبلغ الطلب المالي.');
     }
 
     public function destroy(FinancialRequest $financialRequest)
@@ -218,6 +261,8 @@ class FinancialRequestController extends Controller
         }
 
         DB::transaction(function () use ($request, $financialRequest, $data, $bondService, $yearService, $previousStatus) {
+            $financialRequest = FinancialRequest::query()->lockForUpdate()->findOrFail($financialRequest->id);
+            abort_unless($financialRequest->status === $previousStatus && $this->canUpdateStatus($financialRequest, $data), 422, 'تم تحديث الطلب. يرجى إعادة تحميل الصفحة والمحاولة مجددًا.');
             $payload = [
                 'status' => $data['status'],
                 'priority' => $data['priority'] ?? $financialRequest->priority,
@@ -245,6 +290,19 @@ class FinancialRequestController extends Controller
         });
 
         $financialRequest->refresh();
+        if ($financialRequest->return_settlement_id) {
+            $settlement = ContractReturnSettlement::query()->find($financialRequest->return_settlement_id);
+            if ($settlement) {
+                $paid = (float) FinancialRequest::query()
+                    ->where('return_settlement_id', $settlement->id)
+                    ->whereNotNull('paid_at')
+                    ->sum('amount');
+                $settlement->update([
+                    'client_paid_amount' => min((float) $settlement->client_due_amount, round($paid, 2)),
+                    'status' => $paid > 0 && $paid < (float) $settlement->client_due_amount ? 'partially_paid' : 'posted',
+                ]);
+            }
+        }
         $this->notifyFinancialRequestChanged($financialRequest, $previousStatus, $previousPriority);
 
         return back()->with('success', 'تم تحديث حالة الطلب المالي.');
@@ -436,7 +494,7 @@ class FinancialRequestController extends Controller
         $validated = $request->validate([
             'type' => ['required', Rule::in(array_keys(FinancialRequest::types()))],
             'priority' => ['required', Rule::in(array_keys(FinancialRequest::priorities()))],
-            'amount' => ['required', 'numeric', 'gt:0'],
+            'amount' => ['required', 'numeric', 'min:0.01', 'max:9999999999.99', 'regex:/^\d+(\.\d{1,2})?$/'],
             'request_date' => ['nullable', 'date'],
             'description' => ['nullable', 'string'],
             'client_id' => ['nullable', 'integer'],
@@ -732,6 +790,7 @@ class FinancialRequestController extends Controller
     private function canView(): bool
     {
         return AdminGuardHasAnyPerm([
+            \App\PermKeys::FINANCIAL_REQUESTS_EDIT_AMOUNT,
             \App\PermKeys::FINANCIAL_REQUESTS_VIEW,
             \App\PermKeys::FINANCIAL_REQUESTS_CREATE,
             \App\PermKeys::FINANCIAL_REQUESTS_DELETE,
@@ -746,6 +805,7 @@ class FinancialRequestController extends Controller
     private function canViewAll(): bool
     {
         return AdminGuardHasAnyPerm([
+            \App\PermKeys::FINANCIAL_REQUESTS_EDIT_AMOUNT,
             \App\PermKeys::FINANCIAL_REQUESTS_DELETE,
             \App\PermKeys::FINANCIAL_REQUESTS_CHANGE_STATUS,
             \App\PermKeys::FINANCIAL_REQUESTS_APPROVE,

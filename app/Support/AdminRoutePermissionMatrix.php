@@ -63,6 +63,8 @@ class AdminRoutePermissionMatrix
             'orders.index',
             'financial-requests.index',
             'financial-requests.create',
+            'post-arrival-refunds.index',
+            'post-arrival-refunds.create',
             'return_requests.index',
             'professional_application.index',
             'recruitment_requests.index',
@@ -112,7 +114,9 @@ class AdminRoutePermissionMatrix
             'recruitment-contract-stages.edit',
             'sliders.index',
             'why-choose-us.edit',
+            'why-us.index',
             'musaned-section.edit',
+            'home-sections.edit',
             'home-hero.edit',
             'guidelines.edit',
             'find-us.index',
@@ -219,6 +223,11 @@ class AdminRoutePermissionMatrix
     {
         if (!$routeName) {
             return [];
+        }
+
+        if ($routeName === 'settings.section'
+            && WebsiteSettingsAccess::isWebsiteSection($request?->route('section'))) {
+            return [PermKeys::SETTINGS_VIEW, PermKeys::WEBSITE_SETTINGS_CONTROL];
         }
 
         foreach (self::definitions() as $pattern => $resolver) {
@@ -380,6 +389,10 @@ class AdminRoutePermissionMatrix
             'maids.create' => [PermKeys::MAIDS_CREATE],
             'maids.rental.index' => [PermKeys::MAIDS_RENTAL_VIEW],
             'maids.branch.update' => [PermKeys::MAIDS_CHANGE_BRANCH],
+            'maids.bulk-visibility' => [PermKeys::MAIDS_BULK_VISIBILITY],
+            'maids.visibility-preview' => [PermKeys::MAIDS_BULK_VISIBILITY],
+            'maids.visibility-batches' => [PermKeys::MAIDS_BULK_VISIBILITY],
+            'maids.visibility-batches.undo' => [PermKeys::MAIDS_BULK_VISIBILITY],
             'maids.pending-submissions' => [PermKeys::MAIDS_VIEW, PermKeys::MAIDS_EDIT],
             'maids.approve-submission' => [PermKeys::MAIDS_EDIT],
             'maids.reject-submission' => [PermKeys::MAIDS_EDIT],
@@ -410,7 +423,7 @@ class AdminRoutePermissionMatrix
                 'index' => [PermKeys::ORDERS_VIEW],
                 'show' => [PermKeys::ORDERS_VIEW],
                 'create' => [PermKeys::ORDERS_CREATE],
-                'edit' => [PermKeys::ORDERS_EDIT],
+                'edit' => [PermKeys::ORDERS_CHANGE_STATUS],
                 'destroy' => [PermKeys::ORDERS_DELETE],
             ]),
             self::resource('return_requests', [
@@ -426,16 +439,17 @@ class AdminRoutePermissionMatrix
                 'orders.completed' => [PermKeys::ORDERS_VIEW],
                 'orders.export.pdf' => [PermKeys::ORDERS_EXPORT],
                 'orders.export.excel' => [PermKeys::ORDERS_EXPORT],
-                'orders.completeOrder' => [PermKeys::ORDERS_EDIT],
+                'orders.completeOrder' => [PermKeys::ORDERS_ADD_CONTRACT],
+                'orders.getOrderById' => [PermKeys::ORDERS_VIEW],
                 'orders.quickRecruitment' => [PermKeys::ORDERS_CREATE],
                 'orders.notes.store' => [PermKeys::ORDERS_EDIT],
                 'orders.restore' => [PermKeys::ORDERS_DELETE],
-                'orders.changeMaid' => [PermKeys::ORDERS_CHANGE_MAID, PermKeys::ORDERS_EDIT],
-                'orders.changeMaidById' => [PermKeys::ORDERS_CHANGE_MAID, PermKeys::ORDERS_EDIT],
-                'orders.changeResponsible' => [PermKeys::ORDERS_CHANGE_RESPONSIBLE, PermKeys::ORDERS_EDIT],
-                'orders.changeResponsibleById' => [PermKeys::ORDERS_CHANGE_RESPONSIBLE, PermKeys::ORDERS_EDIT],
-                'orders.changeStatus' => [PermKeys::ORDERS_CHANGE_STATUS, PermKeys::ORDERS_EDIT],
-                'orders.refuseReturn' => [PermKeys::ORDERS_EDIT],
+                'orders.changeMaid' => [PermKeys::ORDERS_CHANGE_MAID],
+                'orders.changeMaidById' => [PermKeys::ORDERS_CHANGE_MAID],
+                'orders.changeResponsible' => [PermKeys::ORDERS_CHANGE_RESPONSIBLE],
+                'orders.changeResponsibleById' => [PermKeys::ORDERS_CHANGE_RESPONSIBLE],
+                'orders.changeStatus' => [PermKeys::ORDERS_CHANGE_STATUS],
+                'orders.refuseReturn' => [PermKeys::ORDERS_REJECT],
                 'showSingleOrder' => [PermKeys::ORDERS_VIEW],
                 'showDataOfOrder' => [PermKeys::ORDERS_VIEW],
                 'showDataOfMaid' => [PermKeys::MAIDS_VIEW],
@@ -454,12 +468,13 @@ class AdminRoutePermissionMatrix
                 'known-service-requests.destroy' => [PermKeys::ORDERS_DELETE],
                 'contact.index' => [PermKeys::CONTACT_VIEW],
                 'contact.show' => [PermKeys::CONTACT_VIEW],
-                'financial-requests.index' => [PermKeys::FINANCIAL_REQUESTS_VIEW, PermKeys::FINANCIAL_REQUESTS_CREATE, PermKeys::FINANCIAL_REQUESTS_DELETE, PermKeys::FINANCIAL_REQUESTS_CHANGE_STATUS, PermKeys::FINANCIAL_REQUESTS_APPROVE, PermKeys::FINANCIAL_REQUESTS_REQUEST_CLOSING, PermKeys::FINANCIAL_REQUESTS_CLOSE, PermKeys::FINANCIAL_REQUESTS_CONTROL],
+                'financial-requests.index' => [PermKeys::FINANCIAL_REQUESTS_EDIT_AMOUNT, PermKeys::FINANCIAL_REQUESTS_VIEW, PermKeys::FINANCIAL_REQUESTS_CREATE, PermKeys::FINANCIAL_REQUESTS_DELETE, PermKeys::FINANCIAL_REQUESTS_CHANGE_STATUS, PermKeys::FINANCIAL_REQUESTS_APPROVE, PermKeys::FINANCIAL_REQUESTS_REQUEST_CLOSING, PermKeys::FINANCIAL_REQUESTS_CLOSE, PermKeys::FINANCIAL_REQUESTS_CONTROL],
                 'financial-requests.create' => [PermKeys::FINANCIAL_REQUESTS_CREATE, PermKeys::FINANCIAL_REQUESTS_CONTROL],
                 'financial-requests.store' => [PermKeys::FINANCIAL_REQUESTS_CREATE, PermKeys::FINANCIAL_REQUESTS_CONTROL],
-                'financial-requests.show' => [PermKeys::FINANCIAL_REQUESTS_VIEW, PermKeys::FINANCIAL_REQUESTS_CREATE, PermKeys::FINANCIAL_REQUESTS_CHANGE_STATUS, PermKeys::FINANCIAL_REQUESTS_APPROVE, PermKeys::FINANCIAL_REQUESTS_REQUEST_CLOSING, PermKeys::FINANCIAL_REQUESTS_CLOSE, PermKeys::FINANCIAL_REQUESTS_CONTROL],
+                'financial-requests.show' => [PermKeys::FINANCIAL_REQUESTS_EDIT_AMOUNT, PermKeys::FINANCIAL_REQUESTS_VIEW, PermKeys::FINANCIAL_REQUESTS_CREATE, PermKeys::FINANCIAL_REQUESTS_CHANGE_STATUS, PermKeys::FINANCIAL_REQUESTS_APPROVE, PermKeys::FINANCIAL_REQUESTS_REQUEST_CLOSING, PermKeys::FINANCIAL_REQUESTS_CLOSE, PermKeys::FINANCIAL_REQUESTS_CONTROL],
                 'financial-requests.edit' => [PermKeys::FINANCIAL_REQUESTS_CREATE, PermKeys::FINANCIAL_REQUESTS_EDIT, PermKeys::FINANCIAL_REQUESTS_CONTROL],
                 'financial-requests.update' => [PermKeys::FINANCIAL_REQUESTS_CREATE, PermKeys::FINANCIAL_REQUESTS_EDIT, PermKeys::FINANCIAL_REQUESTS_CONTROL],
+                'financial-requests.amount' => [PermKeys::FINANCIAL_REQUESTS_EDIT_AMOUNT],
                 'financial-requests.destroy' => [PermKeys::FINANCIAL_REQUESTS_DELETE, PermKeys::FINANCIAL_REQUESTS_CONTROL],
                 'financial-requests.restore' => [PermKeys::FINANCIAL_REQUESTS_DELETE, PermKeys::FINANCIAL_REQUESTS_CONTROL],
                 'financial-requests.status' => [PermKeys::FINANCIAL_REQUESTS_CREATE, PermKeys::FINANCIAL_REQUESTS_EDIT, PermKeys::FINANCIAL_REQUESTS_CHANGE_STATUS, PermKeys::FINANCIAL_REQUESTS_ESCALATE, PermKeys::FINANCIAL_REQUESTS_APPROVE, PermKeys::FINANCIAL_REQUESTS_REQUEST_CLOSING, PermKeys::FINANCIAL_REQUESTS_CLOSE, PermKeys::FINANCIAL_REQUESTS_CONTROL],
@@ -476,7 +491,24 @@ class AdminRoutePermissionMatrix
     private static function recruitmentContractsDefinitions(): array
     {
         return [
+            'clients.trashed' => [PermKeys::CLIENTS_DELETE],
+            'clients.restore' => [PermKeys::CLIENTS_DELETE],
+            'clients.forceDelete' => [PermKeys::CLIENTS_DELETE],
             'RecruitmentContract.index' => [NewPermKeys::REC_CONTRACTS_VIEW, NewPermKeys::REC_CONTRACTS_MANAGE],
+            'post-arrival-refunds.index' => [PermKeys::POST_ARRIVAL_REFUND_VIEW],
+            'post-arrival-refunds.show' => [PermKeys::POST_ARRIVAL_REFUND_VIEW],
+            'post-arrival-refunds.create' => [PermKeys::POST_ARRIVAL_REFUND_CREATE],
+            'post-arrival-refunds.store' => [PermKeys::POST_ARRIVAL_REFUND_CREATE],
+            'post-arrival-refunds.proposal' => [PermKeys::POST_ARRIVAL_REFUND_CREATE],
+            'post-arrival-refunds.search-contracts' => [PermKeys::POST_ARRIVAL_REFUND_CREATE],
+            'post-arrival-refunds.post' => [PermKeys::POST_ARRIVAL_REFUND_POST],
+            'post-arrival-refunds.payout' => [PermKeys::POST_ARRIVAL_REFUND_PAYOUT],
+            'post-arrival-refunds.lines.reverse' => [PermKeys::POST_ARRIVAL_REFUND_REVERSE],
+            'RecruitmentContract.escapeReports.index' => [PermKeys::REC_CONTRACTS_ESCAPE_REPORTS_VIEW],
+            'RecruitmentContract.escapeReports.show' => [PermKeys::REC_CONTRACTS_ESCAPE_REPORTS_VIEW, PermKeys::REC_CONTRACTS_ESCAPE_REPORT_CREATE],
+            'RecruitmentContract.escapeReports.store' => [PermKeys::REC_CONTRACTS_ESCAPE_REPORT_CREATE],
+            'RecruitmentContract.escapeReports.destroy' => [PermKeys::REC_CONTRACTS_ESCAPE_REPORT_DELETE],
+            'RecruitmentContract.escapeReports.attachment' => [PermKeys::REC_CONTRACTS_ESCAPE_REPORTS_VIEW],
             'RecruitmentContract.create' => [NewPermKeys::REC_CONTRACTS_CREATE, NewPermKeys::REC_CONTRACTS_MANAGE],
             'RecruitmentContract.store' => [NewPermKeys::REC_CONTRACTS_CREATE, NewPermKeys::REC_CONTRACTS_MANAGE],
             'RecruitmentContract.show' => [NewPermKeys::REC_CONTRACTS_VIEW, NewPermKeys::REC_CONTRACTS_MANAGE],
@@ -484,6 +516,7 @@ class AdminRoutePermissionMatrix
             'RecruitmentContract.update' => [NewPermKeys::REC_CONTRACTS_EDIT, NewPermKeys::REC_CONTRACTS_MANAGE],
             'RecruitmentContract.destroy' => [NewPermKeys::REC_CONTRACTS_DELETE, NewPermKeys::REC_CONTRACTS_MANAGE],
             'RecruitmentContract.restoreReturned' => [NewPermKeys::REC_CONTRACTS_RETURN, NewPermKeys::REC_CONTRACTS_MANAGE],
+            'RecruitmentContract.releaseMaidAfterCompletion' => [NewPermKeys::REC_CONTRACTS_RELEASE_MAID_AFTER_COMPLETION],
             'RecruitmentContract.back' => [NewPermKeys::REC_CONTRACTS_RETURN, NewPermKeys::REC_CONTRACTS_MANAGE],
             'RecruitmentContract.updateStatus' => [
                 NewPermKeys::REC_CONTRACTS_UPDATE,
@@ -499,6 +532,8 @@ class AdminRoutePermissionMatrix
             'RecruitmentContract.export.excel' => [NewPermKeys::REC_CONTRACTS_EXPORT, NewPermKeys::REC_CONTRACTS_MANAGE],
             'contracts.details' => [NewPermKeys::REC_CONTRACTS_VIEW, NewPermKeys::REC_CONTRACTS_MANAGE],
             'RecruitmentContract.stageSteps.update' => [NewPermKeys::REC_CONTRACTS_UPDATE, NewPermKeys::REC_CONTRACTS_MANAGE],
+            'RecruitmentContract.stageSteps.index' => [NewPermKeys::REC_CONTRACTS_UPDATE, NewPermKeys::REC_CONTRACTS_MANAGE],
+            'RecruitmentContract.stageSteps.complete' => [NewPermKeys::REC_CONTRACTS_UPDATE, NewPermKeys::REC_CONTRACTS_MANAGE],
             'contract-return-requests.index' => [NewPermKeys::REC_CONTRACTS_VIEW, NewPermKeys::REC_CONTRACTS_MANAGE],
             'contract-return-requests.show' => [NewPermKeys::REC_CONTRACTS_VIEW, NewPermKeys::REC_CONTRACTS_MANAGE],
             'contract-return-requests.process' => [NewPermKeys::REC_CONTRACTS_EDIT, NewPermKeys::REC_CONTRACTS_MANAGE],
@@ -600,6 +635,7 @@ class AdminRoutePermissionMatrix
             'RentContract.create' => [PermKeys::RENT_CONTRACT_CREATE, PermKeys::RENT_CONTRACT_CONTROL],
             'RentContract.export.excel' => [PermKeys::RENT_CONTRACT_VIEW, PermKeys::RENT_CONTRACT_CONTROL],
             'RentContract.sendExpiryReminder' => [PermKeys::RENT_CONTRACT_CONTROL],
+            'RentContract.changeMarketer' => [PermKeys::RENT_CONTRACT_CHANGE_MARKETER],
             'rental-orders.index' => [PermKeys::RENTAL_ORDERS_VIEW, PermKeys::ORDERS_VIEW],
             'rent-contract.settings' => [PermKeys::CONTRACT_SETTINGS],
             'rent-contract.settings.update' => [PermKeys::CONTRACT_SETTINGS],
@@ -774,14 +810,14 @@ class AdminRoutePermissionMatrix
     private static function settingsDefinitions(): array
     {
         return [
-            'settings.index' => [PermKeys::SETTINGS_VIEW],
+            'settings.index' => [PermKeys::SETTINGS_VIEW, PermKeys::WEBSITE_SETTINGS_CONTROL],
             'settings.section' => [PermKeys::SETTINGS_VIEW],
             'settings.cv-template.edit' => [PermKeys::SETTINGS_CV_TEMPLATE],
             'settings.cv-template.update' => [PermKeys::SETTINGS_CV_TEMPLATE],
             'settings.cv-options.edit' => [PermKeys::SETTINGS_CV_OPTIONS],
             'settings.cv-options.update' => [PermKeys::SETTINGS_CV_OPTIONS],
             'settings.store' => [PermKeys::SETTINGS_CONTROL],
-            'settings.update' => [PermKeys::SETTINGS_CONTROL],
+            'settings.update' => [PermKeys::SETTINGS_CONTROL, PermKeys::WEBSITE_SETTINGS_CONTROL],
             'moyasar-settings.edit' => [PermKeys::MOYASAR_SETTINGS],
             'moyasar-settings.update' => [PermKeys::MOYASAR_SETTINGS],
             'recruitment-contract-stages.edit' => [PermKeys::SETTINGS_VIEW],
@@ -853,6 +889,15 @@ class AdminRoutePermissionMatrix
                     PermKeys::MUSANED_SECTION_EDIT,
                     PermKeys::MUSANED_SECTION_CONTROL,
                 ],
+                'home-sections.edit' => [
+                    PermKeys::HOME_SECTIONS_VIEW,
+                    PermKeys::HOME_SECTIONS_EDIT,
+                    PermKeys::HOME_SECTIONS_CONTROL,
+                ],
+                'home-sections.update' => [
+                    PermKeys::HOME_SECTIONS_EDIT,
+                    PermKeys::HOME_SECTIONS_CONTROL,
+                ],
                 'home-hero.edit' => [
                     PermKeys::HOME_HERO_VIEW,
                     PermKeys::HOME_HERO_CONTROL,
@@ -885,6 +930,14 @@ class AdminRoutePermissionMatrix
             [
                 'find-us.mode' => [PermKeys::FIND_US_EDIT, PermKeys::FIND_US_CONTROL],
             ],
+            self::resource('why-us', [
+                'index' => [PermKeys::WHY_US_VIEW, PermKeys::WHY_US_CONTROL],
+                // show يبدّل حالة التفعيل من الجدول
+                'show' => [PermKeys::WHY_US_EDIT, PermKeys::WHY_US_CONTROL],
+                'create' => [PermKeys::WHY_US_CREATE, PermKeys::WHY_US_CONTROL],
+                'edit' => [PermKeys::WHY_US_EDIT, PermKeys::WHY_US_CONTROL],
+                'destroy' => [PermKeys::WHY_US_DELETE, PermKeys::WHY_US_CONTROL],
+            ]),
             self::resource('requiremens', [
                 'index' => [
                     PermKeys::RECRUITMENT_REQUIREMENTS_VIEW,
@@ -1031,6 +1084,8 @@ class AdminRoutePermissionMatrix
                 'offices.users.update' => [PermKeys::USERS_EDIT, PermKeys::OFFICE_CONTROL],
                 'offices.users.activate' => [PermKeys::USERS_EDIT, PermKeys::OFFICE_CONTROL],
                 'offices.files.index' => [PermKeys::OFFICE_VIEW, PermKeys::OFFICE_CONTROL],
+                // صلاحية مستقلة عمداً: تعليق سير مكتب يخفيها عن الموقع، فلا تُمنح ضمن إدارة المكاتب.
+                'offices.cvs-suspension.update' => [PermKeys::OFFICE_SUSPEND_CVS],
             ],
             [
                 'countries.index' => [PermKeys::COUNTRIES_VIEW, PermKeys::COUNTRIES_CONTROL],

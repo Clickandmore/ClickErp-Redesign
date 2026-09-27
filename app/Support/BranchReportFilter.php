@@ -14,6 +14,10 @@ namespace App\Support;
  *   - موظف الفرع الرئيسي ⇒ فرعه + السجلات القديمة التي branch_id فيها NULL.
  *   - موظف فرع آخر ⇒ فرعه وحده.
  *
+ * وفوق ذلك: من يرى كل الفروع (إدارة عامة أو branches_view_all) يستطيع أن يفصل
+ * التقرير على فرع واحد باختياره من شاشة التقرير (`branch_id`) — عندها يُطبَّق
+ * الشرط بنفس دلالة موظف ذلك الفرع. بلا اختيار يبقى الرقم على مستوى الشركة.
+ *
  * أي انحراف عن هذه الدلالة يجعل الشاشة والتقرير يعطيان رقمين مختلفين لنفس البيانات.
  */
 class BranchReportFilter
@@ -28,7 +32,7 @@ class BranchReportFilter
      */
     public static function apply($query, string $table, string $column = 'branch_id')
     {
-        $branchId = BranchQueryContext::activeBranchId();
+        $branchId = BranchQueryContext::reportBranchId();
 
         if ($branchId === null) {
             return $query;
@@ -36,7 +40,7 @@ class BranchReportFilter
 
         $qualified = $table . '.' . $column;
 
-        if (BranchQueryContext::activeBranchIsMain()) {
+        if (BranchQueryContext::reportBranchIsMain()) {
             return $query->where(function ($inner) use ($qualified, $branchId) {
                 $inner->where($qualified, $branchId)->orWhereNull($qualified);
             });
@@ -56,7 +60,7 @@ class BranchReportFilter
      */
     public static function sqlCondition(string $alias, string $column = 'branch_id'): array
     {
-        $branchId = BranchQueryContext::activeBranchId();
+        $branchId = BranchQueryContext::reportBranchId();
 
         if ($branchId === null) {
             return ['1 = 1', []];
@@ -64,7 +68,7 @@ class BranchReportFilter
 
         $qualified = $alias . '.' . $column;
 
-        return BranchQueryContext::activeBranchIsMain()
+        return BranchQueryContext::reportBranchIsMain()
             ? ["({$qualified} = ? OR {$qualified} IS NULL)", [$branchId]]
             : ["{$qualified} = ?", [$branchId]];
     }
@@ -72,6 +76,7 @@ class BranchReportFilter
     /** هل يوجد عزل فرع نشط الآن؟ للاستعمال في التفريعات الصريحة. */
     public static function active(): bool
     {
-        return BranchQueryContext::activeBranchId() !== null;
+        return BranchQueryContext::reportBranchId() !== null;
     }
+
 }

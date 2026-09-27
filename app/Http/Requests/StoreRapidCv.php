@@ -24,6 +24,7 @@ class StoreRapidCv extends MainRequest
     public function rules()
     {
         return [
+            'is_show' => 'sometimes|boolean',
             'name:en' => 'nullable|string|max:255',
             'gender' => 'required|in:male,female',
             'nationality_id' => 'required|exists:nationalities,id',

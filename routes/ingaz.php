@@ -55,6 +55,7 @@ use App\Http\Controllers\ingaz\OfferController;
 use App\Http\Controllers\ingaz\OrderController;
 use App\Http\Controllers\ingaz\PackageController;
 use App\Http\Controllers\ingaz\PoliceSettingController;
+use App\Http\Controllers\ingaz\PostArrivalRefundController;
 use App\Http\Controllers\ingaz\ProfessionalApplicationController;
 use App\Http\Controllers\ingaz\QuestionController;
 use App\Http\Controllers\ingaz\RecruitmentContractController;
@@ -140,6 +141,10 @@ Route::group(
                 ->name('musaned-section.edit');
             Route::put('musaned-section', [MusanedSectionController::class, 'update'])
                 ->name('musaned-section.update');
+            Route::get('home-sections', [\App\Http\Controllers\ingaz\HomeSectionSettingsController::class, 'edit'])
+                ->name('home-sections.edit');
+            Route::put('home-sections', [\App\Http\Controllers\ingaz\HomeSectionSettingsController::class, 'update'])
+                ->name('home-sections.update');
             Route::get('home-hero', [HomeHeroSectionController::class, 'edit'])
                 ->name('home-hero.edit');
             Route::put('home-hero', [HomeHeroSectionController::class, 'update'])
@@ -253,6 +258,7 @@ Route::group(
             Route::resource('develop-settings', DevelopSettingController::class);
             Route::resource('job-titles', JobTitleController::class);
             Route::post('nationalities/{id}/generate-financial-accounts', [NationalityController::class, 'generateFinancialAccounts'])->name('nationalities.generate-financial-accounts');
+            Route::post('nationalities/{id}/offer', [NationalityController::class, 'updateOffer'])->name('nationalities.offer');
             Route::resource('nationalities', NationalityController::class);
             Route::post('offers/{id}/toggle-status', [OfferController::class, 'toggleStatus'])->name('offers.toggle-status');
             Route::resource('offers', OfferController::class);
@@ -287,6 +293,9 @@ Route::group(
             Route::post('clients/bulk-update-status', [UserController::class, 'bulkUpdateStatus'])->name('clients.bulk-update-status');
             Route::get('clients/reports/duplicate-phones', [UserController::class, 'exportDuplicatePhones'])
                 ->name('clients.reports.duplicate-phones');
+            Route::get('clients/trashed', [UserController::class, 'trashedClients'])->name('clients.trashed');
+            Route::post('clients/{id}/restore', [UserController::class, 'restoreClient'])->name('clients.restore');
+            Route::delete('clients/{id}/force-delete', [UserController::class, 'forceDeleteClient'])->name('clients.forceDelete');
             Route::resource('clients', UserController::class);
             Route::post('clients/{id}/attachments', [UserController::class, 'storeAttachments'])->name('clients.attachments.store');
             Route::get('clients/{id}/attachments/download', [UserController::class, 'downloadAttachments'])->name('clients.attachments.download');
@@ -344,6 +353,9 @@ Route::group(
             // Limit maid parameter to numeric IDs to avoid catching custom pages like create_rapid_cv
             Route::post('maids/extract-cv-data', [MaidController::class, 'extractCvData'])->name('maids.extract-cv-data');
             Route::post('maids/bulk-visibility', [MaidController::class, 'bulkVisibility'])->name('maids.bulk-visibility');
+            Route::post('maids/visibility-preview', [MaidController::class, 'previewBulkVisibility'])->name('maids.visibility-preview');
+            Route::get('maids/visibility-batches', [MaidController::class, 'visibilityBatches'])->name('maids.visibility-batches');
+            Route::post('maids/visibility-batches/{batch}/undo', [MaidController::class, 'undoVisibilityBatch'])->name('maids.visibility-batches.undo');
             Route::post('maids/cv/generate-bulk', [MaidController::class, 'generateCvBulk'])->name('maids.generate-cv.bulk');
             Route::post('maids/cv/export', [MaidController::class, 'exportGeneratedCvs'])->name('maids.generated-cvs.export');
             Route::get('maids/{maid}/cv/download', [MaidController::class, 'downloadGeneratedCv'])
@@ -439,8 +451,18 @@ Route::group(
             Route::get('financial-requests/print', [FinancialRequestController::class, 'print'])->name('financial-requests.print');
             Route::post('financial-requests/{financialRequest}/restore', [FinancialRequestController::class, 'restore'])->name('financial-requests.restore');
             Route::post('financial-requests/{financialRequest}/status', [FinancialRequestController::class, 'updateStatus'])->name('financial-requests.status');
+            Route::patch('financial-requests/{financialRequest}/amount', [FinancialRequestController::class, 'updateAmount'])->name('financial-requests.amount');
             Route::resource('financial-requests', FinancialRequestController::class)
                 ->parameters(['financial-requests' => 'financialRequest']);
+
+            Route::get('post-arrival-refunds/proposal', [PostArrivalRefundController::class, 'proposal'])->name('post-arrival-refunds.proposal');
+            Route::get('post-arrival-refunds/search-contracts', [PostArrivalRefundController::class, 'searchContracts'])->name('post-arrival-refunds.search-contracts');
+            Route::post('post-arrival-refunds/{postArrivalRefund}/post', [PostArrivalRefundController::class, 'post'])->name('post-arrival-refunds.post');
+            Route::post('post-arrival-refunds/{postArrivalRefund}/payout', [PostArrivalRefundController::class, 'payout'])->name('post-arrival-refunds.payout');
+            Route::post('post-arrival-refunds/{postArrivalRefund}/lines/{line}/reverse', [PostArrivalRefundController::class, 'reverse'])->name('post-arrival-refunds.lines.reverse');
+            Route::resource('post-arrival-refunds', PostArrivalRefundController::class)
+                ->only(['index', 'create', 'store', 'show'])
+                ->parameters(['post-arrival-refunds' => 'postArrivalRefund']);
 
             // Messages
             Route::get('messages', [\App\Http\Controllers\ingaz\MessageController::class, 'index'])->name('messages.index');
@@ -451,9 +473,22 @@ Route::group(
             });
 
             // RecruitmentContract specific routes - MUST come before resource route
+            Route::controller(\App\Http\Controllers\ingaz\RecruitmentDeportationController::class)->group(function () {
+                Route::post('RecruitmentContract/{id}/deportation/start', 'startDeportation')->name('RecruitmentContract.deportation.start');
+                Route::get('RecruitmentContract/{id}/deportation/procedures', 'showDeportationProcedures')->name('RecruitmentContract.deportation.procedures');
+                Route::post('RecruitmentContract/deportation/{id}/update', 'updateDeportationProcedures')->name('RecruitmentContract.deportation.update');
+                Route::post('RecruitmentContract/deportation/{id}/cancel', 'cancelDeportation')->name('RecruitmentContract.deportation.cancel');
+                Route::get('RecruitmentContract/deportation/{id}/activity-log', 'getActivityLog')->name('RecruitmentContract.deportation.activity-log');
+            });
+            Route::get('RecruitmentContract/escape-reports', [\App\Http\Controllers\ingaz\RecruitmentEscapeReportController::class, 'index'])->name('RecruitmentContract.escapeReports.index');
+            Route::get('RecruitmentContract/{contractId}/escape-reports', [\App\Http\Controllers\ingaz\RecruitmentEscapeReportController::class, 'show'])->name('RecruitmentContract.escapeReports.show');
+            Route::post('RecruitmentContract/{contractId}/escape-reports', [\App\Http\Controllers\ingaz\RecruitmentEscapeReportController::class, 'store'])->name('RecruitmentContract.escapeReports.store');
+            Route::delete('RecruitmentContract/{contractId}/escape-reports/{reportId}', [\App\Http\Controllers\ingaz\RecruitmentEscapeReportController::class, 'destroy'])->name('RecruitmentContract.escapeReports.destroy');
+            Route::get('RecruitmentContract/{contractId}/escape-reports/{reportId}/attachments/{attachment}', [\App\Http\Controllers\ingaz\RecruitmentEscapeReportController::class, 'attachment'])->name('RecruitmentContract.escapeReports.attachment');
             Route::get('RecruitmentContract/available-maids', [RecruitmentContractController::class, 'getAvailableMaids'])->name('RecruitmentContract.availableMaids');
             Route::get('RecruitmentContract/search-clients', [RecruitmentContractController::class, 'searchClients'])->name('RecruitmentContract.searchClients');
             Route::get('RecruitmentContract/filter-options', [RecruitmentContractController::class, 'getFilterOptions'])->name('RecruitmentContract.filterOptions');
+            Route::get('RecruitmentContract/company', [RecruitmentContractController::class, 'companyIndex'])->name('RecruitmentContract.company.index');
             Route::get('RecruitmentContract/statistics', [RecruitmentContractController::class, 'statistics'])->name('RecruitmentContract.statistics');
             Route::get('RecruitmentContract/export/pdf', [RecruitmentContractController::class, 'exportPdf'])->name('RecruitmentContract.export.pdf');
             Route::get('RecruitmentContract/export/excel', [RecruitmentContractController::class, 'exportExcel'])->name('RecruitmentContract.export.excel');
@@ -469,10 +504,13 @@ Route::group(
             Route::post('RecruitmentContract/refund/preview', [RecruitmentContractController::class, 'refundPreview'])->name('RecruitmentContract.refundPreview');
             Route::post('RecruitmentContract/refund', [RecruitmentContractController::class, 'refund'])->name('RecruitmentContract.refund');
             Route::post('RecruitmentContract/{contract}/restore-returned', [RecruitmentContractController::class, 'restoreReturned'])->name('RecruitmentContract.restoreReturned');
+            Route::post('RecruitmentContract/{contract}/release-maid', [RecruitmentContractController::class, 'releaseMaidAfterCompletion'])->name('RecruitmentContract.releaseMaidAfterCompletion');
 
             Route::resource('RecruitmentContract', RecruitmentContractController::class);
             Route::get('RecruitmentContractBack/{id}', [RecruitmentContractController::class, 'back'])->name('RecruitmentContract.back');
             Route::get('contractsDetails/{id}', [RecruitmentContractController::class, 'details'])->name('contracts.details');
+            Route::get('RecruitmentContract/{contract}/stage-steps', [RecruitmentContractController::class, 'stageSteps'])->name('RecruitmentContract.stageSteps.index');
+            Route::post('RecruitmentContract/{contract}/stage-steps', [RecruitmentContractController::class, 'completeStageSteps'])->name('RecruitmentContract.stageSteps.complete');
             Route::post('RecruitmentContract/{contract}/stage-steps/{step}', [RecruitmentContractController::class, 'updateStageStep'])->name('RecruitmentContract.stageSteps.update');
             Route::post('RecruitmentContract/{contractId}/add-maid', [RecruitmentContractController::class, 'addMaidToContract'])->name('RecruitmentContract.addMaid');
             Route::get('RecruitmentContract/{contractId}/select-maid', [RecruitmentContractController::class, 'selectMaidForContract'])->name('RecruitmentContract.selectMaid');
@@ -481,6 +519,7 @@ Route::group(
             Route::post('RecruitmentContract/{contractId}/notes', [RecruitmentContractController::class, 'storeNote'])->name('RecruitmentContract.notes.store');
             Route::get('RentContract/existing-clients', [RentContractController::class, 'getExistingClients'])->name('RentContract.existing.clients');
             Route::resource('RentContract', RentContractController::class);
+            Route::post('RentContract/{id}/change-marketer', [RentContractController::class, 'changeMarketer'])->name('RentContract.changeMarketer');
             Route::get('rental-invoices/download/{id}', [RentalContractInvoiceController::class, 'download'])->name('rental.invoice.download');
             Route::get('rental-extension-invoices/download/{id}', [RentalContractInvoiceController::class, 'extension'])->name('rental.extension-invoice.download');
             Route::get('rental-credit-notes/download/{id}', [RentalContractInvoiceController::class, 'creditNote'])->name('rental.credit-note.download');
@@ -786,6 +825,10 @@ Route::group(
             Route::post('login', [DevSuperAdminController::class, 'login'])->name('login.post');
 
             Route::middleware('dev.superadmin')->group(function () {
+                Route::get('invoice-corrections', [\App\Http\Controllers\admin\SuperAdminInvoiceCorrectionController::class, 'index'])->name('invoice-corrections.index');
+                Route::get('invoice-corrections/{invoice}', [\App\Http\Controllers\admin\SuperAdminInvoiceCorrectionController::class, 'show'])->whereNumber('invoice')->name('invoice-corrections.show');
+                Route::post('invoice-corrections/{invoice}/preview', [\App\Http\Controllers\admin\SuperAdminInvoiceCorrectionController::class, 'preview'])->whereNumber('invoice')->name('invoice-corrections.preview');
+                Route::put('invoice-corrections/{invoice}', [\App\Http\Controllers\admin\SuperAdminInvoiceCorrectionController::class, 'update'])->whereNumber('invoice')->name('invoice-corrections.update');
                 Route::get('recovery', [DevSuperAdminController::class, 'recovery'])->name('recovery');
                 Route::post('recovery/migrate', [DevSuperAdminController::class, 'runRecoveryMigrations'])
                     ->middleware('throttle:3,1')
@@ -797,6 +840,8 @@ Route::group(
                 Route::get('database-backups', [DevSuperAdminController::class, 'modules'])->name('database-backups');
                 Route::get('scheduler', [DevSuperAdminController::class, 'modules'])->name('scheduler');
                 Route::put('modules', [DevSuperAdminController::class, 'updateModules'])->name('modules.update');
+                Route::put('maintenance-mode', [DevSuperAdminController::class, 'updateMaintenanceMode'])->name('maintenance-mode.update');
+                Route::put('home-sections/available', [\App\Http\Controllers\ingaz\HomeSectionSettingsController::class, 'updateAvailable'])->name('home-sections.available');
                 Route::put('subscription', [DevSuperAdminController::class, 'updateSubscription'])->name('subscription.update');
                 Route::put('product-updates', [DevSuperAdminController::class, 'updateProductUpdates'])->name('product-updates.update');
                 Route::post('scheduler/enable', [DevSuperAdminController::class, 'enableScheduler'])->name('scheduler.enable');

@@ -60,6 +60,9 @@ class RentContractController extends Controller
 
     public function __construct()
     {
+        $this->middleware('permission:' . PermKeys::RENT_CONTRACT_CHANGE_MARKETER . ',admin', [
+            'only' => ['changeMarketer'],
+        ]);
         $this->middleware('permission:' . \App\PermKeys::RENT_CONTRACT_VIEW . ',admin', [
             'only' => ['index', 'show', 'statistics', 'exportExcel', 'getContractDetails', 'downloadAttachments', 'downloadAttachment', 'viewAttachment'],
         ]);
@@ -431,6 +434,15 @@ class RentContractController extends Controller
                                         data-id="' . $row->id . '"
                                         data-url="' . route('RentContract.sendExpiryReminder', $row->id) . '">
                                         <i class="fas fa-bell"></i> إرسال تنبيه انتهاء العقد
+                                    </button></li>';
+                    }
+
+                    if (AdminGuardHasPerm(PermKeys::RENT_CONTRACT_CHANGE_MARKETER)) {
+                        $actions .= '<li><button type="button" class="dropdown-item change-contract-marketer"
+                                        data-url="' . e(route('RentContract.changeMarketer', $row->id)) . '"
+                                        data-marketer-id="' . (int) $row->marketer_id . '"
+                                        data-marketer-name="' . e($row->marketer?->name ?? 'غير محدد') . '">
+                                        <i class="fas fa-user-edit"></i> تغيير المسوق
                                     </button></li>';
                     }
 
@@ -906,6 +918,10 @@ class RentContractController extends Controller
         ])->findOrFail($id);
         $this->assertCanAccessBranchModel($contract, 'rental_contracts');
 
+        $marketers = AdminGuardHasPerm(PermKeys::RENT_CONTRACT_CHANGE_MARKETER)
+            ? Admin::query()->activeForOperations()->orderBy('name')->get(['id', 'name'])
+            : collect();
+
         $availableReplacementMaids = $this->getAvailableRentalMaidsQuery()
             ->when($contract->maid_id, function ($query) use ($contract) {
                 $query->where('id', '!=', $contract->maid_id);
@@ -1017,6 +1033,7 @@ class RentContractController extends Controller
         return view($this->folderPath . '.show', compact(
             'contract',
             'availableReplacementMaids',
+            'marketers',
             'activities',
             'maidChangeHistory',
             'contractAttachments',
@@ -1033,6 +1050,39 @@ class RentContractController extends Controller
             'clientAccountApprovedBalance',
             'receiptAccounts'
         ));
+    }
+
+    public function changeMarketer(Request $request, $id)
+    {
+        abort_unless(AdminGuardHasPerm(PermKeys::RENT_CONTRACT_CHANGE_MARKETER), 403,
+            'ليس لديك صلاحية تغيير المسوق في عقد التأجير');
+
+        $validated = $request->validate(['marketer_id' => 'required|integer']);
+
+        DB::transaction(function () use ($validated, $id) {
+            $contract = RentalContract::query()->lockForUpdate()->findOrFail($id);
+            $this->assertCanAccessBranchModel($contract, 'rental_contracts');
+            $this->assertCanChangeMarketer($contract, (int) $validated['marketer_id']);
+            $contract->update(['marketer_id' => (int) $validated['marketer_id']]);
+        });
+
+        return response()->json(['success' => true, 'message' => 'تم تغيير المسوق المرتبط بالعقد بنجاح']);
+    }
+
+    protected function assertCanChangeMarketer(RentalContract $contract, int $marketerId): void
+    {
+        if ((int) $contract->marketer_id === $marketerId) {
+            return;
+        }
+
+        abort_unless(AdminGuardHasPerm(PermKeys::RENT_CONTRACT_CHANGE_MARKETER), 403,
+            'ليس لديك صلاحية تغيير المسوق في عقد التأجير');
+
+        if (!Admin::query()->activeForOperations()->whereKey($marketerId)->exists()) {
+            throw \Illuminate\Validation\ValidationException::withMessages([
+                'marketer_id' => 'يرجى اختيار مسوق موجود وغير معلق.',
+            ]);
+        }
     }
 
     public function changeMaid(Request $request, $id)
@@ -1173,7 +1223,11 @@ class RentContractController extends Controller
             ->ordered()
             ->get();
 
-        $marketers = Admin::query()->activeForOperations()->orderBy('name')->get();
+        $marketers = Admin::query()
+            ->where(function ($query) use ($contract) {
+                $query->activeForOperations()->orWhere('id', $contract->marketer_id);
+            })
+            ->orderBy('name')->get();
         $nationalities = Nationality::with('translations')->get();
         $countries = Country::active()->ordered()->get();
         $paymentReceipts = $this->rentalPaymentReceiptItems($contract->info);
@@ -1199,8 +1253,9 @@ class RentContractController extends Controller
         try {
             DB::beginTransaction();
 
-            $contract = RentalContract::with(['user', 'info'])->findOrFail($id);
+            $contract = RentalContract::with(['user', 'info'])->lockForUpdate()->findOrFail($id);
             $this->assertCanAccessBranchModel($contract, 'rental_contracts');
+            $this->assertCanChangeMarketer($contract, (int) $request->marketer_id);
 
             // تحديث بيانات العميل
             $contract->user->update($contract->user->clientTypeAwarePayload([
@@ -1347,22 +1402,7 @@ class RentContractController extends Controller
                 $request->filled('receipt_account_id') ? (int) $request->receipt_account_id : null
             );
 
-            // تحديث حالة العاملات
-            if ($oldMaidId && $oldMaidId != $request->maid_id) {
-                $oldMaid = Maid::find($oldMaidId);
-
-                if ($oldMaid) {
-                    $this->syncMaidBookingState($oldMaid);
-                }
-            }
-
-            if ($request->maid_id) {
-                // تحديث العاملة الجديدة
-                Maid::where('id', $request->maid_id)->update([
-                    'status' => 'contracted',
-                    'available' => false,
-                ]);
-            }
+            $this->syncMaidBookingStateAfterContractEdit($contract, $oldMaidId);
 
             DB::commit();
 
@@ -1384,6 +1424,10 @@ class RentContractController extends Controller
 
         } catch (\Exception $e) {
             DB::rollBack();
+            if ($e instanceof \Symfony\Component\HttpKernel\Exception\HttpExceptionInterface
+                || $e instanceof \Illuminate\Validation\ValidationException) {
+                throw $e;
+            }
             Log::error('Error updating rental contract: ' . $e->getMessage());
 
             if ($request->ajax() || $request->expectsJson()) {
@@ -2261,6 +2305,20 @@ class RentContractController extends Controller
             'status' => OrderEnum::Completed->value,
             'status_changed_at' => now(),
         ]);
+    }
+
+    private function syncMaidBookingStateAfterContractEdit(RentalContract $contract, ?int $oldMaidId): void
+    {
+        // Historical edits and edits to the same assignment must preserve the maid's current state.
+        if ((int) $oldMaidId === (int) $contract->maid_id
+            || !in_array($contract->status, $this->rentalActiveContractStatuses(), true)) {
+            return;
+        }
+
+        $maidIds = array_filter([$oldMaidId, $contract->maid_id]);
+        foreach (Maid::whereIn('id', $maidIds)->orderBy('id')->lockForUpdate()->get() as $maid) {
+            $this->syncMaidBookingState($maid);
+        }
     }
 
     private function syncMaidBookingState(Maid $maid): void
@@ -3150,8 +3208,8 @@ class RentContractController extends Controller
 
                 $isCompanyDue = $adjustmentType === 'company_due';
                 $adjustmentLabel = $isCompanyDue
-                    ? 'مستحق للشركة عند إغلاق العقد'
-                    : 'استرجاع عند إغلاق العقد';
+                    ? 'إشعار مدين لتسوية فاتورة العقد عند الإنهاء'
+                    : 'إشعار دائن لتخفيض فاتورة العقد عند الإنهاء';
                 $suggestedAmount = $isCompanyDue
                     ? (float) ($summary['calculated_debit_note_value'] ?? 0)
                     : (float) ($summary['calculated_credit_note_value'] ?? 0);

@@ -457,6 +457,18 @@ return array (
   'settings_section_policies' => 'السياسات والشروط',
   'settings_section_seo' => 'SEO and Tags',
   'settings_section_seo_hint' => 'إدارة بيانات الميتا وسكربتات Google Tag Manager للموقع الخارجي والواجهات الخارجية.',
+  'settings_seo_indexing' => 'فهرسة الموقع الخارجي',
+  'settings_seo_indexing_hint' => 'تتحكم في وسم canonical وملف sitemap.xml على الموقع الخارجي. تُقرأ عبر API الإعدادات، وإذا تُركت فارغة يرجع الموقع إلى إعداداته المحلية.',
+  'settings_seo_canonical_base' => 'النطاق الرسمي للموقع',
+  'settings_seo_canonical_base_hint' => 'يجب أن يطابق تمامًا ما يهبط عليه الزوار: البروتوكول وصيغة www من عدمها. أي اختلاف يجعل canonical يشير إلى عنوان آخر فتضيع قوة الصفحة.',
+  'settings_seo_sitemap_worker_pages' => 'إدراج صفحات العاملات في sitemap',
+  'settings_seo_sitemap_worker_pages_hint' => 'عند الإيقاف تبقى صفحات العاملات قابلة للزحف من داخل الموقع لكنها لا تُقدَّم لمحركات البحث في ملف sitemap.',
+  'settings_seo_sitemap_worker_limit' => 'حد أقصى لروابط العاملات',
+  'settings_seo_sitemap_worker_limit_hint' => 'صيغة sitemap تسمح بـ 50,000 رابط لكل ملف. اجعلها 0 لإيقاف القسم تمامًا.',
+  'settings_seo_sitemap_offer_pages' => 'إدراج صفحات العروض في sitemap',
+  'settings_seo_sitemap_offer_pages_hint' => 'صفحات العروض ذات مدة صلاحية؛ أوقف الإدراج إذا كانت العروض مؤقتة ولا تريد فهرستها.',
+  'settings_seo_sitemap_cache_minutes' => 'مدة تخزين sitemap (بالدقائق)',
+  'settings_seo_sitemap_cache_minutes_hint' => 'ملفات sitemap تُولَّد عند الطلب وتُخزَّن هذه المدة حتى لا تُستدعى الـ API مع كل زاحف. القيمة الأقل تُظهر المحتوى الجديد أسرع وتزيد الحمل.',
   'settings_section_additional' => 'إعدادات التشغيل',
   'settings_section_announcements' => 'الأخبار والإعلانات',
   'settings_section_translations' => 'إدارة الترجمات',
@@ -942,8 +954,13 @@ return array (
   'popup_settings' => 'إعدادات النافذة المنبثقة',
   'show_popup' => 'إظهار النافذة المنبثقة',
   'popup_image' => 'صورة النافذة المنبثقة',
-  'popup_link' => 'رابط الإعلان (اختياري)',
-  'popup_link_hint' => 'عند إدخال الرابط، يؤدي الضغط على صورة الإعلان إليه. وعند تركه فارغًا، يفتح واتساب للاستفسار عن العرض.',
+  'popup_link' => 'رابط الإعلان العام (اختياري)',
+  'popup_link_hint' => 'أدخل الرابط الكامل الذي سيفتح عند الضغط على صورة الإعلان، أو اتركه فارغًا لعرض الصورة فقط.',
+  'popup_destination_type' => 'وجهة الإعلان',
+  'popup_destination_general' => 'رابط عام',
+  'popup_destination_nationalities' => 'صفحة الاستقدام حسب الجنسية',
+  'popup_nationalities' => 'الجنسيات',
+  'popup_nationalities_hint' => 'اختر جنسية واحدة أو أكثر لفتح صفحة السير الذاتية مفلترة تلقائيًا.',
   'popup_settings_hint' => 'تحكم في الإعلان المنبثق الظاهر في الواجهة الرئيسية من حيث التفعيل والصورة المستخدمة.',
   'automation_settings' => 'إعدادات الأتمتة والمدد',
   'automation_settings_hint' => 'من هنا يتم التحكم في كل المدد التي يعتمد عليها النظام تلقائياً وفي مهام الـ cron المرتبطة بالضمان والطلبات.',
@@ -1084,7 +1101,7 @@ return array (
     'pre_arrival' => 'قبل الوصول',
     'arrival_stage' => 'مرحلة الوصول',
   'filters' => 'الفلاتر',
-  'layout' => 
+  'layout' =>
   array (
     'default_musaned_pro' => 'مساند برو',
     'default_musaned_tawtheeq' => 'مساند توثيق',
@@ -1107,7 +1124,7 @@ return array (
     'saudi_arabia' => 'العربية',
     'english' => 'الإنجليزية',
   ),
-  'sidebar' => 
+  'sidebar' =>
   array (
     'sms_templates' => 'نماذج الرسائل',
     'private_requests' => 'طلبات خاصة',
@@ -1244,7 +1261,7 @@ return array (
         'social_statuses' => 'الحالات الاجتماعية',
         'dashboard_settings' => 'إعدادات لوحة التحكم',
         'client_website_settings' => 'إعدادات موقع العميل',
-        'external_website_data' => 'بيانات الموقع الخارجي',
+        'external_website_data' => 'اعدادت عامة لموقع العميل',
         'home_page' => 'الصفحة الرئيسية',
         'internal_system_settings' => 'إعدادات النظام الداخلية',
         'rental_settings' => 'إعدادات التأجير',
@@ -1485,7 +1502,7 @@ return array (
     'knowledge_center' => 'مركز المعرفة',
     'support_tickets' => 'تذاكر الدعم',
   ),
-  'dashboard_new' => 
+  'dashboard_new' =>
   array (
     'active' => 'نشطة',
     'active_employees' => 'نشطون',

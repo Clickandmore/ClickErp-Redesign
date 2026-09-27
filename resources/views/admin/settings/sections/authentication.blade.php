@@ -62,7 +62,7 @@
         </div>
 
         <div class="col-12 text-end">
-            @if (@AdminGuardHasPerm(\App\PermKeys::SETTINGS_CONTROL))
+            @if (@AdminGuardHasAnyPerm([\App\PermKeys::SETTINGS_CONTROL, \App\PermKeys::WEBSITE_SETTINGS_CONTROL]))
                 <button class="btn btn-primary" type="submit">{{ __('buttons.save') }}</button>
             @endif
         </div>

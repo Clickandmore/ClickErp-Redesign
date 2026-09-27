@@ -1,6 +1,7 @@
 <?php
 
 return [
+    'financial_requests_edit_amount' => 'Edit Financial Request Amount',
     // ========================================
     // Main Dashboard Sections
     // ========================================
@@ -75,7 +76,7 @@ return [
     'maids_export_excel' => 'Export CVs as Excel',
     'maids_show' => 'Show CV Details',
     'maids_toggle_status' => 'Toggle Visibility Status',
-    'maids_bulk_visibility' => 'Show or Hide All CVs',
+    'maids_bulk_visibility' => 'Bulk Show / Hide CVs',
     'maids_toggle_pin' => 'Toggle Pin Status',
     'maids_control' => 'Control CVs',
     'maids_rental_view' => 'View Rental Maids CVs',
@@ -111,6 +112,9 @@ return [
     'orders_delete' => 'Delete Orders',
     'orders_export' => 'Export Orders',
     'orders_change_status' => 'Change Order Status',
+    'orders_reject' => 'Reject / Return Order',
+    'orders_change_maid' => 'Change Order Maid',
+    'orders_change_responsible' => 'Change Responsible Employee',
     'orders_mark_in_progress' => 'Mark Order In Progress',
     'orders_mark_cancelled' => 'Cancel Order',
     'orders_mark_completed' => 'Complete Order',
@@ -230,6 +234,7 @@ return [
     // ========================================
     // Settings
     // ========================================
+    'website_settings_control' => 'Manage External Website Settings',
     'settings_view' => 'View Settings',
     'settings_edit' => 'Edit Settings',
     'settings_control' => 'Control Settings',
@@ -352,6 +357,7 @@ return [
     'office_edit' => 'Edit Offices',
     'office_delete' => 'Delete Offices',
     'office_control' => 'Control Offices',
+  'office_suspend_cvs' => 'Suspend an external agent CVs',
 
     'steps_view' => 'View Steps',
     'steps_create' => 'Create Step',
@@ -500,6 +506,10 @@ return [
     'why_choose_us_edit' => 'Edit Why Choose Us section',
     'why_choose_us_delete' => 'Delete Why Choose Us content',
     'why_choose_us_control' => 'Fully manage Why Choose Us section',
+    'home_sections' => 'Home Page Sections',
+    'home_sections_view' => 'View home page sections settings',
+    'home_sections_edit' => 'Show/hide home page sections',
+    'home_sections_control' => 'Fully manage home page sections',
     'musaned_section' => 'Musaned Section',
     'musaned_section_view' => 'View Musaned section',
     'musaned_section_edit' => 'Edit Musaned section',
@@ -521,6 +531,11 @@ return [
     'find_us_edit' => 'Edit Where to Find Us branch',
     'find_us_delete' => 'Delete Where to Find Us branch',
     'find_us_control' => 'Fully manage Where to Find Us',
+    'why_us_view' => 'View Why Us',
+    'why_us_create' => 'Add Why Us card',
+    'why_us_edit' => 'Edit Why Us card',
+    'why_us_delete' => 'Delete Why Us card',
+    'why_us_control' => 'Fully manage Why Us',
     'recruitment_requirements_view' => 'View recruitment requirements',
     'recruitment_requirements_create' => 'Add recruitment requirements',
     'recruitment_requirements_edit' => 'Edit recruitment requirements',

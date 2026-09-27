@@ -14,7 +14,7 @@ class DailyLabotDemandController extends Controller
     public function index(JobTitleAction $jobTitleAction, WhyUsAction $whyUsAction, TestimonialsAction $testimonialsAction)
     {
         $jobTitles = $jobTitleAction->get();
-        $whyUs = $whyUsAction->get();
+        $whyUs = $whyUsAction->getVisible();
         $testimonials = $testimonialsAction->get();
         return view('site.pages.daily_labor_demand', get_defined_vars());
     }

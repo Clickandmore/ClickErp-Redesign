@@ -65,6 +65,11 @@
                         </div>
 
                         @php
+                            $selectedNationalityIds = collect(is_array(request('nationality_ids'))
+                                ? request('nationality_ids')
+                                : explode(',', (string) request('nationality_ids', '')))
+                                ->push(request('nationality_id'))
+                                ->filter()->map(fn ($id) => (string) $id)->unique()->values();
                             $currentExperienceStatus = request()->filled('experience_status')
                                 ? request()->experience_status
                                 : '';
@@ -73,7 +78,7 @@
                                 request()->filled('experience_status') ||
                                 request()->filled('age') ||
                                 request()->filled('job') ||
-                                request()->filled('nationality_id');
+                                $selectedNationalityIds->isNotEmpty();
                         @endphp
                         <form action="" class="row" id="maids_filter">
                             <input type="hidden" id="experience_status_input" value="{{ $currentExperienceStatus }}">
@@ -133,12 +138,10 @@
                                 <label for="nationality_id">
                                     <i class="fa-duotone fa-flag me-1"></i> {{ __('ingaz.nationality') }}
                                 </label>
-                                <select id="nationality_id" class="select2">
-                                    <option value="" {{ request('nationality_id') ? '' : 'selected' }}>
-                                        {{ __('ingaz.all') }}</option>
+                                <select id="nationality_id" class="select2" multiple data-placeholder="{{ __('ingaz.all') }}">
                                     @foreach ($nationalities as $nationality)
                                         <option value="{{ $nationality->id }}"
-                                            {{ (string) request('nationality_id') === (string) $nationality->id ? 'selected' : '' }}>
+                                            {{ $selectedNationalityIds->contains((string) $nationality->id) ? 'selected' : '' }}>
                                             {{ $nationality->title }}
                                         </option>
                                     @endforeach
@@ -313,13 +316,14 @@
                 let experience = experienceInput.val();
                 let age = $("#age").val();
                 let job = $("#job").val();
-                let nationality_id = $("#nationality_id").val();
+                let nationality_ids = $("#nationality_id").val() || [];
 
                 if (type && type !== "all") filters.type = type;
                 if (experience) filters.experience_status = experience;
                 if (age) filters.age = age;
                 if (job) filters.job = job;
-                if (nationality_id) filters.nationality_id = nationality_id;
+                if (nationality_ids.length === 1) filters.nationality_id = nationality_ids[0];
+                if (nationality_ids.length > 1) filters.nationality_ids = nationality_ids.join(',');
 
                 return filters;
             }

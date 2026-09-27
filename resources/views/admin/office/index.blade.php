@@ -285,6 +285,15 @@
             color: #198754;
         }
 
+        .cvs-suspended-wrapper {
+            margin-top: .35rem;
+        }
+
+        .cvs-suspended-wrapper .badge {
+            font-size: .72rem;
+            font-weight: 700;
+        }
+
         .related-count-badge.is-empty {
             background: #f1f5f9;
             color: #94a3b8;
@@ -899,6 +908,59 @@
                 success: function() {
                     officeTable.ajax.reload(null, false);
                 },
+            });
+        });
+
+        $(document).on('click', '.toggleOfficeCvsSuspension', function(event) {
+            event.preventDefault();
+
+            const $button = $(this);
+            const officeId = $button.data('id');
+            const isSuspended = String($button.data('suspended')) === '1';
+            const officeTitle = $button.data('office-title') || '{{ __('ingaz.office') }}';
+            const linkedCvs = parseInt($button.data('linked-cvs') || '0', 10);
+            const url = "{{ route('offices.cvs-suspension.update', 'officeId') }}".replace('officeId',
+                officeId);
+
+            Swal.fire({
+                icon: 'question',
+                title: isSuspended ?
+                    '{{ __('ingaz.office_cvs_resume_confirm_title') }}' :
+                    '{{ __('ingaz.office_cvs_suspend_confirm_title') }}',
+                html: (isSuspended ?
+                        '{{ __('ingaz.office_cvs_resume_confirm_text') }}' :
+                        '{{ __('ingaz.office_cvs_suspend_confirm_text') }}')
+                    .replace(':office', officeTitle)
+                    .replace(':count', linkedCvs),
+                showCancelButton: true,
+                confirmButtonText: '{{ __('ingaz.confirm') }}',
+                cancelButtonText: '{{ __('ingaz.cancel') }}',
+            }).then(function(result) {
+                if (!result.isConfirmed) {
+                    return;
+                }
+
+                $button.prop('disabled', true);
+
+                $.ajax({
+                    url: url,
+                    type: 'POST',
+                    data: {
+                        _token: "{{ csrf_token() }}",
+                    },
+                    success: function(response) {
+                        officeTable.ajax.reload(null, false);
+                        successToster('{{ __('ingaz.success') }}', response.message ||
+                            '{{ __('ingaz.updated_successfully') }}');
+                    },
+                    error: function(xhr) {
+                        validToster('{{ __('auth.an error occurred') }}', xhr.responseJSON
+                            ?.message || '{{ __('ingaz.unexpected_error') }}');
+                    },
+                    complete: function() {
+                        $button.prop('disabled', false);
+                    }
+                });
             });
         });
 

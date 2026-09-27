@@ -130,9 +130,9 @@
 
                 $canViewSms = @AdminGuardHasAnyPerm([\App\PermKeys::NOTIFICATIONS_CONTROL, \App\PermKeys::NOTIFICATIONS_VIEW]);
 
-                $canViewWebsiteManagement = @SystemModuleEnabled('website') && @AdminGuardHasAnyPerm([\App\PermKeys::SETTINGS_VIEW, \App\PermKeys::FAQ_VIEW, \App\PermKeys::STATISTICS_VIEW, \App\PermKeys::OFFERS_VIEW, \App\PermKeys::OFFERS_CONTROL, \App\PermKeys::WHY_CHOOSE_US_VIEW, \App\PermKeys::WHY_CHOOSE_US_CONTROL, \App\PermKeys::FIND_US_VIEW, \App\PermKeys::FIND_US_CONTROL, \App\PermKeys::RECRUITMENT_REQUIREMENTS_VIEW, \App\PermKeys::RECRUITMENT_REQUIREMENTS_CONTROL, \App\PermKeys::GUIDELINES_VIEW, \App\PermKeys::GUIDELINES_CONTROL, \App\PermKeys::DEVELOPERS_PERMS]);
+                $canViewWebsiteManagement = @SystemModuleEnabled('website') && @AdminGuardHasAnyPerm([\App\PermKeys::WEBSITE_SETTINGS_CONTROL, \App\PermKeys::BLOGS_VIEW, \App\PermKeys::BLOGS_CONTROL, \App\PermKeys::HOME_SECTIONS_VIEW, \App\PermKeys::HOME_SECTIONS_EDIT, \App\PermKeys::HOME_SECTIONS_CONTROL, \App\PermKeys::SETTINGS_VIEW, \App\PermKeys::FAQ_VIEW, \App\PermKeys::STATISTICS_VIEW, \App\PermKeys::OFFERS_VIEW, \App\PermKeys::OFFERS_CONTROL, \App\PermKeys::WHY_CHOOSE_US_VIEW, \App\PermKeys::WHY_CHOOSE_US_CONTROL, \App\PermKeys::WHY_US_VIEW, \App\PermKeys::WHY_US_CONTROL, \App\PermKeys::FIND_US_VIEW, \App\PermKeys::FIND_US_CONTROL, \App\PermKeys::RECRUITMENT_REQUIREMENTS_VIEW, \App\PermKeys::RECRUITMENT_REQUIREMENTS_CONTROL, \App\PermKeys::GUIDELINES_VIEW, \App\PermKeys::GUIDELINES_CONTROL, \App\PermKeys::DEVELOPERS_PERMS]);
 
-                $canViewHomeSettings = @AdminGuardHasAnyPerm([\App\PermKeys::SETTINGS_VIEW, \App\PermKeys::SLIDERS_VIEW, \App\PermKeys::OFFERS_VIEW, \App\PermKeys::OFFERS_CONTROL, \App\PermKeys::ABOUT_US_VIEW, \App\PermKeys::FAQ_VIEW, \App\PermKeys::STATISTICS_VIEW, \App\PermKeys::STEPS_VIEW, \App\PermKeys::SERVICES_VIEW, \App\PermKeys::PARTENR_VIEW, \App\PermKeys::WHY_CHOOSE_US_VIEW, \App\PermKeys::WHY_CHOOSE_US_CONTROL, \App\PermKeys::FIND_US_VIEW, \App\PermKeys::FIND_US_CONTROL, \App\PermKeys::RECRUITMENT_REQUIREMENTS_VIEW, \App\PermKeys::RECRUITMENT_REQUIREMENTS_CONTROL]);
+                $canViewHomeSettings = @AdminGuardHasAnyPerm([\App\PermKeys::BLOGS_VIEW, \App\PermKeys::BLOGS_CONTROL, \App\PermKeys::HOME_SECTIONS_VIEW, \App\PermKeys::HOME_SECTIONS_EDIT, \App\PermKeys::HOME_SECTIONS_CONTROL, \App\PermKeys::SETTINGS_VIEW, \App\PermKeys::SLIDERS_VIEW, \App\PermKeys::OFFERS_VIEW, \App\PermKeys::OFFERS_CONTROL, \App\PermKeys::ABOUT_US_VIEW, \App\PermKeys::FAQ_VIEW, \App\PermKeys::STATISTICS_VIEW, \App\PermKeys::STEPS_VIEW, \App\PermKeys::SERVICES_VIEW, \App\PermKeys::PARTENR_VIEW, \App\PermKeys::WHY_CHOOSE_US_VIEW, \App\PermKeys::WHY_CHOOSE_US_CONTROL, \App\PermKeys::WHY_US_VIEW, \App\PermKeys::WHY_US_CONTROL, \App\PermKeys::FIND_US_VIEW, \App\PermKeys::FIND_US_CONTROL, \App\PermKeys::RECRUITMENT_REQUIREMENTS_VIEW, \App\PermKeys::RECRUITMENT_REQUIREMENTS_CONTROL]);
 
                 $canViewBranches = @SystemModuleEnabled('branches') && @AdminGuardHasAnyPerm([\App\PermKeys::BRANCHES_VIEW, \App\PermKeys::BRANCHES_CREATE, \App\PermKeys::BRANCHES_EDIT, \App\PermKeys::BRANCHES_DELETE, \App\PermKeys::BRANCHES_CONTROL]);
                 $canViewMaidsData = @SystemModuleEnabled('operations') && @AdminGuardHasAnyPerm([\App\PermKeys::NATIONALITIES_VIEW, \App\PermKeys::REC_OFFICES_VIEW, \App\PermKeys::JOB_TITLES_VIEW, \App\PermKeys::RELIGIONS_VIEW, \App\PermKeys::SKILLS_VIEW, \App\PermKeys::MAID_LANGUAGES_VIEW, \App\PermKeys::COUNTRIES_VIEW, \App\PermKeys::SOCIAL_STATUS_VIEW, \App\PermKeys::USERS_VIEW, \App\PermKeys::MAIDS_VIEW]);
@@ -202,11 +202,14 @@
                         class="sidebar-module sidebar-module--crm {{ $isCrm || request()->routeIs('whatsapp.inbox.*') || request()->routeIs('whatsapp.notifications.*') || request()->routeIs('messages.*') ? '' : 'collapsed' }}">
                         <a class="m-link" data-bs-toggle="collapse" data-bs-target="#crm" href="#">
                             <i class="fa-regular fa-file-lines me-2"></i>
-                            <span class="ms-2">{{ __('ingaz.crm') }}</span>
+                            <span class="ms-2">{{ \App\Support\AdminPermissionNavigation::unitTitle('crm') }}</span>
                             <span class="arrow fa fa-angle-left ms-auto text-end"></span>
                         </a>
                         <ul class="sub-menu collapse {{ $isCrm || request()->routeIs('clients.*') || request()->routeIs('website-visitors.*') || request()->routeIs('whatsapp.inbox.*') || request()->routeIs('whatsapp.notifications.*') || request()->routeIs('messages.*') ? 'show' : '' }}"
                             id="crm">
+                            @if (@AdminGuardHasPerm(\App\PermKeys::CLIENTS_DELETE))
+                                <li><a class="m-link {{ request()->routeIs('clients.trashed') ? 'active' : '' }}" href="{{ route('clients.trashed') }}"><i class="fas fa-trash-restore"></i><span class="ms-2">العملاء المحذوفون</span></a></li>
+                            @endif
                             @if (@AdminGuardHasPerm(\App\PermKeys::CLIENTS_VIEW))
                                 <li>
                                     <a class="m-link {{ Route::currentRouteName() == 'clients.index' ? 'active' : '' }}"
@@ -242,7 +245,7 @@
                         <a class="m-link" data-bs-toggle="collapse" data-bs-target="#Operations_Management"
                             href="#">
                             <i class="fa fa-tasks me-2"></i>
-                            <span class="ms-2">{{ helperTrans('ingaz.Operations_Management') }}</span>
+                            <span class="ms-2">{{ \App\Support\AdminPermissionNavigation::unitTitle('operations') }}</span>
                             <span class="arrow fa fa-angle-left ms-auto text-end"></span>
                         </a>
                         <ul class="sub-menu collapse {{ $isOperationsManagementOpen ? 'show' : '' }}"
@@ -442,7 +445,7 @@
                                         <span class="ms-2"> {{ helperTrans('ingaz.Recruitment contracts') }} </span>
                                         <span class="arrow fa fa-angle-left ms-auto text-end"></span>
                                     </a>
-                                    <ul class="sub-menu collapse {{ in_array(Route::currentRouteName(), ['RecruitmentContracts.index', 'RecruitmentContract.index', 'RecruitmentContract.create', 'RecruitmentContract.externalOfficeDispatch.index', 'RecruitmentContract.externalOfficeDispatch.edit', 'RecruitmentContract.externalOfficeDispatch.print', 'contract-return-requests.index', 'invoices.index', 'contract-extension-requests.index', 'contract-extension-requests.show']) ? 'show' : '' }}"
+                                    <ul class="sub-menu collapse {{ in_array(Route::currentRouteName(), ['RecruitmentContracts.index', 'RecruitmentContract.company.index', 'RecruitmentContract.index', 'RecruitmentContract.escapeReports.index', 'RecruitmentContract.escapeReports.show', 'RecruitmentContract.create', 'RecruitmentContract.externalOfficeDispatch.index', 'RecruitmentContract.externalOfficeDispatch.edit', 'RecruitmentContract.externalOfficeDispatch.print', 'contract-return-requests.index', 'invoices.index', 'contract-extension-requests.index', 'contract-extension-requests.show']) ? 'show' : '' }}"
                                         id="contracts">
                                         @if (@AdminGuardHasPerm(\App\NewPermKeys::REC_CONTRACTS_CREATE))
                                             <li>
@@ -455,6 +458,21 @@
                                             </li>
                                         @endif
                                         @if (@AdminGuardHasPerm(\App\NewPermKeys::REC_CONTRACTS_VIEW))
+                                            
+                                            <li>
+                                                <a class="m-link {{ Route::currentRouteName() == 'RecruitmentContract.index' && !request()->filled('status') && !request()->boolean('shelter_contracts') ? 'active' : '' }}"
+                                                    href="{{ route('RecruitmentContract.index', ['all_contracts' => 1]) }}">
+                                                    <i class="fa fa-file-alt"></i>
+                                                    <span class="ms-2">جميع عقود الاستقدام</span>
+                                                </a>
+                                            </li>
+                                            <li>
+                                                <a class="m-link {{ Route::currentRouteName() == 'RecruitmentContract.company.index' ? 'active' : '' }}"
+                                                    href="{{ route('RecruitmentContract.company.index') }}">
+                                                    <i class="fa fa-building"></i>
+                                                    <span class="ms-2">عقود الاستقدام للشركة</span>
+                                                </a>
+                                            </li>
                                             <li>
                                                 <a class="m-link {{ Route::currentRouteName() == 'RecruitmentContract.index' && request()->input('status') == 'current' ? 'active' : '' }}"
                                                     href="{{ route('RecruitmentContract.index', ['status' => 'current']) }}">
@@ -489,6 +507,11 @@
                                                         class="badge bg-danger ms-2">{{ $contractsCount['back'] }}</span>
                                                 </a>
                                             </li>
+
+                                            @if (@AdminGuardHasPerm(\App\PermKeys::REC_CONTRACTS_ESCAPE_REPORTS_VIEW))
+                                                <li><a class="m-link {{ request()->routeIs('RecruitmentContract.escapeReports.*') ? 'active' : '' }}" href="{{ route('RecruitmentContract.escapeReports.index') }}"><i class="fas fa-running"></i><span class="ms-2">بلاغات الهروب</span></a></li>
+                                            @endif
+                                            
                                             <li>
                                                 <a class="m-link {{ request()->routeIs('RecruitmentContract.externalOfficeDispatch.*') ? 'active' : '' }}"
                                                     href="{{ route('RecruitmentContract.externalOfficeDispatch.index') }}">
@@ -1088,7 +1111,7 @@
                     <li class="sidebar-module sidebar-module--hr {{ $isHr ? '' : 'collapsed' }}">
                         <a class="m-link" data-bs-toggle="collapse" data-bs-target="#hr" href="#">
                             <i class="fa fa-user-tie me-2"></i>
-                            <span class="ms-2">{{ __('ingaz.hr') }}</span>
+                            <span class="ms-2">{{ \App\Support\AdminPermissionNavigation::unitTitle('hr') }}</span>
                             <span class="arrow fa fa-angle-left ms-auto text-end"></span>
                         </a>
                         <ul class="sub-menu collapse {{ $isHr ? 'show' : '' }}" id="hr">
@@ -1107,7 +1130,7 @@
                     <li class="sidebar-module sidebar-module--finance {{ $isFinance ? '' : 'collapsed' }}">
                         <a class="m-link" data-bs-toggle="collapse" data-bs-target="#finance" href="#">
                             <i class="fa fa-dollar-sign me-2"></i>
-                            <span class="ms-2">{{ __('ingaz.finance') }}</span>
+                            <span class="ms-2">{{ \App\Support\AdminPermissionNavigation::unitTitle('finance') }}</span>
                             <span class="arrow fa fa-angle-left ms-auto text-end"></span>
                         </a>
                         <ul class="sub-menu collapse {{ $isFinance ? 'show' : '' }}" id="finance">
@@ -1121,7 +1144,7 @@
                     <li class="sidebar-module sidebar-module--messages {{ request()->routeIs('admin.dispatch.*') ? '' : 'collapsed' }}">
                         <a class="m-link" data-bs-toggle="collapse" data-bs-target="#smsManagement" href="#">
                             <i class="fa fa-sms"></i>
-                            <span class="ms-2">{{ __('admin.sidebar.messages_management') }}</span>
+                            <span class="ms-2">{{ \App\Support\AdminPermissionNavigation::unitTitle('messages') }}</span>
                             <span class="arrow fa fa-angle-left ms-auto text-end"></span>
                         </a>
                         <ul class="sub-menu collapse {{ in_array(Route::currentRouteName(), ['notifications.index', 'notifications.settings', 'notifications.settings.alerts']) || request()->routeIs('admin.dispatch.*') || Request::is('admin/sms-templates*') ? 'show' : '' }}"
@@ -1194,7 +1217,9 @@
                             request()->routeIs('what-do.*') ||
                             request()->routeIs('what-do-setting.*') ||
                             request()->routeIs('why-choose-us.*') ||
+                            request()->routeIs('why-us.*') ||
                             request()->routeIs('musaned-section.*') ||
+                            request()->routeIs('home-sections.*') ||
                             request()->routeIs('home-hero.*') ||
                             request()->routeIs('find-us.*') ||
                             request()->routeIs('about-us.*') ||
@@ -1274,7 +1299,7 @@
                         <a class="m-link" data-bs-toggle="collapse" data-bs-target="#settingsOperation"
                             href="#">
                             <i class="fa fa-cog fa-lg"></i>
-                            <span class="ms-2">{{ __('admin.sidebar.system_settings') }}</span>
+                            <span class="ms-2">{{ \App\Support\AdminPermissionNavigation::unitTitle('settings') }}</span>
                             <span class="arrow fa fa-angle-left ms-auto text-end"></span>
                         </a>
                         <ul class="sub-menu collapse {{ $settingsOperationOpen ? 'show' : '' }}"
@@ -1300,7 +1325,7 @@
 
                                     <ul class="sub-menu collapse {{ $websiteManagementOpen ? 'show' : '' }}"
                                         id="websiteManagement">
-                                        @if (@AdminGuardHasPerm(\App\PermKeys::SETTINGS_VIEW))
+                                        @if (@AdminGuardHasAnyPerm([\App\PermKeys::SETTINGS_VIEW, \App\PermKeys::WEBSITE_SETTINGS_CONTROL]))
                                             <li>
                                                 <a class="m-link {{ $isWebsiteSettingsRoute ? 'active' : '' }}"
                                                     href="{{ route('settings.section', 'general') }}">
@@ -1401,6 +1426,28 @@
                                                                 <span class="ms-2">
                                                                     {{ __('why_choose_us.sidebar_title') }}
                                                                 </span>
+                                                            </a>
+                                                        </li>
+                                                    @endif
+
+                                                    @if (@AdminGuardHasAnyPerm([\App\PermKeys::WHY_US_VIEW, \App\PermKeys::WHY_US_CONTROL]))
+                                                        <li>
+                                                            <a class="m-link {{ request()->routeIs('why-us.*') ? 'active' : '' }}"
+                                                                href="{{ route('why-us.index') }}">
+                                                                <i class="fa fa-star"></i>
+                                                                <span class="ms-2">
+                                                                    {{ __('why_us.sidebar_title') }}
+                                                                </span>
+                                                            </a>
+                                                        </li>
+                                                    @endif
+
+                                                    @if (@AdminGuardHasAnyPerm([\App\PermKeys::HOME_SECTIONS_VIEW, \App\PermKeys::HOME_SECTIONS_EDIT, \App\PermKeys::HOME_SECTIONS_CONTROL]))
+                                                        <li>
+                                                            <a class="m-link {{ request()->routeIs('home-sections.*') ? 'active' : '' }}"
+                                                                href="{{ route('home-sections.edit') }}">
+                                                                <i class="fa fa-toggle-on"></i>
+                                                                <span class="ms-2">{{ __('home_sections.sidebar_title') }}</span>
                                                             </a>
                                                         </li>
                                                     @endif

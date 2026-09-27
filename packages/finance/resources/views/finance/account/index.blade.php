@@ -278,7 +278,18 @@
                     @endforeach
                 </select>
             </div>
+            {{-- فلتر الفرع يعيد تحميل الصفحة: الشجرة وأرصدتها تُبنى في الخادم،
+                 بخلاف فلاتر البحث والمستوى التي تعمل على الشجرة المعروضة. --}}
+            @include('admin.partials.branch-filter', [
+                'name' => 'branch_id',
+                'label' => __('financial_requests.branch'),
+                'id' => 'accountBranchFilter',
+                'containerClass' => 'col-md-2 col-sm-4 col-xs-12',
+                'selectClass' => 'form-control',
+                'labelClass' => 'sr-only visually-hidden',
+            ])
         </div>
+        @include('admin.partials.branch-report-scope', ['scopeTag' => 'div', 'scopeClass' => 'account-tree-branch-scope mt-2'])
         <div class="clearfix"></div>
         <div class="tree searchTree" id="account-tree-container">
             <ul>
@@ -408,6 +419,19 @@
 
         $('#accountFilter').on('change', function() {
             applyAccountTreeFilters();
+        });
+
+        $('#accountBranchFilter').on('change', function() {
+            const url = new URL(window.location.href);
+            const branchId = $(this).val();
+
+            if (branchId) {
+                url.searchParams.set('branch_id', branchId);
+            } else {
+                url.searchParams.delete('branch_id');
+            }
+
+            window.location.assign(url.toString());
         });
     </script>
 @endsection

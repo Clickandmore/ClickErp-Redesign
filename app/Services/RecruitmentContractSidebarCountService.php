@@ -34,6 +34,8 @@ class RecruitmentContractSidebarCountService
 
         $baseQuery = app(BranchAccessService::class)
             ->applyToQuery(Contract::query(), $request, 'contracts');
+        $dispatchQuery = clone $baseQuery;
+        $baseQuery->forCompanyRecruitment(false);
 
         $counts['under_warranty'] = (clone $baseQuery)
             ->where('status', ContractStatusEnum::Arrival->value)
@@ -46,20 +48,27 @@ class RecruitmentContractSidebarCountService
         $counts['pending_maid_selection'] = (clone $baseQuery)
             ->where('status', ContractStatusEnum::PendingMaidSelection->value)
             ->count();
-        $counts['are_valid'] = (clone $baseQuery)->whereIn('status', [
-            ContractStatusEnum::PendingMaidSelection->value,
-            ContractStatusEnum::New->value,
-            ContractStatusEnum::Msaned->value,
-            ContractStatusEnum::Tafwed->value,
-            ContractStatusEnum::Taffez->value,
-            ContractStatusEnum::Tazker->value,
-        ])->count();
+        $counts['are_valid'] = (clone $baseQuery)
+            ->whereIn('type', ['recruitment', 'maid'])
+            ->whereIn('status', [
+                ContractStatusEnum::PendingMaidSelection->value,
+                ContractStatusEnum::New->value,
+                ContractStatusEnum::Msaned->value,
+                ContractStatusEnum::Tafwed->value,
+                ContractStatusEnum::Taffez->value,
+                ContractStatusEnum::Tazker->value,
+                ContractStatusEnum::Sari->value,
+            ])
+            ->whereDoesntHave('travelHistory', function ($travelQuery) {
+                $travelQuery->where('status', 'completed');
+            })
+            ->count();
         $counts['completed'] = (clone $baseQuery)
             ->where('status', ContractStatusEnum::Completed->value)
             ->count();
 
         if (Schema::hasTable('contract_external_office_dispatches')) {
-            $counts['external_office_dispatch_pending'] = (clone $baseQuery)
+            $counts['external_office_dispatch_pending'] = $dispatchQuery
                 ->whereIn('type', ['recruitment', 'maid'])
                 ->whereIn('status', [
                     ContractStatusEnum::PendingMaidSelection->value,

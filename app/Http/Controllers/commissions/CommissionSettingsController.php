@@ -30,15 +30,22 @@ class CommissionSettingsController extends Controller
             ->orderBy('name')
             ->get();
 
-        $marketerPayableAccounts = $this->accountService->payableAccounts()
-            ->orderBy('code')
-            ->get(['id', 'code', 'name']);
+        $payableAccountError = null;
+        try {
+            $marketerPayableAccounts = $this->accountService->payableAccounts()
+                ->orderBy('code')
+                ->get(['id', 'code', 'name']);
+        } catch (ValidationException $exception) {
+            $marketerPayableAccounts = collect();
+            $payableAccountError = $exception->errors()['accrual'][0] ?? $exception->getMessage();
+        }
 
         return view('commissions.settings.index', compact(
             'settings',
             'serviceTypeOptions',
             'marketers',
-            'marketerPayableAccounts'
+            'marketerPayableAccounts',
+            'payableAccountError'
         ));
     }
 

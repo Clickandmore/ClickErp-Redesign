@@ -3,6 +3,10 @@ namespace App;
 
 class PermKeys
 {
+    const REC_CONTRACTS_DEPORTATION = 'rec_contracts_deportation';
+    const REC_CONTRACTS_ESCAPE_REPORTS_VIEW = 'rec_contracts_escape_reports_view';
+    const REC_CONTRACTS_ESCAPE_REPORT_CREATE = 'rec_contracts_escape_report_create';
+    const REC_CONTRACTS_ESCAPE_REPORT_DELETE = 'rec_contracts_escape_report_delete';
 
     // DO NOT CHANGES VALUES UNLESS YOU KNOW WHAT YOUR DOING
     // SOME FUNCTIONALITY DEPENDS ON THESE VALUES
@@ -97,6 +101,7 @@ const PARTENR_CONTROL = 'partenr_control';
 
     // صلاحيات تغيير حالة الطلب
     const ORDERS_CHANGE_STATUS = 'orders_change_status';
+    const ORDERS_REJECT = 'orders_reject';
     const ORDERS_MARK_IN_PROGRESS = 'orders_mark_in_progress';
     const ORDERS_MARK_CANCELLED = 'orders_mark_cancelled';
     const ORDERS_MARK_COMPLETED = 'orders_mark_completed';
@@ -120,6 +125,7 @@ const PARTENR_CONTROL = 'partenr_control';
     const FINANCIAL_REQUESTS_VIEW = 'financial_requests_view';
     const FINANCIAL_REQUESTS_CREATE = 'financial_requests_create';
     const FINANCIAL_REQUESTS_EDIT = 'financial_requests_edit';
+    const FINANCIAL_REQUESTS_EDIT_AMOUNT = 'financial_requests_edit_amount';
     const FINANCIAL_REQUESTS_DELETE = 'financial_requests_delete';
     const FINANCIAL_REQUESTS_CHANGE_STATUS = 'financial_requests_change_status';
     const FINANCIAL_REQUESTS_ESCALATE = 'financial_requests_escalate';
@@ -128,6 +134,12 @@ const PARTENR_CONTROL = 'partenr_control';
     const FINANCIAL_REQUESTS_CLOSE = 'financial_requests_close';
     const FINANCIAL_REQUESTS_EXPORT = 'financial_requests_export';
     const FINANCIAL_REQUESTS_CONTROL = 'financial_requests_control';
+
+    const POST_ARRIVAL_REFUND_VIEW = 'post_arrival_refund_view';
+    const POST_ARRIVAL_REFUND_CREATE = 'post_arrival_refund_create';
+    const POST_ARRIVAL_REFUND_POST = 'post_arrival_refund_post';
+    const POST_ARRIVAL_REFUND_PAYOUT = 'post_arrival_refund_payout';
+    const POST_ARRIVAL_REFUND_REVERSE = 'post_arrival_refund_reverse';
 
     // صلاحيات قوائم الطلبات الفرعية في السايدبار
     const PROFESSIONAL_APPLICATION_VIEW = 'professional_application_view';
@@ -225,6 +237,7 @@ const PARTENR_CONTROL = 'partenr_control';
     // ========================================
     // الإعدادات
     // ========================================
+    const WEBSITE_SETTINGS_CONTROL = 'website_settings_control';
     const SETTINGS_VIEW = 'settings_view';
     const SETTINGS_EDIT = 'settings_edit';
     const SETTINGS_CONTROL = 'settings_control';
@@ -376,6 +389,8 @@ const PARTENR_CONTROL = 'partenr_control';
     const OFFICE_EDIT = 'office_edit';
     const OFFICE_DELETE = 'office_delete';
     const OFFICE_CONTROL = 'office_control';
+    // صلاحية مستقلة لزر تعليق / فك تعليق السير الذاتية الخاصة بمكتب خارجي.
+    const OFFICE_SUSPEND_CVS = 'office_suspend_cvs';
     const EXTERNAL_AGENTS_VIEW = 'external_agents_view';
     const EXTERNAL_AGENTS_CREATE = 'external_agents_create';
     const EXTERNAL_AGENTS_EDIT = 'external_agents_edit';
@@ -401,9 +416,19 @@ const PARTENR_CONTROL = 'partenr_control';
     const WHY_CHOOSE_US_DELETE = 'why_choose_us_delete';
     const WHY_CHOOSE_US_CONTROL = 'why_choose_us_control';
 
+    const WHY_US_VIEW = 'why_us_view';
+    const WHY_US_CREATE = 'why_us_create';
+    const WHY_US_EDIT = 'why_us_edit';
+    const WHY_US_DELETE = 'why_us_delete';
+    const WHY_US_CONTROL = 'why_us_control';
+
     const MUSANED_SECTION_VIEW = 'musaned_section_view';
     const MUSANED_SECTION_EDIT = 'musaned_section_edit';
     const MUSANED_SECTION_CONTROL = 'musaned_section_control';
+
+    const HOME_SECTIONS_VIEW = 'home_sections_view';
+    const HOME_SECTIONS_EDIT = 'home_sections_edit';
+    const HOME_SECTIONS_CONTROL = 'home_sections_control';
 
     const HOME_HERO_VIEW = 'home_hero_view';
     const HOME_HERO_CREATE = 'home_hero_create';
@@ -480,6 +505,7 @@ const PARTENR_CONTROL = 'partenr_control';
     const RENT_CONTRACT_VIEW = 'rent_contract_view';
     const RENT_CONTRACT_CREATE = 'rent_contract_create';
     const RENT_CONTRACT_EDIT = 'rent_contract_edit';
+    const RENT_CONTRACT_CHANGE_MARKETER = 'rent_contract_change_marketer';
     const RENT_CONTRACT_DELETE = 'rent_contract_delete';
     const RENT_CONTRACT_CONTROL = 'rent_contract_control';
     const RENT_CONTRACT_CLOSURE_ADJUSTMENT_OVERRIDE = 'rent_contract_closure_adjustment_override';

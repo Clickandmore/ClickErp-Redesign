@@ -22,14 +22,21 @@
         });
     });
 
+    const adPopup = document.getElementById('ad-popup');
     const closeAdButton = document.getElementById('close-ad');
-    if (closeAdButton) {
-        closeAdButton.onclick = function () {
-            const adPopup = document.getElementById('ad-popup');
-            if (adPopup) {
-                adPopup.style.display = 'none';
-            }
+    if (adPopup) {
+        const closeAnnouncement = function () {
+            adPopup.style.display = 'none';
         };
+
+        if (closeAdButton) {
+            closeAdButton.addEventListener('click', closeAnnouncement);
+        }
+        adPopup.addEventListener('click', function (event) {
+            if (event.target === adPopup) {
+                closeAnnouncement();
+            }
+        });
     }
 
     function checkInternetConnection() {

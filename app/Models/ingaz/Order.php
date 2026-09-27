@@ -47,7 +47,12 @@ class Order extends Model
 
     protected static function booted()
     {
+        static::deleted(function (Order $order) {
+            app(\App\Services\OrderMaidReservationService::class)->release($order);
+        });
+
         static::creating(function (Order $order) {
+            $order->created_by_admin_id = auth('admin')->id();
             if (self::shouldTrackDeadline($order->status)) {
                 $order->deadline_at = now()->addHours($order->getDeadlineHours());
             }
@@ -70,6 +75,25 @@ class Order extends Model
         return in_array($status, [OrderEnum::New->value, OrderEnum::UnderProcess->value], true);
     }
 
+    public function wasCreatedByAdmin(?Admin $admin): bool
+    {
+        return $admin && $admin->getKey()
+            && $this->created_by_admin_id
+            && (int) $this->created_by_admin_id === (int) $admin->getKey();
+    }
+
+    public function adminCanReject(?Admin $admin): bool
+    {
+        return $this->wasCreatedByAdmin($admin)
+            || \App\Support\AdminRoutePermissionMatrix::adminHasAnyPermission($admin, [\App\PermKeys::ORDERS_REJECT]);
+    }
+
+    public function adminCanDelete(?Admin $admin): bool
+    {
+        return $this->wasCreatedByAdmin($admin)
+            || \App\Support\AdminRoutePermissionMatrix::adminHasAnyPermission($admin, [\App\PermKeys::ORDERS_DELETE]);
+    }
+
     public function transfers()
     {
         return $this->hasMany(OrderTransfers::class);
@@ -87,7 +111,7 @@ class Order extends Model
     }
     public function user()
     {
-        return $this->belongsTo(User::class, 'user_id');
+        return $this->belongsTo(User::class, 'user_id')->withTrashed();
     }
 
     public function customer()

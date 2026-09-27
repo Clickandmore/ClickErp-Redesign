@@ -14,14 +14,22 @@ use App\Services\commissions\CommissionCalculationService;
 use App\Services\commissions\CommissionAccrualService;
 use App\Services\commissions\DelegationCommissionService;
 use App\Services\commissions\RecruitmentCommissionService;
+use App\Support\PostArrivalRefundSettings;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Illuminate\Validation\ValidationException;
 use Mockery;
+use Nami\Finance\Models\ConfirmSetting;
 use Tests\TestCase;
 
 class RecruitmentCommissionReturnTest extends TestCase
 {
     use DatabaseTransactions;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+        ConfirmSetting::query()->create(['title' => PostArrivalRefundSettings::POSTING_MODE, 'value' => 'auto']);
+    }
 
     public function test_returned_uncommissioned_contract_is_closed_at_zero_and_cannot_be_selected(): void
     {
@@ -105,6 +113,60 @@ class RecruitmentCommissionReturnTest extends TestCase
         $item->refresh();
         $this->assertNotNull($item->commission_reversal_transaction_id);
         $this->assertSame(0.0, (float) $item->reversalTransaction->balance_after);
+    }
+
+    public function test_shelter_contract_with_approved_commission_can_be_settled(): void
+    {
+        $marketer = Admin::factory()->create();
+        $contract = Contract::query()->create([
+            'status' => ContractStatusEnum::Shelter->value,
+            'marketer_id' => $marketer->id,
+            'contract_cost' => 3980.75,
+            'contract_date' => now()->toDateString(),
+        ]);
+        $batch = CommissionBatch::query()->create([
+            'marketer_id' => $marketer->id,
+            'total_requests' => 1,
+            'total_base_amount' => 3980.75,
+            'total_commission' => 100,
+            'status' => CommissionBatch::STATUS_APPROVED,
+            'approved_at' => now(),
+        ]);
+        $item = CommissionBatchItem::query()->create([
+            'batch_id' => $batch->id,
+            'source_type' => CommissionOperationService::SOURCE_RECRUITMENT_CONTRACT,
+            'source_id' => $contract->id,
+            'contract_id' => $contract->id,
+            'service_type' => 'recruitment',
+            'base_amount' => 3980.75,
+            'method' => 'fixed',
+            'rate_or_amount' => 100,
+            'commission_amount' => 100,
+        ]);
+        CommissionBalanceTransaction::query()->create([
+            'marketer_id' => $marketer->id,
+            'type' => CommissionBalanceTransaction::TYPE_CREDIT,
+            'amount' => 100,
+            'reference_type' => 'commission_batch',
+            'reference_id' => $batch->id,
+            'balance_after' => 100,
+        ]);
+
+        $operation = app(CommissionOperationService::class)
+            ->getOperations($marketer->id)
+            ->firstWhere('source_id', $contract->id);
+
+        $this->assertFalse($operation['commission_eligible']);
+        $this->assertSame(RecruitmentCommissionService::SETTLEMENT_PENDING, $operation['return_settlement_status']);
+
+        app(RecruitmentCommissionService::class)->resolveSettlement(
+            $item,
+            RecruitmentCommissionService::SETTLEMENT_DEDUCTED,
+            $marketer->id
+        );
+
+        $this->assertNotNull($item->fresh()->commission_reversal_transaction_id);
+        $this->assertSame(0.0, app(CommissionPaymentService::class)->getPaymentSummary($marketer->id)['balance']);
     }
 
     public function test_zero_decision_closes_returned_commission_without_deduction(): void

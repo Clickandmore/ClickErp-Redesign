@@ -69,6 +69,15 @@
                 class="form-control search_keys" id="to_date">
         </div>
 
+        @include('admin.partials.branch-filter', [
+            'name' => 'branch_id',
+            'label' => __('financial_requests.branch'),
+            'id' => 'income_branch_id',
+            'containerClass' => 'col',
+            'selectClass' => 'form-control search_keys',
+            'labelClass' => 'form-label',
+        ])
+
         <div class="col">
             <br>
             <button type="button" id="search_button" class="btn btn-sm btn-success float-right mt-2">
@@ -84,7 +93,7 @@
         $('.select2').select2();
 
         function loadIncomeList() {
-            var emptyFields = $(".search_keys").filter(function() {
+            var emptyFields = $(".search_keys").not("[data-branch-filter]").filter(function() {
                 return $(this).val() === "";
             });
 

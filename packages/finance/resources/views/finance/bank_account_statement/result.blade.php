@@ -1,3 +1,4 @@
+@php $pagination = $data instanceof \Nami\Finance\Services\StatementPaginator ? $data : null; @endphp
 @if($data->count() > 0)
     @php
 
@@ -48,6 +49,7 @@
             </tr>
         @endif
         <!--------------------- $firstBalance ------------------------------------------>
+        @php $openingBalance = $balance; $balance += $pagination->previous->balance ?? 0; @endphp
         @foreach ($data as $key => $row)
             @php
                 $balance += ($row->status == "debtor") ? ($row->debtor_value - $row->creditor_value) : ($row->creditor_value - $row->debtor_value);
@@ -56,7 +58,7 @@
                 $trClass = ($row->debtor_value == 0 && $row->creditor_value == 0) ? "currency-usd" : "currency-egp";
             @endphp
             <tr class="{{ $trClass }}">
-                <td>{{ ++$key }}</td>
+                <td>{{ $key + ($pagination ? $pagination->firstItem() : 1) }}</td>
                 <td>{{ $row->date }}</td>
                 <td>{{ $row->constraint_id }}</td>
                 <td>{{ getEnumValue('constraint_types', $row->constraints_type) }}</td>
@@ -79,6 +81,13 @@
                 <td>{{ $row->name }}</td>
             </tr>
         @endforeach
+        @php
+            if ($pagination) {
+                $sumDebtorValue = ($firstBalance->sum_debtor_value ?? 0) + $pagination->totals->debtor;
+                $sumCreditorValue = ($firstBalance->sum_creditor_value ?? 0) + $pagination->totals->creditor;
+                $balance = $openingBalance + $pagination->totals->balance;
+            }
+        @endphp
         <tr>
             <td colspan="{{ $colspan }}" class="text-center">{{__('finance::finance.Balance')}}</td>
             <td class="currency-egp">{{ $sumDebtorValue }}</td>
@@ -91,3 +100,4 @@
 @else
     <div role="alert" class="alert alert-danger text-center"> {{__('finance::finance.no_data_found')}}</div>
 @endif
+@include('finance::finance.account_statement.partials.pagination')

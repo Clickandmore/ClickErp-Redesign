@@ -60,6 +60,7 @@ return [
         'App\\Models\\MaidUnavailableRecord' => 'سجل عدم إتاحة العاملة',
         'App\\Models\\Message' => 'الرسالة',
         'App\\Models\\MoyasarSetting' => 'إعدادات الدفع',
+        'App\\Models\\HomeSectionSetting' => 'إظهار سكاشن الصفحة الرئيسية',
         'App\\Models\\MusanedSection' => 'قسم مساند',
         'App\\Models\\MusanedSectionMetric' => 'إحصائية مساند',
         'App\\Models\\MusanedSectionMetricTranslation' => 'إحصائية مساند — ترجمة',

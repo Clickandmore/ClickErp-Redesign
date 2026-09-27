@@ -341,6 +341,94 @@
             padding: 1rem;
         }
 
+        .maid-list-notice {
+            border: 1px solid #cfe4f7;
+            border-radius: 16px;
+            background: linear-gradient(135deg, #f4faff 0%, #eef6ff 100%);
+            overflow: hidden;
+        }
+
+        .maid-list-notice__toggle {
+            display: flex;
+            align-items: center;
+            gap: .65rem;
+            width: 100%;
+            padding: .85rem 1rem;
+            border: 0;
+            background: transparent;
+            color: #17456f;
+            font-weight: 700;
+            text-align: start;
+        }
+
+        .maid-list-notice__icon {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 32px;
+            height: 32px;
+            flex: 0 0 32px;
+            border-radius: 10px;
+            background: rgba(31, 111, 178, 0.12);
+            color: #1f6fb2;
+        }
+
+        .maid-list-notice__title {
+            flex: 1 1 auto;
+        }
+
+        .maid-list-notice__more {
+            display: inline-flex;
+            align-items: center;
+            gap: .35rem;
+            font-size: .82rem;
+            font-weight: 600;
+            color: #1f6fb2;
+            white-space: nowrap;
+        }
+
+        .maid-list-notice__toggle[aria-expanded="true"] .maid-list-notice__more i {
+            transform: rotate(180deg);
+        }
+
+        .maid-list-notice__more i {
+            transition: transform .2s ease;
+        }
+
+        .maid-list-notice__body {
+            padding: 0 1rem 1rem;
+            color: #41576f;
+            font-size: .88rem;
+            border-top: 1px solid #ddecfa;
+            padding-top: .85rem;
+        }
+
+        .maid-list-notice__rules,
+        .maid-list-notice__steps {
+            margin: 0 0 .85rem;
+            padding-inline-start: 1.15rem;
+        }
+
+        .maid-list-notice__rules li,
+        .maid-list-notice__steps li {
+            margin-bottom: .3rem;
+        }
+
+        .maid-list-notice__subtitle {
+            display: flex;
+            align-items: center;
+            gap: .45rem;
+            font-weight: 700;
+            color: #9a6207;
+        }
+
+        @media (max-width: 575.98px) {
+            .maid-list-notice__more span,
+            .maid-list-notice__more {
+                font-size: .78rem;
+            }
+        }
+
         @media (max-width: 991.98px) {
             .contract-page-intro {
                 flex-direction: column;
@@ -632,6 +720,45 @@
 
                                         <div class="row">
                                             <div class="col-12 mb-3" id="new-existing-maid-picker">
+                                                <div class="maid-list-notice mb-3">
+                                                    <button class="maid-list-notice__toggle" type="button"
+                                                        data-bs-toggle="collapse" data-bs-target="#maidListNoticeBody"
+                                                        aria-expanded="false" aria-controls="maidListNoticeBody">
+                                                        <span class="maid-list-notice__icon"><i class="fas fa-circle-info"></i></span>
+                                                        <span class="maid-list-notice__title">{{ __('ingaz.worker_list_notice_title') }}</span>
+                                                        <span class="maid-list-notice__more">{{ __('ingaz.worker_list_notice_toggle') }}
+                                                            <i class="fas fa-chevron-down"></i></span>
+                                                    </button>
+                                                    <div class="collapse" id="maidListNoticeBody">
+                                                        <div class="maid-list-notice__body">
+                                                            <p class="mb-2">{{ __('ingaz.worker_list_notice_intro') }}</p>
+                                                            <ul class="maid-list-notice__rules">
+                                                                <li>{{ __('ingaz.worker_list_rule_status') }}</li>
+                                                                <li>{{ __('ingaz.worker_list_rule_visible') }}</li>
+                                                                <li>{{ __('ingaz.worker_list_rule_available_at') }}</li>
+                                                                <li>{{ __('ingaz.worker_list_rule_no_contract') }}</li>
+                                                                <li>{{ __('ingaz.worker_list_rule_no_order') }}</li>
+                                                                <li>{{ __('ingaz.worker_list_rule_named') }}</li>
+                                                            </ul>
+                                                            <p class="maid-list-notice__subtitle mb-2">
+                                                                <i class="fas fa-triangle-exclamation"></i>
+                                                                {{ __('ingaz.worker_list_notice_missing_title') }}
+                                                            </p>
+                                                            <ol class="maid-list-notice__steps">
+                                                                <li>{{ __('ingaz.worker_list_missing_step_one') }}</li>
+                                                                <li>{{ __('ingaz.worker_list_missing_step_two') }}</li>
+                                                                <li>{{ __('ingaz.worker_list_missing_step_three') }}</li>
+                                                            </ol>
+                                                            @if (@AdminGuardHasPerm(\App\PermKeys::MAIDS_VIEW))
+                                                                <a href="{{ route('maids.index') }}" target="_blank"
+                                                                    rel="noopener"
+                                                                    class="btn btn-sm btn-outline-primary mt-1">
+                                                                    <i class="fas fa-up-right-from-square me-1"></i>{{ __('ingaz.worker_list_open_maids_page') }}
+                                                                </a>
+                                                            @endif
+                                                        </div>
+                                                    </div>
+                                                </div>
                                                 <label for="new_new_maid_id" class="form-label">{{ __('ingaz.select_worker') }}</label>
                                                 <select name="new_new_maid_id" id="new_new_maid_id"
                                                     class="form-select ajax-maid-select" style="width:100%"
@@ -1053,7 +1180,7 @@
                                                 data-client-phone2="{{ $plainTextValue($order->user->phone2 ?? '') }}"
                                                 data-client-address="{{ $plainTextValue($order->user->address ?? '') }}"
                                                 data-client-city="{{ $plainTextValue($order->user->city ?? '') }}"
-                                                data-client-beds-num="{{ $order->user->beds_num ?? '' }}"
+                                                data-client-beds-num="{{ $order->user->rooms_num ?? $order->user->beds_num ?? '' }}"
                                                 data-client-family-num="{{ $order->user->family_num ?? '' }}"
                                                 data-client-children="{{ $order->user->children ?? '' }}"
                                                 data-client-job="{{ $plainTextValue($order->user->job ?? '') }}"
@@ -1370,6 +1497,28 @@
             }
 
             return formSelector + ' [name="' + field + '"]';
+        }
+
+        function contractRequestErrorMessage(xhr) {
+            if (xhr.status === 0) {
+                return 'تعذر الاتصال بالخادم. تحقق من اتصال الإنترنت ومن وجود العقد في القائمة قبل إعادة الحفظ.';
+            }
+            if (xhr.status === 419 || xhr.status === 401) {
+                return 'انتهت جلسة الدخول. يرجى تسجيل الدخول مجددًا ثم إعادة المحاولة.';
+            }
+            if (xhr.status === 403) {
+                return 'ليس لديك صلاحية تنفيذ هذه العملية.';
+            }
+            if (xhr.status === 413) {
+                return 'حجم المرفقات أكبر من المسموح به على الخادم. يرجى تقليل حجم الملفات.';
+            }
+            if (xhr.status === 429) {
+                return 'تم إرسال طلبات كثيرة خلال وقت قصير. يرجى الانتظار ثم المحاولة.';
+            }
+            if (xhr.responseJSON && xhr.responseJSON.message) {
+                return xhr.responseJSON.message;
+            }
+            return 'تعذر إتمام الطلب بسبب خطأ في الخادم (HTTP ' + xhr.status + '). يرجى إبلاغ مسؤول النظام والتحقق من وجود العقد قبل إعادة الحفظ.';
         }
 
         function showContractValidationErrors(errors, formSelector) {
@@ -2586,7 +2735,7 @@
                         Swal.fire({
                             icon: 'error',
                             title: 'خطأ',
-                            text: (xhr.responseJSON && xhr.responseJSON.message) || 'حدث خطأ أثناء إنشاء العقد',
+                            text: contractRequestErrorMessage(xhr),
                             confirmButtonText: 'حسناً'
                         });
                     },
@@ -3153,6 +3302,12 @@
                     formData.append('account_client_type', $('#tab-order-pane input[name="account_client_type"]:checked').val() || 'person');
                     formData.append('client_national_num', $('#client_national_num').val() || '');
                     formData.append('client_license_number', $('#client_license_number').val() || '');
+                    ['name', 'phone', 'email', 'nationality_id', 'birthdate'].forEach(function(field) {
+                        formData.append('client_' + field, $('#tab-order-pane #client_' + field).val() || '');
+                    });
+                    ['phone2', 'address', 'city', 'beds_num', 'family_num', 'children', 'job'].forEach(function(field) {
+                        formData.append('client_' + field, $('#tab-order-pane #' + field).val() || '');
+                    });
                 }
 
                 console.log('Client data prepared:', {
@@ -3387,7 +3542,7 @@
                             return;
                         }
 
-                        let errorMessage = (xhr.responseJSON && xhr.responseJSON.message) || 'حدث خطأ أثناء إنشاء العقد';
+                        let errorMessage = contractRequestErrorMessage(xhr);
                         Swal.fire({
                             icon: 'error',
                             title: 'خطأ',

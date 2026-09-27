@@ -21,6 +21,10 @@ class ConstraintReferenceGuard
      * @var array<string, array{label: string, columns: string[]}>
      */
     private const REFERENCES = [
+        'contract_return_settlement_lines' => [
+            'label' => 'بند استرداد بعد الوصول',
+            'columns' => ['constraint_id', 'reversal_constraint_id'],
+        ],
         'shelter_agent_cost_recoveries' => [
             'label' => 'استرداد تكلفة الوكيل',
             'columns' => ['constraint_id', 'reversal_constraint_id'],

@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Branch;
 
+use App\PermKeys;
 use App\Support\BranchScopedPermissions;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Illuminate\Support\Facades\DB;
@@ -72,5 +73,25 @@ class BranchNavigationPermissionsTest extends TestCase
 
         BranchScopedPermissions::syncRoleBranchPermissions($role->id, $branch->id, collect());
         $this->assertFalse(BranchScopedPermissions::adminHasPermission($admin, $permission->name));
+    }
+
+    public function test_post_arrival_refund_permission_command_updates_existing_branch_scope(): void
+    {
+        $this->enableBranchesModule();
+        $branch = $this->makeBranch();
+        $role = Role::create(['name' => 'Refund branch role', 'guard_name' => 'admin']);
+        $existingPermission = Permission::findOrCreate('refund-existing-permission', 'admin');
+        $admin = $this->branchAdmin($branch, ['role_id' => $role->id]);
+        BranchScopedPermissions::syncRoleBranchPermissions($role->id, $branch->id, collect([$existingPermission->name]));
+
+        $this->artisan('permissions:assign-post-arrival-refunds', ['--role' => $role->name])
+            ->assertExitCode(0);
+
+        $this->assertTrue(BranchScopedPermissions::adminHasPermission($admin, $existingPermission->name));
+        $this->assertTrue(BranchScopedPermissions::adminHasPermission($admin, PermKeys::POST_ARRIVAL_REFUND_VIEW));
+        $this->assertTrue(BranchScopedPermissions::adminHasPermission($admin, PermKeys::POST_ARRIVAL_REFUND_CREATE));
+        $this->assertTrue(BranchScopedPermissions::adminHasPermission($admin, PermKeys::POST_ARRIVAL_REFUND_POST));
+        $this->assertTrue(BranchScopedPermissions::adminHasPermission($admin, PermKeys::POST_ARRIVAL_REFUND_PAYOUT));
+        $this->assertTrue(BranchScopedPermissions::adminHasPermission($admin, PermKeys::POST_ARRIVAL_REFUND_REVERSE));
     }
 }

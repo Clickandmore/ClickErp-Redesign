@@ -1065,7 +1065,7 @@
 
                 Object.keys(errors).forEach(function (key) {
                     $('[name="' + key + '"]').addClass('is-invalid');
-                    messages.push(errors[key][0]);
+                    errors[key].forEach(function(message) { messages.push($('<div>').text(message).html()); });
                 });
 
                 Swal.fire({

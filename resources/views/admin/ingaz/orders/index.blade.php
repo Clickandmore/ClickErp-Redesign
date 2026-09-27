@@ -1082,14 +1082,16 @@
                 var orderId = $(this).data('id');
 
                 Swal.fire({
-                    title: "{{ helperTrans('buttons.Are You Sure') }}",
-                    text: '{{ helperTrans('buttons.You Can not to rollback') ?? 'This action cannot be undone!' }}',
+                    title: @json(helperTrans('ingaz.delete_order_modal_title')),
+                    text: @json(helperTrans('ingaz.delete_order_modal_text')),
+                    footer: @json(helperTrans('ingaz.delete_order_maid_availability_hint')),
                     icon: 'warning',
                     showCancelButton: true,
                     confirmButtonColor: '#d33',
                     cancelButtonColor: '#6c757d',
-                    confirmButtonText: '{{ helperTrans('buttons.accept') ?? 'Yes, delete it!' }}',
-                    cancelButtonText: '{{ helperTrans('buttons.cancel') ?? 'Cancel' }}',
+                    confirmButtonText: @json(helperTrans('ingaz.yes_delete')),
+                    cancelButtonText: @json(helperTrans('buttons.cancel')),
+                    focusCancel: true,
                 }).then((result) => {
                     if (result.isConfirmed) {
                         $.ajax({

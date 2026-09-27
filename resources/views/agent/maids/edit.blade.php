@@ -254,6 +254,16 @@
                     @php $agentCvPath = $maid->maid_cv_file ?: ($maid->submission_status ? $maid->cv_file : null); @endphp
                     @if ($agentCvPath)<a href="{{ showFile($agentCvPath) }}" target="_blank" class="small">{{ $isAr ? 'عرض الملف الحالي' : 'View current file' }}</a>@endif
                 </div>
+                <div class="col-md-6">
+                    <label class="form-label" for="maid_video">{{ $isAr ? 'رفع / استبدال الفيديو' : 'Upload / Replace Video' }}</label>
+                    <input type="file" class="form-control" name="video" id="maid_video"
+                        accept="video/mp4,video/quicktime,video/x-msvideo,video/x-ms-wmv,video/webm,video/x-matroska,video/x-m4v">
+                    <small class="text-muted d-block">{{ $isAr ? 'الحد الأقصى 100 ميجابايت. يُحتفظ بالفيديو الحالي إذا لم يتم رفع بديل.' : 'Maximum size: 100 MB. The current video is kept if no replacement is uploaded.' }}</small>
+                    @error('video')<div class="text-danger">{{ $message }}</div>@enderror
+                    @if ($maid->video)
+                        <a href="{{ showFile($maid->video) }}" target="_blank" rel="noopener" class="small">{{ $isAr ? 'عرض الفيديو الحالي' : 'View current video' }}</a>
+                    @endif
+                </div>
             </div>
         </section>
 
@@ -271,6 +281,12 @@
     <script>
         $(function () {
             $('.js-select2').select2({ width: '100%' });
+
+            $('#maid_video').on('change', function () {
+                this.setCustomValidity(this.files[0] && this.files[0].size > 100 * 1024 * 1024
+                    ? @json(__('ingaz.maid_video_too_large')) : '');
+                this.reportValidity();
+            });
 
             function toggleCookingExperience() {
                 var hasExperience = $('#experience_status').val() === 'has_experience';

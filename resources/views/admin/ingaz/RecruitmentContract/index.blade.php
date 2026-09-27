@@ -642,7 +642,7 @@
 @endsection
 
 @section('page-title')
-    {{ helperTrans('ingaz.All Recruitment contracts') }}
+    {{ $companyContractsMode ? 'عقود الاستقدام للشركة' : helperTrans('ingaz.All Recruitment contracts') }}
 @endsection
 
 @section('content')
@@ -669,19 +669,19 @@
         <div class="contracts-page-header">
             <h3 class="h3 mb-0 text-gray-800">
                 <i class="fas fa-file-contract text-primary me-2"></i>
-                {{ $shelterContractsMode ? 'عقود الإيواء' : helperTrans('ingaz.All Recruitment contracts') }}
+                {{ $shelterContractsMode ? 'عقود الإيواء' : ($companyContractsMode ? 'عقود الاستقدام للشركة' : helperTrans('ingaz.All Recruitment contracts')) }}
             </h3>
             <div class="contracts-header-actions">
-                <a href="{{ route('RecruitmentContract.index') }}" class="btn btn-outline-dark">
+                <a href="{{ route($companyContractsMode ? 'RecruitmentContract.company.index' : 'RecruitmentContract.index', ['all_contracts' => 1]) }}" class="btn btn-outline-dark">
                     <i class="fas fa-list"></i>
                     كل العقود
                 </a>
-                <a href="{{ route('RecruitmentContract.index', ['status' => 'current']) }}" class="btn btn-outline-secondary">
+                <a href="{{ route($companyContractsMode ? 'RecruitmentContract.company.index' : 'RecruitmentContract.index', ['status' => 'current']) }}" class="btn btn-outline-secondary">
                     <i class="fas fa-layer-group"></i>
                     العقود السارية
                 </a>
                 @if (@AdminGuardHasPerm(\App\NewPermKeys::REC_CONTRACTS_VIEW_SHELTER))
-                    <a href="{{ route('RecruitmentContract.index', ['shelter_contracts' => 1]) }}"
+                    <a href="{{ route($companyContractsMode ? 'RecruitmentContract.company.index' : 'RecruitmentContract.index', ['shelter_contracts' => 1]) }}"
                         class="btn {{ $shelterContractsMode ? 'btn-dark' : 'btn-outline-dark' }}">
                         <i class="fas fa-house-user"></i>
                         عقود الإيواء
@@ -695,6 +695,17 @@
                     <i class="fas fa-money-bill-transfer"></i>
                     تحويل مساند
                 </a>
+                @if (AdminGuardHasAnyPerm([
+                    \App\PermKeys::MUSANED_TRANSFERS_CREATE,
+                    \App\PermKeys::MUSANED_TRANSFERS_CONTROL,
+                    \App\PermKeys::REC_CONTRACTS_CREATE,
+                    \App\PermKeys::REC_CONTRACTS_MANAGE,
+                ]))
+                    <a href="{{ route('delegation-costs.create') }}" class="btn btn-outline-primary">
+                        <i class="fas fa-money-check-alt"></i>
+                        تسجيل تكلفة التفويض
+                    </a>
+                @endif
                 @if (AdminGuardHasAnyPerm([\App\NewPermKeys::REC_CONTRACTS_CREATE, \App\NewPermKeys::REC_CONTRACTS_MANAGE]))
                     <a href="{{ route('RecruitmentContract.create') }}" class="btn btn-primary">
                         <i class="fas fa-plus"></i>
@@ -1154,12 +1165,12 @@
                             </div>
                             <div>
                                 @if (@AdminGuardHasPerm(\App\NewPermKeys::REC_CONTRACTS_EXPORT))
-                                    <a href="{{ route('RecruitmentContract.export.pdf', request()->query()) }}"
+                                    <a href="{{ route('RecruitmentContract.export.pdf', array_merge(request()->query(), ['company_contracts' => $companyContractsMode ? 1 : 0])) }}"
                                         data-export-url="{{ route('RecruitmentContract.export.pdf') }}"
                                         class="btn btn-danger me-2 recruitment-contract-export" target="_blank">
                                         <i class="fa fa-file-pdf me-1"></i> {{ helperTrans('ingaz.export_pdf') }}
                                     </a>
-                                    <a href="{{ route('RecruitmentContract.export.excel', request()->query()) }}"
+                                    <a href="{{ route('RecruitmentContract.export.excel', array_merge(request()->query(), ['company_contracts' => $companyContractsMode ? 1 : 0])) }}"
                                         data-export-url="{{ route('RecruitmentContract.export.excel') }}"
                                         class="btn btn-success recruitment-contract-export">
                                         <i class="fa fa-file-excel me-1"></i> {{ helperTrans('ingaz.export_excel') }}
@@ -1267,6 +1278,38 @@
                         <tbody>
                         </tbody>
                     </table>
+                </div>
+            </div>
+        </div>
+
+        <div class="modal fade" id="completeStageStepModal" tabindex="-1"
+            aria-labelledby="completeStageStepModalLabel" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered modal-lg">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="completeStageStepModalLabel">
+                            <i class="fas fa-list-check text-success me-1"></i>
+                            تنفيذ المراحل الفرعية
+                        </h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="إغلاق"></button>
+                    </div>
+                    <div class="modal-body">
+                        <input type="hidden" id="stageStepUpdateUrl">
+                        <input type="hidden" id="stageStepParentValue">
+                        <div class="alert alert-light border mb-3">
+                            <div class="text-muted small mb-1">المرحلة الأم</div>
+                            <strong id="stageStepParentName">—</strong>
+                            <div class="text-muted small mt-2">اختر مرحلة أو أكثر وحدد تاريخ تنفيذ كل مرحلة، ثم اضغط حفظ.</div>
+                        </div>
+                        <div id="stageStepsError" class="alert alert-danger d-none" role="alert"></div>
+                        <div id="stageStepsRows"></div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-light" data-bs-dismiss="modal">إلغاء</button>
+                        <button type="button" class="btn btn-success" id="confirmStageStepBtn">
+                            <i class="fas fa-check me-1"></i> حفظ المراحل المحددة
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>
@@ -1662,6 +1705,7 @@
 
     <script>
         $(document).ready(function() {
+            const companyContractsMode = @json((bool) $companyContractsMode);
             const shelterContractsMode = @json((bool) $shelterContractsMode);
             const statsCollapsePreferenceKey = 'recruitmentContractStatsCollapsed';
             const statsCollapseElement = document.getElementById('contractStatsCollapse');
@@ -2119,7 +2163,7 @@
             // الحالة المحفوظة لها الأولوية على فلاتر الـ URL لأنها تُحفظ عند كل عرض للجدول
             const recruitmentListState = window.ListState
                 ? window.ListState.create({
-                    key: 'recruitment-contracts' + (shelterContractsMode ? ':shelter' : ''),
+                    key: 'recruitment-contracts' + (companyContractsMode ? ':company' : ':clients') + (shelterContractsMode ? ':shelter' : ''),
                     filters: recruitmentListFilterSelectors,
                     onRestore: function(filters) {
                         const hasActiveFilter = Object.keys(filters).some(function(selector) {
@@ -2154,7 +2198,7 @@
                 autoWidth: false, // إيقاف حساب العرض التلقائي
                 destroy: true, // السماح بإعادة التهيئة
                 ajax: {
-                    url: "{{ route('RecruitmentContract.index') }}",
+                    url: "{{ route($companyContractsMode ? 'RecruitmentContract.company.index' : 'RecruitmentContract.index') }}",
                     timeout: 45000,
                     type: 'GET',
                     dataSrc: function(json) {
@@ -2165,6 +2209,7 @@
                     data: function(d) {
                         d.global_search = $('#globalSearchFilter').val();
                         d.status = shelterContractsMode ? '' : $('#statusFilter').val();
+                        d.company_contracts = companyContractsMode ? 1 : 0;
                         d.shelter_contracts = shelterContractsMode ? 1 : '';
                         d.date_from = $('#dateFromFilter').val();
                         d.date_to = $('#dateToFilter').val();
@@ -2597,6 +2642,7 @@
             $('.recruitment-contract-export').on('click', function() {
                 const status = $('#statusFilter').val();
                 const filters = {
+                    company_contracts: companyContractsMode ? 1 : 0,
                     global_search: $('#globalSearchFilter').val(),
                     status: status,
                     date_from: $('#dateFromFilter').val(),
@@ -2727,6 +2773,7 @@
                     url: '{{ route('RecruitmentContract.statistics') }}',
                     method: 'GET',
                     data: {
+                        company_contracts: companyContractsMode ? 1 : 0,
                         global_search: $('#globalSearchFilter').val(),
                         status: $('#statusFilter').val(),
                         warranty_status: $('#warrantyStatusFilter').val(),
@@ -2801,6 +2848,11 @@
                 // الفلاتر المستعادة عند الرجوع من صفحة التفاصيل لها الأولوية
                 if (recruitmentListState && recruitmentListState.restored) {
                     console.log('Skipping localStorage load because list state was restored');
+                    return;
+                }
+
+                // فتح جميع العقود من القائمة يبدأ بدون فلاتر بحث محفوظة.
+                if (new URLSearchParams(window.location.search).get('all_contracts') === '1') {
                     return;
                 }
 
@@ -2880,6 +2932,67 @@
             $(document).on('click', '.add-travel-btn', function(e) {
                 e.preventDefault();
                 addTravel($(this).data('contract-id'));
+            });
+
+            $(document).on('click', '.start-recruitment-deportation', function(e) {
+                e.preventDefault();
+                const url = $(this).data('url');
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'ترحيل العاملة',
+                    text: 'هل تريد بدء إجراءات ترحيل العاملة؟ سيبقى العقد في مرحلته الحالية حتى إتمام الترحيل.',
+                    showCancelButton: true,
+                    confirmButtonText: 'بدء الإجراءات',
+                    cancelButtonText: 'إلغاء'
+                }).then(function(result) {
+                    if (!result.isConfirmed) return;
+                    Swal.fire({title: 'جاري بدء الإجراءات...', allowOutsideClick: false, didOpen: () => Swal.showLoading()});
+                    $.ajax({
+                        url: url,
+                        method: 'POST',
+                        data: {_token: @json(csrf_token())},
+                        success: function(response) { window.location.href = response.redirect; },
+                        error: function(xhr) { Swal.fire('تعذر بدء الترحيل', xhr.responseJSON?.message || 'حدث خطأ أثناء بدء الإجراءات', 'error'); }
+                    });
+                });
+            });
+
+            $(document).on('submit', '.release-completed-maid-form', function(e) {
+                e.preventDefault();
+
+                const form = this;
+                // The floating menu removes its form while confirmation is open.
+                // Keep a copy with the action and CSRF token for the confirmed submission.
+                const submissionForm = form.cloneNode(true);
+                const maidName = $(form).data('maid-name');
+                const contractId = $(form).data('contract-id');
+
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'اكتمال العقد وتسفير العاملة',
+                    html: 'سيتم اعتماد اكتمال مدة العقد <strong>#' + escapeHtml(String(contractId)) + '</strong> وتسفير العاملة <strong>' + escapeHtml(String(maidName)) + '</strong> وإتاحتها لإنشاء عقد استقدام جديد.<br><br>هل تريد المتابعة؟',
+                    showCancelButton: true,
+                    confirmButtonText: '<i class="fas fa-check me-1"></i> نعم، تنفيذ الإجراء',
+                    cancelButtonText: 'إلغاء',
+                    confirmButtonColor: '#198754',
+                    cancelButtonColor: '#6c757d',
+                    reverseButtons: true,
+                    focusCancel: true
+                }).then(function(result) {
+                    if (result.isConfirmed) {
+                        Swal.fire({
+                            title: 'جاري تنفيذ الإجراء...',
+                            allowOutsideClick: false,
+                            allowEscapeKey: false,
+                            didOpen: function() {
+                                Swal.showLoading();
+                            }
+                        });
+                        submissionForm.hidden = true;
+                        document.body.appendChild(submissionForm);
+                        HTMLFormElement.prototype.submit.call(submissionForm);
+                    }
+                });
             });
 
             // معالج زر الإرجاع من عمود المرحلة التالية
@@ -2962,6 +3075,113 @@
             });
 
             // معالج زر تحديث الحالة
+            $(document).on('click', '.complete-stage-step-btn', function() {
+                const button = $(this);
+                $('#stageStepUpdateUrl').val(button.data('url'));
+                $('#stageStepParentName').text(button.data('stage-name') || '—');
+                $('#stageStepsError').addClass('d-none').text('');
+                $('#stageStepsRows').empty().text('جارٍ تحميل المراحل...');
+                $('#confirmStageStepBtn').prop('disabled', true);
+                $('#completeStageStepModal').modal('show');
+                const url = button.data('url');
+                $.ajax({ url: url, headers: { 'Accept': 'application/json' }, cache: false })
+                    .done(function(response) {
+                        if ($('#stageStepUpdateUrl').val() !== url) return;
+                        $('#stageStepParentValue').val(response.stage);
+                        const rows = $('#stageStepsRows').empty();
+                        response.steps.forEach(function(step) {
+                            const completed = !!step.completed_at;
+                            const row = $('<div class="border rounded p-3 mb-2 stage-step-row">').attr('data-id', step.id);
+                            const label = $('<label class="d-flex align-items-center gap-2 fw-bold mb-2">');
+                            label.append($('<input type="checkbox" class="form-check-input stage-step-select">').prop('disabled', completed));
+                            label.append($('<span>').text(step.name));
+                            if (completed) label.append($('<span class="badge bg-success">').text('تم التنفيذ'));
+                            row.append(label);
+                            const fields = $('<div class="row g-2">');
+                            const dateId = 'stage-step-date-' + step.id;
+                            const notesId = 'stage-step-notes-' + step.id;
+                            fields.append($('<div class="col-md-4">')
+                                .append($('<label class="form-label">').attr('for', dateId).text('تاريخ التنفيذ'))
+                                .append($('<input type="date" class="form-control stage-step-date">')
+                                    .attr({ id: dateId, max: response.today }).val(step.completed_at || response.today).prop('disabled', true)));
+                            fields.append($('<div class="col-md-8">')
+                                .append($('<label class="form-label">').attr('for', notesId).text('ملاحظة (اختياري)'))
+                                .append($('<input type="text" maxlength="2000" class="form-control stage-step-notes">')
+                                    .attr('id', notesId).val(step.notes || '').prop('disabled', true)));
+                            rows.append(row.append(fields));
+                        });
+                        if (!response.steps.length) rows.text('لا توجد مراحل فرعية لهذه المرحلة.');
+                    }).fail(function(xhr) {
+                        if ($('#stageStepUpdateUrl').val() !== url) return;
+                        $('#stageStepsRows').empty();
+                        $('#stageStepsError').removeClass('d-none').text(xhr.responseJSON?.message || 'تعذر تحميل المراحل.');
+                    });
+            });
+
+            $(document).on('change', '.stage-step-select', function() {
+                $(this).closest('.stage-step-row').find('.stage-step-date, .stage-step-notes').prop('disabled', !this.checked);
+                $('#confirmStageStepBtn').prop('disabled', !$('#stageStepsRows .stage-step-select:checked').length);
+            });
+
+            $('#confirmStageStepBtn').on('click', function() {
+                const button = $(this);
+                const originalHtml = button.html();
+                const url = $('#stageStepUpdateUrl').val();
+
+                if (!url) return;
+                const steps = [];
+                let valid = true;
+                $('#stageStepsRows .stage-step-select:checked').each(function() {
+                    const row = $(this).closest('.stage-step-row');
+                    const date = row.find('.stage-step-date')[0];
+                    date.required = true;
+                    if (!date.reportValidity()) valid = false;
+                    steps.push({ id: row.data('id'), completed_at: date.value, notes: row.find('.stage-step-notes').val() });
+                });
+                if (!valid || !steps.length) return;
+                $('#stageStepsError').addClass('d-none');
+
+                button.prop('disabled', true).html('<i class="fas fa-spinner fa-spin me-1"></i> جارٍ الحفظ');
+                $('#stageStepsRows :input').prop('disabled', true);
+
+                $.ajax({
+                    url: url,
+                    method: 'POST',
+                    headers: { 'Accept': 'application/json' },
+                    data: {
+                        stage: $('#stageStepParentValue').val(),
+                        steps: steps,
+                        _token: '{{ csrf_token() }}'
+                    },
+                    success: function(response) {
+                        $('#completeStageStepModal').modal('hide');
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'تم تنفيذ المراحل',
+                            text: response.message,
+                            timer: 2200,
+                            showConfirmButton: false
+                        });
+                        dataTable.ajax.reload(null, false);
+                    },
+                    error: function(xhr) {
+                        const errors = xhr.responseJSON?.errors;
+                        $('#stageStepsError').removeClass('d-none').text(errors
+                            ? Object.values(errors).flat().join(' ')
+                            : (xhr.responseJSON?.message || 'حدث خطأ أثناء حفظ المراحل.'));
+                    },
+                    complete: function() {
+                        button.prop('disabled', false).html(originalHtml);
+                        $('#stageStepsRows .stage-step-row').each(function() {
+                            const row = $(this);
+                            if (row.find('.badge').length) return;
+                            row.find('.stage-step-select').prop('disabled', false);
+                            row.find('.stage-step-date, .stage-step-notes').prop('disabled', !row.find('.stage-step-select').prop('checked'));
+                        });
+                    }
+                });
+            });
+
             $(document).on('click', '.update-status-btn', function() {
                 var rowId = $(this).data('row-id');
                 var status = $(this).data('status');
@@ -3469,6 +3689,13 @@
                             : 'تعذر تحميل معاينة الاسترداد.';
                         if (xhr.statusText === 'abort') return;
                         resetRefundPreview(message);
+                        if (xhr.responseJSON && xhr.responseJSON.redirect_url) {
+                            $('#refundPreviewPlaceholder').append(
+                                '<div class="mt-2"><a class="btn btn-sm btn-primary" href="' +
+                                escapeRefundHtml(xhr.responseJSON.redirect_url) +
+                                '">فتح شاشة الاسترداد بعد الوصول</a></div>'
+                            );
+                        }
                         $('#refundPreviewPlaceholder')
                             .removeClass('alert-info')
                             .addClass('alert-danger');
@@ -3552,7 +3779,13 @@
                         var message = xhr.responseJSON && xhr.responseJSON.message
                             ? xhr.responseJSON.message
                             : 'حدث خطأ أثناء تسجيل الاسترداد';
-                        Swal.fire('خطأ', message, 'error');
+                        var redirectUrl = xhr.responseJSON && xhr.responseJSON.redirect_url;
+                        if (redirectUrl) {
+                            Swal.fire({title: 'المسار المالي المستقل', text: message, icon: 'info', showCancelButton: true, confirmButtonText: 'فتح الشاشة', cancelButtonText: 'إلغاء'})
+                                .then(function(result) { if (result.isConfirmed) window.location.href = redirectUrl; });
+                        } else {
+                            Swal.fire('خطأ', message, 'error');
+                        }
                     },
                     complete: function() {
                         button.prop('disabled', false).html(originalHtml);

@@ -459,6 +459,15 @@
                         </select>
                     </div>
 
+                    @include('admin.partials.branch-filter', [
+                        'name' => 'branch_id',
+                        'label' => __('financial_requests.branch'),
+                        'id' => 'trial_branch_id',
+                        'containerClass' => 'trial-field',
+                        'selectClass' => 'form-control search_keys',
+                        'labelClass' => '',
+                    ])
+
                     <div class="trial-field trial-field--action">
                         <button type="button" id="search_button" class="btn btn-success trial-search-btn">
                             <i class="fa fa-search"></i> {{ __('finance::finance.Search') }}

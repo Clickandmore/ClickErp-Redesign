@@ -743,6 +743,13 @@
                         <span>{{ __('finance::finance.To Date') }}</span>
                         <strong>{{ !empty($filters['to_date']) ? \Carbon\Carbon::parse($filters['to_date'])->format('d/m/Y') : 'حتى اليوم' }}</strong>
                     </div>
+                    @php $printBranchLabel = app(\App\Services\BranchAccessService::class)->reportBranchLabel(); @endphp
+                    @if ($printBranchLabel)
+                        <div class="print-meta-card">
+                            <span>{{ __('financial_requests.branch') }}</span>
+                            <strong>{{ $printBranchLabel }}</strong>
+                        </div>
+                    @endif
                     <div class="print-meta-card">
                         <span>تاريخ الإصدار</span>
                         <strong>{{ now()->format('d/m/Y h:i A') }}</strong>
