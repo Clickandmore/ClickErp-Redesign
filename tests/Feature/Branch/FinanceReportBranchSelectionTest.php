@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Branch;
 
+use App\Enums\AdminTypeisEnum;
 use App\Models\Branch;
 use App\Models\auth\Admin;
 use App\PermKeys;
@@ -9,6 +10,7 @@ use App\Support\BranchQueryContext;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Nami\Finance\Services\AccountService;
 use Nami\Finance\Services\AccountStatementService;
 use Nami\Finance\Services\FinancialPositionService;
 use Nami\Finance\Services\TrailBalanceService;
@@ -315,6 +317,77 @@ class FinanceReportBranchSelectionTest extends TestCase
 
         $this->assertSame(390.0, $this->trialBalanceDebtor(),
             'معرّف فرع غير موجود يجب أن يُهمل، لا أن يُخرج تقريراً فارغاً يبدو صحيحاً.');
+    }
+
+    /** رصيد حساب الاختبار كما تعرضه شجرة الدليل المحاسبي /finance/accounts. */
+    private function accountTreeDebtor(): float
+    {
+        $constraints = app(AccountService::class)->getAccountTree()['constraintDetails'];
+
+        return (float) ($constraints[$this->accountId]['debtor_value'] ?? 0);
+    }
+
+    /* ---------------------------------------------- شجرة الدليل المحاسبي */
+
+    /** @test */
+    public function the_account_tree_follows_the_selected_branch(): void
+    {
+        $this->enableBranchesModule(true);
+        $this->actingAsAccountantSeeingAllBranches();
+
+        $this->assertSame(390.0, $this->accountTreeDebtor(),
+            'بلا اختيار يبقى رصيد الشجرة على مستوى الشركة.');
+
+        $this->selectBranchInReport($this->other->id);
+        $this->assertSame(250.0, $this->accountTreeDebtor(),
+            'رصيد الشجرة يجب أن يطابق كشف الحساب لنفس الفرع المختار.');
+        $this->assertSame(250.0, $this->accountStatementDebtor());
+
+        $this->selectBranchInReport($this->main->id);
+        $this->assertSame(140.0, $this->accountTreeDebtor(),
+            'الفرع الرئيسي يضمّ القيود القديمة في الشجرة كما في كشف الحساب.');
+    }
+
+    /** @test */
+    public function branch_staff_cannot_reach_another_branch_tree_by_passing_a_branch_id(): void
+    {
+        $this->enableBranchesModule(true);
+        $this->actingAsBranchStaff($this->other);
+        $this->selectBranchInReport($this->main->id);
+
+        $this->assertSame(250.0, $this->accountTreeDebtor());
+    }
+
+    /** @test */
+    public function the_account_tree_is_untouched_while_the_module_is_off(): void
+    {
+        $this->enableBranchesModule(false);
+        $this->actingAsAccountantSeeingAllBranches();
+        $this->selectBranchInReport($this->other->id);
+
+        $this->assertSame(390.0, $this->accountTreeDebtor());
+    }
+
+    /**
+     * @test
+     *
+     * الشاشة نفسها، لا الخدمة: تثبت أن قائمة اختيار الفرع تُرسم في الدليل
+     * المحاسبي وأن الصفحة لا تنكسر بوجود `branch_id` في الرابط.
+     */
+    public function the_account_tree_page_renders_the_branch_selector(): void
+    {
+        $this->enableBranchesModule(true);
+
+        $admin = Admin::factory()->global()->create([
+            'admin_type' => AdminTypeisEnum::Developer->value,
+        ]);
+        $this->actingAs($admin, 'admin');
+        BranchQueryContext::flush();
+
+        $this->get(route('finance.accounts.index', ['branch_id' => $this->other->id]))
+            ->assertOk()
+            ->assertSee('accountBranchFilter', false)
+            ->assertSee($this->other->name, false);
     }
 
     /* ------------------------------------------------- قائمة المركز المالي */
