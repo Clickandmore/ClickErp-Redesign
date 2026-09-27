@@ -1499,6 +1499,28 @@
             return formSelector + ' [name="' + field + '"]';
         }
 
+        function contractRequestErrorMessage(xhr) {
+            if (xhr.status === 0) {
+                return 'تعذر الاتصال بالخادم. تحقق من اتصال الإنترنت ومن وجود العقد في القائمة قبل إعادة الحفظ.';
+            }
+            if (xhr.status === 419 || xhr.status === 401) {
+                return 'انتهت جلسة الدخول. يرجى تسجيل الدخول مجددًا ثم إعادة المحاولة.';
+            }
+            if (xhr.status === 403) {
+                return 'ليس لديك صلاحية تنفيذ هذه العملية.';
+            }
+            if (xhr.status === 413) {
+                return 'حجم المرفقات أكبر من المسموح به على الخادم. يرجى تقليل حجم الملفات.';
+            }
+            if (xhr.status === 429) {
+                return 'تم إرسال طلبات كثيرة خلال وقت قصير. يرجى الانتظار ثم المحاولة.';
+            }
+            if (xhr.responseJSON && xhr.responseJSON.message) {
+                return xhr.responseJSON.message;
+            }
+            return 'تعذر إتمام الطلب بسبب خطأ في الخادم (HTTP ' + xhr.status + '). يرجى إبلاغ مسؤول النظام والتحقق من وجود العقد قبل إعادة الحفظ.';
+        }
+
         function showContractValidationErrors(errors, formSelector) {
             clearContractValidationErrors(formSelector);
 
@@ -2713,7 +2735,7 @@
                         Swal.fire({
                             icon: 'error',
                             title: 'خطأ',
-                            text: (xhr.responseJSON && xhr.responseJSON.message) || 'حدث خطأ أثناء إنشاء العقد',
+                            text: contractRequestErrorMessage(xhr),
                             confirmButtonText: 'حسناً'
                         });
                     },
@@ -3520,7 +3542,7 @@
                             return;
                         }
 
-                        let errorMessage = (xhr.responseJSON && xhr.responseJSON.message) || 'حدث خطأ أثناء إنشاء العقد';
+                        let errorMessage = contractRequestErrorMessage(xhr);
                         Swal.fire({
                             icon: 'error',
                             title: 'خطأ',
