@@ -642,7 +642,7 @@
 @endsection
 
 @section('page-title')
-    {{ helperTrans('ingaz.All Recruitment contracts') }}
+    {{ $companyContractsMode ? 'عقود الاستقدام للشركة' : helperTrans('ingaz.All Recruitment contracts') }}
 @endsection
 
 @section('content')
@@ -669,19 +669,19 @@
         <div class="contracts-page-header">
             <h3 class="h3 mb-0 text-gray-800">
                 <i class="fas fa-file-contract text-primary me-2"></i>
-                {{ $shelterContractsMode ? 'عقود الإيواء' : helperTrans('ingaz.All Recruitment contracts') }}
+                {{ $shelterContractsMode ? 'عقود الإيواء' : ($companyContractsMode ? 'عقود الاستقدام للشركة' : helperTrans('ingaz.All Recruitment contracts')) }}
             </h3>
             <div class="contracts-header-actions">
-                <a href="{{ route('RecruitmentContract.index', ['all_contracts' => 1]) }}" class="btn btn-outline-dark">
+                <a href="{{ route($companyContractsMode ? 'RecruitmentContract.company.index' : 'RecruitmentContract.index', ['all_contracts' => 1]) }}" class="btn btn-outline-dark">
                     <i class="fas fa-list"></i>
                     كل العقود
                 </a>
-                <a href="{{ route('RecruitmentContract.index', ['status' => 'current']) }}" class="btn btn-outline-secondary">
+                <a href="{{ route($companyContractsMode ? 'RecruitmentContract.company.index' : 'RecruitmentContract.index', ['status' => 'current']) }}" class="btn btn-outline-secondary">
                     <i class="fas fa-layer-group"></i>
                     العقود السارية
                 </a>
                 @if (@AdminGuardHasPerm(\App\NewPermKeys::REC_CONTRACTS_VIEW_SHELTER))
-                    <a href="{{ route('RecruitmentContract.index', ['shelter_contracts' => 1]) }}"
+                    <a href="{{ route($companyContractsMode ? 'RecruitmentContract.company.index' : 'RecruitmentContract.index', ['shelter_contracts' => 1]) }}"
                         class="btn {{ $shelterContractsMode ? 'btn-dark' : 'btn-outline-dark' }}">
                         <i class="fas fa-house-user"></i>
                         عقود الإيواء
@@ -1165,12 +1165,12 @@
                             </div>
                             <div>
                                 @if (@AdminGuardHasPerm(\App\NewPermKeys::REC_CONTRACTS_EXPORT))
-                                    <a href="{{ route('RecruitmentContract.export.pdf', request()->query()) }}"
+                                    <a href="{{ route('RecruitmentContract.export.pdf', array_merge(request()->query(), ['company_contracts' => $companyContractsMode ? 1 : 0])) }}"
                                         data-export-url="{{ route('RecruitmentContract.export.pdf') }}"
                                         class="btn btn-danger me-2 recruitment-contract-export" target="_blank">
                                         <i class="fa fa-file-pdf me-1"></i> {{ helperTrans('ingaz.export_pdf') }}
                                     </a>
-                                    <a href="{{ route('RecruitmentContract.export.excel', request()->query()) }}"
+                                    <a href="{{ route('RecruitmentContract.export.excel', array_merge(request()->query(), ['company_contracts' => $companyContractsMode ? 1 : 0])) }}"
                                         data-export-url="{{ route('RecruitmentContract.export.excel') }}"
                                         class="btn btn-success recruitment-contract-export">
                                         <i class="fa fa-file-excel me-1"></i> {{ helperTrans('ingaz.export_excel') }}
@@ -1705,6 +1705,7 @@
 
     <script>
         $(document).ready(function() {
+            const companyContractsMode = @json((bool) $companyContractsMode);
             const shelterContractsMode = @json((bool) $shelterContractsMode);
             const statsCollapsePreferenceKey = 'recruitmentContractStatsCollapsed';
             const statsCollapseElement = document.getElementById('contractStatsCollapse');
@@ -2162,7 +2163,7 @@
             // الحالة المحفوظة لها الأولوية على فلاتر الـ URL لأنها تُحفظ عند كل عرض للجدول
             const recruitmentListState = window.ListState
                 ? window.ListState.create({
-                    key: 'recruitment-contracts' + (shelterContractsMode ? ':shelter' : ''),
+                    key: 'recruitment-contracts' + (companyContractsMode ? ':company' : ':clients') + (shelterContractsMode ? ':shelter' : ''),
                     filters: recruitmentListFilterSelectors,
                     onRestore: function(filters) {
                         const hasActiveFilter = Object.keys(filters).some(function(selector) {
@@ -2197,7 +2198,7 @@
                 autoWidth: false, // إيقاف حساب العرض التلقائي
                 destroy: true, // السماح بإعادة التهيئة
                 ajax: {
-                    url: "{{ route('RecruitmentContract.index') }}",
+                    url: "{{ route($companyContractsMode ? 'RecruitmentContract.company.index' : 'RecruitmentContract.index') }}",
                     timeout: 45000,
                     type: 'GET',
                     dataSrc: function(json) {
@@ -2208,6 +2209,7 @@
                     data: function(d) {
                         d.global_search = $('#globalSearchFilter').val();
                         d.status = shelterContractsMode ? '' : $('#statusFilter').val();
+                        d.company_contracts = companyContractsMode ? 1 : 0;
                         d.shelter_contracts = shelterContractsMode ? 1 : '';
                         d.date_from = $('#dateFromFilter').val();
                         d.date_to = $('#dateToFilter').val();
@@ -2640,6 +2642,7 @@
             $('.recruitment-contract-export').on('click', function() {
                 const status = $('#statusFilter').val();
                 const filters = {
+                    company_contracts: companyContractsMode ? 1 : 0,
                     global_search: $('#globalSearchFilter').val(),
                     status: status,
                     date_from: $('#dateFromFilter').val(),
@@ -2770,6 +2773,7 @@
                     url: '{{ route('RecruitmentContract.statistics') }}',
                     method: 'GET',
                     data: {
+                        company_contracts: companyContractsMode ? 1 : 0,
                         global_search: $('#globalSearchFilter').val(),
                         status: $('#statusFilter').val(),
                         warranty_status: $('#warrantyStatusFilter').val(),

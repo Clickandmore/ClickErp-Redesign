@@ -34,6 +34,8 @@ class RecruitmentContractSidebarCountService
 
         $baseQuery = app(BranchAccessService::class)
             ->applyToQuery(Contract::query(), $request, 'contracts');
+        $dispatchQuery = clone $baseQuery;
+        $baseQuery->forCompanyRecruitment(false);
 
         $counts['under_warranty'] = (clone $baseQuery)
             ->where('status', ContractStatusEnum::Arrival->value)
@@ -66,7 +68,7 @@ class RecruitmentContractSidebarCountService
             ->count();
 
         if (Schema::hasTable('contract_external_office_dispatches')) {
-            $counts['external_office_dispatch_pending'] = (clone $baseQuery)
+            $counts['external_office_dispatch_pending'] = $dispatchQuery
                 ->whereIn('type', ['recruitment', 'maid'])
                 ->whereIn('status', [
                     ContractStatusEnum::PendingMaidSelection->value,
