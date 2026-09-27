@@ -3705,7 +3705,9 @@ class RecruitmentContractController extends Controller
         } catch (QueryException $e) {
             DB::rollBack();
 
+            $errorId = (string) Str::uuid();
             logger()->error('Error creating contract:', [
+                'error_id' => $errorId,
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString(),
                 'request_data' => $request->all(),
@@ -3727,12 +3729,15 @@ class RecruitmentContractController extends Controller
 
             return response()->json([
                 'success' => false,
-                'message' => 'حدث خطأ أثناء إنشاء العقد'
+                'message' => \App\Support\ContractCreationError::message($e) . ' مرجع الخطأ: ' . $errorId,
+                'error_id' => $errorId,
             ], 500);
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             DB::rollBack();
 
+            $errorId = (string) Str::uuid();
             logger()->error('Error creating contract:', [
+                'error_id' => $errorId,
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString(),
                 'request_data' => $request->all(),
@@ -3742,7 +3747,8 @@ class RecruitmentContractController extends Controller
 
             return response()->json([
                 'success' => false,
-                'message' => 'حدث خطأ أثناء إنشاء العقد'
+                'message' => \App\Support\ContractCreationError::message($e) . ' مرجع الخطأ: ' . $errorId,
+                'error_id' => $errorId,
             ], 500);
         }
     }
