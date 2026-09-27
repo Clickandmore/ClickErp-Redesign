@@ -625,6 +625,7 @@
                             <span class="required-star">*</span>
                             المسوق المسؤول
                         </label>
+                        @if(AdminGuardHasPerm(\App\PermKeys::RENT_CONTRACT_CHANGE_MARKETER))
                         <select class="form-select select2" id="marketer_id" name="marketer_id" required>
                             <option value="" disabled>اختر المسوق...</option>
                             @foreach($marketers as $marketer)
@@ -634,6 +635,10 @@
                                 </option>
                             @endforeach
                         </select>
+                        @else
+                            <input type="hidden" name="marketer_id" value="{{ $contract->marketer_id }}">
+                            <input type="text" class="form-control" value="{{ $contract->marketer?->name ?? 'غير محدد' }}" readonly>
+                        @endif
                     </div>
                 </div>
 

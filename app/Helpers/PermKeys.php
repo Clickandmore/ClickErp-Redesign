@@ -505,6 +505,7 @@ const PARTENR_CONTROL = 'partenr_control';
     const RENT_CONTRACT_VIEW = 'rent_contract_view';
     const RENT_CONTRACT_CREATE = 'rent_contract_create';
     const RENT_CONTRACT_EDIT = 'rent_contract_edit';
+    const RENT_CONTRACT_CHANGE_MARKETER = 'rent_contract_change_marketer';
     const RENT_CONTRACT_DELETE = 'rent_contract_delete';
     const RENT_CONTRACT_CONTROL = 'rent_contract_control';
     const RENT_CONTRACT_CLOSURE_ADJUSTMENT_OVERRIDE = 'rent_contract_closure_adjustment_override';
