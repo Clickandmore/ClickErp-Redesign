@@ -708,6 +708,13 @@ class RecruitmentContractController extends Controller
         return @AdminGuardHasPerm(NewPermKeys::REC_CONTRACTS_VIEW_SHELTER);
     }
 
+    public function companyIndex(Request $request)
+    {
+        $request->merge(['company_contracts' => true]);
+
+        return $this->index($request);
+    }
+
     public function index(Request $request)
     {
         // التحقق من صلاحية عرض العقود
@@ -719,6 +726,7 @@ class RecruitmentContractController extends Controller
         }
 
         $shelterContractsMode = $request->boolean('shelter_contracts');
+        $companyContractsMode = $request->boolean('company_contracts');
 
         if ($shelterContractsMode && !$this->canViewShelterRecruitmentContracts()) {
             abort(403, 'ليس لديك صلاحية لعرض عقود الإيواء من شاشة عقود الاستقدام');
@@ -765,6 +773,7 @@ class RecruitmentContractController extends Controller
             $statusFilter = $this->getStatusFilterForRequest($request);
 
             $query->whereIn('type', ['recruitment', 'maid']);
+            $query->forCompanyRecruitment($companyContractsMode);
             if ($shelterContractsMode) {
                 $query->where('status', ContractStatusEnum::Shelter->value);
             } else {
@@ -2012,6 +2021,7 @@ class RecruitmentContractController extends Controller
         $data["status"] = $status ?? $request->get('status', null);
         $data["filterOptions"] = $filterOptions;
         $data['shelterContractsMode'] = $shelterContractsMode;
+        $data['companyContractsMode'] = $companyContractsMode;
         $data['branchesEnabled'] = $this->branchesEnabledFor('contracts');
         $data['branches'] = $data['branchesEnabled']
             ? Branch::query()->active()->ordered()->get(['id', 'name_ar', 'name_en'])
@@ -3705,7 +3715,9 @@ class RecruitmentContractController extends Controller
         } catch (QueryException $e) {
             DB::rollBack();
 
+            $errorId = (string) Str::uuid();
             logger()->error('Error creating contract:', [
+                'error_id' => $errorId,
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString(),
                 'request_data' => $request->all(),
@@ -3727,12 +3739,15 @@ class RecruitmentContractController extends Controller
 
             return response()->json([
                 'success' => false,
-                'message' => 'حدث خطأ أثناء إنشاء العقد'
+                'message' => \App\Support\ContractCreationError::message($e) . ' مرجع الخطأ: ' . $errorId,
+                'error_id' => $errorId,
             ], 500);
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             DB::rollBack();
 
+            $errorId = (string) Str::uuid();
             logger()->error('Error creating contract:', [
+                'error_id' => $errorId,
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString(),
                 'request_data' => $request->all(),
@@ -3742,7 +3757,8 @@ class RecruitmentContractController extends Controller
 
             return response()->json([
                 'success' => false,
-                'message' => 'حدث خطأ أثناء إنشاء العقد'
+                'message' => \App\Support\ContractCreationError::message($e) . ' مرجع الخطأ: ' . $errorId,
+                'error_id' => $errorId,
             ], 500);
         }
     }
@@ -5925,6 +5941,7 @@ class RecruitmentContractController extends Controller
 
     private function applyContractFilters($query, Request $request, bool $ignoreStatus = false, bool $ignoreWarranty = false): void
     {
+        $query->forCompanyRecruitment($request->boolean('company_contracts'));
         $this->applyRequestBranchFilter($query, $request, 'contracts');
 
         if ($request->filled('marketer_id')) {

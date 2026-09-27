@@ -28,6 +28,16 @@ class Contract extends Model
     protected $guarded = [];
     protected $with = ['info'];
 
+    public function scopeForCompanyRecruitment($query, bool $company = true)
+    {
+        $identityFilter = fn ($userQuery) => app(\App\Services\ShelterCompanyClientResolver::class)
+            ->applyCompanyIdentityFilter($userQuery);
+
+        return $company
+            ? $query->whereHas('user', $identityFilter)
+            : $query->whereDoesntHave('user', $identityFilter);
+    }
+
     // إضافة الحقول الجديدة للضمان
     protected $casts = [
         'warranty_start_date' => 'datetime',

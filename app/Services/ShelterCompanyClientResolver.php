@@ -6,6 +6,28 @@ use App\Models\ingaz\User as ClientUser;
 
 class ShelterCompanyClientResolver
 {
+    public function applyCompanyIdentityFilter($query): void
+    {
+        $companyName = trim((string) documentSetting(
+            'document_company_name',
+            documentSetting('website_name', config('app.name'))
+        ));
+
+        $names = array_filter([
+            $companyName !== '' ? $companyName : config('app.name'),
+            'شركة أسس الإنجاز للاستقدام',
+            'شركة أسس الانجاز للاستقدام',
+            'شركة أسس الإنجاز',
+            'شركة أسس الانجاز',
+        ]);
+
+        $query->where(function ($query) use ($names) {
+            foreach ($names as $name) {
+                $query->orWhere('name', 'like', '%' . trim($name) . '%');
+            }
+        });
+    }
+
     public function resolve(): ClientUser
     {
         $defaultCompanyName = config('app.name');
@@ -16,24 +38,10 @@ class ShelterCompanyClientResolver
         $companyName = $configuredCompanyName !== '' ? $configuredCompanyName : $defaultCompanyName;
         $companyPhone = $this->resolvePhone($companyName, (string) documentSetting('phone', '0112345678'));
         $companyEmail = documentSetting('email');
-        $companyNames = [
-            $companyName,
-            'شركة أسس الإنجاز للاستقدام',
-            'شركة أسس الانجاز للاستقدام',
-            'شركة أسس الإنجاز',
-            'شركة أسس الانجاز',
-        ];
+        $companyQuery = ClientUser::query();
+        $this->applyCompanyIdentityFilter($companyQuery);
 
-        $companyClient = ClientUser::query()
-            ->where(function ($query) use ($companyNames) {
-                foreach ($companyNames as $name) {
-                    if (blank($name)) {
-                        continue;
-                    }
-
-                    $query->orWhere('name', 'like', '%' . trim($name) . '%');
-                }
-            })
+        $companyClient = $companyQuery
             ->orWhere('phone', $companyPhone)
             ->first();
 

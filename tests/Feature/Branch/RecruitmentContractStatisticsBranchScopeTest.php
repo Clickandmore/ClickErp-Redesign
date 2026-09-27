@@ -91,6 +91,37 @@ class RecruitmentContractStatisticsBranchScopeTest extends TestCase
             ->assertJsonPath('data.total', 2);
     }
 
+    public function test_company_contracts_are_separate_in_statistics_and_exports(): void
+    {
+        $branch = $this->makeBranch();
+        $viewer = $this->branchAdmin($branch);
+        $this->grantViewPermission($viewer);
+        $company = \App\Models\ingaz\User::withoutEvents(fn () => \App\Models\ingaz\User::create([
+            'name' => 'شركة أسس الإنجاز للاستقدام',
+            'phone' => 'company-split-' . uniqid(),
+            'password' => bcrypt('test'),
+        ]));
+        $companyContract = $this->makeContract($branch->id, 'new');
+        DB::table('contracts')->where('id', $companyContract)->update(['user_id' => $company->id]);
+        $clientContract = $this->makeContract($branch->id, 'new');
+
+        // Soft-deleting the internal client must not reclassify its contracts.
+        DB::table('users')->where('id', $company->id)->update(['deleted_at' => now()]);
+
+        $this->actingAsAdmin($viewer)->getJson(route('RecruitmentContract.statistics'))
+            ->assertOk()->assertJsonPath('data.total', 1);
+        $this->getJson(route('RecruitmentContract.statistics', ['company_contracts' => 1]))
+            ->assertOk()->assertJsonPath('data.total', 1);
+
+        $method = new \ReflectionMethod(\App\Http\Controllers\ingaz\RecruitmentContractController::class, 'recruitmentContractExportQuery');
+        $method->setAccessible(true);
+        $controller = new \App\Http\Controllers\ingaz\RecruitmentContractController();
+        foreach ([0 => [$clientContract], 1 => [$companyContract]] as $mode => $expected) {
+            $query = $method->invoke($controller, \Illuminate\Http\Request::create('/', 'GET', ['company_contracts' => $mode]));
+            $this->assertEquals($expected, $query->pluck('contracts.id')->all());
+        }
+    }
+
     /** @test */
     public function statistics_follow_warranty_and_marketer_filters_together(): void
     {

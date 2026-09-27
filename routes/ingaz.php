@@ -488,6 +488,7 @@ Route::group(
             Route::get('RecruitmentContract/available-maids', [RecruitmentContractController::class, 'getAvailableMaids'])->name('RecruitmentContract.availableMaids');
             Route::get('RecruitmentContract/search-clients', [RecruitmentContractController::class, 'searchClients'])->name('RecruitmentContract.searchClients');
             Route::get('RecruitmentContract/filter-options', [RecruitmentContractController::class, 'getFilterOptions'])->name('RecruitmentContract.filterOptions');
+            Route::get('RecruitmentContract/company', [RecruitmentContractController::class, 'companyIndex'])->name('RecruitmentContract.company.index');
             Route::get('RecruitmentContract/statistics', [RecruitmentContractController::class, 'statistics'])->name('RecruitmentContract.statistics');
             Route::get('RecruitmentContract/export/pdf', [RecruitmentContractController::class, 'exportPdf'])->name('RecruitmentContract.export.pdf');
             Route::get('RecruitmentContract/export/excel', [RecruitmentContractController::class, 'exportExcel'])->name('RecruitmentContract.export.excel');
@@ -518,6 +519,7 @@ Route::group(
             Route::post('RecruitmentContract/{contractId}/notes', [RecruitmentContractController::class, 'storeNote'])->name('RecruitmentContract.notes.store');
             Route::get('RentContract/existing-clients', [RentContractController::class, 'getExistingClients'])->name('RentContract.existing.clients');
             Route::resource('RentContract', RentContractController::class);
+            Route::post('RentContract/{id}/change-marketer', [RentContractController::class, 'changeMarketer'])->name('RentContract.changeMarketer');
             Route::get('rental-invoices/download/{id}', [RentalContractInvoiceController::class, 'download'])->name('rental.invoice.download');
             Route::get('rental-extension-invoices/download/{id}', [RentalContractInvoiceController::class, 'extension'])->name('rental.extension-invoice.download');
             Route::get('rental-credit-notes/download/{id}', [RentalContractInvoiceController::class, 'creditNote'])->name('rental.credit-note.download');
