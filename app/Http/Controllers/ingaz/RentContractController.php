@@ -1199,7 +1199,7 @@ class RentContractController extends Controller
         try {
             DB::beginTransaction();
 
-            $contract = RentalContract::with(['user', 'info'])->findOrFail($id);
+            $contract = RentalContract::with(['user', 'info'])->lockForUpdate()->findOrFail($id);
             $this->assertCanAccessBranchModel($contract, 'rental_contracts');
 
             // تحديث بيانات العميل
@@ -1347,22 +1347,7 @@ class RentContractController extends Controller
                 $request->filled('receipt_account_id') ? (int) $request->receipt_account_id : null
             );
 
-            // تحديث حالة العاملات
-            if ($oldMaidId && $oldMaidId != $request->maid_id) {
-                $oldMaid = Maid::find($oldMaidId);
-
-                if ($oldMaid) {
-                    $this->syncMaidBookingState($oldMaid);
-                }
-            }
-
-            if ($request->maid_id) {
-                // تحديث العاملة الجديدة
-                Maid::where('id', $request->maid_id)->update([
-                    'status' => 'contracted',
-                    'available' => false,
-                ]);
-            }
+            $this->syncMaidBookingStateAfterContractEdit($contract, $oldMaidId);
 
             DB::commit();
 
@@ -2261,6 +2246,20 @@ class RentContractController extends Controller
             'status' => OrderEnum::Completed->value,
             'status_changed_at' => now(),
         ]);
+    }
+
+    private function syncMaidBookingStateAfterContractEdit(RentalContract $contract, ?int $oldMaidId): void
+    {
+        // Historical edits and edits to the same assignment must preserve the maid's current state.
+        if ((int) $oldMaidId === (int) $contract->maid_id
+            || !in_array($contract->status, $this->rentalActiveContractStatuses(), true)) {
+            return;
+        }
+
+        $maidIds = array_filter([$oldMaidId, $contract->maid_id]);
+        foreach (Maid::whereIn('id', $maidIds)->orderBy('id')->lockForUpdate()->get() as $maid) {
+            $this->syncMaidBookingState($maid);
+        }
     }
 
     private function syncMaidBookingState(Maid $maid): void

@@ -1,7 +1,7 @@
 @extends('admin.layout.indexs.index')
 
 @section('page-title')
-    إدارة تفاويض الإنجاز
+    {{ __('delegations.title') }}
 @endsection
 
 @section('css')
@@ -120,20 +120,20 @@
         <div class="container-fluid ingaz-delegations-page">
             <div class="page-heading d-flex align-items-center justify-content-between flex-wrap mb-4">
                 <div>
-                    <h3 class="mb-1">إدارة تفاويض الإنجاز</h3>
-                    <p class="text-muted mb-0">متابعة تاريخ التفويض وتاريخ الإضافة وبيانات العميل والفاتورة وتحويل مساند.</p>
+                    <h3 class="mb-1">{{ __('delegations.title') }}</h3>
+                    <p class="text-muted mb-0">{{ __('delegations.description') }}</p>
                 </div>
                 @if ($canCreateCosts)
-                    <a href="{{ route('delegation-costs.create') }}" class="btn btn-outline-primary">تسجيل تكلفة التفويض</a>
+                    <a href="{{ route('delegation-costs.create') }}" class="btn btn-outline-primary">{{ __('delegations.record_cost') }}</a>
                 @endif
                 @if ($canCreateDelegation)
                     <a href="{{ route('reports.import.index', ['type' => 'ingaz_delegations']) }}" class="btn btn-outline-success">
                         <i class="fa fa-file-import me-1"></i>
-                        استيراد من Excel
+                        {{ __('delegations.import_excel') }}
                     </a>
                     <a href="{{ route('ingaz-delegations.create') }}" class="btn btn-primary">
                         <i class="fa fa-plus me-1"></i>
-                        إضافة تفويض جديد
+                        {{ __('delegations.add') }}
                     </a>
                 @endif
             </div>
@@ -143,33 +143,33 @@
                     <form method="GET" id="delegations-filter-form" class="row g-3">
                         @include('admin.partials.branch-filter', ['id' => 'branchFilter', 'containerClass' => 'col-md-2'])
                         <div class="col-md-4">
-                            <label class="form-label">بحث</label>
+                            <label class="form-label">{{ __('delegations.search') }}</label>
                             <input type="text" name="search" value="{{ request('search') }}" class="form-control"
-                                   placeholder="إنجاز، مساند، التأشيرة، العميل، الجواز">
+                                   placeholder="{{ __('delegations.search_placeholder') }}">
                         </div>
                         <div class="col-md-2">
-                            <label class="form-label">الدولة</label>
-                            <select name="country_id" class="form-select select2" data-placeholder="الكل">
-                                <option value="">الكل</option>
+                            <label class="form-label">{{ __('delegations.country') }}</label>
+                            <select name="country_id" class="form-select select2" data-placeholder="{{ __('delegations.all') }}">
+                                <option value="">{{ __('delegations.all') }}</option>
                                 @foreach ($countries as $country)
                                     <option value="{{ $country->id }}" {{ request('country_id') == $country->id ? 'selected' : '' }}>
-                                        {{ $country->name_ar ?: $country->name_en }}{{ $country->code ? ' - ' . $country->code : '' }}
+                                        {{ $country->title ?: ($country->name_ar ?: $country->name_en) }}{{ $country->code ? ' - ' . $country->code : '' }}
                                     </option>
                                 @endforeach
                             </select>
                         </div>
                         <div class="col-md-2">
-                            <label class="form-label">نوع العميل</label>
+                            <label class="form-label">{{ __('delegations.client_type') }}</label>
                             <select name="client_source_type" class="form-select">
-                                <option value="">الكل</option>
-                                <option value="existing_in_program" {{ request('client_source_type') === 'existing_in_program' ? 'selected' : '' }}>موجود في البرنامج</option>
-                                <option value="separate_client" {{ request('client_source_type') === 'separate_client' ? 'selected' : '' }}>عميل منفصل</option>
+                                <option value="">{{ __('delegations.all') }}</option>
+                                <option value="existing_in_program" {{ request('client_source_type') === 'existing_in_program' ? 'selected' : '' }}>{{ __('delegations.existing_client') }}</option>
+                                <option value="separate_client" {{ request('client_source_type') === 'separate_client' ? 'selected' : '' }}>{{ __('delegations.separate_client') }}</option>
                             </select>
                         </div>
                         <div class="col-md-2">
-                            <label class="form-label">المسوق</label>
-                            <select name="marketer_id" class="form-select select2-marketer" data-placeholder="الكل">
-                                <option value="">الكل</option>
+                            <label class="form-label">{{ __('delegations.marketer') }}</label>
+                            <select name="marketer_id" class="form-select select2-marketer" data-placeholder="{{ __('delegations.all') }}">
+                                <option value="">{{ __('delegations.all') }}</option>
                                 @foreach ($marketers as $marketer)
                                     <option value="{{ $marketer->id }}" @if(request('marketer_id') == $marketer->id) selected @endif>
                                         {{ $marketer->name }}
@@ -178,55 +178,55 @@
                             </select>
                         </div>
                         <div class="col-md-2">
-                            <label class="form-label">مرحلة التفويض</label>
+                            <label class="form-label">{{ __('delegations.stage') }}</label>
                             <select name="status" class="form-select">
-                                <option value="">الكل</option>
+                                <option value="">{{ __('delegations.all') }}</option>
                                 @foreach ($statusOptions as $value => $label)
                                     <option value="{{ $value }}" @selected(request('status') === $value)>{{ $label }}</option>
                                 @endforeach
                             </select>
                         </div>
                         <div class="col-md-2">
-                            <label class="form-label">الفاتورة</label>
+                            <label class="form-label">{{ __('delegations.invoice') }}</label>
                             <select name="has_invoice" class="form-select">
-                                <option value="">الكل</option>
-                                <option value="1" @selected(request('has_invoice') === '1')>لها فاتورة</option>
-                                <option value="0" @selected(request('has_invoice') === '0')>بدون فاتورة</option>
+                                <option value="">{{ __('delegations.all') }}</option>
+                                <option value="1" @selected(request('has_invoice') === '1')>{{ __('delegations.with_invoice') }}</option>
+                                <option value="0" @selected(request('has_invoice') === '0')>{{ __('delegations.without_invoice') }}</option>
                             </select>
                         </div>
                         <div class="col-md-2">
-                            <label class="form-label">تحويل مساند</label>
+                            <label class="form-label">{{ __('delegations.musaned_transfer') }}</label>
                             <select name="has_musaned_transfer" class="form-select">
-                                <option value="">الكل</option>
-                                <option value="1" @selected(request('has_musaned_transfer') === '1')>تم تسجيل التحويل</option>
-                                <option value="0" @selected(request('has_musaned_transfer') === '0')>لم يسجل التحويل</option>
+                                <option value="">{{ __('delegations.all') }}</option>
+                                <option value="1" @selected(request('has_musaned_transfer') === '1')>{{ __('delegations.transfer_recorded') }}</option>
+                                <option value="0" @selected(request('has_musaned_transfer') === '0')>{{ __('delegations.transfer_not_recorded') }}</option>
                             </select>
                         </div>
                         <div class="col-md-2">
-                            <label class="form-label">من تاريخ التفويض</label>
+                            <label class="form-label">{{ __('delegations.date_from') }}</label>
                             <input type="date" name="from_date" value="{{ request('from_date') }}" class="form-control">
                         </div>
                         <div class="col-md-2">
-                            <label class="form-label">إلى تاريخ التفويض</label>
+                            <label class="form-label">{{ __('delegations.date_to') }}</label>
                             <input type="date" name="to_date" value="{{ request('to_date') }}" class="form-control">
                         </div>
                         <div class="col-12 d-flex gap-2 flex-wrap">
                             <button type="submit" class="btn btn-primary">
                                 <i class="fa fa-filter me-1"></i>
-                                تصفية
+                                {{ __('delegations.filter') }}
                             </button>
                             <a href="{{ route('ingaz-delegations.index') }}" class="btn btn-light">
                                 <i class="fa fa-rotate-right me-1"></i>
-                                إعادة تعيين
+                                {{ __('delegations.reset') }}
                             </a>
                             @if ($canExportDelegations)
                                 <button type="button" class="btn btn-outline-success ms-auto" id="export-excel-btn">
                                     <i class="fa fa-file-excel me-1"></i>
-                                    تصدير Excel
+                                    {{ __('delegations.export_excel') }}
                                 </button>
                                 <button type="button" class="btn btn-outline-danger" id="export-pdf-btn">
                                     <i class="fa fa-file-pdf me-1"></i>
-                                    تصدير PDF
+                                    {{ __('delegations.export_pdf') }}
                                 </button>
                             @endif
                         </div>
@@ -241,16 +241,16 @@
                             <thead class="table-light">
                                 <tr>
                                     <th>#</th>
-                                    <th>تاريخ التفويض</th>
-                                    <th>تاريخ الإضافة</th>
-                                    <th>عميل</th>
-                                    <th>المسوق</th>
-                                    <th>عقد مساند</th>
-                                    <th>الدولة</th>
-                                    <th>المهنة</th>
-                                    <th>الفاتورة والتحويل</th>
-                                    <th>الحالة</th>
-                                    <th>الإجراءات</th>
+                                    <th>{{ __('delegations.date') }}</th>
+                                    <th>{{ __('delegations.created_at') }}</th>
+                                    <th>{{ __('delegations.client') }}</th>
+                                    <th>{{ __('delegations.marketer') }}</th>
+                                    <th>{{ __('delegations.musaned_contract') }}</th>
+                                    <th>{{ __('delegations.country') }}</th>
+                                    <th>{{ __('delegations.profession') }}</th>
+                                    <th>{{ __('delegations.invoice_transfer') }}</th>
+                                    <th>{{ __('delegations.status') }}</th>
+                                    <th>{{ __('delegations.actions') }}</th>
                                 </tr>
                             </thead>
                             <tbody></tbody>
@@ -270,7 +270,7 @@
                     $(this).select2({
                         width: '100%',
                         allowClear: true,
-                        placeholder: $(this).data('placeholder') || 'الكل'
+                        placeholder: $(this).data('placeholder') || @json(__('delegations.all'))
                     });
                 });
             }
@@ -323,7 +323,7 @@
                     { targets: 0, width: '60px' }
                 ],
                 language: {
-                    url: '//cdn.datatables.net/plug-ins/1.13.6/i18n/ar.json'
+                    url: @json('//cdn.datatables.net/plug-ins/1.13.6/i18n/' . (app()->getLocale() === 'ar' ? 'ar' : 'en-GB') . '.json')
                 }
             });
 
@@ -370,7 +370,7 @@
                         $select.data('previous', $select.val());
 
                         if (typeof successToster === 'function') {
-                            successToster('تم بنجاح', response.message || 'تم تحديث الحالة بنجاح');
+                            successToster(@json(__('delegations.success')), response.message || @json(__('delegations.status_updated')));
                         }
 
                         table.ajax.reload(null, false);
@@ -379,7 +379,7 @@
                         $select.val(previousValue);
 
                         if (typeof errorToster === 'function') {
-                            errorToster('حدث خطأ', xhr.responseJSON?.message || 'تعذر تحديث الحالة');
+                            errorToster(@json(__('delegations.error')), xhr.responseJSON?.message || @json(__('delegations.status_failed')));
                         }
                     }
                 });

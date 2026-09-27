@@ -5,6 +5,8 @@ namespace Tests\Feature\Admin;
 use App\Http\Middleware\EnsureAdminRoutePermission;
 use App\Models\auth\Admin;
 use App\Models\Permission;
+use App\Models\ingaz\Order;
+use Illuminate\Support\Facades\DB;
 use App\PermKeys;
 use App\Support\PermissionCatalog;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
@@ -17,17 +19,97 @@ class OrderActionPermissionsTest extends TestCase
 {
     use DatabaseTransactions;
 
-    private function gate(string $name, array $data = []): int
+    private function gate(string $name, array $data = [], ?int $orderId = null): int
     {
         $request = Request::create('/admin/orders/1', 'POST', $data);
         $request->headers->set('Accept', 'application/json');
-        $route = (new Route('POST', 'admin/orders/1', fn () => null))->name($name);
+        $route = (new Route('POST', 'admin/orders/{id}', fn () => null))->name($name);
+        $route->bind($request);
+        if ($orderId !== null) {
+            $route->setParameter('id', $orderId);
+        } else {
+            $route->forgetParameter('id');
+        }
         $request->setRouteResolver(fn () => $route);
         try {
             return app(EnsureAdminRoutePermission::class)->handle($request, fn () => response('allowed'))->getStatusCode();
         } catch (HttpException $exception) {
             return $exception->getStatusCode();
         }
+    }
+
+    public function test_creator_can_reject_return_and_delete_but_other_employees_cannot(): void
+    {
+        $creator = Admin::factory()->create();
+        $responsible = Admin::factory()->create();
+        $id = DB::table('orders')->insertGetId([
+            'status' => 'new',
+            'created_by_admin_id' => $creator->id,
+            'customer_id' => $responsible->id,
+        ]);
+
+        foreach (['orders.refuseReturn', 'orders.destroy'] as $route) {
+            $this->actingAs($creator, 'admin');
+            $this->assertSame(200, $this->gate($route, [], $id));
+            $this->actingAs($responsible, 'admin');
+            $this->assertSame(403, $this->gate($route, [], $id));
+        }
+
+        $this->actingAs($creator, 'admin');
+        foreach (['orders.changeMaid', 'orders.changeResponsible', 'orders.changeStatus'] as $route) {
+            $this->assertSame(403, $this->gate($route, ['status' => 'under_process'], $id));
+        }
+
+        $order = Order::findOrFail($id);
+        $this->assertTrue($order->adminCanReject($creator));
+        $this->assertTrue($order->adminCanDelete($creator));
+        $this->assertFalse($order->adminCanReject($responsible));
+        $this->assertFalse($order->adminCanDelete($responsible));
+        $this->assertFalse($order->wasCreatedByAdmin(null));
+    }
+
+    public function test_creation_records_authenticated_admin_and_responsibility_changes_preserve_creator(): void
+    {
+        $creator = Admin::factory()->create();
+        $responsible = Admin::factory()->create();
+        $this->actingAs($creator, 'admin');
+        $order = Order::create([
+            'status' => 'refused',
+            'customer_id' => $responsible->id,
+            'created_by_admin_id' => $responsible->id,
+        ]);
+        $this->assertSame($creator->id, (int) $order->fresh()->created_by_admin_id);
+        $order->syncResponsibleAdmin($responsible->id);
+        $this->assertTrue($order->fresh()->wasCreatedByAdmin($creator));
+        $this->assertFalse($order->fresh()->wasCreatedByAdmin($responsible));
+    }
+
+    public function test_missing_creator_does_not_grant_ownership_to_responsible_employee(): void
+    {
+        $admin = Admin::factory()->create();
+        $this->actingAs($admin, 'admin');
+        $id = DB::table('orders')->insertGetId(['status' => 'new', 'customer_id' => $admin->id]);
+        $this->assertSame(403, $this->gate('orders.destroy', [], $id));
+        $this->assertSame(403, $this->gate('orders.refuseReturn', [], $id));
+    }
+
+    public function test_creator_can_execute_actions_and_completed_orders_remain_locked(): void
+    {
+        $admin = Admin::factory()->create();
+        $this->actingAs($admin, 'admin');
+        foreach (['refused', 'return'] as $status) {
+            $id = DB::table('orders')->insertGetId(['status' => 'new', 'created_by_admin_id' => $admin->id]);
+            $this->postJson(route('orders.refuseReturn', $id), ['action' => $status])->assertOk();
+            $this->assertSame($status, DB::table('orders')->where('id', $id)->value('status'));
+        }
+
+        $this->deleteJson(route('orders.destroy', $id))->assertOk();
+        $this->assertNotNull(DB::table('orders')->where('id', $id)->value('deleted_at'));
+
+        $id = DB::table('orders')->insertGetId(['status' => 'done', 'created_by_admin_id' => $admin->id]);
+        $this->deleteJson(route('orders.destroy', $id))->assertStatus(403);
+        $this->postJson(route('orders.refuseReturn', $id), ['action' => 'return'])->assertStatus(403);
+        $this->assertSame('done', DB::table('orders')->where('id', $id)->value('status'));
     }
 
     public function test_each_action_requires_its_own_permission_and_is_grantable(): void

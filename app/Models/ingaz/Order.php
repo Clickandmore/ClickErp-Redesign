@@ -52,6 +52,7 @@ class Order extends Model
         });
 
         static::creating(function (Order $order) {
+            $order->created_by_admin_id = auth('admin')->id();
             if (self::shouldTrackDeadline($order->status)) {
                 $order->deadline_at = now()->addHours($order->getDeadlineHours());
             }
@@ -72,6 +73,25 @@ class Order extends Model
     protected static function shouldTrackDeadline(?string $status): bool
     {
         return in_array($status, [OrderEnum::New->value, OrderEnum::UnderProcess->value], true);
+    }
+
+    public function wasCreatedByAdmin(?Admin $admin): bool
+    {
+        return $admin && $admin->getKey()
+            && $this->created_by_admin_id
+            && (int) $this->created_by_admin_id === (int) $admin->getKey();
+    }
+
+    public function adminCanReject(?Admin $admin): bool
+    {
+        return $this->wasCreatedByAdmin($admin)
+            || \App\Support\AdminRoutePermissionMatrix::adminHasAnyPermission($admin, [\App\PermKeys::ORDERS_REJECT]);
+    }
+
+    public function adminCanDelete(?Admin $admin): bool
+    {
+        return $this->wasCreatedByAdmin($admin)
+            || \App\Support\AdminRoutePermissionMatrix::adminHasAnyPermission($admin, [\App\PermKeys::ORDERS_DELETE]);
     }
 
     public function transfers()

@@ -343,7 +343,7 @@ class OrderController extends Controller
                     }
 
                     // Refuse/Return button for new and under_process orders
-                    if (@AdminGuardHasPerm(\App\PermKeys::ORDERS_REJECT) && !$isCompletedOrder) {
+                    if ($row->adminCanReject(auth('admin')->user()) && !$isCompletedOrder) {
                         if (in_array($row->status, [OrderEnum::New->value, OrderEnum::UnderProcess->value])) {
                             $actions .= '<li><button class="dropdown-item refuse-order" data-id="' . $row->id . '">
                                 <i class="fa fa-times"></i> رفض/إرجاع الطلب
@@ -352,7 +352,7 @@ class OrderController extends Controller
                     }
 
                     // Delete button
-                    if (@AdminGuardHasPerm(\App\PermKeys::ORDERS_DELETE) && !$isCompletedOrder) {
+                    if ($row->adminCanDelete(auth('admin')->user()) && !$isCompletedOrder) {
                         $actions .= '<li><hr class="dropdown-divider"></li>
                         <li><button class="dropdown-item delete-order" data-id="' . $row->id . '">
                             <i class="fa fa-trash"></i> حذف الطلب

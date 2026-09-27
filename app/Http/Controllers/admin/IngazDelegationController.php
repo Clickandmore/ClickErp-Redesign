@@ -89,7 +89,7 @@ class IngazDelegationController extends Controller
 
                     return '<div class="delegation-date-stack">
                         <span class="delegation-date-main">' . e($row->delegation_date_gregorian->format('Y-m-d')) . '</span>
-                        <small class="text-muted">تاريخ التفويض</small>
+                        <small class="text-muted">' . e(__('delegations.date')) . '</small>
                     </div>';
                 })
                 ->editColumn('created_at', function (IngazDelegation $row) {
@@ -120,7 +120,7 @@ class IngazDelegationController extends Controller
 
                     return '<div class="delegation-person-cell">
                         <span class="delegation-person-name">' . e($row->marketer->name) . '</span>
-                        <small class="text-muted">المسوق</small>
+                        <small class="text-muted">' . e(__('delegations.marketer')) . '</small>
                     </div>';
                 })
                 ->addColumn('msaned_transfer', function (IngazDelegation $row) {
@@ -130,14 +130,14 @@ class IngazDelegationController extends Controller
                     if ($transfer) {
                         return '<div class="delegation-date-stack">
                             <span class="delegation-date-main">' . $contractNumber . '</span>
-                            <small class="text-success"><i class="fa fa-check-circle me-1"></i>تم تسجيل التحويل</small>
+                            <small class="text-success"><i class="fa fa-check-circle me-1"></i>' . e(__('delegations.transfer_recorded')) . '</small>
                         </div>';
                     }
 
                     if ($row->invoice) {
                         return '<div class="delegation-date-stack">
                             <span class="delegation-date-main">' . $contractNumber . '</span>
-                            <small class="text-muted">لم يسجل تحويل</small>
+                            <small class="text-muted">' . e(__('delegations.no_transfer')) . '</small>
                         </div>';
                     }
 
@@ -153,20 +153,20 @@ class IngazDelegationController extends Controller
 
                         if ($canViewInvoices) {
                             $actions[] = '<a href="' . route('invoices.show', $row->invoice->id) . '" class="btn btn-sm btn-outline-success">
-                                <i class="fa fa-file-invoice me-1"></i>الفاتورة
+                                <i class="fa fa-file-invoice me-1"></i>' . e(__('delegations.invoice')) . '
                             </a>';
                         }
 
                         if ($canCreateCreditNotes) {
                             $actions[] = '<a href="' . route('invoices.credit-notes.create', $row->invoice->id) . '" class="btn btn-sm btn-outline-danger">
-                                <i class="fa fa-file-invoice-dollar me-1"></i>إشعار دائن
+                                <i class="fa fa-file-invoice-dollar me-1"></i>' . e(__('delegations.credit_note')) . '
                             </a>';
                         }
 
                         if ($canViewCreditNotes) {
                             foreach ($row->invoice->recruitmentCreditNotes as $creditNote) {
                                 $actions[] = '<a href="' . route('recruitment-credit-notes.download', ['id' => $creditNote->id, 'autoprint' => 1]) . '" target="_blank" rel="noopener" class="btn btn-sm btn-outline-danger">
-                                    <i class="fa fa-print me-1"></i>إشعار #' . e((string) $creditNote->id) . '
+                                    <i class="fa fa-print me-1"></i>' . e(__('delegations.credit_note_number')) . e((string) $creditNote->id) . '
                                 </a>';
                             }
                         }
@@ -175,33 +175,33 @@ class IngazDelegationController extends Controller
 
                         if ($transfer && $canViewMusanedTransfers) {
                             $actions[] = '<a href="' . route('musaned-transfers.show', $transfer->id) . '" class="btn btn-sm btn-outline-info">
-                                <i class="fa fa-arrow-right-arrow-left me-1"></i>التحويل
+                                <i class="fa fa-arrow-right-arrow-left me-1"></i>' . e(__('delegations.transfer')) . '
                             </a>';
                         }
 
                         if ($transfer && $canDeleteMusanedTransfers) {
                             $actions[] = '<a href="' . e(route('musaned-transfers.show', $transfer->id) . '#deleteMusanedTransfer') . '" class="btn btn-sm btn-outline-danger">
-                                <i class="fa fa-trash me-1"></i>حذف التحويل
+                                <i class="fa fa-trash me-1"></i>' . e(__('delegations.delete_transfer')) . '
                             </a>';
                         }
 
                         if (!$transfer && $canCreateMusanedTransfers) {
                             $actions[] = '<a href="' . route('musaned-transfers.create', ['ingaz_delegation_ids' => [$row->id]]) . '" class="btn btn-sm btn-outline-info">
-                                <i class="fa fa-plus me-1"></i>تحويل
+                                <i class="fa fa-plus me-1"></i>' . e(__('delegations.add_transfer')) . '
                             </a>';
                         }
 
                         return $actions === []
-                            ? '<span class="text-muted">لا توجد صلاحية</span>'
+                            ? '<span class="text-muted">' . e(__('delegations.no_permission')) . '</span>'
                             : '<div class="delegation-inline-actions">' . implode('', $actions) . '</div>';
                     }
 
                     if (!$canCreateInvoices) {
-                        return '<span class="text-muted">لا توجد فاتورة</span>';
+                        return '<span class="text-muted">' . e(__('delegations.no_invoice')) . '</span>';
                     }
 
                     return '<a href="' . route('invoices.create', ['ingaz_delegation_id' => $row->id]) . '" class="btn btn-sm btn-outline-primary">
-                        <i class="fa fa-plus me-1"></i>إضافة فاتورة
+                        <i class="fa fa-plus me-1"></i>' . e(__('delegations.add_invoice')) . '
                     </a>';
                 })
                 ->addColumn('status', fn (IngazDelegation $row) => $this->statusBadgeHtml($row))
@@ -230,30 +230,30 @@ class IngazDelegationController extends Controller
                     $actions = [];
 
                     if ($canViewDelegation) {
-                        $actions[] = '<a href="' . $showUrl . '" class="btn btn-sm btn-outline-info" title="عرض التفاصيل">
-                            <i class="fa fa-eye me-1"></i>عرض
+                        $actions[] = '<a href="' . $showUrl . '" class="btn btn-sm btn-outline-info" title="' . e(__('delegations.view_details')) . '">
+                            <i class="fa fa-eye me-1"></i>' . e(__('delegations.view')) . '
                         </a>';
                     }
 
                     if ($canEditDelegation) {
-                        $actions[] = '<a href="' . $editUrl . '" class="btn btn-sm btn-outline-primary" title="تعديل التفويض">
-                            <i class="fa fa-pen me-1"></i>تعديل
+                        $actions[] = '<a href="' . $editUrl . '" class="btn btn-sm btn-outline-primary" title="' . e(__('delegations.edit_title')) . '">
+                            <i class="fa fa-pen me-1"></i>' . e(__('delegations.edit')) . '
                         </a>';
                     }
 
                     if ($canPrintDelegation) {
-                        $actions[] = '<a href="' . route('ingaz-delegations.print', $row) . '" target="_blank" class="btn btn-sm btn-outline-dark" title="طباعة التفويض">
-                            <i class="fa fa-print me-1"></i>طباعة
+                        $actions[] = '<a href="' . route('ingaz-delegations.print', $row) . '" target="_blank" class="btn btn-sm btn-outline-dark" title="' . e(__('delegations.print_title')) . '">
+                            <i class="fa fa-print me-1"></i>' . e(__('delegations.print')) . '
                         </a>';
                     }
 
                     if ($canDeleteDelegation) {
                         $actions[] = '
-                            <form action="' . $deleteUrl . '" method="POST" onsubmit="return confirm(\'هل أنت متأكد من حذف هذا التفويض؟\');">
+                            <form action="' . $deleteUrl . '" method="POST" onsubmit="return confirm(\'' . e(__('delegations.delete_confirm')) . '\');">
                                 <input type="hidden" name="_token" value="' . $csrf . '">
                                 <input type="hidden" name="_method" value="DELETE">
-                                <button type="submit" class="btn btn-sm btn-outline-danger" title="حذف التفويض">
-                                    <i class="fa fa-trash me-1"></i>حذف
+                                <button type="submit" class="btn btn-sm btn-outline-danger" title="' . e(__('delegations.delete_title')) . '">
+                                    <i class="fa fa-trash me-1"></i>' . e(__('delegations.delete')) . '
                                 </button>
                             </form>
                         ';
@@ -817,7 +817,7 @@ class IngazDelegationController extends Controller
         }
 
         return response()->json([
-            'message' => 'تم تحديث حالة التفويض بنجاح.',
+            'message' => __('delegations.status_updated'),
             'status' => $ingazDelegation->status,
             'status_label' => $ingazDelegation->status_label,
         ]);
@@ -1352,16 +1352,16 @@ class IngazDelegationController extends Controller
     private function statusBadgeHtml(IngazDelegation $row): string
     {
         if ($row->status === IngazDelegation::STATUS_CANCELLED) {
-            $label = 'ملغي';
+            $label = __('delegations.cancelled');
             $class = 'danger';
         } elseif (!empty($row->ingaz_number) && !empty($row->msaned_contract_number)) {
-            $label = 'مكتمل';
+            $label = __('delegations.completed');
             $class = 'success';
         } elseif (!empty($row->ingaz_number) || !empty($row->msaned_contract_number)) {
-            $label = 'قيد التنفيذ';
+            $label = __('delegations.in_progress');
             $class = 'warning text-dark';
         } else {
-            $label = 'جديد';
+            $label = __('delegations.new');
             $class = 'secondary';
         }
 
