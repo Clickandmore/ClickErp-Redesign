@@ -363,4 +363,32 @@ class BranchCrudTest extends TestCase
         $this->assertTrue(RecruitmentOffices::query()->whereKey($sharedOfficeId)->exists());
         $this->assertFalse(RecruitmentOffices::query()->whereKey($hiddenOfficeId)->exists());
     }
+
+    public function test_main_branch_office_sharing_includes_legacy_offices_in_nationality_lookup(): void
+    {
+        DB::table('branches')->update(['is_main' => false]);
+        $main = $this->makeBranch(['is_main' => true]);
+        $target = $this->makeBranch();
+        app(\App\Services\BranchAccessService::class)->forgetMainBranchId();
+        $admin = $this->lockToOwnBranch($this->branchAdmin($target)->assignRole('Administrator'));
+        $nationalityId = DB::table('nationalities')->insertGetId(['created_at' => now(), 'updated_at' => now()]);
+        $officeId = DB::table('recruitment_offices')->insertGetId([
+            'branch_id' => null,
+            'nationality_id' => $nationalityId,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        $legacyOffice = RecruitmentOffices::withoutBranchScope()->findOrFail($officeId);
+        $this->actingAsAdmin($admin);
+
+        foreach ([[], [$target->id => ['external_offices' => true]], [$main->id => ['external_offices' => true]], []] as $policies) {
+            app(BranchDataSharingService::class)->sync($policies);
+            $expected = isset($policies[$main->id]);
+            $this->assertSame($expected, RecruitmentOffices::query()->whereKey($officeId)->exists());
+            $this->assertSame($expected, \App\Models\office\Office::query()->whereKey($officeId)->exists());
+            $this->assertSame($expected, $legacyOffice->belongsToActiveBranch());
+            $response = $this->getJson(route('getOfficesByNationality', ['nationality_id' => $nationalityId]))->assertOk();
+            $this->assertSame($expected, collect($response->json())->pluck('id')->contains($officeId));
+        }
+    }
 }
