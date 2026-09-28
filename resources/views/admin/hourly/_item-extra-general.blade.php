@@ -1,0 +1,6 @@
+@foreach(['ar'=>'العربية','en'=>'الإنجليزية'] as $locale=>$label)
+
+<div class="col-md-6"><label class="form-label">الوصف — {{ $label }}</label><textarea class="form-control" name="description_{{ $locale }}">{{ old('description_'.$locale,optional($package->translations->firstWhere('locale',$locale))->description) }}</textarea></div>
+@endforeach
+<div class="col-md-6"><label class="form-label" for="item_city_ids">المدن (اختياري — فارغ = نطاق الخدمة)</label><select class="form-select" id="item_city_ids" name="city_ids[]" multiple data-placeholder="ابحث عن مدينة…" data-empty="لا توجد مدن نشطة.">@foreach($cities as $city)<option value="{{ $city->id }}" {{ in_array($city->id,old('city_ids',$package->cities->modelKeys())) ? 'selected' : '' }}>{{ $city->name_ar }}</option>@endforeach</select></div>
+<div class="col-md-6"><label class="form-label" for="item_nationality_ids">الجنسيات (فارغ = الكل)</label><select class="form-select" id="item_nationality_ids" name="nationality_ids[]" multiple data-placeholder="ابحث عن جنسية…">@foreach($nationalities as $n)<option value="{{ $n->id }}" {{ in_array($n->id,old('nationality_ids',$package->nationalities->modelKeys())) ? 'selected' : '' }}>{{ $n->sub_title ?: $n->title }}</option>@endforeach</select></div>

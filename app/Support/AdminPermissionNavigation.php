@@ -5,7 +5,7 @@ namespace App\Support;
 /**
  * المصدر المركزي لترتيب شاشة الصلاحيات ومسمياتها.
  *
- * الوحدات الست أدناه هي نفس الوحدات المرئية في القائمة الجانبية. أي شاشة أو
+ * الوحدات أدناه هي نفس الوحدات المرئية في القائمة الجانبية. أي شاشة أو
  * مجموعة جديدة يجب أن تُسجل هنا، وبذلك لا يعود الكنترولر يملك ترتيباً وترجمات
  * مستقلة تتباعد عن الواجهة الفعلية.
  */
@@ -29,6 +29,13 @@ final class AdminPermissionNavigation
                 'rent_contracts', 'shelter_management', 'additional_services',
                 'travel_management', 'complaints', 'operations', 'commissions', 'reports',
             ],
+        ],
+        'hourly_rental' => [
+            'title' => 'نظام التأجير بالساعة',
+            'title_en' => 'Hourly Rental System',
+            'description' => 'صلاحيات خدمات وباقات وطلبات وعملاء وفرق التأجير بالساعة والتوجيه والتتبع.',
+            'tone' => 'core',
+            'sections' => ['hourly_rental'],
         ],
         'hr' => [
             'title' => 'إدارة الموارد البشرية',
@@ -61,6 +68,7 @@ final class AdminPermissionNavigation
     ];
 
     private const SECTION_TITLES = [
+        'hourly_rental' => 'نظام التأجير بالساعة',
         'dashboard' => 'الرئيسية ولوحة المؤشرات',
         'clients' => 'العملاء وإدارة العلاقات',
         'cv_management' => 'إدارة السير الذاتية',
@@ -84,6 +92,7 @@ final class AdminPermissionNavigation
     ];
 
     private const GROUPS = [
+        'hourly_rental' => ['hourly_rental', 'صلاحيات التأجير بالساعة'],
         'clients' => ['clients', 'العملاء'],
         'crm' => ['clients', 'نظام إدارة العملاء'],
         'dashboard' => ['dashboard', 'لوحة التحكم'],
@@ -208,7 +217,7 @@ final class AdminPermissionNavigation
 
     public static function groupOrder(): array
     {
-        return array_keys(self::GROUPS);
+        return array_merge(array_keys(HourlyPermissionCatalog::PAGES), array_keys(self::GROUPS));
     }
 
     public static function sectionTitle(string $key): string
@@ -225,12 +234,14 @@ final class AdminPermissionNavigation
     {
         $key = self::canonicalGroup($key);
 
+        if (isset(HourlyPermissionCatalog::PAGES[$key])) return HourlyPermissionCatalog::PAGES[$key];
+
         return self::GROUPS[$key][1] ?? 'مجموعة غير مصنفة — ' . $key;
     }
 
     public static function hasGroup(string $key): bool
     {
-        return isset(self::GROUPS[self::canonicalGroup($key)]);
+        return isset(HourlyPermissionCatalog::PAGES[$key]) || isset(self::GROUPS[self::canonicalGroup($key)]);
     }
 
     public static function canonicalGroup(?string $group): string
@@ -256,6 +267,12 @@ final class AdminPermissionNavigation
     public static function placementForPermission(string $name, ?string $section, ?string $group): array
     {
         $normalized = str_replace(['.', '-'], '_', $name);
+        // Keep imported and newly registered hourly permissions together,
+        // regardless of legacy placement metadata stored in the database.
+        if (str_starts_with($normalized, 'hourly_')) {
+            return ['section' => 'hourly_rental', 'group' => HourlyPermissionCatalog::page($normalized) ?? 'hourly_rental'];
+        }
+
         $group = self::canonicalGroup($group);
 
         if ($group === 'other') {

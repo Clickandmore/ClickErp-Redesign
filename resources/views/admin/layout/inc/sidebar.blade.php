@@ -1099,6 +1099,8 @@
                     </li>
                 @endif
 
+                @include('admin.hourly.sidebar')
+
                 @php
                     $supportedLocales = array_keys(config('laravellocalization.supportedLocales', []));
                     $firstSegment = request()->segment(1);

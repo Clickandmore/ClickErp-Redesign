@@ -15,6 +15,7 @@ use App\Http\Resources\Api\UserResource;
 use App\Models\ingaz\User;
 use App\Models\ingaz\UserFirebaseToken;
 use App\Support\CommunicationSettings;
+use App\Support\ExternalAuthSettings;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\Hash;
@@ -24,7 +25,7 @@ use Tymon\JWTAuth\Facades\JWTAuth;
 
 class AuthController extends Controller
 {
-    public function login(LoginRequest $request)
+    public function login(LoginRequest $request, PhoneVerificationAction $phoneVerificationAction)
     {
         $key = 'app-login:' . $request->phone;
 
@@ -35,6 +36,23 @@ class AuthController extends Controller
         RateLimiter::hit($key, 60);
 
         $credentials = $request->validated();
+
+        if (ExternalAuthSettings::usesOtpOnly()) {
+            $user = User::where('phone', $credentials['phone'])->firstOrFail();
+            $request->merge(['phone_code' => $user->phone_code ?: '966']);
+            $phoneVerificationAction->storeSendCode([
+                'phone' => $user->phone,
+                'phone_code' => $request->phone_code,
+            ], $request);
+
+            return apiResponse(true, __('ingaz.code_send_successfully'), [
+                'phone' => $user->phone,
+                'phone_code' => $request->phone_code,
+                'encrypted_phone' => Crypt::encryptString($user->phone),
+                'auth_mode' => 'otp',
+                'next_step' => 'verify_otp',
+            ]);
+        }
 
         if (!Auth::guard('web')->attempt([
             'phone' => $credentials['phone'],
@@ -69,7 +87,7 @@ class AuthController extends Controller
         RateLimiter::hit('app-register:' . $data['phone'], 60);
 
         $userData = $data;
-        $userData['password'] = Hash::make($data['password']);
+        $userData['password'] = Hash::make(ExternalAuthSettings::usesOtpOnly() ? Str::random(40) : $data['password']);
         unset($userData['password_confirmation'], $userData['software_type']);
 
         /** @var User $user */
@@ -79,6 +97,18 @@ class AuthController extends Controller
             'phone' => $data['phone'],
             'phone_code' => $data['phone_code'],
         ], $request);
+
+        if (ExternalAuthSettings::usesOtpOnly()) {
+            return jsonSuccess([
+                'id' => (int) $user->id,
+                'name' => $user->name,
+                'phone' => $user->phone,
+                'phone_code' => $user->phone_code,
+                'encrypted_phone' => Crypt::encryptString($user->phone),
+                'auth_mode' => 'otp',
+                'next_step' => 'verify_otp',
+            ]);
+        }
 
         $token = JWTAuth::fromUser($user);
 
@@ -102,6 +132,10 @@ class AuthController extends Controller
     public function confirmCode(ConfirmCodeRequest $request, PhoneVerificationAction $phoneVerificationAction)
     {
         $data = $request->validated();
+        $account = User::where('phone', $data['phone'])->first();
+        if ($account && (int) $account->is_blocked === 1) {
+            return apiResponse(false, app()->getLocale() === 'en' ? 'Your account has been blocked.' : 'تم حظر حسابك، يرجى التواصل مع الدعم.', null, 403);
+        }
 
         if (blank($data['code'] ?? null)) {
             $phoneVerificationAction->storeSendCode([

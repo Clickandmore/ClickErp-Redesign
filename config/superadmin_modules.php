@@ -1,6 +1,14 @@
 <?php
 
 return [
+    'hourly_rental' => [
+        'name' => 'إيجار الساعات',
+        'description' => 'الخدمات والباقات والزيارات وفريق الساعات والموقع والتطبيقات.',
+        'profiles' => ['general', 'recruitment'],
+        'default_enabled' => false,
+        'route_patterns' => ['admin.hourly-*', 'web.hourly.*', 'hourly-driver.*', 'hourly-maid.*'],
+        'path_patterns' => [],
+    ],
     'general_operations' => [
         'name' => 'الموديل التشغيلي العام',
         'description' => 'أساس العمليات العامة والميزات التي ستضاف لقائمة النظام العامة.',

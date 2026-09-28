@@ -1208,6 +1208,7 @@
                         <a href="{{ $formRedirectRoute }}"
                             class="btn btn-outline-secondary">{{ __('buttons.cancel') }}</a>
                     </div>
+                    @include('admin.ingaz.maids._hourly-fields')
                 </form>
             </div>
         </div>

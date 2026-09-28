@@ -197,7 +197,12 @@ class Maid extends Model
         'reviewed_at',
     ];
 
+    protected $hidden = ['hourly_password', 'hourly_auth_version'];
+
     protected $casts = [
+        'hourly_settings' => 'array',
+        'hourly_is_suspended' => 'boolean',
+        'hourly_auth_version' => 'integer',
         'skills' => 'array',
         'languages' => 'array',
         'percentage' => 'array',
@@ -907,6 +912,7 @@ class Maid extends Model
     {
         return LogOptions::defaults()
             ->logOnly(['*'])
+            ->logExcept(['hourly_password', 'hourly_auth_version'])
             ->logOnlyDirty();
     }
 
@@ -1405,4 +1411,73 @@ class Maid extends Model
 
         return $nationality->monthly_salary ? (float) $nationality->monthly_salary : null;
     }
+
+    public function productAttributes(){return $this->belongsToMany(\App\Models\Hourly\HourlyProductAttribute::class,'maid_product_attribute','maid_id','product_attribute_id');}
+
+    public function hourlyTeamMemberships()
+    {
+        return $this->hasMany(\App\Models\Hourly\HourlyTeamMember::class, 'member_id')
+            ->where('member_type', 'maid')->whereNull('left_at');
+    }
+    public function insideShelterContract()
+    {
+        return $this->hasOne(Contract::class, 'maid_id')
+            ->insideShelter()
+            ->latestOfMany();
+    }
+
+    public function languagesLabel(string $separator = '، '): string
+    {
+        return collect((array)$this->languages)->filter()->implode($separator);
+    }
+
+    public function autoRecruitmentContract()
+    {
+        return $this->belongsTo(Contract::class, 'auto_recruitment_contract_id');
+    }
+
+    /** The latest shelter record, including records currently marked outside. */
+    public function latestShelterRecord()
+    {
+        return $this->hasOne(Contract::class, 'maid_id')
+            ->whereHas('info', fn ($query) => $query->whereNotNull('shelter_id'))
+            ->latestOfMany();
+    }
+
+    public function actualShelterStatusMeta(): array
+    {
+        $insideContract = $this->insideShelterContract;
+        if ($insideContract) {
+            return [
+                'state' => 'inside',
+                'label' => 'داخل الإيواء فعليًا',
+                'class' => 'success',
+                'icon' => 'fa-house-circle-check',
+                'contract_id' => $insideContract->id,
+                'shelter' => $insideContract->info?->shelter?->title,
+            ];
+        }
+
+        $latestRecord = $this->latestShelterRecord;
+        if ($latestRecord) {
+            return [
+                'state' => 'outside',
+                'label' => 'خارج الإيواء فعليًا',
+                'class' => 'warning text-dark',
+                'icon' => 'fa-house-circle-xmark',
+                'contract_id' => $latestRecord->id,
+                'shelter' => $latestRecord->info?->shelter?->title,
+            ];
+        }
+
+        return [
+            'state' => 'none',
+            'label' => 'لا يوجد سجل إيواء',
+            'class' => 'secondary',
+            'icon' => 'fa-house-circle-question',
+            'contract_id' => null,
+            'shelter' => null,
+        ];
+    }
+
 }

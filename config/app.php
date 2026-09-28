@@ -178,6 +178,7 @@ return [
         // App\Providers\BroadcastServiceProvider::class,
         App\Providers\EventServiceProvider::class,
         App\Providers\RouteServiceProvider::class,
+        App\Providers\HourlyServiceProvider::class,
         App\Providers\GoogleDriveServiceProvider::class,
         App\Providers\SidebarServiceProvider::class,
 

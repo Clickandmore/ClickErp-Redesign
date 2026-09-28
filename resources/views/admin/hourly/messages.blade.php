@@ -1,0 +1,2 @@
+@if(session('success'))<div class="alert alert-success d-flex flex-wrap align-items-center justify-content-between gap-2"><span>{{ session('success') }}</span>@if(session('receipt_url'))<a class="btn btn-sm btn-success" target="_blank" href="{{ session('receipt_url') }}"><i class="fa fa-receipt"></i> عرض سند القبض</a>@endif</div>@endif
+@if($errors->any())<div class="alert alert-danger">@foreach($errors->all() as $error)<div>{{ $error }}</div>@endforeach</div>@endif

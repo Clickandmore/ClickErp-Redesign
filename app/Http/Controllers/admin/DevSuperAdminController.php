@@ -383,6 +383,11 @@ class DevSuperAdminController extends Controller
 
     public function updateModules(Request $request)
     {
+        if (!array_key_exists('hourly_rental', (array)$request->input('modules', []))
+            && \App\Support\HourlyRentalSettings::isEnabled()
+            && ($blockers = \App\Support\HourlyRentalSettings::disableBlockers())) {
+            return back()->withErrors(['modules.hourly_rental' => implode(' ', $blockers)]);
+        }
         $data = $request->validate([
             'branches_limit' => ['nullable', 'integer', 'min:0'],
             'users_limit' => ['nullable', 'integer', 'min:0'],

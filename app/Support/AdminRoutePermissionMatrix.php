@@ -258,6 +258,11 @@ class AdminRoutePermissionMatrix
         }
 
         return array_values(array_unique(array_merge($permissions, [
+            PermKeys::HOURLY_ORDERS_RENEW_AGAIN,
+            PermKeys::HOURLY_ORDERS_PRICE_OVERRIDE,
+            PermKeys::HOURLY_ORDERS_NOTICE_OVERRIDE,
+            'hourly_visits_price_override',
+            'hourly_visits_collect',
             PermKeys::ROLES_CREATE,
             PermKeys::ROLES_EDIT,
         ], array_keys(AdminDispatchPermissions::definitions()))));
@@ -266,6 +271,7 @@ class AdminRoutePermissionMatrix
     private static function definitions(): array
     {
         return array_merge(
+            config('hourly_permissions', []),
             self::dashboardDefinitions(),
             self::permissionsDefinitions(),
             self::clientsDefinitions(),

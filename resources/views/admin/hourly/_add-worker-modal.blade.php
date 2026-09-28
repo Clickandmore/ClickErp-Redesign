@@ -1,0 +1,23 @@
+@if(AdminGuardHasPerm('hourly_orders_price_override'))
+@include('admin.hourly._modal-theme')
+@push('css')
+<style>
+#add-worker-modal{--om-accent:var(--om-teal-deep)}#add-worker-modal .modal-dialog{max-width:650px}#aw-filters{padding:16px;border:1px solid var(--om-line);border-radius:12px;background:var(--om-soft);margin:16px 0}.aw-toolbar{display:flex;justify-content:space-between;align-items:center;gap:.75rem;flex-wrap:wrap}.aw-chip{display:inline-flex;align-items:center;gap:.4rem;font-size:.8rem;font-weight:700;color:var(--om-brand-ink);background:#eaf5fe;border:1px solid #c4e2f8;border-radius:999px;padding:.25rem .7rem}.aw-prices{background:#e8f7f1;border:1px solid #bfe9d9;border-inline-start:4px solid var(--om-teal-deep);padding:14px 16px;border-radius:12px;margin-top:18px;font-size:.86rem;display:grid;gap:.35rem}.aw-prices i{width:15px;color:var(--om-teal-deep);margin-inline-end:.3rem}.aw-prices b{font-variant-numeric:tabular-nums}#aw-new{color:var(--om-teal-deep);font-size:1.05rem}#add-worker-modal .select2-container{width:100%!important}
+</style>
+@endpush
+<div class="modal fade om-modal" id="add-worker-modal" tabindex="-1" aria-labelledby="aw-title" aria-hidden="true" dir="{{ app()->getLocale()==='ar'?'rtl':'ltr' }}"><div class="modal-dialog modal-dialog-centered"><div class="modal-content">
+<div class="modal-header"><span class="om-m-icon"><i class="fa fa-user-plus"></i></span><div><h5 id="aw-title">{{ __('add_worker.title') }}</h5><p><i class="fa fa-calendar-day"></i> <span id="aw-visit"></span></p></div><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="{{ __('add_worker.close') }}"></button></div>
+<form id="add-worker-form" action="{{ route('admin.hourly-orders.operations',$order) }}" method="POST">@csrf
+<input type="hidden" name="action" value="add_worker"><input type="hidden" name="visit_ids[]"><input type="hidden" name="expected_price"><input type="hidden" name="expected_workers">
+<div class="modal-body"><div class="aw-toolbar"><button type="button" id="aw-filter-toggle" class="btn btn-outline-secondary btn-sm" aria-expanded="false" aria-controls="aw-filters"><i class="fa fa-filter"></i> {{ __('add_worker.filters') }}</button><span class="aw-chip"><i class="fa fa-user-group"></i> <b id="aw-count">0</b> {{ __('add_worker.workers') }}</span></div>
+<div id="aw-filters" hidden><label for="aw-category"><i class="fa fa-folder"></i> {{ __('add_worker.category') }}</label><select id="aw-category" class="form-select mb-3"></select><label for="aw-team"><i class="fa fa-people-group"></i> {{ __('add_worker.team') }}</label><select id="aw-team" class="form-select"></select></div>
+<p id="aw-status" class="text-muted mt-3" aria-live="polite"></p><label for="aw-worker" class="mt-3"><i class="fa fa-user-nurse"></i> {{ __('add_worker.worker') }}</label><input type="search" id="aw-search" class="form-control mb-2" placeholder="{{ __('add_worker.search') }}" aria-label="{{ __('add_worker.search') }}"><select id="aw-worker" name="worker_id" class="form-select" required><option value="">{{ __('add_worker.choose') }}</option></select>
+<label for="aw-fee" class="mt-3"><i class="fa fa-money-bill-wave"></i> {{ __('add_worker.fee') }}</label><input id="aw-fee" name="additional_fee" type="number" min="0" max="9999999" step="0.01" required class="form-control"><small class="text-muted">{{ __('add_worker.hint') }}</small>
+<div class="aw-prices"><div><i class="fa fa-tag"></i> {{ __('add_worker.current') }}: <b id="aw-current"></b> SAR</div><div><i class="fa fa-arrow-trend-up"></i> {{ __('add_worker.new') }}: <b id="aw-new" aria-live="polite"></b> SAR</div></div>
+<label for="aw-reason" class="mt-3"><i class="fa fa-pen"></i> {{ __('add_worker.reason') }}</label><textarea id="aw-reason" name="reason" maxlength="2000" rows="2" class="form-control"></textarea><div id="aw-error" class="alert alert-danger mt-3" role="alert" hidden></div></div>
+<div class="modal-footer"><button id="aw-save" class="btn btn-success" disabled><i class="fa fa-user-plus"></i> {{ __('add_worker.save') }}</button><button type="button" class="btn btn-light" data-bs-dismiss="modal"><i class="fa fa-xmark"></i> {{ __('add_worker.close') }}</button></div></form></div></div></div>
+@push('js')
+<script>window.hourlyAddWorkerConfig={url:@json(route('admin.hourly-orders.available-workers',[$order,'VISIT_ID'])),labels:@json(__('add_worker')),rtl:@json(app()->getLocale()==='ar')};</script>
+<script src="{{ asset('admin/assets/js/hourly-add-worker.js') }}?v={{ filemtime(public_path('admin/assets/js/hourly-add-worker.js')) }}"></script>
+@endpush
+@endif

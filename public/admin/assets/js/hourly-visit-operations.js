@@ -1,0 +1,97 @@
+(() => {
+    const root=document.getElementById('visit-operations');if(!root)return;
+    const form=document.getElementById('vl-batch-form'),action=form.elements.action,modal=document.getElementById('vl-modal');
+    const error=document.getElementById('vl-error'),submit=document.getElementById('vl-submit');let busy=false,target=[],workerSnapshot=[],workerRequired=0,workersLoading=false;
+    const boxes=[...root.querySelectorAll('[data-select-visit]')];
+    const selected=()=>boxes.filter(b=>b.checked).map(b=>b.value);
+    // تنبيهات SweetAlert بهوية الوحدة، مع رجوع لتنبيهات المتصفح إن لم تُحمَّل المكتبة.
+    function swal(options){
+        if(window.Swal)return Swal.fire(Object.assign({confirmButtonText:'حسنًا'},options,{customClass:Object.assign({popup:'om-swal'},options.customClass||{})}));
+        if(options.showCancelButton)return Promise.resolve({isConfirmed:window.confirm(options.text||options.title)});
+        window.alert(options.text||options.title);return Promise.resolve({isConfirmed:true});
+    }
+    const confirmAction=(title,text,danger)=>swal({icon:danger?'warning':'question',title,text,showCancelButton:true,reverseButtons:true,focusCancel:danger,confirmButtonText:'نعم، نفّذ',cancelButtonText:'تراجع',customClass:{confirmButton:danger?'is-danger':''}}).then(r=>r.isConfirmed);
+    function refresh(){document.getElementById('vl-selected').textContent=selected().length;boxes.forEach(b=>b.closest('[data-visit-card]').classList.toggle('is-selected',b.checked));const all=document.getElementById('vl-select-all');all.checked=boxes.length>0&&selected().length===boxes.length;all.indeterminate=selected().length>0&&!all.checked;}
+    boxes.forEach(b=>b.addEventListener('change',refresh));document.getElementById('vl-select-all').addEventListener('change',e=>{boxes.forEach(b=>b.checked=e.target.checked);refresh();});
+    function fields(){root.querySelectorAll('[data-fields]').forEach(group=>{const active=group.dataset.fields===action.value;group.hidden=!active;group.querySelectorAll('input,select').forEach(input=>{input.disabled=!active;input.required=active&&!['checkbox','file'].includes(input.type)&&!['new_date','shift_days'].includes(input.name);});});error.hidden=true;}
+    // خطوتان: شبكة بطاقات الإجراءات ثم حقول الإجراء المختار؛ العنوان والأيقونة يتبعان الاختيار.
+    function step(name){
+        const tile=modal.querySelector('[data-pick-action="'+action.value+'"]'),showForm=name==='form'&&!!tile;
+        modal.dataset.opStep=showForm?'form':'pick';
+        document.getElementById('vl-modal-title').textContent=showForm?tile.dataset.label:'الإجراءات';
+        document.getElementById('vl-modal-sub').textContent=showForm?'أكمل البيانات ثم نفّذ':'اختر الإجراء لتطبيقه على الزيارات المحددة';
+        document.getElementById('vl-modal-icon').className='fa '+(showForm?tile.dataset.icon:'fa-gears');
+        // أزرار الزيارة الواحدة تفتح إجراءً بعينه، فلا معنى للرجوع إلى كل الإجراءات.
+        document.getElementById('vl-back').hidden=modal.dataset.single==='1';
+        fields();
+    }
+    modal.querySelectorAll('[data-pick-action]').forEach(tile=>tile.addEventListener('click',()=>{action.value=tile.dataset.pickAction;step('form');}));
+    document.getElementById('vl-back').addEventListener('click',()=>{action.value='';step('pick');});
+    async function open(ids,choice,button){
+        if(busy)return;
+        if(!ids.length){swal({icon:'info',title:'لم تحدد أي زيارة',text:'حدد زيارة واحدة على الأقل من القائمة ثم اختر الإجراء.'});return;}
+        target=ids;form.reset();workersLoading=false;submit.disabled=false;form.elements.batch_id.value=crypto.randomUUID();action.value=choice||'';modal.dataset.single=choice?'1':'0';
+        step(choice?'form':'pick');
+        document.getElementById('vl-target').textContent=(ids.length===1?'':ids.length+' ')+'زيارة محددة: #'+ids.join('، #');
+        bootstrap.Modal.getOrCreateInstance(modal).show();
+        if(choice==='assign_driver'){
+            const group=root.querySelector('[data-fields="assign_driver"]');group.querySelector('[name="driver_role"]').value=button?.dataset.role||'delivery';group.querySelector('[name="driver_time"]').value=button?.dataset.time||'';group.querySelector('[name="driver_id"]').value=button?.dataset.driver||'';
+        }
+        if(choice==='unassign_driver')form.elements.remove_driver_role.value=button?.dataset.role||'delivery';
+        if(choice==='assign_workers')await loadWorkers(button?.dataset.replaceWorker);
+    }
+    document.getElementById('vl-open-batch').addEventListener('click',()=>open(selected()));
+    root.querySelectorAll('[data-single]').forEach(b=>b.addEventListener('click',()=>open([b.dataset.id],b.dataset.single,b)));
+    async function loadWorkers(replace){
+        const choices=document.getElementById('vl-worker-choices'),context=document.getElementById('vl-worker-context'),token=form.elements.batch_id.value;
+        choices.replaceChildren();workerSnapshot=[];workerRequired=0;workersLoading=true;submit.disabled=true;context.textContent='جارٍ التحقق من التوفر…';
+        try{
+            if(target.length!==1)throw new Error('التعيين اليدوي متاح لزيارة واحدة؛ اختر زر تعيين عاملة من البطاقة.');
+            const response=await fetch(root.dataset.visitBase+'/'+target[0]+'/workers',{headers:{Accept:'application/json'}}),data=await response.json();
+            if(token!==form.elements.batch_id.value || action.value!=='assign_workers')return;
+            if(!response.ok)throw new Error(Object.values(data.errors||{}).flat().join('\n')||data.message||'تعذر تحميل العاملات');
+            workerSnapshot=data.selected;workerRequired=data.required;context.textContent='الموعد: '+data.starts_at+' — '+data.ends_at+' · المطلوب: '+data.required+' عاملة';
+            data.workers.forEach(worker=>{const label=document.createElement('label'),input=document.createElement('input');input.type='checkbox';input.name='worker_ids[]';input.value=worker.id;input.dataset.workerName=worker.name;input.checked=data.selected.map(String).includes(String(worker.id))&&String(worker.id)!==String(replace);label.appendChild(input);label.appendChild(document.createTextNode(' '+worker.name));choices.appendChild(label);});
+            if(!data.workers.length)context.textContent+=' · لا توجد عاملات متاحات.';
+        }catch(e){error.textContent=e.message;error.hidden=false;}finally{if(token===form.elements.batch_id.value){workersLoading=false;submit.disabled=false;}}
+    }
+    modal.querySelector('[data-pick-action="assign_workers"]')?.addEventListener('click',()=>loadWorkers());
+    root.querySelectorAll('[data-payments-url]').forEach(button=>button.addEventListener('click',async()=>{
+        const body=document.getElementById('vl-payments-body');body.textContent='جارٍ تحميل الدفعات…';bootstrap.Modal.getOrCreateInstance(document.getElementById('vl-payments-modal')).show();
+        try{const response=await fetch(button.dataset.paymentsUrl,{headers:{'X-Requested-With':'XMLHttpRequest'}});if(!response.ok)throw new Error('تعذر تحميل الدفعات.');body.innerHTML=await response.text();}catch(e){body.textContent=e.message;}
+    }));
+    fields();
+    let hidden=[];try{hidden=JSON.parse(localStorage.getItem('hourly-visit-hidden-columns')||'[]');if(!Array.isArray(hidden))hidden=[];}catch{}
+    const applyColumns=()=>{root.querySelectorAll('[data-column]').forEach(cell=>cell.hidden=hidden.includes(cell.dataset.column));root.querySelectorAll('[data-column-toggle]').forEach(input=>input.checked=!hidden.includes(input.dataset.columnToggle));};
+    root.querySelectorAll('[data-column-toggle]').forEach(input=>input.addEventListener('change',()=>{hidden=hidden.filter(k=>k!==input.dataset.columnToggle);if(!input.checked)hidden.push(input.dataset.columnToggle);try{localStorage.setItem('hourly-visit-hidden-columns',JSON.stringify(hidden));}catch{}applyColumns();}));applyColumns();
+    form.addEventListener('submit',async event=>{
+        event.preventDefault();if(busy||workersLoading||!action.value)return;
+        const label=modal.querySelector('[data-pick-action="'+action.value+'"]')?.dataset.label||'الإجراء';
+        busy=true;submit.disabled=true;error.hidden=true;
+        try{
+            let preview='سيُنفَّذ على '+target.length+' زيارة. السبب: '+form.elements.reason.value;
+            if(action.value==='assign_workers'){
+                const chosen=[...root.querySelectorAll('[name="worker_ids[]"]:checked')];
+                if(!chosen.length||chosen.length>workerRequired)throw new Error('اختر من عاملة واحدة إلى '+workerRequired+' عاملات.');
+                preview=document.getElementById('vl-worker-context').textContent+'\nالتعيين بعد الحفظ: '+chosen.map(input=>input.dataset.workerName).join('، ')+'\n'+preview;
+            }
+            if(!(await confirmAction('معاينة وتأكيد: '+label,preview,['cancel_visit','unassign_workers','unassign_driver','unassign_all'].includes(action.value))))return;
+            const data=new FormData(form);target.forEach(id=>data.append('visit_ids[]',id));
+            if(action.value==='assign_workers')workerSnapshot.forEach(id=>data.append('expected_worker_ids[]',id));
+            if(action.value==='unassign_driver'){data.set('driver_role',form.elements.remove_driver_role.value);data.delete('remove_driver_role');}
+            const response=await fetch(root.dataset.endpoint,{method:'POST',headers:{Accept:'application/json'},body:data});
+            const result=await response.json();if(!response.ok)throw new Error(Object.values(result.errors||{}).flat().join('\n')||result.message||'تعذر تنفيذ الإجراء');
+            if(!result.receipts?.length){
+                bootstrap.Modal.getOrCreateInstance(modal).hide();
+                await swal({icon:'success',title:'تم التنفيذ',text:result.message||(label+' على '+target.length+' زيارة'),timer:1600,showConfirmButton:false});
+                location.reload();return;
+            }
+            const message=document.getElementById('vl-result');message.replaceChildren();message.textContent=result.message+' ';
+            result.receipts.forEach(receipt=>{const link=document.createElement('a');link.href=root.dataset.receiptBase+'/'+receipt.id;link.textContent='إيصال #'+receipt.id+' ('+receipt.amount+' ر.س) ';link.target='_blank';link.rel='noopener';link.className='btn btn-light mx-1';message.appendChild(link);});
+            const reload=document.createElement('button');reload.type='button';reload.className='btn btn-primary';reload.textContent='تحديث القائمة';reload.onclick=()=>location.reload();message.appendChild(reload);message.hidden=false;bootstrap.Modal.getOrCreateInstance(modal).hide();
+            // Prevent a second collection against stale balances until the list is refreshed.
+            root.querySelectorAll('[data-single],#vl-open-batch').forEach(b=>b.disabled=true);
+        }catch(e){error.textContent=e.message||'تعذر الاتصال. أعد المحاولة بنفس العملية.';error.hidden=false;}
+        finally{busy=false;submit.disabled=false;}
+    });
+})();

@@ -51,6 +51,19 @@ final class PermissionLabelDictionary
 
     /** مسميات كاملة لصلاحيات بعينها، تتجاوز أي تركيب آلي. */
     private const EXACT = [
+        'hourly_maids_impersonate' => 'الدخول إلى بوابة العاملة نيابة عنها',
+        'hourly_customers_balance' => 'إيداع رصيد في محفظة عميل الساعات',
+        'hourly_customers_balance_adjust' => 'تسوية رصيد محفظة عميل الساعات',
+        'hourly_customers_merge' => 'دمج عملاء الساعات المكررين',
+        'hourly_customers_notify' => 'إرسال إشعارات إلى عملاء الساعات',
+        'hourly_drivers_impersonate' => 'الدخول إلى تطبيق السائق نيابة عنه',
+        'hourly_orders_collect' => 'تحصيل مدفوعات طلبات الساعات ومراجعة التحويلات',
+        'hourly_orders_notice_override' => 'تجاوز الحد الأدنى للمدة قبل موعد الحجز',
+        'hourly_orders_price_override' => 'تعديل سعر طلب الساعات وتجاوز السعر المحدد',
+        'hourly_orders_renew_again' => 'إعادة تجديد طلب ساعات سبق تجديده',
+        'hourly_routing_capacity' => 'تعديل سعة فرق الساعات في خطة التوزيع',
+        'hourly_routing_reorder' => 'إعادة ترتيب زيارات الساعات في المسار',
+        'hourly_routing_transfer' => 'نقل زيارات الساعات بين الفرق',
         'complaints_read' => 'عرض الشكاوى',
         'complaint_response' => 'الرد على الشكاوى',
         'full_contract' => 'عرض العقد الكامل',
@@ -70,6 +83,16 @@ final class PermissionLabelDictionary
      * تعطي معنى خاطئاً في هذه الحالات (مثل trail balance = ميزان المراجعة).
      */
     private const RESOURCES = [
+        'hourly_customer_groups' => 'مجموعات عملاء الساعات',
+        'hourly_customers' => 'عملاء التأجير بالساعة',
+        'hourly_drivers' => 'سائقي التأجير بالساعة',
+        'hourly_gps' => 'التتبع المباشر لمواقع فرق الساعات',
+        'hourly_maids' => 'عاملات التأجير بالساعة',
+        'hourly_orders' => 'طلبات التأجير بالساعة',
+        'hourly_packages' => 'باقات التأجير بالساعة',
+        'hourly_routing' => 'مسارات وتوزيع زيارات الساعات',
+        'hourly_service_categories' => 'تصنيفات خدمات التأجير بالساعة',
+        'hourly_teams' => 'فرق التأجير بالساعة',
         // مصطلحات مالية مركّبة أو مكتوبة بخطأ إملائي في اسم الصلاحية
         'finance_trail_balance' => 'ميزان المراجعة',
         'finance_catch_checks' => 'الشيكات المقبوضة',
@@ -285,6 +308,14 @@ final class PermissionLabelDictionary
     {
         $resource = self::normalize($resource);
 
+        if (str_starts_with($resource, 'hourly_') && isset(self::EXACT[$resource])) {
+            return self::EXACT[$resource];
+        }
+
+        if (str_starts_with($resource, 'hourly_') && !isset(self::RESOURCES[$resource]) && ($page = HourlyPermissionCatalog::page($resource))) {
+            return HourlyPermissionCatalog::PAGES[$page];
+        }
+
         if ($resource === '') {
             return '';
         }
@@ -318,6 +349,10 @@ final class PermissionLabelDictionary
 
         if (isset(self::EXACT[$normalized])) {
             return self::EXACT[$normalized];
+        }
+
+        if (str_starts_with($normalized, 'hourly_') && !isset(self::RESOURCES[self::split($normalized)['resource']]) && ($label = HourlyPermissionCatalog::label($normalized))) {
+            return $label;
         }
 
         ['resource' => $resource, 'action' => $action] = self::split($normalized);

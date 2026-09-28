@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers\ingaz;
 
+use App\Services\Hourly\ShelterPresence;
+
 use App\Enums\ingaz\ContractStatusEnum;
 use App\Http\Controllers\admin\Controller;
 use App\Http\Requests\ingaz\ShelterContactStore;
@@ -3338,6 +3340,7 @@ class ShelterContractController extends Controller
                         . '</div>'
                         . '<div class="status-line"><i class="fas fa-truck-loading"></i><strong>مصدر الاستلام</strong><span>' . $receiptSource . '</span></div>'
                         . '<div class="status-line"><i class="fas fa-shield-alt"></i><strong>الضمان</strong><span class="badge ' . e($guaranteeData['badge_class']) . '">' . e($guaranteeData['label']) . '</span></div>'
+                        . $this->hourlyPresenceBadge($row) . $this->hourlyCommitmentBadge($row)
                         . '</div>';
                 })
                 ->addColumn('instant_receipt_availability', function ($row) {
@@ -4724,4 +4727,52 @@ class ShelterContractController extends Controller
             error_reporting($previousErrorReporting);
         }
     }
+
+    private function hourlyPresenceBadge($row): string
+    {
+        if (!$row->maid || !ShelterPresence::linked()) {
+            return '';
+        }
+
+        $trip = app(ShelterPresence::class)->visitOf((int) $row->maid->id);
+
+        if (!$trip) {
+            return '';
+        }
+
+        $until = $trip['until'] ? \Carbon\Carbon::parse($trip['until'])->format('H:i') : null;
+
+        return '<br><span class="badge bg-warning text-dark mt-1" data-bs-toggle="tooltip"'
+            . ' title="خارج الإيواء مؤقتًا لتنفيذ زيارة ساعات؛ عقد الإيواء لم يتغيّر">'
+            . '<i class="fas fa-person-walking-arrow-right me-1"></i>خارج الآن — زيارة ساعات'
+            . ($until ? ' حتى ' . e($until) : '') . '</span>';
+    }
+
+    /** ارتباطات الساعات القادمة: تمنع ترشيح عاملة مشغولة بزيارات لعقد شهري دون علم. */
+    private function hourlyCommitmentBadge($row): string
+    {
+        if (!$row->maid || !ShelterPresence::linked()) {
+            return '';
+        }
+
+        $count = app(ShelterPresence::class)->upcomingFor((int) $row->maid->id);
+
+        if ($count < 1) {
+            return '';
+        }
+
+        // تمييز العدد بالعربية: زيارة · زيارتان · زيارات · زيارة.
+        $label = match (true) {
+            $count === 1 => 'زيارة قادمة',
+            $count === 2 => 'زيارتان قادمتان',
+            $count <= 10 => $count . ' زيارات قادمة',
+            default => $count . ' زيارة قادمة',
+        };
+
+        return '<br><span class="badge bg-info text-dark mt-1" data-bs-toggle="tooltip"'
+            . ' title="لديها زيارات ساعات محجوزة؛ راجع جدولها قبل ارتباط شهري">'
+            . '<i class="fas fa-clock me-1"></i>الساعات: ' . e($label) . '</span>';
+    }
+
+
 }

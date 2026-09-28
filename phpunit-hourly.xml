@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<phpunit bootstrap="vendor/autoload.php" colors="true">
+  <testsuites><testsuite name="Hourly rental">
+    <file>tests/Feature/HourlyBookingCatalogSeederTest.php</file>
+    <file>tests/Feature/HourlyBookingOptionsTest.php</file>
+    <file>tests/Feature/HourlyCategoryClosuresTest.php</file>
+    <file>tests/Feature/HourlyCategoryCompletionTest.php</file>
+    <file>tests/Feature/HourlyCategoryDistrictsTest.php</file>
+    <file>tests/Feature/HourlyCategoryPaymentMethodsTest.php</file>
+    <file>tests/Feature/HourlyCategorySettingsTest.php</file>
+    <file>tests/Feature/HourlyClickMigrationTest.php</file>
+    <file>tests/Feature/HourlyCommerceTest.php</file>
+    <file>tests/Feature/HourlyCustomerApiTest.php</file>
+    <file>tests/Feature/HourlyCustomersTest.php</file>
+    <file>tests/Feature/HourlyCustomerVisitActionsTest.php</file>
+    <file>tests/Feature/HourlyDriverTest.php</file>
+    <file>tests/Feature/HourlyMaidSettingsTest.php</file>
+    <file>tests/Feature/HourlyMapProviderTest.php</file>
+    <file>tests/Feature/HourlyPackageTiersTest.php</file>
+    <file>tests/Feature/HourlyPanelBookingTest.php</file>
+    <file>tests/Feature/HourlyProductAttributesTest.php</file>
+    <file>tests/Feature/HourlyRenewalFlowTest.php</file>
+    <file>tests/Feature/HourlyRenewalMigrationTest.php</file>
+    <file>tests/Feature/HourlyRenewalsTest.php</file>
+    <file>tests/Feature/HourlyRentalSettingsAccessTest.php</file>
+    <file>tests/Feature/HourlyRentalSettingsViewTest.php</file>
+    <file>tests/Feature/HourlyRoutingTest.php</file>
+    <file>tests/Feature/HourlyServiceCategoriesTest.php</file>
+    <file>tests/Feature/HourlyServiceItemsTest.php</file>
+    <file>tests/Feature/HourlyShelterPresenceTest.php</file>
+    <file>tests/Feature/HourlyStaffAppApiTest.php</file>
+    <file>tests/Feature/HourlyTeamManagementTest.php</file>
+    <file>tests/Feature/HourlyVisitOperationsTest.php</file>
+    <file>tests/Feature/HourlyVisitTrackingTest.php</file>
+    <file>tests/Feature/HourlyWebsiteTest.php</file>
+    <file>tests/Feature/HourlyWebsocketSettingsTest.php</file>
+    <file>tests/Feature/HourlyWorkerAssignmentTest.php</file>
+    <file>tests/Unit/HourlyStaffScheduleTest.php</file>
+  </testsuite></testsuites>
+  <php>
+    <server name="APP_ENV" value="testing" force="true"/>
+    <server name="APP_DEBUG" value="true" force="true"/>
+    <server name="APP_KEY" value="base64:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=" force="true"/>
+    <server name="DB_CONNECTION" value="sqlite" force="true"/>
+    <server name="DB_DATABASE" value=":memory:" force="true"/>
+    <server name="CACHE_DRIVER" value="array" force="true"/>
+    <server name="SESSION_DRIVER" value="array" force="true"/>
+    <server name="QUEUE_CONNECTION" value="sync" force="true"/>
+    <server name="MAIL_MAILER" value="array" force="true"/>
+    <server name="BCRYPT_ROUNDS" value="4" force="true"/>
+  </php>
+</phpunit>

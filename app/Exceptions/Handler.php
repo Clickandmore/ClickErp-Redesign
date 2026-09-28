@@ -22,6 +22,9 @@ class Handler extends ExceptionHandler
      * @var array<int, string>
      */
     protected $dontFlash = [
+        'websocket',
+        'hourly.password',
+        'hourly.password_confirmation',
         'current_password',
         'password',
         'password_confirmation',
@@ -35,6 +38,11 @@ class Handler extends ExceptionHandler
      */
     public function register()
     {
+        $this->renderable(function (Throwable $e, $request) {
+            if (HourlyApiErrors::matches($request)) {
+                return app(HourlyApiErrors::class)->render($e, $request);
+            }
+        });
         $this->reportable(function (Throwable $e) {
             //
         });
