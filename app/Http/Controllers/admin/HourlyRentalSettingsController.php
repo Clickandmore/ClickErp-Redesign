@@ -34,7 +34,7 @@ class HourlyRentalSettingsController extends Controller
             'closed_weekdays' => ['nullable','array'], 'closed_weekdays.*' => ['integer','between:0,6','distinct'],
             'working_end' => ['sometimes', 'required', 'date_format:H:i', 'after:working_start'],
             'slot_minutes' => ['sometimes', 'required', 'integer', 'in:15,30,60'],
-            'is_enabled' => ['nullable', 'boolean'],
+
             'link_maid_profiles' => ['nullable', 'boolean'],
             'link_shelter' => ['nullable', 'boolean'],
             'default_shelter_place_id' => ['nullable', 'integer', 'exists:shelter_places,id'],
@@ -87,25 +87,9 @@ class HourlyRentalSettingsController extends Controller
 
         $socketSettings = $request->has('websocket') ? HourlyWebsocketSettings::prepare($validated['websocket']) : null;
         unset($validated['websocket']);
-        $willBeEnabled = $request->boolean('is_enabled');
-        if ($willBeEnabled && collect($this->readiness())->contains(fn ($stage) => ($stage['required'] ?? true) && !$stage['done'])) {
-            throw ValidationException::withMessages(['is_enabled' => 'أكمل تركيب جداول الساعات أولًا باستخدام الأمر hourly:install.']);
-        }
-        $currentlyEnabled = HourlyRentalSettings::isEnabled();
-
-        // الإطفاء أثناء وجود عاملات خارج الإيواء يترك سجلات مفتوحة بلا شاشة تغلقها.
-        if ($currentlyEnabled && !$willBeEnabled) {
-            $blockers = HourlyRentalSettings::disableBlockers();
-            if ($blockers) {
-                throw ValidationException::withMessages([
-                    'is_enabled' => 'لا يمكن إطفاء الموديل الآن: ' . implode(' ', $blockers),
-                ]);
-            }
-        }
-
         $payload = $validated;
         $payload['closed_weekdays'] = $validated['closed_weekdays'] ?? [];
-        $payload['is_enabled'] = $willBeEnabled;
+
         $payload['link_maid_profiles'] = $request->boolean('link_maid_profiles');
         $payload['link_shelter'] = $request->boolean('link_shelter');
         $payload['ramadan_mode'] = $request->boolean('ramadan_mode');
@@ -130,9 +114,7 @@ class HourlyRentalSettingsController extends Controller
 
         return redirect()
             ->route('dev-superadmin.hourly-rental-settings.index')
-            ->with('success', $willBeEnabled
-                ? 'تم حفظ الإعدادات وتفعيل موديل التأجير بالساعة.'
-                : 'تم حفظ الإعدادات. موديل التأجير بالساعة متوقف.');
+            ->with('success', 'تم حفظ إعدادات التأجير بالساعة.');
     }
 
     private function pageData(): array
@@ -148,12 +130,12 @@ class HourlyRentalSettingsController extends Controller
             : collect();
 
         return [
-            'hourly' => $settings,
+            'hourly' => array_replace($settings, ['is_enabled' => HourlyRentalSettings::isEnabled()]),
             'socketSettings' => HourlyWebsocketSettings::forForm(),
             'shelters' => $shelters,
             'cities' => $cities,
-            'blockers' => $settings['is_enabled'] ? HourlyRentalSettings::disableBlockers() : [],
-            'readiness' => $this->readiness(),
+            'blockers' => HourlyRentalSettings::isEnabled() ? HourlyRentalSettings::disableBlockers() : [],
+            'readiness' => HourlyRentalSettings::installationStages(),
         ];
     }
 
@@ -161,19 +143,4 @@ class HourlyRentalSettingsController extends Controller
      * حالة بناء الموديل: أي مراحل نُفّذت فعلًا (بوجود جداولها) وأيها لم يُنفَّذ بعد.
      * تُعرض في الشاشة حتى يعرف المسؤول ما الذي سيظهر بعد التفعيل.
      */
-    private function readiness(): array
-    {
-        $has = fn (string ...$tables) => collect($tables)->every(fn ($t) => Schema::hasTable($t));
-
-        // الأسماء هنا هي الجداول الفعلية التي بناها الفريق، لا أسماء الخطة الأولى.
-        return [
-            ['label' => 'إحداثيات عناوين العملاء', 'done' => Schema::hasColumn('user_addresses', 'latitude')],
-            ['label' => 'المرحلة ١ — الباقات والطلبات والتحصيل ومعالج الحجز', 'done' => $has('hourly_packages', 'hourly_rental_orders', 'hourly_order_payments') && Schema::hasColumn('hourly_rental_orders', 'booking_token')],
-            ['label' => 'المرحلة ٢ — الزيارات والإسناد وملفات عاملات الساعات وجدول الموظفين', 'done' => $has('hourly_visits', 'hourly_visit_workers', 'hourly_worker_leaves', 'hourly_visit_batches') && Schema::hasColumn('maids', 'rental_mode')],
-            ['label' => 'المرحلة ٣ — السائقون وإدارة المسار وتتبع GPS', 'done' => $has('hourly_drivers', 'hourly_route_stops', 'location_pings')],
-            ['label' => 'عملاء الساعات والمحفظة والتجديدات', 'done' => $has('hourly_customer_profiles', 'hourly_wallet_transactions') && Schema::hasColumn('hourly_rental_orders', 'renewed_from_order_id')],
-            ['label' => 'حركة الإيواء اليومية (خروج وعودة) مع ربط الإيواء', 'done' => $has('worker_daily_movements')],
-            ['label' => 'المرحلة ٤ — الإغلاق المالي ومستحقات العاملات', 'done' => $has('hourly_visit_earnings'), 'required' => false],
-        ];
-    }
 }

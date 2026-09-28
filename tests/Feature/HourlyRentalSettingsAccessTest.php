@@ -80,14 +80,28 @@ class HourlyRentalSettingsAccessTest extends TestCase
         $this->get('/admin/hourly-rental-settings')->assertNotFound();
         $this->put('/admin/hourly-rental-settings', [])->assertNotFound();
     }
-    public function test_incomplete_installation_cannot_be_enabled(): void
+    public function test_settings_cannot_change_module_activation(): void
     {
+        config(['superadmin_modules.hourly_rental.default_enabled' => false]);
         $payload = HourlyRentalSettings::defaults();
         $payload['is_enabled'] = true;
         $this->withSession(['dev_superadmin_authenticated' => true])
             ->put(route('dev-superadmin.hourly-rental-settings.update'), $payload)
-            ->assertSessionHasErrors('is_enabled');
-        $this->assertDatabaseCount('new_settings', 0);
+            ->assertSessionHasNoErrors();
+        $this->assertFalse(HourlyRentalSettings::isEnabled());
+        config(['superadmin_modules.hourly_rental.default_enabled' => true]);
+        HourlyRentalSettings::persist(['is_enabled' => false]);
+        $this->assertTrue(HourlyRentalSettings::isEnabled());
+        $this->get(route('dev-superadmin.hourly-rental-settings.index'))->assertOk()->assertDontSee('name="is_enabled"', false);
+    }
+
+    public function test_modules_page_checks_installation_before_activation(): void
+    {
+        config(['superadmin_modules.hourly_rental.default_enabled' => false]);
+        $this->withSession(['dev_superadmin_authenticated' => true])
+            ->put(route('dev-superadmin.modules.update'), ['modules'=>['hourly_rental'=>'1']])
+            ->assertSessionHasErrors('modules.hourly_rental');
+        $this->assertFalse(HourlyRentalSettings::isEnabled());
     }
 
     public function test_installed_module_can_be_enabled_without_future_earnings_stage(): void

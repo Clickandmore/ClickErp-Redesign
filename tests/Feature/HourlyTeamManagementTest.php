@@ -308,7 +308,7 @@ class HourlyTeamManagementTest extends TestCase
             foreach(['admin','admin.route.permission','feature.hourly_rental'] as $middleware) $this->assertContains($middleware,$route->gatherMiddleware());
             $this->assertArrayHasKey($route->getName(), config('hourly_permissions'));
         }
-        $team=$this->team(); HourlyRentalSettings::persist(['is_enabled'=>false]);
+        $team=$this->team(); config(['superadmin_modules.hourly_rental.default_enabled'=>false]);
         $this->get(route('admin.hourly-teams.manage',$team))->assertNotFound();
         $this->postJson(route('admin.hourly-teams.drivers',$team),[])->assertNotFound();
     }
@@ -335,7 +335,7 @@ class HourlyTeamManagementTest extends TestCase
             foreach(['admin','admin.route.permission','feature.hourly_rental'] as $middleware) $this->assertContains($middleware,$route->gatherMiddleware());
             $this->assertArrayHasKey($route->getName(),config('hourly_permissions'));
         }
-        HourlyRentalSettings::persist(['is_enabled'=>false]);
+        config(['superadmin_modules.hourly_rental.default_enabled'=>false]);
         $this->get(route('admin.hourly-districts.index'))->assertNotFound();
     }
 
@@ -350,7 +350,7 @@ class HourlyTeamManagementTest extends TestCase
         $this->postJson(route('admin.hourly-districts.store'),['city_id'=>3,'name'=>'منطقة خارج المملكة'])->assertJsonValidationErrors('city_id');
         $this->from(route('admin.hourly-cities.districts',1))->post(route('admin.hourly-districts.store'),['city_id'=>1,'name'=>'حي جديد'])->assertRedirect(route('admin.hourly-cities.districts',1));
         $this->assertSame(2,ServiceDistrict::where('city_id',1)->count());
-        HourlyRentalSettings::persist(['is_enabled'=>false]);
+        config(['superadmin_modules.hourly_rental.default_enabled'=>false]);
         $this->get(route('admin.hourly-cities.index'))->assertNotFound();
     }
 

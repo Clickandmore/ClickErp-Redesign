@@ -114,7 +114,7 @@ class HourlyServiceCategoriesTest extends TestCase
             $this->assertArrayHasKey($route->getName(), config('hourly_permissions'));
         }
         $this->assertContains('admin.hourly-service-categories.show', $names);
-        HourlyRentalSettings::persist(['is_enabled' => false]);
+        config(['superadmin_modules.hourly_rental.default_enabled'=>false]);
         $this->get(route('admin.hourly-service-categories.index'))->assertNotFound();
     }
 }

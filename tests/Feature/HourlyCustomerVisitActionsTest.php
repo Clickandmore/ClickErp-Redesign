@@ -247,7 +247,7 @@ class HourlyCustomerVisitActionsTest extends TestCase
     public function test_actions_are_hidden_when_the_module_is_off(): void
     {
         [$order, $visit] = $this->order();
-        HourlyRentalSettings::persist(['is_enabled' => false]);
+        config(['superadmin_modules.hourly_rental.default_enabled'=>false]);
         foreach (['cancel', 'extra-hour', 'rate'] as $action) $this->postJson($this->url($order, $visit, $action), ['rating' => 5])->assertNotFound();
     }
 

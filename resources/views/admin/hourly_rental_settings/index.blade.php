@@ -217,14 +217,7 @@
                         </div>
                     </div>
                     <div class="hr-body">
-                        <div class="hr-switch form-switch hr-master mb-3">
-                            <input class="form-check-input" type="checkbox" role="switch" id="is_enabled" name="is_enabled" value="1"
-                                {{ old('is_enabled', $hourly['is_enabled']) ? 'checked' : '' }}>
-                            <div>
-                                <label for="is_enabled">{{ __('تفعيل موديل التأجير بالساعة') }}</label>
-                                <small>{{ __('عند التفعيل تظهر قوائم الباقات والطلبات والزيارات والسائقين لمن يملك صلاحيتها، وتعمل واجهات تطبيق العميل والسائق الخاصة به.') }}</small>
-                            </div>
-                        </div>
+                        <p class="alert alert-info">تفعيل نظام الساعات وإيقافه من صفحة الموديولات في السوبر أدمن فقط.</p>
 
                         <div class="hr-switches">
                             <div class="hr-switch form-switch">

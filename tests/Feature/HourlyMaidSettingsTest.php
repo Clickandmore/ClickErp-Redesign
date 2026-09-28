@@ -188,7 +188,7 @@ class HourlyMaidSettingsTest extends TestCase
         $this->assertSame('regular',$maid->fresh()->rental_mode);$this->assertSame(0,HourlyTeamMember::whereNull('left_at')->count());
     }
     public function test_disabled_feature_hides_fields_without_reading_hourly_tables_and_rejects_payload(): void {
-        HourlyRentalSettings::persist(['is_enabled'=>false]);
+        config(['superadmin_modules.hourly_rental.default_enabled'=>false]);
         Schema::drop('hourly_team_members');Schema::drop('hourly_teams');
         $this->assertSame('',trim(view('admin.ingaz.maids._hourly-fields')->render()));
         $this->assertNull(app(MaidSettingsService::class)->validate(new Request(['type_id'=>2])));
@@ -224,7 +224,7 @@ class HourlyMaidSettingsTest extends TestCase
         $this->save($payload,$maid);
         auth()->forgetGuards();
         $this->get(route('hourly-maid.home'))->assertRedirect(route('hourly-maid.login'));
-        HourlyRentalSettings::persist(['is_enabled'=>false]);
+        config(['superadmin_modules.hourly_rental.default_enabled'=>false]);
         $this->get(route('hourly-maid.login'))->assertNotFound();
     }
 
@@ -355,7 +355,7 @@ class HourlyMaidSettingsTest extends TestCase
         $this->assertFalse($assigned->hourly_settings['account_enabled']);
         $this->assertSame('all_day',$assigned->hourly_settings['work_schedule']['sunday']['mode']);
         $this->postJson(route('admin.hourly-maids.assign-from-shelter'),['maid_id'=>6])->assertJsonValidationErrors('maid_id');
-        HourlyRentalSettings::persist(['is_enabled'=>false]);
+        config(['superadmin_modules.hourly_rental.default_enabled'=>false]);
         $this->get($url)->assertNotFound();
     }
 }
