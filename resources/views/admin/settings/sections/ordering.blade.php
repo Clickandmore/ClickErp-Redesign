@@ -67,6 +67,17 @@
             </div>
         </div>
 
+        @if (\Illuminate\Support\Facades\Schema::hasColumn('settings', 'external_booking_employee_selection'))
+        <div class="col-12">
+            <label class="form-label" for="external_booking_employee_selection">{{ __('admin.external_booking_employee_selection') }}</label>
+            <select class="form-select" name="external_booking_employee_selection" id="external_booking_employee_selection">
+                <option value="1" {{ old('external_booking_employee_selection', $settings->external_booking_employee_selection ?? true) ? 'selected' : '' }}>{{ __('admin.settings_enabled') }}</option>
+                <option value="0" {{ !old('external_booking_employee_selection', $settings->external_booking_employee_selection ?? true) ? 'selected' : '' }}>{{ __('admin.settings_disabled') }}</option>
+            </select>
+            <small class="text-muted">{{ __('admin.external_booking_employee_selection_hint') }}</small>
+        </div>
+        @endif
+
         @if ($rentalModeAvailable)
         <div class="col-12">
             <hr class="my-2">

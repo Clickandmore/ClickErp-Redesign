@@ -67,7 +67,8 @@ class RouteServiceProvider extends ServiceProvider
             Route::middleware('web')
                 ->group(base_path('routes/site.php'));
 
-            Route::middleware('web')
+            // أوامر الصيانة (migrate / cache / key …) للمطوّر فقط؛ كانت متاحة لأي زائر دون تسجيل دخول
+            Route::middleware(['web', 'dev.superadmin'])
                 ->namespace($this->namespace)
                 ->group(base_path('routes/commands.php'));
         });

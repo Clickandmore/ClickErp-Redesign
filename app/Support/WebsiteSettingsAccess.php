@@ -10,6 +10,7 @@ class WebsiteSettingsAccess
         'email', 'phone', 'other_phone', 'tax_number', 'map_link', 'find_us_mode', 'years',
         'show_customer_service_during_booking', 'show_public_site',
         'external_auth_mode', 'external_order_mode', 'rental_order_mode',
+        'external_booking_employee_selection',
         'twitter', 'facebook', 'instagram', 'snapchat', 'linkedin', 'youtube', 'tiktok', 'whatsapp',
         'logo_header', 'logo_footer', 'favicon', 'about_image', 'light_image', 'experience_image',
         'cover_image', 'qr_image', 'zatch_logo', 'there_are_offer', 'note_ar', 'note_en',

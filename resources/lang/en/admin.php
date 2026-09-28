@@ -428,6 +428,8 @@ return array (
   'settings_section_general' => 'Basics',
   'settings_section_external_auth' => 'External Website Login Settings',
   'settings_section_external_order' => 'External Website Order Settings',
+  'external_booking_employee_selection' => 'Choose an employee when booking a CV on the external website',
+  'external_booking_employee_selection_hint' => 'Enabled by default to preserve the current booking flow. Disabling saves bookings without an assigned employee and keeps sign-in and customer details unchanged. Does not apply to hourly bookings.',
   'external_order_description' => 'Control how CV booking orders are created from the external website.',
   'external_order_legacy_default_hint' => 'The authenticated flow remains the default so existing websites continue without changes.',
   'external_order_authenticated_mode' => 'Current mode: Sign in',

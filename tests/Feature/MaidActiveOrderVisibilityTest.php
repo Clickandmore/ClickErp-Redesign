@@ -32,6 +32,9 @@ class MaidActiveOrderVisibilityTest extends TestCase
 
         Schema::create('maids', function (Blueprint $table) {
             $table->id();
+            $table->string('status')->default('available');
+            $table->boolean('available')->default(true);
+            $table->boolean('is_show')->default(true);
         });
         Schema::create('orders', function (Blueprint $table) {
             $table->id();
@@ -41,6 +44,18 @@ class MaidActiveOrderVisibilityTest extends TestCase
             $table->softDeletes();
         });
         DB::table('maids')->insert(['id' => 1]);
+        Schema::create('contracts', function (Blueprint $table) {
+            $table->id();
+            $table->unsignedBigInteger('maid_id');
+            $table->string('status')->nullable();
+        });
+        Schema::create('job_types', fn (Blueprint $table) => $table->id());
+        Schema::create('maid_jobs', function (Blueprint $table) {
+            $table->unsignedBigInteger('maid_id');
+            $table->unsignedBigInteger('job_type_id');
+        });
+        DB::table('job_types')->insert([['id' => 1], ['id' => 2]]);
+        DB::table('maid_jobs')->insert(['maid_id' => 1, 'job_type_id' => 1]);
     }
 
     protected function tearDown(): void
@@ -90,5 +105,44 @@ class MaidActiveOrderVisibilityTest extends TestCase
     private function isEligible(): bool
     {
         return Maid::withoutGlobalScopes()->whereKey(1)->withoutActiveOrders()->exists();
+    }
+
+    public function test_internal_booking_rejects_active_reservations_even_with_available_flags(): void
+    {
+        foreach (['new', 'under_process', 'contracted', 'contracted_without_contract', 'pending', null] as $status) {
+            DB::table('orders')->delete();
+            DB::table('orders')->insert(['maid_id' => 1, 'status' => $status]);
+            $this->assertFalse($this->isInternallyEligible(), 'Unexpected availability for '.($status ?? 'null'));
+        }
+    }
+
+    public function test_internal_booking_allows_released_and_deleted_orders(): void
+    {
+        foreach (Order::nonBlockingMaidAssignmentStatuses() as $status) {
+            DB::table('orders')->insert(['maid_id' => 1, 'status' => $status]);
+        }
+        DB::table('orders')->insert(['maid_id' => 1, 'status' => 'new', 'deleted_at' => now()]);
+        $this->assertTrue($this->isInternallyEligible());
+    }
+
+    public function test_internal_booking_checks_contracts_flags_and_service_type(): void
+    {
+        $this->assertTrue($this->isInternallyEligible());
+        DB::table('contracts')->insert(['maid_id' => 1, 'status' => 'sari']);
+        $this->assertFalse($this->isInternallyEligible());
+        DB::table('contracts')->update(['status' => 'closed']);
+        $this->assertTrue($this->isInternallyEligible());
+        foreach (['status' => 'reserved', 'available' => false, 'is_show' => false] as $field => $value) {
+            DB::table('maids')->update([$field => $value]);
+            $this->assertFalse($this->isInternallyEligible());
+            DB::table('maids')->update(['status' => 'available', 'available' => true, 'is_show' => true]);
+        }
+        DB::table('maid_jobs')->insert(['maid_id' => 1, 'job_type_id' => 2]);
+        $this->assertFalse($this->isInternallyEligible());
+    }
+
+    private function isInternallyEligible(): bool
+    {
+        return Maid::withoutGlobalScopes()->whereKey(1)->availableForInternalRecruitment()->exists();
     }
 }

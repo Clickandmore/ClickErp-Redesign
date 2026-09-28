@@ -21,7 +21,7 @@ class CommandSeeder extends Seeder
             'php artisan storage:link',
             'php artisan cache:clear',
             'php artisan optimize:clear',
-            'php artisan route:cache',
+            'php artisan route:trans:cache',
             'php artisan config:cache',
             'php artisan view:clear',
             'php artisan key:generate',
