@@ -60,4 +60,14 @@ class City extends Model
     {
         return $query->orderBy('sort_order')->orderBy('name_en');
     }
+
+    public function serviceDistricts()
+    {
+        return $this->hasMany(\App\Models\Hourly\ServiceDistrict::class, 'city_id');
+    }
+
+    public function scopeSaudi($query)
+    {
+        return $query->whereHas('country', fn ($country) => $country->where('code', 'SA'));
+    }
 }

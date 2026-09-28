@@ -1,0 +1,15 @@
+@php
+$operationLabels=['renewed_from'=>'تجديد من طلب سابق','renewed_to'=>'تم تجديد الطلب','reschedule'=>'إعادة الجدولة','start_time'=>'تغيير وقت البدء','duration'=>'تغيير المدة','price'=>'تغيير السعر','assign_all'=>'تعيين العاملات','add_worker'=>'إضافة عاملة','remove_worker'=>'إزالة عاملة','unassign_worker'=>'إلغاء تعيين عاملة','assign_driver'=>'تعيين السائق','team_leader'=>'قائد الفريق','free_visit'=>'زيارة مجانية','unassign_drivers'=>'إلغاء تعيين السائقين','unassign_workers'=>'إلغاء تعيين العاملات','cancel_visit'=>'إلغاء الزيارة','complete'=>'إكمال الزيارة','cancel_order'=>'إلغاء الطلب','payment_method'=>'تغيير نوع الدفع','note'=>'ملاحظة تشغيلية'];
+@endphp
+<section id="om-audit" class="tab-pane py-4" role="tabpanel" aria-labelledby="om-tab-audit"><h5>سجل التعديلات</h5>
+@forelse($audits as $audit)<article class="border rounded p-3 mb-3"><strong>{{ $operationLabels[$audit->action] ?? $audit->action }}</strong> — {{ $audit->visit_id ? 'زيارة #'.$audit->visit_id : 'الطلب' }}<p>{{ $audit->reason }}</p><small class="text-muted">{{ $audit->created_at }} — الموظف #{{ $audit->admin_id }}</small>
+@php($before=json_decode($audit->before ?? '{}',true) ?: [])
+@php($after=json_decode($audit->after ?? '{}',true) ?: [])
+@if(isset($after['duration_options']))
+<p>{{ __('visit_edit.caps') }}: {{ $after['duration_options']['ignore_hour_caps'] ? '✓' : '—' }} · {{ __('visit_edit.break') }}: {{ $after['duration_options']['ignore_break'] ? '✓' : '—' }}</p>
+@endif
+<details><summary>التغييرات: قبل / بعد</summary><div class="table-responsive"><table class="table table-sm"><thead><tr><th>الحقل</th><th>قبل</th><th>بعد</th></tr></thead><tbody>
+@foreach($after as $field=>$value)@if(($before[$field] ?? null)!==$value && !in_array($field,['updated_at','package_snapshot','booking_metadata']))<tr><td>{{ ['visit_price'=>'سعر الزيارة','planned_hours'=>'المدة','worker_ids'=>'العاملات','scheduled_start_at'=>'البداية','scheduled_end_at'=>'النهاية','delivery_driver_id'=>'سائق التوصيل','pickup_driver_id'=>'سائق الاستلام','team_leader_id'=>'قائد الفريق','total_amount'=>'الإجمالي','tax_amount'=>'الضريبة','payment_method'=>'طريقة الدفع','status'=>'الحالة','note'=>'الملاحظة'][$field] ?? $field }}</td><td>{{ is_array($before[$field] ?? null)?implode('، ',$before[$field]):($before[$field]??'—') }}</td><td>{{ is_array($value)?implode('، ',$value):$value }}</td></tr>@endif @endforeach
+</tbody></table></div></details></article>@empty<p class="text-muted">لا توجد تعديلات مسجلة بعد.</p>@endforelse</section>
+<section id="om-reviews" class="tab-pane py-4" role="tabpanel" aria-labelledby="om-tab-reviews"><h5>تقييمات العاملات</h5>
+@forelse($reviews as $review)<article class="border rounded p-3 mb-3"><strong>{{ $review->worker_name }} — زيارة #{{ $review->visit_id }}</strong><p class="text-warning">{{ str_repeat('★',(int)$review->rating) }} {{ $review->rating }}/5</p><p>{{ $review->comment }}</p><small>{{ $review->created_at }}</small></article>@empty<p class="text-muted">لا توجد تقييمات مسجلة لهذا الطلب.</p>@endforelse</section>

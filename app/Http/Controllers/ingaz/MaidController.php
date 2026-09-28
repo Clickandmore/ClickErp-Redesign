@@ -2117,7 +2117,9 @@ class MaidController extends Controller
 
     public function store(MaidRequest $request, objAction $action, MaidCvPdfGenerator $cvGenerator)
     {
-        $data = $request->all();
+        $hourlyService = app(\App\Services\Hourly\MaidSettingsService::class);
+        $hourlyData = $hourlyService->validate($request);
+        $data = $request->except(['hourly', 'rental_mode']);
 
         // Set default status in Arabic
         $data['status'] = 'available';
@@ -2125,7 +2127,11 @@ class MaidController extends Controller
 
         // $data['added_by'] = null; // Temporarily set to null
         // $data = $action->storeMaid($data, $request);
-        $data = $action->storeMaid($data, $request);
+        $data = $hourlyData === null ? $action->storeMaid($data, $request) : \DB::transaction(function () use ($action, $data, $request, $hourlyService, $hourlyData) {
+            $maid = $action->storeMaid($data, $request);
+            $hourlyService->save($maid, $hourlyData);
+            return $maid;
+        });
         $this->generateCvAutomatically($data, $cvGenerator);
         if ($request->ajax()) {
             return jsonSuccess($data);
@@ -2453,8 +2459,14 @@ class MaidController extends Controller
             $this->assertCanAccessBranchModel($maid, 'maids');
         }
 
+        $hourlyService = app(\App\Services\Hourly\MaidSettingsService::class);
+        $hourlyData = $hourlyService->validate($request, $maid);
         $data = $request->only($this->postData);
-        $data = $action->updateMaid($id, $data, $request);
+        $data = $hourlyData === null ? $action->updateMaid($id, $data, $request) : \DB::transaction(function () use ($action, $id, $data, $request, $hourlyService, $hourlyData) {
+            $maid = $action->updateMaid($id, $data, $request);
+            $hourlyService->save($maid, $hourlyData);
+            return $maid;
+        });
         $this->generateCvAutomatically($data, $cvGenerator);
 
 

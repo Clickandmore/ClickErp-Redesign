@@ -1,0 +1,4 @@
+@php($times=old('start_times',$package->start_times ?? []))
+@php($grid=array_unique(array_merge(array_map(fn($i)=>sprintf('%02d:%02d',intdiv($i*30,60),($i*30)%60),range(0,47)),array_keys($times))))
+@php(sort($grid))
+@foreach($grid as $time)<div class="col-3 col-md-auto" style="flex:0 0 12.5%;min-width:65px"><button type="button" data-time-choice class="btn btn-sm w-100 {{ ['off'=>'btn-outline-secondary','all'=>'btn-success','dispatch'=>'btn-warning'][$times[$time] ?? 'off'] }}" aria-label="{{ $time }} — {{ ['off'=>'متوقف','all'=>'الجميع','dispatch'=>'التشغيل فقط'][$times[$time] ?? 'off'] }}">{{ $time }}</button><select hidden name="start_times[{{ $time }}]">@foreach(['off'=>'متوقف','all'=>'الجميع','dispatch'=>'التشغيل فقط'] as $value=>$label)<option value="{{ $value }}" {{ ($times[$time] ?? 'off')===$value ? 'selected' : '' }}>{{ $label }}</option>@endforeach</select></div>@endforeach

@@ -307,6 +307,10 @@ class PermissionsController extends Controller
      */
     private function getPermissionDisplayName($permission)
     {
+        if (str_starts_with($permission->name, 'hourly_')) {
+            return PermissionLabelDictionary::label($permission->name);
+        }
+
         // استخدم المسمى المحفوظ ما دام عربياً بالكامل. الصفوف القديمة تحمل نصاً
         // نصفه إنجليزي («إضافة الحساب statement») فنتجاوزها إلى القاموس.
         if (!empty($permission->display_name)
@@ -707,6 +711,10 @@ class PermissionsController extends Controller
 
     private function getPermissionResourceTitle(string $permissionName): string
     {
+        if (str_starts_with($permissionName, 'hourly_')) {
+            return PermissionLabelDictionary::resourceLabel(PermissionLabelDictionary::split($permissionName)['resource']);
+        }
+
         ['group' => $group] = $this->resolvePermissionPlacement($permissionName);
         ['resource' => $resource] = $this->splitPermissionName($permissionName);
 
@@ -1399,6 +1407,18 @@ class PermissionsController extends Controller
 
     private function buildPermissionMatrixEntry(Permission $permission): array
     {
+        if (str_starts_with($permission->name, 'hourly_') && ($page = \App\Support\HourlyPermissionCatalog::page($permission->name))) {
+            $action = \App\Support\HourlyPermissionCatalog::action($permission->name);
+            $label = \App\Support\HourlyPermissionCatalog::label($permission->name) ?? $this->getPermissionDisplayName($permission);
+            return [
+                'name' => $permission->name, 'display_name' => $label,
+                'description' => $label,
+                'resource_key' => $page, 'resource_title' => \App\Support\HourlyPermissionCatalog::PAGES[$page],
+                'matrix_column' => $this->resolvePermissionMatrixColumn($action),
+                'extra_label' => \App\Support\HourlyPermissionCatalog::ACTIONS[$action] ?? $label,
+            ];
+        }
+
         if (in_array($permission->name, [\App\PermKeys::SHELTER_AGENT_COST_RECOVERY, \App\PermKeys::SHELTER_AGENT_COST_RECOVERY_REVERSE], true)) {
             $label = $permission->name === \App\PermKeys::SHELTER_AGENT_COST_RECOVERY
                 ? 'استرداد تكلفة الوكيل من الإيواء' : 'عكس استرداد تكلفة الوكيل';

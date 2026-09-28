@@ -26,6 +26,9 @@
                     <a class="nav-link dropdown-toggle" href="#"
                         data-bs-toggle="dropdown">{{ __('web.our_services') }}</a>
                     <ul class="dropdown-menu">
+                        @if(\App\Support\HourlyRentalSettings::isEnabled())
+                        <li><a class="dropdown-item" href="{{ route('web.hourly.index') }}">{{ app()->getLocale() === 'ar' ? 'إيجار الساعات' : 'Hourly rental' }}</a></li>
+                        @endif
                         <li>
                             {{-- <a class="dropdown-item"
                                    href="{{route('site.all-workers.index') }}?type=estqdam"> {{__("ingaz.recruitment_request_title")}}

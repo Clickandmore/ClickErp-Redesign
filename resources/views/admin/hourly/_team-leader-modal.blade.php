@@ -1,0 +1,18 @@
+@push('css')
+<style>
+#team-leader-modal .modal-dialog{max-width:750px}#team-leader-modal .modal-content{border:0;border-radius:15px;overflow:hidden}#team-leader-modal .modal-header{background:#f3cd19;color:white;padding:23px 30px}#team-leader-modal .modal-body{padding:25px 30px}#team-leader-modal .modal-footer{background:#fafafa;padding:18px 30px}#team-leader-modal .tl-toolbar{display:flex;align-items:center;justify-content:space-between;gap:15px;flex-wrap:wrap;margin:18px 0}#team-leader-modal .table td,#team-leader-modal .table th{padding:15px}#team-leader-modal .tl-sort{border:0;background:transparent;color:inherit}#tl-save{background:#f3cd19;color:#403400;border-radius:10px;padding:10px 26px}
+</style>
+@endpush
+<div class="modal fade" id="team-leader-modal" tabindex="-1" aria-labelledby="tl-title" aria-hidden="true" dir="{{ app()->getLocale()==='ar'?'rtl':'ltr' }}"><div class="modal-dialog modal-dialog-centered"><div class="modal-content"><div class="modal-header"><h5 id="tl-title" class="m-0"><i class="fa fa-user-tie"></i> {{ __('team_leader.title') }}</h5><button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="{{ __('team_leader.close') }}"></button></div>
+<form id="team-leader-form" action="{{ route('admin.hourly-orders.operations',$order) }}" method="POST">@csrf
+<input type="hidden" name="action" value="team_leader"><input type="hidden" name="visit_ids[]"><input type="hidden" name="leader_id">
+<div class="modal-body"><div class="form-check form-switch border-bottom pb-3"><input id="tl-all" type="checkbox" role="switch" name="all_teams" value="1" class="form-check-input"><label for="tl-all" class="form-check-label">{{ __('team_leader.all') }} <i class="fa fa-users text-warning"></i> (<span id="tl-count">0</span>)</label></div>
+<div class="tl-toolbar"><label>{{ __('team_leader.show') }} <select id="tl-size" class="form-select d-inline-block w-auto"><option>10</option><option>25</option><option>50</option></select> {{ __('team_leader.entries') }}</label><label>{{ __('team_leader.search') }} <input type="search" id="tl-search" class="form-control d-inline-block w-auto" maxlength="150"></label></div>
+<div class="table-responsive"><table class="table table-striped border"><thead><tr><th><button type="button" class="tl-sort" data-tl-sort="id"># ↕</button></th><th><button type="button" class="tl-sort" data-tl-sort="name">{{ __('team_leader.name') }} ↕</button></th><th>{{ __('team_leader.action') }}</th></tr></thead><tbody id="tl-rows"></tbody></table></div>
+<div class="tl-toolbar"><span id="tl-status" aria-live="polite"></span><div><button type="button" id="tl-prev" class="btn btn-light" aria-label="{{ __('team_leader.previous') }}">‹</button><button type="button" id="tl-next" class="btn btn-light" aria-label="{{ __('team_leader.next') }}">›</button></div></div>
+<label for="tl-reason">{{ __('team_leader.reason') }}</label><textarea id="tl-reason" name="reason" rows="2" maxlength="2000" class="form-control"></textarea><div id="tl-error" role="alert" class="alert alert-danger mt-3" hidden></div></div>
+<div class="modal-footer"><button id="tl-save" class="btn" disabled>✓ {{ __('team_leader.save') }}</button><button type="button" data-bs-dismiss="modal" class="btn btn-outline-secondary">{{ __('team_leader.close') }}</button></div></form></div></div></div>
+@push('js')
+<script>window.hourlyTeamLeaderConfig={url:@json(route('admin.hourly-orders.leaders',[$order,'VISIT_ID'])),labels:@json(__('team_leader'))};</script>
+<script src="{{ asset('admin/assets/js/hourly-team-leader.js') }}?v={{ filemtime(public_path('admin/assets/js/hourly-team-leader.js')) }}"></script>
+@endpush

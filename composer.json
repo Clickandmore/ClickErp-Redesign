@@ -2,7 +2,10 @@
     "name": "laravel/laravel",
     "type": "project",
     "description": "The Laravel Framework.",
-    "keywords": ["framework", "laravel"],
+    "keywords": [
+        "framework",
+        "laravel"
+    ],
     "license": "MIT",
     "require": {
         "php": "^8.1|^8.2.0",
@@ -31,7 +34,8 @@
         "spatie/laravel-translatable": "^5.2",
         "taqnyat/php": "^1.0",
         "tymon/jwt-auth": "^1.0@dev",
-        "yajra/laravel-datatables-oracle": "~9.0"
+        "yajra/laravel-datatables-oracle": "~9.0",
+        "pusher/pusher-php-server": "~7.2"
     },
     "require-dev": {
         "barryvdh/laravel-debugbar": "^3.7",
@@ -53,7 +57,6 @@
             "Nami\\Hr\\Database\\Seeders\\": "packages/hr/database/seeders/",
             "Nami\\Crm\\": "packages/crm/src/",
             "Nami\\AccessControl\\": "packages/access-control/src/"
-
         },
         "files": [
             "app/Helpers/MainHelper.php",

@@ -4,6 +4,7 @@
     @include('admin.superadmin.partials.head', ['pageTitle' => 'لوحة Super Admin التطويرية'])
 </head>
 <body>
+
 @php
     $modules = $modules ?? [];
     $enabledMap = $enabledMap ?? [];
@@ -119,6 +120,7 @@
         </div>
 
         <div class="topbar-actions">
+            <a class="btn btn-primary" href="{{ route('dev-superadmin.hourly-rental-settings.index') }}">إعدادات الساعات</a>
             <a class="btn" href="{{ route('dev-superadmin.invoice-corrections.index') }}">تصحيح الفواتير</a>
             <a class="btn" href="{{ \App\Support\SystemModuleManager::defaultDashboardUrl() }}">لوحة الإدارة</a>
             <form method="POST" action="{{ route('dev-superadmin.logout') }}">

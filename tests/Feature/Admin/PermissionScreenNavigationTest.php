@@ -17,12 +17,40 @@ class PermissionScreenNavigationTest extends TestCase
     use DatabaseTransactions;
 
     /** @test */
-    public function permission_screen_uses_the_six_sidebar_units_as_its_top_level(): void
+    public function permission_screen_uses_the_sidebar_units_as_its_top_level(): void
     {
         $this->assertSame(
-            ['crm', 'operations', 'hr', 'finance', 'messages', 'settings'],
+            ['crm', 'operations', 'hourly_rental', 'hr', 'finance', 'messages', 'settings'],
             array_keys(AdminPermissionNavigation::units())
         );
+    }
+
+    public function test_all_hourly_permissions_share_one_lane_despite_legacy_metadata(): void
+    {
+        $names = collect(\App\Support\AdminRoutePermissionMatrix::allPermissions())
+            ->filter(fn ($name) => str_starts_with($name, 'hourly_'))->values();
+        $this->assertNotEmpty($names);
+        $permissions = $names->map(fn ($name) => $this->permission($name, 'settings', 'settings'));
+        $controller = app(PermissionsController::class);
+        $organized = $this->invoke($controller, 'organizePermissions', $permissions);
+        $sections = $this->invoke($controller, 'buildPermissionMatrixSections', $organized);
+        $lanes = $this->invoke($controller, 'buildPermissionMatrixLanes', $sections);
+
+        $this->assertCount(1, $lanes);
+        $this->assertSame('hourly_rental', $lanes[0]['key']);
+        $this->assertSame('نظام التأجير بالساعة', $lanes[0]['title']);
+        $this->assertSame($names->count(), $lanes[0]['permissions_count']);
+        $groups = collect($lanes[0]['sections'][0]['groups'])->keyBy('key');
+        $this->assertArrayHasKey('hourly_cities', $groups->all());
+        $this->assertArrayHasKey('hourly_visits', $groups->all());
+        $cityRows = $groups['hourly_cities']['rows'];
+        $this->assertCount(1, $cityRows);
+        $this->assertSame('المدن', $cityRows[0]['title']);
+        $this->assertSame('hourly_cities_view', $cityRows[0]['crud']['read']['name']);
+        $this->assertSame('hourly_cities_create', $cityRows[0]['crud']['create']['name']);
+        $this->assertSame('hourly_cities_edit', $cityRows[0]['crud']['update']['name']);
+        $this->assertSame(['section' => 'hourly_rental', 'group' => 'hourly_rental'],
+            AdminPermissionNavigation::placementForPermission('hourly_future_view', null, null));
     }
 
     /** @test */

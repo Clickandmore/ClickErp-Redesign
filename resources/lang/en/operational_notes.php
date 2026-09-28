@@ -1,0 +1,26 @@
+<?php
+
+return [
+    'title' => 'Add note',
+    'close' => 'Close',
+    'type' => 'Who can see this note?',
+    'admin' => 'Administration',
+    'worker' => 'Worker',
+    'driver' => 'Driver',
+    'all' => 'Everyone',
+    'address' => 'Address',
+    'admin_hint' => 'An internal note for administration only.',
+    'worker_hint' => 'A note for the worker and administration.',
+    'driver_hint' => 'A note for the driver and administration.',
+    'all_hint' => 'A note for administration, workers and drivers.',
+    'address_hint' => 'An address note that applies to all visits.',
+    'visit' => 'Visit',
+    'all_visits' => 'All visits',
+    'note' => 'Note',
+    'max_chars' => 'Maximum 5000 characters',
+    'placeholder' => 'Enter your note…',
+    'save' => 'Save note',
+    'saved' => 'Note saved.',
+    'error' => 'Could not save the note. Please try again.',
+    'address_all' => 'Address notes apply to all visits; leave the visit unselected.',
+];

@@ -1,0 +1,6 @@
+<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8"><title>إيصال تحصيل #{{ $receipt->id }}</title><style>body{font:16px Arial;max-width:850px;margin:40px auto;color:#24364a}table{width:100%;border-collapse:collapse}td,th{padding:12px;border:1px solid #ddd}small{color:#65748a}@media print{button{display:none}}</style></head><body>
+<h1>إيصال تحصيل #{{ $receipt->id }}</h1><p>{{ $user->name }} · {{ $user->phone }}</p><p>تاريخ الدفع: {{ $receipt->paid_at }} · {{ __('hourly.'.$receipt->method) }}</p>
+<table><thead><tr><th>الطلب</th><th>الزيارات</th><th>المبلغ</th></tr></thead><tbody>@foreach(json_decode($receipt->details,true) as $line)<tr><td>{{ $line['order_number'] }}</td><td>{{ implode('، ',$line['visit_ids']) }}</td><td>{{ number_format($line['amount'],2) }} ر.س</td></tr>@endforeach</tbody></table>
+<h2>الإجمالي: {{ number_format($receipt->amount,2) }} ر.س</h2><p>{{ $receipt->description }}</p><small>إيصال تحصيل دفعة، وليس بديلًا عن فاتورة الطلب.</small>
+@foreach($notices as $notice)<p>الإرسال {{ $notice->channel==='email'?'بالبريد':'بالتطبيق' }}: {{ ['pending'=>'بانتظار الإرسال','sending'=>'جارٍ الإرسال','sent'=>'تم الإرسال','failed'=>'تعذر الإرسال'][$notice->status]??$notice->status }}</p>@endforeach
+<p><button onclick="window.print()">طباعة</button></p></body></html>

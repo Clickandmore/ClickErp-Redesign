@@ -1,0 +1,48 @@
+@extends('admin.layout.indexs.index')
+@section('page-title', 'ملخص طلب الساعات')
+@push('css')
+<style>
+.hs{--brand:#2794eb;--deep:#14507f;--teal:#008f82;--ink:#172536;--muted:#6e7f92;--line:#e3ebf4;--soft:#f6f9fc;direction:rtl;color:var(--ink)}
+.hs-shell{max-width:1440px;margin:auto}.hs-card{background:#fff;border:1px solid var(--line);border-radius:18px;box-shadow:0 10px 30px rgba(20,80,127,.06);overflow:hidden;margin-bottom:1.15rem}.hs-pad{padding:1.35rem}.hs-hero{background:linear-gradient(110deg,var(--deep),#217fc6 58%,#22a9d7);color:#fff;padding:1.35rem 1.5rem;display:flex;align-items:center;justify-content:space-between;gap:1rem;flex-wrap:wrap}.hs-hero-copy{min-width:0;flex:1}.hs-eyebrow{font-size:.8rem;opacity:.78;margin-bottom:.35rem}.hs-order-number{display:flex;align-items:flex-start;gap:.45rem;font-size:clamp(1.05rem,2.2vw,1.55rem);font-weight:800;line-height:1.5;min-width:0}.hs-order-number span{direction:ltr;text-align:right;overflow-wrap:anywhere;word-break:break-all}.hs-actions{display:flex;gap:.55rem;flex-wrap:wrap}.hs-actions a,.hs-actions button{border:1px solid rgba(255,255,255,.45);border-radius:10px;background:rgba(255,255,255,.14);color:#fff;padding:.55rem .85rem;font-weight:700;text-decoration:none;white-space:nowrap}.hs-actions .is-light{background:#fff;color:var(--deep)}
+.hs-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:1rem}.hs-panel{border:1px solid var(--line);border-radius:15px;padding:1.1rem;background:#fff;min-width:0}.hs-panel h5{font-size:1rem;color:var(--deep);font-weight:800;margin:0 0 .9rem;display:flex;align-items:center;gap:.45rem}.hs-panel h5 i{color:var(--brand)}.hs-lines{display:grid;gap:.55rem}.hs-line{display:flex;justify-content:space-between;align-items:flex-start;gap:1rem;padding-bottom:.5rem;border-bottom:1px dashed #e6edf5}.hs-line:last-child{border:0;padding:0}.hs-line span{color:var(--muted);font-size:.84rem}.hs-line b{font-weight:700;text-align:left;overflow-wrap:anywhere}.hs-ltr{direction:ltr;display:inline-block}.hs-meta{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:.8rem;margin:1rem 0}.hs-stat{border:1px solid var(--line);border-radius:14px;padding:.9rem 1rem;background:var(--soft)}.hs-stat span{display:block;color:var(--muted);font-size:.78rem;margin-bottom:.25rem}.hs-stat b{font-size:1.03rem;overflow-wrap:anywhere}.hs-money{color:var(--teal)}.hs-section-title{font-size:1.05rem;color:var(--deep);font-weight:800;margin:0 0 .85rem}.hs-table{width:100%;border-collapse:separate;border-spacing:0 .5rem}.hs-table th{color:var(--muted);font-size:.8rem;padding:.55rem .75rem;white-space:nowrap;text-align:right}.hs-table td{background:#fff;border-block:1px solid var(--line);padding:.8rem .75rem;vertical-align:middle}.hs-table td:first-child{border-inline-start:3px solid var(--brand);border-start-start-radius:10px;border-end-start-radius:10px}.hs-table td:last-child{border-inline-end:1px solid var(--line);border-start-end-radius:10px;border-end-end-radius:10px}.hs-badge{display:inline-flex;align-items:center;border-radius:99px;background:#e9f4fd;color:#176cab;padding:.24rem .65rem;font-size:.78rem;font-weight:700}.hs-empty{padding:1rem;text-align:center;color:var(--muted)}.hs-collect{display:grid;grid-template-columns:repeat(3,minmax(0,1fr)) auto;align-items:end;gap:.8rem;padding:1rem;background:#f4fbf9;border:1px solid #ccebe5;border-radius:14px;margin-bottom:1rem}.hs-collect label{display:block;font-size:.8rem;color:var(--muted);margin-bottom:.3rem}.hs .form-control,.hs .form-select{border-radius:9px;border-color:#d9e4ef;min-height:42px}.hs .btn{border-radius:9px}.hs-footer{display:flex;justify-content:center;gap:.6rem;flex-wrap:wrap;margin:1.2rem 0}.hs-note{white-space:pre-wrap;background:var(--soft);border-radius:10px;padding:.75rem;margin:.5rem 0}.hs-balance{padding:.85rem 1rem;border-radius:12px;background:#edf7ff;color:var(--deep);font-weight:700;margin-bottom:1rem}
+@media(max-width:991px){.hs-meta{grid-template-columns:repeat(2,minmax(0,1fr))}.hs-collect{grid-template-columns:1fr 1fr}.hs-collect>div:last-child{grid-column:1/-1}}@media(max-width:767px){.hs{margin-inline:-.65rem}.hs-hero{padding:1.1rem}.hs-actions{width:100%}.hs-actions a,.hs-actions button{flex:1;text-align:center}.hs-grid,.hs-meta,.hs-collect{grid-template-columns:1fr}.hs-collect>div:last-child{grid-column:auto}.hs-pad{padding:.9rem}.hs-table{min-width:760px}}@media print{.hs-actions,.hs-collect,.hs-footer,.hs-note-form{display:none!important}.hs-card{box-shadow:none}.hs{margin:0}}
+</style>
+@endpush
+@section('content')
+@include('admin.hourly._booking-options')
+<div class="container-fluid hs"><div class="hs-shell">
+    @include('admin.hourly.messages')
+    @include('admin.hourly._order-summary')
+    @php
+        $canConfirm = AdminGuardHasPerm('hourly_orders_confirm') && $order->status === 'pending_confirmation'
+            && (in_array($order->payment_method, ['cash', 'card_on_delivery'], true)
+                || \App\Services\Hourly\HourlyPaymentService::activationPaid($order));
+    @endphp
+    @if($canConfirm)
+        <div class="alert alert-warning d-flex flex-wrap align-items-center justify-content-between gap-2"><span><i class="fa fa-hourglass-half"></i> الطلب بانتظار تأكيد الصرّاف.</span><form method="POST" action="{{ route('admin.hourly-orders.confirm',$order) }}">@csrf<button class="btn btn-warning">تأكيد الصرّاف</button></form></div>
+    @elseif($order->status === 'pending_confirmation' && $order->payment_method === 'moyasar')
+        <div class="alert alert-info"><i class="fa fa-credit-card"></i> الطلب بانتظار إتمام العميل للدفع عبر رابط ميسر، وسيتفعّل تلقائيًا بعد تأكيد البوابة.</div>
+    @elseif($order->status === 'pending_confirmation' && $order->payment_method === 'bank_transfer')
+        <div class="alert alert-info"><i class="fa fa-building-columns"></i> {{ $order->payment_status === 'pending_review' ? 'التحويل البنكي بانتظار المراجعة.' : 'الطلب بانتظار إثبات التحويل البنكي أو تسجيل التحصيل.' }}</div>
+    @endif
+    <section class="hs-card"><div class="hs-pad"><h5 class="hs-section-title"><i class="fa fa-calendar-days"></i> تاريخ الزيارات</h5>@include('admin.hourly._order-visits')</div></section>
+    <section class="hs-card"><div class="hs-pad">
+        <h5 class="hs-section-title"><i class="fa fa-credit-card"></i> الدفعات وسندات القبض</h5>
+        @php $canCollect = AdminGuardHasPerm('hourly_orders_collect') && $order->payment_status !== 'paid' && !in_array($order->payment_method, ['moyasar','customer_balance']); @endphp
+        @if($canCollect)<form method="POST" enctype="multipart/form-data" action="{{ route('admin.hourly-orders.collect',$order) }}" class="hs-collect">@csrf
+            <div><label for="summary-amount">المبلغ المحصل</label><input id="summary-amount" type="number" step="0.01" min="0.01" name="amount" class="form-control" required></div>
+            @if($order->payment_method === 'cash_and_card')<div><label for="summary-method">طريقة التحصيل</label><select id="summary-method" name="method" class="form-select" required><option value="cash">نقدي</option><option value="card_on_delivery">بطاقة</option></select></div>@endif
+            <div><label for="summary-attachment">إثبات التحويل {{ $order->payment_method === 'bank_transfer' ? '(مطلوب)' : '(اختياري)' }}</label><input id="summary-attachment" type="file" name="attachment" class="form-control" accept=".pdf,.png,.jpg,.jpeg" {{ $order->payment_method === 'bank_transfer' ? 'required' : '' }}></div>
+            <div><button class="btn btn-success w-100"><i class="fa fa-receipt"></i> تسجيل التحصيل</button></div>
+        </form>@endif
+        <div class="table-responsive"><table class="hs-table"><thead><tr><th>المبلغ</th><th>الطريقة</th><th>الحالة</th><th>وقت الدفع</th><th>المستندات</th></tr></thead><tbody>
+        @forelse($order->payments as $payment)<tr><td><b class="hs-money">{{ number_format((float)$payment->amount,2) }} ر.س</b></td><td>{{ __('hourly.'.$payment->method) }}</td><td><span class="hs-badge">{{ __('hourly.'.$payment->status) }}</span></td><td><span class="hs-ltr">{{ optional($payment->paid_at)->format('Y-m-d H:i') ?: '—' }}</span></td><td>
+            @if($payment->status === 'paid' && (float) $payment->amount > 0)<a class="btn btn-sm btn-outline-primary" target="_blank" href="{{ route('admin.hourly-orders.receipt',[$order,$payment]) }}"><i class="fa fa-receipt"></i> سند قبض</a>@endif
+            @if($payment->attachment_path)<a class="btn btn-sm btn-outline-secondary" href="{{ route('admin.hourly-orders.attachment',[$order,$payment]) }}"><i class="fa fa-paperclip"></i> المرفق</a>@endif
+        </td></tr>@empty<tr><td colspan="5"><div class="hs-empty">لا توجد دفعات مسجلة.</div></td></tr>@endforelse
+        </tbody></table></div>
+    </div></section>
+    <section class="hs-card"><div class="hs-pad"><h5 class="hs-section-title"><i class="fa fa-clock-rotate-left"></i> سجل الحالة</h5>@forelse($order->statusLogs->sortByDesc('id') as $log)<div class="hs-line"><span class="hs-ltr">{{ $log->created_at?->format('Y-m-d H:i') }}</span><b>{{ __('hourly.'.$log->to_status) }} — {{ $log->reason ?: 'بدون ملاحظة' }}</b></div>@empty<div class="hs-empty">لا يوجد سجل حالة بعد.</div>@endforelse</div></section>
+    <div class="hs-footer"><a href="{{ route('admin.hourly-orders.show',$order) }}" class="btn btn-primary"><i class="fa fa-sliders"></i> إدارة الطلب</a><a href="{{ route('admin.hourly-orders.index') }}" class="btn btn-outline-secondary"><i class="fa fa-list"></i> كل الطلبات</a>@if(AdminGuardHasPerm('hourly_orders_create'))<a href="{{ route('admin.hourly-orders.create') }}" class="btn btn-outline-primary"><i class="fa fa-plus"></i> إنشاء طلب جديد</a>@endif</div>
+</div></div>
+@endsection
