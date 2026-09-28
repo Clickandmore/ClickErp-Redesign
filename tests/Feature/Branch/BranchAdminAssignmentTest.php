@@ -199,4 +199,30 @@ class BranchAdminAssignmentTest extends TestCase
 
         $this->assertNotContains($admin->id, $branch->admins()->pluck('id'));
     }
+
+    public function test_branch_employee_count_includes_customer_service_users(): void
+    {
+        $branch = $this->makeBranch();
+        $admin = $this->branchAdmin($branch);
+        $support = Admin::factory()->forBranch($branch)->count(2)->create([
+            'admin_type' => 'customer_service',
+        ]);
+        $this->branchAdmin($this->makeBranch());
+        Admin::factory()->forBranch($branch)->create([
+            'admin_type' => 'customer_service',
+            'deleted_at' => now(),
+        ]);
+
+        $expectedIds = $support->pluck('id')->push($admin->id)->sort()->values()->all();
+        $this->assertSame($expectedIds, $branch->admins()->orderBy('id')->pluck('id')->all());
+
+        $this->get(route('branches.index'))
+            ->assertOk()
+            ->assertViewHas('branches', function ($branches) use ($branch, $expectedIds) {
+                $listedBranch = $branches->getCollection()->firstWhere('id', $branch->id);
+
+                return $listedBranch !== null
+                    && $listedBranch->admins->pluck('id')->sort()->values()->all() === $expectedIds;
+            });
+    }
 }

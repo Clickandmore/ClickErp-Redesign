@@ -146,6 +146,10 @@
         $runningBalance = round($openingBalance + $pagination->totals->balance, 2);
     }
 
+    $periodDebtor = round($totalDebtor - $openingDebtor, 2);
+    $periodCreditor = round($totalCreditor - $openingCreditor, 2);
+    $periodBalance = round($runningBalance - $openingBalance, 2);
+
     $hasData = $hasOpeningBalance || count($preparedRows) > 0;
     $periodFrom = data_get($filters, 'from_date');
     $periodTo = data_get($filters, 'to_date');
@@ -357,6 +361,18 @@
                         @endforeach
                     </tbody>
                     <tfoot>
+                        <tr class="statement-row statement-row--period-total">
+                            <td colspan="{{ $colspan }}" class="text-center">إجمالي الفترة</td>
+                            <td class="statement-money-cell">{!! $formatStatementMoney($periodDebtor) !!}</td>
+                            <td class="statement-money-cell">{!! $formatStatementMoney($periodCreditor) !!}</td>
+                            <td class="statement-balance-cell">
+                                <span class="statement-balance-pill {{ $resolveBalanceClass($periodBalance, $accountStatus) }}">
+                                    <strong>{!! $formatStatementMoney(abs($periodBalance)) !!}</strong>
+                                    <small>{{ $resolveBalanceLabel($periodBalance, $accountStatus) }}</small>
+                                </span>
+                            </td>
+                            <td>-</td>
+                        </tr>
                         <tr class="statement-row statement-row--total">
                             <td colspan="{{ $colspan }}" class="text-center">{{ __('finance::finance.Balance') }}</td>
                             <td class="statement-money-cell">{!! $formatStatementMoney($totalDebtor) !!}</td>

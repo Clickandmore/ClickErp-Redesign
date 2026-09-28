@@ -126,7 +126,7 @@
                         <td>
                             <select name="account_id[]" data-validation="required"
                                 class="form-control select-account select-unique-option select2">
-                                {!! showSelectElement($accounts, 'name') !!}
+                                @include('finance::finance.constraint.partials.account-options')
                             </select>
                         </td>
                         <td>
@@ -158,7 +158,7 @@
                         <td>
                             <select name="account_id[]" data-validation="required"
                                 class="form-control select-account select-unique-option select2">
-                                {!! showSelectElement($accounts, 'name') !!}
+                                @include('finance::finance.constraint.partials.account-options')
                             </select>
                         </td>
                         <td>
@@ -207,7 +207,7 @@
         <td>
             <select name="account_id[]" data-validation="required"
                 class="form-control select-account select-unique-option select2">
-                {!! showSelectElement($accounts, 'name') !!}
+                @include('finance::finance.constraint.partials.account-options')
             </select>
         </td>
         <td>
@@ -241,7 +241,7 @@
         <td>
             <select name="account_id[]" data-validation="required"
                 class="form-control select-account select-unique-option select2">
-                {!! showSelectElement($accounts, 'name') !!}
+                @include('finance::finance.constraint.partials.account-options')
             </select>
         </td>
         <td>

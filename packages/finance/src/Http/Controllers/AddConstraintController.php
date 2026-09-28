@@ -71,6 +71,7 @@ class AddConstraintController extends Controller
                 ->map(fn ($account) => [
                     'id' => (int) $account->id,
                     'name' => (string) $account->name,
+                    'text' => $account->code . ' - ' . $account->name,
                 ])
                 ->values(),
             'cost_centers' => $service->getCostCenters($selectedBranchId)
