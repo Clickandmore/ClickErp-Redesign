@@ -50,7 +50,6 @@ class Branch extends Model
     public function admins()
     {
         return $this->hasMany(\App\Models\auth\Admin::class, 'branch_id')
-            ->whereIn('admin_type', ['admin', 'super_admin'])
-            ->whereNull('deleted_at');
+            ->notExternalOfficeAgents();
     }
 }

@@ -129,6 +129,16 @@
             border-bottom-width: 1px;
         }
 
+        .constraint-create-page .constraint-table thead th:nth-child(3),
+        .constraint-create-page .constraint-table tbody td:nth-child(3) {
+            min-width: 300px;
+            width: 25%;
+        }
+
+        .constraint-create-page .constraint-table .select-account + .select2-container {
+            width: 100% !important;
+        }
+
         .constraint-create-page .constraint-table tfoot td {
             background: #fcfcfd;
             font-weight: 700;
@@ -346,7 +356,8 @@
             const branchMirror = form.querySelector('#constraint_branch_id_mirror');
             const storeBaseRoute = @json($storeBaseRoute ?? $storeRoute);
             const branchOptionsRoute = @json($branchOptionsRoute ?? null);
-            let accountOptionsHtml = @json(showSelectElement($accounts, 'name'));
+            @php($accountOptionsHtml = view('finance::finance.constraint.partials.account-options', ['accounts' => $accounts])->render())
+            let accountOptionsHtml = @json($accountOptionsHtml);
             let costCenterOptionsHtml = @json(showSelectElement($cost_centers, 'title'));
 
             $.validate({
@@ -555,7 +566,7 @@
                             $(branchSelect).prop('disabled', true);
                         },
                         success: function(result) {
-                            accountOptionsHtml = optionHtml(result.accounts, 'name', 'لا يوجد حسابات لهذا الفرع');
+                            accountOptionsHtml = optionHtml(result.accounts, 'text', 'لا يوجد حسابات لهذا الفرع');
                             costCenterOptionsHtml = optionHtml(result.cost_centers, 'title',
                                 'لا يوجد مراكز تكلفة لهذا الفرع');
                             replaceLineOptions();
