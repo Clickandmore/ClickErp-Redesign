@@ -383,6 +383,11 @@ class DevSuperAdminController extends Controller
 
     public function updateModules(Request $request)
     {
+        if ($request->boolean('modules.hourly_rental')
+            && !\App\Support\HourlyRentalSettings::isEnabled()
+            && collect(\App\Support\HourlyRentalSettings::installationStages())->contains(fn ($stage) => ($stage['required'] ?? true) && !$stage['done'])) {
+            return back()->withErrors(['modules.hourly_rental' => 'أكمل تركيب جداول الساعات أولًا باستخدام الأمر hourly:install.']);
+        }
         if (!array_key_exists('hourly_rental', (array)$request->input('modules', []))
             && \App\Support\HourlyRentalSettings::isEnabled()
             && ($blockers = \App\Support\HourlyRentalSettings::disableBlockers())) {

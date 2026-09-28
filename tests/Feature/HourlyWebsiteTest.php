@@ -446,7 +446,7 @@ class HourlyWebsiteTest extends TestCase
         $data=$this->fixture();$url=route('web.hourly.checkout',$data['hourly_package_id']);
         $this->get($url)->assertRedirect(route('site.login.index'))->assertSessionHas('url.intended',$url);
         $this->postJson(route('web.hourly.store'),$data+['user_id'=>1])->assertUnauthorized();
-        HourlyRentalSettings::persist(['is_enabled'=>false]);
+        config(['superadmin_modules.hourly_rental.default_enabled'=>false]);
         $this->get(route('web.hourly.index'))->assertNotFound();
         $this->postJson(route('web.hourly.store'),$data)->assertNotFound();
     }

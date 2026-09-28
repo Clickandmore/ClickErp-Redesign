@@ -687,7 +687,7 @@ class HourlyStaffAppApiTest extends TestCase
     {
         $driver = $this->driver();
         $token = $this->loginDriver($driver);
-        HourlyRentalSettings::persist(['is_enabled' => false]);
+        config(['superadmin_modules.hourly_rental.default_enabled' => false]);
         auth()->forgetGuards();
         foreach (['/api/driver/trips/today', '/api/driver/offers', '/api/worker/hours', '/api/app/hourly/driver/me'] as $path) {
             $this->withToken($token)->getJson($path)->assertNotFound();

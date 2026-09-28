@@ -57,7 +57,7 @@ class HourlyCommerceTest extends TestCase
     }
     public function test_disabled_module_hides_api_and_expiry_does_nothing(): void
     {
-        $o=$this->order();$o->update(['expires_at'=>now()->subDay()]);HourlyRentalSettings::persist(['is_enabled'=>false]);
+        $o=$this->order();$o->update(['expires_at'=>now()->subDay()]);config(['superadmin_modules.hourly_rental.default_enabled'=>false]);
         $this->getJson('/api/app/hourly/packages?city_id=1')->assertNotFound();
         $this->artisan('hourly:expire-orders')->assertExitCode(0);$this->assertSame('pending_confirmation',$o->fresh()->status);
     }

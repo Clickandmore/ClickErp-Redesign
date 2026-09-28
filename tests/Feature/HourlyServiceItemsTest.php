@@ -119,7 +119,7 @@ class HourlyServiceItemsTest extends TestCase
         foreach(app('router')->getRoutes() as $route){if(!str_starts_with($route->getName()??'','admin.hourly-service-items.'))continue;
             $this->assertContains('feature.hourly_rental',$route->gatherMiddleware());$this->assertContains('admin',$route->gatherMiddleware());$this->assertContains('admin.route.permission',$route->gatherMiddleware());$this->assertArrayHasKey($route->getName(),config('hourly_permissions'));
         }
-        HourlyRentalSettings::persist(['is_enabled'=>false]);$this->get(route('admin.hourly-service-items.index'))->assertNotFound();
+        config(['superadmin_modules.hourly_rental.default_enabled'=>false]);$this->get(route('admin.hourly-service-items.index'))->assertNotFound();
     }
     public function test_quick_price_status_and_break_threshold_are_logged(): void
     {

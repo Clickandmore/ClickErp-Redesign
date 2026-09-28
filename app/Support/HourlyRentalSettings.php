@@ -8,7 +8,7 @@ use Illuminate\Support\Facades\Schema;
 /**
  * إعدادات موديل «التأجير بالساعة» — تُقرأ من جدول new_settings بالمفتاح "hourly_rental".
  *
- * الموديل كله خلف مفتاح is_enabled: حين يكون مطفأً لا تظهر له شاشة ولا مسار ولا بند قائمة،
+ * التفعيل من SystemModuleManager فقط؛ إعدادات الساعات لا تحمل مفتاح تشغيل مستقلًا.
  * ولا تُقرأ جداوله. الربط بسير العاملات وبشاشات الإيواء اختياري ويُضبط من هنا أيضًا،
  * حتى يمكن تشغيل الموديل تدريجيًا دون أي أثر على الاستقدام أو الإيجار الشهري.
  *
@@ -28,7 +28,7 @@ class HourlyRentalSettings
     public static function all(): array
     {
         if (self::$cached !== null) {
-            return self::$cached;
+            return array_replace(self::$cached, ['is_enabled' => self::isEnabled()]);
         }
 
         $settings = self::defaults();
@@ -55,7 +55,7 @@ class HourlyRentalSettings
     /** المفتاح الرئيسي: كل شيء في الموديل يُفحص عبره. */
     public static function isEnabled(): bool
     {
-        return (bool) self::all()['is_enabled'] && SystemModuleManager::isEnabled('hourly_rental');
+        return SystemModuleManager::isEnabled('hourly_rental');
     }
 
     /** إظهار بطاقة «التأجير بالساعة» في سيرة العاملة وشاشاتها. */
@@ -120,6 +120,7 @@ class HourlyRentalSettings
     {
         $current = self::all();
         $settings = self::normalize(array_replace($current, $payload));
+        unset($settings['is_enabled']);
         $settings['updated_by'] = $adminId;
         $settings['updated_at'] = now()->toDateTimeString();
 
@@ -141,7 +142,7 @@ class HourlyRentalSettings
     public static function defaults(): array
     {
         return [
-            'is_enabled' => false,
+            'is_enabled' => self::isEnabled(),
             'link_maid_profiles' => true,
             'link_shelter' => true,
             'default_shelter_place_id' => null,
@@ -249,7 +250,7 @@ class HourlyRentalSettings
             'working_start' => preg_match('/^([01]\d|2[0-3]):[0-5]\d$/', (string) ($settings['working_start'] ?? '')) ? $settings['working_start'] : '08:00',
             'working_end' => preg_match('/^([01]\d|2[0-3]):[0-5]\d$/', (string) ($settings['working_end'] ?? '')) ? $settings['working_end'] : '20:00',
             'slot_minutes' => in_array((int) ($settings['slot_minutes'] ?? 30), [15,30,60], true) ? (int) ($settings['slot_minutes'] ?? 30) : 30,
-            'is_enabled' => $bool($settings['is_enabled'] ?? false),
+            'is_enabled' => self::isEnabled(),
             'link_maid_profiles' => $bool($settings['link_maid_profiles'] ?? $defaults['link_maid_profiles']),
             'link_shelter' => $bool($settings['link_shelter'] ?? $defaults['link_shelter']),
             'default_shelter_place_id' => !empty($settings['default_shelter_place_id']) ? (int) $settings['default_shelter_place_id'] : null,
@@ -288,6 +289,22 @@ class HourlyRentalSettings
             'staff_app_worker_hour_rate' => round((float) ($settings['staff_app_worker_hour_rate'] ?? $defaults['staff_app_worker_hour_rate']), 2),
             'updated_by' => isset($settings['updated_by']) ? (int) $settings['updated_by'] : null,
             'updated_at' => $settings['updated_at'] ?? null,
+        ];
+    }
+
+    public static function installationStages(): array
+    {
+        $has = fn (string ...$tables) => collect($tables)->every(fn ($t) => Schema::hasTable($t));
+
+        // الأسماء هنا هي الجداول الفعلية التي بناها الفريق، لا أسماء الخطة الأولى.
+        return [
+            ['label' => 'إحداثيات عناوين العملاء', 'done' => Schema::hasColumn('user_addresses', 'latitude')],
+            ['label' => 'المرحلة ١ — الباقات والطلبات والتحصيل ومعالج الحجز', 'done' => $has('hourly_packages', 'hourly_rental_orders', 'hourly_order_payments') && Schema::hasColumn('hourly_rental_orders', 'booking_token')],
+            ['label' => 'المرحلة ٢ — الزيارات والإسناد وملفات عاملات الساعات وجدول الموظفين', 'done' => $has('hourly_visits', 'hourly_visit_workers', 'hourly_worker_leaves', 'hourly_visit_batches') && Schema::hasColumn('maids', 'rental_mode')],
+            ['label' => 'المرحلة ٣ — السائقون وإدارة المسار وتتبع GPS', 'done' => $has('hourly_drivers', 'hourly_route_stops', 'location_pings')],
+            ['label' => 'عملاء الساعات والمحفظة والتجديدات', 'done' => $has('hourly_customer_profiles', 'hourly_wallet_transactions') && Schema::hasColumn('hourly_rental_orders', 'renewed_from_order_id')],
+            ['label' => 'حركة الإيواء اليومية (خروج وعودة) مع ربط الإيواء', 'done' => $has('worker_daily_movements')],
+            ['label' => 'المرحلة ٤ — الإغلاق المالي ومستحقات العاملات', 'done' => $has('hourly_visit_earnings'), 'required' => false],
         ];
     }
 }

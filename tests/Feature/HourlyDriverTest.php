@@ -170,7 +170,7 @@ class HourlyDriverTest extends TestCase
 
     public function test_feature_flag_hides_driver_routes_and_admin_routes_have_permissions(): void
     {
-        HourlyRentalSettings::persist(['is_enabled'=>false]);
+        config(['superadmin_modules.hourly_rental.default_enabled'=>false]);
         $this->get(route('hourly-driver.login'))->assertNotFound();
         $this->postJson('/api/app/hourly/driver/login',[])->assertNotFound();
         $this->getJson(route('admin.hourly-drivers.index'))->assertNotFound();
