@@ -3,10 +3,10 @@
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Route;
 
-//Clear route cache:
+// Cache routes per locale (route:cache alone drops the /ar and /en prefixed routes):
 Route::get('route-cacher', function () {
-    $exitCode = Artisan::call('route:cache');
-    return 'Routes cache cleared';
+    $exitCode = Artisan::call('route:trans:cache');
+    return 'Routes cached for all locales';
 });
 
 //Clear config cache:

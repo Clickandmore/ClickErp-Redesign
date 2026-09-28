@@ -44,21 +44,7 @@ class RecruitmentController extends Controller
             'jobTypes',
             'translations'
         ])
-            ->where('status', 'available') // Use constant for better maintainability
-            ->where('available', true) // Also check the available boolean field
-            ->where('is_show', true)
-            ->whereDoesntHave('contracts', function ($q) {
-                $q->whereIn('status', ['active', 'pending']);
-            })
-            ->whereDoesntHave('orders', function ($q) {
-                $q->whereIn('status', ['pending', 'approved', 'in_progress']);
-            })
-            ->whereHas('jobTypes', function ($q) {
-                $q->where('job_type_id', self::RECRUITMENT_JOB_TYPE_ID);
-            })
-            ->whereDoesntHave('jobTypes', function ($q) {
-                $q->where('job_types.id', '!=', self::RECRUITMENT_JOB_TYPE_ID);
-            });
+            ->availableForInternalRecruitment();
 
         // Apply filters
         if ($nationality_id) {
@@ -110,7 +96,7 @@ class RecruitmentController extends Controller
     public function showMaidForm($client_id, $maid_id)
     {
         $client = User::findOrFail($client_id);
-        $maid = Maid::with(['nationality', 'religion', 'jobTypes'])->findOrFail($maid_id);
+        $maid = Maid::availableForInternalRecruitment()->with(['nationality', 'religion', 'jobTypes'])->findOrFail($maid_id);
         $currentAdmin = Auth::guard('admin')->user();
 
         // Get employees if user is admin
@@ -159,19 +145,15 @@ class RecruitmentController extends Controller
                 'notes' => 'nullable|string',
             ]);
 
-            // Do not rely on the UI filter: recruitment requests can only use
-            // CVs assigned to the recruitment job type.
-            $maid = Maid::query()
-                ->whereKey($request->maid_id)
-                ->whereHas('jobTypes', function ($query) {
-                    $query->where('job_type_id', self::RECRUITMENT_JOB_TYPE_ID);
-                })
-                ->whereDoesntHave('jobTypes', function ($query) {
-                    $query->where('job_types.id', '!=', self::RECRUITMENT_JOB_TYPE_ID);
-                })
-                ->firstOrFail();
-
             DB::beginTransaction();
+
+            // Serialize concurrent bookings before rechecking the current availability.
+            $maid = Maid::query()->whereKey($request->maid_id)->lockForUpdate()->firstOrFail();
+            if (!Maid::availableForInternalRecruitment()->whereKey($maid->id)->exists()) {
+                throw \Illuminate\Validation\ValidationException::withMessages([
+                    'maid_id' => 'العاملة غير متاحة للحجز أو مرتبطة بطلب أو عقد قائم. يرجى اختيار عاملة أخرى.',
+                ]);
+            }
 
             // Get job type ID for recruitment
             $jobType = JobType::findOrFail(self::RECRUITMENT_JOB_TYPE_ID);
@@ -233,6 +215,13 @@ class RecruitmentController extends Controller
                 'success' => true,
                 'message' => __('ingaz.recruitment_request_created')
             ]);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            DB::rollBack();
+            return response()->json([
+                'success' => false,
+                'message' => collect($e->errors())->flatten()->first(),
+                'errors' => $e->errors(),
+            ], 422);
         } catch (\Exception $e) {
             DB::rollback();
             \Log::error('Order Creation Error: ' . $e->getMessage());
@@ -259,7 +248,7 @@ class RecruitmentController extends Controller
      */
     public function showEmployeeModal($maid_id, $client_id)
     {
-        $maid = Maid::findOrFail($maid_id);
+        $maid = Maid::availableForInternalRecruitment()->findOrFail($maid_id);
         $client = User::findOrFail($client_id);
         $employees = Admin::query()->activeForOperations()->whereHas('roles', function ($query) {
             $query->where('name', 'employee');

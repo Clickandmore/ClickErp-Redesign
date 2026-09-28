@@ -99,6 +99,11 @@ class ApiOrderController extends Controller
 
     public function store(Request $request, MaidAction $maidAction, AdminAction $adminAction, ExternalOrderAdminSmsNotifier $adminSmsNotifier)
     {
+        // Website clients identify their channel; existing app requests keep their behavior.
+        if ($request->input('booking_channel') === 'external_website'
+            && !\App\Support\ExternalOrderSettings::employeeSelectionEnabled()) {
+            $request->merge(['customer' => null]);
+        }
         $request->validate([
             'maid_id' => ['required', 'exists:maids,id'],
             'service_type' => ['nullable', 'string', 'max:30'],

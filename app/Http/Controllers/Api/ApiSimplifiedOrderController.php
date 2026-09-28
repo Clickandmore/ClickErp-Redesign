@@ -31,13 +31,18 @@ class ApiSimplifiedOrderController extends Controller
             return apiResponse(false, __('api.not found'), null, 404);
         }
 
+        $selectEmployee = ExternalOrderSettings::employeeSelectionEnabled();
+        if (!$selectEmployee) {
+            $request->merge(['customer' => null]);
+        }
+
         $data = $request->validate([
             'name' => ['required', 'string', 'min:2', 'max:255'],
             'phone' => ['required', 'regex:/^5\d{8}$/'],
             'maid_id' => ['required', 'integer', 'exists:maids,id'],
             'service_type' => ['nullable', 'string', 'max:30'],
             'customer' => [
-                'required',
+                $selectEmployee ? 'required' : 'nullable',
                 'integer',
                 Rule::exists('admins', 'id')->where(function ($query) {
                     $query->whereNull('deleted_at')
@@ -100,15 +105,17 @@ class ApiSimplifiedOrderController extends Controller
                 'user_id' => $user->id,
                 'maid_id' => $maid->id,
                 'job_type_id' => $jobTypeId,
-                'customer_id' => $data['customer'],
+                'customer_id' => $data['customer'] ?? null,
             ]);
 
-            OrderDetail::updateOrCreate(
-                ['order_id' => $order->id],
-                ['admin_id' => $data['customer']]
-            );
-
-            $customerService = Admin::findOrFail($data['customer']);
+            $customerService = null;
+            if (!empty($data['customer'])) {
+                OrderDetail::updateOrCreate(
+                    ['order_id' => $order->id],
+                    ['admin_id' => $data['customer']]
+                );
+                $customerService = Admin::findOrFail($data['customer']);
+            }
             $userPhone = formatSaudiPhone($user->phone);
 
             if ($userPhone) {
@@ -129,10 +136,10 @@ class ApiSimplifiedOrderController extends Controller
 
             return apiResponse(true, __('api.Order created successfully'), [
                 'order' => $order,
-                'customer' => [
+                'customer' => $customerService ? [
                     'id' => $customerService->id,
                     'name' => $customerService->name,
-                ],
+                ] : null,
                 'user_created' => $user->wasRecentlyCreated,
             ], 201);
         });

@@ -433,6 +433,8 @@ return array (
   'settings_section_general' => 'البيانات الأساسية',
   'settings_section_external_auth' => 'إعدادات تسجيل الدخول للموقع الخارجي',
   'settings_section_external_order' => 'إعدادات الطلب في الموقع الخارجي',
+  'external_booking_employee_selection' => 'اختيار الموظف أثناء حجز السيرة الذاتية من الموقع الخارجي',
+  'external_booking_employee_selection_hint' => 'مفعّل افتراضيًا للحفاظ على خطوات الحجز الحالية. عند التعطيل يُسجل الحجز بدون موظف مسؤول، وتبقى خطوات الدخول وبيانات العميل كما هي. لا يخص حجوزات الساعات.',
   'external_order_description' => 'التحكم في طريقة إنشاء طلبات حجز السير الذاتية من الموقع الخارجي.',
   'external_order_legacy_default_hint' => 'الوضع الحالي المعتمد على تسجيل الدخول هو الوضع الافتراضي، لضمان استمرار المواقع القديمة دون تغيير.',
   'external_order_authenticated_mode' => 'الوضع الحالي: تسجيل الدخول',

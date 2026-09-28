@@ -687,6 +687,23 @@ class Maid extends Model
         });
     }
 
+    public function scopeAvailableForInternalRecruitment($query)
+    {
+        return $query->where('status', 'available')
+            ->where('available', true)
+            ->where('is_show', true)
+            ->withoutActiveOrders()
+            ->whereDoesntHave('contracts', function ($contracts) {
+                $contracts->withoutGlobalScopes()->where(function ($statuses) {
+                    $statuses->whereNull('status')->orWhereNotIn('status', [
+                        'cancelled', 'canceled', 'refused', 'back', 'completed', 'closed', 'refunded',
+                    ]);
+                });
+            })
+            ->whereHas('jobTypes', fn ($types) => $types->where('job_types.id', 1))
+            ->whereDoesntHave('jobTypes', fn ($types) => $types->where('job_types.id', '!=', 1));
+    }
+
     public function scopeAvailableFromToday($query)
     {
         return $query->where('available_at', '>=', now()->toDateString());

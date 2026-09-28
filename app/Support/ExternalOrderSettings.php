@@ -31,4 +31,17 @@ class ExternalOrderSettings
     {
         return self::mode() === self::MODE_SIMPLIFIED;
     }
+
+    public static function employeeSelectionEnabled(): bool
+    {
+        try {
+            if (!Schema::hasTable('settings') || !Schema::hasColumn('settings', 'external_booking_employee_selection')) {
+                return true;
+            }
+
+            return (bool) (Setting::query()->value('external_booking_employee_selection') ?? true);
+        } catch (\Throwable) {
+            return true;
+        }
+    }
 }
