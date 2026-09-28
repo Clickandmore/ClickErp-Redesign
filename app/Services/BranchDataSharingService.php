@@ -56,6 +56,14 @@ class BranchDataSharingService
             ->all();
     }
 
+    public function mainBranchShares(string $entityType): bool
+    {
+        $sourceIds = $this->sharedSourceBranchIds($entityType);
+
+        return $sourceIds !== []
+            && in_array(app(BranchAccessService::class)->mainBranchId(), $sourceIds, true);
+    }
+
     /** @return array<int, array<string, bool>> */
     public function policies(): array
     {

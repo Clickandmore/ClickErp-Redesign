@@ -39,6 +39,12 @@ class RecruitmentOffices extends Model
         return BranchDataSharingService::EXTERNAL_OFFICES;
     }
 
+    public function branchScopeSharesUnassigned(): bool
+    {
+        // Legacy offices without a branch belong to the main branch's shared catalogue.
+        return app(BranchDataSharingService::class)->mainBranchShares(BranchDataSharingService::EXTERNAL_OFFICES);
+    }
+
     public function nationality()
     {
         return $this->belongsTo(Nationality::class, 'nationality_id');
