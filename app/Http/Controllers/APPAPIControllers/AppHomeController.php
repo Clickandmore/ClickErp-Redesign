@@ -522,6 +522,8 @@ class AppHomeController extends Controller
 
         return [
             'id' => (string) $setting->id,
+            'app_auth_mode' => \App\Support\AppAuthSettings::mode(),
+            'uses_otp_authentication' => \App\Support\AppAuthSettings::usesOtpOnly(),
             'whatsapp' => $whatsapp,
             'privacy' => (string) ($setting->privacy ?? ''),
             'terms_conditions' => (string) ($setting->terms_conditions ?? ''),

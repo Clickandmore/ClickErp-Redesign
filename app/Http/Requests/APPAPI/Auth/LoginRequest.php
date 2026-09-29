@@ -10,7 +10,7 @@ class LoginRequest extends AppApiRequest
     {
         return [
             'phone' => ['bail', 'required', 'regex:/^5\d{8}$/', 'exists:users,phone'],
-            'password' => [\App\Support\ExternalAuthSettings::usesOtpOnly() ? 'nullable' : 'required', 'string', 'min:6'],
+            'password' => [\App\Support\AppAuthSettings::usesOtpOnly() ? 'nullable' : 'required', 'string', 'min:6'],
         ];
     }
 
