@@ -91,6 +91,8 @@ class SettingResource extends JsonResource
             'has_offers' => (bool)$this->has_offers,
             'show_customer_service_during_booking' => (bool)$this->show_customer_service_during_booking,
             'external_auth_mode' => \App\Support\ExternalAuthSettings::mode(),
+            'app_auth_mode' => \App\Support\AppAuthSettings::mode(),
+            'app_uses_otp_authentication' => \App\Support\AppAuthSettings::usesOtpOnly(),
             'uses_otp_authentication' => \App\Support\ExternalAuthSettings::usesOtpOnly(),
             'external_order_mode' => \App\Support\ExternalOrderSettings::mode(),
             'external_booking_employee_selection' => \App\Support\ExternalOrderSettings::employeeSelectionEnabled(),

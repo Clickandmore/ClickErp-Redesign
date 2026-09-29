@@ -182,6 +182,7 @@ class SettingRequest extends MainRequest
             'show_customer_service_during_booking' => 'nullable|boolean',
             'show_public_site' => 'nullable|boolean',
             'external_auth_mode' => 'nullable|in:password,otp',
+            'app_auth_mode' => 'sometimes|required|in:password,otp',
             'external_order_mode' => 'nullable|in:authenticated,simplified',
             'external_booking_employee_selection' => 'sometimes|required|boolean',
             'rental_order_mode' => 'nullable|in:full,simplified',

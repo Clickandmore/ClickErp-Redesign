@@ -15,7 +15,7 @@ use App\Http\Resources\Api\UserResource;
 use App\Models\ingaz\User;
 use App\Models\ingaz\UserFirebaseToken;
 use App\Support\CommunicationSettings;
-use App\Support\ExternalAuthSettings;
+use App\Support\AppAuthSettings;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\Hash;
@@ -37,7 +37,7 @@ class AuthController extends Controller
 
         $credentials = $request->validated();
 
-        if (ExternalAuthSettings::usesOtpOnly()) {
+        if (AppAuthSettings::usesOtpOnly()) {
             $user = User::where('phone', $credentials['phone'])->firstOrFail();
             $request->merge(['phone_code' => $user->phone_code ?: '966']);
             $phoneVerificationAction->storeSendCode([
@@ -87,7 +87,7 @@ class AuthController extends Controller
         RateLimiter::hit('app-register:' . $data['phone'], 60);
 
         $userData = $data;
-        $userData['password'] = Hash::make(ExternalAuthSettings::usesOtpOnly() ? Str::random(40) : $data['password']);
+        $userData['password'] = Hash::make(AppAuthSettings::usesOtpOnly() ? Str::random(40) : $data['password']);
         unset($userData['password_confirmation'], $userData['software_type']);
 
         /** @var User $user */
@@ -98,7 +98,7 @@ class AuthController extends Controller
             'phone_code' => $data['phone_code'],
         ], $request);
 
-        if (ExternalAuthSettings::usesOtpOnly()) {
+        if (AppAuthSettings::usesOtpOnly()) {
             return jsonSuccess([
                 'id' => (int) $user->id,
                 'name' => $user->name,

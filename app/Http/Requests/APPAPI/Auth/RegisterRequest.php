@@ -13,8 +13,8 @@ class RegisterRequest extends AppApiRequest
         return [
             'name' => ['required', 'string', 'min:2', 'max:255'],
             'phone' => ['required', 'regex:/^5\d{8}$/', 'unique:users,phone'],
-            'password' => [\App\Support\ExternalAuthSettings::usesOtpOnly() ? 'nullable' : 'required', 'string', 'min:6'],
-            'password_confirmation' => [\App\Support\ExternalAuthSettings::usesOtpOnly() ? 'nullable' : 'required', 'same:password'],
+            'password' => [\App\Support\AppAuthSettings::usesOtpOnly() ? 'nullable' : 'required', 'string', 'min:6'],
+            'password_confirmation' => [\App\Support\AppAuthSettings::usesOtpOnly() ? 'nullable' : 'required', 'same:password'],
             'phone_code' => ['required', 'string', 'max:10'],
             'register_from' => ['required', new Enum(RegisterFromType::class)],
             'software_type' => ['required', new Enum(FirebaseTypeIsEnum::class)],
