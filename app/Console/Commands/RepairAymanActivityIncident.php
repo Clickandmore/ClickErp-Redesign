@@ -188,7 +188,11 @@ class RepairAymanActivityIncident extends Command
         // serialize dates as UTC. Pin the two incident-consequence comparisons
         // to their verified raw database representations.
         if (isset($updates[$orderKey . '|status_changed_at'])) {
-            $updates[$orderKey . '|status_changed_at']['expected'] = '2026-09-30 01:00:02';
+            // MySQL TIMESTAMP values are rendered in the session timezone, so
+            // the same cancellation instant differs between local and server.
+            // The sibling status/refuse_reason fields still strictly prove that
+            // this is the verified automatic cancellation we intend to reverse.
+            $updates[$orderKey . '|status_changed_at']['expected_non_null'] = true;
         }
         $maidKey = $this->subjectKey(\App\Models\ingaz\Maid::class, 893);
         if (isset($updates[$maidKey . '|available_at'])) {
@@ -255,7 +259,10 @@ class RepairAymanActivityIncident extends Command
                 $current = DB::table($table)->where('id', $row['id'])->first();
                 if (!$current) {
                     $plan['cascade_inserts'][] = ['table' => $table, 'attributes' => $row];
-                } elseif (($field = $this->firstDifferentField((array) $current, $row)) !== null) {
+                } elseif (($field = $this->firstDifferentField(
+                    Arr::except((array) $current, ['created_at', 'updated_at']),
+                    Arr::except($row, ['created_at', 'updated_at'])
+                )) !== null) {
                     $plan['conflicts'][] = "Cascade row {$table}#{$row['id']} already exists with different data ({$field})";
                 }
             }
@@ -321,6 +328,10 @@ class RepairAymanActivityIncident extends Command
 
         if ($this->valuesEqual($current[$change['field']], $target)) {
             return 'target';
+        }
+
+        if (($change['expected_non_null'] ?? false) && $current[$change['field']] !== null) {
+            return 'expected';
         }
 
         return $this->valuesEqual($current[$change['field']], $expected) ? 'expected' : 'conflict';
