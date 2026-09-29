@@ -242,6 +242,7 @@ class DevSuperAdminController extends Controller
         $admins = collect();
         if (in_array($activeSection, ['subscription', 'employees'], true)) {
             $admins = Admin::query()
+                ->notExternalOfficeAgents()
                 ->with('role')
                 ->orderBy('name')
                 ->get(['id', 'name', 'email', 'phone', 'username', 'role_id', 'status', 'admin_type'])
