@@ -138,18 +138,202 @@
             font-weight: 700;
         }
 
-        .select2-container--default .select2-selection--single {
-            min-height: 44px;
-            border-color: #d9e0ea;
-            border-radius: 8px;
+        /* ===== القوائم المنسدلة: شكل موحد مع باقي الحقول ===== */
+        .form-control:focus,
+        .form-select:focus {
+            border-color: #0f766e;
+            box-shadow: 0 0 0 3px rgba(15, 118, 110, .15);
         }
 
-        .select2-container--default .select2-selection--single .select2-selection__rendered {
+        /* القوائم العادية (التصنيف، مفتاح الدولة، شهر/سنة التقويم الهجري) */
+        .client-create-page .form-select {
+            color: #344054;
+            background-color: #fff;
+            cursor: pointer;
+        }
+
+        html[dir="rtl"] .client-create-page .form-select:not([dir="ltr"] *):not([dir="ltr"]) {
+            padding-right: .75rem;
+            padding-left: 2.25rem;
+            background-position: left .75rem center;
+        }
+
+        .client-create-page .form-select:disabled {
+            color: #667085;
+            background-color: #f2f4f7;
+            cursor: not-allowed;
+        }
+
+        .client-create-page .form-select-sm {
+            min-height: 36px;
+            border-radius: 6px;
+            font-size: 13px;
+        }
+
+        /* مفتاح الدولة بجوار رقم الجوال الآخر */
+        .phone-code-select {
+            flex: 0 0 auto;
+            width: 170px;
+            max-width: 45%;
+            background-color: #f8fafc !important;
+            font-weight: 700;
+        }
+
+        /* Select2: الحقل المغلق */
+        .client-create-page .select2-container {
+            width: 100% !important;
+        }
+
+        .client-create-page .select2-container--default .select2-selection--single {
+            display: flex;
+            align-items: center;
+            height: 44px;
+            border: 1px solid #d9e0ea;
+            border-radius: 8px;
+            background: #fff;
+            transition: border-color .15s ease, box-shadow .15s ease;
+        }
+
+        .client-create-page .select2-container--default .select2-selection--single .select2-selection__rendered {
+            flex: 1;
+            padding: 0 14px;
+            color: #344054;
             line-height: 42px;
         }
 
-        .select2-container--default .select2-selection--single .select2-selection__arrow {
+        .client-create-page .select2-container--default .select2-selection--single .select2-selection__placeholder {
+            color: #98a2b3;
+        }
+
+        .client-create-page .select2-container--default .select2-selection--single .select2-selection__arrow {
+            top: 0;
+            width: 36px;
             height: 42px;
+        }
+
+        .client-create-page .select2-container--default .select2-selection--single .select2-selection__arrow b {
+            width: 8px;
+            height: 8px;
+            margin-top: -6px;
+            margin-left: -4px;
+            border: solid #667085;
+            border-width: 0 2px 2px 0;
+            transform: rotate(45deg);
+            transition: transform .15s ease;
+        }
+
+        .client-create-page .select2-container--open .select2-selection--single .select2-selection__arrow b {
+            margin-top: -2px;
+            border-color: #0f766e;
+            transform: rotate(-135deg);
+        }
+
+        /* في الواجهة العربية: السهم على اليسار ومساحة له حتى لا يغطي النص */
+        html[dir="rtl"] .client-create-page .select2-container--default .select2-selection--single .select2-selection__arrow {
+            right: auto;
+            left: 4px;
+        }
+
+        html[dir="rtl"] .client-create-page .select2-container--default .select2-selection--single .select2-selection__rendered {
+            padding-right: 14px;
+            padding-left: 40px;
+            text-align: right;
+        }
+
+        html[dir="ltr"] .client-create-page .select2-container--default .select2-selection--single .select2-selection__rendered {
+            padding-right: 40px;
+        }
+
+        .client-create-page .select2-container--default .select2-selection--single .select2-selection__clear {
+            margin: 0 4px;
+            color: #98a2b3;
+            font-size: 18px;
+            font-weight: 400;
+        }
+
+        .client-create-page .select2-container--default .select2-selection--single .select2-selection__clear:hover {
+            color: #b42318;
+        }
+
+        .client-create-page .select2-container--default.select2-container--focus .select2-selection--single,
+        .client-create-page .select2-container--default.select2-container--open .select2-selection--single {
+            border-color: #0f766e;
+            box-shadow: 0 0 0 3px rgba(15, 118, 110, .15);
+        }
+
+        .client-create-page .select2-container--default.select2-container--disabled .select2-selection--single {
+            background: #f2f4f7;
+            cursor: not-allowed;
+        }
+
+        /* حقل به خطأ من التحقق */
+        .client-create-page select.is-invalid + .select2-container .select2-selection--single {
+            border-color: #dc3545;
+            box-shadow: 0 0 0 3px rgba(220, 53, 69, .12);
+        }
+
+        /* Select2: القائمة المفتوحة (تُضاف في نهاية الصفحة، لذلك بدون .client-create-page) */
+        .select2-container--default .select2-dropdown {
+            overflow: hidden;
+            border: 1px solid #d9e0ea;
+            border-radius: 8px;
+            box-shadow: 0 14px 34px rgba(16, 24, 40, .14);
+        }
+
+        .select2-container--default .select2-dropdown--below {
+            margin-top: 4px;
+        }
+
+        .select2-container--default .select2-dropdown--above {
+            margin-top: -4px;
+        }
+
+        .select2-container--default .select2-search--dropdown {
+            padding: 10px;
+            background: #fbfcfe;
+            border-bottom: 1px solid #eef2f6;
+        }
+
+        .select2-container--default .select2-search--dropdown .select2-search__field {
+            height: 38px;
+            padding: 0 12px;
+            border: 1px solid #d9e0ea;
+            border-radius: 6px;
+            outline: 0;
+        }
+
+        .select2-container--default .select2-search--dropdown .select2-search__field:focus {
+            border-color: #0f766e;
+            box-shadow: 0 0 0 3px rgba(15, 118, 110, .15);
+        }
+
+        .select2-container--default .select2-results > .select2-results__options {
+            max-height: 260px;
+            padding: 4px;
+        }
+
+        .select2-container--default .select2-results__option {
+            padding: 9px 12px;
+            border-radius: 6px;
+            color: #344054;
+        }
+
+        .select2-container--default .select2-results__option--highlighted[aria-selected],
+        .select2-container--default .select2-results__option--highlighted.select2-results__option--selectable {
+            color: #0f766e;
+            background: #e6f6f3;
+        }
+
+        .select2-container--default .select2-results__option[aria-selected="true"],
+        .select2-container--default .select2-results__option--selected {
+            color: #fff;
+            background: #0f766e;
+            font-weight: 700;
+        }
+
+        .select2-container--default .select2-results__message {
+            color: #667085;
+            text-align: center;
         }
 
         .client-form-actions {
@@ -213,6 +397,13 @@
             font-weight: 700;
         }
 
+        /* أيام خارج نطاق العمر المسموح */
+        .hijri-calendar-day:disabled {
+            color: #adb5bd;
+            background: transparent;
+            cursor: not-allowed;
+        }
+
         @media (max-width: 767.98px) {
             .client-create-header,
             .client-form-actions {
@@ -258,7 +449,9 @@
                         <div class="col-lg-6">
                             <label class="form-label" for="name">{{ helperTrans('ingaz.name') }}</label>
                             <input type="text" id="name" name="name" class="form-control"
-                                   value="{{ old('name') }}" required autofocus>
+                                   value="{{ old('name') }}" maxlength="150" required autofocus
+                                   title="{{ helperTrans('ingaz.client_name_invalid_chars') }}">
+                            <small class="text-muted d-block mt-1">حروف عربية أو إنجليزية ومسافات فقط، بدون رموز (للشركة يُسمح بالأرقام) — حتى 150 حرفاً.</small>
                         </div>
 
                         <div class="col-lg-6">
@@ -266,8 +459,11 @@
                             <div class="input-group">
                                 <span class="input-group-text" dir="ltr">+966</span>
                                 <input type="text" id="phone" name="phone" class="form-control" dir="ltr"
-                                       value="{{ old('phone') }}" inputmode="tel" pattern="[0-9+() .-]*" required>
+                                       value="{{ old('phone') }}" inputmode="numeric" maxlength="9" pattern="5[0-9]{8}"
+                                       placeholder="5XXXXXXXX" autocomplete="off" required
+                                       title="{{ helperTrans('ingaz.client_phone_saudi_mobile_format') }}">
                             </div>
+                            <small class="text-muted d-block mt-1" dir="rtl">9 أرقام تبدأ بالرقم 5 — الصيغة الكاملة: <span dir="ltr">+9665XXXXXXXX</span></small>
                         </div>
 
                         <div class="col-lg-6">
@@ -286,6 +482,7 @@
                                     <label class="form-check-label" for="client_type_company">{{ helperTrans('ingaz.company') }}</label>
                                 </div>
                             </div>
+                            <small class="text-muted d-block mt-1">اختر "شركة" لإظهار الرقم الضريبي ورقم السجل بدلاً من بيانات الفرد.</small>
                         </div>
                     </div>
                 </div>
@@ -304,7 +501,10 @@
                     <div class="row g-3">
                         <div class="col-lg-6">
                             <label class="form-label" for="email">{{ helperTrans('ingaz.email') }}</label>
-                            <input type="email" id="email" name="email" class="form-control" value="{{ old('email') }}">
+                            <input type="email" id="email" name="email" class="form-control" dir="ltr"
+                                   value="{{ old('email') }}" maxlength="100" placeholder="example@domain.com"
+                                   title="{{ helperTrans('ingaz.client_email_english_only') }}">
+                            <small class="text-muted d-block mt-1">بأحرف إنجليزية فقط، بالصيغة <span dir="ltr">name@domain.com</span> — حتى 100 حرف.</small>
                         </div>
 
                         <div class="col-lg-6">
@@ -319,6 +519,7 @@
                                     </option>
                                 @endforeach
                             </select>
+                            <small class="text-muted d-block mt-1">اكتب أول حروف اسم الدولة للبحث (مثال: "س" ← السعودية، السودان).</small>
                         </div>
 
                         {{-- يظهر فقط عند اختيار جنسية غير سعودية --}}
@@ -329,6 +530,7 @@
                             </label>
                             <input type="date" id="residence_expiry_date" name="residence_expiry_date"
                                    class="form-control" value="{{ old('residence_expiry_date') }}">
+                            <small class="text-muted d-block mt-1">تاريخ ميلادي — اختره من التقويم.</small>
                         </div>
 
                         <div class="col-lg-6 person-client-field">
@@ -336,27 +538,48 @@
                                 {{ helperTrans('ingaz.national_num') }}
                                 <span class="text-danger">({{ helperTrans('ingaz.required') }})</span>
                             </label>
-                            <input type="text" id="national_num" name="national_num" class="form-control"
-                                   value="{{ old('national_num') }}" required>
+                            <input type="text" id="national_num" name="national_num" class="form-control" dir="ltr"
+                                   value="{{ old('national_num') }}" inputmode="numeric" maxlength="10" pattern="[0-9]{10}"
+                                   placeholder="1XXXXXXXXX" autocomplete="off" required
+                                   title="{{ helperTrans('ingaz.client_national_num_digits') }}">
+                            <small class="text-muted d-block mt-1">10 أرقام فقط، بدون حروف أو مسافات أو رموز.</small>
                         </div>
 
                         <div class="col-lg-6 company-client-field d-none">
                             <label class="form-label" for="tax_number">{{ helperTrans('ingaz.tax_number') }}</label>
-                            <input type="text" id="tax_number" name="tax_number" class="form-control"
-                                   value="{{ old('tax_number') }}">
+                            <input type="text" id="tax_number" name="tax_number" class="form-control" dir="ltr"
+                                   value="{{ old('tax_number') }}" inputmode="numeric" maxlength="15" pattern="3[0-9]{14}"
+                                   placeholder="3XXXXXXXXXXXXXX" autocomplete="off"
+                                   title="{{ helperTrans('ingaz.client_tax_number_format') }}">
+                            <small class="text-muted d-block mt-1">15 رقماً بالضبط تبدأ بالرقم 3، بدون حروف أو مسافات أو رموز — ولا يتكرر لعميل آخر.</small>
                         </div>
 
                         <div class="col-lg-6 company-client-field d-none">
                             <label class="form-label" for="license_number">{{ helperTrans('ingaz.license_number') }}</label>
-                            <input type="text" id="license_number" name="license_number" class="form-control"
-                                   value="{{ old('license_number') }}">
+                            <input type="text" id="license_number" name="license_number" class="form-control" dir="ltr"
+                                   value="{{ old('license_number') }}" inputmode="numeric" maxlength="10" pattern="[0-9]{10}"
+                                   placeholder="XXXXXXXXXX" autocomplete="off"
+                                   title="{{ helperTrans('ingaz.client_license_number_format') }}">
+                            <small class="text-muted d-block mt-1">10 أرقام بالضبط، بدون حروف أو مسافات أو رموز.</small>
+                        </div>
+
+                        <div class="col-lg-6 company-client-field d-none">
+                            <label class="form-label" for="license_expiry_date">{{ helperTrans('ingaz.license_expiry_date') }}</label>
+                            <input type="date" id="license_expiry_date" name="license_expiry_date" class="form-control"
+                                   value="{{ old('license_expiry_date') }}" min="1900-01-01" max="2100-12-31">
+                            <small id="license_expiry_hint" class="text-muted d-block mt-1">تاريخ ميلادي — إذا كان التاريخ قد مضى يظهر للعميل بادج "ترخيص منتهي".</small>
                         </div>
 
                         <div class="col-lg-6 person-client-field">
                             <label class="form-label" for="birthdate">تاريخ الميلاد (ميلادي)</label>
                             <input type="date" id="birthdate" name="birthdate" class="form-control"
-                                   value="{{ old('birthdate') }}">
-                            <small class="text-muted d-block mt-1">يمكن إدخال التاريخ الميلادي أو الهجري.</small>
+                                   value="{{ old('birthdate') }}" min="{{ $birthdateMin }}" max="{{ $birthdateMax }}">
+                            <small class="text-muted d-block mt-1">
+                                يمكن إدخال التاريخ الميلادي أو الهجري. عمر العميل بين
+                                {{ \App\Http\Controllers\ingaz\UserController::CLIENT_MIN_AGE }} و
+                                {{ \App\Http\Controllers\ingaz\UserController::CLIENT_MAX_AGE }} سنة
+                                (من <span dir="ltr">{{ $birthdateMin }}</span> إلى <span dir="ltr">{{ $birthdateMax }}</span>).
+                            </small>
                         </div>
 
                         <div class="col-lg-6 person-client-field">
@@ -399,6 +622,7 @@
                             <div id="birthdate_hijri_feedback" class="text-danger small mt-1 d-none">
                                 يرجى اختيار تاريخ هجري صحيح وكامل.
                             </div>
+                            <small class="text-muted d-block mt-1">اختر من التقويم بصيغة <span dir="ltr">YYYY-MM-DD</span>، ويُحوَّل تلقائياً إلى الميلادي.</small>
                         </div>
 
                         <div class="col-lg-6 person-client-field">
@@ -415,12 +639,25 @@
                                     </div>
                                 @endforeach
                             </div>
+                            <small class="text-muted d-block mt-1">تظهر حقول الغرف وأفراد العائلة والأطفال لغير الأعزب فقط.</small>
                         </div>
 
                         <div class="col-lg-6">
                             <label class="form-label" for="phone2">{{ helperTrans('ingaz.phone2') }}</label>
-                            <input type="text" id="phone2" name="phone2" class="form-control" dir="ltr"
-                                   value="{{ old('phone2') }}" inputmode="tel" pattern="[0-9+() .-]*">
+                            <div class="input-group" dir="ltr">
+                                <select id="phone2_code" name="phone2_code" class="form-select phone-code-select"
+                                        aria-label="مفتاح الدولة">
+                                    @foreach($phone2CountryCodes as $code => $countryName)
+                                        <option value="{{ $code }}" {{ old('phone2_code', '+966') === $code ? 'selected' : '' }}>
+                                            {{ $code }} {{ $countryName }}
+                                        </option>
+                                    @endforeach
+                                </select>
+                                <input type="text" id="phone2" name="phone2" class="form-control" dir="ltr"
+                                       value="{{ old('phone2') }}" inputmode="numeric" maxlength="9"
+                                       placeholder="5XXXXXXXX" autocomplete="off">
+                            </div>
+                            <small id="phone2_hint" class="text-muted d-block mt-1" dir="rtl"></small>
                         </div>
 
                         <div class="col-lg-6">
@@ -428,6 +665,7 @@
                             <select name="client_category_id" id="client_category_id" class="form-select">
                                 {!! showSelectElement($client_categories, 'name', old('client_category_id')) !!}
                             </select>
+                            <small class="text-muted d-block mt-1">اختر تصنيف العميل من القائمة (اختياري).</small>
                         </div>
 
                         @if($branchesEnabled ?? false)
@@ -448,7 +686,8 @@
                         <div class="col-lg-6">
                             <label class="form-label" for="address">{{ helperTrans('ingaz.address') }}</label>
                             <input type="text" id="address" name="address" class="form-control"
-                                   value="{{ old('address') }}">
+                                   value="{{ old('address') }}" maxlength="255">
+                            <small class="text-muted d-block mt-1">الحي والشارع ورقم المبنى — حتى 255 حرفاً.</small>
                         </div>
 
                         <div class="col-lg-6">
@@ -462,57 +701,78 @@
                                     </option>
                                 @endforeach
                             </select>
+                            <small class="text-muted d-block mt-1">اختر المدينة من القائمة (تتغير حسب الجنسية).</small>
                         </div>
 
-                        <div class="col-lg-3 col-md-6 person-client-field">
+                        <div class="col-lg-3 col-md-6 person-client-field family-field">
                             <label class="form-label" for="rooms_num">{{ helperTrans('ingaz.rooms_num') }}</label>
-                            <input type="number" id="rooms_num" name="rooms_num" class="form-control" min="0"
+                            <input type="number" id="rooms_num" name="rooms_num" class="form-control" dir="ltr"
+                                   min="0" max="{{ \App\Http\Controllers\ingaz\UserController::MAX_ROOMS_NUM }}" step="1"
                                    value="{{ old('rooms_num') }}">
+                            <small class="text-muted d-block mt-1">رقم من 0 إلى {{ \App\Http\Controllers\ingaz\UserController::MAX_ROOMS_NUM }}.</small>
                         </div>
 
-                        <div class="col-lg-3 col-md-6 person-client-field">
+                        <div class="col-lg-3 col-md-6 person-client-field family-field">
                             <label class="form-label" for="family_num">{{ helperTrans('ingaz.family_num') }}</label>
-                            <input type="number" id="family_num" name="family_num" class="form-control" min="0"
+                            <input type="number" id="family_num" name="family_num" class="form-control" dir="ltr"
+                                   min="0" max="{{ \App\Http\Controllers\ingaz\UserController::MAX_FAMILY_NUM }}" step="1"
                                    value="{{ old('family_num') }}">
+                            <small class="text-muted d-block mt-1">رقم من 0 إلى {{ \App\Http\Controllers\ingaz\UserController::MAX_FAMILY_NUM }}.</small>
                         </div>
 
-                        <div class="col-lg-3 col-md-6 person-client-field">
+                        <div class="col-lg-3 col-md-6 person-client-field family-field">
                             <label class="form-label" for="children">{{ helperTrans('ingaz.children') }}</label>
-                            <input type="number" id="children" name="children" class="form-control" min="0"
+                            <input type="number" id="children" name="children" class="form-control" dir="ltr"
+                                   min="0" max="{{ \App\Http\Controllers\ingaz\UserController::MAX_CHILDREN }}" step="1"
                                    value="{{ old('children') }}">
+                            <small class="text-muted d-block mt-1">رقم من 0 إلى {{ \App\Http\Controllers\ingaz\UserController::MAX_CHILDREN }}.</small>
                         </div>
 
                         <div class="col-lg-3 col-md-6 person-client-field">
                             <label class="form-label" for="job">{{ helperTrans('ingaz.job') }}</label>
-                            <input type="text" id="job" name="job" class="form-control" value="{{ old('job') }}">
+                            <input type="text" id="job" name="job" class="form-control" value="{{ old('job') }}" maxlength="100">
+                            <small class="text-muted d-block mt-1">حروف ومسافات فقط، بدون أرقام أو رموز — حتى 100 حرف.</small>
                         </div>
                         <div class="col-lg-6">
                             <label class="form-label" for="full_name_en">الاسم الكامل بالإنجليزية</label>
-                            <input type="text" id="full_name_en" name="full_name_en" class="form-control" dir="ltr" value="{{ old('full_name_en') }}">
+                            <input type="text" id="full_name_en" name="full_name_en" class="form-control" dir="ltr"
+                                   value="{{ old('full_name_en') }}" maxlength="150" placeholder="Mahmoud Amer Ali">
+                            <small class="text-muted d-block mt-1">حروف إنجليزية (A-Z) ومسافات فقط — حتى 150 حرفاً.</small>
                         </div>
                         <div class="col-lg-3">
                             <label class="form-label" for="identity_type">نوع الهوية</label>
-                            <input type="text" id="identity_type" name="identity_type" class="form-control" value="{{ old('identity_type') }}">
+                            <input type="text" id="identity_type" name="identity_type" class="form-control"
+                                   value="{{ old('identity_type') }}" maxlength="50">
+                            <small class="text-muted d-block mt-1">مثال: هوية وطنية، إقامة — حتى 50 حرفاً.</small>
                         </div>
                         <div class="col-lg-3">
-                            <label class="form-label" for="identity_date">تاريخ الهوية</label>
-                            <input type="text" id="identity_date" name="identity_date" class="form-control" value="{{ old('identity_date') }}" placeholder="هجري أو ميلادي">
+                            <label class="form-label" for="identity_date">تاريخ الهوية (ميلادي)</label>
+                            <input type="date" id="identity_date" name="identity_date" class="form-control"
+                                   value="{{ old('identity_date') }}" min="1900-01-01" max="2100-12-31">
+                            <small class="text-muted d-block mt-1">تاريخ ميلادي — اختره من التقويم.</small>
                         </div>
                         <div class="col-lg-6">
                             <label class="form-label" for="workplace">جهة العمل</label>
-                            <input type="text" id="workplace" name="workplace" class="form-control" value="{{ old('workplace') }}">
+                            <input type="text" id="workplace" name="workplace" class="form-control"
+                                   value="{{ old('workplace') }}" maxlength="150">
+                            <small class="text-muted d-block mt-1">اسم جهة العمل — حتى 150 حرفاً.</small>
                         </div>
                         <div class="col-lg-3">
                             <label class="form-label" for="po_box">صندوق البريد</label>
-                            <input type="text" id="po_box" name="po_box" class="form-control" value="{{ old('po_box') }}">
+                            <input type="text" id="po_box" name="po_box" class="form-control" dir="ltr"
+                                   value="{{ old('po_box') }}" maxlength="20">
+                            <small class="text-muted d-block mt-1">حتى 20 خانة.</small>
                         </div>
                         <div class="col-lg-3">
                             <label class="form-label" for="postal_code">الرقم البريدي</label>
-                            <input type="text" id="postal_code" name="postal_code" class="form-control" value="{{ old('postal_code') }}">
+                            <input type="text" id="postal_code" name="postal_code" class="form-control" dir="ltr"
+                                   value="{{ old('postal_code') }}" maxlength="10">
+                            <small class="text-muted d-block mt-1">حتى 10 خانات (مثال: 12345).</small>
                         </div>
                         <div class="col-12">
                             <label class="form-label" for="notes">ملاحظات العميل</label>
-                            <textarea id="notes" name="notes" class="form-control" rows="4">{{ old('notes') }}</textarea>
+                            <textarea id="notes" name="notes" class="form-control" rows="4" maxlength="5000">{{ old('notes') }}</textarea>
+                            <small class="text-muted d-block mt-1">حتى 5000 حرف.</small>
                         </div>
                     </div>
                 </div>
@@ -538,13 +798,309 @@
             const $nationalitySelect = $('#nationalitySelect');
             const $citySelect = $('#citySelect');
             const oldCity = @json(old('city'));
+            const birthdateMin = @json($birthdateMin);
+            const birthdateMax = @json($birthdateMax);
+
+            // التواريخ بصيغة YYYY-MM-DD فتصلح المقارنة النصية
+            function isBirthdateInRange(value) {
+                return !value || (value >= birthdateMin && value <= birthdateMax);
+            }
+
+            // توحيد أشكال الحروف العربية (أ/إ/آ ← ا، ى ← ي، ة ← ه) وإزالة التشكيل للبحث
+            function normalizeSearchText(value) {
+                return String(value || '')
+                    .toLowerCase()
+                    .trim()
+                    .replace(/[ً-ٰٟـ]/g, '')
+                    .replace(/[أإآٱ]/g, 'ا')
+                    .replace(/ى/g, 'ي')
+                    .replace(/ة/g, 'ه');
+            }
+
+            // البحث في الجنسية بأول حروف اسم الدولة، مع تجاهل "ال" التعريف (س ← السعودية)
+            function countryStartsWithMatcher(params, data) {
+                const term = normalizeSearchText(params.term);
+
+                if (!term) {
+                    return data;
+                }
+
+                if (!data.id) {
+                    return null;
+                }
+
+                const text = normalizeSearchText(data.text);
+                const matches = text.startsWith(term) || text.split(/\s+/).some(function (word) {
+                    return word.startsWith(term) || (word.startsWith('ال') && word.slice(2).startsWith(term));
+                });
+
+                return matches ? data : null;
+            }
 
             if ($nationalitySelect.length) {
                 $nationalitySelect.select2({
                     placeholder: chooseText,
                     allowClear: true,
-                    width: '100%'
+                    width: '100%',
+                    minimumResultsForSearch: 0,
+                    matcher: countryStartsWithMatcher,
+                    language: {
+                        noResults: function () {
+                            return @json(helperTrans('ingaz.country_search_no_results'));
+                        }
+                    }
                 });
+
+                // وضع المؤشر في خانة البحث مباشرة عند فتح القائمة
+                $nationalitySelect.on('select2:open', function () {
+                    setTimeout(function () {
+                        const searchField = document.querySelector('.select2-container--open .select2-search__field');
+                        if (searchField) {
+                            searchField.focus();
+                        }
+                    }, 0);
+                });
+
+                // الكتابة على الحقل وهو مغلق تفتح القائمة وتبدأ البحث بالحرف المكتوب
+                $nationalitySelect.next('.select2-container').on('keydown', '.select2-selection', function (e) {
+                    if (e.key.length !== 1 || e.ctrlKey || e.metaKey || e.altKey || e.key === ' ') {
+                        return;
+                    }
+
+                    e.preventDefault();
+                    $nationalitySelect.select2('open');
+
+                    const $search = $('.select2-container--open .select2-search__field');
+                    $search.val(e.key).trigger('input');
+                });
+            }
+
+            // ===== تنقية المدخلات أثناء الكتابة =====
+            function toLatinDigits(value) {
+                return String(value || '')
+                    .replace(/[٠-٩]/g, function (d) { return '٠١٢٣٤٥٦٧٨٩'.indexOf(d); })
+                    .replace(/[۰-۹]/g, function (d) { return '۰۱۲۳۴۵۶۷۸۹'.indexOf(d); });
+            }
+
+            function setIfChanged(input, value) {
+                if (input.value !== value) {
+                    input.value = value;
+                }
+            }
+
+            // الاسم: حروف ومسافات فقط (والشركة يُسمح لها بالأرقام)
+            function sanitizeName(value) {
+                const isCompany = $('input[name="client_type"]:checked').val() === 'company';
+                const disallowed = isCompany ? /[^\p{L}\p{M}\p{N} ]/gu : /[^\p{L}\p{M} ]/gu;
+
+                return String(value || '').replace(disallowed, '').replace(/ {2,}/g, ' ');
+            }
+
+            // الجوال: 9 أرقام تبدأ بـ 5 (يقبل لصق 05... أو +966... ويحوّلها)
+            function sanitizePhone(value) {
+                let digits = toLatinDigits(value).replace(/\D+/g, '');
+
+                if (digits.startsWith('00966')) {
+                    digits = digits.slice(5);
+                } else if (digits.startsWith('966')) {
+                    digits = digits.slice(3);
+                }
+
+                digits = digits.replace(/^0+/, '');
+
+                if (digits && digits[0] !== '5') {
+                    return '';
+                }
+
+                return digits.slice(0, 9);
+            }
+
+            // الهوية الوطنية / الإقامة: 10 أرقام فقط
+            function sanitizeNationalNum(value) {
+                return toLatinDigits(value).replace(/\D+/g, '').slice(0, 10);
+            }
+
+            // البريد الإلكتروني: أحرف إنجليزية فقط، بدون مسافات
+            function sanitizeEmail(value) {
+                return String(value || '').replace(/[^\x21-\x7E]/g, '');
+            }
+
+            // الجوال الآخر: نفس قاعدة الجوال الأساسي للسعودية، وأرقام فقط (حتى 12) لبقية الدول
+            function isSaudiPhone2() {
+                return ($('#phone2_code').val() || '+966') === '+966';
+            }
+
+            function sanitizePhone2(value) {
+                if (isSaudiPhone2()) {
+                    return sanitizePhone(value);
+                }
+
+                return toLatinDigits(value).replace(/\D+/g, '').replace(/^0+/, '').slice(0, 12);
+            }
+
+            const phone2Hints = {
+                saudi: 'للسعودية: 9 أرقام تبدأ بالرقم 5 — الصيغة الكاملة: <span dir="ltr">+9665XXXXXXXX</span>',
+                other: 'اختر مفتاح الدولة ثم اكتب الرقم بدون المفتاح وبدون صفر في البداية (6 إلى 12 رقماً) — مثال: <span dir="ltr">CODE + 1XXXXXXXXX</span>'
+            };
+
+            function updatePhone2Mode() {
+                const saudi = isSaudiPhone2();
+                const $phone2 = $('#phone2');
+
+                $phone2.attr({
+                    maxlength: saudi ? 9 : 12,
+                    placeholder: saudi ? '5XXXXXXXX' : 'XXXXXXXXXX'
+                });
+                $('#phone2_hint').html(saudi ? phone2Hints.saudi : phone2Hints.other);
+                setIfChanged($phone2[0], sanitizePhone2($phone2.val()));
+            }
+
+            // الوظيفة: حروف ومسافات فقط
+            function sanitizeJob(value) {
+                return String(value || '').replace(/[^\p{L}\p{M} ]/gu, '').replace(/ {2,}/g, ' ');
+            }
+
+            // الاسم بالإنجليزية: حروف إنجليزية ومسافات فقط
+            function sanitizeEnglishName(value) {
+                return String(value || '').replace(/[^A-Za-z ]/g, '').replace(/ {2,}/g, ' ');
+            }
+
+            // حقول الأعداد: رقم صحيح بين 0 والحد الأعلى للحقل
+            function sanitizeCount(input) {
+                const digits = toLatinDigits(input.value).replace(/\D+/g, '');
+
+                if (digits === '') {
+                    return '';
+                }
+
+                return String(Math.min(Number(digits), Number(input.max)));
+            }
+
+            // اللصق في حقول الأرقام يُنظَّف قبل تطبيق maxlength (مثل لصق +966 55 123 4567)
+            function bindDigitsPaste(selector, sanitize) {
+                $(selector).on('paste', function (e) {
+                    const clipboard = (e.originalEvent.clipboardData || window.clipboardData).getData('text');
+
+                    e.preventDefault();
+                    setIfChanged(this, sanitize(clipboard));
+                    $(this).trigger('change');
+                });
+            }
+
+            $('#name').on('input', function () { setIfChanged(this, sanitizeName(this.value)); });
+            $('#phone').on('input', function () { setIfChanged(this, sanitizePhone(this.value)); });
+            $('#phone2').on('input', function () { setIfChanged(this, sanitizePhone2(this.value)); });
+            $('#national_num').on('input', function () { setIfChanged(this, sanitizeNationalNum(this.value)); });
+            $('#email').on('input', function () { setIfChanged(this, sanitizeEmail(this.value)); });
+            $('#job').on('input', function () { setIfChanged(this, sanitizeJob(this.value)); });
+            $('#full_name_en').on('input', function () { setIfChanged(this, sanitizeEnglishName(this.value)); });
+            $('#rooms_num, #family_num, #children').on('input', function () { setIfChanged(this, sanitizeCount(this)); });
+            $('#rooms_num, #family_num, #children').on('keydown', function (e) {
+                if (['e', 'E', '+', '-', '.', ','].includes(e.key)) {
+                    e.preventDefault();
+                }
+            });
+            bindDigitsPaste('#phone', sanitizePhone);
+            bindDigitsPaste('#phone2', sanitizePhone2);
+            bindDigitsPaste('#national_num', sanitizeNationalNum);
+
+            // الرقم الضريبي: 15 رقماً تبدأ بـ 3 — الترخيص: 10 أرقام
+            function sanitizeTaxNumber(value) {
+                const digits = toLatinDigits(value).replace(/\D+/g, '');
+
+                return digits && digits[0] !== '3' ? '' : digits.slice(0, 15);
+            }
+
+            function sanitizeLicenseNumber(value) {
+                return toLatinDigits(value).replace(/\D+/g, '').slice(0, 10);
+            }
+
+            $('#tax_number').on('input', function () { setIfChanged(this, sanitizeTaxNumber(this.value)); });
+            $('#license_number').on('input', function () { setIfChanged(this, sanitizeLicenseNumber(this.value)); });
+            bindDigitsPaste('#tax_number', sanitizeTaxNumber);
+            bindDigitsPaste('#license_number', sanitizeLicenseNumber);
+
+            // تنبيه فوري إذا كان تاريخ انتهاء الترخيص قد مضى (يُحفظ ويظهر بادج "ترخيص منتهي")
+            const licenseExpiryDefaultHint = $('#license_expiry_hint').html();
+            $('#license_expiry_date').on('change input', function () {
+                const today = new Date().toISOString().slice(0, 10);
+                const isExpired = this.value && this.value < today;
+
+                $('#license_expiry_hint')
+                    .toggleClass('text-muted', !isExpired)
+                    .toggleClass('text-danger fw-bold', !!isExpired)
+                    .html(isExpired ? @json(helperTrans('ingaz.license_expired_warning')) : licenseExpiryDefaultHint);
+            }).trigger('change');
+            $('#phone2_code').on('change', updatePhone2Mode);
+            updatePhone2Mode();
+            $('.client-type-radio').on('change', function () { $('#name').trigger('input'); });
+
+            // تحقق قبل الإرسال (النموذج novalidate، فالمتصفح لا يتحقق تلقائياً)
+            function validateClientFields() {
+                const errors = {};
+                const isCompany = $('input[name="client_type"]:checked').val() === 'company';
+                const name = $('#name').val().trim();
+                const phone = $('#phone').val().trim();
+                const email = $('#email').val().trim();
+                const nationalNum = $('#national_num').val().trim();
+
+                if (name && name !== sanitizeName(name)) {
+                    errors.name = [@json(helperTrans('ingaz.client_name_invalid_chars'))];
+                }
+
+                if (!/^5\d{8}$/.test(phone)) {
+                    errors.phone = [@json(helperTrans('ingaz.client_phone_saudi_mobile_format'))];
+                }
+
+                if (email && !/^[\x21-\x7E]+$/.test(email)) {
+                    errors.email = [@json(helperTrans('ingaz.client_email_english_only'))];
+                }
+
+                if (!isCompany && !/^\d{10}$/.test(nationalNum)) {
+                    errors.national_num = [@json(helperTrans('ingaz.client_national_num_digits'))];
+                }
+
+                if (isCompany && !/^3\d{14}$/.test($('#tax_number').val().trim())) {
+                    errors.tax_number = [@json(helperTrans('ingaz.client_tax_number_format'))];
+                }
+
+                if (isCompany && !/^\d{10}$/.test($('#license_number').val().trim())) {
+                    errors.license_number = [@json(helperTrans('ingaz.client_license_number_format'))];
+                }
+
+                if (isCompany && !$('#license_expiry_date').val()) {
+                    errors.license_expiry_date = [@json(helperTrans('ingaz.client_license_expiry_date_required'))];
+                }
+
+                const phone2 = $('#phone2').val().trim();
+                if (phone2 && !(isSaudiPhone2() ? /^5\d{8}$/ : /^[1-9]\d{5,11}$/).test(phone2)) {
+                    errors.phone2 = [isSaudiPhone2()
+                        ? @json(helperTrans('ingaz.client_phone2_saudi_format'))
+                        : @json(helperTrans('ingaz.client_phone2_international_format'))];
+                }
+
+                const birthdate = $('#birthdate').val();
+                if (!isCompany && birthdate && !isBirthdateInRange(birthdate)) {
+                    errors.birthdate = [@json(__('ingaz.client_birthdate_range', ['min' => \App\Http\Controllers\ingaz\UserController::CLIENT_MIN_AGE, 'max' => \App\Http\Controllers\ingaz\UserController::CLIENT_MAX_AGE]))];
+                }
+
+                const job = $('#job').val().trim();
+                if (!isCompany && job && job !== sanitizeJob(job)) {
+                    errors.job = [@json(helperTrans('ingaz.client_job_letters_only'))];
+                }
+
+                const fullNameEn = $('#full_name_en').val().trim();
+                if (fullNameEn && fullNameEn !== sanitizeEnglishName(fullNameEn)) {
+                    errors.full_name_en = [@json(helperTrans('ingaz.client_full_name_en_english_only'))];
+                }
+
+                $('.family-field input:not(:disabled)').each(function () {
+                    if (this.value !== '' && (!/^\d+$/.test(this.value) || Number(this.value) > Number(this.max))) {
+                        errors[this.name] = [@json(__('ingaz.client_number_max', ['max' => ':max'])).replace(':max', this.max)];
+                    }
+                });
+
+                return errors;
             }
 
             if ($('#client_category_id').length) {
@@ -571,10 +1127,30 @@
 
                 $('#national_num').prop('required', !isCompany);
                 $('input[name="marital_status"]').prop('required', false);
-                $('#tax_number, #license_number').prop('required', isCompany);
+                $('#tax_number, #license_number, #license_expiry_date').prop('required', isCompany);
+
+                toggleFamilyFields();
+            }
+
+            // حقول الأسرة (الغرف/أفراد العائلة/الأطفال) تظهر فقط للمتزوج أو المطلق أو الأرمل
+            const familyMaritalStatuses = @json(\App\Http\Controllers\ingaz\UserController::FAMILY_MARITAL_STATUSES);
+
+            function toggleFamilyFields() {
+                const isCompany = ($('input[name="client_type"]:checked').val() || 'person') === 'company';
+                const maritalStatus = $('input[name="marital_status"]:checked').val();
+                const showFamily = !isCompany && familyMaritalStatuses.includes(maritalStatus);
+                const $familyFields = $('.family-field');
+
+                $familyFields.toggleClass('d-none', !showFamily)
+                    .find('input').prop('disabled', !showFamily);
+
+                if (!showFamily) {
+                    $familyFields.find('input').val('');
+                }
             }
 
             $('.client-type-radio').on('change', toggleClientTypeFields);
+            $('input[name="marital_status"]').on('change', toggleFamilyFields);
             toggleClientTypeFields();
 
             const $birthdate = $('#birthdate');
@@ -767,7 +1343,10 @@
                 ];
                 const weekdays = ['أحد', 'اثنين', 'ثلاثاء', 'أربعاء', 'خميس', 'جمعة', 'سبت'];
 
-                for (let year = currentHijriDate.year; year >= 1200; year--) {
+                const maxHijriDate = gregorianToHijri(birthdateMax) || currentHijriDate;
+                const minHijriDate = gregorianToHijri(birthdateMin);
+
+                for (let year = maxHijriDate.year; year >= (minHijriDate ? minHijriDate.year : 1200); year--) {
                     $birthdateHijriYear.append(new Option(year, year));
                 }
 
@@ -781,8 +1360,8 @@
                     );
                 });
 
-                setSelectValue($birthdateHijriYear, currentHijriDate.year);
-                setSelectValue($birthdateHijriMonth, currentHijriDate.month);
+                setSelectValue($birthdateHijriYear, maxHijriDate.year);
+                setSelectValue($birthdateHijriMonth, maxHijriDate.month);
                 renderHijriCalendar();
             }
 
@@ -811,7 +1390,9 @@
                 for (let day = 1; day <= 30; day++) {
                     const hijriDate = {year, month, day};
 
-                    if (!hijriToGregorian(formatDateParts(hijriDate))) {
+                    const gregorianDate = hijriToGregorian(formatDateParts(hijriDate));
+
+                    if (!gregorianDate) {
                         continue;
                     }
 
@@ -826,7 +1407,8 @@
                             class: 'hijri-calendar-day' + (isSelected ? ' is-selected' : ''),
                             text: day,
                             'data-day': day,
-                            'aria-label': formatDateParts(hijriDate)
+                            'aria-label': formatDateParts(hijriDate),
+                            disabled: !isBirthdateInRange(formatDateParts(gregorianDate))
                         })
                     );
                 }
@@ -872,7 +1454,7 @@
 
                 const gregorianDate = hijriToGregorian(formatDateParts(hijriDate));
 
-                if (!gregorianDate) {
+                if (!gregorianDate || !isBirthdateInRange(formatDateParts(gregorianDate))) {
                     setHijriPickerInvalid(true);
                     return false;
                 }
@@ -993,20 +1575,24 @@
                     return;
                 }
 
+                // الإقامة تخص الأفراد فقط، فلا يظهر الحقل للشركات
                 const toggleResidenceExpiry = function () {
                     const isSaudi = String($nationality.find('option:selected').data('is-saudi')) === '1';
                     const hasNationality = !!$nationality.val();
+                    const isCompany = $('input[name="client_type"]:checked').val() === 'company';
 
-                    if (hasNationality && !isSaudi) {
+                    if (hasNationality && !isSaudi && !isCompany) {
                         $field.removeClass('d-none');
+                        $input.prop('disabled', false);
                         return;
                     }
 
                     $field.addClass('d-none');
-                    $input.val('');
+                    $input.val('').prop('disabled', true);
                 };
 
                 $nationality.on('change', toggleResidenceExpiry);
+                $('.client-type-radio').on('change', toggleResidenceExpiry);
                 toggleResidenceExpiry();
             })();
 
@@ -1023,6 +1609,12 @@
                 }
 
                 $form.find('.is-invalid').removeClass('is-invalid');
+
+                const clientFieldErrors = validateClientFields();
+                if (Object.keys(clientFieldErrors).length) {
+                    showClientFormErrors({ errors: clientFieldErrors });
+                    return;
+                }
 
                 $.ajax({
                     type: 'POST',

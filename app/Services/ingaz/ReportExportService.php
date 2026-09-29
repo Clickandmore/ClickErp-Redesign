@@ -2958,7 +2958,7 @@ class ReportExportService
         }
 
         if ($startDate && $endDate) {
-            return (string) ($startDate->copy()->startOfDay()->diffInDays($endDate->copy()->startOfDay()) + 1);
+            return (string) $contract->calculateDayUsage()['duration_days'];
         }
 
         return filled($contract->info?->contract_duration_days)
@@ -2991,7 +2991,7 @@ class ReportExportService
             return '-';
         }
 
-        $days = now()->startOfDay()->diffInDays($endDate->copy()->startOfDay(), false);
+        $days = $contract->calculateRemainingDays() ?? 0;
 
         return $days > 0 ? '+' . $days : (string) $days;
     }
@@ -3023,7 +3023,7 @@ class ReportExportService
             return '0';
         }
 
-        $days = $startDate->copy()->startOfDay()->diffInDays($calculationEnd->copy()->startOfDay()) + 1;
+        $days = $contract->calculateDayUsage()['used_days'];
 
         return in_array($contract->status, ['completed'], true)
             ? (string) $days

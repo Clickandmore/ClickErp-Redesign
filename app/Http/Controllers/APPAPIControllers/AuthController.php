@@ -162,10 +162,14 @@ class AuthController extends Controller
         $user = $phoneVerificationAction->getUser($request);
 
         if (!$user) {
-            return apiResponse(true, __('ingaz.code_confirm_successfully'), [
+            return apiResponse(true, app()->getLocale() === 'en'
+                ? 'Phone verified. No matching account was found; register to continue.'
+                : 'تم التحقق من رقم الجوال. لا يوجد حساب مطابق؛ أنشئ حسابًا للمتابعة.', [
                 'phone' => $data['phone'],
                 'phone_code' => $data['phone_code'],
                 'verified' => true,
+                'registered' => false,
+                'next_step' => 'register',
             ]);
         }
 

@@ -363,23 +363,9 @@ class ReconcileRentalClosures extends Command
             ? Carbon::parse($contract->closed_at)->startOfDay()
             : Carbon::now()->startOfDay();
 
-        $usedDays = 0;
+        $days = \App\Support\RentalContractDays::calculate($totalDays, $start, $end, $closure);
 
-        if ($start && $totalDays > 0) {
-            if ($closure->lessThan($start)) {
-                $usedDays = 0;
-            } elseif ($end && $closure->greaterThanOrEqualTo($end)) {
-                $usedDays = $totalDays;
-            } else {
-                $usedDays = min($totalDays, max(0, $start->diffInDays($closure, false) + 1));
-            }
-        }
-
-        $overdueDays = ($end && $closure->greaterThan($end))
-            ? $end->diffInDays($closure, false)
-            : 0;
-
-        return [$usedDays, max(0, $overdueDays)];
+        return [$days['used_days'], $days['overdue_days']];
     }
 
     /**

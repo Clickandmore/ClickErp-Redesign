@@ -54,6 +54,24 @@ class AppAuthModesTest extends HourlyTestCase
         $this->assertNotEmpty($response->json('data.token'));
     }
 
+    public function test_confirming_phone_without_account_requires_registration_and_issues_no_token(): void
+    {
+        $this->mock(PhoneVerificationAction::class, function ($mock) {
+            $mock->shouldReceive('confirmCode')->once()->andReturn(true);
+            $mock->shouldReceive('getUser')->once()->andReturn(null);
+        });
+
+        $response = $this->postJson('/api/app/auth/confirm-code', [
+            'phone' => '598765432', 'phone_code' => '966', 'code' => '12345',
+        ])->assertOk()
+            ->assertJsonPath('data.verified', true)
+            ->assertJsonPath('data.registered', false)
+            ->assertJsonPath('data.next_step', 'register');
+
+        $this->assertNull($response->json('data.token'));
+        $this->assertDatabaseMissing('users', ['phone' => '598765432']);
+    }
+
     public function test_blocked_user_cannot_login_or_confirm_otp(): void
     {
         DB::table('settings')->update(['external_auth_mode'=>'otp']);

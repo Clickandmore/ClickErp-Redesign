@@ -5,7 +5,7 @@ namespace Tests\Unit;
 use App\Models\RentalContract;
 use App\Models\RentalContractInfo;
 use Carbon\Carbon;
-use PHPUnit\Framework\TestCase;
+use Tests\TestCase;
 
 class RentalContractRemainingDaysTest extends TestCase
 {
@@ -53,5 +53,44 @@ class RentalContractRemainingDaysTest extends TestCase
         ]));
 
         $this->assertSame(-8, $contract->calculateRemainingDays());
+    }
+
+    public function test_first_day_is_not_counted_as_both_used_and_remaining(): void
+    {
+        Carbon::setTestNow('2026-09-27 18:00:00');
+        $contract = new RentalContract();
+        $contract->setRelation('info', new RentalContractInfo([
+            'ingaz_from' => '2026-09-27', 'ingaz_to' => '2026-10-27',
+            'contract_duration_days' => 30,
+        ]));
+        $contract->setRelation('extensions', collect());
+
+        $this->assertSame(1, $contract->calculateDayUsage()['used_days']);
+        $this->assertSame(29, $contract->calculateRemainingDays());
+
+        $report = new \App\Services\ingaz\ReportExportService();
+        $durationMethod = new \ReflectionMethod($report, 'resolveRentReportDurationDays');
+        $durationMethod->setAccessible(true);
+        $remainingMethod = new \ReflectionMethod($report, 'resolveRentReportRemainingDays');
+        $remainingMethod->setAccessible(true);
+        $this->assertSame('30', $durationMethod->invoke($report, $contract, Carbon::parse('2026-09-27'), Carbon::parse('2026-10-27')));
+        $this->assertSame('+29', $remainingMethod->invoke($report, $contract, Carbon::parse('2026-10-27')));
+    }
+
+    public function test_extension_is_included_once_in_used_and_remaining_days(): void
+    {
+        Carbon::setTestNow('2026-10-28 18:00:00');
+        $contract = new RentalContract();
+        $contract->setRelation('info', new RentalContractInfo([
+            'ingaz_from' => '2026-09-27', 'ingaz_to' => '2026-11-26',
+            'contract_duration_days' => 30,
+        ]));
+        $contract->setRelation('extensions', collect([
+            new \App\Models\RentalContractExtension(['extension_days' => 30]),
+        ]));
+
+        $this->assertSame(60, $contract->calculateDayUsage()['duration_days']);
+        $this->assertSame(32, $contract->calculateDayUsage()['used_days']);
+        $this->assertSame(28, $contract->calculateRemainingDays());
     }
 }
