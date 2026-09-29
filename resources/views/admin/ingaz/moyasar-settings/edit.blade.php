@@ -101,6 +101,10 @@
                     @csrf
                     @method('PUT')
 
+                    <div class="col-12 alert alert-info">
+                        رابط الويبهوك لجميع مدفوعات ميسر: <code dir="ltr">{{ route('moyasar.webhook') }}</code>.
+                        فعّل الأحداث <code>payment_paid</code> و<code>payment_failed</code> و<code>payment_refunded</code>، واضبط سر الويبهوك نفسه في ميسر وكليك.
+                    </div>
                     <div class="col-12">
                         <div class="form-check form-switch">
                             <input type="hidden" name="is_enabled" value="0">

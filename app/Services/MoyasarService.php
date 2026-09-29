@@ -144,8 +144,12 @@ class MoyasarService
         $secret = MoyasarSettings::current()['webhook_secret'] ?? '';
 
         if (empty($secret)) {
-            return true; // بيئة اختبار بدون secret
+            return false;
         }
+
+        $data = json_decode($payload, true);
+        $token = is_array($data) ? ($data['secret_token'] ?? null) : null;
+        if (is_string($token) && hash_equals($secret, $token)) return true;
 
         $expected = hash_hmac('sha256', $payload, $secret);
 

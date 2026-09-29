@@ -16,6 +16,9 @@
     @if($status === 'success')
         <div class="icon-circle bg-success text-white">✓</div>
         <h4 class="text-success">تم الدفع بنجاح</h4>
+    @elseif(in_array($status, ['refunded','partially_refunded'], true))
+        <div class="icon-circle bg-warning text-dark">↩</div>
+        <h4 class="text-warning">استرداد مبلغ الدفع</h4>
     @elseif($status === 'failed')
         <div class="icon-circle bg-danger text-white">✕</div>
         <h4 class="text-danger">فشل الدفع</h4>

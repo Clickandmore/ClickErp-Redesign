@@ -19,10 +19,12 @@ class RentalOrderPayment extends Model
     public const STATUS_FAILED = 'failed';
     public const STATUS_EXPIRED = 'expired';
     public const STATUS_REFUNDED = 'refunded';
+    public const STATUS_PARTIALLY_REFUNDED = 'partially_refunded';
 
     protected $guarded = [];
 
     protected $casts = [
+        'refunded_amount' => 'decimal:2',
         'amount' => 'decimal:2',
         'provider_payload' => 'array',
         'paid_at' => 'datetime',

@@ -88,9 +88,10 @@ foreach (['app/hourly/maid', 'app/hourly/worker', 'worker'] as $prefix) {
 | تطبيق العميل: التأجير بالساعة
 |--------------------------------------------------------------------------
 */
+Route::post('app/hourly/payments/moyasar/webhook',[ClientController::class,'webhook'])->middleware('throttle:60,1')->name('api.hourly.moyasar.webhook');
 Route::prefix('app/hourly')->middleware('feature.hourly_rental')->group(function () {
     Route::get('payments/moyasar/callback',[ClientController::class,'callback'])->middleware('throttle:30,1')->name('api.hourly.moyasar.callback');
-    Route::post('payments/moyasar/webhook',[ClientController::class,'webhook'])->middleware('throttle:60,1')->name('api.hourly.moyasar.webhook');
+
     Route::middleware('auth:api')->group(function () {
         Route::middleware(\App\Http\Middleware\HourlyApiLang::class)->group(function () {
         Route::get('cities',[ClientController::class,'cities']);

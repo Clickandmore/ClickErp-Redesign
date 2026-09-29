@@ -3,223 +3,49 @@
 namespace App\Http\Controllers\ingaz;
 
 use App\Http\Controllers\admin\Controller;
-use App\Models\RentalContractInfo;
-use App\Services\ingaz\RentalContractFinanceService;
-use App\Services\MoyasarService;
-use App\Services\RentalContractExpiryReminderService;
+use App\Services\{MoyasarService, MoyasarContractPaymentService, MoyasarNotificationService};
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Log;
 
 class MoyasarWebhookController extends Controller
 {
-    /**
-     * صفحة نتيجة الدفع — يعود إليها العميل بعد إتمام الدفع أو فشله
-     * لا تثق بالـ query string: تحقق دائماً من API ميسر مباشرةً
-     */
-    public function callback(
-        Request $request,
-        MoyasarService $moyasar,
-        RentalContractFinanceService $financeService,
-        RentalContractExpiryReminderService $reminderService
-    )
+    public function callback(Request $request, MoyasarService $gateway, MoyasarContractPaymentService $contracts)
     {
-        $contractId = $request->query('contract_id');
-        $paymentId  = $request->query('id'); // ميسر تُرسل معرّف الدفعة في الـ callback
-
-        if (!$contractId || !$paymentId) {
-            Log::warning('Moyasar callback: missing contract_id or payment_id', $request->query());
-            return $this->callbackView('error', 'رابط الدفع غير صحيح.');
-        }
-
-        $info = $this->findInfoForMoyasarReference((string) $paymentId, (int) $contractId);
-
-        if (!$info) {
-            Log::warning('Moyasar callback: no matching info record', [
-                'contract_id' => $contractId,
-                'payment_id'  => $paymentId,
-            ]);
-            return $this->callbackView('error', 'لم يتم العثور على بيانات الدفع.');
-        }
-
-        // التحقق من API ميسر مباشرةً
-        $status = $moyasar->verifyPaymentStatus($paymentId);
-
-        Log::info('Moyasar callback received', [
-            'contract_id' => $contractId,
-            'payment_id'  => $paymentId,
-            'status'      => $status,
-        ]);
-
-        if ($status === 'paid') {
-            $this->confirmMoyasarPayment($info, null, $financeService);
-            try {
-                $reminderService->applyPaidExtensionForMoyasarPayment(
-                    $info->fresh(),
-                    (string) $paymentId,
-                    $request->query('reminder_id') ? (int) $request->query('reminder_id') : null
-                );
-            } catch (\Throwable $exception) {
-                Log::error('Moyasar callback: payment confirmed but rental contract extension failed', [
-                    'contract_id' => $info->rental_contract_id,
-                    'payment_id' => $paymentId,
-                    'message' => $exception->getMessage(),
-                ]);
-            }
-
-            return $this->callbackView('success', 'تم الدفع بنجاح. شكراً لك!');
-        }
-
-        if (in_array($status, ['failed', 'expired'], true)) {
-            $info->update(['moyasar_payment_status' => $status]);
-            return $this->callbackView('failed', 'لم يتم الدفع. يمكنك المحاولة مجدداً عبر الرابط الذي أُرسل لك.');
-        }
-
-        return $this->callbackView('pending', 'جارٍ التحقق من حالة الدفع...');
-    }
-
-    /**
-     * Webhook من ميسر — يُرسل تلقائياً عند كل تغيير في حالة الدفع
-     */
-    public function webhook(
-        Request $request,
-        MoyasarService $moyasar,
-        RentalContractFinanceService $financeService,
-        RentalContractExpiryReminderService $reminderService
-    )
-    {
-        $rawBody  = $request->getContent();
-        $signature = $request->header('X-Moyasar-Signature', '');
-
-        if (!$moyasar->verifyWebhookSignature($rawBody, $signature)) {
-            Log::warning('Moyasar webhook: invalid signature');
-            return response()->json(['error' => 'Invalid signature'], 403);
-        }
-
-        $data      = $request->json()->all();
-        $eventType = $data['type'] ?? '';
-        $payment   = $data['data'] ?? [];
-        $paymentId = $payment['id'] ?? null;
-        $invoiceId = $payment['invoice_id'] ?? data_get($payment, 'source.invoice_id');
-        $contractId = data_get($payment, 'metadata.contract_id');
-        $reminderId = data_get($payment, 'metadata.reminder_id');
-        $status    = $payment['status'] ?? null;
-
-        Log::info('Moyasar webhook received', [
-            'event_type' => $eventType,
-            'payment_id' => $paymentId,
-            'status'     => $status,
-        ]);
-
-        if (!$paymentId && !$invoiceId && !$contractId) {
-            return response()->json(['ok' => true]);
-        }
-
-        $info = $this->findInfoForMoyasarReference($paymentId, $contractId ? (int) $contractId : null, $invoiceId);
-
-        if (!$info) {
-            return response()->json(['ok' => true]);
-        }
-
-        if ($status === 'paid') {
-            $amountInRiyals = ($payment['amount'] ?? 0) / 100;
-
-            $this->confirmMoyasarPayment($info, $amountInRiyals, $financeService);
-            try {
-                $reminderService->applyPaidExtensionForMoyasarPayment(
-                    $info->fresh(),
-                    $paymentId ? (string) $paymentId : null,
-                    $reminderId ? (int) $reminderId : null
-                );
-            } catch (\Throwable $exception) {
-                Log::error('Moyasar webhook: payment confirmed but rental contract extension failed', [
-                    'contract_id' => $info->rental_contract_id,
-                    'payment_id' => $paymentId,
-                    'message' => $exception->getMessage(),
-                ]);
-            }
-
-            Log::info('Moyasar webhook: payment confirmed', [
-                'payment_id'  => $paymentId,
-                'contract_id' => $info->rental_contract_id,
-                'amount'      => $amountInRiyals,
-            ]);
-        } elseif (in_array($status, ['failed', 'expired', 'refunded'], true)) {
-            $info->update(['moyasar_payment_status' => $status]);
-        }
-
-        return response()->json(['ok' => true]);
-    }
-
-    private function findInfoForMoyasarReference(?string $paymentId, ?int $contractId = null, ?string $invoiceId = null): ?RentalContractInfo
-    {
-        $baseQuery = RentalContractInfo::query();
-
-        if ($contractId) {
-            $baseQuery->where('rental_contract_id', $contractId);
-        }
-
-        $references = array_values(array_filter([$paymentId, $invoiceId]));
-
-        if ($references) {
-            $matched = (clone $baseQuery)
-                ->whereIn('moyasar_payment_id', $references)
-                ->first();
-
-            if ($matched) {
-                return $matched;
-            }
-        }
-
-        if ($contractId) {
-            return RentalContractInfo::query()
-                ->where('rental_contract_id', $contractId)
-                ->whereNotNull('moyasar_payment_id')
-                ->latest('id')
-                ->first();
-        }
-
-        return null;
-    }
-
-    private function confirmMoyasarPayment(
-        RentalContractInfo $info,
-        ?float $paidAmount,
-        RentalContractFinanceService $financeService
-    ): void {
-        $contractValue = (float) $info->contract_value;
-        $paidAmount = $paidAmount && $paidAmount > 0
-            ? min($paidAmount, $contractValue)
-            : $contractValue;
-        $remainingAmount = max(0, $contractValue - $paidAmount);
-
-        $info->update([
-            'moyasar_payment_status' => 'paid',
-            'moyasar_paid_at'        => now(),
-            'payment_type'           => 'moyasar',
-            'payment_status'         => $remainingAmount <= 0.01 ? 'paid' : 'partial',
-            'paid_amount'            => $paidAmount,
-            'remaining_amount'       => $remainingAmount,
-            'payment_confirmed_at'   => now(),
-        ]);
-
+        $id = $request->query('id');
+        $contractId = (int)$request->query('contract_id');
+        if (!is_string($id) || !$contractId) return $this->callbackView('error','رابط الدفع غير صحيح.');
         try {
-            $contract = $info->rentalContract()
-                ->with(['user', 'maid.nationality', 'info', 'financeInvoice'])
-                ->first();
-
-            if ($contract) {
-                $financeService->syncPaymentForContract($contract);
-            }
+            $transaction = $gateway->getPayment($id);
+            $payment = $contracts->resolve($transaction['invoice_id'] ?? $id);
+            if (!$payment || (int)$payment->rental_contract_id !== $contractId) return $this->callbackView('error','لم يتم العثور على بيانات الدفع.');
+            $payment = $contracts->synchronize($payment);
+            if ((float)$payment->refunded_amount > 0) return $this->callbackView('refunded','تم استرداد '.number_format((float)$payment->refunded_amount,2).' ريال من الدفعة.');
+            if ($payment->paid_at) return $this->callbackView('success','تم الدفع بنجاح. شكرًا لك!');
+            $status = \App\Models\RentalContractInfo::where('rental_contract_id',$contractId)
+                ->where('moyasar_payment_id',$payment->invoice_id)->value('moyasar_payment_status');
+            if (in_array($status,['failed','expired'],true)) return $this->callbackView('failed','لم تكتمل عملية الدفع.');
+            return $this->callbackView('pending','لم يتأكد السداد بعد.');
         } catch (\Throwable $e) {
-            Log::error('Moyasar: payment confirmed but finance invoice sync failed', [
-                'rental_contract_id' => $info->rental_contract_id,
-                'message' => $e->getMessage(),
-            ]);
+            report($e);
+            return $this->callbackView('pending','تعذر التحقق من الدفع حاليًا. ستتم إعادة المزامنة عند وصول إشعار ميسر.');
+        }
+    }
+
+    public function webhook(Request $request, MoyasarService $gateway, MoyasarNotificationService $notifications)
+    {
+        if (!$gateway->verifyWebhookSignature($request->getContent(),(string)$request->header('X-Moyasar-Signature',''))) {
+            return response()->json(['error'=>'Invalid signature'],403);
+        }
+        try {
+            $notifications->handle((array)$request->input('data',[]));
+            return response()->json(['ok'=>true]);
+        } catch (\Throwable $e) {
+            report($e);
+            return response()->json(['ok'=>false],503);
         }
     }
 
     private function callbackView(string $status, string $message)
     {
-        return view('moyasar.callback', compact('status', 'message'));
+        return view('moyasar.callback',compact('status','message'));
     }
 }

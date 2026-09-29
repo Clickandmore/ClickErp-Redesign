@@ -245,6 +245,37 @@ class RentalContractFinanceService
         ];
     }
 
+    public function recordMoyasarReceipt(RentalContract $contract, float $amount, string $reference): Bond
+    {
+        $contract->loadMissing(['info','financeInvoice']);
+        if (!$contract->financeInvoice) {
+            $this->createForContract($contract);
+            $contract->unsetRelation('financeInvoice')->load('financeInvoice');
+        }
+        return $this->storeReceiptBond($contract->financeInvoice,$contract,$this->ensureClientAccountId($contract),
+            $amount,'moyasar',now(),null,'قبض ميسر / '.$reference)['bond'];
+    }
+
+    /** Reverse the receipt's accounts; a cash refund is not a cancellation of revenue or VAT. */
+    public function recordMoyasarRefund(RentalContract $contract, float $amount, string $reference, int $receiptBondId): Bond
+    {
+        if ($amount <= 0) throw new \InvalidArgumentException('Refund must be positive.');
+        $receipt = Bond::findOrFail($receiptBondId);
+        if ((int)$receipt->rental_contract_id !== (int)$contract->id) throw new \RuntimeException('Refund receipt belongs to another contract.');
+        $date = now()->toDateString();
+        if (!$this->yearService->checkDateRange($date)) throw new \RuntimeException('لا توجد سنة مالية نشطة لتسجيل استرداد ميسر.');
+        $bond = $this->bondService->storeSarfBond([
+            'payment_type'=>$this->mapBondPaymentType('moyasar')->value,'bond_book_num'=>' ',
+            'debit_account_id'=>$receipt->credit_account_id,'credit_account_id'=>$receipt->debit_account_id,
+            'value'=>$this->roundMoney($amount),'date'=>$date,'statement'=>'استرداد ميسر / '.$reference.' / سند القبض #'.$receipt->id,
+            'code'=>$this->bondService->lastCode(BondTypes::Sarf->value),'is_tax'=>0,'general_type'=>0,
+            'rental_contract_id'=>$contract->id,'branch_id'=>$contract->branch_id,
+            'created_by_id'=>$receipt->created_by_id,
+        ])->fresh();
+        if ((int)$bond->is_confirm !== 1 || !$bond->constraint_id) $this->bondService->confirmBond($bond->id);
+        return $bond->fresh();
+    }
+
     public function recordPaymentForContract(
         RentalContract $contract,
         float $paymentAmount,
@@ -844,6 +875,8 @@ class RentalContractFinanceService
             'is_tax' => 0,
             'general_type' => 0,
             'rental_contract_id' => $contract->id,
+            'branch_id' => $contract->branch_id,
+            'created_by_id' => $contract->marketer_id ?: $invoice->receiptBond?->created_by_id,
         ])->fresh();
 
         if ((int) $bond->is_confirm !== 1 || !$bond->constraint_id) {

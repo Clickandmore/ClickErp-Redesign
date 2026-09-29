@@ -25,6 +25,7 @@ use App\Http\Controllers\ingaz\ContactController;
 use App\Http\Controllers\ingaz\CountryPoliceController;
 use App\Http\Controllers\ingaz\CvConvertController;
 use App\Http\Controllers\ingaz\CvOptionsSettingsController;
+use App\Http\Controllers\ingaz\SiteCacheSettingsController;
 use App\Http\Controllers\ingaz\CvTemplateSettingsController;
 use App\Http\Controllers\ingaz\DataImportController;
 use App\Http\Controllers\ingaz\DeportationTravelController;
@@ -241,6 +242,13 @@ Route::group(
                 ->name('settings.cv-options.edit');
             Route::put('settings/cv-options', [CvOptionsSettingsController::class, 'update'])
                 ->name('settings.cv-options.update');
+            // كاش المواقع الخارجية — قبل Route::resource حتى لا يُلتقط site-cache كـ {setting}.
+            Route::get('settings/site-cache', [SiteCacheSettingsController::class, 'edit'])
+                ->name('settings.site-cache.edit');
+            Route::put('settings/site-cache', [SiteCacheSettingsController::class, 'update'])
+                ->name('settings.site-cache.update');
+            Route::post('settings/site-cache/flush', [SiteCacheSettingsController::class, 'flush'])
+                ->name('settings.site-cache.flush');
             Route::resource('settings', SettingController::class);
             Route::get('settings/section/{section}', [SettingController::class, 'section'])->name('settings.section');
             Route::get('moyasar-settings', [MoyasarSettingsController::class, 'edit'])->name('moyasar-settings.edit');

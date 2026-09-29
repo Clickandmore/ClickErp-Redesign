@@ -33,19 +33,30 @@ class HourlyPaymentService
 
     public function synchronize(HourlyOrderPayment $payment): HourlyOrderPayment
     {
-        HourlyOrderService::enabled();
-        if ($payment->status === 'paid' || !$payment->provider_reference) return $payment;
+        if (!$payment->provider_reference) return $payment;
         // Only the stored invoice is fetched. Callback fields never prove payment.
         $invoice = $this->gateway->getInvoice($payment->provider_reference);
         abort_if(!$invoice,503,'تعذر التحقق من فاتورة ميسر حاليًا. أعد المحاولة.');
-        if (!$invoice || ($invoice['status'] ?? null) !== 'paid') return $payment;
+        if (!$invoice || !in_array($invoice['status'] ?? '', ['paid','refunded'], true)) return $payment;
         if (($invoice['id'] ?? '') !== $payment->provider_reference || ($invoice['currency'] ?? '') !== 'SAR'
             || (int) ($invoice['amount'] ?? -1) !== (int) round($payment->amount*100)) HourlyOrderService::reject('بيانات السداد لا تطابق الفاتورة.');
         return DB::transaction(function () use ($payment, $invoice) {
             $order = HourlyRentalOrder::query()->lockForUpdate()->findOrFail($payment->hourly_rental_order_id);
             $payment = HourlyOrderPayment::query()->lockForUpdate()->findOrFail($payment->id);
-            if ($payment->status === 'paid') return $payment;
-            $payment->update(['status'=>'paid','paid_at'=>now(),'provider_payload'=>$invoice]);
+            $snapshot = \App\Support\MoyasarPaymentSnapshot::fromInvoice($invoice, $payment->provider_reference, (float) $payment->amount);
+            if (!$snapshot) return $payment;
+            $refunded = max((float) $payment->refunded_amount, $snapshot['refunded']);
+            $delta = round($refunded - (float) $payment->refunded_amount, 2);
+            // Keep the original receipt and post each refund delta as a separate debit.
+            $payment->update(['status'=>'paid','paid_at'=>$payment->paid_at ?: now(),'provider_payload'=>$invoice,'refunded_amount'=>$refunded]);
+            if ($delta > 0) {
+                $order->payments()->create([
+                    'user_id'=>$payment->user_id, 'public_id'=>(string) Str::uuid(),
+                    'method'=>'moyasar', 'provider'=>'moyasar', 'amount'=>-$delta,
+                    'status'=>'paid', 'paid_at'=>now(),
+                    'provider_payload'=>['refund_of'=>$payment->id, 'provider_payment_id'=>$snapshot['id'], 'refunded_total'=>$refunded],
+                ]);
+            }
             $this->recalculate($order, 'provider', null);
             return $payment;
         });
@@ -187,7 +198,8 @@ class HourlyPaymentService
     {
         $paid = $order->payments()->where('status','paid')->sum('amount');
         $full = (int) round($paid*100) >= (int) round($order->total_amount*100);
-        $order->update(['paid_amount'=>$paid,'payment_status'=>$full ? 'paid' : 'partial']);
+        $status = $full ? 'paid' : ($paid > 0 ? 'partial' : ($order->payments()->where('status','paid')->where('amount','<',0)->exists() ? 'refunded' : 'unpaid'));
+        $order->update(['paid_amount'=>$paid,'payment_status'=>$status]);
         // A late provider confirmation records the money without resurrecting an expired order.
         if ($order->status === 'pending_confirmation' && $order->expires_at->isFuture() && ($full || self::activationPaid($order))) {
             $this->orders->transition($order,'active',$actor,$actorId,$full ? 'اكتمال السداد' : 'سداد الزيارة الأولى');

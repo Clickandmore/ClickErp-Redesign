@@ -29,6 +29,7 @@ trait BuildsHourlyCategorySchema
         foreach (['2026_09_16_000006_create_hourly_commerce_tables', '2026_09_17_000002_extend_hourly_team_management', '2026_09_17_000003_add_hourly_district_geometry', '2026_09_17_000004_extend_hourly_district_details', '2026_09_17_000008_extend_hourly_service_items'] as $migration) {
             (require base_path("database/migrations/{$migration}.php"))->up();
         }
+        Schema::table('hourly_order_payments', fn (Blueprint $t) => $t->decimal('refunded_amount',12,2)->default(0));
         $layer = glob(base_path('database/migrations/2026_09_18_*.php'));
         sort($layer);
         foreach ($layer as $file) (require $file)->up();

@@ -171,6 +171,8 @@ Route::group([
     Route::get('settings/announcement-image/{version?}', [App\Http\Controllers\Api\ApiSettingController::class, 'announcementImage'])
         ->where('version', '[a-f0-9]{12}')
         ->name('settings.announcement-image');
+    // إعدادات كاش المواقع الخارجية (صفحة الإعدادات > كاش المواقع الخارجية).
+    Route::get('site-cache-settings', [App\Http\Controllers\Api\ApiSiteCacheSettingsController::class, 'show'])->name('site-cache-settings');
     Route::resource('settings', ApiSettingController::class);
     // Route::resource('maids', ApiMaidController::class);
     Route::resource('jobs', ApiJobTitleController::class);

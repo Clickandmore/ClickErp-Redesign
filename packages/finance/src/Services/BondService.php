@@ -162,7 +162,7 @@ class BondService extends MainService
     {
         // $bondData = $this->validInsertData($data);
         $data["bond_book_num"] = (isset($data['bond_book_num'])) ? $data['bond_book_num'] : " ";
-        $data["created_by_id"] = Auth::guard('admin')->user()->id;
+        $data["created_by_id"] = Auth::guard('admin')->id() ?: ($data["created_by_id"] ?? null);
         $year = $this->yearService->getActiveYear();
         $data['year_id'] = $year->id ?? null;
         $bond = $this->store($data);
@@ -307,7 +307,8 @@ class BondService extends MainService
             "date" => $bondData["date"],
             "statement" => $bondData["statement"],
             "year_id" => $bondData["year_id"],
-            "created_by_id" => Auth::guard('admin')->user()->id,
+            "created_by_id" => Auth::guard('admin')->id() ?: ($bondData["created_by_id"] ?? null),
+            "branch_id" => $bondData["branch_id"] ?? null,
             "code" => $constraintAction->lastCode(),
         ]);
         $accounts = $this->getAccountIDForDetails($oldBold);

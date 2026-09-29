@@ -1773,6 +1773,9 @@
                         @endif
 
                         @if (!empty($contract->info?->moyasar_payment_url))
+                            @if ((float) $contract->info->moyasar_refunded_amount > 0)
+                                <div class="alert alert-warning mt-3">إجمالي المبالغ المستردة عبر ميسر: {{ number_format((float) $contract->info->moyasar_refunded_amount, 2) }} ريال. تم تسجيل سندات الصرف المرتبطة بها.</div>
+                            @endif
                             <div class="d-flex flex-wrap gap-2 mt-3">
                                 <button type="button"
                                     class="btn btn-outline-primary copy-payment-link-btn"

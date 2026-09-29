@@ -88,14 +88,14 @@ class RentalContractExpiryReminderController extends Controller
 
         if (
             !empty($reminder->payment_url)
-            && !in_array((string) $reminder->payment_status, ['paid', 'failed', 'expired'], true)
+            && !in_array((string) $reminder->payment_status, ['paid', 'failed', 'expired', 'refunded', 'partially_refunded'], true)
         ) {
             return $reminder->payment_url;
         }
 
         if (
             !empty($contract->info->moyasar_payment_url)
-            && (string) $contract->info->moyasar_payment_status !== 'paid'
+            && !in_array((string) $contract->info->moyasar_payment_status, ['paid', 'refunded', 'partially_refunded'], true)
         ) {
             return $contract->info->moyasar_payment_url;
         }
@@ -132,6 +132,9 @@ class RentalContractExpiryReminderController extends Controller
 
             return null;
         }
+
+        $payments = app(\App\Services\MoyasarContractPaymentService::class);
+        $payments->register($contract->info, $result['id'], $amount, $reminder->id);
 
         $contract->info->update([
             'payment_type' => 'moyasar',

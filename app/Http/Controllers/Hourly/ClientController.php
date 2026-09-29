@@ -246,8 +246,12 @@ class ClientController extends Controller
     public function pay(int $id,HourlyPaymentService $service) { return response()->json(['data'=>$service->initiate($this->owned($id))->only(['public_id','status','amount','payment_url'])]); }
     public function payment(int $id,HourlyPaymentService $service)
     {
-        $payment=$this->owned($id)->payments()->where('provider','moyasar')->latest('id')->firstOrFail();
-        return response()->json(['data'=>$service->synchronize($payment)->only(['public_id','status','amount','payment_url'])]);
+        $payment=$this->owned($id)->payments()->where('provider','moyasar')->whereNotNull('provider_reference')->latest('id')->firstOrFail();
+        $payment=$service->synchronize($payment);
+        return response()->json(['data'=>array_merge($payment->only(['public_id','amount','payment_url','refunded_amount']), [
+            'status'=>$payment->settlement_status,
+            'net_paid_amount'=>$payment->paid_at ? round((float)$payment->amount-(float)$payment->refunded_amount,2) : 0,
+        ])]);
     }
     public function bankTransfer(Request $request, int $id, HourlyPaymentService $service)
     {
@@ -268,7 +272,7 @@ class ClientController extends Controller
     {
         $data=$request->validate(['payment'=>['required','uuid']]);
         $payment=HourlyOrderPayment::where('public_id',$data['payment'])->where('provider','moyasar')->firstOrFail();
-        return response()->json(['status'=>$service->synchronize($payment)->status]);
+        return response()->json(['status'=>$service->synchronize($payment)->settlement_status]);
     }
     public function webhook(Request $request,HourlyPaymentService $service)
     {
