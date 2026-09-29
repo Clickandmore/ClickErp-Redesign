@@ -34,6 +34,7 @@ class User extends Authenticatable implements JWTSubject
     protected $casts = [
         'branch_id' => 'integer',
         'residence_expiry_date' => 'date',
+        'license_expiry_date' => 'date',
     ];
 
     public function clientNumber()
@@ -108,6 +109,17 @@ class User extends Authenticatable implements JWTSubject
     public function isCompanyClient(): bool
     {
         return (string) $this->client_type === 'company';
+    }
+
+    /**
+     * ترخيص العميل الشركة منتهي: تاريخ انتهائه قبل اليوم.
+     * لا ينطبق على الأفراد ولا على الشركات بدون تاريخ انتهاء.
+     */
+    public function isLicenseExpired(): bool
+    {
+        return $this->isCompanyClient()
+            && $this->license_expiry_date !== null
+            && $this->license_expiry_date->lt(today());
     }
 
     public function documentNumberLabel(): string

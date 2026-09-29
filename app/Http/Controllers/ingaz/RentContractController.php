@@ -250,34 +250,8 @@ class RentContractController extends Controller
                     return $row->branch ? e($row->branch->name) : '-';
                 })
                 ->addColumn('remaining_days', function ($row) {
-                    $startDate = $row->info?->ingaz_from
-                        ? Carbon::parse($row->info->ingaz_from)->startOfDay()
-                        : null;
-                    $endDate = $row->info?->ingaz_to
-                        ? Carbon::parse($row->info->ingaz_to)->startOfDay()
-                        : null;
-                    $durationDays = (int) ($row->info?->contract_duration_days ?? 0);
-                    if ($durationDays <= 0) {
-                        $durationMonths = (int) ($row->info?->contract_duration_months ?? 0);
-                        $durationDays = $durationMonths > 0 ? $durationMonths * 30 : 0;
-                    }
-                    if ($durationDays <= 0 && $startDate && $endDate) {
-                        $durationDays = max(1, $startDate->diffInDays($endDate, false));
-                    }
-
-                    $usageDate = in_array($row->status, ['completed', 'cancelled'], true) && $row->closed_at
-                        ? Carbon::parse($row->closed_at)->startOfDay()
-                        : now()->startOfDay();
-                    $usedDays = null;
-                    if ($startDate && $durationDays > 0) {
-                        if ($usageDate->lessThan($startDate)) {
-                            $usedDays = 0;
-                        } elseif ($endDate && $usageDate->greaterThanOrEqualTo($endDate)) {
-                            $usedDays = $durationDays;
-                        } else {
-                            $usedDays = min($durationDays, max(0, $startDate->diffInDays($usageDate, false) + 1));
-                        }
-                    }
+                    $days = $row->calculateDayUsage();
+                    $usedDays = $row->info?->ingaz_from ? $days['used_days'] : null;
 
                     // Imported day figures are only a historical snapshot from the
                     // source sheet. Always calculate the live listing from dates so
@@ -469,13 +443,9 @@ class RentContractController extends Controller
                         if ($durationDays <= 0 && $durationMonths > 0) {
                             $durationDays = $durationMonths * 30;
                         }
-                        $remainingDays = $row->info?->ingaz_to
-                            ? now()->startOfDay()->diffInDays(Carbon::parse($row->info->ingaz_to)->startOfDay(), false)
-                            : '';
-                        $usedDays = '';
-                        if ($row->info?->ingaz_from && $durationDays > 0) {
-                            $usedDays = min($durationDays, max(0, Carbon::parse($row->info->ingaz_from)->startOfDay()->diffInDays(now()->startOfDay(), false) + 1));
-                        }
+                        $days = $row->calculateDayUsage();
+                        $remainingDays = $row->calculateRemainingDays() ?? '';
+                        $usedDays = $row->info?->ingaz_from ? $days['used_days'] : '';
                         $extensionsCount = (int) ($row->extensions_count ?? 0);
 
                         $actions .= '<li><button class="dropdown-item text-info open-extend-modal"
@@ -2550,13 +2520,6 @@ class RentContractController extends Controller
             ? max(1, $startDate->diffInDays($baseEndDate, false))
             : 0;
 
-        $remainingDaysValue = null;
-        $overdueDays = 0;
-        if ($endDate) {
-            $remainingDaysValue = max(0, $closureDate->diffInDays($endDate, false));
-            $overdueDays = max(0, $endDate->diffInDays($closureDate, false));
-        }
-
         if ($durationDays <= 0 && $startDate && $endDate) {
             $durationDays = $dateDurationDays;
         }
@@ -2651,16 +2614,10 @@ class RentContractController extends Controller
             ? round($storedRemainingAmount + max(0.0, $extensionValue - $extensionPaidAmount), 2)
             : max(0.0, round($contractValue - $paidAmount, 2));
 
-        $usedDays = null;
-        if ($durationDays > 0) {
-            if (!$startDate || $closureDate->lessThan($startDate)) {
-                $usedDays = 0;
-            } elseif ($endDate && $closureDate->greaterThanOrEqualTo($endDate)) {
-                $usedDays = $durationDays;
-            } else {
-                $usedDays = min($durationDays, max(0, $startDate->diffInDays($closureDate, false) + 1));
-            }
-        }
+        $days = \App\Support\RentalContractDays::calculate($durationDays, $startDate, $endDate, $closureDate);
+        $usedDays = $durationDays > 0 ? $days['used_days'] : null;
+        $remainingDaysValue = $endDate ? $days['remaining_days'] : null;
+        $overdueDays = $days['overdue_days'];
 
         $settlement = RentalContractSettlement::calculate(
             $contractValue,

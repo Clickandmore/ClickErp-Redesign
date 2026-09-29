@@ -41,9 +41,27 @@ class RentalContractClosureSummaryTest extends TestCase
         $this->assertSame(90, $summary['duration_days']);
         $this->assertSame(4695.00, round($summary['contract_value'], 2));
         $this->assertSame(11, $summary['used_days']);
-        $this->assertSame(80, $summary['remaining_days_value']);
+        $this->assertSame(79, $summary['remaining_days_value']);
         $this->assertSame(52.17, $summary['daily_rate']);
         $this->assertSame(573.83, $summary['used_cost']);
+    }
+
+    public function test_september_contract_has_twenty_nine_unused_days_after_its_first_service_day(): void
+    {
+        $summary = $this->buildSummary(
+            paidAmount: 3000,
+            paymentStatus: 'paid',
+            closureDate: '2026-09-27',
+            startDate: '2026-09-27',
+            endDate: '2026-10-27',
+            contractValue: 3000
+        );
+
+        $this->assertSame(30, $summary['duration_days']);
+        $this->assertSame(1, $summary['used_days']);
+        $this->assertSame(29, $summary['remaining_days_value']);
+        $this->assertSame(100.0, $summary['used_cost']);
+        $this->assertSame(2900.0, $summary['calculated_refund_value']);
     }
 
     public function test_an_unpaid_extended_contract_is_never_refunded(): void

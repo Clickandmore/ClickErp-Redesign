@@ -282,11 +282,35 @@ class RentalContract extends Model
 
     public function calculateRemainingDays()
     {
+        if ($this->info?->ingaz_from && $this->info?->ingaz_to) {
+            $days = $this->calculateDayUsage();
+
+            return $days['overdue_days'] > 0 ? -$days['overdue_days'] : $days['remaining_days'];
+        }
         if ($this->info && $this->info->ingaz_to) {
             //  return now()->diffInDays($this->info->ingaz_to, false);
             return now()->startOfDay()->diffInDays(\Carbon\Carbon::parse($this->info->ingaz_to)->startOfDay(), false);
         }
         return null;
+    }
+
+    public function calculateDayUsage(): array
+    {
+        $start = $this->info?->ingaz_from ?: $this->contract_date;
+        $start = $start ? \Carbon\Carbon::parse($start)->startOfDay() : null;
+        $end = $this->info?->ingaz_to ? \Carbon\Carbon::parse($this->info->ingaz_to)->startOfDay() : null;
+        $duration = (int) ($this->info?->contract_duration_days ?: (($this->info?->contract_duration_months ?? 0) * 30));
+        $extensionDays = (int) $this->extensions->sum('extension_days');
+        $dateDuration = $start && $end ? max(1, (int) $start->diffInDays($end, false)) : 0;
+        $duration = $duration > 0 ? $duration + $extensionDays : $dateDuration;
+        if (!$this->info?->package_id) {
+            $duration = max($duration, $dateDuration);
+        }
+        $at = in_array($this->status, ['completed', 'cancelled'], true) && $this->closed_at
+            ? \Carbon\Carbon::parse($this->closed_at)
+            : now();
+
+        return \App\Support\RentalContractDays::calculate($duration, $start, $end, $at);
     }
 
     // طرق للتحكم في workflow

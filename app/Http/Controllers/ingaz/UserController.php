@@ -34,6 +34,52 @@ use Yajra\DataTables\Facades\DataTables;
 class UserController extends Controller
 {
 
+    /** أقل وأكبر عمر مقبول للعميل (يحدد نطاق تاريخ الميلاد) */
+    public const CLIENT_MIN_AGE = 18;
+    public const CLIENT_MAX_AGE = 100;
+
+    /** الحد الأعلى لحقول الأسرة */
+    public const MAX_ROOMS_NUM = 20;
+    public const MAX_FAMILY_NUM = 30;
+    public const MAX_CHILDREN = 20;
+
+    /** الحالات الاجتماعية التي يُحتمل معها وجود أسرة (تظهر معها حقول الأسرة) */
+    public const FAMILY_MARITAL_STATUSES = ['married', 'divorced', 'widowed'];
+
+    /** مفاتيح الدول المتاحة لرقم الجوال الآخر */
+    public const PHONE2_COUNTRY_CODES = [
+        '+966' => 'السعودية',
+        '+971' => 'الإمارات',
+        '+965' => 'الكويت',
+        '+974' => 'قطر',
+        '+973' => 'البحرين',
+        '+968' => 'عُمان',
+        '+20' => 'مصر',
+        '+962' => 'الأردن',
+        '+249' => 'السودان',
+        '+967' => 'اليمن',
+        '+963' => 'سوريا',
+        '+961' => 'لبنان',
+        '+964' => 'العراق',
+        '+970' => 'فلسطين',
+        '+212' => 'المغرب',
+        '+216' => 'تونس',
+        '+213' => 'الجزائر',
+        '+92' => 'باكستان',
+        '+91' => 'الهند',
+        '+880' => 'بنغلاديش',
+        '+63' => 'الفلبين',
+        '+62' => 'إندونيسيا',
+        '+94' => 'سريلانكا',
+        '+977' => 'نيبال',
+        '+251' => 'إثيوبيا',
+        '+254' => 'كينيا',
+        '+256' => 'أوغندا',
+        '+90' => 'تركيا',
+        '+44' => 'بريطانيا',
+        '+1' => 'أمريكا / كندا',
+    ];
+
     public $folderPath = "admin.ingaz.clients";
     public $postData = ["is_blocked"];
     public $mainRoute = "clients";
@@ -255,6 +301,11 @@ class UserController extends Controller
                     $badge = $row->is_blocked == 0
                         ? '<span class="badge bg-success-subtle text-success border border-success-subtle">' . helperTrans('ingaz.active') . '</span>'
                         : '<span class="badge bg-danger-subtle text-danger border border-danger-subtle">' . helperTrans('ingaz.blocked') . '</span>';
+
+                    if ($row->isLicenseExpired()) {
+                        $badge .= ' <span class="badge bg-danger text-white" title="' . e(helperTrans('ingaz.license_expiry_date') . ': ' . $row->license_expiry_date->format('Y-m-d')) . '">'
+                            . '<i class="fas fa-exclamation-triangle me-1"></i>' . helperTrans('ingaz.license_expired') . '</span>';
+                    }
 
                     return '<div class="d-flex flex-column gap-1">
                         <div class="d-flex flex-column gap-2 name-column">
@@ -597,7 +648,10 @@ class UserController extends Controller
             ? ($branches->firstWhere('is_main', true) ?: $branches->first())
             : null;
 
-        return view($this->folderPath . '.create', compact('countries', 'cities', 'client_categories', 'branchesEnabled', 'branches', 'defaultBranch', 'canViewAllBranches'));
+        [$birthdateMin, $birthdateMax] = $this->clientBirthdateBounds();
+        $phone2CountryCodes = self::PHONE2_COUNTRY_CODES;
+
+        return view($this->folderPath . '.create', compact('countries', 'cities', 'client_categories', 'branchesEnabled', 'branches', 'defaultBranch', 'canViewAllBranches', 'birthdateMin', 'birthdateMax', 'phone2CountryCodes'));
     }
 
     /**
@@ -615,32 +669,51 @@ class UserController extends Controller
             ], 403);
         }
 
+        $request->merge($this->normalizeClientDigitsInput($request->only(['phone', 'phone2', 'national_num', 'tax_number', 'license_number'])));
+
+        // اسم الفرد: حروف ومسافات فقط، والشركة يُسمح لها بالأرقام أيضاً
+        $nameRegex = $request->input('client_type') === 'company'
+            ? '/^[\p{L}\p{M}\p{N} ]+$/u'
+            : '/^[\p{L}\p{M} ]+$/u';
+
+        // الجوال الآخر: نفس قاعدة الجوال الأساسي للسعودية، وأرقام فقط (6-12) لبقية الدول
+        $phone2Code = (string) $request->input('phone2_code', '+966');
+        $phone2Regex = $phone2Code === '+966' ? '/^5\d{8}$/' : '/^[1-9]\d{5,11}$/';
+
+        [$birthdateMin, $birthdateMax] = $this->clientBirthdateBounds();
+
         $rules = [
-            'name' => 'required|string|max:255',
-            'phone' => ['required', 'string', 'max:20', 'regex:/^[0-9+()\s.\-]+$/', $this->duplicateClientRule('phone', 'رقم الجوال')],
-            'email' => ['nullable', 'email', 'max:255', $this->duplicateClientRule('email', 'البريد الإلكتروني')],
+            'name' => ['required', 'string', 'max:150', 'regex:' . $nameRegex],
+            // رقم جوال سعودي: 9 أرقام بالضبط تبدأ بالرقم 5
+            'phone' => ['required', 'string', 'regex:/^5\d{8}$/', $this->duplicateClientRule('phone', 'رقم الجوال')],
+            'email' => ['nullable', 'email', 'max:100', 'regex:/^[\x21-\x7E]+$/', $this->duplicateClientRule('email', 'البريد الإلكتروني')],
             'client_category_id' => 'nullable|exists:fn_client_categories,id',
             'client_type' => 'required|string|in:person,company',
             'nationality_id' => 'nullable|exists:countries,id',
-            'national_num' => ['nullable', 'required_if:client_type,person', 'string', 'max:50', $this->duplicateClientRule('national_num', 'رقم الهوية أو الإقامة')],
-            'tax_number' => ['nullable', 'required_if:client_type,company', 'string', 'max:50', $this->duplicateClientRule('tax_number', 'الرقم الضريبي')],
-            'license_number' => 'nullable|required_if:client_type,company|string|max:100',
-            'birthdate' => 'nullable|date',
+            'national_num' => ['nullable', 'required_if:client_type,person', 'string', 'regex:/^\d{10}$/', $this->duplicateClientRule('national_num', 'رقم الهوية أو الإقامة')],
+            // الرقم الضريبي: 15 رقماً يبدأ بـ 3، ولا يتكرر لأكثر من عميل
+            'tax_number' => ['nullable', 'required_if:client_type,company', 'string', 'regex:/^3\d{14}$/', $this->duplicateClientRule('tax_number', 'الرقم الضريبي')],
+            // الترخيص / السجل التجاري: 10 أرقام
+            'license_number' => ['nullable', 'required_if:client_type,company', 'string', 'regex:/^\d{10}$/'],
+            // تاريخ انتهاء الترخيص: يُقبل المنتهي ويظهر للعميل بادج "ترخيص منتهي"
+            'license_expiry_date' => 'nullable|required_if:client_type,company|date_format:Y-m-d|after_or_equal:1900-01-01|before_or_equal:2100-12-31',
+            'birthdate' => ['nullable', 'date_format:Y-m-d', 'after_or_equal:' . $birthdateMin, 'before_or_equal:' . $birthdateMax],
             'marital_status' => 'nullable|string|in:single,married,divorced,widowed',
-            'phone2' => ['nullable', 'string', 'max:20', 'regex:/^[0-9+()\s.\-]+$/'],
+            'phone2_code' => ['nullable', 'string', 'in:' . implode(',', array_keys(self::PHONE2_COUNTRY_CODES))],
+            'phone2' => ['nullable', 'string', 'regex:' . $phone2Regex],
             'address' => 'nullable|string|max:255',
             'city' => 'nullable|string|max:100',
-            'rooms_num' => 'nullable|integer|min:0',
-            'family_num' => 'nullable|integer|min:0',
-            'children' => 'nullable|integer|min:0',
-            'job' => 'nullable|string|max:100',
-            'full_name_en' => 'nullable|string|max:255',
-            'identity_date' => 'nullable|string|max:50',
-            'identity_type' => 'nullable|string|max:100',
+            'rooms_num' => 'nullable|integer|min:0|max:' . self::MAX_ROOMS_NUM,
+            'family_num' => 'nullable|integer|min:0|max:' . self::MAX_FAMILY_NUM,
+            'children' => 'nullable|integer|min:0|max:' . self::MAX_CHILDREN,
+            'job' => ['nullable', 'string', 'max:100', 'regex:/^[\p{L}\p{M} ]+$/u'],
+            'full_name_en' => ['nullable', 'string', 'max:150', 'regex:/^[A-Za-z ]+$/'],
+            'identity_date' => 'nullable|date_format:Y-m-d|after_or_equal:1900-01-01|before_or_equal:2100-12-31',
+            'identity_type' => 'nullable|string|max:50',
             'residence_expiry_date' => 'nullable|date',
-            'workplace' => 'nullable|string|max:255',
-            'po_box' => 'nullable|string|max:50',
-            'postal_code' => 'nullable|string|max:50',
+            'workplace' => 'nullable|string|max:150',
+            'po_box' => 'nullable|string|max:20',
+            'postal_code' => 'nullable|string|max:10',
             'notes' => 'nullable|string|max:5000'
         ];
 
@@ -651,20 +724,73 @@ class UserController extends Controller
         }
 
         $data = $request->validate($rules, [
-            'phone.regex' => __('ingaz.client_phone_invalid_format'),
-            'phone2.regex' => __('ingaz.client_phone_digits_only'),
+            'name.regex' => __('ingaz.client_name_invalid_chars'),
+            'name.max' => __('ingaz.client_field_max_length', ['max' => 150]),
+            'phone.regex' => __('ingaz.client_phone_saudi_mobile_format'),
+            'phone2.regex' => $phone2Code === '+966'
+                ? __('ingaz.client_phone2_saudi_format')
+                : __('ingaz.client_phone2_international_format'),
+            'phone2_code.in' => __('ingaz.client_phone2_code_invalid'),
+            'email.regex' => __('ingaz.client_email_english_only'),
+            'email.max' => __('ingaz.client_field_max_length', ['max' => 100]),
+            'national_num.regex' => __('ingaz.client_national_num_digits'),
             'national_num.required' => __('ingaz.client_national_num_required'),
             'national_num.required_if' => __('ingaz.client_national_num_required'),
             'national_num.unique' => __('ingaz.client_national_num_already_exists'),
             'tax_number.required_if' => __('ingaz.client_tax_number_required'),
             'tax_number.unique' => __('ingaz.client_tax_number_already_exists'),
+            'tax_number.regex' => __('ingaz.client_tax_number_format'),
             'license_number.required_if' => __('ingaz.client_license_number_required'),
+            'license_number.regex' => __('ingaz.client_license_number_format'),
+            'license_expiry_date.required_if' => __('ingaz.client_license_expiry_date_required'),
+            'license_expiry_date.date_format' => __('ingaz.client_license_expiry_date_invalid'),
+            'license_expiry_date.after_or_equal' => __('ingaz.client_license_expiry_date_invalid'),
+            'license_expiry_date.before_or_equal' => __('ingaz.client_license_expiry_date_invalid'),
+            'birthdate.date_format' => __('ingaz.client_birthdate_invalid'),
+            'birthdate.after_or_equal' => __('ingaz.client_birthdate_range', ['min' => self::CLIENT_MIN_AGE, 'max' => self::CLIENT_MAX_AGE]),
+            'birthdate.before_or_equal' => __('ingaz.client_birthdate_range', ['min' => self::CLIENT_MIN_AGE, 'max' => self::CLIENT_MAX_AGE]),
             'marital_status.required' => __('ingaz.marital_status_required'),
             'marital_status.required_if' => __('ingaz.marital_status_required'),
             'marital_status.in' => 'الحالة الاجتماعية المختارة غير صحيحة',
+            'rooms_num.integer' => __('ingaz.client_rooms_num_integer'),
+            'rooms_num.min' => __('ingaz.client_rooms_num_min'),
+            'rooms_num.max' => __('ingaz.client_number_max', ['max' => self::MAX_ROOMS_NUM]),
+            'family_num.integer' => __('ingaz.client_family_num_integer'),
+            'family_num.min' => __('ingaz.client_family_num_min'),
+            'family_num.max' => __('ingaz.client_number_max', ['max' => self::MAX_FAMILY_NUM]),
+            'children.integer' => __('ingaz.client_children_integer'),
+            'children.min' => __('ingaz.client_children_min'),
+            'children.max' => __('ingaz.client_number_max', ['max' => self::MAX_CHILDREN]),
+            'job.regex' => __('ingaz.client_job_letters_only'),
+            'job.max' => __('ingaz.client_field_max_length', ['max' => 100]),
+            'full_name_en.regex' => __('ingaz.client_full_name_en_english_only'),
+            'full_name_en.max' => __('ingaz.client_field_max_length', ['max' => 150]),
+            'identity_date.date_format' => __('ingaz.client_identity_date_invalid'),
+            'identity_date.after_or_equal' => __('ingaz.client_identity_date_invalid'),
+            'identity_date.before_or_equal' => __('ingaz.client_identity_date_invalid'),
+            'identity_type.max' => __('ingaz.client_field_max_length', ['max' => 50]),
+            'workplace.max' => __('ingaz.client_field_max_length', ['max' => 150]),
+            'address.max' => __('ingaz.client_field_max_length', ['max' => 255]),
+            'po_box.max' => __('ingaz.client_field_max_length', ['max' => 20]),
+            'postal_code.max' => __('ingaz.client_field_max_length', ['max' => 10]),
+            'notes.max' => __('ingaz.client_field_max_length', ['max' => 5000]),
         ]);
 
         $data = $this->clearResidenceExpiryForSaudi($data);
+
+        // حقول الأسرة لا تُحفظ لغير المتزوج/المطلق/الأرمل (مخفية في الواجهة)
+        if (! in_array($data['marital_status'] ?? null, self::FAMILY_MARITAL_STATUSES, true)) {
+            $data['rooms_num'] = null;
+            $data['family_num'] = null;
+            $data['children'] = null;
+        }
+
+        // لا يوجد عمود لمفتاح الجوال الآخر: السعودي يُحفظ 9 أرقام مثل الجوال الأساسي،
+        // وغير السعودي يُحفظ مع مفتاح الدولة (+20xxxxxxxxxx)
+        if (! empty($data['phone2']) && $phone2Code !== '+966') {
+            $data['phone2'] = $phone2Code . $data['phone2'];
+        }
+        unset($data['phone2_code']);
 
         $normalizedPhone = $this->normalizeSaudiPhone($data['phone']);
 
@@ -695,6 +821,13 @@ class UserController extends Controller
         $data['is_blocked'] = 0;
         $data['created_by'] = Auth::guard('admin')->id() ?: Auth::id();
         $data = $this->normalizeClientTypeData($data);
+
+        // تاريخ انتهاء الإقامة يخص الأفراد فقط، والحقل مخفي للشركات
+        if ($data['client_type'] === 'company') {
+            $data['residence_expiry_date'] = null;
+        } else {
+            $data['license_expiry_date'] = null;
+        }
 
         if ($this->branchesEnabled()) {
             if ($this->canViewAllClientBranches()) {
@@ -783,6 +916,38 @@ class UserController extends Controller
         }
 
         return $data;
+    }
+
+    /**
+     * نطاق تاريخ الميلاد المقبول: عمر العميل بين CLIENT_MIN_AGE و CLIENT_MAX_AGE سنة.
+     *
+     * @return array{0: string, 1: string} [أقدم تاريخ, أحدث تاريخ] بصيغة Y-m-d
+     */
+    private function clientBirthdateBounds(): array
+    {
+        return [
+            now()->subYears(self::CLIENT_MAX_AGE)->toDateString(),
+            now()->subYears(self::CLIENT_MIN_AGE)->toDateString(),
+        ];
+    }
+
+    /**
+     * يحوّل الأرقام العربية/الفارسية إلى أرقام إنجليزية ويزيل المسافات الطرفية
+     * قبل التحقق، حتى لا يُرفض رقم صحيح كُتب بلوحة مفاتيح عربية.
+     */
+    private function normalizeClientDigitsInput(array $input): array
+    {
+        $map = [
+            '٠' => '0', '١' => '1', '٢' => '2', '٣' => '3', '٤' => '4',
+            '٥' => '5', '٦' => '6', '٧' => '7', '٨' => '8', '٩' => '9',
+            '۰' => '0', '۱' => '1', '۲' => '2', '۳' => '3', '۴' => '4',
+            '۵' => '5', '۶' => '6', '۷' => '7', '۸' => '8', '۹' => '9',
+        ];
+
+        return array_map(
+            fn ($value) => is_string($value) ? trim(strtr($value, $map)) : $value,
+            $input
+        );
     }
 
     private function normalizeSaudiPhone(string $phone): ?string
@@ -1734,10 +1899,8 @@ class UserController extends Controller
                 }
             </style>
             <script>
+                // الطباعة تتم بزر "طباعة" فقط، ولا تُفتح تلقائياً عند فتح الصفحة
                 function printDocument() {
-                    window.print();
-                }
-                window.onload = function() {
                     window.print();
                 }
             </script>
@@ -1888,10 +2051,8 @@ class UserController extends Controller
                 }
             </style>
             <script>
+                // الطباعة تتم بزر "طباعة" فقط، ولا تُفتح تلقائياً عند فتح الصفحة
                 function printDocument() {
-                    window.print();
-                }
-                window.onload = function() {
                     window.print();
                 }
             </script>

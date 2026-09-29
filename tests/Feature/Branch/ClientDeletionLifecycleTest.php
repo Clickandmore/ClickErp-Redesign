@@ -115,9 +115,9 @@ class ClientDeletionLifecycleTest extends TestCase
     public function test_duplicate_creation_explains_all_matching_fields_and_deleted_client(): void
     {
         $client = $this->client();
-        $client->update(['email' => 'lifecycle-' . $client->id . '@example.test', 'national_num' => 'LC-' . $client->id]);
+        $client->update(['email' => 'lifecycle-' . $client->id . '@example.test', 'national_num' => '2' . str_pad((string) ($client->id % 1000000000), 9, '0', STR_PAD_LEFT)]);
         $this->deleteJson(route('clients.destroy', $client->id))->assertOk();
-        $response = $this->postJson(route('clients.store'), ['name' => 'Duplicate client', 'phone' => '0' . $client->phone, 'email' => $client->email, 'national_num' => $client->national_num, 'client_type' => 'person']);
+        $response = $this->postJson(route('clients.store'), ['name' => 'Duplicate client', 'phone' => $client->phone, 'email' => $client->email, 'national_num' => $client->national_num, 'client_type' => 'person']);
         $response->assertUnprocessable()->assertJsonValidationErrors(['phone', 'email', 'national_num']);
         $this->assertStringContainsString('العميل محذوف', $response->json('errors.phone.0'));
     }

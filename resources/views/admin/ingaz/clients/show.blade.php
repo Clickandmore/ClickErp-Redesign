@@ -182,6 +182,12 @@
                                 <i class="fas {{ $client->is_blocked ? 'fa-user-slash' : 'fa-user-check' }} me-1"></i>
                                 {{ $client->is_blocked ? helperTrans('ingaz.blocked') : helperTrans('ingaz.active') }}
                             </span>
+                            @if ($client->isLicenseExpired())
+                                <span class="client-status-badge bg-danger text-white"
+                                      title="{{ helperTrans('ingaz.license_expiry_date') }}: {{ $client->license_expiry_date->format('Y-m-d') }}">
+                                    <i class="fas fa-exclamation-triangle me-1"></i>{{ helperTrans('ingaz.license_expired') }}
+                                </span>
+                            @endif
                         </div>
                         <div class="d-flex flex-wrap align-items-center gap-3 text-muted small">
                             <span><i class="fas fa-hashtag me-1"></i>رقم العميل:
@@ -338,6 +344,19 @@
                                         <div class="label">{{ helperTrans('ingaz.license_number') }}</div>
                                         <div class="value">
                                             {{ $client->license_number ?? helperTrans('ingaz.not_specified') }}</div>
+                                    </div>
+                                    <div class="info-item">
+                                        <div class="label">{{ helperTrans('ingaz.license_expiry_date') }}</div>
+                                        <div class="value">
+                                            @if ($client->license_expiry_date)
+                                                <span dir="ltr">{{ $client->license_expiry_date->format('Y-m-d') }}</span>
+                                                @if ($client->isLicenseExpired())
+                                                    <span class="badge bg-danger ms-1">{{ helperTrans('ingaz.license_expired') }}</span>
+                                                @endif
+                                            @else
+                                                {{ helperTrans('ingaz.not_specified') }}
+                                            @endif
+                                        </div>
                                     </div>
                                 @endif
                                 <div class="info-item">
