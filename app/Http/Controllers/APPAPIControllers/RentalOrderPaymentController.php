@@ -62,6 +62,8 @@ class RentalOrderPaymentController extends Controller
             if (in_array($payment->status, [
                 RentalOrderPayment::STATUS_CREATING,
                 RentalOrderPayment::STATUS_PENDING,
+                RentalOrderPayment::STATUS_PAID,
+                RentalOrderPayment::STATUS_PARTIALLY_REFUNDED,
             ], true)) {
                 $payment = $paymentService->synchronize($payment);
             }
@@ -113,49 +115,17 @@ class RentalOrderPaymentController extends Controller
             return $this->callbackView('failed', 'لم تكتمل عملية الدفع، يمكنك المحاولة مجدداً من التطبيق.');
         }
 
+        if (in_array($payment->status, ['refunded','partially_refunded'], true)) {
+            return $this->callbackView($payment->status,'المبلغ المسترد: '.number_format((float)$payment->refunded_amount,2).' ريال.');
+        }
         return $this->callbackView('pending', 'جاري التحقق من حالة الدفع...');
     }
 
-    public function webhook(
-        Request $request,
-        MoyasarService $moyasar,
-        RentalOrderPaymentService $paymentService
-    ) {
-        if (!$moyasar->verifyWebhookSignature(
-            $request->getContent(),
-            (string) $request->header('X-Moyasar-Signature', '')
-        )) {
-            return response()->json(['error' => 'Invalid signature'], 403);
-        }
-
-        $payload = (array) $request->input('data', []);
-        $invoiceId = (string) ($payload['invoice_id'] ?? data_get($payload, 'source.invoice_id', ''));
-        $metadataPaymentId = (int) data_get($payload, 'metadata.rental_order_payment_id', 0);
-
-        $payment = RentalOrderPayment::query()
-            ->where('provider', RentalOrderPayment::PROVIDER_MOYASAR)
-            ->when($metadataPaymentId > 0, fn ($query) => $query->whereKey($metadataPaymentId))
-            ->when($metadataPaymentId <= 0 && $invoiceId !== '', fn ($query) => $query->where('provider_invoice_id', $invoiceId))
-            ->first();
-
-        if (!$payment) {
-            return response()->json(['ok' => true]);
-        }
-
-        try {
-            $paymentService->applyProviderPayload($payment, $payload, $payload['id'] ?? null);
-        } catch (\Throwable $exception) {
-            Log::error('App rental order payment webhook failed', [
-                'payment_id' => $payment->id,
-                'message' => $exception->getMessage(),
-            ]);
-
-            return response()->json(['ok' => false], 500);
-        }
-
-        return response()->json(['ok' => true]);
+    public function webhook(Request $request, MoyasarService $moyasar, RentalOrderPaymentService $paymentService)
+    {
+        return app(\App\Http\Controllers\ingaz\MoyasarWebhookController::class)->webhook(
+            $request,$moyasar,app(\App\Services\MoyasarNotificationService::class));
     }
-
     private function ensureOrderOwner(Order $order): void
     {
         abort_unless((int) $order->user_id === (int) auth('api')->id(), 404);
@@ -169,6 +139,8 @@ class RentalOrderPaymentController extends Controller
             'status' => (string) $payment->status,
             'is_paid' => $payment->status === RentalOrderPayment::STATUS_PAID,
             'amount' => (string) $payment->amount,
+            'refunded_amount' => (string) ($payment->refunded_amount ?? '0.00'),
+            'net_paid_amount' => $payment->paid_at ? round((float)$payment->amount-(float)$payment->refunded_amount,2) : 0,
             'currency' => (string) $payment->currency,
             'payment_url' => $payment->payment_url,
             'paid_at' => optional($payment->paid_at)->toIso8601String(),

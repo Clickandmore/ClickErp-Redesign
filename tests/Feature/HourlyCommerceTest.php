@@ -22,6 +22,7 @@ class HourlyCommerceTest extends TestCase
         Schema::create('cities',function(Blueprint $t){$t->id();$t->string('name_ar');$t->boolean('is_active')->default(true);});
         Schema::create('user_addresses',function(Blueprint $t){$t->id();$t->unsignedBigInteger('user_id');$t->unsignedBigInteger('city_id');$t->text('address');$t->decimal('latitude',10,7)->nullable();$t->decimal('longitude',10,7)->nullable();$t->string('district')->nullable();$t->timestamps();});
         (require base_path('database/migrations/2026_09_16_000006_create_hourly_commerce_tables.php'))->up();
+        Schema::table('hourly_order_payments', fn (Blueprint $t) => $t->decimal('refunded_amount',12,2)->default(0));
         (require base_path('database/migrations/2026_09_17_000008_extend_hourly_service_items.php'))->up();
         DB::table('cities')->insert(['id'=>1,'name_ar'=>'الرياض']);
         DB::table('user_addresses')->insert(['id'=>1,'user_id'=>1,'city_id'=>1,'address'=>'العنوان الأول','latitude'=>24.7,'longitude'=>46.7]);
@@ -72,7 +73,7 @@ class HourlyCommerceTest extends TestCase
     {
         $o=$this->order('moyasar');$gateway=\Mockery::mock(HourlyMoyasarGateway::class);
         $gateway->shouldReceive('createPaymentLink')->once()->andReturn(['id'=>'invoice-1','url'=>'https://example.test/pay']);
-        $gateway->shouldReceive('getInvoice')->with('invoice-1')->once()->andReturn(['id'=>'invoice-1','status'=>'paid','amount'=>34500,'currency'=>'SAR']);
+        $gateway->shouldReceive('getInvoice')->with('invoice-1')->twice()->andReturn(['id'=>'invoice-1','status'=>'paid','amount'=>34500,'currency'=>'SAR']);
         $service=new HourlyPaymentService($gateway,app(HourlyOrderService::class));$p=$service->initiate($o);$this->assertSame($p->id,$service->initiate($o)->id);
         $p=$service->synchronize($p);$service->synchronize($p);$this->assertSame('active',$o->fresh()->status);$this->assertEquals(345,$o->fresh()->paid_amount);$this->assertSame(1,$o->payments()->count());
     }

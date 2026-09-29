@@ -36,7 +36,7 @@
             <div><button class="btn btn-success w-100"><i class="fa fa-receipt"></i> تسجيل التحصيل</button></div>
         </form>@endif
         <div class="table-responsive"><table class="hs-table"><thead><tr><th>المبلغ</th><th>الطريقة</th><th>الحالة</th><th>وقت الدفع</th><th>المستندات</th></tr></thead><tbody>
-        @forelse($order->payments as $payment)<tr><td><b class="hs-money">{{ number_format((float)$payment->amount,2) }} ر.س</b></td><td>{{ __('hourly.'.$payment->method) }}</td><td><span class="hs-badge">{{ __('hourly.'.$payment->status) }}</span></td><td><span class="hs-ltr">{{ optional($payment->paid_at)->format('Y-m-d H:i') ?: '—' }}</span></td><td>
+        @forelse($order->payments as $payment)<tr><td><b class="hs-money">{{ number_format((float)$payment->amount,2) }} ر.س</b></td><td>{{ __('hourly.'.$payment->method) }}</td><td><span class="hs-badge">{{ __('hourly.'.$payment->settlement_status) }}</span></td><td><span class="hs-ltr">{{ optional($payment->paid_at)->format('Y-m-d H:i') ?: '—' }}</span></td><td>
             @if($payment->status === 'paid' && (float) $payment->amount > 0)<a class="btn btn-sm btn-outline-primary" target="_blank" href="{{ route('admin.hourly-orders.receipt',[$order,$payment]) }}"><i class="fa fa-receipt"></i> سند قبض</a>@endif
             @if($payment->attachment_path)<a class="btn btn-sm btn-outline-secondary" href="{{ route('admin.hourly-orders.attachment',[$order,$payment]) }}"><i class="fa fa-paperclip"></i> المرفق</a>@endif
         </td></tr>@empty<tr><td colspan="5"><div class="hs-empty">لا توجد دفعات مسجلة.</div></td></tr>@endforelse

@@ -26,6 +26,7 @@ return [
     'cancelled_by_admin'=>'Cancelled by admin',
     'failed'=>'Failed',
     'refunded'=>'Refunded',
+    'partially_refunded'=>'Partially refunded',
     'cash'=>'Cash',
     'card_on_delivery'=>'Card on delivery',
     'bank_transfer'=>'Bank transfer',

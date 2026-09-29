@@ -1782,64 +1782,17 @@ class RentContractController extends Controller
     private function syncMoyasarPaymentStatusIfNeeded(RentalContract $contract): void
     {
         $info = $contract->info;
-
-        if (
-            !$info
-            || $info->payment_type !== 'moyasar'
-            || $info->payment_status === 'paid'
-            || empty($info->moyasar_payment_id)
-        ) {
-            return;
-        }
-
+        // Paid rows are updated by webhooks/reconciliation, not an API call for every list row.
+        if (!$info || $info->payment_type !== 'moyasar' || $info->payment_status === 'paid' || !$info->moyasar_payment_id) return;
         try {
-            $moyasar = app(MoyasarService::class);
-            $referenceId = (string) $info->moyasar_payment_id;
-            $invoice = $moyasar->getInvoice($referenceId);
-            $status = $invoice['status'] ?? $moyasar->verifyPaymentStatus($referenceId);
-
-            if ($status === 'paid') {
-                $contractValue = (float) $info->contract_value;
-                $paidAmount = $contractValue;
-
-                $info->update([
-                    'moyasar_payment_status' => 'paid',
-                    'moyasar_paid_at'        => now(),
-                    'payment_status'         => 'paid',
-                    'paid_amount'            => $paidAmount,
-                    'remaining_amount'       => 0,
-                    'payment_confirmed_at'   => now(),
-                ]);
-
-                $info->refresh();
-                $contract->setRelation('info', $info);
-
-                try {
-                    app(RentalContractFinanceService::class)->syncPaymentForContract($contract);
-                } catch (\Throwable $e) {
-                    Log::error('Moyasar: payment synced from contract index but finance sync failed', [
-                        'contract_id' => $contract->id,
-                        'message' => $e->getMessage(),
-                    ]);
-                }
-
-                return;
-            }
-
-            if (in_array($status, ['failed', 'expired', 'refunded'], true)) {
-                $info->update(['moyasar_payment_status' => $status]);
-                $info->refresh();
-                $contract->setRelation('info', $info);
-            }
+            $service = app(\App\Services\MoyasarContractPaymentService::class);
+            $payment = $service->resolve($info->moyasar_payment_id);
+            if ($payment) $service->synchronize($payment);
+            $contract->setRelation('info',$info->fresh());
         } catch (\Throwable $e) {
-            Log::warning('Moyasar: unable to sync payment status from contract index', [
-                'contract_id' => $contract->id,
-                'moyasar_payment_id' => $info->moyasar_payment_id,
-                'message' => $e->getMessage(),
-            ]);
+            Log::warning('Moyasar contract synchronization failed',['contract_id'=>$contract->id,'message'=>$e->getMessage()]);
         }
     }
-
     public function statistics(Request $request)
     {
         try {
@@ -4785,6 +4738,7 @@ class RentContractController extends Controller
             $createdNewLink = true;
         }
 
+        app(\App\Services\MoyasarContractPaymentService::class)->register($contract->info, $result['id'], $amount);
         // حفظ بيانات ميسر في قاعدة البيانات
         $moyasarUpdates = [
             'payment_type'            => 'moyasar',

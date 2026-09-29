@@ -55,7 +55,7 @@ class RentalOrderPaymentService
             $paidPayment = RentalOrderPayment::query()
                 ->where('order_id', $lockedOrder->id)
                 ->where('provider', RentalOrderPayment::PROVIDER_MOYASAR)
-                ->where('status', RentalOrderPayment::STATUS_PAID)
+                ->whereIn('status', [RentalOrderPayment::STATUS_PAID, RentalOrderPayment::STATUS_PARTIALLY_REFUNDED])
                 ->first();
 
             if ($paidPayment) {
@@ -128,107 +128,43 @@ class RentalOrderPaymentService
 
     public function synchronize(RentalOrderPayment $payment, ?string $providerPaymentId = null): RentalOrderPayment
     {
-        if ($payment->status === RentalOrderPayment::STATUS_PAID) {
-            return $payment;
-        }
-
-        $reference = $providerPaymentId ?: $payment->provider_invoice_id;
-        if (!$reference) {
-            return $payment;
-        }
-
-        $payload = $providerPaymentId
-            ? $this->moyasar->getPayment($providerPaymentId)
-            : $this->moyasar->getInvoice($reference);
-
-        if (!$payload) {
-            return $payment;
-        }
-
-        return $this->applyProviderPayload($payment, $payload, $providerPaymentId);
-    }
-
-    public function applyProviderPayload(
-        RentalOrderPayment $payment,
-        array $payload,
-        ?string $providerPaymentId = null
-    ): RentalOrderPayment {
-        $status = (string) ($payload['status'] ?? 'unknown');
-        $invoiceId = (string) ($payload['invoice_id'] ?? data_get($payload, 'source.invoice_id', ''));
-        $metadataPaymentId = (int) data_get($payload, 'metadata.rental_order_payment_id', 0);
-
-        if ($invoiceId !== '' && !hash_equals((string) $payment->provider_invoice_id, $invoiceId)) {
-            Log::warning('Moyasar rental order payment invoice mismatch', [
-                'payment_id' => $payment->id,
-                'expected_invoice_id' => $payment->provider_invoice_id,
-                'received_invoice_id' => $invoiceId,
-            ]);
-
-            return $payment;
-        }
-
-        if ($metadataPaymentId && $metadataPaymentId !== (int) $payment->id) {
-            return $payment;
-        }
-
-        if ($status === RentalOrderPayment::STATUS_PAID) {
-            $receivedAmount = array_key_exists('amount', $payload)
-                ? round(((float) $payload['amount']) / 100, 2)
-                : null;
-            $currency = strtoupper((string) ($payload['currency'] ?? $payment->currency));
-
-            if (($receivedAmount !== null && abs($receivedAmount - (float) $payment->amount) > 0.001)
-                || $currency !== $payment->currency) {
-                Log::warning('Moyasar rental order payment amount mismatch', [
-                    'payment_id' => $payment->id,
-                    'expected_amount' => $payment->amount,
-                    'received_amount' => $receivedAmount,
-                    'currency' => $currency,
-                ]);
-
-                return $payment;
+        if (!$payment->provider_invoice_id) return $payment;
+        $invoice = $this->moyasar->getInvoice($payment->provider_invoice_id);
+        if (!$invoice) throw new \RuntimeException('Unable to fetch Moyasar invoice.');
+        return DB::transaction(function () use ($payment, $invoice) {
+            $locked = RentalOrderPayment::query()->lockForUpdate()->findOrFail($payment->id);
+            $snapshot = \App\Support\MoyasarPaymentSnapshot::fromInvoice($invoice,
+                $locked->provider_invoice_id, (float) $locked->amount);
+            if (!$snapshot) {
+                if (!$locked->paid_at && in_array($invoice['status'] ?? '', ['failed', 'expired'], true)) {
+                    $locked->update(['status'=>$invoice['status'], 'provider_payload'=>$invoice]);
+                }
+                return $locked;
             }
-
-            return $this->markPaid($payment, $payload, $providerPaymentId ?: ($payload['id'] ?? null));
-        }
-
-        if (in_array($status, [
-            RentalOrderPayment::STATUS_FAILED,
-            RentalOrderPayment::STATUS_EXPIRED,
-            RentalOrderPayment::STATUS_REFUNDED,
-        ], true)) {
-            $payment->update([
-                'status' => $status,
-                'provider_payment_id' => $providerPaymentId ?: ($payload['id'] ?? $payment->provider_payment_id),
-                'provider_payload' => $payload,
-            ]);
-        }
-
-        return $payment->fresh();
-    }
-
-    private function markPaid(
-        RentalOrderPayment $payment,
-        array $payload,
-        ?string $providerPaymentId
-    ): RentalOrderPayment {
-        DB::transaction(function () use ($payment, $payload, $providerPaymentId) {
-            $lockedPayment = RentalOrderPayment::query()->lockForUpdate()->findOrFail($payment->id);
-
-            if ($lockedPayment->status !== RentalOrderPayment::STATUS_PAID) {
-                $lockedPayment->update([
-                    'status' => RentalOrderPayment::STATUS_PAID,
-                    'provider_payment_id' => $providerPaymentId,
-                    'provider_payload' => $payload,
-                    'paid_at' => now(),
-                ]);
-
-                Order::query()
-                    ->whereKey($lockedPayment->order_id)
-                    ->update(['payment_method' => RentalOrderPayment::PROVIDER_MOYASAR]);
+            if ($snapshot['id'] && $locked->provider_payment_id
+                && $locked->provider_payment_id !== $locked->provider_invoice_id
+                && $locked->provider_payment_id !== $snapshot['id']) {
+                throw new \RuntimeException('Moyasar payment reference mismatch.');
             }
+            $refunded = max((float) $locked->refunded_amount, $snapshot['refunded']);
+            $locked->update([
+                'status'=>$refunded > 0 ? ($refunded >= (float) $locked->amount ? 'refunded' : 'partially_refunded') : 'paid',
+                'refunded_amount'=>$refunded, 'provider_payload'=>$invoice,
+                'provider_payment_id'=>$snapshot['id'] ?: $locked->provider_payment_id,
+                'paid_at'=>$locked->paid_at ?: now(),
+            ]);
+            Order::query()->whereKey($locked->order_id)->update(['payment_method'=>RentalOrderPayment::PROVIDER_MOYASAR]);
+            return $locked;
         });
+    }
 
-        return $payment->fresh();
+    public function applyProviderPayload(RentalOrderPayment $payment, array $payload, ?string $providerPaymentId = null): RentalOrderPayment
+    {
+        $invoiceId = (string) ($payload['invoice_id'] ?? data_get($payload, 'source.invoice_id', ''));
+        if ($invoiceId !== '' && $invoiceId !== $payment->provider_invoice_id) return $payment;
+        if (isset($payload['amount']) && (float)$payload['amount'] !== (float)round($payment->amount*100)) return $payment;
+        if (isset($payload['currency']) && $payload['currency'] !== $payment->currency) return $payment;
+        // Notifications are hints, including delayed or duplicated refund events.
+        return $this->synchronize($payment);
     }
 }

@@ -26,6 +26,7 @@ return [
     'cancelled_by_admin'=>'ألغتها الإدارة',
     'failed'=>'فشلت',
     'refunded'=>'مستردة',
+    'partially_refunded'=>'مستردة جزئيًا',
     'cash'=>'نقدي',
     'card_on_delivery'=>'بطاقة عند التسليم',
     'bank_transfer'=>'تحويل بنكي',

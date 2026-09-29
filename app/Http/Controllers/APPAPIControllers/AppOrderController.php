@@ -235,6 +235,7 @@ class AppOrderController extends Controller
             'payment' => [
                 'status' => (string) ($order->latestMoyasarPayment?->status ?? 'not_started'),
                 'is_paid' => $order->latestMoyasarPayment?->status === \App\Models\RentalOrderPayment::STATUS_PAID,
+                'refunded_amount' => (float) ($order->latestMoyasarPayment?->refunded_amount ?? 0),
                 'payment_url' => $order->latestMoyasarPayment?->payment_url,
             ],
             'user' => [

@@ -13,6 +13,7 @@ class RentalContractInfo extends Model
     use HasFactory;
 
     protected $fillable = [
+        'moyasar_refunded_amount',
         'rental_contract_id',
         'package_id',
         'package_original_price',
@@ -69,6 +70,7 @@ class RentalContractInfo extends Model
     ];
 
     protected $casts = [
+        'moyasar_refunded_amount' => 'decimal:2',
         'package_id' => 'integer',
         'package_original_price' => 'decimal:2',
         'package_discount_amount' => 'decimal:2',

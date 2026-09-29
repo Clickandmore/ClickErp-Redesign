@@ -222,7 +222,7 @@ class HourlyCustomerApiTest extends TestCase
         $model=HourlyRentalOrder::findOrFail($order['id']);
         $payment=$model->payments()->create(['user_id'=>1,'public_id'=>(string)\Illuminate\Support\Str::uuid(),'method'=>'moyasar','provider'=>'moyasar','provider_reference'=>'invoice-callback','amount'=>720,'status'=>'pending']);
         $gateway=\Mockery::mock(HourlyMoyasarGateway::class);
-        $gateway->shouldReceive('getInvoice')->with('invoice-callback')->once()->andReturn(['id'=>'invoice-callback','status'=>'paid','amount'=>72000,'currency'=>'SAR']);
+        $gateway->shouldReceive('getInvoice')->with('invoice-callback')->twice()->andReturn(['id'=>'invoice-callback','status'=>'paid','amount'=>72000,'currency'=>'SAR']);
         $this->app->instance(HourlyMoyasarGateway::class,$gateway);
         $this->postJson('/api/app/hourly/payments/moyasar/webhook',['id'=>'invoice-callback','status'=>'paid'])->assertOk();
         $this->postJson('/api/app/hourly/payments/moyasar/webhook',['data'=>['invoice_id'=>'invoice-callback','id'=>'payment-id']])->assertOk();
@@ -366,4 +366,28 @@ class HourlyCustomerApiTest extends TestCase
         $this->getJson('/api/app/hourly/orders/'.$order['id'])->assertOk()
             ->assertJsonPath('data.visits.0.status','cancelled_by_admin')->assertJsonPath('data.visits.0.display_status','cancelled');
     }
+    public function test_refund_webhook_updates_balance_even_when_hourly_bookings_are_disabled(): void
+    {
+        [,,$payload]=$this->checkout();
+        $order=$this->postJson('/api/app/hourly/orders',$payload)->assertCreated()->json('data');
+        $model=HourlyRentalOrder::findOrFail($order['id']);
+        $payment=$model->payments()->create(['user_id'=>1,'public_id'=>(string)\Illuminate\Support\Str::uuid(),'method'=>'moyasar','provider'=>'moyasar','provider_reference'=>'invoice-refund','amount'=>720,'status'=>'pending']);
+        $gateway=\Mockery::mock(HourlyMoyasarGateway::class);
+        $invoice=fn($refund)=>['id'=>'invoice-refund','status'=>'paid','amount'=>72000,'currency'=>'SAR',
+            'payments'=>[['id'=>'payment-refund','status'=>$refund ? 'refunded' : 'paid','amount'=>72000,'currency'=>'SAR','refunded'=>$refund]]];
+        $gateway->shouldReceive('getInvoice')->with('invoice-refund')->andReturn($invoice(0),$invoice(12000),$invoice(12000),$invoice(72000));
+        $this->app->instance(HourlyMoyasarGateway::class,$gateway);
+        $url='/api/app/hourly/payments/moyasar/webhook';
+        $event=['data'=>['invoice_id'=>'invoice-refund']];
+        $this->postJson($url,$event)->assertOk();
+        $this->postJson($url,$event)->assertOk();
+        $this->getJson('/api/app/hourly/orders/'.$model->id.'/payments/moyasar')->assertOk()
+            ->assertJsonPath('data.status','partially_refunded')->assertJsonPath('data.refunded_amount','120.00');
+        HourlyRentalSettings::persist(['is_enabled'=>false]);
+        $this->postJson($url,$event)->assertOk();
+        $this->assertEquals(0,$model->fresh()->paid_amount);
+        $this->assertSame('refunded',$model->fresh()->payment_status);
+        $this->assertEquals(3,$model->payments()->count());
+    }
+
 }

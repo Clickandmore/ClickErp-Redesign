@@ -463,11 +463,11 @@
                         <thead><tr><th>المبلغ</th><th>الطريقة</th><th>الحالة</th><th>التاريخ</th><th>المستندات</th></tr></thead>
                         <tbody>
                         @forelse($order->payments as $payment)
-                            @php [$rowClass, $rowIcon] = $statusTone($payment->status); @endphp
+                            @php [$rowClass, $rowIcon] = $statusTone($payment->settlement_status); @endphp
                             <tr>
                                 <td><b class="om-num">{{ $money($payment->amount) }}</b></td>
                                 <td>{{ __('hourly.'.$payment->method) }}</td>
-                                <td><span class="om-badge {{ $rowClass }}"><i class="fa {{ $rowIcon }}"></i> {{ __('hourly.'.$payment->status) }}</span></td>
+                                <td><span class="om-badge {{ $rowClass }}"><i class="fa {{ $rowIcon }}"></i> {{ __('hourly.'.$payment->settlement_status) }}</span></td>
                                 <td class="om-ltr om-num">{{ optional($payment->paid_at)->format('Y-m-d H:i') ?: '—' }}</td>
                                 <td>
                                     @if($payment->method === 'bank_transfer')

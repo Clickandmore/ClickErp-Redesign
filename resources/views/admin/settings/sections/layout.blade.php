@@ -105,6 +105,11 @@
                     <a class="nav-link {{ $activeSection === 'seo' ? 'active' : '' }}" href="{{ route('settings.section', 'seo') }}">
                         <span class="fw-semibold">{{ __('admin.settings_section_seo') }}</span>
                     </a>
+                    @if (@AdminGuardHasPerm(\App\PermKeys::SETTINGS_VIEW) || @AdminGuardHasPerm(\App\PermKeys::WEBSITE_SETTINGS_CONTROL))
+                        <a class="nav-link {{ $activeSection === 'site-cache' ? 'active' : '' }}" href="{{ route('settings.site-cache.edit') }}">
+                            <span class="fw-semibold">كاش المواقع الخارجية</span>
+                        </a>
+                    @endif
                     @if (@AdminGuardHasPerm(\App\PermKeys::SETTINGS_VIEW))
                     <a class="nav-link {{ $activeSection === 'zoho' ? 'active' : '' }}" href="{{ route('dash.settings.zoho') }}">
                         <span class="fw-semibold">إعدادات Zoho SalesIQ</span>
@@ -128,7 +133,7 @@
                                 default => \App\PermKeys::SETTINGS_VIEW,
                             };
                         @endphp
-                        @if (@AdminGuardHasPerm($sectionPermission) || (\App\Support\WebsiteSettingsAccess::isWebsiteSection($activeSection) && @AdminGuardHasPerm(\App\PermKeys::WEBSITE_SETTINGS_CONTROL)))
+                        @if (@AdminGuardHasPerm($sectionPermission) || ((\App\Support\WebsiteSettingsAccess::isWebsiteSection($activeSection) || $activeSection === 'site-cache') && @AdminGuardHasPerm(\App\PermKeys::WEBSITE_SETTINGS_CONTROL)))
                             <div class="d-flex flex-wrap align-items-center justify-content-between mb-3">
                                 <div>
                                     <h5 class="mb-1">@yield('settings-title')</h5>

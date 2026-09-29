@@ -23,7 +23,7 @@
             <div class="item"><small>طريقة الدفع</small><b>{{ __('hourly.'.$payment->method) }}</b></div>
             <div class="item"><small>تاريخ ووقت الدفع</small><b class="ltr">{{ optional($payment->paid_at)->format('Y-m-d H:i') ?: '—' }}</b></div>
             <div class="item"><small>مستلم الدفعة</small><b>{{ $collector ?: ($payment->provider === 'moyasar' ? 'بوابة ميسر' : 'النظام') }}</b></div>
-            <div class="item"><small>حالة الدفعة</small><b>{{ __('hourly.'.$payment->status) }}</b></div>
+            <div class="item"><small>حالة الدفعة</small><b>{{ __('hourly.'.$payment->settlement_status) }}</b></div>
             <div class="item"><small>الخدمة</small><b>{{ $order->serviceCategory?->name ?: 'خدمات الساعات' }}</b></div>
         </div>
         @php $payload = $payment->provider_payload ?? []; @endphp
