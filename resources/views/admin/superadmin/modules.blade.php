@@ -595,17 +595,16 @@
                 <p class="panel-subtitle">استيراد القاعدة وإدارة النسخ المحلية وإعدادات التخزين.</p>
             </div>
             <div class="backup-actions">
-                @if ($r2Ready)
-                    <form method="POST" action="{{ route('dev-superadmin.database-backups.download-current') }}">
-                        @csrf
-                        <button class="btn btn-primary" type="submit">تنزيل نسخة جديدة</button>
-                    </form>
-                    <form method="POST" action="{{ route('dev-superadmin.database-backups.create') }}">
-                        @csrf
-                        <button class="btn" type="submit">إنشاء نسخة</button>
-                    </form>
-                @else
-                    <a class="btn" href="{{ route('storage.settings') }}">إعدادات التخزين</a>
+                <form method="POST" action="{{ route('dev-superadmin.database-backups.download-current') }}">
+                    @csrf
+                    <button class="btn btn-primary" type="submit">تنزيل نسخة جديدة</button>
+                </form>
+                <form method="POST" action="{{ route('dev-superadmin.database-backups.create') }}">
+                    @csrf
+                    <button class="btn" type="submit">{{ $r2Ready ? 'إنشاء نسخة في R2' : 'إنشاء نسخة محلية' }}</button>
+                </form>
+                @if (!$r2Ready)
+                    <a class="btn" href="{{ route('storage.settings') }}">إعدادات R2</a>
                 @endif
             </div>
         </div>
@@ -857,6 +856,7 @@
                                 <td class="cell-ltr">{{ \Carbon\Carbon::createFromTimestamp($backup['created_at'])->format('Y-m-d H:i:s') }}</td>
                                 <td class="cell-ltr">{{ number_format($backup["size"] / 1024 / 1024, 2) }} MB</td>
                                 <td>
+                                    <a class="btn btn-small" href="{{ route('dev-superadmin.database-backups.local.download', ['path' => $backup['path']]) }}">تنزيل</a>
                                     @if (str_starts_with($backup['filename'], 'clickerp-uploaded-'))
                                         <button class="btn btn-small copy-terminal-command" type="button" data-command="{{ $backup['terminal_command'] }}">نسخ أمر Terminal</button>
                                         <form class="verification-confirm" method="POST" action="{{ route('dev-superadmin.database-backups.local.destroy') }}" onsubmit="return confirm('سيُحذف ملف النسخة المحلية المرفوعة نهائيًا. هل تريد المتابعة؟')">

@@ -7,6 +7,7 @@ use App\Services\DatabaseBackupService;
 use App\Services\DatabaseBackupVerificationService;
 use App\Support\DatabaseBackupSettings;
 use App\Support\DevSuperAdminSecuritySettings;
+use App\Support\R2StorageSettings;
 use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
 use Symfony\Component\HttpFoundation\StreamedResponse;
@@ -66,10 +67,15 @@ class DevDatabaseBackupController extends Controller
     public function create(DatabaseBackupService $backups)
     {
         try {
-            $backup = $backups->create('manual');
-            $message = DatabaseBackupSettings::all()['local_enabled']
-                ? 'تم إنشاء النسخة في R2 وعلى السيرفر: '
-                : 'تم إنشاء النسخة في R2: ';
+            if (R2StorageSettings::isReady()) {
+                $backup = $backups->create('manual');
+                $message = DatabaseBackupSettings::all()['local_enabled']
+                    ? 'تم إنشاء النسخة في R2 وعلى السيرفر: '
+                    : 'تم إنشاء النسخة في R2: ';
+            } else {
+                $backup = $backups->createLocal('manual');
+                $message = 'تم إنشاء النسخة محليًا على السيرفر: ';
+            }
 
             return back()->with('success', $message . $backup['filename']);
         } catch (\Throwable $exception) {
@@ -81,7 +87,7 @@ class DevDatabaseBackupController extends Controller
     public function downloadCurrent(DatabaseBackupService $backups)
     {
         try {
-            $backup = $backups->create('manual');
+            $backup = $backups->createLocal('manual');
         } catch (\Throwable $exception) {
             report($exception);
 
@@ -89,10 +95,26 @@ class DevDatabaseBackupController extends Controller
         }
 
         return response()->streamDownload(function () use ($backups, $backup): void {
-            $stream = $backups->readStream($backup['key']);
+            $stream = $backups->readLocalStream($backup['path']);
             fpassthru($stream);
             fclose($stream);
         }, $backup['filename'], [
+            'Content-Type' => 'application/gzip',
+            'X-Content-Type-Options' => 'nosniff',
+            'Cache-Control' => 'private, no-store',
+        ]);
+    }
+
+    public function downloadLocal(Request $request, DatabaseBackupService $backups): StreamedResponse
+    {
+        $path = (string) $request->query('path');
+        $filename = basename($path);
+
+        return response()->streamDownload(function () use ($backups, $path): void {
+            $stream = $backups->readLocalStream($path);
+            fpassthru($stream);
+            fclose($stream);
+        }, $filename, [
             'Content-Type' => 'application/gzip',
             'X-Content-Type-Options' => 'nosniff',
             'Cache-Control' => 'private, no-store',

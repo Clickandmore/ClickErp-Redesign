@@ -857,6 +857,7 @@ Route::group(
                 Route::put('database-backups/security', [DevSuperAdminController::class, 'updateSecurity'])->name('database-backups.security');
                 Route::post('database-backups', [DevDatabaseBackupController::class, 'create'])->name('database-backups.create');
                 Route::post('database-backups/download-current', [DevDatabaseBackupController::class, 'downloadCurrent'])->name('database-backups.download-current');
+                Route::get('database-backups/local/download', [DevDatabaseBackupController::class, 'downloadLocal'])->name('database-backups.local.download');
                 Route::get('database-backups/download', [DevDatabaseBackupController::class, 'download'])->name('database-backups.download');
                 Route::post('database-backups/verification-code', [DevDatabaseBackupController::class, 'requestVerificationCode'])->name('database-backups.verification-code');
                 Route::post('database-backups/restore', [DevDatabaseBackupController::class, 'restore'])->name('database-backups.restore');

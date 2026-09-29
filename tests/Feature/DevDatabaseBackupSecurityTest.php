@@ -5,10 +5,12 @@ namespace Tests\Feature;
 use App\Services\DatabaseBackupService;
 use App\Services\DatabaseBackupVerificationService;
 use App\Support\DevSuperAdminSecuritySettings;
+use App\Support\R2StorageSettings;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
 use Mockery;
 use ReflectionMethod;
+use ReflectionProperty;
 use Tests\TestCase;
 
 class DevDatabaseBackupSecurityTest extends TestCase
@@ -28,8 +30,108 @@ class DevDatabaseBackupSecurityTest extends TestCase
 
     protected function tearDown(): void
     {
+        $this->setR2SettingsCache(null);
         DevSuperAdminSecuritySettings::resetCache();
         parent::tearDown();
+    }
+
+    public function test_manual_create_falls_back_to_a_local_backup_when_r2_is_not_ready(): void
+    {
+        $this->setR2SettingsCache([
+            'enabled' => false,
+            'verified_at' => null,
+            'endpoint' => '',
+            'bucket' => '',
+            'access_key_id' => '',
+            'secret_access_key' => '',
+        ]);
+
+        $backups = Mockery::mock(DatabaseBackupService::class);
+        $backups->shouldNotReceive('create');
+        $backups->shouldReceive('createLocal')->once()->with('manual')->andReturn([
+            'path' => 'database-backups/clickerp-manual-20260825-120000-abcdefgh.sql.gz',
+            'filename' => 'clickerp-manual-20260825-120000-abcdefgh.sql.gz',
+        ]);
+        $this->app->instance(DatabaseBackupService::class, $backups);
+
+        $response = $this->withSession(['dev_superadmin_authenticated' => true])
+            ->from(route('dev-superadmin.database-backups'))
+            ->post(route('dev-superadmin.database-backups.create'));
+
+        $response->assertRedirect(route('dev-superadmin.database-backups'));
+        $response->assertSessionHas('success', function (string $message): bool {
+            return str_contains($message, 'محليًا على السيرفر');
+        });
+    }
+
+    public function test_backup_page_shows_create_and_download_actions_without_r2(): void
+    {
+        $this->setR2SettingsCache([
+            'enabled' => false,
+            'verified_at' => null,
+            'endpoint' => '',
+            'bucket' => '',
+            'access_key_id' => '',
+            'secret_access_key' => '',
+        ]);
+
+        $backups = Mockery::mock(DatabaseBackupService::class);
+        $backups->shouldReceive('localBackups')->once()->andReturn([]);
+        $backups->shouldReceive('currentDatabaseDetails')->once()->andReturn([
+            'connected' => true,
+            'database' => 'rafdain_testing',
+            'connected_database' => 'rafdain_testing',
+        ]);
+        $backups->shouldReceive('localImportCommandPrefix')->once()->andReturn('php artisan database:import-local ');
+        $backups->shouldReceive('terminalShell')->once()->andReturn('terminal');
+        $backups->shouldReceive('emptyDatabaseCommand')->once()->andReturn('php artisan database:empty-configured');
+        $this->app->instance(DatabaseBackupService::class, $backups);
+
+        $response = $this->withSession(['dev_superadmin_authenticated' => true])
+            ->get(route('dev-superadmin.database-backups'));
+
+        $response->assertOk();
+        $response->assertSee('تنزيل نسخة جديدة');
+        $response->assertSee('إنشاء نسخة محلية');
+    }
+
+    public function test_local_backup_download_stays_behind_super_admin_authentication(): void
+    {
+        $this->get(route('dev-superadmin.database-backups.local.download', [
+            'path' => 'database-backups/clickerp-manual-20260825-120000-abcdefgh.sql.gz',
+        ]))->assertRedirect(route('superadmin.login'));
+    }
+
+    public function test_super_admin_can_download_an_existing_local_backup(): void
+    {
+        $path = 'database-backups/clickerp-manual-20260825-120000-abcdefgh.sql.gz';
+        $stream = fopen('php://temp', 'w+b');
+        fwrite($stream, 'backup-bytes');
+        rewind($stream);
+
+        $backups = Mockery::mock(DatabaseBackupService::class);
+        $backups->shouldReceive('readLocalStream')->once()->with($path)->andReturn($stream);
+        $this->app->instance(DatabaseBackupService::class, $backups);
+
+        $response = $this->withSession(['dev_superadmin_authenticated' => true])
+            ->get(route('dev-superadmin.database-backups.local.download', ['path' => $path]));
+
+        $response->assertOk();
+        $response->assertHeader('content-type', 'application/gzip');
+        ob_start();
+        $response->baseResponse->sendContent();
+        $contents = ob_get_clean();
+        $this->assertSame('backup-bytes', $contents);
+    }
+
+    public function test_local_backup_reader_rejects_directory_traversal(): void
+    {
+        $this->expectException(\RuntimeException::class);
+        $this->expectExceptionMessage('مسار النسخة المحلية غير صالح');
+
+        app(DatabaseBackupService::class)->readLocalStream(
+            'database-backups/../clickerp-manual-20260825-120000-abcdefgh.sql.gz'
+        );
     }
 
     public function test_restore_endpoint_cannot_be_called_without_a_verification_code(): void
@@ -260,6 +362,13 @@ class DevDatabaseBackupSecurityTest extends TestCase
         $this->assertSame(config('database.connections.' . config('database.default') . '.database'), $details['database']);
         $this->assertArrayHasKey('password_configured', $details);
         $this->assertArrayNotHasKey('password', $details);
+    }
+
+    private function setR2SettingsCache(?array $settings): void
+    {
+        $property = new ReflectionProperty(R2StorageSettings::class, 'cached');
+        $property->setAccessible(true);
+        $property->setValue(null, $settings);
     }
 
 }

@@ -17,6 +17,8 @@ class DatabaseBackupService
     private const FILE_PATTERN = '/^clickerp-(?:scheduled|manual|uploaded|pre-restore|pre-import)-\d{8}-\d{6}-[a-z0-9]{8}\.sql\.gz$/';
     private const LOCAL_DIRECTORY = 'database-backups';
 
+    private const R2_LIST_CACHE_SECONDS = 60;
+
     public function create(string $reason = 'manual'): array
     {
         $this->assertR2Ready();
@@ -53,6 +55,7 @@ class DatabaseBackupService
                     fclose($stream);
                 }
 
+                Cache::forget($this->backupListCacheKey());
                 $this->pruneR2();
 
                 return [
@@ -69,16 +72,75 @@ class DatabaseBackupService
         });
     }
 
+    /**
+     * Create a manual backup that remains on the application server.
+     *
+     * This is deliberately independent from R2 so a Super Admin can still
+     * take and download a recovery copy when remote storage is unavailable.
+     */
+    public function createLocal(string $reason = 'manual'): array
+    {
+        return Cache::lock('database-backup-operation', 7200)->block(5, function () use ($reason) {
+            $reason = in_array($reason, ['manual', 'pre-import', 'pre-restore'], true) ? $reason : 'manual';
+            $temporaryPath = tempnam(storage_path('app'), 'db-backup-local-');
+            if ($temporaryPath === false) {
+                throw new RuntimeException('تعذر إنشاء الملف المؤقت للنسخة الاحتياطية.');
+            }
+
+            $gzipPath = $temporaryPath . '.sql.gz';
+
+            try {
+                $this->dumpDatabase($gzipPath);
+                $filename = sprintf(
+                    'clickerp-%s-%s-%s.sql.gz',
+                    $reason,
+                    now()->format('Ymd-His'),
+                    Str::lower(Str::random(8))
+                );
+                $localPath = self::LOCAL_DIRECTORY . '/' . $filename;
+                $this->writeLocalCopy($gzipPath, $localPath);
+                $this->pruneLocal(true);
+
+                return [
+                    'path' => $localPath,
+                    'local_path' => $localPath,
+                    'filename' => $filename,
+                    'size' => filesize($gzipPath) ?: 0,
+                    'created_at' => now(),
+                ];
+            } finally {
+                @unlink($gzipPath);
+                @unlink($temporaryPath);
+            }
+        });
+    }
+
     public function backups(): array
     {
         if (!R2StorageSettings::isReady()) {
             return [];
         }
 
+        return Cache::remember(
+            $this->backupListCacheKey(),
+            self::R2_LIST_CACHE_SECONDS,
+            fn (): array => $this->readR2BackupList()
+        );
+    }
+
+    private function readR2BackupList(): array
+    {
         $disk = $this->disk();
         $items = [];
 
-        foreach ($disk->files($this->directory()) as $key) {
+        // Flysystem's S3/R2 listing already contains size and timestamp. Using
+        // those values avoids two extra network requests for every backup.
+        foreach ($disk->getDriver()->listContents($this->directory(), false) as $attributes) {
+            if (($attributes['type'] ?? null) !== 'file') {
+                continue;
+            }
+
+            $key = (string) ($attributes['path'] ?? '');
             $filename = basename($key);
             if (!preg_match(self::FILE_PATTERN, $filename)) {
                 continue;
@@ -87,8 +149,8 @@ class DatabaseBackupService
             $items[] = [
                 'key' => $key,
                 'filename' => $filename,
-                'size' => $disk->size($key),
-                'created_at' => $disk->lastModified($key),
+                'size' => (int) ($attributes['size'] ?? 0),
+                'created_at' => (int) ($attributes['timestamp'] ?? 0),
             ];
         }
 
@@ -294,7 +356,8 @@ class DatabaseBackupService
 
     public function readLocalStream(string $path)
     {
-        if (!Str::startsWith($path, self::LOCAL_DIRECTORY . '/') || !preg_match(self::FILE_PATTERN, basename($path))) {
+        $filename = basename($path);
+        if ($path !== self::LOCAL_DIRECTORY . '/' . $filename || !preg_match(self::FILE_PATTERN, $filename)) {
             throw new RuntimeException('مسار النسخة المحلية غير صالح.');
         }
 
@@ -616,6 +679,8 @@ class DatabaseBackupService
         if (!$this->disk()->delete($key)) {
             throw new RuntimeException('تعذر حذف النسخة الاحتياطية من R2.');
         }
+
+        Cache::forget($this->backupListCacheKey());
     }
 
     public function deleteLocalUploaded(string $path): void
@@ -1019,6 +1084,11 @@ REGEX;
             return;
         }
 
+        $this->writeLocalCopy($source, $path);
+    }
+
+    private function writeLocalCopy(string $source, string $path): void
+    {
         $stream = fopen($source, 'rb');
         if (!is_resource($stream)) {
             throw new RuntimeException('تعذرت قراءة النسخة لحفظها على السيرفر.');
@@ -1036,19 +1106,21 @@ REGEX;
     private function pruneR2(): void
     {
         $cutoff = now()->subDays(DatabaseBackupSettings::all()['retention_days'])->getTimestamp();
-        foreach ($this->backups() as $backup) {
+        foreach ($this->readR2BackupList() as $backup) {
             if ($backup['created_at'] < $cutoff) {
                 $this->disk()->delete($backup['key']);
             }
         }
+
+        Cache::forget($this->backupListCacheKey());
     }
 
-    private function pruneLocal(): void
+    private function pruneLocal(bool $force = false): void
     {
         $settings = DatabaseBackupSettings::all();
         $disk = Storage::disk('local');
 
-        if (!$settings['local_enabled']) {
+        if (!$force && !$settings['local_enabled']) {
             return;
         }
 
@@ -1072,6 +1144,11 @@ REGEX;
         if (!R2StorageSettings::isReady()) {
             throw new RuntimeException('يجب تفعيل R2 واختبار الاتصال بنجاح قبل استخدام النسخ الاحتياطي.');
         }
+    }
+
+    private function backupListCacheKey(): string
+    {
+        return 'database-backups.r2-list.' . sha1($this->directory());
     }
 
     private function disk()
