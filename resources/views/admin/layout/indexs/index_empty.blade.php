@@ -3,7 +3,7 @@
 <head>
 
     @include("admin.layout.inc._meta")
-    <title>@yield('page-title')</title>
+    <title>@hasSection('page-title') @yield('page-title') @else @yield('title', config('app.name')) @endif</title>
 
 
     @include("admin.layout.inc._css")

@@ -68,6 +68,19 @@ class RecruitmentController extends Controller
             ->paginate(20)
             ->withQueryString();
 
+        // البحث برقم جواز لعاملة موجودة لكنها لا تظهر: نوضح السبب بدل نتيجة فارغة.
+        $hiddenMatches = collect();
+        if ($passport_num && $available_maids->isEmpty()) {
+            $hiddenMatches = Maid::with(['jobTypes', 'translations'])
+                ->where('passport_num', 'like', '%' . $passport_num . '%')
+                ->limit(5)
+                ->get()
+                ->map(fn (Maid $maid) => [
+                    'maid' => $maid,
+                    'reasons' => $maid->internalRecruitmentBlockers(),
+                ]);
+        }
+
         // Get data for filters
         $nationalities = Nationality::all();
         $religions = Religion::all();
@@ -89,7 +102,8 @@ class RecruitmentController extends Controller
             'recruitmentJobType',
             'job_types',
             'employees',
-            'offices'
+            'offices',
+            'hiddenMatches'
         ));
     }
 

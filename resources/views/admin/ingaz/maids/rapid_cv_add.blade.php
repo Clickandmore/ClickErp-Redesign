@@ -80,7 +80,9 @@
                                     <label for="rapid_name" class="form-label">
                                         اسم العامل/ة ({{ helperTrans('ingaz.en') }})
                                     </label>
-                                    <input type="text" name="name:en" id="rapid_name" class="form-control"
+                                    <input type="text" name="name:en" id="rapid_name" class="form-control" dir="ltr"
+                                        lang="en" autocomplete="off"
+                                        maxlength="{{ \App\Support\MaidFieldRules::MAX_LENGTHS['name:en'] }}"
                                         placeholder="{{ helperTrans('ingaz.short_cv_optional_name_placeholder') }}">
                                     <small class="text-muted">{{ helperTrans('ingaz.short_cv_name_optional_hint') }}</small>
                                 </div>
@@ -145,15 +147,21 @@
                                         {{ helperTrans('ingaz.passport_num') }} <span class="text-danger">*</span>
                                     </label>
                                     <input type="text" name="passport_num" id="passport_num" class="form-control" required
-                                        autocomplete="off">
+                                        autocomplete="off" dir="ltr" placeholder="A-Z 0-9"
+                                        maxlength="{{ \App\Support\MaidFieldRules::PASSPORT_MAX_LENGTH }}">
                                     <div id="passport_num_feedback" class="invalid-feedback"></div>
                                 </div>
 
                                 <div class="col-12">
                                     <label for="cv_file" class="form-label">{{ helperTrans('ingaz.passport_file') }}</label>
                                     <input type="file" data-default-file="" name="cv_file" id="cv_file" class="dropify"
-                                        accept=".pdf,.jpg,.jpeg,.png">
-                                    <small class="text-muted">{{ helperTrans('ingaz.passport_file_optional_hint') }}</small>
+                                        accept=".pdf,.jpg,.jpeg,.png" data-allowed-file-extensions="pdf jpg jpeg png"
+                                        data-max-file-size="{{ \App\Support\MaidFieldRules::PASSPORT_FILE_MAX_KB / 1024 }}M">
+                                    <small class="text-muted d-block">{{ helperTrans('ingaz.passport_file_optional_hint') }}</small>
+                                    <small class="text-muted d-block">
+                                        الصيغ المسموحة: PDF وJPG وPNG — الحد الأقصى لحجم الملف
+                                        {{ \App\Support\MaidFieldRules::PASSPORT_FILE_MAX_KB / 1024 }} ميجابايت
+                                    </small>
                                 </div>
                             </div>
                         </div>
@@ -188,6 +196,14 @@
     <script src="{{ asset('admin') }}/assets/js/bundle/dropify.bundle.js"></script>
     <script src="{{ asset('admin') }}/assets/js/bundle/select2.bundle.js"></script>
     <script src="{{ asset('admin') }}/assets/js/bundle/sweetalert2.bundle.js"></script>
+    @include('admin.ingaz.maids.partials.field-rules', [
+        'fileRules' => [
+            'cv_file' => [
+                'extensions' => ['pdf', 'jpg', 'jpeg', 'png'],
+                'max_kb' => \App\Support\MaidFieldRules::PASSPORT_FILE_MAX_KB,
+            ],
+        ],
+    ])
     <script>
         $(document).ready(function() {
             const rapidCvTranslations = {
@@ -211,8 +227,9 @@
                 maidAddError: @json(helperTrans('ingaz.maid_add_error')),
                 create: @json(__('ingaz.create')),
             };
-            $('.dropify').dropify();
-            $('#Pnationality_id, #religion_id, #office_id, #job_id').select2({
+            $('.dropify').dropify(window.maidDropifyOptions || {});
+            // الجنسية تُهيَّأ للبحث في partials.field-rules
+            $('#religion_id, #office_id, #job_id').select2({
                 width: '100%',
                 dir: 'rtl'
             });
@@ -270,6 +287,14 @@
 
                 // If empty, don't check
                 if (!passportNum) {
+                    return;
+                }
+
+                // لا يُفحص التكرار ولا تظهر "متاح" لرقم بصيغة غير صحيحة
+                var passportFormatError = window.maidFieldRules.passportError(passportNum);
+                if (passportFormatError) {
+                    $(this).addClass('is-invalid');
+                    feedback.addClass('invalid-feedback').text(passportFormatError);
                     return;
                 }
 
@@ -396,13 +421,25 @@
                     errors.push(rapidCvTranslations.passportRequired);
                     isValid = false;
                 } else {
-                    // Check if passport number is already invalid (from real-time validation)
-                    if ($('input[name="passport_num"]').hasClass('is-invalid')) {
+                    var passportFormatError = window.maidFieldRules.passportError(passportNum);
+                    if (passportFormatError) {
+                        errors.push(passportFormatError);
+                        isValid = false;
+                    } else if ($('input[name="passport_num"]').hasClass('is-invalid')) {
+                        // Check if passport number is already invalid (from real-time validation)
                         errors.push(
                             rapidCvTranslations.passportDuplicateValidation);
                         isValid = false;
                     }
                 }
+
+                // صيغ الحقول (الاسم الإنجليزي...) — partials.field-rules
+                window.maidFieldRules.validateAll().forEach(function(message) {
+                    if (errors.indexOf(message) === -1) {
+                        errors.push(message);
+                    }
+                    isValid = false;
+                });
 
                 if (!isValid) {
                     Swal.fire({

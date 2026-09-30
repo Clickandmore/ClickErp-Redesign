@@ -3,6 +3,7 @@
 namespace App\Http\Requests;
 
 use App\Http\Requests\MainRequest;
+use App\Support\MaidFieldRules;
 use Illuminate\Validation\Rule;
 class StoreRapidCv extends MainRequest
 {
@@ -25,19 +26,20 @@ class StoreRapidCv extends MainRequest
     {
         return [
             'is_show' => 'sometimes|boolean',
-            'name:en' => 'nullable|string|max:255',
+            'name:en' => ['nullable', 'string', 'max:' . MaidFieldRules::MAX_LENGTHS['name:en'], 'regex:' . MaidFieldRules::LATIN_NAME_REGEX],
             'gender' => 'required|in:male,female',
             'nationality_id' => 'required|exists:nationalities,id',
             'religion_id' => 'required|exists:religions,id',
             'passport_num' => [
                 'required',
                 Rule::unique('maids')->ignore($this->route('maid')),
+                'regex:' . MaidFieldRules::PASSPORT_REGEX,
             ],
             'type_id' => 'required|exists:job_types,id',
             'job_id' => 'required|array|min:1',
             'job_id.*' => 'required|exists:job_titles,id',
             'office_id' => 'required|exists:recruitment_offices,id',
-            'cv_file' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:5120',
+            'cv_file' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:' . MaidFieldRules::PASSPORT_FILE_MAX_KB,
         ];
     }
 
@@ -45,7 +47,9 @@ class StoreRapidCv extends MainRequest
     {
         return [
             'name:en.string' => 'اسم العاملة يجب أن يكون نص',
-            'name:en.max' => 'اسم العاملة يجب أن لا يتجاوز 255 حرف',
+            'name:en.max' => 'اسم العاملة يجب ألا يتجاوز ' . MaidFieldRules::MAX_LENGTHS['name:en'] . ' حرفًا',
+            'name:en.regex' => 'اسم العاملة بالإنجليزية يقبل الحروف الإنجليزية والمسافات فقط، بدون حروف عربية أو أرقام',
+            'passport_num.regex' => 'رقم الجواز يقبل الحروف الإنجليزية والأرقام فقط، بطول من ' . MaidFieldRules::PASSPORT_MIN_LENGTH . ' إلى ' . MaidFieldRules::PASSPORT_MAX_LENGTH . ' خانة',
             'nationality_id.required' => helperTrans('web.nationality_id_is_required'),
             'nationality_id.exists' => helperTrans('web.invalid_nationality_id'),
             'religion_id.required' => 'يرجى اختيار الديانة',

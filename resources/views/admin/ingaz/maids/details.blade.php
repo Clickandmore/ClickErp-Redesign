@@ -8,6 +8,20 @@
             box-shadow: 0 8px 24px rgba(15, 34, 58, 0.08);
         }
 
+        /* الاسم الطويل (أو بدون مسافات) يلتف داخل البطاقة بدل أن يخرج عن الصفحة */
+        .maid-hero .card-body > .d-flex:first-child,
+        .maid-hero .card-body > .d-flex:first-child > .d-flex {
+            min-width: 0;
+            flex: 1 1 320px;
+        }
+
+        .maid-hero h2,
+        .maid-card .fw-semibold {
+            min-width: 0;
+            overflow-wrap: anywhere;
+            word-break: break-word;
+        }
+
         .maid-card {
             border-radius: 18px;
             border: 1px solid #eef2f6;
@@ -528,11 +542,11 @@
                                 </div>
                                 <div class="col-md-6">
                                     <div class="text-muted small">{{ helperTrans('ingaz.height') }}</div>
-                                    <div class="fw-semibold">{{ $maid->height ?? '-' }}</div>
+                                    <div class="fw-semibold">{{ filled($maid->height) && (string) $maid->height !== '0' ? $maid->height : '-' }}</div>
                                 </div>
                                 <div class="col-md-6">
                                     <div class="text-muted small">{{ helperTrans('ingaz.weight') }}</div>
-                                    <div class="fw-semibold">{{ $maid->weight ?? '-' }}</div>
+                                    <div class="fw-semibold">{{ filled($maid->weight) && (string) $maid->weight !== '0' ? $maid->weight : '-' }}</div>
                                 </div>
                                 <div class="col-md-6">
                                     <div class="text-muted small">{{ helperTrans('ingaz.children') }}</div>

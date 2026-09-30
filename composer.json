@@ -17,6 +17,7 @@
         "chillerlan/php-qrcode": "^4.4",
         "doctrine/dbal": "^3.6",
         "fruitcake/laravel-cors": "^2.0",
+        "giggsey/libphonenumber-for-php-lite": "^9.0",
         "guzzlehttp/guzzle": "^7.0.1",
         "intervention/image": "^2.5",
         "laravel/framework": "^8.75",
@@ -28,14 +29,14 @@
         "php-flasher/flasher-toastr-laravel": "^1.15",
         "phpoffice/phpspreadsheet": "^4.2",
         "phpoffice/phpword": "^1.4",
+        "pusher/pusher-php-server": "~7.2",
         "salla/zatca": "^3.0",
         "spatie/laravel-activitylog": "^4.8",
         "spatie/laravel-permission": "^6.9",
         "spatie/laravel-translatable": "^5.2",
         "taqnyat/php": "^1.0",
         "tymon/jwt-auth": "^1.0@dev",
-        "yajra/laravel-datatables-oracle": "~9.0",
-        "pusher/pusher-php-server": "~7.2"
+        "yajra/laravel-datatables-oracle": "~9.0"
     },
     "require-dev": {
         "barryvdh/laravel-debugbar": "^3.7",

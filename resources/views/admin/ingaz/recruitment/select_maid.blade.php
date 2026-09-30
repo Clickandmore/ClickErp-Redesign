@@ -113,6 +113,32 @@
                             </div>
                         </form>
 
+                        <div class="alert alert-light border small mb-3">
+                            <i class="fas fa-info-circle text-primary me-1"></i>
+                            تظهر هنا سير <strong>الاستقدام</strong> الظاهرة والمتاحة فقط، غير المحجوزة في طلب أو عقد قائم.
+                            لمعرفة سبب عدم ظهور عاملة معيّنة ابحث برقم جوازها.
+                        </div>
+
+                        @foreach ($hiddenMatches ?? [] as $match)
+                            <div class="alert alert-warning">
+                                <div class="fw-bold mb-1">
+                                    العاملة {{ $match['maid']->name ?: '—' }} (جواز {{ $match['maid']->passport_num }})
+                                    موجودة في النظام لكنها لا تظهر للاختيار:
+                                </div>
+                                <ul class="mb-0">
+                                    @forelse ($match['reasons'] as $reason)
+                                        <li>{{ $reason }}</li>
+                                    @empty
+                                        <li>لا تنطبق عليها الفلاتر المختارة (الجنسية أو الديانة أو المكتب أو سنوات الخبرة).</li>
+                                    @endforelse
+                                </ul>
+                            </div>
+                        @endforeach
+
+                        @if ($available_maids->isEmpty() && collect($hiddenMatches ?? [])->isEmpty())
+                            <div class="text-center text-muted py-5">لا توجد عاملات متاحة تطابق البحث.</div>
+                        @endif
+
                         <!-- Maids Grid -->
                         <div class="row">
                             @foreach ($available_maids as $maid)
