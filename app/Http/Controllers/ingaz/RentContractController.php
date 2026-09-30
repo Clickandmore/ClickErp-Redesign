@@ -93,6 +93,7 @@ class RentContractController extends Controller
                 'saveSignature',
             ],
         ]);
+        $this->middleware(\App\Http\Middleware\ShelterDocumentMovement::class, ['only' => ['deliverMaid']]);
     }
 
     public function index(Request $request, $status = null)

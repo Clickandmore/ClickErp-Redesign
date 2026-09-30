@@ -13,6 +13,43 @@ use Illuminate\Support\Carbon;
 
 class FormSettingsController extends Controller
 {
+    public function __construct()
+    {
+        $this->middleware('permission:' . \App\PermKeys::SETTINGS_CONTROL . ',admin', ['only' => ['saveShelterTemplate']]);
+        $this->middleware('permission:' . \App\PermKeys::SETTINGS_VIEW . '|' . \App\PermKeys::SETTINGS_CONTROL . ',admin', ['only' => ['previewShelterTemplate']]);
+    }
+
+    public function saveShelterTemplate(Request $request, ?int $id = null)
+    {
+        $data = $request->validate([
+            'name' => 'required|string|max:255',
+            'kind' => 'required|in:entry,release',
+            'company_name' => 'required|string|max:255',
+            'title' => 'required|string|max:255',
+            'declaration' => 'required|string|max:10000',
+            'footer' => 'nullable|string|max:2000',
+            'active' => 'required|boolean',
+        ]);
+        $template = $id ? \App\Models\ShelterDocumentTemplate::findOrFail($id) : new \App\Models\ShelterDocumentTemplate();
+        if ($template->exists && $template->kind !== $data['kind']) {
+            throw \Illuminate\Validation\ValidationException::withMessages(['kind' => 'لا يمكن تغيير نوع قالب محفوظ. أضف قالبًا جديدًا.']);
+        }
+        $template->fill($data)->save();
+
+        return redirect()->to(route('form-settings.index') . '#shelter-templates')->with('shelter_template_saved', true);
+    }
+
+    public function previewShelterTemplate(int $id)
+    {
+        $template = \App\Models\ShelterDocumentTemplate::findOrFail($id);
+        return view('admin.ingaz.ShelterContract.custom-document-print', [
+            'template' => $template->printValues(),
+            'kind' => $template->kind,
+            'data' => ['worker_name' => 'عاملة تجريبية / Sample Worker', 'date' => now()->format('Y-m-d')],
+            'preview' => true,
+        ]);
+    }
+
     private array $formSettingFields = [
         'document_logo',
         'zatch_logo',

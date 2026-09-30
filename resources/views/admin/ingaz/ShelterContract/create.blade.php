@@ -18,6 +18,51 @@
             []);
     }
 @endphp
+@push('css')
+    <style>
+        .shelter-create { --sc-accent: var(--primary-color, #0f766e); --sc-line: #e3e8ee; --sc-soft: #f7f9fb; display: flex; flex-direction: column; gap: 18px; }
+        .sc-card { background: #fff; border: 1px solid var(--sc-line); border-radius: 12px; box-shadow: 0 1px 3px rgba(16, 24, 40, .05); }
+        .sc-card__head { display: flex; align-items: center; gap: 12px; padding: 14px 18px; border-bottom: 1px solid var(--sc-line); background: var(--sc-soft); border-radius: 12px 12px 0 0; }
+        .sc-card__num { flex: none; width: 30px; height: 30px; border-radius: 50%; background: var(--sc-accent); color: #fff; display: grid; place-items: center; font-weight: 700; font-size: 14px; }
+        .sc-card__title { margin: 0; font-weight: 700; font-size: 15px; }
+        .sc-card__hint { margin: 2px 0 0; font-size: 12px; color: #6b7280; }
+        .sc-card__body { padding: 18px; }
+        .sc-card__body .form-label { font-weight: 600; font-size: 13px; }
+
+        .sc-subhead { margin: 22px 0 10px; padding-top: 16px; border-top: 1px dashed var(--sc-line); }
+        .sc-subhead strong { display: block; font-size: 14px; }
+        .sc-subhead small { color: #6b7280; }
+
+        .sc-doc { border: 1px solid var(--sc-line); border-radius: 10px; margin-bottom: 12px; overflow: hidden; transition: border-color .15s, box-shadow .15s; }
+        .sc-doc.is-active { border-color: var(--sc-accent); box-shadow: 0 2px 10px rgba(16, 24, 40, .08); }
+        .sc-doc__head { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; padding: 12px 14px; }
+        .sc-doc__icon { flex: none; width: 38px; height: 38px; border-radius: 9px; background: var(--sc-soft); color: var(--sc-accent); display: grid; place-items: center; font-size: 16px; border: 1px solid var(--sc-line); }
+        .sc-doc.is-active .sc-doc__icon { background: var(--sc-accent); color: #fff; border-color: var(--sc-accent); }
+        .sc-doc__info { flex: 1; min-width: 180px; }
+        .sc-doc__info strong { display: block; font-size: 14px; }
+        .sc-doc__info small { color: #6b7280; font-size: 12px; }
+        .sc-doc.is-active .sc-doc__state { color: var(--sc-accent); font-weight: 600; }
+        .sc-doc__actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+        .sc-doc__actions .form-select { min-width: 260px; }
+        .sc-doc__body { padding: 14px; border-top: 1px solid var(--sc-line); background: var(--sc-soft); margin: 0; min-width: 0; }
+        .sc-doc__section { background: #fff; border: 1px solid var(--sc-line); border-radius: 8px; padding: 12px 14px; margin-bottom: 10px; }
+        .sc-doc__section:last-child { margin-bottom: 0; }
+        .sc-doc__section-title { font-weight: 700; font-size: 13px; color: var(--sc-accent); margin-bottom: 10px; padding-inline-start: 8px; border-inline-start: 3px solid var(--sc-accent); }
+        .sc-doc__section-title span, .sc-label span { font-weight: 400; font-size: 11px; color: #8a929c; margin-inline-start: 4px; direction: ltr; unicode-bidi: isolate; }
+        .sc-label { font-size: 12.5px !important; margin-bottom: 4px; }
+        .sc-chips { display: flex; flex-wrap: wrap; gap: 8px; }
+        .sc-chip { position: relative; cursor: pointer; margin: 0; }
+        .sc-chip input { position: absolute; opacity: 0; pointer-events: none; }
+        .sc-chip span { display: inline-block; padding: 6px 12px; border: 1px solid var(--sc-line); border-radius: 999px; background: #fff; font-size: 12.5px; transition: all .15s; }
+        .sc-chip span::before { content: '\2610'; margin-inline-end: 6px; color: #9aa4b1; }
+        .sc-chip input:checked + span { background: var(--sc-accent); border-color: var(--sc-accent); color: #fff; }
+        .sc-chip input:checked + span::before { content: '\2611'; color: #fff; }
+        .sc-chip input:focus-visible + span { outline: 2px solid var(--sc-accent); outline-offset: 2px; }
+
+        .sc-savebar { position: sticky; bottom: 0; z-index: 5; display: flex; gap: 8px; justify-content: flex-start; padding: 12px 16px; margin: 0 16px 16px; background: rgba(255, 255, 255, .96); border: 1px solid #e3e8ee; border-radius: 12px; box-shadow: 0 -4px 14px rgba(16, 24, 40, .06); }
+        @media (max-width: 576px) { .sc-doc__actions, .sc-doc__actions .form-select { width: 100%; min-width: 0; } }
+    </style>
+@endpush
 @section('page-title')
     {{ $isEditMode ? helperTrans('ingaz.edit Shelter contract') : helperTrans('ingaz.add Shelter contract') }}
 @endsection
@@ -60,16 +105,25 @@
             </div>
         @endif
 
-        <form class="row g-3 contractForm" method="post"
+        <form class="contractForm" method="post"
             action="{{ $isEditMode ? route('ShelterContract.update', $editingContract->id) : route('ShelterContract.store') }}"
             enctype="multipart/form-data">
             @csrf
             @if ($isEditMode)
                 @method('PUT')
             @endif
-            <div class="row p-3">
-
-                <div class="col-4">
+            <div class="shelter-create p-3">
+                <section class="sc-card">
+                    <header class="sc-card__head">
+                        <span class="sc-card__num">1</span>
+                        <div>
+                            <h6 class="sc-card__title"><i class="fas fa-file-contract me-1"></i>بيانات العقد والإيواء</h6>
+                            <p class="sc-card__hint">ابحث عن العقد ثم حدد مقر الإيواء ومصدر الاستلام والتواريخ.</p>
+                        </div>
+                    </header>
+                    <div class="sc-card__body">
+                        <div class="row g-3">
+                <div class="col-md-6 col-lg-4">
                     <label for="TextInput" class="form-label">{{ helperTrans('ingaz.contracts') }}</label>
                     <label for="contract_search_type" class="form-label small text-muted">طريقة البحث</label>
                     <select id="contract_search_type" class="form-select mb-2">
@@ -121,6 +175,7 @@
                                 }
                             @endphp
                             <option value="{{ $contract->id }}" data-passport="{{ $passportNumber }}"
+                                data-document-defaults="{{ json_encode(app(\App\Services\ShelterDocumentService::class)->defaults($contract), JSON_UNESCAPED_UNICODE) }}"
                                 data-passport-snapshot="{{ $passportNumber }}" data-maid-name="{{ $maidName }}"
                                 data-maid-name-snapshot="{{ $maidName }}"
                                 data-maid-nationality="{{ $contract->maid?->nationality_id ?? '' }}"
@@ -152,7 +207,7 @@
                     <div id="contract_search_feedback" class="small mt-2"></div>
                 </div>
 
-                <div class="col-4">
+                <div class="col-md-6 col-lg-4">
                     <label for="TextInput" class="form-label">{{ helperTrans('ingaz.shelter-places') }}</label>
                     <select name="shelter_id" class="form-select form-control select2" data-validation="required">
                         <option disabled {{ old('shelter_id', optional($editingInfo)->shelter_id) ? '' : 'selected' }}>
@@ -167,7 +222,7 @@
                     </select>
                 </div>
 
-                <div class="col-4">
+                <div class="col-md-6 col-lg-4">
                     <label for="TextInput" class="form-label">{{ helperTrans('ingaz.receipt_source') }}</label>
                     <select name="receipt_source" class="form-select form-control select2" data-validation="required">
                         <option disabled
@@ -184,7 +239,7 @@
                     </select>
                 </div>
 
-                <div class="col-4 mt-4">
+                <div class="col-md-6 col-lg-4">
                     <label for="TextInput" class="form-label">تاريخ إدخالها للإيواء</label>
                     <input type="date" name="maid_date_back" class="form-control" data-validation="required" required
                         value="{{ old('maid_date_back', optional($editingInfo)->maid_date_back ?: now()->toDateString()) }}">
@@ -192,19 +247,32 @@
                         افتراضيًا بتاريخ اليوم ويمكن تعديله.</small>
                 </div>
 
-                <div class="col-4 mt-4">
+                <div class="col-md-6 col-lg-4">
                     <label for="TextInput" class="form-label">{{ helperTrans('ingaz.arrival_date') }}</label>
                     <input type="date" name="arrival_date" id="arrival_date" class="form-control"
                         data-validation="required" value="{{ old('arrival_date', optional($editingInfo)->arrival_date) }}">
                 </div>
-                <div class="col-4 mt-4">
+                <div class="col-md-6 col-lg-4">
                     <label for="TextInput" class="form-label">مدة بقائها داخل المملكة</label>
                     <input type="text" name="duration_from_enter" class="form-control" readonly
                         placeholder="سيتم الحساب تلقائياً"
                         value="{{ old('duration_from_enter', optional($editingInfo)->duration_from_enter) }}">
                     <small class="form-text text-muted">تحسب تلقائياً من تاريخ وصولها إلى المملكة وحتى اليوم.</small>
                 </div>
-                <div class="col-4 mt-4">
+                        </div>
+                    </div>
+                </section>
+                <section class="sc-card">
+                    <header class="sc-card__head">
+                        <span class="sc-card__num">2</span>
+                        <div>
+                            <h6 class="sc-card__title"><i class="fas fa-user-check me-1"></i>حالة العاملة</h6>
+                            <p class="sc-card__hint">الراتب ورغبة العمل والإقامة والفحص الطبي والتصنيفات.</p>
+                        </div>
+                    </header>
+                    <div class="sc-card__body">
+                        <div class="row g-3">
+                <div class="col-md-6 col-lg-4">
                     <label for="TextInput" class="form-label">{{ helperTrans('ingaz.salary_final_status') }}</label>
                     <select name="salary_final_status" class="form-select form-control select2">
                         <option disabled
@@ -221,7 +289,7 @@
                         </option>
                     </select>
                 </div>
-                <div class="col-4 mt-4">
+                <div class="col-md-6 col-lg-4">
                     <label for="TextInput" class="form-label">{{ helperTrans('ingaz.work_willingness') }}</label>
                     <select name="wants_to_work" class="form-select form-control select2">
                         <option disabled
@@ -243,7 +311,7 @@
                     </select>
                 </div>
 
-                <div class="col-4 mt-4">
+                <div class="col-md-6 col-lg-4">
                     <label class="form-label">هل العاملة لديها اقامة؟</label>
                     <select name="workers_have_residency" id="workers_have_residency"
                         class="form-select form-control select2">
@@ -261,7 +329,7 @@
                     </select>
                 </div>
 
-                <div class="col-4 mt-4">
+                <div class="col-md-6 col-lg-4">
                     <label class="form-label">هل تم عمل الفحص الطبي؟</label>
                     <select name="performing_medical_examination" id="performing_medical_examination"
                         class="form-select form-control select2">
@@ -279,7 +347,7 @@
                     </select>
                 </div>
 
-                <div class="col-4 mt-4" id="instant_display_wrapper" style="display:none;">
+                <div class="col-md-6 col-lg-4" id="instant_display_wrapper" style="display:none;">
                     <label for="is_available_for_instant" class="form-label">الاستلام الفوري</label>
                     @php
                         $instantAvailability = old(
@@ -299,7 +367,7 @@
                     <small class="form-text text-muted" id="instant_display_hint"></small>
                 </div>
 
-                <div class="col-12 mt-4">
+                <div class="col-12">
                     <label for="shelter_quick_tags" class="form-label">التصنيفات السريعة</label>
                     <input type="text" name="shelter_quick_tags" id="shelter_quick_tags" class="form-control"
                         list="shelterQuickTagsSuggestions"
@@ -313,13 +381,71 @@
                     <small class="form-text text-muted">افصل بين التصنيفات بفاصلة عربية أو إنجليزية. هذه التصنيفات ستظهر في
                         الإحصائيات والفلاتر السريعة بصفحة الإيواء.</small>
                 </div>
+                        </div>
+                    </div>
+                </section>
+                <section class="sc-card">
+                    <header class="sc-card__head">
+                        <span class="sc-card__num">3</span>
+                        <div>
+                            <h6 class="sc-card__title"><i class="fas fa-comment-dots me-1"></i>أسباب الإرجاع والمرفقات</h6>
+                            <p class="sc-card__hint">تُستخدم أسباب الإرجاع أيضًا كتفاصيل افتراضية للشكوى ولنموذج الاستلام.</p>
+                        </div>
+                    </header>
+                    <div class="sc-card__body">
+                        <div class="row g-3">
+                <div class="col-12">
+                    <label for="TextInput" class="form-label">{{ helperTrans('ingaz.back_reasons') }}</label>
+                    <textarea name="back_reasons" rows="4" class="form-control" data-validation="required">{{ old('back_reasons', optional($editingInfo)->back_reasons) }}</textarea>
+                </div>
 
-                    <div class="col-12 mt-4">
-                        <div class="card border-secondary">
-                            <div class="card-header bg-light">
-                                <h6 class="mb-0">ربط الإيواء بشكوى</h6>
-                            </div>
-                            <div class="card-body">
+                <div class="col-12">
+                    <label for="attachments" class="form-label">{{ helperTrans('ingaz.shelter_attachments') }}</label>
+                    @php
+                        $existingAttachments = [];
+                        if ($isEditMode && $editingInfo && $editingInfo->shelter_attachments) {
+                            $existingAttachments = is_array($editingInfo->shelter_attachments)
+                                ? $editingInfo->shelter_attachments
+                                : (json_decode($editingInfo->shelter_attachments, true) ?:
+                                []);
+                        }
+                    @endphp
+                    @if ($isEditMode && count($existingAttachments))
+                        <div class="mb-2">
+                            <small class="form-text d-block">المرفقات الحالية:</small>
+                            <ul class="mb-2">
+                                @foreach ($existingAttachments as $attachment)
+                                    @php
+                                        $path = $attachment['path'] ?? null;
+                                        $name = $attachment['name'] ?? ($path ? basename($path) : '');
+                                    @endphp
+                                    @if ($path)
+                                        <li>
+                                            <a href="{{ showFile($path) }}" target="_blank">
+                                                {{ $name }}
+                                            </a>
+                                        </li>
+                                    @endif
+                                @endforeach
+                            </ul>
+                        </div>
+                    @endif
+                    <input type="file" name="attachments[]" id="attachments" class="form-control" multiple
+                        accept=".jpg,.jpeg,.png,.pdf,.doc,.docx">
+                    <small class="form-text text-muted">{{ helperTrans('ingaz.shelter_attachments_hint') }}</small>
+                </div>
+                        </div>
+                    </div>
+                </section>
+                <section class="sc-card">
+                    <header class="sc-card__head">
+                        <span class="sc-card__num">4</span>
+                        <div>
+                            <h6 class="sc-card__title"><i class="fas fa-link me-1"></i>ربط الإيواء بشكوى</h6>
+                            <p class="sc-card__hint">اختياري: اربط الإيواء بشكوى قائمة أو أنشئ شكوى جديدة.</p>
+                        </div>
+                    </header>
+                    <div class="sc-card__body">
                                 <div class="row g-3">
                                     <div class="col-12">
                                         <label class="form-label d-block">الإجراء</label>
@@ -405,21 +531,59 @@
                                         </div>
                                     </div>
                                 </div>
+                    </div>
+                </section>
+                <section class="sc-card" id="shelter-forms">
+                    <header class="sc-card__head">
+                        <span class="sc-card__num">5</span>
+                        <div>
+                            <h6 class="sc-card__title"><i class="fas fa-print me-1"></i>النماذج والطباعة</h6>
+                            <p class="sc-card__hint">نموذج الاستلام الافتراضي ونماذج الشركات الإضافية للاستلام والتسليم.</p>
+                        </div>
+                    </header>
+                    <div class="sc-card__body">
+                        <div class="sc-doc">
+                            <div class="sc-doc__head">
+                                <span class="sc-doc__icon"><i class="fas fa-file-alt"></i></span>
+                                <div class="sc-doc__info">
+                                    <strong>نموذج الاستلام الافتراضي</strong>
+                                    <small>النص المطبوع في نموذج الاستلام المعتاد.</small>
+                                </div>
+                                <div class="sc-doc__actions">
+                                    <button class="btn btn-sm btn-outline-secondary" type="button" data-bs-toggle="collapse"
+                                        data-bs-target="#receiptFormTextCollapse" aria-expanded="false"
+                                        aria-controls="receiptFormTextCollapse">
+                                        <i class="fas fa-pen me-1"></i>تعديل النص
+                                    </button>
+                                    <button class="btn btn-sm btn-primary" type="button" id="printReceiptFormBtn">
+                                        <i class="fas fa-print me-1"></i>طباعة
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="collapse" id="receiptFormTextCollapse">
+                                <div class="sc-doc__body">
+                            <textarea name="receipt_form_text" id="receipt_form_text" rows="8" class="form-control">{{ old('receipt_form_text', optional($editingInfo)->receipt_form_text ?: $defaultReceiptText) }}</textarea>
+                                </div>
                             </div>
                         </div>
-                    </div>
 
-                <div class="col-12 mt-4">
-                    <div class="card border-secondary">
-                        <div class="card-header bg-light d-flex justify-content-between align-items-center">
-                            <h6 class="mb-0">بيانات العميل (بيانات العميل للقراءة فقط)</h6>
-                            <button class="btn btn-sm btn-outline-secondary" type="button" data-bs-toggle="collapse"
-                                data-bs-target="#clientSnapshotCollapse" aria-expanded="false"
-                                aria-controls="clientSnapshotCollapse">
-                                عرض/إخفاء
-                            </button>
-                        </div>
-                        <div class="card-body collapse" id="clientSnapshotCollapse">
+                        <div class="sc-doc">
+                            <div class="sc-doc__head">
+                                <span class="sc-doc__icon"><i class="fas fa-id-card"></i></span>
+                                <div class="sc-doc__info">
+                                    <strong>بيانات العميل والعاملة</strong>
+                                    <small>تُعبّأ تلقائيًا من العقد المختار — للقراءة فقط.</small>
+                                </div>
+                                <div class="sc-doc__actions">
+                                    <button class="btn btn-sm btn-outline-secondary" type="button" data-bs-toggle="collapse"
+                                        data-bs-target="#clientSnapshotCollapse" aria-expanded="false"
+                                        aria-controls="clientSnapshotCollapse">
+                                        <i class="fas fa-eye me-1"></i>عرض/إخفاء
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="collapse" id="clientSnapshotCollapse">
+                                <div class="sc-doc__body">
                             <div class="row g-3">
                                 <div class="col-md-6 col-lg-3">
                                     <label class="form-label">اسم العميل</label>
@@ -474,78 +638,20 @@
                                         value="{{ old('receipt_form_date', optional($editingInfo)->receipt_form_date) }}">
                                 </div>
                             </div>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="col-12 mt-4">
-                    <div class="card border-secondary">
-                        <div class="card-header bg-light d-flex justify-content-between align-items-center">
-                            <h6 class="mb-0">نص النموذج</h6>
-                            <div class="d-flex gap-2">
-                                <button class="btn btn-sm btn-outline-primary" type="button" id="printReceiptFormBtn">
-                                    <i class="fas fa-print me-1"></i>طباعة
-                                </button>
-                                <button class="btn btn-sm btn-outline-secondary" type="button" data-bs-toggle="collapse"
-                                    data-bs-target="#receiptFormTextCollapse" aria-expanded="false"
-                                    aria-controls="receiptFormTextCollapse">
-                                    عرض/إخفاء
-                                </button>
+                                </div>
                             </div>
                         </div>
-                        <div class="card-body collapse" id="receiptFormTextCollapse">
-                            <textarea name="receipt_form_text" id="receipt_form_text" rows="8" class="form-control">{{ old('receipt_form_text', optional($editingInfo)->receipt_form_text ?: $defaultReceiptText) }}</textarea>
-                        </div>
+
+                        @include('admin.ingaz.ShelterContract.partials.custom-documents')
                     </div>
-                </div>
-
-                <div class="col-12 mt-4">
-                    <label for="TextInput" class="form-label">{{ helperTrans('ingaz.back_reasons') }}</label>
-                    <textarea name="back_reasons" rows="4" class="form-control" data-validation="required">{{ old('back_reasons', optional($editingInfo)->back_reasons) }}</textarea>
-                </div>
-
-                <div class="col-12 mt-4">
-                    <label for="attachments" class="form-label">{{ helperTrans('ingaz.shelter_attachments') }}</label>
-                    @php
-                        $existingAttachments = [];
-                        if ($isEditMode && $editingInfo && $editingInfo->shelter_attachments) {
-                            $existingAttachments = is_array($editingInfo->shelter_attachments)
-                                ? $editingInfo->shelter_attachments
-                                : (json_decode($editingInfo->shelter_attachments, true) ?:
-                                []);
-                        }
-                    @endphp
-                    @if ($isEditMode && count($existingAttachments))
-                        <div class="mb-2">
-                            <small class="form-text d-block">المرفقات الحالية:</small>
-                            <ul class="mb-2">
-                                @foreach ($existingAttachments as $attachment)
-                                    @php
-                                        $path = $attachment['path'] ?? null;
-                                        $name = $attachment['name'] ?? ($path ? basename($path) : '');
-                                    @endphp
-                                    @if ($path)
-                                        <li>
-                                            <a href="{{ showFile($path) }}" target="_blank">
-                                                {{ $name }}
-                                            </a>
-                                        </li>
-                                    @endif
-                                @endforeach
-                            </ul>
-                        </div>
-                    @endif
-                    <input type="file" name="attachments[]" id="attachments" class="form-control" multiple
-                        accept=".jpg,.jpeg,.png,.pdf,.doc,.docx">
-                    <small class="form-text text-muted">{{ helperTrans('ingaz.shelter_attachments_hint') }}</small>
-                </div>
+                </section>
             </div>
 
-            <div class="col-12 modal-footer">
-                <button class="btn btn-primary" type="submit">{{ __('buttons.save') }}</button>
+            <div class="sc-savebar">
+                <button class="btn btn-primary px-4" type="submit"><i class="fas fa-save me-1"></i>{{ __('buttons.save') }}</button>
                 @if ($isEditMode)
                     <a href="{{ route('ShelterContract.index') }}"
-                        class="btn btn-secondary">{{ __('buttons.cancel') }}</a>
+                        class="btn btn-outline-secondary">{{ __('buttons.cancel') }}</a>
                 @endif
             </div>
         </form>
@@ -806,6 +912,7 @@
             }
 
             function applyContractOptionData($option, contract) {
+                $option.data('documentDefaults', contract.document_defaults || {});
                 $option.attr({
                     'data-passport': contract.passport_number || '',
                     'data-passport-snapshot': contract.passport_snapshot || contract.passport_number || '',
@@ -1122,6 +1229,9 @@
 
             // تعيين تاريخ الإرجاع في نفس اليوم تلقائياً
             function fillSnapshotFields(data, preserveExisting = false) {
+                if (window.fillShelterDocumentDefaults) {
+                    window.fillShelterDocumentDefaults(data.documentDefaults, $('#contract_id').val());
+                }
                 console.log(data);
 
                 const setValue = (selector, value) => {

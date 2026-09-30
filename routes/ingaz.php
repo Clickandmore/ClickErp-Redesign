@@ -230,6 +230,8 @@ Route::group(
             //** END NEW *//
 
             Route::get('form-settings', [FormSettingsController::class, 'index'])->name('form-settings.index');
+            Route::post('form-settings/shelter-templates/{id?}', [FormSettingsController::class, 'saveShelterTemplate'])->where('id', '[0-9]+')->name('form-settings.shelter-templates.save');
+            Route::get('form-settings/shelter-templates/{id}/preview', [FormSettingsController::class, 'previewShelterTemplate'])->where('id', '[0-9]+')->name('form-settings.shelter-templates.preview');
             Route::put('form-settings', [FormSettingsController::class, 'update'])->name('form-settings.update');
             Route::get('form-settings/preview/{template}', [FormSettingsController::class, 'preview'])->name('form-settings.preview');
             Route::get('form-settings/preview/{template}/print', [FormSettingsController::class, 'print'])->name('form-settings.preview.print');
@@ -669,6 +671,7 @@ Route::group(
             Route::get('ShelterContract/get-shelter-places', [ShelterContractController::class, 'getShelterPlaces'])->name('ShelterContract.getShelterPlaces');
             Route::get('ShelterContract/export/{format}', [ShelterContractController::class, 'export'])->name('ShelterContract.export');
             Route::post('ShelterContract/{id}/back', [ShelterContractController::class, 'back'])->name('ShelterContract.back');
+            Route::get('ShelterContract/{id}/release-form', [ShelterContractController::class, 'releaseForm'])->name('ShelterContract.releaseForm');
             Route::post('ShelterContract/{id}/vacation', [ShelterContractController::class, 'leaveForVacation'])->name('ShelterContract.vacation');
             Route::post('ShelterContract/{id}/return-from-vacation', [ShelterContractController::class, 'returnFromVacation'])->name('ShelterContract.returnFromVacation');
             Route::post('ShelterContract/{id}/escape-report', [ShelterContractController::class, 'reportEscape'])->name('ShelterContract.escapeReport');

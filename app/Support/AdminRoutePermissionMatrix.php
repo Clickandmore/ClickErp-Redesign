@@ -362,6 +362,9 @@ class AdminRoutePermissionMatrix
             'reports.index' => ReportExportService::allExportPermissions(),
             'reports.export' => ReportExportService::allExportPermissions(),
             'form-settings.preview.print' => [PermKeys::SETTINGS_VIEW, PermKeys::SETTINGS_CONTROL],
+            'form-settings.shelter-templates.save' => [PermKeys::SETTINGS_CONTROL],
+            'form-settings.shelter-templates.preview' => [PermKeys::SETTINGS_VIEW, PermKeys::SETTINGS_CONTROL],
+            'ShelterContract.releaseForm' => [], // The controller checks the permission for the selected exit action.
         ];
     }
 
