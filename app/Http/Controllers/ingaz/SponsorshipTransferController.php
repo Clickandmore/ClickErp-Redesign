@@ -33,6 +33,11 @@ class SponsorshipTransferController extends Controller
     public $folderPath = "admin.ingaz.SponsorshipTransfer";
     public $mainRoute = "SponsorshipTransfer";
 
+    public function __construct()
+    {
+        $this->middleware(\App\Http\Middleware\ShelterDocumentMovement::class, ['only' => ['deliverMaid']]);
+    }
+
 
     public function index(Request $request)
     {
@@ -1755,6 +1760,8 @@ class SponsorshipTransferController extends Controller
                     . '، مع إبقاء الكفيل الحالي تمهيداً لإمكانية نقلها إلى كفيل آخر.',
             ]);
 
+            app(\App\Services\ShelterDocumentMovementService::class)->refreshAdmissionData($contract);
+
             DB::commit();
 
             return response()->json([
@@ -2852,6 +2859,7 @@ class SponsorshipTransferController extends Controller
 
         $contract = $transfer->contract;
         $contract->loadMissing('info');
+        $wasOutside = (bool) $contract->info?->is_outside_shelter;
 
         $contract->info()->updateOrCreate([], [
             'wants_to_work' => 'yes',
@@ -2869,6 +2877,7 @@ class SponsorshipTransferController extends Controller
             'notes' => 'تمت إعادة العاملة إلى داخل الإيواء بعد فشل/إلغاء نقل خدمات رقم ' . $transfer->id
                 . ($reason ? ' - السبب: ' . $reason : ''),
         ]);
+        if ($wasOutside) app(\App\Services\ShelterDocumentMovementService::class)->refreshAdmissionData($contract);
     }
 
     /**

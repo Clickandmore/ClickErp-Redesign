@@ -9,7 +9,7 @@
 @section('content')
     <div class="container-fluid ht-page" dir="rtl">
         @if ($errors->any())
-            <div class="alert alert-danger border-0 rounded-3">
+            <div class="alert alert-danger border-0 rounded-3" data-modal-errors>
                 <div class="fw-bold mb-1"><i class="fa fa-circle-xmark ms-1"></i> تعذّر الحفظ، راجع الحقول التالية:</div>
                 <ul class="mb-0 ps-3">@foreach ($errors->all() as $error)<li>{{ $error }}</li>@endforeach</ul>
             </div>

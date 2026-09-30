@@ -1,4 +1,16 @@
 <script>
+    // Exit actions that use a shelter form pause before changing state.
+    $.ajaxPrefilter(function (options) {
+        const originalError = options.error;
+        options.error = function (xhr) {
+            const url = xhr.responseJSON && xhr.responseJSON.shelter_document_url;
+            if (url) {
+                window.location.assign(url);
+                return;
+            }
+            if (typeof originalError === 'function') return originalError.apply(this, arguments);
+        };
+    });
 
     /*$(document).ready(function(){
         $.fn.modal.Constructor.prototype.enforceFocus = function() {};

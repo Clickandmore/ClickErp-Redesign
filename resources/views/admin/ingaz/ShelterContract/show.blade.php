@@ -350,6 +350,12 @@
                 </div>
             </div>
             <div class="hero-actions">
+                @if (app(\App\Services\ShelterDocumentService::class)->available())
+                    @foreach (\App\Models\ShelterDocument::where('contract_id', $contract->id)->where('enabled', true)->where(function ($query) { $query->where('kind', 'entry')->orWhereNotNull('release_completed_at'); })->get() as $shelterDocument)
+                        <a class="btn-action" target="_blank" rel="noopener" href="{{ route('shelter_contract_form.download', ['id' => $contract->id, 'document' => $shelterDocument->kind]) }}">طباعة {{ \App\Support\ShelterDocumentFields::kinds()[$shelterDocument->kind] }}</a>
+                    @endforeach
+                @endif
+                <a class="btn-action" target="_blank" rel="noopener" href="{{ route('shelter_contract_form.download', ['id' => $contract->id, 'document' => 'legacy']) }}">طباعة النموذج الأصلي</a>
                 <a href="{{ $backRoute }}" class="btn-action">
                     <i class="fas fa-arrow-right"></i>
                     <span>عودة</span>
@@ -706,12 +712,12 @@ function leaveForVacation(id) {
 function confirmBack(id) {
     Swal.fire({
         title: 'تأكيد',
-        text: 'هل أنت متأكد أنك تريد إعادة العقد إلى مرحلة الملجأ؟ هذه الخطوة لا يمكن التراجع عنها.',
+        text: 'سيتم إخراج العاملة من الإيواء وإرجاع العقد إلى حالة مكتمل. هل تريد المتابعة؟',
         icon: 'warning',
         showCancelButton: true,
         confirmButtonColor: '#3085d6',
         cancelButtonColor: '#d33',
-        confirmButtonText: 'نعم، أعده',
+        confirmButtonText: 'متابعة الخروج',
         cancelButtonText: 'إلغاء'
     }).then((result) => {
         if (result.isConfirmed) {
@@ -722,7 +728,7 @@ function confirmBack(id) {
                     _token: '{{ csrf_token() }}'
                 },
                 success: function(response) {
-                    Swal.fire('تم!', response.message || 'تم إعادة العقد بنجاح إلى مرحلة الملجأ.', 'success')
+                    Swal.fire('تم!', response.message || 'تم إخراج العاملة من الإيواء وإرجاع العقد إلى مكتمل.', 'success')
                     .then(() => {
                         window.location.href = '{{ route("RecruitmentContract.index") }}?status=completed';
                     });

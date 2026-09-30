@@ -445,6 +445,7 @@
                     @endif
                 </div>
             </form>
+            @include('admin.form-settings.shelter-templates')
         </div>
     @else
         @include('components.no_permissions')

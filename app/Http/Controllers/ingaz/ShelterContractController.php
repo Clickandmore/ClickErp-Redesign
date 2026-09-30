@@ -77,6 +77,39 @@ class ShelterContractController extends Controller
             $this->shelterRentalInstantReceiptEditPermissions()
         )), ['only' => ['toggleInstantReceipt']]);
         $this->middleware($this->permissionMiddleware([PermKeys::SHELTER_CONTRACT_DELETE, PermKeys::SHELTER_CONTRACT_CONTROL]), ['only' => ['destroy']]);
+        $this->middleware(\App\Http\Middleware\ShelterDocumentMovement::class, ['only' => [
+            'store', 'back', 'destroy', 'leaveForVacation', 'returnFromVacation', 'updateDeportationProcedures',
+        ]]);
+    }
+
+    public function releaseForm(Request $request, $id)
+    {
+        $service = app(\App\Services\ShelterDocumentMovementService::class);
+        abort_unless($service->available(), 404);
+        $action = (string) $request->query('action', 'back');
+        abort_unless(isset($service::ACTIONS[$action]), 404);
+        $reference = (int) $request->query('reference', $id);
+        $permissions = match ($action) {
+            'rental' => [PermKeys::RENT_CONTRACT_CONTROL],
+            'transfer' => [PermKeys::SPONSOR_TRANSFER_CONTROL],
+            'deportation' => $this->shelterDeportationProceduresEditPermissions(),
+            default => $this->shelterRemoveFromShelterPermissions(),
+        };
+        abort_unless($this->adminCanAny($permissions), 403);
+        $contract = Contract::with('info')->findOrFail($id);
+        $this->assertCanAccessBranchModel($contract, 'contracts');
+        abort_unless($service->resolve($action, $reference)?->id === $contract->id, 404);
+        abort_unless($service->inside($contract), 409, 'العاملة ليست داخل الإيواء حاليًا.');
+        $configuration = $service->configuration($contract, 'release');
+        abort_unless($configuration, 404);
+        return view($this->folderPath . '.release', [
+            'contract' => $contract, 'action' => $action,
+            'actionLabel' => $service::ACTIONS[$action][1],
+            'submitUrl' => route($service::ACTIONS[$action][0], $reference),
+            'configuration' => $configuration,
+            'releaseVersion' => $service->version($contract),
+            'values' => $service->releaseDefaults($contract, $action, $reference),
+        ]);
     }
 
     private function permissionMiddleware(array $permissions): string
@@ -1146,6 +1179,7 @@ class ShelterContractController extends Controller
             'maid_nationality' => $nationality,
             'maid_nationality_snapshot' => $contract->maid?->nationality_id ?? '',
             'passport_snapshot' => $passportNumber,
+            'document_defaults' => app(\App\Services\ShelterDocumentService::class)->defaults($contract),
             'client_name' => $clientName,
             'client_national_id' => $clientNationalId,
             'sponsorship_price' => optional($contract->info)->sponsorship_price ?? '',
@@ -1483,6 +1517,8 @@ class ShelterContractController extends Controller
             $contract->contract_status_logs()->create($statusLog);
 
             $this->syncShelterComplaint($contract, $request);
+            $contract->unsetRelation('info');
+            app(\App\Services\ShelterDocumentService::class)->save($contract, $request);
         });
 
         // dd($contract->maid->id);
@@ -1775,8 +1811,11 @@ class ShelterContractController extends Controller
         }
 
         DB::transaction(function () use ($contract, $infoPayload, $request) {
+            Contract::query()->lockForUpdate()->findOrFail($contract->id);
             $contract->info()->update($infoPayload);
             $this->syncShelterComplaint($contract, $request);
+            $contract->unsetRelation('info');
+            app(\App\Services\ShelterDocumentService::class)->save($contract, $request);
         });
 
         $this->syncMaidInstantDisplay($contract, $displayOnSite);
@@ -4655,6 +4694,23 @@ class ShelterContractController extends Controller
     {
         $contract = Contract::with(['user', 'maid.nationality', 'info'])->findOrFail($id);
         $this->assertCanAccessBranchModel($contract, 'contracts');
+        $kind = request()->query('document', 'entry');
+        abort_unless(in_array($kind, ['entry', 'release', 'legacy'], true), 404);
+        $document = null;
+        abort_if(request()->has('movement'), 404);
+        if ($kind !== 'legacy' && app(\App\Services\ShelterDocumentService::class)->available()) {
+            $document = \App\Models\ShelterDocument::where('contract_id', $contract->id)
+                ->where('kind', $kind)->where('enabled', true)->first();
+            if ($kind === 'release' && !$document?->release_completed_at) $document = null;
+        }
+        if (request()->has('document') && $kind !== 'legacy') abort_unless($document, 404);
+        if ($document) {
+            return response()->view('admin.ingaz.ShelterContract.custom-document-print', [
+                'template' => $document->template()->firstOrFail()->printValues(),
+                'data' => $document->data,
+                'kind' => $kind,
+            ], 200, ['Content-Type' => 'text/html; charset=UTF-8']);
+        }
         $documentBranding = documentBranding();
         $clientName = $contract->user->name ?? '';
         $clientNationalNumber = $contract->user?->documentNumber() ?? '';

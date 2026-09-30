@@ -317,6 +317,8 @@ class RentalShelterPresenceService
             $note .= ' وتم ضبط رغبة العمل على "ترغب بالعمل".';
         }
 
+        app(ShelterDocumentMovementService::class)->refreshAdmissionData($contract);
+
         $contract->contract_status_logs()->create([
             'status' => ContractStatusEnum::Shelter->value,
             'date' => now(),
