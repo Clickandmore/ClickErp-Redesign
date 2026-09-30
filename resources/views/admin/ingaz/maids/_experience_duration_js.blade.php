@@ -69,10 +69,11 @@
             $error.text('');
 
             if (!start || !end) {
-                // سجلات قديمة أُدخلت قبل حقول التاريخ: نُبقي مدتها المخزّنة كما هي
+                // سجلات قديمة أُدخلت قبل حقول التاريخ: نُبقي مدتها المخزّنة كما هي.
+                // أما المدة المحسوبة من التاريخين فتُمسح بمسح أي منهما.
                 const storedYears = parseFloat($years.val());
 
-                if (!Number.isNaN(storedYears) && storedYears > 0) {
+                if ($years.data('legacy') && !Number.isNaN(storedYears) && storedYears > 0) {
                     $label.val(durationLabel(Math.round(storedYears * 12)));
                 } else {
                     $label.val('');
@@ -83,6 +84,7 @@
             }
 
             const months = monthsBetween(start, end);
+            $years.data('legacy', false);
 
             if (months === null) {
                 $label.val('');
@@ -96,11 +98,26 @@
         };
 
         window.initializeExperienceRow = function($row) {
+            const $years = $row.find('.exp-duration-years');
+            const hasDates = $row.find('.exp-start-date').val() || $row.find('.exp-end-date').val();
+
+            // مدة محفوظة بدون تواريخ عند فتح الصفحة = سجل قديم يُحتفظ بمدته.
+            if (typeof $years.data('legacy') === 'undefined') {
+                $years.data('legacy', !hasDates && parseFloat($years.val()) > 0);
+            }
             window.syncExperienceRow($row);
         };
 
         function syncManualDuration($row, input) {
-            if (!input.checkValidity() || input.value === '') {
+            // مسح المدة يدويًا يمسح التاريخين المحسوبين منها والمدة المعروضة.
+            if (input.value === '' && !(input.validity && input.validity.badInput)) {
+                $row.find('.exp-start-date, .exp-end-date').val('');
+                $row.find('.exp-duration-years').data('legacy', false);
+                window.syncExperienceRow($row);
+                return;
+            }
+
+            if (!input.checkValidity()) {
                 return;
             }
 

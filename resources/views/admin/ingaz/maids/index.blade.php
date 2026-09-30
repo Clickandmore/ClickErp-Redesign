@@ -1022,27 +1022,56 @@
                     return;
                 }
 
-                const form = $('<form>', {
-                    method: 'POST',
-                    action: @json(route('maids.generated-cvs.export')),
-                    target: '_blank',
-                    class: 'd-none'
-                });
-                form.append($('<input>', {
-                    type: 'hidden',
-                    name: '_token',
-                    value: csrfToken
-                }));
-                maidIds.forEach((id) => {
-                    form.append($('<input>', {
-                        type: 'hidden',
-                        name: 'maid_ids[]',
-                        value: id
-                    }));
-                });
-                $('body').append(form);
-                form.trigger('submit');
-                setTimeout(() => form.remove(), 1000);
+                // التنزيل يتم في نفس الصفحة: عند الخطأ تظهر رسالة بدل فتح صفحة السير في تبويب جديد.
+                const $button = $(this);
+                const originalHtml = $button.html();
+                const body = new FormData();
+                body.append('_token', csrfToken);
+                maidIds.forEach((id) => body.append('maid_ids[]', id));
+
+                $button.prop('disabled', true).html(
+                    '<span class="spinner-border spinner-border-sm me-1"></span> جارٍ التصدير...');
+
+                fetch(@json(route('maids.generated-cvs.export')), {
+                        method: 'POST',
+                        body,
+                        headers: {
+                            'Accept': 'application/json',
+                            'X-Requested-With': 'XMLHttpRequest'
+                        },
+                        credentials: 'same-origin'
+                    })
+                    .then(async (response) => {
+                        if (!response.ok) {
+                            const payload = await response.json().catch(() => ({}));
+                            throw new Error(payload.errors?.maid_ids?.[0] || payload.message ||
+                                @json(helperTrans('ingaz.unexpected_error')));
+                        }
+
+                        const disposition = response.headers.get('Content-Disposition') || '';
+                        const encodedName = /filename\*=UTF-8''([^;]+)/i.exec(disposition);
+                        const plainName = /filename="?([^";]+)"?/i.exec(disposition);
+                        const filename = encodedName ? decodeURIComponent(encodedName[1]) :
+                            (plainName ? plainName[1] : 'maid-cvs');
+                        const url = URL.createObjectURL(await response.blob());
+                        const link = document.createElement('a');
+                        link.href = url;
+                        link.download = filename;
+                        document.body.appendChild(link);
+                        link.click();
+                        link.remove();
+                        setTimeout(() => URL.revokeObjectURL(url), 1000);
+                    })
+                    .catch((error) => {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'تعذر تصدير ملفات السيرة',
+                            text: error.message
+                        });
+                    })
+                    .finally(() => {
+                        $button.html(originalHtml).prop('disabled', selectedMaidCvIds.size === 0);
+                    });
             });
 
             @include('admin.ingaz.maids.partials.bulk-visibility-js')

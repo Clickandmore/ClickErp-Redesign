@@ -7,6 +7,8 @@ use App\Models\Country;
 use App\Models\ingaz\JobType;
 use App\Models\ingaz\Maid;
 use App\Support\ExperiencePeriod;
+use App\Support\MaidFieldRules;
+use App\Rules\InternationalMobile;
 use App\Services\BranchAccessService;
 use Illuminate\Validation\Rule;
 
@@ -31,9 +33,23 @@ class MaidRequest extends MainRequest
     {
         return [
             'is_show' => 'sometimes|boolean',
-            'name:en' => 'required|string|max:255',
+            'name:en' => ['required', 'string', 'max:' . MaidFieldRules::MAX_LENGTHS['name:en'], 'regex:' . MaidFieldRules::LATIN_NAME_REGEX],
             'gender' => 'nullable|in:male,female',
-            'cv_file' => 'nullable',
+            'image' => [
+                Rule::when($this->hasFile('image'), [
+                    'file',
+                    'mimes:' . implode(',', MaidFieldRules::IMAGE_MIMES),
+                    'max:' . MaidFieldRules::FILE_MAX_KB,
+                ]),
+            ],
+            'cv_file' => [
+                'nullable',
+                Rule::when($this->hasFile('cv_file'), [
+                    'file',
+                    'mimes:pdf,' . implode(',', MaidFieldRules::IMAGE_MIMES),
+                    'max:' . MaidFieldRules::FILE_MAX_KB,
+                ]),
+            ],
             'maid_cv_file' => 'nullable|file|mimes:pdf|max:10240',
             'video' => 'nullable|file|mimes:mp4,mov,avi,wmv,webm,mkv,m4v|max:102400',
             'remove_video' => 'nullable|boolean',
@@ -42,18 +58,38 @@ class MaidRequest extends MainRequest
             'passport_num' => [
                 'required',
                 Rule::unique('maids')->ignore($this->route('maid')),
+                Rule::when($this->isChanged('passport_num'), ['regex:' . MaidFieldRules::PASSPORT_REGEX]),
             ],
-            'phone' => 'nullable|string|max:50',
-            'relative_name' => 'nullable|string|max:255',
-            'relative_phone' => 'nullable|string|max:50',
-            'residence_city' => 'nullable|string|max:255',
-            'passport_issue_place' => 'nullable|string|max:255',
+            // الجوالات بصيغة دولية +رمز الدولة، وتُفحص حسب قواعد ترقيم دولتها (عند إدخالها أو تعديلها).
+            'phone' => [
+                'nullable',
+                'string',
+                'max:50',
+                Rule::when($this->isChanged('phone'), [new InternationalMobile('رقم جوال العاملة')]),
+            ],
+            'relative_name' => $this->lettersOnlyRules('relative_name'),
+            'relative_phone' => [
+                'nullable',
+                'string',
+                'max:50',
+                Rule::when($this->isChanged('relative_phone'), [new InternationalMobile('رقم جوال قريب العاملة')]),
+            ],
+            'residence_city' => $this->lettersOnlyRules('residence_city'),
+            'passport_issue_place' => $this->lettersOnlyRules('passport_issue_place'),
             'education' => 'nullable|string|max:255',
             'education_en' => 'nullable|string|max:255',
             'has_driving_license' => 'nullable|boolean',
             'driving_license_file' => 'nullable|file|mimes:pdf,jpg,jpeg,png,webp|max:10240',
             'price' => 'nullable|numeric',
-            'salary' => 'nullable|numeric',
+            'salary' => [
+                'nullable',
+                'numeric',
+                Rule::when($this->isChanged('salary', 'number'), [
+                    'required',
+                    'integer',
+                    'between:' . MaidFieldRules::SALARY_MIN . ',' . MaidFieldRules::SALARY_MAX,
+                ]),
+            ],
             'experience_years' => 'nullable',
             'experience_status' => 'required|in:has_experience,no_experience',
             'cooking_experience' => [
@@ -78,25 +114,68 @@ class MaidRequest extends MainRequest
                 'nullable',
                 'date',
             ],
+            // القواعد الجديدة للصيغ والحدود تُطبَّق على القيم المُدخلة أو المُعدّلة فقط،
+            // حتى لا تمنع البيانات القديمة المحفوظة تعديل باقي حقول السيرة.
             'border_number' => [
                 'nullable',
                 'string',
                 'max:50',
+                Rule::when($this->isChanged('border_number'), ['regex:' . MaidFieldRules::BORDER_NUMBER_REGEX]),
             ],
             'passport_issue_date' => [
                 'nullable',
                 'date',
+                Rule::when($this->isChanged('passport_issue_date', 'date'), [
+                    'before_or_equal:' . MaidFieldRules::today()->toDateString(),
+                    'after_or_equal:' . MaidFieldRules::passportIssueDateMin(),
+                ]),
             ],
             'passport_expiry_date' => [
                 'nullable',
                 'date',
                 Rule::when($this->filled('passport_issue_date'), 'after_or_equal:passport_issue_date'),
+                Rule::when($this->isChanged('passport_expiry_date', 'date'), [
+                    'after_or_equal:' . MaidFieldRules::today()->toDateString(),
+                ]),
             ],
             'age' => 'nullable|numeric|min:18|max:90',
-            'childrens_count' => 'nullable|numeric',
-            'duration' => 'nullable|string',
-            'additional_notes' => 'nullable',
-            'birth_date' => 'nullable|date',
+            'childrens_count' => [
+                'nullable',
+                'numeric',
+                Rule::when($this->isChanged('childrens_count', 'number'), [
+                    'integer',
+                    'between:' . MaidFieldRules::CHILDREN_MIN . ',' . MaidFieldRules::CHILDREN_MAX,
+                ]),
+            ],
+            // الطول والوزن: القيمة "0" يرسلها النموذج بدلًا من الحقل الفارغ في الأنواع التي لا تتطلبهما.
+            'height' => [
+                'nullable',
+                Rule::when($this->isChanged('height', 'number') && (string) $this->input('height') !== '0', [
+                    'integer',
+                    'between:' . MaidFieldRules::HEIGHT_MIN . ',' . MaidFieldRules::HEIGHT_MAX,
+                ]),
+            ],
+            'weight' => [
+                'nullable',
+                Rule::when($this->isChanged('weight', 'number') && (string) $this->input('weight') !== '0', [
+                    'integer',
+                    'between:' . MaidFieldRules::WEIGHT_MIN . ',' . MaidFieldRules::WEIGHT_MAX,
+                ]),
+            ],
+            'duration' => ['nullable', 'string', 'max:' . MaidFieldRules::MAX_LENGTHS['duration']],
+            'additional_notes' => [
+                'nullable',
+                'string',
+                Rule::when($this->isChanged('additional_notes'), ['max:' . MaidFieldRules::MAX_LENGTHS['additional_notes']]),
+            ],
+            'birth_date' => [
+                'nullable',
+                'date',
+                Rule::when($this->isChanged('birth_date', 'date'), [
+                    'after_or_equal:' . MaidFieldRules::birthDateMin(),
+                    'before_or_equal:' . MaidFieldRules::birthDateMax(),
+                ]),
+            ],
             'available_at' => 'nullable|date',
             'job_id' => 'required|array',
             'job_id.*' => 'required|exists:job_titles,id',
@@ -191,7 +270,31 @@ class MaidRequest extends MainRequest
         return [
             'name:en.required' => 'اسم العاملة مطلوب',
             'name:en.string' => 'اسم العاملة يجب أن يكون نص',
-            'name:en.max' => 'اسم العاملة يجب أن لا يتجاوز 255 حرف',
+            'name:en.max' => 'اسم العاملة يجب ألا يتجاوز ' . MaidFieldRules::MAX_LENGTHS['name:en'] . ' حرفًا',
+            'salary.required' => 'الراتب مطلوب',
+            'salary.integer' => 'الراتب يجب أن يكون رقمًا صحيحًا بدون كسور عشرية',
+            'salary.between' => 'الراتب يجب أن يكون بين ' . MaidFieldRules::SALARY_MIN . ' و' . MaidFieldRules::SALARY_MAX,
+            'height.integer' => 'الطول يجب أن يكون رقمًا صحيحًا بالسنتيمتر',
+            'height.between' => 'الطول يجب أن يكون بين ' . MaidFieldRules::HEIGHT_MIN . ' و' . MaidFieldRules::HEIGHT_MAX . ' سم',
+            'weight.integer' => 'الوزن يجب أن يكون رقمًا صحيحًا بالكيلوجرام',
+            'weight.between' => 'الوزن يجب أن يكون بين ' . MaidFieldRules::WEIGHT_MIN . ' و' . MaidFieldRules::WEIGHT_MAX . ' كجم',
+            'childrens_count.integer' => 'عدد الأطفال يجب أن يكون رقمًا صحيحًا',
+            'childrens_count.between' => 'عدد الأطفال يجب أن يكون بين ' . MaidFieldRules::CHILDREN_MIN . ' و' . MaidFieldRules::CHILDREN_MAX,
+            'passport_issue_place.regex' => 'مكان إصدار جواز السفر يقبل الحروف والمسافات فقط، بدون أرقام أو رموز',
+            'relative_name.regex' => 'اسم قريب العاملة يقبل الحروف والمسافات فقط، بدون أرقام أو رموز',
+            'residence_city.regex' => 'مدينة سكن العاملة تقبل الحروف والمسافات فقط، بدون أرقام أو رموز',
+            'image.max' => 'حجم الصورة الشخصية يجب ألا يتجاوز ' . (MaidFieldRules::FILE_MAX_KB / 1024) . ' ميجابايت',
+            'cv_file.max' => 'حجم الصورة الكاملة يجب ألا يتجاوز ' . (MaidFieldRules::FILE_MAX_KB / 1024) . ' ميجابايت',
+            'name:en.regex' => 'اسم العاملة بالإنجليزية يقبل الحروف الإنجليزية والمسافات فقط، بدون حروف عربية أو أرقام',
+            'image.mimes' => 'صيغة الصورة الشخصية غير مدعومة. الصيغ المسموحة: JPG وPNG وGIF وBMP وWEBP',
+            'cv_file.mimes' => 'صيغة الصورة الكاملة غير مدعومة. الصيغ المسموحة: PDF وJPG وPNG وGIF وBMP وWEBP',
+            'passport_num.regex' => 'رقم الجواز يقبل الحروف الإنجليزية والأرقام فقط، بطول من ' . MaidFieldRules::PASSPORT_MIN_LENGTH . ' إلى ' . MaidFieldRules::PASSPORT_MAX_LENGTH . ' خانة',
+            'border_number.regex' => 'رقم الحدود يقبل الأرقام فقط، بحد أقصى ' . MaidFieldRules::BORDER_NUMBER_MAX_LENGTH . ' رقمًا',
+            'birth_date.after_or_equal' => 'تاريخ الميلاد غير منطقي: يجب ألا يزيد عمر العاملة عن ' . MaidFieldRules::MAX_AGE . ' سنة',
+            'birth_date.before_or_equal' => 'تاريخ الميلاد غير منطقي: يجب ألا يقل عمر العاملة عن ' . MaidFieldRules::MIN_AGE . ' سنة',
+            'passport_issue_date.before_or_equal' => 'تاريخ إصدار جواز السفر لا يمكن أن يكون في المستقبل',
+            'passport_issue_date.after_or_equal' => 'تاريخ إصدار جواز السفر لا يمكن أن يكون أقدم من ' . MaidFieldRules::PASSPORT_ISSUE_MAX_YEARS . ' سنة',
+            'passport_expiry_date.after_or_equal' => 'تاريخ انتهاء جواز السفر يجب أن يكون بعد تاريخ الإصدار ولا يكون تاريخًا منتهيًا',
             'cv_file.required' => helperTrans('web.cv_file_is_required'),
             'maid_cv_file.file' => 'ملف سيرة العاملة من المكتب الخارجي غير صالح',
             'maid_cv_file.mimes' => 'يجب أن يكون ملف سيرة العاملة من المكتب الخارجي بصيغة PDF',
@@ -220,7 +323,6 @@ class MaidRequest extends MainRequest
             'border_number.max' => 'رقم الحدود يجب ألا يتجاوز 50 خانة',
             'passport_issue_date.date' => 'تاريخ إصدار جواز السفر يجب أن يكون تاريخاً صالحاً',
             'passport_expiry_date.date' => 'تاريخ انتهاء جواز السفر يجب أن يكون تاريخاً صالحاً',
-            'passport_expiry_date.after_or_equal' => 'تاريخ انتهاء جواز السفر يجب أن يكون بعد أو مساوي لتاريخ الإصدار',
             'age.numeric' => helperTrans('web.age_must_be_numeric'),
             'age.min' => __('web.age_min', ['min'=> '18']),
             'age.max' => __('web.age_max', ['max'=> '90']),
@@ -263,6 +365,14 @@ class MaidRequest extends MainRequest
             'id_number' => 'رقم الهوية',
             'id_expiry_date' => 'تاريخ انتهاء الهوية',
             'border_number' => 'رقم الحدود',
+            'height' => 'الطول',
+            'weight' => 'الوزن',
+            'childrens_count' => 'عدد الأطفال',
+            'duration' => 'مدة العقد',
+            'additional_notes' => 'الملاحظات الإضافية',
+            'passport_issue_place' => 'مكان إصدار الجواز',
+            'relative_name' => 'اسم قريب العاملة',
+            'residence_city' => 'مدينة سكن العاملة',
             'passport_issue_date' => 'تاريخ إصدار الجواز',
             'passport_expiry_date' => 'تاريخ انتهاء الجواز',
             'age' => 'العمر',
@@ -393,6 +503,57 @@ class MaidRequest extends MainRequest
             || str_contains($normalizedTitle, 'ايجار')
             || str_contains($normalizedTitle, 'تاجير')
             || str_contains($normalizedTitle, 'rent');
+    }
+
+    private ?Maid $existingMaid = null;
+
+    /**
+     * هل القيمة المُرسلة جديدة أو تختلف عن المحفوظة؟ في الإضافة تُعد كل قيمة جديدة.
+     */
+    /** حقل نصي اختياري يقبل الحروف والمسافات فقط، بحد أقصى للطول. */
+    private function lettersOnlyRules(string $field): array
+    {
+        return [
+            'nullable',
+            'string',
+            Rule::when($this->isChanged($field), [
+                'max:' . MaidFieldRules::MAX_LENGTHS[$field],
+                'regex:' . MaidFieldRules::LETTERS_ONLY_REGEX,
+            ], ['max:255']),
+        ];
+    }
+
+    /**
+     * @param string $type string | date | number
+     */
+    private function isChanged(string $field, string $type = 'string'): bool
+    {
+        $maidId = $this->route('maid');
+
+        if (!$maidId) {
+            return true;
+        }
+
+        $this->existingMaid ??= $maidId instanceof Maid ? $maidId : Maid::find($maidId);
+
+        if (!$this->existingMaid) {
+            return true;
+        }
+
+        $stored = trim((string) $this->existingMaid->getRawOriginal($field));
+        $submitted = trim((string) $this->input($field));
+
+        if ($type === 'date') {
+            $stored = substr($stored, 0, 10);
+            $submitted = substr($submitted, 0, 10);
+        }
+
+        // الأرقام تُقارن كقيم: "1500" و"1500.00" قيمة واحدة.
+        if ($type === 'number' && is_numeric($stored) && is_numeric($submitted)) {
+            return (float) $stored !== (float) $submitted;
+        }
+
+        return $stored !== $submitted;
     }
 
     private function requiresOfficeField(): bool

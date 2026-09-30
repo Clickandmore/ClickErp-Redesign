@@ -704,6 +704,51 @@ class Maid extends Model
             ->whereDoesntHave('jobTypes', fn ($types) => $types->where('job_types.id', '!=', 1));
     }
 
+    /**
+     * أسباب عدم ظهور العاملة في شاشة «اختر العاملة» (عكس شروط scopeAvailableForInternalRecruitment).
+     * قائمة فارغة = العاملة تظهر.
+     */
+    public function internalRecruitmentBlockers(): array
+    {
+        $reasons = [];
+
+        if ($this->submission_status === self::SUBMISSION_PENDING) {
+            $reasons[] = 'سيرة مرفوعة من مكتب خارجي وما زالت بانتظار المراجعة والاعتماد';
+        } elseif (!$this->is_show) {
+            $reasons[] = 'السيرة مخفية: خيار «إظهار السيرة» غير مفعّل';
+        }
+
+        if ($this->status !== 'available') {
+            $reasons[] = 'حالة العاملة ليست «متاحة» (الحالة الحالية: ' . ($this->status ?: 'غير محددة') . ')';
+        }
+
+        if (!$this->available) {
+            $reasons[] = 'العاملة مُعلَّمة كغير متاحة';
+        }
+
+        $typeIds = $this->jobTypes->pluck('id')->map(fn ($id) => (int) $id);
+        if (!$typeIds->contains(1)) {
+            $reasons[] = 'نوع السيرة ليس «استقدام»';
+        } elseif ($typeIds->contains(fn ($id) => $id !== 1)) {
+            $reasons[] = 'السيرة مرتبطة بنوع آخر إضافة للاستقدام (مثل التأجير)';
+        }
+
+        if (!static::query()->whereKey($this->getKey())->withoutActiveOrders()->exists()) {
+            $reasons[] = 'العاملة محجوزة في طلب قائم';
+        }
+
+        $hasOpenContract = $this->contracts()->withoutGlobalScopes()->where(function ($statuses) {
+            $statuses->whereNull('status')->orWhereNotIn('status', [
+                'cancelled', 'canceled', 'refused', 'back', 'completed', 'closed', 'refunded',
+            ]);
+        })->exists();
+        if ($hasOpenContract) {
+            $reasons[] = 'العاملة مرتبطة بعقد قائم';
+        }
+
+        return $reasons;
+    }
+
     public function scopeAvailableFromToday($query)
     {
         return $query->where('available_at', '>=', now()->toDateString());

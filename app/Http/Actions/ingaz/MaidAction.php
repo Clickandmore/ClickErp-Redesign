@@ -191,8 +191,8 @@ class MaidAction extends MainAction
         $data['price'] = $data['price'] ?? 0;
         $data['salary'] = $data['salary'] ?? 0;
         $data['age'] = $data['age'] ?? 0;
-        $data['height'] = $data['height'] ?? '160';
-        $data['weight'] = $data['weight'] ?? '60';
+        $data['height'] = $data['height'] ?? ''; // لا قيمة افتراضية وهمية للطول
+        $data['weight'] = $data['weight'] ?? ''; // لا قيمة افتراضية وهمية للوزن
         $data['childrens_count'] = $data['childrens_count'] ?? '0';
         $data['duration'] = $data['duration'] ?? ' ';
         $data['additional_notes'] = $data['additional_notes'] ?? null;
@@ -666,8 +666,8 @@ class MaidAction extends MainAction
         $createData['price'] = $createData['price'] ?? 0;
         $createData['salary'] = $createData['salary'] ?? 0;
         $createData['age'] = $createData['age'] ?? 0;
-        $createData['height'] = $createData['height'] ?? '160';
-        $createData['weight'] = $createData['weight'] ?? '60';
+        $createData['height'] = $createData['height'] ?? ''; // لا قيمة افتراضية وهمية للطول
+        $createData['weight'] = $createData['weight'] ?? ''; // لا قيمة افتراضية وهمية للوزن
         $createData['available_at'] = $createData['available_at'] ?? now()->toDateString();
         $createData['arrival_date'] = $createData['arrival_date'] ?? now()->toDateString();
         $createData['image'] = $createData['image'] ?? '';

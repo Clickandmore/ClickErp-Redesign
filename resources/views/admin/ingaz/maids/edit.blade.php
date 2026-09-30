@@ -558,12 +558,14 @@
                                     <label for="TextInput"
                                         class="form-label">{{ helperTrans('ingaz.personal_photo') }}</label>
                                     <input type="file" data-default-file="{{ showFile($obj->image) }}" name="image" id="maid_image"
-                                        class="dropify" accept="image/*">
+                                        class="dropify" accept="{{ \App\Support\MaidFieldRules::imageAccept() }}"
+                                        data-allowed-file-extensions="{{ implode(' ', \App\Support\MaidFieldRules::IMAGE_EXTENSIONS) }}">
                                 </div>
                                 <div class="col-md-6">
                                     <label for="TextInput" class="form-label">{{ helperTrans('ingaz.full_photo') }}</label>
                                     <input type="file" data-default-file="{{ showFile($obj->cv_file) }}" name="cv_file" id="cv_file" class="dropify"
-                                        accept=".pdf,image/*">
+                                        accept=".pdf,{{ \App\Support\MaidFieldRules::imageAccept() }}"
+                                        data-allowed-file-extensions="pdf {{ implode(' ', \App\Support\MaidFieldRules::IMAGE_EXTENSIONS) }}">
                                 </div>
                                 <div class="col-12">
                                     <label for="maid_cv_file" class="form-label">
@@ -600,7 +602,8 @@
                                     <label for="TextInput" class="form-label">
                                         اسم العامل/ة ({{ helperTrans('ingaz.en') }})
                                     </label>
-                                    <input type="text" name="name:en" class="form-control" required
+                                    <input type="text" name="name:en" class="form-control" required dir="ltr" maxlength="{{ \App\Support\MaidFieldRules::MAX_LENGTHS['name:en'] }}"
+                                        lang="en" autocomplete="off" placeholder="English letters only"
                                         value="{{ old('name:en', $obj->name ?? '') }}">
                                 </div>
                                 <!-- خيار تسكين للإيواء -->
@@ -630,6 +633,9 @@
                                         @foreach ($nationalities as $nationality)
                                             <option value="{{ $nationality->id }}" data-price="{{ $nationality->price }}"
                                                 data-salary="{{ $nationality->monthly_salary }}"
+                                                data-salary-experienced="{{ $nationality->salary_with_experience }}"
+                                                data-salary-inexperienced="{{ $nationality->salary_with_no_experience }}"
+                                                data-search="{{ $nationality->title }} {{ optional($nationality->translate('en'))->title }} {{ optional($nationality->translate('en'))->sub_title }}"
                                                 data-service_transportation_cost="{{ $nationality->service_transportation_cost }}"
                                                 data-rental_cost="{{ $nationality->rental_cost }}"
                                                 {{ (string) old('nationality_id', $obj->nationality_id) === (string) $nationality->id ? 'selected' : '' }}>
@@ -639,12 +645,24 @@
                                     </select>
                                 </div>
 
-                                <!-- مكتب الاستقدام -->
+                                <!-- مكتب الاستقدام: مكاتب الجنسية المختارة فقط (مع المكتب المحفوظ إن اختلف) -->
+                                @php
+                                    $selectedNationalityId = (string) old('nationality_id', $obj->nationality_id);
+                                    $selectedOfficeId = (string) old('office_id', $obj->office_id);
+                                    $nationalityOffices = $selectedNationalityId === ''
+                                        ? collect()
+                                        : collect($offices)->filter(fn ($office) => (string) $office->nationality_id === $selectedNationalityId
+                                            || (string) $office->id === $selectedOfficeId);
+                                @endphp
                                 <div class="col-4 office-field">
                                     <label for="TextInput" class="form-label">{{ helperTrans('ingaz.recruitment office') }} </label>
                                     <select name="office_id" class="form-control" {{ $officeFieldLocked ? 'disabled' : '' }}>
-                                        <option value="">{{ helperTrans('ingaz.choose_recruitment_office') }}</option>
-                                        {!! showSelectElement($offices, 'title', old('office_id', $obj->office_id)) !!}
+                                        <option value="">{{ $selectedNationalityId === '' ? 'اختر الجنسية أولاً' : helperTrans('ingaz.choose_recruitment_office') }}</option>
+                                        @foreach ($nationalityOffices as $office)
+                                            <option value="{{ $office->id }}" {{ (string) $office->id === $selectedOfficeId ? 'selected' : '' }}>
+                                                {{ $office->title }}
+                                            </option>
+                                        @endforeach
                                     </select>
                                 </div>
 
@@ -731,8 +749,10 @@
                         <label for="TextInput" class="form-label">
                             {{ helperTrans('ingaz.salary') }}
                         </label>
-                        <input type="number" name="salary" class="form-control"
-                            value="{{ old('salary', $obj->salary ?? 0) }}"
+                        <input type="text" name="salary" id="maid_salary" class="form-control" required
+                            inputmode="numeric" dir="ltr" autocomplete="off"
+                            maxlength="{{ strlen((string) \App\Support\MaidFieldRules::SALARY_MAX) }}"
+                            value="{{ old('salary', $obj->salary !== null ? (float) $obj->salary : '') }}"
                             {{ $financialEditLock ? 'readonly' : '' }}>
                         @if ($financialEditLock)
                             <small class="text-muted">الراتب محفوظ كما هو لارتباط السيرة بمستند مالي.</small>
@@ -751,7 +771,8 @@
                         <label for="TextInput" class="form-label">
                             {{ helperTrans('ingaz.age') }}
                         </label>
-                        <input type="number" min="18" max="90" name="age" id="age"
+                        <input type="number" min="{{ \App\Support\MaidFieldRules::MIN_AGE }}"
+                            max="{{ \App\Support\MaidFieldRules::MAX_AGE }}" name="age" id="age"
                             class="form-control" readonly value="{{ old('age', ($obj->age ?? 0) > 0 ? $obj->age : '') }}">
                     </div>
 
@@ -803,7 +824,7 @@
                         <label for="TextInput" class="form-label">
                             {{ helperTrans('ingaz.contract_duration') }}
                         </label>
-                        <input type="text" name="duration" class="form-control"
+                        <input type="text" name="duration" class="form-control" maxlength="{{ \App\Support\MaidFieldRules::MAX_LENGTHS['duration'] }}"
                             value="{{ old('duration', $obj->duration ?: helperTrans('ingaz.twenty_four_months')) }}">
                     </div>
                     <div class="col-4" id="arrival_date_field"
@@ -831,6 +852,8 @@
                             رقم جواز العاملة <span class="text-danger">*</span>
                         </label>
                         <input type="text" name="passport_num" id="passport_num" class="form-control" required
+                            dir="ltr" autocomplete="off" maxlength="{{ \App\Support\MaidFieldRules::PASSPORT_MAX_LENGTH }}"
+                            placeholder="A-Z 0-9"
                             value="{{ old('passport_num', $obj->passport_num) }}"
                             {{ $passportFieldLocked ? 'readonly' : '' }}>
                         @if ($passportFieldLocked)
@@ -845,7 +868,8 @@
                             <small class="text-muted">({{ helperTrans('ingaz.optional') }})</small>
                         </label>
                         <input type="text" name="border_number" id="border_number" class="form-control"
-                            maxlength="50" value="{{ old('border_number', $obj->border_number) }}">
+                            maxlength="50" inputmode="numeric" dir="ltr" autocomplete="off" placeholder="0-9"
+                            value="{{ old('border_number', $obj->border_number) }}">
                     </div>
 
                     <div class="col-4 passport-extra-field">
@@ -863,7 +887,7 @@
                             <small class="text-muted">({{ helperTrans('ingaz.optional') }})</small>
                         </label>
                         <input type="text" name="passport_issue_place" id="passport_issue_place"
-                            class="form-control" maxlength="255"
+                            class="form-control" maxlength="{{ \App\Support\MaidFieldRules::MAX_LENGTHS['passport_issue_place'] }}"
                             value="{{ old('passport_issue_place', $obj->passport_issue_place) }}">
                     </div>
 
@@ -928,7 +952,7 @@
                     <div class="col-4">
                         <label for="TextInput" class="form-label">{{ helperTrans('ingaz.video_link') }} <small
                                 class="text-muted">({{ helperTrans('ingaz.optional') }})</small></label>
-                        <input type="text" name="video_link" class="form-control js-video-link-input"
+                        <input type="text" name="video_link" class="form-control js-video-link-input" maxlength="{{ \App\Support\MaidFieldRules::MAX_LENGTHS['video_link'] }}"
                             value="{{ old('video_link', $obj->video_link) }}"
                             placeholder="{{ __('ingaz.video_link_or_iframe_placeholder') }}">
                         <small class="text-muted d-block mt-1">{{ __('ingaz.video_link_iframe_hint') }}</small>
@@ -937,9 +961,10 @@
                             <small class="text-muted">({{ helperTrans('ingaz.optional') }})</small>
                         </label>
                         <input type="file" name="video" id="maid_video" class="form-control"
+                            data-existing-video="{{ filled($obj->video) ? '1' : '0' }}"
                             accept="video/mp4,video/quicktime,video/x-msvideo,video/x-ms-wmv,video/webm,video/x-matroska,video/x-m4v">
                         <input type="hidden" name="remove_video" id="remove_maid_video" value="0">
-                        <button type="button" class="btn btn-outline-danger btn-sm mt-2 js-clear-maid-video">
+                        <button type="button" class="btn btn-outline-danger btn-sm mt-2 js-clear-maid-video d-none">
                             <i class="fas fa-trash-alt me-1"></i>{{ __('ingaz.remove_video_value') }}
                         </button>
                         <small class="text-danger d-none mt-2 js-video-removal-notice">
@@ -958,7 +983,7 @@
                         <label for="TextInput" class="form-label">
                             {{ helperTrans('ingaz.additional_notes') }}
                         </label>
-                        <textarea type="text" name="additional_notes" class="form-control">{{ old('additional_notes', $obj->additional_notes) }}</textarea>
+                        <textarea name="additional_notes" class="form-control" maxlength="{{ \App\Support\MaidFieldRules::MAX_LENGTHS['additional_notes'] }}">{{ old('additional_notes', $obj->additional_notes) }}</textarea>
                     </div>
                     <!-- اللغات والحالة الاجتماعية -->
                     <div class="col-12">
@@ -1304,19 +1329,21 @@
                                             <div class="col-md-4">
                                                 <label class="form-label">{{ helperTrans('ingaz.height') }}</label>
                                                 <input type="text" name="height" class="form-control"
-                                                    value="{{ old('height', $obj->height ?? '160') }}"
-                                                    placeholder="{{ helperTrans('ingaz.height_placeholder') }}">
+                                                    inputmode="numeric" dir="ltr" autocomplete="off" maxlength="3"
+                                                    value="{{ old('height', $obj->height) }}"
+                                                    placeholder="{{ \App\Support\MaidFieldRules::HEIGHT_MIN }} - {{ \App\Support\MaidFieldRules::HEIGHT_MAX }} سم">
                                             </div>
                                             <div class="col-md-4">
                                                 <label class="form-label">{{ helperTrans('ingaz.weight') }}</label>
                                                 <input type="text" name="weight" class="form-control"
-                                                    value="{{ old('weight', $obj->weight ?? '60') }}"
-                                                    placeholder="{{ helperTrans('ingaz.weight_placeholder') }}">
+                                                    inputmode="numeric" dir="ltr" autocomplete="off" maxlength="3"
+                                                    value="{{ old('weight', $obj->weight) }}"
+                                                    placeholder="{{ \App\Support\MaidFieldRules::WEIGHT_MIN }} - {{ \App\Support\MaidFieldRules::WEIGHT_MAX }} كجم">
                                             </div>
                                             <div class="col-md-4">
                                                 <label class="form-label">{{ helperTrans('ingaz.childrens_count') }}</label>
-                                                <input type="number" name="childrens_count" class="form-control"
-                                                    min="0" step="1"
+                                                <input type="text" name="childrens_count" class="form-control"
+                                                    inputmode="numeric" dir="ltr" autocomplete="off" maxlength="2"
                                                     value="{{ old('childrens_count', $obj->childrens_count ?? 0) }}">
                                             </div>
                                             <div class="col-md-4">
@@ -1327,7 +1354,7 @@
                                             <div class="col-md-4">
                                                 <label for="relative_name" class="form-label">اسم أحد أقارب العاملة</label>
                                                 <input type="text" name="relative_name" id="relative_name"
-                                                    class="form-control" maxlength="255"
+                                                    class="form-control" maxlength="{{ \App\Support\MaidFieldRules::MAX_LENGTHS['relative_name'] }}"
                                                     value="{{ old('relative_name', $obj->relative_name) }}">
                                             </div>
                                             <div class="col-md-4">
@@ -1339,7 +1366,7 @@
                                             <div class="col-md-4">
                                                 <label for="residence_city" class="form-label">مدينة سكن العاملة</label>
                                                 <input type="text" name="residence_city" id="residence_city"
-                                                    class="form-control" maxlength="255"
+                                                    class="form-control" maxlength="{{ \App\Support\MaidFieldRules::MAX_LENGTHS['residence_city'] }}"
                                                     value="{{ old('residence_city', $obj->residence_city) }}">
                                             </div>
                                             @include('shared.education-selects', ['educationMaid' => $obj])
@@ -1499,6 +1526,7 @@
     <script src="{{ asset('admin') }}/assets/js/bundle/dropify.bundle.js"></script>
     <script src="{{ asset('admin') }}/assets/js/bundle/select2.bundle.js"></script>
     <script src="{{ asset('admin') }}/assets/js/bundle/sweetalert2.bundle.js"></script>
+    @include('admin.ingaz.maids.partials.field-rules')
     <script>
         document.addEventListener('DOMContentLoaded', function() {
             const form = document.getElementById('maidForm');
@@ -1668,13 +1696,8 @@
                 }
             });
 
-            // حذف صف
-            $(document).on('click', '.btnRemove', function() {
-                const $rows = $('#json_array tr.y-group');
-                if ($rows.length <= 1) {
-                    return; // لن يحدث شيء؛ الزر مخفي فعلاً لكن هنا كحماية
-                }
-                const $row = $(this).closest('tr');
+            // حذف صف: بعد تأكيد المستخدم فقط (زر 'إلغاء' لا يحذف شيئًا)
+            function removeExperienceRow($row) {
                 if ($row.find('select.select2[data-select2-id]').length) {
                     $row.find('select.select2').select2('destroy');
                 }
@@ -1687,6 +1710,37 @@
                 if (typeof window.attachExperienceHandlers === 'function') {
                     window.attachExperienceHandlers();
                 }
+            }
+
+            $(document).on('click', '.btnRemove', function(event) {
+                event.preventDefault();
+                event.stopImmediatePropagation();
+                const $rows = $('#json_array tr.y-group');
+                if ($rows.length <= 1) {
+                    return; // لن يحدث شيء؛ الزر مخفي فعلاً لكن هنا كحماية
+                }
+                const $row = $(this).closest('tr');
+
+                if (!window.Swal) {
+                    if (window.confirm('هل تريد حذف هذه الخبرة؟')) {
+                        removeExperienceRow($row);
+                    }
+                    return;
+                }
+
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'حذف الخبرة',
+                    text: 'هل تريد حذف هذه الخبرة؟',
+                    showCancelButton: true,
+                    confirmButtonText: 'نعم، احذف',
+                    cancelButtonText: 'إلغاء',
+                    reverseButtons: true
+                }).then(function(result) {
+                    if (result.isConfirmed) {
+                        removeExperienceRow($row);
+                    }
+                });
             });
 
         });
@@ -1696,9 +1750,9 @@
             $('#json_array').multifield({
                 section: '.y-group',
                 btnAdd: '#btnAdd-2',
-                btnRemove: '.btnRemove'
+                btnRemove: '.multifield-remove-disabled' // الحذف يتولاه removeExperienceRow
             });
-            $('.dropify').dropify();
+            $('.dropify').dropify(window.maidDropifyOptions || {});
             $('.js-example-basic-multiple').select2();
             let extractedWorkerImageFile = null;
             const hasExistingMaidImage = @json(!empty($obj->image));
@@ -1882,7 +1936,7 @@
 
             function fillBirthDateFromAge(ageValue) {
                 const age = parseInt(ageValue, 10);
-                if (Number.isNaN(age) || age < 18 || age > 90) {
+                if (Number.isNaN(age) || age < window.maidFieldRules.config.minAge || age > window.maidFieldRules.config.maxAge) {
                     return;
                 }
 
@@ -2361,7 +2415,6 @@
                     idInputs.removeAttr('required');
                     heightWeightInputs.removeAttr('required');
                     maritalStatusSelect.removeAttr('required');
-                    salaryInput.removeAttr('required');
                     requestTypeSelect.prop('disabled', false);
                     if (isRentalForm || typeContext.isRental) {
                         rentalFinanceConfirmedInput.val('1');
@@ -2545,6 +2598,14 @@
                     return;
                 }
 
+                // لا يُفحص التكرار ولا تظهر "متاح" لرقم بصيغة غير صحيحة
+                var passportFormatError = window.maidFieldRules.passportError(passportNum);
+                if (passportFormatError) {
+                    $(this).addClass('is-invalid');
+                    feedback.addClass('invalid-feedback').text(passportFormatError);
+                    return;
+                }
+
                 // Set timeout to avoid too many requests
                 passportCheckTimeout = setTimeout(function() {
                     $.ajax({
@@ -2625,8 +2686,7 @@
                                     '">' + office.title + '</option>');
                             });
 
-                            // Set default price and salary based on nationality
-                            // Keep salary as provided by the admin; do not override automatically
+                            // الراتب يُقترح من باقة الجنسية في partials.field-rules
                         },
                         error: function(xhr) {
                             Swal.fire({
@@ -2754,6 +2814,13 @@
                     }
                 }
 
+                // صيغ الحقول وحدود التواريخ (partials.field-rules)
+                var fieldRuleErrors = window.maidFieldRules.validateAll();
+                if (fieldRuleErrors.length) {
+                    errors = errors.concat(fieldRuleErrors);
+                    isValid = false;
+                }
+
                 if (!isValid) {
                     showMaidFormValidationErrors({ form: errors });
                     Swal.fire({
@@ -2788,6 +2855,8 @@
 
                 // إرسال النموذج باستخدام AJAX
                 var formData = new FormData(this);
+                // الجوالات تُرسل بالصيغة الدولية +رمز الدولة (partials.field-rules)
+                window.maidFieldRules.prepareFormData(formData);
                 if (!formData.get('image') && extractedWorkerImageFile) {
                     formData.set('image', extractedWorkerImageFile, extractedWorkerImageFile.name ||
                         'maid-photo.jpg');
@@ -2808,9 +2877,6 @@
                 }
                 if (!formData.get('weight')) {
                     formData.append('weight', '0');
-                }
-                if (!formData.get('salary')) {
-                    formData.append('salary', '0');
                 }
                 if (!formData.get('price')) {
                     formData.append('price', '0');
@@ -2960,9 +3026,9 @@
     <script>
         $(function() {
             $('.js-clear-maid-video').on('click', function() {
-                $('#maid_video').val('');
+                // يمسح ملف الفيديو المرفوع (الجديد أو المحفوظ) فقط؛ رابط الفيديو له حقله الخاص.
                 $('#remove_maid_video').val('1');
-                $('.js-video-link-input').val('').trigger('change');
+                $('#maid_video').val('').trigger('change');
                 $('.js-video-removal-notice').removeClass('d-none');
             });
 
