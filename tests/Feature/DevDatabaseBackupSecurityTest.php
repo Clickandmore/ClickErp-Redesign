@@ -93,6 +93,8 @@ class DevDatabaseBackupSecurityTest extends TestCase
         $response->assertOk();
         $response->assertSee('تنزيل نسخة جديدة');
         $response->assertSee('إنشاء نسخة محلية');
+        $response->assertSee('/tmp/clickerp-database-upload-', false);
+        $response->assertSee('sudo -u www-data cp -- ', false);
     }
 
     public function test_local_backup_download_stays_behind_super_admin_authentication(): void

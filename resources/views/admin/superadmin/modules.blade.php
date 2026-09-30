@@ -785,7 +785,7 @@
                     <div class="terminal-command-actions">
                         <button id="copyDatabaseUploadCommand" class="btn btn-small" type="button" disabled>نسخ أمر الرفع</button>
                     </div>
-                    <p class="verification-note">يبحث أمر الرفع عن الملف المختار في المجلد الحالي وDownloads وDesktop وDocuments. إذا لم يجده يطلب مساره في Terminal. المتصفح يتيح اسم الملف فقط، ولا يتيح مساره الكامل.</p>
+                    <p class="verification-note">يبحث أمر الرفع عن الملف المختار في المجلد الحالي وDownloads وDesktop وDocuments. إذا لم يجده يطلب مساره في Terminal، ثم يرفعه إلى مساحة مؤقتة على السيرفر وينقله بصلاحية مستخدم التطبيق إلى مجلد النسخ المحلية.</p>
                     <p>٢. بعد نجاح الرفع، نفّذ أمر الاستيراد داخل جلسة SSH على السيرفر:</p>
                     <code id="databaseTerminalCommandPrefix" class="terminal-command">اختر الملف لإنشاء أمر الاستيراد بعد الرفع.</code>
                     <div class="terminal-command-actions">
@@ -1260,14 +1260,19 @@
 
         const directory = databaseRemoteProject.replace(/\/$/, '') + '/storage/app/database-backups';
         const serverPath = directory + '/' + file.name;
+        const stagingPath = '/tmp/clickerp-database-upload-' + file.name;
         const importCommand = 'cd ' + posixQuote(databaseRemoteProject)
             + ' && sudo -u www-data ' + posixQuote(databaseRemotePhp)
             + ' artisan database:import-local ' + posixQuote(serverPath);
         const quote = databaseClientIsWindows
             ? (value) => `'${String(value).replaceAll("'", "''")}'`
             : posixQuote;
-        const mkdir = 'ssh ' + quote(connection) + ' ' + quote('mkdir -p -- ' + posixQuote(directory));
-        const destination = quote(connection + ':' + serverPath);
+        const stagingDestination = quote(connection + ':' + stagingPath);
+        const finalizeUpload = 'chmod 0644 -- ' + posixQuote(stagingPath)
+            + ' && sudo -u www-data mkdir -p -- ' + posixQuote(directory)
+            + ' && sudo -u www-data cp -- ' + posixQuote(stagingPath) + ' ' + posixQuote(serverPath)
+            + '; upload_status=$?; rm -f -- ' + posixQuote(stagingPath) + '; exit $upload_status';
+        const finalize = 'ssh ' + quote(connection) + ' ' + quote(finalizeUpload);
         let uploadCommand;
         if (databaseClientIsWindows) {
             uploadCommand = [
@@ -1275,7 +1280,7 @@
                 '$backupFile = $null',
                 'foreach ($backupDir in @((Get-Location).Path, [Environment]::GetFolderPath("UserProfile") + "\\Downloads", [Environment]::GetFolderPath("Desktop"), [Environment]::GetFolderPath("MyDocuments"))) { if ($backupDir) { $backupCandidate = Join-Path $backupDir $backupName; if ((Test-Path -LiteralPath $backupCandidate -PathType Leaf) -and (Get-Item -LiteralPath $backupCandidate).Length -eq ' + file.size + ') { $backupFile = $backupCandidate; break } } }',
                 'if (!$backupFile) { $backupFile = Read-Host "Paste the full file path without quotes" }',
-                'if (Test-Path -LiteralPath $backupFile -PathType Leaf) { ' + mkdir + '; if ($LASTEXITCODE -eq 0) { scp "$backupFile" ' + destination + ' } } else { Write-Error "Backup file not found; upload cancelled." }',
+                'if (Test-Path -LiteralPath $backupFile -PathType Leaf) { scp "$backupFile" ' + stagingDestination + '; if ($LASTEXITCODE -eq 0) { ' + finalize + ' } } else { Write-Error "Backup file not found; upload cancelled." }',
             ].join('\n');
         } else {
             uploadCommand = [
@@ -1286,7 +1291,7 @@
                 'done',
                 'if [ -z "$backup_file" ]; then printf \'Paste the full file path without quotes: \'; IFS= read -r backup_file; fi',
                 'if [ -f "$backup_file" ]; then',
-                '  ' + mkdir + ' && scp "$backup_file" ' + destination,
+                '  scp "$backup_file" ' + stagingDestination + ' && ' + finalize,
                 'else',
                 '  printf \'Backup file not found; upload cancelled.\\n\' >&2',
                 'fi',
