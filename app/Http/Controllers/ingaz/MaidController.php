@@ -4578,6 +4578,10 @@ class MaidController extends Controller
 
     public function applyMaidFilterForBackout($request, $rows)
     {
+        if ($request->filled('name')) {
+            $rows->where('name', 'like', '%' . trim($request->input('name')) . '%');
+        }
+
         if ($request->has('passport_num') && $request->passport_num != null) {
             $rows->whereRaw('LOWER(passport_num) like ?', ['%' . strtolower($request->passport_num) . '%']);
         }

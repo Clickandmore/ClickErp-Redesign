@@ -354,6 +354,11 @@
                 <form id="filterForm">
                     <div class="row align-items-end">
                         <div class="col-lg-3 col-md-3 col-sm-6 mb-3">
+                            <input type="text" class="form-control" id="name" name="name"
+                                value="{{ $request->name }}" placeholder="{{ helperTrans('ingaz.search_by_maid_name') }}"
+                                aria-label="{{ helperTrans('ingaz.order_maid_name') }}">
+                        </div>
+                        <div class="col-lg-3 col-md-3 col-sm-6 mb-3">
                             <input type="text" class="form-control" id="passport_num" name="passport_num"
                                 value="{{ $request->passport_num }}" placeholder="{{ helperTrans('ingaz.passport_num') }}">
                         </div>
@@ -424,6 +429,7 @@
                     <tr>
                         <th class="d-none d-md-table-cell">ID</th>
                         <th>{{ helperTrans('ingaz.cv_file') }}</th>
+                        <th>{{ helperTrans('ingaz.order_maid_name') }}</th>
                         <th class="d-none d-lg-table-cell">{{ helperTrans('ingaz.nationality_id') }}</th>
                         <th class="d-none d-lg-table-cell">{{ helperTrans('ingaz.job_type') }}</th>
                         <th>{{ helperTrans('ingaz.passport_num') }}</th>
@@ -505,6 +511,12 @@
                     "data": "cv_file",
                     orderable: false,
                     searchable: false
+                },
+                {
+                    "data": "name",
+                    name: 'name',
+                    orderable: true,
+                    searchable: true
                 },
                 {
                     "data": "nationality_id",
@@ -629,6 +641,7 @@
 
             $('#btnSubmit').on('click', function() {
                 let filters = {
+                    name: $('#name').val(),
                     passport_num: $('#passport_num').val(),
                     nationality_id: $('#nationality_id').val(),
                     job_type: $('#type').val(),
@@ -663,7 +676,7 @@
                     columns: columns,
                     pageLength: 10,
                     order: [
-                        [14, 'desc']
+                        [15, 'desc']
                     ], // Order by created_at column by default in descending order
                     language: {
                         processing: `<div class="spinner-border text-primary" role="status"><span class="visually-hidden">${noneAvailableTranslations.loading}</span></div>`
