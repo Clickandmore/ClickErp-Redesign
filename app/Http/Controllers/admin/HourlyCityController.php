@@ -40,12 +40,12 @@ class HourlyCityController extends Controller
     {
         $country=Country::where('code','SA')->firstOrFail();
         $city=City::create($this->validated($request,$country->id)+['country_id'=>$country->id]);
-        return redirect()->route('admin.hourly-cities.index')->with('success','تمت إضافة المدينة '.$city->name_ar.'.');
+        return $this->saved($request,'تمت إضافة المدينة '.$city->name_ar.'.');
     }
     public function update(Request $request, City $city)
     {
         $this->saudi($city); $city->update($this->validated($request,$city->country_id,$city));
-        return redirect()->route('admin.hourly-cities.index')->with('success','تم تعديل المدينة.');
+        return $this->saved($request,'تم تعديل المدينة.');
     }
     public function status(Request $request, City $city)
     {
@@ -87,14 +87,52 @@ class HourlyCityController extends Controller
         return response()->json($service->locate($data['name']));
     }
     private function saudi(City $city): void { abort_unless(City::saudi()->whereKey($city->id)->exists(),404); }
+    /** الحفظ من نموذج الصفحة/المودال عبر fetch يُرجع JSON، والنموذج العادي يُعاد توجيهه. */
+    private function saved(Request $request, string $message)
+    {
+        if($request->expectsJson()) {
+            session()->flash('success',$message);
+            return response()->json(['message'=>$message,'redirect'=>route('admin.hourly-cities.index')]);
+        }
+        return redirect()->route('admin.hourly-cities.index')->with('success',$message);
+    }
+
+    /** حدود المملكة التقريبية لمركز المدينة. نفس القيم في _city-script. */
+    private const LAT=[16,33], LNG=[34,56], NAME_MAX=50, SORT_MAX=9999;
+
     private function validated(Request $request, int $countryId, ?City $city=null): array
     {
+        // توحيد المسافات حتى لا يمر "الرياض" و"الرياض  " كاسمين مختلفين
+        foreach(['name_ar','name_en'] as $key) {
+            if(is_string($request->input($key))) $request->merge([$key=>preg_replace('/\s+/u',' ',trim(str_replace(['’','‘'],"'",$request->input($key))))]);
+        }
+        $unique=fn()=>Rule::unique('cities')->where('country_id',$countryId)->ignore($city?->id);
+        [$latMin,$latMax]=self::LAT; [$lngMin,$lngMax]=self::LNG;
         return $request->validate([
-            'name_ar'=>['required','string','max:150',Rule::unique('cities')->where('country_id',$countryId)->ignore($city?->id)],
-            'name_en'=>['required','string','max:150',Rule::unique('cities')->where('country_id',$countryId)->ignore($city?->id)],
-            'latitude'=>['nullable','required_with:longitude','numeric','between:-90,90'],
-            'longitude'=>['nullable','required_with:latitude','numeric','between:-180,180'],
-            'sort_order'=>['required','integer','min:0','max:99999'], 'is_active'=>['required','boolean'],
+            'name_ar'=>['required','string','max:'.self::NAME_MAX,'regex:/^[\x{0621}-\x{063A}\x{0641}-\x{064A}]+( [\x{0621}-\x{063A}\x{0641}-\x{064A}]+)*$/u',$unique()],
+            'name_en'=>['required','string','max:'.self::NAME_MAX,"regex:/^[A-Za-z]+([ '-][A-Za-z]+)*$/",$unique()],
+            'latitude'=>['nullable','required_with:longitude','numeric',"between:$latMin,$latMax"],
+            'longitude'=>['nullable','required_with:latitude','numeric',"between:$lngMin,$lngMax"],
+            'sort_order'=>['required','integer','min:0','max:'.self::SORT_MAX], 'is_active'=>['required','boolean'],
+        ], [
+            'name_ar.required'=>'برجاء إدخال اسم المدينة بالعربية.',
+            'name_ar.max'=>'اسم المدينة بالعربية يجب ألا يتجاوز '.self::NAME_MAX.' حرفًا.',
+            'name_ar.regex'=>'اسم المدينة بالعربية يقبل الحروف العربية والمسافات فقط.',
+            'name_ar.unique'=>'الاسم باللغة العربية مستخدم من قبل.',
+            'name_en.required'=>'برجاء إدخال اسم المدينة بالإنجليزية.',
+            'name_en.max'=>'اسم المدينة بالإنجليزية يجب ألا يتجاوز '.self::NAME_MAX.' حرفًا.',
+            'name_en.regex'=>'اسم المدينة بالإنجليزية يقبل الحروف الإنجليزية والمسافات فقط (ويُسمح بـ - أو \' بين الكلمات).',
+            'name_en.unique'=>'الاسم باللغة الإنجليزية مستخدم من قبل.',
+            'latitude.required_with'=>'أدخل خط العرض مع خط الطول، أو اتركهما فارغين.',
+            'latitude.numeric'=>'خط العرض يجب أن يكون رقمًا.',
+            'latitude.between'=>"خط العرض يجب أن يكون داخل المملكة (بين $latMin و $latMax).",
+            'longitude.required_with'=>'أدخل خط الطول مع خط العرض، أو اتركهما فارغين.',
+            'longitude.numeric'=>'خط الطول يجب أن يكون رقمًا.',
+            'longitude.between'=>"خط الطول يجب أن يكون داخل المملكة (بين $lngMin و $lngMax).",
+            'sort_order.required'=>'برجاء إدخال ترتيب العرض.',
+            'sort_order.integer'=>'ترتيب العرض يجب أن يكون رقمًا صحيحًا.',
+            'sort_order.min'=>'ترتيب العرض يجب أن يكون بين 0 و '.self::SORT_MAX.'.',
+            'sort_order.max'=>'ترتيب العرض يجب أن يكون بين 0 و '.self::SORT_MAX.'.',
         ]);
     }
 }

@@ -115,6 +115,7 @@
     <link rel="stylesheet" href="{{ asset('admin') }}/assets/cssbundle/dropify.min.css">
     <link rel="stylesheet" href="{{ asset('admin') }}/assets/cssbundle/select2.min.css">
     <link rel="stylesheet" href="{{ asset('admin') }}/assets/cssbundle/sweetalert2.min.css">
+    @include('admin.ingaz.maids._experience_styles')
     <style>
         .maid-type-picker {
             border: 1px solid #e5e7eb;
@@ -1023,16 +1024,17 @@
                     </div>
                     <div class="col-12" id="experience_section" style="{{ old('experience_status', $obj->experience_status) == 'has_experience' ? 'display: block;' : 'display: none;' }}">
                         <label for="TextInput" class="form-label">{{ helperTrans('ingaz.expertise') }} </label>
+                        <div class="experience-table-wrap">
                         <table class="table table-bordered" id="experience_table">
                             <thead>
                                 <tr>
                                     <th>{{ __('ingaz.country') }} </th>
                                     <th>مدينة العمل السابقة</th>
-                                    <th style="width:150px">من</th>
-                                    <th style="width:150px">إلى</th>
+                                    <th>من</th>
+                                    <th>إلى</th>
                                     <th>مدة الخبرة</th>
                                     <th>{{ __('ingaz.job_title') }}</th>
-                                    <th style="width:150px">{{ __('ingaz.actions') }}</th>
+                                    <th>{{ __('ingaz.actions') }}</th>
                                 </tr>
                             </thead>
                             <tbody id="json_array">
@@ -1190,6 +1192,7 @@
                         @endforelse
                         </tbody>
                         </table>
+                        </div>
                     </div>
                             </div>
                         </div>

@@ -370,8 +370,36 @@ class HourlyTeamManagementTest extends TestCase
         $this->assertSame('مدينة الخبر',$city->fresh()->name_ar);
         $this->getJson(route('admin.hourly-cities.index',['sort'=>'password']))->assertUnprocessable();
         $this->get(route('admin.hourly-cities.index',['sort'=>'name_en','direction'=>'desc','per_page'=>10]))->assertOk()->assertSee('Khobar');
-        $this->get(route('admin.hourly-cities.create'))->assertOk()->assertSee('Translate All');
+        $this->get(route('admin.hourly-cities.create'))->assertOk()->assertSee('data-city-reset',false)->assertDontSee('Translate All');
         $this->get(route('admin.hourly-cities.edit',$city))->assertOk()->assertSee('مدينة الخبر');
+    }
+
+    public function test_city_name_coordinates_and_sort_rules(): void
+    {
+        $data=['name_ar'=>'الخبر','name_en'=>'Khobar','sort_order'=>3,'is_active'=>1,'latitude'=>26.2,'longitude'=>50.2];
+        $this->post(route('admin.hourly-cities.store'),$data)->assertRedirect(route('admin.hourly-cities.index'));
+
+        // الاسم المكرر (ولو بمسافات زائدة) برسالة عربية واضحة
+        $this->postJson(route('admin.hourly-cities.store'),['name_ar'=>'  الخبر ','name_en'=>'Khobar']+$data)
+            ->assertJsonValidationErrors(['name_ar'=>'الاسم باللغة العربية مستخدم من قبل.','name_en'=>'الاسم باللغة الإنجليزية مستخدم من قبل.']);
+        $this->postJson(route('admin.hourly-cities.store'),['name_ar'=>'   ','name_en'=>'   ']+$data)
+            ->assertJsonValidationErrors(['name_ar'=>'برجاء إدخال اسم المدينة بالعربية.','name_en'=>'برجاء إدخال اسم المدينة بالإنجليزية.']);
+
+        foreach (['الخبر2','Khobar','الخبر!',str_repeat('ب',51)] as $bad) {
+            $this->postJson(route('admin.hourly-cities.store'),['name_ar'=>$bad]+$data)->assertJsonValidationErrors('name_ar');
+        }
+        foreach (['خبر','Khobar 2','Kho@bar',str_repeat('a',51)] as $bad) {
+            $this->postJson(route('admin.hourly-cities.store'),['name_en'=>$bad]+$data)->assertJsonValidationErrors('name_en');
+        }
+        foreach ([['latitude'=>3],['latitude'=>-26.2],['longitude'=>-50.2],['longitude'=>80]] as $bad) {
+            $this->postJson(route('admin.hourly-cities.store'),$bad+['name_ar'=>'الظهران','name_en'=>'Dhahran']+$data)->assertJsonValidationErrors(array_keys($bad));
+        }
+        $this->postJson(route('admin.hourly-cities.store'),['sort_order'=>123456,'name_ar'=>'الظهران','name_en'=>'Dhahran']+$data)->assertJsonValidationErrors('sort_order');
+
+        // الحفظ عبر fetch يُرجع رابط التوجيه بدلًا من إعادة تحميل الصفحة
+        $this->postJson(route('admin.hourly-cities.store'),['name_ar'=>'حفر  الباطن','name_en'=>"Hafr Al-Batin",'latitude'=>28.43,'longitude'=>45.96]+$data)
+            ->assertOk()->assertJsonPath('redirect',route('admin.hourly-cities.index'));
+        $this->assertDatabaseHas('cities',['name_ar'=>'حفر الباطن','name_en'=>'Hafr Al-Batin']);
     }
 
     public function test_city_list_uses_bootstrap_pagination_and_keeps_filters(): void
@@ -526,7 +554,7 @@ class HourlyTeamManagementTest extends TestCase
         $this->assertTrue(ServiceDistrict::where('name','حي من المودال')->exists());
 
         $this->get(route('admin.hourly-cities.index'))->assertOk()
-            ->assertSee('id="cityModal"',false)->assertSee('Translate All')
+            ->assertSee('id="cityModal"',false)->assertSee('data-city-fields',false)
             ->assertSee('reopen: false',false);
         $this->from(route('admin.hourly-cities.index'))
             ->post(route('admin.hourly-cities.store'),['_form'=>'city-create','name_ar'=>'','name_en'=>'Abha','sort_order'=>1,'is_active'=>1])
