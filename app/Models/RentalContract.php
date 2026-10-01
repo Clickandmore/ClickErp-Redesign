@@ -282,14 +282,13 @@ class RentalContract extends Model
 
     public function calculateRemainingDays()
     {
-        if ($this->info?->ingaz_from && $this->info?->ingaz_to) {
-            $days = $this->calculateDayUsage();
-
-            return $days['overdue_days'] > 0 ? -$days['overdue_days'] : $days['remaining_days'];
-        }
         if ($this->info && $this->info->ingaz_to) {
-            //  return now()->diffInDays($this->info->ingaz_to, false);
-            return now()->startOfDay()->diffInDays(\Carbon\Carbon::parse($this->info->ingaz_to)->startOfDay(), false);
+            // The recorded end date is authoritative; historical extensions may overlap.
+            $at = in_array($this->status, ['completed', 'cancelled'], true) && $this->closed_at
+                ? \Carbon\Carbon::parse($this->closed_at)
+                : now();
+
+            return (int) $at->startOfDay()->diffInDays(\Carbon\Carbon::parse($this->info->ingaz_to)->startOfDay(), false);
         }
         return null;
     }
