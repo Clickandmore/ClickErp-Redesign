@@ -287,6 +287,17 @@ class HourlyTeamManagementTest extends TestCase
         $this->assertSame(['hourly_teams_edit'],config('hourly_permissions')['admin.hourly-teams.locate']);
     }
 
+    public function test_driver_list_does_not_show_documents_valid_without_dates_and_form_renders(): void
+    {
+        $this->driver();
+        if (!Schema::hasTable('nationalities')) Schema::create('nationalities', fn (Blueprint $t) => $t->id());
+        $admin=\Mockery::mock(\App\Models\auth\Admin::class)->makePartial();
+        $admin->shouldReceive('can')->andReturn(true); auth('admin')->setUser($admin);
+        $this->get(route('admin.hourly-drivers.index'))->assertOk()->assertSee('غير مُدخلة')->assertDontSee('fa-check"></i> سارية',false);
+        $this->get(route('admin.hourly-drivers.index',['documents'=>'missing']))->assertOk()->assertSee('DR-TEST',false);
+        $this->get(route('admin.hourly-drivers.create'))->assertOk()->assertSee('data-toggle-password',false)->assertSee('data-error-for="password_confirmation"',false)->assertSee('عمر السائق من');
+    }
+
     public function test_driver_form_saves_teams_and_rolls_back_invalid_assignment(): void
     {
         $driver=$this->driver();$team=$this->team();

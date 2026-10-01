@@ -4,6 +4,7 @@
         <option value="">بدون فريق أساسي</option>
         @foreach($teams as $team)<option value="{{ $team->id }}" {{ (string)old('primary_team_id', $primaryTeamId)===(string)$team->id ? 'selected' : '' }}>{{ $team->name }}{{ $team->is_active ? '' : ' (متوقف)' }}</option>@endforeach
     </select>
+    <small class="text-muted">اختياري: الفريق الذي يعمل معه السائق عادةً.</small>
 </div>
 <div class="mb-3">
     <label for="secondary_team_ids" class="form-label">الفرق الثانوية</label>

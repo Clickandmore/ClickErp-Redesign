@@ -61,7 +61,7 @@
                         'gender' => ['الجنس', 'fa-venus-mars', ['male' => 'ذكر', 'female' => 'أنثى']],
                         'status' => ['الحالة', 'fa-toggle-on', ['active' => 'نشط', 'inactive' => 'متوقف']],
                         'account' => ['حساب الدخول', 'fa-key', ['both' => 'الموقع والجوال', 'web' => 'الموقع فقط', 'mobile' => 'الجوال فقط', 'disabled' => 'معطّل']],
-                        'documents' => ['الوثائق', 'fa-folder-open', ['expiring' => 'منتهية أو تنتهي خلال ٣٠ يومًا', 'expired' => 'منتهية فقط']],
+                        'documents' => ['الوثائق', 'fa-folder-open', ['expiring' => 'منتهية أو تنتهي خلال ٣٠ يومًا', 'expired' => 'منتهية فقط', 'missing' => 'ناقصة (بدون تاريخ الإقامة أو الجواز)']],
                     ];
                 @endphp
                 <form method="GET" action="{{ route('admin.hourly-drivers.index') }}" class="hd-filter mb-4">
@@ -125,6 +125,7 @@
                                     @php
                                         $workDays = $driver->workingDays();
                                         $expiring = $driver->expiringDocuments();
+                                        $missing = $driver->missingDocuments();
                                     @endphp
                                     <tr class="{{ $driver->is_active ? '' : 'hd-row-off' }}">
                                         <td>
@@ -162,15 +163,19 @@
                                         </td>
                                         <td>
                                             <div class="d-flex flex-column align-items-start gap-1">
-                                                @forelse ($expiring as $field => $left)
+                                                @foreach ($missing as $label)
+                                                    <span class="ht-chip ht-chip-off" title="لم يُدخل تاريخ انتهاء {{ $label }}"><i class="fa fa-circle-question"></i> {{ $label }} · غير مُدخلة</span>
+                                                @endforeach
+                                                @foreach ($expiring as $field => $left)
                                                     <span class="ht-chip {{ $left < 0 ? 'hd-chip-danger' : 'hd-chip-warn' }}" title="{{ $docLabels[$field] }}">
                                                         <i class="fa {{ $left < 0 ? 'fa-circle-exclamation' : 'fa-hourglass-half' }}"></i>
                                                         {{ str_replace(['تاريخ انتهاء ', 'تاريخ نهاية '], '', $docLabels[$field]) }}
                                                         · {{ $left < 0 ? 'منتهية' : ($left === 0 ? 'اليوم' : $left.' يوم') }}
                                                     </span>
-                                                @empty
+                                                @endforeach
+                                                @if (!$expiring && !$missing)
                                                     <span class="ht-chip ht-chip-on"><i class="fa fa-check"></i> سارية</span>
-                                                @endforelse
+                                                @endif
                                             </div>
                                         </td>
                                         <td>

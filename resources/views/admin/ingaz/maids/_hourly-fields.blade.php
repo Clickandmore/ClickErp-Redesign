@@ -42,20 +42,25 @@
     #maid-hourly-section .mh-service input:focus-visible + span { outline: 3px solid #c7d2fe; outline-offset: 2px; }
     #maid-hourly-section .mh-hint { font-size: .8rem; color: var(--mh-muted); margin-top: .75rem; display: block; }
     #maid-hourly-section .mh-days { width: 100%; border-collapse: separate; border-spacing: 0; }
-    #maid-hourly-section .mh-days tbody { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .55rem; }
-    #maid-hourly-section .mh-days tr { display: grid; grid-template-columns: 62px 135px minmax(0, 1fr); align-items: center; border-radius: 10px; background: var(--mh-soft); overflow: hidden; }
+    /* يوم في كل صف: اسم اليوم، ثم نظام العمل، ثم وقتا البداية والنهاية بعرض كافٍ لا يخرج منه النص */
+    #maid-hourly-section .mh-days tbody { display: grid; grid-template-columns: minmax(0, 1fr); gap: .55rem; }
+    #maid-hourly-section .mh-days tr { display: grid; grid-template-columns: 80px minmax(150px, 190px) minmax(0, 1fr); align-items: center; border-radius: 10px; background: var(--mh-soft); }
+    #maid-hourly-section .mh-days select.form-control { padding-inline-end: 2rem; text-overflow: ellipsis; }
+    #maid-hourly-section .mh-days tr.has-error { box-shadow: inset 0 0 0 1px #fca5a5; background: #fef2f2; }
+    #maid-hourly-section .mh-time-error { display: block; font-size: .8rem; color: #b91c1c; margin-top: .25rem; }
+    #maid-hourly-section .mh-help { display: block; font-size: .78rem; color: var(--mh-muted); margin-top: .25rem; }
+    #maid-hourly-section .mh-field-error { display: block; font-size: .8rem; color: #b91c1c; margin-top: .25rem; }
     #maid-hourly-section .mh-days td { display: block; padding: .45rem; vertical-align: middle; background: transparent; }
     #maid-hourly-section .mh-days td:first-child { font-weight: 700; }
     #maid-hourly-section .mh-days tr.is-off td:first-child { color: #94a3b8; }
     #maid-hourly-section .mh-times { display: flex; align-items: center; gap: .4rem; }
-    #maid-hourly-section .mh-times input { max-width: 140px; }
+    #maid-hourly-section .mh-times input { flex: 1 1 0; min-width: 0; max-width: 170px; }
     #maid-hourly-section .mh-times-note { font-size: .8rem; color: var(--mh-muted); }
     #maid-hourly-section .mh-section-title { font-size: .78rem; font-weight: 700; color: var(--mh-muted); margin: 0 0 .6rem; display: flex; align-items: center; gap: .5rem; }
     #maid-hourly-section .mh-section-title::after { content: ''; flex: 1; height: 1px; background: var(--mh-line); }
     @media (max-width: 1199.98px) {
         #maid-hourly-section fieldset { grid-template-columns: 1fr; }
         #maid-hourly-section .mh-card--wide, #maid-hourly-section fieldset > h5 { grid-column: auto; }
-        #maid-hourly-section .mh-days tbody { grid-template-columns: 1fr; }
     }
     @media (max-width: 575.98px) {
         #maid-hourly-section .mh-mode { align-items: stretch; }
@@ -156,7 +161,7 @@
                         @php($schedule=old('hourly.work_schedule.'.$day,$hourlyValues['work_schedule'][$day] ?? ['mode'=>'off']))
                         <tr class="hourly-day">
                             <td>{{ $label }}</td>
-                            <td style="width: 220px"><select class="form-control hourly-day-mode" name="hourly[work_schedule][{{ $day }}][mode]" aria-label="نظام العمل يوم {{ $label }}">
+                            <td><select class="form-control hourly-day-mode" name="hourly[work_schedule][{{ $day }}][mode]" aria-label="نظام العمل يوم {{ $label }}">
                                 @foreach(['off'=>'إجازة','all_day'=>'طوال اليوم','hours'=>'ساعات محددة'] as $value=>$title)<option value="{{ $value }}" {{ (($schedule['mode'] ?? 'off')===$value) ? 'selected' : '' }}>{{ $title }}</option>@endforeach
                             </select></td>
                             <td>
@@ -166,6 +171,7 @@
                                     <input aria-label="نهاية دوام {{ $label }}" class="form-control hourly-time" type="time" name="hourly[work_schedule][{{ $day }}][end]" value="{{ $schedule['end'] ?? '16:00' }}">
                                 </div>
                                 <span class="mh-times-note" data-times-note></span>
+                                <span class="mh-time-error" data-time-error></span>
                             </td>
                         </tr>
                         @endforeach
@@ -194,10 +200,10 @@
                 </div>
                 <div class="mh-section-title">بيانات الدخول</div>
                 <div class="row g-3">
-                    <div class="col-md-6"><label class="form-label" for="maid-login-phone">هاتف تسجيل الدخول</label><input class="form-control" id="maid-login-phone" name="hourly[login_phone]" dir="ltr" value="{{ old('hourly.login_phone',$hourlyMaid?->hourly_login_phone) }}"></div>
-                    <div class="col-md-6"><label class="form-label" for="maid-login-email">البريد الإلكتروني</label><input class="form-control" id="maid-login-email" type="email" dir="ltr" name="hourly[email]" value="{{ old('hourly.email',$hourlyMaid?->hourly_email) }}"></div>
-                    <div class="col-md-6"><label class="form-label" for="maid-login-password">كلمة المرور (8 أحرف على الأقل)</label><input class="form-control" id="maid-login-password" type="password" dir="ltr" autocomplete="new-password" name="hourly[password]"><small class="text-muted">عند التعديل اتركها فارغة للإبقاء على كلمة المرور.</small></div>
-                    <div class="col-md-6"><label class="form-label" for="maid-login-password-confirmation">تأكيد كلمة المرور</label><input class="form-control" id="maid-login-password-confirmation" type="password" dir="ltr" autocomplete="new-password" name="hourly[password_confirmation]"></div>
+                    <div class="col-md-6"><label class="form-label" for="maid-login-phone">هاتف تسجيل الدخول</label><input class="form-control" id="maid-login-phone" name="hourly[login_phone]" dir="ltr" inputmode="numeric" maxlength="20" autocomplete="off" placeholder="05XXXXXXXX" value="{{ old('hourly.login_phone',$hourlyMaid?->hourly_login_phone) }}" data-hourly-login-phone><span class="mh-field-error" data-error-for="hourly[login_phone]"></span><small class="mh-help">اختياري: أرقام فقط من 5 إلى 20 رقمًا، بديل عن اسم المستخدم ولا يتكرر.</small></div>
+                    <div class="col-md-6"><label class="form-label" for="maid-login-email">البريد الإلكتروني</label><input class="form-control" id="maid-login-email" type="email" dir="ltr" name="hourly[email]" value="{{ old('hourly.email',$hourlyMaid?->hourly_email) }}"><small class="mh-help">اختياري، بحروف إنجليزية.</small></div>
+                    <div class="col-md-6"><label class="form-label" for="maid-login-password">كلمة المرور (8 أحرف على الأقل)</label><div class="input-group"><input class="form-control" id="maid-login-password" type="password" dir="ltr" autocomplete="new-password" maxlength="72" name="hourly[password]"><button type="button" class="btn btn-outline-secondary" data-toggle-password="maid-login-password" title="إظهار كلمة المرور" aria-label="إظهار كلمة المرور"><i class="fa fa-eye"></i></button></div><span class="mh-field-error" data-error-for="hourly[password]"></span><small class="mh-help">عند التعديل اتركها فارغة للإبقاء على كلمة المرور.</small></div>
+                    <div class="col-md-6"><label class="form-label" for="maid-login-password-confirmation">تأكيد كلمة المرور</label><div class="input-group"><input class="form-control" id="maid-login-password-confirmation" type="password" dir="ltr" autocomplete="new-password" maxlength="72" name="hourly[password_confirmation]"><button type="button" class="btn btn-outline-secondary" data-toggle-password="maid-login-password-confirmation" title="إظهار كلمة المرور" aria-label="إظهار تأكيد كلمة المرور"><i class="fa fa-eye"></i></button></div><span class="mh-field-error" data-error-for="hourly[password_confirmation]"></span><small class="mh-help">أعد كتابة كلمة المرور نفسها.</small></div>
                 </div>
             </div>
         </div>
@@ -206,6 +212,12 @@
 @include('admin.hourly_teams._multiselect')
 <script>
 (function () {
+const HAS_PASSWORD = @json((bool) ($hourlyMaid?->hourly_password));
+// النهاية بعد البداية في اليوم نفسه، ولا تتساويان
+function scheduleError(start, end) {
+    if (!start || !end) return 'حدد وقت بداية العمل ونهايته.';
+    return end <= start ? 'وقت النهاية يجب أن يكون بعد وقت البداية (لا يتساويان).' : '';
+}
 function initHourlyMaidFields() {
     const section = document.getElementById('maid-hourly-section');
     if (!section) return;
@@ -221,6 +233,10 @@ function initHourlyMaidFields() {
             row.querySelector('[data-times]').style.display = hours ? '' : 'none';
             row.querySelector('[data-times-note]').textContent = hours ? '' : (dayMode === 'off' ? 'يوم إجازة' : 'متاحة طوال اليوم');
             row.querySelectorAll('.hourly-time').forEach(input => { input.disabled = fields.disabled || !hours; });
+            const [start, end] = row.querySelectorAll('.hourly-time');
+            const timeError = hours ? scheduleError(start.value, end.value) : '';
+            row.classList.toggle('has-error', Boolean(timeError));
+            row.querySelector('[data-time-error]').textContent = timeError;
         });
         const count = section.querySelectorAll('[name="hourly[service_category_ids][]"]:checked').length, badge = section.querySelector('[data-service-count]');
         if (badge) { badge.textContent = count ? count + ' خدمة مختارة' : 'لا توجد خدمة مختارة'; badge.classList.toggle('is-zero', !count); }
@@ -230,7 +246,54 @@ function initHourlyMaidFields() {
     }
     $(type).on('change', refreshHourly); mode.addEventListener('change', refreshHourly);
     section.addEventListener('change', refreshHourly);
+    section.addEventListener('input', event => { if (event.target.classList.contains('hourly-time')) refreshHourly(); });
     refreshHourly();
+
+    // هاتف الدخول: أرقام فقط؛ الحروف والرموز وإشارة السالب تُحذف فور كتابتها
+    const phone = section.querySelector('[data-hourly-login-phone]');
+    const password = document.getElementById('maid-login-password'), confirmation = document.getElementById('maid-login-password-confirmation');
+    const setError = (name, text) => {
+        const box = section.querySelector('[data-error-for="' + name + '"]'), input = form.elements[name];
+        if (box) box.textContent = text || '';
+        if (input) input.classList.toggle('is-invalid', Boolean(text));
+    };
+    const phoneError = () => !phone.value || /^\d{5,20}$/.test(phone.value) ? '' : 'هاتف تسجيل الدخول من 5 إلى 20 رقمًا.';
+    const passwordError = () => password.value && password.value.length < 8 ? 'كلمة المرور يجب ألا تقل عن 8 أحرف (المُدخل ' + password.value.length + ').'
+        : (!password.value && section.querySelector('[data-account-enabled]').value === '1' && !HAS_PASSWORD ? 'كلمة المرور مطلوبة لتفعيل حساب التطبيق.' : '');
+    const confirmError = () => (password.value || confirmation.value) && confirmation.value !== password.value
+        ? (confirmation.value ? 'تأكيد كلمة المرور غير مطابق لكلمة المرور.' : 'أعد كتابة كلمة المرور للتأكيد.') : '';
+    phone.addEventListener('input', () => {
+        const clean = phone.value.replace(/[٠-٩]/g, d => '٠١٢٣٤٥٦٧٨٩'.indexOf(d)).replace(/\D/g, '').slice(0, 20);
+        const stripped = clean !== phone.value.replace(/[٠-٩]/g, d => '٠١٢٣٤٥٦٧٨٩'.indexOf(d));
+        if (clean !== phone.value) phone.value = clean;
+        setError('hourly[login_phone]', stripped ? 'هاتف تسجيل الدخول يقبل الأرقام فقط، بدون حروف أو رموز أو إشارة سالب.' : (phone.classList.contains('is-invalid') ? phoneError() : ''));
+    });
+    phone.addEventListener('blur', () => setError('hourly[login_phone]', phoneError()));
+    password.addEventListener('input', () => { if (password.classList.contains('is-invalid')) setError('hourly[password]', passwordError()); if (confirmation.value) setError('hourly[password_confirmation]', confirmError()); });
+    password.addEventListener('blur', () => setError('hourly[password]', passwordError()));
+    // التأكيد يُفحص أثناء الكتابة
+    confirmation.addEventListener('input', () => setError('hourly[password_confirmation]', confirmError()));
+
+    // معاينة كلمة المرور
+    section.querySelectorAll('[data-toggle-password]').forEach(button => button.addEventListener('click', () => {
+        const input = document.getElementById(button.dataset.togglePassword), show = input.type === 'password';
+        input.type = show ? 'text' : 'password';
+        button.querySelector('i').className = 'fa ' + (show ? 'fa-eye-slash' : 'fa-eye');
+        button.title = show ? 'إخفاء كلمة المرور' : 'إظهار كلمة المرور';
+    }));
+
+    // قبل الحفظ: أخطاء قسم الساعات تمنع الإرسال وتظهر برسالة واضحة (يسبق معالج الحفظ في النموذج)
+    form.addEventListener('submit', event => {
+        if (fields.disabled) return;
+        refreshHourly();
+        const errors = Array.from(section.querySelectorAll('[data-time-error]')).map(el => el.textContent).filter(Boolean);
+        [['hourly[login_phone]', phoneError()], ['hourly[password]', passwordError()], ['hourly[password_confirmation]', confirmError()]].forEach(([name, error]) => { setError(name, error); if (error) errors.push(error); });
+        if (!errors.length) return;
+        event.preventDefault(); event.stopImmediatePropagation();
+        (section.querySelector('.has-error, .is-invalid') || section).scrollIntoView({behavior: 'smooth', block: 'center'});
+        if (window.Swal) Swal.fire({icon: 'error', title: 'راجع إعدادات عاملة الساعات', html: errors.map(e => '<div>' + e.replace(/[<>&]/g, '') + '</div>').join(''), confirmButtonText: 'حسنًا'});
+        else alert(errors.join('\n'));
+    }, true);
 }
 if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', initHourlyMaidFields);
 else initHourlyMaidFields();

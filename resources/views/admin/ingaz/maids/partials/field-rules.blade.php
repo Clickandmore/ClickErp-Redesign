@@ -121,7 +121,14 @@
             imageExtension: 'صيغة الملف غير مدعومة. الصيغ المسموحة: @{{ value }}',
             fileRejectedTitle: 'تعذر اختيار الملف',
             fileType: 'صيغة الملف غير مدعومة. الصيغ المسموحة: ',
-            fileSize: 'حجم الملف أكبر من الحد المسموح ('
+            fileSize: 'حجم الملف أكبر من الحد المسموح (',
+            durationChars: 'مدة العقد تقبل عددًا صحيحًا موجبًا من الشهور فقط (بدون سالب أو كسور)',
+            idNumberSaudi: 'رقم الهوية يجب أن يتكون من 10 أرقام بالضبط ويبدأ بالرقم 1 (هوية وطنية) أو 2 (إقامة)، بدون حروف أو رموز أو مسافات',
+            idNumberDigits: 'رقم الهوية يقبل الأرقام فقط',
+            issueBeforeBirth: 'تاريخ إصدار جواز السفر يجب أن يكون بعد تاريخ الميلاد',
+            experienceBeforeWorkAge: 'بداية الخبرة يجب ألا تسبق بلوغ العاملة ' + config.minWorkAge + ' سنة حسب تاريخ الميلاد (من ',
+            arrivalBeforeWorkAge: 'تاريخ الوصول يجب ألا يسبق بلوغ العاملة ' + config.minWorkAge + ' سنة حسب تاريخ الميلاد (من ',
+            hiddenInvalid: 'قيمة غير صحيحة في حقل '
         };
 
         // وصف كل حقل رقمي لرسائل الحدود.
@@ -141,6 +148,10 @@
             childrens_count: {
                 label: 'عدد الأطفال',
                 unit: ''
+            },
+            duration: {
+                label: 'مدة العقد',
+                unit: ' شهرًا'
             }
         };
 
@@ -234,6 +245,18 @@
                     return digitsOnly(value, 2, true);
                 },
                 message: messages.integerChars
+            },
+            duration: {
+                clean: function(value) {
+                    return digitsOnly(value, 2, false);
+                },
+                message: messages.durationChars
+            },
+            id_number: {
+                clean: function(value) {
+                    return toWesternDigits(value).replace(/[^0-9]/g, '').slice(0, 10);
+                },
+                message: messages.idNumberDigits
             }
         };
 
@@ -521,11 +544,15 @@
             if (phoneWidgets[input.name]) {
                 return phoneError(input);
             }
-            if (input.name === 'id_number' && !/^[0-9A-Za-z-]{5,30}$/.test(String(input.value).trim())) {
-                return messages.idNumber;
+            if (input.name === 'id_number') {
+                var idValue = String(input.value).trim();
+                if (isUnchangedStoredValue(input)) {
+                    return /^[0-9A-Za-z-]{5,30}$/.test(idValue) ? '' : messages.idNumber;
+                }
+                return /^[12]\d{9}$/.test(idValue) ? '' : messages.idNumberSaudi;
             }
 
-            var ruleError = dateError(input) || numberError(input) || sanitizerError(input);
+            var ruleError = dateError(input) || birthRelatedError(input) || numberError(input) || sanitizerError(input);
             if (ruleError) {
                 return ruleError;
             }
@@ -537,6 +564,42 @@
             }
 
             return '';
+        }
+
+        // تاريخ الميلاد هو المرجع لباقي التواريخ: إصدار الجواز بعده، وبداية الخبرة والوصول بعد بلوغ سن العمل.
+        function birthValue() {
+            var birth = getForm().querySelector('[name="birth_date"]');
+            return birth && /^\d{4}-\d{2}-\d{2}$/.test(birth.value) ? birth : null;
+        }
+
+        function addYears(date, years) {
+            return (parseInt(date.slice(0, 4), 10) + years) + date.slice(4);
+        }
+
+        function birthRelatedError(input) {
+            var birth = birthValue();
+            var value = String(input.value || '');
+            if (!birth || !value) {
+                return '';
+            }
+            if (isUnchangedStoredValue(input) && isUnchangedStoredValue(birth)) {
+                return '';
+            }
+            var workStart = addYears(birth.value, config.minWorkAge);
+            if (input.name === 'passport_issue_date' && value <= birth.value) {
+                return messages.issueBeforeBirth;
+            }
+            if (input.name === 'arrival_date' && value < workStart) {
+                return messages.arrivalBeforeWorkAge + workStart + ')';
+            }
+            if (input.classList.contains('exp-start-date') && /^\d{4}-\d{2}$/.test(value) && value < workStart.slice(0, 7)) {
+                return messages.experienceBeforeWorkAge + workStart.slice(0, 7) + ')';
+            }
+            return '';
+        }
+
+        function birthDependentInputs() {
+            return Array.prototype.slice.call(getForm().querySelectorAll('[name="passport_issue_date"], [name="arrival_date"], .exp-start-date'));
         }
 
         function validateField(input) {
@@ -595,6 +658,18 @@
                 if (dateRules[name]) {
                     syncDateBounds(input);
                 }
+                showFieldState(input, error);
+                if (error) {
+                    revealField(input);
+                    errors.push(error);
+                }
+            });
+
+            birthDependentInputs().forEach(function(input) {
+                if (input.name === 'passport_issue_date') {
+                    return; // ضمن dateRules أعلاه
+                }
+                var error = fieldError(input);
                 showFieldState(input, error);
                 if (error) {
                     revealField(input);
@@ -1192,6 +1267,16 @@
                         validateField(expiry);
                     }
                 }
+                if (this.name === 'birth_date') {
+                    birthDependentInputs().forEach(function(input) {
+                        if (input.value) {
+                            validateField(input);
+                        }
+                    });
+                }
+                if (this.classList.contains('exp-start-date') || this.name === 'arrival_date') {
+                    validateField(this);
+                }
             });
 
             $(form).on('select2:close', 'select', function() {
@@ -1233,6 +1318,48 @@
                     attributeFilter: ['required']
                 });
             }
+
+            // المتصفح كان يمنع الحفظ بصمت إذا بقي حقل غير صالح داخل قسم مخفي (مثل مدة الخبرة بعد اختيار «بدون خبرة»).
+            // نوقف الفحص التلقائي ونجريه بأنفسنا: الحقل الظاهر يُعرض خطؤه، والمخفي غير المستخدم لا يمنع الحفظ.
+            form.noValidate = true;
+            form.addEventListener('submit', function(event) {
+                var problems = [];
+                Array.prototype.forEach.call(form.elements, function(input) {
+                    if (!input.willValidate || input.checkValidity()) {
+                        return;
+                    }
+                    if (!isActiveField(input)) {
+                        if (input.setCustomValidity) {
+                            input.setCustomValidity('');
+                        }
+                        return;
+                    }
+                    var message = isEmpty(input) && input.required ? requiredMessage(input) :
+                        (fieldLabel(input) ? messages.hiddenInvalid + fieldLabel(input) + ': ' : '') + input.validationMessage;
+                    revealField(input);
+                    showFieldState(input, message);
+                    problems.push(message);
+                });
+                if (!problems.length) {
+                    return;
+                }
+                event.preventDefault();
+                event.stopImmediatePropagation();
+                var first = form.querySelector('.is-invalid');
+                if (first) {
+                    setTimeout(function() {
+                        first.scrollIntoView({behavior: 'smooth', block: 'center'});
+                    }, 250);
+                }
+                if (window.Swal) {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'تعذّر الحفظ',
+                        html: problems.map(function(p) { return '<div>' + $('<div>').text(p).html() + '</div>'; }).join(''),
+                        confirmButtonText: 'حسنًا'
+                    });
+                }
+            }, true);
 
             $('#maid_video').on('change', syncVideoClearButton);
             $(document).on('click', '.js-clear-maid-video', function() {

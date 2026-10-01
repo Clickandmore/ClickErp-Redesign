@@ -31,6 +31,15 @@ class HourlyDriver extends Authenticatable implements JWTSubject
         return $result;
     }
 
+    /** وثائق أساسية لا يُحكم بسريانها دون تاريخ انتهاء. */
+    public const REQUIRED_DOCUMENTS = ['residency_expiry_date' => 'الإقامة', 'passport_expiry_date' => 'الجواز'];
+
+    /** أسماء الوثائق الأساسية التي لم يُدخل تاريخ انتهائها، مفهرسة بالحقل. */
+    public function missingDocuments(): array
+    {
+        return array_filter(self::REQUIRED_DOCUMENTS, fn ($label, $field) => !$this->$field, ARRAY_FILTER_USE_BOTH);
+    }
+
     public function workingDays(): array
     {
         return array_keys(array_filter((array) $this->work_schedule, fn ($day) => ($day['mode'] ?? 'off') !== 'off'));

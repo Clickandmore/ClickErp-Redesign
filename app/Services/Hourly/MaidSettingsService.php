@@ -46,7 +46,29 @@ class MaidSettingsService
             $rules["$key.start"]=["exclude_unless:$key.mode,hours",'required','date_format:H:i'];
             $rules["$key.end"]=["exclude_unless:$key.mode,hours",'required','date_format:H:i',"after:$key.start"];
         }
-        $data=Validator::make((array)$request->input('hourly',[]),$rules)->validate();
+        $input=(array)$request->input('hourly',[]);
+        // هاتف الدخول: الأرقام العربية تُحوَّل للاتينية قبل الفحص
+        if(isset($input['login_phone']) && is_string($input['login_phone'])) $input['login_phone']=trim(strtr($input['login_phone'],['٠'=>'0','١'=>'1','٢'=>'2','٣'=>'3','٤'=>'4','٥'=>'5','٦'=>'6','٧'=>'7','٨'=>'8','٩'=>'9']));
+        $messages=[
+            'login_phone.regex'=>'هاتف تسجيل الدخول يقبل الأرقام فقط (من 5 إلى 20 رقمًا)، بدون حروف أو رموز أو إشارة سالب.',
+            'login_phone.unique'=>'هاتف تسجيل الدخول مستخدم لعاملة أخرى.',
+            'email.email'=>'البريد الإلكتروني لتطبيق العاملة غير صحيح.',
+            'password.required'=>'كلمة المرور مطلوبة لتفعيل حساب تطبيق العاملة.',
+            'password.min'=>'كلمة مرور التطبيق يجب ألا تقل عن 8 أحرف.',
+            'password.confirmed'=>'تأكيد كلمة مرور التطبيق غير مطابق لكلمة المرور.',
+            'max_orders_per_hour.*'=>'الحد الأقصى للطلبات في الساعة يجب أن يكون رقمًا صحيحًا من 1 إلى 100.',
+        ];
+        foreach (HourlyDriver::DAYS as $day=>$label) {
+            $messages["work_schedule.$day.start.required"]="حدد بداية العمل يوم $label.";
+            $messages["work_schedule.$day.end.required"]="حدد نهاية العمل يوم $label.";
+            $messages["work_schedule.$day.start.date_format"]="وقت بداية العمل يوم $label غير صحيح.";
+            $messages["work_schedule.$day.end.date_format"]="وقت نهاية العمل يوم $label غير صحيح.";
+            $messages["work_schedule.$day.end.after"]="نهاية العمل يوم $label يجب أن تكون بعد بدايته (لا تتساوى معها).";
+        }
+        $validator=Validator::make($input,$rules,$messages);
+        // المفاتيح بصيغة hourly.* حتى تظهر الرسالة تحت حقلها في نموذج العاملة
+        if ($validator->fails()) throw ValidationException::withMessages(collect($validator->errors()->messages())->mapWithKeys(fn($list,$key)=>["hourly.$key"=>$list])->all());
+        $data=$validator->validated();
         if(array_key_exists('attribute_ids',$data) || !empty($data['attributes_present'])){
             $ids=array_map('intval',$data['attribute_ids']??[]);
             $current=$maid?$maid->productAttributes()->pluck('hourly_product_attributes.id')->all():[];

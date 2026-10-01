@@ -215,6 +215,27 @@ class HourlyMaidSettingsTest extends TestCase
         }
         $this->assertSame(0,Maid::count());
     }
+    public function test_schedule_login_phone_and_password_errors_are_clear_and_keyed_to_their_fields(): void {
+        $cases=[
+            ['work_schedule', ['sunday'=>['mode'=>'hours','start'=>'09:00','end'=>'09:00']], 'hourly.work_schedule.sunday.end', 'يجب أن تكون بعد بدايته'],
+            ['login_phone', '-12ab', 'hourly.login_phone', 'يقبل الأرقام فقط'],
+            ['password_confirmation', 'OtherPass123', 'hourly.password', 'غير مطابق'],
+        ];
+        foreach ($cases as [$field,$value,$key,$message]) {
+            $payload=$this->payload();
+            $payload['hourly'][$field]=is_array($value) ? array_replace($payload['hourly'][$field],$value) : $value;
+            try { app(MaidSettingsService::class)->validate(new Request($payload)); $this->fail("$field accepted"); }
+            catch (ValidationException $e) { $this->assertArrayHasKey($key,$e->errors()); $this->assertStringContainsString($message,$e->errors()[$key][0]); }
+        }
+        // الأرقام العربية في هاتف الدخول تُقبل وتُحفظ لاتينية
+        $payload=$this->payload(); $payload['hourly']['login_phone']='٠٥٠١٢٣٤٥٦٧';
+        $this->assertSame('0501234567', app(MaidSettingsService::class)->validate(new Request($payload))['data']['login_phone']);
+        $html=view('admin.ingaz.maids._hourly-fields',['obj'=>null])->render();
+        $this->assertStringContainsString('data-toggle-password="maid-login-password"',$html);
+        $this->assertStringContainsString('inputmode="numeric"',$html);
+        $this->assertStringContainsString('data-time-error',$html);
+    }
+
     public function test_login_channels_password_change_and_feature_gate(): void {
         $payload=$this->payload();$payload['hourly']['login_access']='web';
         $maid=$this->save($payload);

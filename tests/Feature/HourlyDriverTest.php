@@ -70,16 +70,47 @@ class HourlyDriverTest extends TestCase
     }
 
     /** @dataProvider invalidData */
-    public function test_invalid_driver_data_is_rejected(string $field, $value): void
+    public function test_invalid_driver_data_is_rejected(string $field, $value, ?string $errorKey = null): void
     {
         $this->bypassAdmin(); $data = $this->payload(); data_set($data, $field, $value);
-        $this->postJson(route('admin.hourly-drivers.store'), $data)->assertUnprocessable()->assertJsonValidationErrors($field);
+        $this->postJson(route('admin.hourly-drivers.store'), $data)->assertUnprocessable()->assertJsonValidationErrors($errorKey ?? $field);
         $this->assertSame(0, HourlyDriver::count());
     }
 
     public function invalidData(): array
     {
-        return [['vehicle_capacity',2], ['vehicle_capacity',51], ['vehicle_capacity',3.5], ['work_schedule.sunday.end','08:00'], ['work_schedule.monday.start',null], ['work_schedule.tuesday.mode','unknown'], ['password','short'], ['login_access','admin'], ['login_phone','+966500000000'], ['birth_date','2099-01-01']];
+        return [['vehicle_capacity',2], ['vehicle_capacity',51], ['vehicle_capacity',3.5], ['work_schedule.sunday.end','08:00'], ['work_schedule.monday.start',null], ['work_schedule.tuesday.mode','unknown'], ['password','short'], ['login_access','admin'], ['login_phone','+966500000000'], ['birth_date','2099-01-01'],
+            ['name','سائق 2'], ['name','سائق@'], ['name',str_repeat('ب',101)], ['employee_number','EMP-1'], ['phone','05000abc00'], ['phone','0400000000'], ['phone','050000000'],
+            ['email','سائق@example.com'], ['email','driver@'], ['birth_date',now()->subYears(10)->toDateString()], ['birth_date',now()->subYears(80)->toDateString()],
+            ['residency_number','1234567890'], ['residency_number','212345678'], ['passport_number','A12-345'], ['border_number','1234567890'],
+            ['residency_expiry_date','2027-01-01','residency_number'], ['entry_date',now()->addDay()->toDateString()], ['password_confirmation','OtherPass123','password']];
+    }
+
+    public function test_phones_and_documents_are_normalized_and_not_duplicated(): void
+    {
+        $this->bypassAdmin(); $this->driver(['phone2'=>'0555555555','residency_number'=>'2123456789','passport_number'=>'A1234567','border_number'=>'3123456789','email'=>'one@example.com']);
+        $data=array_replace($this->payload(),['employee_number'=>'0099','phone'=>'+966 55 555 5555']);
+        $this->postJson(route('admin.hourly-drivers.store'),$data)->assertJsonValidationErrors(['phone'=>'مسجّل لسائق آخر']);
+        $data=array_replace($this->payload(),['employee_number'=>'0099','phone'=>'0511111111','phone2'=>'0500000000','residency_number'=>'٢١٢٣٤٥٦٧٨٩','residency_expiry_date'=>'2027-01-01','passport_number'=>'a1234567','passport_expiry_date'=>'2030-01-01','border_number'=>'3123456789','email'=>'ONE@example.com']);
+        $this->postJson(route('admin.hourly-drivers.store'),$data)->assertJsonValidationErrors(['phone2','residency_number','passport_number','border_number','email']);
+        $this->assertSame(1, HourlyDriver::count());
+
+        // حفظ النموذج من الصفحة (fetch) يُرجع رابط صفحة التعديل، والأرقام تُخزَّن بصيغة موحدة
+        $data=array_replace($this->payload(),['employee_number'=>'0099','name'=>'  Ahmed   Ali ','phone'=>'+966511111111','passport_number'=>'b7654321','passport_expiry_date'=>'2030-01-01']);
+        $this->postJson(route('admin.hourly-drivers.store'),$data,['X-Requested-With'=>'XMLHttpRequest'])->assertOk()->assertJsonStructure(['redirect','message']);
+        $driver=HourlyDriver::where('employee_number','0099')->firstOrFail();
+        $this->assertSame(['Ahmed Ali','0511111111','B7654321'],[$driver->name,$driver->phone,$driver->passport_number]);
+        $this->assertSame(['residency_expiry_date'=>'الإقامة'],$driver->missingDocuments());
+    }
+
+    public function test_work_and_contract_dates_follow_the_birth_date(): void
+    {
+        $this->bypassAdmin();
+        $birth=now()->subYears(30)->toDateString(); $age18=now()->subYears(12)->toDateString();
+        $data=array_replace($this->payload(),['birth_date'=>$birth,'work_start_date'=>now()->subYears(15)->toDateString(),'contract_start_date'=>now()->subYears(13)->toDateString(),'entry_date'=>now()->subYears(31)->toDateString()]);
+        $this->postJson(route('admin.hourly-drivers.store'),$data)->assertJsonValidationErrors(['work_start_date','contract_start_date','entry_date']);
+        $data=array_replace($data,['work_start_date'=>$age18,'contract_start_date'=>$age18,'entry_date'=>$age18]);
+        $this->postJson(route('admin.hourly-drivers.store'),$data)->assertRedirect();
     }
 
     public function test_update_preserves_password_and_rejects_duplicate_employee_number(): void
