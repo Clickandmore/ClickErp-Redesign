@@ -51,6 +51,11 @@ final class PermissionLabelDictionary
 
     /** مسميات كاملة لصلاحيات بعينها، تتجاوز أي تركيب آلي. */
     private const EXACT = [
+        'company_settings_view' => 'عرض إعدادات الشركة',
+        'company_settings_update' => 'تعديل بيانات الشركة والحساب والشعار',
+        'company_settings_migration_preview' => 'معاينة ترحيل عقود الشركة',
+        'company_settings_migration_execute' => 'تنفيذ ترحيل عقود الشركة وأرشفة العملاء',
+        'company_settings_history_view' => 'عرض سجل ترحيل الشركة',
         'hourly_maids_impersonate' => 'الدخول إلى بوابة العاملة نيابة عنها',
         'hourly_customers_balance' => 'إيداع رصيد في محفظة عميل الساعات',
         'hourly_customers_balance_adjust' => 'تسوية رصيد محفظة عميل الساعات',

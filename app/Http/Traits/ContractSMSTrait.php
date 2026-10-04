@@ -22,6 +22,9 @@ trait ContractSMSTrait
     public function sendContractStatusSMS(Contract $contract, string $newStatus)
     {
         try {
+            if ($contract->company_profile_id) {
+                return false;
+            }
             // التحقق من وجود رقم هاتف العميل
             if (!$contract->user || !$contract->user->phone) {
                 Log::warning('Cannot send SMS: Client phone number not found', [

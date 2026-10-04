@@ -576,26 +576,10 @@ class MaidAction extends MainAction
 
                     if ($createShelterContract === '1') {
                         DB::beginTransaction();
-                        $companyName = documentSetting('document_company_name', documentSetting('website_name', config('app.name')));
-                        $companyPhone = documentSetting('phone', '0500000002');
-                        $companyEmail = documentSetting('email', 'company@example.test');
-
-                        $companyClient = ClientUser::where('name', 'like', '%' . $companyName . '%')
-                            ->orWhere('email', $companyEmail)
-                            ->orWhere('phone', $companyPhone)
-                            ->first();
-
-                        if (!$companyClient) {
-                            $companyClient = ClientUser::create([
-                                'name' => $companyName,
-                                'email' => $companyEmail,
-                                'phone' => $companyPhone,
-                                'password' => bcrypt('password123'),
-                            ]);
-                        }
+                        $companyOwnership = app(\App\Services\ShelterCompanyClientResolver::class)->ownership();
 
                         $contract = Contract::create([
-                            'user_id' => $companyClient->id,
+                            ...$companyOwnership,
                             'maid_id' => $maid->id,
                             'status' => ContractStatusEnum::Shelter->value,
                             'contract_date' => now()->toDateString(),
@@ -1879,10 +1863,10 @@ class MaidAction extends MainAction
                 return;
             }
 
-            $companyClient = $this->resolveShelterCompanyClient();
+            $companyOwnership = app(\App\Services\ShelterCompanyClientResolver::class)->ownership();
 
             $contract = Contract::create([
-                'user_id' => $companyClient->id,
+                ...$companyOwnership,
                 'maid_id' => $maid->id,
                 'status' => ContractStatusEnum::Shelter->value,
                 'contract_date' => now()->toDateString(),
@@ -1944,10 +1928,10 @@ class MaidAction extends MainAction
     private function createCompanyRecruitmentContractForRentalMaid(Maid $maid, $request): ?Contract
     {
         try {
-            $companyClient = $this->resolveShelterCompanyClient();
+            $companyOwnership = app(\App\Services\ShelterCompanyClientResolver::class)->ownership();
 
             $contract = Contract::create([
-                'user_id' => $companyClient->id,
+                ...$companyOwnership,
                 'maid_id' => $maid->id,
                 'status' => ContractStatusEnum::New->value,
                 'contract_date' => now()->toDateString(),
@@ -1977,7 +1961,7 @@ class MaidAction extends MainAction
             \Log::info('Company recruitment contract created for not-arrived rental maid', [
                 'contract_id' => $contract->id,
                 'maid_id' => $maid->id,
-                'company_client_id' => $companyClient->id,
+                'company_ownership' => $companyOwnership,
             ]);
 
             return $contract;
@@ -1990,11 +1974,6 @@ class MaidAction extends MainAction
 
             throw $exception;
         }
-    }
-
-    private function resolveShelterCompanyClient(): ClientUser
-    {
-        return app(\App\Services\ShelterCompanyClientResolver::class)->resolve();
     }
 
     public function togglePin($id)

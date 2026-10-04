@@ -517,6 +517,9 @@ class RecruitmentContractController extends Controller
 
     private function resolveDisplayedContractClient(Contract $contract): ?User
     {
+        if ($contract->company_profile_id) {
+            return $contract->user;
+        }
         $transfer = $contract->relationLoaded('sponsorshipTransfers')
             ? $contract->sponsorshipTransfers
                 ->whereIn('status', $this->sponsorshipTransferDisplayStatuses())
@@ -531,11 +534,11 @@ class RecruitmentContractController extends Controller
         return $transfer?->oldSponsor ?: $contract->user;
     }
 
-    private function applyDisplayedClientFilter($query, callable $userFilter): void
+    private function applyDisplayedClientFilter($query, callable $userFilter, bool $includeCompany = true): void
     {
         $displayStatuses = $this->sponsorshipTransferDisplayStatuses();
 
-        $query->where(function ($clientQuery) use ($userFilter, $displayStatuses) {
+        $query->where(function ($clientQuery) use ($userFilter, $displayStatuses, $includeCompany) {
             $clientQuery->where(function ($transferClientQuery) use ($userFilter, $displayStatuses) {
                 $transferClientQuery
                     ->whereHas('sponsorshipTransfers', function ($transferQuery) use ($userFilter, $displayStatuses) {
@@ -550,6 +553,10 @@ class RecruitmentContractController extends Controller
                     })
                     ->whereHas('user', $userFilter);
             });
+            if ($includeCompany && Schema::hasTable('company_profiles')) {
+                $clientQuery->orWhereHas('companyProfile', $userFilter);
+                $clientQuery->orWhereHas('sponsorshipTransfers.oldCompanyProfile', $userFilter);
+            }
         });
     }
 
@@ -3499,7 +3506,15 @@ class RecruitmentContractController extends Controller
                 'required_maid_notes' => $request->required_maid_notes, // حفظ الملاحظات
             ];
 
-            if ($request->order_id) {
+            if ($request->input('client_type') === 'internal_company') {
+                $company = \App\Models\CompanyProfile::current();
+                abort_unless($company && $company->id === (int) $request->company_profile_id && !$request->filled('order_id'), 422);
+                $contractData['company_profile_id'] = $company->id;
+                $contractData['company_finance_account_id'] = $company->account_id;
+                $contractData['user_id'] = null;
+                $contractData['marketer_id'] = $marketerId;
+                $user = $company->party();
+            } elseif ($request->order_id) {
                 $order = Order::findOrFail($request->order_id);
                 logger()->info('Found order:', ['order' => $order->toArray()]);
 
@@ -3592,7 +3607,7 @@ class RecruitmentContractController extends Controller
                 'user_city' => $user->city
             ]);
 
-            if (!$request->order_id) {
+            if (!$request->order_id && $request->input('client_type') !== 'internal_company') {
                 $order = Order::create([
                     'maid_id' => $contractData['maid_id'],
                     'user_id' => $contractData['user_id'],
@@ -4069,7 +4084,7 @@ class RecruitmentContractController extends Controller
             'marketer_id' => $request->input('marketer_id') ?: null,
         ]);
 
-        $hasClient = (bool) $contract->user;
+        $hasClient = !$contract->company_profile_id && (bool) $contract->user;
         $marketerRules = [
             'required',
             Rule::exists('admins', 'id')->where(function ($query) {
@@ -4147,7 +4162,7 @@ class RecruitmentContractController extends Controller
 
         try {
             // تحديث بيانات العميل
-            if ($contract->user) {
+            if (!$contract->company_profile_id && $contract->user) {
                 $accountClientType = $request->input('account_client_type') === 'company' ? 'company' : 'person';
                 $contract->user->client_type = $accountClientType;
 
@@ -6122,7 +6137,15 @@ class RecruitmentContractController extends Controller
                         ->orWhere('address', 'like', $likeSearch)
                         ->orWhere('birthdate', 'like', $likeSearch)
                         ->orWhere('job', 'like', $likeSearch);
-                });
+                }, false);
+                if (Schema::hasTable('company_profiles')) {
+                    $companySearch = function ($companyQuery) use ($likeSearch) {
+                        $companyQuery->where('name', 'like', $likeSearch)->orWhere('name_en', 'like', $likeSearch)
+                            ->orWhere('phone', 'like', $likeSearch)->orWhere('tax_number', 'like', $likeSearch)
+                            ->orWhere('registration_number', 'like', $likeSearch)->orWhere('email', 'like', $likeSearch);
+                    };
+                    $clientSearchQuery->orWhereHas('companyProfile', $companySearch)->orWhereHas('sponsorshipTransfers.oldCompanyProfile', $companySearch);
+                }
             });
 
             // بيانات العاملة

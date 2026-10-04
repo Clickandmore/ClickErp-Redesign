@@ -26,7 +26,36 @@ use Nami\Finance\Models\ClientCategory;
 
 class User extends Authenticatable implements JWTSubject
 {
-    use HasFactory, Notifiable, LogsActivity, HasRoles, \Illuminate\Database\Eloquent\SoftDeletes;
+    use HasFactory, Notifiable, LogsActivity, HasRoles;
+    use \Illuminate\Database\Eloquent\SoftDeletes {
+        forceDelete as protected forceDeleteHistorical;
+        restore as protected restoreHistorical;
+    }
+
+    public function forceDelete()
+    {
+        $this->assertNotArchivedCompany();
+        return $this->forceDeleteHistorical();
+    }
+
+    public function restore()
+    {
+        $this->assertNotArchivedCompany();
+        return $this->restoreHistorical();
+    }
+
+    public function delete()
+    {
+        $this->assertNotArchivedCompany();
+        return parent::delete();
+    }
+
+    private function assertNotArchivedCompany(): void
+    {
+        if ($this->archived_company_profile_id) {
+            throw new \LogicException('سجل الشركة محفوظ للمرجعية التاريخية فقط. تُدار الشركة من إعدادات الشركة.');
+        }
+    }
 
     protected $table = 'users';
     protected $guarded = [];
@@ -171,7 +200,15 @@ class User extends Authenticatable implements JWTSubject
     protected static function booted(): void
     {
         static::deleting(function (User $user) {
+            if ($user->archived_company_profile_id) {
+                throw new \LogicException('لا يمكن حذف سجل الشركة التاريخي المرتبط بعملية ترحيل.');
+            }
             app(\App\Services\ClientDeletionService::class)->assertDeletable($user, $user->isForceDeleting());
+        });
+        static::restoring(function (User $user) {
+            if ($user->archived_company_profile_id) {
+                throw new \LogicException('سجل الشركة مؤرشف للمرجعية فقط. تُدار الشركة من إعدادات الشركة.');
+            }
         });
         static::creating(function (User $user) {
             if (!$user->branchesFeatureAvailable() || !empty($user->branch_id)) {

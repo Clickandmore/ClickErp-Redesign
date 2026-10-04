@@ -230,6 +230,10 @@ Route::group(
             //** END NEW *//
 
             Route::get('form-settings', [FormSettingsController::class, 'index'])->name('form-settings.index');
+            Route::get('company-settings', [\App\Http\Controllers\admin\CompanySettingsController::class, 'index'])->name('company-settings.index');
+            Route::put('company-settings', [\App\Http\Controllers\admin\CompanySettingsController::class, 'update'])->name('company-settings.update');
+            Route::post('company-settings/migration/preview', [\App\Http\Controllers\admin\CompanySettingsController::class, 'previewMigration'])->name('company-settings.migration.preview');
+            Route::post('company-settings/migration', [\App\Http\Controllers\admin\CompanySettingsController::class, 'migrate'])->name('company-settings.migration.execute');
             Route::post('form-settings/shelter-templates/{id?}', [FormSettingsController::class, 'saveShelterTemplate'])->where('id', '[0-9]+')->name('form-settings.shelter-templates.save');
             Route::get('form-settings/shelter-templates/{id}/preview', [FormSettingsController::class, 'previewShelterTemplate'])->where('id', '[0-9]+')->name('form-settings.shelter-templates.preview');
             Route::put('form-settings', [FormSettingsController::class, 'update'])->name('form-settings.update');

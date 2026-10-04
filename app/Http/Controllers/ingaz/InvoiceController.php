@@ -167,6 +167,11 @@ class InvoiceController extends Controller
             ->leftJoin('fn_sales as finance_sale', 'finance_sale.id', '=', 'invoice.finance_sale_id')
             ->leftJoin('zatca_invoices as zatca_invoice', 'zatca_invoice.id', '=', 'finance_sale.zatca_invoice_id');
 
+        $companyInvoiceColumns = Schema::hasTable('company_profiles');
+        if ($companyInvoiceColumns) {
+            $invoiceQuery->leftJoin('company_profiles as recruitment_company', 'recruitment_company.id', '=', 'recruitment_contract.company_profile_id');
+        }
+
         if ($invoiceBranchesEnabled) {
             $invoiceQuery->leftJoin('branches as invoice_branch', 'invoice_branch.id', '=', 'invoice.branch_id');
         }
@@ -187,8 +192,8 @@ class InvoiceController extends Controller
             DB::raw('NULL as adjustment_constraint_id'),
             DB::raw('NULL as base_rental_invoice_id'),
             DB::raw('invoice.id as base_invoice_id'),
-            DB::raw('COALESCE(recruitment_client.name, delegation_client.name, direct_client.name, "-") as client_name'),
-            DB::raw('COALESCE(recruitment_client.phone, delegation_client.phone, direct_client.phone, "") as client_phone'),
+            DB::raw('COALESCE(' . ($companyInvoiceColumns ? 'recruitment_company.name, ' : '') . 'recruitment_client.name, delegation_client.name, direct_client.name, "-") as client_name'),
+            DB::raw('COALESCE(' . ($companyInvoiceColumns ? 'recruitment_company.phone, ' : '') . 'recruitment_client.phone, delegation_client.phone, direct_client.phone, "") as client_phone'),
             $invoiceBranchesEnabled
                 ? DB::raw('COALESCE(invoice_branch.name_ar, "-") as branch')
                 : DB::raw('"-" as branch'),
@@ -308,6 +313,9 @@ class InvoiceController extends Controller
             ->leftJoin('users as credit_general_client', 'credit_general_client.id', '=', 'original_invoice.client_id')
             ->leftJoin('fn_sales as credit_sale', 'credit_sale.id', '=', 'credit_note.finance_sale_id')
             ->leftJoin('zatca_invoices as credit_zatca', 'credit_zatca.id', '=', 'credit_sale.zatca_invoice_id');
+        if ($companyInvoiceColumns) {
+            $creditNoteQuery->leftJoin('company_profiles as credit_company', 'credit_company.id', '=', 'credit_contract.company_profile_id');
+        }
 
         if (!$this->canViewInvoiceCreditNote()) {
             $creditNoteQuery->whereRaw('1 = 0');
@@ -332,8 +340,8 @@ class InvoiceController extends Controller
             'credit_note.constraint_id as adjustment_constraint_id',
             DB::raw('NULL as base_rental_invoice_id'),
             'credit_note.invoice_id as base_invoice_id',
-            DB::raw('COALESCE(credit_client.name, credit_delegation_client.name, credit_general_client.name, "-") as client_name'),
-            DB::raw('COALESCE(credit_client.phone, credit_delegation_client.phone, credit_general_client.phone, "") as client_phone'),
+            DB::raw('COALESCE(' . ($companyInvoiceColumns ? 'credit_company.name, ' : '') . 'credit_client.name, credit_delegation_client.name, credit_general_client.name, "-") as client_name'),
+            DB::raw('COALESCE(' . ($companyInvoiceColumns ? 'credit_company.phone, ' : '') . 'credit_client.phone, credit_delegation_client.phone, credit_general_client.phone, "") as client_phone'),
             $invoiceBranchesEnabled
                 ? DB::raw('COALESCE(credit_branch.name_ar, "-") as branch')
                 : DB::raw('"-" as branch'),
@@ -2158,7 +2166,7 @@ class InvoiceController extends Controller
 
         return Client::query()->create([
             'name' => $user->name ?: ('عميل #' . $user->id),
-            'code' => (string) $user->id,
+            'code' => $user instanceof \App\Support\CompanyContractParty ? 'company-' . $user->company_profile_reference : (string) $user->id,
             'address' => $user->address ?? ' ',
             'phone' => $phone !== '' ? $phone : ' ',
             'email' => $user->email ?? ' ',
@@ -4710,6 +4718,9 @@ class InvoiceController extends Controller
 
     private function ensureClientAccountId(Contract $contract): int
     {
+        if ($contract->company_profile_id) {
+            return $this->ensureClientUserAccountId($contract->user);
+        }
         if (!$contract->user_id) {
             throw new \RuntimeException('العقد غير مرتبط بعميل، لا يمكن إنشاء الحساب المحاسبي.');
         }
@@ -4733,6 +4744,13 @@ class InvoiceController extends Controller
 
     private function ensureClientUserAccountId(ClientUser $user): int
     {
+        if ($user instanceof \App\Support\CompanyContractParty) {
+            $account = $user->account_id ? Account::query()->lockForUpdate()->find($user->account_id) : null;
+            if (!$account) {
+                throw new \RuntimeException('حدد الحساب المحاسبي للشركة من إعدادات الشركة قبل تنفيذ العملية المالية.');
+            }
+            return (int) $account->id;
+        }
         $user = ClientUser::query()
             ->lockForUpdate()
             ->find($user->id);

@@ -51,6 +51,10 @@ class SettingRequest extends MainRequest
     public function rules()
     {
          return [
+            'company_client_id' => ['nullable', 'required_with:company_legacy_client_ids', 'integer', Rule::exists('users', 'id')->whereNull('deleted_at')],
+            'company_legacy_client_ids' => 'nullable|array|max:100',
+            'company_legacy_client_ids.*' => ['required', 'integer', 'distinct', Rule::exists('users', 'id')],
+            'company_license_number' => 'nullable|string|max:100',
             'second_qr_image' => 'nullable',
             'experience_image' => 'nullable',
             'qr_image' => 'nullable',

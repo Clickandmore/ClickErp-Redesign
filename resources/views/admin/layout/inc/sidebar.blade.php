@@ -1261,6 +1261,7 @@
                             request()->routeIs('moyasar-settings.*') ||
                             request()->routeIs('storage.settings*') ||
                             request()->routeIs('form-settings.*') ||
+                            request()->routeIs('company-settings.*') ||
                             request()->routeIs('dash.settings*') ||
                             request()->routeIs('istiqdam.*') ||
                             Request::is('migration/*') ||
@@ -1877,7 +1878,7 @@
                                 </ul>
                             </li>
 
-                            @if (@AdminGuardHasAnyPerm([\App\PermKeys::SETTINGS_VIEW, \App\PermKeys::SETTINGS_CONTROL, \App\PermKeys::DEVELOPERS_PERMS, \App\PermKeys::MOYASAR_SETTINGS]))
+                            @if (@AdminGuardHasAnyPerm([\App\PermKeys::SETTINGS_VIEW, \App\PermKeys::SETTINGS_CONTROL, \App\PermKeys::COMPANY_SETTINGS_VIEW, \App\PermKeys::DEVELOPERS_PERMS, \App\PermKeys::MOYASAR_SETTINGS]))
                                 <li class="{{ $isInternalSystemSettingsRoute ? '' : 'collapsed' }}">
                                     <a class="m-link" data-bs-toggle="collapse"
                                         data-bs-target="#internalSystemSettings" href="#">
@@ -1926,6 +1927,16 @@
                                                     href="{{ route('form-settings.index') }}">
                                                     <i class="fa fa-file-lines"></i>
                                                     <span class="ms-2">{{ __('admin.form_settings') }}</span>
+                                                </a>
+                                            </li>
+                                        @endif
+
+                                        @if (@AdminGuardHasPerm(\App\PermKeys::COMPANY_SETTINGS_VIEW))
+                                            <li>
+                                                <a class="m-link {{ request()->routeIs('company-settings.*') ? 'active' : '' }}"
+                                                    href="{{ route('company-settings.index') }}">
+                                                    <i class="fa fa-building"></i>
+                                                    <span class="ms-2">إعدادات الشركة</span>
                                                 </a>
                                             </li>
                                         @endif

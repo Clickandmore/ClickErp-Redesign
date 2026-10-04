@@ -66,7 +66,7 @@ class Setting extends Model
 //        $this->translatedAttributes = array_diff($this->fillable, ['setting_id','locale','created_at','updated_at']);
 //    }
 
-    protected $fillable = ['key', 'value', 'group', 'years', 'show_customer_service_during_booking', 'external_booking_employee_selection', 'note_ar', 'note_en',
+    protected $fillable = ['company_client_id', 'company_legacy_client_ids', 'company_license_number', 'key', 'value', 'group', 'years', 'show_customer_service_during_booking', 'external_booking_employee_selection', 'note_ar', 'note_en',
         'logo_header', 'document_logo', 'admin_logo', 'light_image', 'cover_image', 'admin_login_background', 'dashboard_footer_url', 'there_are_offer', 'logo_footer', 'favicon', 'about_image', 'twitter', 'facebook', 'instagram', 'snapchat', 'linkedin', 'youtube', 'tiktok', 'whatsapp', 'email', 'phone', 'other_phone', 'map_link', 'find_us_mode', 'header_link_1_title', 'header_link_1_url', 'header_link_2_title', 'header_link_2_url', 'live_chat_title', 'live_chat_url', 'admin_quick_links', 'tag_manager_head', 'tag_manager_footer', 'tiktok_tag', 'snapchat_tag', 'zoho_tag', 'hotjar_tag', 'meta_pixel_tag', 'live_chat_tag', 'website_visitor_site_id', 'show_public_site', 'external_auth_mode', 'app_auth_mode', 'external_order_mode', 'rental_order_mode', 'cv_template_enabled', 'cv_template_blade', 'cv_template_filename', 'cv_template_output_type', 'cv_public_site_url'
         , 'qr_image', 'experience_image', 'second_qr_image', 'tax_number', 'zatch_logo'
         // فهرسة الموقع الخارجي: canonical وsitemap — كانت في .env عند الموقع
@@ -74,6 +74,8 @@ class Setting extends Model
     ];
 
     protected $casts = [
+        'company_client_id' => 'integer',
+        'company_legacy_client_ids' => 'array',
         'admin_quick_links' => 'array',
         'cv_template_enabled' => 'boolean',
         'rental_cv_transfer_enabled' => 'boolean',

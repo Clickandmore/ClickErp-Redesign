@@ -672,6 +672,9 @@
                 {{ $shelterContractsMode ? 'عقود الإيواء' : ($companyContractsMode ? 'عقود الاستقدام للشركة' : helperTrans('ingaz.All Recruitment contracts')) }}
             </h3>
             <div class="contracts-header-actions">
+                @if ($companyContractsMode && @AdminGuardHasPerm(\App\PermKeys::COMPANY_SETTINGS_VIEW))
+                    <a href="{{ route('company-settings.index') }}" class="btn btn-outline-primary">إعدادات الشركة</a>
+                @endif
                 <a href="{{ route($companyContractsMode ? 'RecruitmentContract.company.index' : 'RecruitmentContract.index', ['all_contracts' => 1]) }}" class="btn btn-outline-dark">
                     <i class="fas fa-list"></i>
                     كل العقود

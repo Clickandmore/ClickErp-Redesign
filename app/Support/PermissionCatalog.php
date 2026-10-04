@@ -115,6 +115,7 @@ class PermissionCatalog
         return self::protectedRoutes()
             ->flatMap(fn (array $route) => $route['permissions'])
             ->merge(array_keys(AdminDispatchPermissions::definitions()))
+            ->merge([\App\PermKeys::COMPANY_SETTINGS_HISTORY_VIEW])
             ->unique()
             ->sort()
             ->values();

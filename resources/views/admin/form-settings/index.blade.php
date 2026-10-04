@@ -115,6 +115,9 @@
                   enctype="multipart/form-data">
                 @csrf
                 @method('PUT')
+                @if ($companyProfile)
+                    <div class="col-12"><div class="alert alert-light border">تُدار بيانات الشركة والشعار والتواصل من <a href="{{ route('company-settings.index') }}">إعدادات الشركة</a>.</div></div>
+                @endif
 
                 <div class="col-12 section-anchor" id="editor-shared">
                     <div class="card editor-card">
@@ -131,7 +134,7 @@
                                 @foreach (config('translatable.locales') as $locale)
                                     <div class="col-md-6">
                                         <label class="form-label">اسم الشركة على النماذج {{ getFieldLanguage($locale) }}</label>
-                                        <input type="text" name="document_company_name:{{ $locale }}" class="form-control"
+                                        <input type="text" name="document_company_name:{{ $locale }}" @if ($companyProfile) disabled @endif class="form-control"
                                                value="{{ $settings->translate($locale)->document_company_name ?? '' }}"
                                                placeholder="مثال: {{ documentSetting('document_company_name', documentSetting('website_name', config('app.name'))) }}">
                                     </div>
@@ -156,7 +159,7 @@
 
                                 <div class="col-md-6">
                                     <label class="form-label">لوجو النماذج والعقود</label>
-                                    <input type="file" name="document_logo" class="form-control" accept="image/*">
+                                    <input type="file" name="document_logo" @if ($companyProfile) disabled @endif class="form-control" accept="image/*">
                                     <small class="text-muted d-block mt-1">
                                         إذا تُرك الحقل فارغاً فسيستمر استخدام اللوجو الحالي.
                                     </small>
@@ -255,32 +258,32 @@
                             <div class="row g-3">
                                 <div class="col-md-4">
                                     <label class="form-label">الرقم الضريبي</label>
-                                    <input type="text" name="tax_number" class="form-control"
+                                    <input type="text" name="tax_number" @if ($companyProfile) disabled @endif class="form-control"
                                            value="{{ $settings->tax_number ?? '' }}">
                                 </div>
 
                                 <div class="col-md-4">
                                     <label class="form-label">هاتف مقدم الخدمة</label>
-                                    <input type="text" name="phone" class="form-control"
+                                    <input type="text" name="phone" @if ($companyProfile) disabled @endif class="form-control"
                                            value="{{ $settings->phone ?? '' }}">
                                 </div>
 
                                 <div class="col-md-4">
                                     <label class="form-label">هاتف إضافي</label>
-                                    <input type="text" name="other_phone" class="form-control"
+                                    <input type="text" name="other_phone" @if ($companyProfile) disabled @endif class="form-control"
                                            value="{{ $settings->other_phone ?? '' }}">
                                 </div>
 
                                 <div class="col-md-6">
                                     <label class="form-label">البريد الإلكتروني</label>
-                                    <input type="email" name="email" class="form-control"
+                                    <input type="email" name="email" @if ($companyProfile) disabled @endif class="form-control"
                                            value="{{ ($settings->email ?? '') === '#' ? '' : ($settings->email ?? '') }}">
                                 </div>
 
                                 @foreach (config('translatable.locales') as $locale)
                                     <div class="col-md-6">
                                         <label class="form-label">عنوان مقدم الخدمة {{ getFieldLanguage($locale) }}</label>
-                                        <input type="text" name="location:{{ $locale }}" class="form-control"
+                                        <input type="text" name="location:{{ $locale }}" @if ($companyProfile) disabled @endif class="form-control"
                                                value="{{ $settings->translate($locale)->location ?? '' }}">
                                     </div>
                                 @endforeach
