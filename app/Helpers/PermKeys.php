@@ -137,6 +137,7 @@ const PARTENR_CONTROL = 'partenr_control';
 
     const POST_ARRIVAL_REFUND_VIEW = 'post_arrival_refund_view';
     const POST_ARRIVAL_REFUND_CREATE = 'post_arrival_refund_create';
+    const POST_ARRIVAL_REFUND_EDIT = 'post_arrival_refund_edit';
     const POST_ARRIVAL_REFUND_POST = 'post_arrival_refund_post';
     const POST_ARRIVAL_REFUND_PAYOUT = 'post_arrival_refund_payout';
     const POST_ARRIVAL_REFUND_REVERSE = 'post_arrival_refund_reverse';

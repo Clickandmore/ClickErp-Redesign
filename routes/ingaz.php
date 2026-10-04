@@ -471,7 +471,7 @@ Route::group(
             Route::post('post-arrival-refunds/{postArrivalRefund}/payout', [PostArrivalRefundController::class, 'payout'])->name('post-arrival-refunds.payout');
             Route::post('post-arrival-refunds/{postArrivalRefund}/lines/{line}/reverse', [PostArrivalRefundController::class, 'reverse'])->name('post-arrival-refunds.lines.reverse');
             Route::resource('post-arrival-refunds', PostArrivalRefundController::class)
-                ->only(['index', 'create', 'store', 'show'])
+                ->only(['index', 'create', 'store', 'show', 'edit', 'update'])
                 ->parameters(['post-arrival-refunds' => 'postArrivalRefund']);
 
             // Messages

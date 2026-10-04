@@ -31,7 +31,7 @@ class PostArrivalRefundController extends Controller
         return view('admin.ingaz.post_arrival_refunds.index', ['settlements' => $query->paginate(20)->withQueryString()]);
     }
 
-    public function create(Request $request, PostArrivalRefundService $service)
+    public function create(Request $request, PostArrivalRefundService $service, ?ContractReturnSettlement $draft = null)
     {
         $contractId = $request->filled('contract_id') ? (int) $request->input('contract_id') : null;
         $contractRelations = ['user', 'maid.office', 'maid.nationality', 'invoice.recruitmentCreditNotes', 'info', 'marketer', 'branch', 'returnRequests'];
@@ -39,6 +39,10 @@ class PostArrivalRefundController extends Controller
             ->whereIn('type', ['recruitment', 'maid'])->whereHas('invoice')->whereHas('info', fn ($q) => $q->whereNotNull('arrival_date'))
             ->whereDoesntHave('returnSettlements', fn ($q) => $q->whereNotIn('status', ['cancelled']))
             ->latest('id')->limit(150)->get();
+        if ($draft) {
+            $contractId = $draft->contract_id;
+            $contracts = collect([$draft->contract->load($contractRelations)]);
+        }
         $selected = $contractId ? $contracts->firstWhere('id', $contractId) : null;
         if ($contractId && ! $selected) {
             $selected = Contract::query()->with($contractRelations)
@@ -49,7 +53,7 @@ class PostArrivalRefundController extends Controller
                 ->find($contractId);
             if ($selected) $contracts->prepend($selected);
         }
-        $proposal = $selected ? $service->proposal($selected, now()->toDateString()) : null;
+        $proposal = $selected ? $service->proposal($selected, $draft?->settlement_date->toDateString() ?? now()->toDateString()) : null;
         $accountsQuery = Account::query()->whereDoesntHave('children');
         $accounts = $accountsQuery->orderBy('code')->orderBy('id')->get(['id', 'code', 'name']);
         $suggestedAccountId = (int) ($proposal['office_charge_credit_account_id'] ?? 0);
@@ -63,8 +67,11 @@ class PostArrivalRefundController extends Controller
 
         return view('admin.ingaz.post_arrival_refunds.create', [
             'contracts' => $contracts, 'selected' => $selected, 'proposal' => $proposal,
-            'reasons' => ReturnReasonCode::query()->where('is_active', true)->orderBy('sort_order')->get(),
-            'accounts' => $accounts,
+            'reasons' => ReturnReasonCode::query()->where(function ($query) use ($draft) {
+                $query->where('is_active', true);
+                if ($draft) $query->orWhere('id', $draft->return_reason_code_id);
+            })->orderBy('sort_order')->get(),
+            'accounts' => $accounts, 'draft' => $draft?->load('lines'),
         ]);
     }
 
@@ -96,6 +103,30 @@ class PostArrivalRefundController extends Controller
 
     public function store(Request $request, PostArrivalRefundService $service)
     {
+        $data = $this->draftData($request);
+        $settlement = $service->createDraft(Contract::query()->findOrFail($data['contract_id']), $data);
+        return redirect()->route('post-arrival-refunds.show', $settlement)->with('success', 'تم إنشاء مسودة الاسترداد من دون إنشاء أي قيد.');
+    }
+
+    public function edit(Request $request, ContractReturnSettlement $postArrivalRefund, PostArrivalRefundService $service)
+    {
+        abort_unless($postArrivalRefund->status === 'draft', 409, 'يمكن تعديل المسودة فقط.');
+        return $this->create($request, $service, $postArrivalRefund);
+    }
+
+    public function update(Request $request, ContractReturnSettlement $postArrivalRefund, PostArrivalRefundService $service)
+    {
+        abort_unless($postArrivalRefund->status === 'draft', 409, 'يمكن تعديل المسودة فقط.');
+        $data = $this->draftData($request);
+        if ((int) $data['contract_id'] !== (int) $postArrivalRefund->contract_id) {
+            throw ValidationException::withMessages(['contract_id' => 'لا يمكن تغيير العقد المرتبط بالمسودة.']);
+        }
+        $settlement = $service->updateDraft($postArrivalRefund, $data);
+        return redirect()->route('post-arrival-refunds.show', $settlement)->with('success', 'تم تعديل مسودة الاسترداد دون إنشاء أي قيد.');
+    }
+
+    private function draftData(Request $request): array
+    {
         $data = $request->validate([
             'contract_id' => 'required|integer|exists:contracts,id',
             'return_reason_code_id' => 'required|integer|exists:return_reason_codes,id',
@@ -120,8 +151,7 @@ class PostArrivalRefundController extends Controller
             $line['credit_account_id'] = (int) $account->id;
         }
         unset($line);
-        $settlement = $service->createDraft(Contract::query()->findOrFail($data['contract_id']), $data);
-        return redirect()->route('post-arrival-refunds.show', $settlement)->with('success', 'تم إنشاء مسودة الاسترداد من دون إنشاء أي قيد.');
+        return $data;
     }
 
     public function show(ContractReturnSettlement $postArrivalRefund)
