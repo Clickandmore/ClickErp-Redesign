@@ -73,6 +73,7 @@ final class PermissionLabelDictionary
         'clients_view_all_branches' => 'عرض عملاء كل الفروع',
         'post_arrival_refund_view' => 'عرض مستندات الاسترداد بعد الوصول',
         'post_arrival_refund_create' => 'إنشاء مستند استرداد بعد الوصول',
+        'post_arrival_refund_edit' => 'تعديل مسودة استرداد بعد الوصول',
         'post_arrival_refund_post' => 'اعتماد مستند استرداد بعد الوصول',
         'post_arrival_refund_payout' => 'صرف استرداد بعد الوصول',
         'post_arrival_refund_reverse' => 'عكس بند استرداد بعد الوصول',

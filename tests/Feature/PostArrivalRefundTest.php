@@ -249,6 +249,62 @@ class PostArrivalRefundTest extends TestCase
         $this->assertSame($creditAccount->id, (int) $settlement->lines()->firstOrFail()->credit_account_id);
     }
 
+    public function test_draft_update_preserves_identity_and_creates_no_financial_documents(): void
+    {
+        $service = app(PostArrivalRefundService::class);
+        $contract = $this->contractWithArrivalInvoice();
+        $reason = ReturnReasonCode::query()->firstOrCreate(['code' => 'test-edit'], ['name' => 'اختبار تعديل']);
+        $data = ['settlement_date' => now()->toDateString(), 'return_reason_code_id' => $reason->id,
+            'reason' => 'المسودة الأصلية', 'lines' => [['enabled' => true, 'type' => 'credit_note', 'approved_amount' => 3980.75]]];
+        $draft = $service->createDraft($contract, $data);
+        $beforeConstraints = Constraint::query()->count();
+        $beforeNotes = \App\Models\RecruitmentInvoiceCreditNote::query()->count();
+        $data['reason'] = 'المسودة المعدلة';
+        $data['lines'][0]['approved_amount'] = 3000;
+        $data['lines'][0]['reason'] = 'تعديل المبلغ بطلب العميل';
+        $updated = $service->updateDraft($draft, $data);
+        $this->assertSame($draft->id, $updated->id);
+        $this->assertSame($draft->created_by_id, $updated->created_by_id);
+        $this->assertSame('المسودة المعدلة', $updated->reason);
+        $this->assertSame(3000.0, (float) $updated->approved_total);
+        $this->assertSame(1, $updated->lines()->count());
+        $this->assertSame($beforeConstraints, Constraint::query()->count());
+        $this->assertSame($beforeNotes, \App\Models\RecruitmentInvoiceCreditNote::query()->count());
+
+        $view = app(PostArrivalRefundController::class)->edit(Request::create('/'), $updated, $service);
+        $html = $view->render();
+        $this->assertStringContainsString('value="3000.00"', $html);
+        $this->assertStringContainsString('المسودة المعدلة', $html);
+    }
+
+    public function test_invalid_draft_update_rolls_back_and_posted_document_cannot_be_edited(): void
+    {
+        $service = app(PostArrivalRefundService::class);
+        $reason = ReturnReasonCode::query()->firstOrCreate(['code' => 'test-edit-invalid'], ['name' => 'اختبار']);
+        $data = ['settlement_date' => now()->toDateString(), 'return_reason_code_id' => $reason->id,
+            'reason' => 'المسودة الأصلية', 'lines' => [['enabled' => true, 'type' => 'credit_note', 'approved_amount' => 3980.75]]];
+        $draft = $service->createDraft($this->contractWithArrivalInvoice(), $data);
+        $originalLine = $draft->lines->first()->id;
+        try {
+            $service->updateDraft($draft, array_replace($data, ['reason' => 'لا يحفظ', 'lines' => []]));
+            $this->fail('Empty draft must be rejected.');
+        } catch (\Illuminate\Validation\ValidationException $exception) {
+            $this->assertArrayHasKey('lines', $exception->errors());
+        }
+        $this->assertSame('المسودة الأصلية', $draft->fresh()->reason);
+        $this->assertSame($originalLine, $draft->lines()->first()->id);
+        $draft->update(['status' => 'posted']);
+        $this->expectException(\Illuminate\Validation\ValidationException::class);
+        $service->updateDraft($draft, $data);
+    }
+
+    public function test_edit_routes_require_the_separate_edit_permission(): void
+    {
+        foreach (['post-arrival-refunds.edit', 'post-arrival-refunds.update'] as $route) {
+            $this->assertSame([PermKeys::POST_ARRIVAL_REFUND_EDIT], AdminRoutePermissionMatrix::resolve($route, Request::create('/')));
+        }
+    }
+
     private function contractWithArrivalInvoice(): Contract
     {
         $user = User::query()->create([

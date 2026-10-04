@@ -1960,7 +1960,7 @@ class MaidAction extends MainAction
                 'msaned_number' => '',
                 'tafwed_number' => '',
                 'visa_number' => '',
-                'contract_duration' => $request->input('duration'),
+                'contract_duration' => (int) $request->input('duration') ?: null, // "24 شهر" ← 24
             ]);
 
             $contract->contract_status_logs()->create([

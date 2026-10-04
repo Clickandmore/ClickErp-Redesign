@@ -10,6 +10,8 @@
 @section('content')
     @php
         $expiring = $driver->exists ? $driver->expiringDocuments() : [];
+        $missingDocs = $driver->exists ? $driver->missingDocuments() : [];
+        $rules = \App\Support\HourlyDriverFieldRules::class;
         $dates = \App\Models\Hourly\HourlyDriver::DATES;
         $isActive = (bool) old('is_active', $driver->is_active);
         $accountEnabled = (bool) old('account_enabled', $driver->account_enabled);
@@ -18,8 +20,9 @@
         @if (session('success'))
             <div class="alert alert-success border-0 rounded-3"><i class="fa fa-circle-check ms-1"></i> {{ session('success') }}</div>
         @endif
+        <div id="driver-feedback" class="alert border-0 rounded-3 d-none" role="alert"></div>
         @if ($errors->any())
-            <div class="alert alert-danger border-0 rounded-3">
+            <div class="alert alert-danger border-0 rounded-3" data-server-errors>
                 <div class="fw-bold mb-1"><i class="fa fa-circle-xmark ms-1"></i> تعذّر الحفظ، راجع الحقول التالية:</div>
                 <ul class="mb-0 ps-3">@foreach ($errors->all() as $error)<li>{{ $error }}</li>@endforeach</ul>
             </div>
@@ -45,13 +48,16 @@
                         @if (count($expiring))
                             <span class="ht-chip hd-chip-warn"><i class="fa fa-triangle-exclamation"></i> {{ count($expiring) }} وثيقة تحتاج متابعة</span>
                         @endif
+                        @if (count($missingDocs))
+                            <span class="ht-chip ht-chip-off"><i class="fa fa-circle-question"></i> لم يُدخل تاريخ: {{ implode(' و', $missingDocs) }}</span>
+                        @endif
                     @endif
                     <a class="btn btn-outline-secondary rounded-3" href="{{ route('admin.hourly-drivers.index') }}"><i class="fa fa-arrow-right ms-1"></i> القائمة</a>
                 </div>
             </div>
         </div>
 
-        <form method="POST" action="{{ $driver->exists ? route('admin.hourly-drivers.update', $driver) : route('admin.hourly-drivers.store') }}">
+        <form method="POST" id="driver-form" novalidate action="{{ $driver->exists ? route('admin.hourly-drivers.update', $driver) : route('admin.hourly-drivers.store') }}">
             @csrf
             @if ($driver->exists) @method('PUT') @endif
 
@@ -68,8 +74,8 @@
                         <div class="ht-body">
                             <div class="hd-section-title">الهوية</div>
                             <div class="row g-3 mb-4">
-                                <div class="col-md-6">@include('admin.hourly_drivers._field', ['name' => 'name', 'label' => 'الاسم الكامل', 'required' => true, 'attrs' => ['maxlength' => 150]])</div>
-                                <div class="col-md-6">@include('admin.hourly_drivers._field', ['name' => 'employee_number', 'label' => 'رقم الموظف', 'required' => true, 'attrs' => ['maxlength' => 50, 'dir' => 'ltr']])</div>
+                                <div class="col-md-6">@include('admin.hourly_drivers._field', ['name' => 'name', 'label' => 'الاسم الكامل', 'required' => true, 'attrs' => ['maxlength' => $rules::NAME_MAX, 'placeholder' => 'مثال: محمد أحمد علي', 'autocomplete' => 'off'], 'help' => 'حروف عربية أو إنجليزية ومسافات فقط، من '.$rules::NAME_MIN.' إلى '.$rules::NAME_MAX.' حرفًا.'])</div>
+                                <div class="col-md-6">@include('admin.hourly_drivers._field', ['name' => 'employee_number', 'label' => 'رقم الموظف', 'required' => true, 'attrs' => ['maxlength' => $rules::EMPLOYEE_NUMBER_MAX, 'inputmode' => 'numeric', 'dir' => 'ltr', 'placeholder' => '1024', 'autocomplete' => 'off'], 'help' => 'أرقام فقط حتى '.$rules::EMPLOYEE_NUMBER_MAX.' رقمًا، ولا يتكرر لسائق آخر.'])</div>
                                 <div class="col-md-4">
                                     <label class="form-label" for="gender">الجنس <span class="text-danger">*</span></label>
                                     <select id="gender" name="gender" class="form-select @error('gender') is-invalid @enderror" required>
@@ -77,7 +83,8 @@
                                             <option value="{{ $value }}" {{ old('gender', $driver->gender) === $value ? 'selected' : '' }}>{{ $label }}</option>
                                         @endforeach
                                     </select>
-                                    @error('gender')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                                    <div class="invalid-feedback" data-error-for="gender">@error('gender'){{ $message }}@enderror</div>
+                                    <div class="form-text hd-help">كما هو مسجّل في الإقامة.</div>
                                 </div>
                                 <div class="col-md-4">
                                     <label class="form-label" for="nationality_id">الجنسية</label>
@@ -87,16 +94,17 @@
                                             <option value="{{ $nationality->id }}" {{ (string) old('nationality_id', $driver->nationality_id) === (string) $nationality->id ? 'selected' : '' }}>{{ $nationality->sub_title }}</option>
                                         @endforeach
                                     </select>
-                                    @error('nationality_id')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                                    <div class="invalid-feedback" data-error-for="nationality_id">@error('nationality_id'){{ $message }}@enderror</div>
+                                    <div class="form-text hd-help">اختياري، كما في الجواز.</div>
                                 </div>
-                                <div class="col-md-4">@include('admin.hourly_drivers._field', ['name' => 'birth_date', 'label' => $dates['birth_date'], 'type' => 'date', 'attrs' => ['max' => now()->subDay()->toDateString()]])</div>
+                                <div class="col-md-4">@include('admin.hourly_drivers._field', ['name' => 'birth_date', 'label' => $dates['birth_date'], 'type' => 'date', 'attrs' => ['min' => $rules::birthDateMin(), 'max' => $rules::birthDateMax()], 'help' => 'عمر السائق من '.$rules::MIN_AGE.' إلى '.$rules::MAX_AGE.' سنة (سن رخصة القيادة).'])</div>
                             </div>
 
                             <div class="hd-section-title">التواصل</div>
                             <div class="row g-3">
-                                <div class="col-md-6">@include('admin.hourly_drivers._field', ['name' => 'phone', 'label' => 'الهاتف', 'type' => 'tel', 'required' => true, 'attrs' => ['maxlength' => 30, 'dir' => 'ltr']])</div>
-                                <div class="col-md-6">@include('admin.hourly_drivers._field', ['name' => 'phone2', 'label' => 'الهاتف الثاني', 'type' => 'tel', 'attrs' => ['maxlength' => 30, 'dir' => 'ltr']])</div>
-                                <div class="col-12">@include('admin.hourly_drivers._field', ['name' => 'address', 'label' => 'العنوان', 'attrs' => ['maxlength' => 500]])</div>
+                                <div class="col-md-6">@include('admin.hourly_drivers._field', ['name' => 'phone', 'label' => 'رقم الجوال', 'type' => 'tel', 'required' => true, 'attrs' => ['maxlength' => 14, 'inputmode' => 'numeric', 'dir' => 'ltr', 'placeholder' => '05XXXXXXXX', 'autocomplete' => 'off'], 'help' => 'أرقام فقط: يبدأ بـ 05 ويتكون من 10 أرقام، ولا يتكرر لسائق آخر.'])</div>
+                                <div class="col-md-6">@include('admin.hourly_drivers._field', ['name' => 'phone2', 'label' => 'رقم الجوال الثاني', 'type' => 'tel', 'attrs' => ['maxlength' => 14, 'inputmode' => 'numeric', 'dir' => 'ltr', 'placeholder' => '05XXXXXXXX', 'autocomplete' => 'off'], 'help' => 'اختياري، بنفس الصيغة ومختلف عن الرقم الأساسي.'])</div>
+                                <div class="col-12">@include('admin.hourly_drivers._field', ['name' => 'address', 'label' => 'العنوان', 'attrs' => ['maxlength' => $rules::ADDRESS_MAX], 'help' => 'اختياري: الحي والمدينة.'])</div>
                             </div>
                         </div>
                     </div>
@@ -112,22 +120,22 @@
                                 <div class="col-md-4">
                                     <div class="hd-doc">
                                         <h6><i class="fa fa-address-card"></i> الإقامة</h6>
-                                        <div class="mb-2">@include('admin.hourly_drivers._field', ['name' => 'residency_number', 'label' => 'رقم الإقامة', 'attrs' => ['maxlength' => 50, 'dir' => 'ltr']])</div>
-                                        @include('admin.hourly_drivers._field', ['name' => 'residency_expiry_date', 'label' => 'تاريخ الانتهاء', 'type' => 'date'])
+                                        <div class="mb-2">@include('admin.hourly_drivers._field', ['name' => 'residency_number', 'label' => 'رقم الإقامة', 'attrs' => ['maxlength' => 10, 'inputmode' => 'numeric', 'dir' => 'ltr', 'placeholder' => '2XXXXXXXXX', 'autocomplete' => 'off'], 'help' => '10 أرقام تبدأ بالرقم 2.'])</div>
+                                        @include('admin.hourly_drivers._field', ['name' => 'residency_expiry_date', 'label' => 'تاريخ الانتهاء', 'type' => 'date', 'attrs' => ['max' => $rules::expiryMax()], 'help' => 'مطلوب مع رقم الإقامة؛ بدونه لا تُعد الوثائق سارية.'])
                                     </div>
                                 </div>
                                 <div class="col-md-4">
                                     <div class="hd-doc">
                                         <h6><i class="fa fa-passport"></i> جواز السفر</h6>
-                                        <div class="mb-2">@include('admin.hourly_drivers._field', ['name' => 'passport_number', 'label' => 'رقم الجواز', 'attrs' => ['maxlength' => 50, 'dir' => 'ltr']])</div>
-                                        @include('admin.hourly_drivers._field', ['name' => 'passport_expiry_date', 'label' => 'تاريخ الانتهاء', 'type' => 'date'])
+                                        <div class="mb-2">@include('admin.hourly_drivers._field', ['name' => 'passport_number', 'label' => 'رقم الجواز', 'attrs' => ['maxlength' => 12, 'dir' => 'ltr', 'style' => 'text-transform: uppercase', 'placeholder' => 'A1234567', 'autocomplete' => 'off'], 'help' => 'من 6 إلى 12 حرفًا إنجليزيًا أو رقمًا.'])</div>
+                                        @include('admin.hourly_drivers._field', ['name' => 'passport_expiry_date', 'label' => 'تاريخ الانتهاء', 'type' => 'date', 'attrs' => ['max' => $rules::expiryMax()], 'help' => 'مطلوب مع رقم الجواز؛ بدونه لا تُعد الوثائق سارية.'])
                                     </div>
                                 </div>
                                 <div class="col-md-4">
                                     <div class="hd-doc">
                                         <h6><i class="fa fa-plane-arrival"></i> الدخول للمملكة</h6>
-                                        <div class="mb-2">@include('admin.hourly_drivers._field', ['name' => 'border_number', 'label' => 'رقم الحدود', 'attrs' => ['maxlength' => 50, 'dir' => 'ltr']])</div>
-                                        @include('admin.hourly_drivers._field', ['name' => 'entry_date', 'label' => $dates['entry_date'], 'type' => 'date'])
+                                        <div class="mb-2">@include('admin.hourly_drivers._field', ['name' => 'border_number', 'label' => 'رقم الحدود', 'attrs' => ['maxlength' => 10, 'inputmode' => 'numeric', 'dir' => 'ltr', 'placeholder' => '3XXXXXXXXX', 'autocomplete' => 'off'], 'help' => '10 أرقام تبدأ بالرقم 3 أو 4.'])</div>
+                                        @include('admin.hourly_drivers._field', ['name' => 'entry_date', 'label' => $dates['entry_date'], 'type' => 'date', 'attrs' => ['max' => $rules::today()->toDateString()], 'help' => 'لا يكون في المستقبل، وبعد تاريخ الميلاد.'])
                                     </div>
                                 </div>
                             </div>
@@ -143,14 +151,14 @@
                         <div class="ht-body">
                             <div class="hd-section-title">فترة العمل</div>
                             <div class="row g-3 mb-4">
-                                <div class="col-md-4">@include('admin.hourly_drivers._field', ['name' => 'work_start_date', 'label' => $dates['work_start_date'], 'type' => 'date'])</div>
-                                <div class="col-md-4">@include('admin.hourly_drivers._field', ['name' => 'contract_start_date', 'label' => $dates['contract_start_date'], 'type' => 'date'])</div>
+                                <div class="col-md-4">@include('admin.hourly_drivers._field', ['name' => 'work_start_date', 'label' => $dates['work_start_date'], 'type' => 'date', 'help' => 'اختياري: أول يوم عمل فعلي.'])</div>
+                                <div class="col-md-4">@include('admin.hourly_drivers._field', ['name' => 'contract_start_date', 'label' => $dates['contract_start_date'], 'type' => 'date', 'help' => 'اختياري: بداية العقد الحالي.'])</div>
                                 <div class="col-md-4">@include('admin.hourly_drivers._field', ['name' => 'contract_end_date', 'label' => $dates['contract_end_date'], 'type' => 'date', 'help' => 'لا تسبق بداية العقد.'])</div>
                             </div>
                             <div class="hd-section-title">صلاحيات تنتهي</div>
                             <div class="row g-3">
-                                <div class="col-md-6">@include('admin.hourly_drivers._field', ['name' => 'insurance_expiry_date', 'label' => $dates['insurance_expiry_date'], 'type' => 'date'])</div>
-                                <div class="col-md-6">@include('admin.hourly_drivers._field', ['name' => 'replacement_expiry_date', 'label' => $dates['replacement_expiry_date'], 'type' => 'date'])</div>
+                                <div class="col-md-6">@include('admin.hourly_drivers._field', ['name' => 'insurance_expiry_date', 'label' => $dates['insurance_expiry_date'], 'type' => 'date', 'help' => 'يُنبَّه عليه قبل انتهائه بـ 30 يومًا.'])</div>
+                                <div class="col-md-6">@include('admin.hourly_drivers._field', ['name' => 'replacement_expiry_date', 'label' => $dates['replacement_expiry_date'], 'type' => 'date', 'help' => 'يُنبَّه عليه قبل انتهائه بـ 30 يومًا.'])</div>
                             </div>
                         </div>
                     </div>
@@ -192,8 +200,7 @@
                                                         <input type="time" class="form-control form-control-sm @error('work_schedule.'.$day.'.end') is-invalid @enderror" name="work_schedule[{{ $day }}][end]" value="{{ $schedule['end'] ?? '' }}" aria-label="نهاية العمل يوم {{ $label }}" data-schedule-time>
                                                     </div>
                                                     <div class="hd-times-note" data-times-note></div>
-                                                    @error('work_schedule.'.$day.'.start')<div class="small text-danger">{{ $message }}</div>@enderror
-                                                    @error('work_schedule.'.$day.'.end')<div class="small text-danger">{{ $message }}</div>@enderror
+                                                    <div class="small text-danger" data-schedule-error="{{ $day }}">{{ $errors->first('work_schedule.'.$day.'.start') ?: $errors->first('work_schedule.'.$day.'.end') }}</div>
                                                 </td>
                                             </tr>
                                         @endforeach
@@ -211,7 +218,8 @@
                         </div>
                         <div class="ht-body">
                             <textarea class="form-control @error('notes') is-invalid @enderror" id="notes" name="notes" rows="3" maxlength="5000" aria-label="ملاحظات">{{ old('notes', $driver->notes) }}</textarea>
-                            @error('notes')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                            <div class="invalid-feedback" data-error-for="notes">@error('notes'){{ $message }}@enderror</div>
+                            <div class="form-text hd-help">اختياري، حتى 5000 حرف.</div>
                         </div>
                     </div>
                 </div>
@@ -263,27 +271,38 @@
                                                 <option value="{{ $value }}" {{ old('login_access', $driver->login_access) === $value ? 'selected' : '' }}>{{ $label }}</option>
                                             @endforeach
                                         </select>
-                                        @error('login_access')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                                        <div class="invalid-feedback" data-error-for="login_access">@error('login_access'){{ $message }}@enderror</div>
+                                        <div class="form-text hd-help">من أين يستطيع السائق تسجيل الدخول.</div>
                                     </div>
 
                                     <div class="hd-section-title">معرّفات الدخول</div>
                                     <div class="mb-3">
                                         <label class="form-label" for="username">اسم المستخدم</label>
                                         <input id="username" class="form-control bg-light" readonly value="{{ $driver->username }}" placeholder="يُنشأ تلقائيًا عند الحفظ" dir="ltr">
+                                        <div class="form-text hd-help">يُنشأ تلقائيًا ولا يمكن تعديله.</div>
                                     </div>
-                                    <div class="mb-3">@include('admin.hourly_drivers._field', ['name' => 'login_phone', 'label' => 'هاتف تسجيل الدخول', 'attrs' => ['inputmode' => 'numeric', 'pattern' => '[0-9]{5,20}', 'maxlength' => 20, 'dir' => 'ltr'], 'help' => 'اختياري، أرقام فقط؛ بديل عن اسم المستخدم.'])</div>
-                                    <div class="mb-3">@include('admin.hourly_drivers._field', ['name' => 'email', 'label' => 'البريد الإلكتروني', 'type' => 'email', 'attrs' => ['maxlength' => 255, 'dir' => 'ltr']])</div>
+                                    <div class="mb-3">@include('admin.hourly_drivers._field', ['name' => 'login_phone', 'label' => 'هاتف تسجيل الدخول', 'attrs' => ['inputmode' => 'numeric', 'maxlength' => 20, 'dir' => 'ltr', 'autocomplete' => 'off'], 'help' => 'اختياري، أرقام فقط؛ بديل عن اسم المستخدم ولا يتكرر.'])</div>
+                                    <div class="mb-3">@include('admin.hourly_drivers._field', ['name' => 'email', 'label' => 'البريد الإلكتروني', 'type' => 'email', 'attrs' => ['maxlength' => $rules::EMAIL_MAX, 'dir' => 'ltr', 'placeholder' => 'name@example.com', 'autocomplete' => 'off'], 'help' => 'اختياري، بحروف إنجليزية فقط، ولا يتكرر لسائق آخر.'])</div>
 
                                     <div class="hd-section-title">كلمة المرور</div>
                                     <div class="mb-3">
                                         <label class="form-label" for="password">{{ $driver->password ? 'كلمة مرور جديدة' : 'كلمة المرور' }}</label>
-                                        <input type="password" name="password" id="password" class="form-control @error('password') is-invalid @enderror" autocomplete="new-password" minlength="8" maxlength="72" dir="ltr">
-                                        @error('password')<div class="invalid-feedback">{{ $message }}</div>@enderror
-                                        <div class="form-text">٨ أحرف على الأقل. {{ $driver->password ? 'اتركها فارغة للاحتفاظ بالحالية.' : 'مطلوبة عند تفعيل الحساب.' }}</div>
+                                        <div class="input-group has-validation">
+                                            <input type="password" name="password" id="password" class="form-control @error('password') is-invalid @enderror" autocomplete="new-password" maxlength="{{ $rules::PASSWORD_MAX }}" dir="ltr">
+                                            <button type="button" class="btn btn-outline-secondary" data-toggle-password="password" title="إظهار كلمة المرور" aria-label="إظهار كلمة المرور"><i class="fa fa-eye"></i></button>
+                                            <div class="invalid-feedback" data-error-for="password">@error('password'){{ $message }}@enderror</div>
+                                        </div>
+                                        <div class="form-text hd-help">{{ $rules::PASSWORD_MIN }} أحرف على الأقل. {{ $driver->password ? 'اتركها فارغة للاحتفاظ بالحالية.' : 'مطلوبة عند تفعيل الحساب.' }}</div>
                                     </div>
                                     <div class="mb-3">
                                         <label class="form-label" for="password_confirmation">تأكيد كلمة المرور</label>
-                                        <input type="password" name="password_confirmation" id="password_confirmation" class="form-control" autocomplete="new-password" maxlength="72" dir="ltr">
+                                        <div class="input-group has-validation">
+                                            <input type="password" name="password_confirmation" id="password_confirmation" class="form-control" autocomplete="new-password" maxlength="{{ $rules::PASSWORD_MAX }}" dir="ltr">
+                                            <button type="button" class="btn btn-outline-secondary" data-toggle-password="password_confirmation" title="إظهار كلمة المرور" aria-label="إظهار تأكيد كلمة المرور"><i class="fa fa-eye"></i></button>
+                                            <div class="invalid-feedback" data-error-for="password_confirmation"></div>
+                                            <div class="valid-feedback">كلمتا المرور متطابقتان.</div>
+                                        </div>
+                                        <div class="form-text hd-help">أعد كتابة كلمة المرور نفسها.</div>
                                     </div>
                                 </div>
 
@@ -351,4 +370,5 @@
     account.addEventListener('change', function () { fields.classList.toggle('hd-dim', !account.checked); });
 })();
 </script>
+@include('admin.hourly_drivers._form-script')
 @endsection

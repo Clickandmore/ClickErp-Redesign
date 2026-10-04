@@ -5,6 +5,7 @@
 @section('content')
 <div class="container-fluid">
     <div class="d-flex justify-content-between align-items-start mb-3"><div><h4>مستند استرداد بعد الوصول #{{ $settlement->id }}</h4><div class="text-muted">العقد #{{ $settlement->contract_id }} — {{ $settlement->contract?->user?->name }} — {{ $settlement->contract?->maid?->name }}</div></div><a href="{{ route('post-arrival-refunds.index') }}" class="btn btn-outline-secondary">القائمة</a></div>
+    @if($settlement->status === 'draft' && AdminGuardHasPerm(\App\PermKeys::POST_ARRIVAL_REFUND_EDIT))<a href="{{ route('post-arrival-refunds.edit', $settlement) }}" class="btn btn-primary mb-3">تعديل المسودة</a>@endif
     @if(session('success'))<div class="alert alert-success">{{ session('success') }}</div>@endif
     @if($errors->any())<div class="alert alert-danger">{{ $errors->first() }}</div>@endif
     <div class="row g-3 mb-3">
