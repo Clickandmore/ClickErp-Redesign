@@ -157,7 +157,7 @@
             $client = $contract->user;
             $maid = $contract->maid;
             $info = $contract->info;
-            $hasClient = (bool) $client;
+            $hasClient = !$contract->company_profile_id && (bool) $client;
             $clientType = old('account_client_type', $client?->client_type === 'company' ? 'company' : 'person');
             $isCompanyClient = $clientType === 'company';
             $documentNumber = old('client_national_num', $client?->documentNumber());
@@ -543,6 +543,11 @@
 
             $('.js-account-client-type').on('change', applyClientTypeMode);
             applyClientTypeMode();
+            if (@json((bool) $contract->company_profile_id)) {
+                var $companyDetails = $('#client_name').closest('.form-section');
+                $companyDetails.wrapInner('<fieldset disabled></fieldset>');
+                $companyDetails.prepend($('<p class="alert alert-light border"></p>').text('هذا عقد للشركة. تُدار بيانات الشركة من صفحة إعدادات الشركة.'));
+            }
 
             $('#editContractForm').on('submit', function(e) {
                 e.preventDefault();

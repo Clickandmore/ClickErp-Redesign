@@ -487,6 +487,18 @@ if (!function_exists('documentSettingsRecord')) {
 if (!function_exists('documentSetting')) {
     function documentSetting(string $key, $default = null, ?string $locale = null)
     {
+        $companyKeys = ['document_company_name', 'phone', 'other_phone', 'email', 'location', 'tax_number', 'company_license_number'];
+        if (in_array($key, $companyKeys, true) && ($company = \App\Models\CompanyProfile::current())) {
+            $locale = $locale ?: app()->getLocale();
+            $value = match ($key) {
+                'document_company_name' => $locale === 'en' && $company->name_en ? $company->name_en : $company->name,
+                'other_phone' => $company->phone2,
+                'location' => $company->address,
+                'company_license_number' => $company->license_number,
+                default => $company->{$key},
+            };
+            return blank($value) ? $default : $value;
+        }
         $settings = documentSettingsRecord();
 
         if (!$settings) {

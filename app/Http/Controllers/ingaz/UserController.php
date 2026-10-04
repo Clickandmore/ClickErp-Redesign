@@ -1692,6 +1692,9 @@ class UserController extends Controller
     {
         abort_unless(@AdminGuardHasPerm(\App\PermKeys::CLIENTS_DELETE), 403);
         $query = objModel::onlyTrashed()->with('nationality');
+        if (\Illuminate\Support\Facades\Schema::hasColumn('users', 'archived_company_profile_id')) {
+            $query->whereNull('archived_company_profile_id');
+        }
         $this->applyBranchScope($query);
         if ($request->filled('search')) {
             $search = trim((string) $request->input('search'));

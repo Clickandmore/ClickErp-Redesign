@@ -224,11 +224,11 @@ class RentalShelterPresenceService
             return $existingShelterContract;
         }
 
-        $companyClient = app(ShelterCompanyClientResolver::class)->resolve();
+        $companyOwnership = app(ShelterCompanyClientResolver::class)->ownership();
         $entryDate = now()->toDateString();
 
         $contract = Contract::query()->create([
-            'user_id' => $companyClient->id,
+            ...$companyOwnership,
             'maid_id' => $maid->id,
             'branch_id' => $maid->branch_id,
             'status' => ContractStatusEnum::Shelter->value,

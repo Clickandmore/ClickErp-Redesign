@@ -25,6 +25,8 @@ class SponsorshipTransfer extends Model
         'contract_id',
         'branch_id',
         'old_sponsor_id',
+        'old_company_profile_id',
+        'old_company_finance_account_id',
         'new_sponsor_id',
         'marketer_id',
         'trial_days',
@@ -103,6 +105,18 @@ class SponsorshipTransfer extends Model
     public function oldSponsor()
     {
         return $this->belongsTo(User::class, 'old_sponsor_id')->withTrashed();
+    }
+
+    public function oldCompanyProfile()
+    {
+        return $this->belongsTo(CompanyProfile::class, 'old_company_profile_id');
+    }
+
+    public function getOldSponsorAttribute()
+    {
+        return $this->old_company_profile_id
+            ? $this->oldCompanyProfile?->party($this->old_company_finance_account_id)
+            : $this->getRelationValue('oldSponsor');
     }
 
     public function newSponsor()

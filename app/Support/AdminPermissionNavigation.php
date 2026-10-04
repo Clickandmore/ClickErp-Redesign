@@ -161,6 +161,7 @@ final class AdminPermissionNavigation
         'rec_offices' => ['maids_settings', 'مكاتب الاستقدام'],
         'external_agents' => ['maids_settings', 'الوكلاء الخارجيون'],
         'settings' => ['settings', 'إعدادات لوحة التحكم'],
+        'company_settings' => ['settings', 'إعدادات الشركة'],
         'moyasar_settings' => ['settings', 'إعدادات بوابة ميسر'],
         'developers' => ['settings', 'صلاحيات المطور'],
         'admins' => ['users_management', 'المشرفون'],
@@ -267,6 +268,9 @@ final class AdminPermissionNavigation
     public static function placementForPermission(string $name, ?string $section, ?string $group): array
     {
         $normalized = str_replace(['.', '-'], '_', $name);
+        if (str_starts_with($normalized, 'company_settings_')) {
+            return ['section' => 'settings', 'group' => 'company_settings'];
+        }
         // Keep imported and newly registered hourly permissions together,
         // regardless of legacy placement metadata stored in the database.
         if (str_starts_with($normalized, 'hourly_')) {

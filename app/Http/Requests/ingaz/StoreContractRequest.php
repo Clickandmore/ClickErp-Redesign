@@ -31,6 +31,9 @@ class StoreContractRequest extends MainRequest
 
     protected function prepareForValidation()
     {
+        if ($this->input('client_type') === 'internal_company') {
+            return;
+        }
         $normalizedData = [];
         $currentAdmin = Auth::guard('admin')->user();
 
@@ -156,11 +159,12 @@ class StoreContractRequest extends MainRequest
             'visa_milad_date' => 'nullable',
             'visa_hijry_date' => 'nullable',
             'contract_duration' => 'required|integer|min:1',
-            'order_id' => 'required_if:client_type,ex_client',
-            'client_type' => 'required|in:new_client,ex_client',
+            'order_id' => 'prohibited_if:client_type,internal_company|required_if:client_type,ex_client',
+            'client_type' => 'required|in:new_client,ex_client,internal_company',
+            'company_profile_id' => ['required_if:client_type,internal_company', 'nullable', 'integer', Rule::exists('company_profiles', 'id')],
             'account_client_type' => 'nullable|in:person,company',
-            'client_id' => 'nullable|exists:users,id',
-            'new_existing_client_id' => 'nullable|exists:users,id',
+            'client_id' => 'prohibited_if:client_type,internal_company|nullable|exists:users,id',
+            'new_existing_client_id' => 'prohibited_if:client_type,internal_company|nullable|exists:users,id',
             'client_name' => 'required_if:client_type,new_client',
             'client_phone' => $clientPhoneRules,
             'client_nationality_id' => 'required_if:client_type,new_client',
