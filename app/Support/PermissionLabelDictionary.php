@@ -51,6 +51,11 @@ final class PermissionLabelDictionary
 
     /** مسميات كاملة لصلاحيات بعينها، تتجاوز أي تركيب آلي. */
     private const EXACT = [
+        'company_settings_view' => 'عرض إعدادات الشركة',
+        'company_settings_update' => 'تعديل بيانات الشركة والحساب والشعار',
+        'company_settings_migration_preview' => 'معاينة ترحيل عقود الشركة',
+        'company_settings_migration_execute' => 'تنفيذ ترحيل عقود الشركة وأرشفة العملاء',
+        'company_settings_history_view' => 'عرض سجل ترحيل الشركة',
         'hourly_maids_impersonate' => 'الدخول إلى بوابة العاملة نيابة عنها',
         'hourly_customers_balance' => 'إيداع رصيد في محفظة عميل الساعات',
         'hourly_customers_balance_adjust' => 'تسوية رصيد محفظة عميل الساعات',
@@ -73,6 +78,7 @@ final class PermissionLabelDictionary
         'clients_view_all_branches' => 'عرض عملاء كل الفروع',
         'post_arrival_refund_view' => 'عرض مستندات الاسترداد بعد الوصول',
         'post_arrival_refund_create' => 'إنشاء مستند استرداد بعد الوصول',
+        'post_arrival_refund_edit' => 'تعديل مسودة استرداد بعد الوصول',
         'post_arrival_refund_post' => 'اعتماد مستند استرداد بعد الوصول',
         'post_arrival_refund_payout' => 'صرف استرداد بعد الوصول',
         'post_arrival_refund_reverse' => 'عكس بند استرداد بعد الوصول',

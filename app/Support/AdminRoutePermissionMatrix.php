@@ -55,6 +55,7 @@ class AdminRoutePermissionMatrix
     {
         return [
             'dashboard.index',
+            'company-settings.index',
             'clients.index',
             'website-visitors.index',
             'maids.index',
@@ -362,6 +363,10 @@ class AdminRoutePermissionMatrix
             'reports.index' => ReportExportService::allExportPermissions(),
             'reports.export' => ReportExportService::allExportPermissions(),
             'form-settings.preview.print' => [PermKeys::SETTINGS_VIEW, PermKeys::SETTINGS_CONTROL],
+            'company-settings.index' => [PermKeys::COMPANY_SETTINGS_VIEW],
+            'company-settings.update' => [PermKeys::COMPANY_SETTINGS_UPDATE],
+            'company-settings.migration.preview' => [PermKeys::COMPANY_SETTINGS_MIGRATION_PREVIEW],
+            'company-settings.migration.execute' => [PermKeys::COMPANY_SETTINGS_MIGRATION_EXECUTE],
             'form-settings.shelter-templates.save' => [PermKeys::SETTINGS_CONTROL],
             'form-settings.shelter-templates.preview' => [PermKeys::SETTINGS_VIEW, PermKeys::SETTINGS_CONTROL],
             'ShelterContract.releaseForm' => [], // The controller checks the permission for the selected exit action.
@@ -509,7 +514,9 @@ class AdminRoutePermissionMatrix
             'post-arrival-refunds.show' => [PermKeys::POST_ARRIVAL_REFUND_VIEW],
             'post-arrival-refunds.create' => [PermKeys::POST_ARRIVAL_REFUND_CREATE],
             'post-arrival-refunds.store' => [PermKeys::POST_ARRIVAL_REFUND_CREATE],
-            'post-arrival-refunds.proposal' => [PermKeys::POST_ARRIVAL_REFUND_CREATE],
+            'post-arrival-refunds.edit' => [PermKeys::POST_ARRIVAL_REFUND_EDIT],
+            'post-arrival-refunds.update' => [PermKeys::POST_ARRIVAL_REFUND_EDIT],
+            'post-arrival-refunds.proposal' => [PermKeys::POST_ARRIVAL_REFUND_CREATE, PermKeys::POST_ARRIVAL_REFUND_EDIT],
             'post-arrival-refunds.search-contracts' => [PermKeys::POST_ARRIVAL_REFUND_CREATE],
             'post-arrival-refunds.post' => [PermKeys::POST_ARRIVAL_REFUND_POST],
             'post-arrival-refunds.payout' => [PermKeys::POST_ARRIVAL_REFUND_PAYOUT],
@@ -524,6 +531,8 @@ class AdminRoutePermissionMatrix
             'RecruitmentContract.show' => [NewPermKeys::REC_CONTRACTS_VIEW, NewPermKeys::REC_CONTRACTS_MANAGE],
             'RecruitmentContract.edit' => [NewPermKeys::REC_CONTRACTS_EDIT, NewPermKeys::REC_CONTRACTS_MANAGE],
             'RecruitmentContract.update' => [NewPermKeys::REC_CONTRACTS_EDIT, NewPermKeys::REC_CONTRACTS_MANAGE],
+            'RecruitmentContract.clientChangeOptions' => [NewPermKeys::REC_CONTRACTS_EDIT, NewPermKeys::REC_CONTRACTS_MANAGE],
+            'RecruitmentContract.changeClient' => [NewPermKeys::REC_CONTRACTS_EDIT, NewPermKeys::REC_CONTRACTS_MANAGE],
             'RecruitmentContract.destroy' => [NewPermKeys::REC_CONTRACTS_DELETE, NewPermKeys::REC_CONTRACTS_MANAGE],
             'RecruitmentContract.restoreReturned' => [NewPermKeys::REC_CONTRACTS_RETURN, NewPermKeys::REC_CONTRACTS_MANAGE],
             'RecruitmentContract.releaseMaidAfterCompletion' => [NewPermKeys::REC_CONTRACTS_RELEASE_MAID_AFTER_COMPLETION],

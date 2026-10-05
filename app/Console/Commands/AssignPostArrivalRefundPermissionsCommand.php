@@ -26,6 +26,7 @@ class AssignPostArrivalRefundPermissionsCommand extends Command
         $names = [
             PermKeys::POST_ARRIVAL_REFUND_VIEW => 'عرض مستندات الاسترداد بعد الوصول',
             PermKeys::POST_ARRIVAL_REFUND_CREATE => 'إنشاء مستند استرداد بعد الوصول',
+            PermKeys::POST_ARRIVAL_REFUND_EDIT => 'تعديل مسودة استرداد بعد الوصول',
             PermKeys::POST_ARRIVAL_REFUND_POST => 'اعتماد مستند استرداد بعد الوصول',
             PermKeys::POST_ARRIVAL_REFUND_PAYOUT => 'صرف استرداد بعد الوصول',
             PermKeys::POST_ARRIVAL_REFUND_REVERSE => 'عكس بند استرداد بعد الوصول',

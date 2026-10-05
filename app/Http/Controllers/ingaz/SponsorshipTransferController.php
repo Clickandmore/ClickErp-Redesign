@@ -830,6 +830,10 @@ class SponsorshipTransferController extends Controller
                 'workflow_source' => $workflowSource,
                 'contract_id' => $contract->id,
                 'old_sponsor_id' => $contract->user_id,
+                ...(Schema::hasColumn('sponsorship_transfers', 'old_company_profile_id') ? [
+                    'old_company_profile_id' => $contract->company_profile_id,
+                    'old_company_finance_account_id' => $contract->company_finance_account_id ?: $contract->companyProfile?->account_id,
+                ] : []),
                 'new_sponsor_id' => $newSponsor->id,
                 'marketer_id' => $validated['marketer_id'],
                 'trial_days' => $validated['trial_days'],
@@ -1199,6 +1203,10 @@ class SponsorshipTransferController extends Controller
             $transfer->update([
                 'contract_id' => $contract->id,
                 'old_sponsor_id' => $oldSponsorId,
+                ...(Schema::hasColumn('sponsorship_transfers', 'old_company_profile_id') ? [
+                    'old_company_profile_id' => (int) $transfer->contract_id === (int) $contract->id ? $transfer->old_company_profile_id : $contract->company_profile_id,
+                    'old_company_finance_account_id' => (int) $transfer->contract_id === (int) $contract->id ? $transfer->old_company_finance_account_id : ($contract->company_finance_account_id ?: $contract->companyProfile?->account_id),
+                ] : []),
                 'new_sponsor_id' => $newSponsor->id,
                 'marketer_id' => $validated['marketer_id'],
                 'trial_days' => $validated['trial_days'],
@@ -1603,6 +1611,7 @@ class SponsorshipTransferController extends Controller
             if ($contract) {
                 $contract->update([
                     'user_id' => $transfer->new_sponsor_id,
+                    ...($contract->company_profile_id ? ['company_profile_id' => null, 'company_finance_account_id' => null] : []),
                     // 'status' => ContractStatusEnum::Sari->value,
                     'status' => ContractStatusEnum::Completed->value,
                 ]);
@@ -2100,7 +2109,13 @@ class SponsorshipTransferController extends Controller
             $oldMaid->update($oldMaidUpdate);
 
             $replacement->update(['status' => ContractStatusEnum::Trial->value]);
-            $transfer->update(['contract_id' => $replacement->id, 'old_sponsor_id' => $replacement->user_id]);
+            $transfer->update([
+                'contract_id' => $replacement->id, 'old_sponsor_id' => $replacement->user_id,
+                ...(Schema::hasColumn('sponsorship_transfers', 'old_company_profile_id') ? [
+                    'old_company_profile_id' => $replacement->company_profile_id,
+                    'old_company_finance_account_id' => $replacement->company_finance_account_id ?: $replacement->companyProfile?->account_id,
+                ] : []),
+            ]);
             $transfer->transferServiceContract?->update([
                 'contract_id' => $replacement->id,
                 'maid_id' => $replacement->maid_id,

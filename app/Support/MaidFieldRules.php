@@ -16,6 +16,17 @@ class MaidFieldRules
     public const MIN_AGE = 18;
     public const MAX_AGE = 60;
 
+    /** أقل عمر لبداية خبرة عمل سابقة أو للوصول إلى المملكة، محسوبًا من تاريخ الميلاد. */
+    public const MIN_WORK_AGE = 18;
+
+    /** مدة العقد: عدد صحيح من الشهور. */
+    public const DURATION_MIN_MONTHS = 1;
+    public const DURATION_MAX_MONTHS = 60;
+    public const DURATION_REGEX = '/^[0-9]{1,2}$/';
+
+    /** رقم الهوية: 10 أرقام يبدأ بـ 1 (هوية وطنية) أو 2 (إقامة). */
+    public const ID_NUMBER_REGEX = '/^[12][0-9]{9}$/';
+
     /** أقدم تاريخ إصدار مقبول لجواز السفر (بالسنوات من اليوم). */
     public const PASSPORT_ISSUE_MAX_YEARS = 20;
 
@@ -70,7 +81,7 @@ class MaidFieldRules
 
     /** الحد الأقصى لحجم الصور والمرفقات (كيلوبايت). */
     public const FILE_MAX_KB = 10240;
-    public const VIDEO_MAX_KB = 102400;
+    public const VIDEO_MAX_KB = 204800;
     /** ملف الجواز في السيرة المختصرة. */
     public const PASSPORT_FILE_MAX_KB = 5120;
 
@@ -127,6 +138,10 @@ class MaidFieldRules
             'birthDateMax' => self::birthDateMax(),
             'passportIssueMaxYears' => self::PASSPORT_ISSUE_MAX_YEARS,
             'passportIssueDateMin' => self::passportIssueDateMin(),
+            'minWorkAge' => self::MIN_WORK_AGE,
+            'durationMin' => self::DURATION_MIN_MONTHS,
+            'durationMax' => self::DURATION_MAX_MONTHS,
+            'videoMaxMb' => self::VIDEO_MAX_KB / 1024,
             'passportMinLength' => self::PASSPORT_MIN_LENGTH,
             'passportMaxLength' => self::PASSPORT_MAX_LENGTH,
             'borderNumberMaxLength' => self::BORDER_NUMBER_MAX_LENGTH,
@@ -136,6 +151,7 @@ class MaidFieldRules
                 'height' => ['min' => self::HEIGHT_MIN, 'max' => self::HEIGHT_MAX],
                 'weight' => ['min' => self::WEIGHT_MIN, 'max' => self::WEIGHT_MAX],
                 'childrens_count' => ['min' => self::CHILDREN_MIN, 'max' => self::CHILDREN_MAX],
+                'duration' => ['min' => self::DURATION_MIN_MONTHS, 'max' => self::DURATION_MAX_MONTHS],
             ],
             'maxLengths' => self::MAX_LENGTHS,
             'defaultTextMaxLength' => self::DEFAULT_TEXT_MAX_LENGTH,

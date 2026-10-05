@@ -111,6 +111,14 @@ class TransferServiceContract extends Model
         return $this->belongsTo(User::class, 'old_sponsor_id')->withTrashed();
     }
 
+    public function getOldSponsorAttribute()
+    {
+        if ($this->sponsorshipTransfer?->old_company_profile_id) {
+            return $this->sponsorshipTransfer->oldSponsor;
+        }
+        return $this->getRelationValue('oldSponsor');
+    }
+
     public function newSponsor()
     {
         return $this->belongsTo(User::class, 'new_sponsor_id')->withTrashed();

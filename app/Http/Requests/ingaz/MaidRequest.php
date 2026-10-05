@@ -51,7 +51,7 @@ class MaidRequest extends MainRequest
                 ]),
             ],
             'maid_cv_file' => 'nullable|file|mimes:pdf|max:10240',
-            'video' => 'nullable|file|mimes:mp4,mov,avi,wmv,webm,mkv,m4v|max:102400',
+            'video' => 'nullable|file|mimes:mp4,mov,avi,wmv,webm,mkv,m4v|max:' . MaidFieldRules::VIDEO_MAX_KB,
             'remove_video' => 'nullable|boolean',
             'video_link' => 'nullable|url|max:2000',
             'nationality_id' => 'required|exists:nationalities,id',
@@ -104,11 +104,12 @@ class MaidRequest extends MainRequest
                 ]),
             ],
             'religion_id' => 'nullable|exists:religions,id',
+            // رقم الهوية/الإقامة الجديد بصيغته السعودية؛ القيم القديمة المحفوظة تبقى بالقاعدة السابقة.
             'id_number' => [
                 'nullable',
                 'string',
                 'max:30',
-                'regex:/^[0-9A-Za-z-]{5,30}$/',
+                Rule::when($this->isChanged('id_number'), ['regex:' . MaidFieldRules::ID_NUMBER_REGEX], ['regex:/^[0-9A-Za-z-]{5,30}$/']),
             ],
             'id_expiry_date' => [
                 'nullable',
@@ -129,6 +130,8 @@ class MaidRequest extends MainRequest
                     'before_or_equal:' . MaidFieldRules::today()->toDateString(),
                     'after_or_equal:' . MaidFieldRules::passportIssueDateMin(),
                 ]),
+                // تاريخ الميلاد هو المرجع: لا يُصدر جواز قبل الميلاد
+                Rule::when($this->filled('birth_date') && ($this->isChanged('passport_issue_date', 'date') || $this->isChanged('birth_date', 'date')), 'after:birth_date'),
             ],
             'passport_expiry_date' => [
                 'nullable',
@@ -162,7 +165,8 @@ class MaidRequest extends MainRequest
                     'between:' . MaidFieldRules::WEIGHT_MIN . ',' . MaidFieldRules::WEIGHT_MAX,
                 ]),
             ],
-            'duration' => ['nullable', 'string', 'max:' . MaidFieldRules::MAX_LENGTHS['duration']],
+            // مدة العقد بالشهور: رقم صحيح موجب (القيمة القديمة المحفوظة مثل "24 شهر" تُقرأ رقمًا في prepareForValidation).
+            'duration' => ['nullable', 'regex:' . MaidFieldRules::DURATION_REGEX, 'integer', 'between:' . MaidFieldRules::DURATION_MIN_MONTHS . ',' . MaidFieldRules::DURATION_MAX_MONTHS],
             'additional_notes' => [
                 'nullable',
                 'string',
@@ -234,6 +238,7 @@ class MaidRequest extends MainRequest
     {
         $data = [
             'video_link' => \App\Support\MaidVideoLink::normalize($this->input('video_link')),
+            'duration' => $this->normalizedDuration(),
             'cooking_experience' => $this->input('experience_status') === 'has_experience'
                 ? $this->input('cooking_experience')
                 : null,
@@ -303,9 +308,9 @@ class MaidRequest extends MainRequest
             'driving_license_file.mimes' => 'يجب أن يكون مرفق رخصة القيادة بصيغة PDF أو صورة (JPG, PNG, WEBP)',
             'driving_license_file.max' => 'حجم مرفق رخصة القيادة يجب ألا يتجاوز 10 ميجابايت',
             'video.file' => 'ملف الفيديو المرفوع غير صالح.',
-            'video.uploaded' => 'تعذّر رفع ملف الفيديو. تحقق من أن حجمه لا يتجاوز 100 ميجابايت ثم حاول مرة أخرى.',
+            'video.uploaded' => 'تعذّر رفع ملف الفيديو. تحقق من أن حجمه لا يتجاوز ' . (MaidFieldRules::VIDEO_MAX_KB / 1024) . ' ميجابايت ثم حاول مرة أخرى.',
             'video.mimes' => 'صيغة الفيديو غير مدعومة. الصيغ المسموحة: MP4 وMOV وAVI وWMV وWEBM وMKV وM4V.',
-            'video.max' => 'حجم الفيديو يجب ألا يتجاوز 100 ميجابايت.',
+            'video.max' => 'حجم الفيديو يجب ألا يتجاوز ' . (MaidFieldRules::VIDEO_MAX_KB / 1024) . ' ميجابايت.',
             'video_link.url' => 'رابط الفيديو غير صالح. يرجى إدخال رابط كامل يبدأ بـ http أو https.',
             'video_link.max' => 'رابط الفيديو طويل جدًا.',
             'nationality_id.required' => helperTrans('web.nationality_id_is_required'),
@@ -318,7 +323,13 @@ class MaidRequest extends MainRequest
             'religion_id.required' => helperTrans('web.religion_id_is_required'),
             'religion_id.exists' => helperTrans('web.invalid_religion_id'),
             'id_number.max' => 'رقم الهوية يجب ألا يتجاوز 30 خانة',
-            'id_number.regex' => 'يجب إدخال رقم هوية صالح من 5 إلى 30 خانة باستخدام الأرقام أو الحروف أو الشرطة (-)',
+            'id_number.regex' => $this->isChanged('id_number')
+                ? 'رقم الهوية يجب أن يتكون من 10 أرقام بالضبط ويبدأ بالرقم 1 (هوية وطنية) أو 2 (إقامة)، بدون حروف أو رموز أو مسافات'
+                : 'يجب إدخال رقم هوية صالح من 5 إلى 30 خانة باستخدام الأرقام أو الحروف أو الشرطة (-)',
+            'duration.regex' => 'مدة العقد يجب أن تكون عددًا صحيحًا موجبًا من الشهور، بدون سالب أو كسور',
+            'duration.integer' => 'مدة العقد يجب أن تكون عددًا صحيحًا موجبًا من الشهور، بدون سالب أو كسور',
+            'duration.between' => 'مدة العقد يجب أن تكون بين ' . MaidFieldRules::DURATION_MIN_MONTHS . ' و' . MaidFieldRules::DURATION_MAX_MONTHS . ' شهرًا',
+            'passport_issue_date.after' => 'تاريخ إصدار جواز السفر يجب أن يكون بعد تاريخ الميلاد',
             'id_expiry_date.date' => 'تاريخ انتهاء الهوية يجب أن يكون تاريخاً صالحاً',
             'border_number.max' => 'رقم الحدود يجب ألا يتجاوز 50 خانة',
             'passport_issue_date.date' => 'تاريخ إصدار جواز السفر يجب أن يكون تاريخاً صالحاً',
@@ -413,6 +424,8 @@ class MaidRequest extends MainRequest
                     $validator->errors()->add('branch_id', 'الفرع المحدد غير متاح للمستخدم الحالي.');
                 }
             }
+
+            $this->validateDatesAgainstBirth($validator);
 
             $expertises = collect((array) $this->input('expertises', []));
             $countries = Country::query()
@@ -554,6 +567,56 @@ class MaidRequest extends MainRequest
         }
 
         return $stored !== $submitted;
+    }
+
+    /** "24" أو "٢٤" أو القيمة القديمة "24 شهر" → "24"؛ غير ذلك يُترك كما هو ليرفضه التحقق. */
+    private function normalizedDuration(): ?string
+    {
+        $value = $this->input('duration');
+        if ($value === null || !is_scalar($value)) return $value;
+        $value = trim(strtr((string) $value, ['٠' => '0', '١' => '1', '٢' => '2', '٣' => '3', '٤' => '4', '٥' => '5', '٦' => '6', '٧' => '7', '٨' => '8', '٩' => '9']));
+        if ($value === '') return null;
+        return preg_match('/^(\d+)\s*(شهر|شهور|أشهر|اشهر|months?)?$/u', $value, $m) ? $m[1] : $value;
+    }
+
+    /** مدة العقد تُحفظ نصًا للعرض في السيرة كما كانت ("24 شهر")، بعد التحقق من أنها رقم صحيح. */
+    protected function passedValidation()
+    {
+        if (filled($this->input('duration'))) {
+            $this->merge(['duration' => (int) $this->input('duration') . ' شهر']);
+        }
+    }
+
+    /**
+     * التواريخ المرتبطة بالعمر تُقاس من تاريخ الميلاد: بداية الخبرة والوصول للمملكة
+     * لا يسبقان بلوغ العاملة MIN_WORK_AGE سنة.
+     */
+    private function validateDatesAgainstBirth($validator): void
+    {
+        $birth = $this->input('birth_date');
+        if (!is_string($birth) || !preg_match('/^\d{4}-\d{2}-\d{2}/', $birth)) return;
+        try {
+            $workMin = \Carbon\CarbonImmutable::parse(substr($birth, 0, 10))->addYears(MaidFieldRules::MIN_WORK_AGE);
+        } catch (\Throwable $e) {
+            return;
+        }
+        $birthChanged = $this->isChanged('birth_date', 'date');
+        $minAge = MaidFieldRules::MIN_WORK_AGE;
+
+        $stored = $this->existingMaid ?? ($this->route('maid') ? Maid::find($this->route('maid') instanceof Maid ? $this->route('maid')->id : $this->route('maid')) : null);
+        $storedStarts = $stored ? $stored->expertises()->pluck('start_date')->map(fn ($d) => substr((string) $d, 0, 7))->all() : [];
+        foreach ((array) $this->input('expertises', []) as $index => $expertise) {
+            $start = ExperiencePeriod::normalize($expertise['start_date'] ?? null);
+            if (!$start || (!$birthChanged && in_array(substr($start, 0, 7), $storedStarts, true))) continue;
+            if ($start < $workMin->startOfMonth()->toDateString()) {
+                $validator->errors()->add("expertises.{$index}.start_date", "بداية الخبرة يجب ألا تسبق بلوغ العاملة {$minAge} سنة (من " . $workMin->format('Y-m') . ' حسب تاريخ الميلاد).');
+            }
+        }
+
+        $arrival = $this->input('arrival_date');
+        if (is_string($arrival) && $arrival !== '' && ($birthChanged || $this->isChanged('arrival_date', 'date')) && substr($arrival, 0, 10) < $workMin->toDateString()) {
+            $validator->errors()->add('arrival_date', "تاريخ وصول العاملة يجب ألا يسبق بلوغها {$minAge} سنة (" . $workMin->format('Y-m-d') . ' حسب تاريخ الميلاد).');
+        }
     }
 
     private function requiresOfficeField(): bool

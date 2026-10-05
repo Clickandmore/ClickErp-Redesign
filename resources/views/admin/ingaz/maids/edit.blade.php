@@ -825,8 +825,12 @@
                         <label for="TextInput" class="form-label">
                             {{ helperTrans('ingaz.contract_duration') }}
                         </label>
-                        <input type="text" name="duration" class="form-control" maxlength="{{ \App\Support\MaidFieldRules::MAX_LENGTHS['duration'] }}"
-                            value="{{ old('duration', $obj->duration ?: helperTrans('ingaz.twenty_four_months')) }}">
+                        <div class="input-group">
+                            <input type="text" name="duration" id="maid_duration" class="form-control" inputmode="numeric" maxlength="2" dir="ltr"
+                                value="{{ old('duration', preg_match('/\d+/', (string) $obj->duration, $durationMatch) ? $durationMatch[0] : '') }}">
+                            <span class="input-group-text">شهر</span>
+                        </div>
+                        <small class="text-muted d-block mt-1">عدد صحيح من {{ \App\Support\MaidFieldRules::DURATION_MIN_MONTHS }} إلى {{ \App\Support\MaidFieldRules::DURATION_MAX_MONTHS }} شهرًا.</small>
                     </div>
                     <div class="col-4" id="arrival_date_field"
                         style="{{ $showArrivalDateField && $selectedRentalKingdomStatus === 'inside' ? '' : 'display: none;' }}">
@@ -906,7 +910,8 @@
                             {{ helperTrans('ingaz.id_number') }}
                             <small class="text-muted">({{ helperTrans('ingaz.optional_for_rental_worker') }})</small>
                         </label>
-                        <input type="text" name="id_number" id="id_number" class="form-control" maxlength="30" value="{{ old('id_number', $obj->id_number) }}">
+                        <input type="text" name="id_number" id="id_number" class="form-control" maxlength="30" inputmode="numeric" dir="ltr" placeholder="1XXXXXXXXX" autocomplete="off" value="{{ old('id_number', $obj->id_number) }}">
+                        <small class="text-muted d-block mt-1">10 أرقام تبدأ بـ 1 (هوية وطنية) أو 2 (إقامة).</small>
                         <small class="text-muted">{{ helperTrans('ingaz.id_number_hint') }}</small>
                     </div>
 
@@ -971,20 +976,20 @@
                         <small class="text-danger d-none mt-2 js-video-removal-notice">
                             {{ __('ingaz.video_value_will_be_removed') }}
                         </small>
-                        <small class="text-muted d-block mt-1">MP4, MOV, AVI, WMV, WEBM, MKV, M4V — 100 MB</small>
+                        <small class="text-muted d-block mt-1">MP4, MOV, AVI, WMV, WEBM, MKV, M4V — {{ \App\Support\MaidFieldRules::VIDEO_MAX_KB / 1024 }} MB</small>
                         <div class="maid-video-preview mt-2 d-none">
-                            <div class="border rounded overflow-hidden" style="height: 220px;">
+                            <div class="border rounded overflow-hidden" style="height: 360px;">
                                 <iframe class="js-video-preview-frame" src="" width="100%" height="100%"
                                     style="border: 0;" allowfullscreen loading="lazy"></iframe>
                             </div>
                         </div>
                     </div>
 
-                    <div class="col-4">
-                        <label for="TextInput" class="form-label">
+                    <div class="col-12">
+                        <label for="additional_notes" class="form-label">
                             {{ helperTrans('ingaz.additional_notes') }}
                         </label>
-                        <textarea name="additional_notes" class="form-control" maxlength="{{ \App\Support\MaidFieldRules::MAX_LENGTHS['additional_notes'] }}">{{ old('additional_notes', $obj->additional_notes) }}</textarea>
+                        <textarea name="additional_notes" id="additional_notes" class="form-control" rows="4" maxlength="{{ \App\Support\MaidFieldRules::MAX_LENGTHS['additional_notes'] }}">{{ old('additional_notes', $obj->additional_notes) }}</textarea>
                     </div>
                     <!-- اللغات والحالة الاجتماعية -->
                     <div class="col-12">
@@ -1368,7 +1373,7 @@
                                             </div>
                                             <div class="col-md-4">
                                                 <label for="residence_city" class="form-label">مدينة سكن العاملة</label>
-                                                <input type="text" name="residence_city" id="residence_city"
+                                                <input type="text" name="residence_city" id="residence_city" autocomplete="off"
                                                     class="form-control" maxlength="{{ \App\Support\MaidFieldRules::MAX_LENGTHS['residence_city'] }}"
                                                     value="{{ old('residence_city', $obj->residence_city) }}">
                                             </div>
@@ -1441,12 +1446,13 @@
                             </div>
                         </div>
                     </div>
-                    <div class="col-12">
+                    {{-- إعدادات عاملة الساعات قبل زر الحفظ حتى يبقى الزر في نهاية الصفحة --}}
+                    @include('admin.ingaz.maids._hourly-fields')
+                    <div class="col-12 maid-form-actions">
                         <button class="btn btn-primary" type="submit">{{ __('buttons.save') }}</button>
                         <a href="{{ $formRedirectRoute }}"
                             class="btn btn-outline-secondary">{{ __('buttons.cancel') }}</a>
                     </div>
-                    @include('admin.ingaz.maids._hourly-fields')
                 </form>
 
                 <div class="modal fade" id="maidMediaModal" tabindex="-1" aria-labelledby="maidMediaModalLabel"
@@ -3049,7 +3055,8 @@
                 $('#experience_section').find('.experience-work-city')
                     .val('')
                     .prop('required', false);
-                $('#experience_section').find('.exp-duration-label, .exp-duration-years, .exp-manual-years').val('');
+                $('#experience_section').find('.exp-duration-label, .exp-duration-years, .exp-manual-years').val('')
+                    .each(function() { if (this.setCustomValidity) this.setCustomValidity(''); }); // لا يبقى خطأ مدة مخفي يمنع الحفظ
                 $('#experience_section').find('.exp-duration-error').text('');
                 $('#json_array tr.y-group').slice(1).remove();
                 if (typeof window.reindexRows === 'function') {

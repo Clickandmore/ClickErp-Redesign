@@ -18,7 +18,7 @@ class HourlyDriverController extends Controller
         $filters = $request->validate([
             'search' => ['nullable', 'string', 'max:150'], 'status' => ['nullable', 'in:active,inactive'], 'deleted' => ['nullable', 'boolean'],
             'team_id' => ['nullable', 'integer'], 'nationality_id' => ['nullable', 'integer'], 'gender' => ['nullable', 'in:male,female'],
-            'account' => ['nullable', 'in:web,mobile,both,disabled'], 'documents' => ['nullable', 'in:expiring,expired'],
+            'account' => ['nullable', 'in:web,mobile,both,disabled'], 'documents' => ['nullable', 'in:expiring,expired,missing'],
         ]);
         $hasTeams = Schema::hasTable('hourly_team_members');
         $query = HourlyDriver::with('teamMemberships.team');
@@ -31,7 +31,11 @@ class HourlyDriverController extends Controller
         if ($account = $filters['account'] ?? null) {
             $account === 'disabled' ? $query->where('account_enabled', false) : $query->where('account_enabled', true)->where('login_access', $account);
         }
-        if ($documents = $filters['documents'] ?? null) {
+        if (($filters['documents'] ?? null) === 'missing') {
+            $query->where(function ($q) {
+                foreach (array_keys(HourlyDriver::REQUIRED_DOCUMENTS) as $field) $q->orWhereNull($field);
+            });
+        } elseif ($documents = $filters['documents'] ?? null) {
             $limit = $documents === 'expired' ? now()->subDay()->toDateString() : now()->addDays(30)->toDateString();
             $query->where(function ($q) use ($limit) {
                 foreach (HourlyDriver::EXPIRY_DATES as $field) $q->orWhereDate($field, '<=', $limit);
@@ -79,7 +83,7 @@ class HourlyDriverController extends Controller
             }
             return $driver;
         });
-        return redirect()->route('admin.hourly-drivers.edit', $driver)->with('success', 'تم إنشاء السائق. اسم المستخدم: '.$driver->username);
+        return $this->saved($request, route('admin.hourly-drivers.edit', $driver), 'تم إنشاء السائق. اسم المستخدم: '.$driver->username);
     }
 
     public function update(DriverRequest $request, HourlyDriver $driver)
@@ -93,7 +97,17 @@ class HourlyDriverController extends Controller
                 app(\App\Services\Hourly\DriverTeamService::class)->sync($driver, $request->input('primary_team_id') ?: null, $request->input('secondary_team_ids', []));
             }
         });
-        return back()->with('success', 'تم حفظ بيانات السائق.');
+        return $this->saved($request, route('admin.hourly-drivers.edit', $driver), 'تم حفظ بيانات السائق.', true);
+    }
+
+    /** الحفظ من النموذج عبر fetch يُرجع رابط الانتقال، والنموذج العادي يُعاد توجيهه كما كان. */
+    private function saved(Request $request, string $url, string $message, bool $back = false)
+    {
+        if ($request->ajax()) {
+            session()->flash('success', $message);
+            return response()->json(['message' => $message, 'redirect' => $url]);
+        }
+        return ($back ? back() : redirect($url))->with('success', $message);
     }
 
     /**

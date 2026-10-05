@@ -276,6 +276,9 @@ public static function isReady(?array $settings = null): bool
   `config/filesystems.php` تخص قرص `s3` منفصل ولا علاقة لها بالمنظومة هذه.
 - الحد الأقصى لحجم الرفع يظل محكومًا بـ `upload_max_filesize` و `post_max_size` في PHP
   و `client_max_body_size` في Nginx — خصوصًا مع الفيديو.
+- فيديو العاملة حده 200 ميجابايت (`MaidFieldRules::VIDEO_MAX_KB`)؛ لذلك `.user.ini` يضبط
+  `upload_max_filesize = 210M` و `post_max_size = 256M`، ويجب أن يكون `client_max_body_size` في Nginx
+  256M على الأقل، وإلا يرفض الخادم الطلب (413) قبل وصوله إلى Laravel.
 
 ---
 

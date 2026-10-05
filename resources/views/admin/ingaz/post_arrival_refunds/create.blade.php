@@ -1,12 +1,25 @@
 @extends('admin.layout.indexs.index')
 
-@section('page-title', 'إنشاء استرداد بعد الوصول')
+@section('page-title', isset($draft) ? 'تعديل مسودة استرداد بعد الوصول' : 'إنشاء استرداد بعد الوصول')
 
 @section('content')
+    @php
+        $draftData = $draft?->toArray() ?? [];
+        $draftTypes = ['credit_note', 'client_deduction', 'client_payout', 'office_charge', 'shelter_cost', 'marketer_commission', 'adjustment'];
+        if ($draft) {
+            $draftData['settlement_date'] = $draft->settlement_date->toDateString();
+            $draftData['lines'] = [];
+            foreach ($draftTypes as $index => $type) {
+                $savedLine = $draft->lines->firstWhere('type', $type);
+                $draftData['lines'][$index] = $savedLine ? array_merge($savedLine->toArray(), ['enabled' => true]) : ['enabled' => false, 'approved_amount' => 0];
+            }
+        }
+        $formValue = fn ($key, $default = null) => old($key, data_get($draftData, $key, $default));
+    @endphp
     <div class="container-fluid">
         <div class="d-flex justify-content-between mb-3">
             <div>
-                <h4>إنشاء مستند استرداد بعد الوصول</h4>
+                <h4>{{ $draft ? "تعديل مسودة استرداد بعد الوصول #" . $draft->id : "إنشاء مستند استرداد بعد الوصول" }}</h4>
                 <div class="text-muted">الحفظ ينشئ مسودة فقط، ولا ينشئ أي قيد.</div>
             </div><a href="{{ route('post-arrival-refunds.index') }}" class="btn btn-outline-secondary">رجوع</a>
         </div>
@@ -19,23 +32,23 @@
                 </ul>
             </div>
         @endif
-        <form method="post" action="{{ route('post-arrival-refunds.store') }}" id="refundForm">@csrf
+        <form method="post" action="{{ $draft ? route('post-arrival-refunds.update', $draft) : route('post-arrival-refunds.store') }}" id="refundForm">@csrf @if($draft) @method('PUT') @endif
             <div class="card mb-3">
                 <div class="card-body">
                     <div class="row g-3">
                         <div class="col-md-6"><label class="form-label">العقد الواصل</label><select name="contract_id"
-                                id="contractId" class="form-select" required>
+                                id="contractId" class="form-select" required @if($draft) disabled @endif>
                                 <option value="">اختر العقد</option>
                                 @foreach ($contracts as $contract)
-                                    <option value="{{ $contract->id }}" @selected(old('contract_id', $selected?->id) == $contract->id)>#{{ $contract->id }} —
+                                    <option value="{{ $contract->id }}" @selected($formValue('contract_id', $selected?->id) == $contract->id)>#{{ $contract->id }} —
                                         {{ $contract->user?->name }} — {{ $contract->maid?->name }} — وصول
                                         {{ $contract->info?->arrival_date }}</option>
                                 @endforeach
-                            </select>
+                            </select>@if($draft)<input type="hidden" name="contract_id" value="{{ $draft->contract_id }}">@endif
                         </div>
                         <div class="col-md-3"><label class="form-label">تاريخ المستند</label><input type="date"
                                 name="settlement_date" id="settlementDate"
-                                value="{{ old('settlement_date', now()->toDateString()) }}" class="form-control" required>
+                                value="{{ $formValue('settlement_date', now()->toDateString()) }}" class="form-control" required>
                         </div>
                         <div class="col-md-3"><label class="form-label">سبب الإرجاع</label><select
                                 name="return_reason_code_id" id="reasonCode" class="form-select" required>
@@ -44,14 +57,14 @@
                                     <option value="{{ $reason->id }}"
                                         data-deduction="{{ (int) $reason->suggest_client_deduction }}"
                                         data-office="{{ (int) $reason->suggest_office_charge }}"
-                                        @selected(old('return_reason_code_id') == $reason->id)>{{ $reason->name }}</option>
+                                        @selected($formValue('return_reason_code_id') == $reason->id)>{{ $reason->name }}</option>
                                 @endforeach
                             </select></div>
                         <div class="col-md-8"><label class="form-label">السبب المكتوب</label>
-                            <textarea name="reason" class="form-control" rows="2" required>{{ old('reason') }}</textarea>
+                            <textarea name="reason" class="form-control" rows="2" required>{{ $formValue('reason') }}</textarea>
                         </div>
                         <div class="col-md-4"><label class="form-label">ملاحظات</label>
-                            <textarea name="notes" class="form-control" rows="2">{{ old('notes') }}</textarea>
+                            <textarea name="notes" class="form-control" rows="2">{{ $formValue('notes') }}</textarea>
                         </div>
                     </div>
                 </div>
@@ -263,10 +276,11 @@
                                     'shelter_cost' => 'تكلفة الإيواء S1',
                                     'marketer_commission' => 'استرجاع عمولة المسوق',
                                 ];
+                                if ($draft?->lines->contains('type', 'adjustment')) $lineTypes['adjustment'] = 'تسوية';
                             @endphp
                             @foreach ($lineTypes as $type => $label)
                                 @php
-                                    $lineEnabled = (bool) old(
+                                    $lineEnabled = (bool) $formValue(
                                         "lines.$loop->index.enabled",
                                         in_array($type, ['credit_note', 'client_deduction', 'client_payout']),
                                     );
@@ -292,24 +306,24 @@
                                     <td><input type="number" step="0.01" min="0"
                                             class="form-control amount line-value"
                                             name="lines[{{ $loop->index }}][approved_amount]"
-                                            value="{{ old("lines.$loop->index.approved_amount", number_format($lineProposed, 2, '.', '')) }}">
+                                            value="{{ $formValue("lines.$loop->index.approved_amount", number_format($lineProposed, 2, '.', '')) }}">
                                     </td>
                                     <td>
                                         @if ($type === 'office_charge')
                                             <select class="form-select mb-1 settlement-method line-value"
                                                 name="lines[{{ $loop->index }}][settlement_method]">
-                                                <option value="claim" @selected(old("lines.$loop->index.settlement_method", 'claim') === 'claim')>مطالبة على كشف المكتب
+                                                <option value="claim" @selected($formValue("lines.$loop->index.settlement_method", 'claim') === 'claim')>مطالبة على كشف المكتب
                                                 </option>
-                                                <option value="next_dispatch_deduction" @selected(old("lines.$loop->index.settlement_method") === 'next_dispatch_deduction')>خصم من
+                                                <option value="next_dispatch_deduction" @selected($formValue("lines.$loop->index.settlement_method") === 'next_dispatch_deduction')>خصم من
                                                     الإرسالية التالية</option>
                                             </select>
                                             @php
-                                                $officeCreditId = (int) old(
+                                                $officeCreditId = (int) $formValue(
                                                     "lines.$loop->index.credit_account_id",
                                                     $initialOfficeCreditId,
                                                 );
                                                 $officeCreditAccount = $accounts->firstWhere('id', $officeCreditId);
-                                                $officeCreditQuery = old(
+                                                $officeCreditQuery = $formValue(
                                                     "lines.$loop->index.credit_account_query",
                                                     $officeCreditAccount
                                                         ? $officeCreditAccount->code .
@@ -339,9 +353,9 @@
                                             </small>
                                         @elseif($type === 'client_deduction')
                                             @php
-                                                $clientCreditId = (int) old("lines.$loop->index.credit_account_id");
+                                                $clientCreditId = (int) $formValue("lines.$loop->index.credit_account_id");
                                                 $clientCreditAccount = $accounts->firstWhere('id', $clientCreditId);
-                                                $clientCreditQuery = old(
+                                                $clientCreditQuery = $formValue(
                                                     "lines.$loop->index.credit_account_query",
                                                     $clientCreditAccount
                                                         ? $clientCreditAccount->code .
@@ -363,9 +377,9 @@
                                         @elseif($type === 'client_payout')
                                             <select class="form-select line-value"
                                                 name="lines[{{ $loop->index }}][settlement_method]">
-                                                <option value="financial_request" @selected(old("lines.$loop->index.settlement_method", 'financial_request') === 'financial_request')>طلب مالي
+                                                <option value="financial_request" @selected($formValue("lines.$loop->index.settlement_method", 'financial_request') === 'financial_request')>طلب مالي
                                                     مربوط</option>
-                                                <option value="balance_only" @selected(old("lines.$loop->index.settlement_method") === 'balance_only')>إبقاء رصيد فقط
+                                                <option value="balance_only" @selected($formValue("lines.$loop->index.settlement_method") === 'balance_only')>إبقاء رصيد فقط
                                                 </option>
                                             </select>
                                         @else
@@ -373,7 +387,7 @@
                                         @endif
                                     </td>
                                     <td><input class="form-control line-value" name="lines[{{ $loop->index }}][reason]"
-                                            value="{{ old("lines.$loop->index.reason") }}"
+                                            value="{{ $formValue("lines.$loop->index.reason") }}"
                                             placeholder="إلزامي عند تغيير المقترح"></td>
                                 </tr>
                             @endforeach
@@ -460,12 +474,12 @@
                             }
                             if (officeSource) {
                                 officeSource.textContent = p.office_charge_credit_account_id ? `اختير تلقائياً من ${p.office_charge_account_source==='shelter_receipt' ? 'مرجع استلام تكلفة الإيواء #'+p.office_charge_receipt_entry_id : 'حساب مردودات تكلفة الجنسية'}: 'تعذر إثبات الحساب من المرجع؛ اختر حساباً طرفياً يدوياً.'; officeSource.className='form-text '+(p.office_charge_credit_account_id?'text-success':'text-warning'); }
-            applyReason();
+            if (!@json((bool) $draft)) applyReason();
             } catch(error) { facts.className='alert alert-danger'; facts.textContent='تعذر تحديث الاقتراحات: '+error.message; }
         }
         function syncLineState(){ document.querySelectorAll('[data-line]').forEach(row=>{ const enabled=row.querySelector('.line-enabled').checked; row.classList.toggle('opacity-75',!enabled); const account=row.querySelector('.account-query'), method=row.querySelector('.settlement-method'); if(account) account.required=enabled&&(!method||method.value!=='next_dispatch_deduction'); }); }
         function applyReason(){ const option=reason.options[reason.selectedIndex]; if(!option)return; const d=document.querySelector('[data-line="client_deduction"] .line-enabled'), o=document.querySelector('[data-line="office_charge"] .line-enabled'); d.checked=option.dataset.deduction==='1'; o.checked=option.dataset.office==='1'; syncLineState(); }
-        if (window.jQuery && jQuery.fn.select2) {
+        if (!@json((bool) $draft) && window.jQuery && jQuery.fn.select2) {
             jQuery(contract).select2({width:'100%', dir:'rtl', placeholder:'ابحث برقم العقد أو العميل أو العاملة أو مساند', ajax:{url:@json(route('post-arrival-refunds.search-contracts')), dataType:'json', delay:250, data:params=>({q:params.term||''}), processResults:data=>data}})
                 .on('change', handleContractChange);
         } else contract.addEventListener('change',handleContractChange);

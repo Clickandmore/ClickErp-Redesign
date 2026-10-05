@@ -230,6 +230,10 @@ Route::group(
             //** END NEW *//
 
             Route::get('form-settings', [FormSettingsController::class, 'index'])->name('form-settings.index');
+            Route::get('company-settings', [\App\Http\Controllers\admin\CompanySettingsController::class, 'index'])->name('company-settings.index');
+            Route::put('company-settings', [\App\Http\Controllers\admin\CompanySettingsController::class, 'update'])->name('company-settings.update');
+            Route::post('company-settings/migration/preview', [\App\Http\Controllers\admin\CompanySettingsController::class, 'previewMigration'])->name('company-settings.migration.preview');
+            Route::post('company-settings/migration', [\App\Http\Controllers\admin\CompanySettingsController::class, 'migrate'])->name('company-settings.migration.execute');
             Route::post('form-settings/shelter-templates/{id?}', [FormSettingsController::class, 'saveShelterTemplate'])->where('id', '[0-9]+')->name('form-settings.shelter-templates.save');
             Route::get('form-settings/shelter-templates/{id}/preview', [FormSettingsController::class, 'previewShelterTemplate'])->where('id', '[0-9]+')->name('form-settings.shelter-templates.preview');
             Route::put('form-settings', [FormSettingsController::class, 'update'])->name('form-settings.update');
@@ -471,7 +475,7 @@ Route::group(
             Route::post('post-arrival-refunds/{postArrivalRefund}/payout', [PostArrivalRefundController::class, 'payout'])->name('post-arrival-refunds.payout');
             Route::post('post-arrival-refunds/{postArrivalRefund}/lines/{line}/reverse', [PostArrivalRefundController::class, 'reverse'])->name('post-arrival-refunds.lines.reverse');
             Route::resource('post-arrival-refunds', PostArrivalRefundController::class)
-                ->only(['index', 'create', 'store', 'show'])
+                ->only(['index', 'create', 'store', 'show', 'edit', 'update'])
                 ->parameters(['post-arrival-refunds' => 'postArrivalRefund']);
 
             // Messages
@@ -516,6 +520,8 @@ Route::group(
             Route::post('RecruitmentContract/{contract}/restore-returned', [RecruitmentContractController::class, 'restoreReturned'])->name('RecruitmentContract.restoreReturned');
             Route::post('RecruitmentContract/{contract}/release-maid', [RecruitmentContractController::class, 'releaseMaidAfterCompletion'])->name('RecruitmentContract.releaseMaidAfterCompletion');
 
+            Route::get('RecruitmentContract/{contract}/client-options', [RecruitmentContractController::class, 'clientChangeOptions'])->name('RecruitmentContract.clientChangeOptions');
+            Route::post('RecruitmentContract/{contract}/change-client', [RecruitmentContractController::class, 'changeClient'])->name('RecruitmentContract.changeClient');
             Route::resource('RecruitmentContract', RecruitmentContractController::class);
             Route::get('RecruitmentContractBack/{id}', [RecruitmentContractController::class, 'back'])->name('RecruitmentContract.back');
             Route::get('contractsDetails/{id}', [RecruitmentContractController::class, 'details'])->name('contracts.details');

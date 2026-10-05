@@ -71,14 +71,31 @@ class PostArrivalRefundService
 
     public function createDraft(Contract $contract, array $data): ContractReturnSettlement
     {
-        return DB::transaction(function () use ($contract, $data) {
+        return $this->saveDraft($contract, $data);
+    }
+
+    public function updateDraft(ContractReturnSettlement $settlement, array $data): ContractReturnSettlement
+    {
+        return $this->saveDraft($settlement->contract, $data, $settlement);
+    }
+
+    private function saveDraft(Contract $contract, array $data, ?ContractReturnSettlement $existing = null): ContractReturnSettlement
+    {
+        return DB::transaction(function () use ($contract, $data, $existing) {
             $contract = Contract::query()->with(['invoice', 'user', 'maid.office', 'info'])->lockForUpdate()->findOrFail($contract->id);
-            if (ContractReturnSettlement::query()->where('contract_id', $contract->id)->whereNotIn('status', ['cancelled'])->exists()) {
+            if ($existing) {
+                $existing = ContractReturnSettlement::query()->lockForUpdate()->findOrFail($existing->id);
+                if ($existing->status !== 'draft' || $existing->lines()->where('status', '!=', 'draft')->exists()) {
+                    throw ValidationException::withMessages(['status' => 'يمكن تعديل المسودة فقط قبل اعتماد أي بند.']);
+                }
+            }
+            if (! $existing && ContractReturnSettlement::query()->where('contract_id', $contract->id)->whereNotIn('status', ['cancelled'])->exists()) {
                 throw ValidationException::withMessages(['contract_id' => 'يوجد مستند استرداد نشط لهذا العقد.']);
             }
 
             $proposal = $this->proposal($contract, $data['settlement_date']);
-            $settlement = ContractReturnSettlement::query()->create([
+            $settlement = $existing ?: new ContractReturnSettlement();
+            $settlement->fill([
                 'contract_id' => $contract->id,
                 'invoice_id' => $contract->invoice?->id,
                 'return_reason_code_id' => $data['return_reason_code_id'],
@@ -86,9 +103,12 @@ class PostArrivalRefundService
                 'status' => 'draft',
                 'reason' => $data['reason'],
                 'notes' => $data['notes'] ?? null,
-                'created_by_id' => Auth::guard('admin')->id(),
+                'created_by_id' => $existing?->created_by_id ?? Auth::guard('admin')->id(),
                 'settings_snapshot' => ['posting_mode' => 'manual_screen'],
             ]);
+
+            $settlement->save();
+            if ($existing) $settlement->lines()->delete();
 
             foreach ($data['lines'] as $index => $line) {
                 if (empty($line['enabled'])) continue;

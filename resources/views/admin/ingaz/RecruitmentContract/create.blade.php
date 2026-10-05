@@ -444,6 +444,122 @@
                 grid-template-columns: 1fr;
             }
         }
+
+        .internal-company-toggle {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            margin-bottom: 1rem;
+            padding: 1rem 1.25rem;
+            background: #fff;
+            border: 1px solid #dbe5ef;
+            border-inline-start: 4px solid #1f6fb2;
+            border-radius: 14px;
+            box-shadow: 0 4px 14px rgba(31, 111, 178, 0.06);
+            cursor: pointer;
+            transition: background-color .2s, border-color .2s, box-shadow .2s;
+        }
+
+        .internal-company-toggle:hover {
+            border-color: #b9d0e6;
+            box-shadow: 0 6px 18px rgba(31, 111, 178, 0.1);
+        }
+
+        .internal-company-toggle.is-active {
+            background: #eef6fd;
+            border-color: #1f6fb2;
+        }
+
+        .internal-company-toggle__icon {
+            flex: 0 0 auto;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 46px;
+            height: 46px;
+            border-radius: 12px;
+            background: rgba(31, 111, 178, 0.1);
+            color: #1f6fb2;
+            font-size: 1.2rem;
+        }
+
+        .internal-company-toggle__body {
+            flex: 1 1 auto;
+            display: flex;
+            flex-direction: column;
+            gap: .25rem;
+            min-width: 0;
+        }
+
+        .internal-company-toggle__title {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: .5rem;
+            font-weight: 700;
+            color: #1d3557;
+        }
+
+        .internal-company-toggle__name {
+            padding: .15rem .65rem;
+            border-radius: 999px;
+            background: #1f6fb2;
+            color: #fff;
+            font-size: .85rem;
+            font-weight: 600;
+        }
+
+        .internal-company-toggle__hint {
+            font-size: .85rem;
+            color: #6c7a89;
+        }
+
+        .internal-company-toggle__switch {
+            position: relative;
+            flex: 0 0 auto;
+            width: 48px;
+            height: 26px;
+        }
+
+        .internal-company-toggle__switch input {
+            position: absolute;
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .internal-company-toggle__slider {
+            position: absolute;
+            inset: 0;
+            border-radius: 999px;
+            background: #cfd8e3;
+            transition: background-color .2s;
+        }
+
+        .internal-company-toggle__slider::before {
+            content: "";
+            position: absolute;
+            top: 3px;
+            inset-inline-start: 3px;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: #fff;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, .2);
+            transition: inset-inline-start .2s;
+        }
+
+        .internal-company-toggle__switch input:checked + .internal-company-toggle__slider {
+            background: #1f6fb2;
+        }
+
+        .internal-company-toggle__switch input:checked + .internal-company-toggle__slider::before {
+            inset-inline-start: 25px;
+        }
+
+        .internal-company-toggle__switch input:focus-visible + .internal-company-toggle__slider {
+            box-shadow: 0 0 0 3px rgba(31, 111, 178, 0.3);
+        }
     </style>
 @endsection
 
@@ -506,6 +622,23 @@
                     @csrf
                     <input type="hidden" name="contract_type" value="new_contract">
                     <input type="hidden" name="client_type" value="new_client">
+                    @php($internalCompany = \App\Models\CompanyProfile::current())
+                    @if ($internalCompany)
+                        <label class="internal-company-toggle" for="internal-company-contract">
+                            <span class="internal-company-toggle__icon"><i class="fas fa-building"></i></span>
+                            <span class="internal-company-toggle__body">
+                                <span class="internal-company-toggle__title">
+                                    عقد للشركة
+                                    <span class="internal-company-toggle__name">{{ $internalCompany->name }}</span>
+                                </span>
+                                <span class="internal-company-toggle__hint">تُستخدم بيانات الشركة من إعداداتها دون إنشاء عميل.</span>
+                            </span>
+                            <span class="internal-company-toggle__switch">
+                                <input type="checkbox" id="internal-company-contract">
+                                <span class="internal-company-toggle__slider"></span>
+                            </span>
+                        </label>
+                    @endif
 
                     <div class="card mb-4 contract-workspace-card">
                         <div class="contract-header">
@@ -2778,6 +2911,14 @@
 
         $(document).ready(function() {
             console.log('Document ready - New Contract Form initialized');
+            $('#internal-company-contract').on('change', function() {
+                var companySelected = this.checked;
+                $(this).closest('.internal-company-toggle').toggleClass('is-active', companySelected);
+                $('#new_client_name').closest('.form-section').parent().toggle(!companySelected);
+                $('#new_existing_client_id').closest('.contract-picker-row').toggle(!companySelected);
+                $('#new_client_name').closest('.form-section').find(':input').prop('disabled', companySelected);
+                $('#new_existing_client_id').prop('disabled', companySelected);
+            });
             console.log('Form elements found:', {
                 newContractForm: $('#newContractForm').length,
                 newContractSubmitBtn: $('#newContractSubmitBtn').length,
@@ -2839,6 +2980,7 @@
 
                 // تحقق من وجود عميل
                 var clientId = $('#new_existing_client_id').val();
+                var internalCompanyContract = isNewContractTab && $('#internal-company-contract').is(':checked');
                 var maidId = $('#new_new_maid_id').val();
                 var maidSelectionMode = getNewMaidMode();
                 var contractType = 'new_contract';
@@ -2864,6 +3006,7 @@
                 if (isNewContractTab) {
                     $('#new_existing_client_id').removeClass('is-invalid');
                     $('#err_new_existing_client_id').remove();
+                    if (!internalCompanyContract) {
 
                     // تحقق الاسم ثلاثي
                     clientName = getTrimmedInputValue('#new_client_name');
@@ -2941,6 +3084,7 @@
                         console.log('Client nationality validation passed');
                     }
 
+                    }
                     if (maidSelectionMode === 'existing') {
                         if (!maidId) {
                             isValid = false;
@@ -3491,6 +3635,11 @@
                 }
 
                 var actionUrl = $(this).attr('action');
+                if (internalCompanyContract) {
+                    formData.set('client_type', 'internal_company');
+                    formData.set('company_profile_id', @json($internalCompany?->id));
+                    ['client_id', 'new_existing_client_id', 'order_id'].forEach(function(key) { formData.delete(key); });
+                }
                 console.log('Sending AJAX request to:', actionUrl);
                 console.log('Current window location:', window.location.href);
                 console.log('Form data entries:');

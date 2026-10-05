@@ -85,7 +85,7 @@ function showMaidFormValidationErrors(errors, fallbackMessage) {
 function validateMaidVideoFile() {
     var input = document.getElementById('maid_video');
     var file = input && input.files ? input.files[0] : null;
-    var maxBytes = 100 * 1024 * 1024;
+    var maxBytes = {{ \App\Support\MaidFieldRules::VIDEO_MAX_KB }} * 1024;
 
     if (!file || file.size <= maxBytes) {
         return [];
@@ -97,8 +97,12 @@ function validateMaidVideoFile() {
 function maidAjaxErrorMessage(xhr, fallbackMessage) {
     var response = xhr.responseJSON || {};
 
+    // رسائل الرفع تذكر الفيديو فقط إذا كان مرفقًا فعلًا، حتى لا يُطلب حذف فيديو غير موجود
+    var videoInput = document.getElementById('maid_video');
+    var hasVideo = !!(videoInput && videoInput.files && videoInput.files.length);
+
     if (xhr.status === 413) {
-        return @json(__('ingaz.maid_upload_request_too_large'));
+        return hasVideo ? @json(__('ingaz.maid_upload_request_too_large')) : @json(__('ingaz.maid_upload_files_too_large'));
     }
 
     if (xhr.status === 419) {
@@ -110,7 +114,7 @@ function maidAjaxErrorMessage(xhr, fallbackMessage) {
     }
 
     if (xhr.status >= 500) {
-        return @json(__('ingaz.maid_server_save_failed'));
+        return hasVideo ? @json(__('ingaz.maid_server_save_failed')) : @json(__('ingaz.maid_server_save_failed_generic'));
     }
 
     if (response.message) {

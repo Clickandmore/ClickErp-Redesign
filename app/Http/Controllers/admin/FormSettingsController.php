@@ -111,6 +111,7 @@ class FormSettingsController extends Controller
             'settings' => $settings,
             'templates' => $this->templates(),
             'previewLocales' => $this->previewLocales(),
+            'companyProfile' => \App\Models\CompanyProfile::current(),
         ]);
     }
 
@@ -118,6 +119,9 @@ class FormSettingsController extends Controller
     {
         $setting = Setting::query()->first() ?: Setting::query()->create();
         $data = Arr::only($request->all(), $this->formSettingFields);
+        if (\App\Models\CompanyProfile::current()) {
+            $data = Arr::except($data, ['document_logo', 'tax_number', 'phone', 'other_phone', 'email', 'location:ar', 'location:en', 'document_company_name:ar', 'document_company_name:en']);
+        }
 
         $action->updateSetting($setting->id, $data);
 

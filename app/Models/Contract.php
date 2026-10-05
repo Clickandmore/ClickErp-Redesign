@@ -33,9 +33,53 @@ class Contract extends Model
         $identityFilter = fn ($userQuery) => app(\App\Services\ShelterCompanyClientResolver::class)
             ->applyCompanyIdentityFilter($userQuery);
 
-        return $company
-            ? $query->whereHas('user', $identityFilter)
-            : $query->whereDoesntHave('user', $identityFilter);
+        if (!\Illuminate\Support\Facades\Schema::hasColumn('contracts', 'company_profile_id')) {
+            return $company ? $query->whereHas('user', $identityFilter) : $query->whereDoesntHave('user', $identityFilter);
+        }
+
+        $query->with('companyProfile');
+        $companyFilter = function ($owned) use ($identityFilter) {
+            $owned->whereNotNull('company_profile_id')->orWhereHas('user', $identityFilter);
+            if (\Illuminate\Support\Facades\Schema::hasColumn('sponsorship_transfers', 'old_company_profile_id')) {
+                $owned->orWhereHas('sponsorshipTransfers', fn ($transfer) => $transfer->whereNotNull('old_company_profile_id'));
+            }
+        };
+        if ($company) {
+            return $query->where($companyFilter);
+        }
+        $query->whereNull('company_profile_id')->whereDoesntHave('user', $identityFilter);
+        if (\Illuminate\Support\Facades\Schema::hasColumn('sponsorship_transfers', 'old_company_profile_id')) {
+            $query->whereDoesntHave('sponsorshipTransfers', fn ($transfer) => $transfer->whereNotNull('old_company_profile_id'));
+        }
+        return $query;
+    }
+
+    public function companyProfile()
+    {
+        return $this->belongsTo(CompanyProfile::class);
+    }
+
+    public function legacyCompanyUser()
+    {
+        return $this->belongsTo(User::class, 'legacy_company_user_id')->withTrashed();
+    }
+
+    public function getUserAttribute()
+    {
+        if ($this->company_profile_id) {
+            return $this->companyProfile?->party($this->company_finance_account_id);
+        }
+
+        return $this->getRelationValue('user');
+    }
+
+    public function toArray()
+    {
+        $data = parent::toArray();
+        if ($this->company_profile_id) {
+            $data['user'] = $this->user?->toArray();
+        }
+        return $data;
     }
 
     // إضافة الحقول الجديدة للضمان
