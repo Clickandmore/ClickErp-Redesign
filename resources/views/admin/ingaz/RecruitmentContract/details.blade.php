@@ -2483,6 +2483,13 @@
                     </a>
                 @endif
 
+                @if ($contract->isLateFinanceEligible() && (!$contract->invoice || !$contract->externalOfficeDispatch || !$contract->invoice->ingaz_delegation_cost_constraint_id || !$contract->invoice->musanedTransferItem?->transfer) && @AdminGuardHasPerm(\App\NewPermKeys::REC_CONTRACTS_LATE_FINANCE))
+                    <a href="{{ route('RecruitmentContract.lateFinance.show', $contract->id) }}"
+                        class="btn btn-outline-primary" title="استكمال العمليات المالية">
+                        <i class="fas fa-money-bill-transfer"></i> استكمال العمليات المالية
+                    </a>
+                @endif
+
                 @if (!$contract->invoice && $contract->isInvoiceEligible() && \App\Support\InvoiceAuthorization::canCreate())
                     <a href="{{ route('invoices.create', ['contract_id' => $contract->id]) }}"
                         class="btn-icon btn-invoice" title="إضافة فاتورة" aria-label="إضافة فاتورة"

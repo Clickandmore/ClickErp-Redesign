@@ -1407,6 +1407,15 @@ class PermissionsController extends Controller
 
     private function buildPermissionMatrixEntry(Permission $permission): array
     {
+        if ($permission->name === \App\NewPermKeys::REC_CONTRACTS_LATE_FINANCE) {
+            $label = 'استكمال العمليات المالية لعقد الاستقدام بعد الوصول';
+            return [
+                'name' => $permission->name, 'display_name' => $label,
+                'description' => 'إصدار فاتورة وتسجيل الإرسالية وتكلفة التفويض وتحويل مساند لعقد وصول أو مكتمل من صفحة مالية مستقلة.',
+                'resource_key' => 'rec_contracts', 'resource_title' => 'عقود الاستقدام',
+                'matrix_column' => null, 'extra_label' => $label,
+            ];
+        }
         if (in_array($permission->name, [\App\PermKeys::RENT_CONTRACT_CLOSURE_ADJUSTMENT_OVERRIDE, \App\PermKeys::RENT_CONTRACT_CLOSURE_ADJUSTMENT_APPROVE], true)) {
             $label = $permission->name === \App\PermKeys::RENT_CONTRACT_CLOSURE_ADJUSTMENT_OVERRIDE
                 ? 'تعديل تسوية إنهاء عقد الإيجار' : 'اعتماد تسوية إنهاء عقد الإيجار';

@@ -501,6 +501,11 @@ Route::group(
             Route::get('RecruitmentContract/{contractId}/escape-reports/{reportId}/attachments/{attachment}', [\App\Http\Controllers\ingaz\RecruitmentEscapeReportController::class, 'attachment'])->name('RecruitmentContract.escapeReports.attachment');
             Route::get('RecruitmentContract/available-maids', [RecruitmentContractController::class, 'getAvailableMaids'])->name('RecruitmentContract.availableMaids');
             Route::get('RecruitmentContract/search-clients', [RecruitmentContractController::class, 'searchClients'])->name('RecruitmentContract.searchClients');
+            Route::get('RecruitmentContract/{id}/financial-operations', [\App\Http\Controllers\ingaz\RecruitmentContractFinanceController::class, 'show'])->whereNumber('id')->name('RecruitmentContract.lateFinance.show');
+            Route::post('RecruitmentContract/{id}/financial-operations/invoice', [\App\Http\Controllers\ingaz\RecruitmentContractFinanceController::class, 'storeInvoice'])->whereNumber('id')->name('RecruitmentContract.lateFinance.invoice');
+            Route::post('RecruitmentContract/{id}/financial-operations/transfer', [\App\Http\Controllers\ingaz\RecruitmentContractFinanceController::class, 'storeTransfer'])->whereNumber('id')->name('RecruitmentContract.lateFinance.transfer');
+            Route::post('RecruitmentContract/{id}/financial-operations/dispatch', [\App\Http\Controllers\ingaz\RecruitmentContractFinanceController::class, 'storeDispatch'])->whereNumber('id')->name('RecruitmentContract.lateFinance.dispatch');
+            Route::post('RecruitmentContract/{id}/financial-operations/delegation-cost', [\App\Http\Controllers\ingaz\RecruitmentContractFinanceController::class, 'storeDelegationCost'])->whereNumber('id')->name('RecruitmentContract.lateFinance.delegationCost');
             Route::get('RecruitmentContract/filter-options', [RecruitmentContractController::class, 'getFilterOptions'])->name('RecruitmentContract.filterOptions');
             Route::get('RecruitmentContract/company', [RecruitmentContractController::class, 'companyIndex'])->name('RecruitmentContract.company.index');
             Route::get('RecruitmentContract/statistics', [RecruitmentContractController::class, 'statistics'])->name('RecruitmentContract.statistics');

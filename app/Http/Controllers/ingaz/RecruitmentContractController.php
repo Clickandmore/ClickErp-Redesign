@@ -1814,6 +1814,11 @@ class RecruitmentContractController extends Controller
 
                     // الفاتورة
                     $invoice = $row->invoice;
+                    if ($row->isLateFinanceEligible() && (!$invoice || !$row->externalOfficeDispatch || !$invoice->ingaz_delegation_cost_constraint_id || !$invoice->musanedTransferItem?->transfer) && @AdminGuardHasPerm(\App\NewPermKeys::REC_CONTRACTS_LATE_FINANCE)) {
+                            $actions .= '<li><a class="dropdown-item text-primary" href="' . e(route('RecruitmentContract.lateFinance.show', $row->id)) . '">
+                                        <i class="fas fa-money-bill-transfer"></i> استكمال العمليات المالية
+                                    </a></li>';
+                    }
                     if (!$invoice) {
                         if ($row->isInvoiceEligible() && InvoiceAuthorization::canCreate()) {
                             $actions .= '<li><a class="dropdown-item" href="' . route('invoices.create') . '?contract_id=' . $row->id . '" target="_blank">

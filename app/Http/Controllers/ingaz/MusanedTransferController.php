@@ -110,6 +110,15 @@ class MusanedTransferController extends Controller
         ]);
     }
 
+    public function financialWorkspaceOptions(): array
+    {
+        return [
+            'bankAccounts' => $this->getBankAccounts(),
+            'expenseTaxRate' => $this->resolveExpenseTaxRate(),
+            'automaticEntriesEnabled' => AutomaticJournalEntries::enabled(),
+        ];
+    }
+
     public function search(Request $request)
     {
         $term = trim((string) $request->query('q', ''));

@@ -811,21 +811,30 @@ class RecruitmentContractExternalOfficeDispatchController extends Controller
         ];
     }
 
-    private function persistExternalOfficeDispatch(
+    public function persistExternalOfficeDispatch(
         Contract $contract,
         string $dispatchDate,
         string $arrivalStation,
         string $officeContractCostUsd,
-        $adminId
+        $adminId,
+        bool $lateFinance = false
     ): void {
         $officeContractCostUsd = number_format((float) str_replace(',', '', $officeContractCostUsd), 2, '.', '');
         $sourceSnapshot = $contract->buildExternalOfficeDispatchSourceData($officeContractCostUsd);
 
-        DB::transaction(function () use ($contract, $dispatchDate, $arrivalStation, $sourceSnapshot, $adminId, $officeContractCostUsd) {
-            Contract::query()->whereKey($contract->id)->lockForUpdate()->firstOrFail();
+        DB::transaction(function () use ($contract, $dispatchDate, $arrivalStation, $sourceSnapshot, $adminId, $officeContractCostUsd, $lateFinance) {
+            $lockedContract = Contract::query()->whereKey($contract->id)->lockForUpdate()->firstOrFail();
             $contract->unsetRelation('externalOfficeDispatch');
             $existingDispatch = $contract->externalOfficeDispatch;
             $invoice = $contract->invoice()->first();
+            if ($lateFinance) {
+                if (!$lockedContract->isLateFinanceEligible() || !$invoice) {
+                    throw \Illuminate\Validation\ValidationException::withMessages(['dispatch_date' => 'يلزم عقد وصول أو مكتمل وله فاتورة لتسجيل الإرسالية من الصفحة المالية.']);
+                }
+                if ($existingDispatch || $invoice->external_office_cost_constraint_id) {
+                    throw \Illuminate\Validation\ValidationException::withMessages(['dispatch_date' => 'توجد إرسالية أو تكلفة مكتب مثبتة لهذا العقد بالفعل؛ راجع السجل الموجود قبل أي تعديل.']);
+                }
+            }
             if ($existingDispatch && $invoice?->external_office_cost_constraint_id
                 && ((string) $existingDispatch->office_contract_cost_usd !== $officeContractCostUsd
                     || (int) $existingDispatch->recruitment_office_id !== (int) ($sourceSnapshot['recruitment_office_id'] ?? 0))) {
@@ -849,9 +858,18 @@ class RecruitmentContractExternalOfficeDispatchController extends Controller
                 ['contract_id' => $contract->id],
                 $payload
             );
+            $contract->unsetRelation('externalOfficeDispatch');
 
             try {
-                app(\App\Services\ingaz\RecruitmentTripAccountingService::class)->recordDispatchCostEntries($contract);
+                $accounting = app(\App\Services\ingaz\RecruitmentTripAccountingService::class);
+                if ($lateFinance) {
+                    $result = $accounting->recordCompletionEntries($contract, new \App\Models\TravelHistory(['arrival_date' => $dispatchDate]));
+                    if (!empty($result['warnings'])) {
+                        session()->flash('warning', implode(' ', $result['warnings']));
+                    }
+                } else {
+                    $accounting->recordDispatchCostEntries($contract);
+                }
             } catch (\RuntimeException $exception) {
                 throw \Illuminate\Validation\ValidationException::withMessages([
                     'office_contract_cost_usd' => $exception->getMessage(),
@@ -859,7 +877,7 @@ class RecruitmentContractExternalOfficeDispatchController extends Controller
             }
 
             $travelHistory = $contract->travelHistory()->latest('id')->first();
-            if ($travelHistory && $travelHistory->arrival_airport !== $payload['arrival_station']) {
+            if (!$lateFinance && $travelHistory && $travelHistory->arrival_airport !== $payload['arrival_station']) {
                 $travelHistory->update([
                     'arrival_airport' => $payload['arrival_station'],
                 ]);

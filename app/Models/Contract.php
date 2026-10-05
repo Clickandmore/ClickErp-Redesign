@@ -292,6 +292,11 @@ class Contract extends Model
         return in_array($this->status, self::invoiceEligibleStatuses(), true);
     }
 
+    public function isLateFinanceEligible(): bool
+    {
+        return $this->type === 'recruitment' && in_array($this->status, ['arrival', 'completed'], true);
+    }
+
     /**
      * The recruitment contract stages for which an invoice may be issued.
      */
