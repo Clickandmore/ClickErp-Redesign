@@ -1123,6 +1123,16 @@
                             <i class="fas fa-user text-success"></i>
                             {{ $clientCardTitle }}
                         </div>
+                        @if ($canChangeContractClient)
+                            <div class="mb-3">
+                                <button type="button" id="changeContractClientButton" class="btn btn-outline-primary btn-sm"
+                                    @disabled($clientChangeBlocker)
+                                    @unless($clientChangeBlocker) data-bs-toggle="modal" data-bs-target="#changeContractClientModal" @endunless>
+                                    <i class="fas fa-user-edit ms-1"></i> تغيير العميل
+                                </button>
+                                <p class="small text-muted mt-2 mb-0">{{ $clientChangeBlocker ?: 'يمكن تغيير العميل قبل وجود أي معاملات مالية على العقد.' }}</p>
+                            </div>
+                        @endif
                         <div class="info-row">
                             <span class="info-label">الاسم:</span>
                             <span class="info-value highlight">{{ $displayClient->name ?? 'غير محدد' }}</span>
@@ -2574,6 +2584,40 @@
             </div>
         @endif
 
+        @if ($canChangeContractClient && !$clientChangeBlocker)
+            <div class="modal fade" id="changeContractClientModal" tabindex="-1" aria-labelledby="changeContractClientModalLabel" aria-hidden="true">
+                <div class="modal-dialog">
+                    <form id="changeContractClientForm" action="{{ route('RecruitmentContract.changeClient', $contract) }}" method="post" class="modal-content">
+                        @csrf
+                        <input type="hidden" name="current_client_id" value="{{ $contract->user_id ?: 0 }}">
+                        <div class="modal-header">
+                            <h5 class="modal-title" id="changeContractClientModalLabel">تغيير عميل العقد #{{ $contract->id }}</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="إغلاق"></button>
+                        </div>
+                        <div class="modal-body">
+                            <p>العميل الحالي: <strong>{{ $contract->user?->name ?: 'غير محدد' }}</strong></p>
+                            <p class="small text-muted">سيتم ربط هذا العقد والطلب التابع له بالعميل الجديد، دون تعديل بيانات العميل السابق أو عقوده الأخرى.</p>
+                            <div id="changeContractClientError" class="alert alert-danger d-none" role="alert"></div>
+                            <div class="mb-3">
+                                <label for="replacementContractClient" class="form-label">العميل الجديد <span class="text-danger">*</span></label>
+                                <select id="replacementContractClient" name="client_id" class="form-select" required>
+                                    <option value="">ابحث بالاسم أو الجوال أو رقم الهوية</option>
+                                </select>
+                            </div>
+                            <div class="mb-3">
+                                <label for="contractClientChangeReason" class="form-label">سبب التغيير <span class="text-danger">*</span></label>
+                                <textarea id="contractClientChangeReason" name="reason" class="form-control" rows="3" maxlength="1000" required></textarea>
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
+                            <button type="submit" class="btn btn-primary">حفظ تغيير العميل</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        @endif
+
         <!-- دايلوج تغيير العاملة -->
         <div class="modal fade" id="changeMaidModal" tabindex="-1" aria-labelledby="changeMaidModalLabel"
             aria-hidden="true">
@@ -2793,6 +2837,46 @@
 @endsection
 
 @section('js')
+    @if ($canChangeContractClient && !$clientChangeBlocker)
+        <script>
+            $(function () {
+                var $modal = $('#changeContractClientModal');
+                var $form = $('#changeContractClientForm');
+                var $error = $('#changeContractClientError');
+                $('#replacementContractClient').select2({
+                    dir: 'rtl', width: '100%', dropdownParent: $modal,
+                    placeholder: 'ابحث بالاسم أو الجوال أو رقم الهوية', minimumInputLength: 1,
+                    ajax: {
+                        url: @json(route('RecruitmentContract.clientChangeOptions', $contract)),
+                        dataType: 'json', delay: 300,
+                        data: function (params) { return { term: params.term, page: params.page || 1 }; },
+                        processResults: function (data) { return data; },
+                        error: function (xhr) {
+                            if (xhr.statusText === 'abort') return;
+                            $error.text(xhr.responseJSON?.message || 'تعذر البحث عن العملاء. أعد المحاولة.').removeClass('d-none');
+                        }
+                    }
+                });
+                $form.on('submit', function (event) {
+                    event.preventDefault();
+                    var $submit = $form.find('button[type="submit"]');
+                    $error.addClass('d-none').text('');
+                    $submit.prop('disabled', true);
+                    $.ajax({ url: $form.attr('action'), type: 'POST', data: $form.serialize(), dataType: 'json' })
+                        .done(function (data) {
+                            Swal.fire({ icon: 'success', text: data.message, confirmButtonText: 'حسنًا' })
+                                .then(function () { window.location.reload(); });
+                        })
+                        .fail(function (xhr) {
+                            var data = xhr.responseJSON || {};
+                            var messages = data.errors ? Object.values(data.errors).flat().join(' ') : data.message;
+                            $error.text(messages || 'تعذر تغيير العميل. أعد المحاولة.').removeClass('d-none');
+                        })
+                        .always(function () { $submit.prop('disabled', false); });
+                });
+            });
+        </script>
+    @endif
     <script>
         function printDiv() {
             var printContents = document.getElementById('printDiv').innerHTML;

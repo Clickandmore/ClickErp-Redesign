@@ -130,6 +130,72 @@
             min-height: 110px;
         }
 
+        .contract-page-content .client-readonly-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: .85rem;
+        }
+
+        .contract-page-content .client-readonly-item {
+            display: flex;
+            align-items: center;
+            gap: .75rem;
+            min-width: 0;
+            padding: .85rem 1rem;
+            border: 1px solid #e3ebf5;
+            border-radius: 14px;
+            background: #f7fafd;
+        }
+
+        .contract-page-content .client-readonly-item > div {
+            min-width: 0;
+        }
+
+        .contract-page-content .client-readonly-icon {
+            width: 36px;
+            height: 36px;
+            border-radius: 11px;
+            background: #e6f0fa;
+            color: #1f6fb2;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            flex: 0 0 auto;
+        }
+
+        .contract-page-content .client-readonly-label {
+            display: block;
+            font-size: .8rem;
+            color: #728196;
+            margin-bottom: .15rem;
+        }
+
+        .contract-page-content .client-readonly-value {
+            display: block;
+            font-weight: 700;
+            color: #233d59;
+            overflow-wrap: anywhere;
+            text-align: right;
+        }
+
+        .contract-page-content .client-readonly-note {
+            display: flex;
+            align-items: flex-start;
+            gap: .6rem;
+            margin-top: 1rem;
+            padding: .75rem 1rem;
+            border-radius: 12px;
+            background: #fff8e6;
+            border: 1px solid #f3e2b3;
+            color: #7a5b12;
+            font-size: .86rem;
+            line-height: 1.7;
+        }
+
+        .contract-page-content .client-readonly-note i {
+            margin-top: .3rem;
+        }
+
         .contract-city-actions {
             display: flex;
             flex-wrap: wrap;
@@ -157,12 +223,6 @@
             $client = $contract->user;
             $maid = $contract->maid;
             $info = $contract->info;
-            $hasClient = !$contract->company_profile_id && (bool) $client;
-            $clientType = old('account_client_type', $client?->client_type === 'company' ? 'company' : 'person');
-            $isCompanyClient = $clientType === 'company';
-            $documentNumber = old('client_national_num', $client?->documentNumber());
-            $cityValue = old('city', $client?->city);
-            $selectedClientNationalityId = old('client_nationality_id', $client?->nationality_id ?: ($defaultClientNationalityId ?? null));
             // يُعرض مسوق العقد المحفوظ فقط؛ العقود القديمة بلا مسوق تُترك فارغة ليختارها المحرِّر صراحة.
             $selectedMarketerId = old('marketer_id', $contract->marketer?->id ?: $contract->order?->resolveResponsibleAdmin()?->id);
             $displayMarketerName = $contract->marketer?->name ?: $contract->order?->resolveResponsibleAdmin()?->name ?: $currentAdmin?->name ?: 'المستخدم الحالي';
@@ -204,119 +264,42 @@
                                         <div class="section-icon"><i class="fas fa-user"></i></div>
                                         <div>
                                             <h5 class="section-title">معلومات العميل</h5>
-                                            <p class="section-subtitle">البيانات الشخصية والمهنية المحفوظة على العميل</p>
+                                            <p class="section-subtitle">بيانات العميل المرتبط بالعقد</p>
                                         </div>
                                     </div>
-
-                                    <div class="row g-3">
-                                        <div class="col-12">
-                                            <label class="form-label d-block">{{ helperTrans('ingaz.client_type') }} <span class="text-danger">*</span></label>
-                                            <div class="d-flex flex-wrap gap-3">
-                                                <div class="form-check">
-                                                    <input class="form-check-input js-account-client-type" type="radio" name="account_client_type" id="account_client_type_person" value="person" @checked(!$isCompanyClient)>
-                                                    <label class="form-check-label" for="account_client_type_person">شخص</label>
-                                                </div>
-                                                <div class="form-check">
-                                                    <input class="form-check-input js-account-client-type" type="radio" name="account_client_type" id="account_client_type_company" value="company" @checked($isCompanyClient)>
-                                                    <label class="form-check-label" for="account_client_type_company">شركة</label>
-                                                </div>
+                                    <div class="client-readonly-grid">
+                                        <div class="client-readonly-item">
+                                            <span class="client-readonly-icon"><i class="fas fa-user"></i></span>
+                                            <div>
+                                                <span class="client-readonly-label">اسم العميل</span>
+                                                <span class="client-readonly-value">{{ $client?->name ?: '—' }}</span>
                                             </div>
                                         </div>
-
-                                        <div class="col-md-6">
-                                            <label class="form-label">{{ helperTrans('ingaz.client_name') }} <span class="text-danger">*</span></label>
-                                            <input type="text" id="client_name" name="client_name" class="form-control" value="{{ old('client_name', $client?->name) }}" @required($hasClient)>
-                                        </div>
-
-                                        <div class="col-md-6">
-                                            <label class="form-label">{{ helperTrans('ingaz.client_phone') }} <span class="text-danger">*</span></label>
-                                            <input type="tel" id="client_phone" name="client_phone" class="form-control" value="{{ old('client_phone', $client?->phone) }}" @required($hasClient) dir="rtl">
-                                        </div>
-
-                                        <div class="col-md-6">
-                                            <label class="form-label">{{ helperTrans('ingaz.nationality_id') }}</label>
-                                            <select id="client_nationality_id" name="client_nationality_id" class="form-select select2">
-                                                <option value="">{{ helperTrans('ingaz.choose') }}</option>
-                                                @foreach ($countries as $country)
-                                                    <option value="{{ $country->id }}" @selected((string) $selectedClientNationalityId === (string) $country->id)>
-                                                        {{ $country->name_ar }}
-                                                    </option>
-                                                @endforeach
-                                            </select>
-                                        </div>
-
-                                        <div class="col-md-6">
-                                            <label class="form-label">{{ helperTrans('ingaz.email') }} <small class="text-muted">(اختياري)</small></label>
-                                            <input type="email" id="client_email" name="client_email" class="form-control" value="{{ old('client_email', $client?->email) }}">
-                                        </div>
-
-                                        <div class="col-md-6 js-client-document-field">
-                                            <label class="form-label js-client-document-label">{{ $isCompanyClient ? helperTrans('ingaz.tax_number') : helperTrans('ingaz.national_num') }} <span class="text-danger">*</span></label>
-                                            <input type="text" id="client_national_num" name="client_national_num" class="form-control" value="{{ $documentNumber }}">
-                                        </div>
-
-                                        <div class="col-md-6 js-client-company-field {{ $isCompanyClient ? '' : 'd-none' }}">
-                                            <label class="form-label">{{ helperTrans('ingaz.license_number') }} <small class="text-muted">(اختياري)</small></label>
-                                            <input type="text" id="client_license_number" name="client_license_number" class="form-control" value="{{ old('client_license_number', $client?->license_number) }}" @disabled(!$isCompanyClient)>
-                                        </div>
-
-                                        <div class="col-md-6 js-client-birthdate-field js-client-person-field {{ $isCompanyClient ? 'd-none' : '' }}">
-                                            <label class="form-label">{{ helperTrans('ingaz.birthdate') }}</label>
-                                            <input type="text" id="client_birthdate" name="client_birthdate" class="form-control" value="{{ old('client_birthdate', $client?->birthdate) }}" placeholder="مثال: 1990-05-20 أو 1410/10/20" @disabled($isCompanyClient)>
-                                        </div>
-
-                                        <div class="col-md-6">
-                                            <label class="form-label">{{ helperTrans('ingaz.phone2') }}</label>
-                                            <input type="tel" id="phone2" name="phone2" class="form-control" value="{{ old('phone2', $client?->phone2) }}">
-                                        </div>
-
-                                        <div class="col-md-6">
-                                            <label class="form-label">{{ helperTrans('ingaz.address') }}</label>
-                                            <input type="text" id="address" name="address" class="form-control" value="{{ old('address', $client?->address) }}">
-                                        </div>
-
-                                        <div class="col-md-6">
-                                            <label class="form-label">{{ helperTrans('ingaz.city of receive') }}</label>
-                                            <select id="city" name="city" class="form-select select2 select2-city" data-placeholder="اختر مدينة تسليم العميل">
-                                                <option value="">{{ helperTrans('ingaz.choose') }}</option>
-                                                @if ($cityValue && !($saudiCities ?? collect())->contains('name_ar', $cityValue))
-                                                    <option value="{{ $cityValue }}" selected>{{ $cityValue }}</option>
-                                                @endif
-                                                @foreach ($saudiCities ?? collect() as $city)
-                                                    <option value="{{ $city->name_ar }}" @selected((string) $cityValue === (string) $city->name_ar)>{{ $city->name_ar }}</option>
-                                                @endforeach
-                                            </select>
-                                            <div class="contract-city-actions">
-                                                <a href="{{ route('cities.create') }}" target="_blank" class="btn btn-outline-primary btn-sm">
-                                                    <i class="fas fa-plus-circle ms-1"></i>إضافة مدينة سعودية
-                                                </a>
-                                                <small class="text-muted">يمكنك البحث واختيار مدينة من مدن السعودية.</small>
+                                        <div class="client-readonly-item">
+                                            <span class="client-readonly-icon"><i class="fas fa-phone"></i></span>
+                                            <div>
+                                                <span class="client-readonly-label">الجوال</span>
+                                                <span class="client-readonly-value" dir="ltr">{{ $client?->phone ?: '—' }}</span>
                                             </div>
                                         </div>
-
-                                        <div class="col-md-6 js-client-person-field {{ $isCompanyClient ? 'd-none' : '' }}">
-                                            <label class="form-label">{{ helperTrans('ingaz.beds number') }} <small class="text-muted">(اختياري)</small></label>
-                                            <input type="text" id="beds_num" name="beds_num" class="form-control" value="{{ old('beds_num', $client?->rooms_num ?? $client?->beds_num) }}" @disabled($isCompanyClient)>
+                                        <div class="client-readonly-item">
+                                            <span class="client-readonly-icon"><i class="fas fa-id-card"></i></span>
+                                            <div>
+                                                <span class="client-readonly-label">{{ $client ? $client->documentNumberLabel() : 'رقم الهوية' }}</span>
+                                                <span class="client-readonly-value" dir="ltr">{{ $client?->documentNumber() ?: '—' }}</span>
+                                            </div>
                                         </div>
-
-                                        <div class="col-md-6 js-client-person-field {{ $isCompanyClient ? 'd-none' : '' }}">
-                                            <label class="form-label">{{ helperTrans('ingaz.family_number') }} <small class="text-muted">(اختياري)</small></label>
-                                            <input type="text" id="family_num" name="family_num" class="form-control" value="{{ old('family_num', $client?->family_num) }}" @disabled($isCompanyClient)>
-                                        </div>
-
-                                        <div class="col-md-6 js-client-person-field {{ $isCompanyClient ? 'd-none' : '' }}">
-                                            <label class="form-label">{{ helperTrans('ingaz.children') }} <small class="text-muted">(اختياري - تحت سن 12)</small></label>
-                                            <input type="number" id="children" name="children" class="form-control" max="50" value="{{ old('children', $client?->children) }}" @disabled($isCompanyClient)>
-                                        </div>
-
-                                        <div class="col-md-6 js-client-person-field {{ $isCompanyClient ? 'd-none' : '' }}">
-                                            <label class="form-label">{{ helperTrans('ingaz.job') }} <small class="text-muted">(اختياري)</small></label>
-                                            <input type="text" id="job" name="job" class="form-control" value="{{ old('job', $client?->job) }}" @disabled($isCompanyClient)>
+                                    </div>
+                                    <div class="client-readonly-note">
+                                        <i class="fas fa-lock"></i>
+                                        <div>
+                                            <strong>بيانات العميل للعرض فقط.</strong>
+                                            تصحيح بياناته يتم من شاشة العملاء ويؤثر على جميع معاملاته،
+                                            ولتغيير العميل استخدم زر «تغيير العميل» في تفاصيل العقد؛ يتاح فقط قبل وجود معاملات مالية مرتبطة بالعقد.
                                         </div>
                                     </div>
                                 </div>
                             </div>
-
                             <div class="col-12">
                                 <div class="form-section">
                                     <div class="section-header">
@@ -528,25 +511,6 @@
                     dir: 'rtl',
                     width: '100%'
                 });
-            }
-
-            function applyClientTypeMode() {
-                var isCompany = $('input[name="account_client_type"]:checked').val() === 'company';
-                var label = isCompany ? @json(helperTrans('ingaz.tax_number')) : @json(helperTrans('ingaz.national_num'));
-
-                $('.js-client-document-label').html(label + ' <span class="text-danger">*</span>');
-                $('.js-client-person-field').toggleClass('d-none', isCompany);
-                $('.js-client-person-field').find('input, select, textarea').prop('disabled', isCompany);
-                $('.js-client-company-field').toggleClass('d-none', !isCompany);
-                $('.js-client-company-field').find('input, select, textarea').prop('disabled', !isCompany);
-            }
-
-            $('.js-account-client-type').on('change', applyClientTypeMode);
-            applyClientTypeMode();
-            if (@json((bool) $contract->company_profile_id)) {
-                var $companyDetails = $('#client_name').closest('.form-section');
-                $companyDetails.wrapInner('<fieldset disabled></fieldset>');
-                $companyDetails.prepend($('<p class="alert alert-light border"></p>').text('هذا عقد للشركة. تُدار بيانات الشركة من صفحة إعدادات الشركة.'));
             }
 
             $('#editContractForm').on('submit', function(e) {
