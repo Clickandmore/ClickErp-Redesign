@@ -439,6 +439,250 @@
             padding: 14px;
         }
 
+        .close-section-card .section-title i {
+            width: 28px;
+            height: 28px;
+            border-radius: 8px;
+            background: #e0f2f7;
+            color: #155e75;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: .85rem;
+        }
+
+        .close-contract-modal .modal-body {
+            background: #f4f7fa;
+        }
+
+        .close-info-grid {
+            display: grid;
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+            gap: 10px;
+        }
+
+        .close-info-item,
+        .close-timeline-item {
+            min-width: 0;
+            padding: 10px 12px;
+            border: 1px solid #e5edf3;
+            border-radius: 10px;
+            background: #f8fafc;
+        }
+
+        .close-info-item--wide {
+            grid-column: 1 / -1;
+        }
+
+        .close-info-label {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            margin-bottom: 4px;
+            font-size: .8rem;
+            font-weight: 600;
+            color: #64748b;
+        }
+
+        .close-info-label i {
+            color: #94a3b8;
+            font-size: .75rem;
+        }
+
+        .close-info-value {
+            display: block;
+            font-weight: 700;
+            color: #0f172a;
+            overflow-wrap: anywhere;
+        }
+
+        .close-timeline {
+            display: grid;
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        .close-timeline-item--input {
+            border-color: #7dd3e0;
+            background: #ecfeff;
+            box-shadow: 0 0 0 3px rgba(21, 94, 117, 0.06);
+        }
+
+        .close-timeline-item--input .close-info-label,
+        .close-timeline-item--input .close-info-label i {
+            color: #155e75;
+        }
+
+        .close-timeline-item--input .form-control {
+            min-height: 36px;
+            padding: 4px 10px;
+            font-weight: 700;
+        }
+
+        .close-alert {
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+            margin-top: 12px;
+            padding: 10px 14px;
+            border-radius: 10px;
+            border: 1px solid #fecaca;
+            border-inline-start: 4px solid #dc2626;
+            background: #fef2f2;
+            color: #991b1b;
+            font-size: .9rem;
+        }
+
+        .close-alert.d-none {
+            display: none !important;
+        }
+
+        .close-alert i {
+            margin-top: 3px;
+        }
+
+        .close-fin-groups {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 12px;
+        }
+
+        .close-fin-group {
+            border: 1px solid #e5edf3;
+            border-radius: 10px;
+            background: #fff;
+            overflow: hidden;
+        }
+
+        .close-fin-group-title {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 12px;
+            background: #f8fafc;
+            border-bottom: 1px solid #e5edf3;
+            font-size: .85rem;
+            font-weight: 700;
+            color: #155e75;
+        }
+
+        .close-fin-list {
+            margin: 0;
+            padding: 4px 12px;
+        }
+
+        .close-fin-list > div {
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+            gap: 12px;
+            padding: 7px 0;
+            border-bottom: 1px dashed #e5e7eb;
+        }
+
+        .close-fin-list > div:last-child {
+            border-bottom: 0;
+        }
+
+        .close-fin-list dt {
+            font-weight: 500;
+            color: #64748b;
+            font-size: .875rem;
+        }
+
+        .close-fin-list dd {
+            margin: 0;
+            font-weight: 700;
+            color: #0f172a;
+            white-space: nowrap;
+        }
+
+        .close-fin-totals {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 12px;
+            margin-top: 12px;
+        }
+
+        .close-fin-total {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 14px 16px;
+            border-radius: 12px;
+            border: 1px solid;
+        }
+
+        .close-fin-total--collect {
+            background: #fffbeb;
+            border-color: #fde68a;
+            color: #92400e;
+        }
+
+        .close-fin-total--refund {
+            background: #f0fdf4;
+            border-color: #bbf7d0;
+            color: #166534;
+        }
+
+        .close-fin-total-icon {
+            width: 42px;
+            height: 42px;
+            border-radius: 12px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            flex: 0 0 auto;
+            background: rgba(255, 255, 255, .75);
+            font-size: 1.1rem;
+        }
+
+        .close-fin-total-label {
+            display: block;
+            font-weight: 700;
+        }
+
+        .close-fin-total-hint {
+            display: block;
+            font-size: .75rem;
+            opacity: .75;
+        }
+
+        .close-fin-total-value {
+            display: block;
+            margin-top: 2px;
+            font-size: 1.35rem;
+            font-weight: 800;
+        }
+
+        .close-fin-notes {
+            margin: 12px 0 0;
+            padding-inline-start: 18px;
+            color: #64748b;
+            font-size: .82rem;
+            line-height: 1.8;
+        }
+
+        @media (max-width: 991.98px) {
+            .close-info-grid,
+            .close-timeline {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
+
+            .close-fin-groups,
+            .close-fin-totals {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @media (max-width: 575.98px) {
+            .close-info-grid,
+            .close-timeline {
+                grid-template-columns: 1fr;
+            }
+        }
+
         .close-option-card {
             height: 100%;
             border: 1px solid #e5e7eb;
@@ -833,7 +1077,7 @@
             <div class="modal-content">
                 <div class="modal-header text-white">
                     <h5 class="modal-title" id="closeContractModalLabel">
-                        <i class="fas fa-times-circle me-2"></i>
+                        <i class="fas fa-file-signature me-2"></i>
                         إنهاء عقد الإيجار
                     </h5>
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"
@@ -846,49 +1090,52 @@
                             <div class="close-section-card">
                                 <div class="section-title"><i class="fas fa-info-circle"></i>معلومات العقد</div>
                                 <div class="section-body">
-                                    <div class="row" id="contractDetails">
-                                        <div class="col-md-3">
-                                            <strong>رقم العقد:</strong>
-                                            <p id="contractId">-</p>
+                                    <div class="close-info-grid" id="contractDetails">
+                                        <div class="close-info-item">
+                                            <span class="close-info-label"><i class="fas fa-hashtag"></i>رقم العقد</span>
+                                            <span class="close-info-value" id="contractId">-</span>
                                         </div>
-                                        <div class="col-md-3">
-                                            <strong>العميل:</strong>
-                                            <p id="clientName">-</p>
+                                        <div class="close-info-item">
+                                            <span class="close-info-label"><i class="fas fa-user"></i>العميل</span>
+                                            <span class="close-info-value" id="clientName">-</span>
                                         </div>
-                                        <div class="col-md-3">
-                                            <strong>العاملة:</strong>
-                                            <p id="maidName">-</p>
+                                        <div class="close-info-item">
+                                            <span class="close-info-label"><i class="fas fa-female"></i>العاملة</span>
+                                            <span class="close-info-value" id="maidName">-</span>
                                         </div>
-                                        <div class="col-md-3">
-                                            <strong>الحالة الحالية:</strong>
-                                            <p id="currentStatus">-</p>
+                                        <div class="close-info-item">
+                                            <span class="close-info-label"><i class="fas fa-money-bill-wave"></i>قيمة العقد</span>
+                                            <span class="close-info-value" id="contractValue">-</span>
                                         </div>
-                                        <div class="col-md-3">
-                                            <strong>تاريخ البداية:</strong>
-                                            <p id="startDate">-</p>
-                                        </div>
-                                        <div class="col-md-3">
-                                            <strong>تاريخ النهاية:</strong>
-                                            <p id="endDate">-</p>
-                                        </div>
-                                        <div class="col-md-3">
-                                            <label for="closureDate" class="fw-bold mb-1">تاريخ الإنهاء:</label>
-                                            <input type="date" class="form-control form-control-sm" id="closureDate"
-                                                required>
-                                        </div>
-                                        <div class="col-md-3">
-                                            <strong>المدة المتبقية:</strong>
-                                            <p id="remainingDays">-</p>
-                                        </div>
-                                        <div class="col-md-3">
-                                            <strong>قيمة العقد:</strong>
-                                            <p id="contractValue">-</p>
+                                        <div class="close-info-item close-info-item--wide">
+                                            <span class="close-info-label"><i class="fas fa-flag"></i>الحالة الحالية</span>
+                                            <span class="close-info-value" id="currentStatus">-</span>
                                         </div>
                                     </div>
-                                    <div class="alert alert-danger mb-0 d-none" id="earlyClosureNotice">
-                                        <i class="fas fa-exclamation-triangle me-1"></i>
-                                        سيتم تسجيل هذا العقد كعقد ملغي لأن تاريخ الإنهاء قبل تاريخ نهاية العقد، وسيظهر ذلك
-                                        في التفاصيل والإحصائيات.
+
+                                    <div class="close-timeline">
+                                        <div class="close-timeline-item">
+                                            <span class="close-info-label"><i class="fas fa-play"></i>تاريخ البداية</span>
+                                            <span class="close-info-value" id="startDate">-</span>
+                                        </div>
+                                        <div class="close-timeline-item">
+                                            <span class="close-info-label"><i class="fas fa-flag-checkered"></i>تاريخ النهاية</span>
+                                            <span class="close-info-value" id="endDate">-</span>
+                                        </div>
+                                        <div class="close-timeline-item close-timeline-item--input">
+                                            <label for="closureDate" class="close-info-label"><i class="fas fa-calendar-times"></i>تاريخ الإنهاء <span class="text-danger">*</span></label>
+                                            <input type="date" class="form-control" id="closureDate" required>
+                                        </div>
+                                        <div class="close-timeline-item">
+                                            <span class="close-info-label"><i class="fas fa-hourglass-half"></i>المدة المتبقية</span>
+                                            <span class="close-info-value" id="remainingDays">-</span>
+                                        </div>
+                                    </div>
+
+                                    <div class="close-alert d-none" id="earlyClosureNotice">
+                                        <i class="fas fa-exclamation-triangle"></i>
+                                        <span>سيتم تسجيل هذا العقد كعقد <strong>ملغي</strong> لأن تاريخ الإنهاء قبل تاريخ نهاية العقد، وسيظهر ذلك
+                                        في التفاصيل والإحصائيات.</span>
                                     </div>
                                 </div>
                             </div>
@@ -914,76 +1161,68 @@
                                 <div class="section-title"><i class="fas fa-file-invoice-dollar"></i>البيان المالي قبل
                                     الإنهاء</div>
                                 <div class="section-body">
-                                    <div class="row g-3">
-                                        <div class="col-md-3">
-                                            <strong>التكلفة الشهرية:</strong>
-                                            <p id="financialMonthlyCost">-</p>
+                                    <div class="close-fin-groups">
+                                        <div class="close-fin-group">
+                                            <div class="close-fin-group-title"><i class="fas fa-file-contract"></i>قيمة العقد والسداد</div>
+                                            <dl class="close-fin-list">
+                                                <div><dt>التكلفة الشهرية</dt><dd id="financialMonthlyCost">-</dd></div>
+                                                <div><dt>مدة العقد</dt><dd id="financialDurationMonths">-</dd></div>
+                                                <div><dt>مدة العقد (يوم)</dt><dd id="financialDurationDays">-</dd></div>
+                                                <div><dt>قيمة العقد</dt><dd id="financialContractValue">-</dd></div>
+                                                <div><dt>المبلغ المدفوع</dt><dd id="financialPaidAmount">-</dd></div>
+                                                <div><dt>المبلغ المتبقي</dt><dd id="financialRemainingAmount">-</dd></div>
+                                            </dl>
                                         </div>
-                                        <div class="col-md-3">
-                                            <strong>مدة العقد:</strong>
-                                            <p id="financialDurationMonths">-</p>
+                                        <div class="close-fin-group">
+                                            <div class="close-fin-group-title"><i class="fas fa-calendar-day"></i>الأيام وتكلفتها</div>
+                                            <dl class="close-fin-list">
+                                                <div><dt>الأيام المستخدمة</dt><dd id="financialUsedDays">-</dd></div>
+                                                <div><dt>الأيام المتبقية</dt><dd id="financialRemainingDays">-</dd></div>
+                                                <div><dt>تكلفة اليوم</dt><dd id="financialDailyRate">-</dd></div>
+                                                <div><dt>تكلفة اليوم المعتمدة داخل العقد</dt><dd id="financialUsedDailyRate">-</dd></div>
+                                                <div><dt>تكلفة الأيام المستخدمة</dt><dd id="financialUsedCost">-</dd></div>
+                                            </dl>
                                         </div>
-                                        <div class="col-md-3">
-                                            <strong>مدة العقد (يوم):</strong>
-                                            <p id="financialDurationDays">-</p>
+                                        <div class="close-fin-group">
+                                            <div class="close-fin-group-title"><i class="fas fa-clock"></i>بعد انتهاء العقد</div>
+                                            <dl class="close-fin-list">
+                                                <div><dt>أيام بعد انتهاء العقد</dt><dd id="financialOverdueDays">-</dd></div>
+                                                <div><dt>تكلفة اليوم بعد انتهاء العقد</dt><dd id="financialOverdueDailyRate">-</dd></div>
+                                                <div><dt>تكلفة الأيام بعد انتهاء العقد</dt><dd id="financialOverdueCost">-</dd></div>
+                                            </dl>
                                         </div>
-                                        <div class="col-md-3">
-                                            <strong>قيمة العقد:</strong>
-                                            <p id="financialContractValue">-</p>
-                                        </div>
-                                        <div class="col-md-3">
-                                            <strong>المبلغ المدفوع:</strong>
-                                            <p id="financialPaidAmount">-</p>
-                                        </div>
-                                        <div class="col-md-3">
-                                            <strong>المبلغ المتبقي:</strong>
-                                            <p id="financialRemainingAmount">-</p>
-                                        </div>
-                                        <div class="col-md-3">
-                                            <strong>الأيام المستخدمة:</strong>
-                                            <p id="financialUsedDays">-</p>
-                                        </div>
-                                        <div class="col-md-3">
-                                            <strong>الأيام المتبقية:</strong>
-                                            <p id="financialRemainingDays">-</p>
-                                        </div>
-                                        <div class="col-md-3">
-                                            <strong>أيام بعد انتهاء العقد:</strong>
-                                            <p id="financialOverdueDays">-</p>
-                                        </div>
-                                        <div class="col-md-3">
-                                            <strong>تكلفة اليوم:</strong>
-                                            <p id="financialDailyRate">-</p>
-                                        </div>
-                                        <div class="col-md-3">
-                                            <strong>تكلفة الأيام المستخدمة:</strong>
-                                            <p id="financialUsedCost">-</p>
-                                        </div>
-                                        <div class="col-md-3">
-                                            <strong>الإشعار الدائن لتخفيض الفاتورة:</strong>
-                                            <p id="financialSuggestedRefund">-</p>
-                                        </div>
-                                        <div class="col-md-3">
-                                            <strong>الإشعار المدين لزيادة الفاتورة:</strong>
-                                            <p id="financialCompanyDue">-</p>
-                                        </div>
-                                        <div class="col-md-6">
-                                            <div class="border rounded p-3">
-                                                <strong>المطلوب تحصيله من العميل حسب مدة الاستخدام والمدفوع:</strong>
-                                                <p id="financialCashToCollect" class="fw-bold mb-0" aria-live="polite">-</p>
-                                            </div>
-                                        </div>
-                                        <div class="col-md-6">
-                                            <div class="border rounded p-3">
-                                                <strong>المبلغ المسترد للعميل حسب مدة الاستخدام والمدفوع:</strong>
-                                                <p id="financialCashRefund" class="fw-bold mb-0" aria-live="polite">-</p>
-                                            </div>
-                                        </div>
-                                        <div class="col-12">
-                                            <p class="text-muted mb-1">الإشعار الدائن يخفض قيمة الفاتورة السابقة، ولا يعني صرف هذا المبلغ للعميل. المبلغ المسترد يعتمد على ما دفعه العميل مقابل تكلفة الاستخدام.</p>
-                                            <p class="text-muted mb-0">حساب الأيام الحالي يشمل يوم البداية ويوم الإنهاء ضمن مدة العقد.</p>
+                                        <div class="close-fin-group">
+                                            <div class="close-fin-group-title"><i class="fas fa-receipt"></i>إشعارات تعديل الفاتورة</div>
+                                            <dl class="close-fin-list">
+                                                <div><dt>الإشعار الدائن لتخفيض الفاتورة</dt><dd id="financialSuggestedRefund">-</dd></div>
+                                                <div><dt>الإشعار المدين لزيادة الفاتورة</dt><dd id="financialCompanyDue">-</dd></div>
+                                            </dl>
                                         </div>
                                     </div>
+
+                                    <div class="close-fin-totals">
+                                        <div class="close-fin-total close-fin-total--collect">
+                                            <span class="close-fin-total-icon"><i class="fas fa-hand-holding-usd"></i></span>
+                                            <div>
+                                                <span class="close-fin-total-label">المطلوب تحصيله من العميل</span>
+                                                <span class="close-fin-total-hint">حسب مدة الاستخدام والمدفوع</span>
+                                                <span class="close-fin-total-value" id="financialCashToCollect" aria-live="polite">-</span>
+                                            </div>
+                                        </div>
+                                        <div class="close-fin-total close-fin-total--refund">
+                                            <span class="close-fin-total-icon"><i class="fas fa-undo-alt"></i></span>
+                                            <div>
+                                                <span class="close-fin-total-label">المبلغ المسترد للعميل</span>
+                                                <span class="close-fin-total-hint">حسب مدة الاستخدام والمدفوع</span>
+                                                <span class="close-fin-total-value" id="financialCashRefund" aria-live="polite">-</span>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <ul class="close-fin-notes">
+                                        <li>الإشعار الدائن يخفض قيمة الفاتورة السابقة، ولا يعني صرف هذا المبلغ للعميل. المبلغ المسترد يعتمد على ما دفعه العميل مقابل تكلفة الاستخدام.</li>
+                                        <li>حساب الأيام الحالي يشمل يوم البداية ويوم الإنهاء ضمن مدة العقد.</li>
+                                    </ul>
                                     <div class="row g-3 mt-2 align-items-end">
                                         <div class="col-md-4">
                                             <label class="form-label">نوع إشعار تعديل الفاتورة</label>
@@ -1007,6 +1246,33 @@
                                         <div id="manualClosureCashNotice" class="col-12 text-muted d-none">
                                             مبالغ التحصيل والاسترداد أعلاه حسب الحسبة الآلية قبل تعديل قيمة الإشعار يدويًا.
                                         </div>
+                                        @if (@AdminGuardHasPerm(\App\PermKeys::RENT_CONTRACT_CLOSURE_ADJUSTMENT_OVERRIDE) && @AdminGuardHasPerm(\App\PermKeys::RENT_CONTRACT_CLOSURE_ADJUSTMENT_APPROVE))
+                                            <div class="col-12">
+                                                <div class="border rounded p-3 bg-light">
+                                                    <div class="form-check mb-2">
+                                                        <input class="form-check-input" type="checkbox" id="useCustomClosureDailyRates">
+                                                        <label class="form-check-label fw-bold" for="useCustomClosureDailyRates">تعديل تكلفة اليوم عند الإنهاء</label>
+                                                    </div>
+                                                    <div class="row g-3 d-none" id="customClosureDailyRateFields">
+                                                        <div class="col-md-4" id="earlyClosureDailyRateWrapper">
+                                                            <label class="form-label" for="earlyClosureDailyRate">تكلفة اليوم للإنهاء المبكر (ريال)</label>
+                                                            <input type="number" class="form-control" id="earlyClosureDailyRate" min="0" max="999999.99" step="0.01">
+                                                            <div class="form-text">تطبق على الأيام المستخدمة فقط عند الإنهاء قبل اكتمال المدة، ولو تجاوزت شهرًا.</div>
+                                                        </div>
+                                                        <div class="col-md-4" id="overdueClosureDailyRateWrapper">
+                                                            <label class="form-label" for="overdueClosureDailyRate">تكلفة اليوم بعد انتهاء العقد (ريال)</label>
+                                                            <input type="number" class="form-control" id="overdueClosureDailyRate" min="0" max="999999.99" step="0.01">
+                                                            <div class="form-text">تطبق على الأيام الزائدة فقط؛ مدة العقد المكتملة تحتفظ بقيمتها المتفق عليها.</div>
+                                                        </div>
+                                                        <div class="col-md-4">
+                                                            <label class="form-label" for="customClosureDailyRateReason">سبب اعتماد السعر</label>
+                                                            <textarea class="form-control" id="customClosureDailyRateReason" rows="2" maxlength="1000"></textarea>
+                                                        </div>
+                                                        <div class="col-12 form-text">يمكن زيادة السعر أو تخفيضه. المبالغ شاملة الضريبة حسب تركيبة الفاتورة، ويعاد حساب التحصيل والاسترداد والإشعار تلقائيًا.</div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        @endif
                                         <div class="col-12">
                                             <div class="border rounded p-3 bg-light">
                                                     <div class="form-check mb-2">
@@ -2596,7 +2862,13 @@
                 return durationMonths ? (durationMonths + ' شهر') : (durationDays ? durationDays + ' يوم' : '-');
             }
 
+            let closeFinancialSummary = null;
+            let closeSummaryRequest = null;
+            let closeSummaryVersion = 0;
+            let closeSummaryValid = true;
+
             function fillCloseFinancialFields(contract) {
+                closeFinancialSummary = contract;
                 $('#remainingDays').text(formatCloseRemainingDaysText(contract));
                 $('#financialMonthlyCost').text(formatCurrency(contract.monthly_cost || 0) + ' ريال');
                 $('#financialDurationMonths').text(formatContractDuration(contract));
@@ -2614,6 +2886,16 @@
                     'undefined' ? (contract.overdue_days + ' يوم') : '-');
                 $('#financialDailyRate').text(formatCurrency(contract.daily_rate || 0) + ' ريال');
                 $('#financialUsedCost').text(formatCurrency(contract.used_cost || 0) + ' ريال');
+                $('#financialUsedDailyRate').text(formatCurrency(contract.used_daily_rate ?? contract.daily_rate ?? 0) + ' ريال');
+                $('#financialOverdueDailyRate').text(formatCurrency(contract.overdue_daily_rate ?? contract.daily_rate ?? 0) + ' ريال');
+                $('#financialOverdueCost').text(formatCurrency(contract.overdue_cost || 0) + ' ريال');
+                const earlyRateApplicable = contract.is_early_closure && contract.used_days < contract.duration_days;
+                const overdueRateApplicable = parseInt(contract.overdue_days || 0, 10) > 0;
+                $('#earlyClosureDailyRateWrapper').toggleClass('d-none', !earlyRateApplicable);
+                $('#overdueClosureDailyRateWrapper').toggleClass('d-none', !overdueRateApplicable);
+                $('#earlyClosureDailyRate').prop('disabled', !earlyRateApplicable);
+                $('#overdueClosureDailyRate').prop('disabled', !overdueRateApplicable);
+                $('#useCustomClosureDailyRates').prop('disabled', !earlyRateApplicable && !overdueRateApplicable);
                 $('#discountedClosureDailyRate').val(formatCurrency(contract.adjusted_daily_rate ?? contract.daily_rate ?? 0) + ' ريال');
                 $('#financialSuggestedRefund').text(formatCurrency(contract.calculated_credit_note_value || 0) +
                 ' ريال');
@@ -2632,11 +2914,9 @@
                     ? 'إشعار مدين'
                     : (documentType === 'refund' ? 'إشعار دائن' : 'لا يوجد إشعار'));
                 $('#closeAdjustmentAmount').val(parseFloat(contract.document_value || 0).toFixed(2));
-                $('#useManualClosureAdjustment').prop('checked', false);
-                $('#manualClosureAdjustmentFields').addClass('d-none');
-                $('#manualClosureAdjustmentAmount').val(parseFloat(contract.document_value || 0).toFixed(2));
-                $('#manualClosureAdjustmentReason').val('');
-                $('#manualClosureAdjustmentAttachment').val('');
+                if (!$('#useManualClosureAdjustment').is(':checked')) {
+                    $('#manualClosureAdjustmentAmount').val(parseFloat(contract.document_value || 0).toFixed(2));
+                }
                 updateCloseFinancialPreview();
             }
 
@@ -2645,7 +2925,11 @@
                     return;
                 }
 
-                $.ajax({
+                const version = ++closeSummaryVersion;
+                if (closeSummaryRequest) closeSummaryRequest.abort();
+                closeSummaryValid = false;
+                $('#confirmCloseAndMakeAvailableBtn').prop('disabled', true);
+                closeSummaryRequest = $.ajax({
                     url: `/admin/RentContract/${selectedContractId}/details`,
                     type: 'GET',
                     data: {
@@ -2653,17 +2937,43 @@
                         daily_discount_type: $('#useDailyClosureDiscount').is(':checked')
                             ? $('#dailyClosureDiscountType').val() : null,
                         daily_discount_value: $('#useDailyClosureDiscount').is(':checked')
-                            ? $('#dailyClosureDiscountValue').val() : null
+                            ? $('#dailyClosureDiscountValue').val() : null,
+                        use_custom_daily_rates: $('#useCustomClosureDailyRates').is(':checked') ? 1 : 0,
+                        early_closure_daily_rate: $('#useCustomClosureDailyRates').is(':checked') && !$('#earlyClosureDailyRate').prop('disabled')
+                            ? $('#earlyClosureDailyRate').val() : null,
+                        overdue_daily_rate: $('#useCustomClosureDailyRates').is(':checked') && !$('#overdueClosureDailyRate').prop('disabled')
+                            ? $('#overdueClosureDailyRate').val() : null
                     },
                     success: function(response) {
-                        if (response.success) {
+                        if (version === closeSummaryVersion && response.success) {
+                            closeSummaryValid = true;
                             fillCloseFinancialFields(response.contract);
+                        }
+                    },
+                    error: function(xhr, status) {
+                        if (status === 'abort' || version !== closeSummaryVersion) return;
+                        const errors = xhr.responseJSON?.errors;
+                        Swal.fire({icon: 'warning', title: 'تعذر تحديث الحسبة',
+                            text: errors ? Object.values(errors).flat().join('، ') : (xhr.responseJSON?.message || 'راجع الأسعار وتاريخ الإنهاء.')});
+                    },
+                    complete: function() {
+                        if (version === closeSummaryVersion) {
+                            $('#confirmCloseAndMakeAvailableBtn').prop('disabled', !closeSummaryValid);
                         }
                     }
                 });
             }
 
             function resetCloseFinancialFields() {
+                ++closeSummaryVersion;
+                if (closeSummaryRequest) closeSummaryRequest.abort();
+                clearTimeout(dailyDiscountReloadTimer);
+                closeFinancialSummary = null;
+                closeSummaryValid = true;
+                $('#confirmCloseAndMakeAvailableBtn').prop('disabled', false);
+                $('#useCustomClosureDailyRates').prop('checked', false).prop('disabled', false);
+                $('#customClosureDailyRateFields').addClass('d-none');
+                $('#earlyClosureDailyRate, #overdueClosureDailyRate, #customClosureDailyRateReason').val('');
                 $('#closeAdjustmentType').val('none');
                 $('#closeAdjustmentTypeLabel').val('يُحدد تلقائياً');
                 $('#closeAdjustmentAmount').val('0');
@@ -2689,6 +2999,7 @@
                 $('#closeClientIbanAttachmentCurrent').attr('href', '#');
                 $('#financialDailyRate').text('-');
                 $('#financialUsedCost').text('-');
+                $('#financialUsedDailyRate, #financialOverdueDailyRate, #financialOverdueCost').text('-');
                 $('#financialSuggestedRefund').text('-');
                 $('#financialOverdueDays').text('-');
                 $('#financialCompanyDue').text('-');
@@ -2698,6 +3009,10 @@
             }
 
             $('#closureDate').on('change', function() {
+                // Eligibility may change between early and overdue closure.
+                $('#useCustomClosureDailyRates').prop('checked', false);
+                $('#customClosureDailyRateFields').addClass('d-none');
+                $('#earlyClosureDailyRate, #overdueClosureDailyRate').val('');
                 reloadCloseFinancialSummary();
             });
 
@@ -2709,6 +3024,8 @@
                 if (this.checked) {
                     $('#useDailyClosureDiscount').prop('checked', false);
                     $('#dailyClosureDiscountFields').addClass('d-none');
+                    $('#useCustomClosureDailyRates').prop('checked', false);
+                    $('#customClosureDailyRateFields').addClass('d-none');
                     reloadCloseFinancialSummary();
                 }
                 $('#manualClosureAdjustmentFields').toggleClass('d-none', !this.checked);
@@ -2724,6 +3041,10 @@
 
             let dailyDiscountReloadTimer = null;
             function scheduleDailyDiscountPreview() {
+                ++closeSummaryVersion;
+                if (closeSummaryRequest) closeSummaryRequest.abort();
+                closeSummaryValid = false;
+                $('#confirmCloseAndMakeAvailableBtn').prop('disabled', true);
                 clearTimeout(dailyDiscountReloadTimer);
                 dailyDiscountReloadTimer = setTimeout(reloadCloseFinancialSummary, 250);
             }
@@ -2733,11 +3054,28 @@
                 if (this.checked) {
                     $('#useManualClosureAdjustment').prop('checked', false);
                     $('#manualClosureAdjustmentFields').addClass('d-none');
+                    $('#useCustomClosureDailyRates').prop('checked', false);
+                    $('#customClosureDailyRateFields').addClass('d-none');
                 }
                 scheduleDailyDiscountPreview();
             });
 
             $('#dailyClosureDiscountType, #dailyClosureDiscountValue').on('input change', scheduleDailyDiscountPreview);
+            $('#useCustomClosureDailyRates').on('change', function() {
+                $('#customClosureDailyRateFields').toggleClass('d-none', !this.checked);
+                if (this.checked) {
+                    $('#useDailyClosureDiscount, #useManualClosureAdjustment').prop('checked', false);
+                    $('#dailyClosureDiscountFields, #manualClosureAdjustmentFields').addClass('d-none');
+                    if (!$('#earlyClosureDailyRate').prop('disabled') && $('#earlyClosureDailyRate').val() === '') {
+                        $('#earlyClosureDailyRate').val(closeFinancialSummary?.daily_rate ?? 0);
+                    }
+                    if (!$('#overdueClosureDailyRate').prop('disabled') && $('#overdueClosureDailyRate').val() === '') {
+                        $('#overdueClosureDailyRate').val(closeFinancialSummary?.daily_rate ?? 0);
+                    }
+                }
+                scheduleDailyDiscountPreview();
+            });
+            $('#earlyClosureDailyRate, #overdueClosureDailyRate').on('input change', scheduleDailyDiscountPreview);
 
             function addTransferAdjustmentRow(item = null) {
                 const template = document.querySelector('#transfer-adjustment-row-template');
@@ -3012,6 +3350,18 @@
             });
 
             function executeCloseAndMakeAvailable() {
+                if (!closeSummaryValid) {
+                    Swal.fire({icon: 'warning', title: 'الحسبة غير جاهزة', text: 'انتظر تحديث الحسبة أو صحح بيانات التسعير أولًا.'});
+                    return;
+                }
+                if ($('#useCustomClosureDailyRates').is(':checked')) {
+                    const applicableInputs = $('#earlyClosureDailyRate, #overdueClosureDailyRate').filter(':enabled');
+                    const hasValidRate = applicableInputs.toArray().some(input => input.value !== '' && Number.isFinite(Number(input.value)) && Number(input.value) >= 0);
+                    if (!hasValidRate || !($('#customClosureDailyRateReason').val() || '').trim()) {
+                        Swal.fire({icon: 'warning', title: 'بيانات التسعير غير مكتملة', text: 'أدخل تكلفة اليوم وسبب اعتماد السعر.'});
+                        return;
+                    }
+                }
                 if ($('#useDailyClosureDiscount').is(':checked')) {
                     const discountValue = parseFloat($('#dailyClosureDiscountValue').val() || 0);
                     const discountReason = ($('#dailyClosureDiscountReason').val() || '').trim();
@@ -3053,6 +3403,10 @@
                 }).then((result) => {
                     if (result.isConfirmed) {
                         const formData = new FormData();
+                        if (!closeSummaryValid) {
+                            Swal.fire({icon: 'warning', title: 'تغيرت الحسبة', text: 'راجع الحسبة المحدثة ثم أكد الإنهاء مجددًا.'});
+                            return;
+                        }
                         formData.append('_token', '{{ csrf_token() }}');
                         formData.append('adjustment_type', $('#closeAdjustmentType').val());
                         formData.append('adjustment_amount', $('#closeAdjustmentAmount').val() || 0);
@@ -3072,6 +3426,17 @@
                             formData.append('daily_discount_type', $('#dailyClosureDiscountType').val());
                             formData.append('daily_discount_value', $('#dailyClosureDiscountValue').val());
                             formData.append('daily_discount_reason', $('#dailyClosureDiscountReason').val());
+                        }
+                        const useCustomRates = $('#useCustomClosureDailyRates').is(':checked');
+                        formData.append('use_custom_daily_rates', useCustomRates ? 1 : 0);
+                        if (useCustomRates) {
+                            if (!$('#earlyClosureDailyRate').prop('disabled') && $('#earlyClosureDailyRate').val() !== '') {
+                                formData.append('early_closure_daily_rate', $('#earlyClosureDailyRate').val());
+                            }
+                            if (!$('#overdueClosureDailyRate').prop('disabled') && $('#overdueClosureDailyRate').val() !== '') {
+                                formData.append('overdue_daily_rate', $('#overdueClosureDailyRate').val());
+                            }
+                            formData.append('custom_daily_rate_reason', $('#customClosureDailyRateReason').val());
                         }
                         formData.append('closure_date', $('#closureDate').val());
                         formData.append('closure_return_reason', $('#closeReturnReason').val());

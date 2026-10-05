@@ -7,6 +7,79 @@ use PHPUnit\Framework\TestCase;
 
 class RentalContractSettlementTest extends TestCase
 {
+    public function test_early_closure_can_use_a_higher_daily_price(): void
+    {
+        $result = RentalContractSettlement::calculate(1500, 30, 1500, 4, earlyClosureDailyRate: 100);
+        $this->assertSame(400.0, $result['used_cost']);
+        $this->assertSame(1100.0, $result['refund_value']);
+        $this->assertSame(100.0, $result['used_daily_rate']);
+        $this->assertSame(50.0, $result['daily_rate']);
+    }
+
+    public function test_an_early_custom_charge_can_exceed_the_original_invoice(): void
+    {
+        $result = RentalContractSettlement::calculate(1500, 30, 1500, 4, earlyClosureDailyRate: 500);
+        $this->assertSame(2000.0, $result['earned_amount']);
+        $this->assertSame(500.0, $result['company_due_value']);
+        $this->assertSame(0.0, $result['refund_value']);
+    }
+
+    public function test_overdue_price_does_not_reprice_the_completed_month(): void
+    {
+        $result = RentalContractSettlement::calculate(1500, 30, 1500, 30, 4, overdueDailyRate: 100);
+        $this->assertSame(1500.0, $result['used_cost']);
+        $this->assertSame(400.0, $result['overdue_cost']);
+        $this->assertSame(1900.0, $result['earned_amount']);
+        $this->assertSame(400.0, $result['company_due_value']);
+    }
+
+    public function test_early_price_also_applies_to_an_incomplete_multi_month_contract(): void
+    {
+        $result = RentalContractSettlement::calculate(3000, 60, 3000, 34, earlyClosureDailyRate: 70);
+        $this->assertSame(2380.0, $result['earned_amount']);
+        $this->assertSame(620.0, $result['refund_value']);
+    }
+
+    public function test_a_completed_contract_ignores_an_early_price(): void
+    {
+        $result = RentalContractSettlement::calculate(1500, 30, 1500, 30, earlyClosureDailyRate: 100);
+        $this->assertSame(1500.0, $result['used_cost']);
+        $this->assertNull($result['early_closure_daily_rate_override']);
+    }
+
+    public function test_zero_is_an_explicit_overdue_waiver(): void
+    {
+        $result = RentalContractSettlement::calculate(1500, 30, 1500, 30, 4, overdueDailyRate: 0);
+        $this->assertSame(0.0, $result['overdue_cost']);
+        $this->assertSame(0.0, $result['company_due_value']);
+    }
+
+    public function test_custom_price_works_with_partial_payment_without_refunding_unpaid_money(): void
+    {
+        $result = RentalContractSettlement::calculate(1500, 30, 100, 4, earlyClosureDailyRate: 100);
+        $this->assertSame(0.0, $result['refund_value']);
+        $this->assertSame(300.0, $result['company_due_value']);
+    }
+
+    public function test_custom_daily_price_rounds_the_total_in_currency(): void
+    {
+        $result = RentalContractSettlement::calculate(2000, 30, 2000, 7, earlyClosureDailyRate: 80.25);
+        $this->assertSame(561.75, $result['used_cost']);
+        $this->assertSame(1438.25, $result['refund_value']);
+    }
+
+    public function test_custom_prices_cannot_be_combined_with_discounts(): void
+    {
+        $this->expectException(\InvalidArgumentException::class);
+        RentalContractSettlement::calculate(1500, 30, 1500, 4, dailyDiscountType: 'fixed', dailyDiscountValue: 10, earlyClosureDailyRate: 100);
+    }
+
+    public function test_a_negative_custom_price_is_rejected(): void
+    {
+        $this->expectException(\InvalidArgumentException::class);
+        RentalContractSettlement::calculate(1500, 30, 1500, 4, overdueDailyRate: -1);
+    }
+
     public function test_an_unpaid_contract_is_never_refunded(): void
     {
         // The reported bug: a 3-month contract (1 month + 2 months extension)

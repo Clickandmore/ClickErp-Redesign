@@ -328,6 +328,14 @@ class ReconcileRentalClosures extends Command
         [$usedDays, $overdueDays] = $this->days($contract, $totalDays);
 
         $earned = RentalClosureReconciler::earned($invoiced, $totalDays, $usedDays, $overdueDays);
+        // Approved closure pricing is a business decision, not a ledger error.
+        // Keep the exact earned amount saved by the transactional close flow.
+        $pricing = $info->closure_pricing;
+        if (is_array($pricing) && $contract->closed_at
+            && ($pricing['closure_date'] ?? null) === $contract->closed_at->toDateString()
+            && isset($pricing['earned_amount']) && is_numeric($pricing['earned_amount'])) {
+            $earned = round(max(0, (float) $pricing['earned_amount']), 2);
+        }
         $settlement = RentalClosureReconciler::settle($invoiced, $paid, $earned);
         $difference = round($actual - $settlement['expected_balance'], 2);
 

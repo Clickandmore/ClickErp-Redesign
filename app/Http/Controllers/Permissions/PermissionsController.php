@@ -1407,6 +1407,17 @@ class PermissionsController extends Controller
 
     private function buildPermissionMatrixEntry(Permission $permission): array
     {
+        if (in_array($permission->name, [\App\PermKeys::RENT_CONTRACT_CLOSURE_ADJUSTMENT_OVERRIDE, \App\PermKeys::RENT_CONTRACT_CLOSURE_ADJUSTMENT_APPROVE], true)) {
+            $label = $permission->name === \App\PermKeys::RENT_CONTRACT_CLOSURE_ADJUSTMENT_OVERRIDE
+                ? 'تعديل تسوية إنهاء عقد الإيجار' : 'اعتماد تسوية إنهاء عقد الإيجار';
+            return [
+                'name' => $permission->name, 'display_name' => $label,
+                'description' => $this->getPermissionDescription($permission),
+                'resource_key' => 'rent_contract_closure_adjustment',
+                'resource_title' => 'تسوية إنهاء عقد الإيجار',
+                'matrix_column' => null, 'extra_label' => $label,
+            ];
+        }
         if (str_starts_with($permission->name, 'hourly_') && ($page = \App\Support\HourlyPermissionCatalog::page($permission->name))) {
             $action = \App\Support\HourlyPermissionCatalog::action($permission->name);
             $label = \App\Support\HourlyPermissionCatalog::label($permission->name) ?? $this->getPermissionDisplayName($permission);
