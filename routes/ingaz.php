@@ -520,6 +520,8 @@ Route::group(
             Route::post('RecruitmentContract/{contract}/restore-returned', [RecruitmentContractController::class, 'restoreReturned'])->name('RecruitmentContract.restoreReturned');
             Route::post('RecruitmentContract/{contract}/release-maid', [RecruitmentContractController::class, 'releaseMaidAfterCompletion'])->name('RecruitmentContract.releaseMaidAfterCompletion');
 
+            Route::get('RecruitmentContract/{contract}/client-options', [RecruitmentContractController::class, 'clientChangeOptions'])->name('RecruitmentContract.clientChangeOptions');
+            Route::post('RecruitmentContract/{contract}/change-client', [RecruitmentContractController::class, 'changeClient'])->name('RecruitmentContract.changeClient');
             Route::resource('RecruitmentContract', RecruitmentContractController::class);
             Route::get('RecruitmentContractBack/{id}', [RecruitmentContractController::class, 'back'])->name('RecruitmentContract.back');
             Route::get('contractsDetails/{id}', [RecruitmentContractController::class, 'details'])->name('contracts.details');

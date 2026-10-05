@@ -2085,6 +2085,8 @@ class RecruitmentContractController extends Controller
             'notes.admin'
         ])->findOrFail($id);
 
+        $this->assertCanAccessBranchModel($contract, 'contracts');
+
         // إضافة علاقة order فقط إذا كان order_id موجود
         if ($contract->order_id) {
             $contract->load(['order.details.admin']);
@@ -2157,6 +2159,10 @@ class RecruitmentContractController extends Controller
         $contractStageSteps = $this->getContractStageSteps($contract);
         $currentContractStageStep = app(RecruitmentContractStageStepService::class)->currentStep($contract);
         $canUpdateContractStageSteps = $this->canUpdateRecruitmentContracts();
+        $canChangeContractClient = (bool) @AdminGuardHasAnyPerm([\App\NewPermKeys::REC_CONTRACTS_EDIT, \App\NewPermKeys::REC_CONTRACTS_MANAGE]);
+        $clientChangeBlocker = $canChangeContractClient
+            ? app(\App\Services\ingaz\RecruitmentContractClientChangeService::class)->blockingReason($contract)
+            : null;
 
         $contractExtensionRequests = \App\Models\ContractExtensionRequest::with(['requestedBy', 'processedBy'])
             ->where('contract_id', $contract->id)
@@ -2178,8 +2184,62 @@ class RecruitmentContractController extends Controller
             'canCreateInvoiceCreditNotes',
             'contractStageSteps',
             'currentContractStageStep',
-            'canUpdateContractStageSteps'
+            'canUpdateContractStageSteps',
+            'canChangeContractClient',
+            'clientChangeBlocker'
         ));
+    }
+
+    public function clientChangeOptions(Request $request, Contract $contract)
+    {
+        abort_unless(@AdminGuardHasAnyPerm([\App\NewPermKeys::REC_CONTRACTS_EDIT, \App\NewPermKeys::REC_CONTRACTS_MANAGE]), 403);
+        $this->assertCanAccessBranchModel($contract, 'contracts');
+        $service = app(\App\Services\ingaz\RecruitmentContractClientChangeService::class);
+        if ($blocker = $service->blockingReason($contract)) {
+            return response()->json(['success' => false, 'message' => $blocker], 422);
+        }
+        $validated = $request->validate(['term' => 'nullable|string|max:100', 'page' => 'nullable|integer|min:1']);
+        $term = trim($validated['term'] ?? '');
+        $clients = $service->eligibleClientsQuery()->where('id', '!=', $contract->user_id ?: 0)
+            ->when($term !== '', function ($query) use ($term) {
+                $query->where(function ($query) use ($term) {
+                    foreach (['name', 'phone', 'national_num', 'tax_number'] as $column) {
+                        $query->orWhere($column, 'like', '%' . $term . '%');
+                    }
+                });
+            })->orderByDesc('id')->paginate(10, ['id', 'name', 'phone', 'national_num', 'tax_number', 'client_type']);
+        return response()->json([
+            'results' => $clients->getCollection()->map(fn ($client) => [
+                'id' => $client->id,
+                'text' => collect([$client->name, $client->phone, $client->documentNumber()])->filter()->implode(' — '),
+            ])->values(),
+            'pagination' => ['more' => $clients->hasMorePages()],
+        ]);
+    }
+
+    public function changeClient(Request $request, Contract $contract)
+    {
+        abort_unless(@AdminGuardHasAnyPerm([\App\NewPermKeys::REC_CONTRACTS_EDIT, \App\NewPermKeys::REC_CONTRACTS_MANAGE]), 403);
+        $this->assertCanAccessBranchModel($contract, 'contracts');
+        $data = $request->validate([
+            'client_id' => 'required|integer|min:1',
+            'current_client_id' => 'required|integer|min:0',
+            'reason' => ['required', 'string', 'max:1000', function ($attribute, $value, $fail) {
+                if (trim($value) === '') $fail('سبب تغيير العميل مطلوب.');
+            }],
+        ]);
+        try {
+            app(\App\Services\ingaz\RecruitmentContractClientChangeService::class)->change(
+                $contract, (int) $data['client_id'], (int) $data['current_client_id'], trim($data['reason'])
+            );
+            return response()->json(['success' => true, 'message' => 'تم تغيير عميل العقد والطلب المرتبط بنجاح.']);
+        } catch (\Illuminate\Validation\ValidationException $exception) {
+            return response()->json([
+                'success' => false,
+                'message' => collect($exception->errors())->flatten()->first(),
+                'errors' => $exception->errors(),
+            ], 422);
+        }
     }
 
     private function getContractStageSteps(Contract $contract)
@@ -4067,7 +4127,7 @@ class RecruitmentContractController extends Controller
         }
 
         $canSelectAnyMarketer = $this->canSelectAnyMarketer($currentAdmin);
-        $defaultClientNationalityId = Country::query()->where('code', 'SA')->value('id');
+        $this->assertCanAccessBranchModel($contract, 'contracts');
         $resolvedMarketerId = $contract->marketer_id ?: $contract->order?->resolveResponsibleAdminId();
         $fallbackMarketerId = $resolvedMarketerId && \App\Models\auth\Admin::query()->activeForOperations()->whereKey($resolvedMarketerId)->exists()
             ? $resolvedMarketerId
@@ -4078,13 +4138,10 @@ class RecruitmentContractController extends Controller
         ])));
 
         $request->merge([
-            'account_client_type' => $request->input('account_client_type') === 'company' ? 'company' : 'person',
-            'client_nationality_id' => $request->input('client_nationality_id') ?: $defaultClientNationalityId,
             // بدون رجوع تلقائي للمستخدم الحالي: المسوق اختيار صريح مطلوب حتى عند التعديل.
             'marketer_id' => $request->input('marketer_id') ?: null,
         ]);
 
-        $hasClient = !$contract->company_profile_id && (bool) $contract->user;
         $marketerRules = [
             'required',
             Rule::exists('admins', 'id')->where(function ($query) {
@@ -4098,21 +4155,25 @@ class RecruitmentContractController extends Controller
             $marketerRules[] = Rule::in($allowedMarketerIds);
         }
         $request->validate([
-            'client_name' => ($hasClient ? 'required' : 'nullable') . '|string|max:255',
-            'client_phone' => ($hasClient ? 'required' : 'nullable') . '|string|max:50',
-            'client_nationality_id' => 'nullable|exists:countries,id',
-            'client_email' => 'nullable|email',
-            'account_client_type' => 'nullable|in:person,company',
-            'client_national_num' => 'nullable|string|max:100',
-            'client_license_number' => 'nullable|string|max:100',
-            'client_birthdate' => 'nullable|string|max:50',
-            'phone2' => 'nullable|string|max:50',
-            'address' => 'nullable|string|max:255',
-            'city' => 'nullable|string|max:255',
-            'beds_num' => 'nullable',
-            'family_num' => 'nullable',
-            'children' => 'nullable|integer|min:0|max:50',
-            'job' => 'nullable|string|max:255',
+            'client_id' => 'prohibited',
+            'user_id' => 'prohibited',
+            'existing_client_id' => 'prohibited',
+            'new_existing_client_id' => 'prohibited',
+            'client_name' => 'prohibited',
+            'client_phone' => 'prohibited',
+            'client_nationality_id' => 'prohibited',
+            'client_email' => 'prohibited',
+            'account_client_type' => 'prohibited',
+            'client_national_num' => 'prohibited',
+            'client_license_number' => 'prohibited',
+            'client_birthdate' => 'prohibited',
+            'phone2' => 'prohibited',
+            'address' => 'prohibited',
+            'city' => 'prohibited',
+            'beds_num' => 'prohibited',
+            'family_num' => 'prohibited',
+            'children' => 'prohibited',
+            'job' => 'prohibited',
             'maid_name' => 'nullable|string|max:255',
             'maid_passport' => 'nullable|string|max:100',
             'maid_salary' => 'nullable',
@@ -4132,6 +4193,8 @@ class RecruitmentContractController extends Controller
             'required_maid_experience_min' => 'nullable|integer|min:0|max:50',
             'required_maid_job_title' => 'nullable|exists:job_titles,id',
             'required_maid_notes' => 'nullable|string|max:2000',
+        ], [
+            'prohibited' => 'لا يمكن تعديل بيانات العميل أو استبداله من شاشة العقد. صحّح بياناته من شاشة العملاء، واستخدم إجراء مستقل لتغيير صاحب العقد.',
         ]);
 
         $marketerId = (int) $request->marketer_id;
@@ -4161,99 +4224,84 @@ class RecruitmentContractController extends Controller
         }
 
         try {
-            // تحديث بيانات العميل
-            if (!$contract->company_profile_id && $contract->user) {
-                $accountClientType = $request->input('account_client_type') === 'company' ? 'company' : 'person';
-                $contract->user->client_type = $accountClientType;
+            DB::transaction(function () use ($request, $contract, $marketerId) {
+                $contract = Contract::query()->lockForUpdate()->findOrFail($contract->id);
+                if (in_array($contract->status, [ContractStatusEnum::Completed->value, ContractStatusEnum::Refunded->value, ContractStatusEnum::Back->value, ContractStatusEnum::Shelter->value], true)) {
+                    throw \Illuminate\Validation\ValidationException::withMessages(['contract' => 'حالة العقد الحالية لا تسمح بالتعديل.']);
+                }
 
-                $contract->user->update($contract->user->clientTypeAwarePayload([
-                    'client_type' => $accountClientType,
-                    'name' => $request->client_name,
-                    'phone' => $request->client_phone,
-                    'email' => $request->client_email,
-                    'nationality_id' => $request->client_nationality_id,
-                    'license_number' => $accountClientType === 'company' ? $request->client_license_number : null,
-                    'tax_number' => $accountClientType === 'person' ? null : $contract->user->tax_number,
-                    'birthdate' => $request->client_birthdate,
-                    'phone2' => $request->phone2,
-                    'address' => $request->address,
-                    'city' => $request->city,
-                    'rooms_num' => $accountClientType === 'company' ? null : $request->beds_num,
-                    'beds_num' => $accountClientType === 'company' ? null : $request->beds_num,
-                    'family_num' => $request->family_num,
-                    'children' => $request->children,
-                    'job' => $request->job,
-                ], $request->client_national_num));
-            }
+                // تحديث بيانات العاملة
+                if ($contract->maid) {
+                    $contract->maid->update([
+                        'name' => $request->maid_name,
+                        'passport_num' => $request->maid_passport,
+                        'salary' => $request->maid_salary,
+                    ]);
+                }
 
-            // تحديث بيانات العاملة
-            if ($contract->maid) {
-                $contract->maid->update([
-                    'name' => $request->maid_name,
-                    'passport_num' => $request->maid_passport,
-                    'salary' => $request->maid_salary,
-                ]);
-            }
+                // تحديث معلومات العقد
+                if ($contract->info) {
+                    $contract->info->update([
+                        'contract_date' => $request->contract_date,
+                        'msaned_number' => $request->msaned_number,
+                        'visa_number' => $request->visa_number,
+                        'tafwed_number' => $request->tafwed_number,
+                        'visa_milad_date' => $request->visa_milad_date,
+                        'visa_hijry_date' => $request->visa_hijry_date,
+                        'contract_duration' => $request->contract_duration,
+                    ]);
+                }
 
-            // تحديث معلومات العقد
-            if ($contract->info) {
-                $contract->info->update([
+                // لا يتم تعديل حالة العقد من شاشة تعديل البيانات.
+                $contract->update([
                     'contract_date' => $request->contract_date,
-                    'msaned_number' => $request->msaned_number,
-                    'visa_number' => $request->visa_number,
-                    'tafwed_number' => $request->tafwed_number,
-                    'visa_milad_date' => $request->visa_milad_date,
-                    'visa_hijry_date' => $request->visa_hijry_date,
-                    'contract_duration' => $request->contract_duration,
+                    'marketer_id' => $marketerId,
+                    'required_maid_nationality_id' => $request->required_maid_nationality,
+                    'required_maid_religion_id' => $request->required_maid_religion,
+                    'required_maid_age_min' => $request->required_maid_age_min,
+                    'required_maid_age_max' => $request->required_maid_age_max,
+                    'required_maid_experience_min' => $request->required_maid_experience_min,
+                    'required_maid_job_title_id' => $request->required_maid_job_title,
+                    'required_maid_notes' => $request->required_maid_notes,
                 ]);
-            }
 
-            // لا يتم تعديل حالة العقد من شاشة تعديل البيانات.
-            $contract->update([
-                'contract_date' => $request->contract_date,
-                'marketer_id' => $marketerId,
-                'required_maid_nationality_id' => $request->required_maid_nationality,
-                'required_maid_religion_id' => $request->required_maid_religion,
-                'required_maid_age_min' => $request->required_maid_age_min,
-                'required_maid_age_max' => $request->required_maid_age_max,
-                'required_maid_experience_min' => $request->required_maid_experience_min,
-                'required_maid_job_title_id' => $request->required_maid_job_title,
-                'required_maid_notes' => $request->required_maid_notes,
-            ]);
+                // تحديث حالة العاملات تلقائياً
+                if ($contract->maid_id) {
+                    $maid = Maid::find($contract->maid_id);
+                    if ($maid) {
+                        // التحقق من حالة العقد
+                        $isActiveContract = !in_array($contract->status, ['back', 'closed', 'completed']);
 
-            // تحديث حالة العاملات تلقائياً
-            if ($contract->maid_id) {
-                $maid = Maid::find($contract->maid_id);
-                if ($maid) {
-                    // التحقق من حالة العقد
-                    $isActiveContract = !in_array($contract->status, ['back', 'closed', 'completed']);
-
-                    if ($isActiveContract) {
-                        // العقد نشط، العاملة يجب أن تكون محجوزة
-                        $maid->update([
-                            'available' => false,
-                            'status' => 'reserved'
-                        ]);
-                    } else {
-                        // العقد غير نشط، التحقق من وجود عقود أخرى نشطة
-                        $activeContracts = $maid->contracts()->whereNotIn('status', ['back', 'closed', 'completed'])->get();
-                        $activeOrders = $maid->orders()->whereIn('status', ['pending', 'approved', 'in_progress'])->get();
-
-                        if ($activeContracts->count() == 0 && $activeOrders->count() == 0) {
-                            // لا توجد عقود أو طلبات نشطة، العاملة يمكن أن تكون متاحة
+                        if ($isActiveContract) {
+                            // العقد نشط، العاملة يجب أن تكون محجوزة
                             $maid->update([
-                                'available' => true,
-                                'status' => 'available'
+                                'available' => false,
+                                'status' => 'reserved'
                             ]);
+                        } else {
+                            // العقد غير نشط، التحقق من وجود عقود أخرى نشطة
+                            $activeContracts = $maid->contracts()->whereNotIn('status', ['back', 'closed', 'completed'])->get();
+                            $activeOrders = $maid->orders()->whereIn('status', ['pending', 'approved', 'in_progress'])->get();
+
+                            if ($activeContracts->count() == 0 && $activeOrders->count() == 0) {
+                                // لا توجد عقود أو طلبات نشطة، العاملة يمكن أن تكون متاحة
+                                $maid->update([
+                                    'available' => true,
+                                    'status' => 'available'
+                                ]);
+                            }
                         }
                     }
                 }
-            }
+
+            });
 
             return response()->json([
                 'success' => true,
                 'message' => 'تم تحديث العقد بنجاح'
             ]);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return response()->json(['success' => false, 'message' => $e->getMessage(), 'errors' => $e->errors()], 422);
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
