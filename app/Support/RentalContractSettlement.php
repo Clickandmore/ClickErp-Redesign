@@ -25,7 +25,9 @@ final class RentalContractSettlement
         int $usedDays,
         int $overdueDays = 0,
         ?string $dailyDiscountType = null,
-        float $dailyDiscountValue = 0
+        float $dailyDiscountValue = 0,
+        ?float $earlyClosureDailyRate = null,
+        ?float $overdueDailyRate = null
     ): array {
         $contractValue = self::money(max(0, $contractValue));
         $paidAmount = self::money(max(0, $paidAmount));
@@ -34,6 +36,18 @@ final class RentalContractSettlement
         $overdueDays = max(0, $overdueDays);
 
         $rawDailyRate = $durationDays > 0 ? ($contractValue / $durationDays) : 0.0;
+
+        if (($earlyClosureDailyRate !== null || $overdueDailyRate !== null) && $dailyDiscountType !== null) {
+            throw new \InvalidArgumentException('Custom daily rates cannot be combined with a daily discount.');
+        }
+        foreach ([$earlyClosureDailyRate, $overdueDailyRate] as $rate) {
+            if ($rate !== null && (!is_finite($rate) || $rate < 0)) {
+                throw new \InvalidArgumentException('Daily rates must be finite and non-negative.');
+            }
+        }
+        // A custom early rate applies only to an incomplete period. A full
+        // contract keeps its agreed price, regardless of the overdue rate.
+        $hasEarlyRate = $earlyClosureDailyRate !== null && $durationDays > 0 && $usedDays < $durationDays;
 
         $dailyDiscountValue = max(0, $dailyDiscountValue);
         $discountBaseDailyRate = self::money($rawDailyRate);
@@ -46,8 +60,13 @@ final class RentalContractSettlement
             ? max(0, $discountBaseDailyRate - $discountPerDay)
             : $rawDailyRate;
 
-        $usedCost = self::money(min($contractValue, $adjustedDailyRate * $usedDays));
-        $overdueCost = self::money($adjustedDailyRate * $overdueDays);
+        $usedDailyRate = $hasEarlyRate ? self::money($earlyClosureDailyRate) : $adjustedDailyRate;
+        $effectiveOverdueDailyRate = $overdueDailyRate !== null
+            ? self::money($overdueDailyRate) : $adjustedDailyRate;
+        $usedCost = $hasEarlyRate
+            ? self::money($usedDailyRate * $usedDays)
+            : self::money(min($contractValue, $usedDailyRate * $usedDays));
+        $overdueCost = self::money($effectiveOverdueDailyRate * $overdueDays);
         $earnedAmount = self::money($usedCost + $overdueCost);
         $undiscountedEarnedAmount = self::money(
             min($contractValue, $rawDailyRate * $usedDays) + ($rawDailyRate * $overdueDays)
@@ -59,6 +78,10 @@ final class RentalContractSettlement
             'daily_rate' => self::money($rawDailyRate),
             'raw_daily_rate' => $rawDailyRate,
             'adjusted_daily_rate' => self::money($adjustedDailyRate),
+            'used_daily_rate' => self::money($usedDailyRate),
+            'overdue_daily_rate' => self::money($effectiveOverdueDailyRate),
+            'early_closure_daily_rate_override' => $hasEarlyRate ? self::money($earlyClosureDailyRate) : null,
+            'overdue_daily_rate_override' => $overdueDailyRate !== null ? self::money($overdueDailyRate) : null,
             'daily_discount_type' => $dailyDiscountType,
             'daily_discount_value' => self::money($dailyDiscountValue),
             'discount_per_day' => self::money($discountPerDay),

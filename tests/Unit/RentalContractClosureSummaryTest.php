@@ -276,7 +276,10 @@ class RentalContractClosureSummaryTest extends TestCase
         float $contractValue = 1565.00,
         array $adjustments = [],
         ?string $dailyDiscountType = null,
-        float $dailyDiscountValue = 0.0
+        float $dailyDiscountValue = 0.0,
+        ?float $earlyClosureDailyRate = null,
+        ?float $overdueDailyRate = null,
+        ?array $savedPricing = null
     ): array {
         $package = new Package([
             'days_count' => 30,
@@ -295,10 +298,15 @@ class RentalContractClosureSummaryTest extends TestCase
             'payment_status' => $paymentStatus,
             'ingaz_from' => $startDate,
             'ingaz_to' => $endDate,
+            'closure_pricing' => $savedPricing,
         ]);
         $info->setRelation('package', $package);
 
         $contract = new FakeAdjustmentsRentalContract();
+        if ($savedPricing) {
+            $contract->closed_at = $closureDate;
+            $contract->status = 'cancelled';
+        }
         $contract->setRelation('info', $info);
         $contract->setRelation('order', null);
         $contract->setRelation('maid', null);
@@ -320,8 +328,51 @@ class RentalContractClosureSummaryTest extends TestCase
             $contract,
             Carbon::parse($closureDate),
             $dailyDiscountType,
-            $dailyDiscountValue
+            $dailyDiscountValue,
+            $earlyClosureDailyRate,
+            $overdueDailyRate
         );
+    }
+
+    public function test_custom_early_price_drives_the_note_and_cash_settlement(): void
+    {
+        $summary = $this->buildSummary(paidAmount: 1500, paymentStatus: 'paid',
+            startDate: '2026-08-01', endDate: '2026-08-31', closureDate: '2026-08-04',
+            contractValue: 1500, earlyClosureDailyRate: 100);
+        $this->assertSame(400.0, $summary['earned_amount']);
+        $this->assertSame(1100.0, $summary['document_value']);
+        $this->assertSame(1100.0, $summary['cash_refund_value']);
+        $this->assertSame(0.0, $summary['cash_to_collect_value']);
+    }
+
+    public function test_custom_price_above_the_invoice_creates_a_debit_note(): void
+    {
+        $summary = $this->buildSummary(paidAmount: 1500, paymentStatus: 'paid',
+            startDate: '2026-08-01', endDate: '2026-08-31', closureDate: '2026-08-04',
+            contractValue: 1500, earlyClosureDailyRate: 500);
+        $this->assertSame('company_due', $summary['document_type']);
+        $this->assertSame(500.0, $summary['document_value']);
+        $this->assertSame(500.0, $summary['cash_to_collect_value']);
+    }
+
+    public function test_custom_overdue_price_keeps_the_completed_contract_price(): void
+    {
+        $summary = $this->buildSummary(paidAmount: 1500, paymentStatus: 'paid',
+            startDate: '2026-08-01', endDate: '2026-08-31', closureDate: '2026-09-04',
+            contractValue: 1500, overdueDailyRate: 100);
+        $this->assertSame(1500.0, $summary['used_cost']);
+        $this->assertSame(400.0, $summary['overdue_cost']);
+        $this->assertSame(400.0, $summary['calculated_debit_note_value']);
+        $this->assertSame(400.0, $summary['cash_to_collect_value']);
+    }
+
+    public function test_viewing_a_closed_contract_uses_the_saved_daily_price(): void
+    {
+        $summary = $this->buildSummary(paidAmount: 1500, paymentStatus: 'paid',
+            startDate: '2026-08-01', endDate: '2026-08-31', closureDate: '2026-08-04',
+            contractValue: 1500, savedPricing: ['closure_date' => '2026-08-04', 'early_closure_daily_rate_override' => 100]);
+        $this->assertSame(400.0, $summary['earned_amount']);
+        $this->assertSame(1100.0, $summary['cash_refund_value']);
     }
 }
 

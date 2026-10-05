@@ -2393,7 +2393,9 @@ class RentContractController extends Controller
         RentalContract $contract,
         ?Carbon $closureDate = null,
         ?string $dailyDiscountType = null,
-        float $dailyDiscountValue = 0
+        float $dailyDiscountValue = 0,
+        ?float $earlyClosureDailyRate = null,
+        ?float $overdueDailyRate = null
     ): array
     {
         $contract->loadMissing([
@@ -2406,6 +2408,18 @@ class RentContractController extends Controller
         ]);
 
         $info = $contract->info;
+        // Closed contracts must retain their approved pricing when viewed again.
+        $savedPricing = $info?->closure_pricing;
+        if ($contract->closed_at && is_array($savedPricing)
+            && ($savedPricing['closure_date'] ?? null) === $contract->closed_at->toDateString()
+            && $dailyDiscountType === null && $earlyClosureDailyRate === null && $overdueDailyRate === null
+            && (!$closureDate || $closureDate->toDateString() === $contract->closed_at->toDateString())) {
+            $closureDate = $contract->closed_at->copy();
+            $dailyDiscountType = $savedPricing['daily_discount_type'] ?? null;
+            $dailyDiscountValue = (float) ($savedPricing['daily_discount_value'] ?? 0);
+            $earlyClosureDailyRate = $savedPricing['early_closure_daily_rate_override'] ?? null;
+            $overdueDailyRate = $savedPricing['overdue_daily_rate_override'] ?? null;
+        }
         // Extending a contract only pushes `ingaz_to` forward; the duration,
         // value and payments stay on the extension rows. Settling against the
         // base contract alone priced a 3-month contract as a 1-month one.
@@ -2580,7 +2594,9 @@ class RentContractController extends Controller
             (int) ($usedDays ?? 0),
             $overdueDays,
             $dailyDiscountType,
-            $dailyDiscountValue
+            $dailyDiscountValue,
+            $earlyClosureDailyRate,
+            $overdueDailyRate
         );
         $dailyRate = $settlement['daily_rate'];
         $usedCost = $usedDays !== null ? $settlement['used_cost'] : 0.0;
@@ -2652,6 +2668,11 @@ class RentContractController extends Controller
             'overdue_days' => $overdueDays,
             'daily_rate' => $dailyRate,
             'adjusted_daily_rate' => $settlement['adjusted_daily_rate'],
+            'used_daily_rate' => $settlement['used_daily_rate'],
+            'overdue_daily_rate' => $settlement['overdue_daily_rate'],
+            'overdue_cost' => $settlement['overdue_cost'],
+            'early_closure_daily_rate_override' => $settlement['early_closure_daily_rate_override'],
+            'overdue_daily_rate_override' => $settlement['overdue_daily_rate_override'],
             'daily_discount_type' => $settlement['daily_discount_type'],
             'daily_discount_value' => $settlement['daily_discount_value'],
             'discount_per_day' => $settlement['discount_per_day'],
@@ -2810,20 +2831,33 @@ class RentContractController extends Controller
      */
     public function getContractDetails(Request $request, $id)
     {
+        $customRatesRequested = $request->boolean('use_custom_daily_rates');
+        if ($customRatesRequested) {
+            $this->assertClosurePricingPermission();
+        }
         try {
             $request->validate([
                 'closure_date' => 'nullable|date',
                 'daily_discount_type' => 'nullable|in:fixed,percentage',
                 'daily_discount_value' => 'nullable|numeric|min:0',
+                'use_custom_daily_rates' => 'nullable|boolean',
+                'early_closure_daily_rate' => 'nullable|numeric|min:0|max:999999.99|regex:/^\d+(\.\d{1,2})?$/',
+                'overdue_daily_rate' => 'nullable|numeric|min:0|max:999999.99|regex:/^\d+(\.\d{1,2})?$/',
             ]);
 
             $contract = RentalContract::with(['user', 'maid', 'info', 'financialAdjustments', 'financeInvoice'])->findOrFail($id);
             $closureDate = $this->closureDateFromRequest($request);
+            $this->assertClosureDateIsValidForContract($contract, $closureDate);
+            if ($customRatesRequested) {
+                $this->assertCustomClosureRatesAreValid($request, $this->buildRentalClosureSummary($contract, $closureDate));
+            }
             $summary = $this->buildRentalClosureSummary(
                 $contract,
                 $closureDate,
                 $request->input('daily_discount_type'),
-                (float) $request->input('daily_discount_value', 0)
+                (float) $request->input('daily_discount_value', 0),
+                $customRatesRequested && $request->filled('early_closure_daily_rate') ? (float) $request->input('early_closure_daily_rate') : null,
+                $customRatesRequested && $request->filled('overdue_daily_rate') ? (float) $request->input('overdue_daily_rate') : null
             );
             $remainingDays = (int) ($summary['remaining_days_value'] ?? 0);
             $attachments = collect($this->collectRentalContractAttachments($contract))
@@ -2856,6 +2890,11 @@ class RentContractController extends Controller
                 'overdue_days' => $summary['overdue_days'],
                 'daily_rate' => $summary['daily_rate'],
                 'adjusted_daily_rate' => $summary['adjusted_daily_rate'],
+                'used_daily_rate' => $summary['used_daily_rate'],
+                'overdue_daily_rate' => $summary['overdue_daily_rate'],
+                'overdue_cost' => $summary['overdue_cost'],
+                'early_closure_daily_rate_override' => $summary['early_closure_daily_rate_override'],
+                'overdue_daily_rate_override' => $summary['overdue_daily_rate_override'],
                 'daily_discount_type' => $summary['daily_discount_type'],
                 'daily_discount_value' => $summary['daily_discount_value'],
                 'discount_per_day' => $summary['discount_per_day'],
@@ -2892,6 +2931,8 @@ class RentContractController extends Controller
                 'contract' => $contractData
             ]);
 
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            throw $e;
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
@@ -2900,9 +2941,38 @@ class RentContractController extends Controller
         }
     }
 
-    /**
-     * Close contract and make maid available
-     */
+    private function assertClosurePricingPermission(): void
+    {
+        $permissions = auth('admin')->user()?->getAllPermissions()->pluck('name') ?? collect();
+        abort_unless($permissions->contains(PermKeys::RENT_CONTRACT_CLOSURE_ADJUSTMENT_OVERRIDE), 403,
+            'ليس لديك صلاحية تعديل تسعير إنهاء العقد.');
+        abort_unless($permissions->contains(PermKeys::RENT_CONTRACT_CLOSURE_ADJUSTMENT_APPROVE), 403,
+            'يلزم منح صلاحية اعتماد التسوية لتعديل تسعير اليوم.');
+    }
+
+    private function assertCustomClosureRatesAreValid(Request $request, array $summary): void
+    {
+        $errors = [];
+        if ($request->boolean('use_daily_discount') || $request->filled('daily_discount_type')
+            || $request->boolean('use_manual_adjustment')) {
+            $errors['use_custom_daily_rates'] = 'اختر تسعير اليوم أو الخصم أو التسوية اليدوية؛ لا يمكن جمعها.';
+        }
+        if (!$request->filled('early_closure_daily_rate') && !$request->filled('overdue_daily_rate')) {
+            $errors['early_closure_daily_rate'] = 'أدخل تكلفة اليوم للإنهاء المبكر أو للأيام بعد انتهاء العقد.';
+        }
+        if ($request->filled('early_closure_daily_rate')
+            && (!$summary['is_early_closure'] || $summary['used_days'] >= $summary['duration_days'])) {
+            $errors['early_closure_daily_rate'] = 'تعديل تكلفة الأيام المستخدمة متاح فقط قبل اكتمال مدة العقد.';
+        }
+        if ($request->filled('overdue_daily_rate') && $summary['overdue_days'] <= 0) {
+            $errors['overdue_daily_rate'] = 'لا توجد أيام بعد انتهاء العقد لتطبيق هذا السعر عليها.';
+        }
+        if ($errors) {
+            throw \Illuminate\Validation\ValidationException::withMessages($errors);
+        }
+    }
+
+    /** Close contract and make maid available using the server-side settlement. */
     public function closeAndMakeAvailable(
         $id,
         Request $request,
@@ -2921,6 +2991,10 @@ class RentContractController extends Controller
             'daily_discount_type' => 'nullable|required_if:use_daily_discount,1|in:fixed,percentage',
             'daily_discount_value' => 'nullable|required_if:use_daily_discount,1|numeric|min:0.01',
             'daily_discount_reason' => 'nullable|required_if:use_daily_discount,1|string|max:1000',
+            'use_custom_daily_rates' => 'nullable|boolean',
+            'early_closure_daily_rate' => 'nullable|numeric|min:0|max:999999.99|regex:/^\d+(\.\d{1,2})?$/',
+            'overdue_daily_rate' => 'nullable|numeric|min:0|max:999999.99|regex:/^\d+(\.\d{1,2})?$/',
+            'custom_daily_rate_reason' => 'nullable|required_if:use_custom_daily_rates,1|string|max:1000|regex:/\S/u',
             'closure_return_reason' => 'nullable|string|max:1000',
             'close_payment_status' => 'nullable|in:paid,partial,pending,later,bank_pending',
             'close_payment_receipt' => 'nullable|file|mimes:jpg,jpeg,png,pdf|max:4096',
@@ -2930,6 +3004,7 @@ class RentContractController extends Controller
         ]);
         $manualOverrideRequested = $request->boolean('use_manual_adjustment');
         $dailyDiscountRequested = $request->boolean('use_daily_discount');
+        $customRatesRequested = $request->boolean('use_custom_daily_rates');
         $currentAdmin = auth('admin')->user();
 
         if ($manualOverrideRequested && $dailyDiscountRequested) {
@@ -2951,6 +3026,9 @@ class RentContractController extends Controller
                 'لا يمكن تنفيذ التسوية المعدلة قبل منح صلاحية اعتمادها.'
             );
         }
+        if ($customRatesRequested) {
+            $this->assertClosurePricingPermission();
+        }
         $sendClosureMessage = $request->boolean('send_closure_message');
         $messageResult = null;
 
@@ -2971,6 +3049,9 @@ class RentContractController extends Controller
             $this->assertClosureDateIsValidForContract($contract, $closureDate);
 
             $baseSummary = $this->buildRentalClosureSummary($contract, $closureDate);
+            if ($customRatesRequested) {
+                $this->assertCustomClosureRatesAreValid($request, $baseSummary);
+            }
 
             if ($dailyDiscountRequested
                 && $validated['daily_discount_type'] === 'percentage'
@@ -2988,12 +3069,14 @@ class RentContractController extends Controller
                 ]);
             }
 
-            $summary = $dailyDiscountRequested
+            $summary = ($dailyDiscountRequested || $customRatesRequested)
                 ? $this->buildRentalClosureSummary(
                     $contract,
                     $closureDate,
-                    $validated['daily_discount_type'],
-                    (float) $validated['daily_discount_value']
+                    $dailyDiscountRequested ? $validated['daily_discount_type'] : null,
+                    $dailyDiscountRequested ? (float) $validated['daily_discount_value'] : 0,
+                    $customRatesRequested && $request->filled('early_closure_daily_rate') ? (float) $validated['early_closure_daily_rate'] : null,
+                    $customRatesRequested && $request->filled('overdue_daily_rate') ? (float) $validated['overdue_daily_rate'] : null
                 )
                 : $baseSummary;
             // نوع المستند يبقى ناتج المحرك المصحح دائماً. يمكن لصاحب صلاحية
@@ -3005,7 +3088,8 @@ class RentContractController extends Controller
                 : round((float) ($summary['document_value'] ?? 0), 2);
             $manualOverrideReason = $manualOverrideRequested
                 ? trim((string) $validated['manual_adjustment_reason'])
-                : ($dailyDiscountRequested ? trim((string) $validated['daily_discount_reason']) : null);
+                : ($dailyDiscountRequested ? trim((string) $validated['daily_discount_reason'])
+                    : ($customRatesRequested ? trim((string) $validated['custom_daily_rate_reason']) : null));
 
             if ($manualOverrideRequested && ($summary['document_type'] ?? 'none') === 'none') {
                 throw \Illuminate\Validation\ValidationException::withMessages([
@@ -3049,6 +3133,25 @@ class RentContractController extends Controller
                 'remaining_amount' => $newRemainingAmount,
                 'closure_return_reason' => $closureReturnReason !== '' ? $closureReturnReason : null,
             ];
+            if ($customRatesRequested || $dailyDiscountRequested) {
+                $infoUpdates['closure_pricing'] = [
+                    'closure_date' => $closureDate->toDateString(),
+                    'early_closure_daily_rate_override' => $summary['early_closure_daily_rate_override'],
+                    'overdue_daily_rate_override' => $summary['overdue_daily_rate_override'],
+                    'daily_discount_type' => $summary['daily_discount_type'],
+                    'daily_discount_value' => $summary['daily_discount_value'],
+                    'used_daily_rate' => $summary['used_daily_rate'],
+                    'overdue_daily_rate' => $summary['overdue_daily_rate'],
+                    'used_days' => $summary['used_days'],
+                    'overdue_days' => $summary['overdue_days'],
+                    'used_cost' => $summary['used_cost'],
+                    'overdue_cost' => $summary['overdue_cost'],
+                    'earned_amount' => $summary['earned_amount'],
+                    'reason' => $manualOverrideReason,
+                    'approved_by' => $currentAdmin->id,
+                    'approved_at' => now()->toIso8601String(),
+                ];
+            }
 
             // The base figures, never the extension-inclusive totals: these
             // columns describe the contract itself and the extension rows are
@@ -3140,6 +3243,11 @@ class RentContractController extends Controller
                                 : number_format((float) $validated['daily_discount_value'], 2) . ' ريال')
                             . ' - إجمالي الخصم: ' . number_format((float) $summary['total_discount'], 2)
                             . ' ريال - السبب: ' . Str::limit($manualOverrideReason, 180)
+                        : '')
+                    . ($customRatesRequested
+                        ? "\nتسعير اليوم المعتمد: مستخدم " . number_format($summary['used_daily_rate'], 2)
+                            . ' / بعد الانتهاء ' . number_format($summary['overdue_daily_rate'], 2)
+                            . ' ريال - السبب: ' . Str::limit($manualOverrideReason, 180)
                         : '');
                 $adjustmentNotes = Str::limit($adjustmentNotes, 500, '');
                 $closureBreakdown = $contract->financeInvoice
@@ -3153,9 +3261,9 @@ class RentContractController extends Controller
                     'calculated_amount' => $calculatedAdjustmentAmount,
                     'manual_override_reason' => $manualOverrideReason,
                     'manual_override_attachment_path' => $manualOverrideAttachmentPath,
-                    'manual_override_by' => ($manualOverrideRequested || $dailyDiscountRequested) ? $currentAdmin->id : null,
-                    'manual_override_approved_by' => ($manualOverrideRequested || $dailyDiscountRequested) ? $currentAdmin->id : null,
-                    'manual_override_approved_at' => ($manualOverrideRequested || $dailyDiscountRequested) ? now() : null,
+                    'manual_override_by' => ($manualOverrideRequested || $dailyDiscountRequested || $customRatesRequested) ? $currentAdmin->id : null,
+                    'manual_override_approved_by' => ($manualOverrideRequested || $dailyDiscountRequested || $customRatesRequested) ? $currentAdmin->id : null,
+                    'manual_override_approved_at' => ($manualOverrideRequested || $dailyDiscountRequested || $customRatesRequested) ? now() : null,
                     'taxable_amount' => $closureBreakdown['taxable_subtotal'],
                     'non_taxable_amount' => $closureBreakdown['salary_exempt_amount'],
                     'vat_amount' => $closureBreakdown['vat_amount'],
@@ -3209,6 +3317,8 @@ class RentContractController extends Controller
                 'daily_discount' => $dailyDiscountRequested,
                 'daily_discount_type' => $dailyDiscountRequested ? $validated['daily_discount_type'] : null,
                 'daily_discount_value' => $dailyDiscountRequested ? (float) $validated['daily_discount_value'] : null,
+                'custom_daily_rates' => $customRatesRequested,
+                'closure_pricing' => $infoUpdates['closure_pricing'] ?? null,
             ]);
 
             DB::commit();

@@ -1633,6 +1633,20 @@
                                     <span class="label">تكلفة اليوم</span>
                                     <span class="value">{{ number_format((float) ($closureSummary['daily_rate'] ?? 0), 2) }} ريال</span>
                                 </li>
+                                @if ($contract->info?->closure_pricing)
+                                    <li>
+                                        <span class="label">تكلفة اليوم المعتمدة داخل العقد</span>
+                                        <span class="value">{{ number_format((float) ($closureSummary['used_daily_rate'] ?? 0), 2) }} ريال</span>
+                                    </li>
+                                    <li>
+                                        <span class="label">تكلفة اليوم بعد انتهاء العقد</span>
+                                        <span class="value">{{ number_format((float) ($closureSummary['overdue_daily_rate'] ?? 0), 2) }} ريال</span>
+                                    </li>
+                                    <li>
+                                        <span class="label">سبب اعتماد التسعير</span>
+                                        <span class="value">{{ $contract->info->closure_pricing['reason'] ?? '-' }}</span>
+                                    </li>
+                                @endif
                             </ul>
 
                         @endif
