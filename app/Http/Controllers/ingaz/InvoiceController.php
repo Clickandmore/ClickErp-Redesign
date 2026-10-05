@@ -1067,7 +1067,7 @@ class InvoiceController extends Controller
      * @param  \Illuminate\Http\Request  $request
      * @return \Illuminate\Http\Response
      */
-    public function store(Request $request, ObjService $service, YearService $yearService, BondService $bondService)
+    public function store(Request $request, ObjService $service, YearService $yearService, BondService $bondService, bool $allowLateContract = false)
     {
         $requiresExternalRecruitmentCost = $request->filled('contract_id')
             || $request->filled('ingaz_delegation_id');
@@ -1164,7 +1164,7 @@ class InvoiceController extends Controller
         if ($request->filled('contract_id')) {
             $contractIsCurrent = Contract::query()
                 ->whereKey($request->contract_id)
-                ->whereIn('status', Contract::invoiceEligibleStatuses())
+                ->whereIn('status', $allowLateContract ? ['arrival', 'completed'] : Contract::invoiceEligibleStatuses())
                 ->exists();
 
             if (!$contractIsCurrent) {
@@ -1176,7 +1176,7 @@ class InvoiceController extends Controller
         }
 
         try {
-            $result = DB::transaction(function () use ($request, $service, $yearService, $bondService) {
+            $result = DB::transaction(function () use ($request, $service, $yearService, $bondService, $allowLateContract) {
                 $invoicePayload = $this->buildInvoicePayload($request);
                 $sendToZatca = $request->has('send_to_zatca') ? $request->boolean('send_to_zatca') : true;
 
@@ -1221,7 +1221,9 @@ class InvoiceController extends Controller
                     $sendToZatca,
                     $service,
                     $yearService,
-                    $bondService
+                    $bondService,
+                    $allowLateContract && AutomaticJournalEntries::enabled(),
+                    $allowLateContract
                 );
             });
         } catch (\Throwable $e) {
@@ -1284,7 +1286,8 @@ class InvoiceController extends Controller
         ObjService $service,
         YearService $yearService,
         BondService $bondService,
-        bool $requireAccountingEntries = false
+        bool $requireAccountingEntries = false,
+        bool $allowLateContract = false
     ): array {
         return DB::transaction(function () use (
             $contractId,
@@ -1294,12 +1297,17 @@ class InvoiceController extends Controller
             $service,
             $yearService,
             $bondService,
-            $requireAccountingEntries
+            $requireAccountingEntries,
+            $allowLateContract
         ) {
             $contract = Contract::query()
                 ->with(['user', 'maid.nationality', 'requiredMaidNationality'])
                 ->lockForUpdate()
                 ->findOrFail($contractId);
+
+            if ($allowLateContract && !$contract->isLateFinanceEligible()) {
+                throw new \RuntimeException('هذه الصفحة مخصصة لعقود الاستقدام بحالة وصول أو مكتملة.');
+            }
 
             if ($contract->invoice()->exists()) {
                 throw new \RuntimeException('هذا العقد لديه فاتورة سابقة');
@@ -1399,6 +1407,14 @@ class InvoiceController extends Controller
                 }
                 if (!$receiptBond || !$receiptBond->constraint_id) {
                     throw new \RuntimeException('لم يتم إنشاء سند القبض وقيده المحاسبي.');
+                }
+            }
+
+            if ($allowLateContract) {
+                $arrivalEntries = app(\App\Services\ingaz\RecruitmentTripAccountingService::class)
+                    ->recordCompletionEntries($contract, new \App\Models\TravelHistory(['arrival_date' => $invoiceDate->toDateString()]));
+                if (!empty($arrivalEntries['warnings'])) {
+                    session()->flash('warning', implode(' ', $arrivalEntries['warnings']));
                 }
             }
 

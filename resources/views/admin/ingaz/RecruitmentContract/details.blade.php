@@ -2164,6 +2164,7 @@
             </div>
 
             <!-- ملاحظات العقد -->
+            @include('admin.ingaz.RecruitmentContract.partials.complaints')
             <div class="row contract-notes-section" id="contractNotesSection">
                 <div class="col-12 mb-4">
                     <div class="info-card">
@@ -2479,6 +2480,13 @@
                     <a href="{{ $deliveryFormUrl }}" class="btn-icon btn-print" title="عرض نموذج تسليم العاملة"
                         target="_blank" rel="noopener">
                         <i class="fas fa-file-signature"></i>
+                    </a>
+                @endif
+
+                @if ($contract->isLateFinanceEligible() && (!$contract->invoice || !$contract->externalOfficeDispatch || !$contract->invoice->ingaz_delegation_cost_constraint_id || !$contract->invoice->musanedTransferItem?->transfer) && @AdminGuardHasPerm(\App\NewPermKeys::REC_CONTRACTS_LATE_FINANCE))
+                    <a href="{{ route('RecruitmentContract.lateFinance.show', $contract->id) }}"
+                        class="btn btn-outline-primary" title="استكمال العمليات المالية">
+                        <i class="fas fa-money-bill-transfer"></i> استكمال العمليات المالية
                     </a>
                 @endif
 

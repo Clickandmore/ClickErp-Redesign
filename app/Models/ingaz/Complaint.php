@@ -95,6 +95,20 @@ class Complaint extends Model
         return $this->belongsTo(Contract::class, 'contract_id');
     }
 
+    public function scopeForRecruitmentContract($query, Contract $contract)
+    {
+        return $query->where(function ($related) use ($contract) {
+            $related->where('contract_id', $contract->id);
+            if ($contract->order_id) {
+                // Include order-level complaints, but never a complaint
+                // explicitly assigned to a different contract on that order.
+                $related->orWhere(function ($orderComplaint) use ($contract) {
+                    $orderComplaint->whereNull('contract_id')->where('order_id', $contract->order_id);
+                });
+            }
+        });
+    }
+
     public function order()
     {
         return $this->belongsTo(Order::class, 'order_id');

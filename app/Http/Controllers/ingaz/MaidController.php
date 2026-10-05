@@ -3478,7 +3478,8 @@ class MaidController extends Controller
             'التكلفة',
             'أنواع الوظائف',
             'الوظائف',
-            'الحالة'
+            'الحالة',
+            'المكتب الخارجي'
         ];
 
         // Set headers in first row
@@ -3500,7 +3501,7 @@ class MaidController extends Controller
                 ],
             ],
         ];
-        $sheet->getStyle('A1:L1')->applyFromArray($headerStyle);
+        $sheet->getStyle('A1:M1')->applyFromArray($headerStyle);
 
         // Set data
         $row = 2;
@@ -3521,11 +3522,12 @@ class MaidController extends Controller
             $sheet->setCellValue('J' . $row, $jobTypes);
             $sheet->setCellValue('K' . $row, $jobTitles);
             $sheet->setCellValue('L' . $row, $statusText);
+            $sheet->setCellValueExplicit('M' . $row, $maid->office?->title ?? '', \PhpOffice\PhpSpreadsheet\Cell\DataType::TYPE_STRING);
             $row++;
         }
 
         // Auto-size columns
-        foreach (range('A', 'L') as $column) {
+        foreach (range('A', 'M') as $column) {
             $sheet->getColumnDimension($column)->setAutoSize(true);
         }
 
@@ -3558,6 +3560,7 @@ class MaidController extends Controller
             ->with([
                 'nationality',
                 'religion',
+                'office',
                 'jobTypes',
                 'jobTitles',
                 'contracts' => function ($query) {

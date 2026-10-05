@@ -500,7 +500,7 @@
             </div>
         @endif
 
-        <form method="post" action="{{ route('invoices.store') }}" id="invoiceForm">
+        <form method="post" action="{{ $invoiceStoreUrl ?? route('invoices.store') }}" id="invoiceForm">
             @csrf
 
             <div class="row g-3 align-items-start">
@@ -1378,6 +1378,11 @@
                                 text: response.message ||
                                     'حدث خطأ أثناء إصدار الفاتورة.',
                             });
+                            return;
+                        }
+
+                        if (response.financial_workspace_url) {
+                            window.location.href = response.financial_workspace_url;
                             return;
                         }
 

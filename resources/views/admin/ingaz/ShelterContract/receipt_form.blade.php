@@ -165,7 +165,7 @@
             <p class="subtitle">{{ $documentSubtitle }}</p>
         </div>
 
-        <h2 class="section-title">بيانات العميل والعاملة</h2>
+        <h2 class="section-title">بيانات العميل والعامل/ة</h2>
         <table class="info-table">
             <tr>
                 <td class="label">اسم العميل</td>
@@ -174,7 +174,7 @@
                 <td class="value">{{ $national_identification_number ?: '--' }}</td>
             </tr>
             <tr>
-                <td class="label">اسم العاملة</td>
+                <td class="label">اسم العامل/ة</td>
                 <td class="value">{{ $cvs_name ?: '--' }}</td>
                 <td class="label">رقم الجواز</td>
                 <td class="value">{{ $passport_id ?: '--' }}</td>
@@ -196,7 +196,7 @@
         <div class="statement">
             <p>
                 أقر أنا <strong>{{ $client_name ?: '....................' }}</strong>، هوية رقم
-                <strong>{{ $national_identification_number ?: '....................' }}</strong>، بأنني قد استلمت العاملة
+                <strong>{{ $national_identification_number ?: '....................' }}</strong>، بأنني قد استلمت العامل/ة
                 <strong>{{ $cvs_name ?: '....................' }}</strong> من {{ $documentOfficeName }} بتاريخ
                 <strong>{{ $date_receipt ?: '--' }}</strong>.
             </p>

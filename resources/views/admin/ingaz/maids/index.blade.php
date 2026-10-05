@@ -163,12 +163,12 @@
                             </a>
                         @endif
                         @if (@AdminGuardHasPerm(\App\PermKeys::MAIDS_EXPORT_PDF))
-                            <a href="{{ route('maids.export.pdf') }}" class="btn btn-outline-danger btn-sm" target="_blank">
+                            <a href="{{ route('maids.export.pdf') }}" data-maid-export="{{ route('maids.export.pdf') }}" class="btn btn-outline-danger btn-sm" target="_blank">
                                 <i class="fas fa-file-pdf me-1"></i>{{ helperTrans('ingaz.export_pdf') }}
                             </a>
                         @endif
                         @if (@AdminGuardHasPerm(\App\PermKeys::MAIDS_EXPORT_EXCEL))
-                            <a href="{{ route('maids.export.excel') }}" class="btn btn-outline-success btn-sm">
+                            <a href="{{ route('maids.export.excel') }}" data-maid-export="{{ route('maids.export.excel') }}" class="btn btn-outline-success btn-sm">
                                 <i class="fas fa-file-excel me-1"></i>{{ helperTrans('ingaz.export_excel') }}
                             </a>
                         @endif
@@ -714,6 +714,22 @@
                     minWidth: menuWidth + 'px'
                 });
             }
+
+            // Use the filters sent to the list, excluding pagination and DataTables metadata.
+            $('#dataTableObject').on('preXhr.dt', function(event, settings, data) {
+                const filters = {};
+                ['keyword', 'status', 'job_type_id', 'request_type', 'experience_status',
+                    'nationality_id', 'office_id', 'visibility', 'video_status', 'pinned',
+                    'date_from', 'date_to'].forEach(function(key) {
+                    if (data[key] !== null && data[key] !== undefined && data[key] !== '') {
+                        filters[key] = data[key];
+                    }
+                });
+                const query = $.param(filters);
+                $('[data-maid-export]').each(function() {
+                    this.href = this.dataset.maidExport + (query ? '?' + query : '');
+                });
+            });
 
             const table = $('#dataTableObject').DataTable({
                 processing: true,

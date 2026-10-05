@@ -14,7 +14,7 @@ class ShelterDocumentFields
         $common = [
             'date' => ['التاريخ / Date', 'date'],
             'contract_number' => ['رقم العقد / Contract No.', 'text'],
-            'worker_name' => ['اسم العاملة / Worker Name', 'text'],
+            'worker_name' => ['اسم العامل/ة / Worker Name', 'text'],
             'nationality' => ['الجنسية / Nationality', 'text'],
             'passport' => ['رقم الجواز / Passport No.', 'text'],
             'worker_id' => ['الإقامة / الحدود / Iqama / Border No.', 'text'],
@@ -67,16 +67,16 @@ class ShelterDocumentFields
         $sections = $kind === 'entry' ? [
             'meta' => ['', ['date', 'contract_number']],
             'client' => ['بيانات العميل | Client Information', ['client_name', 'client_id', 'client_phone']],
-            'worker' => ['بيانات العاملة | Worker Information', ['worker_name', 'nationality', 'passport', 'worker_id', 'arrival_date', 'entry_date']],
+            'worker' => ['بيانات العامل/ة | Worker Information', ['worker_name', 'nationality', 'passport', 'worker_id', 'arrival_date', 'entry_date']],
             'reason' => ['سبب الاستلام | Reason for Receipt', ['reason', 'other_reason', 'details']],
             'belongings' => ['المستندات والمتعلقات | Documents & Belongings', ['belongings', 'other_belongings', 'remarks']],
             'signatures' => ['', ['employee_name', 'supervisor_name']],
         ] : [
             'meta' => ['', ['date', 'exit_time', 'contract_number']],
-            'worker' => ['بيانات العاملة | Worker Information', ['worker_name', 'nationality', 'passport', 'worker_id', 'entry_date']],
+            'worker' => ['بيانات العامل/ة | Worker Information', ['worker_name', 'nationality', 'passport', 'worker_id', 'entry_date']],
             'reason' => ['سبب الخروج | Reason for Release', ['reason', 'other_reason']],
             'recipient' => ['بيانات المستلم | Recipient Information', ['recipient_name', 'recipient_id', 'recipient_phone', 'recipient_capacity']],
-            'employee' => ['بيانات الموظف المسؤول عن خروج العاملة | Responsible Employee', ['employee_name', 'department', 'job_title']],
+            'employee' => ['بيانات الموظف المسؤول عن خروج العامل/ة | Responsible Employee', ['employee_name', 'department', 'job_title']],
             'belongings' => ['المستندات والمتعلقات المسلمة | Documents & Belongings', ['belongings', 'other_belongings', 'remarks']],
             'signatures' => ['', ['supervisor_name']],
         ];

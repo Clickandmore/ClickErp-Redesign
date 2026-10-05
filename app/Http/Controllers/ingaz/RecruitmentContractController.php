@@ -1814,6 +1814,11 @@ class RecruitmentContractController extends Controller
 
                     // الفاتورة
                     $invoice = $row->invoice;
+                    if ($row->isLateFinanceEligible() && (!$invoice || !$row->externalOfficeDispatch || !$invoice->ingaz_delegation_cost_constraint_id || !$invoice->musanedTransferItem?->transfer) && @AdminGuardHasPerm(\App\NewPermKeys::REC_CONTRACTS_LATE_FINANCE)) {
+                            $actions .= '<li><a class="dropdown-item text-primary" href="' . e(route('RecruitmentContract.lateFinance.show', $row->id)) . '">
+                                        <i class="fas fa-money-bill-transfer"></i> استكمال العمليات المالية
+                                    </a></li>';
+                    }
                     if (!$invoice) {
                         if ($row->isInvoiceEligible() && InvoiceAuthorization::canCreate()) {
                             $actions .= '<li><a class="dropdown-item" href="' . route('invoices.create') . '?contract_id=' . $row->id . '" target="_blank">
@@ -2093,6 +2098,13 @@ class RecruitmentContractController extends Controller
         }
 
         $info = $contract->info ?? new ContractInfo();
+        $contractComplaints = @AdminGuardHasPerm(\App\PermKeys::COMPLAINT_VIEW)
+            ? \App\Models\ingaz\Complaint::query()
+                ->forRecruitmentContract($contract)
+                ->with(['complaintType', 'assignedTo'])
+                ->orderByDesc('complaint_date')->orderByDesc('created_at')->orderByDesc('id')
+                ->get()
+            : collect();
 
         // الحصول على بيانات المسوق
         $marketer = null;
@@ -2171,6 +2183,7 @@ class RecruitmentContractController extends Controller
 
         return view('admin.ingaz.RecruitmentContract.details', compact(
             'contract',
+            'contractComplaints',
             'info',
             'marketer',
             'statusTimeline',

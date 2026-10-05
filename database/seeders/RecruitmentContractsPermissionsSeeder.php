@@ -26,6 +26,11 @@ class RecruitmentContractsPermissionsSeeder extends Seeder
 
         // تعريف الصلاحيات الجديدة لعقود الاستقدام
         $permissions = [
+            [
+                'name' => NewPermKeys::REC_CONTRACTS_LATE_FINANCE,
+                'display_name' => 'استكمال العمليات المالية لعقد الاستقدام بعد الوصول',
+                'guard_name' => 'admin',
+            ],
             // الصلاحيات الأساسية للعقود
             [
                 'name' => NewPermKeys::REC_CONTRACTS_VIEW,

@@ -81,7 +81,7 @@ class DelegationCostService
         return array_keys($ids);
     }
 
-    public function post(array $data): int
+    public function post(array $data, bool $allowLateContract = false): int
     {
         Validator::make($data, [
             'date' => 'required|date_format:Y-m-d', 'reference' => 'required|string|max:100',
@@ -110,7 +110,7 @@ class DelegationCostService
             ])->validate();
         }
 
-        return DB::transaction(function () use ($data, $delegationIds, $contractIds, $itemCount) {
+        return DB::transaction(function () use ($data, $delegationIds, $contractIds, $itemCount, $allowLateContract) {
             if (!AutomaticJournalEntries::enabled()) {
                 $this->fail('القيود التلقائية غير مفعلة؛ فعّلها قبل تأكيد تكلفة التفويض.');
             }
@@ -168,9 +168,9 @@ class DelegationCostService
             ];
             $contracts = Contract::query()->without('info')
                 ->whereIn('id', $contractIds)
-                ->whereIn('type', ['recruitment', 'maid'])
-                ->whereIn('status', $currentStatuses)
-                ->whereDoesntHave('travelHistory', fn ($q) => $q->where('status', 'completed'))
+                ->whereIn('type', $allowLateContract ? ['recruitment'] : ['recruitment', 'maid'])
+                ->whereIn('status', $allowLateContract ? ['arrival', 'completed'] : $currentStatuses)
+                ->when(!$allowLateContract, fn ($query) => $query->whereDoesntHave('travelHistory', fn ($q) => $q->where('status', 'completed')))
                 ->orderBy('id')->lockForUpdate()->get();
             if ($contracts->count() !== count($contractIds)) {
                 $this->fail('بعض عقود الاستقدام غير سارية أو غير متاحة لهذا الفرع.');
