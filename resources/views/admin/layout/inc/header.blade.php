@@ -6,6 +6,8 @@ $settings = $settings ?? null;
 $appTimezone = config('app.timezone', 'Asia/Riyadh');
 $headerNow = now()->timezone($appTimezone);
 $productUpdates = \App\Support\ProductUpdatesSettings::all();
+$ckPageTitle = trim($__env->yieldContent('page-title')) ?: trim($__env->yieldContent('title'));
+$ckPageTitle = $ckPageTitle ?: __('admin.dashboard');
 $quickLinks = collect([
     [
         'title' => optional($settings)->header_link_1_title ?? __('admin.layout.default_musaned_pro'),
@@ -358,6 +360,17 @@ $quickLinks = collect([
             <div class="header-left flex-grow-1 d-none d-md-block">
                 <div class="px-3 flex-fill">
                     <div class="cm-header-center">
+                        @if (\App\Support\SystemModuleManager::usesRedesign())
+                            <div class="ck-page-heading">
+                                <small>{{ app()->getLocale() === 'ar' ? 'لوحة الإدارة' : 'Admin panel' }}</small>
+                                <strong>{{ $ckPageTitle }}</strong>
+                            </div>
+                            <label class="ck-header-search">
+                                <i class="fa fa-search" aria-hidden="true"></i>
+                                <input type="search" data-ck-nav-search placeholder="{{ app()->getLocale() === 'ar' ? 'ابحث في القائمة' : 'Search navigation' }}" autocomplete="off">
+                                <kbd>⌘ K</kbd>
+                            </label>
+                        @endif
                         <div class="cm-header-meta">
                             <div class="cm-header-meta-card">
                                 <span class="cm-header-meta-icon">

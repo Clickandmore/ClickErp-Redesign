@@ -1,5 +1,24 @@
 <div class="sidebar p-2 py-md-3 @@cardClass">
     <div class="container-fluid p-0">
+        @if (\App\Support\SystemModuleManager::usesRedesign())
+            @php
+                $ckSidebarLogo = isset($settings) && !empty($settings->admin_logo)
+                    ? showFile($settings->admin_logo)
+                    : (isset($settings) && !empty($settings->logo_header)
+                        ? showFile($settings->logo_header)
+                        : asset('admin/assets/img/company_logo.jpeg'));
+            @endphp
+            <div class="ck-side-brand">
+                <a href="{{ route('dashboard.index') }}" aria-label="{{ __('admin.dashboard') }}">
+                    <img src="{{ $ckSidebarLogo }}" alt="{{ config('app.name') }}" onerror="this.onerror=null;this.src='{{ asset('admin/assets/img/company_logo.jpeg') }}';">
+                </a>
+            </div>
+            <div class="ck-side-search">
+                <i class="fa fa-search" aria-hidden="true"></i>
+                <input type="search" data-ck-nav-search placeholder="{{ app()->getLocale() === 'ar' ? 'بحث في القائمة...' : 'Search navigation...' }}" autocomplete="off">
+                <button type="button" data-ck-nav-clear aria-label="{{ app()->getLocale() === 'ar' ? 'مسح البحث' : 'Clear search' }}"><i class="fa fa-times"></i></button>
+            </div>
+        @endif
         <div class="title-text d-flex align-items-center mb-4 mt-1">
             <h4 class="sidebar-title mb-0 flex-grow-1"><span class="sm-txt"></span>
                 {{-- <span>
@@ -161,7 +180,7 @@
             @endphp
             <ul class="menu-list">
                 <!-- Dashboard Section -->
-                <li class="divider py-2 lh-sm"><span class="small">{{ helperTrans('ingaz.dashboard') }}</span></li>
+                <li class="divider py-2 lh-sm"><span class="small">{{ \App\Support\SystemModuleManager::usesRedesign() ? (app()->getLocale() === 'ar' ? 'عام' : 'General') : helperTrans('ingaz.dashboard') }}</span></li>
                 @if (@AdminGuardCanAccessDashboard())
                     <li>
                         <a class="m-link {{ Route::currentRouteName() == 'dashboard.index' ? 'active' : '' }}"
@@ -170,6 +189,9 @@
                             <span class="ms-2">{{ helperTrans('ingaz.home') }}</span>
                         </a>
                     </li>
+                @endif
+                @if (\App\Support\SystemModuleManager::usesRedesign() && $canViewCrm)
+                    <li class="divider ck-nav-group"><span>{{ app()->getLocale() === 'ar' ? 'العملاء' : 'Customers' }}</span></li>
                 @endif
                 @php
                     $supportedLocales = array_keys(config('laravellocalization.supportedLocales', []));
@@ -238,6 +260,9 @@
                             @include('crm::crm')
                         </ul>
                     </li>
+                @endif
+                @if (\App\Support\SystemModuleManager::usesRedesign() && $canViewOperations)
+                    <li class="divider ck-nav-group"><span>{{ app()->getLocale() === 'ar' ? 'العمليات' : 'Operations' }}</span></li>
                 @endif
                 @if ($canViewOperations)
                     <li
@@ -1100,6 +1125,10 @@
                 @endif
 
                 @include('admin.hourly.sidebar')
+
+                @if (\App\Support\SystemModuleManager::usesRedesign())
+                    <li class="divider ck-nav-group"><span>{{ app()->getLocale() === 'ar' ? 'الإدارة' : 'Management' }}</span></li>
+                @endif
 
                 @php
                     $supportedLocales = array_keys(config('laravellocalization.supportedLocales', []));
@@ -1982,6 +2011,20 @@
         </div>
 
         {{-- @if (Auth::guard('admin')->user()->hasPermission('الإعدادات-انشاء')) --}}
+        @if (\App\Support\SystemModuleManager::usesRedesign())
+            @php
+                $ckSidebarUser = getAuthUser();
+                $ckSidebarInitial = mb_substr((string) optional($ckSidebarUser)->name, 0, 1) ?: 'C';
+            @endphp
+            <div class="ck-side-user">
+                <span class="ck-side-avatar">{{ $ckSidebarInitial }}</span>
+                <span class="ck-side-user-copy">
+                    <b>{{ optional($ckSidebarUser)->name ?: config('app.name') }}</b>
+                    <small>{{ optional(optional($ckSidebarUser)->role)->name ?: (app()->getLocale() === 'ar' ? 'مستخدم النظام' : 'System user') }}</small>
+                </span>
+                <a href="{{ route('admin.logout') }}" title="{{ __('admin.layout.logout') }}"><i class="fa fa-sign-out"></i></a>
+            </div>
+        @endif
         <ul class="menu-list nav navbar-nav flex-row text-center menu-footer-link">
             @if (@AdminGuardHasPerm(\App\PermKeys::SETTINGS_VIEW))
                 <li class="nav-item flex-fill p-2">

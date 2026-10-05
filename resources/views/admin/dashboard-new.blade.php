@@ -3,6 +3,9 @@
 @section('style')
     <link rel="stylesheet" href="{{ asset('admin/assets/css/dashboard-new.css') }}?v=18">
     <link rel="stylesheet" href="{{ asset('admin/assets/cssbundle/fullcalendar.min.css') }}">
+    @if (\App\Support\SystemModuleManager::usesRedesign())
+        <link rel="stylesheet" href="{{ asset('admin/custom/clickerp-dashboard.css') }}?v=1">
+    @endif
 @endsection
 
 @section('page-title')
@@ -175,6 +178,9 @@
     @endphp
 
     @if ($hasDashboardAccess)
+        @if (\App\Support\SystemModuleManager::usesRedesign())
+            <div class="ck-dashboard-page">
+        @endif
         <div class="dashboard-hero surface-card">
             <div class="hero-main">
                 <p class="hero-eyebrow">{{ __('admin.dashboard_new.instant_indicators') }}</p>
@@ -1429,6 +1435,9 @@
                         </div>
                     </div>
                 @endif
+            </div>
+        @endif
+        @if (\App\Support\SystemModuleManager::usesRedesign())
             </div>
         @endif
     @endif

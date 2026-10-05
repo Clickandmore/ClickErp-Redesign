@@ -24,9 +24,13 @@
     {{-- Table some styles --}}
     <link rel="stylesheet" type="text/css" href="{{ asset('admin/assets/css/tables.css') }}">
     <link rel="stylesheet" href="{{ asset('admin/assets/css/theme-clickmore.css') }}?v=17">
+    @if (\App\Support\SystemModuleManager::usesRedesign())
+        <link rel="stylesheet" href="{{ asset('admin/custom/clickerp-redesign.css') }}?v=1">
+        <link rel="stylesheet" href="{{ asset('admin/custom/clickerp-shell.css') }}?v=1">
+    @endif
 
 </head>
-<body class="layout-1  @if (app()->getLocale() == 'ar') rtl_mode @endif " data-luno="theme-blue"> <!-- h-menu  -->
+<body class="layout-1 @if (app()->getLocale() == 'ar') rtl_mode @endif @if (\App\Support\SystemModuleManager::usesRedesign()) clickerp-redesign @endif" data-luno="theme-blue" data-admin-design="{{ \App\Support\SystemModuleManager::adminDesign() }}"> <!-- h-menu  -->
 
 @php
     $sidebarViewData = get_defined_vars();
@@ -58,6 +62,9 @@
 <script src="{{ asset('admin/assets/js/clickmore-sidebar-state.js') }}?v=5"></script>
 <script src="{{ asset('admin/assets/js/notifications.js') }}?v=2"></script>
 <script src="{{ asset('admin/custom/list-state.js') }}?v=1"></script>
+@if (\App\Support\SystemModuleManager::usesRedesign())
+    <script src="{{ asset('admin/custom/clickerp-shell.js') }}?v=1"></script>
+@endif
 
 <script src="{{ asset('admin/assets/vendor/sweetalert2/sweetalert2.all.min.js') }}"></script>
 

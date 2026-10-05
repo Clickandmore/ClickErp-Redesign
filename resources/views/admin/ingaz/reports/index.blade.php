@@ -93,6 +93,9 @@
             }
         }
     </style>
+    @if (\App\Support\SystemModuleManager::usesRedesign())
+        <link rel="stylesheet" href="{{ asset('admin/custom/clickerp-reports.css') }}?v=1">
+    @endif
 @endsection
 
 @section('page-title')
@@ -100,9 +103,9 @@
 @endsection
 
 @section('content')
-    <div class="page-body">
+    <div class="page-body ck-reports-page">
         <div class="container-fluid">
-            <div class="d-sm-flex align-items-center justify-content-between mb-4">
+            <div class="d-sm-flex align-items-center justify-content-between mb-4 reports-page-head">
                 <div>
                     <h3 class="h3 mb-1 text-gray-800">
                         <i class="fas fa-chart-pie text-primary me-2"></i>
@@ -110,10 +113,23 @@
                     </h3>
                     <p class="text-muted mb-0">فلترة أي قائمة وتصديرها من مكان واحد بصيغة PDF موحدة أو Excel.</p>
                 </div>
-                <a href="{{ route('reports.import.index') }}" class="btn btn-primary mt-3 mt-sm-0">
-                    <i class="fas fa-file-import me-1"></i>
-                    استيراد البيانات
-                </a>
+                @if (\App\Support\SystemModuleManager::usesRedesign())
+                    <div class="reports-head-actions">
+                        <label class="reports-search">
+                            <i class="fas fa-search"></i>
+                            <input type="search" id="reportsCatalogSearch" placeholder="ابحث في {{ count($reports) }} تقريرًا..." autocomplete="off">
+                        </label>
+                        <a href="{{ route('reports.import.index') }}" class="btn btn-primary mt-3 mt-sm-0">
+                            <i class="fas fa-file-import me-1"></i>
+                            استيراد البيانات
+                        </a>
+                    </div>
+                @else
+                    <a href="{{ route('reports.import.index') }}" class="btn btn-primary mt-3 mt-sm-0">
+                        <i class="fas fa-file-import me-1"></i>
+                        استيراد البيانات
+                    </a>
+                @endif
             </div>
 
             <div class="card reports-hero mb-4">
@@ -131,9 +147,9 @@
                 </div>
             </div>
 
-            <div class="row g-3 mb-4">
+            <div class="row g-3 mb-4 reports-catalog" id="reportsCatalog">
                 @foreach ($reports as $key => $report)
-                    <div class="col-xl-4 col-md-6">
+                    <div class="col-xl-4 col-md-6" data-report-catalog-item data-report-search="{{ $report['label'] }} {{ $report['description'] }}">
                         <button type="button"
                             class="report-card d-flex align-items-start gap-3 {{ $selectedReport === $key ? 'active' : '' }}"
                             data-report-card="{{ $key }}">
@@ -147,6 +163,11 @@
                         </button>
                     </div>
                 @endforeach
+                @if (\App\Support\SystemModuleManager::usesRedesign())
+                    <div class="col-12 d-none" id="reportsCatalogEmpty">
+                        <div class="reports-empty"><i class="fas fa-search"></i><strong>لا توجد تقارير مطابقة</strong><span>جرّب كلمة بحث أخرى.</span></div>
+                    </div>
+                @endif
             </div>
 
             <div class="card report-filter-card">
@@ -1093,6 +1114,24 @@
             const reportSections = document.querySelectorAll('[data-report-section]');
             const resetButton = document.getElementById('resetReportFilters');
             const exportButtons = document.querySelectorAll('.export-trigger');
+            const catalogSearch = document.getElementById('reportsCatalogSearch');
+            const catalogItems = document.querySelectorAll('[data-report-catalog-item]');
+            const catalogEmpty = document.getElementById('reportsCatalogEmpty');
+
+            if (catalogSearch) {
+                catalogSearch.addEventListener('input', function() {
+                    const query = this.value.trim().toLocaleLowerCase();
+                    let visible = 0;
+
+                    catalogItems.forEach((item) => {
+                        const matches = !query || (item.dataset.reportSearch || '').toLocaleLowerCase().includes(query);
+                        item.classList.toggle('d-none', !matches);
+                        if (matches) visible += 1;
+                    });
+
+                    if (catalogEmpty) catalogEmpty.classList.toggle('d-none', visible !== 0);
+                });
+            }
 
             function updateExportButtons(reportKey) {
                 exportButtons.forEach((button) => {

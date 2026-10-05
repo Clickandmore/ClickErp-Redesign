@@ -283,6 +283,7 @@ class DevSuperAdminController extends Controller
             'productProfileKey' => SystemModuleManager::productProfileKey(),
             'dashboards' => SystemModuleManager::dashboards(),
             'defaultDashboardKey' => SystemModuleManager::defaultDashboardKey(),
+            'adminDesign' => SystemModuleManager::adminDesign(),
             'branchLimit' => SystemModuleManager::branchLimit(),
             'userLimit' => SystemModuleManager::userLimit(),
             'admins' => $admins,
@@ -399,6 +400,7 @@ class DevSuperAdminController extends Controller
             'users_limit' => ['nullable', 'integer', 'min:0'],
             'product_profile' => ['required', 'string', 'in:' . implode(',', array_keys(SystemModuleManager::productProfiles()))],
             'current_product_profile' => ['required', 'string'],
+            'admin_design' => ['nullable', 'string', 'in:classic,redesign'],
         ]);
 
         $productProfile = $data['product_profile'];
@@ -448,6 +450,9 @@ class DevSuperAdminController extends Controller
                 ? SystemModuleManager::defaultDashboardForProfile($productProfile)
                 : (string) $request->input('default_dashboard', 'recruitment');
             SystemModuleManager::updateDefaultDashboard($dashboard);
+            if (isset($data['admin_design'])) {
+                SystemModuleManager::updateAdminDesign($data['admin_design']);
+            }
             SystemModuleManager::updateBranchLimit($data['branches_limit'] ?? null);
             SystemModuleManager::updateUserLimit($data['users_limit'] ?? null);
 

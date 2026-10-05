@@ -13,6 +13,7 @@
     $productProfileKey = $productProfileKey ?? 'recruitment';
     $dashboards = $dashboards ?? [];
     $defaultDashboardKey = $defaultDashboardKey ?? 'recruitment';
+    $adminDesign = $adminDesign ?? 'classic';
     $branchLimit = $branchLimit ?? null;
     $admins = $admins ?? collect();
     $enabledCount = collect($enabledMap)->filter()->count();
@@ -446,6 +447,28 @@
                                 <span class="dashboard-option-url">{{ $dashboard['url'] ?? '' }}</span>
                             </label>
                         @endforeach
+                    </div>
+
+                    <div class="section-heading">
+                        <div>
+                            <h3>نسخة واجهة لوحة الإدارة</h3>
+                            <p>يمكن الرجوع للتصميم الحالي في أي وقت. التفعيل يغيّر العرض فقط ولا يغيّر البيانات أو منطق النظام.</p>
+                        </div>
+                    </div>
+
+                    <div class="dashboard-options">
+                        <label class="dashboard-option">
+                            <input type="radio" name="admin_design" value="classic" {{ old('admin_design', $adminDesign) === 'classic' ? 'checked' : '' }}>
+                            <span class="dashboard-option-title">التصميم الحالي</span>
+                            <span class="dashboard-option-desc">الواجهة المستقرة المستخدمة حاليًا.</span>
+                            <span class="dashboard-option-url">classic</span>
+                        </label>
+                        <label class="dashboard-option">
+                            <input type="radio" name="admin_design" value="redesign" {{ old('admin_design', $adminDesign) === 'redesign' ? 'checked' : '' }}>
+                            <span class="dashboard-option-title">التصميم الجديد — قيد التطوير</span>
+                            <span class="dashboard-option-desc">يُطبّق الأجزاء المنجزة تدريجيًا من مرجع Click ERP Redesign.</span>
+                            <span class="dashboard-option-url">redesign</span>
+                        </label>
                     </div>
 
                     <div class="section-heading">

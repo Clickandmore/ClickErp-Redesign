@@ -14,6 +14,8 @@ class SystemModuleManager
     private const BRANCH_LIMIT_KEY = 'branches_limit';
     private const USER_LIMIT_KEY = 'users_limit';
     private const PRODUCT_PROFILE_KEY = 'product_profile';
+    private const ADMIN_DESIGN_KEY = 'admin_design';
+    private const ADMIN_DESIGNS = ['classic', 'redesign'];
 
     public static function modules(): array
     {
@@ -205,6 +207,46 @@ class SystemModuleManager
         );
 
         Cache::forget(self::SETTINGS_CACHE_KEY . '.default_dashboard');
+    }
+
+    public static function adminDesign(): string
+    {
+        if (! Schema::hasTable('dev_superadmin_settings')) {
+            return 'classic';
+        }
+
+        $value = Cache::remember(self::SETTINGS_CACHE_KEY . '.' . self::ADMIN_DESIGN_KEY, now()->addMinutes(5), function () {
+            return DB::table('dev_superadmin_settings')
+                ->where('key', self::ADMIN_DESIGN_KEY)
+                ->value('value');
+        });
+
+        return in_array($value, self::ADMIN_DESIGNS, true) ? $value : 'classic';
+    }
+
+    public static function usesRedesign(): bool
+    {
+        return self::adminDesign() === 'redesign';
+    }
+
+    public static function updateAdminDesign(string $design): bool
+    {
+        if (! in_array($design, self::ADMIN_DESIGNS, true) || ! Schema::hasTable('dev_superadmin_settings')) {
+            return false;
+        }
+
+        \App\Support\Audit\AuditedSettings::updateOrInsert('dev_superadmin_settings',
+            ['key' => self::ADMIN_DESIGN_KEY],
+            [
+                'value' => $design,
+                'updated_at' => now(),
+                'created_at' => now(),
+            ]
+        );
+
+        Cache::forget(self::SETTINGS_CACHE_KEY . '.' . self::ADMIN_DESIGN_KEY);
+
+        return true;
     }
 
     public static function branchLimit(): ?int

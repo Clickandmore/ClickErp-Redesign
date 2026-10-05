@@ -1,0 +1,343 @@
+/* ClickERP redesign — clients. Loaded only when admin_design=redesign. */
+.clickerp-redesign .ck-clients-index,
+.clickerp-redesign .client-form-page {
+    --ck-client-navy: #163a5f;
+    --ck-client-navy-dark: #102f4e;
+    --ck-client-green: #14b87a;
+    --ck-client-bg: #f5f7fa;
+    --ck-client-border: #e1e7ee;
+    --ck-client-text: #172b3d;
+    --ck-client-muted: #748394;
+    font-family: "Tajawal", "Cairo", sans-serif;
+}
+
+.clickerp-redesign .ck-clients-index {
+    background: var(--ck-client-bg) !important;
+    padding: 22px 20px 50px !important;
+}
+
+.clickerp-redesign .ck-clients-index > .container-fluid {
+    max-width: 1540px;
+    margin-inline: auto;
+}
+
+.clickerp-redesign .ck-clients-index > .container-fluid > .d-sm-flex:first-child {
+    margin: 0 0 20px !important;
+    padding: 0 !important;
+}
+
+.clickerp-redesign .ck-clients-index > .container-fluid > .d-sm-flex:first-child h3 {
+    color: var(--ck-client-text);
+    font-size: 24px;
+    font-weight: 800;
+    letter-spacing: -.25px;
+    margin-bottom: 5px;
+}
+
+.clickerp-redesign .ck-clients-index > .container-fluid > .d-sm-flex:first-child p,
+.clickerp-redesign .ck-clients-index .text-muted {
+    color: var(--ck-client-muted) !important;
+}
+
+.clickerp-redesign .ck-clients-index > .container-fluid > .d-sm-flex:first-child .btn {
+    min-height: 42px;
+    border-radius: 9px;
+    padding-inline: 16px;
+    font-weight: 700;
+    box-shadow: none !important;
+}
+
+.clickerp-redesign .ck-clients-index > .container-fluid > .d-sm-flex:first-child .btn-primary,
+.clickerp-redesign .ck-clients-index .btn-primary {
+    background: var(--ck-client-navy) !important;
+    border-color: var(--ck-client-navy) !important;
+}
+
+.clickerp-redesign .ck-clients-index > .container-fluid > .d-sm-flex:first-child .btn-primary:hover,
+.clickerp-redesign .ck-clients-index .btn-primary:hover {
+    background: var(--ck-client-navy-dark) !important;
+    border-color: var(--ck-client-navy-dark) !important;
+}
+
+.clickerp-redesign .ck-clients-index .row.g-3.mb-4 > [class*="col-"] .card {
+    height: 100%;
+    border: 1px solid var(--ck-client-border) !important;
+    border-radius: 12px;
+    background: #fff;
+    box-shadow: 0 2px 7px rgba(22, 58, 95, .045) !important;
+    overflow: hidden;
+}
+
+.clickerp-redesign .ck-clients-index .row.g-3.mb-4 > [class*="col-"] .card::before {
+    content: "";
+    position: absolute;
+    inset-block: 0;
+    inset-inline-start: 0;
+    width: 4px;
+    background: var(--ck-client-green);
+}
+
+.clickerp-redesign .ck-clients-index .row.g-3.mb-4 > [class*="col-"] .card-body {
+    padding: 18px;
+}
+
+.clickerp-redesign .ck-clients-index .row.g-3.mb-4 .rounded-circle {
+    width: 42px !important;
+    height: 42px !important;
+    border-radius: 10px !important;
+}
+
+.clickerp-redesign .ck-clients-index .row.g-3.mb-4 h3 {
+    color: var(--ck-client-text);
+    font-size: 24px;
+    font-weight: 800;
+}
+
+.clickerp-redesign .ck-clients-index .card {
+    border-color: var(--ck-client-border) !important;
+}
+
+.clickerp-redesign .ck-clients-index > .container-fluid > .card {
+    border: 1px solid var(--ck-client-border) !important;
+    border-radius: 12px;
+    background: #fff;
+    box-shadow: 0 2px 8px rgba(22, 58, 95, .045) !important;
+    overflow: hidden;
+}
+
+.clickerp-redesign .ck-clients-index > .container-fluid > .card .card-header {
+    min-height: 58px;
+    padding: 15px 18px;
+    background: #fff !important;
+    border-bottom: 1px solid var(--ck-client-border);
+}
+
+.clickerp-redesign .ck-clients-index > .container-fluid > .card .card-header h5 {
+    color: var(--ck-client-text);
+    font-size: 16px;
+    font-weight: 800;
+}
+
+.clickerp-redesign .ck-clients-index .form-label {
+    color: #42566a;
+    font-size: 12px;
+    font-weight: 700;
+    margin-bottom: 6px;
+}
+
+.clickerp-redesign .ck-clients-index .form-control,
+.clickerp-redesign .ck-clients-index .form-select,
+.clickerp-redesign .ck-clients-index .select2-container .select2-selection--single,
+.clickerp-redesign .ck-clients-index .select2-container .select2-selection--multiple {
+    min-height: 42px;
+    border-color: #d9e1e9 !important;
+    border-radius: 8px !important;
+    background-color: #fff;
+    box-shadow: none !important;
+}
+
+.clickerp-redesign .ck-clients-index .form-control:focus,
+.clickerp-redesign .ck-clients-index .form-select:focus {
+    border-color: var(--ck-client-navy) !important;
+    box-shadow: 0 0 0 3px rgba(22, 58, 95, .09) !important;
+}
+
+.clickerp-redesign .ck-clients-index .table-responsive {
+    border: 1px solid var(--ck-client-border);
+    border-radius: 10px;
+}
+
+.clickerp-redesign .ck-clients-index table.dataTable {
+    margin: 0 !important;
+    border-collapse: separate !important;
+    border-spacing: 0;
+}
+
+.clickerp-redesign .ck-clients-index table.dataTable thead th {
+    padding: 13px 12px !important;
+    color: #4d6173;
+    background: #f8fafc !important;
+    border-bottom: 1px solid var(--ck-client-border) !important;
+    font-size: 12px;
+    font-weight: 800;
+    white-space: nowrap;
+}
+
+.clickerp-redesign .ck-clients-index table.dataTable tbody td {
+    padding: 13px 12px !important;
+    color: #2a3d4f;
+    border-bottom-color: #edf1f5 !important;
+    vertical-align: middle;
+}
+
+.clickerp-redesign .ck-clients-index table.dataTable tbody tr:hover > * {
+    background: #f7fbfa !important;
+}
+
+.clickerp-redesign .ck-clients-index .dataTables_wrapper .dataTables_filter input,
+.clickerp-redesign .ck-clients-index .dataTables_wrapper .dataTables_length select {
+    min-height: 38px;
+    border: 1px solid #d9e1e9 !important;
+    border-radius: 8px;
+}
+
+.clickerp-redesign .ck-clients-index .page-link {
+    color: var(--ck-client-navy);
+    border-color: var(--ck-client-border);
+    box-shadow: none !important;
+}
+
+.clickerp-redesign .ck-clients-index .page-item.active .page-link {
+    color: #fff;
+    background: var(--ck-client-navy);
+    border-color: var(--ck-client-navy);
+}
+
+/* Create / edit client */
+.clickerp-redesign .client-form-page {
+    max-width: 1260px !important;
+    margin-inline: auto !important;
+    padding: 22px 18px 54px !important;
+}
+
+.clickerp-redesign .client-form-page .client-form-header {
+    margin-bottom: 18px !important;
+    padding: 0 !important;
+    background: transparent !important;
+    border: 0 !important;
+    box-shadow: none !important;
+}
+
+.clickerp-redesign .client-form-page .client-form-header h3,
+.clickerp-redesign .client-form-page .client-form-header h4,
+.clickerp-redesign .client-form-page .client-form-title {
+    color: var(--ck-client-text) !important;
+    font-size: 24px !important;
+    font-weight: 800 !important;
+}
+
+.clickerp-redesign .client-form-page .client-form-header p {
+    color: var(--ck-client-muted) !important;
+}
+
+.clickerp-redesign .client-form-page .client-form-card,
+.clickerp-redesign .client-form-page .card {
+    border: 1px solid var(--ck-client-border) !important;
+    border-radius: 12px !important;
+    box-shadow: 0 3px 12px rgba(22, 58, 95, .055) !important;
+    overflow: hidden;
+}
+
+.clickerp-redesign .client-form-page .client-form-section,
+.clickerp-redesign .client-form-page .card-body {
+    padding: 22px !important;
+}
+
+.clickerp-redesign .client-form-page .section-title,
+.clickerp-redesign .client-form-page .client-section-title,
+.clickerp-redesign .client-form-page .section-heading {
+    color: var(--ck-client-navy) !important;
+    font-size: 16px !important;
+    font-weight: 800 !important;
+    padding-bottom: 12px;
+    margin-bottom: 18px;
+    border-bottom: 1px solid var(--ck-client-border);
+}
+
+.clickerp-redesign .client-form-page .section-title i,
+.clickerp-redesign .client-form-page .client-section-title i,
+.clickerp-redesign .client-form-page .section-heading i {
+    color: var(--ck-client-green) !important;
+}
+
+.clickerp-redesign .client-form-page .form-label {
+    color: #42566a !important;
+    font-size: 12px;
+    font-weight: 700 !important;
+    margin-bottom: 7px;
+}
+
+.clickerp-redesign .client-form-page .form-control,
+.clickerp-redesign .client-form-page .form-select,
+.clickerp-redesign .client-form-page .select2-container .select2-selection--single,
+.clickerp-redesign .client-form-page .select2-container .select2-selection--multiple {
+    min-height: 43px !important;
+    border: 1px solid #d9e1e9 !important;
+    border-radius: 8px !important;
+    background-color: #fff;
+    box-shadow: none !important;
+}
+
+.clickerp-redesign .client-form-page textarea.form-control {
+    min-height: 94px !important;
+}
+
+.clickerp-redesign .client-form-page .form-control:focus,
+.clickerp-redesign .client-form-page .form-select:focus {
+    border-color: var(--ck-client-navy) !important;
+    box-shadow: 0 0 0 3px rgba(22, 58, 95, .09) !important;
+}
+
+.clickerp-redesign .client-form-page .btn-primary,
+.clickerp-redesign .client-form-page .btn-success {
+    min-height: 43px;
+    padding-inline: 22px;
+    border-color: var(--ck-client-navy) !important;
+    border-radius: 8px;
+    background: var(--ck-client-navy) !important;
+    font-weight: 800;
+    box-shadow: none !important;
+}
+
+.clickerp-redesign .client-form-page .btn-outline-secondary,
+.clickerp-redesign .client-form-page .btn-light {
+    min-height: 43px;
+    padding-inline: 20px;
+    border: 1px solid #d7dfe7 !important;
+    border-radius: 8px;
+    background: #fff !important;
+    color: #43586c !important;
+    font-weight: 700;
+}
+
+.clickerp-redesign .client-form-page .client-type-selector .btn-check:checked + .btn,
+.clickerp-redesign .client-form-page .btn-check:checked + .btn-outline-primary {
+    color: #fff !important;
+    background: var(--ck-client-navy) !important;
+    border-color: var(--ck-client-navy) !important;
+}
+
+.clickerp-redesign .client-form-page .form-actions,
+.clickerp-redesign .client-form-page .client-form-actions {
+    position: sticky;
+    bottom: 0;
+    z-index: 5;
+    padding: 14px 20px !important;
+    background: rgba(255, 255, 255, .96) !important;
+    border-top: 1px solid var(--ck-client-border) !important;
+    backdrop-filter: blur(8px);
+}
+
+@media (max-width: 767.98px) {
+    .clickerp-redesign .ck-clients-index,
+    .clickerp-redesign .client-form-page {
+        padding: 16px 12px 38px !important;
+    }
+
+    .clickerp-redesign .ck-clients-index > .container-fluid > .d-sm-flex:first-child,
+    .clickerp-redesign .client-form-page .client-form-header {
+        align-items: stretch !important;
+        flex-direction: column !important;
+        gap: 12px;
+    }
+
+    .clickerp-redesign .ck-clients-index > .container-fluid > .d-sm-flex:first-child .btn,
+    .clickerp-redesign .client-form-page .form-actions .btn {
+        width: 100%;
+    }
+
+    .clickerp-redesign .client-form-page .client-form-section,
+    .clickerp-redesign .client-form-page .card-body {
+        padding: 16px !important;
+    }
+}

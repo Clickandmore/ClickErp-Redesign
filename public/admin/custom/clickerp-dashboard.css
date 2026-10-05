@@ -1,0 +1,155 @@
+/* Dashboard fidelity layer for the optional Click ERP redesign. */
+.clickerp-redesign .page-body > .container-fluid {
+    padding: 0;
+    border-radius: 0 !important;
+    background: transparent !important;
+}
+
+.clickerp-redesign .ck-dashboard-page {
+    width: 100%;
+    max-width: 1500px;
+    margin-inline: auto;
+    padding: 20px 18px 48px;
+    color: var(--ck-shell-body);
+}
+
+.clickerp-redesign .ck-dashboard-page .surface-card,
+.clickerp-redesign .ck-dashboard-page .panel-card,
+.clickerp-redesign .ck-dashboard-page .stat-card,
+.clickerp-redesign .ck-dashboard-page .operations-shell,
+.clickerp-redesign .ck-dashboard-page .contracts-overview-section {
+    border: 1px solid var(--ck-shell-line);
+    border-radius: 12px;
+    background: #fff;
+    box-shadow: 0 1px 2px rgba(16,26,46,.05), 0 8px 24px -16px rgba(16,26,46,.24);
+}
+
+.clickerp-redesign .ck-dashboard-page .dashboard-hero {
+    gap: 26px;
+    padding: 24px 26px;
+    border-radius: 12px;
+    background: #fff;
+}
+
+.clickerp-redesign .ck-dashboard-page .dashboard-hero::after {
+    inset-inline-start: auto;
+    width: 42%;
+    background: radial-gradient(circle at 70% 15%, rgba(122,182,72,.15), transparent 64%);
+}
+
+.clickerp-redesign .ck-dashboard-page .hero-main { gap: 10px; }
+.clickerp-redesign .ck-dashboard-page .hero-eyebrow {
+    color: var(--ck-shell-green-dark);
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: .07em;
+}
+.clickerp-redesign .ck-dashboard-page .hero-main h1 { color: var(--ck-shell-ink); font-size: 24px; font-weight: 800; }
+.clickerp-redesign .ck-dashboard-page .hero-main > p { color: var(--ck-shell-muted); }
+.clickerp-redesign .ck-dashboard-page .live-pill { padding: 4px 10px; color: var(--ck-shell-green-dark); background: var(--ck-shell-green-soft); }
+.clickerp-redesign .ck-dashboard-page .live-pill::before { width: 6px; height: 6px; background: var(--ck-shell-green); animation: none; }
+
+.clickerp-redesign .ck-dashboard-page .hero-quick-actions { margin-top: 7px; }
+.clickerp-redesign .ck-dashboard-page .hero-quick-actions a {
+    padding: 7px 13px;
+    border: 1px solid var(--ck-shell-line);
+    border-radius: 8px;
+    color: var(--ck-shell-ink);
+    background: #fff;
+    box-shadow: none;
+    font-size: 12.5px;
+}
+.clickerp-redesign .ck-dashboard-page .hero-quick-actions a:hover { border-color: var(--ck-shell-navy); color: #fff; background: var(--ck-shell-navy); transform: none; box-shadow: none; }
+
+.clickerp-redesign .ck-dashboard-page .hero-controls {
+    width: min(340px, 100%);
+    padding: 17px;
+    border: 1px solid var(--ck-shell-line);
+    border-radius: 12px;
+    background: var(--ck-shell-bg);
+    box-shadow: none;
+}
+.clickerp-redesign .ck-dashboard-page .hero-controls h5 { color: var(--ck-shell-ink); font-size: 14px; font-weight: 800; }
+.clickerp-redesign .ck-dashboard-page .range-switch { display: flex; gap: 3px; padding: 3px; border: 1px solid var(--ck-shell-line); border-radius: 8px; background: #fff; }
+.clickerp-redesign .ck-dashboard-page .range-btn { flex: 1; padding: 6px; border: 0; border-radius: 6px; color: var(--ck-shell-muted); }
+.clickerp-redesign .ck-dashboard-page .range-btn.active { color: #fff; background: var(--ck-shell-navy); box-shadow: none; }
+.clickerp-redesign .ck-dashboard-page .hero-micro-grid div { padding: 9px; border: 1px solid var(--ck-shell-line-soft); border-radius: 8px; background: #fff; }
+.clickerp-redesign .ck-dashboard-page .hero-micro-grid strong { color: var(--ck-shell-ink); font-size: 19px; }
+
+.clickerp-redesign .ck-dashboard-page .dashboard-route-grid { gap: 12px; margin-top: 16px; }
+.clickerp-redesign .ck-dashboard-page .dashboard-route-card {
+    min-height: 82px;
+    padding: 14px 16px;
+    border: 1px solid var(--ck-shell-line);
+    border-radius: 12px;
+    color: var(--ck-shell-body);
+    background: #fff;
+    box-shadow: none;
+}
+.clickerp-redesign .ck-dashboard-page .dashboard-route-card:hover { border-color: #ccd5e2; color: var(--ck-shell-navy); transform: none; box-shadow: 0 8px 22px -18px rgba(16,26,46,.3); }
+.clickerp-redesign .ck-dashboard-page .dashboard-route-icon { width: 39px; height: 39px; border-radius: 10px; color: var(--ck-shell-navy); background: #eef1f7; }
+.clickerp-redesign .ck-dashboard-page .dashboard-route-card strong { color: var(--ck-shell-ink); font-size: 14px; }
+.clickerp-redesign .ck-dashboard-page .dashboard-route-card small { color: var(--ck-shell-muted); font-size: 11.5px; }
+
+.clickerp-redesign .ck-dashboard-page .stat-row { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; margin-top: 16px; }
+.clickerp-redesign .ck-dashboard-page .stat-card {
+    min-height: 164px;
+    padding: 17px;
+    overflow: hidden;
+    color: var(--ck-shell-body);
+    background: #fff;
+}
+.clickerp-redesign .ck-dashboard-page .stat-card::before { width: 4px; height: auto; inset-block: 0; inset-inline-start: 0; inset-inline-end: auto; background: var(--stat-accent-from); opacity: 1; }
+.clickerp-redesign .ck-dashboard-page .stat-card::after { display: none; }
+.clickerp-redesign .ck-dashboard-page .stat-card-icon { position: static; width: 38px; height: 38px; margin-bottom: 12px; border-radius: 10px; color: var(--ck-shell-navy); background: #eef1f7; box-shadow: none; font-size: 16px; opacity: 1; }
+.clickerp-redesign .ck-dashboard-page .stat-card h3 { color: var(--ck-shell-ink); font-size: 30px; }
+.clickerp-redesign .ck-dashboard-page .stat-label { color: var(--ck-shell-muted); font-weight: 700; }
+.clickerp-redesign .ck-dashboard-page .stat-head { align-items: flex-end !important; }
+.clickerp-redesign .ck-dashboard-page .stat-head .btn { height: 32px; min-height: 32px; padding: 0 10px; border: 1px solid var(--ck-shell-line); border-radius: 7px; }
+.clickerp-redesign .ck-dashboard-page .stat-meta { color: var(--ck-shell-muted); font-size: 12px; }
+.clickerp-redesign .ck-dashboard-page .stat-chip-list { gap: 5px; }
+.clickerp-redesign .ck-dashboard-page .stat-chip-list a,
+.clickerp-redesign .ck-dashboard-page .stat-chip-list span { padding: 3px 8px; border-radius: 999px; color: var(--ck-shell-muted); background: var(--ck-shell-line-soft); font-size: 11px; }
+
+.clickerp-redesign .ck-dashboard-page .operations-shell,
+.clickerp-redesign .ck-dashboard-page .contracts-overview-section,
+.clickerp-redesign .ck-dashboard-page .panel-card { padding: 18px; }
+.clickerp-redesign .ck-dashboard-page .section-eyebrow { color: var(--ck-shell-green-dark); font-size: 10.5px; font-weight: 800; letter-spacing: .07em; }
+.clickerp-redesign .ck-dashboard-page .panel-head { padding-bottom: 14px; border-bottom: 1px solid var(--ck-shell-line-soft); }
+.clickerp-redesign .ck-dashboard-page .panel-head h4,
+.clickerp-redesign .ck-dashboard-page .operations-head h4 { color: var(--ck-shell-ink); font-size: 16px; font-weight: 800; }
+
+.clickerp-redesign .ck-dashboard-page .operations-highlight-grid { gap: 10px; }
+.clickerp-redesign .ck-dashboard-page .operation-tile,
+.clickerp-redesign .ck-dashboard-page .mini-operation-card { border: 1px solid var(--ck-shell-line); border-radius: 9px; background: #fff; box-shadow: none; }
+.clickerp-redesign .ck-dashboard-page .operation-tile:hover,
+.clickerp-redesign .ck-dashboard-page .mini-operation-card:hover { border-color: #ccd5e2; transform: none; box-shadow: none; }
+.clickerp-redesign .ck-dashboard-page .operation-icon,
+.clickerp-redesign .ck-dashboard-page .mini-operation-icon { border-radius: 9px !important; }
+
+.clickerp-redesign .ck-dashboard-page .contracts-overview-section { margin-top: 16px !important; }
+.clickerp-redesign .ck-dashboard-page .overview-metric-card,
+.clickerp-redesign .ck-dashboard-page .contract-stage-item,
+.clickerp-redesign .ck-dashboard-page .analytics-card { border: 1px solid var(--ck-shell-line); border-radius: 9px; background: #fff; box-shadow: none; }
+
+.clickerp-redesign .ck-dashboard-page .row.g-4.mt-3 { --bs-gutter-x: 12px; --bs-gutter-y: 12px; margin-top: 4px !important; }
+.clickerp-redesign .ck-dashboard-page .calendar-shell { border-radius: 9px; overflow: hidden; }
+.clickerp-redesign .ck-dashboard-page .employee-performance-card,
+.clickerp-redesign .ck-dashboard-page .department-activity-item { border-radius: 8px; }
+
+@media (max-width: 1350px) {
+    .clickerp-redesign .ck-dashboard-page .stat-row { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+
+@media (max-width: 1050px) {
+    .clickerp-redesign .ck-dashboard-page .dashboard-hero { flex-direction: column; }
+    .clickerp-redesign .ck-dashboard-page .hero-controls { width: 100%; }
+    .clickerp-redesign .ck-dashboard-page .stat-row { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+@media (max-width: 680px) {
+    .clickerp-redesign .ck-dashboard-page { padding: 14px 10px 36px; }
+    .clickerp-redesign .ck-dashboard-page .dashboard-hero { padding: 18px; }
+    .clickerp-redesign .ck-dashboard-page .stat-row { grid-template-columns: 1fr; }
+    .clickerp-redesign .ck-dashboard-page .dashboard-route-grid { grid-template-columns: 1fr; }
+}

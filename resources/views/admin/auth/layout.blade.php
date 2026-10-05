@@ -73,10 +73,13 @@
     <link rel="stylesheet" href="{{ asset('admin/login') }}/css/style-dashboard.css?v=5">
     <link rel="stylesheet" href="{{ asset('admin/login') }}/css/fontawesome.min.css">
     <link rel="stylesheet" href="{{ asset('admin') }}/assets/vendor/toster/css/jquery.toast.css">
+    @if (\App\Support\SystemModuleManager::usesRedesign())
+        <link rel="stylesheet" href="{{ asset('admin/custom/clickerp-login.css') }}?v=1">
+    @endif
     @stack('auth-styles')
 </head>
 
-<body @if (app()->getLocale() == 'ar') dir="rtl" @endif>
+<body class="{{ \App\Support\SystemModuleManager::usesRedesign() ? 'clickerp-login-redesign' : '' }}" data-admin-design="{{ \App\Support\SystemModuleManager::adminDesign() }}" @if (app()->getLocale() == 'ar') dir="rtl" @else dir="ltr" @endif>
     <div class="auth-page" style="--login-bg-image: url('{{ $loginBg }}');">
         <div class="auth-frame">
             <div class="auth-card">
@@ -137,6 +140,17 @@
                 @endif
             </div>
         </div>
+
+        @if (\App\Support\SystemModuleManager::usesRedesign())
+            <aside class="auth-redesign-visual" aria-hidden="true">
+                <div class="auth-redesign-visual-bg" style="background-image: url('{{ $loginBg }}');"></div>
+                <div class="auth-redesign-visual-copy">
+                    <span>Click ERP</span>
+                    <h2>{{ app()->getLocale() === 'ar' ? 'كل أعمالك في لوحة واحدة واضحة ومنظمة.' : 'All your operations in one clear, organised workspace.' }}</h2>
+                    <p>{{ app()->getLocale() === 'ar' ? 'إدارة العقود والعملاء والمالية والموارد من مكان واحد.' : 'Manage contracts, clients, finance and people from one place.' }}</p>
+                </div>
+            </aside>
+        @endif
 
         <div class="footer">
             <span class="footer-copy">جميع الحقوق محفوظة لـ</span>

@@ -15,6 +15,12 @@
 @endsection
 
 @section('auth-body')
+    @if (\App\Support\SystemModuleManager::usesRedesign())
+        <div class="auth-role-label">
+            <i class="fa fa-shield" aria-hidden="true"></i>
+            <span>{{ app()->getLocale() === 'ar' ? 'دخول موظفي الإدارة' : 'Staff administration login' }}</span>
+        </div>
+    @endif
     <form id="loginForm" action="{{ route('admin.login') }}" method="POST" novalidate>
         @csrf
         <div class="form-alert" role="alert" aria-live="assertive"></div>
