@@ -2093,6 +2093,13 @@ class RecruitmentContractController extends Controller
         }
 
         $info = $contract->info ?? new ContractInfo();
+        $contractComplaints = @AdminGuardHasPerm(\App\PermKeys::COMPLAINT_VIEW)
+            ? \App\Models\ingaz\Complaint::query()
+                ->forRecruitmentContract($contract)
+                ->with(['complaintType', 'assignedTo'])
+                ->orderByDesc('complaint_date')->orderByDesc('created_at')->orderByDesc('id')
+                ->get()
+            : collect();
 
         // الحصول على بيانات المسوق
         $marketer = null;
@@ -2171,6 +2178,7 @@ class RecruitmentContractController extends Controller
 
         return view('admin.ingaz.RecruitmentContract.details', compact(
             'contract',
+            'contractComplaints',
             'info',
             'marketer',
             'statusTimeline',

@@ -2164,6 +2164,7 @@
             </div>
 
             <!-- ملاحظات العقد -->
+            @include('admin.ingaz.RecruitmentContract.partials.complaints')
             <div class="row contract-notes-section" id="contractNotesSection">
                 <div class="col-12 mb-4">
                     <div class="info-card">

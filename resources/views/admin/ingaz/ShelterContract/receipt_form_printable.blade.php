@@ -218,7 +218,7 @@
             <p class="subtitle">{{ $documentSubtitle }}</p>
         </div>
 
-        <div class="section-title">بيانات العميل والعاملة</div>
+        <div class="section-title">بيانات العميل والعامل/ة</div>
         <table class="info-table">
             <tr>
                 <td class="info-label">اسم العميل</td>
@@ -227,7 +227,7 @@
                 <td><span class="field-value ltr">{{ $national_identification_number ?: '--' }}</span></td>
             </tr>
             <tr>
-                <td class="info-label">اسم العاملة</td>
+                <td class="info-label">اسم العامل/ة</td>
                 <td><span class="field-value" dir="auto">{{ $cvs_name ?: '--' }}</span></td>
                 <td class="info-label">رقم الجواز</td>
                 <td><span class="field-value ltr">{{ $passport_id ?: '--' }}</span></td>
@@ -257,7 +257,7 @@
                 <td><strong><span class="field-value ltr">{{ $national_identification_number ?: '....................' }}</span></strong></td>
             </tr>
             <tr>
-                <td class="intro-label">بأنني قد استلمت العاملة</td>
+                <td class="intro-label">بأنني قد استلمت العامل/ة</td>
                 <td><strong><span class="field-value" dir="auto">{{ $cvs_name ?: '....................' }}</span></strong></td>
             </tr>
             <tr>

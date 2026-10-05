@@ -16,8 +16,8 @@
     $partyKey = $kind === 'entry' ? 'client_name' : 'recipient_name';
     $signatures = [
         [$kind === 'entry' ? 'العميل' : 'المستلم', $kind === 'entry' ? 'Client' : 'Recipient', $partyKey, 'التوقيع', 'Signature'],
-        ['العاملة', 'Worker', 'worker_name', 'التوقيع / البصمة', 'Signature / Fingerprint'],
-        [$kind === 'entry' ? 'موظف الشركة' : 'الموظف المسؤول عن خروج العاملة', $kind === 'entry' ? 'Company Employee' : 'Responsible Employee', 'employee_name', 'التوقيع', 'Signature'],
+        ['العامل/ة', 'Worker', 'worker_name', 'التوقيع / البصمة', 'Signature / Fingerprint'],
+        [$kind === 'entry' ? 'موظف الشركة' : 'الموظف المسؤول عن خروج العامل/ة', $kind === 'entry' ? 'Company Employee' : 'Responsible Employee', 'employee_name', 'التوقيع', 'Signature'],
         ['مسؤول الإيواء (الإدارة)', 'Accommodation Supervisor', 'supervisor_name', 'التوقيع', 'Signature'],
     ];
 @endphp
