@@ -165,11 +165,7 @@ class AuditRentalContractFinance extends Command
                 }
 
                 foreach ($contract->extensions as $extension) {
-                    $extensionExpected = $financeService->extensionAmounts(
-                        $contract,
-                        (int) $extension->extension_days,
-                        (float) ($extension->discount_amount ?? 0)
-                    );
+                    $extensionExpected = $financeService->extensionAmountsFor($extension);
                     $extensionDelta = round(
                         (float) $extension->extension_value - (float) $extensionExpected['total_due'],
                         2

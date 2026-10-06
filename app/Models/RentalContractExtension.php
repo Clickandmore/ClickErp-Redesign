@@ -15,6 +15,9 @@ class RentalContractExtension extends Model
     use AssignsBranch, HasFactory, BranchScoped;
 
     protected $fillable = [
+        'package_id',
+        'package_snapshot',
+        'pricing_snapshot',
         'rental_contract_id',
         'branch_id',
         'extension_months',
@@ -41,6 +44,8 @@ class RentalContractExtension extends Model
     ];
 
     protected $casts = [
+        'package_snapshot' => 'array',
+        'pricing_snapshot' => 'array',
         'start_date' => 'date',
         'end_date' => 'date',
         'extension_months' => 'integer',

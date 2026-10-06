@@ -3558,6 +3558,8 @@ class InvoiceController extends Controller
                 : redirect()->route('invoices.credit-notes.create', $id);
 
             return $redirect->with('success', 'تم إنشاء إشعار الدائن وقيده المالي، ويُلغى التفويض تلقائيًا عند عكس كامل قيمة فاتورته.');
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return back()->withInput()->withErrors($e->errors());
         } catch (\Throwable $e) {
             return back()->withInput()->with('error', $e->getMessage());
         }
@@ -3910,6 +3912,7 @@ class InvoiceController extends Controller
             && !$invoice->line_items && !(float) $invoice->discount
             && (int) $invoice->direct_recruitment_count === 1
             && abs((float) $invoice->direct_recruitment_cost - (float) $invoice->subtotal) < 0.01
+            && abs($this->roundMoney((float) $invoice->direct_recruitment_cost * InvoiceCalculationService::VAT_RATE) - (float) $invoice->vat_amount) >= 0.01
             && !(float) $invoice->external_recruitment_cost
             && !(float) $invoice->government_cost
             && !(float) $invoice->internal_ticket_cost) {

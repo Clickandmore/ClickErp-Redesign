@@ -103,8 +103,8 @@
                     </tbody>
                 </table>
             </div>
-            <div class="card-body">
-                {{ $offices->links() }}
+            <div class="card-body d-flex justify-content-center">
+                {{ $offices->links('pagination::bootstrap-4') }}
             </div>
         </div>
     </div>

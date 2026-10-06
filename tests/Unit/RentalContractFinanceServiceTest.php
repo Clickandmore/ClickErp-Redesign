@@ -13,6 +13,35 @@ use ReflectionClass;
 
 class RentalContractFinanceServiceTest extends TestCase
 {
+    public function test_new_package_prices_only_the_extension_and_preserves_the_original_contract(): void
+    {
+        $service = (new ReflectionClass(RentalContractFinanceService::class))->newInstanceWithoutConstructor();
+        $contract = $this->extensionContract();
+        $original = $contract->info->getAttributes();
+        $package = $this->package(['days_count' => 90, 'price_with_tax' => 6900]);
+        $full = $service->extensionAmounts($contract, 90, 0, $package);
+        $partial = $service->extensionAmounts($contract, 30, 100, $package);
+        $this->assertSame(6900.0, $full['total_due']);
+        $this->assertSame(2200.0, $partial['total_due']);
+        $this->assertSame(2300.0, $partial['gross_total_before_discount']);
+        $this->assertSame(100.0, $partial['discount']);
+        $this->assertSame($partial['total_due'], round($partial['salary_exempt_amount'] + $partial['taxable_subtotal'] + $partial['vat_amount'], 2));
+        $this->assertSame($original, $contract->info->getAttributes());
+
+        $extension = new \App\Models\RentalContractExtension(['pricing_snapshot' => $partial]);
+        $contract->info->contract_value = 99999;
+        $this->assertEquals($partial, $service->extensionAmountsFor($extension));
+    }
+
+    public function test_new_package_can_receive_a_full_discount(): void
+    {
+        $service = (new ReflectionClass(RentalContractFinanceService::class))->newInstanceWithoutConstructor();
+        $amounts = $service->extensionAmounts($this->extensionContract(), 30, 2300,
+            $this->package(['days_count' => 90, 'price_with_tax' => 6900]));
+        $this->assertSame(0.0, $amounts['total_due']);
+        $this->assertSame(0.0, $amounts['vat_amount']);
+    }
+
     public function test_it_excludes_worker_salary_from_rental_vat(): void
     {
         $amounts = $this->buildInvoiceAmounts([

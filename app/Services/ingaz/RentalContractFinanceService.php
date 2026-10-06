@@ -480,11 +480,7 @@ class RentalContractFinanceService
             throw new \RuntimeException('لا توجد سنة مالية نشطة لتاريخ تمديد عقد الإيجار المحدد.');
         }
 
-        $amounts = $this->extensionAmounts(
-            $contract,
-            (int) $extension->extension_days,
-            (float) ($extension->discount_amount ?? 0)
-        );
+        $amounts = $this->extensionAmountsFor($extension);
         $extensionValue = $this->roundMoney((float) $amounts['total_due']);
         $vatAmount = $this->roundMoney((float) $amounts['vat_amount']);
         $taxableSubtotal = $this->roundMoney((float) $amounts['taxable_subtotal']);
@@ -1085,6 +1081,9 @@ class RentalContractFinanceService
      */
     public function extensionAmountsFor(RentalContractExtension $extension): array
     {
+        if ($extension->pricing_snapshot) {
+            return $extension->pricing_snapshot;
+        }
         return $this->extensionAmounts(
             $extension->contract,
             (int) $extension->extension_days,
@@ -1092,7 +1091,7 @@ class RentalContractFinanceService
         );
     }
 
-    public function extensionAmounts(RentalContract $contract, int $extensionDays, float $discountAmount = 0.0): array
+    public function extensionAmounts(RentalContract $contract, int $extensionDays, float $discountAmount = 0.0, ?Package $extensionPackage = null): array
     {
         $contract->loadMissing(['info.package', 'maid']);
         $baseDays = RentalContractPricing::durationDays(
@@ -1115,6 +1114,16 @@ class RentalContractFinanceService
         $extensionGrossTotal = $baseDays > 0
             ? $this->roundMoney(($baseGrossTotal / $baseDays) * max(0, $extensionDays))
             : 0.0;
+
+        if ($extensionPackage) {
+            $packageDays = (int) $extensionPackage->days_count;
+            if ($packageDays <= 0 || (float) $extensionPackage->price_with_tax <= 0) {
+                throw new \InvalidArgumentException('مدة أو سعر باقة التمديد غير صالح.');
+            }
+            $extensionGrossTotal = $this->roundMoney(
+                ((float) $extensionPackage->price_with_tax / $packageDays) * max(0, $extensionDays)
+            );
+        }
 
         $discountAmount = $this->roundMoney(min(max(0, $discountAmount), $extensionGrossTotal));
         $netGrossTotal = $this->roundMoney(max(0, $extensionGrossTotal - $discountAmount));

@@ -14,6 +14,24 @@ use Tests\TestCase;
 
 class RecruitmentInvoiceCreditNoteTest extends TestCase
 {
+    public function test_confirmed_imported_direct_invoice_uses_the_native_item_label(): void
+    {
+        $invoice = new Invoice([
+            'legacy_invoice_number' => 900,
+            'legacy_source_payload' => ['source_row' => 901],
+            'direct_recruitment_count' => 1,
+            'direct_recruitment_cost' => 2000,
+            'subtotal' => 2000,
+            'vat_amount' => 300,
+            'total_due' => 2300,
+        ]);
+        $items = $this->invoke(app(InvoiceController::class), 'buildInvoiceItems', $invoice);
+        $this->assertSame('تكاليف الاستقدام المباشر', $items[0]['label']);
+        $this->assertSame(2300.0, $items[0]['line_grand_total']);
+        $this->assertSame(300.0, $items[0]['vat_amount']);
+        $this->assertNotContains('legacy_taxable', array_column($items, 'key'));
+    }
+
     public function test_imported_8150_keeps_report_totals_and_supports_both_credit_note_tax_bases(): void
     {
         $invoice = new Invoice([

@@ -105,7 +105,7 @@
                                 </td>
                                 <td class="text-muted">{{ $statusRequest->id }}</td>
                                 <td>
-                                    <a href="{{ route('showMaidDetails', $statusRequest->maid_id) }}"
+                                    <a href="{{ route('showMaidDetails', ['id' => $statusRequest->maid_id, 'from' => 'pending-submissions']) }}"
                                         class="fw-semibold text-decoration-none">
                                         {{ $statusRequest->maid?->name ?: '#' . $statusRequest->maid_id }}
                                     </a>
@@ -216,7 +216,7 @@
                                 </td>
                                 <td class="text-muted">{{ $maid->id }}</td>
                                 <td>
-                                    <a href="{{ route('showMaidDetails', $maid->id) }}" class="fw-semibold text-decoration-none">
+                                    <a href="{{ route('showMaidDetails', ['id' => $maid->id, 'from' => 'pending-submissions']) }}" class="fw-semibold text-decoration-none">
                                         {{ $maid->name }}
                                     </a>
                                     @if($maid->submission_type === \App\Models\ingaz\Maid::SUBMISSION_TYPE_UPDATE)
@@ -240,7 +240,7 @@
                                 <td class="text-nowrap text-muted small">{{ $maid->created_at->format('Y-m-d') }}</td>
                                 <td>
                                     <div class="d-flex gap-1 flex-wrap">
-                                        <a href="{{ route('showMaidDetails', $maid->id) }}"
+                                        <a href="{{ route('showMaidDetails', ['id' => $maid->id, 'from' => 'pending-submissions']) }}"
                                            class="btn btn-sm btn-outline-secondary" title="عرض التفاصيل">
                                             <i class="fas fa-eye"></i>
                                         </a>

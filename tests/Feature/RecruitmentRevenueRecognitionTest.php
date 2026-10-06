@@ -464,6 +464,17 @@ class RecruitmentRevenueRecognitionTest extends TestCase
         ]);
         $linker = app(\App\Services\ingaz\LegacyInvoiceConstraintLinker::class);
         $this->assertSame('ready', $linker->inspect($invoice)['status']);
+        $source->update(['value' => 5000]);
+        try {
+            $linker->link($invoice);
+            $this->fail('Header mismatch must prevent linking.');
+        } catch (\Illuminate\Validation\ValidationException $exception) {
+            $message = $exception->errors()['credit_note'][0];
+            $this->assertStringContainsString('المبلغ: الفاتورة', $message);
+            $this->assertStringContainsString('القيد 5000', $message);
+            $this->assertNull($invoice->fresh()->invoice_constraint_id);
+        }
+        $source->update(['value' => 3980.75]);
         $invoice->total_due = 5000;
         $this->assertSame('header_mismatch', $linker->inspect($invoice)['status']);
         $invoice->total_due = 3980.75;
@@ -537,8 +548,8 @@ class RecruitmentRevenueRecognitionTest extends TestCase
                 $invoice, now()->toDateString(), 'اختبار', app(ConstraintService::class), app(\Nami\Finance\Services\YearService::class)
             );
             $this->fail('An unmatched imported invoice must not create a replacement source.');
-        } catch (\RuntimeException $e) {
-            $this->assertStringContainsString('missing', $e->getMessage());
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            $this->assertStringContainsString('missing', $e->errors()['credit_note'][0]);
         }
         $this->assertSame($count, Constraint::count());
         $this->assertNull($invoice->fresh()->invoice_constraint_id);

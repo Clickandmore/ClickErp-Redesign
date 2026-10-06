@@ -142,6 +142,11 @@ class RentalContract extends Model
         return $this->hasMany(Bond::class, 'rental_contract_id');
     }
 
+    public function financialRequests()
+    {
+        return $this->hasMany(FinancialRequest::class, 'contract_id')->where('contract_type', 'rental');
+    }
+
     public function order()
     {
         return $this->belongsTo(Order::class, 'order_id');
