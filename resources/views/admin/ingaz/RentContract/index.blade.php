@@ -1752,6 +1752,23 @@
                         <input type="hidden" id="extend_daily_rate_value">
                         <input type="hidden" id="extend_net_value">
 
+                        <div class="mb-3">
+                            <label for="extend_package_id" class="form-label">باقة التمديد</label>
+                            <select class="form-select" id="extend_package_id" name="extension_package_id">
+                                <option value="">الباقة الحالية — بنفس سعر العقد المتفق عليه</option>
+                                @foreach ($extensionPackages ?? [] as $package)
+                                    @if ($package->rental_type !== 'hourly' && $package->duration_unit !== 'hour' && $package->days_count > 0 && $package->price_with_tax > 0)
+                                        <option value="{{ $package->id }}" data-nationality="{{ $package->nationality_id }}"
+                                            data-days="{{ $package->days_count }}" data-price="{{ $package->price_with_tax }}">
+                                            {{ $package->title }} — {{ $package->days_count }} يوم — {{ number_format($package->price_with_tax, 2) }} ريال
+                                        </option>
+                                    @endif
+                                @endforeach
+                            </select>
+                            <div class="form-text">الباقة الجديدة تخص فترة التمديد فقط. تعديل المدة يحسب السعر بنسبة أيام الباقة.</div>
+                            <div class="form-text d-none" id="extend_package_tax_preview"></div>
+                        </div>
+
                         <div class="row g-3">
                             <div class="col-md-3">
                                 <label for="extend_extension_months" class="form-label">شهور التمديد</label>
@@ -2553,9 +2570,22 @@
                 }
 
                 const newEndDate = new Date(baseDate.getTime() + (extensionDays * 24 * 60 * 60 * 1000));
-                const extensionValue = dailyRate * extensionDays;
+                const extensionValue = $('#extend_package_id').val()
+                    ? Math.round(dailyRate * extensionDays * 100) / 100
+                    : dailyRate * extensionDays;
                 const discount = calculateExtensionDiscount(extensionValue);
                 const netValue = Math.max(0, extensionValue - discount);
+                if ($('#extend_package_id').val()) {
+                    const salary = Math.min(netValue, Math.max(0, toNumber($('#extend_package_id').data('monthly-salary')) * extensionDays / 30));
+                    const taxableGross = Math.max(0, netValue - Math.round(salary * 100) / 100);
+                    const taxable = Math.round(taxableGross / 1.15 * 100) / 100;
+                    const vat = Math.round((taxableGross - taxable) * 100) / 100;
+                    $('#extend_package_tax_preview').removeClass('d-none').text(
+                        'خدمة قبل الضريبة: ' + formatCurrency(taxable) + ' ريال — ضريبة: ' + formatCurrency(vat) +
+                        ' ريال — راتب معفى: ' + formatCurrency(salary) + ' ريال');
+                } else {
+                    $('#extend_package_tax_preview').addClass('d-none').empty();
+                }
 
                 $('#extend_extension_days').val(extensionDays + ' يوم');
                 $('#extend_extension_end_date').val(formatDate(newEndDate));
@@ -2581,7 +2611,9 @@
                     ? extensionValue * (Math.min(100, value) / 100)
                     : value;
 
-                return Math.min(extensionValue, discount);
+                return $('#extend_package_id').val()
+                    ? Math.round(Math.min(extensionValue, discount) * 100) / 100
+                    : Math.min(extensionValue, discount);
             }
 
             function toggleExtendDiscountFields() {
@@ -2663,6 +2695,13 @@
                     monthlyCost / 30;
 
                 resetExtendModal();
+                $('#extend_package_id').val('').data('original-rate', dailyRate).data('monthly-salary', button.data('monthly-salary'));
+                $('#extend_package_tax_preview').addClass('d-none').empty();
+                $('#extend_package_id option[value!=""]').each(function () {
+                    const nationality = $(this).data('nationality');
+                    const allowed = !nationality || Number(nationality) === Number(button.data('nationality-id'));
+                    $(this).prop('disabled', !allowed).prop('hidden', !allowed);
+                });
                 $('#extendContractForm').attr('action', extendUrl);
                 $('#extend_contract_number').text(contractNumber);
                 $('#extend_current_start_text').text(ingazFrom || 'غير محدد');
@@ -2691,6 +2730,19 @@
 
                 updateExtensionPreview();
                 $('#extendContractModal').modal('show');
+            });
+
+            $('#extend_package_id').on('change', function () {
+                const option = $(this).find('option:selected');
+                let rate = toNumber($(this).data('original-rate'));
+                if ($(this).val()) {
+                    const days = Number(option.data('days'));
+                    rate = toNumber(option.data('price')) / days;
+                    $('#extend_extension_months').val(Math.floor(days / 30));
+                    $('#extend_extension_extra_days').val(days % 30);
+                }
+                $('#extend_daily_rate_value').val(rate);
+                updateExtensionPreview();
             });
 
             $('#extend_extension_months, #extend_extension_extra_days, #extend_extension_discount_value')

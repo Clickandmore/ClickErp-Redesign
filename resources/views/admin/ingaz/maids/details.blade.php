@@ -341,6 +341,36 @@
                 </div>
             @endif
 
+            @if ($isPendingSubmission)
+                <div class="alert alert-warning d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3"
+                    id="submissionReviewBar">
+                    <div>
+                        <i class="fas fa-hourglass-half me-1"></i>
+                        <strong>هذه السيرة بانتظار المراجعة</strong>
+                        <span class="badge {{ $maid->submission_type === \App\Models\ingaz\Maid::SUBMISSION_TYPE_UPDATE ? 'bg-info text-dark' : 'bg-success' }} ms-1">
+                            {{ $maid->submission_type === \App\Models\ingaz\Maid::SUBMISSION_TYPE_UPDATE ? 'تعديل سيرة' : 'سيرة جديدة' }}
+                        </span>
+                        @if ($submissionHasPendingDelete)
+                            <div class="small mt-1">يوجد طلب حذف معلّق لهذه السيرة؛ عالج طلب الحذف من شاشة المراجعة أولاً.</div>
+                        @endif
+                    </div>
+                    @if (@AdminGuardHasPerm(\App\PermKeys::MAIDS_EDIT))
+                        <div class="d-flex gap-2">
+                            @unless ($submissionHasPendingDelete)
+                                <button type="button" class="btn btn-success" id="approveSubmissionBtn"
+                                    data-url="{{ route('maids.approve-submission', $maid->id) }}">
+                                    <i class="fas fa-check me-1"></i> قبول السيرة
+                                </button>
+                            @endunless
+                            <button type="button" class="btn btn-danger" data-bs-toggle="modal"
+                                data-bs-target="#rejectSubmissionModal">
+                                <i class="fas fa-times me-1"></i> رفض السيرة
+                            </button>
+                        </div>
+                    @endif
+                </div>
+            @endif
+
             <div class="card maid-hero mb-4">
                 <div class="card-body d-flex flex-wrap align-items-center justify-content-between gap-3">
                     <div class="d-flex align-items-center gap-3">
@@ -1394,4 +1424,78 @@
             document.getElementById('maidCvPreviewFrame').src = 'about:blank';
         });
     </script>
+
+    @if ($isPendingSubmission && @AdminGuardHasPerm(\App\PermKeys::MAIDS_EDIT))
+        <div class="modal fade" id="rejectSubmissionModal" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header border-0">
+                        <h5 class="modal-title text-danger"><i class="fas fa-times-circle me-1"></i> رفض السيرة الذاتية</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <p class="text-muted mb-2">سيتم رفض سيرة: {{ $maid->name }}</p>
+                        <label class="form-label" for="submissionRejectionReason">سبب الرفض (اختياري)</label>
+                        <textarea id="submissionRejectionReason" class="form-control" rows="3" maxlength="500"></textarea>
+                    </div>
+                    <div class="modal-footer border-0">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
+                        <button type="button" class="btn btn-danger" id="confirmRejectSubmissionBtn"
+                            data-url="{{ route('maids.reject-submission', $maid->id) }}">
+                            <i class="fas fa-times me-1"></i> تأكيد الرفض
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <script>
+            (function () {
+                const csrf = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+                const pendingListUrl = @json(route('maids.pending-submissions'));
+                const maidName = @json($maid->name ?: '');
+
+                function submitReview(url, payload, button, successTitle) {
+                    const original = button.innerHTML;
+                    button.disabled = true;
+                    button.innerHTML = '<i class="fa fa-spinner fa-spin"></i>';
+
+                    $.ajax({ url: url, type: 'POST', data: Object.assign({ _token: csrf }, payload) })
+                        .done(function (res) {
+                            if (!res.success) {
+                                Swal.fire('خطأ', res.message, 'error');
+                                return;
+                            }
+                            Swal.fire({ icon: 'success', title: successTitle, text: res.message, timer: 1800, showConfirmButton: false })
+                                .then(function () { window.location.href = pendingListUrl; });
+                        })
+                        .fail(function (xhr) { Swal.fire('خطأ', xhr.responseJSON?.message || 'حدث خطأ', 'error'); })
+                        .always(function () { button.disabled = false; button.innerHTML = original; });
+                }
+
+                document.getElementById('approveSubmissionBtn')?.addEventListener('click', function () {
+                    const button = this;
+                    Swal.fire({
+                        title: 'قبول السيرة الذاتية',
+                        html: 'هل تريد قبول سيرة <strong>' + $('<div>').text(maidName).html() + '</strong> وإضافتها للنظام؟',
+                        icon: 'question',
+                        showCancelButton: true,
+                        confirmButtonColor: '#28a745',
+                        confirmButtonText: 'نعم، قبول',
+                        cancelButtonText: 'إلغاء',
+                    }).then(function (result) {
+                        if (result.isConfirmed) submitReview(button.dataset.url, {}, button, 'تم القبول');
+                    });
+                });
+
+                document.getElementById('confirmRejectSubmissionBtn')?.addEventListener('click', function () {
+                    const button = this;
+                    bootstrap.Modal.getInstance(document.getElementById('rejectSubmissionModal'))?.hide();
+                    submitReview(button.dataset.url, {
+                        rejection_reason: document.getElementById('submissionRejectionReason').value,
+                    }, button, 'تم الرفض');
+                });
+            })();
+        </script>
+    @endif
 @endsection

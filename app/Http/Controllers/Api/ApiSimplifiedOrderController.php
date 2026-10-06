@@ -86,18 +86,7 @@ class ApiSimplifiedOrderController extends Controller
                 ]);
             }
 
-            $existingOrder = RecruitmentRequest::query()
-                ->where('maid_id', $maid->id)
-                ->where('user_id', $user->id)
-                ->whereIn('status', [
-                    OrderEnum::New->value,
-                    OrderEnum::Contracted->value,
-                    OrderEnum::UnderProcess->value,
-                    OrderEnum::ContractedWithoutContract->value,
-                ])
-                ->exists();
-
-            if ($existingOrder) {
+            if (app(\App\Services\ExternalBookingAvailabilityService::class)->isReserved((int) $maid->id)) {
                 return apiResponse(false, __('web.there_are_order_in_prograss'), null, 403);
             }
 

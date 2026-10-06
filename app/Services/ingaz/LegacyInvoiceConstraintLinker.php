@@ -103,8 +103,18 @@ class LegacyInvoiceConstraintLinker
             $invoice = Invoice::withoutGlobalScopes()->lockForUpdate()->findOrFail($invoice->id);
             $result = $this->inspect($invoice);
             if (!in_array($result['status'], ['ready', 'linked'], true)) {
-                throw new \RuntimeException('تعذر تأكيد القيد الأصلي للفاتورة المنقولة #' . $invoice->legacy_invoice_number
-                    . ' (' . $result['status'] . '). يجب مطابقة القيد قبل إنشاء إشعار الدائن.');
+                $details = [];
+                $labels = ['branch_id' => 'الفرع', 'date' => 'التاريخ', 'amount' => 'المبلغ'];
+                foreach ($result['differences'] ?? [] as $field => $values) {
+                    $details[] = ($labels[$field] ?? $field) . ': الفاتورة ' . ($values['invoice'] ?? 'غير محدد')
+                        . '، القيد ' . ($values['constraint'] ?? 'غير محدد');
+                }
+                throw \Illuminate\Validation\ValidationException::withMessages([
+                    'credit_note' => 'تعذر إنشاء إشعار دائن للفاتورة المنقولة #' . $invoice->legacy_invoice_number
+                        . (isset($result['constraint_id']) ? ' مع القيد #' . $result['constraint_id'] : '')
+                        . '. ' . ($details ? 'توجد اختلافات في البيانات: ' . implode('؛ ', $details) . '. ' : 'تعذر مطابقة القيد الأصلي (' . $result['status'] . '). ')
+                        . 'راجع الفاتورة والقيد الأصلي وصحّح البيانات غير المطابقة قبل إعادة المحاولة.',
+                ]);
             }
             $source = Constraint::withoutGlobalScopes()->whereNull('deleted_at')->lockForUpdate()->findOrFail($result['constraint_id']);
             $updates = ['invoice_constraint_id' => $source->id];

@@ -33,10 +33,14 @@ class RentalContractLedgerService
             $adjustments = $adjustments->whereNull('constraint_id');
             $balance = $ledgerBalance;
         } else {
-            $receipts = $contract->financeBonds->where('type', 'qabd')->where('is_confirm', 1);
+            $bonds = $this->bondsForContract($contract)->where('is_confirm', 1);
+            $receipts = $bonds->where('type', 'qabd');
+            $accountId = $this->clientAccountId($contract);
+            $payouts = $accountId ? $bonds->where('type', 'sarf')->where('debit_account_id', $accountId) : collect();
             $balance = (float) ($contract->financeInvoice?->total_due ?? $contract->info?->contract_value ?? 0)
                 + (float) $contract->extensions->sum('extension_value')
-                - round((float) $receipts->sum('value'), 2);
+                - round((float) $receipts->sum('value'), 2)
+                + round((float) $payouts->sum('value'), 2);
         }
 
         return round($balance
@@ -110,7 +114,7 @@ class RentalContractLedgerService
             ->merge($contract->extensions->pluck('invoice_constraint_id'))
             ->merge($contract->extensions->pluck('receipt_constraint_id'))
             ->merge($contract->financialAdjustments->pluck('constraint_id'))
-            ->merge($contract->financeBonds->pluck('constraint_id'))
+            ->merge($this->bondsForContract($contract)->where('is_confirm', 1)->pluck('constraint_id'))
             ->filter()
             ->map(fn ($id) => (int) $id)
             ->unique()
@@ -135,6 +139,18 @@ class RentalContractLedgerService
             ->sum('value');
 
         return round((float) $total, 2);
+    }
+
+    public function bondsForContract(RentalContract $contract): Collection
+    {
+        $contract->loadMissing('financeBonds');
+        if (!$contract->exists && !$contract->relationLoaded('financialRequests')) {
+            return $contract->financeBonds;
+        }
+        $contract->loadMissing('financialRequests.financeBond');
+        $requestBonds = $contract->financialRequests->pluck('financeBond')->filter()
+            ->filter(fn($bond) => !$bond->rental_contract_id || (int) $bond->rental_contract_id === (int) $contract->id);
+        return $contract->financeBonds->concat($requestBonds)->unique('id')->values();
     }
 
     private function clientAccountId(RentalContract $contract): ?int

@@ -698,6 +698,10 @@ class FinancialRequestController extends Controller
             'general_type' => 0,
         ];
 
+        if ($financialRequest->contract_type === 'rental' && $financialRequest->contract_id) {
+            $bondData['rental_contract_id'] = (int) $financialRequest->contract_id;
+        }
+
         $bond = $data['bond_type'] === BondTypes::Sarf->value
             ? $bondService->storeSarfBond($bondData)
             : $bondService->storeQabdBond($bondData);

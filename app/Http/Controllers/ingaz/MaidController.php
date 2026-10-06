@@ -1484,6 +1484,16 @@ class MaidController extends Controller
         ];
         $isRentalMaid = $this->isRentalMaid($maid);
         $backToListRoute = $isRentalMaid ? route('maids.rental.index') : route('maids.index');
+        // السيرة المرفوعة من المكتب وبانتظار المراجعة: تُقبل/تُرفض من التفاصيل كما في قائمة المراجعة.
+        $isPendingSubmission = !$maid->trashed() && $maid->submission_status === objModel::SUBMISSION_PENDING;
+        $submissionHasPendingDelete = $isPendingSubmission && $maid->statusChangeRequests()
+            ->where('status', MaidStatusChangeRequest::STATUS_PENDING)
+            ->where('type', MaidStatusChangeRequest::TYPE_DELETE)
+            ->exists();
+        // طلبات تغيير الحالة تفتح سيراً مقبولة؛ لذلك نعتمد على مصدر الرابط أيضاً وليس حالة السيرة فقط.
+        if ($isPendingSubmission || request()->query('from') === 'pending-submissions') {
+            $backToListRoute = route('maids.pending-submissions');
+        }
         $hrEmployeeRecord = null;
 
         if (class_exists(\Nami\Hr\Models\Employee::class)
@@ -1632,6 +1642,8 @@ class MaidController extends Controller
             'rentalFinanceSummary',
             'isRentalMaid',
             'backToListRoute',
+            'isPendingSubmission',
+            'submissionHasPendingDelete',
             'hrEmployeeRecord',
             'maidImages',
             'generatedCvPath',

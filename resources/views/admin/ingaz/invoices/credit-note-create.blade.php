@@ -23,6 +23,9 @@
             @if(session('error'))
                 <div class="alert alert-danger">{{ session('error') }}</div>
             @endif
+            @if($errors->has('credit_note'))
+                <div class="alert alert-danger">{{ $errors->first('credit_note') }}</div>
+            @endif
 
             <div class="alert alert-info">
                 إنشاء هذا الإشعار يعكس القيد المالي والضريبة ورصيد العميل، ولا يغيّر {{ $isGeneral ? 'الفاتورة الأصلية' : ($isDelegation ? 'حالة التفويض' : 'حالة العقد أو العاملة') }}.

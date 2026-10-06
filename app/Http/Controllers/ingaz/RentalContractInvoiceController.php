@@ -327,7 +327,8 @@ class RentalContractInvoiceController extends Controller
         $amounts = $financeService->extensionAmountsFor($extension);
         // قيم ما قبل الخصم لعرض سطر "خصم" متسق في ملخص الفاتورة
         $amountsBeforeDiscount = (float) ($amounts['discount'] ?? 0) > 0
-            ? $financeService->extensionAmounts($contract, (int) $extension->extension_days)
+            ? ($extension->package_snapshot['amounts_before_discount']
+                ?? $financeService->extensionAmounts($contract, (int) $extension->extension_days))
             : $amounts;
         $items = [];
 
@@ -389,6 +390,7 @@ class RentalContractInvoiceController extends Controller
             'serviceDesc' => 'تمديد عقد تأجير',
             'serviceLongDescription' => 'تمديد عقد التأجير رقم '
                 . ($contract->contract_number ?: $contract->id)
+                . ($extension->package_snapshot ? ' / الباقة: ' . ($extension->package_snapshot['title'] ?? '') : '')
                 . ' من ' . optional($extension->start_date)->format('Y-m-d')
                 . ' إلى ' . optional($extension->end_date)->format('Y-m-d')
                 . ($extension->discount_label

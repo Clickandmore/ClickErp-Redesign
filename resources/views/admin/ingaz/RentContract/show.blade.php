@@ -952,6 +952,28 @@
                 </div>
             </div>
 
+            @if(AdminGuardHasPerm(\App\PermKeys::FINANCIAL_REQUESTS_VIEW) && $contract->financialRequests->isNotEmpty())
+                <div class="card mb-4">
+                    <div class="card-header fw-bold">المطالبات المالية وسنداتها المرتبطة بالعقد</div>
+                    <div class="table-responsive">
+                        <table class="table mb-0">
+                            <thead><tr><th>المطالبة</th><th>المبلغ</th><th>الحالة</th><th>السند</th><th>حالة السند</th></tr></thead>
+                            <tbody>
+                            @foreach($contract->financialRequests as $financialRequest)
+                                <tr>
+                                    <td><a href="{{ route('financial-requests.show', $financialRequest) }}">{{ $financialRequest->request_no }}</a></td>
+                                    <td>{{ number_format((float) $financialRequest->amount, 2) }}</td>
+                                    <td>{{ $financialRequest->status_label }}</td>
+                                    <td>{{ $financialRequest->financeBond ? (($financialRequest->financeBond->type === 'sarf' ? 'سند صرف ' : 'سند قبض ') . $financialRequest->financeBond->code) : 'لم يصدر' }}</td>
+                                    <td>{{ $financialRequest->financeBond ? ($financialRequest->financeBond->is_confirm ? 'مؤكد' : 'غير مؤكد') : '—' }}</td>
+                                </tr>
+                            @endforeach
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            @endif
+
             <div class="row g-4">
                 <div class="col-12">
                     <div class="page-section-divider">
@@ -1495,6 +1517,10 @@
                                             <tr>
                                                 <td>{{ $index + 1 }}</td>
                                                 <td>
+                                                    @if ($extension->package_snapshot)
+                                                        <div class="fw-bold">{{ $extension->package_snapshot['title'] ?? 'باقة التمديد' }}</div>
+                                                        <div class="small text-muted">{{ number_format($extension->package_snapshot['price_with_tax'], 2) }} ريال / {{ $extension->package_snapshot['days_count'] }} يوم</div>
+                                                    @endif
                                                     {{ $extension->extension_months ? $extension->extension_months . ' شهر / ' : '' }}
                                                     {{ $extension->extension_days ?? 0 }} يوم
                                                 </td>

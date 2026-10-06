@@ -134,20 +134,11 @@ class ApiOrderController extends Controller
             return apiResponse(false, __("ingaz.job_type_not_found"), null, 404);
         }
 
-        $existingOrder = RecruitmentRequest::where('maid_id', $request->maid_id)
-            ->where('user_id', auth()->id())
-            ->whereIn('status', [
-                OrderEnum::New->value,
-                OrderEnum::Contracted->value,
-                OrderEnum::UnderProcess->value,
-                OrderEnum::ContractedWithoutContract->value,
-            ])->exists();
-
-        if ($existingOrder) {
-            return apiResponse(false, __("web.there_are_order_in_prograss"), null, 403);
-        }
-
         return DB::transaction(function () use ($request, $maid, $jobTypeId, $adminAction, $adminSmsNotifier) {
+            if (app(\App\Services\ExternalBookingAvailabilityService::class)->isReserved((int) $maid->id)) {
+                return apiResponse(false, __('web.there_are_order_in_prograss'), null, 403);
+            }
+
             $order = RecruitmentRequest::create([
                 'user_id' => auth()->id(),
                 'maid_id' => $maid->id,

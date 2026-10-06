@@ -97,17 +97,7 @@ class ApiRentalRequestController extends Controller
 
             // السيرة تختفي من القوائم بمجرد حجزها، لكن رابطًا قديمًا قد يصل إلى هنا،
             // فيُمنع حجزها مرة أخرى مهما كان صاحب الطلب القائم.
-            $inProgress = Order::query()
-                ->where('maid_id', $maid->id)
-                ->whereIn('status', [
-                    OrderEnum::New->value,
-                    OrderEnum::Contracted->value,
-                    OrderEnum::UnderProcess->value,
-                    OrderEnum::ContractedWithoutContract->value,
-                ])
-                ->exists();
-
-            if ($inProgress) {
+            if (app(\App\Services\ExternalBookingAvailabilityService::class)->isReserved((int) $maid->id)) {
                 return apiResponse(false, __('web.there_are_order_in_prograss'), null, 403);
             }
 

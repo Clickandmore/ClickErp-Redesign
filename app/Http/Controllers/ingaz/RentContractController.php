@@ -102,7 +102,7 @@ class RentContractController extends Controller
             $status = $request->get('status', $status);
             $branchesEnabled = $this->branchesEnabledFor('rental_contracts');
 
-            $relations = ['user', 'maid', 'info', 'marketer', 'financeInvoice', 'transferInvoice', 'extensions', 'financialAdjustments', 'financeBonds'];
+            $relations = ['user', 'maid', 'info', 'marketer', 'financeInvoice', 'transferInvoice', 'extensions', 'financialAdjustments', 'financeBonds', 'financialRequests.financeBond'];
             if ($branchesEnabled) {
                 $relations[] = 'branch';
             }
@@ -464,6 +464,8 @@ class RentContractController extends Controller
 
                         $actions .= '<li><button class="dropdown-item text-info open-extend-modal"
                                         data-extend-url="' . route('RentContract.extend', $row->id) . '"
+                                        data-nationality-id="' . (int) $row->maid?->nationality_id . '"
+                                        data-monthly-salary="' . (float) ($row->info?->monthly_salary ?: $row->maid?->resolved_salary ?: $row->maid?->salary) . '"
                                         data-contract-number="' . e($contractLabel) . '"
                                         data-ingaz-from="' . e($currentStartDate) . '"
                                         data-ingaz-to="' . e($currentEndDate) . '"
@@ -521,6 +523,7 @@ class RentContractController extends Controller
                 ->orderBy('code')
                 ->get(['id', 'code', 'name', 'type'])
             : collect();
+        $data['extensionPackages'] = Package::visible()->ordered()->get();
         return view($this->folderPath . '.index', $data);
     }
 
@@ -894,6 +897,7 @@ class RentContractController extends Controller
             'transferInvoice',
             'financeBonds.debitAccount',
             'financeBonds.constraint',
+            'financialRequests.financeBond',
             'extensions.createdBy',
             'extensions.receiptAccount',
             'extensions.invoiceConstraint',
@@ -4232,6 +4236,22 @@ class RentContractController extends Controller
      * هل يحتاج التمديد إلى سند قبض؟ يُحسب الصافي المتوقع قبل التحقق
      * حتى لا تُطلب حقول السند عندما يغطي الخصم قيمة التمديد بالكامل.
      */
+    private function resolveExtensionPackage(Request $request, RentalContract $contract): ?Package
+    {
+        if (!$request->filled('extension_package_id')) {
+            return null;
+        }
+        $package = Package::visible()->forNationality($contract->maid?->nationality_id)
+            ->whereKey($request->input('extension_package_id'))->first();
+        if (!$package || $package->rental_type === 'hourly' || $package->duration_unit === 'hour'
+            || (int) $package->days_count <= 0 || (float) $package->price_with_tax <= 0) {
+            throw \Illuminate\Validation\ValidationException::withMessages([
+                'extension_package_id' => 'باقة التمديد غير متاحة للعاملة أو أن مدتها وسعرها غير صالحين.',
+            ]);
+        }
+        return $package;
+    }
+
     private function extensionRequiresReceipt(
         Request $request,
         RentalContractFinanceService $rentalContractFinanceService,
@@ -4246,7 +4266,9 @@ class RentContractController extends Controller
         }
 
         $grossValue = round(
-            (float) $rentalContractFinanceService->extensionAmounts($contract, $extensionDays)['total_due'],
+            (float) $rentalContractFinanceService->extensionAmounts(
+                $contract, $extensionDays, 0, $this->resolveExtensionPackage($request, $contract)
+            )['total_due'],
             2
         );
         $discountAmount = RentalContractPricing::discountAmount(
@@ -4260,11 +4282,13 @@ class RentContractController extends Controller
 
     public function extend(Request $request, RentalContractFinanceService $rentalContractFinanceService, $id)
     {
+        $request->validate(['extension_package_id' => 'nullable|integer|exists:packages,id']);
         // التمديد المجاني (خصم 100%) لا يحتاج سند قبض، لذلك تُخفف شروط حقول السند حينها
         $receiptRequired = $this->extensionRequiresReceipt($request, $rentalContractFinanceService, $id);
         $receiptRule = $receiptRequired ? 'required_if:extension_payment_status,paid,partial|' : '';
 
         $validated = $request->validate([
+            'extension_package_id' => 'nullable|integer|exists:packages,id',
             'extension_months' => 'nullable|integer|min:0',
             'extension_days' => 'nullable|integer|min:0',
             'extension_discount_type' => 'nullable|in:percentage,amount',
@@ -4345,7 +4369,8 @@ class RentContractController extends Controller
                 );
             }
 
-            $grossAmounts = $rentalContractFinanceService->extensionAmounts($contract, $extensionDays);
+            $extensionPackage = $this->resolveExtensionPackage($request, $contract);
+            $grossAmounts = $rentalContractFinanceService->extensionAmounts($contract, $extensionDays, 0, $extensionPackage);
             $extensionGrossValue = round((float) $grossAmounts['total_due'], 2);
 
             // خصم العميل: نسبة من إجمالي التمديد أو مبلغ مباشر، ويُطرح من الإجمالي شامل الضريبة
@@ -4370,7 +4395,8 @@ class RentContractController extends Controller
             $extensionAmounts = $rentalContractFinanceService->extensionAmounts(
                 $contract,
                 $extensionDays,
-                $discountAmount
+                $discountAmount,
+                $extensionPackage
             );
             $extensionValue = round((float) $extensionAmounts['total_due'], 2);
 
@@ -4389,6 +4415,15 @@ class RentContractController extends Controller
             }
 
             $extension = RentalContractExtension::create([
+                'package_id' => $extensionPackage?->id,
+                'package_snapshot' => $extensionPackage ? [
+                    'title' => $extensionPackage->title,
+                    'days_count' => (int) $extensionPackage->days_count,
+                    'price_with_tax' => (float) $extensionPackage->price_with_tax,
+                    'monthly_salary' => (float) ($contract->info->monthly_salary ?: $contract->maid?->resolved_salary ?: $contract->maid?->salary),
+                    'amounts_before_discount' => $grossAmounts,
+                ] : null,
+                'pricing_snapshot' => $extensionPackage ? $extensionAmounts : null,
                 'rental_contract_id' => $contract->id,
                 'extension_months' => $extensionMonths,
                 'extension_days' => $extensionDays,

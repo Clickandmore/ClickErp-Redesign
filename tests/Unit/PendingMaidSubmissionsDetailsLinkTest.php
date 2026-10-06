@@ -12,8 +12,8 @@ class PendingMaidSubmissionsDetailsLinkTest extends TestCase
             dirname(__DIR__, 2) . '/resources/views/admin/ingaz/maids/pending_submissions.blade.php'
         );
 
-        $this->assertStringContainsString("route('showMaidDetails', \$maid->id)", $view);
-        $this->assertStringContainsString("route('showMaidDetails', \$statusRequest->maid_id)", $view);
+        $this->assertStringContainsString("route('showMaidDetails', ['id' => \$maid->id, 'from' => 'pending-submissions'])", $view);
+        $this->assertStringContainsString("route('showMaidDetails', ['id' => \$statusRequest->maid_id, 'from' => 'pending-submissions'])", $view);
         $this->assertStringNotContainsString("route('maids.show'", $view);
     }
 
