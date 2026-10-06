@@ -348,8 +348,8 @@ class Contract extends Model
         return [
             'contract_number' => (string) $this->id,
             'visa_number' => trim((string) ($this->info?->visa_number ?? '')),
-            'sponsor_name' => trim((string) ($this->user?->name ?? '')),
-            'sponsor_identity_number' => trim((string) ($this->user?->documentNumber() ?? '')),
+            'sponsor_name' => trim((string) ($this->company_profile_id ? $this->companyProfile?->name : ($this->user?->name ?? ''))),
+            'sponsor_identity_number' => trim((string) ($this->company_profile_id ? $this->companyProfile?->registration_number : ($this->user?->documentNumber() ?? ''))),
             'worker_name' => trim((string) ($this->maid?->name ?? $this->info?->manual_maid_name ?? '')),
             'passport_number' => trim((string) ($this->maid?->passport_num ?? $this->info?->manual_maid_passport_num ?? '')),
             'worker_age' => $this->formatExternalOfficeDispatchAge($this->maid?->age),
@@ -379,11 +379,15 @@ class Contract extends Model
         }
 
         if ($data['sponsor_name'] === '') {
-            $errors[] = 'اسم الكفيل غير مكتمل على بيانات العميل.';
+            $errors[] = $this->company_profile_id
+                ? 'اسم الشركة غير مكتمل في إعدادات الشركة.'
+                : 'اسم الكفيل غير مكتمل على بيانات العميل.';
         }
 
         if ($data['sponsor_identity_number'] === '') {
-            $errors[] = 'رقم هوية العميل غير مكتمل.';
+            $errors[] = $this->company_profile_id
+                ? 'رقم السجل التجاري غير مكتمل في إعدادات الشركة.'
+                : 'رقم هوية العميل غير مكتمل.';
         }
 
         if ($data['worker_name'] === '') {

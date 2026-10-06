@@ -346,12 +346,12 @@
                             <input type="text" class="form-control" value="{{ $sourceSnapshot['visa_number'] }}" readonly>
                         </div>
                         <div class="col-md-4">
-                            <label class="form-label">اسم الكفيل / العميل</label>
+                            <label class="form-label">{{ $contract->company_profile_id ? 'اسم الشركة' : 'اسم الكفيل / العميل' }}</label>
                             <input type="text" class="form-control" value="{{ $sourceSnapshot['sponsor_name'] }}" readonly>
                         </div>
 
                         <div class="col-md-4">
-                            <label class="form-label">رقم الهوية</label>
+                            <label class="form-label">{{ $contract->company_profile_id ? 'السجل التجاري' : 'رقم الهوية' }}</label>
                             <input type="text" class="form-control" value="{{ $sourceSnapshot['sponsor_identity_number'] }}" readonly>
                         </div>
                         <div class="col-md-4">

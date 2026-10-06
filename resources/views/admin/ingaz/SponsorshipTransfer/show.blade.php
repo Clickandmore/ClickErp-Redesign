@@ -368,10 +368,12 @@
                 <a href="{{ route('invoices.show', $transfer->invoice->id) }}" class="btn-icon btn-print" title="عرض الفاتورة">
                     <i class="fas fa-file-invoice"></i>
                 </a>
-            @elseif($transfer->canIssueInvoice() && \App\Support\InvoiceAuthorization::canCreate())
-                <a href="{{ route('SponsorshipTransfer.invoice.create', $transfer->id) }}" class="btn-icon btn-print" title="إصدار فاتورة">
+            @elseif($transfer->canIssueInvoice() && \App\Support\InvoiceAuthorization::canCreateTransfer())
+                <a href="{{ route('SponsorshipTransfer.invoice.create', $transfer->id) }}" class="btn-icon btn-print" title="إصدار فاتورة نقل الخدمات">
                     <i class="fas fa-file-invoice-dollar"></i>
                 </a>
+            @elseif($transfer->canIssueInvoice())
+                <span class="text-muted">إصدار فاتورة نقل الخدمات يتطلب صلاحية إضافة فاتورة لنقل الخدمات.</span>
             @endif
             {{-- <button onclick="window.print()" class="btn-icon btn-print" title="طباعة">
                 <i class="fas fa-print"></i>

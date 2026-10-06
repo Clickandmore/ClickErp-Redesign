@@ -317,7 +317,8 @@ class CompanyContractMigrationTest extends TestCase
         $this->assertSame(1, DB::table('orders')->count());
     }
 
-    public function test_company_settings_save_independent_profile_and_document_identity_without_creating_a_customer(): void
+    /** @dataProvider validCompanyIdentifiers */
+    public function test_company_settings_save_independent_profile_and_document_identity_without_creating_a_customer(?string $registrationNumber, ?string $taxNumber): void
     {
         Schema::create('settings', function ($table) {
             $table->id();
@@ -333,17 +334,64 @@ class CompanyContractMigrationTest extends TestCase
             'company_name' => 'Independent company', 'company_name_en' => 'English company',
             'phone' => '0111234567', 'other_phone' => '0501234567', 'email' => 'company@example.test',
             'company_address' => 'Company address', 'company_city' => 'Riyadh',
-            'tax_number' => '123456789012345', 'company_registration_number' => 'CR-123',
+            'tax_number' => $taxNumber, 'company_registration_number' => $registrationNumber,
             'company_license_number' => 'LICENSE-123', 'company_account_id' => 99,
         ]);
         $response = \Illuminate\Database\Eloquent\Model::withoutEvents(fn () => (new \App\Http\Controllers\admin\CompanySettingsController())->update($request, new \App\Http\Actions\dashboard\SettingAction(new \App\Models\ingaz\Setting())));
         $this->assertSame(200, $response->getStatusCode());
         $this->assertSame('Independent company', CompanyProfile::current()->name);
-        $this->assertSame('CR-123', CompanyProfile::current()->registration_number);
+        $this->assertSame($registrationNumber, CompanyProfile::current()->registration_number);
+        $this->assertSame($taxNumber, CompanyProfile::current()->tax_number);
         $this->assertSame('Independent company', documentSetting('document_company_name', null, 'ar'));
         $this->assertSame('English company', documentSetting('document_company_name', null, 'en'));
         $this->assertSame('0111234567', documentSetting('phone'));
         $this->assertSame(3, DB::table('users')->count());
         $this->assertSame(0, DB::table('company_contract_migrations')->count());
+    }
+
+    public static function validCompanyIdentifiers(): array
+    {
+        return [
+            'requested examples' => ['7001234567', '300123456789003'],
+            'tax suffix is customary rather than mandatory' => ['7123456789', '312345678901234'],
+            'optional identifiers' => [null, null],
+        ];
+    }
+
+    /** @dataProvider invalidCompanyIdentifiers */
+    public function test_company_settings_reject_invalid_identifiers_before_writing(string $field, $value): void
+    {
+        $company = $this->company();
+        $before = $company->fresh()->getAttributes();
+        $request = \App\Http\Requests\ingaz\SettingRequest::create('/', 'PUT', [
+            'company_name' => 'Updated company', 'phone' => '0111234567',
+            'company_registration_number' => '7001234567', 'tax_number' => '300123456789003',
+            $field => $value,
+        ]);
+        try {
+            (new \App\Http\Controllers\admin\CompanySettingsController())->update($request,
+                $this->mock(\App\Http\Actions\dashboard\SettingAction::class));
+            $this->fail('Invalid identifier must be rejected.');
+        } catch (ValidationException $error) {
+            $this->assertArrayHasKey($field, $error->errors());
+            $this->assertSame($before, $company->fresh()->getAttributes());
+        }
+    }
+
+    public static function invalidCompanyIdentifiers(): array
+    {
+        return [
+            'short registration' => ['company_registration_number', '700123456'],
+            'long registration' => ['company_registration_number', '70012345678'],
+            'incorrect registration prefix' => ['company_registration_number', '6001234567'],
+            'registration letters' => ['company_registration_number', '700123456A'],
+            'registration array' => ['company_registration_number', ['7001234567']],
+            'registration newline' => ['company_registration_number', "7001234567\n"],
+            'short tax number' => ['tax_number', '30012345678903'],
+            'long tax number' => ['tax_number', '3001234567890003'],
+            'incorrect tax prefix' => ['tax_number', '200123456789003'],
+            'tax number letters' => ['tax_number', '30012345678900A'],
+            'tax number array' => ['tax_number', ['300123456789003']],
+        ];
     }
 }

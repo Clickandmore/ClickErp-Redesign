@@ -59,7 +59,7 @@ class RecruitmentTripAccountingService
             Contract::query()->whereKey($contract->id)->lockForUpdate()->firstOrFail();
             $contract->unsetRelation('invoice');
             $contract->unsetRelation('externalOfficeDispatch');
-            if (AutomaticJournalEntries::enabled() && !$contract->invoice) {
+            if (AutomaticJournalEntries::enabled() && !$contract->invoice && !$contract->company_profile_id) {
                 throw \Illuminate\Validation\ValidationException::withMessages([
                     'office_contract_cost_usd' => 'يجب إنشاء فاتورة العقد قبل الإرسالية لإثبات تكلفة المورد الخارجي.',
                 ]);

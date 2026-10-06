@@ -595,9 +595,13 @@ class AdminRoutePermissionMatrix
             'invoices.index' => InvoiceAuthorization::viewPermissions(),
             'invoices.show' => InvoiceAuthorization::viewPermissions(),
             'invoices.create' => InvoiceAuthorization::createPermissions(),
-            'invoices.store' => InvoiceAuthorization::createPermissions(),
+            'invoices.store' => static fn (?Request $request) => $request === null
+                ? array_merge(InvoiceAuthorization::createPermissions(), InvoiceAuthorization::transferCreatePermissions())
+                : ($request->filled('sponsorship_transfer_id') ? InvoiceAuthorization::transferCreatePermissions() : InvoiceAuthorization::createPermissions()),
             'invoices.searchClients' => InvoiceAuthorization::createPermissions(),
-            'SponsorshipTransfer.invoice.create' => InvoiceAuthorization::createPermissions(),
+            'SponsorshipTransfer.invoice.create' => InvoiceAuthorization::transferCreatePermissions(),
+            'rental.transfer-invoice.create' => InvoiceAuthorization::transferCreatePermissions(),
+            'rental.transfer-invoice.store' => InvoiceAuthorization::transferCreatePermissions(),
             'invoices.edit' => InvoiceAuthorization::controlPermissions(),
             'invoices.update' => InvoiceAuthorization::controlPermissions(),
             'invoices.destroy' => InvoiceAuthorization::controlPermissions(),

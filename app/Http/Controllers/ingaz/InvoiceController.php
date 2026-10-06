@@ -64,7 +64,9 @@ class InvoiceController extends Controller
     public function __construct()
     {
         $this->middleware($this->permissionMiddleware(InvoiceAuthorization::viewPermissions()), ['only' => ['index', 'show']]);
-        $this->middleware($this->permissionMiddleware(InvoiceAuthorization::createPermissions()), ['only' => ['create', 'createSponsorshipTransfer', 'store', 'searchClients']]);
+        $this->middleware($this->permissionMiddleware(InvoiceAuthorization::createPermissions()), ['only' => ['create', 'searchClients']]);
+        $this->middleware($this->permissionMiddleware(InvoiceAuthorization::transferCreatePermissions()), ['only' => ['createSponsorshipTransfer', 'createRentalTransfer', 'storeRentalTransfer']]);
+        $this->middleware($this->permissionMiddleware(array_merge(InvoiceAuthorization::createPermissions(), InvoiceAuthorization::transferCreatePermissions())), ['only' => ['store']]);
         $this->middleware($this->permissionMiddleware(InvoiceAuthorization::exportPermissions()), ['only' => ['exportExcel', 'exportPdf']]);
         $this->middleware($this->permissionMiddleware(InvoiceAuthorization::printPermissions()), ['only' => ['downloadInvoice', 'legacySourceFile']]);
         $this->middleware($this->permissionMiddleware(InvoiceAuthorization::controlPermissions()), ['only' => ['edit', 'update', 'destroy', 'queueZatcaSale', 'queueRentalZatcaSale', 'queueRentalAdjustmentZatcaSale']]);
@@ -186,7 +188,9 @@ class InvoiceController extends Controller
             'invoice.contract_id',
             'invoice.ingaz_delegation_id',
             'invoice.sponsorship_transfer_id',
-            DB::raw('NULL as rental_contract_id'),
+            Schema::hasColumn('invoices', 'rental_transfer_contract_id')
+                ? DB::raw('invoice.rental_transfer_contract_id as rental_contract_id')
+                : DB::raw('NULL as rental_contract_id'),
             DB::raw('NULL as rental_contract_number'),
             DB::raw('NULL as adjustment_type'),
             DB::raw('NULL as adjustment_constraint_id'),
@@ -492,6 +496,10 @@ class InvoiceController extends Controller
             return '<span class="badge bg-success-subtle text-success border">نقل الخدمات #' . e((string) $row->sponsorship_transfer_id) . '</span>';
         }
 
+        if (!empty($row->rental_contract_id)) {
+            return '<span class="badge bg-success-subtle text-success border">نقل خدمات عقد التأجير #' . e((string) $row->rental_contract_id) . '</span>';
+        }
+
         if ($row->ingaz_delegation_id) {
             return '<span class="badge bg-primary-subtle text-primary border">تفويض إنجاز #' . e((string) $row->ingaz_delegation_id) . '</span>';
         }
@@ -648,7 +656,7 @@ class InvoiceController extends Controller
         $showUrl = route('invoices.show', $row->id);
         $printUrl = route('invoice.download', ['id' => $row->id, 'autoprint' => 1]);
         $creditNoteButton = ($row->contract_id || $row->ingaz_delegation_id
-                || (!$row->sponsorship_transfer_id && $row->base_invoice_id))
+                || (!$row->sponsorship_transfer_id && empty($row->rental_contract_id) && $row->base_invoice_id))
             && !$row->legacy_invoice_number
             && $this->canCreateInvoiceCreditNote()
             ? '<a href="' . route('invoices.credit-notes.create', $row->id) . '" class="btn btn-sm btn-outline-danger" title="إنشاء إشعار دائن دون تغيير العقد أو التفويض أو الفاتورة الأصلية"><i class="fas fa-file-invoice-dollar"></i></a>'
@@ -1012,6 +1020,62 @@ class InvoiceController extends Controller
         ));
     }
 
+    public function createRentalTransfer(int $id, \App\Services\ingaz\RentalTransferInvoiceService $service)
+    {
+        $contract = \App\Models\RentalContract::with(['info', 'user', 'maid', 'transferInvoice'])->findOrFail($id);
+        $this->assertCanAccessBranchModel($contract, 'rental_contracts');
+        $transfer = null;
+        if (request()->filled('transfer_id')) {
+            $transfer = SponsorshipTransfer::findOrFail(request('transfer_id'));
+            $this->assertCanAccessBranchModel($transfer, 'sponsorship_transfers');
+            $service->assertTransferMatches($transfer, $contract);
+        }
+        if ($contract->transferInvoice && (!$transfer || $contract->transferInvoice->sponsorship_transfer_id)) {
+            abort_unless(InvoiceAuthorization::canView(), 403);
+            return redirect()->route('invoices.show', $contract->transferInvoice->id);
+        }
+        $amounts = $contract->transferInvoice ? [
+            'subtotal' => (float) $contract->transferInvoice->subtotal,
+            'vat_amount' => (float) $contract->transferInvoice->vat_amount,
+            'total_due' => (float) $contract->transferInvoice->total_due,
+            'paid_amount' => (float) $contract->transferInvoice->rental_transfer_paid_amount,
+            'remaining_amount' => (float) $contract->transferInvoice->rental_transfer_remaining_amount,
+        ] : $service->amounts($contract);
+        return view('admin.ingaz.RentContract.transfer-invoice-create', compact('contract', 'amounts', 'transfer'));
+    }
+
+    public function storeRentalTransfer(Request $request, int $id, \App\Services\ingaz\RentalTransferInvoiceService $service)
+    {
+        $validated = $request->validate([
+            'vat_percent' => ['required', 'integer', 'in:0,15'],
+            'issue_date' => ['required', 'date_format:Y-m-d', 'before_or_equal:today'],
+            'send_to_zatca' => ['nullable', 'boolean'],
+            'transfer_id' => ['nullable', 'integer', 'exists:sponsorship_transfers,id'],
+        ]);
+        $contract = \App\Models\RentalContract::findOrFail($id);
+        $this->assertCanAccessBranchModel($contract, 'rental_contracts');
+        if ($contract->closed_at && $validated['issue_date'] < $contract->closed_at->format('Y-m-d')) {
+            throw \Illuminate\Validation\ValidationException::withMessages(['issue_date' => 'تاريخ الفاتورة لا يمكن أن يسبق تاريخ نقل الخدمات.']);
+        }
+        $invoice = DB::transaction(function () use ($service, $id, $validated) {
+            $transfer = null;
+            if (!empty($validated['transfer_id'])) {
+                $transfer = SponsorshipTransfer::query()->lockForUpdate()->findOrFail($validated['transfer_id']);
+                $this->assertCanAccessBranchModel($transfer, 'sponsorship_transfers');
+            }
+            $invoice = $transfer
+                ? $service->issueForTransfer($transfer->id, $id, (int) $validated['vat_percent'], $validated['issue_date'])
+                : $service->issue($id, (int) $validated['vat_percent'], $validated['issue_date']);
+            if (!empty($validated['send_to_zatca']) && !$invoice->finance_sale_id) {
+                $this->queueInvoiceForZatcaSale($invoice);
+                $invoice->update(['send_to_zatca' => true]);
+            }
+            return $invoice;
+        });
+        return redirect()->route(InvoiceAuthorization::canView() ? 'invoices.show' : 'RentContract.show',
+            InvoiceAuthorization::canView() ? $invoice->id : $id)->with('success', 'تم إصدار فاتورة نقل الخدمات.');
+    }
+
     public function createSponsorshipTransfer(int $id)
     {
         $transfer = SponsorshipTransfer::query()
@@ -1024,11 +1088,16 @@ class InvoiceController extends Controller
             ->findOrFail($id);
         $this->assertCanAccessBranchModel($transfer, 'sponsorship_transfers');
 
-        // مسار الإيجار غير مالي؛ القيود تُنشأ من عقد التأجير وليس من هنا.
-        if ($transfer->isRentalWorkflow()) {
-            return redirect()
-                ->route('SponsorshipTransfer.show', $transfer->id)
-                ->with('warning', 'طلب نقل الخدمات هذا صادر عن عقد تأجير، وتُصدر فاتورته وقيوده من عقد التأجير نفسه.');
+        // Rental transfer invoices document the already recorded amount without posting it twice.
+        if ($transfer->isRentalWorkflow() && $transfer->status === 'transferred') {
+            if ($transfer->invoice) {
+                abort_unless(InvoiceAuthorization::canView(), 403);
+                return redirect()->route('invoices.show', $transfer->invoice->id);
+            }
+            $contracts = app(\App\Services\ingaz\RentalTransferInvoiceService::class)->contractsForTransfer($transfer)->get();
+            if ($contracts->isNotEmpty()) {
+                return view('admin.ingaz.SponsorshipTransfer.rental-invoice-select', compact('transfer', 'contracts'));
+            }
         }
 
         if (!$transfer->canIssueInvoice() && !$transfer->invoice) {
@@ -1069,6 +1138,10 @@ class InvoiceController extends Controller
      */
     public function store(Request $request, ObjService $service, YearService $yearService, BondService $bondService, bool $allowLateContract = false)
     {
+        if (!$allowLateContract || $request->filled('sponsorship_transfer_id')) {
+            abort_unless($request->filled('sponsorship_transfer_id')
+                ? InvoiceAuthorization::canCreateTransfer() : InvoiceAuthorization::canCreate(), 403);
+        }
         $requiresExternalRecruitmentCost = $request->filled('contract_id')
             || $request->filled('ingaz_delegation_id');
 
@@ -1847,7 +1920,7 @@ class InvoiceController extends Controller
             'created_by_id' => Auth::guard('admin')->id() ?: Auth::id() ?: 1,
         ]);
 
-        if ($invoice->sponsorship_transfer_id && is_array($invoice->line_items)) {
+        if (($invoice->sponsorship_transfer_id || $invoice->rental_transfer_contract_id) && is_array($invoice->line_items)) {
             $remainingDiscount = $this->roundMoney((float) $invoice->discount);
             $saleLineItems = array_filter(
                 $invoice->line_items,
@@ -2829,14 +2902,15 @@ class InvoiceController extends Controller
         if ($transfer->invoice()->exists()) {
             throw new \RuntimeException('طلب نقل الخدمات لديه فاتورة سابقة');
         }
+        if (!$transfer->canIssueInvoice()) {
+            throw \Illuminate\Validation\ValidationException::withMessages(['sponsorship_transfer_id' => 'لا يمكن إصدار فاتورة لطلب نقل خدمات فاشل أو ملغي.']);
+        }
 
-        // مسار الإيجار غير مالي: الإيراد والضريبة والتحصيل تُسجَّل كلها على عقد التأجير.
-        // إصدار فاتورة هنا يعيد ترحيل نفس الإيراد ونفس الضريبة مرة ثانية.
-        if ($transfer->isRentalWorkflow()) {
-            throw new \RuntimeException(
-                'لا يمكن إصدار فاتورة لطلب نقل خدمات صادر عن عقد تأجير؛ '
-                . 'الفاتورة والقيود المحاسبية تُصدر من عقد التأجير نفسه حتى لا تتكرر القيود.'
-            );
+        if ($transfer->isRentalWorkflow() && $transfer->status === 'transferred'
+            && app(\App\Services\ingaz\RentalTransferInvoiceService::class)->contractsForTransfer($transfer)->exists()) {
+            throw \Illuminate\Validation\ValidationException::withMessages([
+                'sponsorship_transfer_id' => 'اختر عقد التأجير المرتبط من شاشة إصدار فاتورة نقل الخدمات حتى لا تتكرر الفاتورة.',
+            ]);
         }
 
         if (!$transfer->newSponsor) {
@@ -2848,13 +2922,43 @@ class InvoiceController extends Controller
         $vatAmount = $this->roundMoney(array_sum(array_column($items, 'vat_amount')));
         $discount = min($this->roundMoney((float) $request->input('discount', 0)), $subtotal);
         $totalDue = $this->roundMoney(max(0, $subtotal + $vatAmount - $discount));
+        if ($transfer->isRentalWorkflow()) {
+            app(\App\Services\ingaz\RentalTransferInvoiceService::class)->validateRequestInvoiceTotal($transfer, $totalDue);
+            $roundingDifference = $this->roundMoney((float) $transfer->contract_value - $totalDue);
+            if ($roundingDifference != 0) {
+                // Inclusive-tax amounts can differ by one halala when the net is rounded first.
+                foreach (array_reverse(array_keys($items)) as $index) {
+                    if ($items[$index]['taxable'] && $items[$index]['vat_amount'] + $roundingDifference >= 0) {
+                        $items[$index]['vat_amount'] = $this->roundMoney($items[$index]['vat_amount'] + $roundingDifference);
+                        $items[$index]['line_total'] = $this->roundMoney($items[$index]['line_total'] + $roundingDifference);
+                        $vatAmount = $this->roundMoney($vatAmount + $roundingDifference);
+                        $totalDue = $this->roundMoney((float) $transfer->contract_value);
+                        break;
+                    }
+                }
+                if ($totalDue !== $this->roundMoney((float) $transfer->contract_value)) {
+                    throw \Illuminate\Validation\ValidationException::withMessages(['line_items' => 'إجمالي البنود لا يساوي مبلغ نقل الخدمات المسجل.']);
+                }
+            }
+        }
         $isPaid = (float) $transfer->paid_amount + 0.009 >= $totalDue;
+
+        $rentalContract = $transfer->isRentalWorkflow()
+            ? app(\App\Services\ingaz\RentalTransferInvoiceService::class)->activeContractForTransfer($transfer) : null;
+        if ($rentalContract?->transferInvoice) {
+            throw \Illuminate\Validation\ValidationException::withMessages(['sponsorship_transfer_id' => 'توجد فاتورة نقل خدمات سابقة مرتبطة بعقد التأجير.']);
+        }
 
         $invoice = Invoice::query()->create([
             'contract_id' => null,
             'ingaz_delegation_id' => null,
             'client_id' => $transfer->new_sponsor_id,
             'sponsorship_transfer_id' => $transfer->id,
+            ...($transfer->isRentalWorkflow() ? [
+                'rental_transfer_contract_id' => $rentalContract?->id,
+                'rental_transfer_paid_amount' => min((float) $transfer->paid_amount, $totalDue),
+                'rental_transfer_remaining_amount' => max(0, $totalDue - (float) $transfer->paid_amount),
+            ] : []),
             'general_description' => trim((string) $request->input('general_description'))
                 ?: 'فاتورة عملية نقل خدمة رقم ' . $transfer->id,
             'line_items' => $items,
@@ -2883,7 +2987,7 @@ class InvoiceController extends Controller
         $invoice->setRelation('client', $transfer->newSponsor);
 
         $invoiceConstraint = null;
-        if (AutomaticJournalEntries::enabled() && $totalDue > 0) {
+        if (!$transfer->isRentalWorkflow() && AutomaticJournalEntries::enabled() && $totalDue > 0) {
             $clientAccountId = $this->ensureClientUserAccountId($transfer->newSponsor);
             $invoiceConstraint = $this->storeInvoiceConstraintForSponsorshipTransfer(
                 $invoice,
@@ -3281,7 +3385,7 @@ class InvoiceController extends Controller
         abort_unless(
             ($invoice->contract_id && $invoice->contract)
                 || ($invoice->ingaz_delegation_id && $invoice->ingazDelegation)
-                || ($invoice->client_id && $invoice->client && !$invoice->sponsorship_transfer_id),
+                || ($invoice->client_id && $invoice->client && !$invoice->sponsorship_transfer_id && !$invoice->rental_transfer_contract_id),
             422,
             'إشعار الدائن متاح لفواتير الاستقدام والتفاويض والفواتير العامة فقط.'
         );
@@ -3317,7 +3421,7 @@ class InvoiceController extends Controller
 
                 if ((!$invoice->contract_id || !$invoice->contract)
                     && (!$invoice->ingaz_delegation_id || !$invoice->ingazDelegation)
-                    && (!$invoice->client_id || !$invoice->client || $invoice->sponsorship_transfer_id)) {
+                    && (!$invoice->client_id || !$invoice->client || $invoice->sponsorship_transfer_id || $invoice->rental_transfer_contract_id)) {
                     throw new \RuntimeException('إشعار الدائن متاح لفواتير الاستقدام والتفاويض والفواتير العامة فقط.');
                 }
 
@@ -3519,7 +3623,8 @@ class InvoiceController extends Controller
         string $issueDate,
         string $reason,
         ObjService $service,
-        YearService $yearService
+        YearService $yearService,
+        ?float $approvedAmount = null
     ): ?RecruitmentInvoiceCreditNote {
         $invoice->loadMissing([
             'contract.user',
@@ -3534,7 +3639,23 @@ class InvoiceController extends Controller
         }
 
         $remaining = $this->recruitmentCreditNoteRemaining($invoice);
-        if ((float) $remaining['total'] <= 0.01) {
+        if ($approvedAmount !== null) {
+            $approvedAmount = $this->roundMoney($approvedAmount);
+            if ($approvedAmount <= 0 || $approvedAmount > (float) $remaining['total']) {
+                throw \Illuminate\Validation\ValidationException::withMessages([
+                    'credit_note' => 'مبلغ الإشعار الدائن يجب أن يكون أكبر من صفر وألا يتجاوز رصيد الفاتورة المتبقي: ' . number_format((float) $remaining['total'], 2) . ' ريال.',
+                ]);
+            }
+            if ($approvedAmount < (float) $remaining['total']) {
+                $ratio = $approvedAmount / (float) $remaining['total'];
+                $remaining['vat_amount'] = $this->roundMoney((float) $remaining['vat_amount'] * $ratio);
+                $remaining['taxable_amount'] = $this->roundMoney((float) $remaining['taxable_amount'] * $ratio);
+                $remaining['subtotal'] = $this->roundMoney($approvedAmount - $remaining['vat_amount']);
+                $remaining['non_taxable_amount'] = $this->roundMoney($remaining['subtotal'] - $remaining['taxable_amount']);
+                $remaining['total'] = $approvedAmount;
+            }
+        }
+        if ((float) $remaining['total'] <= 0) {
             return null;
         }
 
@@ -3646,6 +3767,7 @@ class InvoiceController extends Controller
             'sponsorshipTransfer.newSponsor',
             'sponsorshipTransfer.contract.maid',
             'sponsorshipTransfer.receiptBond.constraint',
+            'rentalTransferContract.maid',
             'invoiceConstraint',
             'musanedTransferItem.transfer',
             'financeSale.zatca',
@@ -3671,7 +3793,7 @@ class InvoiceController extends Controller
         $invoiceSubtitle = (string) documentSetting('invoice_subtitle', 'Simplified Tax Invoice');
         $invoiceFooterText = (string) replaceDocumentPlaceholders(documentSetting('invoice_footer_text', ''));
 
-        $serviceDesc = $invoice->sponsorship_transfer_id
+        $serviceDesc = ($invoice->sponsorship_transfer_id || $invoice->rental_transfer_contract_id)
             ? 'نقل الخدمات'
             : ($invoice->ingaz_delegation_id ? 'تفويض إنجاز' : ($invoice->client_id ? 'فاتورة عامة' : 'طلب تعاقد'));
         $serviceLongDescription = $this->buildServiceDescription($invoice);
@@ -3814,7 +3936,7 @@ class InvoiceController extends Controller
             return $items;
         }
 
-        if ($invoice->sponsorship_transfer_id && is_array($invoice->line_items)) {
+        if (($invoice->sponsorship_transfer_id || $invoice->rental_transfer_contract_id) && is_array($invoice->line_items)) {
             return collect($invoice->line_items)
                 ->map(function (array $item) {
                     $quantity = (float) ($item['quantity'] ?? 0);
@@ -3984,6 +4106,10 @@ class InvoiceController extends Controller
 
     private function buildServiceDescription(Invoice $invoice): string
     {
+        if ($invoice->rental_transfer_contract_id) {
+            return (string) $invoice->general_description . ' - العميل: ' . ($invoice->client?->name ?: 'غير محدد')
+                . ' - العاملة: ' . ($invoice->rentalTransferContract?->maid?->name ?: 'غير محدد');
+        }
         if ($invoice->sponsorship_transfer_id) {
             $transfer = $invoice->sponsorshipTransfer;
             $clientName = $transfer?->newSponsor?->name ?: $invoice->client?->name ?: 'غير محدد';

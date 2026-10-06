@@ -21,7 +21,7 @@ class TransferServiceContractController extends Controller
     {
         if ($request->ajax()) {
             $query = TransferServiceContract::with([
-                'sponsorshipTransfer',
+                'sponsorshipTransfer.invoice',
                 'contract.maid.nationality',
                 'maid',
                 'oldSponsor',
@@ -127,6 +127,13 @@ class TransferServiceContractController extends Controller
                     $actions .= '<a href="' . route('print.transfer-service-contract', $contract->id) . '" target="_blank" class="btn btn-sm btn-success">
                                     <i class="fas fa-print"></i> طباعة
                                 </a>';
+
+                    $transfer = $contract->sponsorshipTransfer;
+                    if ($transfer?->invoice && \App\Support\InvoiceAuthorization::canView()) {
+                        $actions .= '<a class="btn btn-sm btn-outline-primary" href="' . route('invoices.show', $transfer->invoice->id) . '"><i class="fas fa-file-invoice-dollar"></i> عرض فاتورة نقل الخدمات</a>';
+                    } elseif ($transfer && $transfer->canIssueInvoice() && \App\Support\InvoiceAuthorization::canCreateTransfer()) {
+                        $actions .= '<a class="btn btn-sm btn-outline-primary" href="' . route('SponsorshipTransfer.invoice.create', $transfer->id) . '"><i class="fas fa-file-invoice-dollar"></i> إصدار فاتورة نقل الخدمات</a>';
+                    }
 
                     $actions .= '</div>';
 

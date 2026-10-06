@@ -498,6 +498,10 @@
                             <td class="label">مجموع شامل الضريبة</td>
                             <td class="num">{{ number_format($grandTotal, 2) }} ريال سعودي</td>
                         </tr>
+                        @if ($invoice->rental_transfer_contract_id)
+                            <tr><td class="label">المدفوع</td><td class="num">{{ number_format($invoice->rental_transfer_paid_amount, 2) }}</td></tr>
+                            <tr><td class="label">المتبقي</td><td class="num">{{ number_format($invoice->rental_transfer_remaining_amount, 2) }}</td></tr>
+                        @endif
                     </table>
                 </div>
                 <div class="summary-right">
@@ -522,7 +526,7 @@
                 </div>
             </div>
 
-            <p class="tax-note">يشمل الضريبة (%15): {{ number_format($vatAmount, 2) }}</p>
+            <p class="tax-note">يشمل الضريبة ({{ $invoice->rental_transfer_contract_id && $vatAmount <= 0 ? '0' : '15' }}%): {{ number_format($vatAmount, 2) }}</p>
             <p class="printed-by">بواسطة: {{ $printedBy ?? '---' }}</p>
 
             <div class="link-box">{{ $invoiceUrl }}</div>

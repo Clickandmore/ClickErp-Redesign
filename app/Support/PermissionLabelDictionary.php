@@ -148,6 +148,7 @@ final class PermissionLabelDictionary
         'invoice_credit_notes' => 'الإشعارات الدائنة للفواتير',
         'shelter_contract_rental_instant_receipt' => 'سند الاستلام الفوري لعقد التأجير',
         'sponsor_transfer_replace_maid' => 'استبدال العاملة في نقل الخدمات',
+        'sponsor_transfer_create_invoice' => 'إضافة فاتورة لنقل الخدمات',
         'financial_requests' => 'الطلبات المالية',
         'financial_requests_close' => 'إغلاق الطلب المالي',
         'financial_requests_escalate' => 'تصعيد الطلب المالي',

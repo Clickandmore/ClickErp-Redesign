@@ -272,6 +272,7 @@ class PostArrivalRefundTest extends TestCase
         $this->assertSame($beforeNotes, \App\Models\RecruitmentInvoiceCreditNote::query()->count());
 
         $view = app(PostArrivalRefundController::class)->edit(Request::create('/'), $updated, $service);
+        $view->with('errors', new \Illuminate\Support\ViewErrorBag());
         $html = $view->render();
         $this->assertStringContainsString('value="3000.00"', $html);
         $this->assertStringContainsString('المسودة المعدلة', $html);
@@ -303,6 +304,34 @@ class PostArrivalRefundTest extends TestCase
         foreach (['post-arrival-refunds.edit', 'post-arrival-refunds.update'] as $route) {
             $this->assertSame([PermKeys::POST_ARRIVAL_REFUND_EDIT], AdminRoutePermissionMatrix::resolve($route, Request::create('/')));
         }
+    }
+
+    public function test_excess_credit_note_returns_clear_validation_and_keeps_the_draft_without_financial_documents(): void
+    {
+        $service = app(PostArrivalRefundService::class);
+        $reason = ReturnReasonCode::query()->firstOrCreate(['code' => 'test-credit-mismatch'], ['name' => 'اختبار']);
+        $draft = $service->createDraft($this->contractWithArrivalInvoice(), [
+            'settlement_date' => now()->toDateString(),
+            'return_reason_code_id' => $reason->id,
+            'reason' => 'اختبار اختلاف المبلغ',
+            'lines' => [['enabled' => true, 'type' => 'credit_note', 'approved_amount' => 3979.75, 'reason' => 'اختبار تخفيض ريال واحد']],
+        ]);
+        $beforeConstraints = Constraint::query()->count();
+        $beforeNotes = \App\Models\RecruitmentInvoiceCreditNote::query()->count();
+        $draft->lines()->first()->update(['approved_amount' => 3981.75]);
+        try {
+            $service->post($draft);
+            $this->fail('A mismatched credit note must not be posted.');
+        } catch (\Illuminate\Validation\ValidationException $exception) {
+            $message = $exception->errors()['credit_note'][0];
+            $this->assertStringContainsString('3,981.75 ريال', $message);
+            $this->assertStringContainsString('3,980.75 ريال', $message);
+            $this->assertStringContainsString('ألا يتجاوز', $message);
+        }
+        $this->assertSame('draft', $draft->fresh()->status);
+        $this->assertSame('draft', $draft->lines()->first()->status);
+        $this->assertSame($beforeConstraints, Constraint::query()->count());
+        $this->assertSame($beforeNotes, \App\Models\RecruitmentInvoiceCreditNote::query()->count());
     }
 
     private function contractWithArrivalInvoice(): Contract

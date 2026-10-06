@@ -544,6 +544,28 @@ class RecruitmentRevenueRecognitionTest extends TestCase
         $this->assertNull($invoice->fresh()->invoice_constraint_id);
     }
 
+    public function test_system_refund_credit_note_uses_partial_approved_amount_and_balances_its_constraint(): void
+    {
+        $contract = $this->createContract($this->createNationality('استرداد جزئي'), withClientAccount: true);
+        $sales = $this->createAccount('مبيعات الاسترداد الجزئي', 'creditor');
+        $vat = $this->createAccount('ضريبة الاسترداد الجزئي', 'creditor');
+        ConfirmSetting::query()->create(['title' => 'revenue_tax_account', 'value' => $vat->id, 'created_by_id' => $this->admin->id]);
+        $source = $this->storeConstraint('فاتورة الاسترداد الجزئي', [
+            [$sales->id, 'creditor', 0, 3938],
+            [$vat->id, 'creditor', 0, 42.75],
+            [$contract->user->account_id, 'debtor', 3980.75, 0],
+        ]);
+        $invoice = $this->createInvoice($contract, ['revenue_recognition_mode' => 'on_invoice', 'invoice_constraint_id' => $source->id]);
+        $note = app(\App\Http\Controllers\ingaz\InvoiceController::class)->createSystemCreditNoteForRecruitmentRefund(
+            $invoice, now()->toDateString(), 'اختبار مبلغ جزئي', app(ConstraintService::class), app(\Nami\Finance\Services\YearService::class), 1000
+        );
+        $this->assertSame(1000.0, (float) $note->total);
+        $this->assertSame(1000.0, round((float) $note->subtotal + (float) $note->vat_amount, 2));
+        $this->assertSame((float) $note->subtotal, round((float) $note->taxable_amount + (float) $note->non_taxable_amount, 2));
+        $this->assertSame(1000.0, round((float) $note->constraint->constraintDetails->sum('debtor_value'), 2));
+        $this->assertSame(1000.0, round((float) $note->constraint->constraintDetails->sum('creditor_value'), 2));
+    }
+
     // ── helpers ────────────────────────────────────────────────────────────────
 
     private function setMode(string $mode): void
