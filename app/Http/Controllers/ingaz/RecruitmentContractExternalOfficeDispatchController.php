@@ -86,6 +86,7 @@ class RecruitmentContractExternalOfficeDispatchController extends Controller
 
         $query = Contract::query()
             ->with([
+                'companyProfile',
                 'user',
                 'maid.religion',
                 'maid.nationality',
@@ -164,9 +165,9 @@ class RecruitmentContractExternalOfficeDispatchController extends Controller
                         : '<span title="' . e($disabledReason) . '">' . $checkbox . '</span>';
                 })
                 ->addColumn('client', function (Contract $contract) {
-                    $name = e($contract->user?->name ?? 'غير محدد');
-                    $identity = e($contract->user?->documentNumber() ?? '-');
-                    $identityLabel = e($contract->user?->documentNumberLabel() ?? 'هوية');
+                    $name = e($contract->company_profile_id ? ($contract->companyProfile?->name ?? 'غير محدد') : ($contract->user?->name ?? 'غير محدد'));
+                    $identity = e($contract->company_profile_id ? ($contract->companyProfile?->registration_number ?? '-') : ($contract->user?->documentNumber() ?? '-'));
+                    $identityLabel = e($contract->company_profile_id ? 'السجل التجاري' : ($contract->user?->documentNumberLabel() ?? 'هوية'));
 
                     return '<div class="fw-semibold">' . $name . '</div><small class="text-muted">' . $identityLabel . ': ' . $identity . '</small>';
                 })
@@ -395,9 +396,14 @@ class RecruitmentContractExternalOfficeDispatchController extends Controller
                 'failure' => 'جنسية العاملة غير محددة.',
             ],
             [
-                'label' => 'اسم العميل ورقم هويته مكتملان',
-                'passed' => filled($sourceSnapshot['sponsor_name']) && filled($sourceSnapshot['sponsor_identity_number']),
-                'failure' => 'يجب استكمال اسم العميل ورقم هويته.',
+                'label' => $contract->company_profile_id ? 'اسم الشركة مكتمل' : 'اسم العميل مكتمل',
+                'passed' => filled($sourceSnapshot['sponsor_name']),
+                'failure' => $contract->company_profile_id ? 'اسم الشركة غير مكتمل في إعدادات الشركة.' : 'اسم الكفيل غير مكتمل على بيانات العميل.',
+            ],
+            [
+                'label' => $contract->company_profile_id ? 'السجل التجاري مكتمل' : 'رقم هوية العميل مكتمل',
+                'passed' => filled($sourceSnapshot['sponsor_identity_number']),
+                'failure' => $contract->company_profile_id ? 'رقم السجل التجاري غير مكتمل في إعدادات الشركة.' : 'رقم هوية العميل غير مكتمل.',
             ],
             [
                 'label' => 'اسم العاملة ورقم جوازها مكتملان',

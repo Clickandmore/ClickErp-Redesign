@@ -1932,6 +1932,7 @@ class MaidAction extends MainAction
 
             $contract = Contract::create([
                 ...$companyOwnership,
+                'type' => 'recruitment',
                 'maid_id' => $maid->id,
                 'status' => ContractStatusEnum::New->value,
                 'contract_date' => now()->toDateString(),

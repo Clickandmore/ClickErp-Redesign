@@ -33,7 +33,7 @@ class AccountStatementSupplierController extends Controller
             'to_date' => now()->format('Y-m-d'),
             'type' => 'both',
             'account_id' => '',
-            'other_account' => 'yes',
+            'other_account' => 'no',
         ], $request->only($this->getData));
 
         if ($request->ajax()) {

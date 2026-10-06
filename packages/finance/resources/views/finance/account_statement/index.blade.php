@@ -938,8 +938,8 @@
                 <div class="statement-field statement-field--select">
                     <label for="other_account">{{ __('finance::finance.Show Counter Account') }}</label>
                     <select name="other_account" id="other_account" class="form-control search_keys">
-                        <option value="no" @selected(($filters['other_account'] ?? request('other_account')) === 'no')>{{ __('finance::finance.No') }}</option>
-                        <option value="yes" @selected(($filters['other_account'] ?? request('other_account', 'yes')) === 'yes')>نعم</option>
+                        <option value="no" @selected(($filters['other_account'] ?? request('other_account', 'no')) === 'no')>{{ __('finance::finance.No') }}</option>
+                        <option value="yes" @selected(($filters['other_account'] ?? request('other_account', 'no')) === 'yes')>نعم</option>
                     </select>
                 </div>
             </div>

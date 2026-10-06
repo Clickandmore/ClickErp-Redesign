@@ -1343,6 +1343,9 @@
                                     <span class="value">{{ number_format((float) $contract->info->monthly_salary, 2) }} ريال</span>
                                 </li>
                             @endif
+                            @if ($contract->closure_type === 'transferred')
+                                <li>@include('admin.ingaz.RentContract.transfer-invoice-actions')</li>
+                            @endif
                             @if ((float) ($contract->info?->sponsorship_transfer_amount ?? 0) > 0)
                                 <li>
                                     <span class="label">مبلغ نقل الخدمات</span>

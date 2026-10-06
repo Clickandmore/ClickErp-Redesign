@@ -36,9 +36,15 @@ class Invoice extends Model
 
     protected function resolveBranchIdForCreate(): ?int
     {
-        return $this->resolveBranchIdFromSponsorshipTransfer($this->sponsorship_transfer_id ?? null)
+        return $this->resolveBranchIdFromTable('rental_contracts', $this->rental_transfer_contract_id ?? null)
+            ?: $this->resolveBranchIdFromSponsorshipTransfer($this->sponsorship_transfer_id ?? null)
             ?: $this->resolveBranchIdFromContract($this->contract_id ?? null)
             ?: $this->resolveBranchIdFromCurrentAdmin();
+    }
+
+    public function rentalTransferContract()
+    {
+        return $this->belongsTo(\App\Models\RentalContract::class, 'rental_transfer_contract_id');
     }
 
     private function resolveBranchIdFromSponsorshipTransfer($transferId): ?int

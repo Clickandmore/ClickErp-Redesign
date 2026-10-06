@@ -187,11 +187,11 @@
                         <td>{{ $dispatch->visa_number ?: '-' }}</td>
                     </tr>
                     <tr>
-                        <th>اسم الكفيل / العميل</th>
+                        <th>{{ $contract->company_profile_id ? 'اسم الشركة' : 'اسم الكفيل / العميل' }}</th>
                         <td>{{ $dispatch->sponsor_name ?: '-' }}</td>
                     </tr>
                     <tr>
-                        <th>رقم الهوية</th>
+                        <th>{{ $contract->company_profile_id ? 'السجل التجاري' : 'رقم الهوية' }}</th>
                         <td>{{ $dispatch->sponsor_identity_number ?: '-' }}</td>
                     </tr>
                     <tr>

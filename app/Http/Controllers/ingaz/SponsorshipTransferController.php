@@ -277,10 +277,12 @@ class SponsorshipTransferController extends Controller
                                             <i class="fas fa-print text-success"></i> تحميل / طباعة الفاتورة
                                         </a></li>';
                         }
-                    } elseif ($transfer->canIssueInvoice() && InvoiceAuthorization::canCreate()) {
+                    } elseif ($transfer->canIssueInvoice() && InvoiceAuthorization::canCreateTransfer()) {
                         $actions .= '<li><a class="dropdown-item fw-bold text-success" href="' . route('SponsorshipTransfer.invoice.create', $transfer->id) . '">
-                                        <i class="fas fa-file-invoice-dollar"></i> إصدار الفاتورة
+                                        <i class="fas fa-file-invoice-dollar"></i> إصدار فاتورة نقل الخدمات
                                     </a></li>';
+                    } elseif ($transfer->canIssueInvoice()) {
+                        $actions .= '<li><span class="dropdown-item text-muted" title="يتطلب صلاحية إضافة فاتورة لنقل الخدمات"><i class="fas fa-lock"></i> إصدار فاتورة نقل الخدمات — الصلاحية غير متاحة</span></li>';
                     }
 
                     if ($transfer->payment_receipt_path) {
@@ -873,7 +875,7 @@ class SponsorshipTransferController extends Controller
                     . (!empty($financeResult['bond']) ? ' وإنشاء سند قبض رقم ' . ($financeResult['bond']->code ?: $financeResult['bond']->id) : ''),
                 'transfer_id' => $transfer->id,
                 'show_url' => route('SponsorshipTransfer.show', $transfer->id),
-                'invoice_create_url' => !$transfer->isRentalWorkflow() && InvoiceAuthorization::canCreate()
+                'invoice_create_url' => $transfer->canIssueInvoice() && InvoiceAuthorization::canCreateTransfer()
                     ? route('SponsorshipTransfer.invoice.create', $transfer->id)
                     : null,
             ]);
@@ -1085,6 +1087,10 @@ class SponsorshipTransferController extends Controller
                     'success' => false,
                     'message' => 'لا يمكن تحديث هذا الطلب'
                 ], 400);
+            }
+
+            if ($transfer->invoice()->exists()) {
+                throw ValidationException::withMessages(['invoice' => 'لا يمكن تعديل بيانات طلب النقل بعد إصدار فاتورته.']);
             }
 
             $validated = $request->validate([

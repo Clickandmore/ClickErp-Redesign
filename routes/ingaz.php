@@ -542,6 +542,8 @@ Route::group(
             Route::resource('RentContract', RentContractController::class);
             Route::post('RentContract/{id}/change-marketer', [RentContractController::class, 'changeMarketer'])->name('RentContract.changeMarketer');
             Route::get('rental-invoices/download/{id}', [RentalContractInvoiceController::class, 'download'])->name('rental.invoice.download');
+            Route::get('RentContract/{id}/transfer-invoice/create', [InvoiceController::class, 'createRentalTransfer'])->name('rental.transfer-invoice.create');
+            Route::post('RentContract/{id}/transfer-invoice', [InvoiceController::class, 'storeRentalTransfer'])->name('rental.transfer-invoice.store');
             Route::get('rental-extension-invoices/download/{id}', [RentalContractInvoiceController::class, 'extension'])->name('rental.extension-invoice.download');
             Route::get('rental-credit-notes/download/{id}', [RentalContractInvoiceController::class, 'creditNote'])->name('rental.credit-note.download');
             Route::get('rental-invoices/{id}/credit-notes/create', [RentalContractInvoiceController::class, 'createCreditNote'])->name('rental-invoices.credit-notes.create');

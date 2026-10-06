@@ -39,7 +39,19 @@
             @foreach ($fields as $field => [$label, $value])
                 <div class="col-md-6">
                     <label class="form-label" for="{{ $field }}">{{ $label }}</label>
-                    <input id="{{ $field }}" name="{{ $field }}" class="form-control" type="{{ $field === 'email' ? 'email' : ($field === 'company_license_expiry_date' ? 'date' : 'text') }}" value="{{ old($field, $value) }}" @if(in_array($field, ['company_name', 'phone'])) required @endif>
+                    <input id="{{ $field }}" name="{{ $field }}" class="form-control" type="{{ $field === 'email' ? 'email' : ($field === 'company_license_expiry_date' ? 'date' : 'text') }}" value="{{ old($field, $value) }}" @if(in_array($field, ['company_name', 'phone'])) required @endif
+                        @if ($field === 'company_registration_number')
+                            inputmode="numeric" dir="ltr" minlength="10" maxlength="10" pattern="7[0-9]{9}" placeholder="7001234567"
+                            title="السجل التجاري يجب أن يتكون من 10 أرقام ويبدأ بالرقم 7."
+                        @elseif ($field === 'tax_number')
+                            inputmode="numeric" dir="ltr" minlength="15" maxlength="15" pattern="3[0-9]{14}" placeholder="300123456789003"
+                            title="الرقم الضريبي يجب أن يتكون من 15 رقمًا ويبدأ بالرقم 3."
+                        @endif>
+                    @if ($field === 'company_registration_number')
+                        <small class="text-muted">10 أرقام تبدأ بالرقم 7، مثل 7001234567.</small>
+                    @elseif ($field === 'tax_number')
+                        <small class="text-muted">15 رقمًا تبدأ بالرقم 3، مثل 300123456789003. النهاية المعتادة لضريبة القيمة المضافة هي 003.</small>
+                    @endif
                 </div>
             @endforeach
             <div class="col-md-6">

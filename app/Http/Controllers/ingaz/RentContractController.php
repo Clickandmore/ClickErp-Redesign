@@ -102,7 +102,7 @@ class RentContractController extends Controller
             $status = $request->get('status', $status);
             $branchesEnabled = $this->branchesEnabledFor('rental_contracts');
 
-            $relations = ['user', 'maid', 'info', 'marketer', 'financeInvoice', 'extensions', 'financialAdjustments', 'financeBonds'];
+            $relations = ['user', 'maid', 'info', 'marketer', 'financeInvoice', 'transferInvoice', 'extensions', 'financialAdjustments', 'financeBonds'];
             if ($branchesEnabled) {
                 $relations[] = 'branch';
             }
@@ -316,6 +316,19 @@ class RentContractController extends Controller
                     $actions .= '<li><a class="dropdown-item" href="' . route('RentContract.attachments.download', $row->id) . '">
                                     <i class="fas fa-paperclip"></i> تحميل مرفقات العقد
                                 </a></li>';
+
+                    if ($row->closure_type === 'transferred') {
+                        if ($row->transferInvoice) {
+                            if (InvoiceAuthorization::canView()) {
+                                $actions .= '<li><a class="dropdown-item" href="' . route('invoices.show', $row->transferInvoice->id) . '"><i class="fas fa-file-invoice-dollar"></i> عرض فاتورة نقل الخدمات</a></li>';
+                            }
+                            if (InvoiceAuthorization::canPrint()) {
+                                $actions .= '<li><a class="dropdown-item" target="_blank" rel="noopener" href="' . route('invoice.download', ['id' => $row->transferInvoice->id, 'autoprint' => 1]) . '"><i class="fas fa-print"></i> طباعة فاتورة نقل الخدمات</a></li>';
+                            }
+                        } elseif (InvoiceAuthorization::canCreateTransfer() && (float) ($row->info?->sponsorship_transfer_total_amount ?? $row->info?->sponsorship_transfer_amount) > 0) {
+                            $actions .= '<li><a class="dropdown-item" href="' . route('rental.transfer-invoice.create', $row->id) . '"><i class="fas fa-file-invoice-dollar"></i> إصدار فاتورة نقل الخدمات</a></li>';
+                        }
+                    }
 
                     if ($row->financeInvoice && InvoiceAuthorization::canPrint()) {
                         $actions .= '<li><a class="dropdown-item" href="' . route('rental.invoice.download', ['id' => $row->financeInvoice->id, 'autoprint' => 1]) . '" target="_blank">
@@ -878,6 +891,7 @@ class RentContractController extends Controller
             'resumedBy',
             'order.details.package',
             'financeInvoice.receiptAccount',
+            'transferInvoice',
             'financeBonds.debitAccount',
             'financeBonds.constraint',
             'extensions.createdBy',

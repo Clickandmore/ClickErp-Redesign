@@ -162,6 +162,11 @@ class RentalContract extends Model
         return $this->hasOne(RentalContractInvoice::class, 'rental_contract_id');
     }
 
+    public function transferInvoice()
+    {
+        return $this->hasOne(\App\Models\ingaz\Invoice::class, 'rental_transfer_contract_id');
+    }
+
     public function extensions()
     {
         return $this->hasMany(RentalContractExtension::class, 'rental_contract_id');

@@ -233,6 +233,7 @@ const PARTENR_CONTROL = 'partenr_control';
     const SPONSOR_TRANSFER_DELETE = 'sponsor_transfer_delete';
     const SPONSOR_TRANSFER_CONTROL = 'sponsor_transfer_control';
     const SPONSOR_TRANSFER_ADD_PAYMENT = 'sponsor_transfer_add_payment';
+    const SPONSOR_TRANSFER_CREATE_INVOICE = 'sponsor_transfer_create_invoice';
     const SPONSOR_TRANSFER_REPLACE_MAID = 'sponsor_transfer_replace_maid';
 
     // ========================================

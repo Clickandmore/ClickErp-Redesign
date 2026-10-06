@@ -304,6 +304,7 @@
                                             data-type="{{ $type }}">{{ number_format($lineProposed, 2, '.', '') }}</span>
                                     </td>
                                     <td><input type="number" step="0.01" min="0"
+                                            @if($type === 'credit_note') max="{{ $initialProposal['credit_note'] ?? 0 }}" @endif
                                             class="form-control amount line-value"
                                             name="lines[{{ $loop->index }}][approved_amount]"
                                             value="{{ $formValue("lines.$loop->index.approved_amount", number_format($lineProposed, 2, '.', '')) }}">
@@ -462,6 +463,7 @@
                                 if (t === 'client_payout') v = Math.max(0, (p.credit_note || 0) - (p
                                     .client_deduction || 0));
                                 row.querySelector('.proposal').textContent = money(v);
+                                if (t === 'credit_note') row.querySelector('.amount').max = v;
                                 if (!row.querySelector('.amount').value) row.querySelector('.amount').value = money(
                                     v);
                             });
@@ -473,7 +475,11 @@
                                     `${p.office_charge_credit_account_code||''} — ${p.office_charge_credit_account_name||''} [#${p.office_charge_credit_account_id}]`;
                             }
                             if (officeSource) {
-                                officeSource.textContent = p.office_charge_credit_account_id ? `اختير تلقائياً من ${p.office_charge_account_source==='shelter_receipt' ? 'مرجع استلام تكلفة الإيواء #'+p.office_charge_receipt_entry_id : 'حساب مردودات تكلفة الجنسية'}: 'تعذر إثبات الحساب من المرجع؛ اختر حساباً طرفياً يدوياً.'; officeSource.className='form-text '+(p.office_charge_credit_account_id?'text-success':'text-warning'); }
+                                officeSource.textContent = p.office_charge_credit_account_id
+                                    ? `اختير تلقائياً من ${p.office_charge_account_source === 'shelter_receipt' ? 'مرجع استلام تكلفة الإيواء #' + p.office_charge_receipt_entry_id : 'حساب مردودات تكلفة الجنسية'}`
+                                    : 'تعذر إثبات الحساب من المرجع؛ اختر حساباً طرفياً يدوياً.';
+                                officeSource.className = 'form-text ' + (p.office_charge_credit_account_id ? 'text-success' : 'text-warning');
+                            }
             if (!@json((bool) $draft)) applyReason();
             } catch(error) { facts.className='alert alert-danger'; facts.textContent='تعذر تحديث الاقتراحات: '+error.message; }
         }

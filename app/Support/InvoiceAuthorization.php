@@ -16,6 +16,11 @@ final class InvoiceAuthorization
         return [PermKeys::INVOICES_CREATE];
     }
 
+    public static function transferCreatePermissions(): array
+    {
+        return [PermKeys::SPONSOR_TRANSFER_CREATE_INVOICE];
+    }
+
     public static function exportPermissions(): array
     {
         return [PermKeys::INVOICES_EXPORT, PermKeys::INVOICES_CONTROL];
@@ -48,6 +53,7 @@ final class InvoiceAuthorization
 
     public static function canView(): bool { return self::canAny(self::viewPermissions()); }
     public static function canCreate(): bool { return self::canAny(self::createPermissions()); }
+    public static function canCreateTransfer(): bool { return self::canAny(self::transferCreatePermissions()); }
     public static function canExport(): bool { return self::canAny(self::exportPermissions()); }
     public static function canPrint(): bool { return self::canAny(self::printPermissions()); }
     public static function canControl(): bool { return self::canAny(self::controlPermissions()); }

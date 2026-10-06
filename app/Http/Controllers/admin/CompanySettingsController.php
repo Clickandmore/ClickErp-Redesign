@@ -46,10 +46,16 @@ class CompanySettingsController extends Controller
             'company_name' => 'required|string|max:255', 'company_name_en' => 'nullable|string|max:255',
             'phone' => 'required|string|max:50', 'other_phone' => 'nullable|string|max:50',
             'email' => 'nullable|email|max:255', 'company_address' => 'nullable|string|max:2000',
-            'company_city' => 'nullable|string|max:255', 'tax_number' => 'nullable|string|max:50',
-            'company_registration_number' => 'nullable|string|max:100',
+            'company_city' => 'nullable|string|max:255',
+            'tax_number' => ['nullable', 'string', 'regex:/\A3[0-9]{14}\z/'],
+            'company_registration_number' => ['nullable', 'string', 'regex:/\A7[0-9]{9}\z/'],
             'company_license_number' => 'nullable|string|max:100', 'company_license_expiry_date' => 'nullable|date',
             'company_representative' => 'nullable|string|max:255', 'company_account_id' => 'nullable|integer|exists:fn_accounts,id',
+        ], [
+            'company_registration_number.string' => 'السجل التجاري يجب أن يتكون من 10 أرقام ويبدأ بالرقم 7.',
+            'company_registration_number.regex' => 'السجل التجاري يجب أن يتكون من 10 أرقام ويبدأ بالرقم 7، مثل 7001234567.',
+            'tax_number.string' => 'الرقم الضريبي يجب أن يتكون من 15 رقمًا ويبدأ بالرقم 3.',
+            'tax_number.regex' => 'الرقم الضريبي يجب أن يتكون من 15 رقمًا ويبدأ بالرقم 3، مثل 300123456789003.',
         ]);
         if ($request->filled('company_account_id') && DB::table('fn_accounts')->where('parent_id', $request->company_account_id)->exists()) {
             throw \Illuminate\Validation\ValidationException::withMessages(['company_account_id' => 'اختر حسابًا فرعيًا نهائيًا لتسجيل العمليات المالية.']);

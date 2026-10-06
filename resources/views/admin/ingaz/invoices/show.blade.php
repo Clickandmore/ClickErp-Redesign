@@ -66,7 +66,7 @@
                                     <i class="fa-solid fa-file-pdf"></i>
                                 </a>
                             @endif
-                            @if (($invoice->contract_id || $invoice->ingaz_delegation_id || ($invoice->client_id && !$invoice->sponsorship_transfer_id)) && !$invoice->legacy_invoice_number && \App\Support\InvoiceAuthorization::canCreateCreditNotes())
+                            @if (($invoice->contract_id || $invoice->ingaz_delegation_id || ($invoice->client_id && !$invoice->sponsorship_transfer_id && !$invoice->rental_transfer_contract_id)) && !$invoice->legacy_invoice_number && \App\Support\InvoiceAuthorization::canCreateCreditNotes())
                                 <a href="{{ route('invoices.credit-notes.create', $invoice->id) }}"
                                    class="btn btn-light border text-danger" title="إنشاء إشعار دائن">
                                     <i class="fa-solid fa-file-invoice-dollar"></i>
@@ -92,7 +92,7 @@
                         <div class="text-end">
                             <div class="invoice-title">فاتورة إلكترونية</div>
                             <div class="invoice-meta">
-                                {{ $invoice->sponsorship_transfer_id ? 'طلب نقل الخدمات رقم: ' . $invoice->sponsorship_transfer_id : ($invoice->contract_id ? 'رقم العقد: ' . $invoice->contract_id : ($invoice->ingaz_delegation_id ? 'رقم التفويض: ' . $invoice->ingaz_delegation_id : 'فاتورة عامة')) }}
+                                {{ $invoice->rental_transfer_contract_id ? $invoice->general_description : ($invoice->sponsorship_transfer_id ? 'طلب نقل الخدمات رقم: ' . $invoice->sponsorship_transfer_id : ($invoice->contract_id ? 'رقم العقد: ' . $invoice->contract_id : ($invoice->ingaz_delegation_id ? 'رقم التفويض: ' . $invoice->ingaz_delegation_id : 'فاتورة عامة'))) }}
                             </div>
                         </div>
                     </div>
@@ -100,8 +100,8 @@
                     <div class="row g-3 mb-4">
                         <div class="col-lg-6 gap-4">
                             <div class="d-flex justify-content-between mb-2">
-                                <strong>{{ $invoice->sponsorship_transfer_id ? 'رقم طلب نقل الخدمات' : ($invoice->contract_id ? 'رقم العقد' : ($invoice->ingaz_delegation_id ? 'رقم التفويض' : 'نوع الفاتورة')) }}</strong>
-                                <span>{{ $invoice->sponsorship_transfer_id ?: ($invoice->contract_id ?: ($invoice->ingaz_delegation_id ?: 'فاتورة عامة')) }}</span>
+                                <strong>{{ $invoice->rental_transfer_contract_id ? 'نقل خدمات من عقد تأجير' : ($invoice->sponsorship_transfer_id ? 'رقم طلب نقل الخدمات' : ($invoice->contract_id ? 'رقم العقد' : ($invoice->ingaz_delegation_id ? 'رقم التفويض' : 'نوع الفاتورة'))) }}</strong>
+                                <span>{{ $invoice->rental_transfer_contract_id ? $invoice->general_description : ($invoice->sponsorship_transfer_id ?: ($invoice->contract_id ?: ($invoice->ingaz_delegation_id ?: 'فاتورة عامة'))) }}</span>
                             </div>
                             <div class="d-flex justify-content-between mb-2">
                                 <strong>حالة السداد</strong>
@@ -234,6 +234,11 @@
                                     <span class="label">إجمالي السعر</span>
                                     <strong>{{ number_format($invoice->total_due, 2) }} ريال</strong>
                                 </div>
+                                @if ($invoice->rental_transfer_contract_id)
+                                    <div class="d-flex justify-content-between mt-2"><span class="label">المدفوع</span><strong>{{ number_format($invoice->rental_transfer_paid_amount, 2) }} ريال</strong></div>
+                                    <div class="d-flex justify-content-between mt-2"><span class="label">المتبقي</span><strong>{{ number_format($invoice->rental_transfer_remaining_amount, 2) }} ريال</strong></div>
+                                    <a class="btn btn-outline-secondary mt-3" href="{{ route('RentContract.show', $invoice->rental_transfer_contract_id) }}">عرض عقد التأجير</a>
+                                @endif
                             </div>
                         </div>
                     </div>

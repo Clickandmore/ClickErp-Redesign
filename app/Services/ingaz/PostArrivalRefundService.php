@@ -115,6 +115,11 @@ class PostArrivalRefundService
                 $amount = round((float) ($line['approved_amount'] ?? 0), 2);
                 if ($amount <= 0) continue;
                 $type = $line['type'];
+                if ($type === 'credit_note' && $amount > (float) $proposal['credit_note']) {
+                    throw ValidationException::withMessages([
+                        "lines.{$index}.approved_amount" => 'مبلغ الإشعار الدائن لا يمكن أن يتجاوز رصيد الفاتورة المتبقي: ' . number_format((float) $proposal['credit_note'], 2) . ' ريال.',
+                    ]);
+                }
                 if ($type === 'office_charge'
                     && ($line['settlement_method'] ?? 'claim') !== 'next_dispatch_deduction'
                     && empty($line['credit_account_id'])
@@ -207,15 +212,22 @@ class PostArrivalRefundService
 
         if ($line->type === 'credit_note') {
             $proposal = $this->proposal($contract, $settlement->settlement_date->toDateString());
-            if (abs((float) $line->approved_amount - (float) $proposal['credit_note']) > 0.009) {
-                throw new \RuntimeException('الإشعار الدائن النظامي يجب أن يساوي كامل رصيد الفاتورة غير المعكوس.');
+            if ((float) $line->approved_amount <= 0 || round((float) $line->approved_amount, 2) > (float) $proposal['credit_note']) {
+                throw ValidationException::withMessages([
+                    'credit_note' => sprintf(
+                        'تعذر الاعتماد: مبلغ الإشعار الدائن المدخل هو %s ريال. يجب أن يكون أكبر من صفر وألا يتجاوز رصيد الفاتورة المتبقي: %s ريال.',
+                        number_format((float) $line->approved_amount, 2),
+                        number_format((float) $proposal['credit_note'], 2)
+                    ),
+                ]);
             }
             $note = app(InvoiceController::class)->createSystemCreditNoteForRecruitmentRefund(
                 $contract->invoice,
                 $settlement->settlement_date->toDateString(),
                 $statement,
                 $this->constraintService,
-                $this->yearService
+                $this->yearService,
+                (float) $line->approved_amount
             );
             $line->update(['status' => 'posted', 'credit_note_id' => $note?->id, 'constraint_id' => $note?->constraint_id]);
             return;
