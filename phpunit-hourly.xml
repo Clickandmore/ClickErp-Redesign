@@ -15,6 +15,7 @@
     <file>tests/Feature/HourlyCustomerVisitActionsTest.php</file>
     <file>tests/Feature/HourlyDriverTest.php</file>
     <file>tests/Feature/HourlyMaidSettingsTest.php</file>
+    <file>tests/Feature/RentalModeIsolationTest.php</file>
     <file>tests/Feature/HourlyMapProviderTest.php</file>
     <file>tests/Feature/HourlyPackageTiersTest.php</file>
     <file>tests/Feature/HourlyPanelBookingTest.php</file>

@@ -5,7 +5,7 @@ use App\Models\ingaz\{Maid, JobType};
 use App\Models\Hourly\{HourlyDriver, HourlyTeam, HourlyTeamMember};
 use App\Support\HourlyRentalSettings;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\{Hash, Validator};
+use Illuminate\Support\Facades\{DB, Hash, Validator};
 use Illuminate\Validation\{Rule, ValidationException};
 
 class MaidSettingsService
@@ -18,6 +18,7 @@ class MaidSettingsService
         }
         $mode = $request->validate(['rental_mode'=>['required','in:regular,hourly']])['rental_mode'];
         if ($mode === 'regular') return ['mode'=>'regular'];
+        if ($maid) app(\App\Services\Rental\RentalModeGuard::class)->assertHourlyConversion($maid);
         $rentalId = JobType::whereHas('translations', fn($q) => $q->where('title','LIKE','%ايجار%')->orWhere('title','LIKE','%إيجار%')->orWhere('title','LIKE','%تأجير%')->orWhere('title','LIKE','%rent%'))->value('id') ?? 2;
         if ((int)$request->input('type_id') !== (int)$rentalId) throw ValidationException::withMessages(['rental_mode'=>'نوع الساعات متاح لعاملة الإيجار فقط.']);
         $rules = [
@@ -34,7 +35,13 @@ class MaidSettingsService
             'max_orders_per_hour'=>['required','integer','min:1','max:100'],
             'account_enabled'=>['required','boolean'],
             'login_access'=>['required','in:web,mobile,both'],
-            'email'=>['nullable','email','max:255'],
+            'email'=>['nullable','email','max:255',function ($attribute, $value, $fail) use ($maid) {
+                if (!is_string($value)) return;
+                if (DB::table('maids')->when($maid,fn($q)=>$q->where('id','!=',$maid->id))
+                    ->whereRaw('LOWER(TRIM(hourly_email)) = ?',[$value])->exists()) {
+                    $fail('البريد الإلكتروني مستخدم لعاملة أخرى.');
+                }
+            }],
             'login_phone'=>['nullable','regex:/^[0-9]{5,20}$/',Rule::unique('maids','hourly_login_phone')->ignore($maid?->id)],
             'password'=>[Rule::requiredIf($request->boolean('hourly.account_enabled') && !$maid?->hourly_password),'nullable','string','min:8','max:72','confirmed'],
             'work_schedule'=>['required','array:'.implode(',',array_keys(HourlyDriver::DAYS)),'size:7'],
@@ -47,6 +54,7 @@ class MaidSettingsService
             $rules["$key.end"]=["exclude_unless:$key.mode,hours",'required','date_format:H:i',"after:$key.start"];
         }
         $input=(array)$request->input('hourly',[]);
+        if (isset($input['email']) && is_string($input['email'])) $input['email']=strtolower(trim($input['email'])) ?: null;
         // هاتف الدخول: الأرقام العربية تُحوَّل للاتينية قبل الفحص
         if(isset($input['login_phone']) && is_string($input['login_phone'])) $input['login_phone']=trim(strtr($input['login_phone'],['٠'=>'0','١'=>'1','٢'=>'2','٣'=>'3','٤'=>'4','٥'=>'5','٦'=>'6','٧'=>'7','٨'=>'8','٩'=>'9']));
         $messages=[
@@ -93,19 +101,23 @@ class MaidSettingsService
     public function save(Maid $maid, ?array $validated): void
     {
         if ($validated === null) return;
-        $data=$validated['data'] ?? [];
-        app(MaidTeamService::class)->sync($maid,$data['primary_team_id'] ?? null,$data['secondary_team_ids'] ?? []);
-        $values=['rental_mode'=>$validated['mode'],'hourly_auth_version'=>($maid->hourly_auth_version ?? 1)+1];
-        if ($validated['mode']==='hourly') {
-            $values += [
-                'hourly_username'=>$maid->hourly_username ?: 'HM-'.$maid->id,
-                'hourly_login_phone'=>$data['login_phone'] ?? null,
-                'hourly_email'=>$data['email'] ?? null,
-                'hourly_settings'=>array_replace(array_intersect_key($maid->hourly_settings ?? [],array_flip(['service_category_ids','profile'])),array_intersect_key($data,array_flip(['requires_driver','max_orders_per_hour','account_enabled','login_access','work_schedule','service_category_ids']))),
-            ];
-            if (!empty($data['password'])) $values['hourly_password']=Hash::make($data['password']);
-        }
-        $maid->forceFill($values)->save();
-        if(array_key_exists('attribute_ids',$data))$maid->productAttributes()->sync($data['attribute_ids']);
+        DB::transaction(function () use ($maid, $validated) {
+            $locked = Maid::whereKey($maid->id)->lockForUpdate()->firstOrFail();
+            if ($validated['mode'] === 'hourly') app(\App\Services\Rental\RentalModeGuard::class)->assertHourlyConversion($locked);
+            $data=$validated['data'] ?? [];
+            app(MaidTeamService::class)->sync($maid,$data['primary_team_id'] ?? null,$data['secondary_team_ids'] ?? []);
+            $values=['rental_mode'=>$validated['mode'],'hourly_auth_version'=>($maid->hourly_auth_version ?? 1)+1];
+            if ($validated['mode']==='hourly') {
+                $values += [
+                    'hourly_username'=>$maid->hourly_username ?: 'HM-'.$maid->id,
+                    'hourly_login_phone'=>$data['login_phone'] ?? null,
+                    'hourly_email'=>$data['email'] ?? null,
+                    'hourly_settings'=>array_replace(array_intersect_key($maid->hourly_settings ?? [],array_flip(['service_category_ids','profile'])),array_intersect_key($data,array_flip(['requires_driver','max_orders_per_hour','account_enabled','login_access','work_schedule','service_category_ids']))),
+                ];
+                if (!empty($data['password'])) $values['hourly_password']=Hash::make($data['password']);
+            }
+            $maid->forceFill($values)->save();
+            if(array_key_exists('attribute_ids',$data))$maid->productAttributes()->sync($data['attribute_ids']);
+        });
     }
 }

@@ -250,6 +250,9 @@ class StoreRentalContractRequest extends FormRequest
                 && $currentContract
                 && (int) $currentContract->maid_id === (int) $maid->id
             );
+            if ($maid && !$isCurrentContractMaid && $maid->rental_mode === 'hourly') {
+                $validator->errors()->add('maid_id', \App\Services\Rental\RentalModeGuard::MONTHLY_MESSAGE);
+            }
             $isWillingShelterRentalMaid = $maid
                 ? Maid::query()
                     ->whereKey($maid->id)

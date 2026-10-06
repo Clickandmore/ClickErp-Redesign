@@ -464,6 +464,10 @@ class RecruitmentRevenueRecognitionTest extends TestCase
         ]);
         $linker = app(\App\Services\ingaz\LegacyInvoiceConstraintLinker::class);
         $this->assertSame('ready', $linker->inspect($invoice)['status']);
+        $originalInvoiceDate = $invoice->created_at->toDateString();
+        $postingDate = $invoice->created_at->copy()->addDay()->toDateString();
+        $source->update(['date' => $postingDate]);
+        $this->assertSame('ready', $linker->inspect($invoice)['status']);
         $source->update(['value' => 5000]);
         try {
             $linker->link($invoice);
@@ -491,6 +495,8 @@ class RecruitmentRevenueRecognitionTest extends TestCase
         $count = Constraint::count();
         $this->assertSame($source->id, $linker->link($invoice)->id);
         $this->assertSame('on_invoice', $invoice->fresh()->revenue_recognition_mode);
+        $this->assertSame($originalInvoiceDate, $invoice->fresh()->created_at->toDateString());
+        $this->assertSame($postingDate, substr((string) $source->fresh()->date, 0, 10));
         $this->assertSame($source->id, $linker->link($invoice)->id);
         $this->assertSame($count, Constraint::count());
         $anotherInvoice = clone $invoice;

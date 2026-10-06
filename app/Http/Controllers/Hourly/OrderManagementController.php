@@ -41,7 +41,7 @@ class OrderManagementController extends Controller
                 ->map(fn($m)=>['id'=>$m->id,'name'=>$m->name,'category_ids'=>$m->hourly_settings['service_category_ids']??null,
                     'teams'=>$m->hourlyTeamMemberships->filter(fn($membership)=>$membership->is_active && $membership->team?->is_active)->map(fn($membership)=>['id'=>$membership->team->id,'name'=>$membership->team->name])->values()])->values();
         }
-        return response()->json(['workers'=>$workers,'price'=>(float)$model->visit_price,'workers_count'=>(int)$model->workers_count,
+        return response()->json(['workers'=>$workers,'excluded_workers'=>$assignment->excludedWorkers($model,$workers,$assigned,true),'price'=>(float)$model->visit_price,'workers_count'=>(int)$model->workers_count,
             'default_fee'=>count($assigned)<$model->workers_count?0:round($model->visit_price/max(1,$model->workers_count),2),
             'date'=>$model->scheduled_start_at?->format('H:i d/m/Y'),'team_id'=>$model->hourly_team_id,'category_id'=>$order->service_category_id,
             'categories'=>\App\Models\Hourly\HourlyServiceCategory::where('is_active',true)->get()->map(fn($c)=>['id'=>$c->id,'name'=>$c->name])]);

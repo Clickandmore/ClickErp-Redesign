@@ -221,6 +221,8 @@ class HourlyMaidController extends Controller
                 ]);
             }
 
+            app(\App\Services\Rental\RentalModeGuard::class)->assertHourlyConversion($maid);
+
             $settings=$maid->hourly_settings ?? [];
             $settings += [
                 'requires_driver'=>true,

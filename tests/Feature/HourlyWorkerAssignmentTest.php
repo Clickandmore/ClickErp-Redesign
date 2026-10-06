@@ -37,6 +37,17 @@ class HourlyWorkerAssignmentTest extends TestCase {
         $data=['hourly_package_id'=>$item->id,'address_id'=>$this->address(24.7,46.7),'payment_method'=>'cash','preferred_maid_id'=>1,'scheduled_starts'=>[now()->addDays(3)->format('Y-m-d').' 08:00']];
         $order=app(HourlyOrderService::class)->create(1,$data);
         $this->assertDatabaseHas('hourly_visit_workers',['hourly_visit_id'=>$order->visits()->first()->id,'maid_id'=>1]);
+        $visit=$order->visits()->first();
+        $assignment=app(HourlyWorkerAssignment::class);
+        $excluded=$assignment->excludedWorkers($visit,collect([$worker]))->keyBy('id');
+        $this->assertSame([2,3],$excluded->keys()->sort()->values()->all());
+        $this->assertContains('لم يُسجل تاريخ وصول العاملة.',$excluded[2]['reasons']);
+        $this->assertContains('جنسية العاملة لا تطابق الخدمة.',$excluded[3]['reasons']);
+        $settings=$worker->hourly_settings;$settings['work_schedule']=[];
+        $worker->forceFill(['hourly_settings'=>$settings])->save();
+        $excluded=$assignment->excludedWorkers($visit,collect())->keyBy('id');
+        $this->assertContains('يوم الزيارة إجازة أو لم يُحدد له جدول عمل.',$excluded[1]['reasons']);
+        $worker->forceFill(['hourly_settings'=>$workerSettings+['service_category_ids'=>[$category->id]]])->save();
         try{app(HourlyOrderService::class)->create(1,$data);$this->fail('Duplicate assignment must be rejected');}catch(\Illuminate\Validation\ValidationException $e){$this->assertArrayHasKey('hourly',$e->errors());}
         $this->assertSame(1,DB::table('hourly_rental_orders')->count());
         $this->assertSame(1,DB::table('hourly_visit_workers')->count());

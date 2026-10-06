@@ -41,7 +41,8 @@ class VisitOperationsController extends Controller
         $workers=$service->availableWorkers($visit->order,$visit);
         return response()->json(['required'=>(int)$visit->workers_count,'selected'=>$visit->workers()->pluck('maids.id'),
             'starts_at'=>$visit->scheduled_start_at?->format('Y-m-d H:i'),'ends_at'=>$visit->scheduled_end_at?->format('H:i'),
-            'workers'=>$workers->map(fn($w)=>['id'=>$w->id,'name'=>$w->name])->values()]);
+            'workers'=>$workers->map(fn($w)=>['id'=>$w->id,'name'=>$w->name])->values(),
+            'excluded_workers'=>app(\App\Services\Hourly\HourlyWorkerAssignment::class)->excludedWorkers($visit,$workers)]);
     }
 
     private function visitData(HourlyVisit $visit): array

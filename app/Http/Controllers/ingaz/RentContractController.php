@@ -632,6 +632,9 @@ class RentContractController extends Controller
     {
         try {
             DB::beginTransaction();
+            $selectedMaid = Maid::whereKey($request->maid_id)->lockForUpdate()->firstOrFail();
+            $this->assertCanAccessBranchModel($selectedMaid, 'maids');
+            app(\App\Services\Rental\RentalModeGuard::class)->assertMonthly($selectedMaid);
 
             $profession = $request->filled('profession')
                 ? $request->profession
@@ -701,7 +704,7 @@ class RentContractController extends Controller
                 $user = User::create($userPayload);
             }
 
-            $selectedMaid = Maid::with('nationality')->findOrFail($request->maid_id);
+            $selectedMaid->load('nationality');
             $this->assertCanAccessBranchModel($selectedMaid, 'maids');
             $monthlySalary = (float) $request->monthly_salary;
 
@@ -865,6 +868,7 @@ class RentContractController extends Controller
 
         } catch (\Exception $e) {
             DB::rollBack();
+            if ($e instanceof \Illuminate\Validation\ValidationException) throw $e;
             Log::error('Error creating rental contract: ' . $e->getMessage());
 
             // إذا كان الطلب AJAX، أرجع استجابة JSON للخطأ
@@ -1245,6 +1249,11 @@ class RentContractController extends Controller
             $contract = RentalContract::with(['user', 'info'])->lockForUpdate()->findOrFail($id);
             $this->assertCanAccessBranchModel($contract, 'rental_contracts');
             $this->assertCanChangeMarketer($contract, (int) $request->marketer_id);
+            if ((int) $contract->maid_id !== (int) $request->maid_id) {
+                $selectedMaid = Maid::whereKey($request->maid_id)->lockForUpdate()->firstOrFail();
+                $this->assertCanAccessBranchModel($selectedMaid, 'maids');
+                app(\App\Services\Rental\RentalModeGuard::class)->assertMonthly($selectedMaid);
+            }
 
             // تحديث بيانات العميل
             $contract->user->update($contract->user->clientTypeAwarePayload([
@@ -2189,6 +2198,8 @@ class RentContractController extends Controller
             ->with(['nationality.translations', 'religion.translations', 'jobTitles.translations'])
             ->latest();
 
+        app(\App\Services\Rental\RentalModeGuard::class)
+            ->applyMonthlySelection($query, $currentMaidId, $includeCurrentMaid);
         app(\App\Services\BranchAccessService::class)
             ->applyToQuery($query, request(), 'maids');
 
@@ -4338,6 +4349,9 @@ class RentContractController extends Controller
             DB::beginTransaction();
 
             $contract = RentalContract::with('info')->lockForUpdate()->findOrFail($id);
+            $this->assertCanAccessBranchModel($contract, 'rental_contracts');
+            $extensionMaid = Maid::whereKey($contract->maid_id)->lockForUpdate()->firstOrFail();
+            app(\App\Services\Rental\RentalModeGuard::class)->assertMonthly($extensionMaid);
 
             if (!$contract->info) {
                 throw new \RuntimeException('بيانات العقد غير مكتملة');
@@ -4506,6 +4520,9 @@ class RentContractController extends Controller
             ]);
         } catch (\Throwable $e) {
             DB::rollBack();
+            if ($e instanceof \Illuminate\Validation\ValidationException) {
+                return response()->json(['success'=>false,'message'=>$e->validator->errors()->first(),'errors'=>$e->errors()],422);
+            }
             Log::error('Error extending rental contract', [
                 'contract_id' => $id,
                 'error' => $e->getMessage(),

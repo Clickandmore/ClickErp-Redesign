@@ -53,6 +53,12 @@
             workerSnapshot=data.selected;workerRequired=data.required;context.textContent='الموعد: '+data.starts_at+' — '+data.ends_at+' · المطلوب: '+data.required+' عاملة';
             data.workers.forEach(worker=>{const label=document.createElement('label'),input=document.createElement('input');input.type='checkbox';input.name='worker_ids[]';input.value=worker.id;input.dataset.workerName=worker.name;input.checked=data.selected.map(String).includes(String(worker.id))&&String(worker.id)!==String(replace);label.appendChild(input);label.appendChild(document.createTextNode(' '+worker.name));choices.appendChild(label);});
             if(!data.workers.length)context.textContent+=' · لا توجد عاملات متاحات.';
+            if(data.excluded_workers?.length){
+                const details=document.createElement('details'),summary=document.createElement('summary');
+                summary.textContent='العاملات غير المتاحات وأسباب الاستبعاد ('+data.excluded_workers.length+')';details.appendChild(summary);
+                data.excluded_workers.forEach(worker=>{const row=document.createElement('p');row.textContent=worker.name+' (#'+worker.id+'): '+worker.reasons.join(' · ');details.appendChild(row);});
+                choices.appendChild(details);
+            }
         }catch(e){error.textContent=e.message;error.hidden=false;}finally{if(token===form.elements.batch_id.value){workersLoading=false;submit.disabled=false;}}
     }
     modal.querySelector('[data-pick-action="assign_workers"]')?.addEventListener('click',()=>loadWorkers());
