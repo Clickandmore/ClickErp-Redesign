@@ -18,12 +18,19 @@
     ['aw-team','aw-category'].forEach(id=>$(id).onchange=filter);$('aw-search').oninput=filter;$('aw-fee').oninput=preview;
     window.openHourlyAddWorker=async id=>{
         if(busy)return;const current=++generation;data=null;form.reset();$('aw-error').hidden=true;$('aw-save').disabled=true;$('aw-count').textContent='0';$('aw-current').textContent='—';$('aw-new').textContent='—';
+        const previousExcluded=document.getElementById('aw-excluded');if(previousExcluded)previousExcluded.hidden=true;
         worker.replaceChildren(new Option(l.choose,''));if(select2)window.jQuery(worker).trigger('change');
         $('aw-filters').hidden=true;$('aw-filter-toggle').setAttribute('aria-expanded','false');$('aw-visit').textContent=`— #${id}`;$('aw-status').textContent=l.loading;
         form.elements['visit_ids[]'].value=id;bootstrap.Modal.getOrCreateInstance(modal).show();
         try{
             const response=await fetch(cfg.url.replace('VISIT_ID',encodeURIComponent(id)),{headers:{Accept:'application/json'}});const result=await response.json();if(current!==generation)return;if(!response.ok)throw new Error(result.message||l.error);data=result;
             $('aw-visit').textContent=`— #${id} (${data.date||'—'})`;
+            let excluded=document.getElementById('aw-excluded');
+            if(data.excluded_workers?.length){
+                if(!excluded){excluded=document.createElement('details');excluded.id='aw-excluded';$('aw-status').after(excluded);}
+                excluded.replaceChildren();const summary=document.createElement('summary');summary.textContent=cfg.rtl?'العاملات غير المتاحات وأسباب الاستبعاد':'Unavailable workers and exclusion reasons';excluded.appendChild(summary);
+                data.excluded_workers.forEach(w=>{const row=document.createElement('p');row.textContent=w.name+' (#'+w.id+'): '+w.reasons.join(' · ');excluded.appendChild(row);});excluded.hidden=false;
+            }else if(excluded)excluded.hidden=true;
             const teams=new Map();data.workers.forEach(w=>w.teams.forEach(t=>teams.set(t.id,t.name)));
             $('aw-team').replaceChildren(new Option(l.all,''));teams.forEach((name,key)=>$('aw-team').add(new Option(name,key)));
             $('aw-category').replaceChildren(new Option(l.all,''));data.categories.forEach(c=>$('aw-category').add(new Option(c.name,c.id)));

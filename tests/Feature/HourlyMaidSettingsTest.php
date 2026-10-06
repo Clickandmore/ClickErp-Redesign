@@ -13,6 +13,25 @@ use Tests\HourlyTestCase as TestCase;
 
 class HourlyMaidSettingsTest extends TestCase
 {
+    public function test_email_is_normalized_and_duplicates_are_rejected_on_create_and_update(): void
+    {
+        $payload=$this->payload();$payload['hourly']['email']=' Worker@Example.COM ';
+        $maid=$this->save($payload);
+        $this->assertSame('worker@example.com',$maid->hourly_email);
+        $this->assertSame('worker@example.com',$this->save($payload,$maid)->hourly_email);
+        $other=Maid::create(['name'=>'Other worker','passport_num'=>'P456']);
+        foreach([null,$other] as $target){
+            $payload['hourly']['login_phone']='0507654321';
+            try{$this->save($payload,$target);$this->fail('Duplicate email accepted');}
+            catch(ValidationException $e){$this->assertArrayHasKey('hourly.email',$e->errors());}
+        }
+        DB::table('maids')->where('id',$maid->id)->update(['hourly_email'=>' Legacy@Example.COM ']);
+        $payload['hourly']['email']='legacy@example.com';
+        try{$this->save($payload,$other);$this->fail('Legacy email accepted');}
+        catch(ValidationException $e){$this->assertArrayHasKey('hourly.email',$e->errors());}
+        $payload['hourly']['email']='   ';
+        $this->assertNull($this->save($payload,$other)->hourly_email);
+    }
     public function test_admin_can_open_maid_portal_and_return_without_losing_admin_session(): void
     {
         $this->withoutMiddleware([\App\Http\Middleware\Authenticate::class, \App\Http\Middleware\EnsureAdminRoutePermission::class, \App\Http\Middleware\Admin::class]);
@@ -153,6 +172,7 @@ class HourlyMaidSettingsTest extends TestCase
         ]];
     }
     private function save(array $payload, ?Maid $maid = null): Maid {
+        if (!Schema::hasTable('rental_contracts')) Schema::create('rental_contracts',function(Blueprint $t){$t->id();$t->unsignedBigInteger('maid_id');$t->string('status');$t->softDeletes();});
         $service=app(MaidSettingsService::class);
         $data=$service->validate(new Request($payload),$maid);
         $maid ??= Maid::create(['name'=>'عاملة اختبار','passport_num'=>'P123']);

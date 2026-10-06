@@ -275,6 +275,18 @@ class HourlyVisitOperationsTest extends TestCase
         $this->assertDatabaseHas('hourly_order_audits',['visit_id'=>$visit->id,'action'=>'unassign_driver']);
     }
 
+    public function test_assignment_endpoints_explain_why_suspended_workers_are_excluded():void
+    {
+        $order=$this->order();$visit=$order->visits()->first();
+        DB::table('maids')->where('id',2)->update(['hourly_is_suspended'=>true]);
+        foreach(['/admin/hourly/visits/'.$visit->id.'/workers',route('admin.hourly-orders.available-workers',[$order,$visit->id])] as $url){
+            $data=$this->getJson($url)->assertOk()->json();
+            $this->assertNotContains(2,array_column($data['workers'],'id'));
+            $excluded=collect($data['excluded_workers'])->firstWhere('id',2);
+            $this->assertNotNull($excluded);
+            $this->assertContains('العاملة موقوفة عن العمل بنظام الساعات.',$excluded['reasons']);
+        }
+    }
     public function test_manual_assignment_accepts_multiple_workers_without_changing_price():void
     {
         $order=$this->order();$visit=$order->visits()->first();$visit->update(['workers_count'=>2]);

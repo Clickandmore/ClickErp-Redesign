@@ -35,9 +35,8 @@ class LegacyInvoiceConstraintLinker
         if (!$this->branchesMatch($source->branch_id, $invoice->branch_id)) {
             $headerDifferences['branch_id'] = ['invoice' => $invoice->branch_id, 'constraint' => $source->branch_id];
         }
-        if ($source->date !== $invoice->created_at->toDateString()) {
-            $headerDifferences['date'] = ['invoice' => $invoice->created_at->toDateString(), 'constraint' => $source->date];
-        }
+        // Imported invoices can have a different issue date from the original
+        // journal posting date. Preserve both dates; they do not establish identity.
         if (abs((float) $source->value - (float) $invoice->total_due) > 0.009) {
             $headerDifferences['amount'] = ['invoice' => $invoice->total_due, 'constraint' => $source->value];
         }

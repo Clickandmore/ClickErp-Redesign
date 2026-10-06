@@ -27,19 +27,56 @@ class HourlyWorkerAssignment {
         return $query;
     }
     public function available(Maid $maid, string $start, string $end, array $item, ?int $exceptVisit=null,bool $ignoreHourCaps=false,bool $ignoreBreak=false): bool {
-        if(!empty($item['assign_by_product_attribute']) && !empty($item['attribute_id']) && !$maid->productAttributes()->where('hourly_product_attributes.id',$item['attribute_id'])->exists())return false;
+        return $this->availabilityReason($maid,$start,$end,$item,$exceptVisit,$ignoreHourCaps,$ignoreBreak) === null;
+    }
+    public function availabilityReason(Maid $maid, string $start, string $end, array $item, ?int $exceptVisit=null,bool $ignoreHourCaps=false,bool $ignoreBreak=false): ?string {
+        if(!empty($item['assign_by_product_attribute']) && !empty($item['attribute_id']) && !$maid->productAttributes()->where('hourly_product_attributes.id',$item['attribute_id'])->exists())return 'سمة العاملة لا تطابق الخدمة المطلوبة.';
         $from=Carbon::parse($start);$to=Carbon::parse($end);
-        if (\Illuminate\Support\Facades\Schema::hasTable('hourly_worker_leaves') && DB::table('hourly_worker_leaves')->where('maid_id',$maid->id)->where('is_active',true)->where('starts_at','<',$to)->where('ends_at','>',$from)->exists()) return false;
+        if (\Illuminate\Support\Facades\Schema::hasTable('hourly_worker_leaves') && DB::table('hourly_worker_leaves')->where('maid_id',$maid->id)->where('is_active',true)->where('starts_at','<',$to)->where('ends_at','>',$from)->exists()) return 'لدى العاملة إجازة معتمدة في موعد الزيارة.';
         $schedule=$maid->hourly_settings['work_schedule'][strtolower($from->format('l'))]??['mode'=>'off'];
-        if(($schedule['mode']??'off')==='off')return false;
-        if(($schedule['mode']??'')==='hours' && ($from->format('H:i')<($schedule['start']??'24:00') || !$from->isSameDay($to) || $to->format('H:i')>($schedule['end']??'00:00')))return false;
+        if(($schedule['mode']??'off')==='off')return 'يوم الزيارة إجازة أو لم يُحدد له جدول عمل.';
+        if(($schedule['mode']??'')==='hours' && ($from->format('H:i')<($schedule['start']??'24:00') || !$from->isSameDay($to) || $to->format('H:i')>($schedule['end']??'00:00')))return 'موعد الزيارة خارج ساعات عمل العاملة.';
         $visits=$this->workerVisits($maid,$exceptVisit);
-        if($this->conflictingVisit($maid,$start,$end,$item,$exceptVisit,$ignoreBreak))return false;
+        if($conflict=$this->conflictingVisit($maid,$start,$end,$item,$exceptVisit,$ignoreBreak))return 'تعارض مع الزيارة #'.$conflict->id.' أو مهلة الراحة والتنقل.';
         $caps=HourlyRentalSettings::effectiveHourCaps();$hours=$from->diffInMinutes($to)/60;
         foreach(['per_day'=>[$from->copy()->startOfDay(),$from->copy()->endOfDay()],'per_week'=>[$from->copy()->startOfWeek(),$from->copy()->endOfWeek()],'per_month'=>[$from->copy()->startOfMonth(),$from->copy()->endOfMonth()]] as $key=>[$a,$b]){
-            if(!$ignoreHourCaps && $hours+(clone $visits)->whereBetween('v.scheduled_start_at',[$a,$b])->sum('v.planned_hours')>($caps[$key]??INF))return false;
+            if(!$ignoreHourCaps && $hours+(clone $visits)->whereBetween('v.scheduled_start_at',[$a,$b])->sum('v.planned_hours')>($caps[$key]??INF))return 'تجاوز حد ساعات العمل '.(['per_day'=>'اليومي','per_week'=>'الأسبوعي','per_month'=>'الشهري'][$key]).'.';
         }
-        return (clone $visits)->whereDate('v.scheduled_start_at',$from->toDateString())->count()<HourlyRentalSettings::get('max_visits_per_day',1);
+        if ((clone $visits)->whereDate('v.scheduled_start_at',$from->toDateString())->count()>=HourlyRentalSettings::get('max_visits_per_day',1)) return 'بلغت العاملة الحد الأقصى للزيارات اليومية.';
+        return null;
+    }
+    public function excludedWorkers(HourlyVisit $visit, \Illuminate\Support\Collection $available, array $assigned = [], bool $futureOnly = false): \Illuminate\Support\Collection {
+        $order=$visit->order;
+        $item=HourlyPackage::withTrashed()->findOrFail($order->hourly_package_id);
+        $workers=Maid::where('rental_mode','hourly')->whereNotIn('id',$available->pluck('id')->merge($assigned))->with(['hourlyTeamMemberships','jobTypes','productAttributes'])->orderBy('name')->get();
+        $ready=RentalMaidQuery::applyReadyForRental(Maid::whereIn('id',$workers->pluck('id')))->pluck('id');
+        $inside=RentalMaidQuery::applyInsideShelter(Maid::whereIn('id',$workers->pluck('id')))->pluck('id');
+        $noRental=RentalMaidQuery::applyNoActiveRental(Maid::whereIn('id',$workers->pluck('id')))->pluck('id');
+        $notDeported=RentalMaidQuery::applyNotDeported(Maid::whereIn('id',$workers->pluck('id')))->pluck('id');
+        $nationalities=$item->nationalities()->pluck('nationalities.id');
+        $allTeams=(bool)($order->booking_metadata['all_workers']??false);
+        $teamActive=$allTeams || ($visit->hourly_team_id && HourlyTeam::whereKey($visit->hourly_team_id)->where('is_active',true)->exists());
+        return $workers->map(function($maid)use($visit,$order,$item,$ready,$inside,$noRental,$notDeported,$nationalities,$allTeams,$teamActive,$futureOnly){
+            $reasons=[];
+            if($maid->hourly_is_suspended)$reasons[]='العاملة موقوفة عن العمل بنظام الساعات.';
+            if($maid->rental_source==='outside' && !$maid->arrival_date)$reasons[]='لم يُسجل تاريخ وصول العاملة.';
+            if(!$inside->contains($maid->id))$reasons[]='لا يوجد عقد إيواء داخل المركز للعاملة.';
+            if(!$noRental->contains($maid->id))$reasons[]='لدى العاملة عقد إيجار شهري قائم.';
+            if(!$notDeported->contains($maid->id))$reasons[]='العاملة مستبعدة بسبب إجراء ترحيل مكتمل.';
+            if(in_array((string)$maid->status,RentalMaidQuery::NOT_READY_MAID_STATUSES,true))$reasons[]='حالة العاملة الحالية لا تسمح بالإيجار: '.$maid->status;
+            if(!$ready->contains($maid->id) && $inside->contains($maid->id) && $noRental->contains($maid->id) && $notDeported->contains($maid->id) && !in_array((string)$maid->status,RentalMaidQuery::NOT_READY_MAID_STATUSES,true))$reasons[]='رغبة العمل غير مؤكدة أو يوجد رفض للعمل في بيانات الإيواء.';
+            if(!$maid->jobTypes->contains('id',RentalMaidQuery::rentalJobTypeId()))$reasons[]='العاملة غير مرتبطة بنوع الإيجار.';
+            if(!$teamActive)$reasons[]='فريق الزيارة غير محدد أو غير نشط.';
+            elseif(!$allTeams && !$maid->hourlyTeamMemberships->contains(fn($m)=>(int)$m->hourly_team_id===(int)$visit->hourly_team_id && $m->is_active))$reasons[]='العاملة ليست عضوًا نشطًا في فريق الزيارة.';
+            $services=$maid->hourly_settings['service_category_ids']??null;
+            if($item->service_category_id && $services!==null && !in_array($item->service_category_id,$services))$reasons[]='الخدمة المطلوبة غير محددة ضمن خدمات العاملة.';
+            if($nationalities->isNotEmpty() && !$nationalities->contains($maid->nationality_id))$reasons[]='جنسية العاملة لا تطابق الخدمة.';
+            if(!empty($order->package_snapshot['assign_by_product_attribute']) && $item->attribute_id && !$maid->productAttributes->contains('id',$item->attribute_id))$reasons[]='سمة العاملة لا تطابق الخدمة المطلوبة.';
+            if(!$visit->scheduled_start_at || !$visit->scheduled_end_at)$reasons[]='حدد بداية الزيارة ونهايتها قبل إسناد العاملة.';
+            elseif($futureOnly && !$visit->scheduled_start_at->isFuture())$reasons[]='إضافة عاملة متاحة للزيارات التي لم يبدأ موعدها فقط.';
+            elseif(!$reasons && ($reason=$this->availabilityReason($maid,$visit->scheduled_start_at->toDateTimeString(),$visit->scheduled_end_at->toDateTimeString(),$order->package_snapshot,$visit->id)))$reasons[]=$reason;
+            return ['id'=>$maid->id,'name'=>$maid->name,'reasons'=>array_values(array_unique($reasons))];
+        })->values();
     }
     private function workerVisits(Maid $maid,?int $exceptVisit)
     {
