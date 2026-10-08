@@ -11,6 +11,7 @@ use App\Models\ingaz\Maid;
 use App\Models\ingaz\User as ClientUser;
 use App\Services\ingaz\RentalMaidAccountingService;
 use App\Services\ingaz\RentalMaidFinanceService;
+use App\Services\Rental\RentalMaidQuery;
 use App\Support\CvOptionsSettings;
 use App\Support\ExperiencePeriod;
 use App\Support\SystemModuleManager;
@@ -1994,6 +1995,11 @@ class MaidAction extends MainAction
             // أي طلب قائم على السيرة (استقدام أو إيجار أو نقل خدمات) يخفيها من الموقع
             // الخارجي، بما في ذلك سير الإيجار المتاحة للاستلام الفوري من السكن.
             ->withoutActiveOrders()
+            // لا يكفي علم الإتاحة القديم: العقد الإيجاري النشط هو المانع الحاسم
+            // حتى لا تظهر عاملة مسندة لعميل ضمن نتائج الموقع الخارجي.
+            ->whereDoesntHave('rentalContracts', function ($rentalQuery) {
+                $rentalQuery->whereIn('status', RentalMaidQuery::ACTIVE_RENTAL_STATUSES);
+            })
             ->where(function ($query) use ($today) {
                 $query->where(function ($available) use ($today) {
                     $available->where('available', true)

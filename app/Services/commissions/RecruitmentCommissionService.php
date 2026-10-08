@@ -9,6 +9,7 @@ use App\Models\RentalContractExtension;
 use App\Models\commissions\CommissionBalanceTransaction;
 use App\Models\commissions\CommissionBatch;
 use App\Models\commissions\CommissionBatchItem;
+use App\Models\auth\Admin;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
@@ -18,6 +19,10 @@ class RecruitmentCommissionService
     public const SETTLEMENT_PENDING = 'pending';
     public const SETTLEMENT_DEDUCTED = 'deducted';
     public const SETTLEMENT_ZEROED = 'zeroed';
+
+    public function __construct(
+        private readonly CommissionAccrualService $accrualService
+    ) {}
 
     public function pendingDeductions(int $marketerId, array $filters = []): \Illuminate\Support\Collection
     {
@@ -356,6 +361,26 @@ class RecruitmentCommissionService
                 . ($this->isRentalExtensionItem($item) ? ' - تمديد #' . $item->source_id : '') . ' - ' . $reason,
             'created_by' => $adminId,
         ]);
+
+        $hasFinancialOrigin = (bool) ($item->batch?->accrual_constraint_id || $item->batch?->payable_account_id)
+            || Admin::withTrashed()->whereKey($marketerId)
+                ->whereNotNull('commission_payable_account_id')
+                ->exists();
+        if ($hasFinancialOrigin) {
+            $actorId = (int) ($adminId ?: $item->batch?->approved_by ?: $item->batch?->created_by);
+            if ($actorId <= 0) {
+                throw ValidationException::withMessages([
+                    'settlement' => 'تعذر تحديد منفذ عكس العمولة لإنشاء القيد المحاسبي.',
+                ]);
+            }
+            $this->accrualService->createReversalForItem(
+                $item,
+                $amount,
+                $actorId,
+                $reason,
+                $transaction->created_at
+            );
+        }
 
         $item->update([
             'commission_reversal_transaction_id' => $transaction->id,

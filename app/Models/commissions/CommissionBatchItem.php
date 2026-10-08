@@ -7,6 +7,7 @@ use App\Models\Concerns\BranchScoped;
 
 use App\Models\IngazDelegation;
 use Illuminate\Database\Eloquent\Model;
+use Nami\Finance\Models\Constraint;
 
 class CommissionBatchItem extends Model
 {
@@ -22,7 +23,8 @@ class CommissionBatchItem extends Model
         'order_id', 'contract_id', 'operation_reference',
         'client_name', 'operation_date', 'service_type',
         'base_amount', 'method', 'rate_or_amount', 'commission_amount',
-        'commission_reversal_transaction_id', 'commission_reversed_at', 'commission_reversal_reason',
+        'commission_reversal_transaction_id', 'commission_reversal_constraint_id',
+        'commission_reversed_at', 'commission_reversal_reason',
         'legacy_source', 'legacy_source_file', 'legacy_source_row',
     ];
 
@@ -47,5 +49,10 @@ class CommissionBatchItem extends Model
     public function reversalTransaction()
     {
         return $this->belongsTo(CommissionBalanceTransaction::class, 'commission_reversal_transaction_id');
+    }
+
+    public function reversalConstraint()
+    {
+        return $this->belongsTo(Constraint::class, 'commission_reversal_constraint_id');
     }
 }
