@@ -13,6 +13,7 @@ use App\Models\ingaz\Complaint;
 use App\Models\ingaz\ComplaintType;
 use App\Models\ingaz\JobType;
 use App\Models\ingaz\Maid;
+use App\Services\Rental\RentalMaidQuery;
 use App\Models\ingaz\Nationality;
 use App\Models\RentalContract;
 use App\Models\ShelterLivingExpense;
@@ -269,6 +270,7 @@ class ShelterContractController extends Controller
         $statsQuery = Contract::insideShelter()
             ->with([
                 'maid.jobTypes',
+                'maid.rentalContracts:id,maid_id,status',
                 'maid.job_types.job_type.translations',
                 'info',
                 'latestShelterLog',
@@ -307,13 +309,17 @@ class ShelterContractController extends Controller
             $serviceCategory = $this->determineShelterServiceCategory($contract->maid);
             $serviceCategoryStats[$serviceCategory] = ($serviceCategoryStats[$serviceCategory] ?? 0) + 1;
             $isRentalWorker = $serviceCategory === 'rental';
+            $hasActiveRentalContract = $isRentalWorker
+                && $contract->maid?->rentalContracts
+                    ->whereIn('status', RentalMaidQuery::ACTIVE_RENTAL_STATUSES)
+                    ->isNotEmpty();
 
             if ($workWillingness === 'yes') {
                 $wantsToWork++;
-                if ($isRentalWorker) {
+                if ($isRentalWorker && !$hasActiveRentalContract) {
                     $rentalWorkerStats['ready']++;
                 }
-                if ($info?->is_available_for_instant) {
+                if ($info?->is_available_for_instant && !$hasActiveRentalContract) {
                     $availableForInstantReceipt++;
                     if ($isRentalWorker) {
                         $rentalWorkerStats['instant']++;
@@ -1856,8 +1862,22 @@ class ShelterContractController extends Controller
 
     private function syncMaidInstantDisplay(Contract $contract, bool $displayOnSite): void
     {
+        $contract->load(['info', 'maid.jobTypes']);
         $maid = $contract->maid;
         if (!$maid) {
+            return;
+        }
+
+        $isRentalWorker = $this->determineShelterServiceCategory($maid) === 'rental';
+
+        if ($isRentalWorker) {
+            // الاستلام الفوري مجرد قناة إضافية لعاملة الإيجار. جاهزيتها
+            // الأساسية يحكمها وجودها داخل الإيواء ورغبتها وعدم ارتباطها بعمل قائم.
+            if ($instantJobTypeId = $this->getInstantJobTypeId()) {
+                $maid->jobTypes()->detach($instantJobTypeId);
+            }
+            $this->syncRentalMaidShelterAvailability($contract);
+
             return;
         }
 
@@ -1867,16 +1887,8 @@ class ShelterContractController extends Controller
             return;
         }
 
-        $isRentalWorker = $this->determineShelterServiceCategory($maid) === 'rental';
-
         if ($displayOnSite) {
-            if ($isRentalWorker) {
-                // Availability is metadata for rental workers. Keep their public
-                // service exclusively rental and remove any legacy transfer tag.
-                $maid->jobTypes()->detach($instantJobTypeId);
-            } else {
-                $maid->jobTypes()->syncWithoutDetaching([$instantJobTypeId]);
-            }
+            $maid->jobTypes()->syncWithoutDetaching([$instantJobTypeId]);
             $maid->is_show = true;
             // $maid->status = 'in_accommodation';
             $maid->maid_accommodation_type = 2;
@@ -1896,6 +1908,65 @@ class ShelterContractController extends Controller
             }
             $maid->save();
         }
+    }
+
+    private function syncRentalMaidShelterAvailability(Contract $contract): void
+    {
+        $maid = $contract->maid;
+        if (!$maid) {
+            return;
+        }
+
+        $wantsToWork = in_array((string) $contract->info?->wants_to_work, ['yes', '1'], true);
+        $hasActiveRentalContract = $maid->rentalContracts()
+            ->whereIn('status', RentalMaidQuery::ACTIVE_RENTAL_STATUSES)
+            ->exists();
+        $hasActiveOrder = $maid->orders()
+            ->whereIn('status', ['new', 'under_process', 'contracted', 'contracted_without_contract'])
+            ->exists();
+        $hasBusyRecruitmentContract = $maid->contracts()
+            ->whereIn('status', [
+                ContractStatusEnum::PendingMaidSelection->value,
+                ContractStatusEnum::New->value,
+                ContractStatusEnum::Msaned->value,
+                ContractStatusEnum::Tafwed->value,
+                ContractStatusEnum::Taffez->value,
+                ContractStatusEnum::Tazker->value,
+                ContractStatusEnum::Arrival->value,
+            ])->exists();
+        $hasActiveTransfer = $maid->contracts()
+            ->whereHas('sponsorshipTransfers', function ($transferQuery) {
+                $transferQuery->whereIn('status', [
+                    'pending', 'approved', 'waiting_contract_send', 'contract_sent',
+                    'contract_signed', 'maid_delivered', 'trial', 'trial_started',
+                ]);
+            })->exists();
+        $isReady = $wantsToWork
+            && !$hasActiveRentalContract
+            && !$hasActiveOrder
+            && !$hasBusyRecruitmentContract
+            && !$hasActiveTransfer
+            && !in_array($maid->status, ['backout', 'deported'], true);
+
+        if ($isReady) {
+            $maid->forceFill([
+                'status' => 'available',
+                'available' => true,
+                'is_show' => true,
+                'maid_accommodation_type' => 2,
+                'available_at' => $maid->available_at ?: now()->toDateString(),
+            ])->save();
+
+            return;
+        }
+
+        // العقد أو الطلب القائم، أو عدم الرغبة، يمنع العرض العام. لا نغيّر
+        // الحالة النصية هنا لأنها تُدار من دورة حياة العقد/الطلب نفسه.
+        $maid->forceFill([
+            'available' => false,
+            'is_show' => false,
+            'maid_accommodation_type' => 2,
+        ])->save();
     }
 
     private function getInstantJobTypeId(): ?int
@@ -4471,6 +4542,13 @@ class ShelterContractController extends Controller
                     'wants_to_work' => $newDesire
                 ]);
             }
+
+            $contract->unsetRelation('info');
+            $contract->load('info');
+            $displayOnSite = $newDesire === 'yes'
+                && (bool) $contract->info?->is_available_for_instant
+                && $this->instantReceiptFieldEnabledFor($contract->maid);
+            $this->syncMaidInstantDisplay($contract, $displayOnSite);
 
             // تسجيل التغيير في اللوج
             \Log::info('Work desire changed for contract', [
