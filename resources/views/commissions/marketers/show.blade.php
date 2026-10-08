@@ -45,6 +45,17 @@
 @if(session('info'))
     <div class="alert alert-info"><i class="fa fa-info-circle me-1"></i>{{ session('info') }}</div>
 @endif
+@if(($missingDeductionJournals ?? 0) > 0)
+<div class="alert alert-warning d-flex flex-wrap justify-content-between align-items-center gap-2">
+    <div>يوجد {{ $missingDeductionJournals }} خصمًا سابقًا بدون قيد مالي. إنشاء القيود لا يخصم الرصيد مرة ثانية.</div>
+    @if(\App\Support\AdminRoutePermissionMatrix::adminHasAnyPermission(auth('admin')->user(), [\App\PermKeys::COMMISSIONS_CALCULATE]))
+    <form method="post" action="{{ route('commissions.marketers.deduction-journals.repair', $admin->id) }}">
+        @csrf
+        <button class="btn btn-warning">إنشاء قيود الخصومات السابقة</button>
+    </form>
+    @endif
+</div>
+@endif
 <div class="alert alert-info border-0 shadow-sm">
     <div class="fw-bold mb-1"><i class="fa fa-info-circle me-1"></i> تنبيه مهم عن حالات السداد</div>
     <div class="small">
@@ -272,11 +283,21 @@
 <div class="card border-0 shadow-sm mt-4">
     <div class="card-header bg-white"><h6 class="mb-0 fw-bold"><i class="fa fa-history me-2"></i>آخر حركات الرصيد</h6></div>
     <div class="table-responsive"><table class="table table-sm align-middle mb-0">
-        <thead class="table-light"><tr><th>الحركة</th><th>المبلغ</th><th>الرصيد بعد</th><th>البيان</th><th>التاريخ</th></tr></thead>
+        <thead class="table-light"><tr><th>الحركة</th><th>المبلغ</th><th>الرصيد بعد</th><th>البيان</th><th>القيد المالي</th><th>التاريخ</th></tr></thead>
         <tbody>@foreach($balanceTransactions as $tx)<tr>
             <td><span class="badge {{ $tx->type === 'credit' ? 'bg-success' : 'bg-danger' }}">{{ $tx->type === 'credit' ? 'إضافة' : ($tx->reference_type === 'commission_reversal' ? 'عكس عمولة' : ($tx->reference_type === 'commission_zero_adjustment' ? 'تصفير عمولة' : 'صرف')) }}</span></td>
             <td class="fw-bold">{{ $tx->type === 'credit' ? '+' : '-' }}{{ number_format($tx->amount, 2) }}</td>
-            <td>{{ number_format($tx->balance_after, 2) }}</td><td>{{ $tx->notes }}</td><td>{{ $tx->created_at->format('Y-m-d H:i') }}</td>
+            <td>{{ number_format($tx->balance_after, 2) }}</td><td>{{ $tx->notes }}</td>
+            <td>
+                @if($tx->constraint_id)
+                    <a href="{{ route('finance.add-constraint.show', ['add_constraint' => $tx->constraint_id]) }}">عرض القيد</a>
+                    <small class="d-block text-muted">{{ !$tx->constraint ? 'القيد غير موجود؛ يلزم مراجعته' : ($tx->constraint->approval_status === 'pending' ? 'بانتظار الاعتماد المالي' : 'معتمد ماليًا') }}</small>
+                @elseif($tx->reference_type === 'commission_reversal')
+                    <span class="text-danger">لم يُنشأ بعد</span>
+                @else
+                    —
+                @endif
+            </td><td>{{ $tx->created_at->format('Y-m-d H:i') }}</td>
         </tr>@endforeach</tbody>
     </table></div>
 </div>

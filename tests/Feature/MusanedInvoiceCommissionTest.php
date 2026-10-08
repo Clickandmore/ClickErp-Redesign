@@ -1,0 +1,233 @@
+<?php
+
+namespace Tests\Feature;
+
+use App\Http\Controllers\ingaz\MusanedTransferController;
+use App\Http\Controllers\ingaz\RecruitmentContractExternalOfficeDispatchController;
+use App\Models\Contract;
+use App\Models\ingaz\Invoice;
+use App\Models\ingaz\Maid;
+use App\Models\RecruitmentOffices;
+use App\Models\MusanedTransfer;
+use App\Models\MusanedTransferItem;
+use Illuminate\Foundation\Testing\DatabaseTransactions;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
+use Mockery;
+use Nami\Finance\Models\Account;
+use Nami\Finance\Models\ConfirmSetting;
+use Nami\Finance\Models\Constraint;
+use Nami\Finance\Services\ConstraintService;
+use Nami\Finance\Services\YearService;
+use Tests\TestCase;
+
+class MusanedInvoiceCommissionTest extends TestCase
+{
+    use DatabaseTransactions;
+
+    private array $journals = [];
+    private Account $source;
+    private Account $expense;
+    private Account $tax;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+        config(['activitylog.enabled' => false]);
+        $this->source = $this->account('مساند اختبار', 15);
+        $this->expense = $this->account('عمولة مساند اختبار', 1);
+        $this->tax = $this->account('ضريبة مشتريات اختبار', 10);
+        foreach ([
+            'automatic_journal_entries' => 'on',
+            \App\Support\InvoiceSupplierWorkflow::SETTING_KEY => \App\Support\InvoiceSupplierWorkflow::UPDATED,
+            'musaned_account' => $this->source->id,
+            'musaned_intermediate_account' => $this->source->id,
+            'musaned_commission_account' => $this->expense->id,
+            'expense_tax_account' => $this->tax->id,
+        ] as $key => $value) {
+            DB::table('fn_confirm_settings')->where('title', $key)->delete();
+            ConfirmSetting::query()->create(['title' => $key, 'value' => (string) $value]);
+        }
+        DB::table('fn_confirm_settings')->where('title', 'tax_rate_expenditure')->delete();
+        $service = Mockery::mock(ConstraintService::class);
+        $service->shouldReceive('lastCode')->andReturn('999999');
+        $service->shouldReceive('storeConstraint')->andReturnUsing(function ($data) {
+            $this->journals[] = $data;
+            return Constraint::withoutEvents(fn () => Constraint::query()->create([
+                'type' => 1, 'code' => 9000000 + count($this->journals), 'date' => $data['date'], 'value' => $data['value'], 'statement' => $data['statement'],
+            ]));
+        });
+        $service->shouldReceive('storeConstraintDetails')->andReturnNull();
+        $this->app->instance(ConstraintService::class, $service);
+        $year = Mockery::mock(YearService::class);
+        $year->shouldReceive('checkDateRange')->andReturn((object) ['id' => 1]);
+        $this->app->instance(YearService::class, $year);
+    }
+
+    private function account(string $name, int $type): Account
+    {
+        return Account::withoutEvents(fn () => Account::query()->create([
+            'name' => $name, 'type' => $type, 'status' => 'debtor', 'code' => random_int(80000000, 99999999),
+        ]));
+    }
+
+    private function invoice(): Invoice
+    {
+        $contract = Contract::withoutEvents(fn () => Contract::query()->create(['status' => 'new']));
+        return Invoice::withoutEvents(fn () => Invoice::query()->create([
+            'contract_id' => $contract->id, 'total_due' => 10000, 'created_at' => now(),
+        ]));
+    }
+
+    public function test_commission_is_two_and_half_percent_of_gross_and_posts_only_once(): void
+    {
+        $invoice = $this->invoice();
+        $controller = app(MusanedTransferController::class);
+        Invoice::withoutEvents(fn () => $controller->recordInvoiceCommission($invoice));
+        Invoice::withoutEvents(fn () => $controller->recordInvoiceCommission($invoice));
+        $this->assertSame(250.0, (float) $invoice->fresh()->musaned_commission_amount);
+        $this->assertSame(32.61, (float) $invoice->fresh()->musaned_commission_tax);
+        $this->assertCount(1, $this->journals);
+        $journal = $this->journals[0];
+        $this->assertEquals(250, array_sum($journal['debtor_value']));
+        $this->assertEquals(250, array_sum($journal['creditor_value']));
+        $this->assertSame([$this->expense->id, $this->tax->id, $this->source->id], $journal['account_id']);
+    }
+
+    public function test_missing_workflow_setting_defaults_to_legacy_without_invoice_fee(): void
+    {
+        DB::table('fn_confirm_settings')->where('title', \App\Support\InvoiceSupplierWorkflow::SETTING_KEY)->delete();
+        $this->assertFalse(\App\Support\InvoiceSupplierWorkflow::enabled());
+        $invoice = $this->invoice();
+        Invoice::withoutEvents(fn () => app(MusanedTransferController::class)->recordInvoiceCommission($invoice));
+        $this->assertNull($invoice->fresh()->musaned_commission_amount);
+        $this->assertNull($invoice->fresh()->musaned_commission_constraint_id);
+        $this->assertCount(0, $this->journals);
+        $this->test_legacy_invoices_still_post_commission_at_settlement();
+    }
+
+    public function test_switching_back_to_legacy_keeps_existing_invoice_fee_without_reposting(): void
+    {
+        $invoice = $this->invoice();
+        Invoice::withoutEvents(fn () => app(MusanedTransferController::class)->recordInvoiceCommission($invoice));
+        DB::table('fn_confirm_settings')->where('title', \App\Support\InvoiceSupplierWorkflow::SETTING_KEY)->update(['value' => 'legacy']);
+        Invoice::withoutEvents(fn () => app(MusanedTransferController::class)->recordInvoiceCommission($invoice));
+        $this->assertSame(250.0, (float) $invoice->fresh()->musaned_commission_amount);
+        $item = (new MusanedTransferItem)->forceFill([
+            'contract_id' => $invoice->contract_id, 'transferred_amount' => 9750,
+            'commission_amount' => 250, 'expense_tax_amount' => 32.61, 'source_account_id' => $this->source->id,
+        ])->setRelation('invoice', $invoice->fresh());
+        $transfer = (new MusanedTransfer)->forceFill(['reference_number' => 'SWITCH', 'transfer_date' => now()]);
+        $transfer->setRelation('items', collect([$item]));
+        $method = new \ReflectionMethod(MusanedTransferController::class, 'storeSettlementConstraint');
+        $method->setAccessible(true);
+        $method->invoke(app(MusanedTransferController::class), $transfer, app(ConstraintService::class), (object) ['id' => 1], 999, $this->expense->id, $this->tax->id);
+        $this->assertCount(2, $this->journals);
+        $this->assertSame([999, $this->source->id], $this->journals[1]['account_id']);
+        $freshInvoice = $this->invoice();
+        Invoice::withoutEvents(fn () => app(MusanedTransferController::class)->recordInvoiceCommission($freshInvoice));
+        $this->assertNull($freshInvoice->fresh()->musaned_commission_amount);
+    }
+
+    public function test_legacy_uses_office_cost_and_rejects_new_supplier_options(): void
+    {
+        DB::table('fn_confirm_settings')->where('title', \App\Support\InvoiceSupplierWorkflow::SETTING_KEY)->update(['value' => 'legacy']);
+        $office = (new RecruitmentOffices)->forceFill(['cost_of_dollar' => 1200]);
+        $maid = (new Maid)->forceFill(['supplier_cost_usd' => 900]);
+        $maid->setRelation('office', $office)->setRelation('recruitmentOffice', $office)->setRelation('religion', null);
+        $contract = (new Contract)->setRelation('maid', $maid)->setRelation('info', null)->setRelation('user', null)->setRelation('externalOfficeDispatch', null);
+        $this->assertSame('1200.00', $contract->buildExternalOfficeDispatchSourceData()['office_contract_cost_usd']);
+        $this->expectException(ValidationException::class);
+        app(RecruitmentContractExternalOfficeDispatchController::class)->persistExternalOfficeDispatch($contract, now()->toDateString(), 'الرياض', '300', null, false, 'partial', 1000);
+    }
+
+    public function test_settlement_does_not_post_commission_or_tax_again(): void
+    {
+        $invoice = $this->invoice();
+        $controller = app(MusanedTransferController::class);
+        Invoice::withoutEvents(fn () => $controller->recordInvoiceCommission($invoice));
+        $item = (new MusanedTransferItem)->forceFill([
+            'contract_id' => $invoice->contract_id, 'transferred_amount' => 9750,
+            'commission_amount' => 250, 'expense_tax_amount' => 32.61, 'source_account_id' => $this->source->id,
+        ])->setRelation('invoice', $invoice->fresh());
+        $transfer = (new MusanedTransfer)->forceFill(['reference_number' => 'TEST', 'transfer_date' => now()]);
+        $transfer->setRelation('items', collect([$item]));
+        $method = new \ReflectionMethod($controller, 'storeSettlementConstraint');
+        $method->setAccessible(true);
+        $method->invoke($controller, $transfer, app(ConstraintService::class), (object) ['id' => 1], 999, $this->expense->id, $this->tax->id);
+        $journal = $this->journals[1];
+        $this->assertSame([999, $this->source->id], $journal['account_id']);
+        $this->assertEquals(9750, array_sum($journal['debtor_value']));
+        $this->assertEquals(9750, array_sum($journal['creditor_value']));
+    }
+
+    public function test_disabled_automatic_entries_save_fee_without_posting(): void
+    {
+        DB::table('fn_confirm_settings')->where('title', 'automatic_journal_entries')->update(['value' => 'off']);
+        $invoice = $this->invoice();
+        Invoice::withoutEvents(fn () => app(MusanedTransferController::class)->recordInvoiceCommission($invoice));
+        $this->assertSame(250.0, (float) $invoice->fresh()->musaned_commission_amount);
+        $this->assertNull($invoice->fresh()->musaned_commission_constraint_id);
+        $this->assertCount(0, $this->journals);
+    }
+
+    public function test_legacy_invoices_still_post_commission_at_settlement(): void
+    {
+        $invoice = $this->invoice();
+        $item = (new MusanedTransferItem)->forceFill([
+            'contract_id' => $invoice->contract_id, 'transferred_amount' => 9750,
+            'commission_amount' => 250, 'expense_tax_amount' => 32.61, 'source_account_id' => $this->source->id,
+        ])->setRelation('invoice', $invoice);
+        $transfer = (new MusanedTransfer)->forceFill(['reference_number' => 'LEGACY', 'transfer_date' => now()]);
+        $transfer->setRelation('items', collect([$item]));
+        $method = new \ReflectionMethod(MusanedTransferController::class, 'storeSettlementConstraint');
+        $method->setAccessible(true);
+        $method->invoke(app(MusanedTransferController::class), $transfer, app(ConstraintService::class), (object) ['id' => 1], 999, $this->expense->id, $this->tax->id);
+        $journal = $this->journals[0];
+        $this->assertContains($this->expense->id, $journal['account_id']);
+        $this->assertContains($this->tax->id, $journal['account_id']);
+        $this->assertEquals(array_sum($journal['debtor_value']), array_sum($journal['creditor_value']));
+        $this->assertNull($invoice->fresh()->musaned_commission_amount);
+    }
+
+    public function test_cv_cost_overrides_supplier_default_and_blank_inherits(): void
+    {
+        $office = (new RecruitmentOffices)->forceFill(['cost_of_dollar' => 1200]);
+        $maid = (new Maid)->forceFill(['supplier_cost_usd' => 900]);
+        $maid->setRelation('office', $office)->setRelation('recruitmentOffice', $office)->setRelation('religion', null);
+        $contract = (new Contract)->setRelation('maid', $maid)->setRelation('info', null)->setRelation('user', null);
+        $this->assertSame('900.00', $contract->buildExternalOfficeDispatchSourceData()['office_contract_cost_usd']);
+        $this->assertSame('800.00', $contract->buildExternalOfficeDispatchSourceData(800)['office_contract_cost_usd']);
+        $maid->supplier_cost_usd = null;
+        $this->assertSame('1200.00', $contract->buildExternalOfficeDispatchSourceData()['office_contract_cost_usd']);
+    }
+
+    public function test_partial_cost_cannot_equal_or_exceed_total(): void
+    {
+        $this->expectException(ValidationException::class);
+        app(RecruitmentContractExternalOfficeDispatchController::class)->persistExternalOfficeDispatch(
+            new Contract, now()->toDateString(), '', '1200', null, false, 'partial', 1000
+        );
+    }
+
+    /** @dataProvider supplierAmounts */
+    public function test_supplier_invoice_saves_only_selected_cost(string $mode, string $amount, string $expected): void
+    {
+        $contract = Contract::withoutEvents(fn () => Contract::query()->create(['status' => 'new']));
+        $service = Mockery::mock(\App\Services\ingaz\RecruitmentTripAccountingService::class);
+        $service->shouldReceive('recordDispatchCostEntries')->once()->with(Mockery::type(Contract::class), true)->andReturn([]);
+        $this->app->instance(\App\Services\ingaz\RecruitmentTripAccountingService::class, $service);
+        app(RecruitmentContractExternalOfficeDispatchController::class)->persistExternalOfficeDispatch(
+            $contract, now()->toDateString(), 'الرياض', $amount, null, false, $mode, 1000
+        );
+        $dispatch = $contract->externalOfficeDispatch()->firstOrFail();
+        $this->assertSame($expected, (string) $dispatch->office_contract_cost_usd);
+        $this->assertSame(1000.0, (float) $dispatch->supplier_total_cost_usd);
+        $this->assertSame($mode, $dispatch->supplier_recognition_mode);
+    }
+
+    public function supplierAmounts(): array
+    {
+        return [['full', '300', '1000.00'], ['partial', '300', '300.00']];
+    }
+}

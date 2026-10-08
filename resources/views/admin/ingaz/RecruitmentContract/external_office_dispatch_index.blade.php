@@ -41,22 +41,22 @@
 @endsection
 
 @section('page-title')
-    إرسالات المكتب الخارجي
+    فواتير الموردين
 @endsection
 
 @section('content')
     <div class="alert alert-info">
         <strong>إثبات تكلفة المورد الخارجي:</strong>
         @if (\App\Support\RecruitmentSupplierCostRecognition::mode() === 'on_dispatch')
-            عند حفظ الإرسالية بتاريخها، بشرط وجود فاتورة للعقد وتفعيل القيود التلقائية. لا يتكرر القيد عند الوصول.
+            عند حفظ فاتورة المورد بتاريخها، بشرط وجود فاتورة للعقد وتفعيل القيود التلقائية. لا يتكرر القيد عند الوصول.
         @else
-            عند وصول العاملة؛ حفظ الإرسالية لا ينشئ قيد التكلفة.
+            عند وصول العاملة؛ حفظ فاتورة المورد لا ينشئ قيد التكلفة.
         @endif
     </div>
     <div class="container-fluid">
         <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-4">
             <div>
-                <h3 class="mb-1">إرسالات المكتب الخارجي</h3>
+                <h3 class="mb-1">فواتير الموردين</h3>
                 <p class="text-muted mb-0">عرض العقود التي تم إرسالها للمكتب الخارجي مع إمكانية فلترة العقود غير المرسلة.</p>
             </div>
             <div class="d-flex flex-wrap gap-2">
@@ -101,7 +101,7 @@
                 <button type="button"
                     class="dispatch-stat-card w-100 text-start border-0 dispatch-filter-chip {{ $dispatchFilter === 'all' ? 'active' : '' }}"
                     data-dispatch-filter="all">
-                    <div class="dispatch-stat-label">كل العقود المرتبطة بالإرسالات</div>
+                    <div class="dispatch-stat-label">كل العقود المرتبطة بفواتير الموردين</div>
                     <div class="dispatch-stat-value">{{ $stats['all'] ?? 0 }}</div>
                 </button>
             </div>
@@ -160,12 +160,12 @@
             <div class="card-body">
                 <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
                     <div class="text-muted small">
-                        تظهر العقود السارية التي لم تُنشأ لها إرسالية أولًا. يمكن جمع العقود من نفس الجنسية والمكتب في إرسالية واحدة وتحديد تكلفتها مرة واحدة.
+                        تظهر العقود السارية التي لم تُنشأ لها فاتورة مورد أولًا. يمكن جمع العقود من نفس الجنسية والمكتب في فاتورة مورد واحدة وتحديد تكلفتها مرة واحدة.
                     </div>
                     <button type="button" id="open-bulk-dispatch-modal" class="btn btn-primary" disabled
                         data-bs-toggle="modal" data-bs-target="#bulkDispatchModal">
                         <i class="fas fa-layer-group me-1"></i>
-                        إنشاء إرساليات مجمعة
+                        إنشاء فواتير الموردين مجمعة
                         <span class="badge bg-light text-primary ms-1" id="selected-dispatch-count">0</span>
                     </button>
                 </div>
@@ -183,8 +183,8 @@
                                 <th>الجنسية</th>
                                 <th>المكتب</th>
                                 <th>حالة العقد</th>
-                                <th>حالة الإرسالية</th>
-                                <th>تاريخ الإرسالية</th>
+                                <th>حالة فاتورة المورد</th>
+                                <th>تاريخ فاتورة المورد</th>
                                 <th>محطة الوصول</th>
                                 <th>الإجراءات</th>
                             </tr>
@@ -202,12 +202,12 @@
                 @csrf
                 <div id="bulk-dispatch-contract-inputs"></div>
                 <div class="modal-header">
-                    <h5 class="modal-title" id="bulkDispatchModalLabel">إنشاء إرساليات مجمعة</h5>
+                    <h5 class="modal-title" id="bulkDispatchModalLabel">إنشاء فواتير الموردين مجمعة</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="إغلاق"></button>
                 </div>
                 <div class="modal-body">
                     <div class="alert alert-info">
-                        سيتم إنشاء إرسالية لكل عقد محدد باستخدام نفس التاريخ والتكلفة. يجب أن تكون العقود من نفس الجنسية ونفس المكتب الخارجي.
+                        سيتم إنشاء فاتورة مورد لكل عقد محدد باستخدام نفس التاريخ والتكلفة. يجب أن تكون العقود من نفس الجنسية ونفس المكتب الخارجي.
                     </div>
                     <div class="mb-3">
                         <label class="form-label">عدد العقود المحددة</label>
@@ -218,7 +218,7 @@
                         <input type="text" class="form-control" id="bulk-dispatch-group-summary" readonly>
                     </div>
                     <div class="mb-3">
-                        <label class="form-label">تاريخ الإرسالية <span class="text-danger">*</span></label>
+                        <label class="form-label">تاريخ فاتورة المورد <span class="text-danger">*</span></label>
                         <input type="date" name="dispatch_date" class="form-control"
                             value="{{ old('dispatch_date', now()->toDateString()) }}" required>
                     </div>
@@ -249,7 +249,7 @@
                     <button type="button" class="btn btn-light" data-bs-dismiss="modal">إلغاء</button>
                     <button type="submit" class="btn btn-primary">
                         <i class="fas fa-save me-1"></i>
-                        حفظ الإرساليات
+                        حفظ فواتير الموردين
                     </button>
                 </div>
             </form>
@@ -443,7 +443,7 @@
                     const group = checkboxGroup(this);
                     if (!group.office_id || !group.nationality_id) {
                         $(this).prop('checked', false);
-                        window.alert('يجب تحديد المكتب الخارجي والجنسية للعقد قبل إضافته إلى الإرسالية المجمعة.');
+                        window.alert('يجب تحديد المكتب الخارجي والجنسية للعقد قبل إضافته إلى فاتورة المورد المجمعة.');
                         return;
                     }
                     if (!isCompatibleGroup(group)) {

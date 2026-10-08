@@ -760,6 +760,14 @@
                         @endif
                     </div>
 
+                    <div class="col-md-4">
+                        @if(\App\Support\InvoiceSupplierWorkflow::enabled())
+                        <label class="form-label" for="supplier_cost_usd">تكلفة المورد لهذه السيرة (دولار)</label>
+                        <input type="number" name="supplier_cost_usd" id="supplier_cost_usd" class="form-control"
+                            step="0.01" min="0.01" max="99999999.99" value="{{ old('supplier_cost_usd', $obj->supplier_cost_usd ?? '') }}">
+                        <small class="text-muted">اختياري؛ عند تركها فارغة تُستخدم تكلفة المورد أو الوكيل.</small>
+                        @endif
+                    </div>
                     <!-- البيانات الشخصية -->
                     <div class="col-4">
                         <label for="TextInput" class="form-label">

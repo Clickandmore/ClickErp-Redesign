@@ -35,7 +35,7 @@ class RecruitmentContractExternalOfficeDispatchController extends Controller
     public function index(Request $request)
     {
         if (!$this->canViewRecruitmentContracts()) {
-            abort(403, 'ليس لديك صلاحية لعرض إرسالات المكتب الخارجي.');
+            abort(403, 'ليس لديك صلاحية لعرض فواتير الموردين.');
         }
 
         $dispatchFilter = (string) $request->get('dispatch_filter', 'not_sent');
@@ -150,7 +150,7 @@ class RecruitmentContractExternalOfficeDispatchController extends Controller
                         ? implode(' ', $sourceErrors)
                         : (!$group['office_id'] || !$group['nationality_id']
                             ? 'يجب تحديد المكتب الخارجي والجنسية أولًا.'
-                            : ($contract->externalOfficeDispatch ? 'توجد إرسالية مسجلة مسبقًا.' : 'العقد غير متاح للإرسال.'));
+                            : ($contract->externalOfficeDispatch ? 'توجد فاتورة مورد مسجلة مسبقًا.' : 'العقد غير متاح للإرسال.'));
 
                     $checkbox = '<input type="checkbox" class="form-check-input dispatch-contract-checkbox"'
                         . ' value="' . e($contract->id) . '"'
@@ -218,7 +218,7 @@ class RecruitmentContractExternalOfficeDispatchController extends Controller
                 })
                 ->addColumn('actions', function (Contract $contract) {
                     $actions = '<div class="btn-group btn-group-sm" role="group">';
-                    $actions .= '<a href="' . e(route('RecruitmentContract.externalOfficeDispatch.edit', $contract->id)) . '" class="btn btn-outline-primary">الإرسالية</a>';
+                    $actions .= '<a href="' . e(route('RecruitmentContract.externalOfficeDispatch.edit', $contract->id)) . '" class="btn btn-outline-primary">فاتورة المورد</a>';
                     $actions .= '<a href="' . e(route('contracts.details', $contract->id)) . '" class="btn btn-outline-secondary">العقد</a>';
 
                     if ($contract->externalOfficeDispatch) {
@@ -275,7 +275,7 @@ class RecruitmentContractExternalOfficeDispatchController extends Controller
         $this->assertCanAccessBranchModel($contract);
 
         if (!$this->canViewRecruitmentContracts()) {
-            abort(403, 'ليس لديك صلاحية لعرض إرسالية المكتب الخارجي.');
+            abort(403, 'ليس لديك صلاحية لعرض فاتورة المورد.');
         }
 
         $contract->load([
@@ -367,18 +367,18 @@ class RecruitmentContractExternalOfficeDispatchController extends Controller
             [
                 'label' => 'نوع العقد استقدام أو عقد عاملة',
                 'passed' => in_array($contract->type, ['recruitment', 'maid'], true),
-                'failure' => 'نوع العقد الحالي لا يدعم إرسالية المكتب الخارجي.',
+                'failure' => 'نوع العقد الحالي لا يدعم فاتورة المورد.',
             ],
             [
                 'label' => 'العقد ضمن الحالات الجارية المسموح بها',
                 'passed' => $contract->canManageExternalOfficeDispatch(),
-                'failure' => 'حالة العقد الحالية (' . getContractStatus($contract->status) . ') لا تسمح بإنشاء أو تعديل الإرسالية.',
+                'failure' => 'حالة العقد الحالية (' . getContractStatus($contract->status) . ') لا تسمح بإنشاء أو تعديل فاتورة المورد.',
             ],
             [
                 'key' => 'no_existing_dispatch',
-                'label' => 'لا توجد إرسالية مسجلة مسبقًا',
+                'label' => 'لا توجد فاتورة مورد مسجلة مسبقًا',
                 'passed' => !$dispatch,
-                'failure' => 'توجد إرسالية مسجلة لهذا العقد بالفعل؛ يمكن تعديلها بدل إنشاء إرسالية جديدة.',
+                'failure' => 'توجد فاتورة مورد مسجلة لهذا العقد بالفعل؛ يمكن تعديلها بدل إنشاء فاتورة مورد جديدة.',
             ],
             [
                 'label' => 'العقد مرتبط بعاملة فعلية',
@@ -418,7 +418,7 @@ class RecruitmentContractExternalOfficeDispatchController extends Controller
             [
                 'label' => 'لديك صلاحية تحديث عقود الاستقدام',
                 'passed' => $this->canUpdateRecruitmentContracts(),
-                'failure' => 'لا توجد لديك صلاحية تحديث عقود الاستقدام أو إنشاء الإرسالية.',
+                'failure' => 'لا توجد لديك صلاحية تحديث عقود الاستقدام أو إنشاء فاتورة المورد.',
             ],
         ];
 
@@ -479,20 +479,22 @@ class RecruitmentContractExternalOfficeDispatchController extends Controller
         $this->assertCanAccessBranchModel($contract);
 
         if (!$this->canUpdateRecruitmentContracts()) {
-            return redirect()->back()->with('error', 'ليس لديك صلاحية لتحديث إرسالية المكتب الخارجي.');
+            return redirect()->back()->with('error', 'ليس لديك صلاحية لتحديث فاتورة المورد.');
         }
 
         if (!$contract->canManageExternalOfficeDispatch()) {
-            return redirect()->back()->with('error', 'يمكن إنشاء أو تحديث إرسالية المكتب الخارجي للعقود الجارية فقط.');
+            return redirect()->back()->with('error', 'يمكن إنشاء أو تحديث فاتورة المورد للعقود الجارية فقط.');
         }
 
         $validated = $request->validate([
             'dispatch_date' => 'required|date',
             'arrival_station' => 'required|string|max:255',
             'office_contract_cost_usd' => 'required|numeric|min:0.01|max:99999999.99',
+            'supplier_recognition_mode' => 'nullable|in:full,partial',
+            'supplier_total_cost_usd' => 'nullable|numeric|min:0.01|max:99999999.99',
         ], [
-            'dispatch_date.required' => 'تاريخ الإرسالية مطلوب.',
-            'dispatch_date.date' => 'تاريخ الإرسالية غير صحيح.',
+            'dispatch_date.required' => 'تاريخ فاتورة المورد مطلوب.',
+            'dispatch_date.date' => 'تاريخ فاتورة المورد غير صحيح.',
             'arrival_station.required' => 'محطة الوصول مطلوبة.',
             'arrival_station.max' => 'محطة الوصول طويلة جداً.',
             'office_contract_cost_usd.required' => 'تكلفة العقد بالدولار مطلوبة.',
@@ -525,18 +527,21 @@ class RecruitmentContractExternalOfficeDispatchController extends Controller
             $validated['dispatch_date'],
             trim((string) $validated['arrival_station']),
             number_format((float) $validated['office_contract_cost_usd'], 2, '.', ''),
-            $adminId
+            $adminId,
+            false,
+            $validated['supplier_recognition_mode'] ?? null,
+            isset($validated['supplier_total_cost_usd']) ? (float) $validated['supplier_total_cost_usd'] : null
         );
 
         return redirect()
             ->route('RecruitmentContract.externalOfficeDispatch.edit', $contract->id)
-            ->with('success', 'تم حفظ إرسالية المكتب الخارجي بنجاح.');
+            ->with('success', 'تم حفظ فاتورة المورد بنجاح.');
     }
 
     public function bulkStore(Request $request)
     {
         if (!$this->canUpdateRecruitmentContracts()) {
-            return redirect()->back()->with('error', 'ليس لديك صلاحية لتحديث إرساليات المكتب الخارجي.');
+            return redirect()->back()->with('error', 'ليس لديك صلاحية لتحديث فواتير الموردين المكتب الخارجي.');
         }
 
         $validated = $request->validate([
@@ -549,8 +554,8 @@ class RecruitmentContractExternalOfficeDispatchController extends Controller
         ], [
             'contract_ids.required' => 'يجب تحديد عقد واحد على الأقل.',
             'contract_ids.min' => 'يجب تحديد عقد واحد على الأقل.',
-            'dispatch_date.required' => 'تاريخ الإرسالية مطلوب.',
-            'dispatch_date.date' => 'تاريخ الإرسالية غير صحيح.',
+            'dispatch_date.required' => 'تاريخ فاتورة المورد مطلوب.',
+            'dispatch_date.date' => 'تاريخ فاتورة المورد غير صحيح.',
             'arrival_station.max' => 'محطة الوصول طويلة جداً.',
             'office_contract_cost_usd.required' => 'تكلفة العقد بالدولار مطلوبة للإرسال المجمع.',
             'office_contract_cost_usd.numeric' => 'تكلفة العقد بالدولار يجب أن تكون رقمًا صحيحًا.',
@@ -604,7 +609,7 @@ class RecruitmentContractExternalOfficeDispatchController extends Controller
             return redirect()
                 ->back()
                 ->withInput()
-                ->with('error', 'العقد #' . $missingGroupContract->id . ': يجب تحديد المكتب الخارجي والجنسية قبل إنشاء الإرسالية.');
+                ->with('error', 'العقد #' . $missingGroupContract->id . ': يجب تحديد المكتب الخارجي والجنسية قبل إنشاء فاتورة المورد.');
         }
 
         if ($groupData->pluck('group_key')->unique()->count() !== 1) {
@@ -616,12 +621,12 @@ class RecruitmentContractExternalOfficeDispatchController extends Controller
 
         foreach ($contracts as $contract) {
             if (!$contract->canManageExternalOfficeDispatch()) {
-                $errors[] = 'العقد #' . $contract->id . ': يمكن إنشاء الإرسالية للعقود الجارية فقط.';
+                $errors[] = 'العقد #' . $contract->id . ': يمكن إنشاء فاتورة المورد للعقود الجارية فقط.';
                 continue;
             }
 
             if ($contract->externalOfficeDispatch) {
-                $errors[] = 'العقد #' . $contract->id . ': توجد إرسالية مسجلة مسبقًا.';
+                $errors[] = 'العقد #' . $contract->id . ': توجد فاتورة مورد مسجلة مسبقًا.';
                 continue;
             }
 
@@ -647,7 +652,7 @@ class RecruitmentContractExternalOfficeDispatchController extends Controller
             return redirect()
                 ->back()
                 ->withInput()
-                ->with('error', 'لم يتم حفظ أي إرسالية. يرجى معالجة الملاحظات ثم المحاولة مرة أخرى.')
+                ->with('error', 'لم يتم حفظ أي فاتورة مورد. يرجى معالجة الملاحظات ثم المحاولة مرة أخرى.')
                 ->with('bulk_dispatch_errors', $errors);
         }
 
@@ -672,8 +677,8 @@ class RecruitmentContractExternalOfficeDispatchController extends Controller
         $createdCount = $contracts->count();
 
         $message = $createdCount > 0
-            ? 'تم حفظ ' . $createdCount . ' إرسالية مكتب خارجي بنجاح.'
-            : 'لم يتم حفظ أي إرسالية.';
+            ? 'تم حفظ ' . $createdCount . ' فاتورة مورد بنجاح.'
+            : 'لم يتم حفظ أي فاتورة مورد.';
 
         $redirectRoute = !empty($validated['return_contract_id'])
             ? route('RecruitmentContract.externalOfficeDispatch.edit', $validated['return_contract_id'])
@@ -690,7 +695,7 @@ class RecruitmentContractExternalOfficeDispatchController extends Controller
         $this->assertCanAccessBranchModel($contract);
 
         if (!$this->canViewRecruitmentContracts()) {
-            abort(403, 'ليس لديك صلاحية لعرض إرسالية المكتب الخارجي.');
+            abort(403, 'ليس لديك صلاحية لعرض فاتورة المورد.');
         }
 
         $contract->load([
@@ -702,7 +707,7 @@ class RecruitmentContractExternalOfficeDispatchController extends Controller
 
         $dispatch = $contract->externalOfficeDispatch;
         if (!$dispatch) {
-            abort(404, 'إرسالية المكتب الخارجي غير موجودة لهذا العقد.');
+            abort(404, 'فاتورة المورد غير موجودة لهذا العقد.');
         }
 
         $viewData = [
@@ -754,10 +759,10 @@ class RecruitmentContractExternalOfficeDispatchController extends Controller
         }
 
         if ($dispatchState['code'] === 'missing') {
-            return 'لا يمكن إكمال الوصول أو إغلاق العقد قبل إتمام إرسالية المكتب الخارجي.';
+            return 'لا يمكن إكمال الوصول أو إغلاق العقد قبل إتمام فاتورة المورد.';
         }
 
-        return 'إرسالية المكتب الخارجي غير مكتملة أو تحتاج تحديث: ' . $dispatchState['message'];
+        return 'فاتورة المورد غير مكتملة أو تحتاج تحديث: ' . $dispatchState['message'];
     }
 
     public static function syncArrivalStationFromDispatch(Contract $contract, TravelHistory $travelHistory): void
@@ -823,22 +828,41 @@ class RecruitmentContractExternalOfficeDispatchController extends Controller
         string $arrivalStation,
         string $officeContractCostUsd,
         $adminId,
-        bool $lateFinance = false
+        bool $lateFinance = false,
+        ?string $supplierRecognitionMode = null,
+        ?float $supplierTotalCostUsd = null
     ): void {
+        if ($supplierRecognitionMode !== null) {
+            if (!\App\Support\InvoiceSupplierWorkflow::enabled() && !$contract->externalOfficeDispatch?->supplier_total_cost_usd) {
+                throw \Illuminate\Validation\ValidationException::withMessages([
+                    'supplier_recognition_mode' => 'خيارات فاتورة المورد الكاملة والجزئية تتطلب تفعيل التسلسل الجديد من الإعدادات المالية.',
+                ]);
+            }
+            if (!in_array($supplierRecognitionMode, ['full', 'partial'], true)
+                || !$supplierTotalCostUsd || $supplierTotalCostUsd <= 0
+                || ($supplierRecognitionMode === 'partial' && ((float) $officeContractCostUsd <= 0 || (float) $officeContractCostUsd >= $supplierTotalCostUsd))) {
+                throw \Illuminate\Validation\ValidationException::withMessages([
+                    'supplier_total_cost_usd' => 'أدخل إجمالي تكلفة المورد؛ المبلغ الجزئي يجب أن يكون أقل من الإجمالي وأكبر من صفر.',
+                ]);
+            }
+            if ($supplierRecognitionMode === 'full') {
+                $officeContractCostUsd = (string) $supplierTotalCostUsd;
+            }
+        }
         $officeContractCostUsd = number_format((float) str_replace(',', '', $officeContractCostUsd), 2, '.', '');
         $sourceSnapshot = $contract->buildExternalOfficeDispatchSourceData($officeContractCostUsd);
 
-        DB::transaction(function () use ($contract, $dispatchDate, $arrivalStation, $sourceSnapshot, $adminId, $officeContractCostUsd, $lateFinance) {
+        DB::transaction(function () use ($contract, $dispatchDate, $arrivalStation, $sourceSnapshot, $adminId, $officeContractCostUsd, $lateFinance, $supplierRecognitionMode, $supplierTotalCostUsd) {
             $lockedContract = Contract::query()->whereKey($contract->id)->lockForUpdate()->firstOrFail();
             $contract->unsetRelation('externalOfficeDispatch');
             $existingDispatch = $contract->externalOfficeDispatch;
             $invoice = $contract->invoice()->first();
             if ($lateFinance) {
                 if (!$lockedContract->isLateFinanceEligible() || !$invoice) {
-                    throw \Illuminate\Validation\ValidationException::withMessages(['dispatch_date' => 'يلزم عقد وصول أو مكتمل وله فاتورة لتسجيل الإرسالية من الصفحة المالية.']);
+                    throw \Illuminate\Validation\ValidationException::withMessages(['dispatch_date' => 'يلزم عقد وصول أو مكتمل وله فاتورة لتسجيل فاتورة المورد من الصفحة المالية.']);
                 }
                 if ($existingDispatch || $invoice->external_office_cost_constraint_id) {
-                    throw \Illuminate\Validation\ValidationException::withMessages(['dispatch_date' => 'توجد إرسالية أو تكلفة مكتب مثبتة لهذا العقد بالفعل؛ راجع السجل الموجود قبل أي تعديل.']);
+                    throw \Illuminate\Validation\ValidationException::withMessages(['dispatch_date' => 'توجد فاتورة مورد أو تكلفة مكتب مثبتة لهذا العقد بالفعل؛ راجع السجل الموجود قبل أي تعديل.']);
                 }
             }
             if ($existingDispatch && $invoice?->external_office_cost_constraint_id
@@ -855,6 +879,10 @@ class RecruitmentContractExternalOfficeDispatchController extends Controller
                 'source_hash' => $contract->buildExternalOfficeDispatchSourceHash($officeContractCostUsd),
                 'updated_by_admin_id' => $adminId,
             ]);
+            if ($supplierRecognitionMode !== null) {
+                $payload['supplier_recognition_mode'] = $supplierRecognitionMode;
+                $payload['supplier_total_cost_usd'] = $supplierTotalCostUsd;
+            }
 
             if (!$existingDispatch) {
                 $payload['created_by_admin_id'] = $adminId;
@@ -874,7 +902,7 @@ class RecruitmentContractExternalOfficeDispatchController extends Controller
                         session()->flash('warning', implode(' ', $result['warnings']));
                     }
                 } else {
-                    $accounting->recordDispatchCostEntries($contract);
+                    $accounting->recordDispatchCostEntries($contract, $supplierRecognitionMode !== null);
                 }
             } catch (\RuntimeException $exception) {
                 throw \Illuminate\Validation\ValidationException::withMessages([

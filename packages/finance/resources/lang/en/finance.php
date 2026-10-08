@@ -1,6 +1,13 @@
 <?php
 
 return array (
+  'invoice_supplier_workflow' => 'Invoice, Musaned and supplier workflow',
+  'invoice_supplier_workflow_hint' => 'Choose the workflow for this company. The legacy workflow is the default.',
+  'invoice_supplier_workflow_legacy' => 'Legacy workflow (default)',
+  'invoice_supplier_workflow_legacy_hint' => 'Record Musaned fees at transfer as the difference between the invoice total and the transferred amount. Complete the office dispatch separately using the configured supplier cost recognition timing.',
+  'invoice_supplier_workflow_updated' => 'Updated workflow',
+  'invoice_supplier_workflow_updated_hint' => 'Record a 2.5% Musaned fee at invoice issuance and confirm net receipt later. Optionally create a supplier invoice with the customer invoice, recognize full or partial cost, and set individual CV costs.',
+  'invoice_supplier_workflow_existing_hint' => 'Changes apply to new operations. Existing invoices and entries are preserved, and fees already recorded at issuance are not posted again. Automatic journal settings still apply.',
   'tax_single_source_hint' => 'The selected tax definition determines the posting account. Edit the rate and chart account in Tax Settings.',
   'home' => 'Home',
   'bank_number' => 'Bank Number',

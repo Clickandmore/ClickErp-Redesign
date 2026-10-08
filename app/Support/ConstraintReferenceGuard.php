@@ -21,6 +21,10 @@ class ConstraintReferenceGuard
      * @var array<string, array{label: string, columns: string[]}>
      */
     private const REFERENCES = [
+        'commission_balance_transactions' => [
+            'label' => 'خصم عمولة مسوق',
+            'columns' => ['constraint_id'],
+        ],
         'contract_return_settlement_lines' => [
             'label' => 'بند استرداد بعد الوصول',
             'columns' => ['constraint_id', 'reversal_constraint_id'],
@@ -33,6 +37,7 @@ class ConstraintReferenceGuard
             'label' => 'فاتورة',
             'columns' => [
                 'invoice_constraint_id',
+                'musaned_commission_constraint_id',
                 'constraint_id',
                 'arrival_revenue_constraint_id',
                 'external_office_cost_constraint_id',

@@ -878,6 +878,30 @@
                                 </div>
                             </div>
 
+                            @if(\App\Support\InvoiceSupplierWorkflow::enabled())
+                            <div class="side-section" id="supplierInvoiceOptions">
+                                @php
+                                    $supplierDefaults = $currentContract ? $currentContract->buildExternalOfficeDispatchSourceData() : [];
+                                    $supplierDefaultCost = $supplierDefaults['office_contract_cost_usd'] ?? null;
+                                    $supplierCostSource = filled($currentContract?->maid?->supplier_cost_usd) ? 'السيرة الذاتية' : 'إعدادات المورد / المكتب';
+                                @endphp
+                                <label class="form-check-label"><input type="checkbox" name="create_supplier_invoice" value="1"> إنشاء فاتورة مورد مع فاتورة العميل</label>
+                                <p class="text-muted small">لعقود الاستقدام فقط؛ يمكن إنشاؤها لاحقًا من العقد.</p>
+                                <label class="form-label">إثبات تكلفة المورد</label>
+                                <select name="supplier_recognition_mode" class="form-control"><option value="full">التكلفة كاملة</option><option value="partial">جزء من التكلفة</option></select>
+                                <label class="form-label mt-2">إجمالي تكلفة المورد (دولار)</label>
+                                <input type="number" class="form-control" name="supplier_total_cost_usd" value="{{ old('supplier_total_cost_usd', $supplierDefaultCost) }}" min="0.01" max="99999999.99" step="0.01" placeholder="أدخل تكلفة المورد" required>
+                                @if(filled($supplierDefaultCost))
+                                    <p class="text-muted small mt-2">التكلفة التلقائية: <strong>{{ number_format((float) $supplierDefaultCost, 2) }} دولار</strong> — المصدر: {{ $supplierCostSource }}{{ filled($supplierDefaults['office_name'] ?? null) ? ' (' . $supplierDefaults['office_name'] . ')' : '' }}. يمكنك تعديل القيمة لهذه الفاتورة.</p>
+                                @else
+                                    <p class="text-muted small mt-2">لا توجد تكلفة مسجلة في السيرة أو إعدادات المورد؛ أدخل التكلفة قبل إصدار فاتورة المورد.</p>
+                                @endif
+                                <label class="form-label mt-2">المبلغ الجزئي المراد إثباته (دولار)</label>
+                                <input type="number" class="form-control" name="supplier_partial_cost_usd" min="0.01" max="99999999.99" step="0.01">
+                                <label class="form-label mt-2">محطة الوصول</label>
+                                <input class="form-control" name="supplier_arrival_station" maxlength="255" placeholder="اختياري؛ تُستخدم محطة العقد">
+                            </div>
+                            @endif
                             <div class="side-section">
                                 <div class="meta-grid {{ $currentContract || $isDelegationInvoice || $isGeneralInvoice ? '' : 'is-empty' }}" id="contractPreview">
                                     <div class="meta-item">
@@ -947,6 +971,10 @@
                                     </div>
                                 </div>
 
+                                @if(\App\Support\InvoiceSupplierWorkflow::enabled())
+                                <div class="summary-row musaned-summary"><span>عمولة مساند (2.5% من الإجمالي)</span><strong id="summaryMusanedCommission">0.00 ريال</strong></div>
+                                <div class="summary-row musaned-summary"><span>الصافي المتوقع من مساند</span><strong id="summaryMusanedNet">0.00 ريال</strong></div>
+                                @endif
                                 <div class="line-breakdown">
                                     <div class="breakdown-row">
                                         <span id="summaryDirectLabel">المباشر</span>
@@ -1244,6 +1272,13 @@
                 $('#summaryVat').text(formatMoney(vat));
                 $('#summaryDiscount').text(formatMoney(discount));
                 $('#summaryGrandTotal').text(formatMoney(totalDue));
+                const musanedInvoice = @json(\App\Support\InvoiceSupplierWorkflow::enabled()) && ['contract', 'delegation'].includes(currentInvoiceMode());
+                $('#summaryMusanedCommission').text(formatMoney(totalDue * 0.025));
+                $('#summaryMusanedNet').text(formatMoney(totalDue - Math.round(totalDue * 2.5) / 100));
+                $('.musaned-summary').toggle(musanedInvoice);
+                const supplierOptions = $('#supplierInvoiceOptions');
+                supplierOptions.toggle(currentInvoiceMode() === 'contract');
+                updateSupplierOptions();
 
                 const isGeneral = currentInvoiceMode() === 'general';
                 const directLabel = isGeneral ? generalLabel('#general_direct_label', 'خدمة عامة') : 'المباشر';
@@ -1305,6 +1340,17 @@
                 $('#postSaveActions').removeClass('d-none');
             }
 
+            function updateSupplierOptions() {
+                const panel = $('#supplierInvoiceOptions');
+                if (!panel.length) return;
+                const checkbox = panel.find('[name="create_supplier_invoice"]');
+                const enabled = currentInvoiceMode() === 'contract' && checkbox.is(':checked');
+                checkbox.prop('disabled', currentInvoiceMode() !== 'contract');
+                panel.find(':input').not(checkbox).prop('disabled', !enabled);
+                const partial = enabled && panel.find('[name="supplier_recognition_mode"]').val() === 'partial';
+                panel.find('[name="supplier_partial_cost_usd"]').prop('disabled', !partial).prop('required', partial);
+            }
+            $('#supplierInvoiceOptions :input').on('change', updateSupplierOptions);
             $('.calc-input').on('input', updateCalculation);
             $('.general-label-input').on('input', updateCalculation);
             $('#invoice_date').on('change input', function() {

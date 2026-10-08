@@ -1287,7 +1287,7 @@ class InvoiceController extends Controller
                 $invoicePayload['insurance_company'] = $request->insurance_company ?? null;
                 $invoicePayload['general_description'] = $request->general_description ?? null;
 
-                return $this->createRecruitmentContractInvoice(
+                $result = $this->createRecruitmentContractInvoice(
                     (int) $request->contract_id,
                     $invoicePayload,
                     $this->resolveInvoiceDateTime($request),
@@ -1298,6 +1298,38 @@ class InvoiceController extends Controller
                     $allowLateContract && AutomaticJournalEntries::enabled(),
                     $allowLateContract
                 );
+                if ($request->boolean('create_supplier_invoice')) {
+                    if (!\App\Support\InvoiceSupplierWorkflow::enabled()) {
+                        throw \Illuminate\Validation\ValidationException::withMessages([
+                            'create_supplier_invoice' => 'فعّل التسلسل الجديد للفواتير ومساند والمورد من الإعدادات المالية أولًا.',
+                        ]);
+                    }
+                    $options = $request->validate([
+                        'supplier_recognition_mode' => 'required|in:full,partial',
+                        'supplier_total_cost_usd' => 'nullable|numeric|min:0.01|max:99999999.99',
+                        'supplier_partial_cost_usd' => 'required_if:supplier_recognition_mode,partial|nullable|numeric|min:0.01|max:99999999.99',
+                        'supplier_arrival_station' => 'nullable|string|max:255',
+                    ]);
+                    $contract = Contract::query()->findOrFail($request->contract_id);
+                    $total = (float) ($options['supplier_total_cost_usd'] ?? $contract->buildExternalOfficeDispatchSourceData()['office_contract_cost_usd']);
+                    $amount = $options['supplier_recognition_mode'] === 'partial'
+                        ? (float) $options['supplier_partial_cost_usd'] : $total;
+                    $errors = $contract->externalOfficeDispatchSourceValidationErrors($amount);
+                    if ($errors) {
+                        throw \Illuminate\Validation\ValidationException::withMessages(['create_supplier_invoice' => implode(' ', $errors)]);
+                    }
+                    app(RecruitmentContractExternalOfficeDispatchController::class)->persistExternalOfficeDispatch(
+                        $contract,
+                        $this->resolveInvoiceDateTime($request)->toDateString(),
+                        trim($options['supplier_arrival_station'] ?? $contract->resolveExternalOfficeDispatchArrivalStation() ?? ''),
+                        (string) $amount,
+                        auth('admin')->id(),
+                        false,
+                        $options['supplier_recognition_mode'],
+                        $total
+                    );
+                }
+                return $result;
             });
         } catch (\Throwable $e) {
             return response()->json([
@@ -1483,6 +1515,8 @@ class InvoiceController extends Controller
                 }
             }
 
+            app(MusanedTransferController::class)->recordInvoiceCommission($invoice);
+
             if ($allowLateContract) {
                 $arrivalEntries = app(\App\Services\ingaz\RecruitmentTripAccountingService::class)
                     ->recordCompletionEntries($contract, new \App\Models\TravelHistory(['arrival_date' => $invoiceDate->toDateString()]));
@@ -1647,12 +1681,13 @@ class InvoiceController extends Controller
                 ? (int) $oldBond->constraint_id
                 : null;
 
-            $invoice->update(['invoice_constraint_id' => null]);
+            $oldMusanedCommissionConstraintId = $invoice->musaned_commission_constraint_id;
+            $invoice->update(['invoice_constraint_id' => null, 'musaned_commission_constraint_id' => null]);
             if ($oldBond) {
                 $oldBond->update(['constraint_id' => null, 'is_confirm' => 0]);
                 $oldBond->delete();
             }
-            foreach (array_unique(array_filter([$oldInvoiceConstraintId, $oldBondConstraintId])) as $constraintId) {
+            foreach (array_unique(array_filter([$oldInvoiceConstraintId, $oldBondConstraintId, $oldMusanedCommissionConstraintId])) as $constraintId) {
                 $constraint = Constraint::query()->lockForUpdate()->find($constraintId);
                 if ($constraint) {
                     $constraint->constraintDetails()->delete();
@@ -1740,6 +1775,10 @@ class InvoiceController extends Controller
 
             if (!$invoiceConstraint || !$receiptBond->constraint_id) {
                 throw new \RuntimeException('لم تكتمل إعادة إنشاء القيود المحاسبية.');
+            }
+
+            if ($invoice->musaned_commission_amount !== null) {
+                app(MusanedTransferController::class)->recordInvoiceCommission($invoice);
             }
 
             return [
@@ -2793,6 +2832,8 @@ class InvoiceController extends Controller
 
             // Delegation costs are posted separately after payment confirmation.
         }
+
+        app(MusanedTransferController::class)->recordInvoiceCommission($invoice);
 
         if ($invoice->send_to_zatca) {
             $this->queueInvoiceForZatcaSale($invoice);

@@ -341,6 +341,9 @@ class Contract extends Model
 
         if ($officeContractCostUsd !== null && $officeContractCostUsd !== '') {
             $officeCost = number_format((float) str_replace(',', '', (string) $officeContractCostUsd), 2, '.', '');
+        } elseif (filled($this->maid?->supplier_cost_usd)
+            && (\App\Support\InvoiceSupplierWorkflow::enabled() || $this->externalOfficeDispatch?->supplier_total_cost_usd !== null)) {
+            $officeCost = number_format((float) $this->maid->supplier_cost_usd, 2, '.', '');
         } elseif (filled($office?->cost_of_dollar)) {
             $officeCost = number_format((float) str_replace(',', '', (string) $office->cost_of_dollar), 2, '.', '');
         }
@@ -375,7 +378,7 @@ class Contract extends Model
         $errors = [];
 
         if (!$this->maid) {
-            $errors[] = 'يجب ربط عاملة فعلية بالعقد قبل إنشاء إرسالية المكتب الخارجي.';
+            $errors[] = 'يجب ربط عاملة فعلية بالعقد قبل إنشاء فاتورة المورد.';
         }
 
         if ($data['sponsor_name'] === '') {
@@ -446,7 +449,7 @@ class Contract extends Model
             return [
                 'code' => 'missing',
                 'label' => 'غير مكتملة',
-                'message' => 'لم يتم إنشاء إرسالية المكتب الخارجي لهذا العقد بعد.',
+                'message' => 'لم يتم إنشاء فاتورة المورد لهذا العقد بعد.',
                 'is_completed' => false,
             ];
         }
@@ -455,7 +458,7 @@ class Contract extends Model
             return [
                 'code' => 'incomplete',
                 'label' => 'غير مكتملة',
-                'message' => 'تاريخ الإرسالية أو محطة الوصول غير مكتملين.',
+                'message' => 'تاريخ فاتورة المورد أو محطة الوصول غير مكتملين.',
                 'is_completed' => false,
             ];
         }
@@ -468,7 +471,7 @@ class Contract extends Model
             return [
                 'code' => 'completed',
                 'label' => 'مكتملة',
-                'message' => 'تمت إرسالية المكتب الخارجي في نظام أربيا بتاريخ '
+                'message' => 'تمت فاتورة المورد في نظام أربيا بتاريخ '
                     . optional($dispatch->dispatch_date)->format('Y-m-d') . '.',
                 'is_completed' => true,
             ];
@@ -478,7 +481,7 @@ class Contract extends Model
             return [
                 'code' => 'incomplete',
                 'label' => 'غير مكتملة',
-                'message' => 'تكلفة العقد بالدولار غير مكتملة على إرسالية المكتب الخارجي.',
+                'message' => 'تكلفة العقد بالدولار غير مكتملة على فاتورة المورد.',
                 'is_completed' => false,
             ];
         }
@@ -497,7 +500,7 @@ class Contract extends Model
             return [
                 'code' => 'outdated',
                 'label' => 'تحتاج تحديث',
-                'message' => 'تم تعديل بيانات العقد أو العاملة أو المكتب بعد إنشاء الإرسالية الحالية.',
+                'message' => 'تم تعديل بيانات العقد أو العاملة أو المكتب بعد إنشاء فاتورة المورد الحالية.',
                 'is_completed' => false,
             ];
         }
@@ -505,7 +508,7 @@ class Contract extends Model
         return [
             'code' => 'completed',
             'label' => 'مكتملة',
-            'message' => 'تمت إرسالية المكتب الخارجي بتاريخ ' . optional($dispatch->dispatch_date)->format('Y-m-d') . '.',
+            'message' => 'تمت فاتورة المورد بتاريخ ' . optional($dispatch->dispatch_date)->format('Y-m-d') . '.',
             'is_completed' => true,
         ];
     }

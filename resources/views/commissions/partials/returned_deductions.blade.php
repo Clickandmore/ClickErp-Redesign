@@ -7,7 +7,7 @@
     <div class="card-header bg-white py-3 d-flex flex-wrap justify-content-between align-items-center gap-2">
         <div>
             <h5 class="mb-1 fw-bold text-danger"><i class="fa fa-undo me-2"></i>خصومات العقود المرتجعة</h5>
-            <div class="small text-muted">تشمل عقود الاستقدام والإيجار وتمديداته. الفلترة حسب نوع العقد وتاريخ الإرجاع. اعتمد كل تسوية بصفر أو كامل العمولة أو مبلغ جزئي؛ لا يُطبّق الخصم تلقائيًا عند اعتماد دفعة العمولة.</div>
+            <div class="small text-muted">تشمل عقود الاستقدام والإيجار وتمديداته حسب نوع العقد المختار، ولا تتأثر بفلتر تاريخ العقود. اعتمد كل تسوية بصفر أو كامل العمولة أو مبلغ جزئي؛ لا يُطبّق الخصم تلقائيًا عند اعتماد دفعة العمولة.</div>
         </div>
         <div class="d-flex gap-2">
             <span class="badge rounded-pill bg-light text-danger border border-danger px-3 py-2 returned-pending-count">{{ number_format($returnedContractsCount) }} عقد</span>

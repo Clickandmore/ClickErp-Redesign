@@ -929,6 +929,7 @@ Route::middleware(['admin', 'admin.route.permission'])
         Route::match(['get', 'post'], 'marketers/{admin}/calculate-preview', [\App\Http\Controllers\commissions\CommissionMarketerController::class, 'preview'])->name('marketers.preview');
         Route::post('marketers/{admin}/calculate-approve', [\App\Http\Controllers\commissions\CommissionMarketerController::class, 'approve'])->name('marketers.approve');
         Route::post('marketers/{admin}/returned-commissions/{item}/resolve', [\App\Http\Controllers\commissions\CommissionMarketerController::class, 'resolveReturnedCommission'])->name('marketers.returned-commissions.resolve');
+        Route::post('marketers/{admin}/repair-deduction-journals', [\App\Http\Controllers\commissions\CommissionMarketerController::class, 'repairDeductionJournals'])->name('marketers.deduction-journals.repair');
 
         Route::get('marketers/{admin}/payments', [\App\Http\Controllers\commissions\CommissionPaymentController::class, 'index'])->name('marketers.payments.index');
         Route::post('marketers/{admin}/payments', [\App\Http\Controllers\commissions\CommissionPaymentController::class, 'store'])->name('marketers.payments.store');

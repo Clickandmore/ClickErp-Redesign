@@ -33,6 +33,8 @@ class ConfirmSettingRequest extends MainRequest
             'tax_rate_revenue' => 'nullable',
             'tax_rate_expenditure' => 'nullable',
             'data' => 'nullable|array',
+            'data.invoice_supplier_workflow.title' => 'sometimes|in:invoice_supplier_workflow',
+            'data.invoice_supplier_workflow.value' => 'sometimes|required|in:legacy,updated',
             'data.recruitment_supplier_cost_recognition.title' => 'sometimes|in:recruitment_supplier_cost_recognition',
             'data.recruitment_supplier_cost_recognition.value' => 'sometimes|required|in:on_arrival,on_dispatch',
         ] + $this->shelterAccountingRules();
@@ -47,6 +49,8 @@ class ConfirmSettingRequest extends MainRequest
             'tax_rate_revenue' => 'nullable',
             'tax_rate_expenditure' => 'nullable',
             'data' => 'nullable|array',
+            'data.invoice_supplier_workflow.title' => 'sometimes|in:invoice_supplier_workflow',
+            'data.invoice_supplier_workflow.value' => 'sometimes|required|in:legacy,updated',
             'data.recruitment_supplier_cost_recognition.title' => 'sometimes|in:recruitment_supplier_cost_recognition',
             'data.recruitment_supplier_cost_recognition.value' => 'sometimes|required|in:on_arrival,on_dispatch',
         ] + $this->shelterAccountingRules();

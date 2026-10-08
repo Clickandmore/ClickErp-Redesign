@@ -299,6 +299,8 @@ class AdminRoutePermissionMatrix
             'commissions.marketers.show' => [PermKeys::COMMISSIONS_VIEW, PermKeys::COMMISSIONS_CALCULATE],
             'commissions.marketers.preview' => [PermKeys::COMMISSIONS_CALCULATE],
             'commissions.marketers.approve' => [PermKeys::COMMISSIONS_CALCULATE],
+            'commissions.marketers.returned-commissions.resolve' => [PermKeys::COMMISSIONS_CALCULATE],
+            'commissions.marketers.deduction-journals.repair' => [PermKeys::COMMISSIONS_CALCULATE],
             'commissions.finance.index' => [PermKeys::COMMISSIONS_PAY],
             'commissions.payment-options' => [PermKeys::COMMISSIONS_PAY],
             'commissions.marketers.payments.index' => [PermKeys::COMMISSIONS_PAY],

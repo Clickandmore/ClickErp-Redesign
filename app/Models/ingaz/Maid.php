@@ -146,6 +146,7 @@ class Maid extends Model
         'passport_issue_place',
         'passport_expiry_date',
         'price',
+        'supplier_cost_usd',
         'salary',
         'age',
         'height',

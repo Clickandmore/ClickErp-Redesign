@@ -20,6 +20,7 @@ class MusanedTransferDeletionTest extends TestCase
 
         foreach (['قيد تسوية تحويل مساند', 'قيد التحويل البنكي لمساند'] as $statement) {
             $constraintIds[] = DB::table('fn_constraints')->insertGetId([
+                'code' => (int) DB::table('fn_constraints')->max('code') + 1,
                 'type' => 1,
                 'value' => 100,
                 'date' => $now->toDateString(),

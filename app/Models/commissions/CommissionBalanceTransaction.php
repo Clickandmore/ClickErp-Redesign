@@ -21,6 +21,7 @@ class CommissionBalanceTransaction extends Model
         'marketer_id', 'type', 'amount',
         'reference_type', 'reference_id',
         'balance_after', 'notes', 'created_by',
+        'constraint_id',
     ];
 
     protected $casts = [
@@ -39,5 +40,10 @@ class CommissionBalanceTransaction extends Model
     public function createdBy()
     {
         return $this->belongsTo(Admin::class, 'created_by');
+    }
+
+    public function constraint()
+    {
+        return $this->belongsTo(\Nami\Finance\Models\Constraint::class, 'constraint_id');
     }
 }

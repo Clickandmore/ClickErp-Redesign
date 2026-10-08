@@ -18,6 +18,13 @@ use Tests\TestCase;
 class RentalCommissionReturnTest extends TestCase
 {
     use DatabaseTransactions;
+    use \Tests\Concerns\InteractsWithCommissionFinance;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+        $this->setUpCommissionFinance();
+    }
 
     private function fixture(string $status = 'cancelled'): array
     {
@@ -39,7 +46,7 @@ class RentalCommissionReturnTest extends TestCase
         return [$admin, $contract, $batch, $item];
     }
 
-    public function test_previous_month_rental_commission_appears_under_its_return_month_and_type(): void
+    public function test_pending_deductions_ignore_contract_date_filter_and_keep_type_filter(): void
     {
         [$admin, $contract, , $item] = $this->fixture();
         $service = app(RecruitmentCommissionService::class);
@@ -49,9 +56,10 @@ class RentalCommissionReturnTest extends TestCase
         $this->assertSame('إلغاء عقد التأجير', $pending->first()->deduction_reason);
         $this->assertSame('rental:' . $contract->id, $pending->first()->deduction_contract_key);
         $this->assertSame(url('/admin/RentContract/' . $contract->id . '/details'), $pending->first()->deduction_contract_url);
-        $this->assertCount(0, $service->pendingDeductions($admin->id, array_merge($filters, ['month' => 7])));
+        $this->assertCount(1, $service->pendingDeductions($admin->id, array_merge($filters, ['month' => 7])));
         $this->assertCount(0, $service->pendingDeductions($admin->id, ['service_type' => 'recruitment']));
         $this->assertCount(1, $service->pendingDeductions($admin->id, ['date_filter' => 'range', 'from_date' => '2026-10-05', 'to_date' => '2026-10-05']));
+        $this->assertCount(1, $service->pendingDeductions($admin->id, ['date_filter' => 'range', 'from_date' => '2026-01-01', 'to_date' => '2026-01-02']));
     }
 
     /** @dataProvider decisions */
@@ -96,7 +104,7 @@ class RentalCommissionReturnTest extends TestCase
         $this->assertStringContainsString('تسجيل استرداد للعميل', $service->pendingDeductions($admin->id)->first()->deduction_reason);
         $this->assertStringContainsString('100.00 ر.س', $service->pendingDeductions($admin->id)->first()->deduction_reason);
         $this->assertCount(1, $service->pendingDeductions($admin->id, ['date_filter' => 'month_year', 'month' => 10, 'year' => 2026]));
-        $this->assertCount(0, $service->pendingDeductions($admin->id, ['date_filter' => 'month_year', 'month' => 7, 'year' => 2026]));
+        $this->assertCount(1, $service->pendingDeductions($admin->id, ['date_filter' => 'month_year', 'month' => 7, 'year' => 2026]));
         $service->resolveSettlement($item, 'partial', $admin->id, null, 25);
         $this->assertCount(0, $service->pendingDeductions($admin->id));
     }

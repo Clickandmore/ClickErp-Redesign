@@ -29,6 +29,49 @@ use Nami\Finance\Services\YearService;
 
 class MusanedTransferController extends Controller
 {
+    public function recordInvoiceCommission(Invoice $invoice): void
+    {
+        // Existing invoices retain their accounting sequence after switching the setting.
+        if (!\App\Support\InvoiceSupplierWorkflow::enabled() && $invoice->musaned_commission_amount === null) return;
+        if (!$invoice->contract_id && !$invoice->ingaz_delegation_id) return;
+        DB::transaction(function () use ($invoice) {
+            $locked = Invoice::query()->whereKey($invoice->id)->lockForUpdate()->firstOrFail();
+            if ($locked->musaned_commission_constraint_id || $locked->musanedTransferItem()->exists()) return;
+            $amount = $this->roundMoney((float) $locked->total_due * 0.025);
+            $tax = $this->calculateExpenseTaxAmount($amount, $this->resolveExpenseTaxRate());
+            $locked->update(['musaned_commission_amount' => $amount, 'musaned_commission_tax' => $tax]);
+            if (!AutomaticJournalEntries::enabled() || $amount <= 0) return;
+            $sourceId = $this->resolveInvoiceMusanedSourceAccountId($locked, 0);
+            if (!$sourceId) {
+                $sourceId = (int) $this->resolveIntermediateAccount()->id;
+            }
+            $commission = $this->resolveCommissionAccount();
+            $taxAccount = $this->resolveExpenseTaxAccount();
+            if ($tax > 0 && !$taxAccount) throw new \RuntimeException('يجب تحديد حساب ضريبة المصروفات لتسجيل عمولة مساند.');
+            $date = $locked->created_at->toDateString();
+            $year = app(YearService::class)->checkDateRange($date);
+            if (!$year) throw new \RuntimeException('لا توجد سنة مالية نشطة لتاريخ عمولة مساند.');
+            $statement = 'عمولة مساند 2.5% عند إصدار الفاتورة #' . $locked->id;
+            $lines = [];
+            $costCenter = $locked->contract ? $this->ensureRecruitmentContractCostCenter($locked->contract)->id : null;
+            $this->appendConstraintLine($lines, $commission->id, 'debtor', $this->roundMoney($amount - $tax), $statement, $costCenter);
+            if ($tax > 0) $this->appendConstraintLine($lines, $taxAccount->id, 'debtor', $tax, $statement);
+            $this->appendConstraintLine($lines, $sourceId, 'creditor', $amount, $statement);
+            $service = app(ObjService::class);
+            $data = [
+                'code' => $service->lastCode(), 'date' => $date, 'statement' => $statement,
+                'account_id' => array_column($lines, 'account_id'), 'account_type' => array_column($lines, 'account_type'),
+                'debtor_value' => array_column($lines, 'debtor_value'), 'creditor_value' => array_column($lines, 'creditor_value'),
+                'statement_account' => array_column($lines, 'statement'), 'cost_center_required' => 'off',
+                'cost_center_id' => array_column($lines, 'cost_center_id'), 'value' => $amount,
+            ];
+            $constraint = $service->storeConstraint($data, $year);
+            $service->storeConstraintDetails($data['account_id'], $constraint->id, $data);
+            $locked->update(['musaned_commission_constraint_id' => $constraint->id]);
+            $invoice->refresh();
+        });
+    }
+
     public function index(Request $request)
     {
         $query = MusanedTransfer::query()
@@ -286,9 +329,15 @@ class MusanedTransferController extends Controller
                     }
 
                     $commissionAmount = $this->roundMoney($customerPaidAmount - $transferredAmount);
-                    $expenseTaxAmount = $commissionAmount > 0
-                        ? $this->calculateExpenseTaxAmount($commissionAmount, $expenseTaxRate)
-                        : 0.0;
+                    if ($invoice->musaned_commission_amount !== null) {
+                        $commissionAmount = (float) $invoice->musaned_commission_amount;
+                        if (abs($this->roundMoney($customerPaidAmount - $commissionAmount) - $transferredAmount) > 0.01) {
+                            throw ValidationException::withMessages(['items' => 'المبلغ المتوقع من مساند بعد العمولة لـ ' . $itemLabel . ' هو ' . number_format($customerPaidAmount - $commissionAmount, 2) . ' ريال.']);
+                        }
+                    }
+                    $expenseTaxAmount = $invoice->musaned_commission_constraint_id
+                        ? (float) $invoice->musaned_commission_tax
+                        : ($commissionAmount > 0 ? $this->calculateExpenseTaxAmount($commissionAmount, $expenseTaxRate) : 0.0);
                     $commissionNetAmount = $this->roundMoney($commissionAmount - $expenseTaxAmount);
                     $sourceAccountId = $automaticEntriesEnabled
                         ? $this->resolveInvoiceMusanedSourceAccountId($invoice, (int) $intermediateAccount->id)
@@ -694,6 +743,8 @@ class MusanedTransferController extends Controller
             'client_name' => $clientName,
             'msaned_number' => $msanedNumber,
             'invoice_total' => (float) $invoice->total_due,
+            'expected_transfer' => $invoice->musaned_commission_amount !== null
+                ? $this->roundMoney((float) $invoice->total_due - (float) $invoice->musaned_commission_amount) : null,
         ];
     }
 
@@ -717,13 +768,14 @@ class MusanedTransferController extends Controller
                 $this->appendConstraintLine($lines, (int) $item->source_account_id, 'creditor', (float) $item->transferred_amount, $statement, $musanedClearingCostCenterId);
             }
 
-            if ((float) $item->commission_amount > 0) {
+            $commissionAlreadyRecorded = (bool) $item->invoice?->musaned_commission_constraint_id;
+            if (!$commissionAlreadyRecorded && (float) $item->commission_amount > 0) {
                 $statement = $this->buildSettlementItemStatement($transfer, $item, 'عمولة مساند على العقد');
                 $this->appendConstraintLine($lines, $commissionAccountId, 'debtor', (float) $item->commission_amount, $statement, $costCenterId);
                 $this->appendConstraintLine($lines, (int) $item->source_account_id, 'creditor', (float) $item->commission_amount, $statement);
             }
 
-            if ($expenseTaxAccountId && (float) $item->expense_tax_amount > 0) {
+            if (!$commissionAlreadyRecorded && $expenseTaxAccountId && (float) $item->expense_tax_amount > 0) {
                 $statement = $this->buildSettlementItemStatement($transfer, $item, 'فصل ضريبة المصروفات من عمولة مساند');
                 $this->appendConstraintLine($lines, $expenseTaxAccountId, 'debtor', (float) $item->expense_tax_amount, $statement);
                 $this->appendConstraintLine($lines, $commissionAccountId, 'creditor', (float) $item->expense_tax_amount, $statement, $costCenterId);

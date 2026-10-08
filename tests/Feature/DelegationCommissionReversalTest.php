@@ -22,6 +22,13 @@ use Tests\TestCase;
 class DelegationCommissionReversalTest extends TestCase
 {
     use DatabaseTransactions;
+    use \Tests\Concerns\InteractsWithCommissionFinance;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+        $this->setUpCommissionFinance();
+    }
 
     /**
      * @dataProvider activeDuplicateFieldProvider

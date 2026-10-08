@@ -264,7 +264,7 @@
 
                 <div class="d-flex gap-2">
                     <button type="submit" class="btn btn-primary">
-                        <i class="fas fa-save me-1"></i>حفظ التحويل وإنشاء القيود
+                        <i class="fas fa-save me-1"></i>{{ \App\Support\InvoiceSupplierWorkflow::enabled() ? 'تأكيد وصول المبلغ من مساند' : 'حفظ التحويل' }}
                     </button>
                     <a href="{{ route('musaned-transfers.index') }}" class="btn btn-outline-secondary">إلغاء</a>
                 </div>
@@ -582,7 +582,7 @@
                         row.dataset.sourceKey = option.source_key;
                         row.dataset.invoiceTotal = option.invoice_total;
 
-                        const transferredValue = transferredValues[option.source_key] || '';
+                        const transferredValue = transferredValues[option.source_key] ?? option.expected_transfer ?? '';
                         const hiddenSourceInput = option.source_type === 'contract'
                             ? `<input type="hidden" name="items[${index}][contract_id]" value="${option.contract_id}">`
                             : `<input type="hidden" name="items[${index}][ingaz_delegation_id]" value="${option.ingaz_delegation_id}">`;

@@ -81,6 +81,7 @@ class DelegationCommissionService
             $currentBalance = app(CommissionProfileService::class)->getMarketerBalance($marketerId);
             $amount = round((float) $item->commission_amount, 2);
             $transaction = CommissionBalanceTransaction::query()->create([
+                'branch_id' => $item->batch?->branch_id,
                 'marketer_id' => $marketerId,
                 'type' => CommissionBalanceTransaction::TYPE_DEBIT,
                 'amount' => $amount,
@@ -96,6 +97,8 @@ class DelegationCommissionService
                 'commission_reversed_at' => now(),
                 'commission_reversal_reason' => trim($reason),
             ]);
+
+            app(CommissionDeductionJournalService::class)->post($transaction, $adminId);
 
             return $transaction;
         });

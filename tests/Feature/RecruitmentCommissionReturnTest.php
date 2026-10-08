@@ -24,10 +24,12 @@ use Tests\TestCase;
 class RecruitmentCommissionReturnTest extends TestCase
 {
     use DatabaseTransactions;
+    use \Tests\Concerns\InteractsWithCommissionFinance;
 
     protected function setUp(): void
     {
         parent::setUp();
+        $this->setUpCommissionFinance();
         ConfirmSetting::query()->create(['title' => PostArrivalRefundSettings::POSTING_MODE, 'value' => 'auto']);
     }
 

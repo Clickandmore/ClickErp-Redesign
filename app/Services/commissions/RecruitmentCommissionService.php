@@ -58,7 +58,6 @@ class RecruitmentCommissionService
                 : ($contract->returnRequests->where('status', 'approved')->pluck('processed_at')->filter()->sort()->first()
                     ?: $contract->contract_status_logs->whereIn('status', [ContractStatusEnum::Refunded->value, ContractStatusEnum::Back->value, ContractStatusEnum::Shelter->value])->pluck('date')->filter()->sort()->first());
             $item->setAttribute('return_date', $returnDate ? \Carbon\Carbon::parse($returnDate) : null);
-            if (!$this->matchesReturnDate($item->return_date, $filters)) return false;
             $item->setAttribute('deduction_contract_id', $contract->id);
             $item->setAttribute('deduction_reason', $this->deductionReason($contract));
             $warrantyContract = $this->contractWithResolvedWarranty($contract);
@@ -72,19 +71,6 @@ class RecruitmentCommissionService
                 ? url('/admin/RentContract/' . $contract->id . '/details') : url('/admin/contractsDetails/' . $contract->id));
             return true;
         })->values();
-    }
-
-    private function matchesReturnDate(?\Carbon\Carbon $date, array $filters): bool
-    {
-        $start = $end = null;
-        if (($filters['date_filter'] ?? '') === 'month_year' && !empty($filters['year'])) {
-            $start = \Carbon\Carbon::create((int) $filters['year'], (int) ($filters['month'] ?? 1) ?: 1, 1)->startOfDay();
-            $end = !empty($filters['month']) ? $start->copy()->endOfMonth() : $start->copy()->endOfYear();
-        } elseif (($filters['date_filter'] ?? '') === 'range') {
-            $start = !empty($filters['from_date']) ? \Carbon\Carbon::parse($filters['from_date'])->startOfDay() : null;
-            $end = !empty($filters['to_date']) ? \Carbon\Carbon::parse($filters['to_date'])->endOfDay() : null;
-        }
-        return (!$start && !$end) || ($date && (!$start || $date->gte($start)) && (!$end || $date->lte($end)));
     }
 
     private function deductionReason(Contract|RentalContract $contract): string
@@ -407,6 +393,7 @@ class RecruitmentCommissionService
         $amount = round($deductionAmount ?? (float) $item->commission_amount, 2);
 
         $transaction = CommissionBalanceTransaction::query()->create([
+            'branch_id' => $item->batch?->branch_id,
             'marketer_id' => $marketerId,
             'type' => CommissionBalanceTransaction::TYPE_DEBIT,
             'amount' => $amount,
@@ -423,6 +410,8 @@ class RecruitmentCommissionService
             'commission_reversed_at' => now(),
             'commission_reversal_reason' => $reason,
         ]);
+
+        app(CommissionDeductionJournalService::class)->post($transaction, $adminId);
 
         return $transaction;
     }

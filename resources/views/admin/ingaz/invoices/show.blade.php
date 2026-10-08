@@ -234,6 +234,10 @@
                                     <span class="label">إجمالي السعر</span>
                                     <strong>{{ number_format($invoice->total_due, 2) }} ريال</strong>
                                 </div>
+                                @if ($invoice->musaned_commission_amount !== null)
+                                    <div class="d-flex justify-content-between mt-2"><span class="label">عمولة مساند (2.5%)</span><strong>{{ number_format($invoice->musaned_commission_amount, 2) }} ريال</strong></div>
+                                    <div class="d-flex justify-content-between mt-2"><span class="label">الصافي المتوقع من مساند</span><strong>{{ number_format($invoice->total_due - $invoice->musaned_commission_amount, 2) }} ريال</strong></div>
+                                @endif
                                 @if ($invoice->rental_transfer_contract_id)
                                     <div class="d-flex justify-content-between mt-2"><span class="label">المدفوع</span><strong>{{ number_format($invoice->rental_transfer_paid_amount, 2) }} ريال</strong></div>
                                     <div class="d-flex justify-content-between mt-2"><span class="label">المتبقي</span><strong>{{ number_format($invoice->rental_transfer_remaining_amount, 2) }} ريال</strong></div>

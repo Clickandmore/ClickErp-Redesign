@@ -49,9 +49,9 @@ class RecruitmentTripAccountingService
         });
     }
 
-    public function recordDispatchCostEntries(Contract $contract): array
+    public function recordDispatchCostEntries(Contract $contract, bool $supplierInvoice = false): array
     {
-        if (RecruitmentSupplierCostRecognition::mode() !== RecruitmentSupplierCostRecognition::MODE_ON_DISPATCH) {
+        if (!$supplierInvoice && RecruitmentSupplierCostRecognition::mode() !== RecruitmentSupplierCostRecognition::MODE_ON_DISPATCH) {
             return ['skipped_reason' => 'cost_on_arrival'];
         }
 
@@ -61,7 +61,7 @@ class RecruitmentTripAccountingService
             $contract->unsetRelation('externalOfficeDispatch');
             if (AutomaticJournalEntries::enabled() && !$contract->invoice && !$contract->company_profile_id) {
                 throw \Illuminate\Validation\ValidationException::withMessages([
-                    'office_contract_cost_usd' => 'يجب إنشاء فاتورة العقد قبل الإرسالية لإثبات تكلفة المورد الخارجي.',
+                    'office_contract_cost_usd' => 'يجب إنشاء فاتورة العقد قبل فاتورة المورد لإثبات تكلفة المورد الخارجي.',
                 ]);
             }
             return $this->recordEntries($contract, null, true);
@@ -237,7 +237,7 @@ class RecruitmentTripAccountingService
                     $result['external_office_cost_constraint_id'] = (int) $officeCostConstraint->id;
                 }
             } else {
-                $result['warnings'][] = 'لم يُنشأ قيد تكلفة مكتب خارجي لأن التكلفة المسجلة على الإرسالية صفر.';
+                $result['warnings'][] = 'لم يُنشأ قيد تكلفة مكتب خارجي لأن التكلفة المسجلة على فاتورة المورد صفر.';
             }
         }
 
@@ -1040,7 +1040,7 @@ class RecruitmentTripAccountingService
 
     private function buildExternalOfficeCostStatement(Contract $contract, Invoice $invoice): string
     {
-        return 'فاتورة مورد: إثبات تكلفة إرسالية المكتب الخارجي لعقد استقدام: ' . $contract->id
+        return 'فاتورة مورد: إثبات تكلفة فاتورة المورد لعقد استقدام: ' . $contract->id
             . ', فاتورة رقم: ' . $invoice->id
             . ' العميل: ' . $this->resolveClientReference($contract);
     }
@@ -1061,7 +1061,7 @@ class RecruitmentTripAccountingService
 
         // Retain matching for supplier entries created before the description changed.
         $statements = [$statement];
-        $supplierPrefix = 'فاتورة مورد: إثبات تكلفة إرسالية المكتب الخارجي لعقد استقدام: ';
+        $supplierPrefix = 'فاتورة مورد: إثبات تكلفة فاتورة المورد لعقد استقدام: ';
         if (str_starts_with($statement, $supplierPrefix)) {
             $statements[] = 'فاتورة مورد: إغلاق طلب: ' . substr($statement, strlen($supplierPrefix));
         }

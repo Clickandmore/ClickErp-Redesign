@@ -81,6 +81,7 @@ class MaidRequest extends MainRequest
             'has_driving_license' => 'nullable|boolean',
             'driving_license_file' => 'nullable|file|mimes:pdf,jpg,jpeg,png,webp|max:10240',
             'price' => 'nullable|numeric',
+            'supplier_cost_usd' => 'nullable|numeric|min:0.01|max:99999999.99',
             'salary' => [
                 'nullable',
                 'numeric',

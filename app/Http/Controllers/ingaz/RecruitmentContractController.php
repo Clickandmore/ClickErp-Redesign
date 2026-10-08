@@ -1803,9 +1803,9 @@ class RecruitmentContractController extends Controller
                         $dispatchState = $row->getExternalOfficeDispatchState();
                         $dispatchManageLabel = $row->isCurrentRecruitmentContract()
                             ? ($dispatchState['is_completed']
-                                ? 'عرض إرسالية المكتب الخارجي'
-                                : 'استكمال إرسالية المكتب الخارجي')
-                            : 'عرض إرسالية المكتب الخارجي';
+                                ? (\App\Support\InvoiceSupplierWorkflow::enabled() ? 'عرض فاتورة المورد' : 'عرض إرسالية المكتب الخارجي')
+                                : (\App\Support\InvoiceSupplierWorkflow::enabled() ? 'استكمال فاتورة المورد' : 'استكمال إرسالية المكتب الخارجي'))
+                            : (\App\Support\InvoiceSupplierWorkflow::enabled() ? 'عرض فاتورة المورد' : 'عرض إرسالية المكتب الخارجي');
 
                         $actions .= '<li><a class="dropdown-item" href="' . e(route('RecruitmentContract.externalOfficeDispatch.edit', $row->id)) . '">
                                         <i class="fas fa-paper-plane"></i> ' . e($dispatchManageLabel) . '
