@@ -129,4 +129,32 @@ class RentalCommissionReturnTest extends TestCase
         $this->expectException(ValidationException::class);
         app(RecruitmentCommissionService::class)->resolveSettlement($item, 'deducted', $admin->id);
     }
+
+    /** @dataProvider warrantyPeriods */
+    public function test_warranty_is_evaluated_at_return_date_including_boundary_days(?string $start, ?string $end, string $expected): void
+    {
+        [$admin, $contract] = $this->fixture();
+        $contract->update(['warranty_start_date' => $start, 'warranty_end_date' => $end, 'warranty_status' => 'expired']);
+        $item = app(RecruitmentCommissionService::class)->pendingDeductions($admin->id)->first();
+        $this->assertSame($expected, $item->return_warranty_status);
+        if (!$start && !$end) {
+            $this->assertSame('بداية ونهاية الضمان غير مسجلتين', $item->return_warranty_unknown_reason);
+        } elseif ($expected === 'unknown') {
+            $this->assertSame('تواريخ الضمان غير صحيحة: النهاية قبل البداية', $item->return_warranty_unknown_reason);
+        } else {
+            $this->assertNull($item->return_warranty_unknown_reason);
+        }
+    }
+
+    public static function warrantyPeriods(): array
+    {
+        return [
+            ['2026-10-01', '2026-10-05', 'inside'],
+            ['2026-10-05', '2026-10-10', 'inside'],
+            ['2026-07-01', '2026-10-04', 'outside'],
+            ['2026-10-06', '2026-10-10', 'outside'],
+            [null, null, 'unknown'],
+            ['2026-10-10', '2026-10-01', 'unknown'],
+        ];
+    }
 }

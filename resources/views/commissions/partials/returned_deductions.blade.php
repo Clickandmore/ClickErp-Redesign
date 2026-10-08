@@ -23,7 +23,7 @@
         <div class="table-responsive">
             <table class="table table-hover align-middle mb-0">
                 <thead class="table-light"><tr>
-                    <th>#</th><th>العقد</th><th class="text-nowrap">نوع العقد</th><th>العميل</th><th>سبب الخصم</th><th>تاريخ العقد</th><th>تاريخ الإرجاع</th><th>دفعة العمولة السابقة</th><th class="text-end">العمولة السابقة</th><th>التسوية</th>
+                    <th>#</th><th>العقد</th><th class="text-nowrap">نوع العقد</th><th>العميل</th><th>سبب الخصم</th><th>حالة الضمان الحالية</th><th>تاريخ العقد</th><th>تاريخ الإرجاع</th><th>دفعة العمولة السابقة</th><th class="text-end">العمولة السابقة</th><th>التسوية</th>
                 </tr></thead>
                 <tbody>
                 @foreach($returnedDeductions as $deduction)
@@ -37,6 +37,19 @@
                         <td class="text-nowrap"><span class="badge bg-light text-primary border">{{ \App\Models\commissions\CommissionSetting::serviceTypeOptions()[$deduction->service_type] ?? ($deduction->service_type ?: 'غير محدد') }}</span></td>
                         <td>{{ $deduction->client_name ?: '—' }}</td>
                         <td style="min-width:240px;max-width:400px;white-space:normal;overflow-wrap:anywhere;">{{ $deduction->deduction_reason ?: 'غير مسجل' }}</td>
+                        <td class="text-nowrap">
+                            @if($deduction->return_warranty_status === 'inside')
+                                <span class="badge bg-success">داخل الضمان</span>
+                            @elseif($deduction->return_warranty_status === 'outside')
+                                <span class="badge bg-danger">خارج الضمان</span>
+                            @else
+                                <span class="badge bg-secondary">غير محدد</span>
+                                <div class="small text-muted mt-1" style="white-space:normal;min-width:180px;max-width:260px;">{{ $deduction->return_warranty_unknown_reason }}</div>
+                            @endif
+                            @if($deduction->return_warranty_start && $deduction->return_warranty_end)
+                                <div class="small text-muted mt-1">{{ $deduction->return_warranty_start }} — {{ $deduction->return_warranty_end }}</div>
+                            @endif
+                        </td>
                         <td class="text-nowrap">{{ $deduction->operation_date?->format('Y-m-d') ?: '—' }}</td>
                         <td class="text-nowrap">{{ $deduction->return_date?->format('Y-m-d') ?: 'غير مسجل' }}</td>
                         <td class="text-nowrap">
@@ -52,7 +65,7 @@
                 </tbody>
                 <tfoot class="table-light">
                     <tr>
-                        <th colspan="8">إجمالي الخصومات</th>
+                        <th colspan="9">إجمالي الخصومات</th>
                         <th class="text-end text-danger text-nowrap returned-pending-total">{{ number_format($returnedTotal, 2) }} ر.س</th><th></th>
                     </tr>
                 </tfoot>

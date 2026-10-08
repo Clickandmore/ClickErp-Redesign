@@ -33,7 +33,7 @@ class RecruitmentCommissionService
             ->whereNull('commission_reversal_transaction_id')
             ->orderBy('id')
             ->get();
-        $contracts = Contract::query()->with(['info', 'returnRequests', 'contract_status_logs'])
+        $contracts = Contract::query()->with(['info', 'maid', 'travelHistory', 'returnRequests', 'contract_status_logs'])
             ->whereIn('id', $items->where('source_type', CommissionOperationService::SOURCE_RECRUITMENT_CONTRACT)->pluck('source_id'))->get()->keyBy('id');
         $extensions = RentalContractExtension::query()->whereIn('id', $items->filter(fn ($item) => $this->isRentalExtensionItem($item))->pluck('source_id'))
             ->get()->keyBy('id');
@@ -61,6 +61,12 @@ class RecruitmentCommissionService
             if (!$this->matchesReturnDate($item->return_date, $filters)) return false;
             $item->setAttribute('deduction_contract_id', $contract->id);
             $item->setAttribute('deduction_reason', $this->deductionReason($contract));
+            $warrantyContract = $this->contractWithResolvedWarranty($contract);
+            $warrantyReferenceDate = $isRental ? $item->return_date : now();
+            $item->setAttribute('return_warranty_status', $this->returnWarrantyStatus($warrantyContract, $warrantyReferenceDate));
+            $item->setAttribute('return_warranty_unknown_reason', $this->warrantyUnknownReason($warrantyContract, $warrantyReferenceDate));
+            $item->setAttribute('return_warranty_start', $warrantyContract->warranty_start_date?->format('Y-m-d'));
+            $item->setAttribute('return_warranty_end', $warrantyContract->warranty_end_date?->format('Y-m-d'));
             $item->setAttribute('deduction_contract_key', ($isRental ? 'rental:' : 'recruitment:') . $contract->id);
             $item->setAttribute('deduction_contract_url', $isRental
                 ? url('/admin/RentContract/' . $contract->id . '/details') : url('/admin/contractsDetails/' . $contract->id));
@@ -115,6 +121,61 @@ class RecruitmentCommissionService
             }
         }
         return implode('؛ ', $reasons);
+    }
+
+    private function returnWarrantyStatus(Contract|RentalContract $contract, ?\Carbon\Carbon $returnDate): string
+    {
+        if (!$returnDate || !$contract->warranty_start_date || !$contract->warranty_end_date) return 'unknown';
+        $start = $contract->warranty_start_date->copy()->startOfDay();
+        $end = $contract->warranty_end_date->copy()->endOfDay();
+        if ($end->lt($start)) return 'unknown';
+        return $returnDate->betweenIncluded($start, $end) ? 'inside' : 'outside';
+    }
+
+    private function contractWithResolvedWarranty(Contract|RentalContract $contract): Contract|RentalContract
+    {
+        if ($contract instanceof RentalContract) return $contract;
+        $resolved = clone $contract;
+        $travel = $contract->travelHistory;
+        $candidates = [
+            $travel?->status === 'completed' ? $travel->resolveArrivalDateTime() : null,
+            $travel?->status === 'completed' ? $travel->arrived_at : null,
+            $contract->info?->arrival_date,
+            $contract->maid?->arrival_date,
+            $contract->warranty_start_date,
+        ];
+        $arrival = null;
+        foreach ($candidates as $candidate) {
+            if (!$candidate) continue;
+            try {
+                $date = \Carbon\Carbon::parse($candidate);
+                if ($date->year >= 1900) { $arrival = $date; break; }
+            } catch (\Throwable $exception) {
+                continue;
+            }
+        }
+        $resolved->warranty_start_date = $arrival;
+        $resolved->warranty_end_date = $arrival
+            ? $arrival->copy()->addDays(\App\Support\AutomationSettings::warrantyPeriodDays()) : null;
+        return $resolved;
+    }
+
+    private function warrantyUnknownReason(Contract|RentalContract $contract, ?\Carbon\Carbon $returnDate): ?string
+    {
+        $reasons = [];
+        if (!$returnDate) $reasons[] = 'تاريخ الإرجاع غير مسجل';
+        if ($contract instanceof Contract && !$contract->warranty_start_date) {
+            $reasons[] = 'تاريخ الوصول غير مسجل؛ لا يمكن حساب فترة الضمان';
+        } elseif (!$contract->warranty_start_date && !$contract->warranty_end_date) {
+            $reasons[] = 'بداية ونهاية الضمان غير مسجلتين';
+        } elseif (!$contract->warranty_start_date) {
+            $reasons[] = 'بداية الضمان غير مسجلة';
+        } elseif (!$contract->warranty_end_date) {
+            $reasons[] = 'نهاية الضمان غير مسجلة';
+        } elseif ($contract->warranty_end_date->copy()->endOfDay()->lt($contract->warranty_start_date->copy()->startOfDay())) {
+            $reasons[] = 'تواريخ الضمان غير صحيحة: النهاية قبل البداية';
+        }
+        return $reasons ? implode('؛ ', $reasons) : null;
     }
 
     private function isRentalExtensionItem(CommissionBatchItem $item): bool
