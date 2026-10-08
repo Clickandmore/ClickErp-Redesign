@@ -290,7 +290,8 @@ class StoreRentalContractRequest extends FormRequest
                     );
                 }
 
-                if ($maid) {
+                // Existing assignments can be maintained after the maid joins another contract.
+                if ($maid && !$isCurrentContractMaid) {
                     $activeRentalContractExists = $maid->rentalContracts()
                         ->whereIn('status', ['new', 'waiting_contract_send', 'contract_sent', 'contract_signed', 'maid_delivered', 'active', 'transferred', 'suspended', 'frozen'])
                         ->when($currentContract, function ($query) use ($currentContract) {
