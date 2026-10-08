@@ -85,18 +85,19 @@ class RecruitmentCommissionService
     {
         $reasons = [];
         if ($contract instanceof RentalContract) {
-            if ($contract->status === 'cancelled') $reasons[] = 'إلغاء أو إغلاق مبكر لعقد التأجير';
-            foreach ($contract->financialAdjustments as $adjustment) {
-                if ($adjustment->type !== 'expense' || (float) $adjustment->amount <= 0) continue;
-                $label = match ($adjustment->context) {
-                    'closure' => 'استرداد عند إغلاق عقد التأجير',
-                    'manual_credit_note' => 'إشعار دائن لعقد التأجير',
-                    'closure_correction' => 'استرداد نتيجة تصحيح إغلاق عقد التأجير',
+            $refunds = $contract->financialAdjustments->filter(fn ($adjustment) =>
+                $adjustment->type === 'expense' && (float) $adjustment->amount > 0
+                && in_array($adjustment->context, ['closure', 'manual_credit_note', 'closure_correction'], true));
+            if ($contract->status === 'cancelled' && !$refunds->contains('context', 'closure')) $reasons[] = 'إلغاء عقد التأجير';
+            foreach ($refunds->groupBy('context') as $context => $adjustments) {
+                $label = match ($context) {
+                    'closure' => 'إنهاء عقد التأجير مع تسجيل استرداد للعميل بقيمة',
+                    'manual_credit_note' => 'تسجيل إشعار دائن لصالح العميل بقيمة',
+                    'closure_correction' => 'تصحيح إنهاء عقد التأجير وتسجيل استرداد للعميل بقيمة',
                     default => null,
                 };
                 if ($label) {
-                    $reasons[] = $label . ' #' . $adjustment->id . ' بقيمة ' . number_format($adjustment->amount, 2) . ' ر.س'
-                        . (trim((string) $adjustment->notes) !== '' ? ' — ' . trim($adjustment->notes) : '');
+                    $reasons[] = $label . ' ' . number_format($adjustments->sum('amount'), 2) . ' ر.س';
                 }
             }
         } else {

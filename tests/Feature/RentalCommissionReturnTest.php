@@ -46,7 +46,7 @@ class RentalCommissionReturnTest extends TestCase
         $filters = ['service_type' => 'rental', 'date_filter' => 'month_year', 'year' => 2026, 'month' => 10];
         $pending = $service->pendingDeductions($admin->id, $filters);
         $this->assertSame([$item->id], $pending->pluck('id')->all());
-        $this->assertSame('إلغاء أو إغلاق مبكر لعقد التأجير', $pending->first()->deduction_reason);
+        $this->assertSame('إلغاء عقد التأجير', $pending->first()->deduction_reason);
         $this->assertSame('rental:' . $contract->id, $pending->first()->deduction_contract_key);
         $this->assertSame(url('/admin/RentContract/' . $contract->id . '/details'), $pending->first()->deduction_contract_url);
         $this->assertCount(0, $service->pendingDeductions($admin->id, array_merge($filters, ['month' => 7])));
@@ -93,7 +93,7 @@ class RentalCommissionReturnTest extends TestCase
             'rental_contract_id' => $contract->id, 'type' => 'expense', 'context' => 'closure', 'amount' => 100, 'issue_date' => '2026-10-05',
         ]);
         $this->assertSame([$item->id], $service->pendingDeductions($admin->id)->pluck('id')->all());
-        $this->assertStringContainsString('استرداد عند إغلاق عقد التأجير', $service->pendingDeductions($admin->id)->first()->deduction_reason);
+        $this->assertStringContainsString('تسجيل استرداد للعميل', $service->pendingDeductions($admin->id)->first()->deduction_reason);
         $this->assertStringContainsString('100.00 ر.س', $service->pendingDeductions($admin->id)->first()->deduction_reason);
         $this->assertCount(1, $service->pendingDeductions($admin->id, ['date_filter' => 'month_year', 'month' => 10, 'year' => 2026]));
         $this->assertCount(0, $service->pendingDeductions($admin->id, ['date_filter' => 'month_year', 'month' => 7, 'year' => 2026]));
