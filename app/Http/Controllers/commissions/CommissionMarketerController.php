@@ -27,8 +27,12 @@ class CommissionMarketerController extends Controller
         $marketers = $this->profileService->getMarketersWithBalance();
         foreach ($marketers as $marketer) {
             $deductions = $this->recruitmentCommissionService->pendingDeductions($marketer->id);
-            $marketer->returned_contracts_count = $deductions->pluck('source_id')->unique()->count();
+            $marketer->returned_contracts_count = $deductions->pluck('deduction_contract_key')->unique()->count();
             $marketer->returned_commission_amount = round((float) $deductions->sum('commission_amount'), 2);
+            $marketer->returned_commissions_by_type = $deductions->groupBy('service_type')->map(fn ($items) => [
+                'count' => $items->pluck('deduction_contract_key')->unique()->count(),
+                'amount' => round((float) $items->sum('commission_amount'), 2),
+            ])->all();
         }
 
         return view('commissions.marketers.index', compact('marketers'));
@@ -78,7 +82,7 @@ class CommissionMarketerController extends Controller
             ->get();
 
         $visaTypeOptions = \App\Models\commissions\CommissionSetting::serviceTypeOptions();
-        $returnedDeductions = $this->recruitmentCommissionService->pendingDeductions($admin->id);
+        $returnedDeductions = $this->recruitmentCommissionService->pendingDeductions($admin->id, $filters);
 
         return view('commissions.marketers.show', compact(
             'admin', 'balance', 'summary', 'filters',
@@ -101,7 +105,8 @@ class CommissionMarketerController extends Controller
             'operations.*' => ['required', 'string', 'max:100'],
         ]);
 
-        $preview = $this->calculationService->previewBatch($admin->id, $request->operations);
+        $filters = $request->only(['date_filter', 'month', 'year', 'from_date', 'to_date', 'service_type']);
+        $preview = $this->calculationService->previewBatch($admin->id, $request->operations, [], $filters);
 
         if ($preview['total_requests'] === 0) {
             return redirect()

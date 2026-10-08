@@ -50,7 +50,7 @@ class CommissionCalculationService
         return null;
     }
 
-    public function previewBatch(int $marketerId, array $operationKeys, array $adjustments = []): array
+    public function previewBatch(int $marketerId, array $operationKeys, array $adjustments = [], array $filters = []): array
     {
         $operations = $this->operationService->findSelected($marketerId, $operationKeys);
 
@@ -82,7 +82,7 @@ class CommissionCalculationService
             ];
         }
 
-        $deductions = $this->recruitmentCommissionService->pendingDeductions($marketerId);
+        $deductions = $this->recruitmentCommissionService->pendingDeductions($marketerId, $filters);
         $totalDeductions = round((float) $deductions->sum('commission_amount'), 2);
 
         return [

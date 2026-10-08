@@ -348,11 +348,14 @@
 
                         <div class="marketer-finance">
                             <a href="{{ route('commissions.marketers.show', $employee->id) }}#returned-deductions"
-                               class="d-block rounded border border-danger bg-light p-2 mb-3 text-decoration-none">
+                               data-report-url="{{ route('commissions.marketers.show', $employee->id) }}"
+                               data-by-type='@json($employee->returned_commissions_by_type)'
+                               data-count="{{ $employee->returned_contracts_count }}" data-amount="{{ $employee->returned_commission_amount }}"
+                               class="returned-summary d-block rounded border border-danger bg-light p-2 mb-3 text-decoration-none">
                                 <div class="small text-danger fw-bold mb-1">خصومات العقود المرتجعة</div>
                                 <div class="d-flex justify-content-between align-items-center gap-2">
-                                    <span class="text-dark">{{ number_format($employee->returned_contracts_count) }} عقد</span>
-                                    <strong class="text-danger">{{ number_format($employee->returned_commission_amount, 2) }} ر.س</strong>
+                                    <span class="text-dark returned-summary-count">{{ number_format($employee->returned_contracts_count) }} عقد</span>
+                                    <strong class="text-danger returned-summary-amount">{{ number_format($employee->returned_commission_amount, 2) }} ر.س</strong>
                                 </div>
                                 <div class="small text-muted mt-1">عمولات معلقة للخصم · كل الأشهر</div>
                             </a>
@@ -442,6 +445,17 @@ document.addEventListener('DOMContentLoaded', function () {
             if (status === 'no_pending') matchesStatus = Number(item.dataset.pending) === 0;
 
             const matches = matchesSearch && matchesService && matchesStatus;
+            const deductionCard = item.querySelector('.returned-summary');
+            const byType = JSON.parse(deductionCard.dataset.byType || '{}');
+            const serviceType = service === 'transfer' ? 'service_transfer' : (service === 'delegation' ? 'electronic_ingaz_delegation' : service);
+            const deductionStats = serviceType ? (byType[serviceType] || {count: 0, amount: 0})
+                : {count: Number(deductionCard.dataset.count), amount: Number(deductionCard.dataset.amount)};
+            deductionCard.querySelector('.returned-summary-count').textContent = Number(deductionStats.count).toLocaleString('en-US') + ' عقد';
+            deductionCard.querySelector('.returned-summary-amount').textContent = Number(deductionStats.amount).toLocaleString('en-US', {minimumFractionDigits:2, maximumFractionDigits:2}) + ' ر.س';
+            const deductionUrl = new URL(deductionCard.dataset.reportUrl, window.location.origin);
+            if (serviceType) deductionUrl.searchParams.set('service_type', serviceType);
+            deductionUrl.hash = 'returned-deductions';
+            deductionCard.href = deductionUrl.toString();
             item.style.display = matches ? '' : 'none';
             if (matches) visible++;
         });

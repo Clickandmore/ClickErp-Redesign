@@ -1,5 +1,5 @@
 @php
-    $returnedContractsCount = $returnedDeductions->pluck('source_id')->unique()->count();
+    $returnedContractsCount = $returnedDeductions->pluck('deduction_contract_key')->unique()->count();
     $returnedTotal = $returnedDeductions->sum('commission_amount');
 @endphp
 <div class="card border-0 shadow-sm mb-3 overflow-hidden" id="returned-deductions"
@@ -7,7 +7,7 @@
     <div class="card-header bg-white py-3 d-flex flex-wrap justify-content-between align-items-center gap-2">
         <div>
             <h5 class="mb-1 fw-bold text-danger"><i class="fa fa-undo me-2"></i>خصومات العقود المرتجعة</h5>
-            <div class="small text-muted">اعتمد تسوية كل عقد بصفر أو بكامل العمولة أو بمبلغ جزئي. بعد التأكيد تُقفل التسوية، ولا يُخصم أي مبلغ تلقائيًا عند اعتماد دفعة العمولة.</div>
+            <div class="small text-muted">تشمل عقود الاستقدام والإيجار وتمديداته. الفلترة حسب نوع العقد وتاريخ الإرجاع. اعتمد كل تسوية بصفر أو كامل العمولة أو مبلغ جزئي؛ لا يُطبّق الخصم تلقائيًا عند اعتماد دفعة العمولة.</div>
         </div>
         <div class="d-flex gap-2">
             <span class="badge rounded-pill bg-light text-danger border border-danger px-3 py-2 returned-pending-count">{{ number_format($returnedContractsCount) }} عقد</span>
@@ -23,16 +23,22 @@
         <div class="table-responsive">
             <table class="table table-hover align-middle mb-0">
                 <thead class="table-light"><tr>
-                    <th>#</th><th>العقد</th><th class="text-nowrap">نوع العقد</th><th>العميل</th><th>تاريخ العقد</th><th>دفعة العمولة السابقة</th><th class="text-end">العمولة السابقة</th><th>التسوية</th>
+                    <th>#</th><th>العقد</th><th class="text-nowrap">نوع العقد</th><th>العميل</th><th>سبب الخصم</th><th>تاريخ العقد</th><th>تاريخ الإرجاع</th><th>دفعة العمولة السابقة</th><th class="text-end">العمولة السابقة</th><th>التسوية</th>
                 </tr></thead>
                 <tbody>
                 @foreach($returnedDeductions as $deduction)
-                    <tr class="returned-deduction-row" data-contract="{{ $deduction->source_id }}" data-amount="{{ $deduction->commission_amount }}">
+                    <tr class="returned-deduction-row" data-contract="{{ $deduction->deduction_contract_key }}" data-amount="{{ $deduction->commission_amount }}">
                         <td class="text-muted">{{ $loop->iteration }}</td>
-                        <td><a class="fw-bold" href="{{ url('/admin/contractsDetails/' . $deduction->source_id) }}" target="_blank">#{{ $deduction->source_id }}</a></td>
+                        <td><a class="fw-bold" href="{{ $deduction->deduction_contract_url }}" target="_blank">#{{ $deduction->deduction_contract_id }}</a>
+                            @if(str_starts_with((string) $deduction->source_type, \App\Services\commissions\CommissionOperationService::SOURCE_RENTAL_EXTENSION_PERIOD_PREFIX))
+                                <div class="small text-muted">{{ $deduction->operation_reference ?: ('تمديد #' . $deduction->source_id) }}</div>
+                            @endif
+                        </td>
                         <td class="text-nowrap"><span class="badge bg-light text-primary border">{{ \App\Models\commissions\CommissionSetting::serviceTypeOptions()[$deduction->service_type] ?? ($deduction->service_type ?: 'غير محدد') }}</span></td>
                         <td>{{ $deduction->client_name ?: '—' }}</td>
+                        <td style="min-width:240px;max-width:400px;white-space:normal;overflow-wrap:anywhere;">{{ $deduction->deduction_reason ?: 'غير مسجل' }}</td>
                         <td class="text-nowrap">{{ $deduction->operation_date?->format('Y-m-d') ?: '—' }}</td>
+                        <td class="text-nowrap">{{ $deduction->return_date?->format('Y-m-d') ?: 'غير مسجل' }}</td>
                         <td class="text-nowrap">
                             <span class="badge bg-light text-dark border">#{{ $deduction->batch_id }}</span>
                             <span class="small text-muted ms-1">{{ $deduction->batch?->approved_at?->format('Y-m-d') ?: '—' }}</span>
@@ -40,13 +46,13 @@
                         <td class="text-end text-danger fw-bold text-nowrap">-{{ number_format($deduction->commission_amount, 2) }} ر.س</td>
                         <td class="text-nowrap"><button type="button" class="btn btn-sm btn-outline-danger open-returned-settlement"
                             data-url="{{ route('commissions.marketers.returned-commissions.resolve', [$admin->id, $deduction->id]) }}"
-                            data-contract="{{ $deduction->source_id }}" data-amount="{{ $deduction->commission_amount }}">اعتماد الخصم</button></td>
+                            data-contract="{{ $deduction->deduction_contract_id }}" data-amount="{{ $deduction->commission_amount }}">اعتماد الخصم</button></td>
                     </tr>
                 @endforeach
                 </tbody>
                 <tfoot class="table-light">
                     <tr>
-                        <th colspan="6">إجمالي الخصومات</th>
+                        <th colspan="8">إجمالي الخصومات</th>
                         <th class="text-end text-danger text-nowrap returned-pending-total">{{ number_format($returnedTotal, 2) }} ر.س</th><th></th>
                     </tr>
                 </tfoot>
@@ -55,24 +61,59 @@
     @endif
 </div>
 <div class="modal fade" id="returnedSettlementModal" tabindex="-1" aria-labelledby="returnedSettlementTitle" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered"><div class="modal-content">
-        <div class="modal-header"><h5 class="modal-title" id="returnedSettlementTitle">اعتماد خصم عقد مرتجع</h5><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="إغلاق"></button></div>
-        <div class="modal-body">
-            <div id="returnedSettlementError" class="alert alert-danger d-none" role="alert"></div>
-            <p>العقد <strong id="returnedSettlementContract"></strong> · العمولة السابقة: <strong id="returnedSettlementOriginal"></strong> ر.س</p>
-            <label class="form-label" for="returnedSettlementDecision">طريقة الاعتماد</label>
-            <select id="returnedSettlementDecision" class="form-select mb-3">
-                <option value="deducted">خصم كامل العمولة</option><option value="partial">خصم جزء من العمولة</option><option value="zeroed">إقفال بصفر دون خصم</option>
-            </select>
-            <div id="returnedSettlementAmountGroup" class="d-none mb-3">
-                <label for="returnedSettlementAmount" class="form-label">مبلغ الخصم الجزئي</label>
-                <input id="returnedSettlementAmount" type="number" min="0.01" step="0.01" class="form-control">
-            </div>
-            <label for="returnedSettlementNotes" class="form-label">ملاحظات</label>
-            <textarea id="returnedSettlementNotes" class="form-control" maxlength="1000" rows="2"></textarea>
-            <div class="alert alert-info mt-3 mb-0">بعد التأكيد تُقفل التسوية نهائيًا، بما في ذلك الجزء المتبقي عند اختيار خصم جزئي.</div>
+    <div class="modal-dialog modal-dialog-centered"><div class="modal-content border-0 shadow" style="border-radius:16px; overflow:hidden;">
+        <div class="modal-header bg-light">
+            <h5 class="modal-title fw-bold" id="returnedSettlementTitle"><i class="fa fa-undo text-danger me-2"></i>اعتماد خصم عقد مرتجع</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="إغلاق"></button>
         </div>
-        <div class="modal-footer"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button><button type="button" class="btn btn-danger" id="confirmReturnedSettlement">تأكيد واعتماد الخصم</button></div>
+        <div class="modal-body">
+            <div class="d-flex justify-content-between align-items-center rounded-3 border p-2 px-3 mb-3 bg-white">
+                <div><span class="text-muted small">العقد</span> <strong id="returnedSettlementContract"></strong></div>
+                <div><span class="text-muted small">العمولة السابقة</span> <strong class="text-danger"><span id="returnedSettlementOriginal"></span> ر.س</strong></div>
+            </div>
+
+            <div class="rounded-3 p-3 mb-3 small" style="background:#fff8e6; border:1px solid #fde3a7;">
+                <div class="fw-bold mb-2"><i class="fa fa-info-circle text-warning me-1"></i>اختر طريقة تسوية العمولة:</div>
+                <ul class="mb-0 ps-3" style="line-height:1.9">
+                    <li><strong class="text-danger">خصم كامل العمولة:</strong> تُخصم العمولة السابقة بالكامل من رصيد المسوق.</li>
+                    <li><strong class="text-warning">خصم جزء من العمولة:</strong> يُخصم المبلغ الذي تحدده فقط، ويُقفل الباقي دون خصم.</li>
+                    <li><strong class="text-secondary">إقفال بصفر دون خصم:</strong> تُقفل التسوية دون خصم أي مبلغ من المسوق.</li>
+                </ul>
+            </div>
+
+            <div id="returnedSettlementError" class="alert alert-danger d-none" role="alert"></div>
+
+            <label class="form-label fw-bold">طريقة الاعتماد <span class="text-danger">*</span></label>
+            <div class="d-grid gap-2 mb-3" id="returnedSettlementOptions">
+                @foreach([
+                    ['deducted', 'خصم كامل العمولة', 'fa-minus-circle', 'danger'],
+                    ['partial', 'خصم جزء من العمولة', 'fa-adjust', 'warning'],
+                    ['zeroed', 'إقفال بصفر دون خصم', 'fa-ban', 'secondary'],
+                ] as [$value, $label, $icon, $color])
+                    <input type="radio" class="btn-check" name="returnedSettlementDecision" id="returnedDecision_{{ $value }}" value="{{ $value }}" autocomplete="off">
+                    <label class="btn btn-outline-{{ $color }} text-start d-flex align-items-center gap-2 py-2" for="returnedDecision_{{ $value }}">
+                        <i class="fa {{ $icon }}"></i> {{ $label }}
+                    </label>
+                @endforeach
+            </div>
+
+            <div id="returnedSettlementAmountGroup" class="d-none mb-3">
+                <label for="returnedSettlementAmount" class="form-label fw-bold">مبلغ الخصم الجزئي <span class="text-danger">*</span></label>
+                <div class="input-group">
+                    <input id="returnedSettlementAmount" type="number" min="0.01" step="0.01" class="form-control">
+                    <span class="input-group-text">ر.س</span>
+                </div>
+            </div>
+
+            <label for="returnedSettlementNotes" class="form-label fw-bold">ملاحظات</label>
+            <textarea id="returnedSettlementNotes" class="form-control" maxlength="1000" rows="2" placeholder="اختياري"></textarea>
+
+            <div class="small text-muted mt-3"><i class="fa fa-lock me-1"></i>بعد التأكيد تُقفل التسوية نهائيًا، بما في ذلك الجزء المتبقي عند اختيار خصم جزئي.</div>
+        </div>
+        <div class="modal-footer">
+            <button type="button" class="btn btn-light border" data-bs-dismiss="modal">إلغاء</button>
+            <button type="button" class="btn btn-danger fw-bold" id="confirmReturnedSettlement" disabled>تأكيد واعتماد الخصم</button>
+        </div>
     </div></div>
 </div>
 <script>
@@ -91,21 +132,28 @@ document.addEventListener('DOMContentLoaded', function () {
         settlementButton = $(this);
         $('#returnedSettlementContract').text('#' + settlementButton.data('contract'));
         $('#returnedSettlementOriginal').text(Number(settlementButton.data('amount')).toFixed(2));
-        $('#returnedSettlementDecision').val('deducted');
+        $('input[name="returnedSettlementDecision"]').prop('checked', false);
+        $('#confirmReturnedSettlement').prop('disabled', true);
         $('#returnedSettlementAmount, #returnedSettlementNotes').val('');
         $('#returnedSettlementAmountGroup, #returnedSettlementError').addClass('d-none');
         showModal(true);
     });
-    $('#returnedSettlementDecision').on('change', function () {
+    $('input[name="returnedSettlementDecision"]').on('change', function () {
         $('#returnedSettlementAmountGroup').toggleClass('d-none', this.value !== 'partial');
+        $('#returnedSettlementError').addClass('d-none');
+        $('#confirmReturnedSettlement').prop('disabled', false);
     });
     $('#confirmReturnedSettlement').on('click', async function () {
         if (!settlementButton) return;
         const button = $(this);
-        const decision = $('#returnedSettlementDecision').val();
+        const decision = $('input[name="returnedSettlementDecision"]:checked').val();
         const original = Number(settlementButton.data('amount'));
         const amount = Number($('#returnedSettlementAmount').val());
         const errorBox = $('#returnedSettlementError').addClass('d-none');
+        if (!decision) {
+            errorBox.text('اختر طريقة الاعتماد أولًا.').removeClass('d-none');
+            return;
+        }
         if (decision === 'partial' && (!Number.isFinite(amount) || amount <= 0 || amount >= original)) {
             errorBox.text('أدخل مبلغًا أكبر من صفر وأقل من العمولة السابقة.').removeClass('d-none');
             return;
