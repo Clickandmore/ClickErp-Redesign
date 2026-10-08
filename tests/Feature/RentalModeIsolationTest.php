@@ -84,6 +84,54 @@ class RentalModeIsolationTest extends HourlyTestCase
         $this->assertFalse($validator->errors()->has('maid_id'));
     }
 
+    public function test_receipt_upload_on_historical_contract_allows_unchanged_maid_with_another_active_contract(): void
+    {
+        DB::table('rental_contracts')->insert(['id' => 10, 'maid_id' => 2, 'status' => 'active']);
+        DB::table('maids')->where('id', 2)->update(['available' => false]);
+
+        foreach (['cancelled', 'completed'] as $status) {
+            DB::table('rental_contracts')->updateOrInsert(['id' => 11], ['maid_id' => 2, 'status' => $status]);
+            foreach (['PUT', 'PATCH'] as $method) {
+                $request = StoreRentalContractRequest::create('/contracts/11', $method, [
+                    'maid_id' => '2', 'payment_type' => 'bank_transfer', 'payment_status' => 'bank_pending',
+                ], [], ['payment_receipt' => \Illuminate\Http\UploadedFile::fake()->create('receipt.pdf', 10, 'application/pdf')]);
+                $route = new \Illuminate\Routing\Route($method, 'contracts/{RentContract}', ['as' => 'RentContract.update']);
+                $route->bind($request);
+                $request->setRouteResolver(fn () => $route);
+                $validator = Validator::make($request->all(), ['payment_receipt' => 'file|mimes:pdf']);
+                $request->withValidator($validator);
+
+                $this->assertTrue($validator->passes(), $validator->errors()->toJson());
+                $this->assertSame('active', DB::table('rental_contracts')->where('id', 10)->value('status'));
+                $this->assertEquals(0, DB::table('maids')->where('id', 2)->value('available'));
+            }
+        }
+    }
+
+    public function test_new_contract_or_changed_maid_still_rejects_an_existing_active_rental(): void
+    {
+        DB::table('rental_contracts')->insert([
+            ['id' => 10, 'maid_id' => 2, 'status' => 'active'],
+            ['id' => 11, 'maid_id' => 1, 'status' => 'cancelled'],
+        ]);
+
+        foreach (['POST', 'PUT', 'PATCH'] as $method) {
+            $request = StoreRentalContractRequest::create('/contracts/11', $method, [
+                'maid_id' => 2, 'payment_status' => 'pending',
+            ]);
+            if ($method !== 'POST') {
+                $route = new \Illuminate\Routing\Route($method, 'contracts/{RentContract}', ['as' => 'RentContract.update']);
+                $route->bind($request);
+                $request->setRouteResolver(fn () => $route);
+            }
+            $validator = Validator::make([], []);
+            $request->withValidator($validator);
+
+            $this->assertTrue($validator->fails());
+            $this->assertContains('العاملة المختارة مرتبطة بعقد إيجار نشط حالياً', $validator->errors()->get('maid_id'));
+        }
+    }
+
     public function test_conversion_rejects_frozen_monthly_contract_in_validation_and_save(): void
     {
         DB::table('rental_contracts')->insert(['maid_id'=>2,'status'=>'frozen']);
