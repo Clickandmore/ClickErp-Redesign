@@ -13,7 +13,7 @@ use Tests\TestCase;
 
 class RentalMaidAccommodationStatusTest extends TestCase
 {
-    public function test_maid_inside_shelter_is_not_presented_as_reserved_from_stale_availability_flag(): void
+    public function test_willing_maid_inside_shelter_is_ready_despite_stale_availability_flag(): void
     {
         $maid = new Maid([
             'status' => 'available',
@@ -21,7 +21,7 @@ class RentalMaidAccommodationStatusTest extends TestCase
             'maid_accommodation_type' => 2,
         ]);
         $shelterContract = new Contract(['status' => 'shelter']);
-        $shelterContract->setRelation('info', null);
+        $shelterContract->setRelation('info', new \App\Models\ContractInfo(['wants_to_work' => 'yes']));
         $shelterContract->setRelation('sponsorshipTransfers', new EloquentCollection());
         $maid->setRelation('contracts', new EloquentCollection([$shelterContract]));
         $maid->setRelation('orders', new EloquentCollection());
@@ -29,7 +29,8 @@ class RentalMaidAccommodationStatusTest extends TestCase
 
         $status = $this->invoke('resolveRentalMaidCvStatus', $maid);
 
-        $this->assertSame('in_accommodation', $status);
+        $this->assertSame('ready', $status);
+        $this->assertTrue($this->invoke('canCreateRentalContractForMaid', $maid));
     }
 
     public function test_active_rental_contract_still_takes_priority_over_shelter_location(): void

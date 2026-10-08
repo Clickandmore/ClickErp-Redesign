@@ -3972,8 +3972,22 @@ class MaidController extends Controller
 
     private function applyRentalAvailableFilter($query): void
     {
-        $query->where('available', true)
-            ->whereIn('status', ['available', 'completed'])
+        $query->where(function ($availabilityQuery) {
+                $availabilityQuery->where(function ($storedAvailabilityQuery) {
+                    $storedAvailabilityQuery->where('available', true)
+                        ->whereIn('status', ['available', 'completed']);
+                })->orWhere(function ($shelterAvailabilityQuery) {
+                    // عقد الإيواء ورغبة العمل هما المصدر الفعلي لجاهزية عاملة
+                    // الإيجار؛ لا نحجبها بسبب أعلام قديمة لم تُحدّث عند العودة.
+                    $shelterAvailabilityQuery->whereNotIn('status', ['backout', 'deported'])
+                        ->whereHas('contracts', function ($contractQuery) {
+                            $contractQuery->insideShelter()
+                                ->whereHas('info', function ($infoQuery) {
+                                    $infoQuery->whereIn('wants_to_work', ['yes', 1, '1']);
+                                });
+                        });
+                });
+            })
             ->whereDoesntHave('contracts', function ($contractQuery) {
                 $contractQuery->whereIn('status', $this->recruitmentContractStatuses());
             })
@@ -4158,8 +4172,14 @@ class MaidController extends Controller
         $hasActiveRentalContracts = $maid->rentalContracts->whereIn('status', $this->rentalActiveContractStatuses())->isNotEmpty();
         $hasActiveSponsorshipTransfer = (bool) $this->resolveActiveSponsorshipTransfer($maid);
 
-        return (bool) $maid->available
-            && in_array($maid->status, ['available', 'completed'], true)
+        $insideShelterContract = $this->resolveInsideShelterContract($maid);
+        $isWillingInsideShelter = $insideShelterContract
+            && in_array((string) $insideShelterContract->info?->wants_to_work, ['yes', '1'], true)
+            && !in_array($maid->status, ['backout', 'deported'], true);
+        $hasStoredAvailability = (bool) $maid->available
+            && in_array($maid->status, ['available', 'completed'], true);
+
+        return ($hasStoredAvailability || $isWillingInsideShelter)
             && !$hasActiveRecruitmentContracts
             && !$hasActiveOrders
             && !$hasActiveRentalContracts

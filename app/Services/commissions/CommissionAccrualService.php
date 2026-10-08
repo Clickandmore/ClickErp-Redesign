@@ -3,6 +3,8 @@
 namespace App\Services\commissions;
 
 use App\Models\commissions\CommissionBatch;
+use App\Models\commissions\CommissionBatchItem;
+use Carbon\CarbonInterface;
 use Illuminate\Validation\ValidationException;
 use Illuminate\Support\Facades\DB;
 use Nami\Finance\Enums\ConstraintTypiesEnum;
@@ -102,7 +104,88 @@ class CommissionAccrualService
         $this->constraintService->deleteConstraint($constraint->id);
     }
 
-    public function expenseAccount(): Account
+    public function createReversalForItem(
+        CommissionBatchItem $item,
+        float $amount,
+        int $adminId,
+        string $reason,
+        CarbonInterface|string|null $date = null
+    ): Constraint {
+        return DB::transaction(function () use ($item, $amount, $adminId, $reason, $date) {
+            $lockedItem = CommissionBatchItem::withoutBranchScope()
+                ->with('batch.marketer')
+                ->whereKey($item->id)
+                ->lockForUpdate()
+                ->firstOrFail();
+
+            if ($lockedItem->commission_reversal_constraint_id) {
+                return Constraint::query()->findOrFail($lockedItem->commission_reversal_constraint_id);
+            }
+
+            $amount = round($amount, 2);
+            if ($amount <= 0) {
+                throw ValidationException::withMessages([
+                    'settlement' => 'مبلغ عكس العمولة يجب أن يكون أكبر من صفر.',
+                ]);
+            }
+
+            $entryDate = $date instanceof CarbonInterface
+                ? $date->toDateString()
+                : ($date ?: now()->toDateString());
+            $year = $this->yearService->checkDateRange($entryDate);
+            if (! $year) {
+                throw ValidationException::withMessages([
+                    'settlement' => 'تاريخ عكس العمولة لا يقع داخل سنة مالية نشطة.',
+                ]);
+            }
+
+            $batch = $lockedItem->batch;
+            $marketerId = (int) $batch->marketer_id;
+            $payableAccount = $batch->payable_account_id
+                ? Account::query()->whereKey($batch->payable_account_id)->whereDoesntHave('children')->first()
+                : null;
+            $payableAccount ??= $this->payableAccountForMarketer($marketerId, $adminId);
+
+            $expenseAccount = $batch->expense_account_id
+                ? Account::query()->whereKey($batch->expense_account_id)->whereDoesntHave('children')->first()
+                : null;
+            $expenseAccount ??= $this->expenseAccount();
+
+            $marketerName = $batch->marketer?->name ?? ('#' . $marketerId);
+            $statement = mb_substr(
+                'عكس عمولة الموظف ' . $marketerName
+                    . ' - عملية #' . $lockedItem->id
+                    . ' - ' . trim($reason),
+                0,
+                500
+            );
+            $data = [
+                'date' => $entryDate,
+                'statement' => $statement,
+                'value' => $amount,
+                'created_by_id' => $adminId,
+                'account_id' => [$payableAccount->id, $expenseAccount->id],
+                'account_type' => ['debtor', 'creditor'],
+                'debtor_value' => [$amount, 0],
+                'creditor_value' => [0, $amount],
+                'statement_account' => [$statement, $statement],
+                'cost_center_id' => [null, $batch->cost_center_id],
+            ];
+
+            $constraint = $this->constraintService->storeConstraint(
+                $data,
+                $year,
+                ConstraintTypiesEnum::MarketerEntry
+            );
+            $this->constraintService->storeConstraintDetails($data['account_id'], $constraint->id, $data);
+
+            $lockedItem->update(['commission_reversal_constraint_id' => $constraint->id]);
+
+            return $constraint->fresh('constraintDetails');
+        });
+    }
+
+    private function expenseAccount(): Account
     {
         $account = Account::query()
             ->whereIn('code', [self::ALRAFEDAIN_EXPENSE_ACCOUNT_CODE, self::EXPENSE_ACCOUNT_CODE])

@@ -17,6 +17,10 @@ use App\Services\commissions\RecruitmentCommissionService;
 use App\Support\PostArrivalRefundSettings;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Illuminate\Validation\ValidationException;
+use Illuminate\Support\Facades\DB;
+use Nami\Finance\Enums\AccountTypesEnum;
+use Nami\Finance\Models\Account;
+use Nami\Finance\Models\FnYear;
 use Mockery;
 use Nami\Finance\Models\ConfirmSetting;
 use Tests\TestCase;
@@ -25,6 +29,103 @@ class RecruitmentCommissionReturnTest extends TestCase
 {
     use DatabaseTransactions;
     use \Tests\Concerns\InteractsWithCommissionFinance;
+
+    public function test_deducting_a_returned_commission_creates_the_financial_reversal_entry(): void
+    {
+        DB::table('fn_constraint_code_sequences')->updateOrInsert(
+            ['id' => 1],
+            ['last_code' => 0, 'created_at' => now(), 'updated_at' => now()]
+        );
+        FnYear::query()->create([
+            'title' => '2026',
+            'from_date' => '2026-01-01',
+            'to_date' => '2026-12-31',
+            'status' => 1,
+        ]);
+        $marketer = Admin::factory()->create();
+        $parent = Account::query()->create([
+            'name' => 'المسوقين',
+            'status' => 'creditor',
+            'level' => 1,
+            'code' => 144,
+            'type' => AccountTypesEnum::Marketers->value,
+        ]);
+        $payable = Account::query()->create([
+            'name' => 'حساب اختبار عكس عمولة ' . $marketer->id,
+            'status' => 'creditor',
+            'level' => 2,
+            'code' => 900000 + $marketer->id,
+            'type' => AccountTypesEnum::Marketer->value,
+            'parent_id' => $parent->id,
+        ]);
+        $expense = Account::query()->create([
+            'name' => 'مصروف عمولات الموظفين',
+            'status' => 'debtor',
+            'level' => 1,
+            'code' => 52149,
+            'type' => AccountTypesEnum::MarketerExpenses->value,
+        ]);
+        $marketer->update(['commission_payable_account_id' => $payable->id]);
+        $contract = Contract::query()->create([
+            'status' => ContractStatusEnum::Back->value,
+            'marketer_id' => $marketer->id,
+            'contract_cost' => 12000,
+            'contract_date' => now()->toDateString(),
+        ]);
+        $batch = CommissionBatch::query()->create([
+            'marketer_id' => $marketer->id,
+            'total_requests' => 1,
+            'total_base_amount' => 12000,
+            'total_commission' => 100,
+            'status' => CommissionBatch::STATUS_APPROVED,
+            'expense_account_id' => $expense->id,
+            'payable_account_id' => $payable->id,
+            'approved_by' => $marketer->id,
+            'approved_at' => now(),
+        ]);
+        $item = CommissionBatchItem::query()->create([
+            'batch_id' => $batch->id,
+            'source_type' => CommissionOperationService::SOURCE_RECRUITMENT_CONTRACT,
+            'source_id' => $contract->id,
+            'contract_id' => $contract->id,
+            'service_type' => 'recruitment',
+            'base_amount' => 12000,
+            'method' => 'fixed',
+            'rate_or_amount' => 100,
+            'commission_amount' => 100,
+        ]);
+        CommissionBalanceTransaction::query()->create([
+            'marketer_id' => $marketer->id,
+            'type' => CommissionBalanceTransaction::TYPE_CREDIT,
+            'amount' => 100,
+            'reference_type' => 'commission_batch',
+            'reference_id' => $batch->id,
+            'balance_after' => 100,
+        ]);
+
+        app(RecruitmentCommissionService::class)->resolveSettlement(
+            $item,
+            RecruitmentCommissionService::SETTLEMENT_DEDUCTED,
+            $marketer->id
+        );
+
+        $constraintId = $item->fresh()->commission_reversal_constraint_id;
+        $this->assertNotNull($constraintId);
+        $this->assertDatabaseHas('fn_constraint_details', [
+            'constraint_id' => $constraintId,
+            'account_id' => $payable->id,
+            'type' => 'debtor',
+            'debtor_value' => 100,
+            'creditor_value' => 0,
+        ]);
+        $this->assertDatabaseHas('fn_constraint_details', [
+            'constraint_id' => $constraintId,
+            'account_id' => $expense->id,
+            'type' => 'creditor',
+            'debtor_value' => 0,
+            'creditor_value' => 100,
+        ]);
+    }
 
     protected function setUp(): void
     {

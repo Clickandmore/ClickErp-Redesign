@@ -49,6 +49,24 @@ class RentalOrderHidesCvFromSiteTest extends TestCase
         $this->assertFalse($this->listedIds()->contains($maid->id));
     }
 
+    /** @test */
+    public function an_active_rental_contract_keeps_the_cv_hidden_even_if_stored_flags_say_available(): void
+    {
+        $maid = $this->makeRentalMaid('Active rental hides cv');
+
+        DB::table('rental_contracts')->insert([
+            'maid_id' => $maid->id,
+            'status' => 'contract_signed',
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $this->assertFalse(
+            $this->listedIds()->contains($maid->id),
+            'السيرة ظهرت في الموقع رغم وجود عقد إيجار نشط.'
+        );
+    }
+
     private function listedIds()
     {
         $request = Request::create('/client/all-workers', 'GET', [
