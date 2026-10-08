@@ -112,7 +112,7 @@ class CommissionAccrualService
         CarbonInterface|string|null $date = null
     ): Constraint {
         return DB::transaction(function () use ($item, $amount, $adminId, $reason, $date) {
-            $lockedItem = CommissionBatchItem::query()
+            $lockedItem = CommissionBatchItem::withoutBranchScope()
                 ->with('batch.marketer')
                 ->whereKey($item->id)
                 ->lockForUpdate()
