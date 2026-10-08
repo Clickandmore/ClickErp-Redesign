@@ -213,12 +213,12 @@ class RecruitmentCommissionReturnTest extends TestCase
         $item->refresh();
         $this->assertTrue(app(RecruitmentCommissionService::class)->isZeroed($item));
         $this->assertNull($item->commission_reversal_transaction_id);
-        $this->assertDatabaseHas('commission_balance_transactions', [
+        $this->assertDatabaseMissing('commission_balance_transactions', [
             'reference_type' => 'commission_zero_adjustment',
             'reference_id' => $item->id,
             'amount' => 300,
         ]);
-        $this->assertSame(0.0, app(CommissionPaymentService::class)->getPaymentSummary($marketer->id)['balance']);
+        $this->assertSame(300.0, app(CommissionPaymentService::class)->getPaymentSummary($marketer->id)['balance']);
     }
 
     public function test_reversal_is_reported_separately_from_paid_commissions(): void
@@ -289,5 +289,87 @@ class RecruitmentCommissionReturnTest extends TestCase
             null,
             $marketer->id
         );
+    }
+
+    /** @dataProvider settlementDecisions */
+    public function test_returned_commission_is_closed_only_by_its_explicit_settlement(string $decision, ?float $amount, float $deducted): void
+    {
+        $marketer = Admin::factory()->create();
+        $contract = Contract::query()->create([
+            'status' => ContractStatusEnum::New->value,
+            'marketer_id' => $marketer->id,
+            'contract_date' => '2026-07-01',
+        ]);
+        $batch = CommissionBatch::query()->create([
+            'marketer_id' => $marketer->id,
+            'status' => CommissionBatch::STATUS_APPROVED,
+            'total_commission' => 500,
+            'approved_at' => '2026-07-31',
+        ]);
+        $item = CommissionBatchItem::query()->create([
+            'batch_id' => $batch->id,
+            'source_type' => CommissionOperationService::SOURCE_RECRUITMENT_CONTRACT,
+            'source_id' => $contract->id,
+            'operation_date' => '2026-07-01',
+            'service_type' => 'recruitment',
+            'base_amount' => 12000,
+            'method' => 'fixed',
+            'rate_or_amount' => 500,
+            'commission_amount' => 500,
+        ]);
+        // The earlier commission was already paid, leaving no balance.
+        foreach (['credit', 'debit'] as $type) {
+            CommissionBalanceTransaction::query()->create([
+                'marketer_id' => $marketer->id, 'type' => $type, 'amount' => 500,
+                'reference_type' => $type === 'credit' ? 'commission_batch' : 'commission_payment',
+                'reference_id' => $batch->id, 'balance_after' => $type === 'credit' ? 500 : 0,
+            ]);
+        }
+        $contract->update(['status' => ContractStatusEnum::Back->value]);
+        $operations = Mockery::mock(CommissionOperationService::class);
+        $operations->shouldReceive('findSelected')->andReturn(collect([[
+            'key' => 'rental_contract:999999', 'source_type' => 'rental_contract',
+            'source_id' => 999999, 'service_type' => 'rental', 'base_amount' => 2000,
+            'order_id' => null, 'contract_id' => null, 'reference' => '999999',
+            'client_name' => 'Test', 'operation_date' => '2026-10-01',
+        ]]));
+        $accrual = Mockery::mock(CommissionAccrualService::class);
+        $accrual->shouldReceive('createForBatch')->once()->andReturn(new \Nami\Finance\Models\Constraint());
+        $service = new CommissionCalculationService($operations,
+            app(DelegationCommissionService::class), app(RecruitmentCommissionService::class), $accrual);
+        $keys = ['rental_contract:999999'];
+        $adjustments = [$keys[0] => ['method' => 'fixed', 'value' => 300]];
+        $preview = $service->previewBatch($marketer->id, $keys, $adjustments);
+        $this->assertSame(500.0, $preview['total_deductions']);
+        $this->assertSame(300.0, $preview['net_commission']);
+        $this->assertSame([$item->id], $preview['returned_deductions']->pluck('id')->all());
+        $service->approveBatch($marketer->id, $keys, $adjustments, null, $marketer->id, [$item->id]);
+        $this->assertSame(300.0, app(CommissionPaymentService::class)->getPaymentSummary($marketer->id)['balance']);
+        $this->assertCount(1, app(RecruitmentCommissionService::class)->pendingDeductions($marketer->id));
+        if ($decision === 'partial') {
+            foreach ([0.0, -1.0, 500.0, 501.0] as $invalidAmount) {
+                try {
+                    app(RecruitmentCommissionService::class)->resolveSettlement($item, 'partial', $marketer->id, null, $invalidAmount);
+                    $this->fail('Invalid partial deduction was accepted.');
+                } catch (ValidationException $exception) {
+                    $this->assertArrayHasKey('amount', $exception->errors());
+                }
+            }
+            $this->assertSame(300.0, app(CommissionPaymentService::class)->getPaymentSummary($marketer->id)['balance']);
+        }
+        app(RecruitmentCommissionService::class)->resolveSettlement($item, $decision, $marketer->id, null, $amount);
+        $this->assertSame(300.0 - $deducted, app(CommissionPaymentService::class)->getPaymentSummary($marketer->id)['balance']);
+        $this->assertCount(0, app(RecruitmentCommissionService::class)->pendingDeductions($marketer->id));
+        $this->assertSame($deducted > 0 ? 1 : 0, CommissionBalanceTransaction::query()
+            ->where('reference_type', 'commission_reversal')->where('reference_id', $item->id)->count());
+        if ($deducted > 0) $this->assertSame($deducted, (float) $item->fresh()->reversalTransaction->amount);
+        $this->assertSame(0.0, $service->previewBatch($marketer->id, $keys, $adjustments)['total_deductions']);
+        $this->expectException(ValidationException::class);
+        app(RecruitmentCommissionService::class)->resolveSettlement($item, $decision, $marketer->id, null, $amount);
+    }
+
+    public static function settlementDecisions(): array
+    {
+        return [['deducted', null, 500.0], ['partial', 125.0, 125.0], ['zeroed', null, 0.0]];
     }
 }

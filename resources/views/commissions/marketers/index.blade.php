@@ -347,6 +347,15 @@
                         </div>
 
                         <div class="marketer-finance">
+                            <a href="{{ route('commissions.marketers.show', $employee->id) }}#returned-deductions"
+                               class="d-block rounded border border-danger bg-light p-2 mb-3 text-decoration-none">
+                                <div class="small text-danger fw-bold mb-1">خصومات العقود المرتجعة</div>
+                                <div class="d-flex justify-content-between align-items-center gap-2">
+                                    <span class="text-dark">{{ number_format($employee->returned_contracts_count) }} عقد</span>
+                                    <strong class="text-danger">{{ number_format($employee->returned_commission_amount, 2) }} ر.س</strong>
+                                </div>
+                                <div class="small text-muted mt-1">عمولات معلقة للخصم · كل الأشهر</div>
+                            </a>
                             <div class="d-flex justify-content-between align-items-center mb-2">
                                 <span class="text-muted small">غير محتسبة</span>
                                 <a class="pending-link"

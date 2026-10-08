@@ -165,7 +165,7 @@ class DelegationCommissionReversalTest extends TestCase
         $calculation = new CommissionCalculationService(
             $operationService,
             $eligibility,
-            Mockery::mock(RecruitmentCommissionService::class),
+            app(RecruitmentCommissionService::class),
             Mockery::mock(CommissionAccrualService::class)
         );
 

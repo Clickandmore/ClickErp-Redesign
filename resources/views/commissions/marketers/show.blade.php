@@ -163,6 +163,18 @@
             </a>
         </div>
     @endforeach
+    <div class="col-lg-3 col-6">
+        <a class="summary-tile-link" href="#returned-deductions">
+            <div class="card summary-tile h-100 border-danger">
+                <div class="card-body">
+                    <div class="text-muted small">خصومات العقود المرتجعة</div>
+                    <div class="fs-4 fw-bold text-danger returned-pending-count">{{ number_format($returnedDeductions->pluck('source_id')->unique()->count()) }} عقد</div>
+                    <div class="fw-bold text-danger returned-pending-total">{{ number_format($returnedDeductions->sum('commission_amount'), 2) }} ر.س</div>
+                    <div class="small text-muted mt-1">عمولات معلقة للخصم · كل الأشهر</div>
+                </div>
+            </div>
+        </a>
+    </div>
 </div>
 
 <div class="card border-0 shadow-sm mb-3">
@@ -247,6 +259,10 @@
             </div>
         </div>
     </form>
+</div>
+
+<div class="mt-4">
+@include('commissions.partials.returned_deductions')
 </div>
 
 @if($balanceTransactions->count())
