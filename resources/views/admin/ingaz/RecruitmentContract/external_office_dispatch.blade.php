@@ -1,7 +1,7 @@
 @extends('admin.layout.indexs.index')
 
 @section('page-title')
-    إرسالية المكتب الخارجي - العقد #{{ $contract->id }}
+    {{ \App\Support\InvoiceSupplierWorkflow::enabled() ? 'فاتورة المورد' : 'إرسالية المكتب الخارجي' }} - العقد #{{ $contract->id }}
 @endsection
 
 @php
@@ -30,22 +30,22 @@
     <div class="alert alert-info">
         <strong>إثبات تكلفة المورد الخارجي:</strong>
         @if (\App\Support\RecruitmentSupplierCostRecognition::mode() === 'on_dispatch')
-            عند حفظ الإرسالية بتاريخها، بشرط وجود فاتورة للعقد وتفعيل القيود التلقائية. لا يتكرر القيد عند الوصول.
+            عند حفظ فاتورة المورد بتاريخها، بشرط وجود فاتورة للعقد وتفعيل القيود التلقائية. لا يتكرر القيد عند الوصول.
         @else
-            عند وصول العاملة؛ حفظ الإرسالية لا ينشئ قيد التكلفة.
+            عند وصول العاملة؛ حفظ فاتورة المورد لا ينشئ قيد التكلفة.
         @endif
     </div>
     <div class="container-fluid">
         <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-4">
             <div>
-                <h3 class="mb-1">إرسالية المكتب الخارجي</h3>
+                <h3 class="mb-1">{{ \App\Support\InvoiceSupplierWorkflow::enabled() ? 'فاتورة المورد' : 'إرسالية المكتب الخارجي' }}</h3>
                 <div class="text-muted">مرتبطة بالعقد رقم #{{ $contract->id }}</div>
             </div>
             <div class="d-flex flex-wrap gap-2">
-                @if ($bulkCompatibleContracts->isNotEmpty())
-                <a href="#bulk-dispatch-card" class="btn btn-primary">
+                @if ($showBulkCreateForm)
+                <a href="#bulk-dispatch-card" id="show-bulk-dispatch-form" class="btn btn-primary">
                     <i class="fas fa-layer-group me-1"></i>
-                    اختيار عقود وعمل إرسالية
+                    {{ $dispatch ? 'إنشاء فاتورة مورد لعقود أخرى' : 'اختيار عقود وعمل فاتورة مورد' }}
                 </a>
                 @endif
                 <a href="{{ route('RecruitmentContract.index', ['status' => 'current']) }}" class="btn btn-outline-secondary">
@@ -107,14 +107,14 @@
                     <div>
                         <h5 class="mb-1">
                             <i class="fas fa-clipboard-check text-primary me-1"></i>
-                            شروط إتاحة العقد للإرسالية
+                            شروط إتاحة العقد للفاتورة مورد
                         </h5>
                         <div class="small text-muted">حالة العقد الحالي #{{ $contract->id }} بحسب البيانات المسجلة الآن.</div>
                     </div>
                     @if (!empty($availabilityReasons))
                         <span class="badge bg-danger"><i class="fas fa-times me-1"></i>العقد غير متاح</span>
                     @elseif ($dispatch)
-                        <span class="badge bg-info text-dark"><i class="fas fa-pen me-1"></i>الإرسالية مسجلة</span>
+                        <span class="badge bg-info text-dark"><i class="fas fa-pen me-1"></i>فاتورة المورد مسجلة</span>
                     @else
                         <span class="badge bg-success"><i class="fas fa-check me-1"></i>العقد متاح</span>
                     @endif
@@ -123,9 +123,9 @@
             <div class="card-body">
                 @if ($dispatch)
                     <div class="alert alert-info mb-3">
-                        الإرسالية مسجلة لهذا العقد بتاريخ
+                        فاتورة المورد مسجلة لهذا العقد بتاريخ
                         {{ optional($dispatch->dispatch_date)->format('Y-m-d') ?: 'غير محدد' }}،
-                        ويمكن تعديلها من النموذج بالأسفل بدل إنشاء إرسالية جديدة.
+                        ويمكن تعديلها من النموذج بالأسفل بدل إنشاء فاتورة مورد جديدة.
                     </div>
                 @endif
 
@@ -146,7 +146,7 @@
                             // Only meaningful while creating a dispatch; in edit mode it is
                             // an informational note, not a failed condition.
                             $isEditModeNote = ($check['key'] ?? null) === 'no_existing_dispatch' && $dispatch;
-                            $checkLabel = $isEditModeNote ? 'الإرسالية مسجلة ويمكن تعديلها' : $check['label'];
+                            $checkLabel = $isEditModeNote ? 'فاتورة المورد مسجلة ويمكن تعديلها' : $check['label'];
                             $checkBorder = $isEditModeNote ? 'border-info' : ($check['passed'] ? 'border-success' : 'border-danger');
                             $checkIcon = $isEditModeNote
                                 ? 'fa-info-circle text-info'
@@ -162,13 +162,13 @@
                 </div>
 
                 <div class="alert alert-info mb-0">
-                    <div class="fw-semibold mb-2">شروط حفظ الإرسالية:</div>
+                    <div class="fw-semibold mb-2">شروط حفظ فاتورة المورد:</div>
                     <ul class="mb-0 ps-3 small">
-                        <li>إدخال تاريخ إرسالية صحيح وتكلفة العقد بالدولار بقيمة أكبر من صفر.</li>
+                        <li>إدخال تاريخ فاتورة مورد صحيح وتكلفة العقد بالدولار بقيمة أكبر من صفر.</li>
                         <li>تحديد محطة وصول موحدة، أو توفر محطة وصول مستقلة لكل عقد محدد.</li>
                         <li>عند اختيار أكثر من عقد يجب أن تكون جميع العقود من نفس المكتب الخارجي ونفس الجنسية.</li>
-                        <li>يجب ألا تكون هناك إرسالية مسجلة مسبقًا لأي عقد مختار.</li>
-                        <li>رقم التأشيرة وعمر العاملة بيانات عرض وليسا شرطًا لمنع إنشاء الإرسالية.</li>
+                        <li>يجب ألا تكون هناك فاتورة مورد مسجلة مسبقًا لأي عقد مختار.</li>
+                        <li>رقم التأشيرة وعمر العاملة بيانات عرض وليسا شرطًا لمنع إنشاء فاتورة المورد.</li>
                     </ul>
                 </div>
             </div>
@@ -176,6 +176,7 @@
         @endif
 
         @if ($showBulkCreateForm)
+            <div id="bulk-dispatch-panel" {{ $dispatch && !session('bulk_dispatch_errors') && !old('return_contract_id') ? 'hidden' : '' }}>
             <form method="POST" action="{{ route('RecruitmentContract.externalOfficeDispatch.bulkStore') }}"
                 id="bulk-dispatch-card" class="card shadow-sm border-0 mb-4 overflow-hidden">
                 @csrf
@@ -183,7 +184,7 @@
 
                 <div class="card-header bg-primary text-white d-flex flex-wrap justify-content-between align-items-center gap-3 py-3">
                     <div>
-                        <h5 class="mb-1">إنشاء إرسالية مكتب خارجي</h5>
+                        <h5 class="mb-1">إنشاء فاتورة مورد</h5>
                         <div class="small opacity-75">
                             {{ $bulkGroup['office_name'] }} / {{ $bulkGroup['nationality_name'] }}
                         </div>
@@ -195,9 +196,9 @@
                     <div class="alert alert-light border d-flex align-items-start gap-2">
                         <i class="fas fa-info-circle text-primary mt-1"></i>
                         <div>
-                            <div class="fw-semibold">نموذج موحد للإرسالية الفردية والمجمعة</div>
+                            <div class="fw-semibold">نموذج موحد للفاتورة مورد الفردية والمجمعة</div>
                             <div class="small text-muted">
-                                اختيار عقد واحد ينشئ إرسالية فردية، واختيار أكثر من عقد ينشئ إرساليات مجمعة بنفس التاريخ والتكلفة ومحطة الوصول.
+                                اختيار عقد واحد ينشئ فاتورة مورد فردية، واختيار أكثر من عقد ينشئ فواتير الموردين مجمعة بنفس التاريخ والتكلفة ومحطة الوصول.
                             </div>
                             @if (!$currentContractIsBulkCompatible)
                                 <div class="small text-danger mt-1">
@@ -210,7 +211,7 @@
 
                     <div class="row g-3 mb-4">
                         <div class="col-md-3">
-                            <label class="form-label">تاريخ الإرسالية <span class="text-danger">*</span></label>
+                            <label class="form-label">تاريخ فاتورة المورد <span class="text-danger">*</span></label>
                             <input type="date" name="dispatch_date" class="form-control"
                                 value="{{ $initialDispatchDate }}" required>
                         </div>
@@ -291,10 +292,11 @@
                 <div class="card-footer bg-white d-flex justify-content-end">
                     <button type="submit" class="btn btn-primary" id="inline-bulk-submit">
                         <i class="fas fa-paper-plane me-1"></i>
-                        <span id="inline-bulk-submit-label">إنشاء الإرسالية</span>
+                        <span id="inline-bulk-submit-label">إنشاء فاتورة المورد</span>
                     </button>
                 </div>
             </form>
+            </div>
         @endif
 
         @if (!$useUnifiedCreateForm)
@@ -302,8 +304,8 @@
             <div class="card-body">
                 <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3">
                     <div>
-                        <h5 class="mb-1">حالة الإرسالية</h5>
-                        <div class="text-muted small">لا يمكن وصول العقد أو إغلاقه قبل اكتمال هذه الإرسالية.</div>
+                        <h5 class="mb-1">حالة فاتورة المورد</h5>
+                        <div class="text-muted small">لا يمكن وصول العقد أو إغلاقه قبل اكتمال فاتورة المورد هذه.</div>
                     </div>
                     <span class="badge bg-{{ $statusClass }}">{{ $dispatchState['label'] }}</span>
                 </div>
@@ -313,13 +315,13 @@
 
         @if (!$contract->canManageExternalOfficeDispatch())
             <div class="alert alert-warning">
-                هذا العقد ليس ضمن العقود الجارية حاليًا، لذلك يمكن عرض الإرسالية فقط بدون تعديل.
+                هذا العقد ليس ضمن العقود الجارية حاليًا، لذلك يمكن عرض فاتورة المورد فقط بدون تعديل.
             </div>
         @endif
 
         @if (!empty($sourceErrors))
             <div class="alert alert-danger">
-                <div class="fw-semibold mb-2">لا يمكن اعتماد الإرسالية قبل استكمال البيانات التالية:</div>
+                <div class="fw-semibold mb-2">لا يمكن اعتماد فاتورة المورد قبل استكمال البيانات التالية:</div>
                 <ul class="mb-0 ps-3">
                     @foreach ($sourceErrors as $error)
                         <li>{{ $error }}</li>
@@ -333,7 +335,7 @@
 
             <div class="card shadow-sm border-0">
                 <div class="card-header bg-white">
-                    <h5 class="mb-0">بيانات الإرسالية</h5>
+                    <h5 class="mb-0">بيانات فاتورة المورد</h5>
                 </div>
                 <div class="card-body">
                     <div class="row g-3">
@@ -381,7 +383,20 @@
                         </div>
 
                         <div class="col-md-4">
+                            @if(\App\Support\InvoiceSupplierWorkflow::enabled() || $dispatch?->supplier_total_cost_usd !== null)
+                            <label class="form-label">إثبات تكلفة المورد</label>
+                            <select name="supplier_recognition_mode" class="form-control mb-2" {{ $isEditable ? '' : 'disabled' }}>
+                                <option value="full" @selected(old('supplier_recognition_mode', $dispatch?->supplier_recognition_mode ?? 'full') === 'full')>التكلفة كاملة</option>
+                                <option value="partial" @selected(old('supplier_recognition_mode', $dispatch?->supplier_recognition_mode) === 'partial')>جزء من التكلفة</option>
+                            </select>
+                            <label class="form-label">إجمالي تكلفة المورد (دولار)</label>
+                            <input type="number" name="supplier_total_cost_usd" class="form-control mb-2" step="0.01" min="0.01" max="99999999.99"
+                                value="{{ old('supplier_total_cost_usd', $dispatch?->supplier_total_cost_usd ?? $sourceSnapshot['office_contract_cost_usd']) }}" {{ $isEditable ? 'required' : 'disabled' }}>
+                            <label class="form-label">المبلغ المراد إثباته (دولار) <span class="text-danger">*</span></label>
+                            <small class="text-muted d-block">في الخيار الكامل يُستخدم الإجمالي، وفي الخيار الجزئي يُستخدم المبلغ أدناه.</small>
+                            @else
                             <label class="form-label">تكلفة العقد بالدولار <span class="text-danger">*</span></label>
+                            @endif
                             <input type="number" name="office_contract_cost_usd" id="office_contract_cost_usd"
                                 class="form-control @error('office_contract_cost_usd') is-invalid @enderror"
                                 value="{{ $initialOfficeContractCostUsd }}"
@@ -412,7 +427,7 @@
                             @enderror
                         </div>
                         <div class="col-md-4">
-                            <label class="form-label">تاريخ الإرسالية <span class="text-danger">*</span></label>
+                            <label class="form-label">تاريخ فاتورة المورد <span class="text-danger">*</span></label>
                             <input type="date" name="dispatch_date"
                                 class="form-control @error('dispatch_date') is-invalid @enderror"
                                 value="{{ $initialDispatchDate }}"
@@ -427,7 +442,7 @@
                     <div class="card-footer bg-white d-flex justify-content-end gap-2">
                         <button type="submit" class="btn btn-primary" {{ !empty($sourceErrors) ? 'disabled' : '' }}>
                             <i class="fas fa-save me-1"></i>
-                            حفظ الإرسالية
+                            حفظ فاتورة المورد
                         </button>
                     </div>
                 @endif
@@ -441,6 +456,13 @@
     <script>
         document.addEventListener('DOMContentLoaded', function () {
             const usdInput = document.getElementById('office_contract_cost_usd');
+            document.getElementById('show-bulk-dispatch-form')?.addEventListener('click', function(event) {
+                event.preventDefault();
+                const panel = document.getElementById('bulk-dispatch-panel');
+                if (!panel) return;
+                panel.hidden = false;
+                panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            });
             const sarInput = document.getElementById('office_contract_cost_sar');
             const rate = parseFloat({{ json_encode($usdToSarRate) }});
             let updatingCurrency = false;
@@ -500,8 +522,8 @@
                 }
                 if (bulkSubmitLabel) {
                     bulkSubmitLabel.textContent = selectedCount > 1
-                        ? `إنشاء ${selectedCount} إرساليات مجمعة`
-                        : 'إنشاء إرسالية فردية';
+                        ? `إنشاء ${selectedCount} فواتير الموردين مجمعة`
+                        : 'إنشاء فاتورة مورد فردية';
                 }
                 if (bulkSelectAll) {
                     bulkSelectAll.checked = bulkCheckboxes.length > 0 && selectedCount === bulkCheckboxes.length;

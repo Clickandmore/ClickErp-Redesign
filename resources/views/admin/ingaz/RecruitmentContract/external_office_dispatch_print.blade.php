@@ -15,7 +15,7 @@
     <meta charset="UTF-8">
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>إرسالية المكتب الخارجي - العقد #{{ $contract->id }}</title>
+    <title>فاتورة المورد - العقد #{{ $contract->id }}</title>
     <style>
         body {
             font-family: DejaVu Sans, sans-serif;
@@ -150,7 +150,7 @@
 <body>
     <div class="toolbar">
         <div>
-            <strong>إرسالية المكتب الخارجي</strong>
+            <strong>فاتورة المورد</strong>
         </div>
         <div class="toolbar-actions">
             <a href="{{ $previewUrl }}" class="secondary">تحديث العرض</a>
@@ -161,12 +161,12 @@
 
     <div class="document">
         <div class="header">
-            <h1>إرسالية المكتب الخارجي</h1>
+            <h1>فاتورة المورد</h1>
             <p>العقد رقم #{{ $contract->id }} - {{ $documentCompanyName }}</p>
         </div>
 
         <div class="meta">
-            <div class="meta-item">تاريخ الإرسالية: {{ optional($dispatch->dispatch_date)->format('Y-m-d') ?: '-' }}</div>
+            <div class="meta-item">تاريخ فاتورة المورد: {{ optional($dispatch->dispatch_date)->format('Y-m-d') ?: '-' }}</div>
             <div class="meta-item">رقم العقد: {{ $dispatch->contract_number ?: $contract->id }}</div>
             <div class="meta-item">محطة الوصول: {{ $dispatch->arrival_station ?: '-' }}</div>
         </div>
@@ -218,8 +218,18 @@
                         <th>المكتب الخارجي</th>
                         <td>{{ $dispatch->office_name ?: '-' }}</td>
                     </tr>
+                    @if ($dispatch->supplier_total_cost_usd !== null)
                     <tr>
-                        <th>تكلفة العقد بالدولار</th>
+                        <th>إجمالي تكلفة المورد بالدولار</th>
+                        <td>{{ number_format($dispatch->supplier_total_cost_usd, 2) }} USD</td>
+                    </tr>
+                    <tr>
+                        <th>نوع إثبات التكلفة</th>
+                        <td>{{ $dispatch->supplier_recognition_mode === 'partial' ? 'جزئي' : 'كامل' }}</td>
+                    </tr>
+                    @endif
+                    <tr>
+                        <th>التكلفة المثبتة بالدولار</th>
                         <td>
                             {{ $dispatch->office_contract_cost_usd !== null ? number_format((float) $dispatch->office_contract_cost_usd, 2) . ' USD' : '-' }}
                         </td>

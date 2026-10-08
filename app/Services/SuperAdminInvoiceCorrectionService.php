@@ -72,6 +72,8 @@ class SuperAdminInvoiceCorrectionService
         }
         if ((float) $invoice->discount !== (float) $input['discount']) $updates['discount'] = round((float) $input['discount'], 2);
         $moneyChanged = $updates !== [];
+        $this->require(!$moneyChanged || $invoice->musaned_commission_amount === null,
+            'الفاتورة مرتبطة بعمولة مساند مثبتة عند الإصدار؛ صحّح المبالغ بإعادة إنشاء القيود من العمليات المالية للعقد قبل تسجيل التحويل.');
         foreach (['visa_recruited_count', 'insured_count'] as $field) {
             if (isset($input[$field]) && (int) $input[$field] !== (int) $invoice->$field) $updates[$field] = (int) $input[$field];
         }
@@ -107,6 +109,7 @@ class SuperAdminInvoiceCorrectionService
         }
         $roles = [
             'invoice_constraint_id' => 'قيد الفاتورة',
+            'musaned_commission_constraint_id' => 'قيد عمولة مساند عند الإصدار',
             'arrival_revenue_constraint_id' => 'قيد إثبات إيراد الوصول',
             'external_office_cost_constraint_id' => 'قيد تكلفة المكتب الخارجي (تكلفة فعلية مستقلة)',
             'external_office_cost_reversal_constraint_id' => 'قيد عكس تكلفة المكتب الخارجي',
@@ -150,7 +153,7 @@ class SuperAdminInvoiceCorrectionService
                     $journalUpdates['value'] = array_sum($newParts) / 100;
                 }
             }
-            if ($dateChanged && $isPrimary) {
+            if ($dateChanged && ($isPrimary || $role === 'musaned_commission_constraint_id')) {
                 $journalUpdates['date'] = $newDate;
                 $years = DB::table('fn_years')->where('from_date', '<=', $newDate)->where('to_date', '>=', $newDate)->where('status', 1)->lockForUpdate()->get();
                 $this->require($years->count() === 1, 'يجب أن يقع التاريخ الجديد داخل سنة مالية نشطة واحدة.');

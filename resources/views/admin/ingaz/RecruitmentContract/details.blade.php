@@ -1863,7 +1863,7 @@
                         <div class="info-card">
                             <div class="card-title">
                                 <i class="fas fa-paper-plane text-primary"></i>
-                                إرسالية المكتب الخارجي
+                                فاتورة المورد
                             </div>
                             <div class="info-row">
                                 <span class="info-label">الحالة:</span>
@@ -1880,21 +1880,21 @@
                             </div>
                             @if ($canManageExternalOfficeDispatch)
                                 <div class="alert alert-warning mt-3 mb-0">
-                                    يجب إتمام إرسالية المكتب الخارجي قبل وصول العقد أو إغلاقه.
+                                    يجب إتمام فاتورة المورد قبل وصول العقد أو إغلاقه.
                                 </div>
                             @endif
                             <div class="d-flex flex-wrap gap-2 mt-3">
                                 @if ($canManageExternalOfficeDispatch)
                                     <a href="{{ $externalOfficeDispatchFormUrl }}" class="btn btn-outline-primary">
                                         <i class="fas fa-pen-to-square me-1"></i>
-                                        إدارة الإرسالية
+                                        إدارة فاتورة المورد
                                     </a>
                                 @endif
                                 @if ($externalOfficeDispatchPrintUrl)
                                     <a href="{{ $externalOfficeDispatchPrintUrl }}" class="btn btn-outline-secondary"
                                         target="_blank" rel="noopener">
                                         <i class="fas fa-eye me-1"></i>
-                                        معاينة الإرسالية
+                                        معاينة فاتورة المورد
                                     </a>
                                 @endif
                                 @if ($externalOfficeDispatchPdfUrl)
@@ -2480,12 +2480,12 @@
 
                 @if ($canManageExternalOfficeDispatch)
                     <a href="{{ $externalOfficeDispatchFormUrl }}" class="btn-icon btn-edit"
-                        title="إدارة إرسالية المكتب الخارجي">
+                        title="إدارة فاتورة المورد">
                         <i class="fas fa-paper-plane"></i>
                     </a>
                 @elseif ($externalOfficeDispatchPrintUrl)
                     <a href="{{ $externalOfficeDispatchPrintUrl }}" class="btn-icon btn-print"
-                        title="عرض إرسالية المكتب الخارجي" target="_blank" rel="noopener">
+                        title="عرض فاتورة المورد" target="_blank" rel="noopener">
                         <i class="fas fa-paper-plane"></i>
                     </a>
                 @endif

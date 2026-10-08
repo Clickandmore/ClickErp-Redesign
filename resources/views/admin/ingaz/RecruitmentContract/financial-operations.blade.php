@@ -6,7 +6,7 @@
     <div class="page-toolbar">
         <h1 class="toolbar-title">استكمال العمليات المالية — عقد #{{ $financialContract->id }}</h1>
         <p>{{ $financialContract->user?->name }} — {{ $financialContract->status === 'arrival' ? 'وصول' : 'مكتملة' }}</p>
-        <p class="toolbar-text">أصدر الفاتورة أولاً، ثم استكمل إرسالية المكتب الخارجي وتكلفة التفويض وتحويل مساند من هنا. تُحسب العمولة وضريبتها وفق إعدادات النظام. قيود الوصول تُسجل بتاريخ الفاتورة عند تفعيل القيود التلقائية.</p>
+        <p class="toolbar-text">أصدر الفاتورة أولاً، ثم استكمل فاتورة المورد وتكلفة التفويض وتحويل مساند من هنا. تُحسب العمولة وضريبتها وفق إعدادات النظام. قيود الوصول تُسجل بتاريخ الفاتورة عند تفعيل القيود التلقائية.</p>
         <a href="{{ route('contracts.details', $financialContract->id) }}" class="btn btn-outline-secondary mt-2">تفاصيل العقد</a>
     </div>
     @if (session('success'))<div class="alert alert-success">{{ session('success') }}</div>@endif

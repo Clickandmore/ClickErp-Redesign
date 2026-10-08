@@ -168,6 +168,13 @@ class ConfirmSettingService extends MainService
         $rows = $data['data'] ?? [];
 
         foreach ($rows as $key => $setting) {
+            if (($setting['title'] ?? null) === \App\Support\InvoiceSupplierWorkflow::SETTING_KEY
+                && !in_array($setting['value'] ?? null, [\App\Support\InvoiceSupplierWorkflow::LEGACY, \App\Support\InvoiceSupplierWorkflow::UPDATED], true)) {
+                throw \Illuminate\Validation\ValidationException::withMessages(["data.$key.value" => 'اختر التسلسل القديم أو التسلسل الجديد.']);
+            }
+        }
+
+        foreach ($rows as $key => $setting) {
             $title = $setting['title'] ?? null;
 
             if (!in_array($title, TaxAccountResolver::RATE_SETTINGS, true) || empty($setting['value'])) {
@@ -248,6 +255,7 @@ class ConfirmSettingService extends MainService
             'general_qabd_bond',
             'daily_constraints',
             'automatic_journal_entries',
+            \App\Support\InvoiceSupplierWorkflow::SETTING_KEY,
             \App\Support\RecruitmentRevenueRecognition::SETTING_KEY,
             \App\Support\RecruitmentSupplierCostRecognition::SETTING_KEY,
             'bill_sales',

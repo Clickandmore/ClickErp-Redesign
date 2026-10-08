@@ -424,6 +424,13 @@
                         <span class="settings-nav__count">1 {{ __('finance::finance.settings_fields') }}</span>
                     </span>
                 </a>
+                <a class="settings-nav__item" href="#invoice-supplier-workflow-section">
+                    <span class="settings-nav__icon"><i class="fa fa-exchange-alt"></i></span>
+                    <span>
+                        <span class="settings-nav__title">{{ __('finance::finance.invoice_supplier_workflow') }}</span>
+                        <span class="settings-nav__count">1 {{ __('finance::finance.settings_fields') }}</span>
+                    </span>
+                </a>
                 <a class="settings-nav__item" href="#recruitment-revenue-recognition-section">
                     <span class="settings-nav__icon"><i class="fa fa-file-invoice-dollar"></i></span>
                     <span>
@@ -547,6 +554,32 @@
                         <i class="fa fa-info-circle"></i>
                         {{ __('finance::finance.automatic_journal_entries_scope_hint') }}
                     </small>
+                </div>
+            </details>
+
+            <details class="settings-section" id="invoice-supplier-workflow-section" open>
+                <summary>
+                    <div>
+                        <h3 class="settings-section-title">{{ __('finance::finance.invoice_supplier_workflow') }}</h3>
+                        <p class="settings-section-hint">{{ __('finance::finance.invoice_supplier_workflow_hint') }}</p>
+                    </div>
+                    <span class="settings-section-icon"><i class="fa fa-chevron-down"></i></span>
+                </summary>
+                <div class="settings-section-body">
+                    <input type="hidden" name="data[invoice_supplier_workflow][title]" value="invoice_supplier_workflow">
+                    <div class="approval-options">
+                        <label class="approval-option">
+                            <input type="radio" name="data[invoice_supplier_workflow][value]" value="legacy" {{ $settingValue('invoice_supplier_workflow', 'legacy') !== 'updated' ? 'checked' : '' }}>
+                            <strong>{{ __('finance::finance.invoice_supplier_workflow_legacy') }}</strong>
+                            <span>{{ __('finance::finance.invoice_supplier_workflow_legacy_hint') }}</span>
+                        </label>
+                        <label class="approval-option">
+                            <input type="radio" name="data[invoice_supplier_workflow][value]" value="updated" {{ $settingValue('invoice_supplier_workflow', 'legacy') === 'updated' ? 'checked' : '' }}>
+                            <strong>{{ __('finance::finance.invoice_supplier_workflow_updated') }}</strong>
+                            <span>{{ __('finance::finance.invoice_supplier_workflow_updated_hint') }}</span>
+                        </label>
+                    </div>
+                    <small class="text-muted d-block mt-3">{{ __('finance::finance.invoice_supplier_workflow_existing_hint') }}</small>
                 </div>
             </details>
 

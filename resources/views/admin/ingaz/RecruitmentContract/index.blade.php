@@ -692,7 +692,7 @@
                 @endif
                 <a href="{{ route('RecruitmentContract.externalOfficeDispatch.index') }}" class="btn btn-outline-primary">
                     <i class="fas fa-paper-plane"></i>
-                    إرسالات المكتب الخارجي
+                    فواتير الموردين
                 </a>
                 <a href="{{ route('musaned-transfers.create') }}" class="btn btn-outline-info">
                     <i class="fas fa-money-bill-transfer"></i>
@@ -1129,11 +1129,11 @@
                             </select>
                         </div>
                         <div class="col-md-3">
-                            <label for="externalDispatchPresenceFilter" class="form-label">الإرسالية:</label>
+                            <label for="externalDispatchPresenceFilter" class="form-label">فاتورة المورد:</label>
                             <select id="externalDispatchPresenceFilter" class="form-select">
                                 <option value="">الكل</option>
-                                <option value="1">لها إرسالية</option>
-                                <option value="0">بدون إرسالية</option>
+                                <option value="1">لها فاتورة مورد</option>
+                                <option value="0">بدون فاتورة مورد</option>
                             </select>
                         </div>
                     </div>

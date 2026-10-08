@@ -7,7 +7,7 @@
     <div class="card-header bg-white py-3 d-flex flex-wrap justify-content-between align-items-center gap-2">
         <div>
             <h5 class="mb-1 fw-bold text-danger"><i class="fa fa-undo me-2"></i>خصومات العقود المرتجعة</h5>
-            <div class="small text-muted">تشمل عقود الاستقدام والإيجار وتمديداته. الفلترة حسب نوع العقد وتاريخ الإرجاع. اعتمد كل تسوية بصفر أو كامل العمولة أو مبلغ جزئي؛ لا يُطبّق الخصم تلقائيًا عند اعتماد دفعة العمولة.</div>
+            <div class="small text-muted">تشمل عقود الاستقدام والإيجار وتمديداته حسب نوع العقد المختار، ولا تتأثر بفلتر تاريخ العقود. اعتمد كل تسوية بصفر أو كامل العمولة أو مبلغ جزئي؛ لا يُطبّق الخصم تلقائيًا عند اعتماد دفعة العمولة.</div>
         </div>
         <div class="d-flex gap-2">
             <span class="badge rounded-pill bg-light text-danger border border-danger px-3 py-2 returned-pending-count">{{ number_format($returnedContractsCount) }} عقد</span>
@@ -23,7 +23,7 @@
         <div class="table-responsive">
             <table class="table table-hover align-middle mb-0">
                 <thead class="table-light"><tr>
-                    <th>#</th><th>العقد</th><th class="text-nowrap">نوع العقد</th><th>العميل</th><th>سبب الخصم</th><th>تاريخ العقد</th><th>تاريخ الإرجاع</th><th>دفعة العمولة السابقة</th><th class="text-end">العمولة السابقة</th><th>التسوية</th>
+                    <th>#</th><th>العقد</th><th class="text-nowrap">نوع العقد</th><th>العميل</th><th>سبب الخصم</th><th>حالة الضمان الحالية</th><th>تاريخ العقد</th><th>تاريخ الإرجاع</th><th>دفعة العمولة السابقة</th><th class="text-end">العمولة السابقة</th><th>التسوية</th>
                 </tr></thead>
                 <tbody>
                 @foreach($returnedDeductions as $deduction)
@@ -37,6 +37,19 @@
                         <td class="text-nowrap"><span class="badge bg-light text-primary border">{{ \App\Models\commissions\CommissionSetting::serviceTypeOptions()[$deduction->service_type] ?? ($deduction->service_type ?: 'غير محدد') }}</span></td>
                         <td>{{ $deduction->client_name ?: '—' }}</td>
                         <td style="min-width:240px;max-width:400px;white-space:normal;overflow-wrap:anywhere;">{{ $deduction->deduction_reason ?: 'غير مسجل' }}</td>
+                        <td class="text-nowrap">
+                            @if($deduction->return_warranty_status === 'inside')
+                                <span class="badge bg-success">داخل الضمان</span>
+                            @elseif($deduction->return_warranty_status === 'outside')
+                                <span class="badge bg-danger">خارج الضمان</span>
+                            @else
+                                <span class="badge bg-secondary">غير محدد</span>
+                                <div class="small text-muted mt-1" style="white-space:normal;min-width:180px;max-width:260px;">{{ $deduction->return_warranty_unknown_reason }}</div>
+                            @endif
+                            @if($deduction->return_warranty_start && $deduction->return_warranty_end)
+                                <div class="small text-muted mt-1">{{ $deduction->return_warranty_start }} — {{ $deduction->return_warranty_end }}</div>
+                            @endif
+                        </td>
                         <td class="text-nowrap">{{ $deduction->operation_date?->format('Y-m-d') ?: '—' }}</td>
                         <td class="text-nowrap">{{ $deduction->return_date?->format('Y-m-d') ?: 'غير مسجل' }}</td>
                         <td class="text-nowrap">
@@ -52,7 +65,7 @@
                 </tbody>
                 <tfoot class="table-light">
                     <tr>
-                        <th colspan="8">إجمالي الخصومات</th>
+                        <th colspan="9">إجمالي الخصومات</th>
                         <th class="text-end text-danger text-nowrap returned-pending-total">{{ number_format($returnedTotal, 2) }} ر.س</th><th></th>
                     </tr>
                 </tfoot>

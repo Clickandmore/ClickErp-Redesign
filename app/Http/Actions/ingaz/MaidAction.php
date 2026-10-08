@@ -395,6 +395,7 @@ class MaidAction extends MainAction
             'id_expiry_date' => $data['id_expiry_date'],
             'price' => $data['price'],
             'salary' => $data['salary'],
+            'supplier_cost_usd' => $data['supplier_cost_usd'] ?? null,
             'age' => $data['age'],
             'height' => $data['height'],
             'weight' => $data['weight'],

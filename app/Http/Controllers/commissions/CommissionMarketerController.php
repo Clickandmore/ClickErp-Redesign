@@ -69,6 +69,7 @@ class CommissionMarketerController extends Controller
         $summary = $this->profileService->getOperationSummary($admin->id);
 
         $balanceTransactions = CommissionBalanceTransaction::query()
+            ->with('constraint')
             ->where('marketer_id', $admin->id)
             ->latest()
             ->take(10)
@@ -83,10 +84,13 @@ class CommissionMarketerController extends Controller
 
         $visaTypeOptions = \App\Models\commissions\CommissionSetting::serviceTypeOptions();
         $returnedDeductions = $this->recruitmentCommissionService->pendingDeductions($admin->id, $filters);
+        $missingDeductionJournals = CommissionBalanceTransaction::query()->where('marketer_id', $admin->id)
+            ->where('reference_type', 'commission_reversal')->where('type', CommissionBalanceTransaction::TYPE_DEBIT)
+            ->where('amount', '>', 0)->whereNull('constraint_id')->count();
 
         return view('commissions.marketers.show', compact(
             'admin', 'balance', 'summary', 'filters',
-            'balanceTransactions', 'batches', 'visaTypeOptions', 'returnedDeductions'
+            'balanceTransactions', 'batches', 'visaTypeOptions', 'returnedDeductions', 'missingDeductionJournals'
         ));
     }
 
@@ -197,12 +201,19 @@ class CommissionMarketerController extends Controller
         );
 
         $message = $validated['decision'] !== RecruitmentCommissionService::SETTLEMENT_ZEROED
-            ? 'تم اعتماد خصم العمولة المستردة من رصيد المسوق.'
+            ? 'تم اعتماد الخصم وإنشاء قيده المالي. إذا كان القيد بانتظار الاعتماد المالي، اعتمده ليظهر في كشف الحساب.'
             : 'تم إقفال العمولة المستردة بصفر دون خصم من رصيد المسوق.';
 
         return $request->expectsJson()
             ? response()->json(['success' => true, 'message' => $message])
             : back()->with('success', $message);
+    }
+
+    public function repairDeductionJournals(Admin $admin, \App\Services\commissions\CommissionDeductionJournalService $service)
+    {
+        abort_unless($this->isCommissionMarketer($admin), 404);
+        $count = $service->repairForMarketer($admin->id, (int) auth('admin')->id());
+        return back()->with('success', "تم إنشاء {$count} قيدًا للخصومات السابقة دون خصم الرصيد مجددًا. راجع اعتماد القيود ماليًا إن كان مطلوبًا.");
     }
 
     private function visaTypeLabel(?string $type): string

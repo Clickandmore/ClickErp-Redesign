@@ -28,6 +28,7 @@ use Tests\TestCase;
 class RecruitmentCommissionReturnTest extends TestCase
 {
     use DatabaseTransactions;
+    use \Tests\Concerns\InteractsWithCommissionFinance;
 
     public function test_deducting_a_returned_commission_creates_the_financial_reversal_entry(): void
     {
@@ -129,6 +130,7 @@ class RecruitmentCommissionReturnTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
+        $this->setUpCommissionFinance();
         ConfirmSetting::query()->create(['title' => PostArrivalRefundSettings::POSTING_MODE, 'value' => 'auto']);
     }
 
@@ -445,6 +447,7 @@ class RecruitmentCommissionReturnTest extends TestCase
         $this->assertSame(300.0, $preview['net_commission']);
         $this->assertSame([$item->id], $preview['returned_deductions']->pluck('id')->all());
         $this->assertSame('إرجاع عاملة عقد الاستقدام', $preview['returned_deductions']->first()->deduction_reason);
+        $this->assertSame('تاريخ الوصول غير مسجل؛ لا يمكن حساب فترة الضمان', $preview['returned_deductions']->first()->return_warranty_unknown_reason);
         $service->approveBatch($marketer->id, $keys, $adjustments, null, $marketer->id, [$item->id]);
         $this->assertSame(300.0, app(CommissionPaymentService::class)->getPaymentSummary($marketer->id)['balance']);
         $this->assertCount(1, app(RecruitmentCommissionService::class)->pendingDeductions($marketer->id));
@@ -473,5 +476,24 @@ class RecruitmentCommissionReturnTest extends TestCase
     public static function settlementDecisions(): array
     {
         return [['deducted', null, 500.0], ['partial', 125.0, 125.0], ['zeroed', null, 0.0]];
+    }
+
+    public function test_recruitment_warranty_is_calculated_from_arrival_without_saved_warranty_dates(): void
+    {
+        $contract = new Contract(['status' => ContractStatusEnum::Refunded->value]);
+        $contract->setRelation('info', new \App\Models\ContractInfo(['arrival_date' => '2026-07-01']));
+        $contract->setRelation('maid', null);
+        $contract->setRelation('travelHistory', null);
+        $service = app(RecruitmentCommissionService::class);
+        $resolve = new \ReflectionMethod($service, 'contractWithResolvedWarranty');
+        $resolve->setAccessible(true);
+        $resolved = $resolve->invoke($service, $contract);
+        $this->assertSame('2026-07-01', $resolved->warranty_start_date->format('Y-m-d'));
+        $this->assertSame(\Carbon\Carbon::parse('2026-07-01')->addDays(\App\Support\AutomationSettings::warrantyPeriodDays())->format('Y-m-d'), $resolved->warranty_end_date->format('Y-m-d'));
+        $this->assertNull($contract->warranty_start_date);
+        $status = new \ReflectionMethod($service, 'returnWarrantyStatus');
+        $status->setAccessible(true);
+        $this->assertSame('inside', $status->invoke($service, $resolved, $resolved->warranty_end_date->copy()));
+        $this->assertSame('outside', $status->invoke($service, $resolved, $resolved->warranty_end_date->copy()->addDay()));
     }
 }

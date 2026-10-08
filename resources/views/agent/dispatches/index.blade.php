@@ -98,8 +98,8 @@
                         <th>{{ $isAr ? 'العميل' : 'Client' }}</th>
                         <th>{{ $isAr ? 'العاملة' : 'Worker' }}</th>
                         <th>{{ $isAr ? 'حالة العقد' : 'Contract Status' }}</th>
-                        <th>{{ $isAr ? 'حالة الإرسالية' : 'Dispatch Status' }}</th>
-                        <th>{{ $isAr ? 'تاريخ الإرسالية' : 'Dispatch Date' }}</th>
+                        <th>{{ $isAr ? 'حالة فاتورة المورد' : 'Dispatch Status' }}</th>
+                        <th>{{ $isAr ? 'تاريخ فاتورة المورد' : 'Dispatch Date' }}</th>
                         <th>{{ $isAr ? 'محطة الوصول' : 'Arrival Station' }}</th>
                         <th></th>
                     </tr>
