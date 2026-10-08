@@ -106,6 +106,7 @@ class NewPermKeys
     const REC_CONTRACTS_EXPORT = 'rec_contracts_export';
     const REC_CONTRACTS_PRINT = 'rec_contracts_print';
     const REC_CONTRACTS_VIEW_SHELTER = 'rec_contracts_view_shelter';
+    const REC_CONTRACTS_REMOVE_MAID = 'rec_contracts_remove_maid';
     const REC_CONTRACTS_LATE_FINANCE = 'rec_contracts_late_finance';
 
     // صلاحيات تغيير حالة العقد (مرحلة بمرحلة)

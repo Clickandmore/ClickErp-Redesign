@@ -588,4 +588,6 @@ return array (
   'follow_the_status_of_your_sponsorship_transfers' => 'Follow the status of your sponsorship transfers',
   'Contract Refund Requests' => 'Contract Refund Requests',
   'transferred' => 'Transferred',
+  'fast_news_image_hint' => 'Optional — shown next to the headline in the ticker',
+  'fast_news_remove_image' => 'Remove current image',
 );

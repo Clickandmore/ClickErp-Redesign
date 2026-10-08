@@ -174,8 +174,15 @@ class PostArrivalRefundService
     public function post(ContractReturnSettlement $settlement): ContractReturnSettlement
     {
         return DB::transaction(function () use ($settlement) {
-            $settlement = ContractReturnSettlement::query()->with(['contract.invoice.recruitmentCreditNotes', 'contract.user', 'contract.maid.office', 'lines'])->lockForUpdate()->findOrFail($settlement->id);
+            $settlement = ContractReturnSettlement::query()->lockForUpdate()->findOrFail($settlement->id);
             if ($settlement->status !== 'draft') return $settlement;
+            // Read under locks before loading relations, so a competing exit or
+            // recovery cannot leave this transaction with an older cost snapshot.
+            $contractRow = DB::table('contracts')->where('id', $settlement->contract_id)->lockForUpdate()->first(['maid_id']);
+            if ($contractRow?->maid_id) {
+                \App\Models\ingaz\Maid::query()->whereKey($contractRow->maid_id)->lockForUpdate()->firstOrFail();
+            }
+            $settlement->load(['contract.invoice.recruitmentCreditNotes', 'contract.user', 'contract.maid.office', 'lines']);
             $eligibleOperationalState = $this->commissionService->isReturned($settlement->contract);
             if (! $eligibleOperationalState) {
                 throw ValidationException::withMessages([
@@ -299,6 +306,22 @@ class PostArrivalRefundService
             default => (int) ($line->debit_account_id ?: 0),
         };
         $creditAccountId = (int) ($line->credit_account_id ?: 0);
+        if ($line->type === 'office_charge') {
+            $source = $this->officeChargeCreditAccount($contract);
+            $receiptId = $source['receipt_entry_id'];
+            if ($receiptId) {
+                if ((int) $source['account_id'] !== $creditAccountId) {
+                    throw ValidationException::withMessages(['office_charge' => 'تغير حساب تكلفة الإيواء؛ أعد تجهيز المستند.']);
+                }
+                $summary = app(ShelterAgentCostRecoveryService::class)->summary($contract);
+                $remaining = $summary['lots'][$receiptId]['remaining'] ?? 0;
+                if ($summary['issues'] || (float) $line->approved_amount > $remaining || $remaining <= 0) {
+                    throw ValidationException::withMessages(['office_charge' => $summary['issues']
+                        ? implode(' ', $summary['issues']) : 'سبق استرداد تكلفة العاملة أو تصفيتها؛ لا يمكن تحميل المكتب بالمبلغ مرة أخرى.']);
+                }
+                $line->update(['metadata' => array_replace($line->metadata ?? [], ['shelter_receipt_entry_id' => $receiptId])]);
+            }
+        }
         $this->assertLeafAccount($debitAccountId, 'الحساب المدين');
         $this->assertLeafAccount($creditAccountId, 'الحساب الدائن');
         $constraint = $this->storeConstraint($settlement->settlement_date->toDateString(), $statement, $debitAccountId, $creditAccountId, (float) $line->approved_amount);
@@ -308,13 +331,29 @@ class PostArrivalRefundService
             'constraint_id' => $constraint->id,
             'account_snapshot' => $this->accountSnapshot([$debitAccountId, $creditAccountId]),
         ]);
+        if ($line->type === 'office_charge') {
+            $this->shelterLedger->recordPostArrivalRecovery($contract, $line, $constraint);
+        }
     }
 
     public function reverseLine(ContractReturnSettlementLine $line, string $reason): ContractReturnSettlementLine
     {
         return DB::transaction(function () use ($line, $reason) {
-            $line = ContractReturnSettlementLine::query()->with('settlement')->lockForUpdate()->findOrFail($line->id);
+            $line = ContractReturnSettlementLine::query()->lockForUpdate()->findOrFail($line->id);
             if ($line->status === 'reversed') return $line;
+            $contractRow = DB::table('contracts as c')->join('contract_return_settlements as s', 's.contract_id', '=', 'c.id')
+                ->where('s.id', $line->settlement_id)->lockForUpdate()->first(['c.maid_id']);
+            if ($contractRow?->maid_id) {
+                \App\Models\ingaz\Maid::query()->whereKey($contractRow->maid_id)->lockForUpdate()->firstOrFail();
+            }
+            $contract = $line->settlement->contract;
+            $recoveryEntry = ShelterCostEntry::query()->where('source_type', ContractReturnSettlementLine::class)
+                ->where('source_id', $line->id)->where('kind', ShelterCostEntry::KIND_POST_REFUND_RECOVERY)->first();
+            if ($recoveryEntry && ShelterCostEntry::query()->where('maid_id', $recoveryEntry->maid_id)
+                ->where('id', '>', $recoveryEntry->id)->whereIn('kind', [ShelterCostEntry::KIND_RELEASE_TO_DEPORTATION,
+                    ShelterCostEntry::KIND_RELEASE_TO_SALE, ShelterCostEntry::KIND_RELEASE_TO_TRIAL, ShelterCostEntry::KIND_WRITE_OFF])->exists()) {
+                throw ValidationException::withMessages(['reason' => 'لا يمكن عكس تحميل المكتب بعد خروج العاملة أو تصفية تكلفة الإيواء.']);
+            }
             if ($line->credit_note_id) {
                 throw ValidationException::withMessages(['reason' => 'الإشعار الدائن الضريبي لا يعكس بقيد يومية. أنشئ إشعاراً مديناً نظامياً ثم اربطه بالمستند.']);
             }
@@ -347,6 +386,9 @@ class PostArrivalRefundService
                 $reversal = $this->storeRows($date, $statement, $rows);
             }
             $line->update(['status' => 'reversed', 'reversal_constraint_id' => $reversal?->id, 'reversal_reason' => $reason, 'reversed_by_id' => Auth::guard('admin')->id(), 'reversed_at' => now()]);
+            if ($recoveryEntry && $reversal) {
+                $this->shelterLedger->recordPostArrivalRecovery($contract, $line, $reversal, true);
+            }
             return $line->fresh();
         });
     }

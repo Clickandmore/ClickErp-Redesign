@@ -1182,6 +1182,20 @@
                             معلومات العاملة
                         </div>
                         @if ($contract->maid)
+                            <div class="d-flex flex-wrap gap-2 mb-3">
+                                @if (@AdminGuardHasPerm(\App\NewPermKeys::REC_CONTRACTS_UPDATE))
+                                    <button type="button" class="btn btn-outline-primary btn-sm" onclick="openChangeMaidModal()">
+                                        <i class="fas fa-exchange-alt me-1"></i>تبديل العاملة
+                                    </button>
+                                @endif
+                                @if (in_array($contract->status, \App\Services\ingaz\RecruitmentContractMaidRemovalService::STATUSES, true) && @AdminGuardHasPerm(\App\NewPermKeys::REC_CONTRACTS_REMOVE_MAID))
+                                    <button type="button" class="btn btn-outline-danger btn-sm" onclick="$('#removeMaidModal').modal('show')">
+                                        <i class="fas fa-user-minus me-1"></i>حذف العاملة
+                                    </button>
+                                @endif
+                            </div>
+                        @endif
+                        @if ($contract->maid)
                             <div class="info-row">
                                 <span class="info-label">اسم العاملة:</span>
                                 <span class="info-value highlight">{{ $contract->maid->name ?? 'غير محدد' }}</span>
@@ -2532,6 +2546,12 @@
                     </button>
                 @endif
 
+                @if ($contract->maid_id && in_array($contract->status, \App\Services\ingaz\RecruitmentContractMaidRemovalService::STATUSES, true) && @AdminGuardHasPerm(\App\NewPermKeys::REC_CONTRACTS_REMOVE_MAID))
+                    <button type="button" class="btn-icon btn-delete" onclick="$('#removeMaidModal').modal('show')" title="حذف العاملة من العقد">
+                        <i class="fas fa-user-minus"></i>
+                    </button>
+                @endif
+
                 <a href="{{ route('RecruitmentContract.index') }}" class="btn-icon btn-back" title="العودة للقائمة">
                     <i class="fas fa-arrow-right"></i>
                 </a>
@@ -2627,6 +2647,68 @@
         @endif
 
         <!-- دايلوج تغيير العاملة -->
+        @if (@AdminGuardHasPerm(\App\NewPermKeys::REC_CONTRACTS_REMOVE_MAID))
+        <div class="modal fade" id="removeMaidModal" tabindex="-1" aria-labelledby="removeMaidModalLabel" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered"><form class="modal-content" id="removeMaidForm">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="removeMaidModalLabel">حذف العاملة من العقد</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="إغلاق"></button>
+                </div>
+                <div class="modal-body">
+                    <p>سيتم فصل العاملة عن العقد وتحويله إلى «بانتظار اختيار العاملة» لحين اختيار عاملة أخرى.</p>
+                    <label class="form-label" for="remove-maid-status">حالة العاملة بعد الحذف</label>
+                    <select id="remove-maid-status" name="old_maid_status" class="form-select" required>
+                        <option value="available">إرجاع العاملة متاحة</option>
+                        <option value="backout">جعل العاملة باك أوت</option>
+                    </select>
+                    <div id="remove-maid-reason-container" class="mt-3" hidden>
+                        <label class="form-label" for="remove-maid-reason">سبب الباك أوت</label>
+                        <textarea id="remove-maid-reason" name="reason" class="form-control" maxlength="1000" rows="3"></textarea>
+                    </div>
+                    <div id="remove-maid-error" class="alert alert-danger mt-3" hidden role="alert"></div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
+                    <button type="submit" class="btn btn-danger">حذف العاملة من العقد</button>
+                </div>
+            </form></div>
+        </div>
+        <script>
+            document.addEventListener('DOMContentLoaded', function () {
+                const form = document.getElementById('removeMaidForm');
+                const status = document.getElementById('remove-maid-status');
+                const reason = document.getElementById('remove-maid-reason');
+                const error = document.getElementById('remove-maid-error');
+                status.addEventListener('change', function () {
+                    reason.required = status.value === 'backout';
+                    document.getElementById('remove-maid-reason-container').hidden = !reason.required;
+                });
+                form.addEventListener('submit', async function (event) {
+                    event.preventDefault();
+                    const button = form.querySelector('[type="submit"]');
+                    button.disabled = true;
+                    error.hidden = true;
+                    try {
+                        const response = await fetch(@json(route('RecruitmentContract.removeMaid', $contract->id)), {
+                            method: 'POST',
+                            headers: {'Content-Type': 'application/json', 'Accept': 'application/json', 'X-CSRF-TOKEN': @json(csrf_token())},
+                            body: JSON.stringify({old_maid_id: @json($contract->maid_id), old_maid_status: status.value, reason: status.value === 'backout' ? reason.value : null})
+                        });
+                        const result = await response.json();
+                        if (!response.ok || !result.success) {
+                            throw new Error(result.errors ? Object.values(result.errors).flat().join('\n') : (result.message || 'تعذر حذف العاملة.'));
+                        }
+                        window.location.reload();
+                    } catch (exception) {
+                        error.textContent = exception.message;
+                        error.hidden = false;
+                        button.disabled = false;
+                    }
+                });
+            });
+        </script>
+        @endif
+
         <div class="modal fade" id="changeMaidModal" tabindex="-1" aria-labelledby="changeMaidModalLabel"
             aria-hidden="true">
             <div class="modal-dialog modal-lg">

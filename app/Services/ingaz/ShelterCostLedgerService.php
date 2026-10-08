@@ -3,6 +3,7 @@
 namespace App\Services\ingaz;
 
 use App\Models\Contract;
+use App\Models\ContractReturnSettlementLine;
 use App\Models\DeportationProcedure;
 use App\Models\ShelterCostEntry;
 use App\Models\ShelterLivingExpense;
@@ -372,7 +373,8 @@ class ShelterCostLedgerService
         $amount = $this->balance((int) $newContract->maid_id);
         if ($amount < 0) { throw new \RuntimeException('رصيد الإيواء سالب؛ يلزم مطابقة القيود قبل أي خروج أو تصفية.'); }
         if ($amount <= 0) {
-            if (ShelterCostEntry::query()->where('maid_id', $newContract->maid_id)->where('kind', ShelterCostEntry::KIND_AGENT_RECOVERY)->exists()) {
+            if (ShelterCostEntry::query()->where('maid_id', $newContract->maid_id)
+                ->whereIn('kind', [ShelterCostEntry::KIND_AGENT_RECOVERY, ShelterCostEntry::KIND_POST_REFUND_RECOVERY])->exists()) {
                 $this->record($newContract, $kind, 0, null, $newContract, 'بيع بعد استرداد تكلفة الوكيل');
             }
             return ['amount' => 0.0, 'constraint' => null];
@@ -558,6 +560,16 @@ class ShelterCostLedgerService
     }
 
     // ── التخزين ──────────────────────────────────────────────────────────────
+
+    public function recordPostArrivalRecovery(Contract $contract, ContractReturnSettlementLine $line, Constraint $constraint, bool $reverse = false): ?ShelterCostEntry
+    {
+        $kind = $reverse ? ShelterCostEntry::KIND_POST_REFUND_REVERSAL : ShelterCostEntry::KIND_POST_REFUND_RECOVERY;
+        if ($existing = $this->findEntry($line, $kind)) return $existing;
+        $receiptId = $line->metadata['shelter_receipt_entry_id'] ?? null;
+        if (!$receiptId) return null;
+        return $this->record($contract, $kind, ($reverse ? 1 : -1) * (float) $line->approved_amount,
+            $constraint, $line, 'مستند استرداد بعد الوصول #' . $line->settlement_id);
+    }
 
     private function record(Contract $contract, string $kind, float $amount, ?Constraint $constraint, Model $source, ?string $notes = null): ShelterCostEntry
     {

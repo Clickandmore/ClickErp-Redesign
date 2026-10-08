@@ -66,6 +66,9 @@ class ShelterAgentCostRecoveryService
                 'issues' => ['يلزم تطبيق تحديث قاعدة بيانات استرداد تكلفة الوكيل.'], 'settled' => false];
         }
         $recoveries = ShelterAgentCostRecovery::query()->where('maid_id', $contract->maid_id)->get()->keyBy('id');
+        $refundLines = ContractReturnSettlementLine::query()->where('type', 'office_charge')
+            ->whereHas('settlement', fn ($q) => $q->whereHas('contract', fn ($q) => $q->where('maid_id', $contract->maid_id)))
+            ->get()->keyBy('id');
         $entries = $this->ledger->entriesFor((int) $contract->maid_id)->sortBy(function ($entry) {
             // Imported rows have new IDs: replay by original journal chronology.
             return sprintf('%s-%020d-%020d', substr((string) ($entry->constraint?->date ?: $entry->created_at), 0, 10), $entry->constraint_id ?: PHP_INT_MAX, $entry->id);
@@ -89,6 +92,17 @@ class ShelterAgentCostRecoveryService
                     if (!$this->livingEntryMatchesJournal($entry)) {
                         $issues[] = 'حركة إعاشة بالدفتر لا تطابق قيداً على أصل الإيواء؛ راجع المصروفات القديمة قبل التنفيذ.';
                     }
+                    break;
+                case ShelterCostEntry::KIND_POST_REFUND_RECOVERY:
+                case ShelterCostEntry::KIND_POST_REFUND_REVERSAL:
+                    $line = $refundLines->get($entry->source_id);
+                    $receiptId = $line?->metadata['shelter_receipt_entry_id'] ?? null;
+                    if (!$line || !isset($lots[$receiptId])) {
+                        $issues[] = 'مرجع تحميل المكتب في مستند الاسترداد غير مكتمل.';
+                        break;
+                    }
+                    $lots[$receiptId]['remaining'] = round($lots[$receiptId]['remaining'] + $amount, 2);
+                    $recovered -= $amount;
                     break;
                 case ShelterCostEntry::KIND_AGENT_RECOVERY:
                 case ShelterCostEntry::KIND_AGENT_RECOVERY_REVERSAL:
@@ -129,6 +143,22 @@ class ShelterAgentCostRecoveryService
                     break;
                 default:
                     $issues[] = 'توجد تسوية قديمة غير مصنفة بين تكلفة الوكيل والإعاشة.';
+            }
+        }
+        // Old refund journals did not reduce the shelter ledger. Never charge
+        // that outstanding ledger balance again without reconciling its source.
+        foreach ($refundLines as $line) {
+            if (!in_array($line->status, ['posted', 'paid'], true) || !$line->constraint_id || $line->reversal_constraint_id) continue;
+            $receiptId = $line->metadata['shelter_receipt_entry_id'] ?? null;
+            $matchesAsset = $receiptId && isset($lots[$receiptId]);
+            if (!$matchesAsset) {
+                $matchesAsset = collect($lots)->contains(fn ($lot) => (int) $lot['entry']->contract_id === (int) $line->settlement->contract_id
+                    && (int) $lot['asset_account_id'] === (int) $line->credit_account_id);
+            }
+            if ($matchesAsset && !$entries->contains(fn ($entry) => $entry->kind === ShelterCostEntry::KIND_POST_REFUND_RECOVERY
+                && $entry->source_type === ContractReturnSettlementLine::class && (int) $entry->source_id === (int) $line->id)) {
+                $issues[] = 'سبق تحميل المكتب في مستند الاسترداد #' . $line->settlement_id
+                    . ' دون تسوية دفتر الإيواء؛ يلزم مطابقة القيد #' . $line->constraint?->code . ' قبل الاسترداد أو الترحيل لمنع التكرار.';
             }
         }
         foreach ($lots as $lot) {

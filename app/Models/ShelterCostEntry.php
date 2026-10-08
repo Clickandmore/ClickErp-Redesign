@@ -23,8 +23,12 @@ class ShelterCostEntry extends Model
 
     public const KIND_AGENT_RECOVERY = 'agent_cost_recovery';
     public const KIND_AGENT_RECOVERY_REVERSAL = 'agent_cost_recovery_reversal';
+    public const KIND_POST_REFUND_RECOVERY = 'post_refund_recovery';
+    public const KIND_POST_REFUND_REVERSAL = 'post_refund_reversal';
 
     public const KIND_LABELS = [
+        self::KIND_POST_REFUND_RECOVERY => 'تحميل المكتب ضمن استرداد بعد الوصول',
+        self::KIND_POST_REFUND_REVERSAL => 'عكس تحميل المكتب ضمن استرداد بعد الوصول',
         self::KIND_AGENT_RECOVERY => 'استرداد تكلفة الوكيل',
         self::KIND_AGENT_RECOVERY_REVERSAL => 'عكس استرداد تكلفة الوكيل',
         self::KIND_CAPITALIZE_OFFICE_COST => 'استلام عاملة (تكلفة المكتب الخارجي)',

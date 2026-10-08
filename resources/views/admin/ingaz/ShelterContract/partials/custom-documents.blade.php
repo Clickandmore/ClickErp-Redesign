@@ -5,12 +5,12 @@
     <div id="shelter-custom-documents">
         <div class="sc-subhead">
             <strong>نماذج الدخول والخروج</strong>
-            <small>تُحفظ بيانات الاستلام مع العقد. اختر قالب التسليم هنا، وتُستكمل بياناته عند تنفيذ الخروج. الطباعة تستخدم القالب الحالي دون أرشفة نسخة مستقلة.</small>
+            <small>تُحفظ بيانات الاستلام مع العقد. يُختار قالب التسليم المتاح تلقائيًا، وتُستكمل بياناته عند تنفيذ الخروج. يمكنك اختيار قالب آخر هنا.</small>
         </div>
         @foreach (\App\Support\ShelterDocumentFields::kinds() as $kind => $label)
             @php
                 $savedDocument = $documentEditor['documents']->get($kind);
-                $selectedTemplate = old("shelter_documents.$kind.template_id", $savedDocument?->enabled ? $savedDocument->template_id : '');
+                $selectedTemplate = old("shelter_documents.$kind.template_id", $savedDocument?->enabled ? $savedDocument->template_id : ($kind === 'release' ? ($documentEditor['default_release_template_id'] ?? '') : ''));
                 $fieldValues = old("shelter_documents.$kind.data", $savedDocument?->data ?? ($documentEditor['defaults'][$kind] ?? []));
                 $kindTemplates = $documentEditor['templates']->where('kind', $kind);
                 $documentFields = \App\Support\ShelterDocumentFields::fields($kind);
@@ -24,7 +24,7 @@
                     </div>
                     <div class="sc-doc__actions">
                         <select id="shelter-template-{{ $kind }}" name="shelter_documents[{{ $kind }}][template_id]" class="form-select form-select-sm shelter-template-select" aria-label="{{ $label }}">
-                            <option value="">{{ $kind === 'entry' ? 'النموذج الحالي (الافتراضي)' : 'بدون نموذج تسليم إضافي' }}</option>
+                            <option value="">{{ $kind === 'entry' ? 'النموذج الحالي (الافتراضي)' : 'نموذج التسليم المتاح تلقائيًا' }}</option>
                             @foreach ($kindTemplates as $item)
                                 <option value="{{ $item->id }}" {{ (string) $selectedTemplate === (string) $item->id ? 'selected' : '' }}>{{ $item->company_name }} — {{ $item->name }}</option>
                             @endforeach
@@ -93,7 +93,7 @@
                 const values = (defaults || {})[section.dataset.documentKind] || {};
                 if (switching) {
                     const select = section.querySelector('select');
-                    select.value = '';
+                    select.value = section.dataset.documentKind === 'release' ? @json((string) ($documentEditor['default_release_template_id'] ?? '')) : '';
                     select.dispatchEvent(new Event('change'));
                 }
                 section.querySelectorAll('[data-document-field]').forEach(function (input) {

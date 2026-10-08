@@ -676,6 +676,113 @@ class ShelterCostLedgerTest extends TestCase
         $this->assertFalse(ShelterCostEntry::where('maid_id', $contract->maid_id)->exists());
     }
 
+    /** @dataProvider postArrivalRecoveryAmounts */
+    public function test_post_arrival_office_charge_reduces_cost_before_deportation(float $recovered, float $remaining): void
+    {
+        [$contract] = $this->arrivedContractWithInvoice(600);
+        $ledger = app(ShelterCostLedgerService::class);
+        $this->capitalize($ledger, $contract, 2250);
+        $contract->update(['status' => 'shelter']);
+        $settlement = $this->postArrivalOfficeRefund($contract, $recovered);
+        $refundService = app(\App\Services\ingaz\PostArrivalRefundService::class);
+        $refundService->post($settlement);
+        $refundService->post($settlement->fresh());
+        $this->assertSame($remaining, $ledger->balance($contract->maid_id));
+        $this->assertSame(1, ShelterCostEntry::where('maid_id', $contract->maid_id)->where('kind', ShelterCostEntry::KIND_POST_REFUND_RECOVERY)->count());
+        $this->assertSame([], app(\App\Services\ingaz\ShelterAgentCostRecoveryService::class)->summary($contract)['issues']);
+        $procedure = DeportationProcedure::create(['contract_id' => $contract->id, 'maid_id' => $contract->maid_id,
+            'status' => 'in_progress', 'procedures_confirmed' => true, 'trip_scheduled' => true, 'created_by' => $this->admin->id]);
+        $result = app(DeportationCompletionService::class)->complete($procedure);
+        $this->assertSame($remaining, $result['amount']);
+        $this->assertSame(0.0, $ledger->balance($contract->maid_id));
+        $this->assertSame($remaining > 0, $result['constraint'] !== null);
+        $refundJournal = $settlement->fresh()->lines->first()->constraint_id;
+        $journalIds = array_filter([$refundJournal, $result['constraint']?->id]);
+        $this->assertSame(2250.0, (float) ConstraintDetails::whereIn('constraint_id', $journalIds)->where('account_id', $this->office->id)->sum('debtor_value'));
+    }
+
+    public function postArrivalRecoveryAmounts(): array
+    {
+        return ['full' => [2250.0, 0.0], 'partial' => [1000.0, 1250.0]];
+    }
+
+    public function test_old_post_arrival_charge_without_ledger_entry_blocks_duplicate_deportation(): void
+    {
+        [$contract] = $this->arrivedContractWithInvoice(600);
+        $ledger = app(ShelterCostLedgerService::class);
+        $this->capitalize($ledger, $contract, 2250);
+        $contract->update(['status' => 'shelter']);
+        $settlement = $this->postArrivalOfficeRefund($contract, 2250);
+        app(\App\Services\ingaz\PostArrivalRefundService::class)->post($settlement);
+        ShelterCostEntry::where('maid_id', $contract->maid_id)->where('kind', ShelterCostEntry::KIND_POST_REFUND_RECOVERY)->delete();
+        $procedure = DeportationProcedure::create(['contract_id' => $contract->id, 'maid_id' => $contract->maid_id,
+            'status' => 'in_progress', 'procedures_confirmed' => true, 'trip_scheduled' => true, 'created_by' => $this->admin->id]);
+        $journalCount = Constraint::count();
+        try {
+            app(DeportationCompletionService::class)->complete($procedure);
+            $this->fail('Legacy charge must block duplicate recovery');
+        } catch (\RuntimeException $e) {
+            $this->assertStringContainsString('منع التكرار', $e->getMessage());
+        }
+        $this->assertSame($journalCount, Constraint::count());
+        $this->assertSame('in_progress', $procedure->fresh()->status);
+        $this->assertSame('shelter', $contract->fresh()->status);
+    }
+
+    public function test_post_arrival_charge_cannot_be_posted_after_deportation_settles_cost(): void
+    {
+        [$contract] = $this->arrivedContractWithInvoice(600);
+        $ledger = app(ShelterCostLedgerService::class);
+        $this->capitalize($ledger, $contract, 2250);
+        $contract->update(['status' => 'shelter']);
+        $settlement = $this->postArrivalOfficeRefund($contract, 2250);
+        $procedure = DeportationProcedure::create(['contract_id' => $contract->id, 'maid_id' => $contract->maid_id]);
+        $ledger->releaseToDeportation($procedure, now()->toDateString());
+        $journalCount = Constraint::count();
+        try {
+            app(\App\Services\ingaz\PostArrivalRefundService::class)->post($settlement);
+            $this->fail('Settled cost must not be recovered again');
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            $this->assertArrayHasKey('office_charge', $e->errors());
+        }
+        $this->assertSame($journalCount, Constraint::count());
+        $this->assertSame('draft', $settlement->fresh()->status);
+    }
+
+    public function test_reversing_post_arrival_charge_restores_cost_once_and_is_blocked_after_exit(): void
+    {
+        [$contract] = $this->arrivedContractWithInvoice(600);
+        $ledger = app(ShelterCostLedgerService::class);
+        $this->capitalize($ledger, $contract, 2250);
+        $contract->update(['status' => 'shelter']);
+        $settlement = $this->postArrivalOfficeRefund($contract, 2250);
+        $service = app(\App\Services\ingaz\PostArrivalRefundService::class);
+        $service->post($settlement);
+        $line = $settlement->fresh()->lines->first();
+        $service->reverseLine($line, 'Cancel claim');
+        $service->reverseLine($line->fresh(), 'Retry');
+        $this->assertSame(2250.0, $ledger->balance($contract->maid_id));
+        $this->assertSame([], app(\App\Services\ingaz\ShelterAgentCostRecoveryService::class)->summary($contract)['issues']);
+        $second = $this->postArrivalOfficeRefund($contract, 2250);
+        $service->post($second);
+        $procedure = DeportationProcedure::create(['contract_id' => $contract->id, 'maid_id' => $contract->maid_id]);
+        $ledger->releaseToDeportation($procedure, now()->toDateString());
+        $this->expectException(\Illuminate\Validation\ValidationException::class);
+        $service->reverseLine($second->fresh()->lines->first(), 'After exit');
+    }
+
+    private function postArrivalOfficeRefund(Contract $contract, float $amount): \App\Models\ContractReturnSettlement
+    {
+        $receipt = ShelterCostEntry::where('contract_id', $contract->id)->where('kind', ShelterCostEntry::KIND_CAPITALIZE_OFFICE_COST)->firstOrFail();
+        $settlement = \App\Models\ContractReturnSettlement::create(['contract_id' => $contract->id,
+            'invoice_id' => $contract->invoice->id, 'settlement_date' => now()->toDateString(), 'status' => 'draft',
+            'reason' => 'Test office charge', 'created_by_id' => $this->admin->id]);
+        $settlement->lines()->create(['type' => 'office_charge', 'status' => 'draft', 'proposed_amount' => $amount,
+            'approved_amount' => $amount, 'debit_account_id' => $this->office->id, 'credit_account_id' => $this->asset->id,
+            'settlement_method' => 'claim', 'metadata' => ['shelter_receipt_entry_id' => $receipt->id]]);
+        return $settlement;
+    }
+
     private function capitalize(ShelterCostLedgerService $ledger, Contract $contract, float $amount): void
     {
         $source = ContractReturnRequest::query()->create([

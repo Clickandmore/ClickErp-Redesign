@@ -56,6 +56,23 @@ class ShelterDocumentTest extends TestCase
         $this->assertSame(0, ShelterDocument::where('contract_id', $contract->id)->count());
     }
 
+    public function test_release_template_is_preselected_and_saved_without_manual_selection(): void
+    {
+        ShelterDocumentTemplate::where('kind', 'release')->update(['active' => false]);
+        $template = $this->template('release');
+        $service = app(ShelterDocumentService::class);
+        $this->assertSame($template->id, $service->editor(null)['default_release_template_id']);
+
+        $contract = $this->contract();
+        $service->save($contract, Request::create('/', 'POST', [
+            'shelter_documents' => ['release' => ['template_id' => '']],
+        ]));
+        $document = ShelterDocument::where('contract_id', $contract->id)->where('kind', 'release')->firstOrFail();
+        $this->assertSame($template->id, $document->template_id);
+        $this->assertTrue($document->enabled);
+        $this->assertNull($document->release_completed_at);
+    }
+
     public function test_selected_template_fills_known_data_and_saves_manual_fields_independently(): void
     {
         $contract = $this->contract();

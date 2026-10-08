@@ -479,4 +479,6 @@ return array (
   'project_desc' => ' أكثر من 20 سنة من تقديم خدمات الاستقدام باحترافية عالية',
   'Platinum Company Services' => 'خدمات شركة بلاتنيوم',
   'Confirm' => 'تأكيد',
+  'fast_news_image_hint' => 'صورة اختيارية — تظهر بجانب الخبر في الشريط',
+  'fast_news_remove_image' => 'حذف الصورة الحالية',
 );

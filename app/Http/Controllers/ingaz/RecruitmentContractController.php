@@ -5699,25 +5699,25 @@ class RecruitmentContractController extends Controller
                 ], 400);
             }
 
-            // تحديث العقد
-            $contract->update([
-                'maid_id' => $request->maid_id,
-                'status' => ContractStatusEnum::New->value
-            ]);
-
-            // تحديث حالة العاملات تلقائياً
-            if ($maid) {
+            DB::transaction(function () use ($contract, $maid) {
+                $locked = Contract::query()->lockForUpdate()->findOrFail($contract->id);
+                $this->assertCanAccessBranchModel($locked, 'contracts');
+                $maid = Maid::query()->lockForUpdate()->findOrFail($maid->id);
+                if ($locked->status !== ContractStatusEnum::PendingMaidSelection->value || $locked->maid_id
+                    || !$maid->available || $maid->status !== 'available') {
+                    throw ValidationException::withMessages(['maid_id' => 'تغيرت حالة العقد أو العاملة؛ حدّث الصفحة.']);
+                }
+                $locked->update(['maid_id' => $maid->id, 'status' => ContractStatusEnum::New->value]);
+                $locked->order()->update(['maid_id' => $maid->id]);
                 $maid->update([
                     'available' => false,
                     'status' => 'reserved'
                 ]);
-            }
-
-            // إضافة سجل حالة العقد
-            $contract->contract_status_logs()->create([
-                'status' => ContractStatusEnum::New->value,
-                'date' => now()
-            ]);
+                $locked->contract_status_logs()->create([
+                    'status' => ContractStatusEnum::New->value,
+                    'date' => now()
+                ]);
+            });
 
             return response()->json([
                 'success' => true,
@@ -6254,8 +6254,26 @@ class RecruitmentContractController extends Controller
     }
 
     /**
-     * تغيير العاملة في العقد
+     * حذف العاملة من العقد وإعادته إلى انتظار الاختيار.
      */
+    public function removeMaid(Request $request, $contractId)
+    {
+        abort_unless(AdminGuardHasPerm(NewPermKeys::REC_CONTRACTS_REMOVE_MAID), 403);
+        $contract = Contract::findOrFail($contractId);
+        $this->assertCanAccessBranchModel($contract, 'contracts');
+        $data = $request->validate([
+            'old_maid_id' => 'required|integer',
+            'old_maid_status' => 'required|in:available,backout',
+            'reason' => 'required_if:old_maid_status,backout|nullable|string|max:1000',
+        ]);
+        app(\App\Services\ingaz\RecruitmentContractMaidRemovalService::class)->remove(
+            $contract, (int) $data['old_maid_id'], $data['old_maid_status'],
+            $data['reason'] ?? null, Auth::guard('admin')->id()
+        );
+        return response()->json(['success' => true, 'message' => 'تم حذف العاملة من العقد وتحويله إلى بانتظار اختيار العاملة.']);
+    }
+
+    /** تغيير العاملة في العقد. */
     public function changeMaid(Request $request, $contractId)
     {
         try {
