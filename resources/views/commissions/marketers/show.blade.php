@@ -168,7 +168,7 @@
             <div class="card summary-tile h-100 border-danger">
                 <div class="card-body">
                     <div class="text-muted small">خصومات العقود المرتجعة</div>
-                    <div class="fs-4 fw-bold text-danger returned-pending-count">{{ number_format($returnedDeductions->pluck('source_id')->unique()->count()) }} عقد</div>
+                    <div class="fs-4 fw-bold text-danger returned-pending-count">{{ number_format($returnedDeductions->pluck('deduction_contract_key')->unique()->count()) }} عقد</div>
                     <div class="fw-bold text-danger returned-pending-total">{{ number_format($returnedDeductions->sum('commission_amount'), 2) }} ر.س</div>
                     <div class="small text-muted mt-1">عمولات معلقة للخصم · كل الأشهر</div>
                 </div>
@@ -245,6 +245,9 @@
     </div>
     <form id="commissionForm" method="POST" action="{{ route('commissions.marketers.preview', $admin->id) }}">
         @csrf
+        @foreach(collect($filters)->only(['date_filter', 'month', 'year', 'from_date', 'to_date', 'service_type']) as $filterName => $filterValue)
+            <input type="hidden" name="{{ $filterName }}" value="{{ $filterValue }}">
+        @endforeach
         <div class="table-responsive">
             <table id="operationsTable" class="table table-hover align-middle mb-0" style="width:100%">
                 <thead class="table-light"><tr>

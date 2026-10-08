@@ -314,7 +314,15 @@ class CommissionOperationService
             ->whereIn('context', ['closure', 'manual_credit_note', 'closure_correction'])
             ->sum('amount'), 2);
 
-        return $this->applyRentalCreditNotes($operations, $creditNoteAmount);
+        $operations = $this->applyRentalCreditNotes($operations, $creditNoteAmount);
+        if ($contract->status === 'cancelled') {
+            $operations = $operations->map(function ($operation) {
+                $operation['commission_eligible'] = false;
+                $operation['commission_ineligible_reason'] = 'عقد إيجار ملغي/مرتجع';
+                return $operation;
+            });
+        }
+        return $operations;
     }
 
     private function rentalExtensionPeriodOperation(

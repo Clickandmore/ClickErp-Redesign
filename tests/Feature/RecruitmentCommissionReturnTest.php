@@ -343,6 +343,7 @@ class RecruitmentCommissionReturnTest extends TestCase
         $this->assertSame(500.0, $preview['total_deductions']);
         $this->assertSame(300.0, $preview['net_commission']);
         $this->assertSame([$item->id], $preview['returned_deductions']->pluck('id')->all());
+        $this->assertSame('إرجاع عاملة عقد الاستقدام', $preview['returned_deductions']->first()->deduction_reason);
         $service->approveBatch($marketer->id, $keys, $adjustments, null, $marketer->id, [$item->id]);
         $this->assertSame(300.0, app(CommissionPaymentService::class)->getPaymentSummary($marketer->id)['balance']);
         $this->assertCount(1, app(RecruitmentCommissionService::class)->pendingDeductions($marketer->id));
