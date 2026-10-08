@@ -84,7 +84,8 @@
     <div class="col-lg-4">
         <div class="card review-card commission-total h-100"><div class="card-body text-center d-flex flex-column justify-content-center">
             <div class="text-muted">إجمالي العمولة المعتمدة</div>
-            <div class="display-6 fw-bold text-success"><span id="grandTotal">{{ number_format($preview['total_commission'], 2) }}</span> <small class="fs-6">ر.س</small></div>
+            <div class="display-6 fw-bold text-success"><span id="grandTotal">{{ number_format($preview['net_commission'], 2) }}</span> <small class="fs-6">ر.س</small></div>
+            <div class="small text-muted">خصومات العقود المرتجعة تُعتمد بصورة مستقلة من جدول الخصومات.</div>
             <div class="small text-muted mb-3">{{ $preview['total_requests'] }} عملية محددة</div>
             <button class="btn btn-success fw-bold"><i class="fa fa-check-circle me-1"></i> اعتماد وإضافة إلى الرصيد</button>
             <a href="{{ route('commissions.marketers.show', $admin->id) }}" class="btn btn-link text-secondary">العودة وتعديل الاختيار</a>
@@ -92,6 +93,9 @@
     </div>
 </div>
 </form>
+<div class="mt-4">
+    @include('commissions.partials.returned_deductions', ['returnedDeductions' => $preview['returned_deductions']])
+</div>
 @endsection
 
 @section('js')
@@ -113,8 +117,10 @@ $(function () {
             total += commission;
         });
         const formatted = total.toLocaleString('en-US', {minimumFractionDigits:2, maximumFractionDigits:2});
-        $('#tableTotal, #grandTotal').text(formatted);
-        return total;
+        $('#tableTotal').text(formatted);
+        const net = total;
+        $('#grandTotal').text(net.toLocaleString('en-US', {minimumFractionDigits:2, maximumFractionDigits:2}));
+        return net;
     }
     $(document).on('input change', '.method-input, .value-input', recalculate);
     $('#applyBulk').on('click', function () {

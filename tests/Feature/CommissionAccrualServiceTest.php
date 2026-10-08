@@ -133,7 +133,7 @@ class CommissionAccrualServiceTest extends TestCase
         $calculation = new CommissionCalculationService(
             $operationService,
             Mockery::mock(DelegationCommissionService::class),
-            Mockery::mock(RecruitmentCommissionService::class),
+            app(RecruitmentCommissionService::class),
             $accrualService
         );
 

@@ -82,7 +82,13 @@ class CommissionCalculationService
             ];
         }
 
+        $deductions = $this->recruitmentCommissionService->pendingDeductions($marketerId);
+        $totalDeductions = round((float) $deductions->sum('commission_amount'), 2);
+
         return [
+            'returned_deductions' => $deductions,
+            'total_deductions' => $totalDeductions,
+            'net_commission' => round($totalCommission, 2),
             'items'            => $items,
             'total_requests'   => count($items),
             'total_base'       => round($totalBase, 2),
@@ -95,10 +101,12 @@ class CommissionCalculationService
         array $operationKeys,
         array $adjustments,
         ?string $notes,
-        int $adminId
+        int $adminId,
+        array $returnedItemIds = []
     ): CommissionBatch
     {
-        return DB::transaction(function () use ($marketerId, $operationKeys, $adjustments, $notes, $adminId) {
+        return DB::transaction(function () use ($marketerId, $operationKeys, $adjustments, $notes, $adminId, $returnedItemIds) {
+            \App\Models\auth\Admin::query()->whereKey($marketerId)->lockForUpdate()->firstOrFail();
             $preview = $this->previewBatch($marketerId, $operationKeys, $adjustments);
 
             $delegationIds = collect($operationKeys)
@@ -246,6 +254,7 @@ class CommissionCalculationService
             ]);
 
             $this->accrualService->createForBatch($batch, $adminId);
+
 
             return $batch->fresh(['accrualConstraint', 'expenseAccount', 'payableAccount']);
         });

@@ -25,6 +25,11 @@ class CommissionMarketerController extends Controller
     public function index(Request $request)
     {
         $marketers = $this->profileService->getMarketersWithBalance();
+        foreach ($marketers as $marketer) {
+            $deductions = $this->recruitmentCommissionService->pendingDeductions($marketer->id);
+            $marketer->returned_contracts_count = $deductions->pluck('source_id')->unique()->count();
+            $marketer->returned_commission_amount = round((float) $deductions->sum('commission_amount'), 2);
+        }
 
         return view('commissions.marketers.index', compact('marketers'));
     }
@@ -73,10 +78,11 @@ class CommissionMarketerController extends Controller
             ->get();
 
         $visaTypeOptions = \App\Models\commissions\CommissionSetting::serviceTypeOptions();
+        $returnedDeductions = $this->recruitmentCommissionService->pendingDeductions($admin->id);
 
         return view('commissions.marketers.show', compact(
             'admin', 'balance', 'summary', 'filters',
-            'balanceTransactions', 'batches', 'visaTypeOptions'
+            'balanceTransactions', 'batches', 'visaTypeOptions', 'returnedDeductions'
         ));
     }
 
@@ -118,6 +124,8 @@ class CommissionMarketerController extends Controller
             'values'           => ['required', 'array'],
             'values.*'         => ['required', 'numeric', 'min:0'],
             'notes'            => ['nullable', 'string', 'max:1000'],
+            'returned_items' => ['nullable', 'array'],
+            'returned_items.*' => ['integer', 'distinct'],
         ]);
 
         if (count($request->operations) !== count($request->methods) ||
@@ -144,7 +152,8 @@ class CommissionMarketerController extends Controller
             $request->operations,
             $adjustments,
             $request->notes,
-            auth('admin')->id()
+            auth('admin')->id(),
+            $request->input('returned_items', [])
         );
 
         $message = 'تم اعتماد العمولة وإنشاء قيد الاستحقاق #'
@@ -169,7 +178,8 @@ class CommissionMarketerController extends Controller
         abort_unless((int) $item->batch?->marketer_id === (int) $admin->id, 404);
 
         $validated = $request->validate([
-            'decision' => ['required', 'in:deducted,zeroed'],
+            'decision' => ['required', 'in:deducted,zeroed,partial'],
+            'amount' => ['required_if:decision,partial', 'nullable', 'numeric', 'gt:0'],
             'notes' => ['nullable', 'string', 'max:1000'],
         ]);
 
@@ -177,10 +187,11 @@ class CommissionMarketerController extends Controller
             $item,
             $validated['decision'],
             (int) auth('admin')->id(),
-            $validated['notes'] ?? null
+            $validated['notes'] ?? null,
+            isset($validated['amount']) ? (float) $validated['amount'] : null
         );
 
-        $message = $validated['decision'] === RecruitmentCommissionService::SETTLEMENT_DEDUCTED
+        $message = $validated['decision'] !== RecruitmentCommissionService::SETTLEMENT_ZEROED
             ? 'تم اعتماد خصم العمولة المستردة من رصيد المسوق.'
             : 'تم إقفال العمولة المستردة بصفر دون خصم من رصيد المسوق.';
 
@@ -285,8 +296,9 @@ class CommissionMarketerController extends Controller
                     . '<span class="badge bg-warning text-dark">بانتظار اعتماد تسوية العمولة — الرصيد لم يتغير</span>'
                     . '<span class="small text-muted">العمولة السابقة: ' . number_format($operation['commission_amount'], 2) . ' ر.س</span>'
                     . '<div class="d-flex gap-1">'
-                    . '<button type="button" class="btn btn-xs btn-danger returned-commission-decision" data-url="' . e($url) . '" data-decision="deducted">اعتماد الخصم</button>'
-                    . '<button type="button" class="btn btn-xs btn-outline-secondary returned-commission-decision" data-url="' . e($url) . '" data-decision="zeroed">إقفال بصفر</button>'
+                    . '<button type="button" class="btn btn-xs btn-danger open-returned-settlement" data-url="' . e($url)
+                    . '" data-contract="' . e((string) $operation['source_id']) . '" data-amount="'
+                    . e((string) $operation['commission_amount']) . '">اعتماد الخصم</button>'
                     . '</div></div>';
             }
 

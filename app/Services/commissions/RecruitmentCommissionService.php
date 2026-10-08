@@ -17,6 +17,25 @@ class RecruitmentCommissionService
     public const SETTLEMENT_DEDUCTED = 'deducted';
     public const SETTLEMENT_ZEROED = 'zeroed';
 
+    public function pendingDeductions(int $marketerId): \Illuminate\Support\Collection
+    {
+        $items = CommissionBatchItem::query()
+            ->with('batch')
+            ->whereHas('batch', fn ($query) => $query->where('marketer_id', $marketerId)
+                ->where('status', CommissionBatch::STATUS_APPROVED))
+            ->where('source_type', CommissionOperationService::SOURCE_RECRUITMENT_CONTRACT)
+            ->where('commission_amount', '>', 0)
+            ->whereNull('commission_reversal_transaction_id')
+            ->orderBy('id')
+            ->get();
+        $contracts = Contract::query()->with(['info', 'returnRequests'])
+            ->whereIn('id', $items->pluck('source_id'))->get()->keyBy('id');
+
+        return $items->filter(fn ($item) => ! $this->isZeroed($item)
+            && $contracts->has($item->source_id)
+            && $this->isReturned($contracts->get($item->source_id)))->values();
+    }
+
     public function isEligible(Contract $contract): bool
     {
         return ! $this->isReturned($contract);
@@ -141,9 +160,11 @@ class RecruitmentCommissionService
         CommissionBatchItem $item,
         string $decision,
         int $adminId,
-        ?string $notes = null
+        ?string $notes = null,
+        ?float $amount = null
     ): CommissionBatchItem {
-        return DB::transaction(function () use ($item, $decision, $adminId, $notes) {
+        return DB::transaction(function () use ($item, $decision, $adminId, $notes, $amount) {
+            \App\Models\auth\Admin::query()->whereKey($item->batch?->marketer_id)->lockForUpdate()->firstOrFail();
             $lockedItem = CommissionBatchItem::query()
                 ->with('batch')
                 ->whereKey($item->id)
@@ -157,21 +178,28 @@ class RecruitmentCommissionService
                 || $lockedItem->commission_reversal_transaction_id
                 || $this->isZeroed($lockedItem)
                 || (float) $lockedItem->commission_amount <= 0
+                || $lockedItem->batch?->status !== CommissionBatch::STATUS_APPROVED
             ) {
                 throw ValidationException::withMessages([
                     'settlement' => 'هذه العمولة ليست في حالة تسمح باعتماد تسوية استرداد.',
                 ]);
             }
 
-            if ($decision === self::SETTLEMENT_DEDUCTED) {
+            if ($decision === self::SETTLEMENT_DEDUCTED || $decision === 'partial') {
+                $deduction = $decision === 'partial' ? round((float) $amount, 2) : (float) $lockedItem->commission_amount;
+                if ($deduction <= 0 || $deduction > (float) $lockedItem->commission_amount
+                    || ($decision === 'partial' && $deduction >= (float) $lockedItem->commission_amount)) {
+                    throw ValidationException::withMessages(['amount' => 'مبلغ الخصم الجزئي يجب أن يكون أكبر من صفر وأقل من العمولة الأصلية.']);
+                }
                 $this->reverseItem(
                     $lockedItem,
                     $contract,
                     $adminId,
-                    trim((string) ($notes ?: $lockedItem->commission_reversal_reason ?: $this->defaultReason($contract)))
+                    trim((string) ($notes ?: $lockedItem->commission_reversal_reason ?: $this->defaultReason($contract))),
+                    $deduction
                 );
             } elseif ($decision === self::SETTLEMENT_ZEROED) {
-                $this->zeroAvailableCommission($lockedItem, $contract, $adminId, $notes);
+                // Closing at zero does not debit the marketer's balance.
             } else {
                 throw ValidationException::withMessages([
                     'settlement' => 'قرار تسوية العمولة غير صحيح.',
@@ -189,46 +217,12 @@ class RecruitmentCommissionService
         });
     }
 
-    private function zeroAvailableCommission(
-        CommissionBatchItem $item,
-        Contract $contract,
-        int $adminId,
-        ?string $notes
-    ): ?CommissionBalanceTransaction {
-        $marketerId = (int) $item->batch?->marketer_id;
-        $credit = (float) CommissionBalanceTransaction::query()
-            ->where('marketer_id', $marketerId)
-            ->where('type', CommissionBalanceTransaction::TYPE_CREDIT)
-            ->sum('amount');
-        $debit = (float) CommissionBalanceTransaction::query()
-            ->where('marketer_id', $marketerId)
-            ->where('type', CommissionBalanceTransaction::TYPE_DEBIT)
-            ->sum('amount');
-        $currentBalance = round($credit - $debit, 2);
-        $amount = min(round((float) $item->commission_amount, 2), max($currentBalance, 0));
-
-        if ($amount <= 0) {
-            return null;
-        }
-
-        return CommissionBalanceTransaction::query()->create([
-            'marketer_id' => $marketerId,
-            'type' => CommissionBalanceTransaction::TYPE_DEBIT,
-            'amount' => $amount,
-            'reference_type' => 'commission_zero_adjustment',
-            'reference_id' => $item->id,
-            'balance_after' => round($currentBalance - $amount, 2),
-            'notes' => 'تصفير عمولة عقد استقدام مسترد #' . $contract->id
-                . ($notes ? ' - ' . trim($notes) : ''),
-            'created_by' => $adminId,
-        ]);
-    }
-
     private function reverseItem(
         CommissionBatchItem $item,
         Contract $contract,
         ?int $adminId,
-        string $reason
+        string $reason,
+        ?float $deductionAmount = null
     ): ?CommissionBalanceTransaction {
         $item->refresh();
         if ($item->commission_reversal_transaction_id) {
@@ -248,7 +242,7 @@ class RecruitmentCommissionService
             ->where('marketer_id', $marketerId)
             ->where('type', CommissionBalanceTransaction::TYPE_DEBIT)
             ->sum('amount');
-        $amount = round((float) $item->commission_amount, 2);
+        $amount = round($deductionAmount ?? (float) $item->commission_amount, 2);
 
         $transaction = CommissionBalanceTransaction::query()->create([
             'marketer_id' => $marketerId,
