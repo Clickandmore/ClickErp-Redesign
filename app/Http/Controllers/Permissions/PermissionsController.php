@@ -39,6 +39,11 @@ class PermissionsController extends Controller
             ->orderBy('name')
             ->get();
 
+        // إخفاء صلاحيات نظام الساعات عندما تكون الوحدة غير مفعلة
+        if (!SystemModuleManager::isEnabled('hourly_rental')) {
+            $data = $data->reject(fn ($permission) => $this->isHourlyPermission($permission->name))->values();
+        }
+
         // تنظيم الصلاحيات بطريقة جديدة
         $organizedPermissions = $this->sortOrganizedPermissions($this->organizePermissions($data));
 
@@ -1618,6 +1623,10 @@ class PermissionsController extends Controller
             $scopeLabel = trim((string) $request->input('scope_label', ''));
             $branchId = $this->resolveSubmittedBranchId($request);
 
+            if ($scopePermissions->isEmpty()) {
+                $requestedPermissions = $this->preserveHiddenHourlyPermissions($role, $requestedPermissions, $branchId);
+            }
+
             if ($branchId) {
                 if ($scopePermissions->isNotEmpty()) {
                     $branchResult = $this->syncRoleBranchPermissionsWithinScope(
@@ -1821,6 +1830,39 @@ class PermissionsController extends Controller
             ->whereNotNull('role_id')
             ->groupBy('role_id')
             ->pluck('total', 'role_id'));
+    }
+
+    private function isHourlyPermission(string $permissionName): bool
+    {
+        return str_starts_with($permissionName, 'hourly_');
+    }
+
+    /**
+     * صلاحيات الساعات مخفية من الشاشة عند تعطيل الوحدة، فلا تُرسل مع النموذج.
+     * نحتفظ بالمسند منها للدور حتى لا يمسحها الحفظ الكامل.
+     */
+    private function preserveHiddenHourlyPermissions(Role $role, Collection $requestedPermissions, ?int $branchId): Collection
+    {
+        if (SystemModuleManager::isEnabled('hourly_rental')) {
+            return $requestedPermissions;
+        }
+
+        $existingPermissions = $role->permissions()->pluck('name');
+
+        if ($branchId) {
+            $existingPermissions = $existingPermissions->merge(
+                BranchScopedPermissions::permissionNamesForRoleBranch((int) $role->id, $branchId)
+            );
+        }
+
+        $hiddenHourlyPermissions = collect($existingPermissions)
+            ->filter(fn ($name) => $this->isHourlyPermission((string) $name));
+
+        return $requestedPermissions
+            ->reject(fn ($name) => $this->isHourlyPermission((string) $name))
+            ->merge($hiddenHourlyPermissions)
+            ->unique()
+            ->values();
     }
 
     private function forgetPermissionCache(): void

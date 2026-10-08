@@ -12,6 +12,7 @@
         <tr>
             <th>#</th>
             <th>{{helperTrans("ingaz.title")}}</th>
+            <th>{{helperTrans("ingaz.image")}}</th>
             <th>{{helperTrans("ingaz.actions")}}</th>
 
         </tr>
@@ -31,6 +32,7 @@
             let columns = [
                 {"data": 'DT_RowIndex', name: 'DT_RowIndex', orderable: false, searchable: false},
                 {"data": "title", orderable: true, searchable: true},
+                {"data": "image", orderable: false, searchable: false},
                 {"data": "actions", orderable: false, searchable: false}
             ];
             showDataTable("{{route("fast-news.index")}}", columns);

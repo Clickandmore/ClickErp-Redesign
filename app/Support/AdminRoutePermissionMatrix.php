@@ -536,6 +536,7 @@ class AdminRoutePermissionMatrix
             'RecruitmentContract.destroy' => [NewPermKeys::REC_CONTRACTS_DELETE, NewPermKeys::REC_CONTRACTS_MANAGE],
             'RecruitmentContract.restoreReturned' => [NewPermKeys::REC_CONTRACTS_RETURN, NewPermKeys::REC_CONTRACTS_MANAGE],
             'RecruitmentContract.releaseMaidAfterCompletion' => [NewPermKeys::REC_CONTRACTS_RELEASE_MAID_AFTER_COMPLETION],
+            'RecruitmentContract.removeMaid' => [NewPermKeys::REC_CONTRACTS_REMOVE_MAID],
             'RecruitmentContract.back' => [NewPermKeys::REC_CONTRACTS_RETURN, NewPermKeys::REC_CONTRACTS_MANAGE],
             'RecruitmentContract.updateStatus' => [
                 NewPermKeys::REC_CONTRACTS_UPDATE,

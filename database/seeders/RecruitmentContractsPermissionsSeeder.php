@@ -139,6 +139,11 @@ class RecruitmentContractsPermissionsSeeder extends Seeder
                 'guard_name' => 'admin'
             ],
             [
+                'name' => NewPermKeys::REC_CONTRACTS_REMOVE_MAID,
+                'display_name' => 'حذف العاملة من عقد الاستقدام',
+                'guard_name' => 'admin'
+            ],
+            [
                 'name' => NewPermKeys::REC_CONTRACTS_RELEASE_MAID_AFTER_COMPLETION,
                 'display_name' => 'اكتمال العقد وتسفير العاملة وإتاحتها للاستقدام',
                 'guard_name' => 'admin'

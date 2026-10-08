@@ -32,7 +32,13 @@ class FastNewController extends Controller
                 ->addIndexColumn()
                 ->editColumn('title', function ($row) {
                     $limited = Str::limit($row?->title, 50, '...');
-                    return "<span title='" . $row->title . "'>" . $limited . "</span>";
+                    return "<span title='" . e($row->title) . "'>" . e($limited) . "</span>";
+                })
+                ->addColumn('image', function ($row) {
+                    $url = showFile($row->image);
+                    return $url
+                        ? '<img src="' . e($url) . '" alt="" style="height:40px;max-width:80px;object-fit:contain;border-radius:6px">'
+                        : '-';
                 })
                 ->addColumn('actions', function ($row) {
                     $editButton = '';
@@ -82,14 +88,13 @@ class FastNewController extends Controller
     public function update(objRequest $request, objAction $action, $id)
     {
         $updatedData = $request->validated();
-        $data = $action->find($id)->update($updatedData);
+        $data = $action->updateFastNew($id, $updatedData);
         return jsonSuccess($data);
     }
 
     public function destroy($id, objAction $action)
     {
-        // $action->deleteWithFile($id, 'image');
-        $action->delete($id, 'image');
+        $action->deleteWithFile($id, 'image');
         return jsonSuccess();
     }
 }

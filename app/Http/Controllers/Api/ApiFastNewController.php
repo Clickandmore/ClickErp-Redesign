@@ -9,7 +9,7 @@ use Illuminate\Support\Facades\Schema;
 
 /**
  * شريط آخر الأخبار المعروض في المواقع الخارجية.
- * يعيد العناوين المترجمة حسب لغة الطلب (هيدر lang)، والأحدث أولاً.
+ * يعيد العناوين المترجمة حسب لغة الطلب (هيدر lang) مع صورة كل خبر إن وُجدت، والأحدث أولاً.
  */
 class ApiFastNewController extends Controller
 {
@@ -29,6 +29,8 @@ class ApiFastNewController extends Controller
                 return [
                     'id' => $row->id,
                     'title' => trim((string) $row->title),
+                    // رابط مطلق للصورة الاختيارية، أو null إن لم تُرفع صورة
+                    'image' => showFile($row->image ?? null),
                 ];
             })
             ->filter(function ($row) {

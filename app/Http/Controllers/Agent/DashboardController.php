@@ -4,6 +4,8 @@ namespace App\Http\Controllers\Agent;
 
 use App\Http\Actions\ingaz\MaidAction;
 use App\Http\Controllers\Controller;
+use App\Services\ingaz\MaidCvPdfGenerator;
+use App\Support\MaidCvTemplateSettings;
 use App\Models\Contract;
 use App\Models\Country;
 use App\Models\ingaz\JobTitle;
@@ -262,7 +264,7 @@ class DashboardController extends Controller
         return response()->json($data);
     }
 
-    public function storeMaid(Request $request, MaidAction $maidAction)
+    public function storeMaid(Request $request, MaidAction $maidAction, MaidCvPdfGenerator $cvGenerator)
     {
         $request->merge([
             'video_link' => \App\Support\MaidVideoLink::normalize($request->input('video_link')),
@@ -335,7 +337,8 @@ class DashboardController extends Controller
         $data['experience_status'] = $data['experience_status'] ?? 'no_experience';
 
         try {
-            $maidAction->storeMaid($data, $request);
+            $maid = $maidAction->storeMaid($data, $request);
+            $this->generateCvAutomatically($maid, $cvGenerator);
         } catch (\Throwable $e) {
             \Log::error('Agent storeMaid failed: ' . $e->getMessage());
             return redirect()->back()->withInput()->with('error', $e->getMessage());
@@ -357,7 +360,7 @@ class DashboardController extends Controller
         return view('agent.maids.rapid_cv_add', compact('nationalities', 'offices', 'jobs', 'defaultTypeId'));
     }
 
-    public function storeRapidMaid(Request $request, MaidAction $maidAction)
+    public function storeRapidMaid(Request $request, MaidAction $maidAction, MaidCvPdfGenerator $cvGenerator)
     {
         $data = $request->validate([
             'name:en' => 'nullable|string|max:255',
@@ -391,7 +394,8 @@ class DashboardController extends Controller
         unset($data['name:en']);
 
         try {
-            $maidAction->storeRapidCvMaid($data, $request);
+            $maid = $maidAction->storeRapidCvMaid($data, $request);
+            $this->generateCvAutomatically($maid, $cvGenerator);
         } catch (\Throwable $e) {
             \Log::error('Agent storeRapidMaid failed: ' . $e->getMessage());
             return redirect()->back()->withInput()->with('error', $e->getMessage());
@@ -454,7 +458,7 @@ class DashboardController extends Controller
         ]);
     }
 
-    public function updateMaid(Request $request, Maid $maid, MaidAction $maidAction)
+    public function updateMaid(Request $request, Maid $maid, MaidAction $maidAction, MaidCvPdfGenerator $cvGenerator)
     {
         $this->authorizeAgentMaid($maid);
 
@@ -517,11 +521,29 @@ class DashboardController extends Controller
         $data['reviewed_by'] = null;
         $data['reviewed_at'] = null;
 
-        $maidAction->updateMaid($maid->id, $data, $request);
+        $maid = $maidAction->updateMaid($maid->id, $data, $request);
+        $this->generateCvAutomatically($maid, $cvGenerator);
 
         return redirect()->route('agent.maids.index')->with('success', app()->getLocale() === 'ar'
             ? 'تم حفظ التعديلات وإرسال السيرة إلى الإدارة للمراجعة.'
             : 'Changes were saved and sent to administration for review.');
+    }
+
+    private function generateCvAutomatically(Maid $maid, MaidCvPdfGenerator $cvGenerator): void
+    {
+        if (!MaidCvTemplateSettings::enabled()) {
+            return;
+        }
+
+        try {
+            $cvGenerator->generate($maid);
+        } catch (\Throwable $exception) {
+            report($exception);
+            \Log::warning('Automatic agent maid CV generation failed.', [
+                'maid_id' => $maid->id,
+                'error' => $exception->getMessage(),
+            ]);
+        }
     }
 
     public function requestMaidStatusChange(Request $request, Maid $maid)

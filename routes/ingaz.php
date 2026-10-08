@@ -537,6 +537,7 @@ Route::group(
             Route::get('RecruitmentContract/{contractId}/select-maid', [RecruitmentContractController::class, 'selectMaidForContract'])->name('RecruitmentContract.selectMaid');
             Route::get('RecruitmentContract/{contractId}/change-maid', [RecruitmentContractController::class, 'showChangeMaid'])->name('RecruitmentContract.showChangeMaid');
             Route::post('RecruitmentContract/{contractId}/change-maid', [RecruitmentContractController::class, 'changeMaid'])->name('RecruitmentContract.changeMaid');
+            Route::post('RecruitmentContract/{contractId}/remove-maid', [RecruitmentContractController::class, 'removeMaid'])->name('RecruitmentContract.removeMaid');
             Route::post('RecruitmentContract/{contractId}/notes', [RecruitmentContractController::class, 'storeNote'])->name('RecruitmentContract.notes.store');
             Route::get('RentContract/existing-clients', [RentContractController::class, 'getExistingClients'])->name('RentContract.existing.clients');
             Route::resource('RentContract', RentContractController::class);

@@ -27,6 +27,9 @@ class FastNewRequest extends MainRequest
         return [
           'title:en' => 'required',
            'title:ar' => 'required',
+           // صورة اختيارية تظهر بجانب الخبر في شريط المواقع الخارجية
+           'image' => 'nullable|file|mimes:jpg,jpeg,png,webp,gif,svg|max:2048',
+           'remove_image' => 'nullable|boolean',
          ];
     }
 }

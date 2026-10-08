@@ -14,6 +14,11 @@ use Illuminate\Validation\ValidationException;
 
 class ShelterDocumentService
 {
+    public function defaultReleaseTemplate(): ?ShelterDocumentTemplate
+    {
+        return ShelterDocumentTemplate::where('kind', 'release')->where('active', true)->orderBy('id')->first();
+    }
+
     public function available(): bool
     {
         return Schema::hasTable('shelter_document_templates') && Schema::hasTable('shelter_documents');
@@ -58,6 +63,7 @@ class ShelterDocumentService
         return [
             'templates' => ShelterDocumentTemplate::where('active', true)->orderBy('company_name')->orderBy('name')->get(),
             'documents' => $documents,
+            'default_release_template_id' => $this->defaultReleaseTemplate()?->id,
             'defaults' => $contract ? $this->defaults($contract) : [],
         ];
     }
@@ -93,6 +99,9 @@ class ShelterDocumentService
             if (!$request->has("shelter_documents.$kind")) continue;
             $document = ShelterDocument::where('contract_id', $contract->id)->where('kind', $kind)->lockForUpdate()->first();
             $templateId = $request->input("shelter_documents.$kind.template_id");
+            if (!$templateId && $kind === 'release') {
+                $templateId = $this->defaultReleaseTemplate()?->id;
+            }
             if (!$templateId) {
                 if ($document) $document->update(['enabled' => false]);
                 continue;

@@ -36,7 +36,22 @@ class ShelterDocumentMovementService
 
     public function configuration(Contract $contract, string $kind): ?ShelterDocument
     {
-        return ShelterDocument::where('contract_id', $contract->id)->where('kind', $kind)->where('enabled', true)->first();
+        $document = ShelterDocument::where('contract_id', $contract->id)->where('kind', $kind)->first();
+        if ($document?->enabled) return $document;
+        if ($kind !== 'release') return null;
+
+        $template = app(ShelterDocumentService::class)->defaultReleaseTemplate();
+        if (!$template) return null;
+
+        // Select the available form for existing contracts too; release data is
+        // completed only when the worker actually leaves the shelter.
+        return ShelterDocument::updateOrCreate(['contract_id' => $contract->id, 'kind' => $kind], [
+            'template_id' => $template->id,
+            'enabled' => true,
+            'data' => [],
+            'release_completed_at' => null,
+            'revision' => (string) \Illuminate\Support\Str::uuid(),
+        ]);
     }
 
     public function version(Contract $contract): string

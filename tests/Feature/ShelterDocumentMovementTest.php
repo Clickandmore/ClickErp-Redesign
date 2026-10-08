@@ -164,12 +164,62 @@ class ShelterDocumentMovementTest extends TestCase
         $this->assertFalse($contract->info->fresh()->is_outside_shelter);
     }
 
-    public function test_existing_company_without_selected_release_template_keeps_old_flow(): void
+    public function test_without_an_active_release_template_keeps_old_flow(): void
     {
+        ShelterDocumentTemplate::where('kind', 'release')->update(['active' => false]);
         $contract = $this->contract(false);
         $this->assertSame(200, $this->runAction($contract, 'ShelterContract.vacation', [])->getStatusCode());
         $this->assertTrue($contract->info->fresh()->is_outside_shelter);
         $this->assertSame(0, ShelterDocument::where('contract_id', $contract->id)->count());
+    }
+
+    public function test_available_release_template_opens_form_for_an_existing_unconfigured_contract(): void
+    {
+        ShelterDocumentTemplate::where('kind', 'release')->update(['active' => false]);
+        $template = ShelterDocumentTemplate::create(ShelterDocumentFields::starter('release'));
+        $contract = $this->contract(false);
+
+        $response = $this->runAction($contract, 'ShelterContract.vacation', []);
+        $this->assertSame(409, $response->getStatusCode());
+        $this->assertArrayHasKey('shelter_document_url', $response->getData(true));
+        $document = ShelterDocument::where('contract_id', $contract->id)->where('kind', 'release')->firstOrFail();
+        $this->assertSame($template->id, $document->template_id);
+        $this->assertNull($document->release_completed_at);
+        $this->assertFalse($contract->info->fresh()->is_outside_shelter);
+
+        $this->assertSame(200, $this->runAction($contract, 'ShelterContract.vacation', $this->release($contract))->getStatusCode());
+        $this->assertNotNull($document->fresh()->release_completed_at);
+        $this->assertTrue($contract->info->fresh()->is_outside_shelter);
+    }
+
+    public function test_automatic_selection_preserves_a_previously_selected_release_template(): void
+    {
+        ShelterDocumentTemplate::create(ShelterDocumentFields::starter('release'));
+        $contract = $this->contract();
+        $selected = ShelterDocument::where('contract_id', $contract->id)->where('kind', 'release')->firstOrFail();
+        $service = app(ShelterDocumentMovementService::class);
+        $this->assertSame($selected->template_id, $service->configuration($contract, 'release')->template_id);
+        $this->assertSame($selected->revision, $service->configuration($contract, 'release')->revision);
+    }
+
+    public function test_automatic_selection_uses_first_active_release_template_and_reenables_unselected_form(): void
+    {
+        ShelterDocumentTemplate::where('kind', 'release')->update(['active' => false]);
+        $inactive = ShelterDocumentTemplate::create(ShelterDocumentFields::starter('release'));
+        $inactive->update(['active' => false]);
+        $first = ShelterDocumentTemplate::create(ShelterDocumentFields::starter('release'));
+        ShelterDocumentTemplate::create(ShelterDocumentFields::starter('release'));
+        $contract = $this->contract(false);
+        ShelterDocument::create([
+            'contract_id' => $contract->id, 'kind' => 'release', 'template_id' => $inactive->id,
+            'enabled' => false, 'data' => [], 'revision' => 'old',
+        ]);
+        $service = app(ShelterDocumentMovementService::class);
+        $document = $service->configuration($contract, 'release');
+        $this->assertSame($first->id, $document->template_id);
+        $this->assertTrue($document->enabled);
+        $this->assertSame($document->revision, $service->configuration($contract, 'release')->revision);
+        $this->assertSame(1, ShelterDocument::where('contract_id', $contract->id)->count());
     }
 
     public function test_actual_admission_issues_entry_only_after_success(): void
