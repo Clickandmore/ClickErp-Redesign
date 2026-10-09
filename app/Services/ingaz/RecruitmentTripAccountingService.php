@@ -987,7 +987,8 @@ class RecruitmentTripAccountingService
     /**
      * مبلغ تكلفة الوكيل بالدولار. الإرسالية هي المصدر المعتمد متى حملت مبلغاً، فالسلوك
      * الحالي لا يتغير أبداً. قائمة أسعار المكاتب تُستخدم فقط لتغطية الفترة قبل الإرسالية،
-     * وبشرط تفعيل الإعداد.
+     * وبشرط تفعيل الإعداد. وفي «التسلسل الجديد» تسبق تكلفة السيرة سعرَ المكتب، بنفس ترتيب
+     * شاشة الفاتورة، حتى لا يُثبت العقد مبلغاً وتعرض الفاتورة غيره.
      */
     private function resolveExternalOfficeCostUsd(Contract $contract): float
     {
@@ -1003,6 +1004,11 @@ class RecruitmentTripAccountingService
         }
 
         $contract->loadMissing(['maid.office', 'maid.recruitmentOffice', 'info.manualMaidOffice']);
+        $cvUsd = str_replace(',', '', (string) ($contract->maid?->supplier_cost_usd ?? ''));
+        if (\App\Support\InvoiceSupplierWorkflow::enabled() && is_numeric($cvUsd) && (float) $cvUsd > 0) {
+            return $this->roundMoney((float) $cvUsd);
+        }
+
         $office = $contract->resolveExternalOfficeDispatchOffice();
         $priceListUsd = str_replace(',', '', (string) ($office?->cost_of_dollar ?? ''));
 
@@ -1215,9 +1221,21 @@ class RecruitmentTripAccountingService
             . ' / ' . $label;
     }
 
+    /**
+     * بادئات بيان قيد تكلفة المورد عبر الإصدارات، الأحدث أولاً. التسلسل القديم يُبقي صيغة
+     * «الإرسالية» التي كانت قبل «التسلسل الجديد»، والمطابقة تقبلها كلها حتى لا يُنشأ قيد مكرر.
+     */
+    private const SUPPLIER_STATEMENT_PREFIX_UPDATED = 'فاتورة مورد: إثبات تكلفة فاتورة المورد لعقد استقدام: ';
+    private const SUPPLIER_STATEMENT_PREFIX_LEGACY = 'فاتورة مورد: إثبات تكلفة إرسالية المكتب الخارجي لعقد استقدام: ';
+    private const SUPPLIER_STATEMENT_PREFIX_OLDEST = 'فاتورة مورد: إغلاق طلب: ';
+
     private function buildExternalOfficeCostStatement(Contract $contract, ?Invoice $invoice): string
     {
-        return 'فاتورة مورد: إثبات تكلفة فاتورة المورد لعقد استقدام: ' . $contract->id
+        $prefix = \App\Support\InvoiceSupplierWorkflow::enabled()
+            ? self::SUPPLIER_STATEMENT_PREFIX_UPDATED
+            : self::SUPPLIER_STATEMENT_PREFIX_LEGACY;
+
+        return $prefix . $contract->id
             . ($invoice ? ', فاتورة رقم: ' . $invoice->id : '')
             . ' العميل: ' . $this->resolveClientReference($contract);
     }
@@ -1236,12 +1254,23 @@ class RecruitmentTripAccountingService
             return null;
         }
 
-        // Retain matching for supplier entries created before the description changed.
+        // Retain matching for supplier entries created under any earlier description.
         $statements = [$statement];
-        $supplierPrefix = 'فاتورة مورد: إثبات تكلفة فاتورة المورد لعقد استقدام: ';
-        if (str_starts_with($statement, $supplierPrefix)) {
-            $statements[] = 'فاتورة مورد: إغلاق طلب: ' . substr($statement, strlen($supplierPrefix));
+        $prefixes = [
+            self::SUPPLIER_STATEMENT_PREFIX_UPDATED,
+            self::SUPPLIER_STATEMENT_PREFIX_LEGACY,
+            self::SUPPLIER_STATEMENT_PREFIX_OLDEST,
+        ];
+        foreach ($prefixes as $prefix) {
+            if (str_starts_with($statement, $prefix)) {
+                $suffix = substr($statement, strlen($prefix));
+                foreach ($prefixes as $other) {
+                    $statements[] = $other . $suffix;
+                }
+                break;
+            }
         }
+        $statements = array_values(array_unique($statements));
 
         return Constraint::query()
             ->whereIn('statement', $statements)

@@ -54,12 +54,12 @@ class InvoiceSupplierWorkflowSettingsTest extends TestCase
     public function test_supplier_invoice_options_are_hidden_in_legacy_and_visible_when_enabled(): void
     {
         $this->get(route('invoices.create'))->assertOk()->assertDontSee('id="supplierInvoiceOptions"', false)
-            ->assertDontSee('id="summaryMusanedCommission"', false);
+            ->assertDontSee('id="musaned_commission_amount"', false);
         DB::table('fn_confirm_settings')->insert([
             'title' => InvoiceSupplierWorkflow::SETTING_KEY, 'value' => InvoiceSupplierWorkflow::UPDATED,
             'created_at' => now(), 'updated_at' => now(),
         ]);
         $this->get(route('invoices.create'))->assertOk()->assertSee('id="supplierInvoiceOptions"', false)
-            ->assertSee('id="summaryMusanedCommission"', false);
+            ->assertSee('id="musaned_commission_amount"', false);
     }
 }

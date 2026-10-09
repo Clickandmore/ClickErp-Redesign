@@ -57,7 +57,13 @@ class RecruitmentSupplierCycleTest extends TestCase
 
         ConfirmSetting::query()->whereIn('title', array_merge(
             RecruitmentSupplierSettings::confirmSettingTitles(),
-            [RecruitmentSupplierCostRecognition::SETTING_KEY, RecruitmentSupplierSettings::CONTRACT_FINANCE_SCREEN]
+            [
+                RecruitmentSupplierCostRecognition::SETTING_KEY,
+                RecruitmentSupplierSettings::CONTRACT_FINANCE_SCREEN,
+                \App\Support\InvoiceSupplierWorkflow::SETTING_KEY,
+                \App\Support\RecruitmentRevenueRecognition::SETTING_KEY,
+                'automatic_journal_entries',
+            ]
         ))->delete();
 
         $this->ensureActiveFiscalYear();
@@ -85,6 +91,173 @@ class RecruitmentSupplierCycleTest extends TestCase
 
         $this->assertSame(RecruitmentSupplierCostRecognition::MODE_ON_ARRIVAL, RecruitmentSupplierCostRecognition::mode());
         $this->assertFalse(RecruitmentSupplierCostRecognition::isOnContract());
+
+        // «تسلسل الفواتير ومساند والمورد» قديم افتراضياً: لا عمولة عند الإصدار ولا فاتورة مورد
+        // مع فاتورة العميل، وبيان قيد التكلفة بصيغة «الإرسالية» كما كان.
+        $this->assertFalse(\App\Support\InvoiceSupplierWorkflow::enabled());
+        $statement = $this->callPrivate(
+            app(RecruitmentTripAccountingService::class),
+            'buildExternalOfficeCostStatement',
+            $this->createContract($this->createNationality('اختبار الافتراضي')),
+            null
+        );
+        $this->assertStringStartsWith('فاتورة مورد: إثبات تكلفة إرسالية المكتب الخارجي لعقد استقدام: ', $statement);
+    }
+
+    public function test_supplier_statement_follows_the_workflow_and_matches_every_earlier_wording(): void
+    {
+        $service = app(RecruitmentTripAccountingService::class);
+        $contract = $this->createContract($this->createNationality('اختبار البيان'));
+
+        $legacy = $this->callPrivate($service, 'buildExternalOfficeCostStatement', $contract, null);
+
+        $this->saveSetting(\App\Support\InvoiceSupplierWorkflow::SETTING_KEY, \App\Support\InvoiceSupplierWorkflow::UPDATED);
+        $updated = $this->callPrivate($service, 'buildExternalOfficeCostStatement', $contract, null);
+        $this->assertStringStartsWith('فاتورة مورد: إثبات تكلفة فاتورة المورد لعقد استقدام: ', $updated);
+
+        // قيد أُنشئ بالصيغة القديمة يُعثر عليه بالصيغة الجديدة، فلا يُنشأ قيد مكرر بعد التبديل.
+        $existing = Constraint::withoutEvents(fn () => Constraint::query()->create([
+            'type' => 1,
+            'code' => 9100000 + random_int(1, 99999),
+            'date' => now()->toDateString(),
+            'value' => 1875,
+            'statement' => $legacy,
+        ]));
+
+        $found = $this->callPrivate($service, 'findExistingConstraint', $updated, now()->toDateString(), 1875.0);
+        $this->assertSame((int) $existing->id, (int) $found?->id);
+    }
+
+    public function test_cv_cost_precedes_the_office_price_only_under_the_updated_workflow(): void
+    {
+        $this->saveSetting(RecruitmentSupplierSettings::COST_SOURCE, RecruitmentSupplierSettings::SOURCE_OFFICE_PRICE_LIST);
+
+        $contract = $this->createContract($this->createNationality('اختبار السيرة'));
+        $office = (new \App\Models\RecruitmentOffices())->forceFill(['cost_of_dollar' => 500]);
+        $maid = (new \App\Models\ingaz\Maid())->forceFill(['supplier_cost_usd' => 800]);
+        $maid->setRelation('office', $office);
+        $contract->setRelation('maid', $maid);
+        $contract->setRelation('externalOfficeDispatch', null);
+
+        $service = app(RecruitmentTripAccountingService::class);
+
+        // التسلسل القديم: تكلفة السيرة لا تُقرأ، كما قبل التحديث.
+        $this->assertSame(500.0, $this->callPrivate($service, 'resolveExternalOfficeCostUsd', $contract));
+
+        $this->saveSetting(\App\Support\InvoiceSupplierWorkflow::SETTING_KEY, \App\Support\InvoiceSupplierWorkflow::UPDATED);
+        $this->assertSame(800.0, $this->callPrivate($service, 'resolveExternalOfficeCostUsd', $contract));
+    }
+
+    public function test_supplier_invoice_cannot_silently_differ_from_the_cost_posted_at_contract_creation(): void
+    {
+        $this->saveSetting(RecruitmentSupplierCostRecognition::SETTING_KEY, RecruitmentSupplierCostRecognition::MODE_ON_CONTRACT);
+        $this->saveSetting(RecruitmentSupplierSettings::COST_SOURCE, RecruitmentSupplierSettings::SOURCE_OFFICE_PRICE_LIST);
+
+        $contract = $this->createContract($this->createNationality('اختبار الفرق'));
+        $constraint = Constraint::withoutEvents(fn () => Constraint::query()->create([
+            'type' => 1,
+            'code' => 9200000 + random_int(1, 99999),
+            'date' => now()->toDateString(),
+            'value' => 1875,
+            'statement' => 'قيد تكلفة عند إنشاء العقد',
+        ]));
+        Contract::query()->whereKey($contract->id)->update(['external_office_cost_constraint_id' => $constraint->id]);
+
+        try {
+            app(\App\Http\Controllers\ingaz\RecruitmentContractExternalOfficeDispatchController::class)
+                ->persistExternalOfficeDispatch($contract->fresh(), now()->toDateString(), 'RUH', '600', $this->admin->id);
+            $this->fail('A supplier invoice with a different amount must be refused.');
+        } catch (ValidationException $exception) {
+            $this->assertArrayHasKey('office_contract_cost_usd', $exception->errors());
+            $this->assertStringContainsString('1,875.00', $exception->errors()['office_contract_cost_usd'][0]);
+        }
+
+        $this->assertNull($contract->fresh()->externalOfficeDispatch);
+    }
+
+    public function test_refund_before_any_musaned_transfer_reverses_the_commission_posted_at_issuance(): void
+    {
+        $this->saveSetting('automatic_journal_entries', 'on');
+
+        $contract = $this->createContract($this->createNationality('اختبار عكس العمولة'));
+        $invoice = $this->createInvoice($contract);
+        $refunds = app(\App\Services\ingaz\RecruitmentContractRefundService::class);
+
+        // التسلسل القديم: لا عمولة عند الإصدار، فلا شيء يُعكس.
+        $this->assertFalse($this->callPrivate($refunds, 'shouldReverseMusanedCommission', $invoice->fresh(), false));
+
+        $musaned = $this->createAccount('مساند العكس', 'debtor');
+        $commission = $this->createAccount('عمولة العكس', 'debtor');
+        $tax = $this->createAccount('ضريبة العكس', 'debtor');
+        $issued = Constraint::withoutEvents(fn () => Constraint::query()->create([
+            'type' => 1,
+            'code' => 9300000 + random_int(1, 99999),
+            'date' => now()->toDateString(),
+            'value' => 83.91,
+            'statement' => 'التكاليف البنكية لمساند عند إصدار الفاتورة',
+        ]));
+        foreach ([[$commission->id, 72.97, 0], [$tax->id, 10.94, 0], [$musaned->id, 0, 83.91]] as [$account, $debtor, $creditor]) {
+            ConstraintDetails::query()->create([
+                'constraint_id' => $issued->id,
+                'type' => 1,
+                'account_id' => $account,
+                'debtor_value' => $debtor,
+                'creditor_value' => $creditor,
+                'statement' => $issued->statement,
+            ]);
+        }
+        $invoice->forceFill(['musaned_commission_constraint_id' => $issued->id])->saveQuietly();
+        $invoice = $invoice->fresh();
+
+        // بعد التحويل حسمت مساند العمولة فعلاً، فلا تُعكس.
+        $this->assertFalse($this->callPrivate($refunds, 'shouldReverseMusanedCommission', $invoice, true));
+        $this->assertTrue($this->callPrivate($refunds, 'shouldReverseMusanedCommission', $invoice, false));
+
+        $reversal = $this->callPrivate($refunds, 'reverseMusanedCommission', $contract->fresh(), $invoice, now()->toDateString());
+
+        $this->assertNotNull($reversal);
+        $this->assertSame([
+            [$commission->id, 0.0, 72.97],
+            [$tax->id, 0.0, 10.94],
+            [$musaned->id, 83.91, 0.0],
+        ], $this->lines($reversal));
+        $this->assertSame((int) $reversal->id, (int) $invoice->fresh()->musaned_commission_reversal_constraint_id);
+
+        // لا يُعكس مرتين.
+        $this->assertFalse($this->callPrivate($refunds, 'shouldReverseMusanedCommission', $invoice->fresh(), false));
+    }
+
+    public function test_refund_reverses_supplier_cost_posted_before_arrival_and_leaves_the_default_cycle_alone(): void
+    {
+        $this->saveSetting('automatic_journal_entries', 'on');
+
+        $contract = $this->createContract($this->createNationality('اختبار عكس التكلفة'));
+        $invoice = $this->createInvoice($contract);
+        $refunds = app(\App\Services\ingaz\RecruitmentContractRefundService::class);
+
+        // بلا قيد تكلفة لا شيء يُعكس.
+        $this->assertFalse($this->callPrivate($refunds, 'shouldReverseExternalOfficeCost', $contract->fresh(), $invoice->fresh()));
+
+        $invoice->forceFill(['external_office_cost_constraint_id' => 987654321])->saveQuietly();
+
+        // الدورة الافتراضية: فاتورة المورد لا تُعكس من نافذة الاسترداد، كما كانت.
+        $this->assertFalse($this->callPrivate($refunds, 'shouldReverseExternalOfficeCost', $contract->fresh(), $invoice->fresh()));
+
+        // تكلفة أُثبتت قبل الوصول بإعداد صريح تُعكس مع إثبات الإيراد عند الوصول.
+        $this->saveSetting(RecruitmentSupplierCostRecognition::SETTING_KEY, RecruitmentSupplierCostRecognition::MODE_ON_DISPATCH);
+        $this->assertTrue($this->callPrivate($refunds, 'shouldReverseExternalOfficeCost', $contract->fresh(), $invoice->fresh()));
+
+        // بعد الوصول: الدورة الافتراضية كما هي، التكلفة لا تُعكس من نافذة الاسترداد.
+        Contract::query()->whereKey($contract->id)->update(['status' => ContractStatusEnum::Arrival->value]);
+        $this->assertFalse($this->callPrivate($refunds, 'shouldReverseExternalOfficeCost', $contract->fresh(), $invoice->fresh()));
+    }
+
+    private function callPrivate(object $target, string $method, ...$arguments)
+    {
+        $reflection = new \ReflectionMethod($target, $method);
+        $reflection->setAccessible(true);
+
+        return $reflection->invoke($target, ...$arguments);
     }
 
     public function test_unknown_values_fall_back_to_the_current_behaviour(): void
@@ -468,8 +641,17 @@ class RecruitmentSupplierCycleTest extends TestCase
 
         $contract = $this->createContract($this->createNationality('اختبار نيجيريا'));
 
-        $this->expectException(\Symfony\Component\HttpKernel\Exception\HttpException::class);
-        app(\App\Http\Controllers\ingaz\RecruitmentContractFinanceController::class)->show((int) $contract->id);
+        // overview() هي شاشة الملف المالي. الاسم show() صار لميزة «العمليات المالية
+        // المتأخرة» المستقلة، وحارسها يرفض بـ422 قبل أن يُسأل عن هذا الإعداد أصلاً.
+        try {
+            app(\App\Http\Controllers\ingaz\RecruitmentContractFinanceController::class)
+                ->overview((int) $contract->id);
+
+            $this->fail('كان يجب رفض الوصول لأن الإعداد مطفأ.');
+        } catch (\Symfony\Component\HttpKernel\Exception\HttpException $exception) {
+            // 403 تحديداً: لو مرّ الرفض بأي حارس آخر لفقد الاختبار معناه.
+            $this->assertSame(403, $exception->getStatusCode());
+        }
     }
 
     public function test_contract_finance_screen_reports_the_three_states_without_posting_anything(): void
@@ -479,7 +661,7 @@ class RecruitmentSupplierCycleTest extends TestCase
         $contract = $this->createContract($this->createNationality('اختبار غانا'));
         $constraintsBefore = Constraint::query()->count();
 
-        $view = app(\App\Http\Controllers\ingaz\RecruitmentContractFinanceController::class)->show((int) $contract->id);
+        $view = app(\App\Http\Controllers\ingaz\RecruitmentContractFinanceController::class)->overview((int) $contract->id);
         $state = $view->getData()['state'];
 
         // عقد بلا فاتورة ولا تحصيل ولا تكلفة وكيل.
@@ -492,7 +674,7 @@ class RecruitmentSupplierCycleTest extends TestCase
 
         $invoice = $this->createInvoice($contract);
         $state = app(\App\Http\Controllers\ingaz\RecruitmentContractFinanceController::class)
-            ->show((int) $contract->id)->getData()['state'];
+            ->overview((int) $contract->id)->getData()['state'];
 
         $this->assertTrue($state['invoice']['exists']);
         $this->assertSame((int) $invoice->id, (int) $state['invoice']['id']);
