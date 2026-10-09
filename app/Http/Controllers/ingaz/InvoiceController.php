@@ -20,6 +20,7 @@ use App\Services\ingaz\InvoiceCalculationService;
 use App\Services\ingaz\RecruitmentTripAccountingService;
 use App\Services\ingaz\RentalContractFinanceService;
 use App\Support\AutomaticJournalEntries;
+use App\Support\RecruitmentCostCenters;
 use App\Support\RecruitmentRevenueRecognition;
 use App\Support\InvoiceQrCode;
 use App\Support\IngazDelegationTimeline;
@@ -1144,6 +1145,8 @@ class InvoiceController extends Controller
         }
         $requiresExternalRecruitmentCost = $request->filled('contract_id')
             || $request->filled('ingaz_delegation_id');
+        $invoiceNationality = $this->resolveRequestInvoiceNationality($request);
+        $this->enforceInvoiceLineItemPermission($request, $invoiceNationality);
 
         $request->validate([
             'invoice_date' => ['required', 'date_format:Y-m-d'],
@@ -1249,9 +1252,21 @@ class InvoiceController extends Controller
         }
 
         try {
-            $result = DB::transaction(function () use ($request, $service, $yearService, $bondService, $allowLateContract) {
+            $result = DB::transaction(function () use ($request, $service, $yearService, $bondService, $allowLateContract, $invoiceNationality) {
                 $invoicePayload = $this->buildInvoicePayload($request);
                 $sendToZatca = $request->has('send_to_zatca') ? $request->boolean('send_to_zatca') : true;
+
+                if (\App\Support\InvoiceSupplierWorkflow::enabled()
+                    && ($request->filled('contract_id') || $request->filled('ingaz_delegation_id'))) {
+                    $invoicePayload = array_merge(
+                        $invoicePayload,
+                        $this->resolveMusanedCommissionInput(
+                            $request,
+                            (float) $invoicePayload['total_due'],
+                            (float) ($invoiceNationality?->musaned_commission_rate ?? MusanedTransferController::DEFAULT_COMMISSION_RATE)
+                        )
+                    );
+                }
 
                 if ($request->filled('ingaz_delegation_id')) {
                     return $this->storeIngazDelegationInvoice(
@@ -1346,6 +1361,11 @@ class InvoiceController extends Controller
         $receiptBond = $result['receipt_bond'];
         /** @var \Nami\Finance\Models\Constraint|null $delegationCostConstraint */
         $delegationCostConstraint = $result['delegation_cost_constraint'] ?? null;
+        /** @var \Nami\Finance\Models\Constraint|null $musanedCommissionConstraint */
+        $musanedCommissionConstraint = $result['musaned_commission_constraint']
+            ?? ($invoice->musaned_commission_constraint_id
+                ? Constraint::query()->find((int) $invoice->musaned_commission_constraint_id)
+                : null);
 
         if ($invoice->ingaz_delegation_id) {
             $delegation = $invoice->relationLoaded('ingazDelegation')
@@ -1375,8 +1395,16 @@ class InvoiceController extends Controller
                 ? route('invoice.download', ['id' => $invoice->id, 'autoprint' => 1])
                 : null,
             'invoice_constraint_print_url' => $invoiceConstraint ? $this->buildConstraintPrintUrl($invoiceConstraint->id) : null,
+            'invoice_constraint_label' => $invoice->contract_id
+                ? (RecruitmentRevenueRecognition::invoiceRecognizesOnInvoice($invoice)
+                    ? 'قيد المبيعات'
+                    : 'قيد الفاتورة (التزام)')
+                : 'قيد المبيعات',
             'receipt_bond_print_url' => $receiptBond ? $this->buildReceiptBondPrintUrl($receiptBond->id) : null,
             'receipt_constraint_print_url' => ($receiptBond && $receiptBond->constraint_id) ? $this->buildConstraintPrintUrl((int) $receiptBond->constraint_id) : null,
+            'musaned_commission_constraint_print_url' => $musanedCommissionConstraint
+                ? $this->buildConstraintPrintUrl($musanedCommissionConstraint->id)
+                : null,
             'delegation_cost_constraint_print_url' => $delegationCostConstraint ? $this->buildConstraintPrintUrl($delegationCostConstraint->id) : null,
             'index_url' => InvoiceAuthorization::canView() ? route('invoices.index') : null,
             'create_url' => route('invoices.create'),
@@ -1465,6 +1493,8 @@ class InvoiceController extends Controller
                 'discount' => $invoicePayload['discount'],
                 'vat_amount' => $invoicePayload['vat_amount'],
                 'total_due' => $invoicePayload['total_due'],
+                'musaned_commission_rate' => $invoicePayload['musaned_commission_rate'] ?? null,
+                'musaned_commission_amount' => $invoicePayload['musaned_commission_amount'] ?? null,
                 'is_paid' => true,
                 'paid_at' => now(),
                 'send_to_zatca' => $sendToZatca,
@@ -1515,7 +1545,7 @@ class InvoiceController extends Controller
                 }
             }
 
-            app(MusanedTransferController::class)->recordInvoiceCommission($invoice);
+            $musanedCommissionConstraint = app(MusanedTransferController::class)->recordInvoiceCommission($invoice);
 
             if ($allowLateContract) {
                 $arrivalEntries = app(\App\Services\ingaz\RecruitmentTripAccountingService::class)
@@ -1533,6 +1563,7 @@ class InvoiceController extends Controller
                 'invoice' => $invoice->fresh(),
                 'invoice_constraint' => $invoiceConstraint,
                 'receipt_bond' => $receiptBond,
+                'musaned_commission_constraint' => $musanedCommissionConstraint,
             ];
         });
     }
@@ -2802,6 +2833,8 @@ class InvoiceController extends Controller
             'discount' => $invoicePayload['discount'],
             'vat_amount' => $invoicePayload['vat_amount'],
             'total_due' => $invoicePayload['total_due'],
+            'musaned_commission_rate' => $invoicePayload['musaned_commission_rate'] ?? null,
+            'musaned_commission_amount' => $invoicePayload['musaned_commission_amount'] ?? null,
             'is_paid' => true,
             'paid_at' => now(),
             'send_to_zatca' => $sendToZatca,
@@ -2833,7 +2866,7 @@ class InvoiceController extends Controller
             // Delegation costs are posted separately after payment confirmation.
         }
 
-        app(MusanedTransferController::class)->recordInvoiceCommission($invoice);
+        $musanedCommissionConstraint = app(MusanedTransferController::class)->recordInvoiceCommission($invoice);
 
         if ($invoice->send_to_zatca) {
             $this->queueInvoiceForZatcaSale($invoice);
@@ -2843,6 +2876,7 @@ class InvoiceController extends Controller
             'invoice' => $invoice,
             'invoice_constraint' => $invoiceConstraint,
             'receipt_bond' => $receiptBond,
+            'musaned_commission_constraint' => $musanedCommissionConstraint,
             'delegation_cost_constraint' => $delegationCostConstraint,
         ];
     }
@@ -3812,12 +3846,20 @@ class InvoiceController extends Controller
             'sponsorshipTransfer.receiptBond.constraint',
             'rentalTransferContract.maid',
             'invoiceConstraint',
+            'musanedCommissionConstraint',
             'musanedTransferItem.transfer',
             'financeSale.zatca',
             'recruitmentCreditNotes.constraint',
             'recruitmentCreditNotes.financeSale',
         ])->findOrFail($id);
         $this->assertCanAccessBranchModel($invoice, 'invoices');
+
+        $invoiceReceiptBond = Bond::query()
+            ->with('constraint')
+            ->where('type', BondTypes::Qabd->value)
+            ->where('statement', 'regexp', 'الفاتورة #' . (int) $invoice->id . '([^0-9]|$)')
+            ->latest('id')
+            ->first();
 
         $settings = Setting::query()->first();
         $documentBranding = documentBranding();
@@ -3881,6 +3923,7 @@ class InvoiceController extends Controller
 
         return [
             'invoice' => $invoice,
+            'invoiceReceiptBond' => $invoiceReceiptBond,
             'settings' => $settings,
             'supplierName' => $supplierName,
             'supplierAddress' => $supplierAddress,
@@ -4104,6 +4147,87 @@ class InvoiceController extends Controller
             'discount' => $totals['discount'],
             'vat_amount' => $totals['vat_amount'],
             'total_due' => $totals['total_due'],
+        ]);
+    }
+
+    /**
+     * مبلغ التكاليف البنكية هو القيمة المالية المعتمدة، وتُحفظ النسبة داخليًا للمراجعة.
+     * إذا عدّل المستخدم المبلغ، تُشتق منه النسبة الفعلية حتى لا يُحفظ رقمان متعارضان.
+     */
+    private function resolveMusanedCommissionInput(Request $request, float $invoiceTotal, float $defaultRate): array
+    {
+        $canEdit = InvoiceAuthorization::canEditMusanedCommission();
+        $validated = $request->validate([
+            'musaned_commission_amount' => 'nullable|numeric|min:0|max:999999999.99',
+        ], [
+            'musaned_commission_amount.numeric' => 'مبلغ التكاليف البنكية يجب أن يكون رقمًا.',
+        ]);
+
+        $invoiceTotal = $this->roundMoney(max(0, $invoiceTotal));
+        $requestedRate = $defaultRate;
+        $amount = $canEdit && isset($validated['musaned_commission_amount'])
+            ? $this->roundMoney((float) $validated['musaned_commission_amount'])
+            : $this->roundMoney($invoiceTotal * $requestedRate / 100);
+
+        if ($amount > $invoiceTotal) {
+            throw \Illuminate\Validation\ValidationException::withMessages([
+                'musaned_commission_amount' => 'مبلغ التكاليف البنكية لا يمكن أن يتجاوز إجمالي الفاتورة (' . number_format($invoiceTotal, 2) . ' ريال).',
+            ]);
+        }
+
+        $effectiveRate = $invoiceTotal > 0
+            ? round(($amount / $invoiceTotal) * 100, 4)
+            : 0.0;
+
+        return [
+            'musaned_commission_rate' => $effectiveRate,
+            'musaned_commission_amount' => $amount,
+        ];
+    }
+
+    private function resolveRequestInvoiceNationality(Request $request): ?Nationality
+    {
+        if ($request->filled('contract_id')) {
+            $contract = Contract::query()
+                ->with(['maid.nationality', 'requiredMaidNationality'])
+                ->find((int) $request->input('contract_id'));
+
+            return $contract?->maid?->nationality ?? $contract?->requiredMaidNationality;
+        }
+
+        if ($request->filled('ingaz_delegation_id')) {
+            return IngazDelegation::query()
+                ->with('nationality')
+                ->find((int) $request->input('ingaz_delegation_id'))
+                ?->nationality;
+        }
+
+        return null;
+    }
+
+    /**
+     * الإخفاء في الواجهة ليس حماية. من لا يملك صلاحية التعديل تُعاد قيمه
+     * إلى بنود الجنسية والكميات القياسية حتى لو أرسل طلباً يدوياً.
+     */
+    private function enforceInvoiceLineItemPermission(Request $request, ?Nationality $nationality): void
+    {
+        if ((!$request->filled('contract_id') && !$request->filled('ingaz_delegation_id'))
+            || InvoiceAuthorization::canEditLineItems()) {
+            return;
+        }
+
+        $request->merge([
+            'direct_recruitment_cost' => (float) ($nationality?->direct_recruitment_cost ?? 0),
+            'external_recruitment_cost' => (float) ($nationality?->external_recruitment_cost ?? 0),
+            'government_cost' => (float) ($nationality?->government_cost ?? 0),
+            'internal_ticket_cost' => 0,
+            'visa_recruited_count' => 1,
+            'direct_recruitment_count' => 1,
+            'external_recruitment_count' => 1,
+            'insured_count' => 1,
+            'government_cost_count' => 1,
+            'internal_ticket_count' => 1,
+            'discount' => 0,
         ]);
     }
 
@@ -4999,64 +5123,7 @@ class InvoiceController extends Controller
 
     private function ensureRecruitmentContractCostCenter(Contract $contract, ?string $nationalityName): CostCenter
     {
-        $rootCostCenter = $this->ensureRecruitmentContractsRootCostCenter();
-
-        $costCenter = CostCenter::query()
-            ->lockForUpdate()
-            ->where('parent_id', $rootCostCenter->id)
-            ->where('table_name', CostCenterTypeEnum::General->value)
-            ->where('table_related_id', $contract->id)
-            ->first();
-
-        if ($costCenter) {
-            return $costCenter;
-        }
-
-        $title = 'عقد استقدام #' . $contract->id;
-        $nationalityName = trim((string) $nationalityName);
-        if ($nationalityName !== '') {
-            $title .= ' - ' . $nationalityName;
-        }
-
-        return CostCenter::query()->create([
-            'title' => $title,
-            'parent_id' => $rootCostCenter->id,
-            'table_name' => CostCenterTypeEnum::General->value,
-            'table_related_id' => $contract->id,
-            'code' => $this->nextCostCenterCode(),
-            'created_by_id' => Auth::guard('admin')->id() ?: Auth::id() ?: 1,
-        ]);
-    }
-
-    private function ensureRecruitmentContractsRootCostCenter(): CostCenter
-    {
-        $costCenter = CostCenter::query()
-            ->lockForUpdate()
-            ->whereNull('parent_id')
-            ->where('title', 'عقود الاستقدام')
-            ->first();
-
-        if ($costCenter) {
-            return $costCenter;
-        }
-
-        return CostCenter::query()->create([
-            'title' => 'عقود الاستقدام',
-            'parent_id' => null,
-            'table_name' => CostCenterTypeEnum::General->value,
-            'table_related_id' => 0,
-            'code' => $this->nextCostCenterCode(),
-            'created_by_id' => Auth::guard('admin')->id() ?: Auth::id() ?: 1,
-        ]);
-    }
-
-    private function nextCostCenterCode(): string
-    {
-        $lastCode = CostCenter::query()
-            ->lockForUpdate()
-            ->max('code');
-
-        return (string) (((int) $lastCode) + 1);
+        return RecruitmentCostCenters::forContract((int) $contract->id, $nationalityName);
     }
 
     private function roundMoney(float $amount): float

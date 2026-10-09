@@ -568,8 +568,20 @@ Route::group(
             // InvoiceController::destroy is an intentional no-op; invoices are reversed via credit notes, never deleted.
             Route::resource('invoices', InvoiceController::class)->except(['destroy']);
             Route::get('invoices/download/{id}', [InvoiceController::class, 'downloadInvoice'])->name('invoice.download');
+            Route::get('musaned-transfers/invoices-report', [\App\Http\Controllers\ingaz\MusanedInvoiceReportController::class, 'index'])->name('musaned-transfers.invoices-report');
             Route::get('musaned-transfers/search', [MusanedTransferController::class, 'search'])->name('musaned-transfers.search');
             Route::resource('musaned-transfers', MusanedTransferController::class)->only(['index', 'create', 'store', 'show', 'destroy']);
+
+            // الملف المالي للعقد: لوحة حالة ومُطلِق إجراءات فوق المستندات القائمة،
+            // مرهونة بإعداد RecruitmentSupplierSettings::CONTRACT_FINANCE_SCREEN.
+            Route::get('recruitment-contract-finance', [\App\Http\Controllers\ingaz\RecruitmentContractFinanceController::class, 'index'])->name('recruitment-contract-finance.index');
+            Route::get('recruitment-contract-finance/{contract}', [\App\Http\Controllers\ingaz\RecruitmentContractFinanceController::class, 'overview'])->name('recruitment-contract-finance.show');
+
+            // دفعات الوكلاء الخارجيين: العرض كشف أرصدة، والتسجيل مرهون بإعداد
+            // RecruitmentSupplierSettings::PAYMENT_MODE داخل المتحكم نفسه.
+            Route::get('recruitment-supplier-payments', [\App\Http\Controllers\ingaz\RecruitmentSupplierPaymentController::class, 'index'])->name('recruitment-supplier-payments.index');
+            Route::get('recruitment-supplier-payments/{contract}/create', [\App\Http\Controllers\ingaz\RecruitmentSupplierPaymentController::class, 'create'])->name('recruitment-supplier-payments.create');
+            Route::post('recruitment-supplier-payments/{contract}', [\App\Http\Controllers\ingaz\RecruitmentSupplierPaymentController::class, 'store'])->name('recruitment-supplier-payments.store');
 
             // Ø¥ØºÙ„Ø§Ù‚ Ø¹Ù‚ÙˆØ¯ Ø§Ù„Ø¥ÙŠØ¬Ø§Ø±
             Route::get('RentContract/{id}/details', [RentContractController::class, 'getContractDetails'])->name('RentContract.details');

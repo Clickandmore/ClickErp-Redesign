@@ -77,15 +77,19 @@
                 ['name' => 'direct_recruitment_cost', 'label' => 'بند الاستقدام المباشر', 'help' => 'القيمة الافتراضية لبند الاستقدام المباشر في الفاتورة.'],
                 ['name' => 'external_recruitment_cost', 'label' => 'بند الاستقدام الخارجي', 'help' => 'القيمة الافتراضية لبند الاستقدام الخارجي في الفاتورة.'],
                 ['name' => 'government_cost', 'label' => 'بند التكاليف الحكومية', 'help' => 'القيمة الافتراضية لبند التكاليف الحكومية في الفاتورة.'],
+                ['name' => 'musaned_commission_rate', 'label' => 'نسبة التكاليف البنكية (مساند)', 'help' => 'تُستخدم لحساب مبلغ التكاليف البنكية الظاهر أسفل فاتورة مساند.', 'suffix' => '%', 'default' => 2.4],
             ];
         @endphp
         @foreach($invoicePrices as $priceField)
-            <div class="col-md-4">
+            <div class="col-md-6 col-lg-3">
                 <div class="nationality-price-field">
                     <label for="{{ $priceField['name'] }}" class="form-label">{{ $priceField['label'] }}</label>
                     <div class="input-group">
-                        <input type="number" step="0.01" min="0" id="{{ $priceField['name'] }}" name="{{ $priceField['name'] }}" class="form-control" value="{{ $fieldValue($priceField['name']) }}">
-                        <span class="input-group-text">ر.س</span>
+                        <input type="number" step="{{ $priceField['name'] === 'musaned_commission_rate' ? '0.0001' : '0.01' }}" min="0"
+                            @if($priceField['name'] === 'musaned_commission_rate') max="100" required @endif
+                            id="{{ $priceField['name'] }}" name="{{ $priceField['name'] }}" class="form-control"
+                            value="{{ $fieldValue($priceField['name'], $priceField['default'] ?? null) }}">
+                        <span class="input-group-text">{{ $priceField['suffix'] ?? 'ر.س' }}</span>
                     </div>
                     <div class="form-text">{{ $priceField['help'] }}</div>
                 </div>

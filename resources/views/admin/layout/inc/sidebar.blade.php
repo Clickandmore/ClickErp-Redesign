@@ -470,7 +470,7 @@
                                         <span class="ms-2"> {{ helperTrans('ingaz.Recruitment contracts') }} </span>
                                         <span class="arrow fa fa-angle-left ms-auto text-end"></span>
                                     </a>
-                                    <ul class="sub-menu collapse {{ in_array(Route::currentRouteName(), ['RecruitmentContracts.index', 'RecruitmentContract.company.index', 'RecruitmentContract.index', 'RecruitmentContract.escapeReports.index', 'RecruitmentContract.escapeReports.show', 'RecruitmentContract.create', 'RecruitmentContract.externalOfficeDispatch.index', 'RecruitmentContract.externalOfficeDispatch.edit', 'RecruitmentContract.externalOfficeDispatch.print', 'contract-return-requests.index', 'invoices.index', 'contract-extension-requests.index', 'contract-extension-requests.show']) ? 'show' : '' }}"
+                                    <ul class="sub-menu collapse {{ in_array(Route::currentRouteName(), ['RecruitmentContracts.index', 'RecruitmentContract.index', 'RecruitmentContract.escapeReports.index', 'RecruitmentContract.escapeReports.show', 'RecruitmentContract.create', 'RecruitmentContract.externalOfficeDispatch.index', 'RecruitmentContract.externalOfficeDispatch.edit', 'RecruitmentContract.externalOfficeDispatch.print', 'contract-return-requests.index', 'invoices.index', 'contract-extension-requests.index', 'contract-extension-requests.show']) ? 'show' : '' }}"
                                         id="contracts">
                                         @if (@AdminGuardHasPerm(\App\NewPermKeys::REC_CONTRACTS_CREATE))
                                             <li>
@@ -489,13 +489,6 @@
                                                     href="{{ route('RecruitmentContract.index', ['all_contracts' => 1]) }}">
                                                     <i class="fa fa-file-alt"></i>
                                                     <span class="ms-2">جميع عقود الاستقدام</span>
-                                                </a>
-                                            </li>
-                                            <li>
-                                                <a class="m-link {{ Route::currentRouteName() == 'RecruitmentContract.company.index' ? 'active' : '' }}"
-                                                    href="{{ route('RecruitmentContract.company.index') }}">
-                                                    <i class="fa fa-building"></i>
-                                                    <span class="ms-2">عقود الاستقدام للشركة</span>
                                                 </a>
                                             </li>
                                             <li>
@@ -667,6 +660,37 @@
                                                 <span class="ms-2">{{ __('admin.sidebar.contract_return_requests') }}</span>
                                             </a>
                                         </li>
+                                                {{-- الملف المالي للعقد: يظهر فقط عند تفعيل إعداده، فلا يقود إلى 403. --}}
+                                                @if (\App\Support\RecruitmentSupplierSettings::contractFinanceScreenEnabled())
+                                                    <li>
+                                                        <a class="m-link {{ Str::startsWith(Route::currentRouteName(), 'recruitment-contract-finance') ? 'active' : '' }}"
+                                                            href="{{ route('recruitment-contract-finance.index') }}">
+                                                            <i class="fa fa-folder-open"></i>
+                                                            <span class="ms-2">الملف المالي للعقود</span>
+                                                        </a>
+                                                    </li>
+                                                @endif
+                                                <li>
+                                                    <a class="m-link {{ Route::currentRouteName() == 'recruitment-supplier-payments.index' ? 'active' : '' }}"
+                                                        href="{{ route('recruitment-supplier-payments.index') }}">
+                                                        <i class="fa fa-money-bill-wave"></i>
+                                                        <span class="ms-2">دفعات الوكلاء الخارجيين</span>
+                                                    </a>
+                                                </li>
+                                                <li>
+                                                    <a class="m-link {{ Route::currentRouteName() == 'musaned-transfers.invoices-report' ? 'active' : '' }}"
+                                                        href="{{ route('musaned-transfers.invoices-report') }}">
+                                                        <i class="fa fa-file-invoice-dollar"></i>
+                                                        <span class="ms-2">فواتير المبيعات بالصافي</span>
+                                                    </a>
+                                                </li>
+                                                <li>
+                                                    <a class="m-link {{ Route::currentRouteName() == 'musaned-transfers.index' ? 'active' : '' }}"
+                                                        href="{{ route('musaned-transfers.index') }}">
+                                                        <i class="fa fa-exchange-alt"></i>
+                                                        <span class="ms-2">تحويلات مساند</span>
+                                                    </a>
+                                                </li>
                                             @endif
                                         @endif
 
@@ -683,7 +707,7 @@
                                         <span class="ms-2"> {{ helperTrans('ingaz.Rent contracts') }} </span>
                                         <span class="arrow fa fa-angle-left ms-auto text-end"></span>
                                     </a>
-                                    <ul class="sub-menu collapse {{ in_array(Route::currentRouteName(), ['RentContract.index', 'RentContract.create', 'RentContract.show', 'RentContract.edit', 'packages.index', 'rent-contract-terms.index', 'rent-contract-terms.create', 'rent-contract-terms.edit', 'rent-contract.settings']) ? 'show' : '' }}"
+                                    <ul class="sub-menu collapse {{ in_array(Route::currentRouteName(), ['RecruitmentContract.company.index', 'RentContract.index', 'RentContract.create', 'RentContract.show', 'RentContract.edit', 'packages.index', 'rent-contract-terms.index', 'rent-contract-terms.create', 'rent-contract-terms.edit', 'rent-contract.settings']) ? 'show' : '' }}"
                                         id="rentcontracts">
                                         @if (@AdminGuardHasPerm(\App\PermKeys::RENT_CONTRACT_CREATE))
                                             <li>
@@ -714,6 +738,15 @@
                                                         class="ms-2">{{ helperTrans('ingaz.All Rent contracts') }}</span>
                                                 </a>
                                             </li>
+                                            @if (@AdminGuardHasPerm(\App\NewPermKeys::REC_CONTRACTS_VIEW))
+                                                <li>
+                                                    <a class="m-link {{ Route::currentRouteName() == 'RecruitmentContract.company.index' ? 'active' : '' }}"
+                                                        href="{{ route('RecruitmentContract.company.index') }}">
+                                                        <i class="fa fa-building"></i>
+                                                        <span class="ms-2">جميع عقود الاستقدام للتأجير</span>
+                                                    </a>
+                                                </li>
+                                            @endif
                                             <li>
                                                 <a class="m-link {{ Route::currentRouteName() == 'RentContract.index' && request('status') == 'new' ? 'active' : '' }}"
                                                     href="{{ route('RentContract.index', ['status' => 'new']) }}">

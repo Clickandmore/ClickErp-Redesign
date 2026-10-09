@@ -104,9 +104,6 @@
             display: none;
         }
     </style>
-    @if (\App\Support\SystemModuleManager::usesRedesign())
-        <link rel="stylesheet" href="{{ asset('admin/custom/clickerp-clients.css') }}?v=1">
-    @endif
 @endsection
 
 @section('page-title')
@@ -131,7 +128,7 @@
             ];
         @endphp
 
-        <div class="page-body{{ \App\Support\SystemModuleManager::usesRedesign() ? ' ck-clients-index' : '' }}">
+        <div class="page-body">
             <div class="container-fluid">
                 <div class="d-sm-flex align-items-center justify-content-between mb-4">
                     <div>

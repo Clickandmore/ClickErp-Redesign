@@ -101,6 +101,15 @@
                         <div>{{ $transfer->intermediateAccount->code ?? '-' }} / {{ $transfer->intermediateAccount->name ?? '-' }}</div>
                     </div>
                     <div class="col-md-4">
+                        <strong>وضع التحصيل:</strong>
+                        <div>
+                            {{ \App\Support\RecruitmentSupplierSettings::musanedCollectionModeForTransfer($transfer)
+                                === \App\Support\RecruitmentSupplierSettings::MUSANED_DIRECT_RECEIPT
+                                ? 'سند قبض مباشر إلى البنك'
+                                : 'حساب وسيط ثم تحويل بنكي' }}
+                        </div>
+                    </div>
+                    <div class="col-md-4">
                         <strong>حساب العمولة:</strong>
                         <div>{{ $transfer->commissionAccount->code ?? '-' }} / {{ $transfer->commissionAccount->name ?? '-' }}</div>
                     </div>

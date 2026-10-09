@@ -399,3 +399,111 @@ php artisan finance:shelter-ledger-reconcile --apply --post-missing-deportations
 العقود المستردة والمرتجعة لا تُرجع من هنا (المرتجع يُستعاد عبر «التراجع عن الإرجاع»).
 
 الاختبارات: `RecruitmentContractStageRollbackTest`.
+
+## قيود المشتريات والوكلاء الخارجيون (إعدادات مستقلة)
+
+قسم جديد في صفحة الإعدادات:
+
+```text
+https://www.platinumeastern.com/finance/confirm-settings#recruitment-supplier-cycle-section
+```
+
+**قاعدة القسم:** كل قيمة افتراضية تساوي السلوك الحالي للنظام حرفياً. الإعداد الذي لم
+يُحفظ قط لا يغيّر أي قيد ولا أي شاشة، ولا يسري أي تغيير على القيود التي أُنشئت قبله.
+
+| المفتاح | الخيارات (الأول هو الافتراضي) | يتحكم في |
+|---|---|---|
+| `recruitment_supplier_cost_recognition` | `on_arrival` · `on_dispatch` · `on_contract` | لحظة إثبات فاتورة الوكيل الخارجي |
+| `recruitment_supplier_cost_source` | `dispatch_manual` · `office_price_list` | مصدر مبلغ التكلفة قبل الإرسالية |
+| `recruitment_supplier_usd_rate` | رقم (3.75) | سعر الصرف، بدل تثبيته في الكود |
+| `recruitment_cost_center_scope` | `contract` · `nationality_then_contract` | مستوى الدولة في شجرة مراكز التكلفة |
+| `recruitment_supplier_line_cost_center` | `off` · `on` | مركز تكلفة العقد على سطر حساب الوكيل |
+| `recruitment_supplier_payment_mode` | `general_bond` · `contract_linked` | شاشة دفعات الوكيل المربوطة بالعقد |
+| `musaned_collection_mode` | `intermediate_two_step` · `direct_receipt` | مسار قيد التحصيل من منصة مساند |
+| `recruitment_contract_finance_screen` | `off` · `on` | شاشة «الملف المالي للعقد» |
+
+### التثبيت على المستند
+
+القيمة تُحفظ على المستند لحظة إنشاء القيد، لا تُقرأ من الإعدادات وقت العرض، على نمط
+`invoices.revenue_recognition_mode` القائم:
+
+```text
+contracts.supplier_cost_recognition_mode
+contracts.supplier_cost_skip_reason
+contracts.external_office_cost_constraint_id
+contracts.external_office_cost_reversal_constraint_id
+contracts.external_office_purchase_id
+musaned_transfers.collection_mode
+```
+
+حقول الربط على العقد لازمة لوضع `on_contract` لأن القيد يُنشأ قبل وجود فاتورة. وعند
+إنشاء الفاتورة تُنسخ الروابط إليها (`mirrorContractSupplierCostLinks`)، فتبقى كل
+المسارات القائمة — العكس والاسترداد واسترداد تكلفة الإيواء — تعمل على الفاتورة كما كانت.
+
+### تركيبات مرفوضة عند الحفظ
+
+- `on_contract` مع `dispatch_manual`: لا يوجد مبلغ لحظة إنشاء العقد.
+- `recruitment_supplier_usd_rate` بقيمة صفر أو سالبة أو غير رقمية.
+
+### وضع `on_contract` لا يعطّل إنشاء العقد
+
+`RecruitmentTripAccountingService::recordContractCostEntries()` لا يرمي استثناءً بحال.
+نقص المكتب أو السعر أو السنة المالية يُسجَّل في `contracts.supplier_cost_skip_reason`،
+ويبقى المسار الحالي (الإرسالية أو الوصول) ينشئ القيد لاحقاً. المراقِب
+`App\Observers\ContractSupplierCostObserver` يحاول مرة عند الإنشاء ومرة عند أول تغيّر
+في `maid_id` (لأن المكتب يأتي من العاملة).
+
+قبل تفعيل `office_price_list` يجب تعبئة `recruitment_offices.cost_of_dollar`؛ وقت كتابة
+هذا المستند كانت معبّأة في 6 مكاتب من 99.
+
+### شاشتان جديدتان
+
+```text
+/admin/musaned-transfers/invoices-report     تقرير فواتير المبيعات بالصافي بعد عمولة مساند
+/admin/recruitment-supplier-payments         دفعات الوكلاء الخارجيين وأرصدتهم
+```
+
+التقرير قراءة فقط ويغذّي شاشة تحويلات مساند بالتحديد الجماعي، فلا يوجد مسار ثانٍ يُنشئ
+قيد تحصيل. وشاشة الدفعات تعرض الأرصدة دائماً، أما التسجيل فمرهون بإعداد
+`recruitment_supplier_payment_mode`.
+
+### مراكز تكلفة عقود الاستقدام
+
+`App\Support\RecruitmentCostCenters` هو المصدر الوحيد لها، بعد أن كان المنطق مكرراً في
+`InvoiceController` و`MusanedTransferController` و`RecruitmentTripAccountingService`.
+البحث عن مركز قائم يسبق الإنشاء ويغطي الشكلين، فتبديل مستوى الشجرة لا ينشئ مركزاً
+ثانياً لعقد له مركز، ولا يُعاد ترتيب أي مركز قائم.
+
+الاختبارات: [tests/Feature/Finance/RecruitmentSupplierCycleTest.php](../tests/Feature/Finance/RecruitmentSupplierCycleTest.php)
+
+### شاشة «الملف المالي للعقد»
+
+```text
+/admin/recruitment-contract-finance            قائمة العقود بحالتها المالية الثلاثية
+/admin/recruitment-contract-finance/{contract} ملف العقد: الفاتورة · تحصيل مساند · سداد الوكيل
+```
+
+مرهونة بإعداد `recruitment_contract_finance_screen` (الافتراضي `off`).
+
+**هي لوحة حالة ومُطلِق إجراءات فوق المستندات القائمة، لا نموذج مستند موازٍ.** لا تحمل أي
+منطق محاسبي: نموذج تحصيل مساند يُرسل إلى `musaned-transfers.store` القائم، ونموذج الدفعة
+إلى `recruitment-supplier-payments.store`، وزر الفاتورة يفتح `invoices.create` بالعقد
+محددًا. فلا يوجد مصدر حقيقة ثانٍ ولا منطق مكرر يتباعد عن الأصل. وكلا المسارين يقبلان
+`return_to_contract` فيعودان إلى الملف.
+
+قرار تصميمي مقصود: **لا يوجد زر واحد يرحّل الثلاثة معًا.** الفاتورة تُصدر الآن، وتحصيل
+مساند يُسجَّل حين تحوّل مساند فعلًا (وصافيه لا يُعرف قبلها)، وسداد الوكيل بجدوله على دفعات.
+زر واحد يرحّل الثلاثة كان سينشئ مستندات تدّعي وقائع لم تحدث — وهو عيب وضع `on_contract`
+نفسه منقولًا إلى مكان جديد.
+
+**تحذير مثبَّت في الشاشة:** تحصيل مساند منها يُنشئ تحويلًا لهذا العقد وحده (قرار المستخدم).
+مساند تحوّل مبلغًا واحدًا يغطي فواتير كثيرة، فتحتاج المطابقة البنكية تجميع هذه التحويلات
+يدويًا مقابل سطر البنك الواحد. البديل — ضم العقد إلى تحويل جماعي — متاح من شاشة
+تحويلات مساند التي تقبل `contract_ids[]` في الرابط.
+
+رصيد الوكيل مستخرج في [app/Support/RecruitmentAgentBalance.php](../app/Support/RecruitmentAgentBalance.php)
+ليشترك فيه متحكم الدفعات ومتحكم الملف المالي، فلا ينشأ حسابان للرصيد نفسه يتباعدان.
+
+ملاحظة على القوالب: Laravel 8 هنا **لا يدعم `@style`** (يُطبع كنص خام). `@class` و`@selected`
+و`@checked` مدعومة. وقوالب هذه الدورة تحرس `$errors` بـ`isset` لتبقى قابلة للرندر خارج دورة
+الطلب في الاختبارات.

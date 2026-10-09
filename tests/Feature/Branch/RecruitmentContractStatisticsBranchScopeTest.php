@@ -211,4 +211,23 @@ class RecruitmentContractStatisticsBranchScopeTest extends TestCase
         $this->assertSame('1', trim($currentBadge->textContent));
         $this->assertSame('0', trim($backBadge->textContent));
     }
+
+    /** @test */
+    public function recruitment_contract_page_opens_its_sidebar_group(): void
+    {
+        $viewer = $this->globalAdmin();
+        $this->grantViewPermission($viewer);
+
+        $html = $this->actingAsAdmin($viewer)->get(route('RecruitmentContract.index', [
+            'all_contracts' => 1,
+            'status' => 'arrival',
+        ]))->assertOk()->getContent();
+
+        $document = new \DOMDocument();
+        @$document->loadHTML($html);
+        $xpath = new \DOMXPath($document);
+        $contractsMenu = $xpath->query('//ul[@id="contracts" and contains(concat(" ", normalize-space(@class), " "), " show ")]')->item(0);
+
+        $this->assertNotNull($contractsMenu);
+    }
 }

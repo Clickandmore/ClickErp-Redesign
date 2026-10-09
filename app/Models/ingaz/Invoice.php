@@ -32,6 +32,9 @@ class Invoice extends Model
         'line_items' => 'array',
         'paid_at' => 'datetime',
         'branch_id' => 'integer',
+        'musaned_commission_rate' => 'decimal:4',
+        'musaned_commission_amount' => 'decimal:2',
+        'musaned_commission_tax' => 'decimal:2',
     ];
 
     protected function resolveBranchIdForCreate(): ?int
@@ -83,6 +86,11 @@ class Invoice extends Model
     public function musanedTransferItem()
     {
         return $this->hasOne(MusanedTransferItem::class, 'invoice_id');
+    }
+
+    public function musanedCommissionConstraint()
+    {
+        return $this->belongsTo(Constraint::class, 'musaned_commission_constraint_id');
     }
 
     public function arrivalRevenueConstraint()
