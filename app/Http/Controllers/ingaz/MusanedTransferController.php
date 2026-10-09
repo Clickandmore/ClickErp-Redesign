@@ -522,9 +522,9 @@ class MusanedTransferController extends Controller
                 }
 
                 $transfer = MusanedTransfer::query()->create([
-                    'reference_number' => $validated['reference_number'] ?: null,
+                    'reference_number' => ($validated['reference_number'] ?? null) ?: null,
                     'transfer_date' => $validated['transfer_date'],
-                    'notes' => $validated['notes'] ?: null,
+                    'notes' => ($validated['notes'] ?? null) ?: null,
                     'contracts_count' => count($itemPayloads),
                     'customer_paid_total' => $totals['customer_paid_total'],
                     'transferred_total' => $totals['transferred_total'],
