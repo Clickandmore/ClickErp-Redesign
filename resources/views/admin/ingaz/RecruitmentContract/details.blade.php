@@ -1501,7 +1501,7 @@
                                 <span class="info-value">{{ $financialSummary['paid_at'] ?: 'غير محدد' }}</span>
                             </div>
 
-                            @if ($financialSummary['finance_sale_id'] || $financialSummary['musaned_transfer_id'] || $financialSummary['arrival_revenue_constraint_id'] || $financialSummary['external_office_cost_constraint_id'] || $financialSummary['external_office_purchase_id'])
+                            @if ($financialSummary['finance_sale_id'] || $financialSummary['musaned_transfer_id'] || $financialSummary['invoice_constraint_id'] || $financialSummary['receipt_constraint_id'] || $financialSummary['musaned_commission_constraint_id'] || $financialSummary['arrival_revenue_constraint_id'] || $financialSummary['external_office_cost_constraint_id'] || $financialSummary['external_office_purchase_id'])
                                 <div class="d-flex flex-wrap gap-2 mt-3">
                                     @if ($financialSummary['finance_sale_id'])
                                         <a class="btn btn-sm btn-outline-primary" target="_blank"
@@ -1515,7 +1515,13 @@
                                         <a class="btn btn-sm btn-outline-warning" target="_blank"
                                             href="{{ route('finance.bill-purchases.show', $financialSummary['external_office_purchase_id']) }}">فاتورة المورد</a>
                                     @endif
-                                    @foreach (['arrival_revenue_constraint_id' => 'قيد إيراد الوصول', 'external_office_cost_constraint_id' => 'قيد تكلفة المكتب'] as $constraintKey => $constraintLabel)
+                                    @foreach ([
+                                        'invoice_constraint_id' => 'قيد الفاتورة',
+                                        'receipt_constraint_id' => 'قيد سند القبض',
+                                        'musaned_commission_constraint_id' => 'قيد التكاليف البنكية لمساند',
+                                        'arrival_revenue_constraint_id' => 'قيد إيراد الوصول',
+                                        'external_office_cost_constraint_id' => 'قيد تكلفة المكتب',
+                                    ] as $constraintKey => $constraintLabel)
                                         @if ($financialSummary[$constraintKey])
                                             <a class="btn btn-sm btn-outline-secondary" target="_blank"
                                                 href="{{ route('finance.add-constraint.show', ['add_constraint' => $financialSummary[$constraintKey]]) }}">{{ $constraintLabel }}</a>

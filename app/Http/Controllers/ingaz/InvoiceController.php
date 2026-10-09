@@ -1333,10 +1333,19 @@ class InvoiceController extends Controller
                     if ($errors) {
                         throw \Illuminate\Validation\ValidationException::withMessages(['create_supplier_invoice' => implode(' ', $errors)]);
                     }
+                    // فاتورة مورد بلا محطة وصول تُعد غير مكتملة في العقد وتمنع تسجيل الوصول،
+                    // مع أن قيدها يُرحَّل. تُرفض قبل أي قيد حتى لا تنشأ بنصف بيانات.
+                    $arrivalStation = trim((string) ($options['supplier_arrival_station']
+                        ?? $contract->resolveExternalOfficeDispatchArrivalStation() ?? ''));
+                    if ($arrivalStation === '') {
+                        throw \Illuminate\Validation\ValidationException::withMessages([
+                            'supplier_arrival_station' => 'حدّد محطة الوصول لفاتورة المورد؛ لا توجد محطة مسجلة على العقد.',
+                        ]);
+                    }
                     app(RecruitmentContractExternalOfficeDispatchController::class)->persistExternalOfficeDispatch(
                         $contract,
                         $this->resolveInvoiceDateTime($request)->toDateString(),
-                        trim($options['supplier_arrival_station'] ?? $contract->resolveExternalOfficeDispatchArrivalStation() ?? ''),
+                        $arrivalStation,
                         (string) $amount,
                         auth('admin')->id(),
                         false,

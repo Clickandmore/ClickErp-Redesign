@@ -915,7 +915,7 @@
                                 <label class="form-label mt-2">المبلغ الجزئي المراد إثباته (دولار)</label>
                                 <input type="number" class="form-control" name="supplier_partial_cost_usd" min="0.01" max="99999999.99" step="0.01">
                                 <label class="form-label mt-2">محطة الوصول</label>
-                                <input class="form-control" name="supplier_arrival_station" maxlength="255" placeholder="اختياري؛ تُستخدم محطة العقد">
+                                <input class="form-control" name="supplier_arrival_station" maxlength="255" placeholder="تُستخدم محطة العقد إن وُجدت، وإلا فهي مطلوبة">
                             </div>
                             @endif
                             <div class="side-section">
