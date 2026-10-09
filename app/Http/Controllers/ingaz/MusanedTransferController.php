@@ -8,6 +8,7 @@ use App\Models\ingaz\Invoice;
 use App\Models\MusanedTransfer;
 use App\Models\MusanedTransferItem;
 use App\Support\AutomaticJournalEntries;
+use App\Support\MusanedCommissionPosting;
 use App\Support\RecruitmentCostCenters;
 use App\Support\RecruitmentSupplierSettings;
 use App\Support\IngazDelegationTimeline;
@@ -24,6 +25,7 @@ use Nami\Finance\Models\Account;
 use Nami\Finance\Models\Bond;
 use Nami\Finance\Models\ConfirmSetting;
 use Nami\Finance\Models\Constraint;
+use Nami\Finance\Models\ConstraintDetails;
 use Nami\Finance\Models\CostCenter;
 use Nami\Finance\Models\TaxSetting;
 use Nami\Finance\Services\ConstraintService as ObjService;
@@ -76,6 +78,33 @@ class MusanedTransferController extends Controller
             $statement = 'التكاليف البنكية لمساند عند إصدار الفاتورة #' . $locked->id;
             $lines = [];
             $costCenter = $locked->contract ? $this->ensureRecruitmentContractCostCenter($locked->contract)->id : null;
+
+            // إعداد «قيدان بدل ثلاثة»: سطور العمولة داخل قيد سند القبض، ومساند بالصافي.
+            // بلا عمود التثبيت لا يُعرف لاحقاً أن العمولة داخل السند، فيعكس الاسترداد السند كله.
+            if (MusanedCommissionPosting::invoiceColumnExists()
+                && MusanedCommissionPosting::modeForInvoice($locked) === MusanedCommissionPosting::WITH_RECEIPT) {
+                $merged = $this->mergeCommissionIntoReceiptConstraint(
+                    $locked,
+                    $amount,
+                    $tax,
+                    (int) $commission->id,
+                    $taxAccount ? (int) $taxAccount->id : null,
+                    $costCenter,
+                    $statement
+                );
+                if ($merged) {
+                    $locked->update(array_merge(
+                        ['musaned_commission_constraint_id' => $merged->id],
+                        MusanedCommissionPosting::invoiceColumnExists()
+                            ? [MusanedCommissionPosting::INVOICE_COLUMN => MusanedCommissionPosting::WITH_RECEIPT]
+                            : []
+                    ));
+                    $invoice->refresh();
+
+                    return $merged;
+                }
+            }
+
             $this->appendConstraintLine($lines, $commission->id, 'debtor', $this->roundMoney($amount - $tax), $statement, $costCenter);
             if ($tax > 0) $this->appendConstraintLine($lines, $taxAccount->id, 'debtor', $tax, $statement);
             $this->appendConstraintLine($lines, $sourceId, 'creditor', $amount, $statement);
@@ -89,11 +118,88 @@ class MusanedTransferController extends Controller
             ];
             $constraint = $service->storeConstraint($data, $year);
             $service->storeConstraintDetails($data['account_id'], $constraint->id, $data);
-            $locked->update(['musaned_commission_constraint_id' => $constraint->id]);
+            $locked->update(array_merge(
+                ['musaned_commission_constraint_id' => $constraint->id],
+                MusanedCommissionPosting::invoiceColumnExists()
+                    ? [MusanedCommissionPosting::INVOICE_COLUMN => MusanedCommissionPosting::SEPARATE]
+                    : []
+            ));
             $invoice->refresh();
 
             return $constraint;
         });
+    }
+
+    /**
+     * يضيف سطري العمولة وضريبتها إلى قيد سند القبض، وينقص سطر مساند المدين بالمبلغ نفسه،
+     * فتبقى قيمة القيد وتوازنه كما هما. يعود بقيد السند، أو null إن لم يوجد سند بقيد
+     * (فيُسجَّل قيد مستقل كما في الوضع الافتراضي).
+     */
+    private function mergeCommissionIntoReceiptConstraint(
+        Invoice $invoice,
+        float $amount,
+        float $tax,
+        int $commissionAccountId,
+        ?int $taxAccountId,
+        ?int $costCenterId,
+        string $statement
+    ): ?Constraint {
+        $receiptBond = $this->findInvoiceReceiptBond($invoice);
+        if (!$receiptBond || !$receiptBond->constraint_id) {
+            return null;
+        }
+
+        $constraint = Constraint::query()->lockForUpdate()->find((int) $receiptBond->constraint_id);
+        if (!$constraint) {
+            return null;
+        }
+
+        $musanedLine = ConstraintDetails::query()
+            ->where('constraint_id', $constraint->id)
+            ->where('account_id', (int) $receiptBond->debit_account_id)
+            ->where('debtor_value', '>=', $amount)
+            ->orderBy('id')
+            ->first();
+        if (!$musanedLine) {
+            return null;
+        }
+
+        $musanedLine->update([
+            'debtor_value' => $this->roundMoney((float) $musanedLine->debtor_value - $amount),
+        ]);
+
+        $append = function (int $accountId, float $value, ?int $lineCostCenterId) use ($musanedLine, $statement): void {
+            if ($value <= 0) {
+                return;
+            }
+            $line = $musanedLine->replicate();
+            $line->account_id = $accountId;
+            $line->debtor_value = $value;
+            $line->creditor_value = 0;
+            $line->cost_center_id = $lineCostCenterId;
+            $line->statement = $statement;
+            $line->save();
+        };
+
+        $append($commissionAccountId, $this->roundMoney($amount - $tax), $costCenterId);
+        if ($tax > 0 && $taxAccountId) {
+            $append($taxAccountId, $tax, null);
+        }
+
+        return $constraint->fresh();
+    }
+
+    private function findInvoiceReceiptBond(Invoice $invoice): ?Bond
+    {
+        return Bond::query()
+            ->where('type', BondTypes::Qabd->value)
+            ->whereNull('rental_contract_id')
+            ->when($invoice->contract_id, function ($query) use ($invoice) {
+                $query->where('recruitment_contract_id', $invoice->contract_id);
+            })
+            ->where('statement', 'regexp', 'الفاتورة #' . (int) $invoice->id . '([^0-9]|$)')
+            ->latest('id')
+            ->first();
     }
 
     public function index(Request $request)
@@ -745,15 +851,7 @@ class MusanedTransferController extends Controller
 
     private function resolveInvoiceMusanedSourceAccountId(Invoice $invoice, int $fallbackAccountId): int
     {
-        $receiptBond = Bond::query()
-            ->where('type', BondTypes::Qabd->value)
-            ->whereNull('rental_contract_id')
-            ->when($invoice->contract_id, function ($query) use ($invoice) {
-                $query->where('recruitment_contract_id', $invoice->contract_id);
-            })
-            ->where('statement', 'regexp', 'الفاتورة #' . (int) $invoice->id . '([^0-9]|$)')
-            ->latest('id')
-            ->first();
+        $receiptBond = $this->findInvoiceReceiptBond($invoice);
 
         if ($receiptBond && $this->findValidMusanedAccount((int) $receiptBond->debit_account_id)) {
             return (int) $receiptBond->debit_account_id;

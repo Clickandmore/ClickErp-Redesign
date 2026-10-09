@@ -305,6 +305,7 @@ class ConfirmSettingService extends MainService
             'daily_constraints',
             'automatic_journal_entries',
             \App\Support\InvoiceSupplierWorkflow::SETTING_KEY,
+            \App\Support\MusanedCommissionPosting::SETTING_KEY,
             \App\Support\RecruitmentRevenueRecognition::SETTING_KEY,
             \App\Support\RecruitmentSupplierCostRecognition::SETTING_KEY,
             'bill_sales',

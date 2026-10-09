@@ -102,7 +102,32 @@ class RecruitmentContractRefundService
 
     private function buildMusanedCommissionReversalLines(Invoice $invoice, string $statement): array
     {
-        return $this->buildReverseInvoiceLines((int) $invoice->musaned_commission_constraint_id, $statement);
+        if (!\App\Support\MusanedCommissionPosting::isMergedIntoReceipt($invoice)) {
+            return $this->buildReverseInvoiceLines((int) $invoice->musaned_commission_constraint_id, $statement);
+        }
+
+        // العمولة داخل قيد سند القبض: تُعكس سطورها وحدها، ويُعاد المبلغ إلى حساب مساند.
+        // عكس القيد كاملاً كان سيعكس سداد العميل معه.
+        $constraintId = (int) $invoice->musaned_commission_constraint_id;
+        $musanedAccountId = (int) \Nami\Finance\Models\Bond::query()
+            ->where('constraint_id', $constraintId)
+            ->value('debit_account_id');
+        $commissionLines = ConstraintDetails::query()
+            ->where('constraint_id', $constraintId)
+            ->where('statement', 'التكاليف البنكية لمساند عند إصدار الفاتورة #' . (int) $invoice->id)
+            ->where('debtor_value', '>', 0)
+            ->get();
+        if (!$musanedAccountId || $commissionLines->isEmpty()) {
+            return [];
+        }
+
+        $lines = [];
+        $this->appendLine($lines, $musanedAccountId, 'debtor', (float) $commissionLines->sum('debtor_value'), $statement, null);
+        foreach ($commissionLines as $detail) {
+            $this->appendLine($lines, (int) $detail->account_id, 'creditor', (float) $detail->debtor_value, $statement, $detail->cost_center_id ? (int) $detail->cost_center_id : null);
+        }
+
+        return $lines;
     }
 
     private function reverseMusanedCommission(Contract $contract, Invoice $invoice, string $refundDate): ?Constraint

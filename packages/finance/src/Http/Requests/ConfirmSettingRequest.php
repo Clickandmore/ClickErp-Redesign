@@ -38,6 +38,8 @@ class ConfirmSettingRequest extends MainRequest
             'data' => 'nullable|array',
             'data.invoice_supplier_workflow.title' => 'sometimes|in:invoice_supplier_workflow',
             'data.invoice_supplier_workflow.value' => 'sometimes|required|in:legacy,updated',
+            'data.musaned_commission_posting.title' => 'sometimes|in:musaned_commission_posting',
+            'data.musaned_commission_posting.value' => 'sometimes|required|in:separate,with_receipt',
         ] + $this->recruitmentSupplierCycleRules() + $this->shelterAccountingRules();
     }
 
@@ -52,6 +54,8 @@ class ConfirmSettingRequest extends MainRequest
             'data' => 'nullable|array',
             'data.invoice_supplier_workflow.title' => 'sometimes|in:invoice_supplier_workflow',
             'data.invoice_supplier_workflow.value' => 'sometimes|required|in:legacy,updated',
+            'data.musaned_commission_posting.title' => 'sometimes|in:musaned_commission_posting',
+            'data.musaned_commission_posting.value' => 'sometimes|required|in:separate,with_receipt',
         ] + $this->recruitmentSupplierCycleRules() + $this->shelterAccountingRules();
     }
 

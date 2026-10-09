@@ -252,6 +252,107 @@ class RecruitmentSupplierCycleTest extends TestCase
         $this->assertFalse($this->callPrivate($refunds, 'shouldReverseExternalOfficeCost', $contract->fresh(), $invoice->fresh()));
     }
 
+    public function test_musaned_bank_charges_stay_a_separate_entry_by_default(): void
+    {
+        $this->assertSame(
+            \App\Support\MusanedCommissionPosting::SEPARATE,
+            \App\Support\MusanedCommissionPosting::mode()
+        );
+    }
+
+    public function test_two_entry_mode_posts_bank_charges_inside_the_receipt_entry_and_reverses_only_them(): void
+    {
+        $musaned = $this->createAccount('بنك مساند قيدان', 'debtor');
+        $musaned->update(['type' => \Nami\Finance\Enums\AccountTypesEnum::Bank->value]);
+        $commission = $this->createAccount('عمولات مساند قيدان', 'debtor');
+        $tax = $this->createAccount('ضريبة مصروفات قيدان', 'debtor');
+        foreach ([
+            'automatic_journal_entries' => 'on',
+            \App\Support\InvoiceSupplierWorkflow::SETTING_KEY => \App\Support\InvoiceSupplierWorkflow::UPDATED,
+            \App\Support\MusanedCommissionPosting::SETTING_KEY => \App\Support\MusanedCommissionPosting::WITH_RECEIPT,
+            'musaned_account' => (string) $musaned->id,
+            'musaned_intermediate_account' => (string) $musaned->id,
+            'musaned_commission_account' => (string) $commission->id,
+            'expense_tax_account' => (string) $tax->id,
+        ] as $title => $value) {
+            $this->saveSetting($title, $value);
+        }
+        ConfirmSetting::query()->where('title', 'tax_rate_expenditure')->delete();
+
+        $contract = $this->createContract($this->createNationality('اختبار قيدان'));
+        $client = $this->createAccount('عميل قيدان', 'debtor');
+        $invoice = $this->createInvoice($contract);
+        $invoice->forceFill(['total_due' => 14296.68, 'musaned_commission_rate' => 2.4])->saveQuietly();
+
+        // سند القبض كما تنشئه الفاتورة: مدين مساند / دائن العميل بكامل الإجمالي.
+        $receipt = Constraint::withoutEvents(fn () => Constraint::query()->create([
+            'type' => 1,
+            'code' => 9400000 + random_int(1, 99999),
+            'date' => now()->toDateString(),
+            'value' => 14296.68,
+            'statement' => 'سند قبض سداد الفاتورة #' . $invoice->id,
+        ]));
+        foreach ([[$musaned->id, 14296.68, 0], [$client->id, 0, 14296.68]] as [$account, $debtor, $creditor]) {
+            ConstraintDetails::query()->create([
+                'constraint_id' => $receipt->id,
+                'type' => 1,
+                'account_id' => $account,
+                'debtor_value' => $debtor,
+                'creditor_value' => $creditor,
+                'statement' => $receipt->statement,
+            ]);
+        }
+        $bond = \Nami\Finance\Models\Bond::query()->create([
+            'code' => 9400000 + random_int(1, 99999),
+            'type' => \Nami\Finance\Enums\BondTypes::Qabd->value,
+            'payment_type' => 1,
+            'debit_account_id' => $musaned->id,
+            'credit_account_id' => $client->id,
+            'value' => 14296.68,
+            'date' => now()->toDateString(),
+            'statement' => 'سند قبض سداد فاتورة طلب استقدام للعقد #' . $contract->id . ' / الفاتورة #' . $invoice->id,
+            'created_by_id' => $this->admin->id,
+            'constraint_id' => $receipt->id,
+            'is_confirm' => 1,
+        ]);
+        \Nami\Finance\Models\Bond::query()->whereKey($bond->id)->update(['recruitment_contract_id' => $contract->id]);
+
+        $constraintsBefore = Constraint::query()->count();
+        $posted = app(\App\Http\Controllers\ingaz\MusanedTransferController::class)
+            ->recordInvoiceCommission($invoice->fresh());
+
+        // قيدان لا ثلاثة: لا قيد جديد، والعمولة داخل قيد السند بقيمته نفسها.
+        $this->assertSame($constraintsBefore, Constraint::query()->count());
+        $this->assertSame((int) $receipt->id, (int) $posted->id);
+        $this->assertSame(14296.68, (float) $posted->fresh()->value);
+        $this->assertSame([
+            [$musaned->id, 13953.56, 0.0],
+            [$client->id, 0.0, 14296.68],
+            [$commission->id, 298.37, 0.0],
+            [$tax->id, 44.75, 0.0],
+        ], $this->lines($receipt));
+
+        $fresh = $invoice->fresh();
+        $this->assertSame((int) $receipt->id, (int) $fresh->musaned_commission_constraint_id);
+        $this->assertSame(\App\Support\MusanedCommissionPosting::WITH_RECEIPT, $fresh->musaned_commission_posting);
+
+        // الاسترداد قبل التحويل يعكس العمولة وحدها، لا سداد العميل.
+        $reversal = $this->callPrivate(
+            app(\App\Services\ingaz\RecruitmentContractRefundService::class),
+            'buildMusanedCommissionReversalLines',
+            $fresh,
+            'عكس اختبار'
+        );
+        $this->assertSame(
+            [[$musaned->id, 343.12, 0.0], [$commission->id, 0.0, 298.37], [$tax->id, 0.0, 44.75]],
+            array_map(fn (array $line) => [$line['account_id'], (float) $line['debtor_value'], (float) $line['creditor_value']], $reversal)
+        );
+
+        // تعديل السند من شاشة السندات كان سيعيد توليد قيده فتضيع سطور العمولة.
+        $this->expectException(ValidationException::class);
+        app(\Nami\Finance\Services\BondService::class)->updateBond($bond->id, []);
+    }
+
     private function callPrivate(object $target, string $method, ...$arguments)
     {
         $reflection = new \ReflectionMethod($target, $method);

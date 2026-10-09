@@ -594,6 +594,22 @@
                         </label>
                     </div>
                     <small class="text-muted d-block mt-3">{{ __('finance::finance.invoice_supplier_workflow_existing_hint') }}</small>
+
+                    <h4 class="settings-section-title mt-4">{{ __('finance::finance.musaned_commission_posting') }}</h4>
+                    <p class="settings-section-hint">{{ __('finance::finance.musaned_commission_posting_hint') }}</p>
+                    <input type="hidden" name="data[musaned_commission_posting][title]" value="musaned_commission_posting">
+                    <div class="approval-options">
+                        <label class="approval-option">
+                            <input type="radio" name="data[musaned_commission_posting][value]" value="separate" {{ $settingValue('musaned_commission_posting', 'separate') !== 'with_receipt' ? 'checked' : '' }}>
+                            <strong>{{ __('finance::finance.musaned_commission_posting_separate') }}</strong>
+                            <span>{{ __('finance::finance.musaned_commission_posting_separate_hint') }}</span>
+                        </label>
+                        <label class="approval-option">
+                            <input type="radio" name="data[musaned_commission_posting][value]" value="with_receipt" {{ $settingValue('musaned_commission_posting', 'separate') === 'with_receipt' ? 'checked' : '' }}>
+                            <strong>{{ __('finance::finance.musaned_commission_posting_with_receipt') }}</strong>
+                            <span>{{ __('finance::finance.musaned_commission_posting_with_receipt_hint') }}</span>
+                        </label>
+                    </div>
                 </div>
             </details>
 
