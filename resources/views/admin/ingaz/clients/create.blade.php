@@ -14,9 +14,6 @@
 
 @section('style')
     @include('admin.ingaz.clients.partials.form-styles')
-    @if (\App\Support\SystemModuleManager::usesRedesign())
-        <link rel="stylesheet" href="{{ asset('admin/custom/clickerp-clients.css') }}?v=1">
-    @endif
 @endsection
 
 @section('content')

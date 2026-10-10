@@ -2823,6 +2823,13 @@ class RecruitmentContractController extends Controller
             'contract_info_value' => (float) ($contract->info?->contract_value ?? 0),
             'finance_sale_id' => $invoice?->finance_sale_id,
             'musaned_transfer_id' => $transferItem?->musaned_transfer_id,
+            'invoice_constraint_id' => $invoice?->invoice_constraint_id,
+            'receipt_constraint_id' => $confirmedReceiptBonds->first()?->constraint_id,
+            // في وضع «قيدان بدل ثلاثة» العمولة داخل قيد سند القبض، فلا يُعرض زر مكرر.
+            'musaned_commission_constraint_id' => $invoice?->musaned_commission_constraint_id
+                && (int) $invoice->musaned_commission_constraint_id !== (int) ($confirmedReceiptBonds->first()?->constraint_id ?? 0)
+                ? $invoice->musaned_commission_constraint_id
+                : null,
             'arrival_revenue_constraint_id' => $invoice?->arrival_revenue_constraint_id,
             'external_office_cost_constraint_id' => $invoice?->external_office_cost_constraint_id,
             'external_office_purchase_id' => $invoice?->external_office_purchase_id,

@@ -38,6 +38,7 @@ class ConstraintReferenceGuard
             'columns' => [
                 'invoice_constraint_id',
                 'musaned_commission_constraint_id',
+                'musaned_commission_reversal_constraint_id',
                 'constraint_id',
                 'arrival_revenue_constraint_id',
                 'external_office_cost_constraint_id',

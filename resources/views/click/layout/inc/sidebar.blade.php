@@ -270,13 +270,21 @@
                         </li>
 
 
-                        <li class="collapsed">
-                            <a class="m-link" data-bs-toggle="collapse" data-bs-target="#contracts" href="#">
+                        @php
+                            $recruitmentContractsMenuOpen = request()->routeIs(
+                                'RecruitmentContract.*',
+                                'post-arrival-refunds.*'
+                            );
+                        @endphp
+                        <li class="{{ $recruitmentContractsMenuOpen ? '' : 'collapsed' }}">
+                            <a class="m-link {{ $recruitmentContractsMenuOpen ? '' : 'collapsed' }}" data-bs-toggle="collapse"
+                                data-bs-target="#contracts" href="#" aria-expanded="{{ $recruitmentContractsMenuOpen ? 'true' : 'false' }}"
+                                aria-controls="contracts">
                                 <i class="fa fa-file"></i>
                                 <span class="ms-2"> {{ helperTrans('ingaz.Recruitment contracts') }} </span>
                                 <span class="arrow fa fa-angle-left ms-auto text-end"></span>
                             </a>
-                            <ul class="sub-menu collapse {{ in_array(Route::currentRouteName(), ['RecruitmentContracts.index']) ? 'show' : '' }}"
+                            <ul class="sub-menu collapse {{ $recruitmentContractsMenuOpen ? 'show' : '' }}"
                                 id="contracts">
                                 @if (@AdminGuardHasPerm(\App\NewPermKeys::REC_CONTRACTS_CREATE))
                                     <li>

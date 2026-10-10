@@ -873,6 +873,23 @@ class RecruitmentContractExternalOfficeDispatchController extends Controller
                 ]);
             }
 
+            // تكلفة أُثبتت عند إنشاء العقد (on_contract): لا تُحفظ إرسالية بمبلغ مختلف، وإلا
+            // بقي القيد على المبلغ القديم بصمت لأن القيد لا يُنشأ مرة ثانية.
+            $contractCostConstraintId = \Illuminate\Support\Facades\Schema::hasColumn('contracts', 'external_office_cost_constraint_id')
+                ? (int) ($lockedContract->external_office_cost_constraint_id ?: 0)
+                : 0;
+            if ($contractCostConstraintId) {
+                $postedSar = round((float) \Nami\Finance\Models\Constraint::query()->whereKey($contractCostConstraintId)->value('value'), 2);
+                $requestedSar = round((float) $officeContractCostUsd * \App\Support\RecruitmentSupplierSettings::usdRate(), 2);
+                if (abs($postedSar - $requestedSar) > 0.01) {
+                    throw \Illuminate\Validation\ValidationException::withMessages([
+                        'office_contract_cost_usd' => 'تكلفة المورد أُثبتت عند إنشاء العقد بمبلغ ' . number_format($postedSar, 2)
+                            . ' ريال، والمبلغ المدخل يعادل ' . number_format($requestedSar, 2)
+                            . ' ريال. أدخل نفس المبلغ، أو سوِّ قيد العقد أولاً.',
+                    ]);
+                }
+            }
+
             $payload = array_merge($sourceSnapshot, [
                 'dispatch_date' => $dispatchDate,
                 'arrival_station' => $arrivalStation,

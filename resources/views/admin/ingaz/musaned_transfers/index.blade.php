@@ -9,11 +9,16 @@
                 <h4 class="mb-1">تحويلات مساند</h4>
                 <div class="text-muted">متابعة الحوالات المفردة والمجمعة وربطها بقيودها المحاسبية.</div>
             </div>
-            @if (AdminGuardHasAnyPerm([\App\PermKeys::MUSANED_TRANSFERS_CREATE, \App\PermKeys::MUSANED_TRANSFERS_CONTROL, \App\PermKeys::REC_CONTRACTS_CREATE, \App\PermKeys::REC_CONTRACTS_MANAGE]))
-                <a href="{{ route('musaned-transfers.create') }}" class="btn btn-primary">
-                    <i class="fas fa-plus me-1"></i>إضافة تحويل مساند
+            <div class="d-flex gap-2">
+                <a href="{{ route('musaned-transfers.invoices-report') }}" class="btn btn-outline-dark">
+                    <i class="fas fa-file-invoice-dollar me-1"></i>فواتير المبيعات بالصافي
                 </a>
-            @endif
+                @if (AdminGuardHasAnyPerm([\App\PermKeys::MUSANED_TRANSFERS_CREATE, \App\PermKeys::MUSANED_TRANSFERS_CONTROL, \App\PermKeys::REC_CONTRACTS_CREATE, \App\PermKeys::REC_CONTRACTS_MANAGE]))
+                    <a href="{{ route('musaned-transfers.create') }}" class="btn btn-primary">
+                        <i class="fas fa-plus me-1"></i>إضافة تحويل مساند
+                    </a>
+                @endif
+            </div>
         </div>
 
         @if (session('success'))

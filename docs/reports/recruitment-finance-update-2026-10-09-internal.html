@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="ar" dir="rtl"><head><meta charset="utf-8">
+<title>سجل تحديث دورة الاستقدام المالية — داخلي</title>
+<style>
+@page{size:A4;margin:15mm 14mm}*{box-sizing:border-box}body{font:11.5px/1.6 Tahoma,Arial,sans-serif;color:#18303b;margin:0;background:#fff}h1{font-size:20px;line-height:1.5;margin:6px 0 8px;color:#3b4d9a}h2{font-size:15px;color:#3b4d9a;margin:15px 0 6px}p{margin:5px 0}ul,ol{padding-right:22px;margin:5px 0}li{margin:3px 0}table{border-collapse:collapse;width:100%;font-size:10.5px;margin:8px 0}th,td{padding:6px;border:1px solid #dde2ef;text-align:right;vertical-align:top}th{background:#eef1fa}code,.ltr{direction:ltr;unicode-bidi:embed;font-family:Menlo,Consolas,monospace;font-size:10px}pre{direction:ltr;text-align:left;background:#f5f6fb;border:1px solid #dde2ef;padding:8px;font-size:10px;white-space:pre-wrap;margin:6px 0}.note{padding:10px;background:#eef1fa;border-right:4px solid #3b4d9a;margin:12px 0}.warn{padding:10px;background:#fff7e8;border-right:4px solid #c98a12;margin:12px 0}.meta{font-size:11px;color:#66708f}.page+.page{break-before:page}tr,.note,.warn,pre{break-inside:avoid}h2{break-after:avoid}
+</style></head><body>
+
+<section class="page">
+<p class="meta">Click ERP • مستند داخلي • 9 أكتوبر 2026 • لا يُرسل للعملاء</p>
+<h1>سجل تحديث دورة الاستقدام المالية</h1>
+<p><strong>الخلاصة:</strong> دُمج «تسلسل الفواتير ومساند والمورد» (عمل Mahmoud Amer، commit <code>690f2f53</code>) مع إعدادات دورة قيود المشتريات السبعة، وأُضيف خيار القيدين، وأُصلحت خمسة تعارضات محاسبية وخللان في العرض. <strong>كل افتراضي يساوي السلوك السابق حرفيًا</strong>، والجديد كله خلف إعدادات مثبَّتة على المستند.</p>
+<p>الفرع: <code>wip/recruitment-finance-cycle-2026-10-09</code> (محلي، غير مرفوع، لم يُدمج في <code>main</code>).</p>
+
+<h2>الـcommits على الفرع</h2>
+<table><thead><tr><th style="width:13%">commit</th><th>المحتوى</th></tr></thead><tbody>
+<tr><td><code>e5badc4b</code></td><td>عمل جلسات سابقة غير محفوظ: الإعدادات السبعة، الملف المالي للعقد، دفعات الوكيل، تقرير فواتير مساند، نسبة مساند لكل جنسية، صلاحيات تعديل الفاتورة. <strong>يحذف</strong> <code>public/admin/custom/clickerp-clients.css</code> — يلزم التأكد أنه مقصود.</td></tr>
+<tr><td><code>0c1962bc</code></td><td>دمج التسلسل الجديد مع الإعدادات السبعة (خمسة إصلاحات، انظر الجدول التالي).</td></tr>
+<tr><td><code>b3b4c57b</code></td><td>خيار «قيدان بدل ثلاثة» <code>musaned_commission_posting</code>.</td></tr>
+<tr><td><code>d51c7218</code></td><td>أزرار قيود الفاتورة في تفاصيل العقد، وإلزام محطة الوصول لفاتورة المورد.</td></tr>
+</tbody></table>
+
+<h2>ما أُصلح في الدمج</h2>
+<table><thead><tr><th style="width:28%">الحالة</th><th>قبل</th><th>بعد</th></tr></thead><tbody>
+<tr><td>بيان قيد تكلفة المورد</td><td>تغيّر لكل الشركات إلى «فاتورة المورد» بلا إعداد</td><td>القديم يبقى «إرسالية المكتب الخارجي»؛ المطابقة ضد التكرار تقبل الصيغ الثلاث</td></tr>
+<tr><td>مصدر المبلغ في <code>on_contract</code></td><td>سعر المكتب فقط، وشاشة الفاتورة تقرأ تكلفة السيرة أولًا</td><td>تكلفة السيرة ثم سعر المكتب في التسلسل الجديد</td></tr>
+<tr><td>فاتورة مورد بعد قيد <code>on_contract</code></td><td>تُحفظ بمبلغ والقيد على آخر بصمت</td><td>تُرفض إن خالف المبلغ القيد المثبت</td></tr>
+<tr><td>استرداد قبل تحويل مساند</td><td>العمولة المسجلة عند الإصدار تبقى</td><td>تُعكس، ورابطها <code>invoices.musaned_commission_reversal_constraint_id</code></td></tr>
+<tr><td>استرداد قبل الوصول، إيراد <code>on_arrival</code></td><td>تكلفة المورد المبكرة لا تُعكس</td><td>تُعكس إن أُثبتت بإعداد صريح؛ الدورة الافتراضية كما هي</td></tr>
+<tr><td>تفاصيل العقد</td><td>لا زر لقيد الفاتورة ولا السند ولا العمولة</td><td>ثلاثة أزرار جديدة</td></tr>
+<tr><td>فاتورة مورد بلا محطة وصول</td><td>يُرحَّل القيد وتظهر «غير مكتملة» وتمنع الوصول</td><td>تُرفض قبل أي قيد</td></tr>
+</tbody></table>
+</section>
+
+<section class="page">
+<h2>مفاتيح الإعدادات</h2>
+<table><thead><tr><th>المفتاح</th><th>القيم</th><th>الافتراضي</th><th>يُثبَّت على</th></tr></thead><tbody>
+<tr><td><code>invoice_supplier_workflow</code></td><td>legacy • updated</td><td>legacy</td><td>العمولة: <code>invoices.musaned_commission_amount</code></td></tr>
+<tr><td><code>musaned_commission_posting</code></td><td>separate • with_receipt</td><td>separate</td><td><code>invoices.musaned_commission_posting</code></td></tr>
+<tr><td><code>recruitment_supplier_cost_recognition</code></td><td>on_arrival • on_dispatch • on_contract</td><td>on_arrival</td><td><code>contracts.supplier_cost_recognition_mode</code> (on_contract)</td></tr>
+<tr><td><code>recruitment_supplier_cost_source</code></td><td>dispatch_manual • office_price_list</td><td>dispatch_manual</td><td>—</td></tr>
+<tr><td><code>recruitment_supplier_usd_rate</code></td><td>رقم</td><td>3.75</td><td>—</td></tr>
+<tr><td><code>recruitment_cost_center_scope</code></td><td>contract • nationality_then_contract</td><td>contract</td><td>—</td></tr>
+<tr><td><code>recruitment_supplier_line_cost_center</code></td><td>off • on</td><td>off</td><td>—</td></tr>
+<tr><td><code>recruitment_supplier_payment_mode</code></td><td>general_bond • contract_linked</td><td>general_bond</td><td>—</td></tr>
+<tr><td><code>musaned_collection_mode</code></td><td>intermediate_two_step • direct_receipt</td><td>intermediate_two_step</td><td><code>musaned_transfers.collection_mode</code></td></tr>
+<tr><td><code>recruitment_contract_finance_screen</code></td><td>off • on</td><td>off</td><td>—</td></tr>
+</tbody></table>
+<p>النسبة: <code>nationalities.musaned_commission_rate</code> (افتراضي 2.4، <code>MusanedTransferController::DEFAULT_COMMISSION_RATE</code>). تحققنا منها على فاتورة مساند فعلية: 83.91 ÷ 3,496.10 = 2.4001%.</p>
+
+<h2>قيدان بدل ثلاثة — آلية العمل</h2>
+<ul>
+<li><code>recordInvoiceCommission</code> يضيف سطري العمولة وضريبتها إلى قيد سند القبض، وينقص سطر مساند المدين بالمبلغ نفسه؛ قيمة القيد لا تتغير.</li>
+<li><code>musaned_commission_constraint_id</code> = قيد السند، فتحويل مساند لا يكرر العمولة.</li>
+<li>لا يعمل الدمج قبل وجود عمود التثبيت؛ وإلا يعكس الاسترداد السند كله.</li>
+<li><code>BondService::updateBond</code> يرفض تعديل سند يحمل العمولة (التعديل يعيد توليد القيد من السند وحده). مسار تعديل الفاتورة يعيد بناء القيدين.</li>
+<li>الإقرار الضريبي وكشف العميل يقرآن بالحساب، فلا يتأثران.</li>
+</ul>
+
+<h2>تغييرات قاعدة البيانات (على الفرع، غير موجودة في main)</h2>
+<pre>2026_10_05_120000_add_recruitment_supplier_cycle_columns
+2026_10_09_120000_add_musaned_commission_rate_to_invoices
+2026_10_09_130000_add_nationality_musaned_rate_and_invoice_edit_permissions
+2026_10_09_140000_add_musaned_commission_reversal_to_invoices
+2026_10_09_150000_add_musaned_commission_posting_to_invoices</pre>
+<p>صلاحيات جديدة: <code>invoices_edit_line_items</code>، <code>invoices_edit_musaned_commission</code>.</p>
+
+<h2>خطوات النشر</h2>
+<pre>php artisan migrate --force
+php artisan permissions:prepare-server --role-id=1 --role-name=Administrator --attach-first-admin
+php artisan permission:cache-reset
+php artisan optimize:clear</pre>
+<p>إن كانت القاعدة متأخرة عن المستودع فطبّق كل ملف بـ <code>--path</code>. مخرجات أمر الصلاحيات يجب أن تنتهي بـ <code>Missing selected: 0</code>. خذ <code>mysqldump</code> قبل الترحيل.</p>
+</section>
+
+<section class="page">
+<h2>حالة الاختبارات</h2>
+<table><thead><tr><th>المجموعة</th><th>النتيجة</th></tr></thead><tbody>
+<tr><td><code>tests/Feature/Finance</code></td><td>55 / 55</td></tr>
+<tr><td><code>MusanedInvoiceCommissionTest</code></td><td>13 / 13</td></tr>
+<tr><td><code>RecruitmentRevenueRecognitionTest</code></td><td>19 / 19</td></tr>
+<tr><td>حراسات المسارات وبنية الجداول</td><td>ناجحة</td></tr>
+<tr><td><code>RecruitmentContractLateFinanceTest</code></td><td>7 إخفاقات <strong>سابقة</strong> (موجودة على النسخة بدون تعديلاتنا)</td></tr>
+<tr><td><code>PostArrivalRefundTest</code>، <code>RecruitmentContractReturnRestorationTest</code></td><td>إخفاق واحد سابق في كل منهما</td></tr>
+</tbody></table>
+<p>اختبارا الثوابت <code>test_every_default_matches_the_current_system_behaviour</code> و<code>test_default_mode_creates_no_entry_when_a_contract_is_created</code> يحرسان قاعدة «الافتراضي = السلوك السابق»؛ تُوسَّع ولا تُرخى.</p>
+
+<h2>مفتوح ويحتاج قرارًا</h2>
+<table><thead><tr><th style="width:30%">البند</th><th>الوضع</th></tr></thead><tbody>
+<tr><td>مسمى «إرسالية / فاتورة المورد»</td><td>غُيّر في نحو 70 موضعًا بلا إعداد؛ شكلي ولم يُربط بالإعداد بعد.</td></tr>
+<tr><td>باقي الإثبات الجزئي</td><td>لا يُقيَّد تلقائيًا، وفق مواصفة التحديث نفسها.</td></tr>
+<tr><td>حساب «بنك مساند» 12201</td><td>ما زال حسابًا أبًا له فرع؛ يُرحَّل عليه التحصيل والعمولة.</td></tr>
+<tr><td><code>on_contract</code> على قاعدة التطوير</td><td>مفعّل حاليًا. المحاكاة: 340 عقدًا و3,317,439.97 ريال بلا مستند، مقابل 189,191.25 مسنودة في <code>on_dispatch</code>. التوصية <code>on_dispatch</code>.</td></tr>
+<tr><td>العقد 14083747</td><td>فاتورة مورده بلا محطة وصول؛ تُكمَّل من شاشة فاتورة المورد (لن يُنشأ قيد جديد).</td></tr>
+<tr><td>قاعدة التطوير</td><td>لم تُطبَّق عليها migrations ‎140000 و‎150000؛ الكود يعمل بدونها، والقيدان لا يعملان قبلها.</td></tr>
+<tr><td>دليل 8 أكتوبر للعملاء</td><td>يذكر 2.5%؛ صُحح في دليل 9 أكتوبر.</td></tr>
+</tbody></table>
+
+<h2>المراجع</h2>
+<ul>
+<li>دليل العملاء: <code>docs/reports/recruitment-finance-update-2026-10-09.pdf</code></li>
+<li>التفاصيل التقنية: <code>docs/FINANCE.md</code> — قسم «قيود المشتريات والوكلاء الخارجيون» وما يليه</li>
+<li>تقرير المقارنة مع المحاسب: Claude Doc «قيود الاستقدام» (تبويبا التقرير وخطة الدمج)</li>
+</ul>
+</section>
+</body></html>

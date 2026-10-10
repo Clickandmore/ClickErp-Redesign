@@ -73,6 +73,10 @@ class AppServiceProvider extends ServiceProvider
 
         $this->registerConditionalAttributeDirectives();
 
+        // قيد تكلفة الوكيل الخارجي عند إنشاء العقد. المراقِب يخرج فوراً إلا في وضع
+        // on_contract، فلا يمس أي مسار إنشاء عقد قائم في الوضع الافتراضي.
+        \App\Models\Contract::observe(\App\Observers\ContractSupplierCostObserver::class);
+
         // إعدادات إشعارات Firebase المحفوظة من لوحة التحكم تعلو قيم .env، فتستفيد
         // منها خدمات الإرسال عبر config('firebase.*') دون تعديل فيها.
         \App\Support\FirebaseSettings::applyToConfig();

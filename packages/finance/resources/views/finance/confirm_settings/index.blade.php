@@ -398,6 +398,13 @@
         $accountTreeLabel = __('finance::finance.account_tree_position');
         $shelterLivingCapitalize = $settingValue(\App\Support\ShelterAccountingSettings::LIVING_EXPENSE_CAPITALIZE, 'on');
         $deportationChargeExternalOffice = $settingValue(\App\Support\ShelterAccountingSettings::DEPORTATION_CHARGE_EXTERNAL_OFFICE, 'on');
+        $supplierSettings = \App\Support\RecruitmentSupplierSettings::class;
+        $supplierCostSource = $supplierSettings::normalize($supplierSettings::COST_SOURCE, $settingValue($supplierSettings::COST_SOURCE));
+        $recruitmentCostCenterScope = $supplierSettings::normalize($supplierSettings::COST_CENTER_SCOPE, $settingValue($supplierSettings::COST_CENTER_SCOPE));
+        $supplierPaymentMode = $supplierSettings::normalize($supplierSettings::PAYMENT_MODE, $settingValue($supplierSettings::PAYMENT_MODE));
+        $musanedCollectionMode = $supplierSettings::normalize($supplierSettings::MUSANED_COLLECTION_MODE, $settingValue($supplierSettings::MUSANED_COLLECTION_MODE));
+        $supplierLineCostCenter = $settingValue($supplierSettings::SUPPLIER_LINE_COST_CENTER, 'off') === 'on' ? 'on' : 'off';
+        $contractFinanceScreen = $settingValue($supplierSettings::CONTRACT_FINANCE_SCREEN, 'off') === 'on' ? 'on' : 'off';
         $accountOption = fn ($id) => $selected_accounts->get((int) $id);
         $settingAccountOption = fn (string $key) => $accountOption($settingValue($key));
     @endphp
@@ -443,6 +450,13 @@
                     <span>
                         <span class="settings-nav__title">إثبات تكلفة المورد الخارجي</span>
                         <span class="settings-nav__count">1 {{ __('finance::finance.settings_fields') }}</span>
+                    </span>
+                </a>
+                <a class="settings-nav__item" href="#recruitment-supplier-cycle-section">
+                    <span class="settings-nav__icon"><i class="fa fa-dolly-flatbed"></i></span>
+                    <span>
+                        <span class="settings-nav__title">قيود المشتريات والوكلاء الخارجيون</span>
+                        <span class="settings-nav__count">7 {{ __('finance::finance.settings_fields') }}</span>
                     </span>
                 </a>
                 <a class="settings-nav__item" href="#constraints-approval-section">
@@ -580,6 +594,22 @@
                         </label>
                     </div>
                     <small class="text-muted d-block mt-3">{{ __('finance::finance.invoice_supplier_workflow_existing_hint') }}</small>
+
+                    <h4 class="settings-section-title mt-4">{{ __('finance::finance.musaned_commission_posting') }}</h4>
+                    <p class="settings-section-hint">{{ __('finance::finance.musaned_commission_posting_hint') }}</p>
+                    <input type="hidden" name="data[musaned_commission_posting][title]" value="musaned_commission_posting">
+                    <div class="approval-options">
+                        <label class="approval-option">
+                            <input type="radio" name="data[musaned_commission_posting][value]" value="separate" {{ $settingValue('musaned_commission_posting', 'separate') !== 'with_receipt' ? 'checked' : '' }}>
+                            <strong>{{ __('finance::finance.musaned_commission_posting_separate') }}</strong>
+                            <span>{{ __('finance::finance.musaned_commission_posting_separate_hint') }}</span>
+                        </label>
+                        <label class="approval-option">
+                            <input type="radio" name="data[musaned_commission_posting][value]" value="with_receipt" {{ $settingValue('musaned_commission_posting', 'separate') === 'with_receipt' ? 'checked' : '' }}>
+                            <strong>{{ __('finance::finance.musaned_commission_posting_with_receipt') }}</strong>
+                            <span>{{ __('finance::finance.musaned_commission_posting_with_receipt_hint') }}</span>
+                        </label>
+                    </div>
                 </div>
             </details>
 
@@ -627,14 +657,152 @@
                 <div class="settings-section-body">
                     <input type="hidden" name="data[recruitment_supplier_cost_recognition][title]" value="recruitment_supplier_cost_recognition">
                     <div class="approval-options">
-                        @foreach (['on_arrival' => 'عند وصول العاملة (الافتراضي)', 'on_dispatch' => 'عند عمل إرسالية الوكيل الخارجي'] as $mode => $label)
-                            <label class="approval-option">
+                        @foreach ([
+                            'on_arrival' => [
+                                'label' => 'عند وصول العاملة (الافتراضي)',
+                                'hint' => 'السلوك الأصلي للنظام. التكلفة والإيراد يُثبتان معًا عند الوصول.',
+                                'tone' => '',
+                            ],
+                            'on_dispatch' => [
+                                'label' => 'عند عمل إرسالية الوكيل الخارجي (موصى به للإثبات المبكر)',
+                                'hint' => 'أول لحظة يصبح فيها الخصم على الوكيل مستحقًا فعلًا — الوكيل أرسل العاملة — والمبلغ مؤكد لا تقديري. ويسبق الوصول بشهور.',
+                                'tone' => 'ok',
+                            ],
+                            'on_contract' => [
+                                'label' => 'عند إنشاء العقد — غير موصى به',
+                                'hint' => 'يثبت خصمًا على الوكيل قبل أن يرسل العاملة، ومبلغًا تقديريًا من قائمة أسعار المكاتب. العقد الذي لا يصل إلى فاتورة — وهو الغالب — يحمل تكلفة بلا إيراد مقابل، والعقد الذي يُلغى قبل الفوترة لا يوجد له مسار عكس تلقائي. يُفعَّل بقرار موثق من المحاسب المسؤول.',
+                                'tone' => 'warn',
+                            ],
+                        ] as $mode => $option)
+                            <label class="approval-option" style="{{ $option['tone'] === 'warn' ? 'border-color:#f0ad4e;background:#fff8ec' : '' }}">
                                 <input type="radio" name="data[recruitment_supplier_cost_recognition][value]" value="{{ $mode }}" {{ \App\Support\RecruitmentSupplierCostRecognition::normalize($settingValue('recruitment_supplier_cost_recognition')) === $mode ? 'checked' : '' }}>
+                                <span>
+                                    <strong>{{ $option['label'] }}</strong>
+                                    <span>{{ $option['hint'] }}</span>
+                                </span>
+                            </label>
+                        @endforeach
+
+                        @if (\App\Support\RecruitmentSupplierCostRecognition::normalize($settingValue('recruitment_supplier_cost_recognition')) === 'on_contract')
+                            <p class="mt-3 mb-0" style="color:#8a5a00;background:#fff8ec;border:1px solid #f0ad4e;border-radius:8px;padding:10px 12px">
+                                <strong>وضع «عند إنشاء العقد» مُفعَّل.</strong>
+                                عند إضافة العقد لا يكون المبلغ قد حُصِّل من مساند، ولا يكون الوكيل قد استحق شيئًا،
+                                فالقيد يسبق الواقعة ويفتح باب خلاف مع الوكيل على رصيد لم ينشأ.
+                                راجع تقرير القيود قبل الاعتماد على هذا الوضع في إقفال الفترة.
+                            </p>
+                        @endif
+                    </div>
+                    <p class="text-muted mt-3 mb-0">يُثبت القيد مدينًا على تكلفة المبيعات ودائنًا على حساب المورد، بقيمة تكلفة الإرسالية بالدولار × سعر الصرف المحدد أدناه. عند اختيار الإرسالية يلزم وجود فاتورة للعقد، ويُثبت القيد بتاريخ الإرسالية دون تكراره عند الوصول. وعند اختيار «عند إنشاء العقد» يُثبت القيد على العقد نفسه قبل وجود فاتورة، ولا يتعطل إنشاء العقد إن نقص المكتب أو السعر، بل يُؤجَّل القيد للمرحلة التالية ويُسجَّل السبب على العقد. يسري على العمليات التالية للحفظ ولا ينشئ أو يغيّر القيود السابقة؛ تُستكمل التكلفة غير المثبتة عند الوصول. يخضع لتفعيل القيود التلقائية.</p>
+                </div>
+            </details>
+
+
+            <details class="settings-section" id="recruitment-supplier-cycle-section">
+                <summary>
+                    <div>
+                        <h3 class="settings-section-title">قيود المشتريات والوكلاء الخارجيون</h3>
+                        <p class="settings-section-hint">كل خيار افتراضي هنا يساوي السلوك الحالي للنظام حرفيًا، فلا يتغير أي قيد حتى يُبدَّل الخيار عن قصد.</p>
+                    </div>
+                    <span class="settings-section-icon"><i class="fa fa-chevron-down"></i></span>
+                </summary>
+                <div class="settings-section-body">
+
+                    <h4 class="settings-field-title">مصدر مبلغ تكلفة الوكيل الخارجي</h4>
+                    <input type="hidden" name="data[recruitment_supplier_cost_source][title]" value="recruitment_supplier_cost_source">
+                    <div class="approval-options">
+                        @foreach ([
+                            'dispatch_manual' => 'المبلغ المُدخل على الإرسالية بالدولار (الافتراضي)',
+                            'office_price_list' => 'تكلفة الدولار المعرّفة على ملف المكتب الخارجي',
+                        ] as $mode => $label)
+                            <label class="approval-option">
+                                <input type="radio" name="data[recruitment_supplier_cost_source][value]" value="{{ $mode }}" {{ $supplierCostSource === $mode ? 'checked' : '' }}>
                                 <span><strong>{{ $label }}</strong></span>
                             </label>
                         @endforeach
                     </div>
-                    <p class="text-muted mt-3 mb-0">يُثبت القيد مدينًا على تكلفة المبيعات ودائنًا على حساب المورد، بقيمة تكلفة الإرسالية بالدولار × 3.75. عند اختيار الإرسالية يلزم وجود فاتورة للعقد، ويُثبت القيد بتاريخ الإرسالية دون تكراره عند الوصول. يسري على العمليات التالية للحفظ ولا ينشئ أو يغيّر القيود السابقة؛ تُستكمل التكلفة غير المثبتة عند الوصول. يخضع لتفعيل القيود التلقائية.</p>
+                    <p class="text-muted mt-2 mb-4">مبلغ الإرسالية هو المصدر المعتمد متى وُجد في الحالتين. قائمة أسعار المكاتب تُستخدم فقط لتغطية الفترة قبل الإرسالية، وهي شرط لازم لوضع «عند إنشاء العقد».</p>
+
+                    <h4 class="settings-field-title">سعر صرف الدولار في قيود تكلفة الوكيل</h4>
+                    <input type="hidden" name="data[recruitment_supplier_usd_rate][title]" value="recruitment_supplier_usd_rate">
+                    <input type="number" step="0.0001" min="0.0001" class="form-control" style="max-width:220px"
+                           name="data[recruitment_supplier_usd_rate][value]"
+                           value="{{ $settingValue('recruitment_supplier_usd_rate', (string) \App\Support\RecruitmentSupplierSettings::USD_RATE_DEFAULT) }}">
+                    <p class="text-muted mt-2 mb-4">كان مثبتًا في الكود على 3.75. تركه فارغًا يعيده إلى 3.75.</p>
+
+                    <h4 class="settings-field-title">مستوى شجرة مراكز تكلفة عقود الاستقدام</h4>
+                    <input type="hidden" name="data[recruitment_cost_center_scope][title]" value="recruitment_cost_center_scope">
+                    <div class="approval-options">
+                        @foreach ([
+                            'contract' => 'مركز لكل عقد تحت «عقود الاستقدام» مباشرة (الافتراضي)',
+                            'nationality_then_contract' => 'مستوى لكل دولة: عقود الاستقدام ← الدولة ← العقد',
+                        ] as $mode => $label)
+                            <label class="approval-option">
+                                <input type="radio" name="data[recruitment_cost_center_scope][value]" value="{{ $mode }}" {{ $recruitmentCostCenterScope === $mode ? 'checked' : '' }}>
+                                <span><strong>{{ $label }}</strong></span>
+                            </label>
+                        @endforeach
+                    </div>
+                    <p class="text-muted mt-2 mb-4">يسري على المراكز التي تُنشأ بعد الحفظ فقط. المراكز القائمة لا تُنقل ولا تُكرَّر.</p>
+
+                    <h4 class="settings-field-title">تفصيل كشف حساب الوكيل بالعاملة</h4>
+                    <input type="hidden" name="data[recruitment_supplier_line_cost_center][title]" value="recruitment_supplier_line_cost_center">
+                    <div class="approval-options">
+                        <label class="approval-option">
+                            <input type="radio" name="data[recruitment_supplier_line_cost_center][value]" value="off" {{ $supplierLineCostCenter !== 'on' ? 'checked' : '' }}>
+                            <span><strong>بلا مركز تكلفة على سطر الوكيل (الافتراضي)</strong></span>
+                        </label>
+                        <label class="approval-option">
+                            <input type="radio" name="data[recruitment_supplier_line_cost_center][value]" value="on" {{ $supplierLineCostCenter === 'on' ? 'checked' : '' }}>
+                            <span><strong>تمرير مركز تكلفة العقد لسطر حساب الوكيل</strong></span>
+                        </label>
+                    </div>
+                    <p class="text-muted mt-2 mb-4">التفعيل يجعل كشف حساب الوكيل قابلًا للتفصيل بالعاملة ورقم العقد دون إنشاء حساب فرعي لكل عاملة.</p>
+
+                    <h4 class="settings-field-title">سداد دفعات الوكيل الخارجي</h4>
+                    <input type="hidden" name="data[recruitment_supplier_payment_mode][title]" value="recruitment_supplier_payment_mode">
+                    <div class="approval-options">
+                        @foreach ([
+                            'general_bond' => 'سند صرف عام من شاشة المالية (الافتراضي)',
+                            'contract_linked' => 'شاشة دفعات مربوطة بالعقد والعاملة ومركز التكلفة',
+                        ] as $mode => $label)
+                            <label class="approval-option">
+                                <input type="radio" name="data[recruitment_supplier_payment_mode][value]" value="{{ $mode }}" {{ $supplierPaymentMode === $mode ? 'checked' : '' }}>
+                                <span><strong>{{ $label }}</strong></span>
+                            </label>
+                        @endforeach
+                    </div>
+                    <p class="text-muted mt-2 mb-4">سند الصرف العام يبقى متاحًا في الحالتين. الشاشة المربوطة تُضيف مسارًا يسجّل الدفعة على العقد ومركز تكلفته.</p>
+
+                    <h4 class="settings-field-title">الملف المالي للعقد في شاشة واحدة</h4>
+                    <input type="hidden" name="data[recruitment_contract_finance_screen][title]" value="recruitment_contract_finance_screen">
+                    <div class="approval-options">
+                        <label class="approval-option">
+                            <input type="radio" name="data[recruitment_contract_finance_screen][value]" value="off" {{ $contractFinanceScreen !== 'on' ? 'checked' : '' }}>
+                            <span><strong>مطفأة (الافتراضي)</strong>
+                                <span>كل إجراء من شاشته المعتادة.</span></span>
+                        </label>
+                        <label class="approval-option">
+                            <input type="radio" name="data[recruitment_contract_finance_screen][value]" value="on" {{ $contractFinanceScreen === 'on' ? 'checked' : '' }}>
+                            <span><strong>مفعَّلة</strong>
+                                <span>شاشة واحدة لكل عقد: الفاتورة وتحصيل مساند وسداد الوكيل.</span></span>
+                        </label>
+                    </div>
+                    <p class="text-muted mt-2 mb-4">لوحة حالة ومُطلِق إجراءات فوق المستندات القائمة، لا مستند جديد. كل إجراء يُسجَّل بتاريخه ووحده لأن الثلاثة لا تقع في لحظة واحدة. وتحصيل مساند منها يُنشئ تحويلًا لهذا العقد وحده، فتحتاج المطابقة البنكية تجميعًا يدويًا مقابل سطر البنك الواحد.</p>
+
+                    <h4 class="settings-field-title">مسار قيد التحصيل من منصة مساند</h4>
+                    <input type="hidden" name="data[musaned_collection_mode][title]" value="musaned_collection_mode">
+                    <div class="approval-options">
+                        @foreach ([
+                            'intermediate_two_step' => 'حساب مساند الوسيط ثم قيد تحويل بنكي (الافتراضي)',
+                            'direct_receipt' => 'سند قبض مباشر: مدين البنك المحصل / دائن حساب مساند',
+                        ] as $mode => $label)
+                            <label class="approval-option">
+                                <input type="radio" name="data[musaned_collection_mode][value]" value="{{ $mode }}" {{ $musanedCollectionMode === $mode ? 'checked' : '' }}>
+                                <span><strong>{{ $label }}</strong></span>
+                            </label>
+                        @endforeach
+                    </div>
+                    <p class="text-muted mt-2 mb-0">الوضع يُثبَّت على كل تحويل مساند وقت إنشائه، فالتحويلات السابقة تبقى مقروءة بطريقتها. سند القبض المباشر لا يستخدم الحساب الوسيط ولا ينشئ قيد التحويل البنكي.</p>
                 </div>
             </details>
 

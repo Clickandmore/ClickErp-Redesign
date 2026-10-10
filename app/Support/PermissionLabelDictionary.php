@@ -82,6 +82,8 @@ final class PermissionLabelDictionary
         'post_arrival_refund_post' => 'اعتماد مستند استرداد بعد الوصول',
         'post_arrival_refund_payout' => 'صرف استرداد بعد الوصول',
         'post_arrival_refund_reverse' => 'عكس بند استرداد بعد الوصول',
+        'invoices_edit_line_items' => 'تعديل بنود وقيم الفاتورة',
+        'invoices_edit_musaned_commission' => 'تعديل مبلغ التكاليف البنكية',
     ];
 
     /**

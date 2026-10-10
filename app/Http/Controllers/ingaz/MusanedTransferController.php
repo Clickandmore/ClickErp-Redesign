@@ -8,6 +8,9 @@ use App\Models\ingaz\Invoice;
 use App\Models\MusanedTransfer;
 use App\Models\MusanedTransferItem;
 use App\Support\AutomaticJournalEntries;
+use App\Support\MusanedCommissionPosting;
+use App\Support\RecruitmentCostCenters;
+use App\Support\RecruitmentSupplierSettings;
 use App\Support\IngazDelegationTimeline;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -22,6 +25,7 @@ use Nami\Finance\Models\Account;
 use Nami\Finance\Models\Bond;
 use Nami\Finance\Models\ConfirmSetting;
 use Nami\Finance\Models\Constraint;
+use Nami\Finance\Models\ConstraintDetails;
 use Nami\Finance\Models\CostCenter;
 use Nami\Finance\Models\TaxSetting;
 use Nami\Finance\Services\ConstraintService as ObjService;
@@ -29,31 +33,78 @@ use Nami\Finance\Services\YearService;
 
 class MusanedTransferController extends Controller
 {
-    public function recordInvoiceCommission(Invoice $invoice): void
+    public const DEFAULT_COMMISSION_RATE = 2.4;
+
+    public function recordInvoiceCommission(Invoice $invoice): ?Constraint
     {
         // Existing invoices retain their accounting sequence after switching the setting.
-        if (!\App\Support\InvoiceSupplierWorkflow::enabled() && $invoice->musaned_commission_amount === null) return;
-        if (!$invoice->contract_id && !$invoice->ingaz_delegation_id) return;
-        DB::transaction(function () use ($invoice) {
+        if (!\App\Support\InvoiceSupplierWorkflow::enabled() && $invoice->musaned_commission_amount === null) return null;
+        if (!$invoice->contract_id && !$invoice->ingaz_delegation_id) return null;
+
+        return DB::transaction(function () use ($invoice): ?Constraint {
             $locked = Invoice::query()->whereKey($invoice->id)->lockForUpdate()->firstOrFail();
-            if ($locked->musaned_commission_constraint_id || $locked->musanedTransferItem()->exists()) return;
-            $amount = $this->roundMoney((float) $locked->total_due * 0.025);
+            if ($locked->musaned_commission_constraint_id) {
+                return Constraint::query()->find((int) $locked->musaned_commission_constraint_id);
+            }
+            if ($locked->musanedTransferItem()->exists()) return null;
+            $rate = is_numeric($locked->musaned_commission_rate)
+                ? (float) $locked->musaned_commission_rate
+                : self::DEFAULT_COMMISSION_RATE;
+            $amount = $locked->musaned_commission_amount !== null
+                ? $this->roundMoney((float) $locked->musaned_commission_amount)
+                : $this->roundMoney((float) $locked->total_due * $rate / 100);
+
+            if ($amount > $this->roundMoney((float) $locked->total_due)) {
+                throw new \RuntimeException('مبلغ التكاليف البنكية لا يمكن أن يتجاوز إجمالي الفاتورة.');
+            }
+
             $tax = $this->calculateExpenseTaxAmount($amount, $this->resolveExpenseTaxRate());
-            $locked->update(['musaned_commission_amount' => $amount, 'musaned_commission_tax' => $tax]);
-            if (!AutomaticJournalEntries::enabled() || $amount <= 0) return;
+            $locked->update([
+                'musaned_commission_rate' => $rate,
+                'musaned_commission_amount' => $amount,
+                'musaned_commission_tax' => $tax,
+            ]);
+            if (!AutomaticJournalEntries::enabled() || $amount <= 0) return null;
             $sourceId = $this->resolveInvoiceMusanedSourceAccountId($locked, 0);
             if (!$sourceId) {
                 $sourceId = (int) $this->resolveIntermediateAccount()->id;
             }
             $commission = $this->resolveCommissionAccount();
             $taxAccount = $this->resolveExpenseTaxAccount();
-            if ($tax > 0 && !$taxAccount) throw new \RuntimeException('يجب تحديد حساب ضريبة المصروفات لتسجيل عمولة مساند.');
+            if ($tax > 0 && !$taxAccount) throw new \RuntimeException('يجب تحديد حساب ضريبة المصروفات لتسجيل التكاليف البنكية لمساند.');
             $date = $locked->created_at->toDateString();
             $year = app(YearService::class)->checkDateRange($date);
-            if (!$year) throw new \RuntimeException('لا توجد سنة مالية نشطة لتاريخ عمولة مساند.');
-            $statement = 'عمولة مساند 2.5% عند إصدار الفاتورة #' . $locked->id;
+            if (!$year) throw new \RuntimeException('لا توجد سنة مالية نشطة لتاريخ التكاليف البنكية لمساند.');
+            $statement = 'التكاليف البنكية لمساند عند إصدار الفاتورة #' . $locked->id;
             $lines = [];
             $costCenter = $locked->contract ? $this->ensureRecruitmentContractCostCenter($locked->contract)->id : null;
+
+            // إعداد «قيدان بدل ثلاثة»: سطور العمولة داخل قيد سند القبض، ومساند بالصافي.
+            // بلا عمود التثبيت لا يُعرف لاحقاً أن العمولة داخل السند، فيعكس الاسترداد السند كله.
+            if (MusanedCommissionPosting::invoiceColumnExists()
+                && MusanedCommissionPosting::modeForInvoice($locked) === MusanedCommissionPosting::WITH_RECEIPT) {
+                $merged = $this->mergeCommissionIntoReceiptConstraint(
+                    $locked,
+                    $amount,
+                    $tax,
+                    (int) $commission->id,
+                    $taxAccount ? (int) $taxAccount->id : null,
+                    $costCenter,
+                    $statement
+                );
+                if ($merged) {
+                    $locked->update(array_merge(
+                        ['musaned_commission_constraint_id' => $merged->id],
+                        MusanedCommissionPosting::invoiceColumnExists()
+                            ? [MusanedCommissionPosting::INVOICE_COLUMN => MusanedCommissionPosting::WITH_RECEIPT]
+                            : []
+                    ));
+                    $invoice->refresh();
+
+                    return $merged;
+                }
+            }
+
             $this->appendConstraintLine($lines, $commission->id, 'debtor', $this->roundMoney($amount - $tax), $statement, $costCenter);
             if ($tax > 0) $this->appendConstraintLine($lines, $taxAccount->id, 'debtor', $tax, $statement);
             $this->appendConstraintLine($lines, $sourceId, 'creditor', $amount, $statement);
@@ -67,9 +118,88 @@ class MusanedTransferController extends Controller
             ];
             $constraint = $service->storeConstraint($data, $year);
             $service->storeConstraintDetails($data['account_id'], $constraint->id, $data);
-            $locked->update(['musaned_commission_constraint_id' => $constraint->id]);
+            $locked->update(array_merge(
+                ['musaned_commission_constraint_id' => $constraint->id],
+                MusanedCommissionPosting::invoiceColumnExists()
+                    ? [MusanedCommissionPosting::INVOICE_COLUMN => MusanedCommissionPosting::SEPARATE]
+                    : []
+            ));
             $invoice->refresh();
+
+            return $constraint;
         });
+    }
+
+    /**
+     * يضيف سطري العمولة وضريبتها إلى قيد سند القبض، وينقص سطر مساند المدين بالمبلغ نفسه،
+     * فتبقى قيمة القيد وتوازنه كما هما. يعود بقيد السند، أو null إن لم يوجد سند بقيد
+     * (فيُسجَّل قيد مستقل كما في الوضع الافتراضي).
+     */
+    private function mergeCommissionIntoReceiptConstraint(
+        Invoice $invoice,
+        float $amount,
+        float $tax,
+        int $commissionAccountId,
+        ?int $taxAccountId,
+        ?int $costCenterId,
+        string $statement
+    ): ?Constraint {
+        $receiptBond = $this->findInvoiceReceiptBond($invoice);
+        if (!$receiptBond || !$receiptBond->constraint_id) {
+            return null;
+        }
+
+        $constraint = Constraint::query()->lockForUpdate()->find((int) $receiptBond->constraint_id);
+        if (!$constraint) {
+            return null;
+        }
+
+        $musanedLine = ConstraintDetails::query()
+            ->where('constraint_id', $constraint->id)
+            ->where('account_id', (int) $receiptBond->debit_account_id)
+            ->where('debtor_value', '>=', $amount)
+            ->orderBy('id')
+            ->first();
+        if (!$musanedLine) {
+            return null;
+        }
+
+        $musanedLine->update([
+            'debtor_value' => $this->roundMoney((float) $musanedLine->debtor_value - $amount),
+        ]);
+
+        $append = function (int $accountId, float $value, ?int $lineCostCenterId) use ($musanedLine, $statement): void {
+            if ($value <= 0) {
+                return;
+            }
+            $line = $musanedLine->replicate();
+            $line->account_id = $accountId;
+            $line->debtor_value = $value;
+            $line->creditor_value = 0;
+            $line->cost_center_id = $lineCostCenterId;
+            $line->statement = $statement;
+            $line->save();
+        };
+
+        $append($commissionAccountId, $this->roundMoney($amount - $tax), $costCenterId);
+        if ($tax > 0 && $taxAccountId) {
+            $append($taxAccountId, $tax, null);
+        }
+
+        return $constraint->fresh();
+    }
+
+    private function findInvoiceReceiptBond(Invoice $invoice): ?Bond
+    {
+        return Bond::query()
+            ->where('type', BondTypes::Qabd->value)
+            ->whereNull('rental_contract_id')
+            ->when($invoice->contract_id, function ($query) use ($invoice) {
+                $query->where('recruitment_contract_id', $invoice->contract_id);
+            })
+            ->where('statement', 'regexp', 'الفاتورة #' . (int) $invoice->id . '([^0-9]|$)')
+            ->latest('id')
+            ->first();
     }
 
     public function index(Request $request)
@@ -225,7 +355,15 @@ class MusanedTransferController extends Controller
             ]);
         }
 
-        $intermediateAccount = $automaticEntriesEnabled ? $this->resolveIntermediateAccount() : null;
+        // وضع التحصيل يُقرأ مرة واحدة ويُثبَّت على التحويل، فالتحويلات السابقة تبقى
+        // مقروءة بالطريقة التي أُنشئت بها حتى لو بُدّل الإعداد بعدها.
+        $collectionMode = RecruitmentSupplierSettings::musanedCollectionMode();
+        $usesIntermediate = $collectionMode === RecruitmentSupplierSettings::MUSANED_INTERMEDIATE_TWO_STEP;
+
+        // الحساب الوسيط لا يُطلب إلا في الوضع الحالي؛ وضع سند القبض المباشر لا يستخدمه.
+        $intermediateAccount = ($automaticEntriesEnabled && $usesIntermediate)
+            ? $this->resolveIntermediateAccount()
+            : null;
         $commissionAccount = $automaticEntriesEnabled ? $this->resolveCommissionAccount() : null;
         $expenseTaxRate = $this->resolveExpenseTaxRate();
         $expenseTaxAccount = $automaticEntriesEnabled ? $this->resolveExpenseTaxAccount() : null;
@@ -240,7 +378,9 @@ class MusanedTransferController extends Controller
                 $commissionAccount,
                 $expenseTaxRate,
                 $expenseTaxAccount,
-                $automaticEntriesEnabled
+                $automaticEntriesEnabled,
+                $collectionMode,
+                $usesIntermediate
             ) {
                 $itemsInput = collect($validated['items'])
                     ->map(function ($item) {
@@ -339,9 +479,19 @@ class MusanedTransferController extends Controller
                         ? (float) $invoice->musaned_commission_tax
                         : ($commissionAmount > 0 ? $this->calculateExpenseTaxAmount($commissionAmount, $expenseTaxRate) : 0.0);
                     $commissionNetAmount = $this->roundMoney($commissionAmount - $expenseTaxAmount);
+                    $settlementReceiptAccount = $usesIntermediate ? $intermediateAccount : $bankAccount;
                     $sourceAccountId = $automaticEntriesEnabled
-                        ? $this->resolveInvoiceMusanedSourceAccountId($invoice, (int) $intermediateAccount->id)
+                        ? $this->resolveInvoiceMusanedSourceAccountId($invoice, (int) $settlementReceiptAccount->id)
                         : null;
+
+                    // في سند القبض المباشر، لو انتهى حساب المصدر إلى البنك نفسه لصار القيد
+                    // مديناً ودائناً على حساب واحد، أي صفراً بلا أثر. يُرفض بوضوح.
+                    if ($sourceAccountId && !$usesIntermediate && (int) $sourceAccountId === (int) $bankAccount->id) {
+                        throw ValidationException::withMessages([
+                            'bank_account_id' => 'حساب مساند المسجَّل عليه التحصيل هو نفس البنك المحدد لـ ' . $itemLabel
+                                . '. اختر بنكاً مختلفاً أو حدّد حساب مساند في إعدادات الحسابات.',
+                        ]);
+                    }
                     $costCenter = $automaticEntriesEnabled && $contract
                         ? $this->ensureRecruitmentContractCostCenter($contract)
                         : null;
@@ -372,9 +522,9 @@ class MusanedTransferController extends Controller
                 }
 
                 $transfer = MusanedTransfer::query()->create([
-                    'reference_number' => $validated['reference_number'] ?: null,
+                    'reference_number' => ($validated['reference_number'] ?? null) ?: null,
                     'transfer_date' => $validated['transfer_date'],
-                    'notes' => $validated['notes'] ?: null,
+                    'notes' => ($validated['notes'] ?? null) ?: null,
                     'contracts_count' => count($itemPayloads),
                     'customer_paid_total' => $totals['customer_paid_total'],
                     'transferred_total' => $totals['transferred_total'],
@@ -387,6 +537,9 @@ class MusanedTransferController extends Controller
                     'commission_account_id' => $commissionAccount?->id,
                     'expense_tax_account_id' => $expenseTaxAccount?->id,
                     'created_by_id' => Auth::guard('admin')->id() ?: Auth::id(),
+                    ...(Schema::hasColumn('musaned_transfers', RecruitmentSupplierSettings::MUSANED_TRANSFER_COLUMN)
+                        ? [RecruitmentSupplierSettings::MUSANED_TRANSFER_COLUMN => $collectionMode]
+                        : []),
                 ]);
 
                 $transfer->items()->createMany($itemPayloads);
@@ -396,22 +549,26 @@ class MusanedTransferController extends Controller
                 $bankTransferConstraint = null;
 
                 if ($automaticEntriesEnabled) {
+                    // الوضع الحالي: صافي التحصيل على الحساب الوسيط ثم قيد تحويل بنكي.
+                    // وضع سند القبض المباشر: مدين البنك المحصل في قيد واحد، بلا وسيط.
                     $settlementConstraint = $this->storeSettlementConstraint(
                         $transfer,
                         $service,
                         $activeYear,
-                        (int) $intermediateAccount->id,
+                        (int) ($usesIntermediate ? $intermediateAccount->id : $bankAccount->id),
                         (int) $commissionAccount->id,
                         $expenseTaxAccount?->id ? (int) $expenseTaxAccount->id : null
                     );
 
-                    $bankTransferConstraint = $this->storeBankTransferConstraint(
-                        $transfer,
-                        $service,
-                        $activeYear,
-                        (int) $bankAccount->id,
-                        (int) $intermediateAccount->id
-                    );
+                    if ($usesIntermediate) {
+                        $bankTransferConstraint = $this->storeBankTransferConstraint(
+                            $transfer,
+                            $service,
+                            $activeYear,
+                            (int) $bankAccount->id,
+                            (int) $intermediateAccount->id
+                        );
+                    }
                 }
 
                 $transfer->update([
@@ -452,8 +609,13 @@ class MusanedTransferController extends Controller
             }
         }
 
-        return redirect()
-            ->route('musaned-transfers.show', $transfer->id)
+        // المناداة من الملف المالي للعقد تعود إليه، فلا تنكسر متابعة المستخدم للعقد.
+        $returnContract = request()->input('return_to_contract');
+        $redirect = is_numeric($returnContract)
+            ? redirect()->route('recruitment-contract-finance.show', (int) $returnContract)
+            : redirect()->route('musaned-transfers.show', $transfer->id);
+
+        return $redirect
             ->with(
                 'success',
                 $automaticEntriesEnabled
@@ -654,12 +816,12 @@ class MusanedTransferController extends Controller
         }
 
         if (!$accountId) {
-            throw new \RuntimeException('لا يوجد حساب عمولة مساند محدد من إعدادات النظام المحاسبي.');
+            throw new \RuntimeException('لا يوجد حساب للتكاليف البنكية لمساند محدد من إعدادات النظام المحاسبي.');
         }
 
         $account = $this->findValidDebtorLeafAccount((int) $accountId);
         if (!$account) {
-            throw new \RuntimeException('حساب عمولة مساند المحدد غير صالح.');
+            throw new \RuntimeException('حساب التكاليف البنكية لمساند المحدد غير صالح.');
         }
 
         return $account;
@@ -689,15 +851,7 @@ class MusanedTransferController extends Controller
 
     private function resolveInvoiceMusanedSourceAccountId(Invoice $invoice, int $fallbackAccountId): int
     {
-        $receiptBond = Bond::query()
-            ->where('type', BondTypes::Qabd->value)
-            ->whereNull('rental_contract_id')
-            ->when($invoice->contract_id, function ($query) use ($invoice) {
-                $query->where('recruitment_contract_id', $invoice->contract_id);
-            })
-            ->where('statement', 'regexp', 'الفاتورة #' . (int) $invoice->id . '([^0-9]|$)')
-            ->latest('id')
-            ->first();
+        $receiptBond = $this->findInvoiceReceiptBond($invoice);
 
         if ($receiptBond && $this->findValidMusanedAccount((int) $receiptBond->debit_account_id)) {
             return (int) $receiptBond->debit_account_id;
@@ -752,7 +906,7 @@ class MusanedTransferController extends Controller
         MusanedTransfer $transfer,
         ObjService $service,
         $activeYear,
-        int $intermediateAccountId,
+        int $receiptAccountId,
         int $commissionAccountId,
         ?int $expenseTaxAccountId
     ): ?Constraint {
@@ -764,19 +918,19 @@ class MusanedTransferController extends Controller
 
             if ((float) $item->transferred_amount > 0) {
                 $statement = $this->buildSettlementItemStatement($transfer, $item, 'صافي المبلغ المحول من مساند');
-                $this->appendConstraintLine($lines, $intermediateAccountId, 'debtor', (float) $item->transferred_amount, $statement, $musanedClearingCostCenterId);
+                $this->appendConstraintLine($lines, $receiptAccountId, 'debtor', (float) $item->transferred_amount, $statement, $musanedClearingCostCenterId);
                 $this->appendConstraintLine($lines, (int) $item->source_account_id, 'creditor', (float) $item->transferred_amount, $statement, $musanedClearingCostCenterId);
             }
 
             $commissionAlreadyRecorded = (bool) $item->invoice?->musaned_commission_constraint_id;
             if (!$commissionAlreadyRecorded && (float) $item->commission_amount > 0) {
-                $statement = $this->buildSettlementItemStatement($transfer, $item, 'عمولة مساند على العقد');
+                $statement = $this->buildSettlementItemStatement($transfer, $item, 'التكاليف البنكية لمساند على العقد');
                 $this->appendConstraintLine($lines, $commissionAccountId, 'debtor', (float) $item->commission_amount, $statement, $costCenterId);
                 $this->appendConstraintLine($lines, (int) $item->source_account_id, 'creditor', (float) $item->commission_amount, $statement);
             }
 
             if (!$commissionAlreadyRecorded && $expenseTaxAccountId && (float) $item->expense_tax_amount > 0) {
-                $statement = $this->buildSettlementItemStatement($transfer, $item, 'فصل ضريبة المصروفات من عمولة مساند');
+                $statement = $this->buildSettlementItemStatement($transfer, $item, 'فصل ضريبة المصروفات من التكاليف البنكية لمساند');
                 $this->appendConstraintLine($lines, $expenseTaxAccountId, 'debtor', (float) $item->expense_tax_amount, $statement);
                 $this->appendConstraintLine($lines, $commissionAccountId, 'creditor', (float) $item->expense_tax_amount, $statement, $costCenterId);
             }
@@ -869,68 +1023,11 @@ class MusanedTransferController extends Controller
 
     private function ensureRecruitmentContractCostCenter(Contract $contract): CostCenter
     {
-        $rootCostCenter = $this->ensureRecruitmentContractsRootCostCenter();
+        $contract->loadMissing(['maid.nationality', 'requiredMaidNationality']);
+        $nationality = $contract->maid?->nationality ?? $contract->requiredMaidNationality;
+        $nationalityName = trim((string) ($nationality?->sub_title ?? $nationality?->title ?? ''));
 
-        $costCenter = CostCenter::query()
-            ->lockForUpdate()
-            ->where('parent_id', $rootCostCenter->id)
-            ->where('table_name', CostCenterTypeEnum::General->value)
-            ->where('table_related_id', $contract->id)
-            ->first();
-
-        if ($costCenter) {
-            return $costCenter;
-        }
-
-        $nationalityName = $contract->maid?->nationality?->sub_title
-            ?? $contract->maid?->nationality?->title
-            ?? $contract->requiredMaidNationality?->sub_title
-            ?? $contract->requiredMaidNationality?->title;
-
-        $title = 'عقد استقدام #' . $contract->id;
-        if ($nationalityName) {
-            $title .= ' - ' . $nationalityName;
-        }
-
-        return CostCenter::query()->create([
-            'title' => $title,
-            'parent_id' => $rootCostCenter->id,
-            'table_name' => CostCenterTypeEnum::General->value,
-            'table_related_id' => $contract->id,
-            'code' => $this->nextCostCenterCode(),
-            'created_by_id' => Auth::guard('admin')->id() ?: Auth::id() ?: 1,
-        ]);
-    }
-
-    private function ensureRecruitmentContractsRootCostCenter(): CostCenter
-    {
-        $costCenter = CostCenter::query()
-            ->lockForUpdate()
-            ->whereNull('parent_id')
-            ->where('title', 'عقود الاستقدام')
-            ->first();
-
-        if ($costCenter) {
-            return $costCenter;
-        }
-
-        return CostCenter::query()->create([
-            'title' => 'عقود الاستقدام',
-            'parent_id' => null,
-            'table_name' => CostCenterTypeEnum::General->value,
-            'table_related_id' => 0,
-            'code' => $this->nextCostCenterCode(),
-            'created_by_id' => Auth::guard('admin')->id() ?: Auth::id() ?: 1,
-        ]);
-    }
-
-    private function nextCostCenterCode(): string
-    {
-        $lastCode = CostCenter::query()
-            ->lockForUpdate()
-            ->max('code');
-
-        return (string) (((int) $lastCode) + 1);
+        return RecruitmentCostCenters::forContract((int) $contract->id, $nationalityName);
     }
 
     private function findValidMusanedAccount(int $accountId): ?Account

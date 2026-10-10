@@ -656,6 +656,34 @@ class AdminRoutePermissionMatrix
                 PermKeys::MUSANED_TRANSFERS_DELETE,
                 PermKeys::MUSANED_TRANSFERS_CONTROL,
             ],
+            // تقرير فواتير المبيعات بالصافي: قراءة فقط، ويغذّي شاشة التسوية.
+            'musaned-transfers.invoices-report' => [
+                PermKeys::MUSANED_TRANSFERS_VIEW,
+                PermKeys::MUSANED_TRANSFERS_CREATE,
+                PermKeys::MUSANED_TRANSFERS_CONTROL,
+                PermKeys::REC_CONTRACTS_VIEW,
+                PermKeys::REC_CONTRACTS_MANAGE,
+            ],
+            'recruitment-contract-finance.index' => [
+                PermKeys::REC_CONTRACTS_VIEW,
+                PermKeys::REC_CONTRACTS_MANAGE,
+            ],
+            'recruitment-contract-finance.show' => [
+                PermKeys::REC_CONTRACTS_VIEW,
+                PermKeys::REC_CONTRACTS_MANAGE,
+            ],
+            'recruitment-supplier-payments.index' => [
+                PermKeys::REC_CONTRACTS_VIEW,
+                PermKeys::REC_CONTRACTS_MANAGE,
+            ],
+            'recruitment-supplier-payments.create' => [
+                PermKeys::REC_CONTRACTS_CREATE,
+                PermKeys::REC_CONTRACTS_MANAGE,
+            ],
+            'recruitment-supplier-payments.store' => [
+                PermKeys::REC_CONTRACTS_CREATE,
+                PermKeys::REC_CONTRACTS_MANAGE,
+            ],
         ];
     }
 
