@@ -306,7 +306,7 @@ class RentalTransferInvoiceTest extends TestCase
         }
         $matrix = \App\Support\AdminRoutePermissionMatrix::class;
         $this->assertSame([\App\PermKeys::SPONSOR_TRANSFER_CREATE_INVOICE], $matrix::resolve('invoices.store', \Illuminate\Http\Request::create('/', 'POST', ['sponsorship_transfer_id' => 163])));
-        $this->assertSame([\App\PermKeys::INVOICES_CREATE], $matrix::resolve('invoices.store', \Illuminate\Http\Request::create('/', 'POST', ['client_id' => 9])));
+        $this->assertSame([\App\PermKeys::INVOICES_CREATE, \App\PermKeys::INVOICES_CREATE_DRAFT], $matrix::resolve('invoices.store', \Illuminate\Http\Request::create('/', 'POST', ['client_id' => 9])));
         $this->assertSame([\App\PermKeys::SPONSOR_TRANSFER_CREATE_INVOICE], $matrix::resolve('SponsorshipTransfer.invoice.create'));
         auth()->forgetGuards();
     }

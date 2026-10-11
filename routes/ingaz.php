@@ -566,6 +566,9 @@ Route::group(
             Route::post('invoices/{id}/credit-notes', [InvoiceController::class, 'storeRecruitmentCreditNote'])->name('invoices.credit-notes.store');
             Route::get('recruitment-credit-notes/{id}/download', [InvoiceController::class, 'downloadRecruitmentCreditNote'])->name('recruitment-credit-notes.download');
             // InvoiceController::destroy is an intentional no-op; invoices are reversed via credit notes, never deleted.
+            Route::get('invoice-drafts', [\App\Http\Controllers\ingaz\InvoiceDraftController::class, 'index'])->name('invoice-drafts.index');
+            Route::post('invoice-drafts/{id}/approve', [\App\Http\Controllers\ingaz\InvoiceDraftController::class, 'approve'])->name('invoice-drafts.approve');
+            Route::post('invoice-drafts/{id}/return', [\App\Http\Controllers\ingaz\InvoiceDraftController::class, 'returnForCorrection'])->name('invoice-drafts.return');
             Route::resource('invoices', InvoiceController::class)->except(['destroy']);
             Route::get('invoices/download/{id}', [InvoiceController::class, 'downloadInvoice'])->name('invoice.download');
             Route::get('musaned-transfers/invoices-report', [\App\Http\Controllers\ingaz\MusanedInvoiceReportController::class, 'index'])->name('musaned-transfers.invoices-report');

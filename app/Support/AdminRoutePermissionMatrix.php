@@ -84,6 +84,7 @@ class AdminRoutePermissionMatrix
             'ingaz-delegations.create',
             'invoices.index',
             'invoices.create',
+            'invoice-drafts.index',
             'musaned-transfers.index',
             'musaned-transfers.create',
             'ShelterContract.index',
@@ -596,6 +597,9 @@ class AdminRoutePermissionMatrix
                 PermKeys::REC_CONTRACTS_MANAGE,
             ],
             'invoices.index' => InvoiceAuthorization::viewPermissions(),
+            'invoice-drafts.index' => [\App\PermKeys::INVOICES_DRAFTS_VIEW, \App\PermKeys::INVOICES_APPROVE, \App\PermKeys::INVOICES_CREATE_DRAFT],
+            'invoice-drafts.approve' => [\App\PermKeys::INVOICES_APPROVE],
+            'invoice-drafts.return' => [\App\PermKeys::INVOICES_APPROVE],
             'invoices.show' => InvoiceAuthorization::viewPermissions(),
             'invoices.create' => InvoiceAuthorization::createPermissions(),
             'invoices.store' => static fn (?Request $request) => $request === null

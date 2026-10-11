@@ -570,6 +570,7 @@ $permissions = ['printSettings.create', 'letters.index', 'officialVacations.inde
                                     'invoices.index',
                                     'invoices.create',
                                     'invoices.show',
+                                    'invoice-drafts.index',
                                 ]) &&
                                 (request()->query('status') == null || in_array(request()->query('status'), ['collected', 'refused']))
                                     ? 'active'
@@ -592,6 +593,7 @@ $permissions = ['printSettings.create', 'letters.index', 'officialVacations.inde
                                          'invoices.index',
                                          'invoices.create',
                                          'invoices.show',
+                                         'invoice-drafts.index',
                                      ]) &&
                                      (request()->query('status') == null || in_array(request()->query('status'), ['collected', 'refused']))
                                          ? 'show'
@@ -646,6 +648,15 @@ $permissions = ['printSettings.create', 'letters.index', 'officialVacations.inde
                 <span class="ms-2"> {{ trans('finance::finance.invoices') }} </span>
             </a>
         </li>
+
+        @if (\App\Support\InvoiceAuthorization::canViewDrafts() || @AdminGuardHasPerm(\App\PermKeys::INVOICES_CREATE_DRAFT))
+            <li>
+                <a class="m-link {{ request()->routeIs('invoice-drafts.*') ? 'active' : '' }}"
+                    href="{{ route('invoice-drafts.index') }}">
+                    <span class="ms-2">طلبات اعتماد الفواتير</span>
+                </a>
+            </li>
+        @endif
 
         {{--        @if (in_array('finance.account-transfer-read', $user_permission_list)) --}}
         <li>

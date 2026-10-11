@@ -1259,7 +1259,7 @@
                                 @if (\App\Support\InvoiceAuthorization::canCreate())
                                 <button class="btn btn-success btn-lg px-3" id="save-and-invoice" type="button">
                                     <i class="fa-solid fa-file-invoice-dollar me-2"></i>
-                                    {{ __('ingaz.save_and_issue_an_invoice') }}
+                                    {{ \App\Support\InvoiceAuthorization::canIssueDirectly() ? __('ingaz.save_and_issue_an_invoice') : 'حفظ وإرسال للاعتماد' }}
                                 </button>
                                 @endif
                             </div>
@@ -1398,7 +1398,7 @@
                                 <button class="btn btn-success btn-lg px-5" id="order-save-and-invoice"
                                     type="button">
                                     <i class="fa-solid fa-file-invoice-dollar me-2"></i>
-                                    {{ __('ingaz.save_and_issue_an_invoice') }}
+                                    {{ \App\Support\InvoiceAuthorization::canIssueDirectly() ? __('ingaz.save_and_issue_an_invoice') : 'حفظ وإرسال للاعتماد' }}
                                 </button>
                                 @endif
                             </div>

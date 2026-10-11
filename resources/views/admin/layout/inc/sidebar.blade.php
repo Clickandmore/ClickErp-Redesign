@@ -100,7 +100,11 @@
 
                 $canViewCrmModule = @SystemModuleEnabled('crm') && @AdminGuardHasPerm(\App\PermKeys::CRM_MODULE);
                 $canViewHrModule = @SystemModuleEnabled('hr') && @AdminGuardCanViewPackageModule('hr');
-                $canViewFinanceModule = @SystemModuleEnabled('finance') && @AdminGuardCanViewPackageModule('finance');
+                $canViewFinanceModule = @SystemModuleEnabled('finance') && (
+                    @AdminGuardCanViewPackageModule('finance')
+                    || \App\Support\InvoiceAuthorization::canViewDrafts()
+                    || @AdminGuardHasPerm(\App\PermKeys::INVOICES_CREATE_DRAFT)
+                );
 
                 $canViewCrm = @SystemModuleEnabled('crm') && ($canViewCrmModule || @AdminGuardHasAnyPerm([\App\PermKeys::CLIENTS_VIEW, \App\PermKeys::CLIENTS_CREATE, \App\PermKeys::CLIENTS_EDIT, \App\PermKeys::CLIENTS_DELETE, \App\PermKeys::CLIENTS_EXPORT, \App\PermKeys::CLIENTS_SHOW, \App\PermKeys::CLIENTS_SETTINGS, \App\PermKeys::NOTIFICATIONS_CONTROL]));
 
@@ -1187,6 +1191,7 @@
                     $isFinance =
                         request()->is('finance*') ||
                         \Illuminate\Support\Str::startsWith((string) Route::currentRouteName(), 'invoices.') ||
+                        request()->routeIs('invoice-drafts.*') ||
                         request()->routeIs('commissions.finance.*') ||
                         request()->routeIs('commissions.marketers.payments.*');
                 @endphp
