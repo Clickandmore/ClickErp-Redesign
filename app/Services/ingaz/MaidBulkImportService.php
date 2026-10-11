@@ -150,8 +150,17 @@ class MaidBulkImportService
         $this->buildDataSheet($dataSheet, $lookups);
 
         $writer = IOFactory::createWriter($spreadsheet, 'Xlsx');
+        $writer->setPreCalculateFormulas(false);
         $tempFile = tempnam(sys_get_temp_dir(), 'maid-import-template');
-        $writer->save($tempFile);
+        try {
+            $writer->save($tempFile);
+        } catch (\Throwable $exception) {
+            if (is_file($tempFile)) unlink($tempFile);
+            throw $exception;
+        } finally {
+            $spreadsheet->disconnectWorksheets();
+        }
+        clearstatcache(true, $tempFile);
 
         return response()
             ->download(
@@ -227,7 +236,7 @@ class MaidBulkImportService
 
         $storedPath = $file->storeAs(
             'maid-imports',
-            now()->format('Ymd_His') . '_' . preg_replace('/[^A-Za-z0-9_.-]/', '_', $file->getClientOriginalName())
+            now()->format('Ymd_His') . '_' . Str::uuid() . '_' . preg_replace('/[^A-Za-z0-9_.-]/', '_', $file->getClientOriginalName())
         );
 
         $import = MaidBulkImport::create([
@@ -258,7 +267,7 @@ class MaidBulkImportService
 
         $storedPath = $file->storeAs(
             'maid-imports',
-            now()->format('Ymd_His') . '_arabia_' . preg_replace('/[^A-Za-z0-9_.-]/', '_', $file->getClientOriginalName())
+            now()->format('Ymd_His') . '_arabia_' . Str::uuid() . '_' . preg_replace('/[^A-Za-z0-9_.-]/', '_', $file->getClientOriginalName())
         );
 
         $import = MaidBulkImport::create([
@@ -329,6 +338,8 @@ class MaidBulkImportService
                         });
 
                         DB::transaction(function () use ($maidAction, $payload, $request, $row, &$importedCount, $adminId) {
+                            $locked = MaidBulkImportRow::query()->whereKey($row->id)->lockForUpdate()->firstOrFail();
+                            if ($locked->status !== 'pending') return;
                             $data = $payload;
                             $data = $this->materializeArabiaMedia($data);
                             $downloadedMedia = array_filter([
@@ -571,17 +582,17 @@ class MaidBulkImportService
 
     private function applyListValidation(Worksheet $sheet, string $column, string $formula): void
     {
-        for ($row = 2; $row <= self::TEMPLATE_ROW_LIMIT; $row++) {
-            $validation = $sheet->getCell($column . $row)->getDataValidation();
-            $validation->setType(DataValidation::TYPE_LIST);
-            $validation->setErrorStyle(DataValidation::STYLE_STOP);
-            $validation->setAllowBlank(true);
-            $validation->setShowDropDown(true);
-            $validation->setShowErrorMessage(true);
-            $validation->setErrorTitle('قيمة غير صحيحة');
-            $validation->setError('اختر قيمة من القائمة المتاحة.');
-            $validation->setFormula1($formula);
-        }
+        // One Excel range rule avoids materializing 10,000 cells per dropdown.
+        $validation = new DataValidation();
+        $validation->setType(DataValidation::TYPE_LIST);
+        $validation->setErrorStyle(DataValidation::STYLE_STOP);
+        $validation->setAllowBlank(true);
+        $validation->setShowDropDown(true);
+        $validation->setShowErrorMessage(true);
+        $validation->setErrorTitle('قيمة غير صحيحة');
+        $validation->setError('اختر قيمة من القائمة المتاحة.');
+        $validation->setFormula1($formula);
+        $sheet->setDataValidation($column . '2:' . $column . self::TEMPLATE_ROW_LIMIT, $validation);
     }
 
     private function lookupCollections(): array
@@ -851,10 +862,24 @@ class MaidBulkImportService
     private function persistImportRows(MaidBulkImport $import, array $rows): void
     {
         $now = now();
+        $branchColumns = \Illuminate\Support\Facades\Schema::hasColumn('maid_bulk_import_rows', 'branch_id')
+            ? ['branch_id' => $import->uploadedBy?->branch_id] : [];
+        $seen = [];
+        foreach ($rows as &$row) {
+            $passport = mb_strtoupper(trim((string) ($row['normalized_data']['passport_num'] ?? '')));
+            if ($passport === '') continue;
+            if (isset($seen[$passport])) {
+                $row['status'] = 'invalid';
+                $row['error_messages'][] = 'رقم الجواز مكرر داخل الملف مع الصف ' . $seen[$passport];
+            } else {
+                $seen[$passport] = $row['row_number'];
+            }
+        }
+        unset($row);
 
         foreach (array_chunk($rows, self::INSERT_CHUNK_SIZE) as $chunk) {
-            MaidBulkImportRow::insert(array_map(function (array $row) use ($import, $now) {
-                return [
+            MaidBulkImportRow::insert(array_map(function (array $row) use ($import, $now, $branchColumns) {
+                return $branchColumns + [
                     'maid_bulk_import_id' => $import->id,
                     'row_number' => $row['row_number'],
                     'status' => $row['status'],
@@ -1020,7 +1045,11 @@ class MaidBulkImportService
         $data['available'] = $availableValue ?? (in_array($data['status'], ['available', 'completed'], true) ? '1' : '0');
 
         if (!$data['age'] && $data['birth_date']) {
-            $data['age'] = (string) Carbon::parse($data['birth_date'])->age;
+            try {
+                $data['age'] = (string) ImportValueParser::date($data['birth_date'])->age;
+            } catch (\InvalidArgumentException $exception) {
+                $errors[] = 'تاريخ الميلاد: ' . $exception->getMessage();
+            }
         }
 
         [$data['nationality_id'], $nationalityError, $nationality] = $this->resolveEntity($rawRow['nationality'] ?? null, $lookups['nationalities']);
@@ -1435,86 +1464,32 @@ class MaidBulkImportService
 
     private function normalizeDate($value): ?string
     {
-        $value = $this->trimmed($value);
-        if ($value === null) {
-            return null;
-        }
-
         try {
-            $value = $this->normalizeDigits($value);
-
-            if (preg_match('/^(19|20)\d{6}$/', trim($value))) {
-                return Carbon::createFromFormat('Ymd', trim($value))->format('Y-m-d');
-            }
-
-            if (is_numeric($value)) {
-                return ExcelDate::excelToDateTimeObject((float) $value)->format('Y-m-d');
-            }
-
-            foreach (['Y-m-d', 'Y/m/d', 'd/m/Y', 'd-m-Y', 'd.m.Y', 'm/d/Y', 'm-d-Y'] as $format) {
-                try {
-                    return Carbon::createFromFormat($format, trim($value))->format('Y-m-d');
-                } catch (\Throwable) {
-                    // Try the next common import format.
-                }
-            }
-
-            return Carbon::parse($value)->format('Y-m-d');
-        } catch (\Throwable $exception) {
-            return $value;
+            return ImportValueParser::date($value)?->toDateString();
+        } catch (\InvalidArgumentException) {
+            return $this->trimmed($value); // Preserve invalid input for the row validator.
         }
     }
 
     private function normalizeDateTime($value): ?string
     {
-        $value = $this->trimmed($value);
-        if ($value === null) {
-            return null;
-        }
-
         try {
-            $value = $this->normalizeDigits($value);
-
-            if (preg_match('/^(19|20)\d{6}$/', trim($value))) {
-                return Carbon::createFromFormat('Ymd', trim($value))->startOfDay()->format('Y-m-d H:i:s');
-            }
-
-            if (is_numeric($value)) {
-                return ExcelDate::excelToDateTimeObject((float) $value)->format('Y-m-d H:i:s');
-            }
-
-            foreach (['Y-m-d H:i:s', 'Y-m-d H:i', 'Y/m/d H:i:s', 'Y/m/d H:i', 'd/m/Y H:i:s', 'd/m/Y H:i', 'd-m-Y H:i:s', 'd-m-Y H:i'] as $format) {
-                try {
-                    return Carbon::createFromFormat($format, trim($value))->format('Y-m-d H:i:s');
-                } catch (\Throwable) {
-                    // Try the next common import format.
-                }
-            }
-
-            return Carbon::parse($value)->format('Y-m-d H:i:s');
-        } catch (\Throwable $exception) {
-            return $value;
+            return ImportValueParser::date($value, true)?->toDateTimeString();
+        } catch (\InvalidArgumentException) {
+            return $this->trimmed($value);
         }
     }
 
     private function normalizeDecimal($value, bool $formatWithTwoDecimals = true): ?string
     {
-        $value = $this->trimmed($value);
-        if ($value === null) {
-            return null;
+        try {
+            $number = ImportValueParser::decimal($value);
+            if ($number === null) return null;
+            return $formatWithTwoDecimals ? number_format($number, 2, '.', '') : (string) $number;
+        } catch (\InvalidArgumentException) {
+            return $this->trimmed($value);
         }
-
-        $value = str_replace(',', '', $this->normalizeDigits($value));
-
-        if (!is_numeric($value)) {
-            return $value;
-        }
-
-        return $formatWithTwoDecimals
-            ? number_format((float) $value, 2, '.', '')
-            : (string) (float) $value;
     }
-
     private function normalizeInteger($value)
     {
         $value = $this->trimmed($value);

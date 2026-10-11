@@ -13,6 +13,8 @@ class MaidBulkImportController extends Controller
     public function create(MaidBulkImportService $service)
     {
         $recentImports = MaidBulkImport::query()
+            ->when(\App\Support\BranchQueryContext::activeBranchId(), fn ($query, $branchId) => $query->whereHas('uploadedBy', fn ($adminQuery) => $adminQuery->where('branch_id', $branchId)))
+            ->when(!AdminGuardHasAnyPerm(['data_import_review', 'data_import_approve']), fn ($query) => $query->where('uploaded_by', auth('admin')->id()))
             ->with(['uploadedBy', 'approvedBy'])
             ->latest()
             ->take(10)
@@ -41,6 +43,7 @@ class MaidBulkImportController extends Controller
 
     public function show(MaidBulkImport $maidBulkImport, MaidBulkImportService $service)
     {
+        $this->authorizeImport($maidBulkImport);
         // A fatal error can end a previous batch before its cached counters update.
         // Rebuild them from row statuses whenever the review screen is opened.
         $service->refreshImportCounters($maidBulkImport);
@@ -59,7 +62,9 @@ class MaidBulkImportController extends Controller
 
     public function approve(MaidBulkImport $maidBulkImport, MaidBulkImportService $service, MaidAction $maidAction)
     {
-        $result = $service->approveImport($maidBulkImport, $maidAction, auth('admin')->id() ?? auth()->id());
+        $this->authorizeImport($maidBulkImport);
+        $result = \App\Support\DataImportBranchContext::run($maidBulkImport->uploadedBy?->branch_id,
+            fn () => $service->approveImport($maidBulkImport, $maidAction, auth('admin')->id() ?? auth()->id()));
 
         return redirect()
             ->route('maids.bulk-import.show', [
@@ -67,5 +72,13 @@ class MaidBulkImportController extends Controller
                 'auto_continue' => ($result['remaining'] ?? 0) > 0 ? 1 : 0,
             ])
             ->with('success', "تمت معالجة دفعة: نجح {$result['imported']} وتعذر {$result['failed']}. المتبقي {$result['remaining']} صف.");
+    }
+
+    private function authorizeImport(MaidBulkImport $import): void
+    {
+        $branchId = \App\Support\BranchQueryContext::activeBranchId();
+        abort_if($branchId && (int) $import->uploadedBy?->branch_id !== $branchId, 404);
+        abort_unless((int) $import->uploaded_by === (int) auth('admin')->id()
+            || AdminGuardHasAnyPerm(['data_import_review', 'data_import_approve']), 403);
     }
 }

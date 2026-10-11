@@ -131,6 +131,7 @@ final class AdminPermissionNavigation
         'commissions' => ['commissions', 'العمولات'],
         'statistics' => ['reports', 'التقارير والإحصائيات'],
         'reports' => ['reports', 'التقارير'],
+        'data_import' => ['reports', 'استيراد البيانات'],
         'hr' => ['hr', 'نظام الموارد البشرية'],
         'employee' => ['hr', 'بوابة الموظفين'],
         'finance' => ['finance', 'النظام المالي'],
