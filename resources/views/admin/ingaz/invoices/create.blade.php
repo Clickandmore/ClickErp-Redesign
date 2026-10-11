@@ -437,6 +437,7 @@
         $invoiceIssuedAt = $invoiceIssuedAt ?? now();
         $selectedInvoiceDate = old('invoice_date', now()->toDateString());
         $canCreateInvoice = true;
+        $issuesDirectly = isset($financialContract) || \App\Support\InvoiceAuthorization::canIssueDirectly();
     @endphp
 
     <div class="container-fluid py-3 invoice-create-page">
@@ -447,7 +448,8 @@
                         <i class="fas fa-file-invoice-dollar"></i>
                         فاتورة جديدة
                     </span>
-                    <div class="toolbar-title">إصدار فاتورة </div>
+                    <div class="toolbar-title">{{ $issuesDirectly ? 'إصدار فاتورة' : 'إنشاء مسودة فاتورة' }}</div>
+                    @unless($issuesDirectly)<p class="toolbar-text">ستُرسل المسودة للاعتماد، ويُحدد رقم الفاتورة وتُسجل آثارها المالية عند اعتمادها.</p>@endunless
 
                 </div>
 
@@ -691,8 +693,8 @@
                                 <div class="col-md-4 invoice-issuance-field">
                                     <label class="form-label" for="invoice_number_preview">رقم الفاتورة</label>
                                     <input type="text" id="invoice_number_preview" class="form-control"
-                                        value="{{ $nextInvoiceNumber }}" readonly aria-readonly="true">
-                                    <div class="field-note">رقم تسلسلي بعد آخر فاتورة، ويُثبت نهائياً عند الحفظ.</div>
+                                        value="{{ $issuesDirectly ? $nextInvoiceNumber : 'يُحدد عند الاعتماد' }}" readonly aria-readonly="true">
+                                    <div class="field-note">{{ $issuesDirectly ? 'رقم تسلسلي بعد آخر فاتورة، ويُثبت نهائياً عند الحفظ.' : 'للمسودة رقم طلب مستقل عن رقم الفاتورة النهائي.' }}</div>
                                 </div>
                                 <div class="col-md-4 invoice-issuance-field">
                                     <label class="form-label" for="invoice_date">
@@ -710,7 +712,7 @@
                                 <div class="col-md-4 invoice-issuance-field">
                                     <label class="form-label" for="invoice_issued_at_preview">تاريخ الإصدار</label>
                                     <input type="text" id="invoice_issued_at_preview" class="form-control"
-                                        value="{{ $invoiceIssuedAt->format('d/m/Y - H:i') }}" readonly aria-readonly="true">
+                                        value="{{ $issuesDirectly ? $invoiceIssuedAt->format('d/m/Y - H:i') : 'بانتظار الاعتماد' }}" readonly aria-readonly="true">
                                     <div class="field-note">وقت إنشاء الفاتورة في النظام.</div>
                                 </div>
                             </div>
@@ -905,12 +907,16 @@
                                 <p class="text-muted small">لعقود الاستقدام فقط؛ يمكن إنشاؤها لاحقًا من العقد.</p>
                                 <label class="form-label">إثبات تكلفة المورد</label>
                                 <select name="supplier_recognition_mode" class="form-control"><option value="full">التكلفة كاملة</option><option value="partial">جزء من التكلفة</option></select>
+                                @if(\App\Support\InvoiceAuthorization::canViewSupplierTotalCost())
                                 <label class="form-label mt-2">إجمالي تكلفة المورد (دولار)</label>
                                 <input type="number" class="form-control" name="supplier_total_cost_usd" value="{{ old('supplier_total_cost_usd', $supplierDefaultCost) }}" min="0.01" max="99999999.99" step="0.01" placeholder="أدخل تكلفة المورد" required>
                                 @if(filled($supplierDefaultCost))
                                     <p class="text-muted small mt-2">التكلفة التلقائية: <strong>{{ number_format((float) $supplierDefaultCost, 2) }} دولار</strong> — المصدر: {{ $supplierCostSource }}{{ filled($supplierDefaults['office_name'] ?? null) ? ' (' . $supplierDefaults['office_name'] . ')' : '' }}. يمكنك تعديل القيمة لهذه الفاتورة.</p>
                                 @else
                                     <p class="text-muted small mt-2">لا توجد تكلفة مسجلة في السيرة أو إعدادات المورد؛ أدخل التكلفة قبل إصدار فاتورة المورد.</p>
+                                @endif
+                                @else
+                                    <p class="text-muted small mt-2">تُستخدم تكلفة المورد المسجلة تلقائيًا عند إصدار فاتورة المورد.</p>
                                 @endif
                                 <label class="form-label mt-2">المبلغ الجزئي المراد إثباته (دولار)</label>
                                 <input type="number" class="form-control" name="supplier_partial_cost_usd" min="0.01" max="99999999.99" step="0.01">
@@ -953,7 +959,7 @@
                                     </div>
                                     <div class="meta-item">
                                         <span class="meta-label">رقم الفاتورة</span>
-                                        <strong class="meta-value" id="previewInvoiceNumber">#{{ $nextInvoiceNumber }}</strong>
+                                        <strong class="meta-value" id="previewInvoiceNumber">{{ $issuesDirectly ? '#' . $nextInvoiceNumber : 'مسودة بانتظار الاعتماد' }}</strong>
                                     </div>
                                     <div class="meta-item">
                                         <span class="meta-label">تاريخ الفاتورة</span>
@@ -1027,7 +1033,7 @@
                                     <button type="submit" class="btn btn-primary" id="btnSubmit"
                                         @disabled(!$canCreateInvoice)>
                                         <i class="fas fa-save me-1"></i>
-                                        حفظ وإصدار الفاتورة
+                                        {{ $issuesDirectly ? 'حفظ وإصدار الفاتورة' : 'حفظ وإرسال للاعتماد' }}
                                     </button>
                                     @if (\App\Support\InvoiceAuthorization::canView())
                                     <a href="{{ route('invoices.index') }}" class="btn btn-outline-secondary">
@@ -1480,6 +1486,13 @@
                         `);
                     },
                     success: function(response) {
+                        if (response.success && response.is_draft) {
+                            $form.find(':input').prop('disabled', true);
+                            $submitButton.html('<i class="fas fa-check me-1"></i> تم إرسال طلب الاعتماد');
+                            Swal.fire({icon: 'success', title: 'طلب اعتماد #' + response.draft_id, text: response.message});
+                            $('#postSaveActions').removeClass('d-none').html($('<a>', {href: "{{ route('invoice-drafts.index') }}", class: 'btn btn-primary', text: 'متابعة طلبات الاعتماد'}));
+                            return;
+                        }
                         if (!response.success) {
                             $submitButton.prop('disabled', false).html(submitButtonHtml);
 

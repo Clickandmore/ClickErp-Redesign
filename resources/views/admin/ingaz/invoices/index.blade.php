@@ -66,6 +66,9 @@
                                 <i class="fas fa-file-pdf me-1"></i> PDF
                             </a>
                         @endif
+                        @if (\App\Support\InvoiceAuthorization::canViewDrafts())
+                            <a href="{{ route('invoice-drafts.index') }}" class="btn btn-outline-warning">طلبات اعتماد الفواتير</a>
+                        @endif
                         @if (\App\Support\InvoiceAuthorization::canCreate())
                             <a href="{{ route('invoices.create') }}" class="btn btn-primary">
                                 <i class="fas fa-plus me-1"></i> إضافة فاتورة

@@ -1139,16 +1139,44 @@ class InvoiceController extends Controller
      */
     public function store(Request $request, ObjService $service, YearService $yearService, BondService $bondService, bool $allowLateContract = false)
     {
-        if (!$allowLateContract || $request->filled('sponsorship_transfer_id')) {
+        return DB::transaction(function () use ($request, $service, $yearService, $bondService, $allowLateContract) {
+            $this->lockInvoiceReference($request);
+            return $this->processInvoiceRequest($request, $service, $yearService, $bondService, $allowLateContract);
+        });
+    }
+
+    public function issueApprovedDraft(Request $request, ObjService $service, YearService $yearService, BondService $bondService)
+    {
+        abort_unless(InvoiceAuthorization::canApprove(), 403);
+        $this->lockInvoiceReference($request);
+        return $this->processInvoiceRequest($request, $service, $yearService, $bondService, false, true);
+    }
+
+    private function lockInvoiceReference(Request $request): void
+    {
+        foreach (['contract_id' => Contract::class, 'ingaz_delegation_id' => IngazDelegation::class,
+            'client_id' => ClientUser::class, 'sponsorship_transfer_id' => SponsorshipTransfer::class] as $key => $model) {
+            if ($request->filled($key)) $model::query()->whereKey($request->input($key))->lockForUpdate()->firstOrFail();
+        }
+    }
+
+    private function processInvoiceRequest(Request $request, ObjService $service, YearService $yearService, BondService $bondService, bool $allowLateContract = false, bool $approving = false)
+    {
+        if (!$approving && (!$allowLateContract || $request->filled('sponsorship_transfer_id'))) {
             abort_unless($request->filled('sponsorship_transfer_id')
                 ? InvoiceAuthorization::canCreateTransfer() : InvoiceAuthorization::canCreate(), 403);
         }
         $requiresExternalRecruitmentCost = $request->filled('contract_id')
             || $request->filled('ingaz_delegation_id');
         $invoiceNationality = $this->resolveRequestInvoiceNationality($request);
-        $this->enforceInvoiceLineItemPermission($request, $invoiceNationality);
+        // Hidden supplier totals are resolved on the server; never trust a manually submitted value.
+        // Approval replays the stored, previously authorized payload.
+        if (!$approving && !InvoiceAuthorization::canViewSupplierTotalCost()) {
+            $request->merge(['supplier_total_cost_usd' => null]);
+        }
+        if (!$approving) $this->enforceInvoiceLineItemPermission($request, $invoiceNationality);
 
-        $request->validate([
+        $validatedDraftInput = $request->validate([
             'invoice_date' => ['required', 'date_format:Y-m-d'],
             'contract_id' => 'nullable|required_without_all:ingaz_delegation_id,client_id,sponsorship_transfer_id|exists:contracts,id',
             'ingaz_delegation_id' => 'nullable|required_without_all:contract_id,client_id,sponsorship_transfer_id|exists:ingaz_delegations,id',
@@ -1251,8 +1279,39 @@ class InvoiceController extends Controller
             }
         }
 
+        if (!$approving && !$allowLateContract && !$request->filled('sponsorship_transfer_id') && !InvoiceAuthorization::canIssueDirectly()) {
+            $referenceKey = $request->filled('contract_id') ? 'contract:' . $request->contract_id
+                : ($request->filled('ingaz_delegation_id') ? 'delegation:' . $request->ingaz_delegation_id : null);
+            if ($referenceKey && \App\Models\InvoiceDraft::query()->where('reference_key', $referenceKey)->exists()) {
+                return response()->json(['success' => false, 'message' => 'يوجد طلب فاتورة بانتظار الاعتماد لهذا المرجع.'], 422);
+            }
+            $draftPayload = array_merge($validatedDraftInput, $this->buildInvoicePayload($request), $request->only(['create_supplier_invoice', 'supplier_recognition_mode', 'supplier_total_cost_usd', 'supplier_partial_cost_usd', 'supplier_arrival_station']));
+            $draftPayload['send_to_zatca'] = $request->has('send_to_zatca') ? $request->boolean('send_to_zatca') : true;
+            if ($request->boolean('create_supplier_invoice')) {
+                abort_unless(\App\Support\InvoiceSupplierWorkflow::enabled() && $request->filled('contract_id'), 422);
+                $request->validate([
+                    'supplier_recognition_mode' => 'required|in:full,partial',
+                    'supplier_total_cost_usd' => 'nullable|numeric|min:0.01|max:99999999.99',
+                    'supplier_partial_cost_usd' => 'required_if:supplier_recognition_mode,partial|nullable|numeric|min:0.01|max:99999999.99',
+                    'supplier_arrival_station' => 'nullable|string|max:255',
+                ]);
+            }
+            if (\App\Support\InvoiceSupplierWorkflow::enabled() && ($request->filled('contract_id') || $request->filled('ingaz_delegation_id'))) {
+                $draftPayload = array_merge($draftPayload, $this->resolveMusanedCommissionInput($request, (float) $draftPayload['total_due'], (float) ($invoiceNationality?->musaned_commission_rate ?? MusanedTransferController::DEFAULT_COMMISSION_RATE)));
+            }
+            $draft = \App\Models\InvoiceDraft::create([
+                'created_by' => auth('admin')->id(),
+                'branch_id' => $request->filled('contract_id') ? $invoiceContract->branch_id
+                    : ($request->filled('ingaz_delegation_id') ? IngazDelegation::query()->findOrFail($request->ingaz_delegation_id)->branch_id : ClientUser::query()->findOrFail($request->client_id)->branch_id),
+                'reference_key' => $referenceKey,
+                'payload' => $draftPayload,
+            ]);
+            return response()->json(['success' => true, 'is_draft' => true, 'draft_id' => $draft->id,
+                'message' => 'تم حفظ مسودة الفاتورة وإرسالها للاعتماد.']);
+        }
+
         try {
-            $result = DB::transaction(function () use ($request, $service, $yearService, $bondService, $allowLateContract, $invoiceNationality) {
+            $result = DB::transaction(function () use ($request, $service, $yearService, $bondService, $allowLateContract, $invoiceNationality, $approving) {
                 $invoicePayload = $this->buildInvoicePayload($request);
                 $sendToZatca = $request->has('send_to_zatca') ? $request->boolean('send_to_zatca') : true;
 
@@ -1263,7 +1322,8 @@ class InvoiceController extends Controller
                         $this->resolveMusanedCommissionInput(
                             $request,
                             (float) $invoicePayload['total_due'],
-                            (float) ($invoiceNationality?->musaned_commission_rate ?? MusanedTransferController::DEFAULT_COMMISSION_RATE)
+                            (float) ($invoiceNationality?->musaned_commission_rate ?? MusanedTransferController::DEFAULT_COMMISSION_RATE),
+                            $approving
                         )
                     );
                 }
@@ -1358,7 +1418,9 @@ class InvoiceController extends Controller
         } catch (\Throwable $e) {
             return response()->json([
                 'success' => false,
-                'message' => $e->getMessage()
+                'message' => $request->boolean('create_supplier_invoice') && !InvoiceAuthorization::canViewSupplierTotalCost()
+                    ? 'تعذر إصدار الفاتورة مع فاتورة المورد؛ اطلب مراجعة بيانات المورد والإعدادات المالية من مستخدم لديه صلاحية عرض إجمالي تكلفة المورد.'
+                    : $e->getMessage()
             ], 422);
         }
 
@@ -4163,9 +4225,9 @@ class InvoiceController extends Controller
      * مبلغ التكاليف البنكية هو القيمة المالية المعتمدة، وتُحفظ النسبة داخليًا للمراجعة.
      * إذا عدّل المستخدم المبلغ، تُشتق منه النسبة الفعلية حتى لا يُحفظ رقمان متعارضان.
      */
-    private function resolveMusanedCommissionInput(Request $request, float $invoiceTotal, float $defaultRate): array
+    private function resolveMusanedCommissionInput(Request $request, float $invoiceTotal, float $defaultRate, bool $approvedPayload = false): array
     {
-        $canEdit = InvoiceAuthorization::canEditMusanedCommission();
+        $canEdit = $approvedPayload || InvoiceAuthorization::canEditMusanedCommission();
         $validated = $request->validate([
             'musaned_commission_amount' => 'nullable|numeric|min:0|max:999999999.99',
         ], [

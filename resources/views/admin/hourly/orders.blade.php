@@ -116,9 +116,9 @@
     </div>
 </div>
 
-<h4 class="ho-all-orders-title"><i class="fa fa-list"></i> جميع الطلبات</h4>
+<h4 id="all-orders" class="ho-all-orders-title"><i class="fa fa-list"></i> جميع الطلبات</h4>
 
-<form method="GET" class="hd-filter mb-3">
+<form method="GET" action="{{ route('admin.hourly-orders.index') }}#all-orders" class="hd-filter mb-3">
     <div class="hd-filter-head">
         <div class="hd-filter-title"><i class="fa fa-sliders"></i> فلترة الطلبات
             @if($activeFilters)<span class="hd-filter-count">{{ $activeFilters }} فلتر مفعّل</span>@endif
@@ -182,7 +182,7 @@
             <button class="ho-advanced-toggle me-2" type="button" data-bs-toggle="collapse" data-bs-target="#hourlyAdvancedFilters" aria-expanded="{{ $advancedFilters ? 'true' : 'false' }}"><i class="fa fa-sliders ms-1"></i> خيارات متقدمة @if($advancedFilters)<span class="badge bg-primary">{{ $advancedFilters }}</span>@endif</button>
         </div>
         <div class="d-flex gap-2">
-            @if($activeFilters)<a class="btn btn-light rounded-3" href="{{ route('admin.hourly-orders.index') }}"><i class="fa fa-rotate-left ms-1"></i> مسح الفلاتر</a>@endif
+            @if($activeFilters)<a class="btn btn-light rounded-3" href="{{ route('admin.hourly-orders.index') }}#all-orders"><i class="fa fa-rotate-left ms-1"></i> مسح الفلاتر</a>@endif
             <button class="btn btn-primary rounded-3"><i class="fa fa-filter ms-1"></i> تصفية</button>
         </div>
     </div>
@@ -282,7 +282,7 @@
                     <div class="ht-empty">
                         <i class="fa fa-calendar-xmark"></i>
                         {{ $activeFilters ? 'لا توجد طلبات مطابقة للفلاتر.' : 'لا توجد طلبات بعد.' }}
-                        @if($activeFilters)<div class="mt-2"><a class="btn btn-sm btn-light rounded-3" href="{{ route('admin.hourly-orders.index') }}"><i class="fa fa-rotate-left ms-1"></i> مسح الفلاتر</a></div>@endif
+                        @if($activeFilters)<div class="mt-2"><a class="btn btn-sm btn-light rounded-3" href="{{ route('admin.hourly-orders.index') }}#all-orders"><i class="fa fa-rotate-left ms-1"></i> مسح الفلاتر</a></div>@endif
                     </div>
                 </td></tr>
             @endforelse
@@ -290,7 +290,7 @@
         </table>
     </div>
 </div>
-@if($orders->hasPages())<div class="ht-foot">{{ $orders->links() }}</div>@endif
+@if($orders->hasPages())<div class="ht-foot">{{ $orders->fragment('all-orders')->links() }}</div>@endif
 </div>
 </div>
 @endsection

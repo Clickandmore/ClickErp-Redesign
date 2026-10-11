@@ -194,6 +194,10 @@ const PARTENR_CONTROL = 'partenr_control';
     // فواتير عقود الاستقدام وتفاويض الإنجاز
     const INVOICES_VIEW = 'invoices_view';
     const INVOICES_CREATE = 'invoices_create';
+    const INVOICES_CREATE_DRAFT = 'invoices_create_draft';
+    const INVOICES_VIEW_SUPPLIER_TOTAL_COST = 'invoices_view_supplier_total_cost';
+    const INVOICES_DRAFTS_VIEW = 'invoices_drafts_view';
+    const INVOICES_APPROVE = 'invoices_approve';
     const INVOICES_EXPORT = 'invoices_export';
     const INVOICES_PRINT = 'invoices_print';
     const INVOICES_CONTROL = 'invoices_control';
