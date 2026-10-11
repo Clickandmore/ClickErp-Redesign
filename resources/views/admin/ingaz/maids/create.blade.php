@@ -167,6 +167,33 @@
             color: #0d6efd;
         }
 
+        /* عنوان فرعي داخل الكارد يفصل مجموعات الحقول */
+        .maid-form-subtitle {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-top: 4px;
+            margin-bottom: 8px;
+            padding-bottom: 8px;
+            border-bottom: 1px dashed #e5e7eb;
+            font-size: 14px;
+            font-weight: 700;
+            color: #374151;
+        }
+
+        .maid-form-subtitle i {
+            font-size: 13px;
+            color: #6b7280;
+        }
+
+        .maid-form-hint {
+            display: block;
+            margin-top: 6px;
+            font-size: 12px;
+            line-height: 1.6;
+            color: #6b7280;
+        }
+
         .maid-form-section__head {
             display: flex;
             align-items: flex-start;
@@ -807,20 +834,22 @@
                             </div>
                             <div class="row g-3">
 
-                    <!-- المهارات -->
-                    <div class="col-4">
+                    {{-- المهارات وحالة الخبرة --}}
+                    <div class="col-12">
+                        <div class="maid-form-subtitle"><i class="fas fa-briefcase"></i> المهارات والخبرة</div>
+                    </div>
+                    <div class="col-md-6">
                         <label for="skills" class="form-label">{{ helperTrans('ingaz.skills') }} <small
                                 class="text-muted">({{ helperTrans('ingaz.optional') }})</small></label>
-                        <select name="skills[]" class="form-control js-example-basic-multiple" multiple>
+                        <select name="skills[]" id="skills" class="form-control js-example-basic-multiple" multiple>
                             @foreach ($skills as $skill)
                                 <option value="{{ $skill->id }}">{{ $skill->title }}</option>
                             @endforeach
                         </select>
                     </div>
-                    <div class="col-4">
+                    <div class="col-md-6">
                         <label for="experience_status" class="form-label">
-                            {{ helperTrans('ingaz.experience_status') }} <small
-                                class="text-muted">({{ helperTrans('ingaz.required') }})</small>
+                            {{ helperTrans('ingaz.experience_status') }} <span class="text-danger">*</span>
                         </label>
                         <select name="experience_status" id="experience_status" class="form-control" required>
                             <option value="">{{ helperTrans('ingaz.select_experience_status') }}</option>
@@ -828,35 +857,50 @@
                             <option value="no_experience">{{ helperTrans('ingaz.no_experience') }}</option>
                         </select>
                     </div>
-                    <div class="col-4">
-                        <label for="TextInput" class="form-label">{{ helperTrans('ingaz.video_link') }} <small
+
+                    {{-- الفيديو والروابط --}}
+                    <div class="col-12">
+                        <div class="maid-form-subtitle"><i class="fas fa-link"></i> الفيديو والروابط</div>
+                    </div>
+                    <div class="col-md-6">
+                        <label for="maid_video_link" class="form-label">{{ helperTrans('ingaz.video_link') }} <small
                                 class="text-muted">({{ helperTrans('ingaz.optional') }})</small></label>
-                        <input type="text" name="video_link" class="form-control js-video-link-input" maxlength="{{ \App\Support\MaidFieldRules::MAX_LENGTHS['video_link'] }}"
+                        <input type="text" name="video_link" id="maid_video_link" class="form-control js-video-link-input" maxlength="{{ \App\Support\MaidFieldRules::MAX_LENGTHS['video_link'] }}"
                             placeholder="{{ __('ingaz.video_link_or_iframe_placeholder') }}">
-                        <small class="text-muted d-block mt-1">{{ __('ingaz.video_link_iframe_hint') }}</small>
-                        <label for="maid_video" class="form-label mt-3">
+                        <small class="maid-form-hint">{{ __('ingaz.video_link_iframe_hint') }}</small>
+                    </div>
+                    <div class="col-md-6">
+                        <label for="maid_musaned_link" class="form-label">{{ helperTrans('ingaz.musaned_link') }} <small
+                                class="text-muted">({{ helperTrans('ingaz.optional') }})</small></label>
+                        <input type="url" name="musaned_link" id="maid_musaned_link" class="form-control" dir="ltr"
+                            maxlength="{{ \App\Support\MaidFieldRules::MAX_LENGTHS['musaned_link'] }}"
+                            value="{{ old('musaned_link') }}" placeholder="https://musaned.com.sa/...">
+                        <small class="maid-form-hint">{{ helperTrans('ingaz.musaned_link_hint') }}</small>
+                    </div>
+                    <div class="col-md-6">
+                        <label for="maid_video" class="form-label">
                             {{ helperTrans('ingaz.video') }}
                             <small class="text-muted">({{ helperTrans('ingaz.optional') }})</small>
                         </label>
                         <input type="file" name="video" id="maid_video" class="form-control"
                             accept="video/mp4,video/quicktime,video/x-msvideo,video/x-ms-wmv,video/webm,video/x-matroska,video/x-m4v">
+                        <small class="maid-form-hint">MP4, MOV, AVI, WMV, WEBM, MKV, M4V — {{ \App\Support\MaidFieldRules::VIDEO_MAX_KB / 1024 }} MB</small>
                         <button type="button" class="btn btn-outline-danger btn-sm mt-2 js-clear-maid-video d-none">
                             <i class="fas fa-trash-alt me-1"></i>{{ __('ingaz.clear_video_value') }}
                         </button>
-                        <small class="text-muted d-block mt-1">MP4, MOV, AVI, WMV, WEBM, MKV, M4V — {{ \App\Support\MaidFieldRules::VIDEO_MAX_KB / 1024 }} MB</small>
-                        <div class="maid-video-preview mt-2 d-none">
-                            <div class="border rounded overflow-hidden" style="height: 360px;">
-                                <iframe class="js-video-preview-frame" src="" width="100%" height="100%"
-                                    style="border: 0;" allowfullscreen loading="lazy"></iframe>
-                            </div>
+                    </div>
+                    <div class="col-12 maid-video-preview d-none">
+                        <div class="border rounded overflow-hidden" style="height: 360px;">
+                            <iframe class="js-video-preview-frame" src="" width="100%" height="100%"
+                                style="border: 0;" allowfullscreen loading="lazy"></iframe>
                         </div>
                     </div>
 
+                    {{-- الملاحظات --}}
                     <div class="col-12">
-                        <label for="additional_notes" class="form-label">
-                            {{ helperTrans('ingaz.additional_notes') }}
-                        </label>
-                        <textarea name="additional_notes" id="additional_notes" class="form-control" rows="4" maxlength="{{ \App\Support\MaidFieldRules::MAX_LENGTHS['additional_notes'] }}"></textarea>
+                        <div class="maid-form-subtitle"><i class="fas fa-sticky-note"></i> {{ helperTrans('ingaz.additional_notes') }}</div>
+                        <textarea name="additional_notes" id="additional_notes" class="form-control" rows="4" maxlength="{{ \App\Support\MaidFieldRules::MAX_LENGTHS['additional_notes'] }}"
+                            aria-label="{{ helperTrans('ingaz.additional_notes') }}"></textarea>
                     </div>
                     <!-- اللغات والحالة الاجتماعية -->
                     <div class="col-12">

@@ -34,6 +34,7 @@ class MaidCardResource extends JsonResource
             'cv_preview' => (string) $this->resource->cvPreviewUrl(),
             'video' => (string) showFile($this->video),
             'video_link' => (string) $this->video_link,
+            'musaned_link' => (string) $this->musaned_link,
 
             'cv_code' => (string) $this->cv_code,
 

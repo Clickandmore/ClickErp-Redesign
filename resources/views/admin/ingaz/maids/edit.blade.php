@@ -970,6 +970,12 @@
                             value="{{ old('video_link', $obj->video_link) }}"
                             placeholder="{{ __('ingaz.video_link_or_iframe_placeholder') }}">
                         <small class="text-muted d-block mt-1">{{ __('ingaz.video_link_iframe_hint') }}</small>
+                        <label for="maid_musaned_link" class="form-label mt-3">{{ helperTrans('ingaz.musaned_link') }} <small
+                                class="text-muted">({{ helperTrans('ingaz.optional') }})</small></label>
+                        <input type="url" name="musaned_link" id="maid_musaned_link" class="form-control" dir="ltr"
+                            maxlength="{{ \App\Support\MaidFieldRules::MAX_LENGTHS['musaned_link'] }}"
+                            value="{{ old('musaned_link', $obj->musaned_link) }}" placeholder="https://musaned.com.sa/...">
+                        <small class="text-muted d-block mt-1">{{ helperTrans('ingaz.musaned_link_hint') }}</small>
                         <label for="maid_video" class="form-label mt-3">
                             {{ helperTrans('ingaz.video') }}
                             <small class="text-muted">({{ helperTrans('ingaz.optional') }})</small>

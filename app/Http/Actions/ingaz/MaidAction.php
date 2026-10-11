@@ -416,6 +416,7 @@ class MaidAction extends MainAction
             'maid_cv_file' => $data['maid_cv_file'] ?? null,
             'image' => $data['image'] ?? '',
             'video_link' => $data['video_link'] ?? null,
+            'musaned_link' => $data['musaned_link'] ?? null,
             'video' => $data['video'] ?? null,
             'cv_preview' => $data['cv_preview'] ?? null,
             'office_id' => $data['office_id'] ?? null,

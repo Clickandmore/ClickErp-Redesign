@@ -42,6 +42,7 @@ class MaidResource extends JsonResource
 			'experience_years' => (string)$this->experience_years,
 			'cv_file' =>(string)  showFile($this->cv_file),
 			'video_link' => $this->video_link,
+			'musaned_link' => $this->musaned_link,
 			'image' => (string) showFile($this->image),
 			'available' => (boolean)$this->available,
 			'customer_service_whatsapp' => (string)@$setting->whatsapp,
