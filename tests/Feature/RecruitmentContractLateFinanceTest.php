@@ -157,7 +157,7 @@ class RecruitmentContractLateFinanceTest extends TestCase
     public function test_page_accepts_arrival_and_completed_and_rejects_other_stages(): void
     {
         $this->actor([NewPermKeys::REC_CONTRACTS_LATE_FINANCE]);
-        foreach (['arrival', 'completed'] as $status) {
+        foreach (['arrival', 'completed', 'refunded'] as $status) {
             $contract = $this->contract($status);
             $this->get(route('RecruitmentContract.lateFinance.show', $contract->id))->assertOk()
                 ->assertSee('استكمال العمليات المالية')->assertSee('invoiceForm')

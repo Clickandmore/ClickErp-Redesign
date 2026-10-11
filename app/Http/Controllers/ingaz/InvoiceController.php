@@ -1238,10 +1238,10 @@ class InvoiceController extends Controller
         }
 
         if ($request->filled('contract_id')) {
-            $contractIsCurrent = Contract::query()
-                ->whereKey($request->contract_id)
-                ->whereIn('status', $allowLateContract ? ['arrival', 'completed'] : Contract::invoiceEligibleStatuses())
-                ->exists();
+            $invoiceContract = Contract::query()->find($request->contract_id);
+            $contractIsCurrent = $invoiceContract && ($allowLateContract
+                ? $invoiceContract->isLateFinanceEligible()
+                : $invoiceContract->isInvoiceEligible());
 
             if (!$contractIsCurrent) {
                 return response()->json([
