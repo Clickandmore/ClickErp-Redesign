@@ -3,6 +3,8 @@
 namespace Nami\Finance\Http\Controllers;
 
 use App\Http\Controllers\admin\Controller;
+use App\Models\Branch;
+use App\Support\BranchSharingSettings;
 use Exception;
 use Illuminate\Contracts\Foundation\Application;
 use Illuminate\Contracts\View\Factory;
@@ -145,7 +147,9 @@ class AccountGuideManagementController extends Controller
             $returnHTML = view($this->folderPath . ".edit")->with([
                 "accountTypes" => $service->getAccountTypes(),
                 "accounts" => $service->getValidParents(),
-                "obj" => $service->find($id),
+                "obj" => $service->find($id)->load('branches'),
+                "branches" => Branch::query()->active()->ordered()->get(),
+                "accountBranchAssignmentsEnabled" => BranchSharingSettings::accountsPerBranch(),
                 "types" => $service->getAccountTypesList(),
                 "operationTypes" => $service->getOperationTypesList(),
                 "updateRoute" => route($this->mainRoute . ".update", $id),
@@ -165,8 +169,7 @@ class AccountGuideManagementController extends Controller
     public function update(ObjRequest $request, int $id, ObjService $service)
     {
         $dataUpdated = $request->validated();
-        $account = $service->find($id);
-        $account->update(['name' => $dataUpdated['name']]);
+        $service->updateAccountGuideDetails($id, $dataUpdated);
         return jsonSuccess(true, null, 201);
     }
 

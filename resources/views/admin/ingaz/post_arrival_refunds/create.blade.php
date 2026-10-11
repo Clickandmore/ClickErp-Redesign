@@ -346,7 +346,7 @@
                                             <small
                                                 class="form-text {{ $initialOfficeCreditId ? 'text-success' : 'text-muted' }} office-account-source">
                                                 @if ($initialOfficeCreditId)
-                                                    اختير تلقائياً من
+                                                    الحساب المقترح حالياً: {{ $initialOfficeCreditLabel }}. مصدره:
                                                     {{ ($initialProposal['office_charge_account_source'] ?? null) === 'shelter_receipt' ? 'مرجع استلام تكلفة الإيواء #' . ($initialProposal['office_charge_receipt_entry_id'] ?? '') : 'حساب مردودات تكلفة الجنسية' }}
                                                 @else
                                                     سيُختار حساب تكلفة الجنسية تلقائياً عند وجود مرجع موثق.
@@ -476,7 +476,7 @@
                             }
                             if (officeSource) {
                                 officeSource.textContent = p.office_charge_credit_account_id
-                                    ? `اختير تلقائياً من ${p.office_charge_account_source === 'shelter_receipt' ? 'مرجع استلام تكلفة الإيواء #' + p.office_charge_receipt_entry_id : 'حساب مردودات تكلفة الجنسية'}`
+                                    ? `الحساب المقترح حالياً: ${officeCreditLabel}. مصدره: ${p.office_charge_account_source === 'shelter_receipt' ? 'مرجع استلام تكلفة الإيواء #' + p.office_charge_receipt_entry_id : 'حساب مردودات تكلفة الجنسية'}. إذا اختلف الحساب المحدد عنه، اختر الحساب المقترح ثم احفظ المسودة.`
                                     : 'تعذر إثبات الحساب من المرجع؛ اختر حساباً طرفياً يدوياً.';
                                 officeSource.className = 'form-text ' + (p.office_charge_credit_account_id ? 'text-success' : 'text-warning');
                             }

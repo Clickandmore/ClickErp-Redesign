@@ -160,6 +160,7 @@ class Maid extends Model
         'image',
         'video',
         'video_link',
+        'musaned_link',
         'cv_preview',
         'maid_cv_file',
         'office_id',

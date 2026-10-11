@@ -4148,4 +4148,6 @@ return array (
   'license_expired_warning' => 'Warning: this license has expired; the client will show a "License expired" badge.',
   'client_license_expiry_date_required' => 'License expiry date is required for company clients.',
   'client_license_expiry_date_invalid' => 'License expiry date is invalid; pick it from the (Gregorian) calendar.',
+  'musaned_link' => 'Worker Musaned profile link',
+  'musaned_link_hint' => 'Optional. Shown to customers as a Musaned button on the website CV; when empty, the office Musaned page link is used instead.',
 );

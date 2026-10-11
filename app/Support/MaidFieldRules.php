@@ -67,6 +67,7 @@ class MaidFieldRules
         'additional_notes' => 2000,
         // يقبل كود iframe كاملًا قبل استخراج الرابط منه.
         'video_link' => 2000,
+        'musaned_link' => 2000,
     ];
     public const DEFAULT_TEXT_MAX_LENGTH = 255;
     public const DEFAULT_TEXTAREA_MAX_LENGTH = 2000;

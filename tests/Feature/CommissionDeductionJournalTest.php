@@ -67,13 +67,16 @@ class CommissionDeductionJournalTest extends TestCase
     {
         [$admin, $batch, $item] = $this->fixture();
         $this->assertSame(1200.0, $this->ledgerBalance($batch->payable_account_id));
+        $beforeJournalCount = DB::table('fn_constraints')->count();
         app(RecruitmentCommissionService::class)->resolveSettlement($item, $decision, $admin->id, null, $partial);
+        $this->assertSame($beforeJournalCount + ($deduction > 0 ? 1 : 0), DB::table('fn_constraints')->count());
         $this->assertSame(1200.0 - $deduction, $this->ledgerBalance($batch->payable_account_id));
         $this->assertSame(1200.0 - $deduction, app(CommissionProfileService::class)->getMarketerBalance($admin->id));
         $item->refresh();
         if ($deduction > 0) {
             $tx = $item->reversalTransaction;
             $this->assertNotNull($tx->constraint_id);
+            $this->assertSame((int) $item->commission_reversal_constraint_id, (int) $tx->constraint_id);
             $this->assertDatabaseHas('fn_constraint_details', [
                 'constraint_id' => $tx->constraint_id, 'account_id' => $batch->payable_account_id,
                 'debtor_value' => $deduction, 'creditor_value' => 0,
