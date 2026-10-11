@@ -136,11 +136,24 @@
             @endif
 
             <div class="import-panel p-3 p-lg-4 mb-4">
+                <h5>ملفات المراجعة والاعتماد الأخيرة</h5>
+                <div class="table-responsive"><table class="table table-striped">
+                    <thead><tr><th>الملف</th><th>النوع</th><th>الحالة</th><th>الرفع</th><th></th></tr></thead>
+                    <tbody>@forelse($reviewBatches as $batch)
+                        <tr><td>{{ $batch->original_name }}</td><td>{{ $templates[$batch->type]['label'] ?? $batch->type }}</td>
+                            <td>{{ $batch->status === 'approved' ? 'معتمد' : 'بانتظار المراجعة' }}</td><td>{{ $batch->created_at }}</td>
+                            <td><a href="{{ route('reports.import.show', $batch) }}">المراجعة والنتائج</a></td></tr>
+                    @empty<tr><td colspan="5">لا توجد ملفات مراجعة.</td></tr>@endforelse</tbody>
+                </table></div>
+            </div>
+
+            @if(AdminGuardHasAnyPerm(['data_import_upload']))
+            <div class="import-panel p-3 p-lg-4 mb-4">
                 <div class="row g-4 align-items-end">
                     <div class="col-lg-4">
                         <h5 class="mb-2">رفع ملف استيراد</h5>
                         <p class="text-muted mb-0">
-                            اختر نوع البيانات ثم ارفع الملف بعد تعبئة التمبلت. السير الذاتية تنتقل مباشرة لصفحة المراجعة والاعتماد.
+                            اختر نوع البيانات ثم ارفع الملف بعد تعبئة القالب. جميع الأنواع تنتقل إلى المراجعة قبل الاعتماد والحفظ.
                         </p>
                     </div>
                     <div class="col-lg-8">
@@ -183,6 +196,8 @@
                 </div>
             </div>
 
+            @endif
+            @if(AdminGuardHasAnyPerm(['data_import_generate_bonds']))
             <div class="import-panel p-3 p-lg-4 mb-4">
                 <div class="row g-4 align-items-center">
                     <div class="col-lg-8">
@@ -224,6 +239,8 @@
                 </div>
             </div>
 
+            @endif
+            @if(AdminGuardHasAnyPerm(['data_import_upload']))
             <div class="row g-3 mb-4">
                 @foreach ($templates as $key => $template)
                     <div class="col-xl-4 col-md-6">
@@ -298,6 +315,8 @@
                 @endforeach
             </div>
 
+            @endif
+            @if(AdminGuardHasAnyPerm(['data_import_review', 'data_import_approve']))
             <div class="import-panel">
                 <div class="p-3 border-bottom">
                     <h5 class="mb-0">آخر الملفات المرفوعة من صفحة التقارير</h5>
@@ -313,7 +332,7 @@
                             </tr>
                         </thead>
                         <tbody>
-                            @forelse ($recentUploads as $upload)
+            @forelse ($recentUploads as $upload)
                                 <tr>
                                     <td>{{ $templates[$upload['type']]['label'] ?? $upload['type'] }}</td>
                                     <td dir="ltr">{{ $upload['name'] }}</td>
@@ -329,6 +348,7 @@
                     </table>
                 </div>
             </div>
+            @endif
         </div>
     </div>
 
@@ -429,7 +449,7 @@
                 request.upload.addEventListener('load', function () {
                     setProgress(100);
                     progressTitle.textContent = 'جارٍ معالجة البيانات';
-                    progressStatus.textContent = 'اكتمل نقل الملف، ويتم الآن فحص البيانات واستيرادها...';
+                    progressStatus.textContent = 'اكتمل نقل الملف، ويتم الآن فحص البيانات دون حفظها...';
                 });
 
                 request.addEventListener('load', function () {
@@ -448,11 +468,11 @@
                         ? Object.values(response.errors).flat().join(' ')
                         : response.message;
                     const statusSuffix = request.status ? ' (HTTP ' + request.status + ')' : '';
-                    showError(validationMessage || ('انقطعت معالجة الملف على الخادم' + statusSuffix + '. يمكنك إعادة رفع الملف نفسه؛ سيستأنف النظام من العقود المكتملة دون تكرار.'));
+                    showError(validationMessage || ('انقطعت معالجة الملف على الخادم' + statusSuffix + '. راجع ملفات المراجعة الأخيرة قبل إعادة الرفع.'));
                 });
 
                 request.addEventListener('error', function () {
-                    showError('انقطع الاتصال بالخادم أثناء المعالجة. أعد رفع الملف نفسه؛ سيستأنف النظام من آخر عقد مكتمل دون تكرار.');
+                    showError('انقطع الاتصال بالخادم أثناء الفحص. راجع ملفات المراجعة الأخيرة قبل إعادة الرفع.');
                 });
 
                 request.addEventListener('abort', function () {

@@ -89,6 +89,7 @@ trait AssignsBranch
 
     protected function resolveBranchIdFromCurrentAdmin(): ?int
     {
+        if (\App\Support\DataImportBranchContext::$active) return \App\Support\DataImportBranchContext::$branchId;
         $admin = Auth::guard('admin')->user();
 
         return !empty($admin?->branch_id) ? (int) $admin->branch_id : null;

@@ -71,6 +71,99 @@ class DataImportExecutionService
     {
     }
 
+    /** Read-only adapters: these use the same readers as execution, without creating business records. */
+    public function reviewRows(string $type, string $path): \Generator
+    {
+        $columns = $this->templates->template($type)['columns'] ?? [];
+        if ($type === 'legacy_invoices') {
+            yield from $this->readLegacyInvoiceRows($path, $columns);
+        } elseif ($type === 'legacy_rental_orders') {
+            foreach ($this->readLegacyRentalOrderRows($path) as $number => $row) {
+                yield $number => $this->normalizeLegacyRentalOrderRow($row);
+            }
+        } elseif ($type === 'alrafedin_transfer_services') {
+            foreach (app(AlrafedinTransferServicesImportService::class)->parseReport($path) as $number => $row) {
+                yield $number + 1 => $row['data'];
+            }
+        } elseif ($type === 'arabia_recruitment_orders') {
+            yield from app(ArabiaRecruitmentOrdersImportService::class)->reviewRows($path);
+        } else {
+            yield from $this->readRows($path, $columns);
+        }
+    }
+
+    public function validateReviewRow(string $type, array $row): array
+    {
+        $issues = [];
+        try {
+            if (in_array($type, ['rental_maids', 'recruitment_offices'], true) && !$this->resolveNationalityId($row['nationality'] ?? null)) {
+                $issues[] = 'الجنسية مطلوبة أو غير موجودة في النظام.';
+            }
+            if ($type === 'rental_maids') {
+                if (!$this->resolveTranslatableId(RecruitmentOffices::class, $row['office'] ?? null)) $issues[] = 'مكتب الاستقدام غير موجود في النظام.';
+                if ($this->resolveTranslatableIds(JobTitle::class, $row['job_titles'] ?? null) === []) $issues[] = 'المهنة غير موجودة في النظام.';
+            }
+            if ($type === 'admins') {
+                $this->resolveImportedAdminRole($row['role'] ?? $row['role_id'] ?? null);
+                $this->resolveImportedAdminBranchId($row['branch'] ?? $row['branch_id'] ?? null);
+                if (strlen((string) ($row['password'] ?? '')) < 6 && !Admin::query()->where('email', $row['email'] ?? '')->exists()) {
+                    $issues[] = 'كلمة المرور مطلوبة للمستخدم الجديد ويجب ألا تقل عن 6 أحرف.';
+                }
+            }
+            if ($type === 'employees' && filled($row['department'] ?? null) && !$this->resolveHrDepartmentId($row['department'])) {
+                $issues[] = 'قسم الموظف غير موجود في النظام.';
+            }
+            if (in_array($type, ['receipt_bonds', 'disbursement_bonds'], true)) {
+                $date = $this->parseDate($row['date'] ?? null);
+                if ($date && !$this->resolveFinanceYear($date)) $issues[] = 'لا توجد سنة مالية نشطة تشمل تاريخ السند.';
+                foreach (['debit', 'credit'] as $side) {
+                    $code = $row[$side . '_account_code'] ?? null;
+                    if (filled($code) && !Account::query()->where('code', $code)->exists() && blank($row[$side . '_account_name'] ?? null)) {
+                        $issues[] = 'الحساب ' . $code . ' غير موجود؛ استورد شجرة الحسابات أولاً أو أدخل اسم الحساب.';
+                    }
+                }
+            }
+            if ($type === 'finance_constraints') {
+                if (blank($row['account_id'] ?? null) && blank($row['account_code'] ?? null) && blank($row['account_name'] ?? null)) $issues[] = 'مرجع الحساب مطلوب لكل طرف من أطراف القيد.';
+                $line = $this->resolveFinanceConstraintLine($row);
+                if ($line['debtor_value'] < 0 || $line['creditor_value'] < 0) $issues[] = 'طرف القيد لا يقبل مبلغاً سالباً.';
+                $date = $this->parseDate($row['date'] ?? null);
+                if ($date && !$this->resolveFinanceYear($date)) $issues[] = 'لا توجد سنة مالية نشطة تشمل تاريخ القيد.';
+            }
+            if ($type === 'sponsorship_transfers') $this->normalizeTransferStatus($row['transfer_status'] ?? null);
+            if (in_array($type, ['recruitment_contracts', 'recruitment_contracts_clients_maids'], true)) {
+                $status = $row['recruitment_contract_status'] ?? $row['status'] ?? null;
+                if (filled($status) && !$this->normalizeRecruitmentContractStatus($status)) $issues[] = 'حالة عقد الاستقدام غير مقبولة.';
+            }
+            if (in_array($type, ['rent_contracts', 'rent_contracts_clients_rental_maids'], true)) {
+                $status = $row['rental_contract_status'] ?? $row['status'] ?? null;
+                if (filled($status) && !$this->normalizeRentalStatus($status)) $issues[] = 'حالة عقد التأجير غير مقبولة.';
+            }
+            if (in_array($type, ['recruitment_contracts', 'shelter_contracts', 'rent_contracts', 'sponsorship_transfers'], true)) {
+                $passport = $this->normalizePassportNumber($row['maid_passport'] ?? $row['passport_num'] ?? '');
+                if ($passport !== '' && !Maid::query()->whereRaw('UPPER(TRIM(passport_num)) = ?', [$passport])->exists()) {
+                    $issues[] = 'سيرة العاملة غير موجودة؛ استورد السيرة أولاً أو استخدم القالب المجمع.';
+                }
+            }
+            $identity = $this->normalizeIdNumber($row['client_id_number'] ?? $row['id_number'] ?? '');
+            $phone = $this->normalizeImportPhone($row['client_phone'] ?? $row['phone'] ?? '');
+            if ($phone !== '' && $identity !== '') {
+                $client = $this->findUserByPhone($phone);
+                if ($client && filled($client->national_num) && $this->normalizeIdNumber($client->national_num) !== $identity) {
+                    $issues[] = 'الجوال مرتبط بعميل آخر بهوية مختلفة.';
+                }
+            }
+        } catch (\InvalidArgumentException $exception) {
+            $issues[] = $exception->getMessage();
+        }
+        return $issues;
+    }
+
+    public function reviewConstraintLine(array $row): array
+    {
+        return $this->resolveFinanceConstraintLine($row);
+    }
+
     public function import(string $type, UploadedFile $file, ?int $adminId): array
     {
         $this->prepareLargeImportRuntime();
@@ -136,6 +229,7 @@ class DataImportExecutionService
             try {
                 DB::transaction(function () use ($type, $row, $adminId, &$result) {
                     $outcome = match ($type) {
+                        'invoices' => $this->importOperationalInvoice($row),
                         'clients' => $this->importClient($row, $adminId),
                         'admins' => $this->importAdmin($row),
                         'recruitment_offices' => $this->importRecruitmentOffice($row),
@@ -159,7 +253,8 @@ class DataImportExecutionService
                 $result['error_count']++;
 
                 if (count($result['errors']) < self::MAX_ERROR_DETAILS) {
-                    $result['errors'][] = "صف {$rowNumber}: " . $exception->getMessage();
+                    $sourceRow = $row['__review_source_row'] ?? $rowNumber;
+                    $result['errors'][] = "صف {$sourceRow}: " . $exception->getMessage();
                 }
             }
         }
@@ -932,7 +1027,8 @@ class DataImportExecutionService
     private function importLegacyRentalOrdersFile(string $storedPath, ?int $adminId, array $result): array
     {
         $rows = iterator_to_array($this->readLegacyRentalOrderRows(Storage::path($storedPath)));
-        $activeSnapshot = $this->isLegacyRentalActiveSnapshot($rows);
+        // A user-uploaded partial report is never an authoritative snapshot.
+        $activeSnapshot = false;
         $result += [
             'rental_maids' => 0,
             'rental_contracts' => 0,
@@ -1252,7 +1348,7 @@ class DataImportExecutionService
                 );
             }
 
-            if (collect($row)->contains(fn ($value) => $value !== null && $value !== '')) {
+            if (!ImportValueParser::isMarkerRow($row) && collect($row)->contains(fn ($value) => $value !== null && $value !== '')) {
                 yield $rowNumber => $row;
             }
         }
@@ -2401,7 +2497,7 @@ class DataImportExecutionService
                         ->except(['source_sheet', 'source_row'])
                         ->filter(fn ($value) => $value !== null && $value !== '');
 
-                    if ($values->isNotEmpty()) {
+                    if ($values->isNotEmpty() && !ImportValueParser::isMarkerRow($row)) {
                         yield "شيت {$sheetTitle} صف {$rowNumber}" => $row;
                     }
                 }
@@ -2800,6 +2896,33 @@ class DataImportExecutionService
         return is_numeric($raw) ? (int) $raw : AccountTypesEnum::NormalAccount->value;
     }
 
+    private function importOperationalInvoice(array $row): string
+    {
+        $row = array_intersect_key($row, array_flip(array_column($this->templates->template('invoices')['columns'], 'key')));
+        $payload = array_filter($row, fn ($value) => $value !== '' && $value !== null);
+        unset($payload['import_reference']);
+        $payload['send_to_zatca'] = (bool) ($row['send_to_zatca'] ?? false);
+        $payload['invoice_date'] = $this->parseDate($payload['invoice_date'] ?? null);
+        foreach (['direct_recruitment_cost', 'external_recruitment_cost', 'government_cost', 'internal_ticket_cost',
+            'direct_recruitment_count', 'external_recruitment_count', 'government_cost_count', 'internal_ticket_count', 'discount'] as $key) {
+            if (isset($payload[$key])) $payload[$key] = $this->decimal($payload[$key]);
+        }
+        $request = \Illuminate\Http\Request::create('/admin/invoices', 'POST', $payload);
+        $request->headers->set('Accept', 'application/json');
+        $request->setUserResolver(fn () => auth('admin')->user());
+        $response = app(\App\Http\Controllers\ingaz\InvoiceController::class)->issueImportedInvoice(
+            $request,
+            app(\Nami\Finance\Services\ConstraintService::class),
+            app(\Nami\Finance\Services\YearService::class),
+            app(\Nami\Finance\Services\BondService::class)
+        );
+        $data = $response->getData(true);
+        if ($response->getStatusCode() >= 400 || empty($data['success']) || !empty($data['is_draft'])) {
+            throw new \InvalidArgumentException($data['message'] ?? 'تعذر إصدار الفاتورة.');
+        }
+        return 'created';
+    }
+
     private function importClient(array $row, ?int $adminId): string
     {
         $phone = $this->normalizeImportPhone($row['phone'] ?? '');
@@ -2821,6 +2944,12 @@ class DataImportExecutionService
         }
         $phoneIsDuplicate = $userByPhone !== null
             && (!$client || (int) $userByPhone->id !== (int) $client->id);
+        if ($phoneIsDuplicate) {
+            throw new \InvalidArgumentException('الجوال مرتبط بعميل آخر بهوية مختلفة.');
+        }
+        if ($client && filled($client->national_num) && $this->normalizeIdNumber($client->national_num) !== $idNumber) {
+            throw new \InvalidArgumentException('معرف العميل لا يطابق رقم الهوية.');
+        }
         $databaseIdExists = $databaseId ? User::whereKey($databaseId)->exists() : false;
         $createdBy = $this->resolveImportedAdminId(
             $row['created_by'] ?? $row['created_by_name'] ?? null,
@@ -3543,6 +3672,9 @@ class DataImportExecutionService
 
     private function importSponsorshipTransfer(array $row, ?int $adminId): string
     {
+        if (!$this->parseDate($row['trial_start_date'] ?? null)) {
+            throw new \InvalidArgumentException('تاريخ بداية التجربة مطلوب كما في إنشاء طلب النقل.');
+        }
         $newSponsor = $this->clientFromRow($row);
         $maid = $this->maidFromRow($row, true);
         $contract = Contract::where('maid_id', $maid->id)->latest('id')->first();
@@ -3556,6 +3688,16 @@ class DataImportExecutionService
             ->where('new_sponsor_id', $newSponsor->id)
             ->latest('id')
             ->first();
+
+        $requestNumber = trim((string) ($row['request_number'] ?? ''));
+        if ($requestNumber !== '') {
+            $byNumber = SponsorshipTransfer::query()->where('external_source', 'data_import')
+                ->where('external_operation_number', $requestNumber)->first();
+            if ($byNumber && ((int) $byNumber->contract_id !== (int) $contract->id || (int) $byNumber->new_sponsor_id !== (int) $newSponsor->id)) {
+                throw new \InvalidArgumentException('رقم طلب النقل مستخدم لعميل أو عقد آخر.');
+            }
+            $transfer = $byNumber ?: $transfer;
+        }
 
         $payload = [
             'contract_id' => $contract->id,
@@ -3571,12 +3713,21 @@ class DataImportExecutionService
             'notes' => $row['notes'] ?? null,
         ];
 
+        if ($requestNumber !== '') {
+            $payload['external_source'] = 'data_import';
+            $payload['external_operation_number'] = $requestNumber;
+        }
+        $requestDate = $this->parseDate($row['request_date'] ?? null);
+        if ($requestDate && !$transfer) $payload['created_at'] = $requestDate;
+
         if ($transfer) {
             $transfer->update($payload);
             return 'updated';
         }
 
-        SponsorshipTransfer::create($payload);
+        $newTransfer = new SponsorshipTransfer($payload);
+        if ($requestDate) $newTransfer->created_at = $requestDate;
+        $newTransfer->save();
 
         return 'created';
     }
@@ -3784,6 +3935,9 @@ class DataImportExecutionService
         }
 
         if ($userByPhone) {
+            if ($idNumber !== '' && filled($userByPhone->national_num) && $this->normalizeIdNumber($userByPhone->national_num) !== $idNumber) {
+                throw new \InvalidArgumentException('الجوال مرتبط بعميل آخر بهوية مختلفة.');
+            }
             if ($idNumber !== '' && blank($userByPhone->national_num)) {
                 $userByPhone->update(['national_num' => $idNumber]);
             }
@@ -5033,46 +5187,11 @@ class DataImportExecutionService
 
     private function resolveFinanceYear(string $date): ?FnYear
     {
-        if (!class_exists(FnYear::class) || !Schema::hasTable('fn_years')) {
-            return null;
-        }
-
-        $year = FnYear::query()
-            ->where('status', 1)
-            ->whereDate('from_date', '<=', $date)
-            ->whereDate('to_date', '>=', $date)
-            ->first();
-
-        if ($year) {
-            return $year;
-        }
-
-        $year = FnYear::query()
-            ->whereDate('from_date', '<=', $date)
-            ->whereDate('to_date', '>=', $date)
-            ->first();
-
-        if ($year) {
-            $year->update(['status' => 1]);
-
-            return $year->fresh();
-        }
-
-        $date = Carbon::parse($date);
-        $payload = [
-            'title' => (string) $date->year,
-            'from_date' => $date->copy()->startOfYear()->toDateString(),
-            'to_date' => $date->copy()->endOfYear()->toDateString(),
-            'status' => 1,
-        ];
-
-        if (Schema::hasColumn('fn_years', 'created_by_id')) {
-            $payload['created_by_id'] = auth('admin')->id() ?? auth()->id() ?? 1;
-        }
-
-        return FnYear::query()->create($payload);
+        if (!class_exists(FnYear::class) || !Schema::hasTable('fn_years')) return null;
+        // Import must respect the same active financial-year boundary as manual posting.
+        return FnYear::query()->where('status', 1)
+            ->whereDate('from_date', '<=', $date)->whereDate('to_date', '>=', $date)->first();
     }
-
     private function nextFinanceConstraintCode(): int
     {
         return ((int) Constraint::query()->max('code')) + 1;
@@ -5773,7 +5892,8 @@ class DataImportExecutionService
             'تم النقل', 'transferred' => 'transferred',
             'مكتمل', 'completed' => 'completed',
             'مرفوض', 'rejected' => 'rejected',
-            default => 'pending',
+            '', 'pending', 'قيد الانتظار', 'بانتظار الموافقة', 'قيد المراجعة' => 'pending',
+            default => throw new \InvalidArgumentException('حالة نقل الخدمات غير صحيحة.'),
         };
     }
 
@@ -6042,75 +6162,13 @@ class DataImportExecutionService
 
     private function parseDate($value): ?string
     {
-        if ($value === null || $value === '') {
-            return null;
-        }
-
-        $value = $this->normalizeDigits((string) $value);
-
-        if (preg_match('/^(19|20)\d{6}$/', trim($value))) {
-            return Carbon::createFromFormat('Ymd', trim($value))->toDateString();
-        }
-
-        if (is_numeric($value)) {
-            return Carbon::instance(ExcelDate::excelToDateTimeObject((float) $value))->toDateString();
-        }
-
-        foreach (['Y-m-d', 'Y/m/d', 'd/m/Y', 'd-m-Y', 'd.m.Y', 'm/d/Y', 'm-d-Y'] as $format) {
-            try {
-                return Carbon::createFromFormat($format, trim($value))->toDateString();
-            } catch (\Throwable) {
-                // Try the next common import format.
-            }
-        }
-
-        try {
-            return Carbon::parse($value)->toDateString();
-        } catch (\Throwable) {
-            return null;
-        }
+        return ImportValueParser::date($value)?->toDateString();
     }
 
     private function parseDateTime($value): ?Carbon
     {
-        if ($value === null || $value === '') {
-            return null;
-        }
-
-        $value = $this->normalizeDigits((string) $value);
-
-        if (is_numeric($value)) {
-            return Carbon::instance(ExcelDate::excelToDateTimeObject((float) $value));
-        }
-
-        foreach ([
-            'Y-m-d H:i:s',
-            'Y-m-d H:i',
-            'Y/m/d H:i:s',
-            'Y/m/d H:i',
-            'd/m/Y H:i:s',
-            'd/m/Y H:i',
-            'd-m-Y H:i:s',
-            'd-m-Y H:i',
-            'Y-m-d',
-            'Y/m/d',
-            'd/m/Y',
-            'd-m-Y',
-        ] as $format) {
-            try {
-                return Carbon::createFromFormat($format, trim($value));
-            } catch (\Throwable) {
-                // Try the next common import format.
-            }
-        }
-
-        try {
-            return Carbon::parse($value);
-        } catch (\Throwable) {
-            return null;
-        }
+        return ImportValueParser::date($value, true);
     }
-
     private function roundMoney(float $amount): float
     {
         return round($amount, 2);
@@ -6118,11 +6176,7 @@ class DataImportExecutionService
 
     private function decimal($value): ?float
     {
-        if ($value === null || $value === '') {
-            return null;
-        }
-
-        return (float) str_replace(',', '', $this->normalizeDigits((string) $value));
+        return ImportValueParser::decimal($value);
     }
 
     private function cellValue($value): string

@@ -260,6 +260,21 @@ class ArabiaRecruitmentOrdersImportService
             ]);
     }
 
+    public function reviewRows(string $path): \Generator
+    {
+        $this->assertReady($path);
+        foreach (self::REQUIRED_SHEETS as $sheet) {
+            foreach ($this->readSheet($path, $sheet) as $number => $row) {
+                $payload = array_merge($row, ['__sheet' => $sheet]);
+                if ($sheet === 'تقرير_الطلبات') {
+                    $payload['arabia_order_number'] = $row['رقم الطلب'] ?? null;
+                    $payload['status'] = $row['حالة'] ?? $row['الحالة'] ?? null;
+                }
+                yield "شيت {$sheet} صف {$number}" => $payload;
+            }
+        }
+    }
+
     private function assertReady(string $path): void
     {
         if (!Schema::hasTable('arabia_recruitment_import_rows')
@@ -333,7 +348,11 @@ class ArabiaRecruitmentOrdersImportService
 
         $client = ($clientNumber ? User::query()->where('arabia_client_number', $clientNumber)->first() : null)
             ?: ($identity !== '' ? User::query()->where('national_num', $identity)->first() : null)
-            ?: (!$clientNumber && $phone !== '' ? User::query()->whereIn('phone', $this->phoneCandidates($phone))->first() : null);
+            ?: ($phone !== '' ? User::query()->whereIn('phone', $this->phoneCandidates($phone))->first() : null);
+
+        if ($client && $identity !== '' && filled($client->national_num) && $this->digits($client->national_num) !== $identity) {
+            throw new \InvalidArgumentException('هوية العميل تختلف عن هوية صاحب رقم المصدر أو الجوال.');
+        }
 
         // Some recruitment sheets omit the phone even though it exists in the
         // separately imported Arabia client master. Prefer that source before
@@ -960,8 +979,8 @@ class ArabiaRecruitmentOrdersImportService
 
     private function decimal($value): ?float
     {
-        $number = preg_replace('/[^\d.\-]/', '', str_replace(',', '', $this->digits($value)));
-        return $number !== '' && is_numeric($number) ? (float) $number : null;
+        if (trim((string) $value) === '-') return null;
+        return ImportValueParser::decimal($value);
     }
 
     private function date($value): ?string
@@ -979,14 +998,7 @@ class ArabiaRecruitmentOrdersImportService
         if ($value === null || trim((string) $value) === '' || trim((string) $value) === '-') {
             return null;
         }
-        try {
-            if (is_numeric($value) && (float) $value > 1000) {
-                return Carbon::instance(ExcelDate::excelToDateTimeObject((float) $value))->toDateTimeString();
-            }
-            return Carbon::parse($this->digits($value))->toDateTimeString();
-        } catch (\Throwable) {
-            return null;
-        }
+        return ImportValueParser::date($value, true)?->toDateTimeString();
     }
 
     private function time($value): ?string

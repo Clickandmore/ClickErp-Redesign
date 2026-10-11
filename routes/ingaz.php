@@ -322,6 +322,8 @@ Route::group(
             Route::get('reports/import', [DataImportController::class, 'index'])->name('reports.import.index');
             Route::get('reports/import/template/{type}', [DataImportController::class, 'template'])->name('reports.import.template');
             Route::post('reports/import', [DataImportController::class, 'store'])->name('reports.import.store');
+            Route::get('reports/import/reviews/{batch}', [DataImportController::class, 'show'])->name('reports.import.show');
+            Route::post('reports/import/reviews/{batch}/approve', [DataImportController::class, 'approve'])->name('reports.import.approve');
             Route::post('reports/import/generate-bonds', [DataImportController::class, 'generateBonds'])->name('reports.import.generate-bonds');
             Route::get('reports/export/{report}', [ReportController::class, 'export'])->name('reports.export');
             Route::get('show-maid-details/{id}', [\App\Http\Controllers\ingaz\MaidController::class, 'showMaidDetails'])->name('showMaidDetails');

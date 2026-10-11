@@ -288,7 +288,7 @@ class DataImportTemplateService
                     ['key' => 'maid_passport', 'label' => 'رقم جواز العاملة', 'required' => true, 'example' => 'P0000001'],
                     ['key' => 'request_date', 'label' => 'تاريخ الطلب', 'required' => true, 'example' => now()->format('Y-m-d')],
                     ['key' => 'transfer_status', 'label' => 'حالة النقل', 'required' => true, 'example' => 'قيد المراجعة'],
-                    ['key' => 'trial_start_date', 'label' => 'بداية التجربة', 'required' => false, 'example' => now()->format('Y-m-d')],
+                    ['key' => 'trial_start_date', 'label' => 'بداية التجربة', 'required' => true, 'example' => now()->format('Y-m-d')],
                     ['key' => 'amount', 'label' => 'القيمة', 'required' => false, 'example' => '8000'],
                     ['key' => 'notes', 'label' => 'ملاحظات', 'required' => false, 'example' => 'طلب نقل مستورد'],
                 ],
@@ -449,8 +449,34 @@ class DataImportTemplateService
             ],
         ];
 
+        $templates['invoices'] = [
+            'label' => 'فواتير جديدة (إصدار وقيود النظام)',
+            'route_hint' => '/admin/invoices',
+            'icon' => 'fas fa-file-invoice-dollar',
+            'description' => 'إصدار فواتير جديدة عند الاعتماد عبر مسار إصدار الفاتورة نفسه، بما يشمل القيود والسندات حسب إعدادات النظام. لا تستخدم هذا القالب للفواتير التاريخية المرحلة سابقاً. اربط كل صف بعقد أو تفويض أو عميل واحد فقط. مطلوب صلاحية إصدار فاتورة أو اعتمادها بالإضافة إلى اعتماد الاستيراد.',
+            'filename' => 'invoices-import-template.xlsx',
+            'columns' => [
+                ['key' => 'import_reference', 'label' => 'مرجع الاستيراد الفريد', 'required' => true, 'example' => 'INV-EXT-0001'],
+                ['key' => 'invoice_date', 'label' => 'تاريخ الفاتورة', 'required' => true, 'example' => now()->format('Y-m-d')],
+                ['key' => 'contract_id', 'label' => 'معرف عقد الاستقدام', 'required' => false, 'example' => ''],
+                ['key' => 'ingaz_delegation_id', 'label' => 'معرف تفويض إنجاز', 'required' => false, 'example' => ''],
+                ['key' => 'client_id', 'label' => 'معرف العميل (فاتورة عامة)', 'required' => false, 'example' => '1'],
+                ['key' => 'general_description', 'label' => 'وصف الفاتورة', 'required' => false, 'example' => 'خدمات'],
+                ['key' => 'direct_recruitment_cost', 'label' => 'قيمة الخدمة المباشرة', 'required' => false, 'example' => '1000'],
+                ['key' => 'direct_recruitment_count', 'label' => 'عدد الخدمات المباشرة', 'required' => false, 'example' => '1'],
+                ['key' => 'external_recruitment_cost', 'label' => 'قيمة الاستقدام الخارجي', 'required' => false, 'example' => ''],
+                ['key' => 'external_recruitment_count', 'label' => 'عدد الاستقدام الخارجي', 'required' => false, 'example' => '1'],
+                ['key' => 'government_cost', 'label' => 'التكاليف الحكومية', 'required' => false, 'example' => '0'],
+                ['key' => 'government_cost_count', 'label' => 'عدد التكاليف الحكومية', 'required' => false, 'example' => '1'],
+                ['key' => 'internal_ticket_cost', 'label' => 'قيمة التذاكر الداخلية', 'required' => false, 'example' => '0'],
+                ['key' => 'internal_ticket_count', 'label' => 'عدد التذاكر الداخلية', 'required' => false, 'example' => '1'],
+                ['key' => 'discount', 'label' => 'الخصم', 'required' => false, 'example' => '0'],
+                ['key' => 'send_to_zatca', 'label' => 'إرسال للزكاة', 'required' => false, 'example' => '0', 'valid_values' => ['0', '1']],
+            ],
+        ];
+
         $templates['legacy_invoices'] = [
-            'label' => 'فواتير',
+            'label' => 'فواتير تاريخية (أرشفة دون ترحيل جديد)',
             'route_hint' => '/admin/invoices',
             'icon' => 'fas fa-file-invoice-dollar',
             'description' => 'استيراد ملف جميع فواتير. يتم تجاهل شيت الملخص وقراءة كل شيتات الفواتير مع الحفاظ على رقم الفاتورة، نوع المستند، حالة المشاركة السابقة مع هيئة الزكاة، وجميع بيانات الصف الأصلي. يمكن رفع الملف التاريخي ثم التقرير الأحدث بأمان دون تكرار.',
@@ -497,7 +523,6 @@ class DataImportTemplateService
             'route_hint' => '/admin/TransferServiceContract',
             'icon' => 'fas fa-people-arrows',
             'description' => 'استيراد تقرير الرافدين المدمج أو تقرير نقل الخدمات، وربط العملية بعميل أربيا وطلب الاستقدام والسيرة، وإنشاء طلب نقل وعقد نقل خدمات مكتمل مع حفظ جميع تفاصيل الصف الأصلي ومنع التكرار.',
-            'downloadable' => false,
             'filename' => 'alrafedin-transfer-services-import-template.xlsx',
             'columns' => [
                 ['key' => 'sequence', 'label' => 'م', 'required' => false, 'example' => '1'],
@@ -604,7 +629,10 @@ class DataImportTemplateService
         ];
 
         return collect($labels)->map(fn ($label, $index) => [
-            'key' => 'arabia_column_' . ($index + 1),
+            'key' => ['رقم تعريف' => 'arabia_client_number', 'رقم الهوية' => 'id_number',
+                'الإسم الأول' => 'name', 'الجوال' => 'phone', 'البريد الإلكتروني' => 'email',
+                'تاريخ الانشاء' => 'created_at', 'الرصيد' => 'balance', 'العمر' => 'age',
+                'عدد أفراد الأسرة' => 'family_num', 'عدد العمالة' => 'workers_count'][$label] ?? 'arabia_column_' . ($index + 1),
             'label' => $label,
             'required' => in_array($label, ['رقم تعريف', 'الإسم الأول', 'الجوال'], true),
             'example' => '',
@@ -793,6 +821,13 @@ class DataImportTemplateService
 
         abort_if(!$template || !empty($template['external_template_route']), 404);
 
+        if ($type === 'alrafedin_transfer_services') {
+            return $this->createTransferReportTemplate($template);
+        }
+        if ($type === 'arabia_recruitment_orders') {
+            return $this->createArabiaWorkbookTemplate($template);
+        }
+
         $spreadsheet = new Spreadsheet();
         $sheet = $spreadsheet->getActiveSheet();
         $sheet->setTitle('البيانات');
@@ -823,7 +858,7 @@ class DataImportTemplateService
         $sheet->freezePane('A2');
 
         foreach (range(1, count($template['columns'])) as $columnIndex) {
-            $sheet->getColumnDimension(Coordinate::stringFromColumnIndex($columnIndex))->setAutoSize(true);
+            $sheet->getColumnDimension(Coordinate::stringFromColumnIndex($columnIndex))->setWidth(28);
         }
 
         $instructions = $spreadsheet->createSheet();
@@ -857,14 +892,103 @@ class DataImportTemplateService
         $spreadsheet->setActiveSheetIndex(0);
 
         $writer = IOFactory::createWriter($spreadsheet, 'Xlsx');
+        $writer->setPreCalculateFormulas(false);
         $tempFile = tempnam(sys_get_temp_dir(), 'data-import-template');
-        $writer->save($tempFile);
+        try {
+            $writer->save($tempFile);
+        } catch (\Throwable $exception) {
+            if (is_file($tempFile)) unlink($tempFile);
+            throw $exception;
+        } finally {
+            $spreadsheet->disconnectWorksheets();
+        }
+        clearstatcache(true, $tempFile);
 
         return response()
             ->download($tempFile, $template['filename'], [
                 'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
             ])
             ->deleteFileAfterSend(true);
+    }
+
+    private function createTransferReportTemplate(array $template)
+    {
+        // Preserve the exact positional layout used by the legacy report reader.
+        $headers = ['م', 'رقم العملية', 'رقم العامل', 'اسم العامل', 'جواز سفر العامل',
+            'رقم تعريف: عميل من', 'عميل من', 'رقم تعريف: عميل إلى', 'عميل إلى', 'الدولة',
+            'المهنة', 'فاتورة رقم', 'التكلفة الإجمالية', 'تكلفة التجربة', 'نوع تعويض الكفيل السابق',
+            'مبلغ تعويض الكفيل السابق', 'تاريخ النقل', 'حالة استبدال العامل', 'حالة تغيير المهنة',
+            'حالة', 'حالة التجربة', 'حالة مساند', 'حالة التحويل', 'العمولة', 'الضريبة المستردة',
+            'تاريخ التحويل', 'ضمان الوصول', 'ضمان التسليم', 'أنشئ بواسطة', 'أنشئ بتاريخ', 'المسوق'];
+        $book = new Spreadsheet();
+        $sheet = $book->getActiveSheet()->setTitle('البيانات')->setRightToLeft(true);
+        $sheet->fromArray($headers, null, 'A1');
+        $sheet->freezePane('A2');
+        foreach ($headers as $index => $header) {
+            $sheet->getColumnDimension(Coordinate::stringFromColumnIndex($index + 1))->setWidth(26);
+        }
+        $sheet->getStyle('A1:AE1')->getFont()->setBold(true);
+        $instructions = $book->createSheet()->setTitle('تعليمات')->setRightToLeft(true);
+        $instructions->setCellValue('A1', 'أدخل البيانات في ورقة البيانات دون تغيير ترتيب الأعمدة. التواريخ YYYY-MM-DD.');
+        $instructions->getColumnDimension('A')->setWidth(100);
+        return $this->downloadWorkbook($book, $template['filename']);
+    }
+
+    private function createArabiaWorkbookTemplate(array $template)
+    {
+        $client = ['رقم العميل', 'اسم العميل', 'رقم هوية العميل', 'رقم الجوال', 'ميلاد العميل'];
+        $worker = ['رقم العامل', 'اسم العامل', 'رقم الباسبور', 'الجنسية', 'الديانة', 'المهنة', 'مكتب'];
+        $arrival = ['موعد الوصول', 'وقت الوصول', 'مطار', 'محطة الوصول', 'الخطوط الناقلة', 'رقم الرحلة', 'مستقبل', 'جهة القدوم'];
+        $sheets = [
+            'تقرير_الطلبات' => array_merge(['رقم الطلب', 'حالة', 'تاريخ الطلب', 'التكلفة', 'فاتورة مورد', 'رقم مساند', 'رقم التأشيرة', 'نوع التأشيرة', 'المسوق'], $client, $worker),
+            'التفويض' => array_merge(['رقم الطلب', 'رقم التفويض', 'رقم التأشيرة', 'رقم الارسالية', 'تاريخ الارسالية'], $client, $worker),
+            'مواعيد_الوصول' => array_merge(['رقم الطلب'], $client, $worker, $arrival),
+            'طلبات_وصلت' => array_merge(['رقم الطلب'], $client, $worker, $arrival),
+            'مدة_الوصول' => ['رقم الطلب', 'مدة الوصول'],
+            'العاملون' => array_merge(['رقم الطلب'], $worker),
+            'رحلات_مخصص' => array_merge(['رقم الطلب'], $client, $worker, $arrival),
+            'الإرساليات' => ['رقم الإرسالية', 'تاريخ'],
+            'الملاحظات' => ['رقم الطلب', 'ملاحظة', 'تاريخ الملاحظة', 'دونت بواسطة', 'رقم التأشيرة'],
+        ];
+        $book = new Spreadsheet();
+        $book->removeSheetByIndex(0);
+        foreach ($sheets as $name => $headers) {
+            $sheet = $book->createSheet()->setTitle($name)->setRightToLeft(true);
+            $sheet->fromArray($headers, null, 'A1');
+            $sheet->freezePane('A2');
+            foreach ($headers as $index => $header) {
+                $column = Coordinate::stringFromColumnIndex($index + 1);
+                $sheet->getColumnDimension($column)->setWidth(26);
+                $sheet->getStyle($column . '1')->getFont()->setBold(true);
+            }
+        }
+        $instructions = $book->createSheet()->setTitle('تعليمات')->setRightToLeft(true);
+        $instructions->setCellValue('A1', 'أدخل الطلبات في تقرير_الطلبات. رقم الطلب وحالة مطلوبان.');
+        $instructions->setCellValue('A2', 'اربط الأوراق الأخرى برقم الطلب، والإرساليات برقم الإرسالية. اترك الأوراق غير المستخدمة فارغة ولا تحذفها.');
+        $instructions->setCellValue('A3', 'لا تغير أسماء الأوراق أو الأعمدة. التواريخ YYYY-MM-DD. راجع البيانات قبل الاعتماد.');
+        $instructions->getColumnDimension('A')->setWidth(100);
+        $instructions->getStyle('A1:A3')->getAlignment()->setWrapText(true);
+        $book->setActiveSheetIndex(0);
+        return $this->downloadWorkbook($book, $template['filename']);
+    }
+
+    private function downloadWorkbook(Spreadsheet $book, string $filename)
+    {
+        $path = tempnam(sys_get_temp_dir(), 'arabia-template-');
+        try {
+            $writer = IOFactory::createWriter($book, 'Xlsx');
+            $writer->setPreCalculateFormulas(false);
+            $writer->save($path);
+        } catch (\Throwable $exception) {
+            if (is_file($path)) unlink($path);
+            throw $exception;
+        } finally {
+            $book->disconnectWorksheets();
+        }
+        clearstatcache(true, $path);
+        return response()->download($path, $filename, [
+            'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        ])->deleteFileAfterSend(true);
     }
 
     private function financeConstraintExampleRows(): array
@@ -912,7 +1036,7 @@ class DataImportTemplateService
     public function storeUploadedFile(string $type, UploadedFile $file, ?int $adminId): string
     {
         $safeName = preg_replace('/[^A-Za-z0-9_.-]/', '_', $file->getClientOriginalName());
-        $prefix = now()->format('Ymd_His') . '_' . ($adminId ?: 'guest');
+        $prefix = now()->format('Ymd_His') . '_' . ($adminId ?: 'guest') . '_' . \Illuminate\Support\Str::uuid();
 
         return $file->storeAs("data-imports/{$type}", "{$prefix}_{$safeName}");
     }

@@ -60,7 +60,7 @@ class ArabiaClientsImportService
                 $raw[$label] = $this->cellValue($sheet->getCell([$column, $rowNumber])->getFormattedValue());
             }
 
-            if (collect($raw)->filter(fn ($value) => $value !== '')->isEmpty()) {
+            if (collect($raw)->filter(fn ($value) => $value !== '')->isEmpty() || ImportValueParser::isMarkerRow($raw)) {
                 continue;
             }
 
@@ -108,11 +108,9 @@ class ArabiaClientsImportService
             ? User::query()->where('arabia_client_number', $arabiaNumber)->first()
             : null;
 
-        // A different Arabia number represents a separate source customer, even when
-        // the source file contains a repeated identity or phone.
+        // Source numbers do not override a customer's national identity.
         if (!$user && ($nationalNumber !== '' || $phone !== '')) {
-            $availableUsers = User::query()
-                ->when($this->hasUserColumn('arabia_client_number'), fn ($query) => $query->whereNull('arabia_client_number'));
+            $availableUsers = User::query();
 
             $user = $nationalNumber !== ''
                 ? (clone $availableUsers)->where('national_num', $nationalNumber)->first()
@@ -121,6 +119,10 @@ class ArabiaClientsImportService
             $user ??= $phone !== ''
                 ? (clone $availableUsers)->whereIn('phone', $this->phoneCandidates($phone))->first()
                 : null;
+        }
+
+        if ($user && $nationalNumber !== '' && filled($user->national_num) && $this->digits($user->national_num) !== $nationalNumber) {
+            throw new \InvalidArgumentException('الجوال أو رقم المصدر مرتبط بعميل له هوية مختلفة.');
         }
 
         $isNew = !$user;
@@ -342,8 +344,7 @@ class ArabiaClientsImportService
 
     private function decimal($value): ?float
     {
-        $value = str_replace(',', '', trim((string) $value));
-        return $value !== '' && is_numeric($value) ? (float) $value : null;
+        return ImportValueParser::decimal($value);
     }
 
     private function boolean($value): bool

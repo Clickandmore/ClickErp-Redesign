@@ -131,6 +131,7 @@
                 $canViewSponsorshipTransfer = @AdminGuardHasAnyPerm([\App\PermKeys::SPONSOR_TRANSFER_VIEW, \App\PermKeys::SPONSOR_TRANSFER_WEB_REQUESTS_VIEW, \App\PermKeys::SPONSOR_TRANSFER_CREATE, \App\PermKeys::SPONSOR_TRANSFER_EDIT, \App\PermKeys::SPONSOR_TRANSFER_DELETE]);
                 // نفس اتحاد الصلاحيات المستخدم في بوابة المسار reports.export حتى لا يظهر الرابط لمن لا يستطيع التصدير.
                 $canViewReports = @AdminGuardHasAnyPerm(\App\Services\ingaz\ReportExportService::allExportPermissions());
+                $canViewDataImports = @AdminGuardHasAnyPerm([\App\PermKeys::DATA_IMPORT_UPLOAD, \App\PermKeys::DATA_IMPORT_REVIEW, \App\PermKeys::DATA_IMPORT_APPROVE]);
                 $canViewOfficeManagement = @AdminGuardHasPerm(\App\PermKeys::OFFICE_VIEW);
 
                 // كل قسم يظهر داخل "العمليات" يجب أن يكون ضمن هذا الشرط،
@@ -149,7 +150,7 @@
                     $canViewContactRequests ||
                     $canViewOfficeManagement ||
                     $canViewOperationalCommissions ||
-                    $canViewReports;
+                    $canViewReports || $canViewDataImports;
 
                 $canViewSms = @AdminGuardHasAnyPerm([\App\PermKeys::NOTIFICATIONS_CONTROL, \App\PermKeys::NOTIFICATIONS_VIEW]);
 
@@ -1141,6 +1142,11 @@
                             {{--                                --}}
                             {{--                            </ul> --}}
                             {{--                        </li> --}}
+                            @if ($canViewDataImports)
+                                <li><a class="m-link {{ request()->routeIs('reports.import.*') ? 'active' : '' }}" href="{{ route('reports.import.index') }}">
+                                    <i class="fa fa-file-import me-2"></i><span class="ms-2">استيراد البيانات واعتمادها</span>
+                                </a></li>
+                            @endif
                             @if ($canViewReports)
                                 <li>
                                     <a class="m-link {{ request()->routeIs('reports.*') ? 'active' : '' }}"

@@ -28,6 +28,7 @@ use Illuminate\Support\Facades\Storage;
 class AlrafedinTransferServicesImportService
 {
     private const MAX_ERROR_DETAILS = 200;
+    private array $parseIssues = [];
 
     public function __construct(private DataImportTemplateService $templates)
     {
@@ -81,6 +82,23 @@ class AlrafedinTransferServicesImportService
         $contents = file_get_contents($path);
         if ($contents === false || trim($contents) === '') {
             throw new \InvalidArgumentException('ملف نقل الخدمات فارغ أو لا يمكن قراءته.');
+        }
+
+        // New templates are genuine XLSX; keep supporting the historical HTML XLS exports.
+        if (str_starts_with($contents, 'PK')) {
+            $book = \PhpOffice\PhpSpreadsheet\IOFactory::load($path);
+            try {
+                $sheet = $book->getSheetByName('البيانات') ?? $book->getSheet(0);
+                $contents = '<html><head><meta charset="UTF-8"></head><body><table>';
+                foreach ($sheet->toArray(null, false, false) as $cells) {
+                    $contents .= '<tr>';
+                    foreach ($cells as $value) $contents .= '<td>' . htmlspecialchars((string) $value, ENT_QUOTES, 'UTF-8') . '</td>';
+                    $contents .= '</tr>';
+                }
+                $contents .= '</table></body></html>';
+            } finally {
+                $book->disconnectWorksheets();
+            }
         }
 
         $previous = libxml_use_internal_errors(true);
@@ -140,9 +158,11 @@ class AlrafedinTransferServicesImportService
                     $raw[$this->cleanText($header)] = $cells[$column]['text'] ?? null;
                 }
 
+                $this->parseIssues = [];
                 $data = $source === 'transfer_service'
                     ? $this->mapTransferServiceRow($cells)
                     : $this->mapLegacySponsorshipRow($cells);
+                $data['__parse_issues'] = $this->parseIssues;
 
                 $data['trial_days'] = $this->trialDaysFromCell($cells[20] ?? null);
                 if (trim((string) ($data['operation_number'] ?? '')) === '') {
@@ -311,6 +331,9 @@ class AlrafedinTransferServicesImportService
 
     private function importRow(array $row, ?int $fallbackAdminId): string
     {
+        if (!empty($row['data']['__parse_issues'])) {
+            throw new \InvalidArgumentException(implode('؛ ', $row['data']['__parse_issues']));
+        }
         $data = $row['data'];
         $source = $row['source'];
         $operation = trim((string) $data['operation_number']);
@@ -677,10 +700,9 @@ class AlrafedinTransferServicesImportService
 
     private function decimal($value): ?float
     {
-        $value = str_replace([',', ' '], '', $this->normalizeDigits((string) $value));
-        $value = preg_replace('/[^0-9.\-]/', '', $value);
-
-        return $value === '' || !is_numeric($value) ? null : round((float) $value, 2);
+        if (in_array(trim((string) $value), ['', '..', '-'], true)) return null;
+        try { return ImportValueParser::decimal($value); }
+        catch (\InvalidArgumentException $exception) { $this->parseIssues[] = $exception->getMessage(); return null; }
     }
 
     private function date($value): ?string
@@ -691,8 +713,9 @@ class AlrafedinTransferServicesImportService
         }
 
         try {
-            return Carbon::parse($value)->toDateString();
-        } catch (\Throwable) {
+            return ImportValueParser::date($value, true)?->toDateString();
+        } catch (\InvalidArgumentException $exception) {
+            $this->parseIssues[] = $exception->getMessage();
             return null;
         }
     }
@@ -705,8 +728,9 @@ class AlrafedinTransferServicesImportService
         }
 
         try {
-            return Carbon::parse($value)->toDateTimeString();
-        } catch (\Throwable) {
+            return ImportValueParser::date($value, true)?->toDateTimeString();
+        } catch (\InvalidArgumentException $exception) {
+            $this->parseIssues[] = $exception->getMessage();
             return null;
         }
     }

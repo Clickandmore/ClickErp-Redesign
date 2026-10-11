@@ -1152,6 +1152,18 @@ class InvoiceController extends Controller
         return $this->processInvoiceRequest($request, $service, $yearService, $bondService, false, true);
     }
 
+    /** Import approval shares issuance, accounting and duplicate checks with the interactive form. */
+    public function issueImportedInvoice(Request $request, ObjService $service, YearService $yearService, BondService $bondService)
+    {
+        abort_unless(InvoiceAuthorization::canIssueDirectly() || InvoiceAuthorization::canApprove(), 403);
+        if (!InvoiceAuthorization::canViewSupplierTotalCost()) $request->merge(['supplier_total_cost_usd' => null]);
+        $this->enforceInvoiceLineItemPermission($request, $this->resolveRequestInvoiceNationality($request));
+        return DB::transaction(function () use ($request, $service, $yearService, $bondService) {
+            $this->lockInvoiceReference($request);
+            return $this->processInvoiceRequest($request, $service, $yearService, $bondService, false, true);
+        });
+    }
+
     private function lockInvoiceReference(Request $request): void
     {
         foreach (['contract_id' => Contract::class, 'ingaz_delegation_id' => IngazDelegation::class,
