@@ -44,6 +44,17 @@ class CommissionDeductionJournalService
                 || (float) $locked->amount > (float) $item->commission_amount) {
                 throw ValidationException::withMessages(['deduction' => 'حركة الخصم لا تطابق العمولة المعتمدة؛ لم يتم إنشاء قيد.']);
             }
+            if ($item->commission_reversal_constraint_id) {
+                $existing = Constraint::query()->with('constraintDetails')->find($item->commission_reversal_constraint_id);
+                if (! $existing
+                    || round((float) $existing->constraintDetails->sum('debtor_value'), 2) !== round((float) $locked->amount, 2)
+                    || round((float) $existing->constraintDetails->sum('creditor_value'), 2) !== round((float) $locked->amount, 2)) {
+                    throw ValidationException::withMessages(['deduction' => 'قيد عكس العمولة السابق مفقود أو لا يطابق مبلغ الخصم. اطلب من المحاسب مراجعته؛ لم يتم إنشاء قيد إضافي.']);
+                }
+                $locked->update(['constraint_id' => $existing->id]);
+                $transaction->refresh();
+                return $existing;
+            }
             $actorId ??= $locked->created_by ?? $item->batch?->approved_by ?? $item->batch?->created_by ?? auth('admin')->id();
             $batch = $item->batch;
             $expense = $batch->expense_account_id
@@ -73,6 +84,7 @@ class CommissionDeductionJournalService
             $constraint = $this->constraints->storeConstraint($data, $year, ConstraintTypiesEnum::MarketerEntry);
             $this->constraints->storeConstraintDetails($data['account_id'], $constraint->id, $data);
             $locked->update(['constraint_id' => $constraint->id]);
+            $item->update(['commission_reversal_constraint_id' => $constraint->id]);
             $transaction->refresh();
             return $constraint;
         });

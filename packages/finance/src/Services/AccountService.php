@@ -148,6 +148,18 @@ class AccountService extends MainService
         }
     }
 
+    public function updateAccountGuideDetails(int $id, array $data): void
+    {
+        DB::transaction(function () use ($id, $data) {
+            [$branchScopePresent, $branchIds] = $this->extractBranchAssignmentInput($data);
+            $account = $this->model->newQuery()->whereKey($id)->lockForUpdate()->firstOrFail();
+            $account->update(['name' => $data['name']]);
+            if (BranchSharingSettings::accountsPerBranch() && $branchScopePresent) {
+                $account->branches()->sync($branchIds);
+            }
+        });
+    }
+
     public function getAccountTree()
     {
         // فرع التقرير لا العزل التلقائي فقط: المحاسب الذي يرى كل الفروع يختار

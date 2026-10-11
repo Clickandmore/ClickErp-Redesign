@@ -47,6 +47,31 @@ class FinanceAccountBranchSelectionTest extends TestCase
         ]);
     }
 
+    public function test_guide_branch_assignment_preserves_account_structure_and_supports_unassigning(): void
+    {
+        BranchSharingSettings::persist(['accounts_per_branch' => true]);
+        $parentId = $this->account('Guide parent');
+        $accountId = $this->account('Guide child', null, $parentId);
+        $before = DB::table('fn_accounts')->find($accountId);
+        $service = app(AccountService::class);
+        $service->updateAccountGuideDetails($accountId, [
+            'name' => 'Guide child updated',
+            'account_branch_scope_present' => 1,
+            'branch_ids' => [$this->riyadh->id],
+            'code' => 999,
+            'parent_id' => 'without',
+        ]);
+        $this->assertDatabaseHas('fn_account_branch', ['account_id' => $accountId, 'branch_id' => $this->riyadh->id]);
+        $after = DB::table('fn_accounts')->find($accountId);
+        foreach (['code', 'parent_id', 'status', 'type', 'level', 'branch_id'] as $field) {
+            $this->assertEquals($before->$field, $after->$field);
+        }
+        $service->updateAccountGuideDetails($accountId, ['name' => 'Renamed']);
+        $this->assertDatabaseHas('fn_account_branch', ['account_id' => $accountId, 'branch_id' => $this->riyadh->id]);
+        $service->updateAccountGuideDetails($accountId, ['name' => 'Renamed', 'account_branch_scope_present' => 1]);
+        $this->assertDatabaseMissing('fn_account_branch', ['account_id' => $accountId]);
+    }
+
     private function costCenter(string $title, ?int $branchId = null): int
     {
         return (int) DB::table('fn_cost_centers')->insertGetId([
