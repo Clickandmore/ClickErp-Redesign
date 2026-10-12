@@ -162,6 +162,26 @@ class SystemUpdatesTest extends TestCase
     }
 
     /** @test */
+    public function test_connection_works_from_the_settings_form_which_spoofs_put(): void
+    {
+        Http::fake(['*' => Http::response([
+            'feed_version' => 1,
+            'server_time' => now()->toIso8601String(),
+            'source' => ['name' => 'Hub'],
+            'updates' => [],
+        ])]);
+
+        $this->superAdmin()
+            ->put(route('dev-superadmin.system-updates.test-connection'), [
+                'source_url' => 'https://hub.example.test',
+                'source_key' => 'su_secret',
+            ])
+            ->assertRedirect()
+            ->assertSessionHasNoErrors()
+            ->assertSessionHas('success');
+    }
+
+    /** @test */
     public function link_must_be_internal_or_full_url(): void
     {
         $this->superAdmin()

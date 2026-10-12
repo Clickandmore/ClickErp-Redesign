@@ -883,7 +883,8 @@ Route::group(
                     Route::post('/', [\App\Http\Controllers\admin\DevSystemUpdatesController::class, 'store'])->name('store');
                     Route::put('settings', [\App\Http\Controllers\admin\DevSystemUpdatesController::class, 'updateSettings'])->name('settings');
                     Route::post('sync', [\App\Http\Controllers\admin\DevSystemUpdatesController::class, 'sync'])->middleware('throttle:6,1')->name('sync');
-                    Route::post('test-connection', [\App\Http\Controllers\admin\DevSystemUpdatesController::class, 'testConnection'])->middleware('throttle:10,1')->name('test-connection');
+                    // الزر داخل نموذج الإعدادات الذي يرسل _method=PUT
+                    Route::match(['post', 'put'], 'test-connection', [\App\Http\Controllers\admin\DevSystemUpdatesController::class, 'testConnection'])->middleware('throttle:10,1')->name('test-connection');
                     Route::post('clients', [\App\Http\Controllers\admin\DevSystemUpdatesController::class, 'storeClient'])->name('clients.store');
                     Route::put('clients/{client}/toggle', [\App\Http\Controllers\admin\DevSystemUpdatesController::class, 'toggleClient'])->whereNumber('client')->name('clients.toggle');
                     Route::delete('clients/{client}', [\App\Http\Controllers\admin\DevSystemUpdatesController::class, 'destroyClient'])->whereNumber('client')->name('clients.destroy');
