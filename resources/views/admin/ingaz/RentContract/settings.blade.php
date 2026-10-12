@@ -37,41 +37,41 @@
                                     <div class="col-md-6 mb-3">
                                         <label class="form-label">اسم الشركة</label>
                                         <input type="text" name="company_name" class="form-control"
-                                               value="{{ $settings['company_name'] ?? documentSetting('document_company_name', documentSetting('website_name', config('app.name'))) }}"
+                                               value="{{ $rentalSettings['company_name'] ?? documentSetting('document_company_name', documentSetting('website_name', config('app.name'))) }}"
                                                data-validation="required">
                                     </div>
 
                                     <div class="col-md-6 mb-3">
                                         <label class="form-label">رقم الترخيص</label>
                                         <input type="text" name="license_number" class="form-control"
-                                               value="{{ $settings['license_number'] ?? '4001772' }}"
+                                               value="{{ $rentalSettings['license_number'] ?? '4001772' }}"
                                                data-validation="required">
                                     </div>
 
                                     <div class="col-md-6 mb-3">
                                         <label class="form-label">تاريخ الترخيص</label>
                                         <input type="date" name="license_date" class="form-control"
-                                               value="{{ $settings['license_date'] ?? '2022-10-13' }}"
+                                               value="{{ $rentalSettings['license_date'] ?? '2022-10-13' }}"
                                                data-validation="required">
                                     </div>
 
                                     <div class="col-md-6 mb-3">
                                         <label class="form-label">رقم السجل التجاري</label>
                                         <input type="text" name="commercial_register" class="form-control"
-                                               value="{{ $settings['commercial_register'] ?? '1010601958' }}"
+                                               value="{{ $rentalSettings['commercial_register'] ?? '1010601958' }}"
                                                data-validation="required">
                                     </div>
 
                                     <div class="col-md-6 mb-3">
                                         <label class="form-label">تاريخ السجل التجاري</label>
                                         <input type="date" name="commercial_date" class="form-control"
-                                               value="{{ $settings['commercial_date'] ?? '1441-03-03' }}">
+                                               value="{{ $rentalSettings['commercial_date'] ?? '1441-03-03' }}">
                                     </div>
 
                                     <div class="col-md-6 mb-3">
                                         <label class="form-label">المدينة</label>
                                         <input type="text" name="city" class="form-control"
-                                               value="{{ $settings['city'] ?? 'الرياض' }}" data-validation="required">
+                                               value="{{ $rentalSettings['city'] ?? 'الرياض' }}" data-validation="required">
                                     </div>
                                 </div>
 
@@ -87,43 +87,43 @@
                                     <div class="col-md-6 mb-3">
                                         <label class="form-label">العنوان</label>
                                         <input type="text" name="address" class="form-control"
-                                               value="{{ $settings['address'] ?? 'الرياض' }}">
+                                               value="{{ $rentalSettings['address'] ?? 'الرياض' }}">
                                     </div>
 
                                     <div class="col-md-6 mb-3">
                                         <label class="form-label">صندوق البريد</label>
                                         <input type="text" name="po_box" class="form-control"
-                                               value="{{ $settings['po_box'] ?? '' }}">
+                                               value="{{ $rentalSettings['po_box'] ?? '' }}">
                                     </div>
 
                                     <div class="col-md-6 mb-3">
                                         <label class="form-label">الرمز البريدي</label>
                                         <input type="text" name="postal_code" class="form-control"
-                                               value="{{ $settings['postal_code'] ?? '' }}">
+                                               value="{{ $rentalSettings['postal_code'] ?? '' }}">
                                     </div>
 
                                     <div class="col-md-6 mb-3">
                                         <label class="form-label">رقم الهاتف</label>
                                         <input type="text" name="phone" class="form-control"
-                                               value="{{ $settings['phone'] ?? '' }}">
+                                               value="{{ $rentalSettings['phone'] ?? '' }}">
                                     </div>
 
                                     <div class="col-md-6 mb-3">
                                         <label class="form-label">رقم الجوال</label>
                                         <input type="text" name="mobile" class="form-control"
-                                               value="{{ $settings['mobile'] ?? '' }}">
+                                               value="{{ $rentalSettings['mobile'] ?? '' }}">
                                     </div>
 
                                     <div class="col-md-6 mb-3">
                                         <label class="form-label">الفاكس</label>
                                         <input type="text" name="fax" class="form-control"
-                                               value="{{ $settings['fax'] ?? '966550316770+' }}">
+                                               value="{{ $rentalSettings['fax'] ?? '966550316770+' }}">
                                     </div>
 
                                     <div class="col-md-6 mb-3">
                                         <label class="form-label">البريد الإلكتروني</label>
                                         <input type="email" name="email" class="form-control"
-                                               value="{{ $settings['email'] ?? '' }}">
+                                               value="{{ $rentalSettings['email'] ?? '' }}">
                                     </div>
                                 </div>
 
@@ -139,25 +139,25 @@
                                     <div class="col-md-6 mb-3">
                                         <label class="form-label">مدة الاختبار الافتراضية (بالأيام)</label>
                                         <input type="number" name="default_trial_period" class="form-control"
-                                               value="{{ $settings['default_trial_period'] ?? '90' }}" min="1">
+                                               value="{{ $rentalSettings['default_trial_period'] ?? '90' }}" min="1">
                                     </div>
 
                                     <div class="col-md-6 mb-3">
                                         <label class="form-label">ساعات العمل اليومية الافتراضية</label>
                                         <input type="number" name="default_working_hours" class="form-control"
-                                               value="{{ $settings['default_working_hours'] ?? '8' }}" min="1" max="24">
+                                               value="{{ $rentalSettings['default_working_hours'] ?? '8' }}" min="1" max="24">
                                     </div>
 
                                     <div class="col-md-6 mb-3">
                                         <label class="form-label">قيمة الخصم اليومي (ريال)</label>
                                         <input type="number" name="daily_deduction" class="form-control"
-                                               value="{{ $settings['daily_deduction'] ?? '150' }}" min="0">
+                                               value="{{ $rentalSettings['daily_deduction'] ?? '150' }}" min="0">
                                     </div>
 
                                     <div class="col-md-6 mb-3">
                                         <label class="form-label">مدة الإشعار المسبق (بالأيام)</label>
                                         <input type="number" name="notice_period" class="form-control"
-                                               value="{{ $settings['notice_period'] ?? '30' }}" min="1">
+                                               value="{{ $rentalSettings['notice_period'] ?? '30' }}" min="1">
                                     </div>
                                 </div>
 
@@ -172,23 +172,23 @@
                                     <div class="col-md-4 mb-3">
                                         <label class="form-label">تفعيل التنبيه</label>
                                         <select name="expiry_reminder_enabled" class="form-control">
-                                            <option value="1" {{ (string)($settings['expiry_reminder_enabled'] ?? '1') === '1' ? 'selected' : '' }}>مفعل</option>
-                                            <option value="0" {{ (string)($settings['expiry_reminder_enabled'] ?? '1') === '0' ? 'selected' : '' }}>غير مفعل</option>
+                                            <option value="1" {{ (string)($rentalSettings['expiry_reminder_enabled'] ?? '1') === '1' ? 'selected' : '' }}>مفعل</option>
+                                            <option value="0" {{ (string)($rentalSettings['expiry_reminder_enabled'] ?? '1') === '0' ? 'selected' : '' }}>غير مفعل</option>
                                         </select>
                                     </div>
 
                                     <div class="col-md-4 mb-3">
                                         <label class="form-label">إرسال التنبيه قبل الانتهاء بـ (يوم)</label>
                                         <input type="number" name="expiry_reminder_days" class="form-control"
-                                               value="{{ $settings['expiry_reminder_days'] ?? '2' }}" min="1" max="60">
+                                               value="{{ $rentalSettings['expiry_reminder_days'] ?? '2' }}" min="1" max="60">
                                     </div>
 
                                     <div class="col-md-4 mb-3">
                                         <label class="form-label">قناة إرسال التنبيه</label>
                                         <select name="expiry_reminder_channel" class="form-control">
-                                            <option value="sms" {{ ($settings['expiry_reminder_channel'] ?? 'sms') === 'sms' ? 'selected' : '' }}>رسالة نصية</option>
-                                            <option value="whatsapp" {{ ($settings['expiry_reminder_channel'] ?? 'sms') === 'whatsapp' ? 'selected' : '' }}>واتساب</option>
-                                            <option value="both" {{ ($settings['expiry_reminder_channel'] ?? 'sms') === 'both' ? 'selected' : '' }}>رسالة نصية وواتساب</option>
+                                            <option value="sms" {{ ($rentalSettings['expiry_reminder_channel'] ?? 'sms') === 'sms' ? 'selected' : '' }}>رسالة نصية</option>
+                                            <option value="whatsapp" {{ ($rentalSettings['expiry_reminder_channel'] ?? 'sms') === 'whatsapp' ? 'selected' : '' }}>واتساب</option>
+                                            <option value="both" {{ ($rentalSettings['expiry_reminder_channel'] ?? 'sms') === 'both' ? 'selected' : '' }}>رسالة نصية وواتساب</option>
                                         </select>
                                     </div>
                                 </div>
@@ -206,9 +206,9 @@
                                         <label class="form-label">شعار الشركة</label>
                                         <input type="file" name="logo" class="form-control" accept="image/*">
                                         <small class="text-muted">اترك فارغاً إذا لم ترد تغيير الشعار</small>
-                                        @if(!empty($settings['logo']))
+                                        @if(!empty($rentalSettings['logo']))
                                             <div class="mt-2">
-                                                <img src="{{ showFile($settings['logo']) }}" alt="Logo"
+                                                <img src="{{ showFile($rentalSettings['logo']) }}" alt="Logo"
                                                      style="max-height: 100px;">
                                             </div>
                                         @endif
@@ -218,9 +218,9 @@
                                         <label class="form-label">توقيع الشركة</label>
                                         <input type="file" name="company_signature" class="form-control" accept="image/*">
                                         <small class="text-muted">اترك فارغاً إذا لم ترد تغيير توقيع الشركة</small>
-                                        @if(!empty($settings['company_signature']))
+                                        @if(!empty($rentalSettings['company_signature']))
                                             <div class="mt-2">
-                                                <img src="{{ showFile($settings['company_signature']) }}" alt="Company signature"
+                                                <img src="{{ showFile($rentalSettings['company_signature']) }}" alt="Company signature"
                                                      style="max-height: 100px;">
                                             </div>
                                         @endif
@@ -298,7 +298,6 @@
 
                     success: function (response) {
                         handleSuccessResponce(response);
-                        form[0].reset();
                         form.find('.is-invalid').removeClass('is-invalid'); // يشيل الأحمر
                     },
                     error: function (xhr) {
