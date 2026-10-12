@@ -228,6 +228,9 @@ class DataImportExecutionService
 
             try {
                 DB::transaction(function () use ($type, $row, $adminId, &$result) {
+                    $resolution = app(ImportReferenceResolver::class)->resolve($type, $row);
+                    if ($resolution['issues']) throw new \InvalidArgumentException(implode('؛ ', $resolution['issues']));
+                    $row = $resolution['row'];
                     $outcome = match ($type) {
                         'invoices' => $this->importOperationalInvoice($row),
                         'clients' => $this->importClient($row, $adminId),
@@ -254,7 +257,9 @@ class DataImportExecutionService
 
                 if (count($result['errors']) < self::MAX_ERROR_DETAILS) {
                     $sourceRow = $row['__review_source_row'] ?? $rowNumber;
-                    $result['errors'][] = "صف {$sourceRow}: " . $exception->getMessage();
+                    $message = $exception instanceof \Illuminate\Validation\ValidationException
+                        ? implode('؛ ', \Illuminate\Support\Arr::flatten($exception->errors())) : $exception->getMessage();
+                    $result['errors'][] = "صف {$sourceRow}: " . $message;
                 }
             }
         }
@@ -6228,6 +6233,9 @@ class DataImportExecutionService
     private function importHeaderAliases(): array
     {
         return [
+            'قيمة الخدمة المباشرة' => 'direct_recruitment_cost',
+            'ID التفويض' => 'id',
+            'ID العميل الموجود' => 'existing_user_id',
             'رقم السند' => 'bond_code',
             'رقم حساب مدين' => 'debit_account_code',
             'اسم مدين' => 'debit_account_name',

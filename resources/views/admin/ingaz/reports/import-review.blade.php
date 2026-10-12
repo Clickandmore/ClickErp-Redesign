@@ -41,13 +41,23 @@
             @endif
             <div class="table-responsive">
                 <table class="table table-bordered table-striped">
-                    <thead><tr><th>صف المصدر</th><th>النتيجة</th><th>السبب</th><th>البيانات المرفوعة</th></tr></thead>
+                    <thead><tr><th>صف المصدر</th><th>النتيجة</th><th>السبب</th><th>الربط في النظام</th><th>البيانات المرفوعة</th></tr></thead>
                     <tbody>
                     @foreach($rows as $row)
                         <tr>
                             <td>{{ $row->source_row }}</td>
                             <td><span class="badge bg-{{ $row->status === 'invalid' ? 'danger' : 'success' }}">{{ ['valid' => 'صحيح للفحص الأولي', 'invalid' => 'خطأ / مكرر', 'approved' => 'معتمد'][$row->status] }}</span></td>
                             <td>@foreach($row->issues as $issue)<div>{{ $issue }}</div>@endforeach</td>
+                            <td>
+                                @forelse($row->resolved_references ?? [] as $reference)
+                                    <div><strong>{{ $reference['label'] }}</strong>: {{ $reference['name'] ?? '' }}
+                                        @if(filled($reference['number'] ?? null)) — {{ $reference['number'] }} @endif
+                                        <small class="text-muted">(ID: {{ $reference['id'] }})</small>
+                                    </div>
+                                @empty
+                                    <span class="text-muted">{{ $row->status === 'invalid' ? 'راجع سبب الخطأ' : 'سجل جديد أو نوع لا يتطلب ربطاً' }}</span>
+                                @endforelse
+                            </td>
                             <td><details><summary>عرض البيانات</summary><dl>
                                 @foreach($row->payload as $key => $value)
                                     @if(!str_contains($key, 'password') && ($key !== 'supplier_total_cost_usd' || \App\Support\InvoiceAuthorization::canViewSupplierTotalCost()))

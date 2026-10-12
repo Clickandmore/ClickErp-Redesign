@@ -37,8 +37,10 @@ class DataImportReviewService
                 $seen = [];
                 foreach ($this->executor->reviewRows($type, Storage::path($path)) as $number => $payload) {
                     if (ImportValueParser::isMarkerRow($payload)) continue;
+                    $resolution = app(ImportReferenceResolver::class)->resolve($type, $payload);
+                    $payload = $resolution['row'];
                     $fingerprint = $this->fingerprint($type, $payload);
-                    $issues = $this->issues($type, $payload);
+                    $issues = array_merge($resolution['issues'], $this->issues($type, $payload));
                     $keys = $this->identities($type, $payload);
                     foreach ($keys as $key) {
                         if (isset($seen[$key])) $issues[] = 'مكرر داخل الملف مع الصف ' . $seen[$key];
@@ -49,6 +51,7 @@ class DataImportReviewService
                         'source_row' => (string) $number, 'payload' => $payload,
                         'fingerprint' => $fingerprint, 'status' => $issues ? 'invalid' : 'valid',
                         'issues' => array_values(array_unique($issues)),
+                        'resolved_references' => $resolution['links'],
                     ]);
                 }
                 if (!$batch->rows()->exists()) throw ValidationException::withMessages(['file' => 'لم يتم العثور على صفوف بيانات مطابقة للقالب.']);
@@ -75,7 +78,12 @@ class DataImportReviewService
                 $rows = $batch->rows()->orderBy('id')->get();
                 $failures = [];
                 foreach ($rows->where('status', 'valid') as $row) {
-                    $issues = $this->issues($batch->type, $row->payload);
+                    $resolution = app(ImportReferenceResolver::class)->resolve($batch->type, $row->payload);
+                    $issues = array_merge($resolution['issues'], $this->issues($batch->type, $resolution['row']));
+                    foreach ($row->resolved_references ?? [] as $previous) {
+                        $current = collect($resolution['links'])->firstWhere('label', $previous['label']);
+                        if (!$current || (int) $current['id'] !== (int) $previous['id']) $issues[] = 'تغير الربط الذي تمت مراجعته؛ أعد رفع الملف لمراجعة المرجع الجديد.';
+                    }
                     if ($this->alreadyImported($batch->type, $row->fingerprint)) $issues[] = 'سبق اعتماد هذا السجل بعد رفع الملف.';
                     if ($issues) {
                         $row->update(['status' => 'invalid', 'issues' => $issues]);

@@ -300,13 +300,13 @@ class DataImportTemplateService
                 'description' => 'استيراد تفاويض الإنجاز مع بيانات العميل والتأشيرة والعاملة والمكتب الخارجي. يتم التحديث عند تطابق ID أو رقم إنجاز أو رقم عقد مساند.',
                 'filename' => 'ingaz-delegations-import-template.xlsx',
                 'columns' => [
-                    ['key' => 'id', 'label' => 'ID التفويض', 'required' => false, 'example' => '15'],
+                ['key' => 'id', 'label' => 'ID تفويض موجود — للتحديث فقط', 'required' => false, 'example' => ''],
                     ['key' => 'delegation_date_gregorian', 'label' => 'تاريخ التفويض ميلادي', 'required' => true, 'example' => now()->format('Y-m-d')],
                     ['key' => 'delegation_date_hijri', 'label' => 'تاريخ التفويض هجري', 'required' => false, 'example' => '1447-01-01'],
                     ['key' => 'country', 'label' => 'الدولة', 'required' => true, 'example' => 'الفلبين'],
                     ['key' => 'nationality', 'label' => 'الجنسية', 'required' => false, 'example' => 'الفلبين'],
                     ['key' => 'profession', 'label' => 'المهنة', 'required' => false, 'example' => 'عاملة منزلية'],
-                    ['key' => 'existing_user_id', 'label' => 'ID العميل الموجود', 'required' => false, 'example' => '172'],
+                ['key' => 'existing_user_id', 'label' => 'ID العميل الموجود (اختياري؛ الربط بالهوية أو الجوال)', 'required' => false, 'example' => ''],
                     ['key' => 'client_name', 'label' => 'اسم العميل', 'required' => true, 'example' => 'محمد أحمد علي'],
                     ['key' => 'client_phone', 'label' => 'جوال العميل', 'required' => false, 'example' => '0500000000'],
                     ['key' => 'client_id_number', 'label' => 'هوية العميل', 'required' => false, 'example' => '1000000000'],
@@ -456,13 +456,20 @@ class DataImportTemplateService
             'description' => 'إصدار فواتير جديدة عند الاعتماد عبر مسار إصدار الفاتورة نفسه، بما يشمل القيود والسندات حسب إعدادات النظام. لا تستخدم هذا القالب للفواتير التاريخية المرحلة سابقاً. اربط كل صف بعقد أو تفويض أو عميل واحد فقط. مطلوب صلاحية إصدار فاتورة أو اعتمادها بالإضافة إلى اعتماد الاستيراد.',
             'filename' => 'invoices-import-template.xlsx',
             'columns' => [
-                ['key' => 'import_reference', 'label' => 'مرجع الاستيراد الفريد', 'required' => true, 'example' => 'INV-EXT-0001'],
+                ['key' => 'import_reference', 'label' => 'مرجع الاستيراد الفريد', 'required' => false, 'example' => 'INV-EXT-0001'],
                 ['key' => 'invoice_date', 'label' => 'تاريخ الفاتورة', 'required' => true, 'example' => now()->format('Y-m-d')],
+                ['key' => 'invoice_reference_type', 'label' => 'نوع ربط الفاتورة', 'required' => false, 'example' => 'عميل', 'valid_values' => ['تفويض', 'عقد استقدام', 'عميل']],
+                ['key' => 'reference_msaned_number', 'label' => 'رقم عقد مساند للربط', 'required' => false, 'example' => ''],
+                ['key' => 'reference_ingaz_number', 'label' => 'رقم إنجاز للربط', 'required' => false, 'example' => ''],
+                ['key' => 'reference_visa_number', 'label' => 'رقم التأشيرة للربط', 'required' => false, 'example' => ''],
+                ['key' => 'reference_contract_number', 'label' => 'رقم عقد الاستقدام للربط', 'required' => false, 'example' => ''],
+                ['key' => 'reference_client_identity', 'label' => 'هوية العميل للربط', 'required' => false, 'example' => '1000000000'],
+                ['key' => 'reference_client_phone', 'label' => 'جوال العميل للربط', 'required' => false, 'example' => ''],
                 ['key' => 'contract_id', 'label' => 'معرف عقد الاستقدام', 'required' => false, 'example' => ''],
                 ['key' => 'ingaz_delegation_id', 'label' => 'معرف تفويض إنجاز', 'required' => false, 'example' => ''],
-                ['key' => 'client_id', 'label' => 'معرف العميل (فاتورة عامة)', 'required' => false, 'example' => '1'],
+                ['key' => 'client_id', 'label' => 'معرف العميل (فاتورة عامة)', 'required' => false, 'example' => ''],
                 ['key' => 'general_description', 'label' => 'وصف الفاتورة', 'required' => false, 'example' => 'خدمات'],
-                ['key' => 'direct_recruitment_cost', 'label' => 'قيمة الخدمة المباشرة', 'required' => false, 'example' => '1000'],
+                ['key' => 'direct_recruitment_cost', 'label' => 'تكاليف الإستقدام المباشر', 'required' => false, 'example' => '1000'],
                 ['key' => 'direct_recruitment_count', 'label' => 'عدد الخدمات المباشرة', 'required' => false, 'example' => '1'],
                 ['key' => 'external_recruitment_cost', 'label' => 'قيمة الاستقدام الخارجي', 'required' => false, 'example' => ''],
                 ['key' => 'external_recruitment_count', 'label' => 'عدد الاستقدام الخارجي', 'required' => false, 'example' => '1'],
@@ -611,7 +618,35 @@ class DataImportTemplateService
             ],
         ];
 
+        foreach ($templates as $type => &$template) {
+            $template['matching_hint'] = $this->matchingHint($type);
+            foreach ($template['columns'] as &$column) {
+                if (in_array($column['key'], ['id', 'existing_user_id', 'client_id', 'maid_id', 'account_id', 'client_account_id'], true)) {
+                    $column['example'] = '';
+                }
+            }
+            unset($column);
+        }
+        unset($template);
         return $templates;
+    }
+
+    public function matchingHint(string $type): string
+    {
+        return match ($type) {
+            'invoices' => 'اختر نوع الربط، ثم أدخل رقم مساند أو إنجاز أو التأشيرة. لا تحتاج إلى ID. مرجع الاستيراد يُولد تلقائياً لفاتورة العقد أو التفويض عند تركه فارغاً. للفاتورة العامة استخدم هوية العميل أو جواله مع مرجع فاتورة ثابت. ستظهر نتيجة الربط قبل الاعتماد.',
+            'ingaz_delegations' => 'أدخل رقم إنجاز ورقم مساند والتأشيرة. اربط العميل بالهوية أو الجوال والعامل بالجواز. اترك ID التفويض فارغاً للإضافة؛ المعرّف الداخلي لتحديث سجل موجود فقط.',
+            'clients', 'arabia_clients' => 'يتم التعرف على العميل بالهوية أو الجوال ورقم المصدر إن وجد. لا تستخدم اسم العميل وحده للربط ولا تكتب ID جديداً من عندك.',
+            'maids', 'arabia_cvs', 'rental_maids' => 'رقم الجواز هو مرجع العامل/العاملة. استخدم أسماء الجنسية والمكتب والمهنة كما هي في النظام. اترك ID فارغاً للإضافة؛ لا تستخدم تسلسلاً من عندك.',
+            'recruitment_contracts', 'recruitment_contracts_clients_maids' => 'استخدم رقم العقد الأصلي ومساند والتأشيرة، وهوية/جوال العميل وجواز العامل. في القالب المجمع تستطيع إضافة العميل والعامل والعقد من نفس الصف. حالة العقد مطلوبة.',
+            'rent_contracts', 'rent_contracts_clients_rental_maids', 'shelter_contracts', 'sponsorship_transfers' => 'استخدم رقم العقد أو الطلب وهوية/جوال العميل وجواز العامل. أدخل أسماء الأماكن والمكاتب كما تظهر بالنظام؛ لا تحتاج إلى معرفة معرّفاتها الداخلية.',
+            'finance_accounts', 'finance_cost_centers' => 'استخدم كود الحساب أو مركز التكلفة وكود الأب للربط؛ لا تحتاج إلى ID. أدخل الأكواد كنص للحفاظ على الأصفار.',
+            'finance_constraints', 'receipt_bonds', 'disbursement_bonds' => 'استخدم أكواد الحسابات ومراكز التكلفة وأرقام القيود/السندات. استورد شجرة الحسابات أولاً، وتأكد من توازن القيد ومن وجود سنة مالية نشطة.',
+            'admins', 'employees' => 'استخدم البريد أو رقم الموظف/الهوية وأسماء الدور والفرع والقسم حسب القالب. لا تضع معرّف مستخدم آخر في ID.',
+            'recruitment_offices' => 'استخدم اسم المكتب والبيانات التعريفية الواردة في القالب واسم الدولة؛ لا تحتاج إلى معرّف الدولة الداخلي.',
+            'complaints' => 'استخدم رقم الشكوى ورقم العقد وبيانات العميل حسب القالب، مع أسماء نوع الشكوى والمسؤول كما تظهر بالنظام.',
+            default => 'استخدم أرقام المصدر الأصلية وأسماء الأعمدة في القالب. الملفات التاريخية متعددة الأوراق يجب أن تحتفظ بكل أوراقها. راجع نتيجة الفحص قبل الاعتماد.',
+        };
     }
 
     private function arabiaClientColumns(): array
@@ -846,6 +881,10 @@ class DataImportTemplateService
                 $sheet->setCellValue("{$columnLetter}2", $column['example'] ?? '');
             }
             $sheet->setCellValue("{$columnLetter}{$metadataRow}", $column['required'] ? 'مطلوب' : 'اختياري');
+            if (in_array($column['key'], ['id', 'existing_user_id', 'client_id', 'user_id', 'maid_id', 'contract_id', 'ingaz_delegation_id', 'account_id', 'client_account_id'], true)) {
+                $sheet->getColumnDimension($columnLetter)->setVisible(false);
+                $sheet->getComment($columnLetter.'1')->getText()->createTextRun('حقل متقدم اختياري. استخدم الأرقام المعروفة للربط، واترك المعرّف الداخلي فارغاً عند الإضافة.');
+            }
         }
 
         $lastColumn = Coordinate::stringFromColumnIndex(count($template['columns']));
@@ -866,6 +905,8 @@ class DataImportTemplateService
         $instructions->setRightToLeft(true);
         $instructions->setCellValue('A1', $template['label']);
         $instructions->setCellValue('A2', $template['description']);
+        $instructions->setCellValue('A5', $template['matching_hint']);
+        $instructions->setCellValue('A6', 'اترك المعرّفات الداخلية الاختيارية فارغة عند الإضافة. لا تنقل تسلسلاً من عندك إلى ID. الأسماء وحدها لا تكفي لربط عميل أو عامل.');
         $instructions->setCellValue('A3', $exampleRows
             ? 'لا تغير أسماء الأعمدة. الصفان الثاني والثالث مثال لقيد متوازن، واحذف أو عدل البيانات قبل الرفع.'
             : 'لا تغير أسماء الأعمدة. استخدم الصف الثاني كمثال، واحذف أو عدل البيانات قبل الرفع.');
@@ -873,7 +914,7 @@ class DataImportTemplateService
             ? 'الصف الرابع يوضح هل الحقل مطلوب أو اختياري.'
             : 'الصف الثالث يوضح هل الحقل مطلوب أو اختياري.');
 
-        $instructionRow = 5;
+        $instructionRow = 7;
         foreach ($template['columns'] as $column) {
             if (empty($column['valid_values'])) {
                 continue;

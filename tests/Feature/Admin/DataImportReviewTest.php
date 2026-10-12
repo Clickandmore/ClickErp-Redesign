@@ -113,6 +113,80 @@ class DataImportReviewTest extends TestCase
             'invoice_date' => now()->toDateString(), 'direct_recruitment_cost' => '100', 'direct_recruitment_count' => '1'];
     }
 
+    private function referenceDelegation(string $suffix = '1'): \App\Models\IngazDelegation
+    {
+        $client = User::withoutEvents(fn () => User::create(['name' => 'عميل ربط تلقائي '.$suffix, 'phone' => uniqid('reference-')]));
+        $nationality = \App\Models\ingaz\Nationality::create(['ar' => ['title' => 'جنسية ربط '.$suffix, 'sub_title' => 'جنسية ربط '.$suffix]]);
+        $profession = \App\Models\ingaz\JobTitle::create(['ar' => ['title' => 'مهنة ربط '.$suffix]]);
+        return \App\Models\IngazDelegation::withoutEvents(fn () => \App\Models\IngazDelegation::create([
+            'delegation_date_gregorian' => now()->toDateString(), 'delegation_date_hijri' => '',
+            'nationality_id' => $nationality->id, 'profession_id' => $profession->id, 'user_id' => $client->id,
+            'worker_name' => 'REFERENCE WORKER', 'worker_passport_number' => 'REF-PASS-'.$suffix,
+            'visa_number' => 'REF-VISA-'.$suffix, 'external_office_name' => 'REFERENCE OFFICE',
+            'msaned_contract_number' => 'REF-MS-'.$suffix, 'ingaz_number' => 'REF-ENJ-'.$suffix,
+        ]));
+    }
+
+    public function test_invoice_matches_delegation_by_msaned_without_any_internal_id_and_shows_client(): void
+    {
+        $this->grant(PermKeys::DATA_IMPORT_UPLOAD);
+        $delegation = $this->referenceDelegation();
+        $row = ['invoice_date' => now()->toDateString(),
+            'invoice_reference_type' => 'تفويض', 'reference_msaned_number' => $delegation->msaned_contract_number,
+            'external_recruitment_cost' => 100, 'external_recruitment_count' => 1];
+        $batch = app(DataImportReviewService::class)->stage('invoices', $this->sheet([$row]), $this->actor->id);
+        $reviewed = $batch->rows()->first();
+        $this->assertSame([], $reviewed->issues);
+        $this->assertSame($delegation->id, $reviewed->payload['ingaz_delegation_id']);
+        $this->assertSame('AUTO-ingaz_delegation_id-'.$delegation->id, $reviewed->payload['import_reference']);
+        $this->assertSame($delegation->user->name, $reviewed->resolved_references[0]['name']);
+        $this->get(route('reports.import.show', $batch))->assertOk()->assertSee($delegation->user->name)->assertSee($delegation->msaned_contract_number);
+        $this->assertFalse(Invoice::where('ingaz_delegation_id', $delegation->id)->exists());
+        $this->grant(PermKeys::DATA_IMPORT_APPROVE, PermKeys::INVOICES_CREATE, PermKeys::INVOICES_EDIT_LINE_ITEMS);
+        $this->post(route('reports.import.approve', $batch))->assertRedirect()->assertSessionHasNoErrors();
+        $this->assertTrue(Invoice::where('ingaz_delegation_id', $delegation->id)->exists(), json_encode($batch->fresh()->result, JSON_UNESCAPED_UNICODE));
+    }
+
+    public function test_reference_conflicts_are_rejected_even_when_each_id_exists(): void
+    {
+        $first = $this->referenceDelegation('first');
+        $second = $this->referenceDelegation('second');
+        $resolver = app(\App\Services\ingaz\ImportReferenceResolver::class);
+        $result = $resolver->resolve('invoices', ['invoice_reference_type' => 'تفويض', 'ingaz_delegation_id' => $first->id,
+            'reference_msaned_number' => $second->msaned_contract_number]);
+        $this->assertNotEmpty($result['issues']);
+        $this->assertSame([], $result['links']);
+        $result = $resolver->resolve('ingaz_delegations', ['id' => $first->id, 'msaned_contract_number' => $second->msaned_contract_number]);
+        $this->assertNotEmpty($result['issues']);
+    }
+
+    public function test_shared_msaned_number_requires_document_type_instead_of_guessing(): void
+    {
+        $delegation = $this->referenceDelegation('shared');
+        \App\Models\Contract::withoutEvents(fn () => \App\Models\Contract::create(['user_id' => $delegation->user_id,
+            'msaned_number' => $delegation->msaned_contract_number, 'status' => 'new']));
+        $resolver = app(\App\Services\ingaz\ImportReferenceResolver::class);
+        $result = $resolver->resolve('invoices', ['reference_msaned_number' => $delegation->msaned_contract_number]);
+        $this->assertNotEmpty($result['issues']);
+        $this->assertSame([], $result['links']);
+        $result = $resolver->resolve('invoices', ['invoice_reference_type' => 'تفويض', 'reference_msaned_number' => $delegation->msaned_contract_number]);
+        $this->assertSame([], $result['issues']);
+        $this->assertSame($delegation->id, $result['row']['ingaz_delegation_id']);
+    }
+
+    public function test_general_invoice_uses_client_identity_and_rechecks_it_before_approval(): void
+    {
+        $client = User::withoutEvents(fn () => User::create(['name' => 'عميل هوية استيراد', 'phone' => '598765439', 'national_num' => '1098765439']));
+        $row = ['import_reference' => 'identity-invoice', 'invoice_date' => now()->toDateString(), 'invoice_reference_type' => 'عميل',
+            'reference_client_identity' => $client->national_num, 'direct_recruitment_cost' => 100, 'direct_recruitment_count' => 1];
+        $batch = app(DataImportReviewService::class)->stage('invoices', $this->sheet([$row]), $this->actor->id);
+        $this->assertSame([], $batch->rows()->first()->issues);
+        User::withoutEvents(fn () => $client->update(['national_num' => '1098765440']));
+        $result = app(DataImportReviewService::class)->approve($batch, $this->actor->id);
+        $this->assertGreaterThan(0, $result['error_count']);
+        $this->assertFalse(Invoice::where('client_id', $client->id)->exists());
+    }
+
     public function test_upload_only_stages_and_shows_review_without_business_writes(): void
     {
         $this->grant(PermKeys::DATA_IMPORT_UPLOAD);
