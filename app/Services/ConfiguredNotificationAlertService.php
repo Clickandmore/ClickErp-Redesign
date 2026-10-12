@@ -93,6 +93,7 @@ class ConfiguredNotificationAlertService
             ),
             'rent_contract_warranty' => $this->rentalDateCandidates('warranty_end_date', $until),
             'rent_contract_expiry' => RentalContract::query()
+                ->eligibleForExpiryNotifications()
                 ->with(['user', 'marketer', 'info'])
                 ->whereHas('info', fn ($query) => $query
                     ->whereNotNull('ingaz_to')
@@ -145,6 +146,7 @@ class ConfiguredNotificationAlertService
     private function rentalDateCandidates(string $column, Carbon $until): Collection
     {
         return RentalContract::query()
+            ->eligibleForExpiryNotifications()
             ->with(['user', 'marketer'])
             ->where('warranty_status', 'active')
             ->whereNotNull($column)
