@@ -913,6 +913,12 @@
                         <i class="fas fa-filter me-2"></i>
                         فلاتر البحث
                     </h6>
+                    @include('admin.partials.branch-filter', [
+                        'id' => 'branchFilter',
+                        'containerClass' => 'd-flex align-items-center gap-2',
+                        'labelClass' => 'form-label mb-0 text-nowrap',
+                        'selectClass' => 'form-select form-select-sm w-auto',
+                    ])
                     <div class="dropdown quick-followup-dropdown">
                         <button class="btn btn-sm btn-outline-primary dropdown-toggle" type="button"
                             data-bs-toggle="dropdown" aria-expanded="false">
@@ -1104,7 +1110,6 @@
                                 @endif
                             </select>
                         </div>
-                        @include('admin.partials.branch-filter', ['id' => 'branchFilter', 'containerClass' => 'col-md-3'])
 
                     </div>
                     <div class="row mt-3">

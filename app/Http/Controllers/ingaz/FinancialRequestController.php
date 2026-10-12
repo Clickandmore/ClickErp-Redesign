@@ -31,6 +31,13 @@ class FinancialRequestController extends Controller
     {
         abort_unless($this->canView(), 403);
 
+        if (! $request->has('scope') && ! $request->filled('status')) {
+            $request->merge(['scope' => 'open']);
+        }
+        if ($request->input('scope') === 'open' && $request->input('status') === FinancialRequest::STATUS_CLOSED) {
+            $request->merge(['scope' => 'all']);
+        }
+
         $showDeleted = $request->input('scope') === 'deleted';
         if ($showDeleted) {
             abort_unless($this->canDelete(), 403);
@@ -551,7 +558,10 @@ class FinancialRequestController extends Controller
 
     private function applyFilters($query, Request $request): void
     {
-        if ($request->input('scope') === 'incomplete') {
+        $scope = $request->input('scope', $request->filled('status') ? 'all' : 'open');
+        if ($scope === 'open' && $request->input('status') !== FinancialRequest::STATUS_CLOSED) {
+            $query->where('status', '!=', FinancialRequest::STATUS_CLOSED);
+        } elseif ($scope === 'incomplete') {
             $query->whereIn('status', [
                 FinancialRequest::STATUS_PREPARING,
                 FinancialRequest::STATUS_FOR_APPROVAL,
@@ -593,6 +603,7 @@ class FinancialRequestController extends Controller
 
         $counts = [
             'all' => (clone $query)->count(),
+            'open' => (clone $query)->where('status', '!=', FinancialRequest::STATUS_CLOSED)->count(),
             'incomplete' => (clone $query)->whereIn('status', [
                 FinancialRequest::STATUS_PREPARING,
                 FinancialRequest::STATUS_FOR_APPROVAL,

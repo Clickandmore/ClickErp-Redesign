@@ -38,7 +38,7 @@ class EnsureAdminRoutePermission
         $isOrderRefusalUpdate = in_array($routeName, ['orders.update', 'orders.changeStatus'], true)
             && in_array($request->input('status'), ['refused', 'return'], true);
         $isOrderCreator = false;
-        if ($admin && (in_array($routeName, ['orders.refuseReturn', 'orders.destroy'], true) || $isOrderRefusalUpdate)) {
+        if ($admin && (in_array($routeName, ['orders.refuseReturn', 'orders.destroy', 'orders.restore'], true) || $isOrderRefusalUpdate)) {
             $orderId = $request->route('order') ?? $request->route('id');
             if ($orderId) {
                 $order = \App\Models\ingaz\Order::withTrashed()->find($orderId);
@@ -46,7 +46,8 @@ class EnsureAdminRoutePermission
             }
         }
 
-        if ($isOrderCreator && in_array($routeName, ['orders.refuseReturn', 'orders.destroy'], true)) {
+        if ($isOrderCreator && ($routeName === 'orders.refuseReturn'
+                || (in_array($routeName, ['orders.destroy', 'orders.restore'], true) && $order->adminCanDelete($admin)))) {
             return $next($request);
         }
 
