@@ -28,6 +28,8 @@
         'finance' => ['label' => 'المالية', 'icon' => 'fas fa-coins', 'keys' => ['finance_cost_centers', 'finance_accounts', 'finance_constraints', 'receipt_bonds', 'disbursement_bonds', 'invoices', 'legacy_invoices']],
     ];
 
+    $groupDefinitions['contracts']['keys'][] = 'external_office_dispatches';
+    $groupDefinitions['finance']['keys'][] = 'musaned_transfers';
     $groupedTemplates = [];
     foreach ($groupDefinitions as $groupKey => $group) {
         foreach ($group['keys'] as $key) {

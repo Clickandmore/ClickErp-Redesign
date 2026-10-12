@@ -331,6 +331,8 @@ class DataImportReviewService
             return ['auxiliary:' . hash('sha256', json_encode($row, JSON_UNESCAPED_UNICODE))];
         }
         $fields = match ($type) {
+            'musaned_transfers' => ['reference_number', 'contract_id', 'ingaz_delegation_id'],
+            'external_office_dispatches' => ['contract_id'],
             'clients' => ['id_number', 'phone'], 'arabia_clients' => ['arabia_client_number', 'id_number', 'phone'],
             'rental_maids' => ['passport_num'], 'invoices' => ['import_reference', 'contract_id', 'ingaz_delegation_id'],
             'legacy_invoices' => ['invoice_number'], 'finance_accounts' => ['account_code'],

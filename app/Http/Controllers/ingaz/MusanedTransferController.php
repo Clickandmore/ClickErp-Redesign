@@ -326,6 +326,19 @@ class MusanedTransferController extends Controller
 
     public function store(Request $request, ObjService $service, YearService $yearService)
     {
+        $transfer = $this->createTransfer($request, $service, $yearService);
+        $returnContract = $request->input('return_to_contract');
+        return (is_numeric($returnContract)
+            ? redirect()->route('recruitment-contract-finance.show', (int) $returnContract)
+            : redirect()->route('musaned-transfers.show', $transfer->id))
+            ->with('success', AutomaticJournalEntries::enabled()
+                ? 'تم تسجيل تحويل مساند وإنشاء القيود المحاسبية بنجاح.'
+                : 'تم تسجيل تحويل مساند دون قيود محاسبية لأن القيود التلقائية غير مفعلة.');
+    }
+
+    /** Shared creation path for the form and reviewed imports. */
+    public function createTransfer(Request $request, ObjService $service, YearService $yearService): MusanedTransfer
+    {
         $automaticEntriesEnabled = AutomaticJournalEntries::enabled();
         $validated = $request->validate([
             'reference_number' => 'nullable|string|max:255',
@@ -609,19 +622,7 @@ class MusanedTransferController extends Controller
             }
         }
 
-        // المناداة من الملف المالي للعقد تعود إليه، فلا تنكسر متابعة المستخدم للعقد.
-        $returnContract = request()->input('return_to_contract');
-        $redirect = is_numeric($returnContract)
-            ? redirect()->route('recruitment-contract-finance.show', (int) $returnContract)
-            : redirect()->route('musaned-transfers.show', $transfer->id);
-
-        return $redirect
-            ->with(
-                'success',
-                $automaticEntriesEnabled
-                    ? 'تم تسجيل تحويل مساند وإنشاء القيود المحاسبية بنجاح.'
-                    : 'تم تسجيل تحويل مساند دون قيود محاسبية لأن القيود التلقائية غير مفعلة.'
-            );
+        return $transfer;
     }
 
     public function show(int $id)
@@ -736,7 +737,22 @@ class MusanedTransferController extends Controller
             ->exists();
     }
 
-    private function getEligibleInvoicesQuery()
+    /** Read-only checks used by import review; creation repeats all checks under locks. */
+    public function validateImportAccounting(Invoice $invoice, int $bankAccountId): void
+    {
+        if (!AutomaticJournalEntries::enabled()) return;
+        $usesIntermediate = RecruitmentSupplierSettings::musanedCollectionMode() === RecruitmentSupplierSettings::MUSANED_INTERMEDIATE_TWO_STEP;
+        $receiptAccount = $usesIntermediate ? $this->resolveIntermediateAccount() : $this->findValidBankAccount($bankAccountId);
+        if (!$receiptAccount) throw new \RuntimeException('الحساب البنكي المحدد غير صالح.');
+        $this->resolveCommissionAccount();
+        $this->resolveExpenseTaxAccount();
+        $sourceId = $this->resolveInvoiceMusanedSourceAccountId($invoice, (int) $receiptAccount->id);
+        if (!$usesIntermediate && $sourceId === $bankAccountId) {
+            throw new \RuntimeException('حساب مساند المسجل عليه التحصيل هو نفس البنك المحدد؛ اختر بنكًا مختلفًا أو حدد حساب مساند في الإعدادات.');
+        }
+    }
+
+    public function getEligibleInvoicesQuery()
     {
         $query = Invoice::query()
             ->with([
@@ -1047,7 +1063,7 @@ class MusanedTransferController extends Controller
             ->first();
     }
 
-    private function findValidBankAccount(int $accountId): ?Account
+    public function findValidBankAccount(int $accountId): ?Account
     {
         return Account::query()
             ->whereKey($accountId)
