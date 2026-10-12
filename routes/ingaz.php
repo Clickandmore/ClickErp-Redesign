@@ -431,6 +431,8 @@ Route::group(
             Route::post('orders/{orderId}/notes', [OrderController::class, 'storeNote'])
                 ->whereNumber('orderId')
                 ->name('orders.notes.store');
+            Route::get('orders/search-clients', [OrderController::class, 'searchChangeClient'])->name('orders.searchChangeClient');
+            Route::post('orders/{id}/change-client', [OrderController::class, 'changeClient'])->name('orders.changeClient');
             Route::resource('orders', OrderController::class);
             Route::post('orders/{id}/restore', [OrderController::class, 'restore'])->name('orders.restore');
 

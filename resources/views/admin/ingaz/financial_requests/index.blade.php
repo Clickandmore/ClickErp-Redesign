@@ -30,8 +30,13 @@
                 $scopeQuery = request()->except(['page', 'scope', 'status']);
             @endphp
             <div class="d-flex flex-wrap gap-2 mb-3">
+                <a class="btn {{ $activeScope === 'open' ? 'btn-primary' : 'btn-outline-primary' }}"
+                    href="{{ route('financial-requests.index', array_merge($scopeQuery, ['scope' => 'open'])) }}">
+                    {{ app()->getLocale() === 'ar' ? 'غير المقفلة' : 'Open requests' }}
+                    <span class="badge bg-light text-dark ms-1">{{ $counts['open'] ?? 0 }}</span>
+                </a>
                 <a class="btn {{ $activeScope === 'all' ? 'btn-dark' : 'btn-outline-dark' }}"
-                    href="{{ route('financial-requests.index', $scopeQuery) }}">
+                    href="{{ route('financial-requests.index', array_merge($scopeQuery, ['scope' => 'all'])) }}">
                     {{ $scopes['all'] }}
                     <span class="badge bg-light text-dark ms-1">{{ $counts['all'] ?? 0 }}</span>
                 </a>
@@ -56,7 +61,7 @@
 
             <form class="card mb-3" method="GET">
                 <div class="card-body">
-                    @if (in_array(request('scope'), ['incomplete', 'paid', 'deleted'], true))
+                    @if (in_array(request('scope'), ['open', 'all', 'incomplete', 'paid', 'deleted'], true))
                         <input type="hidden" name="scope" value="{{ request('scope') }}">
                     @endif
                     <div class="row g-3">

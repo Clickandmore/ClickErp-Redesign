@@ -1412,6 +1412,23 @@ class PermissionsController extends Controller
 
     private function buildPermissionMatrixEntry(Permission $permission): array
     {
+        if ($permission->name === \App\PermKeys::ORDERS_CHANGE_CLIENT) {
+            return [
+                'name' => $permission->name, 'display_name' => 'تغيير العميل في الطلب',
+                'description' => 'تغيير عميل طلب جديد أو قيد التنفيذ غير مرتبط بعقد أو مدفوعات.',
+                'resource_key' => 'orders', 'resource_title' => 'الطلبات',
+                'matrix_column' => null, 'extra_label' => 'تغيير العميل في الطلب',
+            ];
+        }
+        if ($permission->name === \App\PermKeys::ORDERS_DELETE_OWN) {
+            return [
+                'name' => $permission->name,
+                'display_name' => 'حذف طلباتي',
+                'description' => 'حذف واستعادة الطلبات والحجوزات التي أنشأها المستخدم فقط.',
+                'resource_key' => 'orders', 'resource_title' => 'الطلبات',
+                'matrix_column' => null, 'extra_label' => 'حذف طلباتي',
+            ];
+        }
         if ($permission->name === \App\NewPermKeys::REC_CONTRACTS_LATE_FINANCE) {
             $label = 'استكمال العمليات المالية لعقد الاستقدام بعد الوصول';
             return [

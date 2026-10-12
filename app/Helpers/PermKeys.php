@@ -97,6 +97,8 @@ const PARTENR_CONTROL = 'partenr_control';
     const ORDERS_CREATE = 'orders_create';
     const ORDERS_EDIT = 'orders_edit';
     const ORDERS_DELETE = 'orders_delete';
+    const ORDERS_DELETE_OWN = 'orders_delete_own';
+    const ORDERS_CHANGE_CLIENT = 'orders_change_client';
     const ORDERS_EXPORT = 'orders_export';
 
     // صلاحيات تغيير حالة الطلب

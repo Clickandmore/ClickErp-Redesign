@@ -466,6 +466,8 @@ class AdminRoutePermissionMatrix
                 'orders.quickRecruitment' => [PermKeys::ORDERS_CREATE],
                 'orders.notes.store' => [PermKeys::ORDERS_EDIT],
                 'orders.restore' => [PermKeys::ORDERS_DELETE],
+                'orders.changeClient' => [PermKeys::ORDERS_CHANGE_CLIENT],
+                'orders.searchChangeClient' => [PermKeys::ORDERS_CHANGE_CLIENT],
                 'orders.changeMaid' => [PermKeys::ORDERS_CHANGE_MAID],
                 'orders.changeMaidById' => [PermKeys::ORDERS_CHANGE_MAID],
                 'orders.changeResponsible' => [PermKeys::ORDERS_CHANGE_RESPONSIBLE],

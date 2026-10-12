@@ -351,6 +351,10 @@ class OrderController extends Controller
                         }
                     }
 
+                    if (@AdminGuardHasPerm(\App\PermKeys::ORDERS_CHANGE_CLIENT)
+                        && in_array($row->status, ['new', 'under_process'], true) && !$isCompletedOrder) {
+                        $actions .= '<li><button class="dropdown-item change-order-client" data-id="' . $row->id . '" data-client-id="' . e((string) $row->user_id) . '"><i class="fa fa-user-edit"></i> تغيير العميل</button></li>';
+                    }
                     // Delete button
                     if ($row->adminCanDelete(auth('admin')->user()) && !$isCompletedOrder) {
                         $actions .= '<li><hr class="dropdown-divider"></li>
@@ -724,6 +728,7 @@ class OrderController extends Controller
             return jsonError(__('index.order_not_found'), 404);
         }
         $this->assertCanAccessBranchModel($order, 'orders');
+        abort_unless($order->adminCanDelete(auth('admin')->user()), 403);
         if ($this->isCompletedOrder($order)) {
             return $this->completedOrderLockedResponse();
         }
@@ -743,6 +748,9 @@ class OrderController extends Controller
 
     public function restore($id)
     {
+        $order = Order::withTrashed()->findOrFail($id);
+        $this->assertCanAccessBranchModel($order, 'orders');
+        abort_unless($order->adminCanDelete(auth('admin')->user()), 403);
         try {
             $order = Order::withTrashed()->findOrFail($id);
             $this->assertCanAccessBranchModel($order, 'orders');
@@ -910,7 +918,8 @@ class OrderController extends Controller
 
         $activities = $this->buildOrderActivitiesTimeline($data);
 
-        return view('admin.ingaz.orders.show', compact('data', 'activities'));
+        $clientChanges = $this->orderClientChanges($data);
+        return view('admin.ingaz.orders.show', compact('data', 'activities', 'clientChanges'));
     }
 
     public function show($orderId)
@@ -938,7 +947,8 @@ class OrderController extends Controller
 
         $activities = $this->buildOrderActivitiesTimeline($data);
 
-        return view('admin.ingaz.orders.show', compact('data', 'activities'));
+        $clientChanges = $this->orderClientChanges($data);
+        return view('admin.ingaz.orders.show', compact('data', 'activities', 'clientChanges'));
     }
 
     public function storeNote(Request $request, $orderId)
@@ -1006,6 +1016,28 @@ class OrderController extends Controller
             ],
             'الطلب'
         );
+    }
+
+    private function orderClientChanges(Order $order)
+    {
+        $changes = $order->activities()->where('description', 'تغيير العميل في الطلب')->with('causer')->latest('id')->get();
+        $ids = $changes->flatMap(fn ($change) => [$change->properties['old_client_id'] ?? null, $change->properties['new_client_id'] ?? null])->filter()->unique();
+        $clients = User::withTrashed()->whereIn('id', $ids)->get()->keyBy('id');
+        return $changes->map(function ($change) use ($clients) {
+            $properties = $change->properties;
+            $result = ['date' => $change->created_at, 'actor' => $change->causer?->name ?? $properties['actor_name'] ?? '-', 'reason' => $properties['reason'] ?? '-'];
+            foreach (['old', 'new'] as $side) {
+                $client = $clients->get($properties[$side . '_client_id'] ?? null);
+                if ($client && !app(\App\Services\BranchAccessService::class)->canAccessModel($client)) $client = null;
+                $result[$side] = [
+                    'id' => $properties[$side . '_client_id'] ?? null,
+                    'name' => $properties[$side . '_client_name'] ?? $client?->name ?? '-',
+                    'phone' => $properties[$side . '_client_phone'] ?? $client?->phone ?? '-',
+                    'identity' => $properties[$side . '_client_identity'] ?? $client?->national_num ?? '-',
+                ];
+            }
+            return $result;
+        });
     }
 
     public function download($id)
@@ -1270,6 +1302,67 @@ class OrderController extends Controller
         } catch (\Exception $e) {
             return jsonError(['message' => 'An error occurred while updating the responsible employee']);
         }
+    }
+
+    public function searchChangeClient(Request $request)
+    {
+        abort_unless(\App\Support\AdminRoutePermissionMatrix::adminHasAnyPermission(auth('admin')->user(), [\App\PermKeys::ORDERS_CHANGE_CLIENT]), 403);
+        $data = $request->validate(['q' => 'required|string|min:2|max:100', 'order_id' => 'required|integer']);
+        $order = Order::findOrFail($data['order_id']);
+        $this->assertCanAccessBranchModel($order, 'orders');
+        $query = User::query()->where(fn ($query) => $query->where('is_blocked', 0)->orWhereNull('is_blocked'))->where(function ($query) use ($data) {
+            foreach (['name', 'phone', 'national_num'] as $field) $query->orWhere($field, 'like', '%' . trim($data['q']) . '%');
+        });
+        $access = app(\App\Services\BranchAccessService::class);
+        $branchId = (int) auth('admin')->user()->branch_id;
+        if ($access->enabled() && $branchId && !$access->canViewAllBranches()) {
+            $access->applyBranchIdToQuery($query, $branchId, 'users', null,
+                app(\App\Services\BranchDataSharingService::class)->sharedSourceBranchIds(\App\Services\BranchDataSharingService::CLIENTS));
+        }
+        if ($order->user_id) $query->whereKeyNot($order->user_id);
+        $clients = $query->limit(20)->get(['id', 'name', 'phone', 'national_num']);
+        return response()->json(['results' => $clients->map(fn ($client) => [
+            'id' => $client->id, 'text' => collect([$client->name, $client->phone, $client->national_num])->filter()->implode(' — '),
+            'name' => $client->name, 'phone' => $client->phone, 'national_num' => $client->national_num,
+        ])]);
+    }
+
+    public function changeClient(Request $request, $id)
+    {
+        abort_unless(\App\Support\AdminRoutePermissionMatrix::adminHasAnyPermission(auth('admin')->user(), [\App\PermKeys::ORDERS_CHANGE_CLIENT]), 403);
+        $data = $request->validate(['client_id' => 'required|integer', 'expected_client_id' => 'present|nullable|integer', 'reason' => 'required|string|min:3|max:500']);
+        return DB::transaction(function () use ($id, $data) {
+            $order = Order::query()->lockForUpdate()->findOrFail($id);
+            $this->assertCanAccessBranchModel($order, 'orders');
+            if ($reason = $order->clientChangeBlockReason()) {
+                throw \Illuminate\Validation\ValidationException::withMessages(['order' => $reason]);
+            }
+            if (array_key_exists('expected_client_id', $data) && (int) $data['expected_client_id'] !== (int) $order->user_id) {
+                throw \Illuminate\Validation\ValidationException::withMessages(['client_id' => 'تم تغيير العميل بالفعل؛ حدّث الصفحة وحاول مجددًا.']);
+            }
+            $client = User::query()->lockForUpdate()->find($data['client_id']);
+            if (!$client || $client->is_blocked || !app(\App\Services\BranchAccessService::class)->canAccessModel($client)) {
+                throw \Illuminate\Validation\ValidationException::withMessages(['client_id' => 'العميل غير متاح أو خارج الفروع المسموحة.']);
+            }
+            if ((int) $order->user_id === (int) $client->id) {
+                throw \Illuminate\Validation\ValidationException::withMessages(['client_id' => 'اختر عميلًا مختلفًا عن العميل الحالي.']);
+            }
+            $previous = User::withTrashed()->find($order->user_id);
+            $oldId = $order->user_id;
+            $oldAddress = $order->details?->address_id;
+            $order->user_id = $client->id;
+            $order->save();
+            // An old customer's delivery address must never transfer to the new customer.
+            if ($order->details && $oldAddress) DB::table('order_details')->where('id', $order->details->id)->update(['address_id' => null, 'updated_at' => now()]);
+            activity()->causedBy(auth('admin')->user())->performedOn($order)->withProperties([
+                'old_client_id' => $oldId, 'old_client_name' => $previous?->name,
+                'new_client_id' => $client->id, 'new_client_name' => $client->name,
+                'old_client_phone' => $previous?->phone, 'old_client_identity' => $previous?->national_num,
+                'new_client_phone' => $client->phone, 'new_client_identity' => $client->national_num,
+                'cleared_address_id' => $oldAddress, 'reason' => $data['reason'],
+            ])->log('تغيير العميل في الطلب');
+            return response()->json(['success' => true, 'message' => 'تم تغيير العميل في الطلب بنجاح.']);
+        });
     }
 
     public function refuseReturn(Request $request, $id)

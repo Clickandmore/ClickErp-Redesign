@@ -147,6 +147,25 @@ class PermissionScreenNavigationTest extends TestCase
         ]);
     }
 
+    public function test_delete_own_orders_is_an_extra_on_the_orders_row(): void
+    {
+        $controller = app(PermissionsController::class);
+        $permissions = collect([
+            $this->permission('orders_view', 'orders', 'orders'),
+            $this->permission('orders_delete', 'orders', 'orders'),
+            $this->permission('orders_delete_own', 'orders', 'orders'),
+        ]);
+        $organized = $this->invoke($controller, 'organizePermissions', $permissions);
+        $sections = $this->invoke($controller, 'buildPermissionMatrixSections', $organized);
+        $rows = collect($sections)->flatMap(fn ($section) => $section['groups'])
+            ->flatMap(fn ($group) => $group['rows']);
+        $this->assertCount(1, $rows);
+        $row = $rows->first();
+        $this->assertSame('orders_delete', $row['crud']['delete']['name']);
+        $this->assertSame('orders_delete_own', $row['extras'][0]['name']);
+        $this->assertSame('حذف طلباتي', $row['extras'][0]['extra_label']);
+    }
+
     private function invoke(object $target, string $method, ...$arguments)
     {
         $reflection = new ReflectionMethod($target, $method);
