@@ -1931,10 +1931,7 @@
 @endsection
 
 @section('js')
-    <!-- DataTables JS من CDN كبديل آمن -->
-    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-    <script src="https://cdn.datatables.net/1.13.7/js/jquery.dataTables.min.js"></script>
-    <script src="https://cdn.datatables.net/1.13.7/js/dataTables.bootstrap5.min.js"></script>
+    {{-- jQuery وDataTables محمّلان في القالب؛ إعادة تحميلهما تلغي معالج فتح نموذج التسليم. --}}
 
     <!-- الملفات المحلية -->
     <!-- <script src="{{ asset('admin') }}/assets/jsbundle/dataTables.bundle.js"></script> -->
