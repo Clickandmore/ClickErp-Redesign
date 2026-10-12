@@ -45,12 +45,12 @@ class FirebasePushService
             return FirebasePushResult::skipped('لم يتم تمرير أي مستخدم.');
         }
 
-        $tokens = UserFirebaseToken::query()
+        $tokenUsers = UserFirebaseToken::query()
             ->whereIn('user_id', $userIds)
-            ->pluck('phone_token')
+            ->pluck('user_id', 'phone_token')
             ->all();
 
-        return $this->sendToTokens($tokens, $title, $body, $data);
+        return $this->sendToTokens(array_keys($tokenUsers), $title, $body, $data, ['token_users' => $tokenUsers, 'user_ids' => $userIds]);
     }
 
     /**
@@ -58,7 +58,34 @@ class FirebasePushService
      *
      * @param array<int, string> $tokens
      */
-    public function sendToTokens(array $tokens, string $title, string $body, array $data = []): FirebasePushResult
+    public function sendToTokens(array $tokens, string $title, string $body, array $data = [], array $auditContext = []): FirebasePushResult
+    {
+        $logs = [];
+        foreach (array_unique(array_filter($tokens)) as $token) {
+            $userId = $auditContext['token_users'][$token] ?? null;
+            $recipient = $userId ? 'client:' . $userId : (($data['guard'] ?? 'device') . ':' . ($data['staff_id'] ?? substr(hash('sha256', $token), 0, 16)));
+            $logs[$token] = \App\Support\OutboundMessageRecorder::begin('push', $recipient, $title . "\n" . $body, 'firebase', $data + ['user_id' => $userId]);
+        }
+        if (!$logs) {
+            foreach (($auditContext['user_ids'] ?? ['unknown']) as $userId) {
+                $logs['no-token:' . $userId] = \App\Support\OutboundMessageRecorder::begin('push', 'client:' . $userId, $title . "\n" . $body, 'firebase', $data);
+            }
+        }
+        try {
+            $result = $this->sendToTokensRaw($tokens, $title, $body, $data);
+            $failures = collect($result->failures())->pluck('reason', 'token')->all();
+            foreach ($logs as $token => $log) {
+                $error = $failures[$token] ?? ($result->wasSkipped() ? ($failures[''] ?? 'لم يُرسل الإشعار.') : null);
+                \App\Support\OutboundMessageRecorder::finish($log, $result->wasSkipped() ? 'skipped' : ($error ? 'failed' : 'accepted'), ['error_message' => $error]);
+            }
+            return $result;
+        } catch (\Throwable $e) {
+            foreach ($logs as $log) \App\Support\OutboundMessageRecorder::finish($log, 'failed', ['error_message' => $e->getMessage()]);
+            throw $e;
+        }
+    }
+
+    private function sendToTokensRaw(array $tokens, string $title, string $body, array $data = []): FirebasePushResult
     {
         $tokens = array_values(array_unique(array_filter(array_map('strval', $tokens), fn ($t) => trim($t) !== '')));
 

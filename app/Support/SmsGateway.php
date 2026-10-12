@@ -6,7 +6,36 @@ use Illuminate\Support\Facades\Http;
 
 class SmsGateway
 {
-    public static function send($phone, string $message, $code = null, $senderType = null): ?string
+    public static function send($phone, string $message, $code = null, $senderType = null, array $context = []): ?string
+    {
+        $settings = CommunicationSettings::sms();
+        $provider = strtolower((string) ($settings['provider'] ?? 'msegat'));
+        $context += ['verification' => $code !== null || $senderType === 'verification', 'sender' => self::resolveSenderName($senderType, $code)];
+        $recipients = is_array($phone) ? $phone : (preg_split('/\s*,\s*/', (string) $phone) ?: ['']);
+        $logs = [];
+        foreach ($recipients as $to) $logs[] = OutboundMessageRecorder::begin('sms', (string) $to, $message, $provider, $context);
+        $details = [];
+        try {
+            $raw = self::sendRaw($phone, $message, $code, $senderType, $details);
+            $disabled = (string) ($settings['gateway_status'] ?? 'on') === 'off';
+            foreach ($logs as $index => $log) {
+                $accepted = !$disabled && $raw !== null && (empty($details['status_code']) || $details['status_code'] < 400) && OutboundMessageRecorder::smsAccepted($raw, (string) $recipients[$index]);
+                $decoded = json_decode((string) $raw, true) ?: [];
+                OutboundMessageRecorder::finish($log, $disabled ? 'skipped' : ($accepted ? 'accepted' : 'failed'), $details + [
+                    'response' => json_decode((string) $raw, true) ?: ['message' => $raw],
+                    'error_message' => $disabled ? 'بوابة SMS متوقفة في الإعدادات.' : null,
+                    'message_id' => $decoded['messageId'] ?? $decoded['message_id'] ?? null,
+                    'safe_error' => $disabled ? 'بوابة SMS متوقفة في الإعدادات.' : ($details['error_message'] ?? data_get($details, 'response.message') ?? $decoded['message'] ?? 'لم يقبل المزوّد رسالة التحقق؛ راجع إعدادات البوابة ورمز الاستجابة.'),
+                ]);
+            }
+            return $raw;
+        } catch (\Throwable $e) {
+            foreach ($logs as $log) OutboundMessageRecorder::finish($log, 'failed', ['error_message' => $e->getMessage()]);
+            throw $e;
+        }
+    }
+
+    private static function sendRaw($phone, string $message, $code, $senderType, array &$details): ?string
     {
         $smsSettings = CommunicationSettings::sms();
         if ((string) ($smsSettings['gateway_status'] ?? 'on') === 'off') {
@@ -25,10 +54,10 @@ class SmsGateway
         ]);
 
         if ($provider === 'taqnyat') {
-            return self::sendViaTaqnyat($phone, $message, $code, $senderType);
+            return self::sendViaTaqnyat($phone, $message, $code, $senderType, $details);
         }
 
-        return self::sendViaMsegat($phone, $message, $code, $senderType);
+        return self::sendViaMsegat($phone, $message, $code, $senderType, $details);
     }
 
     public static function resolveSenderName($senderType = null, $code = null): string
@@ -52,7 +81,7 @@ class SmsGateway
         return (string) ($smsSettings['sender'] ?? '');
     }
 
-    private static function sendViaMsegat($phone, string $message, $code = null, $senderType = null): ?string
+    private static function sendViaMsegat($phone, string $message, $code, $senderType, array &$details): ?string
     {
         $smsSettings = CommunicationSettings::sms();
         $resolvedSender = self::resolveSenderName($senderType, $code);
@@ -73,6 +102,8 @@ class SmsGateway
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
 
         $result = curl_exec($ch);
+        $details['status_code'] = curl_getinfo($ch, CURLINFO_HTTP_CODE) ?: null;
+        if ($result === false) $details['error_message'] = curl_error($ch) ?: 'تعذر الاتصال بمزوّد SMS.';
         curl_close($ch);
 
         logger()->info('Msegat SMS Sent Successfully: ', [
@@ -87,7 +118,7 @@ class SmsGateway
         return $result === false ? null : (string) $result;
     }
 
-    private static function sendViaTaqnyat($phone, string $message, $code = null, $senderType = null): ?string
+    private static function sendViaTaqnyat($phone, string $message, $code, $senderType, array &$details): ?string
     {
         $smsSettings = CommunicationSettings::sms();
         $resolvedSender = self::resolveSenderName($senderType, $code);
@@ -96,6 +127,7 @@ class SmsGateway
 
         $recipients = self::normalizeRecipients($phone);
         if ($recipients === []) {
+            $details['error_message'] = 'لا يوجد رقم مستلم صالح.';
             logger()->warning('Taqnyat SMS aborted: no valid recipients.', [
                 'phone' => $phone,
                 'sender_type' => $senderType,
@@ -105,6 +137,7 @@ class SmsGateway
         }
 
         if ($bearerToken === '') {
+            $details['error_message'] = 'إعدادات بوابة SMS غير مكتملة (رمز الاتصال).';
             logger()->error('Taqnyat SMS aborted: missing bearer token.', [
                 'phone' => $phone,
                 'sender_type' => $senderType,
@@ -125,6 +158,7 @@ class SmsGateway
                     'body' => $message,
                 ]);
         } catch (\Throwable $exception) {
+            $details['error_message'] = $exception->getMessage();
             logger()->error('Taqnyat SMS request failed.', [
                 'code' => self::safeLogCode($code),
                 'phone' => $phone,
@@ -138,6 +172,8 @@ class SmsGateway
         }
 
         $result = $response->body();
+        $details['status_code'] = $response->status();
+        $details['response'] = $response->json() ?: ['message' => $result];
 
         if (!$response->successful()) {
             logger()->warning('Taqnyat SMS rejected.', [

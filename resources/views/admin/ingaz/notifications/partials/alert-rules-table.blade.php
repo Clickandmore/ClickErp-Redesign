@@ -137,7 +137,7 @@
                     </td>
                     <td>
                         <select name="{{ $inputPrefix }}[{{ $alertKey }}][template_id]" class="form-select">
-                            <option value="">بدون قالب محدد</option>
+                            <option value="">{{ $alertKey === 'rent_contract_expiry' ? 'النص الافتراضي لتنبيه انتهاء التأجير' : 'بدون قالب محدد' }}</option>
                             @foreach ($alertTemplateOptions as $templateId => $templateLabel)
                                 <option value="{{ $templateId }}" {{ (int) data_get($rule, 'template_id') === (int) $templateId ? 'selected' : '' }}>
                                     {{ $templateLabel }}
@@ -145,6 +145,9 @@
                             @endforeach
                         </select>
                         @error("{$inputPrefix}.{$alertKey}.template_id")
+                            <div class="text-danger small mt-1">{{ $message }}</div>
+                        @enderror
+                        @error("{$inputPrefix}.{$alertKey}.channels")
                             <div class="text-danger small mt-1">{{ $message }}</div>
                         @enderror
                     </td>

@@ -99,7 +99,8 @@ class WhatsAppMessagingService
     {
         if ($this->driver() === 'chatwoot') { return app(ChatwootWhatsAppService::class)->sendText($to, $message, $context); }
         if ($this->driver() === 'ultramsg') {
-            return $this->sendViaUltraMsg($to, $message, $context);
+            return \App\Support\OutboundMessageRecorder::attempt('whatsapp', $to, $message, 'ultramsg',
+                fn () => $this->sendViaUltraMsg($to, $message, $context), $context + ['sender_key' => $this->resolveSender($context['sender_key'] ?? null)['key'] ?? null]);
         }
 
         return $this->metaWhatsAppService->sendText($to, $message, $context);

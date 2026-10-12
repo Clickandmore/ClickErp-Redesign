@@ -1223,8 +1223,11 @@
                             <span class="ms-2">{{ \App\Support\AdminPermissionNavigation::unitTitle('messages') }}</span>
                             <span class="arrow fa fa-angle-left ms-auto text-end"></span>
                         </a>
-                        <ul class="sub-menu collapse {{ in_array(Route::currentRouteName(), ['notifications.index', 'notifications.settings', 'notifications.settings.alerts']) || request()->routeIs('admin.dispatch.*', 'system-updates.*') || Request::is('admin/sms-templates*') ? 'show' : '' }}"
+                        <ul class="sub-menu collapse {{ in_array(Route::currentRouteName(), ['messages.index', 'notifications.index', 'notifications.settings', 'notifications.settings.alerts']) || request()->routeIs('admin.dispatch.*', 'system-updates.*') || Request::is('admin/sms-templates*') ? 'show' : '' }}"
                             id="smsManagement">
+                            @if (@AdminGuardHasPerm(\App\PermKeys::NOTIFICATIONS_CONTROL))
+                                <li><a class="m-link {{ request()->routeIs('messages.index') ? 'active' : '' }}" href="{{ route('messages.index') }}"><i class="fa fa-history"></i><span class="ms-2">سجل الرسائل والإرسال</span></a></li>
+                            @endif
                             @if ($showSystemUpdatesLink)
                                 <li>
                                     <a class="m-link {{ request()->routeIs('system-updates.*') ? 'active' : '' }}" href="{{ route('system-updates.index') }}">

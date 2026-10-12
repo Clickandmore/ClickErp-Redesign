@@ -14,11 +14,13 @@ class TeqnyatSmsService
     {
         $normalized = $this->normalizePhone($phone);
         if (!$normalized || !\App\Support\CommunicationSettings::smsIsConfigured()) {
+            $audit = \App\Support\OutboundMessageRecorder::begin('sms', (string) $phone, $message, (string) (\App\Support\CommunicationSettings::sms()['provider'] ?? 'msegat'), $context);
+            \App\Support\OutboundMessageRecorder::finish($audit, 'skipped', ['error_message' => 'بوابة الرسائل غير مهيأة أو الرقم غير صالح.']);
             return $this->finalizeResult($phone, $message, ['success'=>false,'status'=>'skipped','message'=>'بوابة الرسائل غير مهيأة أو الرقم غير صالح.'], $context);
         }
         try {
             $verification = ($context['source'] ?? '') === 'hourly_staff_login';
-            $raw = \App\Support\SmsGateway::send($normalized, $message, null, $verification ? 'verification' : null);
+            $raw = \App\Support\SmsGateway::send($normalized, $message, null, $verification ? 'verification' : null, $context);
             $response = json_decode((string) $raw, true) ?: [];
             $provider = \App\Support\CommunicationSettings::sms()['provider'] ?? 'msegat';
             $success = $provider === 'taqnyat'

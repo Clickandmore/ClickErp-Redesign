@@ -99,6 +99,12 @@ class MetaWhatsAppService
 
     public function sendText(string $to, string $message, array $context = []): array
     {
+        return \App\Support\OutboundMessageRecorder::attempt('whatsapp', $to, $message, 'meta',
+            fn () => $this->sendTextRaw($to, $message, $context), $context);
+    }
+
+    private function sendTextRaw(string $to, string $message, array $context = []): array
+    {
         $normalizedPhone = $this->normalizePhone($to);
 
         if ($normalizedPhone === null) {
@@ -193,6 +199,13 @@ class MetaWhatsAppService
         array $bodyParameters = [],
         array $context = []
     ): array {
+        return \App\Support\OutboundMessageRecorder::attempt('whatsapp', $to,
+            'Template: ' . $templateName . ' [' . $language . '] ' . implode(' | ', $bodyParameters), 'meta',
+            fn () => $this->sendTemplateRaw($to, $templateName, $language, $bodyParameters, $context),
+            $context + ['template_name' => $templateName, 'language' => $language]);
+    }
+
+    private function sendTemplateRaw(string $to, string $templateName, string $language, array $bodyParameters, array $context): array {
         $normalizedPhone = $this->normalizePhone($to);
         if ($normalizedPhone === null) {
             return [

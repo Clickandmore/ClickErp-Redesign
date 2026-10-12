@@ -13,7 +13,11 @@ class UltraMsgWhatsAppService
     {
         $gateway = app(\App\Services\WhatsApp\WhatsAppMessagingService::class);
         $normalized = $this->normalizePhone($phone);
-        if (!$normalized || !$gateway->isConfigured()) return $this->finalizeResult($phone, $message, ['success'=>false,'status'=>'skipped'], $context);
+        if (!$normalized || !$gateway->isConfigured()) {
+            $audit = \App\Support\OutboundMessageRecorder::begin('whatsapp', (string) $phone, $message, $gateway->driver(), $context);
+            \App\Support\OutboundMessageRecorder::finish($audit, 'skipped', ['error_message' => 'بوابة واتساب غير مهيأة أو الرقم غير صالح.']);
+            return $this->finalizeResult($phone, $message, ['success'=>false,'status'=>'skipped'], $context);
+        }
         try {
             $result = $gateway->sendText($normalized, $message, $context);
             $result['status'] = !empty($result['success']) ? 'sent' : 'failed';
