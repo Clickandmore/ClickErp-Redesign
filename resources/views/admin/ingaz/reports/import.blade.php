@@ -585,6 +585,8 @@
                                             <td>
                                                 @if ($batch->status === 'approved')
                                                     <span class="badge bg-success-subtle text-success border"><i class="fas fa-check me-1"></i>معتمد</span>
+                                                @elseif ($batch->status === 'partial')
+                                                    <span class="badge bg-warning-subtle text-warning-emphasis border">معتمد جزئياً — صفوف تحتاج تصحيحاً</span>
                                                 @else
                                                     <span class="badge bg-warning-subtle text-warning-emphasis border"><i class="fas fa-hourglass-half me-1"></i>بانتظار المراجعة</span>
                                                 @endif

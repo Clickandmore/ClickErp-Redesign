@@ -8,7 +8,7 @@
         <div class="card-header"><h4>مراجعة {{ $template['label'] }} — {{ $batch->original_name }}</h4></div>
         <div class="card-body">
             <a href="{{ route('reports.import.index') }}" class="btn btn-outline-secondary mb-3">العودة ورفع ملف مصحح</a>
-            @foreach (['success' => 'success', 'error' => 'danger'] as $key => $class)
+            @foreach (['success' => 'success', 'warning' => 'warning', 'error' => 'danger'] as $key => $class)
                 @if(session($key))<div class="alert alert-{{ $class }}">{{ session($key) }}</div>@endif
             @endforeach
             @if($errors->any())<div class="alert alert-danger">{{ $errors->first() }}</div>@endif
@@ -27,13 +27,13 @@
                 @endforeach
             </div>
             @if(!empty($batch->result['errors']))
-                <div class="alert alert-danger"><strong>أخطاء الاعتماد (تم التراجع عن المحاولة):</strong>
+                <div class="alert alert-danger"><strong>{{ $wholeFile ? 'أخطاء الاعتماد (لم يُحفظ الملف المترابط):' : 'الصفوف التي لم تُعتمد وأسبابها:' }}</strong>
                     <ul>@foreach($batch->result['errors'] as $error)<li>{{ $error }}</li>@endforeach</ul>
                 </div>
             @endif
             @if($batch->status === 'approved')
                 <div class="alert alert-success">معتمد بتاريخ {{ $batch->approved_at }}. لن يتكرر التنفيذ عند إعادة إرسال الاعتماد.</div>
-            @elseif(AdminGuardHasAnyPerm(['data_import_approve']))
+            @elseif(AdminGuardHasAnyPerm(['data_import_approve']) && ($counts['valid'] ?? 0))
                 <form method="POST" action="{{ route('reports.import.approve', $batch) }}" class="mb-3">
                     @csrf
                     <button type="submit" class="btn btn-success" @disabled(!($counts['valid'] ?? 0) || ($wholeFile && ($counts['invalid'] ?? 0)))>اعتماد {{ $counts['valid'] ?? 0 }} صف صحيح</button>

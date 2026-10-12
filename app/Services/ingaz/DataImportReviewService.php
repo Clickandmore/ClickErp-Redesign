@@ -66,6 +66,7 @@ class DataImportReviewService
 
     public function approve(DataImportBatch $batch, int $adminId): array
     {
+        @set_time_limit(0);
         $temporary = null;
         try {
             return DB::transaction(function () use ($batch, $adminId, &$temporary) {
@@ -74,6 +75,9 @@ class DataImportReviewService
                 if ($batch->status === 'approved') return $batch->result ?? [];
                 if (!Storage::exists($batch->path) || !hash_equals($batch->file_hash, hash_file('sha256', Storage::path($batch->path)))) {
                     throw ValidationException::withMessages(['file' => 'تغير الملف بعد الفحص. ارفع نسخة جديدة.']);
+                }
+                if (!$this->requiresWholeFile($batch->type)) {
+                    return \App\Support\DataImportBranchContext::run($batch->branch_id, fn () => $this->approveIndependentRows($batch, $adminId));
                 }
                 $rows = $batch->rows()->orderBy('id')->get();
                 $failures = [];
@@ -136,6 +140,13 @@ class DataImportReviewService
             });
         } catch (ImportApprovalException $exception) {
             // The failed attempt commits no client, contract, invoice, or journal entry.
+            foreach ($exception->errors as $message) {
+                if (preg_match('/^صف\s+([^:]+):\s*(.+)$/u', $message, $match)) {
+                    $batch->rows()->where('source_row', trim($match[1]))->where('status', 'valid')->update([
+                        'status' => 'invalid', 'issues' => json_encode([$match[2]], JSON_UNESCAPED_UNICODE), 'updated_at' => now(),
+                    ]);
+                }
+            }
             $batch->update(['result' => ['errors' => $exception->errors, 'error_count' => count($exception->errors)]]);
             return $batch->result;
         } finally {
@@ -144,6 +155,42 @@ class DataImportReviewService
     }
 
     public function requiresWholeFile(string $type): bool { return in_array($type, self::WHOLE_FILE_TYPES, true); }
+
+    private function approveIndependentRows(DataImportBatch $batch, int $adminId): array
+    {
+        $result = ['total' => $batch->rows()->count(), 'created' => 0, 'updated' => 0, 'approved_this_attempt' => 0];
+        foreach ($batch->rows()->where('status', 'valid')->orderBy('id')->get() as $row) {
+            try {
+                $outcome = DB::transaction(function () use ($batch, $row, $adminId) {
+                    $resolution = app(ImportReferenceResolver::class)->resolve($batch->type, $row->payload);
+                    $issues = array_merge($resolution['issues'], $this->issues($batch->type, $resolution['row']));
+                    foreach ($row->resolved_references ?? [] as $previous) {
+                        $current = collect($resolution['links'])->firstWhere('label', $previous['label']);
+                        if (!$current || (int) $current['id'] !== (int) $previous['id']) $issues[] = 'تغير الربط الذي تمت مراجعته؛ أعد رفع الصف لمراجعة المرجع الجديد.';
+                    }
+                    if ($this->alreadyImported($batch->type, $row->fingerprint)) $issues[] = 'سبق اعتماد هذا السجل في ملف آخر.';
+                    if ($issues) throw ValidationException::withMessages(['row' => array_values(array_unique($issues))]);
+                    $outcome = $this->executor->importReviewedRow($batch->type, $resolution['row'], $adminId);
+                    $row->update(['status' => 'approved', 'issues' => [], 'resolved_references' => $resolution['links']]);
+                    return $outcome;
+                });
+                $result[$outcome]++;
+                $result['approved_this_attempt']++;
+            } catch (\Throwable $exception) {
+                $issues = $exception instanceof ValidationException
+                    ? \Illuminate\Support\Arr::flatten($exception->errors()) : [$exception->getMessage()];
+                $row->update(['status' => 'invalid', 'issues' => array_values(array_unique($issues))]);
+            }
+        }
+        $failed = $batch->rows()->where('status', 'invalid')->orderBy('id')->get();
+        $result['errors'] = $failed->map(fn ($row) => 'صف '.$row->source_row.': '.implode('؛ ', $row->issues))->all();
+        $result['error_count'] = $failed->count();
+        $result['approved_count'] = $batch->rows()->where('status', 'approved')->count();
+        $result['skipped'] = $result['error_count'];
+        $batch->update(['status' => $result['error_count'] ? ($result['approved_count'] ? 'partial' : 'pending') : 'approved',
+            'approved_by' => $adminId, 'approved_at' => $result['approved_count'] ? now() : null, 'result' => $result]);
+        return $result;
+    }
 
     public function issues(string $type, array $row): array
     {
@@ -320,7 +367,7 @@ class DataImportReviewService
     private function alreadyImported(string $type, string $fingerprint): bool
     {
         return DB::table('data_import_rows as r')->join('data_import_batches as b', 'b.id', '=', 'r.batch_id')
-            ->where('b.type', $type)->where('b.status', 'approved')->where('r.status', 'approved')->where('r.fingerprint', $fingerprint)->exists();
+            ->where('b.type', $type)->whereIn('b.status', ['approved', 'partial'])->where('r.status', 'approved')->where('r.fingerprint', $fingerprint)->exists();
     }
 
     private function existingRecords(string $type, array $row): array

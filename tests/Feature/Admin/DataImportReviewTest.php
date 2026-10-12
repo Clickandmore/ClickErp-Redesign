@@ -233,6 +233,19 @@ class DataImportReviewTest extends TestCase
         $this->assertSame('invalid', $again->rows()->first()->status);
     }
 
+    public function test_invalid_row_does_not_block_valid_invoice_and_shows_partial_result(): void
+    {
+        $this->grant(PermKeys::DATA_IMPORT_UPLOAD, PermKeys::DATA_IMPORT_APPROVE, PermKeys::INVOICES_CREATE);
+        $good = $this->invoiceRow('partial-good');
+        $bad = array_merge($this->invoiceRow('partial-bad'), ['direct_recruitment_cost' => 'bad-amount']);
+        $batch = app(DataImportReviewService::class)->stage('invoices', $this->sheet([$good, $bad]), $this->actor->id);
+        $this->post(route('reports.import.approve', $batch))->assertRedirect()->assertSessionHas('warning');
+        $this->assertSame('partial', $batch->fresh()->status);
+        $this->assertTrue(Invoice::where('client_id', $good['client_id'])->exists());
+        $this->assertFalse(Invoice::where('client_id', $bad['client_id'])->exists());
+        $this->get(route('reports.import.show', $batch))->assertOk()->assertSee('الصفوف التي لم تُعتمد وأسبابها:')->assertSee('قيمة رقمية غير صحيحة')->assertDontSee('تم التراجع عن المحاولة');
+    }
+
     public function test_import_approval_does_not_bypass_invoice_permission(): void
     {
         $this->grant(PermKeys::DATA_IMPORT_APPROVE, PermKeys::INVOICES_CREATE_DRAFT);
@@ -256,7 +269,7 @@ class DataImportReviewTest extends TestCase
         $this->assertSame(1, Invoice::where('client_id', $row['client_id'])->count());
     }
 
-    public function test_execution_error_rolls_back_all_rows_including_previously_issued_invoice(): void
+    public function test_failed_invoice_rolls_back_only_its_row_and_preserves_successful_invoice(): void
     {
         $this->grant(PermKeys::INVOICES_CREATE);
         $cash = $this->configureAccounting();
@@ -271,10 +284,21 @@ class DataImportReviewTest extends TestCase
         $bonds = DB::table('fn_bonds')->count();
         $result = $review->approve($batch, $this->actor->id);
         $this->assertNotEmpty($result['errors']);
-        $this->assertSame('pending', $batch->fresh()->status);
-        $this->assertSame(0, Invoice::whereIn('client_id', [$row['client_id'], $second['client_id']])->count());
-        $this->assertSame($constraints, DB::table('fn_constraints')->count());
-        $this->assertSame($bonds, DB::table('fn_bonds')->count());
+        $this->assertSame('partial', $batch->fresh()->status);
+        $this->assertSame(1, $result['approved_count']);
+        $this->assertTrue(Invoice::where('client_id', $row['client_id'])->exists());
+        $this->assertFalse(Invoice::where('client_id', $second['client_id'])->exists());
+        $this->assertGreaterThan($constraints, DB::table('fn_constraints')->count());
+        $this->assertGreaterThan($bonds, DB::table('fn_bonds')->count());
+        $failed = $batch->rows()->where('source_row', '3')->first();
+        $this->assertSame('invalid', $failed->status);
+        $this->assertNotEmpty($failed->issues);
+        $approvedConstraints = DB::table('fn_constraints')->count();
+        $review->approve($batch, $this->actor->id);
+        $this->assertSame($approvedConstraints, DB::table('fn_constraints')->count());
+        $this->assertSame(1, Invoice::where('client_id', $row['client_id'])->count());
+        $again = $review->stage('invoices', $this->sheet([$row]), $this->actor->id);
+        $this->assertSame('invalid', $again->rows()->first()->status);
     }
 
     public function test_existing_client_and_phone_identity_conflict_are_rejected_before_execution(): void

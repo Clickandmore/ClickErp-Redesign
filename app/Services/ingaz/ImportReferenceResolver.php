@@ -145,7 +145,10 @@ class ImportReferenceResolver
             if (!$found) return [null, ["{$label}: المعرّف الداخلي غير موجود أو خارج الفرع. اتركه فارغاً عند الإضافة واستخدم الرقم المعروف."]];
             $matches[$found->id] = $found;
         }
-        if (count($matches) > 1) return [null, ["{$label}: الأرقام المقدمة تخص سجلات مختلفة؛ لا يمكن الربط تلقائياً."]];
+        if (count($matches) > 1) {
+            $details = $model === User::class ? ' '.implode('؛ ', array_map(fn ($client) => $client->name.' (الهوية: '.$client->national_num.')', array_values($matches))) : '';
+            return [null, ["{$label}: الأرقام المقدمة تخص سجلات مختلفة؛ لا يمكن الربط تلقائياً.".$details]];
+        }
         if ($required && $missing && $matches) return [null, ["{$label}: الأرقام المقدمة تخص سجلات مختلفة أو لا تتطابق؛ راجع جميع أرقام الربط."]];
         if ($required && $missing) return [null, ["{$label}: أحد أرقام الربط غير موجود أو لا يطابق المرجع المختار."]];
         $record = reset($matches) ?: null;
@@ -153,7 +156,9 @@ class ImportReferenceResolver
             foreach ($fields as $field => $column) {
                 if ($column === 'national_num' && filled($row[$field] ?? null) && filled($record->national_num)
                     && $this->normalize($row[$field]) !== $this->normalize($record->national_num)) {
-                    return [null, ['العميل: الهوية والجوال أو المعرّف تخص سجلات مختلفة.']];
+                    return [null, ['العميل: الهوية والجوال أو المعرّف تخص سجلات مختلفة. الجوال '.$record->phone
+                        .' مرتبط بالعميل «'.$record->name.'» وهوية '.$record->national_num
+                        .'، بينما هوية الصف '.$this->normalize($row[$field]).'. راجع الجوال أو الهوية.']];
                 }
             }
         }
