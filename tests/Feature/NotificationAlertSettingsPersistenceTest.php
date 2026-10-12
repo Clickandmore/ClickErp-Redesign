@@ -86,4 +86,18 @@ class NotificationAlertSettingsPersistenceTest extends TestCase
         $this->assertFalse(app(\App\Services\RentalContractExpiryReminderService::class)->isEnabled());
         Http::assertNothingSent();
     }
+
+    public function test_rendered_controls_keep_saved_values_with_the_production_global_settings_composer(): void
+    {
+        // AppServiceProvider skips this composer in console tests, but registers it for HTTP in production.
+        \Illuminate\Support\Facades\View::composer('*', function ($view) {
+            $view->with('settings', new \App\Models\ingaz\Setting());
+        });
+        $this->post(route('notifications.settings.update'), $this->payload())->assertSessionHasNoErrors()->assertSessionHas('success');
+        $html = $this->get(route('notifications.settings.alerts'))->assertOk()->getContent();
+        $this->assertMatchesRegularExpression('/name="alerts\[rent_contract_expiry\]\[enabled\]" value="1"[^>]*checked/s', $html);
+        $this->assertMatchesRegularExpression('/name="alerts\[rent_contract_expiry\]\[channels\]\[\]"\s+value="sms"[^>]*checked/s', $html);
+        $this->assertMatchesRegularExpression('/name="alerts\[rent_contract_expiry\]\[channels\]\[\]"\s+value="whatsapp"[^>]*checked/s', $html);
+        $this->assertMatchesRegularExpression('/name="alerts\[rent_contract_expiry\]\[recipient\]"[^>]*>\s*<option value="client"[^>]*selected/s', $html);
+    }
 }

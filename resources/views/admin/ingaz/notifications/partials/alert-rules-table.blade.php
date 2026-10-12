@@ -39,7 +39,7 @@
         <tbody>
             @foreach ($rules as $alertKey => $definition)
                 @php
-                    $rule = $settings[$alertKey] ?? [];
+                    $rule = $alertRuleSettings[$alertKey] ?? [];
                     $selectedChannels = (array) data_get($rule, 'channels', ['notification']);
                     $rowIndex = $loop->index;
                     $isEnabled = (bool) data_get($rule, 'enabled');

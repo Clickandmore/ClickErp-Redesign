@@ -916,7 +916,7 @@
                 <div class="alerts-card__body p-0">
                     @include('admin.ingaz.notifications.partials.alert-rules-table', [
                         'rules' => $alertDefinitions,
-                        'settings' => $alertSettings,
+                        'alertRuleSettings' => $alertSettings,
                         'inputPrefix' => 'alerts',
                         'canEditMeta' => false,
                         'channelIcons' => $channelIcons,
