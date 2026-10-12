@@ -2022,7 +2022,7 @@
                         : @json(helperTrans('ingaz.national_num'));
 
                     $('#client_name').val(sanitizeTextValue(selectedOrder.user.name));
-                    $('#client_phone').val(sanitizePhoneValue(selectedOrder.user.phone));
+                    $('#client_phone').val(sanitizePhoneValue(selectedOrder.user.raw_phone ?? selectedOrder.user.phone));
                     $('#client_email').val(sanitizeTextValue(selectedOrder.user.email));
                     $('#client_national_num').val(sanitizeTextValue(selectedClientDocumentNumber(selectedOrder.user)));
                     $('#client_birthdate').val(selectedOrder.user.birthdate || '');
