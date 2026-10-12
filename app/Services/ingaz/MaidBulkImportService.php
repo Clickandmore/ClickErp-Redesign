@@ -326,6 +326,8 @@ class MaidBulkImportService
                     $payload = $row->normalized_data ?? [];
 
                     try {
+                        $resolution = app(ImportReferenceResolver::class)->resolve('maids', $payload);
+                        if ($resolution['issues']) throw new \InvalidArgumentException(implode('؛ ', $resolution['issues']));
                         if (empty($payload)) {
                             throw ValidationException::withMessages([
                                 'row' => ['لا توجد بيانات جاهزة للاستيراد في هذا الصف.'],
@@ -463,6 +465,7 @@ class MaidBulkImportService
         $sheet->setCellValue('A8', '6. الصف رقم 2 داخل ورقة "البيانات" هو مثال جاهز للتعديل أو النسخ.');
         $sheet->setCellValue('A9', '7. إذا بقي رقم الجواز TEMPLATE-EXAMPLE كما هو، فسيتجاهله النظام تلقائياً عند الرفع.');
         $sheet->setCellValue('A10', '8. بعد الرفع ستظهر شاشة مراجعة قبل الاعتماد النهائي.');
+        $sheet->setCellValue('A11', '9. الربط برقم الجواز. اترك ID فارغاً عند الإضافة؛ لا تضع تسلسلاً من عندك. استخدم أسماء الجنسية والمكتب والمهنة من القوائم.');
         $sheet->getStyle('A1')->getFont()->setBold(true)->setSize(14);
         $sheet->getColumnDimension('A')->setWidth(120);
     }
@@ -866,6 +869,11 @@ class MaidBulkImportService
             ? ['branch_id' => $import->uploadedBy?->branch_id] : [];
         $seen = [];
         foreach ($rows as &$row) {
+            $resolution = app(ImportReferenceResolver::class)->resolve('maids', $row['normalized_data'] ?? []);
+            if ($resolution['issues']) {
+                $row['status'] = 'invalid';
+                $row['error_messages'] = array_values(array_unique(array_merge($row['error_messages'], $resolution['issues'])));
+            }
             $passport = mb_strtoupper(trim((string) ($row['normalized_data']['passport_num'] ?? '')));
             if ($passport === '') continue;
             if (isset($seen[$passport])) {
