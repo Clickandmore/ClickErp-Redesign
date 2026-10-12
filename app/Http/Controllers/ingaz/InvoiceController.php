@@ -929,7 +929,7 @@ class InvoiceController extends Controller
         if (!$contractId && !$ingazDelegationId && !$clientId && $contractSearchAttempted) {
             $searchedContract = Contract::query()
                 ->with(['user', 'maid.nationality', 'requiredMaidNationality'])
-                ->whereDoesntHave('invoice')
+                ->whereDoesntHave('blockingInvoices')
                 ->whereIn('status', Contract::invoiceEligibleStatuses())
                 ->where(function ($query) use ($contractSearch) {
                     if (is_numeric($contractSearch)) {
@@ -960,13 +960,14 @@ class InvoiceController extends Controller
                 ->with(['user', 'maid.nationality', 'requiredMaidNationality', 'invoice'])
                 ->findOrFail($contractId);
 
-            if ($selectedContract->invoice) {
+            $blockingInvoice = $selectedContract->blockingInvoices()->latest('id')->first();
+            if ($blockingInvoice) {
                 if (!InvoiceAuthorization::canView()) {
                     return redirect()->route('invoices.create')
                         ->with('warning', 'تم إصدار فاتورة لهذا العقد مسبقاً، وليست لديك صلاحية عرض الفواتير.');
                 }
                 return redirect()
-                    ->route('invoices.show', $selectedContract->invoice->id)
+                    ->route('invoices.show', $blockingInvoice->id)
                     ->with('success', 'تم إصدار فاتورة لهذا العقد مسبقاً.');
             }
         }
@@ -1247,7 +1248,7 @@ class InvoiceController extends Controller
 
         $invoiceExists = false;
         if ($request->filled('contract_id')) {
-            $invoiceExists = Invoice::where('contract_id', $request->contract_id)->exists();
+            $invoiceExists = Invoice::where('contract_id', $request->contract_id)->blockingReplacement()->exists();
         } elseif ($request->filled('ingaz_delegation_id')) {
             $invoiceExists = Invoice::where('ingaz_delegation_id', $request->ingaz_delegation_id)->exists();
         } elseif ($request->filled('sponsorship_transfer_id')) {
@@ -1525,7 +1526,7 @@ class InvoiceController extends Controller
                 throw new \RuntimeException('هذه الصفحة مخصصة لعقود الاستقدام بحالة وصول أو مكتملة.');
             }
 
-            if ($contract->invoice()->exists()) {
+            if ($contract->blockingInvoices()->exists()) {
                 throw new \RuntimeException('هذا العقد لديه فاتورة سابقة');
             }
 

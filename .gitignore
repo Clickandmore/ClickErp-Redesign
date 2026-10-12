@@ -53,3 +53,5 @@ storage/framework/scheduler-heartbeat.json
 .claude/settings.local.json
 
 /postman
+
+/docs/reports
