@@ -227,30 +227,7 @@ class DataImportExecutionService
             $result['total']++;
 
             try {
-                DB::transaction(function () use ($type, $row, $adminId, &$result) {
-                    $resolution = app(ImportReferenceResolver::class)->resolve($type, $row);
-                    if ($resolution['issues']) throw new \InvalidArgumentException(implode('؛ ', $resolution['issues']));
-                    $row = $resolution['row'];
-                    $outcome = match ($type) {
-                        'invoices' => $this->importOperationalInvoice($row),
-                        'clients' => $this->importClient($row, $adminId),
-                        'admins' => $this->importAdmin($row),
-                        'recruitment_offices' => $this->importRecruitmentOffice($row),
-                        'employees' => $this->importEmployee($row),
-                        'rental_maids' => $this->importRentalMaid($row, $adminId),
-                        'recruitment_contracts' => $this->importRecruitmentContract($row, $adminId),
-                        'recruitment_contracts_clients_maids' => $this->importRecruitmentBundle($row, $adminId),
-                        'shelter_contracts' => $this->importShelterContract($row, $adminId),
-                        'rent_contracts' => $this->importRentContract($row, $adminId),
-                        'rent_contracts_clients_rental_maids' => $this->importRentBundle($row, $adminId),
-                        'sponsorship_transfers' => $this->importSponsorshipTransfer($row, $adminId),
-                        'ingaz_delegations' => $this->importIngazDelegation($row, $adminId),
-                        'complaints' => $this->importComplaint($row, $adminId),
-                        default => 'skipped',
-                    };
-
-                    $result[$outcome]++;
-                });
+                $result[$this->importReviewedRow($type, $row, $adminId)]++;
             } catch (\Throwable $exception) {
                 $result['skipped']++;
                 $result['error_count']++;
@@ -265,6 +242,33 @@ class DataImportExecutionService
         }
 
         return $result;
+    }
+
+    /** Import one independent reviewed row; failures roll back all of this row's writes. */
+    public function importReviewedRow(string $type, array $row, ?int $adminId): string
+    {
+        return DB::transaction(function () use ($type, $row, $adminId) {
+            $resolution = app(ImportReferenceResolver::class)->resolve($type, $row);
+            if ($resolution['issues']) throw new \InvalidArgumentException(implode('؛ ', $resolution['issues']));
+            $row = $resolution['row'];
+            return match ($type) {
+                'invoices' => $this->importOperationalInvoice($row),
+                'clients' => $this->importClient($row, $adminId),
+                'admins' => $this->importAdmin($row),
+                'recruitment_offices' => $this->importRecruitmentOffice($row),
+                'employees' => $this->importEmployee($row),
+                'rental_maids' => $this->importRentalMaid($row, $adminId),
+                'recruitment_contracts' => $this->importRecruitmentContract($row, $adminId),
+                'recruitment_contracts_clients_maids' => $this->importRecruitmentBundle($row, $adminId),
+                'shelter_contracts' => $this->importShelterContract($row, $adminId),
+                'rent_contracts' => $this->importRentContract($row, $adminId),
+                'rent_contracts_clients_rental_maids' => $this->importRentBundle($row, $adminId),
+                'sponsorship_transfers' => $this->importSponsorshipTransfer($row, $adminId),
+                'ingaz_delegations' => $this->importIngazDelegation($row, $adminId),
+                'complaints' => $this->importComplaint($row, $adminId),
+                default => throw new \InvalidArgumentException('هذا النوع يحتاج اعتماد الملف المترابط كاملاً.'),
+            };
+        });
     }
 
     public function importMissingFinanceConstraints(UploadedFile $file, ?int $adminId): array

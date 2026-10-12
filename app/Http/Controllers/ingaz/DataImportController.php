@@ -111,6 +111,12 @@ class DataImportController extends Controller
             abort_unless(AdminGuardHasAnyPerm([\App\PermKeys::PERMISSIONS_ASSIGN]), 403);
         }
         $result = $review->approve($batch, auth('admin')->id());
+        $saved = (int) ($result['approved_count'] ?? 0);
+        if (!empty($result['error_count']) && !$review->requiresWholeFile($batch->type)) {
+            return redirect()->route('reports.import.show', $batch)->with($saved ? 'warning' : 'error',
+                $saved ? "تم اعتماد {$saved} صف. بقي {$result['error_count']} صف به أخطاء؛ راجع السبب أمام كل صف وصححه ثم ارفعه منفرداً."
+                    : 'لم يُعتمد أي صف. راجع سبب الخطأ أمام كل صف وصحح الصفوف ثم أعد رفعها.');
+        }
         return redirect()->route('reports.import.show', $batch)->with(
             empty($result['error_count']) ? 'success' : 'error',
             empty($result['error_count']) ? 'تم اعتماد الاستيراد وحفظ الصفوف الصحيحة.' : 'تعذر الاعتماد. راجع الأخطاء الموضحة؛ لم تحفظ أي تغييرات تشغيلية في هذه المحاولة.'
