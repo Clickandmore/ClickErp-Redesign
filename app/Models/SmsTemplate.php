@@ -73,6 +73,12 @@ class SmsTemplate extends Model
     {
         $message = $this->message;
 
+        if (str_contains($message, '{company_name}') && !array_key_exists('company_name', $variables)) {
+            $variables['company_name'] = (string) documentSetting(
+                'document_company_name', documentSetting('website_name', 'الشركة')
+            );
+        }
+
         foreach ($variables as $key => $value) {
             $message = str_replace('{' . $key . '}', $value, $message);
         }
