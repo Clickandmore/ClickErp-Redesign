@@ -52,7 +52,7 @@ class SendRentalContractExpiryReminders extends Command
         foreach ($notificationDates as $notificationType => $date) {
             RentalContract::query()
                 ->with(['user', 'info', 'marketer'])
-                ->whereIn('status', ['active', 'maid_delivered', 'contract_signed'])
+                ->eligibleForExpiryNotifications()
                 ->whereHas('info', function ($query) use ($date, $today) {
                     // Catch up missed advance runs, but never send an advance notice after expiry.
                     $query->whereDate('ingaz_to', '<=', $date)

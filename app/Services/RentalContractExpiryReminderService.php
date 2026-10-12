@@ -72,6 +72,9 @@ class RentalContractExpiryReminderService
         string $notificationType = 'advance'
     ): ?RentalContractExpiryReminder
     {
+        if (!RentalContract::query()->eligibleForExpiryNotifications()->whereKey($contract->id)->exists()) {
+            return null;
+        }
         $contract->loadMissing(['user', 'info', 'marketer']);
 
         if (!$contract->info?->ingaz_to || !$contract->user) {

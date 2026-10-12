@@ -73,6 +73,13 @@ class RentalContract extends Model
         'legacy_created_at' => 'datetime',
     ];
 
+    /** Only live signed/delivered rentals can receive expiry and warranty alerts. */
+    public function scopeEligibleForExpiryNotifications($query)
+    {
+        return $query->whereIn('status', ['active', 'maid_delivered', 'contract_signed'])
+            ->whereNull('closed_at');
+    }
+
     /** Match every search word across the contract, client and worker identifiers. */
     public function scopeQuickSearch($query, string $search)
     {
