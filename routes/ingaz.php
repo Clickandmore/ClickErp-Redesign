@@ -877,7 +877,21 @@ Route::group(
                     ->name('recovery.migrate');
                 Route::get('modules', [DevSuperAdminController::class, 'modules'])->name('modules');
                 Route::get('subscription', [DevSuperAdminController::class, 'modules'])->name('subscription');
-                Route::get('product-updates', [DevSuperAdminController::class, 'modules'])->name('product-updates');
+                Route::get('product-updates', [\App\Http\Controllers\admin\DevSystemUpdatesController::class, 'index'])->name('product-updates');
+                Route::prefix('system-updates')->name('system-updates.')->group(function () {
+                    Route::get('create', [\App\Http\Controllers\admin\DevSystemUpdatesController::class, 'create'])->name('create');
+                    Route::post('/', [\App\Http\Controllers\admin\DevSystemUpdatesController::class, 'store'])->name('store');
+                    Route::put('settings', [\App\Http\Controllers\admin\DevSystemUpdatesController::class, 'updateSettings'])->name('settings');
+                    Route::post('sync', [\App\Http\Controllers\admin\DevSystemUpdatesController::class, 'sync'])->middleware('throttle:6,1')->name('sync');
+                    Route::post('test-connection', [\App\Http\Controllers\admin\DevSystemUpdatesController::class, 'testConnection'])->middleware('throttle:10,1')->name('test-connection');
+                    Route::post('clients', [\App\Http\Controllers\admin\DevSystemUpdatesController::class, 'storeClient'])->name('clients.store');
+                    Route::put('clients/{client}/toggle', [\App\Http\Controllers\admin\DevSystemUpdatesController::class, 'toggleClient'])->whereNumber('client')->name('clients.toggle');
+                    Route::delete('clients/{client}', [\App\Http\Controllers\admin\DevSystemUpdatesController::class, 'destroyClient'])->whereNumber('client')->name('clients.destroy');
+                    Route::get('{systemUpdate}/edit', [\App\Http\Controllers\admin\DevSystemUpdatesController::class, 'edit'])->whereNumber('systemUpdate')->name('edit');
+                    Route::get('{systemUpdate}/report', [\App\Http\Controllers\admin\DevSystemUpdatesController::class, 'report'])->whereNumber('systemUpdate')->name('report');
+                    Route::put('{systemUpdate}', [\App\Http\Controllers\admin\DevSystemUpdatesController::class, 'update'])->whereNumber('systemUpdate')->name('update');
+                    Route::delete('{systemUpdate}', [\App\Http\Controllers\admin\DevSystemUpdatesController::class, 'destroy'])->whereNumber('systemUpdate')->name('destroy');
+                });
                 Route::get('employees', [DevSuperAdminController::class, 'modules'])->name('employees');
                 Route::get('database-backups', [DevSuperAdminController::class, 'modules'])->name('database-backups');
                 Route::get('scheduler', [DevSuperAdminController::class, 'modules'])->name('scheduler');
@@ -885,7 +899,6 @@ Route::group(
                 Route::put('maintenance-mode', [DevSuperAdminController::class, 'updateMaintenanceMode'])->name('maintenance-mode.update');
                 Route::put('home-sections/available', [\App\Http\Controllers\ingaz\HomeSectionSettingsController::class, 'updateAvailable'])->name('home-sections.available');
                 Route::put('subscription', [DevSuperAdminController::class, 'updateSubscription'])->name('subscription.update');
-                Route::put('product-updates', [DevSuperAdminController::class, 'updateProductUpdates'])->name('product-updates.update');
                 Route::post('scheduler/enable', [DevSuperAdminController::class, 'enableScheduler'])->name('scheduler.enable');
                 Route::put('database-backups/settings', [DevDatabaseBackupController::class, 'updateSettings'])->name('database-backups.settings');
                 Route::put('database-backups/security', [DevSuperAdminController::class, 'updateSecurity'])->name('database-backups.security');

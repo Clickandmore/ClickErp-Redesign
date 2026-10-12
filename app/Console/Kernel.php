@@ -7,6 +7,7 @@ use App\Models\ingaz\Maid;
 use App\Models\ingaz\Order;
 use App\Support\AutomationSettings;
 use App\Support\DatabaseBackupSettings;
+use App\Support\SystemUpdatesSettings;
 use App\Services\SchedulerMonitorService;
 use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Foundation\Console\Kernel as ConsoleKernel;
@@ -168,6 +169,14 @@ class Kernel extends ConsoleKernel
             ->everyFiveMinutes()
             ->withoutOverlapping()
             ->appendOutputTo(storage_path('logs/configured-notification-alerts.log'));
+
+        // سحب تحديثات النظام من المصدر المضبوط في Super Admin (افتراضيًا كل دقيقة، والمدة من هناك)
+        if (SystemUpdatesSettings::syncConfigured()) {
+            $schedule->command('system-updates:sync')
+                ->cron(SystemUpdatesSettings::syncCronExpression())
+                ->withoutOverlapping(30)
+                ->appendOutputTo(storage_path('logs/system-updates-sync.log'));
+        }
 
         if ($databaseBackupSettings['enabled']) {
             $schedule->command('database:backup-r2')

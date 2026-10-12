@@ -34,12 +34,7 @@
     $invalidCronCount = $cronJobs->where('risk', 'invalid')->count();
     $subscription = $subscription ?? [];
     $activeSection = $activeSection ?? 'modules';
-    $productUpdates = $productUpdates ?? \App\Support\ProductUpdatesSettings::all();
     $maintenanceSettings = $maintenanceSettings ?? \App\Support\DashboardMaintenanceSettings::all();
-    $editableProductUpdates = old('updates', $productUpdates['updates'] ?? []);
-    if (empty($editableProductUpdates)) {
-        $editableProductUpdates = [['title' => '', 'details' => '', 'url' => '', 'link_label' => 'عرض الميزة']];
-    }
     $subscriptionStatuses = [
         'active' => 'اشتراك نشط',
         'trial' => 'فترة تجريبية',
@@ -51,7 +46,7 @@
         'subscription' => ['title' => 'العميل والاشتراك', 'description' => 'إدارة بيانات المنشأة والباقة وتواريخ الاشتراك.'],
         'modules' => ['title' => 'الموديلات', 'description' => 'تفعيل مكونات النظام واختيار لوحة التحكم الافتراضية.'],
         'employees' => ['title' => 'الموظفون', 'description' => 'البحث عن موظف والدخول إلى لوحة الإدارة بحسابه.'],
-        'product-updates' => ['title' => 'ما الجديد', 'description' => 'إدارة بطاقات التحديثات وروابطها وترتيب ظهورها للعملاء.'],
+        'product-updates' => ['title' => 'تحديثات النظام', 'description' => 'إعلان الميزات والإصلاحات للموظفين بالصور والفيديو، ومتابعة من اطلع عليها، ومزامنة التحديثات بين النسخ.'],
         'backups' => ['title' => 'النسخ الاحتياطية', 'description' => 'إدارة النسخ التلقائية والتنزيل والاستعادة.'],
         'scheduler' => ['title' => 'المهام المجدولة', 'description' => 'متابعة حالة Scheduler والمهام الآلية القادمة.'],
     ][$activeSection] ?? ['title' => 'لوحة التطوير', 'description' => 'إدارة إعدادات النظام.'];
@@ -72,7 +67,7 @@
         ['key' => 'subscription', 'label' => 'العميل والاشتراك', 'url' => route('dev-superadmin.subscription')],
         ['key' => 'modules', 'label' => 'الموديلات', 'url' => route('dev-superadmin.modules')],
         ['key' => 'employees', 'label' => 'الموظفون', 'url' => route('dev-superadmin.employees')],
-        ['key' => 'product-updates', 'label' => 'ما الجديد', 'url' => route('dev-superadmin.product-updates')],
+        ['key' => 'product-updates', 'label' => 'تحديثات النظام', 'url' => route('dev-superadmin.product-updates')],
         ['key' => 'backups', 'label' => 'النسخ الاحتياطية', 'url' => route('dev-superadmin.database-backups')],
         ['key' => 'scheduler', 'label' => 'المهام المجدولة', 'url' => route('dev-superadmin.scheduler')],
     ];
@@ -93,9 +88,11 @@
             ['label' => 'نشط', 'value' => (string) $activeAdminsCount, 'tone' => 'is-good'],
             ['label' => 'الإجمالي', 'value' => (string) $admins->count(), 'tone' => ''],
         ],
-        'product-updates' => [
-            ['label' => 'بطاقات منشورة', 'value' => (string) count($productUpdates['updates'] ?? []), 'tone' => ''],
-        ],
+        'product-updates' => isset($systemUpdateCounts) ? [
+            ['label' => 'منشور', 'value' => (string) $systemUpdateCounts['published'], 'tone' => 'is-good'],
+            ['label' => 'مسودات', 'value' => (string) $systemUpdateCounts['drafts'], 'tone' => ''],
+            ['label' => 'من المصدر', 'value' => (string) $systemUpdateCounts['remote'], 'tone' => ''],
+        ] : [],
         'backups' => [
             ['label' => 'R2', 'value' => $r2Ready ? 'جاهز' : 'غير جاهز', 'tone' => $r2Ready ? 'is-good' : 'is-bad'],
             ['label' => 'نسخ محلية', 'value' => (string) count($localDatabaseBackups), 'tone' => ''],
@@ -269,82 +266,7 @@
     @endif
 
     @if ($activeSection === 'product-updates')
-    <section class="panel" id="product-updates" style="margin-bottom:24px;">
-        <div class="panel-head">
-            <div>
-                <h2 class="panel-title">ما الجديد في كليك</h2>
-                <p class="panel-subtitle">أنشئ بطاقات مرتبة لكل ميزة، وأضف رابط الصفحة التي تريد توجيه العميل إليها.</p>
-            </div>
-        </div>
-        <div class="panel-body">
-            <form class="subscription-form" method="POST" action="{{ route('dev-superadmin.product-updates.update') }}">
-                @csrf
-                @method('PUT')
-                <div class="field span-2">
-                    <label for="productUpdateTitle">عنوان نافذة التحديثات</label>
-                    <input id="productUpdateTitle" name="title" type="text" required value="{{ old('title', $productUpdates['title'] ?? '') }}" placeholder="جديد في كليك">
-                </div>
-                <div class="field">
-                    <label for="productUpdateDate">تاريخ النشر</label>
-                    <input id="productUpdateDate" name="published_at" type="date" value="{{ old('published_at', $productUpdates['published_at'] ?? '') }}">
-                </div>
-                <div class="field">
-                    <label for="productUpdateEnabled">حالة الظهور</label>
-                    <label class="switch-row" for="productUpdateEnabled">
-                        <span>إظهار في الهيدر</span>
-                        <span class="switch">
-                            <input name="is_enabled" type="hidden" value="0">
-                            <input id="productUpdateEnabled" name="is_enabled" type="checkbox" value="1" {{ old('is_enabled', $productUpdates['is_enabled'] ?? true) ? 'checked' : '' }}>
-                            <span class="slider"></span>
-                        </span>
-                    </label>
-                </div>
-                <div class="field span-4">
-                    <label for="productUpdateSummary">وصف مختصر</label>
-                    <input id="productUpdateSummary" name="summary" type="text" value="{{ old('summary', $productUpdates['summary'] ?? '') }}" placeholder="تحسينات جديدة أصبحت متاحة الآن">
-                </div>
-                <div class="field span-4">
-                    <label>بطاقات التحديث وترتيبها</label>
-                    <div id="productUpdatesBuilder" class="product-updates-builder">
-                        @foreach ($editableProductUpdates as $index => $update)
-                            <article class="product-update-editor" data-update-row>
-                                <div class="product-update-editor-head">
-                                    <strong data-update-number>التحديث {{ $loop->iteration }}</strong>
-                                    <div class="product-update-order">
-                                        <button type="button" data-move-update="up" title="تحريك لأعلى" aria-label="تحريك لأعلى">↑</button>
-                                        <button type="button" data-move-update="down" title="تحريك لأسفل" aria-label="تحريك لأسفل">↓</button>
-                                        <button type="button" class="product-update-remove" data-remove-update title="حذف">حذف</button>
-                                    </div>
-                                </div>
-                                <div class="product-update-fields">
-                                    <div class="field wide">
-                                        <label>عنوان الميزة</label>
-                                        <input data-update-field="title" name="updates[{{ $index }}][title]" type="text" required maxlength="160" value="{{ $update['title'] ?? '' }}" placeholder="مثال: إنشاء إشعار دائن من الفاتورة">
-                                    </div>
-                                    <div class="field wide">
-                                        <label>تفاصيل مختصرة</label>
-                                        <textarea data-update-field="details" name="updates[{{ $index }}][details]" rows="2" maxlength="1000" placeholder="اشرح الفائدة للعميل باختصار">{{ $update['details'] ?? '' }}</textarea>
-                                    </div>
-                                    <div class="field">
-                                        <label>رابط الصفحة</label>
-                                        <input data-update-field="url" name="updates[{{ $index }}][url]" type="text" maxlength="1000" dir="ltr" value="{{ $update['url'] ?? '' }}" placeholder="/dashboard/invoices">
-                                    </div>
-                                    <div class="field">
-                                        <label>نص زر الانتقال</label>
-                                        <input data-update-field="link_label" name="updates[{{ $index }}][link_label]" type="text" maxlength="80" value="{{ $update['link_label'] ?? '' }}" placeholder="الانتقال إلى الفواتير">
-                                    </div>
-                                </div>
-                            </article>
-                        @endforeach
-                        <button id="addProductUpdate" class="product-updates-add" type="button"><i class="fa fa-plus"></i> إضافة تحديث آخر</button>
-                    </div>
-                </div>
-                <div class="form-actions span-4">
-                    <button class="btn btn-primary" type="submit">حفظ ونشر التحديث</button>
-                </div>
-            </form>
-        </div>
-    </section>
+        @include('admin.superadmin.system-updates.' . ($systemUpdatesView ?? 'index'))
     @endif
 
     @if (in_array($activeSection, ['modules', 'employees'], true))
@@ -1110,101 +1032,6 @@
 
     productProfileInputs.forEach((input) => input.addEventListener('change', refreshProductProfileConfirmation));
     refreshProductProfileConfirmation();
-
-    const productUpdatesBuilder = document.getElementById('productUpdatesBuilder');
-    const addProductUpdateButton = document.getElementById('addProductUpdate');
-
-    function refreshProductUpdateRows() {
-        const rows = Array.from(productUpdatesBuilder?.querySelectorAll('[data-update-row]') || []);
-        rows.forEach((row, index) => {
-            const number = row.querySelector('[data-update-number]');
-            if (number) number.textContent = `التحديث ${index + 1}`;
-
-            const moveUp = row.querySelector('[data-move-update="up"]');
-            const moveDown = row.querySelector('[data-move-update="down"]');
-            if (moveUp) moveUp.disabled = index === 0;
-            if (moveDown) moveDown.disabled = index === rows.length - 1;
-
-            row.querySelectorAll('[data-update-field]').forEach((field) => {
-                field.name = `updates[${index}][${field.dataset.updateField}]`;
-            });
-        });
-    }
-
-    function createProductUpdateRow() {
-        const row = document.createElement('article');
-        row.className = 'product-update-editor';
-        row.dataset.updateRow = '';
-        row.innerHTML = `
-            <div class="product-update-editor-head">
-                <strong data-update-number>تحديث جديد</strong>
-                <div class="product-update-order">
-                    <button type="button" data-move-update="up" title="تحريك لأعلى" aria-label="تحريك لأعلى">↑</button>
-                    <button type="button" data-move-update="down" title="تحريك لأسفل" aria-label="تحريك لأسفل">↓</button>
-                    <button type="button" class="product-update-remove" data-remove-update title="حذف">حذف</button>
-                </div>
-            </div>
-            <div class="product-update-fields">
-                <div class="field wide">
-                    <label>عنوان الميزة</label>
-                    <input data-update-field="title" type="text" required maxlength="160" placeholder="مثال: إنشاء إشعار دائن من الفاتورة">
-                </div>
-                <div class="field wide">
-                    <label>تفاصيل مختصرة</label>
-                    <textarea data-update-field="details" rows="2" maxlength="1000" placeholder="اشرح الفائدة للعميل باختصار"></textarea>
-                </div>
-                <div class="field">
-                    <label>رابط الصفحة</label>
-                    <input data-update-field="url" type="text" maxlength="1000" dir="ltr" placeholder="/dashboard/invoices">
-                </div>
-                <div class="field">
-                    <label>نص زر الانتقال</label>
-                    <input data-update-field="link_label" type="text" maxlength="80" placeholder="الانتقال إلى الفواتير">
-                </div>
-            </div>`;
-        return row;
-    }
-
-    addProductUpdateButton?.addEventListener('click', function () {
-        const row = createProductUpdateRow();
-        productUpdatesBuilder.insertBefore(row, addProductUpdateButton);
-        refreshProductUpdateRows();
-        row.querySelector('[data-update-field="title"]')?.focus();
-    });
-
-    productUpdatesBuilder?.addEventListener('click', function (event) {
-        const removeButton = event.target.closest('[data-remove-update]');
-        const moveButton = event.target.closest('[data-move-update]');
-        const row = event.target.closest('[data-update-row]');
-        if (!row) return;
-
-        if (removeButton) {
-            const rows = productUpdatesBuilder.querySelectorAll('[data-update-row]');
-            if (rows.length === 1) {
-                row.querySelectorAll('input, textarea').forEach((field) => field.value = '');
-                row.querySelector('[data-update-field="title"]')?.focus();
-                return;
-            }
-            row.remove();
-            refreshProductUpdateRows();
-            return;
-        }
-
-        if (moveButton) {
-            const direction = moveButton.dataset.moveUpdate;
-            const sibling = direction === 'up' ? row.previousElementSibling : row.nextElementSibling;
-            if (!sibling?.matches('[data-update-row]')) return;
-
-            if (direction === 'up') {
-                productUpdatesBuilder.insertBefore(row, sibling);
-            } else {
-                productUpdatesBuilder.insertBefore(sibling, row);
-            }
-            refreshProductUpdateRows();
-        }
-    });
-
-    refreshProductUpdateRows();
 
     const searchInput = document.getElementById('employeeSearch');
     const employeeCards = Array.from(document.querySelectorAll('.employee-card'));

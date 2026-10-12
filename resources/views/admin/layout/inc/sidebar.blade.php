@@ -1215,15 +1215,24 @@
                 @endif
                 {{--                @include('finance::stock') --}}
                 {{-- اعدادات الرسائل النصية --}}
-                @if ($canViewSms || \App\Support\AdminDispatchPermissions::allows(auth('admin')->user(), \App\Support\AdminDispatchPermissions::VIEW))
-                    <li class="sidebar-module sidebar-module--messages {{ request()->routeIs('admin.dispatch.*') ? '' : 'collapsed' }}">
+                @php $showSystemUpdatesLink = \App\Services\SystemUpdates\SystemUpdateInbox::ready(); @endphp
+                @if ($canViewSms || $showSystemUpdatesLink || \App\Support\AdminDispatchPermissions::allows(auth('admin')->user(), \App\Support\AdminDispatchPermissions::VIEW))
+                    <li class="sidebar-module sidebar-module--messages {{ request()->routeIs('admin.dispatch.*', 'system-updates.*') ? '' : 'collapsed' }}">
                         <a class="m-link" data-bs-toggle="collapse" data-bs-target="#smsManagement" href="#">
                             <i class="fa fa-sms"></i>
                             <span class="ms-2">{{ \App\Support\AdminPermissionNavigation::unitTitle('messages') }}</span>
                             <span class="arrow fa fa-angle-left ms-auto text-end"></span>
                         </a>
-                        <ul class="sub-menu collapse {{ in_array(Route::currentRouteName(), ['notifications.index', 'notifications.settings', 'notifications.settings.alerts']) || request()->routeIs('admin.dispatch.*') || Request::is('admin/sms-templates*') ? 'show' : '' }}"
+                        <ul class="sub-menu collapse {{ in_array(Route::currentRouteName(), ['notifications.index', 'notifications.settings', 'notifications.settings.alerts']) || request()->routeIs('admin.dispatch.*', 'system-updates.*') || Request::is('admin/sms-templates*') ? 'show' : '' }}"
                             id="smsManagement">
+                            @if ($showSystemUpdatesLink)
+                                <li>
+                                    <a class="m-link {{ request()->routeIs('system-updates.*') ? 'active' : '' }}" href="{{ route('system-updates.index') }}">
+                                        <i class="fa fa-bullhorn"></i>
+                                        <span class="ms-2">تحديثات النظام</span>
+                                    </a>
+                                </li>
+                            @endif
                             @include('admin.notifications.sidebar-link')
                             @if (@AdminGuardHasPerm(\App\PermKeys::NOTIFICATIONS_CONTROL))
                                 <li>
