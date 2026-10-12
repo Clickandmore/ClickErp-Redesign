@@ -292,7 +292,13 @@ class DataImportReviewService
         $reference = $model::query()->find($row[$key]);
         if (!$reference) $issues[] = 'مرجع الفاتورة غير موجود أو خارج الفروع المتاحة.';
         if ($key === 'contract_id' && $reference && !$reference->isInvoiceEligible()) $issues[] = 'العقد غير مؤهل لإصدار فاتورة.';
-        if ($key !== 'client_id' && \App\Models\ingaz\Invoice::query()->where($key, $row[$key])->exists()) $issues[] = 'توجد فاتورة سابقة لهذا المرجع.';
+        if ($key !== 'client_id') {
+            $existingInvoices = \App\Models\ingaz\Invoice::query()->where($key, $row[$key]);
+            if ($key === 'contract_id') $existingInvoices->blockingReplacement();
+            if ($existingInvoices->exists()) $issues[] = $key === 'contract_id'
+                ? 'توجد فاتورة سابقة لهذا العقد لم تتم تغطيتها بالكامل بإشعار دائن.'
+                : 'توجد فاتورة سابقة لهذا المرجع.';
+        }
         if ($key !== 'client_id') {
             try {
                 if ((ImportValueParser::decimal($row['external_recruitment_cost'] ?? null) ?? 0) <= 0) $issues[] = 'قيمة الاستقدام الخارجي مطلوبة وأكبر من صفر.';

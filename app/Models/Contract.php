@@ -201,7 +201,17 @@ class Contract extends Model
 
     public function invoice()
     {
-        return $this->hasOne(Invoice::class, 'contract_id');
+        return $this->hasOne(Invoice::class, 'contract_id')->latestOfMany();
+    }
+
+    public function blockingInvoices()
+    {
+        return $this->hasMany(Invoice::class, 'contract_id')->blockingReplacement();
+    }
+
+    public function invoices()
+    {
+        return $this->hasMany(Invoice::class, 'contract_id');
     }
 
     public function recruitmentCreditNotes()

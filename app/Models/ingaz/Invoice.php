@@ -122,4 +122,13 @@ class Invoice extends Model
     {
         return $this->hasMany(RecruitmentInvoiceCreditNote::class, 'invoice_id');
     }
+
+    /** Only a fully credited invoice allows a replacement invoice for its contract. */
+    public function scopeBlockingReplacement($query)
+    {
+        return $query->where(function ($query) {
+            $query->whereDoesntHave('recruitmentCreditNotes')
+                ->orWhereRaw('ROUND(invoices.total_due * 100) > (SELECT COALESCE(SUM(ROUND(credit.total * 100)), 0) FROM recruitment_invoice_credit_notes AS credit WHERE credit.invoice_id = invoices.id)');
+        });
+    }
 }

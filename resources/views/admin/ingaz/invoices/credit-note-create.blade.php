@@ -89,7 +89,7 @@
 
                 <div class="d-flex justify-content-end gap-2 mt-4">
                     <a href="{{ route('invoices.index') }}" class="btn btn-outline-secondary">إلغاء</a>
-                    <button type="submit" class="btn btn-danger" onclick="return confirm('سيتم إنشاء إشعار دائن وقيد مالي دائم. هل تريد المتابعة؟')">
+                    <button type="submit" class="btn btn-danger">
                         <i class="fas fa-file-invoice-dollar me-1"></i> اعتماد إشعار الدائن
                     </button>
                 </div>
@@ -107,6 +107,37 @@ document.addEventListener('DOMContentLoaded', function () {
     const nonTaxable = document.getElementById('nonTaxableAmount');
     const mode = document.getElementById('creditMode');
     if (!taxable || !nonTaxable) return;
+    const form = document.getElementById('creditNoteForm');
+    let confirming = false;
+    let submitting = false;
+    form.addEventListener('submit', async function (event) {
+        event.preventDefault();
+        if (confirming || submitting || !form.reportValidity()) return;
+        confirming = true;
+        try {
+            const result = await Swal.fire({
+                icon: 'warning',
+                title: 'تأكيد اعتماد إشعار الدائن',
+                text: 'سيتم إنشاء إشعار دائن بقيمة ' + document.getElementById('totalPreview').textContent + ' ريال وقيد مالي دائم. هل تريد المتابعة؟',
+                showCancelButton: true,
+                confirmButtonText: 'نعم، اعتماد الإشعار',
+                cancelButtonText: 'إلغاء',
+                confirmButtonColor: '#dc3545',
+                cancelButtonColor: '#6c757d',
+                focusCancel: true,
+                reverseButtons: true,
+                didOpen: popup => popup.setAttribute('dir', 'rtl'),
+            });
+            if (!result.isConfirmed || !form.reportValidity()) return;
+            submitting = true;
+            const button = form.querySelector('button[type="submit"]');
+            button.disabled = true;
+            button.textContent = 'جارٍ اعتماد الإشعار...';
+            HTMLFormElement.prototype.submit.call(form);
+        } finally {
+            confirming = false;
+        }
+    });
     const maximum = @json($remaining);
     const money = value => Math.round((Number(value || 0) + Number.EPSILON) * 100) / 100;
     const refresh = () => {

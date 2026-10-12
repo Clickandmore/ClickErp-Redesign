@@ -2510,7 +2510,7 @@
                     </a>
                 @endif
 
-                @if (!$contract->invoice && $contract->isInvoiceEligible() && \App\Support\InvoiceAuthorization::canCreate())
+                @if ($contract->isInvoiceEligible() && \App\Support\InvoiceAuthorization::canCreate() && !$contract->blockingInvoices()->exists())
                     <a href="{{ route('invoices.create', ['contract_id' => $contract->id]) }}"
                         class="btn-icon btn-invoice" title="إضافة فاتورة" aria-label="إضافة فاتورة"
                         target="_blank" rel="noopener">

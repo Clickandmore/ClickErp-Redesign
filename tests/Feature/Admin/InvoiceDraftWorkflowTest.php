@@ -131,6 +131,54 @@ class InvoiceDraftWorkflowTest extends TestCase
         $this->assertFalse(Invoice::where('contract_id', $contract->id)->exists());
     }
 
+    public function test_contract_can_be_reinvoiced_only_after_full_credit_and_replacement_blocks_duplicates(): void
+    {
+        $this->grant(PermKeys::INVOICES_CREATE, PermKeys::INVOICES_VIEW, PermKeys::INVOICES_EDIT_LINE_ITEMS);
+        $contract = Contract::withoutEvents(fn () => Contract::create(['user_id' => $this->client->id, 'status' => 'new', 'type' => 'recruitment', 'branch_id' => $this->actor->branch_id]));
+        $payload = array_merge($this->payload(), ['client_id' => null, 'contract_id' => $contract->id, 'external_recruitment_cost' => 100]);
+        $this->postJson(route('invoices.store'), $payload)->assertOk()->assertJsonPath('success', true);
+        $original = $contract->invoice()->firstOrFail();
+        $this->postJson(route('invoices.store'), $payload)->assertUnprocessable();
+
+        $addCredit = function (float $amount) use ($contract, $original) {
+            return \App\Models\RecruitmentInvoiceCreditNote::withoutEvents(fn () => \App\Models\RecruitmentInvoiceCreditNote::create([
+                'invoice_id' => $original->id, 'contract_id' => $contract->id,
+                'branch_id' => $contract->branch_id, 'issue_date' => now()->toDateString(),
+                'reason' => 'اختبار الاستبدال', 'total' => $amount,
+            ]));
+        };
+        $addCredit((float) $original->total_due - 0.01);
+        $this->postJson(route('invoices.store'), $payload)->assertUnprocessable();
+        $this->get(route('invoices.create', ['contract_id' => $contract->id]))->assertRedirect(route('invoices.show', $original->id));
+
+        $addCredit(0.01);
+        $this->get(route('invoices.create', ['contract_id' => $contract->id]))->assertOk();
+        $this->get(route('invoices.create', ['contract_search' => $contract->id]))->assertOk()->assertViewHas('selectedContract', fn ($selected) => $selected?->id === $contract->id);
+        $this->postJson(route('invoices.store'), $payload)->assertOk()->assertJsonPath('success', true);
+        $this->assertSame(2, Invoice::where('contract_id', $contract->id)->count());
+        $replacement = $contract->invoice()->firstOrFail();
+        $this->assertNotEquals($original->id, $replacement->id);
+        $this->assertEquals($original->total_due, $original->fresh()->total_due);
+        $this->postJson(route('invoices.store'), $payload)->assertUnprocessable();
+        $this->get(route('invoices.create', ['contract_id' => $contract->id]))->assertRedirect(route('invoices.show', $replacement->id));
+
+        $collector = new \ReflectionMethod(\App\Http\Controllers\ingaz\RecruitmentContractController::class, 'collectRecruitmentContractDocuments');
+        $collector->setAccessible(true);
+        $collectDocuments = fn () => collect($collector->invoke(app(\App\Http\Controllers\ingaz\RecruitmentContractController::class), $contract->fresh()))
+            ->firstWhere('key', 'financial-attachments')['items'];
+        $items = collect($collectDocuments());
+        $this->assertContains(route('invoices.show', $original->id), $items->pluck('url'));
+        $this->assertContains(route('invoices.show', $replacement->id), $items->pluck('url'));
+        $this->assertTrue($items->contains(fn ($item) => str_contains($item['label'], 'فاتورة سابقة #')));
+        $this->assertFalse($items->contains(fn ($item) => str_contains($item['label'], 'إشعار دائن #')));
+        $this->grant(PermKeys::INVOICE_CREDIT_NOTES_PRINT);
+        $items = collect($collectDocuments());
+        foreach ($original->recruitmentCreditNotes as $note) {
+            $this->assertContains(route('recruitment-credit-notes.download', ['id' => $note->id, 'autoprint' => 1]), $items->pluck('url'));
+        }
+        $this->assertSame($items->count(), $items->pluck('key')->unique()->count());
+    }
+
     public function test_review_is_restricted_to_the_active_branch(): void
     {
         $this->enableBranchesModule();
