@@ -618,6 +618,39 @@ class DataImportTemplateService
             ],
         ];
 
+        $references = [
+            ['key' => 'reference_msaned_number', 'label' => 'رقم عقد مساند للربط', 'required' => false, 'example' => 'MS-0001'],
+            ['key' => 'reference_visa_number', 'label' => 'رقم التأشيرة للربط', 'required' => false, 'example' => ''],
+            ['key' => 'reference_contract_number', 'label' => 'رقم عقد الاستقدام للربط', 'required' => false, 'example' => ''],
+        ];
+        $templates['musaned_transfers'] = [
+            'label' => 'تحويلات مساند', 'route_hint' => '/admin/musaned-transfers', 'icon' => 'fas fa-money-bill-transfer',
+            'description' => 'كل صف تحويل مستقل لعقد أو تفويض له فاتورة. يحسب النظام العمولة والضريبة وينشئ القيود حسب إعدادات الشركة، مثل شاشة تحويلات مساند.',
+            'filename' => 'musaned-transfers-import-template.xlsx',
+            'columns' => array_merge([
+                ['key' => 'reference_number', 'label' => 'مرجع التحويل الفريد', 'required' => true, 'example' => 'TR-0001'],
+                ['key' => 'reference_type', 'label' => 'نوع الربط', 'required' => true, 'example' => 'عقد استقدام', 'valid_values' => ['عقد استقدام', 'تفويض']],
+            ], $references, [
+                ['key' => 'reference_ingaz_number', 'label' => 'رقم إنجاز للتفويض', 'required' => false, 'example' => ''],
+                ['key' => 'transfer_date', 'label' => 'تاريخ التحويل', 'required' => true, 'example' => now()->format('Y-m-d')],
+                ['key' => 'transferred_amount', 'label' => 'صافي المبلغ المحول من مساند (ريال)', 'required' => true, 'example' => '9500'],
+                ['key' => 'bank_account_code', 'label' => 'كود الحساب البنكي', 'required' => false, 'example' => ''],
+                ['key' => 'notes', 'label' => 'ملاحظات', 'required' => false, 'example' => ''],
+            ]),
+        ];
+        $templates['external_office_dispatches'] = [
+            'label' => 'الإرساليات / فواتير المورد', 'route_hint' => '/admin/RecruitmentContract/external-office-dispatches', 'icon' => 'fas fa-paper-plane',
+            'description' => 'إرسالية واحدة لكل عقد استقدام جارٍ؛ تثبت تكلفة المورد وتُنشأ القيود وفق إعدادات النظام. العقود التي لها إرسالية سابقة لا تُكرر.',
+            'filename' => 'external-office-dispatches-import-template.xlsx',
+            'columns' => array_merge($references, [
+                ['key' => 'dispatch_date', 'label' => 'تاريخ الإرسالية', 'required' => true, 'example' => now()->format('Y-m-d')],
+                ['key' => 'arrival_station', 'label' => 'محطة الوصول', 'required' => true, 'example' => 'الرياض'],
+                ['key' => 'office_contract_cost_usd', 'label' => 'تكلفة المورد المراد إثباتها (دولار)', 'required' => true, 'example' => '2500'],
+                ['key' => 'supplier_recognition_mode', 'label' => 'نوع إثبات التكلفة', 'required' => false, 'example' => '', 'valid_values' => ['كاملة', 'جزئية', 'full', 'partial']],
+                ['key' => 'supplier_total_cost_usd', 'label' => 'إجمالي تكلفة المورد (دولار)', 'required' => false, 'example' => ''],
+            ]),
+        ];
+
         foreach ($templates as $type => &$template) {
             $template['matching_hint'] = $this->matchingHint($type);
             foreach ($template['columns'] as &$column) {
@@ -634,6 +667,8 @@ class DataImportTemplateService
     public function matchingHint(string $type): string
     {
         return match ($type) {
+            'musaned_transfers' => 'كل صف تحويل مستقل بمرجع فريد. اختر عقد استقدام أو تفويض وأدخل رقم مساند أو التأشيرة أو إنجاز. كود البنك مطلوب عند تفعيل القيود التلقائية. لا تدخل العمولة أو الضريبة؛ يحسبهما النظام من الفاتورة.',
+            'external_office_dispatches' => 'أدخل رقم مساند أو التأشيرة أو رقم عقد الاستقدام. يجب وجود بيانات العميل والعاملة والمكتب بالعقد. اترك نوع الإثبات فارغًا للتسلسل القديم؛ في التسلسل الجديد اختر كاملة أو جزئية وأدخل الإجمالي.',
             'invoices' => 'اختر نوع الربط، ثم أدخل رقم مساند أو إنجاز أو التأشيرة. لا تحتاج إلى ID. مرجع الاستيراد يُولد تلقائياً لفاتورة العقد أو التفويض عند تركه فارغاً. للفاتورة العامة استخدم هوية العميل أو جواله مع مرجع فاتورة ثابت. ستظهر نتيجة الربط قبل الاعتماد.',
             'ingaz_delegations' => 'أدخل رقم إنجاز ورقم مساند والتأشيرة. اربط العميل بالهوية أو الجوال والعامل بالجواز. اترك ID التفويض فارغاً للإضافة؛ المعرّف الداخلي لتحديث سجل موجود فقط.',
             'clients', 'arabia_clients' => 'يتم التعرف على العميل بالهوية أو الجوال ورقم المصدر إن وجد. لا تستخدم اسم العميل وحده للربط ولا تكتب ID جديداً من عندك.',

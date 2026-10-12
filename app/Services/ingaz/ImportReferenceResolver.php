@@ -12,6 +12,9 @@ class ImportReferenceResolver
 {
     public function resolve(string $type, array $row): array
     {
+        if (in_array($type, ['musaned_transfers', 'external_office_dispatches'], true)) {
+            return app(RecruitmentOperationsImportService::class)->resolve($type, $row);
+        }
         $issues = $links = [];
         if ($type === 'invoices') {
             $groups = [

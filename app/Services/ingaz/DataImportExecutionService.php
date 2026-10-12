@@ -94,6 +94,9 @@ class DataImportExecutionService
 
     public function validateReviewRow(string $type, array $row): array
     {
+        if (in_array($type, ['musaned_transfers', 'external_office_dispatches'], true)) {
+            return app(RecruitmentOperationsImportService::class)->validate($type, $row);
+        }
         $issues = [];
         try {
             if (in_array($type, ['rental_maids', 'recruitment_offices'], true) && !$this->resolveNationalityId($row['nationality'] ?? null)) {
@@ -252,6 +255,7 @@ class DataImportExecutionService
             if ($resolution['issues']) throw new \InvalidArgumentException(implode('؛ ', $resolution['issues']));
             $row = $resolution['row'];
             return match ($type) {
+                'musaned_transfers', 'external_office_dispatches' => app(RecruitmentOperationsImportService::class)->import($type, $row, $adminId),
                 'invoices' => $this->importOperationalInvoice($row),
                 'clients' => $this->importClient($row, $adminId),
                 'admins' => $this->importAdmin($row),

@@ -182,6 +182,31 @@ class RecruitmentCycleNoDuplicationTest extends TestCase
 
     // ── مراحل الدورة ───────────────────────────────────────────────────────
 
+    public function test_reviewed_musaned_import_reuses_settlement_accounting_and_does_not_repeat_commission(): void
+    {
+        \Illuminate\Support\Facades\Http::fake();
+        $this->admin->givePermissionTo(\App\Models\Permission::firstOrCreate(['name' => \App\PermKeys::MUSANED_TRANSFERS_CREATE, 'guard_name' => 'admin']));
+        [$contract, $invoice] = $this->issueInvoice('اختبار تحويل مساند المستورد');
+        $this->postCommissionTwice($invoice);
+        $row = ['reference_number' => 'IMPORT-ACCOUNTING', 'reference_type' => 'عقد استقدام',
+            'reference_contract_number' => (string) $contract->id,
+            'transfer_date' => now()->toDateString(), 'transferred_amount' => (string) self::NET,
+            'bank_account_code' => (string) $this->acc['bank']->code];
+        $resolved = app(\App\Services\ingaz\ImportReferenceResolver::class)->resolve('musaned_transfers', $row);
+        $this->assertSame([], $resolved['issues']);
+        $this->assertSame([], app(\App\Services\ingaz\RecruitmentOperationsImportService::class)->validate('musaned_transfers', $resolved['row']));
+        $this->assertSame('created', app(\App\Services\ingaz\DataImportExecutionService::class)->importReviewedRow('musaned_transfers', $row, $this->admin->id));
+        $item = MusanedTransferItem::query()->where('invoice_id', $invoice->id)->firstOrFail();
+        $this->assertNotNull($item->transfer->settlement_constraint_id);
+        $this->assertNotNull($item->transfer->bank_transfer_constraint_id);
+        $this->assertBalance('musaned', 0.0);
+        $this->assertBalance('intermediate', 0.0);
+        $this->assertBalance('bank', self::NET);
+        $this->assertBalance('commission', self::COMMISSION - self::COMMISSION_TAX);
+        $this->assertBalance('expense_tax', self::COMMISSION_TAX);
+        $this->assertNotEmpty(app(\App\Services\ingaz\RecruitmentOperationsImportService::class)->validate('musaned_transfers', $resolved['row']));
+    }
+
     private function issueInvoice(string $nationalityName): array
     {
         $nationality = Nationality::query()->create(['ar' => ['title' => $nationalityName, 'sub_title' => $nationalityName]]);
