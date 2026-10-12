@@ -1024,19 +1024,6 @@
 
     /* ============================ ما الجديد ============================ */
 
-    .product-updates-builder { display: grid; gap: 16px; }
-    .product-update-editor { border: 1px solid var(--border); border-radius: var(--r-md); padding: 18px; background: var(--surface-soft); box-shadow: var(--shadow-xs); }
-    .product-update-editor-head { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 16px; padding-bottom: 12px; border-bottom: 1px solid var(--border); }
-    .product-update-editor-head strong { font-size: .92rem; }
-    .product-update-order { display: flex; gap: 6px; }
-    .product-update-order button { width: 34px; height: 34px; border: 1px solid var(--border-strong); border-radius: var(--r-xs); background: #fff; cursor: pointer; font: inherit; color: var(--text-soft); transition: background .15s ease; }
-    .product-update-order button:hover:not(:disabled) { background: var(--surface-alt); }
-    .product-update-order button:disabled { opacity: .35; cursor: not-allowed; }
-    .product-update-fields { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
-    .product-update-fields .wide { grid-column: 1 / -1; }
-    .product-update-remove { width: auto !important; padding: 0 10px !important; border: 0 !important; background: transparent !important; color: var(--danger) !important; cursor: pointer; font: inherit; font-weight: 700; font-size: .84rem; }
-    .product-updates-add { justify-self: start; border: 1px dashed var(--accent); background: var(--accent-soft); color: var(--accent-dark); border-radius: var(--r-sm); padding: 11px 18px; font: inherit; font-weight: 600; font-size: .88rem; cursor: pointer; transition: background .15s ease; }
-    .product-updates-add:hover { background: #d8efea; }
 
     /* ============================ الاستعادة (recovery) ============================ */
 
@@ -1138,11 +1125,11 @@
         .panel-head { flex-direction: column; align-items: stretch; }
         .panel-body, .subscription-content, .subscription-overview { padding: 18px; }
         .stats, .module-grid, .dashboard-options, .status-grid,
-        .backup-settings, .subscription-form, .product-update-fields,
+        .backup-settings, .subscription-form,
         .profile-confirmation-fields, .database-connection-details,
         .sa-recovery .form-grid, .employee-list { grid-template-columns: 1fr; }
         .subscription-form .span-2, .subscription-form .span-4,
-        .product-update-fields .wide, .profile-confirmation-fields .wide { grid-column: auto; }
+        .profile-confirmation-fields .wide { grid-column: auto; }
         .employee-card { grid-template-columns: 1fr; }
         .employee-card form, .employee-card .btn { width: 100%; }
         .verification-confirm input[type="text"], .verification-confirm input[type="password"] { width: 100%; }

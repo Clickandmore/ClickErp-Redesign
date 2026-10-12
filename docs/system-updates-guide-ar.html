@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<title>دليل تحديثات النظام</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+    @page { size: A4; margin: 0; }
+    :root {
+        --teal: #0f6b6e; --teal-2: #15959a; --teal-soft: #e8f7f5; --teal-line: #9fd3cb;
+        --navy: #16324f; --ink: #0f172a; --text: #334155; --muted: #64748b;
+        --line: #e2e8f0; --soft: #f8fafc; --red: #b42318; --red-soft: #fef3f2;
+        --amber: #b54708; --amber-soft: #fffaeb; --blue: #175cd3; --blue-soft: #eff8ff; --green: #067647; --green-soft: #ecfdf3;
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; font-family: "IBM Plex Sans Arabic", "Segoe UI", Tahoma, sans-serif; color: var(--text); font-size: 12.5px; line-height: 1.75; -webkit-print-color-adjust: exact; print-color-adjust: exact; background: #fff; }
+    .page { width: 210mm; height: 297mm; padding: 16mm 15mm 14mm; position: relative; overflow: hidden; page-break-after: always; }
+    .page:last-child { page-break-after: auto; }
+    .page-num { position: absolute; bottom: 8mm; left: 15mm; right: 15mm; display: flex; justify-content: space-between; color: #94a3b8; font-size: 10px; border-top: 1px solid var(--line); padding-top: 6px; }
+    h1 { margin: 0; color: var(--ink); font-size: 30px; line-height: 1.35; }
+    h2 { margin: 0 0 4px; color: var(--ink); font-size: 20px; display: flex; align-items: center; gap: 10px; }
+    h2 .n { width: 32px; height: 32px; border-radius: 10px; background: var(--teal); color: #fff; display: grid; place-items: center; font-size: 15px; }
+    h3 { margin: 0 0 6px; color: var(--ink); font-size: 14px; }
+    .lead { color: var(--muted); font-size: 13px; margin: 0 0 18px; }
+    p { margin: 0 0 8px; }
+    b { color: var(--ink); }
+    .code { direction: ltr; unicode-bidi: plaintext; font-family: Consolas, monospace; font-size: 11px; background: var(--soft); border: 1px solid var(--line); border-radius: 5px; padding: 1px 6px; }
+
+    /* الغلاف */
+    .cover { background: linear-gradient(160deg, #0b4f51 0%, var(--teal) 45%, var(--teal-2) 100%); color: #fff; }
+    .cover h1 { color: #fff; font-size: 38px; margin-top: 30mm; }
+    .cover .sub { font-size: 16px; color: rgba(255,255,255,.88); margin-top: 10px; max-width: 150mm; }
+    .cover .tag { display: inline-block; padding: 5px 14px; border-radius: 999px; background: rgba(255,255,255,.16); font-size: 12px; }
+    .cover .page-num { color: rgba(255,255,255,.7); border-color: rgba(255,255,255,.25); }
+    .cover-points { margin-top: 18mm; display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+    .cover-points div { background: rgba(255,255,255,.12); border: 1px solid rgba(255,255,255,.2); border-radius: 14px; padding: 14px; }
+    .cover-points b { color: #fff; display: block; font-size: 14px; margin-bottom: 4px; }
+    .cover-points span { color: rgba(255,255,255,.85); font-size: 12px; }
+
+    /* المخططات */
+    .flow { display: flex; align-items: stretch; gap: 0; margin: 14px 0; }
+    .flow .box { flex: 1; border: 1.5px solid var(--teal-line); background: var(--teal-soft); border-radius: 14px; padding: 12px; text-align: center; }
+    .flow .box .ic { font-size: 24px; line-height: 1; margin-bottom: 6px; }
+    .flow .box b { display: block; font-size: 13px; }
+    .flow .box small { display: block; color: var(--muted); font-size: 11px; line-height: 1.6; margin-top: 4px; }
+    .flow .arrow { flex: 0 0 26px; display: grid; place-items: center; color: var(--teal); font-size: 20px; font-weight: 700; }
+    .flow .box.red { border-color: #fbd5d1; background: var(--red-soft); }
+    .flow .box.blue { border-color: #b2ddff; background: var(--blue-soft); }
+    .flow .box.green { border-color: #abefc6; background: var(--green-soft); }
+    .flow .box.gray { border-color: var(--line); background: var(--soft); }
+
+    .hub { display: grid; grid-template-columns: 1fr 70px 1fr; align-items: center; margin: 16px 0 6px; }
+    .hub .source { border: 2px solid var(--teal); border-radius: 16px; padding: 16px; background: var(--teal-soft); text-align: center; }
+    .hub .source b { font-size: 15px; }
+    .hub .lines { height: 100%; display: grid; align-content: space-around; color: var(--teal); text-align: center; font-size: 11px; font-weight: 700; }
+    .hub .clients { display: grid; gap: 8px; }
+    .hub .client { border: 1.5px solid var(--line); border-radius: 12px; padding: 9px 12px; background: #fff; display: flex; justify-content: space-between; align-items: center; }
+    .hub .client small { color: var(--muted); }
+    .pill { display: inline-block; padding: 2px 9px; border-radius: 999px; font-size: 10.5px; font-weight: 700; }
+    .pill.teal { background: var(--teal-soft); color: var(--teal); }
+    .pill.red { background: var(--red-soft); color: var(--red); }
+    .pill.amber { background: var(--amber-soft); color: var(--amber); }
+    .pill.gray { background: var(--soft); color: var(--muted); border: 1px solid var(--line); }
+    .pill.green { background: var(--green-soft); color: var(--green); }
+
+    /* الخطوات */
+    .steps { display: grid; gap: 10px; margin-top: 10px; }
+    .step { display: grid; grid-template-columns: 34px 1fr; gap: 12px; align-items: start; padding: 12px 14px; border: 1px solid var(--line); border-radius: 12px; background: #fff; }
+    .step .k { width: 34px; height: 34px; border-radius: 10px; background: var(--teal-soft); color: var(--teal); display: grid; place-items: center; font-weight: 700; font-size: 15px; }
+    .step p { margin: 0; color: var(--muted); font-size: 12px; }
+    .step > div > b { display: block; font-size: 13px; margin-bottom: 2px; }
+
+    .cols { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+    .card { border: 1px solid var(--line); border-radius: 14px; padding: 14px; background: #fff; }
+    .card.teal { border-color: var(--teal-line); background: linear-gradient(180deg, var(--teal-soft), #fff 60%); }
+    .card.blue { border-color: #b2ddff; background: linear-gradient(180deg, var(--blue-soft), #fff 60%); }
+    .card h3 { display: flex; align-items: center; gap: 8px; }
+
+    table { width: 100%; border-collapse: collapse; margin-top: 8px; font-size: 11.5px; }
+    th, td { text-align: right; padding: 7px 9px; border-bottom: 1px solid var(--line); vertical-align: top; }
+    th { background: var(--soft); color: var(--muted); font-size: 11px; font-weight: 700; }
+    td:first-child { font-weight: 700; color: var(--ink); white-space: nowrap; }
+
+    .note { margin-top: 12px; padding: 10px 14px; border-radius: 12px; background: var(--amber-soft); border: 1px solid #fedf89; color: #7a2e0e; font-size: 11.5px; }
+    .tip { margin-top: 12px; padding: 10px 14px; border-radius: 12px; background: var(--blue-soft); border: 1px solid #b2ddff; color: #1849a9; font-size: 11.5px; }
+
+    /* محاكاة الشاشة */
+    .screen { border: 1px solid #cbd5e1; border-radius: 12px; overflow: hidden; background: #f1f5f9; box-shadow: 0 10px 30px -18px rgba(15,23,42,.5); }
+    .screen .top { height: 26px; background: #e2e8f0; display: flex; align-items: center; gap: 5px; padding: 0 10px; }
+    .screen .top i { width: 8px; height: 8px; border-radius: 50%; background: #94a3b8; display: block; }
+    .screen .header { display: flex; justify-content: space-between; align-items: center; padding: 8px 12px; background: #fff; border-bottom: 1px solid var(--line); font-size: 11px; color: var(--muted); }
+    .bell { position: relative; width: 28px; height: 28px; border: 1px solid var(--line); border-radius: 8px; display: grid; place-items: center; }
+    .bell .badge { position: absolute; top: -6px; left: -6px; min-width: 17px; height: 17px; border-radius: 9px; background: #ef4444; color: #fff; font-size: 9.5px; font-weight: 700; display: grid; place-items: center; border: 2px solid #fff; }
+    .bar { margin: 8px 12px; padding: 7px 10px; border-radius: 10px; color: #fff; display: flex; align-items: center; gap: 10px; font-size: 11px; background: linear-gradient(135deg, var(--red), #e04f3f); }
+    .bar .t { flex: 1; color: rgba(255,255,255,.92); }
+    .bar .cta { background: #fff; color: var(--red); border-radius: 6px; padding: 2px 9px; font-weight: 700; }
+    .bar .x { width: 20px; height: 20px; border-radius: 6px; background: rgba(255,255,255,.18); display: grid; place-items: center; }
+    .ucard { margin: 10px 12px 12px; background: #fff; border: 1px solid var(--teal-line); border-radius: 12px; padding: 12px 14px; position: relative; }
+    .ucard::before { content: ""; position: absolute; right: -1px; top: 12px; bottom: 12px; width: 4px; border-radius: 4px; background: var(--red); }
+    .ucard .meta { display: flex; gap: 6px; align-items: center; font-size: 10.5px; color: var(--muted); }
+    .ucard h4 { margin: 6px 0 2px; color: var(--ink); font-size: 13px; }
+    .ucard .foot { display: flex; justify-content: space-between; align-items: center; margin-top: 10px; padding-top: 8px; border-top: 1px solid var(--line); font-size: 11px; }
+    .btn-ack { background: var(--teal); color: #fff; border-radius: 7px; padding: 4px 12px; font-weight: 700; }
+    .pdfrow { display: flex; align-items: center; gap: 8px; margin-top: 8px; padding: 7px 9px; border: 1px solid var(--line); border-radius: 9px; font-size: 11px; }
+    .pdfrow .ic { width: 26px; height: 26px; border-radius: 7px; background: var(--red-soft); color: var(--red); font-weight: 800; font-size: 9px; display: grid; place-items: center; }
+    .callout { position: relative; display: inline-flex; align-items: center; justify-content: center; width: 20px; height: 20px; border-radius: 50%; background: #f59e0b; color: #fff; font-size: 11px; font-weight: 700; margin-inline-start: 4px; }
+    .legend { display: grid; gap: 6px; margin-top: 12px; }
+    .legend div { display: flex; gap: 8px; align-items: flex-start; font-size: 12px; }
+
+    .timeline { display: grid; grid-template-columns: repeat(5, 1fr); gap: 0; margin-top: 12px; position: relative; }
+    .timeline::before { content: ""; position: absolute; top: 15px; right: 10%; left: 10%; height: 3px; background: linear-gradient(90deg, var(--line), var(--teal-line)); }
+    .timeline div { text-align: center; position: relative; padding: 0 4px; }
+    .timeline .dot { width: 32px; height: 32px; margin: 0 auto 6px; border-radius: 50%; background: #fff; border: 3px solid var(--teal); display: grid; place-items: center; font-weight: 700; color: var(--teal); font-size: 12px; }
+    .timeline b { display: block; font-size: 12px; }
+    .timeline small { display: block; color: var(--muted); font-size: 10.5px; line-height: 1.55; }
+</style>
+</head>
+<body>
+
+<!-- ============ 1. الغلاف ============ -->
+<section class="page cover">
+    <span class="tag">ClickERP · دليل مختصر</span>
+    <h1>تحديثات النظام</h1>
+    <p class="sub">كيف تُعلن عن كل ميزة أو إصلاح جديد لموظفي لوحة التحكم، وتتأكد أنهم اطلعوا عليه، وتوصله لكل نسخ العملاء من مكان واحد.</p>
+
+    <div class="cover-points">
+        <div><b>📝 تكتب مرة واحدة</b><span>في لوحة Super Admin بنسختكم: نص، صور، فيديو، أو ملف PDF.</span></div>
+        <div><b>📣 يظهر للموظف فورًا</b><span>شريط أعلى اللوحة وصفحة كاملة للتحديثات.</span></div>
+        <div><b>✅ تعرف من اطلع</b><span>كل موظف يضغط «تم الاطلاع»، وأنت ترى التقرير.</span></div>
+    </div>
+
+    <div style="margin-top: 16mm; background:#fff; border-radius:18px; padding:18px; color:var(--text)">
+        <h3 style="margin-bottom:2px">الصورة الكاملة في رسم واحد</h3>
+        <div class="hub">
+            <div class="source">
+                <div style="font-size:26px">🏢</div>
+                <b>نسختكم (المصدر)</b>
+                <p style="margin:4px 0 0; font-size:11.5px; color:var(--muted)">تكتب التحديث وتنشره<br>وتُنشئ مفتاحًا لكل عميل</p>
+            </div>
+            <div class="lines"><span>⟵</span><span>⟵ خلال دقيقة</span><span>⟵</span></div>
+            <div class="clients">
+                <div class="client"><span>🏬 <b>نسخة عميل أ</b></span><small>موظفوها يرون التحديث</small></div>
+                <div class="client"><span>🏬 <b>نسخة عميل ب</b></span><small>موظفوها يرون التحديث</small></div>
+                <div class="client"><span>🏬 <b>نسخة عميل ج</b></span><small>موظفوها يرون التحديث</small></div>
+            </div>
+        </div>
+        <p style="margin:6px 0 0; font-size:11px; color:var(--muted)">كل نسخة عميل تسأل نسختكم كل دقيقة «هل يوجد جديد؟» باستخدام مفتاحها، وتحفظ التحديثات عندها. لو توقفت نسختكم لا تتأثر لوحات العملاء.</p>
+    </div>
+
+    <div class="page-num"><span>دليل تحديثات النظام</span><span>1</span></div>
+</section>
+
+<!-- ============ 2. كيف يعمل ============ -->
+<section class="page">
+    <h2><span class="n">1</span> كيف يعمل التحديث من البداية للنهاية؟</h2>
+    <p class="lead">أربع خطوات، ثلاث منها تلقائية.</p>
+
+    <div class="flow">
+        <div class="box"><div class="ic">📝</div><b>تكتب التحديث</b><small>Super Admin ← تحديثات النظام ← «تحديث جديد»</small></div>
+        <div class="arrow">←</div>
+        <div class="box blue"><div class="ic">🔄</div><b>يصل للنسخ</b><small>تلقائيًا خلال دقيقة لكل نسخة عميل مرتبطة</small></div>
+        <div class="arrow">←</div>
+        <div class="box red"><div class="ic">📣</div><b>يظهر للموظفين</b><small>شريط ملوّن + أيقونة بعداد في أعلى اللوحة</small></div>
+        <div class="arrow">←</div>
+        <div class="box green"><div class="ic">✅</div><b>يؤكد الموظف</b><small>«تم الاطلاع» يُخرجه من الشريط ويُسجَّل في التقرير</small></div>
+    </div>
+
+    <h3 style="margin-top:22px">رحلة التحديث الواحد</h3>
+    <div class="timeline">
+        <div><span class="dot">1</span><b>مسودة</b><small>تكتب وتعدّل.<br>لا يراه أحد.</small></div>
+        <div><span class="dot">2</span><b>منشور</b><small>فورًا أو في موعد<br>تحدده مسبقًا.</small></div>
+        <div><span class="dot">3</span><b>في الشريط</b><small>لكل من لم يؤكد،<br>30 يومًا افتراضيًا.</small></div>
+        <div><span class="dot">4</span><b>تم الاطلاع</b><small>يختفي من شريط<br>هذا الموظف.</small></div>
+        <div><span class="dot">5</span><b>في الأرشيف</b><small>يبقى دائمًا في<br>صفحة التحديثات.</small></div>
+    </div>
+
+    <h3 style="margin-top:26px">أنواع التحديث وكيف يظهر كل نوع</h3>
+    <table>
+        <tr><th>النوع</th><th>متى تستخدمه</th><th>شكله عند الموظف</th></tr>
+        <tr><td><span class="pill teal">ميزة جديدة</span></td><td>شيء لم يكن موجودًا في النظام</td><td>شريط أخضر</td></tr>
+        <tr><td><span class="pill" style="background:var(--blue-soft);color:var(--blue)">تحسين</span></td><td>ميزة موجودة أصبحت أسهل أو أسرع</td><td>شريط أخضر</td></tr>
+        <tr><td><span class="pill green">إصلاح</span></td><td>خطأ كان يحدث وتم إصلاحه</td><td>شريط أخضر</td></tr>
+        <tr><td><span class="pill red">تغيير مهم</span></td><td>تغيير في طريقة العمل أو في الحسابات</td><td><b>الشريط يصبح أحمر</b> ويظهر هذا التحديث أولًا</td></tr>
+    </table>
+
+    <div class="tip"><b>متى يختفي التحديث من الشريط؟</b> إما أن يضغط الموظف «تم الاطلاع»، أو تنتهي مدة الظهور (30 يومًا افتراضيًا، قابلة للتغيير لكل تحديث). في الحالتين يبقى التحديث في صفحة «تحديثات النظام».</div>
+
+    <div class="page-num"><span>دليل تحديثات النظام</span><span>2</span></div>
+</section>
+
+<!-- ============ 3. الربط ============ -->
+<section class="page">
+    <h2><span class="n">2</span> ربط نسخ العملاء بنسختكم (مرة واحدة لكل عميل)</h2>
+    <p class="lead">المفتاح هو «كلمة السر» التي تسمح لنسخة العميل بسحب تحديثاتكم.</p>
+
+    <div class="flow" style="margin-bottom:20px">
+        <div class="box"><div class="ic">🔑</div><b>تُنشئ مفتاحًا</b><small>في نسختكم باسم العميل</small></div>
+        <div class="arrow">←</div>
+        <div class="box gray"><div class="ic">📋</div><b>تنسخه</b><small>يظهر مرة واحدة فقط</small></div>
+        <div class="arrow">←</div>
+        <div class="box blue"><div class="ic">⚙️</div><b>تضعه عند العميل</b><small>مع رابط نسختكم</small></div>
+        <div class="arrow">←</div>
+        <div class="box green"><div class="ic">🔄</div><b>يبدأ السحب</b><small>فورًا ثم كل دقيقة</small></div>
+    </div>
+
+    <div class="cols">
+        <div class="card teal">
+            <h3>🏢 في نسختكم (المصدر)</h3>
+            <div class="steps">
+                <div class="step"><span class="k">1</span><div><b>ادخل لوحة Super Admin</b><p>ثم قسم <b>«تحديثات النظام»</b>.</p></div></div>
+                <div class="step"><span class="k">2</span><div><b>«النسخ المرتبطة بهذه النسخة»</b><p>اكتب اسم العميل، مثل «مكتب الرافدين»، واضغط <b>إنشاء مفتاح</b>.</p></div></div>
+                <div class="step"><span class="k">3</span><div><b>انسخ المفتاح فورًا</b><p>يبدأ بـ <span class="code">su_</span> ولن يظهر مرة أخرى. إن ضاع: احذفه وأنشئ غيره.</p></div></div>
+                <div class="step"><span class="k">4</span><div><b>اترك السحب التلقائي مغلقًا هنا</b><p>نسختكم هي من تكتب، لا تحتاج أن تسحب من أحد.</p></div></div>
+            </div>
+        </div>
+        <div class="card blue">
+            <h3>🏬 في نسخة العميل</h3>
+            <div class="steps">
+                <div class="step"><span class="k">1</span><div><b>Super Admin ← تحديثات النظام</b><p>قسم <b>«العرض ومصدر التحديثات»</b>.</p></div></div>
+                <div class="step"><span class="k">2</span><div><b>فعّل «السحب التلقائي»</b><p>وضع <b>رابط نسختكم</b> (الدومين فقط) مثل <span class="code">https://erp.example.com</span></p></div></div>
+                <div class="step"><span class="k">3</span><div><b>الصق المفتاح</b><p>واضغط <b>اختبار الاتصال</b> للتأكد.</p></div></div>
+                <div class="step"><span class="k">4</span><div><b>«حفظ وسحب الآن»</b><p>تصل كل التحديثات المنشورة فورًا، وبعدها يفحص كل دقيقة.</p></div></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="note"><b>إيقاف عميل:</b> من «النسخ المرتبطة» اضغط «إيقاف» بجانب اسمه، فتتوقف نسخته عن استلام أي تحديث جديد دون حذف ما وصلها سابقًا.</div>
+    <div class="tip"><b>للتقنيين:</b> يجب أن يكون <span class="code">APP_URL</span> صحيحًا في نسختكم لأن روابط الصور والملفات المرسلة للعملاء تُبنى منه، ويفضَّل تشغيل Scheduler (cron) على سيرفرات العملاء. إن لم يكن يعمل، تُسحب التحديثات تلقائيًا عند فتح الموظفين للوحة.</div>
+
+    <div class="page-num"><span>دليل تحديثات النظام</span><span>3</span></div>
+</section>
+
+<!-- ============ 4. كتابة التحديث ============ -->
+<section class="page">
+    <h2><span class="n">3</span> كتابة تحديث جديد</h2>
+    <p class="lead">Super Admin ← تحديثات النظام ← زر «تحديث جديد». الصفحة مقسّمة لأقسام مرقّمة، وتحت كل حقل شرح لما يفعله.</p>
+
+    <table>
+        <tr><th style="width:24%">الحقل</th><th>ماذا تكتب فيه</th><th style="width:30%">مثال</th></tr>
+        <tr><td>العنوان *</td><td>جملة قصيرة تصف التغيير. تظهر في الشريط.</td><td>إنشاء إشعار دائن من الفاتورة</td></tr>
+        <tr><td>الملخص</td><td>سطر واحد يشرح <b>الفائدة</b> للموظف.</td><td>لم تعد بحاجة لشاشة الحسابات</td></tr>
+        <tr><td>التفاصيل والخطوات</td><td>أين يجد الميزة وكيف يستخدمها. أزرار جاهزة للعناوين والقوائم والخطوات المرقّمة.</td><td>1. افتح الفاتورة<br>2. اضغط «إشعار دائن»</td></tr>
+        <tr><td>الصور والفيديو والملفات</td><td>اسحب الملفات للمربع: صور (5MB)، فيديو قصير (100MB)، أو <b>PDF</b> كدليل استخدام (20MB).</td><td>لقطة شاشة للزر الجديد</td></tr>
+        <tr><td>روابط فيديو</td><td>للفيديو الطويل: رابط YouTube أو Vimeo أو Loom، يظهر كمشغّل داخل البطاقة.</td><td class="code" style="font-weight:400">https://youtu.be/…</td></tr>
+        <tr><td>زر «جرّبه الآن»</td><td>رابط الشاشة التي تغيّرت؛ الجزء بعد الدومين.</td><td class="code" style="font-weight:400">/dashboard/invoices</td></tr>
+        <tr><td>نوع التحديث</td><td>ميزة / تحسين / إصلاح / تغيير مهم (يجعل الشريط أحمر).</td><td>تغيير مهم</td></tr>
+        <tr><td>يخص موديل</td><td>اختياري: لا يظهر التحديث في نسخة الموديل فيها مغلق.</td><td>إيجار الساعات</td></tr>
+        <tr><td>إرسال لنسخ العملاء</td><td>مفعّل افتراضيًا. أغلقه إن كان التحديث لنسختكم فقط.</td><td>—</td></tr>
+        <tr><td>الحالة</td><td><b>مسودة</b>: لا يراه أحد. <b>منشور</b>: يظهر في موعد النشر.</td><td>منشور</td></tr>
+        <tr><td>موعد النشر</td><td>فارغ = الآن. أو وقت لاحق ليظهر مع رفع التحديث على السيرفر.</td><td>الليلة 11:00 م</td></tr>
+        <tr><td>يختفي من الشريط في</td><td>فارغ = بعد 30 يومًا من النشر.</td><td>—</td></tr>
+    </table>
+
+    <div class="cols" style="margin-top:16px">
+        <div class="card">
+            <h3>✅ بعد النشر</h3>
+            <p style="margin:0">في القائمة الرئيسية ترى لكل تحديث: <b>كم موظف أكّد</b> من إجمالي الموظفين، وشريط تقدم. زر <b>«من اطلع؟»</b> يعرض كل موظف بحالته:</p>
+            <p style="margin:8px 0 0"><span class="pill green">أكّد</span> <span class="pill amber">شاهد فقط</span> <span class="pill gray">لم يشاهد</span></p>
+        </div>
+        <div class="card">
+            <h3>💡 نصائح للكتابة</h3>
+            <p style="margin:0">• اكتب للموظف لا للمبرمج: «ماذا أستفيد؟» قبل «ماذا تغيّر؟».<br>• صورة للزر الجديد تغني عن فقرة.<br>• استخدم «تغيير مهم» فقط لما يغيّر طريقة العمل، حتى لا يفقد اللون الأحمر معناه.</p>
+        </div>
+    </div>
+
+    <div class="page-num"><span>دليل تحديثات النظام</span><span>4</span></div>
+</section>
+
+<!-- ============ 5. ما يراه الموظف + من يرى ============ -->
+<section class="page">
+    <h2><span class="n">4</span> ما يراه الموظف</h2>
+    <p class="lead">لا يحتاج الموظف أي إعداد أو صلاحية خاصة.</p>
+
+    <div class="screen">
+        <div class="top"><i></i><i></i><i></i></div>
+        <div class="header">
+            <span>لوحة التحكم</span>
+            <span style="display:flex; align-items:center; gap:4px"><span class="bell">📣<span class="badge">3</span></span><span class="callout">1</span></span>
+        </div>
+        <div class="bar">
+            <span>⚠️</span><b style="color:#fff">3 تحديثات جديدة</b>
+            <span class="t">إنشاء إشعار دائن مباشرة من الفاتورة</span>
+            <span class="cta">عرض التحديثات</span><span class="x">×</span>
+            <span class="callout" style="background:#fff; color:#b45309">2</span>
+        </div>
+        <div class="ucard">
+            <div class="meta"><span class="pill red">تغيير مهم</span><span class="pill" style="background:#ef4444;color:#fff">جديد</span><span>12 أكتوبر 2026</span><span class="callout">3</span></div>
+            <h4>إنشاء إشعار دائن مباشرة من الفاتورة</h4>
+            <div style="font-size:11px; color:var(--muted)">لم تعد بحاجة للذهاب لشاشة الحسابات لإلغاء جزء من الفاتورة.</div>
+            <div class="pdfrow"><span class="ic">PDF</span><b style="flex:1">دليل إشعار الدائن.pdf</b><span class="pill gray">عرض</span><span class="pill gray">تحميل</span></div>
+            <div class="foot"><span style="color:var(--teal); font-weight:700">جرّب الميزة ←</span><span style="display:flex;align-items:center;gap:4px"><span class="btn-ack">✓ تم الاطلاع</span><span class="callout">4</span></span></div>
+        </div>
+    </div>
+
+    <div class="legend">
+        <div><span class="callout">1</span><span><b>أيقونة التحديثات:</b> موجودة دائمًا في الهيدر، والرقم الأحمر = ما لم يؤكده الموظف بعد.</span></div>
+        <div><span class="callout">2</span><span><b>الشريط:</b> يقلّب عناوين التحديثات الجديدة، وأحمر إن كان بينها «تغيير مهم». زر × يخفيه حتى الدخول القادم أو صدور تحديث جديد.</span></div>
+        <div><span class="callout">3</span><span><b>البطاقة في صفحة التحديثات:</b> الشرح والصور والفيديو وملف PDF للعرض أو التحميل، مع فلترة: الكل / بانتظار اطلاعي / اطلعت عليها.</span></div>
+        <div><span class="callout">4</span><span><b>تم الاطلاع:</b> يُسجَّل باسم الموظف ووقته، ويخرج التحديث من الشريط، ويبقى في الصفحة.</span></div>
+    </div>
+
+    <h2 style="margin-top:22px"><span class="n">5</span> من يمكنه رؤية التحديثات؟</h2>
+    <table>
+        <tr><th style="width:34%">من</th><th style="width:16%">يرى؟</th><th>التفصيل</th></tr>
+        <tr><td>موظفو لوحة التحكم في نسختكم</td><td><span class="pill green">نعم</span></td><td>كل موظف يدخل اللوحة، أيًا كان دوره أو صلاحياته.</td></tr>
+        <tr><td>موظفو نسخ العملاء المرتبطة</td><td><span class="pill green">نعم</span></td><td>إن كان «إرسال لنسخ العملاء» مفعّلًا ومفتاح العميل غير موقوف.</td></tr>
+        <tr><td>نسخة الموديل فيها مغلق</td><td><span class="pill gray">لا</span></td><td>إن ربطت التحديث بموديل (مثل إيجار الساعات) لا يظهر في نسخة لا تستخدمه.</td></tr>
+        <tr><td>المسودات والمجدولة قبل موعدها</td><td><span class="pill gray">لا</span></td><td>لا يراها أي موظف حتى تُنشر ويحل موعدها.</td></tr>
+        <tr><td>عملاء الموقع وتطبيق الجوال</td><td><span class="pill gray">لا</span></td><td>التحديثات للوحة التحكم الداخلية فقط.</td></tr>
+        <tr><td>الكتابة والحذف والتقارير</td><td><span class="pill amber">Super Admin</span></td><td>فقط من يدخل لوحة Super Admin.</td></tr>
+    </table>
+    <div class="tip">في صفحة كتابة التحديث صندوق <b>«من سيرى هذا التحديث؟»</b> يتغير مباشرة مع اختياراتك، ويعرض عدد الموظفين وعدد نسخ العملاء الذين سيصلهم.</div>
+
+    <div class="page-num"><span>دليل تحديثات النظام</span><span>5</span></div>
+</section>
+
+<!-- ============ 6. أسئلة ومشاكل ============ -->
+<section class="page">
+    <h2><span class="n">6</span> أسئلة شائعة وحل المشاكل</h2>
+    <p class="lead">حالة المزامنة تظهر في نسخة العميل: آخر مزامنة ناجحة، وآخر محاولة، وآخر خطأ إن وُجد.</p>
+
+    <table>
+        <tr><th style="width:36%">الرسالة أو المشكلة</th><th>السبب</th><th style="width:34%">الحل</th></tr>
+        <tr><td>المصدر رفض مفتاح الربط</td><td>المفتاح خطأ، أو موقوف، أو محذوف في نسختكم.</td><td>أنشئ مفتاحًا جديدًا وضعه عند العميل.</td></tr>
+        <tr><td>لم يُعثر على واجهة التحديثات</td><td>رابط المصدر خطأ، أو نسختكم لم تُحدَّث بعد.</td><td>ضع الدومين فقط بدون /api أو /dashboard.</td></tr>
+        <tr><td>تعذر الاتصال بالمصدر</td><td>سيرفر نسختكم متوقف أو لا يُرى من سيرفر العميل.</td><td>جرّب «اختبار الاتصال» بعد عودته؛ لوحة العميل لا تتأثر.</td></tr>
+        <tr><td>الصور لا تظهر عند العميل</td><td><span class="code">APP_URL</span> في نسختكم غير صحيح.</td><td>صحّحه ثم «مزامنة كاملة» عند العميل.</td></tr>
+        <tr><td>فشل رفع فيديو كبير</td><td>حد الرفع في إعدادات PHP على السيرفر أقل من حجم الملف.</td><td>ارفعه على YouTube وضع الرابط، أو ارفع الحد.</td></tr>
+        <tr><td>التحديث لا يظهر لموظف</td><td>مسودة، أو موعده لم يحل، أو الموديل مغلق، أو أكّده سابقًا.</td><td>راجع الحالة والموعد؛ المؤكَّد يبقى في الصفحة لا الشريط.</td></tr>
+        <tr><td>عدّلت تحديثًا، متى يصل التعديل؟</td><td>—</td><td>خلال دقيقة لكل النسخ، وكذلك الحذف.</td></tr>
+        <tr><td>هل يستطيع العميل تعديل تحديثاتنا؟</td><td>—</td><td>لا، تظهر عنده «مصدر خارجي» للعرض والتقرير فقط.</td></tr>
+    </table>
+
+    <h3 style="margin-top:22px">ملخص في صفحة واحدة</h3>
+    <div class="flow">
+        <div class="box"><b>Super Admin</b><small>اكتب ← اختر النوع ← أضف صورة أو PDF ← انشر</small></div>
+        <div class="arrow">←</div>
+        <div class="box blue"><b>نسخ العملاء</b><small>تسحب خلال دقيقة بالمفتاح</small></div>
+        <div class="arrow">←</div>
+        <div class="box red"><b>الموظف</b><small>يرى الشريط ← يقرأ ← «تم الاطلاع»</small></div>
+        <div class="arrow">←</div>
+        <div class="box green"><b>أنت</b><small>«من اطلع؟» يعرض من أكّد ومن لم يشاهد</small></div>
+    </div>
+
+    <div class="page-num"><span>دليل تحديثات النظام</span><span>6</span></div>
+</section>
+
+</body>
+</html>
