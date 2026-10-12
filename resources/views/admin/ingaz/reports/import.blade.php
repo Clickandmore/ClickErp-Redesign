@@ -9,6 +9,17 @@
     $canGenerateBonds = AdminGuardHasAnyPerm(['data_import_generate_bonds']);
     $canReview = AdminGuardHasAnyPerm(['data_import_review', 'data_import_approve']);
 
+    // Temporarily hide Arabia / Alrafedin import cards; keep their import handlers and history available.
+    $hiddenTemplateKeys = [
+        'arabia_clients',
+        'arabia_cvs',
+        'arabia_recruitment_orders',
+        'legacy_rental_orders',
+        'alrafedin_transfer_services',
+        'finance_cost_centers',
+    ];
+    $visibleTemplates = collect($templates)->except($hiddenTemplateKeys)->all();
+
     // تصنيف القوالب في مجموعات لتسهيل الوصول إليها؛ أي نوع غير مصنف يظهر ضمن "أخرى".
     $groupDefinitions = [
         'people' => ['label' => 'العملاء والعمالة', 'icon' => 'fas fa-users', 'keys' => ['clients', 'arabia_clients', 'maids', 'arabia_cvs', 'rental_maids', 'recruitment_offices']],
@@ -20,19 +31,20 @@
     $groupedTemplates = [];
     foreach ($groupDefinitions as $groupKey => $group) {
         foreach ($group['keys'] as $key) {
-            if (isset($templates[$key])) {
-                $groupedTemplates[$groupKey][$key] = $templates[$key];
+            if (isset($visibleTemplates[$key])) {
+                $groupedTemplates[$groupKey][$key] = $visibleTemplates[$key];
             }
         }
     }
     $groupedKeys = collect($groupDefinitions)->pluck('keys')->flatten()->all();
-    $otherTemplates = collect($templates)->except($groupedKeys)->all();
+    $otherTemplates = collect($visibleTemplates)->except($groupedKeys)->all();
     if (!empty($otherTemplates)) {
         $groupDefinitions['other'] = ['label' => 'أخرى', 'icon' => 'fas fa-layer-group', 'keys' => array_keys($otherTemplates)];
         $groupedTemplates['other'] = $otherTemplates;
     }
 
     $selectedType = old('type', request('type'));
+    $selectedType = isset($visibleTemplates[$selectedType ?? '']) ? $selectedType : null;
     $pendingCount = $reviewBatches->where('status', '!=', 'approved')->count();
 
     $defaultTab = $canUpload ? 'upload' : ($canReview || $reviewBatches->isNotEmpty() ? 'reviews' : ($canGenerateBonds ? 'bonds' : 'reviews'));
@@ -423,12 +435,12 @@
                                 {{-- تفاصيل القالب المختار --}}
                                 <div class="col-lg-6">
                                     <div class="template-details p-3 p-lg-4">
-                                        <div class="template-details-empty {{ $selectedType && isset($templates[$selectedType]) ? 'd-none' : '' }}" data-template-detail-empty>
+                                        <div class="template-details-empty {{ $selectedType && isset($visibleTemplates[$selectedType]) ? 'd-none' : '' }}" data-template-detail-empty>
                                             <i class="fas fa-hand-pointer fa-2x mb-3 d-block"></i>
                                             اختر نوع البيانات لعرض أعمدة القالب والقيم المسموح بها ورابط تحميله.
                                         </div>
 
-                                        @foreach ($templates as $key => $template)
+                                        @foreach ($visibleTemplates as $key => $template)
                                             <div class="{{ $selectedType === $key ? '' : 'd-none' }}" data-template-detail="{{ $key }}">
                                                 <div class="d-flex align-items-start gap-3 mb-3">
                                                     <span class="template-icon"><i class="{{ $template['icon'] }}"></i></span>
