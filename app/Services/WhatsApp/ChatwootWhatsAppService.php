@@ -105,6 +105,12 @@ class ChatwootWhatsAppService
 
     public function sendText(string $to, string $message, array $context = []): array
     {
+        return \App\Support\OutboundMessageRecorder::attempt('whatsapp', $to, $message, 'chatwoot',
+            fn () => $this->sendTextRaw($to, $message, $context), $context);
+    }
+
+    private function sendTextRaw(string $to, string $message, array $context = []): array
+    {
         $phone = app(MetaWhatsAppService::class)->normalizePhone($to);
         if (!$phone || trim($message) === '' || $this->missingConfigKeys()) {
             return ['success' => false, 'error' => 'invalid_input_or_config', 'response' => [

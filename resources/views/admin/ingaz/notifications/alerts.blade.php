@@ -668,7 +668,10 @@
         $automationSettings = $automationSettings ?? \App\Support\AutomationSettings::all();
 
         if ($oldSection === 'alerts') {
-            $alertSettings = array_replace_recursive($alertSettings, old('alerts', []));
+            foreach (old('alerts', []) as $key => $submittedRule) {
+                $alertSettings[$key] = array_replace($alertSettings[$key] ?? [], $submittedRule);
+                $alertSettings[$key]['channels'] = $submittedRule['channels'] ?? [];
+            }
             $customAlertSettings = old('custom_alerts', $customAlertSettings);
             $automationSettings = array_replace($automationSettings, old());
         }
@@ -723,7 +726,7 @@
         @endif
 
         @if ($errors->any())
-            <div class="alert alert-danger">
+            <div class="alert alert-danger" id="alert-save-errors" role="alert" tabindex="-1">
                 <ul class="mb-0">
                     @foreach ($errors->all() as $error)
                         <li>{{ $error }}</li>
@@ -973,6 +976,14 @@
 @endsection
 
 @section('js')
+@if ($errors->any())
+<script>
+    window.addEventListener('load', function () {
+        var errors = document.getElementById('alert-save-errors');
+        if (errors) { errors.scrollIntoView({block: 'center'}); errors.focus({preventScroll: true}); }
+    });
+</script>
+@endif
 <script>
     const alertChannelOptions = @json($alertChannelOptions ?? []);
     const alertRecipientOptions = @json($alertRecipientOptions ?? []);

@@ -51,6 +51,11 @@ class StaffPushService
             ? FirebasePushResult::skipped('لا توجد أجهزة مسجّلة لهذا الحساب في تطبيق الطاقم.')
             : $this->push->sendToTokens($tokens, $title, $body, $data + ['guard' => $guard, 'staff_id' => (string) $staffId]);
 
+        if ($tokens === []) {
+            $audit = \App\Support\OutboundMessageRecorder::begin('push', $guard . ':' . $staffId, $title . "\n" . $body, 'firebase', $data + ['admin_id' => $admin?->id]);
+            \App\Support\OutboundMessageRecorder::finish($audit, 'skipped', ['error_message' => 'لا توجد أجهزة مسجلة لهذا الحساب في تطبيق الطاقم.']);
+        }
+
         $this->pruneInvalidTokens($guard, $result);
         $this->log($guard, $staffId, $title, $body, $result, $admin, $data);
 

@@ -120,14 +120,19 @@ class RentalContractExpiryReminderService
         $errors = [];
 
         if ($phone === '') {
+            $this->recordUnsentReminder($contract, $reminder, $message, $phone, $reminder->channel, 'لا يوجد رقم جوال للعميل.');
             $errors[] = 'لا يوجد رقم جوال للعميل.';
         } else {
             if (in_array($reminder->channel, ['sms', 'both'], true)) {
                 if (!CommunicationSettings::smsIsConfigured()) {
+                    $this->recordUnsentReminder($contract, $reminder, $message, $phone, 'sms', 'إعدادات SMS غير مكتملة أو البوابة متوقفة.');
                     $errors[] = 'SMS: إعدادات الرسائل النصية غير مكتملة أو بوابة SMS متوقفة.';
                 } else {
                     try {
-                        $smsResult = $this->sendSMS(formatSaudiPhone($phone), $message);
+                        $smsResult = \App\Support\SmsGateway::send(formatSaudiPhone($phone), $message, null, null, [
+                            'source' => 'rental_contract_expiry_reminder', 'contract_id' => $contract->id,
+                            'reminder_id' => $reminder->id, 'user_id' => $contract->user_id, 'branch_id' => $contract->branch_id,
+                        ]);
                         $smsSent = $this->smsWasSent($smsResult);
 
                         if (!$smsSent) {
@@ -141,6 +146,7 @@ class RentalContractExpiryReminderService
 
             if (in_array($reminder->channel, ['whatsapp', 'both'], true)) {
                 if (!$this->whatsApp->isConfigured()) {
+                    $this->recordUnsentReminder($contract, $reminder, $message, $phone, 'whatsapp', 'إعدادات واتساب غير مكتملة.');
                     $missing = $this->whatsApp->missingConfigKeys();
                     $errors[] = 'WhatsApp: إعدادات واتساب غير مكتملة'
                         . ($missing ? ' (' . implode(', ', $missing) . ')' : '')
@@ -151,6 +157,8 @@ class RentalContractExpiryReminderService
                             'source' => 'rental_contract_expiry_reminder',
                             'contract_id' => $contract->id,
                             'reminder_id' => $reminder->id,
+                            'user_id' => $contract->user_id,
+                            'branch_id' => $contract->branch_id,
                         ]);
                         $whatsappSent = (bool) ($result['success'] ?? false);
                         if (!$whatsappSent) {
@@ -179,6 +187,18 @@ class RentalContractExpiryReminderService
         }
 
         return $reminder->fresh();
+    }
+
+    private function recordUnsentReminder(RentalContract $contract, RentalContractExpiryReminder $reminder, string $message, string $phone, string $channel, string $error): void
+    {
+        foreach ($channel === 'both' ? ['sms', 'whatsapp'] : [$channel] as $item) {
+            $provider = $item === 'sms' ? (string) (CommunicationSettings::sms()['provider'] ?? 'msegat') : $this->whatsApp->driver();
+            $log = \App\Support\OutboundMessageRecorder::begin($item, $phone, $message, $provider, [
+                'source' => 'rental_contract_expiry_reminder', 'contract_id' => $contract->id,
+                'reminder_id' => $reminder->id, 'user_id' => $contract->user_id, 'branch_id' => $contract->branch_id,
+            ]);
+            \App\Support\OutboundMessageRecorder::finish($log, 'skipped', ['error_message' => $error]);
+        }
     }
 
     public function markCustomerResponse(RentalContractExpiryReminder $reminder, string $response): void
