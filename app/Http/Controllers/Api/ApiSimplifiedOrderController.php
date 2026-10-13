@@ -61,6 +61,10 @@ class ApiSimplifiedOrderController extends Controller
 
         $maid = Maid::with(['jobTypes', 'nationality'])->findOrFail($data['maid_id']);
 
+        if ($maid->isHourly()) {
+            return apiResponse(false, __('rental_mode.errors.hourly_not_orderable'), null, 422);
+        }
+
         // الخدمة التي حجز منها العميل على الموقع الخارجي تحدد شاشة الطلب في لوحة التحكم.
         $jobTypeId = $maid->resolveJobTypeIdForService($data['service_type'] ?? null)
             ?? $maid->jobTypes->first()?->id;

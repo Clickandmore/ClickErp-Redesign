@@ -5,6 +5,8 @@ return [
     'admin.hourly-visits.batch' => ['hourly_visits_edit', 'hourly_visits_collect'],
     'admin.hourly-orders.receipt' => ['hourly_orders_print'],
     'admin.hourly-maids.assign-from-shelter' => ['hourly_maids_edit'],
+    'admin.hourly-maids.to-hourly' => ['hourly_maids_edit'],
+    'admin.hourly-maids.to-regular' => ['hourly_maids_edit'],
     'admin.hourly-maids.update' => ['hourly_maids_edit'],
     'admin.hourly-maids.leaves.status' => ['hourly_maids_edit'],
     'admin.hourly-teams.shelter-maids' => ['hourly_teams_create', 'hourly_teams_edit'],

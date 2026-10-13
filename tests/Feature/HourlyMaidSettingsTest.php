@@ -369,7 +369,7 @@ class HourlyMaidSettingsTest extends TestCase
         app('view')->getFinder()->prependLocation(base_path('tests/Fixtures/hourly-views'));
         $url=route('admin.hourly-maids.index');
         $this->get($url)->assertOk()->assertSee('PendingWorker')->assertSee('ArrivedWorker')->assertSee('ReadyWorker')->assertDontSee('OrdinaryWorker')
-            ->assertViewHas('stats',fn($stats)=>$stats===['total'=>4,'waiting'=>1,'inside'=>2,'ready'=>1,'out_now'=>0]);
+            ->assertViewHas('stats',fn($stats)=>$stats===['total'=>4,'waiting'=>1,'inside'=>2,'ready'=>1,'out_now'=>0,'available_now'=>1]);
         $this->get($url.'?state=ready')->assertOk()->assertSee('ReadyWorker')->assertDontSee('ArrivedWorker')->assertDontSee('ReservedWorker');
         $this->get($url.'?state=waiting')->assertOk()->assertSee('PendingWorker')->assertDontSee('ReadyWorker');
         $this->get($url.'?search=ArrivedWorker')->assertOk()->assertSee('ArrivedWorker')->assertDontSee('PendingWorker');

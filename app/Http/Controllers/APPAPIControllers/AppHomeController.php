@@ -195,7 +195,8 @@ class AppHomeController extends Controller
         ])
             ->where('is_show', true)
             ->whereNull('deleted_at')
-            ->withoutActiveOrders();
+            ->withoutActiveOrders()
+            ->notHourly();
 
         if ($request->filled('nationality_id')) {
             $query->where('nationality_id', $request->nationality_id);

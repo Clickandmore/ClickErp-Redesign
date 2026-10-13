@@ -707,6 +707,16 @@
                                         <option value="transfer">نقل خدمات</option>
                                     </select>
                                 </div>
+                                @if (\App\Services\Rental\RentalModeSwitcher::hourlyAvailable())
+                                    <div class="col-md-3">
+                                        <label for="filterRentalMode" class="form-label">{{ __('rental_mode.filter_label') }}</label>
+                                        <select id="filterRentalMode" class="form-select">
+                                            <option value="">{{ __('rental_mode.all') }}</option>
+                                            <option value="regular">{{ __('rental_mode.regular') }}</option>
+                                            <option value="hourly">{{ __('rental_mode.hourly') }}</option>
+                                        </select>
+                                    </div>
+                                @endif
                                 <div class="col-md-3">
                                     <label for="filterRequestType"
                                         class="form-label">{{ helperTrans('ingaz.request_type') }}</label>
@@ -1132,6 +1142,7 @@
                         d.instant_receipt = $('#filterInstantReceipt').val();
                         d.quick_tag = $('#filterQuickTag').val();
                         d.service_category = $('#filterServiceCategory').val();
+                        d.rental_mode = $('#filterRentalMode').length ? $('#filterRentalMode').val() : '';
                         d.request_type = $('#filterRequestType').val();
                         d.branch_id = $('#filterBranch').length ? $('#filterBranch').val() : '';
                         d._timestamp = new Date().getTime(); // منع cache
@@ -1318,6 +1329,7 @@
                 $('#filterInstantReceipt').val('');
                 $('#filterQuickTag').val('');
                 $('#filterServiceCategory').val('');
+                $('#filterRentalMode').val('');
                 $('#filterRequestType').val('');
                 $('.quick-filter-chip').removeClass('active');
                 $('.quick-filter-chip[data-tag=""]').addClass('active');
@@ -1356,6 +1368,7 @@
                     instant_receipt: $('#filterInstantReceipt').val(),
                     quick_tag: $('#filterQuickTag').val(),
                     service_category: $('#filterServiceCategory').val(),
+                    rental_mode: $('#filterRentalMode').length ? $('#filterRentalMode').val() : '',
                     request_type: $('#filterRequestType').val(),
                     branch_id: $('#filterBranch').length ? $('#filterBranch').val() : ''
                 };
@@ -1389,6 +1402,7 @@
                 $('#filterInstantReceipt').val('');
                 $('#filterQuickTag').val('');
                 $('#filterServiceCategory').val('');
+                $('#filterRentalMode').val('');
                 $('#filterRequestType').val('');
                 $('.quick-filter-chip').removeClass('active');
                 $('.quick-filter-chip[data-tag=""]').addClass('active');

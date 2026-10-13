@@ -40,8 +40,26 @@ class ShelterPresence
      */
     public function outNow(): array
     {
+        return self::linked() ? $this->inVisitNow() : [];
+    }
+
+    /** الزيارات تُقرأ متى عمل موديول الساعات، ولو لم يُفعَّل مفتاح الربط بشاشات الإيواء. */
+    public static function tracked(): bool
+    {
+        return HourlyRentalSettings::isEnabled()
+            && Schema::hasTable('hourly_visits')
+            && Schema::hasTable('hourly_visit_workers');
+    }
+
+    /**
+     * العاملات الموجودات الآن في زيارة ساعات، لصفحة خادمات الساعات نفسها.
+     *
+     * @return array<int, array{visit_id:int, visit_number:int, status:string, order_id:int, order_number:?string, since:?string, until:?string}>
+     */
+    public function inVisitNow(): array
+    {
         if ($this->outNow !== null) return $this->outNow;
-        if (!self::linked()) return $this->outNow = [];
+        if (!self::tracked()) return $this->outNow = [];
 
         $rows = DB::table('hourly_visit_workers as w')
             ->join('hourly_visits as v', 'v.id', '=', 'w.hourly_visit_id')
@@ -110,6 +128,36 @@ class ShelterPresence
     public function upcomingFor(int $maidId): int
     {
         return $this->upcomingAll()[$maidId] ?? 0;
+    }
+
+    /**
+     * الزيارة القادمة وعدد الزيارات القادمة لعاملات صفحة واحدة، باستعلام واحد.
+     *
+     * @param  array<int>  $maidIds
+     * @return array<int, array{count:int, next_at:?string, visit_number:?int}>
+     */
+    public function upcomingSummary(array $maidIds): array
+    {
+        if (!$maidIds || !self::tracked()) return [];
+
+        $rows = DB::table('hourly_visit_workers as w')
+            ->join('hourly_visits as v', 'v.id', '=', 'w.hourly_visit_id')
+            ->join('hourly_rental_orders as o', 'o.id', '=', 'v.hourly_rental_order_id')
+            ->whereIn('w.maid_id', $maidIds)
+            ->where('v.status', 'scheduled')
+            ->whereNotIn('o.status', ['cancelled', 'expired'])
+            ->where('v.scheduled_start_at', '>=', now())
+            ->orderBy('v.scheduled_start_at')
+            ->get(['w.maid_id', 'v.visit_number', 'v.scheduled_start_at']);
+
+        $map = [];
+        foreach ($rows as $row) {
+            $id = (int) $row->maid_id;
+            $map[$id] ??= ['count' => 0, 'next_at' => $row->scheduled_start_at, 'visit_number' => (int) $row->visit_number];
+            $map[$id]['count']++;
+        }
+
+        return $map;
     }
 
     /** فتح حركة خروج لكل عاملة في الزيارة. إعادة التنفيذ لا تُكرّر الصف ولا تُعيد فتح حركة مغلقة. */

@@ -1095,6 +1095,13 @@ class OrderController extends Controller
             // Check if new maid is available
             $newMaid = \App\Models\ingaz\Maid::findOrFail($newMaidId);
 
+            if ($newMaid->isHourly()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => __('rental_mode.errors.hourly_not_orderable'),
+                ], 422);
+            }
+
             if ($order->job_type_id == 2) {
                 $order->loadMissing('details.package');
 

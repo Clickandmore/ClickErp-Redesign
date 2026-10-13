@@ -127,7 +127,9 @@
             'constraint_number' => filled($row->constraint_code ?? null) ? $row->constraint_code : $row->constraint_id,
             'constraint_url' => route('finance.add-constraint.show', ['add_constraint' => $row->constraint_id]),
             'type' => getEnumValue('constraint_types', $row->constraints_type),
-            'statement' => $row->statement,
+            'statement' => $row->statement
+                . (filled($row->worker_name ?? null) ? ' / العاملة: ' . $row->worker_name : '')
+                . (filled($row->worker_passport ?? null) ? ' / رقم الجواز: ' . $row->worker_passport : ''),
             'debtor_value' => $rowDebtorValue,
             'creditor_value' => $rowCreditorValue,
             'running_balance' => $runningBalance,

@@ -116,19 +116,20 @@ class CommissionAccrualServiceTest extends TestCase
             'created_by' => $admin->id,
         ]);
 
-        $key = CommissionOperationService::SOURCE_RENTAL_CONTRACT . ':991001';
+        $rental = \App\Models\RentalContract::query()->create(['marketer_id' => $admin->id, 'status' => 'active']);
+        $key = CommissionOperationService::SOURCE_RENTAL_CONTRACT . ':' . $rental->id;
         $operationService = Mockery::mock(CommissionOperationService::class);
         $operationService->shouldReceive('findSelected')->once()->andReturn(collect([[
             'key' => $key,
             'source_type' => CommissionOperationService::SOURCE_RENTAL_CONTRACT,
-            'source_id' => 991001,
+            'source_id' => $rental->id,
             'reference' => 'RC-TEST-2',
             'service_type' => 'rental',
             'client_name' => 'عميل اختبار',
             'operation_date' => now()->startOfDay(),
             'base_amount' => 2000,
             'order_id' => null,
-            'contract_id' => null,
+            'contract_id' => $rental->id,
         ]]));
         $calculation = new CommissionCalculationService(
             $operationService,
@@ -147,6 +148,7 @@ class CommissionAccrualServiceTest extends TestCase
 
         $this->assertSame($marketerAccount->id, (int) $firstBatch->fresh()->payable_account_id);
         $this->assertSame($marketerAccount->id, (int) $secondBatch->payable_account_id);
+        $this->assertSame('full', $secondBatch->items->first()->rental_commission_terms['policy']);
         $this->assertSame(535.0, (float) $secondBatch->balanceTransactions()->first()->balance_after);
     }
 

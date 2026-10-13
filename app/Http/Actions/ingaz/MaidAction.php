@@ -1296,6 +1296,7 @@ class MaidAction extends MainAction
         $keyword = $request->search;
 
         $results = Maid::select('maids.*')
+            ->notHourly()
             ->leftJoin('nationalities_translations', 'maids.nationality_id', '=', 'nationalities_translations.nationality_id')
             ->leftJoin('religions_translations', 'maids.religion_id', '=', 'religions_translations.religion_id')
             ->where(function ($query) use ($keyword) {
@@ -1994,6 +1995,8 @@ class MaidAction extends MainAction
 
         return $this->model
             ->shown()
+            // عاملات الساعات لا يُعرضن في الموقع ولا التطبيق ولا يُطلبن كإيجار عادي.
+            ->notHourly()
             // أي طلب قائم على السيرة (استقدام أو إيجار أو نقل خدمات) يخفيها من الموقع
             // الخارجي، بما في ذلك سير الإيجار المتاحة للاستلام الفوري من السكن.
             ->withoutActiveOrders()

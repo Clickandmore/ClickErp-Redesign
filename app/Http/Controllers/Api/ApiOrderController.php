@@ -125,6 +125,10 @@ class ApiOrderController extends Controller
 
         $maid = $maidAction->find($request->maid_id);
 
+        if ($maid?->isHourly()) {
+            return apiResponse(false, __('rental_mode.errors.hourly_not_orderable'), null, 422);
+        }
+
         // الموقع الخارجي يرسل الخدمة التي حجز منها العميل (استقدام/إيجار/نقل خدمات)
         // ليصل الطلب إلى شاشته الصحيحة في لوحة التحكم. غيابها يبقي السلوك القديم.
         $jobTypeId = $maid->resolveJobTypeIdForService($request->input('service_type'))

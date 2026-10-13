@@ -21,7 +21,7 @@ class CommissionSettingsController extends Controller
 
     public function index()
     {
-        $settings = CommissionSetting::all()->keyBy('service_type');
+        $commissionSettings = CommissionSetting::all()->keyBy('service_type');
         $serviceTypeOptions = CommissionSetting::serviceTypeOptions();
 
         $marketers = $this->profileService->marketersQuery()
@@ -41,7 +41,7 @@ class CommissionSettingsController extends Controller
         }
 
         return view('commissions.settings.index', compact(
-            'settings',
+            'commissionSettings',
             'serviceTypeOptions',
             'marketers',
             'marketerPayableAccounts',
@@ -55,6 +55,7 @@ class CommissionSettingsController extends Controller
             'settings'                => ['nullable', 'array'],
             'settings.*.method'       => ['required_with:settings', 'in:percentage,fixed'],
             'settings.*.value'        => ['required_with:settings', 'numeric', 'min:0'],
+            'rental_return_policy' => ['sometimes', 'required', 'in:full,remaining_days'],
             'overrides'               => ['nullable', 'array'],
             'overrides.*.admin_id'    => ['required_with:overrides', 'exists:admins,id'],
             'overrides.*.method'      => ['required_with:overrides', 'in:percentage,fixed'],
@@ -119,10 +120,22 @@ class CommissionSettingsController extends Controller
 
         // Save global settings per service type
         foreach ($request->input('settings', []) as $serviceType => $data) {
+            $values = ['method' => $data['method'], 'value' => $data['value'], 'created_by' => $adminId];
             CommissionSetting::updateOrCreate(
                 ['service_type' => $serviceType],
-                ['method' => $data['method'], 'value' => $data['value'], 'created_by' => $adminId]
+                $values
             );
+        }
+
+        if ($request->has('rental_return_policy')) {
+            $setting = CommissionSetting::firstOrNew(['service_type' => 'rental']);
+            if (!$setting->exists) {
+                $setting->fill(['method' => 'fixed', 'value' => 0]);
+            }
+            $setting->fill([
+                'rental_return_policy' => $request->input('rental_return_policy'),
+                'created_by' => $adminId,
+            ])->save();
         }
 
         // Delete removed overrides, then re-save
@@ -147,6 +160,6 @@ class CommissionSettingsController extends Controller
 
         return redirect()
             ->route('commissions.settings.index')
-            ->with('success', 'تم حفظ إعدادات العمولات بنجاح.');
+            ->with('success', $request->has('rental_return_policy') ? 'تم حفظ إعدادات الخصم بنجاح.' : 'تم حفظ إعدادات العمولات بنجاح.');
     }
 }

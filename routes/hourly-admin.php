@@ -139,6 +139,8 @@ Route::prefix('hourly')->middleware('feature.hourly_rental')->group(function () 
         Route::put('sos-alerts/{alert}', [\App\Http\Controllers\admin\HourlySosController::class, 'update'])->whereNumber('alert')->name('admin.hourly-sos.update');
         Route::get('maids', [\App\Http\Controllers\admin\HourlyMaidController::class, 'index'])->name('admin.hourly-maids.index');
         Route::post('maids/assign-from-shelter', [\App\Http\Controllers\admin\HourlyMaidController::class, 'assignFromShelter'])->name('admin.hourly-maids.assign-from-shelter');
+        Route::post('maids/{maid}/to-hourly', [\App\Http\Controllers\ingaz\MaidRentalModeController::class, 'toHourly'])->whereNumber('maid')->name('admin.hourly-maids.to-hourly');
+        Route::post('maids/{maid}/to-regular', [\App\Http\Controllers\ingaz\MaidRentalModeController::class, 'toRegular'])->whereNumber('maid')->name('admin.hourly-maids.to-regular');
         Route::post('maids/{maid}/login-as', [\App\Http\Controllers\admin\HourlyMaidController::class, 'loginAs'])->whereNumber('maid')->name('admin.hourly-maids.login-as');
         Route::get('maids/{maid}/{tab?}', [\App\Http\Controllers\admin\HourlyMaidController::class, 'show'])->whereNumber('maid')->name('admin.hourly-maids.show');
         Route::get('maids/{maid}/calendar/feed', [\App\Http\Controllers\admin\HourlyMaidController::class, 'calendar'])->whereNumber('maid')->name('admin.hourly-maids.calendar');

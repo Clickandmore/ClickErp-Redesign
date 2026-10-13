@@ -16,7 +16,7 @@ use Throwable;
 class AccountStatementSupplierController extends Controller
 {
     public string $folderPath = "finance::finance.account_statement.suppliers";
-    public $getData = ["from_date", "to_date", "type", 'account_id', 'other_account'];
+    public $getData = ["from_date", "to_date", "type", 'account_id', 'other_account', 'worker_search'];
     public string $mainRoute = "finance.account-statement-suppliers";
 
     /**
@@ -34,6 +34,8 @@ class AccountStatementSupplierController extends Controller
             'type' => 'both',
             'account_id' => '',
             'other_account' => 'no',
+            'supplier_workers' => true,
+            'worker_search' => '',
         ], $request->only($this->getData));
 
         if ($request->ajax()) {
@@ -69,6 +71,7 @@ class AccountStatementSupplierController extends Controller
             ]);
         }
 
+        $data['showWorkerSearch'] = true;
         $data["accounts"] = $accountService->getSupplierStatementAccounts();
         $data["ajaxRoute"] = route($this->mainRoute . ".index");
         $data["bladeTitle"] = __("finance::finance.account-statement-suppliers");

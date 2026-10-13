@@ -180,7 +180,7 @@
                 <div class="card-body">
                     <div class="text-muted small">خصومات العقود المرتجعة</div>
                     <div class="fs-4 fw-bold text-danger returned-pending-count">{{ number_format($returnedDeductions->pluck('deduction_contract_key')->unique()->count()) }} عقد</div>
-                    <div class="fw-bold text-danger returned-pending-total">{{ number_format($returnedDeductions->sum('commission_amount'), 2) }} ر.س</div>
+                    <div class="fw-bold text-danger returned-pending-total">{{ number_format($returnedDeductions->sum('suggested_deduction'), 2) }} ر.س</div>
                     <div class="small text-muted mt-1">عمولات معلقة للخصم · كل الأشهر</div>
                 </div>
             </div>

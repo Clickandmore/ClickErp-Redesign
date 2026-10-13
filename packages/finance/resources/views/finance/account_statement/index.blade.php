@@ -926,6 +926,14 @@
                     </select>
                 </div>
 
+                @if ($showWorkerSearch ?? false)
+                    <div class="statement-field statement-field--account">
+                        <label for="worker_search">البحث عن عاملة</label>
+                        <input type="text" name="worker_search" id="worker_search" class="form-control search_keys"
+                            placeholder="اسم العاملة أو رقم الجواز" value="{{ $filters['worker_search'] ?? '' }}">
+                    </div>
+                @endif
+
                 @include('admin.partials.branch-filter', [
                     'name' => 'branch_id',
                     'label' => __('financial_requests.branch'),

@@ -30,6 +30,8 @@ class HourlyWorkerAssignment {
         return $this->availabilityReason($maid,$start,$end,$item,$exceptVisit,$ignoreHourCaps,$ignoreBreak) === null;
     }
     public function availabilityReason(Maid $maid, string $start, string $end, array $item, ?int $exceptVisit=null,bool $ignoreHourCaps=false,bool $ignoreBreak=false): ?string {
+        // عاملة حُوّلت للإيجار العادي لا تُسنَد لزيارة ساعات حتى لو بقي معرّفها في طلب قديم.
+        if(!$maid->isHourly())return 'العاملة ليست ضمن عاملات الساعات.';
         if(!empty($item['assign_by_product_attribute']) && !empty($item['attribute_id']) && !$maid->productAttributes()->where('hourly_product_attributes.id',$item['attribute_id'])->exists())return 'سمة العاملة لا تطابق الخدمة المطلوبة.';
         $from=Carbon::parse($start);$to=Carbon::parse($end);
         if (\Illuminate\Support\Facades\Schema::hasTable('hourly_worker_leaves') && DB::table('hourly_worker_leaves')->where('maid_id',$maid->id)->where('is_active',true)->where('starts_at','<',$to)->where('ends_at','>',$from)->exists()) return 'لدى العاملة إجازة معتمدة في موعد الزيارة.';

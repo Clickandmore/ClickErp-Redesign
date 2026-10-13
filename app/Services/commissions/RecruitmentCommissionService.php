@@ -44,7 +44,7 @@ class RecruitmentCommissionService
             ->get()->keyBy('id');
         $rentalIds = $items->where('source_type', CommissionOperationService::SOURCE_RENTAL_CONTRACT)->pluck('source_id')
             ->merge($extensions->pluck('rental_contract_id'))->unique();
-        $rentals = RentalContract::query()->with('financialAdjustments')->whereIn('id', $rentalIds)->get()->keyBy('id');
+        $rentals = RentalContract::query()->with(['financialAdjustments', 'info', 'extensions'])->whereIn('id', $rentalIds)->get()->keyBy('id');
 
         return $items->filter(function ($item) use ($contracts, $rentals, $extensions, $filters) {
             if ($this->isZeroed($item)) return false;
@@ -65,6 +65,17 @@ class RecruitmentCommissionService
             $item->setAttribute('return_date', $returnDate ? \Carbon\Carbon::parse($returnDate) : null);
             $item->setAttribute('deduction_contract_id', $contract->id);
             $item->setAttribute('deduction_reason', $this->deductionReason($contract));
+            $terms = $isRental ? app(RentalCommissionReturnPolicy::class)->terms($item, $contract, $extensions->get($item->source_id)) : ['policy' => 'full'];
+            $calculation = app(RentalCommissionReturnPolicy::class)->calculate(
+                (float) $item->commission_amount, $terms,
+                $isRental ? app(RentalCommissionReturnPolicy::class)->returnedAt($contract) : $item->return_date
+            );
+            $item->setAttribute('deduction_policy', $terms['policy']);
+            $item->setAttribute('suggested_deduction', $calculation['amount']);
+            $item->setAttribute('retained_commission', $calculation['retained']);
+            $item->setAttribute('deduction_used_days', $calculation['used_days']);
+            $item->setAttribute('deduction_period_days', $calculation['days']);
+            $item->setAttribute('deduction_calculation_error', $calculation['error']);
             $warrantyContract = $this->contractWithResolvedWarranty($contract);
             $warrantyReferenceDate = $isRental ? $item->return_date : now();
             $item->setAttribute('return_warranty_status', $this->returnWarrantyStatus($warrantyContract, $warrantyReferenceDate));
@@ -340,6 +351,18 @@ class RecruitmentCommissionService
 
             if ($decision === self::SETTLEMENT_DEDUCTED || $decision === 'partial') {
                 $deduction = $decision === 'partial' ? round((float) $amount, 2) : (float) $lockedItem->commission_amount;
+                if ($isRental) {
+                    $policy = app(RentalCommissionReturnPolicy::class);
+                    $extension = $this->isRentalExtensionItem($lockedItem)
+                        ? RentalContractExtension::query()->findOrFail($lockedItem->source_id) : null;
+                    $terms = $policy->terms($lockedItem, $contract, $extension);
+                    $calculation = $policy->calculate((float) $lockedItem->commission_amount, $terms, $policy->returnedAt($contract));
+                    if ($calculation['error'] || $deduction > $calculation['amount']) {
+                        throw ValidationException::withMessages(['amount' => $calculation['error']
+                            ?: 'لا يجوز أن يتجاوز الخصم نصيب المدة غير المنفذة: ' . number_format($calculation['amount'], 2) . ' ريال.']);
+                    }
+                    if ($lockedItem->rental_commission_terms === null) $lockedItem->update(['rental_commission_terms' => $terms]);
+                }
                 if ($deduction <= 0 || $deduction > (float) $lockedItem->commission_amount
                     || ($decision === 'partial' && $deduction >= (float) $lockedItem->commission_amount)) {
                     throw ValidationException::withMessages(['amount' => 'مبلغ الخصم الجزئي يجب أن يكون أكبر من صفر وأقل من العمولة الأصلية.']);
@@ -351,6 +374,30 @@ class RecruitmentCommissionService
                     trim((string) ($notes ?: $lockedItem->commission_reversal_reason ?: $this->defaultReason($contract))),
                     $deduction
                 );
+            } elseif ($decision === 'policy') {
+                if (!$isRental) {
+                    throw ValidationException::withMessages(['settlement' => 'تسوية المدة المتبقية متاحة لعقود التأجير فقط.']);
+                }
+                $policy = app(RentalCommissionReturnPolicy::class);
+                $extension = $this->isRentalExtensionItem($lockedItem)
+                    ? RentalContractExtension::query()->findOrFail($lockedItem->source_id) : null;
+                $terms = $policy->terms($lockedItem, $contract, $extension);
+                $calculation = $policy->calculate((float) $lockedItem->commission_amount, $terms, $policy->returnedAt($contract));
+                if ($calculation['error']) {
+                    throw ValidationException::withMessages(['settlement' => $calculation['error']]);
+                }
+                if ($lockedItem->rental_commission_terms === null) $lockedItem->update(['rental_commission_terms' => $terms]);
+                $reason = trim((string) $notes) ?: 'تسوية حسب سياسة عمولة التأجير';
+                if ($terms['policy'] === 'remaining_days') {
+                    $reason .= '؛ المنفذ ' . $calculation['used_days'] . '/' . $calculation['days']
+                        . ' يوم؛ العمولة المحتفظ بها ' . number_format($calculation['retained'], 2) . ' ريال';
+                }
+                if ($calculation['amount'] > 0) {
+                    $this->reverseItem($lockedItem, $contract, $adminId, $reason, $calculation['amount']);
+                } else {
+                    $decision = self::SETTLEMENT_ZEROED;
+                    $notes = $reason;
+                }
             } elseif ($decision === self::SETTLEMENT_ZEROED) {
                 // Closing at zero does not debit the marketer's balance.
             } else {

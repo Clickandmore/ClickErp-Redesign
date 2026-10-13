@@ -160,7 +160,7 @@ class HourlyMaidController extends Controller
     public function index(Request $request)
     {
         $data=$request->validate([
-            'search'=>['nullable','string','max:150'],'state'=>['nullable','in:waiting,arrived,inside,ready,out_now'],'per_page'=>['nullable','in:10,25,50,100'],
+            'search'=>['nullable','string','max:150'],'state'=>['nullable','in:waiting,arrived,inside,ready,out_now,available_now'],'per_page'=>['nullable','in:10,25,50,100'],
             'attribute_id'=>['nullable','integer'],'team_id'=>['nullable','integer'],'nationality_id'=>['nullable','integer'],'availability'=>['nullable','in:available,suspended'],
         ]);
         // Do not use forJobType(): its arrival gate hides workers still in recruitment.
@@ -170,8 +170,9 @@ class HourlyMaidController extends Controller
         $waiting=fn($q)=>$q->where('rental_source','outside')->whereNull('arrival_date')->whereDoesntHave('insideShelterContract');
         // الخروج اللحظي يُقرأ من حالة الزيارة لا من عقد الإيواء: العقد يبقى ساريًا طوال الزيارة.
         $presence=app(\App\Services\Hourly\ShelterPresence::class);
-        $outNow=$presence->outNow();
-        $stats=['total'=>(clone $base)->count(),'waiting'=>$waiting(clone $base)->count(),'inside'=>RentalMaidQuery::applyInsideShelter(clone $base)->count(),'ready'=>(clone $ready)->count(),'out_now'=>count($outNow)];
+        // صفحة الساعات تعرض الزيارة الجارية دائمًا؛ مفتاح الربط يخص شاشات الإيواء فقط.
+        $outNow=$presence->inVisitNow();
+        $stats=['total'=>(clone $base)->count(),'waiting'=>$waiting(clone $base)->count(),'inside'=>RentalMaidQuery::applyInsideShelter(clone $base)->count(),'ready'=>(clone $ready)->count(),'out_now'=>count($outNow),'available_now'=>(clone $ready)->whereNotIn('maids.id',array_keys($outNow) ?: [0])->count()];
         $query=clone $base;
         if(!empty($data['attribute_id']))$query->whereHas('productAttributes',fn($q)=>$q->where('hourly_product_attributes.id',$data['attribute_id']));
         if (!empty($data['search'])) {
@@ -187,6 +188,7 @@ class HourlyMaidController extends Controller
             case 'inside': RentalMaidQuery::applyInsideShelter($query); break;
             case 'ready': $query->whereIn('maids.id',(clone $ready)->select('maids.id')); break;
             case 'out_now': $query->whereIn('maids.id',array_keys($outNow) ?: [0]); break;
+            case 'available_now': $query->whereIn('maids.id',(clone $ready)->whereNotIn('maids.id',array_keys($outNow) ?: [0])->select('maids.id')); break;
         }
         $maids=$query->with(['nationality','hourlyTeamMemberships.team','autoRecruitmentContract'])
             ->withCount(['contracts as inside_shelter_count'=>fn($q)=>$q->insideShelter()])
@@ -201,7 +203,8 @@ class HourlyMaidController extends Controller
         $allocatableMaids=$this->allocatableFromShelterQuery()
             ->with('nationality')->orderBy('name')->orderBy('id')->get();
         return view('admin.hourly_maids.index',compact('maids','stats','readyIds','suspendedCount','filters','teams','nationalities','attributes','allocatableMaids','outNow')
-            +['shelterLinked'=>\App\Services\Hourly\ShelterPresence::linked()]);
+            +['shelterLinked'=>\App\Services\Hourly\ShelterPresence::linked(),'visitsTracked'=>\App\Services\Hourly\ShelterPresence::tracked(),
+                'upcoming'=>$presence->upcomingSummary($maids->pluck('id')->all())]);
     }
 
     /** تخصيص عاملة تأجير جاهزة وموجودة فعليًا في الإيواء للعمل بنظام الساعات. */
@@ -211,40 +214,14 @@ class HourlyMaidController extends Controller
             'maid_id'=>['required','integer','exists:maids,id'],
         ], [], ['maid_id'=>'العاملة']);
 
-        $maid=DB::transaction(function () use ($data) {
-            $maid=$this->allocatableFromShelterQuery()
-                ->whereKey((int)$data['maid_id'])->lockForUpdate()->first();
-
-            if (!$maid) {
-                throw ValidationException::withMessages([
-                    'maid_id'=>'العاملة لم تعد متاحة للتخصيص. حدّث الصفحة واختر عاملة أخرى.',
-                ]);
-            }
-
-            app(\App\Services\Rental\RentalModeGuard::class)->assertHourlyConversion($maid);
-
-            $settings=$maid->hourly_settings ?? [];
-            $settings += [
-                'requires_driver'=>true,
-                'max_orders_per_hour'=>1,
-                'account_enabled'=>false,
-                'login_access'=>'both',
-                'work_schedule'=>array_fill_keys(
-                    array_keys(\App\Models\Hourly\HourlyDriver::DAYS),
-                    ['mode'=>'all_day','start'=>null,'end'=>null]
-                ),
-            ];
-
-            $maid->forceFill([
-                'rental_mode'=>'hourly',
-                'hourly_username'=>$maid->hourly_username ?: 'HM-'.$maid->id,
-                'hourly_settings'=>$settings,
-                'hourly_is_suspended'=>false,
-                'hourly_auth_version'=>((int)$maid->hourly_auth_version)+1,
-            ])->save();
-
-            return $maid;
-        });
+        $maid=Maid::findOrFail((int)$data['maid_id']);
+        if (!$this->allocatableFromShelterQuery()->whereKey($maid->id)->exists()) {
+            throw ValidationException::withMessages([
+                'maid_id'=>'العاملة لم تعد متاحة للتخصيص. حدّث الصفحة واختر عاملة أخرى.',
+            ]);
+        }
+        // الخدمة تعيد الفحص داخل قفل المعاملة، وتشمل العقد النشط في أي فرع.
+        $maid=app(\App\Services\Rental\RentalModeSwitcher::class)->toHourly($maid);
 
         return redirect()->route('admin.hourly-maids.show',$maid)
             ->with('success','تم تخصيص العاملة '.$maid->name.' لخدمة الساعات. أكمل إعداد الفريق والخدمات من ملفها.');
@@ -252,14 +229,7 @@ class HourlyMaidController extends Controller
 
     private function allocatableFromShelterQuery()
     {
-        $query=Maid::query()
-            ->whereHas('jobTypes',fn($q)=>$q->where('job_types.id',RentalMaidQuery::rentalJobTypeId()))
-            ->where(fn($q)=>$q->whereNull('rental_mode')->orWhere('rental_mode','!=','hourly'));
-
-        // لا تُعرض للتخصيص عاملة مرتبطة بعقد إيجار شهري نشط.
-        return RentalMaidQuery::applyNoActiveRental(RentalMaidQuery::applyReadyForRental(
-            RentalMaidQuery::applyArrivalGate($query)
-        ));
+        return app(\App\Services\Rental\RentalModeSwitcher::class)->hourlyCandidates();
     }
 
     public function availability(Request $request, Maid $maid)
