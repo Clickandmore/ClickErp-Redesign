@@ -461,6 +461,8 @@ return array (
   'settings_seo_indexing_hint' => 'Controls the canonical tag and sitemap.xml on the public website. Read through the settings API; left empty, the site falls back to its own local configuration.',
   'settings_seo_canonical_base' => 'Canonical site domain',
   'settings_seo_canonical_base_hint' => 'Must match exactly what visitors land on, including the scheme and the www / non-www form. Any difference points canonical at a different address and the page loses its ranking value.',
+  'settings_seo_redirect_host' => 'Redirect the other www form to the canonical domain',
+  'settings_seo_redirect_host_hint' => 'When on, a visitor who reaches the site on the other form (www or non-www) is sent to the canonical domain with a permanent 301, so Google sees one site instead of two copies. No other host is affected.',
   'settings_seo_sitemap_worker_pages' => 'List worker pages in the sitemap',
   'settings_seo_sitemap_worker_pages_hint' => 'When off, worker pages stay crawlable from inside the site but are not offered to search engines in the sitemap.',
   'settings_seo_sitemap_worker_limit' => 'Maximum worker URLs',

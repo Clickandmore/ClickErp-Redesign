@@ -14,7 +14,7 @@ class WebsiteSettingsAccess
         'twitter', 'facebook', 'instagram', 'snapchat', 'linkedin', 'youtube', 'tiktok', 'whatsapp',
         'logo_header', 'logo_footer', 'favicon', 'about_image', 'light_image', 'experience_image',
         'cover_image', 'qr_image', 'zatch_logo', 'there_are_offer', 'note_ar', 'note_en',
-        'link_rights_and_duties', 'seo_canonical_base', 'seo_sitemap_cache_minutes',
+        'link_rights_and_duties', 'seo_canonical_base', 'seo_redirect_host', 'seo_sitemap_cache_minutes',
         'seo_sitemap_worker_pages', 'seo_sitemap_worker_limit', 'seo_sitemap_offer_pages',
         'website_visitor_site_id', 'tag_manager_head', 'tag_manager_footer', 'tiktok_tag',
         'snapchat_tag', 'zoho_tag', 'hotjar_tag', 'meta_pixel_tag', 'live_chat_tag',

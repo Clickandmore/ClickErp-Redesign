@@ -97,7 +97,7 @@ class HourlyAppReviewAccountsTest extends HourlyTestCase
         $this->assertNull(Review::code('driver', '0500000003', 1));
         $this->assertDatabaseCount('hourly_staff_otps',0);
         $this->assertDatabaseHas('phone_verifications',['phone'=>'500000009','code'=>'48291']);
-        $this->assertDatabaseMissing('phone_verifications',['phone'=>'500000001']);
+        $this->assertDatabaseHas('phone_verifications',['phone'=>'500000001','code'=>'73916']);
         $this->assertDatabaseHas('hourly_drivers',['id'=>1,'is_active'=>1]);
         $this->assertDatabaseHas('users',['id'=>1,'is_blocked'=>0]);
     }
@@ -123,7 +123,7 @@ class HourlyAppReviewAccountsTest extends HourlyTestCase
         $result=$action->storeSendCode(['phone'=>'500000001','phone_code'=>'966'],$request);
         $this->assertSame('73916',$result['code']);
         $this->assertFalse($action->confirmCode($request));
-        $this->assertDatabaseHas('phone_verifications',['phone'=>'500000001','code'=>'73916']);
+        $this->assertDatabaseCount('phone_verifications',0);
         $request->merge(['code'=>'73916']);
         $this->assertNotFalse($action->confirmCode($request));
     }
@@ -194,5 +194,32 @@ class HourlyAppReviewAccountsTest extends HourlyTestCase
         $this->assertNull(Review::code('customer','500000001',null,'966'));
         $this->assertNull(Review::code('worker','0500000002',1));
         $this->assertNull(Review::code('driver','0500000003',1));
+    }
+
+    public function test_customer_review_code_works_without_overwriting_external_site_code(): void
+    {
+        $payload=$this->payload(); $payload['accounts']['customer']['code']='11111';
+        $this->save($payload);
+        $action=new PhoneVerificationAction(new PhoneVerification());
+        $request=new Request(['phone'=>'500000001','phone_code'=>'966','code'=>'11111']);
+        $this->assertNotFalse($action->confirmCode($request));
+        DB::table('phone_verifications')->insert(['phone'=>'500000001','phone_code'=>'966','code'=>'48291']);
+        $this->assertSame('11111',$action->storeSendCode(['phone'=>'500000001','phone_code'=>'966'],$request)['code']);
+        $this->assertDatabaseHas('phone_verifications',['phone'=>'500000001','code'=>'48291']);
+        $this->assertNotFalse($action->confirmCode($request));
+        $request->merge(['code'=>'48291']);
+        $this->assertFalse($action->confirmCode($request));
+        $payload['accounts']['customer']['code']='22222';
+        $this->save($payload);
+        $request->merge(['code'=>'11111']);
+        $this->assertFalse($action->confirmCode($request));
+        $request->merge(['code'=>'22222']);
+        $this->assertNotFalse($action->confirmCode($request));
+        $payload['enabled']=0;
+        $this->save($payload);
+        $this->assertFalse($action->confirmCode($request));
+        $request->merge(['code'=>'48291']);
+        $this->assertNotFalse($action->confirmCode($request));
+        $this->assertDatabaseHas('phone_verifications',['phone'=>'500000001','code'=>'48291']);
     }
 }

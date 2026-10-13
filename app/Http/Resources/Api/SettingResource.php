@@ -212,6 +212,7 @@ class SettingResource extends JsonResource
             // فهرسة الموقع الخارجي. canonical_base فارغًا يعني "لم يُضبط"،
             // فيرجع الموقع إلى إعداده المحلي بدل أن يبني روابط على نص فارغ.
             'canonical_base' => trim((string) ($this->seo_canonical_base ?? '')),
+            'redirect_host' => (bool) ($this->seo_redirect_host ?? true),
             'sitemap' => [
                 'worker_pages' => (bool) ($this->seo_sitemap_worker_pages ?? true),
                 'worker_limit' => (int) ($this->seo_sitemap_worker_limit ?? 2000),
