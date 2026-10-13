@@ -12,6 +12,8 @@ Route::middleware('web')->group(function () {
         'middleware' => ['localeSessionRedirect', 'localizationRedirect', 'localeViewPath'],
     ], function () {
         Route::prefix('dev-super-admin')->name('dev-superadmin.')->middleware('dev.superadmin')->group(function () {
+            Route::get('hourly-app-review-accounts', [\App\Http\Controllers\admin\HourlyAppReviewAccountsController::class, 'index'])->name('hourly-app-review-accounts.index');
+            Route::put('hourly-app-review-accounts', [\App\Http\Controllers\admin\HourlyAppReviewAccountsController::class, 'update'])->name('hourly-app-review-accounts.update');
             Route::get('hourly-rental-settings', [HourlyRentalSettingsController::class, 'index'])->name('hourly-rental-settings.index');
             Route::put('hourly-rental-settings', [HourlyRentalSettingsController::class, 'update'])->name('hourly-rental-settings.update');
         });

@@ -118,6 +118,7 @@
         </div>
 
         <div class="topbar-actions">
+            <a class="btn" href="{{ route('dev-superadmin.hourly-app-review-accounts.index') }}">حسابات اختبار التطبيقات</a>
             <a class="btn btn-primary" href="{{ route('dev-superadmin.hourly-rental-settings.index') }}">إعدادات الساعات</a>
             <a class="btn" href="{{ route('dev-superadmin.invoice-corrections.index') }}">تصحيح الفواتير</a>
             <a class="btn" href="{{ \App\Support\SystemModuleManager::defaultDashboardUrl() }}">لوحة الإدارة</a>
