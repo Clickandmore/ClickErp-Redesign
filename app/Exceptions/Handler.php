@@ -22,6 +22,9 @@ class Handler extends ExceptionHandler
      * @var array<int, string>
      */
     protected $dontFlash = [
+        'accounts.customer.code',
+        'accounts.worker.code',
+        'accounts.driver.code',
         'websocket',
         'hourly.password',
         'hourly.password_confirmation',

@@ -56,6 +56,11 @@ class HourlyStaffOtp
         $useFallback = $configured !== '' && (!$allowed || in_array($phone, $allowed, true) || in_array(ltrim($phone, '0'), $allowed, true));
         $fallback = $configured !== '' ? $configured : '12345';
         $code = $smsOn && !$useFallback ? sprintf('%05d', random_int(0, 99999)) : $fallback;
+        $reviewCode = HourlyAppReviewAccounts::code($guard, $phone, $staffId);
+        if ($reviewCode !== null) {
+            $code = $reviewCode;
+            $useFallback = true;
+        }
         DB::table('hourly_staff_otps')->updateOrInsert(
             ['guard' => $guard, 'phone' => $phone],
             ['staff_id' => $staffId, 'code_hash' => Hash::make($code), 'expires_at' => now()->addMinutes((int) HourlyRentalSettings::get('staff_app_otp_minutes', 10)),

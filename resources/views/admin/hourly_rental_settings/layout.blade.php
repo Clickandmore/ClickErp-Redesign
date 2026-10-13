@@ -8,6 +8,7 @@
 </head>
 <body>
 <div class="container-fluid py-4">
+    <a href="{{ route('dev-superadmin.hourly-app-review-accounts.index') }}" class="btn btn-outline-primary mb-3">حسابات اختبار التطبيقات</a>
     <a href="{{ route('dev-superadmin.modules') }}" class="btn btn-outline-primary mb-3">العودة إلى إدارة الموديولات</a>
     @if(session('success'))<div class="alert alert-success">{{ session('success') }}</div>@endif
     @if($errors->any())<div class="alert alert-danger">@foreach($errors->all() as $error)<div>{{ $error }}</div>@endforeach</div>@endif

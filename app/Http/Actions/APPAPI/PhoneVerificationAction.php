@@ -26,6 +26,14 @@ class PhoneVerificationAction extends MainAction
 
     public function storeSendCode($data, $request)
     {
+        $reviewCode = \App\Support\HourlyAppReviewAccounts::code('customer', (string) $request->phone, null, (string) $request->phone_code);
+        if ($reviewCode !== null) {
+            $this->model->updateOrCreate(
+                ['phone' => $request->phone, 'phone_code' => $request->phone_code],
+                ['code' => $reviewCode]
+            );
+            return ['code' => $reviewCode, 'review_account' => true];
+        }
         $phoneExists = $this->model->where('phone', $request->phone)
             ->where('phone_code', $request->phone_code)
             ->first();
@@ -106,6 +114,11 @@ class PhoneVerificationAction extends MainAction
 
     public function confirmCode($request)
     {
+        $reviewCode = \App\Support\HourlyAppReviewAccounts::code('customer', (string) $request->phone, null, (string) $request->phone_code);
+        if ($reviewCode !== null) {
+            $requested = $this->model->where('phone', $request->phone)->where('phone_code', $request->phone_code)->where('code', $reviewCode)->exists();
+            return $requested && hash_equals($reviewCode, (string) $request->code) ? $this->confirmedResponse($request) : false;
+        }
         if (CommunicationSettings::phoneVerificationIsDisabled()
             && hash_equals(CommunicationSettings::phoneVerificationBypassCode(), (string) $request->code)) {
             return $this->confirmedResponse($request);
