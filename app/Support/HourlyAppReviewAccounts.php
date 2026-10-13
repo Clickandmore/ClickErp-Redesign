@@ -90,9 +90,7 @@ class HourlyAppReviewAccounts
                         && ($next['phone'] ?? null) === $entry['phone']
                         && ($next['code'] ?? null) === $entry['code']) continue;
                     $variants = HourlyStaffOtp::variants($entry['phone']);
-                    if ($role === 'customer' && Schema::hasTable('phone_verifications')) {
-                        DB::table('phone_verifications')->whereIn('phone', $variants)->where('phone_code', '966')->where('code', $entry['code'])->delete();
-                    } elseif (Schema::hasTable('hourly_staff_otps')) {
+                    if ($role !== 'customer' && Schema::hasTable('hourly_staff_otps')) {
                         $query = DB::table('hourly_staff_otps')->where('guard', $role)->whereIn('phone', $variants)->where('staff_id', $entry['account_id']);
                         foreach ((clone $query)->get() as $otp) {
                             if (Hash::check($entry['code'], $otp->code_hash)) (clone $query)->where('id', $otp->id)->where('code_hash', $otp->code_hash)->delete();

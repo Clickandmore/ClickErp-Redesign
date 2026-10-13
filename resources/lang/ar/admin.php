@@ -466,6 +466,8 @@ return array (
   'settings_seo_indexing_hint' => 'تتحكم في وسم canonical وملف sitemap.xml على الموقع الخارجي. تُقرأ عبر API الإعدادات، وإذا تُركت فارغة يرجع الموقع إلى إعداداته المحلية.',
   'settings_seo_canonical_base' => 'النطاق الرسمي للموقع',
   'settings_seo_canonical_base_hint' => 'يجب أن يطابق تمامًا ما يهبط عليه الزوار: البروتوكول وصيغة www من عدمها. أي اختلاف يجعل canonical يشير إلى عنوان آخر فتضيع قوة الصفحة.',
+  'settings_seo_redirect_host' => 'تحويل صيغة www الأخرى إلى النطاق الرسمي',
+  'settings_seo_redirect_host_hint' => 'عند التفعيل يُحوَّل الزائر الذي يصل على الصيغة الأخرى (www أو بدونها) إلى النطاق الرسمي بتحويل دائم 301، فيرى Google موقعًا واحدًا لا نسختين. لا يؤثر على أي نطاق آخر.',
   'settings_seo_sitemap_worker_pages' => 'إدراج صفحات العاملات في sitemap',
   'settings_seo_sitemap_worker_pages_hint' => 'عند الإيقاف تبقى صفحات العاملات قابلة للزحف من داخل الموقع لكنها لا تُقدَّم لمحركات البحث في ملف sitemap.',
   'settings_seo_sitemap_worker_limit' => 'حد أقصى لروابط العاملات',

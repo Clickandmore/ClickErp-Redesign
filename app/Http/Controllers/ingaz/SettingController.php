@@ -57,6 +57,7 @@ class SettingController extends Controller
         'live_chat_tag',
         'website_visitor_site_id',
         'seo_canonical_base',
+        'seo_redirect_host',
         'seo_sitemap_worker_pages',
         'seo_sitemap_worker_limit',
         'seo_sitemap_offer_pages',

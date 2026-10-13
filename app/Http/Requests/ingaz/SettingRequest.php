@@ -103,6 +103,7 @@ class SettingRequest extends MainRequest
             'meta_pixel_tag' => 'nullable|string',
             'live_chat_tag' => 'nullable|string',
             'seo_canonical_base' => 'nullable|string|max:255|url',
+            'seo_redirect_host' => 'nullable|boolean',
             'seo_sitemap_worker_pages' => 'nullable|boolean',
             'seo_sitemap_worker_limit' => 'nullable|integer|min:0|max:50000',
             'seo_sitemap_offer_pages' => 'nullable|boolean',
