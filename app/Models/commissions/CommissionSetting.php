@@ -11,7 +11,7 @@ class CommissionSetting extends Model
 
     protected $table = 'commission_settings';
 
-    protected $fillable = ['service_type', 'method', 'value', 'created_by'];
+    protected $fillable = ['service_type', 'method', 'value', 'created_by', 'rental_return_policy'];
 
     protected $attributes = ['method' => 'fixed'];
 

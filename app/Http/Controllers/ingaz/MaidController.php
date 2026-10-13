@@ -627,6 +627,7 @@ class MaidController extends Controller
         $rentalJobTypeId = $this->getRentalJobTypeId();
         $branchAccess = app(BranchAccessService::class);
         $branchesEnabled = $branchAccess->enabled() && $branchAccess->tableHasBranchColumn('maids');
+        $hourlyEnabled = \App\Services\Rental\RentalModeSwitcher::hourlyAvailable();
 
         if (!$rentalJobTypeId) {
             return redirect()
@@ -695,6 +696,7 @@ class MaidController extends Controller
                     'request_type',
                 ])
                 ->when($branchesEnabled, fn ($query) => $query->addSelect('branch_id'))
+                ->when($hourlyEnabled, fn ($query) => $query->addSelect(['rental_mode', 'hourly_is_suspended']))
                 ->orderByDesc('is_pinned')
                 ->orderByDesc('available')
                 ->orderByDesc('created_at');
@@ -835,9 +837,41 @@ class MaidController extends Controller
                     return '<span class="badge bg-success">' . helperTrans('ingaz.maid_status_available') . '</span>';
                 })
                 ->editColumn('created_at', fn(Maid $row) => $row->created_at?->format('Y-m-d h:i A') ?? '-')
-                ->addColumn('actions', function (Maid $row) use ($cvGenerationAvailable, $cvOutputType) {
+                ->addColumn('rental_mode_badge', function (Maid $row) use ($hourlyEnabled) {
+                    if (!$hourlyEnabled) {
+                        return '';
+                    }
+                    $html = \App\Services\Rental\RentalModeSwitcher::badge($row);
+                    if ($row->isHourly() && ($trip = app(\App\Services\Hourly\ShelterPresence::class)->inVisitNow()[(int) $row->id] ?? null)) {
+                        $html .= '<div class="mt-1"><span class="badge bg-warning text-dark"><i class="fas fa-person-walking-arrow-right me-1"></i>'
+                            . e(__('rental_mode.presence.in_visit')) . '</span></div>';
+                    }
+
+                    return $html;
+                })
+                ->addColumn('actions', function (Maid $row) use ($cvGenerationAvailable, $cvOutputType, $hourlyEnabled) {
                     $menuItems = [];
                     $canCreateRentalContract = $this->canCreateRentalContractForMaid($row);
+
+                    // التحويل بين الإيجار العادي والساعات يظهر فقط حين يكون مسموحًا فعلًا.
+                    if ($hourlyEnabled && @AdminGuardHasPerm('hourly_maids_edit')) {
+                        $switcher = app(\App\Services\Rental\RentalModeSwitcher::class);
+                        $name = e($row->name ?: '#' . $row->id);
+                        if (!$row->isHourly() && $switcher->hourlyBlocker($row) === null) {
+                            $menuItems[] = '<li><button type="button" class="dropdown-item rental-mode-switch" style="color:#5b21b6"'
+                                . ' data-url="' . route('admin.hourly-maids.to-hourly', $row->id) . '" data-target="hourly" data-maid-name="' . $name . '">'
+                                . '<i class="fas fa-user-clock me-2"></i>' . e(__('rental_mode.actions.to_hourly')) . '</button></li>';
+                        }
+                        if ($row->isHourly() && $switcher->regularBlocker($row) === null) {
+                            $menuItems[] = '<li><button type="button" class="dropdown-item rental-mode-switch" style="color:#075985"'
+                                . ' data-url="' . route('admin.hourly-maids.to-regular', $row->id) . '" data-target="regular" data-maid-name="' . $name . '">'
+                                . '<i class="fas fa-file-signature me-2"></i>' . e(__('rental_mode.actions.to_regular')) . '</button></li>';
+                        }
+                    }
+                    if ($hourlyEnabled && $row->isHourly() && @AdminGuardHasPerm('hourly_maids_view')) {
+                        $menuItems[] = '<li><a class="dropdown-item" href="' . route('admin.hourly-maids.show', $row->id) . '">'
+                            . '<i class="fas fa-id-badge text-primary me-2"></i>' . e(__('rental_mode.actions.hourly_profile')) . '</a></li>';
+                    }
                     $canUseAvailableActions = (bool) $row->available && in_array($row->status, ['available', 'completed'], true);
                     $insideShelterContract = $this->resolveInsideShelterContract($row);
                     $shelterEntryContract = $insideShelterContract
@@ -963,7 +997,7 @@ class MaidController extends Controller
                 })
                 ->rawColumns(array_values(array_filter([
                     'cv_file', 'name', $branchesEnabled ? 'branch_name' : null, 'financial_items',
-                    'is_show', 'is_pinned', 'cv_status', 'actions',
+                    'is_show', 'is_pinned', 'cv_status', $hourlyEnabled ? 'rental_mode_badge' : null, 'actions',
                 ])))
                 ->make(true);
         }
@@ -994,6 +1028,7 @@ class MaidController extends Controller
             'date_from' => $request->date_from,
             'date_to' => $request->date_to,
             'rental_stat' => $request->rental_stat,
+            'rental_mode' => $request->rental_mode,
         ], static fn($value) => !is_null($value) && $value !== '');
 
         return view($this->folderPath . '.rental-index', [
@@ -4167,6 +4202,11 @@ class MaidController extends Controller
 
     private function canCreateRentalContractForMaid(Maid $maid): bool
     {
+        // عاملة الساعات لا تُسنَد لعقد إيجار عادي (RentalModeGuard يرفضها أيضًا عند الحفظ).
+        if ($maid->isHourly()) {
+            return false;
+        }
+
         $hasActiveRecruitmentContracts = $maid->contracts->whereIn('status', $this->recruitmentContractStatuses())->isNotEmpty();
         $hasActiveOrders = $maid->orders->whereIn('status', $this->activeOrderStatuses())->isNotEmpty();
         $hasActiveRentalContracts = $maid->rentalContracts->whereIn('status', $this->rentalActiveContractStatuses())->isNotEmpty();
@@ -4410,6 +4450,13 @@ class MaidController extends Controller
 
     public function applyMaidFilter($request, $rows)
     {
+        if (in_array((string) $request->input('rental_mode'), ['regular', 'hourly'], true)
+            && \App\Services\Rental\RentalModeSwitcher::hourlyAvailable()) {
+            $request->input('rental_mode') === 'hourly'
+                ? $rows->where('rental_mode', 'hourly')
+                : $rows->notHourly();
+        }
+
         if ($request->filled('keyword')) {
             $keyword = trim($request->keyword);
             $rows->where(function ($q) use ($keyword) {
@@ -4800,6 +4847,7 @@ class MaidController extends Controller
     {
         try {
             $maids = Maid::where('available', true)
+                ->notHourly()
                 ->where('status', 'available')
                 ->with(['nationality'])
                 ->select(['id', 'name', 'passport_num', 'nationality_id'])
@@ -4825,6 +4873,7 @@ class MaidController extends Controller
             $search = $request->get('search');
 
             $maids = Maid::where('available', true)
+                ->notHourly()
                 ->where('status', 'available')
                 ->where(function ($query) use ($search) {
                     $query->where('name', 'like', '%' . $search . '%')

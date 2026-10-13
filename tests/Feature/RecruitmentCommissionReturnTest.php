@@ -43,7 +43,7 @@ class RecruitmentCommissionReturnTest extends TestCase
             'status' => 1,
         ]);
         $marketer = Admin::factory()->create();
-        $parent = Account::query()->create([
+        $parent = Account::query()->firstOrCreate(['code' => 144], [
             'name' => 'المسوقين',
             'status' => 'creditor',
             'level' => 1,
@@ -429,18 +429,20 @@ class RecruitmentCommissionReturnTest extends TestCase
             ]);
         }
         $contract->update(['status' => ContractStatusEnum::Back->value]);
+        $rental = \App\Models\RentalContract::query()->create(['marketer_id' => $marketer->id, 'status' => 'active']);
+        $rentalKey = 'rental_contract:' . $rental->id;
         $operations = Mockery::mock(CommissionOperationService::class);
         $operations->shouldReceive('findSelected')->andReturn(collect([[
-            'key' => 'rental_contract:999999', 'source_type' => 'rental_contract',
-            'source_id' => 999999, 'service_type' => 'rental', 'base_amount' => 2000,
-            'order_id' => null, 'contract_id' => null, 'reference' => '999999',
+            'key' => $rentalKey, 'source_type' => 'rental_contract',
+            'source_id' => $rental->id, 'service_type' => 'rental', 'base_amount' => 2000,
+            'order_id' => null, 'contract_id' => $rental->id, 'reference' => (string) $rental->id,
             'client_name' => 'Test', 'operation_date' => '2026-10-01',
         ]]));
         $accrual = Mockery::mock(CommissionAccrualService::class);
         $accrual->shouldReceive('createForBatch')->once()->andReturn(new \Nami\Finance\Models\Constraint());
         $service = new CommissionCalculationService($operations,
             app(DelegationCommissionService::class), app(RecruitmentCommissionService::class), $accrual);
-        $keys = ['rental_contract:999999'];
+        $keys = [$rentalKey];
         $adjustments = [$keys[0] => ['method' => 'fixed', 'value' => 300]];
         $preview = $service->previewBatch($marketer->id, $keys, $adjustments);
         $this->assertSame(500.0, $preview['total_deductions']);

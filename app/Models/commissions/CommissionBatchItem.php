@@ -26,9 +26,11 @@ class CommissionBatchItem extends Model
         'commission_reversal_transaction_id', 'commission_reversal_constraint_id',
         'commission_reversed_at', 'commission_reversal_reason',
         'legacy_source', 'legacy_source_file', 'legacy_source_row',
+        'rental_commission_terms',
     ];
 
     protected $casts = [
+        'rental_commission_terms' => 'array',
         'base_amount' => 'decimal:2',
         'rate_or_amount' => 'decimal:2',
         'commission_amount' => 'decimal:2',

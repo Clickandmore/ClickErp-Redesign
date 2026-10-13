@@ -21,13 +21,21 @@
 .mh-pill-amber{background:#fef3c7;color:#92400e}
 .mh-pill-yellow{background:#facc15;color:#422006}
 .mh-sep{width:1px;height:22px;background:#cbd5e1;margin:0 .25rem}
+.mh-now{display:inline-flex;align-items:center;gap:.35rem;padding:.3rem .7rem;border-radius:999px;font-size:.78rem;font-weight:700;white-space:nowrap}
+.mh-now-visit{background:#fef3c7;color:#92400e;border:1px solid #fcd34d}
+.mh-now-ready{background:#dcfce7;color:#166534;border:1px solid #86efac}
+.mh-now-shelter{background:#e0f2fe;color:#075985;border:1px solid #7dd3fc}
+.mh-now-muted{background:#f1f5f9;color:#475569;border:1px solid #cbd5e1}
+.mh-now-meta{font-size:.75rem;color:#64748b;margin-top:.3rem;white-space:nowrap}
+.mh-now-meta a{font-weight:700}
+.mh-now-count{display:inline-block;margin-inline-start:.25rem;padding:0 .4rem;border-radius:6px;background:#ede9fe;color:#5b21b6;font-weight:700}
 </style>
 @endsection
 @section('content')
 @php
     $activeFilters = count(\Illuminate\Support\Arr::except($filters, ['per_page']));
     $stateLabels = ['waiting' => 'بانتظار الوصول', 'arrived' => 'تم تسجيل الوصول', 'inside' => 'داخل الإيواء', 'ready' => 'متاحة للتأجير']
-        + ($shelterLinked ? ['out_now' => 'خارج الإيواء الآن'] : []);
+        + ($visitsTracked ? ['available_now' => __('rental_mode.presence.filter_available'), 'out_now' => __('rental_mode.presence.filter_in_visit')] : []);
     $selects = [
         'attribute_id'=>['السمة','fa-tags',$attributes->mapWithKeys(fn($a)=>[$a->id=>$a->category?->name_ar.' — '.$a->parent?->name.' — '.$a->name])->all()],
         'team_id' => ['الفريق', 'fa-people-group', $teams->mapWithKeys(fn ($t) => [$t->id => $t->name.($t->is_active ? '' : ' (متوقف)')])->all()],
@@ -42,7 +50,10 @@
         'ready' => ['متاحة للتأجير', 'fa-circle-check', 'ready', 'hd-stat-on'],
     ];
     // الخروج المؤقت للزيارات لا يظهر في شاشات الإيواء، فيُعرض هنا صراحة.
-    if ($shelterLinked) $statCards['out_now'] = ['خارج الإيواء الآن', 'fa-person-walking-arrow-right', 'out_now', 'hd-stat-warn'];
+    if ($visitsTracked) {
+        $statCards['available_now'] = [__('rental_mode.presence.available_in_shelter'), 'fa-house-circle-check', 'available_now', 'hd-stat-on'];
+        $statCards['out_now'] = [__('rental_mode.presence.in_visit'), 'fa-person-walking-arrow-right', 'out_now', 'hd-stat-warn'];
+    }
 @endphp
 <div class="container-fluid ht-page" dir="rtl">
     <div class="ht-card"><div class="ht-head">
@@ -154,7 +165,7 @@
     </form>
 
     <div class="ht-card"><div class="ht-body">
-        <div class="table-responsive"><table class="ht-table"><thead><tr><th>#</th><th>العاملة</th><th>الجنسية</th><th>الفرق</th><th>الوصول</th><th>الإيواء</th><th>الإتاحة</th><th>الإجراءات</th></tr></thead><tbody>
+        <div class="table-responsive"><table class="ht-table"><thead><tr><th>#</th><th>العاملة</th><th>الجنسية</th><th>الفرق</th><th>الوصول</th><th>الإيواء</th>@if($visitsTracked)<th>{{ __('rental_mode.presence.title') }}</th>@endif<th>الإتاحة</th><th>الإجراءات</th></tr></thead><tbody>
         @forelse($maids as $maid)
             @php
                 $inside=$maid->inside_shelter_count>0;
@@ -173,18 +184,42 @@
                 </td>
                 <td>
                     <span class="badge bg-{{ $inside ? 'success' : 'secondary' }}" title="عقد الإيواء، لا مكان العاملة الآن">{{ $inside ? 'له عقد إيواء ساري' : 'بلا عقد إيواء ساري' }}</span>
-                    @if($shelterLinked)
-                        @php $trip = $outNow[$maid->id] ?? null; @endphp
-                        <div class="mt-1">
-                            @if($trip)
-                                <span class="badge bg-warning text-dark" title="خارج الإيواء مؤقتًا لتنفيذ زيارة"><i class="fa fa-person-walking-arrow-right ms-1"></i> خارج الآن — زيارة #{{ $trip['visit_number'] }}</span>
-                                <div class="small text-muted">حتى {{ $trip['until'] ? \Carbon\Carbon::parse($trip['until'])->format('H:i') : '—' }}</div>
+                </td>
+                @if($visitsTracked)
+                    @php
+                        $trip = $outNow[$maid->id] ?? null;
+                        $next = $upcoming[$maid->id] ?? null;
+                        [$nowClass, $nowIcon, $nowLabel] = match (true) {
+                            (bool) $trip => ['mh-now-visit', 'fa-person-walking-arrow-right', __('rental_mode.presence.in_visit')],
+                            (bool) $maid->hourly_is_suspended => ['mh-now-muted', 'fa-circle-pause', __('rental_mode.presence.suspended')],
+                            $ready => ['mh-now-ready', 'fa-house-circle-check', __('rental_mode.presence.available_in_shelter')],
+                            $inside => ['mh-now-shelter', 'fa-house-user', __('rental_mode.presence.in_shelter_not_ready')],
+                            default => ['mh-now-muted', 'fa-house-circle-xmark', __('rental_mode.presence.outside_shelter')],
+                        };
+                    @endphp
+                    <td>
+                        <span class="mh-now {{ $nowClass }}"><i class="fa {{ $nowIcon }}"></i> {{ $nowLabel }}</span>
+                        @if($trip)
+                            <div class="mh-now-meta">
+                                @if(AdminGuardHasPerm('hourly_orders_view'))
+                                    <a href="{{ route('admin.hourly-orders.show', $trip['order_id']) }}">{{ __('rental_mode.presence.visit_no', ['number' => $trip['visit_number']]) }}</a>
+                                @else
+                                    {{ __('rental_mode.presence.visit_no', ['number' => $trip['visit_number']]) }}
+                                @endif
+                                · {{ __('hourly.'.$trip['status']) }}
+                                @if($trip['until']) · {{ __('rental_mode.presence.until', ['time' => \Carbon\Carbon::parse($trip['until'])->format('H:i')]) }}@endif
+                            </div>
+                        @endif
+                        <div class="mh-now-meta">
+                            @if($next)
+                                <i class="fa fa-calendar-day"></i> {{ __('rental_mode.presence.next_visit', ['time' => \Carbon\Carbon::parse($next['next_at'])->translatedFormat('D d/m H:i')]) }}
+                                <span class="mh-now-count">{{ trans_choice('rental_mode.presence.upcoming', $next['count'], ['count' => $next['count']]) }}</span>
                             @else
-                                <span class="badge bg-light text-dark border">بالإيواء الآن</span>
+                                <span class="text-muted">{{ trans_choice('rental_mode.presence.upcoming', 0) }}</span>
                             @endif
                         </div>
-                    @endif
-                </td>
+                    </td>
+                @endif
                 <td>
                     <label class="maid-availability" title="السماح بإتاحة العاملة للساعات أو تعليقها">
                         <input type="checkbox" role="switch" aria-label="السماح بإتاحة {{ $maid->name }} للساعات" data-availability-url="{{ route('admin.hourly-maids.availability',$maid->id) }}" {{ !$maid->hourly_is_suspended ? 'checked' : '' }} {{ AdminGuardHasPerm('hourly_maids_edit') ? '' : 'disabled' }}>
@@ -205,7 +240,7 @@
                     @endif
                 </td>
             </tr>
-        @empty<tr><td colspan="8" class="text-center py-4">لا توجد عاملات ساعات مطابقة للبحث.</td></tr>@endforelse
+        @empty<tr><td colspan="{{ $visitsTracked ? 9 : 8 }}" class="text-center py-4">لا توجد عاملات ساعات مطابقة للبحث.</td></tr>@endforelse
         </tbody></table></div>
         <p class="text-muted small mt-3">المفتاح يسمح بالإتاحة أو يعلّقها في الساعات. الإتاحة الفعلية تتطلب استيفاء شروط الوصول والإيواء وجاهزية التأجير، ولا تعني خلو موعد محدد من الحجوزات.</p>
         {{ $maids->links() }}

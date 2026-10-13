@@ -135,6 +135,7 @@
 @endsection
 
 @section('content')
+@php($hourlyEnabled = \App\Services\Rental\RentalModeSwitcher::hourlyAvailable())
     @if (@AdminGuardHasPerm(\App\PermKeys::MAIDS_RENTAL_VIEW))
         <div class="rental-page">
             <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-4">
@@ -321,6 +322,15 @@
                                     <option value="backout" {{ $request->cv_status === 'backout' ? 'selected' : '' }}>{{ helperTrans('ingaz.backout') }}</option>
                                 </select>
                             </div>
+                            @if ($hourlyEnabled)
+                                <div class="col-lg-3 col-md-3 col-sm-6 mb-3">
+                                    <select class="form-control" name="rental_mode" id="rental_mode" aria-label="{{ __('rental_mode.filter_label') }}">
+                                        <option value="">{{ __('rental_mode.filter_label') }}: {{ __('rental_mode.all') }}</option>
+                                        <option value="regular" {{ $request->rental_mode === 'regular' ? 'selected' : '' }}>{{ __('rental_mode.regular') }}</option>
+                                        <option value="hourly" {{ $request->rental_mode === 'hourly' ? 'selected' : '' }}>{{ __('rental_mode.hourly') }}</option>
+                                    </select>
+                                </div>
+                            @endif
                             <div class="col-lg-3 col-md-3 col-sm-6 mb-3">
                                 <select name="visibility" id="visibility" class="form-control">
                                     <option value="">{{ helperTrans('ingaz.public_site_visibility_status') }}</option>
@@ -390,6 +400,9 @@
                             <th class="d-none d-md-table-cell">ID</th>
                             <th>{{ helperTrans('ingaz.cv_file') }}</th>
                             <th>{{ helperTrans('ingaz.name') }}</th>
+                            @if ($hourlyEnabled)
+                                <th>{{ __('rental_mode.filter_label') }}</th>
+                            @endif
                             <th class="d-none d-lg-table-cell">{{ helperTrans('ingaz.nationality_id') }}</th>
                             <th class="d-none d-lg-table-cell">{{ helperTrans('ingaz.job_type') }}</th>
                             @if ($branchesEnabled ?? false)
@@ -582,6 +595,9 @@
                 { data: 'DT_RowIndex', name: 'DT_RowIndex', orderable: false, searchable: false, className: 'd-none d-md-table-cell' },
                 { data: 'cv_file', orderable: false, searchable: false },
                 { data: 'name', orderable: false, searchable: false },
+                @if ($hourlyEnabled)
+                    { data: 'rental_mode_badge', orderable: false, searchable: false },
+                @endif
                 { data: 'nationality_id', orderable: false, searchable: false, className: 'd-none d-lg-table-cell' },
                 { data: 'job_type', orderable: false, searchable: false, className: 'd-none d-lg-table-cell' },
                 @if ($branchesEnabled ?? false)
@@ -646,7 +662,8 @@
                     request_type: $('#request_type').val(),
                     pinned: $('#pinned').val(),
                     date_from: $('#date_from').val(),
-                    date_to: $('#date_to').val()
+                    date_to: $('#date_to').val(),
+                    rental_mode: $('#rental_mode').val() || ''
                 };
 
                 if (currentRentalStat && !filters.cv_status) {
@@ -675,7 +692,7 @@
                 },
                 columns: columns,
                 pageLength: 10,
-                order: [[{{ ($branchesEnabled ?? false) ? 15 : 14 }}, 'desc']],
+                order: [[{{ (($branchesEnabled ?? false) ? 15 : 14) + ($hourlyEnabled ? 1 : 0) }}, 'desc']],
                 language: {
                     url: "{{ asset('admin/assets/js/datatable-ar.json') }}"
                 },
@@ -739,6 +756,36 @@
                         table.ajax.reload(null, false);
                     }).fail(xhr => {
                         Swal.fire('خطأ', xhr.responseJSON?.message || 'تعذر تغيير الفرع.', 'error');
+                    });
+                });
+            });
+            @endif
+
+            @if ($hourlyEnabled)
+            $(document).on('click', '.rental-mode-switch', function () {
+                const button = $(this);
+                const toHourly = button.data('target') === 'hourly';
+                const texts = @json(trans('rental_mode.confirm'));
+                Swal.fire({
+                    title: toHourly ? texts.to_hourly_title : texts.to_regular_title,
+                    text: (toHourly ? texts.to_hourly_text : texts.to_regular_text).replace(':name', button.data('maid-name') || ''),
+                    icon: 'question',
+                    showCancelButton: true,
+                    confirmButtonColor: toHourly ? '#6d28d9' : '#0369a1',
+                    confirmButtonText: texts.yes,
+                    cancelButtonText: texts.cancel
+                }).then(result => {
+                    if (!result.isConfirmed) return;
+                    $.ajax({
+                        url: button.data('url'),
+                        method: 'POST',
+                        headers: {'X-CSRF-TOKEN': csrfToken, 'Accept': 'application/json'}
+                    }).done(response => {
+                        Swal.fire({icon: 'success', title: response.message, timer: 1800, showConfirmButton: false});
+                        table.ajax.reload(null, false);
+                    }).fail(xhr => {
+                        const first = Object.values(xhr.responseJSON?.errors || {}).flat()[0];
+                        Swal.fire('', first || xhr.responseJSON?.message || @json(__('rental_mode.errors.generic')), 'error');
                     });
                 });
             });

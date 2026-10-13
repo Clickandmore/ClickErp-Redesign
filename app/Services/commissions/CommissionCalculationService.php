@@ -83,7 +83,7 @@ class CommissionCalculationService
         }
 
         $deductions = $this->recruitmentCommissionService->pendingDeductions($marketerId, $filters);
-        $totalDeductions = round((float) $deductions->sum('commission_amount'), 2);
+        $totalDeductions = round((float) $deductions->sum('suggested_deduction'), 2);
 
         return [
             'returned_deductions' => $deductions,
@@ -227,6 +227,7 @@ class CommissionCalculationService
                     'method'               => $item['method'],
                     'rate_or_amount'       => $item['rate_or_amount'],
                     'commission_amount'    => $item['commission_amount'],
+                    'rental_commission_terms' => app(RentalCommissionReturnPolicy::class)->snapshotForOperation($operation),
                 ]);
 
                 if ($operation['source_type'] === CommissionOperationService::SOURCE_DELEGATION) {

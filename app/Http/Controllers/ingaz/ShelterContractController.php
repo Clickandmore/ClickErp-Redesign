@@ -2653,6 +2653,15 @@ class ShelterContractController extends Controller
             });
         }
 
+        $rentalMode = (string) $request->input('rental_mode', '');
+        if (in_array($rentalMode, ['regular', 'hourly'], true) && \App\Services\Rental\RentalModeSwitcher::hourlyAvailable()) {
+            $rentalTypeId = \App\Services\Rental\RentalMaidQuery::rentalJobTypeId();
+            $rows->whereHas('maid', function ($maidQuery) use ($rentalMode, $rentalTypeId) {
+                $maidQuery->whereHas('jobTypes', fn ($query) => $query->where('job_types.id', $rentalTypeId));
+                $rentalMode === 'hourly' ? $maidQuery->where('rental_mode', 'hourly') : $maidQuery->notHourly();
+            });
+        }
+
         if ($request->filled('nationality')) {
             $nationality = $request->input('nationality');
             $rows->whereHas('maid.nationality', function ($query) use ($nationality) {
@@ -3443,9 +3452,14 @@ class ShelterContractController extends Controller
                         default => 'status-pill-work-muted',
                     };
 
+                    // عاملات التأجير: توضيح الإيجار العادي من إيجار الساعات حين يكون نظام الساعات مفعّلًا.
+                    $servicePill = $serviceCategory === 'rental' && $row->maid && \App\Services\Rental\RentalModeSwitcher::hourlyAvailable()
+                        ? \App\Services\Rental\RentalModeSwitcher::badge($row->maid)
+                        : '<span class="status-pill status-pill-service">' . e($serviceLabel) . '</span>';
+
                     return '<div class="shelter-status-cell">'
                         . '<div class="status-top">'
-                        . '<span class="status-pill status-pill-service">' . e($serviceLabel) . '</span>'
+                        . $servicePill
                         . '<span class="status-pill ' . $workClass . '">' . e($workLabel) . '</span>'
                         . '</div>'
                         . '<div class="status-line"><i class="fas fa-truck-loading"></i><strong>مصدر الاستلام</strong><span>' . $receiptSource . '</span></div>'

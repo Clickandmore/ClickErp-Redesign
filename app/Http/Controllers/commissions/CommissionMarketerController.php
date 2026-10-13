@@ -28,7 +28,7 @@ class CommissionMarketerController extends Controller
         foreach ($marketers as $marketer) {
             $deductions = $this->recruitmentCommissionService->pendingDeductions($marketer->id);
             $marketer->returned_contracts_count = $deductions->pluck('deduction_contract_key')->unique()->count();
-            $marketer->returned_commission_amount = round((float) $deductions->sum('commission_amount'), 2);
+            $marketer->returned_commission_amount = round((float) $deductions->sum('suggested_deduction'), 2);
             $marketer->returned_commissions_by_type = $deductions->groupBy('service_type')->map(fn ($items) => [
                 'count' => $items->pluck('deduction_contract_key')->unique()->count(),
                 'amount' => round((float) $items->sum('commission_amount'), 2),
@@ -187,12 +187,12 @@ class CommissionMarketerController extends Controller
         abort_unless((int) $item->batch?->marketer_id === (int) $admin->id, 404);
 
         $validated = $request->validate([
-            'decision' => ['required', 'in:deducted,zeroed,partial'],
+            'decision' => ['required', 'in:deducted,zeroed,partial,policy'],
             'amount' => ['required_if:decision,partial', 'nullable', 'numeric', 'gt:0'],
             'notes' => ['nullable', 'string', 'max:1000'],
         ]);
 
-        $this->recruitmentCommissionService->resolveSettlement(
+        $settledItem = $this->recruitmentCommissionService->resolveSettlement(
             $item,
             $validated['decision'],
             (int) auth('admin')->id(),
@@ -200,12 +200,13 @@ class CommissionMarketerController extends Controller
             isset($validated['amount']) ? (float) $validated['amount'] : null
         );
 
-        $message = $validated['decision'] !== RecruitmentCommissionService::SETTLEMENT_ZEROED
+        $deductedAmount = (float) ($settledItem->reversalTransaction?->amount ?? 0);
+        $message = $deductedAmount > 0
             ? 'تم اعتماد الخصم وإنشاء قيده المالي. إذا كان القيد بانتظار الاعتماد المالي، اعتمده ليظهر في كشف الحساب.'
             : 'تم إقفال العمولة المستردة بصفر دون خصم من رصيد المسوق.';
 
         return $request->expectsJson()
-            ? response()->json(['success' => true, 'message' => $message])
+            ? response()->json(['success' => true, 'message' => $message, 'deducted_amount' => $deductedAmount])
             : back()->with('success', $message);
     }
 
