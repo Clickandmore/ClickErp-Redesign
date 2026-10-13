@@ -105,7 +105,7 @@ class ConfiguredNotificationAlertService
                     $contract->user,
                     $contract->marketer,
                     route('RentContract.show', $contract->id),
-                    ['contract_id' => $contract->id, 'contract_number' => $contract->contract_number]
+                    ['contract_id' => $contract->id, 'contract_number' => $contract->contract_number ?: $contract->id]
                 )),
             'recruitment_travel_arrival' => $this->travelCandidates($until, false),
             'deportation_travel' => $this->travelCandidates($until, true),
@@ -243,26 +243,43 @@ class ConfiguredNotificationAlertService
         $template = NotificationAlertSettings::template($key);
         $message = trim((string) ($template?->processMessage($candidate['variables']) ?? ''));
         if ($message === '') {
-            $message = $definition['label'] . ' - ' . ($definition['description'] ?? '');
+            $variables = $candidate['variables'];
+            $details = [];
+            foreach (['contract_number' => 'رقم العقد', 'order_code' => 'رقم الطلب', 'trip_id' => 'رقم الرحلة', 'client_name' => 'العميل', 'event_date' => 'تاريخ الموعد'] as $field => $label) {
+                if (trim((string) ($variables[$field] ?? '')) !== '') {
+                    $details[] = $label . ': ' . $variables[$field];
+                }
+            }
+            $message = $definition['label'] . ' — ' . (implode(' — ', $details) ?: ($definition['description'] ?? ''));
         }
 
         $statuses = [];
         foreach ($this->recipients($rule, $candidate) as $recipient) {
+            $recipientMessage = $message;
+            if ($key === 'rent_contract_expiry') {
+                $variables = $candidate['variables'];
+                $formatter = $recipient['type'] === 'client' ? 'customer' : 'staff';
+                $recipientMessage = \App\Support\RentalExpiryMessage::$formatter(
+                    (string) ($variables['client_name'] ?? ''),
+                    (string) ($variables['contract_number'] ?: $variables['contract_id']),
+                    (string) $variables['event_date'],
+                    $candidate['event_at']->copy()->startOfDay()->lt(now()->startOfDay())
+                );
+            }
             foreach ((array) ($rule['channels'] ?? []) as $channel) {
                 if (
                     $key === 'rent_contract_expiry'
                     && $recipient['type'] === 'client'
                     && in_array($channel, ['sms', 'whatsapp'], true)
                 ) {
-                    // The dedicated rental reminder service sends these channels
-                    // with the secure extend/return response link.
+                    // The dedicated rental reminder service sends these channels.
                     continue;
                 }
 
                 $statuses[] = $this->deliver(
                     $key,
                     $definition['label'],
-                    $message,
+                    $recipientMessage,
                     $channel,
                     $recipient,
                     $candidate,
