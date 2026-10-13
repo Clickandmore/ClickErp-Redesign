@@ -14,7 +14,17 @@
             --ap-muted: #6b7280;
             --ap-text: #111827;
             --ap-radius: 16px;
+            position: relative;
             color: var(--ap-text);
+        }
+
+        /* Keep the visually-hidden checkboxes (btn-check / switches) positioned inside the page,
+           otherwise focusing them on click scrolls the document to a far-away offset. */
+        .channel-pills,
+        .alerts-switch,
+        .rule-card,
+        .custom-alert-card {
+            position: relative;
         }
 
         #alert-rules-settings {
@@ -409,7 +419,7 @@
             flex-direction: column;
             gap: 6px;
             min-width: 0;
-            grid-column: span 4;
+            grid-column: span 3;
         }
 
         .rule-field--channels {
@@ -435,16 +445,8 @@
             margin-top: 0;
         }
 
-        @media (min-width: 1400px) {
-            .rule-field--channels { grid-column: span 4; }
-            .rule-field { grid-column: span 2; }
-            .rule-field--template { grid-column: span 4; }
-        }
-
-        @media (max-width: 991.98px) {
+        @media (max-width: 1199.98px) {
             .rule-field { grid-column: span 6; }
-            .rule-field--channels,
-            .rule-field--template { grid-column: span 12; }
         }
 
         @media (max-width: 575.98px) {
