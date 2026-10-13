@@ -168,7 +168,7 @@
 
     $selectOptions = [
         'provider' => ['المزوّد', $providers->mapWithKeys(fn ($v) => [$v => $v])],
-        'source' => ['مصدر الإرسال / المهمة', $sources->mapWithKeys(fn ($v) => [$v => $v])],
+        'source' => ['مصدر الإرسال / المهمة', $sources->mapWithKeys(fn ($v) => [$v => \App\Models\OutboundMessageLog::sourceLabel($v)])],
         'branch_id' => ['الفرع', $branches->pluck('name', 'id')],
         'admin_id' => ['الموظف الذي أرسل', $actors->pluck('name', 'id')],
     ];
@@ -218,7 +218,7 @@
         </div>
         <div class="msg-kpi kpi-green">
             <span class="msg-kpi-icon"><i class="fa fa-check-double"></i></span>
-            <div><span>تأكّد تسليمها</span><strong>{{ number_format($deliveredCount) }}</strong><small>{{ $percent($deliveredCount) }}% · تسليم أو قراءة</small></div>
+            <div><span>تم التسليم أو الإتاحة</span><strong>{{ number_format($deliveredCount) }}</strong><small>{{ $percent($deliveredCount) }}% · تشمل الإشعارات المتاحة داخل النظام</small></div>
         </div>
         <div class="msg-kpi kpi-blue">
             <span class="msg-kpi-icon"><i class="fa fa-hourglass-half"></i></span>
@@ -371,11 +371,12 @@
                         @foreach ($logs as $log)
                             @php
                                 $channelKey = $log->channel;
+                                $isInternal = $channelKey === 'notification';
                                 $isFailed = $log->status === 'failed';
                                 $steps = [
                                     ['label' => 'أُنشئت الرسالة', 'at' => $log->created_at, 'state' => 'done'],
-                                    ['label' => 'قبلها المزوّد', 'at' => $log->accepted_at, 'state' => $log->accepted_at ? 'done' : ''],
-                                    ['label' => 'وصلت للمستلم', 'at' => $log->delivered_at, 'state' => $log->delivered_at ? 'done' : ''],
+                                    ['label' => $isInternal ? 'سُجّل الإشعار في النظام' : 'قبلها المزوّد', 'at' => $log->accepted_at, 'state' => $log->accepted_at ? 'done' : ''],
+                                    ['label' => $isInternal ? 'أُتيح الإشعار لحساب المستلم' : 'وصلت للمستلم', 'at' => $log->delivered_at, 'state' => $log->delivered_at ? 'done' : ''],
                                     ['label' => 'قرأها المستلم', 'at' => $log->read_at, 'state' => $log->read_at ? 'done' : ''],
                                 ];
                                 if ($log->failed_at || $isFailed) {
@@ -401,10 +402,10 @@
                                     @endif
                                 </td>
                                 <td>
-                                    <span class="msg-status-pill st-{{ $log->status }}"><i class="{{ $statusIcons[$log->status] ?? 'fa fa-circle' }}"></i> {{ $statuses[$log->status] ?? $log->status }}</span>
+                                    <span class="msg-status-pill st-{{ $log->status }}"><i class="{{ $statusIcons[$log->status] ?? 'fa fa-circle' }}"></i> {{ $isInternal && $log->status === 'delivered' ? 'متاح داخل النظام' : ($statuses[$log->status] ?? $log->status) }}</span>
                                 </td>
                                 <td class="msg-source">
-                                    {{ $log->source ?: '—' }}
+                                    {{ \App\Models\OutboundMessageLog::sourceLabel($log->source) }}
                                     <small><i class="fa {{ $log->actor ? 'fa-user' : 'fa-robot' }}"></i> {{ $log->actor?->name ?: 'آلي / لم يسجل موظف' }}</small>
                                     @if ($log->branch)<small><i class="fa fa-code-branch"></i> {{ $log->branch->name }}</small>@endif
                                 </td>
@@ -430,6 +431,7 @@
                                                 @endif
                                                 <details class="msg-code">
                                                     <summary>الارتباطات وبيانات الإرسال</summary>
+                                                    <div>المصدر التقني: {{ $log->source ?: '—' }}</div>
                                                     <pre>{{ json_encode($log->context, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) }}</pre>
                                                 </details>
                                                 <details class="msg-code">
@@ -478,7 +480,7 @@
         </div>
         <div class="collapse" id="msgLegend">
             <div class="msg-card-body">
-                <p class="mb-2" style="font-size:.84rem">يشمل السجل محاولات الإرسال اليدوية والآلية ورموز التحقق. محتوى رموز التحقق وروابط الدخول محجوب.</p>
+                <p class="mb-2" style="font-size:.84rem">يشمل السجل الرسائل الخارجية والإشعارات الداخلية؛ إجمالي السجل لا يعني عدد رسائل الجوال. الإشعار المتاح داخل النظام لم تُؤكد قراءته حتى تظهر حالة «تمت القراءة». محتوى رموز التحقق وروابط الدخول محجوب.</p>
                 <div class="msg-legend">
                     <div><span class="msg-status-pill st-accepted">قبله المزوّد</span><span>استلمها المزوّد للإرسال، ولا يعني ذلك أنها وصلت للهاتف.</span></div>
                     <div><span class="msg-status-pill st-delivered">تم التسليم</span><span>وصل تأكيد من المزوّد بأنها وصلت للمستلم.</span></div>

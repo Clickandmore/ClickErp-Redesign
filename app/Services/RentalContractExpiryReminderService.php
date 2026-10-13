@@ -686,43 +686,16 @@ class RentalContractExpiryReminderService
 
     private function buildCustomerMessage(RentalContract $contract, RentalContractExpiryReminder $reminder): string
     {
-        $clientName = $contract->user?->name ?: 'عميلنا العزيز';
+        $clientName = $contract->user?->name ?: '';
         $contractNumber = $contract->contract_number ?: $contract->id;
         $expiresOn = optional($contract->info?->ingaz_to)->format('Y-m-d');
-        $url = route('rental-contract-reminders.show', $reminder->token);
-        $template = $reminder->notification_type === 'advance'
-            ? NotificationAlertSettings::template('rent_contract_expiry')
-            : null;
-
-        if ($template) {
-            return $template->processMessage([
-                'client_name' => $clientName,
-                'customer_name' => $clientName,
-                'contract_id' => (string) $contract->id,
-                'contract_number' => (string) $contractNumber,
-                'expiry_date' => (string) $expiresOn,
-                'expires_on' => (string) $expiresOn,
-                'action_url' => $url,
-                'url' => $url,
-            ]);
-        }
-
-        if ($reminder->notification_type === 'expired') {
-            return implode("\n", [
-                "عميلنا {$clientName}،",
-                "نحيطكم علماً بأن عقد الإيجار رقم {$contractNumber} انتهى بتاريخ {$expiresOn}.",
-                "يرجى التواصل معنا لاستكمال إجراءات التمديد أو تسليم العاملة.",
-                "شكراً لتعاملكم معنا.",
-            ]);
-        }
-
-        return implode("\n", [
-            "عميلنا {$clientName}،",
-            "نود تذكيركم بأن عقد الإيجار رقم {$contractNumber} ينتهي بتاريخ {$expiresOn}.",
-            "فضلاً حدد رغبتك: تمديد العقد أو تسليم العاملة عبر الرابط:",
-            $url,
-            "شكراً لتعاملكم معنا.",
-        ]);
+        // Use the contact-based wording even when an older template contains a response link.
+        return \App\Support\RentalExpiryMessage::customer(
+            (string) $clientName,
+            (string) $contractNumber,
+            (string) $expiresOn,
+            $reminder->notification_type === 'expired'
+        );
     }
 
     private function customerPhone(RentalContract $contract): string
