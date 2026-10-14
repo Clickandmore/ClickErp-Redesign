@@ -71,6 +71,8 @@ class Setting extends Model
         , 'qr_image', 'experience_image', 'second_qr_image', 'tax_number', 'zatch_logo'
         // فهرسة الموقع الخارجي: canonical وsitemap — كانت في .env عند الموقع
         , 'seo_canonical_base', 'seo_redirect_host', 'seo_sitemap_worker_pages', 'seo_sitemap_worker_limit', 'seo_sitemap_offer_pages', 'seo_sitemap_cache_minutes'
+        // فيديو توضيحي لشاشة استيراد البيانات
+        , 'import_tutorial_video_enabled', 'import_tutorial_video_url'
     ];
 
     protected $casts = [
@@ -83,9 +85,28 @@ class Setting extends Model
         'seo_redirect_host' => 'boolean',
         'seo_sitemap_worker_pages' => 'boolean',
         'seo_sitemap_offer_pages' => 'boolean',
+        'import_tutorial_video_enabled' => 'boolean',
     ];
 
     protected $appends = ['header_logo_url', 'footer_logo_url'];
+
+    /**
+     * رابط تضمين فيديو شاشة الاستيراد: يحوّل رابط مشاركة Google Drive
+     * (file/d/{id}/view أو open?id={id}) إلى صيغة /preview القابلة للعرض داخل iframe.
+     */
+    public function importTutorialVideoEmbedUrl(): ?string
+    {
+        $url = trim((string) ($this->import_tutorial_video_url ?? ''));
+        if (!$this->import_tutorial_video_enabled || $url === '') {
+            return null;
+        }
+
+        if (preg_match('~drive\.google\.com/(?:file/d/|open\?id=|uc\?(?:.*&)?id=)([A-Za-z0-9_-]+)~', $url, $match)) {
+            return 'https://drive.google.com/file/d/' . $match[1] . '/preview';
+        }
+
+        return $url;
+    }
 
     public function getHeaderLogoUrlAttribute()
     {

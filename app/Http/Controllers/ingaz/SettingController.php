@@ -22,6 +22,8 @@ class SettingController extends Controller
         'cover_image',
         'admin_login_background',
         'dashboard_footer_url',
+        'import_tutorial_video_enabled',
+        'import_tutorial_video_url',
         'experience_image',
         'qr_image',
         'second_qr_image',

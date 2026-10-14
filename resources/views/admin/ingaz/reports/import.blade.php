@@ -250,7 +250,114 @@
             height: 18px;
         }
 
+        .import-tutorial {
+            border-radius: 14px;
+            overflow: hidden;
+            background: linear-gradient(135deg, #0f172a 0%, #1e3a8a 60%, #0d6efd 100%);
+            box-shadow: 0 16px 36px rgba(15, 23, 42, 0.18);
+            color: #fff;
+        }
+
+        .import-tutorial-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            padding: 16px 20px;
+        }
+
+        .import-tutorial-icon {
+            flex: 0 0 44px;
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(255, 255, 255, 0.15);
+            font-size: 1.1rem;
+        }
+
+        .import-tutorial-subtitle {
+            color: rgba(255, 255, 255, 0.72);
+            font-size: 0.85rem;
+        }
+
+        .import-tutorial .btn-tutorial {
+            color: #fff;
+            border: 1px solid rgba(255, 255, 255, 0.35);
+            background: rgba(255, 255, 255, 0.08);
+            white-space: nowrap;
+        }
+
+        .import-tutorial .btn-tutorial:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        .import-tutorial-toggle i {
+            transition: transform .2s;
+        }
+
+        .import-tutorial-toggle.collapsed i {
+            transform: rotate(180deg);
+        }
+
+        .import-tutorial-body {
+            padding: 0 20px 20px;
+        }
+
+        .import-tutorial-screen {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 10px;
+            border-radius: 12px;
+            background: #0b1120;
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.4), 0 12px 30px rgba(0, 0, 0, 0.35);
+        }
+
+        .import-tutorial-screen-bar {
+            display: flex;
+            gap: 6px;
+            padding: 2px 4px 10px;
+        }
+
+        .import-tutorial-screen-bar span {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: #475569;
+        }
+
+        .import-tutorial-screen-bar span:nth-child(1) { background: #ef4444; }
+        .import-tutorial-screen-bar span:nth-child(2) { background: #f59e0b; }
+        .import-tutorial-screen-bar span:nth-child(3) { background: #22c55e; }
+
+        .import-tutorial-frame {
+            position: relative;
+            aspect-ratio: 16 / 9;
+            border-radius: 8px;
+            overflow: hidden;
+            background: #000;
+        }
+
+        .import-tutorial-frame iframe {
+            position: absolute;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+            border: 0;
+        }
+
         @media (max-width: 767.98px) {
+            .import-tutorial-header {
+                flex-wrap: wrap;
+            }
+
+            .import-tutorial-body {
+                padding: 0 10px 12px;
+            }
+
             .import-steps {
                 grid-template-columns: 1fr;
             }
@@ -300,6 +407,39 @@
                     </div>
                 </div>
             </div>
+
+            {{-- فيديو شرح الاستيراد (يُتحكم فيه من الإعدادات > لوحة التحكم) --}}
+            @if (!empty($tutorialVideoUrl))
+                <div class="import-tutorial mb-4">
+                    <div class="import-tutorial-header">
+                        <div class="d-flex align-items-center gap-3">
+                            <span class="import-tutorial-icon"><i class="fas fa-play"></i></span>
+                            <div>
+                                <h5 class="mb-1 text-white">شرح طريقة الاستيراد</h5>
+                                <div class="import-tutorial-subtitle">شاهد الفيديو لتتعرف على خطوات تجهيز الملف ورفعه واعتماده.</div>
+                            </div>
+                        </div>
+                        <button type="button" class="btn btn-sm btn-tutorial import-tutorial-toggle"
+                                data-bs-toggle="collapse" data-bs-target="#import-tutorial-body"
+                                aria-expanded="true" aria-controls="import-tutorial-body">
+                            <span class="toggle-label">إخفاء الفيديو</span>
+                            <i class="fas fa-chevron-up ms-1"></i>
+                        </button>
+                    </div>
+                    <div class="collapse show" id="import-tutorial-body">
+                        <div class="import-tutorial-body">
+                            <div class="import-tutorial-screen">
+                                <div class="import-tutorial-screen-bar"><span></span><span></span><span></span></div>
+                                <div class="import-tutorial-frame">
+                                    <iframe data-src="{{ $tutorialVideoUrl }}" src="{{ $tutorialVideoUrl }}"
+                                            title="شرح طريقة الاستيراد" loading="lazy"
+                                            allow="autoplay; fullscreen; picture-in-picture" allowfullscreen></iframe>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            @endif
 
             {{-- التنبيهات --}}
             @if (session('success'))
@@ -732,6 +872,39 @@
 
 @section('js')
     <script>
+        // فيديو الشرح: تذكّر حالة الإخفاء وإيقاف التشغيل عند الإخفاء
+        document.addEventListener('DOMContentLoaded', function () {
+            const body = document.getElementById('import-tutorial-body');
+            if (!body) return;
+
+            const toggle = document.querySelector('.import-tutorial-toggle');
+            const label = toggle.querySelector('.toggle-label');
+            const iframe = body.querySelector('iframe');
+            const storageKey = 'data-import-tutorial-hidden';
+
+            const setState = function (hidden) {
+                label.textContent = hidden ? 'عرض الفيديو' : 'إخفاء الفيديو';
+                toggle.classList.toggle('collapsed', hidden);
+                toggle.setAttribute('aria-expanded', hidden ? 'false' : 'true');
+                if (hidden) {
+                    iframe.removeAttribute('src');
+                } else if (!iframe.getAttribute('src')) {
+                    iframe.setAttribute('src', iframe.dataset.src);
+                }
+                try { localStorage.setItem(storageKey, hidden ? '1' : '0'); } catch (e) {}
+            };
+
+            let startHidden = false;
+            try { startHidden = localStorage.getItem(storageKey) === '1'; } catch (e) {}
+            if (startHidden) {
+                body.classList.remove('show');
+                setState(true);
+            }
+
+            body.addEventListener('hidden.bs.collapse', function () { setState(true); });
+            body.addEventListener('show.bs.collapse', function () { setState(false); });
+        });
+
         // التبويبات واختيار القالب والبحث في دليل القوالب
         document.addEventListener('DOMContentLoaded', function () {
             const tabButtons = document.querySelectorAll('#import-tabs [data-tab]');

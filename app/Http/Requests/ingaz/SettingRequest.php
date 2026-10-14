@@ -63,6 +63,8 @@ class SettingRequest extends MainRequest
              'cover_image' => 'nullable',
             'admin_login_background' => 'nullable',
             'dashboard_footer_url' => 'nullable|url|max:500',
+            'import_tutorial_video_enabled' => 'nullable|boolean',
+            'import_tutorial_video_url' => 'nullable|url|max:500',
             'logo_header' => 'nullable',
             'document_logo' => 'nullable',
             'admin_logo' => 'nullable',
