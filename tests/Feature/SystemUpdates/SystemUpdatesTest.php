@@ -108,6 +108,34 @@ class SystemUpdatesTest extends TestCase
     }
 
     /** @test */
+    public function local_media_and_feed_use_the_current_host_instead_of_a_copied_disk_url(): void
+    {
+        config(['filesystems.disks.public.url' => 'http:/clicadrec.com/storage']);
+        $this->app['url']->forceRootUrl('https://clickerp.com.sa');
+        $this->app['url']->forceScheme('https');
+        try {
+            $update = $this->publishedUpdate();
+            $media = $update->media()->create(['type' => 'pdf', 'path' => 'system-updates/test/guide.pdf']);
+            $expected = 'https://clickerp.com.sa/storage/system-updates/test/guide.pdf';
+            $this->assertSame($expected, $media->publicUrl());
+            $payload = app(\App\Services\SystemUpdates\SystemUpdateFeed::class)->payload(null);
+            $item = collect($payload['updates'])->firstWhere('uuid', $update->uuid);
+            $this->assertSame($expected, $item['media'][0]['url']);
+        } finally {
+            $this->app['url']->forceRootUrl(null);
+            $this->app['url']->forceScheme(null);
+        }
+    }
+
+    /** @test */
+    public function remote_media_keeps_the_source_url_without_adding_the_client_host(): void
+    {
+        $url = 'https://clickerp.com.sa/storage/system-updates/test/guide.pdf';
+        $media = new \App\Models\SystemUpdateMedia(['type' => 'pdf', 'url' => $url]);
+        $this->assertSame($url, $media->publicUrl());
+    }
+
+    /** @test */
     public function saving_source_settings_pulls_updates_immediately(): void
     {
         Http::fake(['*' => Http::response([

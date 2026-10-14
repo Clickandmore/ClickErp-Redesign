@@ -16,7 +16,7 @@ class ImportReferenceResolver
             return app(RecruitmentOperationsImportService::class)->resolve($type, $row);
         }
         $issues = $links = [];
-        if ($type === 'invoices') {
+        if (in_array($type, ['invoices', 'updated_invoices'], true)) {
             $groups = [
                 'ingaz_delegation_id' => [IngazDelegation::class, 'تفويض', [
                     'reference_msaned_number' => 'msaned_contract_number', 'reference_ingaz_number' => 'ingaz_number', 'reference_visa_number' => 'visa_number']],

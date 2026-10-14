@@ -256,7 +256,7 @@ class DataImportExecutionService
             $row = $resolution['row'];
             return match ($type) {
                 'musaned_transfers', 'external_office_dispatches' => app(RecruitmentOperationsImportService::class)->import($type, $row, $adminId),
-                'invoices' => $this->importOperationalInvoice($row),
+                'invoices', 'updated_invoices' => $this->importOperationalInvoice($row, $type),
                 'clients' => $this->importClient($row, $adminId),
                 'admins' => $this->importAdmin($row),
                 'recruitment_offices' => $this->importRecruitmentOffice($row),
@@ -2909,15 +2909,18 @@ class DataImportExecutionService
         return is_numeric($raw) ? (int) $raw : AccountTypesEnum::NormalAccount->value;
     }
 
-    private function importOperationalInvoice(array $row): string
+    private function importOperationalInvoice(array $row, string $type = 'invoices'): string
     {
-        $row = array_intersect_key($row, array_flip(array_column($this->templates->template('invoices')['columns'], 'key')));
+        if ($type === 'updated_invoices' && !\App\Support\InvoiceSupplierWorkflow::enabled()) {
+            throw new \InvalidArgumentException('فعّل التسلسل الجديد للفواتير ومساند والمورد من الإعدادات المالية أولًا.');
+        }
+        $row = array_intersect_key($row, array_flip(array_column($this->templates->template($type)['columns'], 'key')));
         $payload = array_filter($row, fn ($value) => $value !== '' && $value !== null);
         unset($payload['import_reference']);
         $payload['send_to_zatca'] = (bool) ($row['send_to_zatca'] ?? false);
         $payload['invoice_date'] = $this->parseDate($payload['invoice_date'] ?? null);
         foreach (['direct_recruitment_cost', 'external_recruitment_cost', 'government_cost', 'internal_ticket_cost',
-            'direct_recruitment_count', 'external_recruitment_count', 'government_cost_count', 'internal_ticket_count', 'discount'] as $key) {
+            'direct_recruitment_count', 'external_recruitment_count', 'government_cost_count', 'internal_ticket_count', 'discount', 'musaned_commission_amount', 'supplier_total_cost_usd', 'supplier_partial_cost_usd'] as $key) {
             if (isset($payload[$key])) $payload[$key] = $this->decimal($payload[$key]);
         }
         $request = \Illuminate\Http\Request::create('/admin/invoices', 'POST', $payload);

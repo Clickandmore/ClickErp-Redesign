@@ -195,6 +195,19 @@ class DataImportReviewService
     public function issues(string $type, array $row): array
     {
         $issues = $row['__parse_issues'] ?? [];
+        if ($type === 'updated_invoices') {
+            if (!\App\Support\InvoiceSupplierWorkflow::enabled()) $issues[] = 'فعّل التسلسل الجديد للفواتير ومساند والمورد من الإعدادات المالية أولًا.';
+            if ((string) ($row['create_supplier_invoice'] ?? '0') === '1') {
+                if (blank($row['contract_id'] ?? null)) $issues[] = 'إنشاء فاتورة المورد يتطلب ربط الفاتورة بعقد استقدام.';
+                $validator = validator($row, [
+                    'supplier_recognition_mode' => 'required|in:full,partial',
+                    'supplier_total_cost_usd' => 'nullable|numeric|min:0.01|max:99999999.99',
+                    'supplier_partial_cost_usd' => 'required_if:supplier_recognition_mode,partial|nullable|numeric|min:0.01|max:99999999.99',
+                    'supplier_arrival_station' => 'nullable|string|max:255',
+                ]);
+                $issues = array_merge($issues, $validator->errors()->all());
+            }
+        }
         if ($type === 'arabia_recruitment_orders') {
             foreach ($row as $key => $value) {
                 if (blank($value) || trim((string) $value) === '-') continue;
@@ -235,7 +248,7 @@ class DataImportReviewService
             if (str_contains($key, 'email') && !filter_var($value, FILTER_VALIDATE_EMAIL)) $issues[] = $column['label'] . ': بريد غير صحيح.';
         }
         $issues = array_merge($issues, $this->executor->validateReviewRow($type, $row));
-        if ($type === 'invoices') $issues = array_merge($issues, $this->invoiceIssues($row));
+        if (in_array($type, ['invoices', 'updated_invoices'], true)) $issues = array_merge($issues, $this->invoiceIssues($row));
         if ($type === 'legacy_invoices') {
             try {
                 $subtotal = ImportValueParser::decimal($row['subtotal'] ?? null);
@@ -334,7 +347,7 @@ class DataImportReviewService
             'musaned_transfers' => ['reference_number', 'contract_id', 'ingaz_delegation_id'],
             'external_office_dispatches' => ['contract_id'],
             'clients' => ['id_number', 'phone'], 'arabia_clients' => ['arabia_client_number', 'id_number', 'phone'],
-            'rental_maids' => ['passport_num'], 'invoices' => ['import_reference', 'contract_id', 'ingaz_delegation_id'],
+            'rental_maids' => ['passport_num'], 'invoices', 'updated_invoices' => ['import_reference', 'contract_id', 'ingaz_delegation_id'],
             'legacy_invoices' => ['invoice_number'], 'finance_accounts' => ['account_code'],
             'finance_cost_centers' => ['cost_center_code'], 'receipt_bonds', 'disbursement_bonds' => ['bond_code'],
             'recruitment_contracts', 'recruitment_contracts_clients_maids' => ['contract_number'],
@@ -354,6 +367,7 @@ class DataImportReviewService
 
     private function fingerprint(string $type, array $row): string
     {
+        if ($type === 'updated_invoices') $type = 'invoices';
         if ($type === 'finance_constraints') {
             $reference = filled($row['code'] ?? null) ? $row['code'] : ($row['constraint_ref'] ?? '');
             return hash('sha256', $type . ':journal:' . ImportValueParser::digits($reference));
@@ -374,8 +388,9 @@ class DataImportReviewService
 
     private function alreadyImported(string $type, string $fingerprint): bool
     {
+        $types = in_array($type, ['invoices', 'updated_invoices'], true) ? ['invoices', 'updated_invoices'] : [$type];
         return DB::table('data_import_rows as r')->join('data_import_batches as b', 'b.id', '=', 'r.batch_id')
-            ->where('b.type', $type)->whereIn('b.status', ['approved', 'partial'])->where('r.status', 'approved')->where('r.fingerprint', $fingerprint)->exists();
+            ->whereIn('b.type', $types)->whereIn('b.status', ['approved', 'partial'])->where('r.status', 'approved')->where('r.fingerprint', $fingerprint)->exists();
     }
 
     private function existingRecords(string $type, array $row): array
