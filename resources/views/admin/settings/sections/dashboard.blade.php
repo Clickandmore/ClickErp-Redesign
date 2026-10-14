@@ -60,6 +60,43 @@
                     </div>
 
                     <div class="col-12">
+                        <h6 class="text-muted mb-2">{{ __('admin.settings_import_tutorial_video') }}</h6>
+                        <div class="row g-3">
+                            <div class="col-md-4">
+                                <label class="form-label d-block">{{ __('admin.settings_import_tutorial_video_enabled') }}</label>
+                                <input type="hidden" name="import_tutorial_video_enabled" value="0">
+                                <div class="form-check form-switch">
+                                    <input class="form-check-input" type="checkbox" role="switch"
+                                           name="import_tutorial_video_enabled"
+                                           id="import_tutorial_video_enabled"
+                                           value="1"
+                                           {{ $settings->import_tutorial_video_enabled ? 'checked' : '' }}>
+                                    <label class="form-check-label" for="import_tutorial_video_enabled">
+                                        {{ $settings->import_tutorial_video_enabled ? __('admin.settings_enabled') : __('admin.settings_disabled') }}
+                                    </label>
+                                </div>
+                            </div>
+                            <div class="col-md-8">
+                                <label class="form-label">{{ __('admin.settings_import_tutorial_video_url') }}</label>
+                                <fieldset class="form-icon-group right-icon position-relative">
+                                    <div class="form-icon position-absolute">
+                                        <i class="fab fa-google-drive"></i>
+                                    </div>
+                                    <input type="url" name="import_tutorial_video_url"
+                                           value="{{ $settings->import_tutorial_video_url ?? '' }}"
+                                           class="form-control"
+                                           placeholder="https://drive.google.com/file/d/.../view">
+                                </fieldset>
+                                <small class="text-muted">{{ __('admin.settings_import_tutorial_video_url_hint') }}</small>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-12">
+                        <hr>
+                    </div>
+
+                    <div class="col-12">
                         <h6 class="text-muted mb-2">{{ __('admin.settings_dashboard_identity') }}</h6>
                         <div class="row g-3">
                             <div class="col-md-6">

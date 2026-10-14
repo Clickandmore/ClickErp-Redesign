@@ -17,6 +17,7 @@ class DataImportController extends Controller
             'reviewBatches' => \App\Models\DataImportBatch::query()->when(!AdminGuardHasAnyPerm(['data_import_review', 'data_import_approve']), fn ($query) => $query->where('created_by', auth('admin')->id()))->latest()->limit(20)->get(),
             'recentUploads' => $templates->recentUploads(),
             'bondGenerationStats' => $bondGenerator->statistics(),
+            'tutorialVideoUrl' => optional(\App\Models\ingaz\Setting::first())->importTutorialVideoEmbedUrl(),
         ]);
     }
 
