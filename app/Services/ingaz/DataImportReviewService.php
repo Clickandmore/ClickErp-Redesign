@@ -77,6 +77,9 @@ class DataImportReviewService
                     throw ValidationException::withMessages(['file' => 'تغير الملف بعد الفحص. ارفع نسخة جديدة.']);
                 }
                 if (!$this->requiresWholeFile($batch->type)) {
+                    if ($batch->rows()->where('status', 'valid')->exists()) {
+                        $this->createSafetyBackup($batch);
+                    }
                     return \App\Support\DataImportBranchContext::run($batch->branch_id, fn () => $this->approveIndependentRows($batch, $adminId));
                 }
                 $rows = $batch->rows()->orderBy('id')->get();
@@ -122,6 +125,7 @@ class DataImportReviewService
                     $book->disconnectWorksheets();
                     $file = new UploadedFile($temporary, 'reviewed.xlsx', null, null, true);
                 }
+                $this->createSafetyBackup($batch);
                 $result = \App\Support\DataImportBranchContext::run($batch->branch_id, fn () => match ($batch->type) {
                     'arabia_clients' => app(ArabiaClientsImportService::class)->import($file, $adminId),
                     'alrafedin_transfer_services' => app(AlrafedinTransferServicesImportService::class)->import($file, $adminId),
@@ -152,6 +156,12 @@ class DataImportReviewService
         } finally {
             if ($temporary && is_file($temporary)) unlink($temporary);
         }
+    }
+
+    private function createSafetyBackup(DataImportBatch $batch): void
+    {
+        $backup = app(ImportSafetyBackupService::class)->create();
+        $batch->update(['options' => array_merge($batch->options ?? [], ['safety_backup' => $backup])]);
     }
 
     public function requiresWholeFile(string $type): bool { return in_array($type, self::WHOLE_FILE_TYPES, true); }

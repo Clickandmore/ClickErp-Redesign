@@ -61,6 +61,7 @@
                 </div>
             </div>
 
+            <div class="alert alert-info">قبل تنفيذ كل دفعة اعتماد، تُحفظ نسخة مؤرخة من قاعدة البيانات في R2 وتظهر في لوحة السوبر أدمن. إذا تعذر حفظ النسخة يتوقف الاعتماد.</div>
             <div class="row g-3 mb-4">
                 <div class="col-xl-3 col-md-6">
                     <div class="card review-stat h-100">
