@@ -28,6 +28,12 @@ class DataImportReviewTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
+        $this->mock(\App\Services\DatabaseBackupService::class, function ($mock) {
+            $mock->shouldReceive('create')->with('pre-import')->andReturn([
+                'filename' => 'clickerp-pre-import-20261014-120000-abcdefgh.sql.gz',
+                'key' => 'backups/clickerp-pre-import-20261014-120000-abcdefgh.sql.gz',
+            ]);
+        });
         config(['activitylog.enabled' => false]);
         Storage::fake('local');
         $this->actor = Admin::factory()->forBranch(Branch::factory()->main()->create())->create();
@@ -117,6 +123,43 @@ class DataImportReviewTest extends TestCase
     {
         DB::table('fn_confirm_settings')->where('title', 'invoice_supplier_workflow')->delete();
         DB::table('fn_confirm_settings')->insert(['title' => 'invoice_supplier_workflow', 'value' => $value]);
+    }
+
+    public function test_import_page_displays_operation_history_with_actor_and_counts(): void
+    {
+        $this->grant(PermKeys::DATA_IMPORT_UPLOAD);
+        $row = $this->invoiceRow('history-display');
+        $batch = app(DataImportReviewService::class)->stage('invoices', $this->sheet([$row]), $this->actor->id);
+
+        $response = $this->get(route('reports.import.index'));
+        $response->assertOk()->assertSee('سجل عمليات الاستيراد')
+            ->assertSee($batch->original_name)->assertSee($this->actor->name)
+            ->assertSee('بانتظار الاعتماد')->assertSee('تفاصيل الصفوف والروابط والأخطاء');
+        $logs = $response->viewData('importLogs');
+        $this->assertSame($batch->id, $logs->first()->id);
+        $this->assertSame(1, $logs->first()->valid_rows_count);
+        $this->assertSame(0, $logs->first()->approved_rows_count);
+    }
+
+    public function test_backup_failure_prevents_invoice_approval_and_business_writes(): void
+    {
+        $row = $this->invoiceRow('backup-failure');
+        $batch = app(DataImportReviewService::class)->stage('invoices', $this->sheet([$row]), $this->actor->id);
+        $this->assertSame([], $batch->rows()->firstOrFail()->issues);
+        $this->mock(\App\Services\DatabaseBackupService::class, function ($mock) {
+            $mock->shouldReceive('create')->once()->with('pre-import')
+                ->andThrow(new \RuntimeException('R2 unavailable'));
+        });
+        $before = Invoice::count();
+        try {
+            app(DataImportReviewService::class)->approve($batch, $this->actor->id);
+            $this->fail('Approval must stop when the backup fails.');
+        } catch (\Illuminate\Validation\ValidationException $exception) {
+            $this->assertArrayHasKey('backup', $exception->errors(), json_encode($exception->errors(), JSON_UNESCAPED_UNICODE));
+        }
+        $this->assertSame($before, Invoice::count());
+        $this->assertSame('pending', $batch->fresh()->status);
+        $this->assertSame('valid', $batch->rows()->firstOrFail()->status);
     }
 
     public function test_updated_invoice_import_issues_delegation_and_records_commission(): void

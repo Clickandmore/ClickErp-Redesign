@@ -306,6 +306,8 @@ class MaidBulkImportService
             ];
         }
 
+        app(ImportSafetyBackupService::class)->create();
+
         $import->update([
             'status' => 'processing',
             'approved_by' => $adminId,

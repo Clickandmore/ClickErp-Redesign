@@ -855,6 +855,8 @@
         </div>
     </div>
 
+    @include('admin.ingaz.reports.partials.import-operation-logs')
+
     <div class="import-progress-overlay" id="import-progress-overlay" role="dialog" aria-modal="true"
          aria-labelledby="import-progress-title" aria-describedby="import-progress-status">
         <div class="import-progress-dialog p-4 p-lg-5 text-center">

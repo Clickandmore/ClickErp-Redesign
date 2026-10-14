@@ -16,6 +16,18 @@ class DataImportController extends Controller
             'templates' => $templates->templates(),
             'reviewBatches' => \App\Models\DataImportBatch::query()->when(!AdminGuardHasAnyPerm(['data_import_review', 'data_import_approve']), fn ($query) => $query->where('created_by', auth('admin')->id()))->latest()->limit(20)->get(),
             'recentUploads' => $templates->recentUploads(),
+            'importLogs' => \App\Models\DataImportBatch::query()
+                ->when(!AdminGuardHasAnyPerm(['data_import_review', 'data_import_approve']), fn ($query) => $query->where('created_by', auth('admin')->id()))
+                ->with(['uploadedBy', 'approvedBy', 'branchRelation'])
+                ->withCount(['rows', 'rows as valid_rows_count' => fn ($query) => $query->where('status', 'valid'),
+                    'rows as invalid_rows_count' => fn ($query) => $query->where('status', 'invalid'),
+                    'rows as approved_rows_count' => fn ($query) => $query->where('status', 'approved')])
+                ->latest('id')->paginate(20, ['*'], 'logs_page')->withQueryString()->fragment('import-operation-logs'),
+            'maidImportLogs' => \App\Models\ingaz\MaidBulkImport::query()
+                ->when(!AdminGuardHasAnyPerm(['data_import_review', 'data_import_approve']), fn ($query) => $query->where('uploaded_by', auth('admin')->id()))
+                ->when(\App\Support\BranchQueryContext::activeBranchId(), fn ($query, $branchId) => $query->whereHas('uploadedBy', fn ($admin) => $admin->where('branch_id', $branchId)))
+                ->with(['uploadedBy', 'approvedBy'])->latest('id')
+                ->paginate(20, ['*'], 'maid_logs_page')->withQueryString()->fragment('import-operation-logs'),
             'bondGenerationStats' => $bondGenerator->statistics(),
             'tutorialVideoUrl' => optional(\App\Models\ingaz\Setting::first())->importTutorialVideoEmbedUrl(),
         ]);
