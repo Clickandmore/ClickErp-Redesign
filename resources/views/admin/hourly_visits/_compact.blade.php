@@ -5,7 +5,7 @@
     <td data-column="date" dir="ltr">{{ $visit->scheduled_start_at?->format('Y-m-d H:i')??'لم يحدد' }} — {{ $visit->scheduled_end_at?->format('H:i') }}</td>
     <td data-column="customer"><a href="{{ route('clients.show',$visit->order->user_id) }}">{{ $visit->order->user?->name }}</a></td><td>{{ $visit->order->serviceCategory?->name }}</td>
     @if($mode==='unassigned')<td data-column="address">{{ $visit->address_text }}</td><td data-column="price">{{ number_format($visit->visit_price,2) }} ر.س</td>@endif
-    <td data-column="duration">{{ $visit->planned_hours }} ساعات</td>
+    <td data-column="duration">@include('admin.hourly_visits._delay') {{ $visit->planned_hours }} ساعات</td>
     <td>@if($canEdit)
         @if($mode==='unassigned')<button class="btn btn-sm btn-outline-primary" data-single="offer" data-id="{{ $visit->id }}">{{ $visit->offered_to_workers?'إعداد العرض للعاملات':'عرض للعاملات' }}</button><button class="btn btn-sm btn-light" data-single="assign_all" data-id="{{ $visit->id }}">تعيين تلقائي</button>@if($visit->offered_to_workers)<small class="d-block text-success">معروضة للعاملات المؤهلات</small>@endif
         @else<button class="btn btn-sm btn-success" data-single="complete" data-id="{{ $visit->id }}">إكمال</button><button class="btn btn-sm btn-outline-danger" data-single="cancel_visit" data-id="{{ $visit->id }}">إلغاء</button>@endif

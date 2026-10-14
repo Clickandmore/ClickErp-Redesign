@@ -14,6 +14,10 @@
             <span class="vl-card-service"><i class="fa fa-broom"></i> {{ $order->serviceCategory?->name ?? 'خدمة ساعات' }}</span>
         </div>
         <div class="vl-card-badges">
+            @if($canEdit && in_array($visit->status, \App\Services\Hourly\ShelterPresence::OUT_STATUSES, true))
+                <button type="button" class="vl-act" data-single="confirm_return" data-id="{{ $visit->id }}">تأكيد العودة للإيواء يدويًا</button>
+            @endif
+            @include('admin.hourly_visits._delay')
             <span class="vl-badge {{ $fullyAssigned ? 'vl-b-green' : ($assignedCount ? 'vl-b-amber' : 'vl-b-red') }}"><i class="fa fa-user-check"></i> {{ $fullyAssigned ? 'تعيين مكتمل' : ($assignedCount ? 'تعيين جزئي' : 'بدون عاملات') }}</span>
             <span class="vl-badge {{ $free || $visitPaymentStatus === 'paid' ? 'vl-b-green' : ($visitPaymentStatus === 'partial' ? 'vl-b-amber' : 'vl-b-red') }}"><i class="fa fa-wallet"></i> {{ $free?'مجانية':__('hourly.'.$visitPaymentStatus) }}</span>
             <span class="vl-badge {{ $toneClass }}"><i class="fa fa-circle"></i> {{ \App\Services\Hourly\VisitSearch::STATUSES[$visit->status] ?? $visit->status }}</span>

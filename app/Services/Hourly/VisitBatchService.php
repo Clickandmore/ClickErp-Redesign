@@ -9,7 +9,7 @@ use Illuminate\Validation\Rule;
 
 class VisitBatchService
 {
-    public const ACTIONS=['assign_workers'=>'تعيين عاملة','unassign_worker'=>'إلغاء تعيين عاملة','unassign_workers'=>'إلغاء تعيين العاملات','unassign_driver'=>'إزالة سائق المهمة','assign_all'=>'تعيين العاملات تلقائيًا','auto_driver'=>'تعيين السائق تلقائيًا','complete'=>'إكمال الزيارات','cancel_visit'=>'إلغاء الزيارات','collect'=>'إضافة دفعة جماعية','unassign_drivers'=>'إزالة السائقين','clear_driver_routes'=>'إزالة مسارات السائقين','unassign_all'=>'إزالة العاملات والسائقين','reschedule'=>'تغيير التاريخ','start_time'=>'تغيير وقت البدء','duration'=>'تغيير المدة','price'=>'تغيير السعر','assign_driver'=>'تعيين سائق','team_leader'=>'تعيين قائد الفريق','note'=>'إضافة مذكرة','offer'=>'عرض للعاملات'];
+    public const ACTIONS=['assign_workers'=>'تعيين عاملة','unassign_worker'=>'إلغاء تعيين عاملة','unassign_workers'=>'إلغاء تعيين العاملات','unassign_driver'=>'إزالة سائق المهمة','assign_all'=>'تعيين العاملات تلقائيًا','auto_driver'=>'تعيين السائق تلقائيًا','confirm_return'=>'تأكيد العودة للإيواء يدويًا','complete'=>'إكمال الزيارات','cancel_visit'=>'إلغاء الزيارات','collect'=>'إضافة دفعة جماعية','unassign_drivers'=>'إزالة السائقين','clear_driver_routes'=>'إزالة مسارات السائقين','unassign_all'=>'إزالة العاملات والسائقين','reschedule'=>'تغيير التاريخ','start_time'=>'تغيير وقت البدء','duration'=>'تغيير المدة','price'=>'تغيير السعر','assign_driver'=>'تعيين سائق','team_leader'=>'تعيين قائد الفريق','note'=>'إضافة مذكرة','offer'=>'عرض للعاملات'];
     public static function rules(): array
     {
         return ['batch_id'=>'required|uuid','action'=>['required',Rule::in(array_keys(self::ACTIONS))],

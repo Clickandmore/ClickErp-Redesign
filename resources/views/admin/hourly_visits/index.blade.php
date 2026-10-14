@@ -226,6 +226,7 @@
 </style>
 @endsection
 @section('content')
+@include('admin.hourly_visits._delay-alerts')
 @php
     $titles = ['all' => 'قائمة الزيارات', 'unassigned' => 'الزيارات غير المخصصة', 'past' => 'زيارات ماضية غير منتهية','latest'=>'آخر الزيارات للطلب'];
     $modeIcons = ['all' => 'fa-list-check', 'unassigned' => 'fa-user-slash', 'past' => 'fa-clock-rotate-left','latest'=>'fa-calendar-day'];

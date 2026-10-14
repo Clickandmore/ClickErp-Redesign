@@ -7,7 +7,7 @@ use Carbon\Carbon;
 
 class OrderManagementService
 {
-    public const ACTIONS=['assign_workers','unassign_driver','reschedule','start_time','duration','price','assign_all','add_worker','remove_worker','unassign_worker','assign_driver','auto_driver','team_leader','free_visit','unassign_drivers','unassign_workers','unassign_all','clear_driver_routes','offer','cancel_visit','complete','cancel_order','payment_method'];
+    public const ACTIONS=['assign_workers','unassign_driver','reschedule','start_time','duration','price','assign_all','add_worker','remove_worker','unassign_worker','assign_driver','auto_driver','team_leader','free_visit','unassign_drivers','unassign_workers','unassign_all','clear_driver_routes','offer','cancel_visit','complete','confirm_return','cancel_order','payment_method'];
     public function audit(HourlyRentalOrder $order,string $action,array $before,array $after,?int $admin,?int $visit=null,?string $reason=null): void
     {
         DB::table('hourly_order_audits')->insert(['hourly_rental_order_id'=>$order->id,'visit_id'=>$visit,'admin_id'=>$admin,'action'=>$action,'reason'=>$reason,'before'=>json_encode($before),'after'=>json_encode($after),'created_at'=>now(),'updated_at'=>now()]);
@@ -51,7 +51,17 @@ class OrderManagementService
                     if(in_array($action,['cancel_order','cancel_visit'])){
                         $visit->status='cancelled';$visit->cancellation_fee=($data['refund_method']??null)==='none'?$visit->visit_price:0;
                         DB::table('hourly_visit_reservations')->where('hourly_visit_id',$visit->id)->delete();
+                    } elseif($action==='confirm_return'){
+                        if (!$admin || !trim((string)($data['reason'] ?? ''))) HourlyOrderService::reject('تأكيد العودة يتطلب مشرفًا وسببًا مسجلًا.');
+                        if (!in_array($visit->status, ShelterPresence::OUT_STATUSES, true)) HourlyOrderService::reject('تأكيد العودة متاح للعاملة خارج الإيواء فقط.');
+                        app(ShelterPresence::class)->close($visit, 'admin', $admin);
+                        app(ShelterPresence::class)->flush();
+                        $visit->status='completed';
                     } elseif($action==='complete'){
+                        if (in_array($visit->status, ShelterPresence::OUT_STATUSES, true)
+                            || (\Illuminate\Support\Facades\Schema::hasTable('worker_daily_movements') && DB::table('worker_daily_movements')
+                                ->where('source','hourly_visit')->where('reference_type','hourly_visit')->where('reference_id',$visit->id)->whereNull('in_at')->exists()))
+                            HourlyOrderService::reject('العاملة ما زالت خارج الإيواء؛ استخدم تأكيد العودة يدويًا بعد التحقق من وصولها.');
                         if(!$visit->scheduled_end_at || $visit->scheduled_end_at->isFuture() || $visit->workers()->count()<$visit->workers_count)HourlyOrderService::reject('الإكمال يتطلب انتهاء الموعد وتعيين العدد المطلوب من العاملات.');
                         $visit->status='completed';
                     } elseif($action==='price'){$visit->visit_price=$data['price'];$visit->is_free=(float)$data['price']===0;}

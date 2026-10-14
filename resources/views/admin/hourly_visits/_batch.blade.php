@@ -6,7 +6,7 @@
         'المواعيد' => ['reschedule' => ['fa-calendar-days', 'indigo', 'تاريخ جديد أو إزاحة'], 'start_time' => ['fa-clock', 'indigo', 'مع الإبقاء على التاريخ'], 'duration' => ['fa-hourglass-half', 'blue', 'يُعدَّل السعر تبعًا لها']],
         'المال' => ['collect' => ['fa-money-bill-wave', 'green', 'تحصيل موزّع على الزيارات'], 'price' => ['fa-tag', 'amber', 'سعر جديد لكل زيارة']],
         'الإزالة' => ['unassign_all' => ['fa-users-slash', 'red', 'العاملات والسائقون'], 'unassign_drivers' => ['fa-car-burst', 'red', 'السائقون فقط'], 'clear_driver_routes' => ['fa-road-circle-xmark', 'red', 'مسارات السائقين']],
-        'الإغلاق والملاحظات' => ['complete' => ['fa-circle-check', 'green', 'تسجيل التنفيذ'], 'cancel_visit' => ['fa-ban', 'red', 'مع خيارات الاسترداد'], 'note' => ['fa-note-sticky', 'violet', 'تُسجَّل على الزيارات']],
+        'الإغلاق والملاحظات' => ['confirm_return' => ['fa-house', 'amber', 'تأكيد الوصول الفعلي مع تسجيل السبب'], 'complete' => ['fa-circle-check', 'green', 'تسجيل التنفيذ'], 'cancel_visit' => ['fa-ban', 'red', 'مع خيارات الاسترداد'], 'note' => ['fa-note-sticky', 'violet', 'تُسجَّل على الزيارات']],
     ];
     $actionGroups['التعيين']['assign_workers']=['fa-user-plus','blue','اختيار العاملات المتاحات ومعاينة التعيين'];
     $actionGroups['الإزالة']['unassign_workers']=['fa-users-slash','red','إلغاء تعيين العاملات فقط'];

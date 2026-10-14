@@ -22,6 +22,9 @@ class Kernel extends ConsoleKernel
      */
     protected function schedule(Schedule $schedule): void
     {
+        // Hourly service time must never imply a physical shelter return.
+        $schedule->command('hourly:visit-delays')->everyFiveMinutes()->withoutOverlapping();
+        $schedule->command('hourly:auto-complete-visits')->everyFiveMinutes()->withoutOverlapping();
         if (config('activitylog.scheduled_cleanup_enabled', false)) {
             $schedule->command('activitylog:clean --force')
                 ->dailyAt('03:30')

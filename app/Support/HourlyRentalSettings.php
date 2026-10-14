@@ -167,6 +167,8 @@ class HourlyRentalSettings
             'cancellation_window_hours' => 12,
             'cancellation_fee_percent' => 50,
             // تذكير العميل بتجديد الباقة قبل آخر زيارة بهذا العدد من الأيام (0 = معطّل).
+            'pickup_grace_minutes' => 30,
+            'delay_escalation_minutes' => 60,
             'renewal_reminder_days' => 7,
             // هل تدخل الزيارات المجانية/التعويضية في تاريخ انتهاء العقد؟ الملغاة لا تدخل أبدًا (ContractPeriod).
             'renewal_count_free_visits' => false,
@@ -269,6 +271,8 @@ class HourlyRentalSettings
             'cancellation_fee_percent' => $int($settings['cancellation_fee_percent'] ?? null, $defaults['cancellation_fee_percent'], 0, 100),
             'renewal_reminder_days' => $int($settings['renewal_reminder_days'] ?? null, $defaults['renewal_reminder_days'], 0, 60),
             'renewal_count_free_visits' => $bool($settings['renewal_count_free_visits'] ?? $defaults['renewal_count_free_visits']),
+            'pickup_grace_minutes' => $int($settings['pickup_grace_minutes'] ?? null, $defaults['pickup_grace_minutes'], 0, 240),
+            'delay_escalation_minutes' => $int($settings['delay_escalation_minutes'] ?? null, $defaults['delay_escalation_minutes'], 5, 1440),
             'curfew_time' => $curfew,
             'map_provider' => in_array($settings['map_provider'] ?? null, self::MAP_PROVIDERS, true) ? $settings['map_provider'] : $defaults['map_provider'],
             // المفتاح يُحفظ كما هو بعد التشذيب؛ لا يُمسح عند العودة للمجاني حتى لا يُعاد إدخاله.
