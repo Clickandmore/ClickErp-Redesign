@@ -113,6 +113,88 @@ class DataImportReviewTest extends TestCase
             'invoice_date' => now()->toDateString(), 'direct_recruitment_cost' => '100', 'direct_recruitment_count' => '1'];
     }
 
+    private function updatedInvoiceWorkflow(string $value = 'updated'): void
+    {
+        DB::table('fn_confirm_settings')->where('title', 'invoice_supplier_workflow')->delete();
+        DB::table('fn_confirm_settings')->insert(['title' => 'invoice_supplier_workflow', 'value' => $value]);
+    }
+
+    public function test_updated_invoice_import_issues_delegation_and_records_commission(): void
+    {
+        $this->updatedInvoiceWorkflow();
+        DB::table('fn_confirm_settings')->where('title', 'automatic_journal_entries')->delete();
+        DB::table('fn_confirm_settings')->insert(['title' => 'automatic_journal_entries', 'value' => 'off']);
+        $delegation = $this->referenceDelegation('updated');
+        $row = ['invoice_date' => now()->toDateString(), 'invoice_reference_type' => 'تفويض',
+            'reference_ingaz_number' => $delegation->ingaz_number, 'external_recruitment_cost' => '1000',
+            'external_recruitment_count' => '1', 'create_supplier_invoice' => '0'];
+        $batch = app(DataImportReviewService::class)->stage('updated_invoices', $this->sheet([$row]), $this->actor->id);
+        $this->assertSame([], $batch->rows()->firstOrFail()->issues);
+        $this->grant(PermKeys::DATA_IMPORT_APPROVE, PermKeys::INVOICES_CREATE, PermKeys::INVOICES_EDIT_LINE_ITEMS);
+        $this->post(route('reports.import.approve', $batch))->assertRedirect();
+        $this->assertSame('approved', $batch->fresh()->status, json_encode($batch->fresh()->result, JSON_UNESCAPED_UNICODE));
+        $invoice = Invoice::where('ingaz_delegation_id', $delegation->id)->firstOrFail();
+        $this->assertNotNull($invoice->musaned_commission_amount);
+        $this->assertEqualsWithDelta((float) $invoice->total_due * (float) $invoice->musaned_commission_rate / 100,
+            (float) $invoice->musaned_commission_amount, 0.01);
+    }
+
+    public function test_updated_invoice_import_rechecks_workflow_before_approval(): void
+    {
+        $this->updatedInvoiceWorkflow();
+        $row = $this->invoiceRow('updated-setting-change');
+        $batch = app(DataImportReviewService::class)->stage('updated_invoices', $this->sheet([$row]), $this->actor->id);
+        $this->assertSame([], $batch->rows()->firstOrFail()->issues);
+        $this->updatedInvoiceWorkflow('legacy');
+        $result = app(DataImportReviewService::class)->approve($batch, $this->actor->id);
+        $this->assertSame(0, $result['created']);
+        $this->assertStringContainsString('فعّل التسلسل الجديد', implode(' ', $result['errors']));
+        $this->assertFalse(Invoice::where('client_id', $row['client_id'])->exists());
+    }
+
+    /** @dataProvider supplierImportModes */
+    public function test_updated_import_passes_supplier_options_to_manual_issuance(string $mode): void
+    {
+        $this->updatedInvoiceWorkflow();
+        $controller = \Mockery::mock(\App\Http\Controllers\ingaz\InvoiceController::class);
+        $controller->shouldReceive('issueImportedInvoice')->once()->withArgs(function ($request) use ($mode) {
+            $this->assertSame($mode, $request->input('supplier_recognition_mode'));
+            $this->assertTrue($request->boolean('create_supplier_invoice'));
+            $this->assertEquals(1000, $request->input('supplier_total_cost_usd'));
+            $this->assertEquals(300, $request->input('supplier_partial_cost_usd'));
+            $this->assertEquals(24, $request->input('musaned_commission_amount'));
+            $this->assertSame('الرياض', $request->input('supplier_arrival_station'));
+            $this->assertFalse($request->has('import_reference'));
+            return true;
+        })->andReturn(response()->json(['success' => true]));
+        $this->app->instance(\App\Http\Controllers\ingaz\InvoiceController::class, $controller);
+        $method = new \ReflectionMethod(\App\Services\ingaz\DataImportExecutionService::class, 'importOperationalInvoice');
+        $method->setAccessible(true);
+        $result = $method->invoke(app(\App\Services\ingaz\DataImportExecutionService::class), [
+            'invoice_date' => now()->toDateString(), 'contract_id' => 1, 'import_reference' => 'supplier-options',
+            'create_supplier_invoice' => '1', 'supplier_recognition_mode' => $mode,
+            'supplier_total_cost_usd' => '1000', 'supplier_partial_cost_usd' => '300',
+            'supplier_arrival_station' => 'الرياض', 'musaned_commission_amount' => '24',
+        ], 'updated_invoices');
+        $this->assertSame('created', $result);
+    }
+
+    public function supplierImportModes(): array
+    {
+        return [['full'], ['partial']];
+    }
+
+    public function test_updated_invoice_import_rejects_supplier_without_contract_or_partial_amount(): void
+    {
+        $this->updatedInvoiceWorkflow();
+        $row = $this->invoiceRow('updated-invalid-supplier') + ['create_supplier_invoice' => '1', 'supplier_recognition_mode' => 'partial'];
+        $batch = app(DataImportReviewService::class)->stage('updated_invoices', $this->sheet([$row]), $this->actor->id);
+        $reviewed = $batch->rows()->firstOrFail();
+        $this->assertSame('invalid', $reviewed->status);
+        $this->assertStringContainsString('عقد استقدام', implode(' ', $reviewed->issues));
+        $this->assertGreaterThanOrEqual(2, count($reviewed->issues));
+    }
+
     private function referenceDelegation(string $suffix = '1'): \App\Models\IngazDelegation
     {
         $client = User::withoutEvents(fn () => User::create(['name' => 'عميل ربط تلقائي '.$suffix, 'phone' => uniqid('reference-')]));

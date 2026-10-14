@@ -103,7 +103,7 @@ class DataImportController extends Controller
     {
         $this->authorizeBatch($batch);
         abort_unless(AdminGuardHasAnyPerm(['data_import_approve']), 403);
-        if (in_array($batch->type, ['invoices', 'legacy_invoices', 'legacy_rental_orders'], true)) {
+        if (in_array($batch->type, ['invoices', 'updated_invoices', 'legacy_invoices', 'legacy_rental_orders'], true)) {
             abort_unless(\App\Support\InvoiceAuthorization::canIssueDirectly() || \App\Support\InvoiceAuthorization::canApprove(), 403);
         }
         if ($batch->type === 'admins') {

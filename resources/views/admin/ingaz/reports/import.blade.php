@@ -25,7 +25,7 @@
         'people' => ['label' => 'العملاء والعمالة', 'icon' => 'fas fa-users', 'keys' => ['clients', 'arabia_clients', 'maids', 'arabia_cvs', 'rental_maids', 'recruitment_offices']],
         'staff' => ['label' => 'الموظفون والمستخدمون', 'icon' => 'fas fa-user-tie', 'keys' => ['admins', 'employees']],
         'contracts' => ['label' => 'العقود والطلبات', 'icon' => 'fas fa-file-contract', 'keys' => ['recruitment_contracts', 'shelter_contracts', 'rent_contracts', 'sponsorship_transfers', 'ingaz_delegations', 'arabia_recruitment_orders', 'recruitment_contracts_clients_maids', 'rent_contracts_clients_rental_maids', 'legacy_rental_orders', 'alrafedin_transfer_services', 'complaints']],
-        'finance' => ['label' => 'المالية', 'icon' => 'fas fa-coins', 'keys' => ['finance_cost_centers', 'finance_accounts', 'finance_constraints', 'receipt_bonds', 'disbursement_bonds', 'invoices', 'legacy_invoices']],
+        'finance' => ['label' => 'المالية', 'icon' => 'fas fa-coins', 'keys' => ['finance_cost_centers', 'finance_accounts', 'finance_constraints', 'receipt_bonds', 'disbursement_bonds', 'invoices', 'updated_invoices', 'legacy_invoices']],
     ];
 
     $groupDefinitions['contracts']['keys'][] = 'external_office_dispatches';

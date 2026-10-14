@@ -31,6 +31,12 @@ class SystemUpdateMedia extends Model
     public function publicUrl(): ?string
     {
         if (filled($this->path)) {
+            // Local uploads belong to this installation. A copied APP_URL in the
+            // public disk configuration must not point attachments at another site.
+            if (config('filesystems.disks.' . self::DISK . '.driver') === 'local') {
+                return url('/storage/' . ltrim($this->path, '/'));
+            }
+
             $url = Storage::disk(self::DISK)->url($this->path);
 
             return Str::startsWith($url, ['http://', 'https://']) ? $url : url($url);
