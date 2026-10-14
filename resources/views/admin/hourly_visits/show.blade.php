@@ -3,6 +3,7 @@
 @section('content')
 <div class="container-fluid" dir="rtl">
     <div class="card mb-3"><div class="card-body"><h3>تفاصيل الزيارة #{{ $visit->id }}</h3><a href="{{ route('admin.hourly-visits.index') }}">قائمة الزيارات</a> · <a href="{{ route('admin.hourly-orders.show',$order) }}">الطلب {{ $order->order_number }}</a>
+        @include('admin.hourly_visits._delay')
         <p class="mt-3">العميل: <a href="{{ route('clients.show',$order->user_id) }}">{{ $order->user?->name }}</a> · {{ $visit->contact_phone }}</p><p>{{ $visit->address_text }} <a href="{{ $visit->map_url }}" target="_blank" rel="noopener">الخريطة</a></p>
         <p>الموعد: {{ $visit->scheduled_start_at?->format('Y-m-d H:i')??'لم يحدد' }} — {{ $visit->scheduled_end_at?->format('H:i') }} · {{ $visit->planned_hours }} ساعات</p>
         <p>الخدمة: {{ $order->serviceCategory?->name }} · الحالة: {{ \App\Services\Hourly\VisitSearch::STATUSES[$visit->status]??$visit->status }} · السعر: {{ number_format($visit->visit_price,2) }} ر.س</p>

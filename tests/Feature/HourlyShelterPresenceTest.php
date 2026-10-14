@@ -153,4 +153,103 @@ class HourlyShelterPresenceTest extends TestCase
         $this->assertFalse(ShelterPresence::linked());
         $this->assertSame([], $this->presence()->outNow());
     }
+
+    public function test_delay_stages_and_manual_return_keep_physical_presence_consistent(): void
+    {
+        $order = $this->order();
+        $order->update(['status' => 'active']);
+        $visit = $order->visits()->first();
+        $visit->update(['status'=>'in_progress', 'scheduled_end_at'=>now()->subMinutes(10)]);
+        $this->presence()->open($visit, 'driver', 3);
+        $this->assertSame('ended', \App\Services\Hourly\VisitDelay::state($visit)['stage']);
+        $visit->update(['scheduled_end_at'=>now()->subMinutes(30)]);
+        $this->assertSame('overdue', \App\Services\Hourly\VisitDelay::state($visit)['stage']);
+        $visit->update(['scheduled_end_at'=>now()->subMinutes(90)]);
+        $this->assertSame('escalated', \App\Services\Hourly\VisitDelay::state($visit)['stage']);
+        $this->assertTrue($this->presence()->isOut(1));
+        $manager = app(\App\Services\Hourly\OrderManagementService::class);
+        try {
+            $manager->apply($order, ['action'=>'complete', 'visit_ids'=>[$visit->id], 'reason'=>'test'], 7);
+            $this->fail('Ordinary completion must reject a worker outside shelter.');
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            $this->assertSame('in_progress', $visit->fresh()->status);
+        }
+        $manager->apply($order, ['action'=>'confirm_return', 'visit_ids'=>[$visit->id], 'reason'=>'تم التحقق من الوصول'], 7);
+        $this->assertSame('completed', $visit->fresh()->status);
+        $this->assertSame('completed', $order->fresh()->status);
+        $movement = WorkerDailyMovement::where('reference_id',$visit->id)->firstOrFail();
+        $this->assertNotNull($movement->in_at);
+        $this->assertSame('admin', $movement->in_by_type);
+        $this->assertSame(7, (int)$movement->in_by_id);
+        $this->assertFalse($this->presence()->isOut(1));
+        $this->assertNull(\App\Services\Hourly\VisitDelay::state($visit->fresh()));
+        $this->assertTrue(DB::table('hourly_order_audits')->where('visit_id',$visit->id)->where('action','confirm_return')->exists());
+    }
+
+    public function test_delay_notifications_retry_failures_deduplicate_and_include_previous_days(): void
+    {
+        (require base_path('database/migrations/2026_10_14_000001_create_hourly_visit_delay_notices.php'))->up();
+        $order = $this->order();
+        $order->update(['status'=>'active']);
+        $visit = $order->visits()->first();
+        $visit->update(['status'=>'in_progress','scheduled_end_at'=>now()->subDay()]);
+        $this->presence()->open($visit, 'driver', 3);
+        $success = new \App\Services\Firebase\FirebasePushResult();
+        $success->addSuccess();
+        $push = \Mockery::mock(\App\Services\Hourly\StaffPushService::class);
+        $push->shouldReceive('sendToStaff')->with('worker', 1, \Mockery::any(), \Mockery::any(), \Mockery::on(fn($data)=>$data['stage']==='escalated'))
+            ->twice()->andReturn(\App\Services\Firebase\FirebasePushResult::skipped('offline'), $success);
+        $this->app->instance(\App\Services\Hourly\StaffPushService::class, $push);
+        \Illuminate\Support\Facades\Artisan::call('hourly:visit-delays');
+        $this->assertNull(DB::table('hourly_visit_delay_notices')->value('sent_at'));
+        \Illuminate\Support\Facades\Artisan::call('hourly:visit-delays');
+        \Illuminate\Support\Facades\Artisan::call('hourly:visit-delays');
+        $this->assertSame(1, DB::table('hourly_visit_delay_notices')->count());
+        $this->assertNotNull(DB::table('hourly_visit_delay_notices')->value('sent_at'));
+        $this->assertSame('overdue', WorkerDailyMovement::where('reference_id',$visit->id)->value('status'));
+        $this->assertSame('in_progress', $visit->fresh()->status);
+        $this->assertTrue($this->presence()->isOut(1));
+    }
+
+    public function test_auto_completion_never_closes_a_worker_outside_shelter(): void
+    {
+        $order = $this->order();
+        $order->update(['status'=>'active']);
+        \App\Models\Hourly\HourlyCategorySetting::create(['service_category_id'=>$order->service_category_id,'settings'=>['auto_complete_visits_at'=>'00:00']]);
+        $visit = $order->visits()->first();
+        $visit->update(['status'=>'in_progress','scheduled_date'=>today()]);
+        $this->presence()->open($visit, 'driver', 3);
+        \Illuminate\Support\Facades\Artisan::call('hourly:auto-complete-visits');
+        $this->assertSame('in_progress', $visit->fresh()->status);
+        // An inconsistent status must not override an open physical movement either.
+        $visit->update(['status'=>'scheduled']);
+        \Illuminate\Support\Facades\Artisan::call('hourly:auto-complete-visits');
+        $this->assertSame('scheduled', $visit->fresh()->status);
+        $this->assertNull(WorkerDailyMovement::where('reference_id',$visit->id)->value('in_at'));
+    }
+
+    public function test_worker_list_badge_shows_actual_phase_and_delay_thresholds(): void
+    {
+        \Carbon\Carbon::setTestNow('2030-01-06 12:00:00');
+        $badge = fn($status, $end) => view('admin.hourly_maids._current-visit-status', [
+            'trip' => ['status'=>$status, 'until'=>$end],
+        ])->render();
+        foreach (['en_route'=>'في الطريق إلى العميل', 'delivered'=>'لدى العميل',
+            'in_progress'=>'تؤدي الخدمة', 'worker_finished'=>'بانتظار الاستلام',
+            'picked_up'=>'في طريق العودة للإيواء'] as $status=>$label) {
+            $html = $badge($status, '2030-01-06 13:00:00');
+            $this->assertStringContainsString($label, $html);
+            $this->assertStringNotContainsString('دقيقة بعد الموعد', $html);
+        }
+        $this->assertStringContainsString('انتهى وقت الخدمة', $badge('in_progress', '2030-01-06 12:00:00'));
+        $html = $badge('worker_finished', '2030-01-06 11:30:00');
+        $this->assertStringContainsString('متأخرة عن الاستلام', $html);
+        $this->assertStringContainsString('30 دقيقة بعد الموعد', $html);
+        $this->assertStringContainsString('متأخرة عن العودة', $badge('picked_up', '2030-01-06 11:30:00'));
+        $html = $badge('picked_up', '2030-01-06 10:30:00');
+        $this->assertStringContainsString('في طريق العودة للإيواء', $html);
+        $this->assertStringContainsString('تصعيد التأخير', $html);
+        $this->assertStringContainsString('mh-now-escalated', $html);
+    }
+
 }

@@ -26,6 +26,10 @@
 .mh-now-ready{background:#dcfce7;color:#166534;border:1px solid #86efac}
 .mh-now-shelter{background:#e0f2fe;color:#075985;border:1px solid #7dd3fc}
 .mh-now-muted{background:#f1f5f9;color:#475569;border:1px solid #cbd5e1}
+.mh-now-transit{background:#e0f2fe;color:#075985;border:1px solid #7dd3fc}
+.mh-now-waiting,.mh-now-ended{background:#fef3c7;color:#92400e;border:1px solid #fcd34d}
+.mh-now-overdue{background:#ffedd5;color:#9a3412;border:1px solid #fdba74}
+.mh-now-escalated{background:#fee2e2;color:#991b1b;border:1px solid #fca5a5}
 .mh-now-meta{font-size:.75rem;color:#64748b;margin-top:.3rem;white-space:nowrap}
 .mh-now-meta a{font-weight:700}
 .mh-now-count{display:inline-block;margin-inline-start:.25rem;padding:0 .4rem;border-radius:6px;background:#ede9fe;color:#5b21b6;font-weight:700}
@@ -198,7 +202,11 @@
                         };
                     @endphp
                     <td>
-                        <span class="mh-now {{ $nowClass }}"><i class="fa {{ $nowIcon }}"></i> {{ $nowLabel }}</span>
+                        @if($trip)
+                            @include('admin.hourly_maids._current-visit-status', ['trip' => $trip])
+                        @else
+                            <span class="mh-now {{ $nowClass }}"><i class="fa {{ $nowIcon }}"></i> {{ $nowLabel }}</span>
+                        @endif
                         @if($trip)
                             <div class="mh-now-meta">
                                 @if(AdminGuardHasPerm('hourly_orders_view'))

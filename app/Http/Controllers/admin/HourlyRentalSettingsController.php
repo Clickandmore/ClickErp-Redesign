@@ -54,6 +54,8 @@ class HourlyRentalSettingsController extends Controller
             'cancellation_fee_percent' => ['required', 'integer', 'min:0', 'max:100'],
             'renewal_reminder_days' => ['required', 'integer', 'min:0', 'max:60'],
             'renewal_count_free_visits' => ['nullable', 'boolean'],
+            'pickup_grace_minutes' => ['sometimes', 'required', 'integer', 'between:0,240'],
+            'delay_escalation_minutes' => ['sometimes', 'required', 'integer', 'between:5,1440'],
             'curfew_time' => ['required', 'date_format:H:i'],
             'map_provider' => ['required', 'in:' . implode(',', HourlyRentalSettings::MAP_PROVIDERS)],
             'google_maps_browser_key' => ['nullable', 'string', 'max:200', 'regex:/^[A-Za-z0-9_\-]+$/'],
