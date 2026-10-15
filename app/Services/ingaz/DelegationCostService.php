@@ -179,7 +179,7 @@ class DelegationCostService
                 if ($allowLateContract && !$contract->isLateFinanceEligible()) {
                     $this->fail('العقد غير مؤهل لاستكمال العمليات المالية.');
                 }
-                $invoice = Invoice::where('contract_id', $contract->id)->lockForUpdate()->first();
+                $invoice = $contract->invoice()->lockForUpdate()->first();
                 $prefix = "قيد تكلفة تفويض عقد الاستقدام #{$contract->id} / الفاتورة #{$invoice?->id} /";
                 if (!$invoice) {
                     $this->fail("عقد الاستقدام #{$contract->id} ليست له فاتورة متاحة.");

@@ -123,10 +123,31 @@ class Invoice extends Model
         return $this->hasMany(RecruitmentInvoiceCreditNote::class, 'invoice_id');
     }
 
+    /** Supplier closures and imported adjustments are history, not customer invoices. */
+    public function isRecruitmentRevenue(): bool
+    {
+        return !$this->legacy_invoice_number || $this->legacy_invoice_type === null
+            || in_array($this->legacy_invoice_type, self::recruitmentRevenueTypes(), true);
+    }
+
+    private static function recruitmentRevenueTypes(): array
+    {
+        return ['فاتورة ايراد / طلب استقدام', 'فاتورة إيراد / طلب استقدام'];
+    }
+
+    public function scopeRecruitmentRevenue($query)
+    {
+        return $query->where(function ($query) {
+            $query->whereNull('invoices.legacy_invoice_number')
+                ->orWhereNull('invoices.legacy_invoice_type')
+                ->orWhereIn('invoices.legacy_invoice_type', self::recruitmentRevenueTypes());
+        });
+    }
+
     /** Only a fully credited invoice allows a replacement invoice for its contract. */
     public function scopeBlockingReplacement($query)
     {
-        return $query->where(function ($query) {
+        return $query->recruitmentRevenue()->where(function ($query) {
             $query->whereDoesntHave('recruitmentCreditNotes')
                 ->orWhereRaw('ROUND(invoices.total_due * 100) > (SELECT COALESCE(SUM(ROUND(credit.total * 100)), 0) FROM recruitment_invoice_credit_notes AS credit WHERE credit.invoice_id = invoices.id)');
         });
