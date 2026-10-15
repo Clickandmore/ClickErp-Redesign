@@ -20,6 +20,7 @@ class HourlyOrderService
     {
         self::enabled();
         return DB::transaction(function () use ($userId, $data, $adminId, $customerCandidates) {
+            User::whereKey($userId)->lockForUpdate()->firstOrFail();
             // قفل رصيد العميل قبل إنشاء طلب المحفظة يمنع خصمين متزامنين من الرصيد نفسه.
             $walletUser = $data['payment_method'] === 'wallet'
                 ? User::query()->whereKey($userId)->lockForUpdate()->firstOrFail()
@@ -76,6 +77,7 @@ class HourlyOrderService
             if (count($dates) > $package->visits_count) self::reject('عدد المواعيد يتجاوز زيارات الباقة.');
             $rules->assertSessionDates($package, $dates, $panel);
             $slots = app(HourlySlotService::class)->validate($dates, (float) $package->hours_per_visit, (int) $snapshot['min_notice_hours'], $expires, $snapshot, $panel);
+            app(DuplicateBookingService::class)->assertAvailable($userId,$address->toArray(),$package,$slots,null,$panel);
             // السعر الموحد: ضريبة موروثة، مراحل العاملات والكمية، وطريقة عرض سعر الباقة.
             $quote = $rules->quote($package, $workers, (int) ($data['quantity'] ?? $defaults['quantity']), $panel);
             $total = $quote['total']; $subtotal = $quote['subtotal'];
@@ -111,9 +113,10 @@ class HourlyOrderService
             }
             $this->log($order, null, 'pending_confirmation', $adminId ? 'admin' : 'client', $adminId ?? $userId, 'إنشاء الطلب');
             // التأكيد التلقائي للدفع الآجل (نقدي/بطاقة عند التسليم) حسب القناة.
-            if ($category && in_array($order->payment_method, ['cash','card_on_delivery'], true) && $settings->value($package, 'auto_confirm_postpaid', $channel)) {
+            if ($category && !in_array($snapshot['payment_policy']??null,['prepaid','installments'],true) && in_array($order->payment_method, ['cash','card_on_delivery'], true) && $settings->value($package, 'auto_confirm_postpaid', $channel)) {
                 $this->transition($order, 'active', $panel ? 'admin' : 'system', $adminId, 'تأكيد تلقائي للدفع الآجل');
             }
+            app(PaymentScheduleService::class)->generateInstallments($order);
             if ($walletUser) $this->payFromWallet($order, $walletUser);
             return $order;
         });
@@ -157,6 +160,8 @@ class HourlyOrderService
         return DB::transaction(function () use ($order, $adminId) {
             $order = HourlyRentalOrder::query()->lockForUpdate()->findOrFail($order->id);
             if ($order->status !== 'pending_confirmation' || $order->expires_at->isPast()) self::reject('الطلب غير قابل للتأكيد.');
+            $explicitPolicy=$order->package_snapshot['payment_policy']??null;
+            if(in_array($explicitPolicy,['prepaid','installments'],true) && !HourlyPaymentService::activationPaid($order))self::reject('يجب تحصيل المبلغ المطلوب مقدمًا قبل تفعيل الطلب.');
             if (!in_array($order->payment_method, ['cash','card_on_delivery'], true) && $order->payment_status !== 'paid' && !HourlyPaymentService::activationPaid($order)) self::reject('يجب تأكيد تحصيل المبلغ قبل تفعيل هذا الطلب.');
             $this->transition($order, 'active', 'admin', $adminId, 'تأكيد الصرّاف');
             return $order;
@@ -176,6 +181,7 @@ class HourlyOrderService
     {
         self::enabled();
         return DB::transaction(function () use ($visit, $start, $adminId, $initial) {
+            User::whereKey(HourlyRentalOrder::whereKey($visit->hourly_rental_order_id)->value('user_id'))->lockForUpdate()->firstOrFail();
             $order = HourlyRentalOrder::query()->lockForUpdate()->findOrFail($visit->hourly_rental_order_id);
             $visit = $order->visits()->lockForUpdate()->findOrFail($visit->id);
             $snapshot = (array) $order->package_snapshot + ['service_category_id' => $order->service_category_id ?? null];
@@ -214,6 +220,7 @@ class HourlyOrderService
                     if(!app(HourlyWorkerAssignment::class)->available($maid,$slot['starts_at'],$slot['ends_at'],$snapshot,$visit->id))self::reject('العاملة المسندة غير متاحة في الموعد الجديد.');
                 }
             }
+            app(DuplicateBookingService::class)->assertAvailable((int)$order->user_id,$order->only(['city_id','address_text','latitude','longitude','building','unit']),HourlyPackage::withTrashed()->findOrFail($order->hourly_package_id),[$slot],(int)$visit->id,$panel);
             $visit->update(['scheduled_date'=>substr($slot['starts_at'], 0, 10), 'scheduled_start_at'=>$slot['starts_at'], 'scheduled_end_at'=>$slot['ends_at'], 'status'=>'scheduled', 'reschedule_count'=>(int) $visit->reschedule_count + ($initial ? 0 : 1)]);
             if ($initial && !empty($snapshot['service_category_id'])) {
                 $package = HourlyPackage::withTrashed()->findOrFail($order->hourly_package_id);

@@ -210,6 +210,8 @@
 
 <div class="container-fluid om">
 @include('admin.hourly.messages')
+@include('admin.hourly._order-refund')
+@include('admin.hourly._cash-link')
 
 <div class="om-layout">
 <aside class="om-side">
@@ -285,7 +287,10 @@
                 <button class="om-icon" onclick="window.print()" type="button" title="طباعة" aria-label="طباعة"><i class="fa fa-print"></i></button>
                 <a class="om-btn-light" target="_blank" href="{{ route('admin.hourly-orders.invoice', $order) }}">الفاتورة <i class="fa fa-file-pdf"></i></a>
                 @if(AdminGuardHasPerm('hourly_orders_create'))
+                    @php $renewalReason=app(\App\Services\Hourly\RenewalEligibility::class)->reason($order); @endphp
+                    @if($renewalReason)<span class="om-btn-light" aria-disabled="true" title="{{ $renewalReason }}">التجديد غير متاح <i class="fa fa-lock"></i><small class="d-block">{{ $renewalReason }}</small></span>@else
                     <a class="om-btn-light" href="{{ route('admin.hourly-orders.create', ['renew' => $order->id]) }}">تجديد <i class="fa fa-rotate"></i></a>
+                    @endif
                 @endif
                 <a class="om-btn-light" href="{{ route('admin.hourly-orders.summary', $order) }}">الملخص <i class="fa fa-file-lines"></i></a>
                 <a class="om-btn-light" href="{{ route('admin.hourly-orders.index') }}">الطلبات <i class="fa fa-list"></i></a>
@@ -352,6 +357,7 @@
                                     @endif
                                     <div class="om-kv"><span>رقم الزيارة:</span><b class="om-ltr om-num">{{ $visit->visit_number }}</b></div>
                                     <small class="text-muted">المرجع: #{{ $visit->id }}</small>
+                                    @include('admin.hourly._cash-collector')
                                     @if($free)<span class="om-badge om-b-green">زيارة مجانية</span>@endif
                                     <div class="om-kv"><span>معرف الطلب:</span><b class="om-ltr om-num">#{{ $order->order_number }}</b></div>
                                     <div class="om-kv"><span>سعر الزيارة:</span><span class="om-badge om-b-green om-num">{{ $money($visit->visit_price) }}</span></div>

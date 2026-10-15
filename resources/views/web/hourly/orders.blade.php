@@ -29,7 +29,7 @@
                 <div class="hr-empty"><i class="fa-light fa-calendar-xmark"></i><p class="m-0">ليس لديك حجوزات ساعات بعد.</p><a class="hr-btn" href="{{ route('web.hourly.catalog') }}">تصفح الباقات</a></div>
             @endforelse
             </div>
-            <div class="hr-pagination">{{ $orders->onEachSide(1)->links('pagination::bootstrap-4') }}</div>
+            <div class="hr-pagination">{{ $orders->onEachSide(1)->links('web.hourly._pagination') }}</div>
         </div>
     </section>
 </main>

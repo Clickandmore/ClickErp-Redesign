@@ -15,3 +15,5 @@
     <p class="hr-price">{{ number_format($data['pricing']['display_amount'], 2) }} <small>ر.س {{ $data['pricing']['price_display'] === 'per_visit' ? 'للزيارة' : 'للباقة' }}</small></p>
     <p class="hr-muted">السعر شامل الضريبة. الإجمالي {{ number_format($data['pricing']['total_amount'], 2) }} ر.س</p>
 </div>
+
+@include('web.hourly._payment-policy-note')

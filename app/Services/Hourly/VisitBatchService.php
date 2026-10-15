@@ -26,6 +26,7 @@ class VisitBatchService
             'driver_id'=>'required_if:action,assign_driver|nullable|integer','driver_role'=>'required_if:action,assign_driver,unassign_driver|nullable|in:delivery,pickup','driver_time'=>'required_if:action,assign_driver|nullable|date_format:H:i',
             'leader_id'=>'required_if:action,team_leader|nullable|integer','offered'=>'required_if:action,offer|boolean',
             'refund_method'=>'required_if:action,cancel_visit|nullable|in:wallet,cash,bank_transfer,none',
+            'external_refund_confirmed'=>'sometimes|boolean',
             'notify_app'=>'sometimes|boolean','notify_email'=>'sometimes|boolean','send_receipt'=>'sometimes|boolean',
             'method'=>'required_if:action,collect|nullable|in:cash,card_on_delivery,bank_transfer,cheque',
             'amount'=>'required_if:action,collect|nullable|numeric|min:0.01|max:9999999',
@@ -58,10 +59,7 @@ class VisitBatchService
                     foreach($ids as $id)$manager->audit($order,'bulk_note',[],['batch_id'=>$data['batch_id']],$admin,$id,$data['reason']);
                 }else{
                     $manager->apply($order,array_replace($data,['visit_ids'=>$ids]),$admin);
-                    if($data['action']==='cancel_visit' && $data['refund_method']!=='none'){
-                        $updated=$order->fresh();
-                        $this->refund($updated,$data,$admin,max(0,(int)round(($order->total_amount-$updated->total_amount)*100)));
-                    }
+
                 }
             }
             foreach($orders->groupBy('user_id') as $userId=>$customerOrders){
@@ -90,10 +88,11 @@ class VisitBatchService
         foreach($orders as $o){
             // Legacy payments belong to the order. Allocate them chronologically to visits for a bounded selection.
             $allocated=app(VisitPaymentAllocation::class)->forOrder($o);$selectedDue=0;
+            $financial=app(PaymentScheduleService::class)->forOrder($o);
             foreach($o->visits()->orderBy('scheduled_start_at')->orderBy('id')->get() as $v){
                 $cancelled=in_array($v->status,['cancelled','cancelled_by_client']);
                 $price=(int)round(($cancelled?$v->cancellation_fee:$v->visit_price)*100);$used=(int)round(($allocated[$v->id]['paid']??0)*100);
-                if(!$cancelled && $v->status!=='expired' && $visits->contains('id',$v->id)){$dues[$o->id][$v->id]=max(0,$price-$used);$selectedDue+=max(0,$price-$used);}
+                if(!$cancelled && $v->status!=='expired' && $visits->contains('id',$v->id) && ($financial['policy']!=='per_visit' || $financial['visits'][$v->id]['is_due'])){$dues[$o->id][$v->id]=max(0,$price-$used);$selectedDue+=max(0,$price-$used);}
             }
             $limits[$o->id]=max(0,min($selectedDue,(int)round(($o->total_amount-$o->paid_amount)*100)));
         }
@@ -117,19 +116,4 @@ class VisitBatchService
         return $receipts;
     }
 
-    private function refund(HourlyRentalOrder $order,array $data,int $admin,int $cap): void
-    {
-        if($order->payments()->whereIn('status',['pending','creating'])->exists())HourlyOrderService::reject('يوجد دفع إلكتروني قيد التنفيذ، لا يمكن الاسترداد الآن.');
-        $amount=min($cap,max(0,(int)round(($order->paid_amount-$order->total_amount)*100)));if(!$amount)return;
-        $user=User::whereKey($order->user_id)->lockForUpdate()->firstOrFail();
-        if($data['refund_method']==='wallet'){
-            $balance=(int)round($user->hourly_wallet_balance*100)+$amount;
-            $user->update(['hourly_wallet_balance'=>$balance/100]);
-            DB::table('hourly_wallet_transactions')->insert(['user_id'=>$user->id,'hourly_rental_order_id'=>null,'amount'=>$amount/100,'balance_after'=>$balance/100,'admin_id'=>$admin,'created_at'=>now(),'updated_at'=>now()]);
-        }
-        $payment=$order->payments()->create(['user_id'=>$user->id,'public_id'=>(string)Str::uuid(),'method'=>$data['refund_method'],'amount'=>-$amount/100,'status'=>'paid','paid_at'=>now(),'collected_by_type'=>'admin','collected_by_id'=>$admin,'provider_payload'=>['batch_id'=>$data['batch_id'],'type'=>'refund','reason'=>$data['reason']]]);
-        $order->update(['paid_amount'=>($order->paid_amount*100-$amount)/100]);
-        app(OrderManagementService::class)->audit($order,'refund',[],['amount'=>$amount/100,'method'=>$data['refund_method'],'payment_id'=>$payment->id,'batch_id'=>$data['batch_id']],$admin,null,$data['reason']);
-        foreach($data['visit_ids'] as $id)if($order->visits()->whereKey($id)->exists())app(OrderManagementService::class)->audit($order,'refund',[],['payment_id'=>$payment->id,'order_refund_amount'=>$amount/100],$admin,$id,$data['reason']);
-    }
 }

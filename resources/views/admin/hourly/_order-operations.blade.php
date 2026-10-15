@@ -43,6 +43,11 @@ $operations=array_filter($operations,fn($op,$action)=>!in_array($action,['price'
 @endforeach
 </div>
 <div data-op-form>
+<div data-op-fields="cancel_visit cancel_order">
+<label>استرداد المبلغ بعد الإلغاء</label><select name="refund_method" class="form-select"><option value="wallet">إلى محفظة العميل — بدون رسوم إلغاء</option><option value="cash">تسجيل استرداد نقدي منفّذ — بدون رسوم إلغاء</option><option value="bank_transfer">تسجيل تحويل بنكي منفّذ — بدون رسوم إلغاء</option><option value="none">بدون استرداد — احتساب قيمة الزيارة كرسوم إلغاء</option></select>
+<label class="d-block mt-2"><input type="checkbox" name="external_refund_confirmed" value="1"> للنقد أو التحويل: أؤكد صرف المبلغ المستحق للعميل فعليًا.</label>
+<p class="small text-muted">يُرد فقط ما يزيد من المدفوع عن قيمة الزيارات المتبقية والرسوم.</p>
+</div>
 <div data-op-fields="reschedule"><label><i class="fa fa-calendar-days"></i> إزاحة المواعيد بعدد أيام <small>(سالب للتقديم)</small></label><input class="form-control" type="number" name="shift_days" min="-365" max="365" value="7"></div>
 <div data-op-fields="start_time"><label><i class="fa fa-clock"></i> وقت البداية الجديد</label><input class="form-control" type="time" name="start_time"></div>
 <div data-op-fields="duration"><label><i class="fa fa-hourglass-half"></i> مدة الزيارة بالساعات</label><input class="form-control" type="number" name="hours" step="0.25" min="0.5" max="24"><small>يتغير سعر الزيارة بنسبة تغير المدة.</small></div>

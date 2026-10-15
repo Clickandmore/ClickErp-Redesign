@@ -30,7 +30,7 @@
     <div class="cs-overview-icon"><i class="fa fa-sliders"></i></div>
     <div class="cs-overview-copy">
         <h4>{{ $heading ?? __('hourly_category_ui.settings_title') }}</h4>
-        <p>{{ isset($settingsAction) ? __('hourly.settings_hint') : __('hourly_category_ui.settings_subtitle') }}</p>
+        <p>{{ $subheading ?? (isset($settingsAction) ? __('hourly.settings_hint') : __('hourly_category_ui.settings_subtitle')) }}</p>
     </div>
     <div class="cs-overview-stats">
         <span class="cs-status-pill is-custom"><i class="fa fa-pen"></i> {{ trans_choice('hourly_category_ui.custom_settings_count', $customSettingsCount, ['count' => $customSettingsCount]) }}</span>
@@ -152,7 +152,7 @@
     </section>
 
     @if ($canEdit)
-        <div class="ht-card hd-save cs-save-bar"><div class="ht-foot"><div><strong>{{ __('hourly_category_ui.save_settings_title') }}</strong><small>{{ __('hourly_category_ui.save_settings_hint') }}</small></div><button class="btn btn-primary rounded-3 px-4"><i class="fa fa-floppy-disk ms-1"></i> {{ __('hourly.save') }}</button></div></div>
+        <div class="ht-card hd-save cs-save-bar"><div class="ht-foot"><div><strong>{{ $saveTitle ?? __('hourly_category_ui.save_settings_title') }}</strong><small>{{ __('hourly_category_ui.save_settings_hint') }}</small></div><button class="btn btn-primary rounded-3 px-4"><i class="fa fa-floppy-disk ms-1"></i> {{ __('hourly.save') }}</button></div></div>
     @endif
 </form>
     </div>

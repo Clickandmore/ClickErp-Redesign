@@ -5,6 +5,16 @@ class HourlyVisit extends Model
 {
     protected $guarded = [];
 
+    /** Display-only state: a missed slot is neither performed nor cancelled. */
+    public function getIsMissedAttribute(): bool
+    {
+        return $this->status === 'scheduled' && $this->scheduled_end_at && $this->scheduled_end_at->lte(now());
+    }
+    public function getDisplayStatusAttribute(): string
+    {
+        return $this->is_missed ? 'missed' : $this->status;
+    }
+
     /**
      * رمز التسليم يُولَّد لكل زيارة عند إنشائها: يراه العميل في تطبيقه ويطلبه السائق عند التسليم.
      * الفحص لا يُخزَّن في ذاكرة ثابتة لأن المخطط قد يختلف بين الاتصالات والاختبارات.

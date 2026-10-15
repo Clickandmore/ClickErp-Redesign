@@ -52,7 +52,8 @@ class VisitOperationsController extends Controller
         $allocation=app(\App\Services\Hourly\VisitPaymentAllocation::class)->forOrder($order)[$visit->id];
         $collectors=\App\Models\auth\Admin::whereIn('id',$order->payments->where('collected_by_type','admin')->pluck('collected_by_id'))->pluck('name','id');
         $driverCollectors=HourlyDriver::withTrashed()->whereIn('id',$order->payments->where('collected_by_type','driver')->pluck('collected_by_id'))->pluck('name','id');
-        return compact('visit','order','allocation','collectors','driverCollectors');
+        $workerCollectors=\App\Models\ingaz\Maid::whereIn('id',$order->payments->where('collected_by_type','maid')->pluck('collected_by_id'))->pluck('name','id');
+        return compact('visit','order','allocation','collectors','driverCollectors','workerCollectors');
     }
 
     public function payments(HourlyVisit $visit)

@@ -38,7 +38,7 @@ class WorkerAppService
         return ['id' => $maid->id, 'name' => $maid->name, 'phone' => StaffAppAuth::workerPhone($maid),
             'username' => $maid->hourly_username, 'needs_transport' => $this->needsTransport($maid),
             'team' => $team ? ['id' => $team->id, 'name' => $team->name] : null,
-            'tracking' => HourlyRentalSettings::trackingConfig()];
+            'tracking' => HourlyRentalSettings::trackingConfig(), 'cash_custody'=>app(CashCollectionService::class)->custody('worker',(int)$maid->id)];
     }
 
     /** المستهلك مقابل السقف الساري (يشمل وضع رمضان وسقوف الإعدادات). */
@@ -69,7 +69,9 @@ class WorkerAppService
             ->pluck('name', 'id');
         $needsTransport = $this->needsTransport($maid);
 
-        return $rows->map(function ($row) use ($drivers, $needsTransport) {
+        $cash=app(CashCollectionService::class);
+        $cashVisits=CashCollectionService::ready()?HourlyVisit::with(['workers','order'])->whereIn('id',$rows->pluck('id'))->get()->keyBy('id'):collect();
+        return $rows->map(function ($row) use ($drivers, $needsTransport, $maid, $cash, $cashVisits) {
             $status = $row->worker_status ?: (self::FROM_VISIT[$row->status] ?? 'assigned');
             return [
                 'id' => (int) $row->worker_visit_id, 'visit_id' => (int) $row->id, 'visit_number' => (int) $row->visit_number,
@@ -87,6 +89,8 @@ class WorkerAppService
                 'needs_transport' => $needsTransport,
                 'can_arrive' => !$needsTransport && in_array($status, ['assigned', 'en_route'], true),
                 'can_finish' => $status === 'delivered',
+                'financial'=>isset($cashVisits[$row->id])?app(PaymentScheduleService::class)->forOrder($cashVisits[$row->id]->order)['visits'][$row->id]??null:null,
+                'cash'=>isset($cashVisits[$row->id])?$cash->info($cashVisits[$row->id],'worker',(int)$maid->id):['enabled'=>false,'can_collect'=>false],
             ];
         })->values()->all();
     }

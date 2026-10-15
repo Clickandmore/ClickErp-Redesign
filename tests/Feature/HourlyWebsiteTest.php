@@ -620,4 +620,33 @@ class HourlyWebsiteTest extends TestCase
         $this->assertSame('pending_review',$payment->status);Storage::disk('local')->assertExists($payment->attachment_path);
         $this->assertEquals(0,HourlyRentalOrder::first()->paid_amount);
     }
+
+    public function test_order_page_labels_missed_visit_and_directs_customer_to_operations(): void
+    {
+        $data=$this->fixture();$this->customer();
+        $order=HourlyRentalOrder::findOrFail($this->postJson(route('web.hourly.store'),$data)->assertCreated()->json('id'));
+        $visit=$order->visits()->firstOrFail();
+        $visit->update(['scheduled_start_at'=>now()->subDays(2),'scheduled_end_at'=>now()->subDay()]);
+        $this->get(route('web.hourly.order',$order->id))->assertOk()
+            ->assertSee('فات موعدها — لم تُنفّذ')->assertSee('يرجى التواصل مع الإدارة لإعادة الجدولة أو إلغاء الزيارة.')
+            ->assertDontSee('data-visit-action="reschedule"',false)->assertDontSee('class="hr-delivery-code"',false);
+        $this->assertSame('scheduled',$visit->fresh()->status);
+    }
+
+
+    public function test_cancelled_paid_order_page_explains_wallet_refund_and_keeps_original_receipt(): void
+    {
+        $data=$this->fixture();$this->customer();
+        $order=HourlyRentalOrder::findOrFail($this->postJson(route('web.hourly.store'),$data)->assertCreated()->json('id'));
+        $visit=$order->visits()->firstOrFail();$visit->update(['visit_price'=>200]);
+        $order->update(['status'=>'active','total_amount'=>200,'paid_amount'=>200]);
+        $order->payments()->create(['user_id'=>$order->user_id,'public_id'=>(string)Str::uuid(),'method'=>'cash','amount'=>200,'status'=>'paid','paid_at'=>now()]);
+        $before=(float)DB::table('users')->where('id',$order->user_id)->value('hourly_wallet_balance');
+        app(\App\Services\Hourly\CustomerVisitActions::class)->cancel($visit);
+        $this->get(route('web.hourly.order',$order->id))->assertOk()->assertSee('المبلغ المسترد: 200.00')->assertSee('مستردة');
+        $this->assertEquals($before+200,DB::table('users')->where('id',$order->user_id)->value('hourly_wallet_balance'));
+        $this->assertSame(1,$order->payments()->where('amount',200)->count());
+        $this->assertSame(1,$order->payments()->where('amount',-200)->count());
+    }
+
 }

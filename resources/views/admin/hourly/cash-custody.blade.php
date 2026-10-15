@@ -1,0 +1,18 @@
+@extends('admin.layout.indexs.index')
+@section('page-title','العهد النقدية للطاقم')
+@section('content')
+<div class="container-fluid" dir="rtl"><h3>العهد النقدية وتوريدها</h3>
+@if(session('success'))<div class="alert alert-success">{{ session('success') }}</div>@endif
+@if($errors->any())<div class="alert alert-danger">{{ $errors->first() }}</div>@endif
+<div class="alert alert-info">النقد المتبقي مع الطاقم: <strong>{{ number_format($outstanding,2) }} ر.س</strong>. التوريد لا يزيد مدفوع العميل؛ الدفع سُجّل عند التحصيل.</div>
+<form class="row g-2 mb-3"><div class="col-md-3"><label>المحصّل</label><select name="holder_type" class="form-select"><option value="">الكل</option><option value="worker" {{ request('holder_type')==='worker'?'selected':'' }}>العاملات</option><option value="driver" {{ request('holder_type')==='driver'?'selected':'' }}>السائقون</option></select></div><div class="col-md-3"><label>رقم المحصّل</label><input class="form-control" type="number" name="holder_id" value="{{ request('holder_id') }}" min="1"></div><div class="col-md-4 align-self-end"><label><input type="checkbox" name="all" value="1" {{ request('all')?'checked':'' }}> تضمين العهد المورّدة بالكامل</label><button class="btn btn-primary">عرض</button></div></form>
+<div class="table-responsive"><table class="table table-bordered align-middle"><thead><tr><th>سند التحصيل</th><th>المحصّل</th><th>الطلب / الزيارة</th><th>محصّل</th><th>مورّد</th><th>متبقي</th><th>سندات التوريد والإجراء</th></tr></thead><tbody>
+@forelse($entries as $entry)
+@php $cashLeft=round($entry->amount-$entry->remitted_amount,2); @endphp
+<tr><td><a target="_blank" rel="noopener" href="{{ route('admin.hourly-cash.receipt',$entry->id) }}">HC-{{ str_pad($entry->payment_id,8,'0',STR_PAD_LEFT) }}</a><small class="d-block">{{ $entry->created_at }}</small></td><td>{{ $entry->holder_type==='worker'?'العاملة':'السائق' }}: {{ $entry->holder_type==='worker'?($workers[$entry->holder_id]??'#'.$entry->holder_id):($drivers[$entry->holder_id]??'#'.$entry->holder_id) }}</td><td><a href="{{ route('admin.hourly-orders.show',$entry->order_id) }}">طلب #{{ $entry->order_id }}</a><div>زيارة #{{ $entry->visit_id }}</div></td><td>{{ number_format($entry->amount,2) }}</td><td>{{ number_format($entry->remitted_amount,2) }}</td><td>{{ number_format($cashLeft,2) }} ر.س</td><td>
+@foreach($remittances[$entry->id]??[] as $remit)<div><a target="_blank" rel="noopener" href="{{ route('admin.hourly-cash.remittance-receipt',$remit->id) }}">سند HT-{{ $remit->id }}</a> · {{ number_format($remit->amount,2) }} ر.س · {{ $remit->reference }} · مستلم #{{ $remit->admin_id }}</div>@endforeach
+@if($cashLeft>0)<details><summary>تأكيد استلام توريد نقدي</summary><form method="POST" action="{{ route('admin.hourly-cash.remit',$entry->id) }}">@csrf<input type="hidden" name="request_token" value="{{ \Illuminate\Support\Str::uuid() }}"><label>المبلغ المستلم فعليًا (ر.س)</label><input class="form-control" name="amount" type="number" min="0.01" max="{{ $cashLeft }}" step="0.01" required><label>مرجع / وصف سند التوريد</label><input class="form-control" name="reference" maxlength="255" required><label class="d-block"><input type="checkbox" name="confirmed" value="1" required> أؤكد استلام المبلغ فعليًا من المحصّل.</label><button class="btn btn-success btn-sm">تسجيل سند التوريد</button></form></details>@endif
+</td></tr>
+@empty<tr><td colspan="7">لا توجد عهد نقدية مطابقة. السجلات القديمة قبل تفعيل التحديث لا تُضاف تلقائيًا.</td></tr>@endforelse
+</tbody></table></div>{{ $entries->links() }}<p class="text-muted">استرداد العميل لا يغلق عهدة المحصّل تلقائيًا. تبقى العهدة حتى يستلمها الموظف المخوّل ويسجل التوريد.</p></div>
+@endsection

@@ -199,6 +199,10 @@ class CustomerVisitActions
     private function commit(HourlyRentalOrder $order, HourlyVisit $visit, array $before, string $action, string $reason, array $extra = [], bool $closeOrder = false): void
     {
         app(OrderManagementService::class)->totals($order);
+        if ($closeOrder) {
+            app(OrderRefundService::class)->refund($order,'wallet',$reason,null,'client',(int)$order->user_id);
+            $order->refresh();
+        }
         $order->statusLogs()->create(['from_status' => $order->status, 'to_status' => $order->status, 'actor_type' => 'client', 'actor_id' => $order->user_id, 'reason' => $reason]);
         if (Schema::hasTable('hourly_order_audits')) {
             app(OrderManagementService::class)->audit($order, $action, $before, $visit->fresh()->getAttributes() + $extra, null, $visit->id, $reason);

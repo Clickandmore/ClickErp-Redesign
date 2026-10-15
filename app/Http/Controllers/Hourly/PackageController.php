@@ -24,7 +24,7 @@ class PackageController extends Controller
     private function form(HourlyPackage $package)
     {
         if (!$package->exists && request()->filled('service_category_id')) $package->service_category_id = (int) request('service_category_id');
-        return view(request()->ajax() ? 'admin.hourly.service-item-fields' : 'admin.hourly.service-item-form', ['package'=>$package,'cities'=>City::where('is_active',true)->get(),'nationalities'=>Nationality::all(),
+        return view(request()->ajax() ? 'admin.hourly.service-item-fields' : 'admin.hourly.service-item-form', ['package'=>$package,'cities'=>City::saudi()->where('is_active',true)->orderBy('name_ar')->get(),'nationalities'=>Nationality::all(),
             'productAttributes'=>\Illuminate\Support\Facades\Schema::hasTable('hourly_product_attributes') ? \App\Models\Hourly\HourlyProductAttribute::whereNull('parent_id')->with('children')->orderBy('sort_order')->get() : collect(),
             'packageTiers'=>\Illuminate\Support\Facades\Schema::hasTable('hourly_package_tiers') ? \App\Models\Hourly\HourlyPackageTier::where(fn($q)=>$q->where('is_active',true)->orWhere('id',$package->package_tier_id))->orderBy('sort_order')->get() : collect(),
             'serviceCategories'=>\App\Models\Hourly\HourlyServiceCategory::ordered()->where(fn($q)=>$q->where('is_active',true)->orWhere('id',$package->service_category_id))->get()]);
@@ -49,6 +49,7 @@ class PackageController extends Controller
             $tierFields=['package_tier_id'=>$tier->id,'package_type'=>$tier->code];
         }
         $data = $request->validate([
+            'payment_policy'=>['nullable',Rule::in(['prepaid','per_visit','installments'])],
             'total_price'=>['required_if:service_item_form,1','nullable','numeric','min:0.01','max:100000'],
             'package_type'=>['nullable','string','max:100'],'brand'=>['nullable','string','max:150'],
             'duration_minutes'=>['nullable','integer','between:30,720'],'break_minutes'=>['nullable','integer','between:0,240'],'buffer_minutes'=>['nullable','integer','between:0,240'],
@@ -70,6 +71,9 @@ class PackageController extends Controller
             'city_ids'=>['nullable','array'],'city_ids.*'=>['integer','distinct','exists:cities,id'],
             'nationality_ids'=>['nullable','array'],'nationality_ids.*'=>['integer','distinct','exists:nationalities,id'],
         ]);
+        if (!empty($data['city_ids']) && City::saudi()->where('is_active',true)->whereIn('id',$data['city_ids'])->count() !== count($data['city_ids'])) {
+            throw \Illuminate\Validation\ValidationException::withMessages(['city_ids'=>'اختر مدنًا نشطة داخل السعودية فقط.']);
+        }
         $data=array_replace($data,$tierFields);
         if(\Illuminate\Support\Facades\Schema::hasTable('hourly_product_attributes')){
             $choice=$request->validate(['attribute_id'=>['nullable','integer',Rule::exists('hourly_product_attributes','id')]]);
@@ -78,6 +82,18 @@ class PackageController extends Controller
             $data['attribute_id']=$attribute?->id;$data['brand']=$attribute?->name_ar;
         }
         if (isset($data['deposit_amount']) && $data['deposit_amount'] > ($data['total_price'] ?? $data['price_per_visit']*$data['visits_count'])) throw \Illuminate\Validation\ValidationException::withMessages(['deposit_amount'=>'الدفعة المقدمة لا تتجاوز سعر الباقة.']);
+
+        $selectedPolicy=array_key_exists('payment_policy',$data)?$data['payment_policy']:$package->payment_policy;
+        if($selectedPolicy==='installments'){
+            $total=(float)($data['total_price']??$data['price_per_visit']*$data['visits_count']);
+            $deposit=(float)($data['deposit_amount']??$package->deposit_amount??0);$monthly=(float)($data['monthly_amount']??$package->monthly_amount??0);
+            if($total>$deposit && ($monthly<=0 || ceil(($total-$deposit)/$monthly)>120))
+                throw \Illuminate\Validation\ValidationException::withMessages(['monthly_amount'=>'حدد قسطًا شهريًا موجبًا، بحد أقصى 120 قسطًا.']);
+        }
+        if(array_key_exists('payment_policy',$data) && !\Illuminate\Support\Facades\Schema::hasColumn('hourly_packages','payment_policy')){
+            if($data['payment_policy'])throw \Illuminate\Validation\ValidationException::withMessages(['payment_policy'=>'شغّل ترحيل سياسة الدفع أولًا.']);
+            unset($data['payment_policy']);
+        }
         DB::transaction(function () use ($package,$data,$request) {
             if($package->exists)$package=HourlyPackage::lockForUpdate()->findOrFail($package->id);
             $service=app(\App\Services\Hourly\ServiceItemService::class);

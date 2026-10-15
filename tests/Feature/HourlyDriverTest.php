@@ -36,7 +36,7 @@ class HourlyDriverTest extends TestCase
         HourlyRentalSettings::persist(['is_enabled'=>true]);
     }
 
-    protected function tearDown(): void { HourlyRentalSettings::flush(); parent::tearDown(); }
+    protected function tearDown(): void { \Carbon\Carbon::setTestNow(); HourlyRentalSettings::flush(); parent::tearDown(); }
 
     private function payload(): array
     {
@@ -135,6 +135,7 @@ class HourlyDriverTest extends TestCase
 
     public function test_portal_shows_calendar_trip_details_and_admin_login_link(): void
     {
+        \Carbon\Carbon::setTestNow('2026-10-14 09:00:00');
         $driver=$this->driver();
         DB::table('users')->insert(['id'=>7,'name'=>'عميل الاختبار','phone'=>'0501111111']);
         DB::table('hourly_service_categories')->insert(['id'=>3,'name_ar'=>'تنظيف']);
@@ -149,11 +150,19 @@ class HourlyDriverTest extends TestCase
 
     public function test_driver_can_only_advance_an_assigned_task_in_order(): void
     {
+        \Carbon\Carbon::setTestNow('2026-10-14 09:00:00');
         $driver=$this->driver(); $other=$this->driver(['username'=>'DR-OTHER','employee_number'=>'0099','phone'=>'0500000099']);
         DB::table('hourly_rental_orders')->insert(['id'=>11,'order_number'=>'HR-11','status'=>'active','created_at'=>now(),'updated_at'=>now()]);
         foreach([[21,$driver->id],[22,$other->id]] as [$id,$assigned]) DB::table('hourly_visits')->insert(['id'=>$id,'hourly_rental_order_id'=>11,'visit_number'=>$id,'delivery_driver_id'=>$assigned,'pickup_driver_id'=>$assigned,'scheduled_date'=>today(),'scheduled_start_at'=>today()->setTime(9,0),'scheduled_end_at'=>today()->setTime(12,0),'status'=>'scheduled','created_at'=>now(),'updated_at'=>now()]);
         $this->post(route('hourly-driver.authenticate'),['login'=>$driver->username,'password'=>'DriverPass123']);
 
+        foreach (['2026-10-13 09:00:00','2026-10-14 08:59:59','2026-10-14 12:00:00','2026-10-16 09:00:00'] as $at) {
+            \Carbon\Carbon::setTestNow($at);
+            $this->get(route('hourly-driver.home',['date'=>'2026-10-14']))->assertOk()->assertDontSee('بدء مشوار التوصيل');
+            $this->post(route('hourly-driver.visits.action',21),['action'=>'start_delivery'])->assertSessionHasErrors('hourly');
+            $this->assertDatabaseHas('hourly_visits',['id'=>21,'status'=>'scheduled']);
+        }
+        \Carbon\Carbon::setTestNow('2026-10-14 09:00:00');
         $this->post(route('hourly-driver.visits.action',21),['action'=>'start_delivery'])->assertRedirect();
         $this->assertDatabaseHas('hourly_visits',['id'=>21,'status'=>'en_route']);
         $this->assertDatabaseHas('hourly_order_audits',['visit_id'=>21,'action'=>'driver_start_delivery']);

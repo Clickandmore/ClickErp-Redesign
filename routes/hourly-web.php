@@ -14,10 +14,13 @@ Route::prefix('hourly-rental')->name('hourly.')->middleware(['feature.hourly_ren
         Route::get('packages/{package}', [HourlyRentalController::class,'package'])->whereNumber('package')->name('package');
         Route::get('checkout/{package}', [HourlyRentalController::class,'checkout'])->whereNumber('package')->name('checkout');
         Route::get('orders', [HourlyRentalController::class,'orders'])->name('orders');
+        Route::get('cash-receipts/{collection}',[\App\Http\Controllers\Hourly\CashCollectionController::class,'customerReceipt'])->whereNumber('collection')->name('cash-receipt');
         Route::post('orders', [HourlyRentalController::class,'store'])->middleware('throttle:20,1')->name('store');
         Route::get('orders/{id}', [HourlyRentalController::class,'order'])->whereNumber('id')->name('order');
         Route::post('orders/{id}/pay', [HourlyRentalController::class,'pay'])->whereNumber('id')->middleware('throttle:10,1')->name('pay');
         Route::post('orders/{id}/bank-transfer', [ClientController::class,'bankTransfer'])->whereNumber('id')->middleware('throttle:10,1')->name('bank-transfer');
+        Route::get('orders/{id}/visits/{visit}/additional-worker',[\App\Http\Controllers\Hourly\AdditionalWorkerController::class,'preview'])->whereNumber('id')->whereNumber('visit')->name('visit.additional-worker.preview');
+        Route::post('orders/{id}/visits/{visit}/additional-worker',[\App\Http\Controllers\Hourly\AdditionalWorkerController::class,'store'])->whereNumber('id')->whereNumber('visit')->middleware('throttle:10,1')->name('visit.additional-worker.store');
         Route::get('data/slots', [HourlyRentalController::class,'slots'])->name('slots');
         Route::get('data/quote/{package}', [ClientController::class,'package'])->whereNumber('package')->name('quote');
         Route::post('data/address', [HourlyRentalController::class,'address'])->middleware('throttle:20,1')->name('address');

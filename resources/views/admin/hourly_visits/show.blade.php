@@ -4,9 +4,15 @@
 <div class="container-fluid" dir="rtl">
     <div class="card mb-3"><div class="card-body"><h3>تفاصيل الزيارة #{{ $visit->id }}</h3><a href="{{ route('admin.hourly-visits.index') }}">قائمة الزيارات</a> · <a href="{{ route('admin.hourly-orders.show',$order) }}">الطلب {{ $order->order_number }}</a>
         @include('admin.hourly_visits._delay')
+        @include('admin.hourly._cash-collector')
+        @if($visit->is_missed)
+            <p class="alert alert-warning mt-2">لم يبدأ تنفيذ هذه الزيارة. يجب إعادة جدولتها أو إلغاؤها مع تسجيل السبب.
+                @if(AdminGuardHasPerm('hourly_orders_create'))<a href="{{ route('admin.hourly-visits.index', ['search'=>$visit->id,'from'=>'','to'=>'']) }}">معالجة الزيارة</a>@endif
+            </p>
+        @endif
         <p class="mt-3">العميل: <a href="{{ route('clients.show',$order->user_id) }}">{{ $order->user?->name }}</a> · {{ $visit->contact_phone }}</p><p>{{ $visit->address_text }} <a href="{{ $visit->map_url }}" target="_blank" rel="noopener">الخريطة</a></p>
         <p>الموعد: {{ $visit->scheduled_start_at?->format('Y-m-d H:i')??'لم يحدد' }} — {{ $visit->scheduled_end_at?->format('H:i') }} · {{ $visit->planned_hours }} ساعات</p>
-        <p>الخدمة: {{ $order->serviceCategory?->name }} · الحالة: {{ \App\Services\Hourly\VisitSearch::STATUSES[$visit->status]??$visit->status }} · السعر: {{ number_format($visit->visit_price,2) }} ر.س</p>
+        <p>الخدمة: {{ $order->serviceCategory?->name }} · الحالة: {{ \App\Services\Hourly\VisitSearch::STATUSES[$visit->display_status]??$visit->status }} · السعر: {{ number_format($visit->visit_price,2) }} ر.س</p>
         <a class="btn btn-outline-primary" href="{{ route('admin.hourly-visits.invoice',$visit) }}" target="_blank" rel="noopener">فاتورة الزيارة</a>
     </div></div>
     <div class="card mb-3"><div class="card-body"><h5>التعيينات</h5><p>العاملات ({{ $visit->workers->count() }} / {{ $visit->workers_count }}): @forelse($visit->workers as $worker)<a href="{{ route('admin.hourly-maids.show',$worker) }}">{{ $worker->name }}</a> @empty غير مخصص @endforelse</p><p>سائق التوصيل: {{ $visit->deliveryDriver?->name??'غير مخصص' }} · سائق الاستلام: {{ $visit->pickupDriver?->name??'غير مخصص' }} · قائد الفريق: {{ $visit->teamLeader?->name??'غير مخصص' }}</p></div></div>
