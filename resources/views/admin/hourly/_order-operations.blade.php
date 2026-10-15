@@ -5,7 +5,8 @@ $operations=[
     'start_time'=>['تغيير وقت البدء','fa-person-walking','violet'],
     'duration'=>['تغيير المدة','fa-clock','blue'],
     'price'=>['تغيير السعر','fa-dollar-sign','amber'],
-    'assign_all'=>['تعيين الكل','fa-right-left','teal'],
+    'assign_workers'=>['اختيار العاملات','fa-user-check','teal'],
+    'assign_all'=>['تعيين العاملات تلقائيًا','fa-right-left','teal'],
     'add_worker'=>['إضافة عامل','fa-user-plus','green'],
     'remove_worker'=>['إزالة عامل وتقليل العدد','fa-user-minus','red'],
     'unassign_worker'=>['إلغاء تعيين عامل','fa-user-xmark','red'],
@@ -34,7 +35,7 @@ $operations=array_filter($operations,fn($op,$action)=>!in_array($action,['price'
 </div>
 <div class="modal fade om-modal" id="order-operation-modal" data-op-step="pick" tabindex="-1" aria-labelledby="operation-modal-title" aria-hidden="true" dir="{{ app()->getLocale()==='ar'?'rtl':'ltr' }}"><div class="modal-dialog modal-lg modal-dialog-centered"><div class="modal-content">
 <div class="modal-header"><span class="om-m-icon"><i class="fa fa-gears" id="operation-modal-icon"></i></span><div><h5 id="operation-modal-title">الإجراءات</h5><p><i class="fa fa-hashtag"></i> {{ $order->order_number }}</p></div><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="إغلاق"></button></div>
-<form id="order-operation-form" data-drivers-url="{{ route('admin.hourly-orders.available-drivers',$order) }}" method="POST" action="{{ route('admin.hourly-orders.operations',$order) }}">@csrf
+<form id="order-operation-form" data-workers-url="{{ route('admin.hourly-orders.available-workers',[$order,'VISIT_ID']) }}" data-drivers-url="{{ route('admin.hourly-orders.available-drivers',$order) }}" method="POST" action="{{ route('admin.hourly-orders.operations',$order) }}">@csrf
 <div class="modal-body">
 <p id="operation-target" class="alert alert-info">يطبق الإجراء على الزيارات المحددة.</p>
 <input type="hidden" id="operation-action" name="action" value="{{ array_key_first($operations) }}">
@@ -43,6 +44,7 @@ $operations=array_filter($operations,fn($op,$action)=>!in_array($action,['price'
 @endforeach
 </div>
 <div data-op-form>
+<div data-op-fields="assign_workers"><p id="operation-workers-context" aria-live="polite"></p><div id="operation-worker-choices" class="d-grid gap-2"></div><small>اختر زيارة واحدة لتحديد عاملاتها. لا يغيّر الاختيار عدد العاملات المحجوز أو سعر الزيارة.</small></div>
 <div data-op-fields="cancel_visit cancel_order">
 <label>استرداد المبلغ بعد الإلغاء</label><select name="refund_method" class="form-select"><option value="wallet">إلى محفظة العميل — بدون رسوم إلغاء</option><option value="cash">تسجيل استرداد نقدي منفّذ — بدون رسوم إلغاء</option><option value="bank_transfer">تسجيل تحويل بنكي منفّذ — بدون رسوم إلغاء</option><option value="none">بدون استرداد — احتساب قيمة الزيارة كرسوم إلغاء</option></select>
 <label class="d-block mt-2"><input type="checkbox" name="external_refund_confirmed" value="1"> للنقد أو التحويل: أؤكد صرف المبلغ المستحق للعميل فعليًا.</label>

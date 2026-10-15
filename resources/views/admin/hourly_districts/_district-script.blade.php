@@ -40,6 +40,25 @@
     }
     document.querySelectorAll('[data-translate]').forEach(b => b.addEventListener('click', () => translate(b.dataset.translate, b)));
     document.getElementById('translate-all').addEventListener('click', function () { translate(fields.en.value.trim() ? 'ar' : 'en', this); });
+    // الموقع الملصوق (Plus Code / رابط Google Maps / إحداثيات) يُحوَّل في الخادم لخط العرض والطول.
+    const locationText = document.getElementById('location_text');
+    async function resolveLocation(button) {
+        const text = locationText.value.trim();
+        if (!text) { message('الصق الموقع أولًا، مثل: CWQC+4C9, Al Nahdah, Hafar Al Batin', true); locationText.focus(); return; }
+        button.disabled = true;
+        try {
+            const data = await post(@json(route('admin.hourly-districts.resolve-location')), {location_text: text, city_id: document.getElementById('city_id').value || null});
+            document.getElementById('latitude').value = data.latitude;
+            document.getElementById('longitude').value = data.longitude;
+            document.getElementById('location-results').replaceChildren();
+            const far = data.distance_km !== null && data.distance_km > 60;
+            message(far
+                ? `تمت التعبئة (${data.latitude}, ${data.longitude}) لكن الموقع يبعد ${data.distance_km} كم عن مركز المدينة المختارة؛ تأكد من المدينة.`
+                : `تمت تعبئة خط العرض وخط الطول: ${data.latitude}, ${data.longitude}`, far);
+        } catch (e) { message(e.message, true); } finally { button.disabled = false; }
+    }
+    document.getElementById('resolve-location').addEventListener('click', function () { resolveLocation(this); });
+    locationText.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); resolveLocation(document.getElementById('resolve-location')); } });
     document.getElementById('locate').addEventListener('click', async function () {
         const city = document.getElementById('city_id').value, name = fields.ar.value.trim() || fields.en.value.trim();
         if (!city || !name) { message('اختر المدينة واكتب اسم المنطقة أولًا.', true); return; }

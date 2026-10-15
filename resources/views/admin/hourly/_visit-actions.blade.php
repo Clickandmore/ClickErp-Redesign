@@ -2,7 +2,7 @@
     /* أزرار إجراءات الزيارة موزعة على أعمدة الجدول: $group يحدد المجموعة المعروضة. */
     $groups = [
         'money' => ['price' => ['تغيير السعر', 'om-btn-warn', 'fa-dollar-sign'], 'duration' => ['تغيير المدة', 'om-btn-info', 'fa-clock']],
-        'staff' => ['assign_all' => ['حدد الموظفين', 'om-btn-soft', 'fa-user-check'], 'add_worker' => ['إضافة عامل', 'om-btn-soft', 'fa-user-plus'], 'assign_driver' => ['تعيين السائق', 'om-btn-soft', 'fa-van-shuttle'], 'team_leader' => ['تعيين قائد الفريق', 'om-btn-green', 'fa-user-tie']],
+        'staff' => ['assign_workers' => ['اختيار العاملات', 'om-btn-soft', 'fa-user-check'], 'add_worker' => ['إضافة عامل', 'om-btn-soft', 'fa-user-plus'], 'assign_driver' => ['تعيين السائق', 'om-btn-soft', 'fa-van-shuttle'], 'team_leader' => ['تعيين قائد الفريق', 'om-btn-green', 'fa-user-tie']],
         'row' => ['cancel_visit' => ['إلغاء الزيارة', 'om-btn-danger', 'fa-ban'], 'complete' => ['إكمال', 'om-btn-violet', 'fa-circle-check']],
     ];
     if ($visit->is_missed) {

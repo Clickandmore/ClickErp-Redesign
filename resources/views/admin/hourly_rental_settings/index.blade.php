@@ -236,6 +236,14 @@
                                     <small>{{ __('تظهر حركة الخروج والعودة اليومية وحالة «خارج الآن» في كشوف الإيواء. حالة الإقامة في الإيواء نفسها لا تُمس إطلاقًا.') }}</small>
                                 </div>
                             </div>
+                            <div class="hr-switch form-switch">
+                                <input class="form-check-input" type="checkbox" role="switch" id="show_on_website" name="show_on_website" value="1"
+                                    {{ old('show_on_website', $hourly['show_on_website']) ? 'checked' : '' }}>
+                                <div>
+                                    <label for="show_on_website">{{ __('العرض في الموقع الخارجي') }}</label>
+                                    <small>{{ __('يظهر حجز الساعات للعملاء في الموقع الخارجي ما دام النظام مفعّلًا. إطفاؤه يخفيه عن الموقع فقط، ويبقى التطبيق ولوحة التحكم والطلبات القائمة كما هي.') }}</small>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>

@@ -463,6 +463,18 @@
                                     </label>
                                 </div>
 
+                                @if ($key === 'hourly_rental')
+                                    {{-- نفس خيار «العرض في الموقع الخارجي» في إعدادات التأجير بالساعة؛ يُخفي الحجز عن الموقع وحده. --}}
+                                    <div class="switch-row">
+                                        <span>العرض في الموقع الخارجي</span>
+                                        <label class="switch" title="إظهار أو إخفاء حجز الساعات في الموقع الخارجي">
+                                            <input type="hidden" name="hourly_website_field" value="1">
+                                            <input type="checkbox" name="hourly_show_on_website" value="1" {{ old('hourly_show_on_website', \App\Support\HourlyRentalSettings::get('show_on_website', true)) ? 'checked' : '' }}>
+                                            <span class="slider"></span>
+                                        </label>
+                                    </div>
+                                @endif
+
                                 @if ($key === 'branches')
                                     <div class="limit-row">
                                         <label for="branchesLimit">عدد الفروع المسموح به</label>

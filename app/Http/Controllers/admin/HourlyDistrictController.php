@@ -41,6 +41,14 @@ class HourlyDistrictController extends Controller
         return response()->json($lookup->locate($data['name'],$city->name_en ?: $city->name_ar));
     }
 
+    /** تحويل موقع ملصوق من Google Maps (Plus Code أو رابط أو إحداثيات) إلى خط العرض والطول. */
+    public function resolveLocation(Request $request, \App\Services\Hourly\LocationTextResolver $resolver)
+    {
+        $data=$request->validate(['location_text'=>['required','string','max:2000'],'city_id'=>['nullable','integer']]);
+        $city=!empty($data['city_id']) ? City::saudi()->find($data['city_id']) : null;
+        return response()->json($resolver->resolve($data['location_text'],$city));
+    }
+
     /** ربط الفرق بالمنطقة من مودال «الفرق»: يحافظ على حالة التغطية للارتباطات القائمة ويرفض إضافة فريق متوقف. */
     public function teams(Request $request, ServiceDistrict $district)
     {

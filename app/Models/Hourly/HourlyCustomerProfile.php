@@ -20,6 +20,9 @@ class HourlyCustomerProfile extends Model
     public const TYPES = ['individual', 'company'];
     public const IDENTITY_TYPES = ['national_id', 'iqama', 'passport'];
     public const LANGUAGES = ['ar', 'en'];
+    /** حدود عمر العميل الفرد بالسنوات (تاريخ الميلاد). */
+    public const MIN_AGE = 18;
+    public const MAX_AGE = 100;
     public const MARKETING_SOURCES = ['google', 'facebook', 'instagram', 'snapchat', 'tiktok', 'x', 'whatsapp', 'referral', 'other'];
     /** مدة الدفع؛ null = غير محدد (منطق الدفع الحالي كما هو). */
     public const PAYMENT_TERMS = ['prepaid', 'after_visit', 'weekly', 'days_15', 'monthly'];

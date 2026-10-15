@@ -243,6 +243,23 @@ class HourlyVisitOperationsTest extends TestCase
         $this->assertEquals($order->total_amount,$order->fresh()->total_amount);
     }
 
+    public function test_order_worker_picker_lists_and_assigns_workers_without_changing_the_price():void
+    {
+        $order=$this->order();$visit=$order->visits()->first();
+        $url='/admin/hourly/orders/'.$order->id.'/visits/'.$visit->id.'/available-workers?selection=1';
+        $this->getJson($url)->assertOk()->assertJsonCount(2,'workers')->assertJsonPath('selected.0',1)->assertJsonPath('required',1);
+        $this->postJson('/admin/hourly/orders/'.$order->id.'/operations',[
+            'action'=>'assign_workers','visit_ids'=>[$visit->id],'worker_ids'=>[2],'expected_worker_ids'=>[1],
+        ])->assertOk();
+        $this->assertEquals([2],$visit->workers()->pluck('maids.id')->all());
+        $this->assertEquals($order->total_amount,$order->fresh()->total_amount);
+        $this->postJson('/admin/hourly/orders/'.$order->id.'/operations',[
+            'action'=>'assign_workers','visit_ids'=>[$visit->id],'worker_ids'=>[1,2],
+        ])->assertUnprocessable();
+        $visit->update(['scheduled_start_at'=>now()->subHour(),'scheduled_end_at'=>now()->addHour()]);
+        $this->getJson($url)->assertUnprocessable();
+    }
+
     public function test_latest_is_chosen_before_filtering_and_visit_pages_render():void
     {
         $order=$this->order();$order->update(['status'=>'active']);$first=$order->visits()->first();$last=$first->replicate();$last->visit_number=2;$last->scheduled_start_at=$first->scheduled_start_at->copy()->addDays(5);$last->scheduled_end_at=$first->scheduled_end_at->copy()->addDays(5);$last->save();

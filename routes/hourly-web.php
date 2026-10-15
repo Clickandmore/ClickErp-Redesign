@@ -2,13 +2,15 @@
 
 use App\Http\Controllers\Web\HourlyRentalController;
 use App\Http\Controllers\Hourly\ClientController;
-use App\Http\Middleware\{HourlyWebsiteCustomer, EnsureHourlyCommerceReady};
+use App\Http\Middleware\{HourlyWebsiteCustomer, EnsureHourlyCommerceReady, EnsureHourlyWebsiteEnabled};
 use Illuminate\Support\Facades\Route;
 
 // Included inside the localized web.* group; all mutations retain web CSRF protection.
 Route::prefix('hourly-rental')->name('hourly.')->middleware(['feature.hourly_rental', EnsureHourlyCommerceReady::class])->group(function () {
-    Route::get('/', [HourlyRentalController::class,'index'])->name('index');
+    // العودة من ميسر تبقى متاحة حتى لو أُخفيت الخدمة عن الموقع أثناء دفع العميل.
     Route::get('payment-return', [HourlyRentalController::class,'paymentReturn'])->middleware('throttle:30,1')->name('payment-return');
+    Route::middleware(EnsureHourlyWebsiteEnabled::class)->group(function () {
+    Route::get('/', [HourlyRentalController::class,'index'])->name('index');
     Route::middleware(HourlyWebsiteCustomer::class)->group(function () {
         Route::get('book', [HourlyRentalController::class,'catalog'])->name('catalog');
         Route::get('packages/{package}', [HourlyRentalController::class,'package'])->whereNumber('package')->name('package');
@@ -25,5 +27,6 @@ Route::prefix('hourly-rental')->name('hourly.')->middleware(['feature.hourly_ren
         Route::get('data/quote/{package}', [ClientController::class,'package'])->whereNumber('package')->name('quote');
         Route::post('data/address', [HourlyRentalController::class,'address'])->middleware('throttle:20,1')->name('address');
         Route::post('data/geocode', [HourlyRentalController::class,'geocode'])->middleware('throttle:15,1')->name('geocode');
+    });
     });
 });

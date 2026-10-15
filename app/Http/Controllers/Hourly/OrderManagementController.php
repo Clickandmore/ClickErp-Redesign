@@ -26,9 +26,17 @@ class OrderManagementController extends Controller
         return response()->json(['leaders'=>$result,'selected_id'=>$model->team_leader_id]);
     }
     public function workers(Request $request,HourlyRentalOrder $order,int $visit){
-        abort_unless(AdminGuardHasPerm('hourly_orders_price_override'),403);
+        abort_unless(AdminGuardHasPerm($request->boolean('selection')?'hourly_orders_create':'hourly_orders_price_override'),403);
         $model=$order->visits()->findOrFail($visit);
         abort_unless(in_array($order->status,['active','pending_confirmation']) && !in_array($model->status,['completed','cancelled','expired','no_show','cancelled_by_client']),422);
+        if($request->boolean('selection')){
+            abort_unless($model->scheduled_start_at && $model->scheduled_start_at->isFuture(),422);
+            $workers=app(OrderManagementService::class)->availableWorkers($order,$model);
+            return response()->json(['required'=>(int)$model->workers_count,'selected'=>$model->workers()->pluck('maids.id'),
+                'workers'=>$workers->map(fn($worker)=>['id'=>$worker->id,'name'=>$worker->name])->values(),
+                'excluded_workers'=>app(\App\Services\Hourly\HourlyWorkerAssignment::class)->excludedWorkers($model,$workers),
+                'starts_at'=>$model->scheduled_start_at->format('Y-m-d H:i'),'ends_at'=>$model->scheduled_end_at?->format('H:i')]);
+        }
         $item=\App\Models\Hourly\HourlyPackage::withTrashed()->findOrFail($order->hourly_package_id);
         $assignment=app(\App\Services\Hourly\HourlyWorkerAssignment::class);
         $assigned=$model->workers()->pluck('maids.id')->all();

@@ -1698,11 +1698,21 @@ class RentContractController extends Controller
         $contractNumber = $contract->contract_number ?: $contract->id;
         $clientName = $contract->user?->name ?: 'عميلنا العزيز';
         $newEndDate = optional($contract->info?->ingaz_to)->format('Y-m-d');
-        $message = implode("\n", [
-            "عميلنا {$clientName}،",
-            "تم تمديد عقد الإيجار رقم {$contractNumber} حتى تاريخ {$newEndDate}.",
-            'شكراً لتعاملكم معنا.',
+        $template = \App\Models\SmsTemplate::where('name', \App\Support\RentalExtensionMessage::TEMPLATE_NAME)->first();
+        if ($template && !$template->is_active) {
+            return ['success' => false, 'status' => 'skipped', 'error' => 'template_inactive'];
+        }
+        $template ??= new \App\Models\SmsTemplate(['message' => \App\Support\RentalExtensionMessage::defaultMessage()]);
+        $message = $template->processMessage([
+            'client_name' => $clientName,
+            'contract_number' => $contractNumber,
+            'new_end_date' => $newEndDate,
+            'client_phone' => $phone,
+            'client_email' => $contract->user?->email ?? '',
         ]);
+        if (trim($message) === '') {
+            return ['success' => false, 'error' => 'empty_template'];
+        }
 
         try {
             $response = $this->sendSMS(formatSaudiPhone($phone), $message);
@@ -4506,7 +4516,9 @@ class RentContractController extends Controller
                 ? ''
                 : ((bool) ($messageResult['success'] ?? false)
                     ? '، وتم إرسال رسالة التمديد للعميل.'
-                    : '، لكن تعذر إرسال رسالة التمديد للعميل.');
+                    : (($messageResult['status'] ?? null) === 'skipped'
+                        ? '، ولم تُرسل رسالة التمديد لأن القالب غير مفعّل.'
+                        : '، لكن تعذر إرسال رسالة التمديد للعميل.'));
 
             return response()->json([
                 'success' => true,

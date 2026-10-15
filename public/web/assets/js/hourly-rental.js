@@ -78,7 +78,7 @@
     const quantity = () => Number(byId('hr-quantity')?.value || config.data.pricing.quantity);
     const district = () => Number(byId('hr-district').value);
     const address = () => addresses.find(row => Number(row.id) === Number(byId('hr-address').value));
-    const money = value => Number(value).toLocaleString('ar-SA', {minimumFractionDigits: 2, maximumFractionDigits: 2}) + ' ر.س';
+    const money = value => Number(value).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2}) + ' ر.س';
     const error = message => { byId('hr-error').textContent = message || ''; byId('hr-error').hidden = !message; };
     const query = (url, values) => url + '?' + new URLSearchParams(values).toString();
     function validAddress() {

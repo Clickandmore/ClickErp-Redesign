@@ -416,6 +416,10 @@ class DevSuperAdminController extends Controller
             }
             SystemModuleManager::updateBranchLimit($data['branches_limit'] ?? null);
             SystemModuleManager::updateUserLimit($data['users_limit'] ?? null);
+            // مفتاح «العرض في الموقع الخارجي» في كارد إيجار الساعات، وهو نفسه الموجود في إعدادات التأجير بالساعة.
+            if ($request->has('hourly_website_field') && Schema::hasTable('new_settings')) {
+                \App\Support\HourlyRentalSettings::persist(['show_on_website' => $request->boolean('hourly_show_on_website')]);
+            }
 
             if ($productProfile !== $currentProductProfile && Schema::hasTable('system_product_profile_changes')) {
                 DB::table('system_product_profile_changes')->insert([

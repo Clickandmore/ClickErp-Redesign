@@ -70,6 +70,12 @@ class HourlyRentalSettings
         return self::isEnabled() && (bool) self::all()['link_shelter'];
     }
 
+    /** ظهور نظام الساعات في الموقع الخارجي: يلزمه تفعيل الموديل، ويمكن إخفاؤه عن الموقع وحده دون إيقاف النظام. */
+    public static function websiteEnabled(): bool
+    {
+        return self::isEnabled() && (bool) self::all()['show_on_website'];
+    }
+
     /**
      * أسباب تمنع الإطفاء الآن: زيارات جارية أو سجلات حركة مفتوحة.
      * الجداول تُنشأ في مراحل لاحقة، لذلك يُفحص وجودها أولًا.
@@ -136,6 +142,16 @@ class HourlyRentalSettings
 
         self::flush();
 
+        // المواقع الخارجية تخزّن /client/settings مؤقتًا؛ تغيير ظهور الساعات فيها يُبطل كاشها
+        // فيختفي الرابط أو يظهر خلال دقيقة بدل انتظار انتهاء مدة الكاش.
+        if ((bool) ($current['show_on_website'] ?? true) !== (bool) $settings['show_on_website']) {
+            try {
+                ExternalSiteCacheSettings::flushSites();
+            } catch (\Throwable $e) {
+                report($e);
+            }
+        }
+
         return self::all();
     }
 
@@ -150,6 +166,8 @@ class HourlyRentalSettings
             'is_enabled' => self::isEnabled(),
             'link_maid_profiles' => true,
             'link_shelter' => true,
+            // عرض نظام الساعات في الموقع الخارجي (واجهات client/hourly). التطبيق ولوحة التحكم لا يتأثران به.
+            'show_on_website' => true,
             'default_shelter_place_id' => null,
             'city_ids' => [],
             'max_visits_per_day' => 1,
@@ -260,6 +278,7 @@ class HourlyRentalSettings
             'is_enabled' => self::isEnabled(),
             'link_maid_profiles' => $bool($settings['link_maid_profiles'] ?? $defaults['link_maid_profiles']),
             'link_shelter' => $bool($settings['link_shelter'] ?? $defaults['link_shelter']),
+            'show_on_website' => $bool($settings['show_on_website'] ?? $defaults['show_on_website']),
             'default_shelter_place_id' => !empty($settings['default_shelter_place_id']) ? (int) $settings['default_shelter_place_id'] : null,
             'city_ids' => $cityIds,
             'max_visits_per_day' => $int($settings['max_visits_per_day'] ?? null, $defaults['max_visits_per_day'], 1, 5),

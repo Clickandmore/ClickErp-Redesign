@@ -88,6 +88,7 @@
                                             <br>
                                             <strong>معلومات العقد:</strong>
                                             <span class="badge bg-success mx-1">{contract_number}</span>
+                                            <span class="badge bg-success mx-1" title="تاريخ انتهاء العقد بعد التمديد">{new_end_date}</span>
                                             <br>
                                             <strong>معلومات الشركة:</strong>
                                             <span class="badge bg-warning mx-1">{company_name}</span>

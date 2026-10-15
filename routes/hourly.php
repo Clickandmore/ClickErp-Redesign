@@ -5,6 +5,7 @@ use Illuminate\Support\Facades\Route;
 use Mcamara\LaravelLocalization\Facades\LaravelLocalization;
 
 Route::prefix('api')->middleware('api')->group(__DIR__.'/hourly-api.php');
+Route::prefix('api')->middleware('api')->group(__DIR__.'/hourly-website-api.php');
 
 Route::middleware('web')->group(function () {
     Route::group([
