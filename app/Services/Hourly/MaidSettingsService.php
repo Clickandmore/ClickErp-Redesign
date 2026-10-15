@@ -87,8 +87,11 @@ class MaidSettingsService
         if(array_key_exists('service_category_ids',$data) || !empty($data['services_present'])){
             $ids=array_map('intval',$data['service_category_ids'] ?? []);
             $currentServices=$maid?->hourly_settings['service_category_ids'] ?? [];
+            $wasDefault=($maid?->hourly_settings['service_category_ids'] ?? null)===null;
             if(\App\Models\Hourly\HourlyServiceCategory::whereIn('id',array_diff($ids,$currentServices))->where('is_active',false)->exists())throw ValidationException::withMessages(['hourly.service_category_ids'=>'اختر خدمات نشطة فقط.']);
-            $data['service_category_ids']=$ids;
+            // حفظ النموذج دون أي خدمة يُبقي العاملة على «كل الخدمات (افتراضي)» إن لم تُحدد خدماتها من قبل؛
+            // «لا خدمات» (لا تُرشَّح لأي حجز) فقط عند إلغاء خدمات كانت محددة صراحةً.
+            $data['service_category_ids']=!$ids && $wasDefault ? null : $ids;
         }
         $primary=$data['primary_team_id'] ?? null;
         $secondary=$data['secondary_team_ids'] ?? [];

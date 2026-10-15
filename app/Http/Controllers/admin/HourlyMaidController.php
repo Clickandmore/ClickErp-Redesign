@@ -49,8 +49,10 @@ class HourlyMaidController extends Controller
             : null;
         $services=\App\Models\Hourly\HourlyServiceCategory::ordered()->get();
         $canEdit=AdminGuardHasPerm('hourly_maids_edit');
+        // بطاقة «غير معروضة للحجز» في رأس الصفحة فقط؛ تبويبات AJAX لا تعرضها.
+        $bookability=$request->ajax() ? null : app(\App\Services\Hourly\WorkerBookability::class)->report($maid);
         // التنقّل بين التبويبات يجلب محتوى التبويب وحده دون هيكل الصفحة.
-        return view($request->ajax() ? 'admin.hourly_maids._tab' : 'admin.hourly_maids.show',compact('maid','tab','tabs','stats','visits','orders','logs','leaves','services','canEdit'));
+        return view($request->ajax() ? 'admin.hourly_maids._tab' : 'admin.hourly_maids.show',compact('maid','tab','tabs','stats','visits','orders','logs','leaves','services','canEdit','bookability'));
     }
 
     public function leaveStatus(Request $request, Maid $maid, int $leave)

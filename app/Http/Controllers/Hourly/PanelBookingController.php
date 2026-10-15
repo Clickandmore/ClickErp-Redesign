@@ -73,9 +73,9 @@ class PanelBookingController extends Controller
     public function addresses(Request $request)
     {
         $data=$request->validate(['user_id'=>'required|integer|exists:users,id']);
-        return UserAddress::query()->leftJoin('cities','cities.id','=','user_addresses.city_id')
+        return UserAddress::withoutDuplicates(UserAddress::query()->leftJoin('cities','cities.id','=','user_addresses.city_id')
             ->where('user_addresses.user_id',$data['user_id'])->select('user_addresses.*','cities.name_ar as city_name')
-            ->orderByDesc('user_addresses.id')->get();
+            ->orderByDesc('user_addresses.id')->get());
     }
 
     public function mapLink(Request $request)

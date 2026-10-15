@@ -322,3 +322,9 @@
 .hr-time-card input:focus-visible + .hr-time-card-content { outline: 3px solid var(--hr-blue); outline-offset: 3px; }
 .hr-worker-choice-card .hr-time-card-content { height: 100%; min-height: 140px; padding-top: 42px; text-align: center; }
 .hr-worker-choice-card img { width: 80px; height: 80px; border-radius: 50%; object-fit: cover; }
+
+/* حجوزاتي: موعد الزيارة القادمة في بطاقة الطلب */
+.hr-next-visit { display: flex; align-items: center; gap: .5rem; padding: .55rem .75rem; border-radius: 10px; background: #f8fafc; color: var(--hr-muted); font-size: .9rem; }
+.hr-next-visit strong { color: #0f172a; }
+.hr-next-visit.is-upcoming { background: #ecfdf5; color: #047857; }
+.hr-next-visit.is-upcoming strong { color: #065f46; }

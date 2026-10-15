@@ -69,7 +69,7 @@ class VisitSearch
         if(!empty($f['search'])){
             $term='%'.$f['search'].'%';
             $q->where(fn($s)=>$s->where('hourly_visits.id',$f['search'])->orWhere('address_text','like',$term)->orWhere('contact_phone','like',$term)
-                ->orWhereHas('order',fn($o)=>$o->where('order_number','like',$term)->orWhereHas('user',fn($u)=>$u->where('name','like',$term)->orWhere('phone','like',$term))));
+                ->orWhereHas('order',fn($o)=>$o->where('order_number','like',$term)->orWhere('legacy_order_number','like',$term)->orWhereHas('user',fn($u)=>$u->where('name','like',$term)->orWhere('phone','like',$term))));
         }
         return $q;
     }

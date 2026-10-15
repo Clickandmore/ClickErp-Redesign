@@ -70,7 +70,7 @@ class HourlyRentalController extends Controller
     public function checkout(Request $request, int $package)
     {
         $context=$this->context($request,$package);
-        $addresses=UserAddress::where('user_id',auth('web')->id())->where('city_id',$context['city'])->get();
+        $addresses=UserAddress::withoutDuplicates(UserAddress::where('user_id',auth('web')->id())->where('city_id',$context['city'])->latest('id')->get());
         foreach ($addresses as $address) {
             if (!$address->hourly_district_id) {
                 $district=$this->catalog->districtForAddress((int)$address->city_id,$address->latitude,$address->longitude,$address->district.' '.$address->address);
@@ -103,7 +103,7 @@ class HourlyRentalController extends Controller
             }
         }
         unset($data['district_id'],$data['hourly_package_id']);
-        $address=UserAddress::create($data+['user_id'=>auth('web')->id(),'name'=>auth('web')->user()->name,
+        $address=UserAddress::createUnique($data+['user_id'=>auth('web')->id(),'name'=>auth('web')->user()->name,
             'phone'=>$data['contact_phone'],'notes'=>'','district'=>$district->name,'hourly_district_id'=>$district->id]);
         return response()->json(['data'=>$address],201);
     }
@@ -144,7 +144,7 @@ class HourlyRentalController extends Controller
 
     public function orders()
     {
-        return view('web.hourly.orders',['orders'=>HourlyRentalOrder::where('user_id',auth('web')->id())->latest('id')->paginate(12)]);
+        return view('web.hourly.orders',['orders'=>HourlyRentalOrder::where('user_id',auth('web')->id())->with('visits')->latest('id')->paginate(12)]);
     }
 
     public function order(int $id)

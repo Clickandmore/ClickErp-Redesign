@@ -105,7 +105,7 @@ class WebsiteHourlyController extends Controller
     public function checkout(Request $request, int $package)
     {
         $context=$this->context($request,$package);
-        $addresses=UserAddress::where('user_id',auth('api')->id())->where('city_id',$context['city'])->latest('id')->get();
+        $addresses=UserAddress::withoutDuplicates(UserAddress::where('user_id',auth('api')->id())->where('city_id',$context['city'])->latest('id')->get());
         foreach ($addresses as $address) {
             if (!$address->hourly_district_id) {
                 $district=$this->catalog->districtForAddress((int)$address->city_id,$address->latitude,$address->longitude,$address->district.' '.$address->address);
@@ -148,7 +148,7 @@ class WebsiteHourlyController extends Controller
             }
         }
         unset($data['district_id'],$data['hourly_package_id']);
-        $address=UserAddress::create($data+['user_id'=>auth('api')->id(),'name'=>auth('api')->user()->name,
+        $address=UserAddress::createUnique($data+['user_id'=>auth('api')->id(),'name'=>auth('api')->user()->name,
             'phone'=>$data['contact_phone'],'notes'=>'','district'=>$district->name,'hourly_district_id'=>$district->id]);
         return response()->json(['data'=>$address->only(['id','title','address','district','hourly_district_id','latitude','longitude','building','unit','contact_phone'])],201);
     }

@@ -3,6 +3,8 @@
     $hourlyMaid = $obj ?? null;
     $hourlyValues = $hourlyMaid?->hourly_settings ?? [];
     $savedServices=$hourlyValues['service_category_ids'] ?? [];
+    // «default»: لم تُحدد خدمات أبدًا (null) فتُرشَّح لكل الخدمات؛ «none»: حُفظت قائمة فارغة فلا تُرشَّح لأي حجز.
+    $servicesState=($hourlyValues['service_category_ids'] ?? null)===null ? 'default' : ($savedServices ? 'some' : 'none');
     $selectedServices=old('hourly.services_present') ? old('hourly.service_category_ids',[]) : old('hourly.service_category_ids',$savedServices);
     $hourlyServices=\Illuminate\Support\Facades\Schema::hasTable('hourly_service_categories') ? \App\Models\Hourly\HourlyServiceCategory::where(fn($q)=>$q->where('is_active',true)->orWhereIn('id',$savedServices))->ordered()->get() : collect();
     $hourlyMembers = $hourlyMaid ? \App\Models\Hourly\HourlyTeamMember::where('member_type','maid')->where('member_id',$hourlyMaid->id)->whereNull('left_at')->get() : collect();
@@ -32,6 +34,9 @@
     #maid-hourly-section .mh-body { padding: 1rem 1.1rem; }
     #maid-hourly-section .mh-badge { font-size: .75rem; font-weight: 700; border-radius: 999px; padding: .2rem .65rem; background: #eef2ff; color: #4338ca; white-space: nowrap; }
     #maid-hourly-section .mh-badge.is-zero { background: #fef3c7; color: #92400e; }
+    #maid-hourly-section .mh-badge.is-default { background: #e6f7f5; color: #047857; }
+    #maid-hourly-section .mh-badge.is-danger { background: #fee2e2; color: #b91c1c; }
+    #maid-hourly-section .mh-services-warning { margin-top: .6rem; padding: .55rem .75rem; border-radius: 10px; background: #fef2f2; border: 1px solid #fecaca; color: #991b1b; font-size: .84rem; }
     #maid-hourly-section .mh-services { display: flex; flex-wrap: wrap; gap: .5rem; }
     #maid-hourly-section .mh-service { position: relative; margin: 0; cursor: pointer; }
     #maid-hourly-section .mh-service input { position: absolute; opacity: 0; pointer-events: none; }
@@ -106,7 +111,7 @@
             <div class="mh-head">
                 <div class="mh-icon"><i class="fa fa-broom"></i></div>
                 <div><h6>نوع الخدمة</h6><p>الخدمات التي تُرشَّح لها العاملة عند إسناد الزيارات</p></div>
-                <span class="mh-badge" data-service-count></span>
+                <span class="mh-badge" data-service-count data-services-state="{{ $servicesState }}"></span>
             </div>
             <div class="mh-body">
                 <input type="hidden" name="hourly[services_present]" value="1">
@@ -122,7 +127,8 @@
                         @endforeach
                     </div>
                 @endif
-                <small class="mh-hint"><i class="fa fa-circle-info ms-1"></i> يمكن اختيار أكثر من خدمة. إلغاء جميع الاختيارات يوقف ترشيح العاملة للخدمات.</small>
+                <small class="mh-hint"><i class="fa fa-circle-info ms-1"></i> يمكن اختيار أكثر من خدمة. دون تحديد أي خدمة تبقى العاملة على «كل الخدمات (افتراضي)» إن لم تُحدد لها خدمات من قبل.</small>
+                <div class="mh-services-warning" data-services-warning hidden role="alert"><i class="fa fa-triangle-exclamation ms-1"></i> لا توجد خدمة محددة: <strong>لن تُرشَّح العاملة لأي حجز</strong>. حدد خدمة واحدة على الأقل.</div>
             </div>
         </div>
         @endif
@@ -239,7 +245,14 @@ function initHourlyMaidFields() {
             row.querySelector('[data-time-error]').textContent = timeError;
         });
         const count = section.querySelectorAll('[name="hourly[service_category_ids][]"]:checked').length, badge = section.querySelector('[data-service-count]');
-        if (badge) { badge.textContent = count ? count + ' خدمة مختارة' : 'لا توجد خدمة مختارة'; badge.classList.toggle('is-zero', !count); }
+        if (badge) {
+            // بلا اختيار: «كل الخدمات» لعاملة على الافتراضي، وإلا تحذير لأنها لن تُرشَّح لأي حجز.
+            const none = !count && badge.dataset.servicesState !== 'default', warning = section.querySelector('[data-services-warning]');
+            badge.textContent = count ? count + ' خدمة مختارة' : (none ? 'لن تُرشَّح لأي حجز' : 'كل الخدمات (افتراضي)');
+            badge.classList.toggle('is-default', !count && !none);
+            badge.classList.toggle('is-danger', none);
+            if (warning) warning.hidden = !none;
+        }
         const account = section.querySelector('[data-account-enabled]'), accountBadge = section.querySelector('[data-account-badge]');
         accountBadge.textContent = account.value === '1' ? 'الحساب مفعّل' : 'الحساب معطّل';
         accountBadge.classList.toggle('is-zero', account.value !== '1');

@@ -4,7 +4,7 @@
     const config = window.hourlyBookingConfig;
     const $ = id => document.getElementById(id);
     const esc = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-    const money = value => Number(value || 0).toLocaleString('ar-SA', {minimumFractionDigits:2,maximumFractionDigits:2}) + ' ر.س';
+    const money = value => Number(value || 0).toLocaleString('en-US', {minimumFractionDigits:2,maximumFractionDigits:2}) + ' ر.س';
     const token = () => '10000000-1000-4000-8000-100000000000'.replace(/[018]/g, c => (Number(c) ^ crypto.getRandomValues(new Uint8Array(1))[0] & 15 >> Number(c) / 4).toString(16));
     const state = {step:1,customer_mode:'existing',address_mode:'existing',customer:null,address:null,category:null,item:null,workers:1,quantity:1,options:{},visits:[],quote:null,coupon:'',allWorkers:false,bookingToken:token()};
     if(config.renewal)state.customer=config.renewal.customer;
@@ -182,7 +182,7 @@
     function renderCalendar() {
         $('visit-selector').hidden=state.visits.length<=1;
         $('visit-dates').hidden=state.visits.length<=1;
-        $('calendar-title').textContent=month.toLocaleDateString('ar-SA',{month:'long',year:'numeric',calendar:'gregory'});
+        $('calendar-title').textContent=month.toLocaleDateString('ar-SA-u-nu-latn',{month:'long',year:'numeric',calendar:'gregory'});
         let html=['أحد','إثنين','ثلاثاء','أربعاء','خميس','جمعة','سبت'].map(d=>`<small>${d}</small>`).join('');
         const policy=state.item?.booking_config?.booking || {};
         for(let i=0;i<42;i++){

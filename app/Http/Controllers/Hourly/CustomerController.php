@@ -189,7 +189,7 @@ class CustomerController extends Controller
     public function storeAddress(Request $request, int $customer)
     {
         $user = User::findOrFail($customer);
-        UserAddress::create($this->addressData($request) + ['user_id' => $user->id]);
+        UserAddress::createUnique($this->addressData($request) + ['user_id' => $user->id]);
 
         return redirect()->route('admin.hourly-customers.show', [$user->id, 'addresses'])->with('success', __('hourly_customers.messages.address_saved'));
     }
