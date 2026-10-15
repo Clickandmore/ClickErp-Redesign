@@ -201,7 +201,10 @@ class Contract extends Model
 
     public function invoice()
     {
-        return $this->hasOne(Invoice::class, 'contract_id')->latestOfMany();
+        return $this->hasOne(Invoice::class, 'contract_id')->ofMany(
+            ['id' => 'max'],
+            fn ($query) => $query->recruitmentRevenue()
+        );
     }
 
     public function blockingInvoices()

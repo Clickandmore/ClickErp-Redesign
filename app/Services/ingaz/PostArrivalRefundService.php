@@ -183,6 +183,11 @@ class PostArrivalRefundService
                 \App\Models\ingaz\Maid::query()->whereKey($contractRow->maid_id)->lockForUpdate()->firstOrFail();
             }
             $settlement->load(['contract.invoice.recruitmentCreditNotes', 'contract.user', 'contract.maid.office', 'lines']);
+            if (!$settlement->contract->invoice || (int) $settlement->invoice_id !== (int) $settlement->contract->invoice->id) {
+                throw ValidationException::withMessages([
+                    'invoice_id' => 'تغيرت فاتورة إيراد العقد أو كانت المسودة مرتبطة بفاتورة إغلاق. عدّل المسودة وراجع المبالغ قبل الاعتماد.',
+                ]);
+            }
             $eligibleOperationalState = $this->commissionService->isReturned($settlement->contract);
             if (! $eligibleOperationalState) {
                 throw ValidationException::withMessages([

@@ -28,13 +28,14 @@ class LinkLegacyInvoiceConstraints extends Command
         $counts = [];
         $candidatesByNumber = [];
         foreach (DB::table('fn_constraints')->whereNull('deleted_at')->where(function ($query) {
-            $query->whereNotNull('legacy_invoice_number')->orWhere('statement', 'like', 'فاتورة:%');
+            $query->whereNotNull('legacy_invoice_number')->orWhere('statement', 'like', 'فاتورة:%')
+                ->orWhere('statement', 'like', 'فاتورة رقم:%');
         })->get() as $source) {
             $numbers = [];
             if ($source->legacy_invoice_number) {
                 $numbers[] = (int) $source->legacy_invoice_number;
             }
-            if (preg_match('/^فاتورة: (\d+)$/u', $source->statement, $match)) {
+            if (preg_match('/^فاتورة(?: رقم)?: (\d+)$/u', $source->statement, $match)) {
                 $numbers[] = (int) $match[1];
             }
             foreach (array_unique($numbers) as $number) {

@@ -403,6 +403,47 @@ class PostArrivalRefundTest extends TestCase
         $this->assertSame($asset->id, $service->proposal($contract->fresh(), now()->toDateString())['office_charge_credit_account_id']);
     }
 
+    public function test_imported_supplier_closure_does_not_replace_customer_revenue_invoice(): void
+    {
+        $contract = $this->contractWithArrivalInvoice();
+        $revenue = $contract->invoice;
+        $revenue->update(['legacy_invoice_number' => 7581, 'legacy_invoice_type' => 'فاتورة ايراد / طلب استقدام']);
+        $closure = Invoice::query()->create([
+            'contract_id' => $contract->id, 'legacy_invoice_number' => 7892,
+            'legacy_invoice_type' => 'إغلاق', 'subtotal' => 3375, 'vat_amount' => 0,
+            'total_due' => 3375, 'is_paid' => true, 'send_to_zatca' => false,
+        ]);
+
+        $this->assertSame($revenue->id, $contract->fresh()->invoice->id);
+        $this->assertSame($revenue->id, Contract::with('invoice')->findOrFail($contract->id)->invoice->id);
+        $this->assertSame(2, $contract->invoices()->count());
+        $this->assertSame([$revenue->id], $contract->blockingInvoices()->pluck('id')->all());
+        $proposal = app(PostArrivalRefundService::class)->proposal($contract->fresh(), now()->toDateString());
+        $this->assertSame(3980.75, $proposal['invoice_total']);
+        $this->assertSame('not_recruitment_revenue', app(\App\Services\ingaz\LegacyInvoiceConstraintLinker::class)->inspect($closure)['status']);
+
+        $draft = \App\Models\ContractReturnSettlement::query()->create([
+            'contract_id' => $contract->id, 'invoice_id' => $closure->id,
+            'settlement_date' => now()->toDateString(), 'status' => 'draft', 'reason' => 'Legacy closure draft',
+        ]);
+        try {
+            app(PostArrivalRefundService::class)->post($draft);
+            $this->fail('A draft based on supplier cost must be reviewed before posting.');
+        } catch (\Illuminate\Validation\ValidationException $exception) {
+            $this->assertArrayHasKey('invoice_id', $exception->errors());
+        }
+        $this->assertSame('draft', $draft->fresh()->status);
+    }
+
+    public function test_supplier_closure_alone_is_not_a_customer_invoice(): void
+    {
+        $contract = $this->contractWithArrivalInvoice();
+        $contract->invoice->update(['legacy_invoice_number' => 7892, 'legacy_invoice_type' => 'إغلاق']);
+        $this->assertNull($contract->fresh()->invoice);
+        $this->assertFalse($contract->blockingInvoices()->exists());
+        $this->assertNull(Contract::with('invoice')->findOrFail($contract->id)->invoice);
+    }
+
     private function contractWithArrivalInvoice(): Contract
     {
         $user = User::query()->create([

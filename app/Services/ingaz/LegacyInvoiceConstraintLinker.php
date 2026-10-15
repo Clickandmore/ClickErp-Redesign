@@ -14,10 +14,14 @@ class LegacyInvoiceConstraintLinker
         if (!$invoice->legacy_invoice_number) {
             return ['status' => 'not_legacy'];
         }
+        if ($invoice->contract_id && !$invoice->isRecruitmentRevenue()) {
+            return ['status' => 'not_recruitment_revenue'];
+        }
         $candidates ??= DB::table('fn_constraints')->whereNull('deleted_at')
             ->where(function ($query) use ($invoice) {
                 $query->where('legacy_invoice_number', $invoice->legacy_invoice_number)
-                    ->orWhere('statement', 'فاتورة: ' . $invoice->legacy_invoice_number);
+                    ->orWhere('statement', 'فاتورة: ' . $invoice->legacy_invoice_number)
+                    ->orWhere('statement', 'فاتورة رقم: ' . $invoice->legacy_invoice_number);
             })->get();
         if ($candidates->count() !== 1) {
             return ['status' => $candidates->isEmpty() ? 'missing' : 'ambiguous'];
