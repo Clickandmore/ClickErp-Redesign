@@ -132,8 +132,9 @@ class PanelBookingService
                 $available = $candidates->filter(fn ($maid) => app(HourlyWorkerAssignment::class)->available($maid,$visit->scheduled_start_at->toDateTimeString(),$visit->scheduled_end_at->toDateTimeString(),$snapshot));
                 // Unassigned bookings still reserve capacity in their service team and interval.
                 $unassigned = $this->unassignedCapacity($link->team_id, $visit->scheduled_start_at->toDateTimeString(),$visit->scheduled_end_at->toDateTimeString(),$order->id);
-                if ($available->count() - $unassigned < (int)$data['workers_per_visit']) HourlyOrderService::reject('لم يعد العدد المطلوب متاحًا لأحد المواعيد. اختر موعدًا آخر.');
-                foreach ($ids as $id) if (!$available->contains('id',(int)$id)) HourlyOrderService::reject('إحدى العاملات المختارات لم تعد متاحة.');
+                $when = 'الزيارة '.($i + 1).' ('.$visit->scheduled_start_at->format('Y-m-d H:i').')';
+                if ($available->count() - $unassigned < (int)$data['workers_per_visit']) HourlyOrderService::reject('لم يعد العدد المطلوب متاحًا في موعد '.$when.'. ارجع لخطوة المواعيد واختر لها موعدًا آخر.');
+                foreach ($ids as $id) if (!$available->contains('id',(int)$id)) HourlyOrderService::reject('العاملة «'.($candidates->firstWhere('id',(int)$id)?->name ?? \App\Models\ingaz\Maid::find($id)?->name ?? '#'.$id).'» لم تعد متاحة في '.$when.'. اختر عاملة أخرى أو تخطَّ التعيين.');
                 if (app(HourlyBookingRules::class)->settings()->value($package, 'auto_assign', 'panel')) {
                     $ids = array_merge($ids, $available->whereNotIn('id', $ids)
                         ->take((int) $data['workers_per_visit'] - count($ids))->pluck('id')->all());

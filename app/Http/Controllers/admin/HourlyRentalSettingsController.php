@@ -37,6 +37,7 @@ class HourlyRentalSettingsController extends Controller
 
             'link_maid_profiles' => ['nullable', 'boolean'],
             'link_shelter' => ['nullable', 'boolean'],
+            'show_on_website' => ['nullable', 'boolean'],
             'default_shelter_place_id' => ['nullable', 'integer', 'exists:shelter_places,id'],
             'city_ids' => ['nullable', 'array'],
             'city_ids.*' => ['integer'],
@@ -94,6 +95,7 @@ class HourlyRentalSettingsController extends Controller
 
         $payload['link_maid_profiles'] = $request->boolean('link_maid_profiles');
         $payload['link_shelter'] = $request->boolean('link_shelter');
+        $payload['show_on_website'] = $request->boolean('show_on_website');
         $payload['ramadan_mode'] = $request->boolean('ramadan_mode');
         $payload['renewal_count_free_visits'] = $request->boolean('renewal_count_free_visits');
         foreach (['route_client_to_client', 'tracking_enabled', 'tracking_background',

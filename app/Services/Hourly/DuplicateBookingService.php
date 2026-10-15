@@ -20,7 +20,14 @@ class DuplicateBookingService
     }
     public function assertAvailable(int $user,array $address,HourlyPackage $item,array $slots,?int $exceptVisit=null,bool $admin=false): void
     {
-        if(!$slots)return;
+        $matches=$this->matches($user,$address,$item,$slots,$exceptVisit,$admin);
+        if($matches)throw new HttpResponseException(response()->json(['code'=>'duplicate_visit',
+            'message'=>'يوجد حجز قائم لنفس العميل والخدمة والعنوان في هذا الموعد. هل تريد إضافة عاملة إلى الزيارة الحالية بدل إنشاء طلب جديد؟',
+            'duplicate'=>['visits'=>$matches]],409));
+    }
+    public function matches(int $user,array $address,HourlyPackage $item,array $slots,?int $exceptVisit=null,bool $admin=false): array
+    {
+        if(!$slots)return [];
         $starts=array_map(fn($s)=>Carbon::parse($s['starts_at']),$slots);$ends=array_map(fn($s)=>Carbon::parse($s['ends_at']),$slots);
         $query=HourlyRentalOrder::where('user_id',$user)->whereIn('status',['active','pending_confirmation'])
             ->where(fn($q)=>$q->where('status','active')->orWhereNull('expires_at')->orWhere('expires_at','>',now()));
@@ -47,8 +54,6 @@ class DuplicateBookingService
                     'can_add_worker'=>$canAdd,'order_url'=>$url,'add_worker_url'=>$canAdd?$url.'?add_worker_visit='.$visit->id:null];
             }
         }
-        if($matches)throw new HttpResponseException(response()->json(['code'=>'duplicate_visit',
-            'message'=>'يوجد حجز قائم لنفس العميل والخدمة والعنوان في هذا الموعد. هل تريد إضافة عاملة إلى الزيارة الحالية بدل إنشاء طلب جديد؟',
-            'duplicate'=>['visits'=>$matches]],409));
+        return $matches;
     }
 }

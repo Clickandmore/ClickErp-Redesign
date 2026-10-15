@@ -26,12 +26,12 @@
             </div>
             <div class="hc-field" data-only="individual">
                 <label for="hc-first-name">{{ $c('form.first_name') }} *</label>
-                <input class="form-control {{ $invalid('first_name') }}" id="hc-first-name" name="first_name" maxlength="100" value="{{ $v('first_name', $profile->first_name) }}">
+                <input class="form-control {{ $invalid('first_name') }}" id="hc-first-name" name="first_name" maxlength="100" data-hc-only="name" value="{{ $v('first_name', $profile->first_name) }}">
                 {!! $error('first_name') !!}
             </div>
             <div class="hc-field" data-only="individual">
                 <label for="hc-last-name">{{ $c('form.last_name') }} *</label>
-                <input class="form-control {{ $invalid('last_name') }}" id="hc-last-name" name="last_name" maxlength="100" value="{{ $v('last_name', $profile->last_name) }}">
+                <input class="form-control {{ $invalid('last_name') }}" id="hc-last-name" name="last_name" maxlength="100" data-hc-only="name" value="{{ $v('last_name', $profile->last_name) }}">
                 {!! $error('last_name') !!}
             </div>
             <div class="hc-field" data-only="company">
@@ -55,15 +55,16 @@
             </div>
             <div class="hc-field">
                 <label for="hc-national">{{ $c('form.national_num') }}</label>
-                <input class="form-control {{ $invalid('national_num') }}" id="hc-national" name="national_num" maxlength="50" dir="ltr" value="{{ $v('national_num', $customer?->national_num) }}">
+                <input class="form-control {{ $invalid('national_num') }}" id="hc-national" name="national_num" maxlength="20" dir="ltr" data-hc-only="identity" autocomplete="off" value="{{ $v('national_num', $customer?->national_num) }}">
                 {!! $error('national_num') !!}
             </div>
             <div class="hc-field" data-only="individual">
                 <label for="hc-birthdate">{{ $c('form.birthdate') }}</label>
                 <div class="hc-inline">
-                    <input class="form-control {{ $invalid('birthdate') }}" type="date" id="hc-birthdate" name="birthdate" max="{{ today()->toDateString() }}" value="{{ $birth }}">
+                    <input class="form-control {{ $invalid('birthdate') }}" type="date" id="hc-birthdate" name="birthdate" min="{{ today()->subYears(\App\Models\Hourly\HourlyCustomerProfile::MAX_AGE)->toDateString() }}" max="{{ today()->subYears(\App\Models\Hourly\HourlyCustomerProfile::MIN_AGE)->toDateString() }}" value="{{ $birth }}">
                     <span class="hc-age" id="hc-age" aria-live="polite">{{ $birth ? $c('form.age', ['age' => \Carbon\Carbon::parse($birth)->age]) : '—' }}</span>
                 </div>
+                <div class="form-text">{{ $c('form.birthdate_hint', ['min' => \App\Models\Hourly\HourlyCustomerProfile::MIN_AGE, 'max' => \App\Models\Hourly\HourlyCustomerProfile::MAX_AGE]) }}</div>
                 {!! $error('birthdate') !!}
             </div>
         </div>
@@ -74,7 +75,7 @@
         <div class="hc-row">
             <div class="hc-field">
                 <label for="hc-phone">{{ $c('form.phone') }} *</label>
-                <div class="input-group" dir="ltr"><span class="input-group-text">+966</span><input class="form-control {{ $invalid('phone') }}" id="hc-phone" name="phone" inputmode="tel" maxlength="40" value="{{ $v('phone', $customer?->phone) }}" placeholder="5XXXXXXXX"></div>
+                <div class="input-group" dir="ltr"><span class="input-group-text">+966</span><input class="form-control {{ $invalid('phone') }}" id="hc-phone" name="phone" inputmode="numeric" maxlength="20" data-hc-only="mobile" value="{{ $v('phone', $customer?->phone) }}" placeholder="5XXXXXXXX"></div>
                 <div class="form-text">{{ $customer ? $c('form.phone_keep_hint') : $c('form.phone_hint') }}</div>
                 {!! $error('phone') !!}
             </div>
@@ -109,7 +110,7 @@
             </div>
             <div class="hc-field">
                 <label for="hc-iban">{{ $c('form.iban') }}</label>
-                <input class="form-control {{ $invalid('iban') }}" id="hc-iban" name="iban" maxlength="40" dir="ltr" placeholder="SA0000000000000000000000" value="{{ $v('iban', $profile->iban) }}">
+                <input class="form-control {{ $invalid('iban') }}" id="hc-iban" name="iban" maxlength="34" dir="ltr" data-hc-only="iban" autocomplete="off" placeholder="SA0000000000000000000000" value="{{ $v('iban', $profile->iban) }}">
                 <div class="form-text"><i class="fa fa-circle-info"></i> {{ $c('form.iban_hint') }}</div>
                 {!! $error('iban') !!}
             </div>

@@ -177,10 +177,21 @@ class OrderController extends Controller
             default => null,
         };
 
+        $logo = null;
+        if ($path = \Illuminate\Support\Facades\View::shared('printSettings')?->logo) {
+            $storage = app(\App\Services\ManagedFileStorage::class);
+            if ($storage->exists($path)) $logo = 'data:'.$storage->mimeType($path).';base64,'.base64_encode($storage->contents($path));
+        }
+        // موقف حساب الطلب لحظة إصدار السند: ما سُدِّد قبله وبه وما تبقّى بعده.
+        $paidThrough = (float) $order->payments()->where('status', 'paid')->where('id', '<=', $payment->id)->sum('amount');
+
         return view('admin.hourly.payment-receipt', [
             'order' => $order->loadMissing(['user', 'serviceCategory']),
             'payment' => $payment,
             'collector' => $collector,
+            'receiptLogo' => $logo,
+            'paidBefore' => $paidThrough - (float) $payment->amount,
+            'paidThrough' => $paidThrough,
         ]);
     }
     public function invoice(HourlyRentalOrder $order)

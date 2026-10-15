@@ -395,7 +395,7 @@
                                             <span class="om-slot-no">{{ $assigned->count() + $slot }} –</span>
                                             <span class="om-slot-empty">لم يتم الاختيار بعد</span>
                                             @if($editable)
-                                                <button type="button" class="om-link-edit" data-order-action="assign_all" data-visit="{{ $visit->id }}">حدد الموظفين <i class="fa fa-pen-to-square"></i></button>
+                                                <button type="button" class="om-link-edit" data-order-action="assign_workers" data-visit="{{ $visit->id }}">اختر العاملة <i class="fa fa-pen-to-square"></i></button>
                                                 @if(AdminGuardHasPerm('hourly_orders_price_override'))
                                                     <button type="button" class="om-link-danger" data-order-action="remove_worker" data-visit="{{ $visit->id }}"><i class="fa fa-circle-xmark"></i> إزالة المقعد</button>
                                                 @endif

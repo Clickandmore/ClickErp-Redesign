@@ -99,6 +99,8 @@ class SettingResource extends JsonResource
             'uses_simplified_ordering' => \App\Support\ExternalOrderSettings::usesSimplifiedOrdering(),
             'rental_order_mode' => \App\Support\RentalOrderSettings::mode(),
             'uses_simplified_rental_ordering' => \App\Support\RentalOrderSettings::usesSimplifiedOrdering(),
+            // حجز الساعات في الموقع الخارجي: النظام مفعّل وخيار «العرض في الموقع الخارجي» مفعّل.
+            'hourly_rental_website' => \App\Support\HourlyRentalSettings::websiteEnabled(),
 		];
 	}
 

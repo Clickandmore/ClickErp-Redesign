@@ -68,6 +68,7 @@ Route::prefix('hourly')->middleware('feature.hourly_rental')->group(function () 
         Route::put('districts/{district}/status', [\App\Http\Controllers\admin\HourlyDistrictController::class, 'status'])->name('admin.hourly-districts.status');
         Route::get('cities/{city}/districts', [\App\Http\Controllers\admin\HourlyDistrictController::class, 'cityDistricts'])->whereNumber('city')->name('admin.hourly-cities.districts');
         Route::post('districts/locate', [\App\Http\Controllers\admin\HourlyDistrictController::class, 'locate'])->middleware('throttle:10,1')->name('admin.hourly-districts.locate');
+        Route::post('districts/resolve-location', [\App\Http\Controllers\admin\HourlyDistrictController::class, 'resolveLocation'])->middleware('throttle:20,1')->name('admin.hourly-districts.resolve-location');
         Route::put('districts/{district}/teams', [\App\Http\Controllers\admin\HourlyDistrictController::class, 'teams'])->name('admin.hourly-districts.teams');
         Route::get('districts/{district}/osm-polygon', [\App\Http\Controllers\admin\HourlyDistrictController::class, 'osmPolygon'])->middleware('throttle:10,1')->name('admin.hourly-districts.osm-polygon');
         Route::resource('districts', \App\Http\Controllers\admin\HourlyDistrictController::class)->except('show')->names('admin.hourly-districts');

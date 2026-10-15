@@ -11,11 +11,14 @@ class HourlyPaymentService
 {
     public function __construct(private MoyasarService $gateway, private HourlyOrderService $orders) {}
 
-    public function initiate(HourlyRentalOrder $order, bool $website = false): HourlyOrderPayment
+    /**
+     * $returnUrl: صفحة عودة الموقع الخارجي بعد ميسر؛ يُلحق بها معرّف الدفعة (payment). بدونه تبقى العودة كما كانت.
+     */
+    public function initiate(HourlyRentalOrder $order, bool $website = false, ?string $returnUrl = null): HourlyOrderPayment
     {
         HourlyOrderService::enabled();
         // Keep the order lock through invoice creation so concurrent requests cannot create two links.
-        return DB::transaction(function () use ($order, $website) {
+        return DB::transaction(function () use ($order, $website, $returnUrl) {
             $order = HourlyRentalOrder::query()->lockForUpdate()->findOrFail($order->id);
             $this->payable($order);
             if($this->dueNow($order)<=0)HourlyOrderService::reject('لا يوجد مبلغ مستحق الآن وفق سياسة الدفع.');
@@ -25,7 +28,9 @@ class HourlyPaymentService
             $payment = $order->payments()->create(['user_id'=>$order->user_id,'public_id'=>(string) Str::uuid(),'method'=>'moyasar','provider'=>'moyasar','amount'=>$this->dueNow($order),'status'=>'creating','provider_payload'=>['visit_allocations'=>app(PaymentScheduleService::class)->allocations($order,(int)round($this->dueNow($order)*100))]]);
             $result = $this->gateway->createPaymentLink((float) $payment->amount, 'Hourly rental '.$order->order_number,
                 route('api.hourly.moyasar.webhook'), ['hourly_payment_id'=>$payment->public_id],
-                route($website ? 'web.hourly.payment-return' : 'api.hourly.moyasar.callback', ['payment'=>$payment->public_id]));
+                $returnUrl
+                    ? $returnUrl.(str_contains($returnUrl, '?') ? '&' : '?').http_build_query(['payment'=>$payment->public_id])
+                    : route($website ? 'web.hourly.payment-return' : 'api.hourly.moyasar.callback', ['payment'=>$payment->public_id]));
             if (empty($result['id']) || empty($result['url'])) HourlyOrderService::reject('تعذر إنشاء رابط الدفع. حاول مجددًا.');
             $payment->update(['provider_reference'=>$result['id'],'payment_url'=>$result['url'],'status'=>'pending']);
             return $payment;

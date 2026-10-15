@@ -79,6 +79,12 @@ return [
         'base_url'       => env('MOYASAR_BASE_URL', 'https://api.moyasar.com/v1'),
     ],
 
+    // نطاقات المواقع الخارجية المسموح بالعودة إليها بعد دفع حجز الساعات (مفصولة بفواصل).
+    // فارغة = تُقبل أي صفحة http(s) يرسلها الموقع الخارجي.
+    'hourly_website' => [
+        'return_hosts' => array_values(array_filter(array_map('trim', explode(',', (string) env('HOURLY_WEBSITE_RETURN_HOSTS', ''))))),
+    ],
+
     'zoho_salesiq' => [
         'salesiq_base_url' => env('ZOHO_SALESIQ_BASE_URL', 'https://salesiq.zoho.sa'),
         'accounts_base_url' => env('ZOHO_SALESIQ_ACCOUNTS_BASE_URL', 'https://accounts.zoho.sa'),

@@ -176,6 +176,30 @@ class HourlyWebsiteCatalog
         return $result;
     }
 
+    /** أحياء التغطية الجاهزة: فيها باقة معروضة للعملاء وعاملات كافيات. */
+    public function coveredDistricts()
+    {
+        return collect($this->contexts())->pluck('district')->unique('id')->values();
+    }
+
+    /**
+     * حي التغطية الجاهز الذي يقع فيه الموقع: المعرّف المعروف إن كان ضمن التغطية، ثم حدود الحي على الخريطة،
+     * ثم نص العنوان (من القراءة العكسية للخريطة). null يعني أن الموقع خارج التغطية.
+     */
+    public function locate(float $latitude, float $longitude, ?int $districtId=null, string $text='', $covered=null): ?ServiceDistrict
+    {
+        $covered ??= $this->coveredDistricts();
+        if ($districtId && ($known=$covered->firstWhere('id',$districtId))) return $known;
+        $inside=$covered->filter(fn($district)=>is_array($district->polygon) && \App\Models\Hourly\HourlyTeamArea::pointInPolygon($latitude,$longitude,$district->polygon));
+        if ($inside->count()===1) return $inside->first();
+        if ($inside->count()>1 || trim($text)==='') return null;
+        foreach ($covered->groupBy('city_id') as $cityId=>$districts) {
+            $match=$this->districtForAddress((int)$cityId,$latitude,$longitude,$text);
+            if ($match && $districts->contains('id',$match->id)) return $districts->firstWhere('id',$match->id);
+        }
+        return null;
+    }
+
     /** Show only publicly visible workers with at least one bookable future interval. */
     public function availableWorkers(): array
     {

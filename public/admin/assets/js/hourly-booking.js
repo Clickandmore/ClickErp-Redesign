@@ -253,11 +253,24 @@
     }
     async function assignments() {
         $('worker-assignments').textContent='جارٍ التحقق من التوفر...';
-        const replaced=[];
+        const replaced=[],unavailable=[],slotsFor={};
+        // نفحص كل الزيارات أولًا لنذكر بالاسم كل موعد لم يعد متاحًا (لا أولها فقط)، ونفرّغه ليُعاد اختياره من التقويم.
         for(const [index,visit] of state.visits.entries()) {
-            const slots=await api('availability',{...context(),date:visit.starts_at.slice(0,10)});
-            const slot=slots.find(s=>s.starts_at.slice(0,16)===visit.starts_at);
-            if(!slot?.available)throw new Error('إحدى الزيارات لم تعد متاحة. ارجع لتحديد موعد آخر.');
+            const date=visit.starts_at.slice(0,10);
+            slotsFor[date]??=await api('availability',{...context(),date});
+            const slot=slotsFor[date].find(s=>s.starts_at.slice(0,16)===visit.starts_at);
+            if(!slot?.available)unavailable.push(index);
+            else visit.slot=slot;
+        }
+        if(unavailable.length){
+            const list=unavailable.map(i=>`الزيارة ${i+1} (${state.visits[i].starts_at.replace('T',' ')})`).join('، ');
+            unavailable.forEach(i=>{state.visits[i].starts_at='';});
+            renderCalendar();summary();
+            $('worker-assignments').textContent='';
+            throw new Error(`${unavailable.length>1?'هذه المواعيد لم تعد متاحة':'هذا الموعد لم يعد متاحًا'}: ${list}. ارجع لخطوة المواعيد واختر لها موعدًا آخر.`);
+        }
+        for(const [index,visit] of state.visits.entries()) {
+            const slot=visit.slot;delete visit.slot;
             visit.workers=slot.workers;
             visit.worker_ids=visit.worker_ids.map(id=>slot.workers.some(w=>w.id===Number(id))?id:null);
             // العاملة المفضلة غير المتاحة: نقترح بديلة متاحة دون إفشال الطلب (مرة واحدة حتى لا نلغي اختيار الموظف لاحقًا).

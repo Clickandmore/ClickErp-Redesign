@@ -8,6 +8,33 @@
     const t = (key, params = {}) => Object.entries(params).reduce((text, [k, v]) => text.split(':' + k).join(v), i18n[key] ?? key);
     const $ = id => document.getElementById(id);
 
+    // تنقية حقول نموذج العميل أثناء الكتابة/اللصق؛ الخادم يتحقق من نفس القواعد.
+    const latinDigits = value => value.replace(/[٠-٩]/g, d => '٠١٢٣٤٥٦٧٨٩'.indexOf(d));
+    const cleaners = {
+        name: value => value.replace(/[^\p{L}\p{M} ]/gu, '').replace(/ {2,}/g, ' ').replace(/^ /, ''),
+        identity: value => latinDigits(value).toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 20),
+        mobile: value => {
+            let digits = latinDigits(value).replace(/\D/g, '');
+            if (digits.startsWith('00')) digits = digits.slice(2);
+            if (digits.startsWith('966')) digits = digits.slice(3);
+            if (digits.startsWith('0')) digits = digits.slice(1);
+            return digits.slice(0, 9);
+        },
+        iban: value => {
+            // دائمًا SA ثم 22 رقمًا؛ «S» وحدها تبقى أثناء كتابة البادئة.
+            const clean = latinDigits(value).toUpperCase().replace(/[^A-Z0-9]/g, '');
+            if (clean === '' || clean === 'S') return clean;
+            return 'SA' + clean.replace(/^SA/, '').replace(/\D/g, '').slice(0, 22);
+        },
+    };
+    root.querySelectorAll('[data-hc-only]').forEach(input => {
+        const clean = cleaners[input.dataset.hcOnly];
+        input.addEventListener('input', () => {
+            const next = clean(input.value);
+            if (next !== input.value) input.value = next;
+        });
+    });
+
     function notify(options) {
         if (window.Swal) return Swal.fire(Object.assign({ confirmButtonText: t('ok') }, options, { customClass: { popup: 'om-swal' } }));
         alert(options.text || options.title);

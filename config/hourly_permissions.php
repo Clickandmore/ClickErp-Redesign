@@ -155,6 +155,7 @@ return [
     'admin.hourly-districts.create' => ['hourly_districts_create'],
     'admin.hourly-districts.edit' => ['hourly_districts_edit'],
     'admin.hourly-districts.locate' => ['hourly_districts_create', 'hourly_districts_edit'],
+    'admin.hourly-districts.resolve-location' => ['hourly_districts_create', 'hourly_districts_edit'],
     'admin.hourly-districts.osm-polygon' => ['hourly_districts_create', 'hourly_districts_edit'],
     'admin.hourly-districts.teams' => ['hourly_districts_edit'],
     'admin.hourly-cities.index' => ['hourly_cities_view'],
