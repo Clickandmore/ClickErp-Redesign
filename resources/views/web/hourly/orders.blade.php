@@ -17,7 +17,18 @@
             <div class="hr-grid">
             @forelse($orders as $order)
                 <article class="hr-card hr-order-card">
-                    <div class="top"><h2>طلب {{ $order->order_number }}</h2><span class="hr-muted">{{ $order->created_at?->format('Y-m-d') }}</span></div>
+                    @php $nextVisit = $order->nextVisit(); $lastVisit = $nextVisit ? null : $order->lastVisit(); @endphp
+                    <div class="top"><h2>طلب {{ $order->order_number }}</h2><span class="hr-muted" title="تاريخ الطلب">{{ $order->created_at?->format('Y-m-d') }}</span></div>
+                    <div class="hr-next-visit {{ $nextVisit ? 'is-upcoming' : '' }}">
+                        <i class="fa-light {{ $nextVisit ? 'fa-calendar-clock' : 'fa-calendar' }}"></i>
+                        @if ($nextVisit)
+                            <span>الزيارة القادمة: <strong dir="ltr">{{ $nextVisit->scheduled_start_at->format('Y-m-d H:i') }}</strong></span>
+                        @elseif ($lastVisit)
+                            <span>آخر زيارة: <strong dir="ltr">{{ $lastVisit->scheduled_start_at->format('Y-m-d H:i') }}</strong></span>
+                        @else
+                            <span>لم تُحدد مواعيد الزيارات بعد</span>
+                        @endif
+                    </div>
                     <div class="d-flex flex-wrap gap-2">
                         @include('web.hourly._status', ['value' => $order->status])
                         @include('web.hourly._status', ['value' => $order->payment_status])

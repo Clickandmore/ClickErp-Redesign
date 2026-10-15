@@ -4,7 +4,7 @@
     const cfg=window.hourlyScheduleConfig,$=id=>document.getElementById(id),pad=n=>String(n).padStart(2,'0');
     const key=d=>`${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
     const parse=value=>{const [y,m,d]=value.split('-').map(Number);return new Date(y,m-1,d,12);};
-    const locale=cfg.locale==='ar'?'ar-SA-u-ca-gregory':'en-GB';
+    const locale=cfg.locale==='ar'?'ar-SA-u-ca-gregory-nu-latn':'en-GB';
     let selected,month,busy=false;
     function preview(){form.elements.starts_at.value=`${selected}T${$('vs-hour').value}:${$('vs-minute').value}`;$('vs-preview').textContent=`${$('vs-hour').value}:${$('vs-minute').value} ${selected.split('-').reverse().join('/')}`;}
     function render(){

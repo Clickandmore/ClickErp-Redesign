@@ -20,6 +20,21 @@ class HourlyRentalOrder extends Model
     public function renewals() { return $this->hasMany(self::class, 'renewed_from_order_id'); }
     /** التجديد الساري (آخر تجديد غير ملغى)؛ الطلب «مجدَّد» عند وجوده. */
     public function renewedBy() { return $this->hasOne(self::class, 'renewed_from_order_id')->where('status', '!=', 'cancelled')->orderByDesc('id'); }
+    /** أقرب زيارة قادمة أو جارية (لم تنتهِ ولم تُلغَ)؛ null إن لم يبقَ موعد محدد. */
+    public function nextVisit(): ?HourlyVisit
+    {
+        return $this->visits
+            ->filter(fn ($visit) => $visit->scheduled_start_at && $visit->scheduled_end_at?->isFuture()
+                && !in_array($visit->status, ['completed', 'no_show', 'cancelled', 'cancelled_by_client', 'expired', 'unscheduled'], true))
+            ->sortBy('scheduled_start_at')->first();
+    }
+
+    /** آخر زيارة سبق موعدها، لعرضها حين لا توجد زيارة قادمة. */
+    public function lastVisit(): ?HourlyVisit
+    {
+        return $this->visits->filter(fn ($visit) => $visit->scheduled_start_at?->isPast())->sortByDesc('scheduled_start_at')->first();
+    }
+
     public function getBalanceAttribute(): array
     {
         $counts = $this->visits()->selectRaw('status, count(*) as total')->groupBy('status')->pluck('total','status');

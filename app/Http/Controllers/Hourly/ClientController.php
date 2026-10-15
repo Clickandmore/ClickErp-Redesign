@@ -48,14 +48,14 @@ class ClientController extends Controller
     }
     public function addresses()
     {
-        return response()->json(['data'=>UserAddress::where('user_id',auth('api')->id())->orderByDesc('id')->get()->map->only(['id','title','name','city_id','address','latitude','longitude','district','building','unit','contact_phone'])]);
+        return response()->json(['data'=>UserAddress::withoutDuplicates(UserAddress::where('user_id',auth('api')->id())->orderByDesc('id')->get())->map->only(['id','title','name','city_id','address','latitude','longitude','district','building','unit','contact_phone'])]);
     }
     public function address(Request $request)
     {
         $data=$request->validate(array_replace($this->addressRules(),['title'=>['required','string','max:255'],'name'=>['required','string','max:255'],'notes'=>['nullable','string','max:500'],'contact_phone'=>['required','string','max:30']]));
         $data['notes']=$data['notes']??'';
         // Shared address book has non-null legacy contact fields.
-        $address=UserAddress::create($data+['user_id'=>auth('api')->id(),'phone'=>$data['contact_phone']??'','notes'=>'']);
+        $address=UserAddress::createUnique($data+['user_id'=>auth('api')->id(),'phone'=>$data['contact_phone']??'','notes'=>'']);
         return response()->json(['data'=>$address],201);
     }
     private function addressRules(): array

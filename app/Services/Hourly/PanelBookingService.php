@@ -91,7 +91,7 @@ class PanelBookingService
             if ($data['address_mode'] === 'new') {
                 $addressData = $data['address'];
                 $district = \App\Models\Hourly\ServiceDistrict::where('city_id',$addressData['city_id'])->findOrFail($addressData['hourly_district_id']);
-                $address = UserAddress::create($addressData + ['user_id'=>$user->id, 'district'=>$district->name,
+                $address = UserAddress::createUnique($addressData + ['user_id'=>$user->id, 'district'=>$district->name,
                     'name'=>$addressData['contact_first_name'].' '.$addressData['contact_last_name'],
                     'phone'=>$addressData['contact_phone'],'title'=>$addressData['building']]);
             } else $address = UserAddress::where('user_id',$user->id)->findOrFail($data['address_id']);

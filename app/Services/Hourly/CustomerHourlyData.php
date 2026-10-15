@@ -106,6 +106,10 @@ class CustomerHourlyData
             'package_title' => $translation['title'] ?? $snapshot['title'] ?? $snapshot['code'] ?? '',
             'display_status' => $status, 'currency' => 'SAR', 'timezone' => config('app.timezone'),
             'starts_at' => $order->starts_at?->toIso8601String(), 'expires_at' => $order->expires_at?->toIso8601String(),
+            // لقوائم «حجوزاتي»: موعد الزيارة القادمة أهم للعميل من تاريخ إنشاء الطلب.
+            'created_at' => $order->created_at?->toIso8601String(),
+            'next_visit_at' => $order->nextVisit()?->scheduled_start_at?->toIso8601String(),
+            'last_visit_at' => $order->lastVisit()?->scheduled_start_at?->toIso8601String(),
             'balance' => ['available' => $available, 'reserved' => $reserved, 'consumed' => $consumed, 'expired' => $expired],
             'remaining_visits' => $remaining, 'completed_visits' => $counts['completed'] ?? 0,
             'progress_percent' => $order->visits_total ? round($consumed / $order->visits_total * 100, 1) : 0,
