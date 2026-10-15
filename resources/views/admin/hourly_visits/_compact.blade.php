@@ -8,7 +8,7 @@
     <td data-column="duration">@include('admin.hourly_visits._delay') {{ $visit->planned_hours }} ساعات</td>
     <td>@if($canEdit)
         @if($mode==='unassigned')<button class="btn btn-sm btn-outline-primary" data-single="offer" data-id="{{ $visit->id }}">{{ $visit->offered_to_workers?'إعداد العرض للعاملات':'عرض للعاملات' }}</button><button class="btn btn-sm btn-light" data-single="assign_all" data-id="{{ $visit->id }}">تعيين تلقائي</button>@if($visit->offered_to_workers)<small class="d-block text-success">معروضة للعاملات المؤهلات</small>@endif
-        @else<button class="btn btn-sm btn-success" data-single="complete" data-id="{{ $visit->id }}">إكمال</button><button class="btn btn-sm btn-outline-danger" data-single="cancel_visit" data-id="{{ $visit->id }}">إلغاء</button>@endif
+        @else @if($visit->is_missed)<button class="btn btn-sm btn-warning" data-single="reschedule" data-id="{{ $visit->id }}">إعادة الجدولة</button>@else<button class="btn btn-sm btn-success" data-single="complete" data-id="{{ $visit->id }}">إكمال</button>@endif<button class="btn btn-sm btn-outline-danger" data-single="cancel_visit" data-id="{{ $visit->id }}">إلغاء</button>@endif
     @endif</td>
 </tr>@empty<tr><td colspan="9" class="text-center py-5 text-muted">لا توجد زيارات مطابقة للفلاتر.</td></tr>@endforelse
 </tbody></table></div>

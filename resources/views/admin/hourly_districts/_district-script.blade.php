@@ -1,5 +1,23 @@
 <script>
 (() => {
+    function initCitySearch() {
+        if (!window.jQuery || !jQuery.fn.select2) return;
+        document.querySelectorAll('select[data-city-search]').forEach(city => {
+            const select = jQuery(city), modal = city.closest('.modal');
+            if (select.hasClass('select2-hidden-accessible')) return;
+            select.select2({
+                width: '100%', dir: 'rtl', minimumResultsForSearch: 0,
+                placeholder: 'اختر المدينة أو ابحث باسمها',
+                dropdownParent: modal ? jQuery(modal) : jQuery(document.body),
+                language: { noResults: () => 'لا توجد مدن مطابقة' }
+            });
+            // The shared modal fills native select values when switching between add and edit.
+            if (modal) modal.addEventListener('shown.bs.modal', () => select.trigger('change.select2'));
+            city.addEventListener('invalid', () => select.select2('open'));
+        });
+    }
+    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', initCitySearch);
+    else initCitySearch();
     const fields = {en: document.getElementById('name_en'), ar: document.getElementById('name')};
     const feedback = document.getElementById('lookup-feedback');
     function message(text, error = false) { feedback.className = 'alert border-0 rounded-3 ' + (error ? 'alert-danger' : 'alert-info'); feedback.textContent = text; }

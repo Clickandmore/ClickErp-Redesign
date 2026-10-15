@@ -39,6 +39,8 @@ $driverRoutes = function () {
         }
         Route::get('pickup-requests', [DriverAppController::class, 'pickupRequests']);
         Route::get('earnings', [DriverAppController::class, 'earnings']);
+        Route::post('visits/{visit}/collect-cash',[\App\Http\Controllers\Hourly\CashCollectionController::class,'driverCollect'])->whereNumber('visit');
+        Route::get('cash-custody',[\App\Http\Controllers\Hourly\CashCollectionController::class,'driverCustody']);
         Route::get('notifications', [DriverAppController::class, 'notifications']);
         Route::post('notifications/read', [DriverAppController::class, 'readNotifications']);
         Route::get('sos', [DriverAppController::class, 'sos']);
@@ -58,6 +60,8 @@ $workerRoutes = function () {
         Route::post('logout', [MaidAuthController::class, 'mobileLogout']);
         Route::post('location', [LocationPingController::class, 'maid'])->middleware('throttle:60,1');
         Route::get('hours', [WorkerAppController::class, 'hours']);
+        Route::post('visits/{visit}/collect-cash',[\App\Http\Controllers\Hourly\CashCollectionController::class,'workerCollect'])->whereNumber('visit');
+        Route::get('cash-custody',[\App\Http\Controllers\Hourly\CashCollectionController::class,'workerCustody']);
         Route::get('visits/today', [WorkerAppController::class, 'today']);
         Route::post('visits/{visit}/arrived', [WorkerAppController::class, 'arrived'])->whereNumber('visit');
         Route::post('visits/{visit}/finish', [WorkerAppController::class, 'finish'])->whereNumber('visit');
@@ -115,11 +119,14 @@ Route::prefix('app/hourly')->middleware('feature.hourly_rental')->group(function
         Route::get('orders/{id}/visits/{visit}/tracking',[ClientController::class,'tracking'])->whereNumber('id')->whereNumber('visit')->middleware('throttle:60,1');
         Route::post('orders/{id}/visits/{visit}/schedule',[ClientController::class,'schedule'])->whereNumber('id')->whereNumber('visit');
         Route::post('orders/{id}/visits/{visit}/reschedule',[ClientController::class,'reschedule'])->whereNumber('id')->whereNumber('visit');
+        Route::get('orders/{id}/visits/{visit}/additional-worker',[\App\Http\Controllers\Hourly\AdditionalWorkerController::class,'preview'])->whereNumber('id')->whereNumber('visit');
+        Route::post('orders/{id}/visits/{visit}/additional-worker',[\App\Http\Controllers\Hourly\AdditionalWorkerController::class,'store'])->whereNumber('id')->whereNumber('visit')->middleware('throttle:10,1');
         Route::post('orders/{id}/visits/{visit}/cancel',[ClientController::class,'cancel'])->whereNumber('id')->whereNumber('visit');
         Route::post('orders/{id}/visits/{visit}/extra-hour',[ClientController::class,'extraHour'])->whereNumber('id')->whereNumber('visit');
         Route::post('orders/{id}/visits/{visit}/rate',[ClientController::class,'rate'])->whereNumber('id')->whereNumber('visit');
         Route::post('orders/{id}/payments/moyasar',[ClientController::class,'pay'])->whereNumber('id');
         Route::get('orders/{id}/payments/moyasar',[ClientController::class,'payment'])->whereNumber('id');
+        Route::get('cash-receipts/{collection}',[\App\Http\Controllers\Hourly\CashCollectionController::class,'customerReceipt'])->whereNumber('collection');
         Route::post('orders/{id}/payments/bank-transfer',[ClientController::class,'bankTransfer'])->whereNumber('id');
         });
     });

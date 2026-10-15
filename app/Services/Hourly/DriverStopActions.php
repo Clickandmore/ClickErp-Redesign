@@ -39,7 +39,7 @@ class DriverStopActions
     {
         return $this->apply($driver, $stopId, 'drop_off', function ($stop, HourlyVisit $visit, HourlyRentalOrder $order) use ($driver, $code, $cash) {
             $this->assertDeliveryCode($visit, $code);
-            $collected = $this->collect($order, $driver, $cash);
+            $collected = $this->collect($order, $driver, $cash, $visit);
             // delivery_at هو الوقت المخطَّط من إدارة المسار؛ وقت التنفيذ الفعلي يُسجَّل على المحطة.
             return ['visit' => ['status' => 'delivered'],
                 'stop' => ['status' => 'completed', 'completed_at' => now(), 'cash_collected' => $collected],
@@ -82,11 +82,15 @@ class DriverStopActions
         return DB::transaction(function () use ($driver, $stopId, $expected, $mutate, $gps, $action, $board) {
             $stop = DB::table('hourly_route_stops')->where('id', $stopId)->lockForUpdate()->first();
             abort_unless($stop && (int) $stop->hourly_driver_id === (int) $driver->id, 404, 'المحطة غير موجودة أو ليست من مهامك.');
-            $visit = HourlyVisit::query()->lockForUpdate()->findOrFail($stop->hourly_visit_id);
+            $visit = HourlyVisit::query()->findOrFail($stop->hourly_visit_id);
             $order = HourlyRentalOrder::query()->lockForUpdate()->findOrFail($visit->hourly_rental_order_id);
+            $visit = HourlyVisit::query()->lockForUpdate()->findOrFail($stop->hourly_visit_id);
             if ($order->status !== 'active') HourlyOrderService::reject('الطلب غير نشط ولا يقبل تحديثات من السائق.');
             if (in_array($visit->status, DriverAppService::VOID, true)) HourlyOrderService::reject('الزيارة ملغاة أو منتهية.');
             $this->assertTrip($stop);
+            if ($stop->role === 'delivery' && $visit->status === 'scheduled' && $action !== 'fail') {
+                DeliveryStartWindow::assertAllowed($visit);
+            }
             $visit->loadMissing('workers:id,name');
             $task = ['role' => $stop->role, 'visit' => $visit, 'row' => $stop, 'team' => null, 'time' => null, 'stop_id' => $stop->id];
             $current = $board->action($task);
@@ -148,10 +152,13 @@ class DriverStopActions
     }
 
     /** تسجيل النقد المحصَّل باسم السائق على نفس مسار مدفوعات الطلب. */
-    private function collect(HourlyRentalOrder $order, HourlyDriver $driver, ?float $cash): float
+    private function collect(HourlyRentalOrder $order, HourlyDriver $driver, ?float $cash, HourlyVisit $visit): float
     {
         $amount = round((float) ($cash ?? 0), 2);
         if ($amount <= 0) return 0.0;
+        if (CashCollectionService::ready()) {
+            return app(CashCollectionService::class)->collect($visit,'driver',(int)$driver->id,$amount,'delivery:'.$visit->id.':'.$driver->id)['amount'];
+        }
         $due = round((float) $order->total_amount - (float) $order->paid_amount, 2);
         if ($due <= 0) HourlyOrderService::reject('لا يوجد مبلغ متبقٍ على هذا الطلب.');
         if ($amount > $due) HourlyOrderService::reject('المبلغ المحصَّل يتجاوز المتبقي ('.$due.' ر.س).');

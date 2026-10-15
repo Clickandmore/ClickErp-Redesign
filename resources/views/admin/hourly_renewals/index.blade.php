@@ -177,7 +177,9 @@
                                 <span class="rn-renewed"><i class="fa fa-circle-check"></i> تم التجديد</span>
                                 <a class="rn-sub rn-num" dir="ltr" href="{{ route('admin.hourly-orders.show', $row['renewal']['id']) }}">#{{ $row['renewal']['order_number'] }}</a>
                             @elseif($canRenew)
+                                @if($row['renewal_blocked_reason'])<span class="rn-sub" role="status">{{ $row['renewal_blocked_reason'] }}</span>@else
                                 <a class="rn-renew" href="{{ route('admin.hourly-orders.create', ['renew' => $row['id']]) }}"><i class="fa fa-rotate"></i> تجديد</a>
+                                @endif
                             @else<span class="rn-sub">—</span>@endif
                         </td>
                     </tr>

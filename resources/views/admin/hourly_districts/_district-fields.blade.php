@@ -9,7 +9,7 @@
 <div class="row g-3 mb-4">
     <div class="col-12">
         <label for="city_id" class="form-label">المدينة <span class="text-danger">*</span></label>
-        <select id="city_id" name="city_id" class="form-select @error('city_id') is-invalid @enderror" required>
+        <select id="city_id" data-city-search name="city_id" class="form-select @error('city_id') is-invalid @enderror" required>
             <option value="">اختر المدينة</option>
             @foreach ($cities as $city)
                 <option value="{{ $city->id }}" {{ (string) old('city_id', $district->city_id) === (string) $city->id ? 'selected' : '' }}>{{ $city->name_ar ?: $city->name_en }}</option>

@@ -10,6 +10,8 @@ Route::prefix('hourly-driver')->name('hourly-driver.')->middleware('feature.hour
     Route::post('login', [DriverAuthController::class, 'webLogin'])->middleware('throttle:5,1')->name('authenticate');
     Route::middleware(EnsureHourlyDriverAccess::class.':web')->group(function () {
         Route::get('/', [DriverPortalController::class, 'index'])->name('home');
+        Route::get('cash/{collection}/receipt',[\App\Http\Controllers\Hourly\CashCollectionController::class,'driverReceipt'])->whereNumber('collection')->name('cash.receipt');
+        Route::post('visits/{visit}/collect-cash',[\App\Http\Controllers\Hourly\CashCollectionController::class,'driverWebCollect'])->whereNumber('visit')->name('cash.collect');
         Route::post('location', [\App\Http\Controllers\Hourly\LocationPingController::class, 'driverWeb'])->middleware('throttle:60,1')->name('location');
         Route::post('visits/{visit}/action', [DriverPortalController::class, 'action'])->whereNumber('visit')->name('visits.action');
         Route::post('logout', [DriverAuthController::class, 'webLogout'])->name('logout');

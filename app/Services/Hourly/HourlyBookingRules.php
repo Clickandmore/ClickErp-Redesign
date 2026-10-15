@@ -117,6 +117,8 @@ class HourlyBookingRules
     {
         $categoryId = $item instanceof HourlyPackage ? $item->service_category_id : ($item['service_category_id'] ?? null);
         $methods = $channel === 'web_app' ? self::PAYMENT_METHODS : array_values(array_unique(array_merge(self::PAYMENT_METHODS, self::PANEL_PAYMENT_METHODS)));
+        $policy=$item instanceof HourlyPackage?$item->payment_policy:($item['payment_policy']??null);
+        if(in_array($policy,['per_visit','installments'],true))$methods=array_values(array_diff($methods,['wallet','customer_balance']));
         if (!$categoryId || !Schema::hasTable('hourly_category_payment_methods')) return array_values(array_filter($methods, fn ($method) => $method !== 'wallet'));
         $rows = DB::table('hourly_category_payment_methods')->where('service_category_id', $categoryId)->get()->keyBy('payment_method');
         // المحفظة ميزة مالية حساسة، لذلك تبدأ متوقفة حتى تُفعّل صراحةً للفئة.
@@ -171,11 +173,13 @@ class HourlyBookingRules
             'tax_rate' => $tax, 'total' => $total, 'subtotal' => $subtotal, 'tax' => $total - $subtotal,
             'visit_prices' => $visitPrices, 'quantity' => $quantity, 'workers' => $workers,
             'price_display' => $display,
+            'payment_policy' => $item->payment_policy ?: null,
+            'installment_deposit' => $cents($item->deposit_amount??0), 'installment_monthly' => $cents($item->monthly_amount??0),
             'components' => ['service' => $baseTotal * $multiplier,
                 'extra_workers' => $workerExtra * $visits * $multiplier,
                 'transport' => ($item->transport_included ? 0 : $cents($item->transport_fee)) * $visits * $multiplier],
             // الدفع الإلكتروني مع عرض سعر الزيارة: يُحصَّل سعر الزيارة الأولى الآن.
-            'charge_now' => $display === 'per_visit' && $visits > 1 ? $visitPrices[0] : $total,
+            'charge_now' => $item->payment_policy==='prepaid'?$total:($item->payment_policy==='installments'?min($total,$cents($item->deposit_amount??0)):($item->payment_policy==='per_visit' || $display==='per_visit'?$visitPrices[0]:$total)),
         ];
     }
 

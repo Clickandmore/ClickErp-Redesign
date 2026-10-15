@@ -12,6 +12,8 @@
 @include('admin.hourly._booking-options')
 <div class="container-fluid hs"><div class="hs-shell">
     @include('admin.hourly.messages')
+@include('admin.hourly._order-refund')
+@include('admin.hourly._cash-link')
     @include('admin.hourly._order-summary')
     @php
         $canConfirm = AdminGuardHasPerm('hourly_orders_confirm') && $order->status === 'pending_confirmation'

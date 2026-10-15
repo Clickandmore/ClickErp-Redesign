@@ -1,3 +1,4 @@
+@include('admin.hourly_visits._missed-alerts')
 @php
     // Includes previous days, independently of the list's date filters.
     $delayedVisits = \App\Models\Hourly\HourlyVisit::whereIn('status', \App\Services\Hourly\ShelterPresence::OUT_STATUSES)

@@ -51,13 +51,15 @@ class DriverPortalController extends Controller
         $driver = auth('hourly_driver')->user();
         $data = $request->validate([
             'action' => ['required', Rule::in(['start_delivery', 'confirm_delivery', 'confirm_pickup', 'complete'])],
+            'cash_amount'=>['nullable','numeric','min:0','max:100000'], 'request_token'=>['required_with:cash_amount','nullable','uuid'],
             'date' => ['nullable', 'date_format:Y-m-d'],
             'month' => ['nullable', 'date_format:Y-m'],
         ]);
 
         DB::transaction(function () use ($visit, $driver, $data) {
-            $visit = HourlyVisit::whereKey($visit->id)->lockForUpdate()->firstOrFail();
+            $visit = HourlyVisit::whereKey($visit->id)->firstOrFail();
             $order = HourlyRentalOrder::whereKey($visit->hourly_rental_order_id)->lockForUpdate()->firstOrFail();
+            $visit = HourlyVisit::whereKey($visit->id)->lockForUpdate()->firstOrFail();
             [$role, $from, $to, $label] = $this->transition($data['action']);
 
             if ($order->status !== 'active') {
@@ -68,6 +70,10 @@ class DriverPortalController extends Controller
                 HourlyOrderService::reject('تغيّرت حالة المهمة أو تم تنفيذها بالفعل. حدّث الصفحة ثم حاول مرة أخرى.');
             }
 
+            if ($data['action'] === 'start_delivery') \App\Services\Hourly\DeliveryStartWindow::assertAllowed($visit);
+            if ($data['action']==='confirm_delivery' && (float)($data['cash_amount']??0)>0) {
+                app(\App\Services\Hourly\CashCollectionService::class)->collect($visit,'driver',(int)$driver->id,(float)$data['cash_amount'],$data['request_token']);
+            }
             $before = $visit->getAttributes();
             $visit->update(['status' => $to]);
             if (Schema::hasTable('hourly_order_audits')) {

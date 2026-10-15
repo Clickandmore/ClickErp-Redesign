@@ -24,12 +24,12 @@
     let provider=config.mapProvider==='google' && config.mapsKey?'google':'osm';
     const RIYADH={lat:24.7136,lng:46.6753};
     const formData = form => Object.fromEntries(new FormData($(form)));
-    const fail = error => { $('booking-error').textContent=error.message || String(error); $('booking-error').hidden=false; };
+    const fail = error => { $('booking-error').textContent=error.message || String(error); $('booking-error').hidden=false;if(error.duplicate)window.showHourlyDuplicate?.($('booking-error'),error.duplicate); };
     const clearError = () => { $('booking-error').hidden=true; };
     async function api(path,data,method='POST') {
         const response=await fetch(config.base+'/'+path,{method,headers:{'Accept':'application/json','Content-Type':'application/json','X-CSRF-TOKEN':config.csrf},...(method==='POST'?{body:JSON.stringify(data)}:{})});
         const result=await response.json().catch(()=>({message:'تعذر إتمام الطلب. يرجى المحاولة مجددًا.'}));
-        if(!response.ok) throw new Error(result.errors?Object.values(result.errors).flat().join('\n'):result.message || 'تعذر إتمام الطلب');
+        if(!response.ok) throw Object.assign(new Error(result.errors?Object.values(result.errors).flat().join('\n'):result.message || 'تعذر إتمام الطلب'),{duplicate:result.duplicate});
         return result;
     }
     function context() {
@@ -53,6 +53,7 @@
         $('schedule-total').textContent=q?money(q.total/100):'—';
         const pricing=q?.presentation;
         $('price-summary').innerHTML=q?`${(pricing?.lines || [{label:'الخدمة',amount:q.total}]).map(line=>`<p>${esc(line.label)} <b>${money(line.amount/100)}</b></p>`).join('')}${pricing?.tax_line?`<p class="booking-muted">${esc(pricing.tax_line.label)} ${money(pricing.tax_line.amount/100)}</p>`:''}<div>المبلغ الإجمالي</div><div class="total">${money(q.total/100)}</div>${q.price_display==='per_visit'?`<p>قيمة الزيارة الأولى ${money(q.charge_now/100)}</p>`:''}`:'<p class="booking-muted">اختر الخدمة لعرض السعر</p>';
+        if(q)$('price-summary').innerHTML+='<p>سياسة الدفع: '+esc(({prepaid:'مقدمًا بالكامل',per_visit:'لكل زيارة',installments:'أقساط بمواعيد محددة'})[q.payment_policy] || (q.price_display==='per_visit'?'لكل زيارة':'حسب الإعداد السابق'))+'</p>';
         $('coupon-box').hidden=state.step!==6;
         $('place-order').hidden=state.step!==6;
         $('place-order').disabled=busy || !q;
@@ -61,10 +62,11 @@
     function showStep() {
         document.querySelectorAll('[data-step]').forEach(el=>el.hidden=Number(el.dataset.step)!==state.step);
         document.querySelectorAll('[data-step-label]').forEach(el=>{el.classList.toggle('current',Number(el.dataset.stepLabel)===state.step);el.classList.toggle('done',Number(el.dataset.stepLabel)<state.step);});
-        $('booking-back').hidden=state.step===1;$('booking-next').hidden=state.step===6;summary();
+        $('booking-back').hidden=state.step===(renewal?2:1);$('booking-next').hidden=state.step===6;summary();
         if(state.step===2 && state.address_mode==='new')initMap();
     }
     async function customers(page=1) {
+        if(renewal)return;
         const data=await api('customers?search='+encodeURIComponent($('customer-search').value)+'&page='+page,null,'GET');
         $('customer-results').innerHTML=data.data.length?data.data.map(u=>`<tr><td>${u.id}</td><td>${esc(u.name)}</td><td>${esc(u.email)}</td><td>${esc(u.phone)}</td><td>${money(u.hourly_wallet_balance)}</td><td><button type="button" class="btn btn-sm btn-outline-success" data-customer="${u.id}">${state.customer?.id===u.id?'✓ مختار':'اختر'}</button></td></tr>`).join(''):'<tr><td colspan="6">لا توجد نتائج</td></tr>';
         $('customer-results').querySelectorAll('[data-customer]').forEach(button=>button.onclick=()=>{state.customer=data.data.find(u=>u.id===Number(button.dataset.customer));state.address=null;resetService();customers(page).catch(fail);summary();});
@@ -83,7 +85,7 @@
         if(state.customer_mode==='new'){state.customer=null;summary();}
     });
     $('customer-search').onkeydown=e=>{if(e.key==='Enter'){e.preventDefault();customers().catch(fail);}};
-    document.querySelectorAll('[name=customer_mode]').forEach(radio=>radio.onchange=()=>{state.customer_mode=radio.value;state.customer=null;state.address=null;resetService();$('existing-customer').hidden=radio.value==='new';$('new-customer').hidden=radio.value==='existing';});
+    document.querySelectorAll('[name=customer_mode]').forEach(radio=>radio.onchange=()=>{if(renewal)return;state.customer_mode=radio.value;state.customer=null;state.address=null;resetService();$('existing-customer').hidden=radio.value==='new';$('new-customer').hidden=radio.value==='existing';});
     function districts() {
         const city=$('new-address').elements.city_id.value;
         $('new-address').elements.hourly_district_id.innerHTML='<option value="">اختر الحي</option>'+config.districts.filter(d=>String(d.city_id)===city).map(d=>`<option value="${d.id}">${esc(d.name)}</option>`).join('');
@@ -290,7 +292,7 @@
     if($('collect-now'))$('collect-now').onchange=paymentChanged;
     $('all-workers').onchange=async()=>{state.allWorkers=$('all-workers').checked;try{await assignments();}catch(e){fail(e);}};
     $('apply-coupon').onclick=()=>{state.coupon=$('coupon-code').value.trim().toUpperCase();refreshQuote().catch(fail);};
-    $('booking-back').onclick=()=>{clearError();state.step--;showStep();};
+    $('booking-back').onclick=()=>{if(state.step<=(renewal?2:1))return;clearError();state.step--;showStep();};
     $('booking-next').onclick=async()=>{
         if(busy)return;clearError();busy=true;$('booking-next').disabled=true;
         try {
@@ -438,5 +440,5 @@
         script.async=true;script.onerror=googleFailed;document.head.append(script);
     } else loadOsmMap();
     $('new-customer').onsubmit=e=>e.preventDefault();$('new-address').onsubmit=e=>e.preventDefault();
-    districts();showStep();customers().catch(fail);
+    districts();showStep();if(renewal)$('booking-next').onclick();else customers().catch(fail);
 })();

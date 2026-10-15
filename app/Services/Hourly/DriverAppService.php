@@ -67,6 +67,16 @@ class DriverAppService
         return $this->decide($driver, $tripId, function ($trip) {
             if ($trip->status === 'started') return [];
             if ($trip->status !== 'accepted') HourlyOrderService::reject('المشوار غير مقبول أو منتهٍ؛ لا يمكن بدؤه.');
+            if ($trip->role === 'delivery') {
+                $visits = HourlyVisit::whereIn('id', DB::table('hourly_route_stops')
+                    ->where('hourly_driver_trip_id', $trip->id)->where('role', 'delivery')->select('hourly_visit_id'))
+                    ->where('delivery_driver_id', $trip->hourly_driver_id)
+                    ->whereHas('order', fn($q) => $q->where('status', 'active'))->get();
+                if (!$visits->contains(fn($visit) => $visit->status === 'en_route'
+                    || ($visit->status === 'scheduled' && DeliveryStartWindow::allows($visit)))) {
+                    HourlyOrderService::reject(DeliveryStartWindow::MESSAGE);
+                }
+            }
             return ['status' => 'started', 'started_at' => now()];
         });
     }
@@ -144,17 +154,19 @@ class DriverAppService
             $stops = [];
             foreach ($own as $index => $task) {
                 $this->stop($driver, $trip, $task, $index + 1);
-                $stops[] = $this->stopPayload($task, $index + 1);
+                $stops[] = $this->stopPayload($task, $index + 1, (int)$driver->id);
             }
             $this->closeTrip($trip, $stops);
+            $tripStatus = (string) (DB::table('hourly_driver_trips')->where('id', $trip->id)->value('status') ?? $trip->status);
             $team = $own->first()['team'] ?? null;
             $order = $own->first()['visit']->order;
             $trips[] = [
                 'id' => (int) $trip->id, 'trip_number' => (string) $trip->id, 'type' => $role,
                 'route_date' => $day,
                 // الطلب غير النشط يُعرض للسائق للعلم، وإجراءات محطاته مرفوضة حتى يُفعَّل الطلب.
-                'order_status' => $order?->status, 'actionable' => $order?->status === 'active',
-                'status' => (string) (DB::table('hourly_driver_trips')->where('id', $trip->id)->value('status') ?? $trip->status), 'team' => $team ? ['id' => $team->id, 'name' => $team->name] : null,
+                'order_status' => $order?->status, 'actionable' => collect($stops)->contains(fn($stop) => $stop['actionable']),
+                'can_start' => $tripStatus === 'accepted' && collect($stops)->contains(fn($stop) => $stop['actionable']),
+                'status' => $tripStatus, 'team' => $team ? ['id' => $team->id, 'name' => $team->name] : null,
                 'area' => $own->first()['visit']->district ?: null,
                 'planned_start_at' => $trip->planned_start_at ? Carbon::parse($trip->planned_start_at)->toIso8601String() : null,
                 'expires_at' => $trip->expires_at ? Carbon::parse($trip->expires_at)->toIso8601String() : null,
@@ -355,15 +367,19 @@ class DriverAppService
         return 'pending';
     }
 
-    private function stopPayload(array $task, int $sequence): array
+    private function stopPayload(array $task, int $sequence, int $driverId): array
     {
         $visit = $task['visit'];
         $action = $this->action($task);
+        $timeBlocked = $task['role'] === 'delivery' && $visit->status === 'scheduled' && !DeliveryStartWindow::allows($visit);
+        $actionable = !$timeBlocked && $visit->order?->status === 'active' && !$this->done($task)
+            && !in_array($this->stopStatus($task), ['failed', 'skipped'], true);
         $atShelter = in_array($action, ['shelter_pickup', 'shelter_return'], true);
         $row = $task['row'] ?: DB::table('hourly_route_stops')->where('hourly_visit_id', $visit->id)->where('role', $task['role'])->first();
         return [
             'id' => (int) ($row->id ?? 0), 'sequence' => (int) ($row->display_order ?? $sequence), 'visit_id' => $visit->id,
-            'visit_number' => (int) $visit->visit_number, 'action' => $action, 'status' => $this->stopStatus($task),
+            'visit_number' => (int) $visit->visit_number, 'action' => $timeBlocked ? null : $action, 'status' => $this->stopStatus($task),
+            'actionable' => $actionable, 'blocked_reason' => $timeBlocked ? DeliveryStartWindow::MESSAGE : null,
             'booking_options' => $visit->order?->package_snapshot['booking_options'] ?? [],
             'worker' => $this->worker($visit), 'workers' => $visit->workers->map(fn ($w) => ['id' => $w->id, 'name' => $w->name])->values(),
             'place_name' => $atShelter ? ($task['team']->name ?? 'الإيواء') : 'العميل',
@@ -372,6 +388,8 @@ class DriverAppService
             'planned_at' => $task['time'] ? Carbon::parse($task['time'])->format('H:i') : null,
             'planned_at_iso' => $task['time'] ? Carbon::parse($task['time'])->toIso8601String() : null,
             'latitude' => $atShelter ? null : (float) $visit->latitude, 'longitude' => $atShelter ? null : (float) $visit->longitude,
+            'financial' => app(PaymentScheduleService::class)->forOrder($visit->order)['visits'][$visit->id]??null,
+            'cash_collection' => app(CashCollectionService::class)->info($visit,'driver',$driverId),
             'cash_due' => $this->cashDue($task), 'requires_code' => $action === 'drop_off' && (bool) HourlyRentalSettings::get('staff_app_require_delivery_code', true),
         ];
     }
@@ -387,6 +405,12 @@ class DriverAppService
     {
         $order = $task['visit']->order;
         if ($task['role'] !== 'delivery' || !$order || !in_array($order->payment_method, ['cash', 'card_on_delivery', 'cash_and_card'], true)) return 0.0;
+        if (CashCollectionService::ready()) {
+            if(!in_array($order->payment_method,['cash','cash_and_card'],true))return 0.0;
+            $collector=app(CashCollectionService::class)->collector($task['visit']);
+            if($collector['type']!=='driver' || $collector['id']!==(int)$task['visit']->delivery_driver_id)return 0.0;
+            return app(PaymentScheduleService::class)->collectible($order,$task['visit']);
+        }
         $due = round((float) $order->total_amount - (float) $order->paid_amount, 2);
         return $due <= 0 ? 0.0 : min($due, round((float) $task['visit']->visit_price, 2));
     }

@@ -1,9 +1,12 @@
 @php
+    $collectionSchedule=app(\App\Services\Hourly\PaymentScheduleService::class)->forOrder($order);
+    $collectibleNow=$collectionSchedule['policy']==='legacy'?$collectionSchedule['remaining']:$collectionSchedule['due_now'];
     $awaitingConfirmation = $order->status === 'pending_confirmation';
     $canConfirm = AdminGuardHasPerm('hourly_orders_confirm') && $awaitingConfirmation
+        && (!in_array($order->package_snapshot['payment_policy']??null,['prepaid','installments'],true) || \App\Services\Hourly\HourlyPaymentService::activationPaid($order))
         && (in_array($order->payment_method, ['cash', 'card_on_delivery'], true)
             || \App\Services\Hourly\HourlyPaymentService::activationPaid($order));
-    $canCollect = AdminGuardHasPerm('hourly_orders_collect') && $order->payment_status != 'paid' && !in_array($order->payment_method, ['moyasar', 'customer_balance']);
+    $canCollect = $collectibleNow>0 && in_array($order->status,['pending_confirmation','active','completed'],true) && AdminGuardHasPerm('hourly_orders_collect') && $order->payment_status != 'paid' && !in_array($order->payment_method, ['moyasar', 'customer_balance']);
 @endphp
 @if($canConfirm)
     <div class="om-alert">
@@ -28,8 +31,8 @@
 @endif
 @if($canCollect)
     <form method="POST" enctype="multipart/form-data" action="{{ route('admin.hourly-orders.collect',$order) }}" class="om-collect">@csrf
-        <div><label for="collect-amount">المبلغ المحصل</label>
-            <input id="collect-amount" type="number" step="0.01" min="0.01" name="amount" class="form-control" placeholder="0.00" required></div>
+        <div><label for="collect-amount">المبلغ المحصل — المستحق الآن {{ number_format($collectibleNow,2) }} ر.س</label>
+            <input id="collect-amount" type="number" step="0.01" min="0.01" max="{{ $collectibleNow }}" name="amount" class="form-control" placeholder="0.00" required></div>
         @if($order->payment_method === 'cash_and_card')
             <div><label for="collect-method">طريقة تحصيل هذه الدفعة</label>
                 <select id="collect-method" name="method" class="form-select" required><option value="cash">نقدي</option><option value="card_on_delivery">بطاقة</option></select></div>

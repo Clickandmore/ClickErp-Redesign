@@ -96,6 +96,11 @@ class HourlyRentalSettings
             }
         }
 
+        if (Schema::hasTable('hourly_cash_collections')) {
+            $cash = \DB::table('hourly_cash_collections')->whereColumn('remitted_amount','<','amount')->count();
+            if ($cash > 0) $blockers[] = "يوجد {$cash} سند تحصيل بعهدة نقدية لم تُورّد بالكامل.";
+        }
+
         return $blockers;
     }
 

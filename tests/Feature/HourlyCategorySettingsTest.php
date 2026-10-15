@@ -190,7 +190,8 @@ class HourlyCategorySettingsTest extends TestCase
         $order->refresh();
         $this->assertSame('active', $order->status, 'سداد الزيارة الأولى يفعّل الطلب');
         $this->assertSame('partial', $order->payment_status);
-        $this->assertEquals(200, $payments->dueNow($order));
+        $this->assertEquals(0, $payments->dueNow($order), 'الزيارات التالية لا تستحق قبل موعدها');
+        $this->assertEquals(200, app(\App\Services\Hourly\PaymentScheduleService::class)->forOrder($order)['remaining']);
 
         $this->configure($category, []);
         $full = $this->book($item->id, ['payment_method' => 'bank_transfer']);
@@ -234,6 +235,6 @@ class HourlyCategorySettingsTest extends TestCase
         $this->assertSame('scheduled', $visit->fresh()->status, 'قبل الوقت (10:00)');
         Carbon::setTestNow('2030-01-06 11:05:00');
         Artisan::call('hourly:auto-complete-visits');
-        $this->assertSame('completed', $visit->fresh()->status);
+        $this->assertSame('scheduled', $visit->fresh()->status, 'Elapsed time cannot prove a performed visit.');
     }
 }

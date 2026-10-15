@@ -251,4 +251,25 @@ class HourlyCustomerVisitActionsTest extends TestCase
         foreach (['cancel', 'extra-hour', 'rate'] as $action) $this->postJson($this->url($order, $visit, $action), ['rating' => 5])->assertNotFound();
     }
 
+
+    public function test_paid_customer_cancellation_credits_only_excess_after_remaining_visits_and_fees(): void
+    {
+        Schema::table('users',function(Blueprint $t){$t->decimal('hourly_wallet_balance',12,2)->default(0);$t->timestamps();});
+        Schema::create('hourly_wallet_transactions',function(Blueprint $t){$t->id();$t->unsignedBigInteger('user_id');$t->unsignedBigInteger('hourly_rental_order_id')->nullable()->unique();$t->decimal('amount',12,2);$t->decimal('balance_after',12,2);$t->unsignedBigInteger('admin_id')->nullable();$t->timestamps();});
+        [$created,$visit]=$this->order();$order=HourlyRentalOrder::findOrFail($created['id']);
+        $order->update(['status'=>'active','paid_amount'=>720,'payment_status'=>'paid']);
+        $order->payments()->create(['user_id'=>1,'public_id'=>(string)\Illuminate\Support\Str::uuid(),'method'=>'cash','amount'=>720,'status'=>'paid','paid_at'=>now()]);
+        $url=$this->url($created,$visit,'cancel');
+        $this->postJson($url)->assertOk();$this->postJson($url)->assertOk();
+        $this->assertEquals(180,DB::table('users')->where('id',1)->value('hourly_wallet_balance'));
+        $this->assertEquals(540,$order->fresh()->paid_amount);$this->assertEquals(540,$order->fresh()->total_amount);
+        $this->assertSame(1,$order->payments()->where('amount','<',0)->count());
+        $this->assertSame(1,DB::table('hourly_wallet_transactions')->count());
+        $next=$order->visits()->where('status','unscheduled')->first();
+        $this->postJson($this->url($created,$next->id,'schedule'),['scheduled_start'=>'2030-01-08 08:00'])->assertOk();
+        Carbon::setTestNow('2030-01-08 02:00:00');
+        $this->postJson($this->url($created,$next->id,'cancel'))->assertOk();
+        $this->assertEquals(270,DB::table('users')->where('id',1)->value('hourly_wallet_balance'));
+        $this->assertEquals(450,$order->fresh()->total_amount);$this->assertEquals(450,$order->fresh()->paid_amount);
+    }
 }

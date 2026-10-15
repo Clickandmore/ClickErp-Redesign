@@ -48,8 +48,10 @@ class OrderManagementController extends Controller
     }
     public function update(Request $request,HourlyRentalOrder $order,OrderManagementService $service){
         $data=$request->validate([
-            'action'=>['required',Rule::in(OrderManagementService::ACTIONS)],'reason'=>'nullable|string|max:2000',
-            'visit_ids'=>'required_unless:action,cancel_order,payment_method,free_visit|array|min:1|max:365','visit_ids.*'=>'integer|distinct',
+            'action'=>['required',Rule::in(OrderManagementService::ACTIONS)],'reason'=>'required_if:action,refund|nullable|string|max:2000',
+            'refund_method'=>'required_if:action,refund|nullable|in:wallet,cash,bank_transfer,none',
+            'external_refund_confirmed'=>'sometimes|boolean',
+            'visit_ids'=>'required_unless:action,cancel_order,payment_method,free_visit,refund|array|min:1|max:365','visit_ids.*'=>'integer|distinct',
             'price'=>'required_if:action,price|nullable|numeric|min:0|max:9999999',
             'hours'=>'required_if:action,duration|nullable|numeric|min:0.5|max:24',
             'duration_price_adjustment'=>'nullable|numeric|between:-9999999,9999999',
@@ -72,6 +74,8 @@ class OrderManagementController extends Controller
             'all_teams'=>'sometimes|boolean',
             'payment_method'=>'required_if:action,payment_method|nullable|in:cash,card_on_delivery,cash_and_card,bank_transfer,cheque,customer_balance,moyasar',
         ]);
+        if ($data['action']==='refund' || (in_array($data['action'],['cancel_visit','cancel_order'],true)
+            && ($data['refund_method'] ?? 'wallet')!=='none' && (float)$order->paid_amount>0)) abort_unless(AdminGuardHasPerm('hourly_orders_collect'),403);
         $data['reason']??=null; // السبب اختياري في كل مودالات الطلب؛ يُسجَّل فارغًا في السجلات إن لم يُكتب
         if(in_array($data['action'],['price','duration','free_visit','add_worker','remove_worker']))abort_unless(AdminGuardHasPerm('hourly_orders_price_override'),403);
         if(!empty($data['ignore_notice']))abort_unless($data['action']==='free_visit' && AdminGuardHasPerm('hourly_orders_notice_override'),403);

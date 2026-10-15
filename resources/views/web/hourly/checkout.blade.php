@@ -17,6 +17,7 @@
             'geocode'=>route('web.hourly.geocode'),'store'=>route('web.hourly.store')],'csrf'=>csrf_token()];
 @endphp
 <main>
+    @include('web.hourly._payment-policy-note')
     @include('web.hourly._header', ['title' => 'إتمام حجز ' . $data['title'], 'crumb' => 'إتمام الحجز'])
     <section class="hr-page" dir="rtl">
         <div class="container">
@@ -127,5 +128,6 @@
 @push('js')
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.js"></script>
 @include('admin.hourly._map-provider')
+<script src="{{ asset('admin/assets/js/hourly-duplicate-booking.js') }}?v={{ filemtime(public_path('admin/assets/js/hourly-duplicate-booking.js')) }}"></script>
 <script src="{{ asset('web/assets/js/hourly-rental.js') }}?v={{ filemtime(public_path('web/assets/js/hourly-rental.js')) }}" defer></script>
 @endpush

@@ -195,6 +195,7 @@
             <div class="bk-renewal-body">
                 <b>تجديد للطلب <a href="{{ $renewalInfo['order_url'] }}" target="_blank" rel="noopener" dir="ltr">#{{ $renewalInfo['order_number'] }}</a></b>
                 <small>
+                    العميل: {{ $renewalInfo['customer']['name'] }} ·
                     انتهاء العقد السابق: <span dir="ltr">{{ $renewalInfo['contract_end'] ?? '—' }}</span>
                     @if($renewalInfo['pattern']) · النمط المعتاد: {{ $renewalInfo['pattern'] }} @endif
                     @if($renewal && !empty($renewal['visits'])) · أول موعد مقترح: <span dir="ltr">{{ $renewal['visits'][0] }}</span> @endif
@@ -227,8 +228,16 @@
             <section data-step="1" class="bk-panel">
                 <header class="bk-panel-head">
                     <span class="bk-panel-no">1</span>
-                    <div><h6>البحث عن العميل</h6><p>اختر عميلًا مسجَّلًا لتظهر عناوينه ورصيد محفظته، أو أنشئ حسابًا جديدًا يُحفظ مع الطلب.</p></div>
+                    <div><h6>{{ $renewal ? 'عميل التجديد' : 'البحث عن العميل' }}</h6><p>{{ $renewal ? 'تم اختيار عميل الطلب السابق تلقائيًا؛ جارٍ تحميل عناوينه.' : 'اختر عميلًا مسجَّلًا لتظهر عناوينه ورصيد محفظته، أو أنشئ حسابًا جديدًا يُحفظ مع الطلب.' }}</p></div>
                 </header>
+                @if($renewal)
+                    <div class="bk-renewal" id="renewal-customer" role="status">
+                        <div><strong>عميل التجديد: {{ $renewal['customer']['name'] }}</strong>
+                        <small class="d-block">{{ $renewal['customer']['phone'] }} · {{ $renewal['customer']['email'] }}</small>
+                        <p class="mb-0">التجديد لنفس العميل تلقائيًا. يمكنك مراجعة العنوان وباقي بيانات الحجز في الخطوات التالية.</p></div>
+                    </div>
+                @endif
+                <div id="customer-selection" @if($renewal) hidden inert @endif>
                 <div class="bk-segment mb-3">
                     <label><input type="radio" name="customer_mode" value="existing" checked><span><i class="fa fa-user-check ms-1"></i> عميل حالي</span></label>
                     <label><input type="radio" name="customer_mode" value="new"><span><i class="fa fa-user-plus ms-1"></i> عميل جديد</span></label>
@@ -264,6 +273,7 @@
                     <div><label for="customer-language">لغة التواصل المفضلة <small class="text-muted">(اختياري)</small></label><select id="customer-language" name="language" class="form-select"><option value="">اختر اللغة...</option><option value="ar">العربية</option><option value="en">English</option></select></div>
                     <div class="wide" data-customer-field="company" hidden><label for="customer-note">ملاحظة</label><textarea id="customer-note" name="note" class="form-control" rows="4" maxlength="2000" placeholder="مسؤول التواصل 1 (الاسم ورقم الهاتف)&#10;مسؤول التواصل 2 (الاسم ورقم الهاتف)&#10;مسؤول التواصل 3 (الاسم ورقم الهاتف)" disabled></textarea></div>
                 </form>
+                </div>
             </section>
 
             <section data-step="2" class="bk-panel" hidden>
@@ -449,5 +459,6 @@
 window.hourlyBookingConfig = @json($bookingConfig);
 window.hourlyBookingConfig.renewal = @json($renewal ?? null);
 </script>
+<script src="{{ asset('admin/assets/js/hourly-duplicate-booking.js') }}?v={{ filemtime(public_path('admin/assets/js/hourly-duplicate-booking.js')) }}"></script>
 <script src="{{ asset('admin/assets/js/hourly-booking.js') }}?v={{ filemtime(public_path('admin/assets/js/hourly-booking.js')) }}"></script>
 @endsection

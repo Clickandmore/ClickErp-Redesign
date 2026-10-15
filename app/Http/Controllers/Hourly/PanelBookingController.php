@@ -21,6 +21,8 @@ class PanelBookingController extends Controller
             $request->validate(['renew'=>'required|integer|min:1']);
             $source=\App\Models\Hourly\HourlyRentalOrder::with('user')->findOrFail((int)$request->input('renew'));
             abort_unless($source->user && !$source->user->is_blocked,422);
+            $reason=app(\App\Services\Hourly\RenewalEligibility::class)->reason($source);
+            if($reason)return redirect()->route('admin.hourly-orders.show',$source)->withErrors(['hourly'=>$reason]);
             $renewal=app(\App\Services\Hourly\RenewalPlanner::class)->for($source);
             // طلب مجدَّد سابقًا: يُعرض رابط التجديد القائم، ولا يُعبّأ المعالج لتجديد ثانٍ إلا بصلاحية.
             if($renewal['renewed_by'] && !AdminGuardHasPerm('hourly_orders_renew_again')){$renewalBlocked=$renewal;$renewal=null;}

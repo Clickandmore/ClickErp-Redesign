@@ -1,0 +1,7 @@
+<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8"><title>سند توريد HT-{{ $remit->id }}</title>
+<style>body{font-family:Tahoma,Arial;background:#f2f6fa;color:#18364d;margin:30px}article{max-width:760px;margin:auto;background:white;border:1px solid #d9e4ee;border-radius:18px;padding:30px}h1{color:#087f72}.amount{background:#eaf8f5;padding:25px;text-align:center;font-size:30px;font-weight:bold}dl{display:grid;grid-template-columns:1fr 2fr;gap:15px}dt{color:#60758a}dd{margin:0}footer{border-top:1px dashed #ccd8e5;padding-top:18px;font-size:13px}button{padding:12px;margin:20px 0}@media print{body{margin:0;background:white}article{border:0}button{display:none}}</style></head>
+<body><article><h1>سند توريد عهدة نقدية</h1><p>HT-{{ $remit->id }} · {{ $remit->created_at }}</p><div class="amount">{{ number_format($remit->amount,2) }} ر.س</div>
+<dl><dt>المسلّم</dt><dd>{{ $entry->holder_type==='worker'?'العاملة':'السائق' }}: {{ $holder ?: '#'.$entry->holder_id }}</dd>
+<dt>الموظف المستلم</dt><dd>{{ $admin ?: '#'.$remit->admin_id }}</dd><dt>مرجع التوريد</dt><dd>{{ $remit->reference }}</dd>
+<dt>سند التحصيل المرتبط</dt><dd>HC-{{ str_pad($entry->payment_id,8,'0',STR_PAD_LEFT) }}</dd><dt>الطلب / الزيارة</dt><dd>{{ $order->order_number }} / #{{ $entry->visit_id }}</dd></dl>
+<footer>يثبت هذا السند استلام الإدارة للنقد من المحصّل، ويخفض عهدته فقط. لا يمثل دفعة جديدة من العميل، ولا يغني عن الفاتورة الضريبية.</footer><button onclick="window.print()">طباعة سند التوريد</button></article></body></html>

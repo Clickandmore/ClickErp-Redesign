@@ -60,7 +60,10 @@ class CustomerHourlyData
 
     public function pricing(array $quote): array
     {
+        $policy=$quote['payment_policy']??($quote['price_display']==='per_visit'?'per_visit':'legacy');
         return ['currency' => 'SAR', 'unit' => 'SAR', 'tax_included' => true,
+            'payment_policy'=>$policy,'payment_policy_label'=>PaymentScheduleService::LABELS[$policy],
+            'installment_deposit'=>min($quote['total'],$quote['installment_deposit']??0)/100,'installment_monthly'=>($quote['installment_monthly']??0)/100,
             'subtotal' => $quote['subtotal'] / 100, 'tax_amount' => $quote['tax'] / 100,
             'tax_rate' => $quote['tax_rate'], 'total_amount' => $quote['total'] / 100,
             'charge_now' => $quote['charge_now'] / 100, 'price_display' => $quote['price_display'],
@@ -107,6 +110,11 @@ class CustomerHourlyData
             'remaining_visits' => $remaining, 'completed_visits' => $counts['completed'] ?? 0,
             'progress_percent' => $order->visits_total ? round($consumed / $order->visits_total * 100, 1) : 0,
             'address' => $order->only(['city_id','address_text','latitude','longitude','district','building','unit','contact_phone'])];
+        $data['payment_schedule']=app(PaymentScheduleService::class)->forOrder($order);
+        $data['refundable_amount'] = max(0,round((float)$order->paid_amount-(float)$order->total_amount,2));
+        if ($details) $data['refunded_amount'] = -(float)$order->payments()->where('status','paid')->where('amount','<',0)->sum('amount');
+        if ($details && CashCollectionService::ready()) $data['cash_receipts']=DB::table('hourly_cash_collections')->where('order_id',$order->id)->get(['id','payment_id','amount'])->map(fn($r)=>[
+            'collection_id'=>(int)$r->id,'payment_id'=>(int)$r->payment_id,'amount'=>(float)$r->amount,'url'=>url('api/app/hourly/cash-receipts/'.$r->id)])->all();
         if ($details) $data['visits'] = $order->visits->sortBy('visit_number')->map(fn ($visit) => $this->visit($visit, $order))->values();
         return $data;
     }
@@ -118,11 +126,14 @@ class CustomerHourlyData
         $settings=app(HourlyBookingRules::class)->settings();
         $snapshot=(array)$order->package_snapshot;
         $open=in_array($order->status,['active','pending_confirmation']) && $order->expires_at->isFuture();
+        $data['financial']=app(PaymentScheduleService::class)->forOrder($order)['visits'][$visit->id]??null;
         $policy=app(CustomerVisitActions::class)->policy($visit,$order);
         $rating=$this->rating($visit,$order);
         return $data + ['hourly_rental_order_id' => $order->id,
             // Keep the stable status code for app logic and provide its localized label for display.
-            'status_label' => __('hourly.'.$visit->status),
+            'status_label' => __('hourly.'.$visit->display_status),
+            'is_missed' => $visit->is_missed,
+            'cash_collection'=>app(CashCollectionService::class)->info($visit),
             'scheduled_start_at' => $visit->scheduled_start_at?->toIso8601String(),
             'scheduled_end_at' => $visit->scheduled_end_at?->toIso8601String(),
             'timezone' => config('app.timezone'),
@@ -141,9 +152,9 @@ class CustomerHourlyData
             'extra_hours' => round(max(0,(float)$visit->planned_hours-(float)$order->hours_per_visit),2),
             'can_rate' => in_array($visit->status,CustomerVisitActions::RATEABLE,true) && !$rating,
             // حالة مفهومة للعميل مهما تقدّم التنفيذ الميداني، والحالة الخام تبقى في status.
-            'display_status' => self::VISIT_DISPLAY[$visit->status] ?? $visit->status,
+            'display_status' => $visit->is_missed ? 'missed' : (self::VISIT_DISPLAY[$visit->status] ?? $visit->status),
             // رمز التسليم يُعرض للعميل قبل وصول العاملة فقط، ويطلبه السائق عند التسليم.
-            'delivery_code' => in_array($visit->status,['scheduled','en_route'],true) ? ($visit->delivery_code ?: null) : null,
+            'delivery_code' => !$visit->is_missed && in_array($visit->status,['scheduled','en_route'],true) ? ($visit->delivery_code ?: null) : null,
             'rating' => $rating];
     }
 

@@ -99,7 +99,7 @@ class HourlyStaffAppApiTest extends TestCase
     }
 
     /** طلب نشط بزيارة واحدة مجدولة اليوم 08:00 مع عاملة واحدة. */
-    private function order(int $worker = 1, string $at = '2026-09-22 08:00', array $workerSettings = []): HourlyRentalOrder
+    private function order(int $worker = 1, string $at = '2026-09-22 08:00', array $workerSettings = [], array $packageSettings = []): HourlyRentalOrder
     {
         // أحياء متباعدة 0.1 درجة: مضلعات الأحياء (±0.01) لا تتقاطع فيُحلّ حي العنوان بلا لبس.
         static $n = 0; $n++;
@@ -107,6 +107,7 @@ class HourlyStaffAppApiTest extends TestCase
         $district = $this->district('الملز '.$n, 24.7 + $n / 10, 46.7);
         $category->districts()->attach($district->id, ['is_active' => true, 'team_id' => $this->team->id]);
         $item = $this->item($category);
+        if($packageSettings)$item->update($packageSettings);
         DB::table('maids')->insertOrIgnore(['id' => $worker, 'name' => 'عاملة '.$worker, 'rental_mode' => 'hourly', 'rental_source' => 'outside',
             'arrival_date' => today()->toDateString(), 'hourly_login_phone' => '05000000'.str_pad((string) $worker, 2, '0', STR_PAD_LEFT),
             'hourly_username' => 'HM-'.$worker,
@@ -191,10 +192,12 @@ class HourlyStaffAppApiTest extends TestCase
 
     public function test_trip_stops_follow_the_visit_lifecycle_to_completion(): void
     {
+        (require base_path('database/migrations/2026_10_14_000002_add_hourly_cash_custody.php'))->up();
         $driver = $this->driver();
         $order = $this->order();
         $visit = $this->assign($order->visits()->first(), $driver);
         $token = $this->loginDriver($driver);
+        Carbon::setTestNow('2026-09-22 08:00:00');
 
         $trips = $this->withToken($token)->getJson('/api/driver/trips/today')->assertOk()
             ->assertJsonPath('data.0.type', 'delivery')->assertJsonPath('data.0.status', 'accepted')
@@ -213,7 +216,7 @@ class HourlyStaffAppApiTest extends TestCase
         $this->withToken($token)->postJson('/api/driver/stops/'.$delivery.'/shelter-pickup')->assertOk()
             ->assertJsonPath('data.trip.stops.0.action', 'drop_off')
             // محطة التسليم تُبلّغ التطبيق أن الرمز مطلوب.
-            ->assertJsonPath('data.trip.stops.0.requires_code', true);
+            ->assertJsonPath('data.trip.stops.0.requires_code', true)->assertJsonPath('data.trip.stops.0.cash_collection.can_collect',true);
         $this->assertDatabaseHas('hourly_visits', ['id' => $visit->id, 'status' => 'en_route']);
         auth()->forgetGuards();
 
@@ -316,6 +319,7 @@ class HourlyStaffAppApiTest extends TestCase
         $later->update(['status' => 'pending_confirmation']);
         $future = $this->assign($later->visits()->first(), $driver);
         $token = $this->loginDriver($driver);
+        Carbon::setTestNow('2026-09-22 08:00:00');
 
         // مشوار اليوم لا يرى غير اليوم.
         $this->withToken($token)->getJson('/api/driver/trips/today')->assertOk()
@@ -363,6 +367,7 @@ class HourlyStaffAppApiTest extends TestCase
         $driver = $this->driver();
         $visit = $this->assign($this->order()->visits()->first(), $driver);
         $token = $this->loginDriver($driver);
+        Carbon::setTestNow('2026-09-22 08:00:00');
         $stop = $this->withToken($token)->getJson('/api/driver/trips/today')->assertOk()->json('data.0.stops.0.id');
         auth()->forgetGuards();
 
@@ -695,4 +700,289 @@ class HourlyStaffAppApiTest extends TestCase
         }
     }
 
+
+    public function test_delivery_start_window_blocks_old_future_and_out_of_time_stops_but_allows_return(): void
+    {
+        $driver = $this->driver();
+        $visit = $this->assign($this->order()->visits()->first(), $driver);
+        $board = app(\App\Services\Hourly\DriverAppService::class);
+        $actions = app(\App\Services\Hourly\DriverStopActions::class);
+        foreach (['2026-09-21 08:00:00', '2026-09-22 07:59:59',
+            $visit->scheduled_end_at->toDateTimeString(), '2026-09-24 08:00:00'] as $at) {
+            Carbon::setTestNow($at);
+            $trip = collect($board->sync($driver, '2026-09-22'))->firstWhere('type','delivery');
+            $this->assertNull($trip['stops'][0]['action']);
+            $this->assertFalse($trip['actionable']);
+            $this->assertFalse($trip['can_start']);
+            $this->assertNotNull($trip['stops'][0]['blocked_reason']);
+            foreach ([fn()=>$board->start($driver, $trip['id']),
+                fn()=>$actions->shelterPickup($driver, $trip['stops'][0]['id'], [])] as $attempt) {
+                try { $attempt(); $this->fail('Out-of-window delivery must be rejected.'); }
+                catch (\Illuminate\Validation\ValidationException $e) {
+                    $this->assertStringContainsString('بدء التوصيل', $e->errors()['hourly'][0]);
+                }
+            }
+            $this->assertSame('scheduled', $visit->fresh()->status);
+            $this->assertDatabaseHas('hourly_driver_trips',['id'=>$trip['id'],'status'=>'accepted']);
+        }
+        Carbon::setTestNow('2026-09-22 08:00:00');
+        $trip = collect($board->sync($driver, '2026-09-22'))->firstWhere('type','delivery');
+        $this->assertSame('shelter_pickup', $trip['stops'][0]['action']);
+        $this->assertTrue($trip['can_start']);
+        $actions->shelterPickup($driver, $trip['stops'][0]['id'], []);
+        Carbon::setTestNow('2026-09-24 08:00:00');
+        $trip = collect($board->sync($driver, '2026-09-22'))->firstWhere('type','delivery');
+        $this->assertSame('drop_off', $trip['stops'][0]['action']);
+        $visit->update(['status'=>'worker_finished']);
+        $trip = collect($board->sync($driver, '2026-09-22'))->firstWhere('type','pickup');
+        $this->assertSame('pick_up', $trip['stops'][0]['action']);
+        $actions->pickUp($driver, $trip['stops'][0]['id'], []);
+        $actions->shelterReturn($driver, $trip['stops'][0]['id'], []);
+        $this->assertSame('completed', $visit->fresh()->status);
+    }
+    public function test_worker_cash_is_paid_once_and_partial_remittances_only_settle_custody(): void
+    {
+        (require base_path('database/migrations/2026_10_14_000002_add_hourly_cash_custody.php'))->up();
+        $order=$this->order(1,'2026-09-22 08:00',['requires_driver'=>false]);
+        $order->update(['total_amount'=>200]);$visit=$order->visits()->first();
+        $cash=app(\App\Services\Hourly\CashCollectionService::class);
+        $this->assertSame('worker',$cash->collector($visit)['type']);
+        $workerVisit=(int)DB::table('hourly_visit_workers')->where('hourly_visit_id',$visit->id)->value('id');
+        $token=$this->loginWorker();$body=['amount'=>80,'request_token'=>(string)Str::uuid()];
+        $this->withToken($token)->postJson("/api/worker/visits/$workerVisit/collect-cash",$body)->assertStatus(422);auth()->forgetGuards();
+        $this->withToken($token)->postJson("/api/worker/visits/$workerVisit/arrived")->assertOk();auth()->forgetGuards();
+        $first=$this->withToken($token)->postJson("/api/worker/visits/$workerVisit/collect-cash",$body)->assertOk()->assertJsonPath('data.replayed',false)->json('data');auth()->forgetGuards();
+        $this->withToken($token)->postJson("/api/worker/visits/$workerVisit/collect-cash",$body)->assertOk()->assertJsonPath('data.replayed',true);auth()->forgetGuards();
+        $this->withToken($token)->postJson("/api/worker/visits/$workerVisit/collect-cash",['amount'=>121,'request_token'=>(string)Str::uuid()])->assertStatus(422);auth()->forgetGuards();
+        $second=$this->withToken($token)->postJson("/api/worker/visits/$workerVisit/collect-cash",['amount'=>120,'request_token'=>(string)Str::uuid()])->assertOk()->json('data');auth()->forgetGuards();
+        $this->assertSame(200.0,(float)$order->fresh()->paid_amount);$this->assertSame(2,$order->payments()->count());
+        $this->assertDatabaseHas('hourly_order_payments',['id'=>$first['payment_id'],'collected_by_type'=>'maid','collected_by_id'=>1]);
+        $this->withToken($token)->getJson('/api/worker/cash-custody')->assertOk()->assertJsonPath('data.outstanding',200);auth()->forgetGuards();
+        $remitToken=(string)Str::uuid();$cash->remit($first['collection_id'],30,7,'Till-1',$remitToken);
+        $this->assertTrue($cash->remit($first['collection_id'],30,7,'Till-1',$remitToken)['replayed']);
+        $cash->remit($first['collection_id'],50,7,'Till-2',(string)Str::uuid());
+        $this->assertSame(120.0,$cash->custody('worker',1)['outstanding']);
+        $cash->remit($second['collection_id'],120,7,'Till-3',(string)Str::uuid());
+        $this->assertSame(0.0,$cash->custody('worker',1)['outstanding']);
+        $this->assertSame(2,$order->payments()->count());$this->assertSame(200.0,(float)$order->fresh()->paid_amount);
+        $this->assertSame(3,DB::table('hourly_cash_remittances')->count());
+    }
+
+    public function test_cash_role_and_method_are_enforced_and_unpaid_completion_stays_unpaid(): void
+    {
+        (require base_path('database/migrations/2026_10_14_000002_add_hourly_cash_custody.php'))->up();
+        $order=$this->order(1,'2026-09-22 08:00',['requires_driver'=>false]);
+        $visit=$order->visits()->first();$visit->update(['status'=>'delivered']);
+        $cash=app(\App\Services\Hourly\CashCollectionService::class);
+        foreach ([['cash_collector_type'=>'admin'],['cash_collector_type'=>'worker','cash_collector_worker_id'=>999]] as $policy) {
+            $visit->update($policy);
+            try {$cash->collect($visit,'worker',1,10,(string)Str::uuid());$this->fail('Wrong collector accepted');}
+            catch(\Illuminate\Validation\ValidationException $e){$this->assertNotEmpty($e->errors());}
+        }
+        $visit->update(['cash_collector_type'=>'worker','cash_collector_worker_id'=>1,'status'=>'en_route']);
+        $this->assertFalse($cash->info($visit->fresh(),'worker',1)['can_collect']);
+        try {$cash->collect($visit,'worker',1,10,(string)Str::uuid());$this->fail('Worker collected before arrival');}
+        catch(\Illuminate\Validation\ValidationException $e){$this->assertNotEmpty($e->errors());}
+        $visit->update(['status'=>'delivered']);
+        $visit->update(['cash_collector_type'=>'auto','cash_collector_worker_id'=>null]);$order->update(['payment_method'=>'moyasar']);
+        try {$cash->collect($visit,'worker',1,10,(string)Str::uuid());$this->fail('Card order accepted cash');}
+        catch(\Illuminate\Validation\ValidationException $e){$this->assertNotEmpty($e->errors());}
+        $order->update(['payment_method'=>'cash']);$visit->update(['status'=>'scheduled']);
+        $token=$this->loginWorker();$workerVisit=(int)DB::table('hourly_visit_workers')->where('hourly_visit_id',$visit->id)->value('id');
+        $this->withToken($token)->postJson("/api/worker/visits/$workerVisit/arrived")->assertOk();auth()->forgetGuards();
+        $this->withToken($token)->postJson("/api/worker/visits/$workerVisit/finish")->assertOk();auth()->forgetGuards();
+        $this->assertSame('completed',$order->fresh()->status);$this->assertSame(0.0,(float)$order->fresh()->paid_amount);
+        $this->assertSame(0,DB::table('hourly_cash_collections')->count());
+    }
+
+    public function test_refund_keeps_physical_cash_in_staff_custody_and_rejects_excess_remittance(): void
+    {
+        (require base_path('database/migrations/2026_10_14_000002_add_hourly_cash_custody.php'))->up();
+        $order=$this->order(1,'2026-09-22 08:00',['requires_driver'=>false]);
+        $order->update(['total_amount'=>200]);$visit=$order->visits()->first();$visit->update(['status'=>'delivered']);
+        $cash=app(\App\Services\Hourly\CashCollectionService::class);$row=$cash->collect($visit,'worker',1,200,(string)Str::uuid());
+        $order->refresh()->update(['status'=>'cancelled','total_amount'=>0]);
+        $this->assertSame(200.0,app(\App\Services\Hourly\OrderRefundService::class)->refund($order,'wallet','Cancellation',7));
+        $this->assertSame(200.0,$cash->custody('worker',1)['outstanding']);$this->assertSame(0.0,(float)$order->fresh()->paid_amount);
+        try {$cash->remit($row['collection_id'],201,7,'Too much',(string)Str::uuid());$this->fail('Excess remittance accepted');}
+        catch(\Illuminate\Validation\ValidationException $e){$this->assertNotEmpty($e->errors());}
+        $this->assertSame(0,DB::table('hourly_cash_remittances')->count());$this->assertNotEmpty(HourlyRentalSettings::disableBlockers());
+    }
+    public function test_driver_cash_has_custody_and_receipts_are_scoped_to_the_customer_and_staff(): void
+    {
+        (require base_path('database/migrations/2026_10_14_000002_add_hourly_cash_custody.php'))->up();
+        $driver=$this->driver();$order=$this->order();$visit=$this->assign($order->visits()->first(),$driver);
+        $visit->update(['status'=>'delivered']);
+        $token=$this->loginDriver($driver);
+        $body=['amount'=>50,'request_token'=>(string)Str::uuid()];
+        $result=$this->withToken($token)->postJson('/api/driver/visits/'.$visit->id.'/collect-cash',$body)->assertOk()->json('data');
+        auth()->forgetGuards();
+        $this->withToken($token)->getJson('/api/driver/cash-custody')->assertOk()->assertJsonPath('data.outstanding',50);
+        auth()->forgetGuards();
+        $cash=app(\App\Services\Hourly\CashCollectionService::class);
+        $this->assertSame('driver',$cash->collector($visit)['type']);
+        $controller=app(\App\Http\Controllers\Hourly\CashCollectionController::class);
+        auth('api')->setUser(\App\Models\ingaz\User::findOrFail(1));
+        $this->assertStringContainsString('50.00',$controller->customerReceipt($result['collection_id'])->render());
+        auth()->forgetGuards();
+        DB::table('users')->insert(['id'=>2,'name'=>'Other','phone'=>'0500000099']);
+        auth('api')->setUser(\App\Models\ingaz\User::findOrFail(2));
+        try {$controller->customerReceipt($result['collection_id']);$this->fail('Another customer accessed receipt');}
+        catch(\Symfony\Component\HttpKernel\Exception\HttpException $e){$this->assertSame(404,$e->getStatusCode());}
+        auth()->forgetGuards();
+        auth('hourly_driver')->setUser($driver);
+        $this->assertStringContainsString('50.00',$controller->driverReceipt($result['collection_id'])->render());
+        view()->share('errors',new \Illuminate\Support\ViewErrorBag());
+        $driverPage=app(\App\Http\Controllers\Hourly\DriverPortalController::class)->index(new \Illuminate\Http\Request(['date'=>'2026-09-22']));
+        $this->assertStringContainsString('تحصيل المتبقي نقدًا',$driverPage->render());
+        auth()->forgetGuards();
+        $worker=\App\Models\ingaz\Maid::findOrFail(1);auth('hourly_maid')->setUser(\App\Models\Hourly\HourlyMaidAccount::findOrFail(1));
+        try {$controller->staffReceipt($result['collection_id']);$this->fail('Worker accessed driver custody receipt');}
+        catch(\Symfony\Component\HttpKernel\Exception\HttpException $e){$this->assertSame(404,$e->getStatusCode());}
+        $this->assertStringContainsString('مسؤول التحصيل',view('hourly_maid._cash-visits',['maid'=>$worker,'errors'=>new \Illuminate\Support\ViewErrorBag()])->render());
+        $workerPage=app(\App\Http\Controllers\Hourly\MaidAuthController::class)->home(new \Illuminate\Http\Request(['date'=>'2026-09-22']));
+        $this->assertStringContainsString('سندات التحصيل والعهدة',$workerPage->render());
+    }
+    public function test_admin_collector_policy_and_remittance_require_permission_and_actual_receipt(): void
+    {
+        (require base_path('database/migrations/2026_10_14_000002_add_hourly_cash_custody.php'))->up();
+        $order=$this->order(1,'2026-09-22 08:00',['requires_driver'=>false]);$visit=$order->visits()->first();
+        $admin=\Mockery::mock(\App\Models\auth\Admin::class)->makePartial();$admin->id=7;$admin->shouldReceive('can')->andReturn(true);auth('admin')->setUser($admin);
+        $url=route('admin.hourly-cash.collector',[$order,$visit]);
+        $this->postJson($url,['type'=>'worker','worker_id'=>999,'reason'=>'Wrong'])->assertStatus(422);
+        $this->post($url,['type'=>'worker','worker_id'=>1,'reason'=>'Responsible worker'])->assertRedirect();
+        $this->assertDatabaseHas('hourly_visits',['id'=>$visit->id,'cash_collector_type'=>'worker','cash_collector_worker_id'=>1]);
+        $visit->refresh()->update(['status'=>'delivered']);
+        $cash=app(\App\Services\Hourly\CashCollectionService::class);$entry=$cash->collect($visit,'worker',1,50,(string)Str::uuid());
+        $this->postJson($url,['type'=>'admin','reason'=>'Too late'])->assertStatus(422);
+        $remitUrl=route('admin.hourly-cash.remit',$entry['collection_id']);
+        $body=['amount'=>20,'reference'=>'Cash desk','request_token'=>(string)Str::uuid()];
+        $this->postJson($remitUrl,$body)->assertStatus(422);
+        $this->post($remitUrl,$body+['confirmed'=>1])->assertRedirect();
+        $this->get(route('admin.hourly-cash.index'))->assertOk()->assertSee('30.00');
+        $id=DB::table('hourly_cash_remittances')->value('id');
+        $this->get(route('admin.hourly-cash.remittance-receipt',$id))->assertOk()->assertSee('20.00');
+        $this->assertSame(1,$order->payments()->count());
+        $admin=\Mockery::mock(\App\Models\auth\Admin::class)->makePartial();$admin->id=7;$admin->shouldReceive('can')->andReturn(false);auth('admin')->setUser($admin);
+        $this->postJson($remitUrl,$body+['confirmed'=>1])->assertForbidden();
+        $this->get(route('admin.hourly-cash.index'))->assertForbidden();
+    }
+    private function paymentPlanOrder(string $policy): array
+    {
+        (require base_path('database/migrations/2026_10_14_000002_add_hourly_cash_custody.php'))->up();
+        Carbon::setTestNow('2026-09-22 08:00:00');
+        $order=$this->order(1,'2026-09-22 08:00',['requires_driver'=>false]);
+        $order->update(['total_amount'=>800,'visits_total'=>4,'package_snapshot'=>array_merge($order->package_snapshot,[
+            'payment_policy'=>$policy,'charge_now'=>$policy==='prepaid'?800:200,'deposit_amount'=>100,'monthly_amount'=>250])]);
+        $first=$order->visits()->first();$first->update(['visit_price'=>200,'status'=>'delivered']);
+        for($i=2;$i<=4;$i++){
+            $v=$first->replicate();$v->visit_number=$i;$v->status='scheduled';
+            $v->scheduled_start_at=$first->scheduled_start_at->copy()->addDays($i-1);$v->scheduled_end_at=$first->scheduled_end_at->copy()->addDays($i-1);$v->save();
+            $v->workers()->attach(1);
+        }
+        return [$order->fresh(),$first->fresh()];
+    }
+
+    public function test_per_visit_collects_only_current_visit_and_keeps_future_visits_unpaid(): void
+    {
+        [$order,$visit]=$this->paymentPlanOrder('per_visit');$cash=app(\App\Services\Hourly\CashCollectionService::class);
+        $schedule=app(\App\Services\Hourly\PaymentScheduleService::class);
+        $this->assertSame(200.0,$schedule->forOrder($order)['due_now']);
+        $this->assertSame(200.0,$cash->info($visit,'worker',1)['cash_due']);
+        try{$cash->collect($visit,'worker',1,201,(string)Str::uuid());$this->fail('Collected future visits');}
+        catch(\Illuminate\Validation\ValidationException $e){$this->assertNotEmpty($e->errors());}
+        $cash->collect($visit,'worker',1,80,(string)Str::uuid());
+        $financial=$schedule->forOrder($order->fresh());
+        $this->assertSame('partial',$financial['visits'][$visit->id]['payment_status']);
+        $this->assertSame(120.0,$financial['due_now']);
+        $cash->collect($visit,'worker',1,120,(string)Str::uuid());
+        $financial=$schedule->forOrder($order->fresh());
+        $this->assertSame(0.0,$financial['due_now']);$this->assertSame(600.0,$financial['remaining']);
+        $this->assertSame('paid',$financial['visits'][$visit->id]['payment_status']);
+        $next=$order->visits()->where('visit_number',2)->first();
+        $this->assertSame('unpaid',$financial['visits'][$next->id]['payment_status']);
+        $this->assertFalse($financial['visits'][$next->id]['is_due']);
+        $this->assertSame('partial',$order->fresh()->payment_status);
+        Carbon::setTestNow($next->scheduled_start_at);
+        $next->update(['status'=>'delivered']);
+        $cash->collect($next,'worker',1,200,(string)Str::uuid());
+        $this->assertSame(400.0,(float)$order->fresh()->paid_amount);
+        $this->assertSame('paid',$schedule->forOrder($order->fresh())['visits'][$next->id]['payment_status']);
+        $this->assertSame(400.0,$cash->custody('worker',1)['outstanding']);
+        $payment=$order->payments()->latest('id')->first();
+        $this->assertSame(20000,$payment->provider_payload['visit_allocations'][$next->id]);
+    }
+
+    public function test_completed_unpaid_visit_is_overdue_and_admin_cannot_charge_future_visits(): void
+    {
+        [$order,$visit]=$this->paymentPlanOrder('per_visit');$visit->update(['status'=>'completed']);
+        $schedule=app(\App\Services\Hourly\PaymentScheduleService::class);
+        $financial=$schedule->forOrder($order->fresh());
+        $this->assertTrue($financial['visits'][$visit->id]['is_overdue']);
+        $this->assertSame(200.0,$financial['overdue']);
+        $this->assertSame(0,$order->payments()->count());
+        try{app(\App\Services\Hourly\HourlyPaymentService::class)->collect($order,['amount'=>800],7);$this->fail('Admin charged all future visits');}
+        catch(\Illuminate\Validation\ValidationException $e){$this->assertNotEmpty($e->errors());}
+        app(\App\Services\Hourly\HourlyPaymentService::class)->collect($order,['amount'=>200],7);
+        $this->assertSame(0.0,$schedule->forOrder($order->fresh())['due_now']);
+        $this->assertSame('completed',$visit->fresh()->status);
+    }
+
+    public function test_installments_generate_exact_total_and_only_matured_amounts_are_collectible(): void
+    {
+        [$order,$visit]=$this->paymentPlanOrder('installments');
+        $schedule=app(\App\Services\Hourly\PaymentScheduleService::class);$schedule->generateInstallments($order);
+        $schedule->generateInstallments($order);
+        $this->assertSame(4,DB::table('hourly_order_installments')->count());
+        $this->assertSame(800.0,(float)DB::table('hourly_order_installments')->sum('amount'));
+        $this->assertSame(100.0,$schedule->forOrder($order)['due_now']);
+        app(\App\Services\Hourly\HourlyPaymentService::class)->collect($order,['amount'=>100],7);
+        $this->assertSame(100.0,(float)DB::table('hourly_order_installments')->sum('paid_amount'));
+        $visit->update(['status'=>'completed']);
+        $this->assertFalse($schedule->forOrder($order->fresh())['visits'][$visit->id]['is_overdue']);
+        $this->assertSame(0.0,$schedule->forOrder($order->fresh())['due_now']);
+        Carbon::setTestNow('2026-10-22 08:00:00');
+        $this->assertSame(250.0,$schedule->forOrder($order->fresh())['due_now']);
+        app(\App\Services\Hourly\HourlyPaymentService::class)->collect($order,['amount'=>50],7);
+        $this->assertSame(200.0,$schedule->forOrder($order->fresh())['due_now']);
+        $this->assertSame(150.0,(float)DB::table('hourly_order_installments')->sum('paid_amount'));
+        Carbon::setTestNow('2026-10-23 08:00:00');
+        $this->assertSame(200.0,$schedule->forOrder($order->fresh())['overdue']);
+        $order->refresh()->update(['status'=>'cancelled','total_amount'=>0]);
+        app(\App\Services\Hourly\OrderRefundService::class)->refund($order,'wallet','Cancelled',7);
+        $this->assertSame(0.0,$schedule->forOrder($order->fresh())['due_now']);
+        $this->assertSame(0.0,(float)DB::table('hourly_order_installments')->sum('paid_amount'));
+    }
+
+    public function test_prepaid_covers_all_visits_and_historical_per_visit_is_inferred_without_rewriting_money(): void
+    {
+        [$order,$visit]=$this->paymentPlanOrder('prepaid');$schedule=app(\App\Services\Hourly\PaymentScheduleService::class);
+        $this->assertSame(800.0,$schedule->forOrder($order)['due_now']);
+        $order->update(['status'=>'pending_confirmation']);
+        try{app(\App\Services\Hourly\HourlyOrderService::class)->confirm($order,7);$this->fail('Prepaid cash order activated without payment');}
+        catch(\Illuminate\Validation\ValidationException $e){$this->assertNotEmpty($e->errors());}
+        app(\App\Services\Hourly\HourlyPaymentService::class)->collect($order,['amount'=>800],7);
+        $financial=$schedule->forOrder($order->fresh());
+        foreach($financial['visits'] as $row){$this->assertSame('paid',$row['payment_status']);$this->assertSame(0.0,$row['remaining']);}
+        $this->assertSame(0.0,$financial['due_now']);$this->assertSame('paid',$order->fresh()->payment_status);
+        $snapshot=$order->package_snapshot;unset($snapshot['payment_policy']);$snapshot['price_display']='per_visit';
+        $order->update(['package_snapshot'=>$snapshot]);
+        $this->assertSame('per_visit',$schedule->policy($order));
+        $this->assertSame(800.0,(float)$order->fresh()->paid_amount);
+        $this->assertSame(1,$order->payments()->count());
+    }
+    public function test_booking_freezes_explicit_policy_and_creates_installments_once(): void
+    {
+        (require base_path('database/migrations/2026_10_14_000003_add_hourly_package_payment_policy.php'))->up();
+        $order=$this->order(1,'2026-09-22 08:00',[],['payment_policy'=>'installments','total_price'=>800,'deposit_amount'=>100,'monthly_amount'=>250]);
+        $schedule=app(\App\Services\Hourly\PaymentScheduleService::class);
+        $this->assertSame('installments',$order->package_snapshot['payment_policy']);
+        $this->assertSame(100.0,(float)$order->package_snapshot['charge_now']);
+        $this->assertSame(4,DB::table('hourly_order_installments')->where('hourly_rental_order_id',$order->id)->count());
+        $this->assertSame(800.0,(float)DB::table('hourly_order_installments')->where('hourly_rental_order_id',$order->id)->sum('amount'));
+        \App\Models\Hourly\HourlyPackage::findOrFail($order->hourly_package_id)->update(['payment_policy'=>'prepaid','monthly_amount'=>1]);
+        $this->assertSame('installments',$schedule->policy($order->fresh()));
+        $this->assertSame(100.0,$schedule->forOrder($order->fresh())['due_now']);
+        $this->assertStringContainsString('أقساط بمواعيد محددة',view('admin.hourly._payment-schedule',['order'=>$order->fresh()])->render());
+    }
 }

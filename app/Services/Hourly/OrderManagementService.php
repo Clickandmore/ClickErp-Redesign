@@ -7,7 +7,7 @@ use Carbon\Carbon;
 
 class OrderManagementService
 {
-    public const ACTIONS=['assign_workers','unassign_driver','reschedule','start_time','duration','price','assign_all','add_worker','remove_worker','unassign_worker','assign_driver','auto_driver','team_leader','free_visit','unassign_drivers','unassign_workers','unassign_all','clear_driver_routes','offer','cancel_visit','complete','confirm_return','cancel_order','payment_method'];
+    public const ACTIONS=['assign_workers','unassign_driver','reschedule','start_time','duration','price','assign_all','add_worker','remove_worker','unassign_worker','assign_driver','auto_driver','team_leader','free_visit','unassign_drivers','unassign_workers','unassign_all','clear_driver_routes','offer','cancel_visit','complete','confirm_return','refund','cancel_order','payment_method'];
     public function audit(HourlyRentalOrder $order,string $action,array $before,array $after,?int $admin,?int $visit=null,?string $reason=null): void
     {
         DB::table('hourly_order_audits')->insert(['hourly_rental_order_id'=>$order->id,'visit_id'=>$visit,'admin_id'=>$admin,'action'=>$action,'reason'=>$reason,'before'=>json_encode($before),'after'=>json_encode($after),'created_at'=>now(),'updated_at'=>now()]);
@@ -18,8 +18,14 @@ class OrderManagementService
         HourlyOrderService::enabled();
         return DB::transaction(function()use($order,$data,$admin){
             $result=[];
+            if(in_array($data['action'],['reschedule','start_time','duration','free_visit'],true))\App\Models\ingaz\User::whereKey($order->user_id)->lockForUpdate()->firstOrFail();
             $order=HourlyRentalOrder::whereKey($order->id)->lockForUpdate()->firstOrFail();
             $action=$data['action'];
+            if ($action === 'refund') {
+                if (!$admin || !trim((string)($data['reason'] ?? ''))) HourlyOrderService::reject('الاسترداد يتطلب موظفًا مخوّلًا وسببًا مسجلًا.');
+                return ['refunded_amount'=>app(OrderRefundService::class)->refund($order,$data['refund_method'] ?? 'wallet',
+                    $data['reason'],$admin,'admin',$admin,!empty($data['external_refund_confirmed']))];
+            }
             if(!in_array($order->status,['pending_confirmation','active'])) HourlyOrderService::reject('الطلب مغلق ولا يقبل تعديلات تشغيلية.');
             $beforeOrder=$order->getAttributes();
             if($order->initial_amount===null)$order->initial_amount=$order->total_amount;
@@ -46,6 +52,9 @@ class OrderManagementService
                         HourlyOrderService::reject('تعيين العاملات متاح قبل بدء موعد الزيارة فقط. موعد الزيارة #'.$visit->id.': '.($visit->scheduled_start_at?->format('d/m/Y H:i') ?? 'غير محدد').'. اختر زيارة قادمة؛ ولتصحيح زيارة سابقة راجع مسؤول التشغيل.');
                     }
                     $before=$this->snapshot($visit);
+                    $wasMissed = $visit->is_missed;
+                    if ($visit->is_missed && in_array($action, ['cancel_visit','cancel_order','reschedule'], true)
+                        && (!$admin || !trim((string)($data['reason'] ?? '')))) HourlyOrderService::reject('معالجة زيارة فائتة تتطلب مشرفًا وسببًا مسجلًا.');
                     if(isset($data['expected_start_at']) && $visit->scheduled_start_at?->format('Y-m-d\TH:i')!==$data['expected_start_at'])HourlyOrderService::reject('تغير موعد الزيارة. حدّث الصفحة وأعد المحاولة.');
                     if((isset($data['expected_price']) && abs($visit->visit_price-$data['expected_price'])>0.001) || (isset($data['expected_hours']) && abs($visit->planned_hours-$data['expected_hours'])>0.001))HourlyOrderService::reject('تم تعديل الزيارة من مستخدم آخر. حدّث الصفحة قبل إعادة المحاولة.');
                     if(in_array($action,['cancel_order','cancel_visit'])){
@@ -58,6 +67,7 @@ class OrderManagementService
                         app(ShelterPresence::class)->flush();
                         $visit->status='completed';
                     } elseif($action==='complete'){
+                        if ($visit->is_missed) HourlyOrderService::reject('الزيارة فات موعدها دون تنفيذ؛ أعد جدولتها أو ألغها بدل احتسابها مكتملة.');
                         if (in_array($visit->status, ShelterPresence::OUT_STATUSES, true)
                             || (\Illuminate\Support\Facades\Schema::hasTable('worker_daily_movements') && DB::table('worker_daily_movements')
                                 ->where('source','hourly_visit')->where('reference_type','hourly_visit')->where('reference_id',$visit->id)->whereNull('in_at')->exists()))
@@ -66,10 +76,17 @@ class OrderManagementService
                         $visit->status='completed';
                     } elseif($action==='price'){$visit->visit_price=$data['price'];$visit->is_free=(float)$data['price']===0;}
                     elseif(in_array($action,['reschedule','start_time','duration'])){
-                        if(!$visit->scheduled_start_at || $visit->scheduled_start_at->isPast())HourlyOrderService::reject('تعديل الموعد والمدة متاح للزيارات القادمة فقط.');
+                        $recoverMissed = $action === 'reschedule' && $visit->is_missed;
+                        if ($recoverMissed) {
+                            if (!$admin || !trim((string)($data['reason'] ?? ''))) HourlyOrderService::reject('إعادة جدولة زيارة فائتة تتطلب مشرفًا وسببًا مسجلًا.');
+                            if (\Illuminate\Support\Facades\Schema::hasTable('worker_daily_movements') && DB::table('worker_daily_movements')
+                                ->where('source','hourly_visit')->where('reference_type','hourly_visit')->where('reference_id',$visit->id)->whereNull('in_at')->exists())
+                                HourlyOrderService::reject('توجد حركة خروج مفتوحة؛ تحقق من عودة العاملة قبل إعادة الجدولة.');
+                        } elseif(!$visit->scheduled_start_at || $visit->scheduled_start_at->isPast())HourlyOrderService::reject('تعديل الموعد والمدة متاح للزيارات القادمة فقط.');
+                        if ($visit->status !== 'scheduled') HourlyOrderService::reject('إعادة الجدولة متاحة للزيارات التي لم يبدأ تنفيذها فقط.');
                         $start=$visit->scheduled_start_at->format('Y-m-d H:i');$hours=(float)$visit->planned_hours;
                         $settings=app(HourlyCategorySettings::class);
-                        if($action!=='duration' && (!$settings->value($order->package_snapshot,'allow_reschedule') || $visit->reschedule_count >= $settings->value($order->package_snapshot,'max_reschedules_per_visit')))HourlyOrderService::reject('إعادة الجدولة غير مسموحة أو تم بلوغ الحد الأقصى لهذه الزيارة.');
+                        if(!$recoverMissed && $action!=='duration' && (!$settings->value($order->package_snapshot,'allow_reschedule') || $visit->reschedule_count >= $settings->value($order->package_snapshot,'max_reschedules_per_visit')))HourlyOrderService::reject('إعادة الجدولة غير مسموحة أو تم بلوغ الحد الأقصى لهذه الزيارة.');
                         if($action==='reschedule')$start=!empty($data['new_date']) ? $data['new_date'].' '.$visit->scheduled_start_at->format('H:i') : (isset($data['starts_at']) ? Carbon::parse($data['starts_at'])->format('Y-m-d H:i') : Carbon::parse($start)->addDays($data['shift_days'])->format('Y-m-d H:i'));
                         if($action==='start_time')$start=$visit->scheduled_start_at->format('Y-m-d').' '.$data['start_time'];
                         if($action==='duration'){
@@ -80,6 +97,13 @@ class OrderManagementService
                             $visit->is_free=(float)$visit->visit_price===0.0;$hours=(float)$data['hours'];
                         }
                         $this->setTime($visit,$start,$hours);
+                        if ($recoverMissed) {
+                            if (!$visit->scheduled_start_at->isFuture()) HourlyOrderService::reject('اختر موعدًا مستقبليًا للزيارة الفائتة.');
+                            // A new date needs a new driver assignment and fresh stops.
+                            $visit->delivery_driver_id = null; $visit->pickup_driver_id = null;
+                            $visit->delivery_at = null; $visit->pickup_at = null;
+                            if (\Illuminate\Support\Facades\Schema::hasTable('hourly_route_stops')) DB::table('hourly_route_stops')->where('hourly_visit_id',$visit->id)->delete();
+                        }
                         if($action!=='duration'){$visit->reschedule_count++;$visit->delivery_at=null;}
                         $visit->pickup_at=null;
                     } elseif($action==='unassign_driver'){$role=$data['driver_role'];$visit->{$role.'_driver_id'}=null;$visit->{$role.'_at'}=null;}
@@ -122,7 +146,7 @@ class OrderManagementService
                         $fee=$data['additional_fee']??(count($ids)>$visit->workers_count?$visit->visit_price/$visit->workers_count:0);
                         $visit->visit_price=round($visit->visit_price+$fee,2);
                         if($visit->visit_price>9999999)HourlyOrderService::reject('السعر الناتج للزيارة خارج الحدود المسموحة.');
-                        $visit->workers_count=max($visit->workers_count,count($ids));$visit->is_free=(float)$visit->visit_price===0.0;
+                        $visit->workers_count=max($visit->workers_count+(!empty($data['increase_required_count'])?1:0),count($ids));$visit->is_free=(float)$visit->visit_price===0.0;
                     }
                     $visit->save();
                     $pending[]=[$visit,$ids,$before];
@@ -136,7 +160,7 @@ class OrderManagementService
                         $ignoreCaps=$action==='duration' && !empty($data['ignore_hour_caps']);
                         $ignoreBreak=$action==='duration' && !empty($data['ignore_break']);
                         // Staffing an existing visit does not create or change its booked time.
-                        $ignoreNotice=in_array($action,['assign_workers','assign_all'],true);
+                        $ignoreNotice=in_array($action,['assign_workers','assign_all','add_worker'],true);
                         $this->checkSlot($order,$visit,$ignoreCaps,$ignoreBreak,$ignoreNotice);$this->reserve($order,$visit,$ids,$action==='assign_all',$ignoreCaps,$ignoreBreak);
                     }
                     if(in_array($action,['assign_driver','reschedule','start_time','duration']))$this->checkDrivers($visit);
@@ -157,6 +181,7 @@ class OrderManagementService
                     }
                     elseif(in_array($action,['reschedule','start_time','duration'],true)){
                         DB::afterCommit(fn()=>app(StaffPushService::class)->scheduleChanged($visitId,$before));
+                        if ($wasMissed && $action==='reschedule') DB::afterCommit(fn()=>app(StaffPushService::class)->unassigned($visitId,$before));
                     }
                     elseif(in_array($action,['unassign_worker','unassign_workers','unassign_all','remove_worker','unassign_driver','unassign_drivers','clear_driver_routes'],true)){
                         DB::afterCommit(fn()=>app(StaffPushService::class)->unassigned($visitId,$before));
@@ -174,6 +199,10 @@ class OrderManagementService
                 else $this->totals($order);
                 if($action==='cancel_order')app(HourlyOrderService::class)->transition($order,'cancelled','admin',$admin,$data['reason']);
                 elseif(!$order->visits()->whereNotIn('status',['completed','cancelled','expired','no_show','cancelled_by_client'])->exists())app(HourlyOrderService::class)->transition($order,$order->visits()->where('status','completed')->exists()?'completed':'cancelled','admin',$admin,$data['reason']);
+            }
+            if (in_array($action,['cancel_visit','cancel_order'],true) && ($data['refund_method'] ?? 'wallet') !== 'none') {
+                $result['refunded_amount'] = app(OrderRefundService::class)->refund($order,$data['refund_method'] ?? 'wallet',
+                    $data['reason'] ?: 'استرداد بعد إلغاء الخدمة',$admin,$data['actor'] ?? 'admin',$admin,!empty($data['external_refund_confirmed']));
             }
             $this->audit($order,$action,$beforeOrder,$order->fresh()->getAttributes(),$admin,null,$data['reason']);
             return $result;
@@ -248,6 +277,7 @@ class OrderManagementService
         HourlyOrderService::reject('لا يوجد سائق متاح من فريق الزيارة للاتجاه المحدد.');
     }
     private function checkSlot(HourlyRentalOrder $order,HourlyVisit $visit,bool $ignoreCaps=false,bool $ignoreBreak=false,bool $ignoreNotice=false,?array $slotItem=null): void {
+        app(DuplicateBookingService::class)->assertAvailable((int)$order->user_id,$order->only(['city_id','address_text','latitude','longitude','building','unit']),HourlyPackage::withTrashed()->findOrFail($order->hourly_package_id),[['starts_at'=>$visit->scheduled_start_at,'ends_at'=>$visit->scheduled_end_at]],(int)$visit->id,true);
         $snapshot=$slotItem??$order->package_snapshot;$snapshot['duration_minutes']=(int)round($visit->planned_hours*60);
         if($ignoreBreak){$snapshot['break_minutes']=0;$snapshot['buffer_minutes']=0;}
         app(HourlySlotService::class)->validate([$visit->scheduled_start_at->format('Y-m-d H:i')],(float)$visit->planned_hours,(int)($snapshot['min_notice_hours']??0),$order->expires_at,$snapshot,true,$ignoreCaps,$ignoreNotice);
@@ -329,6 +359,6 @@ class OrderManagementService
         $subtotal=(int)round($total/(1+$order->tax_rate/100));
         $start=$visits->whereNotIn('status',['cancelled','cancelled_by_client','expired'])->min('scheduled_start_at');
         if($start)$order->starts_at=$start;
-        $order->fill(['total_amount'=>$total/100,'subtotal'=>$subtotal/100,'tax_amount'=>($total-$subtotal)/100,'visits_total'=>$visits->count(),'payment_status'=>$order->paid_amount*100>=$total?'paid':($order->paid_amount>0?'partial':'unpaid')]);$order->save();
+        $order->fill(['total_amount'=>$total/100,'subtotal'=>$subtotal/100,'tax_amount'=>($total-$subtotal)/100,'visits_total'=>$visits->count(),'payment_status'=>$order->payment_status==='refunded' && (float)$order->paid_amount<=0?'refunded':($order->paid_amount*100>=$total?'paid':($order->paid_amount>0?'partial':'unpaid'))]);$order->save();
     }
 }

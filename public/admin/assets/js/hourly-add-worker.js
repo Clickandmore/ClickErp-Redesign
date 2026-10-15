@@ -45,4 +45,6 @@
         try{const response=await fetch(form.getAttribute('action'),{method:'POST',body:new FormData(form),headers:{Accept:'application/json'}});const result=await response.json();if(!response.ok)throw new Error(Object.values(result.errors||{}).flat().join('\n')||result.message||l.error);location.reload();}
         catch(error){$('aw-error').textContent=error.message||l.error;$('aw-error').hidden=false;busy=false;$('aw-save').disabled=false;}
     };
+    const duplicateVisit=new URLSearchParams(window.location.search).get('add_worker_visit');
+    if(/^\d+$/.test(duplicateVisit||''))window.openHourlyAddWorker(duplicateVisit);
 })();
