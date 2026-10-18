@@ -66,6 +66,10 @@ class RecruitmentCommissionService
             $item->setAttribute('deduction_contract_id', $contract->id);
             $item->setAttribute('deduction_reason', $this->deductionReason($contract));
             $terms = $isRental ? app(RentalCommissionReturnPolicy::class)->terms($item, $contract, $extensions->get($item->source_id)) : ['policy' => 'full'];
+            if ($this->isRentalExtensionItem($item)) {
+                $periodDate = $item->operation_date ?: ($terms['start_date'] ?? null);
+                if (!$this->extensionMatchesDateFilter($periodDate, $filters)) return false;
+            }
             $calculation = app(RentalCommissionReturnPolicy::class)->calculate(
                 (float) $item->commission_amount, $terms,
                 $isRental ? app(RentalCommissionReturnPolicy::class)->returnedAt($contract) : $item->return_date
@@ -87,6 +91,22 @@ class RecruitmentCommissionService
                 ? url('/admin/RentContract/' . $contract->id . '/details') : url('/admin/contractsDetails/' . $contract->id));
             return true;
         })->values();
+    }
+
+    private function extensionMatchesDateFilter($date, array $filters): bool
+    {
+        $from = $to = null;
+        if (($filters['date_filter'] ?? '') === 'month_year' && !empty($filters['year'])) {
+            $from = \Carbon\Carbon::create((int) $filters['year'], (int) ($filters['month'] ?? 0) ?: 1, 1)->startOfDay();
+            $to = !empty($filters['month']) ? $from->copy()->endOfMonth() : $from->copy()->endOfYear();
+        } elseif (($filters['date_filter'] ?? '') === 'range') {
+            $from = !empty($filters['from_date']) ? \Carbon\Carbon::parse($filters['from_date'])->startOfDay() : null;
+            $to = !empty($filters['to_date']) ? \Carbon\Carbon::parse($filters['to_date'])->endOfDay() : null;
+        }
+        if (!$from && !$to) return true;
+        if (!$date) return false;
+        $date = \Carbon\Carbon::parse($date);
+        return (!$from || $date->gte($from)) && (!$to || $date->lte($to));
     }
 
     private function deductionReason(Contract|RentalContract $contract): string
@@ -443,6 +463,12 @@ class RecruitmentCommissionService
             ->where('type', CommissionBalanceTransaction::TYPE_DEBIT)
             ->sum('amount');
         $amount = round($deductionAmount ?? (float) $item->commission_amount, 2);
+        $reversalDate = now();
+        if ($this->isRentalExtensionItem($item)) {
+            $extension = RentalContractExtension::query()->findOrFail($item->source_id);
+            $terms = app(RentalCommissionReturnPolicy::class)->terms($item, $contract, $extension);
+            $reversalDate = \Carbon\Carbon::parse($item->operation_date ?: $terms['start_date']);
+        }
 
         $transaction = CommissionBalanceTransaction::query()->create([
             'branch_id' => $item->batch?->branch_id,
@@ -473,7 +499,7 @@ class RecruitmentCommissionService
                 $amount,
                 $actorId,
                 $reason,
-                $transaction->created_at
+                $reversalDate
             );
         }
 
@@ -483,7 +509,7 @@ class RecruitmentCommissionService
             'commission_reversal_reason' => $reason,
         ]);
 
-        app(CommissionDeductionJournalService::class)->post($transaction, $adminId);
+        app(CommissionDeductionJournalService::class)->post($transaction, $adminId, $reversalDate->toDateString());
 
         return $transaction;
     }

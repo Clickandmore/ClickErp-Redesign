@@ -27,7 +27,7 @@ class RentalCommissionReturnPolicy
         }
 
         return [
-            'policy' => $this->current(),
+            'policy' => $period !== null ? 'remaining_days' : $this->current(),
             'start_date' => $start ? Carbon::parse($start)->toDateString() : null,
             'days' => $days,
         ];
@@ -47,7 +47,14 @@ class RentalCommissionReturnPolicy
 
     public function terms(CommissionBatchItem $item, RentalContract $contract, ?RentalContractExtension $extension = null): array
     {
-        if ($item->rental_commission_terms !== null) return $item->rental_commission_terms;
+        if ($item->rental_commission_terms !== null) {
+            $terms = $item->rental_commission_terms;
+            // Extension commission is earned only for the days served in its own period.
+            if (str_starts_with((string) $item->source_type, CommissionOperationService::SOURCE_RENTAL_EXTENSION_PERIOD_PREFIX)) {
+                $terms['policy'] = 'remaining_days';
+            }
+            return $terms;
+        }
         $period = null;
         if (str_starts_with((string) $item->source_type, CommissionOperationService::SOURCE_RENTAL_EXTENSION_PERIOD_PREFIX)) {
             $sequence = (int) substr($item->source_type, strlen(CommissionOperationService::SOURCE_RENTAL_EXTENSION_PERIOD_PREFIX));

@@ -34,6 +34,7 @@
                         <td class="text-muted">{{ $loop->iteration }}</td>
                         <td><a class="fw-bold" href="{{ $deduction->deduction_contract_url }}" target="_blank">#{{ $deduction->deduction_contract_id }}</a>
                             @if(str_starts_with((string) $deduction->source_type, \App\Services\commissions\CommissionOperationService::SOURCE_RENTAL_EXTENSION_PERIOD_PREFIX))
+                                <span class="badge bg-info text-dark ms-1">تمديد</span>
                                 <div class="small text-muted">{{ $deduction->operation_reference ?: ('تمديد #' . $deduction->source_id) }}</div>
                             @endif
                         </td>
@@ -41,6 +42,9 @@
                         <td>{{ $deduction->client_name ?: '—' }}</td>
                         <td style="min-width:240px;max-width:400px;white-space:normal;overflow-wrap:anywhere;">{{ $deduction->deduction_reason ?: 'غير مسجل' }}</td>
                         <td class="text-nowrap">
+                            @if($deduction->service_type === 'rental')
+                                <span class="text-muted">-</span>
+                            @else
                             @if($deduction->return_warranty_status === 'inside')
                                 <span class="badge bg-success">داخل الضمان</span>
                             @elseif($deduction->return_warranty_status === 'outside')
@@ -51,6 +55,7 @@
                             @endif
                             @if($deduction->return_warranty_start && $deduction->return_warranty_end)
                                 <div class="small text-muted mt-1">{{ $deduction->return_warranty_start }} — {{ $deduction->return_warranty_end }}</div>
+                            @endif
                             @endif
                         </td>
                         <td class="text-nowrap">{{ $deduction->operation_date?->format('Y-m-d') ?: '—' }}</td>
