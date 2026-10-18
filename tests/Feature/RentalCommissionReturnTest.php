@@ -112,6 +112,7 @@ class RentalCommissionReturnTest extends TestCase
     public function test_extension_commissions_use_the_parent_rental_contract_and_are_settled_separately(): void
     {
         [$admin, $contract, $batch, $base] = $this->fixture();
+        $contract->update(['closed_at' => '2026-08-15']);
         $extension = RentalContractExtension::query()->create([
             'rental_contract_id' => $contract->id, 'extension_days' => 30, 'extension_value' => 1000,
             'start_date' => '2026-08-01', 'end_date' => '2026-08-30',
@@ -126,9 +127,9 @@ class RentalCommissionReturnTest extends TestCase
         $this->assertCount(2, $pending);
         $this->assertCount(1, $pending->pluck('deduction_contract_key')->unique());
         $this->assertSame($contract->id, $pending->firstWhere('id', $item->id)->deduction_contract_id);
-        $service->resolveSettlement($item, 'deducted', $admin->id);
+        $service->resolveSettlement($item, 'policy', $admin->id);
         $this->assertSame([$base->id], $service->pendingDeductions($admin->id)->pluck('id')->all());
-        $this->assertSame(100.0, (float) $item->fresh()->reversalTransaction->amount);
+        $this->assertSame(50.0, (float) $item->fresh()->reversalTransaction->amount);
     }
 
     public function test_active_contract_without_refund_cannot_be_settled(): void
@@ -263,6 +264,38 @@ class RentalCommissionReturnTest extends TestCase
         $this->assertSame(30.0, $pending->firstWhere('id', $items[1]->id)->suggested_deduction);
         $settled = app(RecruitmentCommissionService::class)->resolveSettlement($items[0], 'policy', $admin->id);
         $this->assertSame(15.0, (float) $settled->reversalTransaction->amount);
+    }
+
+    public function test_extension_overrides_old_full_policy_and_reverses_in_its_commission_month(): void
+    {
+        [$admin, $contract, $batch] = $this->fixture();
+        $contract->update(['closed_at' => '2026-10-15']);
+        $extension = RentalContractExtension::query()->create([
+            'rental_contract_id' => $contract->id, 'extension_days' => 30, 'extension_value' => 1000,
+            'start_date' => '2026-10-01', 'end_date' => '2026-10-30',
+        ]);
+        $item = CommissionBatchItem::query()->create([
+            'batch_id' => $batch->id, 'source_type' => CommissionOperationService::SOURCE_RENTAL_EXTENSION_PERIOD_PREFIX . '1',
+            'source_id' => $extension->id, 'contract_id' => $contract->id, 'service_type' => 'rental',
+            'operation_date' => '2026-10-01', 'commission_amount' => 30,
+            'rental_commission_terms' => ['policy' => 'full', 'start_date' => '2026-10-01', 'days' => 30],
+        ]);
+        $service = app(RecruitmentCommissionService::class);
+        $filters = ['date_filter' => 'month_year', 'year' => 2026, 'month' => 10];
+        $this->assertSame(15.0, $service->pendingDeductions($admin->id, $filters)->firstWhere('id', $item->id)->suggested_deduction);
+        $this->assertNull($service->pendingDeductions($admin->id, array_merge($filters, ['month' => 11]))->firstWhere('id', $item->id));
+        $this->assertNull($service->pendingDeductions($admin->id, [
+            'date_filter' => 'range', 'from_date' => '2026-10-02', 'to_date' => '2026-10-31',
+        ])->firstWhere('id', $item->id));
+        $this->travelTo(\Carbon\Carbon::parse('2026-11-10'));
+        try {
+            $settled = $service->resolveSettlement($item, 'policy', $admin->id);
+            $this->assertSame(15.0, (float) $settled->reversalTransaction->amount);
+            $this->assertSame('2026-10-01', \Carbon\Carbon::parse($settled->reversalTransaction->constraint->date)->toDateString());
+            $this->assertSame('2026-11-10', $settled->commission_reversed_at->toDateString());
+        } finally {
+            $this->travelBack();
+        }
     }
 
     public function test_credit_note_without_service_end_date_requires_date_before_proportional_deduction(): void
