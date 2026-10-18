@@ -168,6 +168,8 @@ Route::group(
             Route::resource('cv-convert', CvConvertController::class);
 
             Route::resource('partenrs', ClientController::class);
+            Route::patch('fast-news/{id}/toggle-visibility', [FastNewController::class, 'toggleVisibility'])
+                ->name('fast-news.toggle-visibility');
             Route::resource('fast-news', FastNewController::class);
             Route::resource('features', FeatureController::class);
             Route::resource('what-do', WhatDoController::class);

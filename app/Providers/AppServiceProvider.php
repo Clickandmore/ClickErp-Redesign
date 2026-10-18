@@ -195,7 +195,7 @@ class AppServiceProvider extends ServiceProvider
 
         View::composer('*', function ($view) {
             $fastnews = Schema::hasTable('fast_news')
-                ? FastNew::with('translations')->get()
+                ? FastNew::with('translations')->where('is_visible', true)->get()
                 : collect();
             $view->with('fastnews', $fastnews);
         });
