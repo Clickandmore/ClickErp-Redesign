@@ -1,6 +1,15 @@
 <?php
 
 return array (
+  'fast_news_visibility' => 'News visibility',
+  'fast_news_visible' => 'Visible',
+  'fast_news_hidden' => 'Hidden',
+  'fast_news_switch_on_hint' => 'The item will appear in the website news ticker',
+  'fast_news_switch_off_hint' => 'Visitors will not see this item',
+  'fast_news_toggle_hint' => 'Click to show or hide this news item on the website',
+  'fast_news_page_hint' => 'Short news items shown in the website news ticker. Show or hide any item with one click.',
+  'fast_news_total' => 'Total news',
+  'fast_news_visibility_updated' => 'News visibility updated',
   'Home' => 'Home',
   'About' => 'About Us',
   'Business' => 'Business',
