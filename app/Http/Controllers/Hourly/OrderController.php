@@ -85,6 +85,7 @@ class OrderController extends Controller
     private function orderView(HourlyRentalOrder $order, string $view) {
         $data=['order'=>$order->load(['user','serviceCategory','visits.workers','visits.deliveryDriver','visits.pickupDriver','visits.teamLeader','payments','statusLogs']), 'creator'=>\App\Models\auth\Admin::find($order->created_by_admin_id)];
         if($view==='admin.hourly.order-manage'){
+            $data['logAdmins']=\App\Models\auth\Admin::whereIn('id',$order->statusLogs->where('actor_type','admin')->pluck('actor_id')->filter()->unique())->get()->pluck('name','id');
             $data['paymentMethods']=app(\App\Services\Hourly\HourlyBookingRules::class)
                 ->paymentMethods($order->package_snapshot ?? [], 'employee');
             $data['visitAllocations']=app(\App\Services\Hourly\VisitPaymentAllocation::class)->forOrder($order);
@@ -177,6 +178,12 @@ class OrderController extends Controller
             default => null,
         };
 
+        return self::receiptView($order, $payment, $collector);
+    }
+
+    /** سند القبض للطلب، يُستخدم أيضًا لسند التحصيل النقدي في شاشة العهد وتطبيق الطاقم. */
+    public static function receiptView(HourlyRentalOrder $order, HourlyOrderPayment $payment, ?string $collector)
+    {
         $logo = null;
         if ($path = \Illuminate\Support\Facades\View::shared('printSettings')?->logo) {
             $storage = app(\App\Services\ManagedFileStorage::class);

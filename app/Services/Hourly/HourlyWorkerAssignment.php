@@ -24,7 +24,7 @@ class HourlyWorkerAssignment {
         // The product's worker attribute currently available in this module is nationality.
         if($byAttribute && $item->attribute_id)$query->whereHas('productAttributes',fn($q)=>$q->where('hourly_product_attributes.id',$item->attribute_id));
         if($item->nationalities()->exists())$query->whereIn('nationality_id',$item->nationalities()->pluck('nationalities.id'));
-        return $query;
+        return OverdueWorkerReturn::exclude($query);
     }
     public function available(Maid $maid, string $start, string $end, array $item, ?int $exceptVisit=null,bool $ignoreHourCaps=false,bool $ignoreBreak=false): bool {
         return $this->availabilityReason($maid,$start,$end,$item,$exceptVisit,$ignoreHourCaps,$ignoreBreak) === null;
@@ -32,6 +32,7 @@ class HourlyWorkerAssignment {
     public function availabilityReason(Maid $maid, string $start, string $end, array $item, ?int $exceptVisit=null,bool $ignoreHourCaps=false,bool $ignoreBreak=false): ?string {
         // عاملة حُوّلت للإيجار العادي لا تُسنَد لزيارة ساعات حتى لو بقي معرّفها في طلب قديم.
         if(!$maid->isHourly())return 'العاملة ليست ضمن عاملات الساعات.';
+        if($returnReason=OverdueWorkerReturn::reason((int)$maid->id))return $returnReason;
         if(!empty($item['assign_by_product_attribute']) && !empty($item['attribute_id']) && !$maid->productAttributes()->where('hourly_product_attributes.id',$item['attribute_id'])->exists())return 'سمة العاملة لا تطابق الخدمة المطلوبة.';
         $from=Carbon::parse($start);$to=Carbon::parse($end);
         if (\Illuminate\Support\Facades\Schema::hasTable('hourly_worker_leaves') && DB::table('hourly_worker_leaves')->where('maid_id',$maid->id)->where('is_active',true)->where('starts_at','<',$to)->where('ends_at','>',$from)->exists()) return 'لدى العاملة إجازة معتمدة في موعد الزيارة.';
@@ -65,7 +66,7 @@ class HourlyWorkerAssignment {
             if(!$inside->contains($maid->id))$reasons[]='لا يوجد عقد إيواء داخل المركز للعاملة.';
             if(!$noRental->contains($maid->id))$reasons[]='لدى العاملة عقد إيجار شهري قائم.';
             if(!$notDeported->contains($maid->id))$reasons[]='العاملة مستبعدة بسبب إجراء ترحيل مكتمل.';
-            if(in_array((string)$maid->status,RentalMaidQuery::NOT_READY_MAID_STATUSES,true))$reasons[]='حالة العاملة الحالية لا تسمح بالإيجار: '.$maid->status;
+            if(in_array((string)$maid->status,RentalMaidQuery::NOT_READY_MAID_STATUSES,true))$reasons[]='حالة العاملة الحالية لا تسمح بالإيجار: '.RentalMaidQuery::statusLabel($maid->status);
             if(!$ready->contains($maid->id) && $inside->contains($maid->id) && $noRental->contains($maid->id) && $notDeported->contains($maid->id) && !in_array((string)$maid->status,RentalMaidQuery::NOT_READY_MAID_STATUSES,true))$reasons[]='رغبة العمل غير مؤكدة أو يوجد رفض للعمل في بيانات الإيواء.';
             if(!$maid->jobTypes->contains('id',RentalMaidQuery::rentalJobTypeId()))$reasons[]='العاملة غير مرتبطة بنوع الإيجار.';
             if(!$teamActive)$reasons[]='فريق الزيارة غير محدد أو غير نشط.';
@@ -94,6 +95,7 @@ class HourlyWorkerAssignment {
     }
     public function unavailableMessage(Maid $maid,HourlyVisit $visit,array $item): string
     {
+        if($returnReason=OverdueWorkerReturn::reason((int)$maid->id))return $returnReason;
         $conflict=$this->conflictingVisit($maid,$visit->scheduled_start_at->toDateTimeString(),$visit->scheduled_end_at->toDateTimeString(),$item,$visit->id);
         if($conflict)return 'العاملة '.$maid->name.' لديها زيارة #'.$conflict->visit_number.' (مرجع #'.$conflict->id.') يوم '.Carbon::parse($conflict->scheduled_start_at)->format('d/m/Y').' من '.Carbon::parse($conflict->scheduled_start_at)->format('H:i').' إلى '.Carbon::parse($conflict->scheduled_end_at)->format('H:i').'؛ يوجد تعارض مع الموعد أو مهلة التنقل.';
         return 'العاملة '.$maid->name.' غير متاحة في الموعد المطلوب حسب جدول العمل أو الإجازات أو شروط الفريق والخدمة أو حد الساعات.';

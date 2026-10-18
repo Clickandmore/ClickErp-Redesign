@@ -36,7 +36,10 @@ class NearestDriverAssignment
                 $time=$role==='delivery'?$visit->scheduled_start_at:$visit->scheduled_end_at;
                 $ids=app(OrderManagementService::class)->availableDrivers(collect([$visit]),$role,$time->format('H:i'),$time)->pluck('id');
                 $driver=$ranked->first(fn($driver)=>$ids->contains($driver->id));
-                if (!$driver) HourlyOrderService::reject('لا يوجد سائق متاح ذو موقع حديث من فريق الزيارة لمهمة '.($role==='delivery'?'التوصيل':'الاستلام').'.');
+                if (!$driver) {
+                    $reasons=$ranked->map(fn($candidate)=>$candidate->residencyAssignmentReason($time))->filter()->implode(' ');
+                    HourlyOrderService::reject('لا يوجد سائق متاح ذو موقع حديث من فريق الزيارة لمهمة '.($role==='delivery'?'التوصيل':'الاستلام').'.'.($reasons ? ' '.$reasons : ''));
+                }
                 $visit->{$role.'_driver_id'}=$driver->id;
                 $visit->{$role.'_at'}=$time;
             }

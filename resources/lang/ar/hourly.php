@@ -1,5 +1,6 @@
 <?php
 return [
+    'maid_statuses'=>['contracted'=>'متعاقد عليها','transferred'=>'منقولة','reserved'=>'محجوزة','pending_arrival_data'=>'بانتظار بيانات الوصول','escaped'=>'هاربة','backout'=>'متراجعة'],
     'cash_and_card'=>'نقدي وبطاقة',
     'cheque'=>'شيك',
     'customer_balance'=>'رصيد العميل',

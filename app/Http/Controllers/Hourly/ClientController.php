@@ -223,6 +223,13 @@ class ClientController extends Controller
         $model=$actions->cancel($order->visits()->findOrFail($visit));
         return response()->json(['data'=>app(\App\Services\Hourly\CustomerHourlyData::class)->visit($model,$order->fresh())]);
     }
+    public function extraHourQuote(Request $request, int $id, int $visit, CustomerVisitActions $actions)
+    {
+        $data=$request->validate(['hours'=>['required','integer','between:1,6']]);
+        $order=$this->owned($id);
+        return response()->json(['data'=>$actions->extraHourQuote($order->visits()->findOrFail($visit),(int)$data['hours'])]);
+    }
+
     public function extraHour(Request $request, int $id, int $visit, CustomerVisitActions $actions)
     {
         // hours افتراضيها 1 كما يرسلها التطبيق، وrequest_token اختياري يجعل إعادة الإرسال آمنة صراحةً.

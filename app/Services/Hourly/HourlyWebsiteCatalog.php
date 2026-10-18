@@ -242,10 +242,15 @@ class HourlyWebsiteCatalog
         $workers=$workers->filter(fn($worker)=>($worker->hourly_settings['work_schedule'][$weekday]['mode']??'off')!=='off');
         if ($workers->count()<$count || ($preferred && !$workers->contains('id',$preferred))) return [];
         $snapshot=$item->toArray()+['service_district_id'=>$district->id];
+        [, $coverage]=app(HourlyBookingRules::class)->assertDistrictCovered($item->serviceCategory,
+            (int)$district->city_id,null,null,null,$district->id);
+        $capacity=app(PanelBookingService::class);
         $result=[];$seen=[];
         foreach ($slots as $slot) {
             $available=$workers->filter(fn($worker)=>app(HourlyWorkerAssignment::class)->available($worker,$slot['starts_at'],$slot['ends_at'],$snapshot));
-            if ($available->count()<$count || ($preferred && !$available->contains('id',$preferred))) continue;
+            // Named assignments and reservations are already excluded by available(); subtract only unassigned demand.
+            $free=$available->count()-$capacity->unassignedCapacity($coverage->team_id,$slot['starts_at'],$slot['ends_at']);
+            if ($free<$count || ($preferred && !$available->contains('id',$preferred))) continue;
             $result[]=$slot+['workers'=>$available];
             if ($listing) {
                 foreach ($available as $worker) $seen[$worker->id]=true;

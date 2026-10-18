@@ -17,6 +17,10 @@ class ExpireHourlyOrders extends Command
             foreach ($orders as $candidate) DB::transaction(function () use ($candidate,$service) {
                 $order=HourlyRentalOrder::query()->lockForUpdate()->find($candidate->id);
                 if (!$order || !in_array($order->status,['pending_confirmation','active']) || !$order->expires_at->isPast()) return;
+                if(collect($order->booking_metadata['service_disruptions']??[])->contains(fn($state)=>in_array($state['status']??null,\App\Services\Hourly\ServiceIncident::WAITING,true)))return;
+                // Company coverage failure must not consume the customer's unused paid visits.
+                if ((float)$order->paid_amount>0 && $order->visits()->where('status','unscheduled')->get()
+                    ->contains(fn($visit)=>\App\Services\Hourly\MissedVisitRecovery::coverageRecovery($visit,$order))) return;
                 $order->visits()->where('status','unscheduled')->update(['status'=>'expired','updated_at'=>now()]);
                 $service->transition($order,'expired','system',null,'انتهاء صلاحية الباقة');
             });

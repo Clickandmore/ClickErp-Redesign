@@ -62,6 +62,15 @@
                     </a>
                 </li>
 
+                @if(\App\Support\HourlyRentalSettings::websiteEnabled())
+                <li class="nav_item {{ request()->routeIs('web.hourly.orders', 'web.hourly.order') ? 'active' : '' }}">
+                    <a href="{{ route('web.hourly.orders') }}" class="nav_link">
+                        <div class="nav_icon"><i class="fa-light fa-clock"></i></div>
+                        <div class="nav_content"><span class="nav_title">حجوزات الساعات</span><span class="nav_desc">متابعة زيارات باقات الساعات ودفعاتها</span></div>
+                    </a>
+                </li>
+                @endif
+
                 <li class="nav_item {{ (Route::currentRouteName() == 'site.contracts.index') ? 'active' : '' }}">
                     <a href="{{route('site.contracts.index')}}" class="nav_link">
                         <div class="nav_icon">

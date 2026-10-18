@@ -177,13 +177,14 @@ class HourlyOrderService
         return $this->reschedule($visit, $start, null, true);
     }
 
-    public function reschedule(HourlyVisit $visit, string $start, ?int $adminId = null, bool $initial = false): HourlyVisit
+    public function reschedule(HourlyVisit $visit, string $start, ?int $adminId = null, bool $initial = false,bool $incidentResolution=false): HourlyVisit
     {
         self::enabled();
-        return DB::transaction(function () use ($visit, $start, $adminId, $initial) {
+        return DB::transaction(function () use ($visit, $start, $adminId, $initial,$incidentResolution) {
             User::whereKey(HourlyRentalOrder::whereKey($visit->hourly_rental_order_id)->value('user_id'))->lockForUpdate()->firstOrFail();
             $order = HourlyRentalOrder::query()->lockForUpdate()->findOrFail($visit->hourly_rental_order_id);
             $visit = $order->visits()->lockForUpdate()->findOrFail($visit->id);
+            if(!$incidentResolution && ServiceIncident::waiting($order,$visit->id)) self::reject('للزيارة بلاغ معتمد؛ استخدم طلب المعالجة للحفاظ على حقوقك.');
             $snapshot = (array) $order->package_snapshot + ['service_category_id' => $order->service_category_id ?? null];
             $settings = app(HourlyBookingRules::class)->settings();
             $panel = (bool) $adminId;

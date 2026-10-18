@@ -16,6 +16,13 @@ class VisitOperationsController extends Controller
         $filters=$search->filters($request,$mode);$query=$search->query($filters,$mode);
         $total=(clone $query)->count();
         $assigned=(clone $query)->whereRaw('(select count(*) from hourly_visit_workers w where w.hourly_visit_id=hourly_visits.id)>=workers_count')->count();
+        // بطاقات الإحصاء الخاصة بقائمتي «غير المخصصة» و«الماضية غير المنتهية»؛ إحصاء التعيين العام لا معنى له فيهما.
+        $modeStats=match($mode){
+            'unassigned'=>['seats'=>(int)(clone $query)->sum('workers_count'),'overdue'=>(clone $query)->where('scheduled_start_at','<',now())->count(),
+                'soon'=>(clone $query)->whereBetween('scheduled_start_at',[now(),now()->addDay()])->count(),'offered'=>(clone $query)->where('offered_to_workers',true)->count()],
+            'past'=>['missed'=>(clone $query)->where('status','scheduled')->count(),'oldest'=>(clone $query)->min('scheduled_end_at')],
+            default=>null,
+        };
         $visits=$search->sort($query,$filters)->with(['order.user','order.serviceCategory','order.visits','order.payments','workers','deliveryDriver','pickupDriver','teamLeader'])->withCount('workers as assigned_workers_count')->paginate($filters['per_page']??25)->withQueryString();
         $allocations=[];foreach($visits->getCollection()->pluck('order')->unique('id') as $order)$allocations+=app(\App\Services\Hourly\VisitPaymentAllocation::class)->forOrder($order);
         $timeExpression=DB::connection()->getDriverName()==='sqlite'?"strftime('%H:%M', scheduled_start_at)":"DATE_FORMAT(scheduled_start_at, '%H:%i')";
@@ -24,7 +31,7 @@ class VisitOperationsController extends Controller
         for($minute=0;$minute<1440;$minute+=30)$startTimes[]=sprintf('%02d:%02d',intdiv($minute,60),$minute%60);
         $startTimes=array_unique($startTimes);sort($startTimes);
         return view('admin.hourly_visits.index',[
-            'visits'=>$visits,'filters'=>$filters,'mode'=>$mode,'total'=>$total,'assigned'=>$assigned,'allocations'=>$allocations,'startTimes'=>$startTimes,
+            'visits'=>$visits,'filters'=>$filters,'mode'=>$mode,'total'=>$total,'assigned'=>$assigned,'modeStats'=>$modeStats,'allocations'=>$allocations,'startTimes'=>$startTimes,
             'customerSources'=>DB::table('hourly_customer_sources')->orderBy('name')->pluck('name','code')->all(),
             'teams'=>HourlyTeam::orderBy('name')->get(['id','name']), 'drivers'=>HourlyDriver::where('is_active',true)->orderBy('name')->get(['id','name']),
             'workers'=>\App\Models\ingaz\Maid::where('rental_mode','hourly')->orderBy('name')->get(['id','name']),

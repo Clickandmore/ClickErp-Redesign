@@ -8,6 +8,7 @@ class CustomerAdditionalWorker
 {
     private function valid(HourlyRentalOrder $order,HourlyVisit $visit): void
     {
+        if(ServiceIncident::waiting($order,$visit->id)) HourlyOrderService::reject('للزيارة بلاغ معتمد؛ استخدم الاستبدال دون رسوم بدل إضافة عاملة بتكلفة جديدة.');
         if(!in_array($order->status,['active','pending_confirmation'],true) || ($order->status==='pending_confirmation' && $order->expires_at?->isPast())
             || $visit->status!=='scheduled' || !$visit->scheduled_start_at?->isFuture())
             HourlyOrderService::reject('إضافة عاملة متاحة فقط لزيارة قادمة لم يبدأ تنفيذها.');
@@ -26,7 +27,7 @@ class CustomerAdditionalWorker
         $choices=app(OrderManagementService::class)->availableWorkers($order,$visit,$lock)->whereNotIn('id',$assigned)->values();
         if($choices->isEmpty())HourlyOrderService::reject('لا توجد عاملة إضافية متاحة لهذا الموعد.');
         $canChoose=(bool)app(HourlyCategorySettings::class)->value($order->package_snapshot,'customer_worker_selection');
-        $fee=round((float)$visit->visit_price/max(1,(int)$visit->workers_count),2);
+        $fee=round((float)$order->extra_worker_price,2);
         return ['visit_id'=>$visit->id,'order_id'=>$order->id,'current_workers'=>(int)$visit->workers_count,
             'new_workers'=>(int)$visit->workers_count+1,'current_price'=>(float)$visit->visit_price,'additional_fee'=>$fee,
             'new_price'=>round((float)$visit->visit_price+$fee,2),'order_total'=>(float)$order->total_amount,

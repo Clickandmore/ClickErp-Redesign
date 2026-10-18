@@ -148,6 +148,7 @@
                 </div>
             </div>
             <div class="mp-hero-actions">
+@include('admin.hourly_maids._login-as',['buttonClass'=>'mp-hero-btn'])
                 <a class="mp-hero-btn" href="{{ route('admin.hourly-maids.index') }}"><i class="fa fa-arrow-right"></i> العودة للعاملات</a>
             </div>
         </header>

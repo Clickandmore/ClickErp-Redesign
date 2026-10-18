@@ -1249,6 +1249,36 @@
                                     </a>
                                 </div>
                             </div>
+
+                            @isset($stats['hourly'])
+                            <!-- Hourly Bookings Statistics -->
+                            <div class="col-md-3 mb-3">
+                                <div class="dashboard_stat_card">
+                                    <div class="stat_header">
+                                        <div class="stat_icon orders_icon">
+                                            <i class="fa-regular fa-clock"></i>
+                                        </div>
+                                        <div class="stat_title">
+                                            <h4>{{ $stats['hourly']['total'] }}</h4>
+                                            <p>حجوزات الساعات</p>
+                                        </div>
+                                    </div>
+                                    <div class="stat_footer">
+                                        <div class="stat_item">
+                                            <span class="stat_label">{{ helperTrans('web.active') }}</span>
+                                            <span class="stat_value active_value">{{ $stats['hourly']['active'] }}</span>
+                                        </div>
+                                        <div class="stat_item">
+                                            <span class="stat_label">{{ helperTrans('web.completed') }}</span>
+                                            <span class="stat_value completed_value">{{ $stats['hourly']['completed'] }}</span>
+                                        </div>
+                                    </div>
+                                    <a href="{{ route('web.hourly.orders') }}" class="stat_link" aria-label="عرض حجوزات الساعات">
+                                        <i class="fa-light fa-arrow-left"></i>
+                                    </a>
+                                </div>
+                            </div>
+                            @endisset
                         </div>
 
                         <!-- Quick Actions -->

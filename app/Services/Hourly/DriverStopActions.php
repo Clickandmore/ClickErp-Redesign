@@ -38,7 +38,8 @@ class DriverStopActions
     public function deliver(HourlyDriver $driver, int $stopId, array $gps, ?string $code, ?float $cash): array
     {
         return $this->apply($driver, $stopId, 'drop_off', function ($stop, HourlyVisit $visit, HourlyRentalOrder $order) use ($driver, $code, $cash) {
-            $this->assertDeliveryCode($visit, $code);
+            DeliveryCode::assertValid($visit, $code);
+            ServiceTime::recordDelivery($visit);
             $collected = $this->collect($order, $driver, $cash, $visit);
             // delivery_at هو الوقت المخطَّط من إدارة المسار؛ وقت التنفيذ الفعلي يُسجَّل على المحطة.
             return ['visit' => ['status' => 'delivered'],
@@ -139,16 +140,6 @@ class DriverStopActions
         if ($trip->status === 'accepted') {
             DB::table('hourly_driver_trips')->where('id', $trip->id)->update(['status' => 'started', 'started_at' => now(), 'updated_at' => now()]);
         }
-    }
-
-    private function assertDeliveryCode(HourlyVisit $visit, ?string $code): void
-    {
-        if (!(bool) HourlyRentalSettings::get('staff_app_require_delivery_code', true)) return;
-        $expected = (string) ($visit->delivery_code ?? '');
-        // زيارة أُنشئت قبل تفعيل الرمز لا يوجد لها رمز يراه العميل، فلا يُطالب به السائق.
-        if ($expected === '') return;
-        if (trim((string) $code) === '') HourlyOrderService::reject('أدخل رمز التسليم الذي يظهر للعميل في تطبيقه.');
-        if (!hash_equals($expected, trim((string) $code))) HourlyOrderService::reject('رمز التسليم غير صحيح.');
     }
 
     /** تسجيل النقد المحصَّل باسم السائق على نفس مسار مدفوعات الطلب. */

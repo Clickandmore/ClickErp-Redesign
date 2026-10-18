@@ -24,6 +24,7 @@ class MaidAuthController extends Controller
         $maid=$this->credentials($request,'web');
         auth('hourly_maid')->login($maid); $request->session()->regenerate();
         $request->session()->put('hourly_maid_version',$maid->hourly_auth_version);
+        $request->session()->forget('hourly_maid_impersonator');
         return redirect()->route('hourly-maid.home');
     }
     /**

@@ -52,6 +52,17 @@
 @if (\App\Support\HourlyPermissionCatalog::canRoute('admin.hourly-schedule.index'))
                     <li><a class="m-link {{ request()->routeIs('admin.hourly-schedule.*') ? 'active' : '' }}" href="{{ route('admin.hourly-schedule.index') }}"><i class="fa fa-table-columns"></i><span class="ms-2">جدول الموظفين</span></a></li>
 @endif
+@if (\App\Support\HourlyPermissionCatalog::canRoute('admin.hourly-incidents.index'))
+                    @php $hourlyIncidentsPending = rescue(fn () => \Illuminate\Support\Facades\Schema::hasTable('hourly_service_incidents') ? \Illuminate\Support\Facades\DB::table('hourly_service_incidents')->where('status', 'pending')->count() : 0, 0, false); @endphp
+                    <li><a class="m-link {{ request()->routeIs('admin.hourly-incidents.*') ? 'active' : '' }}" href="{{ route('admin.hourly-incidents.index') }}"><i class="fa fa-notes-medical"></i><span class="ms-2">بلاغات تعذر التنفيذ</span>@if($hourlyIncidentsPending)<span class="badge rounded-pill bg-warning text-dark ms-2" title="بلاغات بانتظار التحقق">{{ $hourlyIncidentsPending }}</span>@endif</a></li>
+@endif
+@if (\App\Support\HourlyPermissionCatalog::canRoute('admin.hourly-service-time.index'))
+<li><a class="m-link {{ request()->routeIs('admin.hourly-service-time.*') ? 'active' : '' }}" href="{{ route('admin.hourly-service-time.index') }}"><i class="fa fa-clock"></i><span class="ms-2">تجاوز مدة الخدمة</span></a></li>
+@endif
+@if (\App\Support\HourlyPermissionCatalog::canRoute('admin.hourly-early-finishes.index'))
+                    @php $hourlyEarlyFinishReview = rescue(fn () => app(\App\Services\Hourly\EarlyFinish::class)->reviewCount(), 0, false); @endphp
+                    <li><a class="m-link {{ request()->routeIs('admin.hourly-early-finishes.*') ? 'active' : '' }}" href="{{ route('admin.hourly-early-finishes.index') }}"><i class="fa fa-stopwatch"></i><span class="ms-2">الإنهاء المبكر</span>@if($hourlyEarlyFinishReview)<span class="badge rounded-pill bg-danger ms-2" title="تحتاج قرار الإدارة">{{ $hourlyEarlyFinishReview }}</span>@endif</a></li>
+@endif
                     @php $hourlySosOpen = rescue(fn () => \Illuminate\Support\Facades\Schema::hasTable('hourly_worker_sos_alerts') ? \App\Models\Hourly\HourlyWorkerSosAlert::whereIn('status',['triggered','acknowledged'])->count() : 0, 0, false); @endphp
 @if (\App\Support\HourlyPermissionCatalog::canRoute('admin.hourly-sos.index'))
                     <li><a class="m-link {{ request()->routeIs('admin.hourly-sos.*') ? 'active' : '' }}" href="{{ route('admin.hourly-sos.index',['status'=>'open']) }}"><i class="fa fa-triangle-exclamation text-danger"></i><span class="ms-2">نداءات النجدة</span>@if($hourlySosOpen)<span class="badge rounded-pill bg-danger ms-2">{{ $hourlySosOpen }}</span>@endif</a></li>

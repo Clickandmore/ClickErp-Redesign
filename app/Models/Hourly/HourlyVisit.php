@@ -26,6 +26,15 @@ class HourlyVisit extends Model
                 $visit->delivery_code = str_pad((string) random_int(0, 9999), 4, '0', STR_PAD_LEFT);
             }
         });
+        // بداية الخدمة الفعلية لكل عاملة = لحظة وصول الزيارة إلى «تم التوصيل» من أي مسار
+        // (بوابة السائق، تطبيقه، الإدارة). وصول العاملة بنفسها يملأ arrived_at قبل ذلك فلا يُستبدل.
+        static::updated(function (self $visit) {
+            if ($visit->wasChanged('status') && $visit->status === 'delivered'
+                && \Illuminate\Support\Facades\Schema::hasColumn('hourly_visit_workers', 'arrived_at')) {
+                \Illuminate\Support\Facades\DB::table('hourly_visit_workers')->where('hourly_visit_id', $visit->id)
+                    ->whereNull('arrived_at')->update(['arrived_at' => now()]);
+            }
+        });
     }
     protected $casts = ['scheduled_date'=>'date','scheduled_start_at'=>'datetime','scheduled_end_at'=>'datetime','delivery_at'=>'datetime','pickup_at'=>'datetime','is_free'=>'boolean'];
     public function order() { return $this->belongsTo(HourlyRentalOrder::class, 'hourly_rental_order_id'); }

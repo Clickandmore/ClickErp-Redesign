@@ -776,3 +776,7 @@ $quickLinks = collect([
         });
     </script>
 @endonce
+
+@if(\App\Support\HourlyRentalSettings::isEnabled() && AdminGuardHasPerm('hourly_orders_view'))
+    @include('admin.hourly._past-visits-reminder')
+@endif

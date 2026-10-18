@@ -42,6 +42,14 @@ final class RentalMaidQuery
         'Backout',
     ];
 
+    /** اسم حالة العاملة بلغة الواجهة لرسائل الاستبعاد، مع إبقاء القيمة الخام إن لم تُترجم. */
+    public static function statusLabel(?string $status): string
+    {
+        $key = 'hourly.maid_statuses.'.strtolower((string) $status);
+
+        return trans()->has($key) ? __($key) : (string) $status;
+    }
+
     /** أسباب خروج العاملة من الجاهزية، لوسم كل صف في شاشة الإيواء. */
     public const REASON_NOT_RENTAL = 'not_rental';
     public const REASON_ACTIVE_RENTAL = 'active_rental';

@@ -38,7 +38,7 @@
 @section('content')
 @php
     $activeFilters = count(\Illuminate\Support\Arr::except($filters, ['per_page']));
-    $stateLabels = ['waiting' => 'بانتظار الوصول', 'arrived' => 'تم تسجيل الوصول', 'inside' => 'داخل الإيواء', 'ready' => 'متاحة للتأجير']
+    $stateLabels = ['waiting' => 'بانتظار الوصول', 'arrived' => 'تم تسجيل الوصول', 'inside' => 'داخل الإيواء', 'ready' => 'متاحة للتأجير', 'return_overdue' => 'عودة متأخرة — موقوفة عن الحجز']
         + ($visitsTracked ? ['available_now' => __('rental_mode.presence.filter_available'), 'out_now' => __('rental_mode.presence.filter_in_visit')] : []);
     $selects = [
         'attribute_id'=>['السمة','fa-tags',$attributes->mapWithKeys(fn($a)=>[$a->id=>$a->category?->name_ar.' — '.$a->parent?->name.' — '.$a->name])->all()],
@@ -118,6 +118,12 @@
         @endforeach
     </div>
 
+    @if(($overdueCount ?? 0)>0)
+    <div class="alert alert-warning d-flex align-items-center justify-content-between flex-wrap gap-2" role="status">
+        <span><i class="fa fa-triangle-exclamation ms-1" aria-hidden="true"></i> <strong>{{ $overdueCount }} عاملة تحتاج مراجعة العودة للإيواء.</strong> أُوقف الحجز والإسناد الجديد مؤقتًا حتى تأكيد العودة الفعلية؛ رفع التعليق وحده لا يزيل هذا المنع.</span>
+        <a class="btn btn-sm btn-outline-dark" href="{{ route('admin.hourly-maids.index',['state'=>'return_overdue']) }}">عرض المتأخرات عن العودة</a>
+    </div>
+    @endif
     <div id="availability-feedback" class="alert d-none" role="status"></div>
 
     <form method="GET" action="{{ route('admin.hourly-maids.index') }}" class="hd-filter mb-3">
@@ -209,13 +215,7 @@
                         @endif
                         @if($trip)
                             <div class="mh-now-meta">
-                                @if(AdminGuardHasPerm('hourly_orders_view'))
-                                    <a href="{{ route('admin.hourly-orders.show', $trip['order_id']) }}">{{ __('rental_mode.presence.visit_no', ['number' => $trip['visit_number']]) }}</a>
-                                @else
-                                    {{ __('rental_mode.presence.visit_no', ['number' => $trip['visit_number']]) }}
-                                @endif
-                                · {{ __('hourly.'.$trip['status']) }}
-                                @if($trip['until']) · {{ __('rental_mode.presence.until', ['time' => \Carbon\Carbon::parse($trip['until'])->format('H:i')]) }}@endif
+                                @include('admin.hourly_maids._visit-reference',['trip'=>$trip])
                             </div>
                         @endif
                         <div class="mh-now-meta">
@@ -233,7 +233,7 @@
                         <input type="checkbox" role="switch" aria-label="السماح بإتاحة {{ $maid->name }} للساعات" data-availability-url="{{ route('admin.hourly-maids.availability',$maid->id) }}" {{ !$maid->hourly_is_suspended ? 'checked' : '' }} {{ AdminGuardHasPerm('hourly_maids_edit') ? '' : 'disabled' }}>
                         <span class="maid-availability-track"></span>
                     </label>
-                    <div><span data-availability-label class="badge bg-{{ $ready ? 'success' : 'secondary' }}">{{ $maid->hourly_is_suspended ? 'معلّقة' : ($ready ? 'متاحة للتأجير' : 'غير متاحة حاليًا') }}</span></div>
+                    <div><span data-availability-label class="badge bg-{{ $ready ? 'success' : 'secondary' }}">{{ $maid->hourly_is_suspended ? 'معلّقة' : (isset($overdueReturns[$maid->id]) ? 'عودة متأخرة — غير متاحة للحجز' : ($ready ? 'متاحة للتأجير' : 'غير متاحة حاليًا')) }}</span></div>
                 </td>
                 <td>
                     <a class="btn btn-sm btn-outline-primary" href="{{ route('admin.hourly-maids.show',$maid) }}">تفاصيل العاملة</a>

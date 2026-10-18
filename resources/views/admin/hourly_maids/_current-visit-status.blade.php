@@ -12,9 +12,14 @@
         'picked_up' => ['mh-now-transit', 'fa-house-user', 'في طريق العودة للإيواء'],
         default => ['mh-now-visit', 'fa-person-walking-arrow-right', 'في زيارة ساعات'],
     };
+    $recordedPhase = $phaseLabel;
+    if ($tripDelay) {
+        $phaseLabel = __('hourly_review.return_unconfirmed');
+    }
 @endphp
 <span class="mh-now {{ $phaseClass }}" title="العاملة خارج الإيواء حتى تأكيد عودتها"><i class="fa {{ $phaseIcon }}" aria-hidden="true"></i> {{ $phaseLabel }}</span>
 @if($tripDelay)
+    <div class="mh-now-meta">{{ $recordedPhase }}</div>
     @php
         $delayLabel = match (true) {
             $tripDelay['stage'] === 'ended' => 'انتهى وقت الخدمة',
@@ -23,7 +28,6 @@
             $trip['status'] === 'worker_finished' => 'متأخرة عن الاستلام',
             default => 'تجاوز موعد الزيارة',
         };
-    @endphp
-    <div class="mt-1"><span class="mh-now mh-now-{{ $tripDelay['stage'] }}"><i class="fa fa-triangle-exclamation" aria-hidden="true"></i> {{ $delayLabel }}</span></div>
+    @endphp    <div class="mt-1"><span class="mh-now mh-now-{{ $tripDelay['stage'] }}"><i class="fa fa-triangle-exclamation" aria-hidden="true"></i> {{ $delayLabel }}</span></div>
     <div class="mh-now-meta">{{ $tripDelay['minutes'] }} دقيقة بعد الموعد</div>
 @endif

@@ -39,8 +39,10 @@ class WorkerAppController extends Controller
 
     public function finish(Request $request, int $visit)
     {
-        $data = $request->validate(['note' => ['nullable', 'string', 'max:500']]);
-        return response()->json(['data' => $this->service->finish($this->worker(), $visit, $data['note'] ?? null, $this->gps($request))]);
+        // early_reason اختياري: يرسله التطبيق عند الإنهاء قبل planned_end_at (القيم من early_finish_reasons).
+        $data = $request->validate(['note' => ['nullable', 'string', 'max:500'],
+            'early_reason' => ['nullable', 'string', \Illuminate\Validation\Rule::in(array_keys(\App\Services\Hourly\EarlyFinish::REASONS))]]);
+        return response()->json(['data' => $this->service->finish($this->worker(), $visit, $data['note'] ?? null, $this->gps($request), $data['early_reason'] ?? null)]);
     }
 
     public function leaves() { return response()->json(['data' => $this->service->leaves($this->worker())]); }

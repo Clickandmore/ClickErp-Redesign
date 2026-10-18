@@ -22,8 +22,8 @@ class CashCollectionController extends Controller
         return back()->with('success','تم تسجيل التحصيل وسند '.$result['receipt_number'].'؛ المبلغ في عهدتك حتى توريده للإدارة.');
     }
     public function webAction(Request $request,int $visit,WorkerAppService $workers) {
-        $data=$request->validate(['action'=>'required|in:arrived,finish']);$maid=Maid::findOrFail(auth('hourly_maid')->id());
-        if($data['action']==='arrived')$workers->arrived($maid,$visit,[]);else $workers->finish($maid,$visit,null,[]);
+        $data=$request->validate(['action'=>'required|in:arrived,finish','early_reason'=>['nullable',\Illuminate\Validation\Rule::in(array_keys(\App\Services\Hourly\EarlyFinish::REASONS))],'note'=>'nullable|string|max:500']);$maid=Maid::findOrFail(auth('hourly_maid')->id());
+        if($data['action']==='arrived')$workers->arrived($maid,$visit,[]);else $workers->finish($maid,$visit,$data['note']??null,[],$data['early_reason']??null);
         return back()->with('success','تم تحديث حالة الزيارة.');
     }
     public function collector(Request $request,HourlyRentalOrder $order,HourlyVisit $visit) {
@@ -50,13 +50,19 @@ class CashCollectionController extends Controller
         $query=DB::table('hourly_cash_collections')->whereIn('order_id',HourlyRentalOrder::select('id'));
         if(!empty($data['holder_type']))$query->where('holder_type',$data['holder_type']);
         if(!empty($data['holder_id']))$query->where('holder_id',$data['holder_id']);
-        $outstanding=(clone $query)->selectRaw('COALESCE(SUM(amount-remitted_amount),0) as due')->value('due');
+        $totals=(clone $query)->selectRaw('COALESCE(SUM(amount),0) as collected, COALESCE(SUM(remitted_amount),0) as remitted, COALESCE(SUM(amount-remitted_amount),0) as due, COALESCE(SUM(remitted_amount<amount),0) as open_count')->first();
+        $outstanding=$totals->due;
+        // أعلى أرصدة النقد لدى المحصّلين: تُعرض جانبًا لتوجيه المتابعة والتوريد.
+        $holders=(clone $query)->whereColumn('remitted_amount','<','amount')->selectRaw('holder_type, holder_id, SUM(amount-remitted_amount) as due, COUNT(*) as entries')->groupBy('holder_type','holder_id')->orderByDesc('due')->limit(8)->get();
         if(empty($data['all']))$query->whereColumn('remitted_amount','<','amount');
         $entries=$query->orderByDesc('id')->paginate(25)->withQueryString();
-        $workers=Maid::whereIn('id',$entries->where('holder_type','worker')->pluck('holder_id'))->pluck('name','id');
-        $drivers=HourlyDriver::withTrashed()->whereIn('id',$entries->where('holder_type','driver')->pluck('holder_id'))->pluck('name','id');
+        $people=$entries->getCollection()->concat($holders);
+        $workers=Maid::whereIn('id',$people->where('holder_type','worker')->pluck('holder_id'))->pluck('name','id');
+        $drivers=HourlyDriver::withTrashed()->whereIn('id',$people->where('holder_type','driver')->pluck('holder_id'))->pluck('name','id');
         $remittances=DB::table('hourly_cash_remittances')->whereIn('collection_id',$entries->pluck('id'))->orderByDesc('id')->get()->groupBy('collection_id');
-        return view('admin.hourly.cash-custody',compact('entries','workers','drivers','outstanding','remittances'));
+        $orderNumbers=HourlyRentalOrder::whereIn('id',$entries->pluck('order_id'))->pluck('order_number','id');
+        $receivers=\App\Models\auth\Admin::whereIn('id',$remittances->flatten()->pluck('admin_id')->unique())->get()->pluck('name','id');
+        return view('admin.hourly.cash-custody',compact('entries','workers','drivers','outstanding','remittances','totals','holders','orderNumbers','receivers'));
     }
     public function remit(Request $request,int $collection,CashCollectionService $cash) {
         abort_unless(CashCollectionService::ready(),503);
@@ -90,7 +96,7 @@ class CashCollectionController extends Controller
         $row=DB::table('hourly_cash_collections')->where('id',$collection)->first();abort_unless($row,404);
         $payment=HourlyOrderPayment::findOrFail($row->payment_id);$order=HourlyRentalOrder::with(['user','serviceCategory'])->findOrFail($row->order_id);
         $collector=$row->holder_type==='worker'?Maid::find($row->holder_id)?->name:HourlyDriver::withTrashed()->find($row->holder_id)?->name;
-        return view('admin.hourly.payment-receipt',compact('order','payment','collector'));
+        return OrderController::receiptView($order,$payment,$collector);
     }
     public function staffReceipt(int $collection) {
         abort_unless(CashCollectionService::ready(),503);

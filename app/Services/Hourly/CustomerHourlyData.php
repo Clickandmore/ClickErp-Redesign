@@ -129,7 +129,7 @@ class CustomerHourlyData
         foreach (['planned_hours','visit_price','cancellation_fee'] as $field) $data[$field]=(float)$data[$field];
         $settings=app(HourlyBookingRules::class)->settings();
         $snapshot=(array)$order->package_snapshot;
-        $open=in_array($order->status,['active','pending_confirmation']) && $order->expires_at->isFuture();
+        $open=in_array($order->status,['active','pending_confirmation']) && $order->expires_at->isFuture() && !ServiceIncident::waiting($order,$visit->id);
         $data['financial']=app(PaymentScheduleService::class)->forOrder($order)['visits'][$visit->id]??null;
         $policy=app(CustomerVisitActions::class)->policy($visit,$order);
         $rating=$this->rating($visit,$order);
@@ -150,7 +150,19 @@ class CustomerHourlyData
             'can_cancel' => $policy['can_cancel'],
             'cancellation_policy' => ['window_hours'=>$policy['window_hours'],'fee_percent'=>$policy['fee_percent'],
                 'fee_if_cancelled_now'=>$policy['fee_if_cancelled_now'],'free_until'=>$policy['free_until'],'currency'=>'SAR'],
-            'can_request_extra_hour' => $open && in_array($visit->status,CustomerVisitActions::EXTENDABLE,true) && $visit->scheduled_end_at?->isFuture(),
+            'can_request_extra_hour' => $open && in_array($visit->status,CustomerVisitActions::EXTENDABLE,true) && ServiceTime::deadline($visit)?->isFuture(),
+            'service_time' => app(ServiceTime::class)->publicData($visit),
+            'can_request_additional_worker' => in_array($order->status,['active','pending_confirmation'],true)
+                && ($order->status!=='pending_confirmation' || !$order->expires_at?->isPast())
+                && $visit->status==='scheduled' && $visit->scheduled_start_at?->isFuture()
+                && !$visit->is_free && (int)$visit->workers_count<20,
+            'can_request_recovery' => MissedVisitRecovery::eligible($visit,$order),
+            'service_disruption' => app(ServiceIncident::class)->publicData($order,$visit),
+            // إنهاء العاملة قبل اكتمال الوقت: can_respond يعرض سؤال «هل كان بطلبك؟» حتى respond_until.
+            'early_finishes' => app(EarlyFinish::class)->publicData($visit),
+            'worker_replaced_at' => $order->booking_metadata['worker_replacements'][$visit->id]['replaced_at']??null,
+            'coverage_recovery' => MissedVisitRecovery::coverageRecovery($visit,$order),
+            'recovery_request' => $order->booking_metadata['missed_visit_requests'][$visit->id] ?? null,
             'can_track' => app(VisitTracking::class)->canTrack($visit, $order),
             'extra_hour_price' => (float) $order->extra_hour_price,
             'extra_hours' => round(max(0,(float)$visit->planned_hours-(float)$order->hours_per_visit),2),

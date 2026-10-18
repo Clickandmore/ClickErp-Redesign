@@ -8,6 +8,8 @@ Route::prefix('hourly-maid')->name('hourly-maid.')->middleware('feature.hourly_r
     Route::middleware(EnsureHourlyMaidAccess::class.':web')->group(function () {
         Route::get('/',[MaidAuthController::class,'home'])->name('home');
         Route::post('visits/{visit}/collect-cash',[\App\Http\Controllers\Hourly\CashCollectionController::class,'webCollect'])->whereNumber('visit')->name('cash.collect');
+        Route::post('visits/{visit}/incidents',[\App\Http\Controllers\Hourly\ServiceIncidentController::class,'workerWeb'])->whereNumber('visit')->middleware('throttle:10,1')->name('visits.incidents');
+        Route::post('visits/{visit}/time-overrun',[\App\Http\Controllers\Hourly\ServiceTimeController::class,'workerWeb'])->whereNumber('visit')->middleware('throttle:10,1')->name('visits.time-overrun');
         Route::post('visits/{visit}/action',[\App\Http\Controllers\Hourly\CashCollectionController::class,'webAction'])->whereNumber('visit')->name('visits.action');
         Route::get('cash/{collection}/receipt',[\App\Http\Controllers\Hourly\CashCollectionController::class,'staffReceipt'])->whereNumber('collection')->name('cash.receipt');
         Route::get('offers',[\App\Http\Controllers\Hourly\WorkerVisitOffersController::class,'index'])->name('offers');

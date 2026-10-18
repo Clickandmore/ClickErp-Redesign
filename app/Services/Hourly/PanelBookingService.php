@@ -212,7 +212,7 @@ class PanelBookingService
     public function unassignedCapacity(?int $teamId, string $start, string $end, ?int $exceptOrder = null): int
     {
         $visits = \App\Models\Hourly\HourlyVisit::where('hourly_team_id',$teamId)
-            ->whereNotIn('status',['cancelled','expired'])->whereHas('order',fn ($q)=>$q->whereNotIn('status',['cancelled','expired']))
+            ->whereNotIn('status',['cancelled','cancelled_by_client','expired'])->whereHas('order',fn ($q)=>$q->whereNotIn('status',['cancelled','expired']))
             ->when($exceptOrder,fn ($q)=>$q->where('hourly_rental_order_id','!=',$exceptOrder))
             ->where('scheduled_start_at','<',$end)->where('scheduled_end_at','>',$start)->withCount('workers as assigned_count')->get();
         return $visits->sum(fn ($v)=>max(0,$v->workers_count-$v->assigned_count-DB::table('hourly_visit_reservations')->where('hourly_visit_id',$v->id)->count()));

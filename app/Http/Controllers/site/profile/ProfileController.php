@@ -47,6 +47,16 @@ class ProfileController extends Controller
             ]
         ];
 
+        // حجوزات الساعات تظهر في لوحة العميل فقط حين تكون صفحاتها متاحة في الموقع.
+        if (\App\Support\HourlyRentalSettings::websiteEnabled()) {
+            $hourlyBase = \App\Models\Hourly\HourlyRentalOrder::where('user_id', $user->id);
+            $stats['hourly'] = [
+                'total' => (clone $hourlyBase)->count(),
+                'active' => (clone $hourlyBase)->whereIn('status', ['active', 'pending_confirmation'])->count(),
+                'completed' => (clone $hourlyBase)->where('status', 'completed')->count(),
+            ];
+        }
+
         // Get recent orders
         $recentOrders = \App\Models\ingaz\Order::where('user_id', $user->id)
             ->with(['maid', 'jobType'])

@@ -104,17 +104,84 @@
     .om-b-amber { background: #fef5e7; color: #9a6206; border-color: #f7ddb2; }
     .om-b-blue  { background: #eaf5fe; color: #1b6fb8; border-color: #c4e2f8; }
     .om-b-violet{ background: #f0effc; color: #4f47b8; border-color: #d6d2f5; }
-    .om-when { text-align: center; }
-    .om-when .om-day { color: var(--brand-ink); font-weight: 700; display: inline-flex; align-items: center; gap: .35rem; }
-    .om-when .om-time { color: var(--brand); font-weight: 700; font-variant-numeric: tabular-nums; }
-    .om-when .om-dur { color: var(--ink); font-weight: 700; margin-top: .2rem; }
-    .om-slot { display: flex; align-items: center; gap: .5rem; flex-wrap: wrap; padding: .5rem 0; border-bottom: 1px dashed var(--line); }
-    .om-slot:last-of-type { border-bottom: 0; }
-    .om-slot .om-slot-no { color: var(--muted); font-variant-numeric: tabular-nums; }
-    .om-slot .om-slot-name { color: var(--ink); font-weight: 600; }
-    .om-slot .om-slot-empty { color: var(--muted); }
-    .om-drivers { font-size: .78rem; color: var(--muted); display: grid; gap: .2rem; margin-top: .6rem; padding-top: .6rem; border-top: 1px solid var(--line); }
-    .om-drivers i { color: #9fb0c2; width: 14px; }
+
+    /* بطاقات الزيارات: ترويسة للموعد والحالة، شريط تنبيهات، ثم ثلاثة أعمدة (الطاقم، النقل، الدفع) وشريط إجراءات */
+    .om-vfilter { display: flex; gap: .45rem; flex-wrap: wrap; margin-bottom: 1rem; }
+    .om-vfilter button { border: 1px solid var(--line); background: #fff; color: var(--muted); border-radius: 99px; padding: .35rem .85rem; font-size: .8rem; font-weight: 700; display: inline-flex; align-items: center; gap: .4rem; }
+    .om-vfilter button b { background: var(--soft); color: var(--ink); border-radius: 99px; padding: 0 .45rem; font-size: .74rem; }
+    .om-vfilter button:hover { border-color: #bfe0f8; color: var(--brand-ink); }
+    .om-vfilter button.active { background: var(--brand-ink); border-color: var(--brand-ink); color: #fff; }
+    .om-vfilter button.active b { background: rgba(255, 255, 255, .22); color: #fff; }
+    .om-vfilter button.is-attention:not(.active) { border-color: #f7cdcf; color: #b42a2e; }
+    .om-vfilter button.is-attention:not(.active) b { background: #fdeeee; color: #b42a2e; }
+    .om-visits { display: grid; gap: .9rem; }
+    .om-visit { --tone: var(--brand); background: #fff; border: 1px solid var(--line); border-inline-start: 4px solid var(--tone); border-radius: 14px; box-shadow: 0 4px 14px rgba(20, 80, 127, .05); transition: box-shadow .15s, border-color .15s; }
+    .om-visit:has(.om-v-check:checked) { border-color: var(--brand); box-shadow: 0 0 0 3px rgba(39, 148, 235, .15); }
+    .om-visit[hidden] { display: none; }
+    .om-v-head { display: flex; align-items: center; gap: .9rem 1.1rem; flex-wrap: wrap; padding: .85rem 1.1rem; }
+    .om-v-check { width: 1.15rem; height: 1.15rem; margin: 0; flex: 0 0 auto; cursor: pointer; }
+    .om-v-no { display: grid; justify-items: center; min-width: 54px; padding: .3rem .5rem; border-radius: 10px; background: var(--tint, var(--soft)); line-height: 1.15; }
+    .om-v-no span { font-size: .68rem; color: var(--muted); }
+    .om-v-no b { font-size: 1.2rem; color: var(--tone); }
+    .om-v-no small { font-size: .66rem; color: var(--muted); }
+    .om-v-when { display: grid; gap: .15rem; flex: 1 1 220px; min-width: 0; }
+    .om-v-when b { font-size: .95rem; color: var(--ink); display: inline-flex; align-items: center; gap: .4rem; flex-wrap: wrap; }
+    .om-v-when > span { font-size: .8rem; color: var(--muted); }
+    .om-v-when i { color: #9fb0c2; }
+    .om-v-tags { display: flex; gap: .35rem; flex-wrap: wrap; }
+    .om-v-price { text-align: end; line-height: 1.1; margin-inline-start: auto; }
+    .om-v-price b { display: block; font-size: 1.15rem; color: var(--ink); }
+    .om-v-price small { font-size: .7rem; color: var(--muted); }
+    .om-v-alerts { display: flex; gap: .4rem; flex-wrap: wrap; padding: .55rem 1.1rem; background: #fffaf3; border-block: 1px solid #f7ead2; }
+    .om-v-body { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); border-top: 1px solid var(--line); }
+    .om-v-alerts + .om-v-body { border-top: 0; }
+    .om-v-body > section { padding: .85rem 1.1rem; min-width: 0; }
+    .om-v-body > section + section { border-inline-start: 1px solid var(--line); }
+    .om-v-body h6 { font-size: .78rem; font-weight: 700; color: var(--muted); margin: 0 0 .55rem; display: flex; align-items: center; gap: .4rem; }
+    .om-v-body h6 i { color: var(--brand); }
+    .om-v-body h6 small { margin-inline-start: auto; background: var(--soft); border-radius: 99px; padding: 0 .45rem; color: var(--ink); }
+    .om-v-list { list-style: none; margin: 0 0 .5rem; padding: 0; display: grid; gap: .4rem; }
+    .om-v-list li { display: flex; align-items: center; gap: .5rem; min-width: 0; }
+    .om-v-avatar { width: 30px; height: 30px; flex: 0 0 30px; border-radius: 50%; display: grid; place-items: center; font-size: .8rem; font-weight: 700; background: #e7f3fd; color: var(--brand-ink); }
+    .om-v-list li.is-empty .om-v-avatar { background: #fff; border: 1.5px dashed #c3d2e0; color: #9fb0c2; font-size: .72rem; }
+    .om-v-name { flex: 1; min-width: 0; font-size: .85rem; font-weight: 600; color: var(--ink); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .om-v-name small { color: var(--muted); font-weight: 500; }
+    .om-v-slot { flex: 1; text-align: start; border: 1.5px dashed #f2c48a; background: #fffaf3; color: #9a6206; border-radius: 8px; padding: .3rem .6rem; font-size: .8rem; font-weight: 700; }
+    .om-v-slot:hover { background: #fef5e7; }
+    .om-v-icon { width: 28px; height: 28px; flex: 0 0 28px; border-radius: 8px; border: 1px solid var(--line); background: #fff; color: var(--muted); display: grid; place-items: center; font-size: .78rem; }
+    .om-v-icon.is-danger:hover { color: var(--coral); border-color: #f7cdcf; background: #fdeeee; }
+    .om-v-row { display: flex; align-items: baseline; gap: .5rem; font-size: .82rem; padding: .22rem 0; }
+    .om-v-row > span { color: var(--muted); white-space: nowrap; }
+    .om-v-row > span i { width: 15px; color: #9fb0c2; }
+    .om-v-row > b { color: var(--ink); font-weight: 600; margin-inline-start: auto; text-align: end; min-width: 0; overflow-wrap: anywhere; }
+    .om-v-row > b.is-missing { color: #c2410c; }
+    .om-v-row > em { font-style: normal; font-size: .76rem; color: var(--muted); background: var(--soft); border-radius: 6px; padding: 0 .4rem; }
+    .om-v-bar { height: 6px; border-radius: 99px; background: #eef3f8; overflow: hidden; margin: .45rem 0 .3rem; }
+    .om-v-bar span { display: block; height: 100%; border-radius: inherit; background: linear-gradient(90deg, var(--teal-deep), var(--teal)); }
+    .om-v-pay .alert { padding: .4rem .6rem; margin: .5rem 0 0 !important; font-size: .76rem; border-radius: 8px; }
+    .om-v-pay details summary { font-size: .76rem; color: var(--brand-ink); cursor: pointer; margin-top: .35rem; }
+    .om-v-notes { padding: .55rem 1.1rem; border-top: 1px solid var(--line); background: var(--soft); }
+    .om-v-notes p { margin: .15rem 0; font-size: .8rem; color: var(--ink); white-space: pre-wrap; }
+    .om-v-notes i { color: var(--violet); }
+    .om-v-notes small { color: var(--muted); }
+    .om-v-actions { display: flex; justify-content: space-between; align-items: center; gap: .5rem; flex-wrap: wrap; padding: .6rem 1.1rem; border-top: 1px solid var(--line); background: #fbfcfe; border-end-start-radius: 14px; border-end-end-radius: 14px; }
+    .om-v-actions > div { display: flex; gap: .4rem; flex-wrap: wrap; }
+    .om-v-actions > div:empty { display: none; }
+    .om-v-actions .om-btn, .om-v-actions .om-note-btn { width: auto; margin: 0; padding: .35rem .7rem; font-size: .77rem; border-radius: 8px; background: #fff; border: 1px solid var(--line); color: #4a5a6b; box-shadow: none; filter: none; }
+    .om-v-actions .om-btn i, .om-v-actions .om-note-btn i { color: var(--act, var(--brand)); }
+    .om-v-actions .om-btn:hover, .om-v-actions .om-note-btn:hover { border-color: var(--act, var(--brand)); color: var(--act, var(--brand)); background: #fff; }
+    .om-v-actions .om-btn-warn { --act: #e08a17; }
+    .om-v-actions .om-btn-green { --act: var(--teal-deep); }
+    .om-v-actions .om-note-btn { --act: var(--violet); }
+    .om-v-actions .om-btn-violet { --act: #fff; background: var(--teal-deep); border-color: var(--teal-deep); color: #fff; }
+    .om-v-actions .om-btn-violet:hover { color: #fff; filter: brightness(.95); }
+    .om-v-actions .om-btn-danger { --act: var(--coral); color: var(--coral); border-color: #f7cdcf; }
+    .om-v-actions .om-btn-danger:hover { background: #fdeeee; }
+    .om-visit[data-buckets~="attention"] .om-v-actions [data-order-action="reschedule"] { --act: #fff; background: var(--amber); border-color: var(--amber); color: #fff; }
+    @media (max-width: 767px) {
+        .om-v-body > section + section { border-inline-start: 0; border-top: 1px solid var(--line); }
+        .om-v-price { margin-inline-start: 0; }
+    }
 
     /* أزرار الإجراءات: ملء بلون الهوية للأساسي وحواف خفيفة للثانوي */
     .om-btn { display: inline-flex; align-items: center; justify-content: center; gap: .4rem; width: 100%; border: 0; border-radius: 10px; padding: .55rem .7rem; font-size: .82rem; font-weight: 700; color: #fff; background: var(--brand); margin-top: .45rem; text-decoration: none; transition: filter .15s, box-shadow .15s; }
@@ -128,31 +195,44 @@
     .om-btn-soft:hover { border-color: var(--brand); color: var(--brand); background: #f7fbff; }
     .om-order-actions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .65rem; }
     .om-order-actions .om-btn { margin: 0; min-height: 42px; }
-    .om-link-danger { background: none; border: 0; color: var(--coral); font-size: .78rem; display: inline-flex; align-items: center; gap: .25rem; padding: 0; }
     .om-link-edit { background: none; border: 0; color: var(--brand); font-size: .78rem; display: inline-flex; align-items: center; gap: .25rem; padding: 0; }
 
     /* زر فتح مودال الملاحظة التشغيلية: مفرَّغ في ترويسة الصندوق، وممتلئ داخل الجدول */
     .om-note-btn { display: inline-flex; align-items: center; justify-content: center; gap: .4rem; border-radius: 10px; padding: .55rem .9rem; font-size: .82rem; font-weight: 700; background: #fff; color: var(--brand-ink); border: 1px solid var(--brand); }
     .om-note-btn:hover { background: #f7fbff; color: var(--brand-deep); }
-    .om-table .om-note-btn { width: 100%; margin-top: .45rem; background: var(--violet); border-color: var(--violet); color: #fff; }
-    .om-table .om-note-btn:hover { color: #fff; filter: brightness(.95); }
 
     .om-note-form summary { display: inline-flex; align-items: center; justify-content: center; gap: .4rem; border-radius: 10px; padding: .55rem .9rem; font-size: .82rem; font-weight: 700; color: #fff; background: var(--violet); cursor: pointer; list-style: none; }
     .om-note-form summary::-webkit-details-marker { display: none; }
-    .om-table .om-note-form { margin-top: .45rem; }
-    .om-table .om-note-form summary { width: 100%; }
     .om-notes-head .om-note-form { margin: 0; }
     .om-notes-head .om-note-form summary { background: #fff; color: var(--brand-ink); border: 1px solid var(--brand); }
     .om-notes-head .om-note-form summary:hover { background: #f7fbff; }
 
-    .om-timeline { list-style: none; margin: 0; padding-inline-start: 1.6rem; position: relative; }
-    .om-timeline::before { content: ''; position: absolute; inset-block: .5rem; inset-inline-start: .3rem; width: 2px; background: linear-gradient(180deg, var(--brand), var(--teal)); opacity: .35; }
-    .om-timeline li { position: relative; padding-bottom: 1.15rem; }
+    /* سجل الحالة: نقطة بأيقونة ولون الحالة الجديدة على خط عمودي، وبجانبها بطاقة التفاصيل */
+    .om-timeline { list-style: none; margin: 0; padding: 0; position: relative; }
+    .om-timeline li { position: relative; display: grid; grid-template-columns: 42px minmax(0, 1fr); gap: .9rem; padding-bottom: 1rem; }
     .om-timeline li:last-child { padding-bottom: 0; }
-    .om-timeline li::before { content: ''; position: absolute; inset-inline-start: -1.6rem; top: .3rem; width: 12px; height: 12px; border-radius: 50%; background: #fff; border: 2px solid var(--brand); }
-    .om-tl-time { font-size: .76rem; color: var(--muted); }
-    .om-tl-flow { display: flex; align-items: center; gap: .45rem; flex-wrap: wrap; margin: .3rem 0; }
-    .om-timeline p { margin: .2rem 0 0; font-size: .85rem; color: var(--ink); }
+    .om-timeline li::before { content: ''; position: absolute; inset-inline-start: 20px; top: 42px; bottom: 0; width: 2px; background: var(--line); }
+    .om-timeline li:last-child::before { display: none; }
+    .om-tl-dot { width: 42px; height: 42px; border-radius: 50%; display: grid; place-items: center; font-size: 1rem; color: var(--tone); background: var(--tint); border: 2px solid #fff; box-shadow: 0 0 0 1px var(--ring); position: relative; z-index: 1; }
+    .om-tl-card { background: #fff; border: 1px solid var(--line); border-inline-start: 3px solid var(--tone); border-radius: 14px; padding: .8rem 1rem; box-shadow: 0 4px 14px rgba(20, 80, 127, .05); }
+    .om-tl-current .om-tl-card { background: linear-gradient(180deg, var(--tint), #fff 70%); }
+    .om-tl-head { display: flex; align-items: flex-start; justify-content: space-between; gap: .75rem; flex-wrap: wrap; }
+    .om-tl-title { margin: 0; font-size: .92rem; font-weight: 700; color: var(--ink); }
+    .om-tl-flow { display: flex; align-items: center; gap: .4rem; flex-wrap: wrap; margin-top: .45rem; }
+    .om-tl-flow .fa-arrow-left { color: #a6b4c3; font-size: .75rem; }
+    .om-tl-when { text-align: end; line-height: 1.35; white-space: nowrap; }
+    .om-tl-when b { display: block; font-size: .82rem; color: var(--ink); font-weight: 700; }
+    .om-tl-when span { font-size: .74rem; color: var(--muted); }
+    .om-tl-actor { display: inline-flex; align-items: center; gap: .4rem; margin-top: .65rem; padding-top: .6rem; border-top: 1px dashed var(--line); width: 100%; font-size: .78rem; color: var(--muted); }
+    .om-tl-actor b { color: var(--ink); font-weight: 600; }
+    .om-tl-actor i { color: #9fb0c2; }
+    .om-tl-now { font-size: .7rem; font-weight: 700; color: var(--tone); background: #fff; border: 1px solid var(--ring); border-radius: 99px; padding: .05rem .5rem; margin-inline-start: .35rem; vertical-align: middle; }
+    .om-tl-green  { --tone: #17996f; --tint: #e8f7f1; --ring: #bfe9d9; }
+    .om-tl-grey   { --tone: #5a6b7d; --tint: #eef3f8; --ring: #dbe4ee; }
+    .om-tl-red    { --tone: #e5484d; --tint: #fdeeee; --ring: #f7cdcf; }
+    .om-tl-amber  { --tone: #e08a17; --tint: #fef5e7; --ring: #f7ddb2; }
+    .om-tl-blue   { --tone: #2794eb; --tint: #eaf5fe; --ring: #c4e2f8; }
+    .om-tl-violet { --tone: #6b63d6; --tint: #f0effc; --ring: #d6d2f5; }
 
     .om-collect { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: .85rem; align-items: end; padding: 1rem 1.1rem; border: 1px solid var(--line); border-radius: 16px; background: linear-gradient(180deg, var(--soft), #fff); margin-bottom: 1.5rem; }
     .om-collect label { display: block; font-size: .8rem; color: var(--muted); margin-bottom: .35rem; }
@@ -197,13 +277,12 @@
         'pending_confirmation' => ['om-b-amber', 'fa-hourglass-half'],
         'active', 'completed', 'paid' => ['om-b-green', 'fa-circle-check'],
         'expired', 'no_show', 'cancelled', 'cancelled_by_client', 'failed', 'unpaid', 'rejected' => ['om-b-red', 'fa-circle-xmark'],
+        'missed' => ['om-b-red', 'fa-triangle-exclamation'],
         'scheduled' => ['om-b-blue', 'fa-calendar-check'],
         'en_route', 'delivered', 'picked_up' => ['om-b-violet', 'fa-van-shuttle'],
         'in_progress', 'worker_finished', 'partial', 'pending', 'pending_review' => ['om-b-amber', 'fa-clock'],
         default => ['om-b-grey', 'fa-circle'],
     };
-    /* لون شريط الصف: يطابق فئة الشارة نفسها. */
-    $toneHex = ['om-b-green' => '#17996f', 'om-b-red' => '#e5484d', 'om-b-amber' => '#e08a17', 'om-b-blue' => '#2794eb', 'om-b-violet' => '#6b63d6', 'om-b-grey' => '#9fb0c2'];
     [$statusClass, $statusIcon] = $statusTone($order->status);
     [$payClass, $payIcon] = $statusTone($order->payment_status);
 @endphp
@@ -213,6 +292,12 @@
 @include('admin.hourly._order-refund')
 @include('admin.hourly._cash-link')
 
+<a class="btn btn-outline-warning mb-3" href="{{ route('admin.hourly-recovery.index') }}">طلبات معالجة الزيارات غير المنفذة</a>
+@foreach($order->visits as $replacementVisit)
+    @include('admin.hourly._worker-replacement',['visit'=>$replacementVisit])
+    @include('admin.hourly._incident-report',['visit'=>$replacementVisit])
+@endforeach
+<a class="btn btn-outline-warning mb-3" href="{{ route('admin.hourly-incidents.index') }}">بلاغات تعذر تنفيذ الخدمة والمتابعة</a>
 <div class="om-layout">
 <aside class="om-side">
     <div class="om-card">
@@ -332,95 +417,59 @@
                 </div>
 
                 <div class="om-section-head">
-                    <h6>تفاصيل الزيارة ({{ $visitCount }} زيارة)</h6>
+                    <h6><i class="fa fa-calendar-days"></i> الزيارات <span class="om-num">({{ $visitCount }})</span></h6>
                     <div class="om-ops">@include('admin.hourly._order-operations')</div>
                 </div>
 
-                <div class="table-responsive">
-                    <table class="om-table">
-                        <thead><tr><th>رقم الزيارة</th><th>تاريخ الزيارة</th><th>شؤون الموظفين</th><th>الحالة</th><th>إجراءات</th></tr></thead>
-                        <tbody>
-                        @forelse($order->visits as $visit)
-                            @php
-                                [$visitClass, $visitIcon] = $statusTone($visit->status);
-                                $assigned = $visit->workers;
-                                $visitPaid=$visitAllocations[$visit->id]['paid']??0;
-                                $free=$visit->is_free || (float)$visit->visit_price===0.0;
-                                $visitPaymentStatus=$visitPaid>=(float)$visit->visit_price?'paid':($visitPaid>0?'partial':'unpaid');
-                                $emptySlots = max(0, (int) $visit->workers_count - $assigned->count());
-                                $editable = AdminGuardHasPerm('hourly_orders_edit') && in_array($order->status, ['active', 'pending_confirmation']) && !in_array($visit->status, ['completed', 'cancelled', 'expired', 'no_show', 'cancelled_by_client']);
-                            @endphp
-                            <tr style="--row-tone: {{ $toneHex[$visitClass] ?? '#9fb0c2' }}">
-                                <td>
-                                    @if($editable)
-                                        <label class="om-kv"><input type="checkbox" data-visit-select value="{{ $visit->id }}" data-number="{{ $visit->visit_number }}" data-start="{{ $visit->scheduled_start_at?->format('Y-m-d H:i') }}" data-end="{{ $visit->scheduled_end_at?->format('Y-m-d H:i') }}" data-delivery="{{ $visit->delivery_at }}" data-pickup="{{ $visit->pickup_at }}" aria-label="تحديد الزيارة {{ $visit->visit_number }}"> <span>تحديد للإجراءات الجماعية</span></label>
-                                    @endif
-                                    <div class="om-kv"><span>رقم الزيارة:</span><b class="om-ltr om-num">{{ $visit->visit_number }}</b></div>
-                                    <small class="text-muted">المرجع: #{{ $visit->id }}</small>
-                                    @include('admin.hourly._cash-collector')
-                                    @if($free)<span class="om-badge om-b-green">زيارة مجانية</span>@endif
-                                    <div class="om-kv"><span>معرف الطلب:</span><b class="om-ltr om-num">#{{ $order->order_number }}</b></div>
-                                    <div class="om-kv"><span>سعر الزيارة:</span><span class="om-badge om-b-green om-num">{{ $money($visit->visit_price) }}</span></div>
-                                    <div class="om-kv"><span>حالة سداد الزيارة:</span><span class="om-badge {{ $free?'om-b-green':$statusTone($visitPaymentStatus)[0] }}">{{ $free?'مجانية':__('hourly.'.$visitPaymentStatus) }}</span></div>
-                                    <div class="om-kv"><span>المبلغ المدفوع للزيارة:</span><span class="om-badge om-b-green om-num">{{ $money($visitPaid) }}</span></div>
-                                    @include('admin.hourly._note-form', ['visitId' => $visit->id])
-                                    @include('admin.hourly._visit-actions', ['group' => 'money'])
-                                </td>
-                                <td class="om-when">
-                                    @if($visit->scheduled_start_at)
-                                        <div class="om-day">
-                                            {{ $visit->scheduled_start_at->translatedFormat('l') }}
-                                            @if($editable && $visit->scheduled_start_at->isFuture())
-                                                <button type="button" class="om-link-edit" data-order-action="start_time" data-visit="{{ $visit->id }}" title="تعديل الموعد" aria-label="تعديل موعد الزيارة {{ $visit->id }}"><i class="fa fa-pen-to-square"></i></button>
-                                            @endif
-                                        </div>
-                                        <div class="om-time om-ltr">{{ $visit->scheduled_start_at->format('d/m/Y H:i') }} – {{ $visit->scheduled_end_at?->format('H:i') }}</div>
-                                    @else
-                                        <div class="om-day">لم يُحدَّد الموعد</div>
-                                    @endif
-                                    <div class="om-dur om-num">{{ $hours($visit->planned_hours) }} ساعات</div>
-                                </td>
-                                <td>
-                                    @foreach($assigned as $index => $worker)
-                                        <div class="om-slot">
-                                            <span class="om-slot-no">{{ $index + 1 }} –</span>
-                                            <span class="om-slot-name">{{ $worker->name }}</span>
-                                            @if($editable)
-                                                <button type="button" class="om-link-danger" data-order-action="unassign_worker" data-worker="{{ $worker->id }}" data-visit="{{ $visit->id }}"><i class="fa fa-circle-xmark"></i> إلغاء التعيين</button>
-                                            @endif
-                                        </div>
-                                    @endforeach
-                                    @for($slot = 1; $slot <= $emptySlots; $slot++)
-                                        <div class="om-slot">
-                                            <span class="om-slot-no">{{ $assigned->count() + $slot }} –</span>
-                                            <span class="om-slot-empty">لم يتم الاختيار بعد</span>
-                                            @if($editable)
-                                                <button type="button" class="om-link-edit" data-order-action="assign_workers" data-visit="{{ $visit->id }}">اختر العاملة <i class="fa fa-pen-to-square"></i></button>
-                                                @if(AdminGuardHasPerm('hourly_orders_price_override'))
-                                                    <button type="button" class="om-link-danger" data-order-action="remove_worker" data-visit="{{ $visit->id }}"><i class="fa fa-circle-xmark"></i> إزالة المقعد</button>
-                                                @endif
-                                            @endif
-                                        </div>
-                                    @endfor
-                                    @if($assigned->isEmpty() && !$emptySlots)<div class="om-slot"><span class="om-slot-empty">لا توجد مقاعد على هذه الزيارة</span></div>@endif
-                                    <div class="om-drivers">
-                                        <div><i class="fa fa-van-shuttle"></i> التوصيل: {{ $visit->deliveryDriver?->name ?: 'غير مخصص' }} <span class="om-ltr om-num">{{ $visit->delivery_at ?: $visit->scheduled_start_at?->format('H:i') }}</span></div>
-                                        <div><i class="fa fa-car-side"></i> الاستلام: {{ $visit->pickupDriver?->name ?: 'غير مخصص' }} <span class="om-ltr om-num">{{ $visit->pickup_at ?: $visit->scheduled_end_at?->format('H:i') }}</span></div>
-                                        <div><i class="fa fa-user-tie"></i> قائد الفريق: {{ $visit->teamLeader?->name ?: 'غير مخصص' }}</div>
-                                    </div>
-                                    @include('admin.hourly._visit-actions', ['group' => 'staff'])
-                                </td>
-                                <td>
-                                    <span class="om-badge {{ $visitClass }}"><i class="fa {{ $visitIcon }}"></i> {{ __('hourly.'.$visit->status) }}</span>
-                                    @if($assigned->isEmpty())<div class="om-kv mt-2"><span style="color:#df2b2b;font-weight:700">غير مخصص</span></div>@endif
-                                </td>
-                                <td>@include('admin.hourly._visit-actions', ['group' => 'row'])</td>
-                            </tr>
-                        @empty
-                            <tr><td colspan="5"><div class="om-empty"><i class="fa fa-calendar-xmark"></i> لا توجد زيارات على هذا الطلب.</div></td></tr>
-                        @endforelse
-                        </tbody>
-                    </table>
+                @php
+                    $visitFinances = app(\App\Services\Hourly\PaymentScheduleService::class)->forOrder($order)['visits'];
+                    $closedStatuses = ['completed', 'cancelled', 'expired', 'no_show', 'cancelled_by_client'];
+                    $earlyService = app(\App\Services\Hourly\EarlyFinish::class);
+                    $earlyFinishes = \App\Services\Hourly\EarlyFinish::ready()
+                        ? \Illuminate\Support\Facades\DB::table('hourly_early_finishes')->where('order_id', $order->id)->get()->groupBy('visit_id') : collect();
+                    /* ما يحتاج إجراء في الزيارة وتصنيفها لأزرار التصفية؛ تستخدمه البطاقة والعدّادات معًا. */
+                    $visitState = function ($visit) use ($visitFinances, $closedStatuses, $money, $earlyFinishes, $earlyService) {
+                        $finance = $visitFinances[$visit->id] ?? null;
+                        $free = $visit->is_free || (float) $visit->visit_price === 0.0;
+                        $emptySlots = max(0, (int) $visit->workers_count - $visit->workers->count());
+                        $alerts = [];
+                        if (!in_array($visit->status, $closedStatuses) && $emptySlots) $alerts[] = ['om-b-amber', 'fa-user-clock', $emptySlots === 1 ? 'مقعد شاغر بدون عاملة' : $emptySlots.' مقاعد شاغرة بدون عاملات'];
+                        if (!$free && ($finance['is_overdue'] ?? false)) $alerts[] = ['om-b-red', 'fa-file-invoice-dollar', 'دفعة متأخرة: '.$money($finance['remaining'])];
+                        // الإنهاء المبكر: يبقى تنبيهًا حتى يؤكده العميل أو تقرر الإدارة.
+                        $earlyOpen = false;
+                        foreach ($earlyFinishes[$visit->id] ?? [] as $early) {
+                            $earlyState = $earlyService->effectiveStatus($early);
+                            if (in_array($earlyState, ['confirmed', 'resolved'], true)) continue;
+                            $earlyOpen = true;
+                            $alerts[] = [$earlyService->needsReview($early) ? 'om-b-red' : 'om-b-amber', 'fa-stopwatch',
+                                'إنهاء مبكر: نُفذ '.$earlyService->duration((int) $early->worked_minutes).' من '.$earlyService->duration((int) $early->planned_minutes)
+                                .' — '.($earlyService->needsReview($early) ? 'يحتاج قرار الإدارة' : 'بانتظار رد العميل')];
+                        }
+                        $buckets = [match (true) { $visit->status === 'completed' => 'done', in_array($visit->status, $closedStatuses) => 'cancelled', default => 'upcoming' }];
+                        if ($earlyOpen) $buckets[] = 'attention';
+                        /* الزيارة الفائتة تظهر في شارة الحالة نفسها، فلا تُكرَّر في شريط التنبيهات. */
+                        if ($alerts || $visit->is_missed) $buckets[] = 'attention';
+                        return compact('finance', 'free', 'emptySlots', 'alerts', 'buckets');
+                    };
+                    $visitStates = $order->visits->mapWithKeys(fn ($visit) => [$visit->id => $visitState($visit)]);
+                    $bucketCount = fn ($bucket) => $visitStates->filter(fn ($state) => in_array($bucket, $state['buckets']))->count();
+                    $filters = ['all' => ['الكل', $visitCount], 'attention' => ['تحتاج إجراء', $bucketCount('attention')], 'upcoming' => ['القادمة والجارية', $bucketCount('upcoming')], 'done' => ['المكتملة', $bucketCount('done')], 'cancelled' => ['الملغاة', $bucketCount('cancelled')]];
+                @endphp
+                @if($visitCount > 1)
+                    <div class="om-vfilter" role="group" aria-label="تصفية الزيارات">
+                        @foreach($filters as $key => [$label, $count])
+                            @if($key === 'all' || $count)
+                                <button type="button" class="{{ $loop->first ? 'active' : '' }} {{ $key === 'attention' ? 'is-attention' : '' }}" data-visit-filter="{{ $key }}" aria-pressed="{{ $loop->first ? 'true' : 'false' }}">{{ $label }} <b class="om-num">{{ $count }}</b></button>
+                            @endif
+                        @endforeach
+                    </div>
+                @endif
+                <div class="om-visits">
+                    @forelse($order->visits->sortBy('visit_number') as $visit)
+                        @include('admin.hourly._manage-visit-card', $visitStates[$visit->id])
+                    @empty
+                        <div class="om-empty"><i class="fa fa-calendar-xmark"></i> لا توجد زيارات على هذا الطلب.</div>
+                    @endforelse
                 </div>
             </section>
 
@@ -429,16 +478,37 @@
                     <div class="om-empty"><i class="fa fa-timeline"></i> لا توجد سجلات حالة بعد.</div>
                 @else
                     <ul class="om-timeline">
-                        @foreach($order->statusLogs->sortByDesc('id') as $log)
-                            @php [$toClass, $toIcon] = $statusTone($log->to_status); @endphp
-                            <li>
-                                <div class="om-tl-time om-ltr om-num">{{ $log->created_at?->format('Y-m-d H:i') }}</div>
-                                <div class="om-tl-flow">
-                                    @if($log->from_status)<span class="om-badge om-b-grey">{{ __('hourly.'.$log->from_status) }}</span><i class="fa fa-arrow-left" style="color:#94a3b8"></i>@endif
-                                    <span class="om-badge {{ $toClass }}"><i class="fa {{ $toIcon }}"></i> {{ __('hourly.'.$log->to_status) }}</span>
+                        @foreach($order->statusLogs->sortByDesc('id')->values() as $log)
+                            @php
+                                [$toClass, $toIcon] = $statusTone($log->to_status);
+                                $changed = $log->from_status && $log->from_status !== $log->to_status;
+                                [$actorIcon, $actorRole, $actorName] = match ($log->actor_type) {
+                                    'admin' => ['fa-user-tie', 'موظف', $logAdmins[$log->actor_id] ?? null],
+                                    'client' => ['fa-user', 'العميل', $log->actor_id == $order->user_id ? $order->user?->name : null],
+                                    'system' => ['fa-gears', 'النظام', null],
+                                    default => ['fa-circle-user', $log->actor_type, null],
+                                };
+                            @endphp
+                            <li class="{{ str_replace('om-b-', 'om-tl-', $toClass) }} {{ $loop->first ? 'om-tl-current' : '' }}">
+                                <span class="om-tl-dot"><i class="fa {{ $toIcon }}"></i></span>
+                                <div class="om-tl-card">
+                                    <div class="om-tl-head">
+                                        <div>
+                                            <p class="om-tl-title">{{ $log->reason ?: __('hourly.'.$log->to_status) }}@if($loop->first)<span class="om-tl-now">الحالية</span>@endif</p>
+                                            <div class="om-tl-flow">
+                                                @if($changed)<span class="om-badge om-b-grey">{{ __('hourly.'.$log->from_status) }}</span><i class="fa fa-arrow-left"></i>@endif
+                                                <span class="om-badge {{ $toClass }}"><i class="fa {{ $toIcon }}"></i> {{ __('hourly.'.$log->to_status) }}</span>
+                                            </div>
+                                        </div>
+                                        <div class="om-tl-when">
+                                            <b class="om-ltr om-num">{{ $log->created_at?->format('Y-m-d') }}</b>
+                                            <span class="om-ltr om-num">{{ $log->created_at?->format('H:i') }}</span>
+                                        </div>
+                                    </div>
+                                    <div class="om-tl-actor">
+                                        <i class="fa {{ $actorIcon }}"></i> {{ $actorRole }}@if($actorName): <b>{{ $actorName }}</b>@elseif($log->actor_id) <span class="om-ltr om-num">#{{ $log->actor_id }}</span>@endif
+                                    </div>
                                 </div>
-                                @if($log->reason)<p>{{ $log->reason }}</p>@endif
-                                <div class="om-tl-time mt-1"><i class="fa fa-user"></i> {{ $log->actor_type === 'admin' ? 'موظف' : ($log->actor_type === 'client' ? 'العميل' : $log->actor_type) }}@if($log->actor_id) <span class="om-ltr">#{{ $log->actor_id }}</span>@endif</div>
                             </li>
                         @endforeach
                     </ul>
@@ -542,6 +612,14 @@ document.addEventListener('DOMContentLoaded', function () {
         catch (_) { this.innerHTML = '<i class="fa fa-xmark"></i>'; }
         setTimeout(() => { this.innerHTML = '<i class="fa fa-copy"></i>'; }, 1500);
     });
+
+    // تصفية بطاقات الزيارات؛ البطاقة المخفية لا تُشمل في «تحديد الكل».
+    const filters = [...document.querySelectorAll('[data-visit-filter]')];
+    filters.forEach(button => button.addEventListener('click', () => {
+        const key = button.dataset.visitFilter;
+        filters.forEach(other => { other.classList.toggle('active', other === button); other.setAttribute('aria-pressed', String(other === button)); });
+        document.querySelectorAll('[data-visit-card]').forEach(card => { card.hidden = key !== 'all' && !card.dataset.buckets.split(' ').includes(key); });
+    }));
 });
 </script>
 @endpush

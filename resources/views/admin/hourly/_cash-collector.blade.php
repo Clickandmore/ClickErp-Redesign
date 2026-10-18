@@ -1,4 +1,6 @@
+@unless($hideFinancial ?? false)
 @include('admin.hourly._visit-financial')
+@endunless
 @if(\App\Services\Hourly\CashCollectionService::ready() && in_array($order->payment_method,['cash','cash_and_card'],true))
     @php $cashPolicy=app(\App\Services\Hourly\CashCollectionService::class)->collector($visit); @endphp
     <div class="alert alert-info mt-2 mb-2 small">مسؤول التحصيل: <strong>{{ $cashPolicy['label'] }}</strong>
