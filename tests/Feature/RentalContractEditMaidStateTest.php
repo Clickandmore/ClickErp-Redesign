@@ -46,8 +46,9 @@ class RentalContractEditMaidStateTest extends TestCase
             $table->string('locale');
         });
         foreach (['rental_contracts', 'contracts', 'orders'] as $name) {
-            Schema::create($name, function (Blueprint $table) {
+            Schema::create($name, function (Blueprint $table) use ($name) {
                 $table->id();
+                if ($name === 'rental_contracts') $table->boolean('freeze_releases_maid')->default(false);
                 $table->unsignedBigInteger('maid_id')->nullable();
                 $table->string('status');
                 $table->softDeletes();

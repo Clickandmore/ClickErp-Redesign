@@ -3782,35 +3782,11 @@
                 });
             });
 
-            $(document).on('click', '.freeze-contract', function() {
-                const contractId = $(this).data('id');
+            @include('admin.ingaz.RentContract._freeze-dialogs')
 
-                Swal.fire({
-                    title: 'تجميد عقد الإيجار',
-                    input: 'textarea',
-                    inputLabel: 'سبب التجميد',
-                    inputPlaceholder: 'اكتب سبب تجميد العقد',
-                    inputAttributes: {
-                        maxlength: 1000
-                    },
-                    icon: 'warning',
-                    showCancelButton: true,
-                    confirmButtonColor: '#64748b',
-                    cancelButtonColor: '#dc3545',
-                    confirmButtonText: 'تجميد العقد',
-                    cancelButtonText: 'إلغاء',
-                    inputValidator: (value) => {
-                        if (!value || !value.trim()) {
-                            return 'يرجى كتابة سبب التجميد';
-                        }
-                    }
-                }).then((result) => {
-                    if (result.isConfirmed) {
-                        executeWorkflowAction(contractId, 'freeze', 'تم تجميد عقد الإيجار بنجاح', {
-                            freeze_reason: result.value
-                        });
-                    }
-                });
+            $(document).on('click', '.freeze-contract', async function() {
+                const data = await rentalFreezeDialog();
+                if (data) executeWorkflowAction($(this).data('id'), 'freeze', 'تم تجميد عقد الإيجار بنجاح', data);
             });
 
             $(document).on('click', '.edit-freeze-date', function() {
@@ -3843,23 +3819,11 @@
                 });
             });
 
-            $(document).on('click', '.resume-contract', function() {
+            $(document).on('click', '.resume-contract', async function() {
                 const contractId = $(this).data('id');
-
-                Swal.fire({
-                    title: 'استئناف عقد الإيجار',
-                    text: 'هل تريد استئناف هذا العقد؟',
-                    icon: 'question',
-                    showCancelButton: true,
-                    confirmButtonColor: '#28a745',
-                    cancelButtonColor: '#6c757d',
-                    confirmButtonText: 'نعم، استئناف العقد',
-                    cancelButtonText: 'إلغاء'
-                }).then((result) => {
-                    if (result.isConfirmed) {
-                        executeWorkflowAction(contractId, 'resume', 'تم استئناف عقد الإيجار بنجاح');
-                    }
-                });
+                const url = @json(route('RentContract.resumeOptions', ['id' => '__ID__'])).replace('__ID__', contractId);
+                const data = await rentalResumeDialog(url);
+                if (data) executeWorkflowAction(contractId, 'resume', 'تم استئناف عقد الإيجار بنجاح', data);
             });
 
             $(document).on('click', '.send-payment-link', function() {

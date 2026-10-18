@@ -312,6 +312,7 @@ class ShelterContractController extends Controller
             $hasActiveRentalContract = $isRentalWorker
                 && $contract->maid?->rentalContracts
                     ->whereIn('status', RentalMaidQuery::ACTIVE_RENTAL_STATUSES)
+                    ->reject(fn ($contract) => $contract->requiresMaidOnResume())
                     ->isNotEmpty();
 
             if ($workWillingness === 'yes') {
@@ -1919,7 +1920,7 @@ class ShelterContractController extends Controller
 
         $wantsToWork = in_array((string) $contract->info?->wants_to_work, ['yes', '1'], true);
         $hasActiveRentalContract = $maid->rentalContracts()
-            ->whereIn('status', RentalMaidQuery::ACTIVE_RENTAL_STATUSES)
+            ->whereIn('status', RentalMaidQuery::ACTIVE_RENTAL_STATUSES)->holdingMaid()
             ->exists();
         $hasActiveOrder = $maid->orders()
             ->whereIn('status', ['new', 'under_process', 'contracted', 'contracted_without_contract'])

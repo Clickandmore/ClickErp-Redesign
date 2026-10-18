@@ -31,6 +31,7 @@ class RentalContract extends Model
         'transferred_to_contract_id',
         'status_before_freeze',
         'freeze_reason',
+        'freeze_releases_maid',
         'frozen_at',
         'resumed_at',
         'frozen_by',
@@ -67,6 +68,7 @@ class RentalContract extends Model
         'trial_started_at' => 'datetime',
         'closed_at' => 'datetime',
         'frozen_at' => 'datetime',
+        'freeze_releases_maid' => 'boolean',
         'resumed_at' => 'datetime',
         'branch_id' => 'integer',
         'legacy_order_id' => 'integer',
@@ -368,6 +370,25 @@ class RentalContract extends Model
     public function canResume()
     {
         return $this->status === 'frozen';
+    }
+
+    /** Keep historical worker links without treating a released freeze as a booking. */
+    public function scopeHoldingMaid($query)
+    {
+        return self::applyMaidCommitmentFilter($query);
+    }
+
+    public static function applyMaidCommitmentFilter($query)
+    {
+        return $query->where(function ($query) {
+            $query->where('rental_contracts.status', '!=', 'frozen')
+                ->orWhere('rental_contracts.freeze_releases_maid', false);
+        });
+    }
+
+    public function requiresMaidOnResume(): bool
+    {
+        return $this->status === 'frozen' && $this->freeze_releases_maid;
     }
 
     public function getActivitylogOptions(): LogOptions

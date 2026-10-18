@@ -79,6 +79,7 @@ final class RentalMaidQuery
 
         $hasActiveRental = $maid->rentalContracts
             ->whereIn('status', self::ACTIVE_RENTAL_STATUSES)
+            ->reject(fn ($contract) => $contract->requiresMaidOnResume())
             ->isNotEmpty();
 
         if ($hasActiveRental) {
@@ -158,7 +159,7 @@ final class RentalMaidQuery
         return $query
             ->whereNotIn('status', self::UNAVAILABLE_MAID_STATUSES)
             ->whereDoesntHave('rentalContracts', function (Builder $rentalQuery) {
-                $rentalQuery->whereIn('status', self::ACTIVE_RENTAL_STATUSES);
+                $rentalQuery->whereIn('status', self::ACTIVE_RENTAL_STATUSES)->holdingMaid();
             });
     }
 
@@ -246,7 +247,7 @@ final class RentalMaidQuery
     public static function applyNoActiveRental(Builder $query): Builder
     {
         return $query->whereDoesntHave('rentalContracts', function (Builder $rentalQuery) {
-            $rentalQuery->whereIn('status', self::ACTIVE_RENTAL_STATUSES);
+            $rentalQuery->whereIn('status', self::ACTIVE_RENTAL_STATUSES)->holdingMaid();
         });
     }
 

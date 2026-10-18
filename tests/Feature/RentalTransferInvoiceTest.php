@@ -30,7 +30,7 @@ class RentalTransferInvoiceTest extends TestCase
         parent::setUp();
         config(['database.default' => 'sqlite', 'database.connections.sqlite.database' => ':memory:']);
         DB::purge('sqlite');
-        Schema::create('rental_contracts', function ($table) {
+        Schema::create('rental_contracts', function ($table) { $table->boolean('freeze_releases_maid')->default(false);
             $table->id(); $table->integer('user_id'); $table->integer('maid_id')->nullable(); $table->integer('branch_id')->nullable();
             $table->timestamp('closed_at')->nullable();
             $table->string('status')->default('active');

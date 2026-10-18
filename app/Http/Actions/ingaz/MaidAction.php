@@ -2003,7 +2003,7 @@ class MaidAction extends MainAction
             // لا يكفي علم الإتاحة القديم: العقد الإيجاري النشط هو المانع الحاسم
             // حتى لا تظهر عاملة مسندة لعميل ضمن نتائج الموقع الخارجي.
             ->whereDoesntHave('rentalContracts', function ($rentalQuery) {
-                $rentalQuery->whereIn('status', RentalMaidQuery::ACTIVE_RENTAL_STATUSES);
+                $rentalQuery->whereIn('status', RentalMaidQuery::ACTIVE_RENTAL_STATUSES)->holdingMaid();
             })
             ->where(function ($query) use ($today) {
                 $query->where(function ($available) use ($today) {

@@ -613,6 +613,7 @@ Route::group(
             Route::post('RentContract/{id}/freeze', [RentContractController::class, 'freeze'])->name('RentContract.freeze');
             Route::post('RentContract/{id}/update-freeze-date', [RentContractController::class, 'updateFreezeDate'])->name('RentContract.updateFreezeDate');
             Route::post('RentContract/{id}/resume', [RentContractController::class, 'resume'])->name('RentContract.resume');
+            Route::get('RentContract/{id}/resume-options', [RentContractController::class, 'resumeOptions'])->name('RentContract.resumeOptions');
             Route::post('RentContract/{id}/change-maid', [RentContractController::class, 'changeMaid'])->name('RentContract.changeMaid');
 
             // Ø¥Ø¯Ø§Ø±Ø© Ø¨Ù†ÙˆØ¯ Ø¹Ù‚Ø¯ Ø§Ù„ØªØ£Ø¬ÙŠØ±
