@@ -327,8 +327,8 @@
                     <div><h6>تفاصيل الخدمة</h6><p>الباقة تحدد عدد الزيارات وساعاتها، وعدد مقدمي الخدمة يضاعف الساعات والسعر.</p></div>
                 </header>
                 <div class="bk-inline mb-3">
-                    <button type="button" class="btn btn-outline-primary rounded-3" data-item-tab="general">General Service Item</button>
-                    <button type="button" class="btn btn-outline-primary rounded-3" data-item-tab="special">Special Service Item</button>
+                    <button type="button" class="btn btn-outline-primary rounded-3" data-item-tab="general">الخدمات العامة</button>
+                    <button type="button" class="btn btn-outline-primary rounded-3" data-item-tab="special">الخدمات الخاصة</button>
                 </div>
                 <div id="service-items" class="booking-options"></div>
                 <div id="booking-count-fields">

@@ -25,10 +25,12 @@ class HourlyDriverTest extends TestCase
             $table->id(); $table->unsignedBigInteger('hourly_rental_order_id'); $table->unsignedInteger('visit_number')->default(1);
             $table->unsignedBigInteger('delivery_driver_id')->nullable(); $table->unsignedBigInteger('pickup_driver_id')->nullable();
             $table->date('scheduled_date')->nullable(); $table->dateTime('scheduled_start_at')->nullable(); $table->dateTime('scheduled_end_at')->nullable();
+            $table->string('delivery_code')->nullable();
             $table->dateTime('delivery_at')->nullable(); $table->dateTime('pickup_at')->nullable(); $table->string('status')->default('scheduled');
             $table->text('address_text')->nullable(); $table->decimal('latitude',10,7)->nullable(); $table->decimal('longitude',10,7)->nullable(); $table->string('contact_phone')->nullable(); $table->boolean('is_free')->default(false); $table->timestamps();
         });
         Schema::create('maids', function (Blueprint $table) { $table->boolean('has_driving_license')->nullable(); $table->string('driving_license_file')->nullable(); $table->id(); $table->string('name')->nullable(); $table->softDeletes(); });
+        Schema::create('hourly_order_payments', function (Blueprint $table) { $table->id(); $table->unsignedBigInteger('hourly_rental_order_id'); $table->string('status'); $table->string('method')->nullable(); $table->decimal('amount',12,2)->default(0); $table->json('provider_payload')->nullable(); $table->timestamps(); });
         Schema::create('hourly_visit_workers', function (Blueprint $table) { $table->id(); $table->unsignedBigInteger('hourly_visit_id'); $table->unsignedBigInteger('maid_id'); $table->timestamps(); });
         Schema::create('hourly_order_audits', function (Blueprint $table) { $table->id(); $table->unsignedBigInteger('hourly_rental_order_id'); $table->unsignedBigInteger('visit_id')->nullable(); $table->unsignedBigInteger('admin_id')->nullable(); $table->string('action'); $table->text('reason')->nullable(); $table->text('before')->nullable(); $table->text('after')->nullable(); $table->timestamps(); });
         Schema::create('hourly_order_status_logs', function (Blueprint $table) { $table->id(); $table->unsignedBigInteger('hourly_rental_order_id'); $table->string('from_status')->nullable(); $table->string('to_status'); $table->string('actor_type'); $table->unsignedBigInteger('actor_id')->nullable(); $table->text('reason')->nullable(); $table->timestamps(); });
@@ -148,6 +150,35 @@ class HourlyDriverTest extends TestCase
         $this->get(route('hourly-driver.login'))->assertOk()->assertSee(route('admin.form.login'),false);
     }
 
+    public function test_portal_requires_customer_delivery_code_before_confirmation(): void
+    {
+        \Carbon\Carbon::setTestNow('2026-10-14 10:00:00');$driver=$this->driver();
+        DB::table('hourly_rental_orders')->insert(['id'=>11,'order_number'=>'HR-11','status'=>'active','created_at'=>now(),'updated_at'=>now()]);
+        DB::table('hourly_visits')->insert(['id'=>21,'hourly_rental_order_id'=>11,'visit_number'=>1,'delivery_driver_id'=>$driver->id,
+            'scheduled_date'=>'2026-10-14','scheduled_start_at'=>'2026-10-14 09:00:00','scheduled_end_at'=>'2026-10-14 12:00:00',
+            'status'=>'en_route','delivery_code'=>'057391','created_at'=>now(),'updated_at'=>now()]);
+        $this->post(route('hourly-driver.authenticate'),['login'=>$driver->username,'password'=>'DriverPass123']);
+        $this->get(route('hourly-driver.home'))->assertOk()->assertSee('name="delivery_code"',false)
+            ->assertSee('كود استلام العميل')->assertDontSee('057391');
+        foreach([[],['delivery_code'=>'999999']] as $code){
+            $this->post(route('hourly-driver.visits.action',21),['action'=>'confirm_delivery']+$code)->assertSessionHasErrors('hourly');
+            $this->assertDatabaseHas('hourly_visits',['id'=>21,'status'=>'en_route']);
+            $this->assertDatabaseMissing('hourly_order_audits',['visit_id'=>21,'action'=>'driver_confirm_delivery']);
+        }
+        $this->post(route('hourly-driver.visits.action',21),['action'=>'confirm_delivery','delivery_code'=>'057391'])->assertRedirect()->assertSessionHasNoErrors();
+        $this->assertDatabaseHas('hourly_visits',['id'=>21,'status'=>'delivered']);
+        $this->assertDatabaseHas('hourly_order_audits',['visit_id'=>21,'action'=>'driver_confirm_delivery']);
+        DB::table('hourly_visits')->where('id',21)->update(['status'=>'en_route']);
+        HourlyRentalSettings::persist(['staff_app_require_delivery_code'=>false]);
+        $this->get(route('hourly-driver.home'))->assertOk()->assertDontSee('name="delivery_code"',false);
+        $this->post(route('hourly-driver.visits.action',21),['action'=>'confirm_delivery'])->assertRedirect()->assertSessionHasNoErrors();
+        $this->assertDatabaseHas('hourly_visits',['id'=>21,'status'=>'delivered']);
+        HourlyRentalSettings::persist(['staff_app_require_delivery_code'=>true]);
+        DB::table('hourly_visits')->where('id',21)->update(['status'=>'en_route','delivery_code'=>null]);
+        $this->get(route('hourly-driver.home'))->assertOk()->assertDontSee('name="delivery_code"',false);
+        $this->post(route('hourly-driver.visits.action',21),['action'=>'confirm_delivery'])->assertRedirect()->assertSessionHasNoErrors();
+        $this->assertDatabaseHas('hourly_visits',['id'=>21,'status'=>'delivered']);
+    }
     public function test_driver_can_only_advance_an_assigned_task_in_order(): void
     {
         \Carbon\Carbon::setTestNow('2026-10-14 09:00:00');

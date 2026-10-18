@@ -649,4 +649,503 @@ class HourlyWebsiteTest extends TestCase
         $this->assertSame(1,$order->payments()->where('amount',-200)->count());
     }
 
+    public function test_customer_can_preview_and_confirm_extra_hours_once_from_website(): void
+    {
+        $booking=$this->fixture(); $this->customer();
+        $id=$this->postJson(route('web.hourly.store'),$booking)->assertCreated()->json('id');
+        $order=HourlyRentalOrder::findOrFail($id);
+        $order->update(['status'=>'active','extra_hour_price'=>60]);
+        $visit=$order->visits()->firstOrFail();
+        $before=(float)$visit->planned_hours;
+        $price=(float)$visit->visit_price;
+        $params=['id'=>$id,'visit'=>$visit->id];
+        $this->get(route('web.hourly.order',$id))->assertOk()->assertSee('data-extra-hour="'.$visit->id.'"',false);
+        $this->getJson(route('web.hourly.visit.extra-hour.quote',$params).'?hours=2')->assertOk()
+            ->assertJsonPath('data.amount',120)->assertJsonPath('data.ends_at',$visit->scheduled_end_at->copy()->addHours(2)->format('Y-m-d H:i'));
+        $this->assertEquals($before,$visit->fresh()->planned_hours);
+        $this->assertEquals($price,$visit->fresh()->visit_price);
+        $body=['hours'=>2,'request_token'=>(string)Str::uuid()];
+        $url=route('web.hourly.visit.extra-hour',$params);
+        $this->postJson($url,$body)->assertOk()->assertJsonPath('data.extra_hour.amount',120);
+        $this->postJson($url,$body)->assertOk();
+        $this->assertEquals($before+2,$visit->fresh()->planned_hours);
+        $this->assertEquals($price+120,$visit->fresh()->visit_price);
+        $this->customer(2);
+        $this->getJson(route('web.hourly.visit.extra-hour.quote',$params).'?hours=1')->assertNotFound();
+        $this->postJson($url,['hours'=>1])->assertNotFound();
+    }
+
+    public function test_website_extra_hours_rejects_closed_visits_and_invalid_quantities(): void
+    {
+        $booking=$this->fixture(); $this->customer();
+        $id=$this->postJson(route('web.hourly.store'),$booking)->assertCreated()->json('id');
+        $order=HourlyRentalOrder::findOrFail($id); $order->update(['status'=>'active']);
+        $visit=$order->visits()->firstOrFail();
+        $params=['id'=>$id,'visit'=>$visit->id];
+        $this->getJson(route('web.hourly.visit.extra-hour.quote',$params).'?hours=7')->assertUnprocessable();
+        $this->postJson(route('web.hourly.visit.extra-hour',$params),['hours'=>0])->assertUnprocessable();
+        $visit->update(['status'=>'completed']);
+        $this->getJson(route('web.hourly.visit.extra-hour.quote',$params).'?hours=1')->assertUnprocessable();
+        $this->postJson(route('web.hourly.visit.extra-hour',$params),['hours'=>1])->assertUnprocessable();
+    }
+    public function test_website_additional_worker_uses_saved_package_price_and_updates_only_selected_visit(): void
+    {
+        $booking=$this->fixture([],2); $this->secondWorker(); $this->customer();
+        HourlyPackage::whereKey($booking['hourly_package_id'])->update(['extra_worker_price'=>65]);
+        $id=$this->postJson(route('web.hourly.store'),$booking)->assertCreated()->json('id');
+        $order=HourlyRentalOrder::findOrFail($id); $order->update(['status'=>'active']);
+        $visits=$order->visits()->orderBy('visit_number')->get(); $visit=$visits[0];
+        $price=(float)$visit->visit_price; $total=(float)$order->total_amount;
+        HourlyPackage::whereKey($booking['hourly_package_id'])->update(['extra_worker_price'=>99]);
+        $params=['id'=>$id,'visit'=>$visit->id];
+        $page=route('web.hourly.order',['id'=>$id,'add_worker_visit'=>$visit->id]);
+        $this->get(route('web.hourly.order',$id))->assertOk()->assertSee($page.'#hourly-customer-add-worker',false);
+        $this->get($page)->assertOk()->assertSee('hourly-customer-add-worker');
+        $quote=$this->getJson(route('web.hourly.visit.additional-worker.preview',$params))->assertOk()
+            ->assertJsonPath('data.additional_fee',65)->json('data');
+        $body=['request_token'=>(string)Str::uuid(),'confirmed'=>1,'worker_id'=>$quote['workers'][0]['id'],
+            'expected_workers'=>$quote['current_workers'],'expected_price'=>$quote['current_price'],'expected_total'=>$quote['order_total']];
+        $url=route('web.hourly.visit.additional-worker.store',$params);
+        $this->postJson($url,$body)->assertOk()->assertJsonPath('data.additional_fee',65);
+        $this->postJson($url,$body)->assertOk()->assertJsonPath('data.replayed',true);
+        $this->assertEquals($price+65,$visit->fresh()->visit_price);
+        $this->assertEquals($total+65,$order->fresh()->total_amount);
+        $this->assertEquals(2,$visit->fresh()->workers_count);
+        $this->assertEquals(1,$visits[1]->fresh()->workers_count);
+        $this->customer(2);
+        $this->getJson(route('web.hourly.visit.additional-worker.preview',$params))->assertNotFound();
+        $this->postJson($url,$body)->assertNotFound();
+        $this->customer(); $visit->update(['status'=>'completed']);
+        $this->get(route('web.hourly.order',$id))->assertOk()->assertDontSee($page.'#hourly-customer-add-worker',false);
+    }
+
+    public function test_website_additional_worker_respects_zero_package_surcharge(): void
+    {
+        $booking=$this->fixture(); $this->secondWorker(); $this->customer();
+        HourlyPackage::whereKey($booking['hourly_package_id'])->update(['extra_worker_price'=>0]);
+        $id=$this->postJson(route('web.hourly.store'),$booking)->assertCreated()->json('id');
+        $order=HourlyRentalOrder::findOrFail($id); $order->update(['status'=>'active']);
+        $visit=$order->visits()->firstOrFail();
+        $this->getJson(route('web.hourly.visit.additional-worker.preview',['id'=>$id,'visit'=>$visit->id]))
+            ->assertOk()->assertJsonPath('data.additional_fee',0);
+    }
+    public function test_external_website_api_supports_extra_hours_and_additional_workers(): void
+    {
+        $booking=$this->fixture(); $this->secondWorker(); $this->customer();
+        $id=$this->postJson(route('web.hourly.store'),$booking)->assertCreated()->json('id');
+        $order=HourlyRentalOrder::findOrFail($id); $order->update(['status'=>'active','extra_worker_price'=>65,'extra_hour_price'=>40]);
+        $visit=$order->visits()->firstOrFail();
+        $this->actingAs(User::findOrFail(1),'api');
+        $base='/api/client/hourly/orders/'.$id;
+        $this->getJson($base)->assertOk()->assertJsonPath('data.visits.0.can_request_additional_worker',true);
+        $url=$base.'/visits/'.$visit->id;
+        $this->getJson($url.'/extra-hour?hours=1')->assertOk()->assertJsonPath('data.amount',40);
+        $this->postJson($url.'/extra-hour',['hours'=>1,'request_token'=>(string)Str::uuid()])->assertOk();
+        $quote=$this->getJson($url.'/additional-worker')->assertOk()->assertJsonPath('data.additional_fee',65)->json('data');
+        $this->postJson($url.'/additional-worker',['request_token'=>(string)Str::uuid(),'confirmed'=>true,
+            'worker_id'=>$quote['workers'][0]['id'],'expected_workers'=>$quote['current_workers'],
+            'expected_price'=>$quote['current_price'],'expected_total'=>$quote['order_total']])->assertOk();
+        $this->assertEquals(2,$visit->fresh()->workers_count);
+        $this->actingAs(User::findOrFail(2),'api');
+        $this->getJson($url.'/extra-hour?hours=1')->assertNotFound();
+        $this->getJson($url.'/additional-worker')->assertNotFound();
+    }
+    public function test_unassigned_team_capacity_matches_panel_and_returns_after_cancellation(): void
+    {
+        $booking=$this->fixture(['auto_assign'=>['web_app'=>false]]); $this->customer();
+        HourlyPackage::whereKey($booking['hourly_package_id'])->update(['start_times'=>['08:00'=>'all']]);
+        $id=$this->postJson(route('web.hourly.store'),$booking)->assertCreated()->json('id');
+        $visit=HourlyRentalOrder::findOrFail($id)->visits()->firstOrFail();
+        $this->assertSame(0,$visit->workers()->count());
+        // Older or manually scheduled visits may hold team capacity without a named reservation.
+        DB::table('hourly_visit_reservations')->where('hourly_visit_id',$visit->id)->delete();
+        $query=['hourly_package_id'=>$booking['hourly_package_id'],'district_id'=>$booking['district_id'],'date'=>'2030-01-07','workers_per_visit'=>1];
+        $panelRequest=\Illuminate\Http\Request::create('/panel/add-order/availability','POST',$query+['address_mode'=>'existing','user_id'=>1,'address_id'=>$booking['address_id']]);
+        $panel=app(\App\Http\Controllers\Hourly\PanelBookingController::class)->availability($panelRequest,app(\App\Services\Hourly\PanelBookingService::class))->getData(true);
+        $this->assertFalse($panel[0]['available']);
+        $this->getJson(route('web.hourly.slots',$query))->assertOk()->assertJsonCount(0,'data');
+        $visit->update(['status'=>'cancelled_by_client']);
+        $this->getJson(route('web.hourly.slots',$query))->assertOk()->assertJsonCount(1,'data');
+    }
+
+    public function test_named_reservations_are_not_subtracted_twice_and_unassigned_demand_keeps_remaining_capacity(): void
+    {
+        $booking=$this->fixture(['auto_assign'=>['web_app'=>false]]); $this->secondWorker(); $this->customer();
+        HourlyPackage::whereKey($booking['hourly_package_id'])->update(['start_times'=>['08:00'=>'all']]);
+        $id=$this->postJson(route('web.hourly.store'),$booking)->assertCreated()->json('id');
+        $visit=HourlyRentalOrder::findOrFail($id)->visits()->firstOrFail();
+        $this->assertSame(1,DB::table('hourly_visit_reservations')->where('hourly_visit_id',$visit->id)->count());
+        $query=['hourly_package_id'=>$booking['hourly_package_id'],'district_id'=>$booking['district_id'],'date'=>'2030-01-07','workers_per_visit'=>1];
+        $this->getJson(route('web.hourly.slots',$query))->assertOk()->assertJsonCount(1,'data');
+        $this->getJson(route('web.hourly.slots',['workers_per_visit'=>2]+$query))->assertOk()->assertJsonCount(0,'data');
+        DB::table('hourly_visit_reservations')->where('hourly_visit_id',$visit->id)->delete();
+        $this->getJson(route('web.hourly.slots',$query))->assertOk()->assertJsonCount(1,'data');
+        $this->getJson(route('web.hourly.slots',['workers_per_visit'=>2]+$query))->assertOk()->assertJsonCount(0,'data');
+    }
+    public function test_automatic_driver_assignment_excludes_residency_expiring_before_the_task_and_explains_failure(): void
+    {
+        $booking=$this->fixture(['auto_assign_driver'=>['web_app'=>true]]);$this->driverLocations();$this->customer();
+        Schema::table('hourly_drivers',fn(Blueprint $t)=>$t->date('residency_expiry_date')->nullable());
+        // Driver 2 is nearest and valid today, but not on tomorrow's visit date.
+        DB::table('hourly_drivers')->where('id',2)->update(['residency_expiry_date'=>today()->toDateString()]);
+        DB::table('hourly_drivers')->where('id',3)->update(['residency_expiry_date'=>'2030-01-07']);
+        $id=$this->postJson(route('web.hourly.store'),$booking)->assertCreated()->json('id');
+        $visit=HourlyRentalOrder::findOrFail($id)->visits()->firstOrFail();
+        $this->assertEquals(3,$visit->delivery_driver_id);$this->assertEquals(3,$visit->pickup_driver_id);
+        // Reassigning an unassigned task must explain why all available GPS candidates are excluded.
+        $visit->update(['delivery_driver_id'=>null,'pickup_driver_id'=>null]);
+        DB::table('hourly_drivers')->where('id',3)->update(['residency_expiry_date'=>today()->toDateString()]);
+        try {
+            app(\App\Services\Hourly\NearestDriverAssignment::class)->assign($visit,false);
+            $this->fail('Expired residency at task date must prevent automatic assignment.');
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            $this->assertStringContainsString('تنتهي إقامته',implode(' ',\Illuminate\Support\Arr::flatten($e->errors())));
+        }
+        $this->assertNull($visit->fresh()->delivery_driver_id);
+    }
+
+    public function test_driver_badge_distinguishes_expired_residency_from_upcoming_expiry(): void
+    {
+        $driver=(new HourlyDriver)->forceFill(['name'=>'Driver','residency_expiry_date'=>'2030-01-05']);
+        $this->assertNotNull($driver->residencyAssignmentReason());
+        $html=view('admin.hourly_drivers._assignment-eligibility',compact('driver'))->render();
+        $this->assertStringContainsString('غير مؤهل للإسناد — الإقامة منتهية',$html);
+        $this->assertStringContainsString('2030-01-05',$html);
+        $driver->residency_expiry_date='2030-01-08';
+        $this->assertNull($driver->residencyAssignmentReason());
+        $this->assertNull($driver->residencyAssignmentReason(Carbon::parse('2030-01-08 23:59:59')));
+        $this->assertNotNull($driver->residencyAssignmentReason(Carbon::parse('2030-01-09 00:00:00')));
+        $html=view('admin.hourly_drivers._assignment-eligibility',compact('driver'))->render();
+        $this->assertStringContainsString('data-driver-residency="expiring"',$html);
+        $this->assertStringContainsString('2030-01-08',$html);
+    }
+    private function coverageStoppedOrder(): array
+    {
+        $booking=$this->fixture([],4);$this->customer();
+        $order=HourlyRentalOrder::findOrFail($this->postJson(route('web.hourly.store'),$booking)->assertCreated()->json('id'));
+        $order->visits()->update(['visit_price'=>100]);
+        $first=$order->visits()->orderBy('visit_number')->firstOrFail();
+        $first->update(['status'=>'completed']);
+        $order->update(['status'=>'active','total_amount'=>400,'paid_amount'=>400,'payment_status'=>'paid']);
+        $order->payments()->create(['user_id'=>$order->user_id,'public_id'=>(string)Str::uuid(),'method'=>'cash','amount'=>400,'status'=>'paid','paid_at'=>now()]);
+        DB::table('hourly_category_district')->where('service_category_id',$order->service_category_id)->update(['is_active'=>false]);
+        return [$order,$first];
+    }
+
+    public function test_coverage_failure_refunds_three_unused_visits_without_touching_completed_visit(): void
+    {
+        [$order,$first]=$this->coverageStoppedOrder();
+        $this->get(route('web.hourly.order',$order->id))->assertOk()->assertSee('توقف التغطية');
+        $service=app(\App\Services\Hourly\MissedVisitRecovery::class);
+        $before=(float)User::findOrFail(1)->hourly_wallet_balance;
+        foreach($order->visits()->where('status','unscheduled')->get() as $visit){
+            $token=(string)Str::uuid();
+            $this->postJson(route('web.hourly.visit.recovery',[$order->id,$visit->id]),['type'=>'refund','request_token'=>$token])
+                ->assertOk()->assertJsonPath('data.reason_code','coverage_unavailable');
+            $review=['request_id'=>$token,'decision'=>'approve','verified_non_execution'=>true,'reason'=>'Coverage withdrawn by company'];
+            $this->assertEquals(100,$service->review($order,$visit->id,$review,7)['refunded_amount']);
+            $service->review($order,$visit->id,$review,7);
+            $this->assertSame('cancelled',$visit->fresh()->status);
+            $this->assertEquals(0,$visit->fresh()->cancellation_fee);
+        }
+        $this->assertSame('completed',$first->fresh()->status);
+        $this->assertEquals(100,$order->fresh()->total_amount);
+        $this->assertEquals(100,$order->fresh()->paid_amount);
+        $this->assertEquals($before+300,User::findOrFail(1)->hourly_wallet_balance);
+        $this->assertSame(3,$order->payments()->where('amount',-100)->count());
+    }
+
+    public function test_coverage_failure_preserves_unused_visits_past_expiry_and_reschedules_only_after_service_returns(): void
+    {
+        [$order,$first]=$this->coverageStoppedOrder();
+        $order->update(['expires_at'=>'2030-01-05 23:59:59']);
+        $this->artisan('hourly:expire-orders')->assertExitCode(0);
+        $this->assertSame('active',$order->fresh()->status);
+        $this->assertSame(3,$order->visits()->where('status','unscheduled')->count());
+        $visit=$order->visits()->where('status','unscheduled')->firstOrFail();
+        $token=(string)Str::uuid();
+        $this->postJson(route('web.hourly.visit.recovery',[$order->id,$visit->id]),[
+            'type'=>'reschedule','request_token'=>$token,'requested_start'=>'2030-01-10T08:00'])->assertOk();
+        $review=['request_id'=>$token,'decision'=>'approve','verified_non_execution'=>true,'reason'=>'Coverage restored'];
+        $service=app(\App\Services\Hourly\MissedVisitRecovery::class);
+        try{$service->review($order,$visit->id,$review,7);$this->fail('Uncovered address must not be approved');}
+        catch(\Illuminate\Validation\ValidationException $e){$this->assertSame('unscheduled',$visit->fresh()->status);}
+        DB::table('hourly_category_district')->where('service_category_id',$order->service_category_id)->update(['is_active'=>true]);
+        $service->review($order,$visit->id,$review,7);
+        $this->assertSame('scheduled',$visit->fresh()->status);
+        $this->assertTrue($order->fresh()->expires_at->gte($visit->fresh()->scheduled_end_at));
+        $this->assertEquals(400,$order->fresh()->paid_amount);
+        $this->assertEquals(400,$order->fresh()->total_amount);
+        $this->assertSame('completed',$first->fresh()->status);
+    }
+
+    public function test_already_expired_unused_visit_can_be_refunded_for_coverage_failure_but_covered_visit_cannot(): void
+    {
+        [$order,$first]=$this->coverageStoppedOrder();
+        $visit=$order->visits()->where('status','unscheduled')->firstOrFail();
+        $order->visits()->where('status','unscheduled')->update(['status'=>'expired']);$order->update(['status'=>'expired']);
+        $token=(string)Str::uuid();
+        $this->postJson(route('web.hourly.visit.recovery',[$order->id,$visit->id]),['type'=>'refund','request_token'=>$token])->assertOk();
+        $result=app(\App\Services\Hourly\MissedVisitRecovery::class)->review($order,$visit->id,[
+            'request_id'=>$token,'decision'=>'approve','verified_non_execution'=>true,'reason'=>'Company coverage failure'],7);
+        $this->assertEquals(100,$result['refunded_amount']);
+        $this->assertSame('completed',$first->fresh()->status);
+        $this->assertSame('expired',$order->fresh()->status);
+        DB::table('hourly_category_district')->where('service_category_id',$order->service_category_id)->update(['is_active'=>true]);
+        $other=$order->visits()->where('status','expired')->firstOrFail();
+        $this->postJson(route('web.hourly.visit.recovery',[$order->id,$other->id]),[
+            'type'=>'refund','request_token'=>(string)Str::uuid()])->assertUnprocessable();
+    }
+
+    public function test_admin_replaces_worker_directly_only_when_customer_selection_is_disabled_and_notifies_once(): void
+    {
+        $booking=$this->fixture(['customer_worker_selection'=>false],2);$this->secondWorker();$this->customer();
+        $order=HourlyRentalOrder::findOrFail($this->postJson(route('web.hourly.store'),$booking)->assertCreated()->json('id'));
+        $order->update(['status'=>'active']);$visit=$order->visits()->orderBy('visit_number')->firstOrFail();
+        $visit->workers()->sync([1]);$before=$visit->visit_price;$total=$order->total_amount;$paid=$order->paid_amount;
+        $this->mock(\App\Services\Hourly\CustomerTrackingPushService::class,function($mock)use($visit){
+            $mock->shouldReceive('notify')->once()->with($visit->id,'worker_replaced');
+        });
+        $body=['worker_id'=>1,'replacement_worker_id'=>2,'reason'=>'Verified emergency - private reason'];
+        $visit->workers()->sync([1]);$url=route('admin.hourly-workers.replace',[$order->id,$visit->id]);
+        $this->post($url,$body)->assertRedirect()->assertSessionHasNoErrors();
+        $this->post($url,$body)->assertRedirect()->assertSessionHasNoErrors();
+        $this->assertSame([2],$visit->workers()->pluck('maids.id')->all());
+        $this->assertEquals($before,$visit->fresh()->visit_price);$this->assertEquals($total,$order->fresh()->total_amount);
+        $this->assertEquals($paid,$order->fresh()->paid_amount);$this->assertSame(1,(int)$visit->fresh()->workers_count);
+        $this->assertSame(1,DB::table('hourly_order_audits')->where('action','worker_replaced')->count());
+        $this->assertSame('scheduled',$visit->fresh()->status);
+        $this->assertSame('unscheduled',$order->visits()->where('id','!=',$visit->id)->first()->status);
+        $public=app(\App\Services\Hourly\CustomerHourlyData::class)->visit($visit->fresh(),$order->fresh());
+        $this->assertNotNull($public['worker_replaced_at']);
+        $this->assertStringNotContainsString('Verified emergency',json_encode($public));
+        $this->get(route('web.hourly.order',$order->id))->assertOk()->assertSee('تم توفير عاملة بديلة لهذه الزيارة');
+    }
+
+    public function test_admin_replacement_rejects_customer_selection_unavailable_workers_and_started_visits(): void
+    {
+        $booking=$this->fixture(['customer_worker_selection'=>true]);$this->secondWorker();$this->customer();
+        $order=HourlyRentalOrder::findOrFail($this->postJson(route('web.hourly.store'),$booking)->assertCreated()->json('id'));
+        $order->update(['status'=>'active']);$visit=$order->visits()->firstOrFail();
+        $visit->workers()->sync([1]);$url=route('admin.hourly-workers.replace',[$order->id,$visit->id]);
+        $body=['worker_id'=>1,'replacement_worker_id'=>2,'reason'=>'Private operational reason'];
+        $this->postJson($url,$body)->assertUnprocessable();
+        HourlyCategorySetting::where('service_category_id',$order->service_category_id)->update(['settings'=>['customer_worker_selection'=>false]]);
+        app(\App\Services\Hourly\HourlyCategorySettings::class)->forget();
+        DB::table('hourly_worker_leaves')->insert(['maid_id'=>2,'starts_at'=>'2030-01-07 00:00:00','ends_at'=>'2030-01-08 00:00:00','is_active'=>true]);
+        $this->postJson($url,$body)->assertUnprocessable();
+        $this->assertSame([1],$visit->workers()->pluck('maids.id')->all());
+        DB::table('hourly_worker_leaves')->delete();$visit->update(['status'=>'en_route']);
+        $this->postJson($url,$body)->assertUnprocessable();
+        $this->assertSame([1],$visit->workers()->pluck('maids.id')->all());
+        $this->assertSame(0,DB::table('hourly_order_audits')->where('action','worker_replaced')->count());
+    }
+    private function incidentFixture(bool $selection=true): array
+    {
+        (require base_path('database/migrations/2026_10_18_000003_create_hourly_service_incidents.php'))->up();
+        $booking=$this->fixture(['customer_worker_selection'=>$selection],2);$this->secondWorker();$this->customer();
+        $order=HourlyRentalOrder::findOrFail($this->postJson(route('web.hourly.store'),$booking)->assertCreated()->json('id'));
+        $order->update(['status'=>'active','paid_amount'=>200,'total_amount'=>200,'payment_status'=>'paid']);$order->visits()->update(['visit_price'=>100]);
+        $visit=$order->visits()->orderBy('visit_number')->firstOrFail();$visit->workers()->sync([1]);
+        $order->payments()->create(['user_id'=>1,'public_id'=>(string)Str::uuid(),'method'=>'cash','amount'=>200,'status'=>'paid','paid_at'=>now(),
+            'provider_payload'=>['visit_allocations'=>[$visit->id=>10000]]]);
+        $this->mock(\App\Services\Hourly\CustomerTrackingPushService::class,function($mock){$mock->shouldReceive('notify')->zeroOrMoreTimes();});
+        $service=app(\App\Services\Hourly\ServiceIncident::class);
+        $body=['request_token'=>(string)Str::uuid(),'category'=>'illness','note'=>'PRIVATE HEALTH DETAIL'];
+        $report=$service->report($visit->id,1,'worker',1,$body);
+        return [$order,$visit,$service,$report,$body];
+    }
+
+    private function approveIncident(int $id): void
+    {
+        $this->post(route('admin.hourly-incidents.review',$id),['decision'=>'approve','verified'=>true,
+            'unavailable_until'=>'2030-01-09T23:00','reason'=>'PRIVATE ADMIN VERIFICATION'])->assertRedirect()->assertSessionHasNoErrors();
+    }
+
+    public function test_incident_report_review_customer_replacement_and_privacy_are_end_to_end(): void
+    {
+        [$order,$visit,$service,$report,$body]=$this->incidentFixture();
+        $this->assertSame($report,$service->report($visit->id,1,'worker',1,$body));
+        $this->assertDatabaseCount('hourly_service_incidents',1);$this->assertDatabaseCount('hourly_worker_leaves',0);
+        $this->get(route('admin.hourly-incidents.index'))->assertOk()->assertSee('PRIVATE HEALTH DETAIL');
+        $this->postJson(route('admin.hourly-incidents.review',$report['id']),['decision'=>'approve','unavailable_until'=>'2030-01-09T23:00','reason'=>'test'])->assertUnprocessable();
+        $this->approveIncident($report['id']);$this->approveIncident($report['id']);
+        $this->assertDatabaseCount('hourly_worker_leaves',1);
+        $this->assertDatabaseHas('hourly_worker_leaves',['maid_id'=>1,'is_active'=>true]);
+        $this->get(route('web.hourly.order',$order->id))->assertOk()->assertSee('اختر بديلة متاحة')->assertDontSee('PRIVATE HEALTH DETAIL')->assertDontSee('PRIVATE ADMIN VERIFICATION');
+        $public=app(\App\Services\Hourly\CustomerHourlyData::class)->visit($visit->fresh(),$order->fresh());
+        $this->assertSame('awaiting_customer',$public['service_disruption']['status']);
+        $this->assertSame([2],array_column($public['service_disruption']['replacement_options'],'id'));
+        $this->assertFalse($public['can_cancel']);$this->assertFalse($public['can_reschedule']);
+        try{\App\Services\Hourly\DeliveryStartWindow::assertAllowed($visit->fresh());$this->fail('Execution held');}
+        catch(\Illuminate\Validation\ValidationException $e){$this->assertStringContainsString('بلاغ',$e->errors()['hourly'][0]);}
+        $url=route('web.hourly.visit.disruption.choose',[$order->id,$visit->id]);
+        $choice=['disruption_id'=>$public['service_disruption']['id'],'replacement_worker_id'=>2];
+        $this->customer(2);$this->postJson($url,$choice)->assertNotFound();$this->customer();
+        $this->postJson($url,$choice)->assertOk();$this->postJson($url,$choice)->assertOk();
+        $this->assertSame([2],$visit->workers()->pluck('maids.id')->all());
+        $this->assertSame('resolved',\App\Services\Hourly\ServiceIncident::state($order->fresh(),$visit->id)['status']);
+        $this->assertEquals(200,$order->fresh()->total_amount);$this->assertEquals(200,$order->fresh()->paid_amount);
+    }
+
+    public function test_incident_refund_preserves_other_visits_and_is_not_ordinary_cancellation(): void
+    {
+        [$order,$visit,$service,$report]=$this->incidentFixture();$this->approveIncident($report['id']);
+        $token=(string)Str::uuid();
+        try{app(\App\Services\Hourly\CustomerVisitActions::class)->cancel($visit);$this->fail('Incident cancellation must use recovery');}
+        catch(\Illuminate\Validation\ValidationException $e){$this->assertStringContainsString('بلاغ',$e->errors()['hourly'][0]);}
+        $this->postJson(route('web.hourly.visit.recovery',[$order->id,$visit->id]),['type'=>'refund','request_token'=>$token])->assertOk()->assertJsonPath('data.reason_code','service_incident');
+        $this->postJson(route('web.hourly.visit.disruption.choose',[$order->id,$visit->id]),[
+            'disruption_id'=>\App\Services\Hourly\ServiceIncident::state($order->fresh(),$visit->id)['id'],'replacement_worker_id'=>2])->assertUnprocessable();
+        $review=['request_id'=>$token,'decision'=>'approve','verified_non_execution'=>true,'reason'=>'Company could not fulfil visit'];
+        $before=(float)User::findOrFail(1)->hourly_wallet_balance;
+        $url=route('admin.hourly-recovery.review',[$order->id,$visit->id]);
+        $this->post($url,$review)->assertRedirect()->assertSessionHasNoErrors();$this->post($url,$review)->assertRedirect()->assertSessionHasNoErrors();
+        $this->assertSame('cancelled',$visit->fresh()->status);$this->assertEquals(0,$visit->fresh()->cancellation_fee);
+        $this->assertEquals($before+100,User::findOrFail(1)->hourly_wallet_balance);
+        $this->assertEquals(100,$order->fresh()->paid_amount);$this->assertEquals(100,$order->fresh()->total_amount);
+        $this->assertSame('unscheduled',$order->visits()->where('id','!=',$visit->id)->first()->status);
+    }
+
+    public function test_incident_reschedule_preserves_expired_credit_and_requires_available_workers(): void
+    {
+        [$order,$visit,$service,$report]=$this->incidentFixture();$this->approveIncident($report['id']);
+        $order->update(['expires_at'=>'2030-01-06 08:00:00']);Carbon::setTestNow('2030-01-06 09:00:00');
+        $this->artisan('hourly:expire-orders')->assertExitCode(0);$this->assertSame('active',$order->fresh()->status);
+        $token=(string)Str::uuid();
+        $this->postJson(route('web.hourly.visit.recovery',[$order->id,$visit->id]),[
+            'type'=>'reschedule','requested_start'=>'2030-01-08T08:00','request_token'=>$token])->assertOk();
+        $this->post(route('admin.hourly-recovery.review',[$order->id,$visit->id]),[
+            'request_id'=>$token,'decision'=>'approve','verified_non_execution'=>true,'reason'=>'New available visit'])->assertRedirect()->assertSessionHasNoErrors();
+        $this->assertSame('2030-01-08 08:00',$visit->fresh()->scheduled_start_at->format('Y-m-d H:i'));
+        $this->assertSame([2],$visit->workers()->pluck('maids.id')->all());
+        $this->assertEquals(200,$order->fresh()->paid_amount);$this->assertEquals(200,$order->fresh()->total_amount);
+        $this->assertTrue($order->fresh()->expires_at->gte($visit->fresh()->scheduled_end_at));
+        $this->assertSame('resolved',\App\Services\Hourly\ServiceIncident::state($order->fresh(),$visit->id)['status']);
+    }
+
+    public function test_incident_disabled_selection_uses_admin_replacement_and_running_incident_requires_manual_review(): void
+    {
+        [$order,$visit,$service,$report]=$this->incidentFixture(false);$this->approveIncident($report['id']);
+        $state=\App\Services\Hourly\ServiceIncident::state($order->fresh(),$visit->id);
+        $this->assertSame('awaiting_admin',$state['status']);
+        $this->postJson(route('web.hourly.visit.disruption.choose',[$order->id,$visit->id]),['disruption_id'=>$state['id'],'replacement_worker_id'=>2])->assertUnprocessable();
+        $this->post(route('admin.hourly-workers.replace',[$order->id,$visit->id]),[
+            'worker_id'=>1,'replacement_worker_id'=>2,'reason'=>'Verified operational replacement'])->assertRedirect()->assertSessionHasNoErrors();
+        $this->assertSame('resolved',\App\Services\Hourly\ServiceIncident::state($order->fresh(),$visit->id)['status']);
+        $visit->update(['status'=>'en_route']);
+        $report=$service->report($visit->id,2,'worker',2,['request_token'=>(string)Str::uuid(),'category'=>'accident','note'=>'PRIVATE EVENT']);
+        $this->approveIncident($report['id']);
+        $this->assertSame('manual_review',\App\Services\Hourly\ServiceIncident::state($order->fresh(),$visit->id)['status']);
+        $this->postJson(route('web.hourly.visit.recovery',[$order->id,$visit->id]),['type'=>'refund','request_token'=>(string)Str::uuid()])->assertUnprocessable();
+        $this->assertSame('en_route',$visit->fresh()->status);$this->assertEquals(200,$order->fresh()->paid_amount);
+    }
+    public function test_incident_rejection_does_not_hold_visit_and_lost_alternative_is_revalidated(): void
+    {
+        [$order,$visit,$service,$report]=$this->incidentFixture();
+        $this->post(route('admin.hourly-incidents.review',$report['id']),['decision'=>'reject','reason'=>'Not confirmed'])->assertRedirect()->assertSessionHasNoErrors();
+        $this->approveIncident($report['id']);
+        $this->assertDatabaseCount('hourly_worker_leaves',0);
+        $this->assertNull(\App\Services\Hourly\ServiceIncident::state($order->fresh(),$visit->id));
+        $report=$service->report($visit->id,1,'worker',1,['request_token'=>(string)Str::uuid(),'category'=>'illness','note'=>'Another verified report']);
+        $this->approveIncident($report['id']);
+        $state=\App\Services\Hourly\ServiceIncident::state($order->fresh(),$visit->id);
+        DB::table('hourly_worker_leaves')->insert(['maid_id'=>2,'starts_at'=>'2030-01-07 00:00:00','ends_at'=>'2030-01-08 00:00:00','is_active'=>true]);
+        $this->postJson(route('web.hourly.visit.disruption.choose',[$order->id,$visit->id]),[
+            'disruption_id'=>$state['id'],'replacement_worker_id'=>2])->assertUnprocessable();
+        $this->assertSame([1],$visit->workers()->pluck('maids.id')->all());$this->assertEquals(200,$order->fresh()->paid_amount);
+    }
+
+    public function test_incident_unpaid_cancellation_has_no_fee_or_wallet_credit(): void
+    {
+        [$order,$visit,$service,$report]=$this->incidentFixture();$order->payments()->delete();$order->update(['paid_amount'=>0,'payment_status'=>'unpaid']);
+        $this->approveIncident($report['id']);$token=(string)Str::uuid();$before=(float)User::findOrFail(1)->hourly_wallet_balance;
+        $this->postJson(route('web.hourly.visit.recovery',[$order->id,$visit->id]),['type'=>'refund','request_token'=>$token])->assertOk();
+        $this->post(route('admin.hourly-recovery.review',[$order->id,$visit->id]),[
+            'request_id'=>$token,'decision'=>'approve','verified_non_execution'=>true,'reason'=>'Confirmed company failure'])->assertRedirect()->assertSessionHasNoErrors();
+        $this->assertSame('cancelled',$visit->fresh()->status);$this->assertEquals(0,$visit->fresh()->cancellation_fee);
+        $this->assertEquals($before,User::findOrFail(1)->hourly_wallet_balance);$this->assertSame(0,$order->payments()->count());
+    }
+    public function test_incident_pending_payment_blocks_refund_and_rolls_back_entire_resolution(): void
+    {
+        [$order,$visit,$service,$report]=$this->incidentFixture();$this->approveIncident($report['id']);
+        $pending=$order->payments()->create(['user_id'=>1,'public_id'=>(string)Str::uuid(),'method'=>'moyasar','amount'=>100,'status'=>'pending']);
+        $token=(string)Str::uuid();$before=(float)User::findOrFail(1)->hourly_wallet_balance;
+        $this->postJson(route('web.hourly.visit.recovery',[$order->id,$visit->id]),['type'=>'refund','request_token'=>$token])->assertOk();
+        $review=['request_id'=>$token,'decision'=>'approve','verified_non_execution'=>true,'reason'=>'Confirmed company failure'];
+        $url=route('admin.hourly-recovery.review',[$order->id,$visit->id]);
+        $this->postJson($url,$review)->assertUnprocessable();
+        $this->assertSame('scheduled',$visit->fresh()->status);$this->assertEquals(200,$order->fresh()->paid_amount);
+        $this->assertEquals($before,User::findOrFail(1)->hourly_wallet_balance);
+        $this->assertSame('awaiting_customer',\App\Services\Hourly\ServiceIncident::state($order->fresh(),$visit->id)['status']);
+        $this->assertSame('pending',$order->fresh()->booking_metadata['missed_visit_requests'][$visit->id]['status']);
+        $pending->update(['status'=>'failed']);$this->post($url,$review)->assertRedirect()->assertSessionHasNoErrors();
+        $this->assertSame('cancelled',$visit->fresh()->status);$this->assertEquals($before+100,User::findOrFail(1)->hourly_wallet_balance);
+    }
+    private function paidMissedVisit(int $paid=100): array
+    {
+        $booking=$this->fixture([],2);$this->customer();
+        $id=$this->postJson(route('web.hourly.store'),$booking)->assertCreated()->json('id');
+        $order=HourlyRentalOrder::findOrFail($id);$order->visits()->update(['visit_price'=>100]);
+        $order->update(['status'=>'active','total_amount'=>200,'paid_amount'=>$paid]);
+        $visit=$order->visits()->orderBy('visit_number')->firstOrFail();
+        $order->payments()->create(['user_id'=>$order->user_id,'public_id'=>(string)Str::uuid(),'method'=>'cash','amount'=>$paid,'status'=>'paid',
+            'provider_payload'=>['visit_allocations'=>[$visit->id=>10000]],'paid_at'=>now()]);
+        Carbon::setTestNow('2030-01-08 07:00:00');
+        return [$order,$visit];
+    }
+
+    public function test_missed_visit_refund_returns_only_allocated_payment_once_and_keeps_other_visits(): void
+    {
+        [$order,$visit]=$this->paidMissedVisit();
+        $body=['type'=>'refund','request_token'=>(string)Str::uuid()];
+        $url=route('web.hourly.visit.recovery',[$order->id,$visit->id]);
+        $this->postJson($url,$body)->assertOk()->assertJsonPath('data.status','pending');
+        $this->postJson($url,$body)->assertOk();
+        $this->get(route('web.hourly.order',$order->id))->assertOk()->assertSee('قيد مراجعة الإدارة');
+        $service=app(\App\Services\Hourly\MissedVisitRecovery::class);
+        $review=['request_id'=>$body['request_token'],'decision'=>'approve','verified_non_execution'=>true,'reason'=>'تحققنا من عدم تنفيذ الخدمة'];
+        $before=(float)User::findOrFail(1)->hourly_wallet_balance;
+        $this->get(route('admin.hourly-recovery.index'))->assertOk()->assertSee($order->order_number);
+        $this->post(route('admin.hourly-recovery.review',[$order->id,$visit->id]),$review)->assertRedirect()->assertSessionHasNoErrors();
+        $result=$order->fresh()->booking_metadata['missed_visit_requests'][$visit->id];
+        $this->assertEquals(100,$result['refunded_amount']);
+        $this->assertSame('approved',$service->review($order,$visit->id,$review,7)['status']);
+        $this->assertEquals($before+100,User::findOrFail(1)->hourly_wallet_balance);
+        $this->assertSame('cancelled',$visit->fresh()->status);$this->assertEquals(0,$visit->fresh()->cancellation_fee);
+        $this->assertEquals(100,$order->fresh()->total_amount);$this->assertEquals(0,$order->fresh()->paid_amount);
+        $this->assertSame('active',$order->fresh()->status);
+        $this->assertSame('unscheduled',$order->visits()->where('id','!=',$visit->id)->first()->status);
+        $this->assertSame(1,$order->payments()->where('amount',-100)->count());
+    }
+
+    public function test_missed_visit_reschedule_preserves_price_and_extends_expired_validity_after_review(): void
+    {
+        [$order,$visit]=$this->paidMissedVisit(200);
+        $order->update(['status'=>'expired','expires_at'=>'2030-01-07 23:59:59']);
+        $body=['type'=>'reschedule','requested_start'=>'2030-01-10T08:00','request_token'=>(string)Str::uuid()];
+        $this->postJson(route('web.hourly.visit.recovery',[$order->id,$visit->id]),$body)->assertOk();
+        $service=app(\App\Services\Hourly\MissedVisitRecovery::class);
+        $result=$service->review($order,$visit->id,['request_id'=>$body['request_token'],'decision'=>'approve',
+            'verified_non_execution'=>true,'reason'=>'إعادة جدولة لتعذر تقديم الخدمة'],7);
+        $this->assertSame('approved',$result['status']);
+        $this->assertSame('2030-01-10 08:00',$visit->fresh()->scheduled_start_at->format('Y-m-d H:i'));
+        $this->assertEquals(100,$visit->fresh()->visit_price);$this->assertEquals(200,$order->fresh()->total_amount);
+        $this->assertEquals(200,$order->fresh()->paid_amount);$this->assertTrue($order->fresh()->expires_at->gte($visit->fresh()->scheduled_end_at));
+    }
+
+    public function test_missed_visit_request_ownership_validation_and_review_verification_are_enforced(): void
+    {
+        [$order,$visit]=$this->paidMissedVisit();$url=route('web.hourly.visit.recovery',[$order->id,$visit->id]);
+        $body=['type'=>'refund','request_token'=>(string)Str::uuid()];
+        $this->customer(2);$this->postJson($url,$body)->assertNotFound();$this->customer();
+        $this->postJson($url,['type'=>'reschedule','request_token'=>(string)Str::uuid()])->assertUnprocessable();
+        $this->postJson($url,$body)->assertOk();
+        $service=app(\App\Services\Hourly\MissedVisitRecovery::class);
+        try{$service->review($order,$visit->id,['request_id'=>$body['request_token'],'decision'=>'approve','reason'=>'test'],7);$this->fail('Verification required');}
+        catch(\Illuminate\Validation\ValidationException $e){$this->assertSame('scheduled',$visit->fresh()->status);}
+        $service->review($order,$visit->id,['request_id'=>$body['request_token'],'decision'=>'reject','reason'=>'الطلب يحتاج تحققًا إضافيًا'],7);
+        $this->assertEquals(100,$order->fresh()->paid_amount);$this->assertSame('scheduled',$visit->fresh()->status);
+        $this->get(route('web.hourly.order',$order->id))->assertOk()->assertSee('الطلب يحتاج تحققًا إضافيًا');
+    }
 }

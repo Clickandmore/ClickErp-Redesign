@@ -37,6 +37,24 @@
     .hms-option.is-disabled { opacity: .5; cursor: not-allowed; }
     .hms-option mark { padding: 0; background: #fef08a; color: inherit; border-radius: 2px; }
     .hms-empty { padding: 1rem; text-align: center; font-size: .82rem; color: #94a3b8; }
+
+    /* الوضع المضغوط: حقل بحجم select ولوحة منسدلة فوق المحتوى */
+    .hms-compact { overflow: visible; border-color: #dfe7ef; border-radius: 10px; }
+    .hms-compact:focus-within { box-shadow: none; }
+    .hms-compact.is-open { border-color: #a5b4fc; box-shadow: 0 0 0 3px rgba(104, 97, 238, .15); }
+    .hms-trigger { display: flex; align-items: center; gap: .45rem; width: 100%; min-height: 40px; padding: 0 .8rem; border: 0; background: none; text-align: start; font-size: .85rem; color: #64748b; border-radius: inherit; }
+    .hms-trigger:disabled { cursor: not-allowed; opacity: .6; }
+    .hms-summary { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .hms-compact.has-value { border-color: #9fd0f4; background: #f2f9ff; }
+    .hms-compact.has-value .hms-summary { color: #14507f; font-weight: 700; }
+    .hms-badge { flex: 0 0 auto; font-size: .72rem; color: #fff; background: #6861ee; border-radius: 999px; padding: .05rem .45rem; }
+    .hms-caret { flex: 0 0 auto; font-size: .7rem; color: #94a3b8; transition: transform .15s; }
+    .hms-compact.is-open .hms-caret { transform: rotate(180deg); }
+    .hms-panel { position: absolute; z-index: 40; top: calc(100% + 6px); inset-inline: 0; min-width: 270px; background: #fff; border: 1px solid #e2e8f0; border-radius: 12px; box-shadow: 0 16px 40px rgba(15, 23, 42, .14); overflow: hidden; }
+    .hms-panel[hidden] { display: none; }
+    .hms-panel .hms-bar { flex-wrap: wrap; }
+    .hms-panel .hms-search { flex-basis: 100%; }
+    .hms-panel .hms-count { margin-inline-end: auto; }
 </style>
 <script>
 (() => {
@@ -50,10 +68,12 @@
         if (select.dataset.hmsReady) return;
         select.dataset.hmsReady = '1';
 
+        // الوضع المضغوط (data-compact): حقل بحجم select يعرض ملخص الاختيار، وتفتح القائمة في لوحة منسدلة.
+        // مناسب لأشرطة الفلاتر؛ عند إغلاق اللوحة بعد تغيير الاختيار يُطلق hms:commit على الـ select.
+        const compact = select.hasAttribute('data-compact');
         const root = document.createElement('div');
-        root.className = 'hms';
-        root.innerHTML =
-            '<div class="hms-tags"></div>' +
+        root.className = 'hms' + (compact ? ' hms-compact' : '');
+        const body =
             '<div class="hms-bar">' +
                 '<div class="hms-search"><i class="fa fa-magnifying-glass"></i><input type="search" autocomplete="off"></div>' +
                 '<span class="hms-count"></span>' +
@@ -61,6 +81,10 @@
                 '<button type="button" class="hms-link" data-act="none">إلغاء</button>' +
             '</div>' +
             '<div class="hms-list" role="group"></div>';
+        root.innerHTML = compact
+            ? '<button type="button" class="hms-trigger" aria-haspopup="true" aria-expanded="false"><span class="hms-summary"></span><b class="hms-badge" hidden></b><i class="fa fa-chevron-down hms-caret"></i></button>' +
+              '<div class="hms-tags" hidden></div><div class="hms-panel" hidden>' + body + '</div>'
+            : '<div class="hms-tags"></div>' + body;
         select.parentNode.insertBefore(root, select);
         root.appendChild(select);
         select.classList.add('hms-native');
@@ -69,12 +93,33 @@
 
         const tags = root.querySelector('.hms-tags'), list = root.querySelector('.hms-list'), search = root.querySelector('.hms-search input');
         const count = root.querySelector('.hms-count'), allBtn = root.querySelector('[data-act="all"]'), noneBtn = root.querySelector('[data-act="none"]');
+        const trigger = root.querySelector('.hms-trigger'), panel = root.querySelector('.hms-panel');
         const label = select.id ? document.querySelector('label[for="' + select.id + '"]') : null;
-        search.placeholder = select.dataset.placeholder || 'ابحث في الخيارات…';
+        search.placeholder = compact ? 'ابحث…' : (select.dataset.placeholder || 'ابحث في الخيارات…');
         search.setAttribute('aria-label', 'بحث' + (label ? ' في ' + label.textContent.trim() : ''));
         list.setAttribute('aria-label', label ? label.textContent.trim() : 'الخيارات');
-        if (label) label.addEventListener('click', e => { e.preventDefault(); search.focus(); });
         let showAllTags = false;
+
+        let openedWith = null;
+        const picked = () => options().filter(o => o.selected).map(o => o.value).join(',');
+        const setOpen = open => {
+            if (!compact || open === !panel.hidden) return;
+            panel.hidden = !open;
+            root.classList.toggle('is-open', open);
+            trigger.setAttribute('aria-expanded', String(open));
+            if (open) { openedWith = picked(); search.focus(); return; }
+            search.value = '';
+            render();
+            if (openedWith !== null && openedWith !== picked()) select.dispatchEvent(new CustomEvent('hms:commit', {bubbles: true}));
+            openedWith = null;
+        };
+        if (compact) {
+            trigger.addEventListener('click', () => setOpen(panel.hidden));
+            document.addEventListener('click', e => { if (!root.contains(e.target)) setOpen(false); });
+            root.addEventListener('keydown', e => { if (e.key === 'Escape' && !panel.hidden && !search.value) { setOpen(false); trigger.focus(); } });
+            root.addEventListener('focusout', e => { if (e.relatedTarget && !root.contains(e.relatedTarget)) setOpen(false); });
+        }
+        if (label) label.addEventListener('click', e => { e.preventDefault(); compact ? setOpen(true) : search.focus(); });
 
         const options = () => Array.from(select.options).filter(o => !o.hidden && o.value !== '');
         const visible = () => {
@@ -93,6 +138,17 @@
             allBtn.disabled = select.disabled || !shown.some(o => !o.selected && !o.disabled);
             noneBtn.disabled = select.disabled || !selected.some(o => !o.disabled);
             search.disabled = select.disabled;
+            if (compact) {
+                // الملخص: النص الافتراضي بلا اختيار، وأسماء الاختيار إن كانت قليلة، وإلا أول اسم وعدد الباقي.
+                const names = selected.map(o => o.textContent.trim());
+                const summary = root.querySelector('.hms-summary'), badge = root.querySelector('.hms-badge');
+                summary.textContent = !names.length ? (select.dataset.placeholder || 'الكل') : names.length <= 2 ? names.join('، ') : names[0] + '، ' + names[1];
+                summary.title = names.join('، ');
+                root.classList.toggle('has-value', names.length > 0);
+                badge.hidden = names.length <= 2;
+                badge.textContent = '+' + (names.length - 2);
+                trigger.disabled = select.disabled;
+            }
 
             tags.replaceChildren();
             const tagList = showAllTags ? selected : selected.slice(0, MAX_TAGS);

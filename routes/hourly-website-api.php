@@ -37,6 +37,14 @@ Route::prefix('client/hourly')->name('api.client.hourly.')
                 Route::post('orders/{id}/visits/{visit}/schedule', [ClientController::class, 'schedule'])->whereNumber('id')->whereNumber('visit')->middleware('throttle:20,1')->name('visits.schedule');
                 Route::post('orders/{id}/visits/{visit}/reschedule', [ClientController::class, 'reschedule'])->whereNumber('id')->whereNumber('visit')->middleware('throttle:20,1')->name('visits.reschedule');
                 Route::post('orders/{id}/visits/{visit}/cancel', [ClientController::class, 'cancel'])->whereNumber('id')->whereNumber('visit')->middleware('throttle:10,1')->name('visits.cancel');
+                Route::get('orders/{id}/visits/{visit}/extra-hour', [ClientController::class, 'extraHourQuote'])->whereNumber('id')->whereNumber('visit')->middleware('throttle:30,1')->name('visits.extra-hour.quote');
+                Route::post('orders/{id}/visits/{visit}/extra-hour', [ClientController::class, 'extraHour'])->whereNumber('id')->whereNumber('visit')->middleware('throttle:10,1')->name('visits.extra-hour');
+                Route::get('orders/{id}/visits/{visit}/additional-worker', [\App\Http\Controllers\Hourly\AdditionalWorkerController::class, 'preview'])->whereNumber('id')->whereNumber('visit')->middleware('throttle:30,1')->name('visits.additional-worker.preview');
+                Route::post('orders/{id}/visits/{visit}/additional-worker', [\App\Http\Controllers\Hourly\AdditionalWorkerController::class, 'store'])->whereNumber('id')->whereNumber('visit')->middleware('throttle:10,1')->name('visits.additional-worker.store');
+                Route::get('orders/{id}/visits/{visit}/alternatives',[\App\Http\Controllers\Hourly\ServiceIncidentController::class,'alternatives'])->whereNumber('id')->whereNumber('visit')->name('visits.alternatives');
+                Route::post('orders/{id}/visits/{visit}/choose-replacement',[\App\Http\Controllers\Hourly\ServiceIncidentController::class,'choose'])->whereNumber('id')->whereNumber('visit')->middleware('throttle:10,1')->name('visits.disruption.choose');
+                Route::post('orders/{id}/visits/{visit}/recovery',[\App\Http\Controllers\Hourly\MissedVisitRecoveryController::class,'store'])->whereNumber('id')->whereNumber('visit')->middleware('throttle:10,1')->name('visits.recovery');
+                Route::post('orders/{id}/visits/{visit}/early-finishes/{finish}/respond',[\App\Http\Controllers\Hourly\EarlyFinishController::class,'respond'])->whereNumber('id')->whereNumber('visit')->whereNumber('finish')->middleware('throttle:10,1')->name('visits.early-finish');
                 Route::get('cash-receipts/{collection}', [CashCollectionController::class, 'customerReceipt'])->whereNumber('collection')->name('cash-receipts.show');
             });
         });

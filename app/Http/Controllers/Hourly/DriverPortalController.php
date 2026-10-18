@@ -26,10 +26,16 @@ class DriverPortalController extends Controller
 
         $base = HourlyVisit::query()
             ->where(fn ($query) => $query->where('delivery_driver_id', $driver->id)->orWhere('pickup_driver_id', $driver->id))
-            ->whereHas('order', fn ($query) => $query->where('status', 'active'));
+            ->where(fn($query)=>$query->whereHas('order', fn ($order) => $order->where('status', 'active'))
+                ->orWhereIn('status',\App\Services\Hourly\DriverAppService::ONGOING));
 
         $visits = (clone $base)
-            ->whereDate('scheduled_start_at', $selectedDate)
+            ->where(function($query)use($selectedDate){
+                $query->whereDate('scheduled_start_at',$selectedDate);
+                if($selectedDate->isToday()) $query->orWhere(fn($running)=>$running
+                    ->whereIn('status',\App\Services\Hourly\DriverAppService::ONGOING)
+                    ->where('scheduled_start_at','<',$selectedDate));
+            })
             ->with(['order.user:id,name,phone', 'order.serviceCategory', 'workers:id,name'])
             ->orderBy('scheduled_start_at')->orderBy('id')->get();
 
@@ -51,6 +57,7 @@ class DriverPortalController extends Controller
         $driver = auth('hourly_driver')->user();
         $data = $request->validate([
             'action' => ['required', Rule::in(['start_delivery', 'confirm_delivery', 'confirm_pickup', 'complete'])],
+            'delivery_code'=>['nullable','string','max:100'],
             'cash_amount'=>['nullable','numeric','min:0','max:100000'], 'request_token'=>['required_with:cash_amount','nullable','uuid'],
             'date' => ['nullable', 'date_format:Y-m-d'],
             'month' => ['nullable', 'date_format:Y-m'],
@@ -71,11 +78,13 @@ class DriverPortalController extends Controller
             }
 
             if ($data['action'] === 'start_delivery') \App\Services\Hourly\DeliveryStartWindow::assertAllowed($visit);
+            if ($data['action'] === 'confirm_delivery') \App\Services\Hourly\DeliveryCode::assertValid($visit,$data['delivery_code']??null);
             if ($data['action']==='confirm_delivery' && (float)($data['cash_amount']??0)>0) {
                 app(\App\Services\Hourly\CashCollectionService::class)->collect($visit,'driver',(int)$driver->id,(float)$data['cash_amount'],$data['request_token']);
             }
             $before = $visit->getAttributes();
             $visit->update(['status' => $to]);
+            if($to==='delivered')\App\Services\Hourly\ServiceTime::recordDelivery($visit);
             if (Schema::hasTable('hourly_order_audits')) {
                 DB::table('hourly_order_audits')->insert([
                     'hourly_rental_order_id' => $order->id,

@@ -85,7 +85,7 @@
         if(select.value==='assign_workers')refreshWorkers();
     }
     boxes().forEach(b=>b.addEventListener('change',()=>{count();if(select.value==='assign_driver')driverSchedule();if(select.value==='assign_workers')refreshWorkers();}));
-    document.getElementById('select-all-visits').onchange=e=>{boxes().forEach(b=>b.checked=e.target.checked);count();if(select.value==='assign_driver')driverSchedule();if(select.value==='assign_workers')refreshWorkers();};
+    document.getElementById('select-all-visits').onchange=e=>{boxes().forEach(b=>b.checked=e.target.checked&&!b.closest('[hidden]'));count();if(select.value==='assign_driver')driverSchedule();if(select.value==='assign_workers')refreshWorkers();};
     const modal=document.getElementById('order-operation-modal'),title=document.getElementById('operation-modal-title'),icon=document.getElementById('operation-modal-icon');
     // المودال مُنشأ بجوار شريط إجراءات الزيارات داخل تبويب التفاصيل. انقله إلى body
     // حتى لا يرث display:none عند فتح الطلب مباشرة على تبويب آخر مثل سجل الدفعات.

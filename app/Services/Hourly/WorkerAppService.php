@@ -63,7 +63,7 @@ class WorkerAppService
     {
         $day = Carbon::parse($date ?: now()->toDateString())->toDateString();
         $rows = $this->visitQuery($maid)->whereDate('v.scheduled_start_at', $day)
-            ->select('w.id as worker_visit_id', 'w.status as worker_status', 'w.arrived_at', 'w.finished_at', 'o.hours_per_visit as order_hours', 'o.package_snapshot as order_snapshot', 'v.*')
+            ->select('w.id as worker_visit_id', 'w.status as worker_status', 'w.arrived_at', 'w.finished_at', 'o.hours_per_visit as order_hours', 'o.package_snapshot as order_snapshot', 'o.booking_metadata as order_metadata', 'v.*')
             ->orderBy('v.scheduled_start_at')->get();
         $drivers = HourlyDriver::withTrashed()->whereIn('id', $rows->pluck('delivery_driver_id')->merge($rows->pluck('pickup_driver_id'))->filter()->unique())
             ->pluck('name', 'id');
@@ -73,6 +73,12 @@ class WorkerAppService
         $cashVisits=CashCollectionService::ready()?HourlyVisit::with(['workers','order'])->whereIn('id',$rows->pluck('id'))->get()->keyBy('id'):collect();
         return $rows->map(function ($row) use ($drivers, $needsTransport, $maid, $cash, $cashVisits) {
             $status = $row->worker_status ?: (self::FROM_VISIT[$row->status] ?? 'assigned');
+            $meta=json_decode($row->order_metadata??'{}',true)??[];
+            $incidentStatus=$meta['service_disruptions'][$row->id]['status']??null;
+            $held=in_array($incidentStatus,ServiceIncident::WAITING,true);
+            $timeVisit=(new HourlyVisit)->setRawAttributes((array)$row);
+            $timeVisit->setRelation('order',(new HourlyRentalOrder)->forceFill(['id'=>$row->hourly_rental_order_id,'booking_metadata'=>$meta]));
+            $timeWorker=(object)['id'=>$row->worker_visit_id,'status'=>$row->worker_status,'arrived_at'=>$row->arrived_at,'finished_at'=>$row->finished_at];
             return [
                 'id' => (int) $row->worker_visit_id, 'visit_id' => (int) $row->id, 'visit_number' => (int) $row->visit_number,
                 'status' => $status, 'visit_status' => $row->status,
@@ -87,8 +93,13 @@ class WorkerAppService
                 'latitude' => (float) $row->latitude, 'longitude' => (float) $row->longitude,
                 'driver' => isset($drivers[$row->delivery_driver_id]) ? ['id' => (int) $row->delivery_driver_id, 'name' => $drivers[$row->delivery_driver_id]] : null,
                 'needs_transport' => $needsTransport,
-                'can_arrive' => !$needsTransport && in_array($status, ['assigned', 'en_route'], true),
+                'incident_status'=>$incidentStatus,
+                'can_arrive' => !$held && !$needsTransport && in_array($status, ['assigned', 'en_route'], true),
                 'can_finish' => $status === 'delivered',
+                // نهاية الخدمة المتوقعة من وقت الوصول؛ «انتهيت» قبلها إنهاء مبكر يطلب التطبيق له سببًا من early_finish_reasons.
+                'planned_end_at' => $status === 'delivered' ? $this->plannedEnd($row) : null,
+                'early_finish_reasons' => EarlyFinish::REASONS,
+                'service_time' => app(ServiceTime::class)->workerData($timeVisit,$timeWorker),
                 'financial'=>isset($cashVisits[$row->id])?app(PaymentScheduleService::class)->forOrder($cashVisits[$row->id]->order)['visits'][$row->id]??null:null,
                 'cash'=>isset($cashVisits[$row->id])?$cash->info($cashVisits[$row->id],'worker',(int)$maid->id):['enabled'=>false,'can_collect'=>false],
             ];
@@ -102,10 +113,13 @@ class WorkerAppService
         return $this->act($maid, $workerVisitId, ['assigned', 'en_route'], 'delivered', 'arrived_at', 'delivered', $gps, null);
     }
 
-    /** «انتهيت»: تنتهي العاملة، ويُنشأ طلب الاستلام للسائق. */
-    public function finish(Maid $maid, int $workerVisitId, ?string $note, array $gps = []): array
+    /**
+     * «انتهيت»: تنتهي العاملة، ويُنشأ طلب الاستلام للسائق.
+     * الإنهاء قبل اكتمال مدة الخدمة لا يُمنع، بل يُسجَّل ويُسأل العميل عنه (EarlyFinish)؛ $earlyReason سببه إن أرسله التطبيق.
+     */
+    public function finish(Maid $maid, int $workerVisitId, ?string $note, array $gps = [], ?string $earlyReason = null): array
     {
-        return $this->act($maid, $workerVisitId, ['delivered'], 'finished', 'finished_at', 'worker_finished', $gps, $note);
+        return $this->act($maid, $workerVisitId, ['delivered'], 'finished', 'finished_at', 'worker_finished', $gps, $note, $earlyReason);
     }
 
     public function leaves(Maid $maid): array
@@ -203,15 +217,20 @@ class WorkerAppService
      * تغيير حالة العاملة في الزيارة، ثم تقديم حالة الزيارة إن اتفقت كل العاملات عليها.
      * @param array<int,string> $allowed الحالات المسموح الانتقال منها
      */
-    private function act(Maid $maid, int $workerVisitId, array $allowed, string $target, string $stamp, string $visitTarget, array $gps, ?string $note): array
+    private function act(Maid $maid, int $workerVisitId, array $allowed, string $target, string $stamp, string $visitTarget, array $gps, ?string $note, ?string $earlyReason = null): array
     {
         HourlyOrderService::enabled();
-        return DB::transaction(function () use ($maid, $workerVisitId, $allowed, $target, $stamp, $visitTarget, $gps, $note) {
-            $row = DB::table('hourly_visit_workers')->where('id', $workerVisitId)->lockForUpdate()->first();
+        return DB::transaction(function () use ($maid, $workerVisitId, $allowed, $target, $stamp, $visitTarget, $gps, $note, $earlyReason) {
+            $row = DB::table('hourly_visit_workers')->where('id', $workerVisitId)->first();
             abort_unless($row && (int) $row->maid_id === (int) $maid->id, 404, 'الزيارة غير موجودة أو ليست من زياراتك.');
-            $visit = HourlyVisit::query()->lockForUpdate()->findOrFail($row->hourly_visit_id);
-            $order = HourlyRentalOrder::query()->lockForUpdate()->findOrFail($visit->hourly_rental_order_id);
+            $reference = HourlyVisit::findOrFail($row->hourly_visit_id);
+            $order = HourlyRentalOrder::query()->lockForUpdate()->findOrFail($reference->hourly_rental_order_id);
+            $visit = HourlyVisit::query()->lockForUpdate()->findOrFail($reference->id);
+            $row = DB::table('hourly_visit_workers')->where('id', $workerVisitId)->lockForUpdate()->first();
+            abort_unless($row && (int)$row->maid_id===(int)$maid->id && (int)$row->hourly_visit_id===(int)$visit->id,404);
             if ($order->status !== 'active') HourlyOrderService::reject('الطلب غير نشط.');
+            if($visitTarget==='delivered' && ServiceIncident::waiting($order,$visit->id))
+                HourlyOrderService::reject('للزيارة بلاغ معتمد؛ راجع الإدارة قبل بدء تنفيذها.');
             if (in_array($visit->status, DriverAppService::VOID, true)) HourlyOrderService::reject('الزيارة ملغاة أو منتهية.');
             $current = $row->status ?: (self::FROM_VISIT[$visit->status] ?? 'assigned');
             if ($current === $target) return $this->result($maid, $visit, $row->id);
@@ -220,7 +239,9 @@ class WorkerAppService
             }
 
             $before = $visit->getAttributes();
+            if($target==='finished')app(ServiceTime::class)->capture($visit,$row,true);
             DB::table('hourly_visit_workers')->where('id', $row->id)->update(['status' => $target, $stamp => now(), 'updated_at' => now()]);
+            $early = $target === 'finished' && app(EarlyFinish::class)->detect($order, $visit, $row, $maid, $earlyReason, $note);
             // كل العاملات على نفس الحالة ⇒ الزيارة تتقدم.
             $pending = DB::table('hourly_visit_workers')->where('hourly_visit_id', $visit->id)
                 ->where(fn ($q) => $q->whereNull('status')->orWhere('status', '!=', $target))->count();
@@ -243,7 +264,8 @@ class WorkerAppService
                     DB::afterCommit(fn()=>app(StaffPushService::class)->pickupRequested($visitId));
                 }
                 // العميل تابع «في الطريق» ثم «وصل»، فكان يُترك بلا خبر عند الانتهاء.
-                DB::afterCommit(fn()=>app(CustomerTrackingPushService::class)->notify($visitId, 'finished'));
+                // الإنهاء المبكر أرسل إشعاره الخاص (تأكيد العميل)، فلا يُضاف إشعار «انتهت الزيارة» العادي.
+                if (!$early) DB::afterCommit(fn()=>app(CustomerTrackingPushService::class)->notify($visitId, 'finished'));
             }
             if ($advanced && $visitTarget === 'delivered') {
                 $visitId = (int) $visit->id;
@@ -261,6 +283,12 @@ class WorkerAppService
 
             return $this->result($maid, $visit->fresh(), $row->id);
         });
+    }
+
+    private function plannedEnd(object $row): ?string
+    {
+        $visit = (new HourlyVisit)->forceFill(['scheduled_start_at' => $row->scheduled_start_at, 'planned_hours' => $row->planned_hours]);
+        return app(EarlyFinish::class)->plannedEnd($row->arrived_at ?? null, $visit)?->toIso8601String();
     }
 
     private function result(Maid $maid, HourlyVisit $visit, int $workerVisitId): array

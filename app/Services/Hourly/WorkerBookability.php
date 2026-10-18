@@ -24,6 +24,7 @@ class WorkerBookability
         $blockers = $warnings = [];
         $block = function (string $area, string $text) use (&$blockers) { $blockers[] = compact('area', 'text'); };
         $warn = function (string $area, string $text) use (&$warnings) { $warnings[] = compact('area', 'text'); };
+        if($returnReason=OverdueWorkerReturn::reason((int)$maid->id))$block('العودة للإيواء',$returnReason);
         $passes = fn (callable $scope) => $scope(Maid::whereKey($maid->id))->exists();
 
         // الإيواء والإيجار: نفس نطاقات RentalMaidQuery التي يبدأ بها candidates().
@@ -36,7 +37,7 @@ class WorkerBookability
         if (!$inside) $block('الإيواء', 'لا يوجد عقد إيواء داخل المركز للعاملة.');
         if (!$noRental) $block('الإيجار', 'لدى العاملة عقد إيجار شهري قائم، فهي مسلَّمة لعميل آخر.');
         if (!$notDeported) $block('الإيواء', 'العاملة مستبعدة بسبب إجراء ترحيل مكتمل.');
-        if (!$statusOk) $block('الإيواء', 'حالة العاملة الحالية لا تسمح بالإيجار: '.$maid->status.'.');
+        if (!$statusOk) $block('الإيواء', 'حالة العاملة الحالية لا تسمح بالإيجار: '.RentalMaidQuery::statusLabel($maid->status).'.');
         if ($inside && $noRental && $notDeported && $statusOk && !$passes(fn ($q) => RentalMaidQuery::applyReadyForRental($q))) {
             $block('الإيواء', 'رغبة العمل غير مؤكدة أو يوجد رفض للعمل في بيانات الإيواء.');
         }

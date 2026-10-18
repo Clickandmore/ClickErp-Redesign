@@ -27,9 +27,11 @@
             $('aw-visit').textContent=`— #${id} (${data.date||'—'})`;
             let excluded=document.getElementById('aw-excluded');
             if(data.excluded_workers?.length){
-                if(!excluded){excluded=document.createElement('details');excluded.id='aw-excluded';$('aw-status').after(excluded);}
-                excluded.replaceChildren();const summary=document.createElement('summary');summary.textContent=cfg.rtl?'العاملات غير المتاحات وأسباب الاستبعاد':'Unavailable workers and exclusion reasons';excluded.appendChild(summary);
-                data.excluded_workers.forEach(w=>{const row=document.createElement('p');row.textContent=w.name+' (#'+w.id+'): '+w.reasons.join(' · ');excluded.appendChild(row);});excluded.hidden=false;
+                if(!excluded){excluded=document.createElement('details');excluded.id='aw-excluded';excluded.className='aw-excluded';$('aw-status').after(excluded);}
+                excluded.replaceChildren();const summary=document.createElement('summary'),icon=document.createElement('i'),count=document.createElement('b'),rows=document.createElement('ul');
+                icon.className='fa fa-user-slash';count.textContent=data.excluded_workers.length;summary.append(icon,' '+(cfg.rtl?'العاملات غير المتاحات وأسباب الاستبعاد':'Unavailable workers and exclusion reasons')+' ',count);excluded.appendChild(summary);
+                data.excluded_workers.forEach(w=>{const row=document.createElement('li'),head=document.createElement('div'),name=document.createElement('strong'),id=document.createElement('small'),reasons=document.createElement('div');name.textContent=w.name;id.textContent='#'+w.id;head.append(name,id);reasons.className='aw-reasons';w.reasons.forEach(reason=>{const tag=document.createElement('span');tag.textContent=reason;reasons.appendChild(tag);});row.append(head,reasons);rows.appendChild(row);});
+                excluded.appendChild(rows);excluded.hidden=false;
             }else if(excluded)excluded.hidden=true;
             const teams=new Map();data.workers.forEach(w=>w.teams.forEach(t=>teams.set(t.id,t.name)));
             $('aw-team').replaceChildren(new Option(l.all,''));teams.forEach((name,key)=>$('aw-team').add(new Option(name,key)));

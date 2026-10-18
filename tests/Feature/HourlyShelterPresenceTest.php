@@ -252,4 +252,47 @@ class HourlyShelterPresenceTest extends TestCase
         $this->assertStringContainsString('mh-now-escalated', $html);
     }
 
+    public function test_old_open_visit_keeps_return_unconfirmed_without_blocking_a_non_overlapping_booking(): void
+    {
+        \Carbon\Carbon::setTestNow('2030-01-20 12:00:00');
+        $order=$this->order(); $visit=$order->visits()->firstOrFail();
+        $visit->update(['status'=>'in_progress','scheduled_start_at'=>'2030-01-03 08:00:00','scheduled_end_at'=>'2030-01-03 12:00:00']);
+        $worker=\App\Models\ingaz\Maid::findOrFail(1);
+        $assignment=app(\App\Services\Hourly\HourlyWorkerAssignment::class);
+        $this->assertTrue($assignment->available($worker,'2030-01-22 08:00:00','2030-01-22 12:00:00',$order->package_snapshot));
+        $trip=$this->presence()->inVisitNow()[1];
+        $this->assertSame($visit->id,$trip['visit_id']);
+        $html=view('admin.hourly_maids._current-visit-status',['trip'=>$trip])->render();
+        $this->assertStringContainsString('انتهى موعد الزيارة — العودة غير مؤكدة',$html);
+        $reference=view('admin.hourly_maids._visit-reference',['trip'=>$trip])->render();
+        $this->assertStringContainsString('مرجع #'.$visit->id,$reference);
+        $this->assertStringContainsString($order->order_number,$reference);
+        $this->assertStringContainsString('2030-01-03 12:00',$reference);
+        $this->assertSame('in_progress',$visit->fresh()->status);
+    }
+
+    public function test_daily_past_visit_reminder_refreshes_without_completing_visits_or_recording_returns(): void
+    {
+        \Carbon\Carbon::setTestNow('2030-01-20 12:00:00');
+        $order=$this->order(); $visit=$order->visits()->firstOrFail();
+        $visit->update(['status'=>'in_progress','scheduled_start_at'=>'2030-01-03 08:00:00','scheduled_end_at'=>'2030-01-03 12:00:00']);
+        $this->presence()->open($visit,'driver',3);
+        $second=$visit->replicate(); $second->visit_number=2; $second->status='scheduled'; $second->save();
+        $key=\App\Console\Commands\HourlyPastVisitReminder::CACHE_KEY;
+        \Illuminate\Support\Facades\Artisan::call('hourly:past-visit-reminder');
+        $this->assertSame(2,\Illuminate\Support\Facades\Cache::get($key)['count']);
+        $html=view('admin.hourly._past-visits-reminder')->render();
+        $this->assertStringContainsString('توجد 2 زيارة',$html);
+        $this->assertStringContainsString(e(route('admin.hourly-visits.past',['from'=>'','to'=>''])),$html);
+        \Illuminate\Support\Facades\Artisan::call('hourly:past-visit-reminder');
+        $this->assertSame(2,\Illuminate\Support\Facades\Cache::get($key)['count']);
+        $this->assertSame('in_progress',$visit->fresh()->status);
+        $this->assertNull(WorkerDailyMovement::where('reference_id',$visit->id)->value('in_at'));
+        $second->update(['status'=>'cancelled_by_client']);
+        \Illuminate\Support\Facades\Artisan::call('hourly:past-visit-reminder');
+        $this->assertSame(1,\Illuminate\Support\Facades\Cache::get($key)['count']);
+        $order->update(['status'=>'cancelled']);
+        \Illuminate\Support\Facades\Artisan::call('hourly:past-visit-reminder');
+        $this->assertNull(\Illuminate\Support\Facades\Cache::get($key));
+    }
 }

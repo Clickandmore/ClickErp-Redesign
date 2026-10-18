@@ -37,6 +37,8 @@ $driverRoutes = function () {
             'pick-up' => 'pickUp', 'shelter-return' => 'shelterReturn', 'fail' => 'fail'] as $uri => $method) {
             Route::post('stops/{stop}/'.$uri, [DriverAppController::class, $method])->whereNumber('stop');
         }
+        Route::get('service-incidents',[\App\Http\Controllers\Hourly\ServiceIncidentController::class,'driverReports']);
+        Route::post('visits/{visit}/incidents',[\App\Http\Controllers\Hourly\ServiceIncidentController::class,'driver'])->whereNumber('visit')->middleware('throttle:10,1');
         Route::get('pickup-requests', [DriverAppController::class, 'pickupRequests']);
         Route::get('earnings', [DriverAppController::class, 'earnings']);
         Route::post('visits/{visit}/collect-cash',[\App\Http\Controllers\Hourly\CashCollectionController::class,'driverCollect'])->whereNumber('visit');
@@ -64,7 +66,10 @@ $workerRoutes = function () {
         Route::get('cash-custody',[\App\Http\Controllers\Hourly\CashCollectionController::class,'workerCustody']);
         Route::get('visits/today', [WorkerAppController::class, 'today']);
         Route::post('visits/{visit}/arrived', [WorkerAppController::class, 'arrived'])->whereNumber('visit');
+        Route::post('visits/{visit}/time-overrun',[\App\Http\Controllers\Hourly\ServiceTimeController::class,'worker'])->whereNumber('visit');
         Route::post('visits/{visit}/finish', [WorkerAppController::class, 'finish'])->whereNumber('visit');
+        Route::get('service-incidents',[\App\Http\Controllers\Hourly\ServiceIncidentController::class,'workerReports']);
+        Route::post('visits/{visit}/incidents',[\App\Http\Controllers\Hourly\ServiceIncidentController::class,'worker'])->whereNumber('visit')->middleware('throttle:10,1');
         Route::get('leaves', [WorkerAppController::class, 'leaves']);
         Route::post('leaves', [WorkerAppController::class, 'storeLeave']);
         Route::get('sos', [WorkerAppController::class, 'sos']);
@@ -122,7 +127,12 @@ Route::prefix('app/hourly')->middleware('feature.hourly_rental')->group(function
         Route::get('orders/{id}/visits/{visit}/additional-worker',[\App\Http\Controllers\Hourly\AdditionalWorkerController::class,'preview'])->whereNumber('id')->whereNumber('visit');
         Route::post('orders/{id}/visits/{visit}/additional-worker',[\App\Http\Controllers\Hourly\AdditionalWorkerController::class,'store'])->whereNumber('id')->whereNumber('visit')->middleware('throttle:10,1');
         Route::post('orders/{id}/visits/{visit}/cancel',[ClientController::class,'cancel'])->whereNumber('id')->whereNumber('visit');
+        Route::get('orders/{id}/visits/{visit}/extra-hour',[ClientController::class,'extraHourQuote'])->whereNumber('id')->whereNumber('visit');
         Route::post('orders/{id}/visits/{visit}/extra-hour',[ClientController::class,'extraHour'])->whereNumber('id')->whereNumber('visit');
+        Route::get('orders/{id}/visits/{visit}/alternatives',[\App\Http\Controllers\Hourly\ServiceIncidentController::class,'alternatives'])->whereNumber('id')->whereNumber('visit');
+        Route::post('orders/{id}/visits/{visit}/choose-replacement',[\App\Http\Controllers\Hourly\ServiceIncidentController::class,'choose'])->whereNumber('id')->whereNumber('visit')->middleware('throttle:10,1');
+        Route::post('orders/{id}/visits/{visit}/recovery',[\App\Http\Controllers\Hourly\MissedVisitRecoveryController::class,'store'])->whereNumber('id')->whereNumber('visit')->middleware('throttle:10,1');
+        Route::post('orders/{id}/visits/{visit}/early-finishes/{finish}/respond',[\App\Http\Controllers\Hourly\EarlyFinishController::class,'respond'])->whereNumber('id')->whereNumber('visit')->whereNumber('finish')->middleware('throttle:10,1');
         Route::post('orders/{id}/visits/{visit}/rate',[ClientController::class,'rate'])->whereNumber('id')->whereNumber('visit');
         Route::post('orders/{id}/payments/moyasar',[ClientController::class,'pay'])->whereNumber('id');
         Route::get('orders/{id}/payments/moyasar',[ClientController::class,'payment'])->whereNumber('id');

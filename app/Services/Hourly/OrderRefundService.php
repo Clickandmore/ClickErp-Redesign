@@ -10,12 +10,16 @@ class OrderRefundService
 {
     /** Refund only the excess over the remaining contract value, under the order lock. */
     public function refund(HourlyRentalOrder $candidate, string $method, string $reason, ?int $admin = null,
-        string $actor = 'admin', ?int $actorId = null, bool $externalConfirmed = false): float
+        string $actor = 'admin', ?int $actorId = null, bool $externalConfirmed = false, ?float $visitAmount = null): float
     {
-        return DB::transaction(function () use ($candidate,$method,$reason,$admin,$actor,$actorId,$externalConfirmed) {
+        return DB::transaction(function () use ($candidate,$method,$reason,$admin,$actor,$actorId,$externalConfirmed,$visitAmount) {
             $order = HourlyRentalOrder::whereKey($candidate->id)->lockForUpdate()->firstOrFail();
             if (!in_array($method,['wallet','cash','bank_transfer'],true)) HourlyOrderService::reject('اختر طريقة استرداد صحيحة.');
             $amount = max(0,(int)round((float)$order->paid_amount*100)-(int)round((float)$order->total_amount*100));
+            if ($visitAmount !== null) {
+                $amount=(int)round($visitAmount*100);
+                if ($amount<0 || $amount>(int)round($order->paid_amount*100)) HourlyOrderService::reject('المبلغ المسترد يتجاوز المبلغ المسدد المتاح.');
+            }
             if (!$amount) return 0.0;
             if ($order->payments()->whereIn('status',['pending','creating','pending_review'])->exists()) HourlyOrderService::reject('يوجد دفع قيد التنفيذ أو المراجعة؛ سوّه قبل الاسترداد.');
             if ($method !== 'wallet' && !$externalConfirmed) HourlyOrderService::reject('أكد تسليم المبلغ النقدي أو تنفيذ التحويل البنكي فعليًا قبل تسجيل الاسترداد.');

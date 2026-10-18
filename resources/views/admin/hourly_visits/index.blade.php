@@ -97,7 +97,7 @@
     .vl-stat > i { width: 40px; height: 40px; flex: 0 0 40px; border-radius: 12px; display: grid; place-items: center; color: var(--tone); background: var(--tint); }
     .vl-stat strong { display: block; font-size: 1.35rem; line-height: 1.2; font-variant-numeric: tabular-nums; }
     .vl-stat span { font-size: .8rem; color: var(--muted); }
-    .vl-t-blue { --tone: #2794eb; --tint: #eaf5fe; } .vl-t-green { --tone: #17996f; --tint: #e8f7f1; } .vl-t-amber { --tone: #e08a17; --tint: #fef5e7; } .vl-t-violet { --tone: #6b63d6; --tint: #f0effc; }
+    .vl-t-blue { --tone: #2794eb; --tint: #eaf5fe; } .vl-t-green { --tone: #17996f; --tint: #e8f7f1; } .vl-t-amber { --tone: #e08a17; --tint: #fef5e7; } .vl-t-violet { --tone: #6b63d6; --tint: #f0effc; } .vl-t-red { --tone: #e5484d; --tint: #fdeeee; }
 
     .vl-results { padding: 1.1rem 1.2rem; }
     .vl-results-head { display: flex; align-items: center; justify-content: space-between; gap: .75rem; flex-wrap: wrap; }
@@ -308,6 +308,7 @@
         </nav>
     </header>
 
+    @if($mode === 'unassigned')<p class="vl-notice"><i class="fa fa-user-clock mt-1"></i> زيارات قائمة لم تُعيَّن لها أي عاملة بعد. ابدأ بالعاجلة: اعرضها للعاملات المؤهلات ليقبلنها من التطبيق، أو عيّن تلقائيًا من المتاحات.</p>@endif
     @if($mode === 'past')<p class="vl-notice"><i class="fa fa-triangle-exclamation mt-1"></i> هذه الزيارات تجاوزت موعد نهايتها ولم تُغلق. راجع التنفيذ ثم أكملها أو ألغها.</p>@endif
     @if($errors->any())<div class="alert alert-danger">{{ $errors->first() }}</div>@endif
 
@@ -370,12 +371,28 @@
         @endif
     </form>
 
+    @if($mode === 'unassigned')
+    <div class="vl-stats">
+        <div class="vl-stat vl-t-amber"><i class="fa fa-user-slash"></i><div><strong>{{ $total }}</strong><span>زيارة بلا عاملة</span></div></div>
+        <div class="vl-stat vl-t-blue"><i class="fa fa-chair"></i><div><strong>{{ $modeStats['seats'] }}</strong><span>مقعد عاملة مطلوب</span></div></div>
+        <div class="vl-stat vl-t-red"><i class="fa fa-stopwatch"></i><div><strong>{{ $modeStats['soon'] + $modeStats['overdue'] }}</strong><span>عاجلة: تبدأ خلال 24 ساعة أو فات موعدها</span></div></div>
+        <div class="vl-stat vl-t-violet"><i class="fa fa-bullhorn"></i><div><strong>{{ $modeStats['offered'] }}</strong><span>معروضة للعاملات بانتظار القبول</span></div></div>
+    </div>
+    @elseif($mode === 'past')
+    <div class="vl-stats">
+        <div class="vl-stat vl-t-amber"><i class="fa fa-clock-rotate-left"></i><div><strong>{{ $total }}</strong><span>زيارة تجاوزت موعدها ولم تُغلق</span></div></div>
+        <div class="vl-stat vl-t-red"><i class="fa fa-triangle-exclamation"></i><div><strong>{{ $modeStats['missed'] }}</strong><span>لم تبدأ أصلًا (فات موعدها)</span></div></div>
+        <div class="vl-stat vl-t-violet"><i class="fa fa-person-walking"></i><div><strong>{{ max(0, $total - $modeStats['missed']) }}</strong><span>بدأت ولم تُكمل</span></div></div>
+        <div class="vl-stat vl-t-blue"><i class="fa fa-hourglass-end"></i><div><strong class="vl-num" dir="ltr">{{ $modeStats['oldest'] ? \Carbon\Carbon::parse($modeStats['oldest'])->format('Y-m-d') : '—' }}</strong><span>أقدم زيارة معلّقة</span></div></div>
+    </div>
+    @else
     <div class="vl-stats">
         <div class="vl-stat vl-t-blue"><i class="fa fa-calendar-days"></i><div><strong>{{ $total }}</strong><span>زيارة مطابقة</span></div></div>
         <div class="vl-stat vl-t-green"><i class="fa fa-user-check"></i><div><strong>{{ $assigned }}</strong><span>تعيين مكتمل</span></div></div>
         <div class="vl-stat vl-t-amber"><i class="fa fa-user-clock"></i><div><strong>{{ max(0, $total - $assigned) }}</strong><span>بحاجة إلى تعيين</span></div></div>
         <div class="vl-stat vl-t-violet"><i class="fa fa-percent"></i><div><strong>{{ $total ? round($assigned / $total * 100) : 0 }}%</strong><span>نسبة اكتمال التعيين</span></div></div>
     </div>
+    @endif
 
     <section class="vl-card-box vl-results">
         <div class="vl-results-head">

@@ -12,25 +12,35 @@
     .rn-hero p { margin: .3rem 0 0; font-size: .84rem; opacity: .88; }
     .rn-hero-note { background: rgba(255, 255, 255, .16); border-radius: 12px; padding: .5rem .85rem; font-size: .8rem; display: inline-flex; align-items: center; gap: .45rem; }
 
-    .rn-filter { padding: 1.1rem 1.2rem; }
-    .rn-filter h5 { font-size: 1rem; font-weight: 700; color: var(--brand-ink); margin: 0 0 1rem; display: flex; align-items: center; gap: .5rem; }
-    .rn-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: .9rem 1rem; }
+    /* الفلتر: ترويسة بالبحث، ثم شريط حالة العقد (الفلتر الأساسي)، ثم الفلاتر الإضافية، وتذييل بالإجراءات */
+    .rn-filter { overflow: visible; }
+    .rn-filter-head { display: flex; align-items: center; justify-content: space-between; gap: .75rem 1rem; flex-wrap: wrap; padding: 1rem 1.2rem; border-bottom: 1px solid var(--line); }
+    .rn-filter-head h5 { font-size: 1rem; font-weight: 700; color: var(--brand-ink); margin: 0; display: flex; align-items: center; gap: .5rem; }
+    .rn-filter-count { background: #eaf5fe; color: var(--brand-ink); border: 1px solid #c4e2f8; border-radius: 99px; padding: .1rem .6rem; font-size: .74rem; font-weight: 700; }
+    .rn-search { position: relative; flex: 0 1 340px; min-width: 220px; }
+    .rn-search i { position: absolute; inset-inline-start: .85rem; top: 50%; transform: translateY(-50%); color: #9fb0c2; pointer-events: none; }
+    .rn-search .form-control { height: 42px; border-radius: 11px; border-color: #dfe7ef; padding-inline-start: 2.4rem; font-size: .86rem; }
+    .rn-section { padding: 1rem 1.2rem; }
+    .rn-section + .rn-section { border-top: 1px dashed var(--line); }
+    .rn-section-title { display: flex; align-items: center; gap: .4rem; font-size: .78rem; font-weight: 700; color: var(--muted); margin: 0 0 .6rem; }
+    .rn-section-title i { color: #9fb0c2; }
+    .rn-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: .9rem 1rem; }
     .rn-field label { display: flex; align-items: center; gap: .35rem; font-size: .78rem; font-weight: 600; color: var(--muted); margin-bottom: .35rem; }
     .rn-field label i { color: #9fb0c2; font-size: .75rem; }
-    .rn-field .form-control, .rn-field .form-select { height: 42px; border-radius: 10px; border-color: #dfe7ef; font-size: .85rem; }
-    .rn-field .is-set { border-color: #9fd0f4; background-color: #f2f9ff; font-weight: 700; color: var(--brand-deep); }
-    .rn-status { grid-column: span 2; border: 0; padding: 0; margin: 0; min-width: 0; }
-    .rn-legend { float: none; width: auto; display: flex; align-items: center; gap: .35rem; font-size: .78rem; font-weight: 600; color: var(--muted); margin-bottom: .35rem; }
-    .rn-legend i { color: #9fb0c2; font-size: .75rem; }
-    @media (max-width: 575px) { .rn-status { grid-column: auto; } }
-    .rn-presets { display: flex; flex-wrap: wrap; gap: .35rem; }
+    .rn-field .form-control, .rn-field .form-select { min-height: 42px; border-radius: 10px; border-color: #dfe7ef; font-size: .85rem; }
+    .rn-field .is-set, .rn-search .is-set { border-color: #9fd0f4; background-color: #f2f9ff; font-weight: 700; color: var(--brand-deep); }
+    .rn-presets { display: flex; flex-wrap: wrap; gap: .4rem; }
     .rn-presets label { margin: 0; cursor: pointer; }
     .rn-presets input { position: absolute; opacity: 0; pointer-events: none; }
-    .rn-presets span { display: inline-flex; align-items: center; gap: .3rem; padding: .45rem .8rem; border: 1px solid var(--line); border-radius: 99px; font-size: .8rem; font-weight: 700; color: var(--muted); background: #fff; }
-    .rn-presets input:checked + span { background: #fff4e5; border-color: #f5b25b; color: #b35c00; }
-    .rn-presets input:focus-visible + span { outline: 3px solid #9fd0f4; }
-    .rn-custom { grid-column: 1 / -1; display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: .8rem 1rem; padding: .9rem; border: 1px dashed #f5b25b; border-radius: 14px; background: #fffaf2; }
-    .rn-actions { display: flex; gap: .5rem; margin-top: 1rem; }
+    .rn-presets span { display: inline-flex; align-items: center; gap: .35rem; padding: .48rem .9rem; border: 1px solid var(--line); border-radius: 99px; font-size: .8rem; font-weight: 700; color: var(--muted); background: #fff; transition: background .15s, border-color .15s, color .15s; }
+    .rn-presets label:hover span { border-color: #c4e2f8; color: var(--brand-ink); }
+    .rn-presets input:checked + span { background: var(--brand-ink); border-color: var(--brand-ink); color: #fff; box-shadow: 0 4px 12px rgba(27, 111, 184, .22); }
+    .rn-presets input:focus-visible + span { outline: 3px solid #9fd0f4; outline-offset: 2px; }
+    .rn-presets .rn-sep { width: 1px; align-self: stretch; background: var(--line); margin: 0 .2rem; }
+    .rn-custom { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: .8rem 1rem; padding: .9rem; margin-top: .8rem; border: 1px dashed #9fd0f4; border-radius: 14px; background: #f5fbff; }
+    .rn-filter-foot { display: flex; align-items: center; justify-content: space-between; gap: .75rem; flex-wrap: wrap; padding: .85rem 1.2rem; border-top: 1px solid var(--line); background: var(--soft); border-radius: 0 0 18px 18px; }
+    .rn-filter-foot .rn-sub { font-size: .8rem; }
+    .rn-actions { display: flex; gap: .5rem; }
     .rn-btn { height: 42px; border-radius: 11px; padding: 0 1.1rem; font-weight: 700; font-size: .86rem; display: inline-flex; align-items: center; gap: .45rem; border: 1px solid var(--line); background: #fff; color: var(--ink); text-decoration: none; }
     .rn-btn:hover { border-color: var(--brand); color: var(--brand-ink); }
     .rn-btn.is-primary { background: var(--brand-ink); border-color: var(--brand-ink); color: #fff; }
@@ -87,53 +97,77 @@
         <span class="rn-hero-note"><i class="fa fa-bell"></i> {{ $reminderDays > 0 ? 'يُرسل تذكير التجديد للعميل قبل آخر زيارة بـ '.$reminderDays.' أيام' : 'تذكير التجديد التلقائي معطّل' }}</span>
     </header>
 
-    <form method="GET" action="{{ route('admin.hourly-renewals.index') }}" class="rn-box rn-filter" id="rn-filter" role="search" aria-label="فلتر تجديد الطلبات">
-        <h5><i class="fa fa-filter"></i> فلتر تجديد الطلبات</h5>
-        <div class="rn-grid">
-            <div class="rn-field"><label for="rn-order"><i class="fa fa-hashtag"></i> رقم الطلب</label><input class="form-control {{ $set('order_number') }}" id="rn-order" name="order_number" maxlength="40" value="{{ $filters['order_number'] ?? '' }}" placeholder="رقم الطلب أو المرجع"></div>
-            <div class="rn-field"><label for="rn-services"><i class="fa fa-briefcase"></i> الخدمة</label>
-                <select class="form-select" id="rn-services" name="service_ids[]" multiple data-placeholder="جميع الخدمات">
-                    @foreach($services as $service)<option value="{{ $service->id }}" {{ in_array($service->id, array_map('intval', $filters['service_ids'] ?? []), true) ? 'selected' : '' }}>{{ $service->name_ar }}</option>@endforeach
-                </select>
+    @include('admin.hourly._filter-loader', ['id' => 'rn-filter-loader', 'title' => 'جارٍ تحديث العقود'])
+    <p id="rn-filter-status" class="alert" role="alert" hidden></p>
+    <div id="rn-results" class="hx-results" data-ajax-filter data-ajax-loader="rn-filter-loader" data-ajax-status="rn-filter-status">
+    @php
+        $activeFilters = collect([
+            $filters['order_number'] ?? null, $filters['service_ids'] ?? null, $filters['team_ids'] ?? null, $filters['installment'] ?? null,
+            ($filters['report'] ?? 'all') !== 'all', ($filters['renewal'] ?? 'all') !== 'all', $status !== 'today',
+        ])->filter()->count();
+        $quickPresets = ['today', 'd5', 'd10', 'd15', 'd30', 'active_all'];
+    @endphp
+    <form method="GET" action="{{ route('admin.hourly-renewals.index') }}" class="rn-box rn-filter" id="rn-filter" role="search" aria-label="فلتر تجديد الطلبات" data-ajax-form>
+        <div class="rn-filter-head">
+            <h5><i class="fa fa-sliders"></i> فلترة العقود @if($activeFilters)<span class="rn-filter-count">{{ $activeFilters }} فلتر مفعّل</span>@endif</h5>
+            <div class="rn-search">
+                <i class="fa fa-magnifying-glass"></i>
+                <input class="form-control {{ $set('order_number') }}" id="rn-order" name="order_number" maxlength="40" value="{{ $filters['order_number'] ?? '' }}" placeholder="ابحث برقم الطلب أو المرجع، ثم Enter" aria-label="رقم الطلب">
             </div>
-            <div class="rn-field"><label for="rn-report"><i class="fa fa-list-check"></i> نوع التقرير</label>
-                <select class="form-select {{ ($filters['report'] ?? 'all') !== 'all' ? 'is-set' : '' }}" id="rn-report" name="report">@foreach(\App\Services\Hourly\RenewalSearch::REPORTS as $key => $label)<option value="{{ $key }}" {{ ($filters['report'] ?? 'all') === $key ? 'selected' : '' }}>{{ $label }}</option>@endforeach</select>
+        </div>
+
+        <fieldset class="rn-section m-0 border-0">
+            <legend class="rn-section-title float-none w-auto"><i class="fa fa-hourglass-end"></i> حالة العقد — تاريخ انتهاء العقد هو تاريخ آخر زيارة</legend>
+            <div class="rn-presets">
+                @foreach(\App\Services\Hourly\RenewalSearch::PRESETS as $key => $label)
+                    @if($key === 'active_all')<span class="rn-sep" aria-hidden="true"></span>@endif
+                    <label><input type="radio" name="status" value="{{ $key }}" {{ $status === $key ? 'checked' : '' }} @if(in_array($key, $quickPresets, true)) data-auto-apply @endif><span>@if($key === 'custom')<i class="fa fa-calendar-days"></i>@elseif($key === 'active_on')<i class="fa fa-calendar-day"></i>@elseif($key === 'active_all')<i class="fa fa-circle-play"></i>@else<i class="fa fa-hourglass-half"></i>@endif {{ $label }}</span></label>
+                @endforeach
             </div>
-            <div class="rn-field"><label for="rn-team"><i class="fa fa-people-group"></i> الفريق</label>
-                @php $pickedTeams = array_map('strval', $filters['team_ids'] ?? []); @endphp
-                <select class="form-select" id="rn-team" name="team_ids[]" multiple data-placeholder="كل الفرق">
-                    <option value="{{ \App\Services\Hourly\RenewalSearch::NO_TEAM }}" {{ in_array(\App\Services\Hourly\RenewalSearch::NO_TEAM, $pickedTeams, true) ? 'selected' : '' }}>بدون فريق</option>
-                    @foreach($teams as $team)<option value="{{ $team->id }}" {{ in_array((string) $team->id, $pickedTeams, true) ? 'selected' : '' }}>{{ $team->name }}</option>@endforeach
-                </select>
-            </div>
-            <div class="rn-field"><label for="rn-renewal"><i class="fa fa-rotate"></i> حالة التجديد</label>
-                <select class="form-select {{ ($filters['renewal'] ?? 'all') !== 'all' ? 'is-set' : '' }}" id="rn-renewal" name="renewal">@foreach(\App\Services\Hourly\RenewalSearch::RENEWAL as $key => $label)<option value="{{ $key }}" {{ ($filters['renewal'] ?? 'all') === $key ? 'selected' : '' }}>{{ $label }}</option>@endforeach</select>
-            </div>
-            <div class="rn-field"><label for="rn-installment"><i class="fa fa-money-check-dollar"></i> القسط</label>
-                <select class="form-select {{ $set('installment') }}" id="rn-installment" name="installment"><option value="">الكل</option>@foreach(\App\Services\Hourly\RenewalSearch::INSTALLMENTS as $key => $label)<option value="{{ $key }}" {{ ($filters['installment'] ?? '') === $key ? 'selected' : '' }}>{{ $label }}</option>@endforeach</select>
-            </div>
-            <fieldset class="rn-field rn-status">
-                <legend class="rn-legend"><i class="fa fa-hourglass-end"></i> حالة العقد</legend>
-                <div class="rn-presets">
-                    @foreach(\App\Services\Hourly\RenewalSearch::PRESETS as $key => $label)
-                        <label><input type="radio" name="status" value="{{ $key }}" {{ $status === $key ? 'checked' : '' }}><span>@if($key === 'custom')<i class="fa fa-calendar-days"></i>@elseif(str_starts_with($key, 'active'))<i class="fa fa-circle-play"></i>@endif {{ $label }}</span></label>
-                    @endforeach
-                </div>
-            </fieldset>
             <div class="rn-custom" id="rn-active-on" @if($status !== 'active_on') hidden @endif>
                 <div class="rn-field"><label for="rn-active_on"><i class="fa fa-calendar-day"></i> نشط في تاريخ</label><input class="form-control {{ $set('active_on') }}" type="date" id="rn-active_on" name="active_on" value="{{ $filters['active_on'] ?? today()->toDateString() }}"></div>
                 <p class="rn-sub" style="align-self:end">العقود التي يقع هذا اليوم بين أول زيارة وآخر زيارة فيها.</p>
             </div>
             <div class="rn-custom" id="rn-custom" @if($status !== 'custom') hidden @endif>
-                @foreach(['active_from' => 'نشط من', 'active_to' => 'نشط حتى', 'expiry_from' => 'انتهاء الصلاحية من', 'expiry_to' => 'انتهاء الصلاحية إلى'] as $key => $label)
+                @foreach(['active_from' => 'نشط من', 'active_to' => 'نشط حتى', 'expiry_from' => 'انتهاء العقد من', 'expiry_to' => 'انتهاء العقد إلى'] as $key => $label)
                     <div class="rn-field"><label for="rn-{{ $key }}"><i class="fa {{ str_starts_with($key, 'active') ? 'fa-play' : 'fa-flag-checkered' }}"></i> {{ $label }}</label><input class="form-control {{ $set($key) }}" type="date" id="rn-{{ $key }}" name="{{ $key }}" value="{{ $filters[$key] ?? '' }}"></div>
                 @endforeach
             </div>
+        </fieldset>
+
+        <div class="rn-section">
+            <p class="rn-section-title"><i class="fa fa-filter"></i> تصفية إضافية</p>
+            <div class="rn-grid">
+                <div class="rn-field"><label for="rn-services"><i class="fa fa-briefcase"></i> الخدمة</label>
+                    <select class="form-select" id="rn-services" name="service_ids[]" multiple data-compact data-auto-apply data-placeholder="جميع الخدمات">
+                        @foreach($services as $service)<option value="{{ $service->id }}" {{ in_array($service->id, array_map('intval', $filters['service_ids'] ?? []), true) ? 'selected' : '' }}>{{ $service->name_ar }}</option>@endforeach
+                    </select>
+                </div>
+                <div class="rn-field"><label for="rn-team"><i class="fa fa-people-group"></i> الفريق</label>
+                    @php $pickedTeams = array_map('strval', $filters['team_ids'] ?? []); @endphp
+                    <select class="form-select" id="rn-team" name="team_ids[]" multiple data-compact data-auto-apply data-placeholder="كل الفرق">
+                        <option value="{{ \App\Services\Hourly\RenewalSearch::NO_TEAM }}" {{ in_array(\App\Services\Hourly\RenewalSearch::NO_TEAM, $pickedTeams, true) ? 'selected' : '' }}>بدون فريق</option>
+                        @foreach($teams as $team)<option value="{{ $team->id }}" {{ in_array((string) $team->id, $pickedTeams, true) ? 'selected' : '' }}>{{ $team->name }}</option>@endforeach
+                    </select>
+                </div>
+                <div class="rn-field"><label for="rn-report"><i class="fa fa-list-check"></i> الزيارات</label>
+                    <select class="form-select {{ ($filters['report'] ?? 'all') !== 'all' ? 'is-set' : '' }}" id="rn-report" name="report" data-auto-apply>@foreach(\App\Services\Hourly\RenewalSearch::REPORTS as $key => $label)<option value="{{ $key }}" {{ ($filters['report'] ?? 'all') === $key ? 'selected' : '' }}>{{ $label }}</option>@endforeach</select>
+                </div>
+                <div class="rn-field"><label for="rn-renewal"><i class="fa fa-rotate"></i> حالة التجديد</label>
+                    <select class="form-select {{ ($filters['renewal'] ?? 'all') !== 'all' ? 'is-set' : '' }}" id="rn-renewal" name="renewal" data-auto-apply>@foreach(\App\Services\Hourly\RenewalSearch::RENEWAL as $key => $label)<option value="{{ $key }}" {{ ($filters['renewal'] ?? 'all') === $key ? 'selected' : '' }}>{{ $label }}</option>@endforeach</select>
+                </div>
+                <div class="rn-field"><label for="rn-installment"><i class="fa fa-money-check-dollar"></i> الأقساط</label>
+                    <select class="form-select {{ $set('installment') }}" id="rn-installment" name="installment" data-auto-apply><option value="">الكل</option>@foreach(\App\Services\Hourly\RenewalSearch::INSTALLMENTS as $key => $label)<option value="{{ $key }}" {{ ($filters['installment'] ?? '') === $key ? 'selected' : '' }}>{{ $label }}</option>@endforeach</select>
+                </div>
+            </div>
         </div>
         @isset($filters['per_page'])<input type="hidden" name="per_page" value="{{ $filters['per_page'] }}">@endisset
-        <div class="rn-actions">
-            <button class="rn-btn is-primary"><i class="fa fa-magnifying-glass"></i> فلتر</button>
-            <a class="rn-btn" href="{{ route('admin.hourly-renewals.index') }}"><i class="fa fa-rotate-left"></i> إفراغ الخانات</a>
+        <div class="rn-filter-foot">
+            <span class="rn-sub"><i class="fa fa-circle-info"></i> الفلاتر تُطبَّق فورًا عند اختيارها؛ البحث والتواريخ بزر «تطبيق» أو Enter.</span>
+            <div class="rn-actions">
+                @if($activeFilters)<a class="rn-btn" data-ajax-link href="{{ route('admin.hourly-renewals.index') }}"><i class="fa fa-rotate-left"></i> مسح الفلاتر</a>@endif
+                <button class="rn-btn is-primary"><i class="fa fa-filter"></i> تطبيق</button>
+            </div>
         </div>
     </form>
 
@@ -194,19 +228,29 @@
             {{ $orders->links() }}
         </div>
     </section>
+    </div>
 </div>
 @endsection
 @push('js')
+<script src="{{ asset('admin/assets/js/hourly-ajax-filter.js') }}?v={{ filemtime(public_path('admin/assets/js/hourly-ajax-filter.js')) }}"></script>
 <script>
 (function () {
-    const form = document.getElementById('rn-filter'), custom = document.getElementById('rn-custom'), activeOn = document.getElementById('rn-active-on');
-    const chosen = () => form.querySelector('input[name="status"]:checked')?.value;
-    form.querySelectorAll('input[name="status"]').forEach(radio => radio.addEventListener('change', () => { custom.hidden = chosen() !== 'custom'; activeOn.hidden = chosen() !== 'active_on'; }));
-    form.querySelectorAll('select:not([multiple]), input.form-control').forEach(el => el.addEventListener('change', () => el.classList.toggle('is-set', el.value !== '' && !(['report', 'renewal'].includes(el.name) && el.value === 'all'))));
-    // لا تُرسل الحقول الفارغة، ولا حقول النطاق المخصص أو «نشط في تاريخ» إلا مع خيارها.
-    form.addEventListener('submit', () => {
-        form.querySelectorAll('[name]').forEach(el => { if (el.value === '' || (chosen() !== 'custom' && custom.contains(el)) || (chosen() !== 'active_on' && activeOn.contains(el))) el.disabled = true; });
-    });
+    // يُعاد تهيئة النموذج بعد كل تحديث لأن hourly-ajax-filter.js يستبدل القسم كاملًا (النموذج والنتائج).
+    // الحقول الفارغة وحقول اللوحة المخفية (النطاق المخصص، نشط في تاريخ) لا تُرسل أصلًا.
+    function init(root) {
+        const form = root.querySelector('#rn-filter');
+        if (!form) return;
+        const custom = form.querySelector('#rn-custom'), activeOn = form.querySelector('#rn-active-on');
+        const chosen = () => form.querySelector('input[name="status"]:checked')?.value;
+        form.querySelectorAll('input[name="status"]').forEach(radio => radio.addEventListener('change', () => {
+            custom.hidden = chosen() !== 'custom'; activeOn.hidden = chosen() !== 'active_on';
+        }));
+        form.querySelectorAll('select:not([multiple]), input.form-control').forEach(el => el.addEventListener('change', () =>
+            el.classList.toggle('is-set', el.value !== '' && !(['report', 'renewal'].includes(el.name) && el.value === 'all'))));
+        // قوائم الخدمة والفريق المتعددة يحوّلها HourlyMultiSelect (hourly_teams._multiselect) تلقائيًا، ومنها بعد كل تحديث.
+    }
+    init(document);
+    document.addEventListener('hx-filter:updated', event => init(event.detail.root));
 })();
 </script>
 @endpush

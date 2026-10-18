@@ -204,7 +204,7 @@ class HourlyPanelBookingTest extends TestCase
     {
         $order=app(PanelBookingService::class)->create($this->booking(),7);
         $this->get(route('admin.hourly-orders.summary',$order))->assertOk()->assertSee('ملخص الطلب')->assertSee('تاريخ الزيارات')->assertSee('نسخ تفاصيل الطلب')->assertSee(route('admin.hourly-orders.show',$order));
-        $this->get(route('admin.hourly-orders.show',$order))->assertOk()->assertSee('بطاقة الطلب')->assertSee('شؤون الموظفين')->assertSee('سجل الدفعات')->assertSee('إجمالي ساعات العمل');
+        $this->get(route('admin.hourly-orders.show',$order))->assertOk()->assertSee('بطاقة الطلب')->assertSee('data-visit-card',false)->assertSee('الطاقم')->assertSee('سجل الدفعات')->assertSee('إجمالي ساعات العمل');
         $url=route('admin.hourly-orders.note',$order);
         $this->post($url,['note'=>'Order instructions'])->assertRedirect();
         $this->post($url,['note'=>'Visit instructions','visit_id'=>$order->visits()->first()->id])->assertRedirect();
@@ -797,5 +797,26 @@ class HourlyPanelBookingTest extends TestCase
         $this->postJson($url,['request_token'=>(string)Str::uuid(),'confirmed'=>1,'expected_workers'=>1,
             'expected_price'=>$quote['current_price'],'expected_total'=>$quote['order_total']])->assertStatus(422);
         $this->assertSame(1,(int)$visit->fresh()->workers_count);
+    }
+    public function test_driver_residency_blocks_manual_assignment_on_task_date_and_recovers_after_renewal(): void
+    {
+        $order=app(PanelBookingService::class)->create($this->booking(),7); $visit=$order->visits()->firstOrFail();
+        Schema::table('hourly_drivers',function(Blueprint $t){$t->json('work_schedule')->nullable();$t->date('residency_expiry_date')->nullable();});
+        DB::table('hourly_drivers')->insert(['id'=>1,'name'=>'Residency driver','is_active'=>true,
+            'residency_expiry_date'=>$visit->scheduled_start_at->copy()->subDay()->toDateString(),
+            'work_schedule'=>json_encode(array_fill_keys(array_keys(HourlyDriver::DAYS),['mode'=>'all_day']))]);
+        DB::table('hourly_team_members')->insert(['hourly_team_id'=>$visit->hourly_team_id,'member_type'=>'driver','member_id'=>1,'role'=>'primary','is_active'=>true]);
+        $service=app(\App\Services\Hourly\OrderManagementService::class);
+        $clock=$visit->scheduled_start_at->format('H:i');
+        $this->assertCount(0,$service->availableDrivers(collect([$visit]),'delivery',$clock));
+        $body=['action'=>'assign_driver','reason'=>'Residency check','visit_ids'=>[$visit->id],'driver_id'=>1,'driver_role'=>'delivery','driver_time'=>$clock];
+        $url=route('admin.hourly-orders.operations',$order);
+        $response=$this->postJson($url,$body)->assertUnprocessable();
+        $this->assertStringContainsString('تنتهي إقامته',json_encode($response->json('errors'),JSON_UNESCAPED_UNICODE));
+        $this->assertNull($visit->fresh()->delivery_driver_id);
+        DB::table('hourly_drivers')->where('id',1)->update(['residency_expiry_date'=>$visit->scheduled_start_at->toDateString()]);
+        $this->assertCount(1,$service->availableDrivers(collect([$visit]),'delivery',$clock));
+        $this->postJson($url,$body)->assertOk();
+        $this->assertEquals(1,$visit->fresh()->delivery_driver_id);
     }
 }
