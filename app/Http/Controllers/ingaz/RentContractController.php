@@ -90,6 +90,7 @@ class RentContractController extends Controller
                 'freeze',
                 'updateFreezeDate',
                 'resume',
+                'resumeOptions',
                 'saveSignature',
             ],
         ]);
@@ -635,6 +636,10 @@ class RentContractController extends Controller
             $selectedMaid = Maid::whereKey($request->maid_id)->lockForUpdate()->firstOrFail();
             $this->assertCanAccessBranchModel($selectedMaid, 'maids');
             app(\App\Services\Rental\RentalModeGuard::class)->assertMonthly($selectedMaid);
+            if (RentalContract::withoutBranchScope()->where('maid_id', $selectedMaid->id)
+                ->whereIn('status', $this->rentalActiveContractStatuses())->holdingMaid()->exists()) {
+                throw new \RuntimeException('العاملة المختارة مرتبطة بعقد إيجار آخر حالياً.');
+            }
 
             $profession = $request->filled('profession')
                 ? $request->profession
@@ -936,6 +941,7 @@ class RentContractController extends Controller
                 'warranty_start_date' => 'بداية الضمان',
                 'warranty_end_date' => 'نهاية الضمان',
                 'freeze_reason' => 'سبب التجميد',
+                'freeze_releases_maid' => 'إتاحة العاملة عند التجميد',
                 'frozen_at' => 'تاريخ التجميد',
                 'resumed_at' => 'تاريخ الاستئناف',
             ],
@@ -1099,6 +1105,10 @@ class RentContractController extends Controller
             $result = DB::transaction(function () use ($id, $validated) {
                 $contract = RentalContract::with(['maid', 'order'])->lockForUpdate()->findOrFail($id);
 
+                if ($contract->requiresMaidOnResume()) {
+                    throw new \RuntimeException('تم تحرير العاملة عند التجميد؛ اختر عاملة متاحة من شاشة استئناف العقد.');
+                }
+
                 if (in_array($contract->status, ['completed', 'cancelled'], true)) {
                     throw new \RuntimeException('لا يمكن تغيير العاملة في عقد مكتمل أو ملغي');
                 }
@@ -1248,6 +1258,9 @@ class RentContractController extends Controller
 
             $contract = RentalContract::with(['user', 'info'])->lockForUpdate()->findOrFail($id);
             $this->assertCanAccessBranchModel($contract, 'rental_contracts');
+            if ($contract->requiresMaidOnResume() && (int) $contract->maid_id !== (int) $request->maid_id) {
+                throw new \RuntimeException('يجب اختيار العاملة المتاحة من شاشة استئناف العقد بعد تحرير العاملة عند التجميد.');
+            }
             $this->assertCanChangeMarketer($contract, (int) $request->marketer_id);
             if ((int) $contract->maid_id !== (int) $request->maid_id) {
                 $selectedMaid = Maid::whereKey($request->maid_id)->lockForUpdate()->firstOrFail();
@@ -1787,6 +1800,10 @@ class RentContractController extends Controller
                 . '</span>';
         }
 
+        if ($contract?->requiresMaidOnResume()) {
+            $frozenBadge .= '<span class="d-block small text-info mt-1">تمت إتاحة العاملة — الاستئناف يتطلب اختيار عاملة مطابقة للباقة</span>';
+        }
+
         $badges = [
             'new' => '<span class="badge bg-primary">جديد</span>',
             'waiting_contract_send' => '<span class="badge bg-warning">بانتظار التوقيع</span>',
@@ -2176,7 +2193,7 @@ class RentContractController extends Controller
             })
             ->where(function ($query) use ($currentMaidId) {
                 $query->whereDoesntHave('rentalContracts', function ($contractQuery) use ($currentMaidId) {
-                    $contractQuery->whereIn('status', $this->rentalActiveContractStatuses());
+                    $contractQuery->whereIn('status', $this->rentalActiveContractStatuses())->holdingMaid();
 
                     if ($currentMaidId) {
                         $contractQuery->where('maid_id', '!=', $currentMaidId);
@@ -2296,7 +2313,7 @@ class RentContractController extends Controller
 
         $hasActiveRentalContracts = RentalContract::query()
             ->where('maid_id', $maid->id)
-            ->whereIn('status', $this->rentalActiveContractStatuses())
+            ->whereIn('status', $this->rentalActiveContractStatuses())->holdingMaid()
             ->exists();
 
         if ($hasActiveRentalContracts) {
@@ -4112,6 +4129,7 @@ class RentContractController extends Controller
     {
         $validated = $request->validate([
             'freeze_reason' => 'required|string|max:1000',
+            'release_maid' => 'sometimes|boolean',
         ], [
             'freeze_reason.required' => 'يرجى كتابة سبب تجميد العقد',
             'freeze_reason.string' => 'سبب التجميد يجب أن يكون نصاً',
@@ -4121,6 +4139,7 @@ class RentContractController extends Controller
         try {
             DB::transaction(function () use ($id, $validated) {
                 $contract = RentalContract::lockForUpdate()->findOrFail($id);
+                $this->assertCanAccessBranchModel($contract, 'rental_contracts');
 
                 if (!$contract->canFreeze()) {
                     throw new \RuntimeException('لا يمكن تجميد العقد في حالته الحالية');
@@ -4130,15 +4149,37 @@ class RentContractController extends Controller
                     ? ($contract->status_before_freeze ?: 'active')
                     : $contract->status;
 
+                $releaseMaid = (bool) ($validated['release_maid'] ?? false);
+                $maid = $releaseMaid ? Maid::query()->lockForUpdate()->find($contract->maid_id) : null;
+                if ($releaseMaid && (!$maid || !$contract->info?->package)) {
+                    throw new \RuntimeException('يجب تحديد عاملة وباقة للعقد قبل تجميده مع إتاحة العاملة.');
+                }
+                if ($maid) {
+                    $this->assertCanAccessBranchModel($maid, 'maids');
+                    if (in_array(strtolower((string) $maid->status), ['backout', 'deported', 'escaped', 'transferred', 'pending_arrival_data'], true)) {
+                        throw new \RuntimeException('حالة العاملة الحالية لا تسمح بإعادتها متاحة عند التجميد.');
+                    }
+                }
+
                 $contract->update([
                     'status' => 'frozen',
                     'status_before_freeze' => $previousStatus,
                     'freeze_reason' => $validated['freeze_reason'],
+                    'freeze_releases_maid' => $releaseMaid,
                     'frozen_at' => now(),
                     'frozen_by' => auth('admin')->id() ?: auth()->id(),
                     'resumed_at' => null,
                     'resumed_by' => null,
                 ]);
+
+                if ($releaseMaid) {
+                    // Keep the historical maid_id, but release its operational commitment.
+                    BranchQueryContext::withoutBranchScope(fn () => $this->syncMaidBookingState($maid));
+                    if (!$maid->available || $maid->status !== 'available'
+                        || !BranchQueryContext::withoutBranchScope(fn () => app(RentalShelterPresenceService::class)->returnFrozenMaidInside($contract))) {
+                        throw new \RuntimeException('تعذر إتاحة العاملة وإعادتها للإيواء لوجود ارتباط آخر أو حالة تمنع عودتها. لم يتم تجميد العقد.');
+                    }
+                }
             });
 
             return response()->json([
@@ -4209,9 +4250,11 @@ class RentContractController extends Controller
 
     public function resume(Request $request, $id)
     {
+        $request->validate(['maid_id' => 'nullable|integer']);
         try {
-            DB::transaction(function () use ($id) {
+            DB::transaction(function () use ($id, $request) {
                 $contract = RentalContract::lockForUpdate()->findOrFail($id);
+                $this->assertCanAccessBranchModel($contract, 'rental_contracts');
 
                 if (!$contract->canResume()) {
                     throw new \RuntimeException('لا يمكن استئناف عقد غير مجمد');
@@ -4223,12 +4266,39 @@ class RentContractController extends Controller
                     $resumeStatus = 'active';
                 }
 
+                $released = $contract->requiresMaidOnResume();
+                if ($released) {
+                    if (!$request->filled('maid_id')) {
+                        throw new \RuntimeException('تمت إتاحة العاملة عند التجميد؛ يجب اختيار عاملة متاحة مطابقة لباقة العقد قبل الاستئناف.');
+                    }
+                    // Lock the worker first, then recheck availability, including other branches.
+                    $maid = Maid::query()->lockForUpdate()->find((int) $request->maid_id);
+                    if (!$maid || !$this->resumeMaidQuery($contract)->whereKey($maid->id)->exists()) {
+                        throw new \RuntimeException('العاملة المختارة غير متاحة حالياً أو لا تطابق باقة العقد. اختر عاملة أخرى.');
+                    }
+                    $this->assertCanAccessBranchModel($maid, 'maids');
+                    $oldMaidId = $contract->maid_id;
+                    $contract->update(['maid_id' => $maid->id]);
+                    activity()->causedBy(auth('admin')->user())->performedOn($contract)
+                        ->event('maid_changed')->withProperties([
+                            'old' => ['maid_id' => $oldMaidId],
+                            'attributes' => ['maid_id' => $maid->id, 'reason' => 'اختيار عاملة متاحة عند استئناف عقد مجمد مع تحرير العاملة'],
+                            'old_maid_name' => Maid::find($oldMaidId)?->name,
+                            'new_maid_name' => $maid->name,
+                        ])->log('اختيار عاملة متاحة عند استئناف العقد بعد التجميد');
+                    $maid->update(['status' => 'contracted', 'available' => false]);
+                }
+
                 $contract->update([
                     'status' => $resumeStatus,
                     'status_before_freeze' => null,
+                    'freeze_releases_maid' => false,
                     'resumed_at' => now(),
                     'resumed_by' => auth('admin')->id() ?: auth()->id(),
                 ]);
+                if ($released && in_array($resumeStatus, RentalShelterPresenceService::OUTSIDE_RENTAL_STATUSES, true)) {
+                    app(RentalShelterPresenceService::class)->markOutside($contract, now());
+                }
             });
 
             return response()->json([
@@ -4251,6 +4321,55 @@ class RentContractController extends Controller
                 'message' => 'حدث خطأ أثناء استئناف عقد الإيجار: ' . $e->getMessage(),
             ], 500);
         }
+    }
+
+    public function resumeOptions($id)
+    {
+        $contract = RentalContract::findOrFail($id);
+        $this->assertCanAccessBranchModel($contract, 'rental_contracts');
+        abort_unless($contract->canResume(), 422, 'لا يمكن استئناف عقد غير مجمد');
+
+        return response()->json([
+            'requires_maid' => $contract->requiresMaidOnResume(),
+            'hint' => 'تمت إعادة العاملة للإيواء وإتاحتها عند التجميد. للاستئناف اختر عاملة متاحة مطابقة لباقة العقد؛ يمكن اختيار العاملة السابقة إذا كانت متاحة.',
+            'package' => $contract->info?->package?->title,
+            'maids' => $contract->requiresMaidOnResume()
+                ? $this->resumeMaidQuery($contract)->get()->map(fn ($maid) => [
+                    'id' => $maid->id,
+                    'name' => $maid->name . ' — ' . ($maid->nationality?->sub_title ?: $maid->nationality?->title),
+                ])->values()
+                : [],
+        ]);
+    }
+
+    private function resumeMaidQuery(RentalContract $contract)
+    {
+        $package = $contract->info?->package;
+        $query = $this->getAvailableRentalMaidsQuery()->where('available', true)
+            ->whereNotIn('status', \App\Services\Rental\RentalMaidQuery::NOT_READY_MAID_STATUSES);
+        if (!$package) {
+            return $query->whereRaw('1 = 0');
+        }
+        // Use exactly the same nationality matching as contract creation (including legacy names).
+        $ids = (clone $query)->get()->filter(fn ($maid) =>
+            \App\Support\RentalPackageEligibility::matches($package, $maid)
+        )->pluck('id');
+        $query->whereIn('maids.id', $ids);
+        $query->whereNotExists(function ($busy) {
+            $busy->selectRaw('1')->from('rental_contracts')
+                ->whereColumn('rental_contracts.maid_id', 'maids.id')
+                ->whereIn('rental_contracts.status', $this->rentalActiveContractStatuses());
+            RentalContract::applyMaidCommitmentFilter($busy);
+        });
+        $query->whereNotExists(function ($busy) {
+            $busy->selectRaw('1')->from('orders')->whereNull('orders.deleted_at')
+                ->whereColumn('orders.maid_id', 'maids.id')->whereIn('orders.status', $this->rentalBookedOrderStatuses());
+        });
+        $query->whereNotExists(function ($busy) {
+            $busy->selectRaw('1')->from('contracts')
+                ->whereColumn('contracts.maid_id', 'maids.id')->whereIn('contracts.status', $this->recruitmentBusyContractStatuses());
+        });
+        return $query;
     }
 
     /**

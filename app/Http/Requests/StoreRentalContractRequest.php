@@ -293,7 +293,7 @@ class StoreRentalContractRequest extends FormRequest
                 // Existing assignments can be maintained after the maid joins another contract.
                 if ($maid && !$isCurrentContractMaid) {
                     $activeRentalContractExists = $maid->rentalContracts()
-                        ->whereIn('status', ['new', 'waiting_contract_send', 'contract_sent', 'contract_signed', 'maid_delivered', 'active', 'transferred', 'suspended', 'frozen'])
+                        ->whereIn('status', ['new', 'waiting_contract_send', 'contract_sent', 'contract_signed', 'maid_delivered', 'active', 'transferred', 'suspended', 'frozen'])->holdingMaid()
                         ->when($currentContract, function ($query) use ($currentContract) {
                             $query->where('id', '!=', $currentContract->id);
                         })
@@ -376,51 +376,7 @@ class StoreRentalContractRequest extends FormRequest
 
     protected function packageMatchesMaidNationality(?Package $package, ?Maid $maid): bool
     {
-        if (!$package || !$maid) {
-            return false;
-        }
-
-        if (!$package->nationality_id) {
-            return true;
-        }
-
-        if ((int) $package->nationality_id === (int) $maid->nationality_id) {
-            return true;
-        }
-
-        $maidTerms = $this->buildNationalityTerms([
-            $maid->nationality?->title,
-            $maid->nationality?->sub_title,
-        ]);
-
-        $packageTerms = $this->buildNationalityTerms([
-            $package->nationality?->title,
-            $package->nationality?->sub_title,
-        ]);
-
-        if (!empty(array_intersect($maidTerms, $packageTerms))) {
-            return true;
-        }
-
-        $packageTitle = $this->normalizeArabicText($package->title ?? '');
-
-        foreach ($maidTerms as $maidTerm) {
-            if ($maidTerm !== '' && Str::contains($packageTitle, $maidTerm)) {
-                return true;
-            }
-        }
-
-        return false;
-    }
-
-    protected function buildNationalityTerms(array $values): array
-    {
-        return collect($values)
-            ->map(fn ($value) => $this->normalizeArabicText($value))
-            ->filter()
-            ->unique()
-            ->values()
-            ->all();
+        return \App\Support\RentalPackageEligibility::matches($package, $maid);
     }
 
     protected function getRentalJobTypeId(): int

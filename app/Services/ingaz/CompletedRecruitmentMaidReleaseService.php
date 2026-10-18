@@ -74,7 +74,7 @@ class CompletedRecruitmentMaidReleaseService
     private function isInsideShelter(int $maidId): bool
     {
         if (Maid::query()->find($maidId)?->rentalContracts()
-            ->whereIn('status', \App\Services\RentalShelterPresenceService::OUTSIDE_RENTAL_STATUSES)->exists()) {
+            ->whereIn('status', \App\Services\RentalShelterPresenceService::OUTSIDE_RENTAL_STATUSES)->holdingMaid()->exists()) {
             return false;
         }
 

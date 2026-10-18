@@ -637,7 +637,7 @@ class RentalContractExpiryReminderService
 
         $hasActiveRentalContracts = RentalContract::query()
             ->where('maid_id', $maid->id)
-            ->whereIn('status', $this->rentalActiveContractStatuses())
+            ->whereIn('status', $this->rentalActiveContractStatuses())->holdingMaid()
             ->exists();
 
         if ($hasActiveRentalContracts) {

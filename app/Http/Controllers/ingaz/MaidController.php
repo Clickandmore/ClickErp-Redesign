@@ -4030,7 +4030,7 @@ class MaidController extends Controller
                 $orderQuery->whereIn('status', $this->activeOrderStatuses());
             })
             ->whereDoesntHave('rentalContracts', function ($rentalQuery) {
-                $rentalQuery->whereIn('status', $this->rentalActiveContractStatuses());
+                $rentalQuery->whereIn('status', $this->rentalActiveContractStatuses())->holdingMaid();
             })
             ->whereDoesntHave('contracts.sponsorshipTransfers', function ($transferQuery) {
                 $transferQuery->whereIn('status', $this->activeSponsorshipTransferStatuses());
@@ -4053,7 +4053,7 @@ class MaidController extends Controller
                         $orderQuery->whereIn('status', $this->activeOrderStatuses());
                     })
                     ->orWhereHas('rentalContracts', function ($rentalQuery) {
-                        $rentalQuery->whereIn('status', $this->rentalActiveContractStatuses());
+                        $rentalQuery->whereIn('status', $this->rentalActiveContractStatuses())->holdingMaid();
                     })
                     ->orWhereHas('contracts.sponsorshipTransfers', function ($transferQuery) {
                         $transferQuery->whereIn('status', $this->activeSponsorshipTransferStatuses());
@@ -4076,7 +4076,7 @@ class MaidController extends Controller
         }
 
         $hasActiveRentalContracts = $maid->rentalContracts
-            ->whereIn('status', $this->rentalActiveContractStatuses())
+            ->whereIn('status', $this->rentalActiveContractStatuses())->reject(fn ($contract) => $contract->requiresMaidOnResume())
             ->isNotEmpty();
 
         if ($hasActiveRentalContracts) {
@@ -4126,7 +4126,7 @@ class MaidController extends Controller
     private function resolveInsideShelterContract(Maid $maid): ?Contract
     {
         $hasOutsideRentalContract = $maid->rentalContracts
-            ->whereIn('status', \App\Services\RentalShelterPresenceService::OUTSIDE_RENTAL_STATUSES)
+            ->whereIn('status', \App\Services\RentalShelterPresenceService::OUTSIDE_RENTAL_STATUSES)->reject(fn ($contract) => $contract->requiresMaidOnResume())
             ->isNotEmpty();
 
         if ($hasOutsideRentalContract) {
@@ -4187,7 +4187,7 @@ class MaidController extends Controller
     private function applyRentalActiveContractsFilter($query): void
     {
         $query->whereHas('rentalContracts', function ($contractQuery) {
-            $contractQuery->whereIn('status', $this->rentalActiveContractStatuses());
+            $contractQuery->whereIn('status', $this->rentalActiveContractStatuses())->holdingMaid();
         });
     }
 
@@ -4196,7 +4196,7 @@ class MaidController extends Controller
         $query->whereHas('rentalContracts', function ($contractQuery) {
             $contractQuery->where('status', 'completed');
         })->whereDoesntHave('rentalContracts', function ($contractQuery) {
-            $contractQuery->whereIn('status', $this->rentalActiveContractStatuses());
+            $contractQuery->whereIn('status', $this->rentalActiveContractStatuses())->holdingMaid();
         });
     }
 
@@ -4209,7 +4209,7 @@ class MaidController extends Controller
 
         $hasActiveRecruitmentContracts = $maid->contracts->whereIn('status', $this->recruitmentContractStatuses())->isNotEmpty();
         $hasActiveOrders = $maid->orders->whereIn('status', $this->activeOrderStatuses())->isNotEmpty();
-        $hasActiveRentalContracts = $maid->rentalContracts->whereIn('status', $this->rentalActiveContractStatuses())->isNotEmpty();
+        $hasActiveRentalContracts = $maid->rentalContracts->whereIn('status', $this->rentalActiveContractStatuses())->reject(fn ($contract) => $contract->requiresMaidOnResume())->isNotEmpty();
         $hasActiveSponsorshipTransfer = (bool) $this->resolveActiveSponsorshipTransfer($maid);
 
         $insideShelterContract = $this->resolveInsideShelterContract($maid);

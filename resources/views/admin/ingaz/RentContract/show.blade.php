@@ -1278,9 +1278,9 @@
                         <div class="section-header">
                             <h3 class="section-title">
                                 <i class="fas fa-female"></i>
-                                العاملة الحالية
+                                {{ $contract->requiresMaidOnResume() ? 'العاملة السابقة قبل التجميد' : 'العاملة الحالية' }}
                             </h3>
-                            @if (@AdminGuardHasPerm(\App\PermKeys::RENT_CONTRACT_EDIT) && !in_array($contract->status, ['completed', 'cancelled'], true))
+                            @if (@AdminGuardHasPerm(\App\PermKeys::RENT_CONTRACT_EDIT) && !in_array($contract->status, ['completed', 'cancelled'], true) && !$contract->requiresMaidOnResume())
                                 <button type="button" class="btn btn-sm btn-warning text-dark no-print" data-bs-toggle="modal"
                                     data-bs-target="#changeMaidModal">
                                     <i class="fas fa-right-left me-1"></i>
@@ -1432,6 +1432,11 @@
                                 <span class="label">حالة الضمان</span>
                                 <span class="value">{{ $warrantyStatuses[$contract->warranty_status] ?? ($contract->warranty_status ?: 'غير محدد') }}</span>
                             </li>
+                            @if ($contract->requiresMaidOnResume())
+                                <div class="alert alert-info">
+                                    تمت إعادة العاملة للإيواء وإتاحتها للحجز عند التجميد. اسم العاملة المعروض للتاريخ فقط؛ لا يمكن استئناف العقد إلا باختيار عاملة متاحة مطابقة لباقة العقد.
+                                </div>
+                            @endif
                             @if ($contract->status === 'frozen' || $contract->frozen_at)
                                 <li>
                                     <span class="label">سبب التجميد</span>
@@ -2507,103 +2512,24 @@
                 });
             });
 
-            $(document).on('click', '.btn-freeze', function() {
-                Swal.fire({
-                    title: 'تجميد عقد الإيجار',
-                    input: 'textarea',
-                    inputLabel: 'سبب التجميد',
-                    inputPlaceholder: 'اكتب سبب تجميد العقد',
-                    inputAttributes: {
-                        maxlength: 1000
-                    },
-                    icon: 'warning',
-                    showCancelButton: true,
-                    confirmButtonColor: '#64748b',
-                    cancelButtonColor: '#dc3545',
-                    confirmButtonText: 'تجميد العقد',
-                    cancelButtonText: 'إلغاء',
-                    inputValidator: (value) => {
-                        if (!value || !value.trim()) {
-                            return 'يرجى كتابة سبب التجميد';
-                        }
-                    }
-                }).then((result) => {
-                    if (!result.isConfirmed) {
-                        return;
-                    }
+            @include('admin.ingaz.RentContract._freeze-dialogs')
 
-                    $.ajax({
-                        url: "{{ route('RentContract.freeze', $contract->id) }}",
-                        method: 'POST',
-                        data: {
-                            _token: '{{ csrf_token() }}',
-                            freeze_reason: result.value
-                        },
-                        success: function(response) {
-                            Swal.fire({
-                                icon: response.success ? 'success' : 'error',
-                                title: response.success ? 'تم بنجاح' : 'خطأ',
-                                text: response.message
-                            }).then(() => {
-                                if (response.success) {
-                                    location.reload();
-                                }
-                            });
-                        },
-                        error: function(xhr) {
-                            const response = xhr.responseJSON || {};
-                            Swal.fire({
-                                icon: 'error',
-                                title: 'خطأ',
-                                text: response.message || 'حدث خطأ أثناء تجميد العقد'
-                            });
-                        }
-                    });
-                });
+            async function submitRentalFreezeAction(url, data) {
+                try {
+                    const response = await $.ajax({ url, method: 'POST', data: { _token: @json(csrf_token()), ...data } });
+                    await Swal.fire(response.success ? 'تم بنجاح' : 'خطأ', response.message, response.success ? 'success' : 'error');
+                    if (response.success) location.reload();
+                } catch (xhr) {
+                    await Swal.fire('تعذر تنفيذ الإجراء', xhr.responseJSON?.message || 'يرجى المحاولة مرة أخرى', 'error');
+                }
+            }
+            $(document).on('click', '.btn-freeze', async function() {
+                const data = await rentalFreezeDialog();
+                if (data) await submitRentalFreezeAction(@json(route('RentContract.freeze', $contract->id)), data);
             });
-
-            $(document).on('click', '.btn-resume', function() {
-                Swal.fire({
-                    title: 'استئناف عقد الإيجار',
-                    text: 'هل تريد استئناف هذا العقد؟',
-                    icon: 'question',
-                    showCancelButton: true,
-                    confirmButtonColor: '#22c55e',
-                    cancelButtonColor: '#64748b',
-                    confirmButtonText: 'نعم، استئناف العقد',
-                    cancelButtonText: 'إلغاء'
-                }).then((result) => {
-                    if (!result.isConfirmed) {
-                        return;
-                    }
-
-                    $.ajax({
-                        url: "{{ route('RentContract.resume', $contract->id) }}",
-                        method: 'POST',
-                        data: {
-                            _token: '{{ csrf_token() }}'
-                        },
-                        success: function(response) {
-                            Swal.fire({
-                                icon: response.success ? 'success' : 'error',
-                                title: response.success ? 'تم بنجاح' : 'خطأ',
-                                text: response.message
-                            }).then(() => {
-                                if (response.success) {
-                                    location.reload();
-                                }
-                            });
-                        },
-                        error: function(xhr) {
-                            const response = xhr.responseJSON || {};
-                            Swal.fire({
-                                icon: 'error',
-                                title: 'خطأ',
-                                text: response.message || 'حدث خطأ أثناء استئناف العقد'
-                            });
-                        }
-                    });
-                });
+            $(document).on('click', '.btn-resume', async function() {
+                const data = await rentalResumeDialog(@json(route('RentContract.resumeOptions', $contract->id)));
+                if (data) await submitRentalFreezeAction(@json(route('RentContract.resume', $contract->id)), data);
             });
 
             $('#changeMaidForm').on('submit', function(e) {

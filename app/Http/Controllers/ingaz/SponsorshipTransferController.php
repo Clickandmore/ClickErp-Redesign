@@ -1734,7 +1734,7 @@ class SponsorshipTransferController extends Controller
             }
 
             $hasActiveRental = $contract->maid?->rentalContracts()
-                ->whereIn('status', \App\Services\RentalShelterPresenceService::OUTSIDE_RENTAL_STATUSES)
+                ->whereIn('status', \App\Services\RentalShelterPresenceService::OUTSIDE_RENTAL_STATUSES)->holdingMaid()
                 ->exists() ?? false;
 
             if ($hasActiveRental) {
