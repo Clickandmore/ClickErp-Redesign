@@ -38,6 +38,7 @@ final class RentalMaidQuery
         ...self::UNAVAILABLE_MAID_STATUSES,
         'escaped',
         'Escaped',
+        'returned_pending_review',
         'backout',
         'Backout',
     ];

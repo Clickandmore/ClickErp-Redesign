@@ -416,6 +416,7 @@ class MusanedTransferController extends Controller
 
     public function store(Request $request, ObjService $service, YearService $yearService)
     {
+        $request->validate(['items' => 'required|array|min:1', 'items.*.invoice_id' => 'required|integer|min:1']);
         $transfer = $this->createTransfer($request, $service, $yearService);
         $returnContract = $request->input('return_to_contract');
         return (is_numeric($returnContract)
@@ -438,6 +439,7 @@ class MusanedTransferController extends Controller
             'items' => 'required|array|min:1',
             'items.*.contract_id' => 'nullable|required_without:items.*.ingaz_delegation_id|integer|exists:contracts,id',
             'items.*.ingaz_delegation_id' => 'nullable|required_without:items.*.contract_id|integer|exists:ingaz_delegations,id',
+            'items.*.invoice_id' => 'nullable|integer|min:1',
             'items.*.transferred_amount' => 'required|numeric|min:0.01',
         ]);
 
@@ -509,12 +511,16 @@ class MusanedTransferController extends Controller
                         return [
                             'contract_id' => $contractId,
                             'ingaz_delegation_id' => $delegationId,
+                            'invoice_id' => isset($item['invoice_id']) ? (int) $item['invoice_id'] : null,
                             'source_key' => $contractId ? ('contract:' . $contractId) : ('delegation:' . $delegationId),
                             'transferred_amount' => $this->roundMoney((float) $item['transferred_amount']),
                         ];
                     })
-                    ->unique('source_key')
                     ->values();
+
+                if ($itemsInput->unique('source_key')->count() !== $itemsInput->count()) {
+                    throw ValidationException::withMessages(['items' => 'لا يمكن تكرار العقد أو التفويض في التحويل نفسه.']);
+                }
 
                 $contractIds = $itemsInput->pluck('contract_id')->filter()->all();
                 $delegationIds = $itemsInput->pluck('ingaz_delegation_id')->filter()->all();
@@ -531,7 +537,20 @@ class MusanedTransferController extends Controller
                     })
                     ->lockForUpdate()
                     ->get()
-                    ->keyBy(fn (Invoice $invoice) => $this->invoiceSourceKey($invoice));
+                    ->groupBy(fn (Invoice $invoice) => $this->invoiceSourceKey($invoice));
+
+                $invoices = $itemsInput->mapWithKeys(function ($row) use ($invoices) {
+                    $candidates = $invoices->get($row['source_key'], collect());
+                    // Internal imports may resolve a single eligible invoice without an ID.
+                    // Browser submissions pin the displayed invoice and must never switch it.
+                    if ($row['invoice_id']) {
+                        $candidates = $candidates->where('id', $row['invoice_id']);
+                    }
+                    if ($candidates->count() !== 1) {
+                        throw ValidationException::withMessages(['items' => 'الفاتورة المحددة لم تعد صالحة للتحويل أو يوجد أكثر من فاتورة. أعد تحميل الصفحة واختر الفاتورة الصحيحة.']);
+                    }
+                    return [$row['source_key'] => $candidates->first()];
+                });
 
                 if ($itemsInput->count() !== $invoices->count()) {
                     throw ValidationException::withMessages([
@@ -878,6 +897,7 @@ class MusanedTransferController extends Controller
             // A transfer item only blocks its invoice while its parent
             // transfer still exists. This also releases legacy orphan items.
             ->whereDoesntHave('musanedTransferItem.transfer')
+            ->blockingReplacement()
             ->where(function ($query) {
                 $query->whereHas('contract')
                     ->orWhereHas('ingazDelegation');

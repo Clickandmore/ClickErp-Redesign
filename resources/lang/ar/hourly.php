@@ -1,6 +1,6 @@
 <?php
 return [
-    'maid_statuses'=>['contracted'=>'متعاقد عليها','transferred'=>'منقولة','reserved'=>'محجوزة','pending_arrival_data'=>'بانتظار بيانات الوصول','escaped'=>'هاربة','backout'=>'متراجعة'],
+    'maid_statuses'=>['contracted'=>'متعاقد عليها','transferred'=>'منقولة','reserved'=>'محجوزة','pending_arrival_data'=>'بانتظار بيانات الوصول','escaped'=>'هاربة','returned_pending_review'=>'عادت — بانتظار مراجعة الجاهزية','backout'=>'متراجعة'],
     'cash_and_card'=>'نقدي وبطاقة',
     'cheque'=>'شيك',
     'customer_balance'=>'رصيد العميل',

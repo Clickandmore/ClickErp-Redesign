@@ -1075,13 +1075,14 @@ class InvoiceController extends Controller
                 ->with(['user', 'country', 'nationality', 'profession', 'invoice'])
                 ->findOrFail($ingazDelegationId);
 
-            if ($selectedIngazDelegation->invoice) {
+            $blockingInvoice = $selectedIngazDelegation->blockingInvoices()->latest('id')->first();
+            if ($blockingInvoice) {
                 if (!InvoiceAuthorization::canView()) {
                     return redirect()->route('invoices.create')
                         ->with('warning', 'تم إصدار فاتورة لهذا التفويض مسبقاً، وليست لديك صلاحية عرض الفواتير.');
                 }
                 return redirect()
-                    ->route('invoices.show', $selectedIngazDelegation->invoice->id)
+                    ->route('invoices.show', $blockingInvoice->id)
                     ->with('success', 'تم إصدار فاتورة لهذا التفويض مسبقاً.');
             }
         }
@@ -1342,7 +1343,7 @@ class InvoiceController extends Controller
         if ($request->filled('contract_id')) {
             $invoiceExists = Invoice::where('contract_id', $request->contract_id)->blockingReplacement()->exists();
         } elseif ($request->filled('ingaz_delegation_id')) {
-            $invoiceExists = Invoice::where('ingaz_delegation_id', $request->ingaz_delegation_id)->exists();
+            $invoiceExists = Invoice::where('ingaz_delegation_id', $request->ingaz_delegation_id)->blockingReplacement()->exists();
         } elseif ($request->filled('sponsorship_transfer_id')) {
             $invoiceExists = Invoice::where('sponsorship_transfer_id', $request->sponsorship_transfer_id)->exists();
         }
@@ -3012,8 +3013,8 @@ class InvoiceController extends Controller
             ->lockForUpdate()
             ->findOrFail($request->ingaz_delegation_id);
 
-        if ($delegation->invoice()->exists()) {
-            throw new \RuntimeException('هذا التفويض لديه فاتورة سابقة');
+        if ($delegation->blockingInvoices()->exists()) {
+            throw new \RuntimeException('هذا التفويض لديه فاتورة سابقة لم يتم إصدار إشعار دائن بكامل قيمتها');
         }
 
         if (!$delegation->user) {
@@ -3029,6 +3030,7 @@ class InvoiceController extends Controller
         $invoice = Invoice::create([
             'contract_id' => null,
             'ingaz_delegation_id' => $delegation->id,
+            'branch_id' => $delegation->branch_id,
             'client_id' => null,
             'insurance_company' => $request->insurance_company ?? null,
             'general_description' => $request->general_description ?? null,

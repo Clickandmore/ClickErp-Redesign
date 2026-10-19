@@ -1,6 +1,6 @@
 <?php
 return [
-    'maid_statuses'=>['contracted'=>'Contracted','transferred'=>'Transferred','reserved'=>'Reserved','pending_arrival_data'=>'Pending arrival data','escaped'=>'Escaped','backout'=>'Backed out'],
+    'maid_statuses'=>['contracted'=>'Contracted','transferred'=>'Transferred','reserved'=>'Reserved','pending_arrival_data'=>'Pending arrival data','escaped'=>'Escaped','returned_pending_review'=>'Returned — pending readiness review','backout'=>'Backed out'],
     'cash_and_card'=>'Cash and card',
     'cheque'=>'Cheque',
     'customer_balance'=>'Customer balance',

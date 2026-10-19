@@ -26,7 +26,7 @@
                     <h3 class="mb-1">تفاصيل تفويض الإنجاز #{{ $delegation->id }}</h3>
                     <p class="text-muted mb-0">عرض كامل لجميع البيانات المرتبطة بالتفويض.</p>
                 </div>
-                <div class="d-flex gap-2">
+                <div class="d-flex flex-wrap gap-2">
                     @if ($canEditDelegation)
                         <a href="{{ route('ingaz-delegations.edit', $delegation) }}" class="btn btn-primary">تعديل</a>
                     @endif
@@ -34,11 +34,8 @@
                         <a href="{{ route('delegation-costs.create', ['delegation_ids' => [$delegation->id]]) }}" class="btn btn-outline-primary">تسجيل تكلفة التفويض</a>
                     @endif
                     @if ($delegation->invoice)
-                        @if ($canViewInvoices)
-                            <a href="{{ route('invoices.show', $delegation->invoice->id) }}" class="btn btn-success">عرض الفاتورة</a>
-                        @endif
-                        @if ($canCreateCreditNotes)
-                            <a href="{{ route('invoices.credit-notes.create', $delegation->invoice->id) }}" class="btn btn-danger">إنشاء إشعار دائن</a>
+                        @if ($canCreateInvoices && (int) $delegation->blocking_invoices_count === 0)
+                            <a href="{{ route('invoices.create', ['ingaz_delegation_id' => $delegation->id]) }}" class="btn btn-primary">إضافة فاتورة أخرى</a>
                         @endif
                         @if ($delegation->invoice->musanedTransferItem?->transfer && $canViewMusanedTransfers)
                             <a href="{{ route('musaned-transfers.show', $delegation->invoice->musanedTransferItem->transfer->id) }}" class="btn btn-info">عرض تحويل مساند</a>
@@ -58,6 +55,19 @@
             </div>
 
             <div class="row g-4">
+                @if ($canViewInvoices || $canViewCreditNotes || $canCreateCreditNotes)
+                    <div class="col-12">
+                        <div class="card shadow-sm border-0">
+                            <div class="card-header bg-light d-flex flex-wrap justify-content-between align-items-center gap-2">
+                                <div><h5 class="mb-1">الفواتير والإشعارات الدائنة</h5><small class="text-muted">فواتير التفويض السابقة والحالية، وإشعارات كل فاتورة</small></div>
+                                <span class="badge bg-primary">{{ $delegation->invoices->count() }} فاتورة</span>
+                            </div>
+                            <div class="card-body">
+                                @include('admin.ingaz_delegations._invoices', ['compact' => false])
+                            </div>
+                        </div>
+                    </div>
+                @endif
                 <div class="col-lg-6">
                     <div class="card shadow-sm border-0 h-100">
                         <div class="card-header bg-light"><h5 class="mb-0">البيانات الأساسية</h5></div>
@@ -133,52 +143,6 @@
                         </div>
                     </div>
                 </div>
-
-                @if ($delegation->invoice && ($canViewCreditNotes || $canCreateCreditNotes))
-                    <div class="col-12">
-                        <div class="card shadow-sm border-0">
-                            <div class="card-header bg-light d-flex justify-content-between align-items-center">
-                                <h5 class="mb-0"><i class="fas fa-file-invoice-dollar text-danger me-1"></i>إشعارات الدائن</h5>
-                                @if ($canCreateCreditNotes)
-                                    <a href="{{ route('invoices.credit-notes.create', $delegation->invoice->id) }}" class="btn btn-sm btn-outline-danger">
-                                        إنشاء إشعار دائن
-                                    </a>
-                                @endif
-                            </div>
-                            <div class="card-body">
-                                @if ($canViewCreditNotes && $delegation->invoice->recruitmentCreditNotes->isNotEmpty())
-                                    <div class="table-responsive">
-                                        <table class="table table-bordered align-middle mb-0">
-                                            <thead class="table-light">
-                                                <tr><th>رقم الإشعار</th><th>التاريخ</th><th>السبب</th><th>الإجمالي</th><th>المستندات</th></tr>
-                                            </thead>
-                                            <tbody>
-                                                @foreach ($delegation->invoice->recruitmentCreditNotes as $creditNote)
-                                                    <tr>
-                                                        <td>#{{ $creditNote->id }}</td>
-                                                        <td>{{ optional($creditNote->issue_date)->format('Y-m-d') }}</td>
-                                                        <td>{{ $creditNote->reason }}</td>
-                                                        <td>{{ number_format((float) $creditNote->total, 2) }} ريال</td>
-                                                        <td>
-                                                            @if ($canPrintCreditNotes)
-                                                                <a href="{{ route('recruitment-credit-notes.download', ['id' => $creditNote->id, 'autoprint' => 1]) }}" target="_blank" rel="noopener" class="btn btn-sm btn-outline-danger">طباعة</a>
-                                                            @endif
-                                                            @if ($creditNote->constraint_id)
-                                                                <a href="{{ route('finance.add-constraint.show', ['add_constraint' => $creditNote->constraint_id]) }}" target="_blank" rel="noopener" class="btn btn-sm btn-outline-secondary">القيد</a>
-                                                            @endif
-                                                        </td>
-                                                    </tr>
-                                                @endforeach
-                                            </tbody>
-                                        </table>
-                                    </div>
-                                @elseif ($canViewCreditNotes)
-                                    <div class="text-muted">لا توجد إشعارات دائنة مرتبطة بهذا التفويض.</div>
-                                @endif
-                            </div>
-                        </div>
-                    </div>
-                @endif
 
                 <div class="col-12">
                     <div class="card shadow-sm border-0">

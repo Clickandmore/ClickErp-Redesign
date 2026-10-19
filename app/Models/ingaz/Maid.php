@@ -46,6 +46,14 @@ class Maid extends Model
             }
         });
         static::saving(function (self $maid) {
+            if ($maid->exists && ($maid->isDirty('available') || $maid->isDirty('status'))
+                && ($maid->available || strtolower((string) $maid->status) === 'available')
+                && \Illuminate\Support\Facades\Schema::hasTable('rental_escape_reports')
+                && \App\Models\RentalEscapeReport::withoutGlobalScopes()->where('maid_id', $maid->id)->whereNull('ready_at')->exists()) {
+                throw \Illuminate\Validation\ValidationException::withMessages([
+                    'status' => 'يلزم تسجيل عودة العاملة واعتماد جاهزيتها من بلاغ هروب عقد التأجير قبل إتاحتها.',
+                ]);
+            }
             if ($maid->gender !== 'male') {
                 $maid->has_driving_license = null;
             }

@@ -234,6 +234,18 @@
 @endsection
 
 @section('content')
+    @if (\Illuminate\Support\Facades\Schema::hasTable('rental_escape_reports'))
+        @php($rentalEscape = \App\Models\RentalEscapeReport::where('maid_id', $maid->id)->latest('id')->first())
+        @if ($rentalEscape && !$rentalEscape->ready_at)
+            <div class="alert alert-danger mx-3">
+                <strong>{{ $rentalEscape->closed_without_return_at ? 'بلاغ مغلق دون عودة — العاملة غير متاحة للتأجير' : ($rentalEscape->returned_at ? 'عادت العاملة وتنتظر اعتماد الجاهزية' : 'بلاغ هروب مفتوح — العاملة غير متاحة للتأجير') }}</strong>
+                <span>من عقد التأجير #{{ $rentalEscape->rental_contract_id }} — تاريخ الهروب {{ $rentalEscape->escape_date->format('Y-m-d') }}</span>
+                @if (AdminGuardHasPerm(\App\PermKeys::RENT_CONTRACT_VIEW))
+                    <a href="{{ route('RentContract.show', $rentalEscape->rental_contract_id) }}" class="btn btn-sm btn-outline-danger">عرض البلاغ</a>
+                @endif
+            </div>
+        @endif
+    @endif
     @if (@AdminGuardHasPerm(\App\PermKeys::MAIDS_VIEW) || @AdminGuardHasPerm(\App\PermKeys::MAIDS_SHOW) || ($isRentalMaid && @AdminGuardHasPerm(\App\PermKeys::MAIDS_RENTAL_VIEW)))
         @php
             $statusLabels = [

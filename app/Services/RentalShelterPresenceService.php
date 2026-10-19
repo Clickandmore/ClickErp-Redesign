@@ -277,7 +277,7 @@ class RentalShelterPresenceService
     private function canReturnMaidInside(int $maidId): bool
     {
         $maidStatus = Maid::query()->whereKey($maidId)->value('status');
-        if ($maidStatus === null || in_array($maidStatus, ['backout', 'deported'], true)) {
+        if ($maidStatus === null || in_array($maidStatus, ['backout', 'deported', 'escaped', 'Escaped', 'returned_pending_review'], true)) {
             return false;
         }
 
