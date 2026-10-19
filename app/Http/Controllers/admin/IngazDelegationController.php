@@ -78,10 +78,23 @@ class IngazDelegationController extends Controller
             $canCreateMusanedTransfers = $this->adminCanAny($this->musanedTransferCreatePermissions());
             $canDeleteMusanedTransfers = $this->adminCanAny($this->musanedTransferDeletePermissions());
 
-            $rows = $query->latest('id');
+            $branchesEnabled = \App\Support\SystemModuleManager::isEnabled('branches')
+                && Schema::hasColumn('ingaz_delegations', 'branch_id');
+            $rows = $query->latest('id')->when($branchesEnabled, fn ($q) => $q->with('branch'));
 
             return DataTables::eloquent($rows)
-                ->editColumn('id', fn (IngazDelegation $row) => $row->id)
+                ->editColumn('id', function (IngazDelegation $row) use ($branchesEnabled) {
+                    if (!$branchesEnabled) {
+                        return e((string) $row->id);
+                    }
+
+                    $badge = $row->branch
+                        ? '<span class="branch-badge"><i class="fa fa-code-branch"></i>' . e($row->branch->name) . '</span>'
+                        : '<span class="branch-badge branch-badge--general" title="غير مرتبط بفرع، ويظهر لكل الفروع"><i class="fa fa-globe"></i>عام</span>';
+
+                    return '<div class="delegation-date-stack" style="min-width:0">'
+                        . '<span>' . e((string) $row->id) . '</span>' . $badge . '</div>';
+                })
                 ->editColumn('delegation_date_gregorian', function (IngazDelegation $row) {
                     if (!$row->delegation_date_gregorian) {
                         return '<span class="text-muted">-</span>';
@@ -265,7 +278,7 @@ class IngazDelegationController extends Controller
 
                     return '<div class="delegation-row-actions">' . implode('', $actions) . '</div>';
                 })
-                ->rawColumns(['delegation_date_gregorian', 'created_at', 'client', 'marketer_name', 'msaned_transfer', 'invoice', 'status', 'status_control', 'actions'])
+                ->rawColumns(['id', 'delegation_date_gregorian', 'created_at', 'client', 'marketer_name', 'msaned_transfer', 'invoice', 'status', 'status_control', 'actions'])
                 ->make(true);
         }
 
