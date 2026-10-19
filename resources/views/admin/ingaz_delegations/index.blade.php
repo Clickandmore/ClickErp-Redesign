@@ -68,6 +68,10 @@
         .delegation-person-cell small { font-size: .74rem; }
         #ingaz-delegations-table .badge { padding: .35rem .65rem; border-radius: 99px; font-weight: 600; font-size: .74rem; }
 
+        .branch-badge { display: inline-flex; align-items: center; gap: .3rem; width: max-content; padding: .2rem .55rem; border-radius: 99px; background: #f5f3ff; color: #6d28d9; border: 1px solid #ede9fe; font-size: .72rem; font-weight: 600; white-space: nowrap; }
+        .branch-badge i { font-size: .66rem; }
+        .branch-badge--general { background: #f3f4f6; color: #4b5563; border-color: #e5e7eb; }
+
         .delegation-status-select { min-width: 150px; border-radius: 99px !important; font-size: .8rem !important; font-weight: 600; background-color: #f9fafb; }
 
         /* شرائح الفاتورة والتحويل */

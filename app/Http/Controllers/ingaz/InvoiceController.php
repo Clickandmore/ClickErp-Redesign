@@ -367,22 +367,27 @@ class InvoiceController extends Controller
             'invoice_rows'
         );
 
-        return DataTables::query($query)
-            ->filter(function ($query) use ($request) {
-                $search = trim((string) data_get($request->input('search'), 'value'));
-                if ($search === '') {
-                    return;
-                }
+        $this->applyStandardInvoiceFilters($query, $request);
 
-                $query->where(function ($query) use ($search) {
-                    $query->where('invoice_sort_number', 'like', "%{$search}%")
-                        ->orWhere('legacy_order_number', 'like', "%{$search}%")
-                        ->orWhere('contract_id', 'like', "%{$search}%")
-                        ->orWhere('rental_contract_number', 'like', "%{$search}%")
-                        ->orWhere('client_name', 'like', "%{$search}%")
-                        ->orWhere('client_phone', 'like', "%{$search}%");
-                });
-            })
+        $summaryQuery = clone $query;
+        $this->applyStandardInvoiceSearch($summaryQuery, $request);
+        $summary = $summaryQuery->selectRaw(
+            'COUNT(*) as documents_count,'
+            . " COALESCE(SUM(CASE WHEN row_type IN ('invoice', 'rental') THEN total_due END), 0) as invoices_total,"
+            . " COALESCE(SUM(CASE WHEN row_type IN ('invoice', 'rental') THEN vat_amount END), 0) as vat_total,"
+            . " COALESCE(SUM(CASE WHEN row_type IN ('invoice', 'rental') AND COALESCE(is_paid, 0) = 0 AND total_due > 0 THEN total_due END), 0) as unpaid_total,"
+            . " COALESCE(SUM(CASE WHEN row_type = 'recruitment_credit_note' OR (row_type = 'rental_adjustment' AND adjustment_type = 'expense') THEN total_due END), 0) as credit_total"
+        )->first();
+
+        return DataTables::query($query)
+            ->filter(fn ($query) => $this->applyStandardInvoiceSearch($query, $request))
+            ->with('summary', [
+                'documents_count' => number_format((int) ($summary->documents_count ?? 0)),
+                'invoices_total' => number_format((float) ($summary->invoices_total ?? 0), 2),
+                'vat_total' => number_format((float) ($summary->vat_total ?? 0), 2),
+                'unpaid_total' => number_format((float) ($summary->unpaid_total ?? 0), 2),
+                'credit_total' => number_format((float) ($summary->credit_total ?? 0), 2),
+            ])
             ->addIndexColumn()
             ->addColumn('invoice_number', fn ($row) => $this->standardInvoiceNumberLink($row))
             ->addColumn('invoice_source', fn ($row) => $this->standardInvoiceSourceBadge($row))
@@ -415,9 +420,96 @@ class InvoiceController extends Controller
                 'finance_sale_id',
                 'legacy_zatca_shared'
             )
-            ->rawColumns(['invoice_number', 'invoice_source', 'status', 'zatca_status', 'actions'])
+            ->editColumn('branch', fn ($row) => $this->branchBadgeHtml($row->branch))
+            ->rawColumns(['invoice_number', 'invoice_source', 'branch', 'status', 'zatca_status', 'actions'])
             ->make(true);
     }
+
+    private function branchBadgeHtml(?string $branchName): string
+    {
+        $branchName = trim((string) $branchName);
+        if ($branchName === '' || $branchName === '-') {
+            return '<span class="branch-badge branch-badge--general" title="غير مرتبط بفرع، ويظهر لكل الفروع"><i class="fas fa-globe"></i>عام</span>';
+        }
+
+        return '<span class="branch-badge"><i class="fas fa-code-branch"></i>' . e($branchName) . '</span>';
+    }
+
+    /**
+     * فلاتر شاشة الفواتير الموحدة، تُطبَّق على الاستعلام المجمّع (invoice_rows)
+     * فتشمل فواتير الاستقدام والتأجير والإشعارات بالمنطق نفسه.
+     */
+    private function applyStandardInvoiceFilters($query, Request $request): void
+    {
+        $date = fn (string $key) => preg_match('/^\d{4}-\d{2}-\d{2}$/', (string) $request->input($key)) ? $request->input($key) : null;
+        $amount = fn (string $key) => is_numeric($request->input($key)) ? (float) $request->input($key) : null;
+        $billable = fn ($q) => $q->whereIn('row_type', ['invoice', 'rental']);
+        $customerCredit = fn ($q) => $q->where('row_type', 'recruitment_credit_note')
+            ->orWhere(fn ($q) => $q->where('row_type', 'rental_adjustment')->where('adjustment_type', 'expense'));
+        $notLegacyShared = fn ($q) => $q->whereNull('legacy_zatca_shared')->orWhere('legacy_zatca_shared', '!=', 1);
+        $zatcaRequired = fn ($q) => $q->where('send_to_zatca', 1)->orWhere('row_type', 'rental');
+        $finalStatuses = ['REPORTED', 'CLEARED', 'NOT_REPORTED', 'NOT_CLEARED'];
+
+        match ((string) $request->input('doc_type')) {
+            'recruitment' => $query->where('row_type', 'invoice')->whereNotNull('contract_id'),
+            'delegation' => $query->where('row_type', 'invoice')->whereNotNull('ingaz_delegation_id'),
+            'transfer' => $query->where('row_type', 'invoice')
+                ->where(fn ($q) => $q->whereNotNull('sponsorship_transfer_id')->orWhereNotNull('rental_contract_id')),
+            'general' => $query->where('row_type', 'invoice')->whereNull('contract_id')->whereNull('ingaz_delegation_id')
+                ->whereNull('sponsorship_transfer_id')->whereNull('rental_contract_id'),
+            'rental' => $query->where('row_type', 'rental'),
+            'rental_adjustment' => $query->where('row_type', 'rental_adjustment'),
+            'credit_note' => $query->where('row_type', 'recruitment_credit_note'),
+            default => null,
+        };
+
+        match ((string) $request->input('payment')) {
+            'paid' => $query->where($billable)->where(fn ($q) => $q->where('is_paid', 1)->orWhere('total_due', '<=', 0)),
+            'unpaid' => $query->where($billable)->where(fn ($q) => $q->whereNull('is_paid')->orWhere('is_paid', 0))->where('total_due', '>', 0),
+            'customer_credit' => $query->where($customerCredit),
+            'customer_debit' => $query->where('row_type', 'rental_adjustment')->where('adjustment_type', '!=', 'expense'),
+            default => null,
+        };
+
+        match ((string) $request->input('zatca')) {
+            'not_required' => $query->where('row_type', '!=', 'rental')
+                ->where(fn ($q) => $q->whereNull('send_to_zatca')->orWhere('send_to_zatca', 0))
+                ->where($notLegacyShared),
+            'not_queued' => $query->whereNull('finance_sale_id')->where($zatcaRequired)->where($notLegacyShared),
+            'pending' => $query->whereNotNull('finance_sale_id')->where($zatcaRequired)->where($notLegacyShared)
+                ->where(fn ($q) => $q->whereNull('zatca_status')->orWhereNotIn('zatca_status', $finalStatuses)),
+            'reported' => $query->where(fn ($q) => $q->where('legacy_zatca_shared', 1)
+                ->orWhere(fn ($q) => $q->whereNotNull('finance_sale_id')->whereIn('zatca_status', ['REPORTED', 'CLEARED']))),
+            'rejected' => $query->whereNotNull('finance_sale_id')->whereIn('zatca_status', ['NOT_REPORTED', 'NOT_CLEARED']),
+            default => null,
+        };
+
+        $query
+            ->when($date('date_from'), fn ($q, $value) => $q->whereDate('created_at', '>=', $value))
+            ->when($date('date_to'), fn ($q, $value) => $q->whereDate('created_at', '<=', $value))
+            ->when($amount('amount_min') !== null, fn ($q) => $q->where('total_due', '>=', $amount('amount_min')))
+            ->when($amount('amount_max') !== null, fn ($q) => $q->where('total_due', '<=', $amount('amount_max')));
+    }
+
+    private function applyStandardInvoiceSearch($query, Request $request): void
+    {
+        $search = trim((string) data_get($request->input('search'), 'value'));
+        if ($search === '') {
+            return;
+        }
+
+        $like = '%' . addcslashes($search, '%_\\') . '%';
+        $query->where(function ($query) use ($like) {
+            $query->where('invoice_sort_number', 'like', $like)
+                ->orWhere('legacy_order_number', 'like', $like)
+                ->orWhere('contract_id', 'like', $like)
+                ->orWhere('ingaz_delegation_id', 'like', $like)
+                ->orWhere('rental_contract_number', 'like', $like)
+                ->orWhere('client_name', 'like', $like)
+                ->orWhere('client_phone', 'like', $like);
+        });
+    }
+
 
     private function standardInvoiceNumberLink($row): string
     {
@@ -2495,6 +2587,8 @@ class InvoiceController extends Controller
         if ($this->usesLegacyInvoiceIndex()) {
             $query->whereNotNull('legacy_invoice_number');
             $this->applyInvoiceIndexFilters($query, $request);
+        } else {
+            $this->applyExportInvoiceFilters($query, $request);
         }
 
         if ($this->branchesEnabledFor('invoices') && $request->filled('branch_id')) {
@@ -2502,6 +2596,41 @@ class InvoiceController extends Controller
         }
 
         return $query;
+    }
+
+    /**
+     * التصدير يغطي جدول invoices فقط؛ فيُطبّق من فلاتر الشاشة ما ينطبق على فواتير الاستقدام،
+     * ويعيد نتيجة فارغة إذا اختير نوع مستند خارج هذا الجدول (تأجير أو إشعارات).
+     */
+    private function applyExportInvoiceFilters($query, Request $request): void
+    {
+        $date = fn (string $key) => preg_match('/^\d{4}-\d{2}-\d{2}$/', (string) $request->input($key)) ? $request->input($key) : null;
+        $amount = fn (string $key) => is_numeric($request->input($key)) ? (float) $request->input($key) : null;
+        $hasRentalTransfer = Schema::hasColumn('invoices', 'rental_transfer_contract_id');
+
+        match ((string) $request->input('doc_type')) {
+            'recruitment' => $query->whereNotNull('contract_id'),
+            'delegation' => $query->whereNotNull('ingaz_delegation_id'),
+            'transfer' => $query->where(fn ($q) => $q->whereNotNull('sponsorship_transfer_id')
+                ->when($hasRentalTransfer, fn ($q) => $q->orWhereNotNull('rental_transfer_contract_id'))),
+            'general' => $query->whereNull('contract_id')->whereNull('ingaz_delegation_id')->whereNull('sponsorship_transfer_id')
+                ->when($hasRentalTransfer, fn ($q) => $q->whereNull('rental_transfer_contract_id')),
+            'rental', 'rental_adjustment', 'credit_note' => $query->whereRaw('1 = 0'),
+            default => null,
+        };
+
+        match ((string) $request->input('payment')) {
+            'paid' => $query->where(fn ($q) => $q->where('is_paid', 1)->orWhere('total_due', '<=', 0)),
+            'unpaid' => $query->where(fn ($q) => $q->whereNull('is_paid')->orWhere('is_paid', 0))->where('total_due', '>', 0),
+            'customer_credit', 'customer_debit' => $query->whereRaw('1 = 0'),
+            default => null,
+        };
+
+        $query
+            ->when($date('date_from'), fn ($q, $value) => $q->whereDate('created_at', '>=', $value))
+            ->when($date('date_to'), fn ($q, $value) => $q->whereDate('created_at', '<=', $value))
+            ->when($amount('amount_min') !== null, fn ($q) => $q->where('total_due', '>=', $amount('amount_min')))
+            ->when($amount('amount_max') !== null, fn ($q) => $q->where('total_due', '<=', $amount('amount_max')));
     }
 
     private function exportZatcaStatusLabel(Invoice $invoice): string
