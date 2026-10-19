@@ -13,6 +13,23 @@ use Tests\TestCase;
 
 class MaidCvPdfGeneratorTest extends TestCase
 {
+    public function test_rental_cv_hides_salary_even_when_request_type_is_custom_spec(): void
+    {
+        $rentalId = \App\Services\Rental\RentalMaidQuery::rentalJobTypeId();
+        $maid = new Maid(['request_type' => 'custom_spec']);
+        $maid->setRelation('jobTypes', collect([(object) ['id' => $rentalId]]));
+        $generator = app(MaidCvPdfGenerator::class);
+        $method = new ReflectionMethod($generator, 'cvServiceType');
+        $method->setAccessible(true);
+        $type = $method->invoke($generator, $maid);
+        $this->assertSame('egar', $type);
+        $template = '@if (($type ?? $maid->request_type ?? "") !== "egar")' . "\nSALARY_MARKER\n" . '@endif';
+        $this->assertStringNotContainsString('SALARY_MARKER', $generator->renderTemplate($template, compact('type', 'maid')));
+        $maid->setRelation('jobTypes', collect());
+        $type = $method->invoke($generator, $maid);
+        $this->assertStringContainsString('SALARY_MARKER', $generator->renderTemplate($template, compact('type', 'maid')));
+    }
+
     public function test_it_passes_complete_expertise_rows_to_the_cv_template(): void
     {
         $expertise = new MaidExpertise([
