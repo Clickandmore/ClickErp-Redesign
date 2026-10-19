@@ -33,7 +33,7 @@ class CashCollectionController extends Controller
         DB::transaction(function()use($order,$visit,$data){
             $order=HourlyRentalOrder::whereKey($order->id)->lockForUpdate()->firstOrFail();
             $visit=HourlyVisit::whereKey($visit->id)->where('hourly_rental_order_id',$order->id)->lockForUpdate()->firstOrFail();
-            if(!in_array($order->status,['active','pending_confirmation'],true) || $visit->status!=='scheduled')HourlyOrderService::reject('حدد مسؤول التحصيل قبل بدء الزيارة.');
+            if(!in_array($order->status,['active','pending_confirmation'],true) || ($visit->status!=='scheduled' || $visit->has_started_execution))HourlyOrderService::reject('حدد مسؤول التحصيل قبل بدء الزيارة.');
             if(DB::table('hourly_cash_collections')->where('visit_id',$visit->id)->exists())HourlyOrderService::reject('لا يمكن تغيير المسؤول بعد تسجيل تحصيل.');
             $worker=$data['type']==='worker'?($data['worker_id'] ?? null):null;
             if($data['type']==='worker' && (!$worker || !$visit->workers()->where('maids.id',$worker)->exists()))HourlyOrderService::reject('اختر عاملة مسندة إلى الزيارة لتكون مسؤولة عن التحصيل.');

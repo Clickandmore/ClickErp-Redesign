@@ -74,7 +74,7 @@
             $phone = $visit->contact_phone ?: $order->contact_phone ?: $order->user?->phone;
         @endphp
         <tr data-visit-card="{{ $visit->id }}" class="{{ $tone }}">
-            <td><input class="form-check-input vc-check" type="checkbox" data-select-visit value="{{ $visit->id }}" aria-label="تحديد زيارة {{ $visit->id }}"></td>
+            <td><input class="form-check-input vc-check" type="checkbox" data-select-visit data-started="{{ $visit->has_started_execution ? '1' : '0' }}" value="{{ $visit->id }}" aria-label="تحديد زيارة {{ $visit->id }}"></td>
             <td data-column="info">
                 <a class="vc-id vc-num" href="{{ route('admin.hourly-visits.show', $visit) }}">#{{ $visit->id }}</a>
                 <span class="vc-sub">طلب <a class="vc-num" href="{{ route('admin.hourly-orders.show', $order) }}">#{{ $order->order_number }}</a> · زيارة {{ $visit->visit_number }}</span>
@@ -114,11 +114,11 @@
                         <button class="btn btn-sm btn-outline-primary" data-single="offer" data-id="{{ $visit->id }}"><i class="fa fa-bullhorn"></i> {{ $visit->offered_to_workers ? 'إعداد العرض' : 'عرض للعاملات' }}</button>
                     @else
                         @if($visit->is_missed)
-                            <button class="btn btn-sm btn-warning" data-single="reschedule" data-id="{{ $visit->id }}"><i class="fa fa-calendar-days"></i> إعادة الجدولة</button>
+                            @if(!$visit->has_started_execution)<button class="btn btn-sm btn-warning" data-single="reschedule" data-id="{{ $visit->id }}"><i class="fa fa-calendar-days"></i> إعادة الجدولة</button>@endif
                         @else
                             <button class="btn btn-sm btn-success" data-single="complete" data-id="{{ $visit->id }}"><i class="fa fa-circle-check"></i> إكمال</button>
                         @endif
-                        <button class="btn btn-sm btn-outline-danger" data-single="cancel_visit" data-id="{{ $visit->id }}"><i class="fa fa-ban"></i> إلغاء</button>
+                        @if(!$visit->has_started_execution)<button class="btn btn-sm btn-outline-danger" data-single="cancel_visit" data-id="{{ $visit->id }}"><i class="fa fa-ban"></i> إلغاء</button>@endif
                     @endif
                 @endif
                 </div>

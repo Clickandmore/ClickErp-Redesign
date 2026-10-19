@@ -154,6 +154,24 @@ class HourlyShelterPresenceTest extends TestCase
         $this->assertSame([], $this->presence()->outNow());
     }
 
+    public function test_pickup_grace_marks_uncollected_workers_and_clears_after_pickup(): void
+    {
+        $this->travelTo(\Carbon\Carbon::parse('2026-10-19 15:00:00'));
+        HourlyRentalSettings::persist(['pickup_grace_minutes' => 45] + HourlyRentalSettings::all(), 7);
+        $visit = $this->order()->visits()->first();
+        $visit->update(['status' => 'worker_finished', 'scheduled_end_at' => now()->subMinutes(44)]);
+        $this->assertFalse(\App\Services\Hourly\VisitDelay::state($visit)['pickup_overdue']);
+        $visit->update(['scheduled_end_at' => now()->subMinutes(45)]);
+        $state = \App\Services\Hourly\VisitDelay::state($visit);
+        $this->assertTrue($state['pickup_overdue']);
+        $this->assertSame('العاملة لم يتم استلامها من العميل', $state['label']);
+        $visit->update(['status' => 'picked_up']);
+        $this->assertFalse(\App\Services\Hourly\VisitDelay::state($visit)['pickup_overdue']);
+        $visit->update(['status' => 'completed']);
+        $this->assertNull(\App\Services\Hourly\VisitDelay::state($visit));
+        $this->travelBack();
+    }
+
     public function test_delay_stages_and_manual_return_keep_physical_presence_consistent(): void
     {
         $order = $this->order();

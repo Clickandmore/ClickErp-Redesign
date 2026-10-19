@@ -36,7 +36,7 @@ class CustomerVisitActions
         $snapshot = (array) $order->package_snapshot;
         $window = (int) ($snapshot['cancellation_window_hours'] ?? HourlyRentalSettings::get('cancellation_window_hours'));
         $percent = (float) ($snapshot['cancellation_fee_percent'] ?? HourlyRentalSettings::get('cancellation_fee_percent'));
-        $upcoming = $visit->status === 'scheduled' && $visit->scheduled_start_at?->isFuture() && !ServiceIncident::waiting($order,$visit->id);
+        $upcoming = $visit->status === 'scheduled' && !$visit->has_started_execution && $visit->scheduled_start_at?->isFuture() && !ServiceIncident::waiting($order,$visit->id);
         // داخل نافذة الإلغاء = رسوم بنسبة من سعر الزيارة، وقبلها الإلغاء مجاني.
         $inside = $upcoming && now()->diffInMinutes($visit->scheduled_start_at, false) < $window * 60;
         return [
@@ -60,6 +60,7 @@ class CustomerVisitActions
             if ($visit->status !== 'scheduled' || !$visit->scheduled_start_at) HourlyOrderService::reject('الإلغاء متاح للزيارات المجدولة فقط.');
             if (!$visit->scheduled_start_at->isFuture()) HourlyOrderService::reject('بدأ موعد الزيارة بالفعل؛ تواصل مع خدمة العملاء.');
             if (!$this->open($order)) HourlyOrderService::reject('الطلب مغلق أو انتهت صلاحيته ولا يقبل الإلغاء.');
+            if ($visit->has_started_execution) HourlyOrderService::reject('بدأ تنفيذ الزيارة بالفعل؛ لا يمكن إلغاؤها.');
             $policy = $this->policy($visit, $order);
             $before = $visit->getAttributes();
             $visit->update(['status' => 'cancelled_by_client', 'cancellation_fee' => $policy['fee_if_cancelled_now']]);

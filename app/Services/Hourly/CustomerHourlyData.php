@@ -142,7 +142,7 @@ class CustomerHourlyData
             'scheduled_end_at' => $visit->scheduled_end_at?->toIso8601String(),
             'timezone' => config('app.timezone'),
             'can_schedule' => $visit->status === 'unscheduled' && $open,
-            'can_reschedule' => $open && $visit->status==='scheduled' && $visit->scheduled_start_at?->isFuture()
+            'can_reschedule' => $open && !$visit->has_started_execution && $visit->status==='scheduled' && $visit->scheduled_start_at?->isFuture()
                 && $settings->value($snapshot,'allow_reschedule')
                 && (int)$visit->reschedule_count<$settings->value($snapshot,'max_reschedules_per_visit')
                 && now()->diffInMinutes($visit->scheduled_start_at,false)>=$settings->value($snapshot,'reschedule_hours_before')*60,
@@ -168,7 +168,7 @@ class CustomerHourlyData
             'extra_hours' => round(max(0,(float)$visit->planned_hours-(float)$order->hours_per_visit),2),
             'can_rate' => in_array($visit->status,CustomerVisitActions::RATEABLE,true) && !$rating,
             // حالة مفهومة للعميل مهما تقدّم التنفيذ الميداني، والحالة الخام تبقى في status.
-            'display_status' => $visit->is_missed ? 'missed' : (self::VISIT_DISPLAY[$visit->status] ?? $visit->status),
+            'display_status' => self::VISIT_DISPLAY[$visit->display_status] ?? $visit->display_status,
             // رمز التسليم يُعرض للعميل قبل وصول العاملة فقط، ويطلبه السائق عند التسليم.
             'delivery_code' => !$visit->is_missed && in_array($visit->status,['scheduled','en_route'],true) ? ($visit->delivery_code ?: null) : null,
             'rating' => $rating];

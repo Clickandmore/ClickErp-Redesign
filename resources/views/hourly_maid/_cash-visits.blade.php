@@ -101,6 +101,9 @@
                     <div class="dp-quick"><a class="dp-btn is-ghost" href="{{ $mapUrl }}" target="_blank" rel="noopener"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 4 3 6v14l6-2 6 2 6-2V4l-6 2-6-2Zm0 0v14m6-12v14"/></svg> فتح الموقع</a></div>
                 @endif
 
+                @if(!empty($task['arrival_blocked_reason']))
+                    <p class="dp-muted" role="status" data-arrival-blocked>لا يمكن تسجيل الوصول: {{ $task['arrival_blocked_reason'] }}</p>
+                @endif
                 @if($task['can_arrive'])
                     <form class="dp-action" method="POST" action="{{ route('hourly-maid.visits.action', $task['id']) }}">@csrf
                         <input type="hidden" name="action" value="arrived">

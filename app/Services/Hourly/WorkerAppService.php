@@ -72,7 +72,11 @@ class WorkerAppService
         $cash=app(CashCollectionService::class);
         $cashVisits=CashCollectionService::ready()?HourlyVisit::with(['workers','order'])->whereIn('id',$rows->pluck('id'))->get()->keyBy('id'):collect();
         return $rows->map(function ($row) use ($drivers, $needsTransport, $maid, $cash, $cashVisits) {
+            $visitNeedsTransport = $needsTransport || !empty($row->delivery_driver_id);
+            $canExecuteDay = Carbon::parse($row->scheduled_start_at)->startOfDay()->lte(now());
             $status = $row->worker_status ?: (self::FROM_VISIT[$row->status] ?? 'assigned');
+            $arrivalBlockedReason = in_array($status, ['assigned', 'en_route'], true)
+                ? OverdueWorkerReturn::reason((int) $maid->id, (int) $row->id) : null;
             $meta=json_decode($row->order_metadata??'{}',true)??[];
             $incidentStatus=$meta['service_disruptions'][$row->id]['status']??null;
             $held=in_array($incidentStatus,ServiceIncident::WAITING,true);
@@ -92,10 +96,11 @@ class WorkerAppService
                 'extra_hours' => round(max(0, (float) $row->planned_hours - (float) ($row->order_hours ?? $row->planned_hours)), 2),
                 'latitude' => (float) $row->latitude, 'longitude' => (float) $row->longitude,
                 'driver' => isset($drivers[$row->delivery_driver_id]) ? ['id' => (int) $row->delivery_driver_id, 'name' => $drivers[$row->delivery_driver_id]] : null,
-                'needs_transport' => $needsTransport,
+                'needs_transport' => $visitNeedsTransport,
                 'incident_status'=>$incidentStatus,
-                'can_arrive' => !$held && !$needsTransport && in_array($status, ['assigned', 'en_route'], true),
-                'can_finish' => $status === 'delivered',
+                'arrival_blocked_reason' => $arrivalBlockedReason,
+                'can_arrive' => !$arrivalBlockedReason && $canExecuteDay && !$held && !$visitNeedsTransport && in_array($status, ['assigned', 'en_route'], true),
+                'can_finish' => $canExecuteDay && $status === 'delivered',
                 // نهاية الخدمة المتوقعة من وقت الوصول؛ «انتهيت» قبلها إنهاء مبكر يطلب التطبيق له سببًا من early_finish_reasons.
                 'planned_end_at' => $status === 'delivered' ? $this->plannedEnd($row) : null,
                 'early_finish_reasons' => EarlyFinish::REASONS,
@@ -229,9 +234,18 @@ class WorkerAppService
             $row = DB::table('hourly_visit_workers')->where('id', $workerVisitId)->lockForUpdate()->first();
             abort_unless($row && (int)$row->maid_id===(int)$maid->id && (int)$row->hourly_visit_id===(int)$visit->id,404);
             if ($order->status !== 'active') HourlyOrderService::reject('الطلب غير نشط.');
+            if ($visitTarget === 'delivered' && ($returnReason = OverdueWorkerReturn::reason((int) $maid->id, (int) $visit->id))) {
+                HourlyOrderService::reject($returnReason);
+            }
+            if ($visitTarget === 'delivered' && ($visit->delivery_driver_id || $this->needsTransport($maid))) {
+                HourlyOrderService::reject('وصولك يُسجّل بالتسليم من السائق برمز العميل.');
+            }
             if($visitTarget==='delivered' && ServiceIncident::waiting($order,$visit->id))
                 HourlyOrderService::reject('للزيارة بلاغ معتمد؛ راجع الإدارة قبل بدء تنفيذها.');
             if (in_array($visit->status, DriverAppService::VOID, true)) HourlyOrderService::reject('الزيارة ملغاة أو منتهية.');
+            if ($visit->scheduled_start_at && $visit->scheduled_start_at->copy()->startOfDay()->isFuture()) {
+                HourlyOrderService::reject('لا يمكن تسجيل الوصول أو الانتهاء قبل يوم الزيارة المحدد.');
+            }
             $current = $row->status ?: (self::FROM_VISIT[$visit->status] ?? 'assigned');
             if ($current === $target) return $this->result($maid, $visit, $row->id);
             if (!in_array($current, $allowed, true)) {
@@ -241,6 +255,7 @@ class WorkerAppService
             $before = $visit->getAttributes();
             if($target==='finished')app(ServiceTime::class)->capture($visit,$row,true);
             DB::table('hourly_visit_workers')->where('id', $row->id)->update(['status' => $target, $stamp => now(), 'updated_at' => now()]);
+            if ($target === 'delivered') app(CashCollectionService::class)->recordSelfArrival($visit,(int)$maid->id);
             $early = $target === 'finished' && app(EarlyFinish::class)->detect($order, $visit, $row, $maid, $earlyReason, $note);
             // كل العاملات على نفس الحالة ⇒ الزيارة تتقدم.
             $pending = DB::table('hourly_visit_workers')->where('hourly_visit_id', $visit->id)

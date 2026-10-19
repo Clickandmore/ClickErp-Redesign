@@ -9,14 +9,14 @@
 <article class="vl-card" data-visit-card="{{ $visit->id }}" style="--row-tone: {{ $toneHex }}">
     <header class="vl-card-head">
         <div class="vl-card-title">
-            <input id="select-visit-{{ $visit->id }}" type="checkbox" data-select-visit value="{{ $visit->id }}" aria-label="تحديد الزيارة {{ $visit->id }}">
+            <input id="select-visit-{{ $visit->id }}" type="checkbox" data-select-visit data-started="{{ $visit->has_started_execution ? '1' : '0' }}" value="{{ $visit->id }}" aria-label="تحديد الزيارة {{ $visit->id }}">
             <a class="vl-card-id" href="{{ route('admin.hourly-visits.show', $visit) }}">زيارة {{ $visit->visit_number }}</a><small class="vl-muted">مرجع #{{ $visit->id }}</small>
             <span class="vl-card-service"><i class="fa fa-broom"></i> {{ $order->serviceCategory?->name ?? 'خدمة ساعات' }}</span>
         </div>
         <div class="vl-card-badges">
             @if($canEdit && $visit->is_missed)
-                <button type="button" class="vl-act" data-single="reschedule" data-id="{{ $visit->id }}">إعادة جدولة الزيارة الفائتة</button>
-                <button type="button" class="vl-act" data-single="cancel_visit" data-id="{{ $visit->id }}">إلغاء الزيارة</button>
+                @if(!$visit->has_started_execution)<button type="button" class="vl-act" data-single="reschedule" data-id="{{ $visit->id }}">إعادة جدولة الزيارة الفائتة</button>@endif
+                @if(!$visit->has_started_execution)<button type="button" class="vl-act" data-single="cancel_visit" data-id="{{ $visit->id }}">إلغاء الزيارة</button>@endif
             @endif
             @if($canEdit && in_array($visit->status, \App\Services\Hourly\ShelterPresence::OUT_STATUSES, true))
                 <button type="button" class="vl-act" data-single="confirm_return" data-id="{{ $visit->id }}">تأكيد العودة للإيواء يدويًا</button>
@@ -60,8 +60,8 @@
             @endif
             @if($canEdit)
                 <div class="vl-acts">
-                    <button type="button" class="vl-act" data-single="reschedule" data-id="{{ $visit->id }}"><i class="fa fa-calendar-days"></i> التاريخ</button>
-                    <button type="button" class="vl-act" data-single="start_time" data-id="{{ $visit->id }}"><i class="fa fa-clock"></i> الوقت</button>
+                    @if(!$visit->has_started_execution)<button type="button" class="vl-act" data-single="reschedule" data-id="{{ $visit->id }}"><i class="fa fa-calendar-days"></i> التاريخ</button>@endif
+                    @if(!$visit->has_started_execution)<button type="button" class="vl-act" data-single="start_time" data-id="{{ $visit->id }}"><i class="fa fa-clock"></i> الوقت</button>@endif
                     <button type="button" class="vl-act" data-single="note" data-id="{{ $visit->id }}"><i class="fa fa-note-sticky"></i> مذكرة</button>
                 </div>
             @endif
@@ -71,7 +71,7 @@
         <section class="vl-cell" data-column="duration">
             <h6><i class="fa fa-hourglass-half"></i> المدة</h6>
             <div class="vl-big vl-num">{{ rtrim(rtrim(number_format((float) $visit->planned_hours, 2), '0'), '.') }} <small>ساعات</small></div>
-            @if($canPrice && $canEdit)<div class="vl-acts"><button type="button" class="vl-act" data-single="duration" data-id="{{ $visit->id }}"><i class="fa fa-pen"></i> تغيير المدة</button></div>@endif
+            @if($canPrice && $canEdit)<div class="vl-acts">@if(!$visit->has_started_execution)<button type="button" class="vl-act" data-single="duration" data-id="{{ $visit->id }}"><i class="fa fa-pen"></i> تغيير المدة</button>@endif</div>@endif
         </section>
         <section class="vl-cell" data-column="price">
             <h6><i class="fa fa-tag"></i> السعر شامل الضريبة</h6>
@@ -147,7 +147,7 @@
         <div class="vl-foot-main">
             @if($canEdit && !in_array($visit->status, \App\Services\Hourly\VisitSearch::CLOSED))
                 <button type="button" class="vl-btn is-success" data-single="complete" data-id="{{ $visit->id }}"><i class="fa fa-circle-check"></i> إكمال</button>
-                <button type="button" class="vl-btn is-danger" data-single="cancel_visit" data-id="{{ $visit->id }}"><i class="fa fa-ban"></i> إلغاء الزيارة</button>
+                @if(!$visit->has_started_execution)<button type="button" class="vl-btn is-danger" data-single="cancel_visit" data-id="{{ $visit->id }}"><i class="fa fa-ban"></i> إلغاء الزيارة</button>@endif
             @endif
             <div class="dropdown">
                 <button type="button" class="vl-btn is-primary dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false"><i class="fa fa-money-bill-wave"></i> الدفع</button>

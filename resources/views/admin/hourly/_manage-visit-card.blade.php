@@ -13,13 +13,13 @@
 <article class="om-visit {{ str_replace('om-b-', 'om-tl-', $visitClass) }}" data-visit-card data-buckets="{{ implode(' ', $buckets) }}" id="visit-{{ $visit->id }}">
     <header class="om-v-head">
         @if($editable)
-            <input class="form-check-input om-v-check" type="checkbox" data-visit-select value="{{ $visit->id }}" data-number="{{ $visit->visit_number }}" data-start="{{ $visit->scheduled_start_at?->format('Y-m-d H:i') }}" data-end="{{ $visit->scheduled_end_at?->format('Y-m-d H:i') }}" data-delivery="{{ $visit->delivery_at }}" data-pickup="{{ $visit->pickup_at }}" aria-label="تحديد الزيارة {{ $visit->visit_number }} للإجراءات الجماعية" title="تحديد للإجراءات الجماعية">
+            <input class="form-check-input om-v-check" type="checkbox" data-visit-select data-started="{{ $visit->has_started_execution ? '1' : '0' }}" value="{{ $visit->id }}" data-number="{{ $visit->visit_number }}" data-start="{{ $visit->scheduled_start_at?->format('Y-m-d H:i') }}" data-end="{{ $visit->scheduled_end_at?->format('Y-m-d H:i') }}" data-delivery="{{ $visit->delivery_at }}" data-pickup="{{ $visit->pickup_at }}" aria-label="تحديد الزيارة {{ $visit->visit_number }} للإجراءات الجماعية" title="تحديد للإجراءات الجماعية">
         @endif
         <div class="om-v-no"><span>زيارة</span><b class="om-num">{{ $visit->visit_number }}</b><small class="om-ltr om-num">#{{ $visit->id }}</small></div>
         <div class="om-v-when">
             @if($visit->scheduled_start_at)
                 <b>{{ $visit->scheduled_start_at->translatedFormat('l') }} <span class="om-ltr om-num">{{ $visit->scheduled_start_at->format('d/m/Y') }}</span>
-                    @if($editable && $visit->scheduled_start_at->isFuture())
+                    @if($editable && !$visit->has_started_execution && $visit->scheduled_start_at->isFuture())
                         <button type="button" class="om-link-edit" data-order-action="start_time" data-visit="{{ $visit->id }}" title="تعديل الموعد" aria-label="تعديل موعد الزيارة {{ $visit->visit_number }}"><i class="fa fa-pen-to-square"></i></button>
                     @endif
                 </b>
@@ -40,6 +40,9 @@
         <div class="om-v-price"><b class="om-num">{{ number_format((float) $visit->visit_price, 2) }}</b><small>{{ __('hourly.sar') }}</small></div>
     </header>
 
+    @if(\App\Services\Hourly\VisitDelay::state($visit))
+        <div class="px-3 py-2">@include('admin.hourly_visits._delay', ['visit' => $visit])</div>
+    @endif
     @if($alerts)
         <div class="om-v-alerts">
             @foreach($alerts as [$class, $icon, $text])<span class="om-badge {{ $class }}"><i class="fa {{ $icon }}"></i> {{ $text }}</span>@endforeach

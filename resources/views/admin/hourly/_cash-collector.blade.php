@@ -6,7 +6,7 @@
     <div class="alert alert-info mt-2 mb-2 small">مسؤول التحصيل: <strong>{{ $cashPolicy['label'] }}</strong>
         @if($cashPolicy['id']) #{{ $cashPolicy['id'] }}@elseif($cashPolicy['type']!=='admin') — يلزم تحديد الشخص قبل التحصيل@endif
     </div>
-    @if($visit->status==='scheduled' && in_array($order->status,['active','pending_confirmation']) && AdminGuardHasPerm('hourly_orders_create') && AdminGuardHasPerm('hourly_orders_collect'))
+    @if($visit->status==='scheduled' && !$visit->has_started_execution && in_array($order->status,['active','pending_confirmation']) && AdminGuardHasPerm('hourly_orders_create') && AdminGuardHasPerm('hourly_orders_collect'))
     <details class="small"><summary>تحديد مسؤول التحصيل النقدي</summary>
         <form method="POST" action="{{ route('admin.hourly-cash.collector',[$order,$visit]) }}" class="mt-2">
             @csrf<label>المسؤول</label><select name="type" class="form-select form-select-sm" required>

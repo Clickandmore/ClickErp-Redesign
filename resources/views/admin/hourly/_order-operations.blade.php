@@ -34,7 +34,7 @@ $operations=array_filter($operations,fn($op,$action)=>!in_array($action,['price'
 <span class="text-muted" id="selected-visits-count" aria-live="polite"></span>
 </div>
 <div class="modal fade om-modal" id="order-operation-modal" data-op-step="pick" tabindex="-1" aria-labelledby="operation-modal-title" aria-hidden="true" dir="{{ app()->getLocale()==='ar'?'rtl':'ltr' }}"><div class="modal-dialog modal-lg modal-dialog-centered"><div class="modal-content">
-<div class="modal-header"><span class="om-m-icon"><i class="fa fa-gears" id="operation-modal-icon"></i></span><div><h5 id="operation-modal-title">الإجراءات</h5><p><i class="fa fa-hashtag"></i> {{ $order->order_number }}</p></div><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="إغلاق"></button></div>
+<div class="modal-header"><span class="om-m-icon"><i class="fa fa-gears" id="operation-modal-icon"></i></span><div><h5 id="operation-modal-title">الإجراءات</h5><p><i class="fa fa-hashtag"></i> {{ str_pad((string) $order->id, 8, '0', STR_PAD_LEFT) }}</p></div><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="إغلاق"></button></div>
 <form id="order-operation-form" data-workers-url="{{ route('admin.hourly-orders.available-workers',[$order,'VISIT_ID']) }}" data-drivers-url="{{ route('admin.hourly-orders.available-drivers',$order) }}" method="POST" action="{{ route('admin.hourly-orders.operations',$order) }}">@csrf
 <div class="modal-body">
 <p id="operation-target" class="alert alert-info">يطبق الإجراء على الزيارات المحددة.</p>

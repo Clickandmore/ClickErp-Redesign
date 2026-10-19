@@ -26,6 +26,23 @@ class HourlyWebsocketSettingsTest extends TestCase
         $this->assertSame('replacement',HourlyWebsocketSettings::all()['secret']);
     }
 
+    public function test_unreadable_settings_do_not_crash_and_can_be_replaced(): void
+    {
+        $other = new \Illuminate\Encryption\Encrypter(random_bytes(32), 'AES-256-CBC');
+        $stored = $other->encryptString(json_encode(['enabled'=>true,'secret'=>'old-secret']));
+        DB::table('new_settings')->insert(['key'=>HourlyWebsocketSettings::KEY,'value'=>$stored]);
+        $form = HourlyWebsocketSettings::forForm();
+        $this->assertTrue($form['decryption_failed']);
+        $this->assertFalse($form['enabled']);
+        $this->assertFalse($form['has_secret']);
+        $this->assertArrayNotHasKey('secret', $form);
+        $this->assertSame($stored, DB::table('new_settings')->where('key',HourlyWebsocketSettings::KEY)->value('value'));
+        $this->withSession(['dev_superadmin_authenticated'=>true])->get(route('dev-superadmin.hourly-rental-settings.index'))->assertOk();
+        HourlyWebsocketSettings::persist(HourlyWebsocketSettings::prepare(['enabled'=>true,'key'=>'new-key','app_id'=>'123','secret'=>'new-secret']));
+        $this->assertFalse(HourlyWebsocketSettings::forForm()['decryption_failed']);
+        $this->assertSame('new-secret', HourlyWebsocketSettings::all()['secret']);
+    }
+
     public function test_enabled_connection_requires_credentials(): void
     {
         $this->expectException(\Illuminate\Validation\ValidationException::class);

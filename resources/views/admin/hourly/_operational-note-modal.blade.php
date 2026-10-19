@@ -34,7 +34,7 @@
         <span class="om-m-icon"><i class="fa fa-pen-to-square"></i></span>
         <div>
             <h5 id="on-title">{{ __('operational_notes.title') }}</h5>
-            <p><i class="fa fa-hashtag"></i> {{ $order->order_number }}</p>
+            <p><i class="fa fa-hashtag"></i> {{ str_pad((string) $order->id, 8, '0', STR_PAD_LEFT) }}</p>
         </div>
         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="{{ __('operational_notes.close') }}"></button>
     </div>

@@ -82,6 +82,11 @@ class DriverPortalController extends Controller
             if ($data['action']==='confirm_delivery' && (float)($data['cash_amount']??0)>0) {
                 app(\App\Services\Hourly\CashCollectionService::class)->collect($visit,'driver',(int)$driver->id,(float)$data['cash_amount'],$data['request_token']);
             }
+            if ($to === 'en_route') {
+                app(\App\Services\Hourly\ShelterPresence::class)->open($visit, 'driver', (int) $driver->id);
+            } elseif ($to === 'completed') {
+                app(\App\Services\Hourly\ShelterPresence::class)->close($visit, 'driver', (int) $driver->id);
+            }
             $before = $visit->getAttributes();
             $visit->update(['status' => $to]);
             if($to==='delivered')\App\Services\Hourly\ServiceTime::recordDelivery($visit);

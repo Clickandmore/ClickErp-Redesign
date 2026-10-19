@@ -614,8 +614,82 @@ class HourlyStaffAppApiTest extends TestCase
         $maid=\App\Models\ingaz\Maid::findOrFail(1);
         $maid->hourly_settings=array_replace($maid->hourly_settings,['requires_driver'=>'0']);$maid->save();
         $ownTrip=app(\App\Services\Hourly\WorkerAppService::class)->today($maid)[0];
+        $this->assertTrue($ownTrip['needs_transport']);$this->assertFalse($ownTrip['can_arrive']);
+        $this->get(route('hourly-maid.home'))->assertOk()->assertDontSee('value="arrived"',false);
+        $this->from(route('hourly-maid.home'))->post(route('hourly-maid.visits.action',$task['id']),['action'=>'arrived'])
+            ->assertRedirect(route('hourly-maid.home'))->assertSessionHasErrors('hourly');
+        auth()->forgetGuards();
+        $this->withToken($token)->postJson('/api/worker/visits/'.$task['id'].'/arrived')->assertUnprocessable()
+            ->assertJsonPath('message','وصولك يُسجّل بالتسليم من السائق برمز العميل.');
+        $this->assertNull(DB::table('hourly_visit_workers')->where('id',$task['id'])->value('arrived_at'));
+        $this->assertSame('en_route',$visit->fresh()->status);
+        $visit->update(['delivery_driver_id'=>null]);
+        $ownTrip=app(\App\Services\Hourly\WorkerAppService::class)->today($maid)[0];
         $this->assertFalse($ownTrip['needs_transport']);$this->assertTrue($ownTrip['can_arrive']);
     }
+    public function test_worker_cannot_execute_a_future_day_visit_even_with_stale_worker_status(): void
+    {
+        $order = $this->order(2, '2026-09-23 08:00', ['requires_driver' => false]);
+        $visit = $order->visits()->first();
+        $maid = \App\Models\ingaz\Maid::findOrFail(2);
+        $row = DB::table('hourly_visit_workers')->where('hourly_visit_id',$visit->id)->first();
+        $service = app(\App\Services\Hourly\WorkerAppService::class);
+        $task = $service->today($maid,'2026-09-23')[0];
+        $this->assertFalse($task['can_arrive']);
+        $this->assertFalse($task['can_finish']);
+        try { $service->arrived($maid,$row->id,[]); $this->fail('Future arrival must be blocked.'); }
+        catch (\Illuminate\Validation\ValidationException $e) { $this->assertArrayHasKey('hourly',$e->errors()); }
+        $this->assertNull(DB::table('hourly_visit_workers')->where('id',$row->id)->value('arrived_at'));
+        DB::table('hourly_visit_workers')->where('id',$row->id)->update(['status'=>'delivered','arrived_at'=>now()]);
+        $this->assertFalse($service->today($maid,'2026-09-23')[0]['can_finish']);
+        try { $service->finish($maid,$row->id,null,[]); $this->fail('Future finish must be blocked.'); }
+        catch (\Illuminate\Validation\ValidationException $e) { $this->assertArrayHasKey('hourly',$e->errors()); }
+        $this->assertNull(DB::table('hourly_visit_workers')->where('id',$row->id)->value('finished_at'));
+        $this->assertSame('scheduled',$visit->fresh()->status);
+    }
+
+    public function test_old_unreturned_visit_blocks_new_arrival_until_recorded_return(): void
+    {
+        (require base_path('database/migrations/2026_09_28_000001_create_worker_daily_movements_table.php'))->up();
+        $old = $this->order(2, '2026-09-22 08:00', ['requires_driver'=>false])->visits()->first();
+        $next = $this->order(2, '2026-09-23 08:00', ['requires_driver'=>false])->visits()->first();
+        $driver = $this->driver();
+        $old->update(['status'=>'in_progress','pickup_driver_id'=>$driver->id]);
+        DB::table('hourly_visit_workers')->where('hourly_visit_id',$old->id)->update(['status'=>'delivered','arrived_at'=>'2026-09-22 08:00:00']);
+        $maid = \App\Models\ingaz\Maid::findOrFail(2);
+        $presence = app(\App\Services\Hourly\ShelterPresence::class);
+        $presence->open($old,'driver',$driver->id);
+        Carbon::setTestNow('2026-09-23 08:00:00');
+        $service = app(\App\Services\Hourly\WorkerAppService::class);
+        $task = $service->today($maid)[0];
+        $this->assertSame($next->id,$task['visit_id']);
+        $this->assertFalse($task['can_arrive']);
+        $this->assertNotEmpty($task['arrival_blocked_reason']);
+        $token = $this->loginWorker(2,'0500000002');
+        $this->withToken($token)->postJson('/api/worker/visits/'.$task['id'].'/arrived')->assertStatus(422);
+        $this->assertNull(DB::table('hourly_visit_workers')->where('id',$task['id'])->value('arrived_at'));
+        auth()->forgetGuards();
+        $account = \App\Models\Hourly\HourlyMaidAccount::findOrFail(2);
+        $this->actingAs($account,'hourly_maid')->withSession(['hourly_maid_version'=>$account->hourly_auth_version]);
+        $this->get(route('hourly-maid.home'))->assertOk()->assertDontSee('value="arrived"',false)->assertSee('data-arrival-blocked',false);
+        $this->from(route('hourly-maid.home'))->post(route('hourly-maid.visits.action',$task['id']),['action'=>'arrived'])
+            ->assertRedirect(route('hourly-maid.home'))->assertSessionHasErrors('hourly');
+        $oldWorker = DB::table('hourly_visit_workers')->where('hourly_visit_id',$old->id)->first();
+        $service->finish($maid,$oldWorker->id,null,[]);
+        $this->assertSame('worker_finished',$old->fresh()->status);
+        $this->assertFalse($service->today($maid)[0]['can_arrive']);
+        $old->update(['status'=>'picked_up']);
+        $this->assertFalse($service->today($maid)[0]['can_arrive']);
+        $presence->close($old,'driver',$driver->id);
+        $old->update(['status'=>'completed']);
+        $task = $service->today($maid)[0];
+        $this->assertTrue($task['can_arrive']);
+        $this->assertNull($task['arrival_blocked_reason']);
+        $service->arrived($maid,$task['id'],[]);
+        $this->assertSame('delivered',$next->fresh()->status);
+        $this->assertNotNull(DB::table('hourly_visit_workers')->where('id',$task['id'])->value('arrived_at'));
+    }
+
     public function test_worker_without_transport_starts_and_closes_her_own_visit(): void
     {
         $order = $this->order(2, '2026-09-22 08:00', ['requires_driver' => false]);
@@ -1132,6 +1206,141 @@ class HourlyStaffAppApiTest extends TestCase
         $actions->shelterReturn($driver, $trip['stops'][0]['id'], []);
         $this->assertSame('completed', $visit->fresh()->status);
     }
+    public function test_partial_worker_arrival_locks_cancellation_and_schedule_and_assigns_cash(): void
+    {
+        (require base_path('database/migrations/2026_10_14_000002_add_hourly_cash_custody.php'))->up();
+        $order=$this->order(1,'2026-09-22 08:00',['requires_driver'=>false]);
+        $other=$this->order(2,'2026-09-22 08:00',['requires_driver'=>false]);
+        $other->visits()->first()->workers()->detach(2);
+        $visit=$order->visits()->first();
+        $visit->workers()->attach(2);
+        $visit->update(['workers_count'=>2,'cash_collector_type'=>'driver']);
+        $service=app(\App\Services\Hourly\WorkerAppService::class);
+        $first=DB::table('hourly_visit_workers')->where('hourly_visit_id',$visit->id)->where('maid_id',1)->first();
+        $service->arrived(\App\Models\ingaz\Maid::findOrFail(1),$first->id,[]);
+        $visit->refresh();
+        $this->assertSame('scheduled',$visit->status);
+        $this->assertTrue($visit->has_started_execution);
+        $this->assertSame('in_progress',$visit->display_status);
+        $manager=app(\App\Services\Hourly\OrderManagementService::class);
+        foreach(['cancel_visit','cancel_order','reschedule','start_time','duration'] as $action) {
+            try {
+                $manager->apply($order,['action'=>$action,'visit_ids'=>[$visit->id],'reason'=>'Started visit guard',
+                    'shift_days'=>1,'start_time'=>'09:00','hours'=>5,'refund_method'=>'none'],7);
+                $this->fail('Started visit accepted '.$action);
+            } catch(\Illuminate\Validation\ValidationException $e) { $this->assertArrayHasKey('hourly',$e->errors()); }
+        }
+        try {
+            app(\App\Services\Hourly\HourlyOrderService::class)->reschedule($visit,'2026-09-23 08:00',7);
+            $this->fail('Direct reschedule accepted partial arrival.');
+        } catch(\Illuminate\Validation\ValidationException $e) { $this->assertArrayHasKey('hourly',$e->errors()); }
+        $customer=app(\App\Services\Hourly\CustomerVisitActions::class);
+        $this->assertFalse($customer->policy($visit,$order)['can_cancel']);
+        try { $customer->cancel($visit); $this->fail('Customer cancelled a started visit.'); }
+        catch(\Illuminate\Validation\ValidationException $e) { $this->assertArrayHasKey('hourly',$e->errors()); }
+        $this->assertSame('2026-09-22 08:00:00',$visit->fresh()->scheduled_start_at->toDateTimeString());
+        $this->assertSame('active',$order->fresh()->status);
+        $cash=app(\App\Services\Hourly\CashCollectionService::class);
+        $this->assertSame(['type'=>'worker','id'=>1,'label'=>'العاملة'],$cash->collector($visit));
+        $this->assertTrue($cash->info($visit,'worker',1)['can_collect']);
+        $this->assertFalse($cash->info($visit,'worker',2)['can_collect']);
+        try { $cash->collect($visit,'driver',1,10,(string)Str::uuid()); $this->fail('Driver collected self-arrival cash.'); }
+        catch(\Illuminate\Validation\ValidationException $e) { $this->assertArrayHasKey('hourly',$e->errors()); }
+        $collection=$cash->collect($visit,'worker',1,10,(string)Str::uuid());
+        $this->assertDatabaseHas('hourly_cash_collections',['id'=>$collection['collection_id'],'holder_type'=>'worker','holder_id'=>1]);
+        $second=DB::table('hourly_visit_workers')->where('hourly_visit_id',$visit->id)->where('maid_id',2)->first();
+        $service->arrived(\App\Models\ingaz\Maid::findOrFail(2),$second->id,[]);
+        $this->assertSame('delivered',$visit->fresh()->status);
+        $this->assertSame(1,$cash->collector($visit->fresh())['id']);
+        $this->assertDatabaseHas('hourly_cash_collections',['id'=>$collection['collection_id'],'holder_id'=>1,'amount'=>10]);
+    }
+
+    public function test_demo_single_worker_finish_http_flow(): void
+    {
+        $this->runDemoFinishHttpFlow(1);
+    }
+
+    public function test_demo_two_workers_finish_http_flow(): void
+    {
+        $this->runDemoFinishHttpFlow(2);
+    }
+
+    private function runDemoFinishHttpFlow(int $count): void
+    {
+        app('view')->getFinder()->prependLocation(base_path('tests/Fixtures/hourly-web-views'));
+        (require base_path('database/migrations/2026_10_14_000002_add_hourly_cash_custody.php'))->up();
+        $this->withoutMiddleware([\App\Http\Middleware\Authenticate::class,\App\Http\Middleware\EnforceRoutePermission::class,\App\Http\Middleware\EnforceCircularResponse::class]);
+        HourlyRentalSettings::persist(['show_on_website'=>true] + HourlyRentalSettings::all());
+        $order=$this->order(1,'2026-09-22 08:00',['requires_driver'=>false]);
+        $visit=$order->visits()->first();
+        if ($count===2) {
+            $extra=$this->order(2,'2026-09-22 08:00',['requires_driver'=>false]);
+            $extra->visits()->first()->workers()->detach(2);
+            $visit->workers()->attach(2);
+            $visit->update(['workers_count'=>2]);
+        }
+        $driver=$this->driver();
+        $visit->update(['pickup_driver_id'=>$driver->id]);
+        $admin=\Mockery::mock(\App\Models\auth\Admin::class)->makePartial();
+        $admin->id=7;$admin->name='Demo supervisor';$admin->shouldReceive('can')->andReturn(true);
+        auth('admin')->setUser($admin);
+        $user=\App\Models\ingaz\User::findOrFail(1);
+        auth('web')->setUser($user);auth('api')->setUser($user);
+        $account=\App\Models\Hourly\HourlyMaidAccount::findOrFail(1);
+        $this->actingAs($account,'hourly_maid')->withSession(['hourly_maid_version'=>$account->hourly_auth_version]);
+        $first=DB::table('hourly_visit_workers')->where('hourly_visit_id',$visit->id)->where('maid_id',1)->first();
+        $workerUrl=route('hourly-maid.visits.action',$first->id);
+        $this->postJson($workerUrl,['action'=>'arrived'])->assertRedirect();
+        $this->assertNotNull(DB::table('hourly_visit_workers')->where('id',$first->id)->value('arrived_at'));
+        $data=app(\App\Services\Hourly\CustomerHourlyData::class)->visit($visit->fresh(),$order->fresh());
+        $this->assertSame('in_progress',$data['display_status']);
+        $this->assertFalse($data['can_reschedule']);
+        $this->assertTrue(app(\App\Services\Hourly\CashCollectionService::class)->info($visit->fresh(),'worker',1)['can_collect']);
+        $this->postJson(route('hourly-maid.cash.collect',$first->id),['amount'=>10,'request_token'=>(string)Str::uuid()])->assertRedirect();
+        $this->assertDatabaseHas('hourly_cash_collections',['visit_id'=>$visit->id,'holder_type'=>'worker','holder_id'=>1,'amount'=>10]);
+        $this->postJson($workerUrl,['action'=>'finish','early_reason'=>'other','note'=>'Demo worker finished'])->assertRedirect();
+        $this->assertDatabaseHas('hourly_visit_workers',['id'=>$first->id,'status'=>'finished']);
+        $this->assertTrue($visit->fresh()->has_started_execution);
+        $data=app(\App\Services\Hourly\CustomerHourlyData::class)->visit($visit->fresh(),$order->fresh());
+        $this->assertFalse($data['can_reschedule']);
+        $this->assertFalse($data['can_cancel']);
+        $this->assertSame($count===1?'worker_finished':'scheduled',$visit->fresh()->status);
+        $this->assertSame($count===1?'completed':'in_progress',$data['display_status']);
+        $this->get(route('web.hourly.order',$order->id))->assertOk()->assertDontSee('data-visit-action="reschedule"',false);
+        $this->get(route('hourly-maid.home'))->assertOk()->assertDontSee('value="finish"',false);
+        if(!Schema::hasTable('hourly_worker_reviews')) Schema::create('hourly_worker_reviews',function(Blueprint $t){
+            $t->id();$t->unsignedBigInteger('hourly_rental_order_id');$t->unsignedBigInteger('visit_id');$t->unsignedBigInteger('maid_id');$t->integer('rating');$t->text('comment')->nullable();$t->timestamps();
+        });
+        $this->get(route('admin.hourly-orders.show',$order))->assertOk()->assertDontSee('data-order-action="cancel_visit"',false);
+        foreach(['cancel_visit','reschedule','start_time'] as $action) {
+            $this->postJson(route('admin.hourly-orders.operations',$order),['action'=>$action,'visit_ids'=>[$visit->id],
+                'reason'=>'Demo stale dashboard request','shift_days'=>1,'start_time'=>'09:00','refund_method'=>'none'])
+                ->assertStatus(422)->assertJsonValidationErrors('hourly');
+        }
+        $this->putJson(route('admin.hourly-orders.reschedule',[$order,$visit->id]),['starts_at'=>'2026-09-23T08:00'])
+            ->assertStatus(422)->assertJsonValidationErrors('hourly');
+        $rescheduleRoute=\Illuminate\Support\Facades\Route::has('web.hourly.visit.reschedule')?'web.hourly.visit.reschedule':'api.client.hourly.visits.reschedule';
+        $cancelRoute=\Illuminate\Support\Facades\Route::has('web.hourly.visit.cancel')?'web.hourly.visit.cancel':'api.client.hourly.visits.cancel';
+        $this->postJson(route($rescheduleRoute,[$order->id,$visit->id]),['scheduled_start'=>'2026-09-23 08:00'])
+            ->assertStatus(422)->assertJsonValidationErrors('hourly');
+        $this->postJson(route($cancelRoute,[$order->id,$visit->id]))->assertStatus(422)->assertJsonValidationErrors('hourly');
+        $this->assertSame('2026-09-22 08:00:00',$visit->fresh()->scheduled_start_at->toDateTimeString());
+        if ($count===2) {
+            $second=DB::table('hourly_visit_workers')->where('hourly_visit_id',$visit->id)->where('maid_id',2)->first();
+            $secondAccount=\App\Models\Hourly\HourlyMaidAccount::findOrFail(2);
+            $this->actingAs($secondAccount,'hourly_maid')->withSession(['hourly_maid_version'=>$secondAccount->hourly_auth_version]);
+            $secondUrl=route('hourly-maid.visits.action',$second->id);
+            $this->postJson($secondUrl,['action'=>'arrived'])->assertRedirect();
+            $this->postJson($secondUrl,['action'=>'finish','early_reason'=>'other','note'=>'Demo second worker finished'])->assertRedirect();
+            $this->assertSame('worker_finished',$visit->fresh()->status);
+            $data=app(\App\Services\Hourly\CustomerHourlyData::class)->visit($visit->fresh(),$order->fresh());
+            $this->assertSame('completed',$data['display_status']);
+            $this->assertFalse($data['can_reschedule']);
+        }
+        $this->assertSame('active',$order->fresh()->status);
+        $this->assertSame(1,app(\App\Services\Hourly\CashCollectionService::class)->collector($visit->fresh())['id']);
+    }
+
     public function test_worker_cash_is_paid_once_and_partial_remittances_only_settle_custody(): void
     {
         (require base_path('database/migrations/2026_10_14_000002_add_hourly_cash_custody.php'))->up();
