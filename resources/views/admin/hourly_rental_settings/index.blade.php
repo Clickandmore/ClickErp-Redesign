@@ -471,8 +471,9 @@
                                 @error('min_notice_hours')<div class="invalid-feedback">{{ $message }}</div>@enderror
                             </div>
                             <div class="col-md-4">
-                                <label class="form-label" for="pickup_grace_minutes">مهلة السماح للاستلام بعد انتهاء الخدمة (دقيقة)</label>
+                                <label class="form-label" for="pickup_grace_minutes">مهلة استلام العاملة من العميل بعد انتهاء الخدمة (دقيقة)</label>
                                 <input type="number" class="form-control mb-3" id="pickup_grace_minutes" name="pickup_grace_minutes" min="0" max="240" value="{{ old('pickup_grace_minutes', $hourly['pickup_grace_minutes']) }}" required>
+                                <div class="form-text mb-3">بعد تجاوز مهلة الاستلام تظهر عبارة «العاملة لم يتم استلامها من العميل» حتى تسجيل الاستلام.</div>
                                 <label class="form-label" for="delay_escalation_minutes">التصعيد بعد مهلة السماح (دقيقة)</label>
                                 <input type="number" class="form-control mb-3" id="delay_escalation_minutes" name="delay_escalation_minutes" min="5" max="1440" value="{{ old('delay_escalation_minutes', $hourly['delay_escalation_minutes']) }}" required>
                                 <label class="form-label" for="curfew_time">{{ __('وقت الحظر للعودة إلى الإيواء') }}</label>

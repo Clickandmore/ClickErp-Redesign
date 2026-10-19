@@ -1,3 +1,6 @@
+@if($socketSettings['decryption_failed'] ?? false)
+    <div class="alert alert-warning" role="alert">تعذر فك تشفير إعدادات WebSocket المحفوظة بالمفتاح الحالي. أعد إدخال بيانات الاتصال والمفتاح السري ثم احفظها لإعادة تفعيل الاتصال. الإعدادات المحفوظة لم تُحذف.</div>
+@endif
 @php($socketSettings = $socketSettings ?? \App\Support\HourlyWebsocketSettings::forForm())
 <div class="hr-card" id="sec-websocket">
     <div class="hr-head">

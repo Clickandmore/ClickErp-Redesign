@@ -16,6 +16,8 @@ class VisitDelay
         $stage = $minutes >= $grace + $escalation ? 'escalated' : ($minutes >= $grace ? 'overdue' : 'ended');
         $label = $visit->status === 'picked_up' ? 'في طريق العودة إلى الإيواء' : 'انتهى وقت الخدمة — بانتظار الاستلام';
         if ($stage !== 'ended') $label = ($stage === 'escalated' ? 'تصعيد التأخير: ' : 'تأخر: ').$label;
-        return compact('stage', 'minutes', 'label');
+        $pickup_overdue = $stage !== 'ended' && in_array($visit->status, ['delivered', 'in_progress', 'worker_finished'], true);
+        if ($pickup_overdue) $label = ($stage === 'escalated' ? 'تصعيد التأخير: ' : '').'العاملة لم يتم استلامها من العميل';
+        return compact('stage', 'minutes', 'label', 'pickup_overdue');
     }
 }

@@ -179,6 +179,32 @@ class HourlyDriverTest extends TestCase
         $this->post(route('hourly-driver.visits.action',21),['action'=>'confirm_delivery'])->assertRedirect()->assertSessionHasNoErrors();
         $this->assertDatabaseHas('hourly_visits',['id'=>21,'status'=>'delivered']);
     }
+    public function test_portal_completion_closes_only_the_current_visit_movement(): void
+    {
+        (require base_path('database/migrations/2026_09_28_000001_create_worker_daily_movements_table.php'))->up();
+        $driver = $this->driver();
+        DB::table('hourly_rental_orders')->insert(['id'=>11,'order_number'=>'HR-11','status'=>'active','created_at'=>now(),'updated_at'=>now()]);
+        foreach ([21,22] as $id) {
+            DB::table('hourly_visits')->insert(['id'=>$id,'hourly_rental_order_id'=>11,'visit_number'=>$id,
+                'pickup_driver_id'=>$driver->id,'status'=>'picked_up','created_at'=>now(),'updated_at'=>now()]);
+            DB::table('hourly_visit_workers')->insert(['hourly_visit_id'=>$id,'maid_id'=>1]);
+            DB::table('worker_daily_movements')->insert(['maid_id'=>1,'source'=>'hourly_visit','reference_type'=>'hourly_visit',
+                'reference_id'=>$id,'out_at'=>now()->subHour(),'status'=>'out','created_at'=>now(),'updated_at'=>now()]);
+        }
+        $this->post(route('hourly-driver.authenticate'),['login'=>$driver->username,'password'=>'DriverPass123']);
+        $this->post(route('hourly-driver.visits.action',21),['action'=>'complete'])->assertRedirect()->assertSessionHasNoErrors();
+        $this->assertDatabaseHas('hourly_visits',['id'=>21,'status'=>'completed']);
+        $movement = DB::table('worker_daily_movements')->where('reference_id',21)->first();
+        $this->assertNotNull($movement->in_at);
+        $this->assertSame('returned',$movement->status);
+        $this->assertSame('driver',$movement->in_by_type);
+        $this->assertSame((int)$driver->id,(int)$movement->in_by_id);
+        $this->assertDatabaseHas('worker_daily_movements',['reference_id'=>22,'in_at'=>null,'status'=>'out']);
+        $returnedAt = $movement->in_at;
+        $this->post(route('hourly-driver.visits.action',21),['action'=>'complete'])->assertSessionHasErrors('hourly');
+        $this->assertSame($returnedAt,DB::table('worker_daily_movements')->where('reference_id',21)->value('in_at'));
+    }
+
     public function test_driver_can_only_advance_an_assigned_task_in_order(): void
     {
         \Carbon\Carbon::setTestNow('2026-10-14 09:00:00');

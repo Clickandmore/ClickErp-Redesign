@@ -5,13 +5,28 @@ class HourlyVisit extends Model
 {
     protected $guarded = [];
 
-    /** Display-only state: a missed slot is neither performed nor cancelled. */
+    /** Actual execution includes an individual worker arriving before the rest of the team. */
+    public function getHasStartedExecutionAttribute(): bool
+    {
+        if (in_array($this->status, ['en_route','delivered','in_progress','worker_finished','picked_up','completed'], true)) return true;
+        if (!$this->id) return false;
+        $arrival = \Illuminate\Support\Facades\Schema::hasColumn('hourly_visit_workers','arrived_at');
+        $status = \Illuminate\Support\Facades\Schema::hasColumn('hourly_visit_workers','status');
+        if (!$arrival && !$status) return false;
+        return \Illuminate\Support\Facades\DB::table('hourly_visit_workers')->where('hourly_visit_id',$this->id)
+            ->where(function ($q) use ($arrival,$status) {
+                if ($arrival) $q->whereNotNull('arrived_at');
+                if ($status) $q->orWhereIn('status',['delivered','finished','picked_up','returned','completed']);
+            })->exists();
+    }
+
     public function getIsMissedAttribute(): bool
     {
-        return $this->status === 'scheduled' && $this->scheduled_end_at && $this->scheduled_end_at->lte(now());
+        return $this->status === 'scheduled' && !$this->has_started_execution && $this->scheduled_end_at && $this->scheduled_end_at->lte(now());
     }
     public function getDisplayStatusAttribute(): string
     {
+        if ($this->status === 'scheduled' && $this->has_started_execution) return 'in_progress';
         return $this->is_missed ? 'missed' : $this->status;
     }
 

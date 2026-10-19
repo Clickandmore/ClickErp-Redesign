@@ -58,6 +58,10 @@ class OrderManagementService
                     if(in_array($action,['assign_workers','assign_all'],true) && (!$visit->scheduled_start_at || !$visit->scheduled_start_at->isFuture())){
                         HourlyOrderService::reject('تعيين العاملات متاح قبل بدء موعد الزيارة فقط. موعد الزيارة #'.$visit->id.': '.($visit->scheduled_start_at?->format('d/m/Y H:i') ?? 'غير محدد').'. اختر زيارة قادمة؛ ولتصحيح زيارة سابقة راجع مسؤول التشغيل.');
                     }
+                    if (!$manualCancellation && !$disruptionResolution && $visit->has_started_execution
+                        && in_array($action,['cancel_visit','cancel_order','reschedule','start_time','duration'],true)) {
+                        HourlyOrderService::reject('بدأ تنفيذ الزيارة بالفعل؛ لا يمكن إلغاؤها أو تغيير موعدها أو مدتها.');
+                    }
                     $before=$this->snapshot($visit);
                     $wasMissed = $visit->is_missed;
                     if ($visit->is_missed && in_array($action, ['cancel_visit','cancel_order','reschedule'], true)

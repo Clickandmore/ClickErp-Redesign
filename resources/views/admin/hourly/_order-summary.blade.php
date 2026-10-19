@@ -6,7 +6,7 @@
 @endphp
 <section class="hs-card">
     <header class="hs-hero">
-        <div class="hs-hero-copy"><div class="hs-eyebrow">ملخص الطلب — خدمات الساعات</div><div class="hs-order-number"><i class="fa fa-hashtag"></i><span>{{ $order->order_number }}</span></div></div>
+        <div class="hs-hero-copy"><div class="hs-eyebrow">ملخص الطلب — خدمات الساعات</div><div class="hs-order-number"><i class="fa fa-hashtag"></i><span>{{ str_pad((string) $order->id, 8, '0', STR_PAD_LEFT) }}</span></div></div>
         <div class="hs-actions"><button type="button" id="copy-order"><i class="fa fa-copy"></i> نسخ تفاصيل الطلب</button><button type="button" onclick="window.print()"><i class="fa fa-print"></i> طباعة</button><a class="is-light" target="_blank" href="{{ route('admin.hourly-orders.invoice',$order) }}"><i class="fa fa-file-pdf"></i> الفاتورة PDF</a></div>
     </header>
     <div class="hs-pad" id="order-details-copy">

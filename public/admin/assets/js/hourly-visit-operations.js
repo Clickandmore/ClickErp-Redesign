@@ -15,7 +15,12 @@
     boxes.forEach(b=>b.addEventListener('change',refresh));document.getElementById('vl-select-all').addEventListener('change',e=>{boxes.forEach(b=>b.checked=e.target.checked);refresh();});
     function fields(){root.querySelectorAll('[data-fields]').forEach(group=>{const active=group.dataset.fields===action.value;group.hidden=!active;group.querySelectorAll('input,select').forEach(input=>{input.disabled=!active;input.required=active&&!['checkbox','file'].includes(input.type)&&!['new_date','shift_days'].includes(input.name);});});error.hidden=true;}
     // خطوتان: شبكة بطاقات الإجراءات ثم حقول الإجراء المختار؛ العنوان والأيقونة يتبعان الاختيار.
+    function blockedStartedAction(choice) {
+        return ['cancel_visit','reschedule','start_time','duration'].includes(choice)
+            && boxes.some(box=>target.includes(box.value) && box.dataset.started==='1');
+    }
     function step(name){
+        modal.querySelectorAll('[data-pick-action]').forEach(tile=>{tile.hidden=blockedStartedAction(tile.dataset.pickAction);tile.style.display=tile.hidden?'none':'';});
         const tile=modal.querySelector('[data-pick-action="'+action.value+'"]'),showForm=name==='form'&&!!tile;
         modal.dataset.opStep=showForm?'form':'pick';
         document.getElementById('vl-modal-title').textContent=showForm?tile.dataset.label:'الإجراءات';
@@ -72,6 +77,7 @@
     root.querySelectorAll('[data-column-toggle]').forEach(input=>input.addEventListener('change',()=>{hidden=hidden.filter(k=>k!==input.dataset.columnToggle);if(!input.checked)hidden.push(input.dataset.columnToggle);try{localStorage.setItem('hourly-visit-hidden-columns',JSON.stringify(hidden));}catch{}applyColumns();}));applyColumns();
     form.addEventListener('submit',async event=>{
         event.preventDefault();if(busy||workersLoading||!action.value)return;
+        if(blockedStartedAction(action.value)){error.textContent='بدأ تنفيذ إحدى الزيارات؛ لا يمكن إلغاؤها أو تغيير موعدها أو مدتها.';error.hidden=false;return;}
         const label=modal.querySelector('[data-pick-action="'+action.value+'"]')?.dataset.label||'الإجراء';
         busy=true;submit.disabled=true;error.hidden=true;
         try{

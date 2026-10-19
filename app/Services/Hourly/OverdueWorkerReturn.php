@@ -8,7 +8,7 @@ use Illuminate\Support\Facades\{DB,Schema};
 class OverdueWorkerReturn
 {
     /** @return array<int,array{visit_id:int,ended_at:?string}> */
-    public static function pending(?int $maidId=null): array
+    public static function pending(?int $maidId=null, ?int $exceptVisit=null): array
     {
         if(!Schema::hasTable('hourly_visits') || !Schema::hasTable('hourly_visit_workers'))return [];
         $cutoff=now()->subMinutes((int)HourlyRentalSettings::get('pickup_grace_minutes',30));
@@ -17,6 +17,7 @@ class OverdueWorkerReturn
         $visits=DB::table('hourly_visit_workers as w')->join('hourly_visits as v','v.id','=','w.hourly_visit_id')
             ->join('hourly_rental_orders as o','o.id','=','v.hourly_rental_order_id')
             ->whereIn('v.status',ShelterPresence::OUT_STATUSES)
+            ->when($exceptVisit!==null,fn($q)=>$q->where('v.id','!=',$exceptVisit))
             ->when($maidId!==null,fn($q)=>$q->where('w.maid_id',$maidId))->orderBy('v.scheduled_end_at')
             ->get(['w.maid_id','v.id as visit_id','v.scheduled_end_at','v.scheduled_start_at','v.planned_hours',
                 $hasArrival?'w.arrived_at':DB::raw('NULL as arrived_at'),
@@ -41,6 +42,7 @@ class OverdueWorkerReturn
             // An unclosed physical movement still holds the worker even if the order/visit was closed or unassigned.
             $open=DB::table('worker_daily_movements as m')->leftJoin('hourly_visits as v','v.id','=','m.reference_id')
                 ->where('m.source','hourly_visit')->where('m.reference_type','hourly_visit')->whereNull('m.in_at')
+                ->when($exceptVisit!==null,fn($q)=>$q->where('m.reference_id','!=',$exceptVisit))
                 ->when($maidId!==null,fn($q)=>$q->where('m.maid_id',$maidId))
                 ->orderBy('m.out_at')->get(['m.maid_id','m.reference_id','m.out_at','v.scheduled_end_at','v.scheduled_start_at','v.planned_hours',
                     $hasArrival?DB::raw('(select aw.arrived_at from hourly_visit_workers aw where aw.hourly_visit_id = m.reference_id and aw.maid_id = m.maid_id limit 1) as arrived_at'):DB::raw('NULL as arrived_at')]);
@@ -62,9 +64,9 @@ class OverdueWorkerReturn
         return $until ? \Carbon\Carbon::parse($until)->lte($cutoff) : false;
     }
 
-    public static function reason(int $maidId): ?string
+    public static function reason(int $maidId, ?int $exceptVisit=null): ?string
     {
-        $pending=self::pending($maidId)[$maidId]??null;
+        $pending=self::pending($maidId,$exceptVisit)[$maidId]??null;
         return $pending ? 'غير متاحة للحجز — عودة متأخرة تحتاج مراجعة؛ لم تُؤكد العودة الفعلية من الزيارة #'.$pending['visit_id'].'.' : null;
     }
 

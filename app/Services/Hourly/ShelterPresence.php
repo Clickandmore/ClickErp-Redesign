@@ -200,7 +200,7 @@ class ShelterPresence
             ->where('reference_type', 'hourly_visit')->where('reference_id', $visit->id)
             ->whereIn('maid_id', $this->workerIds($visit))
             ->whereNull('in_at')
-            ->update(['in_at' => now(), 'status' => WorkerDailyMovement::STATUS_RETURNED,
+            ->update(['out_at' => DB::raw('out_at'), 'in_at' => now(), 'status' => WorkerDailyMovement::STATUS_RETURNED,
                 'in_by_type' => $byType, 'in_by_id' => $byId, 'updated_at' => now()]);
     }
 

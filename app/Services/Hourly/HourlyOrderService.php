@@ -185,6 +185,7 @@ class HourlyOrderService
             $order = HourlyRentalOrder::query()->lockForUpdate()->findOrFail($visit->hourly_rental_order_id);
             $visit = $order->visits()->lockForUpdate()->findOrFail($visit->id);
             if(!$incidentResolution && ServiceIncident::waiting($order,$visit->id)) self::reject('للزيارة بلاغ معتمد؛ استخدم طلب المعالجة للحفاظ على حقوقك.');
+            if (!$incidentResolution && $visit->has_started_execution) self::reject('بدأ تنفيذ الزيارة بالفعل؛ لا يمكن تغيير موعدها.');
             $snapshot = (array) $order->package_snapshot + ['service_category_id' => $order->service_category_id ?? null];
             $settings = app(HourlyBookingRules::class)->settings();
             $panel = (bool) $adminId;

@@ -91,7 +91,13 @@
     // حتى لا يرث display:none عند فتح الطلب مباشرة على تبويب آخر مثل سجل الدفعات.
     if(modal.parentElement!==document.body)document.body.appendChild(modal);
     // خطوتان داخل المودال: شبكة اختيار الإجراء ثم حقوله؛ العنوان والأيقونة يتبعان الإجراء المختار.
+    function blockedStartedAction(action) {
+        if (!['cancel_visit','cancel_order','reschedule','start_time','duration'].includes(action)) return false;
+        const targets = action === 'cancel_order' ? boxes() : boxes().filter(box=>box.checked);
+        return targets.some(box=>box.dataset.started==='1');
+    }
     function step(name){
+        modal.querySelectorAll('[data-pick-action]').forEach(tile=>{tile.hidden=blockedStartedAction(tile.dataset.pickAction);tile.style.display=tile.hidden?'none':'';});
         modal.dataset.opStep=name;
         const tile=modal.querySelector('[data-pick-action="'+select.value+'"]');
         title.textContent=name==='form'&&tile?tile.dataset.label:'الإجراءات';
@@ -114,6 +120,7 @@
     });
     form.onsubmit=async e=>{
         e.preventDefault();if(busy)return;
+        if(blockedStartedAction(select.value)){error.textContent='بدأ تنفيذ إحدى الزيارات؛ لا يمكن إلغاؤها أو تغيير موعدها أو مدتها.';error.hidden=false;return;}
         if(select.value==='assign_driver' && (!driversReady || !form.elements.driver_id.value)){error.textContent='اختر سائقًا متاحًا بعد تحديد وقت المهمة.';error.hidden=false;return;}
         const selected=boxes().filter(b=>b.checked);
         if(select.value==='assign_workers'){

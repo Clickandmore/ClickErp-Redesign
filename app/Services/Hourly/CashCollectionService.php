@@ -10,8 +10,24 @@ class CashCollectionService
 {
     public static function ready(): bool { return Schema::hasTable('hourly_cash_collections') && Schema::hasColumn('hourly_visits','cash_collector_type'); }
     private static function cents($amount): int { return (int)round((float)$amount*100); }
+    public function recordSelfArrival(HourlyVisit $visit, int $maidId): void {
+        if (!self::ready() || $visit->delivery_driver_id) return;
+        if ($visit->cash_collector_type === 'worker' && $visit->cash_collector_worker_id
+            && $this->workerHasArrived($visit,(int)$visit->cash_collector_worker_id)) return;
+        $visit->update(['cash_collector_type'=>'worker','cash_collector_worker_id'=>$maidId]);
+    }
+    private function workerHasArrived(HourlyVisit $visit, int $maidId): bool {
+        return Schema::hasColumn('hourly_visit_workers','arrived_at')
+            && DB::table('hourly_visit_workers')->where('hourly_visit_id',$visit->id)->where('maid_id',$maidId)->whereNotNull('arrived_at')->exists();
+    }
     public function collector(HourlyVisit $visit): array {
         $type=$visit->cash_collector_type ?: 'auto';$id=null;
+        if (!$visit->delivery_driver_id && in_array($type,['auto','driver'],true)
+            && Schema::hasColumn('hourly_visit_workers','arrived_at')) {
+            $arrived=DB::table('hourly_visit_workers')->where('hourly_visit_id',$visit->id)->whereNotNull('arrived_at')
+                ->orderBy('arrived_at')->orderBy('id')->value('maid_id');
+            if ($arrived) return ['type'=>'worker','id'=>(int)$arrived,'label'=>'العاملة'];
+        }
         if($type==='auto') {
             if($visit->delivery_driver_id){$type='driver';}
             else {
@@ -28,8 +44,9 @@ class CashCollectionService
         $collector=$this->collector($visit);$order=$visit->order;
         $financial=app(PaymentScheduleService::class)->forOrder($order);
         $due=app(PaymentScheduleService::class)->collectible($order,$visit);
+        $partialArrival=$guard==='worker' && $id && $visit->status==='scheduled' && $this->workerHasArrived($visit,$id);
         $allowed=in_array($order->payment_method,['cash','cash_and_card'],true) && in_array($order->status,['active','completed'],true)
-            && !in_array($visit->status,['unscheduled','scheduled','cancelled','cancelled_by_client','expired','no_show'],true);
+            && ($partialArrival || !in_array($visit->status,['unscheduled','scheduled','cancelled','cancelled_by_client','expired','no_show'],true));
         return ['enabled'=>true,'collector'=>$collector,'cash_due'=>$due,'financial'=>$financial['visits'][$visit->id]??null,'can_collect'=>$allowed && !($guard==='worker' && $visit->status==='en_route') && $due>0 && $collector['type']===$guard && $collector['id']===$id];
     }
     public function workerCollect(Maid $maid,int $workerVisitId,float $amount,string $token): array {
@@ -52,7 +69,8 @@ class CashCollectionService
             if($collector['type']!==$holder || $collector['id']!==$holderId)HourlyOrderService::reject('لست مسؤول التحصيل لهذه الزيارة.');
             if($holder==='worker' && !DB::table('hourly_visit_workers')->where('hourly_visit_id',$visit->id)->where('maid_id',$holderId)->exists())abort(403);
             if(!in_array($order->payment_method,['cash','cash_and_card'],true))HourlyOrderService::reject('هذا الطلب لا يقبل تحصيلًا نقديًا.');
-            if(!in_array($order->status,['active','completed'],true) || in_array($visit->status,['unscheduled','scheduled','cancelled','cancelled_by_client','expired','no_show'],true))HourlyOrderService::reject('الزيارة لا تقبل التحصيل قبل الوصول أو بعد الإلغاء.');
+            $partialArrival=$holder==='worker' && $visit->status==='scheduled' && $this->workerHasArrived($visit,$holderId);
+            if(!in_array($order->status,['active','completed'],true) || (!$partialArrival && in_array($visit->status,['unscheduled','scheduled','cancelled','cancelled_by_client','expired','no_show'],true)))HourlyOrderService::reject('الزيارة لا تقبل التحصيل قبل الوصول أو بعد الإلغاء.');
             if($holder==='worker' && $visit->status==='en_route')HourlyOrderService::reject('يجب تسجيل وصول العاملة قبل التحصيل.');
             $cents=self::cents($amount);$due=self::cents(app(PaymentScheduleService::class)->collectible($order,$visit));
             if($cents<=0 || $cents>$due)HourlyOrderService::reject('المبلغ يجب أن يكون أكبر من صفر ولا يتجاوز المتبقي على الطلب.');

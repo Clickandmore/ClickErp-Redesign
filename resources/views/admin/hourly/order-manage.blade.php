@@ -301,7 +301,7 @@
 <div class="om-layout">
 <aside class="om-side">
     <div class="om-card">
-        <header class="om-head"><strong><i class="fa fa-cart-shopping"></i> بطاقة الطلب #{{ $order->order_number }}</strong></header>
+        <header class="om-head"><strong><i class="fa fa-cart-shopping"></i> بطاقة الطلب #{{ str_pad((string) $order->id, 8, '0', STR_PAD_LEFT) }}</strong></header>
         <section>
             <div class="om-icons">
                 <button type="button" id="om-copy-card" title="نسخ بيانات الاتصال" aria-label="نسخ بيانات الاتصال"><i class="fa fa-copy"></i></button>
@@ -367,7 +367,7 @@
 <main>
     <div class="om-card">
         <header class="om-head">
-            <h5><i class="fa fa-cart-shopping"></i> #{{ $order->order_number }} — تفاصيل الطلب</h5>
+            <h5><i class="fa fa-cart-shopping"></i> #{{ str_pad((string) $order->id, 8, '0', STR_PAD_LEFT) }} — تفاصيل الطلب</h5>
             <div class="om-head-actions">
                 <button class="om-icon" onclick="window.print()" type="button" title="طباعة" aria-label="طباعة"><i class="fa fa-print"></i></button>
                 <a class="om-btn-light" target="_blank" href="{{ route('admin.hourly-orders.invoice', $order) }}">الفاتورة <i class="fa fa-file-pdf"></i></a>
