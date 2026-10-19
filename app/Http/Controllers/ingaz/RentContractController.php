@@ -64,7 +64,7 @@ class RentContractController extends Controller
             'only' => ['changeMarketer'],
         ]);
         $this->middleware('permission:' . \App\PermKeys::RENT_CONTRACT_VIEW . ',admin', [
-            'only' => ['index', 'show', 'statistics', 'exportExcel', 'getContractDetails', 'downloadAttachments', 'downloadAttachment', 'viewAttachment'],
+            'only' => ['index', 'show', 'statistics', 'exportExcel', 'getContractDetails', 'downloadAttachments', 'downloadAttachment', 'viewAttachment', 'escapeAttachment'],
         ]);
         $this->middleware('permission:' . \App\PermKeys::RENT_CONTRACT_CREATE . ',admin', [
             'only' => ['create', 'store', 'getExistingClients'],
@@ -79,6 +79,9 @@ class RentContractController extends Controller
             'only' => [
                 'completeContract',
                 'closeAndMakeAvailable',
+                'registerEscapeReturn',
+                'approveEscapeReadiness',
+                'closeEscapeWithoutReturn',
                 'transferSponsorship',
                 'sendContract',
                 'sendPaymentLink',
@@ -1752,6 +1755,9 @@ class RentContractController extends Controller
 
     private function getStatusBadge($status, $closureType = null, ?RentalContract $contract = null)
     {
+        if ($closureType === 'escape') {
+            return '<span class="badge bg-danger">منتهي — بلاغ هروب</span>';
+        }
         if ($status === 'completed') {
             if ($closureType === 'transferred') {
                 return '<span class="badge bg-warning">تم النقل</span>';
@@ -2183,7 +2189,7 @@ class RentContractController extends Controller
             ->whereHas('jobTypes', function ($query) use ($rentalJobTypeId) {
                 $query->where('job_type_id', $rentalJobTypeId);
             })
-            ->whereNotIn('status', ['backout', 'deported'])
+            ->whereNotIn('status', ['backout', 'deported', 'escaped', 'Escaped', 'returned_pending_review'])
             ->where(function ($query) use ($currentMaidId, $includeCurrentMaid) {
                 $query->willingToWorkInsideShelter();
 
@@ -3036,6 +3042,11 @@ class RentContractController extends Controller
     )
     {
         $validated = $request->validate([
+            'closure_reason' => 'nullable|in:normal,escape',
+            'escape_date' => 'nullable|required_if:closure_reason,escape|date_format:Y-m-d|before_or_equal:today',
+            'escape_notes' => 'nullable|required_if:closure_reason,escape|string|max:3000|regex:/\S/u',
+            'escape_reference' => 'nullable|string|max:255',
+            'escape_attachment' => 'nullable|file|mimes:jpg,jpeg,png,pdf|max:10240',
             'closure_date' => 'nullable|date',
             'adjustment_type' => 'nullable|in:refund,company_due,none',
             'adjustment_amount' => 'required|numeric|min:0',
@@ -3059,6 +3070,11 @@ class RentContractController extends Controller
             'send_closure_message' => 'nullable|boolean',
         ]);
         $manualOverrideRequested = $request->boolean('use_manual_adjustment');
+        $isEscape = ($validated['closure_reason'] ?? 'normal') === 'escape';
+        $escapeAttachment = null;
+        if ($isEscape && !Schema::hasTable('rental_escape_reports')) {
+            throw \Illuminate\Validation\ValidationException::withMessages(['closure_reason' => 'يلزم تحديث قاعدة البيانات لتفعيل بلاغات هروب التأجير.']);
+        }
         $dailyDiscountRequested = $request->boolean('use_daily_discount');
         $customRatesRequested = $request->boolean('use_custom_daily_rates');
         $currentAdmin = auth('admin')->user();
@@ -3092,6 +3108,13 @@ class RentContractController extends Controller
             DB::beginTransaction();
 
             $contract = RentalContract::with(['maid', 'info', 'financialAdjustments', 'financeInvoice'])->lockForUpdate()->findOrFail($id);
+            $this->assertCanAccessBranchModel($contract, 'rental_contracts');
+            if ($contract->closed_at) {
+                throw \Illuminate\Validation\ValidationException::withMessages(['closure_reason' => 'تم إنهاء هذا العقد مسبقًا.']);
+            }
+            if ($isEscape && (!$contract->maid_id || !$contract->maid || $contract->requiresMaidOnResume())) {
+                throw \Illuminate\Validation\ValidationException::withMessages(['closure_reason' => 'لا توجد عاملة مرتبطة فعليًا بهذا العقد لتسجيل هروبها.']);
+            }
 
             if (!$contract->info) {
                 throw new \RuntimeException('بيانات عقد الإيجار غير مكتملة');
@@ -3103,6 +3126,14 @@ class RentContractController extends Controller
 
             $closureDate = $this->closureDateFromRequest($request);
             $this->assertClosureDateIsValidForContract($contract, $closureDate);
+
+            if ($isEscape) {
+                $escapeDate = Carbon::parse($validated['escape_date']);
+                $this->assertClosureDateIsValidForContract($contract, $escapeDate);
+                if ($closureDate->lt($escapeDate)) {
+                    throw \Illuminate\Validation\ValidationException::withMessages(['closure_date' => 'تاريخ التسوية لا يمكن أن يسبق تاريخ الهروب.']);
+                }
+            }
 
             $baseSummary = $this->buildRentalClosureSummary($contract, $closureDate);
             if ($customRatesRequested) {
@@ -3258,11 +3289,11 @@ class RentContractController extends Controller
             $isEarlyClosure = $this->isRentalContractEarlyClosure($contract, $closureDate);
 
             $contract->status = $isEarlyClosure ? 'cancelled' : 'completed';
-            $contract->closure_type = 'available';
+            $contract->closure_type = $isEscape ? 'escape' : 'available';
             $contract->closed_at = $closureDate;
-            $contract->warranty_status = $isEarlyClosure ? 'not_applicable' : 'active';
-            $contract->warranty_start_date = $isEarlyClosure ? null : $closureDate;
-            $contract->warranty_end_date = $isEarlyClosure ? null : $closureDate->copy()->addMonths(3);
+            $contract->warranty_status = ($isEarlyClosure || $isEscape) ? 'not_applicable' : 'active';
+            $contract->warranty_start_date = ($isEarlyClosure || $isEscape) ? null : $closureDate;
+            $contract->warranty_end_date = ($isEarlyClosure || $isEscape) ? null : $closureDate->copy()->addMonths(3);
             $contract->save();
 
             $this->completeLinkedRentalOrder($contract);
@@ -3349,7 +3380,14 @@ class RentContractController extends Controller
                 }
             }
 
-            if ($contract->maid) {
+            if ($isEscape) {
+                if ($request->hasFile('escape_attachment')) {
+                    $file = $request->file('escape_attachment');
+                    $escapeAttachment = ['path' => app(ManagedFileStorage::class)->uploadFile($file, 'rental-contracts/escape-reports'),
+                        'name' => $file->getClientOriginalName(), 'mime_type' => $file->getMimeType(), 'size' => $file->getSize()];
+                }
+                app(\App\Services\Rental\RentalEscapeService::class)->record($contract, $validated, $escapeAttachment);
+            } elseif ($contract->maid) {
                 $maid = Maid::query()->lockForUpdate()->find($contract->maid_id);
 
                 if ($maid) {
@@ -3358,10 +3396,13 @@ class RentContractController extends Controller
                 }
             }
 
-            $this->returnShelterContractInsideForRental($contract);
+            if (!$isEscape) {
+                $this->returnShelterContractInsideForRental($contract);
+            }
 
             // Log the action
-            \Log::info('Rent contract closed and maid made available', [
+            \Log::info('Rent contract closed', [
+                'closure_reason' => $isEscape ? 'escape' : 'normal',
                 'contract_id' => $contract->id,
                 'maid_id' => $contract->maid_id,
                 'closed_by' => auth()->id(),
@@ -3388,18 +3429,25 @@ class RentContractController extends Controller
 
             return response()->json([
                 'success' => true,
-                'message' => ($isEarlyClosure
+                'message' => ($isEscape ? 'تم إنهاء العقد وتسجيل بلاغ الهروب. العاملة غير متاحة للتأجير.' : ($isEarlyClosure
                     ? 'تم إلغاء العقد لأنه أُنهي قبل اكتمال مدة العقد، وتم إرجاع العاملة متاحة'
-                    : 'تم إغلاق العقد وإرجاع العاملة متاحة بنجاح')
+                    : 'تم إغلاق العقد وإرجاع العاملة متاحة بنجاح'))
                     . $this->formatClosureMessageResultText($messageResult)
             ]);
 
         } catch (\Illuminate\Validation\ValidationException $e) {
             DB::rollback();
 
-            throw $e;
+            if ($escapeAttachment) app(ManagedFileStorage::class)->delete($escapeAttachment['path']);
+
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage(),
+                'errors' => $e->errors(),
+            ], 422);
         } catch (\Exception $e) {
             DB::rollback();
+            if ($escapeAttachment) app(ManagedFileStorage::class)->delete($escapeAttachment['path']);
             \Log::error('Error closing rent contract', [
                 'contract_id' => $id,
                 'error' => $e->getMessage()
@@ -3410,6 +3458,57 @@ class RentContractController extends Controller
                 'message' => 'حدث خطأ أثناء إغلاق العقد: ' . $e->getMessage()
             ], 500);
         }
+    }
+
+    public function registerEscapeReturn(Request $request, $id)
+    {
+        $contract = RentalContract::findOrFail($id);
+        $this->assertCanAccessBranchModel($contract, 'rental_contracts');
+        $data = $request->validate(['return_date' => 'required|date_format:Y-m-d|before_or_equal:today',
+            'return_notes' => 'required|string|max:3000|regex:/\S/u']);
+        app(\App\Services\Rental\RentalEscapeService::class)->registerReturn($contract, $data);
+        return back()->with('success', 'تم تسجيل عودة العاملة. تبقى غير متاحة حتى اعتماد جاهزيتها.');
+    }
+
+    public function approveEscapeReadiness(Request $request, $id)
+    {
+        $contract = RentalContract::findOrFail($id);
+        $this->assertCanAccessBranchModel($contract, 'rental_contracts');
+        $data = $request->validate(['review_notes' => 'required|string|max:3000|regex:/\S/u']);
+        app(\App\Services\Rental\RentalEscapeService::class)->approveReadiness($contract, $data['review_notes']);
+        return back()->with('success', 'تم اعتماد جاهزية العاملة بعد مراجعة عودتها. بقي عقد التأجير السابق مغلقًا.');
+    }
+
+    public function closeEscapeWithoutReturn(Request $request, $id)
+    {
+        $contract = RentalContract::findOrFail($id);
+        $this->assertCanAccessBranchModel($contract, 'rental_contracts');
+        $data = $request->validate([
+            'no_return_date' => 'required|date_format:Y-m-d|before_or_equal:today',
+            'no_return_reason' => 'required|string|max:3000|regex:/\S/u',
+            'no_return_attachment' => 'required|file|mimes:pdf,jpg,jpeg,png|max:10240',
+        ]);
+        $file = $request->file('no_return_attachment');
+        $storage = app(ManagedFileStorage::class);
+        $attachment = ['path' => $storage->uploadFile($file, 'rental-contracts/escape-closures'),
+            'name' => $file->getClientOriginalName(), 'mime_type' => $file->getMimeType(), 'size' => $file->getSize()];
+        try {
+            app(\App\Services\Rental\RentalEscapeService::class)->closeWithoutReturn($contract, $data, $attachment);
+        } catch (\Throwable $e) {
+            $storage->delete($attachment['path']);
+            throw $e;
+        }
+        return back()->with('success', 'تم إغلاق البلاغ دون عودة. العاملة غير متاحة، والعقد وتسويته المالية محفوظان.');
+    }
+
+    public function escapeAttachment($id)
+    {
+        $contract = RentalContract::findOrFail($id);
+        $this->assertCanAccessBranchModel($contract, 'rental_contracts');
+        $report = \App\Models\RentalEscapeReport::where('rental_contract_id', $id)->firstOrFail();
+        $attachment = request('kind') === 'closure' ? $report->no_return_attachment : $report->attachment;
+        abort_unless($attachment, 404);
+        return app(ManagedFileStorage::class)->downloadResponse($attachment['path'], $attachment['name'], $attachment['mime_type']);
     }
 
     public function downloadAttachments(Request $request, $id)

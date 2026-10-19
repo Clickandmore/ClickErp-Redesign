@@ -593,7 +593,9 @@
                         row.innerHTML = `
                             <td>
                                 ${hiddenSourceInput}
+                                <input type="hidden" name="items[${index}][invoice_id]" value="${option.invoice_id}">
                                 <div class="fw-semibold">${sourceText}</div>
+                                <small class="text-muted">فاتورة #${option.invoice_id}</small>
                             </td>
                             <td>${option.client_name}</td>
                             <td>${option.msaned_number}</td>

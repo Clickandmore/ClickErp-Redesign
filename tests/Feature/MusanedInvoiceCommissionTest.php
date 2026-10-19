@@ -162,6 +162,66 @@ class MusanedInvoiceCommissionTest extends TestCase
         ]));
     }
 
+    public function test_fully_credited_recruitment_invoice_is_replaced_in_selection_and_transfer(): void
+    {
+        $old = $this->invoice();
+        $branch = $this->makeBranch();
+        DB::table('contracts')->where('id', $old->contract_id)->update(['branch_id' => $branch->id]);
+        DB::table('recruitment_invoice_credit_notes')->insert([
+            'invoice_id' => $old->id, 'contract_id' => $old->contract_id,
+            'issue_date' => now()->toDateString(), 'reason' => 'Replacement', 'total' => 10000,
+        ]);
+        $new = Invoice::withoutEvents(fn () => Invoice::create(['contract_id' => $old->contract_id, 'branch_id' => $branch->id, 'total_due' => 7000]));
+        $controller = app(MusanedTransferController::class);
+        $this->assertEquals([$new->id], $controller->getEligibleInvoicesQuery()->where('contract_id', $old->contract_id)->pluck('id')->all());
+        DB::table('fn_confirm_settings')->where('title', 'automatic_journal_entries')->update(['value' => 'off']);
+        $transfer = $controller->createTransfer(new \Illuminate\Http\Request([
+            'transfer_date' => now()->toDateString(),
+            'items' => [['contract_id' => $old->contract_id, 'invoice_id' => $new->id, 'transferred_amount' => 6800]],
+        ]), app(ConstraintService::class), app(YearService::class));
+        $this->assertEquals($new->id, $transfer->items->first()->invoice_id);
+        $this->assertEquals(7000, $transfer->items->first()->customer_paid_amount);
+        $this->assertEquals(200, $transfer->items->first()->commission_amount);
+    }
+
+    public function test_stale_or_wrong_contract_invoice_is_rejected_instead_of_silently_replaced(): void
+    {
+        $old = $this->invoice();
+        DB::table('recruitment_invoice_credit_notes')->insert([
+            'invoice_id' => $old->id, 'contract_id' => $old->contract_id,
+            'issue_date' => now()->toDateString(), 'reason' => 'Replacement', 'total' => 10000,
+        ]);
+        Invoice::withoutEvents(fn () => Invoice::create(['contract_id' => $old->contract_id, 'total_due' => 7000]));
+        $other = $this->invoice();
+        DB::table('fn_confirm_settings')->where('title', 'automatic_journal_entries')->update(['value' => 'off']);
+        $before = MusanedTransfer::count();
+        foreach ([$old->id, $other->id] as $invoiceId) {
+            try {
+                app(MusanedTransferController::class)->createTransfer(new \Illuminate\Http\Request([
+                    'transfer_date' => now()->toDateString(),
+                    'items' => [['contract_id' => $old->contract_id, 'invoice_id' => $invoiceId, 'transferred_amount' => 6800]],
+                ]), app(ConstraintService::class), app(YearService::class));
+                $this->fail('An invalid invoice selection was accepted.');
+            } catch (ValidationException $e) {
+                $this->assertArrayHasKey('items', $e->errors());
+            }
+        }
+        $this->assertSame($before, MusanedTransfer::count());
+    }
+
+    public function test_partial_credit_keeps_invoice_eligible_until_total_credit_is_reached(): void
+    {
+        $invoice = $this->invoice();
+        $controller = app(MusanedTransferController::class);
+        foreach ([9999, 1] as $index => $amount) {
+            DB::table('recruitment_invoice_credit_notes')->insert([
+                'invoice_id' => $invoice->id, 'contract_id' => $invoice->contract_id,
+                'issue_date' => now()->toDateString(), 'reason' => 'Credit', 'total' => $amount,
+            ]);
+            $this->assertSame($index === 0, $controller->getEligibleInvoicesQuery()->whereKey($invoice->id)->exists());
+        }
+    }
+
     public function test_commission_defaults_to_two_point_four_percent_of_gross_and_posts_only_once(): void
     {
         $invoice = $this->invoice();

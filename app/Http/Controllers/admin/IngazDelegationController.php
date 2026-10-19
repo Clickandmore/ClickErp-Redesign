@@ -61,6 +61,7 @@ class IngazDelegationController extends Controller
         }
 
         $query = $this->filteredDelegationQuery($request, $relations);
+        $query->withCount('blockingInvoices');
 
         if ($request->ajax()) {
             $canViewDelegation = $this->adminCanAny($this->delegationViewPermissions());
@@ -163,6 +164,10 @@ class IngazDelegationController extends Controller
                 ->addColumn('invoice', function (IngazDelegation $row) use ($canViewInvoices, $canCreateInvoices, $canViewCreditNotes, $canCreateCreditNotes, $canViewMusanedTransfers, $canCreateMusanedTransfers, $canDeleteMusanedTransfers) {
                     if ($row->invoice) {
                         $actions = [];
+
+                        if ($canCreateInvoices && (int) $row->blocking_invoices_count === 0) {
+                            $actions[] = '<a href="' . route('invoices.create', ['ingaz_delegation_id' => $row->id]) . '" class="dl-chip dl-chip--add"><i class="fa fa-plus"></i>إضافة فاتورة أخرى</a>';
+                        }
 
                         if ($canViewInvoices) {
                             $actions[] = '<a href="' . route('invoices.show', $row->invoice->id) . '" class="dl-chip dl-chip--success">
@@ -680,6 +685,8 @@ class IngazDelegationController extends Controller
     public function show(IngazDelegation $ingazDelegation): View
     {
         $this->assertCanAccessBranchModel($ingazDelegation);
+        $ingazDelegation->loadCount('blockingInvoices');
+        $ingazDelegation->load('invoices.recruitmentCreditNotes');
 
         $ingazDelegation->load([
             'country', 'nationality', 'profession', 'user', 'maid.religion', 'marketer',

@@ -600,6 +600,10 @@ Route::group(
             Route::delete('RentContract/{id}/payment-receipts/{receipt}', [RentContractController::class, 'deletePaymentReceipt'])->name('RentContract.paymentReceipts.delete');
             Route::post('RentContract/{id}/payment', [RentContractController::class, 'updatePayment'])->name('RentContract.payment.update');
             Route::post('RentContract/{id}/close-and-make-available', [RentContractController::class, 'closeAndMakeAvailable'])->name('RentContract.closeAndMakeAvailable');
+            Route::post('RentContract/{id}/escape-return', [RentContractController::class, 'registerEscapeReturn'])->name('RentContract.escapeReturn');
+            Route::post('RentContract/{id}/escape-ready', [RentContractController::class, 'approveEscapeReadiness'])->name('RentContract.escapeReady');
+            Route::post('RentContract/{id}/escape-close-without-return', [RentContractController::class, 'closeEscapeWithoutReturn'])->name('RentContract.escapeCloseWithoutReturn');
+            Route::get('RentContract/{id}/escape-attachment', [RentContractController::class, 'escapeAttachment'])->name('RentContract.escapeAttachment');
             Route::post('RentContract/{id}/transfer-sponsorship', [RentContractController::class, 'transferSponsorship'])->name('RentContract.transferSponsorship');
 
             // Routes Ø¬Ø¯ÙŠØ¯Ø© Ù„Ù€ workflow Ø¹Ù‚ÙˆØ¯ Ø§Ù„Ø¥ÙŠØ¬Ø§Ø±
