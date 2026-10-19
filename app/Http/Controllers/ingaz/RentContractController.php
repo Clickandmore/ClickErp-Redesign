@@ -2908,7 +2908,9 @@ class RentContractController extends Controller
             ]);
 
             $contract = RentalContract::with(['user', 'maid', 'info', 'financialAdjustments', 'financeInvoice'])->findOrFail($id);
-            $closureDate = $this->closureDateFromRequest($request);
+            $closureDate = !$request->filled('closure_date') && $contract->closed_at
+                ? Carbon::parse($contract->closed_at)->startOfDay()
+                : $this->closureDateFromRequest($request);
             $this->assertClosureDateIsValidForContract($contract, $closureDate);
             if ($customRatesRequested) {
                 $this->assertCustomClosureRatesAreValid($request, $this->buildRentalClosureSummary($contract, $closureDate));

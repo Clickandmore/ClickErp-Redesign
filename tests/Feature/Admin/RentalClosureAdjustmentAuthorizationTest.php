@@ -142,6 +142,19 @@ class RentalClosureAdjustmentAuthorizationTest extends TestCase
         $this->assertNull($contract->info->fresh()->closure_pricing);
     }
 
+    public function test_closed_contract_preview_defaults_to_saved_closure_date(): void
+    {
+        $contract = $this->pricingContract();
+        $contract->update(['status' => 'cancelled', 'closed_at' => '2026-08-04']);
+        $this->actingAs($this->pricingAdmin(), 'admin')
+            ->getJson(route('RentContract.details', $contract->id))
+            ->assertOk()->assertJsonPath('contract.closure_date', '2026-08-04')
+            ->assertJsonPath('contract.used_days', 4);
+        $this->getJson(route('RentContract.details', ['id' => $contract->id, 'closure_date' => '2026-08-05']))
+            ->assertOk()->assertJsonPath('contract.closure_date', '2026-08-05');
+        $this->assertSame('2026-08-04', $contract->fresh()->closed_at->format('Y-m-d'));
+    }
+
     public function test_preview_rejects_an_early_price_after_the_contract_has_ended(): void
     {
         $admin = $this->pricingAdmin();

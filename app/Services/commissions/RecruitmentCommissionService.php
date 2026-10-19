@@ -88,7 +88,7 @@ class RecruitmentCommissionService
             $item->setAttribute('return_warranty_end', $warrantyContract->warranty_end_date?->format('Y-m-d'));
             $item->setAttribute('deduction_contract_key', ($isRental ? 'rental:' : 'recruitment:') . $contract->id);
             $item->setAttribute('deduction_contract_url', $isRental
-                ? url('/admin/RentContract/' . $contract->id . '/details') : url('/admin/contractsDetails/' . $contract->id));
+                ? route('RentContract.show', $contract->id) : url('/admin/contractsDetails/' . $contract->id));
             return true;
         })->values();
     }
