@@ -977,6 +977,17 @@ class MaidCvPdfGenerator
             && Str::contains($normalizedPath, $generatedDirectory);
     }
 
+    private function cvServiceType(Maid $maid): string
+    {
+        $maid->loadMissing('jobTypes');
+        $rentalTypeId = \App\Services\Rental\RentalMaidQuery::rentalJobTypeId();
+        if ($maid->jobTypes->contains(fn ($jobType) => (int) $jobType->id === $rentalTypeId)) {
+            return 'egar';
+        }
+
+        return $maid->request_type ?: 'estqdam';
+    }
+
     private function viewData(Maid $maid, Setting $settings, string $outputType): array
     {
         $skills = Skill::query()->with('translations')->get();
@@ -993,7 +1004,7 @@ class MaidCvPdfGenerator
             ),
             'experience' => $this->experienceViewData($maid),
             'customerServices' => collect(),
-            'type' => $maid->request_type ?: 'estqdam',
+            'type' => $this->cvServiceType($maid),
             'cvPdfMode' => $outputType === self::OUTPUT_PDF,
             'cvImageMode' => $outputType === self::OUTPUT_IMAGE,
             'cvOutputType' => $outputType,
