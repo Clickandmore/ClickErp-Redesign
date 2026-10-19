@@ -42,13 +42,24 @@ class RentalCommissionReturnPolicy
             ? ['start_date' => $billing['period_start'], 'days' => $billing['period_days']]
             : null;
 
-        return $this->snapshot($contract, $period);
+        $terms = $this->snapshot($contract, $period);
+        if (isset($billing['settled_commission_base'])) {
+            $terms['settled_commission_base'] = (float) $billing['settled_commission_base'];
+        }
+        return $terms;
     }
 
     public function terms(CommissionBatchItem $item, RentalContract $contract, ?RentalContractExtension $extension = null): array
     {
         if ($item->rental_commission_terms !== null) {
             $terms = $item->rental_commission_terms;
+            if (isset($terms['settled_commission_base'])) {
+                $contract->loadMissing(['info', 'extensions', 'financialAdjustments', 'financeInvoice']);
+                $operation = app(CommissionOperationService::class)->rentalContractOperations($contract)
+                    ->first(fn ($operation) => $operation['source_type'] === $item->source_type
+                        && (int) $operation['source_id'] === (int) $item->source_id);
+                $terms['current_settled_base'] = (float) ($operation['base_amount'] ?? 0);
+            }
             // Extension commission is earned only for the days served in its own period.
             if (str_starts_with((string) $item->source_type, CommissionOperationService::SOURCE_RENTAL_EXTENSION_PERIOD_PREFIX)) {
                 $terms['policy'] = 'remaining_days';
@@ -68,6 +79,15 @@ class RentalCommissionReturnPolicy
     public function calculate(float $commission, array $terms, ?Carbon $returnedAt): array
     {
         $commission = max(0, round($commission, 2));
+        if (isset($terms['settled_commission_base'], $terms['current_settled_base'])
+            && (float) $terms['settled_commission_base'] > 0) {
+            // This commission was approved on the net revenue AFTER closure.
+            // Only a later reduction of that revenue can reduce it again.
+            $ratio = min(1, max(0, (float) $terms['current_settled_base'] / (float) $terms['settled_commission_base']));
+            $retained = round($commission * $ratio, 2);
+            return ['amount' => round($commission - $retained, 2), 'retained' => $retained,
+                'used_days' => null, 'days' => null, 'error' => null];
+        }
         if (($terms['policy'] ?? 'full') === 'full') {
             return ['amount' => $commission, 'retained' => 0.0, 'used_days' => null, 'days' => null, 'error' => null];
         }

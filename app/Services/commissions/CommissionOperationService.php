@@ -258,7 +258,7 @@ class CommissionOperationService
             ->values();
     }
 
-    private function rentalContractOperations(RentalContract $contract): Collection
+    public function rentalContractOperations(RentalContract $contract): Collection
     {
         $invoice = $contract->financeInvoice;
         $invoiceAmount = round((float) ($invoice?->total_due ?? 0), 2);
@@ -316,7 +316,17 @@ class CommissionOperationService
 
         $operations = $this->applyRentalCreditNotes($operations, $creditNoteAmount);
         if ($contract->status === 'cancelled') {
-            $operations = $operations->map(function ($operation) {
+            $operations = $operations->map(function ($operation) use ($contract) {
+                // A closed extension can retain earned revenue after the approved refund.
+                // Do not discard that revenue solely because early closure is labelled cancelled.
+                if (($operation['billing']['kind'] ?? null) === 'extension_period'
+                    && $contract->closed_at
+                    && (float) ($operation['billing']['credit_note_amount'] ?? 0) > 0
+                    && $operation['commission_eligible']
+                    && app(RentalCommissionReturnPolicy::class)->current() === 'remaining_days') {
+                    $operation['billing']['settled_commission_base'] = (float) $operation['base_amount'];
+                    return $operation;
+                }
                 $operation['commission_eligible'] = false;
                 $operation['commission_ineligible_reason'] = 'عقد إيجار ملغي/مرتجع';
                 return $operation;
