@@ -204,17 +204,107 @@ class MusanedTransferController extends Controller
 
     public function index(Request $request)
     {
-        $query = MusanedTransfer::query()
-            ->with(['createdBy', 'bankAccount', 'items.contract.user', 'items.ingazDelegation.user']);
+        $filters = $this->indexFilters($request);
+        $query = MusanedTransfer::query();
         $this->applyRequestBranchFilter($query, $request, 'musaned_transfers');
+        $this->applyIndexFilters($query, $filters);
+
+        $summary = (clone $query)->toBase()->selectRaw(
+            'COUNT(*) as transfers_count, COALESCE(SUM(contracts_count), 0) as items_count,'
+            . ' COALESCE(SUM(customer_paid_total), 0) as customer_paid_total,'
+            . ' COALESCE(SUM(transferred_total), 0) as transferred_total,'
+            . ' COALESCE(SUM(commission_total), 0) as commission_total'
+        )->first();
+
+        [$sortColumn, $sortDirection] = [
+            'oldest' => ['transfer_date', 'asc'],
+            'amount_desc' => ['transferred_total', 'desc'],
+            'amount_asc' => ['transferred_total', 'asc'],
+            'items_desc' => ['contracts_count', 'desc'],
+        ][$filters['sort']] ?? ['transfer_date', 'desc'];
+
+        $branchesEnabled = \App\Support\SystemModuleManager::isEnabled('branches')
+            && Schema::hasColumn('musaned_transfers', 'branch_id');
 
         $transfers = $query
-            ->latest('transfer_date')
-            ->latest('id')
-            ->paginate(20)
-            ->appends($request->query());
+            ->with(['createdBy', 'bankAccount', 'items.contract.user', 'items.ingazDelegation.user'])
+            ->when($branchesEnabled, fn ($q) => $q->with('branch'))
+            ->orderBy($sortColumn, $sortDirection)
+            ->orderBy('id', $sortDirection)
+            ->paginate($filters['per_page'])
+            ->withQueryString();
 
-        return view('admin.ingaz.musaned_transfers.index', compact('transfers'));
+        $bankAccounts = Account::query()
+            ->whereIn('id', MusanedTransfer::query()->whereNotNull('bank_account_id')->distinct()->select('bank_account_id'))
+            ->orderBy('name')
+            ->get(['id', 'name']);
+        $creators = \App\Models\auth\Admin::query()
+            ->whereIn('id', MusanedTransfer::query()->whereNotNull('created_by_id')->distinct()->select('created_by_id'))
+            ->orderBy('name')
+            ->get(['id', 'name']);
+
+        return view('admin.ingaz.musaned_transfers.index', compact('transfers', 'filters', 'summary', 'bankAccounts', 'creators', 'branchesEnabled'));
+    }
+
+    private function indexFilters(Request $request): array
+    {
+        $date = fn (string $key) => preg_match('/^\d{4}-\d{2}-\d{2}$/', (string) $request->query($key)) ? $request->query($key) : null;
+        $amount = fn (string $key) => is_numeric($request->query($key)) ? (float) $request->query($key) : null;
+        $perPage = (int) $request->query('per_page', 20);
+
+        return [
+            'q' => trim(mb_substr((string) $request->query('q', ''), 0, 100)),
+            'date_from' => $date('date_from'),
+            'date_to' => $date('date_to'),
+            'bank_account_id' => (int) $request->query('bank_account_id') ?: null,
+            'created_by_id' => (int) $request->query('created_by_id') ?: null,
+            'kind' => in_array($request->query('kind'), ['single', 'bulk'], true) ? $request->query('kind') : null,
+            'source' => in_array($request->query('source'), ['contract', 'delegation'], true) ? $request->query('source') : null,
+            'amount_min' => $amount('amount_min'),
+            'amount_max' => $amount('amount_max'),
+            'sort' => in_array($request->query('sort'), ['oldest', 'amount_desc', 'amount_asc', 'items_desc'], true) ? $request->query('sort') : 'latest',
+            'per_page' => in_array($perPage, [20, 50, 100], true) ? $perPage : 20,
+        ];
+    }
+
+    private function applyIndexFilters($query, array $filters): void
+    {
+        $query
+            ->when($filters['date_from'], fn ($q, $value) => $q->whereDate('transfer_date', '>=', $value))
+            ->when($filters['date_to'], fn ($q, $value) => $q->whereDate('transfer_date', '<=', $value))
+            ->when($filters['bank_account_id'], fn ($q, $value) => $q->where('bank_account_id', $value))
+            ->when($filters['created_by_id'], fn ($q, $value) => $q->where('created_by_id', $value))
+            ->when($filters['kind'] === 'single', fn ($q) => $q->where('contracts_count', '<=', 1))
+            ->when($filters['kind'] === 'bulk', fn ($q) => $q->where('contracts_count', '>', 1))
+            ->when($filters['source'] === 'contract', fn ($q) => $q->whereHas('items', fn ($item) => $item->whereNotNull('contract_id')))
+            ->when($filters['source'] === 'delegation', fn ($q) => $q->whereHas('items', fn ($item) => $item->whereNotNull('ingaz_delegation_id')))
+            ->when($filters['amount_min'] !== null, fn ($q) => $q->where('transferred_total', '>=', $filters['amount_min']))
+            ->when($filters['amount_max'] !== null, fn ($q) => $q->where('transferred_total', '<=', $filters['amount_max']));
+
+        if ($filters['q'] === '') {
+            return;
+        }
+
+        $term = $filters['q'];
+        $like = '%' . addcslashes($term, '%_\\') . '%';
+        $customer = fn ($user) => $user->where('name', 'like', $like)->orWhere('phone', 'like', $like);
+
+        $query->where(function ($q) use ($term, $like, $customer) {
+            $q->where('reference_number', 'like', $like)->orWhere('notes', 'like', $like);
+            if (ctype_digit($term)) {
+                $q->orWhere('id', (int) $term);
+            }
+            $q->orWhereHas('items', function ($item) use ($term, $like, $customer) {
+                $item->whereHas('contract.user', $customer)
+                    ->orWhereHas('ingazDelegation', fn ($delegation) => $delegation
+                        ->where('ingaz_number', 'like', $like)
+                        ->orWhere('msaned_contract_number', 'like', $like)
+                        ->orWhereHas('user', $customer));
+                if (ctype_digit($term)) {
+                    $item->orWhere('contract_id', (int) $term)->orWhere('invoice_id', (int) $term);
+                }
+            });
+        });
     }
 
     public function create(Request $request)
@@ -449,6 +539,24 @@ class MusanedTransferController extends Controller
                     ]);
                 }
 
+                $branchAttributes = [];
+                if (\App\Support\SystemModuleManager::isEnabled('branches')
+                    && Schema::hasColumn('musaned_transfers', 'branch_id')) {
+                    $employeeBranchId = \App\Support\DataImportBranchContext::$active
+                        ? \App\Support\DataImportBranchContext::$branchId
+                        : Auth::guard('admin')->user()?->branch_id;
+                    $branchId = \App\Support\MusanedTransferBranch::resolve(
+                        $invoices,
+                        $employeeBranchId ? (int) $employeeBranchId : null
+                    );
+                    if (!$branchId) {
+                        throw ValidationException::withMessages([
+                            'items' => 'تعذر تحديد فرع تحويل مساند. حدد فرع العقد أو الفاتورة أو الموظف أولًا.',
+                        ]);
+                    }
+                    $branchAttributes = ['branch_id' => $branchId];
+                }
+
                 // Older transfer deletions may have left their item records
                 // behind. They have no transfer parent and must not prevent
                 // the invoice from being transferred again.
@@ -510,6 +618,7 @@ class MusanedTransferController extends Controller
                         : null;
 
                     $itemPayloads[] = [
+                        ...$branchAttributes,
                         'contract_id' => $contract?->id,
                         'ingaz_delegation_id' => $delegation?->id,
                         'invoice_id' => $invoice->id,
@@ -535,6 +644,7 @@ class MusanedTransferController extends Controller
                 }
 
                 $transfer = MusanedTransfer::query()->create([
+                    ...$branchAttributes,
                     'reference_number' => ($validated['reference_number'] ?? null) ?: null,
                     'transfer_date' => $validated['transfer_date'],
                     'notes' => ($validated['notes'] ?? null) ?: null,
@@ -957,6 +1067,7 @@ class MusanedTransferController extends Controller
         }
 
         $data = [
+            ...(isset($transfer->branch_id) ? ['branch_id' => (int) $transfer->branch_id] : []),
             'code' => $service->lastCode(),
             'date' => $transfer->transfer_date->format('Y-m-d'),
             'statement' => $this->buildSettlementStatement($transfer),
@@ -995,6 +1106,7 @@ class MusanedTransferController extends Controller
         $this->appendConstraintLine($lines, $intermediateAccountId, 'creditor', $amount, $statement);
 
         $data = [
+            ...(isset($transfer->branch_id) ? ['branch_id' => (int) $transfer->branch_id] : []),
             'code' => $service->lastCode(),
             'date' => $transfer->transfer_date->format('Y-m-d'),
             'statement' => $statement,

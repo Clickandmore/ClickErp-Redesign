@@ -26,6 +26,7 @@ use Tests\TestCase;
 class MusanedInvoiceCommissionTest extends TestCase
 {
     use DatabaseTransactions;
+    use \Tests\Concerns\InteractsWithBranches;
 
     private array $journals = [];
     private Account $source;
@@ -64,6 +65,86 @@ class MusanedInvoiceCommissionTest extends TestCase
         $year = Mockery::mock(YearService::class);
         $year->shouldReceive('checkDateRange')->andReturn((object) ['id' => 1]);
         $this->app->instance(YearService::class, $year);
+    }
+
+    public function test_new_transfer_and_items_use_document_branch(): void
+    {
+        $this->enableBranchesModule();
+        $branch = $this->makeBranch();
+        $invoice = $this->invoice();
+        DB::table('contracts')->where('id', $invoice->contract_id)->update(['branch_id' => $branch->id]);
+        DB::table('invoices')->where('id', $invoice->id)->update(['branch_id' => $branch->id]);
+        DB::table('fn_confirm_settings')->where('title', 'automatic_journal_entries')->update(['value' => 'off']);
+        $transfer = app(MusanedTransferController::class)->createTransfer(new \Illuminate\Http\Request([
+            'transfer_date' => now()->toDateString(),
+            'items' => [['contract_id' => $invoice->contract_id, 'transferred_amount' => 10000]],
+        ]), app(ConstraintService::class), app(YearService::class));
+        $this->assertSame($branch->id, $transfer->branch_id);
+        $this->assertSame($branch->id, $transfer->items->first()->branch_id);
+    }
+
+    public function test_mixed_branch_transfer_is_rejected_without_creating_records(): void
+    {
+        $this->enableBranchesModule();
+        $invoices = [$this->invoice(), $this->invoice()];
+        foreach ($invoices as $invoice) {
+            $branch = $this->makeBranch();
+            DB::table('contracts')->where('id', $invoice->contract_id)->update(['branch_id' => $branch->id]);
+            DB::table('invoices')->where('id', $invoice->id)->update(['branch_id' => $branch->id]);
+        }
+        DB::table('fn_confirm_settings')->where('title', 'automatic_journal_entries')->update(['value' => 'off']);
+        $before = DB::table('musaned_transfers')->count();
+        try {
+            app(MusanedTransferController::class)->createTransfer(new \Illuminate\Http\Request([
+                'transfer_date' => now()->toDateString(),
+                'items' => array_map(fn ($invoice) => ['contract_id' => $invoice->contract_id, 'transferred_amount' => 10000], $invoices),
+            ]), app(ConstraintService::class), app(YearService::class));
+            $this->fail('Expected mixed branches to be rejected.');
+        } catch (ValidationException $e) {
+            $this->assertArrayHasKey('items', $e->errors());
+            $this->assertStringContainsString('فروع مختلفة', $e->errors()['items'][0]);
+        }
+        $this->assertSame($before, DB::table('musaned_transfers')->count());
+    }
+
+    public function test_both_transfer_journals_receive_transfer_branch(): void
+    {
+        $invoice = $this->invoice();
+        $item = (new MusanedTransferItem)->forceFill([
+            'contract_id' => $invoice->contract_id, 'transferred_amount' => 100,
+            'commission_amount' => 0, 'expense_tax_amount' => 0, 'source_account_id' => $this->source->id,
+        ])->setRelation('invoice', $invoice);
+        $transfer = (new MusanedTransfer)->forceFill([
+            'branch_id' => 2, 'reference_number' => 'BRANCH-TEST', 'transfer_date' => now(), 'transferred_total' => 100,
+        ])->setRelation('items', collect([$item]));
+        $controller = app(MusanedTransferController::class);
+        $settlement = new \ReflectionMethod($controller, 'storeSettlementConstraint');
+        $settlement->setAccessible(true);
+        $settlement->invoke($controller, $transfer, app(ConstraintService::class), (object) ['id' => 1], 999, $this->expense->id, null);
+        $bank = new \ReflectionMethod($controller, 'storeBankTransferConstraint');
+        $bank->setAccessible(true);
+        $bank->invoke($controller, $transfer, app(ConstraintService::class), (object) ['id' => 1], 999, $this->source->id);
+        $this->assertCount(2, $this->journals);
+        $this->assertSame(2, $this->journals[0]['branch_id']);
+        $this->assertSame(2, $this->journals[1]['branch_id']);
+    }
+
+    public function test_disabled_branches_preserve_existing_transfer_behavior(): void
+    {
+        $this->enableBranchesModule(false);
+        $invoices = [$this->invoice(), $this->invoice()];
+        foreach ($invoices as $invoice) {
+            $branch = $this->makeBranch();
+            DB::table('contracts')->where('id', $invoice->contract_id)->update(['branch_id' => $branch->id]);
+            DB::table('invoices')->where('id', $invoice->id)->update(['branch_id' => $branch->id]);
+        }
+        DB::table('fn_confirm_settings')->where('title', 'automatic_journal_entries')->update(['value' => 'off']);
+        $transfer = app(MusanedTransferController::class)->createTransfer(new \Illuminate\Http\Request([
+            'transfer_date' => now()->toDateString(),
+            'items' => array_map(fn ($invoice) => ['contract_id' => $invoice->contract_id, 'transferred_amount' => 10000], $invoices),
+        ]), app(ConstraintService::class), app(YearService::class));
+        $this->assertNull($transfer->branch_id);
+        $this->assertCount(2, $transfer->items);
     }
 
     private function account(string $name, int $type): Account
