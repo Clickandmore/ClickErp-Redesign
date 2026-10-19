@@ -235,7 +235,9 @@
 
 @section('content')
     @if (\Illuminate\Support\Facades\Schema::hasTable('rental_escape_reports'))
-        @php($rentalEscape = \App\Models\RentalEscapeReport::where('maid_id', $maid->id)->latest('id')->first())
+        @php
+            $rentalEscape = \App\Models\RentalEscapeReport::where('maid_id', $maid->id)->latest('id')->first();
+        @endphp
         @if ($rentalEscape && !$rentalEscape->ready_at)
             <div class="alert alert-danger mx-3">
                 <strong>{{ $rentalEscape->closed_without_return_at ? 'بلاغ مغلق دون عودة — العاملة غير متاحة للتأجير' : ($rentalEscape->returned_at ? 'عادت العاملة وتنتظر اعتماد الجاهزية' : 'بلاغ هروب مفتوح — العاملة غير متاحة للتأجير') }}</strong>
