@@ -3,7 +3,9 @@
 namespace Tests\Feature;
 
 use App\Enums\ingaz\ContractStatusEnum;
+use App\Http\Controllers\admin\AdminTravelHistoryController;
 use App\Models\Contract;
+use App\Models\ContractInfo;
 use App\Models\Permission;
 use App\Models\TravelHistory;
 use App\Models\auth\Admin;
@@ -177,6 +179,77 @@ class RecruitmentContractStageRollbackTest extends TestCase
         $this->assertSame('tazker', $rolledBack->status);
         $this->assertSame('not_applicable', $rolledBack->warranty_status);
         $this->assertNull($rolledBack->warranty_start_date);
+    }
+
+    public function test_rollback_before_arrival_clears_a_trip_copied_arrival_date_when_no_trip_is_active_or_confirmed(): void
+    {
+        $contract = $this->makeContract('arrival', ['warranty_status' => 'active']);
+        $info = ContractInfo::create(['contract_id' => $contract->id, 'arrival_date' => '2026-10-01']);
+
+        $this->service->rollback($contract, 1);
+
+        $this->assertNull($info->fresh()->arrival_date);
+    }
+
+    public function test_rollback_before_arrival_preserves_date_while_another_trip_is_active(): void
+    {
+        $contract = $this->makeContract('arrival', ['warranty_status' => 'active']);
+        $info = ContractInfo::create(['contract_id' => $contract->id, 'arrival_date' => '2026-10-01']);
+        TravelHistory::query()->create([
+            'user_id' => 1, 'maid_id' => 1, 'order_id' => $contract->id,
+            'travel_type' => 'arrival', 'travel_with' => 'none', 'status' => 'scheduled',
+        ]);
+
+        $this->service->rollback($contract, 1);
+
+        $this->assertSame('2026-10-01', $info->fresh()->arrival_date);
+    }
+
+    public function test_deleting_the_only_unconfirmed_trip_clears_the_contract_arrival_date(): void
+    {
+        $contract = $this->makeContract('tazker');
+        $info = ContractInfo::create(['contract_id' => $contract->id, 'arrival_date' => '2026-10-01']);
+        $trip = TravelHistory::query()->create([
+            'user_id' => 1, 'maid_id' => 1, 'order_id' => $contract->id,
+            'travel_type' => 'arrival', 'travel_with' => 'none', 'status' => 'scheduled',
+        ]);
+
+        app(AdminTravelHistoryController::class)->destroy((string) $trip->id);
+
+        $this->assertNull($info->fresh()->arrival_date);
+    }
+
+    public function test_deleting_a_trip_keeps_the_contract_date_when_another_trip_is_active(): void
+    {
+        $contract = $this->makeContract('tazker');
+        $info = ContractInfo::create(['contract_id' => $contract->id, 'arrival_date' => '2026-10-01']);
+        $trip = TravelHistory::query()->create([
+            'user_id' => 1, 'maid_id' => 1, 'order_id' => $contract->id,
+            'travel_type' => 'arrival', 'travel_with' => 'none', 'status' => 'scheduled',
+        ]);
+        TravelHistory::query()->create([
+            'user_id' => 1, 'maid_id' => 1, 'order_id' => $contract->id,
+            'travel_type' => 'arrival', 'travel_with' => 'none', 'status' => 'active',
+        ]);
+
+        app(AdminTravelHistoryController::class)->destroy((string) $trip->id);
+
+        $this->assertSame('2026-10-01', $info->fresh()->arrival_date);
+    }
+
+    public function test_deleting_a_trip_keeps_the_contract_date_when_arrival_was_confirmed(): void
+    {
+        $contract = $this->makeContract('tazker');
+        $info = ContractInfo::create(['contract_id' => $contract->id, 'arrival_date' => '2026-10-01']);
+        $trip = TravelHistory::query()->create([
+            'user_id' => 1, 'maid_id' => 1, 'order_id' => $contract->id,
+            'travel_type' => 'arrival', 'travel_with' => 'none', 'status' => 'completed',
+            'arrived_at' => now(),
+        ]);
+
+        app(AdminTravelHistoryController::class)->destroy((string) $trip->id);
+
+        $this->assertSame('2026-10-01', $info->fresh()->arrival_date);
     }
 
     public function test_leaving_msaned_is_blocked_while_a_musaned_transfer_exists(): void

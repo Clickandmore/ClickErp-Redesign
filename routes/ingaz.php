@@ -856,6 +856,8 @@ Route::group(
 
             //** ACTIVITY LOG **//
             Route::get('/activity-log', [ActivityLogController::class, 'index'])->name('activity.log');
+            Route::get('/activity-log/export', [ActivityLogController::class, 'export'])->name('activity.log.export');
+            Route::get('/activity-log/export-pdf', [ActivityLogController::class, 'exportPdf'])->name('activity.log.export-pdf');
         });
     }
 );

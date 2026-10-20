@@ -73,7 +73,8 @@ class ComplaintController extends Controller
                 'total' => (clone $statsQuery)->count(),
                 'pending' => (clone $statsQuery)->where('status', 'pending')->count(),
                 'in_progress' => (clone $statsQuery)->where('status', 'in_progress')->count(),
-                'resolved' => (clone $statsQuery)->where('status', 'resolved')->count()
+                'resolved' => (clone $statsQuery)->where('status', 'resolved')->count(),
+                'rejected' => (clone $statsQuery)->where('status', 'rejected')->count(),
             ];
 
             return DataTables::of($query)
@@ -83,28 +84,7 @@ class ComplaintController extends Controller
                     return $row->user ? $row->user->name : 'غير معروف';
                 })
                 ->editColumn('status', function ($row) {
-                    $status = $row->status;
-                    $badgeClass = '';
-                    $statusText = '';
-                    switch ($status) {
-                        case 'pending':
-                            $badgeClass = 'text-bg-warning';
-                            $statusText = 'قيد الانتظار';
-                            break;
-                        case 'in_progress':
-                            $badgeClass = 'text-bg-info';
-                            $statusText = 'قيد المعالجة';
-                            break;
-                        case 'resolved':
-                            $badgeClass = 'text-bg-success';
-                            $statusText = 'تم الحل';
-                            break;
-                        case 'rejected':
-                            $badgeClass = 'text-bg-danger';
-                            $statusText = 'مرفوض';
-                            break;
-                    }
-                    return '<span class="badge ' . $badgeClass . '">' . $statusText . '</span>';
+                    return $this->getStatusBadge($row->status);
                 })
                 ->editColumn('file', function ($row) {
                     return $row->file ? showFile($row->file) : null;
@@ -202,7 +182,6 @@ class ComplaintController extends Controller
             'pending' => 'قيد الانتظار',
             'in_progress' => 'قيد المعالجة',
             'resolved' => 'تم الحل',
-            'closed' => 'مغلقة',
             'rejected' => 'مرفوضة',
         ];
         $priorities = ['low' => 'منخفضة', 'medium' => 'متوسطة', 'high' => 'عالية', 'urgent' => 'عاجلة'];
@@ -1015,8 +994,10 @@ class ComplaintController extends Controller
     private function applyComplaintFilters($query, Request $request): void
     {
         if ($request->filled('ticket_number')) {
-            $ticketNumber = ltrim((string) $request->ticket_number, '#0');
-            $query->where('id', 'LIKE', '%' . ($ticketNumber === '' ? 0 : $ticketNumber) . '%');
+            $ticketNumber = preg_replace('/\\D+/', '', (string) $request->ticket_number);
+            if ($ticketNumber !== '') {
+                $query->where('id', (int) $ticketNumber);
+            }
         }
 
         if ($request->filled('status')) {
@@ -1035,7 +1016,7 @@ class ComplaintController extends Controller
             $query->where('assigned_to', $request->assigned_to);
         }
 
-        switch ($request->period) {
+        switch ($request->input('period')) {
             case 'today':
                 $query->whereDate('created_at', today());
                 break;
@@ -1273,11 +1254,16 @@ class ComplaintController extends Controller
             'pending' => '<span class="badge text-bg-warning">قيد الانتظار</span>',
             'in_progress' => '<span class="badge text-bg-info">قيد المعالجة</span>',
             'resolved' => '<span class="badge text-bg-success">تم الحل</span>',
-            'closed' => '<span class="badge text-bg-secondary">مغلقة</span>',
             'rejected' => '<span class="badge text-bg-danger">مرفوضة</span>'
         ];
 
-        return $badges[$status] ?? '<span class="badge text-bg-light text-dark">' . $status . '</span>';
+        if (array_key_exists($status, $badges)) {
+            return $badges[$status];
+        }
+
+        $label = blank($status) ? 'غير محددة' : 'حالة غير معروفة (' . e((string) $status) . ')';
+
+        return '<span class="badge text-bg-light text-dark">' . $label . '</span>';
     }
 
     private function getPriorityBadge($priority)
@@ -1414,7 +1400,6 @@ class ComplaintController extends Controller
             'pending' => 'قيد الانتظار',
             'in_progress' => 'قيد المعالجة',
             'resolved' => 'تم الحل',
-            'closed' => 'مغلقة',
             'rejected' => 'مرفوضة',
         ][$status] ?? ($status ?: 'غير محدد');
     }

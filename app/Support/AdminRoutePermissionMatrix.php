@@ -354,6 +354,8 @@ class AdminRoutePermissionMatrix
             'dash.developers.perms.toggleStatus' => [PermKeys::DEVELOPERS_PERMS],
             'dash.developers.perms.delete' => [PermKeys::PERMISSIONS_DELETE],
             'dash.activity.log' => [PermKeys::ACTIVITY_VIEW],
+            'dash.activity.log.export' => [PermKeys::ACTIVITY_EXPORT],
+            'dash.activity.log.export-pdf' => [PermKeys::ACTIVITY_EXPORT],
             'admins.impersonate' => [PermKeys::USERS_EDIT],
             'admins.reset-password' => [PermKeys::USERS_EDIT],
             'admins.terminate-session' => [PermKeys::USERS_EDIT],

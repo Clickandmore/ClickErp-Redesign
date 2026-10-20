@@ -4,6 +4,7 @@ namespace App\Services\ingaz;
 
 use App\Enums\ingaz\ContractStatusEnum;
 use App\Models\Contract;
+use App\Models\TravelHistory;
 use App\Support\AutomationSettings;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
@@ -193,6 +194,10 @@ class RecruitmentContractStageRollbackService
                 $updates['warranty_status'] = 'not_applicable';
                 $updates['warranty_start_date'] = null;
                 $updates['warranty_end_date'] = null;
+
+                if (!$this->hasConfirmedArrival($locked) && !$this->hasActiveArrivalTrip($locked)) {
+                    $locked->info()->update(['arrival_date' => null]);
+                }
             } elseif ($this->isZeroDate($locked->warranty_start_date) || $this->isZeroDate($locked->warranty_end_date)) {
                 // تواريخ صفرية موروثة من الاستيراد لا تمثل وصولاً حقيقياً.
                 $updates['warranty_start_date'] = null;
@@ -237,6 +242,26 @@ class RecruitmentContractStageRollbackService
         static $cache = [];
 
         return $cache[$column] ??= Schema::hasColumn('invoices', $column);
+    }
+
+    private function hasConfirmedArrival(Contract $contract): bool
+    {
+        return TravelHistory::withTrashed()
+            ->where('order_id', $contract->id)
+            ->where('travel_type', '!=', 'deportation')
+            ->where(function ($query) {
+                $query->where('status', 'completed')
+                    ->orWhereNotNull('arrived_at')
+                    ->orWhereNotNull('arrival_confirmed_by');
+            })
+            ->exists();
+    }
+
+    private function hasActiveArrivalTrip(Contract $contract): bool
+    {
+        return $contract->travelHistory()
+            ->whereNotIn('status', ['completed', 'cancelled', 'canceled', 'rejected'])
+            ->exists();
     }
 
     private function isZeroDate($value): bool
