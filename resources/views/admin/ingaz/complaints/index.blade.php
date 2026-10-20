@@ -76,6 +76,7 @@
         }
 
 
+
         /* فلاتر محسنة */
         .complaints-page .btn-primary,
         .complaints-page .btn-success,
@@ -559,6 +560,7 @@
                         <i class="fas fa-check-circle stats-icon"></i>
                     </div>
                 </div>
+
             </div>
 
             <!-- Filters Section -->
@@ -598,7 +600,6 @@
                             <option value="pending">{{ __('ingaz.complaint_status_pending') }}</option>
                             <option value="in_progress">{{ __('ingaz.complaint_status_in_progress') }}</option>
                             <option value="resolved">{{ __('ingaz.complaint_status_resolved') }}</option>
-                            <option value="closed">{{ __('ingaz.complaint_status_closed') }}</option>
                             <option value="rejected">{{ __('ingaz.complaint_status_rejected') }}</option>
                         </select>
                     </div>
@@ -817,7 +818,6 @@
                 statusPending: @json(__('ingaz.complaint_status_pending')),
                 statusInProgress: @json(__('ingaz.complaint_status_in_progress')),
                 statusResolved: @json(__('ingaz.complaint_status_resolved')),
-                statusClosed: @json(__('ingaz.complaint_status_closed')),
                 statusRejected: @json(__('ingaz.complaint_status_rejected')),
                 viewDetails: @json(__('ingaz.view_details')),
                 quickResponse: @json(__('ingaz.quick_response')),
@@ -1009,7 +1009,6 @@
                                 'pending': '<span class="status-badge status-pending"><i class="fas fa-clock me-1"></i>' + complaintsTranslations.statusPending + '</span>',
                                 'in_progress': '<span class="status-badge status-in_progress"><i class="fas fa-spinner me-1"></i>' + complaintsTranslations.statusInProgress + '</span>',
                                 'resolved': '<span class="status-badge status-resolved"><i class="fas fa-check me-1"></i>' + complaintsTranslations.statusResolved + '</span>',
-                                'closed': '<span class="status-badge status-closed"><i class="fas fa-times me-1"></i>' + complaintsTranslations.statusClosed + '</span>',
                                 'rejected': '<span class="status-badge status-rejected"><i class="fas fa-ban me-1"></i>' + complaintsTranslations.statusRejected + '</span>'
                             };
                             return statuses[data] || data;
@@ -1298,6 +1297,7 @@
                 $('#pendingTickets').text(stats.pending || 0);
                 $('#inProgressTickets').text(stats.in_progress || 0);
                 $('#resolvedTickets').text(stats.resolved || 0);
+                $('#rejectedTickets').text(stats.rejected || 0);
             }
 
             // Load card view
@@ -1412,7 +1412,6 @@
                     'pending': '<span class="status-badge status-pending">' + complaintsTranslations.statusPending + '</span>',
                     'in_progress': '<span class="status-badge status-in_progress">' + complaintsTranslations.statusInProgress + '</span>',
                     'resolved': '<span class="status-badge status-resolved">' + complaintsTranslations.statusResolved + '</span>',
-                    'closed': '<span class="status-badge status-closed">' + complaintsTranslations.statusClosed + '</span>',
                     'rejected': '<span class="status-badge status-rejected">' + complaintsTranslations.statusRejected + '</span>'
                 };
                 return statuses[status] || '<span class="badge bg-secondary">' + status + '</span>';

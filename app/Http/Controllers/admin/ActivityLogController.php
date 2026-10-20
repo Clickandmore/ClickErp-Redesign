@@ -29,17 +29,27 @@ class ActivityLogController extends Controller
     private const PER_PAGE = 20;
     private const MAX_VISIBLE_CHANGES = 6;
     private const MAX_EXPANDED_CHANGES = 14;
+    private const EXPORT_CHUNK = 500;
+    public const MAX_EXPORT_ROWS = 50000;
+    // mPDF يبني الجدول كاملاً في الذاكرة، لذلك حد ملف PDF أصغر بكثير من CSV
+    public const MAX_PDF_ROWS = 500;
+    private const MAX_PDF_CHANGES = 8;
+
+    private const FILTER_KEYS = [
+        'employee_id',
+        'action',
+        'subject_type',
+        'subject_id',
+        'date_from',
+        'date_to',
+        'log_name',
+    ];
 
     private array $contractStatusCache = [];
 
     public function index(Request $request)
     {
-        $request->validate([
-            'date_from' => ['nullable', 'date_format:Y-m-d'],
-            'date_to' => array_merge(['nullable', 'date_format:Y-m-d'], $request->filled('date_from') ? ['after_or_equal:date_from'] : []),
-            'subject_id' => ['nullable', 'integer', 'min:1'],
-            'employee_id' => ['nullable', 'integer', 'min:1'],
-        ]);
+        $this->validateFilters($request);
 
         $query = Activity::query()
             ->orderByDesc('created_at')
@@ -57,21 +67,216 @@ class ActivityLogController extends Controller
 
         return view('admin.activity_log.index', [
             'data' => $data,
-            'filters' => $request->only([
-                'employee_id',
-                'action',
-                'subject_type',
-                'subject_id',
-                'date_from',
-                'date_to',
-                'log_name',
-            ]),
+            'filters' => $request->only(self::FILTER_KEYS),
             'filterOptions' => $this->buildFilterOptions(),
             'stats' => [
                 'total' => Activity::query()->count(),
                 'filtered' => $data->total(),
                 'active_filters' => $this->countActiveFilters($request),
             ],
+            'maxExportRows' => self::MAX_EXPORT_ROWS,
+            'maxPdfRows' => self::MAX_PDF_ROWS,
+        ]);
+    }
+
+    /**
+     * تصدير السجلات المطابقة للفلاتر الحالية كملف CSV (يفتح مباشرة في Excel).
+     */
+    public function export(Request $request)
+    {
+        $this->validateFilters($request);
+
+        $query = Activity::query()
+            ->orderByDesc('created_at')
+            ->orderByDesc('id');
+
+        $this->applyFilters($query, $request);
+
+        $headings = [
+            'رقم السجل',
+            'التاريخ',
+            'الوقت',
+            'منفذ العملية',
+            'الصفة',
+            'نوع العملية',
+            'مصدر السجل',
+            'نوع الكيان',
+            'المعرف',
+            'مرجع إضافي',
+            'الملخص',
+            'الوصف',
+            'عدد التغييرات',
+            'التغييرات',
+        ];
+
+        $callback = function () use ($query, $headings) {
+            @set_time_limit(0);
+
+            $handle = fopen('php://output', 'w');
+            echo "\xEF\xBB\xBF";
+            fputcsv($handle, $headings);
+
+            $exported = 0;
+            $logNameLabels = [];
+            $query->chunk(self::EXPORT_CHUNK, function (Collection $activities) use ($handle, &$exported, &$logNameLabels) {
+                \App\Support\Audit\ActivityRelations::load($activities);
+
+                foreach ($activities as $activity) {
+                    if ($exported >= self::MAX_EXPORT_ROWS) {
+                        return false;
+                    }
+
+                    $logName = (string) $activity->log_name;
+                    $logNameLabels[$logName] ??= $logName !== '' ? $this->resolveLogNameLabel($logName) : '-';
+
+                    fputcsv($handle, $this->buildExportRow($activity, $logNameLabels[$logName]));
+                    $exported++;
+                }
+
+                flush();
+            });
+
+            fclose($handle);
+        };
+
+        return response()->streamDownload($callback, 'activity-log-' . now()->format('Y-m-d_His') . '.csv', [
+            'Content-Type' => 'text/csv; charset=UTF-8',
+        ]);
+    }
+
+    /**
+     * تصدير السجلات المطابقة للفلاتر الحالية كملف PDF (أحدث MAX_PDF_ROWS سجل).
+     */
+    public function exportPdf(Request $request)
+    {
+        $this->validateFilters($request);
+
+        $query = Activity::query()
+            ->orderByDesc('created_at')
+            ->orderByDesc('id');
+
+        $this->applyFilters($query, $request);
+
+        $total = (clone $query)->count();
+        $activities = $query->limit(self::MAX_PDF_ROWS)->get();
+
+        \App\Support\Audit\ActivityRelations::load($activities);
+
+        $rows = $activities->map(function (Activity $activity) {
+            $entry = $this->describeActivity($activity);
+            $isUpdated = $entry['action'] === 'updated';
+
+            return [
+                'id' => $activity->id,
+                'date' => optional($activity->created_at)->format('Y-m-d') ?? '-',
+                'time' => optional($activity->created_at)->format('h:i A') ?? '',
+                'actor_name' => $entry['actor_name'],
+                'actor_role' => $entry['actor_role'],
+                'action_label' => $entry['action_label'],
+                'action_class' => $this->resolveActionClass($entry['action']),
+                'subject' => $entry['subject_label'],
+                'subject_descriptor' => $entry['subject_descriptor'],
+                'summary' => $entry['summary'],
+                'is_updated' => $isUpdated,
+                'changes' => array_slice($entry['changes'], 0, self::MAX_PDF_CHANGES),
+                'changes_more' => max(0, count($entry['changes']) - self::MAX_PDF_CHANGES),
+            ];
+        });
+
+        // جدول بمئات الصفوف يتجاوز حد pcre الافتراضي (1MB) الذي تعتمد عليه mPDF في تحليل HTML
+        @ini_set('pcre.backtrack_limit', '20000000');
+        @set_time_limit(300);
+
+        $pdf = \misterspelik\LaravelPdf\Facades\Pdf::loadView('admin.activity_log.export-pdf', [
+            'rows' => $rows,
+            'total' => $total,
+            'maxRows' => self::MAX_PDF_ROWS,
+            'filterSummary' => $this->describeFilters($request),
+            'printedAt' => now(),
+            'printedBy' => optional(auth('admin')->user())->name,
+        ], [], [
+            'format' => 'A4-L',
+            'mode' => 'utf-8',
+        ]);
+
+        // يُسمح بالطباعة والنسخ فقط؛ التعديل يحتاج كلمة مرور مالك عشوائية لا تُحفظ
+        $pdf->setProtection(['print', 'copy'], '', Str::random(32));
+
+        return response($pdf->output(), 200, [
+            'Content-Type' => 'application/pdf',
+            'Content-Disposition' => 'attachment; filename="activity-log-' . now()->format('Y-m-d_His') . '.pdf"',
+        ]);
+    }
+
+    /**
+     * وصف مقروء للفلاتر المطبقة لعرضه في رأس ملف PDF.
+     */
+    private function describeFilters(Request $request): array
+    {
+        $summary = [];
+
+        if ($request->filled('employee_id')) {
+            $summary['الموظف'] = Admin::withTrashed()->whereKey((int) $request->input('employee_id'))->value('name')
+                ?? '#' . $request->input('employee_id');
+        }
+        if ($request->filled('action')) {
+            $summary['العملية'] = $this->resolveActivityActionLabel(strtolower((string) $request->input('action')));
+        }
+        if ($request->filled('subject_type')) {
+            $summary['نوع السجل'] = $this->resolveSubjectTypeLabel((string) $request->input('subject_type'));
+        }
+        if ($request->filled('subject_id')) {
+            $summary['الرقم'] = '#' . $request->input('subject_id');
+        }
+        if ($request->filled('log_name')) {
+            $summary['المصدر'] = $this->resolveLogNameLabel((string) $request->input('log_name'));
+        }
+        if ($request->filled('date_from')) {
+            $summary['من'] = $request->input('date_from');
+        }
+        if ($request->filled('date_to')) {
+            $summary['إلى'] = $request->input('date_to');
+        }
+
+        return $summary;
+    }
+
+    private function buildExportRow(Activity $activity, string $logNameLabel): array
+    {
+        $entry = $this->describeActivity($activity);
+        $isUpdated = $entry['action'] === 'updated';
+
+        $changes = collect($entry['changes'])
+            ->map(fn (array $change) => $isUpdated
+                ? $change['label'] . ': ' . $change['old_display'] . ' ← ' . $change['new_display']
+                : $change['label'] . ': ' . ($change['new_display'] !== 'غير محدد' ? $change['new_display'] : $change['old_display']))
+            ->implode("\n");
+
+        return [
+            $activity->id,
+            optional($activity->created_at)->format('Y-m-d') ?? '-',
+            optional($activity->created_at)->format('h:i A') ?? '-',
+            $entry['actor_name'],
+            $entry['actor_role'],
+            $entry['action_label'],
+            $logNameLabel,
+            $entry['subject_type_label'],
+            $entry['subject_id'] ?? '-',
+            $entry['subject_descriptor'] ?? '-',
+            $entry['summary'],
+            $entry['description'],
+            count($entry['changes']),
+            $changes !== '' ? $changes : '-',
+        ];
+    }
+
+    private function validateFilters(Request $request): void
+    {
+        $request->validate([
+            'date_from' => ['nullable', 'date_format:Y-m-d'],
+            'date_to' => array_merge(['nullable', 'date_format:Y-m-d'], $request->filled('date_from') ? ['after_or_equal:date_from'] : []),
+            'subject_id' => ['nullable', 'integer', 'min:1'],
+            'employee_id' => ['nullable', 'integer', 'min:1'],
         ]);
     }
 
@@ -162,53 +367,55 @@ class ActivityLogController extends Controller
                 ->orderBy('log_name')
                 ->pluck('log_name')
                 ->filter()
-                ->mapWithKeys(fn ($logName) => [
-                    $logName => $logName === LegacyActivityLogImportService::LOG_NAME
-                        ? 'سجل النظام السابق'
-                        : (['default' => 'سجل النظام الحالي', 'domain_history' => 'السجلات التاريخية المدمجة', 'finance' => 'المالية', 'hr' => 'الموارد البشرية', 'crm' => 'علاقات العملاء', 'authentication' => 'الدخول والحسابات', 'permissions' => 'الصلاحيات', 'settings' => 'إعدادات النظام'][$logName] ?? Str::headline((string) $logName)),
-                ])
+                ->mapWithKeys(fn ($logName) => [$logName => $this->resolveLogNameLabel((string) $logName)])
                 ->all(),
         ];
     }
 
-    private function countActiveFilters(Request $request): int
+    private function resolveLogNameLabel(string $logName): string
     {
-        return collect([
-            'employee_id',
-            'action',
-            'subject_type',
-            'subject_id',
-            'date_from',
-            'date_to',
-            'log_name',
-        ])->filter(fn($key) => filled($request->input($key)))->count();
+        if ($logName === LegacyActivityLogImportService::LOG_NAME) {
+            return 'سجل النظام السابق';
+        }
+
+        return [
+            'default' => 'سجل النظام الحالي',
+            'domain_history' => 'السجلات التاريخية المدمجة',
+            'finance' => 'المالية',
+            'hr' => 'الموارد البشرية',
+            'crm' => 'علاقات العملاء',
+            'authentication' => 'الدخول والحسابات',
+            'permissions' => 'الصلاحيات',
+            'settings' => 'إعدادات النظام',
+        ][$logName] ?? Str::headline($logName);
     }
 
-    private function transformActivity(Activity $activity): array
+    private function countActiveFilters(Request $request): int
+    {
+        return collect(self::FILTER_KEYS)->filter(fn($key) => filled($request->input($key)))->count();
+    }
+
+    /**
+     * البيانات المشتركة بين العرض والتصدير (بدون الروابط التي تحتاج استعلامات إضافية).
+     */
+    private function describeActivity(Activity $activity): array
     {
         $activity->properties = \App\Support\Audit\AuditProperties::sanitize($activity->properties?->toArray() ?? []);
         $event = strtolower((string) ($activity->event ?: $activity->description ?: ''));
         $isLegacy = $activity->log_name === LegacyActivityLogImportService::LOG_NAME;
-        $subjectType = (string) $activity->subject_type;
         $subjectTypeLabel = $isLegacy
             ? 'سجل النظام السابق'
-            : $this->resolveSubjectTypeLabel($subjectType, $activity->subject);
+            : $this->resolveSubjectTypeLabel((string) $activity->subject_type, $activity->subject);
         $subjectId = $this->resolveSubjectId($activity);
         $subjectDescriptor = $this->resolveSubjectDescriptor($activity);
         $subjectLabel = trim($subjectTypeLabel . ($subjectId ? ' #' . $subjectId : ''));
         $changes = $this->buildChangeSet($activity, $event);
-        $visibleChanges = array_slice($changes, 0, self::MAX_VISIBLE_CHANGES);
-        $expandedChanges = array_slice($changes, self::MAX_VISIBLE_CHANGES, self::MAX_EXPANDED_CHANGES - self::MAX_VISIBLE_CHANGES);
-        $createdAt = $activity->created_at;
-        $targetUrl = $this->resolveTargetUrl($activity, $event);
 
         return [
-            'id' => $activity->id,
+            'action' => $event,
             'actor_name' => $this->resolveActivityCauserName($activity),
             'actor_role' => $this->resolveActorRoleLabel($activity),
-            'action' => $event,
             'action_label' => $this->resolveActivityActionLabel($event),
-            'action_class' => $this->resolveActionClass($event),
             'subject_type_label' => $subjectTypeLabel,
             'subject_id' => $subjectId,
             'subject_label' => $subjectLabel,
@@ -221,6 +428,34 @@ class ActivityLogController extends Controller
             'description' => $isLegacy
                 ? 'سجل مستورد من نظام الرافدين السابق.'
                 : $this->buildDescription($activity, $event, $changes),
+            'changes' => $changes,
+        ];
+    }
+
+    private function transformActivity(Activity $activity): array
+    {
+        $entry = $this->describeActivity($activity);
+        $event = $entry['action'];
+        $changes = $entry['changes'];
+        $subjectType = (string) $activity->subject_type;
+        $visibleChanges = array_slice($changes, 0, self::MAX_VISIBLE_CHANGES);
+        $expandedChanges = array_slice($changes, self::MAX_VISIBLE_CHANGES, self::MAX_EXPANDED_CHANGES - self::MAX_VISIBLE_CHANGES);
+        $createdAt = $activity->created_at;
+        $targetUrl = $this->resolveTargetUrl($activity, $event);
+
+        return [
+            'id' => $activity->id,
+            'actor_name' => $entry['actor_name'],
+            'actor_role' => $entry['actor_role'],
+            'action' => $event,
+            'action_label' => $entry['action_label'],
+            'action_class' => $this->resolveActionClass($event),
+            'subject_type_label' => $entry['subject_type_label'],
+            'subject_id' => $entry['subject_id'],
+            'subject_label' => $entry['subject_label'],
+            'subject_descriptor' => $entry['subject_descriptor'],
+            'summary' => $entry['summary'],
+            'description' => $entry['description'],
             'changes_preview' => $visibleChanges,
             'changes_extra' => $expandedChanges,
             'changes_count' => count($changes),
@@ -228,6 +463,11 @@ class ActivityLogController extends Controller
             'changes_raw_hidden_count' => max(0, count($changes) - (count($visibleChanges) + count($expandedChanges))),
             'created_at_label' => $createdAt ? $createdAt->translatedFormat('d F Y - h:i A') : '-',
             'created_at_relative' => $createdAt ? $createdAt->diffForHumans() : null,
+            'created_at_time' => $createdAt ? $createdAt->translatedFormat('h:i A') : '-',
+            'day_key' => $createdAt ? $createdAt->format('Y-m-d') : 'unknown',
+            'day_label' => $createdAt
+                ? ($createdAt->isToday() ? 'اليوم' : ($createdAt->isYesterday() ? 'أمس' : $createdAt->translatedFormat('l d F Y')))
+                : 'تاريخ غير معروف',
             'target_url' => $targetUrl,
             'target_label' => $this->resolveTargetLabel($subjectType),
             'properties_pretty' => $this->formatPropertiesPretty($activity),

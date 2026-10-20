@@ -42,10 +42,13 @@ class ShelterDirectEntryCostService
         if (!$supplier || $invoice->external_office_cost_reversal_constraint_id) {
             throw new \RuntimeException('قيد تكلفة المورد مفقود أو معكوس؛ لن تُحسب التكلفة من الإرسالية.');
         }
-        $mainBranch = app(\App\Services\BranchAccessService::class)->mainBranchId();
-        foreach ([$invoice, $supplier] as $document) {
-            if ((int) ($document->branch_id ?? $mainBranch) !== (int) ($contract->branch_id ?? $mainBranch)) {
-                throw new \RuntimeException('فرع قيد المورد أو الفاتورة لا يطابق العقد.');
+        $branchAccess = app(\App\Services\BranchAccessService::class);
+        $mainBranch = $branchAccess->mainBranchId();
+        if ($branchAccess->enabled()) {
+            foreach ([$invoice, $supplier] as $document) {
+                if ((int) ($document->branch_id ?? $mainBranch) !== (int) ($contract->branch_id ?? $mainBranch)) {
+                    throw new \RuntimeException('فرع قيد المورد أو الفاتورة لا يطابق العقد.');
+                }
             }
         }
         $receipt = $ledger->findEntry($contract, ShelterCostEntry::KIND_CAPITALIZE_OFFICE_COST);
