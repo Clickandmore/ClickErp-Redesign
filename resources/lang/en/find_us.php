@@ -46,7 +46,17 @@ return [
     'single_link_title' => 'Shared map link',
     'single_link_empty' => 'No map link has been saved in the settings yet.',
     'single_link_edit' => 'Edit the link in website settings',
+    'coordinates_title' => 'Set location by coordinates',
+    'coordinates_hint' => 'Optional: enter the latitude and longitude, or click the map / drag the marker to set the branch location. If the embed code is left empty, the map link is generated from the coordinates automatically.',
+    'latitude' => 'Latitude',
+    'longitude' => 'Longitude',
+    'use_my_location' => 'My current location',
+    'clear_coordinates' => 'Clear coordinates',
+    'geolocation_failed' => 'Could not get your current location. Make sure the browser is allowed to access it.',
+    'map_or_coordinates_hint' => 'Paste the embed code, or leave it empty and set the location by coordinates below.',
+    'coordinates_column' => 'Coordinates',
     'validation' => [
         'embed_url' => 'Paste a secure Google Maps embed URL that starts with https.',
+        'map_required' => 'Paste a map embed code or set the latitude and longitude.',
     ],
 ];
