@@ -135,7 +135,14 @@
                         <tr>
                             <td><span class="find-us-order">{{ $location->sort_order }}</span></td>
                             <td class="fw-semibold">{{ $location->branch_name }}</td>
-                            <td><div class="find-us-address">{{ $location->branch_address }}</div></td>
+                            <td>
+                                <div class="find-us-address">{{ $location->branch_address }}</div>
+                                @if (!is_null($location->latitude) && !is_null($location->longitude))
+                                    <small class="text-muted d-block mt-1" dir="ltr" title="{{ __('find_us.coordinates_column') }}">
+                                        <i class="fa fa-location-dot me-1"></i>{{ $location->latitude }}, {{ $location->longitude }}
+                                    </small>
+                                @endif
+                            </td>
                             <td>
                                 <button type="button" class="btn btn-sm btn-outline-primary js-map-preview"
                                         data-map-url="{{ $location->map_embed_url }}"
