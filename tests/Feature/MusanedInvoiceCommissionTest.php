@@ -83,7 +83,7 @@ class MusanedInvoiceCommissionTest extends TestCase
         $this->assertSame($branch->id, $transfer->items->first()->branch_id);
     }
 
-    public function test_mixed_branch_transfer_is_rejected_without_creating_records(): void
+    public function test_mixed_branch_transfer_is_saved_as_one_transfer_with_branch_items(): void
     {
         $this->enableBranchesModule();
         $invoices = [$this->invoice(), $this->invoice()];
@@ -93,18 +93,17 @@ class MusanedInvoiceCommissionTest extends TestCase
             DB::table('invoices')->where('id', $invoice->id)->update(['branch_id' => $branch->id]);
         }
         DB::table('fn_confirm_settings')->where('title', 'automatic_journal_entries')->update(['value' => 'off']);
-        $before = DB::table('musaned_transfers')->count();
-        try {
-            app(MusanedTransferController::class)->createTransfer(new \Illuminate\Http\Request([
-                'transfer_date' => now()->toDateString(),
-                'items' => array_map(fn ($invoice) => ['contract_id' => $invoice->contract_id, 'transferred_amount' => 10000], $invoices),
-            ]), app(ConstraintService::class), app(YearService::class));
-            $this->fail('Expected mixed branches to be rejected.');
-        } catch (ValidationException $e) {
-            $this->assertArrayHasKey('items', $e->errors());
-            $this->assertStringContainsString('فروع مختلفة', $e->errors()['items'][0]);
-        }
-        $this->assertSame($before, DB::table('musaned_transfers')->count());
+        $transfer = app(MusanedTransferController::class)->createTransfer(new \Illuminate\Http\Request([
+            'transfer_date' => now()->toDateString(),
+            'items' => array_map(fn ($invoice) => ['contract_id' => $invoice->contract_id, 'transferred_amount' => 10000], $invoices),
+        ]), app(ConstraintService::class), app(YearService::class));
+
+        $items = $transfer->items()->orderBy('id')->get();
+        $expectedBranches = DB::table('contracts')->whereIn('id', collect($invoices)->pluck('contract_id'))->orderBy('id')->pluck('branch_id')->all();
+        $this->assertTrue((bool) $transfer->is_multi_branch);
+        $this->assertNull($transfer->branch_id);
+        $this->assertCount(2, $items);
+        $this->assertSame($expectedBranches, $items->pluck('branch_id')->all());
     }
 
     public function test_both_transfer_journals_receive_transfer_branch(): void

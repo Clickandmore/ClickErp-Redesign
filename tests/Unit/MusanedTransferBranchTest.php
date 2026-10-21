@@ -27,7 +27,7 @@ class MusanedTransferBranchTest extends TestCase
         $this->assertNull(MusanedTransferBranch::resolve([$this->invoice(null, null)], null));
     }
 
-    public function test_mixed_branches_are_rejected(): void
+    public function test_mixed_branches_are_rejected_by_the_single_branch_resolver(): void
     {
         $this->expectException(ValidationException::class);
         MusanedTransferBranch::resolve([$this->invoice(1, 1), $this->invoice(2, 2)], 1);

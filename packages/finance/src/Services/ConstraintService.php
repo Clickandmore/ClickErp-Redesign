@@ -156,6 +156,7 @@ class ConstraintService extends MainService
         $yearId = $year_id ?? $this->yearService->getActiveYear()->id;
 
         foreach ($accountIds as $key => $accountId) {
+            $detailBranchIds = $request['branch_id'] ?? null;
             $data = [
                 "type" => $request['account_type'][$key],
                 "debtor_value" => $request['debtor_value'][$key],
@@ -163,6 +164,7 @@ class ConstraintService extends MainService
                 "statement" => $request['statement_account'][$key] ?? '-',
                 "account_id" => $accountId,
                 "cost_center_id" => $request['cost_center_id'][$key] ?? '',
+                "branch_id" => is_array($detailBranchIds) ? ($detailBranchIds[$key] ?? null) : null,
                 "year_id" => $yearId,
                 "constraint_id" => $constraintId,
                 "date" => $date ?? $this->model->find($constraintId)->date,

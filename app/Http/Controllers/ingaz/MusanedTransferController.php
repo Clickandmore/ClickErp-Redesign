@@ -67,7 +67,9 @@ class MusanedTransferController extends Controller
             if (!AutomaticJournalEntries::enabled() || $amount <= 0) return null;
             $sourceId = $this->resolveInvoiceMusanedSourceAccountId($locked, 0);
             if (!$sourceId) {
-                $sourceId = (int) $this->resolveIntermediateAccount()->id;
+                $sourceId = (int) $this->resolveIntermediateAccount(
+                    $locked->contract?->branch_id ?: $locked->ingazDelegation?->branch_id
+                )->id;
             }
             $commission = $this->resolveCommissionAccount();
             $taxAccount = $this->resolveExpenseTaxAccount();
@@ -466,9 +468,7 @@ class MusanedTransferController extends Controller
         $usesIntermediate = $collectionMode === RecruitmentSupplierSettings::MUSANED_INTERMEDIATE_TWO_STEP;
 
         // الحساب الوسيط لا يُطلب إلا في الوضع الحالي؛ وضع سند القبض المباشر لا يستخدمه.
-        $intermediateAccount = ($automaticEntriesEnabled && $usesIntermediate)
-            ? $this->resolveIntermediateAccount()
-            : null;
+        $intermediateAccount = null;
         $commissionAccount = $automaticEntriesEnabled ? $this->resolveCommissionAccount() : null;
         $expenseTaxRate = $this->resolveExpenseTaxRate();
         $expenseTaxAccount = $automaticEntriesEnabled ? $this->resolveExpenseTaxAccount() : null;
@@ -559,22 +559,44 @@ class MusanedTransferController extends Controller
                 }
 
                 $branchAttributes = [];
+                $multiBranchTransfer = false;
+                $employeeBranchId = null;
                 if (\App\Support\SystemModuleManager::isEnabled('branches')
                     && Schema::hasColumn('musaned_transfers', 'branch_id')) {
                     $employeeBranchId = \App\Support\DataImportBranchContext::$active
                         ? \App\Support\DataImportBranchContext::$branchId
                         : Auth::guard('admin')->user()?->branch_id;
-                    $branchId = \App\Support\MusanedTransferBranch::resolve(
-                        $invoices,
-                        $employeeBranchId ? (int) $employeeBranchId : null
-                    );
-                    if (!$branchId) {
+                    $sourceBranchIds = \App\Support\MusanedTransferBranch::branchIds($invoices);
+                    $multiBranchTransfer = count($sourceBranchIds) > 1;
+                    if ($multiBranchTransfer) {
+                        $branchAttributes = ['branch_id' => null, 'is_multi_branch' => true];
+                    } else {
+                        $branchId = \App\Support\MusanedTransferBranch::resolve(
+                            $invoices,
+                            $employeeBranchId ? (int) $employeeBranchId : null
+                        );
+                        if (!$branchId) {
+                            throw ValidationException::withMessages([
+                                'items' => 'تعذر تحديد فرع تحويل مساند. حدد فرع العقد أو الفاتورة أو الموظف أولًا.',
+                            ]);
+                        }
+                        $branchAttributes = ['branch_id' => $branchId];
+                    }
+                    if ($multiBranchTransfer && (!Schema::hasColumn('musaned_transfers', 'is_multi_branch')
+                        || !Schema::hasColumn('fn_constraints', 'is_multi_branch'))) {
                         throw ValidationException::withMessages([
-                            'items' => 'تعذر تحديد فرع تحويل مساند. حدد فرع العقد أو الفاتورة أو الموظف أولًا.',
+                            'items' => 'يلزم تحديث قاعدة البيانات لدعم التحويلات المجمعة من فروع مختلفة.',
                         ]);
                     }
-                    $branchAttributes = ['branch_id' => $branchId];
                 }
+
+                $intermediateAccount = ($automaticEntriesEnabled && $usesIntermediate)
+                    ? ($multiBranchTransfer
+                        && \App\Support\MusanedIntermediateAccountSettings::enabled()
+                        && \App\Support\MusanedIntermediateAccountSettings::mode() === \App\Support\MusanedIntermediateAccountSettings::MODE_PER_BRANCH
+                            ? null
+                            : $this->resolveIntermediateAccount($branchAttributes['branch_id'] ?? null))
+                    : null;
 
                 // Older transfer deletions may have left their item records
                 // behind. They have no transfer parent and must not prevent
@@ -598,6 +620,20 @@ class MusanedTransferController extends Controller
                     $invoice = $invoices->get($row['source_key']);
                     $contract = $invoice->contract;
                     $delegation = $invoice->ingazDelegation;
+                    $itemBranchId = null;
+                    if (\App\Support\SystemModuleManager::isEnabled('branches')
+                        && Schema::hasColumn('musaned_transfer_items', 'branch_id')) {
+                        $itemBranchId = \App\Support\MusanedTransferBranch::branchForInvoice($invoice)
+                            ?: ($branchAttributes['branch_id'] ?? ($employeeBranchId ? (int) $employeeBranchId : null));
+                    }
+                    if ($multiBranchTransfer && !$itemBranchId) {
+                        throw ValidationException::withMessages(['items' => 'تعذر تحديد فرع إحدى فواتير التحويل المجمع.']);
+                    }
+                    $itemIntermediateAccount = ($automaticEntriesEnabled && $usesIntermediate)
+                        ? ($multiBranchTransfer
+                            ? $this->resolveIntermediateAccount($itemBranchId)
+                            : $intermediateAccount)
+                        : null;
                     $itemLabel = $contract ? ('العقد #' . $contract->id) : ('تفويض إنجاز #' . $delegation?->id);
                     $customerPaidAmount = $this->roundMoney((float) $invoice->total_due);
                     $transferredAmount = $row['transferred_amount'];
@@ -619,7 +655,7 @@ class MusanedTransferController extends Controller
                         ? (float) $invoice->musaned_commission_tax
                         : ($commissionAmount > 0 ? $this->calculateExpenseTaxAmount($commissionAmount, $expenseTaxRate) : 0.0);
                     $commissionNetAmount = $this->roundMoney($commissionAmount - $expenseTaxAmount);
-                    $settlementReceiptAccount = $usesIntermediate ? $intermediateAccount : $bankAccount;
+                    $settlementReceiptAccount = $usesIntermediate ? $itemIntermediateAccount : $bankAccount;
                     $sourceAccountId = $automaticEntriesEnabled
                         ? $this->resolveInvoiceMusanedSourceAccountId($invoice, (int) $settlementReceiptAccount->id)
                         : null;
@@ -637,7 +673,7 @@ class MusanedTransferController extends Controller
                         : null;
 
                     $itemPayloads[] = [
-                        ...$branchAttributes,
+                        ...(isset($itemBranchId) ? ['branch_id' => $itemBranchId] : []),
                         'contract_id' => $contract?->id,
                         'ingaz_delegation_id' => $delegation?->id,
                         'invoice_id' => $invoice->id,
@@ -676,6 +712,9 @@ class MusanedTransferController extends Controller
                     'expense_tax_rate' => $expenseTaxRate,
                     'bank_account_id' => $bankAccount?->id,
                     'intermediate_account_id' => $intermediateAccount?->id,
+                    ...(Schema::hasColumn('musaned_transfers', 'is_multi_branch')
+                        ? ['is_multi_branch' => $multiBranchTransfer]
+                        : []),
                     'commission_account_id' => $commissionAccount?->id,
                     'expense_tax_account_id' => $expenseTaxAccount?->id,
                     'created_by_id' => Auth::guard('admin')->id() ?: Auth::id(),
@@ -697,7 +736,8 @@ class MusanedTransferController extends Controller
                         $transfer,
                         $service,
                         $activeYear,
-                        (int) ($usesIntermediate ? $intermediateAccount->id : $bankAccount->id),
+                        (int) $bankAccount->id,
+                        $usesIntermediate,
                         (int) $commissionAccount->id,
                         $expenseTaxAccount?->id ? (int) $expenseTaxAccount->id : null
                     );
@@ -707,8 +747,7 @@ class MusanedTransferController extends Controller
                             $transfer,
                             $service,
                             $activeYear,
-                            (int) $bankAccount->id,
-                            (int) $intermediateAccount->id
+                            (int) $bankAccount->id
                         );
                     }
                 }
@@ -871,7 +910,9 @@ class MusanedTransferController extends Controller
     {
         if (!AutomaticJournalEntries::enabled()) return;
         $usesIntermediate = RecruitmentSupplierSettings::musanedCollectionMode() === RecruitmentSupplierSettings::MUSANED_INTERMEDIATE_TWO_STEP;
-        $receiptAccount = $usesIntermediate ? $this->resolveIntermediateAccount() : $this->findValidBankAccount($bankAccountId);
+        $receiptAccount = $usesIntermediate
+            ? $this->resolveIntermediateAccount($invoice->contract?->branch_id ?: $invoice->ingazDelegation?->branch_id)
+            : $this->findValidBankAccount($bankAccountId);
         if (!$receiptAccount) throw new \RuntimeException('الحساب البنكي المحدد غير صالح.');
         $this->resolveCommissionAccount();
         $this->resolveExpenseTaxAccount();
@@ -923,12 +964,17 @@ class MusanedTransferController extends Controller
             ->get();
     }
 
-    private function resolveIntermediateAccount(): Account
+    private function resolveIntermediateAccount(?int $branchId = null): Account
     {
-        $accountId = ConfirmSetting::query()
-            ->where('title', ConfirmSettingTypes::MusanedIntermediateAccount->value)
-            ->latest('updated_at')
-            ->value('value');
+        $branchAccount = \App\Support\MusanedIntermediateAccountSettings::accountForBranch($branchId);
+        $accountId = $branchAccount?->id;
+        if (!$accountId && (!\App\Support\MusanedIntermediateAccountSettings::enabled()
+            || \App\Support\MusanedIntermediateAccountSettings::mode() === \App\Support\MusanedIntermediateAccountSettings::MODE_ALL)) {
+            $accountId = ConfirmSetting::query()
+                ->where('title', ConfirmSettingTypes::MusanedIntermediateAccount->value)
+                ->latest('updated_at')
+                ->value('value');
+        }
 
         if (!$accountId) {
             throw new \RuntimeException('لا يوجد حساب وسيط مساند محدد من إعدادات النظام المحاسبي.');
@@ -1052,7 +1098,8 @@ class MusanedTransferController extends Controller
         MusanedTransfer $transfer,
         ObjService $service,
         $activeYear,
-        int $receiptAccountId,
+        int $bankAccountId,
+        bool $usesIntermediate,
         int $commissionAccountId,
         ?int $expenseTaxAccountId
     ): ?Constraint {
@@ -1061,24 +1108,30 @@ class MusanedTransferController extends Controller
         foreach ($transfer->items as $item) {
             $costCenterId = $item->cost_center_id;
             $musanedClearingCostCenterId = null;
+            $branchId = $transfer->is_multi_branch ? (int) $item->branch_id : ($transfer->branch_id ? (int) $transfer->branch_id : null);
+            $receiptAccountId = $usesIntermediate
+                ? ($transfer->is_multi_branch
+                    ? (int) $this->resolveIntermediateAccount($branchId)->id
+                    : (int) $transfer->intermediate_account_id)
+                : $bankAccountId;
 
             if ((float) $item->transferred_amount > 0) {
                 $statement = $this->buildSettlementItemStatement($transfer, $item, 'صافي المبلغ المحول من مساند');
-                $this->appendConstraintLine($lines, $receiptAccountId, 'debtor', (float) $item->transferred_amount, $statement, $musanedClearingCostCenterId);
-                $this->appendConstraintLine($lines, (int) $item->source_account_id, 'creditor', (float) $item->transferred_amount, $statement, $musanedClearingCostCenterId);
+                $this->appendConstraintLine($lines, $receiptAccountId, 'debtor', (float) $item->transferred_amount, $statement, $musanedClearingCostCenterId, $branchId);
+                $this->appendConstraintLine($lines, (int) $item->source_account_id, 'creditor', (float) $item->transferred_amount, $statement, $musanedClearingCostCenterId, $branchId);
             }
 
             $commissionAlreadyRecorded = (bool) $item->invoice?->musaned_commission_constraint_id;
             if (!$commissionAlreadyRecorded && (float) $item->commission_amount > 0) {
                 $statement = $this->buildSettlementItemStatement($transfer, $item, 'التكاليف البنكية لمساند على العقد');
-                $this->appendConstraintLine($lines, $commissionAccountId, 'debtor', (float) $item->commission_amount, $statement, $costCenterId);
-                $this->appendConstraintLine($lines, (int) $item->source_account_id, 'creditor', (float) $item->commission_amount, $statement);
+                $this->appendConstraintLine($lines, $commissionAccountId, 'debtor', (float) $item->commission_amount, $statement, $costCenterId, $branchId);
+                $this->appendConstraintLine($lines, (int) $item->source_account_id, 'creditor', (float) $item->commission_amount, $statement, null, $branchId);
             }
 
             if (!$commissionAlreadyRecorded && $expenseTaxAccountId && (float) $item->expense_tax_amount > 0) {
                 $statement = $this->buildSettlementItemStatement($transfer, $item, 'فصل ضريبة المصروفات من التكاليف البنكية لمساند');
-                $this->appendConstraintLine($lines, $expenseTaxAccountId, 'debtor', (float) $item->expense_tax_amount, $statement);
-                $this->appendConstraintLine($lines, $commissionAccountId, 'creditor', (float) $item->expense_tax_amount, $statement, $costCenterId);
+                $this->appendConstraintLine($lines, $expenseTaxAccountId, 'debtor', (float) $item->expense_tax_amount, $statement, null, $branchId);
+                $this->appendConstraintLine($lines, $commissionAccountId, 'creditor', (float) $item->expense_tax_amount, $statement, $costCenterId, $branchId);
             }
         }
 
@@ -1087,7 +1140,7 @@ class MusanedTransferController extends Controller
         }
 
         $data = [
-            ...(isset($transfer->branch_id) ? ['branch_id' => (int) $transfer->branch_id] : []),
+            ...($transfer->is_multi_branch ? ['is_multi_branch' => true] : (isset($transfer->branch_id) ? ['branch_id' => (int) $transfer->branch_id] : [])),
             'code' => $service->lastCode(),
             'date' => $transfer->transfer_date->format('Y-m-d'),
             'statement' => $this->buildSettlementStatement($transfer),
@@ -1098,6 +1151,7 @@ class MusanedTransferController extends Controller
             'statement_account' => array_column($lines, 'statement'),
             'cost_center_required' => 'off',
             'cost_center_id' => array_column($lines, 'cost_center_id'),
+            'branch_id' => array_column($lines, 'branch_id'),
             'value' => $this->roundMoney(array_sum(array_column($lines, 'debtor_value'))),
         ];
 
@@ -1111,8 +1165,7 @@ class MusanedTransferController extends Controller
         MusanedTransfer $transfer,
         ObjService $service,
         $activeYear,
-        int $bankAccountId,
-        int $intermediateAccountId
+        int $bankAccountId
     ): ?Constraint {
         $amount = $this->roundMoney((float) $transfer->transferred_total);
         if ($amount <= 0) {
@@ -1121,12 +1174,21 @@ class MusanedTransferController extends Controller
 
         $statement = $this->buildBankTransferStatement($transfer);
         $lines = [];
-
-        $this->appendConstraintLine($lines, $bankAccountId, 'debtor', $amount, $statement);
-        $this->appendConstraintLine($lines, $intermediateAccountId, 'creditor', $amount, $statement);
+        $branchTotals = $transfer->items->groupBy(fn ($item) => $transfer->is_multi_branch
+            ? (int) $item->branch_id
+            : (int) ($transfer->branch_id ?: 0));
+        foreach ($branchTotals as $branchKey => $items) {
+            $branchId = (int) $branchKey ?: null;
+            $branchAmount = $this->roundMoney((float) $items->sum('transferred_amount'));
+            $intermediateAccountId = $transfer->intermediate_account_id
+                ? (int) $transfer->intermediate_account_id
+                : (int) $this->resolveIntermediateAccount($branchId)->id;
+            $this->appendConstraintLine($lines, $bankAccountId, 'debtor', $branchAmount, $statement, null, $branchId);
+            $this->appendConstraintLine($lines, $intermediateAccountId, 'creditor', $branchAmount, $statement, null, $branchId);
+        }
 
         $data = [
-            ...(isset($transfer->branch_id) ? ['branch_id' => (int) $transfer->branch_id] : []),
+            ...($transfer->is_multi_branch ? ['is_multi_branch' => true] : (isset($transfer->branch_id) ? ['branch_id' => (int) $transfer->branch_id] : [])),
             'code' => $service->lastCode(),
             'date' => $transfer->transfer_date->format('Y-m-d'),
             'statement' => $statement,
@@ -1137,6 +1199,7 @@ class MusanedTransferController extends Controller
             'statement_account' => array_column($lines, 'statement'),
             'cost_center_required' => 'off',
             'cost_center_id' => array_column($lines, 'cost_center_id'),
+            'branch_id' => array_column($lines, 'branch_id'),
             'value' => $amount,
         ];
 
@@ -1152,7 +1215,8 @@ class MusanedTransferController extends Controller
         string $accountType,
         float $amount,
         string $statement,
-        ?int $costCenterId = null
+        ?int $costCenterId = null,
+        ?int $branchId = null
     ): void {
         $amount = $this->roundMoney($amount);
         if ($amount <= 0) {
@@ -1166,6 +1230,7 @@ class MusanedTransferController extends Controller
             'creditor_value' => $accountType === 'creditor' ? $amount : 0,
             'statement' => $statement,
             'cost_center_id' => $costCenterId,
+            'branch_id' => $branchId,
         ];
     }
 

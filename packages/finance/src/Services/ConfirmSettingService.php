@@ -34,6 +34,7 @@ class ConfirmSettingService extends MainService
             ->filter(fn ($value) => is_numeric($value) && (int) $value > 0)
             ->map(fn ($value) => (int) $value)
             ->concat($additionalAccountIds)
+            ->concat(\App\Support\MusanedIntermediateAccountSettings::settingsForForm())
             ->filter(fn ($value) => is_numeric($value) && (int) $value > 0)
             ->map(fn ($value) => (int) $value)
             ->unique()
@@ -166,6 +167,9 @@ class ConfirmSettingService extends MainService
     public function storeData($data)
     {
         $rows = $data['data'] ?? [];
+        \App\Support\MusanedIntermediateAccountSettings::validateSubmission($rows);
+        $musanedMode = collect($rows)->firstWhere('title', \App\Support\MusanedIntermediateAccountSettings::MODE_KEY)['value']
+            ?? \App\Support\MusanedIntermediateAccountSettings::mode();
 
         foreach ($rows as $key => $setting) {
             if (($setting['title'] ?? null) === \App\Support\InvoiceSupplierWorkflow::SETTING_KEY
@@ -200,9 +204,27 @@ class ConfirmSettingService extends MainService
 
         $this->assertRecruitmentSupplierCycleIsConsistent($rows);
 
-        DB::transaction(function () use ($rows) {
+        DB::transaction(function () use ($rows, $musanedMode) {
             foreach ($rows as $value) {
                 $title = $value['title'] ?? null;
+
+                if ($title === \App\Support\MusanedIntermediateAccountSettings::MODE_KEY
+                    || $title === 'musaned_intermediate_account'
+                    || str_starts_with((string) $title, \App\Support\MusanedIntermediateAccountSettings::BRANCH_PREFIX)) {
+                    if ($title === 'musaned_intermediate_account'
+                        && $musanedMode === \App\Support\MusanedIntermediateAccountSettings::MODE_PER_BRANCH) {
+                        continue;
+                    }
+                    if (str_starts_with((string) $title, \App\Support\MusanedIntermediateAccountSettings::BRANCH_PREFIX)
+                        && $musanedMode !== \App\Support\MusanedIntermediateAccountSettings::MODE_PER_BRANCH) {
+                        continue;
+                    }
+                    $this->model->updateOrCreate(
+                        ['title' => $title],
+                        ['value' => $value['value'] ?? null, 'created_by_id' => auth('admin')->id()]
+                    );
+                    continue;
+                }
 
                 // حقول الحساب القديمة لم تعد تُعرض ولا تُكتب من هذه الصفحة.
                 if ($title === null || isset(TaxAccountResolver::RATE_SETTINGS[$title])) {

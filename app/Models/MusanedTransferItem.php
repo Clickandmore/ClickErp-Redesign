@@ -61,7 +61,8 @@ class MusanedTransferItem extends Model
 
     protected function resolveBranchIdForCreate(): ?int
     {
-        return $this->resolveBranchIdFromContract($this->contract_id)
+        return ($this->branch_id !== null ? (int) $this->branch_id : null)
+            ?? $this->resolveBranchIdFromContract($this->contract_id)
             ?? $this->resolveBranchIdFromInvoice($this->invoice_id)
             ?? $this->resolveBranchIdFromCurrentAdmin();
     }

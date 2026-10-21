@@ -28,11 +28,37 @@ class MusanedTransfer extends Model
         'commission_net_total' => 'decimal:2',
         'expense_tax_rate' => 'decimal:4',
         'branch_id' => 'integer',
+        'is_multi_branch' => 'boolean',
     ];
 
     public function items()
     {
         return $this->hasMany(MusanedTransferItem::class);
+    }
+
+    public function scopeApplyBranchVisibility($query, array $branchIds, bool $includeUnassigned): void
+    {
+        if (!\Illuminate\Support\Facades\Schema::hasColumn($this->getTable(), 'is_multi_branch')) {
+            $query->where(function ($query) use ($branchIds, $includeUnassigned) {
+                $query->whereIn($this->getTable() . '.branch_id', $branchIds);
+                if ($includeUnassigned) $query->orWhereNull($this->getTable() . '.branch_id');
+            });
+            return;
+        }
+        $query->where(function ($query) use ($branchIds, $includeUnassigned) {
+            $query->whereIn($this->getTable() . '.branch_id', $branchIds)
+                ->orWhere(function ($query) use ($branchIds) {
+                    $query->where($this->getTable() . '.is_multi_branch', true)
+                        ->whereHas('items', fn ($items) => $items->whereIn('branch_id', $branchIds));
+                });
+            if ($includeUnassigned) $query->orWhereNull($this->getTable() . '.branch_id');
+        });
+    }
+
+    public function branchScopeBelongsToBranch(int $branchId): bool
+    {
+        return (bool) $this->is_multi_branch
+            && $this->items()->where('branch_id', $branchId)->exists();
     }
 
     public function bankAccount()
@@ -72,6 +98,7 @@ class MusanedTransfer extends Model
 
     protected function resolveBranchIdForCreate(): ?int
     {
+        if ($this->is_multi_branch) return null;
         return $this->resolveBranchIdFromAdmin($this->created_by_id)
             ?? $this->resolveBranchIdFromCurrentAdmin();
     }
