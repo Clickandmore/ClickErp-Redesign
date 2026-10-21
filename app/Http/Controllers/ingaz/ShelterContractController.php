@@ -1049,6 +1049,8 @@ class ShelterContractController extends Controller
             ContractStatusEnum::Completed->value,
             ContractStatusEnum::UnderWarranty->value,
             ContractStatusEnum::Closed->value,
+            // A client may cancel after the worker has arrived; arrival date remains required.
+            ContractStatusEnum::Back->value,
         ];
     }
 
@@ -1097,7 +1099,7 @@ class ShelterContractController extends Controller
 
         if (!in_array($contract->status, $this->shelterEligibleContractStatuses(), true)) {
             return [
-                'message' => 'العقد موجود لكنه غير مؤهل للإيواء لأن حالته الحالية هي: ' . $currentStatus . '. الحالات المقبولة: وصول / مكتمل / تحت الضمان / مغلق.',
+                'message' => 'العقد موجود لكنه غير مؤهل للإيواء لأن حالته الحالية هي: ' . $currentStatus . '. الحالات المقبولة: وصول / مكتمل / تحت الضمان / مغلق / مرتجع بعد إلغاء العميل، بشرط تسجيل وصول العاملة فعليًا.',
                 'status' => $contract->status,
                 'status_label' => $currentStatus,
             ];
@@ -1441,7 +1443,7 @@ class ShelterContractController extends Controller
             !$contract ||
             !$this->contractCanBeAddedToShelter($contract)
         ) {
-            return jsonError('لا يمكن إضافة هذا العقد للإيواء. يجب أن يكون العقد في مرحلة وصول/ضمان/مكتمل وأن تكون العاملة وصلت فعليًا.', 422);
+            return jsonError('لا يمكن إضافة هذا العقد للإيواء. الحالات المقبولة: وصول أو ضمان أو مكتمل أو مغلق أو مرتجع بعد إلغاء العميل، بشرط تسجيل تاريخ وصول فعلي للعاملة وألا يكون التاريخ مستقبليًا.', 422);
         }
 
         $this->assertCanAccessBranchModel($contract, 'contracts');
