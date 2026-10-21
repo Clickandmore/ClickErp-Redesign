@@ -358,6 +358,52 @@
             font-size: 12px;
         }
 
+        .activity-tip {
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+            margin-top: 14px;
+            padding: 12px 14px;
+            background: var(--warn-soft);
+            border: 1px solid #f3e2bd;
+            border-inline-start: 4px solid var(--warn);
+            border-radius: 10px;
+        }
+
+        .activity-tip-icon {
+            flex-shrink: 0;
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            background: #fff;
+            color: var(--warn);
+            font-size: 14px;
+            box-shadow: 0 1px 2px rgba(176, 122, 0, 0.15);
+        }
+
+        .activity-tip-title {
+            font-weight: 700;
+            font-size: 13px;
+            color: var(--ink);
+            margin-bottom: 4px;
+        }
+
+        .activity-tip-list {
+            margin: 0;
+            padding-inline-start: 18px;
+            color: var(--muted);
+            font-size: 12.5px;
+            line-height: 1.8;
+        }
+
+        .activity-tip-list strong {
+            color: var(--ink);
+            font-weight: 600;
+        }
+
         /* ---------- Results toolbar ---------- */
         .activity-results-bar {
             display: flex;
@@ -905,9 +951,18 @@
                             </div>
                         </div>
 
-                        <div class="activity-hint" style="margin-top: 12px;">
-                            <i class="fas fa-lightbulb"></i>
-                            سجل النشاط كبير الحجم، لذلك يُفضّل فلترة الصفحة (بفترة زمنية أو موظف أو نوع سجل) قبل التصفح{{ $canExport ? '، وتصدير البيانات على أجزاء — مثلاً شهراً بشهر — بدل تصدير السجل كاملاً دفعة واحدة' : '' }}؛ فذلك أسرع ويمنع توقف الصفحة.
+                        <div class="activity-tip">
+                            <span class="activity-tip-icon"><i class="fas fa-lightbulb"></i></span>
+                            <div>
+                                <div class="activity-tip-title">نصيحة لأداء أفضل</div>
+                                <ul class="activity-tip-list">
+                                    <li>سجل النشاط كبير الحجم، لذلك يُفضّل <strong>فلترة الصفحة</strong> (بفترة زمنية أو موظف أو نوع سجل) قبل التصفح.</li>
+                                    @if ($canExport)
+                                        <li>صدّر البيانات <strong>على أجزاء</strong> — مثلاً شهراً بشهر — بدل تصدير السجل كاملاً دفعة واحدة.</li>
+                                    @endif
+                                    <li>ذلك أسرع ويمنع توقف الصفحة.</li>
+                                </ul>
+                            </div>
                         </div>
                     </form>
                 </section>
