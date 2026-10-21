@@ -765,7 +765,6 @@
                                         <option value="">{{ __('ingaz.no_change') }}</option>
                                         <option value="in_progress">{{ __('ingaz.complaint_status_in_progress') }}</option>
                                         <option value="resolved">{{ __('ingaz.complaint_status_resolved') }}</option>
-                                        <option value="closed">{{ __('ingaz.close_ticket') }}</option>
                                         <option value="rejected">{{ __('ingaz.complaint_status_rejected') }}</option>
                                     </select>
                                 </div>

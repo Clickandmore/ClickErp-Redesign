@@ -1042,6 +1042,12 @@ class ComplaintController extends Controller
 
     public function quickResponse(Request $request)
     {
+        $request->validate([
+            'complaint_id' => ['required', 'exists:complaints,id'],
+            'response' => ['required', 'string', 'max:10000'],
+            'status' => ['nullable', 'in:in_progress,resolved,rejected'],
+            'assigned_to' => ['nullable', 'exists:admins,id'],
+        ]);
         $complaint = objModel::findOrFail($request->complaint_id);
         $this->assertCanAccessBranchModel($complaint);
         $previousStatus = $complaint->status;

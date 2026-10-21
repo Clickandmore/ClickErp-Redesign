@@ -561,6 +561,25 @@ class ShelterCostLedgerTest extends TestCase
         $this->assertSame(1, ShelterCostEntry::where('maid_id', $contract->maid_id)->count());
     }
 
+    public function test_cancelled_after_arrival_contract_can_be_admitted_to_shelter(): void
+    {
+        [$contract] = $this->arrivedContractWithInvoice();
+        $contract->update(['status' => ContractStatusEnum::Back->value]);
+        $request = \\App\\Http\\Requests\\ingaz\\ShelterContactStore::create('/', 'POST', [
+            'contract_id' => $contract->id,
+            'maid_date_back' => now()->toDateString(),
+            'arrival_date' => now()->subDays(3)->toDateString(),
+            'receipt_source' => 'client',
+            'duration_from_enter' => 0,
+        ]);
+
+        app(\\App\\Http\\Controllers\\ingaz\\ShelterContractController::class)->store($request);
+
+        $this->assertSame(ContractStatusEnum::Shelter->value, $contract->fresh()->status);
+        $this->assertSame(ContractStatusEnum::Back->value,
+            $contract->contract_status_logs()->latest('id')->value('previous_status'));
+    }
+
     public function test_admission_rolls_back_when_supplier_cost_cannot_be_posted(): void
     {
         [$contract, $invoice] = $this->arrivedContractWithInvoice(1400);
