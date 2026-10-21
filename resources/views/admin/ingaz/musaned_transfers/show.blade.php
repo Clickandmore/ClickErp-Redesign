@@ -98,7 +98,7 @@
                     </div>
                     <div class="col-md-4">
                         <strong>الحساب الوسيط:</strong>
-                        <div>{{ $transfer->intermediateAccount->code ?? '-' }} / {{ $transfer->intermediateAccount->name ?? '-' }}</div>
+                        <div>{{ $transfer->is_multi_branch && !$transfer->intermediateAccount ? 'حساب وسيط مستقل حسب فرع كل فاتورة' : ($transfer->intermediateAccount->code ?? '-') . ' / ' . ($transfer->intermediateAccount->name ?? '-') }}</div>
                     </div>
                     <div class="col-md-4">
                         <strong>وضع التحصيل:</strong>

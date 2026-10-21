@@ -191,6 +191,17 @@ class BranchAccessService
             array_merge([$branchId], $sharedSourceBranchIds)
         )));
 
+        $model = method_exists($query, 'getModel') ? $query->getModel() : null;
+        if ($model && method_exists($model, 'scopeApplyBranchVisibility')) {
+            $model->scopeApplyBranchVisibility(
+                $query,
+                $visibleBranchIds,
+                $this->isMainBranchId($branchId)
+            );
+
+            return $query;
+        }
+
         $tableReference = $qualifiedColumn && str_contains($qualifiedColumn, '.')
             ? substr($qualifiedColumn, 0, strrpos($qualifiedColumn, '.'))
             : $table;
@@ -242,6 +253,11 @@ class BranchAccessService
         }
 
         $modelBranchId = (int) ($model->getAttribute('branch_id') ?? 0);
+
+        if (method_exists($model, 'branchScopeBelongsToBranch')
+            && $model->branchScopeBelongsToBranch($adminBranchId)) {
+            return true;
+        }
 
         if ($modelBranchId > 0) {
             if ($modelBranchId === $adminBranchId) {

@@ -565,7 +565,7 @@ class ShelterCostLedgerTest extends TestCase
     {
         [$contract] = $this->arrivedContractWithInvoice();
         $contract->update(['status' => ContractStatusEnum::Back->value]);
-        $request = \\App\\Http\\Requests\\ingaz\\ShelterContactStore::create('/', 'POST', [
+        $request = \App\Http\Requests\ingaz\ShelterContactStore::create('/', 'POST', [
             'contract_id' => $contract->id,
             'maid_date_back' => now()->toDateString(),
             'arrival_date' => now()->subDays(3)->toDateString(),
@@ -573,7 +573,7 @@ class ShelterCostLedgerTest extends TestCase
             'duration_from_enter' => 0,
         ]);
 
-        app(\\App\\Http\\Controllers\\ingaz\\ShelterContractController::class)->store($request);
+        app(\App\Http\Controllers\ingaz\ShelterContractController::class)->store($request);
 
         $this->assertSame(ContractStatusEnum::Shelter->value, $contract->fresh()->status);
         $this->assertSame(ContractStatusEnum::Back->value,

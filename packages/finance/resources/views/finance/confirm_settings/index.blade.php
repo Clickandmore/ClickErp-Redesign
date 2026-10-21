@@ -407,6 +407,7 @@
         $contractFinanceScreen = $settingValue($supplierSettings::CONTRACT_FINANCE_SCREEN, 'off') === 'on' ? 'on' : 'off';
         $accountOption = fn ($id) => $selected_accounts->get((int) $id);
         $settingAccountOption = fn (string $key) => $accountOption($settingValue($key));
+        $musanedAccountMode = $musanedIntermediateAccountMode ?? \App\Support\MusanedIntermediateAccountSettings::MODE_ALL;
     @endphp
 
     <div class="finance-settings-page">
@@ -1090,6 +1091,7 @@
                                 </span>
                             </div>
                             <input type="hidden" value="musaned_intermediate_account" name="data[musaned_intermediate_account][title]">
+                            @if (!($branchesEnabled ?? false))
                             <select name="data[musaned_intermediate_account][value]" id="musaned_intermediate_account"
                                     class="form-control account-ajax-select" data-account-scope="musaned_intermediate">
                                 <option value="">{{ __('finance::finance.choose') }}</option>
@@ -1101,6 +1103,39 @@
                             <div class="setting-field__tree">
                                 <strong>{{ $accountTreeLabel }}:</strong> {{ __('finance::finance.musaned_intermediate_account_tree_hint') }}
                             </div>
+                            @else
+                                <label for="musaned_intermediate_account_mode">طريقة تحديد الحساب الوسيط</label>
+                                <select name="data[musaned_intermediate_account_mode][value]" id="musaned_intermediate_account_mode" class="form-control">
+                                    <option value="all_branches" @selected($musanedAccountMode === 'all_branches')>حساب واحد لكل الفروع</option>
+                                    <option value="per_branch" @selected($musanedAccountMode === 'per_branch')>حساب مستقل لكل فرع</option>
+                                </select>
+                                <input type="hidden" name="data[musaned_intermediate_account_mode][title]" value="musaned_intermediate_account_mode">
+                                <div id="musaned-global-account-fields" @if ($musanedAccountMode === 'per_branch') hidden @endif>
+                                    <select name="data[musaned_intermediate_account][value]" id="musaned_intermediate_account"
+                                            class="form-control account-ajax-select" data-account-scope="musaned_intermediate" @disabled($musanedAccountMode === 'per_branch')>
+                                        <option value="">{{ __('finance::finance.choose') }}</option>
+                                        @if ($item = $settingAccountOption('musaned_intermediate_account'))
+                                            <option value="{{ $item->id }}" selected>{{ $item->code }} / {{ $item->name }}</option>
+                                        @endif
+                                    </select>
+                                    <small>{{ __('finance::finance.musaned_intermediate_account_hint') }}</small>
+                                </div>
+                                <div id="musaned-branch-account-fields" @if ($musanedAccountMode !== 'per_branch') hidden @endif>
+                                    @foreach (($musanedIntermediateBranchAccounts ?? []) as $branchId => $accountId)
+                                        @php $branch = $branches->firstWhere('id', $branchId); $item = $accountOption($accountId); @endphp
+                                        <div class="mb-2">
+                                            <label for="musaned_intermediate_branch_{{ $branchId }}">{{ $branch?->name ?? ('فرع ' . $branchId) }}</label>
+                                            <input type="hidden" name="data[musaned_intermediate_account_branch_{{ $branchId }}][title]" value="musaned_intermediate_account_branch_{{ $branchId }}">
+                                            <select name="data[musaned_intermediate_account_branch_{{ $branchId }}][value]" id="musaned_intermediate_branch_{{ $branchId }}" class="form-control account-ajax-select" data-account-scope="musaned_intermediate" @disabled($musanedAccountMode !== 'per_branch')>
+                                                <option value="">{{ __('finance::finance.choose') }}</option>
+                                                @if ($item)
+                                                    <option value="{{ $item->id }}" selected>{{ $item->code }} / {{ $item->name }}</option>
+                                                @endif
+                                            </select>
+                                        </div>
+                                    @endforeach
+                                </div>
+                            @endif
                         </div>
 
                         <div class="setting-field">
@@ -1683,6 +1718,13 @@
                 },
                 minimumInputLength: 0
             });
+        });
+        $('#musaned_intermediate_account_mode').on('change', function () {
+            const perBranch = this.value === 'per_branch';
+            $('#musaned-global-account-fields').prop('hidden', perBranch);
+            $('#musaned-branch-account-fields').prop('hidden', !perBranch);
+            $('#musaned_intermediate_account').prop('disabled', perBranch);
+            $('#musaned-branch-account-fields select').prop('disabled', !perBranch);
         });
     </script>
 @endsection

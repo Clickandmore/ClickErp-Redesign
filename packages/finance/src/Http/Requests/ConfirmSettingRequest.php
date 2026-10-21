@@ -40,7 +40,7 @@ class ConfirmSettingRequest extends MainRequest
             'data.invoice_supplier_workflow.value' => 'sometimes|required|in:legacy,updated',
             'data.musaned_commission_posting.title' => 'sometimes|in:musaned_commission_posting',
             'data.musaned_commission_posting.value' => 'sometimes|required|in:separate,with_receipt',
-        ] + $this->recruitmentSupplierCycleRules() + $this->shelterAccountingRules();
+        ] + $this->musanedBranchAccountRules() + $this->recruitmentSupplierCycleRules() + $this->shelterAccountingRules();
     }
 
     protected function update(): array
@@ -56,7 +56,7 @@ class ConfirmSettingRequest extends MainRequest
             'data.invoice_supplier_workflow.value' => 'sometimes|required|in:legacy,updated',
             'data.musaned_commission_posting.title' => 'sometimes|in:musaned_commission_posting',
             'data.musaned_commission_posting.value' => 'sometimes|required|in:separate,with_receipt',
-        ] + $this->recruitmentSupplierCycleRules() + $this->shelterAccountingRules();
+        ] + $this->musanedBranchAccountRules() + $this->recruitmentSupplierCycleRules() + $this->shelterAccountingRules();
     }
 
     /**
@@ -97,6 +97,24 @@ class ConfirmSettingRequest extends MainRequest
         $rules["data.{$rate}.title"] = ['sometimes', Rule::in([$rate])];
         $rules["data.{$rate}.value"] = ['sometimes', 'nullable', 'numeric', 'gt:0'];
 
+        return $rules;
+    }
+
+    protected function musanedBranchAccountRules(): array
+    {
+        $rules = [
+            'data.musaned_intermediate_account_mode.title' => ['sometimes', Rule::in(['musaned_intermediate_account_mode'])],
+            'data.musaned_intermediate_account_mode.value' => ['sometimes', Rule::in(['all_branches', 'per_branch'])],
+            'data.musaned_intermediate_account.title' => ['sometimes', Rule::in(['musaned_intermediate_account'])],
+            'data.musaned_intermediate_account.value' => ['nullable', 'integer', 'exists:fn_accounts,id'],
+        ];
+        if (\App\Support\MusanedIntermediateAccountSettings::enabled()) {
+            foreach (\App\Models\Branch::query()->active()->pluck('id') as $branchId) {
+                $key = \App\Support\MusanedIntermediateAccountSettings::branchKey((int) $branchId);
+                $rules["data.{$key}.title"] = ['sometimes', Rule::in([$key])];
+                $rules["data.{$key}.value"] = ['nullable', 'integer', 'exists:fn_accounts,id'];
+            }
+        }
         return $rules;
     }
 

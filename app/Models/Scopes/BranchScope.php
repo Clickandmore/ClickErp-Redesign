@@ -44,7 +44,14 @@ class BranchScope implements Scope
             $this->sharedSourceBranchIds($model)
         )));
 
-        if ($this->includesUnassigned($model, $branchId)) {
+        $includeUnassigned = $this->includesUnassigned($model, $branchId);
+        if (method_exists($model, 'scopeApplyBranchVisibility')) {
+            $model->scopeApplyBranchVisibility($builder, $visibleBranchIds, $includeUnassigned);
+
+            return;
+        }
+
+        if ($includeUnassigned) {
             $builder->where(function (Builder $query) use ($column, $visibleBranchIds) {
                 $query->whereIn($column, $visibleBranchIds)->orWhereNull($column);
             });

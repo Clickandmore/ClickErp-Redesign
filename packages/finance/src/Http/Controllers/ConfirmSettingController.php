@@ -37,6 +37,7 @@ class ConfirmSettingController extends Controller
     )
     {
         $settings = $service->getAllSettings();
+        $musanedIntermediateBranchAccounts = \App\Support\MusanedIntermediateAccountSettings::settingsForForm();
         $nationalityAccountAssignments = $nationalityFinanceAccountService->getNationalityAssignments($settings);
         $settings = $nationalityFinanceAccountService->persistDetectedAssignments(
             $settings,
@@ -65,6 +66,12 @@ class ConfirmSettingController extends Controller
             "nationality_account_definitions" => $nationalityFinanceAccountService->getSettingDefinitions($settings),
             "nationality_account_assignments" => $nationalityAccountAssignments,
             "nationality_account_options_route" => route($this->mainRoute . '.account-options'),
+            "branchesEnabled" => \App\Support\MusanedIntermediateAccountSettings::enabled(),
+            "musanedIntermediateAccountMode" => \App\Support\MusanedIntermediateAccountSettings::mode(),
+            "musanedIntermediateBranchAccounts" => $musanedIntermediateBranchAccounts,
+            "branches" => \App\Support\MusanedIntermediateAccountSettings::enabled()
+                ? \App\Models\Branch::query()->active()->ordered()->get(['id', 'name_ar', 'name_en', 'code'])
+                : collect(),
         ];
         return view($this->folderPath . '.index', $data);
     }
