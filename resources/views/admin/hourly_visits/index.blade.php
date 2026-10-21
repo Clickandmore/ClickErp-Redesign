@@ -130,6 +130,8 @@
     .vl-card.is-selected { border-color: var(--brand); box-shadow: 0 0 0 3px rgba(39, 148, 235, .18); }
     .vl-card.is-selected .vl-card-head { background: #eef7ff; }
     .vl-card-head { display: flex; align-items: center; justify-content: space-between; gap: .6rem; flex-wrap: wrap; padding: .8rem 1.15rem; background: var(--soft); border-bottom: 1px solid var(--line); }
+    .vl-recovery { padding: .9rem 1.15rem 0; }
+    .vl-recovery .rr-card { margin-bottom: 0; box-shadow: none; }
     .vl-card-title { display: flex; align-items: center; gap: .6rem; flex-wrap: wrap; }
     .vl-card-title input { width: 18px; height: 18px; accent-color: var(--brand-ink); cursor: pointer; }
     .vl-card-id { font-weight: 800; font-size: 1rem; color: var(--brand-ink); text-decoration: none; }
@@ -227,6 +229,7 @@
 @endsection
 @section('content')
 @include('admin.hourly_visits._delay-alerts')
+@include('admin.hourly_visits._return-note')
 @php
     $titles = ['all' => 'قائمة الزيارات', 'unassigned' => 'الزيارات غير المخصصة', 'past' => 'زيارات ماضية غير منتهية','latest'=>'آخر الزيارات للطلب'];
     $modeIcons = ['all' => 'fa-list-check', 'unassigned' => 'fa-user-slash', 'past' => 'fa-clock-rotate-left','latest'=>'fa-calendar-day'];
@@ -398,9 +401,13 @@
         <div class="vl-results-head">
             <h5><i class="fa fa-list"></i> الزيارات <span class="vl-muted vl-num">({{ $visits->total() }})</span></h5>
             <div class="vl-day" aria-label="التنقل باليوم">
-                <a aria-label="اليوم السابق" href="{{ route($route, array_merge($filters, ['from' => $day->copy()->subDay()->toDateString(), 'to' => $day->copy()->subDay()->toDateString(), 'page' => 1])) }}"><i class="fa fa-chevron-right"></i></a>
-                <strong>{{ $day->translatedFormat('l d M Y') }}</strong>
-                <a aria-label="اليوم التالي" href="{{ route($route, array_merge($filters, ['from' => $day->copy()->addDay()->toDateString(), 'to' => $day->copy()->addDay()->toDateString(), 'page' => 1])) }}"><i class="fa fa-chevron-left"></i></a>
+                @if(isset($filters['from'], $filters['to']))
+                    <a aria-label="اليوم السابق" href="{{ route($route, array_merge($filters, ['from' => $day->copy()->subDay()->toDateString(), 'to' => $day->copy()->subDay()->toDateString(), 'page' => 1])) }}"><i class="fa fa-chevron-right"></i></a>
+                    <strong>{{ $day->translatedFormat('l d M Y') }}</strong>
+                    <a aria-label="اليوم التالي" href="{{ route($route, array_merge($filters, ['from' => $day->copy()->addDay()->toDateString(), 'to' => $day->copy()->addDay()->toDateString(), 'page' => 1])) }}"><i class="fa fa-chevron-left"></i></a>
+                @else
+                    <strong>كل التواريخ</strong>
+                @endif
             </div>
         </div>
 
@@ -440,6 +447,7 @@
         <div class="mt-3">{{ $visits->links() }}</div>
     </section>
     @include('admin.hourly_visits._batch')
+    @if($canSchedule)@include('admin.hourly._schedule-modal', ['scheduleVisitList' => $visits])@endif
     <div class="modal fade" id="vl-payments-modal" tabindex="-1" aria-labelledby="vl-payments-title"><div class="modal-dialog modal-xl"><div class="modal-content"><div class="modal-header"><h5 id="vl-payments-title">سجل الدفعات</h5><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="إغلاق"></button></div><div class="modal-body" id="vl-payments-body"></div></div></div></div>
 </div>
 @endsection

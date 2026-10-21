@@ -28,6 +28,10 @@
         </div>
     </header>
 
+    @if(!empty(($order->booking_metadata['missed_visit_requests'] ?? [])[$visit->id]))
+        <div class="vl-recovery">@include('admin.hourly._recovery-requests', ['recoveryOrders' => collect([$order]), 'recoveryVisitId' => $visit->id])</div>
+    @endif
+
     <div class="vl-grid">
         {{-- الصف الأول: الطلب والعميل والعنوان والموعد --}}
         <section class="vl-cell" data-column="info">
@@ -51,6 +55,7 @@
             </div>
         </section>
         <section class="vl-cell" data-column="date">
+            @php $slotPick = ($canSchedule ?? false) && \App\Services\Hourly\VisitBatchService::slotPickable($visit, $order); @endphp
             <h6><i class="fa fa-calendar"></i> موعد الزيارة</h6>
             @if($visit->scheduled_start_at)
                 <div class="vl-when"><b>{{ $visit->scheduled_start_at->translatedFormat('l') }}</b> <span class="vl-num" dir="ltr">{{ $visit->scheduled_start_at->format('Y-m-d') }}</span></div>
@@ -58,10 +63,12 @@
             @else
                 <div class="vl-warn">لم يحدد الموعد</div>
             @endif
+            {{-- الزيارة بلا موعد أو القادمة تُجدول من نافذة المواعيد المتاحة بدل زري التاريخ والوقت. --}}
+            @include('admin.hourly_visits._schedule-button')
             @if($canEdit)
                 <div class="vl-acts">
-                    @if(!$visit->has_started_execution)<button type="button" class="vl-act" data-single="reschedule" data-id="{{ $visit->id }}"><i class="fa fa-calendar-days"></i> التاريخ</button>@endif
-                    @if(!$visit->has_started_execution)<button type="button" class="vl-act" data-single="start_time" data-id="{{ $visit->id }}"><i class="fa fa-clock"></i> الوقت</button>@endif
+                    @if(!$visit->has_started_execution && !$slotPick)<button type="button" class="vl-act" data-single="reschedule" data-id="{{ $visit->id }}"><i class="fa fa-calendar-days"></i> التاريخ</button>@endif
+                    @if(!$visit->has_started_execution && !$slotPick)<button type="button" class="vl-act" data-single="start_time" data-id="{{ $visit->id }}"><i class="fa fa-clock"></i> الوقت</button>@endif
                     <button type="button" class="vl-act" data-single="note" data-id="{{ $visit->id }}"><i class="fa fa-note-sticky"></i> مذكرة</button>
                 </div>
             @endif

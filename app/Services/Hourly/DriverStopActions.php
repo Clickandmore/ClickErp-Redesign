@@ -60,6 +60,7 @@ class DriverStopActions
     public function shelterReturn(HourlyDriver $driver, int $stopId, array $gps): array
     {
         return $this->apply($driver, $stopId, 'shelter_return', function ($stop, HourlyVisit $visit) use ($driver) {
+            DB::table('hourly_visit_workers')->where('hourly_visit_id', $visit->id)->whereIn('status', ['finished', 'picked_up'])->update(['status' => 'returned', 'updated_at' => now()]);
             app(ShelterPresence::class)->close($visit, 'driver', $driver->id);
             return ['visit' => ['status' => 'completed'], 'stop' => ['status' => 'completed', 'completed_at' => now()], 'close_order' => true];
         }, $gps, 'shelter_return');

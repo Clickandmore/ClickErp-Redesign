@@ -64,8 +64,9 @@ class ShelterPresence
         $rows = DB::table('hourly_visit_workers as w')
             ->join('hourly_visits as v', 'v.id', '=', 'w.hourly_visit_id')
             ->join('hourly_rental_orders as o', 'o.id', '=', 'v.hourly_rental_order_id')
-            ->whereIn('v.status', self::OUT_STATUSES)
+            ->where(fn ($q) => $q->whereIn('v.status', self::OUT_STATUSES)->orWhereIn('w.status', ['delivered', 'finished', 'picked_up']))
             ->whereNotIn('o.status', ['cancelled', 'expired'])
+            ->where(fn ($q) => $q->whereNull('w.status')->orWhereNotIn('w.status', ['returned', 'completed']))
             ->orderBy('v.scheduled_start_at')
             ->get(['w.maid_id', 'v.id as visit_id', 'v.visit_number', 'v.status', 'v.scheduled_start_at', 'v.scheduled_end_at',
                 'o.id as order_id', 'o.order_number']);
@@ -119,6 +120,7 @@ class ShelterPresence
             ->join('hourly_rental_orders as o', 'o.id', '=', 'v.hourly_rental_order_id')
             ->whereIn('v.status', self::UPCOMING_STATUSES)
             ->whereNotIn('o.status', ['cancelled', 'expired'])
+            ->where(fn ($q) => $q->whereNull('w.status')->orWhereNotIn('w.status', ['returned', 'completed']))
             ->where(fn ($q) => $q->whereNull('v.scheduled_end_at')->orWhere('v.scheduled_end_at', '>=', now()))
             ->groupBy('w.maid_id')
             ->pluck(DB::raw('COUNT(*)'), 'w.maid_id')
@@ -146,6 +148,7 @@ class ShelterPresence
             ->whereIn('w.maid_id', $maidIds)
             ->where('v.status', 'scheduled')
             ->whereNotIn('o.status', ['cancelled', 'expired'])
+            ->where(fn ($q) => $q->whereNull('w.status')->orWhereNotIn('w.status', ['returned', 'completed']))
             ->where('v.scheduled_start_at', '>=', now())
             ->orderBy('v.scheduled_start_at')
             ->get(['w.maid_id', 'v.visit_number', 'v.scheduled_start_at']);
@@ -193,6 +196,23 @@ class ShelterPresence
     }
 
     /** إغلاق حركة العودة. لا أثر إن لم تُفتح الحركة أصلًا أو كانت مغلقة. */
+    public function openWorker(HourlyVisit $visit, int $maidId, string $byType, ?int $byId): void
+    {
+        if (!Schema::hasTable('worker_daily_movements')) return;
+        if (!DB::table('hourly_visit_workers')->where('hourly_visit_id', $visit->id)->where('maid_id', $maidId)->exists()) return;
+        $place = $this->shelterPlaces([$maidId])[$maidId] ?? HourlyRentalSettings::get('default_shelter_place_id');
+        WorkerDailyMovement::firstOrCreate(
+            ['source' => WorkerDailyMovement::SOURCE_HOURLY_VISIT, 'reference_type' => 'hourly_visit', 'reference_id' => $visit->id, 'maid_id' => $maidId],
+            ['shelter_place_id' => $place ?: null, 'out_at' => now(), 'status' => WorkerDailyMovement::STATUS_OUT, 'out_by_type' => $byType, 'out_by_id' => $byId, 'note' => 'Visit #'.$visit->visit_number.' (ref #'.$visit->id.')'],
+        );
+    }
+    public function closeWorker(HourlyVisit $visit, int $maidId, string $byType, ?int $byId): void
+    {
+        if (!Schema::hasTable('worker_daily_movements')) return;
+        WorkerDailyMovement::where('source', WorkerDailyMovement::SOURCE_HOURLY_VISIT)->where('reference_type', 'hourly_visit')
+            ->where('reference_id', $visit->id)->where('maid_id', $maidId)->whereNull('in_at')
+            ->update(['in_at' => now(), 'status' => WorkerDailyMovement::STATUS_RETURNED, 'in_by_type' => $byType, 'in_by_id' => $byId, 'updated_at' => now()]);
+    }
     public function close(HourlyVisit $visit, string $byType, ?int $byId): void
     {
         if (!Schema::hasTable('worker_daily_movements')) return;

@@ -68,6 +68,7 @@ $workerRoutes = function () {
         Route::post('visits/{visit}/arrived', [WorkerAppController::class, 'arrived'])->whereNumber('visit');
         Route::post('visits/{visit}/time-overrun',[\App\Http\Controllers\Hourly\ServiceTimeController::class,'worker'])->whereNumber('visit');
         Route::post('visits/{visit}/finish', [WorkerAppController::class, 'finish'])->whereNumber('visit');
+        Route::post('visits/{visit}/return', [WorkerAppController::class, 'returnToShelter'])->whereNumber('visit');
         Route::get('service-incidents',[\App\Http\Controllers\Hourly\ServiceIncidentController::class,'workerReports']);
         Route::post('visits/{visit}/incidents',[\App\Http\Controllers\Hourly\ServiceIncidentController::class,'worker'])->whereNumber('visit')->middleware('throttle:10,1');
         Route::get('leaves', [WorkerAppController::class, 'leaves']);
@@ -132,6 +133,7 @@ Route::prefix('app/hourly')->middleware('feature.hourly_rental')->group(function
         Route::get('orders/{id}/visits/{visit}/alternatives',[\App\Http\Controllers\Hourly\ServiceIncidentController::class,'alternatives'])->whereNumber('id')->whereNumber('visit');
         Route::post('orders/{id}/visits/{visit}/choose-replacement',[\App\Http\Controllers\Hourly\ServiceIncidentController::class,'choose'])->whereNumber('id')->whereNumber('visit')->middleware('throttle:10,1');
         Route::post('orders/{id}/visits/{visit}/recovery',[\App\Http\Controllers\Hourly\MissedVisitRecoveryController::class,'store'])->whereNumber('id')->whereNumber('visit')->middleware('throttle:10,1');
+        Route::get('orders/{id}/visits/{visit}/recovery-slots',[\App\Http\Controllers\Hourly\MissedVisitRecoveryController::class,'customerSlots'])->whereNumber('id')->whereNumber('visit')->middleware('throttle:30,1');
         Route::post('orders/{id}/visits/{visit}/early-finishes/{finish}/respond',[\App\Http\Controllers\Hourly\EarlyFinishController::class,'respond'])->whereNumber('id')->whereNumber('visit')->whereNumber('finish')->middleware('throttle:10,1');
         Route::post('orders/{id}/visits/{visit}/rate',[ClientController::class,'rate'])->whereNumber('id')->whereNumber('visit');
         Route::post('orders/{id}/payments/moyasar',[ClientController::class,'pay'])->whereNumber('id');

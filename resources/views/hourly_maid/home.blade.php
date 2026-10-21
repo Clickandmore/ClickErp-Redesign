@@ -19,10 +19,10 @@
     $tasks = collect($hasVisits ? app(\App\Services\Hourly\WorkerAppService::class)->today($ingazMaid, $selectedDate->toDateString()) : []);
     $cashReady = \App\Services\Hourly\CashCollectionService::ready();
     $custody = $cashReady ? app(\App\Services\Hourly\CashCollectionService::class)->custody('worker', (int) $maid->id) : null;
-    $doneStatuses = ['finished', 'picked_up', 'returned', 'completed'];
+    $doneStatuses = ['returned', 'completed'];
     $closedStatuses = ['cancelled', 'no_show'];
     $isDone = fn ($task) => in_array($task['status'], array_merge($doneStatuses, $closedStatuses), true);
-    $needsAction = fn ($task) => $task['can_arrive'] || $task['can_finish'] || ($task['cash']['can_collect'] ?? false);
+    $needsAction = fn ($task) => $task['can_arrive'] || $task['can_finish'] || ($task['can_return'] ?? false) || ($task['cash']['can_collect'] ?? false);
     $doneCount = $tasks->filter($isDone)->count();
     $nextTask = $tasks->first($needsAction) ?? $tasks->first(fn ($task) => !$isDone($task));
 

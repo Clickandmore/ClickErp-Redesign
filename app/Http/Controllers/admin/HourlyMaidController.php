@@ -197,9 +197,25 @@ class HourlyMaidController extends Controller
             case 'out_now': $query->whereIn('maids.id',array_keys($outNow) ?: [0]); break;
             case 'available_now': $query->whereIn('maids.id',(clone $ready)->whereNotIn('maids.id',array_keys($outNow) ?: [0])->select('maids.id')); break;
         }
-        $maids=$query->with(['nationality','hourlyTeamMemberships.team','autoRecruitmentContract'])
+        $maids=$query->with(['nationality','hourlyTeamMemberships.team','autoRecruitmentContract','insideShelterContract.info','insideShelterContract.travelHistory'])
             ->withCount(['contracts as inside_shelter_count'=>fn($q)=>$q->insideShelter()])
             ->orderByDesc('id')->paginate((int)($data['per_page'] ?? 25))->withQueryString();
+        $shelterExceptionHints=[];
+        foreach ($maids as $maid) {
+            if (!$maid->inside_shelter_count) continue;
+            $contract=$maid->insideShelterContract;
+            $hints=[];
+            if (!$contract || !$contract->info) {
+                $hints[]='بيانات عقد الإيواء غير مكتملة؛ أضف بيانات العقد ومكان الإيواء.';
+            } elseif (!$contract->info->shelter_id) {
+                $hints[]='مكان الإيواء غير محدد في بيانات العقد.';
+            }
+            $arrivalDate=$contract?->info?->arrival_date ?: ($maid->arrival_date ?: $contract?->travelHistory?->arrival_date);
+            if ($maid->rental_source==='outside' && !$arrivalDate) {
+                $hints[]='تاريخ الوصول غير مسجل في العقد أو ملف العاملة أو سجل السفر.';
+            }
+            if ($hints) $shelterExceptionHints[$maid->id]=implode(' ', $hints);
+        }
         $readyIds=(clone $ready)->whereIn('maids.id',$maids->pluck('id'))->pluck('maids.id')->all();
         $suspendedCount=(clone $base)->where('hourly_is_suspended',true)->count();
         $filters=array_filter($data,fn($v)=>$v!==null && $v!=='');
@@ -209,7 +225,7 @@ class HourlyMaidController extends Controller
         $attributes=\Illuminate\Support\Facades\Schema::hasTable('hourly_product_attributes')?\App\Models\Hourly\HourlyProductAttribute::whereNotNull('parent_id')->with(['parent','category'])->orderBy('sort_order')->get():collect();
         $allocatableMaids=$this->allocatableFromShelterQuery()
             ->with('nationality')->orderBy('name')->orderBy('id')->get();
-        return view('admin.hourly_maids.index',compact('maids','stats','readyIds','suspendedCount','filters','teams','nationalities','attributes','allocatableMaids','outNow','overdueReturns','overdueCount')
+        return view('admin.hourly_maids.index',compact('maids','stats','readyIds','suspendedCount','filters','teams','nationalities','attributes','allocatableMaids','outNow','overdueReturns','overdueCount','shelterExceptionHints')
             +['shelterLinked'=>\App\Services\Hourly\ShelterPresence::linked(),'visitsTracked'=>\App\Services\Hourly\ShelterPresence::tracked(),
                 'upcoming'=>$presence->upcomingSummary($maids->pluck('id')->all())]);
     }

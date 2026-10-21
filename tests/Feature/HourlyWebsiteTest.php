@@ -699,8 +699,8 @@ class HourlyWebsiteTest extends TestCase
         HourlyPackage::whereKey($booking['hourly_package_id'])->update(['extra_worker_price'=>99]);
         $params=['id'=>$id,'visit'=>$visit->id];
         $page=route('web.hourly.order',['id'=>$id,'add_worker_visit'=>$visit->id]);
-        $this->get(route('web.hourly.order',$id))->assertOk()->assertSee($page.'#hourly-customer-add-worker',false);
-        $this->get($page)->assertOk()->assertSee('hourly-customer-add-worker');
+        $this->get(route('web.hourly.order',$id))->assertOk()->assertSee('data-add-worker="'.$visit->id.'"',false);
+        $this->get($page)->assertOk()->assertSee('id="hca-dialog"',false)->assertDontSee('openVisit',false);
         $quote=$this->getJson(route('web.hourly.visit.additional-worker.preview',$params))->assertOk()
             ->assertJsonPath('data.additional_fee',65)->json('data');
         $body=['request_token'=>(string)Str::uuid(),'confirmed'=>1,'worker_id'=>$quote['workers'][0]['id'],
@@ -716,7 +716,7 @@ class HourlyWebsiteTest extends TestCase
         $this->getJson(route('web.hourly.visit.additional-worker.preview',$params))->assertNotFound();
         $this->postJson($url,$body)->assertNotFound();
         $this->customer(); $visit->update(['status'=>'completed']);
-        $this->get(route('web.hourly.order',$id))->assertOk()->assertDontSee($page.'#hourly-customer-add-worker',false);
+        $this->get(route('web.hourly.order',$id))->assertOk()->assertDontSee('data-add-worker="'.$visit->id.'"',false);
     }
 
     public function test_website_additional_worker_respects_zero_package_surcharge(): void

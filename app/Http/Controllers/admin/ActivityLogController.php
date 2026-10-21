@@ -20,6 +20,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Str;
 use Spatie\Activitylog\Models\Activity;
@@ -34,6 +35,8 @@ class ActivityLogController extends Controller
     // mPDF يبني الجدول كاملاً في الذاكرة، لذلك حد ملف PDF أصغر بكثير من CSV
     public const MAX_PDF_ROWS = 500;
     private const MAX_PDF_CHANGES = 8;
+    // قوائم الفلاتر وإجمالي السجلات تمسح الجدول كاملاً، فتُخزّن مؤقتاً
+    private const META_CACHE_SECONDS = 600;
 
     private const FILTER_KEYS = [
         'employee_id',
@@ -68,9 +71,10 @@ class ActivityLogController extends Controller
         return view('admin.activity_log.index', [
             'data' => $data,
             'filters' => $request->only(self::FILTER_KEYS),
-            'filterOptions' => $this->buildFilterOptions(),
+            'filterOptions' => Cache::remember('activity_log.filter_options', self::META_CACHE_SECONDS, fn () => $this->buildFilterOptions()),
             'stats' => [
-                'total' => Activity::query()->count(),
+                // عدّ الجدول كاملاً مكلف مع حجم السجل، ولا يلزم أن يكون لحظياً
+                'total' => Cache::remember('activity_log.total_count', self::META_CACHE_SECONDS, fn () => Activity::query()->count()),
                 'filtered' => $data->total(),
                 'active_filters' => $this->countActiveFilters($request),
             ],
@@ -308,12 +312,13 @@ class ActivityLogController extends Controller
             $query->where('log_name', $request->input('log_name'));
         }
 
+        // مقارنة مدى على العمود مباشرة (بدل whereDate) حتى يستفيد MySQL من فهرس created_at
         if ($request->filled('date_from')) {
-            $query->whereDate('created_at', '>=', $request->input('date_from'));
+            $query->where('created_at', '>=', Carbon::parse($request->input('date_from'))->startOfDay());
         }
 
         if ($request->filled('date_to')) {
-            $query->whereDate('created_at', '<=', $request->input('date_to'));
+            $query->where('created_at', '<', Carbon::parse($request->input('date_to'))->addDay()->startOfDay());
         }
     }
 
@@ -330,7 +335,9 @@ class ActivityLogController extends Controller
                     ->pluck('causer_id')
             )
             ->orderBy('name')
-            ->get(['id', 'name']);
+            ->get(['id', 'name'])
+            // كائنات بسيطة بدل نماذج Eloquent حتى تُخزّن في الكاش بأمان
+            ->map(fn (Admin $admin) => (object) ['id' => $admin->id, 'name' => $admin->name]);
 
         $actions = Activity::query()
             ->whereNotNull('event')

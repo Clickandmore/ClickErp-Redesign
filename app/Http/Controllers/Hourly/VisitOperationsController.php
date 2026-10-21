@@ -38,7 +38,7 @@ class VisitOperationsController extends Controller
             'admins'=>\App\Models\auth\Admin::orderBy('name')->get(['id','name']),
             'cities'=>\App\Models\City::saudi()->active()->get(),'services'=>HourlyServiceCategory::ordered()->get(),
             'attributes'=>HourlyProductAttribute::whereNotNull('parent_id')->orderBy('name_ar')->get(['id','name_ar','name_en']),
-            'canEdit'=>AdminGuardHasPerm('hourly_visits_edit'),'canCollect'=>AdminGuardHasPerm('hourly_visits_collect'),'canPrice'=>AdminGuardHasPerm('hourly_visits_price_override'),
+            'canEdit'=>AdminGuardHasPerm('hourly_visits_edit'),'canSchedule'=>AdminGuardHasPerm('hourly_orders_view') && AdminGuardHasPerm('hourly_orders_create'),'canCollect'=>AdminGuardHasPerm('hourly_visits_collect'),'canPrice'=>AdminGuardHasPerm('hourly_visits_price_override'),
         ]);
     }
 
@@ -61,6 +61,14 @@ class VisitOperationsController extends Controller
         $driverCollectors=HourlyDriver::withTrashed()->whereIn('id',$order->payments->where('collected_by_type','driver')->pluck('collected_by_id'))->pluck('name','id');
         $workerCollectors=\App\Models\ingaz\Maid::whereIn('id',$order->payments->where('collected_by_type','maid')->pluck('collected_by_id'))->pluck('name','id');
         return compact('visit','order','allocation','collectors','driverCollectors','workerCollectors');
+    }
+
+    public function rescheduleSlots(Request $request,HourlyVisit $visit,VisitBatchService $service)
+    {
+        abort_unless(AdminGuardHasPerm('hourly_orders_view') && AdminGuardHasPerm('hourly_orders_create'),403);
+        $data=$request->validate(['date'=>'required|date_format:Y-m-d']);
+        try{$slots=$service->rescheduleSlots($visit,$data['date']);}catch(\Illuminate\Validation\ValidationException $e){$slots=[];}catch(\Illuminate\Http\Exceptions\HttpResponseException $e){$slots=[];}
+        return response()->json(['slots'=>$slots]);
     }
 
     public function payments(HourlyVisit $visit)

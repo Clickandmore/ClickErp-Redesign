@@ -17,8 +17,9 @@ class VisitBatchService
             'worker_ids'=>'required_if:action,assign_workers|array|min:1|max:20','worker_ids.*'=>'integer|distinct',
             'expected_worker_ids'=>'sometimes|array|max:20','expected_worker_ids.*'=>'integer|distinct',
             'worker_id'=>'required_if:action,unassign_worker|integer',
-            'shift_days'=>'exclude_unless:action,reschedule|required_without:new_date|nullable|integer|between:-365,365',
-            'new_date'=>'exclude_unless:action,reschedule|required_without:shift_days|nullable|date_format:Y-m-d',
+            'shift_days'=>'exclude_unless:action,reschedule|required_without_all:new_date,starts_at|nullable|integer|between:-365,365',
+            'new_date'=>'exclude_unless:action,reschedule|required_without_all:shift_days,starts_at|nullable|date_format:Y-m-d',
+            'starts_at'=>['exclude_unless:action,reschedule','required_without_all:new_date,shift_days','nullable','date_format:Y-m-d\\TH:i'],
             'start_time'=>'required_if:action,start_time|nullable|date_format:H:i',
             'hours'=>'required_if:action,duration|nullable|numeric|between:0.5,24','ignore_break'=>'sometimes|boolean',
             'price'=>'required_if:action,price|nullable|numeric|between:0,9999999',
@@ -35,6 +36,56 @@ class VisitBatchService
         ];
     }
 
+    /** زيارة بلا موعد، أو زيارة قادمة لم يبدأ تنفيذها؛ تُجدول من نافذة المواعيد المتاحة. الفائتة لها مسار مستقل يتطلب سببًا. */
+    public static function slotPickable(HourlyVisit $visit,?HourlyRentalOrder $order=null): bool
+    {
+        $order??=$visit->order;
+        if(!$order || !in_array($order->status,['active','pending_confirmation'],true))return false;
+        if(in_array($visit->status,['completed','cancelled','expired','no_show','cancelled_by_client'],true) || $visit->is_missed || $visit->has_started_execution)return false;
+        return $visit->scheduled_start_at ? $visit->scheduled_start_at->isFuture() : $visit->status==='unscheduled';
+    }
+
+    /** Availability for picking a slot for a missed, unscheduled or upcoming visit. */
+    public function rescheduleSlots(HourlyVisit $visit,string $date): array
+    {
+        $order=$visit->order()->with(['visits','serviceCategory'])->firstOrFail();
+        if(!$visit->is_missed && !self::slotPickable($visit,$order))return [];
+        if(!in_array($order->status,['active','pending_confirmation'],true))return [];
+        $snapshot=(array)$order->package_snapshot;
+        $package=\App\Models\Hourly\HourlyPackage::withTrashed()->findOrFail($order->hourly_package_id);
+        $snapshot['duration_minutes']=(int)round((float)$visit->planned_hours*60);
+        $snapshot['start_times']=$package->start_times;
+        $teamId=$visit->hourly_team_id;
+        if(!$teamId){
+            $category=app(HourlyBookingRules::class)->category($package);
+            if(!$category)return [];
+            [, $coverage]=app(HourlyBookingRules::class)->assertDistrictCovered($category,(int)$order->city_id,
+                $order->latitude!==null?(float)$order->latitude:null,$order->longitude!==null?(float)$order->longitude:null,
+                $order->district,$order->service_district_id?(int)$order->service_district_id:null);
+            $teamId=$coverage?->team_id;
+        }
+        $slots=app(HourlySlotService::class)->forDate($date,(float)$visit->planned_hours,(int)($snapshot['min_notice_hours']??0),$snapshot,true);
+        $assigned=$visit->workers()->pluck('maids.id')->map(fn($id)=>(int)$id)->all();
+        if(\Illuminate\Support\Facades\Schema::hasTable('hourly_visit_reservations'))$assigned=array_values(array_unique(array_merge($assigned,
+            DB::table('hourly_visit_reservations')->where('hourly_visit_id',$visit->id)->pluck('maid_id')->map(fn($id)=>(int)$id)->all())));
+        $other=$order->visits->where('id','!=',$visit->id)->whereNotIn('status',['cancelled','cancelled_by_client','expired'])->whereNotNull('scheduled_start_at');
+        $rest=(int)($snapshot['break_minutes']??0)+(int)($snapshot['buffer_minutes']??0);$manager=app(OrderManagementService::class);$result=[];
+        foreach($slots as $slot){
+            $start=\Carbon\Carbon::parse($slot['starts_at']);$end=\Carbon\Carbon::parse($slot['ends_at']);
+            if($order->expires_at && $end->gt($order->expires_at))continue;
+            try{
+                app(HourlyBookingRules::class)->assertSessionDates($snapshot,array_merge($other->map(fn($v)=>$v->scheduled_start_at->format('Y-m-d H:i'))->all(),[$start->format('Y-m-d H:i')]),true);
+                foreach($other as $existing)if($start->lt($existing->scheduled_end_at->copy()->addMinutes($rest))&&$end->gt($existing->scheduled_start_at->copy()->subMinutes($rest)))throw \Illuminate\Validation\ValidationException::withMessages(['starts_at'=>'overlap']);
+                app(DuplicateBookingService::class)->assertAvailable((int)$order->user_id,$order->only(['city_id','address_text','latitude','longitude','building','unit']),$package,[$slot],$visit->id,true);
+                $candidate=clone $visit;$candidate->scheduled_start_at=$start;$candidate->scheduled_end_at=$end;$candidate->scheduled_date=$start->toDateString();$candidate->hourly_team_id=$teamId;
+                $workers=$manager->availableWorkers($order,$candidate);
+                if($workers->count()<$visit->workers_count || count(array_diff($assigned,$workers->pluck('id')->map(fn($id)=>(int)$id)->all())))continue;
+            }catch(\Illuminate\Validation\ValidationException $e){continue;}catch(\Illuminate\Http\Exceptions\HttpResponseException $e){continue;}
+            $result[]=['starts_at'=>$start->format('Y-m\\-d\\TH:i'),'label'=>$start->format('H:i')];
+        }
+        return $result;
+    }
+
     public function run(array $data,int $admin): array
     {
         HourlyOrderService::enabled();
@@ -45,6 +96,7 @@ class VisitBatchService
             if((int)$batch->admin_id!==$admin || $batch->payload_hash!==$hash)HourlyOrderService::reject('معرّف العملية مستخدم لطلب مختلف. أعد فتح النافذة.');
             if($batch->result)return json_decode($batch->result,true);
             $visits=HourlyVisit::whereIn('id',$data['visit_ids'])->orderBy('hourly_rental_order_id')->orderBy('id')->get();
+            if(!empty($data['starts_at']) && ($visits->count()!==1 || !$visits->first()->is_missed))HourlyOrderService::reject('Only one missed visit can use an available slot.');
             if($visits->count()!==count($data['visit_ids']))HourlyOrderService::reject('بعض الزيارات لم تعد موجودة. حدّث القائمة.');
             $orders=HourlyRentalOrder::whereIn('id',$visits->pluck('hourly_rental_order_id'))->orderBy('id')->lockForUpdate()->get();
             $visits=HourlyVisit::whereIn('id',$data['visit_ids'])->orderBy('id')->lockForUpdate()->get();

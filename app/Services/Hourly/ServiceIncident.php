@@ -90,9 +90,8 @@ class ServiceIncident
             if(!$until->isFuture()) HourlyOrderService::reject('حدد نهاية مستقبلية لفترة عدم الجاهزية.');
             $targets=HourlyVisit::whereHas('workers',fn($q)=>$q->where('maids.id',$incident->maid_id))
                 ->whereIn('status',array_merge(['scheduled','unscheduled'],DriverAppService::ONGOING))
-                ->where(fn($q)=>$q->where('id',$incident->visit_id)->orWhere(fn($v)=>$v->where('scheduled_start_at','<',$until)->where('scheduled_end_at','>',now())))
+                ->where('scheduled_start_at','<',$until)->where('scheduled_end_at','>',now())
                 ->orderBy('id')->get();
-            if($targets->isEmpty()) HourlyOrderService::reject('لا توجد زيارات مفتوحة متأثرة؛ راجع حالة البلاغ.');
             $orderIds=$targets->pluck('hourly_rental_order_id')->unique()->sort()->values();
             $userIds=HourlyRentalOrder::whereIn('id',$orderIds)->pluck('user_id')->unique()->sort()->values();
             User::whereIn('id',$userIds)->orderBy('id')->lockForUpdate()->get();

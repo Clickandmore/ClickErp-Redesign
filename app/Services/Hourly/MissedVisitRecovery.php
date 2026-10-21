@@ -1,13 +1,94 @@
 <?php
 namespace App\Services\Hourly;
 
-use App\Models\Hourly\{HourlyRentalOrder, HourlyVisit};
+use App\Models\Hourly\{HourlyPackage, HourlyRentalOrder, HourlyVisit};
 use App\Models\ingaz\User;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\{DB, Schema};
 
 class MissedVisitRecovery
 {
+    /**
+     * Whether the time a customer asked for in a pending reschedule request can still be approved,
+     * using the same check as review(). state: available|unavailable|past|coverage|ineligible.
+     */
+    public function requestedSlotStatus(HourlyRentalOrder $order,int $visitId): ?array
+    {
+        $request=$order->booking_metadata['missed_visit_requests'][$visitId]??null;
+        if(!$request || ($request['status']??null)!=='pending' || ($request['type']??null)!=='reschedule' || empty($request['requested_start']))return null;
+        $start=Carbon::parse($request['requested_start']);
+        if(!$start->isFuture())return ['state'=>'past','alternatives'=>[]];
+        if(($request['reason_code']??null)==='coverage_unavailable' && self::coverageUnavailable($order))return ['state'=>'coverage','alternatives'=>[]];
+        try{$slots=$this->availableSlots($order,$visitId,(string)$request['id'],$start->toDateString());}
+        catch(\Symfony\Component\HttpKernel\Exception\HttpException|\Illuminate\Database\Eloquent\ModelNotFoundException $e){return ['state'=>'ineligible','alternatives'=>[]];}
+        $available=collect($slots)->contains(fn($slot)=>$slot['starts_at']===$start->format('Y-m-d\\TH:i'));
+        return ['state'=>$available?'available':'unavailable','alternatives'=>$available?[]:array_column($slots,'label')];
+    }
+
+    /** Slot lookup for a customer preparing a recovery request, before the request exists. */
+    public function customerAvailableSlots(HourlyRentalOrder $order,int $visitId,string $date): array
+    {
+        $visit=$order->visits()->findOrFail($visitId);
+        if(!self::eligible($visit,$order))return [];
+        $meta=$order->booking_metadata??[];
+        $existing=$meta['missed_visit_requests'][$visitId]??null;
+        if(($existing['status']??null)==='pending')return [];
+        $reason=ServiceIncident::recoverable($order,$visit)?'service_incident':(self::coverageRecovery($visit,$order)?'coverage_unavailable':'missed_visit');
+        $requestId=(string)\Illuminate\Support\Str::uuid();
+        $meta['missed_visit_requests'][$visitId]=['id'=>$requestId,'status'=>'pending','type'=>'reschedule','reason_code'=>$reason];
+        $copy=clone $order;$copy->booking_metadata=$meta;
+        return $this->availableSlots($copy,$visitId,$requestId,$date);
+    }
+
+    /** Return only dispatcher slots that can be used to recover this visit. */
+    public function availableSlots(HourlyRentalOrder $order,int $visitId,string $requestId,string $date): array
+    {
+        $visit=$order->visits()->findOrFail($visitId);
+        $request=$order->booking_metadata['missed_visit_requests'][$visitId]??null;
+        abort_unless($request && ($request['id']??null)===$requestId && ($request['status']??null)==='pending'
+            && ($request['type']??null)==='reschedule' && self::eligible($visit,$order),404);
+        if(($request['reason_code']??null)==='coverage_unavailable' && self::coverageUnavailable($order))return [];
+        $snapshot=(array)$order->package_snapshot;
+        $snapshot['duration_minutes']=(int)round((float)$visit->planned_hours*60);
+        $snapshot['start_times']=HourlyPackage::withTrashed()->findOrFail($order->hourly_package_id)->start_times;
+        $teamId=$visit->hourly_team_id;
+        if(!$teamId){
+            try{$package=HourlyPackage::withTrashed()->findOrFail($order->hourly_package_id);$category=app(HourlyBookingRules::class)->category($package);
+                if(!$category)return [];
+                [, $coverage]=app(HourlyBookingRules::class)->assertDistrictCovered($category,(int)$order->city_id,
+                    $order->latitude!==null?(float)$order->latitude:null,$order->longitude!==null?(float)$order->longitude:null,
+                    $order->district,$order->service_district_id?(int)$order->service_district_id:null);
+                $teamId=$coverage?->team_id;
+            }catch(\Illuminate\Validation\ValidationException $e){return [];}
+        }
+        $slots=app(HourlySlotService::class)->forDate($date,(float)$visit->planned_hours,(int)($snapshot['min_notice_hours']??0),$snapshot,true);
+        $incident=($request['reason_code']??null)==='service_incident';
+        $failed=$incident?(ServiceIncident::state($order,$visitId)['failed_worker_ids']??[]):[];
+        $assigned=DB::table('hourly_visit_workers')->where('hourly_visit_id',$visitId)->pluck('maid_id')->map(fn($id)=>(int)$id)->all();
+        if(Schema::hasTable('hourly_visit_reservations'))$assigned=array_values(array_unique(array_merge($assigned,
+            DB::table('hourly_visit_reservations')->where('hourly_visit_id',$visitId)->pluck('maid_id')->map(fn($id)=>(int)$id)->all())));
+        $assigned=array_values(array_diff($assigned,array_map('intval',$failed)));
+        $rest=(int)($snapshot['break_minutes']??0)+(int)($snapshot['buffer_minutes']??0);
+        $other=$order->visits()->where('id','!=',$visitId)->whereNotIn('status',['cancelled','cancelled_by_client','expired'])->whereNotNull('scheduled_start_at')->get();
+        $manager=app(OrderManagementService::class);$result=[];
+        foreach($slots as $slot){
+            $start=Carbon::parse($slot['starts_at']);$end=Carbon::parse($slot['ends_at']);
+            $dateTimes=array_merge($other->map(fn($v)=>$v->scheduled_start_at->format('Y-m-d H:i'))->all(),[$start->format('Y-m-d H:i')]);
+            try{
+                app(HourlyBookingRules::class)->assertSessionDates($snapshot,$dateTimes,true);
+                foreach($other as $existing)if($start->lt($existing->scheduled_end_at->copy()->addMinutes($rest)) && $end->gt($existing->scheduled_start_at->copy()->subMinutes($rest)))throw \Illuminate\Validation\ValidationException::withMessages(['new_start'=>'overlap']);
+                app(DuplicateBookingService::class)->assertAvailable((int)$order->user_id,$order->only(['city_id','address_text','latitude','longitude','building','unit']),HourlyPackage::withTrashed()->findOrFail($order->hourly_package_id),[$slot],$visitId,true);
+                $candidate=clone $visit;$candidate->scheduled_start_at=$start;$candidate->scheduled_end_at=$end;$candidate->scheduled_date=$start->toDateString();$candidate->hourly_team_id=$teamId;
+                $workers=$manager->availableWorkers($order,$candidate);
+                if($workers->count()<$visit->workers_count)continue;
+                if(!$incident && count(array_diff($assigned,$workers->pluck('id')->map(fn($id)=>(int)$id)->all())))continue;
+            }catch(\Illuminate\Validation\ValidationException $e){continue;}
+            catch(\Illuminate\Http\Exceptions\HttpResponseException $e){continue;}
+            $result[]=['starts_at'=>$start->format('Y-m-d\\TH:i'),'label'=>$start->format('H:i')];
+        }
+        return $result;
+    }
+
     public static function eligible(HourlyVisit $visit, HourlyRentalOrder $order): bool
     {
         return ((($visit->is_missed || self::coverageRecovery($visit,$order)) && (float)$order->paid_amount>0)
@@ -86,7 +167,10 @@ class MissedVisitRecovery
                 if($request['type']==='reschedule'){
                     if (($request['reason_code']??null)==='coverage_unavailable' && self::coverageUnavailable($order))
                         HourlyOrderService::reject('لا يمكن اعتماد موعد قبل إعادة توفير الخدمة في منطقة العميل.');
-                    $start=Carbon::parse($data['new_start']??$request['requested_start']);
+                    $start=Carbon::parse($request['requested_start']);
+                    $requestedStart=$start->format('Y-m-d\\TH:i');
+                    if(!empty($data['new_start']) && Carbon::parse($data['new_start'])->format('Y-m-d\\TH:i')!==$requestedStart)
+                        HourlyOrderService::reject('لا يمكن اعتماد موعد مختلف عن الموعد الذي اختاره العميل. ارفض الطلب ليختار العميل موعدًا آخر.');
                     if(!$start->isFuture()) HourlyOrderService::reject('اختر موعدًا مستقبليًا.');
                     $end=$start->copy()->addMinutes((int)round($visit->planned_hours*60));
                     if($end->gt($order->expires_at)) $order->update(['expires_at'=>$end->copy()->endOfDay()]);

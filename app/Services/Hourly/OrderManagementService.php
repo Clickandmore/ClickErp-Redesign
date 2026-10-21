@@ -88,17 +88,18 @@ class OrderManagementService
                     } elseif($action==='price'){$visit->visit_price=$data['price'];$visit->is_free=(float)$data['price']===0;}
                     elseif(in_array($action,['reschedule','start_time','duration'])){
                         $recoverMissed = $action === 'reschedule' && $visit->is_missed;
+                        $initialSchedule = $action === 'reschedule' && $visit->status === 'unscheduled' && !$visit->scheduled_start_at;
                         if ($recoverMissed) {
                             if (!$admin || !trim((string)($data['reason'] ?? ''))) HourlyOrderService::reject('إعادة جدولة زيارة فائتة تتطلب مشرفًا وسببًا مسجلًا.');
                             if (\Illuminate\Support\Facades\Schema::hasTable('worker_daily_movements') && DB::table('worker_daily_movements')
                                 ->where('source','hourly_visit')->where('reference_type','hourly_visit')->where('reference_id',$visit->id)->whereNull('in_at')->exists())
                                 HourlyOrderService::reject('توجد حركة خروج مفتوحة؛ تحقق من عودة العاملة قبل إعادة الجدولة.');
-                        } elseif(!$visit->scheduled_start_at || $visit->scheduled_start_at->isPast())HourlyOrderService::reject('تعديل الموعد والمدة متاح للزيارات القادمة فقط.');
-                        if ($visit->status !== 'scheduled') HourlyOrderService::reject('إعادة الجدولة متاحة للزيارات التي لم يبدأ تنفيذها فقط.');
-                        $start=$visit->scheduled_start_at->format('Y-m-d H:i');$hours=(float)$visit->planned_hours;
+                        } elseif(!$initialSchedule && (!$visit->scheduled_start_at || $visit->scheduled_start_at->isPast()))HourlyOrderService::reject('Choose an upcoming appointment time.');
+                        if ($visit->status !== 'scheduled' && !$initialSchedule) HourlyOrderService::reject('This visit cannot be rescheduled in its current state.');
+                        $start=$visit->scheduled_start_at?->format('Y-m-d H:i') ?? ''; $hours=(float)$visit->planned_hours;
                         $settings=app(HourlyCategorySettings::class);
-                        if(!$recoverMissed && $action!=='duration' && (!$settings->value($order->package_snapshot,'allow_reschedule') || $visit->reschedule_count >= $settings->value($order->package_snapshot,'max_reschedules_per_visit')))HourlyOrderService::reject('إعادة الجدولة غير مسموحة أو تم بلوغ الحد الأقصى لهذه الزيارة.');
-                        if($action==='reschedule')$start=!empty($data['new_date']) ? $data['new_date'].' '.$visit->scheduled_start_at->format('H:i') : (isset($data['starts_at']) ? Carbon::parse($data['starts_at'])->format('Y-m-d H:i') : Carbon::parse($start)->addDays($data['shift_days'])->format('Y-m-d H:i'));
+                        if(!$recoverMissed && !$initialSchedule && $action!=='duration' && (!$settings->value($order->package_snapshot,'allow_reschedule') || $visit->reschedule_count >= $settings->value($order->package_snapshot,'max_reschedules_per_visit')))HourlyOrderService::reject('إعادة الجدولة غير مسموحة أو تم بلوغ الحد الأقصى لهذه الزيارة.');
+                        if($action==='reschedule')$start=isset($data['starts_at']) ? Carbon::parse($data['starts_at'])->format('Y-m-d H:i') : (!empty($data['new_date']) ? $data['new_date'].' '.$visit->scheduled_start_at->format('H:i') : Carbon::parse($start)->addDays($data['shift_days'])->format('Y-m-d H:i'));
                         if($action==='start_time')$start=$visit->scheduled_start_at->format('Y-m-d').' '.$data['start_time'];
                         if($action==='duration'){
                             $visit->visit_price=array_key_exists('duration_price_adjustment',$data) && $data['duration_price_adjustment']!==null
@@ -115,7 +116,7 @@ class OrderManagementService
                             $visit->delivery_at = null; $visit->pickup_at = null;
                             if (\Illuminate\Support\Facades\Schema::hasTable('hourly_route_stops')) DB::table('hourly_route_stops')->where('hourly_visit_id',$visit->id)->delete();
                         }
-                        if($action!=='duration'){$visit->reschedule_count++;$visit->delivery_at=null;}
+                        if($action!=='duration'){if(!$initialSchedule)$visit->reschedule_count++;$visit->delivery_at=null;}
                         $visit->pickup_at=null;
                     } elseif($action==='unassign_driver'){$role=$data['driver_role'];$visit->{$role.'_driver_id'}=null;$visit->{$role.'_at'}=null;}
                     elseif(in_array($action,['unassign_drivers','unassign_all','clear_driver_routes'])){$visit->delivery_driver_id=null;$visit->pickup_driver_id=null;$visit->delivery_at=null;$visit->pickup_at=null;}

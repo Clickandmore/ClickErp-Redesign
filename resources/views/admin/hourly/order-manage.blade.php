@@ -196,6 +196,8 @@
     .om-order-actions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .65rem; }
     .om-order-actions .om-btn { margin: 0; min-height: 42px; }
     .om-link-edit { background: none; border: 0; color: var(--brand); font-size: .78rem; display: inline-flex; align-items: center; gap: .25rem; padding: 0; }
+    .om-schedule-btn { display: inline-flex; align-self: flex-start; align-items: center; gap: .4rem; margin-top: .4rem; padding: .35rem .8rem; border-radius: 9px; border: 1px solid var(--brand); background: #eef6fe; color: var(--brand-ink); font-size: .8rem; font-weight: 700; white-space: nowrap; transition: background .15s, color .15s; }
+    .om-schedule-btn:hover, .om-schedule-btn:focus-visible { background: var(--brand); color: #fff; }
 
     /* زر فتح مودال الملاحظة التشغيلية: مفرَّغ في ترويسة الصندوق، وممتلئ داخل الجدول */
     .om-note-btn { display: inline-flex; align-items: center; justify-content: center; gap: .4rem; border-radius: 10px; padding: .55rem .9rem; font-size: .82rem; font-weight: 700; background: #fff; color: var(--brand-ink); border: 1px solid var(--brand); }
