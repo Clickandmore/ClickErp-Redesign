@@ -25,7 +25,7 @@
                 </b>
                 <span><i class="fa fa-clock"></i> <span class="om-ltr om-num">{{ $visit->scheduled_start_at->format('H:i') }} – {{ $visit->scheduled_end_at?->format('H:i') }}</span> · {{ $hours($visit->planned_hours) }} ساعات</span>
             @else
-                <b>لم يُحدَّد الموعد</b><span>{{ $hours($visit->planned_hours) }} ساعات</span>
+                <b>لم يُحدَّد الموعد</b><span>{{ $hours($visit->planned_hours) }} ساعات</span>@if($editable && $visit->status==='unscheduled')<button type="button" class="om-schedule-btn" onclick="window.openHourlySchedule({{ $visit->id }})" title="{{ __('visit_schedule.title') }}" aria-label="{{ __('visit_schedule.title') }}"><i class="fa fa-calendar-plus"></i> {{ __('visit_schedule.title') }}</button>@endif
             @endif
         </div>
         <div class="om-v-tags">
@@ -40,6 +40,9 @@
         <div class="om-v-price"><b class="om-num">{{ number_format((float) $visit->visit_price, 2) }}</b><small>{{ __('hourly.sar') }}</small></div>
     </header>
 
+    @if(!empty(($order->booking_metadata['missed_visit_requests'] ?? [])[$visit->id]))
+        <div class="px-3 pt-2">@include('admin.hourly._recovery-requests', ['recoveryOrders' => collect([$order]), 'recoveryVisitId' => $visit->id])</div>
+    @endif
     @if(\App\Services\Hourly\VisitDelay::state($visit))
         <div class="px-3 py-2">@include('admin.hourly_visits._delay', ['visit' => $visit])</div>
     @endif
@@ -66,7 +69,7 @@
                     <li class="is-empty">
                         <span class="om-v-avatar"><i class="fa fa-user-plus"></i></span>
                         @if($editable)
-                            <button type="button" class="om-v-slot" data-order-action="assign_workers" data-visit="{{ $visit->id }}">مقعد شاغر — اختر عاملة</button>
+                            <button type="button" class="om-v-slot" data-order-action="add_worker" data-visit="{{ $visit->id }}">مقعد شاغر — اختر عاملة</button>
                             @if(AdminGuardHasPerm('hourly_orders_price_override'))
                                 <button type="button" class="om-v-icon is-danger" data-order-action="remove_worker" data-visit="{{ $visit->id }}" title="إزالة المقعد وتقليل العدد" aria-label="إزالة المقعد وتقليل العدد"><i class="fa fa-user-minus"></i></button>
                             @endif

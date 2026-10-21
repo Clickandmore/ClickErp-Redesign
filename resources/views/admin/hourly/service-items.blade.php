@@ -152,7 +152,15 @@
 @forelse($items->groupBy(fn($p)=>$p->duration_minutes ?? round($p->hours_per_visit*60)) as $duration=>$group)
 <div class="ht-card has-publication sp-group" style="--si-color: {{ $categoryColor }}"><div class="ht-head"><div class="ht-head-icon"><i class="fa fa-hourglass-half"></i></div><div><h5>{{ $category->name_ar }} — {{ $durationLabel((int)$duration) }}</h5><p>{{ $group->count() }} باقة · {{ $group->where('is_active',true)->count() }} نشطة</p></div></div><div class="ht-body"><div class="row g-3">
 @foreach($group as $item)
-@php $total = $totalOf($item); @endphp
+@php
+    $total = $totalOf($item);
+    $paymentPolicyLabels = ['prepaid' => 'مقدمًا بالكامل', 'per_visit' => 'لكل زيارة', 'installments' => 'أقساط شهرية'];
+    $paymentPolicy = $item->payment_policy;
+    $effectivePriceDisplay = app(\App\Services\Hourly\HourlyBookingRules::class)->settings()->value($item, 'package_price_display');
+    $paymentPolicyHint = $paymentPolicy
+        ? ($paymentPolicyLabels[$paymentPolicy] ?? $paymentPolicy)
+        : 'تلقائي — شروط العميل، ثم إعداد الفئة: '.($effectivePriceDisplay === 'per_visit' ? 'لكل زيارة' : 'إجمالي الباقة');
+@endphp
 <div class="col-md-6 col-xl-4"><article class="si-card {{ $item->is_active ? '' : 'is-off' }}">
     <div class="si-card-body">
         <div class="si-card-head">
@@ -166,6 +174,7 @@
         <ul class="si-meta">
             <li><i class="fa fa-repeat"></i><div class="min-w-0"><span>النمط</span><strong title="{{ $item->package_tier_id ? $item->packageTier?->name : __('hourly.tier_once') }}">{{ $item->package_tier_id ? $item->packageTier?->name : __('hourly.tier_once') }}</strong></div></li>
             <li><i class="fa fa-calendar-check"></i><div class="min-w-0"><span>الزيارات</span><strong class="ht-num">{{ $item->visits_count==1 ? 'زيارة واحدة' : $item->visits_count.' زيارات' }}</strong></div></li>
+            <li><i class="fa fa-wallet"></i><div class="min-w-0"><span>سياسة الدفع</span><strong title="{{ $paymentPolicyHint }}">{{ $paymentPolicyHint }}</strong></div></li>
             <li><i class="fa fa-users"></i><div class="min-w-0"><span>العاملات / زيارة</span><strong class="ht-num">{{ $item->workers_per_visit ?: 1 }}</strong></div></li>
             <li><i class="fa fa-clock"></i><div class="min-w-0"><span>مواعيد البدء</span><strong>{{ $item->start_times===null ? 'المواعيد العامة' : count($item->start_times).' موعد' }}</strong></div></li>
         </ul>

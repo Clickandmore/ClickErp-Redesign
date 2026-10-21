@@ -45,6 +45,7 @@ class WorkerAppController extends Controller
         return response()->json(['data' => $this->service->finish($this->worker(), $visit, $data['note'] ?? null, $this->gps($request), $data['early_reason'] ?? null)]);
     }
 
+    public function returnToShelter(int $visit) { return response()->json(['data' => $this->service->returnToShelter($this->worker(), $visit)]); }
     public function leaves() { return response()->json(['data' => $this->service->leaves($this->worker())]); }
 
     public function storeLeave(Request $request)

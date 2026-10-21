@@ -33,6 +33,13 @@
 .mh-now-meta{font-size:.75rem;color:#64748b;margin-top:.3rem;white-space:nowrap}
 .mh-now-meta a{font-weight:700}
 .mh-now-count{display:inline-block;margin-inline-start:.25rem;padding:0 .4rem;border-radius:6px;background:#ede9fe;color:#5b21b6;font-weight:700}
+.mh-open{display:inline-flex;align-items:center;gap:.35rem;white-space:nowrap;border-radius:8px}
+@media (max-width:1399px){.mh-open span{display:none}}
+.mh-row-actions{display:inline-flex;align-items:center;justify-content:center;gap:.4rem;flex-wrap:nowrap}
+.mh-row-actions form,.mh-row-actions span[tabindex]{display:inline-flex;margin:0}
+.mh-open-login{color:#0f766e;background:#f0fdfa;border:1px solid #99f6e4}
+.mh-open-login:hover,.mh-open-login:focus{color:#fff;background:#0f766e;border-color:#0f766e}
+.mh-open-login:disabled{color:#94a3b8;background:#f8fafc;border-color:#e2e8f0}
 </style>
 @endsection
 @section('content')
@@ -194,6 +201,9 @@
                 </td>
                 <td>
                     <span class="badge bg-{{ $inside ? 'success' : 'secondary' }}" title="عقد الإيواء، لا مكان العاملة الآن">{{ $inside ? 'له عقد إيواء ساري' : 'بلا عقد إيواء ساري' }}</span>
+                    @if(isset($shelterExceptionHints[$maid->id]))
+                        <div class="mt-1"><span class="badge bg-warning text-dark" title="{{ $shelterExceptionHints[$maid->id] }}"><i class="fa fa-triangle-exclamation me-1"></i>استكمال بيانات الإيواء</span></div>
+                    @endif
                 </td>
                 @if($visitsTracked)
                     @php
@@ -235,17 +245,11 @@
                     </label>
                     <div><span data-availability-label class="badge bg-{{ $ready ? 'success' : 'secondary' }}">{{ $maid->hourly_is_suspended ? 'معلّقة' : (isset($overdueReturns[$maid->id]) ? 'عودة متأخرة — غير متاحة للحجز' : ($ready ? 'متاحة للتأجير' : 'غير متاحة حاليًا')) }}</span></div>
                 </td>
-                <td>
-                    <a class="btn btn-sm btn-outline-primary" href="{{ route('admin.hourly-maids.show',$maid) }}">تفاصيل العاملة</a>
-                    @if(AdminGuardHasPerm('hourly_maids_impersonate'))
-                        <form method="POST" action="{{ route('admin.hourly-maids.login-as', $maid) }}" target="_blank" class="mt-2">
-                            @csrf
-                            <button type="submit" class="btn btn-sm btn-outline-success"
-                                @disabled($maid->hourly_is_suspended || empty($maid->hourly_settings['account_enabled']) || !in_array($maid->hourly_settings['login_access'] ?? '', ['web', 'both'], true))>
-                                <i class="fa fa-sign-in-alt" aria-hidden="true"></i> الدخول كعاملة
-                            </button>
-                        </form>
-                    @endif
+                <td class="text-center">
+                    <div class="mh-row-actions">
+                        @include('admin.hourly_maids._login-as',['buttonClass'=>'btn btn-sm mh-open mh-open-login'])
+                        <a class="btn btn-sm btn-outline-primary mh-open" href="{{ route('admin.hourly-maids.show',$maid) }}" title="تفاصيل العاملة" aria-label="تفاصيل العاملة {{ $maid->name }}"><i class="fa fa-arrow-up-right-from-square"></i><span>التفاصيل</span></a>
+                    </div>
                 </td>
             </tr>
         @empty<tr><td colspan="{{ $visitsTracked ? 9 : 8 }}" class="text-center py-4">لا توجد عاملات ساعات مطابقة للبحث.</td></tr>@endforelse

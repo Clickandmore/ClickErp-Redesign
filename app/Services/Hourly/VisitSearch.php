@@ -28,7 +28,6 @@ class VisitSearch
         $data=$request->validate($rules);
         if(!empty($data['from']) xor !empty($data['to']))throw \Illuminate\Validation\ValidationException::withMessages(['to'=>'حدد بداية ونهاية الفترة، أو اتركهما فارغتين لكل التواريخ.']);
         if(!empty($data['from']) && \Carbon\Carbon::parse($data['from'])->diffInDays($data['to'])>30)throw \Illuminate\Validation\ValidationException::withMessages(['to'=>'الحد الأقصى للفترة المخصصة 31 يومًا شاملًا يوم البداية والنهاية.']);
-        if($mode==='all' && !$request->hasAny(['from','to','search']))$data+=['from'=>today()->toDateString(),'to'=>today()->toDateString()];
         return array_filter($data,fn($v)=>$v!==null && $v!=='' && $v!==[]);
     }
 

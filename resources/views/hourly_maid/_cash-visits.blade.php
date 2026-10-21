@@ -46,7 +46,7 @@
         @php
             [$statusLabel, $statusClass] = $workerStatus[$task['status']] ?? [$task['status'], 'is-planned'];
             $done = in_array($statusClass, ['is-done', 'is-off'], true);
-            $active = $task['can_arrive'] || $task['can_finish'] || ($task['cash']['can_collect'] ?? false);
+            $active = $task['can_arrive'] || $task['can_finish'] || ($task['can_return'] ?? false) || ($task['cash']['can_collect'] ?? false);
             $financial = $task['financial'] ?? null;
             $plannedEnd = !empty($task['planned_end_at']) ? \Carbon\Carbon::parse($task['planned_end_at']) : null;
             $early = $plannedEnd && $plannedEnd->isFuture();
@@ -133,6 +133,13 @@
                     </form>
                 @endif
 
+                @if($task['can_return'] ?? false)
+                    <form class="dp-action" method="POST" action="{{ route('hourly-maid.visits.action', $task['id']) }}" onsubmit="return confirm('هل وصلتِ فعليًا إلى الإيواء وتريدين تأكيد العودة؟')">@csrf
+                        <input type="hidden" name="action" value="return">
+                        <button class="dp-btn is-primary"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 10.5 12 4l9 6.5V20h-6v-6H9v6H3z"/><path d="m8 11 3 3 5-5"/></svg> وصلت إلى الإيواء — تأكيد العودة</button>
+                        <small class="dp-muted">اضغطي بعد الوصول الفعلي؛ سيُسجّل وقت العودة ويُحدّث حالة الإيواء.</small>
+                    </form>
+                @endif
                 @if(!$active)
                     <p class="dp-muted">{{ $done ? 'تم تنفيذ هذه الزيارة.' : ($task['needs_transport'] && in_array($task['status'], ['assigned', 'en_route'], true) ? 'يسجّل السائق وصولك عند التوصيل.' : 'لا يوجد إجراء مطلوب الآن.') }}</p>
                 @endif

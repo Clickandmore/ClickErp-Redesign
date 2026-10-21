@@ -10,24 +10,12 @@ class CashCollectionService
 {
     public static function ready(): bool { return Schema::hasTable('hourly_cash_collections') && Schema::hasColumn('hourly_visits','cash_collector_type'); }
     private static function cents($amount): int { return (int)round((float)$amount*100); }
-    public function recordSelfArrival(HourlyVisit $visit, int $maidId): void {
-        if (!self::ready() || $visit->delivery_driver_id) return;
-        if ($visit->cash_collector_type === 'worker' && $visit->cash_collector_worker_id
-            && $this->workerHasArrived($visit,(int)$visit->cash_collector_worker_id)) return;
-        $visit->update(['cash_collector_type'=>'worker','cash_collector_worker_id'=>$maidId]);
-    }
     private function workerHasArrived(HourlyVisit $visit, int $maidId): bool {
         return Schema::hasColumn('hourly_visit_workers','arrived_at')
             && DB::table('hourly_visit_workers')->where('hourly_visit_id',$visit->id)->where('maid_id',$maidId)->whereNotNull('arrived_at')->exists();
     }
     public function collector(HourlyVisit $visit): array {
-        $type=$visit->cash_collector_type ?: 'auto';$id=null;
-        if (!$visit->delivery_driver_id && in_array($type,['auto','driver'],true)
-            && Schema::hasColumn('hourly_visit_workers','arrived_at')) {
-            $arrived=DB::table('hourly_visit_workers')->where('hourly_visit_id',$visit->id)->whereNotNull('arrived_at')
-                ->orderBy('arrived_at')->orderBy('id')->value('maid_id');
-            if ($arrived) return ['type'=>'worker','id'=>(int)$arrived,'label'=>'العاملة'];
-        }
+        $type=$visit->delivery_driver_id ? 'driver' : ($visit->cash_collector_type ?: 'auto');$id=null;
         if($type==='auto') {
             if($visit->delivery_driver_id){$type='driver';}
             else {

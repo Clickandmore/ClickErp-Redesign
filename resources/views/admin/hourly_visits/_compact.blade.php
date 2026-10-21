@@ -89,6 +89,7 @@
                     <span class="vc-day">لم يُحدَّد الموعد</span>
                 @endif
                 <span class="vc-urgency {{ $tone }}"><i class="fa {{ $icon }}"></i> {{ $label }}</span>
+                @include('admin.hourly_visits._schedule-button')
             </td>
             <td data-column="customer" class="vc-customer">
                 @if($order->user)<a href="{{ route('clients.show', $order->user_id) }}">{{ $order->user->name }}</a>@else<b>عميل محذوف</b>@endif

@@ -16,20 +16,37 @@ class MissedVisitRecoveryController extends Controller
         $order=HourlyRentalOrder::where('user_id',auth('api')->id())->findOrFail($id);
         return response()->json(['data'=>$service->request($order,$visit,$data)]);
     }
-    public function index()
+    public function customerSlots(Request $request,int $id,int $visit,MissedVisitRecovery $service)
+    {
+        $data=$request->validate(['date'=>'required|date_format:Y-m-d|after_or_equal:today']);
+        $order=HourlyRentalOrder::where('user_id',auth('api')->id())->findOrFail($id);
+        return response()->json(['data'=>$service->customerAvailableSlots($order,$visit,$data['date'])]);
+    }
+    public function index(MissedVisitRecovery $service)
     {
         abort_unless(AdminGuardHasPerm('hourly_orders_view'),403);
         $orders=HourlyRentalOrder::whereNotNull('booking_metadata->missed_visit_requests')->with('user:id,name')->latest('id')->paginate(20);
-        return view('admin.hourly.missed-requests',compact('orders'));
+        $slotChecks=[];
+        foreach($orders as $order)foreach(array_keys($order->booking_metadata['missed_visit_requests']??[]) as $visitId)
+            if($check=$service->requestedSlotStatus($order,(int)$visitId))$slotChecks[$order->id][$visitId]=$check;
+        return view('admin.hourly.missed-requests',compact('orders','slotChecks'));
     }
     public function review(Request $request,HourlyRentalOrder $order,int $visit,MissedVisitRecovery $service)
     {
         abort_unless(AdminGuardHasPerm('hourly_orders_create'),403);
-        $data=Validator::make($request->all(),['request_id'=>'required|uuid','decision'=>'required|in:approve,reject',
-            'verified_non_execution'=>'sometimes|boolean','new_start'=>'nullable|date_format:Y-m-d\\TH:i|after:now','reason'=>'required|string|max:2000'])->validate();
+        $reschedule=(($order->booking_metadata['missed_visit_requests'][$visit]['type']??null)==='reschedule');
+                $data=Validator::make($request->all(),['request_id'=>'required|uuid','decision'=>'required|in:approve,reject',
+            'verified_non_execution'=>'sometimes|boolean','new_start'=>'prohibited','reason'=>'required|string|max:2000'])->validate();
         if($data['decision']==='approve' && (float)$order->paid_amount>0 && (($order->booking_metadata['missed_visit_requests'][$visit]['type']??null)==='refund'))
             abort_unless(AdminGuardHasPerm('hourly_orders_collect'),403);
         $result=$service->review($order,$visit,$data,(int)auth('admin')->id());
+        if($request->expectsJson())return response()->json(['data'=>$result]);
         return back()->with('success','تمت مراجعة طلب معالجة الزيارة.');
+    }
+    public function slots(Request $request,HourlyRentalOrder $order,int $visit,MissedVisitRecovery $service)
+    {
+        abort_unless(AdminGuardHasPerm('hourly_orders_create'),403);
+        $data=$request->validate(['request_id'=>'required|uuid','date'=>'required|date_format:Y-m-d|after_or_equal:today']);
+        return response()->json(['data'=>$service->availableSlots($order,$visit,$data['request_id'],$data['date'])]);
     }
 }
