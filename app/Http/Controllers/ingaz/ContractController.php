@@ -728,7 +728,7 @@ class ContractController extends Controller
             if (filled($travelHistory->arrival_date)) {
                 $arrivalDateTime = $travelHistory->resolveArrivalDateTime();
                 if ($arrivalDateTime) {
-                    return $arrivalDateTime;
+                    return Carbon::instance($arrivalDateTime);
                 }
             }
 
