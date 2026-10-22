@@ -1151,7 +1151,7 @@ class MusanedTransferController extends Controller
             'statement_account' => array_column($lines, 'statement'),
             'cost_center_required' => 'off',
             'cost_center_id' => array_column($lines, 'cost_center_id'),
-            'branch_id' => array_column($lines, 'branch_id'),
+            'detail_branch_id' => array_column($lines, 'branch_id'),
             'value' => $this->roundMoney(array_sum(array_column($lines, 'debtor_value'))),
         ];
 
@@ -1199,7 +1199,7 @@ class MusanedTransferController extends Controller
             'statement_account' => array_column($lines, 'statement'),
             'cost_center_required' => 'off',
             'cost_center_id' => array_column($lines, 'cost_center_id'),
-            'branch_id' => array_column($lines, 'branch_id'),
+            'detail_branch_id' => array_column($lines, 'branch_id'),
             'value' => $amount,
         ];
 

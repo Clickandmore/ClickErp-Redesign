@@ -110,6 +110,16 @@ class ConstraintService extends MainService
     public function storeConstraint($data,$getActiveYear,$type = ConstraintTypiesEnum::DailyEntry)
     {
         $this->assertAccountsAssignableToBranch($data['account_id'] ?? [], $data['branch_id'] ?? null);
+        $accountsByBranch = [];
+        foreach ($data['account_id'] ?? [] as $key => $accountId) {
+            $branchId = $data['detail_branch_id'][$key] ?? null;
+            if ($branchId !== null) {
+                $accountsByBranch[(int) $branchId][] = $accountId;
+            }
+        }
+        foreach ($accountsByBranch as $branchId => $accountIds) {
+            $this->assertAccountsAssignableToBranch($accountIds, $branchId);
+        }
 
         $year = $getActiveYear;
         $data['year_id'] = $year->id;
@@ -156,7 +166,7 @@ class ConstraintService extends MainService
         $yearId = $year_id ?? $this->yearService->getActiveYear()->id;
 
         foreach ($accountIds as $key => $accountId) {
-            $detailBranchIds = $request['branch_id'] ?? null;
+            $detailBranchIds = $request['detail_branch_id'] ?? $request['branch_id'] ?? null;
             $data = [
                 "type" => $request['account_type'][$key],
                 "debtor_value" => $request['debtor_value'][$key],
