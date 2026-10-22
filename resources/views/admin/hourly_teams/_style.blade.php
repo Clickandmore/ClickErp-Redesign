@@ -17,6 +17,8 @@
     .ht-table td { padding: .7rem .75rem; border-bottom: 1px solid #f1f5f9; vertical-align: middle; }
     .ht-table tr:last-child td { border-bottom: 0; }
     .ht-num { font-variant-numeric: tabular-nums; }
+    /* style.css يرفع صف الجدول عند المرور (translateY) فيهتز المحتوى؛ نكتفي بتلوين الخلفية داخل الموديول */
+    .ht-page tbody tr, .ht-page tbody tr:hover { transform: none; transition: background-color .15s; }
     .ht-map { width: 100%; height: 520px; border-radius: 14px; border: 1px solid var(--ht-line); overflow: hidden; }
     .ht-map-tall { height: calc(100vh - 260px); min-height: 520px; }
     .ht-areas { list-style: none; padding: 0; margin: 0; display: grid; gap: .5rem; }

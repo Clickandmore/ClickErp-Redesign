@@ -33,12 +33,45 @@
     .bk-actions .btn { min-width: 130px; }
 
     /* اختيار بين وضعين (عميل حالي / جديد) */
-    .bk-segment { display: inline-flex; gap: .25rem; padding: .25rem; background: var(--ht-soft); border: 1px solid var(--ht-line); border-radius: 12px; }
-    .bk-segment label { display: inline-flex; align-items: center; gap: .4rem; margin: 0; padding: .45rem .9rem; border-radius: 9px; font-size: .85rem; font-weight: 600; color: var(--ht-muted); cursor: pointer; }
+    .bk-segment { display: inline-flex; gap: .35rem; padding: .3rem; background: var(--ht-soft); border: 1px solid var(--ht-line); border-radius: 13px; }
+    .bk-segment label { display: inline-flex; align-items: center; gap: .4rem; margin: 0; padding: .6rem 1.25rem; border-radius: 10px; font-size: .9rem; font-weight: 700; color: #475569; cursor: pointer; transition: background .15s, color .15s; }
+    .bk-segment label:hover { background: #eef2ff; color: #4338ca; }
     .bk-segment input { position: absolute; opacity: 0; width: 0; height: 0; }
     .bk-segment label:focus-within { outline: 2px solid #a5b4fc; outline-offset: 1px; }
-    .bk-segment input:checked + span { color: #4338ca; }
-    .bk-segment label:has(input:checked) { background: #fff; color: #4338ca; box-shadow: 0 4px 14px rgba(15, 23, 42, .08); }
+    .bk-segment label:has(input:checked) { background: #6861ee; color: #fff; box-shadow: 0 6px 16px rgba(104, 97, 238, .3); }
+
+    /* جداول الاختيار (العملاء، العناوين المحفوظة) */
+    .bk-pick-wrap { border: 1px solid var(--ht-line); border-radius: 12px; overflow: auto; }
+    .bk-pick-table { width: 100%; margin: 0; font-size: .88rem; }
+    .bk-pick-table th { padding: .7rem .9rem; background: var(--ht-soft); border-bottom: 1px solid var(--ht-line); font-size: .78rem; font-weight: 700; color: #475569; text-align: start; vertical-align: middle; white-space: nowrap; }
+    .bk-pick-table td { padding: .75rem .9rem; border-bottom: 1px solid #f1f5f9; text-align: start; vertical-align: middle; color: var(--ht-ink); }
+    .bk-pick-table tbody tr:last-child td { border-bottom: 0; }
+    .bk-pick-table tbody tr:hover td { background: #f8fafc; }
+    .bk-pick-table tbody tr.selected td { background: #ecfdf5; }
+    .bk-pick-table .is-id { width: 64px; color: var(--ht-muted); font-variant-numeric: tabular-nums; }
+    .bk-pick-table .is-num { font-variant-numeric: tabular-nums; white-space: nowrap; }
+    .bk-pick-table .is-name { font-weight: 700; }
+    .bk-pick-table .is-action { width: 1%; white-space: nowrap; text-align: end; }
+    .bk-pick-table .is-empty { padding: 2rem 1rem; text-align: center; color: var(--ht-muted); }
+    .bk-pick { display: inline-flex; align-items: center; justify-content: center; gap: .4rem; min-width: 104px; height: 38px; padding: 0 1rem; border-radius: 10px; border: 1px solid #6861ee; background: #6861ee; color: #fff; font-size: .85rem; font-weight: 700; box-shadow: 0 4px 12px rgba(104, 97, 238, .22); }
+    .bk-pick:hover { background: #4f46e5; border-color: #4f46e5; color: #fff; }
+    .bk-pick.is-picked { background: #16a34a; border-color: #16a34a; box-shadow: 0 4px 12px rgba(22, 163, 74, .25); }
+    .bk-pager { display: flex; align-items: center; justify-content: space-between; gap: .75rem; flex-wrap: wrap; margin-top: .85rem; }
+    .bk-pager:empty { display: none; }
+    .bk-pager-info { font-size: .82rem; font-weight: 700; color: var(--ht-muted); font-variant-numeric: tabular-nums; }
+    .bk-pager-btns { display: flex; gap: .4rem; }
+    .bk-pager button { display: inline-flex; align-items: center; gap: .45rem; height: 38px; padding: 0 1rem; border-radius: 10px; border: 1px solid #c7d2fe; background: #fff; color: #4338ca; font-size: .85rem; font-weight: 700; }
+    .bk-pager button:hover:not(:disabled) { background: #6861ee; border-color: #6861ee; color: #fff; }
+    .bk-pager button:disabled { background: var(--ht-soft); border-color: var(--ht-line); color: #cbd5e1; cursor: not-allowed; }
+
+    /* تعديل السعر يدويًا: زر تبديل وبجانبه حقل صغير */
+    .bk-price-override { display: flex; align-items: center; gap: .6rem; flex-wrap: wrap; }
+    .bk-shell .bk-price-override .bk-check { margin: 0; border-style: dashed; border-color: #a5b4fc; background: #fff; color: #4338ca; }
+    .bk-shell .bk-price-override .bk-check:has(input:checked) { border-style: solid; border-color: #6861ee; background: #f5f4ff; }
+    .bk-price-input { display: inline-flex; align-items: center; border: 1px solid #c7d2fe; border-radius: 11px; overflow: hidden; background: #fff; }
+    .bk-price-input:has(#manual-total[hidden]) { display: none; }
+    .bk-price-input input { width: 140px; height: 40px; border: 0; border-radius: 0; box-shadow: none !important; font-weight: 700; font-variant-numeric: tabular-nums; }
+    .bk-price-input span { padding: 0 .75rem; align-self: stretch; display: grid; place-items: center; background: var(--ht-soft); color: var(--ht-muted); font-size: .8rem; font-weight: 700; }
 
     /* بطاقات الاختيار التي يبنيها السكربت (فئات، عناصر، طرق دفع) */
     .booking-options { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: .75rem; }
@@ -247,13 +280,13 @@
                         <input id="customer-search" class="form-control" placeholder="ابحث بالاسم أو الإيميل أو الجوال" aria-label="البحث عن العميل">
                         <button type="button" id="search-customers" class="btn btn-outline-primary rounded-3 text-nowrap"><i class="fa fa-magnifying-glass ms-1"></i> بحث</button>
                     </div>
-                    <div class="table-responsive">
-                        <table class="table align-middle">
-                            <thead><tr><th>#</th><th>الاسم</th><th>الإيميل</th><th>الجوال</th><th>الرصيد</th><th></th></tr></thead>
+                    <div class="bk-pick-wrap">
+                        <table class="bk-pick-table">
+                            <thead><tr><th class="is-id">#</th><th>الاسم</th><th>الإيميل</th><th>الجوال</th><th>الرصيد</th><th class="is-action"><span class="visually-hidden">اختيار العميل</span></th></tr></thead>
                             <tbody id="customer-results"></tbody>
                         </table>
                     </div>
-                    <div class="bk-inline" id="customer-pages"></div>
+                    <nav class="bk-pager" id="customer-pages" aria-label="صفحات العملاء"></nav>
                 </div>
                 <form id="new-customer" class="booking-fields" hidden autocomplete="off">
                     <input type="hidden" id="customer-type" name="type" value="individual">
@@ -349,8 +382,10 @@
                 <div id="booking-service-options" class="my-3"></div>
                 <div id="booking-service-notes" class="booking-muted my-3"></div>
                 @if($canPrice)
-                    <label class="bk-check" for="override-price"><input type="checkbox" id="override-price"> <i class="fa fa-pen-to-square"></i> تعديل السعر الإجمالي يدويًا</label>
-                    <input id="manual-total" type="number" min="0.01" step="0.01" class="form-control" aria-label="السعر الإجمالي اليدوي" hidden>
+                    <div class="bk-price-override">
+                        <label class="bk-check" for="override-price" title="استبدال السعر المحسوب من الباقة بسعر إجمالي تكتبه"><input type="checkbox" id="override-price"> <i class="fa fa-pen-to-square"></i> تعديل السعر الإجمالي يدويًا</label>
+                        <span class="bk-price-input"><input id="manual-total" type="number" min="0.01" step="0.01" class="form-control" aria-label="السعر الإجمالي اليدوي" placeholder="0.00" hidden><span>ر.س</span></span>
+                    </div>
                 @endif
             </section>
 

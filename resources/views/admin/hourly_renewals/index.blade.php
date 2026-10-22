@@ -53,14 +53,29 @@
     .rn-count { background: #fef6d8; color: #7a5a06; border: 1px solid #f2d785; border-radius: 8px; padding: .15rem .55rem; font-size: .78rem; font-weight: 700; }
     .rn-window { font-size: .8rem; color: var(--muted); }
     .rn-table { width: 100%; font-size: .85rem; }
-    .rn-table th { font-size: .76rem; color: var(--muted); font-weight: 700; padding: .7rem .8rem; background: var(--soft); border-bottom: 1px solid var(--line); white-space: nowrap; }
+    /* صندوق تمرير بارتفاع الشاشة: شريط التمرير الأفقي يبقى ظاهرًا، والترويسة ثابتة عند النزول */
+    .rn-scroll { max-height: calc(100vh - 230px); min-height: 260px; overflow: auto; overscroll-behavior: contain; }
+    .rn-table th { font-size: .76rem; color: var(--muted); font-weight: 700; padding: .7rem .8rem; background: var(--soft); white-space: nowrap; position: sticky; top: 0; z-index: 2; box-shadow: inset 0 -1px 0 var(--line); }
+    .rn-toggle-col { width: 44px; padding-inline: .5rem !important; text-align: center; }
+    .rn-toggle, .rn-toggle-all { width: 32px; height: 32px; border-radius: 9px; border: 1px solid var(--line); background: #fff; color: var(--brand-ink); display: inline-grid; place-items: center; padding: 0; font-size: .75rem; }
+    .rn-toggle:hover, .rn-toggle-all:hover { border-color: var(--brand); background: #f2f9ff; }
+    .rn-toggle i, .rn-toggle-all i { transition: transform .15s; }
+    .rn-toggle[aria-expanded="true"], .rn-toggle-all[aria-pressed="true"] { background: var(--brand-ink); border-color: var(--brand-ink); color: #fff; }
+    .rn-toggle[aria-expanded="true"] i, .rn-toggle-all[aria-pressed="true"] i { transform: rotate(180deg); }
+    .rn-row.is-open td { background: #f7fbff; border-bottom-color: transparent; }
+    .rn-detail td { background: #f7fbff; padding-top: 0 !important; }
+    .rn-detail-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: .6rem 1.2rem; margin: 0; padding: .75rem .9rem; background: #fff; border: 1px solid var(--line); border-radius: 12px; }
+    .rn-detail-grid .is-wide { grid-column: span 2; }
+    .rn-detail-grid dt { font-size: .74rem; font-weight: 700; color: var(--muted); margin-bottom: .2rem; display: flex; align-items: center; gap: .35rem; }
+    .rn-detail-grid dt i { color: #9fb0c2; }
+    .rn-detail-grid dd { margin: 0; font-weight: 600; }
+    @media (max-width: 576px) { .rn-detail-grid .is-wide { grid-column: auto; } }
     .rn-table td { padding: .8rem; border-bottom: 1px solid #eef2f7; vertical-align: middle; }
     .rn-table tbody tr:hover td { background: #fbfdff; }
     .rn-table a { color: var(--brand-ink); font-weight: 700; text-decoration: none; }
     .rn-table a:hover { text-decoration: underline; }
     .rn-num { font-variant-numeric: tabular-nums; }
     .rn-sub { display: block; font-size: .74rem; color: var(--muted); }
-    .rn-address { min-width: 220px; max-width: 300px; }
     .rn-table td.rn-num, .rn-nowrap { white-space: nowrap; }
     .rn-order { display: block; max-width: 170px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .rn-period { display: block; white-space: nowrap; margin-bottom: .25rem; }
@@ -78,8 +93,17 @@
     .rn-renewed + a { margin-top: .25rem; font-weight: 700; }
     .rn-empty { text-align: center; padding: 3rem 1rem; color: var(--muted); }
     .rn-empty i { font-size: 1.9rem; color: #c3d2e0; display: block; margin-bottom: .6rem; }
-    .rn-foot { padding: .9rem 1.2rem; display: flex; align-items: center; justify-content: space-between; gap: .75rem; flex-wrap: wrap; }
-    .rn-foot .pagination { margin: 0; }
+    .rn-foot { padding: .9rem 1.2rem; border-top: 1px solid var(--line); display: flex; align-items: center; justify-content: space-between; gap: .75rem; flex-wrap: wrap; }
+    /* ترقيم الصفحات (admin.hourly_customers._pagination) */
+    .hc-pager { display: flex; align-items: center; gap: .75rem 1rem; flex-wrap: wrap; justify-content: space-between; flex: 1 1 auto; }
+    .hc-pager-info { font-size: .8rem; font-weight: 700; color: var(--muted); font-variant-numeric: tabular-nums; }
+    .hc-pager ul { display: flex; gap: .3rem; list-style: none; margin: 0; padding: 0; flex-wrap: wrap; }
+    .hc-pager a, .hc-pager span.is-active, .hc-pager span.is-disabled, .hc-pager span.is-gap { min-width: 36px; height: 36px; padding: 0 .55rem; border-radius: 10px; display: inline-flex; align-items: center; justify-content: center;
+        font-size: .82rem; font-weight: 700; font-variant-numeric: tabular-nums; text-decoration: none; border: 1px solid var(--line); background: #fff; color: var(--ink); }
+    .hc-pager a:hover { border-color: var(--brand); color: var(--brand-ink); background: #f2f9ff; text-decoration: none; }
+    .hc-pager span.is-active { background: var(--brand-ink); border-color: var(--brand-ink); color: #fff; box-shadow: 0 4px 12px rgba(27, 111, 184, .25); }
+    .hc-pager span.is-disabled { color: #c3cdd8; background: var(--soft); cursor: not-allowed; }
+    .hc-pager span.is-gap { border-color: transparent; background: none; color: var(--muted); min-width: 20px; padding: 0; }
 </style>
 @endsection
 @section('content')
@@ -184,28 +208,27 @@
                 <a class="rn-btn is-export" href="{{ route('admin.hourly-renewals.export', request()->query()) }}"><i class="fa fa-file-excel"></i> تصدير</a>
             </div>
         </div>
-        <div class="table-responsive">
+        {{-- الأعمدة الأساسية فقط؛ العنوان والموظف وسعر الزيارة في صف تفاصيل يُفتح بزر، والترويسة ثابتة داخل صندوق التمرير --}}
+        <div class="rn-scroll">
             <table class="rn-table">
-                <thead><tr><th>رقم العقد</th><th>اسم العميل</th><th>فئة الخدمة</th><th>العنوان</th><th>اسم الموظف</th><th>سعر الزيارة</th><th>المبلغ الإجمالي</th><th>فترة العقد</th><th>الزيارات</th><th>عمل</th></tr></thead>
+                <thead><tr><th class="rn-toggle-col"><button type="button" class="rn-toggle-all" data-rn-toggle-all aria-pressed="false" title="إظهار التفاصيل للكل" aria-label="إظهار التفاصيل للكل"><i class="fa fa-angles-down"></i></button></th><th>رقم العقد</th><th>اسم العميل</th><th>فئة الخدمة</th><th>فترة العقد</th><th>الزيارات</th><th>المبلغ الإجمالي</th><th>عمل</th></tr></thead>
                 <tbody>
                 @forelse($rows as $row)
                     @php
                         $days = $row['days_left'];
                         $tone = $days < 0 ? 'is-past' : ($days === 0 ? 'is-today' : ($days <= 5 ? 'is-soon' : 'is-later'));
                     @endphp
-                    <tr>
+                    <tr class="rn-row">
+                        <td class="rn-toggle-col"><button type="button" class="rn-toggle" data-rn-toggle aria-expanded="false" aria-controls="rn-detail-{{ $row['id'] }}" title="عرض التفاصيل" aria-label="عرض تفاصيل العقد #{{ $row['order_number'] }}"><i class="fa fa-chevron-down"></i></button></td>
                         <td><a class="rn-num rn-order" dir="ltr" title="{{ $row['order_number'] }}" href="{{ route('admin.hourly-orders.show', $row['id']) }}">#{{ $row['order_number'] }}</a><span class="rn-sub">{{ __('hourly.'.$row['status']) }}</span></td>
                         <td class="rn-nowrap"><b>{{ $row['customer'] }}</b><span class="rn-sub rn-num" dir="ltr">{{ $row['phone'] }}</span></td>
                         <td>{{ $row['service'] }}</td>
-                        <td class="rn-address">{{ $row['address'] }}</td>
-                        <td>{{ $row['workers'] }}</td>
-                        <td class="rn-num">{{ $row['visit_price'] }} ر.س</td>
-                        <td class="rn-num"><b>{{ $row['total'] }} ر.س</b></td>
                         <td>
                             <span class="rn-num rn-period" dir="ltr">{{ $row['start'] }} → {{ $row['end'] }}</span>
                             <span class="rn-days {{ $tone }}"><i class="fa fa-hourglass-half"></i> {{ $days < 0 ? 'انتهى منذ '.abs($days).' يوم' : ($days === 0 ? 'تنتهي اليوم' : 'متبقٍ '.$days.' يوم') }}</span>
                         </td>
                         <td><div class="rn-progress" title="الزيارات المنجزة"><div class="rn-progress-bar"><span style="width: {{ $row['visits'] ? round($row['done'] / $row['visits'] * 100) : 0 }}%"></span></div><small class="rn-num">{{ $row['done'] }}/{{ $row['visits'] }}</small></div></td>
+                        <td class="rn-num rn-nowrap"><b>{{ $row['total'] }} ر.س</b></td>
                         <td>
                             @if($row['renewal'])
                                 <span class="rn-renewed"><i class="fa fa-circle-check"></i> تم التجديد</span>
@@ -217,16 +240,26 @@
                             @else<span class="rn-sub">—</span>@endif
                         </td>
                     </tr>
+                    <tr class="rn-detail" id="rn-detail-{{ $row['id'] }}" hidden>
+                        <td colspan="8">
+                            <dl class="rn-detail-grid">
+                                <div class="is-wide"><dt><i class="fa fa-location-dot"></i> العنوان</dt><dd>{{ $row['address'] ?: '—' }}</dd></div>
+                                <div><dt><i class="fa fa-user-tie"></i> اسم الموظف</dt><dd>{{ $row['workers'] ?: '—' }}</dd></div>
+                                <div><dt><i class="fa fa-tag"></i> سعر الزيارة</dt><dd class="rn-num">{{ $row['visit_price'] }} ر.س</dd></div>
+                            </dl>
+                        </td>
+                    </tr>
                 @empty
-                    <tr><td colspan="10"><div class="rn-empty"><i class="fa fa-calendar-check"></i> ليست هناك بيانات متاحة في الجدول لهذه الفلاتر.</div></td></tr>
+                    <tr><td colspan="8"><div class="rn-empty"><i class="fa fa-calendar-check"></i> ليست هناك بيانات متاحة في الجدول لهذه الفلاتر.</div></td></tr>
                 @endforelse
                 </tbody>
             </table>
         </div>
+        @if($orders->total())
         <div class="rn-foot">
-            <span class="rn-sub">يعرض {{ $orders->firstItem() ?? 0 }} إلى {{ $orders->lastItem() ?? 0 }} من أصل {{ $orders->total() }} سجل</span>
-            {{ $orders->links() }}
+            {{ $orders->onEachSide(1)->links('admin.hourly_customers._pagination') }}
         </div>
+        @endif
     </section>
     </div>
 </div>
@@ -251,6 +284,23 @@
     }
     init(document);
     document.addEventListener('hx-filter:updated', event => init(event.detail.root));
+
+    // صف التفاصيل (العنوان، الموظف، سعر الزيارة): زر لكل عقد وزر في الترويسة للكل. التفويض على المستند لأن الجدول يُستبدل بعد كل فلترة.
+    const setRow = (button, open) => {
+        button.setAttribute('aria-expanded', String(open));
+        button.closest('tr').classList.toggle('is-open', open);
+        document.getElementById(button.getAttribute('aria-controls')).hidden = !open;
+    };
+    document.addEventListener('click', event => {
+        const one = event.target.closest('[data-rn-toggle]');
+        if (one) return setRow(one, one.getAttribute('aria-expanded') !== 'true');
+        const all = event.target.closest('[data-rn-toggle-all]');
+        if (!all) return;
+        const open = all.getAttribute('aria-pressed') !== 'true';
+        all.setAttribute('aria-pressed', String(open));
+        all.title = all.ariaLabel = open ? 'إخفاء التفاصيل للكل' : 'إظهار التفاصيل للكل';
+        all.closest('table').querySelectorAll('[data-rn-toggle]').forEach(button => setRow(button, open));
+    });
 })();
 </script>
 @endpush

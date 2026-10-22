@@ -308,6 +308,20 @@ $quickLinks = collect([
             gap: 0.35rem;
         }
 
+        /* admin-tables.css يفرض overflow:auto على كل .container-fluid، فيظهر شريط تمرير داخل الهيدر عند فتح القوائم */
+        .page-header > .container-fluid { overflow: visible !important; }
+
+        /* أيقونات الهيدر: الفراغ من gap لا من هوامش تتغير مع نقاط الكسر، وعناصر block حتى لا يضيف سطر النص فراغًا تحتها فتنزاح عموديًا */
+        .page-header .header-right > li { display: flex; align-items: center; }
+        .page-header .header-right > li.d-none { display: none !important; }
+        @media (min-width: 576px) { .page-header .header-right > li.d-sm-inline-block { display: flex !important; } }
+        @media (min-width: 1200px) {
+            .page-header .header-right > li.d-xl-inline-block, .page-header .header-right > li.d-xl-flex { display: flex !important; }
+            .page-header .header-right > li.d-xl-none { display: none !important; }
+        }
+        .page-header .header-right .cm-header-action { display: flex; padding: 0 !important; }
+        .page-header .header-right .avatar { display: block; }
+
         @media (max-width: 1199.98px) {
             .page-header .navbar {
                 gap: 0.55rem;
@@ -497,7 +511,7 @@ $quickLinks = collect([
                 </li>
 
                 <li class="d-none d-xl-inline-block">
-                    <div class="dropdown morphing {{$scaleDirection}} Language mx-sm-2">
+                    <div class="dropdown morphing {{$scaleDirection}} Language">
                         <a class="nav-link dropdown-toggle after-none cm-header-action" href="#" role="button" data-bs-toggle="dropdown" title="{{ __('admin.layout.language') }}">
                             <svg viewBox="0 0 16 16" width="18px" fill="currentColor"
                                 xmlns="http://www.w3.org/2000/svg">
@@ -586,7 +600,7 @@ $quickLinks = collect([
                 @endif
 
                 <li>
-                    <div class="dropdown morphing {{$scaleDirection}} user-profile mx-lg-3 mx-2">
+                    <div class="dropdown morphing {{$scaleDirection}} user-profile ms-2">
                         <a class="nav-link dropdown-toggle rounded-circle after-none p-0" href="#" role="button"
                             data-bs-toggle="dropdown">
                             <img class="avatar img-thumbnail rounded-circle shadow"
