@@ -1148,4 +1148,64 @@ class HourlyWebsiteTest extends TestCase
         $this->assertEquals(100,$order->fresh()->paid_amount);$this->assertSame('scheduled',$visit->fresh()->status);
         $this->get(route('web.hourly.order',$order->id))->assertOk()->assertSee('الطلب يحتاج تحققًا إضافيًا');
     }
+
+    public function test_customer_recovery_lists_available_slots_and_rejects_arbitrary_time(): void
+    {
+        if(!Schema::hasColumn('hourly_visit_workers','status'))Schema::table('hourly_visit_workers',fn(Blueprint $t)=>$t->string('status')->nullable());
+        [$order,$visit]=$this->paidMissedVisit();
+        $url=route('web.hourly.visit.recovery-slots',[$order->id,$visit->id]);
+        $response=$this->getJson($url.'?date=2030-01-10')->assertOk();
+        $slots=$response->json('data');
+        $this->assertNotEmpty($slots);
+        $this->assertEmpty($order->fresh()->booking_metadata['missed_visit_requests']??[]);
+        $this->getJson($url.'?date=invalid')->assertUnprocessable();
+        $this->postJson(route('web.hourly.visit.recovery',[$order->id,$visit->id]),[
+            'type'=>'reschedule','request_token'=>(string)Str::uuid(),'requested_start'=>'2030-01-10T03:17'
+        ])->assertUnprocessable();
+        $this->get(route('web.hourly.order',$order->id))->assertOk()->assertSee('data-recovery-times',false);
+        $this->customer(2);
+        $this->getJson($url.'?date=2030-01-10')->assertNotFound();
+        $this->customer();
+        $body=['type'=>'reschedule','request_token'=>(string)Str::uuid(),'requested_start'=>$slots[0]['starts_at']];
+        $this->postJson(route('web.hourly.visit.recovery',[$order->id,$visit->id]),$body)->assertOk();
+        $this->postJson(route('web.hourly.visit.recovery',[$order->id,$visit->id]),$body)->assertOk();
+        $this->getJson($url.'?date=2030-01-10')->assertOk()->assertJsonPath('data',[]);
+    }
+
+    public function test_repeated_automatic_assignment_preserves_existing_team_without_extra_workers(): void
+    {
+        if(!Schema::hasColumn('hourly_visit_workers','status'))Schema::table('hourly_visit_workers',fn(Blueprint $t)=>$t->string('status')->nullable());
+        $booking=$this->fixture();$this->secondWorker();$this->customer();
+        $order=HourlyRentalOrder::findOrFail($this->postJson(route('web.hourly.store'),$booking)->assertCreated()->json('id'));
+        $visit=$order->visits()->first();$visit->workers()->sync([2]);
+        $assignment=app(\App\Services\Hourly\HourlyWorkerAssignment::class);
+        for($i=0;$i<2;$i++)$assignment->assign($visit,HourlyPackage::findOrFail($order->hourly_package_id),null,false);
+        $this->assertSame([2],$visit->workers()->pluck('maids.id')->all());
+        $this->assertEquals(1,$visit->fresh()->workers_count);
+    }
+
+    public function test_incident_customer_replacement_repairs_legacy_extra_assignment_using_original_choices(): void
+    {
+        if(!Schema::hasColumn('hourly_visit_workers','finished_at'))Schema::table('hourly_visit_workers',fn(Blueprint $t)=>$t->timestamp('finished_at')->nullable());
+        if(!Schema::hasColumn('hourly_visit_workers','status'))Schema::table('hourly_visit_workers',fn(Blueprint $t)=>$t->string('status')->nullable());
+        [$order,$visit,$service,$report]=$this->incidentFixture();
+        $this->approveIncident($report['id']);
+        foreach([3,4] as $id){
+            $worker=\App\Models\ingaz\Maid::findOrFail(2)->replicate();$worker->id=$id;$worker->save();
+            DB::table('maid_jobs')->insert(['maid_id'=>$id,'job_type_id'=>2]);
+            DB::table('contracts')->insert(['id'=>$id,'maid_id'=>$id,'status'=>'shelter']);
+            DB::table('contract_infos')->insert(['contract_id'=>$id,'shelter_id'=>1,'is_outside_shelter'=>false,'wants_to_work'=>'yes']);
+            DB::table('hourly_team_members')->insert(['hourly_team_id'=>$visit->hourly_team_id,'member_type'=>'maid','member_id'=>$id,'role'=>'primary','is_active'=>true]);
+        }
+        $snapshot=$order->package_snapshot;$snapshot['selected_maid_ids']=[1,2];$order->update(['package_snapshot'=>$snapshot]);
+        $visit->update(['workers_count'=>2]);$visit->workers()->sync([1,2,3]);
+        $state=\App\Services\Hourly\ServiceIncident::state($order->fresh(),$visit->id);
+        $url=route('web.hourly.visit.disruption.choose',[$order->id,$visit->id]);
+        $body=['disruption_id'=>$state['id'],'replacement_worker_id'=>4];
+        $this->postJson($url,$body)->assertOk();$this->postJson($url,$body)->assertOk();
+        $this->assertSame([2,4],$visit->workers()->orderBy('maids.id')->pluck('maids.id')->all());
+        $this->assertEquals(2,$visit->fresh()->workers_count);
+        $this->assertEquals(100,$visit->fresh()->visit_price);
+        $this->assertEquals(200,$order->fresh()->paid_amount);
+    }
 }

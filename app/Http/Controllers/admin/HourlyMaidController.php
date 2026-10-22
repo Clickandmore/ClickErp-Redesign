@@ -52,8 +52,43 @@ class HourlyMaidController extends Controller
         $canEdit=AdminGuardHasPerm('hourly_maids_edit');
         // بطاقة «غير معروضة للحجز» في رأس الصفحة فقط؛ تبويبات AJAX لا تعرضها.
         $bookability=$request->ajax() ? null : app(\App\Services\Hourly\WorkerBookability::class)->report($maid);
+        // Return hold left on a visit (e.g. the visit closed but her visit row stayed "finished"): confirmed from here.
+        $returnHold=$request->ajax() ? null : (\App\Services\Hourly\OverdueWorkerReturn::pending((int)$maid->id)[$maid->id] ?? null);
+        if($returnHold)$returnHold['visit']=\App\Models\Hourly\HourlyVisit::with('order:id,order_number')->find($returnHold['visit_id']);
+        $canReturn=AdminGuardHasPerm('hourly_maids_view') && $canEdit;
         // التنقّل بين التبويبات يجلب محتوى التبويب وحده دون هيكل الصفحة.
-        return view($request->ajax() ? 'admin.hourly_maids._tab' : 'admin.hourly_maids.show',compact('maid','tab','tabs','stats','visits','orders','logs','leaves','services','canEdit','bookability'));
+        return view($request->ajax() ? 'admin.hourly_maids._tab' : 'admin.hourly_maids.show',compact('maid','tab','tabs','stats','visits','orders','logs','leaves','services','canEdit','bookability','returnHold','canReturn'));
+    }
+
+    /** Release a return hold left on a visit; visit status and amounts stay untouched. */
+    public function returnFromVisit(Request $request, Maid $maid, int $visit)
+    {
+        $this->assertHourly($maid);
+        abort_unless(AdminGuardHasPerm('hourly_maids_view') && AdminGuardHasPerm('hourly_maids_edit'),403);
+        $data=$request->validate(['confirmed_return'=>['required','accepted'],'reason'=>['required','string','max:1000']]);
+        $admin=(int)auth('admin')->id();
+        DB::transaction(function()use($maid,$visit,$data,$admin){
+            $row=DB::table('hourly_visit_workers')->where('hourly_visit_id',$visit)->where('maid_id',$maid->id)->lockForUpdate()->first();
+            $hold=\App\Services\Hourly\OverdueWorkerReturn::pending((int)$maid->id)[$maid->id] ?? null;
+            abort_unless($hold && $hold['visit_id']===$visit,404,'لا توجد عودة معلّقة لهذه العاملة على هذه الزيارة.');
+            if($row)DB::table('hourly_visit_workers')->where('id',$row->id)->whereIn('status',['delivered','finished','picked_up'])
+                ->update(['status'=>'returned','updated_at'=>now()]);
+            $model=\App\Models\Hourly\HourlyVisit::find($visit);
+            if($model)app(\App\Services\Hourly\ShelterPresence::class)->closeWorker($model,(int)$maid->id,'admin',$admin);
+            // Movement whose visit was deleted: close it directly.
+            if(\Illuminate\Support\Facades\Schema::hasTable('worker_daily_movements'))DB::table('worker_daily_movements')->where('maid_id',$maid->id)
+                ->where('source','hourly_visit')->where('reference_type','hourly_visit')->where('reference_id',$visit)->whereNull('in_at')
+                ->update(['in_at'=>now(),'status'=>'returned','in_by_type'=>'admin','in_by_id'=>$admin,'updated_at'=>now()]);
+            activity('hourly_shelter_return')->causedBy(auth('admin')->user())->performedOn($maid)
+                ->withProperties(['visit_id'=>$visit,'worker_status_before'=>$row->status??null,'reason'=>$data['reason'],'confirmed_at'=>now()->toIso8601String()])
+                ->log('تأكيد عودة عاملة ساعات إلى الإيواء');
+            if($model && \Illuminate\Support\Facades\Schema::hasTable('hourly_order_audits'))DB::table('hourly_order_audits')->insert([
+                'hourly_rental_order_id'=>$model->hourly_rental_order_id,'visit_id'=>$visit,'admin_id'=>$admin,'action'=>'worker_return_confirmed',
+                'reason'=>$data['reason'],'before'=>json_encode(['maid_id'=>(int)$maid->id,'worker_status'=>$row->status??null]),
+                'after'=>json_encode(['maid_id'=>(int)$maid->id,'worker_status'=>'returned']),'created_at'=>now(),'updated_at'=>now()]);
+        });
+        app(\App\Services\Hourly\ShelterPresence::class)->flush();
+        return back()->with('success','تم تسجيل عودة العاملة إلى الإيواء من الزيارة #'.$visit.'، ورُفع منع الحجز المرتبط بها.');
     }
 
     public function leaveStatus(Request $request, Maid $maid, int $leave)

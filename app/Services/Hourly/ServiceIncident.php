@@ -88,16 +88,24 @@ class ServiceIncident
             if(empty($data['verified'])) HourlyOrderService::reject('أكد التحقق من البلاغ قبل اعتماده.');
             $until=Carbon::parse($data['unavailable_until']??null);
             if(!$until->isFuture()) HourlyOrderService::reject('حدد نهاية مستقبلية لفترة عدم الجاهزية.');
+            // The period starts at the reported visit by default, so approving a report for a later day
+            // does not disrupt the worker's visits between today and that day.
+            $reported=HourlyVisit::find($incident->visit_id);
+            $from=!empty($data['unavailable_from'])?Carbon::parse($data['unavailable_from']):($reported?->scheduled_start_at?->copy()??now());
+            if($from->gte($until)) HourlyOrderService::reject('بداية فترة عدم الجاهزية يجب أن تسبق نهايتها.');
+            if($reported?->scheduled_start_at && $reported->scheduled_end_at
+                && !($from->lt($reported->scheduled_end_at) && $until->gt($reported->scheduled_start_at)))
+                HourlyOrderService::reject('فترة عدم الجاهزية يجب أن تشمل موعد الزيارة المبلَّغ عنها.');
             $targets=HourlyVisit::whereHas('workers',fn($q)=>$q->where('maids.id',$incident->maid_id))
                 ->whereIn('status',array_merge(['scheduled','unscheduled'],DriverAppService::ONGOING))
-                ->where('scheduled_start_at','<',$until)->where('scheduled_end_at','>',now())
+                ->where('scheduled_start_at','<',$until)->where('scheduled_end_at','>',$from->copy()->max(now()))
                 ->orderBy('id')->get();
             $orderIds=$targets->pluck('hourly_rental_order_id')->unique()->sort()->values();
             $userIds=HourlyRentalOrder::whereIn('id',$orderIds)->pluck('user_id')->unique()->sort()->values();
             User::whereIn('id',$userIds)->orderBy('id')->lockForUpdate()->get();
             $orders=HourlyRentalOrder::whereIn('id',$orderIds)->orderBy('id')->lockForUpdate()->get()->keyBy('id');
             $targets=HourlyVisit::whereIn('id',$targets->pluck('id'))->orderBy('id')->lockForUpdate()->get();
-            $leave=['maid_id'=>$incident->maid_id,'starts_at'=>now(),'ends_at'=>$until,'reason'=>'بلاغ تشغيلي معتمد #'.$id,
+            $leave=['maid_id'=>$incident->maid_id,'starts_at'=>$from,'ends_at'=>$until,'reason'=>'بلاغ تشغيلي معتمد #'.$id,
                 'is_active'=>true,'created_at'=>now(),'updated_at'=>now()];
             if(Schema::hasColumn('hourly_worker_leaves','status'))$leave['status']='approved';
             if(Schema::hasColumn('hourly_worker_leaves','source'))$leave['source']='admin';
@@ -120,8 +128,10 @@ class ServiceIncident
                 $visitId=$visit->id;$stage=$manual?'service_followup':'service_disrupted';
                 DB::afterCommit(fn()=>app(CustomerTrackingPushService::class)->notify($visitId,$stage));
             }
-            DB::table('hourly_service_incidents')->where('id',$id)->update(['status'=>'approved','reviewed_by'=>$admin,
-                'review_reason'=>$data['reason'],'unavailable_until'=>$until,'leave_id'=>$leaveId,'reviewed_at'=>now(),'updated_at'=>now()]);
+            $decision=['status'=>'approved','reviewed_by'=>$admin,
+                'review_reason'=>$data['reason'],'unavailable_until'=>$until,'leave_id'=>$leaveId,'reviewed_at'=>now(),'updated_at'=>now()];
+            if(Schema::hasColumn('hourly_service_incidents','unavailable_from'))$decision['unavailable_from']=$from;
+            DB::table('hourly_service_incidents')->where('id',$id)->update($decision);
         });
     }
 

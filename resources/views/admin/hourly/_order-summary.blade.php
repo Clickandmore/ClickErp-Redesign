@@ -11,7 +11,7 @@
     </header>
     <div class="hs-pad" id="order-details-copy">
         <div class="hs-meta">
-            <div class="hs-stat"><span>حالة الطلب</span><b>{{ __('hourly.'.$order->status) }}</b></div>
+            <div class="hs-stat"><span>حالة الطلب</span><b>{{ \App\Services\Hourly\HourlyOrderService::statusLabel($order) }}</b></div>
             <div class="hs-stat"><span>حالة السداد</span><b>{{ __('hourly.'.$order->payment_status) }}</b></div>
             <div class="hs-stat"><span>طريقة الدفع</span><b>{{ __('hourly.'.$order->payment_method) }}</b></div>
             <div class="hs-stat"><span>إجمالي الطلب</span><b class="hs-money">{{ number_format((float)$order->total_amount,2) }} ر.س</b></div>

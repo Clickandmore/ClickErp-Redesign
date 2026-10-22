@@ -510,7 +510,7 @@ class CustomerController extends Controller
     /** الطلبات التي تقبل دفعة الآن مع المتبقي عليها. */
     private function payableOrders(User $user)
     {
-        return HourlyRentalOrder::where('user_id', $user->id)->whereIn('status', ['pending_confirmation', 'active'])->where('payment_status', '!=', 'paid')
+        return HourlyRentalOrder::where('user_id', $user->id)->whereIn('status', ['pending_confirmation', 'active', \App\Services\Hourly\HourlyOrderService::AWAITING_PAYMENT])->where('payment_status', '!=', 'paid')
             ->where('payment_method', '!=', 'moyasar')->orderByDesc('id')->get(['id', 'order_number', 'total_amount', 'paid_amount'])
             ->map(fn ($o) => ['id' => $o->id, 'label' => '#'.$o->order_number, 'remaining' => round($o->total_amount - $o->paid_amount, 2)]);
     }

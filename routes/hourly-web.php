@@ -27,6 +27,7 @@ Route::prefix('hourly-rental')->name('hourly.')->middleware(['feature.hourly_ren
         Route::post('orders/{id}/visits/{visit}/extra-hour', [ClientController::class,'extraHour'])->whereNumber('id')->whereNumber('visit')->middleware('throttle:10,1')->name('visit.extra-hour');
         Route::post('orders/{id}/visits/{visit}/choose-replacement',[\App\Http\Controllers\Hourly\ServiceIncidentController::class,'choose'])->whereNumber('id')->whereNumber('visit')->middleware('throttle:10,1')->name('visit.disruption.choose');
         Route::post('orders/{id}/visits/{visit}/recovery', [\App\Http\Controllers\Hourly\MissedVisitRecoveryController::class,'store'])->whereNumber('id')->whereNumber('visit')->middleware('throttle:10,1')->name('visit.recovery');
+        Route::get('orders/{id}/visits/{visit}/recovery-slots', [\App\Http\Controllers\Hourly\MissedVisitRecoveryController::class,'customerSlots'])->whereNumber('id')->whereNumber('visit')->middleware('throttle:30,1')->name('visit.recovery-slots');
         Route::post('orders/{id}/visits/{visit}/early-finishes/{finish}/respond', [\App\Http\Controllers\Hourly\EarlyFinishController::class,'respond'])->whereNumber('id')->whereNumber('visit')->whereNumber('finish')->middleware('throttle:10,1')->name('visit.early-finish');
         Route::get('data/slots', [HourlyRentalController::class,'slots'])->name('slots');
         Route::get('data/quote/{package}', [ClientController::class,'package'])->whereNumber('package')->name('quote');

@@ -206,6 +206,27 @@
     .vl-btn.is-primary { background: var(--brand-ink); color: #fff; }
     .vl-btn.is-primary:hover { background: var(--brand-deep); }
     .vl-card-foot .dropdown-item { font-size: .84rem; display: flex; align-items: center; gap: .45rem; }
+    /* قائمة الدفع: ملخص مبالغ الزيارة ثم الإجراءات بأيقونة ووصف. */
+    /* admin-tables.css يفرض بـ !important حدًا أزرق عريضًا وخلفية زرقاء وإزاحة ولمعانًا لكل عناصر القوائم؛ نلغيها هنا فقط. */
+    .vl-card-foot .vl-pay-menu { min-width: 270px !important; padding: .5rem !important; border: 1px solid var(--line) !important; border-radius: 14px !important; box-shadow: 0 14px 34px rgba(20, 80, 127, .18) !important; }
+    .vl-card-foot .vl-pay-menu .vl-pay-item { color: var(--ink) !important; background: transparent !important; transform: none !important; border-radius: 10px; overflow: hidden; }
+    .vl-card-foot .vl-pay-menu .vl-pay-item::before { display: none; }
+    .vl-card-foot .vl-pay-menu .vl-pay-item i { margin: 0; width: auto; }
+    .vl-pay-summary { display: grid; grid-template-columns: 1fr 1fr; gap: .4rem; margin-bottom: .4rem; padding-bottom: .5rem; border-bottom: 1px dashed var(--line); }
+    .vl-pay-summary > div { padding: .45rem .6rem; border-radius: 10px; background: var(--soft); }
+    .vl-pay-summary span { display: block; font-size: .7rem; font-weight: 700; color: var(--muted); }
+    .vl-pay-summary b { font-size: .9rem; color: var(--ink); }
+    .vl-pay-summary small { font-size: .68rem; color: var(--muted); font-weight: 600; }
+    .vl-pay-summary .is-due { background: #fff7e8; }
+    .vl-pay-summary .is-due b { color: #b45309; }
+    .vl-card-foot .vl-pay-item { gap: .65rem; padding: .55rem .6rem; white-space: normal; text-align: start; }
+    .vl-card-foot .vl-pay-menu .vl-pay-item:hover, .vl-card-foot .vl-pay-menu .vl-pay-item:focus-visible { background: #eef6fd !important; color: var(--ink) !important; }
+    .vl-pay-item:hover .vl-pay-icon { background: var(--brand-ink); color: #fff; }
+    .vl-pay-item:hover .vl-pay-icon.is-add { background: var(--teal-deep); }
+    .vl-pay-item b { display: block; font-size: .84rem; font-weight: 700; }
+    .vl-pay-item small { display: block; font-size: .72rem; color: var(--muted); }
+    .vl-pay-icon { width: 32px; height: 32px; flex: 0 0 32px; display: grid; place-items: center; border-radius: 9px; background: #e8f3fd; color: var(--brand-ink); font-size: .85rem; }
+    .vl-pay-icon.is-add { background: #e3f6f1; color: var(--teal-deep); }
     .vl-foot-links { display: flex; gap: 1rem; flex-wrap: wrap; }
     .vl-foot-links a { font-size: .8rem; font-weight: 600; color: var(--muted); text-decoration: none; display: inline-flex; align-items: center; gap: .35rem; }
     .vl-foot-links a:hover { color: var(--brand-ink); }

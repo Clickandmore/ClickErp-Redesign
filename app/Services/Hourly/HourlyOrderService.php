@@ -240,8 +240,47 @@ class HourlyOrderService
         });
     }
 
-    public function transition(HourlyRentalOrder $order, string $status, string $actorType, ?int $actorId, ?string $reason = null): void
+    /** All visits are finished but money is still owed; closes to "completed" once settled. */
+    public const AWAITING_PAYMENT = 'awaiting_payment';
+
+    public static function owes(HourlyRentalOrder $order): bool
     {
+        return (int) round((float) $order->total_amount * 100) > (int) round((float) $order->paid_amount * 100);
+    }
+
+    /** Label of an order status; "awaiting payment" tells unpaid from partially paid. */
+    public static function statusLabel(HourlyRentalOrder $order): string
+    {
+        if ($order->status !== self::AWAITING_PAYMENT) return __('hourly.'.$order->status);
+        return __('hourly.'.((float) $order->paid_amount > 0 ? 'awaiting_payment_partial' : 'awaiting_payment_unpaid'));
+    }
+
+    /** Close an order that finished its visits once its balance reaches zero. */
+    public function settle(HourlyRentalOrder $order, string $actorType, ?int $actorId): void
+    {
+        if ($order->status === self::AWAITING_PAYMENT && !self::owes($order)) {
+            $this->transition($order, 'completed', $actorType, $actorId, 'اكتمال السداد بعد انتهاء الزيارات');
+        }
+    }
+
+    /** Supervisor closes an order still owing money; the balance stays recorded on the order. */
+    public function closeUnpaid(HourlyRentalOrder $order, int $adminId, string $reason): void
+    {
+        DB::transaction(function () use ($order, $adminId, $reason) {
+            $order = HourlyRentalOrder::whereKey($order->id)->lockForUpdate()->firstOrFail();
+            if ($order->status !== self::AWAITING_PAYMENT) self::reject('الإغلاق الاستثنائي متاح للطلبات المنتظرة للسداد فقط.');
+            $owed = round((float) $order->total_amount - (float) $order->paid_amount, 2);
+            $this->transition($order, 'completed', 'admin', $adminId, 'إغلاق استثنائي دون اكتمال السداد (المتبقي '.number_format($owed, 2).' ر.س): '.$reason, true);
+        });
+    }
+
+    public function transition(HourlyRentalOrder $order, string $status, string $actorType, ?int $actorId, ?string $reason = null, bool $closeUnpaid = false): void
+    {
+        // Finishing the last visit does not close an order that still owes money.
+        if ($status === 'completed' && !$closeUnpaid && self::owes($order)) {
+            $status = self::AWAITING_PAYMENT;
+            $reason = trim(($reason ?? '').' — بانتظار سداد المتبقي');
+        }
         $from = $order->status;
         if ($from === $status) return;
         $order->update(['status'=>$status]);

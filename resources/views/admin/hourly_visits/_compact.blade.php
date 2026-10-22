@@ -74,7 +74,7 @@
             $phone = $visit->contact_phone ?: $order->contact_phone ?: $order->user?->phone;
         @endphp
         <tr data-visit-card="{{ $visit->id }}" class="{{ $tone }}">
-            <td><input class="form-check-input vc-check" type="checkbox" data-select-visit data-started="{{ $visit->has_started_execution ? '1' : '0' }}" value="{{ $visit->id }}" aria-label="تحديد زيارة {{ $visit->id }}"></td>
+            <td><input class="form-check-input vc-check" type="checkbox" data-select-visit data-collectable="{{ $collectables[$visit->id] ?? 0 }}" data-order-id="{{ $visit->hourly_rental_order_id }}" data-order-remaining="{{ max(0, $visit->order->total_amount - $visit->order->paid_amount) }}" data-started="{{ $visit->has_started_execution ? '1' : '0' }}" value="{{ $visit->id }}" aria-label="تحديد زيارة {{ $visit->id }}"></td>
             <td data-column="info">
                 <a class="vc-id vc-num" href="{{ route('admin.hourly-visits.show', $visit) }}">#{{ $visit->id }}</a>
                 <span class="vc-sub">طلب <a class="vc-num" href="{{ route('admin.hourly-orders.show', $order) }}">#{{ $order->order_number }}</a> · زيارة {{ $visit->visit_number }}</span>

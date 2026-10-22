@@ -67,7 +67,7 @@
         @forelse($orders as $order)
             <tr>
                 <td>@if(AdminGuardHasPerm('hourly_orders_view'))<a class="mp-link" href="{{ route('admin.hourly-orders.show',$order) }}">#{{ $order->order_number ?? $order->id }}</a>@else #{{ $order->order_number ?? $order->id }} @endif</td>
-                <td><span class="mp-badge {{ $mpTone($order->status) }}">{{ __('hourly.'.$order->status) }}</span></td>
+                <td><span class="mp-badge {{ $mpTone($order->status) }}">{{ \App\Services\Hourly\HourlyOrderService::statusLabel($order) }}</span></td>
                 <td class="mp-num" dir="ltr">{{ $order->created_at?->format('Y-m-d') }}</td>
             </tr>
         @empty

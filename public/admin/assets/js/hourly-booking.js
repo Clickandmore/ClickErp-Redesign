@@ -414,9 +414,22 @@
         }
         const f=$('new-address').elements;if(f.latitude.value && f.longitude.value)markLocation({lat:Number(f.latitude.value),lng:Number(f.longitude.value)});
     }
+    /* إحداثيات ملصقة كما يعطيها Google Maps: «24.7136, 46.6753» أو «24°42'49.0"N 46°40'31.1"E»، بأرقام عربية أو فاصلة عربية. */
+    function parseCoordinates(text) {
+        const s=String(text).replace(/[٠-٩]/g,d=>'٠١٢٣٤٥٦٧٨٩'.indexOf(d)).replace(/٫/g,'.').replace(/،/g,',').trim();
+        let lat=null,lng=null,m;
+        if((m=s.match(/^\(?\s*(-?\d{1,3}\.\d+)\s*[,\s]\s*(-?\d{1,3}\.\d+)\s*\)?$/))){lat=+m[1];lng=+m[2];}
+        else if((m=s.match(/^(\d{1,3})\s*°\s*(\d{1,2})\s*['′]\s*(\d{1,2}(?:\.\d+)?)\s*["″]?\s*([NS])[\s,]*(\d{1,3})\s*°\s*(\d{1,2})\s*['′]\s*(\d{1,2}(?:\.\d+)?)\s*["″]?\s*([EW])$/i))) {
+            const dms=(d,mi,se,h)=>(+d + mi/60 + se/3600)*(/[SW]/i.test(h)?-1:1);
+            lat=dms(m[1],m[2],m[3],m[4]);lng=dms(m[5],m[6],m[7],m[8]);
+        }
+        return lat!==null && Math.abs(lat)<=90 && Math.abs(lng)<=180 ? {lat,lng} : null;
+    }
     async function locateAddress(input) {
         try {
             clearError();input=input.trim();if(!input)throw new Error('أدخل اسم العنوان أو رابط الموقع أولًا.');
+            const point=parseCoordinates(input);
+            if(point) {await geocode({location:point});return;}
             if(/^https?:/.test(input)) {
                 const generation=++geocodeGeneration;
                 const point=await api('map-link',{url:input});const location={lat:point.latitude,lng:point.longitude};
@@ -427,6 +440,12 @@
             } else await geocode({address:input});
         }catch(e){fail(e);}
     }
+    // إحداثيات مكتوبة يدويًا: تحرّك الخريطة وتعبّئ المدينة والحي كما لو اختير الموقع عليها
+    ['address-latitude','address-longitude'].forEach(id=>$(id).addEventListener('change',()=>{
+        const f=$('new-address').elements;
+        if(f.latitude.value==='' || f.longitude.value==='' || !f.latitude.checkValidity() || !f.longitude.checkValidity())return;
+        clearError();geocode({location:{lat:Number(f.latitude.value),lng:Number(f.longitude.value)}}).catch(fail);
+    }));
     $('locate-address').onclick=()=>locateAddress($('map-search').value);
     $('locate-map-url').onclick=()=>locateAddress($('map-url').value);
     ['map-search','map-url'].forEach(id=>$(id).onkeydown=e=>{if(e.key==='Enter'){e.preventDefault();locateAddress($(id).value);}});

@@ -196,8 +196,8 @@ class HourlyPaymentService
 
     private function payable(HourlyRentalOrder $order, bool $allowCompleted = false): void
     {
-        if(in_array($order->status,['active','completed'],true) && $order->payment_status!=='paid' && app(PaymentScheduleService::class)->policy($order)!=='legacy' && $this->dueNow($order)>0)return;
-        if($allowCompleted && $order->status==='completed' && $order->payment_status!=='paid')return;
+        if(in_array($order->status,['active','completed',HourlyOrderService::AWAITING_PAYMENT],true) && $order->payment_status!=='paid' && app(PaymentScheduleService::class)->policy($order)!=='legacy' && $this->dueNow($order)>0)return;
+        if($allowCompleted && in_array($order->status,['completed',HourlyOrderService::AWAITING_PAYMENT],true) && $order->payment_status!=='paid')return;
         if (!in_array($order->status,['pending_confirmation','active'],true) || $order->expires_at->isPast() || $order->payment_status === 'paid') HourlyOrderService::reject('الطلب غير قابل للسداد.');
     }
 
@@ -214,5 +214,6 @@ class HourlyPaymentService
         if ($order->status === 'pending_confirmation' && $order->expires_at->isFuture() && ($full || self::activationPaid($order))) {
             $this->orders->transition($order,'active',$actor,$actorId,$full ? 'اكتمال السداد' : 'سداد الزيارة الأولى');
         }
+        $this->orders->settle($order,$actor,$actorId);
     }
 }

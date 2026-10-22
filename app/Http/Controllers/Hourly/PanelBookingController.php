@@ -87,8 +87,14 @@ class PanelBookingController extends Controller
                 && (!parse_url($url,PHP_URL_PORT) || parse_url($url,PHP_URL_PORT)===443)
                 && in_array($host,['maps.app.goo.gl','goo.gl','www.google.com','google.com','maps.google.com'],true),422,'استخدم رابط Google Maps صالحًا.');
             $decoded=urldecode($url);
-            if (preg_match('/!3d(-?\d+(?:\.\d+)?)!4d(-?\d+(?:\.\d+)?)/',$decoded,$match)
-                || preg_match('/(?:@|[?&](?:q|query|ll)=)(-?\d+(?:\.\d+)?),\s*(-?\d+(?:\.\d+)?)/',$decoded,$match)) {
+            // /maps/search/24.71,+46.67 and /maps/dir/<from>/24.71,46.67: the point is in the path (the last one is
+            // the destination); their @ is only the viewport centre.
+            $pathPoint=preg_match('#/maps/(?:search|dir)/#',$decoded)
+                && preg_match_all('#/(-?\d{1,3}\.\d+),\s*(-?\d{1,3}\.\d+)#',(string)parse_url($decoded,PHP_URL_PATH),$points,PREG_SET_ORDER);
+            if ($pathPoint) $match=end($points);
+            if ($pathPoint
+                || preg_match('/!3d(-?\d+(?:\.\d+)?)!4d(-?\d+(?:\.\d+)?)/',$decoded,$match)
+                || preg_match('/(?:@|[?&](?:q|query|ll|destination)=)(-?\d+(?:\.\d+)?),\s*(-?\d+(?:\.\d+)?)/',$decoded,$match)) {
                 abort_unless(abs((float)$match[1])<=90 && abs((float)$match[2])<=180,422);
                 return response()->json(['latitude'=>(float)$match[1],'longitude'=>(float)$match[2]]);
             }

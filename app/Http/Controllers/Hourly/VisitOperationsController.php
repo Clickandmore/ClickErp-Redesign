@@ -24,14 +24,25 @@ class VisitOperationsController extends Controller
             default=>null,
         };
         $visits=$search->sort($query,$filters)->with(['order.user','order.serviceCategory','order.visits','order.payments','workers','deliveryDriver','pickupDriver','teamLeader'])->withCount('workers as assigned_workers_count')->paginate($filters['per_page']??25)->withQueryString();
-        $allocations=[];foreach($visits->getCollection()->pluck('order')->unique('id') as $order)$allocations+=app(\App\Services\Hourly\VisitPaymentAllocation::class)->forOrder($order);
+        $allocations=[];$collectables=[];
+        foreach($visits->getCollection()->pluck('order')->unique('id') as $order){
+            $allocations+=app(\App\Services\Hourly\VisitPaymentAllocation::class)->forOrder($order);
+            $financial=app(\App\Services\Hourly\PaymentScheduleService::class)->forOrder($order);
+            foreach($order->visits as $visit){
+                $row=$financial['visits'][$visit->id];
+                $collectables[$visit->id]=in_array($visit->status,['cancelled','cancelled_by_client','expired'],true)
+                    || ($financial['policy']==='per_visit' && !$row['is_due'])?0:min($row['remaining'],$financial['remaining']);
+            }
+        }
         $timeExpression=DB::connection()->getDriverName()==='sqlite'?"strftime('%H:%M', scheduled_start_at)":"DATE_FORMAT(scheduled_start_at, '%H:%i')";
         $startTimes=HourlyVisit::whereNotNull('scheduled_start_at')->selectRaw($timeExpression.' as time')->distinct()->orderBy('time')->pluck('time')->all();
         // Half-hour choices plus existing exceptional times so older bookings remain searchable.
         for($minute=0;$minute<1440;$minute+=30)$startTimes[]=sprintf('%02d:%02d',intdiv($minute,60),$minute%60);
         $startTimes=array_unique($startTimes);sort($startTimes);
         return view('admin.hourly_visits.index',[
-            'visits'=>$visits,'filters'=>$filters,'mode'=>$mode,'total'=>$total,'assigned'=>$assigned,'modeStats'=>$modeStats,'allocations'=>$allocations,'startTimes'=>$startTimes,
+            'visits'=>$visits,'filters'=>$filters,'mode'=>$mode,'total'=>$total,'assigned'=>$assigned,'modeStats'=>$modeStats,'allocations'=>$allocations,'collectables'=>$collectables,'startTimes'=>$startTimes,
+            // Workers still on return hold, grouped by the visit holding them (shown on closed visits too).
+            'returnHolds'=>collect(\App\Services\Hourly\OverdueWorkerReturn::pending())->map(fn($hold,$maid)=>['maid'=>(int)$maid]+$hold)->groupBy('visit_id')->map(fn($rows)=>$rows->pluck('maid')->all())->all(),
             'customerSources'=>DB::table('hourly_customer_sources')->orderBy('name')->pluck('name','code')->all(),
             'teams'=>HourlyTeam::orderBy('name')->get(['id','name']), 'drivers'=>HourlyDriver::where('is_active',true)->orderBy('name')->get(['id','name']),
             'workers'=>\App\Models\ingaz\Maid::where('rental_mode','hourly')->orderBy('name')->get(['id','name']),

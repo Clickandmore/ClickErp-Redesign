@@ -105,6 +105,7 @@
     $statusChip = fn ($status) => match ($status) {
         'pending_confirmation' => ['hd-chip-warn', 'fa-hourglass-half'],
         'active' => ['ht-chip-on', 'fa-circle-check'],
+        'awaiting_payment' => ['hd-chip-warn', 'fa-file-invoice-dollar'],
         'expired' => ['ht-chip-off', 'fa-circle-xmark'],
         default => ['ht-chip-off', 'fa-circle'],
     };
@@ -214,7 +215,7 @@
         <div class="hd-filter-field"><label for="f_status"><i class="fa fa-flag"></i> {{ __('hourly.status') }}</label>
             <select id="f_status" name="status" class="form-select {{ !empty($filters['status']) ? 'is-set' : '' }}">
                 <option value="">كل الحالات</option>
-                @foreach(['pending_confirmation', 'active', 'expired'] as $status)
+                @foreach(['pending_confirmation', 'active', 'awaiting_payment', 'expired'] as $status)
                     <option value="{{ $status }}" {{ $sel('status', $status) }}>{{ __('hourly.'.$status) }}</option>
                 @endforeach
             </select>
@@ -331,7 +332,7 @@
                     </td>
                     <td>
                         <div class="ho-state">
-                            <span class="ht-chip {{ $statusClass }}"><i class="fa {{ $statusIcon }}"></i> {{ __('hourly.'.$order->status) }}</span>
+                            <span class="ht-chip {{ $statusClass }}"><i class="fa {{ $statusIcon }}"></i> {{ \App\Services\Hourly\HourlyOrderService::statusLabel($order) }}</span>
                             <span class="ho-expiry"><i class="fa fa-calendar-day"></i> حتى <span class="ht-num ho-ltr">{{ optional($order->expires_at)->format('Y-m-d') ?: '—' }}</span></span>
                             @if($daysLeft !== null)
                                 @if($daysLeft < 0)

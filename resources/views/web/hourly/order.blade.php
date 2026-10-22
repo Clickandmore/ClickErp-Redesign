@@ -5,7 +5,7 @@
 @section('content')
 @php
     $details = app(\App\Services\Hourly\CustomerHourlyData::class)->order($order,false);
-    $canPay = ($details['payment_schedule']['policy']!=='legacy' && in_array($order->status,['active','completed'])) || (!in_array($order->status,['cancelled','expired','completed']) && $order->expires_at->isFuture());
+    $canPay = ($details['payment_schedule']['policy']!=='legacy' && in_array($order->status,['active','completed','awaiting_payment'])) || (!in_array($order->status,['cancelled','expired','completed']) && $order->expires_at->isFuture());
     $canPay = $canPay && $details['payment_schedule']['due_now']>0;
     $paymentLabels = ['moyasar'=>'دفع إلكتروني (ميسر)','bank_transfer'=>'تحويل بنكي','cash'=>'الدفع عند الاستلام'];
     $schedule = $details['payment_schedule'];
@@ -33,7 +33,7 @@
                         <span class="od-number">طلب <bdi>{{ $order->order_number }}</bdi> · بتاريخ <bdi>{{ $order->created_at?->format('Y-m-d') }}</bdi></span>
                     </div>
                     <div class="od-states">
-                        <span class="od-state"><small>حالة الطلب</small>@include('web.hourly._status', ['value' => $order->status])</span>
+                        <span class="od-state"><small>حالة الطلب</small>@include('web.hourly._status', ['value' => $order->status, 'label' => \App\Services\Hourly\HourlyOrderService::statusLabel($order)])</span>
                         <span class="od-state"><small>الدفع</small>@include('web.hourly._status', ['value' => $order->payment_status])</span>
                     </div>
                 </div>

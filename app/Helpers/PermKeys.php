@@ -626,6 +626,7 @@ const PARTENR_CONTROL = 'partenr_control';
     public const HOURLY_ORDERS_COLLECT = 'hourly_orders_collect';
     public const HOURLY_ORDERS_CONFIRM = 'hourly_orders_confirm';
     public const HOURLY_ORDERS_CREATE = 'hourly_orders_create';
+    public const HOURLY_ORDERS_CLOSE_UNPAID = 'hourly_orders_close_unpaid';
     public const HOURLY_ORDERS_VIEW = 'hourly_orders_view';
     public const HOURLY_PACKAGES_CREATE = 'hourly_packages_create';
     public const HOURLY_PACKAGES_DELETE = 'hourly_packages_delete';

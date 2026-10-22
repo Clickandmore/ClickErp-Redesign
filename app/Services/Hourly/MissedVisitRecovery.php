@@ -128,6 +128,12 @@ class MissedVisitRecovery
             if($old && $old['id']===$data['request_token']) return $old;
             if(!self::eligible($visit,$order)) HourlyOrderService::reject('طلب المعالجة متاح لزيارة مدفوعة فات موعدها ولم يبدأ تنفيذها.');
             if($old && $old['status']==='pending') HourlyOrderService::reject('يوجد طلب معالجة قيد المراجعة لهذه الزيارة.');
+            if($data['type']==='reschedule'){
+                $start=Carbon::parse($data['requested_start']);
+                $slots=$this->customerAvailableSlots($order,$visitId,$start->toDateString());
+                if(!collect($slots)->contains(fn($slot)=>$slot['starts_at']===$start->format('Y-m-d\\TH:i')))
+                    HourlyOrderService::reject('الموعد المختار غير متاح. اختر موعدًا من المواعيد المتاحة.');
+            }
             $request=['id'=>$data['request_token'],'visit_id'=>$visitId,'type'=>$data['type'],'status'=>'pending',
                 'reason_code'=>ServiceIncident::recoverable($order,$visit)?'service_incident':(self::coverageRecovery($visit,$order)?'coverage_unavailable':'missed_visit'),
                 'disruption_id'=>ServiceIncident::state($order,$visitId)['id']??null,
@@ -172,6 +178,9 @@ class MissedVisitRecovery
                     if(!empty($data['new_start']) && Carbon::parse($data['new_start'])->format('Y-m-d\\TH:i')!==$requestedStart)
                         HourlyOrderService::reject('لا يمكن اعتماد موعد مختلف عن الموعد الذي اختاره العميل. ارفض الطلب ليختار العميل موعدًا آخر.');
                     if(!$start->isFuture()) HourlyOrderService::reject('اختر موعدًا مستقبليًا.');
+                    $available=$this->availableSlots($order,$visitId,$request['id'],$start->toDateString());
+                    if(!collect($available)->contains(fn($slot)=>$slot['starts_at']===$requestedStart))
+                        HourlyOrderService::reject('الموعد الذي اختاره العميل لم يعد متاحًا. ارفض الطلب مع توضيح السبب ليختار العميل موعدًا آخر.');
                     $end=$start->copy()->addMinutes((int)round($visit->planned_hours*60));
                     if($end->gt($order->expires_at)) $order->update(['expires_at'=>$end->copy()->endOfDay()]);
                     if($incident){

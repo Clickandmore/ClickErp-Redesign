@@ -124,7 +124,7 @@
                         <div class="si-meta">
                             <span><i class="fa fa-tag"></i>{{ $categoryLabel }}</span>
                             <span><i class="fa fa-user"></i>المصدر: {{ $sources[$incident->reporter_type] ?? $incident->reporter_type }}</span>
-                            <span><i class="fa fa-calendar"></i>زيارة #{{ $incident->visit_id }}</span>
+                            <span><i class="fa fa-calendar"></i>زيارة #{{ $incident->visit_id }}@if($incident->visit_start) · <bdi>{{ \Carbon\Carbon::parse($incident->visit_start)->format('Y-m-d H:i') }}</bdi>@endif</span>
                             <span dir="ltr"><i class="fa fa-clock"></i>{{ \Carbon\Carbon::parse($incident->created_at)->format('Y-m-d H:i') }}</span>
                         </div>
                     </div>
@@ -140,8 +140,11 @@
                         @csrf
                         <p class="si-form-title"><i class="fa fa-scale-balanced"></i> قرار الإدارة</p>
                         <div class="si-grid">
+                            <label class="si-field"><span>العاملة غير متاحة من <em>(افتراضيًا: موعد الزيارة المبلَّغ عنها)</em></span>
+                                <input type="datetime-local" class="form-control" name="unavailable_from" value="{{ $incident->visit_start ? \Carbon\Carbon::parse($incident->visit_start)->format('Y-m-d\TH:i') : now()->format('Y-m-d\TH:i') }}">
+                            </label>
                             <label class="si-field"><span>العاملة غير متاحة حتى <em>(مطلوب للاعتماد)</em></span>
-                                <input type="datetime-local" class="form-control" name="unavailable_until" min="{{ now()->format('Y-m-d\TH:i') }}">
+                                <input type="datetime-local" class="form-control" name="unavailable_until" min="{{ now()->format('Y-m-d\TH:i') }}" value="{{ $incident->visit_end && \Carbon\Carbon::parse($incident->visit_end)->isFuture() ? \Carbon\Carbon::parse($incident->visit_end)->format('Y-m-d\TH:i') : '' }}">
                             </label>
                             <label class="si-field"><span>سبب قرار الإدارة <em>(داخلي)</em></span>
                                 <textarea class="form-control" name="reason" required maxlength="2000"></textarea>
@@ -156,6 +159,7 @@
                 @elseif($incident->status !== 'pending')
                     <div class="si-decision">
                         <div><span>قرار الإدارة</span>{{ $incident->review_reason ?: '—' }}</div>
+                        @if($incident->unavailable_from ?? null)<div><span>بداية فترة عدم الجاهزية</span><bdi>{{ \Carbon\Carbon::parse($incident->unavailable_from)->format('Y-m-d H:i') }}</bdi></div>@endif
                         <div><span>نهاية فترة عدم الجاهزية</span><bdi>{{ $incident->unavailable_until ? \Carbon\Carbon::parse($incident->unavailable_until)->format('Y-m-d H:i') : '—' }}</bdi></div>
                         @if($incident->reviewed_at)<div><span>تاريخ المراجعة</span><bdi>{{ \Carbon\Carbon::parse($incident->reviewed_at)->format('Y-m-d H:i') }}</bdi></div>@endif
                     </div>

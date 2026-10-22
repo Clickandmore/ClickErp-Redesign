@@ -654,6 +654,24 @@ class HourlyPanelBookingTest extends TestCase
         $this->postJson('/panel/add-order/map-link',['url'=>'https://www.google.com/maps/@24.7,46.7,15z'])->assertOk()->assertJsonPath('latitude',24.7);
     }
 
+    /** The link Google gives when you search coordinates, and directions links, carry the point in the path. */
+    public function test_map_link_reads_coordinates_from_search_and_directions_links(): void
+    {
+        foreach ([
+            'https://www.google.com/maps/search/24.713600,+46.675300?entry=ttu',
+            'https://www.google.com/maps/dir//24.7136,46.6753',
+            // destination is the last point, not the @ viewport centre
+            'https://www.google.com/maps/dir/24.6000,46.6000/24.7136,46.6753/@24.65,46.63,12z',
+            'https://www.google.com/maps/dir/?api=1&destination=24.7136,46.6753',
+        ] as $url) {
+            $this->postJson('/panel/add-order/map-link',['url'=>$url])->assertOk()
+                ->assertJson(['latitude'=>24.7136,'longitude'=>46.6753]);
+        }
+        // a dropped pin still wins over the viewport centre
+        $this->postJson('/panel/add-order/map-link',['url'=>'https://www.google.com/maps/place/X/@24.7,46.6,17z/data=!3d24.7137!4d46.6754'])
+            ->assertOk()->assertJson(['latitude'=>24.7137,'longitude'=>46.6754]);
+    }
+
     public function test_saved_addresses_include_city_and_only_belong_to_selected_customer(): void
     {
         $first=$this->address(24.7,46.7,'الملز');

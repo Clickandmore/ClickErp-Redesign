@@ -9,6 +9,7 @@ class RenewalEligibility
 {
     public function reason(HourlyRentalOrder $order, ?bool $performed = null, ?Carbon $end = null): ?string
     {
+        if ($order->status === HourlyOrderService::AWAITING_PAYMENT) return 'انتهت زيارات الطلب ولم يُسدَّد المتبقي؛ سدِّد الطلب أولًا ثم جدِّده.';
         if (!in_array($order->status, ['active','completed'], true)) return 'التجديد متاح للطلبات النشطة أو المكتملة فقط؛ لا يمكن تجديد طلب ملغى أو غير مؤكد.';
         $period=app(ContractPeriod::class);
         $performed ??= $period->scope($order->visits()->getQuery())->where('status','completed')->exists();

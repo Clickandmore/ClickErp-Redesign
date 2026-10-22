@@ -9,7 +9,7 @@
 <article class="vl-card" data-visit-card="{{ $visit->id }}" style="--row-tone: {{ $toneHex }}">
     <header class="vl-card-head">
         <div class="vl-card-title">
-            <input id="select-visit-{{ $visit->id }}" type="checkbox" data-select-visit data-started="{{ $visit->has_started_execution ? '1' : '0' }}" value="{{ $visit->id }}" aria-label="تحديد الزيارة {{ $visit->id }}">
+            <input id="select-visit-{{ $visit->id }}" type="checkbox" data-select-visit data-collectable="{{ $collectables[$visit->id] ?? 0 }}" data-order-id="{{ $visit->hourly_rental_order_id }}" data-order-remaining="{{ max(0, $visit->order->total_amount - $visit->order->paid_amount) }}" data-started="{{ $visit->has_started_execution ? '1' : '0' }}" value="{{ $visit->id }}" aria-label="تحديد الزيارة {{ $visit->id }}">
             <a class="vl-card-id" href="{{ route('admin.hourly-visits.show', $visit) }}">زيارة {{ $visit->visit_number }}</a><small class="vl-muted">مرجع #{{ $visit->id }}</small>
             <span class="vl-card-service"><i class="fa fa-broom"></i> {{ $order->serviceCategory?->name ?? 'خدمة ساعات' }}</span>
         </div>
@@ -20,6 +20,11 @@
             @endif
             @if($canEdit && in_array($visit->status, \App\Services\Hourly\ShelterPresence::OUT_STATUSES, true))
                 <button type="button" class="vl-act" data-single="confirm_return" data-id="{{ $visit->id }}">تأكيد العودة للإيواء يدويًا</button>
+            @elseif(!empty($returnHolds[$visit->id]))
+                {{-- الزيارة مغلقة لكن عودة العاملة لم تُسجَّل فبقيت ممنوعة من الحجز؛ تُسجَّل العودة من ملفها. --}}
+                @foreach($visit->workers->whereIn('id', $returnHolds[$visit->id]) as $heldWorker)
+                    <a class="vl-act is-warn" href="{{ route('admin.hourly-maids.show', $heldWorker) }}" title="عودة {{ $heldWorker->name }} من هذه الزيارة لم تُسجَّل؛ سجّلها من ملف العاملة"><i class="fa fa-house-circle-exclamation"></i> تسجيل عودة {{ $heldWorker->name }}</a>
+                @endforeach
             @endif
             @include('admin.hourly_visits._delay')
             <span class="vl-badge {{ $fullyAssigned ? 'vl-b-green' : ($assignedCount ? 'vl-b-amber' : 'vl-b-red') }}"><i class="fa fa-user-check"></i> {{ $fullyAssigned ? 'تعيين مكتمل' : ($assignedCount ? 'تعيين جزئي' : 'بدون عاملات') }}</span>
@@ -158,9 +163,22 @@
             @endif
             <div class="dropdown">
                 <button type="button" class="vl-btn is-primary dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false"><i class="fa fa-money-bill-wave"></i> الدفع</button>
-                <ul class="dropdown-menu">
-                    @if($canCollect)<li><button type="button" class="dropdown-item" data-single="collect" data-id="{{ $visit->id }}"><i class="fa fa-plus"></i> إضافة دفعة</button></li>@endif
-                    <li><button type="button" class="dropdown-item" data-payments-url="{{ route('admin.hourly-visits.payments', $visit) }}"><i class="fa fa-clock-rotate-left"></i> سجل الدفعات</button></li>
+                @php $collectable = $collectables[$visit->id] ?? 0; @endphp
+                <ul class="dropdown-menu vl-pay-menu">
+                    <li class="vl-pay-summary">
+                        <div><span>مدفوع للزيارة</span><b class="vl-num">{{ number_format($visitPaid, 2) }} <small>ر.س</small></b></div>
+                        <div class="{{ $collectable > 0 ? 'is-due' : '' }}"><span>مستحق للتحصيل</span><b class="vl-num">{{ number_format($collectable, 2) }} <small>ر.س</small></b></div>
+                    </li>
+                    @if($canCollect && $collectable > 0)
+                        <li><button type="button" class="dropdown-item vl-pay-item" data-single="collect" data-id="{{ $visit->id }}">
+                            <span class="vl-pay-icon is-add"><i class="fa fa-plus"></i></span>
+                            <span><b>إضافة دفعة</b><small>تسجيل مبلغ محصَّل لهذه الزيارة</small></span>
+                        </button></li>
+                    @endif
+                    <li><button type="button" class="dropdown-item vl-pay-item" data-payments-url="{{ route('admin.hourly-visits.payments', $visit) }}">
+                        <span class="vl-pay-icon"><i class="fa fa-clock-rotate-left"></i></span>
+                        <span><b>سجل الدفعات</b><small>كل الدفعات وطرق الدفع والمحصِّلين</small></span>
+                    </button></li>
                 </ul>
             </div>
         </div>

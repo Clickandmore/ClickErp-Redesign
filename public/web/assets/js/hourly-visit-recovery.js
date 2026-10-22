@@ -1,3 +1,34 @@
+// Each date loads only the dispatcher's available slots for this visit.
+document.addEventListener('change', async event => {
+    const date = event.target;
+    if (!date.matches('[data-recovery-date]')) return;
+    const form = date.closest('form');
+    const times = form.querySelector('[data-recovery-times]');
+    const feedback = form.querySelector('[data-recovery-slots-feedback]');
+    const submit = form.querySelector('[type="submit"]');
+    form.recoveryController?.abort();
+    const controller = new AbortController();
+    form.recoveryController = controller;
+    times.replaceChildren(new Option('اختر الساعة', ''));
+    times.disabled = true;
+    submit.disabled = true;
+    feedback.textContent = date.value ? 'جارٍ تحميل المواعيد المتاحة…' : 'اختر التاريخ أولًا';
+    if (!date.value) return;
+    try {
+        const url = new URL(date.dataset.slotsUrl, location.href);
+        url.searchParams.set('date', date.value);
+        const response = await fetch(url, { credentials: 'same-origin', headers: { Accept: 'application/json' }, signal: controller.signal });
+        const result = await response.json();
+        if (!response.ok) throw new Error(result.message || 'تعذر تحميل المواعيد المتاحة. حاول مجددًا.');
+        for (const slot of result.data) times.add(new Option(slot.label, slot.starts_at));
+        times.disabled = !result.data.length;
+        submit.disabled = !result.data.length;
+        feedback.textContent = result.data.length ? 'اختر ساعة متاحة لإرسال طلبك إلى الإدارة.' : 'لا توجد مواعيد متاحة في هذا اليوم. اختر تاريخًا آخر.';
+    } catch (error) {
+        if (error.name !== 'AbortError') feedback.textContent = error.message;
+    }
+});
+
 document.addEventListener('submit', async event => {
     const form = event.target;
     if (!form.matches('[data-visit-recovery]')) return;

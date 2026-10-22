@@ -285,10 +285,10 @@
                 <div id="saved-addresses"></div>
                 <form id="new-address" hidden>
                     <div class="bk-address-search">
-                        <input id="map-search" class="form-control" placeholder="ابحث عن العنوان بالاسم أو المنطقة" aria-label="البحث عن العنوان بالاسم أو المنطقة">
+                        <input id="map-search" class="form-control" placeholder="ابحث بالعنوان أو المنطقة، أو الصق الإحداثيات مثل 24.7136, 46.6753" aria-label="البحث بالعنوان أو المنطقة أو الإحداثيات">
                         <button type="button" id="locate-address" aria-label="البحث عن الموقع"><i class="fa fa-search"></i></button>
                     </div>
-                    <details class="bk-map-link"><summary><i class="fa fa-link"></i> أو الصق رابط Google Maps بدلًا من البحث</summary><div class="d-flex gap-2 mt-3"><input id="map-url" type="url" class="form-control" placeholder="https://maps.app.goo.gl/..." aria-label="رابط Google Maps" dir="ltr"><button type="button" id="locate-map-url" class="btn btn-outline-primary text-nowrap">تحديد الموقع</button></div></details>
+                    <details class="bk-map-link"><summary><i class="fa fa-link"></i> أو الصق رابط Google Maps أو إحداثياته بدلًا من البحث</summary><div class="d-flex gap-2 mt-3"><input id="map-url" type="text" inputmode="url" class="form-control" placeholder="https://maps.app.goo.gl/... أو 24.7136, 46.6753" aria-label="رابط Google Maps أو الإحداثيات" dir="ltr"><button type="button" id="locate-map-url" class="btn btn-outline-primary text-nowrap">تحديد الموقع</button></div></details>
                     <div id="booking-map"></div>
                     <p id="map-hint" class="bk-map-hint" role="status">📍 اضغط على الخريطة أو استخدم البحث لتحديد الموقع بدقة.</p>
                     <div class="bk-address-location">
