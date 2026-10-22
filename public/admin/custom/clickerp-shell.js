@@ -13,17 +13,31 @@
         var roots = sidebar.querySelectorAll('.main-menu > .menu-list > li:not(.divider)');
         var visibleCount = 0;
 
+        // القسم يظهر إن طابق عنوانه (بكل عناصره) أو طابق أحد عناصره (فيظهر المطابق فقط).
+        // لا تُفتح إلا القوائم التي فيها عنصر مطابق، وما فتحه البحث يُغلق عند تغييره أو مسحه؛
+        // فتح كل القوائم كان يطيل الشريط الجانبي ويُظهر شريط التمرير ويتركها مفتوحة بعد المسح.
         roots.forEach(function (root) {
-            var matches = !query || normalise(root.textContent).indexOf(query) !== -1;
+            var link = root.querySelector(':scope > .m-link');
+            var ownMatch = !query || normalise(link ? link.textContent : root.textContent).indexOf(query) !== -1;
+            var childMatch = false;
+            root.querySelectorAll('.sub-menu > li').forEach(function (item) {
+                var hit = ownMatch || normalise(item.textContent).indexOf(query) !== -1;
+                item.classList.toggle('ck-nav-hidden', !hit);
+                if (hit && !ownMatch) childMatch = true;
+            });
+            var matches = ownMatch || childMatch;
             root.classList.toggle('ck-nav-hidden', !matches);
-            if (matches) {
-                visibleCount += 1;
-                if (query) {
-                    root.querySelectorAll('.collapse').forEach(function (submenu) {
-                        submenu.classList.add('show');
-                    });
+            if (matches) visibleCount += 1;
+
+            root.querySelectorAll('.collapse').forEach(function (submenu) {
+                if (childMatch && !submenu.classList.contains('show')) {
+                    submenu.classList.add('show');
+                    submenu.dataset.ckSearchOpened = '1';
+                } else if (!childMatch && submenu.dataset.ckSearchOpened) {
+                    submenu.classList.remove('show');
+                    delete submenu.dataset.ckSearchOpened;
                 }
-            }
+            });
         });
 
         sidebar.querySelectorAll('.ck-nav-group').forEach(function (group) {

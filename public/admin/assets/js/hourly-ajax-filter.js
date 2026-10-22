@@ -3,7 +3,7 @@
  * - data-ajax-loader / data-ajax-status: معرّفا اللودر ورسالة الخطأ خارج القسم.
  * - النموذج [data-ajax-form]: لا تُرسل الحقول الفارغة ولا الحقول داخل حاوية مخفية.
  * - [data-auto-apply] على حقل: يطبّق التصفية فور تغييره (والاختيار المتعدد عند إغلاق لوحته).
- * - الروابط [data-ajax-link] وروابط .pagination داخل القسم: تُجلب بالطريقة نفسها.
+ * - الروابط [data-ajax-link] وروابط .pagination و.hc-pager داخل القسم: تُجلب بالطريقة نفسها.
  * بعد كل تحديث يُطلق الحدث hx-filter:updated على document مع القسم الجديد في detail.root.
  */
 (function () {
@@ -85,7 +85,7 @@
         document.addEventListener('hms:commit', autoApply);
         document.addEventListener('click', event => {
             if (event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
-            const link = event.target.closest?.('a[data-ajax-link], .pagination a[href]');
+            const link = event.target.closest?.('a[data-ajax-link], .pagination a[href], .hc-pager a[href]');
             if (!link || !current()?.contains(link)) return;
             event.preventDefault(); load(link.href);
         });

@@ -2116,7 +2116,7 @@ return array (
   'save_complaint' => 'حفظ الشكوى',
   'save_changes' => 'حفظ التعديلات',
   'select_placeholder' => 'اختر...',
-  'complaint_phone_invalid' => 'رقم الجوال يجب أن يبدأ بـ 05 ويتكون من 10 أرقام',
+  'complaint_phone_invalid' => 'أدخل رقم جوال يبدأ بـ 05 من 10 أرقام أو بـ 5 من 9 أرقام، بدون مسافات أو رمز الدولة.',
   'update_complainant_from_client_confirm' => 'هل تريد تحديث بيانات مقدم الشكوى من بيانات العميل المختار؟',
   'created_at_label' => 'تاريخ الإنشاء',
   'last_updated_at' => 'آخر تحديث',

@@ -126,7 +126,7 @@
                 <div class="col-lg-2 mb-3">
                     <label class="form-label">الجوال <span class="required">*</span></label>
                     <input type="tel" name="complainant_phone" class="form-control @error('complainant_phone') is-invalid @enderror" value="{{ old('complainant_phone', $complaint->complainant_phone ?? null) }}" placeholder="05XXXXXXXX" required>
-                    @error('complainant_phone')<div class="text-danger small mt-1">{{ $message }}</div>@enderror
+                    <div id="complainantPhoneError" class="text-danger small mt-1" data-field="complainant_phone" aria-live="polite">@error('complainant_phone'){{ $message }}@enderror</div>
                 </div>
             </div></div>
         </section>
@@ -301,11 +301,23 @@ $(function () {
     $('[name="relation_type"]').on('change', refreshRelationPanels);
     refreshRelationPanels();
 
+    const $phone = $('[name="complainant_phone"]');
+    $phone.attr('aria-describedby', 'complainantPhoneError');
+    function validatePhone() {
+        const phone = String($phone.val() || '');
+        const valid = /^(05|5)[0-9]{8}$/.test(phone);
+        $phone.toggleClass('is-invalid', !valid).attr('aria-invalid', String(!valid));
+        $('#complainantPhoneError').text(valid ? '' : @json(helperTrans('ingaz.complaint_phone_invalid')));
+        return valid;
+    }
+    $phone.on('input', validatePhone);
+
     $('#complainantUser').on('change', function () {
         const option = $(this).find(':selected');
         if (option.val()) {
             $('[name="complainant_name"]').val(option.data('name'));
             $('[name="complainant_phone"]').val(option.data('phone'));
+            validatePhone();
             $('#complainantType').val('client');
         }
     });
@@ -325,11 +337,7 @@ $(function () {
             $(this).toggleClass('is-invalid', empty);
             valid = valid && !empty;
         });
-        const phone = $('[name="complainant_phone"]').val();
-        if (phone && !/^(05|5)[0-9]{8}$/.test(phone)) {
-            $('[name="complainant_phone"]').addClass('is-invalid');
-            valid = false;
-        }
+        valid = validatePhone() && valid;
         if (!valid) {
             event.preventDefault();
             event.stopImmediatePropagation();

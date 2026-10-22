@@ -3500,7 +3500,7 @@ return array (
   'save_changes' => 'Save Changes',
   'select_placeholder' => 'Select...',
   'no_results' => 'No results found',
-  'complaint_phone_invalid' => 'Mobile number must start with 05 and contain 10 digits.',
+  'complaint_phone_invalid' => 'Enter 10 digits starting with 05 or 9 digits starting with 5, without spaces or a country code.',
   'update_complainant_from_client_confirm' => 'Do you want to update complainant data from the selected client?',
   'created_at_label' => 'Created At',
   'last_updated_at' => 'Last Updated',
