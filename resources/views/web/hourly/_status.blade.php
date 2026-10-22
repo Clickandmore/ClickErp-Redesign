@@ -5,4 +5,4 @@
         default => 'wait',
     };
 @endphp
-<span class="hr-status {{ $tone }}">{{ __('hourly.' . $value) }}</span>
+<span class="hr-status {{ $tone }}">{{ $label ?? __('hourly.' . $value) }}</span>

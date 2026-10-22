@@ -19,7 +19,9 @@
     <details class="mt-2"><summary>طلب إعادة الجدولة دون دفع جديد</summary>
         <form data-visit-recovery method="post" action="{{ route('web.hourly.visit.recovery',[$order->id,$visit->id]) }}" class="mt-2">
             @csrf<input type="hidden" name="type" value="reschedule"><input type="hidden" name="request_token" value="{{ \Illuminate\Support\Str::uuid() }}">
-            <label>الموعد المقترح<input class="form-control" name="requested_start" type="datetime-local" min="{{ now()->format('Y-m-d\TH:i') }}" required></label>
+            <label>التاريخ<input class="form-control" data-recovery-date type="date" min="{{ now()->toDateString() }}" required data-slots-url="{{ route('web.hourly.visit.recovery-slots',[$order->id,$visit->id]) }}"></label>
+            <label>الساعات المتاحة<select class="form-control" name="requested_start" data-recovery-times required disabled><option value="">اختر التاريخ أولًا</option></select></label>
+            <p data-recovery-slots-feedback role="status"></p>
             <label>ملاحظات<textarea class="form-control" name="note" maxlength="1000"></textarea></label>
             <p>تحتفظ الزيارة بقيمتها. تعتمد الإدارة الموعد بعد التحقق من عدم التنفيذ والتوفر.</p>
             <button type="submit" class="hr-btn secondary sm">إرسال طلب إعادة الجدولة</button><p data-recovery-feedback role="status"></p>

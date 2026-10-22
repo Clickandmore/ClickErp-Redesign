@@ -71,7 +71,7 @@
                         </div>
 
                         <div class="ho-state">
-                            @include('web.hourly._status', ['value' => $order->status])
+                            @include('web.hourly._status', ['value' => $order->status, 'label' => \App\Services\Hourly\HourlyOrderService::statusLabel($order)])
                             @include('web.hourly._status', ['value' => $order->payment_status])
                         </div>
 

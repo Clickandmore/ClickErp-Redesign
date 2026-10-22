@@ -182,7 +182,7 @@ class WebsiteHourlyController extends Controller
         $order=$this->owned($id)->load('visits','payments');
         $details=$presenter->order($order);
         $schedule=$details['payment_schedule'];
-        $canPay=(($schedule['policy']??null)!=='legacy' && in_array($order->status,['active','completed'],true))
+        $canPay=(($schedule['policy']??null)!=='legacy' && in_array($order->status,['active','completed',\App\Services\Hourly\HourlyOrderService::AWAITING_PAYMENT],true))
             || (!in_array($order->status,['cancelled','expired','completed'],true) && $order->expires_at->isFuture());
         $canPay=$canPay && (float)($schedule['due_now']??0)>0;
         $banks=Schema::hasTable('bank_accounts')

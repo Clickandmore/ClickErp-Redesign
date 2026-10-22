@@ -344,7 +344,7 @@ class CustomerDirectory
      */
     public function favoritesFirst(Collection $maids, ?int $userId): Collection
     {
-        if (!$userId || $maids->isEmpty() || !\Illuminate\Support\Facades\Schema::hasTable('hourly_customer_favorites')) return $maids;
+        if (!$userId || $maids->isEmpty() || !\App\Support\SchemaCache::hasTable('hourly_customer_favorites')) return $maids;
         $maidIds = $this->favoriteIds($userId, 'maid');
         $teamIds = $this->favoriteIds($userId, 'team');
         if (!$maidIds && !$teamIds) return $maids;

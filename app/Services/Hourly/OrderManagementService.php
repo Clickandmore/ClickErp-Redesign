@@ -305,6 +305,7 @@ class OrderManagementService
         $workers=$this->availableWorkers($order,$visit,true,$ignoreCaps,$ignoreBreak);
         if(!$releaseOnly)foreach(array_diff($ids,$workers->pluck('id')->all()) as $id){$maid=\App\Models\ingaz\Maid::find($id);if($maid)HourlyOrderService::reject(app(HourlyWorkerAssignment::class)->unavailableMessage($maid,$visit,$order->package_snapshot));}
         if(!$releaseOnly && (array_diff($ids,$workers->pluck('id')->all()) || $workers->count()<$visit->workers_count))HourlyOrderService::reject('تعارض في تعيين العاملات: العاملة مرتبطة بزيارة أو حجز آخر، أو خارج جدول العمل أو فريق الخدمة، أو العدد المتاح غير كافٍ.');
+        if(count($ids)>(int)$visit->workers_count)HourlyOrderService::reject('تعيينات الزيارة تتجاوز العدد المطلوب. راجع العاملات المعيّنات وأزل التعيين الزائد أولًا.');
         if($assignAll)$ids=array_merge($ids,$workers->whereNotIn('id',$ids)->take(max(0,$visit->workers_count-count($ids)))->pluck('id')->all());
         $visit->workers()->sync($ids);
         DB::table('hourly_visit_reservations')->where('hourly_visit_id',$visit->id)->delete();

@@ -562,4 +562,26 @@ class HourlyVisitOperationsTest extends TestCase
         $this->assertEquals(1000,DB::table('users')->where('id',1)->value('hourly_wallet_balance'));
         $this->assertSame(0,$order->payments()->where('amount','<',0)->count());
     }
+
+    public function test_paid_visit_hides_collection_and_reports_actual_remaining(): void
+    {
+        if(!Schema::hasColumn('hourly_visit_workers','status'))Schema::table('hourly_visit_workers',fn(Blueprint $t)=>$t->string('status')->nullable());
+        $order=$this->order();$visit=$order->visits()->first();$service=app(VisitBatchService::class);
+        $this->get('/admin/hourly/visits')->assertOk()->assertSee('data-single="collect"',false);
+        $data=['method'=>'cash','paid_at'=>now()->format('Y-m-d\TH:i')];
+        $service->run($this->payload('collect',[$visit->id],$data+['amount'=>50]),7);
+        $left=(float)$order->total_amount-50;
+        try{
+            $service->run($this->payload('collect',[$visit->id],$data+['amount'=>$left+1]),7);
+            $this->fail('Overpayment accepted');
+        }catch(ValidationException $e){$this->assertStringContainsString(number_format($left,2).' ر.س',json_encode($e->errors(),JSON_UNESCAPED_UNICODE));}
+        $service->run($this->payload('collect',[$visit->id],$data+['amount'=>$left]),7);
+        $this->get('/admin/hourly/visits')->assertOk()->assertDontSee('data-single="collect"',false)->assertSee('سجل الدفعات');
+        try{
+            $service->run($this->payload('collect',[$visit->id],$data+['amount'=>1]),7);
+            $this->fail('Duplicate payment accepted');
+        }catch(ValidationException $e){$this->assertStringContainsString('مسددة بالكامل',json_encode($e->errors(),JSON_UNESCAPED_UNICODE));}
+        $this->assertEquals($order->total_amount,$order->fresh()->paid_amount);
+        $this->assertEquals($order->total_amount,DB::table('hourly_order_payments')->sum('amount'));
+    }
 }

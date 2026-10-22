@@ -69,7 +69,23 @@ class VisitBatchService
         if(\Illuminate\Support\Facades\Schema::hasTable('hourly_visit_reservations'))$assigned=array_values(array_unique(array_merge($assigned,
             DB::table('hourly_visit_reservations')->where('hourly_visit_id',$visit->id)->pluck('maid_id')->map(fn($id)=>(int)$id)->all())));
         $other=$order->visits->where('id','!=',$visit->id)->whereNotIn('status',['cancelled','cancelled_by_client','expired'])->whereNotNull('scheduled_start_at');
-        $rest=(int)($snapshot['break_minutes']??0)+(int)($snapshot['buffer_minutes']??0);$manager=app(OrderManagementService::class);$result=[];
+        $rest=(int)($snapshot['break_minutes']??0)+(int)($snapshot['buffer_minutes']??0);$result=[];
+        // Same check as OrderManagementService::availableWorkers, but the pool is loaded once and each slot stops
+        // as soon as the assigned workers plus enough others are free, instead of re-scanning every worker per slot.
+        $assignment=app(HourlyWorkerAssignment::class);
+        $pool=$assignment->candidates($package,$teamId,(bool)($order->package_snapshot['assign_by_product_attribute']??false),(bool)($order->booking_metadata['all_workers']??false))
+            ->orderBy('maids.id')->get()->keyBy(fn($maid)=>(int)$maid->id);
+        $slotHasWorkers=function(string $from,string $to)use($pool,$assigned,$assignment,$order,$visit): bool{
+            $free=fn($maid)=>$assignment->available($maid,$from,$to,$order->package_snapshot,$visit->id);
+            foreach($assigned as $id)if(!isset($pool[$id]) || !$free($pool[$id]))return false;
+            $count=count($assigned);
+            foreach($pool as $id=>$maid){
+                if($count>=$visit->workers_count)return true;
+                if(!in_array($id,$assigned,true) && $free($maid))$count++;
+            }
+            return $count>=$visit->workers_count;
+        };
+        return OverdueWorkerReturn::remember(function()use($slots,$snapshot,$other,$rest,$order,$package,$visit,$slotHasWorkers,$result){
         foreach($slots as $slot){
             $start=\Carbon\Carbon::parse($slot['starts_at']);$end=\Carbon\Carbon::parse($slot['ends_at']);
             if($order->expires_at && $end->gt($order->expires_at))continue;
@@ -77,13 +93,12 @@ class VisitBatchService
                 app(HourlyBookingRules::class)->assertSessionDates($snapshot,array_merge($other->map(fn($v)=>$v->scheduled_start_at->format('Y-m-d H:i'))->all(),[$start->format('Y-m-d H:i')]),true);
                 foreach($other as $existing)if($start->lt($existing->scheduled_end_at->copy()->addMinutes($rest))&&$end->gt($existing->scheduled_start_at->copy()->subMinutes($rest)))throw \Illuminate\Validation\ValidationException::withMessages(['starts_at'=>'overlap']);
                 app(DuplicateBookingService::class)->assertAvailable((int)$order->user_id,$order->only(['city_id','address_text','latitude','longitude','building','unit']),$package,[$slot],$visit->id,true);
-                $candidate=clone $visit;$candidate->scheduled_start_at=$start;$candidate->scheduled_end_at=$end;$candidate->scheduled_date=$start->toDateString();$candidate->hourly_team_id=$teamId;
-                $workers=$manager->availableWorkers($order,$candidate);
-                if($workers->count()<$visit->workers_count || count(array_diff($assigned,$workers->pluck('id')->map(fn($id)=>(int)$id)->all())))continue;
+                if(!$slotHasWorkers($start->toDateTimeString(),$end->toDateTimeString()))continue;
             }catch(\Illuminate\Validation\ValidationException $e){continue;}catch(\Illuminate\Http\Exceptions\HttpResponseException $e){continue;}
             $result[]=['starts_at'=>$start->format('Y-m\\-d\\TH:i'),'label'=>$start->format('H:i')];
         }
         return $result;
+        });
     }
 
     public function run(array $data,int $admin): array
@@ -148,7 +163,21 @@ class VisitBatchService
             }
             $limits[$o->id]=max(0,min($selectedDue,(int)round(($o->total_amount-$o->paid_amount)*100)));
         }
-        if($remaining>array_sum($limits))HourlyOrderService::reject('المبلغ يتجاوز المتبقي للزيارات المحددة بعد توزيع السداد السابق حسب ترتيب الزيارات.');
+        if($remaining>array_sum($limits)){
+            $available=array_sum($limits);
+            if($visits->count()===1){
+                $visit=$visits->first();$order=$orders->firstWhere('id',$visit->hourly_rental_order_id);
+                $financial=app(PaymentScheduleService::class)->forOrder($order);$row=$financial['visits'][$visit->id];
+                if($row['remaining']<=0 || $financial['remaining']<=0)
+                    HourlyOrderService::reject('الزيارة #'.$visit->id.' مسددة بالكامل أو لا يوجد رصيد متبقٍ على الطلب. لا يمكن إضافة دفعة أخرى. راجع سجل الدفعات.');
+                if(in_array($visit->status,['cancelled','cancelled_by_client','expired'],true))
+                    HourlyOrderService::reject('لا يمكن تحصيل دفعة لهذه الزيارة بسبب حالتها الحالية.');
+                if($financial['policy']==='per_visit' && !$row['is_due'])
+                    HourlyOrderService::reject('لم يحن موعد استحقاق سداد الزيارة #'.$visit->id.' بعد.');
+            }
+            if($available<=0)HourlyOrderService::reject('لا يوجد مبلغ مستحق للتحصيل للزيارات المحددة حاليًا. راجع حالات الزيارات ومواعيد الاستحقاق وسجل الدفعات.');
+            HourlyOrderService::reject('المبلغ المدخل '.number_format($remaining/100,2).' ر.س يتجاوز المتاح للتحصيل للزيارات المحددة: '.number_format($available/100,2).' ر.س بعد خصم السداد السابق.');
+        }
         $receipts=[];
         foreach($orders as $o){
             $amount=min($remaining,$limits[$o->id]);if(!$amount)continue;

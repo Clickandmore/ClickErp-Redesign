@@ -116,6 +116,9 @@ class CustomerHourlyData
             'address' => $order->only(['city_id','address_text','latitude','longitude','district','building','unit','contact_phone'])];
         $data['payment_schedule']=app(PaymentScheduleService::class)->forOrder($order);
         $data['refundable_amount'] = max(0,round((float)$order->paid_amount-(float)$order->total_amount,2));
+        // Visits finished with money still owed: clients show this label and the amount to pay.
+        $data['status_label'] = HourlyOrderService::statusLabel($order);
+        $data['amount_due'] = max(0,round((float)$order->total_amount-(float)$order->paid_amount,2));
         if ($details) $data['refunded_amount'] = -(float)$order->payments()->where('status','paid')->where('amount','<',0)->sum('amount');
         if ($details && CashCollectionService::ready()) $data['cash_receipts']=DB::table('hourly_cash_collections')->where('order_id',$order->id)->get(['id','payment_id','amount'])->map(fn($r)=>[
             'collection_id'=>(int)$r->id,'payment_id'=>(int)$r->payment_id,'amount'=>(float)$r->amount,'url'=>url('api/app/hourly/cash-receipts/'.$r->id)])->all();

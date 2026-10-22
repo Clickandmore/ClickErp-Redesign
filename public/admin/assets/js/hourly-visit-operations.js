@@ -19,8 +19,16 @@
         return ['cancel_visit','reschedule','start_time','duration'].includes(choice)
             && boxes.some(box=>target.includes(box.value) && box.dataset.started==='1');
     }
+    function collectibleCents(){
+        const groups=new Map();
+        boxes.filter(box=>target.includes(box.value)).forEach(box=>{
+            const key=box.dataset.orderId, row=groups.get(key)||{amount:0,limit:Math.round(Number(box.dataset.orderRemaining)*100)};
+            row.amount+=Math.round(Number(box.dataset.collectable)*100);groups.set(key,row);
+        });
+        return [...groups.values()].reduce((sum,row)=>sum+Math.min(row.amount,row.limit),0);
+    }
     function step(name){
-        modal.querySelectorAll('[data-pick-action]').forEach(tile=>{tile.hidden=blockedStartedAction(tile.dataset.pickAction);tile.style.display=tile.hidden?'none':'';});
+        modal.querySelectorAll('[data-pick-action]').forEach(tile=>{tile.hidden=blockedStartedAction(tile.dataset.pickAction)||(tile.dataset.pickAction==='collect'&&collectibleCents()<=0);tile.style.display=tile.hidden?'none':'';});
         const tile=modal.querySelector('[data-pick-action="'+action.value+'"]'),showForm=name==='form'&&!!tile;
         modal.dataset.opStep=showForm?'form':'pick';
         document.getElementById('vl-modal-title').textContent=showForm?tile.dataset.label:'الإجراءات';
@@ -29,6 +37,14 @@
         // أزرار الزيارة الواحدة تفتح إجراءً بعينه، فلا معنى للرجوع إلى كل الإجراءات.
         document.getElementById('vl-back').hidden=modal.dataset.single==='1';
         fields();
+        if(action.value==='collect'){
+            const amount=form.elements.amount,limit=collectibleCents()/100;
+            amount.max=limit.toFixed(2);
+            amount.placeholder='المتاح للتحصيل: '+limit.toFixed(2)+' ر.س';
+            let hint=form.querySelector('[data-collection-balance]');
+            if(!hint){hint=document.createElement('p');hint.dataset.collectionBalance='';amount.after(hint);}
+            hint.textContent='المتاح للتحصيل للزيارات المحددة: '+limit.toFixed(2)+' ر.س بعد خصم السداد السابق.';
+        }
     }
     modal.querySelectorAll('[data-pick-action]').forEach(tile=>tile.addEventListener('click',()=>{action.value=tile.dataset.pickAction;step('form');}));
     document.getElementById('vl-back').addEventListener('click',()=>{action.value='';step('pick');});
@@ -36,6 +52,7 @@
         if(busy)return;
         if(!ids.length){swal({icon:'info',title:'لم تحدد أي زيارة',text:'حدد زيارة واحدة على الأقل من القائمة ثم اختر الإجراء.'});return;}
         target=ids;form.reset();const slotPicker=form.querySelector('[data-reschedule-slots]'),manualPicker=form.querySelector('[data-reschedule-manual]');if(slotPicker)slotPicker.hidden=true;if(manualPicker)manualPicker.hidden=false;workersLoading=false;submit.disabled=false;form.elements.batch_id.value=crypto.randomUUID();action.value=choice||'';modal.dataset.single=choice?'1':'0';
+        if(choice==='collect'&&collectibleCents()<=0){swal({icon:'info',title:'لا يوجد مبلغ متاح للتحصيل',text:'الزيارة مسددة بالكامل أو لا يوجد مبلغ مستحق للتحصيل حاليًا. راجع سجل الدفعات.'});return;}
         step(choice?'form':'pick');
         document.getElementById('vl-target').textContent=(ids.length===1?'':ids.length+' ')+'زيارة محددة: #'+ids.join('، #');
         bootstrap.Modal.getOrCreateInstance(modal).show();
@@ -92,6 +109,11 @@
         const label=modal.querySelector('[data-pick-action="'+action.value+'"]')?.dataset.label||'الإجراء';
         busy=true;submit.disabled=true;error.hidden=true;
         try{
+            if(action.value==='collect'){
+                const limit=collectibleCents(),amount=Math.round(Number(form.elements.amount.value)*100);
+                if(limit<=0)throw new Error('لا يوجد مبلغ متاح للتحصيل للزيارات المحددة. حدّث القائمة وراجع سجل الدفعات.');
+                if(amount>limit)throw new Error('المبلغ المدخل يتجاوز المتاح للتحصيل: '+(limit/100).toFixed(2)+' ر.س بعد خصم السداد السابق.');
+            }
             let preview='سيُنفَّذ على '+target.length+' زيارة. السبب: '+form.elements.reason.value;
             if(action.value==='assign_workers'){
                 const chosen=[...root.querySelectorAll('[name="worker_ids[]"]:checked')];

@@ -60,6 +60,8 @@ class PaymentScheduleService
             $due=$paid<$charge?$charge-$paid:$remaining;
         }
         if(in_array($order->status,['cancelled','expired'],true))$due=0;
+        // Every visit is finished, so the whole balance (including installments not yet reached) is due.
+        if($order->status===HourlyOrderService::AWAITING_PAYMENT)$due=$remaining;
         return ['policy'=>$policy,'policy_label'=>self::LABELS[$policy],'remaining'=>$remaining/100.0,
             'due_now'=>min($remaining,max(0,$due))/100.0,'overdue'=>min($remaining,$overdue)/100.0,'visits'=>$visits,'installments'=>$installments];
     }

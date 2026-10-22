@@ -38,7 +38,16 @@ class WorkerReplacement
                 && ($last['old_worker_id']??null)===$old && ($last['new_worker_id']??null)===$new) return;
             if(!in_array($old,$ids,true) || in_array($new,$ids,true) || $old===$new)
                 HourlyOrderService::reject('تغيّر تعيين العاملات؛ حدّث الصفحة واختر العاملة المعيّنة وبديلتها.');
-            $next=array_map(fn($id)=>$id===$old?$new:$id,$ids);
+            $current=$ids;
+            if(count($current)>(int)$visit->workers_count){
+                // Legacy automatic scheduling appended workers to the customer's original choices.
+                // Recover only when that original complete team still identifies the intended seats.
+                $booked=array_values(array_unique(array_map('intval',$order->package_snapshot['selected_maid_ids']??[])));
+                if(count($booked)!==(int)$visit->workers_count || !in_array($old,$booked,true) || array_diff($booked,$current))
+                    HourlyOrderService::reject('تعيينات الزيارة تتجاوز العدد المطلوب. يجب أن تراجع الإدارة التعيينات قبل اختيار البديلة.');
+                $current=$booked;
+            }
+            $next=array_map(fn($id)=>$id===$old?$new:$id,$current);
             $before=['worker_ids'=>$ids,'visit_price'=>$visit->visit_price,'workers_count'=>$visit->workers_count];
             // Existing assignment validates service attributes, availability, team, capacity and routes.
             app(OrderManagementService::class)->apply($order,['action'=>'assign_workers','visit_ids'=>[$visitId],

@@ -215,6 +215,9 @@ class ShelterPresence
     }
     public function close(HourlyVisit $visit, string $byType, ?int $byId): void
     {
+        // A worker row left at delivered/finished/picked_up keeps her on return hold even after the visit closes.
+        DB::table('hourly_visit_workers')->where('hourly_visit_id', $visit->id)->whereIn('status', ['delivered', 'finished', 'picked_up'])
+            ->update(['status' => 'returned', 'updated_at' => now()]);
         if (!Schema::hasTable('worker_daily_movements')) return;
         WorkerDailyMovement::where('source', WorkerDailyMovement::SOURCE_HOURLY_VISIT)
             ->where('reference_type', 'hourly_visit')->where('reference_id', $visit->id)

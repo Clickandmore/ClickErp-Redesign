@@ -145,6 +145,7 @@ Route::prefix('hourly')->middleware('feature.hourly_rental')->group(function () 
         Route::post('orders/{order}/notes', [\App\Http\Controllers\Hourly\OrderController::class, 'note'])->name('admin.hourly-orders.note');
         Route::post('orders/{order}/confirm', [\App\Http\Controllers\Hourly\OrderController::class, 'confirm'])->name('admin.hourly-orders.confirm');
         Route::post('orders/{order}/payments', [\App\Http\Controllers\Hourly\OrderController::class, 'collect'])->name('admin.hourly-orders.collect');
+        Route::post('orders/{order}/close-unpaid', [\App\Http\Controllers\Hourly\OrderController::class, 'closeUnpaid'])->name('admin.hourly-orders.close-unpaid');
         Route::post('orders/{order}/payments/{payment}/bank-transfer-review', [\App\Http\Controllers\Hourly\OrderController::class, 'reviewBankTransfer'])->name('admin.hourly-orders.bank-transfer-review');
         Route::get('orders/{order}/invoice', [\App\Http\Controllers\Hourly\OrderController::class, 'invoice'])->name('admin.hourly-orders.invoice');
         Route::get('orders/{order}/payments/{payment}/attachment', [\App\Http\Controllers\Hourly\OrderController::class, 'attachment'])->name('admin.hourly-orders.attachment');
@@ -158,6 +159,7 @@ Route::prefix('hourly')->middleware('feature.hourly_rental')->group(function () 
         Route::post('maids/{maid}/to-hourly', [\App\Http\Controllers\ingaz\MaidRentalModeController::class, 'toHourly'])->whereNumber('maid')->name('admin.hourly-maids.to-hourly');
         Route::post('maids/{maid}/to-regular', [\App\Http\Controllers\ingaz\MaidRentalModeController::class, 'toRegular'])->whereNumber('maid')->name('admin.hourly-maids.to-regular');
         Route::post('maids/{maid}/login-as', [\App\Http\Controllers\admin\HourlyMaidController::class, 'loginAs'])->whereNumber('maid')->name('admin.hourly-maids.login-as');
+        Route::post('maids/{maid}/visits/{visit}/return', [\App\Http\Controllers\admin\HourlyMaidController::class, 'returnFromVisit'])->whereNumber('maid')->whereNumber('visit')->name('admin.hourly-maids.return-from-visit');
         Route::get('maids/{maid}/{tab?}', [\App\Http\Controllers\admin\HourlyMaidController::class, 'show'])->whereNumber('maid')->name('admin.hourly-maids.show');
         Route::get('maids/{maid}/calendar/feed', [\App\Http\Controllers\admin\HourlyMaidController::class, 'calendar'])->whereNumber('maid')->name('admin.hourly-maids.calendar');
         Route::put('maids/{maid}', [\App\Http\Controllers\admin\HourlyMaidController::class, 'update'])->whereNumber('maid')->name('admin.hourly-maids.update');

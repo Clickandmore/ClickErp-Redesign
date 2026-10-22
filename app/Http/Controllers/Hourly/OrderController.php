@@ -140,6 +140,14 @@ class OrderController extends Controller
         return $request->expectsJson()?response()->json(['message'=>__('operational_notes.saved')]):back()->with('success',__('operational_notes.saved'));
     }
     public function confirm(HourlyRentalOrder $order, HourlyOrderService $service) { $service->confirm($order,auth('admin')->id()); return back()->with('success','تم تأكيد الطلب.'); }
+    public function closeUnpaid(Request $request, HourlyRentalOrder $order)
+    {
+        abort_unless(AdminGuardHasPerm('hourly_orders_close_unpaid'),403);
+        $data=$request->validate(['reason'=>['required','string','max:1000'],'confirmed'=>['required','accepted']]);
+        app(\App\Services\Hourly\HourlyOrderService::class)->closeUnpaid($order,(int)auth('admin')->id(),$data['reason']);
+        return back()->with('success','تم إغلاق الطلب مع بقاء المتبقي مسجّلًا عليه.');
+    }
+
     public function collect(Request $request, HourlyRentalOrder $order, HourlyPaymentService $service)
     {
         $data=$request->validate(['amount'=>['required','numeric','min:0.01'], 'method'=>['nullable','in:cash,card_on_delivery'], 'attachment'=>['nullable','file','mimes:pdf,jpg,jpeg,png','max:5120']]);

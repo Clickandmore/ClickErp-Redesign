@@ -2,11 +2,22 @@
 namespace App\Services\Hourly;
 
 use App\Support\HourlyRentalSettings;
-use Illuminate\Support\Facades\{DB,Schema};
+use App\Support\SchemaCache as Schema;
+use Illuminate\Support\Facades\DB;
 
 /** Physical return holds are evaluated live, independently of the reminder cron. */
 class OverdueWorkerReturn
 {
+    /** All workers' holds, taken once by remember() so per-slot availability checks do not re-query them. */
+    private static ?array $snapshot=null;
+
+    public static function remember(callable $callback)
+    {
+        if(self::$snapshot!==null)return $callback();
+        self::$snapshot=self::pending();
+        try{return $callback();}finally{self::$snapshot=null;}
+    }
+
     /** @return array<int,array{visit_id:int,ended_at:?string}> */
     public static function pending(?int $maidId=null, ?int $exceptVisit=null): array
     {
@@ -67,7 +78,7 @@ class OverdueWorkerReturn
 
     public static function reason(int $maidId, ?int $exceptVisit=null): ?string
     {
-        $pending=self::pending($maidId,$exceptVisit)[$maidId]??null;
+        $pending=($exceptVisit===null && self::$snapshot!==null ? self::$snapshot : self::pending($maidId,$exceptVisit))[$maidId]??null;
         return $pending ? 'غير متاحة للحجز — عودة متأخرة تحتاج مراجعة؛ لم تُؤكد العودة الفعلية من الزيارة #'.$pending['visit_id'].'.' : null;
     }
 

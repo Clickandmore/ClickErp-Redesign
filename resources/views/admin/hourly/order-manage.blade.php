@@ -277,6 +277,7 @@
     /* لون وأيقونة موحّدان لكل حالة: الطلب والزيارة والدفعة. */
     $statusTone = fn ($status) => match ($status) {
         'pending_confirmation' => ['om-b-amber', 'fa-hourglass-half'],
+        'awaiting_payment' => ['om-b-amber', 'fa-file-invoice-dollar'],
         'active', 'completed', 'paid' => ['om-b-green', 'fa-circle-check'],
         'expired', 'no_show', 'cancelled', 'cancelled_by_client', 'failed', 'unpaid', 'rejected' => ['om-b-red', 'fa-circle-xmark'],
         'missed' => ['om-b-red', 'fa-triangle-exclamation'],
@@ -291,6 +292,7 @@
 
 <div class="container-fluid om">
 @include('admin.hourly.messages')
+@include('admin.hourly._order-awaiting-payment')
 @include('admin.hourly._order-refund')
 @include('admin.hourly._cash-link')
 
@@ -359,7 +361,7 @@
             <div class="om-meta">
                 <div><i class="fa fa-wallet"></i> <b>نوع الدفع:</b> <span>{{ __('hourly.'.$order->payment_method) }}</span></div>
                 <div><i class="fa fa-receipt"></i> <b>حالة السداد:</b> <span class="om-badge {{ $payClass }}"><i class="fa {{ $payIcon }}"></i> {{ __('hourly.'.$order->payment_status) }}</span></div>
-                <div><i class="fa fa-flag"></i> <b>حالة الطلب:</b> <span class="om-badge {{ $statusClass }}"><i class="fa {{ $statusIcon }}"></i> {{ __('hourly.'.$order->status) }}</span></div>
+                <div><i class="fa fa-flag"></i> <b>حالة الطلب:</b> <span class="om-badge {{ $statusClass }}"><i class="fa {{ $statusIcon }}"></i> {{ \App\Services\Hourly\HourlyOrderService::statusLabel($order) }}</span></div>
             </div>
         </section>
         @include('admin.hourly._order-card-actions')

@@ -8,6 +8,8 @@ return [
     'admin.hourly-maids.to-hourly' => ['hourly_maids_edit'],
     'admin.hourly-maids.to-regular' => ['hourly_maids_edit'],
     'admin.hourly-maids.update' => ['hourly_maids_edit'],
+    'admin.hourly-maids.return-from-visit' => ['hourly_maids_edit'],
+    'admin.hourly-orders.close-unpaid' => ['hourly_orders_close_unpaid'],
     'admin.hourly-maids.leaves.status' => ['hourly_maids_edit'],
     'admin.hourly-teams.shelter-maids' => ['hourly_teams_create', 'hourly_teams_edit'],
     'admin.hourly-package-tiers.index' => ['hourly_package_tiers_view'],

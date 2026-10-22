@@ -58,7 +58,7 @@ class ServiceIncidentController extends Controller
         abort_unless(Schema::hasTable('hourly_service_incidents'),503,'يجب تشغيل ترحيل بلاغات تعذر الخدمة.');
         $incidents=DB::table('hourly_service_incidents as i')->leftJoin('maids as m','m.id','=','i.maid_id')
             ->leftJoin('hourly_visits as v','v.id','=','i.visit_id')->leftJoin('hourly_rental_orders as o','o.id','=','v.hourly_rental_order_id')
-            ->select('i.*','m.name as worker_name','o.order_number','o.id as order_id')->orderByRaw("CASE WHEN i.status='pending' THEN 0 ELSE 1 END")
+            ->select('i.*','m.name as worker_name','o.order_number','o.id as order_id','v.scheduled_start_at as visit_start','v.scheduled_end_at as visit_end')->orderByRaw("CASE WHEN i.status='pending' THEN 0 ELSE 1 END")
             ->orderByDesc('i.id')->paginate(25);
         $waitingScope=fn($q)=>$q->where('booking_metadata','like','%awaiting_admin%')->orWhere('booking_metadata','like','%awaiting_customer%')->orWhere('booking_metadata','like','%manual_review%');
         $affected=HourlyRentalOrder::where($waitingScope)->with('visits')->latest('id')->paginate(25,['*'],'followup_page');
@@ -72,7 +72,8 @@ class ServiceIncidentController extends Controller
     {
         abort_unless(AdminGuardHasPerm('hourly_orders_create'),403);
         $data=$request->validate(['decision'=>'required|in:approve,reject','reason'=>'required|string|max:2000',
-            'verified'=>'sometimes|boolean','unavailable_until'=>'required_if:decision,approve|nullable|date_format:Y-m-d\\TH:i|after:now']);
+            'verified'=>'sometimes|boolean','unavailable_from'=>'nullable|date_format:Y-m-d\\TH:i',
+            'unavailable_until'=>'required_if:decision,approve|nullable|date_format:Y-m-d\\TH:i|after:now']);
         $service->review($incident,$data,(int)auth('admin')->id());
         return back()->with('success','تمت مراجعة البلاغ وتحديث الزيارات المتأثرة.');
     }

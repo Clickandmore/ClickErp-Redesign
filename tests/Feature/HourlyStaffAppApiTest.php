@@ -1048,6 +1048,26 @@ class HourlyStaffAppApiTest extends TestCase
         $this->assertDatabaseCount('hourly_service_incidents',2);$this->assertDatabaseCount('hourly_worker_leaves',0);
         $this->assertSame('scheduled',$visit->fresh()->status);
     }
+    public function test_incident_for_a_later_day_does_not_disrupt_visits_before_it(): void
+    {
+        (require base_path('database/migrations/2026_10_18_000003_create_hourly_service_incidents.php'))->up();
+        (require base_path('database/migrations/2026_10_22_000001_add_unavailable_from_to_hourly_service_incidents.php'))->up();
+        $today=$this->order();$later=$this->order(1,'2026-09-25 08:00');$visit=$later->visits()->first();
+        $this->mock(\App\Services\Hourly\CustomerTrackingPushService::class,function($mock){$mock->shouldReceive('notify')->once();});
+        $report=app(\App\Services\Hourly\ServiceIncident::class)->report($visit->id,1,'worker',1,
+            ['request_token'=>(string)Str::uuid(),'category'=>'illness','note'=>'Only on the 25th']);
+        $admin=\Mockery::mock(\App\Models\auth\Admin::class)->makePartial();$admin->id=7;$admin->shouldReceive('can')->andReturn(true);auth('admin')->setUser($admin);
+        $url=route('admin.hourly-incidents.review',$report['id']);
+        $this->post($url,['decision'=>'approve','verified'=>true,'unavailable_from'=>'2026-09-26T08:00',
+            'unavailable_until'=>'2026-09-26T23:00','reason'=>'Outside the reported visit'])->assertSessionHasErrors('hourly');
+        session()->forget('errors');
+        $this->post($url,['decision'=>'approve','verified'=>true,'unavailable_until'=>'2026-09-25T23:00','reason'=>'Verified'])
+            ->assertRedirect()->assertSessionHasNoErrors();
+        $this->assertNull(\App\Services\Hourly\ServiceIncident::state($today->fresh(),$today->visits()->first()->id));
+        $this->assertSame('awaiting_admin',\App\Services\Hourly\ServiceIncident::state($later->fresh(),$visit->id)['status']);
+        $this->assertSame('2026-09-25 08:00:00',(string)DB::table('hourly_worker_leaves')->value('starts_at'));
+        $this->assertSame('2026-09-25 08:00:00',(string)DB::table('hourly_service_incidents')->where('id',$report['id'])->value('unavailable_from'));
+    }
     public function test_staff_incident_reports_enforce_assignment_and_approval_covers_all_overlapping_visits(): void
     {
         (require base_path('database/migrations/2026_10_18_000003_create_hourly_service_incidents.php'))->up();
