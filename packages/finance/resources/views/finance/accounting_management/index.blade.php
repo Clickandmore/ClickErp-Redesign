@@ -182,6 +182,13 @@
                     {{ trans('dataTable.ex_csv') }}
                 </button>
 
+                <button type="button" class="btn btn-outline-dark editButton" data-bs-toggle="modal"
+                    data-bs-target="#createModal" model-title="سجل حذف ونقل ودمج الحسابات"
+                    model-route="{{ $logsRoute }}">
+                    <i class="fa fa-history"></i>
+                    سجل التعديلات
+                </button>
+
                 <button type="button" class="btn btn-light border" id="resetFilters">
                     <i class="fa fa-refresh"></i>
                     {{ __('finance::finance.Reset filters') }}

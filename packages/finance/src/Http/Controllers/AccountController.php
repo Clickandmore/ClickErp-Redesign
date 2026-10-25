@@ -119,9 +119,10 @@ class AccountController extends Controller
      * @param ObjService $service
      * @return JsonResponse
      */
-    public function destroy(int $id, ObjService $service)
+    public function destroy(int $id, \Nami\Finance\Services\AccountRestructureService $restructure)
     {
-        $service->delete($id);
+        // نفس فحوص الدليل المحاسبي: لا حذف لحساب عليه قيود أو فروع أو ارتباطات.
+        $restructure->delete($id, request()->input('reason'));
         return jsonSuccess(null, null, 201);
     }
 }
