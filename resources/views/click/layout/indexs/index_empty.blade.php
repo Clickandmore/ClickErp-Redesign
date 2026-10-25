@@ -50,6 +50,7 @@
 
 
 @include("admin.layout.inc._js")
+@include("admin.layout.inc._date_format")
 @include("admin.layout.inc._js_custom")
 <script src="{{ asset('admin/assets/js/clickmore-loader.js') }}?v=2"></script>
 <script src="{{ asset('admin/assets/js/clickmore-sidebar-state.js') }}?v=5"></script>
