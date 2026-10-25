@@ -118,6 +118,7 @@ class ShelterAgentCostRecoveryService
                 case ShelterCostEntry::KIND_RELEASE_TO_SALE:
                 case ShelterCostEntry::KIND_RELEASE_TO_DEPORTATION:
                 case ShelterCostEntry::KIND_WRITE_OFF:
+                case ShelterCostEntry::KIND_RETURN_TO_CUSTOMER:
                     $balance = round(array_sum(array_column($lots, 'remaining')) + $living, 2);
                     if (abs($balance + $amount) > 0.01) {
                         $issues[] = 'حركة خروج قديمة جزئية: يلزم مطابقة مكونات التكلفة قبل الاسترداد أو الترحيل.';
@@ -258,7 +259,8 @@ class ShelterAgentCostRecoveryService
             // A later exit changes the downstream cost/revenue, even if trial subsequently failed.
             if (ShelterCostEntry::query()->where('maid_id', $contract->maid_id)->where('id', '>', $entry->id)
                 ->whereIn('kind', [ShelterCostEntry::KIND_RELEASE_TO_TRIAL, ShelterCostEntry::KIND_RELEASE_TO_SALE,
-                    ShelterCostEntry::KIND_RELEASE_TO_DEPORTATION, ShelterCostEntry::KIND_WRITE_OFF])->exists()) {
+                    ShelterCostEntry::KIND_RELEASE_TO_DEPORTATION, ShelterCostEntry::KIND_WRITE_OFF,
+                    ShelterCostEntry::KIND_RETURN_TO_CUSTOMER])->exists()) {
                 throw new \RuntimeException('لا يمكن العكس بعد خروج للتجربة أو البيع أو الترحيل أو التصفية؛ يلزم مراجعة العمليات اللاحقة.');
             }
             if (trim($reason) === '') { throw new \RuntimeException('سبب العكس مطلوب.'); }

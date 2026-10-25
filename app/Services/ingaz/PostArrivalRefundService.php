@@ -366,7 +366,8 @@ class PostArrivalRefundService
                 ->where('source_id', $line->id)->where('kind', ShelterCostEntry::KIND_POST_REFUND_RECOVERY)->first();
             if ($recoveryEntry && ShelterCostEntry::query()->where('maid_id', $recoveryEntry->maid_id)
                 ->where('id', '>', $recoveryEntry->id)->whereIn('kind', [ShelterCostEntry::KIND_RELEASE_TO_DEPORTATION,
-                    ShelterCostEntry::KIND_RELEASE_TO_SALE, ShelterCostEntry::KIND_RELEASE_TO_TRIAL, ShelterCostEntry::KIND_WRITE_OFF])->exists()) {
+                    ShelterCostEntry::KIND_RELEASE_TO_SALE, ShelterCostEntry::KIND_RELEASE_TO_TRIAL, ShelterCostEntry::KIND_WRITE_OFF,
+                    ShelterCostEntry::KIND_RETURN_TO_CUSTOMER])->exists()) {
                 throw ValidationException::withMessages(['reason' => 'لا يمكن عكس تحميل المكتب بعد خروج العاملة أو تصفية تكلفة الإيواء.']);
             }
             if ($line->credit_note_id) {
@@ -513,7 +514,7 @@ class PostArrivalRefundService
             $remaining = $summary['lots'][$receipt->id]['remaining'] ?? null;
             $hasFinalExit = ShelterCostEntry::query()->where('maid_id', $contract->maid_id)
                 ->where('id', '>', $receipt->id)
-                ->whereIn('kind', [ShelterCostEntry::KIND_RELEASE_TO_DEPORTATION, ShelterCostEntry::KIND_WRITE_OFF])
+                ->whereIn('kind', [ShelterCostEntry::KIND_RELEASE_TO_DEPORTATION, ShelterCostEntry::KIND_WRITE_OFF, ShelterCostEntry::KIND_RETURN_TO_CUSTOMER])
                 ->exists();
             // A historical receipt is not an available asset after a complete exit.
             // Keep unresolved or recovered lots guarded by the posting checks.

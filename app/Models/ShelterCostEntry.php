@@ -19,6 +19,7 @@ class ShelterCostEntry extends Model
     public const KIND_RELEASE_TO_DEPORTATION = 'release_to_deportation';
     public const KIND_RELEASE_TO_SALE = 'release_to_sale';
     public const KIND_WRITE_OFF = 'write_off';
+    public const KIND_RETURN_TO_CUSTOMER = 'return_to_customer';
     public const KIND_LEGACY_ADJUSTMENT = 'legacy_adjustment';
 
     public const KIND_AGENT_RECOVERY = 'agent_cost_recovery';
@@ -39,6 +40,7 @@ class ShelterCostEntry extends Model
         self::KIND_RELEASE_TO_DEPORTATION => 'ترحيل',
         self::KIND_RELEASE_TO_SALE => 'إعادة بيع من الإيواء',
         self::KIND_WRITE_OFF => 'تصفية رصيد',
+        self::KIND_RETURN_TO_CUSTOMER => 'رجوع للعميل الأصلي',
         self::KIND_LEGACY_ADJUSTMENT => 'تسوية قيود سابقة',
     ];
 

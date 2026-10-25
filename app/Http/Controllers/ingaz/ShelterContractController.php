@@ -3080,49 +3080,60 @@ class ShelterContractController extends Controller
                 ], 400);
             }
 
-            // حارس الخروج: لا يُخرَج عقد من الإيواء ورصيد إيواء العاملة مفتوح إلا بتصفية صريحة.
+            // حارس الخروج: رجوع العاملة لعميلها الأصلي يعكس استلام الإيواء (المورد محسوب على العقد الأصلي)،
+            // وما عدا ذلك لا يُخرَج العقد ورصيد الإيواء مفتوح إلا بتصفية صريحة.
             $ledger = app(\App\Services\ingaz\ShelterCostLedgerService::class);
             $shelterBalance = $ledger->balanceForContract($contract);
-            if ($shelterBalance > 0) {
-                $writeOffReason = trim((string) request()->input('write_off_reason', ''));
-                if ($writeOffReason === '') {
-                    return response()->json([
-                        'success' => false,
-                        'message' => 'للعاملة رصيد إيواء ' . number_format($shelterBalance, 2)
-                            . ' لم يُصفَّ. اختر مسار الخروج (نقل خدمات أو ترحيل أو عقد جديد) أو أرسل سبب التصفية في write_off_reason.',
-                        'shelter_balance' => $shelterBalance,
-                    ], 422);
-                }
+            $returnBlocker = $ledger->returnToCustomerBlocker($contract);
+            $writeOffReason = trim((string) request()->input('write_off_reason', ''));
 
-                $ledger->writeOff($contract, now()->toDateString(), $writeOffReason, $contract);
+            if ($returnBlocker !== null && ($shelterBalance <= 0 || $writeOffReason === '')) {
+                return response()->json([
+                    'success' => false,
+                    'message' => $shelterBalance > 0
+                        ? $returnBlocker . ' للعاملة رصيد إيواء ' . number_format($shelterBalance, 2)
+                            . ' لم يُصفَّ؛ اختر مسار الخروج (نقل خدمات أو ترحيل أو عقد جديد) أو أرسل سبب التصفية.'
+                        : $returnBlocker,
+                    'shelter_balance' => $shelterBalance,
+                ], 422);
             }
 
-            // إرجاع العقد إلى حالة "مكتمل" لأن العقود في الإيواء هي عقود مكتملة أصلاً
-            $contract->status = ContractStatusEnum::Completed->value;
-
-            // إزالة معلومات الإيواء
-            if ($contract->info) {
-                $infoResetPayload = [
-                    'shelter_id' => null,
-                    'wants_to_work' => null,
-                    'maid_date_back' => null,
-                    'receipt_source' => null,
-                    'is_outside_shelter' => false,
-                    'outside_shelter_at' => null,
-                    'outside_shelter_reason' => null,
-                    'outside_shelter_reference_type' => null,
-                    'outside_shelter_reference_id' => null,
-                    'outside_shelter_by' => null,
-                ];
-
-                if ($this->supportsQuickTags()) {
-                    $infoResetPayload['shelter_quick_tags'] = null;
+            DB::transaction(function () use ($ledger, $contract, $shelterBalance, $returnBlocker, $writeOffReason) {
+                if ($shelterBalance > 0) {
+                    if ($returnBlocker === null) {
+                        $ledger->returnToCustomer($contract, now()->toDateString());
+                    } else {
+                        $ledger->writeOff($contract, now()->toDateString(), $writeOffReason, $contract);
+                    }
                 }
 
-                $contract->info->update($infoResetPayload);
-            }
+                // إرجاع العقد إلى حالة "مكتمل" لأن العقود في الإيواء هي عقود مكتملة أصلاً
+                $contract->status = ContractStatusEnum::Completed->value;
 
-            $contract->save();
+                // إزالة معلومات الإيواء
+                if ($contract->info) {
+                    $infoResetPayload = [
+                        'shelter_id' => null,
+                        'wants_to_work' => null,
+                        'maid_date_back' => null,
+                        'receipt_source' => null,
+                        'is_outside_shelter' => false,
+                        'outside_shelter_at' => null,
+                        'outside_shelter_reason' => null,
+                        'outside_shelter_reference_type' => null,
+                        'outside_shelter_reference_id' => null,
+                        'outside_shelter_by' => null,
+                    ];
+
+                    if ($this->supportsQuickTags()) {
+                        $infoResetPayload['shelter_quick_tags'] = null;
+                    }
+
+                    $contract->info->update($infoResetPayload);
+                }
+
+                $contract->save();
+            });
 
             // تسجيل النشاط
             activity()
