@@ -148,6 +148,35 @@ class AccountService extends MainService
         }
     }
 
+    /**
+     * نقل حساب (بفروعه) تحت أب جديد أو للجذر: كود جديد ضمن نطاق الأب ثم إعادة ترقيم
+     * ومستوى كل الفروع. يُستدعى داخل معاملة وبعد قفل الحساب والتحقق من الأب.
+     */
+    public function moveAccount(Account $account, ?Account $parent): void
+    {
+        $code = $parent
+            ? $this->nextAvailableChildCodeForUpdate($parent, $account->id)
+            : $this->nextAvailableRootCodeForUpdate($account->id);
+
+        $account->update([
+            'parent_id' => $parent?->id,
+            'level' => $parent ? $parent->level + 1 : 1,
+            'code' => $code,
+        ]);
+
+        $this->recodeDescendants($account->fresh(['children']));
+    }
+
+    private function recodeDescendants(Account $account): void
+    {
+        $nextCode = ((int) $account->code) * 100;
+
+        foreach ($account->children->sortBy('code')->values() as $child) {
+            $child->update(['code' => $nextCode++, 'level' => $account->level + 1]);
+            $this->recodeDescendants($child->fresh(['children']));
+        }
+    }
+
     public function updateAccountGuideDetails(int $id, array $data): void
     {
         DB::transaction(function () use ($id, $data) {

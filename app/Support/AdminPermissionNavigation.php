@@ -136,6 +136,7 @@ final class AdminPermissionNavigation
         'employee' => ['hr', 'بوابة الموظفين'],
         'finance' => ['finance', 'النظام المالي'],
         'finance_exports' => ['finance', 'تصدير التقارير المالية'],
+        'finance_account_restructure' => ['finance', 'حذف ونقل ودمج حسابات الدليل المحاسبي'],
         'finance_procurement' => ['finance', 'المشتريات'],
         'zatca' => ['finance', 'هيئة الزكاة والضريبة والجمارك'],
         'admin_notifications' => ['messages', 'إشعارات الموظفين'],

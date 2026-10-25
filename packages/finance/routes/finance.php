@@ -274,6 +274,20 @@ Route::group(
             'accounting-guide-management-export/{format?}',
             [AccountGuideManagementController::class, 'export']
         )->name('accounting-guide-management.export');
+        Route::get('accounting-guide-management/{id}/move', [AccountGuideManagementController::class, 'moveForm'])
+            ->whereNumber('id')->name('accounting-guide-management.move-form');
+        Route::post('accounting-guide-management/{id}/move', [AccountGuideManagementController::class, 'move'])
+            ->whereNumber('id')->name('accounting-guide-management.move');
+        Route::get('accounting-guide-management/{id}/merge', [AccountGuideManagementController::class, 'mergeForm'])
+            ->whereNumber('id')->name('accounting-guide-management.merge-form');
+        Route::post('accounting-guide-management/{id}/merge', [AccountGuideManagementController::class, 'merge'])
+            ->whereNumber('id')->name('accounting-guide-management.merge');
+        Route::get('accounting-guide-management-logs', [AccountGuideManagementController::class, 'logs'])
+            ->name('accounting-guide-management.logs');
+        Route::get('accounting-guide-management-logs/{log}/undo-merge', [AccountGuideManagementController::class, 'undoMergeForm'])
+            ->whereNumber('log')->name('accounting-guide-management.merge-undo-form');
+        Route::post('accounting-guide-management-logs/{log}/undo-merge', [AccountGuideManagementController::class, 'undoMerge'])
+            ->whereNumber('log')->name('accounting-guide-management.merge-undo');
         Route::resource('accounting-guide-management', AccountGuideManagementController::class);
         Route::resource('cost-center-management', CostCenterManagementController::class);
         Route::resource('cost-center-notification', CostCenterNotificationController::class);
