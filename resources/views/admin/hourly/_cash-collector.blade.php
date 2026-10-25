@@ -2,7 +2,7 @@
 @include('admin.hourly._visit-financial')
 @endunless
 @php $cashPaymentPolicy=app(\App\Services\Hourly\PaymentScheduleService::class)->policy($order); @endphp
-@if($cashPaymentPolicy!=='prepaid' && \App\Services\Hourly\CashCollectionService::ready() && in_array($order->payment_method,['cash','cash_and_card'],true) && in_array($order->status,['active','completed'],true))
+@if($cashPaymentPolicy!=='prepaid' && \App\Services\Hourly\CashCollectionService::ready() && in_array($order->payment_method,['cash','cash_and_card'],true) && in_array($order->status,['active','completed','awaiting_payment'],true))
     @php $cashPolicy=app(\App\Services\Hourly\CashCollectionService::class)->collector($visit); @endphp
     <div class="alert alert-info mt-2 mb-2 small">مسؤول التحصيل: <strong>{{ $cashPolicy['label'] }}</strong>
         @if($cashPolicy['id']) #{{ $cashPolicy['id'] }}@elseif($cashPolicy['type']!=='admin') — يلزم تحديد الشخص قبل التحصيل@endif

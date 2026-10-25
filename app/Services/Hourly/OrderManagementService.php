@@ -278,15 +278,13 @@ class OrderManagementService
     {
         if(!$visit->scheduled_start_at || !$visit->scheduled_end_at || $visit->scheduled_start_at->isPast())HourlyOrderService::reject('تعيين السائق تلقائيًا يتطلب زيارة قادمة بموعد محدد.');
         $roles=$direction==='together'?['delivery','pickup']:[$direction];
-        $drivers=HourlyDriver::where('is_active',true)->whereHas('teamMemberships',fn($q)=>$q->where('hourly_team_id',$visit->hourly_team_id)->where('is_active',true))->orderBy('id')->lockForUpdate()->get();
-        foreach($drivers as $driver){
-            $candidate=clone $visit;
-            foreach($roles as $role){$candidate->{$role.'_driver_id'}=$driver->id;$candidate->{$role.'_at'}=$this->defaultDriverTime($visit,$role);}
-            try{$this->checkDrivers($candidate);}catch(\Illuminate\Validation\ValidationException $e){continue;}
-            foreach($roles as $role){$visit->{$role.'_driver_id'}=$candidate->{$role.'_driver_id'};$visit->{$role.'_at'}=$candidate->{$role.'_at'};}
-            return;
-        }
-        HourlyOrderService::reject('لا يوجد سائق متاح من فريق الزيارة للاتجاه المحدد.');
+        HourlyDriver::where('is_active',true)->whereHas('teamMemberships',fn($q)=>$q->where('hourly_team_id',$visit->hourly_team_id)->where('is_active',true))->orderBy('id')->lockForUpdate()->get();
+        // The chosen roles are re-picked, so the current driver competes with the others on the same ranking.
+        $draft=clone $visit;
+        foreach($roles as $role){$draft->{$role.'_driver_id'}=null;$draft->{$role.'_at'}=null;}
+        $picks=app(NearestDriverAssignment::class)->suggest($draft,15,$roles);
+        foreach($roles as $role)if(empty($picks[$role]))HourlyOrderService::reject('لا يوجد سائق متاح من فريق الزيارة لمهمة '.($role==='delivery'?'التوصيل':'الاستلام').'.');
+        foreach($picks as $role=>$pick){$visit->{$role.'_driver_id'}=$pick['driver']->id;$visit->{$role.'_at'}=$pick['time'];}
     }
     private function checkSlot(HourlyRentalOrder $order,HourlyVisit $visit,bool $ignoreCaps=false,bool $ignoreBreak=false,bool $ignoreNotice=false,?array $slotItem=null): void {
         app(DuplicateBookingService::class)->assertAvailable((int)$order->user_id,$order->only(['city_id','address_text','latitude','longitude','building','unit']),HourlyPackage::withTrashed()->findOrFail($order->hourly_package_id),[['starts_at'=>$visit->scheduled_start_at,'ends_at'=>$visit->scheduled_end_at]],(int)$visit->id,true);

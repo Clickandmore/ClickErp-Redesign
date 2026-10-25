@@ -11,7 +11,7 @@ class MissedVisitRecoveryController extends Controller
 {
     public function store(Request $request,int $id,int $visit,MissedVisitRecovery $service)
     {
-        $data=$request->validate(['type'=>'required|in:reschedule,refund','request_token'=>'required|uuid',
+        $data=$request->validate(['type'=>'required|in:reschedule,refund,replacement','request_token'=>'required|uuid',
             'requested_start'=>'required_if:type,reschedule|nullable|date_format:Y-m-d\\TH:i|after:now','note'=>'nullable|string|max:1000']);
         $order=HourlyRentalOrder::where('user_id',auth('api')->id())->findOrFail($id);
         return response()->json(['data'=>$service->request($order,$visit,$data)]);
@@ -36,7 +36,8 @@ class MissedVisitRecoveryController extends Controller
         abort_unless(AdminGuardHasPerm('hourly_orders_create'),403);
         $reschedule=(($order->booking_metadata['missed_visit_requests'][$visit]['type']??null)==='reschedule');
                 $data=Validator::make($request->all(),['request_id'=>'required|uuid','decision'=>'required|in:approve,reject',
-            'verified_non_execution'=>'sometimes|boolean','new_start'=>'prohibited','reason'=>'required|string|max:2000'])->validate();
+            'verified_non_execution'=>'sometimes|boolean','new_start'=>'prohibited','reason'=>'required|string|max:2000',
+            'replacement_worker_ids'=>'sometimes|array|max:20','replacement_worker_ids.*'=>'nullable|integer'])->validate();
         if($data['decision']==='approve' && (float)$order->paid_amount>0 && (($order->booking_metadata['missed_visit_requests'][$visit]['type']??null)==='refund'))
             abort_unless(AdminGuardHasPerm('hourly_orders_collect'),403);
         $result=$service->review($order,$visit,$data,(int)auth('admin')->id());

@@ -8,7 +8,7 @@
 @endif
 @if(!empty($recovery['recovery_request']))
     @php($recoveryRequest = $recovery['recovery_request'])
-    <p class="hr-notice">طلب {{ $recoveryRequest['type']==='refund'?'الإلغاء والاسترداد':'إعادة الجدولة' }}:
+    <p class="hr-notice">طلب {{ ['refund'=>'الإلغاء والاسترداد','replacement'=>'العاملة البديلة'][$recoveryRequest['type']] ?? 'إعادة الجدولة' }}:
         {{ ['pending'=>'قيد مراجعة الإدارة','approved'=>'تمت الموافقة','rejected'=>'لم تتم الموافقة'][$recoveryRequest['status']] }}
         @if(isset($recoveryRequest['refunded_amount'])) · تمت إعادة {{ number_format($recoveryRequest['refunded_amount'],2) }} ر.س إلى المحفظة @endif
         @if(!empty($recoveryRequest['new_start'])) · الموعد الجديد {{ \Carbon\Carbon::parse($recoveryRequest['new_start'])->format('Y-m-d H:i') }} @endif
@@ -16,6 +16,16 @@
     </p>
 @endif
 @if(!empty($recovery['can_request_recovery']) && ($recovery['recovery_request']['status']??null)!=='pending')
+    @if(!empty($recovery['can_request_replacement']))
+    <details class="mt-2"><summary>طلب عاملة بديلة من الإدارة لنفس الموعد</summary>
+        <form data-visit-recovery method="post" action="{{ route('web.hourly.visit.recovery',[$order->id,$visit->id]) }}" class="mt-2">
+            @csrf<input type="hidden" name="type" value="replacement"><input type="hidden" name="request_token" value="{{ \Illuminate\Support\Str::uuid() }}">
+            <label>ملاحظات أو تفضيلات<textarea class="form-control" name="note" maxlength="1000" placeholder="مثال: أفضّل عاملة تتحدث العربية"></textarea></label>
+            <p>تبقى الزيارة في موعدها دون تكلفة إضافية. تبحث الإدارة عن بديلة بنفس مواصفات الخدمة وتبلغك بالنتيجة؛ إن تعذر التوفير يمكنك إعادة الجدولة أو الإلغاء والاسترداد.</p>
+            <button type="submit" class="hr-btn secondary sm">إرسال طلب العاملة البديلة</button><p data-recovery-feedback role="status"></p>
+        </form>
+    </details>
+    @endif
     <details class="mt-2"><summary>طلب إعادة الجدولة دون دفع جديد</summary>
         <form data-visit-recovery method="post" action="{{ route('web.hourly.visit.recovery',[$order->id,$visit->id]) }}" class="mt-2">
             @csrf<input type="hidden" name="type" value="reschedule"><input type="hidden" name="request_token" value="{{ \Illuminate\Support\Str::uuid() }}">

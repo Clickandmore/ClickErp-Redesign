@@ -409,11 +409,11 @@ class DriverAppService
             'visit_number' => (int) $visit->visit_number, 'action' => $timeBlocked ? null : $action, 'status' => $this->stopStatus($task),
             'actionable' => $actionable, 'blocked_reason' => $blockedReason,
             'incident_status' => ServiceIncident::state($visit->order,$visit->id)['status']??null,
-            'is_overdue' => in_array($visit->status,self::ONGOING,true) && $visit->scheduled_end_at?->lte(now()),
+            'is_overdue' => in_array($visit->status,self::ONGOING,true) && $delay !== null,
             'pickup_overdue' => (bool) ($delay['pickup_overdue'] ?? false),
             'pickup_delay' => $delay,
             'warning' => !empty($delay['pickup_overdue']) && !$returnRecorded ? $delay['label'] : ($returnRecorded ? 'سُجلت عودة العاملة؛ ما زالت الزيارة في متابعة الإدارة للتسوية.'
-                : (in_array($visit->status,self::ONGOING,true) && $visit->scheduled_end_at?->lte(now())
+                : (in_array($visit->status,self::ONGOING,true) && $delay !== null
                 ? 'تجاوزت الزيارة موعد انتهائها ولم تعد العاملة بعد؛ تابع الاستلام والعودة وراجع الإدارة.' : null)),
             'booking_options' => $visit->order?->package_snapshot['booking_options'] ?? [],
             'worker' => $this->worker($visit), 'workers' => $visit->workers->map(fn ($w) => ['id' => $w->id, 'name' => $w->name])->values(),

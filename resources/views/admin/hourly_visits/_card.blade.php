@@ -152,6 +152,7 @@
                     </span>
                 </div>
             @endforeach
+            @if($canEdit)@include('admin.hourly._driver-suggestion', ['order' => $visit->order])@endif
         </section>
     </div>
 

@@ -138,8 +138,8 @@
                     @if($visit->order?->status !== 'active')<p class="dp-alert" role="alert">الطلب غير نشط؛ تواصل مع الإدارة لمعالجة الزيارة الجارية وتسجيل العودة.</p>@endif
                     @if(($incident['status'] ?? null) === 'manual_review' && !empty($incident['return_recorded_at']))
                         <p class="dp-alert" role="alert">سُجلت عودة العاملة؛ ما زالت الزيارة في متابعة الإدارة للتسوية.</p>
-                    @elseif(in_array($visit->status, \App\Services\Hourly\DriverAppService::ONGOING, true) && $visit->scheduled_end_at?->lte(now()))
-                        <p class="dp-alert" role="alert">تجاوزت الزيارة موعد انتهائها ولم تعد العاملة بعد؛ تابع الاستلام والعودة وراجع الإدارة. موعد الزيارة الأصلي: {{ $visit->scheduled_start_at?->format('Y-m-d H:i') }}</p>
+                    @elseif(in_array($visit->status, \App\Services\Hourly\DriverAppService::ONGOING, true) && ($delay = \App\Services\Hourly\VisitDelay::state($visit)))
+                        <p class="dp-alert" role="alert">تجاوزت الزيارة موعد انتهائها ولم تعد العاملة بعد؛ تابع الاستلام والعودة وراجع الإدارة. نهاية الخدمة: <span dir="ltr">{{ \Carbon\Carbon::parse($delay['ends_at'])->format('Y-m-d H:i') }}</span> · موعد الزيارة الأصلي: {{ $visit->scheduled_start_at?->format('Y-m-d H:i') }}</p>
                     @endif
                     @if($task['blocked'])<p class="dp-alert is-soft" role="alert">{{ $task['blocked'] }}</p>@endif
 

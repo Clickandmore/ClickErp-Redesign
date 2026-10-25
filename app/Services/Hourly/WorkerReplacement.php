@@ -12,16 +12,17 @@ class WorkerReplacement
         return !app(HourlyCategorySettings::class)->value((array)$order->package_snapshot,'customer_worker_selection');
     }
 
-    public function replace(HourlyRentalOrder $candidate,int $visitId,array $data,int $admin,bool $customerChoice=false): void
+    /** $customerRequested: the customer asked the admin for a substitute, which is the consent customer-selection categories need. */
+    public function replace(HourlyRentalOrder $candidate,int $visitId,array $data,int $admin,bool $customerChoice=false,bool $customerRequested=false): void
     {
-        DB::transaction(function()use($candidate,$visitId,$data,$admin,$customerChoice){
+        DB::transaction(function()use($candidate,$visitId,$data,$admin,$customerChoice,$customerRequested){
             User::whereKey($candidate->user_id)->lockForUpdate()->firstOrFail();
             $order=HourlyRentalOrder::whereKey($candidate->id)->lockForUpdate()->firstOrFail();
             $visit=$order->visits()->lockForUpdate()->findOrFail($visitId);
             $state=ServiceIncident::state($order,$visitId);
             if($customerChoice && (!ServiceIncident::recoverable($order,$visit) || $this->allowed($order)))
                 HourlyOrderService::reject('اختيار العميل للبديلة غير متاح.');
-            if(!$customerChoice && !$this->allowed($order)) HourlyOrderService::reject('اختيار العاملة مفعّل للعميل؛ يلزم التنسيق معه قبل تغيير اختياره.');
+            if(!$customerChoice && !$customerRequested && !$this->allowed($order)) HourlyOrderService::reject('اختيار العاملة مفعّل للعميل؛ يلزم التنسيق معه قبل تغيير اختياره.');
             if(($order->booking_metadata['missed_visit_requests'][$visitId]['status']??null)==='pending')
                 HourlyOrderService::reject('يوجد طلب معالجة للزيارة قيد المراجعة؛ راجعه قبل الاستبدال.');
             $orderReady=$order->status==='active' || ($order->status==='pending_confirmation' && ServiceIncident::recoverable($order,$visit));

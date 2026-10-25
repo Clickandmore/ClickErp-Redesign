@@ -439,6 +439,12 @@
                         $alerts = [];
                         if (!in_array($visit->status, $closedStatuses) && $emptySlots) $alerts[] = ['om-b-amber', 'fa-user-clock', $emptySlots === 1 ? 'مقعد شاغر بدون عاملة' : $emptySlots.' مقاعد شاغرة بدون عاملات'];
                         if (!$free && ($finance['is_overdue'] ?? false)) $alerts[] = ['om-b-red', 'fa-file-invoice-dollar', 'دفعة متأخرة: '.$money($finance['remaining'])];
+                        if ($driverGap = \App\Services\Hourly\DriverGaps::missingRoles($visit)) {
+                            $driverGapText = count($driverGap) === 2 ? 'بدون سائق' : 'ينقصها سائق '.\App\Services\Hourly\DriverGaps::roleLabel($driverGap[0]);
+                            $alerts[] = $visit->scheduled_start_at->isPast()
+                                ? ['om-b-red', 'fa-van-shuttle', 'متأخرة '.\App\Services\Hourly\DriverGaps::startsIn($visit->scheduled_start_at).' '.$driverGapText]
+                                : ['om-b-amber', 'fa-van-shuttle', 'زيارة قادمة '.$driverGapText];
+                        }
                         // الإنهاء المبكر: يبقى تنبيهًا حتى يؤكده العميل أو تقرر الإدارة.
                         $earlyOpen = false;
                         foreach ($earlyFinishes[$visit->id] ?? [] as $early) {

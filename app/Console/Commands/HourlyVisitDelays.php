@@ -16,8 +16,8 @@ class HourlyVisitDelays extends Command
     {
         HourlyRentalSettings::flush();
         if (!HourlyRentalSettings::isEnabled() || !Schema::hasTable('hourly_visit_delay_notices')) return self::SUCCESS;
+        // No scheduled_end_at prefilter: VisitDelay measures from the actual service end (arrival + hours), which can differ from the booked slot.
         HourlyVisit::whereIn('status', ShelterPresence::OUT_STATUSES)
-            ->where('scheduled_end_at', '<=', now())
             ->whereHas('order', fn ($q) => $q->where('status', 'active'))
             ->with('workers:id')->chunkById(100, function ($visits) use ($push) {
                 foreach ($visits as $visit) {
@@ -36,7 +36,7 @@ class HourlyVisitDelays extends Command
                         $recipients[] = ['driver', (int) $id];
                     }
                     foreach ($recipients as [$guard, $id]) {
-                        $key = ['visit_id' => $visit->id, 'scheduled_end_at' => $visit->scheduled_end_at->toDateTimeString(),
+                        $key = ['visit_id' => $visit->id, 'scheduled_end_at' => $state['ends_at'],
                             'stage' => $state['stage'], 'guard' => $guard, 'staff_id' => $id];
                         DB::table('hourly_visit_delay_notices')->insertOrIgnore($key + ['created_at' => now(), 'updated_at' => now()]);
                         if (DB::table('hourly_visit_delay_notices')->where($key)->whereNotNull('sent_at')->exists()) continue;

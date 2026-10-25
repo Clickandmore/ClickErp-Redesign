@@ -34,7 +34,7 @@ class HourlyShelterPresenceTest extends TestCase
         Schema::table('user_addresses', function (Blueprint $t) { foreach (['name', 'phone', 'title'] as $c) $t->string($c)->nullable(); });
         foreach (['2026_09_20_000001_add_hourly_booking_wizard', '2026_09_21_000001_extend_hourly_order_management',
             '2026_09_21_000002_add_hourly_visit_operations', '2026_09_22_000001_create_hourly_customer_sources',
-            '2026_09_28_000001_create_worker_daily_movements_table'] as $migration) {
+            '2026_09_28_000001_create_worker_daily_movements_table', '2026_09_28_000001_create_hourly_staff_app_tables'] as $migration) {
             (require base_path('database/migrations/'.$migration.'.php'))->up();
         }
         DB::table('users')->insert(['id' => 1, 'name' => 'عميل الإيواء', 'phone' => '0500000000']);
@@ -268,6 +268,30 @@ class HourlyShelterPresenceTest extends TestCase
         $this->assertStringContainsString('في طريق العودة للإيواء', $html);
         $this->assertStringContainsString('تصعيد التأخير', $html);
         $this->assertStringContainsString('mh-now-escalated', $html);
+    }
+
+    public function test_late_start_moves_the_delay_clock_to_the_actual_service_end(): void
+    {
+        $order = $this->order();
+        $order->update(['status' => 'active']);
+        $visit = $order->visits()->first();
+        $arrived = $visit->scheduled_start_at->copy()->addMinutes(150);
+        $actualEnd = $arrived->copy()->addSeconds((int) round((float) $visit->planned_hours * 3600));
+        $visit->update(['status' => 'in_progress']);
+        DB::table('hourly_visit_workers')->where('hourly_visit_id', $visit->id)->update(['arrived_at' => $arrived]);
+
+        // ساعتان بعد نهاية الموعد المحجوز، والخدمة الفعلية لم تنتهِ بعد.
+        \Carbon\Carbon::setTestNow($visit->scheduled_end_at->copy()->addMinutes(120));
+        $this->assertNull(\App\Services\Hourly\VisitDelay::state($visit->fresh()));
+        $badge = view('admin.hourly_maids._current-visit-status', ['trip' => $this->presence()->visitOf(1)])->render();
+        $this->assertStringNotContainsString('تصعيد التأخير', $badge);
+        $this->assertStringNotContainsString('دقيقة بعد الموعد', $badge);
+
+        \Carbon\Carbon::setTestNow($actualEnd->copy()->addMinutes(91));
+        $state = \App\Services\Hourly\VisitDelay::state($visit->fresh());
+        $this->assertSame('escalated', $state['stage']);
+        $this->assertSame(91, $state['minutes']);
+        $this->assertStringContainsString('تصعيد التأخير', view('admin.hourly_maids._current-visit-status', ['trip' => $this->presence()->visitOf(1)])->render());
     }
 
     public function test_old_open_visit_keeps_return_unconfirmed_without_blocking_a_non_overlapping_booking(): void

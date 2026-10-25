@@ -40,6 +40,8 @@ class OrderController extends Controller
             ->get();
         return view('admin.hourly.orders',[
             'orders'=>$orders,
+            // تنبيه تشغيلي: زيارات اليوم المتوقفة على تعيين سائق، ومنها ما فات موعده.
+            'driverGaps'=>app(\App\Services\Hourly\DriverGaps::class)->today(),
             'latestCustomerOrders'=>$recent(false),
             'latestEmployeeOrders'=>$recent(true),
             'cities'=>City::saudi()->active()->get(),

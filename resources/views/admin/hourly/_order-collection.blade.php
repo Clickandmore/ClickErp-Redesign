@@ -2,11 +2,8 @@
     $collectionSchedule=app(\App\Services\Hourly\PaymentScheduleService::class)->forOrder($order);
     $collectibleNow=$collectionSchedule['policy']==='legacy'?$collectionSchedule['remaining']:$collectionSchedule['due_now'];
     $awaitingConfirmation = $order->status === 'pending_confirmation';
-    $canConfirm = AdminGuardHasPerm('hourly_orders_confirm') && $awaitingConfirmation
-        && (!in_array($order->package_snapshot['payment_policy']??null,['prepaid','installments'],true) || \App\Services\Hourly\HourlyPaymentService::activationPaid($order))
-        && (in_array($order->payment_method, ['cash', 'card_on_delivery'], true)
-            || \App\Services\Hourly\HourlyPaymentService::activationPaid($order));
-    $canCollect = $collectibleNow>0 && in_array($order->status,['pending_confirmation','active','completed'],true) && AdminGuardHasPerm('hourly_orders_collect') && $order->payment_status != 'paid' && !in_array($order->payment_method, ['moyasar', 'customer_balance']);
+    $canConfirm = AdminGuardHasPerm('hourly_orders_confirm') && \App\Services\Hourly\HourlyOrderService::confirmable($order);
+    $canCollect = $collectibleNow>0 && in_array($order->status,['pending_confirmation','active','completed','awaiting_payment'],true) && AdminGuardHasPerm('hourly_orders_collect') && $order->payment_status != 'paid' && !in_array($order->payment_method, ['moyasar', 'customer_balance']);
 @endphp
 @if($canConfirm)
     <div class="om-alert">

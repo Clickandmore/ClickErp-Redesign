@@ -26,6 +26,7 @@ class Kernel extends ConsoleKernel
         $schedule->command('hourly:past-visit-reminder')->dailyAt('08:05')->timezone('Asia/Riyadh')->withoutOverlapping();
         $schedule->command('hourly:service-time')->everyMinute()->withoutOverlapping();
         $schedule->command('hourly:visit-delays')->everyFiveMinutes()->withoutOverlapping();
+        $schedule->command('hourly:assign-drivers')->everyFifteenMinutes()->withoutOverlapping();
         $schedule->command('hourly:auto-complete-visits')->everyFiveMinutes()->withoutOverlapping();
         if (config('activitylog.scheduled_cleanup_enabled', false)) {
             $schedule->command('activitylog:clean --force')
