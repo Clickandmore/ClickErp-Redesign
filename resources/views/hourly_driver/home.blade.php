@@ -135,7 +135,8 @@
                         <span class="dp-status {{ $done ? 'is-done' : '' }}">{{ $statusLabels[$visit->status] ?? $visit->status }}</span>
                     </header>
 
-                    @if($visit->order?->status !== 'active')<p class="dp-alert" role="alert">الطلب غير نشط؛ تواصل مع الإدارة لمعالجة الزيارة الجارية وتسجيل العودة.</p>@endif
+                    @if($visit->order?->status === 'pending_confirmation')<p class="dp-alert is-soft" role="status">الطلب بانتظار تأكيد الإدارة — لا تبدأ المشوار حتى يُؤكَّد. يظهر هنا لتعرف جدولك مسبقًا.</p>
+                    @elseif($visit->order?->status !== 'active')<p class="dp-alert" role="alert">الطلب غير نشط؛ تواصل مع الإدارة لمعالجة الزيارة الجارية وتسجيل العودة.</p>@endif
                     @if(($incident['status'] ?? null) === 'manual_review' && !empty($incident['return_recorded_at']))
                         <p class="dp-alert" role="alert">سُجلت عودة العاملة؛ ما زالت الزيارة في متابعة الإدارة للتسوية.</p>
                     @elseif(in_array($visit->status, \App\Services\Hourly\DriverAppService::ONGOING, true) && ($delay = \App\Services\Hourly\VisitDelay::state($visit)))

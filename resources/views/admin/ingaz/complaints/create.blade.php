@@ -93,8 +93,12 @@
                     <div class="col-md-4 mb-3">
                         <label class="form-label">حالة الشكوى <span class="required">*</span></label>
                         <select name="status" class="form-select" required>
-                            @foreach(['pending' => 'قيد الانتظار', 'in_progress' => 'قيد المعالجة', 'resolved' => 'تم الحل', 'closed' => 'مغلقة', 'rejected' => 'مرفوضة'] as $value => $label)
-                                <option value="{{ $value }}" {{ old('status', $complaint->status) === $value ? 'selected' : '' }}>{{ $label }}</option>
+                            {{-- حالة "مغلقة" أُلغيت واعتُمدت "تم الحل" بدلاً منها؛ الشكاوى المغلقة قديماً تظهر كـ"تم الحل" --}}
+                            @php
+                                $currentStatus = old('status', $complaint->status === 'closed' ? 'resolved' : $complaint->status);
+                            @endphp
+                            @foreach(['pending' => 'قيد الانتظار', 'in_progress' => 'قيد المعالجة', 'resolved' => 'تم الحل', 'rejected' => 'مرفوضة'] as $value => $label)
+                                <option value="{{ $value }}" {{ $currentStatus === $value ? 'selected' : '' }}>{{ $label }}</option>
                             @endforeach
                         </select>
                     </div>

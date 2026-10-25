@@ -263,11 +263,8 @@
                         <option value="in_progress" {{ old('status', $complaint->status) == 'in_progress' ? 'selected' : '' }}>
                             {{ __('ingaz.complaint_status_in_progress') }}
                         </option>
-                        <option value="resolved" {{ old('status', $complaint->status) == 'resolved' ? 'selected' : '' }}>
+                        <option value="resolved" {{ in_array(old('status', $complaint->status), ['resolved', 'closed']) ? 'selected' : '' }}>
                             {{ __('ingaz.complaint_status_resolved') }}
-                        </option>
-                        <option value="closed" {{ old('status', $complaint->status) == 'closed' ? 'selected' : '' }}>
-                            {{ __('ingaz.complaint_status_closed') }}
                         </option>
                         <option value="rejected" {{ old('status', $complaint->status) == 'rejected' ? 'selected' : '' }}>
                             {{ __('ingaz.complaint_status_rejected') }}

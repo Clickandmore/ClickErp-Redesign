@@ -120,6 +120,8 @@ class CustomerHourlyData
         $data['status_label'] = HourlyOrderService::statusLabel($order);
         $data['amount_due'] = max(0,round((float)$order->total_amount-(float)$order->paid_amount,2));
         if ($details) $data['refunded_amount'] = -(float)$order->payments()->where('status','paid')->where('amount','<',0)->sum('amount');
+        // Compensations are a separate goodwill expense: they never change total_amount or paid_amount.
+        if ($details) $data['compensations'] = app(OrderCompensation::class)->publicData($order);
         if ($details && CashCollectionService::ready()) $data['cash_receipts']=DB::table('hourly_cash_collections')->where('order_id',$order->id)->get(['id','payment_id','amount'])->map(fn($r)=>[
             'collection_id'=>(int)$r->id,'payment_id'=>(int)$r->payment_id,'amount'=>(float)$r->amount,'url'=>url('api/app/hourly/cash-receipts/'.$r->id)])->all();
         if ($details) $data['visits'] = $order->visits->sortBy('visit_number')->map(fn ($visit) => $this->visit($visit, $order))->values();

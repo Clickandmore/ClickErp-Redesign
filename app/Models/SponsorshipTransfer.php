@@ -62,6 +62,7 @@ class SponsorshipTransfer extends Model
         'failure_reason',
         'failure_settlement_type',
         'failure_settlement_amount',
+        'failure_refund_method',
         'failure_clear_remaining_amount',
         'failure_client_iban',
         'failure_client_iban_attachment_path',
@@ -350,6 +351,16 @@ class SponsorshipTransfer extends Model
         ];
 
         return $types[$this->failure_settlement_type] ?? 'غير محدد';
+    }
+
+    public function getFailureRefundMethodTextAttribute(): string
+    {
+        $methods = [
+            'bank' => 'تحويل بنكي',
+            'cash' => 'نقدي',
+        ];
+
+        return $methods[$this->failure_refund_method] ?? 'غير محدد';
     }
 
     // Methods

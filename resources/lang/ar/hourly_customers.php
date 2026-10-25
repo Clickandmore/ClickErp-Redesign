@@ -80,7 +80,7 @@ return [
         'wallet_title' => 'حركات المحفظة', 'payments_title' => 'الدفعات على الطلبات', 'date' => 'التاريخ', 'type' => 'النوع', 'amount' => 'المبلغ',
         'balance_after' => 'الرصيد بعدها', 'method' => 'طريقة الدفع', 'collected_by' => 'استلمها', 'order' => 'الطلب', 'vat' => 'الضريبة', 'description' => 'الوصف',
         'status' => 'الحالة', 'empty' => 'لا توجد حركات.',
-        'types' => ['deposit' => 'إيداع', 'refund' => 'استرداد إلى المحفظة', 'order_payment' => 'خصم لطلب', 'adjustment' => 'تسوية يدوية', 'merge' => 'دمج حساب'],
+        'types' => ['deposit' => 'إيداع', 'refund' => 'استرداد إلى المحفظة', 'order_payment' => 'خصم لطلب', 'adjustment' => 'تسوية يدوية', 'compensation' => 'تعويض عن طلب', 'merge' => 'دمج حساب'],
     ],
     'methods' => ['cash' => 'نقدي', 'card_on_delivery' => 'شبكة / بطاقة', 'bank_transfer' => 'تحويل بنكي', 'cheque' => 'شيك', 'customer_balance' => 'رصيد العميل', 'moyasar' => 'دفع إلكتروني', 'wallet' => 'المحفظة', 'cash_and_card' => 'نقدي وبطاقة', 'none' => 'بلا استرداد'],
     'payment_statuses' => ['paid' => 'مدفوع', 'pending' => 'قيد الانتظار', 'creating' => 'قيد الإنشاء', 'failed' => 'فشل', 'partial' => 'جزئي', 'unpaid' => 'غير مدفوع'],

@@ -461,6 +461,8 @@ class RentContractController extends Controller
                         if ($durationDays <= 0 && $durationMonths > 0) {
                             $durationDays = $durationMonths * 30;
                         }
+                        // التمديد الجديد يبدأ من آخر قيمة للعقد (آخر تمديد) وليس من القيمة الأصلية
+                        $pricingBasis = app(RentalContractFinanceService::class)->currentPricingBasis($row);
                         $days = $row->calculateDayUsage();
                         $remainingDays = $row->calculateRemainingDays() ?? '';
                         $usedDays = $row->info?->ingaz_from ? $days['used_days'] : '';
@@ -475,6 +477,9 @@ class RentContractController extends Controller
                                         data-ingaz-to="' . e($currentEndDate) . '"
                                         data-monthly-cost="' . $monthlyCost . '"
                                         data-contract-value="' . $contractValue . '"
+                                        data-latest-value="' . (float) $pricingBasis['gross_total'] . '"
+                                        data-latest-days="' . (int) $pricingBasis['days'] . '"
+                                        data-latest-source="' . e($pricingBasis['source']) . '"
                                         data-duration-months="' . $durationMonths . '"
                                         data-duration-days="' . $durationDays . '"
                                         data-remaining-days="' . e((string) $remainingDays) . '"
@@ -2934,6 +2939,7 @@ class RentContractController extends Controller
 
             $contractData = [
                 'id' => $contract->id,
+                'contract_number' => $contract->contract_number,
                 'client_name' => $contract->user->name ?? 'غير محدد',
                 'maid_name' => $contract->maid->name ?? 'غير محدد',
                 'status_text' => $this->getStatusText($contract->status),
@@ -4508,7 +4514,8 @@ class RentContractController extends Controller
 
         $grossValue = round(
             (float) $rentalContractFinanceService->extensionAmounts(
-                $contract, $extensionDays, 0, $this->resolveExtensionPackage($request, $contract)
+                $contract, $extensionDays, 0, $this->resolveExtensionPackage($request, $contract),
+                $rentalContractFinanceService->currentPricingBasis($contract)
             )['total_due'],
             2
         );
@@ -4614,7 +4621,10 @@ class RentContractController extends Controller
             }
 
             $extensionPackage = $this->resolveExtensionPackage($request, $contract);
-            $grossAmounts = $rentalContractFinanceService->extensionAmounts($contract, $extensionDays, 0, $extensionPackage);
+            // التمديد يُسعّر بآخر قيمة للعقد (آخر تمديد إن وُجد) وليس بقيمة العقد الأصلية
+            $pricingBasis = $rentalContractFinanceService->currentPricingBasis($contract);
+            $usesLatestExtensionRate = !$extensionPackage && $pricingBasis['source'] === 'extension';
+            $grossAmounts = $rentalContractFinanceService->extensionAmounts($contract, $extensionDays, 0, $extensionPackage, $pricingBasis);
             $extensionGrossValue = round((float) $grossAmounts['total_due'], 2);
 
             // خصم العميل: نسبة من إجمالي التمديد أو مبلغ مباشر، ويُطرح من الإجمالي شامل الضريبة
@@ -4640,7 +4650,8 @@ class RentContractController extends Controller
                 $contract,
                 $extensionDays,
                 $discountAmount,
-                $extensionPackage
+                $extensionPackage,
+                $pricingBasis
             );
             $extensionValue = round((float) $extensionAmounts['total_due'], 2);
 
@@ -4667,7 +4678,11 @@ class RentContractController extends Controller
                     'monthly_salary' => (float) ($contract->info->monthly_salary ?: $contract->maid?->resolved_salary ?: $contract->maid?->salary),
                     'amounts_before_discount' => $grossAmounts,
                 ] : null,
-                'pricing_snapshot' => $extensionPackage ? $extensionAmounts : null,
+                // يُحفظ التسعير عند الاعتماد على باقة أو على سعر آخر تمديد حتى لا تُعاد حسبته لاحقاً بسعر العقد الأصلي
+                'pricing_snapshot' => $extensionPackage ? $extensionAmounts : ($usesLatestExtensionRate ? $extensionAmounts + [
+                    'amounts_before_discount' => $grossAmounts,
+                    'rate_basis_extension_id' => $pricingBasis['extension']->id,
+                ] : null),
                 'rental_contract_id' => $contract->id,
                 'extension_months' => $extensionMonths,
                 'extension_days' => $extensionDays,

@@ -1019,6 +1019,76 @@ class HourlyWebsiteTest extends TestCase
         $this->assertEquals(200,$order->fresh()->total_amount);$this->assertEquals(200,$order->fresh()->paid_amount);
     }
 
+    private function compensationFixture(): array
+    {
+        (require base_path('database/migrations/2026_10_25_000001_create_hourly_order_compensations.php'))->up();
+        // The report names the staff member who granted each compensation.
+        if (!Schema::hasTable('admins')) { Schema::create('admins',fn(Blueprint $t)=>[$t->id(),$t->string('name')]); DB::table('admins')->insert(['id'=>7,'name'=>'مشرف']); }
+        if (!Schema::hasColumn('hourly_wallet_transactions','type')) Schema::table('hourly_wallet_transactions',function(Blueprint $t){
+            $t->string('type',20)->nullable();$t->unsignedBigInteger('linked_order_id')->nullable();$t->string('payment_method',30)->nullable();
+            $t->string('description',500)->nullable();$t->dateTime('paid_at')->nullable();});
+        $this->mock(\App\Services\Hourly\CustomerNotifier::class,function($mock){$mock->shouldReceive('send')->zeroOrMoreTimes()->andReturn(['status'=>'sent']);});
+        [$order,$visit]=$this->incidentFixture();
+        return [$order->fresh(),$visit];
+    }
+
+    public function test_wallet_compensation_credits_the_customer_without_touching_the_invoice_and_is_capped_by_what_was_paid(): void
+    {
+        [$order,$visit]=$this->compensationFixture();
+        $wallet=(float)User::findOrFail(1)->hourly_wallet_balance;
+        $url=route('admin.hourly-orders.compensations.store',$order);
+        $body=['amount'=>50,'reason'=>'delay','note'=>'وصلت العاملة متأخرة','destination'=>'wallet','visit_id'=>$visit->id,'request_token'=>(string)Str::uuid()];
+        $this->postJson($url,$body)->assertOk()->assertJsonPath('data.status','credited');
+        $this->postJson($url,$body)->assertOk(); // replaying the same token does not pay twice
+        $this->assertEquals($wallet+50,User::findOrFail(1)->hourly_wallet_balance);
+        $this->assertDatabaseHas('hourly_wallet_transactions',['user_id'=>1,'type'=>'compensation','linked_order_id'=>$order->id,'amount'=>50]);
+        // A separate expense: the order total, what was paid and the invoice values stay as they were.
+        $this->assertEquals(200,$order->fresh()->total_amount);$this->assertEquals(200,$order->fresh()->paid_amount);
+        $this->assertTrue(DB::table('hourly_order_audits')->where('hourly_rental_order_id',$order->id)->where('action','compensation')->exists());
+        // The visit was paid 100: 50 more is allowed, 60 is not without the override permission.
+        $over=['amount'=>60,'reason'=>'service_quality','destination'=>'wallet','visit_id'=>$visit->id,'request_token'=>(string)Str::uuid()];
+        $admin=\Mockery::mock(\App\Models\auth\Admin::class)->makePartial();$admin->id=7;$admin->name='مشرف';
+        $admin->shouldReceive('can')->andReturnUsing(fn($perm)=>$perm!=='hourly_orders_compensate_override');
+        auth('admin')->setUser($admin);
+        $this->postJson($url,$over)->assertUnprocessable();
+        $this->postJson($url,['amount'=>50]+$over)->assertOk();
+        $this->assertEquals(0,app(\App\Services\Hourly\OrderCompensation::class)->limit($order->fresh(),$visit->id));
+        $public=app(\App\Services\Hourly\CustomerHourlyData::class)->order($order->fresh());
+        $this->assertCount(2,$public['compensations']);$this->assertSame('أُضيف للمحفظة',$public['compensations'][0]['status_label']);
+    }
+
+    public function test_cash_compensation_waits_for_payout_and_appears_in_the_report(): void
+    {
+        [$order]=$this->compensationFixture();
+        $wallet=(float)User::findOrFail(1)->hourly_wallet_balance;
+        $this->postJson(route('admin.hourly-orders.compensations.store',$order),['amount'=>30,'reason'=>'other','destination'=>'cash','request_token'=>(string)Str::uuid()])
+            ->assertUnprocessable(); // «other» needs a written reason
+        $this->postJson(route('admin.hourly-orders.compensations.store',$order),['amount'=>30,'reason'=>'other','note'=>'كسر في الأثاث','destination'=>'cash','request_token'=>(string)Str::uuid()])
+            ->assertOk()->assertJsonPath('data.status','pending_payout');
+        $this->assertEquals($wallet,User::findOrFail(1)->hourly_wallet_balance);
+        $id=DB::table('hourly_order_compensations')->value('id');
+        $this->post(route('admin.hourly-orders.compensations.paid-out',[$order,$id]),['payout_reference'=>'سند 15'])->assertRedirect();
+        $this->assertDatabaseHas('hourly_order_compensations',['id'=>$id,'status'=>'paid_out','payout_reference'=>'سند 15']);
+        $this->get(route('admin.hourly-compensations.index'))->assertOk()->assertSee($order->order_number)->assertSee('كسر في الأثاث')->assertSee('30.00');
+    }
+
+    public function test_driver_portal_shows_a_pending_order_task_locked_until_confirmation(): void
+    {
+        $booking=$this->fixture();$this->driverLocations();$this->customer();
+        $order=HourlyRentalOrder::findOrFail($this->postJson(route('web.hourly.store'),$booking)->assertCreated()->json('id'));
+        $order->update(['status'=>'pending_confirmation']);
+        $visit=$order->visits()->firstOrFail();$visit->update(['delivery_driver_id'=>2,'delivery_at'=>$visit->scheduled_start_at]);
+        // Web portal access: an enabled account allowed on the web channel, with the session bound to its auth version.
+        Schema::table('hourly_drivers',function(Blueprint $t){$t->boolean('account_enabled')->default(true);$t->string('login_access')->default('both');$t->unsignedInteger('auth_version')->default(1);});
+        $this->actingAs(HourlyDriver::findOrFail(2),'hourly_driver')->withSession(['hourly_driver_version'=>1]);
+        $this->get(route('hourly-driver.home',['date'=>'2030-01-07']))->assertOk()
+            ->assertSee('الطلب بانتظار تأكيد الإدارة')->assertSee($order->order_number)->assertDontSee('بدء مشوار التوصيل');
+        $this->post(route('hourly-driver.visits.action',$visit),['action'=>'start_delivery'])->assertSessionHasErrors();
+        $this->assertSame('scheduled',$visit->fresh()->status);
+        $order->update(['status'=>'active']);
+        $this->get(route('hourly-driver.home',['date'=>'2030-01-07']))->assertOk()->assertDontSee('الطلب بانتظار تأكيد الإدارة');
+    }
+
     public function test_visit_waiting_on_a_driver_is_flagged_today_even_after_its_start_and_self_travelling_workers_are_ignored(): void
     {
         $booking=$this->fixture();$this->customer();

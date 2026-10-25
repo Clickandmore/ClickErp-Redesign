@@ -34,7 +34,9 @@ class WorkerAppController extends Controller
 
     public function arrived(Request $request, int $visit)
     {
-        return response()->json(['data' => $this->service->arrived($this->worker(), $visit, $this->gps($request))]);
+        // otp_code is the hand-over code the customer sees in the app, as in the driver's delivery; delivery_code is an alias.
+        $data = $request->validate(['otp_code' => ['nullable', 'string', 'max:10'], 'delivery_code' => ['nullable', 'string', 'max:10']]);
+        return response()->json(['data' => $this->service->arrived($this->worker(), $visit, $this->gps($request), $data['otp_code'] ?? $data['delivery_code'] ?? null)]);
     }
 
     public function finish(Request $request, int $visit)

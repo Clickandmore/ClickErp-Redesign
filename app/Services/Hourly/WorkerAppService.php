@@ -69,9 +69,9 @@ class WorkerAppService
             ->pluck('name', 'id');
         $needsTransport = $this->needsTransport($maid);
         $driverRequiredVisits = DB::table('hourly_visit_workers as w')->join('maids as m', 'm.id', '=', 'w.maid_id')
-            ->whereIn('w.hourly_visit_id', $rows->pluck('id'))
-            ->whereRaw("JSON_UNQUOTE(JSON_EXTRACT(m.hourly_settings, '$.requires_driver')) IN ('1','true')")
-            ->distinct()->pluck('w.hourly_visit_id')->flip();
+            ->whereIn('w.hourly_visit_id', $rows->pluck('id'))->get(['w.hourly_visit_id', 'm.hourly_settings'])
+            ->filter(fn ($worker) => self::explicitlyRequiresDriver($worker->hourly_settings))
+            ->pluck('hourly_visit_id')->unique()->flip();
 
         $cash=app(CashCollectionService::class);
         $cashVisits=CashCollectionService::ready()?HourlyVisit::with(['workers','order'])->whereIn('id',$rows->pluck('id'))->get()->keyBy('id'):collect();
@@ -103,6 +103,8 @@ class WorkerAppService
                 'needs_transport' => $visitNeedsTransport,
                 'incident_status'=>$incidentStatus,
                 'arrival_blocked_reason' => $arrivalBlockedReason,
+                // «وصلت» يتطلب رمز التسليم الذي يظهر للعميل (otp_code)، كما في تسليم السائق.
+                'requires_delivery_code' => DeliveryCode::requiredForSelfArrival($row),
                 'can_arrive' => !$arrivalBlockedReason && $canExecuteDay && !$held && !$visitNeedsTransport && in_array($status, ['assigned', 'en_route'], true),
                 'can_finish' => $canExecuteDay && $status === 'delivered',
                 // نهاية الخدمة المتوقعة من وقت الوصول؛ «انتهيت» قبلها إنهاء مبكر يطلب التطبيق له سببًا من early_finish_reasons.
@@ -117,9 +119,9 @@ class WorkerAppService
     }
 
     /** «وصلت» لمن لا تحتاج توصيلًا: بدء الزيارة بنفسها. */
-    public function arrived(Maid $maid, int $workerVisitId, array $gps): array
+    public function arrived(Maid $maid, int $workerVisitId, array $gps, ?string $deliveryCode = null): array
     {
-        return $this->act($maid, $workerVisitId, ['assigned', 'en_route'], 'delivered', 'arrived_at', 'delivered', $gps, null);
+        return $this->act($maid, $workerVisitId, ['assigned', 'en_route'], 'delivered', 'arrived_at', 'delivered', $gps, null, null, $deliveryCode);
     }
 
     /**
@@ -253,10 +255,10 @@ class WorkerAppService
      * تغيير حالة العاملة في الزيارة، ثم تقديم حالة الزيارة إن اتفقت كل العاملات عليها.
      * @param array<int,string> $allowed الحالات المسموح الانتقال منها
      */
-    private function act(Maid $maid, int $workerVisitId, array $allowed, string $target, string $stamp, string $visitTarget, array $gps, ?string $note, ?string $earlyReason = null): array
+    private function act(Maid $maid, int $workerVisitId, array $allowed, string $target, string $stamp, string $visitTarget, array $gps, ?string $note, ?string $earlyReason = null, ?string $deliveryCode = null): array
     {
         HourlyOrderService::enabled();
-        return DB::transaction(function () use ($maid, $workerVisitId, $allowed, $target, $stamp, $visitTarget, $gps, $note, $earlyReason) {
+        return DB::transaction(function () use ($maid, $workerVisitId, $allowed, $target, $stamp, $visitTarget, $gps, $note, $earlyReason, $deliveryCode) {
             $row = DB::table('hourly_visit_workers')->where('id', $workerVisitId)->first();
             abort_unless($row && (int) $row->maid_id === (int) $maid->id, 404, 'الزيارة غير موجودة أو ليست من زياراتك.');
             $reference = HourlyVisit::findOrFail($row->hourly_visit_id);
@@ -273,7 +275,10 @@ class WorkerAppService
             }
             $current = $row->status ?: (($visit->status === 'delivered' && empty($row->arrived_at)) ? 'assigned' : (self::FROM_VISIT[$visit->status] ?? 'assigned'));
             if ($current === $target) return $this->result($maid, $visit, $row->id);
-            if ($visitTarget === 'delivered') $this->assertWorkerMaySelfArrive($maid, $visit, $row);
+            if ($visitTarget === 'delivered') {
+                $this->assertWorkerMaySelfArrive($maid, $visit, $row);
+                DeliveryCode::assertSelfArrival($visit, $deliveryCode);
+            }
             if (!in_array($current, $allowed, true)) {
                 HourlyOrderService::reject($target === 'finished' ? 'لا يمكن إعلان الانتهاء قبل بدء الزيارة.' : 'حالة الزيارة لا تسمح بهذا الإجراء.');
             }
@@ -344,9 +349,8 @@ class WorkerAppService
         if (!empty($assignment->arrived_at)) return null;
         if ($reason = OverdueWorkerReturn::reason((int) $maid->id, (int) $visit->id)) return $reason;
         $requiresDriver = DB::table('hourly_visit_workers as w')->join('maids as m', 'm.id', '=', 'w.maid_id')
-            ->where('w.hourly_visit_id', $visit->id)
-            ->whereRaw("JSON_UNQUOTE(JSON_EXTRACT(m.hourly_settings, '$.requires_driver')) IN ('1','true')")
-            ->exists();
+            ->where('w.hourly_visit_id', $visit->id)->pluck('m.hourly_settings')
+            ->contains(fn ($settings) => self::explicitlyRequiresDriver($settings));
         if (!$visit->delivery_driver_id && ($requiresDriver || $this->needsTransport($maid)))
             return 'تضم الزيارة عاملة تحتاج إلى سائق؛ يجب تعيين السائق أولًا، وهو من يسجل الوصول عند التسليم للعميل.';
         if ($visit->delivery_driver_id) return 'وصول الطاقم يُسجّل بواسطة السائق عند التسليم للعميل.';
@@ -354,7 +358,24 @@ class WorkerAppService
             return 'لا يمكن تسجيل الوصول قبل تأكيد عودتك إلى الإيواء وإغلاق حركة الخروج السابقة.';
         if (!\App\Services\Rental\RentalMaidQuery::applyInsideShelter(Maid::query()->whereKey($maid->id))->exists())
             return 'لا يمكن تسجيل الوصول؛ حالة العاملة لا تثبت وجودها داخل الإيواء. راجعي الإدارة لتأكيد العودة أولًا.';
+        if ($opens = self::selfArrivalOpensAt($visit)) {
+            if (now()->lt($opens)) return 'يتاح تسجيل الوصول من '.$opens->format($opens->isToday() ? 'H:i' : 'Y-m-d H:i').' (قبل موعد الزيارة بـ '.(int) HourlyRentalSettings::get('self_arrival_lead_minutes', 30).' دقيقة).';
+        }
         return null;
+    }
+
+    /** A coworker blocks self-arrival only when her profile explicitly says she needs a driver (raw JSON column). */
+    private static function explicitlyRequiresDriver($settings): bool
+    {
+        $value = (is_array($settings) ? $settings : (json_decode((string) $settings, true) ?: []))['requires_driver'] ?? null;
+        return in_array($value, [true, 1, '1', 'true'], true);
+    }
+
+    /** Arrival starts the service clock, so a self-travelling worker may record it only shortly before the booked start. */
+    public static function selfArrivalOpensAt(object $visit): ?Carbon
+    {
+        if (empty($visit->scheduled_start_at)) return null;
+        return Carbon::parse($visit->scheduled_start_at)->subMinutes((int) HourlyRentalSettings::get('self_arrival_lead_minutes', 30));
     }
     private function plannedEnd(object $row): ?string
     {

@@ -221,6 +221,42 @@ class RentalContractFinanceServiceTest extends TestCase
         return (new ReflectionClass(RentalContractFinanceService::class))->newInstanceWithoutConstructor();
     }
 
+    public function test_next_extension_is_priced_from_the_latest_extension_value(): void
+    {
+        $service = (new ReflectionClass(RentalContractFinanceService::class))->newInstanceWithoutConstructor();
+        $contract = $this->extensionContract();
+        $contract->setRelation('extensions', new \Illuminate\Database\Eloquent\Collection([
+            (new \App\Models\RentalContractExtension())->forceFill([
+                'id' => 1, 'extension_days' => 30, 'gross_value' => 1800, 'extension_value' => 1800,
+            ]),
+            (new \App\Models\RentalContractExtension())->forceFill([
+                'id' => 2, 'extension_days' => 30, 'gross_value' => 1900, 'extension_value' => 1700, 'discount_amount' => 200,
+            ]),
+        ]));
+
+        $basis = $service->currentPricingBasis($contract);
+
+        $this->assertSame('extension', $basis['source']);
+        $this->assertSame(1900.0, $basis['gross_total']);
+        $this->assertSame(30, $basis['days']);
+        $this->assertSame(1900.0, (float) $service->extensionAmounts($contract, 30, 0, null, $basis)['total_due']);
+        // بدون أساس التسعير يبقى السلوك القديم (قيمة العقد الأصلية) لإعادة حساب التمديدات القديمة كما هي
+        $this->assertSame(1700.0, (float) $service->extensionAmounts($contract, 30)['total_due']);
+    }
+
+    public function test_pricing_basis_falls_back_to_the_original_contract_without_extensions(): void
+    {
+        $service = (new ReflectionClass(RentalContractFinanceService::class))->newInstanceWithoutConstructor();
+        $contract = $this->extensionContract();
+        $contract->setRelation('extensions', new \Illuminate\Database\Eloquent\Collection());
+
+        $basis = $service->currentPricingBasis($contract);
+
+        $this->assertSame('contract', $basis['source']);
+        $this->assertSame(1700.0, $basis['gross_total']);
+        $this->assertSame(1700.0, (float) $service->extensionAmounts($contract, 30, 0, null, $basis)['total_due']);
+    }
+
     private function extensionContract(): RentalContract
     {
         $contract = new RentalContract();

@@ -59,6 +59,8 @@ class HourlyStaffAppApiTest extends TestCase
         (require base_path('database/migrations/2026_09_30_000001_create_hourly_staff_notification_reads_table.php'))->up();
         (require base_path('database/migrations/2026_09_30_000002_extend_hourly_sos_alerts_for_drivers.php'))->up();
         (require base_path('database/migrations/2026_10_18_000005_create_hourly_early_finishes.php'))->up();
+        // Return holds and self-arrival read the physical movement log on every worker action.
+        if(!Schema::hasTable('worker_daily_movements'))(require base_path('database/migrations/2026_09_28_000001_create_worker_daily_movements_table.php'))->up();
         // سجل الرسائل الذي يكتب فيه StaffPushService كل إشعار، وهو مصدر صندوق الإشعارات.
         Schema::create('communication_logs', function (Blueprint $t) {
             $t->id(); $t->uuid('batch_id')->nullable(); $t->string('channel', 20); $t->string('recipient_type', 20);
@@ -650,7 +652,7 @@ class HourlyStaffAppApiTest extends TestCase
 
     public function test_old_unreturned_visit_blocks_new_arrival_until_recorded_return(): void
     {
-        (require base_path('database/migrations/2026_09_28_000001_create_worker_daily_movements_table.php'))->up();
+        if(!Schema::hasTable('worker_daily_movements'))(require base_path('database/migrations/2026_09_28_000001_create_worker_daily_movements_table.php'))->up();
         $old = $this->order(2, '2026-09-22 08:00', ['requires_driver'=>false])->visits()->first();
         $next = $this->order(2, '2026-09-23 08:00', ['requires_driver'=>false])->visits()->first();
         $driver = $this->driver();
@@ -685,7 +687,7 @@ class HourlyStaffAppApiTest extends TestCase
         $task = $service->today($maid)[0];
         $this->assertTrue($task['can_arrive']);
         $this->assertNull($task['arrival_blocked_reason']);
-        $service->arrived($maid,$task['id'],[]);
+        $service->arrived($maid,$task['id'],[],$next->fresh()->delivery_code);
         $this->assertSame('delivered',$next->fresh()->status);
         $this->assertNotNull(DB::table('hourly_visit_workers')->where('id',$task['id'])->value('arrived_at'));
     }
@@ -695,13 +697,32 @@ class HourlyStaffAppApiTest extends TestCase
         $order = $this->order(2, '2026-09-22 08:00', ['requires_driver' => false]);
         $visit = $order->visits()->first();
         $token = $this->loginWorker(2, '0500000002');
-        $rows = $this->withToken($token)->getJson('/api/worker/visits/today')->assertOk()
-            ->assertJsonPath('data.0.needs_transport', false)->assertJsonPath('data.0.can_arrive', true)->json('data');
+        // 07:00 for an 08:00 visit: arrival would start the service clock an hour early, so it opens 30 minutes before.
+        $early = $this->withToken($token)->getJson('/api/worker/visits/today')->assertOk()
+            ->assertJsonPath('data.0.needs_transport', false)->assertJsonPath('data.0.can_arrive', false)->json('data.0');
+        $this->assertStringContainsString('يتاح تسجيل الوصول من 07:30', $early['arrival_blocked_reason']);
         auth()->forgetGuards();
-        $this->withToken($token)->postJson('/api/worker/visits/'.$rows[0]['id'].'/arrived', ['latitude' => 24.71, 'longitude' => 46.7])->assertOk()
+        $this->withToken($token)->postJson('/api/worker/visits/'.$early['id'].'/arrived', ['latitude' => 24.71, 'longitude' => 46.7])->assertUnprocessable();
+        $this->assertDatabaseHas('hourly_visits', ['id' => $visit->id, 'status' => 'scheduled']);
+        Carbon::setTestNow('2026-09-22 07:30:00');
+        auth()->forgetGuards();
+        $rows = $this->withToken($token)->getJson('/api/worker/visits/today')->assertOk()
+            ->assertJsonPath('data.0.can_arrive', true)->assertJsonPath('data.0.requires_delivery_code', true)->json('data');
+        // Like the driver's hand-over, the worker proves she reached the customer with the code shown in the customer's app.
+        $code = $visit->fresh()->delivery_code;
+        $this->assertNotEmpty($code);
+        foreach ([[], ['otp_code' => $code === '0000' ? '1111' : '0000']] as $wrong) {
+            auth()->forgetGuards();
+            $this->withToken($token)->postJson('/api/worker/visits/'.$rows[0]['id'].'/arrived', $wrong + ['latitude' => 24.71, 'longitude' => 46.7])->assertUnprocessable();
+        }
+        $this->assertDatabaseHas('hourly_visits', ['id' => $visit->id, 'status' => 'scheduled']);
+        auth()->forgetGuards();
+        $this->withToken($token)->postJson('/api/worker/visits/'.$rows[0]['id'].'/arrived', ['otp_code' => $code, 'latitude' => 24.71, 'longitude' => 46.7])->assertOk()
             ->assertJsonPath('data.visit.status', 'delivered');
         $this->assertDatabaseHas('hourly_visits', ['id' => $visit->id, 'status' => 'delivered']);
         auth()->forgetGuards();
+        // After the full four hours (finishing at once would be an early finish awaiting the customer).
+        Carbon::setTestNow('2026-09-22 11:30:00');
         // بلا سائق استلام: «انتهيت» تُغلق الزيارة والطلب.
         $this->withToken($token)->postJson('/api/worker/visits/'.$rows[0]['id'].'/finish')->assertOk();
         $this->assertDatabaseHas('hourly_visits', ['id' => $visit->id, 'status' => 'completed']);
@@ -911,7 +932,7 @@ class HourlyStaffAppApiTest extends TestCase
     public function test_manual_incident_records_return_without_completing_or_refunding_visit(): void
     {
         (require base_path('database/migrations/2026_10_18_000003_create_hourly_service_incidents.php'))->up();
-        (require base_path('database/migrations/2026_09_28_000001_create_worker_daily_movements_table.php'))->up();
+        if(!Schema::hasTable('worker_daily_movements'))(require base_path('database/migrations/2026_09_28_000001_create_worker_daily_movements_table.php'))->up();
         $driver=$this->driver();$order=$this->order();$visit=$this->assign($order->visits()->first(),$driver);
         $this->mock(\App\Services\Hourly\CustomerTrackingPushService::class,function($mock){$mock->shouldReceive('notify')->zeroOrMoreTimes();$mock->shouldReceive('orderStatus')->zeroOrMoreTimes();});
         Carbon::setTestNow('2026-09-22 08:00:00');$board=app(\App\Services\Hourly\DriverAppService::class);$actions=app(\App\Services\Hourly\DriverStopActions::class);
@@ -1011,7 +1032,7 @@ class HourlyStaffAppApiTest extends TestCase
 
     public function test_open_movement_blocks_closed_or_unassigned_visit_until_actual_return(): void
     {
-        (require base_path('database/migrations/2026_09_28_000001_create_worker_daily_movements_table.php'))->up();
+        if(!Schema::hasTable('worker_daily_movements'))(require base_path('database/migrations/2026_09_28_000001_create_worker_daily_movements_table.php'))->up();
         $order=$this->order();$visit=$order->visits()->first();
         $visit->update(['status'=>'completed','scheduled_start_at'=>'2026-09-18 08:00','scheduled_end_at'=>'2026-09-18 12:00']);
         $visit->workers()->detach();
@@ -1157,7 +1178,7 @@ class HourlyStaffAppApiTest extends TestCase
     }
     public function test_delivery_rechecks_worker_days_off_and_approved_leave_before_any_departure(): void
     {
-        (require base_path('database/migrations/2026_09_28_000001_create_worker_daily_movements_table.php'))->up();
+        if(!Schema::hasTable('worker_daily_movements'))(require base_path('database/migrations/2026_09_28_000001_create_worker_daily_movements_table.php'))->up();
         $driver=$this->driver();$visit=$this->assign($this->order()->visits()->first(),$driver);
         $board=app(\App\Services\Hourly\DriverAppService::class);$actions=app(\App\Services\Hourly\DriverStopActions::class);
         Carbon::setTestNow('2026-09-22 08:00:00');
@@ -1310,7 +1331,8 @@ class HourlyStaffAppApiTest extends TestCase
         $this->actingAs($account,'hourly_maid')->withSession(['hourly_maid_version'=>$account->hourly_auth_version]);
         $first=DB::table('hourly_visit_workers')->where('hourly_visit_id',$visit->id)->where('maid_id',1)->first();
         $workerUrl=route('hourly-maid.visits.action',$first->id);
-        $this->postJson($workerUrl,['action'=>'arrived'])->assertRedirect();
+        Carbon::setTestNow('2026-09-22 07:30:00'); // self-arrival opens 30 minutes before the 08:00 visit
+        $this->postJson($workerUrl,['action'=>'arrived','delivery_code'=>$visit->fresh()->delivery_code])->assertRedirect();
         $this->assertNotNull(DB::table('hourly_visit_workers')->where('id',$first->id)->value('arrived_at'));
         $data=app(\App\Services\Hourly\CustomerHourlyData::class)->visit($visit->fresh(),$order->fresh());
         $this->assertSame('in_progress',$data['display_status']);
@@ -1371,7 +1393,8 @@ class HourlyStaffAppApiTest extends TestCase
         $workerVisit=(int)DB::table('hourly_visit_workers')->where('hourly_visit_id',$visit->id)->value('id');
         $token=$this->loginWorker();$body=['amount'=>80,'request_token'=>(string)Str::uuid()];
         $this->withToken($token)->postJson("/api/worker/visits/$workerVisit/collect-cash",$body)->assertStatus(422);auth()->forgetGuards();
-        $this->withToken($token)->postJson("/api/worker/visits/$workerVisit/arrived")->assertOk();auth()->forgetGuards();
+        Carbon::setTestNow('2026-09-22 07:30:00'); // self-arrival opens 30 minutes before the 08:00 visit
+        $this->withToken($token)->postJson("/api/worker/visits/$workerVisit/arrived",['otp_code'=>$visit->fresh()->delivery_code])->assertOk();auth()->forgetGuards();
         $first=$this->withToken($token)->postJson("/api/worker/visits/$workerVisit/collect-cash",$body)->assertOk()->assertJsonPath('data.replayed',false)->json('data');auth()->forgetGuards();
         $this->withToken($token)->postJson("/api/worker/visits/$workerVisit/collect-cash",$body)->assertOk()->assertJsonPath('data.replayed',true);auth()->forgetGuards();
         $this->withToken($token)->postJson("/api/worker/visits/$workerVisit/collect-cash",['amount'=>121,'request_token'=>(string)Str::uuid()])->assertStatus(422);auth()->forgetGuards();

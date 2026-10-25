@@ -2708,7 +2708,11 @@
                 const remainingDays = button.data('remaining-days');
                 const usedDays = button.data('used-days');
                 const extensionsCount = toNumber(button.data('extensions-count'));
-                const dailyRate = durationDays > 0 && contractValue > 0 ? contractValue / durationDays :
+                // آخر قيمة للعقد: قيمة آخر تمديد ومدته إن وُجد، وإلا قيمة العقد الأصلية
+                const latestFromExtension = button.data('latest-source') === 'extension';
+                const latestValue = latestFromExtension ? toNumber(button.data('latest-value')) : contractValue;
+                const latestDays = latestFromExtension ? toNumber(button.data('latest-days')) : durationDays;
+                const dailyRate = latestDays > 0 && latestValue > 0 ? latestValue / latestDays :
                     monthlyCost / 30;
 
                 resetExtendModal();
@@ -2735,13 +2739,14 @@
                 $('#extend_used_days_text').text(usedDays !== '' && typeof usedDays !== 'undefined' ? (
                     usedDays + ' يوم') : '-');
                 $('#extend_remaining_days_text').text(renderRemainingDays(remainingDays));
-                $('#extend_contract_value_text').text(formatCurrency(contractValue) + ' ريال');
+                $('#extend_contract_value_text').text(formatCurrency(latestValue) + ' ريال' +
+                    (latestFromExtension ? ' (آخر تمديد - ' + latestDays + ' يوم)' : ''));
                 $('#extend_daily_rate_text').text(formatCurrency(dailyRate) + ' ريال');
                 $('#extend_extensions_count_text').text(extensionsCount + ' مرة');
                 $('#extend_current_end_value').val(ingazTo || '');
                 $('#extend_monthly_cost_value').val(monthlyCost || 0);
-                $('#extend_contract_value_value').val(contractValue || 0);
-                $('#extend_duration_days_value').val(durationDays || 0);
+                $('#extend_contract_value_value').val(latestValue || 0);
+                $('#extend_duration_days_value').val(latestDays || 0);
                 $('#extend_daily_rate_value').val(dailyRate || 0);
                 setExtendStatusBadge(remainingDays);
 
@@ -3342,7 +3347,7 @@
                             resetTransferPaymentFields();
 
                             // تعبئة بيانات العقد في الـ modal
-                            $('#contractId').text(contract.id);
+                            $('#contractId').text(contract.contract_number || contract.id);
                             $('#clientName').text(contract.client_name || '-');
                             $('#maidName').text(contract.maid_name || '-');
                             $('#currentStatus').text(contract.status_text || '-');

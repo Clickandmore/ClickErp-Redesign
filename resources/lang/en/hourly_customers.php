@@ -80,7 +80,7 @@ return [
         'wallet_title' => 'Wallet movements', 'payments_title' => 'Order payments', 'date' => 'Date', 'type' => 'Type', 'amount' => 'Amount',
         'balance_after' => 'Balance after', 'method' => 'Method', 'collected_by' => 'Collected by', 'order' => 'Order', 'vat' => 'VAT', 'description' => 'Description',
         'status' => 'Status', 'empty' => 'No movements.',
-        'types' => ['deposit' => 'Deposit', 'refund' => 'Refund to wallet', 'order_payment' => 'Order debit', 'adjustment' => 'Manual adjustment', 'merge' => 'Account merge'],
+        'types' => ['deposit' => 'Deposit', 'refund' => 'Refund to wallet', 'order_payment' => 'Order debit', 'adjustment' => 'Manual adjustment', 'compensation' => 'Order compensation', 'merge' => 'Account merge'],
     ],
     'methods' => ['cash' => 'Cash', 'card_on_delivery' => 'Card', 'bank_transfer' => 'Bank transfer', 'cheque' => 'Cheque', 'customer_balance' => 'Customer balance', 'moyasar' => 'Online payment', 'wallet' => 'Wallet', 'cash_and_card' => 'Cash and card', 'none' => 'No refund'],
     'payment_statuses' => ['paid' => 'Paid', 'pending' => 'Pending', 'creating' => 'Creating', 'failed' => 'Failed', 'partial' => 'Partial', 'unpaid' => 'Unpaid'],

@@ -428,16 +428,13 @@
                     </div>
                 </section>
 
-                @if (@AdminGuardHasPerm(\App\PermKeys::COMPLAINT_EDIT))
+                {{-- الإجراءات السريعة متاحة فقط للتذاكر المفتوحة؛ بعد الحل أو الرفض تُخفى بالكامل --}}
+                @if (@AdminGuardHasPerm(\App\PermKeys::COMPLAINT_EDIT) && !in_array($complaint->status, ['resolved', 'rejected', 'closed']))
                     <section class="sidebar-card quick-actions-organized">
                         <div class="sidebar-card__header"><h5><i class="fas fa-bolt"></i>{{ __('ingaz.quick_actions') }}</h5></div>
                         <div class="sidebar-actions">
-                            @if (!in_array($complaint->status, ['resolved', 'closed']))
-                                <button class="sidebar-action sidebar-action--success" id="markResolved"><i class="fas fa-check-circle"></i><span>{{ __('ingaz.mark_resolved') }}</span></button>
-                            @endif
-                            @if ($complaint->status !== 'closed')
-                                <button class="sidebar-action" id="closeTicket"><i class="fas fa-lock"></i><span>{{ __('ingaz.close_ticket') }}</span></button>
-                            @endif
+                            <button class="sidebar-action sidebar-action--success" id="markResolved"><i class="fas fa-check-circle"></i><span>{{ __('ingaz.mark_resolved') }}</span></button>
+                            <button class="sidebar-action sidebar-action--danger" id="rejectTicket"><i class="fas fa-ban"></i><span>{{ __('ingaz.reject_ticket') }}</span></button>
                             <button class="sidebar-action assign-ticket" id="assignTicket"><i class="fas fa-user-tag"></i><span>{{ __('ingaz.assign_to_another_employee') }}</span></button>
                             <button class="sidebar-action sidebar-action--warning" id="changePriority"><i class="fas fa-flag"></i><span>{{ __('ingaz.change_priority') }}</span></button>
                         </div>
