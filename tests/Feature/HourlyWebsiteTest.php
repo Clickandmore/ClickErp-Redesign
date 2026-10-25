@@ -33,6 +33,8 @@ class HourlyWebsiteTest extends TestCase
         (require base_path('database/migrations/2026_09_20_000001_add_hourly_booking_wizard.php'))->up();
         (require base_path('database/migrations/2026_09_21_000001_extend_hourly_order_management.php'))->up();
         Schema::create('hourly_drivers',function(Blueprint $t){$t->id();$t->string('name');$t->boolean('is_active')->default(true);$t->softDeletes();});
+        // Per-worker execution columns from the staff-app migration; return holds read them on every booking.
+        if(!Schema::hasColumn('hourly_visit_workers','status'))Schema::table('hourly_visit_workers',function(Blueprint $t){$t->string('status',20)->nullable();$t->dateTime('arrived_at')->nullable();$t->dateTime('finished_at')->nullable();});
         DB::table('users')->insert([['id'=>1,'name'=>'عميل','phone'=>'0500000000'],['id'=>2,'name'=>'عميل آخر','phone'=>'0500000001']]);
     }
 
@@ -209,19 +211,53 @@ class HourlyWebsiteTest extends TestCase
         $this->assertEquals(2,$visit->delivery_driver_id);$this->assertEquals(2,$visit->pickup_driver_id);
         // Leave the driver's assignment in place but free worker capacity for a second booking.
         DB::table('hourly_visit_reservations')->delete();
+        // Another customer books the same slot: the same customer would be stopped by duplicate-visit protection.
         $booking['booking_token']=(string)Str::uuid();
+        $booking['address_id']=$this->address(24.7,46.7,'الملز');DB::table('user_addresses')->where('id',$booking['address_id'])->update(['user_id'=>2]);
+        $this->customer(2);
         $this->postJson(route('web.hourly.store'),$booking)->assertCreated();
         $next=HourlyRentalOrder::latest('id')->first()->visits()->first();
         $this->assertEquals(3,$next->delivery_driver_id);$this->assertEquals(3,$next->pickup_driver_id);
     }
 
-    public function test_automatic_driver_assignment_rejects_stale_locations_and_rolls_back_order(): void
+    public function test_advance_booking_assigns_an_available_driver_without_fresh_locations(): void
     {
         $booking=$this->fixture(['auto_assign_driver'=>['web_app'=>true]]);$this->driverLocations();$this->customer();
-        DB::table('location_pings')->update(['recorded_at'=>now()->subDays(2)]);
-        $this->postJson(route('web.hourly.store'),$booking)->assertStatus(422);
-        $this->assertDatabaseCount('hourly_rental_orders',0);
-        $this->assertDatabaseCount('hourly_visit_reservations',0);
+        // Drivers were offline when the customer booked a visit for another day.
+        DB::table('location_pings')->delete();
+        $this->postJson(route('web.hourly.store'),$booking)->assertCreated();
+        $visit=HourlyRentalOrder::first()->visits()->first();
+        $this->assertEquals(2,$visit->delivery_driver_id);$this->assertEquals(2,$visit->pickup_driver_id);
+    }
+
+    public function test_booking_without_available_driver_succeeds_and_the_sweep_assigns_one_later(): void
+    {
+        $booking=$this->fixture(['auto_assign_driver'=>['web_app'=>true]]);$this->driverLocations();$this->customer();
+        HourlyDriver::query()->update(['is_active'=>false]);
+        $this->postJson(route('web.hourly.store'),$booking)->assertCreated();
+        $visit=HourlyRentalOrder::first()->visits()->first();
+        $this->assertNull($visit->delivery_driver_id);$this->assertNull($visit->pickup_driver_id);
+        HourlyDriver::whereKey(3)->update(['is_active'=>true]);
+        \Illuminate\Support\Facades\Artisan::call('hourly:assign-drivers');
+        $this->assertEquals(3,$visit->fresh()->delivery_driver_id);$this->assertEquals(3,$visit->fresh()->pickup_driver_id);
+        $this->assertTrue(DB::table('hourly_order_audits')->where('visit_id',$visit->id)->where('action','auto_driver')->exists());
+    }
+
+    public function test_driver_with_lighter_day_is_preferred_and_live_location_ranks_only_imminent_visits(): void
+    {
+        $booking=$this->fixture(['auto_assign_driver'=>['web_app'=>true]]);$this->driverLocations();$this->customer();
+        $id=$this->postJson(route('web.hourly.store'),$booking)->assertCreated()->json('id');
+        $visit=HourlyRentalOrder::findOrFail($id)->visits()->firstOrFail();
+        $visit->update(['delivery_driver_id'=>null,'pickup_driver_id'=>null,'delivery_at'=>null,'pickup_at'=>null]);
+        $other=$visit->replicate();$other->scheduled_start_at=Carbon::parse('2030-01-07 14:00');$other->scheduled_end_at=Carbon::parse('2030-01-07 16:00');
+        $other->visit_number=2;$other->delivery_driver_id=2;$other->save();
+        $assignment=app(\App\Services\Hourly\NearestDriverAssignment::class);
+        // Driver 2 is nearest but already has a task that day; the visit is tomorrow, so its live location is ignored.
+        $this->assertEquals(3,$assignment->suggest($visit)['delivery']['driver']->id);
+        // Two hours before the visit, the nearest driver with a fresh location goes first.
+        Carbon::setTestNow('2030-01-07 06:00:00');
+        DB::table('location_pings')->update(['recorded_at'=>now()]);
+        $this->assertEquals(2,$assignment->suggest($visit)['delivery']['driver']->id);
     }
 
     public function test_panel_only_automatic_driver_setting_does_not_change_customer_bookings(): void
@@ -792,15 +828,10 @@ class HourlyWebsiteTest extends TestCase
         $id=$this->postJson(route('web.hourly.store'),$booking)->assertCreated()->json('id');
         $visit=HourlyRentalOrder::findOrFail($id)->visits()->firstOrFail();
         $this->assertEquals(3,$visit->delivery_driver_id);$this->assertEquals(3,$visit->pickup_driver_id);
-        // Reassigning an unassigned task must explain why all available GPS candidates are excluded.
+        // With every candidate's residency expiring before the task, the visit stays unassigned for the dashboard to flag.
         $visit->update(['delivery_driver_id'=>null,'pickup_driver_id'=>null]);
         DB::table('hourly_drivers')->where('id',3)->update(['residency_expiry_date'=>today()->toDateString()]);
-        try {
-            app(\App\Services\Hourly\NearestDriverAssignment::class)->assign($visit,false);
-            $this->fail('Expired residency at task date must prevent automatic assignment.');
-        } catch (\Illuminate\Validation\ValidationException $e) {
-            $this->assertStringContainsString('تنتهي إقامته',implode(' ',\Illuminate\Support\Arr::flatten($e->errors())));
-        }
+        $this->assertSame(['delivery','pickup'],app(\App\Services\Hourly\NearestDriverAssignment::class)->assign($visit,false));
         $this->assertNull($visit->fresh()->delivery_driver_id);
     }
 
@@ -986,6 +1017,58 @@ class HourlyWebsiteTest extends TestCase
         $this->assertSame([2],$visit->workers()->pluck('maids.id')->all());
         $this->assertSame('resolved',\App\Services\Hourly\ServiceIncident::state($order->fresh(),$visit->id)['status']);
         $this->assertEquals(200,$order->fresh()->total_amount);$this->assertEquals(200,$order->fresh()->paid_amount);
+    }
+
+    public function test_visit_waiting_on_a_driver_is_flagged_today_even_after_its_start_and_self_travelling_workers_are_ignored(): void
+    {
+        $booking=$this->fixture();$this->customer();
+        $visit=HourlyRentalOrder::findOrFail($this->postJson(route('web.hourly.store'),$booking)->assertCreated()->json('id'))->visits()->firstOrFail();
+        HourlyRentalOrder::whereKey($visit->hourly_rental_order_id)->update(['status'=>'active']);
+        $visit->workers()->sync([1]);
+        $gaps=app(\App\Services\Hourly\DriverGaps::class);
+        $this->assertSame(['delivery','pickup'],\App\Services\Hourly\DriverGaps::missingRoles($visit->fresh()));
+        $this->assertCount(0,$gaps->today(),'The visit is tomorrow.');
+        // An hour after the booked start the visit has not started and still has no driver.
+        Carbon::setTestNow('2030-01-07 09:00:00');
+        $row=$gaps->today()->sole();
+        $this->assertSame($visit->id,$row['visit']->id);$this->assertSame(60,$row['late_minutes']);
+        $html=view('admin.hourly._driver-gaps-alert',['driverGaps'=>$gaps->today()])->render();
+        $this->assertStringContainsString('زيارات اليوم بدون سائق',$html);$this->assertStringContainsString('متأخرة 1 س',$html);
+        // A worker who travels on her own needs no driver: no alert and no automatic driver.
+        DB::table('maids')->where('id',1)->update(['hourly_settings'=>json_encode(['requires_driver'=>false])]);
+        $this->assertSame([],\App\Services\Hourly\DriverGaps::missingRoles($visit->fresh()));
+        $this->assertCount(0,$gaps->today());
+        $this->assertSame([],app(\App\Services\Hourly\NearestDriverAssignment::class)->assign($visit->fresh(),false));
+        $this->assertNull($visit->fresh()->delivery_driver_id);
+    }
+
+    public function test_customer_asks_admin_for_a_substitute_at_the_same_time_and_admin_assigns_it(): void
+    {
+        [$order,$visit,$service,$report]=$this->incidentFixture();$this->approveIncident($report['id']);
+        $start=$visit->fresh()->scheduled_start_at->copy();
+        $public=app(\App\Services\Hourly\CustomerHourlyData::class)->visit($visit->fresh(),$order->fresh());
+        $this->assertTrue($public['can_request_replacement']);
+        $this->get(route('web.hourly.order',$order->id))->assertOk()->assertSee('طلب عاملة بديلة من الإدارة لنفس الموعد');
+        $token=(string)Str::uuid();$url=route('web.hourly.visit.recovery',[$order->id,$visit->id]);
+        $this->postJson($url,['type'=>'replacement','request_token'=>$token,'note'=>'تفضيل عاملة تتحدث العربية'])->assertOk()->assertJsonPath('data.type','replacement');
+        $this->get(route('admin.hourly-recovery.index'))->assertOk()->assertSee('طلب عاملة بديلة لنفس الموعد')->assertSee('value="2"',false);
+        $review=['request_id'=>$token,'decision'=>'approve','verified_non_execution'=>true,'reason'=>'Substitute arranged'];
+        $reviewUrl=route('admin.hourly-recovery.review',[$order->id,$visit->id]);
+        $this->postJson($reviewUrl,$review)->assertUnprocessable();
+        $this->postJson($reviewUrl,$review+['replacement_worker_ids'=>[1=>2]])->assertOk()->assertJsonPath('data.status','approved');
+        // The customer chose workers for this category; the request is the consent, so the slot keeps its time.
+        $this->assertSame([2],$visit->workers()->pluck('maids.id')->all());
+        $this->assertTrue($visit->fresh()->scheduled_start_at->eq($start));
+        $this->assertSame('resolved',\App\Services\Hourly\ServiceIncident::state($order->fresh(),$visit->id)['status']);
+        $this->assertEquals(200,$order->fresh()->total_amount);
+    }
+
+    public function test_substitute_request_closes_an_hour_before_the_visit(): void
+    {
+        [$order,$visit,$service,$report]=$this->incidentFixture();$this->approveIncident($report['id']);
+        Carbon::setTestNow($visit->fresh()->scheduled_start_at->copy()->subMinutes(30));
+        $this->assertFalse(app(\App\Services\Hourly\CustomerHourlyData::class)->visit($visit->fresh(),$order->fresh())['can_request_replacement']);
+        $this->postJson(route('web.hourly.visit.recovery',[$order->id,$visit->id]),['type'=>'replacement','request_token'=>(string)Str::uuid()])->assertUnprocessable();
     }
 
     public function test_incident_refund_preserves_other_visits_and_is_not_ordinary_cancellation(): void

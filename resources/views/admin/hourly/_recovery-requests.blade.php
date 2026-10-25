@@ -11,17 +11,29 @@
 @if(!isset($recoveryVisitId) || (int) $recoveryId === (int) $recoveryVisitId)
 @php
     $isRefund = ($recoveryRequest['type'] ?? null) === 'refund';
+    $isReplacement = ($recoveryRequest['type'] ?? null) === 'replacement';
     [$statusLabel, $statusClass, $statusIcon] = $recoveryStatuses[$recoveryRequest['status'] ?? 'pending'] ?? ['غير معروفة', 'rr-s-pending', 'fa-circle-question'];
     $isPending = ($recoveryRequest['status'] ?? null) === 'pending';
     // صفحة الطلبات تحسبها مسبقًا؛ في صفحة الطلب وبطاقة الزيارة تُحسب هنا لطلبات إعادة الجدولة المعلقة فقط.
     $slotCheck = isset($slotChecks) ? ($slotChecks[$recoveryOrder->id][$recoveryId] ?? null)
         : ($isPending ? app(\App\Services\Hourly\MissedVisitRecovery::class)->requestedSlotStatus($recoveryOrder, (int) $recoveryId) : null);
+    // طلب البديلة: العاملات اللاتي تعذر حضورهن، والمتاحات لنفس الموعد لاختيار بديلة لكل منهن.
+    $failedWorkers = collect(); $replacementCandidates = collect(); $replacementReady = false;
+    if ($isReplacement) {
+        $failedIds = array_map('intval', \App\Services\Hourly\ServiceIncident::state($recoveryOrder, (int) $recoveryId)['failed_worker_ids'] ?? []);
+        $failedWorkers = \App\Models\ingaz\Maid::whereIn('id', $failedIds)->get(['id', 'name']);
+        $replacementVisit = $recoveryOrder->visits()->find($recoveryId);
+        if ($isPending && $replacementVisit) {
+            $replacementReady = \App\Services\Hourly\MissedVisitRecovery::replacementEligible($replacementVisit, $recoveryOrder);
+            if ($replacementReady) $replacementCandidates = app(\App\Services\Hourly\MissedVisitRecovery::class)->replacementCandidates($recoveryOrder, $replacementVisit);
+        }
+    }
 @endphp
 <article class="rr-card {{ $isPending ? 'is-pending' : '' }}">
     <header class="rr-head">
-        <span class="rr-type-icon {{ $isRefund ? 'rr-t-refund' : 'rr-t-reschedule' }}" aria-hidden="true"><i class="fa {{ $isRefund ? 'fa-wallet' : 'fa-calendar-days' }}"></i></span>
+        <span class="rr-type-icon {{ $isRefund ? 'rr-t-refund' : 'rr-t-reschedule' }}" aria-hidden="true"><i class="fa {{ $isRefund ? 'fa-wallet' : ($isReplacement ? 'fa-people-arrows' : 'fa-calendar-days') }}"></i></span>
         <div class="rr-title">
-            <h6>{{ $isRefund ? 'طلب إلغاء واسترداد للمحفظة' : 'طلب إعادة جدولة دون رسوم' }}</h6>
+            <h6>{{ $isRefund ? 'طلب إلغاء واسترداد للمحفظة' : ($isReplacement ? 'طلب عاملة بديلة لنفس الموعد' : 'طلب إعادة جدولة دون رسوم') }}</h6>
             <div class="rr-sub">
                 <a href="{{ route('admin.hourly-orders.show', $recoveryOrder->id) }}" class="rr-order">الطلب {{ $recoveryOrder->order_number }}</a>
                 <span>مرجع الزيارة #{{ $recoveryId }}</span>
@@ -43,6 +55,9 @@
             @endif
             @if(isset($recoveryRequest['new_start']))
                 <div><dt><i class="fa fa-calendar-day" aria-hidden="true"></i> الموعد الجديد</dt><dd dir="ltr">{{ $recoveryDate($recoveryRequest['new_start']) }}</dd></div>
+            @endif
+            @if($isReplacement && $failedWorkers->isNotEmpty())
+                <div><dt><i class="fa fa-user-xmark" aria-hidden="true"></i> تعذر حضور</dt><dd>{{ $failedWorkers->pluck('name')->implode('، ') }}</dd></div>
             @endif
             @if(isset($recoveryRequest['refunded_amount']))
                 <div><dt><i class="fa fa-coins" aria-hidden="true"></i> المسترد إلى المحفظة</dt><dd>{{ number_format($recoveryRequest['refunded_amount'], 2) }} ر.س</dd></div>
@@ -79,12 +94,27 @@
             <form method="post" class="recovery-review-form rr-form" action="{{ route('admin.hourly-recovery.review', [$recoveryOrder->id, $recoveryId]) }}">
                 @csrf
                 <input type="hidden" name="request_id" value="{{ $recoveryRequest['id'] }}">
+                @if($isReplacement)
+                    @if(!$replacementReady)
+                        <div class="rr-slot rr-slot-bad" role="status"><i class="fa fa-clock-rotate-left" aria-hidden="true"></i><div><b>فات وقت توفير بديلة</b><span>بقي على الزيارة أقل من {{ \App\Services\Hourly\MissedVisitRecovery::REPLACEMENT_LEAD_MINUTES }} دقيقة أو تغيرت حالتها. ارفض الطلب ليختار العميل إعادة الجدولة أو الإلغاء.</span></div></div>
+                    @elseif($replacementCandidates->isEmpty())
+                        <div class="rr-slot rr-slot-bad" role="status"><i class="fa fa-user-slash" aria-hidden="true"></i><div><b>لا توجد عاملة متاحة لنفس الموعد</b><span>لا تتوفر عاملة في فريق الزيارة بنفس مواصفات الخدمة خلال وقت الزيارة. ارفض الطلب مع توضيح السبب.</span></div></div>
+                    @else
+                        @foreach($failedWorkers as $failedWorker)
+                            <label class="rr-label" for="rr-sub-{{ $recoveryId }}-{{ $failedWorker->id }}">بديلة عن {{ $failedWorker->name }}</label>
+                            <select id="rr-sub-{{ $recoveryId }}-{{ $failedWorker->id }}" class="form-select mb-2" name="replacement_worker_ids[{{ $failedWorker->id }}]" required>
+                                <option value="">اختر عاملة متاحة</option>
+                                @foreach($replacementCandidates as $candidate)<option value="{{ $candidate->id }}">#{{ $candidate->id }} — {{ $candidate->name }}</option>@endforeach
+                            </select>
+                        @endforeach
+                    @endif
+                @endif
                 <label class="rr-check"><input type="checkbox" name="verified_non_execution" value="1"><span>تحققت من عدم تنفيذ الخدمة من طرف الشركة، وأوافق على معالجة الطلب دون رسوم.</span></label>
                 <label class="rr-label" for="rr-reason-{{ $recoveryOrder->id }}-{{ $recoveryId }}">سبب القرار <small>يظهر للعميل؛ لا تكتب تفاصيل صحية أو داخلية</small></label>
                 <textarea id="rr-reason-{{ $recoveryOrder->id }}-{{ $recoveryId }}" class="form-control rr-textarea" name="reason" maxlength="2000" rows="2" required></textarea>
                 <div class="rr-actions">
                     @if(!$isRefund || AdminGuardHasPerm('hourly_orders_collect'))
-                        <button type="submit" name="decision" value="approve" class="btn btn-success" @if($slotCheck && $slotCheck['state'] !== 'available') disabled title="لا يمكن الاعتماد: الموعد المطلوب غير متاح" @endif><i class="fa fa-check" aria-hidden="true"></i> اعتماد وتنفيذ</button>
+                        <button type="submit" name="decision" value="approve" class="btn btn-success" @if($slotCheck && $slotCheck['state'] !== 'available') disabled title="لا يمكن الاعتماد: الموعد المطلوب غير متاح" @elseif($isReplacement && (!$replacementReady || $replacementCandidates->isEmpty())) disabled title="لا توجد بديلة يمكن اعتمادها" @endif><i class="fa fa-check" aria-hidden="true"></i> اعتماد وتنفيذ</button>
                     @endif
                     <button type="submit" name="decision" value="reject" class="btn btn-outline-danger"><i class="fa fa-xmark" aria-hidden="true"></i> رفض مع ذكر السبب</button>
                 </div>

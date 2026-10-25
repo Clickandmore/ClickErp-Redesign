@@ -157,6 +157,8 @@
     </div>
 </div>
 
+@include('admin.hourly._driver-gaps-alert')
+
 {{-- روابط المتابعة اليومية خارج هذه الصفحة --}}
 <nav class="ho-quick" aria-label="متابعة سريعة">
     @if($pendingIncidents !== null && \App\Support\HourlyPermissionCatalog::canRoute('admin.hourly-incidents.index'))
@@ -364,6 +366,7 @@
                                 <a class="btn btn-sm btn-primary ht-icon-btn" href="{{ route('admin.hourly-orders.show', $order) }}" title="إدارة الطلب" aria-label="إدارة الطلب {{ $order->order_number }}"><i class="fa fa-eye"></i></a>
                                 <a class="btn btn-sm btn-outline-secondary ht-icon-btn" href="{{ route('admin.hourly-orders.invoice', $order) }}" target="_blank" title="الفاتورة PDF" aria-label="فاتورة الطلب {{ $order->order_number }}"><i class="fa fa-file-pdf"></i></a>
                             </div>
+                            @include('admin.hourly._confirm-button')
                         </div>
                     </td>
                 </tr>

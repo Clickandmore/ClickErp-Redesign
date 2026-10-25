@@ -89,6 +89,28 @@ class MissedVisitRecovery
         return $result;
     }
 
+    /** A substitute must still be able to reach the customer; closer to the start the customer reschedules instead. */
+    public const REPLACEMENT_LEAD_MINUTES = 60;
+
+    /** The customer may ask the admin for a substitute at the same time only for an upcoming disrupted visit. */
+    public static function replacementEligible(HourlyVisit $visit, HourlyRentalOrder $order): bool
+    {
+        return ServiceIncident::recoverable($order,$visit) && $visit->status==='scheduled'
+            && in_array($order->status,['active','pending_confirmation'],true)
+            && (bool)$visit->scheduled_start_at?->gt(now()->addMinutes(self::REPLACEMENT_LEAD_MINUTES));
+    }
+
+    /** Workers the admin can put on the visit's slot in place of the ones who could not attend. */
+    public function replacementCandidates(HourlyRentalOrder $order, HourlyVisit $visit)
+    {
+        if(!$visit->scheduled_start_at || !$visit->scheduled_end_at)return collect();
+        $failed=array_map('intval',ServiceIncident::state($order,$visit->id)['failed_worker_ids']??[]);
+        $kept=array_diff($visit->workers()->pluck('maids.id')->map(fn($id)=>(int)$id)->all(),$failed);
+        try{$workers=app(OrderManagementService::class)->availableWorkers($order,$visit);}
+        catch(\Illuminate\Validation\ValidationException $e){return collect();}
+        return $workers->reject(fn($worker)=>in_array((int)$worker->id,$kept,true) || in_array((int)$worker->id,$failed,true))->values();
+    }
+
     public static function eligible(HourlyVisit $visit, HourlyRentalOrder $order): bool
     {
         return ((($visit->is_missed || self::coverageRecovery($visit,$order)) && (float)$order->paid_amount>0)
@@ -128,6 +150,8 @@ class MissedVisitRecovery
             if($old && $old['id']===$data['request_token']) return $old;
             if(!self::eligible($visit,$order)) HourlyOrderService::reject('طلب المعالجة متاح لزيارة مدفوعة فات موعدها ولم يبدأ تنفيذها.');
             if($old && $old['status']==='pending') HourlyOrderService::reject('يوجد طلب معالجة قيد المراجعة لهذه الزيارة.');
+            if($data['type']==='replacement' && !self::replacementEligible($visit,$order))
+                HourlyOrderService::reject('طلب عاملة بديلة متاح لزيارة قادمة تعذر تنفيذها، قبل موعدها بساعة على الأقل. يمكنك طلب إعادة الجدولة أو الإلغاء.');
             if($data['type']==='reschedule'){
                 $start=Carbon::parse($data['requested_start']);
                 $slots=$this->customerAvailableSlots($order,$visitId,$start->toDateString());
@@ -197,6 +221,18 @@ class MissedVisitRecovery
                             'starts_at'=>$start->format('Y-m-d H:i'),'reason'=>$data['reason']],$admin);
                     }
                     $request['new_start']=$start->toIso8601String();
+                }elseif($request['type']==='replacement'){
+                    if(!$incident || !self::replacementEligible($visit,$order))
+                        HourlyOrderService::reject('فات وقت توفير بديلة لهذه الزيارة؛ ارفض الطلب ليختار العميل إعادة الجدولة أو الإلغاء.');
+                    $failed=array_map('intval',ServiceIncident::state($order,$visitId)['failed_worker_ids']??[]);
+                    $choices=array_map('intval',$data['replacement_worker_ids']??[]);
+                    foreach($failed as $old)if(empty($choices[$old]))HourlyOrderService::reject('اختر عاملة بديلة لكل عاملة تعذر حضورها.');
+                    if(count(array_unique(array_intersect_key($choices,array_flip($failed))))!==count($failed))HourlyOrderService::reject('اختر عاملة مختلفة لكل مقعد.');
+                    // replace() refuses while a recovery request is pending; this is the request being approved.
+                    $meta['missed_visit_requests'][$visitId]['status']='approved';$order->update(['booking_metadata'=>$meta]);
+                    foreach($failed as $old)app(WorkerReplacement::class)->replace($order,$visitId,['worker_id'=>$old,
+                        'replacement_worker_id'=>$choices[$old],'reason'=>'عاملة بديلة بطلب العميل: '.$data['reason']],$admin,false,true);
+                    $request['replacement_worker_ids']=array_intersect_key($choices,array_flip($failed));
                 }else{
                     $allocation=app(VisitPaymentAllocation::class)->forOrder($order);
                     $amount=round(min((float)$visit->visit_price,(float)($allocation[$visitId]['paid']??0)),2);

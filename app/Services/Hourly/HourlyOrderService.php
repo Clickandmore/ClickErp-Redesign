@@ -112,8 +112,8 @@ class HourlyOrderService
                 if($slot && empty($data['panel_assignment']) && $settings->value($package,'auto_assign_driver',$channel))app(NearestDriverAssignment::class)->assign($visit);
             }
             $this->log($order, null, 'pending_confirmation', $adminId ? 'admin' : 'client', $adminId ?? $userId, 'إنشاء الطلب');
-            // التأكيد التلقائي للدفع الآجل (نقدي/بطاقة عند التسليم) حسب القناة.
-            if ($category && !in_array($snapshot['payment_policy']??null,['prepaid','installments'],true) && in_array($order->payment_method, ['cash','card_on_delivery'], true) && $settings->value($package, 'auto_confirm_postpaid', $channel)) {
+            // التأكيد التلقائي للدفع الآجل (يُحصَّل عند الزيارة) حسب القناة.
+            if ($category && !in_array($snapshot['payment_policy']??null,['prepaid','installments'],true) && in_array($order->payment_method, self::POSTPAID_METHODS, true) && $settings->value($package, 'auto_confirm_postpaid', $channel)) {
                 $this->transition($order, 'active', $panel ? 'admin' : 'system', $adminId, 'تأكيد تلقائي للدفع الآجل');
             }
             app(PaymentScheduleService::class)->generateInstallments($order);
@@ -159,10 +159,7 @@ class HourlyOrderService
         self::enabled();
         return DB::transaction(function () use ($order, $adminId) {
             $order = HourlyRentalOrder::query()->lockForUpdate()->findOrFail($order->id);
-            if ($order->status !== 'pending_confirmation' || $order->expires_at->isPast()) self::reject('الطلب غير قابل للتأكيد.');
-            $explicitPolicy=$order->package_snapshot['payment_policy']??null;
-            if(in_array($explicitPolicy,['prepaid','installments'],true) && !HourlyPaymentService::activationPaid($order))self::reject('يجب تحصيل المبلغ المطلوب مقدمًا قبل تفعيل الطلب.');
-            if (!in_array($order->payment_method, ['cash','card_on_delivery'], true) && $order->payment_status !== 'paid' && !HourlyPaymentService::activationPaid($order)) self::reject('يجب تأكيد تحصيل المبلغ قبل تفعيل هذا الطلب.');
+            if ($blocker = self::confirmBlocker($order)) self::reject($blocker);
             $this->transition($order, 'active', 'admin', $adminId, 'تأكيد الصرّاف');
             return $order;
         });
@@ -242,6 +239,24 @@ class HourlyOrderService
 
     /** All visits are finished but money is still owed; closes to "completed" once settled. */
     public const AWAITING_PAYMENT = 'awaiting_payment';
+
+    /** Collected at the visit itself, so the order may be activated before any payment. */
+    public const POSTPAID_METHODS = ['cash', 'card_on_delivery', 'cash_and_card'];
+
+    /** Why a pending order cannot be activated yet, or null when it can (auto-confirm, cashier button, confirm()). */
+    public static function confirmBlocker(HourlyRentalOrder $order): ?string
+    {
+        if ($order->status !== 'pending_confirmation' || !$order->expires_at || $order->expires_at->isPast()) return 'الطلب غير قابل للتأكيد.';
+        if (HourlyPaymentService::activationPaid($order)) return null;
+        if (in_array($order->package_snapshot['payment_policy'] ?? null, ['prepaid', 'installments'], true)) return 'يجب تحصيل المبلغ المطلوب مقدمًا قبل تفعيل الطلب.';
+        if (!in_array($order->payment_method, self::POSTPAID_METHODS, true)) return 'يجب تأكيد تحصيل المبلغ قبل تفعيل هذا الطلب.';
+        return null;
+    }
+
+    public static function confirmable(HourlyRentalOrder $order): bool
+    {
+        return self::confirmBlocker($order) === null;
+    }
 
     public static function owes(HourlyRentalOrder $order): bool
     {

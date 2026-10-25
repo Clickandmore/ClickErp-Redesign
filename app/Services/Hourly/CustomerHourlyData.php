@@ -160,6 +160,8 @@ class CustomerHourlyData
                 && $visit->status==='scheduled' && $visit->scheduled_start_at?->isFuture()
                 && !$visit->is_free && (int)$visit->workers_count<20,
             'can_request_recovery' => MissedVisitRecovery::eligible($visit,$order),
+            // تعذّر حضور عاملة لزيارة قادمة: يطلب العميل من الإدارة بديلة لنفس الموعد.
+            'can_request_replacement' => MissedVisitRecovery::replacementEligible($visit,$order),
             'service_disruption' => app(ServiceIncident::class)->publicData($order,$visit),
             // إنهاء العاملة قبل اكتمال الوقت: can_respond يعرض سؤال «هل كان بطلبك؟» حتى respond_until.
             'early_finishes' => app(EarlyFinish::class)->publicData($visit),

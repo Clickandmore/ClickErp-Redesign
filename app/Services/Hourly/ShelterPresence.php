@@ -69,15 +69,23 @@ class ShelterPresence
             ->where(fn ($q) => $q->whereNull('w.status')->orWhereNotIn('w.status', ['returned', 'completed']))
             ->orderBy('v.scheduled_start_at')
             ->get(['w.maid_id', 'v.id as visit_id', 'v.visit_number', 'v.status', 'v.scheduled_start_at', 'v.scheduled_end_at',
+                'v.planned_hours', Schema::hasColumn('hourly_visit_workers', 'arrived_at') ? 'w.arrived_at' : DB::raw('NULL as arrived_at'),
                 'o.id as order_id', 'o.order_number']);
 
         $map = [];
         foreach ($rows as $row) {
             // عاملة في أكثر من زيارة مفتوحة: الأقدم هي التي خرجت من أجلها.
-            $map[(int) $row->maid_id] ??= [
+            if (isset($map[(int) $row->maid_id])) continue;
+            // نهاية الخدمة الفعلية للعاملة (وصولها + الساعات) كما تراها هي والعميل؛ تأخر البدء يؤخر النهاية.
+            $serviceEnd = $row->scheduled_end_at;
+            if (!empty($row->arrived_at) && (float) $row->planned_hours > 0) {
+                $visit = (new HourlyVisit)->forceFill(['scheduled_start_at' => $row->scheduled_start_at, 'planned_hours' => $row->planned_hours]);
+                $serviceEnd = ServiceTime::expectedEnd($visit, $row)?->toDateTimeString() ?? $serviceEnd;
+            }
+            $map[(int) $row->maid_id] = [
                 'visit_id' => (int) $row->visit_id, 'visit_number' => (int) $row->visit_number, 'status' => $row->status,
                 'order_id' => (int) $row->order_id, 'order_number' => $row->order_number,
-                'since' => $row->scheduled_start_at, 'until' => $row->scheduled_end_at,
+                'since' => $row->scheduled_start_at, 'until' => $row->scheduled_end_at, 'service_end' => $serviceEnd,
             ];
         }
 

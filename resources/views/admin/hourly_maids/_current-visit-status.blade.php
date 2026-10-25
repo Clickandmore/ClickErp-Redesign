@@ -3,7 +3,8 @@
     $currentVisit = new \App\Models\Hourly\HourlyVisit([
         'status' => $trip['status'], 'scheduled_end_at' => $trip['until'],
     ]);
-    $tripDelay = \App\Services\Hourly\VisitDelay::state($currentVisit);
+    $tripEnd = $trip['service_end'] ?? $trip['until'];
+    $tripDelay = \App\Services\Hourly\VisitDelay::state($currentVisit, $tripEnd ? \Carbon\Carbon::parse($tripEnd) : null);
     [$phaseClass, $phaseIcon, $phaseLabel] = match ($trip['status']) {
         'en_route' => ['mh-now-transit', 'fa-truck', 'في الطريق إلى العميل'],
         'delivered' => ['mh-now-visit', 'fa-location-dot', 'لدى العميل'],
