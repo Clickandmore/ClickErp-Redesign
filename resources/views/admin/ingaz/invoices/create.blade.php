@@ -161,7 +161,8 @@
             font-weight: 900;
         }
 
-        .invoice-issuance-field .form-control[type="date"] {
+        .invoice-issuance-field .form-control[type="date"],
+        .invoice-issuance-field .df-date-input {
             background: #fff;
             direction: ltr;
             text-align: right;

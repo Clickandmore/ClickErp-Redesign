@@ -844,6 +844,7 @@
             setInterval(updateClock, 1000);
         })();
     </script>
+    @include("admin.layout.inc._date_format")
     @stack('scripts')
 </body>
 

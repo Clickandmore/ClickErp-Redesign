@@ -50,6 +50,7 @@
 
 
 @include("click.layout.inc._js")
+@include("admin.layout.inc._date_format")
 @include("admin.layout.inc._datatables_locale")
 @include("click.layout.inc._js_custom")
 <script src="{{ asset('admin/assets/js/clickmore-loader.js') }}?v=2"></script>
