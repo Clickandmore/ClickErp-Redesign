@@ -107,6 +107,9 @@
                 @if($task['can_arrive'])
                     <form class="dp-action" method="POST" action="{{ route('hourly-maid.visits.action', $task['id']) }}">@csrf
                         <input type="hidden" name="action" value="arrived">
+                        @if(!empty($task['requires_delivery_code']))
+                            <label class="dp-field"><span>رمز التسليم من العميل</span><input type="text" name="delivery_code" inputmode="numeric" autocomplete="one-time-code" maxlength="10" required placeholder="اطلبي الرمز من العميل" dir="ltr"></label>
+                        @endif
                         <button class="dp-btn is-primary"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s-7-6.2-7-11a7 7 0 0 1 14 0c0 4.8-7 11-7 11Z"/><circle cx="12" cy="10" r="2.5"/></svg> وصلت</button>
                     </form>
                 @endif

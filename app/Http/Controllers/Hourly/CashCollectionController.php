@@ -23,7 +23,7 @@ class CashCollectionController extends Controller
     }
     public function webAction(Request $request,int $visit,WorkerAppService $workers) {
         $data=$request->validate(['action'=>'required|in:arrived,finish,return','early_reason'=>['nullable',\Illuminate\Validation\Rule::in(array_keys(\App\Services\Hourly\EarlyFinish::REASONS))],'note'=>'nullable|string|max:500']);$maid=Maid::findOrFail(auth('hourly_maid')->id());
-        if($data['action']==='arrived')$workers->arrived($maid,$visit,[]);elseif($data['action']==='finish')$workers->finish($maid,$visit,$data['note']??null,[],$data['early_reason']??null);else $workers->returnToShelter($maid,$visit);
+        if($data['action']==='arrived')$workers->arrived($maid,$visit,[],$request->validate(['delivery_code'=>'nullable|string|max:10'])['delivery_code']??null);elseif($data['action']==='finish')$workers->finish($maid,$visit,$data['note']??null,[],$data['early_reason']??null);else $workers->returnToShelter($maid,$visit);
         return back()->with('success','تم تحديث حالة الزيارة.');
     }
     public function collector(Request $request,HourlyRentalOrder $order,HourlyVisit $visit) {

@@ -1019,8 +1019,30 @@
                 <div class="metric-card">
                     <div class="label">قيمة العقد</div>
                     <div class="value">{{ number_format((float) ($contract->info->contract_value ?? 0), 2) }}</div>
-                    <div class="sub-value">إجمالي قيمة العقد</div>
+                    <div class="sub-value">إجمالي قيمة العقد الأصلية</div>
                 </div>
+                @php
+                    // آخر قيمة للعقد: تظهر عند وجود تمديد حتى لا يُعتمد على القيمة الأصلية فقط
+                    $latestPricingBasis = app(\App\Services\ingaz\RentalContractFinanceService::class)->currentPricingBasis($contract);
+                    $originalDays = \App\Support\RentalContractPricing::durationDays(
+                        (int) ($contract->info?->contract_duration_days ?? 0),
+                        (int) ($contract->info?->contract_duration_months ?? 0)
+                    );
+                    $originalDailyRate = $originalDays > 0 ? (float) ($contract->info?->contract_value ?? 0) / $originalDays : 0.0;
+                    $latestExtensionDiffers = abs($latestPricingBasis['daily_rate'] - $originalDailyRate) >= 0.01;
+                @endphp
+                @if ($latestPricingBasis['source'] === 'extension')
+                    <div class="metric-card" @if ($latestExtensionDiffers) style="border-color: #f0ad4e; background: #fff8e8;" @endif>
+                        <div class="label">قيمة آخر تمديد</div>
+                        <div class="value">{{ number_format($latestPricingBasis['gross_total'], 2) }}</div>
+                        <div class="sub-value">
+                            لمدة {{ $latestPricingBasis['days'] }} يوم
+                            @if ($latestExtensionDiffers)
+                                · <span class="text-warning fw-bold">تختلف عن قيمة العقد الأصلية</span>
+                            @endif
+                        </div>
+                    </div>
+                @endif
                 <div class="metric-card">
                     <div class="label">{{ $remainingMetricLabel }}</div>
                     <div class="value">{{ $remainingMetricValue }}</div>

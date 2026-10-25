@@ -901,7 +901,7 @@ class ComplaintController extends Controller
                 'complaint_type_id' => 'required|exists:complaint_types,id',
                 'details' => 'required|string',
                 'priority' => 'required|in:low,medium,high,urgent',
-                'status' => 'required|in:pending,in_progress,resolved,closed,rejected',
+                'status' => 'required|in:pending,in_progress,resolved,rejected',
                 'user_id' => 'nullable|exists:users,id',
                 'maid_passport' => 'nullable|string|max:50',
                 'maid_nationality_id' => 'nullable|exists:nationalities,id',
@@ -927,7 +927,7 @@ class ComplaintController extends Controller
             $this->applyComplaintRelation($data);
 
             // تحديث حالة الحل إذا تم تغيير الحالة
-            if ($request->status == 'resolved' && $complaint->status != 'resolved') {
+            if ($request->status == 'resolved' && !in_array($complaint->status, ['resolved', 'closed'])) {
                 $data['resolved_at'] = now();
                 $data['resolved_by'] = auth()->guard('admin')->id();
             }
@@ -980,7 +980,11 @@ class ComplaintController extends Controller
         $this->applyRequestBranchFilter($query, $request, 'complaints');
         $this->applyComplaintFilters($query, $request);
 
-        $complaints = $query->orderBy('created_at', 'desc')->limit(50)->get()
+        $perPage = max(6, min(48, (int) $request->input('per_page', 12)));
+        $paginator = $query->orderBy('created_at', 'desc')
+            ->paginate($perPage, ['*'], 'page', max(1, (int) $request->input('page', 1)));
+
+        $complaints = $paginator->getCollection()
             ->map(function (objModel $complaint) {
                 return $complaint->toArray() + [
                     'related_record' => $this->resolveComplaintRelatedRecord($complaint),
@@ -988,7 +992,17 @@ class ComplaintController extends Controller
                 ];
             });
 
-        return response()->json(['data' => $complaints]);
+        return response()->json([
+            'data' => $complaints,
+            'meta' => [
+                'current_page' => $paginator->currentPage(),
+                'last_page' => $paginator->lastPage(),
+                'per_page' => $paginator->perPage(),
+                'total' => $paginator->total(),
+                'from' => $paginator->firstItem(),
+                'to' => $paginator->lastItem(),
+            ],
+        ]);
     }
 
     private function applyComplaintFilters($query, Request $request): void
@@ -1047,6 +1061,8 @@ class ComplaintController extends Controller
             'response' => ['required', 'string', 'max:10000'],
             'status' => ['nullable', 'in:in_progress,resolved,rejected'],
             'assigned_to' => ['nullable', 'exists:admins,id'],
+        ], [
+            'response.required' => __('ingaz.quick_response_required'),
         ]);
         $complaint = objModel::findOrFail($request->complaint_id);
         $this->assertCanAccessBranchModel($complaint);
@@ -1078,7 +1094,7 @@ class ComplaintController extends Controller
     public function addComment(Request $request)
     {
         $this->validateAssignment($request);
-        $request->validate(['comment' => 'required|string|max:10000', 'status' => 'nullable|in:pending,in_progress,resolved,closed,rejected']);
+        $request->validate(['comment' => 'required|string|max:10000', 'status' => 'nullable|in:pending,in_progress,resolved,rejected']);
         $complaint = objModel::findOrFail($request->complaint_id);
         $this->assertCanAccessBranchModel($complaint);
         $previousStatus = $complaint->status;
@@ -1123,6 +1139,10 @@ class ComplaintController extends Controller
 
     public function updateStatus(Request $request)
     {
+        $request->validate([
+            'complaint_id' => ['required', 'exists:complaints,id'],
+            'status' => ['required', 'in:pending,in_progress,resolved,rejected'],
+        ]);
         $complaint = objModel::findOrFail($request->complaint_id);
         $this->assertCanAccessBranchModel($complaint);
         $previousStatus = $complaint->status;

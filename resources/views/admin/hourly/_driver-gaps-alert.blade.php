@@ -97,7 +97,8 @@
                     </div>
                     <div class="dg-actions">
                         @if($assignable)
-                            <form method="POST" action="{{ route('admin.hourly-orders.operations', $gv->order) }}" onsubmit="return confirm('إسناد السائق المقترح لزيارة {{ $gv->order->order_number }}؟')">
+                            <form method="POST" action="{{ route('admin.hourly-orders.operations', $gv->order) }}"
+                                data-swal-confirm="إسناد السائق المقترح؟" data-swal-text="{{ $gv->order->order_number }} · زيارة {{ $gv->visit_number }} — {{ collect($picks)->filter()->map(fn ($pick, $role) => \App\Services\Hourly\DriverGaps::roleLabel($role).': '.$pick['driver']->name)->implode(' · ') }}" data-swal-ok="نعم، أسند">
                                 @csrf
                                 <input type="hidden" name="action" value="auto_driver">
                                 <input type="hidden" name="visit_ids[]" value="{{ $gv->id }}">
@@ -113,4 +114,5 @@
         </div>
     </div>
 </section>
+@include('admin.hourly._swal-confirm')
 @endif

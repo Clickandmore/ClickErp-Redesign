@@ -294,6 +294,7 @@
 @include('admin.hourly.messages')
 @include('admin.hourly._order-awaiting-payment')
 @include('admin.hourly._order-refund')
+@include('admin.hourly._order-compensations')
 @include('admin.hourly._cash-link')
 
 <a class="btn btn-outline-warning mb-3" href="{{ route('admin.hourly-recovery.index') }}">طلبات معالجة الزيارات غير المنفذة</a>

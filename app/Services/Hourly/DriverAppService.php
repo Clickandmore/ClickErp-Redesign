@@ -397,6 +397,8 @@ class DriverAppService
         $delay = VisitDelay::state($visit);
         $action = $this->action($task);
         $blockedReason = $task['role'] === 'delivery' && $visit->status === 'scheduled' ? DeliveryStartWindow::blockedReason($visit) : null;
+        if($visit->order?->status==='pending_confirmation' && in_array($visit->status,['scheduled','unscheduled'],true))
+            $blockedReason='الطلب بانتظار تأكيد الإدارة؛ لا تبدأ المشوار حتى يُؤكَّد.';
         if($task['role']==='delivery' && $visit->status==='en_route' && ServiceIncident::waiting($visit->order,$visit->id))
             $blockedReason='للزيارة بلاغ معتمد؛ راجع الإدارة قبل التسليم، وتابع العودة الآمنة حسب حالة التنفيذ.';
         $timeBlocked = $blockedReason !== null;

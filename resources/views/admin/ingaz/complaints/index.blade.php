@@ -731,6 +731,10 @@
                     <!-- Card View -->
                     <div id="cardViewContent" style="display: none;">
                         <div class="row" id="ticketsCards"></div>
+                        <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mt-2 d-none" id="ticketsCardsFooter">
+                            <div class="text-muted small" id="ticketsCardsInfo"></div>
+                            <nav><ul class="pagination pagination-sm mb-0" id="ticketsCardsPagination"></ul></nav>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -754,8 +758,9 @@
 
                             <div class="mb-3">
                                 <label class="form-label fw-bold">{{ __('ingaz.response_to_complaint') }}</label>
-                                <textarea name="response" class="form-control" rows="5" required
+                                <textarea name="response" id="quick_response_text" class="form-control" rows="5" required
                                           placeholder="{{ __('ingaz.write_response_here') }}"></textarea>
+                                <div class="invalid-feedback">{{ __('ingaz.quick_response_required') }}</div>
                             </div>
 
                             <div class="row">
@@ -1198,11 +1203,25 @@
             $(document).on('click', '.quick-response', function () {
                 let complaintId = $(this).data('id');
                 $('#quick_complaint_id').val(complaintId);
+                $('#quick_response_text').removeClass('is-invalid');
                 $('#quickResponseModal').modal('show');
+            });
+
+            $('#quick_response_text').on('input', function () {
+                if ($.trim($(this).val()) !== '') {
+                    $(this).removeClass('is-invalid');
+                }
             });
 
             // Save quick response
             $('#saveQuickResponse').click(function () {
+                // الرد إجباري حتى عند تغيير الحالة فقط؛ ننبه المستخدم قبل الإرسال
+                const $responseText = $('#quick_response_text');
+                if ($.trim($responseText.val()) === '') {
+                    $responseText.addClass('is-invalid').trigger('focus');
+                    return;
+                }
+
                 let formData = $('#quickResponseForm').serialize();
 
                 $.ajax({
@@ -1220,7 +1239,10 @@
                                 timer: 2000,
                                 showConfirmButton: false
                             });
-                            table.ajax.reload();
+                            table.ajax.reload(null, false);
+                            if ($('#cardView').hasClass('active')) {
+                                loadCardView(cardsCurrentPage);
+                            }
                         } else {
                             Swal.fire({
                                 icon: 'error',
@@ -1230,10 +1252,15 @@
                         }
                     },
                     error: function (xhr) {
+                        const errors = xhr.responseJSON && xhr.responseJSON.errors;
+                        const firstError = errors ? Object.values(errors)[0] : null;
+                        if (errors && errors.response) {
+                            $('#quick_response_text').addClass('is-invalid');
+                        }
                         Swal.fire({
                             icon: 'error',
                             title: complaintsTranslations.errorTitle,
-                            text: complaintsTranslations.replySendError
+                            text: (firstError && firstError[0]) || complaintsTranslations.replySendError
                         });
                     }
                 });
@@ -1269,7 +1296,10 @@
                                         timer: 2000,
                                         showConfirmButton: false
                                     });
-                                    table.ajax.reload();
+                                    table.ajax.reload(null, false);
+                                    if ($('#cardView').hasClass('active')) {
+                                        loadCardView(cardsCurrentPage);
+                                    }
                                 } else {
                                     Swal.fire({
                                         icon: 'error',
@@ -1300,11 +1330,15 @@
             }
 
             // Load card view
-            function loadCardView() {
+            let cardsCurrentPage = 1;
+
+            function loadCardView(page) {
+                cardsCurrentPage = page || 1;
                 $.ajax({
                     url: "{{ route('complaints.cards') }}",
                     type: 'GET',
                     data: {
+                        page: cardsCurrentPage,
                         branch_id: $('#branchFilter').val(),
                         status: $('#filterStatus').val(),
                         priority: $('#filterPriority').val(),
@@ -1327,9 +1361,62 @@
                         }
 
                         $('#ticketsCards').html(html);
+                        renderCardsPagination(response.meta);
                     }
                 });
             }
+
+            // ترقيم صفحات عرض البطاقات بنفس نصوص جدول البيانات
+            function renderCardsPagination(meta) {
+                const $footer = $('#ticketsCardsFooter');
+                if (!meta || !meta.total) {
+                    $footer.addClass('d-none');
+                    return;
+                }
+
+                $('#ticketsCardsInfo').text(
+                    complaintsTranslations.info
+                        .replace('_START_', meta.from)
+                        .replace('_END_', meta.to)
+                        .replace('_TOTAL_', meta.total)
+                );
+
+                const current = meta.current_page;
+                const last = meta.last_page;
+                const pageItem = function (label, page, disabled, active) {
+                    return '<li class="page-item' + (disabled ? ' disabled' : '') + (active ? ' active' : '') + '">' +
+                        '<a class="page-link cards-page-link" href="#" data-page="' + page + '">' + label + '</a></li>';
+                };
+
+                let items = pageItem(complaintsTranslations.previous, current - 1, current <= 1, false);
+                const start = Math.max(1, current - 2);
+                const end = Math.min(last, current + 2);
+                if (start > 1) {
+                    items += pageItem(1, 1, false, false);
+                    if (start > 2) items += '<li class="page-item disabled"><span class="page-link">…</span></li>';
+                }
+                for (let page = start; page <= end; page++) {
+                    items += pageItem(page, page, false, page === current);
+                }
+                if (end < last) {
+                    if (end < last - 1) items += '<li class="page-item disabled"><span class="page-link">…</span></li>';
+                    items += pageItem(last, last, false, false);
+                }
+                items += pageItem(complaintsTranslations.next, current + 1, current >= last, false);
+
+                $('#ticketsCardsPagination').html(items);
+                $footer.removeClass('d-none');
+            }
+
+            $(document).on('click', '.cards-page-link', function (e) {
+                e.preventDefault();
+                const $item = $(this).closest('.page-item');
+                if ($item.hasClass('disabled') || $item.hasClass('active')) {
+                    return;
+                }
+                loadCardView(parseInt($(this).data('page'), 10));
+                $('html, body').animate({ scrollTop: $('#cardViewContent').offset().top - 100 }, 200);
+            });
 
             // Create ticket card
             function createTicketCard(ticket) {

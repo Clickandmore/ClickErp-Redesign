@@ -45,6 +45,7 @@ final class HourlyPermissionCatalog
         'confirm' => 'تأكيد الطلب', 'print' => 'طباعة المستندات', 'note' => 'إضافة الملاحظات',
         'reschedule' => 'إعادة الجدولة', 'price_override' => 'تجاوز السعر وتعديل القيمة',
         'notice_override' => 'تجاوز المدة المسبقة للحجز', 'renew_again' => 'تكرار التجديد', 'close_unpaid' => 'إغلاق طلب غير مسدد',
+        'compensate' => 'تعويض العملاء', 'compensate_override' => 'تعويض يتجاوز المدفوع',
         'balance' => 'إيداع رصيد', 'balance_adjust' => 'تسوية الرصيد', 'notify' => 'إرسال إشعارات',
         'merge' => 'دمج العملاء', 'impersonate' => 'الدخول نيابة عن السائق',
         'capacity' => 'تعديل السعة', 'reorder' => 'إعادة الترتيب', 'transfer' => 'نقل بين الفرق',

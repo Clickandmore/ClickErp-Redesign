@@ -45,13 +45,27 @@
     .si-form { margin-top: .9rem; padding: 1rem; border-radius: 12px; background: #fbfcfe; border: 1px solid var(--line); }
     .si-form-title { display: flex; align-items: center; gap: .45rem; margin: 0 0 .8rem; font-size: .86rem; font-weight: 700; }
     .si-form-title i { color: var(--brand); }
-    .si-grid { display: grid; grid-template-columns: minmax(200px, 260px) minmax(0, 1fr); gap: .8rem 1rem; }
-    @media (max-width: 767px) { .si-grid { grid-template-columns: 1fr; } }
     .si-field { display: grid; gap: .35rem; margin: 0; }
     .si-field > span { font-size: .8rem; font-weight: 700; }
     .si-field > span em { font-style: normal; font-weight: 500; color: var(--muted); margin-inline-start: .3rem; }
     .si-field .form-control { min-height: 42px; border-radius: 10px; border-color: #dfe7ef; font-size: .88rem; }
-    .si-field textarea.form-control { min-height: 42px; height: 42px; resize: vertical; }
+    .si-field textarea.form-control { min-height: 84px; resize: vertical; line-height: 1.8; }
+    .si-field small { font-size: .74rem; color: var(--muted); }
+    .si-field .form-control:focus { border-color: var(--brand); box-shadow: 0 0 0 .2rem rgba(39, 148, 235, .14); }
+
+    /* فترة عدم الجاهزية: «من» و«حتى» بعرض متساوٍ، مع أزرار سريعة للنهاية وشارة المدة */
+    .si-period { border: 1px solid #dbe8f5; border-radius: 12px; background: #fff; padding: .85rem .95rem .9rem; margin-bottom: .9rem; }
+    .si-period-head { display: flex; align-items: center; justify-content: space-between; gap: .5rem; flex-wrap: wrap; margin-bottom: .7rem; }
+    .si-period-head b { font-size: .84rem; display: inline-flex; align-items: center; gap: .4rem; }
+    .si-period-head b i { color: var(--brand); }
+    .si-duration { display: inline-flex; align-items: center; gap: .35rem; padding: .22rem .7rem; border-radius: 99px; background: #eef6fd; color: var(--brand-ink); font-size: .76rem; font-weight: 700; font-variant-numeric: tabular-nums; }
+    .si-duration.is-invalid { background: #fdeeee; color: #b42a2e; }
+    .si-period-grid { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); align-items: start; gap: .8rem; }
+    .si-period-arrow { align-self: center; margin-top: 1.4rem; width: 34px; height: 34px; border-radius: 50%; display: grid; place-items: center; background: var(--soft); border: 1px solid var(--line); color: #8aa0b6; font-size: .8rem; }
+    .si-quick { display: flex; flex-wrap: wrap; gap: .35rem; margin-top: .1rem; }
+    .si-quick button { border: 1px solid #d6e4f2; background: #f7fbff; color: var(--brand-ink); border-radius: 8px; padding: .18rem .6rem; font-size: .74rem; font-weight: 700; line-height: 1.6; }
+    .si-quick button:hover { background: #eaf4fd; border-color: #b9d6f1; }
+    @media (max-width: 767px) { .si-period-grid { grid-template-columns: 1fr; } .si-period-arrow { display: none; } }
     .si-check { display: flex; align-items: flex-start; gap: .5rem; margin: .8rem 0 0; font-size: .84rem; cursor: pointer; }
     .si-check input { margin-top: .3rem; accent-color: var(--brand-ink); width: 16px; height: 16px; }
     .si-actions { display: flex; justify-content: flex-end; gap: .5rem; flex-wrap: wrap; margin-top: .9rem; padding-top: .8rem; border-top: 1px dashed var(--line); }
@@ -139,17 +153,35 @@
                     <form class="si-form" method="post" action="{{ route('admin.hourly-incidents.review',$incident->id) }}">
                         @csrf
                         <p class="si-form-title"><i class="fa fa-scale-balanced"></i> قرار الإدارة</p>
-                        <div class="si-grid">
-                            <label class="si-field"><span>العاملة غير متاحة من <em>(افتراضيًا: موعد الزيارة المبلَّغ عنها)</em></span>
-                                <input type="datetime-local" class="form-control" name="unavailable_from" value="{{ $incident->visit_start ? \Carbon\Carbon::parse($incident->visit_start)->format('Y-m-d\TH:i') : now()->format('Y-m-d\TH:i') }}">
-                            </label>
-                            <label class="si-field"><span>العاملة غير متاحة حتى <em>(مطلوب للاعتماد)</em></span>
-                                <input type="datetime-local" class="form-control" name="unavailable_until" min="{{ now()->format('Y-m-d\TH:i') }}" value="{{ $incident->visit_end && \Carbon\Carbon::parse($incident->visit_end)->isFuture() ? \Carbon\Carbon::parse($incident->visit_end)->format('Y-m-d\TH:i') : '' }}">
-                            </label>
-                            <label class="si-field"><span>سبب قرار الإدارة <em>(داخلي)</em></span>
-                                <textarea class="form-control" name="reason" required maxlength="2000"></textarea>
-                            </label>
+                        @php
+                            $periodFrom = $incident->visit_start ? \Carbon\Carbon::parse($incident->visit_start) : now();
+                            $visitEnd = $incident->visit_end ? \Carbon\Carbon::parse($incident->visit_end) : null;
+                        @endphp
+                        <div class="si-period" data-period>
+                            <div class="si-period-head">
+                                <b><i class="fa fa-user-clock"></i> فترة عدم جاهزية العاملة</b>
+                                <span class="si-duration" data-period-duration aria-live="polite">حدد نهاية الفترة</span>
+                            </div>
+                            <div class="si-period-grid">
+                                <label class="si-field"><span>من</span>
+                                    <input type="datetime-local" class="form-control" name="unavailable_from" data-period-from value="{{ $periodFrom->format('Y-m-d\TH:i') }}">
+                                    <small>افتراضيًا: بداية الزيارة المبلَّغ عنها.</small>
+                                </label>
+                                <span class="si-period-arrow" aria-hidden="true"><i class="fa fa-arrow-left"></i></span>
+                                <label class="si-field"><span>حتى <em>(مطلوب للاعتماد)</em></span>
+                                    <input type="datetime-local" class="form-control" name="unavailable_until" data-period-until min="{{ now()->format('Y-m-d\TH:i') }}" value="{{ $visitEnd && $visitEnd->isFuture() ? $visitEnd->format('Y-m-d\TH:i') : '' }}">
+                                    <span class="si-quick" role="group" aria-label="اختيار سريع لنهاية الفترة">
+                                        @if($visitEnd && $visitEnd->isFuture())<button type="button" data-until="{{ $visitEnd->format('Y-m-d\TH:i') }}">نهاية الزيارة</button>@endif
+                                        <button type="button" data-until="{{ $periodFrom->copy()->max(now())->endOfDay()->format('Y-m-d\TH:i') }}">نهاية اليوم</button>
+                                        <button type="button" data-until="{{ $periodFrom->copy()->max(now())->addDay()->endOfDay()->format('Y-m-d\TH:i') }}">+1 يوم</button>
+                                        <button type="button" data-until="{{ $periodFrom->copy()->max(now())->addDays(3)->endOfDay()->format('Y-m-d\TH:i') }}">+3 أيام</button>
+                                    </span>
+                                </label>
+                            </div>
                         </div>
+                        <label class="si-field"><span>سبب قرار الإدارة <em>(داخلي — لا يظهر للعميل)</em></span>
+                            <textarea class="form-control" name="reason" rows="3" required maxlength="2000" placeholder="مثال: تم التحقق من التقرير الطبي، وتعود العاملة للعمل بعد يومين."></textarea>
+                        </label>
                         <label class="si-check"><input type="checkbox" name="verified" value="1"> تحققت من البلاغ وأعتمد عدم الجاهزية للفترة المحددة.</label>
                         <div class="si-actions">
                             <button class="si-btn is-reject" name="decision" value="reject"><i class="fa fa-xmark"></i> رفض البلاغ</button>
@@ -236,3 +268,24 @@
     <div class="si-pager">{{ $affected->links() }}</div>
 </div>
 @endsection
+@push('js')
+<script>
+// فترة عدم الجاهزية: الأزرار السريعة تملأ «حتى»، والشارة تعرض المدة أو تنبّه إذا كانت النهاية قبل البداية.
+document.querySelectorAll('[data-period]').forEach(function (box) {
+    var from = box.querySelector('[data-period-from]'), until = box.querySelector('[data-period-until]'), badge = box.querySelector('[data-period-duration]');
+    function render() {
+        badge.classList.remove('is-invalid');
+        if (!until.value) { badge.textContent = 'حدد نهاية الفترة'; return; }
+        var minutes = Math.round((new Date(until.value) - new Date(from.value)) / 60000);
+        if (!(minutes > 0)) { badge.classList.add('is-invalid'); badge.textContent = 'النهاية يجب أن تكون بعد البداية'; return; }
+        var d = Math.floor(minutes / 1440), h = Math.floor(minutes % 1440 / 60), m = minutes % 60, parts = [];
+        if (d) parts.push(d + (d === 1 ? ' يوم' : ' أيام')); if (h) parts.push(h + ' س'); if (m) parts.push(m + ' د');
+        badge.textContent = 'المدة: ' + parts.join(' و');
+    }
+    box.querySelectorAll('[data-until]').forEach(function (button) {
+        button.addEventListener('click', function () { until.value = button.dataset.until; render(); until.focus(); });
+    });
+    from.addEventListener('input', render); until.addEventListener('input', render); render();
+});
+</script>
+@endpush

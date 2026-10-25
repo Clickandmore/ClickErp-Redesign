@@ -20,7 +20,8 @@
                     {{ \App\Services\Hourly\DriverGaps::roleLabel($role) }} <b>{{ $pick['driver']->name ?? 'لا يوجد متاح' }}</b>@if(!$loop->last) · @endif
                 @endforeach
             </span>
-            <form method="POST" action="{{ route('admin.hourly-orders.operations', $order) }}" onsubmit="return confirm('إسناد السائق المقترح لهذه الزيارة؟')">
+            <form method="POST" action="{{ route('admin.hourly-orders.operations', $order) }}"
+                  data-swal-confirm="إسناد السائق المقترح؟" data-swal-text="زيارة {{ $visit->visit_number }} — {{ collect($driverPicks)->filter()->map(fn ($pick, $role) => \App\Services\Hourly\DriverGaps::roleLabel($role).': '.$pick['driver']->name)->implode(' · ') }}" data-swal-ok="نعم، أسند">
                 @csrf
                 <input type="hidden" name="action" value="auto_driver">
                 <input type="hidden" name="visit_ids[]" value="{{ $visit->id }}">
@@ -30,6 +31,7 @@
             </form>
         @endif
     </div>
+    @include('admin.hourly._swal-confirm')
     @once
         <style>
             .hr-driver-suggest{display:flex;flex-wrap:wrap;align-items:center;gap:.4rem .6rem;margin-top:.45rem;padding:.4rem .6rem;border:1px dashed #9cc7ec;border-radius:9px;background:#f4f9ff;font-size:.8rem;color:#245a86}

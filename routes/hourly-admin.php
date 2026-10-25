@@ -146,6 +146,9 @@ Route::prefix('hourly')->middleware('feature.hourly_rental')->group(function () 
         Route::post('orders/{order}/confirm', [\App\Http\Controllers\Hourly\OrderController::class, 'confirm'])->name('admin.hourly-orders.confirm');
         Route::post('orders/{order}/payments', [\App\Http\Controllers\Hourly\OrderController::class, 'collect'])->name('admin.hourly-orders.collect');
         Route::post('orders/{order}/close-unpaid', [\App\Http\Controllers\Hourly\OrderController::class, 'closeUnpaid'])->name('admin.hourly-orders.close-unpaid');
+        Route::post('orders/{order}/compensations', [\App\Http\Controllers\Hourly\OrderCompensationController::class, 'store'])->middleware('throttle:20,1')->name('admin.hourly-orders.compensations.store');
+        Route::post('orders/{order}/compensations/{compensation}/paid-out', [\App\Http\Controllers\Hourly\OrderCompensationController::class, 'paidOut'])->whereNumber('compensation')->name('admin.hourly-orders.compensations.paid-out');
+        Route::get('compensations', [\App\Http\Controllers\Hourly\OrderCompensationController::class, 'index'])->name('admin.hourly-compensations.index');
         Route::post('orders/{order}/payments/{payment}/bank-transfer-review', [\App\Http\Controllers\Hourly\OrderController::class, 'reviewBankTransfer'])->name('admin.hourly-orders.bank-transfer-review');
         Route::get('orders/{order}/invoice', [\App\Http\Controllers\Hourly\OrderController::class, 'invoice'])->name('admin.hourly-orders.invoice');
         Route::get('orders/{order}/payments/{payment}/attachment', [\App\Http\Controllers\Hourly\OrderController::class, 'attachment'])->name('admin.hourly-orders.attachment');

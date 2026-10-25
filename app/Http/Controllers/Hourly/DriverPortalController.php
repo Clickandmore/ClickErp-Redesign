@@ -26,7 +26,8 @@ class DriverPortalController extends Controller
 
         $base = HourlyVisit::query()
             ->where(fn ($query) => $query->where('delivery_driver_id', $driver->id)->orWhere('pickup_driver_id', $driver->id))
-            ->where(fn($query)=>$query->whereHas('order', fn ($order) => $order->where('status', 'active'))
+            // A pending order's tasks are shown for planning only; the view and action() keep them locked until confirmation.
+            ->where(fn($query)=>$query->whereHas('order', fn ($order) => $order->whereIn('status', ['active', 'pending_confirmation']))
                 ->orWhereIn('status',\App\Services\Hourly\DriverAppService::ONGOING));
 
         $visits = (clone $base)

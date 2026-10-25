@@ -170,6 +170,9 @@
     @if(\App\Support\HourlyPermissionCatalog::canRoute('admin.hourly-visits.unassigned'))
     <a class="ho-q-violet" href="{{ route('admin.hourly-visits.unassigned') }}"><i class="fa fa-user-clock"></i> الزيارات غير المخصصة</a>
     @endif
+    @if(\App\Services\Hourly\OrderCompensation::ready() && AdminGuardHasPerm('hourly_orders_view'))
+    <a class="ho-q-violet" href="{{ route('admin.hourly-compensations.index') }}"><i class="fa fa-hand-holding-heart"></i> تعويضات العملاء</a>
+    @endif
 </nav>
 
 <div class="ho-section-title">

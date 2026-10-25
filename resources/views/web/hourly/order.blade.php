@@ -137,6 +137,9 @@
                         @endforeach
                     @endif
                     @if($refunded>0)<p class="od-note">المبلغ المسترد: {{ $money($refunded) }} ر.س. راجع رصيد المحفظة وسجل الدفعات لمعرفة طريقة الاسترداد.</p>@endif
+                    @foreach(app(\App\Services\Hourly\OrderCompensation::class)->publicData($order) as $comp)
+                        <p class="od-note">تعويض عن هذا الطلب: {{ $money($comp['amount']) }} ر.س — {{ $comp['reason_label'] }} · {{ $comp['destination'] === 'wallet' ? 'أُضيف إلى محفظتك' : $comp['status_label'].' ('.$comp['destination_label'].')' }}. نعتذر عما حدث.</p>
+                    @endforeach
                     @if((float)$order->paid_amount>(float)$order->total_amount)<p class="od-note">يوجد مبلغ مستحق للاسترداد: {{ $money($order->paid_amount-$order->total_amount) }} ر.س. يرجى التواصل مع الإدارة لتسويته.</p>@endif
 
                     @if($canPay && $order->payment_method==='moyasar')

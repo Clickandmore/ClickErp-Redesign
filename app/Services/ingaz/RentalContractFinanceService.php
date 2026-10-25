@@ -1091,7 +1091,67 @@ class RentalContractFinanceService
         );
     }
 
-    public function extensionAmounts(RentalContract $contract, int $extensionDays, float $discountAmount = 0.0, ?Package $extensionPackage = null): array
+    /**
+     * آخر قيمة سارية للعقد: قيمة آخر تمديد (قبل الخصم) ومدته إن وُجد تمديد، وإلا قيمة العقد الأصلية.
+     * تُستخدم أساساً لتسعير التمديد التالي وعرض القيمة الحالية في تفاصيل العقد.
+     *
+     * @return array{source: string, gross_total: float, days: int, daily_rate: float, extension: ?RentalContractExtension}
+     */
+    public function currentPricingBasis(RentalContract $contract): array
+    {
+        $extensions = $contract->relationLoaded('extensions')
+            ? $contract->extensions
+            : $contract->extensions()->get();
+
+        $latestExtension = $extensions
+            ->filter(fn (RentalContractExtension $extension) => (int) $extension->extension_days > 0
+                && $this->extensionGrossValue($extension) > 0)
+            ->sortByDesc('id')
+            ->first();
+
+        if ($latestExtension) {
+            $grossTotal = $this->extensionGrossValue($latestExtension);
+            $days = (int) $latestExtension->extension_days;
+
+            return [
+                'source' => 'extension',
+                'gross_total' => $grossTotal,
+                'days' => $days,
+                'daily_rate' => $grossTotal / $days,
+                'extension' => $latestExtension,
+            ];
+        }
+
+        $grossTotal = (float) ($contract->info?->contract_value ?? 0);
+        $days = RentalContractPricing::durationDays(
+            (int) ($contract->info?->contract_duration_days ?? 0),
+            (int) ($contract->info?->contract_duration_months ?? 0)
+        );
+
+        return [
+            'source' => 'contract',
+            'gross_total' => $grossTotal,
+            'days' => $days,
+            'daily_rate' => $days > 0 ? $grossTotal / $days : 0.0,
+            'extension' => null,
+        ];
+    }
+
+    private function extensionGrossValue(RentalContractExtension $extension): float
+    {
+        // gross_value = قيمة التمديد قبل خصم العميل؛ التمديدات القديمة لا تحمله فنستنتجه من الصافي + الخصم
+        $grossValue = (float) ($extension->gross_value ?? 0);
+
+        return $grossValue > 0
+            ? $grossValue
+            : (float) ($extension->extension_value ?? 0) + (float) ($extension->discount_amount ?? 0);
+    }
+
+    /**
+     * @param array|null $pricingBasis نتيجة currentPricingBasis(): عند تمريرها يُسعّر التمديد بسعر اليوم في آخر تمديد
+     *                                 بدلاً من سعر العقد الأصلي (ما لم تُختر باقة تمديد).
+     */
+    public function extensionAmounts(RentalContract $contract, int $extensionDays, float $discountAmount = 0.0, ?Package $extensionPackage = null, ?array $pricingBasis = null): array
     {
         $contract->loadMissing(['info.package', 'maid']);
         $baseDays = RentalContractPricing::durationDays(
@@ -1114,6 +1174,12 @@ class RentalContractFinanceService
         $extensionGrossTotal = $baseDays > 0
             ? $this->roundMoney(($baseGrossTotal / $baseDays) * max(0, $extensionDays))
             : 0.0;
+
+        if (($pricingBasis['source'] ?? null) === 'extension' && (int) ($pricingBasis['days'] ?? 0) > 0) {
+            $extensionGrossTotal = $this->roundMoney(
+                ((float) $pricingBasis['gross_total'] / (int) $pricingBasis['days']) * max(0, $extensionDays)
+            );
+        }
 
         if ($extensionPackage) {
             $packageDays = (int) $extensionPackage->days_count;
