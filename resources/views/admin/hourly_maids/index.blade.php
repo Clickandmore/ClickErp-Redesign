@@ -193,7 +193,9 @@
                 $stages=['new'=>'بانتظار الاعتماد','msaned'=>'عقد مساند','tafwed'=>'التفويض','taffez'=>'التفييز','tazker'=>'التذكرة','arrival'=>'مرحلة الوصول','completed'=>'مكتمل','cancelled'=>'ملغي'];
             @endphp
             <tr>
-                <td>{{ $maid->id }}</td><td><a href="{{ route('admin.hourly-maids.show',$maid) }}"><strong>{{ $maid->name }}</strong></a><div class="small text-muted">{{ $maid->hourly_username }} · {{ $maid->passport_num }}</div></td>
+                <td>{{ $maid->id }}</td><td><a href="{{ route('admin.hourly-maids.show',$maid) }}"><strong>{{ $maid->name }}</strong></a><div class="small text-muted">{{ $maid->hourly_username }} · {{ $maid->passport_num }}</div>
+                    <span data-visibility-badge class="badge bg-{{ $maid->is_show ? 'success' : 'dark' }} mt-1"><i class="fa {{ $maid->is_show ? 'fa-eye' : 'fa-eye-slash' }}"></i> {{ helperTrans($maid->is_show ? 'ingaz.maid_visibility_visible' : 'ingaz.maid_visibility_hidden') }}</span>
+                </td>
                 <td>{{ $maid->nationality?->sub_title ?: ($maid->nationality?->title ?: '—') }}</td>
                 <td>@forelse($maid->hourlyTeamMemberships as $member)<div>{{ $member->team?->name ?? '—' }} <small class="text-muted">({{ $member->role==='primary' ? 'أساسي' : 'ثانوي' }})</small></div>@empty — @endforelse</td>
                 <td><span class="badge bg-{{ $maid->arrival_date || $inside ? 'success' : 'warning text-dark' }}">{{ $arrival }}</span>
@@ -247,6 +249,9 @@
                 </td>
                 <td class="text-center">
                     <div class="mh-row-actions">
+                        @if(AdminGuardHasPerm(\App\PermKeys::MAIDS_TOGGLE_STATUS))
+                            <button type="button" class="btn btn-sm btn-outline-secondary" data-visibility-url="{{ route('maids.show', $maid->id) }}" title="{{ helperTrans('ingaz.toggle_visibility') }}" aria-label="{{ helperTrans('ingaz.toggle_visibility') }}: {{ $maid->name }}"><i class="fa fa-adjust"></i> {{ helperTrans('ingaz.toggle_visibility') }}</button>
+                        @endif
                         @include('admin.hourly_maids._login-as',['buttonClass'=>'btn btn-sm mh-open mh-open-login'])
                         <a class="btn btn-sm btn-outline-primary mh-open" href="{{ route('admin.hourly-maids.show',$maid) }}" title="تفاصيل العاملة" aria-label="تفاصيل العاملة {{ $maid->name }}"><i class="fa fa-arrow-up-right-from-square"></i><span>التفاصيل</span></a>
                     </div>
@@ -267,6 +272,26 @@ document.addEventListener('DOMContentLoaded', function () {
     if(assignModal && window.bootstrap) bootstrap.Modal.getOrCreateInstance(assignModal).show();
     @endif
     const feedback=document.getElementById('availability-feedback');
+    document.querySelectorAll('[data-visibility-url]').forEach(button=>button.addEventListener('click',async function () {
+        const result=await Swal.fire({icon:'question',title:@json(helperTrans('ingaz.confirm_toggle_visibility')),showCancelButton:true,confirmButtonText:@json(helperTrans('ingaz.confirm')),cancelButtonText:@json(helperTrans('ingaz.cancel'))});
+        if(!result.isConfirmed) return;
+        button.disabled=true;
+        try {
+            const response=await fetch(button.dataset.visibilityUrl,{headers:{'Accept':'application/json','X-Requested-With':'XMLHttpRequest'},cache:'no-store'});
+            const data=await response.json();
+            if(!response.ok || !data.success) throw new Error(data.message || @json(helperTrans('ingaz.unexpected_error')));
+            const visible=Boolean(Number(data.new_status));
+            const badge=button.closest('tr').querySelector('[data-visibility-badge]');
+            badge.className='badge bg-'+(visible ? 'success' : 'dark')+' mt-1';
+            badge.replaceChildren();
+            const icon=document.createElement('i');
+            icon.className='fa '+(visible ? 'fa-eye' : 'fa-eye-slash');
+            badge.append(icon,document.createTextNode(' '+(visible ? @json(helperTrans('ingaz.maid_visibility_visible')) : @json(helperTrans('ingaz.maid_visibility_hidden')))));
+            feedback.textContent=data.message;feedback.className='alert alert-success';
+        } catch(error) {
+            feedback.textContent=error.message;feedback.className='alert alert-danger';
+        } finally {button.disabled=false;}
+    }));
     document.querySelectorAll('[data-availability-url]').forEach(input=>input.addEventListener('change',async function () {
         const previous=!input.checked;
         input.disabled=true;

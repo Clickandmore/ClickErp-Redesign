@@ -10,6 +10,16 @@ use Illuminate\Support\Carbon;
 
 class ApiOfferController extends Controller
 {
+    public function appIndex()
+    {
+        $offers = $this->activeOffersQuery()
+            ->orderBy('sort_order')
+            ->orderBy('id')
+            ->get();
+
+        return jsonSuccess(OfferResource::collection($offers), __('api.All items'));
+    }
+
     public function index(Request $request)
     {
         $offers = $this->activeOffersQuery()
