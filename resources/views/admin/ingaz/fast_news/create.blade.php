@@ -1,5 +1,6 @@
 <form class="row g-3 from-submit-global" method="post" action="{{route("fast-news.store")}}" enctype="multipart/form-data">
     @csrf
+    @include('admin.ingaz.fast_news._visibility_switch', ['checked' => true])
     @foreach (config('translatable.locales') as $locale)
         <div class="col-6">
             <label for="TextInput" class="form-label">

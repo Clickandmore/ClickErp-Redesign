@@ -123,6 +123,39 @@
             font-weight: 700;
         }
 
+        .hero-chip-row {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+        }
+
+        .hero-chip-action {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 12px;
+            border-radius: 999px;
+            border: 1px solid rgba(255, 255, 255, 0.45);
+            background: rgba(255, 255, 255, 0.92);
+            color: #1d4ed8;
+            font-size: 12px;
+            font-weight: 700;
+            line-height: 1.4;
+            cursor: pointer;
+            transition: background 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .hero-chip-action:hover,
+        .hero-chip-action:focus-visible {
+            background: #fff;
+            color: #1e40af;
+            transform: translateY(-1px);
+            box-shadow: 0 6px 16px rgba(15, 23, 42, 0.18);
+            outline: none;
+        }
+
         .status-pill {
             display: inline-flex;
             align-items: center;
@@ -606,56 +639,93 @@
             z-index: 1060;
         }
 
+        /* شريط الإجراءات العائم: على الحافة اليسرى (القائمة الجانبية يمين في RTL) وفي منتصف الشاشة رأسيًا
+           حتى لا يتداخل مع القائمة الجانبية ولا مع أزرار التمرير أسفل اليسار. */
         .action-buttons {
             position: fixed;
-            bottom: 28px;
-            right: 28px;
+            top: 50%;
+            left: 18px;
+            right: auto;
+            transform: translateY(-50%);
             display: flex;
             flex-direction: column;
-            gap: 10px;
+            align-items: center;
+            gap: 8px;
+            padding: 10px;
+            background: rgba(255, 255, 255, 0.96);
+            border: 1px solid #e2e8f0;
+            border-radius: 20px;
+            box-shadow: 0 18px 40px rgba(15, 23, 42, 0.16);
+            backdrop-filter: blur(6px);
             z-index: 1000;
         }
 
-        .btn-icon {
-            width: 52px;
-            height: 52px;
-            border-radius: 18px;
-            display: flex;
+        /* !important لتجاوز قاعدة .btn-edit العامة (32px !important) في layout/inc/_css */
+        .action-buttons .btn-icon {
+            width: 44px !important;
+            height: 44px !important;
+            min-width: 44px;
+            padding: 0 !important;
+            margin: 0;
+            border: 0;
+            border-radius: 14px;
+            display: inline-flex;
             align-items: center;
             justify-content: center;
             color: #fff;
+            font-size: 16px;
+            line-height: 1;
             text-decoration: none;
-            box-shadow: 0 12px 28px rgba(15, 23, 42, 0.18);
-            transition: transform 0.2s ease, box-shadow 0.2s ease;
+            cursor: pointer;
+            box-shadow: 0 6px 14px rgba(15, 23, 42, 0.14);
+            transition: transform 0.2s ease, box-shadow 0.2s ease, filter 0.2s ease;
         }
 
-        .btn-icon:hover {
+        .action-buttons .btn-icon:hover,
+        .action-buttons .btn-icon:focus-visible {
             transform: translateY(-2px);
             color: #fff;
-            box-shadow: 0 16px 32px rgba(15, 23, 42, 0.24);
+            filter: brightness(1.06);
+            box-shadow: 0 10px 20px rgba(15, 23, 42, 0.22);
+            outline: none;
         }
 
-        .btn-print {
+        .action-buttons .btn-delete {
+            margin-top: 6px;
+            position: relative;
+        }
+
+        .action-buttons .btn-delete::before {
+            content: "";
+            position: absolute;
+            top: -8px;
+            left: 6px;
+            right: 6px;
+            height: 1px;
+            background: #e2e8f0;
+        }
+
+        .action-buttons .btn-print {
             background: #0ea5e9;
         }
 
-        .btn-edit {
+        .action-buttons .btn-edit {
             background: #f59e0b;
         }
 
-        .btn-complete {
+        .action-buttons .btn-complete {
             background: #22c55e;
         }
 
-        .btn-back {
+        .action-buttons .btn-back {
             background: #64748b;
         }
 
-        .btn-copy-payment {
+        .action-buttons .btn-copy-payment {
             background: #2563eb;
         }
 
-        .btn-delete {
+        .action-buttons .btn-delete {
             background: #ef4444;
         }
 
@@ -678,9 +748,19 @@
 
             .action-buttons {
                 position: static;
+                transform: none;
                 flex-direction: row;
                 flex-wrap: wrap;
+                justify-content: center;
                 margin-top: 18px;
+            }
+
+            .action-buttons .btn-delete {
+                margin-top: 0;
+            }
+
+            .action-buttons .btn-delete::before {
+                display: none;
             }
 
             .workflow-grid {
@@ -722,6 +802,7 @@
 @endsection
 
 @section('content')
+    @include('admin.ingaz.RentContract._escape-report')
     @if (@AdminGuardHasPerm(\App\PermKeys::RENT_CONTRACT_VIEW))
         @php
             $statusClasses = [
@@ -911,11 +992,15 @@
                     </div>
                     <div class="hero-chip">
                         <span class="label">المسوق</span>
-                        <span class="value">{{ $contract->marketer?->name ?? 'غير محدد' }}</span>
-                        @if(AdminGuardHasPerm(\App\PermKeys::RENT_CONTRACT_CHANGE_MARKETER))
-                            <button type="button" class="btn btn-sm btn-outline-primary mt-2"
-                                data-bs-toggle="modal" data-bs-target="#changeMarketerModal">تغيير المسوق</button>
-                        @endif
+                        <div class="hero-chip-row">
+                            <span class="value">{{ $contract->marketer?->name ?? 'غير محدد' }}</span>
+                            @if(AdminGuardHasPerm(\App\PermKeys::RENT_CONTRACT_CHANGE_MARKETER))
+                                <button type="button" class="hero-chip-action"
+                                    data-bs-toggle="modal" data-bs-target="#changeMarketerModal">
+                                    <i class="fa-solid fa-user-pen"></i> تغيير المسوق
+                                </button>
+                            @endif
+                        </div>
                     </div>
                 </div>
             </div>
@@ -934,8 +1019,30 @@
                 <div class="metric-card">
                     <div class="label">قيمة العقد</div>
                     <div class="value">{{ number_format((float) ($contract->info->contract_value ?? 0), 2) }}</div>
-                    <div class="sub-value">إجمالي قيمة العقد</div>
+                    <div class="sub-value">إجمالي قيمة العقد الأصلية</div>
                 </div>
+                @php
+                    // آخر قيمة للعقد: تظهر عند وجود تمديد حتى لا يُعتمد على القيمة الأصلية فقط
+                    $latestPricingBasis = app(\App\Services\ingaz\RentalContractFinanceService::class)->currentPricingBasis($contract);
+                    $originalDays = \App\Support\RentalContractPricing::durationDays(
+                        (int) ($contract->info?->contract_duration_days ?? 0),
+                        (int) ($contract->info?->contract_duration_months ?? 0)
+                    );
+                    $originalDailyRate = $originalDays > 0 ? (float) ($contract->info?->contract_value ?? 0) / $originalDays : 0.0;
+                    $latestExtensionDiffers = abs($latestPricingBasis['daily_rate'] - $originalDailyRate) >= 0.01;
+                @endphp
+                @if ($latestPricingBasis['source'] === 'extension')
+                    <div class="metric-card" @if ($latestExtensionDiffers) style="border-color: #f0ad4e; background: #fff8e8;" @endif>
+                        <div class="label">قيمة آخر تمديد</div>
+                        <div class="value">{{ number_format($latestPricingBasis['gross_total'], 2) }}</div>
+                        <div class="sub-value">
+                            لمدة {{ $latestPricingBasis['days'] }} يوم
+                            @if ($latestExtensionDiffers)
+                                · <span class="text-warning fw-bold">تختلف عن قيمة العقد الأصلية</span>
+                            @endif
+                        </div>
+                    </div>
+                @endif
                 <div class="metric-card">
                     <div class="label">{{ $remainingMetricLabel }}</div>
                     <div class="value">{{ $remainingMetricValue }}</div>
@@ -1278,9 +1385,9 @@
                         <div class="section-header">
                             <h3 class="section-title">
                                 <i class="fas fa-female"></i>
-                                العاملة الحالية
+                                {{ $contract->requiresMaidOnResume() ? 'العاملة السابقة قبل التجميد' : 'العاملة الحالية' }}
                             </h3>
-                            @if (@AdminGuardHasPerm(\App\PermKeys::RENT_CONTRACT_EDIT) && !in_array($contract->status, ['completed', 'cancelled'], true))
+                            @if (@AdminGuardHasPerm(\App\PermKeys::RENT_CONTRACT_EDIT) && !in_array($contract->status, ['completed', 'cancelled'], true) && !$contract->requiresMaidOnResume())
                                 <button type="button" class="btn btn-sm btn-warning text-dark no-print" data-bs-toggle="modal"
                                     data-bs-target="#changeMaidModal">
                                     <i class="fas fa-right-left me-1"></i>
@@ -1432,6 +1539,11 @@
                                 <span class="label">حالة الضمان</span>
                                 <span class="value">{{ $warrantyStatuses[$contract->warranty_status] ?? ($contract->warranty_status ?: 'غير محدد') }}</span>
                             </li>
+                            @if ($contract->requiresMaidOnResume())
+                                <div class="alert alert-info">
+                                    تمت إعادة العاملة للإيواء وإتاحتها للحجز عند التجميد. اسم العاملة المعروض للتاريخ فقط؛ لا يمكن استئناف العقد إلا باختيار عاملة متاحة مطابقة لباقة العقد.
+                                </div>
+                            @endif
                             @if ($contract->status === 'frozen' || $contract->frozen_at)
                                 <li>
                                     <span class="label">سبب التجميد</span>
@@ -2421,57 +2533,8 @@
             });
 
             $(document).on('click', '.btn-complete', function() {
-                Swal.fire({
-                    title: 'تأكيد إنهاء العقد',
-                    html: '<div class="text-end">هل أنت متأكد من إنهاء هذا العقد؟</div>' +
-                        '<div class="form-check mt-3 text-end">' +
-                        '<input class="form-check-input" type="checkbox" id="sendClosureMessageFromShow" checked>' +
-                        '<label class="form-check-label" for="sendClosureMessageFromShow">إرسال رسالة إنهاء العقد للعميل</label>' +
-                        '</div>',
-                    icon: 'warning',
-                    showCancelButton: true,
-                    confirmButtonColor: '#22c55e',
-                    cancelButtonColor: '#dc3545',
-                    confirmButtonText: 'نعم، إنهاء العقد',
-                    cancelButtonText: 'إلغاء'
-                }).then((result) => {
-                    if (result.isConfirmed) {
-                        $.ajax({
-                            url: "{{ route('RentContract.complete', $contract->id) }}",
-                            method: 'POST',
-                            data: {
-                                _token: '{{ csrf_token() }}',
-                                send_closure_message: $('#sendClosureMessageFromShow').is(':checked') ? 1 : 0
-                            },
-                            success: function(response) {
-                                if (response.success) {
-                                    Swal.fire({
-                                        icon: 'success',
-                                        title: 'تم بنجاح',
-                                        text: response.message
-                                    }).then(() => {
-                                        location.reload();
-                                    });
-                                } else {
-                                    Swal.fire({
-                                        icon: 'error',
-                                        title: 'خطأ',
-                                        text: response.message
-                                    });
-                                }
-                            },
-                            error: function() {
-                                Swal.fire({
-                                    icon: 'error',
-                                    title: 'خطأ',
-                                    text: 'حدث خطأ أثناء إنهاء العقد'
-                                });
-                            }
-                        });
-                    }
-                });
+                window.location.href = @json(route('RentContract.index', ['close_contract' => $contract->id]));
             });
-
             $(document).on('click', '.btn-delete', function() {
                 Swal.fire({
                     title: 'تأكيد الحذف',
@@ -2507,103 +2570,24 @@
                 });
             });
 
-            $(document).on('click', '.btn-freeze', function() {
-                Swal.fire({
-                    title: 'تجميد عقد الإيجار',
-                    input: 'textarea',
-                    inputLabel: 'سبب التجميد',
-                    inputPlaceholder: 'اكتب سبب تجميد العقد',
-                    inputAttributes: {
-                        maxlength: 1000
-                    },
-                    icon: 'warning',
-                    showCancelButton: true,
-                    confirmButtonColor: '#64748b',
-                    cancelButtonColor: '#dc3545',
-                    confirmButtonText: 'تجميد العقد',
-                    cancelButtonText: 'إلغاء',
-                    inputValidator: (value) => {
-                        if (!value || !value.trim()) {
-                            return 'يرجى كتابة سبب التجميد';
-                        }
-                    }
-                }).then((result) => {
-                    if (!result.isConfirmed) {
-                        return;
-                    }
+            @include('admin.ingaz.RentContract._freeze-dialogs')
 
-                    $.ajax({
-                        url: "{{ route('RentContract.freeze', $contract->id) }}",
-                        method: 'POST',
-                        data: {
-                            _token: '{{ csrf_token() }}',
-                            freeze_reason: result.value
-                        },
-                        success: function(response) {
-                            Swal.fire({
-                                icon: response.success ? 'success' : 'error',
-                                title: response.success ? 'تم بنجاح' : 'خطأ',
-                                text: response.message
-                            }).then(() => {
-                                if (response.success) {
-                                    location.reload();
-                                }
-                            });
-                        },
-                        error: function(xhr) {
-                            const response = xhr.responseJSON || {};
-                            Swal.fire({
-                                icon: 'error',
-                                title: 'خطأ',
-                                text: response.message || 'حدث خطأ أثناء تجميد العقد'
-                            });
-                        }
-                    });
-                });
+            async function submitRentalFreezeAction(url, data) {
+                try {
+                    const response = await $.ajax({ url, method: 'POST', data: { _token: @json(csrf_token()), ...data } });
+                    await Swal.fire(response.success ? 'تم بنجاح' : 'خطأ', response.message, response.success ? 'success' : 'error');
+                    if (response.success) location.reload();
+                } catch (xhr) {
+                    await Swal.fire('تعذر تنفيذ الإجراء', xhr.responseJSON?.message || 'يرجى المحاولة مرة أخرى', 'error');
+                }
+            }
+            $(document).on('click', '.btn-freeze', async function() {
+                const data = await rentalFreezeDialog();
+                if (data) await submitRentalFreezeAction(@json(route('RentContract.freeze', $contract->id)), data);
             });
-
-            $(document).on('click', '.btn-resume', function() {
-                Swal.fire({
-                    title: 'استئناف عقد الإيجار',
-                    text: 'هل تريد استئناف هذا العقد؟',
-                    icon: 'question',
-                    showCancelButton: true,
-                    confirmButtonColor: '#22c55e',
-                    cancelButtonColor: '#64748b',
-                    confirmButtonText: 'نعم، استئناف العقد',
-                    cancelButtonText: 'إلغاء'
-                }).then((result) => {
-                    if (!result.isConfirmed) {
-                        return;
-                    }
-
-                    $.ajax({
-                        url: "{{ route('RentContract.resume', $contract->id) }}",
-                        method: 'POST',
-                        data: {
-                            _token: '{{ csrf_token() }}'
-                        },
-                        success: function(response) {
-                            Swal.fire({
-                                icon: response.success ? 'success' : 'error',
-                                title: response.success ? 'تم بنجاح' : 'خطأ',
-                                text: response.message
-                            }).then(() => {
-                                if (response.success) {
-                                    location.reload();
-                                }
-                            });
-                        },
-                        error: function(xhr) {
-                            const response = xhr.responseJSON || {};
-                            Swal.fire({
-                                icon: 'error',
-                                title: 'خطأ',
-                                text: response.message || 'حدث خطأ أثناء استئناف العقد'
-                            });
-                        }
-                    });
-                });
+            $(document).on('click', '.btn-resume', async function() {
+                const data = await rentalResumeDialog(@json(route('RentContract.resumeOptions', $contract->id)));
+                if (data) await submitRentalFreezeAction(@json(route('RentContract.resume', $contract->id)), data);
             });
 
             $('#changeMaidForm').on('submit', function(e) {

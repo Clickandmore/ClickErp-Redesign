@@ -20,6 +20,7 @@ class TravelHistory extends Model
 
     protected $fillable = [
         'user_id',
+        'company_profile_id',
         'maid_id',
         'order_id',//null
         'trip_group_code',
@@ -46,6 +47,21 @@ class TravelHistory extends Model
     public function maid()
     {
         return $this->belongsTo(Maid::class, 'maid_id');
+    }
+
+    public function companyProfile()
+    {
+        return $this->belongsTo(CompanyProfile::class);
+    }
+
+    public function getClientAttribute()
+    {
+        return $this->company_profile_id ? $this->companyProfile?->party() : $this->user;
+    }
+
+    public function deportationContract()
+    {
+        return $this->belongsTo(Contract::class, 'order_id');
     }
 
     public function order()

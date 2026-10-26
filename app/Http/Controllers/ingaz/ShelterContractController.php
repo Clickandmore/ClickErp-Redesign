@@ -312,6 +312,7 @@ class ShelterContractController extends Controller
             $hasActiveRentalContract = $isRentalWorker
                 && $contract->maid?->rentalContracts
                     ->whereIn('status', RentalMaidQuery::ACTIVE_RENTAL_STATUSES)
+                    ->reject(fn ($contract) => $contract->requiresMaidOnResume())
                     ->isNotEmpty();
 
             if ($workWillingness === 'yes') {
@@ -1048,6 +1049,8 @@ class ShelterContractController extends Controller
             ContractStatusEnum::Completed->value,
             ContractStatusEnum::UnderWarranty->value,
             ContractStatusEnum::Closed->value,
+            // A client may cancel after the worker has arrived; arrival date remains required.
+            ContractStatusEnum::Back->value,
         ];
     }
 
@@ -1096,7 +1099,7 @@ class ShelterContractController extends Controller
 
         if (!in_array($contract->status, $this->shelterEligibleContractStatuses(), true)) {
             return [
-                'message' => 'العقد موجود لكنه غير مؤهل للإيواء لأن حالته الحالية هي: ' . $currentStatus . '. الحالات المقبولة: وصول / مكتمل / تحت الضمان / مغلق.',
+                'message' => 'العقد موجود لكنه غير مؤهل للإيواء لأن حالته الحالية هي: ' . $currentStatus . '. الحالات المقبولة: وصول / مكتمل / تحت الضمان / مغلق / مرتجع بعد إلغاء العميل، بشرط تسجيل وصول العاملة فعليًا.',
                 'status' => $contract->status,
                 'status_label' => $currentStatus,
             ];
@@ -1440,7 +1443,7 @@ class ShelterContractController extends Controller
             !$contract ||
             !$this->contractCanBeAddedToShelter($contract)
         ) {
-            return jsonError('لا يمكن إضافة هذا العقد للإيواء. يجب أن يكون العقد في مرحلة وصول/ضمان/مكتمل وأن تكون العاملة وصلت فعليًا.', 422);
+            return jsonError('لا يمكن إضافة هذا العقد للإيواء. الحالات المقبولة: وصول أو ضمان أو مكتمل أو مغلق أو مرتجع بعد إلغاء العميل، بشرط تسجيل تاريخ وصول فعلي للعاملة وألا يكون التاريخ مستقبليًا.', 422);
         }
 
         $this->assertCanAccessBranchModel($contract, 'contracts');
@@ -1919,7 +1922,7 @@ class ShelterContractController extends Controller
 
         $wantsToWork = in_array((string) $contract->info?->wants_to_work, ['yes', '1'], true);
         $hasActiveRentalContract = $maid->rentalContracts()
-            ->whereIn('status', RentalMaidQuery::ACTIVE_RENTAL_STATUSES)
+            ->whereIn('status', RentalMaidQuery::ACTIVE_RENTAL_STATUSES)->holdingMaid()
             ->exists();
         $hasActiveOrder = $maid->orders()
             ->whereIn('status', ['new', 'under_process', 'contracted', 'contracted_without_contract'])
@@ -2653,6 +2656,15 @@ class ShelterContractController extends Controller
             });
         }
 
+        $rentalMode = (string) $request->input('rental_mode', '');
+        if (in_array($rentalMode, ['regular', 'hourly'], true) && \App\Services\Rental\RentalModeSwitcher::hourlyAvailable()) {
+            $rentalTypeId = \App\Services\Rental\RentalMaidQuery::rentalJobTypeId();
+            $rows->whereHas('maid', function ($maidQuery) use ($rentalMode, $rentalTypeId) {
+                $maidQuery->whereHas('jobTypes', fn ($query) => $query->where('job_types.id', $rentalTypeId));
+                $rentalMode === 'hourly' ? $maidQuery->where('rental_mode', 'hourly') : $maidQuery->notHourly();
+            });
+        }
+
         if ($request->filled('nationality')) {
             $nationality = $request->input('nationality');
             $rows->whereHas('maid.nationality', function ($query) use ($nationality) {
@@ -3068,49 +3080,60 @@ class ShelterContractController extends Controller
                 ], 400);
             }
 
-            // حارس الخروج: لا يُخرَج عقد من الإيواء ورصيد إيواء العاملة مفتوح إلا بتصفية صريحة.
+            // حارس الخروج: رجوع العاملة لعميلها الأصلي يعكس استلام الإيواء (المورد محسوب على العقد الأصلي)،
+            // وما عدا ذلك لا يُخرَج العقد ورصيد الإيواء مفتوح إلا بتصفية صريحة.
             $ledger = app(\App\Services\ingaz\ShelterCostLedgerService::class);
             $shelterBalance = $ledger->balanceForContract($contract);
-            if ($shelterBalance > 0) {
-                $writeOffReason = trim((string) request()->input('write_off_reason', ''));
-                if ($writeOffReason === '') {
-                    return response()->json([
-                        'success' => false,
-                        'message' => 'للعاملة رصيد إيواء ' . number_format($shelterBalance, 2)
-                            . ' لم يُصفَّ. اختر مسار الخروج (نقل خدمات أو ترحيل أو عقد جديد) أو أرسل سبب التصفية في write_off_reason.',
-                        'shelter_balance' => $shelterBalance,
-                    ], 422);
-                }
+            $returnBlocker = $ledger->returnToCustomerBlocker($contract);
+            $writeOffReason = trim((string) request()->input('write_off_reason', ''));
 
-                $ledger->writeOff($contract, now()->toDateString(), $writeOffReason, $contract);
+            if ($returnBlocker !== null && ($shelterBalance <= 0 || $writeOffReason === '')) {
+                return response()->json([
+                    'success' => false,
+                    'message' => $shelterBalance > 0
+                        ? $returnBlocker . ' للعاملة رصيد إيواء ' . number_format($shelterBalance, 2)
+                            . ' لم يُصفَّ؛ اختر مسار الخروج (نقل خدمات أو ترحيل أو عقد جديد) أو أرسل سبب التصفية.'
+                        : $returnBlocker,
+                    'shelter_balance' => $shelterBalance,
+                ], 422);
             }
 
-            // إرجاع العقد إلى حالة "مكتمل" لأن العقود في الإيواء هي عقود مكتملة أصلاً
-            $contract->status = ContractStatusEnum::Completed->value;
-
-            // إزالة معلومات الإيواء
-            if ($contract->info) {
-                $infoResetPayload = [
-                    'shelter_id' => null,
-                    'wants_to_work' => null,
-                    'maid_date_back' => null,
-                    'receipt_source' => null,
-                    'is_outside_shelter' => false,
-                    'outside_shelter_at' => null,
-                    'outside_shelter_reason' => null,
-                    'outside_shelter_reference_type' => null,
-                    'outside_shelter_reference_id' => null,
-                    'outside_shelter_by' => null,
-                ];
-
-                if ($this->supportsQuickTags()) {
-                    $infoResetPayload['shelter_quick_tags'] = null;
+            DB::transaction(function () use ($ledger, $contract, $shelterBalance, $returnBlocker, $writeOffReason) {
+                if ($shelterBalance > 0) {
+                    if ($returnBlocker === null) {
+                        $ledger->returnToCustomer($contract, now()->toDateString());
+                    } else {
+                        $ledger->writeOff($contract, now()->toDateString(), $writeOffReason, $contract);
+                    }
                 }
 
-                $contract->info->update($infoResetPayload);
-            }
+                // إرجاع العقد إلى حالة "مكتمل" لأن العقود في الإيواء هي عقود مكتملة أصلاً
+                $contract->status = ContractStatusEnum::Completed->value;
 
-            $contract->save();
+                // إزالة معلومات الإيواء
+                if ($contract->info) {
+                    $infoResetPayload = [
+                        'shelter_id' => null,
+                        'wants_to_work' => null,
+                        'maid_date_back' => null,
+                        'receipt_source' => null,
+                        'is_outside_shelter' => false,
+                        'outside_shelter_at' => null,
+                        'outside_shelter_reason' => null,
+                        'outside_shelter_reference_type' => null,
+                        'outside_shelter_reference_id' => null,
+                        'outside_shelter_by' => null,
+                    ];
+
+                    if ($this->supportsQuickTags()) {
+                        $infoResetPayload['shelter_quick_tags'] = null;
+                    }
+
+                    $contract->info->update($infoResetPayload);
+                }
+
+                $contract->save();
+            });
 
             // تسجيل النشاط
             activity()
@@ -3443,9 +3466,14 @@ class ShelterContractController extends Controller
                         default => 'status-pill-work-muted',
                     };
 
+                    // عاملات التأجير: توضيح الإيجار العادي من إيجار الساعات حين يكون نظام الساعات مفعّلًا.
+                    $servicePill = $serviceCategory === 'rental' && $row->maid && \App\Services\Rental\RentalModeSwitcher::hourlyAvailable()
+                        ? \App\Services\Rental\RentalModeSwitcher::badge($row->maid)
+                        : '<span class="status-pill status-pill-service">' . e($serviceLabel) . '</span>';
+
                     return '<div class="shelter-status-cell">'
                         . '<div class="status-top">'
-                        . '<span class="status-pill status-pill-service">' . e($serviceLabel) . '</span>'
+                        . $servicePill
                         . '<span class="status-pill ' . $workClass . '">' . e($workLabel) . '</span>'
                         . '</div>'
                         . '<div class="status-line"><i class="fas fa-truck-loading"></i><strong>مصدر الاستلام</strong><span>' . $receiptSource . '</span></div>'

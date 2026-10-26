@@ -334,6 +334,116 @@ class PostArrivalRefundTest extends TestCase
         $this->assertSame($beforeNotes, \App\Models\RecruitmentInvoiceCreditNote::query()->count());
     }
 
+    public function test_departure_with_zero_shelter_balance_uses_cost_returns_without_reducing_shelter_again(): void
+    {
+        $contract = $this->contractWithArrivalInvoice();
+        $nationality = \App\Models\ingaz\Nationality::query()->create(['ar' => ['title' => 'اختبار الاسترداد', 'sub_title' => 'اختبار الاسترداد']]);
+        $maid = \App\Models\ingaz\Maid::query()->create(['name' => 'عاملة مسافرة', 'passport_number' => uniqid('refund'), 'nationality_id' => $nationality->id]);
+        $contract->update(['maid_id' => $maid->id]);
+        $asset = $this->account('أصل الإيواء للاختبار', 'debtor');
+        $returns = $this->account('مردودات تكلفة للاختبار', 'creditor');
+        $office = $this->account('مكتب الاختبار', 'creditor');
+        \Nami\Finance\Models\ConfirmSetting::query()->create(['title' => 'nationality_account_' . $nationality->id . '_recruitment_cost_return', 'value' => $returns->id]);
+        $receipt = \App\Models\ShelterCostEntry::query()->create([
+            'contract_id' => $contract->id, 'maid_id' => $maid->id,
+            'kind' => \App\Models\ShelterCostEntry::KIND_CAPITALIZE_OFFICE_COST,
+            'amount' => 3375, 'asset_account_id' => $asset->id,
+        ]);
+        $summary = ['lots' => [$receipt->id => ['remaining' => 3375.0]], 'issues' => [], 'recovered' => 0.0];
+        $this->mock(\App\Services\ingaz\ShelterAgentCostRecoveryService::class, function ($mock) use (&$summary) {
+            $mock->shouldReceive('summary')->andReturnUsing(function () use (&$summary) { return $summary; });
+        });
+        $service = app(PostArrivalRefundService::class);
+        $proposal = $service->proposal($contract->fresh(), now()->toDateString());
+        $this->assertSame($asset->id, $proposal['office_charge_credit_account_id']);
+        \App\Models\ShelterCostEntry::query()->create([
+            'contract_id' => $contract->id, 'maid_id' => $maid->id,
+            'kind' => \App\Models\ShelterCostEntry::KIND_RELEASE_TO_DEPORTATION, 'amount' => -3375,
+        ]);
+        $summary['lots'][$receipt->id]['remaining'] = 0.0;
+        $proposal = $service->proposal($contract->fresh(), now()->toDateString());
+        $this->assertSame($returns->id, $proposal['office_charge_credit_account_id']);
+        $this->assertNull($proposal['office_charge_receipt_entry_id']);
+        $this->assertSame(0.0, $proposal['shelter_cost']);
+        $settlement = ContractReturnSettlement::query()->create([
+            'contract_id' => $contract->id, 'invoice_id' => $contract->invoice->id,
+            'settlement_date' => now()->toDateString(), 'status' => 'draft', 'reason' => 'اختبار السفر',
+        ]);
+        $line = $settlement->lines()->create([
+            'type' => 'office_charge', 'status' => 'draft', 'approved_amount' => 3375,
+            'credit_account_id' => $returns->id,
+            'metadata' => ['shelter_receipt_entry_id' => $receipt->id],
+        ]);
+        $method = new \ReflectionMethod($service, 'postLine');
+        $method->setAccessible(true);
+        // Supply the original office source independently of the shelter receipt.
+        $supplier = Constraint::query()->create(['code' => random_int(1000000, 9999999), 'type' => 1, 'date' => now()->toDateString(), 'statement' => 'اختبار المورد', 'value' => 3375]);
+        \Nami\Finance\Models\ConstraintDetails::query()->create(['constraint_id' => $supplier->id, 'account_id' => $office->id, 'creditor_value' => 3375, 'debtor_value' => 0]);
+        $contract->invoice->update(['external_office_cost_constraint_id' => $supplier->id]);
+        $receipt->update(['supplier_constraint_id' => $supplier->id]);
+        $settlement->setRelation('contract', $contract->fresh(['invoice', 'maid']));
+        $before = \App\Models\ShelterCostEntry::query()->count();
+        $line->update(['credit_account_id' => $asset->id]);
+        try {
+            $method->invoke($service, $settlement, $line);
+            $this->fail('A cleared shelter asset must not be credited again.');
+        } catch (\Illuminate\Validation\ValidationException $exception) {
+            $this->assertStringContainsString('رصيد الإيواء تمت تصفيته', $exception->errors()['office_charge'][0]);
+            $this->assertStringContainsString('تعديل المسودة', $exception->errors()['office_charge'][0]);
+        }
+        $line->update(['credit_account_id' => $returns->id, 'metadata' => ['shelter_receipt_entry_id' => $receipt->id]]);
+        $method->invoke($service, $settlement, $line);
+        $this->assertSame('posted', $line->fresh()->status);
+        $this->assertNull($line->fresh()->metadata['shelter_receipt_entry_id']);
+        $this->assertSame($before, \App\Models\ShelterCostEntry::query()->count());
+        $summary['recovered'] = 3375.0;
+        $this->assertSame($asset->id, $service->proposal($contract->fresh(), now()->toDateString())['office_charge_credit_account_id']);
+        $summary['recovered'] = 0.0;
+        $summary['issues'] = ['اختلاف في الرصيد'];
+        $this->assertSame($asset->id, $service->proposal($contract->fresh(), now()->toDateString())['office_charge_credit_account_id']);
+    }
+
+    public function test_imported_supplier_closure_does_not_replace_customer_revenue_invoice(): void
+    {
+        $contract = $this->contractWithArrivalInvoice();
+        $revenue = $contract->invoice;
+        $revenue->update(['legacy_invoice_number' => 7581, 'legacy_invoice_type' => 'فاتورة ايراد / طلب استقدام']);
+        $closure = Invoice::query()->create([
+            'contract_id' => $contract->id, 'legacy_invoice_number' => 7892,
+            'legacy_invoice_type' => 'إغلاق', 'subtotal' => 3375, 'vat_amount' => 0,
+            'total_due' => 3375, 'is_paid' => true, 'send_to_zatca' => false,
+        ]);
+
+        $this->assertSame($revenue->id, $contract->fresh()->invoice->id);
+        $this->assertSame($revenue->id, Contract::with('invoice')->findOrFail($contract->id)->invoice->id);
+        $this->assertSame(2, $contract->invoices()->count());
+        $this->assertSame([$revenue->id], $contract->blockingInvoices()->pluck('id')->all());
+        $proposal = app(PostArrivalRefundService::class)->proposal($contract->fresh(), now()->toDateString());
+        $this->assertSame(3980.75, $proposal['invoice_total']);
+        $this->assertSame('not_recruitment_revenue', app(\App\Services\ingaz\LegacyInvoiceConstraintLinker::class)->inspect($closure)['status']);
+
+        $draft = \App\Models\ContractReturnSettlement::query()->create([
+            'contract_id' => $contract->id, 'invoice_id' => $closure->id,
+            'settlement_date' => now()->toDateString(), 'status' => 'draft', 'reason' => 'Legacy closure draft',
+        ]);
+        try {
+            app(PostArrivalRefundService::class)->post($draft);
+            $this->fail('A draft based on supplier cost must be reviewed before posting.');
+        } catch (\Illuminate\Validation\ValidationException $exception) {
+            $this->assertArrayHasKey('invoice_id', $exception->errors());
+        }
+        $this->assertSame('draft', $draft->fresh()->status);
+    }
+
+    public function test_supplier_closure_alone_is_not_a_customer_invoice(): void
+    {
+        $contract = $this->contractWithArrivalInvoice();
+        $contract->invoice->update(['legacy_invoice_number' => 7892, 'legacy_invoice_type' => 'إغلاق']);
+        $this->assertNull($contract->fresh()->invoice);
+        $this->assertFalse($contract->blockingInvoices()->exists());
+        $this->assertNull(Contract::with('invoice')->findOrFail($contract->id)->invoice);
+    }
+
     private function contractWithArrivalInvoice(): Contract
     {
         $user = User::query()->create([

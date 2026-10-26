@@ -464,6 +464,9 @@ class RecruitmentRevenueRecognitionTest extends TestCase
         ]);
         $linker = app(\App\Services\ingaz\LegacyInvoiceConstraintLinker::class);
         $this->assertSame('ready', $linker->inspect($invoice)['status']);
+        $source->update(['statement' => 'فاتورة رقم: ' . $number]);
+        $this->assertSame('ready', $linker->inspect($invoice)['status']);
+        $source->update(['statement' => 'فاتورة: ' . $number]);
         $originalInvoiceDate = $invoice->created_at->toDateString();
         $postingDate = $invoice->created_at->copy()->addDay()->toDateString();
         $source->update(['date' => $postingDate]);

@@ -67,10 +67,10 @@
                     </h4>
                     <div class="d-flex gap-2 flex-wrap">
                         <button type="button" class="btn btn-info text-white" onclick="exportDeportationTravelTable()">
-                            <i class="fa fa-download"></i> تنزيل الجدول
+                            <i class="fa fa-file-excel" aria-hidden="true"></i> تصدير Excel (CSV)
                         </button>
                         <button type="button" class="btn btn-warning text-white" onclick="printDeportationTravelTable()">
-                            <i class="fa fa-print"></i> طباعة
+                            <i class="fa fa-file-pdf" aria-hidden="true"></i> طباعة / حفظ PDF
                         </button>
                         @if (@AdminGuardHasPerm(\App\PermKeys::TRAVEL_CREATE))
                             <a href="{{ route('DeportationTravel.create') }}" class="btn btn-success">

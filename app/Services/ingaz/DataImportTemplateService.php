@@ -288,7 +288,7 @@ class DataImportTemplateService
                     ['key' => 'maid_passport', 'label' => 'رقم جواز العاملة', 'required' => true, 'example' => 'P0000001'],
                     ['key' => 'request_date', 'label' => 'تاريخ الطلب', 'required' => true, 'example' => now()->format('Y-m-d')],
                     ['key' => 'transfer_status', 'label' => 'حالة النقل', 'required' => true, 'example' => 'قيد المراجعة'],
-                    ['key' => 'trial_start_date', 'label' => 'بداية التجربة', 'required' => false, 'example' => now()->format('Y-m-d')],
+                    ['key' => 'trial_start_date', 'label' => 'بداية التجربة', 'required' => true, 'example' => now()->format('Y-m-d')],
                     ['key' => 'amount', 'label' => 'القيمة', 'required' => false, 'example' => '8000'],
                     ['key' => 'notes', 'label' => 'ملاحظات', 'required' => false, 'example' => 'طلب نقل مستورد'],
                 ],
@@ -300,13 +300,13 @@ class DataImportTemplateService
                 'description' => 'استيراد تفاويض الإنجاز مع بيانات العميل والتأشيرة والعاملة والمكتب الخارجي. يتم التحديث عند تطابق ID أو رقم إنجاز أو رقم عقد مساند.',
                 'filename' => 'ingaz-delegations-import-template.xlsx',
                 'columns' => [
-                    ['key' => 'id', 'label' => 'ID التفويض', 'required' => false, 'example' => '15'],
+                ['key' => 'id', 'label' => 'ID تفويض موجود — للتحديث فقط', 'required' => false, 'example' => ''],
                     ['key' => 'delegation_date_gregorian', 'label' => 'تاريخ التفويض ميلادي', 'required' => true, 'example' => now()->format('Y-m-d')],
                     ['key' => 'delegation_date_hijri', 'label' => 'تاريخ التفويض هجري', 'required' => false, 'example' => '1447-01-01'],
                     ['key' => 'country', 'label' => 'الدولة', 'required' => true, 'example' => 'الفلبين'],
                     ['key' => 'nationality', 'label' => 'الجنسية', 'required' => false, 'example' => 'الفلبين'],
                     ['key' => 'profession', 'label' => 'المهنة', 'required' => false, 'example' => 'عاملة منزلية'],
-                    ['key' => 'existing_user_id', 'label' => 'ID العميل الموجود', 'required' => false, 'example' => '172'],
+                ['key' => 'existing_user_id', 'label' => 'ID العميل الموجود (اختياري؛ الربط بالهوية أو الجوال)', 'required' => false, 'example' => ''],
                     ['key' => 'client_name', 'label' => 'اسم العميل', 'required' => true, 'example' => 'محمد أحمد علي'],
                     ['key' => 'client_phone', 'label' => 'جوال العميل', 'required' => false, 'example' => '0500000000'],
                     ['key' => 'client_id_number', 'label' => 'هوية العميل', 'required' => false, 'example' => '1000000000'],
@@ -449,8 +449,55 @@ class DataImportTemplateService
             ],
         ];
 
+        $templates['invoices'] = [
+            'label' => 'فواتير جديدة (إصدار وقيود النظام)',
+            'route_hint' => '/admin/invoices',
+            'icon' => 'fas fa-file-invoice-dollar',
+            'description' => 'إصدار فواتير جديدة عند الاعتماد عبر مسار إصدار الفاتورة نفسه، بما يشمل القيود والسندات حسب إعدادات النظام. لا تستخدم هذا القالب للفواتير التاريخية المرحلة سابقاً. اربط كل صف بعقد أو تفويض أو عميل واحد فقط. مطلوب صلاحية إصدار فاتورة أو اعتمادها بالإضافة إلى اعتماد الاستيراد.',
+            'filename' => 'invoices-import-template.xlsx',
+            'columns' => [
+                ['key' => 'import_reference', 'label' => 'مرجع الاستيراد الفريد', 'required' => false, 'example' => 'INV-EXT-0001'],
+                ['key' => 'invoice_date', 'label' => 'تاريخ الفاتورة', 'required' => true, 'example' => now()->format('Y-m-d')],
+                ['key' => 'invoice_reference_type', 'label' => 'نوع ربط الفاتورة', 'required' => false, 'example' => 'عميل', 'valid_values' => ['تفويض', 'عقد استقدام', 'عميل']],
+                ['key' => 'reference_msaned_number', 'label' => 'رقم عقد مساند للربط', 'required' => false, 'example' => ''],
+                ['key' => 'reference_ingaz_number', 'label' => 'رقم إنجاز للربط', 'required' => false, 'example' => ''],
+                ['key' => 'reference_visa_number', 'label' => 'رقم التأشيرة للربط', 'required' => false, 'example' => ''],
+                ['key' => 'reference_contract_number', 'label' => 'رقم عقد الاستقدام للربط', 'required' => false, 'example' => ''],
+                ['key' => 'reference_client_identity', 'label' => 'هوية العميل للربط', 'required' => false, 'example' => '1000000000'],
+                ['key' => 'reference_client_phone', 'label' => 'جوال العميل للربط', 'required' => false, 'example' => ''],
+                ['key' => 'contract_id', 'label' => 'معرف عقد الاستقدام', 'required' => false, 'example' => ''],
+                ['key' => 'ingaz_delegation_id', 'label' => 'معرف تفويض إنجاز', 'required' => false, 'example' => ''],
+                ['key' => 'client_id', 'label' => 'معرف العميل (فاتورة عامة)', 'required' => false, 'example' => ''],
+                ['key' => 'general_description', 'label' => 'وصف الفاتورة', 'required' => false, 'example' => 'خدمات'],
+                ['key' => 'direct_recruitment_cost', 'label' => 'تكاليف الإستقدام المباشر', 'required' => false, 'example' => '1000'],
+                ['key' => 'direct_recruitment_count', 'label' => 'عدد الخدمات المباشرة', 'required' => false, 'example' => '1'],
+                ['key' => 'external_recruitment_cost', 'label' => 'قيمة الاستقدام الخارجي', 'required' => false, 'example' => ''],
+                ['key' => 'external_recruitment_count', 'label' => 'عدد الاستقدام الخارجي', 'required' => false, 'example' => '1'],
+                ['key' => 'government_cost', 'label' => 'التكاليف الحكومية', 'required' => false, 'example' => '0'],
+                ['key' => 'government_cost_count', 'label' => 'عدد التكاليف الحكومية', 'required' => false, 'example' => '1'],
+                ['key' => 'internal_ticket_cost', 'label' => 'قيمة التذاكر الداخلية', 'required' => false, 'example' => '0'],
+                ['key' => 'internal_ticket_count', 'label' => 'عدد التذاكر الداخلية', 'required' => false, 'example' => '1'],
+                ['key' => 'discount', 'label' => 'الخصم', 'required' => false, 'example' => '0'],
+                ['key' => 'send_to_zatca', 'label' => 'إرسال للزكاة', 'required' => false, 'example' => '0', 'valid_values' => ['0', '1']],
+            ],
+        ];
+
+        $templates['updated_invoices'] = array_merge($templates['invoices'], [
+            'label' => 'فواتير التسلسل الجديد (مساند والمورد)',
+            'filename' => 'updated-invoices-import-template.xlsx',
+            'description' => 'يتطلب تفعيل التسلسل الجديد في الإعدادات المالية. يصدر الفاتورة ويسجل تكاليف مساند بنفس قواعد الإصدار اليدوي. لإنشاء فاتورة المورد مع فاتورة عقد الاستقدام اختر 1، ثم full للتكلفة الكاملة أو partial للتكلفة الجزئية. المبالغ بالدولار، والتكلفة الإجمالية الفارغة تؤخذ من العقد حسب الصلاحيات. محطة الوصول الفارغة تؤخذ من العقد. للتفويض أو الفاتورة العامة اترك إنشاء فاتورة المورد 0. تخضع جميع العمليات للصلاحيات وإعدادات القيود نفسها.',
+            'columns' => array_merge($templates['invoices']['columns'], [
+                ['key' => 'musaned_commission_amount', 'label' => 'التكاليف البنكية لمساند (ريال)', 'required' => false, 'example' => ''],
+                ['key' => 'create_supplier_invoice', 'label' => 'إنشاء فاتورة المورد', 'required' => false, 'example' => '0', 'valid_values' => ['0', '1']],
+                ['key' => 'supplier_recognition_mode', 'label' => 'نوع إثبات تكلفة المورد', 'required' => false, 'example' => '', 'valid_values' => ['full', 'partial']],
+                ['key' => 'supplier_total_cost_usd', 'label' => 'إجمالي تكلفة المورد (دولار)', 'required' => false, 'example' => ''],
+                ['key' => 'supplier_partial_cost_usd', 'label' => 'التكلفة الجزئية للمورد (دولار)', 'required' => false, 'example' => ''],
+                ['key' => 'supplier_arrival_station', 'label' => 'محطة الوصول لفاتورة المورد', 'required' => false, 'example' => ''],
+            ]),
+        ]);
+
         $templates['legacy_invoices'] = [
-            'label' => 'فواتير',
+            'label' => 'فواتير تاريخية (أرشفة دون ترحيل جديد)',
             'route_hint' => '/admin/invoices',
             'icon' => 'fas fa-file-invoice-dollar',
             'description' => 'استيراد ملف جميع فواتير. يتم تجاهل شيت الملخص وقراءة كل شيتات الفواتير مع الحفاظ على رقم الفاتورة، نوع المستند، حالة المشاركة السابقة مع هيئة الزكاة، وجميع بيانات الصف الأصلي. يمكن رفع الملف التاريخي ثم التقرير الأحدث بأمان دون تكرار.',
@@ -497,7 +544,6 @@ class DataImportTemplateService
             'route_hint' => '/admin/TransferServiceContract',
             'icon' => 'fas fa-people-arrows',
             'description' => 'استيراد تقرير الرافدين المدمج أو تقرير نقل الخدمات، وربط العملية بعميل أربيا وطلب الاستقدام والسيرة، وإنشاء طلب نقل وعقد نقل خدمات مكتمل مع حفظ جميع تفاصيل الصف الأصلي ومنع التكرار.',
-            'downloadable' => false,
             'filename' => 'alrafedin-transfer-services-import-template.xlsx',
             'columns' => [
                 ['key' => 'sequence', 'label' => 'م', 'required' => false, 'example' => '1'],
@@ -586,7 +632,70 @@ class DataImportTemplateService
             ],
         ];
 
+        $references = [
+            ['key' => 'reference_msaned_number', 'label' => 'رقم عقد مساند للربط', 'required' => false, 'example' => 'MS-0001'],
+            ['key' => 'reference_visa_number', 'label' => 'رقم التأشيرة للربط', 'required' => false, 'example' => ''],
+            ['key' => 'reference_contract_number', 'label' => 'رقم عقد الاستقدام للربط', 'required' => false, 'example' => ''],
+        ];
+        $templates['musaned_transfers'] = [
+            'label' => 'تحويلات مساند', 'route_hint' => '/admin/musaned-transfers', 'icon' => 'fas fa-money-bill-transfer',
+            'description' => 'كل صف تحويل مستقل لعقد أو تفويض له فاتورة. يحسب النظام العمولة والضريبة وينشئ القيود حسب إعدادات الشركة، مثل شاشة تحويلات مساند.',
+            'filename' => 'musaned-transfers-import-template.xlsx',
+            'columns' => array_merge([
+                ['key' => 'reference_number', 'label' => 'مرجع التحويل الفريد', 'required' => true, 'example' => 'TR-0001'],
+                ['key' => 'reference_type', 'label' => 'نوع الربط', 'required' => true, 'example' => 'عقد استقدام', 'valid_values' => ['عقد استقدام', 'تفويض']],
+            ], $references, [
+                ['key' => 'reference_ingaz_number', 'label' => 'رقم إنجاز للتفويض', 'required' => false, 'example' => ''],
+                ['key' => 'transfer_date', 'label' => 'تاريخ التحويل', 'required' => true, 'example' => now()->format('Y-m-d')],
+                ['key' => 'transferred_amount', 'label' => 'صافي المبلغ المحول من مساند (ريال)', 'required' => true, 'example' => '9500'],
+                ['key' => 'bank_account_code', 'label' => 'كود الحساب البنكي', 'required' => false, 'example' => ''],
+                ['key' => 'notes', 'label' => 'ملاحظات', 'required' => false, 'example' => ''],
+            ]),
+        ];
+        $templates['external_office_dispatches'] = [
+            'label' => 'الإرساليات / فواتير المورد', 'route_hint' => '/admin/RecruitmentContract/external-office-dispatches', 'icon' => 'fas fa-paper-plane',
+            'description' => 'إرسالية واحدة لكل عقد استقدام جارٍ؛ تثبت تكلفة المورد وتُنشأ القيود وفق إعدادات النظام. العقود التي لها إرسالية سابقة لا تُكرر.',
+            'filename' => 'external-office-dispatches-import-template.xlsx',
+            'columns' => array_merge($references, [
+                ['key' => 'dispatch_date', 'label' => 'تاريخ الإرسالية', 'required' => true, 'example' => now()->format('Y-m-d')],
+                ['key' => 'arrival_station', 'label' => 'محطة الوصول', 'required' => true, 'example' => 'الرياض'],
+                ['key' => 'office_contract_cost_usd', 'label' => 'تكلفة المورد المراد إثباتها (دولار)', 'required' => true, 'example' => '2500'],
+                ['key' => 'supplier_recognition_mode', 'label' => 'نوع إثبات التكلفة', 'required' => false, 'example' => '', 'valid_values' => ['كاملة', 'جزئية', 'full', 'partial']],
+                ['key' => 'supplier_total_cost_usd', 'label' => 'إجمالي تكلفة المورد (دولار)', 'required' => false, 'example' => ''],
+            ]),
+        ];
+
+        foreach ($templates as $type => &$template) {
+            $template['matching_hint'] = $this->matchingHint($type);
+            foreach ($template['columns'] as &$column) {
+                if (in_array($column['key'], ['id', 'existing_user_id', 'client_id', 'maid_id', 'account_id', 'client_account_id'], true)) {
+                    $column['example'] = '';
+                }
+            }
+            unset($column);
+        }
+        unset($template);
         return $templates;
+    }
+
+    public function matchingHint(string $type): string
+    {
+        return match ($type) {
+            'musaned_transfers' => 'كل صف تحويل مستقل بمرجع فريد. اختر عقد استقدام أو تفويض وأدخل رقم مساند أو التأشيرة أو إنجاز. كود البنك مطلوب عند تفعيل القيود التلقائية. لا تدخل العمولة أو الضريبة؛ يحسبهما النظام من الفاتورة.',
+            'external_office_dispatches' => 'أدخل رقم مساند أو التأشيرة أو رقم عقد الاستقدام. يجب وجود بيانات العميل والعاملة والمكتب بالعقد. اترك نوع الإثبات فارغًا للتسلسل القديم؛ في التسلسل الجديد اختر كاملة أو جزئية وأدخل الإجمالي.',
+            'invoices', 'updated_invoices' => 'اختر نوع الربط، ثم أدخل رقم مساند أو إنجاز أو التأشيرة. لا تحتاج إلى ID. مرجع الاستيراد يُولد تلقائياً لفاتورة العقد أو التفويض عند تركه فارغاً. للفاتورة العامة استخدم هوية العميل أو جواله مع مرجع فاتورة ثابت. ستظهر نتيجة الربط قبل الاعتماد.',
+            'ingaz_delegations' => 'أدخل رقم إنجاز ورقم مساند والتأشيرة. اربط العميل بالهوية أو الجوال والعامل بالجواز. اترك ID التفويض فارغاً للإضافة؛ المعرّف الداخلي لتحديث سجل موجود فقط.',
+            'clients', 'arabia_clients' => 'يتم التعرف على العميل بالهوية أو الجوال ورقم المصدر إن وجد. لا تستخدم اسم العميل وحده للربط ولا تكتب ID جديداً من عندك.',
+            'maids', 'arabia_cvs', 'rental_maids' => 'رقم الجواز هو مرجع العامل/العاملة. استخدم أسماء الجنسية والمكتب والمهنة كما هي في النظام. اترك ID فارغاً للإضافة؛ لا تستخدم تسلسلاً من عندك.',
+            'recruitment_contracts', 'recruitment_contracts_clients_maids' => 'استخدم رقم العقد الأصلي ومساند والتأشيرة، وهوية/جوال العميل وجواز العامل. في القالب المجمع تستطيع إضافة العميل والعامل والعقد من نفس الصف. حالة العقد مطلوبة.',
+            'rent_contracts', 'rent_contracts_clients_rental_maids', 'shelter_contracts', 'sponsorship_transfers' => 'استخدم رقم العقد أو الطلب وهوية/جوال العميل وجواز العامل. أدخل أسماء الأماكن والمكاتب كما تظهر بالنظام؛ لا تحتاج إلى معرفة معرّفاتها الداخلية.',
+            'finance_accounts', 'finance_cost_centers' => 'استخدم كود الحساب أو مركز التكلفة وكود الأب للربط؛ لا تحتاج إلى ID. أدخل الأكواد كنص للحفاظ على الأصفار.',
+            'finance_constraints', 'receipt_bonds', 'disbursement_bonds' => 'استخدم أكواد الحسابات ومراكز التكلفة وأرقام القيود/السندات. استورد شجرة الحسابات أولاً، وتأكد من توازن القيد ومن وجود سنة مالية نشطة.',
+            'admins', 'employees' => 'استخدم البريد أو رقم الموظف/الهوية وأسماء الدور والفرع والقسم حسب القالب. لا تضع معرّف مستخدم آخر في ID.',
+            'recruitment_offices' => 'استخدم اسم المكتب والبيانات التعريفية الواردة في القالب واسم الدولة؛ لا تحتاج إلى معرّف الدولة الداخلي.',
+            'complaints' => 'استخدم رقم الشكوى ورقم العقد وبيانات العميل حسب القالب، مع أسماء نوع الشكوى والمسؤول كما تظهر بالنظام.',
+            default => 'استخدم أرقام المصدر الأصلية وأسماء الأعمدة في القالب. الملفات التاريخية متعددة الأوراق يجب أن تحتفظ بكل أوراقها. راجع نتيجة الفحص قبل الاعتماد.',
+        };
     }
 
     private function arabiaClientColumns(): array
@@ -604,7 +713,10 @@ class DataImportTemplateService
         ];
 
         return collect($labels)->map(fn ($label, $index) => [
-            'key' => 'arabia_column_' . ($index + 1),
+            'key' => ['رقم تعريف' => 'arabia_client_number', 'رقم الهوية' => 'id_number',
+                'الإسم الأول' => 'name', 'الجوال' => 'phone', 'البريد الإلكتروني' => 'email',
+                'تاريخ الانشاء' => 'created_at', 'الرصيد' => 'balance', 'العمر' => 'age',
+                'عدد أفراد الأسرة' => 'family_num', 'عدد العمالة' => 'workers_count'][$label] ?? 'arabia_column_' . ($index + 1),
             'label' => $label,
             'required' => in_array($label, ['رقم تعريف', 'الإسم الأول', 'الجوال'], true),
             'example' => '',
@@ -793,6 +905,13 @@ class DataImportTemplateService
 
         abort_if(!$template || !empty($template['external_template_route']), 404);
 
+        if ($type === 'alrafedin_transfer_services') {
+            return $this->createTransferReportTemplate($template);
+        }
+        if ($type === 'arabia_recruitment_orders') {
+            return $this->createArabiaWorkbookTemplate($template);
+        }
+
         $spreadsheet = new Spreadsheet();
         $sheet = $spreadsheet->getActiveSheet();
         $sheet->setTitle('البيانات');
@@ -811,6 +930,10 @@ class DataImportTemplateService
                 $sheet->setCellValue("{$columnLetter}2", $column['example'] ?? '');
             }
             $sheet->setCellValue("{$columnLetter}{$metadataRow}", $column['required'] ? 'مطلوب' : 'اختياري');
+            if (in_array($column['key'], ['id', 'existing_user_id', 'client_id', 'user_id', 'maid_id', 'contract_id', 'ingaz_delegation_id', 'account_id', 'client_account_id'], true)) {
+                $sheet->getColumnDimension($columnLetter)->setVisible(false);
+                $sheet->getComment($columnLetter.'1')->getText()->createTextRun('حقل متقدم اختياري. استخدم الأرقام المعروفة للربط، واترك المعرّف الداخلي فارغاً عند الإضافة.');
+            }
         }
 
         $lastColumn = Coordinate::stringFromColumnIndex(count($template['columns']));
@@ -823,7 +946,7 @@ class DataImportTemplateService
         $sheet->freezePane('A2');
 
         foreach (range(1, count($template['columns'])) as $columnIndex) {
-            $sheet->getColumnDimension(Coordinate::stringFromColumnIndex($columnIndex))->setAutoSize(true);
+            $sheet->getColumnDimension(Coordinate::stringFromColumnIndex($columnIndex))->setWidth(28);
         }
 
         $instructions = $spreadsheet->createSheet();
@@ -831,6 +954,8 @@ class DataImportTemplateService
         $instructions->setRightToLeft(true);
         $instructions->setCellValue('A1', $template['label']);
         $instructions->setCellValue('A2', $template['description']);
+        $instructions->setCellValue('A5', $template['matching_hint']);
+        $instructions->setCellValue('A6', 'اترك المعرّفات الداخلية الاختيارية فارغة عند الإضافة. لا تنقل تسلسلاً من عندك إلى ID. الأسماء وحدها لا تكفي لربط عميل أو عامل.');
         $instructions->setCellValue('A3', $exampleRows
             ? 'لا تغير أسماء الأعمدة. الصفان الثاني والثالث مثال لقيد متوازن، واحذف أو عدل البيانات قبل الرفع.'
             : 'لا تغير أسماء الأعمدة. استخدم الصف الثاني كمثال، واحذف أو عدل البيانات قبل الرفع.');
@@ -838,7 +963,7 @@ class DataImportTemplateService
             ? 'الصف الرابع يوضح هل الحقل مطلوب أو اختياري.'
             : 'الصف الثالث يوضح هل الحقل مطلوب أو اختياري.');
 
-        $instructionRow = 5;
+        $instructionRow = 7;
         foreach ($template['columns'] as $column) {
             if (empty($column['valid_values'])) {
                 continue;
@@ -857,14 +982,103 @@ class DataImportTemplateService
         $spreadsheet->setActiveSheetIndex(0);
 
         $writer = IOFactory::createWriter($spreadsheet, 'Xlsx');
+        $writer->setPreCalculateFormulas(false);
         $tempFile = tempnam(sys_get_temp_dir(), 'data-import-template');
-        $writer->save($tempFile);
+        try {
+            $writer->save($tempFile);
+        } catch (\Throwable $exception) {
+            if (is_file($tempFile)) unlink($tempFile);
+            throw $exception;
+        } finally {
+            $spreadsheet->disconnectWorksheets();
+        }
+        clearstatcache(true, $tempFile);
 
         return response()
             ->download($tempFile, $template['filename'], [
                 'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
             ])
             ->deleteFileAfterSend(true);
+    }
+
+    private function createTransferReportTemplate(array $template)
+    {
+        // Preserve the exact positional layout used by the legacy report reader.
+        $headers = ['م', 'رقم العملية', 'رقم العامل', 'اسم العامل', 'جواز سفر العامل',
+            'رقم تعريف: عميل من', 'عميل من', 'رقم تعريف: عميل إلى', 'عميل إلى', 'الدولة',
+            'المهنة', 'فاتورة رقم', 'التكلفة الإجمالية', 'تكلفة التجربة', 'نوع تعويض الكفيل السابق',
+            'مبلغ تعويض الكفيل السابق', 'تاريخ النقل', 'حالة استبدال العامل', 'حالة تغيير المهنة',
+            'حالة', 'حالة التجربة', 'حالة مساند', 'حالة التحويل', 'العمولة', 'الضريبة المستردة',
+            'تاريخ التحويل', 'ضمان الوصول', 'ضمان التسليم', 'أنشئ بواسطة', 'أنشئ بتاريخ', 'المسوق'];
+        $book = new Spreadsheet();
+        $sheet = $book->getActiveSheet()->setTitle('البيانات')->setRightToLeft(true);
+        $sheet->fromArray($headers, null, 'A1');
+        $sheet->freezePane('A2');
+        foreach ($headers as $index => $header) {
+            $sheet->getColumnDimension(Coordinate::stringFromColumnIndex($index + 1))->setWidth(26);
+        }
+        $sheet->getStyle('A1:AE1')->getFont()->setBold(true);
+        $instructions = $book->createSheet()->setTitle('تعليمات')->setRightToLeft(true);
+        $instructions->setCellValue('A1', 'أدخل البيانات في ورقة البيانات دون تغيير ترتيب الأعمدة. التواريخ YYYY-MM-DD.');
+        $instructions->getColumnDimension('A')->setWidth(100);
+        return $this->downloadWorkbook($book, $template['filename']);
+    }
+
+    private function createArabiaWorkbookTemplate(array $template)
+    {
+        $client = ['رقم العميل', 'اسم العميل', 'رقم هوية العميل', 'رقم الجوال', 'ميلاد العميل'];
+        $worker = ['رقم العامل', 'اسم العامل', 'رقم الباسبور', 'الجنسية', 'الديانة', 'المهنة', 'مكتب'];
+        $arrival = ['موعد الوصول', 'وقت الوصول', 'مطار', 'محطة الوصول', 'الخطوط الناقلة', 'رقم الرحلة', 'مستقبل', 'جهة القدوم'];
+        $sheets = [
+            'تقرير_الطلبات' => array_merge(['رقم الطلب', 'حالة', 'تاريخ الطلب', 'التكلفة', 'فاتورة مورد', 'رقم مساند', 'رقم التأشيرة', 'نوع التأشيرة', 'المسوق'], $client, $worker),
+            'التفويض' => array_merge(['رقم الطلب', 'رقم التفويض', 'رقم التأشيرة', 'رقم الارسالية', 'تاريخ الارسالية'], $client, $worker),
+            'مواعيد_الوصول' => array_merge(['رقم الطلب'], $client, $worker, $arrival),
+            'طلبات_وصلت' => array_merge(['رقم الطلب'], $client, $worker, $arrival),
+            'مدة_الوصول' => ['رقم الطلب', 'مدة الوصول'],
+            'العاملون' => array_merge(['رقم الطلب'], $worker),
+            'رحلات_مخصص' => array_merge(['رقم الطلب'], $client, $worker, $arrival),
+            'الإرساليات' => ['رقم الإرسالية', 'تاريخ'],
+            'الملاحظات' => ['رقم الطلب', 'ملاحظة', 'تاريخ الملاحظة', 'دونت بواسطة', 'رقم التأشيرة'],
+        ];
+        $book = new Spreadsheet();
+        $book->removeSheetByIndex(0);
+        foreach ($sheets as $name => $headers) {
+            $sheet = $book->createSheet()->setTitle($name)->setRightToLeft(true);
+            $sheet->fromArray($headers, null, 'A1');
+            $sheet->freezePane('A2');
+            foreach ($headers as $index => $header) {
+                $column = Coordinate::stringFromColumnIndex($index + 1);
+                $sheet->getColumnDimension($column)->setWidth(26);
+                $sheet->getStyle($column . '1')->getFont()->setBold(true);
+            }
+        }
+        $instructions = $book->createSheet()->setTitle('تعليمات')->setRightToLeft(true);
+        $instructions->setCellValue('A1', 'أدخل الطلبات في تقرير_الطلبات. رقم الطلب وحالة مطلوبان.');
+        $instructions->setCellValue('A2', 'اربط الأوراق الأخرى برقم الطلب، والإرساليات برقم الإرسالية. اترك الأوراق غير المستخدمة فارغة ولا تحذفها.');
+        $instructions->setCellValue('A3', 'لا تغير أسماء الأوراق أو الأعمدة. التواريخ YYYY-MM-DD. راجع البيانات قبل الاعتماد.');
+        $instructions->getColumnDimension('A')->setWidth(100);
+        $instructions->getStyle('A1:A3')->getAlignment()->setWrapText(true);
+        $book->setActiveSheetIndex(0);
+        return $this->downloadWorkbook($book, $template['filename']);
+    }
+
+    private function downloadWorkbook(Spreadsheet $book, string $filename)
+    {
+        $path = tempnam(sys_get_temp_dir(), 'arabia-template-');
+        try {
+            $writer = IOFactory::createWriter($book, 'Xlsx');
+            $writer->setPreCalculateFormulas(false);
+            $writer->save($path);
+        } catch (\Throwable $exception) {
+            if (is_file($path)) unlink($path);
+            throw $exception;
+        } finally {
+            $book->disconnectWorksheets();
+        }
+        clearstatcache(true, $path);
+        return response()->download($path, $filename, [
+            'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        ])->deleteFileAfterSend(true);
     }
 
     private function financeConstraintExampleRows(): array
@@ -912,7 +1126,7 @@ class DataImportTemplateService
     public function storeUploadedFile(string $type, UploadedFile $file, ?int $adminId): string
     {
         $safeName = preg_replace('/[^A-Za-z0-9_.-]/', '_', $file->getClientOriginalName());
-        $prefix = now()->format('Ymd_His') . '_' . ($adminId ?: 'guest');
+        $prefix = now()->format('Ymd_His') . '_' . ($adminId ?: 'guest') . '_' . \Illuminate\Support\Str::uuid();
 
         return $file->storeAs("data-imports/{$type}", "{$prefix}_{$safeName}");
     }

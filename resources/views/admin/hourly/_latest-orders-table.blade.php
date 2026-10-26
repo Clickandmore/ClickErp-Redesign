@@ -45,7 +45,7 @@
                             <div class="ho-sub ho-ltr">{{ $order->starts_at?->format('d/m/Y H:i') ?: '—' }}</div>
                         </td>
                         <td><strong class="ht-num">{{ $money($order->total_amount) }}</strong><div class="ho-sub">الضريبة: {{ $money($order->tax_amount) }}</div></td>
-                        <td><span class="ht-chip {{ $chipClass }}"><i class="fa {{ $chipIcon }}"></i> {{ __('hourly.'.$order->status) }}</span></td>
+                        <td><span class="ht-chip {{ $chipClass }}"><i class="fa {{ $chipIcon }}"></i> {{ \App\Services\Hourly\HourlyOrderService::statusLabel($order) }}</span></td>
                         <td class="text-nowrap">
                             <a class="btn btn-sm btn-outline-primary ht-icon-btn" href="{{ route('admin.hourly-orders.show', $order) }}" title="تفاصيل الطلب"><i class="fa fa-eye"></i></a>
                             <a class="btn btn-sm btn-outline-secondary ht-icon-btn" href="{{ route('admin.hourly-orders.invoice', $order) }}" target="_blank" title="الفاتورة"><i class="fa fa-file-pdf"></i></a>

@@ -39,11 +39,134 @@ class RecruitmentContractRefundService
      * في وضع «إثبات الإيراد عند الفاتورة» تُعكس فاتورة المورد الخارجي مع استرداد العقد
      * (مدين المكتب الخارجي / دائن تكلفة المبيعات) فتعود فاتورة المكتب إلى صفر.
      */
-    private function shouldReverseExternalOfficeCost(Invoice $invoice): bool
+    private function shouldReverseExternalOfficeCost(Contract $contract, Invoice $invoice): bool
     {
-        return RecruitmentRevenueRecognition::invoiceRecognizesOnInvoice($invoice)
-            && (bool) $invoice->external_office_cost_constraint_id
-            && AutomaticJournalEntries::enabled();
+        if (!AutomaticJournalEntries::enabled()) {
+            return false;
+        }
+
+        // روابط وضع on_contract تبقى على العقد حتى تُنسخ للفاتورة.
+        $hasCost = (bool) ($invoice->external_office_cost_constraint_id
+            ?: ($contract->getAttribute('external_office_cost_constraint_id') ?: null));
+        if (!$hasCost) {
+            return false;
+        }
+
+        if (RecruitmentRevenueRecognition::invoiceRecognizesOnInvoice($invoice)) {
+            return true;
+        }
+
+        // تكلفة أُثبتت قبل الوصول بإعداد صريح (فاتورة مورد كاملة/جزئية من التسلسل الجديد، أو
+        // عند الإرسالية، أو عند إنشاء العقد) تُعكس مع الاسترداد. الدورة الافتراضية لا تعكس فاتورة
+        // المورد من نافذة الاسترداد، فتبقى كما هي.
+        return !$this->contractHasArrived($contract, $invoice)
+            && $this->supplierCostWasPostedEarlyByDesign($contract);
+    }
+
+    private function supplierCostWasPostedEarlyByDesign(Contract $contract): bool
+    {
+        $contract->loadMissing('externalOfficeDispatch');
+
+        return $contract->externalOfficeDispatch?->supplier_recognition_mode !== null
+            || $contract->getAttribute(\App\Support\RecruitmentSupplierCostRecognition::CONTRACT_COLUMN)
+                === \App\Support\RecruitmentSupplierCostRecognition::MODE_ON_CONTRACT
+            || \App\Support\RecruitmentSupplierCostRecognition::mode()
+                === \App\Support\RecruitmentSupplierCostRecognition::MODE_ON_DISPATCH;
+    }
+
+    private function contractHasArrived(Contract $contract, Invoice $invoice): bool
+    {
+        return (bool) $invoice->arrival_revenue_constraint_id
+            || filled($contract->info?->arrival_date)
+            || in_array((string) $contract->status, ['arrival', 'sari', 'trial', 'completed', 'under_warranty', 'shelter', 'back'], true);
+    }
+
+    public const MUSANED_COMMISSION_REVERSAL_SECTION = 'عكس عمولة مساند';
+
+    public static function musanedCommissionReversalStatement(Contract $contract): string
+    {
+        return 'عكس عمولة مساند المسجلة عند الإصدار - استرداد عقد استقدام #' . $contract->id . ' قبل التحويل';
+    }
+
+    /**
+     * عمولة مساند المسجلة عند إصدار الفاتورة («التسلسل الجديد») لا تقع إن استُرد العقد قبل أي
+     * تحويل من مساند، فتُعكس. بعد التحويل تبقى، لأن مساند حسمتها فعلاً.
+     */
+    private function shouldReverseMusanedCommission(Invoice $invoice, bool $hasMusanedTransfer): bool
+    {
+        return AutomaticJournalEntries::enabled()
+            && !$hasMusanedTransfer
+            && (bool) $invoice->musaned_commission_constraint_id
+            && !($invoice->musaned_commission_reversal_constraint_id ?? null);
+    }
+
+    private function buildMusanedCommissionReversalLines(Invoice $invoice, string $statement): array
+    {
+        if (!\App\Support\MusanedCommissionPosting::isMergedIntoReceipt($invoice)) {
+            return $this->buildReverseInvoiceLines((int) $invoice->musaned_commission_constraint_id, $statement);
+        }
+
+        // العمولة داخل قيد سند القبض: تُعكس سطورها وحدها، ويُعاد المبلغ إلى حساب مساند.
+        // عكس القيد كاملاً كان سيعكس سداد العميل معه.
+        $constraintId = (int) $invoice->musaned_commission_constraint_id;
+        $musanedAccountId = (int) \Nami\Finance\Models\Bond::query()
+            ->where('constraint_id', $constraintId)
+            ->value('debit_account_id');
+        $commissionLines = ConstraintDetails::query()
+            ->where('constraint_id', $constraintId)
+            ->where('statement', 'التكاليف البنكية لمساند عند إصدار الفاتورة #' . (int) $invoice->id)
+            ->where('debtor_value', '>', 0)
+            ->get();
+        if (!$musanedAccountId || $commissionLines->isEmpty()) {
+            return [];
+        }
+
+        $lines = [];
+        $this->appendLine($lines, $musanedAccountId, 'debtor', (float) $commissionLines->sum('debtor_value'), $statement, null);
+        foreach ($commissionLines as $detail) {
+            $this->appendLine($lines, (int) $detail->account_id, 'creditor', (float) $detail->debtor_value, $statement, $detail->cost_center_id ? (int) $detail->cost_center_id : null);
+        }
+
+        return $lines;
+    }
+
+    private function reverseMusanedCommission(Contract $contract, Invoice $invoice, string $refundDate): ?Constraint
+    {
+        $statement = self::musanedCommissionReversalStatement($contract);
+        $lines = $this->buildMusanedCommissionReversalLines($invoice, $statement);
+        if (empty($lines)) {
+            return null;
+        }
+
+        $activeYear = $this->yearService->checkDateRange($refundDate);
+        if (!$activeYear) {
+            throw new \RuntimeException('لا يوجد سنة مالية نشطة لتاريخ الاسترداد المحدد.');
+        }
+
+        $value = $this->roundMoney(array_sum(array_column($lines, 'debtor_value')));
+        $data = [
+            'code' => $this->constraintService->lastCode(),
+            'date' => $refundDate,
+            'statement' => $statement,
+            'account_id' => array_column($lines, 'account_id'),
+            'account_type' => array_column($lines, 'account_type'),
+            'debtor_value' => array_column($lines, 'debtor_value'),
+            'creditor_value' => array_column($lines, 'creditor_value'),
+            'statement_account' => array_column($lines, 'statement'),
+            'cost_center_required' => 'off',
+            'cost_center_id' => array_column($lines, 'cost_center_id'),
+            'value' => $value,
+        ];
+
+        $constraint = $this->constraintService->storeConstraint($data, $activeYear);
+        $this->constraintService->storeConstraintDetails($data['account_id'], $constraint->id, $data);
+
+        if (\Illuminate\Support\Facades\Schema::hasColumn('invoices', 'musaned_commission_reversal_constraint_id')) {
+            Invoice::query()->whereKey($invoice->id)
+                ->update(['musaned_commission_reversal_constraint_id' => $constraint->id]);
+        }
+
+        return $constraint;
     }
 
     public function preview(Contract $contract, string $refundDate, ?string $cancelledBy = null, array $overrides = []): array
@@ -143,13 +266,17 @@ class RecruitmentContractRefundService
         /** @var MusanedTransferItem|null $transferItem */
         $transferItem = $summary['transfer_item'];
 
-        if ($this->shouldReverseExternalOfficeCost($invoice)) {
+        if ($this->shouldReverseExternalOfficeCost($contract, $invoice)) {
             $this->tripAccountingService->reverseExternalOfficeCostEntries(
                 $contract,
                 $invoice,
                 $refundDate,
                 self::externalOfficeReversalStatement($contract)
             );
+        }
+
+        if ($this->shouldReverseMusanedCommission($invoice, (bool) $summary['has_musaned_transfer'])) {
+            $this->reverseMusanedCommission($contract, $invoice, $refundDate);
         }
 
         if ($summary['has_musaned_transfer']
@@ -210,7 +337,15 @@ class RecruitmentContractRefundService
             $warnings[] = 'تم عكس كامل قيمة الفاتورة بإشعارات دائنة سابقة، ولن ينشأ إشعار إضافي.';
         }
 
-        if ($this->shouldReverseExternalOfficeCost($invoice)) {
+        if ($this->shouldReverseMusanedCommission($invoice, (bool) $summary['has_musaned_transfer'])) {
+            $commissionLines = $this->buildMusanedCommissionReversalLines(
+                $invoice,
+                self::musanedCommissionReversalStatement($contract)
+            );
+            $lines = array_merge($lines, $this->withSection($commissionLines, self::MUSANED_COMMISSION_REVERSAL_SECTION));
+        }
+
+        if ($this->shouldReverseExternalOfficeCost($contract, $invoice)) {
             if ($invoice->external_office_cost_reversal_constraint_id ?? null) {
                 $warnings[] = 'تم عكس فاتورة المورد الخارجي مسبقاً، ولن يُنشأ قيد عكس إضافي.';
             } else {

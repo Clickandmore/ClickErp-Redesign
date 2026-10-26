@@ -64,6 +64,24 @@
                 </div>
 
                 <div class="col-md-6">
+                    <label class="form-label d-block">{{ __('admin.settings_seo_redirect_host') }}</label>
+                    <input type="hidden" name="seo_redirect_host" value="0">
+                    <div class="form-check form-switch">
+                        <input
+                            type="checkbox"
+                            name="seo_redirect_host"
+                            id="seo_redirect_host"
+                            class="form-check-input"
+                            value="1"
+                            {{ (int) ($settings->seo_redirect_host ?? 1) === 1 ? 'checked' : '' }}>
+                        <label class="form-check-label" for="seo_redirect_host">
+                            {{ (int) ($settings->seo_redirect_host ?? 1) === 1 ? __('admin.settings_enabled') : __('admin.settings_disabled') }}
+                        </label>
+                    </div>
+                    <small class="text-muted d-block mt-1">{{ __('admin.settings_seo_redirect_host_hint') }}</small>
+                </div>
+
+                <div class="col-md-6">
                     <label class="form-label" for="seo_sitemap_cache_minutes">{{ __('admin.settings_seo_sitemap_cache_minutes') }}</label>
                     <input type="number" name="seo_sitemap_cache_minutes" id="seo_sitemap_cache_minutes"
                            min="1" max="10080"

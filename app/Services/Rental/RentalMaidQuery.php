@@ -38,9 +38,18 @@ final class RentalMaidQuery
         ...self::UNAVAILABLE_MAID_STATUSES,
         'escaped',
         'Escaped',
+        'returned_pending_review',
         'backout',
         'Backout',
     ];
+
+    /** اسم حالة العاملة بلغة الواجهة لرسائل الاستبعاد، مع إبقاء القيمة الخام إن لم تُترجم. */
+    public static function statusLabel(?string $status): string
+    {
+        $key = 'hourly.maid_statuses.'.strtolower((string) $status);
+
+        return trans()->has($key) ? __($key) : (string) $status;
+    }
 
     /** أسباب خروج العاملة من الجاهزية، لوسم كل صف في شاشة الإيواء. */
     public const REASON_NOT_RENTAL = 'not_rental';
@@ -71,6 +80,7 @@ final class RentalMaidQuery
 
         $hasActiveRental = $maid->rentalContracts
             ->whereIn('status', self::ACTIVE_RENTAL_STATUSES)
+            ->reject(fn ($contract) => $contract->requiresMaidOnResume())
             ->isNotEmpty();
 
         if ($hasActiveRental) {
@@ -150,7 +160,7 @@ final class RentalMaidQuery
         return $query
             ->whereNotIn('status', self::UNAVAILABLE_MAID_STATUSES)
             ->whereDoesntHave('rentalContracts', function (Builder $rentalQuery) {
-                $rentalQuery->whereIn('status', self::ACTIVE_RENTAL_STATUSES);
+                $rentalQuery->whereIn('status', self::ACTIVE_RENTAL_STATUSES)->holdingMaid();
             });
     }
 
@@ -238,7 +248,7 @@ final class RentalMaidQuery
     public static function applyNoActiveRental(Builder $query): Builder
     {
         return $query->whereDoesntHave('rentalContracts', function (Builder $rentalQuery) {
-            $rentalQuery->whereIn('status', self::ACTIVE_RENTAL_STATUSES);
+            $rentalQuery->whereIn('status', self::ACTIVE_RENTAL_STATUSES)->holdingMaid();
         });
     }
 

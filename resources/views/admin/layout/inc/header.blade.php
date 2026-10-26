@@ -5,7 +5,21 @@ $user = getAuthUser();
 $settings = $settings ?? null;
 $appTimezone = config('app.timezone', 'Asia/Riyadh');
 $headerNow = now()->timezone($appTimezone);
-$productUpdates = \App\Support\ProductUpdatesSettings::all();
+$systemUpdatesBanner = ['count' => 0, 'items' => collect(), 'has_important' => false];
+$systemUpdatesReady = false;
+try {
+    $systemUpdatesReady = auth('admin')->check() && \App\Services\SystemUpdates\SystemUpdateInbox::ready();
+    if ($systemUpdatesReady && ! request()->routeIs('system-updates.index')) {
+        $systemUpdatesBanner = app(\App\Services\SystemUpdates\SystemUpdateInbox::class)->banner(auth('admin')->user());
+    }
+    if ($systemUpdatesReady) {
+        // احتياط لو لم يكن cron مفعّلًا: يسحب بعد إرسال الصفحة، لا قبلها
+        \App\Services\SystemUpdates\SystemUpdateSyncService::syncAfterResponseIfDue();
+    }
+} catch (\Throwable $exception) {
+    // الهيدر في كل صفحة؛ أي خلل في التحديثات لا يجب أن يكسر اللوحة
+    report($exception);
+}
 $ckPageTitle = trim($__env->yieldContent('page-title')) ?: trim($__env->yieldContent('title'));
 $ckPageTitle = $ckPageTitle ?: __('admin.dashboard');
 $quickLinks = collect([
@@ -224,25 +238,45 @@ $quickLinks = collect([
             box-shadow: none;
         }
 
-        .cm-whats-new-toggle { position: relative; }
-        .cm-whats-new-badge {
+        .cm-su-toggle { position: relative; }
+        .cm-su-badge {
             position: absolute; top: -7px; inset-inline-end: -8px;
-            min-width: 31px; padding: 2px 5px; border-radius: 999px;
+            min-width: 20px; padding: 2px 5px; border-radius: 999px;
             background: #ef4444; color: #fff; border: 2px solid #fff;
-            font-size: 9px; font-weight: 800; line-height: 15px; text-align: center;
+            font-size: 10px; font-weight: 800; line-height: 13px; text-align: center;
         }
-        .cm-whats-new-menu { width: min(440px, calc(100vw - 24px)); overflow: hidden; }
-        .cm-whats-new-head { padding: 18px; color: #fff; background: linear-gradient(135deg, #0f6b6e, #15959a); }
-        .cm-whats-new-head h6 { color: inherit; font-size: 1rem; font-weight: 800; }
-        .cm-whats-new-head p { margin: 6px 0 0; color: rgba(255,255,255,.82); font-size: .78rem; }
-        .cm-whats-new-date { display: inline-flex; margin-top: 10px; padding: 4px 8px; border-radius: 999px; background: rgba(255,255,255,.16); font-size: .7rem; }
-        .cm-whats-new-list { display:grid; gap:10px; max-height:min(520px, 65vh); overflow-y:auto; margin:0; padding:14px; background:#f8fafc; }
-        .cm-whats-new-card { position:relative; padding:13px 44px 13px 14px; border:1px solid #e6edf3; border-radius:12px; background:#fff; }
-        .cm-whats-new-number { position:absolute; top:13px; right:13px; width:22px; height:22px; display:flex; align-items:center; justify-content:center; border-radius:7px; background:#e8f7f5; color:#0f766e; font-size:.68rem; font-weight:800; }
-        .cm-whats-new-card h6 { margin:0; color:#1e293b; font-size:.86rem; font-weight:800; line-height:1.5; }
-        .cm-whats-new-card p { margin:5px 0 0; color:#64748b; font-size:.75rem; line-height:1.6; }
-        .cm-whats-new-link { display:inline-flex; align-items:center; gap:6px; margin-top:9px; color:#0f6b6e; font-size:.74rem; font-weight:800; text-decoration:none; }
-        .cm-whats-new-link:hover { color:#0b4f51; }
+        .cm-su-bar {
+            display: flex; align-items: center; gap: 12px;
+            margin: 8px 0 2px; padding: 8px 10px 8px 14px; border-radius: 12px;
+            background: linear-gradient(135deg, #0f6b6e, #15959a); color: #fff;
+            font-size: .82rem; box-shadow: 0 8px 22px -14px rgba(15, 107, 110, .9);
+        }
+        .cm-su-bar.is-important { background: linear-gradient(135deg, #b42318, #e04f3f); box-shadow: 0 8px 22px -14px rgba(180, 35, 24, .9); }
+        .cm-su-bar[hidden] { display: none; }
+        .cm-su-bar-icon { flex: 0 0 auto; width: 30px; height: 30px; display: grid; place-items: center; border-radius: 9px; background: rgba(255,255,255,.18); }
+        .cm-su-bar-label { flex: 0 0 auto; font-weight: 800; white-space: nowrap; }
+        .cm-su-bar-ticker { position: relative; flex: 1 1 auto; min-width: 0; height: 22px; overflow: hidden; }
+        .cm-su-bar-item {
+            position: absolute; inset: 0; display: flex; align-items: center; gap: 6px;
+            color: rgba(255,255,255,.92); text-decoration: none; white-space: nowrap; overflow: hidden;
+            opacity: 0; transform: translateY(8px); transition: opacity .35s ease, transform .35s ease; pointer-events: none;
+        }
+        .cm-su-bar-item.is-active { opacity: 1; transform: none; pointer-events: auto; }
+        .cm-su-bar-item:hover { color: #fff; text-decoration: underline; }
+        .cm-su-bar-item span { overflow: hidden; text-overflow: ellipsis; }
+        .cm-su-bar-cta {
+            flex: 0 0 auto; padding: 5px 12px; border-radius: 8px; background: #fff; color: #0f6b6e;
+            font-weight: 800; font-size: .76rem; text-decoration: none; white-space: nowrap;
+        }
+        .cm-su-bar.is-important .cm-su-bar-cta { color: #b42318; }
+        .cm-su-bar-cta:hover { color: #0b4f51; background: #f1f5f9; }
+        .cm-su-bar-close { flex: 0 0 auto; width: 28px; height: 28px; border: 0; border-radius: 8px; background: rgba(255,255,255,.14); color: #fff; font-size: 1rem; line-height: 1; cursor: pointer; }
+        .cm-su-bar-close:hover { background: rgba(255,255,255,.26); }
+        @media (max-width: 767.98px) {
+            .cm-su-bar { flex-wrap: wrap; gap: 8px; }
+            .cm-su-bar-ticker { order: 5; flex-basis: 100%; }
+            .cm-su-bar-cta { margin-inline-start: auto; }
+        }
 
         .cm-header-open-site {
             display: inline-flex;
@@ -273,6 +307,20 @@ $quickLinks = collect([
         .header-right {
             gap: 0.35rem;
         }
+
+        /* admin-tables.css يفرض overflow:auto على كل .container-fluid، فيظهر شريط تمرير داخل الهيدر عند فتح القوائم */
+        .page-header > .container-fluid { overflow: visible !important; }
+
+        /* أيقونات الهيدر: الفراغ من gap لا من هوامش تتغير مع نقاط الكسر، وعناصر block حتى لا يضيف سطر النص فراغًا تحتها فتنزاح عموديًا */
+        .page-header .header-right > li { display: flex; align-items: center; }
+        .page-header .header-right > li.d-none { display: none !important; }
+        @media (min-width: 576px) { .page-header .header-right > li.d-sm-inline-block { display: flex !important; } }
+        @media (min-width: 1200px) {
+            .page-header .header-right > li.d-xl-inline-block, .page-header .header-right > li.d-xl-flex { display: flex !important; }
+            .page-header .header-right > li.d-xl-none { display: none !important; }
+        }
+        .page-header .header-right .cm-header-action { display: flex; padding: 0 !important; }
+        .page-header .header-right .avatar { display: block; }
 
         @media (max-width: 1199.98px) {
             .page-header .navbar {
@@ -414,44 +462,14 @@ $quickLinks = collect([
             </div>
 
             <ul class="header-right justify-content-end d-flex align-items-center mb-0">
-                @if (($productUpdates['is_enabled'] ?? false) && count($productUpdates['updates'] ?? []) > 0)
+                @if ($systemUpdatesReady)
                 <li>
-                    <div class="dropdown morphing {{ $scaleDirection }}">
-                        <a id="cm-whats-new-toggle" class="nav-link dropdown-toggle after-none cm-header-action cm-whats-new-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false" title="ما الجديد في كليك">
-                            <i class="fa fa-bullhorn"></i>
-                            <span id="cm-whats-new-badge" class="cm-whats-new-badge">جديد</span>
-                        </a>
-                        <div class="dropdown-menu cm-whats-new-menu shadow border-0 p-0 m-0">
-                            <div class="cm-whats-new-head">
-                                <h6 class="mb-0">{{ $productUpdates['title'] }}</h6>
-                                @if ($productUpdates['summary'])<p>{{ $productUpdates['summary'] }}</p>@endif
-                                @if ($productUpdates['published_at'])
-                                    <span class="cm-whats-new-date"><i class="fa fa-calendar ms-1"></i>{{ \Carbon\Carbon::parse($productUpdates['published_at'])->translatedFormat('j F Y') }}</span>
-                                @endif
-                            </div>
-                            <div class="cm-whats-new-list">
-                                @foreach ($productUpdates['updates'] as $update)
-                                    <article class="cm-whats-new-card">
-                                        <span class="cm-whats-new-number">{{ $loop->iteration }}</span>
-                                        <h6>{{ $update['title'] }}</h6>
-                                        @if ($update['details'])<p>{{ $update['details'] }}</p>@endif
-                                        @if ($update['url'])
-                                            @php
-                                                $isExternalUpdateLink = \Illuminate\Support\Str::startsWith(
-                                                    $update['url'],
-                                                    ['http://', 'https://']
-                                                );
-                                            @endphp
-                                            <a class="cm-whats-new-link" href="{{ $update['url'] }}" @if($isExternalUpdateLink) target="_blank" rel="noopener noreferrer" @endif>
-                                                {{ $update['link_label'] ?: 'عرض الميزة' }}
-                                                <i class="fa {{ app()->getLocale() === 'ar' ? 'fa-arrow-left' : 'fa-arrow-right' }}"></i>
-                                            </a>
-                                        @endif
-                                    </article>
-                                @endforeach
-                            </div>
-                        </div>
-                    </div>
+                    <a class="nav-link cm-header-action cm-su-toggle" href="{{ route('system-updates.index') }}" title="تحديثات النظام">
+                        <i class="fa fa-bullhorn"></i>
+                        @if ($systemUpdatesBanner['count'] > 0)
+                            <span class="cm-su-badge">{{ $systemUpdatesBanner['count'] > 99 ? '99+' : $systemUpdatesBanner['count'] }}</span>
+                        @endif
+                    </a>
                 </li>
                 @endif
                 <li>
@@ -493,7 +511,7 @@ $quickLinks = collect([
                 </li>
 
                 <li class="d-none d-xl-inline-block">
-                    <div class="dropdown morphing {{$scaleDirection}} Language mx-sm-2">
+                    <div class="dropdown morphing {{$scaleDirection}} Language">
                         <a class="nav-link dropdown-toggle after-none cm-header-action" href="#" role="button" data-bs-toggle="dropdown" title="{{ __('admin.layout.language') }}">
                             <svg viewBox="0 0 16 16" width="18px" fill="currentColor"
                                 xmlns="http://www.w3.org/2000/svg">
@@ -582,7 +600,7 @@ $quickLinks = collect([
                 @endif
 
                 <li>
-                    <div class="dropdown morphing {{$scaleDirection}} user-profile mx-lg-3 mx-2">
+                    <div class="dropdown morphing {{$scaleDirection}} user-profile ms-2">
                         <a class="nav-link dropdown-toggle rounded-circle after-none p-0" href="#" role="button"
                             data-bs-toggle="dropdown">
                             <img class="avatar img-thumbnail rounded-circle shadow"
@@ -657,31 +675,61 @@ $quickLinks = collect([
                 </li> --}}
             </ul>
         </nav>
+        @if ($systemUpdatesBanner['count'] > 0)
+            @php
+                $suBarSignature = $systemUpdatesBanner['items']->pluck('id')->implode('-') . ':' . $systemUpdatesBanner['count'];
+            @endphp
+            <div id="cm-su-bar" class="cm-su-bar {{ $systemUpdatesBanner['has_important'] ? 'is-important' : '' }}" data-signature="{{ $suBarSignature }}" role="region" aria-label="تحديثات النظام">
+                <span class="cm-su-bar-icon"><i class="fa {{ $systemUpdatesBanner['has_important'] ? 'fa-exclamation-triangle' : 'fa-bullhorn' }}"></i></span>
+                <span class="cm-su-bar-label">
+                    {{ $systemUpdatesBanner['count'] === 1 ? 'تحديث جديد' : $systemUpdatesBanner['count'] . ' تحديثات جديدة' }}
+                </span>
+                <div class="cm-su-bar-ticker">
+                    @foreach ($systemUpdatesBanner['items'] as $barItem)
+                        <a class="cm-su-bar-item {{ $loop->first ? 'is-active' : '' }}" href="{{ route('system-updates.index') }}#update-{{ $barItem->id }}">
+                            @if ($barItem->category === 'important')<i class="fa fa-exclamation-circle"></i>@endif
+                            <span>{{ $barItem->title }}</span>
+                        </a>
+                    @endforeach
+                </div>
+                <a class="cm-su-bar-cta" href="{{ route('system-updates.index') }}?filter=pending">عرض التحديثات</a>
+                <button type="button" class="cm-su-bar-close" id="cm-su-bar-close" title="إخفاء حتى تسجيل الدخول القادم" aria-label="إخفاء">&times;</button>
+            </div>
+            <script>
+                (function () {
+                    try {
+                        var bar = document.getElementById('cm-su-bar');
+                        if (bar && sessionStorage.getItem('clickerp_su_bar_hidden') === bar.dataset.signature) {
+                            bar.hidden = true;
+                        }
+                    } catch (error) {}
+                })();
+            </script>
+        @endif
     </div>
 </header>
 @once
     <script>
         document.addEventListener('DOMContentLoaded', function () {
-            const whatsNewToggle = document.getElementById('cm-whats-new-toggle');
-            const whatsNewBadge = document.getElementById('cm-whats-new-badge');
-            const whatsNewVersion = @json($productUpdates['version'] ?? 'default');
-            const whatsNewStorageKey = 'clickerp_whats_new_seen_version';
-
-            if (whatsNewToggle && whatsNewBadge) {
-                try {
-                    if (localStorage.getItem(whatsNewStorageKey) === whatsNewVersion) {
-                        whatsNewBadge.style.display = 'none';
-                    }
-                } catch (error) {}
-
-                whatsNewToggle.addEventListener('click', function () {
+            const suBar = document.getElementById('cm-su-bar');
+            if (suBar) {
+                document.getElementById('cm-su-bar-close')?.addEventListener('click', function () {
                     try {
-                        localStorage.setItem(whatsNewStorageKey, whatsNewVersion);
+                        sessionStorage.setItem('clickerp_su_bar_hidden', suBar.dataset.signature || '');
                     } catch (error) {}
-                    whatsNewBadge.style.display = 'none';
+                    suBar.hidden = true;
                 });
-            }
 
+                const suItems = Array.from(suBar.querySelectorAll('.cm-su-bar-item'));
+                if (suItems.length > 1) {
+                    let suIndex = 0;
+                    window.setInterval(function () {
+                        suItems[suIndex].classList.remove('is-active');
+                        suIndex = (suIndex + 1) % suItems.length;
+                        suItems[suIndex].classList.add('is-active');
+                    }, 4500);
+                }
+            }
             const liveDate = document.getElementById('cm-live-date');
             const liveTime = document.getElementById('cm-live-time');
             const sessionDuration = document.getElementById('cm-session-duration');
@@ -742,3 +790,7 @@ $quickLinks = collect([
         });
     </script>
 @endonce
+
+@if(\App\Support\HourlyRentalSettings::isEnabled() && AdminGuardHasPerm('hourly_orders_view'))
+    @include('admin.hourly._past-visits-reminder')
+@endif

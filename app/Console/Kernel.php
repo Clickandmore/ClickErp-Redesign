@@ -7,6 +7,7 @@ use App\Models\ingaz\Maid;
 use App\Models\ingaz\Order;
 use App\Support\AutomationSettings;
 use App\Support\DatabaseBackupSettings;
+use App\Support\SystemUpdatesSettings;
 use App\Services\SchedulerMonitorService;
 use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Foundation\Console\Kernel as ConsoleKernel;
@@ -21,6 +22,12 @@ class Kernel extends ConsoleKernel
      */
     protected function schedule(Schedule $schedule): void
     {
+        // Hourly service time must never imply a physical shelter return.
+        $schedule->command('hourly:past-visit-reminder')->dailyAt('08:05')->timezone('Asia/Riyadh')->withoutOverlapping();
+        $schedule->command('hourly:service-time')->everyMinute()->withoutOverlapping();
+        $schedule->command('hourly:visit-delays')->everyFiveMinutes()->withoutOverlapping();
+        $schedule->command('hourly:assign-drivers')->everyFifteenMinutes()->withoutOverlapping();
+        $schedule->command('hourly:auto-complete-visits')->everyFiveMinutes()->withoutOverlapping();
         if (config('activitylog.scheduled_cleanup_enabled', false)) {
             $schedule->command('activitylog:clean --force')
                 ->dailyAt('03:30')
@@ -168,6 +175,14 @@ class Kernel extends ConsoleKernel
             ->everyFiveMinutes()
             ->withoutOverlapping()
             ->appendOutputTo(storage_path('logs/configured-notification-alerts.log'));
+
+        // سحب تحديثات النظام من المصدر المضبوط في Super Admin (افتراضيًا كل دقيقة، والمدة من هناك)
+        if (SystemUpdatesSettings::syncConfigured()) {
+            $schedule->command('system-updates:sync')
+                ->cron(SystemUpdatesSettings::syncCronExpression())
+                ->withoutOverlapping(30)
+                ->appendOutputTo(storage_path('logs/system-updates-sync.log'));
+        }
 
         if ($databaseBackupSettings['enabled']) {
             $schedule->command('database:backup-r2')

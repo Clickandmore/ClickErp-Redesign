@@ -100,7 +100,11 @@
 
                 $canViewCrmModule = @SystemModuleEnabled('crm') && @AdminGuardHasPerm(\App\PermKeys::CRM_MODULE);
                 $canViewHrModule = @SystemModuleEnabled('hr') && @AdminGuardCanViewPackageModule('hr');
-                $canViewFinanceModule = @SystemModuleEnabled('finance') && @AdminGuardCanViewPackageModule('finance');
+                $canViewFinanceModule = @SystemModuleEnabled('finance') && (
+                    @AdminGuardCanViewPackageModule('finance')
+                    || \App\Support\InvoiceAuthorization::canViewDrafts()
+                    || @AdminGuardHasPerm(\App\PermKeys::INVOICES_CREATE_DRAFT)
+                );
 
                 $canViewCrm = @SystemModuleEnabled('crm') && ($canViewCrmModule || @AdminGuardHasAnyPerm([\App\PermKeys::CLIENTS_VIEW, \App\PermKeys::CLIENTS_CREATE, \App\PermKeys::CLIENTS_EDIT, \App\PermKeys::CLIENTS_DELETE, \App\PermKeys::CLIENTS_EXPORT, \App\PermKeys::CLIENTS_SHOW, \App\PermKeys::CLIENTS_SETTINGS, \App\PermKeys::NOTIFICATIONS_CONTROL]));
 
@@ -127,6 +131,7 @@
                 $canViewSponsorshipTransfer = @AdminGuardHasAnyPerm([\App\PermKeys::SPONSOR_TRANSFER_VIEW, \App\PermKeys::SPONSOR_TRANSFER_WEB_REQUESTS_VIEW, \App\PermKeys::SPONSOR_TRANSFER_CREATE, \App\PermKeys::SPONSOR_TRANSFER_EDIT, \App\PermKeys::SPONSOR_TRANSFER_DELETE]);
                 // نفس اتحاد الصلاحيات المستخدم في بوابة المسار reports.export حتى لا يظهر الرابط لمن لا يستطيع التصدير.
                 $canViewReports = @AdminGuardHasAnyPerm(\App\Services\ingaz\ReportExportService::allExportPermissions());
+                $canViewDataImports = @AdminGuardHasAnyPerm([\App\PermKeys::DATA_IMPORT_UPLOAD, \App\PermKeys::DATA_IMPORT_REVIEW, \App\PermKeys::DATA_IMPORT_APPROVE]);
                 $canViewOfficeManagement = @AdminGuardHasPerm(\App\PermKeys::OFFICE_VIEW);
 
                 // كل قسم يظهر داخل "العمليات" يجب أن يكون ضمن هذا الشرط،
@@ -145,7 +150,7 @@
                     $canViewContactRequests ||
                     $canViewOfficeManagement ||
                     $canViewOperationalCommissions ||
-                    $canViewReports;
+                    $canViewReports || $canViewDataImports;
 
                 $canViewSms = @AdminGuardHasAnyPerm([\App\PermKeys::NOTIFICATIONS_CONTROL, \App\PermKeys::NOTIFICATIONS_VIEW]);
 
@@ -470,7 +475,7 @@
                                         <span class="ms-2"> {{ helperTrans('ingaz.Recruitment contracts') }} </span>
                                         <span class="arrow fa fa-angle-left ms-auto text-end"></span>
                                     </a>
-                                    <ul class="sub-menu collapse {{ in_array(Route::currentRouteName(), ['RecruitmentContracts.index', 'RecruitmentContract.company.index', 'RecruitmentContract.index', 'RecruitmentContract.escapeReports.index', 'RecruitmentContract.escapeReports.show', 'RecruitmentContract.create', 'RecruitmentContract.externalOfficeDispatch.index', 'RecruitmentContract.externalOfficeDispatch.edit', 'RecruitmentContract.externalOfficeDispatch.print', 'contract-return-requests.index', 'invoices.index', 'contract-extension-requests.index', 'contract-extension-requests.show']) ? 'show' : '' }}"
+                                    <ul class="sub-menu collapse {{ in_array(Route::currentRouteName(), ['RecruitmentContracts.index', 'RecruitmentContract.index', 'RecruitmentContract.escapeReports.index', 'RecruitmentContract.escapeReports.show', 'RecruitmentContract.create', 'RecruitmentContract.externalOfficeDispatch.index', 'RecruitmentContract.externalOfficeDispatch.edit', 'RecruitmentContract.externalOfficeDispatch.print', 'contract-return-requests.index', 'invoices.index', 'contract-extension-requests.index', 'contract-extension-requests.show']) ? 'show' : '' }}"
                                         id="contracts">
                                         @if (@AdminGuardHasPerm(\App\NewPermKeys::REC_CONTRACTS_CREATE))
                                             <li>
@@ -489,13 +494,6 @@
                                                     href="{{ route('RecruitmentContract.index', ['all_contracts' => 1]) }}">
                                                     <i class="fa fa-file-alt"></i>
                                                     <span class="ms-2">جميع عقود الاستقدام</span>
-                                                </a>
-                                            </li>
-                                            <li>
-                                                <a class="m-link {{ Route::currentRouteName() == 'RecruitmentContract.company.index' ? 'active' : '' }}"
-                                                    href="{{ route('RecruitmentContract.company.index') }}">
-                                                    <i class="fa fa-building"></i>
-                                                    <span class="ms-2">عقود الاستقدام للشركة</span>
                                                 </a>
                                             </li>
                                             <li>
@@ -667,6 +665,37 @@
                                                 <span class="ms-2">{{ __('admin.sidebar.contract_return_requests') }}</span>
                                             </a>
                                         </li>
+                                                {{-- الملف المالي للعقد: يظهر فقط عند تفعيل إعداده، فلا يقود إلى 403. --}}
+                                                @if (\App\Support\RecruitmentSupplierSettings::contractFinanceScreenEnabled())
+                                                    <li>
+                                                        <a class="m-link {{ Str::startsWith(Route::currentRouteName(), 'recruitment-contract-finance') ? 'active' : '' }}"
+                                                            href="{{ route('recruitment-contract-finance.index') }}">
+                                                            <i class="fa fa-folder-open"></i>
+                                                            <span class="ms-2">الملف المالي للعقود</span>
+                                                        </a>
+                                                    </li>
+                                                @endif
+                                                <li>
+                                                    <a class="m-link {{ Route::currentRouteName() == 'recruitment-supplier-payments.index' ? 'active' : '' }}"
+                                                        href="{{ route('recruitment-supplier-payments.index') }}">
+                                                        <i class="fa fa-money-bill-wave"></i>
+                                                        <span class="ms-2">دفعات الوكلاء الخارجيين</span>
+                                                    </a>
+                                                </li>
+                                                <li>
+                                                    <a class="m-link {{ Route::currentRouteName() == 'musaned-transfers.invoices-report' ? 'active' : '' }}"
+                                                        href="{{ route('musaned-transfers.invoices-report') }}">
+                                                        <i class="fa fa-file-invoice-dollar"></i>
+                                                        <span class="ms-2">فواتير المبيعات بالصافي</span>
+                                                    </a>
+                                                </li>
+                                                <li>
+                                                    <a class="m-link {{ Route::currentRouteName() == 'musaned-transfers.index' ? 'active' : '' }}"
+                                                        href="{{ route('musaned-transfers.index') }}">
+                                                        <i class="fa fa-exchange-alt"></i>
+                                                        <span class="ms-2">تحويلات مساند</span>
+                                                    </a>
+                                                </li>
                                             @endif
                                         @endif
 
@@ -683,7 +712,7 @@
                                         <span class="ms-2"> {{ helperTrans('ingaz.Rent contracts') }} </span>
                                         <span class="arrow fa fa-angle-left ms-auto text-end"></span>
                                     </a>
-                                    <ul class="sub-menu collapse {{ in_array(Route::currentRouteName(), ['RentContract.index', 'RentContract.create', 'RentContract.show', 'RentContract.edit', 'packages.index', 'rent-contract-terms.index', 'rent-contract-terms.create', 'rent-contract-terms.edit', 'rent-contract.settings']) ? 'show' : '' }}"
+                                    <ul class="sub-menu collapse {{ in_array(Route::currentRouteName(), ['RecruitmentContract.company.index', 'RentContract.index', 'RentContract.create', 'RentContract.show', 'RentContract.edit', 'packages.index', 'rent-contract-terms.index', 'rent-contract-terms.create', 'rent-contract-terms.edit', 'rent-contract.settings']) ? 'show' : '' }}"
                                         id="rentcontracts">
                                         @if (@AdminGuardHasPerm(\App\PermKeys::RENT_CONTRACT_CREATE))
                                             <li>
@@ -714,6 +743,15 @@
                                                         class="ms-2">{{ helperTrans('ingaz.All Rent contracts') }}</span>
                                                 </a>
                                             </li>
+                                            @if (@AdminGuardHasPerm(\App\NewPermKeys::REC_CONTRACTS_VIEW))
+                                                <li>
+                                                    <a class="m-link {{ Route::currentRouteName() == 'RecruitmentContract.company.index' ? 'active' : '' }}"
+                                                        href="{{ route('RecruitmentContract.company.index') }}">
+                                                        <i class="fa fa-building"></i>
+                                                        <span class="ms-2">جميع عقود الاستقدام للتأجير</span>
+                                                    </a>
+                                                </li>
+                                            @endif
                                             <li>
                                                 <a class="m-link {{ Route::currentRouteName() == 'RentContract.index' && request('status') == 'new' ? 'active' : '' }}"
                                                     href="{{ route('RentContract.index', ['status' => 'new']) }}">
@@ -1104,6 +1142,11 @@
                             {{--                                --}}
                             {{--                            </ul> --}}
                             {{--                        </li> --}}
+                            @if ($canViewDataImports)
+                                <li><a class="m-link {{ request()->routeIs('reports.import.*') ? 'active' : '' }}" href="{{ route('reports.import.index') }}">
+                                    <i class="fa fa-file-import me-2"></i><span class="ms-2">استيراد البيانات واعتمادها</span>
+                                </a></li>
+                            @endif
                             @if ($canViewReports)
                                 <li>
                                     <a class="m-link {{ request()->routeIs('reports.*') ? 'active' : '' }}"
@@ -1154,6 +1197,7 @@
                     $isFinance =
                         request()->is('finance*') ||
                         \Illuminate\Support\Str::startsWith((string) Route::currentRouteName(), 'invoices.') ||
+                        request()->routeIs('invoice-drafts.*') ||
                         request()->routeIs('commissions.finance.*') ||
                         request()->routeIs('commissions.marketers.payments.*');
                 @endphp
@@ -1171,15 +1215,27 @@
                 @endif
                 {{--                @include('finance::stock') --}}
                 {{-- اعدادات الرسائل النصية --}}
-                @if ($canViewSms || \App\Support\AdminDispatchPermissions::allows(auth('admin')->user(), \App\Support\AdminDispatchPermissions::VIEW))
-                    <li class="sidebar-module sidebar-module--messages {{ request()->routeIs('admin.dispatch.*') ? '' : 'collapsed' }}">
+                @php $showSystemUpdatesLink = \App\Services\SystemUpdates\SystemUpdateInbox::ready(); @endphp
+                @if ($canViewSms || $showSystemUpdatesLink || \App\Support\AdminDispatchPermissions::allows(auth('admin')->user(), \App\Support\AdminDispatchPermissions::VIEW))
+                    <li class="sidebar-module sidebar-module--messages {{ request()->routeIs('admin.dispatch.*', 'system-updates.*') ? '' : 'collapsed' }}">
                         <a class="m-link" data-bs-toggle="collapse" data-bs-target="#smsManagement" href="#">
                             <i class="fa fa-sms"></i>
                             <span class="ms-2">{{ \App\Support\AdminPermissionNavigation::unitTitle('messages') }}</span>
                             <span class="arrow fa fa-angle-left ms-auto text-end"></span>
                         </a>
-                        <ul class="sub-menu collapse {{ in_array(Route::currentRouteName(), ['notifications.index', 'notifications.settings', 'notifications.settings.alerts']) || request()->routeIs('admin.dispatch.*') || Request::is('admin/sms-templates*') ? 'show' : '' }}"
+                        <ul class="sub-menu collapse {{ in_array(Route::currentRouteName(), ['messages.index', 'notifications.index', 'notifications.settings', 'notifications.settings.alerts']) || request()->routeIs('admin.dispatch.*', 'system-updates.*') || Request::is('admin/sms-templates*') ? 'show' : '' }}"
                             id="smsManagement">
+                            @if (@AdminGuardHasPerm(\App\PermKeys::NOTIFICATIONS_CONTROL))
+                                <li><a class="m-link {{ request()->routeIs('messages.index') ? 'active' : '' }}" href="{{ route('messages.index') }}"><i class="fa fa-history"></i><span class="ms-2">سجل الرسائل والإرسال</span></a></li>
+                            @endif
+                            @if ($showSystemUpdatesLink)
+                                <li>
+                                    <a class="m-link {{ request()->routeIs('system-updates.*') ? 'active' : '' }}" href="{{ route('system-updates.index') }}">
+                                        <i class="fa fa-bullhorn"></i>
+                                        <span class="ms-2">تحديثات النظام</span>
+                                    </a>
+                                </li>
+                            @endif
                             @include('admin.notifications.sidebar-link')
                             @if (@AdminGuardHasPerm(\App\PermKeys::NOTIFICATIONS_CONTROL))
                                 <li>

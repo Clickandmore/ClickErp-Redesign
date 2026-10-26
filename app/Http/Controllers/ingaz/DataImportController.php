@@ -3,12 +3,9 @@
 namespace App\Http\Controllers\ingaz;
 
 use App\Http\Controllers\admin\Controller;
-use App\Services\ingaz\DataImportExecutionService;
 use App\Services\ingaz\DataImportTemplateService;
 use App\Services\ingaz\FinanceBondGenerationService;
 use App\Services\ingaz\MaidBulkImportService;
-use App\Services\ingaz\ArabiaClientsImportService;
-use App\Services\ingaz\AlrafedinTransferServicesImportService;
 use Illuminate\Http\Request;
 
 class DataImportController extends Controller
@@ -17,8 +14,22 @@ class DataImportController extends Controller
     {
         return view('admin.ingaz.reports.import', [
             'templates' => $templates->templates(),
+            'reviewBatches' => \App\Models\DataImportBatch::query()->when(!AdminGuardHasAnyPerm(['data_import_review', 'data_import_approve']), fn ($query) => $query->where('created_by', auth('admin')->id()))->latest()->limit(20)->get(),
             'recentUploads' => $templates->recentUploads(),
+            'importLogs' => \App\Models\DataImportBatch::query()
+                ->when(!AdminGuardHasAnyPerm(['data_import_review', 'data_import_approve']), fn ($query) => $query->where('created_by', auth('admin')->id()))
+                ->with(['uploadedBy', 'approvedBy', 'branchRelation'])
+                ->withCount(['rows', 'rows as valid_rows_count' => fn ($query) => $query->where('status', 'valid'),
+                    'rows as invalid_rows_count' => fn ($query) => $query->where('status', 'invalid'),
+                    'rows as approved_rows_count' => fn ($query) => $query->where('status', 'approved')])
+                ->latest('id')->paginate(20, ['*'], 'logs_page')->withQueryString()->fragment('import-operation-logs'),
+            'maidImportLogs' => \App\Models\ingaz\MaidBulkImport::query()
+                ->when(!AdminGuardHasAnyPerm(['data_import_review', 'data_import_approve']), fn ($query) => $query->where('uploaded_by', auth('admin')->id()))
+                ->when(\App\Support\BranchQueryContext::activeBranchId(), fn ($query, $branchId) => $query->whereHas('uploadedBy', fn ($admin) => $admin->where('branch_id', $branchId)))
+                ->with(['uploadedBy', 'approvedBy'])->latest('id')
+                ->paginate(20, ['*'], 'maid_logs_page')->withQueryString()->fragment('import-operation-logs'),
             'bondGenerationStats' => $bondGenerator->statistics(),
+            'tutorialVideoUrl' => optional(\App\Models\ingaz\Setting::first())->importTutorialVideoEmbedUrl(),
         ]);
     }
 
@@ -29,7 +40,7 @@ class DataImportController extends Controller
         abort_if(!$template || ($template['downloadable'] ?? true) === false, 404);
 
         if (!empty($template['external_template_route'])) {
-            return redirect()->route($template['external_template_route']);
+            return app(\App\Services\ingaz\MaidBulkImportService::class)->createTemplateDownloadResponse();
         }
 
         return $templates->createTemplateDownloadResponse($type);
@@ -38,10 +49,7 @@ class DataImportController extends Controller
     public function store(
         Request $request,
         DataImportTemplateService $templates,
-        MaidBulkImportService $maidImportService,
-        DataImportExecutionService $importer,
-        ArabiaClientsImportService $arabiaClientsImport,
-        AlrafedinTransferServicesImportService $alrafedinTransferImport
+        MaidBulkImportService $maidImportService
     )
     {
         $availableTypes = array_keys($templates->templates());
@@ -79,76 +87,61 @@ class DataImportController extends Controller
                 ->with('success', 'تم رفع ملف السير وتحليل البيانات بنجاح. راجع الصفوف قبل الاعتماد.');
         }
 
-        $result = match ($data['type']) {
-            'arabia_clients' => $arabiaClientsImport->import($request->file('file'), $adminId),
-            'alrafedin_transfer_services' => $alrafedinTransferImport->import($request->file('file'), $adminId),
-            'finance_constraints' => $request->boolean('finance_constraints_missing_only')
-                ? $importer->importMissingFinanceConstraints($request->file('file'), $adminId)
-                : $importer->import($data['type'], $request->file('file'), $adminId),
-            default => $importer->import($data['type'], $request->file('file'), $adminId),
-        };
-        $shownErrors = array_slice($result['errors'] ?? [], 0, 10);
-        $message = "تمت معالجة {$result['total']} صف. جديد: {$result['created']}، محدث: {$result['updated']}، متجاوز: {$result['skipped']}.";
-        if ($data['type'] === 'arabia_recruitment_orders') {
-            $message .= " ملاحظات جديدة: " . ($result['notes_created'] ?? 0)
-                . "، مراجع مالية: " . ($result['financial_references'] ?? 0)
-                . "، إرساليات العقود المكتملة: " . ($result['completed_dispatches'] ?? 0)
-                . "، عاملات تمت مصالحة توفرهن: " . ($result['reconciled_maids'] ?? 0)
-                . "، وصفوف أصلية محفوظة: " . ($result['archived_rows'] ?? 0) . ".";
+        try {
+            $batch = app(\App\Services\ingaz\DataImportReviewService::class)->stage(
+                $data['type'], $request->file('file'), $adminId,
+                ['finance_constraints_missing_only' => $request->boolean('finance_constraints_missing_only')]
+            );
+        } catch (\InvalidArgumentException | \PhpOffice\PhpSpreadsheet\Reader\Exception $exception) {
+            throw \Illuminate\Validation\ValidationException::withMessages(['file' => $exception->getMessage()]);
         }
-        if ($data['type'] === 'alrafedin_transfer_services') {
-            $message .= ' نقل خدمات سابق: ' . ($result['legacy_sponsorship'] ?? 0)
-                . '، نقل خدمات: ' . ($result['transfer_service'] ?? 0) . '.';
-        }
-        if ($data['type'] === 'legacy_rental_orders') {
-            $message .= ' عاملات مرتبطة بسير الإيجار: ' . ($result['rental_maids'] ?? 0)
-                . '، عقود تشغيلية ومالية: ' . ($result['rental_contracts'] ?? 0)
-                . '، فواتير تأجير: ' . ($result['rental_invoices'] ?? 0)
-                . '، سندات قبض مرتبطة: ' . ($result['receipt_links'] ?? 0)
-                . '، بانتظار استيراد سندات القبض: ' . ($result['pending_receipt_links'] ?? 0)
-                . '، صفوف أصلية محفوظة: ' . ($result['archived_rows'] ?? 0)
-                . '، مكتملة سابقًا دون تغيير: ' . ($result['unchanged_rows'] ?? 0) . '.';
-            if ($result['active_snapshot'] ?? false) {
-                $message .= ' تمت معاملة الملف كلقطة العقود السارية؛ عاملات مرتبطة بخارج الإيواء: '
-                    . ($result['outside_shelter_links'] ?? 0)
-                    . '، عقود سابقة أغلقت لغيابها من اللقطة: ' . ($result['deactivated_contracts'] ?? 0)
-                    . '، دون عقد شركة مطابق: ' . ($result['missing_company_contracts'] ?? 0) . '.';
-            }
-        }
-        if ($data['type'] === 'legacy_invoices') {
-            $message .= ' تم الحفاظ على أرقام الفواتير وبيانات المصدر وحالة المشاركة السابقة مع هيئة الزكاة، وسُجلت الفواتير المستوردة كمسددة حسب اعتماد الإدارة.';
-            $message .= ' ملفات PDF أصلية مرتبطة: ' . ($result['source_files_attached'] ?? 0) . '.';
-        }
-        if (in_array($data['type'], ['receipt_bonds', 'disbursement_bonds'], true)) {
-            $message .= ' تم الحفاظ على رقم السند الأصلي، وإنشاء/تحديث القيد المحاسبي المرتبط، وأرشفة الصف الخام كاملًا مع اسم الملف ورقم الصف. كما تمت مزامنة روابط عقود الاستقدام والتأجير المتاحة.';
-        }
-        if ($data['type'] === 'finance_constraints' && ($result['accounts_created'] ?? 0) > 0) {
-            $message .= ' حسابات مالية ناقصة تم إنشاؤها وربطها بالشجرة: '
-                . $result['accounts_created'] . '.';
-        }
-        if (in_array($data['type'], ['finance_cost_centers', 'finance_constraints'], true)) {
-            $message .= ' تفاصيل قيود رُبطت تلقائياً بمراكز طلبات الاستقدام: '
-                . ($result['cost_center_links'] ?? 0) . '.';
-        }
-        if (($result['error_count'] ?? 0) > count($shownErrors)) {
-            $message .= " تم عرض أول " . count($shownErrors) . " خطأ من إجمالي {$result['error_count']} خطأ.";
-        }
-
-        if ($request->expectsJson()) {
-            session()->flash('success', $message);
-            session()->flash('import_errors', $shownErrors);
-
-            return response()->json([
-                'redirect' => route('reports.import.index'),
-            ]);
-        }
-
-        return redirect()
-            ->route('reports.import.index')
-            ->with('success', $message)
-            ->with('import_errors', $shownErrors);
+        $url = route('reports.import.show', $batch);
+        if ($request->expectsJson()) return response()->json(['redirect' => $url]);
+        return redirect($url)->with('success', 'تم رفع الملف وفحصه. لم تُحفظ بيانات تشغيلية بعد. راجع النتائج ثم اعتمد الصفوف الصحيحة.');
     }
 
+    public function show(\App\Models\DataImportBatch $batch, Request $request, DataImportTemplateService $templates)
+    {
+        $this->authorizeBatch($batch);
+        $status = $request->validate(['status' => 'nullable|in:valid,invalid,approved'])['status'] ?? null;
+        return view('admin.ingaz.reports.import-review', [
+            'batch' => $batch, 'template' => $templates->template($batch->type),
+            'rows' => $batch->rows()->when($status, fn ($query) => $query->where('status', $status))->orderBy('id')->paginate(100)->withQueryString(),
+            'counts' => $batch->rows()->selectRaw('status, COUNT(*) AS total')->groupBy('status')->pluck('total', 'status'),
+            'wholeFile' => app(\App\Services\ingaz\DataImportReviewService::class)->requiresWholeFile($batch->type),
+        ]);
+    }
+
+    public function approve(\App\Models\DataImportBatch $batch, \App\Services\ingaz\DataImportReviewService $review)
+    {
+        $this->authorizeBatch($batch);
+        abort_unless(AdminGuardHasAnyPerm(['data_import_approve']), 403);
+        if (in_array($batch->type, ['invoices', 'updated_invoices', 'legacy_invoices', 'legacy_rental_orders'], true)) {
+            abort_unless(\App\Support\InvoiceAuthorization::canIssueDirectly() || \App\Support\InvoiceAuthorization::canApprove(), 403);
+        }
+        if ($batch->type === 'admins') {
+            abort_unless(AdminGuardHasAnyPerm([\App\PermKeys::USERS_CREATE]), 403);
+            abort_unless(AdminGuardHasAnyPerm([\App\PermKeys::PERMISSIONS_ASSIGN]), 403);
+        }
+        $result = $review->approve($batch, auth('admin')->id());
+        $saved = (int) ($result['approved_count'] ?? 0);
+        if (!empty($result['error_count']) && !$review->requiresWholeFile($batch->type)) {
+            return redirect()->route('reports.import.show', $batch)->with($saved ? 'warning' : 'error',
+                $saved ? "تم اعتماد {$saved} صف. بقي {$result['error_count']} صف به أخطاء؛ راجع السبب أمام كل صف وصححه ثم ارفعه منفرداً."
+                    : 'لم يُعتمد أي صف. راجع سبب الخطأ أمام كل صف وصحح الصفوف ثم أعد رفعها.');
+        }
+        return redirect()->route('reports.import.show', $batch)->with(
+            empty($result['error_count']) ? 'success' : 'error',
+            empty($result['error_count']) ? 'تم اعتماد الاستيراد وحفظ الصفوف الصحيحة.' : 'تعذر الاعتماد. راجع الأخطاء الموضحة؛ لم تحفظ أي تغييرات تشغيلية في هذه المحاولة.'
+        );
+    }
+
+    private function authorizeBatch(\App\Models\DataImportBatch $batch): void
+    {
+        // Upload-only users may inspect their own results; reviewing others requires review/approval permission.
+        abort_unless((int) $batch->created_by === (int) auth('admin')->id()
+            || AdminGuardHasAnyPerm(['data_import_review', 'data_import_approve']), 403);
+    }
     public function generateBonds(FinanceBondGenerationService $bondGenerator)
     {
         $result = $bondGenerator->generateFromDailyConstraints(auth('admin')->id() ?? auth()->id());

@@ -25,7 +25,7 @@
 
     @if (\App\Support\SystemModuleManager::usesRedesign())
         <link rel="stylesheet" href="{{ asset('admin/custom/clickerp-redesign.css') }}?v=1">
-        <link rel="stylesheet" href="{{ asset('admin/custom/clickerp-shell.css') }}?v=1">
+        <link rel="stylesheet" href="{{ asset('admin/custom/clickerp-shell.css') }}?v=2">
     @endif
 </head>
 <body class="layout-1 @if (app()->getLocale() == 'ar') rtl_mode @endif @if (\App\Support\SystemModuleManager::usesRedesign()) clickerp-redesign @endif" data-luno="theme-blue" data-admin-design="{{ \App\Support\SystemModuleManager::adminDesign() }}"> <!-- h-menu  -->
@@ -50,11 +50,13 @@
 
 
 @include("click.layout.inc._js")
+@include("admin.layout.inc._date_format")
+@include("admin.layout.inc._datatables_locale")
 @include("click.layout.inc._js_custom")
 <script src="{{ asset('admin/assets/js/clickmore-loader.js') }}?v=2"></script>
 <script src="{{ asset('admin/assets/js/clickmore-sidebar-state.js') }}?v=5"></script>
 @if (\App\Support\SystemModuleManager::usesRedesign())
-    <script src="{{ asset('admin/custom/clickerp-shell.js') }}?v=1"></script>
+    <script src="{{ asset('admin/custom/clickerp-shell.js') }}?v=2"></script>
 @endif
 <script src="{{ asset('admin/assets/js/notifications.js') }}?v=2"></script>
 

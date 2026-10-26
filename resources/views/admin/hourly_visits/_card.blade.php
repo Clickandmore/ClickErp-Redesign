@@ -9,16 +9,33 @@
 <article class="vl-card" data-visit-card="{{ $visit->id }}" style="--row-tone: {{ $toneHex }}">
     <header class="vl-card-head">
         <div class="vl-card-title">
-            <input id="select-visit-{{ $visit->id }}" type="checkbox" data-select-visit value="{{ $visit->id }}" aria-label="تحديد الزيارة {{ $visit->id }}">
+            <input id="select-visit-{{ $visit->id }}" type="checkbox" data-select-visit data-collectable="{{ $collectables[$visit->id] ?? 0 }}" data-order-id="{{ $visit->hourly_rental_order_id }}" data-order-remaining="{{ max(0, $visit->order->total_amount - $visit->order->paid_amount) }}" data-started="{{ $visit->has_started_execution ? '1' : '0' }}" value="{{ $visit->id }}" aria-label="تحديد الزيارة {{ $visit->id }}">
             <a class="vl-card-id" href="{{ route('admin.hourly-visits.show', $visit) }}">زيارة {{ $visit->visit_number }}</a><small class="vl-muted">مرجع #{{ $visit->id }}</small>
             <span class="vl-card-service"><i class="fa fa-broom"></i> {{ $order->serviceCategory?->name ?? 'خدمة ساعات' }}</span>
         </div>
         <div class="vl-card-badges">
+            @if($canEdit && $visit->is_missed)
+                @if(!$visit->has_started_execution)<button type="button" class="vl-act" data-single="reschedule" data-id="{{ $visit->id }}">إعادة جدولة الزيارة الفائتة</button>@endif
+                @if(!$visit->has_started_execution)<button type="button" class="vl-act" data-single="cancel_visit" data-id="{{ $visit->id }}">إلغاء الزيارة</button>@endif
+            @endif
+            @if($canEdit && in_array($visit->status, \App\Services\Hourly\ShelterPresence::OUT_STATUSES, true))
+                <button type="button" class="vl-act" data-single="confirm_return" data-id="{{ $visit->id }}">تأكيد العودة للإيواء يدويًا</button>
+            @elseif(!empty($returnHolds[$visit->id]))
+                {{-- الزيارة مغلقة لكن عودة العاملة لم تُسجَّل فبقيت ممنوعة من الحجز؛ تُسجَّل العودة من ملفها. --}}
+                @foreach($visit->workers->whereIn('id', $returnHolds[$visit->id]) as $heldWorker)
+                    <a class="vl-act is-warn" href="{{ route('admin.hourly-maids.show', $heldWorker) }}" title="عودة {{ $heldWorker->name }} من هذه الزيارة لم تُسجَّل؛ سجّلها من ملف العاملة"><i class="fa fa-house-circle-exclamation"></i> تسجيل عودة {{ $heldWorker->name }}</a>
+                @endforeach
+            @endif
+            @include('admin.hourly_visits._delay')
             <span class="vl-badge {{ $fullyAssigned ? 'vl-b-green' : ($assignedCount ? 'vl-b-amber' : 'vl-b-red') }}"><i class="fa fa-user-check"></i> {{ $fullyAssigned ? 'تعيين مكتمل' : ($assignedCount ? 'تعيين جزئي' : 'بدون عاملات') }}</span>
             <span class="vl-badge {{ $free || $visitPaymentStatus === 'paid' ? 'vl-b-green' : ($visitPaymentStatus === 'partial' ? 'vl-b-amber' : 'vl-b-red') }}"><i class="fa fa-wallet"></i> {{ $free?'مجانية':__('hourly.'.$visitPaymentStatus) }}</span>
-            <span class="vl-badge {{ $toneClass }}"><i class="fa fa-circle"></i> {{ \App\Services\Hourly\VisitSearch::STATUSES[$visit->status] ?? $visit->status }}</span>
+            <span class="vl-badge {{ $toneClass }}"><i class="fa fa-circle"></i> {{ \App\Services\Hourly\VisitSearch::STATUSES[$visit->display_status] ?? $visit->status }}</span>
         </div>
     </header>
+
+    @if(!empty(($order->booking_metadata['missed_visit_requests'] ?? [])[$visit->id]))
+        <div class="vl-recovery">@include('admin.hourly._recovery-requests', ['recoveryOrders' => collect([$order]), 'recoveryVisitId' => $visit->id])</div>
+    @endif
 
     <div class="vl-grid">
         {{-- الصف الأول: الطلب والعميل والعنوان والموعد --}}
@@ -43,6 +60,7 @@
             </div>
         </section>
         <section class="vl-cell" data-column="date">
+            @php $slotPick = ($canSchedule ?? false) && \App\Services\Hourly\VisitBatchService::slotPickable($visit, $order); @endphp
             <h6><i class="fa fa-calendar"></i> موعد الزيارة</h6>
             @if($visit->scheduled_start_at)
                 <div class="vl-when"><b>{{ $visit->scheduled_start_at->translatedFormat('l') }}</b> <span class="vl-num" dir="ltr">{{ $visit->scheduled_start_at->format('Y-m-d') }}</span></div>
@@ -50,10 +68,12 @@
             @else
                 <div class="vl-warn">لم يحدد الموعد</div>
             @endif
+            {{-- الزيارة بلا موعد أو القادمة تُجدول من نافذة المواعيد المتاحة بدل زري التاريخ والوقت. --}}
+            @include('admin.hourly_visits._schedule-button')
             @if($canEdit)
                 <div class="vl-acts">
-                    <button type="button" class="vl-act" data-single="reschedule" data-id="{{ $visit->id }}"><i class="fa fa-calendar-days"></i> التاريخ</button>
-                    <button type="button" class="vl-act" data-single="start_time" data-id="{{ $visit->id }}"><i class="fa fa-clock"></i> الوقت</button>
+                    @if(!$visit->has_started_execution && !$slotPick)<button type="button" class="vl-act" data-single="reschedule" data-id="{{ $visit->id }}"><i class="fa fa-calendar-days"></i> التاريخ</button>@endif
+                    @if(!$visit->has_started_execution && !$slotPick)<button type="button" class="vl-act" data-single="start_time" data-id="{{ $visit->id }}"><i class="fa fa-clock"></i> الوقت</button>@endif
                     <button type="button" class="vl-act" data-single="note" data-id="{{ $visit->id }}"><i class="fa fa-note-sticky"></i> مذكرة</button>
                 </div>
             @endif
@@ -63,7 +83,7 @@
         <section class="vl-cell" data-column="duration">
             <h6><i class="fa fa-hourglass-half"></i> المدة</h6>
             <div class="vl-big vl-num">{{ rtrim(rtrim(number_format((float) $visit->planned_hours, 2), '0'), '.') }} <small>ساعات</small></div>
-            @if($canPrice && $canEdit)<div class="vl-acts"><button type="button" class="vl-act" data-single="duration" data-id="{{ $visit->id }}"><i class="fa fa-pen"></i> تغيير المدة</button></div>@endif
+            @if($canPrice && $canEdit)<div class="vl-acts">@if(!$visit->has_started_execution)<button type="button" class="vl-act" data-single="duration" data-id="{{ $visit->id }}"><i class="fa fa-pen"></i> تغيير المدة</button>@endif</div>@endif
         </section>
         <section class="vl-cell" data-column="price">
             <h6><i class="fa fa-tag"></i> السعر شامل الضريبة</h6>
@@ -75,7 +95,7 @@
         </section>
         <section class="vl-cell" data-column="status">
             <h6><i class="fa fa-signal"></i> حالة العملية</h6>
-            <span class="vl-badge {{ $toneClass }}">{{ \App\Services\Hourly\VisitSearch::STATUSES[$visit->status] ?? $visit->status }}</span>
+            <span class="vl-badge {{ $toneClass }}">{{ \App\Services\Hourly\VisitSearch::STATUSES[$visit->display_status] ?? $visit->status }}</span>
             <div class="vl-progress" aria-label="العاملات المعيّنات {{ $assignedCount }} من {{ $visit->workers_count }}">
                 <span style="width: {{ $visit->workers_count ? min(100, round($assignedCount / $visit->workers_count * 100)) : 100 }}%"></span>
             </div>
@@ -132,6 +152,7 @@
                     </span>
                 </div>
             @endforeach
+            @if($canEdit)@include('admin.hourly._driver-suggestion', ['order' => $visit->order])@endif
         </section>
     </div>
 
@@ -139,13 +160,26 @@
         <div class="vl-foot-main">
             @if($canEdit && !in_array($visit->status, \App\Services\Hourly\VisitSearch::CLOSED))
                 <button type="button" class="vl-btn is-success" data-single="complete" data-id="{{ $visit->id }}"><i class="fa fa-circle-check"></i> إكمال</button>
-                <button type="button" class="vl-btn is-danger" data-single="cancel_visit" data-id="{{ $visit->id }}"><i class="fa fa-ban"></i> إلغاء الزيارة</button>
+                @if(!$visit->has_started_execution)<button type="button" class="vl-btn is-danger" data-single="cancel_visit" data-id="{{ $visit->id }}"><i class="fa fa-ban"></i> إلغاء الزيارة</button>@endif
             @endif
             <div class="dropdown">
                 <button type="button" class="vl-btn is-primary dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false"><i class="fa fa-money-bill-wave"></i> الدفع</button>
-                <ul class="dropdown-menu">
-                    @if($canCollect)<li><button type="button" class="dropdown-item" data-single="collect" data-id="{{ $visit->id }}"><i class="fa fa-plus"></i> إضافة دفعة</button></li>@endif
-                    <li><button type="button" class="dropdown-item" data-payments-url="{{ route('admin.hourly-visits.payments', $visit) }}"><i class="fa fa-clock-rotate-left"></i> سجل الدفعات</button></li>
+                @php $collectable = $collectables[$visit->id] ?? 0; @endphp
+                <ul class="dropdown-menu vl-pay-menu">
+                    <li class="vl-pay-summary">
+                        <div><span>مدفوع للزيارة</span><b class="vl-num">{{ number_format($visitPaid, 2) }} <small>ر.س</small></b></div>
+                        <div class="{{ $collectable > 0 ? 'is-due' : '' }}"><span>مستحق للتحصيل</span><b class="vl-num">{{ number_format($collectable, 2) }} <small>ر.س</small></b></div>
+                    </li>
+                    @if($canCollect && $collectable > 0)
+                        <li><button type="button" class="dropdown-item vl-pay-item" data-single="collect" data-id="{{ $visit->id }}">
+                            <span class="vl-pay-icon is-add"><i class="fa fa-plus"></i></span>
+                            <span><b>إضافة دفعة</b><small>تسجيل مبلغ محصَّل لهذه الزيارة</small></span>
+                        </button></li>
+                    @endif
+                    <li><button type="button" class="dropdown-item vl-pay-item" data-payments-url="{{ route('admin.hourly-visits.payments', $visit) }}">
+                        <span class="vl-pay-icon"><i class="fa fa-clock-rotate-left"></i></span>
+                        <span><b>سجل الدفعات</b><small>كل الدفعات وطرق الدفع والمحصِّلين</small></span>
+                    </button></li>
                 </ul>
             </div>
         </div>

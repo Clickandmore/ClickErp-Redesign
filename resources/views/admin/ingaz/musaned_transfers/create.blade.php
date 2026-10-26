@@ -217,7 +217,7 @@
                                         <th>رقم مساند</th>
                                         <th>قيمة الفاتورة</th>
                                         <th>المبلغ المحول من مساند</th>
-                                        <th>عمولة مساند</th>
+                                        <th>التكاليف البنكية</th>
                                         <th>ضريبة المصروفات</th>
                                         <th>صافي العمولة</th>
                                         <th class="text-center">حذف</th>
@@ -593,7 +593,9 @@
                         row.innerHTML = `
                             <td>
                                 ${hiddenSourceInput}
+                                <input type="hidden" name="items[${index}][invoice_id]" value="${option.invoice_id}">
                                 <div class="fw-semibold">${sourceText}</div>
+                                <small class="text-muted">فاتورة #${option.invoice_id}</small>
                             </td>
                             <td>${option.client_name}</td>
                             <td>${option.msaned_number}</td>

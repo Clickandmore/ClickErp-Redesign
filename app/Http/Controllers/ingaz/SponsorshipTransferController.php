@@ -1734,7 +1734,7 @@ class SponsorshipTransferController extends Controller
             }
 
             $hasActiveRental = $contract->maid?->rentalContracts()
-                ->whereIn('status', \App\Services\RentalShelterPresenceService::OUTSIDE_RENTAL_STATUSES)
+                ->whereIn('status', \App\Services\RentalShelterPresenceService::OUTSIDE_RENTAL_STATUSES)->holdingMaid()
                 ->exists() ?? false;
 
             if ($hasActiveRental) {
@@ -1816,6 +1816,7 @@ class SponsorshipTransferController extends Controller
         $validated = $request->validate([
             'failure_reason' => 'nullable|string|max:1000',
             'failure_settlement_type' => 'nullable|in:refund',
+            'failure_refund_method' => 'nullable|in:bank,cash',
             'failure_settlement_amount' => 'nullable|numeric|min:0',
             'failure_clear_remaining_amount' => 'nullable|numeric|min:0',
             'failure_client_iban' => 'nullable|string|max:34',
@@ -1872,13 +1873,33 @@ class SponsorshipTransferController extends Controller
                 ]);
             }
 
-            if ($settlementAmount > 0 && empty($validated['failure_client_iban']) && !$request->hasFile('failure_client_iban_attachment')) {
+            // طريقة الاسترجاع: بنكي (الافتراضي، يتطلب الآيبان) أو نقدي من الصندوق
+            $refundMethod = $validated['failure_refund_method'] ?? 'bank';
+            if ($settlementAmount > 0) {
+                $refundAccount = \Nami\Finance\Models\Account::query()->find($validated['refund_account_id']);
+                $isCashBox = $refundAccount
+                    && (int) $refundAccount->getRawOriginal('type') === \Nami\Finance\Enums\AccountTypesEnum::Box->value;
+
+                if ($refundMethod === 'cash' && !$isCashBox) {
+                    throw ValidationException::withMessages([
+                        'refund_account_id' => 'عند السداد النقدي يجب اختيار صندوق كحساب الصرف.',
+                    ]);
+                }
+
+                if ($refundMethod === 'bank' && $isCashBox) {
+                    throw ValidationException::withMessages([
+                        'refund_account_id' => 'عند السداد البنكي يجب اختيار حساب بنك وليس صندوقاً.',
+                    ]);
+                }
+            }
+
+            if ($refundMethod === 'bank' && $settlementAmount > 0 && empty($validated['failure_client_iban']) && !$request->hasFile('failure_client_iban_attachment')) {
                 throw ValidationException::withMessages([
                     'failure_client_iban' => 'عند وجود مبلغ استرجاع يجب إدخال آيبان العميل أو إرفاق مرفق الآيبان.',
                 ]);
             }
 
-            $ibanAttachmentPath = $request->hasFile('failure_client_iban_attachment')
+            $ibanAttachmentPath = $refundMethod === 'bank' && $request->hasFile('failure_client_iban_attachment')
                 ? app(ManagedFileStorage::class)->uploadFile(
                     $request->file('failure_client_iban_attachment'),
                     'sponsorship-transfers/failure-settlements/iban'
@@ -1911,10 +1932,12 @@ class SponsorshipTransferController extends Controller
                 'failure_settlement_type' => $settlementType,
                 'failure_settlement_amount' => $settlementAmount,
                 'failure_clear_remaining_amount' => $clearRemainingAmount,
-                'failure_client_iban' => $validated['failure_client_iban'] ?? null,
+                'failure_client_iban' => $refundMethod === 'bank' ? ($validated['failure_client_iban'] ?? null) : null,
                 'failure_client_iban_attachment_path' => $ibanAttachmentPath,
                 'remaining_amount' => max(0, $remainingAmount - $clearRemainingAmount),
-            ]);
+            ] + (\Illuminate\Support\Facades\Schema::hasColumn('sponsorship_transfers', 'failure_refund_method')
+                ? ['failure_refund_method' => $settlementAmount > 0 ? $refundMethod : null]
+                : []));
 
             $refundBond = null;
             if ($settlementAmount > 0) {

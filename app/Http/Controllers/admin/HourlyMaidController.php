@@ -12,6 +12,7 @@ class HourlyMaidController extends Controller
 {
     public function loginAs(Request $request, Maid $maid)
     {
+        abort_unless(AdminGuardHasPerm('hourly_maids_impersonate'),403);
         $this->assertHourly($maid);
         $account = \App\Models\Hourly\HourlyMaidAccount::findOrFail($maid->id);
         if (!$account->canLoginVia('web') || $maid->hourly_is_suspended) {
@@ -49,8 +50,45 @@ class HourlyMaidController extends Controller
             : null;
         $services=\App\Models\Hourly\HourlyServiceCategory::ordered()->get();
         $canEdit=AdminGuardHasPerm('hourly_maids_edit');
+        // بطاقة «غير معروضة للحجز» في رأس الصفحة فقط؛ تبويبات AJAX لا تعرضها.
+        $bookability=$request->ajax() ? null : app(\App\Services\Hourly\WorkerBookability::class)->report($maid);
+        // Return hold left on a visit (e.g. the visit closed but her visit row stayed "finished"): confirmed from here.
+        $returnHold=$request->ajax() ? null : (\App\Services\Hourly\OverdueWorkerReturn::pending((int)$maid->id)[$maid->id] ?? null);
+        if($returnHold)$returnHold['visit']=\App\Models\Hourly\HourlyVisit::with('order:id,order_number')->find($returnHold['visit_id']);
+        $canReturn=AdminGuardHasPerm('hourly_maids_view') && $canEdit;
         // التنقّل بين التبويبات يجلب محتوى التبويب وحده دون هيكل الصفحة.
-        return view($request->ajax() ? 'admin.hourly_maids._tab' : 'admin.hourly_maids.show',compact('maid','tab','tabs','stats','visits','orders','logs','leaves','services','canEdit'));
+        return view($request->ajax() ? 'admin.hourly_maids._tab' : 'admin.hourly_maids.show',compact('maid','tab','tabs','stats','visits','orders','logs','leaves','services','canEdit','bookability','returnHold','canReturn'));
+    }
+
+    /** Release a return hold left on a visit; visit status and amounts stay untouched. */
+    public function returnFromVisit(Request $request, Maid $maid, int $visit)
+    {
+        $this->assertHourly($maid);
+        abort_unless(AdminGuardHasPerm('hourly_maids_view') && AdminGuardHasPerm('hourly_maids_edit'),403);
+        $data=$request->validate(['confirmed_return'=>['required','accepted'],'reason'=>['required','string','max:1000']]);
+        $admin=(int)auth('admin')->id();
+        DB::transaction(function()use($maid,$visit,$data,$admin){
+            $row=DB::table('hourly_visit_workers')->where('hourly_visit_id',$visit)->where('maid_id',$maid->id)->lockForUpdate()->first();
+            $hold=\App\Services\Hourly\OverdueWorkerReturn::pending((int)$maid->id)[$maid->id] ?? null;
+            abort_unless($hold && $hold['visit_id']===$visit,404,'لا توجد عودة معلّقة لهذه العاملة على هذه الزيارة.');
+            if($row)DB::table('hourly_visit_workers')->where('id',$row->id)->whereIn('status',['delivered','finished','picked_up'])
+                ->update(['status'=>'returned','updated_at'=>now()]);
+            $model=\App\Models\Hourly\HourlyVisit::find($visit);
+            if($model)app(\App\Services\Hourly\ShelterPresence::class)->closeWorker($model,(int)$maid->id,'admin',$admin);
+            // Movement whose visit was deleted: close it directly.
+            if(\Illuminate\Support\Facades\Schema::hasTable('worker_daily_movements'))DB::table('worker_daily_movements')->where('maid_id',$maid->id)
+                ->where('source','hourly_visit')->where('reference_type','hourly_visit')->where('reference_id',$visit)->whereNull('in_at')
+                ->update(['in_at'=>now(),'status'=>'returned','in_by_type'=>'admin','in_by_id'=>$admin,'updated_at'=>now()]);
+            activity('hourly_shelter_return')->causedBy(auth('admin')->user())->performedOn($maid)
+                ->withProperties(['visit_id'=>$visit,'worker_status_before'=>$row->status??null,'reason'=>$data['reason'],'confirmed_at'=>now()->toIso8601String()])
+                ->log('تأكيد عودة عاملة ساعات إلى الإيواء');
+            if($model && \Illuminate\Support\Facades\Schema::hasTable('hourly_order_audits'))DB::table('hourly_order_audits')->insert([
+                'hourly_rental_order_id'=>$model->hourly_rental_order_id,'visit_id'=>$visit,'admin_id'=>$admin,'action'=>'worker_return_confirmed',
+                'reason'=>$data['reason'],'before'=>json_encode(['maid_id'=>(int)$maid->id,'worker_status'=>$row->status??null]),
+                'after'=>json_encode(['maid_id'=>(int)$maid->id,'worker_status'=>'returned']),'created_at'=>now(),'updated_at'=>now()]);
+        });
+        app(\App\Services\Hourly\ShelterPresence::class)->flush();
+        return back()->with('success','تم تسجيل عودة العاملة إلى الإيواء من الزيارة #'.$visit.'، ورُفع منع الحجز المرتبط بها.');
     }
 
     public function leaveStatus(Request $request, Maid $maid, int $leave)
@@ -160,18 +198,22 @@ class HourlyMaidController extends Controller
     public function index(Request $request)
     {
         $data=$request->validate([
-            'search'=>['nullable','string','max:150'],'state'=>['nullable','in:waiting,arrived,inside,ready,out_now'],'per_page'=>['nullable','in:10,25,50,100'],
+            'search'=>['nullable','string','max:150'],'state'=>['nullable','in:waiting,arrived,inside,ready,out_now,available_now,return_overdue'],'per_page'=>['nullable','in:10,25,50,100'],
             'attribute_id'=>['nullable','integer'],'team_id'=>['nullable','integer'],'nationality_id'=>['nullable','integer'],'availability'=>['nullable','in:available,suspended'],
         ]);
         // Do not use forJobType(): its arrival gate hides workers still in recruitment.
         $rentalTypeId=RentalMaidQuery::rentalJobTypeId();
         $base=Maid::query()->where('rental_mode','hourly')->whereHas('jobTypes',fn($q)=>$q->where('job_types.id',$rentalTypeId));
         $ready=RentalMaidQuery::applyNoActiveRental(RentalMaidQuery::applyReadyForRental(RentalMaidQuery::applyArrivalGate(clone $base)))->where('hourly_is_suspended',false);
+        $overdueReturns=\App\Services\Hourly\OverdueWorkerReturn::pending();
+        $ready->whereNotIn('maids.id',array_keys($overdueReturns));
+        $overdueCount=(clone $base)->whereIn('maids.id',array_keys($overdueReturns))->count();
         $waiting=fn($q)=>$q->where('rental_source','outside')->whereNull('arrival_date')->whereDoesntHave('insideShelterContract');
         // الخروج اللحظي يُقرأ من حالة الزيارة لا من عقد الإيواء: العقد يبقى ساريًا طوال الزيارة.
         $presence=app(\App\Services\Hourly\ShelterPresence::class);
-        $outNow=$presence->outNow();
-        $stats=['total'=>(clone $base)->count(),'waiting'=>$waiting(clone $base)->count(),'inside'=>RentalMaidQuery::applyInsideShelter(clone $base)->count(),'ready'=>(clone $ready)->count(),'out_now'=>count($outNow)];
+        // صفحة الساعات تعرض الزيارة الجارية دائمًا؛ مفتاح الربط يخص شاشات الإيواء فقط.
+        $outNow=$presence->inVisitNow();
+        $stats=['total'=>(clone $base)->count(),'waiting'=>$waiting(clone $base)->count(),'inside'=>RentalMaidQuery::applyInsideShelter(clone $base)->count(),'ready'=>(clone $ready)->count(),'out_now'=>count($outNow),'available_now'=>(clone $ready)->whereNotIn('maids.id',array_keys($outNow) ?: [0])->count()];
         $query=clone $base;
         if(!empty($data['attribute_id']))$query->whereHas('productAttributes',fn($q)=>$q->where('hourly_product_attributes.id',$data['attribute_id']));
         if (!empty($data['search'])) {
@@ -182,15 +224,33 @@ class HourlyMaidController extends Controller
         if (!empty($data['nationality_id'])) $query->where('nationality_id',$data['nationality_id']);
         if (!empty($data['availability'])) $query->where('hourly_is_suspended',$data['availability']==='suspended');
         switch ($data['state'] ?? '') {
+            case 'return_overdue': $query->whereIn('maids.id',array_keys($overdueReturns)); break;
             case 'waiting': $waiting($query); break;
             case 'arrived': $query->whereNotNull('arrival_date'); break;
             case 'inside': RentalMaidQuery::applyInsideShelter($query); break;
             case 'ready': $query->whereIn('maids.id',(clone $ready)->select('maids.id')); break;
             case 'out_now': $query->whereIn('maids.id',array_keys($outNow) ?: [0]); break;
+            case 'available_now': $query->whereIn('maids.id',(clone $ready)->whereNotIn('maids.id',array_keys($outNow) ?: [0])->select('maids.id')); break;
         }
-        $maids=$query->with(['nationality','hourlyTeamMemberships.team','autoRecruitmentContract'])
+        $maids=$query->with(['nationality','hourlyTeamMemberships.team','autoRecruitmentContract','insideShelterContract.info','insideShelterContract.travelHistory'])
             ->withCount(['contracts as inside_shelter_count'=>fn($q)=>$q->insideShelter()])
             ->orderByDesc('id')->paginate((int)($data['per_page'] ?? 25))->withQueryString();
+        $shelterExceptionHints=[];
+        foreach ($maids as $maid) {
+            if (!$maid->inside_shelter_count) continue;
+            $contract=$maid->insideShelterContract;
+            $hints=[];
+            if (!$contract || !$contract->info) {
+                $hints[]='بيانات عقد الإيواء غير مكتملة؛ أضف بيانات العقد ومكان الإيواء.';
+            } elseif (!$contract->info->shelter_id) {
+                $hints[]='مكان الإيواء غير محدد في بيانات العقد.';
+            }
+            $arrivalDate=$contract?->info?->arrival_date ?: ($maid->arrival_date ?: $contract?->travelHistory?->arrival_date);
+            if ($maid->rental_source==='outside' && !$arrivalDate) {
+                $hints[]='تاريخ الوصول غير مسجل في العقد أو ملف العاملة أو سجل السفر.';
+            }
+            if ($hints) $shelterExceptionHints[$maid->id]=implode(' ', $hints);
+        }
         $readyIds=(clone $ready)->whereIn('maids.id',$maids->pluck('id'))->pluck('maids.id')->all();
         $suspendedCount=(clone $base)->where('hourly_is_suspended',true)->count();
         $filters=array_filter($data,fn($v)=>$v!==null && $v!=='');
@@ -200,8 +260,9 @@ class HourlyMaidController extends Controller
         $attributes=\Illuminate\Support\Facades\Schema::hasTable('hourly_product_attributes')?\App\Models\Hourly\HourlyProductAttribute::whereNotNull('parent_id')->with(['parent','category'])->orderBy('sort_order')->get():collect();
         $allocatableMaids=$this->allocatableFromShelterQuery()
             ->with('nationality')->orderBy('name')->orderBy('id')->get();
-        return view('admin.hourly_maids.index',compact('maids','stats','readyIds','suspendedCount','filters','teams','nationalities','attributes','allocatableMaids','outNow')
-            +['shelterLinked'=>\App\Services\Hourly\ShelterPresence::linked()]);
+        return view('admin.hourly_maids.index',compact('maids','stats','readyIds','suspendedCount','filters','teams','nationalities','attributes','allocatableMaids','outNow','overdueReturns','overdueCount','shelterExceptionHints')
+            +['shelterLinked'=>\App\Services\Hourly\ShelterPresence::linked(),'visitsTracked'=>\App\Services\Hourly\ShelterPresence::tracked(),
+                'upcoming'=>$presence->upcomingSummary($maids->pluck('id')->all())]);
     }
 
     /** تخصيص عاملة تأجير جاهزة وموجودة فعليًا في الإيواء للعمل بنظام الساعات. */
@@ -211,40 +272,14 @@ class HourlyMaidController extends Controller
             'maid_id'=>['required','integer','exists:maids,id'],
         ], [], ['maid_id'=>'العاملة']);
 
-        $maid=DB::transaction(function () use ($data) {
-            $maid=$this->allocatableFromShelterQuery()
-                ->whereKey((int)$data['maid_id'])->lockForUpdate()->first();
-
-            if (!$maid) {
-                throw ValidationException::withMessages([
-                    'maid_id'=>'العاملة لم تعد متاحة للتخصيص. حدّث الصفحة واختر عاملة أخرى.',
-                ]);
-            }
-
-            app(\App\Services\Rental\RentalModeGuard::class)->assertHourlyConversion($maid);
-
-            $settings=$maid->hourly_settings ?? [];
-            $settings += [
-                'requires_driver'=>true,
-                'max_orders_per_hour'=>1,
-                'account_enabled'=>false,
-                'login_access'=>'both',
-                'work_schedule'=>array_fill_keys(
-                    array_keys(\App\Models\Hourly\HourlyDriver::DAYS),
-                    ['mode'=>'all_day','start'=>null,'end'=>null]
-                ),
-            ];
-
-            $maid->forceFill([
-                'rental_mode'=>'hourly',
-                'hourly_username'=>$maid->hourly_username ?: 'HM-'.$maid->id,
-                'hourly_settings'=>$settings,
-                'hourly_is_suspended'=>false,
-                'hourly_auth_version'=>((int)$maid->hourly_auth_version)+1,
-            ])->save();
-
-            return $maid;
-        });
+        $maid=Maid::findOrFail((int)$data['maid_id']);
+        if (!$this->allocatableFromShelterQuery()->whereKey($maid->id)->exists()) {
+            throw ValidationException::withMessages([
+                'maid_id'=>'العاملة لم تعد متاحة للتخصيص. حدّث الصفحة واختر عاملة أخرى.',
+            ]);
+        }
+        // الخدمة تعيد الفحص داخل قفل المعاملة، وتشمل العقد النشط في أي فرع.
+        $maid=app(\App\Services\Rental\RentalModeSwitcher::class)->toHourly($maid);
 
         return redirect()->route('admin.hourly-maids.show',$maid)
             ->with('success','تم تخصيص العاملة '.$maid->name.' لخدمة الساعات. أكمل إعداد الفريق والخدمات من ملفها.');
@@ -252,14 +287,7 @@ class HourlyMaidController extends Controller
 
     private function allocatableFromShelterQuery()
     {
-        $query=Maid::query()
-            ->whereHas('jobTypes',fn($q)=>$q->where('job_types.id',RentalMaidQuery::rentalJobTypeId()))
-            ->where(fn($q)=>$q->whereNull('rental_mode')->orWhere('rental_mode','!=','hourly'));
-
-        // لا تُعرض للتخصيص عاملة مرتبطة بعقد إيجار شهري نشط.
-        return RentalMaidQuery::applyNoActiveRental(RentalMaidQuery::applyReadyForRental(
-            RentalMaidQuery::applyArrivalGate($query)
-        ));
+        return app(\App\Services\Rental\RentalModeSwitcher::class)->hourlyCandidates();
     }
 
     public function availability(Request $request, Maid $maid)
@@ -270,10 +298,12 @@ class HourlyMaidController extends Controller
         $ready=RentalMaidQuery::applyNoActiveRental(RentalMaidQuery::applyReadyForRental(RentalMaidQuery::applyArrivalGate(Maid::query())))
             ->where('rental_mode','hourly')->where('hourly_is_suspended',false)
             ->whereHas('jobTypes',fn($q)=>$q->where('job_types.id',RentalMaidQuery::rentalJobTypeId()));
+        \App\Services\Hourly\OverdueWorkerReturn::exclude($ready);
+        $returnReason=\App\Services\Hourly\OverdueWorkerReturn::reason((int)$maid->id);
         $isReady=(clone $ready)->whereKey($maid->id)->exists();
         return response()->json([
-            'is_suspended'=>$maid->hourly_is_suspended,'is_ready'=>$isReady,'ready_count'=>$ready->count(),
-            'label'=>$maid->hourly_is_suspended ? 'معلّقة' : ($isReady ? 'متاحة للتأجير' : 'غير متاحة حاليًا'),
+            'return_hold_reason'=>$returnReason,'is_suspended'=>$maid->hourly_is_suspended,'is_ready'=>$isReady,'ready_count'=>$ready->count(),
+            'label'=>$maid->hourly_is_suspended ? 'معلّقة' : ($isReady ? 'متاحة للتأجير' : ($returnReason ? 'عودة متأخرة — غير متاحة للحجز' : 'غير متاحة حاليًا')),
             'message'=>$maid->hourly_is_suspended ? 'تم تعليق إتاحة العاملة للساعات.' : ($isReady ? 'تمت إتاحة العاملة للساعات.' : 'تم رفع التعليق؛ الإتاحة تنتظر استيفاء شروط الوصول والإيواء وجاهزية التأجير.'),
         ]);
     }

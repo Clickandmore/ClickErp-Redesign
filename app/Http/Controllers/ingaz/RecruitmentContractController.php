@@ -1819,13 +1819,12 @@ class RecruitmentContractController extends Controller
                                         <i class="fas fa-money-bill-transfer"></i> استكمال العمليات المالية
                                     </a></li>';
                     }
-                    if (!$invoice) {
-                        if ($row->isInvoiceEligible() && InvoiceAuthorization::canCreate()) {
+                    if ($row->isInvoiceEligible() && InvoiceAuthorization::canCreate() && !$row->blockingInvoices()->exists()) {
                             $actions .= '<li><a class="dropdown-item" href="' . route('invoices.create') . '?contract_id=' . $row->id . '" target="_blank">
                                         <i class="fas fa-file-invoice"></i> اضافة فاتورة
                                     </a></li>';
-                        }
-                    } elseif ($invoice->musanedTransferItem && $invoice->musanedTransferItem->transfer) {
+                    }
+                    if ($invoice && $invoice->musanedTransferItem && $invoice->musanedTransferItem->transfer) {
                         $musanedTransfer = $invoice->musanedTransferItem->transfer;
                         $actions .= '<li><a class="dropdown-item" href="' . e(route('musaned-transfers.show', $musanedTransfer->id)) . '">
                                     <i class="fas fa-money-bill-transfer"></i> عرض تحويل مساند
@@ -2586,10 +2585,10 @@ class RecruitmentContractController extends Controller
     private function collectRecruitmentContractDocuments(Contract $contract): array
     {
         $contract->loadMissing([
-            'invoice.financeSale',
-            'invoice.recruitmentCreditNotes.constraint',
-            'invoice.recruitmentCreditNotes.financeSale',
-            'invoice.musanedTransferItem.transfer',
+            'invoices.financeSale',
+            'invoices.recruitmentCreditNotes.constraint',
+            'invoices.recruitmentCreditNotes.financeSale',
+            'invoices.musanedTransferItem.transfer',
             'recruitmentRefund.refundConstraint',
             'externalOfficeDispatch',
             'financeBonds',
@@ -2609,27 +2608,32 @@ class RecruitmentContractController extends Controller
             ];
         };
 
-        if ($contract->invoice) {
+        foreach ($contract->invoices->sortByDesc('id') as $invoice) {
+            $invoiceNumber = $invoice->legacy_invoice_number ?: $invoice->id;
+            $invoiceLabel = ($invoice->id === $contract->invoice?->id ? 'الفاتورة الحالية #' : 'فاتورة سابقة #') . $invoiceNumber;
+            $addInvoiceDocument = function (string $key, string $label, string $url, string $icon) use ($addFinancialDocument, $invoice, $invoiceLabel) {
+                $addFinancialDocument($key . '-invoice-' . $invoice->id, $label . ' — ' . $invoiceLabel, $url, $icon);
+            };
             if (InvoiceAuthorization::canView()) {
-                $addFinancialDocument('invoice-view', 'عرض الفاتورة', route('invoices.show', $contract->invoice->id), 'fas fa-file-invoice');
+                $addInvoiceDocument('invoice-view', 'عرض الفاتورة', route('invoices.show', $invoice->id), 'fas fa-file-invoice');
             }
             if (InvoiceAuthorization::canPrint()) {
-                $addFinancialDocument('invoice-download', 'طباعة / حفظ الفاتورة PDF', route('invoice.download', ['id' => $contract->invoice->id, 'autoprint' => 1]), 'fas fa-download');
+                $addInvoiceDocument('invoice-download', 'طباعة / حفظ الفاتورة PDF', route('invoice.download', ['id' => $invoice->id, 'autoprint' => 1]), 'fas fa-download');
             }
 
-            if ($contract->invoice->invoice_constraint_id) {
-                $addFinancialDocument('invoice-constraint', 'القيد المالي للفاتورة', route('finance.add-constraint.show', [
-                    'add_constraint' => $contract->invoice->invoice_constraint_id,
+            if ($invoice->invoice_constraint_id) {
+                $addInvoiceDocument('invoice-constraint', 'القيد المالي للفاتورة', route('finance.add-constraint.show', [
+                    'add_constraint' => $invoice->invoice_constraint_id,
                 ]), 'fas fa-book');
             }
 
-            if ($contract->invoice->finance_sale_id) {
-                $addFinancialDocument('finance-sale', 'فاتورة المبيعات المحاسبية', route('finance.bill-sales.show', $contract->invoice->finance_sale_id), 'fas fa-file-lines');
+            if ($invoice->finance_sale_id) {
+                $addInvoiceDocument('finance-sale', 'فاتورة المبيعات المحاسبية', route('finance.bill-sales.show', $invoice->finance_sale_id), 'fas fa-file-lines');
             }
 
             if (InvoiceAuthorization::canPrintCreditNotes()) {
-                foreach ($contract->invoice->recruitmentCreditNotes as $creditNote) {
-                    $addFinancialDocument(
+                foreach ($invoice->recruitmentCreditNotes as $creditNote) {
+                    $addInvoiceDocument(
                         'invoice-credit-note-' . $creditNote->id,
                         'إشعار دائن #' . $creditNote->id . ' — ' . number_format((float) $creditNote->total, 2) . ' ريال',
                         route('recruitment-credit-notes.download', ['id' => $creditNote->id, 'autoprint' => 1]),
@@ -2637,43 +2641,62 @@ class RecruitmentContractController extends Controller
                     );
 
                     if ($creditNote->constraint_id) {
-                        $addFinancialDocument(
+                        $addInvoiceDocument(
                             'invoice-credit-note-constraint-' . $creditNote->id,
                             'قيد إشعار الدائن #' . $creditNote->id,
                             route('finance.add-constraint.show', ['add_constraint' => $creditNote->constraint_id]),
                             'fas fa-book-open'
                         );
                     }
+                    if ($creditNote->finance_sale_id) {
+                        $addInvoiceDocument(
+                            'invoice-credit-note-sale-' . $creditNote->id,
+                            'المستند المحاسبي لإشعار الدائن #' . $creditNote->id,
+                            route('finance.bill-sales.show', $creditNote->finance_sale_id),
+                            'fas fa-file-lines'
+                        );
+                    }
                 }
             }
 
-            if ($contract->invoice->arrival_revenue_constraint_id) {
-                $addFinancialDocument('invoice-arrival-revenue-constraint', 'قيد إيراد الوصول', route('finance.add-constraint.show', [
-                    'add_constraint' => $contract->invoice->arrival_revenue_constraint_id,
+            foreach ([
+                'ingaz_delegation_cost_constraint_id' => 'قيد تكلفة التفويض',
+                'musaned_commission_constraint_id' => 'قيد عمولة مساند',
+            ] as $field => $label) {
+                if ($invoice->{$field}) {
+                    $addInvoiceDocument($field, $label, route('finance.add-constraint.show', [
+                        'add_constraint' => $invoice->{$field},
+                    ]), 'fas fa-book');
+                }
+            }
+
+            if ($invoice->arrival_revenue_constraint_id) {
+                $addInvoiceDocument('invoice-arrival-revenue-constraint', 'قيد إيراد الوصول', route('finance.add-constraint.show', [
+                    'add_constraint' => $invoice->arrival_revenue_constraint_id,
                     'autoprint' => 1,
                 ]), 'fas fa-book');
             }
 
-            if ($contract->invoice->external_office_cost_constraint_id) {
-                $addFinancialDocument('invoice-office-cost-constraint', 'قيد تكلفة المكتب الخارجي', route('finance.add-constraint.show', [
-                    'add_constraint' => $contract->invoice->external_office_cost_constraint_id,
+            if ($invoice->external_office_cost_constraint_id) {
+                $addInvoiceDocument('invoice-office-cost-constraint', 'قيد تكلفة المكتب الخارجي', route('finance.add-constraint.show', [
+                    'add_constraint' => $invoice->external_office_cost_constraint_id,
                     'autoprint' => 1,
                 ]), 'fas fa-book-open');
             }
 
-            $transfer = $contract->invoice->musanedTransferItem?->transfer;
+            $transfer = $invoice->musanedTransferItem?->transfer;
             if ($transfer) {
-                $addFinancialDocument('musaned-transfer', 'تحويل مساند', route('musaned-transfers.show', $transfer->id), 'fas fa-money-bill-transfer');
+                $addInvoiceDocument('musaned-transfer', 'تحويل مساند', route('musaned-transfers.show', $transfer->id), 'fas fa-money-bill-transfer');
 
                 if ($transfer->settlement_constraint_id) {
-                    $addFinancialDocument('musaned-settlement-constraint', 'قيد تسوية مساند', route('finance.add-constraint.show', [
+                    $addInvoiceDocument('musaned-settlement-constraint', 'قيد تسوية مساند', route('finance.add-constraint.show', [
                         'add_constraint' => $transfer->settlement_constraint_id,
                         'autoprint' => 1,
                     ]), 'fas fa-book');
                 }
 
                 if ($transfer->bank_transfer_constraint_id) {
-                    $addFinancialDocument('musaned-bank-transfer-constraint', 'قيد تحويل البنك لمساند', route('finance.add-constraint.show', [
+                    $addInvoiceDocument('musaned-bank-transfer-constraint', 'قيد تحويل البنك لمساند', route('finance.add-constraint.show', [
                         'add_constraint' => $transfer->bank_transfer_constraint_id,
                         'autoprint' => 1,
                     ]), 'fas fa-book-open');
@@ -2823,6 +2846,13 @@ class RecruitmentContractController extends Controller
             'contract_info_value' => (float) ($contract->info?->contract_value ?? 0),
             'finance_sale_id' => $invoice?->finance_sale_id,
             'musaned_transfer_id' => $transferItem?->musaned_transfer_id,
+            'invoice_constraint_id' => $invoice?->invoice_constraint_id,
+            'receipt_constraint_id' => $confirmedReceiptBonds->first()?->constraint_id,
+            // في وضع «قيدان بدل ثلاثة» العمولة داخل قيد سند القبض، فلا يُعرض زر مكرر.
+            'musaned_commission_constraint_id' => $invoice?->musaned_commission_constraint_id
+                && (int) $invoice->musaned_commission_constraint_id !== (int) ($confirmedReceiptBonds->first()?->constraint_id ?? 0)
+                ? $invoice->musaned_commission_constraint_id
+                : null,
             'arrival_revenue_constraint_id' => $invoice?->arrival_revenue_constraint_id,
             'external_office_cost_constraint_id' => $invoice?->external_office_cost_constraint_id,
             'external_office_purchase_id' => $invoice?->external_office_purchase_id,

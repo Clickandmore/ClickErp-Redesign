@@ -58,7 +58,7 @@
         .field > span { display: flex; align-items: center; gap: 6px; font-size: 11.5px; font-weight: 700; color: var(--muted); margin-bottom: 6px; text-transform: uppercase; letter-spacing: .3px; }
         .control { height: 42px; width: 100%; border-radius: 12px; border: 1px solid var(--line); background: #fff; padding: 0 12px; display: flex; align-items: center; gap: 8px; cursor: pointer; transition: border-color .15s, box-shadow .15s; }
         .control:hover, .control:focus-within, .control.is-open { border-color: #93c5fd; box-shadow: 0 0 0 4px rgba(59, 130, 246, .12); }
-        .control input[type=date] { border: 0; outline: 0; background: none; width: 100%; height: 100%; cursor: pointer; }
+        .control input[type=date], .control .df-date-input { border: 0; outline: 0; background: none; width: 100%; height: 100%; cursor: pointer; }
         .control .caret { margin-inline-start: auto; color: var(--muted); font-size: 11px; }
         .control .value { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-weight: 600; }
 

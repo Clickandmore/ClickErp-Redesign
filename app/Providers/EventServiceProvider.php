@@ -34,6 +34,9 @@ class EventServiceProvider extends ServiceProvider
      */
     public function boot()
     {
+        \App\Models\ingaz\Notification::observe(\App\Observers\MessageAuditObserver::class);
+        \App\Models\AdminNotification::observe(\App\Observers\MessageAuditObserver::class);
+        $this->app->extend('mail.manager', fn ($manager, $app) => new \App\Support\AuditedMailManager($app));
         $this->app->singleton(\App\Support\Audit\ExecutionContext::class);
         Event::listen(\Illuminate\Console\Events\CommandStarting::class, function ($event) {
             app(\App\Support\Audit\ExecutionContext::class)->start($event->command);

@@ -11,20 +11,26 @@ class HourlyPaymentService
 {
     public function __construct(private MoyasarService $gateway, private HourlyOrderService $orders) {}
 
-    public function initiate(HourlyRentalOrder $order, bool $website = false): HourlyOrderPayment
+    /**
+     * $returnUrl: صفحة عودة الموقع الخارجي بعد ميسر؛ يُلحق بها معرّف الدفعة (payment). بدونه تبقى العودة كما كانت.
+     */
+    public function initiate(HourlyRentalOrder $order, bool $website = false, ?string $returnUrl = null): HourlyOrderPayment
     {
         HourlyOrderService::enabled();
         // Keep the order lock through invoice creation so concurrent requests cannot create two links.
-        return DB::transaction(function () use ($order, $website) {
+        return DB::transaction(function () use ($order, $website, $returnUrl) {
             $order = HourlyRentalOrder::query()->lockForUpdate()->findOrFail($order->id);
             $this->payable($order);
+            if($this->dueNow($order)<=0)HourlyOrderService::reject('لا يوجد مبلغ مستحق الآن وفق سياسة الدفع.');
             if ($order->payment_method !== 'moyasar') HourlyOrderService::reject('طريقة الدفع المختارة ليست ميسر.');
             $existing = $order->payments()->whereIn('status',['pending','creating'])->first();
             if ($existing) return $existing;
-            $payment = $order->payments()->create(['user_id'=>$order->user_id,'public_id'=>(string) Str::uuid(),'method'=>'moyasar','provider'=>'moyasar','amount'=>$this->dueNow($order),'status'=>'creating']);
+            $payment = $order->payments()->create(['user_id'=>$order->user_id,'public_id'=>(string) Str::uuid(),'method'=>'moyasar','provider'=>'moyasar','amount'=>$this->dueNow($order),'status'=>'creating','provider_payload'=>['visit_allocations'=>app(PaymentScheduleService::class)->allocations($order,(int)round($this->dueNow($order)*100))]]);
             $result = $this->gateway->createPaymentLink((float) $payment->amount, 'Hourly rental '.$order->order_number,
                 route('api.hourly.moyasar.webhook'), ['hourly_payment_id'=>$payment->public_id],
-                route($website ? 'web.hourly.payment-return' : 'api.hourly.moyasar.callback', ['payment'=>$payment->public_id]));
+                $returnUrl
+                    ? $returnUrl.(str_contains($returnUrl, '?') ? '&' : '?').http_build_query(['payment'=>$payment->public_id])
+                    : route($website ? 'web.hourly.payment-return' : 'api.hourly.moyasar.callback', ['payment'=>$payment->public_id]));
             if (empty($result['id']) || empty($result['url'])) HourlyOrderService::reject('تعذر إنشاء رابط الدفع. حاول مجددًا.');
             $payment->update(['provider_reference'=>$result['id'],'payment_url'=>$result['url'],'status'=>'pending']);
             return $payment;
@@ -48,7 +54,7 @@ class HourlyPaymentService
             $refunded = max((float) $payment->refunded_amount, $snapshot['refunded']);
             $delta = round($refunded - (float) $payment->refunded_amount, 2);
             // Keep the original receipt and post each refund delta as a separate debit.
-            $payment->update(['status'=>'paid','paid_at'=>$payment->paid_at ?: now(),'provider_payload'=>$invoice,'refunded_amount'=>$refunded]);
+            $payment->update(['status'=>'paid','paid_at'=>$payment->paid_at ?: now(),'provider_payload'=>$invoice+['visit_allocations'=>$payment->provider_payload['visit_allocations']??[]],'refunded_amount'=>$refunded]);
             if ($delta > 0) {
                 $order->payments()->create([
                     'user_id'=>$payment->user_id, 'public_id'=>(string) Str::uuid(),
@@ -80,7 +86,10 @@ class HourlyPaymentService
                 $method = $data['method'] ?? null;
                 if (!in_array($method,['cash','card_on_delivery'],true)) HourlyOrderService::reject('حدد الجزء النقدي أو البطاقة لهذه الدفعة.');
             }
-            $payment = $order->payments()->create(['user_id'=>$order->user_id,'public_id'=>(string) Str::uuid(),'method'=>$method,'amount'=>$amount/100,'status'=>'paid','paid_at'=>$data['paid_at']??now(),'collected_by_type'=>'admin','collected_by_id'=>$adminId,'attachment_path'=>$data['attachment_path'] ?? null]);
+            $schedule=app(PaymentScheduleService::class);
+            if($schedule->policy($order)!=='legacy' && $amount>(int)round($schedule->forOrder($order)['due_now']*100))HourlyOrderService::reject('المبلغ يتجاوز المستحق الآن وفق سياسة الدفع؛ الزيارات والأقساط المستقبلية ليست مستحقة.');
+            $visitAllocations=$schedule->allocations($order,$amount);
+            $payment = $order->payments()->create(['user_id'=>$order->user_id,'public_id'=>(string) Str::uuid(),'method'=>$method,'amount'=>$amount/100,'status'=>'paid','paid_at'=>$data['paid_at']??now(),'collected_by_type'=>'admin','collected_by_id'=>$adminId,'attachment_path'=>$data['attachment_path'] ?? null,'provider_payload'=>['visit_allocations'=>$visitAllocations]]);
             $this->recalculate($order,'admin',$adminId);
             return $payment;
         });
@@ -92,6 +101,7 @@ class HourlyPaymentService
         return DB::transaction(function () use ($order,$attachmentPath,$referenceNumber) {
             $order=HourlyRentalOrder::query()->lockForUpdate()->findOrFail($order->id);
             $this->payable($order);
+            if($this->dueNow($order)<=0)HourlyOrderService::reject('لا يوجد مبلغ مستحق الآن وفق سياسة الدفع.');
             if($order->payment_method!=='bank_transfer') HourlyOrderService::reject('طريقة الدفع المختارة ليست تحويلًا بنكيًا.');
             if($order->payments()->where('method','bank_transfer')->where('status','pending_review')->exists()) {
                 HourlyOrderService::reject('يوجد إيصال تحويل قيد المراجعة بالفعل.');
@@ -106,6 +116,7 @@ class HourlyPaymentService
                 'provider_payload'=>array_filter([
                     'reference_number'=>$referenceNumber,
                     'submitted_at'=>now()->toIso8601String(),
+                    'visit_allocations'=>app(PaymentScheduleService::class)->allocations($order,(int)round($this->dueNow($order)*100)),
                 ],fn($value)=>$value!==null && $value!==''),
             ]);
             $order->update(['payment_status'=>'pending_review']);
@@ -172,11 +183,7 @@ class HourlyPaymentService
      */
     public function dueNow(HourlyRentalOrder $order): float
     {
-        $remaining = (int) round(($order->total_amount - $order->paid_amount) * 100);
-        $chargeNow = (int) round(((float) ($order->package_snapshot['charge_now'] ?? $order->total_amount)) * 100);
-        $paid = (int) round($order->paid_amount * 100);
-        $due = $paid < $chargeNow ? $chargeNow - $paid : $remaining;
-        return min($due, $remaining) / 100;
+        return app(PaymentScheduleService::class)->forOrder($order)['due_now'];
     }
 
     /** هل استوفى الطلب ما يلزم لتفعيله؟ (كامل المبلغ أو سعر الزيارة الأولى في وضع per_visit) */
@@ -189,7 +196,8 @@ class HourlyPaymentService
 
     private function payable(HourlyRentalOrder $order, bool $allowCompleted = false): void
     {
-        if($allowCompleted && $order->status==='completed' && $order->payment_status!=='paid')return;
+        if(in_array($order->status,['active','completed',HourlyOrderService::AWAITING_PAYMENT],true) && $order->payment_status!=='paid' && app(PaymentScheduleService::class)->policy($order)!=='legacy' && $this->dueNow($order)>0)return;
+        if($allowCompleted && in_array($order->status,['completed',HourlyOrderService::AWAITING_PAYMENT],true) && $order->payment_status!=='paid')return;
         if (!in_array($order->status,['pending_confirmation','active'],true) || $order->expires_at->isPast() || $order->payment_status === 'paid') HourlyOrderService::reject('الطلب غير قابل للسداد.');
     }
 
@@ -198,11 +206,14 @@ class HourlyPaymentService
     {
         $paid = $order->payments()->where('status','paid')->sum('amount');
         $full = (int) round($paid*100) >= (int) round($order->total_amount*100);
-        $status = $full ? 'paid' : ($paid > 0 ? 'partial' : ($order->payments()->where('status','paid')->where('amount','<',0)->exists() ? 'refunded' : 'unpaid'));
+        $hasRefund = $paid <= 0 && $order->payments()->where('status','paid')->where('amount','<',0)->exists();
+        $status = $hasRefund ? 'refunded' : ($full ? 'paid' : ($paid > 0 ? 'partial' : ($order->payments()->where('status','paid')->where('amount','<',0)->exists() ? 'refunded' : 'unpaid')));
         $order->update(['paid_amount'=>$paid,'payment_status'=>$status]);
+        app(PaymentScheduleService::class)->syncInstallments($order);
         // A late provider confirmation records the money without resurrecting an expired order.
         if ($order->status === 'pending_confirmation' && $order->expires_at->isFuture() && ($full || self::activationPaid($order))) {
             $this->orders->transition($order,'active',$actor,$actorId,$full ? 'اكتمال السداد' : 'سداد الزيارة الأولى');
         }
+        $this->orders->settle($order,$actor,$actorId);
     }
 }

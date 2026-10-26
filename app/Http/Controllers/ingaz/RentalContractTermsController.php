@@ -110,7 +110,7 @@ class RentalContractTermsController extends Controller
         abort_unless(\AdminGuardHasPerm(PermKeys::CONTRACT_SETTINGS), 403);
 
         // جلب الإعدادات الحالية
-        $settings = [];
+        $rentalSettings = [];
         $settingKeys = [
             'company_name',
             'license_number',
@@ -138,10 +138,10 @@ class RentalContractTermsController extends Controller
 
         foreach ($settingKeys as $key) {
             $setting = Setting::where('key', 'rent_contract_' . $key)->first();
-            $settings[$key] = $setting ? $setting->value : null;
+            $rentalSettings[$key] = $setting ? $setting->value : null;
         }
 
-        return view('admin.ingaz.RentContract.settings', compact('settings'));
+        return view('admin.ingaz.RentContract.settings', compact('rentalSettings'));
     }
 
     /**

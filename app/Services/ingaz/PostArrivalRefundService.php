@@ -55,7 +55,7 @@ class PostArrivalRefundService
             'credit_note' => $creditRemaining,
             'client_deduction' => $this->warrantyReturnService->calculateStayAmount($contract, $date, $net),
             'office_charge' => $officeSource['amount'],
-            'shelter_cost' => $officeSource['amount'],
+            'shelter_cost' => $officeCreditAccount['shelter_cleared'] ? 0.0 : $officeSource['amount'],
             'marketer_commission' => $this->commissionProposal($contract),
             'invoice_total' => $total,
             'previous_credit' => $credited,
@@ -183,6 +183,11 @@ class PostArrivalRefundService
                 \App\Models\ingaz\Maid::query()->whereKey($contractRow->maid_id)->lockForUpdate()->firstOrFail();
             }
             $settlement->load(['contract.invoice.recruitmentCreditNotes', 'contract.user', 'contract.maid.office', 'lines']);
+            if (!$settlement->contract->invoice || (int) $settlement->invoice_id !== (int) $settlement->contract->invoice->id) {
+                throw ValidationException::withMessages([
+                    'invoice_id' => 'تغيرت فاتورة إيراد العقد أو كانت المسودة مرتبطة بفاتورة إغلاق. عدّل المسودة وراجع المبالغ قبل الاعتماد.',
+                ]);
+            }
             $eligibleOperationalState = $this->commissionService->isReturned($settlement->contract);
             if (! $eligibleOperationalState) {
                 throw ValidationException::withMessages([
@@ -309,15 +314,25 @@ class PostArrivalRefundService
         if ($line->type === 'office_charge') {
             $source = $this->officeChargeCreditAccount($contract);
             $receiptId = $source['receipt_entry_id'];
+            if (! $receiptId) {
+                // An edited draft may still carry the reference from before departure.
+                $line->update(['metadata' => array_replace($line->metadata ?? [], ['shelter_receipt_entry_id' => null])]);
+                if (ShelterCostEntry::query()->where('contract_id', $contract->id)
+                    ->where('kind', ShelterCostEntry::KIND_CAPITALIZE_OFFICE_COST)
+                    ->where('asset_account_id', $creditAccountId)->exists()) {
+                    throw ValidationException::withMessages(['office_charge' => 'رصيد الإيواء تمت تصفيته، ولا يمكن تحميل المكتب على حساب أصل الإيواء. افتح «تعديل المسودة»، واختر حساب مردودات تكلفة الاستقدام لبند تحميل المكتب الخارجي، ثم احفظ وأعد الاعتماد.']);
+                }
+            }
             if ($receiptId) {
                 if ((int) $source['account_id'] !== $creditAccountId) {
-                    throw ValidationException::withMessages(['office_charge' => 'تغير حساب تكلفة الإيواء؛ أعد تجهيز المستند.']);
+                    throw ValidationException::withMessages(['office_charge' => 'تعذر اعتماد تحميل المكتب الخارجي: الحساب المحدد في المسودة لا يطابق حساب رصيد الإيواء الحالي. افتح «تعديل المسودة»، واختر الحساب المقترح لبند تحميل المكتب الخارجي، ثم احفظ وأعد الاعتماد.']);
                 }
                 $summary = app(ShelterAgentCostRecoveryService::class)->summary($contract);
                 $remaining = $summary['lots'][$receiptId]['remaining'] ?? 0;
                 if ($summary['issues'] || (float) $line->approved_amount > $remaining || $remaining <= 0) {
                     throw ValidationException::withMessages(['office_charge' => $summary['issues']
-                        ? implode(' ', $summary['issues']) : 'سبق استرداد تكلفة العاملة أو تصفيتها؛ لا يمكن تحميل المكتب بالمبلغ مرة أخرى.']);
+                        ? 'تعذر اعتماد تحميل المكتب بسبب اختلافات في دفتر الإيواء: ' . implode(' ', $summary['issues']) . ' اطلب من المحاسب مراجعة حركات الإيواء قبل إعادة الاعتماد.'
+                        : 'تعذر اعتماد تحميل المكتب على رصيد الإيواء: المبلغ المطلوب ' . number_format((float) $line->approved_amount, 2) . ' ريال، والمتاح ' . number_format((float) $remaining, 2) . ' ريال. افتح «تعديل المسودة» وراجع مبلغ التحميل والحساب، ثم احفظ وأعد الاعتماد.']);
                 }
                 $line->update(['metadata' => array_replace($line->metadata ?? [], ['shelter_receipt_entry_id' => $receiptId])]);
             }
@@ -351,7 +366,8 @@ class PostArrivalRefundService
                 ->where('source_id', $line->id)->where('kind', ShelterCostEntry::KIND_POST_REFUND_RECOVERY)->first();
             if ($recoveryEntry && ShelterCostEntry::query()->where('maid_id', $recoveryEntry->maid_id)
                 ->where('id', '>', $recoveryEntry->id)->whereIn('kind', [ShelterCostEntry::KIND_RELEASE_TO_DEPORTATION,
-                    ShelterCostEntry::KIND_RELEASE_TO_SALE, ShelterCostEntry::KIND_RELEASE_TO_TRIAL, ShelterCostEntry::KIND_WRITE_OFF])->exists()) {
+                    ShelterCostEntry::KIND_RELEASE_TO_SALE, ShelterCostEntry::KIND_RELEASE_TO_TRIAL, ShelterCostEntry::KIND_WRITE_OFF,
+                    ShelterCostEntry::KIND_RETURN_TO_CUSTOMER])->exists()) {
                 throw ValidationException::withMessages(['reason' => 'لا يمكن عكس تحميل المكتب بعد خروج العاملة أو تصفية تكلفة الإيواء.']);
             }
             if ($line->credit_note_id) {
@@ -492,6 +508,22 @@ class PostArrivalRefundService
             $receiptQuery->where('supplier_constraint_id', $supplierConstraintId);
         }
         $receipt = $receiptQuery->latest('id')->first();
+        $shelterCleared = false;
+        if ($receipt) {
+            $summary = app(ShelterAgentCostRecoveryService::class)->summary($contract);
+            $remaining = $summary['lots'][$receipt->id]['remaining'] ?? null;
+            $hasFinalExit = ShelterCostEntry::query()->where('maid_id', $contract->maid_id)
+                ->where('id', '>', $receipt->id)
+                ->whereIn('kind', [ShelterCostEntry::KIND_RELEASE_TO_DEPORTATION, ShelterCostEntry::KIND_WRITE_OFF, ShelterCostEntry::KIND_RETURN_TO_CUSTOMER])
+                ->exists();
+            // A historical receipt is not an available asset after a complete exit.
+            // Keep unresolved or recovered lots guarded by the posting checks.
+            if (! $summary['issues'] && $remaining !== null && (float) $remaining === 0.0
+                && (float) $summary['recovered'] === 0.0 && $hasFinalExit) {
+                $receipt = null;
+                $shelterCleared = true;
+            }
+        }
         $accountId = (int) ($receipt?->asset_account_id ?: 0);
         $source = $accountId > 0 ? 'shelter_receipt' : null;
 
@@ -511,6 +543,7 @@ class PostArrivalRefundService
             'account_name' => $account?->name,
             'source' => $account ? $source : null,
             'receipt_entry_id' => $source === 'shelter_receipt' ? $receipt?->id : null,
+            'shelter_cleared' => $shelterCleared,
         ];
     }
 

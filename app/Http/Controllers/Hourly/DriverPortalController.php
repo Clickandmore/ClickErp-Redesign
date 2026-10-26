@@ -26,10 +26,17 @@ class DriverPortalController extends Controller
 
         $base = HourlyVisit::query()
             ->where(fn ($query) => $query->where('delivery_driver_id', $driver->id)->orWhere('pickup_driver_id', $driver->id))
-            ->whereHas('order', fn ($query) => $query->where('status', 'active'));
+            // A pending order's tasks are shown for planning only; the view and action() keep them locked until confirmation.
+            ->where(fn($query)=>$query->whereHas('order', fn ($order) => $order->whereIn('status', ['active', 'pending_confirmation']))
+                ->orWhereIn('status',\App\Services\Hourly\DriverAppService::ONGOING));
 
         $visits = (clone $base)
-            ->whereDate('scheduled_start_at', $selectedDate)
+            ->where(function($query)use($selectedDate){
+                $query->whereDate('scheduled_start_at',$selectedDate);
+                if($selectedDate->isToday()) $query->orWhere(fn($running)=>$running
+                    ->whereIn('status',\App\Services\Hourly\DriverAppService::ONGOING)
+                    ->where('scheduled_start_at','<',$selectedDate));
+            })
             ->with(['order.user:id,name,phone', 'order.serviceCategory', 'workers:id,name'])
             ->orderBy('scheduled_start_at')->orderBy('id')->get();
 
@@ -51,13 +58,16 @@ class DriverPortalController extends Controller
         $driver = auth('hourly_driver')->user();
         $data = $request->validate([
             'action' => ['required', Rule::in(['start_delivery', 'confirm_delivery', 'confirm_pickup', 'complete'])],
+            'delivery_code'=>['nullable','string','max:100'],
+            'cash_amount'=>['nullable','numeric','min:0','max:100000'], 'request_token'=>['required_with:cash_amount','nullable','uuid'],
             'date' => ['nullable', 'date_format:Y-m-d'],
             'month' => ['nullable', 'date_format:Y-m'],
         ]);
 
         DB::transaction(function () use ($visit, $driver, $data) {
-            $visit = HourlyVisit::whereKey($visit->id)->lockForUpdate()->firstOrFail();
+            $visit = HourlyVisit::whereKey($visit->id)->firstOrFail();
             $order = HourlyRentalOrder::whereKey($visit->hourly_rental_order_id)->lockForUpdate()->firstOrFail();
+            $visit = HourlyVisit::whereKey($visit->id)->lockForUpdate()->firstOrFail();
             [$role, $from, $to, $label] = $this->transition($data['action']);
 
             if ($order->status !== 'active') {
@@ -68,8 +78,19 @@ class DriverPortalController extends Controller
                 HourlyOrderService::reject('تغيّرت حالة المهمة أو تم تنفيذها بالفعل. حدّث الصفحة ثم حاول مرة أخرى.');
             }
 
+            if ($data['action'] === 'start_delivery') \App\Services\Hourly\DeliveryStartWindow::assertAllowed($visit);
+            if ($data['action'] === 'confirm_delivery') \App\Services\Hourly\DeliveryCode::assertValid($visit,$data['delivery_code']??null);
+            if ($data['action']==='confirm_delivery' && (float)($data['cash_amount']??0)>0) {
+                app(\App\Services\Hourly\CashCollectionService::class)->collect($visit,'driver',(int)$driver->id,(float)$data['cash_amount'],$data['request_token']);
+            }
+            if ($to === 'en_route') {
+                app(\App\Services\Hourly\ShelterPresence::class)->open($visit, 'driver', (int) $driver->id);
+            } elseif ($to === 'completed') {
+                app(\App\Services\Hourly\ShelterPresence::class)->close($visit, 'driver', (int) $driver->id);
+            }
             $before = $visit->getAttributes();
             $visit->update(['status' => $to]);
+            if($to==='delivered')\App\Services\Hourly\ServiceTime::recordDelivery($visit);
             if (Schema::hasTable('hourly_order_audits')) {
                 DB::table('hourly_order_audits')->insert([
                     'hourly_rental_order_id' => $order->id,

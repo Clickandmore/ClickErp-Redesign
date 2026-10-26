@@ -147,9 +147,25 @@
                             @endif
                             @if ($invoice->invoice_constraint_id)
                                 <div class="d-flex justify-content-between mb-2">
-                                    <strong>القيد المالي للفاتورة</strong>
+                                    <strong>{{ \App\Support\RecruitmentRevenueRecognition::invoiceRecognizesOnInvoice($invoice) ? 'قيد المبيعات' : 'القيد المالي للفاتورة' }}</strong>
                                     <a href="{{ route('finance.add-constraint.show', ['add_constraint' => $invoice->invoice_constraint_id]) }}">
                                         #{{ $invoice->invoice_constraint_id }}
+                                    </a>
+                                </div>
+                            @endif
+                            @if ($invoice->musaned_commission_constraint_id)
+                                <div class="d-flex justify-content-between mb-2">
+                                    <strong>قيد التكاليف البنكية لمساند</strong>
+                                    <a href="{{ route('finance.add-constraint.show', ['add_constraint' => $invoice->musaned_commission_constraint_id]) }}">
+                                        #{{ $invoice->musaned_commission_constraint_id }}
+                                    </a>
+                                </div>
+                            @endif
+                            @if ($invoiceReceiptBond?->constraint_id)
+                                <div class="d-flex justify-content-between mb-2">
+                                    <strong>قيد تحصيل مساند</strong>
+                                    <a href="{{ route('finance.add-constraint.show', ['add_constraint' => $invoiceReceiptBond->constraint_id]) }}">
+                                        #{{ $invoiceReceiptBond->constraint_id }}
                                     </a>
                                 </div>
                             @endif
@@ -235,7 +251,7 @@
                                     <strong>{{ number_format($invoice->total_due, 2) }} ريال</strong>
                                 </div>
                                 @if ($invoice->musaned_commission_amount !== null)
-                                    <div class="d-flex justify-content-between mt-2"><span class="label">عمولة مساند (2.5%)</span><strong>{{ number_format($invoice->musaned_commission_amount, 2) }} ريال</strong></div>
+                                    <div class="d-flex justify-content-between mt-2"><span class="label">التكاليف البنكية <small class="text-muted">(شاملة ضريبة القيمة المضافة)</small></span><strong>{{ number_format($invoice->musaned_commission_amount, 2) }} ريال</strong></div>
                                     <div class="d-flex justify-content-between mt-2"><span class="label">الصافي المتوقع من مساند</span><strong>{{ number_format($invoice->total_due - $invoice->musaned_commission_amount, 2) }} ريال</strong></div>
                                 @endif
                                 @if ($invoice->rental_transfer_contract_id)

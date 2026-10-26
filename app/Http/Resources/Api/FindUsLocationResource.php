@@ -15,6 +15,8 @@ class FindUsLocationResource extends JsonResource
             'branch_address' => $this->branch_address,
             'sort_order' => $this->sort_order,
             'map_embed_url' => $this->map_embed_url,
+            'latitude' => $this->latitude,
+            'longitude' => $this->longitude,
         ];
     }
 }

@@ -46,6 +46,41 @@ class RentalCommissionReturnTest extends TestCase
         return [$admin, $contract, $batch, $item];
     }
 
+    public function test_cancelled_extension_keeps_settled_revenue_and_does_not_deduct_it_twice(): void
+    {
+        [$admin, $contract, $batch] = $this->fixture();
+        $contract->update(['closed_at' => '2026-09-24']);
+        $contract->info()->create(['ingaz_from' => '2026-08-22', 'ingaz_to' => '2026-10-21', 'contract_duration_days' => 30]);
+        $contract->setRelation('financeInvoice', new \App\Models\RentalContractInvoice(['total_due' => 1900]));
+        $extension = RentalContractExtension::create(['rental_contract_id' => $contract->id,
+            'start_date' => '2026-09-22', 'end_date' => '2026-10-21', 'extension_days' => 30, 'extension_value' => 1900]);
+        RentalFinancialAdjustment::create(['rental_contract_id' => $contract->id,
+            'type' => 'expense', 'context' => 'closure', 'amount' => 1646.67]);
+        \App\Models\commissions\CommissionSetting::updateOrCreate(['service_type' => 'rental'], [
+            'method' => 'percentage', 'value' => 1.75, 'rental_return_policy' => 'remaining_days']);
+        $service = app(CommissionOperationService::class);
+        $operation = $service->rentalContractOperations($contract)->firstWhere('source_id', $extension->id);
+        $this->assertTrue($operation['commission_eligible']);
+        $this->assertSame(253.33, $operation['base_amount']);
+        $this->assertSame(4.43, round($operation['base_amount'] * 1.75 / 100, 2));
+        $policy = app(\App\Services\commissions\RentalCommissionReturnPolicy::class);
+        $terms = $policy->snapshotForOperation($operation);
+        $item = CommissionBatchItem::create(['batch_id' => $batch->id, 'service_type' => 'rental',
+            'contract_id' => $contract->id, 'source_type' => $operation['source_type'], 'source_id' => $extension->id,
+            'commission_amount' => 4.43, 'base_amount' => 253.33, 'method' => 'percentage', 'rate_or_amount' => 1.75,
+            'rental_commission_terms' => $terms]);
+        $result = $policy->calculate(4.43, $policy->terms($item, $contract, $extension), $policy->returnedAt($contract));
+        $this->assertSame(0.0, $result['amount']);
+        $this->assertSame(4.43, $result['retained']);
+        RentalFinancialAdjustment::create(['rental_contract_id' => $contract->id,
+            'type' => 'expense', 'context' => 'closure_correction', 'amount' => 253.33]);
+        $contract->load('financialAdjustments');
+        $operation = $service->rentalContractOperations($contract)->firstWhere('key', $operation['key']);
+        $this->assertFalse($operation['commission_eligible']);
+        $result = $policy->calculate(4.43, $policy->terms($item, $contract, $extension), $policy->returnedAt($contract));
+        $this->assertSame(4.43, $result['amount']);
+    }
+
     public function test_pending_deductions_ignore_contract_date_filter_and_keep_type_filter(): void
     {
         [$admin, $contract, , $item] = $this->fixture();
@@ -55,7 +90,7 @@ class RentalCommissionReturnTest extends TestCase
         $this->assertSame([$item->id], $pending->pluck('id')->all());
         $this->assertSame('إلغاء عقد التأجير', $pending->first()->deduction_reason);
         $this->assertSame('rental:' . $contract->id, $pending->first()->deduction_contract_key);
-        $this->assertSame(url('/admin/RentContract/' . $contract->id . '/details'), $pending->first()->deduction_contract_url);
+        $this->assertSame(route('RentContract.show', $contract->id), $pending->first()->deduction_contract_url);
         $this->assertCount(1, $service->pendingDeductions($admin->id, array_merge($filters, ['month' => 7])));
         $this->assertCount(0, $service->pendingDeductions($admin->id, ['service_type' => 'recruitment']));
         $this->assertCount(1, $service->pendingDeductions($admin->id, ['date_filter' => 'range', 'from_date' => '2026-10-05', 'to_date' => '2026-10-05']));
@@ -112,6 +147,7 @@ class RentalCommissionReturnTest extends TestCase
     public function test_extension_commissions_use_the_parent_rental_contract_and_are_settled_separately(): void
     {
         [$admin, $contract, $batch, $base] = $this->fixture();
+        $contract->update(['closed_at' => '2026-08-15']);
         $extension = RentalContractExtension::query()->create([
             'rental_contract_id' => $contract->id, 'extension_days' => 30, 'extension_value' => 1000,
             'start_date' => '2026-08-01', 'end_date' => '2026-08-30',
@@ -126,9 +162,9 @@ class RentalCommissionReturnTest extends TestCase
         $this->assertCount(2, $pending);
         $this->assertCount(1, $pending->pluck('deduction_contract_key')->unique());
         $this->assertSame($contract->id, $pending->firstWhere('id', $item->id)->deduction_contract_id);
-        $service->resolveSettlement($item, 'deducted', $admin->id);
+        $service->resolveSettlement($item, 'policy', $admin->id);
         $this->assertSame([$base->id], $service->pendingDeductions($admin->id)->pluck('id')->all());
-        $this->assertSame(100.0, (float) $item->fresh()->reversalTransaction->amount);
+        $this->assertSame(50.0, (float) $item->fresh()->reversalTransaction->amount);
     }
 
     public function test_active_contract_without_refund_cannot_be_settled(): void
@@ -164,5 +200,176 @@ class RentalCommissionReturnTest extends TestCase
             [null, null, 'unknown'],
             ['2026-10-10', '2026-10-01', 'unknown'],
         ];
+    }
+
+    /** @dataProvider proportionalPeriods */
+    public function test_policy_keeps_commission_for_served_days(string $closedAt, float $expected): void
+    {
+        [$admin, $contract, , $item] = $this->fixture();
+        $contract->info()->create(['ingaz_from' => '2026-10-01', 'ingaz_to' => '2026-10-30', 'contract_duration_days' => 30]);
+        $contract->update(['closed_at' => $closedAt]);
+        \App\Models\commissions\CommissionSetting::query()->updateOrCreate(['service_type' => 'rental'], [
+            'method' => 'fixed', 'value' => 30, 'rental_return_policy' => 'remaining_days',
+        ]);
+        $item->update(['commission_amount' => 30]);
+        $service = app(RecruitmentCommissionService::class);
+        $pending = $service->pendingDeductions($admin->id)->firstWhere('id', $item->id);
+        $this->assertSame($expected, $pending->suggested_deduction);
+        $this->assertSame(30 - $expected, $pending->retained_commission);
+        if ($expected === 15.0) {
+            $html = view('commissions.partials.returned_deductions', [
+                'returnedDeductions' => collect([$pending]), 'admin' => $admin,
+            ])->render();
+            $this->assertStringContainsString('data-suggested="15"', $html);
+            $this->assertStringContainsString('المستحق للموظف: 15.00', $html);
+        }
+        $settled = $service->resolveSettlement($item, 'policy', $admin->id);
+        $this->assertSame($expected, (float) ($settled->reversalTransaction?->amount ?? 0));
+        $this->assertCount(0, $service->pendingDeductions($admin->id));
+        $this->assertSame($expected === 0.0, $service->isZeroed($settled));
+        $this->expectException(ValidationException::class);
+        $service->resolveSettlement($settled, 'policy', $admin->id);
+    }
+
+    public static function proportionalPeriods(): array
+    {
+        return [['2026-10-15', 15.0], ['2026-09-30', 30.0], ['2026-10-01', 29.0], ['2026-10-30', 0.0], ['2026-11-10', 0.0]];
+    }
+
+    public function test_proportional_policy_blocks_full_and_excessive_manual_deductions(): void
+    {
+        [$admin, $contract, , $item] = $this->fixture();
+        $contract->update(['closed_at' => '2026-10-15']);
+        $item->update(['commission_amount' => 30, 'rental_commission_terms' => [
+            'policy' => 'remaining_days', 'start_date' => '2026-10-01', 'days' => 30,
+        ]]);
+        foreach ([['deducted', null], ['partial', 16]] as [$decision, $amount]) {
+            try {
+                app(RecruitmentCommissionService::class)->resolveSettlement($item, $decision, $admin->id, null, $amount);
+                $this->fail('A deduction of earned commission must be rejected.');
+            } catch (ValidationException $exception) {
+                $this->assertArrayHasKey('amount', $exception->errors());
+            }
+        }
+        $this->assertNull($item->fresh()->commission_reversal_transaction_id);
+        $settled = app(RecruitmentCommissionService::class)->resolveSettlement($item, 'partial', $admin->id, null, 10);
+        $this->assertSame(10.0, (float) $settled->reversalTransaction->amount);
+    }
+
+    public function test_saved_policy_and_period_survive_later_setting_and_contract_changes(): void
+    {
+        [$admin, $contract, , $item] = $this->fixture();
+        $contract->info()->create(['ingaz_from' => '2026-10-01', 'contract_duration_days' => 30]);
+        $setting = \App\Models\commissions\CommissionSetting::query()->updateOrCreate(['service_type' => 'rental'], [
+            'method' => 'fixed', 'value' => 30, 'rental_return_policy' => 'remaining_days',
+        ]);
+        $policy = app(\App\Services\commissions\RentalCommissionReturnPolicy::class);
+        $snapshot = $policy->snapshotForOperation([
+            'service_type' => 'rental', 'contract_id' => $contract->id, 'billing' => ['kind' => 'base_invoice'],
+        ]);
+        $item->update(['commission_amount' => 30, 'rental_commission_terms' => $snapshot]);
+        $setting->update(['rental_return_policy' => 'full']);
+        $contract->info->update(['contract_duration_days' => 60]);
+        $contract->update(['closed_at' => '2026-10-15']);
+        $settled = app(RecruitmentCommissionService::class)->resolveSettlement($item, 'policy', $admin->id);
+        $this->assertSame(15.0, (float) $settled->reversalTransaction->amount);
+        $this->assertSame(30, $settled->rental_commission_terms['days']);
+    }
+
+    public function test_each_extension_period_keeps_only_its_own_served_days(): void
+    {
+        [$admin, $contract, $batch, $base] = $this->fixture();
+        $contract->info()->create(['ingaz_from' => '2026-09-01', 'contract_duration_days' => 30]);
+        $contract->update(['closed_at' => '2026-10-15']);
+        \App\Models\commissions\CommissionSetting::query()->updateOrCreate(['service_type' => 'rental'], [
+            'method' => 'fixed', 'value' => 30, 'rental_return_policy' => 'remaining_days',
+        ]);
+        $extension = RentalContractExtension::query()->create([
+            'rental_contract_id' => $contract->id, 'extension_days' => 60, 'extension_value' => 2000,
+            'start_date' => '2026-10-01', 'end_date' => '2026-11-29',
+        ]);
+        $items = collect([1, 2])->map(fn ($sequence) => CommissionBatchItem::query()->create([
+            'batch_id' => $batch->id, 'source_type' => CommissionOperationService::SOURCE_RENTAL_EXTENSION_PERIOD_PREFIX . $sequence,
+            'source_id' => $extension->id, 'contract_id' => $contract->id, 'service_type' => 'rental',
+            'base_amount' => 1000, 'method' => 'fixed', 'rate_or_amount' => 30, 'commission_amount' => 30,
+        ]));
+        $pending = app(RecruitmentCommissionService::class)->pendingDeductions($admin->id);
+        $this->assertSame(0.0, $pending->firstWhere('id', $base->id)->suggested_deduction);
+        $this->assertSame(15.0, $pending->firstWhere('id', $items[0]->id)->suggested_deduction);
+        $this->assertSame(30.0, $pending->firstWhere('id', $items[1]->id)->suggested_deduction);
+        $settled = app(RecruitmentCommissionService::class)->resolveSettlement($items[0], 'policy', $admin->id);
+        $this->assertSame(15.0, (float) $settled->reversalTransaction->amount);
+    }
+
+    public function test_extension_overrides_old_full_policy_and_reverses_in_its_commission_month(): void
+    {
+        [$admin, $contract, $batch] = $this->fixture();
+        $contract->update(['closed_at' => '2026-10-15']);
+        $extension = RentalContractExtension::query()->create([
+            'rental_contract_id' => $contract->id, 'extension_days' => 30, 'extension_value' => 1000,
+            'start_date' => '2026-10-01', 'end_date' => '2026-10-30',
+        ]);
+        $item = CommissionBatchItem::query()->create([
+            'batch_id' => $batch->id, 'source_type' => CommissionOperationService::SOURCE_RENTAL_EXTENSION_PERIOD_PREFIX . '1',
+            'source_id' => $extension->id, 'contract_id' => $contract->id, 'service_type' => 'rental',
+            'operation_date' => '2026-10-01', 'commission_amount' => 30,
+            'rental_commission_terms' => ['policy' => 'full', 'start_date' => '2026-10-01', 'days' => 30],
+        ]);
+        $service = app(RecruitmentCommissionService::class);
+        $filters = ['date_filter' => 'month_year', 'year' => 2026, 'month' => 10];
+        $this->assertSame(15.0, $service->pendingDeductions($admin->id, $filters)->firstWhere('id', $item->id)->suggested_deduction);
+        $this->assertNull($service->pendingDeductions($admin->id, array_merge($filters, ['month' => 11]))->firstWhere('id', $item->id));
+        $this->assertNull($service->pendingDeductions($admin->id, [
+            'date_filter' => 'range', 'from_date' => '2026-10-02', 'to_date' => '2026-10-31',
+        ])->firstWhere('id', $item->id));
+        $this->travelTo(\Carbon\Carbon::parse('2026-11-10'));
+        try {
+            $settled = $service->resolveSettlement($item, 'policy', $admin->id);
+            $this->assertSame(15.0, (float) $settled->reversalTransaction->amount);
+            $this->assertSame('2026-10-01', \Carbon\Carbon::parse($settled->reversalTransaction->constraint->date)->toDateString());
+            $this->assertSame('2026-11-10', $settled->commission_reversed_at->toDateString());
+        } finally {
+            $this->travelBack();
+        }
+    }
+
+    public function test_credit_note_without_service_end_date_requires_date_before_proportional_deduction(): void
+    {
+        [$admin, $contract, , $item] = $this->fixture('active');
+        $item->update(['rental_commission_terms' => ['policy' => 'remaining_days', 'start_date' => '2026-10-01', 'days' => 30]]);
+        RentalFinancialAdjustment::query()->create([
+            'rental_contract_id' => $contract->id, 'type' => 'expense', 'context' => 'manual_credit_note', 'amount' => 100, 'issue_date' => '2026-10-15',
+        ]);
+        $pending = app(RecruitmentCommissionService::class)->pendingDeductions($admin->id)->first();
+        $this->assertNull($pending->suggested_deduction);
+        $this->assertNotNull($pending->deduction_calculation_error);
+        $this->expectException(ValidationException::class);
+        app(RecruitmentCommissionService::class)->resolveSettlement($item, 'policy', $admin->id);
+    }
+
+    public function test_settings_page_saves_and_validates_rental_policy(): void
+    {
+        $admin = Admin::factory()->create();
+        $this->withoutMiddleware()->actingAs($admin, 'admin');
+        $this->post(route('commissions.settings.store'), ['settings' => ['rental' => [
+            'method' => 'fixed', 'value' => 30,
+        ]]])->assertRedirect(route('commissions.settings.index'));
+        $this->post(route('commissions.settings.store'), ['rental_return_policy' => 'remaining_days'])
+            ->assertRedirect(route('commissions.settings.index'));
+        $this->assertDatabaseHas('commission_settings', ['service_type' => 'rental', 'rental_return_policy' => 'remaining_days']);
+        $this->assertDatabaseHas('commission_settings', ['service_type' => 'rental', 'method' => 'fixed', 'value' => 30]);
+        $view = app(\App\Http\Controllers\commissions\CommissionSettingsController::class)->index();
+        // Global site settings are composed into every view under the name "settings".
+        app('events')->dispatch('composing: commissions.settings.index', [$view]);
+        $rentalSetting = $view->getData()['commissionSettings']->get('rental');
+        $this->assertSame('remaining_days', $rentalSetting->rental_return_policy);
+        $this->assertSame('fixed', $rentalSetting->method);
+        $this->assertSame(30.0, (float) $rentalSetting->value);
+        $this->post(route('commissions.settings.store'), ['settings' => ['rental' => [
+            'method' => 'percentage', 'value' => 5,
+        ]]])->assertRedirect(route('commissions.settings.index'));
+        $this->assertDatabaseHas('commission_settings', ['service_type' => 'rental', 'method' => 'percentage', 'value' => 5, 'rental_return_policy' => 'remaining_days']);
+        $this->postJson(route('commissions.settings.store'), ['rental_return_policy' => 'invalid'])
+            ->assertUnprocessable()->assertJsonValidationErrors('rental_return_policy');
     }
 }

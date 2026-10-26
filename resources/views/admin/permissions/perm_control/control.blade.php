@@ -989,6 +989,8 @@
                                                                                         $row['title'],
                                                                                         ...collect($row['crud'])->filter()->pluck('display_name')->all(),
                                                                                         ...collect($row['extras'])->pluck('extra_label')->all(),
+                                                                                        ...collect($row['extras'])->pluck('display_name')->all(),
+                                                                                        ...collect($row['extras'])->pluck('description')->all(),
                                                                                         ...collect($row['permissions'])->all(),
                                                                                     ])->implode(' ');
                                                                                 @endphp
@@ -1030,6 +1032,9 @@
                                                                                                        value="{{ $columnPermission['name'] }}"
                                                                                                        title="{{ $columnPermission['display_name'] }}"
                                                                                                        {{ $forceAllSelected || isset($assignedLookup[$columnPermission['name']]) ? 'checked' : '' }}>
+                                                                                                @if ($columnPermission['name'] === \App\PermKeys::ORDERS_DELETE)
+                                                                                                    <div class="small text-muted mt-1">طلبات الآخرين</div>
+                                                                                                @endif
                                                                                             @else
                                                                                                 <span class="permission-empty-cell">-</span>
                                                                                             @endif

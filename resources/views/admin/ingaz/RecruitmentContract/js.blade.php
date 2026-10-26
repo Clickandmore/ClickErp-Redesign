@@ -59,12 +59,12 @@
                 : (userData.document_number || userData.national_num || '');
             //
             $('#client_name').val(userData.name);
-            $('#client_phone').val(userData.phone);
+            $('#client_phone').val(sanitizePhoneValue(userData.raw_phone ?? userData.phone));
             $('#client_nationality_id').val(userData.nationality_id);
             $('#client_email').val(userData.email);
             $('#client_national_num').val(clientDocumentNumber);
             $('#client_birthdate').val(userData.birthdate);
-            $('#phone2').val(userData.phone2);
+            $('#phone2').val(sanitizePhoneValue(userData.phone2));
             $('#address').val(userData.address);
             $('#city').val(userData.city);
             $('#beds_num').val(userData.rooms_num);

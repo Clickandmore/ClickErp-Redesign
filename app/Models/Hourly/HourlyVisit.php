@@ -5,6 +5,31 @@ class HourlyVisit extends Model
 {
     protected $guarded = [];
 
+    /** Actual execution includes an individual worker arriving before the rest of the team. */
+    public function getHasStartedExecutionAttribute(): bool
+    {
+        if (in_array($this->status, ['en_route','delivered','in_progress','worker_finished','picked_up','completed'], true)) return true;
+        if (!$this->id) return false;
+        $arrival = \Illuminate\Support\Facades\Schema::hasColumn('hourly_visit_workers','arrived_at');
+        $status = \Illuminate\Support\Facades\Schema::hasColumn('hourly_visit_workers','status');
+        if (!$arrival && !$status) return false;
+        return \Illuminate\Support\Facades\DB::table('hourly_visit_workers')->where('hourly_visit_id',$this->id)
+            ->where(function ($q) use ($arrival,$status) {
+                if ($arrival) $q->whereNotNull('arrived_at');
+                if ($status) $q->orWhereIn('status',['delivered','finished','picked_up','returned','completed']);
+            })->exists();
+    }
+
+    public function getIsMissedAttribute(): bool
+    {
+        return $this->status === 'scheduled' && !$this->has_started_execution && $this->scheduled_end_at && $this->scheduled_end_at->lte(now());
+    }
+    public function getDisplayStatusAttribute(): string
+    {
+        if ($this->status === 'scheduled' && $this->has_started_execution) return 'in_progress';
+        return $this->is_missed ? 'missed' : $this->status;
+    }
+
     /**
      * رمز التسليم يُولَّد لكل زيارة عند إنشائها: يراه العميل في تطبيقه ويطلبه السائق عند التسليم.
      * الفحص لا يُخزَّن في ذاكرة ثابتة لأن المخطط قد يختلف بين الاتصالات والاختبارات.
@@ -14,6 +39,15 @@ class HourlyVisit extends Model
         static::creating(function (self $visit) {
             if (empty($visit->delivery_code) && \Illuminate\Support\Facades\Schema::hasColumn('hourly_visits', 'delivery_code')) {
                 $visit->delivery_code = str_pad((string) random_int(0, 9999), 4, '0', STR_PAD_LEFT);
+            }
+        });
+        // بداية الخدمة الفعلية لكل عاملة = لحظة وصول الزيارة إلى «تم التوصيل» من أي مسار
+        // (بوابة السائق، تطبيقه، الإدارة). وصول العاملة بنفسها يملأ arrived_at قبل ذلك فلا يُستبدل.
+        static::updated(function (self $visit) {
+            if ($visit->wasChanged('status') && $visit->status === 'delivered'
+                && \Illuminate\Support\Facades\Schema::hasColumn('hourly_visit_workers', 'arrived_at')) {
+                \Illuminate\Support\Facades\DB::table('hourly_visit_workers')->where('hourly_visit_id', $visit->id)
+                    ->whereNull('arrived_at')->update(['arrived_at' => now()]);
             }
         });
     }

@@ -172,7 +172,7 @@ class HourlyMaidSettingsTest extends TestCase
         ]];
     }
     private function save(array $payload, ?Maid $maid = null): Maid {
-        if (!Schema::hasTable('rental_contracts')) Schema::create('rental_contracts',function(Blueprint $t){$t->id();$t->unsignedBigInteger('maid_id');$t->string('status');$t->softDeletes();});
+        if (!Schema::hasTable('rental_contracts')) Schema::create('rental_contracts',function(Blueprint $t){ $t->boolean('freeze_releases_maid')->default(false);$t->id();$t->unsignedBigInteger('maid_id');$t->string('status');$t->softDeletes();});
         $service=app(MaidSettingsService::class);
         $data=$service->validate(new Request($payload),$maid);
         $maid ??= Maid::create(['name'=>'عاملة اختبار','passport_num'=>'P123']);
@@ -352,7 +352,7 @@ class HourlyMaidSettingsTest extends TestCase
         Schema::create('contracts',function(Blueprint $t){$t->id();$t->unsignedBigInteger('maid_id');$t->unsignedBigInteger('previous_contract_id')->nullable();$t->string('status');$t->softDeletes();});
         Schema::create('contract_infos',function(Blueprint $t){$t->id();$t->unsignedBigInteger('contract_id');$t->unsignedBigInteger('shelter_id')->nullable();$t->boolean('is_outside_shelter')->nullable();$t->string('wants_to_work')->nullable();});
         Schema::create('contract_status_logs',function(Blueprint $t){$t->id();$t->unsignedBigInteger('contract_id');$t->string('status');$t->timestamp('date');$t->text('notes');});
-        Schema::create('rental_contracts',function(Blueprint $t){$t->id();$t->unsignedBigInteger('maid_id');$t->string('status');$t->string('closure_type')->nullable();$t->timestamp('returned_to_company_at')->nullable();$t->timestamp('closed_at')->nullable();$t->timestamps();$t->softDeletes();});
+        Schema::create('rental_contracts',function(Blueprint $t){ $t->boolean('freeze_releases_maid')->default(false);$t->id();$t->unsignedBigInteger('maid_id');$t->string('status');$t->string('closure_type')->nullable();$t->timestamp('returned_to_company_at')->nullable();$t->timestamp('closed_at')->nullable();$t->timestamps();$t->softDeletes();});
         Schema::create('sponsorship_transfers',function(Blueprint $t){$t->id();$t->unsignedBigInteger('contract_id');$t->string('status');$t->timestamp('maid_delivered_at')->nullable();$t->softDeletes();});
         Schema::create('deportation_procedures',function(Blueprint $t){$t->id();$t->unsignedBigInteger('contract_id');$t->string('status');$t->timestamp('completed_at')->nullable();});
         Schema::create('deportation_procedure_logs',function(Blueprint $t){$t->id();$t->unsignedBigInteger('deportation_procedure_id');$t->string('action_type');$t->timestamp('created_at');});
@@ -369,7 +369,7 @@ class HourlyMaidSettingsTest extends TestCase
         app('view')->getFinder()->prependLocation(base_path('tests/Fixtures/hourly-views'));
         $url=route('admin.hourly-maids.index');
         $this->get($url)->assertOk()->assertSee('PendingWorker')->assertSee('ArrivedWorker')->assertSee('ReadyWorker')->assertDontSee('OrdinaryWorker')
-            ->assertViewHas('stats',fn($stats)=>$stats===['total'=>4,'waiting'=>1,'inside'=>2,'ready'=>1,'out_now'=>0]);
+            ->assertViewHas('stats',fn($stats)=>$stats===['total'=>4,'waiting'=>1,'inside'=>2,'ready'=>1,'out_now'=>0,'available_now'=>1]);
         $this->get($url.'?state=ready')->assertOk()->assertSee('ReadyWorker')->assertDontSee('ArrivedWorker')->assertDontSee('ReservedWorker');
         $this->get($url.'?state=waiting')->assertOk()->assertSee('PendingWorker')->assertDontSee('ReadyWorker');
         $this->get($url.'?search=ArrivedWorker')->assertOk()->assertSee('ArrivedWorker')->assertDontSee('PendingWorker');

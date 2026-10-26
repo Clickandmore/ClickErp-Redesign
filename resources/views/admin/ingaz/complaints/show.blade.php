@@ -205,6 +205,7 @@
         .sidebar-action:hover { background: #eef0ff; border-color: #d9ddff; color: #5360c3; }
         .sidebar-action--success { background: #edf8f2; border-color: #d5eddf; color: #2a8057; }
         .sidebar-action--warning { background: #fff8e8; border-color: #f3e5bd; color: #946b18; }
+        .sidebar-action--danger { background: #fdf0f0; border-color: #f2d4d4; color: #b23b3b; }
 
         .compact-timeline { padding: 16px 18px; }
         .compact-timeline__item { display: flex; gap: 12px; padding-bottom: 18px; position: relative; }
@@ -337,8 +338,8 @@
                 areYouSure: @json(__('ingaz.are_you_sure')),
                 confirmMarkResolvedText: @json(__('ingaz.confirm_mark_resolved_text')),
                 confirmMarkResolvedButton: @json(__('ingaz.confirm_mark_resolved_button')),
-                confirmCloseTicketText: @json(__('ingaz.confirm_close_ticket_text')),
-                confirmCloseTicketButton: @json(__('ingaz.confirm_close_ticket_button')),
+                confirmRejectTicketText: @json(__('ingaz.confirm_reject_ticket_text')),
+                confirmRejectTicketButton: @json(__('ingaz.confirm_reject_ticket_button')),
                 cancel: @json(__('buttons.cancel')),
                 ticketAssignedSuccessfully: @json(__('ingaz.ticket_assigned_successfully')),
                 ticketAssignError: @json(__('ingaz.ticket_assign_error')),
@@ -433,18 +434,18 @@
                 });
             });
 
-            // إغلاق التذكرة
-            $('#closeTicket').click(function() {
+            // رفض التذكرة
+            $('#rejectTicket').click(function() {
                 Swal.fire({
                     title: complaintShowTranslations.areYouSure,
-                    text: complaintShowTranslations.confirmCloseTicketText,
+                    text: complaintShowTranslations.confirmRejectTicketText,
                     icon: 'warning',
                     showCancelButton: true,
-                    confirmButtonText: complaintShowTranslations.confirmCloseTicketButton,
+                    confirmButtonText: complaintShowTranslations.confirmRejectTicketButton,
                     cancelButtonText: complaintShowTranslations.cancel
                 }).then((result) => {
                     if (result.isConfirmed) {
-                        updateStatus('closed');
+                        updateStatus('rejected');
                     }
                 });
             });

@@ -25,10 +25,12 @@ class HourlyDriverTest extends TestCase
             $table->id(); $table->unsignedBigInteger('hourly_rental_order_id'); $table->unsignedInteger('visit_number')->default(1);
             $table->unsignedBigInteger('delivery_driver_id')->nullable(); $table->unsignedBigInteger('pickup_driver_id')->nullable();
             $table->date('scheduled_date')->nullable(); $table->dateTime('scheduled_start_at')->nullable(); $table->dateTime('scheduled_end_at')->nullable();
+            $table->string('delivery_code')->nullable();
             $table->dateTime('delivery_at')->nullable(); $table->dateTime('pickup_at')->nullable(); $table->string('status')->default('scheduled');
             $table->text('address_text')->nullable(); $table->decimal('latitude',10,7)->nullable(); $table->decimal('longitude',10,7)->nullable(); $table->string('contact_phone')->nullable(); $table->boolean('is_free')->default(false); $table->timestamps();
         });
         Schema::create('maids', function (Blueprint $table) { $table->boolean('has_driving_license')->nullable(); $table->string('driving_license_file')->nullable(); $table->id(); $table->string('name')->nullable(); $table->softDeletes(); });
+        Schema::create('hourly_order_payments', function (Blueprint $table) { $table->id(); $table->unsignedBigInteger('hourly_rental_order_id'); $table->string('status'); $table->string('method')->nullable(); $table->decimal('amount',12,2)->default(0); $table->json('provider_payload')->nullable(); $table->timestamps(); });
         Schema::create('hourly_visit_workers', function (Blueprint $table) { $table->id(); $table->unsignedBigInteger('hourly_visit_id'); $table->unsignedBigInteger('maid_id'); $table->timestamps(); });
         Schema::create('hourly_order_audits', function (Blueprint $table) { $table->id(); $table->unsignedBigInteger('hourly_rental_order_id'); $table->unsignedBigInteger('visit_id')->nullable(); $table->unsignedBigInteger('admin_id')->nullable(); $table->string('action'); $table->text('reason')->nullable(); $table->text('before')->nullable(); $table->text('after')->nullable(); $table->timestamps(); });
         Schema::create('hourly_order_status_logs', function (Blueprint $table) { $table->id(); $table->unsignedBigInteger('hourly_rental_order_id'); $table->string('from_status')->nullable(); $table->string('to_status'); $table->string('actor_type'); $table->unsignedBigInteger('actor_id')->nullable(); $table->text('reason')->nullable(); $table->timestamps(); });
@@ -36,7 +38,7 @@ class HourlyDriverTest extends TestCase
         HourlyRentalSettings::persist(['is_enabled'=>true]);
     }
 
-    protected function tearDown(): void { HourlyRentalSettings::flush(); parent::tearDown(); }
+    protected function tearDown(): void { \Carbon\Carbon::setTestNow(); HourlyRentalSettings::flush(); parent::tearDown(); }
 
     private function payload(): array
     {
@@ -135,6 +137,7 @@ class HourlyDriverTest extends TestCase
 
     public function test_portal_shows_calendar_trip_details_and_admin_login_link(): void
     {
+        \Carbon\Carbon::setTestNow('2026-10-14 09:00:00');
         $driver=$this->driver();
         DB::table('users')->insert(['id'=>7,'name'=>'عميل الاختبار','phone'=>'0501111111']);
         DB::table('hourly_service_categories')->insert(['id'=>3,'name_ar'=>'تنظيف']);
@@ -147,13 +150,76 @@ class HourlyDriverTest extends TestCase
         $this->get(route('hourly-driver.login'))->assertOk()->assertSee(route('admin.form.login'),false);
     }
 
+    public function test_portal_requires_customer_delivery_code_before_confirmation(): void
+    {
+        \Carbon\Carbon::setTestNow('2026-10-14 10:00:00');$driver=$this->driver();
+        DB::table('hourly_rental_orders')->insert(['id'=>11,'order_number'=>'HR-11','status'=>'active','created_at'=>now(),'updated_at'=>now()]);
+        DB::table('hourly_visits')->insert(['id'=>21,'hourly_rental_order_id'=>11,'visit_number'=>1,'delivery_driver_id'=>$driver->id,
+            'scheduled_date'=>'2026-10-14','scheduled_start_at'=>'2026-10-14 09:00:00','scheduled_end_at'=>'2026-10-14 12:00:00',
+            'status'=>'en_route','delivery_code'=>'057391','created_at'=>now(),'updated_at'=>now()]);
+        $this->post(route('hourly-driver.authenticate'),['login'=>$driver->username,'password'=>'DriverPass123']);
+        $this->get(route('hourly-driver.home'))->assertOk()->assertSee('name="delivery_code"',false)
+            ->assertSee('كود استلام العميل')->assertDontSee('057391');
+        foreach([[],['delivery_code'=>'999999']] as $code){
+            $this->post(route('hourly-driver.visits.action',21),['action'=>'confirm_delivery']+$code)->assertSessionHasErrors('hourly');
+            $this->assertDatabaseHas('hourly_visits',['id'=>21,'status'=>'en_route']);
+            $this->assertDatabaseMissing('hourly_order_audits',['visit_id'=>21,'action'=>'driver_confirm_delivery']);
+        }
+        $this->post(route('hourly-driver.visits.action',21),['action'=>'confirm_delivery','delivery_code'=>'057391'])->assertRedirect()->assertSessionHasNoErrors();
+        $this->assertDatabaseHas('hourly_visits',['id'=>21,'status'=>'delivered']);
+        $this->assertDatabaseHas('hourly_order_audits',['visit_id'=>21,'action'=>'driver_confirm_delivery']);
+        DB::table('hourly_visits')->where('id',21)->update(['status'=>'en_route']);
+        HourlyRentalSettings::persist(['staff_app_require_delivery_code'=>false]);
+        $this->get(route('hourly-driver.home'))->assertOk()->assertDontSee('name="delivery_code"',false);
+        $this->post(route('hourly-driver.visits.action',21),['action'=>'confirm_delivery'])->assertRedirect()->assertSessionHasNoErrors();
+        $this->assertDatabaseHas('hourly_visits',['id'=>21,'status'=>'delivered']);
+        HourlyRentalSettings::persist(['staff_app_require_delivery_code'=>true]);
+        DB::table('hourly_visits')->where('id',21)->update(['status'=>'en_route','delivery_code'=>null]);
+        $this->get(route('hourly-driver.home'))->assertOk()->assertDontSee('name="delivery_code"',false);
+        $this->post(route('hourly-driver.visits.action',21),['action'=>'confirm_delivery'])->assertRedirect()->assertSessionHasNoErrors();
+        $this->assertDatabaseHas('hourly_visits',['id'=>21,'status'=>'delivered']);
+    }
+    public function test_portal_completion_closes_only_the_current_visit_movement(): void
+    {
+        (require base_path('database/migrations/2026_09_28_000001_create_worker_daily_movements_table.php'))->up();
+        $driver = $this->driver();
+        DB::table('hourly_rental_orders')->insert(['id'=>11,'order_number'=>'HR-11','status'=>'active','created_at'=>now(),'updated_at'=>now()]);
+        foreach ([21,22] as $id) {
+            DB::table('hourly_visits')->insert(['id'=>$id,'hourly_rental_order_id'=>11,'visit_number'=>$id,
+                'pickup_driver_id'=>$driver->id,'status'=>'picked_up','created_at'=>now(),'updated_at'=>now()]);
+            DB::table('hourly_visit_workers')->insert(['hourly_visit_id'=>$id,'maid_id'=>1]);
+            DB::table('worker_daily_movements')->insert(['maid_id'=>1,'source'=>'hourly_visit','reference_type'=>'hourly_visit',
+                'reference_id'=>$id,'out_at'=>now()->subHour(),'status'=>'out','created_at'=>now(),'updated_at'=>now()]);
+        }
+        $this->post(route('hourly-driver.authenticate'),['login'=>$driver->username,'password'=>'DriverPass123']);
+        $this->post(route('hourly-driver.visits.action',21),['action'=>'complete'])->assertRedirect()->assertSessionHasNoErrors();
+        $this->assertDatabaseHas('hourly_visits',['id'=>21,'status'=>'completed']);
+        $movement = DB::table('worker_daily_movements')->where('reference_id',21)->first();
+        $this->assertNotNull($movement->in_at);
+        $this->assertSame('returned',$movement->status);
+        $this->assertSame('driver',$movement->in_by_type);
+        $this->assertSame((int)$driver->id,(int)$movement->in_by_id);
+        $this->assertDatabaseHas('worker_daily_movements',['reference_id'=>22,'in_at'=>null,'status'=>'out']);
+        $returnedAt = $movement->in_at;
+        $this->post(route('hourly-driver.visits.action',21),['action'=>'complete'])->assertSessionHasErrors('hourly');
+        $this->assertSame($returnedAt,DB::table('worker_daily_movements')->where('reference_id',21)->value('in_at'));
+    }
+
     public function test_driver_can_only_advance_an_assigned_task_in_order(): void
     {
+        \Carbon\Carbon::setTestNow('2026-10-14 09:00:00');
         $driver=$this->driver(); $other=$this->driver(['username'=>'DR-OTHER','employee_number'=>'0099','phone'=>'0500000099']);
         DB::table('hourly_rental_orders')->insert(['id'=>11,'order_number'=>'HR-11','status'=>'active','created_at'=>now(),'updated_at'=>now()]);
         foreach([[21,$driver->id],[22,$other->id]] as [$id,$assigned]) DB::table('hourly_visits')->insert(['id'=>$id,'hourly_rental_order_id'=>11,'visit_number'=>$id,'delivery_driver_id'=>$assigned,'pickup_driver_id'=>$assigned,'scheduled_date'=>today(),'scheduled_start_at'=>today()->setTime(9,0),'scheduled_end_at'=>today()->setTime(12,0),'status'=>'scheduled','created_at'=>now(),'updated_at'=>now()]);
         $this->post(route('hourly-driver.authenticate'),['login'=>$driver->username,'password'=>'DriverPass123']);
 
+        foreach (['2026-10-13 09:00:00','2026-10-14 08:59:59','2026-10-14 12:00:00','2026-10-16 09:00:00'] as $at) {
+            \Carbon\Carbon::setTestNow($at);
+            $this->get(route('hourly-driver.home',['date'=>'2026-10-14']))->assertOk()->assertDontSee('بدء مشوار التوصيل');
+            $this->post(route('hourly-driver.visits.action',21),['action'=>'start_delivery'])->assertSessionHasErrors('hourly');
+            $this->assertDatabaseHas('hourly_visits',['id'=>21,'status'=>'scheduled']);
+        }
+        \Carbon\Carbon::setTestNow('2026-10-14 09:00:00');
         $this->post(route('hourly-driver.visits.action',21),['action'=>'start_delivery'])->assertRedirect();
         $this->assertDatabaseHas('hourly_visits',['id'=>21,'status'=>'en_route']);
         $this->assertDatabaseHas('hourly_order_audits',['visit_id'=>21,'action'=>'driver_start_delivery']);

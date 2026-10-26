@@ -46,6 +46,14 @@ class Maid extends Model
             }
         });
         static::saving(function (self $maid) {
+            if ($maid->exists && ($maid->isDirty('available') || $maid->isDirty('status'))
+                && ($maid->available || strtolower((string) $maid->status) === 'available')
+                && \Illuminate\Support\Facades\Schema::hasTable('rental_escape_reports')
+                && \App\Models\RentalEscapeReport::withoutGlobalScopes()->where('maid_id', $maid->id)->whereNull('ready_at')->exists()) {
+                throw \Illuminate\Validation\ValidationException::withMessages([
+                    'status' => 'يلزم تسجيل عودة العاملة واعتماد جاهزيتها من بلاغ هروب عقد التأجير قبل إتاحتها.',
+                ]);
+            }
             if ($maid->gender !== 'male') {
                 $maid->has_driving_license = null;
             }
@@ -160,6 +168,7 @@ class Maid extends Model
         'image',
         'video',
         'video_link',
+        'musaned_link',
         'cv_preview',
         'maid_cv_file',
         'office_id',
@@ -649,10 +658,33 @@ class Maid extends Model
     {
         return $this->hasMany(\App\Models\MaidExpertise::class, 'maid_id');
     }
+    /** عاملة مخصّصة لإيجار الساعات: لا تُعرض ولا تُسند لعقد أو طلب إيجار عادي. */
+    public function isHourly(): bool
+    {
+        return $this->rental_mode === 'hourly';
+    }
+
     ####### scopes
     public function scopeShown($query)
     {
         return $query->where('is_show', true);
+    }
+
+    /** استبعاد عاملات الساعات من قوائم الإيجار العادي والموقع والتطبيق. */
+    public function scopeNotHourly($query)
+    {
+        // قبل ترحيل الساعات لا يوجد العمود، فلا عاملات ساعات لاستبعادهن.
+        static $hasColumn = [];
+        $connection = $this->getConnection();
+        $key = spl_object_id($connection->getPdo());
+        $hasColumn[$key] ??= $connection->getSchemaBuilder()->hasColumn($this->getTable(), 'rental_mode');
+        if (!$hasColumn[$key]) {
+            return $query;
+        }
+
+        $column = $this->qualifyColumn('rental_mode');
+
+        return $query->where(fn ($q) => $q->whereNull($column)->orWhere($column, '!=', 'hourly'));
     }
 
     public function scopePendingSubmission($query)

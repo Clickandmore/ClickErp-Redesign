@@ -451,6 +451,12 @@
                             <span class="info-label">المستحق للعميل:</span>
                             <span class="info-value danger">{{ number_format((float) $transfer->failure_settlement_amount, 2) }} ريال</span>
                         </div>
+                        @if ($transfer->failure_refund_method)
+                            <div class="info-row">
+                                <span class="info-label">طريقة السداد:</span>
+                                <span class="info-value">{{ $transfer->failure_refund_method_text }}</span>
+                            </div>
+                        @endif
                         <div class="info-row">
                             <span class="info-label">مبلغ تصفير المتبقي:</span>
                             <span class="info-value">{{ number_format((float) $transfer->failure_clear_remaining_amount, 2) }} ريال</span>

@@ -161,7 +161,8 @@
             font-weight: 900;
         }
 
-        .invoice-issuance-field .form-control[type="date"] {
+        .invoice-issuance-field .form-control[type="date"],
+        .invoice-issuance-field .df-date-input {
             background: #fff;
             direction: ltr;
             text-align: right;
@@ -417,6 +418,10 @@
             'external_recruitment_cost' => (float) ($currentNationalityModel?->external_recruitment_cost ?? 0),
             'government_cost' => (float) ($currentNationalityModel?->government_cost ?? 0),
         ];
+        $currentMusanedCommissionRate = (float) ($currentNationalityModel?->musaned_commission_rate
+            ?? \App\Http\Controllers\ingaz\MusanedTransferController::DEFAULT_COMMISSION_RATE);
+        $canEditInvoiceLineItems = \App\Support\InvoiceAuthorization::canEditLineItems();
+        $canEditMusanedCommission = \App\Support\InvoiceAuthorization::canEditMusanedCommission();
         $currentNationalityHasCosts = collect($currentNationalityCosts)->contains(fn ($value) => (float) $value > 0);
         $currentContractStatus = $currentContract
             ? getEnumValue('contract_statuses', $currentContract->status) ?? ($currentContract->status ?? 'غير محدد')
@@ -433,6 +438,7 @@
         $invoiceIssuedAt = $invoiceIssuedAt ?? now();
         $selectedInvoiceDate = old('invoice_date', now()->toDateString());
         $canCreateInvoice = true;
+        $issuesDirectly = isset($financialContract) || \App\Support\InvoiceAuthorization::canIssueDirectly();
     @endphp
 
     <div class="container-fluid py-3 invoice-create-page">
@@ -443,7 +449,8 @@
                         <i class="fas fa-file-invoice-dollar"></i>
                         فاتورة جديدة
                     </span>
-                    <div class="toolbar-title">إصدار فاتورة </div>
+                    <div class="toolbar-title">{{ $issuesDirectly ? 'إصدار فاتورة' : 'إنشاء مسودة فاتورة' }}</div>
+                    @unless($issuesDirectly)<p class="toolbar-text">ستُرسل المسودة للاعتماد، ويُحدد رقم الفاتورة وتُسجل آثارها المالية عند اعتمادها.</p>@endunless
 
                 </div>
 
@@ -597,6 +604,7 @@
                                                         data-direct-cost="{{ $contractNationalityCosts['direct_recruitment_cost'] }}"
                                                         data-external-cost="{{ $contractNationalityCosts['external_recruitment_cost'] }}"
                                                         data-government-cost="{{ $contractNationalityCosts['government_cost'] }}"
+                                                        data-musaned-commission-rate="{{ (float) ($contractNationalityModel?->musaned_commission_rate ?? \App\Http\Controllers\ingaz\MusanedTransferController::DEFAULT_COMMISSION_RATE) }}"
                                                         data-has-nationality-costs="{{ $contractNationalityHasCosts ? 1 : 0 }}"
                                                         {{ (string) $selectedContractId === (string) $contract->id ? 'selected' : '' }}>
                                                         {{ $contract->desc ?? 'العقد #' . $contract->id }}
@@ -686,8 +694,8 @@
                                 <div class="col-md-4 invoice-issuance-field">
                                     <label class="form-label" for="invoice_number_preview">رقم الفاتورة</label>
                                     <input type="text" id="invoice_number_preview" class="form-control"
-                                        value="{{ $nextInvoiceNumber }}" readonly aria-readonly="true">
-                                    <div class="field-note">رقم تسلسلي بعد آخر فاتورة، ويُثبت نهائياً عند الحفظ.</div>
+                                        value="{{ $issuesDirectly ? $nextInvoiceNumber : 'يُحدد عند الاعتماد' }}" readonly aria-readonly="true">
+                                    <div class="field-note">{{ $issuesDirectly ? 'رقم تسلسلي بعد آخر فاتورة، ويُثبت نهائياً عند الحفظ.' : 'للمسودة رقم طلب مستقل عن رقم الفاتورة النهائي.' }}</div>
                                 </div>
                                 <div class="col-md-4 invoice-issuance-field">
                                     <label class="form-label" for="invoice_date">
@@ -705,7 +713,7 @@
                                 <div class="col-md-4 invoice-issuance-field">
                                     <label class="form-label" for="invoice_issued_at_preview">تاريخ الإصدار</label>
                                     <input type="text" id="invoice_issued_at_preview" class="form-control"
-                                        value="{{ $invoiceIssuedAt->format('d/m/Y - H:i') }}" readonly aria-readonly="true">
+                                        value="{{ $issuesDirectly ? $invoiceIssuedAt->format('d/m/Y - H:i') : 'بانتظار الاعتماد' }}" readonly aria-readonly="true">
                                     <div class="field-note">وقت إنشاء الفاتورة في النظام.</div>
                                 </div>
                             </div>
@@ -731,7 +739,8 @@
                                 <div class="col-md-6 col-lg-4">
                                     <label class="form-label" for="direct_recruitment_cost" id="directCostLabel">الاستقدام المباشر</label>
                                     <input type="number" step="0.01" min="0" name="direct_recruitment_cost"
-                                        id="direct_recruitment_cost" class="form-control calc-input"
+                                        id="direct_recruitment_cost" class="form-control calc-input invoice-line-editable"
+                                        {{ !$canEditInvoiceLineItems && !$isGeneralInvoice ? 'readonly' : '' }}
                                         value="{{ old('direct_recruitment_cost', $currentNationalityCosts['direct_recruitment_cost']) }}">
                                 </div>
                                 <div class="col-md-6 col-lg-4">
@@ -744,20 +753,23 @@
                                         @endif
                                     </label>
                                     <input type="number" step="0.01" min="{{ $isGeneralInvoice ? 0 : 0.01 }}" name="external_recruitment_cost"
-                                        id="external_recruitment_cost" class="form-control calc-input"
+                                        id="external_recruitment_cost" class="form-control calc-input invoice-line-editable"
+                                        {{ !$canEditInvoiceLineItems && !$isGeneralInvoice ? 'readonly' : '' }}
                                         value="{{ old('external_recruitment_cost', $currentNationalityCosts['external_recruitment_cost']) }}"
                                         {{ !$isGeneralInvoice ? 'required' : '' }}>
                                 </div>
                                 <div class="col-md-6 col-lg-4">
                                     <label class="form-label" for="government_cost" id="governmentCostLabel">تكاليف حكومية</label>
                                     <input type="number" step="0.01" min="0" name="government_cost"
-                                        id="government_cost" class="form-control calc-input"
+                                        id="government_cost" class="form-control calc-input invoice-line-editable"
+                                        {{ !$canEditInvoiceLineItems && !$isGeneralInvoice ? 'readonly' : '' }}
                                         value="{{ old('government_cost', $currentNationalityCosts['government_cost']) }}">
                                 </div>
                                 <div class="col-md-6 col-lg-4">
                                     <label class="form-label" for="internal_ticket_cost" id="ticketCostLabel">التذكرة الداخلية</label>
                                     <input type="number" step="0.01" min="0" name="internal_ticket_cost"
-                                        id="internal_ticket_cost" class="form-control calc-input"
+                                        id="internal_ticket_cost" class="form-control calc-input invoice-line-editable"
+                                        {{ !$canEditInvoiceLineItems && !$isGeneralInvoice ? 'readonly' : '' }}
                                         value="{{ old('internal_ticket_cost', 0) }}">
                                 </div>
                             </div>
@@ -774,36 +786,42 @@
                                     <label class="form-label" for="visa_recruited_count">عدد المستقدمين في
                                         التأشيرة</label>
                                     <input type="number" min="1" name="visa_recruited_count"
-                                        id="visa_recruited_count" class="form-control calc-input"
+                                        id="visa_recruited_count" class="form-control calc-input invoice-line-editable"
+                                        {{ !$canEditInvoiceLineItems && !$isGeneralInvoice ? 'readonly' : '' }}
                                         value="{{ old('visa_recruited_count', 1) }}">
                                 </div>
                                 <div class="col-md-6 col-lg-4">
                                     <label class="form-label" for="direct_recruitment_count">عدد المباشر</label>
                                     <input type="number" min="1" name="direct_recruitment_count"
-                                        id="direct_recruitment_count" class="form-control calc-input"
+                                        id="direct_recruitment_count" class="form-control calc-input invoice-line-editable"
+                                        {{ !$canEditInvoiceLineItems && !$isGeneralInvoice ? 'readonly' : '' }}
                                         value="{{ old('direct_recruitment_count', 1) }}">
                                 </div>
                                 <div class="col-md-6 col-lg-4">
                                     <label class="form-label" for="external_recruitment_count">عدد الخارجي</label>
                                     <input type="number" min="1" name="external_recruitment_count"
-                                        id="external_recruitment_count" class="form-control calc-input"
+                                        id="external_recruitment_count" class="form-control calc-input invoice-line-editable"
+                                        {{ !$canEditInvoiceLineItems && !$isGeneralInvoice ? 'readonly' : '' }}
                                         value="{{ old('external_recruitment_count', 1) }}">
                                 </div>
                                 <div class="col-md-6 col-lg-4">
                                     <label class="form-label" for="insured_count">عدد المؤمن عليهم</label>
                                     <input type="number" min="1" name="insured_count" id="insured_count"
-                                        class="form-control calc-input" value="{{ old('insured_count', 1) }}">
+                                        class="form-control calc-input invoice-line-editable" value="{{ old('insured_count', 1) }}"
+                                        {{ !$canEditInvoiceLineItems && !$isGeneralInvoice ? 'readonly' : '' }}>
                                 </div>
                                 <div class="col-md-6 col-lg-4">
                                     <label class="form-label" for="government_cost_count">عدد الحكومي</label>
                                     <input type="number" min="1" name="government_cost_count"
-                                        id="government_cost_count" class="form-control calc-input"
+                                        id="government_cost_count" class="form-control calc-input invoice-line-editable"
+                                        {{ !$canEditInvoiceLineItems && !$isGeneralInvoice ? 'readonly' : '' }}
                                         value="{{ old('government_cost_count', 1) }}">
                                 </div>
                                 <div class="col-md-6 col-lg-4">
                                     <label class="form-label" for="internal_ticket_count">عدد التذاكر</label>
                                     <input type="number" min="1" name="internal_ticket_count"
-                                        id="internal_ticket_count" class="form-control calc-input"
+                                        id="internal_ticket_count" class="form-control calc-input invoice-line-editable"
+                                        {{ !$canEditInvoiceLineItems && !$isGeneralInvoice ? 'readonly' : '' }}
                                         value="{{ old('internal_ticket_count', 1) }}">
                                 </div>
                             </div>
@@ -826,7 +844,8 @@
                                     <div class="col-md-6 col-lg-3">
                                         <label class="form-label" for="discount">الخصم</label>
                                         <input type="number" step="0.01" min="0" name="discount"
-                                            id="discount" class="form-control calc-input"
+                                            id="discount" class="form-control calc-input invoice-line-editable"
+                                            {{ !$canEditInvoiceLineItems && !$isGeneralInvoice ? 'readonly' : '' }}
                                             value="{{ old('discount', 0) }}">
                                     </div>
                                     <div class="col-md-6 col-lg-3">
@@ -889,6 +908,7 @@
                                 <p class="text-muted small">لعقود الاستقدام فقط؛ يمكن إنشاؤها لاحقًا من العقد.</p>
                                 <label class="form-label">إثبات تكلفة المورد</label>
                                 <select name="supplier_recognition_mode" class="form-control"><option value="full">التكلفة كاملة</option><option value="partial">جزء من التكلفة</option></select>
+                                @if(\App\Support\InvoiceAuthorization::canViewSupplierTotalCost())
                                 <label class="form-label mt-2">إجمالي تكلفة المورد (دولار)</label>
                                 <input type="number" class="form-control" name="supplier_total_cost_usd" value="{{ old('supplier_total_cost_usd', $supplierDefaultCost) }}" min="0.01" max="99999999.99" step="0.01" placeholder="أدخل تكلفة المورد" required>
                                 @if(filled($supplierDefaultCost))
@@ -896,10 +916,13 @@
                                 @else
                                     <p class="text-muted small mt-2">لا توجد تكلفة مسجلة في السيرة أو إعدادات المورد؛ أدخل التكلفة قبل إصدار فاتورة المورد.</p>
                                 @endif
+                                @else
+                                    <p class="text-muted small mt-2">تُستخدم تكلفة المورد المسجلة تلقائيًا عند إصدار فاتورة المورد.</p>
+                                @endif
                                 <label class="form-label mt-2">المبلغ الجزئي المراد إثباته (دولار)</label>
                                 <input type="number" class="form-control" name="supplier_partial_cost_usd" min="0.01" max="99999999.99" step="0.01">
                                 <label class="form-label mt-2">محطة الوصول</label>
-                                <input class="form-control" name="supplier_arrival_station" maxlength="255" placeholder="اختياري؛ تُستخدم محطة العقد">
+                                <input class="form-control" name="supplier_arrival_station" maxlength="255" placeholder="تُستخدم محطة العقد إن وُجدت، وإلا فهي مطلوبة">
                             </div>
                             @endif
                             <div class="side-section">
@@ -937,7 +960,7 @@
                                     </div>
                                     <div class="meta-item">
                                         <span class="meta-label">رقم الفاتورة</span>
-                                        <strong class="meta-value" id="previewInvoiceNumber">#{{ $nextInvoiceNumber }}</strong>
+                                        <strong class="meta-value" id="previewInvoiceNumber">{{ $issuesDirectly ? '#' . $nextInvoiceNumber : 'مسودة بانتظار الاعتماد' }}</strong>
                                     </div>
                                     <div class="meta-item">
                                         <span class="meta-label">تاريخ الفاتورة</span>
@@ -972,8 +995,19 @@
                                 </div>
 
                                 @if(\App\Support\InvoiceSupplierWorkflow::enabled())
-                                <div class="summary-row musaned-summary"><span>عمولة مساند (2.5% من الإجمالي)</span><strong id="summaryMusanedCommission">0.00 ريال</strong></div>
-                                <div class="summary-row musaned-summary"><span>الصافي المتوقع من مساند</span><strong id="summaryMusanedNet">0.00 ريال</strong></div>
+                                <div class="musaned-summary mt-3">
+                                    <div class="summary-row align-items-center gap-2">
+                                        <label for="musaned_commission_amount" class="mb-0">التكاليف البنكية <small class="text-muted">(شاملة ضريبة القيمة المضافة)</small></label>
+                                        <div class="input-group input-group-sm" style="max-width: 170px">
+                                            <input type="number" class="form-control text-end" id="musaned_commission_amount"
+                                                name="musaned_commission_amount" min="0" step="0.01"
+                                                value="{{ old('musaned_commission_amount') }}"
+                                                {{ !$canEditMusanedCommission ? 'readonly' : '' }}>
+                                            <span class="input-group-text">ريال</span>
+                                        </div>
+                                    </div>
+                                    <div class="summary-row"><span>الصافي المتوقع من مساند</span><strong id="summaryMusanedNet">0.00 ريال</strong></div>
+                                </div>
                                 @endif
                                 <div class="line-breakdown">
                                     <div class="breakdown-row">
@@ -1000,7 +1034,7 @@
                                     <button type="submit" class="btn btn-primary" id="btnSubmit"
                                         @disabled(!$canCreateInvoice)>
                                         <i class="fas fa-save me-1"></i>
-                                        حفظ وإصدار الفاتورة
+                                        {{ $issuesDirectly ? 'حفظ وإصدار الفاتورة' : 'حفظ وإرسال للاعتماد' }}
                                     </button>
                                     @if (\App\Support\InvoiceAuthorization::canView())
                                     <a href="{{ route('invoices.index') }}" class="btn btn-outline-secondary">
@@ -1036,7 +1070,7 @@
                                         <a href="#" class="btn btn-outline-dark d-none js-post-save-link"
                                             id="printInvoiceConstraintBtn" target="_blank" rel="noopener">
                                             <i class="fas fa-book-open me-1"></i>
-                                            طباعة قيد الفاتورة
+                                            1. طباعة <span id="invoiceConstraintLabel">قيد المبيعات</span>
                                         </a>
                                         <a href="#" class="btn btn-outline-primary d-none js-post-save-link"
                                             id="printReceiptBondBtn" target="_blank" rel="noopener">
@@ -1046,7 +1080,12 @@
                                         <a href="#" class="btn btn-outline-dark d-none js-post-save-link"
                                             id="printReceiptConstraintBtn" target="_blank" rel="noopener">
                                             <i class="fas fa-file-invoice-dollar me-1"></i>
-                                            طباعة قيد سند القبض
+                                            2. طباعة قيد تحصيل مساند
+                                        </a>
+                                        <a href="#" class="btn btn-outline-dark d-none js-post-save-link"
+                                            id="printMusanedCommissionConstraintBtn" target="_blank" rel="noopener">
+                                            <i class="fas fa-building-columns me-1"></i>
+                                            3. طباعة قيد التكاليف البنكية
                                         </a>
                                         <a href="#" class="btn btn-outline-dark d-none js-post-save-link"
                                             id="printDelegationCostConstraintBtn" target="_blank" rel="noopener">
@@ -1130,6 +1169,13 @@
                 setCostValue('#direct_recruitment_cost', hasOption ? $option.attr('data-direct-cost') : 0);
                 setCostValue('#external_recruitment_cost', hasOption ? $option.attr('data-external-cost') : 0);
                 setCostValue('#government_cost', hasOption ? $option.attr('data-government-cost') : 0);
+                const commissionRate = hasOption
+                    ? Number($option.attr('data-musaned-commission-rate'))
+                    : @json(\App\Http\Controllers\ingaz\MusanedTransferController::DEFAULT_COMMISSION_RATE);
+                musanedCommissionRate = Number.isFinite(commissionRate)
+                    ? commissionRate
+                    : @json(\App\Http\Controllers\ingaz\MusanedTransferController::DEFAULT_COMMISSION_RATE);
+                musanedCommissionDriver = 'rate';
                 updateNationalityCostHint(Boolean(hasCosts));
             }
 
@@ -1154,6 +1200,7 @@
                     .attr('min', mode === 'general' ? '0' : '0.01');
                 $('#governmentCostLabel').text(mode === 'general' ? 'رسوم حكومية' : 'تكاليف حكومية');
                 $('#ticketCostLabel').text(mode === 'general' ? 'بند إضافي خاضع للضريبة' : 'التذكرة الداخلية');
+                $('.invoice-line-editable').prop('readonly', mode !== 'general' && !@json($canEditInvoiceLineItems));
 
                 if (mode === 'contract') {
                     $('#client_id').val(null).trigger('change');
@@ -1242,6 +1289,23 @@
                 updateCalculation();
             }
 
+            let musanedCommissionRate = @json($currentMusanedCommissionRate);
+            let musanedCommissionDriver = @json(old('musaned_commission_amount') !== null ? 'amount' : 'rate');
+
+            function syncMusanedCommission(totalDue) {
+                const amountInput = $('#musaned_commission_amount');
+                if (!amountInput.length) return;
+
+                let amount = Math.min(totalDue, Math.max(0, Number(amountInput.val()) || 0));
+
+                if (musanedCommissionDriver !== 'amount') {
+                    amount = Math.round(totalDue * musanedCommissionRate) / 100;
+                    amountInput.val(amount.toFixed(2));
+                }
+
+                $('#summaryMusanedNet').text(formatMoney(Math.max(0, totalDue - amount)));
+            }
+
             function updateCalculation() {
                 const directCost = parseNumber('#direct_recruitment_cost');
                 const externalCost = parseNumber('#external_recruitment_cost');
@@ -1273,9 +1337,9 @@
                 $('#summaryDiscount').text(formatMoney(discount));
                 $('#summaryGrandTotal').text(formatMoney(totalDue));
                 const musanedInvoice = @json(\App\Support\InvoiceSupplierWorkflow::enabled()) && ['contract', 'delegation'].includes(currentInvoiceMode());
-                $('#summaryMusanedCommission').text(formatMoney(totalDue * 0.025));
-                $('#summaryMusanedNet').text(formatMoney(totalDue - Math.round(totalDue * 2.5) / 100));
                 $('.musaned-summary').toggle(musanedInvoice);
+                $('#musaned_commission_amount').prop('disabled', !musanedInvoice);
+                syncMusanedCommission(totalDue);
                 const supplierOptions = $('#supplierInvoiceOptions');
                 supplierOptions.toggle(currentInvoiceMode() === 'contract');
                 updateSupplierOptions();
@@ -1326,12 +1390,16 @@
                 $('#printInvoiceConstraintBtn')
                     .attr('href', response.invoice_constraint_print_url || '#')
                     .toggleClass('d-none', !response.invoice_constraint_print_url);
+                $('#invoiceConstraintLabel').text(response.invoice_constraint_label || 'قيد المبيعات');
                 $('#printReceiptBondBtn')
                     .attr('href', response.receipt_bond_print_url || '#')
                     .toggleClass('d-none', !response.receipt_bond_print_url);
                 $('#printReceiptConstraintBtn')
                     .attr('href', response.receipt_constraint_print_url || '#')
                     .toggleClass('d-none', !response.receipt_constraint_print_url);
+                $('#printMusanedCommissionConstraintBtn')
+                    .attr('href', response.musaned_commission_constraint_print_url || '#')
+                    .toggleClass('d-none', !response.musaned_commission_constraint_print_url);
                 $('#printDelegationCostConstraintBtn')
                     .attr('href', response.delegation_cost_constraint_print_url || '#')
                     .toggleClass('d-none', !response.delegation_cost_constraint_print_url);
@@ -1351,6 +1419,10 @@
                 panel.find('[name="supplier_partial_cost_usd"]').prop('disabled', !partial).prop('required', partial);
             }
             $('#supplierInvoiceOptions :input').on('change', updateSupplierOptions);
+            $('#musaned_commission_amount').on('input change', function() {
+                musanedCommissionDriver = 'amount';
+                syncMusanedCommission(parseNumber('#total_due'));
+            });
             $('.calc-input').on('input', updateCalculation);
             $('.general-label-input').on('input', updateCalculation);
             $('#invoice_date').on('change input', function() {
@@ -1415,6 +1487,13 @@
                         `);
                     },
                     success: function(response) {
+                        if (response.success && response.is_draft) {
+                            $form.find(':input').prop('disabled', true);
+                            $submitButton.html('<i class="fas fa-check me-1"></i> تم إرسال طلب الاعتماد');
+                            Swal.fire({icon: 'success', title: 'طلب اعتماد #' + response.draft_id, text: response.message});
+                            $('#postSaveActions').removeClass('d-none').html($('<a>', {href: "{{ route('invoice-drafts.index') }}", class: 'btn btn-primary', text: 'متابعة طلبات الاعتماد'}));
+                            return;
+                        }
                         if (!response.success) {
                             $submitButton.prop('disabled', false).html(submitButtonHtml);
 

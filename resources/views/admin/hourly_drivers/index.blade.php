@@ -5,6 +5,11 @@
 @section('style')
     @include('admin.hourly_teams._style')
     @include('admin.hourly_drivers._style')
+    <style>
+        /* شارة أهلية الإسناد وسببها: تلتف داخل عمود السائق بدل أن تمتد فوق الأعمدة المجاورة */
+        .dr-elig { white-space: normal; border-radius: 8px; line-height: 1.45; max-width: 100%; }
+        .dr-elig-note { margin-top: .25rem; font-size: .72rem; line-height: 1.5; color: #b42318; white-space: normal; }
+    </style>
 @endsection
 
 @section('content')
@@ -133,6 +138,7 @@
                                                 <div class="hd-avatar">{{ mb_substr($driver->name, 0, 1) }}</div>
                                                 <div>
                                                     <strong class="d-block">{{ $driver->name }}</strong>
+                                                    @include('admin.hourly_drivers._assignment-eligibility',['driver'=>$driver])
                                                     <span class="small text-muted"># <span class="ht-num">{{ $driver->employee_number }}</span></span>
                                                     <span class="small text-muted ms-2" title="سعة السيارة"><i class="fa fa-car-side"></i> <span class="ht-num">{{ $driver->vehicle_capacity }}</span> ركاب</span>
                                                 </div>

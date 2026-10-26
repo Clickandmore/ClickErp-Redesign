@@ -241,6 +241,7 @@ class BondService extends MainService
     {
         $data["bond_book_num"] = (isset($data['bond_book_num'])) ? $data['bond_book_num'] : " ";
         $obj = $this->find($id);
+        $this->guardReceiptHoldingMusanedCommission($obj);
         if ($obj->bondTax) {
             $obj->bondTax->delete();
         }
@@ -263,6 +264,28 @@ class BondService extends MainService
         }
         $bond = $this->findToArray($id);
         return $bond;
+    }
+
+    /**
+     * سند قبض فاتورة يحمل قيده سطور التكاليف البنكية لمساند (إعداد «قيدان بدل ثلاثة»): تعديله
+     * من هنا يعيد توليد القيد من السند وحده فتضيع سطور العمولة. يُعدَّل من الفاتورة.
+     */
+    private function guardReceiptHoldingMusanedCommission($bond): void
+    {
+        if (!$bond || !$bond->constraint_id
+            || !\Illuminate\Support\Facades\Schema::hasColumn('invoices', 'musaned_commission_constraint_id')) {
+            return;
+        }
+
+        $holdsCommission = DB::table('invoices')
+            ->where('musaned_commission_constraint_id', (int) $bond->constraint_id)
+            ->exists();
+
+        if ($holdsCommission) {
+            throw \Illuminate\Validation\ValidationException::withMessages([
+                'value' => 'قيد هذا السند يحمل التكاليف البنكية لمساند الخاصة بفاتورة. عدّله من شاشة الفاتورة حتى لا تضيع سطور العمولة.',
+            ]);
+        }
     }
 
     public function updateBondCheck($bond_id, $data)

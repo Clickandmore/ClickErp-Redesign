@@ -70,7 +70,9 @@ class Setting extends Model
         'logo_header', 'document_logo', 'admin_logo', 'light_image', 'cover_image', 'admin_login_background', 'dashboard_footer_url', 'there_are_offer', 'logo_footer', 'favicon', 'about_image', 'twitter', 'facebook', 'instagram', 'snapchat', 'linkedin', 'youtube', 'tiktok', 'whatsapp', 'email', 'phone', 'other_phone', 'map_link', 'find_us_mode', 'header_link_1_title', 'header_link_1_url', 'header_link_2_title', 'header_link_2_url', 'live_chat_title', 'live_chat_url', 'admin_quick_links', 'tag_manager_head', 'tag_manager_footer', 'tiktok_tag', 'snapchat_tag', 'zoho_tag', 'hotjar_tag', 'meta_pixel_tag', 'live_chat_tag', 'website_visitor_site_id', 'show_public_site', 'external_auth_mode', 'app_auth_mode', 'external_order_mode', 'rental_order_mode', 'cv_template_enabled', 'cv_template_blade', 'cv_template_filename', 'cv_template_output_type', 'cv_public_site_url'
         , 'qr_image', 'experience_image', 'second_qr_image', 'tax_number', 'zatch_logo'
         // فهرسة الموقع الخارجي: canonical وsitemap — كانت في .env عند الموقع
-        , 'seo_canonical_base', 'seo_sitemap_worker_pages', 'seo_sitemap_worker_limit', 'seo_sitemap_offer_pages', 'seo_sitemap_cache_minutes'
+        , 'seo_canonical_base', 'seo_redirect_host', 'seo_sitemap_worker_pages', 'seo_sitemap_worker_limit', 'seo_sitemap_offer_pages', 'seo_sitemap_cache_minutes'
+        // فيديو توضيحي لشاشة استيراد البيانات
+        , 'import_tutorial_video_enabled', 'import_tutorial_video_url'
     ];
 
     protected $casts = [
@@ -80,11 +82,31 @@ class Setting extends Model
         'cv_template_enabled' => 'boolean',
         'rental_cv_transfer_enabled' => 'boolean',
         'maid_transaction_edit_override_enabled' => 'boolean',
+        'seo_redirect_host' => 'boolean',
         'seo_sitemap_worker_pages' => 'boolean',
         'seo_sitemap_offer_pages' => 'boolean',
+        'import_tutorial_video_enabled' => 'boolean',
     ];
 
     protected $appends = ['header_logo_url', 'footer_logo_url'];
+
+    /**
+     * رابط تضمين فيديو شاشة الاستيراد: يحوّل رابط مشاركة Google Drive
+     * (file/d/{id}/view أو open?id={id}) إلى صيغة /preview القابلة للعرض داخل iframe.
+     */
+    public function importTutorialVideoEmbedUrl(): ?string
+    {
+        $url = trim((string) ($this->import_tutorial_video_url ?? ''));
+        if (!$this->import_tutorial_video_enabled || $url === '') {
+            return null;
+        }
+
+        if (preg_match('~drive\.google\.com/(?:file/d/|open\?id=|uc\?(?:.*&)?id=)([A-Za-z0-9_-]+)~', $url, $match)) {
+            return 'https://drive.google.com/file/d/' . $match[1] . '/preview';
+        }
+
+        return $url;
+    }
 
     public function getHeaderLogoUrlAttribute()
     {

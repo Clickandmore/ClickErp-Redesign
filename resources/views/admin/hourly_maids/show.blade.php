@@ -109,6 +109,23 @@
     .mp-profile .btn-outline-primary:hover { background: #eff8ff; color: var(--brand-deep); }
     .mp-profile .table { font-size: .87rem; }
     .mp-profile .table th { font-size: .78rem; color: var(--muted); background: var(--soft); border-bottom: 1px solid var(--line); }
+
+    /* بطاقة الظهور في الحجز: الأسباب بنفس شروط حساب التوفر (WorkerBookability) */
+    .mp-book { padding: 1rem 1.2rem; border-inline-start: 4px solid var(--teal); }
+    .mp-book.is-blocked { border-inline-start-color: #dc2626; background: #fffafa; }
+    .mp-book-head { display: flex; align-items: flex-start; gap: .75rem; }
+    .mp-book-icon { width: 38px; height: 38px; flex: 0 0 38px; display: grid; place-items: center; border-radius: 11px; background: #e6f7f5; color: var(--teal-deep); }
+    .mp-book.is-blocked .mp-book-icon { background: #fee2e2; color: #b91c1c; }
+    .mp-book h6 { margin: 0 0 .2rem; font-weight: 700; color: var(--ink); }
+    .mp-book.is-blocked h6 { color: #b91c1c; }
+    .mp-book p { margin: 0; font-size: .84rem; color: var(--muted); }
+    .mp-book-list { list-style: none; margin: .8rem 0 0; padding: 0; display: grid; gap: .4rem; }
+    .mp-book-list li { display: flex; align-items: flex-start; gap: .55rem; padding: .5rem .7rem; border-radius: 10px; font-size: .85rem; line-height: 1.7; }
+    .mp-book-list li span { flex: 0 0 auto; min-width: 64px; text-align: center; border-radius: 999px; padding: .05rem .55rem; font-size: .74rem; font-weight: 700; }
+    .mp-book-list li.is-block { background: #fef2f2; color: #7f1d1d; }
+    .mp-book-list li.is-block span { background: #fecaca; color: #991b1b; }
+    .mp-book-list li.is-warn { background: #fffbeb; color: #78350f; }
+    .mp-book-list li.is-warn span { background: #fde68a; color: #92400e; }
 </style>
 @endsection
 @section('content')
@@ -131,13 +148,36 @@
                 </div>
             </div>
             <div class="mp-hero-actions">
+@include('admin.hourly_maids._login-as',['buttonClass'=>'mp-hero-btn'])
                 <a class="mp-hero-btn" href="{{ route('admin.hourly-maids.index') }}"><i class="fa fa-arrow-right"></i> العودة للعاملات</a>
             </div>
         </header>
     </div>
 
+    @if($bookability)
+        @php $blocked = !empty($bookability['blockers']); @endphp
+        <section class="mp-card mp-book {{ $blocked ? 'is-blocked' : 'is-ok' }}" aria-labelledby="mp-book-title">
+            <div class="mp-book-head">
+                <span class="mp-book-icon"><i class="fa {{ $blocked ? 'fa-eye-slash' : 'fa-circle-check' }}"></i></span>
+                <div>
+                    <h6 id="mp-book-title">{{ $blocked ? 'غير معروضة للحجز' : 'معروضة للحجز' }}</h6>
+                    <p>{{ $blocked ? 'لا تظهر العاملة في مواعيد الحجز (لوحة التحكم والموقع والتطبيق) حتى تُعالج الأسباب التالية:' : 'تظهر في مواعيد الحجز ضمن '.$bookability['served_districts'].' حي من مناطق الخدمة، ما دامت غير مشغولة في الموعد.' }}</p>
+                </div>
+            </div>
+            @if($blocked || $bookability['warnings'])
+                <ul class="mp-book-list">
+                    @foreach($bookability['blockers'] as $item)<li class="is-block"><span>{{ $item['area'] }}</span>{{ $item['text'] }}</li>@endforeach
+                    @foreach($bookability['warnings'] as $item)<li class="is-warn"><span>{{ $item['area'] }}</span>{{ $item['text'] }}</li>@endforeach
+                </ul>
+            @endif
+        </section>
+    @endif
+
     @if(session('success'))<div class="alert alert-success" role="status">{{ session('success') }}</div>@endif
     @if($errors->any())<div class="alert alert-danger" role="alert"><strong>يرجى مراجعة البيانات:</strong><ul class="mb-0">@foreach($errors->all() as $error)<li>{{ $error }}</li>@endforeach</ul></div>@endif
+    @if($returnHold ?? null)
+        @include('admin.hourly_maids._return-hold')
+    @endif
 
     <div class="mp-layout">
         <aside class="mp-side">

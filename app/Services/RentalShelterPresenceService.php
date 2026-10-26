@@ -26,13 +26,13 @@ class RentalShelterPresenceService
         'trial_started',
     ];
 
-    public function markOutside(RentalContract $rentalContract): bool
+    public function markOutside(RentalContract $rentalContract, $outsideAt = null): bool
     {
         if (!$rentalContract->maid_id) {
             return false;
         }
 
-        return DB::transaction(function () use ($rentalContract) {
+        return DB::transaction(function () use ($rentalContract, $outsideAt) {
             $shelterContract = Contract::query()
                 ->with('info')
                 ->where('maid_id', $rentalContract->maid_id)
@@ -57,7 +57,7 @@ class RentalShelterPresenceService
 
             $shelterContract->info()->updateOrCreate([], [
                 'is_outside_shelter' => true,
-                'outside_shelter_at' => $rentalContract->maid_delivered_at ?: now(),
+                'outside_shelter_at' => $outsideAt ?: ($rentalContract->maid_delivered_at ?: now()),
                 'outside_shelter_reason' => 'rental_delivery',
                 'outside_shelter_reference_type' => RentalContract::class,
                 'outside_shelter_reference_id' => $rentalContract->id,
@@ -83,6 +83,14 @@ class RentalShelterPresenceService
         return $this->returnMaidInside(
             (int) $rentalContract->maid_id,
             'تمت إعادة العاملة إلى داخل الإيواء بعد إنهاء عقد إيجار رقم ' . $rentalContract->id
+        );
+    }
+
+    public function returnFrozenMaidInside(RentalContract $rentalContract): bool
+    {
+        return $rentalContract->maid_id && $this->returnMaidInside(
+            (int) $rentalContract->maid_id,
+            'تمت إعادة العاملة إلى الإيواء وإتاحتها للحجز عند تجميد عقد الإيجار رقم ' . $rentalContract->id
         );
     }
 
@@ -128,7 +136,7 @@ class RentalShelterPresenceService
                     ->where('outside_shelter_reason', 'rental_delivery');
             })
             ->whereDoesntHave('maid.rentalContracts', function ($rentalQuery) {
-                $rentalQuery->whereIn('status', self::OUTSIDE_RENTAL_STATUSES);
+                $rentalQuery->whereIn('status', self::OUTSIDE_RENTAL_STATUSES)->holdingMaid();
             })
             ->whereDoesntHave('sponsorshipTransfers', function ($transferQuery) {
                 $transferQuery->whereIn('status', self::OUTSIDE_TRANSFER_STATUSES);
@@ -269,13 +277,13 @@ class RentalShelterPresenceService
     private function canReturnMaidInside(int $maidId): bool
     {
         $maidStatus = Maid::query()->whereKey($maidId)->value('status');
-        if ($maidStatus === null || in_array($maidStatus, ['backout', 'deported'], true)) {
+        if ($maidStatus === null || in_array($maidStatus, ['backout', 'deported', 'escaped', 'Escaped', 'returned_pending_review'], true)) {
             return false;
         }
 
         $hasOutsideRental = RentalContract::query()
             ->where('maid_id', $maidId)
-            ->whereIn('status', self::OUTSIDE_RENTAL_STATUSES)
+            ->whereIn('status', self::OUTSIDE_RENTAL_STATUSES)->holdingMaid()
             ->exists();
 
         if ($hasOutsideRental) {

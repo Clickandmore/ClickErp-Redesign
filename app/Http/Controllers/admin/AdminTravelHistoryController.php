@@ -1370,10 +1370,45 @@ class AdminTravelHistoryController extends Controller
             return redirect()->back()->with('error', __('admin.not_found'));
         }
 
-        $tripRecords = $this->resolveTripRecords($data);
-        foreach ($tripRecords as $tripRecord) {
-            $tripRecord->delete();
-        }
+        DB::transaction(function () use ($data) {
+            $tripRecords = $this->resolveTripRecords($data);
+            $affectedContractIds = $tripRecords
+                ->where('travel_type', '!=', 'deportation')
+                ->pluck('order_id')->filter()->unique()->values();
+
+            foreach ($tripRecords as $tripRecord) {
+                $tripRecord->delete();
+            }
+
+            foreach ($affectedContractIds as $contractId) {
+                $contract = Contract::query()->with(['info', 'maid'])->find($contractId);
+                if (!$contract || in_array($contract->status, [
+                    ContractStatusEnum::Arrival->value,
+                    ContractStatusEnum::Completed->value,
+                ], true)) {
+                    continue;
+                }
+
+                $hasConfirmedArrival = TravelHistory::withTrashed()
+                    ->where('order_id', $contractId)
+                    ->where('travel_type', '!=', 'deportation')
+                    ->where(function ($query) {
+                        $query->where('status', 'completed')
+                            ->orWhereNotNull('arrived_at')
+                            ->orWhereNotNull('arrival_confirmed_by');
+                    })->exists();
+                $hasActiveTrip = TravelHistory::where('order_id', $contractId)
+                    ->where('travel_type', '!=', 'deportation')
+                    ->whereNotIn('status', ['completed', 'cancelled', 'canceled', 'rejected'])
+                    ->exists();
+
+                if ($hasConfirmedArrival || $hasActiveTrip) {
+                    continue;
+                }
+
+                $contract->info?->update(['arrival_date' => null]);
+            }
+        });
 
         return redirect()->back()->with('success', __('admin.success'));
     }

@@ -173,7 +173,20 @@ class IngazDelegation extends Model
 
     public function invoice()
     {
-        return $this->hasOne(Invoice::class, 'ingaz_delegation_id');
+        return $this->hasOne(Invoice::class, 'ingaz_delegation_id')->ofMany(
+            ['id' => 'max'],
+            fn ($query) => $query->recruitmentRevenue()
+        );
+    }
+
+    public function invoices()
+    {
+        return $this->hasMany(Invoice::class, 'ingaz_delegation_id');
+    }
+
+    public function blockingInvoices()
+    {
+        return $this->invoices()->blockingReplacement();
     }
 
     public function creditNotes()

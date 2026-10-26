@@ -1,13 +1,16 @@
 @php
     $returnedContractsCount = $returnedDeductions->pluck('deduction_contract_key')->unique()->count();
-    $returnedTotal = $returnedDeductions->sum('commission_amount');
+    $returnedTotal = $returnedDeductions->sum('suggested_deduction');
 @endphp
 <div class="card border-0 shadow-sm mb-3 overflow-hidden" id="returned-deductions"
      style="scroll-margin-top:120px; border-top:3px solid #dc3545 !important; border-radius:14px;">
     <div class="card-header bg-white py-3 d-flex flex-wrap justify-content-between align-items-center gap-2">
         <div>
             <h5 class="mb-1 fw-bold text-danger"><i class="fa fa-undo me-2"></i>خصومات العقود المرتجعة</h5>
-            <div class="small text-muted">تشمل عقود الاستقدام والإيجار وتمديداته حسب نوع العقد المختار، ولا تتأثر بفلتر تاريخ العقود. اعتمد كل تسوية بصفر أو كامل العمولة أو مبلغ جزئي؛ لا يُطبّق الخصم تلقائيًا عند اعتماد دفعة العمولة.</div>
+            <div class="small text-muted">تشمل عقود الاستقدام والإيجار وتمديداته حسب نوع العقد المختار، ولا تتأثر بفلتر تاريخ العقود. تسوية التأجير تتبع السياسة المحفوظة للعمولة؛ لا يُطبّق الخصم تلقائيًا عند اعتماد دفعة العمولة.</div>
+            @if($returnedDeductions->whereNotNull('deduction_calculation_error')->isNotEmpty())
+                <div class="small text-danger mt-1">توجد تسويات ببيانات فترة ناقصة؛ لا تدخل في الإجمالي حتى استكمال بياناتها.</div>
+            @endif
         </div>
         <div class="d-flex gap-2">
             <span class="badge rounded-pill bg-light text-danger border border-danger px-3 py-2 returned-pending-count">{{ number_format($returnedContractsCount) }} عقد</span>
@@ -27,10 +30,11 @@
                 </tr></thead>
                 <tbody>
                 @foreach($returnedDeductions as $deduction)
-                    <tr class="returned-deduction-row" data-contract="{{ $deduction->deduction_contract_key }}" data-amount="{{ $deduction->commission_amount }}">
+                    <tr class="returned-deduction-row" data-contract="{{ $deduction->deduction_contract_key }}" data-amount="{{ $deduction->suggested_deduction ?? 0 }}">
                         <td class="text-muted">{{ $loop->iteration }}</td>
                         <td><a class="fw-bold" href="{{ $deduction->deduction_contract_url }}" target="_blank">#{{ $deduction->deduction_contract_id }}</a>
                             @if(str_starts_with((string) $deduction->source_type, \App\Services\commissions\CommissionOperationService::SOURCE_RENTAL_EXTENSION_PERIOD_PREFIX))
+                                <span class="badge bg-info text-dark ms-1">تمديد</span>
                                 <div class="small text-muted">{{ $deduction->operation_reference ?: ('تمديد #' . $deduction->source_id) }}</div>
                             @endif
                         </td>
@@ -38,6 +42,9 @@
                         <td>{{ $deduction->client_name ?: '—' }}</td>
                         <td style="min-width:240px;max-width:400px;white-space:normal;overflow-wrap:anywhere;">{{ $deduction->deduction_reason ?: 'غير مسجل' }}</td>
                         <td class="text-nowrap">
+                            @if($deduction->service_type === 'rental')
+                                <span class="text-muted">-</span>
+                            @else
                             @if($deduction->return_warranty_status === 'inside')
                                 <span class="badge bg-success">داخل الضمان</span>
                             @elseif($deduction->return_warranty_status === 'outside')
@@ -49,6 +56,7 @@
                             @if($deduction->return_warranty_start && $deduction->return_warranty_end)
                                 <div class="small text-muted mt-1">{{ $deduction->return_warranty_start }} — {{ $deduction->return_warranty_end }}</div>
                             @endif
+                            @endif
                         </td>
                         <td class="text-nowrap">{{ $deduction->operation_date?->format('Y-m-d') ?: '—' }}</td>
                         <td class="text-nowrap">{{ $deduction->return_date?->format('Y-m-d') ?: 'غير مسجل' }}</td>
@@ -56,16 +64,29 @@
                             <span class="badge bg-light text-dark border">#{{ $deduction->batch_id }}</span>
                             <span class="small text-muted ms-1">{{ $deduction->batch?->approved_at?->format('Y-m-d') ?: '—' }}</span>
                         </td>
-                        <td class="text-end text-danger fw-bold text-nowrap">-{{ number_format($deduction->commission_amount, 2) }} ر.س</td>
+                        <td class="text-end text-danger fw-bold text-nowrap">
+                            {{ number_format($deduction->commission_amount, 2) }} ر.س
+                            @if($deduction->deduction_policy === 'remaining_days')
+                                <div class="small text-muted">المنفذ: {{ $deduction->deduction_used_days ?? '—' }} / {{ $deduction->deduction_period_days }} يوم</div>
+                                @if($deduction->deduction_calculation_error)
+                                    <div class="small text-danger" style="white-space:normal;max-width:260px;">{{ $deduction->deduction_calculation_error }}</div>
+                                @else
+                                    <div class="small text-success">المستحق للموظف: {{ number_format($deduction->retained_commission, 2) }} ر.س</div>
+                                    <div class="small">الخصم: {{ number_format($deduction->suggested_deduction, 2) }} ر.س</div>
+                                @endif
+                            @endif
+                        </td>
                         <td class="text-nowrap"><button type="button" class="btn btn-sm btn-outline-danger open-returned-settlement"
                             data-url="{{ route('commissions.marketers.returned-commissions.resolve', [$admin->id, $deduction->id]) }}"
-                            data-contract="{{ $deduction->deduction_contract_id }}" data-amount="{{ $deduction->commission_amount }}">اعتماد الخصم</button></td>
+                            data-contract="{{ $deduction->deduction_contract_id }}" data-amount="{{ $deduction->commission_amount }}"
+                            data-policy="{{ $deduction->deduction_policy }}" data-suggested="{{ $deduction->suggested_deduction }}"
+                            data-error="{{ $deduction->deduction_calculation_error }}">اعتماد الخصم</button></td>
                     </tr>
                 @endforeach
                 </tbody>
                 <tfoot class="table-light">
                     <tr>
-                        <th colspan="9">إجمالي الخصومات</th>
+                        <th colspan="9">إجمالي الخصومات المحسوبة</th>
                         <th class="text-end text-danger text-nowrap returned-pending-total">{{ number_format($returnedTotal, 2) }} ر.س</th><th></th>
                     </tr>
                 </tfoot>
@@ -95,10 +116,12 @@
             </div>
 
             <div id="returnedSettlementError" class="alert alert-danger d-none" role="alert"></div>
+            <div id="returnedPolicySummary" class="alert alert-info d-none"></div>
 
             <label class="form-label fw-bold">طريقة الاعتماد <span class="text-danger">*</span></label>
             <div class="d-grid gap-2 mb-3" id="returnedSettlementOptions">
                 @foreach([
+                    ['policy', 'خصم نصيب المدة غير المنفذة حسب الإعداد', 'fa-calendar', 'primary'],
                     ['deducted', 'خصم كامل العمولة', 'fa-minus-circle', 'danger'],
                     ['partial', 'خصم جزء من العمولة', 'fa-adjust', 'warning'],
                     ['zeroed', 'إقفال بصفر دون خصم', 'fa-ban', 'secondary'],
@@ -149,6 +172,18 @@ document.addEventListener('DOMContentLoaded', function () {
         $('#confirmReturnedSettlement').prop('disabled', true);
         $('#returnedSettlementAmount, #returnedSettlementNotes').val('');
         $('#returnedSettlementAmountGroup, #returnedSettlementError').addClass('d-none');
+        const proportional = settlementButton.data('policy') === 'remaining_days';
+        const policyError = settlementButton.data('error');
+        const suggested = Number(settlementButton.data('suggested'));
+        $('#returnedDecision_policy, label[for="returnedDecision_policy"]').toggleClass('d-none', !proportional);
+        $('#returnedDecision_deducted, label[for="returnedDecision_deducted"]').toggleClass('d-none', proportional);
+        $('#returnedDecision_partial, label[for="returnedDecision_partial"]').toggleClass('d-none', proportional && (policyError || suggested <= 0));
+        $('#returnedDecision_policy').prop('disabled', Boolean(policyError));
+        $('#returnedPolicySummary').toggleClass('d-none', !proportional).text(policyError || ('الخصم حسب المدة: ' + suggested.toFixed(2) + ' ر.س. يُحتفظ بعمولة المدة المنفذة.'));
+        if (proportional && !policyError) {
+            $('#returnedDecision_policy').prop('checked', true);
+            $('#confirmReturnedSettlement').prop('disabled', false);
+        }
         showModal(true);
     });
     $('input[name="returnedSettlementDecision"]').on('change', function () {
@@ -171,6 +206,10 @@ document.addEventListener('DOMContentLoaded', function () {
             errorBox.text('أدخل مبلغًا أكبر من صفر وأقل من العمولة السابقة.').removeClass('d-none');
             return;
         }
+        if (decision === 'partial' && settlementButton.data('policy') === 'remaining_days' && amount > Number(settlementButton.data('suggested'))) {
+            errorBox.text('لا يجوز أن يتجاوز الخصم نصيب المدة غير المنفذة.').removeClass('d-none');
+            return;
+        }
         button.prop('disabled', true);
         try {
             const response = await fetch(settlementButton.data('url'), {
@@ -182,7 +221,7 @@ document.addEventListener('DOMContentLoaded', function () {
             const settledUrl = settlementButton.data('url');
             $('.open-returned-settlement').filter(function () { return $(this).data('url') === settledUrl; }).each(function () {
                 $(this).closest('tr').removeClass('returned-deduction-row').addClass('table-success');
-                $(this).replaceWith($('<span class="badge bg-success">').text('أُقفلت · الخصم ' + (decision === 'zeroed' ? 0 : (decision === 'partial' ? amount : original)).toFixed(2) + ' ر.س'));
+                $(this).replaceWith($('<span class="badge bg-success">').text('أُقفلت · الخصم ' + Number(data.deducted_amount).toFixed(2) + ' ر.س'));
             });
             const pending = document.querySelectorAll('.returned-deduction-row');
             const contracts = new Set(Array.from(pending, row => row.dataset.contract));

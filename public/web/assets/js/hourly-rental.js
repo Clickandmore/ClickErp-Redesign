@@ -18,6 +18,7 @@
             const failure = new Error(Object.values(result.errors || {}).flat().join(' ') || result.message || 'تعذر إتمام الطلب. حاولي مجددًا.');
             failure.status = response.status;
             failure.errors = result.errors || {};
+            failure.duplicate = result.duplicate;
             throw failure;
         }
         return result;
@@ -77,7 +78,7 @@
     const quantity = () => Number(byId('hr-quantity')?.value || config.data.pricing.quantity);
     const district = () => Number(byId('hr-district').value);
     const address = () => addresses.find(row => Number(row.id) === Number(byId('hr-address').value));
-    const money = value => Number(value).toLocaleString('ar-SA', {minimumFractionDigits: 2, maximumFractionDigits: 2}) + ' ر.س';
+    const money = value => Number(value).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2}) + ' ر.س';
     const error = message => { byId('hr-error').textContent = message || ''; byId('hr-error').hidden = !message; };
     const query = (url, values) => url + '?' + new URLSearchParams(values).toString();
     function validAddress() {
@@ -135,7 +136,8 @@
                 byId('hr-tab-' + index).setAttribute('aria-selected', String(index === step));
             }
             byId('hr-tab-' + step).focus();
-        } catch (failure) { error(failure.message); }
+        } catch (failure) { error(failure.message);
+            if(failure.duplicate)window.showHourlyDuplicate?.(byId('hr-error'),failure.duplicate); }
     }
     root.querySelectorAll('[data-step], [data-next]').forEach(button => button.addEventListener('click', () => go(Number(button.dataset.step ?? button.dataset.next))));
     root.querySelectorAll('[name=hr-payment]').forEach(input => input.addEventListener('change', summary));
@@ -172,7 +174,8 @@
                 byId('hr-time-cards').append(card);
             });
             byId('hr-slot-status').textContent = slots.length ? (dateOnly ? 'يتوفر في هذا اليوم العدد المطلوب من العاملات، ويُحدد وقت البداية حسب التوفر.' : 'الأوقات المعروضة يتوفر فيها العدد المطلوب من العاملات. التوقيت: ' + config.data.timezone) : 'لا يتوفر العدد المطلوب من العاملات في هذا اليوم. جربي يومًا آخر أو عددًا أقل من العاملات.';
-        } catch (failure) { if (version === slotVersion) { byId('hr-slot-status').textContent = 'تعذر التحقق من التوفر.'; error(failure.message); } }
+        } catch (failure) { if (version === slotVersion) { byId('hr-slot-status').textContent = 'تعذر التحقق من التوفر.'; error(failure.message);
+            if(failure.duplicate)window.showHourlyDuplicate?.(byId('hr-error'),failure.duplicate); } }
     }
     async function refreshQuote() {
         const version = ++quoteVersion;
@@ -183,7 +186,8 @@
             if (version !== quoteVersion) return;
             quote = response.data; quoteReady = true;
             if (currentStep === 2) summary();
-        } catch (failure) { if (version === quoteVersion) error(failure.message); }
+        } catch (failure) { if (version === quoteVersion) error(failure.message);
+            if(failure.duplicate)window.showHourlyDuplicate?.(byId('hr-error'),failure.duplicate); }
     }
     function districtFromText(text) {
         const normalize = value => String(value || '').toLowerCase().replace(/[أإآ]/g, 'ا').replace(/ـ/g, '').replace(/[^\p{L}\p{N}]+/gu, ' ').trim();
@@ -245,7 +249,8 @@
             setLocation(result.latitude, result.longitude);
             if (result.address) byId('hr-address-text').value = result.address;
             matchNewAddress();
-        } catch (failure) { error(failure.message); } finally { button.disabled = false; }
+        } catch (failure) { error(failure.message);
+            if(failure.duplicate)window.showHourlyDuplicate?.(byId('hr-error'),failure.duplicate); } finally { button.disabled = false; }
     });
     byId('hr-locate').addEventListener('click', () => {
         if (!navigator.geolocation) return error('تحديد الموقع غير مدعوم في هذا المتصفح.');
@@ -260,7 +265,8 @@
             addresses.push(response.data);
             byId('hr-address').append(new Option(response.data.title + ' — ' + response.data.address, response.data.id));
             byId('hr-address').value = response.data.id; form.hidden = true; selectSavedAddress();
-        } catch (failure) { error(failure.message); } finally { button.disabled = false; }
+        } catch (failure) { error(failure.message);
+            if(failure.duplicate)window.showHourlyDuplicate?.(byId('hr-error'),failure.duplicate); } finally { button.disabled = false; }
     });
     byId('hr-submit').addEventListener('click', async () => {
         if (busy) return;
@@ -281,11 +287,12 @@
             const result = await request(config.urls.store, config.csrf, payload);
             window.location.assign(result.redirect);
         } catch (failure) {
-            if (failure.status === 422) pendingPayload = null;
+            if (failure.status === 422 || (failure.status === 409 && failure.duplicate)) pendingPayload = null;
             busy = false; byId('hr-submit').disabled = false;
             // حُجز الموعد بين العرض والتأكيد: نعود لخطوة الموعد بأوقات محدّثة بدل البقاء في خطوة الدفع
             if (failure.errors?.slot) { go(1); refreshSlots(); }
             error(failure.message);
+            if(failure.duplicate)window.showHourlyDuplicate?.(byId('hr-error'),failure.duplicate);
         }
     });
 }());

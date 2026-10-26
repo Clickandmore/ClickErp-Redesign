@@ -97,7 +97,7 @@
     .vl-stat > i { width: 40px; height: 40px; flex: 0 0 40px; border-radius: 12px; display: grid; place-items: center; color: var(--tone); background: var(--tint); }
     .vl-stat strong { display: block; font-size: 1.35rem; line-height: 1.2; font-variant-numeric: tabular-nums; }
     .vl-stat span { font-size: .8rem; color: var(--muted); }
-    .vl-t-blue { --tone: #2794eb; --tint: #eaf5fe; } .vl-t-green { --tone: #17996f; --tint: #e8f7f1; } .vl-t-amber { --tone: #e08a17; --tint: #fef5e7; } .vl-t-violet { --tone: #6b63d6; --tint: #f0effc; }
+    .vl-t-blue { --tone: #2794eb; --tint: #eaf5fe; } .vl-t-green { --tone: #17996f; --tint: #e8f7f1; } .vl-t-amber { --tone: #e08a17; --tint: #fef5e7; } .vl-t-violet { --tone: #6b63d6; --tint: #f0effc; } .vl-t-red { --tone: #e5484d; --tint: #fdeeee; }
 
     .vl-results { padding: 1.1rem 1.2rem; }
     .vl-results-head { display: flex; align-items: center; justify-content: space-between; gap: .75rem; flex-wrap: wrap; }
@@ -130,6 +130,8 @@
     .vl-card.is-selected { border-color: var(--brand); box-shadow: 0 0 0 3px rgba(39, 148, 235, .18); }
     .vl-card.is-selected .vl-card-head { background: #eef7ff; }
     .vl-card-head { display: flex; align-items: center; justify-content: space-between; gap: .6rem; flex-wrap: wrap; padding: .8rem 1.15rem; background: var(--soft); border-bottom: 1px solid var(--line); }
+    .vl-recovery { padding: .9rem 1.15rem 0; }
+    .vl-recovery .rr-card { margin-bottom: 0; box-shadow: none; }
     .vl-card-title { display: flex; align-items: center; gap: .6rem; flex-wrap: wrap; }
     .vl-card-title input { width: 18px; height: 18px; accent-color: var(--brand-ink); cursor: pointer; }
     .vl-card-id { font-weight: 800; font-size: 1rem; color: var(--brand-ink); text-decoration: none; }
@@ -204,6 +206,27 @@
     .vl-btn.is-primary { background: var(--brand-ink); color: #fff; }
     .vl-btn.is-primary:hover { background: var(--brand-deep); }
     .vl-card-foot .dropdown-item { font-size: .84rem; display: flex; align-items: center; gap: .45rem; }
+    /* قائمة الدفع: ملخص مبالغ الزيارة ثم الإجراءات بأيقونة ووصف. */
+    /* admin-tables.css يفرض بـ !important حدًا أزرق عريضًا وخلفية زرقاء وإزاحة ولمعانًا لكل عناصر القوائم؛ نلغيها هنا فقط. */
+    .vl-card-foot .vl-pay-menu { min-width: 270px !important; padding: .5rem !important; border: 1px solid var(--line) !important; border-radius: 14px !important; box-shadow: 0 14px 34px rgba(20, 80, 127, .18) !important; }
+    .vl-card-foot .vl-pay-menu .vl-pay-item { color: var(--ink) !important; background: transparent !important; transform: none !important; border-radius: 10px; overflow: hidden; }
+    .vl-card-foot .vl-pay-menu .vl-pay-item::before { display: none; }
+    .vl-card-foot .vl-pay-menu .vl-pay-item i { margin: 0; width: auto; }
+    .vl-pay-summary { display: grid; grid-template-columns: 1fr 1fr; gap: .4rem; margin-bottom: .4rem; padding-bottom: .5rem; border-bottom: 1px dashed var(--line); }
+    .vl-pay-summary > div { padding: .45rem .6rem; border-radius: 10px; background: var(--soft); }
+    .vl-pay-summary span { display: block; font-size: .7rem; font-weight: 700; color: var(--muted); }
+    .vl-pay-summary b { font-size: .9rem; color: var(--ink); }
+    .vl-pay-summary small { font-size: .68rem; color: var(--muted); font-weight: 600; }
+    .vl-pay-summary .is-due { background: #fff7e8; }
+    .vl-pay-summary .is-due b { color: #b45309; }
+    .vl-card-foot .vl-pay-item { gap: .65rem; padding: .55rem .6rem; white-space: normal; text-align: start; }
+    .vl-card-foot .vl-pay-menu .vl-pay-item:hover, .vl-card-foot .vl-pay-menu .vl-pay-item:focus-visible { background: #eef6fd !important; color: var(--ink) !important; }
+    .vl-pay-item:hover .vl-pay-icon { background: var(--brand-ink); color: #fff; }
+    .vl-pay-item:hover .vl-pay-icon.is-add { background: var(--teal-deep); }
+    .vl-pay-item b { display: block; font-size: .84rem; font-weight: 700; }
+    .vl-pay-item small { display: block; font-size: .72rem; color: var(--muted); }
+    .vl-pay-icon { width: 32px; height: 32px; flex: 0 0 32px; display: grid; place-items: center; border-radius: 9px; background: #e8f3fd; color: var(--brand-ink); font-size: .85rem; }
+    .vl-pay-icon.is-add { background: #e3f6f1; color: var(--teal-deep); }
     .vl-foot-links { display: flex; gap: 1rem; flex-wrap: wrap; }
     .vl-foot-links a { font-size: .8rem; font-weight: 600; color: var(--muted); text-decoration: none; display: inline-flex; align-items: center; gap: .35rem; }
     .vl-foot-links a:hover { color: var(--brand-ink); }
@@ -226,6 +249,8 @@
 </style>
 @endsection
 @section('content')
+@include('admin.hourly_visits._delay-alerts')
+@include('admin.hourly_visits._return-note')
 @php
     $titles = ['all' => 'قائمة الزيارات', 'unassigned' => 'الزيارات غير المخصصة', 'past' => 'زيارات ماضية غير منتهية','latest'=>'آخر الزيارات للطلب'];
     $modeIcons = ['all' => 'fa-list-check', 'unassigned' => 'fa-user-slash', 'past' => 'fa-clock-rotate-left','latest'=>'fa-calendar-day'];
@@ -307,6 +332,7 @@
         </nav>
     </header>
 
+    @if($mode === 'unassigned')<p class="vl-notice"><i class="fa fa-user-clock mt-1"></i> زيارات قائمة لم تُعيَّن لها أي عاملة بعد. ابدأ بالعاجلة: اعرضها للعاملات المؤهلات ليقبلنها من التطبيق، أو عيّن تلقائيًا من المتاحات.</p>@endif
     @if($mode === 'past')<p class="vl-notice"><i class="fa fa-triangle-exclamation mt-1"></i> هذه الزيارات تجاوزت موعد نهايتها ولم تُغلق. راجع التنفيذ ثم أكملها أو ألغها.</p>@endif
     @if($errors->any())<div class="alert alert-danger">{{ $errors->first() }}</div>@endif
 
@@ -369,20 +395,40 @@
         @endif
     </form>
 
+    @if($mode === 'unassigned')
+    <div class="vl-stats">
+        <div class="vl-stat vl-t-amber"><i class="fa fa-user-slash"></i><div><strong>{{ $total }}</strong><span>زيارة بلا عاملة</span></div></div>
+        <div class="vl-stat vl-t-blue"><i class="fa fa-chair"></i><div><strong>{{ $modeStats['seats'] }}</strong><span>مقعد عاملة مطلوب</span></div></div>
+        <div class="vl-stat vl-t-red"><i class="fa fa-stopwatch"></i><div><strong>{{ $modeStats['soon'] + $modeStats['overdue'] }}</strong><span>عاجلة: تبدأ خلال 24 ساعة أو فات موعدها</span></div></div>
+        <div class="vl-stat vl-t-violet"><i class="fa fa-bullhorn"></i><div><strong>{{ $modeStats['offered'] }}</strong><span>معروضة للعاملات بانتظار القبول</span></div></div>
+    </div>
+    @elseif($mode === 'past')
+    <div class="vl-stats">
+        <div class="vl-stat vl-t-amber"><i class="fa fa-clock-rotate-left"></i><div><strong>{{ $total }}</strong><span>زيارة تجاوزت موعدها ولم تُغلق</span></div></div>
+        <div class="vl-stat vl-t-red"><i class="fa fa-triangle-exclamation"></i><div><strong>{{ $modeStats['missed'] }}</strong><span>لم تبدأ أصلًا (فات موعدها)</span></div></div>
+        <div class="vl-stat vl-t-violet"><i class="fa fa-person-walking"></i><div><strong>{{ max(0, $total - $modeStats['missed']) }}</strong><span>بدأت ولم تُكمل</span></div></div>
+        <div class="vl-stat vl-t-blue"><i class="fa fa-hourglass-end"></i><div><strong class="vl-num" dir="ltr">{{ $modeStats['oldest'] ? \Carbon\Carbon::parse($modeStats['oldest'])->format('Y-m-d') : '—' }}</strong><span>أقدم زيارة معلّقة</span></div></div>
+    </div>
+    @else
     <div class="vl-stats">
         <div class="vl-stat vl-t-blue"><i class="fa fa-calendar-days"></i><div><strong>{{ $total }}</strong><span>زيارة مطابقة</span></div></div>
         <div class="vl-stat vl-t-green"><i class="fa fa-user-check"></i><div><strong>{{ $assigned }}</strong><span>تعيين مكتمل</span></div></div>
         <div class="vl-stat vl-t-amber"><i class="fa fa-user-clock"></i><div><strong>{{ max(0, $total - $assigned) }}</strong><span>بحاجة إلى تعيين</span></div></div>
         <div class="vl-stat vl-t-violet"><i class="fa fa-percent"></i><div><strong>{{ $total ? round($assigned / $total * 100) : 0 }}%</strong><span>نسبة اكتمال التعيين</span></div></div>
     </div>
+    @endif
 
     <section class="vl-card-box vl-results">
         <div class="vl-results-head">
             <h5><i class="fa fa-list"></i> الزيارات <span class="vl-muted vl-num">({{ $visits->total() }})</span></h5>
             <div class="vl-day" aria-label="التنقل باليوم">
-                <a aria-label="اليوم السابق" href="{{ route($route, array_merge($filters, ['from' => $day->copy()->subDay()->toDateString(), 'to' => $day->copy()->subDay()->toDateString(), 'page' => 1])) }}"><i class="fa fa-chevron-right"></i></a>
-                <strong>{{ $day->translatedFormat('l d M Y') }}</strong>
-                <a aria-label="اليوم التالي" href="{{ route($route, array_merge($filters, ['from' => $day->copy()->addDay()->toDateString(), 'to' => $day->copy()->addDay()->toDateString(), 'page' => 1])) }}"><i class="fa fa-chevron-left"></i></a>
+                @if(isset($filters['from'], $filters['to']))
+                    <a aria-label="اليوم السابق" href="{{ route($route, array_merge($filters, ['from' => $day->copy()->subDay()->toDateString(), 'to' => $day->copy()->subDay()->toDateString(), 'page' => 1])) }}"><i class="fa fa-chevron-right"></i></a>
+                    <strong>{{ $day->translatedFormat('l d M Y') }}</strong>
+                    <a aria-label="اليوم التالي" href="{{ route($route, array_merge($filters, ['from' => $day->copy()->addDay()->toDateString(), 'to' => $day->copy()->addDay()->toDateString(), 'page' => 1])) }}"><i class="fa fa-chevron-left"></i></a>
+                @else
+                    <strong>كل التواريخ</strong>
+                @endif
             </div>
         </div>
 
@@ -422,6 +468,7 @@
         <div class="mt-3">{{ $visits->links() }}</div>
     </section>
     @include('admin.hourly_visits._batch')
+    @if($canSchedule)@include('admin.hourly._schedule-modal', ['scheduleVisitList' => $visits])@endif
     <div class="modal fade" id="vl-payments-modal" tabindex="-1" aria-labelledby="vl-payments-title"><div class="modal-dialog modal-xl"><div class="modal-content"><div class="modal-header"><h5 id="vl-payments-title">سجل الدفعات</h5><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="إغلاق"></button></div><div class="modal-body" id="vl-payments-body"></div></div></div></div>
 </div>
 @endsection

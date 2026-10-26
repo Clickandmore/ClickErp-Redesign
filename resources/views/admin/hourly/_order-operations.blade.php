@@ -5,7 +5,8 @@ $operations=[
     'start_time'=>['تغيير وقت البدء','fa-person-walking','violet'],
     'duration'=>['تغيير المدة','fa-clock','blue'],
     'price'=>['تغيير السعر','fa-dollar-sign','amber'],
-    'assign_all'=>['تعيين الكل','fa-right-left','teal'],
+    'assign_workers'=>['اختيار العاملات','fa-user-check','teal'],
+    'assign_all'=>['تعيين العاملات تلقائيًا','fa-right-left','teal'],
     'add_worker'=>['إضافة عامل','fa-user-plus','green'],
     'remove_worker'=>['إزالة عامل وتقليل العدد','fa-user-minus','red'],
     'unassign_worker'=>['إلغاء تعيين عامل','fa-user-xmark','red'],
@@ -33,8 +34,8 @@ $operations=array_filter($operations,fn($op,$action)=>!in_array($action,['price'
 <span class="text-muted" id="selected-visits-count" aria-live="polite"></span>
 </div>
 <div class="modal fade om-modal" id="order-operation-modal" data-op-step="pick" tabindex="-1" aria-labelledby="operation-modal-title" aria-hidden="true" dir="{{ app()->getLocale()==='ar'?'rtl':'ltr' }}"><div class="modal-dialog modal-lg modal-dialog-centered"><div class="modal-content">
-<div class="modal-header"><span class="om-m-icon"><i class="fa fa-gears" id="operation-modal-icon"></i></span><div><h5 id="operation-modal-title">الإجراءات</h5><p><i class="fa fa-hashtag"></i> {{ $order->order_number }}</p></div><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="إغلاق"></button></div>
-<form id="order-operation-form" data-drivers-url="{{ route('admin.hourly-orders.available-drivers',$order) }}" method="POST" action="{{ route('admin.hourly-orders.operations',$order) }}">@csrf
+<div class="modal-header"><span class="om-m-icon"><i class="fa fa-gears" id="operation-modal-icon"></i></span><div><h5 id="operation-modal-title">الإجراءات</h5><p><i class="fa fa-hashtag"></i> {{ str_pad((string) $order->id, 8, '0', STR_PAD_LEFT) }}</p></div><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="إغلاق"></button></div>
+<form id="order-operation-form" data-workers-url="{{ route('admin.hourly-orders.available-workers',[$order,'VISIT_ID']) }}" data-drivers-url="{{ route('admin.hourly-orders.available-drivers',$order) }}" method="POST" action="{{ route('admin.hourly-orders.operations',$order) }}">@csrf
 <div class="modal-body">
 <p id="operation-target" class="alert alert-info">يطبق الإجراء على الزيارات المحددة.</p>
 <input type="hidden" id="operation-action" name="action" value="{{ array_key_first($operations) }}">
@@ -43,12 +44,18 @@ $operations=array_filter($operations,fn($op,$action)=>!in_array($action,['price'
 @endforeach
 </div>
 <div data-op-form>
+<div data-op-fields="assign_workers"><p id="operation-workers-context" aria-live="polite"></p><div id="operation-worker-choices" class="d-grid gap-2"></div><small>اختر زيارة واحدة لتحديد عاملاتها. لا يغيّر الاختيار عدد العاملات المحجوز أو سعر الزيارة.</small></div>
+<div data-op-fields="cancel_visit cancel_order">
+<label>استرداد المبلغ بعد الإلغاء</label><select name="refund_method" class="form-select"><option value="wallet">إلى محفظة العميل — بدون رسوم إلغاء</option><option value="cash">تسجيل استرداد نقدي منفّذ — بدون رسوم إلغاء</option><option value="bank_transfer">تسجيل تحويل بنكي منفّذ — بدون رسوم إلغاء</option><option value="none">بدون استرداد — احتساب قيمة الزيارة كرسوم إلغاء</option></select>
+<label class="d-block mt-2"><input type="checkbox" name="external_refund_confirmed" value="1"> للنقد أو التحويل: أؤكد صرف المبلغ المستحق للعميل فعليًا.</label>
+<p class="small text-muted">يُرد فقط ما يزيد من المدفوع عن قيمة الزيارات المتبقية والرسوم.</p>
+</div>
 <div data-op-fields="reschedule"><label><i class="fa fa-calendar-days"></i> إزاحة المواعيد بعدد أيام <small>(سالب للتقديم)</small></label><input class="form-control" type="number" name="shift_days" min="-365" max="365" value="7"></div>
 <div data-op-fields="start_time"><label><i class="fa fa-clock"></i> وقت البداية الجديد</label><input class="form-control" type="time" name="start_time"></div>
 <div data-op-fields="duration"><label><i class="fa fa-hourglass-half"></i> مدة الزيارة بالساعات</label><input class="form-control" type="number" name="hours" step="0.25" min="0.5" max="24"><small>يتغير سعر الزيارة بنسبة تغير المدة.</small></div>
 <div data-op-fields="price"><label><i class="fa fa-tag"></i> السعر الجديد لكل زيارة <small>(شاملة الضريبة — ر.س)</small></label><input class="form-control" type="number" name="price" min="0" max="9999999" step="0.01"></div>
 <div data-op-fields="add_worker remove_worker unassign_worker"><label><i class="fa fa-user-nurse"></i> العاملة</label><select class="form-select" name="worker_id"><option value="">اختر</option>@foreach($workers as $worker)<option value="{{ $worker->id }}">#{{ $worker->id }} — {{ $worker->name }}</option>@endforeach</select><small>إضافة عاملة فوق العدد المحجوز تزيد السعر بنسبة زيادة العدد. إلغاء التعيين يحتفظ بمقعد الزيارة.</small></div>
-<div data-op-fields="assign_driver"><div id="driver-visit-schedule" class="alert alert-info mb-3" aria-live="polite"></div><label><i class="fa fa-truck"></i> السائق</label><select class="form-select" name="driver_id"><option value="">???? ??? ?????? ???? ???????? ????????</option></select><label><i class="fa fa-route"></i> نوع المهمة</label><select name="driver_role" class="form-select"><option value="delivery">توصيل — Drop Off</option><option value="pickup">استلام — Pick Up</option></select><label id="driver-time-label"><i class="fa fa-clock"></i> وقت التوصيل</label><input type="time" class="form-control" name="driver_time" aria-labelledby="driver-time-label"><small>يمكن تعديل وقت المهمة حسب حركة السائق. لا يغيّر ذلك موعد بداية عمل العاملة.</small></div>
+<div data-op-fields="assign_driver"><div id="driver-visit-schedule" class="alert alert-info mb-3" aria-live="polite"></div><label><i class="fa fa-truck"></i> السائق</label><select class="form-select" name="driver_id"><option value="">حدّد الزيارات ووقت المهمة</option></select><label><i class="fa fa-route"></i> نوع المهمة</label><select name="driver_role" class="form-select"><option value="delivery">توصيل — Drop Off</option><option value="pickup">استلام — Pick Up</option></select><label id="driver-time-label"><i class="fa fa-clock"></i> وقت التوصيل</label><input type="time" class="form-control" name="driver_time" aria-labelledby="driver-time-label"><small>يمكن تعديل وقت المهمة حسب حركة السائق. لا يغيّر ذلك موعد بداية عمل العاملة.</small></div>
 <div data-op-fields="team_leader"><label><i class="fa fa-user-tie"></i> قائد الفريق</label><select name="leader_id" class="form-select"><option value="">اختر</option>@foreach($drivers as $driver)<option value="{{ $driver->id }}">{{ $driver->name }}</option>@endforeach</select><small>يجب أن يكون من قادة فريق الزيارة.</small></div>
 <div data-op-fields="free_visit"><label><i class="fa fa-gift"></i> موعد الزيارة المجانية</label><input type="datetime-local" name="starts_at" class="form-control" step="900" min="{{ now()->copy()->addMinutes(15-now()->minute%15)->second(0)->format('Y-m-d\TH:i') }}">
 <p class="small text-muted">تُنسخ تعيينات آخر زيارة غير ملغاة، وتُفحص العاملات والسائقون قبل الحفظ. المدة وعدد العاملات حسب الطلب.</p>

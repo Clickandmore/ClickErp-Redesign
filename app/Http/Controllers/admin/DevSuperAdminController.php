@@ -12,7 +12,6 @@ use App\Support\DevSuperAdminSecuritySettings;
 use App\Support\DashboardMaintenanceSettings;
 use App\Support\ClientSubscriptionSettings;
 use App\Support\R2StorageSettings;
-use App\Support\ProductUpdatesSettings;
 use App\Support\SystemModuleManager;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -232,7 +231,6 @@ class DevSuperAdminController extends Controller
     {
         $activeSection = match ($request->route()?->getName()) {
             'dev-superadmin.subscription' => 'subscription',
-            'dev-superadmin.product-updates' => 'product-updates',
             'dev-superadmin.employees' => 'employees',
             'dev-superadmin.database-backups' => 'backups',
             'dev-superadmin.scheduler' => 'scheduler',
@@ -301,7 +299,6 @@ class DevSuperAdminController extends Controller
             'r2Ready' => $r2Ready,
             'schedulerStatus' => $activeSection === 'scheduler' ? $schedulerMonitor->status() : null,
             'subscription' => ClientSubscriptionSettings::all(),
-            'productUpdates' => ProductUpdatesSettings::all(),
             'maintenanceSettings' => DashboardMaintenanceSettings::all(),
             'activeSection' => $activeSection,
         ]);
@@ -325,42 +322,6 @@ class DevSuperAdminController extends Controller
             ->with('success', $data['enabled']
                 ? 'تم تفعيل وضع التحديث وإغلاق لوحة التحكم أمام الموظفين.'
                 : 'تم إلغاء وضع التحديث وإتاحة لوحة التحكم للموظفين.');
-    }
-
-    public function updateProductUpdates(Request $request)
-    {
-        $data = $request->validate([
-            'title' => ['required', 'string', 'max:160'],
-            'summary' => ['nullable', 'string', 'max:500'],
-            'published_at' => ['nullable', 'date'],
-            'updates' => ['required', 'array', 'min:1', 'max:20'],
-            'updates.*.title' => ['required', 'string', 'max:160'],
-            'updates.*.details' => ['nullable', 'string', 'max:1000'],
-            'updates.*.url' => ['nullable', 'string', 'max:1000'],
-            'updates.*.link_label' => ['nullable', 'string', 'max:80'],
-        ]);
-
-        foreach ($data['updates'] as $index => $update) {
-            $url = trim((string) ($update['url'] ?? ''));
-            $isInternalUrl = Str::startsWith($url, '/') && ! Str::startsWith($url, '//');
-            $isExternalUrl = Str::startsWith($url, ['https://', 'http://']);
-            $isAnchor = Str::startsWith($url, '#');
-
-            if ($url !== '' && ! $isInternalUrl && ! $isExternalUrl && ! $isAnchor) {
-                return back()
-                    ->withErrors(["updates.$index.url" => 'أدخل رابطًا داخليًا يبدأ بـ / أو رابطًا كاملًا يبدأ بـ https://.'])
-                    ->withInput();
-            }
-        }
-
-        ProductUpdatesSettings::persist([
-            ...$data,
-            'is_enabled' => $request->boolean('is_enabled'),
-        ]);
-
-        return redirect()
-            ->route('dev-superadmin.product-updates')
-            ->with('success', 'تم حفظ محتوى «ما الجديد» وسيظهر في هيدر لوحة الإدارة.');
     }
 
     public function updateSubscription(Request $request)
@@ -455,6 +416,10 @@ class DevSuperAdminController extends Controller
             }
             SystemModuleManager::updateBranchLimit($data['branches_limit'] ?? null);
             SystemModuleManager::updateUserLimit($data['users_limit'] ?? null);
+            // مفتاح «العرض في الموقع الخارجي» في كارد إيجار الساعات، وهو نفسه الموجود في إعدادات التأجير بالساعة.
+            if ($request->has('hourly_website_field') && Schema::hasTable('new_settings')) {
+                \App\Support\HourlyRentalSettings::persist(['show_on_website' => $request->boolean('hourly_show_on_website')]);
+            }
 
             if ($productProfile !== $currentProductProfile && Schema::hasTable('system_product_profile_changes')) {
                 DB::table('system_product_profile_changes')->insert([

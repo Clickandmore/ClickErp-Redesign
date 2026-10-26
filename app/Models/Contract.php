@@ -201,7 +201,20 @@ class Contract extends Model
 
     public function invoice()
     {
-        return $this->hasOne(Invoice::class, 'contract_id');
+        return $this->hasOne(Invoice::class, 'contract_id')->ofMany(
+            ['id' => 'max'],
+            fn ($query) => $query->recruitmentRevenue()
+        );
+    }
+
+    public function blockingInvoices()
+    {
+        return $this->hasMany(Invoice::class, 'contract_id')->blockingReplacement();
+    }
+
+    public function invoices()
+    {
+        return $this->hasMany(Invoice::class, 'contract_id');
     }
 
     public function recruitmentCreditNotes()
@@ -294,7 +307,20 @@ class Contract extends Model
 
     public function isLateFinanceEligible(): bool
     {
-        return $this->type === 'recruitment' && in_array($this->status, ['arrival', 'completed'], true);
+        if (!in_array($this->type, ['recruitment', 'maid'], true)) {
+            return false;
+        }
+
+        $status = $this->status;
+        if ($status === 'shelter') {
+            $logs = $this->contract_status_logs->sortByDesc('id');
+            $status = $logs->first(fn ($log) => $log->status === 'shelter' && filled($log->previous_status))?->previous_status
+                ?: $logs->first(fn ($log) => $log->status !== 'shelter')?->status
+                ?: 'arrival';
+        }
+
+        return in_array($status, ['arrival', 'completed', 'refunded'], true)
+            || $this->travelHistory?->status === 'completed';
     }
 
     /**
@@ -600,7 +626,7 @@ class Contract extends Model
     {
         return $query->where('status', ContractStatusEnum::Shelter->value)
             ->whereDoesntHave('maid.rentalContracts', function ($rentalQuery) {
-                $rentalQuery->whereIn('status', \App\Services\RentalShelterPresenceService::OUTSIDE_RENTAL_STATUSES);
+                $rentalQuery->whereIn('status', \App\Services\RentalShelterPresenceService::OUTSIDE_RENTAL_STATUSES)->holdingMaid();
             })
             ->whereDoesntHave('sponsorshipTransfers', function ($transferQuery) {
                 $transferQuery->whereIn('status', ['maid_delivered', 'trial', 'trial_started']);

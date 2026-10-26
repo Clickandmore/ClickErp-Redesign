@@ -236,6 +236,14 @@
                                     <small>{{ __('تظهر حركة الخروج والعودة اليومية وحالة «خارج الآن» في كشوف الإيواء. حالة الإقامة في الإيواء نفسها لا تُمس إطلاقًا.') }}</small>
                                 </div>
                             </div>
+                            <div class="hr-switch form-switch">
+                                <input class="form-check-input" type="checkbox" role="switch" id="show_on_website" name="show_on_website" value="1"
+                                    {{ old('show_on_website', $hourly['show_on_website']) ? 'checked' : '' }}>
+                                <div>
+                                    <label for="show_on_website">{{ __('العرض في الموقع الخارجي') }}</label>
+                                    <small>{{ __('يظهر حجز الساعات للعملاء في الموقع الخارجي ما دام النظام مفعّلًا. إطفاؤه يخفيه عن الموقع فقط، ويبقى التطبيق ولوحة التحكم والطلبات القائمة كما هي.') }}</small>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -463,6 +471,14 @@
                                 @error('min_notice_hours')<div class="invalid-feedback">{{ $message }}</div>@enderror
                             </div>
                             <div class="col-md-4">
+                                <label class="form-label" for="self_arrival_lead_minutes">السماح بتسجيل الوصول قبل موعد الزيارة (دقيقة)</label>
+                                <input type="number" class="form-control mb-1" id="self_arrival_lead_minutes" name="self_arrival_lead_minutes" min="0" max="240" value="{{ old('self_arrival_lead_minutes', $hourly['self_arrival_lead_minutes']) }}" required>
+                                <div class="form-text mb-3">للعاملة التي تصل بنفسها دون سائق. قبل ذلك لا يظهر زر «تسجيل الوصول»، لأن الوصول يبدأ عدّاد مدة الخدمة.</div>
+                                <label class="form-label" for="pickup_grace_minutes">مهلة استلام العاملة من العميل بعد انتهاء الخدمة (دقيقة)</label>
+                                <input type="number" class="form-control mb-3" id="pickup_grace_minutes" name="pickup_grace_minutes" min="0" max="240" value="{{ old('pickup_grace_minutes', $hourly['pickup_grace_minutes']) }}" required>
+                                <div class="form-text mb-3">بعد تجاوز مهلة الاستلام تظهر عبارة «العاملة لم يتم استلامها من العميل» حتى تسجيل الاستلام.</div>
+                                <label class="form-label" for="delay_escalation_minutes">التصعيد بعد مهلة السماح (دقيقة)</label>
+                                <input type="number" class="form-control mb-3" id="delay_escalation_minutes" name="delay_escalation_minutes" min="5" max="1440" value="{{ old('delay_escalation_minutes', $hourly['delay_escalation_minutes']) }}" required>
                                 <label class="form-label" for="curfew_time">{{ __('وقت الحظر للعودة إلى الإيواء') }}</label>
                                 <input type="time" class="form-control @error('curfew_time') is-invalid @enderror" id="curfew_time" name="curfew_time" value="{{ old('curfew_time', $hourly['curfew_time']) }}" required>
                                 @error('curfew_time')<div class="invalid-feedback">{{ $message }}</div>@enderror
@@ -539,6 +555,10 @@
                             <div class="hr-switch form-switch">
                                 <input class="form-check-input" type="checkbox" role="switch" id="staff_app_require_delivery_code" name="staff_app_require_delivery_code" value="1" {{ old('staff_app_require_delivery_code', $hourly['staff_app_require_delivery_code']) ? 'checked' : '' }}>
                                 <div><label for="staff_app_require_delivery_code">{{ __('طلب رمز العميل عند التسليم') }}</label><small>{{ __('يمنع إتمام التسليم حتى يُدخل السائق رمز الزيارة الصحيح.') }}</small></div>
+                            </div>
+                            <div class="hr-switch form-switch">
+                                <input class="form-check-input" type="checkbox" role="switch" id="worker_require_delivery_code" name="worker_require_delivery_code" value="1" {{ old('worker_require_delivery_code', $hourly['worker_require_delivery_code']) ? 'checked' : '' }}>
+                                <div><label for="worker_require_delivery_code">{{ __('طلب رمز العميل عند وصول العاملة بنفسها') }}</label><small>{{ __('العاملة التي تصل دون سائق لا تسجل «وصلت» حتى تُدخل رمز الزيارة الذي يظهر للعميل.') }}</small></div>
                             </div>
                         </div>
                     </div>

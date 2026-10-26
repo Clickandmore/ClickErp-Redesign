@@ -23,7 +23,7 @@ class RentalTransferInvoiceService
             ->where('maid_id', $transfer->contract?->maid_id ?? 0)
             ->where('user_id', $transfer->new_sponsor_id)
             ->whereNull('closure_type')
-            ->whereIn('status', ['new', 'waiting_contract_send', 'contract_sent', 'contract_signed', 'maid_delivered', 'active', 'frozen'])
+            ->whereIn('status', ['new', 'waiting_contract_send', 'contract_sent', 'contract_signed', 'maid_delivered', 'active', 'frozen'])->holdingMaid()
             ->limit(2)->lockForUpdate()->get();
         if ($contracts->count() > 1) {
             throw ValidationException::withMessages(['contract' => 'توجد عدة عقود تأجير لنفس العميل والعاملة؛ راجع العقود قبل إصدار الفاتورة.']);

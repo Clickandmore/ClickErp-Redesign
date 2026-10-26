@@ -4,7 +4,7 @@
     const config = window.hourlyBookingConfig;
     const $ = id => document.getElementById(id);
     const esc = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-    const money = value => Number(value || 0).toLocaleString('ar-SA', {minimumFractionDigits:2,maximumFractionDigits:2}) + ' ر.س';
+    const money = value => Number(value || 0).toLocaleString('en-US', {minimumFractionDigits:2,maximumFractionDigits:2}) + ' ر.س';
     const token = () => '10000000-1000-4000-8000-100000000000'.replace(/[018]/g, c => (Number(c) ^ crypto.getRandomValues(new Uint8Array(1))[0] & 15 >> Number(c) / 4).toString(16));
     const state = {step:1,customer_mode:'existing',address_mode:'existing',customer:null,address:null,category:null,item:null,workers:1,quantity:1,options:{},visits:[],quote:null,coupon:'',allWorkers:false,bookingToken:token()};
     if(config.renewal)state.customer=config.renewal.customer;
@@ -24,12 +24,12 @@
     let provider=config.mapProvider==='google' && config.mapsKey?'google':'osm';
     const RIYADH={lat:24.7136,lng:46.6753};
     const formData = form => Object.fromEntries(new FormData($(form)));
-    const fail = error => { $('booking-error').textContent=error.message || String(error); $('booking-error').hidden=false; };
+    const fail = error => { $('booking-error').textContent=error.message || String(error); $('booking-error').hidden=false;if(error.duplicate)window.showHourlyDuplicate?.($('booking-error'),error.duplicate); };
     const clearError = () => { $('booking-error').hidden=true; };
     async function api(path,data,method='POST') {
         const response=await fetch(config.base+'/'+path,{method,headers:{'Accept':'application/json','Content-Type':'application/json','X-CSRF-TOKEN':config.csrf},...(method==='POST'?{body:JSON.stringify(data)}:{})});
         const result=await response.json().catch(()=>({message:'تعذر إتمام الطلب. يرجى المحاولة مجددًا.'}));
-        if(!response.ok) throw new Error(result.errors?Object.values(result.errors).flat().join('\n'):result.message || 'تعذر إتمام الطلب');
+        if(!response.ok) throw Object.assign(new Error(result.errors?Object.values(result.errors).flat().join('\n'):result.message || 'تعذر إتمام الطلب'),{duplicate:result.duplicate});
         return result;
     }
     function context() {
@@ -53,6 +53,7 @@
         $('schedule-total').textContent=q?money(q.total/100):'—';
         const pricing=q?.presentation;
         $('price-summary').innerHTML=q?`${(pricing?.lines || [{label:'الخدمة',amount:q.total}]).map(line=>`<p>${esc(line.label)} <b>${money(line.amount/100)}</b></p>`).join('')}${pricing?.tax_line?`<p class="booking-muted">${esc(pricing.tax_line.label)} ${money(pricing.tax_line.amount/100)}</p>`:''}<div>المبلغ الإجمالي</div><div class="total">${money(q.total/100)}</div>${q.price_display==='per_visit'?`<p>قيمة الزيارة الأولى ${money(q.charge_now/100)}</p>`:''}`:'<p class="booking-muted">اختر الخدمة لعرض السعر</p>';
+        if(q)$('price-summary').innerHTML+='<p>سياسة الدفع: '+esc(({prepaid:'مقدمًا بالكامل',per_visit:'لكل زيارة',installments:'أقساط بمواعيد محددة'})[q.payment_policy] || (q.price_display==='per_visit'?'لكل زيارة':'حسب الإعداد السابق'))+'</p>';
         $('coupon-box').hidden=state.step!==6;
         $('place-order').hidden=state.step!==6;
         $('place-order').disabled=busy || !q;
@@ -61,15 +62,17 @@
     function showStep() {
         document.querySelectorAll('[data-step]').forEach(el=>el.hidden=Number(el.dataset.step)!==state.step);
         document.querySelectorAll('[data-step-label]').forEach(el=>{el.classList.toggle('current',Number(el.dataset.stepLabel)===state.step);el.classList.toggle('done',Number(el.dataset.stepLabel)<state.step);});
-        $('booking-back').hidden=state.step===1;$('booking-next').hidden=state.step===6;summary();
+        $('booking-back').hidden=state.step===(renewal?2:1);$('booking-next').hidden=state.step===6;summary();
         if(state.step===2 && state.address_mode==='new')initMap();
     }
     async function customers(page=1) {
+        if(renewal)return;
         const data=await api('customers?search='+encodeURIComponent($('customer-search').value)+'&page='+page,null,'GET');
-        $('customer-results').innerHTML=data.data.length?data.data.map(u=>`<tr><td>${u.id}</td><td>${esc(u.name)}</td><td>${esc(u.email)}</td><td>${esc(u.phone)}</td><td>${money(u.hourly_wallet_balance)}</td><td><button type="button" class="btn btn-sm btn-outline-success" data-customer="${u.id}">${state.customer?.id===u.id?'✓ مختار':'اختر'}</button></td></tr>`).join(''):'<tr><td colspan="6">لا توجد نتائج</td></tr>';
+        $('customer-results').innerHTML=data.data.length?data.data.map(u=>{const picked=state.customer?.id===u.id;return `<tr class="${picked?'selected':''}"><td class="is-id">${u.id}</td><td class="is-name">${esc(u.name)}</td><td><span dir="ltr">${esc(u.email)}</span></td><td class="is-num"><span dir="ltr">${esc(u.phone)}</span></td><td class="is-num">${money(u.hourly_wallet_balance)}</td><td class="is-action"><button type="button" class="bk-pick ${picked?'is-picked':''}" data-customer="${u.id}" aria-pressed="${picked}"><i class="fa ${picked?'fa-circle-check':'fa-hand-pointer'}"></i> ${picked?'مختار':'اختيار'}</button></td></tr>`;}).join(''):'<tr><td colspan="6" class="is-empty">لا توجد نتائج مطابقة للبحث.</td></tr>';
         $('customer-results').querySelectorAll('[data-customer]').forEach(button=>button.onclick=()=>{state.customer=data.data.find(u=>u.id===Number(button.dataset.customer));state.address=null;resetService();customers(page).catch(fail);summary();});
-        $('customer-pages').innerHTML=`<button type="button" class="btn btn-sm btn-light" id="customers-prev" ${page===1?'disabled':''}>السابق</button><span>${page} / ${data.last_page}</span><button type="button" class="btn btn-sm btn-light" id="customers-next" ${page===data.last_page?'disabled':''}>التالي</button>`;
-        $('customers-prev').onclick=()=>customers(page-1).catch(fail);$('customers-next').onclick=()=>customers(page+1).catch(fail);
+        // أزرار التنقل تظهر فقط عند وجود أكثر من صفحة؛ السابق يمين واللاحق يسار (RTL)
+        $('customer-pages').innerHTML=data.total?`<span class="bk-pager-info">صفحة ${page} من ${data.last_page} · ${data.total} عميل</span>`+(data.last_page>1?`<span class="bk-pager-btns"><button type="button" id="customers-prev" ${page===1?'disabled':''}><i class="fa fa-chevron-right"></i> السابق</button><button type="button" id="customers-next" ${page===data.last_page?'disabled':''}>التالي <i class="fa fa-chevron-left"></i></button></span>`:''):'';
+        if($('customers-prev')){$('customers-prev').onclick=()=>customers(page-1).catch(fail);$('customers-next').onclick=()=>customers(page+1).catch(fail);}
     }
     $('search-customers').onclick=()=>customers().catch(fail);
     document.querySelectorAll('[data-customer-type]').forEach(button=>button.onclick=()=>{
@@ -83,7 +86,7 @@
         if(state.customer_mode==='new'){state.customer=null;summary();}
     });
     $('customer-search').onkeydown=e=>{if(e.key==='Enter'){e.preventDefault();customers().catch(fail);}};
-    document.querySelectorAll('[name=customer_mode]').forEach(radio=>radio.onchange=()=>{state.customer_mode=radio.value;state.customer=null;state.address=null;resetService();$('existing-customer').hidden=radio.value==='new';$('new-customer').hidden=radio.value==='existing';});
+    document.querySelectorAll('[name=customer_mode]').forEach(radio=>radio.onchange=()=>{if(renewal)return;state.customer_mode=radio.value;state.customer=null;state.address=null;resetService();$('existing-customer').hidden=radio.value==='new';$('new-customer').hidden=radio.value==='existing';});
     function districts() {
         const city=$('new-address').elements.city_id.value;
         $('new-address').elements.hourly_district_id.innerHTML='<option value="">اختر الحي</option>'+config.districts.filter(d=>String(d.city_id)===city).map(d=>`<option value="${d.id}">${esc(d.name)}</option>`).join('');
@@ -108,7 +111,7 @@
         resetService();
     }
     function renderAddresses() {
-        $('saved-addresses').innerHTML=addresses.length?`<p class="booking-muted">عناوين العميل المحفوظة (${addresses.length})</p><div class="table-responsive"><table class="table"><thead><tr><th>#</th><th>المدينة / الحي</th><th>العنوان</th><th>اسم المبنى / الفيلا</th><th>رقم الوحدة</th><th></th></tr></thead><tbody>${addresses.map(a=>`<tr class="${state.address?.id===a.id?'selected':''}"><td>${a.id}</td><td>${esc([a.city_name,a.district].filter(Boolean).join(' / '))}</td><td>${esc(a.address)}</td><td>${esc(a.building)}</td><td>${esc(a.unit)}</td><td><button type="button" class="btn btn-sm btn-outline-primary" data-address="${a.id}" aria-pressed="${state.address?.id===a.id}">${state.address?.id===a.id?'✓ مختار':'اختر'}</button></td></tr>`).join('')}</tbody></table></div>`:'<p class="my-4">لا توجد عناوين محفوظة. أضف عنوانًا جديدًا.</p>';
+        $('saved-addresses').innerHTML=addresses.length?`<p class="booking-muted">عناوين العميل المحفوظة (${addresses.length})</p><div class="bk-pick-wrap"><table class="bk-pick-table"><thead><tr><th class="is-id">#</th><th>المدينة / الحي</th><th>العنوان</th><th>اسم المبنى / الفيلا</th><th>رقم الوحدة</th><th class="is-action"><span class="visually-hidden">اختيار العنوان</span></th></tr></thead><tbody>${addresses.map(a=>{const picked=state.address?.id===a.id;return `<tr class="${picked?'selected':''}"><td class="is-id">${a.id}</td><td>${esc([a.city_name,a.district].filter(Boolean).join(' / '))}</td><td>${esc(a.address)}</td><td>${esc(a.building)}</td><td>${esc(a.unit)}</td><td class="is-action"><button type="button" class="bk-pick ${picked?'is-picked':''}" data-address="${a.id}" aria-pressed="${picked}"><i class="fa ${picked?'fa-circle-check':'fa-hand-pointer'}"></i> ${picked?'مختار':'اختيار'}</button></td></tr>`;}).join('')}</tbody></table></div>`:'<p class="my-4">لا توجد عناوين محفوظة. أضف عنوانًا جديدًا.</p>';
         $('saved-addresses').querySelectorAll('[data-address]').forEach(button=>button.onclick=()=>{state.address=addresses.find(a=>a.id===Number(button.dataset.address));savedAddress=state.address;resetService();renderAddresses();});
     }
     async function loadCatalog() {
@@ -180,7 +183,7 @@
     function renderCalendar() {
         $('visit-selector').hidden=state.visits.length<=1;
         $('visit-dates').hidden=state.visits.length<=1;
-        $('calendar-title').textContent=month.toLocaleDateString('ar-SA',{month:'long',year:'numeric',calendar:'gregory'});
+        $('calendar-title').textContent=month.toLocaleDateString('ar-SA-u-nu-latn',{month:'long',year:'numeric',calendar:'gregory'});
         let html=['أحد','إثنين','ثلاثاء','أربعاء','خميس','جمعة','سبت'].map(d=>`<small>${d}</small>`).join('');
         const policy=state.item?.booking_config?.booking || {};
         for(let i=0;i<42;i++){
@@ -251,11 +254,24 @@
     }
     async function assignments() {
         $('worker-assignments').textContent='جارٍ التحقق من التوفر...';
-        const replaced=[];
+        const replaced=[],unavailable=[],slotsFor={};
+        // نفحص كل الزيارات أولًا لنذكر بالاسم كل موعد لم يعد متاحًا (لا أولها فقط)، ونفرّغه ليُعاد اختياره من التقويم.
         for(const [index,visit] of state.visits.entries()) {
-            const slots=await api('availability',{...context(),date:visit.starts_at.slice(0,10)});
-            const slot=slots.find(s=>s.starts_at.slice(0,16)===visit.starts_at);
-            if(!slot?.available)throw new Error('إحدى الزيارات لم تعد متاحة. ارجع لتحديد موعد آخر.');
+            const date=visit.starts_at.slice(0,10);
+            slotsFor[date]??=await api('availability',{...context(),date});
+            const slot=slotsFor[date].find(s=>s.starts_at.slice(0,16)===visit.starts_at);
+            if(!slot?.available)unavailable.push(index);
+            else visit.slot=slot;
+        }
+        if(unavailable.length){
+            const list=unavailable.map(i=>`الزيارة ${i+1} (${state.visits[i].starts_at.replace('T',' ')})`).join('، ');
+            unavailable.forEach(i=>{state.visits[i].starts_at='';});
+            renderCalendar();summary();
+            $('worker-assignments').textContent='';
+            throw new Error(`${unavailable.length>1?'هذه المواعيد لم تعد متاحة':'هذا الموعد لم يعد متاحًا'}: ${list}. ارجع لخطوة المواعيد واختر لها موعدًا آخر.`);
+        }
+        for(const [index,visit] of state.visits.entries()) {
+            const slot=visit.slot;delete visit.slot;
             visit.workers=slot.workers;
             visit.worker_ids=visit.worker_ids.map(id=>slot.workers.some(w=>w.id===Number(id))?id:null);
             // العاملة المفضلة غير المتاحة: نقترح بديلة متاحة دون إفشال الطلب (مرة واحدة حتى لا نلغي اختيار الموظف لاحقًا).
@@ -290,7 +306,7 @@
     if($('collect-now'))$('collect-now').onchange=paymentChanged;
     $('all-workers').onchange=async()=>{state.allWorkers=$('all-workers').checked;try{await assignments();}catch(e){fail(e);}};
     $('apply-coupon').onclick=()=>{state.coupon=$('coupon-code').value.trim().toUpperCase();refreshQuote().catch(fail);};
-    $('booking-back').onclick=()=>{clearError();state.step--;showStep();};
+    $('booking-back').onclick=()=>{if(state.step<=(renewal?2:1))return;clearError();state.step--;showStep();};
     $('booking-next').onclick=async()=>{
         if(busy)return;clearError();busy=true;$('booking-next').disabled=true;
         try {
@@ -399,9 +415,22 @@
         }
         const f=$('new-address').elements;if(f.latitude.value && f.longitude.value)markLocation({lat:Number(f.latitude.value),lng:Number(f.longitude.value)});
     }
+    /* إحداثيات ملصقة كما يعطيها Google Maps: «24.7136, 46.6753» أو «24°42'49.0"N 46°40'31.1"E»، بأرقام عربية أو فاصلة عربية. */
+    function parseCoordinates(text) {
+        const s=String(text).replace(/[٠-٩]/g,d=>'٠١٢٣٤٥٦٧٨٩'.indexOf(d)).replace(/٫/g,'.').replace(/،/g,',').trim();
+        let lat=null,lng=null,m;
+        if((m=s.match(/^\(?\s*(-?\d{1,3}\.\d+)\s*[,\s]\s*(-?\d{1,3}\.\d+)\s*\)?$/))){lat=+m[1];lng=+m[2];}
+        else if((m=s.match(/^(\d{1,3})\s*°\s*(\d{1,2})\s*['′]\s*(\d{1,2}(?:\.\d+)?)\s*["″]?\s*([NS])[\s,]*(\d{1,3})\s*°\s*(\d{1,2})\s*['′]\s*(\d{1,2}(?:\.\d+)?)\s*["″]?\s*([EW])$/i))) {
+            const dms=(d,mi,se,h)=>(+d + mi/60 + se/3600)*(/[SW]/i.test(h)?-1:1);
+            lat=dms(m[1],m[2],m[3],m[4]);lng=dms(m[5],m[6],m[7],m[8]);
+        }
+        return lat!==null && Math.abs(lat)<=90 && Math.abs(lng)<=180 ? {lat,lng} : null;
+    }
     async function locateAddress(input) {
         try {
             clearError();input=input.trim();if(!input)throw new Error('أدخل اسم العنوان أو رابط الموقع أولًا.');
+            const point=parseCoordinates(input);
+            if(point) {await geocode({location:point});return;}
             if(/^https?:/.test(input)) {
                 const generation=++geocodeGeneration;
                 const point=await api('map-link',{url:input});const location={lat:point.latitude,lng:point.longitude};
@@ -412,6 +441,12 @@
             } else await geocode({address:input});
         }catch(e){fail(e);}
     }
+    // إحداثيات مكتوبة يدويًا: تحرّك الخريطة وتعبّئ المدينة والحي كما لو اختير الموقع عليها
+    ['address-latitude','address-longitude'].forEach(id=>$(id).addEventListener('change',()=>{
+        const f=$('new-address').elements;
+        if(f.latitude.value==='' || f.longitude.value==='' || !f.latitude.checkValidity() || !f.longitude.checkValidity())return;
+        clearError();geocode({location:{lat:Number(f.latitude.value),lng:Number(f.longitude.value)}}).catch(fail);
+    }));
     $('locate-address').onclick=()=>locateAddress($('map-search').value);
     $('locate-map-url').onclick=()=>locateAddress($('map-url').value);
     ['map-search','map-url'].forEach(id=>$(id).onkeydown=e=>{if(e.key==='Enter'){e.preventDefault();locateAddress($(id).value);}});
@@ -438,5 +473,5 @@
         script.async=true;script.onerror=googleFailed;document.head.append(script);
     } else loadOsmMap();
     $('new-customer').onsubmit=e=>e.preventDefault();$('new-address').onsubmit=e=>e.preventDefault();
-    districts();showStep();customers().catch(fail);
+    districts();showStep();if(renewal)$('booking-next').onclick();else customers().catch(fail);
 })();

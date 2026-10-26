@@ -1161,6 +1161,16 @@
                                 <div class="section-title"><i class="fas fa-file-invoice-dollar"></i>البيان المالي قبل
                                     الإنهاء</div>
                                 <div class="section-body">
+                                    <div id="rentalEscapeFields" class="border border-danger rounded p-3 mb-3 d-none">
+                                        <h6 class="text-danger">إنهاء بسبب هروب العاملة</h6>
+                                        <p class="small text-muted">تسجيل داخلي للواقعة. لن تصبح العاملة متاحة ولن تُسجّل عودتها إلى الإيواء. تاريخ التسوية يظهر أعلى النافذة ويمكن مراجعته قبل التأكيد.</p>
+                                        <div class="row g-3">
+                                            <div class="col-md-4"><label for="rentalEscapeDate" class="form-label">تاريخ الهروب *</label><input id="rentalEscapeDate" type="date" max="{{ now()->toDateString() }}" class="form-control"></div>
+                                            <div class="col-md-4"><label for="rentalEscapeReference" class="form-label">رقم البلاغ الرسمي إن وجد</label><input id="rentalEscapeReference" maxlength="255" class="form-control"></div>
+                                            <div class="col-md-4"><label for="rentalEscapeAttachment" class="form-label">مرفق البلاغ (اختياري)</label><input id="rentalEscapeAttachment" type="file" accept=".pdf,.jpg,.jpeg,.png" class="form-control"><small>صورة أو PDF، حتى 10 ميجابايت.</small></div>
+                                            <div class="col-12"><label for="rentalEscapeNotes" class="form-label">تفاصيل الواقعة *</label><textarea id="rentalEscapeNotes" maxlength="3000" rows="3" class="form-control"></textarea></div>
+                                        </div>
+                                    </div>
                                     <div class="close-fin-groups">
                                         <div class="close-fin-group">
                                             <div class="close-fin-group-title"><i class="fas fa-file-contract"></i>قيمة العقد والسداد</div>
@@ -1419,6 +1429,13 @@
 
                     <!-- خيارات الإغلاق -->
                     <div class="row g-3" id="closeContractOptionsRow">
+                        <div class="col-12">
+                            <div class="close-option-card border border-danger">
+                                <h6 class="text-danger fw-bold">إنهاء بسبب هروب العاملة</h6>
+                                <p>تسجيل البلاغ وتسوية العقد، مع منع إتاحة العاملة حتى تسجيل عودتها واعتماد جاهزيتها.</p>
+                                <button type="button" class="btn btn-outline-danger" id="closeWithEscapeBtn">تسجيل هروب وإنهاء العقد</button>
+                            </div>
+                        </div>
                         <div class="col-md-6">
                             <div class="close-option-card">
                                 <div class="close-option-icon bg-success text-white">
@@ -1931,10 +1948,7 @@
 @endsection
 
 @section('js')
-    <!-- DataTables JS من CDN كبديل آمن -->
-    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-    <script src="https://cdn.datatables.net/1.13.7/js/jquery.dataTables.min.js"></script>
-    <script src="https://cdn.datatables.net/1.13.7/js/dataTables.bootstrap5.min.js"></script>
+    {{-- jQuery وDataTables محمّلان في القالب؛ إعادة تحميلهما تلغي معالج فتح نموذج التسليم. --}}
 
     <!-- الملفات المحلية -->
     <!-- <script src="{{ asset('admin') }}/assets/jsbundle/dataTables.bundle.js"></script> -->
@@ -2691,7 +2705,11 @@
                 const remainingDays = button.data('remaining-days');
                 const usedDays = button.data('used-days');
                 const extensionsCount = toNumber(button.data('extensions-count'));
-                const dailyRate = durationDays > 0 && contractValue > 0 ? contractValue / durationDays :
+                // آخر قيمة للعقد: قيمة آخر تمديد ومدته إن وُجد، وإلا قيمة العقد الأصلية
+                const latestFromExtension = button.data('latest-source') === 'extension';
+                const latestValue = latestFromExtension ? toNumber(button.data('latest-value')) : contractValue;
+                const latestDays = latestFromExtension ? toNumber(button.data('latest-days')) : durationDays;
+                const dailyRate = latestDays > 0 && latestValue > 0 ? latestValue / latestDays :
                     monthlyCost / 30;
 
                 resetExtendModal();
@@ -2718,13 +2736,14 @@
                 $('#extend_used_days_text').text(usedDays !== '' && typeof usedDays !== 'undefined' ? (
                     usedDays + ' يوم') : '-');
                 $('#extend_remaining_days_text').text(renderRemainingDays(remainingDays));
-                $('#extend_contract_value_text').text(formatCurrency(contractValue) + ' ريال');
+                $('#extend_contract_value_text').text(formatCurrency(latestValue) + ' ريال' +
+                    (latestFromExtension ? ' (آخر تمديد - ' + latestDays + ' يوم)' : ''));
                 $('#extend_daily_rate_text').text(formatCurrency(dailyRate) + ' ريال');
                 $('#extend_extensions_count_text').text(extensionsCount + ' مرة');
                 $('#extend_current_end_value').val(ingazTo || '');
                 $('#extend_monthly_cost_value').val(monthlyCost || 0);
-                $('#extend_contract_value_value').val(contractValue || 0);
-                $('#extend_duration_days_value').val(durationDays || 0);
+                $('#extend_contract_value_value').val(latestValue || 0);
+                $('#extend_duration_days_value').val(latestDays || 0);
                 $('#extend_daily_rate_value').val(dailyRate || 0);
                 setExtendStatusBadge(remainingDays);
 
@@ -3298,6 +3317,7 @@
 
             // إضافة متغير لحفظ معرف العقد المحدد
             let selectedContractId = null;
+            let rentalClosureReason = 'normal';
 
             // التعامل مع زر إنهاء العقد
             $(document).on('click', '.complete-contract', function() {
@@ -3311,6 +3331,9 @@
                         if (response.success) {
                             const contract = response.contract;
                             resetCloseFinancialFields();
+                            rentalClosureReason = 'normal';
+                            $('#rentalEscapeFields').addClass('d-none');
+                            $('#rentalEscapeDate, #rentalEscapeNotes, #rentalEscapeReference, #rentalEscapeAttachment').val('');
                             resetTransferAdjustments();
                             resetTransferPaymentFields();
                             $('#transferSponsorshipForm').hide();
@@ -3321,7 +3344,7 @@
                             resetTransferPaymentFields();
 
                             // تعبئة بيانات العقد في الـ modal
-                            $('#contractId').text(contract.id);
+                            $('#contractId').text(contract.contract_number || contract.id);
                             $('#clientName').text(contract.client_name || '-');
                             $('#maidName').text(contract.maid_name || '-');
                             $('#currentStatus').text(contract.status_text || '-');
@@ -3402,6 +3425,10 @@
             });
 
             function executeCloseAndMakeAvailable() {
+                if (rentalClosureReason === 'escape' && (!$('#rentalEscapeDate').val() || !$('#rentalEscapeNotes').val().trim())) {
+                    Swal.fire({icon: 'warning', title: 'بيانات البلاغ غير مكتملة', text: 'أدخل تاريخ الهروب وتفاصيل الواقعة.'});
+                    return;
+                }
                 if (!closeSummaryValid) {
                     Swal.fire({icon: 'warning', title: 'الحسبة غير جاهزة', text: 'انتظر تحديث الحسبة أو صحح بيانات التسعير أولًا.'});
                     return;
@@ -3445,7 +3472,7 @@
 
                 Swal.fire({
                     title: 'تأكيد الإغلاق',
-                    text: 'هل أنت متأكد من إغلاق العقد وإرجاع العاملة متاحة؟',
+                    text: rentalClosureReason === 'escape' ? 'سيُغلق العقد وتُسجل العاملة هاربة وغير متاحة، مع اعتماد التسوية المعروضة. هل تؤكد؟' : 'هل أنت متأكد من إغلاق العقد وإرجاع العاملة متاحة؟',
                     icon: 'question',
                     showCancelButton: true,
                     confirmButtonColor: '#28a745',
@@ -3491,6 +3518,14 @@
                             formData.append('custom_daily_rate_reason', $('#customClosureDailyRateReason').val());
                         }
                         formData.append('closure_date', $('#closureDate').val());
+                        formData.append('closure_reason', rentalClosureReason);
+                        if (rentalClosureReason === 'escape') {
+                            formData.append('escape_date', $('#rentalEscapeDate').val());
+                            formData.append('escape_notes', $('#rentalEscapeNotes').val());
+                            formData.append('escape_reference', $('#rentalEscapeReference').val());
+                            const file = $('#rentalEscapeAttachment')[0]?.files?.[0];
+                            if (file) formData.append('escape_attachment', file);
+                        }
                         formData.append('closure_return_reason', $('#closeReturnReason').val());
                         formData.append('close_payment_status', $('#closePaymentStatus').val());
                         formData.append('close_client_iban', $('#closeClientIban').val());
@@ -3565,6 +3600,9 @@
 
             // إظهار بيان الإغلاق بعد اختيار إرجاع العاملة متاحة
             $('#closeAndMakeAvailableBtn').click(function() {
+                rentalClosureReason = 'normal';
+                $('#rentalEscapeFields').addClass('d-none');
+                $('#confirmCloseAndMakeAvailableBtn').text('تأكيد الإغلاق والإتاحة');
                 $('#transferSponsorshipForm').hide();
                 $('#closeContractOptionsRow').hide();
                 $('#closeContractAttachmentsRow').show();
@@ -3574,6 +3612,23 @@
             $('#confirmCloseAndMakeAvailableBtn').click(function() {
                 executeCloseAndMakeAvailable();
             });
+
+            $('#closeWithEscapeBtn').click(function() {
+                rentalClosureReason = 'escape';
+                $('#transferSponsorshipForm, #closeContractOptionsRow').hide();
+                $('#closeContractAttachmentsRow, #closeFinancialSettlementRow').show();
+                $('#rentalEscapeFields').removeClass('d-none');
+                $('#rentalEscapeDate').attr('min', $('#closureDate').attr('min')).val($('#closureDate').val());
+                $('#confirmCloseAndMakeAvailableBtn').text('تأكيد الإنهاء وتسجيل الهروب');
+                $('#sendClosureMessageToggle').prop('checked', false);
+            });
+            $('#rentalEscapeDate').on('change', function() {
+                if (this.value) $('#closureDate').val(this.value).trigger('change');
+            });
+            @if (is_numeric(request('close_contract')))
+                $('<button type="button" class="complete-contract d-none"></button>')
+                    .attr('data-id', @json((int) request('close_contract'))).appendTo('body').trigger('click').remove();
+            @endif
 
             $('#backToCloseOptionsBtn').click(function() {
                 $('#closeContractAttachmentsRow').hide();
@@ -3785,35 +3840,11 @@
                 });
             });
 
-            $(document).on('click', '.freeze-contract', function() {
-                const contractId = $(this).data('id');
+            @include('admin.ingaz.RentContract._freeze-dialogs')
 
-                Swal.fire({
-                    title: 'تجميد عقد الإيجار',
-                    input: 'textarea',
-                    inputLabel: 'سبب التجميد',
-                    inputPlaceholder: 'اكتب سبب تجميد العقد',
-                    inputAttributes: {
-                        maxlength: 1000
-                    },
-                    icon: 'warning',
-                    showCancelButton: true,
-                    confirmButtonColor: '#64748b',
-                    cancelButtonColor: '#dc3545',
-                    confirmButtonText: 'تجميد العقد',
-                    cancelButtonText: 'إلغاء',
-                    inputValidator: (value) => {
-                        if (!value || !value.trim()) {
-                            return 'يرجى كتابة سبب التجميد';
-                        }
-                    }
-                }).then((result) => {
-                    if (result.isConfirmed) {
-                        executeWorkflowAction(contractId, 'freeze', 'تم تجميد عقد الإيجار بنجاح', {
-                            freeze_reason: result.value
-                        });
-                    }
-                });
+            $(document).on('click', '.freeze-contract', async function() {
+                const data = await rentalFreezeDialog();
+                if (data) executeWorkflowAction($(this).data('id'), 'freeze', 'تم تجميد عقد الإيجار بنجاح', data);
             });
 
             $(document).on('click', '.edit-freeze-date', function() {
@@ -3846,23 +3877,11 @@
                 });
             });
 
-            $(document).on('click', '.resume-contract', function() {
+            $(document).on('click', '.resume-contract', async function() {
                 const contractId = $(this).data('id');
-
-                Swal.fire({
-                    title: 'استئناف عقد الإيجار',
-                    text: 'هل تريد استئناف هذا العقد؟',
-                    icon: 'question',
-                    showCancelButton: true,
-                    confirmButtonColor: '#28a745',
-                    cancelButtonColor: '#6c757d',
-                    confirmButtonText: 'نعم، استئناف العقد',
-                    cancelButtonText: 'إلغاء'
-                }).then((result) => {
-                    if (result.isConfirmed) {
-                        executeWorkflowAction(contractId, 'resume', 'تم استئناف عقد الإيجار بنجاح');
-                    }
-                });
+                const url = @json(route('RentContract.resumeOptions', ['id' => '__ID__'])).replace('__ID__', contractId);
+                const data = await rentalResumeDialog(url);
+                if (data) executeWorkflowAction(contractId, 'resume', 'تم استئناف عقد الإيجار بنجاح', data);
             });
 
             $(document).on('click', '.send-payment-link', function() {

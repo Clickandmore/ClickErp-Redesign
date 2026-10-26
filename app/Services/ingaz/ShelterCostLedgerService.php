@@ -35,6 +35,7 @@ use Nami\Finance\Services\YearService;
  *   18  release_to_deportation   مدين المكتب الخارجي (أو خسائر الإيواء) / دائن الأصل — إنهاء الترحيل
  *   S4  release_to_sale          مدين تكاليف مبيعات (الجنسية) / دائن الأصل            — فوترة عقد جديد لعاملة في الإيواء
  *       write_off                مدين حساب التصفية / دائن الأصل                       — إخراج يدوي بلا مسار
+ *       return_to_customer       مدين مردودات التكلفة (+ التصفية للإعاشة) / دائن الأصل — رجوع العاملة لعميلها (دخول مباشر)
  *
  * الرصيد = مجموع shelter_cost_entries.amount للعاملة. المبلغ موجب يزيد الأصل وسالب يُفرج عنه.
  * الحماية من التكرار عبر (source_type, source_id, kind) فريدة.
@@ -443,6 +444,135 @@ class ShelterCostLedgerService
         $this->record($contract, $kind, -$amount, $constraint, $source, $reason);
 
         return ['amount' => $amount, 'constraint' => $constraint];
+    }
+
+    // ── رجوع العاملة لعميلها الأصلي ─────────────────────────────────────────
+
+    /**
+     * سبب منع الرجوع للعميل الأصلي، أو null إن كان الرجوع ممكناً.
+     * الرجوع يعكس استلام الإيواء فقط حين يكون البيع الأصلي قائماً (دخول مباشر للعقد نفسه)
+     * ولم يُحمَّل المكتب الخارجي بالتكلفة؛ فالمورد سبق احتسابه على العقد الأصلي.
+     */
+    public function returnToCustomerBlocker(Contract $contract): ?string
+    {
+        if (!$contract->maid_id || !Schema::hasTable('shelter_cost_entries')
+            || !ShelterCostEntry::query()->where('maid_id', $contract->maid_id)->exists()) {
+            return null;
+        }
+
+        if (Schema::hasTable('shelter_agent_cost_recoveries')) {
+            $recovery = \App\Models\ShelterAgentCostRecovery::query()
+                ->where('contract_id', $contract->id)
+                ->whereNotNull('constraint_id')
+                ->whereNull('reversal_constraint_id')
+                ->first();
+            if ($recovery) {
+                return 'سبق استرداد تكلفة الوكيل (' . number_format((float) $recovery->amount, 2)
+                    . ' ريال — قيد #' . ($recovery->constraint?->code ?: $recovery->constraint_id)
+                    . ') من المكتب الخارجي. اعكس الاسترداد أولاً من شاشة «استرداد تكلفة الوكيل» ثم أعد العاملة للعميل.';
+            }
+        }
+
+        $summary = app(ShelterAgentCostRecoveryService::class)->summary($contract);
+        if ($summary['issues']) {
+            return implode(' ', $summary['issues']);
+        }
+        if ($summary['recovered'] > 0) {
+            return 'سبق تحميل المكتب الخارجي بتكلفة العاملة؛ اعكس التحميل أولاً ثم أعد العاملة للعميل.';
+        }
+        foreach ($summary['lots'] as $lot) {
+            if ($lot['remaining'] <= 0) { continue; }
+            $entry = $lot['entry'];
+            if ((int) $entry->contract_id !== (int) $contract->id
+                || $entry->source_type !== Contract::class
+                || (int) $entry->source_id !== (int) $contract->id) {
+                return 'تكلفة الإيواء ناتجة عن إرجاع أو استرداد للعميل (حركة #' . $entry->id . ')؛ لا تُعاد للعميل تلقائياً.';
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * عكس استلام الإيواء عند رجوع العاملة لعميلها الأصلي:
+     *   مدين مردودات التكلفة (نفس حساب قيد الاستلام) / دائن أصل الإيواء — تعود التكلفة لعقد البيع الأصلي.
+     *   مدين حساب التصفية / دائن أصل الإيواء — لأي إعاشة مرسملة خلال فترة الإيواء.
+     * @return array{amount: float, constraint: ?Constraint}
+     */
+    public function returnToCustomer(Contract $contract, string $date): array
+    {
+        return DB::transaction(function () use ($contract, $date) {
+            if ($contract->maid_id) { Maid::query()->whereKey($contract->maid_id)->lockForUpdate()->firstOrFail(); }
+            return $this->returnToCustomerLocked($contract, $date);
+        });
+    }
+
+    private function returnToCustomerLocked(Contract $contract, string $date): array
+    {
+        $kind = ShelterCostEntry::KIND_RETURN_TO_CUSTOMER;
+        if ($existing = $this->findEntry($contract, $kind)) {
+            return ['amount' => $this->roundMoney(abs((float) $existing->amount)), 'constraint' => $existing->constraint];
+        }
+
+        if ($blocker = $this->returnToCustomerBlocker($contract)) {
+            throw new \RuntimeException($blocker);
+        }
+
+        $amount = $this->balance((int) $contract->maid_id);
+        if ($amount < 0) { throw new \RuntimeException('رصيد الإيواء سالب؛ يلزم مطابقة القيود قبل أي خروج أو تصفية.'); }
+        if ($amount <= 0) {
+            return ['amount' => 0.0, 'constraint' => null];
+        }
+
+        $statement = 'إيواء — رجوع العاملة للعميل الأصلي — عقد #' . $contract->id;
+        $constraint = null;
+
+        if (AutomaticJournalEntries::enabled()) {
+            $summary = app(ShelterAgentCostRecoveryService::class)->summary($contract);
+            $costCenterId = $this->ensureMaidCostCenter($contract)->id;
+            $lines = [];
+            foreach ($summary['lots'] as $lot) {
+                if ($lot['remaining'] <= 0) { continue; }
+                $assetId = (int) ($lot['asset_account_id'] ?: $this->assetAccountIdForContract($contract));
+                $lines[] = $this->line($this->receiptCreditAccountId($lot['entry'], $assetId, $contract), 'debtor', $lot['remaining'], $statement . ' — عكس تكلفة الاستلام');
+                $lines[] = $this->line($assetId, 'creditor', $lot['remaining'], $statement . ' — عكس تكلفة الاستلام', $costCenterId);
+            }
+            if ($summary['living'] > 0) {
+                $writeOffAccountId = ShelterAccountingSettings::writeOffAccountId();
+                if (!$writeOffAccountId) {
+                    throw new \RuntimeException('لم يُحدد حساب تصفية رصيد الإيواء في إعدادات الحسابات لتحميل الإعاشة.');
+                }
+                $lines[] = $this->line($writeOffAccountId, 'debtor', $summary['living'], $statement . ' — إعاشة');
+                $lines[] = $this->line($this->assetAccountIdForContract($contract), 'creditor', $summary['living'], $statement . ' — إعاشة', $costCenterId);
+            }
+            $constraint = $this->storeConstraint($lines, $statement, $date);
+        }
+
+        $this->record($contract, $kind, -$amount, $constraint, $contract, 'رجوع للعميل الأصلي — يبقى قيد المورد على العقد الأصلي');
+
+        return ['amount' => $amount, 'constraint' => $constraint];
+    }
+
+    /** الحساب الدائن في قيد الاستلام (مردودات التكلفة) ليُعكس كما هو. */
+    private function receiptCreditAccountId(ShelterCostEntry $receipt, int $assetId, Contract $contract): int
+    {
+        $accounts = $receipt->constraint_id
+            ? \Nami\Finance\Models\ConstraintDetails::query()
+                ->where('constraint_id', $receipt->constraint_id)
+                ->where('creditor_value', '>', 0)
+                ->where('account_id', '!=', $assetId)
+                ->distinct()->pluck('account_id')
+            : collect();
+        if ($accounts->count() === 1) {
+            return (int) $accounts->first();
+        }
+
+        $accountId = NationalityAccountResolver::forNationality($this->nationalityOf($contract), 'recruitment_cost_return');
+        if (!$accountId) {
+            throw new \RuntimeException('لا يوجد حساب مردودات تكلفة مرتبط بجنسية العقد: ' . $this->nationalityName($this->nationalityOf($contract)));
+        }
+
+        return $accountId;
     }
 
     // ── الحسابات ومراكز التكلفة ───────────────────────────────────────────────

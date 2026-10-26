@@ -73,6 +73,10 @@ class AppServiceProvider extends ServiceProvider
 
         $this->registerConditionalAttributeDirectives();
 
+        // قيد تكلفة الوكيل الخارجي عند إنشاء العقد. المراقِب يخرج فوراً إلا في وضع
+        // on_contract، فلا يمس أي مسار إنشاء عقد قائم في الوضع الافتراضي.
+        \App\Models\Contract::observe(\App\Observers\ContractSupplierCostObserver::class);
+
         // إعدادات إشعارات Firebase المحفوظة من لوحة التحكم تعلو قيم .env، فتستفيد
         // منها خدمات الإرسال عبر config('firebase.*') دون تعديل فيها.
         \App\Support\FirebaseSettings::applyToConfig();
@@ -191,7 +195,7 @@ class AppServiceProvider extends ServiceProvider
 
         View::composer('*', function ($view) {
             $fastnews = Schema::hasTable('fast_news')
-                ? FastNew::with('translations')->get()
+                ? FastNew::with('translations')->where('is_visible', true)->get()
                 : collect();
             $view->with('fastnews', $fastnews);
         });

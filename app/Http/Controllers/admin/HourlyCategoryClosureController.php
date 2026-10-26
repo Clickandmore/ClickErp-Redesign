@@ -17,18 +17,28 @@ class HourlyCategoryClosureController extends Controller
     public function store(Request $request, HourlyServiceCategory $category)
     {
         $data = $request->validate([
-            'starts_at' => ['required', 'date'],
+            'starts_at' => ['required', 'date', 'after_or_equal:today'],
             'ends_at' => ['required', 'date', 'after:starts_at'],
             'district_ids' => ['nullable', 'array'],
             'district_ids.*' => ['integer', 'distinct', Rule::exists('hourly_category_district', 'district_id')->where('service_category_id', $category->id)],
             'reason' => ['nullable', 'string', 'max:500'],
-        ], [], ['starts_at' => __('hourly_category_ui.closure_start'), 'ends_at' => __('hourly_category_ui.closure_end'), 'district_ids' => __('hourly_category_ui.districts')]);
-        $closure = $category->closures()->create([
-            'starts_at' => $data['starts_at'], 'ends_at' => $data['ends_at'],
-            'district_ids' => !empty($data['district_ids']) ? array_map('intval', $data['district_ids']) : null,
-            'reason' => $data['reason'] ?? null, 'created_by' => auth('admin')->id(),
-        ]);
-        $this->service->audit($category, 'closures', 'add', null, $this->describe($closure));
+        ], ['starts_at.after_or_equal' => __('hourly_category_ui.closure_past')], ['starts_at' => __('hourly_category_ui.closure_start'), 'ends_at' => __('hourly_category_ui.closure_end'), 'district_ids' => __('hourly_category_ui.districts')]);
+        $districtIds = !empty($data['district_ids']) ? array_values(array_unique(array_map('intval', $data['district_ids']))) : null;
+        if ($districtIds) sort($districtIds);
+        $data['starts_at'] = \Carbon\Carbon::parse($data['starts_at'])->startOfMinute();
+        $data['ends_at'] = \Carbon\Carbon::parse($data['ends_at'])->startOfMinute();
+        // قفل الفئة يسلسل الطلبات المتزامنة (ضغطتان على الحفظ) فلا يُنشأ نفس الإغلاق مرتين.
+        DB::transaction(function () use ($category, $data, $districtIds) {
+            HourlyServiceCategory::whereKey($category->id)->lockForUpdate()->first();
+            $duplicate = $category->closures()->where('starts_at', $data['starts_at'])->where('ends_at', $data['ends_at'])->get()
+                ->contains(fn ($c) => ($c->district_ids ? collect($c->district_ids)->map('intval')->sort()->values()->all() : null) === $districtIds);
+            if ($duplicate) return;
+            $closure = $category->closures()->create([
+                'starts_at' => $data['starts_at'], 'ends_at' => $data['ends_at'], 'district_ids' => $districtIds,
+                'reason' => $data['reason'] ?? null, 'created_by' => auth('admin')->id(),
+            ]);
+            $this->service->audit($category, 'closures', 'add', null, $this->describe($closure));
+        });
         return $this->back($category, __('hourly_category_ui.closure_added'));
     }
 

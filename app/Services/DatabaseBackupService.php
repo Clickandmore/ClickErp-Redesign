@@ -24,7 +24,7 @@ class DatabaseBackupService
         $this->assertR2Ready();
 
         return Cache::lock('database-backup-operation', 7200)->block(5, function () use ($reason) {
-            $reason = in_array($reason, ['scheduled', 'manual', 'pre-restore'], true) ? $reason : 'manual';
+            $reason = in_array($reason, ['scheduled', 'manual', 'pre-restore', 'pre-import'], true) ? $reason : 'manual';
             $temporaryPath = tempnam(storage_path('app'), 'db-backup-');
             if ($temporaryPath === false) {
                 throw new RuntimeException('تعذر إنشاء الملف المؤقت للنسخة الاحتياطية.');
@@ -50,7 +50,10 @@ class DatabaseBackupService
                 }
 
                 try {
-                    $this->disk()->writeStream($key, $stream);
+                    $disk = $this->disk();
+                    if (!$disk->writeStream($key, $stream) || !$disk->exists($key) || $disk->size($key) !== filesize($gzipPath)) {
+                        throw new RuntimeException('تعذر التحقق من اكتمال رفع النسخة الاحتياطية إلى R2.');
+                    }
                 } finally {
                     fclose($stream);
                 }

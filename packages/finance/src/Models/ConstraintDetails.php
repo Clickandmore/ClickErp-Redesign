@@ -16,14 +16,23 @@ class ConstraintDetails extends Finance
     /** فرع سطر القيد: فرع القيد الأب، وإلا الفرع المالك للحساب. */
     protected function resolveBranchIdForCreate(): ?int
     {
+        if ($this->branch_id !== null) {
+            return (int) $this->branch_id ?: null;
+        }
+
         $constraintId = (int) ($this->constraint_id ?? 0);
 
         if ($constraintId > 0) {
-            $branchId = (int) (\Illuminate\Support\Facades\DB::table('fn_constraints')
+            $columns = ['branch_id'];
+            if (\Illuminate\Support\Facades\Schema::hasColumn('fn_constraints', 'is_multi_branch')) {
+                $columns[] = 'is_multi_branch';
+            }
+            $constraint = \Illuminate\Support\Facades\DB::table('fn_constraints')
                 ->where('id', $constraintId)
-                ->value('branch_id') ?? 0);
+                ->first($columns);
+            $branchId = (int) ($constraint?->branch_id ?? 0);
 
-            if ($branchId > 0) {
+            if ($branchId > 0 || ($constraint && ($constraint->is_multi_branch ?? false))) {
                 return $branchId;
             }
         }

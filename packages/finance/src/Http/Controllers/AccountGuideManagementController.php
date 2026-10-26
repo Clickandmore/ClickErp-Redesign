@@ -3,13 +3,20 @@
 namespace Nami\Finance\Http\Controllers;
 
 use App\Http\Controllers\admin\Controller;
+use App\Http\Middleware\EnsurePackageRoutePermission;
+use App\Models\Branch;
+use App\Support\BranchSharingSettings;
 use Exception;
 use Illuminate\Contracts\Foundation\Application;
 use Illuminate\Contracts\View\Factory;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Validation\ValidationException;
 use Nami\Finance\Http\Requests\AccountRequest as ObjRequest;
+use Nami\Finance\Models\Account;
+use Nami\Finance\Models\AccountRestructureLog;
+use Nami\Finance\Services\AccountRestructureService;
 use Nami\Finance\Services\AccountService as ObjService;
 use Throwable;
 use Yajra\DataTables\DataTables;
@@ -30,7 +37,8 @@ class AccountGuideManagementController extends Controller
     {
 
         if ($request->ajax()) {
-            $dataTable = $service->getDatatableData();
+            $dataTable = $service->getDatatableData()->withCount('children');
+            $restructureAbilities = $this->restructureAbilities();
             return DataTables::of($dataTable)
                 ->addIndexColumn()
                 ->editColumn('type', function ($row) {
@@ -42,26 +50,43 @@ class AccountGuideManagementController extends Controller
                 ->addColumn('main_account', function ($row) {
                     return $row->parent->name ?? __("finance::finance.without");
                 })
-                ->addColumn('actions', function ($row) {
-                    $deleteButton = "";
-                    $hasConstraints = (int) ($row->constraint_details_count ?? 0) > 0;
+                ->addColumn('actions', function ($row) use ($restructureAbilities) {
+                    $isSystemAccount = AccountRestructureService::isProtected($row);
+                    $name = e($row->name);
                     $addButton = '<button type="button" class="btn btn-success addButton ms-1" data-bs-toggle="modal" data-bs-target="#createModal"
-                        model-route="' . route($this->accountMainRoute . '.create', ['parent_id' => $row->id]) . '" model-title="' . $row->name . '">
+                        model-route="' . route($this->accountMainRoute . '.create', ['parent_id' => $row->id]) . '" model-title="' . $name . '">
                         <i class="fa fa-plus-circle"></i>
                         </button>';
-                    $editButton = editButton(route($this->mainRoute . ".edit", $row->id), $row->name);
-                    if ($row->operation_type == 3 && !$hasConstraints) {
-                        $deleteButton = '<button type="button" class="btn btn-sm btn-danger btn-delete deleteButton" delete-route="' . route($this->accountMainRoute . ".destroy", $row->id) . '" title="حذف">
+                    $editButton = editButton(route($this->mainRoute . ".edit", $row->id), $name);
+                    $buttons = [$addButton, $editButton];
+
+                    if (!$isSystemAccount && $restructureAbilities['move']) {
+                        $buttons[] = '<button type="button" class="btn btn-sm btn-info editButton" data-bs-toggle="modal" data-bs-target="#createModal"
+                            model-route="' . route($this->mainRoute . '.move-form', $row->id) . '" model-title="نقل الحساب: ' . $name . '" title="نقل">
+                            <i class="fa fa-arrows"></i>
+                        </button>';
+                    }
+                    if (!$isSystemAccount && $restructureAbilities['merge'] && (int) ($row->children_count ?? 0) === 0) {
+                        $buttons[] = '<button type="button" class="btn btn-sm btn-warning editButton" data-bs-toggle="modal" data-bs-target="#createModal"
+                            model-route="' . route($this->mainRoute . '.merge-form', $row->id) . '" model-title="دمج الحساب: ' . $name . '" title="دمج">
+                            <i class="fa fa-compress"></i>
+                        </button>';
+                    }
+                    // الخادم يعيد كل فحوص الحذف؛ الزر يظهر فقط حين لا قيود ولا فروع ظاهرة.
+                    if (!$isSystemAccount && $restructureAbilities['delete']
+                        && (int) ($row->constraint_details_count ?? 0) === 0 && (int) ($row->children_count ?? 0) === 0) {
+                        $buttons[] = '<button type="button" class="btn btn-sm btn-danger btn-delete deleteButton" delete-route="' . route($this->mainRoute . ".destroy", $row->id) . '" title="حذف">
                               <i class="fa fa-trash-o"></i>
                         </button>';
                     }
 
-                    return $addButton . " " . $editButton . " " . $deleteButton;
+                    return implode(' ', $buttons);
                 })->rawColumns(['actions'])->make(true);
         }
         $data["createRoute"] = route($this->accountMainRoute . ".create");
         $data["dataTableRoute"] = route($this->mainRoute . ".index");
         $data["exportRouteTemplate"] = route($this->mainRoute . ".export", ['format' => '__FORMAT__']);
+        $data["logsRoute"] = route($this->mainRoute . ".logs");
         $data["bladeTitle"] = __("finance::finance.Accounting guide management");
         $data["addButtonText"] = __("finance::finance.account");
         $data['main_accounts'] = $service->getMainAccounts();
@@ -145,7 +170,9 @@ class AccountGuideManagementController extends Controller
             $returnHTML = view($this->folderPath . ".edit")->with([
                 "accountTypes" => $service->getAccountTypes(),
                 "accounts" => $service->getValidParents(),
-                "obj" => $service->find($id),
+                "obj" => $service->find($id)->load('branches'),
+                "branches" => Branch::query()->active()->ordered()->get(),
+                "accountBranchAssignmentsEnabled" => BranchSharingSettings::accountsPerBranch(),
                 "types" => $service->getAccountTypesList(),
                 "operationTypes" => $service->getOperationTypesList(),
                 "updateRoute" => route($this->mainRoute . ".update", $id),
@@ -165,8 +192,7 @@ class AccountGuideManagementController extends Controller
     public function update(ObjRequest $request, int $id, ObjService $service)
     {
         $dataUpdated = $request->validated();
-        $account = $service->find($id);
-        $account->update(['name' => $dataUpdated['name']]);
+        $service->updateAccountGuideDetails($id, $dataUpdated);
         return jsonSuccess(true, null, 201);
     }
 
@@ -177,10 +203,127 @@ class AccountGuideManagementController extends Controller
      * @param ObjService $service
      * @return JsonResponse
      */
-    public function destroy(int $id, ObjService $service)
+    public function destroy(int $id, AccountRestructureService $restructure)
     {
-        $service->delete($id);
-        return jsonSuccess(null, null, 201);
+        $restructure->delete($id, request()->input('reason'));
+        return jsonSuccess(null, 'تم حذف الحساب.', 201);
+    }
+
+    public function moveForm(int $id, AccountRestructureService $restructure)
+    {
+        $account = Account::query()->with('parent:id,name,code')->findOrFail($id);
+        $returnHTML = view($this->folderPath . '.move')->with([
+            'obj' => $account,
+            'parents' => $restructure->moveTargetsFor($account),
+            'blockers' => $restructure->systemAccountBlockers($account, true),
+            'childrenCount' => Account::query()->where('parent_id', $account->id)->count(),
+            'moveRoute' => route($this->mainRoute . '.move', $id),
+        ])->render();
+
+        return jsonSuccess(['html' => $returnHTML]);
+    }
+
+    public function move(Request $request, int $id, AccountRestructureService $restructure)
+    {
+        $data = $request->validate([
+            'parent_id' => ['required'],
+            'reason' => ['nullable', 'string', 'max:1000'],
+        ], ['parent_id.required' => 'اختر الحساب الرئيسي الجديد.']);
+
+        $parentId = $data['parent_id'] === 'without' ? null : (int) $data['parent_id'];
+        $account = $restructure->move($id, $parentId, $data['reason'] ?? null);
+
+        return jsonSuccess(['code' => $account->code], 'تم نقل الحساب، وكوده الجديد ' . $account->code . '.', 200);
+    }
+
+    public function mergeForm(int $id, AccountRestructureService $restructure)
+    {
+        $account = Account::query()->findOrFail($id);
+        $usage = $restructure->usage($account);
+        $returnHTML = view($this->folderPath . '.merge')->with([
+            'obj' => $account,
+            'usage' => $usage,
+            'targets' => $restructure->mergeTargetsFor($account),
+            'blockers' => $restructure->mergeSourceBlockers($account),
+            'mergeRoute' => route($this->mainRoute . '.merge', $id),
+        ])->render();
+
+        return jsonSuccess(['html' => $returnHTML]);
+    }
+
+    public function merge(Request $request, int $id, AccountRestructureService $restructure)
+    {
+        $data = $request->validate([
+            'target_account_id' => ['required', 'integer'],
+            'reason' => ['required', 'string', 'max:1000'],
+            'confirm_code' => ['required'],
+        ], [
+            'target_account_id.required' => 'اختر الحساب الذي سيُدمج فيه.',
+            'reason.required' => 'سبب الدمج مطلوب.',
+            'confirm_code.required' => 'اكتب كود الحساب المصدر للتأكيد.',
+        ]);
+
+        $source = Account::query()->findOrFail($id);
+        if (trim((string) $data['confirm_code']) !== (string) $source->code) {
+            throw ValidationException::withMessages(['confirm_code' => 'كود التأكيد لا يطابق كود الحساب المصدر (' . $source->code . ').']);
+        }
+
+        $result = $restructure->merge($id, (int) $data['target_account_id'], $data['reason']);
+        $summary = collect($result['moved'])->map(fn ($count, $label) => $label . ': ' . $count)->implode('، ');
+
+        return jsonSuccess($result['moved'], 'تم دمج الحساب في ' . $result['target']->code . ' - ' . $result['target']->name
+            . ($summary !== '' ? ' (' . $summary . ')' : '') . '.', 200);
+    }
+
+    public function logs()
+    {
+        $returnHTML = view($this->folderPath . '.logs')->with([
+            'logs' => AccountRestructureLog::query()->with('creator:id,name')->latest('id')->limit(100)->get(),
+            'canUndoMerge' => $this->restructureAbilities()['merge'],
+        ])->render();
+
+        return jsonSuccess(['html' => $returnHTML]);
+    }
+
+    public function undoMergeForm(int $log, AccountRestructureService $restructure)
+    {
+        $record = AccountRestructureLog::query()->findOrFail($log);
+        $returnHTML = view($this->folderPath . '.undo_merge')->with([
+            'log' => $record,
+            'blockers' => $restructure->undoMergeBlockers($record),
+            'undoRoute' => route($this->mainRoute . '.merge-undo', $record->id),
+        ])->render();
+
+        return jsonSuccess(['html' => $returnHTML]);
+    }
+
+    public function undoMerge(Request $request, int $log, AccountRestructureService $restructure)
+    {
+        $data = $request->validate(
+            ['reason' => ['required', 'string', 'max:1000']],
+            ['reason.required' => 'سبب التراجع مطلوب.']
+        );
+
+        $result = $restructure->undoMerge($log, $data['reason']);
+        $message = 'تمت إعادة الحساب ' . $result['account']->code . ' - ' . $result['account']->name;
+        if ($result['skipped']) {
+            $message .= '. لم تُرجع صفوف تغيّرت بعد الدمج: '
+                . collect($result['skipped'])->map(fn ($count, $label) => $label . ' ' . $count)->implode('، ');
+        }
+
+        return jsonSuccess($result['restored'], $message . '.', 200);
+    }
+
+    private function restructureAbilities(): array
+    {
+        $admin = auth('admin')->user();
+        $gate = new EnsurePackageRoutePermission();
+
+        return [
+            'delete' => $gate->allows($admin, $this->mainRoute . '.destroy', 'finance'),
+            'move' => $gate->allows($admin, $this->mainRoute . '.move', 'finance'),
+            'merge' => $gate->allows($admin, $this->mainRoute . '.merge', 'finance'),
+        ];
     }
 
     private function exportHeadings(): array

@@ -37,6 +37,7 @@ class HourlyRentalSettingsController extends Controller
 
             'link_maid_profiles' => ['nullable', 'boolean'],
             'link_shelter' => ['nullable', 'boolean'],
+            'show_on_website' => ['nullable', 'boolean'],
             'default_shelter_place_id' => ['nullable', 'integer', 'exists:shelter_places,id'],
             'city_ids' => ['nullable', 'array'],
             'city_ids.*' => ['integer'],
@@ -54,6 +55,9 @@ class HourlyRentalSettingsController extends Controller
             'cancellation_fee_percent' => ['required', 'integer', 'min:0', 'max:100'],
             'renewal_reminder_days' => ['required', 'integer', 'min:0', 'max:60'],
             'renewal_count_free_visits' => ['nullable', 'boolean'],
+            'pickup_grace_minutes' => ['sometimes', 'required', 'integer', 'between:0,240'],
+            'self_arrival_lead_minutes' => ['sometimes', 'required', 'integer', 'between:0,240'],
+            'delay_escalation_minutes' => ['sometimes', 'required', 'integer', 'between:5,1440'],
             'curfew_time' => ['required', 'date_format:H:i'],
             'map_provider' => ['required', 'in:' . implode(',', HourlyRentalSettings::MAP_PROVIDERS)],
             'google_maps_browser_key' => ['nullable', 'string', 'max:200', 'regex:/^[A-Za-z0-9_\-]+$/'],
@@ -66,6 +70,7 @@ class HourlyRentalSettingsController extends Controller
             'route_distance_warning_km' => ['nullable', 'integer', 'min:1', 'max:1000'],
             'staff_app_driver_acceptance' => ['nullable', 'boolean'],
             'staff_app_require_delivery_code' => ['nullable', 'boolean'],
+            'worker_require_delivery_code' => ['nullable', 'boolean'],
             'staff_app_stop_radius_meters' => ['required', 'integer', 'min:0', 'max:5000'],
             'staff_app_otp_minutes' => ['required', 'integer', 'min:1', 'max:60'],
             'staff_app_driver_stop_rate' => ['required', 'numeric', 'min:0', 'max:9999999'],
@@ -92,10 +97,11 @@ class HourlyRentalSettingsController extends Controller
 
         $payload['link_maid_profiles'] = $request->boolean('link_maid_profiles');
         $payload['link_shelter'] = $request->boolean('link_shelter');
+        $payload['show_on_website'] = $request->boolean('show_on_website');
         $payload['ramadan_mode'] = $request->boolean('ramadan_mode');
         $payload['renewal_count_free_visits'] = $request->boolean('renewal_count_free_visits');
         foreach (['route_client_to_client', 'tracking_enabled', 'tracking_background',
-            'staff_app_driver_acceptance', 'staff_app_require_delivery_code'] as $switch) {
+            'staff_app_driver_acceptance', 'staff_app_require_delivery_code', 'worker_require_delivery_code'] as $switch) {
             $payload[$switch] = $request->boolean($switch);
         }
         $payload['city_ids'] = array_map('intval', (array) ($validated['city_ids'] ?? []));

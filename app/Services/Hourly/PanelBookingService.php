@@ -39,7 +39,7 @@ class PanelBookingService
         $quote['tax'] = $quote['total'] - $quote['subtotal'];
         $count = (int) $package->visits_count;
         $quote['visit_prices'] = array_map(fn ($i) => intdiv($quote['total'], $count) + ($i < $quote['total'] % $count ? 1 : 0), range(0,$count-1));
-        $quote['charge_now'] = $quote['price_display'] === 'per_visit' ? $quote['visit_prices'][0] : $quote['total'];
+        $quote['charge_now'] = $package->payment_policy==='prepaid'?$quote['total']:($package->payment_policy==='installments'?min($quote['total'],(int)round(($package->deposit_amount??0)*100)):($package->payment_policy==='per_visit' || $quote['price_display']==='per_visit'?$quote['visit_prices'][0]:$quote['total']));
         $quote['presentation'] = app(HourlyBookingOptions::class)->presentation($package, $quote, 'panel');
         return $quote;
     }
@@ -91,7 +91,7 @@ class PanelBookingService
             if ($data['address_mode'] === 'new') {
                 $addressData = $data['address'];
                 $district = \App\Models\Hourly\ServiceDistrict::where('city_id',$addressData['city_id'])->findOrFail($addressData['hourly_district_id']);
-                $address = UserAddress::create($addressData + ['user_id'=>$user->id, 'district'=>$district->name,
+                $address = UserAddress::createUnique($addressData + ['user_id'=>$user->id, 'district'=>$district->name,
                     'name'=>$addressData['contact_first_name'].' '.$addressData['contact_last_name'],
                     'phone'=>$addressData['contact_phone'],'title'=>$addressData['building']]);
             } else $address = UserAddress::where('user_id',$user->id)->findOrFail($data['address_id']);
@@ -118,12 +118,13 @@ class PanelBookingService
             // مدة الدفع من ملف العميل إن حُددت: «مقدم» يطلب الإجمالي قبل التفعيل، والمؤجلة لا تشترط سدادًا قبل التفعيل.
             // بلا مدة يبقى charge_now كما حسبه quote (منطق الدفع الحالي دون تغيير).
             $term = \App\Models\Hourly\HourlyCustomerProfile::termFor($user->id);
-            if ($term) $snapshot['charge_now'] = $term === 'prepaid' ? $quote['total']/100 : 0;
+            if ($term && empty($snapshot['payment_policy'])) $snapshot['charge_now'] = $term === 'prepaid' ? $quote['total']/100 : 0;
             $order->update(['booking_token'=>$data['booking_token'],'coupon_code'=>$data['coupon_code'] ?? null,
                 'booking_metadata'=>['notify_email'=>(bool)($data['notify_email'] ?? false),'notify_app'=>(bool)($data['notify_app'] ?? false),'all_workers'=>(bool)($data['all_workers'] ?? false)]
                     + ($term ? ['payment_term'=>$term,'payment_due_date'=>\App\Models\Hourly\HourlyCustomerProfile::dueDate($term,min($dates))] : []),
                 'package_snapshot'=>$snapshot,'total_amount'=>$quote['total']/100,'subtotal'=>$quote['subtotal']/100,
                 'tax_amount'=>$quote['tax']/100,'discount_amount'=>$quote['discount']/100]);
+            app(PaymentScheduleService::class)->generateInstallments($order,true);
             foreach ($order->visits()->orderBy('visit_number')->get() as $i=>$visit) {
                 $selection = $data['visits'][$i];
                 $ids = array_values(array_filter($selection['worker_ids'] ?? []));
@@ -131,8 +132,9 @@ class PanelBookingService
                 $available = $candidates->filter(fn ($maid) => app(HourlyWorkerAssignment::class)->available($maid,$visit->scheduled_start_at->toDateTimeString(),$visit->scheduled_end_at->toDateTimeString(),$snapshot));
                 // Unassigned bookings still reserve capacity in their service team and interval.
                 $unassigned = $this->unassignedCapacity($link->team_id, $visit->scheduled_start_at->toDateTimeString(),$visit->scheduled_end_at->toDateTimeString(),$order->id);
-                if ($available->count() - $unassigned < (int)$data['workers_per_visit']) HourlyOrderService::reject('لم يعد العدد المطلوب متاحًا لأحد المواعيد. اختر موعدًا آخر.');
-                foreach ($ids as $id) if (!$available->contains('id',(int)$id)) HourlyOrderService::reject('إحدى العاملات المختارات لم تعد متاحة.');
+                $when = 'الزيارة '.($i + 1).' ('.$visit->scheduled_start_at->format('Y-m-d H:i').')';
+                if ($available->count() - $unassigned < (int)$data['workers_per_visit']) HourlyOrderService::reject('لم يعد العدد المطلوب متاحًا في موعد '.$when.'. ارجع لخطوة المواعيد واختر لها موعدًا آخر.');
+                foreach ($ids as $id) if (!$available->contains('id',(int)$id)) HourlyOrderService::reject('العاملة «'.($candidates->firstWhere('id',(int)$id)?->name ?? \App\Models\ingaz\Maid::find($id)?->name ?? '#'.$id).'» لم تعد متاحة في '.$when.'. اختر عاملة أخرى أو تخطَّ التعيين.');
                 if (app(HourlyBookingRules::class)->settings()->value($package, 'auto_assign', 'panel')) {
                     $ids = array_merge($ids, $available->whereNotIn('id', $ids)
                         ->take((int) $data['workers_per_visit'] - count($ids))->pluck('id')->all());
@@ -158,13 +160,15 @@ class PanelBookingService
                 DB::table('hourly_wallet_transactions')->insert(['user_id'=>$user->id,'hourly_rental_order_id'=>$order->id,'amount'=>-$quote['total']/100,'balance_after'=>($balance-$quote['total'])/100,'admin_id'=>$adminId,'created_at'=>now(),'updated_at'=>now()]);
                 if ($quote['total'] > 0) app(HourlyPaymentService::class)->collect($order,['amount'=>$quote['total']/100],$adminId);
             } elseif (!empty($data['collect_now'])) {
+                $collectNow=app(PaymentScheduleService::class)->policy($order)==='legacy'?$quote['total']:(int)round(app(PaymentScheduleService::class)->forOrder($order->fresh())['due_now']*100);
+                if($quote['total']>0 && $collectNow<=0)HourlyOrderService::reject('لا توجد دفعة مستحقة الآن؛ التحصيل عند موعد الزيارة أو القسط.');
                 if (!in_array($data['payment_method'],['cash','card_on_delivery','cash_and_card'],true)) HourlyOrderService::reject('التحصيل الفوري متاح للنقدي والبطاقة فقط.');
-                if ($data['payment_method']==='cash_and_card' && $quote['total']>0) {
+                if ($data['payment_method']==='cash_and_card' && $collectNow>0) {
                     $cash=(int)round(($data['cash_amount'] ?? 0)*100);
-                    if ($cash<=0 || $cash>=$quote['total']) HourlyOrderService::reject('يجب أن يكون الجزء النقدي أكبر من صفر وأقل من الإجمالي.');
+                    if ($cash<=0 || $cash>=$collectNow) HourlyOrderService::reject('يجب أن يكون الجزء النقدي أكبر من صفر وأقل من الإجمالي.');
                     app(HourlyPaymentService::class)->collect($order,['amount'=>$cash/100,'method'=>'cash'],$adminId);
-                    app(HourlyPaymentService::class)->collect($order,['amount'=>($quote['total']-$cash)/100,'method'=>'card_on_delivery'],$adminId);
-                } elseif ($quote['total'] > 0) app(HourlyPaymentService::class)->collect($order,['amount'=>$quote['total']/100],$adminId);
+                    app(HourlyPaymentService::class)->collect($order,['amount'=>($collectNow-$cash)/100,'method'=>'card_on_delivery'],$adminId);
+                } elseif ($collectNow > 0) app(HourlyPaymentService::class)->collect($order,['amount'=>$collectNow/100],$adminId);
             }
             if (!$quote['total']) {
                 $order->update(['payment_status'=>'paid']);
@@ -185,6 +189,7 @@ class PanelBookingService
         $source = HourlyRentalOrder::whereKey($sourceId)->lockForUpdate()->first();
         if (!$source || (int)$source->user_id !== $userId) HourlyOrderService::reject('طلب التجديد لا يخص العميل المختار.');
         if ($source->status === 'cancelled') HourlyOrderService::reject('لا يمكن تجديد طلب ملغى.');
+        if($reason=app(RenewalEligibility::class)->reason($source))HourlyOrderService::reject($reason);
         $existing = $source->renewedBy()->first();
         if ($existing && !$allowAgain) HourlyOrderService::reject('هذا الطلب جُدِّد سابقًا بالطلب #'.$existing->order_number.'. تجديده مرة أخرى يتطلب صلاحية «تجديد طلب سبق تجديده».');
         return $source;
@@ -207,7 +212,7 @@ class PanelBookingService
     public function unassignedCapacity(?int $teamId, string $start, string $end, ?int $exceptOrder = null): int
     {
         $visits = \App\Models\Hourly\HourlyVisit::where('hourly_team_id',$teamId)
-            ->whereNotIn('status',['cancelled','expired'])->whereHas('order',fn ($q)=>$q->whereNotIn('status',['cancelled','expired']))
+            ->whereNotIn('status',['cancelled','cancelled_by_client','expired'])->whereHas('order',fn ($q)=>$q->whereNotIn('status',['cancelled','expired']))
             ->when($exceptOrder,fn ($q)=>$q->where('hourly_rental_order_id','!=',$exceptOrder))
             ->where('scheduled_start_at','<',$end)->where('scheduled_end_at','>',$start)->withCount('workers as assigned_count')->get();
         return $visits->sum(fn ($v)=>max(0,$v->workers_count-$v->assigned_count-DB::table('hourly_visit_reservations')->where('hourly_visit_id',$v->id)->count()));

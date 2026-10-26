@@ -55,7 +55,10 @@ class HourlyRenewalFlowTest extends TestCase
             'payment_method' => 'cash', 'collect_now' => false, 'all_workers' => false, 'notify_email' => false, 'notify_app' => false,
             'visits' => [['starts_at' => now()->addDays(3)->format('Y-m-d').' 08:00', 'worker_ids' => [1]], ['starts_at' => now()->addDays(4)->format('Y-m-d').' 08:00', 'worker_ids' => [1]]]];
 
-        return [app(PanelBookingService::class)->create($data, 7), $data];
+        $source=app(PanelBookingService::class)->create($data, 7);
+        $source->update(['status'=>'active']);
+        $source->visits()->orderBy('scheduled_start_at')->first()->update(['status'=>'completed']);
+        return [$source, $data];
     }
 
     /** طلب تجديد عبر نقطة الحفظ بنفس بيانات الطلب الأصلي ومواعيده المقترحة. */
@@ -80,8 +83,9 @@ class HourlyRenewalFlowTest extends TestCase
 
         $this->get(route('admin.hourly-orders.create', ['renew' => $source->id]))->assertOk()
             ->assertSee('تجديد للطلب')->assertSee($source->order_number)
+            ->assertSee('التجديد لنفس العميل تلقائيًا.')->assertSee('id="customer-selection"  hidden inert ',false)
             ->assertViewHas('renewal', function ($r) use ($source, $expected) {
-                return $r['item_id'] === $source->hourly_package_id && $r['workers'] === 1 && (float) $r['hours'] === 4.0
+                return (int)$r['customer']['id'] === (int)$source->user_id && $r['item_id'] === $source->hourly_package_id && $r['workers'] === 1 && (float) $r['hours'] === 4.0
                     && $r['payment_method'] === 'cash' && $r['preferred_workers'] === [['id' => 1, 'name' => 'عاملة 1']]
                     && $r['contract_end'] === now()->addDays(4)->toDateString()
                     // أول يوم بنفس النمط بعد انتهاء العقد القديم: نفس اليومين والوقت بعد أسبوع.
@@ -138,6 +142,40 @@ class HourlyRenewalFlowTest extends TestCase
         $this->postJson('/panel/add-order/store', $foreign)->assertStatus(422)->assertJsonFragment(['طلب التجديد لا يخص العميل المختار.']);
     }
 
+    public function test_renewal_requires_a_performed_visit_on_both_open_and_save(): void
+    {
+        [$source,$data]=$this->source();
+        $source->visits()->update(['status'=>'scheduled']);
+        $starts=app(\App\Services\Hourly\RenewalPlanner::class)->for($source)['visits'];
+        foreach(['scheduled','no_show'] as $status) {
+            $source->visits()->update(['status'=>$status]);
+            $this->get(route('admin.hourly-orders.create',['renew'=>$source->id]))
+                ->assertRedirect(route('admin.hourly-orders.show',$source))->assertSessionHasErrors('hourly');
+            $this->postJson('/panel/add-order/store',$this->renewalPayload($data,$source,$starts))
+                ->assertStatus(422)->assertJsonFragment(['لا يمكن التجديد قبل تنفيذ أول زيارة؛ يمكنك تعديل الحجز الحالي أو إلغاؤه.']);
+        }
+        $this->assertSame(1,HourlyRentalOrder::count());
+    }
+
+    public function test_renewal_window_uses_configured_days_and_allows_ended_contracts(): void
+    {
+        [$source,$data]=$this->source();
+        $policy=app(\App\Services\Hourly\RenewalEligibility::class);
+        HourlyRentalSettings::persist(['renewal_reminder_days'=>2]);
+        $this->assertNotNull($policy->reason($source));
+        $this->get(route('admin.hourly-orders.create',['renew'=>$source->id]))
+            ->assertRedirect(route('admin.hourly-orders.show',$source));
+        $starts=app(\App\Services\Hourly\RenewalPlanner::class)->for($source)['visits'];
+        $this->postJson('/panel/add-order/store',$this->renewalPayload($data,$source,$starts))->assertStatus(422);
+        HourlyRentalSettings::persist(['renewal_reminder_days'=>4]);
+        $this->assertNull($policy->reason($source));
+        $source->visits()->update(['scheduled_start_at'=>now()->subDay()]);
+        $this->assertNull($policy->reason($source));
+        $source->update(['status'=>'pending_confirmation']);
+        $this->assertNotNull($policy->reason($source));
+        $source->update(['status'=>'cancelled']);
+        $this->assertNotNull($policy->reason($source));
+    }
     private function setUpAdminWithAllPermissions(): void
     {
         $admin = \Mockery::mock(\App\Models\auth\Admin::class)->makePartial();

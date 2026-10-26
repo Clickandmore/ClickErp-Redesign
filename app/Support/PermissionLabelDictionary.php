@@ -51,6 +51,10 @@ final class PermissionLabelDictionary
 
     /** مسميات كاملة لصلاحيات بعينها، تتجاوز أي تركيب آلي. */
     private const EXACT = [
+        'data_import_upload' => 'رفع وفحص بيانات الاستيراد',
+        'data_import_review' => 'عرض ومراجعة ملفات الاستيراد',
+        'data_import_approve' => 'اعتماد استيراد البيانات',
+        'data_import_generate_bonds' => 'توليد السندات من القيود المستوردة',
         'company_settings_view' => 'عرض إعدادات الشركة',
         'company_settings_update' => 'تعديل بيانات الشركة والحساب والشعار',
         'company_settings_migration_preview' => 'معاينة ترحيل عقود الشركة',
@@ -82,6 +86,8 @@ final class PermissionLabelDictionary
         'post_arrival_refund_post' => 'اعتماد مستند استرداد بعد الوصول',
         'post_arrival_refund_payout' => 'صرف استرداد بعد الوصول',
         'post_arrival_refund_reverse' => 'عكس بند استرداد بعد الوصول',
+        'invoices_edit_line_items' => 'تعديل بنود وقيم الفاتورة',
+        'invoices_edit_musaned_commission' => 'تعديل مبلغ التكاليف البنكية',
     ];
 
     /**

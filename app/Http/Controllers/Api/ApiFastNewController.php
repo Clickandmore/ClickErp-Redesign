@@ -22,6 +22,7 @@ class ApiFastNewController extends Controller
         }
 
         $items = objModel::query()
+            ->where('is_visible', true)
             ->with('translations')
             ->latest()
             ->get()

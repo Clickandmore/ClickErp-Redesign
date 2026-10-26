@@ -61,6 +61,7 @@ class IngazDelegationController extends Controller
         }
 
         $query = $this->filteredDelegationQuery($request, $relations);
+        $query->withCount('blockingInvoices');
 
         if ($request->ajax()) {
             $canViewDelegation = $this->adminCanAny($this->delegationViewPermissions());
@@ -78,10 +79,23 @@ class IngazDelegationController extends Controller
             $canCreateMusanedTransfers = $this->adminCanAny($this->musanedTransferCreatePermissions());
             $canDeleteMusanedTransfers = $this->adminCanAny($this->musanedTransferDeletePermissions());
 
-            $rows = $query->latest('id');
+            $branchesEnabled = \App\Support\SystemModuleManager::isEnabled('branches')
+                && Schema::hasColumn('ingaz_delegations', 'branch_id');
+            $rows = $query->latest('id')->when($branchesEnabled, fn ($q) => $q->with('branch'));
 
             return DataTables::eloquent($rows)
-                ->editColumn('id', fn (IngazDelegation $row) => $row->id)
+                ->editColumn('id', function (IngazDelegation $row) use ($branchesEnabled) {
+                    if (!$branchesEnabled) {
+                        return e((string) $row->id);
+                    }
+
+                    $badge = $row->branch
+                        ? '<span class="branch-badge"><i class="fa fa-code-branch"></i>' . e($row->branch->name) . '</span>'
+                        : '<span class="branch-badge branch-badge--general" title="غير مرتبط بفرع، ويظهر لكل الفروع"><i class="fa fa-globe"></i>عام</span>';
+
+                    return '<div class="delegation-date-stack" style="min-width:0">'
+                        . '<span>' . e((string) $row->id) . '</span>' . $badge . '</div>';
+                })
                 ->editColumn('delegation_date_gregorian', function (IngazDelegation $row) {
                     if (!$row->delegation_date_gregorian) {
                         return '<span class="text-muted">-</span>';
@@ -151,22 +165,26 @@ class IngazDelegationController extends Controller
                     if ($row->invoice) {
                         $actions = [];
 
+                        if ($canCreateInvoices && (int) $row->blocking_invoices_count === 0) {
+                            $actions[] = '<a href="' . route('invoices.create', ['ingaz_delegation_id' => $row->id]) . '" class="dl-chip dl-chip--add"><i class="fa fa-plus"></i>إضافة فاتورة أخرى</a>';
+                        }
+
                         if ($canViewInvoices) {
-                            $actions[] = '<a href="' . route('invoices.show', $row->invoice->id) . '" class="btn btn-sm btn-outline-success">
-                                <i class="fa fa-file-invoice me-1"></i>' . e(__('delegations.invoice')) . '
+                            $actions[] = '<a href="' . route('invoices.show', $row->invoice->id) . '" class="dl-chip dl-chip--success">
+                                <i class="fa fa-file-invoice"></i>' . e(__('delegations.invoice')) . '
                             </a>';
                         }
 
                         if ($canCreateCreditNotes) {
-                            $actions[] = '<a href="' . route('invoices.credit-notes.create', $row->invoice->id) . '" class="btn btn-sm btn-outline-danger">
-                                <i class="fa fa-file-invoice-dollar me-1"></i>' . e(__('delegations.credit_note')) . '
+                            $actions[] = '<a href="' . route('invoices.credit-notes.create', $row->invoice->id) . '" class="dl-chip dl-chip--danger">
+                                <i class="fa fa-file-invoice-dollar"></i>' . e(__('delegations.credit_note')) . '
                             </a>';
                         }
 
                         if ($canViewCreditNotes) {
                             foreach ($row->invoice->recruitmentCreditNotes as $creditNote) {
-                                $actions[] = '<a href="' . route('recruitment-credit-notes.download', ['id' => $creditNote->id, 'autoprint' => 1]) . '" target="_blank" rel="noopener" class="btn btn-sm btn-outline-danger">
-                                    <i class="fa fa-print me-1"></i>' . e(__('delegations.credit_note_number')) . e((string) $creditNote->id) . '
+                                $actions[] = '<a href="' . route('recruitment-credit-notes.download', ['id' => $creditNote->id, 'autoprint' => 1]) . '" target="_blank" rel="noopener" class="dl-chip dl-chip--danger">
+                                    <i class="fa fa-print"></i>' . e(__('delegations.credit_note_number')) . e((string) $creditNote->id) . '
                                 </a>';
                             }
                         }
@@ -174,20 +192,20 @@ class IngazDelegationController extends Controller
                         $transfer = $row->invoice->musanedTransferItem?->transfer;
 
                         if ($transfer && $canViewMusanedTransfers) {
-                            $actions[] = '<a href="' . route('musaned-transfers.show', $transfer->id) . '" class="btn btn-sm btn-outline-info">
-                                <i class="fa fa-arrow-right-arrow-left me-1"></i>' . e(__('delegations.transfer')) . '
+                            $actions[] = '<a href="' . route('musaned-transfers.show', $transfer->id) . '" class="dl-chip dl-chip--info">
+                                <i class="fa fa-arrow-right-arrow-left"></i>' . e(__('delegations.transfer')) . '
                             </a>';
                         }
 
                         if ($transfer && $canDeleteMusanedTransfers) {
-                            $actions[] = '<a href="' . e(route('musaned-transfers.show', $transfer->id) . '#deleteMusanedTransfer') . '" class="btn btn-sm btn-outline-danger">
-                                <i class="fa fa-trash me-1"></i>' . e(__('delegations.delete_transfer')) . '
+                            $actions[] = '<a href="' . e(route('musaned-transfers.show', $transfer->id) . '#deleteMusanedTransfer') . '" class="dl-chip dl-chip--danger">
+                                <i class="fa fa-trash"></i>' . e(__('delegations.delete_transfer')) . '
                             </a>';
                         }
 
                         if (!$transfer && $canCreateMusanedTransfers) {
-                            $actions[] = '<a href="' . route('musaned-transfers.create', ['ingaz_delegation_ids' => [$row->id]]) . '" class="btn btn-sm btn-outline-info">
-                                <i class="fa fa-plus me-1"></i>' . e(__('delegations.add_transfer')) . '
+                            $actions[] = '<a href="' . route('musaned-transfers.create', ['ingaz_delegation_ids' => [$row->id]]) . '" class="dl-chip dl-chip--add">
+                                <i class="fa fa-plus"></i>' . e(__('delegations.add_transfer')) . '
                             </a>';
                         }
 
@@ -200,8 +218,8 @@ class IngazDelegationController extends Controller
                         return '<span class="text-muted">' . e(__('delegations.no_invoice')) . '</span>';
                     }
 
-                    return '<a href="' . route('invoices.create', ['ingaz_delegation_id' => $row->id]) . '" class="btn btn-sm btn-outline-primary">
-                        <i class="fa fa-plus me-1"></i>' . e(__('delegations.add_invoice')) . '
+                    return '<a href="' . route('invoices.create', ['ingaz_delegation_id' => $row->id]) . '" class="dl-chip dl-chip--add">
+                        <i class="fa fa-plus"></i>' . e(__('delegations.add_invoice')) . '
                     </a>';
                 })
                 ->addColumn('status', fn (IngazDelegation $row) => $this->statusBadgeHtml($row))
@@ -230,20 +248,20 @@ class IngazDelegationController extends Controller
                     $actions = [];
 
                     if ($canViewDelegation) {
-                        $actions[] = '<a href="' . $showUrl . '" class="btn btn-sm btn-outline-info" title="' . e(__('delegations.view_details')) . '">
-                            <i class="fa fa-eye me-1"></i>' . e(__('delegations.view')) . '
+                        $actions[] = '<a href="' . $showUrl . '" class="dl-act dl-act--view" title="' . e(__('delegations.view_details')) . '" aria-label="' . e(__('delegations.view_details')) . '">
+                            <i class="fa fa-eye"></i>
                         </a>';
                     }
 
                     if ($canEditDelegation) {
-                        $actions[] = '<a href="' . $editUrl . '" class="btn btn-sm btn-outline-primary" title="' . e(__('delegations.edit_title')) . '">
-                            <i class="fa fa-pen me-1"></i>' . e(__('delegations.edit')) . '
+                        $actions[] = '<a href="' . $editUrl . '" class="dl-act dl-act--edit" title="' . e(__('delegations.edit_title')) . '" aria-label="' . e(__('delegations.edit_title')) . '">
+                            <i class="fa fa-pen"></i>
                         </a>';
                     }
 
                     if ($canPrintDelegation) {
-                        $actions[] = '<a href="' . route('ingaz-delegations.print', $row) . '" target="_blank" class="btn btn-sm btn-outline-dark" title="' . e(__('delegations.print_title')) . '">
-                            <i class="fa fa-print me-1"></i>' . e(__('delegations.print')) . '
+                        $actions[] = '<a href="' . route('ingaz-delegations.print', $row) . '" target="_blank" class="dl-act dl-act--print" title="' . e(__('delegations.print_title')) . '" aria-label="' . e(__('delegations.print_title')) . '">
+                            <i class="fa fa-print"></i>
                         </a>';
                     }
 
@@ -252,8 +270,8 @@ class IngazDelegationController extends Controller
                             <form action="' . $deleteUrl . '" method="POST" onsubmit="return confirm(\'' . e(__('delegations.delete_confirm')) . '\');">
                                 <input type="hidden" name="_token" value="' . $csrf . '">
                                 <input type="hidden" name="_method" value="DELETE">
-                                <button type="submit" class="btn btn-sm btn-outline-danger" title="' . e(__('delegations.delete_title')) . '">
-                                    <i class="fa fa-trash me-1"></i>' . e(__('delegations.delete')) . '
+                                <button type="submit" class="dl-act dl-act--delete" title="' . e(__('delegations.delete_title')) . '" aria-label="' . e(__('delegations.delete_title')) . '">
+                                    <i class="fa fa-trash"></i>
                                 </button>
                             </form>
                         ';
@@ -265,7 +283,7 @@ class IngazDelegationController extends Controller
 
                     return '<div class="delegation-row-actions">' . implode('', $actions) . '</div>';
                 })
-                ->rawColumns(['delegation_date_gregorian', 'created_at', 'client', 'marketer_name', 'msaned_transfer', 'invoice', 'status', 'status_control', 'actions'])
+                ->rawColumns(['id', 'delegation_date_gregorian', 'created_at', 'client', 'marketer_name', 'msaned_transfer', 'invoice', 'status', 'status_control', 'actions'])
                 ->make(true);
         }
 
@@ -667,6 +685,8 @@ class IngazDelegationController extends Controller
     public function show(IngazDelegation $ingazDelegation): View
     {
         $this->assertCanAccessBranchModel($ingazDelegation);
+        $ingazDelegation->loadCount('blockingInvoices');
+        $ingazDelegation->load('invoices.recruitmentCreditNotes');
 
         $ingazDelegation->load([
             'country', 'nationality', 'profession', 'user', 'maid.religion', 'marketer',

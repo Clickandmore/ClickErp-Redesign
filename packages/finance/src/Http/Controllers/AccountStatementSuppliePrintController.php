@@ -11,7 +11,7 @@ use Nami\Finance\Services\YearService;
 class AccountStatementSuppliePrintController extends Controller
 {
     public string $folderPath = "finance::finance.account_statement";
-    public $getData = ["from_date", "to_date", "type", 'account_id', 'other_account'];
+    public $getData = ["from_date", "to_date", "type", 'account_id', 'other_account', 'worker_search'];
     public string $mainRoute = "finance.account-statement-supplier-print";
 
     public function __construct()
@@ -31,6 +31,8 @@ class AccountStatementSuppliePrintController extends Controller
             'type' => 'both',
             'account_id' => '',
             'other_account' => 'no',
+            'supplier_workers' => true,
+            'worker_search' => '',
         ], $request->only($this->getData));
 
         $data = collect();
@@ -41,7 +43,7 @@ class AccountStatementSuppliePrintController extends Controller
         if (!empty($dataSearch['account_id'])) {
             $data = $service->filterAccount($dataSearch);
             $firstBalance = $service->getFirstBalance($dataSearch);
-            $otherAccount = ($dataSearch["other_account"] == "yes") ? $service->filterConstraints($dataSearch) : [];
+            $otherAccount = ($dataSearch["other_account"] == "yes") ? $service->filterConstraints($dataSearch, $data->pluck('constraint_id')->all()) : [];
             $accountName = optional($accountService->find($dataSearch["account_id"]))->name;
         }
 

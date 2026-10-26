@@ -42,7 +42,7 @@
                 </div>
             @endforelse
             </div>
-            <div class="hr-pagination">{{ $maids->links() }}</div>
+            <div class="hr-pagination">{{ $maids->onEachSide(1)->links('web.hourly._pagination') }}</div>
         </div>
     </section>
 </main>

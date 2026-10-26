@@ -11,7 +11,7 @@ class VisitSearch
     public const CANCELLED=['cancelled','cancelled_by_client','expired'];
     public const CLOSED=['completed','cancelled','cancelled_by_client','expired','no_show'];
     public const SORTS=['date'=>'تاريخ الزيارة','customer'=>'اسم العميل','address'=>'العنوان','price'=>'سعر الزيارة','duration'=>'المدة','workers'=>'الموظفون','leader'=>'قائد الفريق','driver'=>'السائق','status'=>'حالة العملية'];
-    public const STATUSES=['pending_confirmation'=>'في انتظار التأكيد','unscheduled'=>'بلا موعد','unassigned'=>'غير مخصص','assigned'=>'تعيين مكتمل','partial'=>'تعيين جزئي','scheduled'=>'مجدولة','en_route'=>'في الطريق','delivered'=>'تم التوصيل','in_progress'=>'بدأ الخدمة','worker_finished'=>'أنهت العاملة','picked_up'=>'تم الاستلام','completed'=>'مكتملة','cancelled'=>'ملغاة','cancelled_by_client'=>'ألغاها العميل','expired'=>'منتهية الصلاحية','no_show'=>'لم يحضر العميل'];
+    public const STATUSES=['pending_confirmation'=>'في انتظار التأكيد','unscheduled'=>'بلا موعد','unassigned'=>'غير مخصص','assigned'=>'تعيين مكتمل','partial'=>'تعيين جزئي','missed'=>'فات موعدها — لم تُنفّذ','scheduled'=>'مجدولة','en_route'=>'في الطريق','delivered'=>'تم التوصيل','in_progress'=>'بدأ الخدمة','worker_finished'=>'أنهت العاملة','picked_up'=>'تم الاستلام','completed'=>'مكتملة','cancelled'=>'ملغاة','cancelled_by_client'=>'ألغاها العميل','expired'=>'منتهية الصلاحية','no_show'=>'لم يحضر العميل'];
 
     public function filters(Request $request,string $mode): array
     {
@@ -28,7 +28,6 @@ class VisitSearch
         $data=$request->validate($rules);
         if(!empty($data['from']) xor !empty($data['to']))throw \Illuminate\Validation\ValidationException::withMessages(['to'=>'حدد بداية ونهاية الفترة، أو اتركهما فارغتين لكل التواريخ.']);
         if(!empty($data['from']) && \Carbon\Carbon::parse($data['from'])->diffInDays($data['to'])>30)throw \Illuminate\Validation\ValidationException::withMessages(['to'=>'الحد الأقصى للفترة المخصصة 31 يومًا شاملًا يوم البداية والنهاية.']);
-        if($mode==='all' && !$request->hasAny(['from','to','search']))$data+=['from'=>today()->toDateString(),'to'=>today()->toDateString()];
         return array_filter($data,fn($v)=>$v!==null && $v!=='' && $v!==[]);
     }
 
@@ -52,6 +51,7 @@ class VisitSearch
                 if($status==='pending_confirmation')$q->whereHas('order',fn($o)=>$o->where('status',$status));
                 elseif($status==='unassigned')$q->whereDoesntHave('workers')->whereNotIn('status',self::CLOSED);
                 elseif(in_array($status,['assigned','partial']))$q->whereNotIn('status',self::CLOSED)->whereRaw('(select count(*) from hourly_visit_workers w where w.hourly_visit_id=hourly_visits.id) '.($status==='assigned'?'>=':'<').' workers_count')->when($status==='partial',fn($q)=>$q->whereHas('workers'));
+                elseif($status==='missed')$q->where('status','scheduled')->where('scheduled_end_at','<=',now());
                 else $q->where('status',$status);
             });});
         }elseif(empty($f['show_cancelled']))$q->whereNotIn('status',self::CANCELLED);
@@ -68,7 +68,7 @@ class VisitSearch
         if(!empty($f['search'])){
             $term='%'.$f['search'].'%';
             $q->where(fn($s)=>$s->where('hourly_visits.id',$f['search'])->orWhere('address_text','like',$term)->orWhere('contact_phone','like',$term)
-                ->orWhereHas('order',fn($o)=>$o->where('order_number','like',$term)->orWhereHas('user',fn($u)=>$u->where('name','like',$term)->orWhere('phone','like',$term))));
+                ->orWhereHas('order',fn($o)=>$o->where('order_number','like',$term)->orWhere('legacy_order_number','like',$term)->orWhereHas('user',fn($u)=>$u->where('name','like',$term)->orWhere('phone','like',$term))));
         }
         return $q;
     }

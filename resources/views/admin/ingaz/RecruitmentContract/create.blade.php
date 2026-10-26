@@ -1259,7 +1259,7 @@
                                 @if (\App\Support\InvoiceAuthorization::canCreate())
                                 <button class="btn btn-success btn-lg px-3" id="save-and-invoice" type="button">
                                     <i class="fa-solid fa-file-invoice-dollar me-2"></i>
-                                    {{ __('ingaz.save_and_issue_an_invoice') }}
+                                    {{ \App\Support\InvoiceAuthorization::canIssueDirectly() ? __('ingaz.save_and_issue_an_invoice') : 'حفظ وإرسال للاعتماد' }}
                                 </button>
                                 @endif
                             </div>
@@ -1398,7 +1398,7 @@
                                 <button class="btn btn-success btn-lg px-5" id="order-save-and-invoice"
                                     type="button">
                                     <i class="fa-solid fa-file-invoice-dollar me-2"></i>
-                                    {{ __('ingaz.save_and_issue_an_invoice') }}
+                                    {{ \App\Support\InvoiceAuthorization::canIssueDirectly() ? __('ingaz.save_and_issue_an_invoice') : 'حفظ وإرسال للاعتماد' }}
                                 </button>
                                 @endif
                             </div>
@@ -2022,7 +2022,7 @@
                         : @json(helperTrans('ingaz.national_num'));
 
                     $('#client_name').val(sanitizeTextValue(selectedOrder.user.name));
-                    $('#client_phone').val(sanitizePhoneValue(selectedOrder.user.phone));
+                    $('#client_phone').val(sanitizePhoneValue(selectedOrder.user.raw_phone ?? selectedOrder.user.phone));
                     $('#client_email').val(sanitizeTextValue(selectedOrder.user.email));
                     $('#client_national_num').val(sanitizeTextValue(selectedClientDocumentNumber(selectedOrder.user)));
                     $('#client_birthdate').val(selectedOrder.user.birthdate || '');

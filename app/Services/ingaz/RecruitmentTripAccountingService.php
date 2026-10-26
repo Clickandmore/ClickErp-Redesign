@@ -8,9 +8,12 @@ use App\Models\ingaz\Invoice;
 use App\Models\office\Office;
 use App\Services\office\OfficeFinanceAccountService;
 use App\Support\AutomaticJournalEntries;
+use App\Support\RecruitmentCostCenters;
 use App\Support\RecruitmentRevenueRecognition;
 use App\Support\RecruitmentSupplierCostRecognition;
+use App\Support\RecruitmentSupplierSettings;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Schema;
@@ -31,8 +34,6 @@ use Nami\Finance\Services\YearService;
 
 class RecruitmentTripAccountingService
 {
-    private const USD_TO_SAR_RATE = 3.75;
-
     public function __construct(
         protected ConstraintService $constraintService,
         protected YearService $yearService,
@@ -66,6 +67,185 @@ class RecruitmentTripAccountingService
             }
             return $this->recordEntries($contract, null, true);
         });
+    }
+
+    /**
+     * قيد تكلفة الوكيل الخارجي عند إنشاء العقد (وضع on_contract).
+     *
+     * لا يرمي استثناءً أبداً. إنشاء العقد عملية تشغيلية لا يجوز أن تتعطل بسبب إعداد
+     * محاسبي أو بيانات ناقصة، فكل حالة عجز تُسجَّل في supplier_cost_skip_reason ويبقى
+     * المسار الحالي (الإرسالية أو الوصول) ينشئ القيد لاحقاً كما كان قبل الإعداد.
+     */
+    public function recordContractCostEntries(Contract $contract): array
+    {
+        $skipped = fn (string $reason): array => [
+            'skipped_reason' => $reason,
+            'external_office_cost_constraint_id' => null,
+            'created_external_office_cost_constraint' => false,
+            'supplier_purchase_id' => null,
+            'created_supplier_purchase' => false,
+        ];
+
+        if (!AutomaticJournalEntries::enabled()) {
+            return $skipped('automatic_entries_disabled');
+        }
+
+        if (!RecruitmentSupplierCostRecognition::isOnContract()) {
+            return $skipped('cost_not_on_contract');
+        }
+
+        if (!RecruitmentSupplierCostRecognition::contractColumnExists()) {
+            return $skipped('contract_columns_missing');
+        }
+
+        try {
+            return DB::transaction(function () use ($contract, $skipped) {
+                /** @var Contract|null $locked */
+                $locked = Contract::query()->whereKey($contract->id)->lockForUpdate()->first();
+                if (!$locked) {
+                    return $skipped('contract_missing');
+                }
+
+                $locked->loadMissing([
+                    'user',
+                    'invoice',
+                    'maid.nationality',
+                    'maid.office',
+                    'maid.recruitmentOffice',
+                    'requiredMaidNationality',
+                    'externalOfficeDispatch',
+                    'info.manualMaidOffice',
+                ]);
+
+                if ($locked->external_office_cost_constraint_id || $locked->invoice?->external_office_cost_constraint_id) {
+                    return $skipped('already_recorded');
+                }
+
+                $nationalityName = $this->resolveNationalityName($locked);
+                if ($nationalityName === '') {
+                    return $this->rememberContractCostSkip($locked, 'missing_nationality', $skipped);
+                }
+
+                if (!$locked->resolveExternalOfficeDispatchOffice()?->id) {
+                    return $this->rememberContractCostSkip($locked, 'missing_external_office', $skipped);
+                }
+
+                $amount = $this->resolveExternalOfficeCostAmount($locked);
+                if ($amount <= 0) {
+                    return $this->rememberContractCostSkip($locked, 'missing_cost_amount', $skipped);
+                }
+
+                $date = ($locked->created_at ?: now())->toDateString();
+                $activeYear = $this->yearService->checkDateRange($date);
+                if (!$activeYear) {
+                    return $this->rememberContractCostSkip($locked, 'missing_fiscal_year', $skipped);
+                }
+
+                $costCenterId = RecruitmentCostCenters::forContract((int) $locked->id, $nationalityName)->id;
+                $statement = $this->buildExternalOfficeCostStatement($locked, null);
+
+                $constraint = $this->findExistingConstraint($statement, $date, $amount);
+                $createdConstraint = false;
+
+                if (!$constraint) {
+                    $constraint = $this->createExternalOfficeCostConstraint(
+                        $locked,
+                        null,
+                        $nationalityName,
+                        $costCenterId,
+                        $date,
+                        $activeYear,
+                        $amount,
+                        $statement
+                    );
+                    $createdConstraint = (bool) $constraint;
+                }
+
+                if (!$constraint) {
+                    return $this->rememberContractCostSkip($locked, 'constraint_not_created', $skipped);
+                }
+
+                $this->syncExternalOfficeCostConstraintCostCenter($constraint->id, $locked, $nationalityName);
+
+                [$purchase, $createdPurchase] = $this->ensureExternalOfficePurchase(
+                    $locked,
+                    null,
+                    $nationalityName,
+                    (int) $constraint->id,
+                    $date
+                );
+
+                $locked->forceFill([
+                    'external_office_cost_constraint_id' => $constraint->id,
+                    'external_office_purchase_id' => $purchase->id,
+                    'supplier_cost_skip_reason' => null,
+                    RecruitmentSupplierCostRecognition::CONTRACT_COLUMN => RecruitmentSupplierCostRecognition::MODE_ON_CONTRACT,
+                ])->save();
+
+                return [
+                    'skipped_reason' => null,
+                    'external_office_cost_constraint_id' => (int) $constraint->id,
+                    'created_external_office_cost_constraint' => $createdConstraint,
+                    'supplier_purchase_id' => (int) $purchase->id,
+                    'created_supplier_purchase' => $createdPurchase,
+                ];
+            });
+        } catch (\Throwable $exception) {
+            Log::warning('recruitment on_contract supplier cost entry skipped', [
+                'contract_id' => $contract->id,
+                'message' => $exception->getMessage(),
+            ]);
+
+            $this->rememberContractCostSkip($contract, 'error', $skipped);
+
+            return $skipped('error');
+        }
+    }
+
+    /**
+     * يسجّل سبب تأجيل القيد على العقد دون أن يفشل، حتى يظهر في الشاشة ولا يُنسى.
+     */
+    private function rememberContractCostSkip(Contract $contract, string $reason, callable $skipped): array
+    {
+        if (RecruitmentSupplierCostRecognition::contractColumnExists()
+            && Schema::hasColumn('contracts', 'supplier_cost_skip_reason')) {
+            Contract::query()->whereKey($contract->id)->update(['supplier_cost_skip_reason' => $reason]);
+        }
+
+        return $skipped($reason);
+    }
+
+    /**
+     * ينسخ روابط قيد تكلفة الوكيل من العقد إلى الفاتورة.
+     *
+     * في وضع on_contract تُحفظ الروابط على العقد قبل وجود فاتورة. كل مستهلكي هذه
+     * الروابط — العكس والاسترداد وإرجاع الضمان واسترداد تكلفة الإيواء — يقرأونها من
+     * الفاتورة، فالنسخ هو ما يُبقيهم يعملون بلا تعديل، ويمنع في الوقت نفسه إنشاء قيد
+     * ثانٍ في مرحلة الإرسالية أو الوصول.
+     */
+    public function mirrorContractSupplierCostLinks(Contract $contract, Invoice $invoice): void
+    {
+        if (!Schema::hasColumn('contracts', 'external_office_cost_constraint_id')) {
+            return;
+        }
+
+        $columns = ['external_office_cost_constraint_id', 'external_office_purchase_id'];
+
+        if (Schema::hasColumn('contracts', 'external_office_cost_reversal_constraint_id')
+            && Schema::hasColumn('invoices', 'external_office_cost_reversal_constraint_id')) {
+            $columns[] = 'external_office_cost_reversal_constraint_id';
+        }
+
+        foreach ($columns as $column) {
+            $value = $contract->getAttribute($column);
+            if ($value && !$invoice->getAttribute($column)) {
+                $invoice->setAttribute($column, $value);
+            }
+        }
+
+        if ($invoice->isDirty($columns)) {
+            $invoice->save();
+        }
     }
 
     private function recordEntries(Contract $contract, ?TravelHistory $travelHistory = null, bool $dispatchOnly = false): array
@@ -112,6 +292,11 @@ class RecruitmentTripAccountingService
                 'warnings' => [],
             ];
         }
+
+        // وضع «عند إنشاء العقد» يحفظ روابط القيد على العقد قبل وجود فاتورة. نسخها إلى
+        // الفاتورة هنا يمنع إنشاء قيد ثانٍ في الإرسالية أو الوصول، ويُبقي كل مستهلكي
+        // الروابط (العكس، الاسترداد، استرداد تكلفة الإيواء) يعملون على الفاتورة كما كانوا.
+        $this->mirrorContractSupplierCostLinks($contract, $invoice);
 
         $date = $dispatchOnly
             ? $contract->externalOfficeDispatch->dispatch_date->toDateString()
@@ -285,7 +470,15 @@ class RecruitmentTripAccountingService
             if ($contract->maid_id) {
                 \App\Models\ingaz\Maid::query()->whereKey($contract->maid_id)->lockForUpdate()->firstOrFail();
             }
-            return $this->reverseExternalOfficeCostEntriesLocked($contract, $invoice->fresh(), $date, $statement);
+
+            $fresh = $invoice->fresh();
+
+            // الاسترداد قد يحدث قبل الوصول، فتكون روابط وضع on_contract على العقد ولم
+            // تُنسخ للفاتورة بعد. بلا هذا النسخ يعود العكس بـ null وتبقى تكلفة الوكيل
+            // مثبتة بلا مقابل.
+            $this->mirrorContractSupplierCostLinks($contract->fresh() ?? $contract, $fresh);
+
+            return $this->reverseExternalOfficeCostEntriesLocked($contract, $fresh->fresh(), $date, $statement);
         });
     }
 
@@ -419,7 +612,7 @@ class RecruitmentTripAccountingService
 
     private function createExternalOfficeCostConstraint(
         Contract $contract,
-        Invoice $invoice,
+        ?Invoice $invoice,
         string $nationalityName,
         int $costCenterId,
         string $date,
@@ -453,7 +646,10 @@ class RecruitmentTripAccountingService
                 'debtor_value' => 0,
                 'creditor_value' => $amount,
                 'statement' => $statement,
-                'cost_center_id' => null,
+                // بلا مركز تكلفة افتراضياً كما كان؛ الإعداد يفصّل كشف الوكيل بالعاملة.
+                'cost_center_id' => RecruitmentSupplierSettings::stampsSupplierLineCostCenter()
+                    ? $costCenterId
+                    : null,
             ],
         ];
 
@@ -462,7 +658,7 @@ class RecruitmentTripAccountingService
 
     private function ensureExternalOfficePurchase(
         Contract $contract,
-        Invoice $invoice,
+        ?Invoice $invoice,
         string $nationalityName,
         int $constraintId,
         string $date
@@ -514,7 +710,7 @@ class RecruitmentTripAccountingService
             ->update(['account_id' => $officeAccount->id]);
 
         $existingPurchase = null;
-        if ($invoice->external_office_purchase_id) {
+        if ($invoice?->external_office_purchase_id) {
             $existingPurchase = Purchase::query()->find($invoice->external_office_purchase_id);
         }
 
@@ -527,7 +723,9 @@ class RecruitmentTripAccountingService
                 'supplier_id' => $supplier->id,
                 'credit_supplier_id' => $officeAccount->id,
             ])->save();
-            $invoice->external_office_purchase_id = $existingPurchase->id;
+            if ($invoice) {
+                $invoice->external_office_purchase_id = $existingPurchase->id;
+            }
 
             return [$existingPurchase, false];
         }
@@ -574,7 +772,9 @@ class RecruitmentTripAccountingService
             'stock_id' => null,
         ]);
 
-        $invoice->external_office_purchase_id = $purchase->id;
+        if ($invoice) {
+            $invoice->external_office_purchase_id = $purchase->id;
+        }
 
         return [$purchase, true];
     }
@@ -649,6 +849,13 @@ class RecruitmentTripAccountingService
             ->where('constraint_id', $constraintId)
             ->where('account_id', $costOfSalesAccountId)
             ->update(['cost_center_id' => $costCenterId]);
+
+        if (RecruitmentSupplierSettings::stampsSupplierLineCostCenter()) {
+            \Nami\Finance\Models\ConstraintDetails::query()
+                ->where('constraint_id', $constraintId)
+                ->where('type', 'creditor')
+                ->update(['cost_center_id' => $costCenterId]);
+        }
     }
 
     private function syncConstraintStatement(int $constraintId, string $statement): void
@@ -772,8 +979,40 @@ class RecruitmentTripAccountingService
     {
         $contract->loadMissing('externalOfficeDispatch');
 
-        $usdAmount = $this->roundMoney((float) ($contract->externalOfficeDispatch?->office_contract_cost_usd ?? 0));
-        return $this->roundMoney($usdAmount * self::USD_TO_SAR_RATE);
+        $usdAmount = $this->resolveExternalOfficeCostUsd($contract);
+
+        return $this->roundMoney($usdAmount * RecruitmentSupplierSettings::usdRate());
+    }
+
+    /**
+     * مبلغ تكلفة الوكيل بالدولار. الإرسالية هي المصدر المعتمد متى حملت مبلغاً، فالسلوك
+     * الحالي لا يتغير أبداً. قائمة أسعار المكاتب تُستخدم فقط لتغطية الفترة قبل الإرسالية،
+     * وبشرط تفعيل الإعداد. وفي «التسلسل الجديد» تسبق تكلفة السيرة سعرَ المكتب، بنفس ترتيب
+     * شاشة الفاتورة، حتى لا يُثبت العقد مبلغاً وتعرض الفاتورة غيره.
+     */
+    private function resolveExternalOfficeCostUsd(Contract $contract): float
+    {
+        $contract->loadMissing('externalOfficeDispatch');
+
+        $dispatchUsd = $this->roundMoney((float) ($contract->externalOfficeDispatch?->office_contract_cost_usd ?? 0));
+        if ($dispatchUsd > 0) {
+            return $dispatchUsd;
+        }
+
+        if (!RecruitmentSupplierSettings::usesOfficePriceList()) {
+            return 0.0;
+        }
+
+        $contract->loadMissing(['maid.office', 'maid.recruitmentOffice', 'info.manualMaidOffice']);
+        $cvUsd = str_replace(',', '', (string) ($contract->maid?->supplier_cost_usd ?? ''));
+        if (\App\Support\InvoiceSupplierWorkflow::enabled() && is_numeric($cvUsd) && (float) $cvUsd > 0) {
+            return $this->roundMoney((float) $cvUsd);
+        }
+
+        $office = $contract->resolveExternalOfficeDispatchOffice();
+        $priceListUsd = str_replace(',', '', (string) ($office?->cost_of_dollar ?? ''));
+
+        return is_numeric($priceListUsd) ? $this->roundMoney((float) $priceListUsd) : 0.0;
     }
 
     private function resolveExternalOfficeAccountId(Contract $contract): int
@@ -926,63 +1165,7 @@ class RecruitmentTripAccountingService
 
     private function ensureRecruitmentContractCostCenter(Contract $contract, string $nationalityName): CostCenter
     {
-        $rootCostCenter = $this->ensureRecruitmentContractsRootCostCenter();
-
-        $costCenter = CostCenter::query()
-            ->lockForUpdate()
-            ->where('parent_id', $rootCostCenter->id)
-            ->where('table_name', CostCenterTypeEnum::General->value)
-            ->where('table_related_id', $contract->id)
-            ->first();
-
-        if ($costCenter) {
-            return $costCenter;
-        }
-
-        $title = 'عقد استقدام #' . $contract->id;
-        if ($nationalityName !== '') {
-            $title .= ' - ' . $nationalityName;
-        }
-
-        return CostCenter::query()->create([
-            'title' => $title,
-            'parent_id' => $rootCostCenter->id,
-            'table_name' => CostCenterTypeEnum::General->value,
-            'table_related_id' => $contract->id,
-            'code' => $this->nextCostCenterCode(),
-            'created_by_id' => Auth::guard('admin')->id() ?: Auth::id() ?: 1,
-        ]);
-    }
-
-    private function ensureRecruitmentContractsRootCostCenter(): CostCenter
-    {
-        $costCenter = CostCenter::query()
-            ->lockForUpdate()
-            ->whereNull('parent_id')
-            ->where('title', 'عقود الاستقدام')
-            ->first();
-
-        if ($costCenter) {
-            return $costCenter;
-        }
-
-        return CostCenter::query()->create([
-            'title' => 'عقود الاستقدام',
-            'parent_id' => null,
-            'table_name' => CostCenterTypeEnum::General->value,
-            'table_related_id' => 0,
-            'code' => $this->nextCostCenterCode(),
-            'created_by_id' => Auth::guard('admin')->id() ?: Auth::id() ?: 1,
-        ]);
-    }
-
-    private function nextCostCenterCode(): string
-    {
-        $lastCode = CostCenter::query()
-            ->lockForUpdate()
-            ->max('code');
-
-        return (string) (((int) $lastCode) + 1);
+        return RecruitmentCostCenters::forContract((int) $contract->id, $nationalityName);
     }
 
     /**
@@ -1038,10 +1221,22 @@ class RecruitmentTripAccountingService
             . ' / ' . $label;
     }
 
-    private function buildExternalOfficeCostStatement(Contract $contract, Invoice $invoice): string
+    /**
+     * بادئات بيان قيد تكلفة المورد عبر الإصدارات، الأحدث أولاً. التسلسل القديم يُبقي صيغة
+     * «الإرسالية» التي كانت قبل «التسلسل الجديد»، والمطابقة تقبلها كلها حتى لا يُنشأ قيد مكرر.
+     */
+    private const SUPPLIER_STATEMENT_PREFIX_UPDATED = 'فاتورة مورد: إثبات تكلفة فاتورة المورد لعقد استقدام: ';
+    private const SUPPLIER_STATEMENT_PREFIX_LEGACY = 'فاتورة مورد: إثبات تكلفة إرسالية المكتب الخارجي لعقد استقدام: ';
+    private const SUPPLIER_STATEMENT_PREFIX_OLDEST = 'فاتورة مورد: إغلاق طلب: ';
+
+    private function buildExternalOfficeCostStatement(Contract $contract, ?Invoice $invoice): string
     {
-        return 'فاتورة مورد: إثبات تكلفة فاتورة المورد لعقد استقدام: ' . $contract->id
-            . ', فاتورة رقم: ' . $invoice->id
+        $prefix = \App\Support\InvoiceSupplierWorkflow::enabled()
+            ? self::SUPPLIER_STATEMENT_PREFIX_UPDATED
+            : self::SUPPLIER_STATEMENT_PREFIX_LEGACY;
+
+        return $prefix . $contract->id
+            . ($invoice ? ', فاتورة رقم: ' . $invoice->id : '')
             . ' العميل: ' . $this->resolveClientReference($contract);
     }
 
@@ -1059,12 +1254,23 @@ class RecruitmentTripAccountingService
             return null;
         }
 
-        // Retain matching for supplier entries created before the description changed.
+        // Retain matching for supplier entries created under any earlier description.
         $statements = [$statement];
-        $supplierPrefix = 'فاتورة مورد: إثبات تكلفة فاتورة المورد لعقد استقدام: ';
-        if (str_starts_with($statement, $supplierPrefix)) {
-            $statements[] = 'فاتورة مورد: إغلاق طلب: ' . substr($statement, strlen($supplierPrefix));
+        $prefixes = [
+            self::SUPPLIER_STATEMENT_PREFIX_UPDATED,
+            self::SUPPLIER_STATEMENT_PREFIX_LEGACY,
+            self::SUPPLIER_STATEMENT_PREFIX_OLDEST,
+        ];
+        foreach ($prefixes as $prefix) {
+            if (str_starts_with($statement, $prefix)) {
+                $suffix = substr($statement, strlen($prefix));
+                foreach ($prefixes as $other) {
+                    $statements[] = $other . $suffix;
+                }
+                break;
+            }
         }
+        $statements = array_values(array_unique($statements));
 
         return Constraint::query()
             ->whereIn('statement', $statements)

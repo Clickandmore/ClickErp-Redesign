@@ -70,6 +70,12 @@ class HourlyRentalSettings
         return self::isEnabled() && (bool) self::all()['link_shelter'];
     }
 
+    /** ظهور نظام الساعات في الموقع الخارجي: يلزمه تفعيل الموديل، ويمكن إخفاؤه عن الموقع وحده دون إيقاف النظام. */
+    public static function websiteEnabled(): bool
+    {
+        return self::isEnabled() && (bool) self::all()['show_on_website'];
+    }
+
     /**
      * أسباب تمنع الإطفاء الآن: زيارات جارية أو سجلات حركة مفتوحة.
      * الجداول تُنشأ في مراحل لاحقة، لذلك يُفحص وجودها أولًا.
@@ -94,6 +100,11 @@ class HourlyRentalSettings
             if ($out > 0) {
                 $blockers[] = "يوجد {$out} عاملة لم تُسجَّل عودتها إلى الإيواء بعد.";
             }
+        }
+
+        if (Schema::hasTable('hourly_cash_collections')) {
+            $cash = \DB::table('hourly_cash_collections')->whereColumn('remitted_amount','<','amount')->count();
+            if ($cash > 0) $blockers[] = "يوجد {$cash} سند تحصيل بعهدة نقدية لم تُورّد بالكامل.";
         }
 
         return $blockers;
@@ -131,6 +142,16 @@ class HourlyRentalSettings
 
         self::flush();
 
+        // المواقع الخارجية تخزّن /client/settings مؤقتًا؛ تغيير ظهور الساعات فيها يُبطل كاشها
+        // فيختفي الرابط أو يظهر خلال دقيقة بدل انتظار انتهاء مدة الكاش.
+        if ((bool) ($current['show_on_website'] ?? true) !== (bool) $settings['show_on_website']) {
+            try {
+                ExternalSiteCacheSettings::flushSites();
+            } catch (\Throwable $e) {
+                report($e);
+            }
+        }
+
         return self::all();
     }
 
@@ -145,6 +166,8 @@ class HourlyRentalSettings
             'is_enabled' => self::isEnabled(),
             'link_maid_profiles' => true,
             'link_shelter' => true,
+            // عرض نظام الساعات في الموقع الخارجي (واجهات client/hourly). التطبيق ولوحة التحكم لا يتأثران به.
+            'show_on_website' => true,
             'default_shelter_place_id' => null,
             'city_ids' => [],
             'max_visits_per_day' => 1,
@@ -167,6 +190,10 @@ class HourlyRentalSettings
             'cancellation_window_hours' => 12,
             'cancellation_fee_percent' => 50,
             // تذكير العميل بتجديد الباقة قبل آخر زيارة بهذا العدد من الأيام (0 = معطّل).
+            'pickup_grace_minutes' => 30,
+            'delay_escalation_minutes' => 60,
+            // العاملة التي تصل بنفسها تسجّل وصولها قبل بداية الزيارة بهذا القدر كحد أقصى؛ الوصول يبدأ عدّاد الخدمة.
+            'self_arrival_lead_minutes' => 30,
             'renewal_reminder_days' => 7,
             // هل تدخل الزيارات المجانية/التعويضية في تاريخ انتهاء العقد؟ الملغاة لا تدخل أبدًا (ContractPeriod).
             'renewal_count_free_visits' => false,
@@ -188,6 +215,8 @@ class HourlyRentalSettings
             // acceptance = هل يُعرض المشوار على السائق ليقبله قبل التنفيذ، أم يُنفَّذ كما أسندته اللوحة مباشرة.
             'staff_app_driver_acceptance' => false,
             'staff_app_require_delivery_code' => true,
+            // العاملة التي تصل بنفسها تُدخل رمز العميل عند «وصلت»، كما يفعل السائق عند التسليم.
+            'worker_require_delivery_code' => true,
             'staff_app_stop_radius_meters' => 0,
             'staff_app_otp_minutes' => 10,
             // مدة بقاء السائق والعاملة مسجّلين حين يطلب التطبيق «تذكّرني» (بالأيام).
@@ -253,6 +282,7 @@ class HourlyRentalSettings
             'is_enabled' => self::isEnabled(),
             'link_maid_profiles' => $bool($settings['link_maid_profiles'] ?? $defaults['link_maid_profiles']),
             'link_shelter' => $bool($settings['link_shelter'] ?? $defaults['link_shelter']),
+            'show_on_website' => $bool($settings['show_on_website'] ?? $defaults['show_on_website']),
             'default_shelter_place_id' => !empty($settings['default_shelter_place_id']) ? (int) $settings['default_shelter_place_id'] : null,
             'city_ids' => $cityIds,
             'max_visits_per_day' => $int($settings['max_visits_per_day'] ?? null, $defaults['max_visits_per_day'], 1, 5),
@@ -269,6 +299,9 @@ class HourlyRentalSettings
             'cancellation_fee_percent' => $int($settings['cancellation_fee_percent'] ?? null, $defaults['cancellation_fee_percent'], 0, 100),
             'renewal_reminder_days' => $int($settings['renewal_reminder_days'] ?? null, $defaults['renewal_reminder_days'], 0, 60),
             'renewal_count_free_visits' => $bool($settings['renewal_count_free_visits'] ?? $defaults['renewal_count_free_visits']),
+            'pickup_grace_minutes' => $int($settings['pickup_grace_minutes'] ?? null, $defaults['pickup_grace_minutes'], 0, 240),
+            'delay_escalation_minutes' => $int($settings['delay_escalation_minutes'] ?? null, $defaults['delay_escalation_minutes'], 5, 1440),
+            'self_arrival_lead_minutes' => $int($settings['self_arrival_lead_minutes'] ?? null, $defaults['self_arrival_lead_minutes'], 0, 240),
             'curfew_time' => $curfew,
             'map_provider' => in_array($settings['map_provider'] ?? null, self::MAP_PROVIDERS, true) ? $settings['map_provider'] : $defaults['map_provider'],
             // المفتاح يُحفظ كما هو بعد التشذيب؛ لا يُمسح عند العودة للمجاني حتى لا يُعاد إدخاله.
@@ -282,6 +315,7 @@ class HourlyRentalSettings
             'tracking_active_minutes' => $int($settings['tracking_active_minutes'] ?? null, $defaults['tracking_active_minutes'], 1, 240),
             'staff_app_driver_acceptance' => $bool($settings['staff_app_driver_acceptance'] ?? $defaults['staff_app_driver_acceptance']),
             'staff_app_require_delivery_code' => $bool($settings['staff_app_require_delivery_code'] ?? $defaults['staff_app_require_delivery_code']),
+            'worker_require_delivery_code' => $bool($settings['worker_require_delivery_code'] ?? $defaults['worker_require_delivery_code']),
             'staff_app_stop_radius_meters' => $int($settings['staff_app_stop_radius_meters'] ?? null, $defaults['staff_app_stop_radius_meters'], 0, 5000),
             'staff_app_otp_minutes' => $int($settings['staff_app_otp_minutes'] ?? null, $defaults['staff_app_otp_minutes'], 1, 60),
             'staff_app_session_days' => $int($settings['staff_app_session_days'] ?? null, $defaults['staff_app_session_days'], 1, 365),

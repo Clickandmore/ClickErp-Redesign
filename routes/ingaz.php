@@ -168,6 +168,8 @@ Route::group(
             Route::resource('cv-convert', CvConvertController::class);
 
             Route::resource('partenrs', ClientController::class);
+            Route::patch('fast-news/{id}/toggle-visibility', [FastNewController::class, 'toggleVisibility'])
+                ->name('fast-news.toggle-visibility');
             Route::resource('fast-news', FastNewController::class);
             Route::resource('features', FeatureController::class);
             Route::resource('what-do', WhatDoController::class);
@@ -322,6 +324,8 @@ Route::group(
             Route::get('reports/import', [DataImportController::class, 'index'])->name('reports.import.index');
             Route::get('reports/import/template/{type}', [DataImportController::class, 'template'])->name('reports.import.template');
             Route::post('reports/import', [DataImportController::class, 'store'])->name('reports.import.store');
+            Route::get('reports/import/reviews/{batch}', [DataImportController::class, 'show'])->name('reports.import.show');
+            Route::post('reports/import/reviews/{batch}/approve', [DataImportController::class, 'approve'])->name('reports.import.approve');
             Route::post('reports/import/generate-bonds', [DataImportController::class, 'generateBonds'])->name('reports.import.generate-bonds');
             Route::get('reports/export/{report}', [ReportController::class, 'export'])->name('reports.export');
             Route::get('show-maid-details/{id}', [\App\Http\Controllers\ingaz\MaidController::class, 'showMaidDetails'])->name('showMaidDetails');
@@ -429,6 +433,8 @@ Route::group(
             Route::post('orders/{orderId}/notes', [OrderController::class, 'storeNote'])
                 ->whereNumber('orderId')
                 ->name('orders.notes.store');
+            Route::get('orders/search-clients', [OrderController::class, 'searchChangeClient'])->name('orders.searchChangeClient');
+            Route::post('orders/{id}/change-client', [OrderController::class, 'changeClient'])->name('orders.changeClient');
             Route::resource('orders', OrderController::class);
             Route::post('orders/{id}/restore', [OrderController::class, 'restore'])->name('orders.restore');
 
@@ -566,10 +572,25 @@ Route::group(
             Route::post('invoices/{id}/credit-notes', [InvoiceController::class, 'storeRecruitmentCreditNote'])->name('invoices.credit-notes.store');
             Route::get('recruitment-credit-notes/{id}/download', [InvoiceController::class, 'downloadRecruitmentCreditNote'])->name('recruitment-credit-notes.download');
             // InvoiceController::destroy is an intentional no-op; invoices are reversed via credit notes, never deleted.
+            Route::get('invoice-drafts', [\App\Http\Controllers\ingaz\InvoiceDraftController::class, 'index'])->name('invoice-drafts.index');
+            Route::post('invoice-drafts/{id}/approve', [\App\Http\Controllers\ingaz\InvoiceDraftController::class, 'approve'])->name('invoice-drafts.approve');
+            Route::post('invoice-drafts/{id}/return', [\App\Http\Controllers\ingaz\InvoiceDraftController::class, 'returnForCorrection'])->name('invoice-drafts.return');
             Route::resource('invoices', InvoiceController::class)->except(['destroy']);
             Route::get('invoices/download/{id}', [InvoiceController::class, 'downloadInvoice'])->name('invoice.download');
+            Route::get('musaned-transfers/invoices-report', [\App\Http\Controllers\ingaz\MusanedInvoiceReportController::class, 'index'])->name('musaned-transfers.invoices-report');
             Route::get('musaned-transfers/search', [MusanedTransferController::class, 'search'])->name('musaned-transfers.search');
             Route::resource('musaned-transfers', MusanedTransferController::class)->only(['index', 'create', 'store', 'show', 'destroy']);
+
+            // الملف المالي للعقد: لوحة حالة ومُطلِق إجراءات فوق المستندات القائمة،
+            // مرهونة بإعداد RecruitmentSupplierSettings::CONTRACT_FINANCE_SCREEN.
+            Route::get('recruitment-contract-finance', [\App\Http\Controllers\ingaz\RecruitmentContractFinanceController::class, 'index'])->name('recruitment-contract-finance.index');
+            Route::get('recruitment-contract-finance/{contract}', [\App\Http\Controllers\ingaz\RecruitmentContractFinanceController::class, 'overview'])->name('recruitment-contract-finance.show');
+
+            // دفعات الوكلاء الخارجيين: العرض كشف أرصدة، والتسجيل مرهون بإعداد
+            // RecruitmentSupplierSettings::PAYMENT_MODE داخل المتحكم نفسه.
+            Route::get('recruitment-supplier-payments', [\App\Http\Controllers\ingaz\RecruitmentSupplierPaymentController::class, 'index'])->name('recruitment-supplier-payments.index');
+            Route::get('recruitment-supplier-payments/{contract}/create', [\App\Http\Controllers\ingaz\RecruitmentSupplierPaymentController::class, 'create'])->name('recruitment-supplier-payments.create');
+            Route::post('recruitment-supplier-payments/{contract}', [\App\Http\Controllers\ingaz\RecruitmentSupplierPaymentController::class, 'store'])->name('recruitment-supplier-payments.store');
 
             // Ø¥ØºÙ„Ø§Ù‚ Ø¹Ù‚ÙˆØ¯ Ø§Ù„Ø¥ÙŠØ¬Ø§Ø±
             Route::get('RentContract/{id}/details', [RentContractController::class, 'getContractDetails'])->name('RentContract.details');
@@ -579,6 +600,10 @@ Route::group(
             Route::delete('RentContract/{id}/payment-receipts/{receipt}', [RentContractController::class, 'deletePaymentReceipt'])->name('RentContract.paymentReceipts.delete');
             Route::post('RentContract/{id}/payment', [RentContractController::class, 'updatePayment'])->name('RentContract.payment.update');
             Route::post('RentContract/{id}/close-and-make-available', [RentContractController::class, 'closeAndMakeAvailable'])->name('RentContract.closeAndMakeAvailable');
+            Route::post('RentContract/{id}/escape-return', [RentContractController::class, 'registerEscapeReturn'])->name('RentContract.escapeReturn');
+            Route::post('RentContract/{id}/escape-ready', [RentContractController::class, 'approveEscapeReadiness'])->name('RentContract.escapeReady');
+            Route::post('RentContract/{id}/escape-close-without-return', [RentContractController::class, 'closeEscapeWithoutReturn'])->name('RentContract.escapeCloseWithoutReturn');
+            Route::get('RentContract/{id}/escape-attachment', [RentContractController::class, 'escapeAttachment'])->name('RentContract.escapeAttachment');
             Route::post('RentContract/{id}/transfer-sponsorship', [RentContractController::class, 'transferSponsorship'])->name('RentContract.transferSponsorship');
 
             // Routes Ø¬Ø¯ÙŠØ¯Ø© Ù„Ù€ workflow Ø¹Ù‚ÙˆØ¯ Ø§Ù„Ø¥ÙŠØ¬Ø§Ø±
@@ -592,6 +617,7 @@ Route::group(
             Route::post('RentContract/{id}/freeze', [RentContractController::class, 'freeze'])->name('RentContract.freeze');
             Route::post('RentContract/{id}/update-freeze-date', [RentContractController::class, 'updateFreezeDate'])->name('RentContract.updateFreezeDate');
             Route::post('RentContract/{id}/resume', [RentContractController::class, 'resume'])->name('RentContract.resume');
+            Route::get('RentContract/{id}/resume-options', [RentContractController::class, 'resumeOptions'])->name('RentContract.resumeOptions');
             Route::post('RentContract/{id}/change-maid', [RentContractController::class, 'changeMaid'])->name('RentContract.changeMaid');
 
             // Ø¥Ø¯Ø§Ø±Ø© Ø¨Ù†ÙˆØ¯ Ø¹Ù‚Ø¯ Ø§Ù„ØªØ£Ø¬ÙŠØ±
@@ -830,6 +856,8 @@ Route::group(
 
             //** ACTIVITY LOG **//
             Route::get('/activity-log', [ActivityLogController::class, 'index'])->name('activity.log');
+            Route::get('/activity-log/export', [ActivityLogController::class, 'export'])->name('activity.log.export');
+            Route::get('/activity-log/export-pdf', [ActivityLogController::class, 'exportPdf'])->name('activity.log.export-pdf');
         });
     }
 );
@@ -860,7 +888,22 @@ Route::group(
                     ->name('recovery.migrate');
                 Route::get('modules', [DevSuperAdminController::class, 'modules'])->name('modules');
                 Route::get('subscription', [DevSuperAdminController::class, 'modules'])->name('subscription');
-                Route::get('product-updates', [DevSuperAdminController::class, 'modules'])->name('product-updates');
+                Route::get('product-updates', [\App\Http\Controllers\admin\DevSystemUpdatesController::class, 'index'])->name('product-updates');
+                Route::prefix('system-updates')->name('system-updates.')->group(function () {
+                    Route::get('create', [\App\Http\Controllers\admin\DevSystemUpdatesController::class, 'create'])->name('create');
+                    Route::post('/', [\App\Http\Controllers\admin\DevSystemUpdatesController::class, 'store'])->name('store');
+                    Route::put('settings', [\App\Http\Controllers\admin\DevSystemUpdatesController::class, 'updateSettings'])->name('settings');
+                    Route::post('sync', [\App\Http\Controllers\admin\DevSystemUpdatesController::class, 'sync'])->middleware('throttle:6,1')->name('sync');
+                    // الزر داخل نموذج الإعدادات الذي يرسل _method=PUT
+                    Route::match(['post', 'put'], 'test-connection', [\App\Http\Controllers\admin\DevSystemUpdatesController::class, 'testConnection'])->middleware('throttle:10,1')->name('test-connection');
+                    Route::post('clients', [\App\Http\Controllers\admin\DevSystemUpdatesController::class, 'storeClient'])->name('clients.store');
+                    Route::put('clients/{client}/toggle', [\App\Http\Controllers\admin\DevSystemUpdatesController::class, 'toggleClient'])->whereNumber('client')->name('clients.toggle');
+                    Route::delete('clients/{client}', [\App\Http\Controllers\admin\DevSystemUpdatesController::class, 'destroyClient'])->whereNumber('client')->name('clients.destroy');
+                    Route::get('{systemUpdate}/edit', [\App\Http\Controllers\admin\DevSystemUpdatesController::class, 'edit'])->whereNumber('systemUpdate')->name('edit');
+                    Route::get('{systemUpdate}/report', [\App\Http\Controllers\admin\DevSystemUpdatesController::class, 'report'])->whereNumber('systemUpdate')->name('report');
+                    Route::put('{systemUpdate}', [\App\Http\Controllers\admin\DevSystemUpdatesController::class, 'update'])->whereNumber('systemUpdate')->name('update');
+                    Route::delete('{systemUpdate}', [\App\Http\Controllers\admin\DevSystemUpdatesController::class, 'destroy'])->whereNumber('systemUpdate')->name('destroy');
+                });
                 Route::get('employees', [DevSuperAdminController::class, 'modules'])->name('employees');
                 Route::get('database-backups', [DevSuperAdminController::class, 'modules'])->name('database-backups');
                 Route::get('scheduler', [DevSuperAdminController::class, 'modules'])->name('scheduler');
@@ -868,7 +911,6 @@ Route::group(
                 Route::put('maintenance-mode', [DevSuperAdminController::class, 'updateMaintenanceMode'])->name('maintenance-mode.update');
                 Route::put('home-sections/available', [\App\Http\Controllers\ingaz\HomeSectionSettingsController::class, 'updateAvailable'])->name('home-sections.available');
                 Route::put('subscription', [DevSuperAdminController::class, 'updateSubscription'])->name('subscription.update');
-                Route::put('product-updates', [DevSuperAdminController::class, 'updateProductUpdates'])->name('product-updates.update');
                 Route::post('scheduler/enable', [DevSuperAdminController::class, 'enableScheduler'])->name('scheduler.enable');
                 Route::put('database-backups/settings', [DevDatabaseBackupController::class, 'updateSettings'])->name('database-backups.settings');
                 Route::put('database-backups/security', [DevSuperAdminController::class, 'updateSecurity'])->name('database-backups.security');

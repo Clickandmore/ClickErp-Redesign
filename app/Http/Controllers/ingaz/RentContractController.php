@@ -64,7 +64,7 @@ class RentContractController extends Controller
             'only' => ['changeMarketer'],
         ]);
         $this->middleware('permission:' . \App\PermKeys::RENT_CONTRACT_VIEW . ',admin', [
-            'only' => ['index', 'show', 'statistics', 'exportExcel', 'getContractDetails', 'downloadAttachments', 'downloadAttachment', 'viewAttachment'],
+            'only' => ['index', 'show', 'statistics', 'exportExcel', 'getContractDetails', 'downloadAttachments', 'downloadAttachment', 'viewAttachment', 'escapeAttachment'],
         ]);
         $this->middleware('permission:' . \App\PermKeys::RENT_CONTRACT_CREATE . ',admin', [
             'only' => ['create', 'store', 'getExistingClients'],
@@ -79,6 +79,9 @@ class RentContractController extends Controller
             'only' => [
                 'completeContract',
                 'closeAndMakeAvailable',
+                'registerEscapeReturn',
+                'approveEscapeReadiness',
+                'closeEscapeWithoutReturn',
                 'transferSponsorship',
                 'sendContract',
                 'sendPaymentLink',
@@ -90,6 +93,7 @@ class RentContractController extends Controller
                 'freeze',
                 'updateFreezeDate',
                 'resume',
+                'resumeOptions',
                 'saveSignature',
             ],
         ]);
@@ -457,6 +461,8 @@ class RentContractController extends Controller
                         if ($durationDays <= 0 && $durationMonths > 0) {
                             $durationDays = $durationMonths * 30;
                         }
+                        // التمديد الجديد يبدأ من آخر قيمة للعقد (آخر تمديد) وليس من القيمة الأصلية
+                        $pricingBasis = app(RentalContractFinanceService::class)->currentPricingBasis($row);
                         $days = $row->calculateDayUsage();
                         $remainingDays = $row->calculateRemainingDays() ?? '';
                         $usedDays = $row->info?->ingaz_from ? $days['used_days'] : '';
@@ -471,6 +477,9 @@ class RentContractController extends Controller
                                         data-ingaz-to="' . e($currentEndDate) . '"
                                         data-monthly-cost="' . $monthlyCost . '"
                                         data-contract-value="' . $contractValue . '"
+                                        data-latest-value="' . (float) $pricingBasis['gross_total'] . '"
+                                        data-latest-days="' . (int) $pricingBasis['days'] . '"
+                                        data-latest-source="' . e($pricingBasis['source']) . '"
                                         data-duration-months="' . $durationMonths . '"
                                         data-duration-days="' . $durationDays . '"
                                         data-remaining-days="' . e((string) $remainingDays) . '"
@@ -635,6 +644,10 @@ class RentContractController extends Controller
             $selectedMaid = Maid::whereKey($request->maid_id)->lockForUpdate()->firstOrFail();
             $this->assertCanAccessBranchModel($selectedMaid, 'maids');
             app(\App\Services\Rental\RentalModeGuard::class)->assertMonthly($selectedMaid);
+            if (RentalContract::withoutBranchScope()->where('maid_id', $selectedMaid->id)
+                ->whereIn('status', $this->rentalActiveContractStatuses())->holdingMaid()->exists()) {
+                throw new \RuntimeException('العاملة المختارة مرتبطة بعقد إيجار آخر حالياً.');
+            }
 
             $profession = $request->filled('profession')
                 ? $request->profession
@@ -936,6 +949,7 @@ class RentContractController extends Controller
                 'warranty_start_date' => 'بداية الضمان',
                 'warranty_end_date' => 'نهاية الضمان',
                 'freeze_reason' => 'سبب التجميد',
+                'freeze_releases_maid' => 'إتاحة العاملة عند التجميد',
                 'frozen_at' => 'تاريخ التجميد',
                 'resumed_at' => 'تاريخ الاستئناف',
             ],
@@ -1099,6 +1113,10 @@ class RentContractController extends Controller
             $result = DB::transaction(function () use ($id, $validated) {
                 $contract = RentalContract::with(['maid', 'order'])->lockForUpdate()->findOrFail($id);
 
+                if ($contract->requiresMaidOnResume()) {
+                    throw new \RuntimeException('تم تحرير العاملة عند التجميد؛ اختر عاملة متاحة من شاشة استئناف العقد.');
+                }
+
                 if (in_array($contract->status, ['completed', 'cancelled'], true)) {
                     throw new \RuntimeException('لا يمكن تغيير العاملة في عقد مكتمل أو ملغي');
                 }
@@ -1248,6 +1266,9 @@ class RentContractController extends Controller
 
             $contract = RentalContract::with(['user', 'info'])->lockForUpdate()->findOrFail($id);
             $this->assertCanAccessBranchModel($contract, 'rental_contracts');
+            if ($contract->requiresMaidOnResume() && (int) $contract->maid_id !== (int) $request->maid_id) {
+                throw new \RuntimeException('يجب اختيار العاملة المتاحة من شاشة استئناف العقد بعد تحرير العاملة عند التجميد.');
+            }
             $this->assertCanChangeMarketer($contract, (int) $request->marketer_id);
             if ((int) $contract->maid_id !== (int) $request->maid_id) {
                 $selectedMaid = Maid::whereKey($request->maid_id)->lockForUpdate()->firstOrFail();
@@ -1698,11 +1719,21 @@ class RentContractController extends Controller
         $contractNumber = $contract->contract_number ?: $contract->id;
         $clientName = $contract->user?->name ?: 'عميلنا العزيز';
         $newEndDate = optional($contract->info?->ingaz_to)->format('Y-m-d');
-        $message = implode("\n", [
-            "عميلنا {$clientName}،",
-            "تم تمديد عقد الإيجار رقم {$contractNumber} حتى تاريخ {$newEndDate}.",
-            'شكراً لتعاملكم معنا.',
+        $template = \App\Models\SmsTemplate::where('name', \App\Support\RentalExtensionMessage::TEMPLATE_NAME)->first();
+        if ($template && !$template->is_active) {
+            return ['success' => false, 'status' => 'skipped', 'error' => 'template_inactive'];
+        }
+        $template ??= new \App\Models\SmsTemplate(['message' => \App\Support\RentalExtensionMessage::defaultMessage()]);
+        $message = $template->processMessage([
+            'client_name' => $clientName,
+            'contract_number' => $contractNumber,
+            'new_end_date' => $newEndDate,
+            'client_phone' => $phone,
+            'client_email' => $contract->user?->email ?? '',
         ]);
+        if (trim($message) === '') {
+            return ['success' => false, 'error' => 'empty_template'];
+        }
 
         try {
             $response = $this->sendSMS(formatSaudiPhone($phone), $message);
@@ -1729,6 +1760,9 @@ class RentContractController extends Controller
 
     private function getStatusBadge($status, $closureType = null, ?RentalContract $contract = null)
     {
+        if ($closureType === 'escape') {
+            return '<span class="badge bg-danger">منتهي — بلاغ هروب</span>';
+        }
         if ($status === 'completed') {
             if ($closureType === 'transferred') {
                 return '<span class="badge bg-warning">تم النقل</span>';
@@ -1775,6 +1809,10 @@ class RentContractController extends Controller
                 . '<i class="fas fa-calendar-alt"></i>'
                 . '</button>'
                 . '</span>';
+        }
+
+        if ($contract?->requiresMaidOnResume()) {
+            $frozenBadge .= '<span class="d-block small text-info mt-1">تمت إتاحة العاملة — الاستئناف يتطلب اختيار عاملة مطابقة للباقة</span>';
         }
 
         $badges = [
@@ -2156,7 +2194,7 @@ class RentContractController extends Controller
             ->whereHas('jobTypes', function ($query) use ($rentalJobTypeId) {
                 $query->where('job_type_id', $rentalJobTypeId);
             })
-            ->whereNotIn('status', ['backout', 'deported'])
+            ->whereNotIn('status', ['backout', 'deported', 'escaped', 'Escaped', 'returned_pending_review'])
             ->where(function ($query) use ($currentMaidId, $includeCurrentMaid) {
                 $query->willingToWorkInsideShelter();
 
@@ -2166,7 +2204,7 @@ class RentContractController extends Controller
             })
             ->where(function ($query) use ($currentMaidId) {
                 $query->whereDoesntHave('rentalContracts', function ($contractQuery) use ($currentMaidId) {
-                    $contractQuery->whereIn('status', $this->rentalActiveContractStatuses());
+                    $contractQuery->whereIn('status', $this->rentalActiveContractStatuses())->holdingMaid();
 
                     if ($currentMaidId) {
                         $contractQuery->where('maid_id', '!=', $currentMaidId);
@@ -2286,7 +2324,7 @@ class RentContractController extends Controller
 
         $hasActiveRentalContracts = RentalContract::query()
             ->where('maid_id', $maid->id)
-            ->whereIn('status', $this->rentalActiveContractStatuses())
+            ->whereIn('status', $this->rentalActiveContractStatuses())->holdingMaid()
             ->exists();
 
         if ($hasActiveRentalContracts) {
@@ -2875,7 +2913,9 @@ class RentContractController extends Controller
             ]);
 
             $contract = RentalContract::with(['user', 'maid', 'info', 'financialAdjustments', 'financeInvoice'])->findOrFail($id);
-            $closureDate = $this->closureDateFromRequest($request);
+            $closureDate = !$request->filled('closure_date') && $contract->closed_at
+                ? Carbon::parse($contract->closed_at)->startOfDay()
+                : $this->closureDateFromRequest($request);
             $this->assertClosureDateIsValidForContract($contract, $closureDate);
             if ($customRatesRequested) {
                 $this->assertCustomClosureRatesAreValid($request, $this->buildRentalClosureSummary($contract, $closureDate));
@@ -2899,6 +2939,7 @@ class RentContractController extends Controller
 
             $contractData = [
                 'id' => $contract->id,
+                'contract_number' => $contract->contract_number,
                 'client_name' => $contract->user->name ?? 'غير محدد',
                 'maid_name' => $contract->maid->name ?? 'غير محدد',
                 'status_text' => $this->getStatusText($contract->status),
@@ -3009,6 +3050,11 @@ class RentContractController extends Controller
     )
     {
         $validated = $request->validate([
+            'closure_reason' => 'nullable|in:normal,escape',
+            'escape_date' => 'nullable|required_if:closure_reason,escape|date_format:Y-m-d|before_or_equal:today',
+            'escape_notes' => 'nullable|required_if:closure_reason,escape|string|max:3000|regex:/\S/u',
+            'escape_reference' => 'nullable|string|max:255',
+            'escape_attachment' => 'nullable|file|mimes:jpg,jpeg,png,pdf|max:10240',
             'closure_date' => 'nullable|date',
             'adjustment_type' => 'nullable|in:refund,company_due,none',
             'adjustment_amount' => 'required|numeric|min:0',
@@ -3032,6 +3078,11 @@ class RentContractController extends Controller
             'send_closure_message' => 'nullable|boolean',
         ]);
         $manualOverrideRequested = $request->boolean('use_manual_adjustment');
+        $isEscape = ($validated['closure_reason'] ?? 'normal') === 'escape';
+        $escapeAttachment = null;
+        if ($isEscape && !Schema::hasTable('rental_escape_reports')) {
+            throw \Illuminate\Validation\ValidationException::withMessages(['closure_reason' => 'يلزم تحديث قاعدة البيانات لتفعيل بلاغات هروب التأجير.']);
+        }
         $dailyDiscountRequested = $request->boolean('use_daily_discount');
         $customRatesRequested = $request->boolean('use_custom_daily_rates');
         $currentAdmin = auth('admin')->user();
@@ -3065,6 +3116,13 @@ class RentContractController extends Controller
             DB::beginTransaction();
 
             $contract = RentalContract::with(['maid', 'info', 'financialAdjustments', 'financeInvoice'])->lockForUpdate()->findOrFail($id);
+            $this->assertCanAccessBranchModel($contract, 'rental_contracts');
+            if ($contract->closed_at) {
+                throw \Illuminate\Validation\ValidationException::withMessages(['closure_reason' => 'تم إنهاء هذا العقد مسبقًا.']);
+            }
+            if ($isEscape && (!$contract->maid_id || !$contract->maid || $contract->requiresMaidOnResume())) {
+                throw \Illuminate\Validation\ValidationException::withMessages(['closure_reason' => 'لا توجد عاملة مرتبطة فعليًا بهذا العقد لتسجيل هروبها.']);
+            }
 
             if (!$contract->info) {
                 throw new \RuntimeException('بيانات عقد الإيجار غير مكتملة');
@@ -3076,6 +3134,14 @@ class RentContractController extends Controller
 
             $closureDate = $this->closureDateFromRequest($request);
             $this->assertClosureDateIsValidForContract($contract, $closureDate);
+
+            if ($isEscape) {
+                $escapeDate = Carbon::parse($validated['escape_date']);
+                $this->assertClosureDateIsValidForContract($contract, $escapeDate);
+                if ($closureDate->lt($escapeDate)) {
+                    throw \Illuminate\Validation\ValidationException::withMessages(['closure_date' => 'تاريخ التسوية لا يمكن أن يسبق تاريخ الهروب.']);
+                }
+            }
 
             $baseSummary = $this->buildRentalClosureSummary($contract, $closureDate);
             if ($customRatesRequested) {
@@ -3231,11 +3297,11 @@ class RentContractController extends Controller
             $isEarlyClosure = $this->isRentalContractEarlyClosure($contract, $closureDate);
 
             $contract->status = $isEarlyClosure ? 'cancelled' : 'completed';
-            $contract->closure_type = 'available';
+            $contract->closure_type = $isEscape ? 'escape' : 'available';
             $contract->closed_at = $closureDate;
-            $contract->warranty_status = $isEarlyClosure ? 'not_applicable' : 'active';
-            $contract->warranty_start_date = $isEarlyClosure ? null : $closureDate;
-            $contract->warranty_end_date = $isEarlyClosure ? null : $closureDate->copy()->addMonths(3);
+            $contract->warranty_status = ($isEarlyClosure || $isEscape) ? 'not_applicable' : 'active';
+            $contract->warranty_start_date = ($isEarlyClosure || $isEscape) ? null : $closureDate;
+            $contract->warranty_end_date = ($isEarlyClosure || $isEscape) ? null : $closureDate->copy()->addMonths(3);
             $contract->save();
 
             $this->completeLinkedRentalOrder($contract);
@@ -3322,7 +3388,14 @@ class RentContractController extends Controller
                 }
             }
 
-            if ($contract->maid) {
+            if ($isEscape) {
+                if ($request->hasFile('escape_attachment')) {
+                    $file = $request->file('escape_attachment');
+                    $escapeAttachment = ['path' => app(ManagedFileStorage::class)->uploadFile($file, 'rental-contracts/escape-reports'),
+                        'name' => $file->getClientOriginalName(), 'mime_type' => $file->getMimeType(), 'size' => $file->getSize()];
+                }
+                app(\App\Services\Rental\RentalEscapeService::class)->record($contract, $validated, $escapeAttachment);
+            } elseif ($contract->maid) {
                 $maid = Maid::query()->lockForUpdate()->find($contract->maid_id);
 
                 if ($maid) {
@@ -3331,10 +3404,13 @@ class RentContractController extends Controller
                 }
             }
 
-            $this->returnShelterContractInsideForRental($contract);
+            if (!$isEscape) {
+                $this->returnShelterContractInsideForRental($contract);
+            }
 
             // Log the action
-            \Log::info('Rent contract closed and maid made available', [
+            \Log::info('Rent contract closed', [
+                'closure_reason' => $isEscape ? 'escape' : 'normal',
                 'contract_id' => $contract->id,
                 'maid_id' => $contract->maid_id,
                 'closed_by' => auth()->id(),
@@ -3361,18 +3437,25 @@ class RentContractController extends Controller
 
             return response()->json([
                 'success' => true,
-                'message' => ($isEarlyClosure
+                'message' => ($isEscape ? 'تم إنهاء العقد وتسجيل بلاغ الهروب. العاملة غير متاحة للتأجير.' : ($isEarlyClosure
                     ? 'تم إلغاء العقد لأنه أُنهي قبل اكتمال مدة العقد، وتم إرجاع العاملة متاحة'
-                    : 'تم إغلاق العقد وإرجاع العاملة متاحة بنجاح')
+                    : 'تم إغلاق العقد وإرجاع العاملة متاحة بنجاح'))
                     . $this->formatClosureMessageResultText($messageResult)
             ]);
 
         } catch (\Illuminate\Validation\ValidationException $e) {
             DB::rollback();
 
-            throw $e;
+            if ($escapeAttachment) app(ManagedFileStorage::class)->delete($escapeAttachment['path']);
+
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage(),
+                'errors' => $e->errors(),
+            ], 422);
         } catch (\Exception $e) {
             DB::rollback();
+            if ($escapeAttachment) app(ManagedFileStorage::class)->delete($escapeAttachment['path']);
             \Log::error('Error closing rent contract', [
                 'contract_id' => $id,
                 'error' => $e->getMessage()
@@ -3383,6 +3466,57 @@ class RentContractController extends Controller
                 'message' => 'حدث خطأ أثناء إغلاق العقد: ' . $e->getMessage()
             ], 500);
         }
+    }
+
+    public function registerEscapeReturn(Request $request, $id)
+    {
+        $contract = RentalContract::findOrFail($id);
+        $this->assertCanAccessBranchModel($contract, 'rental_contracts');
+        $data = $request->validate(['return_date' => 'required|date_format:Y-m-d|before_or_equal:today',
+            'return_notes' => 'required|string|max:3000|regex:/\S/u']);
+        app(\App\Services\Rental\RentalEscapeService::class)->registerReturn($contract, $data);
+        return back()->with('success', 'تم تسجيل عودة العاملة. تبقى غير متاحة حتى اعتماد جاهزيتها.');
+    }
+
+    public function approveEscapeReadiness(Request $request, $id)
+    {
+        $contract = RentalContract::findOrFail($id);
+        $this->assertCanAccessBranchModel($contract, 'rental_contracts');
+        $data = $request->validate(['review_notes' => 'required|string|max:3000|regex:/\S/u']);
+        app(\App\Services\Rental\RentalEscapeService::class)->approveReadiness($contract, $data['review_notes']);
+        return back()->with('success', 'تم اعتماد جاهزية العاملة بعد مراجعة عودتها. بقي عقد التأجير السابق مغلقًا.');
+    }
+
+    public function closeEscapeWithoutReturn(Request $request, $id)
+    {
+        $contract = RentalContract::findOrFail($id);
+        $this->assertCanAccessBranchModel($contract, 'rental_contracts');
+        $data = $request->validate([
+            'no_return_date' => 'required|date_format:Y-m-d|before_or_equal:today',
+            'no_return_reason' => 'required|string|max:3000|regex:/\S/u',
+            'no_return_attachment' => 'required|file|mimes:pdf,jpg,jpeg,png|max:10240',
+        ]);
+        $file = $request->file('no_return_attachment');
+        $storage = app(ManagedFileStorage::class);
+        $attachment = ['path' => $storage->uploadFile($file, 'rental-contracts/escape-closures'),
+            'name' => $file->getClientOriginalName(), 'mime_type' => $file->getMimeType(), 'size' => $file->getSize()];
+        try {
+            app(\App\Services\Rental\RentalEscapeService::class)->closeWithoutReturn($contract, $data, $attachment);
+        } catch (\Throwable $e) {
+            $storage->delete($attachment['path']);
+            throw $e;
+        }
+        return back()->with('success', 'تم إغلاق البلاغ دون عودة. العاملة غير متاحة، والعقد وتسويته المالية محفوظان.');
+    }
+
+    public function escapeAttachment($id)
+    {
+        $contract = RentalContract::findOrFail($id);
+        $this->assertCanAccessBranchModel($contract, 'rental_contracts');
+        $report = \App\Models\RentalEscapeReport::where('rental_contract_id', $id)->firstOrFail();
+        $attachment = request('kind') === 'closure' ? $report->no_return_attachment : $report->attachment;
+        abort_unless($attachment, 404);
+        return app(ManagedFileStorage::class)->downloadResponse($attachment['path'], $attachment['name'], $attachment['mime_type']);
     }
 
     public function downloadAttachments(Request $request, $id)
@@ -4102,6 +4236,7 @@ class RentContractController extends Controller
     {
         $validated = $request->validate([
             'freeze_reason' => 'required|string|max:1000',
+            'release_maid' => 'sometimes|boolean',
         ], [
             'freeze_reason.required' => 'يرجى كتابة سبب تجميد العقد',
             'freeze_reason.string' => 'سبب التجميد يجب أن يكون نصاً',
@@ -4111,6 +4246,7 @@ class RentContractController extends Controller
         try {
             DB::transaction(function () use ($id, $validated) {
                 $contract = RentalContract::lockForUpdate()->findOrFail($id);
+                $this->assertCanAccessBranchModel($contract, 'rental_contracts');
 
                 if (!$contract->canFreeze()) {
                     throw new \RuntimeException('لا يمكن تجميد العقد في حالته الحالية');
@@ -4120,15 +4256,37 @@ class RentContractController extends Controller
                     ? ($contract->status_before_freeze ?: 'active')
                     : $contract->status;
 
+                $releaseMaid = (bool) ($validated['release_maid'] ?? false);
+                $maid = $releaseMaid ? Maid::query()->lockForUpdate()->find($contract->maid_id) : null;
+                if ($releaseMaid && (!$maid || !$contract->info?->package)) {
+                    throw new \RuntimeException('يجب تحديد عاملة وباقة للعقد قبل تجميده مع إتاحة العاملة.');
+                }
+                if ($maid) {
+                    $this->assertCanAccessBranchModel($maid, 'maids');
+                    if (in_array(strtolower((string) $maid->status), ['backout', 'deported', 'escaped', 'transferred', 'pending_arrival_data'], true)) {
+                        throw new \RuntimeException('حالة العاملة الحالية لا تسمح بإعادتها متاحة عند التجميد.');
+                    }
+                }
+
                 $contract->update([
                     'status' => 'frozen',
                     'status_before_freeze' => $previousStatus,
                     'freeze_reason' => $validated['freeze_reason'],
+                    'freeze_releases_maid' => $releaseMaid,
                     'frozen_at' => now(),
                     'frozen_by' => auth('admin')->id() ?: auth()->id(),
                     'resumed_at' => null,
                     'resumed_by' => null,
                 ]);
+
+                if ($releaseMaid) {
+                    // Keep the historical maid_id, but release its operational commitment.
+                    BranchQueryContext::withoutBranchScope(fn () => $this->syncMaidBookingState($maid));
+                    if (!$maid->available || $maid->status !== 'available'
+                        || !BranchQueryContext::withoutBranchScope(fn () => app(RentalShelterPresenceService::class)->returnFrozenMaidInside($contract))) {
+                        throw new \RuntimeException('تعذر إتاحة العاملة وإعادتها للإيواء لوجود ارتباط آخر أو حالة تمنع عودتها. لم يتم تجميد العقد.');
+                    }
+                }
             });
 
             return response()->json([
@@ -4199,9 +4357,11 @@ class RentContractController extends Controller
 
     public function resume(Request $request, $id)
     {
+        $request->validate(['maid_id' => 'nullable|integer']);
         try {
-            DB::transaction(function () use ($id) {
+            DB::transaction(function () use ($id, $request) {
                 $contract = RentalContract::lockForUpdate()->findOrFail($id);
+                $this->assertCanAccessBranchModel($contract, 'rental_contracts');
 
                 if (!$contract->canResume()) {
                     throw new \RuntimeException('لا يمكن استئناف عقد غير مجمد');
@@ -4213,12 +4373,39 @@ class RentContractController extends Controller
                     $resumeStatus = 'active';
                 }
 
+                $released = $contract->requiresMaidOnResume();
+                if ($released) {
+                    if (!$request->filled('maid_id')) {
+                        throw new \RuntimeException('تمت إتاحة العاملة عند التجميد؛ يجب اختيار عاملة متاحة مطابقة لباقة العقد قبل الاستئناف.');
+                    }
+                    // Lock the worker first, then recheck availability, including other branches.
+                    $maid = Maid::query()->lockForUpdate()->find((int) $request->maid_id);
+                    if (!$maid || !$this->resumeMaidQuery($contract)->whereKey($maid->id)->exists()) {
+                        throw new \RuntimeException('العاملة المختارة غير متاحة حالياً أو لا تطابق باقة العقد. اختر عاملة أخرى.');
+                    }
+                    $this->assertCanAccessBranchModel($maid, 'maids');
+                    $oldMaidId = $contract->maid_id;
+                    $contract->update(['maid_id' => $maid->id]);
+                    activity()->causedBy(auth('admin')->user())->performedOn($contract)
+                        ->event('maid_changed')->withProperties([
+                            'old' => ['maid_id' => $oldMaidId],
+                            'attributes' => ['maid_id' => $maid->id, 'reason' => 'اختيار عاملة متاحة عند استئناف عقد مجمد مع تحرير العاملة'],
+                            'old_maid_name' => Maid::find($oldMaidId)?->name,
+                            'new_maid_name' => $maid->name,
+                        ])->log('اختيار عاملة متاحة عند استئناف العقد بعد التجميد');
+                    $maid->update(['status' => 'contracted', 'available' => false]);
+                }
+
                 $contract->update([
                     'status' => $resumeStatus,
                     'status_before_freeze' => null,
+                    'freeze_releases_maid' => false,
                     'resumed_at' => now(),
                     'resumed_by' => auth('admin')->id() ?: auth()->id(),
                 ]);
+                if ($released && in_array($resumeStatus, RentalShelterPresenceService::OUTSIDE_RENTAL_STATUSES, true)) {
+                    app(RentalShelterPresenceService::class)->markOutside($contract, now());
+                }
             });
 
             return response()->json([
@@ -4241,6 +4428,55 @@ class RentContractController extends Controller
                 'message' => 'حدث خطأ أثناء استئناف عقد الإيجار: ' . $e->getMessage(),
             ], 500);
         }
+    }
+
+    public function resumeOptions($id)
+    {
+        $contract = RentalContract::findOrFail($id);
+        $this->assertCanAccessBranchModel($contract, 'rental_contracts');
+        abort_unless($contract->canResume(), 422, 'لا يمكن استئناف عقد غير مجمد');
+
+        return response()->json([
+            'requires_maid' => $contract->requiresMaidOnResume(),
+            'hint' => 'تمت إعادة العاملة للإيواء وإتاحتها عند التجميد. للاستئناف اختر عاملة متاحة مطابقة لباقة العقد؛ يمكن اختيار العاملة السابقة إذا كانت متاحة.',
+            'package' => $contract->info?->package?->title,
+            'maids' => $contract->requiresMaidOnResume()
+                ? $this->resumeMaidQuery($contract)->get()->map(fn ($maid) => [
+                    'id' => $maid->id,
+                    'name' => $maid->name . ' — ' . ($maid->nationality?->sub_title ?: $maid->nationality?->title),
+                ])->values()
+                : [],
+        ]);
+    }
+
+    private function resumeMaidQuery(RentalContract $contract)
+    {
+        $package = $contract->info?->package;
+        $query = $this->getAvailableRentalMaidsQuery()->where('available', true)
+            ->whereNotIn('status', \App\Services\Rental\RentalMaidQuery::NOT_READY_MAID_STATUSES);
+        if (!$package) {
+            return $query->whereRaw('1 = 0');
+        }
+        // Use exactly the same nationality matching as contract creation (including legacy names).
+        $ids = (clone $query)->get()->filter(fn ($maid) =>
+            \App\Support\RentalPackageEligibility::matches($package, $maid)
+        )->pluck('id');
+        $query->whereIn('maids.id', $ids);
+        $query->whereNotExists(function ($busy) {
+            $busy->selectRaw('1')->from('rental_contracts')
+                ->whereColumn('rental_contracts.maid_id', 'maids.id')
+                ->whereIn('rental_contracts.status', $this->rentalActiveContractStatuses());
+            RentalContract::applyMaidCommitmentFilter($busy);
+        });
+        $query->whereNotExists(function ($busy) {
+            $busy->selectRaw('1')->from('orders')->whereNull('orders.deleted_at')
+                ->whereColumn('orders.maid_id', 'maids.id')->whereIn('orders.status', $this->rentalBookedOrderStatuses());
+        });
+        $query->whereNotExists(function ($busy) {
+            $busy->selectRaw('1')->from('contracts')
+                ->whereColumn('contracts.maid_id', 'maids.id')->whereIn('contracts.status', $this->recruitmentBusyContractStatuses());
+        });
+        return $query;
     }
 
     /**
@@ -4278,7 +4514,8 @@ class RentContractController extends Controller
 
         $grossValue = round(
             (float) $rentalContractFinanceService->extensionAmounts(
-                $contract, $extensionDays, 0, $this->resolveExtensionPackage($request, $contract)
+                $contract, $extensionDays, 0, $this->resolveExtensionPackage($request, $contract),
+                $rentalContractFinanceService->currentPricingBasis($contract)
             )['total_due'],
             2
         );
@@ -4384,7 +4621,10 @@ class RentContractController extends Controller
             }
 
             $extensionPackage = $this->resolveExtensionPackage($request, $contract);
-            $grossAmounts = $rentalContractFinanceService->extensionAmounts($contract, $extensionDays, 0, $extensionPackage);
+            // التمديد يُسعّر بآخر قيمة للعقد (آخر تمديد إن وُجد) وليس بقيمة العقد الأصلية
+            $pricingBasis = $rentalContractFinanceService->currentPricingBasis($contract);
+            $usesLatestExtensionRate = !$extensionPackage && $pricingBasis['source'] === 'extension';
+            $grossAmounts = $rentalContractFinanceService->extensionAmounts($contract, $extensionDays, 0, $extensionPackage, $pricingBasis);
             $extensionGrossValue = round((float) $grossAmounts['total_due'], 2);
 
             // خصم العميل: نسبة من إجمالي التمديد أو مبلغ مباشر، ويُطرح من الإجمالي شامل الضريبة
@@ -4410,7 +4650,8 @@ class RentContractController extends Controller
                 $contract,
                 $extensionDays,
                 $discountAmount,
-                $extensionPackage
+                $extensionPackage,
+                $pricingBasis
             );
             $extensionValue = round((float) $extensionAmounts['total_due'], 2);
 
@@ -4437,7 +4678,11 @@ class RentContractController extends Controller
                     'monthly_salary' => (float) ($contract->info->monthly_salary ?: $contract->maid?->resolved_salary ?: $contract->maid?->salary),
                     'amounts_before_discount' => $grossAmounts,
                 ] : null,
-                'pricing_snapshot' => $extensionPackage ? $extensionAmounts : null,
+                // يُحفظ التسعير عند الاعتماد على باقة أو على سعر آخر تمديد حتى لا تُعاد حسبته لاحقاً بسعر العقد الأصلي
+                'pricing_snapshot' => $extensionPackage ? $extensionAmounts : ($usesLatestExtensionRate ? $extensionAmounts + [
+                    'amounts_before_discount' => $grossAmounts,
+                    'rate_basis_extension_id' => $pricingBasis['extension']->id,
+                ] : null),
                 'rental_contract_id' => $contract->id,
                 'extension_months' => $extensionMonths,
                 'extension_days' => $extensionDays,
@@ -4506,7 +4751,9 @@ class RentContractController extends Controller
                 ? ''
                 : ((bool) ($messageResult['success'] ?? false)
                     ? '، وتم إرسال رسالة التمديد للعميل.'
-                    : '، لكن تعذر إرسال رسالة التمديد للعميل.');
+                    : (($messageResult['status'] ?? null) === 'skipped'
+                        ? '، ولم تُرسل رسالة التمديد لأن القالب غير مفعّل.'
+                        : '، لكن تعذر إرسال رسالة التمديد للعميل.'));
 
             return response()->json([
                 'success' => true,

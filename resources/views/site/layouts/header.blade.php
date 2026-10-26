@@ -26,7 +26,7 @@
                     <a class="nav-link dropdown-toggle" href="#"
                         data-bs-toggle="dropdown">{{ __('web.our_services') }}</a>
                     <ul class="dropdown-menu">
-                        @if(\App\Support\HourlyRentalSettings::isEnabled())
+                        @if(\App\Support\HourlyRentalSettings::websiteEnabled())
                         <li><a class="dropdown-item" href="{{ route('web.hourly.index') }}">{{ app()->getLocale() === 'ar' ? 'إيجار الساعات' : 'Hourly rental' }}</a></li>
                         @endif
                         <li>

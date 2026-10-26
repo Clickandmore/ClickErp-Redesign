@@ -25,6 +25,7 @@ class FastNewRequest extends MainRequest
     public function rules()
     {
         return [
+           'is_visible' => 'sometimes|required|boolean',
           'title:en' => 'required',
            'title:ar' => 'required',
            // صورة اختيارية تظهر بجانب الخبر في شريط المواقع الخارجية

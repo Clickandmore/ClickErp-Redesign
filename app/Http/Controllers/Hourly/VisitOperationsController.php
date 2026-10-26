@@ -16,22 +16,40 @@ class VisitOperationsController extends Controller
         $filters=$search->filters($request,$mode);$query=$search->query($filters,$mode);
         $total=(clone $query)->count();
         $assigned=(clone $query)->whereRaw('(select count(*) from hourly_visit_workers w where w.hourly_visit_id=hourly_visits.id)>=workers_count')->count();
+        // بطاقات الإحصاء الخاصة بقائمتي «غير المخصصة» و«الماضية غير المنتهية»؛ إحصاء التعيين العام لا معنى له فيهما.
+        $modeStats=match($mode){
+            'unassigned'=>['seats'=>(int)(clone $query)->sum('workers_count'),'overdue'=>(clone $query)->where('scheduled_start_at','<',now())->count(),
+                'soon'=>(clone $query)->whereBetween('scheduled_start_at',[now(),now()->addDay()])->count(),'offered'=>(clone $query)->where('offered_to_workers',true)->count()],
+            'past'=>['missed'=>(clone $query)->where('status','scheduled')->count(),'oldest'=>(clone $query)->min('scheduled_end_at')],
+            default=>null,
+        };
         $visits=$search->sort($query,$filters)->with(['order.user','order.serviceCategory','order.visits','order.payments','workers','deliveryDriver','pickupDriver','teamLeader'])->withCount('workers as assigned_workers_count')->paginate($filters['per_page']??25)->withQueryString();
-        $allocations=[];foreach($visits->getCollection()->pluck('order')->unique('id') as $order)$allocations+=app(\App\Services\Hourly\VisitPaymentAllocation::class)->forOrder($order);
+        $allocations=[];$collectables=[];
+        foreach($visits->getCollection()->pluck('order')->unique('id') as $order){
+            $allocations+=app(\App\Services\Hourly\VisitPaymentAllocation::class)->forOrder($order);
+            $financial=app(\App\Services\Hourly\PaymentScheduleService::class)->forOrder($order);
+            foreach($order->visits as $visit){
+                $row=$financial['visits'][$visit->id];
+                $collectables[$visit->id]=in_array($visit->status,['cancelled','cancelled_by_client','expired'],true)
+                    || ($financial['policy']==='per_visit' && !$row['is_due'])?0:min($row['remaining'],$financial['remaining']);
+            }
+        }
         $timeExpression=DB::connection()->getDriverName()==='sqlite'?"strftime('%H:%M', scheduled_start_at)":"DATE_FORMAT(scheduled_start_at, '%H:%i')";
         $startTimes=HourlyVisit::whereNotNull('scheduled_start_at')->selectRaw($timeExpression.' as time')->distinct()->orderBy('time')->pluck('time')->all();
         // Half-hour choices plus existing exceptional times so older bookings remain searchable.
         for($minute=0;$minute<1440;$minute+=30)$startTimes[]=sprintf('%02d:%02d',intdiv($minute,60),$minute%60);
         $startTimes=array_unique($startTimes);sort($startTimes);
         return view('admin.hourly_visits.index',[
-            'visits'=>$visits,'filters'=>$filters,'mode'=>$mode,'total'=>$total,'assigned'=>$assigned,'allocations'=>$allocations,'startTimes'=>$startTimes,
+            'visits'=>$visits,'filters'=>$filters,'mode'=>$mode,'total'=>$total,'assigned'=>$assigned,'modeStats'=>$modeStats,'allocations'=>$allocations,'collectables'=>$collectables,'startTimes'=>$startTimes,
+            // Workers still on return hold, grouped by the visit holding them (shown on closed visits too).
+            'returnHolds'=>collect(\App\Services\Hourly\OverdueWorkerReturn::pending())->map(fn($hold,$maid)=>['maid'=>(int)$maid]+$hold)->groupBy('visit_id')->map(fn($rows)=>$rows->pluck('maid')->all())->all(),
             'customerSources'=>DB::table('hourly_customer_sources')->orderBy('name')->pluck('name','code')->all(),
             'teams'=>HourlyTeam::orderBy('name')->get(['id','name']), 'drivers'=>HourlyDriver::where('is_active',true)->orderBy('name')->get(['id','name']),
             'workers'=>\App\Models\ingaz\Maid::where('rental_mode','hourly')->orderBy('name')->get(['id','name']),
             'admins'=>\App\Models\auth\Admin::orderBy('name')->get(['id','name']),
             'cities'=>\App\Models\City::saudi()->active()->get(),'services'=>HourlyServiceCategory::ordered()->get(),
             'attributes'=>HourlyProductAttribute::whereNotNull('parent_id')->orderBy('name_ar')->get(['id','name_ar','name_en']),
-            'canEdit'=>AdminGuardHasPerm('hourly_visits_edit'),'canCollect'=>AdminGuardHasPerm('hourly_visits_collect'),'canPrice'=>AdminGuardHasPerm('hourly_visits_price_override'),
+            'canEdit'=>AdminGuardHasPerm('hourly_visits_edit'),'canSchedule'=>AdminGuardHasPerm('hourly_orders_view') && AdminGuardHasPerm('hourly_orders_create'),'canCollect'=>AdminGuardHasPerm('hourly_visits_collect'),'canPrice'=>AdminGuardHasPerm('hourly_visits_price_override'),
         ]);
     }
 
@@ -52,7 +70,16 @@ class VisitOperationsController extends Controller
         $allocation=app(\App\Services\Hourly\VisitPaymentAllocation::class)->forOrder($order)[$visit->id];
         $collectors=\App\Models\auth\Admin::whereIn('id',$order->payments->where('collected_by_type','admin')->pluck('collected_by_id'))->pluck('name','id');
         $driverCollectors=HourlyDriver::withTrashed()->whereIn('id',$order->payments->where('collected_by_type','driver')->pluck('collected_by_id'))->pluck('name','id');
-        return compact('visit','order','allocation','collectors','driverCollectors');
+        $workerCollectors=\App\Models\ingaz\Maid::whereIn('id',$order->payments->where('collected_by_type','maid')->pluck('collected_by_id'))->pluck('name','id');
+        return compact('visit','order','allocation','collectors','driverCollectors','workerCollectors');
+    }
+
+    public function rescheduleSlots(Request $request,HourlyVisit $visit,VisitBatchService $service)
+    {
+        abort_unless(AdminGuardHasPerm('hourly_orders_view') && AdminGuardHasPerm('hourly_orders_create'),403);
+        $data=$request->validate(['date'=>'required|date_format:Y-m-d']);
+        try{$slots=$service->rescheduleSlots($visit,$data['date']);}catch(\Illuminate\Validation\ValidationException $e){$slots=[];}catch(\Illuminate\Http\Exceptions\HttpResponseException $e){$slots=[];}
+        return response()->json(['slots'=>$slots]);
     }
 
     public function payments(HourlyVisit $visit)

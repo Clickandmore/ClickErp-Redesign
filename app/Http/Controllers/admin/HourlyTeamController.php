@@ -171,7 +171,7 @@ class HourlyTeamController extends Controller
     }
     private function maidsForShelter(int $shelterId)
     {
-        $base = fn () => Maid::query()
+        $base = fn () => Maid::query()->where('rental_mode', 'hourly')
             ->whereHas('contracts.info', fn ($q) => $q->where('shelter_id', $shelterId))
             ->orderBy('name');
 

@@ -441,6 +441,42 @@
                 font-size: 0.82rem;
             }
         }
+
+        /* ===== نافذة تغيير العميل في الطلب ===== */
+        .occ-popup { width: min(560px, calc(100vw - 24px)) !important; padding: 0 !important; border-radius: 16px !important; overflow: visible; }
+        .occ-popup .swal2-html-container { margin: 0 !important; padding: 0 !important; overflow: visible; text-align: right; }
+        .occ-popup .swal2-actions { margin: 0 !important; padding: 0 24px 22px; width: 100%; justify-content: flex-start; gap: 8px; }
+        .occ-popup .swal2-actions button { margin: 0 !important; min-width: 110px; border-radius: 10px !important; font-weight: 700; }
+        .occ-popup .swal2-validation-message { margin: 0 24px 14px !important; border-radius: 10px; font-size: .85rem; }
+        .occ-head { display: flex; align-items: center; gap: 12px; padding: 20px 24px 16px; border-bottom: 1px solid #eef2f6; }
+        .occ-head-icon { width: 44px; height: 44px; flex: 0 0 auto; display: grid; place-items: center; border-radius: 12px; background: #e8f7f5; color: #0f6b6e; font-size: 1.15rem; }
+        .occ-head h3 { margin: 0; font-size: 1.1rem; font-weight: 800; color: #0f172a; }
+        .occ-head p { margin: 2px 0 0; color: #64748b; font-size: .82rem; }
+        .occ-order { display: inline-block; margin-inline-start: 6px; padding: 1px 9px; border-radius: 999px; background: #f1f5f9; color: #334155; font-size: .78rem; font-weight: 700; direction: ltr; }
+        .occ-body { display: grid; gap: 16px; padding: 18px 24px 20px; }
+        .occ-field label { display: block; margin-bottom: 4px; font-size: .86rem; font-weight: 700; color: #0f172a; }
+        .occ-field label .req { color: #dc2626; }
+        .occ-hint { margin: 0 0 7px; color: #64748b; font-size: .76rem; }
+        .occ-field textarea { width: 100%; min-height: 88px; padding: 10px 12px; border: 1px solid #cbd5e1; border-radius: 10px; font: inherit; font-size: .88rem; resize: vertical; }
+        .occ-field textarea:focus { outline: none; border-color: #0f6b6e; box-shadow: 0 0 0 4px rgba(15, 107, 110, .12); }
+        .occ-counter { margin-top: 4px; color: #94a3b8; font-size: .72rem; text-align: left; }
+        .occ-warning { display: flex; gap: 8px; padding: 10px 12px; border-radius: 10px; background: #fffaeb; border: 1px solid #fedf89; color: #93370d; font-size: .78rem; line-height: 1.7; }
+        .occ-popup .select2-container { width: 100% !important; }
+        .occ-popup .select2-container--default .select2-selection--single { height: 46px; border: 1px solid #cbd5e1; border-radius: 10px; display: flex; align-items: center; }
+        .occ-popup .select2-container--default.select2-container--open .select2-selection--single,
+        .occ-popup .select2-container--default.select2-container--focus .select2-selection--single { border-color: #0f6b6e; box-shadow: 0 0 0 4px rgba(15, 107, 110, .12); }
+        .occ-popup .select2-container--default .select2-selection--single .select2-selection__rendered { width: 100%; padding: 0 12px 0 34px; line-height: 44px; color: #0f172a; text-align: right; }
+        .occ-popup .select2-container--default .select2-selection--single .select2-selection__placeholder { color: #94a3b8; }
+        .occ-popup .select2-container--default .select2-selection--single .select2-selection__arrow { height: 44px; left: 8px; right: auto; }
+        .occ-popup .select2-dropdown { border-color: #0f6b6e !important; border-radius: 10px !important; overflow: hidden; box-shadow: 0 16px 30px -18px rgba(15, 23, 42, .45); }
+        .occ-popup .select2-dropdown .select2-search__field { height: 40px; border: 1px solid #cbd5e1 !important; border-radius: 8px; padding: 0 10px; text-align: right; }
+        .occ-popup .select2-dropdown .select2-results__options { max-height: 260px !important; }
+        .occ-popup .select2-dropdown .select2-results__option { padding: 8px 12px; text-align: right; }
+        .occ-popup .select2-dropdown .select2-results__option--highlighted { background: #e8f7f5 !important; color: #0f172a !important; }
+        .occ-result-name { display: block; font-weight: 700; font-size: .9rem; color: #0f172a; }
+        .occ-result-meta { display: flex; gap: 14px; flex-wrap: wrap; margin-top: 2px; color: #64748b; font-size: .76rem; }
+        .occ-result-meta span { direction: ltr; unicode-bidi: plaintext; }
+        .occ-result-meta i { color: #94a3b8; font-size: .72rem; }
     </style>
 @endsection
 @section('page-title')
@@ -1692,6 +1728,118 @@
                                     */
 
             // Handle change responsible employee
+            $(document).on('click', '.change-order-client', async function() {
+                const orderId = $(this).data('id');
+                const expectedClientId = $(this).attr('data-client-id');
+                // نتيجة البحث: الاسم في سطر، والجوال والهوية تحته (عناصر DOM لا HTML خام)
+                const renderClient = client => {
+                    if (client.loading || !client.id) return client.text;
+                    const row = $('<div>');
+                    $('<span class="occ-result-name">').text(client.name || client.text).appendTo(row);
+                    const meta = $('<div class="occ-result-meta">').appendTo(row);
+                    if (client.phone) $('<span>').text(client.phone).prepend('<i class="fa fa-phone"></i> ').appendTo(meta);
+                    if (client.national_num) $('<span>').text(client.national_num).prepend('<i class="fa fa-id-card"></i> ').appendTo(meta);
+                    return row;
+                };
+                const selection = await Swal.fire({
+                    customClass: {popup: 'occ-popup', confirmButton: 'btn btn-primary', cancelButton: 'btn btn-light'},
+                    buttonsStyling: false,
+                    html: '<div dir="rtl">' +
+                        '<div class="occ-head"><span class="occ-head-icon"><i class="fa fa-user-edit"></i></span>' +
+                        '<div><h3>تغيير العميل في الطلب <span class="occ-order">#' + Number(orderId) + '</span></h3>' +
+                        '<p>نقل الطلب إلى عميل آخر مسجّل في النظام.</p></div></div>' +
+                        '<div class="occ-body">' +
+                        '<div class="occ-field"><label for="order-client-selection">العميل الجديد <span class="req">*</span></label>' +
+                        '<p class="occ-hint">ابحث بالاسم أو رقم الجوال أو رقم الهوية (حرفان على الأقل).</p>' +
+                        '<select id="order-client-selection"><option value=""></option></select></div>' +
+                        '<div class="occ-field"><label for="order-client-reason">سبب التغيير <span class="req">*</span></label>' +
+                        '<p class="occ-hint">يُحفظ في سجل الطلب للمراجعة لاحقًا.</p>' +
+                        '<textarea id="order-client-reason" maxlength="500" placeholder="مثال: الطلب سُجّل باسم قريب العميل بالخطأ"></textarea>' +
+                        '<div class="occ-counter"><span id="order-client-reason-count">0</span> / 500</div></div>' +
+                        '<div class="occ-warning"><i class="fa fa-exclamation-triangle"></i><span>سيُزال عنوان العميل السابق من الطلب بعد التغيير.</span></div>' +
+                        '</div></div>',
+                    showCancelButton: true,
+                    confirmButtonText: 'متابعة', cancelButtonText: 'إلغاء',
+                    didOpen: popup => {
+                        const $select = $('#order-client-selection');
+                        $select.select2({
+                            dir: 'rtl',
+                            width: '100%',
+                            dropdownParent: $(popup),
+                            placeholder: 'اضغط هنا للبحث عن العميل',
+                            minimumInputLength: 2,
+                            ajax: {
+                                url: @json(route('orders.searchChangeClient')),
+                                delay: 300,
+                                dataType: 'json',
+                                data: params => ({q: params.term, order_id: orderId}),
+                                processResults: response => ({results: response.results || []}),
+                            },
+                            templateResult: renderClient,
+                            templateSelection: client => client.name || client.text,
+                            language: {
+                                inputTooShort: () => 'اكتب حرفين على الأقل للبحث',
+                                searching: () => 'جارٍ البحث...',
+                                noResults: () => 'لا يوجد عميل مطابق',
+                                errorLoading: () => 'تعذر البحث؛ حاول مجددًا',
+                            },
+                        });
+                        // فتح القائمة مباشرة يوفّر نقرة على الموظف
+                        setTimeout(() => $select.select2('open'), 150);
+
+                        const reason = document.getElementById('order-client-reason');
+                        reason.addEventListener('input', () => {
+                            document.getElementById('order-client-reason-count').textContent = reason.value.length;
+                        });
+                    },
+                    willClose: () => {
+                        const $select = $('#order-client-selection');
+                        if ($select.data('select2')) $select.select2('destroy');
+                    },
+                    preConfirm: () => {
+                        const picked = $('#order-client-selection').select2('data')[0];
+                        const reason = document.getElementById('order-client-reason').value.trim();
+                        if (!picked || !picked.id) {
+                            Swal.showValidationMessage('اختر العميل الجديد من نتائج البحث.');
+                            return false;
+                        }
+                        if (reason.length < 3) {
+                            Swal.showValidationMessage('اكتب سبب التغيير (3 أحرف على الأقل).');
+                            return false;
+                        }
+                        return {clientId: picked.id, reason, label: picked.text};
+                    }
+                });
+                if (!selection.isConfirmed) return;
+                await Swal.fire({
+                    icon: 'warning', title: 'تأكيد تغيير العميل',
+                    text: 'سيصبح الطلب تابعًا للعميل «' + selection.value.label + '» وسيُزال عنوان العميل السابق من الطلب. هل تريد المتابعة؟',
+                    showCancelButton: true, confirmButtonText: 'نعم، تغيير العميل', cancelButtonText: 'إلغاء',
+                    focusCancel: true, showLoaderOnConfirm: true,
+                    allowOutsideClick: () => !Swal.isLoading(),
+                    allowEscapeKey: () => !Swal.isLoading(),
+                    preConfirm: async () => {
+                        try {
+                            await $.ajax({
+                                url: @json(route('orders.changeClient', ['id' => '__ORDER__'])).replace('__ORDER__', orderId),
+                                method: 'POST',
+                                data: {_token: @json(csrf_token()), client_id: selection.value.clientId, expected_client_id: expectedClientId || null, reason: selection.value.reason}
+                            });
+                            return true;
+                        } catch (error) {
+                            const response = error.responseJSON || {};
+                            Swal.showValidationMessage(response.errors ? Object.values(response.errors).flat().join(' ') : (response.message || 'تعذر تغيير العميل.'));
+                            return false;
+                        }
+                    }
+                }).then(result => {
+                    if (result.isConfirmed) {
+                        $('#dataTableObject').DataTable().ajax.reload(null, false);
+                        Swal.fire({icon: 'success', title: 'تم تغيير العميل بنجاح', timer: 1800, showConfirmButton: false});
+                    }
+                });
+            });
+
             $(document).on('click', '.change-responsible', function() {
                 const orderId = $(this).data('id');
 

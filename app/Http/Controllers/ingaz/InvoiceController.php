@@ -20,6 +20,7 @@ use App\Services\ingaz\InvoiceCalculationService;
 use App\Services\ingaz\RecruitmentTripAccountingService;
 use App\Services\ingaz\RentalContractFinanceService;
 use App\Support\AutomaticJournalEntries;
+use App\Support\RecruitmentCostCenters;
 use App\Support\RecruitmentRevenueRecognition;
 use App\Support\InvoiceQrCode;
 use App\Support\IngazDelegationTimeline;
@@ -366,22 +367,27 @@ class InvoiceController extends Controller
             'invoice_rows'
         );
 
-        return DataTables::query($query)
-            ->filter(function ($query) use ($request) {
-                $search = trim((string) data_get($request->input('search'), 'value'));
-                if ($search === '') {
-                    return;
-                }
+        $this->applyStandardInvoiceFilters($query, $request);
 
-                $query->where(function ($query) use ($search) {
-                    $query->where('invoice_sort_number', 'like', "%{$search}%")
-                        ->orWhere('legacy_order_number', 'like', "%{$search}%")
-                        ->orWhere('contract_id', 'like', "%{$search}%")
-                        ->orWhere('rental_contract_number', 'like', "%{$search}%")
-                        ->orWhere('client_name', 'like', "%{$search}%")
-                        ->orWhere('client_phone', 'like', "%{$search}%");
-                });
-            })
+        $summaryQuery = clone $query;
+        $this->applyStandardInvoiceSearch($summaryQuery, $request);
+        $summary = $summaryQuery->selectRaw(
+            'COUNT(*) as documents_count,'
+            . " COALESCE(SUM(CASE WHEN row_type IN ('invoice', 'rental') THEN total_due END), 0) as invoices_total,"
+            . " COALESCE(SUM(CASE WHEN row_type IN ('invoice', 'rental') THEN vat_amount END), 0) as vat_total,"
+            . " COALESCE(SUM(CASE WHEN row_type IN ('invoice', 'rental') AND COALESCE(is_paid, 0) = 0 AND total_due > 0 THEN total_due END), 0) as unpaid_total,"
+            . " COALESCE(SUM(CASE WHEN row_type = 'recruitment_credit_note' OR (row_type = 'rental_adjustment' AND adjustment_type = 'expense') THEN total_due END), 0) as credit_total"
+        )->first();
+
+        return DataTables::query($query)
+            ->filter(fn ($query) => $this->applyStandardInvoiceSearch($query, $request))
+            ->with('summary', [
+                'documents_count' => number_format((int) ($summary->documents_count ?? 0)),
+                'invoices_total' => number_format((float) ($summary->invoices_total ?? 0), 2),
+                'vat_total' => number_format((float) ($summary->vat_total ?? 0), 2),
+                'unpaid_total' => number_format((float) ($summary->unpaid_total ?? 0), 2),
+                'credit_total' => number_format((float) ($summary->credit_total ?? 0), 2),
+            ])
             ->addIndexColumn()
             ->addColumn('invoice_number', fn ($row) => $this->standardInvoiceNumberLink($row))
             ->addColumn('invoice_source', fn ($row) => $this->standardInvoiceSourceBadge($row))
@@ -414,9 +420,96 @@ class InvoiceController extends Controller
                 'finance_sale_id',
                 'legacy_zatca_shared'
             )
-            ->rawColumns(['invoice_number', 'invoice_source', 'status', 'zatca_status', 'actions'])
+            ->editColumn('branch', fn ($row) => $this->branchBadgeHtml($row->branch))
+            ->rawColumns(['invoice_number', 'invoice_source', 'branch', 'status', 'zatca_status', 'actions'])
             ->make(true);
     }
+
+    private function branchBadgeHtml(?string $branchName): string
+    {
+        $branchName = trim((string) $branchName);
+        if ($branchName === '' || $branchName === '-') {
+            return '<span class="branch-badge branch-badge--general" title="غير مرتبط بفرع، ويظهر لكل الفروع"><i class="fas fa-globe"></i>عام</span>';
+        }
+
+        return '<span class="branch-badge"><i class="fas fa-code-branch"></i>' . e($branchName) . '</span>';
+    }
+
+    /**
+     * فلاتر شاشة الفواتير الموحدة، تُطبَّق على الاستعلام المجمّع (invoice_rows)
+     * فتشمل فواتير الاستقدام والتأجير والإشعارات بالمنطق نفسه.
+     */
+    private function applyStandardInvoiceFilters($query, Request $request): void
+    {
+        $date = fn (string $key) => preg_match('/^\d{4}-\d{2}-\d{2}$/', (string) $request->input($key)) ? $request->input($key) : null;
+        $amount = fn (string $key) => is_numeric($request->input($key)) ? (float) $request->input($key) : null;
+        $billable = fn ($q) => $q->whereIn('row_type', ['invoice', 'rental']);
+        $customerCredit = fn ($q) => $q->where('row_type', 'recruitment_credit_note')
+            ->orWhere(fn ($q) => $q->where('row_type', 'rental_adjustment')->where('adjustment_type', 'expense'));
+        $notLegacyShared = fn ($q) => $q->whereNull('legacy_zatca_shared')->orWhere('legacy_zatca_shared', '!=', 1);
+        $zatcaRequired = fn ($q) => $q->where('send_to_zatca', 1)->orWhere('row_type', 'rental');
+        $finalStatuses = ['REPORTED', 'CLEARED', 'NOT_REPORTED', 'NOT_CLEARED'];
+
+        match ((string) $request->input('doc_type')) {
+            'recruitment' => $query->where('row_type', 'invoice')->whereNotNull('contract_id'),
+            'delegation' => $query->where('row_type', 'invoice')->whereNotNull('ingaz_delegation_id'),
+            'transfer' => $query->where('row_type', 'invoice')
+                ->where(fn ($q) => $q->whereNotNull('sponsorship_transfer_id')->orWhereNotNull('rental_contract_id')),
+            'general' => $query->where('row_type', 'invoice')->whereNull('contract_id')->whereNull('ingaz_delegation_id')
+                ->whereNull('sponsorship_transfer_id')->whereNull('rental_contract_id'),
+            'rental' => $query->where('row_type', 'rental'),
+            'rental_adjustment' => $query->where('row_type', 'rental_adjustment'),
+            'credit_note' => $query->where('row_type', 'recruitment_credit_note'),
+            default => null,
+        };
+
+        match ((string) $request->input('payment')) {
+            'paid' => $query->where($billable)->where(fn ($q) => $q->where('is_paid', 1)->orWhere('total_due', '<=', 0)),
+            'unpaid' => $query->where($billable)->where(fn ($q) => $q->whereNull('is_paid')->orWhere('is_paid', 0))->where('total_due', '>', 0),
+            'customer_credit' => $query->where($customerCredit),
+            'customer_debit' => $query->where('row_type', 'rental_adjustment')->where('adjustment_type', '!=', 'expense'),
+            default => null,
+        };
+
+        match ((string) $request->input('zatca')) {
+            'not_required' => $query->where('row_type', '!=', 'rental')
+                ->where(fn ($q) => $q->whereNull('send_to_zatca')->orWhere('send_to_zatca', 0))
+                ->where($notLegacyShared),
+            'not_queued' => $query->whereNull('finance_sale_id')->where($zatcaRequired)->where($notLegacyShared),
+            'pending' => $query->whereNotNull('finance_sale_id')->where($zatcaRequired)->where($notLegacyShared)
+                ->where(fn ($q) => $q->whereNull('zatca_status')->orWhereNotIn('zatca_status', $finalStatuses)),
+            'reported' => $query->where(fn ($q) => $q->where('legacy_zatca_shared', 1)
+                ->orWhere(fn ($q) => $q->whereNotNull('finance_sale_id')->whereIn('zatca_status', ['REPORTED', 'CLEARED']))),
+            'rejected' => $query->whereNotNull('finance_sale_id')->whereIn('zatca_status', ['NOT_REPORTED', 'NOT_CLEARED']),
+            default => null,
+        };
+
+        $query
+            ->when($date('date_from'), fn ($q, $value) => $q->whereDate('created_at', '>=', $value))
+            ->when($date('date_to'), fn ($q, $value) => $q->whereDate('created_at', '<=', $value))
+            ->when($amount('amount_min') !== null, fn ($q) => $q->where('total_due', '>=', $amount('amount_min')))
+            ->when($amount('amount_max') !== null, fn ($q) => $q->where('total_due', '<=', $amount('amount_max')));
+    }
+
+    private function applyStandardInvoiceSearch($query, Request $request): void
+    {
+        $search = trim((string) data_get($request->input('search'), 'value'));
+        if ($search === '') {
+            return;
+        }
+
+        $like = '%' . addcslashes($search, '%_\\') . '%';
+        $query->where(function ($query) use ($like) {
+            $query->where('invoice_sort_number', 'like', $like)
+                ->orWhere('legacy_order_number', 'like', $like)
+                ->orWhere('contract_id', 'like', $like)
+                ->orWhere('ingaz_delegation_id', 'like', $like)
+                ->orWhere('rental_contract_number', 'like', $like)
+                ->orWhere('client_name', 'like', $like)
+                ->orWhere('client_phone', 'like', $like);
+        });
+    }
+
 
     private function standardInvoiceNumberLink($row): string
     {
@@ -928,7 +1021,7 @@ class InvoiceController extends Controller
         if (!$contractId && !$ingazDelegationId && !$clientId && $contractSearchAttempted) {
             $searchedContract = Contract::query()
                 ->with(['user', 'maid.nationality', 'requiredMaidNationality'])
-                ->whereDoesntHave('invoice')
+                ->whereDoesntHave('blockingInvoices')
                 ->whereIn('status', Contract::invoiceEligibleStatuses())
                 ->where(function ($query) use ($contractSearch) {
                     if (is_numeric($contractSearch)) {
@@ -959,13 +1052,14 @@ class InvoiceController extends Controller
                 ->with(['user', 'maid.nationality', 'requiredMaidNationality', 'invoice'])
                 ->findOrFail($contractId);
 
-            if ($selectedContract->invoice) {
+            $blockingInvoice = $selectedContract->blockingInvoices()->latest('id')->first();
+            if ($blockingInvoice) {
                 if (!InvoiceAuthorization::canView()) {
                     return redirect()->route('invoices.create')
                         ->with('warning', 'تم إصدار فاتورة لهذا العقد مسبقاً، وليست لديك صلاحية عرض الفواتير.');
                 }
                 return redirect()
-                    ->route('invoices.show', $selectedContract->invoice->id)
+                    ->route('invoices.show', $blockingInvoice->id)
                     ->with('success', 'تم إصدار فاتورة لهذا العقد مسبقاً.');
             }
         }
@@ -981,13 +1075,14 @@ class InvoiceController extends Controller
                 ->with(['user', 'country', 'nationality', 'profession', 'invoice'])
                 ->findOrFail($ingazDelegationId);
 
-            if ($selectedIngazDelegation->invoice) {
+            $blockingInvoice = $selectedIngazDelegation->blockingInvoices()->latest('id')->first();
+            if ($blockingInvoice) {
                 if (!InvoiceAuthorization::canView()) {
                     return redirect()->route('invoices.create')
                         ->with('warning', 'تم إصدار فاتورة لهذا التفويض مسبقاً، وليست لديك صلاحية عرض الفواتير.');
                 }
                 return redirect()
-                    ->route('invoices.show', $selectedIngazDelegation->invoice->id)
+                    ->route('invoices.show', $blockingInvoice->id)
                     ->with('success', 'تم إصدار فاتورة لهذا التفويض مسبقاً.');
             }
         }
@@ -1138,14 +1233,56 @@ class InvoiceController extends Controller
      */
     public function store(Request $request, ObjService $service, YearService $yearService, BondService $bondService, bool $allowLateContract = false)
     {
-        if (!$allowLateContract || $request->filled('sponsorship_transfer_id')) {
+        return DB::transaction(function () use ($request, $service, $yearService, $bondService, $allowLateContract) {
+            $this->lockInvoiceReference($request);
+            return $this->processInvoiceRequest($request, $service, $yearService, $bondService, $allowLateContract);
+        });
+    }
+
+    public function issueApprovedDraft(Request $request, ObjService $service, YearService $yearService, BondService $bondService)
+    {
+        abort_unless(InvoiceAuthorization::canApprove(), 403);
+        $this->lockInvoiceReference($request);
+        return $this->processInvoiceRequest($request, $service, $yearService, $bondService, false, true);
+    }
+
+    /** Import approval shares issuance, accounting and duplicate checks with the interactive form. */
+    public function issueImportedInvoice(Request $request, ObjService $service, YearService $yearService, BondService $bondService)
+    {
+        abort_unless(InvoiceAuthorization::canIssueDirectly() || InvoiceAuthorization::canApprove(), 403);
+        if (!InvoiceAuthorization::canViewSupplierTotalCost()) $request->merge(['supplier_total_cost_usd' => null]);
+        $this->enforceInvoiceLineItemPermission($request, $this->resolveRequestInvoiceNationality($request));
+        return DB::transaction(function () use ($request, $service, $yearService, $bondService) {
+            $this->lockInvoiceReference($request);
+            return $this->processInvoiceRequest($request, $service, $yearService, $bondService, false, true);
+        });
+    }
+
+    private function lockInvoiceReference(Request $request): void
+    {
+        foreach (['contract_id' => Contract::class, 'ingaz_delegation_id' => IngazDelegation::class,
+            'client_id' => ClientUser::class, 'sponsorship_transfer_id' => SponsorshipTransfer::class] as $key => $model) {
+            if ($request->filled($key)) $model::query()->whereKey($request->input($key))->lockForUpdate()->firstOrFail();
+        }
+    }
+
+    private function processInvoiceRequest(Request $request, ObjService $service, YearService $yearService, BondService $bondService, bool $allowLateContract = false, bool $approving = false)
+    {
+        if (!$approving && (!$allowLateContract || $request->filled('sponsorship_transfer_id'))) {
             abort_unless($request->filled('sponsorship_transfer_id')
                 ? InvoiceAuthorization::canCreateTransfer() : InvoiceAuthorization::canCreate(), 403);
         }
         $requiresExternalRecruitmentCost = $request->filled('contract_id')
             || $request->filled('ingaz_delegation_id');
+        $invoiceNationality = $this->resolveRequestInvoiceNationality($request);
+        // Hidden supplier totals are resolved on the server; never trust a manually submitted value.
+        // Approval replays the stored, previously authorized payload.
+        if (!$approving && !InvoiceAuthorization::canViewSupplierTotalCost()) {
+            $request->merge(['supplier_total_cost_usd' => null]);
+        }
+        if (!$approving) $this->enforceInvoiceLineItemPermission($request, $invoiceNationality);
 
-        $request->validate([
+        $validatedDraftInput = $request->validate([
             'invoice_date' => ['required', 'date_format:Y-m-d'],
             'contract_id' => 'nullable|required_without_all:ingaz_delegation_id,client_id,sponsorship_transfer_id|exists:contracts,id',
             'ingaz_delegation_id' => 'nullable|required_without_all:contract_id,client_id,sponsorship_transfer_id|exists:ingaz_delegations,id',
@@ -1204,9 +1341,9 @@ class InvoiceController extends Controller
 
         $invoiceExists = false;
         if ($request->filled('contract_id')) {
-            $invoiceExists = Invoice::where('contract_id', $request->contract_id)->exists();
+            $invoiceExists = Invoice::where('contract_id', $request->contract_id)->blockingReplacement()->exists();
         } elseif ($request->filled('ingaz_delegation_id')) {
-            $invoiceExists = Invoice::where('ingaz_delegation_id', $request->ingaz_delegation_id)->exists();
+            $invoiceExists = Invoice::where('ingaz_delegation_id', $request->ingaz_delegation_id)->blockingReplacement()->exists();
         } elseif ($request->filled('sponsorship_transfer_id')) {
             $invoiceExists = Invoice::where('sponsorship_transfer_id', $request->sponsorship_transfer_id)->exists();
         }
@@ -1235,10 +1372,10 @@ class InvoiceController extends Controller
         }
 
         if ($request->filled('contract_id')) {
-            $contractIsCurrent = Contract::query()
-                ->whereKey($request->contract_id)
-                ->whereIn('status', $allowLateContract ? ['arrival', 'completed'] : Contract::invoiceEligibleStatuses())
-                ->exists();
+            $invoiceContract = Contract::query()->find($request->contract_id);
+            $contractIsCurrent = $invoiceContract && ($allowLateContract
+                ? $invoiceContract->isLateFinanceEligible()
+                : $invoiceContract->isInvoiceEligible());
 
             if (!$contractIsCurrent) {
                 return response()->json([
@@ -1248,10 +1385,54 @@ class InvoiceController extends Controller
             }
         }
 
+        if (!$approving && !$allowLateContract && !$request->filled('sponsorship_transfer_id') && !InvoiceAuthorization::canIssueDirectly()) {
+            $referenceKey = $request->filled('contract_id') ? 'contract:' . $request->contract_id
+                : ($request->filled('ingaz_delegation_id') ? 'delegation:' . $request->ingaz_delegation_id : null);
+            if ($referenceKey && \App\Models\InvoiceDraft::query()->where('reference_key', $referenceKey)->exists()) {
+                return response()->json(['success' => false, 'message' => 'يوجد طلب فاتورة بانتظار الاعتماد لهذا المرجع.'], 422);
+            }
+            $draftPayload = array_merge($validatedDraftInput, $this->buildInvoicePayload($request), $request->only(['create_supplier_invoice', 'supplier_recognition_mode', 'supplier_total_cost_usd', 'supplier_partial_cost_usd', 'supplier_arrival_station']));
+            $draftPayload['send_to_zatca'] = $request->has('send_to_zatca') ? $request->boolean('send_to_zatca') : true;
+            if ($request->boolean('create_supplier_invoice')) {
+                abort_unless(\App\Support\InvoiceSupplierWorkflow::enabled() && $request->filled('contract_id'), 422);
+                $request->validate([
+                    'supplier_recognition_mode' => 'required|in:full,partial',
+                    'supplier_total_cost_usd' => 'nullable|numeric|min:0.01|max:99999999.99',
+                    'supplier_partial_cost_usd' => 'required_if:supplier_recognition_mode,partial|nullable|numeric|min:0.01|max:99999999.99',
+                    'supplier_arrival_station' => 'nullable|string|max:255',
+                ]);
+            }
+            if (\App\Support\InvoiceSupplierWorkflow::enabled() && ($request->filled('contract_id') || $request->filled('ingaz_delegation_id'))) {
+                $draftPayload = array_merge($draftPayload, $this->resolveMusanedCommissionInput($request, (float) $draftPayload['total_due'], (float) ($invoiceNationality?->musaned_commission_rate ?? MusanedTransferController::DEFAULT_COMMISSION_RATE)));
+            }
+            $draft = \App\Models\InvoiceDraft::create([
+                'created_by' => auth('admin')->id(),
+                'branch_id' => $request->filled('contract_id') ? $invoiceContract->branch_id
+                    : ($request->filled('ingaz_delegation_id') ? IngazDelegation::query()->findOrFail($request->ingaz_delegation_id)->branch_id : ClientUser::query()->findOrFail($request->client_id)->branch_id),
+                'reference_key' => $referenceKey,
+                'payload' => $draftPayload,
+            ]);
+            return response()->json(['success' => true, 'is_draft' => true, 'draft_id' => $draft->id,
+                'message' => 'تم حفظ مسودة الفاتورة وإرسالها للاعتماد.']);
+        }
+
         try {
-            $result = DB::transaction(function () use ($request, $service, $yearService, $bondService, $allowLateContract) {
+            $result = DB::transaction(function () use ($request, $service, $yearService, $bondService, $allowLateContract, $invoiceNationality, $approving) {
                 $invoicePayload = $this->buildInvoicePayload($request);
                 $sendToZatca = $request->has('send_to_zatca') ? $request->boolean('send_to_zatca') : true;
+
+                if (\App\Support\InvoiceSupplierWorkflow::enabled()
+                    && ($request->filled('contract_id') || $request->filled('ingaz_delegation_id'))) {
+                    $invoicePayload = array_merge(
+                        $invoicePayload,
+                        $this->resolveMusanedCommissionInput(
+                            $request,
+                            (float) $invoicePayload['total_due'],
+                            (float) ($invoiceNationality?->musaned_commission_rate ?? MusanedTransferController::DEFAULT_COMMISSION_RATE),
+                            $approving
+                        )
+                    );
+                }
 
                 if ($request->filled('ingaz_delegation_id')) {
                     return $this->storeIngazDelegationInvoice(
@@ -1318,10 +1499,19 @@ class InvoiceController extends Controller
                     if ($errors) {
                         throw \Illuminate\Validation\ValidationException::withMessages(['create_supplier_invoice' => implode(' ', $errors)]);
                     }
+                    // فاتورة مورد بلا محطة وصول تُعد غير مكتملة في العقد وتمنع تسجيل الوصول،
+                    // مع أن قيدها يُرحَّل. تُرفض قبل أي قيد حتى لا تنشأ بنصف بيانات.
+                    $arrivalStation = trim((string) ($options['supplier_arrival_station']
+                        ?? $contract->resolveExternalOfficeDispatchArrivalStation() ?? ''));
+                    if ($arrivalStation === '') {
+                        throw \Illuminate\Validation\ValidationException::withMessages([
+                            'supplier_arrival_station' => 'حدّد محطة الوصول لفاتورة المورد؛ لا توجد محطة مسجلة على العقد.',
+                        ]);
+                    }
                     app(RecruitmentContractExternalOfficeDispatchController::class)->persistExternalOfficeDispatch(
                         $contract,
                         $this->resolveInvoiceDateTime($request)->toDateString(),
-                        trim($options['supplier_arrival_station'] ?? $contract->resolveExternalOfficeDispatchArrivalStation() ?? ''),
+                        $arrivalStation,
                         (string) $amount,
                         auth('admin')->id(),
                         false,
@@ -1334,7 +1524,9 @@ class InvoiceController extends Controller
         } catch (\Throwable $e) {
             return response()->json([
                 'success' => false,
-                'message' => $e->getMessage()
+                'message' => $request->boolean('create_supplier_invoice') && !InvoiceAuthorization::canViewSupplierTotalCost()
+                    ? 'تعذر إصدار الفاتورة مع فاتورة المورد؛ اطلب مراجعة بيانات المورد والإعدادات المالية من مستخدم لديه صلاحية عرض إجمالي تكلفة المورد.'
+                    : $e->getMessage()
             ], 422);
         }
 
@@ -1346,6 +1538,11 @@ class InvoiceController extends Controller
         $receiptBond = $result['receipt_bond'];
         /** @var \Nami\Finance\Models\Constraint|null $delegationCostConstraint */
         $delegationCostConstraint = $result['delegation_cost_constraint'] ?? null;
+        /** @var \Nami\Finance\Models\Constraint|null $musanedCommissionConstraint */
+        $musanedCommissionConstraint = $result['musaned_commission_constraint']
+            ?? ($invoice->musaned_commission_constraint_id
+                ? Constraint::query()->find((int) $invoice->musaned_commission_constraint_id)
+                : null);
 
         if ($invoice->ingaz_delegation_id) {
             $delegation = $invoice->relationLoaded('ingazDelegation')
@@ -1375,8 +1572,16 @@ class InvoiceController extends Controller
                 ? route('invoice.download', ['id' => $invoice->id, 'autoprint' => 1])
                 : null,
             'invoice_constraint_print_url' => $invoiceConstraint ? $this->buildConstraintPrintUrl($invoiceConstraint->id) : null,
+            'invoice_constraint_label' => $invoice->contract_id
+                ? (RecruitmentRevenueRecognition::invoiceRecognizesOnInvoice($invoice)
+                    ? 'قيد المبيعات'
+                    : 'قيد الفاتورة (التزام)')
+                : 'قيد المبيعات',
             'receipt_bond_print_url' => $receiptBond ? $this->buildReceiptBondPrintUrl($receiptBond->id) : null,
             'receipt_constraint_print_url' => ($receiptBond && $receiptBond->constraint_id) ? $this->buildConstraintPrintUrl((int) $receiptBond->constraint_id) : null,
+            'musaned_commission_constraint_print_url' => $musanedCommissionConstraint
+                ? $this->buildConstraintPrintUrl($musanedCommissionConstraint->id)
+                : null,
             'delegation_cost_constraint_print_url' => $delegationCostConstraint ? $this->buildConstraintPrintUrl($delegationCostConstraint->id) : null,
             'index_url' => InvoiceAuthorization::canView() ? route('invoices.index') : null,
             'create_url' => route('invoices.create'),
@@ -1414,7 +1619,7 @@ class InvoiceController extends Controller
                 throw new \RuntimeException('هذه الصفحة مخصصة لعقود الاستقدام بحالة وصول أو مكتملة.');
             }
 
-            if ($contract->invoice()->exists()) {
+            if ($contract->blockingInvoices()->exists()) {
                 throw new \RuntimeException('هذا العقد لديه فاتورة سابقة');
             }
 
@@ -1465,6 +1670,8 @@ class InvoiceController extends Controller
                 'discount' => $invoicePayload['discount'],
                 'vat_amount' => $invoicePayload['vat_amount'],
                 'total_due' => $invoicePayload['total_due'],
+                'musaned_commission_rate' => $invoicePayload['musaned_commission_rate'] ?? null,
+                'musaned_commission_amount' => $invoicePayload['musaned_commission_amount'] ?? null,
                 'is_paid' => true,
                 'paid_at' => now(),
                 'send_to_zatca' => $sendToZatca,
@@ -1515,7 +1722,7 @@ class InvoiceController extends Controller
                 }
             }
 
-            app(MusanedTransferController::class)->recordInvoiceCommission($invoice);
+            $musanedCommissionConstraint = app(MusanedTransferController::class)->recordInvoiceCommission($invoice);
 
             if ($allowLateContract) {
                 $arrivalEntries = app(\App\Services\ingaz\RecruitmentTripAccountingService::class)
@@ -1533,6 +1740,7 @@ class InvoiceController extends Controller
                 'invoice' => $invoice->fresh(),
                 'invoice_constraint' => $invoiceConstraint,
                 'receipt_bond' => $receiptBond,
+                'musaned_commission_constraint' => $musanedCommissionConstraint,
             ];
         });
     }
@@ -2380,6 +2588,8 @@ class InvoiceController extends Controller
         if ($this->usesLegacyInvoiceIndex()) {
             $query->whereNotNull('legacy_invoice_number');
             $this->applyInvoiceIndexFilters($query, $request);
+        } else {
+            $this->applyExportInvoiceFilters($query, $request);
         }
 
         if ($this->branchesEnabledFor('invoices') && $request->filled('branch_id')) {
@@ -2387,6 +2597,41 @@ class InvoiceController extends Controller
         }
 
         return $query;
+    }
+
+    /**
+     * التصدير يغطي جدول invoices فقط؛ فيُطبّق من فلاتر الشاشة ما ينطبق على فواتير الاستقدام،
+     * ويعيد نتيجة فارغة إذا اختير نوع مستند خارج هذا الجدول (تأجير أو إشعارات).
+     */
+    private function applyExportInvoiceFilters($query, Request $request): void
+    {
+        $date = fn (string $key) => preg_match('/^\d{4}-\d{2}-\d{2}$/', (string) $request->input($key)) ? $request->input($key) : null;
+        $amount = fn (string $key) => is_numeric($request->input($key)) ? (float) $request->input($key) : null;
+        $hasRentalTransfer = Schema::hasColumn('invoices', 'rental_transfer_contract_id');
+
+        match ((string) $request->input('doc_type')) {
+            'recruitment' => $query->whereNotNull('contract_id'),
+            'delegation' => $query->whereNotNull('ingaz_delegation_id'),
+            'transfer' => $query->where(fn ($q) => $q->whereNotNull('sponsorship_transfer_id')
+                ->when($hasRentalTransfer, fn ($q) => $q->orWhereNotNull('rental_transfer_contract_id'))),
+            'general' => $query->whereNull('contract_id')->whereNull('ingaz_delegation_id')->whereNull('sponsorship_transfer_id')
+                ->when($hasRentalTransfer, fn ($q) => $q->whereNull('rental_transfer_contract_id')),
+            'rental', 'rental_adjustment', 'credit_note' => $query->whereRaw('1 = 0'),
+            default => null,
+        };
+
+        match ((string) $request->input('payment')) {
+            'paid' => $query->where(fn ($q) => $q->where('is_paid', 1)->orWhere('total_due', '<=', 0)),
+            'unpaid' => $query->where(fn ($q) => $q->whereNull('is_paid')->orWhere('is_paid', 0))->where('total_due', '>', 0),
+            'customer_credit', 'customer_debit' => $query->whereRaw('1 = 0'),
+            default => null,
+        };
+
+        $query
+            ->when($date('date_from'), fn ($q, $value) => $q->whereDate('created_at', '>=', $value))
+            ->when($date('date_to'), fn ($q, $value) => $q->whereDate('created_at', '<=', $value))
+            ->when($amount('amount_min') !== null, fn ($q) => $q->where('total_due', '>=', $amount('amount_min')))
+            ->when($amount('amount_max') !== null, fn ($q) => $q->where('total_due', '<=', $amount('amount_max')));
     }
 
     private function exportZatcaStatusLabel(Invoice $invoice): string
@@ -2768,8 +3013,8 @@ class InvoiceController extends Controller
             ->lockForUpdate()
             ->findOrFail($request->ingaz_delegation_id);
 
-        if ($delegation->invoice()->exists()) {
-            throw new \RuntimeException('هذا التفويض لديه فاتورة سابقة');
+        if ($delegation->blockingInvoices()->exists()) {
+            throw new \RuntimeException('هذا التفويض لديه فاتورة سابقة لم يتم إصدار إشعار دائن بكامل قيمتها');
         }
 
         if (!$delegation->user) {
@@ -2785,6 +3030,7 @@ class InvoiceController extends Controller
         $invoice = Invoice::create([
             'contract_id' => null,
             'ingaz_delegation_id' => $delegation->id,
+            'branch_id' => $delegation->branch_id,
             'client_id' => null,
             'insurance_company' => $request->insurance_company ?? null,
             'general_description' => $request->general_description ?? null,
@@ -2802,6 +3048,8 @@ class InvoiceController extends Controller
             'discount' => $invoicePayload['discount'],
             'vat_amount' => $invoicePayload['vat_amount'],
             'total_due' => $invoicePayload['total_due'],
+            'musaned_commission_rate' => $invoicePayload['musaned_commission_rate'] ?? null,
+            'musaned_commission_amount' => $invoicePayload['musaned_commission_amount'] ?? null,
             'is_paid' => true,
             'paid_at' => now(),
             'send_to_zatca' => $sendToZatca,
@@ -2833,7 +3081,7 @@ class InvoiceController extends Controller
             // Delegation costs are posted separately after payment confirmation.
         }
 
-        app(MusanedTransferController::class)->recordInvoiceCommission($invoice);
+        $musanedCommissionConstraint = app(MusanedTransferController::class)->recordInvoiceCommission($invoice);
 
         if ($invoice->send_to_zatca) {
             $this->queueInvoiceForZatcaSale($invoice);
@@ -2843,6 +3091,7 @@ class InvoiceController extends Controller
             'invoice' => $invoice,
             'invoice_constraint' => $invoiceConstraint,
             'receipt_bond' => $receiptBond,
+            'musaned_commission_constraint' => $musanedCommissionConstraint,
             'delegation_cost_constraint' => $delegationCostConstraint,
         ];
     }
@@ -3812,12 +4061,20 @@ class InvoiceController extends Controller
             'sponsorshipTransfer.receiptBond.constraint',
             'rentalTransferContract.maid',
             'invoiceConstraint',
+            'musanedCommissionConstraint',
             'musanedTransferItem.transfer',
             'financeSale.zatca',
             'recruitmentCreditNotes.constraint',
             'recruitmentCreditNotes.financeSale',
         ])->findOrFail($id);
         $this->assertCanAccessBranchModel($invoice, 'invoices');
+
+        $invoiceReceiptBond = Bond::query()
+            ->with('constraint')
+            ->where('type', BondTypes::Qabd->value)
+            ->where('statement', 'regexp', 'الفاتورة #' . (int) $invoice->id . '([^0-9]|$)')
+            ->latest('id')
+            ->first();
 
         $settings = Setting::query()->first();
         $documentBranding = documentBranding();
@@ -3881,6 +4138,7 @@ class InvoiceController extends Controller
 
         return [
             'invoice' => $invoice,
+            'invoiceReceiptBond' => $invoiceReceiptBond,
             'settings' => $settings,
             'supplierName' => $supplierName,
             'supplierAddress' => $supplierAddress,
@@ -4104,6 +4362,87 @@ class InvoiceController extends Controller
             'discount' => $totals['discount'],
             'vat_amount' => $totals['vat_amount'],
             'total_due' => $totals['total_due'],
+        ]);
+    }
+
+    /**
+     * مبلغ التكاليف البنكية هو القيمة المالية المعتمدة، وتُحفظ النسبة داخليًا للمراجعة.
+     * إذا عدّل المستخدم المبلغ، تُشتق منه النسبة الفعلية حتى لا يُحفظ رقمان متعارضان.
+     */
+    private function resolveMusanedCommissionInput(Request $request, float $invoiceTotal, float $defaultRate, bool $approvedPayload = false): array
+    {
+        $canEdit = $approvedPayload || InvoiceAuthorization::canEditMusanedCommission();
+        $validated = $request->validate([
+            'musaned_commission_amount' => 'nullable|numeric|min:0|max:999999999.99',
+        ], [
+            'musaned_commission_amount.numeric' => 'مبلغ التكاليف البنكية يجب أن يكون رقمًا.',
+        ]);
+
+        $invoiceTotal = $this->roundMoney(max(0, $invoiceTotal));
+        $requestedRate = $defaultRate;
+        $amount = $canEdit && isset($validated['musaned_commission_amount'])
+            ? $this->roundMoney((float) $validated['musaned_commission_amount'])
+            : $this->roundMoney($invoiceTotal * $requestedRate / 100);
+
+        if ($amount > $invoiceTotal) {
+            throw \Illuminate\Validation\ValidationException::withMessages([
+                'musaned_commission_amount' => 'مبلغ التكاليف البنكية لا يمكن أن يتجاوز إجمالي الفاتورة (' . number_format($invoiceTotal, 2) . ' ريال).',
+            ]);
+        }
+
+        $effectiveRate = $invoiceTotal > 0
+            ? round(($amount / $invoiceTotal) * 100, 4)
+            : 0.0;
+
+        return [
+            'musaned_commission_rate' => $effectiveRate,
+            'musaned_commission_amount' => $amount,
+        ];
+    }
+
+    private function resolveRequestInvoiceNationality(Request $request): ?Nationality
+    {
+        if ($request->filled('contract_id')) {
+            $contract = Contract::query()
+                ->with(['maid.nationality', 'requiredMaidNationality'])
+                ->find((int) $request->input('contract_id'));
+
+            return $contract?->maid?->nationality ?? $contract?->requiredMaidNationality;
+        }
+
+        if ($request->filled('ingaz_delegation_id')) {
+            return IngazDelegation::query()
+                ->with('nationality')
+                ->find((int) $request->input('ingaz_delegation_id'))
+                ?->nationality;
+        }
+
+        return null;
+    }
+
+    /**
+     * الإخفاء في الواجهة ليس حماية. من لا يملك صلاحية التعديل تُعاد قيمه
+     * إلى بنود الجنسية والكميات القياسية حتى لو أرسل طلباً يدوياً.
+     */
+    private function enforceInvoiceLineItemPermission(Request $request, ?Nationality $nationality): void
+    {
+        if ((!$request->filled('contract_id') && !$request->filled('ingaz_delegation_id'))
+            || InvoiceAuthorization::canEditLineItems()) {
+            return;
+        }
+
+        $request->merge([
+            'direct_recruitment_cost' => (float) ($nationality?->direct_recruitment_cost ?? 0),
+            'external_recruitment_cost' => (float) ($nationality?->external_recruitment_cost ?? 0),
+            'government_cost' => (float) ($nationality?->government_cost ?? 0),
+            'internal_ticket_cost' => 0,
+            'visa_recruited_count' => 1,
+            'direct_recruitment_count' => 1,
+            'external_recruitment_count' => 1,
+            'insured_count' => 1,
+            'government_cost_count' => 1,
+            'internal_ticket_count' => 1,
+            'discount' => 0,
         ]);
     }
 
@@ -4999,64 +5338,7 @@ class InvoiceController extends Controller
 
     private function ensureRecruitmentContractCostCenter(Contract $contract, ?string $nationalityName): CostCenter
     {
-        $rootCostCenter = $this->ensureRecruitmentContractsRootCostCenter();
-
-        $costCenter = CostCenter::query()
-            ->lockForUpdate()
-            ->where('parent_id', $rootCostCenter->id)
-            ->where('table_name', CostCenterTypeEnum::General->value)
-            ->where('table_related_id', $contract->id)
-            ->first();
-
-        if ($costCenter) {
-            return $costCenter;
-        }
-
-        $title = 'عقد استقدام #' . $contract->id;
-        $nationalityName = trim((string) $nationalityName);
-        if ($nationalityName !== '') {
-            $title .= ' - ' . $nationalityName;
-        }
-
-        return CostCenter::query()->create([
-            'title' => $title,
-            'parent_id' => $rootCostCenter->id,
-            'table_name' => CostCenterTypeEnum::General->value,
-            'table_related_id' => $contract->id,
-            'code' => $this->nextCostCenterCode(),
-            'created_by_id' => Auth::guard('admin')->id() ?: Auth::id() ?: 1,
-        ]);
-    }
-
-    private function ensureRecruitmentContractsRootCostCenter(): CostCenter
-    {
-        $costCenter = CostCenter::query()
-            ->lockForUpdate()
-            ->whereNull('parent_id')
-            ->where('title', 'عقود الاستقدام')
-            ->first();
-
-        if ($costCenter) {
-            return $costCenter;
-        }
-
-        return CostCenter::query()->create([
-            'title' => 'عقود الاستقدام',
-            'parent_id' => null,
-            'table_name' => CostCenterTypeEnum::General->value,
-            'table_related_id' => 0,
-            'code' => $this->nextCostCenterCode(),
-            'created_by_id' => Auth::guard('admin')->id() ?: Auth::id() ?: 1,
-        ]);
-    }
-
-    private function nextCostCenterCode(): string
-    {
-        $lastCode = CostCenter::query()
-            ->lockForUpdate()
-            ->max('code');
-
-        return (string) (((int) $lastCode) + 1);
+        return RecruitmentCostCenters::forContract((int) $contract->id, $nationalityName);
     }
 
     private function roundMoney(float $amount): float

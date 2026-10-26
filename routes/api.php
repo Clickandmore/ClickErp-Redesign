@@ -59,6 +59,11 @@ Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
 Route::get('webhooks/whatsapp', [WhatsAppWebhookController::class, 'verify'])->name('api.webhooks.whatsapp.verify');
 Route::post('webhooks/whatsapp', [WhatsAppWebhookController::class, 'receive'])->name('api.webhooks.whatsapp.receive');
 
+// تحديثات النظام: نسخ العملاء تسحب من هنا بمفتاح يُنشأ في لوحة Super Admin
+Route::get('system-updates/feed', [\App\Http\Controllers\Api\SystemUpdatesFeedController::class, '__invoke'])
+    ->middleware('throttle:30,1')
+    ->name('api.system-updates.feed');
+
 Route::prefix('visitor-widget/{siteKey}')
     ->where(['siteKey' => '[A-Za-z0-9]{40,64}'])
     ->name('api.visitor-widget.')

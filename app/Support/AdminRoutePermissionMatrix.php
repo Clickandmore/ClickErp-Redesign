@@ -84,6 +84,8 @@ class AdminRoutePermissionMatrix
             'ingaz-delegations.create',
             'invoices.index',
             'invoices.create',
+            'invoice-drafts.index',
+            'reports.import.index',
             'musaned-transfers.index',
             'musaned-transfers.create',
             'ShelterContract.index',
@@ -352,6 +354,8 @@ class AdminRoutePermissionMatrix
             'dash.developers.perms.toggleStatus' => [PermKeys::DEVELOPERS_PERMS],
             'dash.developers.perms.delete' => [PermKeys::PERMISSIONS_DELETE],
             'dash.activity.log' => [PermKeys::ACTIVITY_VIEW],
+            'dash.activity.log.export' => [PermKeys::ACTIVITY_EXPORT],
+            'dash.activity.log.export-pdf' => [PermKeys::ACTIVITY_EXPORT],
             'admins.impersonate' => [PermKeys::USERS_EDIT],
             'admins.reset-password' => [PermKeys::USERS_EDIT],
             'admins.terminate-session' => [PermKeys::USERS_EDIT],
@@ -404,6 +408,9 @@ class AdminRoutePermissionMatrix
         return [
             'maids.index' => [PermKeys::MAIDS_VIEW],
             'maids.create' => [PermKeys::MAIDS_CREATE],
+            'maids.bulk-import.create', 'maids.bulk-import.template', 'maids.bulk-import.store' => [PermKeys::MAIDS_CREATE, PermKeys::DATA_IMPORT_UPLOAD],
+            'maids.bulk-import.show' => [PermKeys::MAIDS_CREATE, PermKeys::DATA_IMPORT_UPLOAD, PermKeys::DATA_IMPORT_REVIEW, PermKeys::DATA_IMPORT_APPROVE],
+            'maids.bulk-import.approve' => [PermKeys::DATA_IMPORT_APPROVE],
             'maids.rental.index' => [PermKeys::MAIDS_RENTAL_VIEW],
             'maids.branch.update' => [PermKeys::MAIDS_CHANGE_BRANCH],
             'maids.bulk-visibility' => [PermKeys::MAIDS_BULK_VISIBILITY],
@@ -461,6 +468,8 @@ class AdminRoutePermissionMatrix
                 'orders.quickRecruitment' => [PermKeys::ORDERS_CREATE],
                 'orders.notes.store' => [PermKeys::ORDERS_EDIT],
                 'orders.restore' => [PermKeys::ORDERS_DELETE],
+                'orders.changeClient' => [PermKeys::ORDERS_CHANGE_CLIENT],
+                'orders.searchChangeClient' => [PermKeys::ORDERS_CHANGE_CLIENT],
                 'orders.changeMaid' => [PermKeys::ORDERS_CHANGE_MAID],
                 'orders.changeMaidById' => [PermKeys::ORDERS_CHANGE_MAID],
                 'orders.changeResponsible' => [PermKeys::ORDERS_CHANGE_RESPONSIBLE],
@@ -596,6 +605,14 @@ class AdminRoutePermissionMatrix
                 PermKeys::REC_CONTRACTS_MANAGE,
             ],
             'invoices.index' => InvoiceAuthorization::viewPermissions(),
+            'reports.import.index' => ['data_import_upload', 'data_import_review', 'data_import_approve'],
+            'reports.import.template', 'reports.import.store' => ['data_import_upload'],
+            'reports.import.show' => ['data_import_upload', 'data_import_review', 'data_import_approve'],
+            'reports.import.approve' => ['data_import_approve'],
+            'reports.import.generate-bonds' => ['data_import_generate_bonds'],
+            'invoice-drafts.index' => [\App\PermKeys::INVOICES_DRAFTS_VIEW, \App\PermKeys::INVOICES_APPROVE, \App\PermKeys::INVOICES_CREATE_DRAFT],
+            'invoice-drafts.approve' => [\App\PermKeys::INVOICES_APPROVE],
+            'invoice-drafts.return' => [\App\PermKeys::INVOICES_APPROVE],
             'invoices.show' => InvoiceAuthorization::viewPermissions(),
             'invoices.create' => InvoiceAuthorization::createPermissions(),
             'invoices.store' => static fn (?Request $request) => $request === null
@@ -656,6 +673,34 @@ class AdminRoutePermissionMatrix
                 PermKeys::MUSANED_TRANSFERS_DELETE,
                 PermKeys::MUSANED_TRANSFERS_CONTROL,
             ],
+            // تقرير فواتير المبيعات بالصافي: قراءة فقط، ويغذّي شاشة التسوية.
+            'musaned-transfers.invoices-report' => [
+                PermKeys::MUSANED_TRANSFERS_VIEW,
+                PermKeys::MUSANED_TRANSFERS_CREATE,
+                PermKeys::MUSANED_TRANSFERS_CONTROL,
+                PermKeys::REC_CONTRACTS_VIEW,
+                PermKeys::REC_CONTRACTS_MANAGE,
+            ],
+            'recruitment-contract-finance.index' => [
+                PermKeys::REC_CONTRACTS_VIEW,
+                PermKeys::REC_CONTRACTS_MANAGE,
+            ],
+            'recruitment-contract-finance.show' => [
+                PermKeys::REC_CONTRACTS_VIEW,
+                PermKeys::REC_CONTRACTS_MANAGE,
+            ],
+            'recruitment-supplier-payments.index' => [
+                PermKeys::REC_CONTRACTS_VIEW,
+                PermKeys::REC_CONTRACTS_MANAGE,
+            ],
+            'recruitment-supplier-payments.create' => [
+                PermKeys::REC_CONTRACTS_CREATE,
+                PermKeys::REC_CONTRACTS_MANAGE,
+            ],
+            'recruitment-supplier-payments.store' => [
+                PermKeys::REC_CONTRACTS_CREATE,
+                PermKeys::REC_CONTRACTS_MANAGE,
+            ],
         ];
     }
 
@@ -667,6 +712,10 @@ class AdminRoutePermissionMatrix
             'RentContract.export.excel' => [PermKeys::RENT_CONTRACT_VIEW, PermKeys::RENT_CONTRACT_CONTROL],
             'RentContract.sendExpiryReminder' => [PermKeys::RENT_CONTRACT_CONTROL],
             'RentContract.changeMarketer' => [PermKeys::RENT_CONTRACT_CHANGE_MARKETER],
+            'RentContract.escapeReturn' => [PermKeys::RENT_CONTRACT_CONTROL],
+            'RentContract.escapeReady' => [PermKeys::RENT_CONTRACT_CONTROL],
+            'RentContract.escapeCloseWithoutReturn' => [PermKeys::RENT_CONTRACT_CONTROL],
+            'RentContract.escapeAttachment' => [PermKeys::RENT_CONTRACT_VIEW],
             'rental-orders.index' => [PermKeys::RENTAL_ORDERS_VIEW, PermKeys::ORDERS_VIEW],
             'rent-contract.settings' => [PermKeys::CONTRACT_SETTINGS],
             'rent-contract.settings.update' => [PermKeys::CONTRACT_SETTINGS],

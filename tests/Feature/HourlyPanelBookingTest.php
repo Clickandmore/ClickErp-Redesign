@@ -204,7 +204,7 @@ class HourlyPanelBookingTest extends TestCase
     {
         $order=app(PanelBookingService::class)->create($this->booking(),7);
         $this->get(route('admin.hourly-orders.summary',$order))->assertOk()->assertSee('ملخص الطلب')->assertSee('تاريخ الزيارات')->assertSee('نسخ تفاصيل الطلب')->assertSee(route('admin.hourly-orders.show',$order));
-        $this->get(route('admin.hourly-orders.show',$order))->assertOk()->assertSee('بطاقة الطلب')->assertSee('شؤون الموظفين')->assertSee('سجل الدفعات')->assertSee('إجمالي ساعات العمل');
+        $this->get(route('admin.hourly-orders.show',$order))->assertOk()->assertSee('بطاقة الطلب')->assertSee('data-visit-card',false)->assertSee('الطاقم')->assertSee('سجل الدفعات')->assertSee('إجمالي ساعات العمل');
         $url=route('admin.hourly-orders.note',$order);
         $this->post($url,['note'=>'Order instructions'])->assertRedirect();
         $this->post($url,['note'=>'Visit instructions','visit_id'=>$order->visits()->first()->id])->assertRedirect();
@@ -341,7 +341,8 @@ class HourlyPanelBookingTest extends TestCase
         $this->assertEquals(195,$order->fresh()->total_amount);$this->assertEquals(230,$order->fresh()->initial_amount);$this->assertEquals(230,$order->fresh()->paid_amount);
         $this->assertSame(2,DB::table('hourly_order_audits')->count());
         $this->postJson(route('admin.hourly-orders.operations',$order),['action'=>'cancel_visit','reason'=>'Cancelled visit','visit_ids'=>[$ids[1]]])->assertOk();
-        $this->assertEquals(80,$order->fresh()->total_amount);$this->assertEquals(230,$order->fresh()->paid_amount);
+        $this->assertEquals(80,$order->fresh()->total_amount);$this->assertEquals(80,$order->fresh()->paid_amount);
+        $this->assertDatabaseHas('hourly_order_payments',['hourly_rental_order_id'=>$order->id,'amount'=>-150,'status'=>'paid']);
         $this->assertEquals(round(80/1.15,2),$order->fresh()->subtotal);
         $this->postJson(route('admin.hourly-orders.operations',$order),['action'=>'price','reason'=>'Invalid visit','visit_ids'=>[$ids[1]],'price'=>70])->assertUnprocessable();
         $this->assertEquals(80,$order->fresh()->total_amount);
@@ -486,8 +487,11 @@ class HourlyPanelBookingTest extends TestCase
         $this->assertEquals(1,$visit->fresh()->planned_hours);
         $admin=\Mockery::mock(\App\Models\auth\Admin::class)->makePartial();$admin->id=7;$admin->shouldReceive('can')->andReturn(false);auth('admin')->setUser($admin);
         $this->postJson($url,['action'=>'price','reason'=>'Not permitted','visit_ids'=>[$visit->id],'price'=>1])->assertForbidden();
+        $this->postJson($url,['action'=>'cancel_order','reason'=>'Customer cancellation'])->assertForbidden();
+        $admin=\Mockery::mock(\App\Models\auth\Admin::class)->makePartial();$admin->id=7;$admin->shouldReceive('can')->andReturn(true);auth('admin')->setUser($admin);
         $this->postJson($url,['action'=>'cancel_order','reason'=>'Customer cancellation'])->assertOk();
-        $this->assertEquals(0,$order->fresh()->total_amount);$this->assertEquals(115,$order->fresh()->paid_amount);
+        $this->assertEquals(0,$order->fresh()->total_amount);$this->assertEquals(0,$order->fresh()->paid_amount);
+        $this->assertDatabaseHas('hourly_order_payments',['hourly_rental_order_id'=>$order->id,'amount'=>-115,'status'=>'paid']);
         $this->assertSame('cancelled',$order->fresh()->status);$this->assertSame(0,$order->fresh()->balance['reserved']);
     }
 
@@ -538,7 +542,7 @@ class HourlyPanelBookingTest extends TestCase
     {
         $order=app(PanelBookingService::class)->create($this->booking(),7);$visit=$order->visits()->first();
         HourlyRentalSettings::persist(['max_visits_per_day'=>5,'max_hours_per_day'=>12,'min_rest_hours_between_visits'=>1]);
-        $other=$order->replicate();$other->order_number=(string)Str::uuid();$other->invoice_number=(string)Str::uuid();$other->booking_token=(string)Str::uuid();$other->save();
+        $other=$order->replicate();$other->unit='different-unit';$other->order_number=(string)Str::uuid();$other->invoice_number=(string)Str::uuid();$other->booking_token=(string)Str::uuid();$other->save();
         $later=$visit->replicate();$later->hourly_rental_order_id=$other->id;$later->scheduled_start_at=$visit->scheduled_start_at->copy()->setTime(13,0);$later->scheduled_end_at=$later->scheduled_start_at->copy()->addHours(4);$later->save();$later->workers()->attach(1);
         $url=route('admin.hourly-orders.operations',$order);
         $data=['action'=>'duration','visit_ids'=>[$visit->id],'hours'=>4.25,'reason'=>'Shorter break'];
@@ -551,6 +555,8 @@ class HourlyPanelBookingTest extends TestCase
     public function test_renewal_prefills_customer_without_creating_an_order(): void
     {
         $order=app(PanelBookingService::class)->create($this->booking(),7);
+        $order->update(['status'=>'active']);
+        $order->visits()->first()->update(['status'=>'completed']);
         $this->get(route('admin.hourly-orders.create',['renew'=>$order->id]))->assertOk()
             ->assertViewHas('renewal',fn($r)=>$r['id']===$order->id && $r['customer']['id']===$order->user_id && $r['item_id']===$order->hourly_package_id);
         $this->assertSame(1,HourlyRentalOrder::count());
@@ -564,6 +570,7 @@ class HourlyPanelBookingTest extends TestCase
         $this->assertSame(0,DB::table('hourly_visit_workers')->count());
         $this->assertSame(2,DB::table('hourly_visit_reservations')->count());
         $this->assertSame(2,$order->visits()->first()->workers_count);
+        DB::table('user_addresses')->where('id',$data['address_id'])->update(['unit'=>'different-unit']);
         $data['booking_token']=(string)Str::uuid();
         try { app(PanelBookingService::class)->create($data,7);$this->fail('Capacity must be reserved'); }
         catch (ValidationException $e) { $this->assertSame(1,HourlyRentalOrder::count()); }
@@ -647,6 +654,24 @@ class HourlyPanelBookingTest extends TestCase
         $this->postJson('/panel/add-order/map-link',['url'=>'https://www.google.com/maps/@24.7,46.7,15z'])->assertOk()->assertJsonPath('latitude',24.7);
     }
 
+    /** The link Google gives when you search coordinates, and directions links, carry the point in the path. */
+    public function test_map_link_reads_coordinates_from_search_and_directions_links(): void
+    {
+        foreach ([
+            'https://www.google.com/maps/search/24.713600,+46.675300?entry=ttu',
+            'https://www.google.com/maps/dir//24.7136,46.6753',
+            // destination is the last point, not the @ viewport centre
+            'https://www.google.com/maps/dir/24.6000,46.6000/24.7136,46.6753/@24.65,46.63,12z',
+            'https://www.google.com/maps/dir/?api=1&destination=24.7136,46.6753',
+        ] as $url) {
+            $this->postJson('/panel/add-order/map-link',['url'=>$url])->assertOk()
+                ->assertJson(['latitude'=>24.7136,'longitude'=>46.6753]);
+        }
+        // a dropped pin still wins over the viewport centre
+        $this->postJson('/panel/add-order/map-link',['url'=>'https://www.google.com/maps/place/X/@24.7,46.6,17z/data=!3d24.7137!4d46.6754'])
+            ->assertOk()->assertJson(['latitude'=>24.7137,'longitude'=>46.6754]);
+    }
+
     public function test_saved_addresses_include_city_and_only_belong_to_selected_customer(): void
     {
         $first=$this->address(24.7,46.7,'الملز');
@@ -712,5 +737,104 @@ class HourlyPanelBookingTest extends TestCase
         $job->handle();$job->handle();
         $this->assertSame(1,DB::table('notifications')->count());
         $this->assertNotEmpty($order->fresh()->booking_metadata['email_sent_at']);
+    }
+    public function test_duplicate_booking_with_another_worker_is_blocked_and_original_retry_is_safe(): void
+    {
+        $data=$this->booking();$source=app(PanelBookingService::class)->create($data,7);
+        $retry=app(PanelBookingService::class)->create($data,7);$this->assertSame($source->id,$retry->id);
+        $second=$data;$second['booking_token']=(string)Str::uuid();$second['visits'][0]['worker_ids']=[2];
+        $this->postJson('/panel/add-order/store',$second)->assertStatus(409)->assertJsonPath('code','duplicate_visit')
+            ->assertJsonPath('duplicate.visits.0.order_id',$source->id)->assertJsonPath('duplicate.visits.0.can_add_worker',true);
+        $this->assertSame(1,HourlyRentalOrder::count());$this->assertSame(1,DB::table('hourly_visits')->count());
+        $this->assertSame(0,DB::table('hourly_order_payments')->count());
+        $this->assertEquals(1000,DB::table('users')->where('id',1)->value('hourly_wallet_balance'));
+    }
+
+    public function test_customer_api_and_new_address_copy_cannot_bypass_duplicate_detection(): void
+    {
+        $data=$this->booking();$source=app(PanelBookingService::class)->create($data,7);
+        $address=\App\Models\ingaz\UserAddress::findOrFail($data['address_id']);$copy=$address->replicate();$copy->save();
+        auth('api')->setUser(\App\Models\ingaz\User::findOrFail(1));
+        $this->postJson('/api/app/hourly/orders',['booking_token'=>(string)Str::uuid(),'hourly_package_id'=>$data['hourly_package_id'],
+            'address_id'=>$copy->id,'workers_per_visit'=>1,'payment_method'=>'cash','scheduled_starts'=>[$data['visits'][0]['starts_at']]])
+            ->assertStatus(409)->assertJsonPath('code','duplicate_visit')->assertJsonPath('duplicate.visits.0.order_id',$source->id);
+        $this->assertSame(1,HourlyRentalOrder::count());
+    }
+
+    public function test_non_overlapping_booking_and_cancelled_source_do_not_block_new_orders(): void
+    {
+        $data=$this->booking();$source=app(PanelBookingService::class)->create($data,7);
+        $later=$data;$later['booking_token']=(string)Str::uuid();$later['visits'][0]['worker_ids']=[2];
+        $later['visits'][0]['starts_at']=\Carbon\Carbon::parse($data['visits'][0]['starts_at'])->addDay()->format('Y-m-d H:i');
+        $this->assertNotSame($source->id,app(PanelBookingService::class)->create($later,7)->id);
+        $source->visits()->update(['status'=>'cancelled']);$source->update(['status'=>'cancelled']);
+        $new=$data;$new['booking_token']=(string)Str::uuid();$new['visits'][0]['worker_ids']=[2];
+        $this->assertNotSame($source->id,app(PanelBookingService::class)->create($new,7)->id);
+    }
+
+    public function test_customer_adds_one_worker_to_only_the_existing_visit_after_price_confirmation(): void
+    {
+        $this->withoutMiddleware(\Illuminate\Routing\Middleware\ThrottleRequests::class);
+        $data=$this->booking(2);$source=app(PanelBookingService::class)->create($data,7);$visits=$source->visits()->orderBy('visit_number')->get();$visit=$visits[0];
+        auth('api')->setUser(\App\Models\ingaz\User::findOrFail(1));
+        $url='/api/app/hourly/orders/'.$source->id.'/visits/'.$visit->id.'/additional-worker';
+        request()->query->set('add_worker_visit',$visit->id);
+        $html=view('web.hourly._additional-worker',['order'=>$source->load('visits')])->render();
+        $this->assertStringContainsString('name="confirmed"',$html);
+        request()->query->remove('add_worker_visit');
+        $quote=$this->getJson($url)->assertOk()->assertJsonPath('data.current_workers',1)->assertJsonPath('data.new_workers',2)->json('data');
+        $body=['request_token'=>(string)Str::uuid(),'confirmed'=>1,'expected_workers'=>$quote['current_workers'],'expected_price'=>$quote['current_price'],'expected_total'=>$quote['order_total']];
+        $this->postJson($url,array_merge($body,['confirmed'=>0]))->assertStatus(422);
+        $this->postJson($url,array_merge($body,['expected_price'=>1]))->assertStatus(422);
+        $result=$this->postJson($url,$body)->assertOk()->assertJsonPath('data.replayed',false)->json('data');
+        $this->postJson($url,$body)->assertOk()->assertJsonPath('data.replayed',true);
+        $this->assertSame(1,HourlyRentalOrder::count());$this->assertSame(2,DB::table('hourly_visits')->count());
+        $this->assertSame(2,$visit->fresh()->workers()->count());$this->assertSame(2,(int)$visit->fresh()->workers_count);
+        $this->assertEquals($quote['new_price'],$visit->fresh()->visit_price);
+        $this->assertEquals($quote['new_order_total'],$source->fresh()->total_amount);
+        $this->assertSame(1,(int)$visits[1]->fresh()->workers_count);
+        $this->assertEquals($visits[1]->visit_price,$visits[1]->fresh()->visit_price);
+        $this->assertSame(0,DB::table('hourly_order_payments')->count());
+        $this->assertDatabaseHas('hourly_order_audits',['hourly_rental_order_id'=>$source->id,'visit_id'=>$visit->id,'action'=>'customer_add_worker']);
+        $this->postJson($url,array_merge($body,['expected_total'=>1]))->assertStatus(422);
+        DB::table('users')->insert(['id'=>2,'name'=>'Other','phone'=>'0500000099']);
+        auth('api')->setUser(\App\Models\ingaz\User::findOrFail(2));
+        $this->getJson($url)->assertNotFound();$this->postJson($url,$body)->assertNotFound();
+    }
+
+    public function test_customer_additional_worker_declines_when_worker_is_no_longer_available(): void
+    {
+        $data=$this->booking();$source=app(PanelBookingService::class)->create($data,7);$visit=$source->visits()->first();
+        auth('api')->setUser(\App\Models\ingaz\User::findOrFail(1));
+        $url='/api/app/hourly/orders/'.$source->id.'/visits/'.$visit->id.'/additional-worker';
+        $quote=$this->getJson($url)->assertOk()->json('data');
+        $maid=\App\Models\ingaz\Maid::findOrFail(2);$settings=$maid->hourly_settings;
+        $settings['work_schedule']=array_fill_keys(array_keys(\App\Models\Hourly\HourlyDriver::DAYS),['mode'=>'off']);
+        $maid->update(['hourly_settings'=>$settings]);
+        DB::table('hourly_worker_leaves')->insert(['maid_id'=>2,'starts_at'=>$visit->scheduled_start_at,'ends_at'=>$visit->scheduled_end_at,'is_active'=>true]);
+        $this->postJson($url,['request_token'=>(string)Str::uuid(),'confirmed'=>1,'expected_workers'=>1,
+            'expected_price'=>$quote['current_price'],'expected_total'=>$quote['order_total']])->assertStatus(422);
+        $this->assertSame(1,(int)$visit->fresh()->workers_count);
+    }
+    public function test_driver_residency_blocks_manual_assignment_on_task_date_and_recovers_after_renewal(): void
+    {
+        $order=app(PanelBookingService::class)->create($this->booking(),7); $visit=$order->visits()->firstOrFail();
+        Schema::table('hourly_drivers',function(Blueprint $t){$t->json('work_schedule')->nullable();$t->date('residency_expiry_date')->nullable();});
+        DB::table('hourly_drivers')->insert(['id'=>1,'name'=>'Residency driver','is_active'=>true,
+            'residency_expiry_date'=>$visit->scheduled_start_at->copy()->subDay()->toDateString(),
+            'work_schedule'=>json_encode(array_fill_keys(array_keys(HourlyDriver::DAYS),['mode'=>'all_day']))]);
+        DB::table('hourly_team_members')->insert(['hourly_team_id'=>$visit->hourly_team_id,'member_type'=>'driver','member_id'=>1,'role'=>'primary','is_active'=>true]);
+        $service=app(\App\Services\Hourly\OrderManagementService::class);
+        $clock=$visit->scheduled_start_at->format('H:i');
+        $this->assertCount(0,$service->availableDrivers(collect([$visit]),'delivery',$clock));
+        $body=['action'=>'assign_driver','reason'=>'Residency check','visit_ids'=>[$visit->id],'driver_id'=>1,'driver_role'=>'delivery','driver_time'=>$clock];
+        $url=route('admin.hourly-orders.operations',$order);
+        $response=$this->postJson($url,$body)->assertUnprocessable();
+        $this->assertStringContainsString('تنتهي إقامته',json_encode($response->json('errors'),JSON_UNESCAPED_UNICODE));
+        $this->assertNull($visit->fresh()->delivery_driver_id);
+        DB::table('hourly_drivers')->where('id',1)->update(['residency_expiry_date'=>$visit->scheduled_start_at->toDateString()]);
+        $this->assertCount(1,$service->availableDrivers(collect([$visit]),'delivery',$clock));
+        $this->postJson($url,$body)->assertOk();
+        $this->assertEquals(1,$visit->fresh()->delivery_driver_id);
     }
 }

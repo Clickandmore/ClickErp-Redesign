@@ -416,6 +416,7 @@ class MaidAction extends MainAction
             'maid_cv_file' => $data['maid_cv_file'] ?? null,
             'image' => $data['image'] ?? '',
             'video_link' => $data['video_link'] ?? null,
+            'musaned_link' => $data['musaned_link'] ?? null,
             'video' => $data['video'] ?? null,
             'cv_preview' => $data['cv_preview'] ?? null,
             'office_id' => $data['office_id'] ?? null,
@@ -1295,6 +1296,7 @@ class MaidAction extends MainAction
         $keyword = $request->search;
 
         $results = Maid::select('maids.*')
+            ->notHourly()
             ->leftJoin('nationalities_translations', 'maids.nationality_id', '=', 'nationalities_translations.nationality_id')
             ->leftJoin('religions_translations', 'maids.religion_id', '=', 'religions_translations.religion_id')
             ->where(function ($query) use ($keyword) {
@@ -1993,13 +1995,15 @@ class MaidAction extends MainAction
 
         return $this->model
             ->shown()
+            // عاملات الساعات لا يُعرضن في الموقع ولا التطبيق ولا يُطلبن كإيجار عادي.
+            ->notHourly()
             // أي طلب قائم على السيرة (استقدام أو إيجار أو نقل خدمات) يخفيها من الموقع
             // الخارجي، بما في ذلك سير الإيجار المتاحة للاستلام الفوري من السكن.
             ->withoutActiveOrders()
             // لا يكفي علم الإتاحة القديم: العقد الإيجاري النشط هو المانع الحاسم
             // حتى لا تظهر عاملة مسندة لعميل ضمن نتائج الموقع الخارجي.
             ->whereDoesntHave('rentalContracts', function ($rentalQuery) {
-                $rentalQuery->whereIn('status', RentalMaidQuery::ACTIVE_RENTAL_STATUSES);
+                $rentalQuery->whereIn('status', RentalMaidQuery::ACTIVE_RENTAL_STATUSES)->holdingMaid();
             })
             ->where(function ($query) use ($today) {
                 $query->where(function ($available) use ($today) {

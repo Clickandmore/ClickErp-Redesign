@@ -30,6 +30,8 @@ class FastNewController extends Controller
             $rows = objModel::query()->latest();
             return DataTables::of($rows)
                 ->addIndexColumn()
+                ->addColumn('visible_flag', fn ($row) => (int) $row->is_visible)
+                ->editColumn('is_visible', fn ($row) => $this->visibilityToggle($row))
                 ->editColumn('title', function ($row) {
                     $limited = Str::limit($row?->title, 50, '...');
                     return "<span title='" . e($row->title) . "'>" . e($limited) . "</span>";
@@ -53,6 +55,8 @@ class FastNewController extends Controller
         $data["dataTableRoute"] = route($this->mainRoute . ".index");
         $data["bladeTitle"] = helperTrans('api.Fast news');
         $data["addButtonText"] = helperTrans('api.Fast news');
+        $data["visibleCount"] = objModel::query()->where('is_visible', true)->count();
+        $data["totalCount"] = objModel::query()->count();
         return view($this->folderPath . '.index', compact('data'));
     }
 
@@ -96,5 +100,31 @@ class FastNewController extends Controller
     {
         $action->deleteWithFile($id, 'image');
         return jsonSuccess();
+    }
+
+    // يقلب ظهور الخبر من الجدول مباشرة (بدون إعادة تحميل الصفحة)
+    public function toggleVisibility($id)
+    {
+        $news = objModel::findOrFail($id);
+        $news->is_visible = ! $news->is_visible;
+        $news->save();
+
+        return jsonSuccess([
+            'is_visible' => $news->is_visible,
+            'label' => __($news->is_visible ? 'web.fast_news_visible' : 'web.fast_news_hidden'),
+        ]);
+    }
+
+    private function visibilityToggle(objModel $row): string
+    {
+        $visible = (bool) $row->is_visible;
+
+        return '<button type="button" class="fast-news-toggle ' . ($visible ? 'is-visible' : 'is-hidden') . '"'
+            . ' data-route="' . e(route($this->mainRoute . '.toggle-visibility', $row->id)) . '"'
+            . ' aria-pressed="' . ($visible ? 'true' : 'false') . '"'
+            . ' title="' . e(__('web.fast_news_toggle_hint')) . '">'
+            . '<span class="fast-news-toggle__track"><span class="fast-news-toggle__thumb"></span></span>'
+            . '<span class="fast-news-toggle__label">' . e(__($visible ? 'web.fast_news_visible' : 'web.fast_news_hidden')) . '</span>'
+            . '</button>';
     }
 }

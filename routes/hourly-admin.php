@@ -49,6 +49,7 @@ Route::prefix('hourly')->middleware('feature.hourly_rental')->group(function () 
         Route::get('visits/latest', [\App\Http\Controllers\Hourly\VisitOperationsController::class,'index'])->defaults('mode','latest')->name('admin.hourly-visits.latest');
         Route::get('visits/{visit}', [\App\Http\Controllers\Hourly\VisitOperationsController::class,'show'])->whereNumber('visit')->name('admin.hourly-visits.show');
         Route::get('visits/{visit}/workers', [\App\Http\Controllers\Hourly\VisitOperationsController::class,'workers'])->whereNumber('visit')->name('admin.hourly-visits.workers');
+        Route::get('visits/{visit}/reschedule-slots', [\App\Http\Controllers\Hourly\VisitOperationsController::class,'rescheduleSlots'])->whereNumber('visit')->name('admin.hourly-visits.reschedule-slots');
         Route::get('visits/{visit}/payments', [\App\Http\Controllers\Hourly\VisitOperationsController::class,'payments'])->whereNumber('visit')->name('admin.hourly-visits.payments');
         Route::get('visits/{visit}/invoice', [\App\Http\Controllers\Hourly\VisitOperationsController::class,'invoice'])->whereNumber('visit')->name('admin.hourly-visits.invoice');
         Route::post('visits/batch', [\App\Http\Controllers\Hourly\VisitOperationsController::class,'batch'])->name('admin.hourly-visits.batch');
@@ -68,6 +69,7 @@ Route::prefix('hourly')->middleware('feature.hourly_rental')->group(function () 
         Route::put('districts/{district}/status', [\App\Http\Controllers\admin\HourlyDistrictController::class, 'status'])->name('admin.hourly-districts.status');
         Route::get('cities/{city}/districts', [\App\Http\Controllers\admin\HourlyDistrictController::class, 'cityDistricts'])->whereNumber('city')->name('admin.hourly-cities.districts');
         Route::post('districts/locate', [\App\Http\Controllers\admin\HourlyDistrictController::class, 'locate'])->middleware('throttle:10,1')->name('admin.hourly-districts.locate');
+        Route::post('districts/resolve-location', [\App\Http\Controllers\admin\HourlyDistrictController::class, 'resolveLocation'])->middleware('throttle:20,1')->name('admin.hourly-districts.resolve-location');
         Route::put('districts/{district}/teams', [\App\Http\Controllers\admin\HourlyDistrictController::class, 'teams'])->name('admin.hourly-districts.teams');
         Route::get('districts/{district}/osm-polygon', [\App\Http\Controllers\admin\HourlyDistrictController::class, 'osmPolygon'])->middleware('throttle:10,1')->name('admin.hourly-districts.osm-polygon');
         Route::resource('districts', \App\Http\Controllers\admin\HourlyDistrictController::class)->except('show')->names('admin.hourly-districts');
@@ -120,6 +122,20 @@ Route::prefix('hourly')->middleware('feature.hourly_rental')->group(function () 
         Route::get('orders/export', [\App\Http\Controllers\Hourly\OrderController::class, 'export'])->name('admin.hourly-orders.export');
         Route::post('orders', [\App\Http\Controllers\Hourly\OrderController::class, 'store'])->name('admin.hourly-orders.store');
         Route::get('orders/{order}', [\App\Http\Controllers\Hourly\OrderController::class, 'show'])->name('admin.hourly-orders.show');
+        Route::post('orders/{order}/visits/{visit}/replace-worker',[\App\Http\Controllers\Hourly\WorkerReplacementController::class,'store'])->whereNumber('visit')->name('admin.hourly-workers.replace');
+        Route::get('service-incidents',[\App\Http\Controllers\Hourly\ServiceIncidentController::class,'index'])->name('admin.hourly-incidents.index');
+        Route::post('service-incidents/{incident}/review',[\App\Http\Controllers\Hourly\ServiceIncidentController::class,'review'])->whereNumber('incident')->name('admin.hourly-incidents.review');
+        Route::post('orders/{order}/visits/{visit}/incidents',[\App\Http\Controllers\Hourly\ServiceIncidentController::class,'adminReport'])->whereNumber('visit')->name('admin.hourly-incidents.report');
+        Route::post('orders/{order}/visits/{visit}/incidents/return',[\App\Http\Controllers\Hourly\ServiceIncidentController::class,'recordReturn'])->whereNumber('visit')->name('admin.hourly-incidents.return');
+        Route::post('orders/{order}/visits/{visit}/incidents/close',[\App\Http\Controllers\Hourly\ServiceIncidentController::class,'close'])->whereNumber('visit')->name('admin.hourly-incidents.close');
+        Route::get('missed-visit-requests',[\App\Http\Controllers\Hourly\MissedVisitRecoveryController::class,'index'])->name('admin.hourly-recovery.index');
+        Route::get('orders/{order}/visits/{visit}/recovery-slots',[\App\Http\Controllers\Hourly\MissedVisitRecoveryController::class,'slots'])->whereNumber('visit')->name('admin.hourly-recovery.slots');
+        Route::post('orders/{order}/visits/{visit}/recovery-review',[\App\Http\Controllers\Hourly\MissedVisitRecoveryController::class,'review'])->whereNumber('visit')->name('admin.hourly-recovery.review');
+        Route::get('time-overruns',[\App\Http\Controllers\Hourly\ServiceTimeController::class,'index'])->name('admin.hourly-service-time.index');
+        Route::post('time-overruns/scan',[\App\Http\Controllers\Hourly\ServiceTimeController::class,'scan'])->middleware('throttle:3,1')->name('admin.hourly-service-time.scan');
+        Route::post('time-overruns/{check}/review',[\App\Http\Controllers\Hourly\ServiceTimeController::class,'review'])->whereNumber('check')->name('admin.hourly-service-time.review');
+        Route::get('early-finishes',[\App\Http\Controllers\Hourly\EarlyFinishController::class,'index'])->name('admin.hourly-early-finishes.index');
+        Route::post('early-finishes/{finish}/review',[\App\Http\Controllers\Hourly\EarlyFinishController::class,'review'])->whereNumber('finish')->name('admin.hourly-early-finishes.review');
         Route::post('orders/{order}/operations', [\App\Http\Controllers\Hourly\OrderManagementController::class, 'update'])->name('admin.hourly-orders.operations');
         Route::get('orders/{order}/visits/{visit}/available-workers', [\App\Http\Controllers\Hourly\OrderManagementController::class, 'workers'])->name('admin.hourly-orders.available-workers');
         Route::get('orders/{order}/visits/{visit}/leaders', [\App\Http\Controllers\Hourly\OrderManagementController::class, 'leaders'])->name('admin.hourly-orders.leaders');
@@ -129,6 +145,10 @@ Route::prefix('hourly')->middleware('feature.hourly_rental')->group(function () 
         Route::post('orders/{order}/notes', [\App\Http\Controllers\Hourly\OrderController::class, 'note'])->name('admin.hourly-orders.note');
         Route::post('orders/{order}/confirm', [\App\Http\Controllers\Hourly\OrderController::class, 'confirm'])->name('admin.hourly-orders.confirm');
         Route::post('orders/{order}/payments', [\App\Http\Controllers\Hourly\OrderController::class, 'collect'])->name('admin.hourly-orders.collect');
+        Route::post('orders/{order}/close-unpaid', [\App\Http\Controllers\Hourly\OrderController::class, 'closeUnpaid'])->name('admin.hourly-orders.close-unpaid');
+        Route::post('orders/{order}/compensations', [\App\Http\Controllers\Hourly\OrderCompensationController::class, 'store'])->middleware('throttle:20,1')->name('admin.hourly-orders.compensations.store');
+        Route::post('orders/{order}/compensations/{compensation}/paid-out', [\App\Http\Controllers\Hourly\OrderCompensationController::class, 'paidOut'])->whereNumber('compensation')->name('admin.hourly-orders.compensations.paid-out');
+        Route::get('compensations', [\App\Http\Controllers\Hourly\OrderCompensationController::class, 'index'])->name('admin.hourly-compensations.index');
         Route::post('orders/{order}/payments/{payment}/bank-transfer-review', [\App\Http\Controllers\Hourly\OrderController::class, 'reviewBankTransfer'])->name('admin.hourly-orders.bank-transfer-review');
         Route::get('orders/{order}/invoice', [\App\Http\Controllers\Hourly\OrderController::class, 'invoice'])->name('admin.hourly-orders.invoice');
         Route::get('orders/{order}/payments/{payment}/attachment', [\App\Http\Controllers\Hourly\OrderController::class, 'attachment'])->name('admin.hourly-orders.attachment');
@@ -139,7 +159,10 @@ Route::prefix('hourly')->middleware('feature.hourly_rental')->group(function () 
         Route::put('sos-alerts/{alert}', [\App\Http\Controllers\admin\HourlySosController::class, 'update'])->whereNumber('alert')->name('admin.hourly-sos.update');
         Route::get('maids', [\App\Http\Controllers\admin\HourlyMaidController::class, 'index'])->name('admin.hourly-maids.index');
         Route::post('maids/assign-from-shelter', [\App\Http\Controllers\admin\HourlyMaidController::class, 'assignFromShelter'])->name('admin.hourly-maids.assign-from-shelter');
+        Route::post('maids/{maid}/to-hourly', [\App\Http\Controllers\ingaz\MaidRentalModeController::class, 'toHourly'])->whereNumber('maid')->name('admin.hourly-maids.to-hourly');
+        Route::post('maids/{maid}/to-regular', [\App\Http\Controllers\ingaz\MaidRentalModeController::class, 'toRegular'])->whereNumber('maid')->name('admin.hourly-maids.to-regular');
         Route::post('maids/{maid}/login-as', [\App\Http\Controllers\admin\HourlyMaidController::class, 'loginAs'])->whereNumber('maid')->name('admin.hourly-maids.login-as');
+        Route::post('maids/{maid}/visits/{visit}/return', [\App\Http\Controllers\admin\HourlyMaidController::class, 'returnFromVisit'])->whereNumber('maid')->whereNumber('visit')->name('admin.hourly-maids.return-from-visit');
         Route::get('maids/{maid}/{tab?}', [\App\Http\Controllers\admin\HourlyMaidController::class, 'show'])->whereNumber('maid')->name('admin.hourly-maids.show');
         Route::get('maids/{maid}/calendar/feed', [\App\Http\Controllers\admin\HourlyMaidController::class, 'calendar'])->whereNumber('maid')->name('admin.hourly-maids.calendar');
         Route::put('maids/{maid}', [\App\Http\Controllers\admin\HourlyMaidController::class, 'update'])->whereNumber('maid')->name('admin.hourly-maids.update');

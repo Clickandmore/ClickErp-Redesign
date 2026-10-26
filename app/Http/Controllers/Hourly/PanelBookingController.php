@@ -21,6 +21,8 @@ class PanelBookingController extends Controller
             $request->validate(['renew'=>'required|integer|min:1']);
             $source=\App\Models\Hourly\HourlyRentalOrder::with('user')->findOrFail((int)$request->input('renew'));
             abort_unless($source->user && !$source->user->is_blocked,422);
+            $reason=app(\App\Services\Hourly\RenewalEligibility::class)->reason($source);
+            if($reason)return redirect()->route('admin.hourly-orders.show',$source)->withErrors(['hourly'=>$reason]);
             $renewal=app(\App\Services\Hourly\RenewalPlanner::class)->for($source);
             // طلب مجدَّد سابقًا: يُعرض رابط التجديد القائم، ولا يُعبّأ المعالج لتجديد ثانٍ إلا بصلاحية.
             if($renewal['renewed_by'] && !AdminGuardHasPerm('hourly_orders_renew_again')){$renewalBlocked=$renewal;$renewal=null;}
@@ -71,9 +73,9 @@ class PanelBookingController extends Controller
     public function addresses(Request $request)
     {
         $data=$request->validate(['user_id'=>'required|integer|exists:users,id']);
-        return UserAddress::query()->leftJoin('cities','cities.id','=','user_addresses.city_id')
+        return UserAddress::withoutDuplicates(UserAddress::query()->leftJoin('cities','cities.id','=','user_addresses.city_id')
             ->where('user_addresses.user_id',$data['user_id'])->select('user_addresses.*','cities.name_ar as city_name')
-            ->orderByDesc('user_addresses.id')->get();
+            ->orderByDesc('user_addresses.id')->get());
     }
 
     public function mapLink(Request $request)
@@ -85,8 +87,14 @@ class PanelBookingController extends Controller
                 && (!parse_url($url,PHP_URL_PORT) || parse_url($url,PHP_URL_PORT)===443)
                 && in_array($host,['maps.app.goo.gl','goo.gl','www.google.com','google.com','maps.google.com'],true),422,'استخدم رابط Google Maps صالحًا.');
             $decoded=urldecode($url);
-            if (preg_match('/!3d(-?\d+(?:\.\d+)?)!4d(-?\d+(?:\.\d+)?)/',$decoded,$match)
-                || preg_match('/(?:@|[?&](?:q|query|ll)=)(-?\d+(?:\.\d+)?),\s*(-?\d+(?:\.\d+)?)/',$decoded,$match)) {
+            // /maps/search/24.71,+46.67 and /maps/dir/<from>/24.71,46.67: the point is in the path (the last one is
+            // the destination); their @ is only the viewport centre.
+            $pathPoint=preg_match('#/maps/(?:search|dir)/#',$decoded)
+                && preg_match_all('#/(-?\d{1,3}\.\d+),\s*(-?\d{1,3}\.\d+)#',(string)parse_url($decoded,PHP_URL_PATH),$points,PREG_SET_ORDER);
+            if ($pathPoint) $match=end($points);
+            if ($pathPoint
+                || preg_match('/!3d(-?\d+(?:\.\d+)?)!4d(-?\d+(?:\.\d+)?)/',$decoded,$match)
+                || preg_match('/(?:@|[?&](?:q|query|ll|destination)=)(-?\d+(?:\.\d+)?),\s*(-?\d+(?:\.\d+)?)/',$decoded,$match)) {
                 abort_unless(abs((float)$match[1])<=90 && abs((float)$match[2])<=180,422);
                 return response()->json(['latitude'=>(float)$match[1],'longitude'=>(float)$match[2]]);
             }

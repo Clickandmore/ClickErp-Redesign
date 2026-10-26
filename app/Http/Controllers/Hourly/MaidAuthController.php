@@ -24,6 +24,7 @@ class MaidAuthController extends Controller
         $maid=$this->credentials($request,'web');
         auth('hourly_maid')->login($maid); $request->session()->regenerate();
         $request->session()->put('hourly_maid_version',$maid->hourly_auth_version);
+        $request->session()->forget('hourly_maid_impersonator');
         return redirect()->route('hourly-maid.home');
     }
     /**
@@ -50,7 +51,7 @@ class MaidAuthController extends Controller
         return response()->json(['data' => $auth->refresh('hourly_maid_api', $this->remember($request))
             + ['worker' => app(WorkerAppService::class)->profile($maid)]]);
     }
-    public function home() { return view('hourly_maid.home',['maid'=>auth('hourly_maid')->user()]); }
+    public function home(Request $request) { $data=$request->validate(['date'=>'nullable|date_format:Y-m-d']); return view('hourly_maid.home',['maid'=>auth('hourly_maid')->user(),'cashDate'=>$data['date'] ?? now()->toDateString()]); }
     public function me()
     {
         $maid = \App\Models\ingaz\Maid::findOrFail(auth('hourly_maid_api')->id());

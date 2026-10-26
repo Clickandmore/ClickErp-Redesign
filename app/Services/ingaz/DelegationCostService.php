@@ -168,15 +168,18 @@ class DelegationCostService
             ];
             $contracts = Contract::query()->without('info')
                 ->whereIn('id', $contractIds)
-                ->whereIn('type', $allowLateContract ? ['recruitment'] : ['recruitment', 'maid'])
-                ->whereIn('status', $allowLateContract ? ['arrival', 'completed'] : $currentStatuses)
+                ->whereIn('type', ['recruitment', 'maid'])
+                ->when(!$allowLateContract, fn ($query) => $query->whereIn('status', $currentStatuses))
                 ->when(!$allowLateContract, fn ($query) => $query->whereDoesntHave('travelHistory', fn ($q) => $q->where('status', 'completed')))
                 ->orderBy('id')->lockForUpdate()->get();
             if ($contracts->count() !== count($contractIds)) {
                 $this->fail('بعض عقود الاستقدام غير سارية أو غير متاحة لهذا الفرع.');
             }
             foreach ($contracts as $contract) {
-                $invoice = Invoice::where('contract_id', $contract->id)->lockForUpdate()->first();
+                if ($allowLateContract && !$contract->isLateFinanceEligible()) {
+                    $this->fail('العقد غير مؤهل لاستكمال العمليات المالية.');
+                }
+                $invoice = $contract->invoice()->lockForUpdate()->first();
                 $prefix = "قيد تكلفة تفويض عقد الاستقدام #{$contract->id} / الفاتورة #{$invoice?->id} /";
                 if (!$invoice) {
                     $this->fail("عقد الاستقدام #{$contract->id} ليست له فاتورة متاحة.");

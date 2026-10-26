@@ -10,7 +10,7 @@
         </div></td>
         <td>{{ $visit->workers->pluck('name')->join('، ') ?: 'غير مخصص' }}<small class="d-block text-muted">المطلوب: {{ $visit->workers_count }}</small></td>
         <td><small class="d-block">التوصيل: {{ $visit->deliveryDriver?->name ?: '—' }}</small><small class="d-block">الاستلام: {{ $visit->pickupDriver?->name ?: '—' }}</small></td>
-        <td><span class="hs-badge">{{ __('hourly.'.$visit->status) }}</span></td>
+        <td><span class="hs-badge">{{ __('hourly.'.$visit->display_status) }}</span>@include('admin.hourly._cash-collector',['visit'=>$visit])</td>
         <td>@foreach(collect($order->booking_metadata['notes'] ?? [])->where('visit_id',$visit->id) as $note)<div class="hs-note">{{ $note['text'] }}<small class="d-block text-muted">{{ $note['author'] }} — {{ $note['created_at'] }}</small></div>@endforeach<div class="hs-note-form">@include('admin.hourly._note-form',['visitId'=>$visit->id])</div></td>
     </tr>
 @empty<tr><td colspan="6"><div class="hs-empty">لا توجد زيارات على الطلب.</div></td></tr>@endforelse

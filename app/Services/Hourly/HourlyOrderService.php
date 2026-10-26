@@ -20,6 +20,7 @@ class HourlyOrderService
     {
         self::enabled();
         return DB::transaction(function () use ($userId, $data, $adminId, $customerCandidates) {
+            User::whereKey($userId)->lockForUpdate()->firstOrFail();
             // قفل رصيد العميل قبل إنشاء طلب المحفظة يمنع خصمين متزامنين من الرصيد نفسه.
             $walletUser = $data['payment_method'] === 'wallet'
                 ? User::query()->whereKey($userId)->lockForUpdate()->firstOrFail()
@@ -76,6 +77,7 @@ class HourlyOrderService
             if (count($dates) > $package->visits_count) self::reject('عدد المواعيد يتجاوز زيارات الباقة.');
             $rules->assertSessionDates($package, $dates, $panel);
             $slots = app(HourlySlotService::class)->validate($dates, (float) $package->hours_per_visit, (int) $snapshot['min_notice_hours'], $expires, $snapshot, $panel);
+            app(DuplicateBookingService::class)->assertAvailable($userId,$address->toArray(),$package,$slots,null,$panel);
             // السعر الموحد: ضريبة موروثة، مراحل العاملات والكمية، وطريقة عرض سعر الباقة.
             $quote = $rules->quote($package, $workers, (int) ($data['quantity'] ?? $defaults['quantity']), $panel);
             $total = $quote['total']; $subtotal = $quote['subtotal'];
@@ -110,10 +112,11 @@ class HourlyOrderService
                 if($slot && empty($data['panel_assignment']) && $settings->value($package,'auto_assign_driver',$channel))app(NearestDriverAssignment::class)->assign($visit);
             }
             $this->log($order, null, 'pending_confirmation', $adminId ? 'admin' : 'client', $adminId ?? $userId, 'إنشاء الطلب');
-            // التأكيد التلقائي للدفع الآجل (نقدي/بطاقة عند التسليم) حسب القناة.
-            if ($category && in_array($order->payment_method, ['cash','card_on_delivery'], true) && $settings->value($package, 'auto_confirm_postpaid', $channel)) {
+            // التأكيد التلقائي للدفع الآجل (يُحصَّل عند الزيارة) حسب القناة.
+            if ($category && !in_array($snapshot['payment_policy']??null,['prepaid','installments'],true) && in_array($order->payment_method, self::POSTPAID_METHODS, true) && $settings->value($package, 'auto_confirm_postpaid', $channel)) {
                 $this->transition($order, 'active', $panel ? 'admin' : 'system', $adminId, 'تأكيد تلقائي للدفع الآجل');
             }
+            app(PaymentScheduleService::class)->generateInstallments($order);
             if ($walletUser) $this->payFromWallet($order, $walletUser);
             return $order;
         });
@@ -156,8 +159,7 @@ class HourlyOrderService
         self::enabled();
         return DB::transaction(function () use ($order, $adminId) {
             $order = HourlyRentalOrder::query()->lockForUpdate()->findOrFail($order->id);
-            if ($order->status !== 'pending_confirmation' || $order->expires_at->isPast()) self::reject('الطلب غير قابل للتأكيد.');
-            if (!in_array($order->payment_method, ['cash','card_on_delivery'], true) && $order->payment_status !== 'paid' && !HourlyPaymentService::activationPaid($order)) self::reject('يجب تأكيد تحصيل المبلغ قبل تفعيل هذا الطلب.');
+            if ($blocker = self::confirmBlocker($order)) self::reject($blocker);
             $this->transition($order, 'active', 'admin', $adminId, 'تأكيد الصرّاف');
             return $order;
         });
@@ -172,12 +174,15 @@ class HourlyOrderService
         return $this->reschedule($visit, $start, null, true);
     }
 
-    public function reschedule(HourlyVisit $visit, string $start, ?int $adminId = null, bool $initial = false): HourlyVisit
+    public function reschedule(HourlyVisit $visit, string $start, ?int $adminId = null, bool $initial = false,bool $incidentResolution=false): HourlyVisit
     {
         self::enabled();
-        return DB::transaction(function () use ($visit, $start, $adminId, $initial) {
+        return DB::transaction(function () use ($visit, $start, $adminId, $initial,$incidentResolution) {
+            User::whereKey(HourlyRentalOrder::whereKey($visit->hourly_rental_order_id)->value('user_id'))->lockForUpdate()->firstOrFail();
             $order = HourlyRentalOrder::query()->lockForUpdate()->findOrFail($visit->hourly_rental_order_id);
             $visit = $order->visits()->lockForUpdate()->findOrFail($visit->id);
+            if(!$incidentResolution && ServiceIncident::waiting($order,$visit->id)) self::reject('للزيارة بلاغ معتمد؛ استخدم طلب المعالجة للحفاظ على حقوقك.');
+            if (!$incidentResolution && $visit->has_started_execution) self::reject('بدأ تنفيذ الزيارة بالفعل؛ لا يمكن تغيير موعدها.');
             $snapshot = (array) $order->package_snapshot + ['service_category_id' => $order->service_category_id ?? null];
             $settings = app(HourlyBookingRules::class)->settings();
             $panel = (bool) $adminId;
@@ -214,6 +219,7 @@ class HourlyOrderService
                     if(!app(HourlyWorkerAssignment::class)->available($maid,$slot['starts_at'],$slot['ends_at'],$snapshot,$visit->id))self::reject('العاملة المسندة غير متاحة في الموعد الجديد.');
                 }
             }
+            app(DuplicateBookingService::class)->assertAvailable((int)$order->user_id,$order->only(['city_id','address_text','latitude','longitude','building','unit']),HourlyPackage::withTrashed()->findOrFail($order->hourly_package_id),[$slot],(int)$visit->id,$panel);
             $visit->update(['scheduled_date'=>substr($slot['starts_at'], 0, 10), 'scheduled_start_at'=>$slot['starts_at'], 'scheduled_end_at'=>$slot['ends_at'], 'status'=>'scheduled', 'reschedule_count'=>(int) $visit->reschedule_count + ($initial ? 0 : 1)]);
             if ($initial && !empty($snapshot['service_category_id'])) {
                 $package = HourlyPackage::withTrashed()->findOrFail($order->hourly_package_id);
@@ -231,8 +237,65 @@ class HourlyOrderService
         });
     }
 
-    public function transition(HourlyRentalOrder $order, string $status, string $actorType, ?int $actorId, ?string $reason = null): void
+    /** All visits are finished but money is still owed; closes to "completed" once settled. */
+    public const AWAITING_PAYMENT = 'awaiting_payment';
+
+    /** Collected at the visit itself, so the order may be activated before any payment. */
+    public const POSTPAID_METHODS = ['cash', 'card_on_delivery', 'cash_and_card'];
+
+    /** Why a pending order cannot be activated yet, or null when it can (auto-confirm, cashier button, confirm()). */
+    public static function confirmBlocker(HourlyRentalOrder $order): ?string
     {
+        if ($order->status !== 'pending_confirmation' || !$order->expires_at || $order->expires_at->isPast()) return 'الطلب غير قابل للتأكيد.';
+        if (HourlyPaymentService::activationPaid($order)) return null;
+        if (in_array($order->package_snapshot['payment_policy'] ?? null, ['prepaid', 'installments'], true)) return 'يجب تحصيل المبلغ المطلوب مقدمًا قبل تفعيل الطلب.';
+        if (!in_array($order->payment_method, self::POSTPAID_METHODS, true)) return 'يجب تأكيد تحصيل المبلغ قبل تفعيل هذا الطلب.';
+        return null;
+    }
+
+    public static function confirmable(HourlyRentalOrder $order): bool
+    {
+        return self::confirmBlocker($order) === null;
+    }
+
+    public static function owes(HourlyRentalOrder $order): bool
+    {
+        return (int) round((float) $order->total_amount * 100) > (int) round((float) $order->paid_amount * 100);
+    }
+
+    /** Label of an order status; "awaiting payment" tells unpaid from partially paid. */
+    public static function statusLabel(HourlyRentalOrder $order): string
+    {
+        if ($order->status !== self::AWAITING_PAYMENT) return __('hourly.'.$order->status);
+        return __('hourly.'.((float) $order->paid_amount > 0 ? 'awaiting_payment_partial' : 'awaiting_payment_unpaid'));
+    }
+
+    /** Close an order that finished its visits once its balance reaches zero. */
+    public function settle(HourlyRentalOrder $order, string $actorType, ?int $actorId): void
+    {
+        if ($order->status === self::AWAITING_PAYMENT && !self::owes($order)) {
+            $this->transition($order, 'completed', $actorType, $actorId, 'اكتمال السداد بعد انتهاء الزيارات');
+        }
+    }
+
+    /** Supervisor closes an order still owing money; the balance stays recorded on the order. */
+    public function closeUnpaid(HourlyRentalOrder $order, int $adminId, string $reason): void
+    {
+        DB::transaction(function () use ($order, $adminId, $reason) {
+            $order = HourlyRentalOrder::whereKey($order->id)->lockForUpdate()->firstOrFail();
+            if ($order->status !== self::AWAITING_PAYMENT) self::reject('الإغلاق الاستثنائي متاح للطلبات المنتظرة للسداد فقط.');
+            $owed = round((float) $order->total_amount - (float) $order->paid_amount, 2);
+            $this->transition($order, 'completed', 'admin', $adminId, 'إغلاق استثنائي دون اكتمال السداد (المتبقي '.number_format($owed, 2).' ر.س): '.$reason, true);
+        });
+    }
+
+    public function transition(HourlyRentalOrder $order, string $status, string $actorType, ?int $actorId, ?string $reason = null, bool $closeUnpaid = false): void
+    {
+        // Finishing the last visit does not close an order that still owes money.
+        if ($status === 'completed' && !$closeUnpaid && self::owes($order)) {
+            $status = self::AWAITING_PAYMENT;
+            $reason = trim(($reason ?? '').' — بانتظار سداد المتبقي');
+        }
         $from = $order->status;
         if ($from === $status) return;
         $order->update(['status'=>$status]);

@@ -256,6 +256,8 @@ class NotificationSettingsController extends Controller
         $alerts = $validated['alerts'];
         $missingTemplates = collect($alerts)
             ->filter(fn (array $rule): bool => filter_var($rule['enabled'] ?? false, FILTER_VALIDATE_BOOLEAN))
+            // Rental reminders already have a built-in customer message and response link.
+            ->reject(fn (array $rule, string $key): bool => $key === 'rent_contract_expiry')
             ->filter(fn (array $rule): bool => empty($rule['template_id']))
             ->keys();
 
@@ -267,6 +269,12 @@ class NotificationSettingsController extends Controller
                     ])
                     ->all()
             );
+        }
+
+        foreach ($alerts as $key => $rule) {
+            if (filter_var($rule['enabled'] ?? false, FILTER_VALIDATE_BOOLEAN) && empty($rule['channels'])) {
+                throw ValidationException::withMessages(["alerts.{$key}.channels" => 'اختر قناة إرسال واحدة على الأقل للتنبيه المفعّل.']);
+            }
         }
 
         return collect($definitionKeys)

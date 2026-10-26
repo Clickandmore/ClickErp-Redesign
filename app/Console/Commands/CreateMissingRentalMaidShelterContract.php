@@ -107,7 +107,7 @@ class CreateMissingRentalMaidShelterContract extends Command
             return self::FAILURE;
         }
 
-        if (RentalContract::query()->where('maid_id', $maid->id)->whereIn('status', self::ACTIVE_RENTAL_STATUSES)->exists()) {
+        if (RentalContract::query()->where('maid_id', $maid->id)->whereIn('status', self::ACTIVE_RENTAL_STATUSES)->holdingMaid()->exists()) {
             $this->error('The maid has an active rental contract.');
 
             return self::FAILURE;

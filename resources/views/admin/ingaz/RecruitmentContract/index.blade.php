@@ -906,6 +906,20 @@
         </div>
 
         <!-- Filters Section -->
+        <div class="card mb-4">
+            <div class="card-body">
+                <label for="globalSearchFilter" class="form-label fw-bold">بحث شامل في عقود الاستقدام</label>
+                <div class="input-group">
+                    <span class="input-group-text"><i class="fas fa-search" aria-hidden="true"></i></span>
+                    <input type="search" id="globalSearchFilter" class="form-control" autocomplete="off"
+                        placeholder="هوية العميل / الاسم / الجوال / رقم التأشيرة / رقم مساند / رقم العقد"
+                        aria-describedby="globalSearchHelp">
+                    <button type="button" class="btn btn-outline-secondary" id="clearGlobalSearch">مسح البحث</button>
+                </div>
+                <small id="globalSearchHelp" class="text-muted">تظهر النتائج تلقائيًا أثناء الكتابة ضمن الفلاتر المحددة.</small>
+            </div>
+        </div>
+
         <div class="card filter-card mb-4">
             <div class="card-header d-flex justify-content-between align-items-center gap-2">
                 <div class="d-flex align-items-center gap-2 flex-wrap">
@@ -913,6 +927,12 @@
                         <i class="fas fa-filter me-2"></i>
                         فلاتر البحث
                     </h6>
+                    @include('admin.partials.branch-filter', [
+                        'id' => 'branchFilter',
+                        'containerClass' => 'd-flex align-items-center gap-2',
+                        'labelClass' => 'form-label mb-0 text-nowrap',
+                        'selectClass' => 'form-select form-select-sm w-auto',
+                    ])
                     <div class="dropdown quick-followup-dropdown">
                         <button class="btn btn-sm btn-outline-primary dropdown-toggle" type="button"
                             data-bs-toggle="dropdown" aria-expanded="false">
@@ -958,13 +978,6 @@
             <div class="card-body collapse" id="filtersCollapse">
                 <div class="card-body">
                     <div class="row">
-                        <div class="col-md-6">
-                            <label for="globalSearchFilter" class="form-label">بحث شامل:</label>
-                            <input type="text" id="globalSearchFilter" class="form-control"
-                                placeholder="هوية العميل / الاسم / الجوال / رقم التأشيرة / رقم مساند / رقم العقد">
-                        </div>
-                    </div>
-                    <div class="row mt-3">
                         <div class="col-md-3 {{ $shelterContractsMode ? 'd-none' : '' }}">
                             <label for="statusFilter" class="form-label">حالة العقد:</label>
                             <select id="statusFilter" class="form-select">
@@ -1104,7 +1117,6 @@
                                 @endif
                             </select>
                         </div>
-                        @include('admin.partials.branch-filter', ['id' => 'branchFilter', 'containerClass' => 'col-md-3'])
 
                     </div>
                     <div class="row mt-3">
@@ -2626,14 +2638,27 @@
                     // لا تحدث الجدول تلقائياً - انتظر زر البحث
                 });
 
-            $('#globalSearchFilter').on('keypress', function(e) {
+            let globalSearchTimer;
+            $('#globalSearchFilter').on('input', function() {
+                clearTimeout(globalSearchTimer);
+                globalSearchTimer = setTimeout(function() {
+                    $('#btnSubmit').trigger('click');
+                }, 350);
+            }).on('keypress', function(e) {
                 if (e.which === 13) {
+                    e.preventDefault();
                     $('#btnSubmit').trigger('click');
                 }
             });
 
+            $('#clearGlobalSearch').on('click', function() {
+                $('#globalSearchFilter').val('').trigger('focus');
+                $('#btnSubmit').trigger('click');
+            });
+
             // زر البحث
             $('#btnSubmit').on('click', function() {
+                clearTimeout(globalSearchTimer);
                 clearBulkSelection();
                 $('#dataTableObject').addClass('loading');
                 dataTable.ajax.reload(function() {

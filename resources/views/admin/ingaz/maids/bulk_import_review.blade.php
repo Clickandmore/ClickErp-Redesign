@@ -29,7 +29,7 @@
 @endsection
 
 @section('content')
-    @if (@AdminGuardHasPerm(\App\PermKeys::MAIDS_CREATE))
+    @if (AdminGuardHasAnyPerm([\App\PermKeys::MAIDS_CREATE, \App\PermKeys::DATA_IMPORT_UPLOAD, \App\PermKeys::DATA_IMPORT_REVIEW, \App\PermKeys::DATA_IMPORT_APPROVE]))
         <div class="container-fluid">
             <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-4">
                 <div>
@@ -48,7 +48,7 @@
                         <i class="fas fa-file-excel me-1"></i>
                         تحميل التمبلت
                     </a>
-                    @if ($import->can_approve)
+                    @if ($import->can_approve && AdminGuardHasAnyPerm(['data_import_approve']))
                         <form action="{{ route('maids.bulk-import.approve', $import) }}" method="POST" id="maid-import-approve-form">
                             @csrf
                             <button type="submit" class="btn btn-primary"
@@ -61,6 +61,7 @@
                 </div>
             </div>
 
+            <div class="alert alert-info">قبل تنفيذ كل دفعة اعتماد، تُحفظ نسخة مؤرخة من قاعدة البيانات في R2 وتظهر في لوحة السوبر أدمن. إذا تعذر حفظ النسخة يتوقف الاعتماد.</div>
             <div class="row g-3 mb-4">
                 <div class="col-xl-3 col-md-6">
                     <div class="card review-stat h-100">
@@ -108,7 +109,7 @@
                 </div>
             </div>
 
-            @if (request()->boolean('auto_continue') && $import->can_approve)
+            @if (request()->boolean('auto_continue') && $import->can_approve && AdminGuardHasAnyPerm(['data_import_approve']))
                 <div class="alert alert-info d-flex align-items-center gap-2" id="auto-import-progress">
                     <span class="spinner-border spinner-border-sm" aria-hidden="true"></span>
                     جارٍ استكمال الاستيراد تلقائيًا على دفعات آمنة. تم {{ $import->imported_rows }} من {{ $import->total_rows }}.

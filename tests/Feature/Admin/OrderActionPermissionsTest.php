@@ -42,13 +42,16 @@ class OrderActionPermissionsTest extends TestCase
     {
         $creator = Admin::factory()->create();
         $responsible = Admin::factory()->create();
+        $permission = Permission::firstOrCreate(['name' => PermKeys::ORDERS_DELETE_OWN, 'guard_name' => 'admin']);
+        $creator->givePermissionTo($permission);
+        $responsible->givePermissionTo($permission);
         $id = DB::table('orders')->insertGetId([
             'status' => 'new',
             'created_by_admin_id' => $creator->id,
             'customer_id' => $responsible->id,
         ]);
 
-        foreach (['orders.refuseReturn', 'orders.destroy'] as $route) {
+        foreach (['orders.refuseReturn', 'orders.destroy', 'orders.restore'] as $route) {
             $this->actingAs($creator, 'admin');
             $this->assertSame(200, $this->gate($route, [], $id));
             $this->actingAs($responsible, 'admin');
@@ -84,6 +87,24 @@ class OrderActionPermissionsTest extends TestCase
         $this->assertFalse($order->fresh()->wasCreatedByAdmin($responsible));
     }
 
+    public function test_deleting_other_employees_orders_requires_global_delete_permission(): void
+    {
+        $creator = Admin::factory()->create();
+        $employee = Admin::factory()->create();
+        $id = DB::table('orders')->insertGetId([
+            'status' => 'new', 'created_by_admin_id' => $creator->id, 'customer_id' => $employee->id,
+        ]);
+        $this->actingAs($employee, 'admin');
+        $this->deleteJson(route('orders.destroy', $id))->assertForbidden();
+        $this->assertNull(DB::table('orders')->where('id', $id)->value('deleted_at'));
+        $permission = Permission::firstOrCreate(['name' => PermKeys::ORDERS_DELETE, 'guard_name' => 'admin']);
+        $employee->givePermissionTo($permission);
+        $this->deleteJson(route('orders.destroy', $id))->assertOk();
+        $this->assertNotNull(DB::table('orders')->where('id', $id)->value('deleted_at'));
+        $employee->revokePermissionTo($permission);
+        $this->postJson(route('orders.restore', $id))->assertForbidden();
+    }
+
     public function test_missing_creator_does_not_grant_ownership_to_responsible_employee(): void
     {
         $admin = Admin::factory()->create();
@@ -93,9 +114,26 @@ class OrderActionPermissionsTest extends TestCase
         $this->assertSame(403, $this->gate('orders.refuseReturn', [], $id));
     }
 
+    public function test_creator_cannot_delete_or_restore_without_own_delete_permission(): void
+    {
+        $creator = Admin::factory()->create();
+        $this->actingAs($creator, 'admin');
+        $id = DB::table('orders')->insertGetId(['status' => 'new', 'created_by_admin_id' => $creator->id]);
+        $order = Order::findOrFail($id);
+        $this->assertFalse($order->adminCanDelete($creator));
+        $this->assertSame(403, $this->gate('orders.restore', [], $id));
+        $this->deleteJson(route('orders.destroy', $id))->assertForbidden();
+        $creator->givePermissionTo(Permission::firstOrCreate(['name' => PermKeys::ORDERS_DELETE_OWN, 'guard_name' => 'admin']));
+        $this->assertTrue($order->adminCanDelete($creator));
+        $this->assertSame(200, $this->gate('orders.restore', [], $id));
+        $this->deleteJson(route('orders.destroy', $id))->assertOk();
+        $this->assertNotNull(DB::table('orders')->where('id', $id)->value('deleted_at'));
+    }
+
     public function test_creator_can_execute_actions_and_completed_orders_remain_locked(): void
     {
         $admin = Admin::factory()->create();
+        $admin->givePermissionTo(Permission::firstOrCreate(['name' => PermKeys::ORDERS_DELETE_OWN, 'guard_name' => 'admin']));
         $this->actingAs($admin, 'admin');
         foreach (['refused', 'return'] as $status) {
             $id = DB::table('orders')->insertGetId(['status' => 'new', 'created_by_admin_id' => $admin->id]);

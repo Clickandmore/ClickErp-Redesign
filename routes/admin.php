@@ -55,6 +55,11 @@ Route::group(
         Route::delete('support/attachments/{attachment}', 'admin\SupportCenterController@destroyAttachment')->name('support.attachments.destroy');
         Route::resource('support', 'admin\SupportCenterController')->parameters(['support' => 'article']);
 
+        // تحديثات النظام — متاحة لكل موظف؛ الإدارة في لوحة Super Admin
+        Route::get('system-updates', 'admin\SystemUpdatesController@index')->name('system-updates.index');
+        Route::post('system-updates/acknowledge-all', 'admin\SystemUpdatesController@acknowledgeAll')->name('system-updates.acknowledge-all');
+        Route::post('system-updates/{systemUpdate}/acknowledge', 'admin\SystemUpdatesController@acknowledge')->whereNumber('systemUpdate')->name('system-updates.acknowledge');
+
         Route::group(["namespace" => "admin"], function () {
 
             Route::group(["namespace" => "auth"], function () {

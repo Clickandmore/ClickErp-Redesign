@@ -11,7 +11,7 @@ class VisitPaymentAllocation
         $order->loadMissing(['visits','payments']);
         $visits=$order->visits->sortBy(fn($v)=>($v->scheduled_start_at?->format('Y-m-d H:i:s')??'').' '.sprintf('%010d',$v->id));
         $result=[];$limits=[];
-        foreach($visits as $v){$result[$v->id]=['paid'=>0,'methods'=>[],'payments'=>[]];$limits[$v->id]=(int)round((in_array($v->status,['cancelled','cancelled_by_client'])?$v->cancellation_fee:$v->visit_price)*100);}
+        foreach($visits as $v){$result[$v->id]=['paid'=>0,'methods'=>[],'payments'=>[]];$limits[$v->id]=$v->status==='expired'?0:(int)round((in_array($v->status,['cancelled','cancelled_by_client'])?$v->cancellation_fee:$v->visit_price)*100);}
         // Refunds reduce the available paid pool. Explicit allocations are capped at the current visit charge.
         $budget=max(0,(int)round($order->paid_amount*100));
         $payments=$order->payments->where('status','paid')->where('amount','>',0)->sortBy('id');

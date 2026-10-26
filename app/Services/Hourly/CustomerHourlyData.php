@@ -60,7 +60,10 @@ class CustomerHourlyData
 
     public function pricing(array $quote): array
     {
+        $policy=$quote['payment_policy']??($quote['price_display']==='per_visit'?'per_visit':'legacy');
         return ['currency' => 'SAR', 'unit' => 'SAR', 'tax_included' => true,
+            'payment_policy'=>$policy,'payment_policy_label'=>PaymentScheduleService::LABELS[$policy],
+            'installment_deposit'=>min($quote['total'],$quote['installment_deposit']??0)/100,'installment_monthly'=>($quote['installment_monthly']??0)/100,
             'subtotal' => $quote['subtotal'] / 100, 'tax_amount' => $quote['tax'] / 100,
             'tax_rate' => $quote['tax_rate'], 'total_amount' => $quote['total'] / 100,
             'charge_now' => $quote['charge_now'] / 100, 'price_display' => $quote['price_display'],
@@ -103,10 +106,24 @@ class CustomerHourlyData
             'package_title' => $translation['title'] ?? $snapshot['title'] ?? $snapshot['code'] ?? '',
             'display_status' => $status, 'currency' => 'SAR', 'timezone' => config('app.timezone'),
             'starts_at' => $order->starts_at?->toIso8601String(), 'expires_at' => $order->expires_at?->toIso8601String(),
+            // لقوائم «حجوزاتي»: موعد الزيارة القادمة أهم للعميل من تاريخ إنشاء الطلب.
+            'created_at' => $order->created_at?->toIso8601String(),
+            'next_visit_at' => $order->nextVisit()?->scheduled_start_at?->toIso8601String(),
+            'last_visit_at' => $order->lastVisit()?->scheduled_start_at?->toIso8601String(),
             'balance' => ['available' => $available, 'reserved' => $reserved, 'consumed' => $consumed, 'expired' => $expired],
             'remaining_visits' => $remaining, 'completed_visits' => $counts['completed'] ?? 0,
             'progress_percent' => $order->visits_total ? round($consumed / $order->visits_total * 100, 1) : 0,
             'address' => $order->only(['city_id','address_text','latitude','longitude','district','building','unit','contact_phone'])];
+        $data['payment_schedule']=app(PaymentScheduleService::class)->forOrder($order);
+        $data['refundable_amount'] = max(0,round((float)$order->paid_amount-(float)$order->total_amount,2));
+        // Visits finished with money still owed: clients show this label and the amount to pay.
+        $data['status_label'] = HourlyOrderService::statusLabel($order);
+        $data['amount_due'] = max(0,round((float)$order->total_amount-(float)$order->paid_amount,2));
+        if ($details) $data['refunded_amount'] = -(float)$order->payments()->where('status','paid')->where('amount','<',0)->sum('amount');
+        // Compensations are a separate goodwill expense: they never change total_amount or paid_amount.
+        if ($details) $data['compensations'] = app(OrderCompensation::class)->publicData($order);
+        if ($details && CashCollectionService::ready()) $data['cash_receipts']=DB::table('hourly_cash_collections')->where('order_id',$order->id)->get(['id','payment_id','amount'])->map(fn($r)=>[
+            'collection_id'=>(int)$r->id,'payment_id'=>(int)$r->payment_id,'amount'=>(float)$r->amount,'url'=>url('api/app/hourly/cash-receipts/'.$r->id)])->all();
         if ($details) $data['visits'] = $order->visits->sortBy('visit_number')->map(fn ($visit) => $this->visit($visit, $order))->values();
         return $data;
     }
@@ -117,17 +134,20 @@ class CustomerHourlyData
         foreach (['planned_hours','visit_price','cancellation_fee'] as $field) $data[$field]=(float)$data[$field];
         $settings=app(HourlyBookingRules::class)->settings();
         $snapshot=(array)$order->package_snapshot;
-        $open=in_array($order->status,['active','pending_confirmation']) && $order->expires_at->isFuture();
+        $open=in_array($order->status,['active','pending_confirmation']) && $order->expires_at->isFuture() && !ServiceIncident::waiting($order,$visit->id);
+        $data['financial']=app(PaymentScheduleService::class)->forOrder($order)['visits'][$visit->id]??null;
         $policy=app(CustomerVisitActions::class)->policy($visit,$order);
         $rating=$this->rating($visit,$order);
         return $data + ['hourly_rental_order_id' => $order->id,
             // Keep the stable status code for app logic and provide its localized label for display.
-            'status_label' => __('hourly.'.$visit->status),
+            'status_label' => __('hourly.'.$visit->display_status),
+            'is_missed' => $visit->is_missed,
+            'cash_collection'=>app(CashCollectionService::class)->info($visit),
             'scheduled_start_at' => $visit->scheduled_start_at?->toIso8601String(),
             'scheduled_end_at' => $visit->scheduled_end_at?->toIso8601String(),
             'timezone' => config('app.timezone'),
             'can_schedule' => $visit->status === 'unscheduled' && $open,
-            'can_reschedule' => $open && $visit->status==='scheduled' && $visit->scheduled_start_at?->isFuture()
+            'can_reschedule' => $open && !$visit->has_started_execution && $visit->status==='scheduled' && $visit->scheduled_start_at?->isFuture()
                 && $settings->value($snapshot,'allow_reschedule')
                 && (int)$visit->reschedule_count<$settings->value($snapshot,'max_reschedules_per_visit')
                 && now()->diffInMinutes($visit->scheduled_start_at,false)>=$settings->value($snapshot,'reschedule_hours_before')*60,
@@ -135,15 +155,29 @@ class CustomerHourlyData
             'can_cancel' => $policy['can_cancel'],
             'cancellation_policy' => ['window_hours'=>$policy['window_hours'],'fee_percent'=>$policy['fee_percent'],
                 'fee_if_cancelled_now'=>$policy['fee_if_cancelled_now'],'free_until'=>$policy['free_until'],'currency'=>'SAR'],
-            'can_request_extra_hour' => $open && in_array($visit->status,CustomerVisitActions::EXTENDABLE,true) && $visit->scheduled_end_at?->isFuture(),
+            'can_request_extra_hour' => $open && in_array($visit->status,CustomerVisitActions::EXTENDABLE,true) && ServiceTime::deadline($visit)?->isFuture(),
+            'service_time' => app(ServiceTime::class)->publicData($visit),
+            'can_request_additional_worker' => in_array($order->status,['active','pending_confirmation'],true)
+                && ($order->status!=='pending_confirmation' || !$order->expires_at?->isPast())
+                && $visit->status==='scheduled' && $visit->scheduled_start_at?->isFuture()
+                && !$visit->is_free && (int)$visit->workers_count<20,
+            'can_request_recovery' => MissedVisitRecovery::eligible($visit,$order),
+            // تعذّر حضور عاملة لزيارة قادمة: يطلب العميل من الإدارة بديلة لنفس الموعد.
+            'can_request_replacement' => MissedVisitRecovery::replacementEligible($visit,$order),
+            'service_disruption' => app(ServiceIncident::class)->publicData($order,$visit),
+            // إنهاء العاملة قبل اكتمال الوقت: can_respond يعرض سؤال «هل كان بطلبك؟» حتى respond_until.
+            'early_finishes' => app(EarlyFinish::class)->publicData($visit),
+            'worker_replaced_at' => $order->booking_metadata['worker_replacements'][$visit->id]['replaced_at']??null,
+            'coverage_recovery' => MissedVisitRecovery::coverageRecovery($visit,$order),
+            'recovery_request' => $order->booking_metadata['missed_visit_requests'][$visit->id] ?? null,
             'can_track' => app(VisitTracking::class)->canTrack($visit, $order),
             'extra_hour_price' => (float) $order->extra_hour_price,
             'extra_hours' => round(max(0,(float)$visit->planned_hours-(float)$order->hours_per_visit),2),
             'can_rate' => in_array($visit->status,CustomerVisitActions::RATEABLE,true) && !$rating,
             // حالة مفهومة للعميل مهما تقدّم التنفيذ الميداني، والحالة الخام تبقى في status.
-            'display_status' => self::VISIT_DISPLAY[$visit->status] ?? $visit->status,
+            'display_status' => self::VISIT_DISPLAY[$visit->display_status] ?? $visit->display_status,
             // رمز التسليم يُعرض للعميل قبل وصول العاملة فقط، ويطلبه السائق عند التسليم.
-            'delivery_code' => in_array($visit->status,['scheduled','en_route'],true) ? ($visit->delivery_code ?: null) : null,
+            'delivery_code' => !$visit->is_missed && in_array($visit->status,['scheduled','en_route'],true) ? ($visit->delivery_code ?: null) : null,
             'rating' => $rating];
     }
 

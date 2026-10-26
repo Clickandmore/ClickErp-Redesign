@@ -40,6 +40,17 @@ class HourlyDriver extends Authenticatable implements JWTSubject
         return array_filter(self::REQUIRED_DOCUMENTS, fn ($label, $field) => !$this->$field, ARRAY_FILTER_USE_BOTH);
     }
 
+    /** Valid through the expiry date; assignment is checked against the actual task date. */
+    public function residencyAssignmentReason(?\Carbon\CarbonInterface $at = null): ?string
+    {
+        if (!$this->residency_expiry_date) return null;
+        $expiry = \Illuminate\Support\Carbon::parse($this->residency_expiry_date)->startOfDay();
+        $task = \Illuminate\Support\Carbon::parse($at ?? now())->startOfDay();
+        if ($expiry->gte($task)) return null;
+        return __('hourly_driver_assignment.residency_blocked', [
+            'name'=>$this->name, 'expiry'=>$expiry->format('Y-m-d'), 'task'=>$task->format('Y-m-d'),
+        ]);
+    }
     public function workingDays(): array
     {
         return array_keys(array_filter((array) $this->work_schedule, fn ($day) => ($day['mode'] ?? 'off') !== 'off'));

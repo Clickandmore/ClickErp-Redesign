@@ -26,6 +26,10 @@ class PhoneVerificationAction extends MainAction
 
     public function storeSendCode($data, $request)
     {
+        $reviewCode = \App\Support\HourlyAppReviewAccounts::code('customer', (string) $request->phone, null, (string) $request->phone_code);
+        if ($reviewCode !== null) {
+            return ['code' => $reviewCode, 'review_account' => true];
+        }
         $phoneExists = $this->model->where('phone', $request->phone)
             ->where('phone_code', $request->phone_code)
             ->first();
@@ -106,6 +110,11 @@ class PhoneVerificationAction extends MainAction
 
     public function confirmCode($request)
     {
+        $reviewCode = \App\Support\HourlyAppReviewAccounts::code('customer', (string) $request->phone, null, (string) $request->phone_code);
+        if ($reviewCode !== null) {
+            // Review credentials live in their own settings, never in the site's OTP table.
+            return hash_equals($reviewCode, (string) $request->code) ? $this->confirmedResponse($request) : false;
+        }
         if (CommunicationSettings::phoneVerificationIsDisabled()
             && hash_equals(CommunicationSettings::phoneVerificationBypassCode(), (string) $request->code)) {
             return $this->confirmedResponse($request);

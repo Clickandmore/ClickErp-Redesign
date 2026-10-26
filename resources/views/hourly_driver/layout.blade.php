@@ -1,3 +1,11 @@
+@php
+    // الرأس نفسه لبوابتي السائق والعاملة؛ الروابط والاسم حسب البوابة الحالية.
+    $isMaidPortal = request()->routeIs('hourly-maid.*');
+    $portalHome = $isMaidPortal ? route('hourly-maid.home') : route('hourly-driver.home');
+    $portalLogout = $isMaidPortal ? route('hourly-maid.logout') : route('hourly-driver.logout');
+    $portalRole = $isMaidPortal ? 'العاملة' : 'السائق';
+    $portalDescription = $isMaidPortal ? 'بوابة عاملات الساعات' : 'بوابة سائقي الساعات';
+@endphp
 <!doctype html>
 <html lang="ar" dir="rtl">
 <head>
@@ -5,8 +13,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="theme-color" content="#0a4d91">
     <meta name="color-scheme" content="light">
-    <title>@yield('title', 'بوابة السائق') | {{ config('app.name') }}</title>
+    <title>@yield('title', $portalDescription) | {{ config('app.name') }}</title>
     <link rel="stylesheet" href="{{ asset('css/hourly-driver.css') }}?v={{ filemtime(public_path('css/hourly-driver.css')) }}">
+    @stack('styles')
 </head>
 <body class="@hasSection('portal') portal-page @else auth-page @endif">
 @include('components.submission-guard')
@@ -21,7 +30,7 @@
 @endif
 
 @hasSection('portal')
-    @if ($impersonator = session('hourly_driver_impersonator'))
+    @if (request()->routeIs('hourly-driver.*') && ($impersonator = session('hourly_driver_impersonator')))
         {{-- جلسة فتحها مشرف من جدول السائقين؛ الخروج يعيده إلى اللوحة --}}
         <div role="status" style="background:#fef3c7;color:#92400e;border-bottom:1px solid #fde68a;padding:10px 16px;text-align:center;font-size:14px;font-weight:600">
             أنت تتصفح بوابة السائق بحساب <strong>{{ auth('hourly_driver')->user()?->name }}</strong> بصفتك المشرف {{ $impersonator['name'] }}. أي إجراء هنا يُسجَّل باسم السائق.
@@ -33,16 +42,16 @@
     @endif
     <div class="page-shell">
         <header class="topbar">
-            <a class="brand" href="{{ route('hourly-driver.home') }}" aria-label="العودة إلى لوحة السائق">
+            <a class="brand" href="{{ $portalHome }}" aria-label="العودة إلى {{ $portalDescription }}">
                 <strong class="login-logo">{{ config('app.name') }}</strong>
-                <span><strong>{{ config('app.name') }} — السائق</strong><small>بوابة سائقي الساعات</small></span>
+                <span><strong>{{ config('app.name') }} — {{ $portalRole }}</strong><small>{{ $portalDescription }}</small></span>
             </a>
             <div class="top-actions">
                 <a class="admin-shortcut" href="{{ route('admin.form.login') }}">
                     <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 3 7v6c0 5 3.8 7.5 9 9 5.2-1.5 9-4 9-9V7l-9-4Z"/></svg>
                     <span>دخول لوحة الإدارة</span>
                 </a>
-                <form class="logout-form" method="POST" action="{{ route('hourly-driver.logout') }}">
+                <form class="logout-form" method="POST" action="{{ $portalLogout }}">
                     @csrf
                     <button class="logout-btn" type="submit">
                         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10 17l5-5-5-5M15 12H3M21 19V5a2 2 0 0 0-2-2h-5a2 2 0 0 0-2 2v2m0 10v2a2 2 0 0 0 2 2h5a2 2 0 0 0 2-2Z"/></svg>

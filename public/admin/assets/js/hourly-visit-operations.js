@@ -1,7 +1,7 @@
 (() => {
     const root=document.getElementById('visit-operations');if(!root)return;
     const form=document.getElementById('vl-batch-form'),action=form.elements.action,modal=document.getElementById('vl-modal');
-    const error=document.getElementById('vl-error'),submit=document.getElementById('vl-submit');let busy=false,target=[],workerSnapshot=[],workerRequired=0,workersLoading=false;
+    const error=document.getElementById('vl-error'),submit=document.getElementById('vl-submit');let busy=false,target=[],workerSnapshot=[],workerRequired=0,workersLoading=false,slotRequest=0;
     const boxes=[...root.querySelectorAll('[data-select-visit]')];
     const selected=()=>boxes.filter(b=>b.checked).map(b=>b.value);
     // تنبيهات SweetAlert بهوية الوحدة، مع رجوع لتنبيهات المتصفح إن لم تُحمَّل المكتبة.
@@ -13,9 +13,22 @@
     const confirmAction=(title,text,danger)=>swal({icon:danger?'warning':'question',title,text,showCancelButton:true,reverseButtons:true,focusCancel:danger,confirmButtonText:'نعم، نفّذ',cancelButtonText:'تراجع',customClass:{confirmButton:danger?'is-danger':''}}).then(r=>r.isConfirmed);
     function refresh(){document.getElementById('vl-selected').textContent=selected().length;boxes.forEach(b=>b.closest('[data-visit-card]').classList.toggle('is-selected',b.checked));const all=document.getElementById('vl-select-all');all.checked=boxes.length>0&&selected().length===boxes.length;all.indeterminate=selected().length>0&&!all.checked;}
     boxes.forEach(b=>b.addEventListener('change',refresh));document.getElementById('vl-select-all').addEventListener('change',e=>{boxes.forEach(b=>b.checked=e.target.checked);refresh();});
-    function fields(){root.querySelectorAll('[data-fields]').forEach(group=>{const active=group.dataset.fields===action.value;group.hidden=!active;group.querySelectorAll('input,select').forEach(input=>{input.disabled=!active;input.required=active&&!['checkbox','file'].includes(input.type)&&!['new_date','shift_days'].includes(input.name);});});error.hidden=true;}
+    function fields(){root.querySelectorAll('[data-fields]').forEach(group=>{const active=group.dataset.fields===action.value;group.hidden=!active;group.querySelectorAll('input,select').forEach(input=>{input.disabled=!active||input.closest('[hidden]')!==null;input.required=active&&!['checkbox','file','hidden'].includes(input.type)&&!['new_date','shift_days','starts_at'].includes(input.name);});});error.hidden=true;}
     // خطوتان: شبكة بطاقات الإجراءات ثم حقول الإجراء المختار؛ العنوان والأيقونة يتبعان الاختيار.
+    function blockedStartedAction(choice) {
+        return ['cancel_visit','reschedule','start_time','duration'].includes(choice)
+            && boxes.some(box=>target.includes(box.value) && box.dataset.started==='1');
+    }
+    function collectibleCents(){
+        const groups=new Map();
+        boxes.filter(box=>target.includes(box.value)).forEach(box=>{
+            const key=box.dataset.orderId, row=groups.get(key)||{amount:0,limit:Math.round(Number(box.dataset.orderRemaining)*100)};
+            row.amount+=Math.round(Number(box.dataset.collectable)*100);groups.set(key,row);
+        });
+        return [...groups.values()].reduce((sum,row)=>sum+Math.min(row.amount,row.limit),0);
+    }
     function step(name){
+        modal.querySelectorAll('[data-pick-action]').forEach(tile=>{tile.hidden=blockedStartedAction(tile.dataset.pickAction)||(tile.dataset.pickAction==='collect'&&collectibleCents()<=0);tile.style.display=tile.hidden?'none':'';});
         const tile=modal.querySelector('[data-pick-action="'+action.value+'"]'),showForm=name==='form'&&!!tile;
         modal.dataset.opStep=showForm?'form':'pick';
         document.getElementById('vl-modal-title').textContent=showForm?tile.dataset.label:'الإجراءات';
@@ -24,13 +37,22 @@
         // أزرار الزيارة الواحدة تفتح إجراءً بعينه، فلا معنى للرجوع إلى كل الإجراءات.
         document.getElementById('vl-back').hidden=modal.dataset.single==='1';
         fields();
+        if(action.value==='collect'){
+            const amount=form.elements.amount,limit=collectibleCents()/100;
+            amount.max=limit.toFixed(2);
+            amount.placeholder='المتاح للتحصيل: '+limit.toFixed(2)+' ر.س';
+            let hint=form.querySelector('[data-collection-balance]');
+            if(!hint){hint=document.createElement('p');hint.dataset.collectionBalance='';amount.after(hint);}
+            hint.textContent='المتاح للتحصيل للزيارات المحددة: '+limit.toFixed(2)+' ر.س بعد خصم السداد السابق.';
+        }
     }
     modal.querySelectorAll('[data-pick-action]').forEach(tile=>tile.addEventListener('click',()=>{action.value=tile.dataset.pickAction;step('form');}));
     document.getElementById('vl-back').addEventListener('click',()=>{action.value='';step('pick');});
     async function open(ids,choice,button){
         if(busy)return;
         if(!ids.length){swal({icon:'info',title:'لم تحدد أي زيارة',text:'حدد زيارة واحدة على الأقل من القائمة ثم اختر الإجراء.'});return;}
-        target=ids;form.reset();workersLoading=false;submit.disabled=false;form.elements.batch_id.value=crypto.randomUUID();action.value=choice||'';modal.dataset.single=choice?'1':'0';
+        target=ids;form.reset();const slotPicker=form.querySelector('[data-reschedule-slots]'),manualPicker=form.querySelector('[data-reschedule-manual]');if(slotPicker)slotPicker.hidden=true;if(manualPicker)manualPicker.hidden=false;workersLoading=false;submit.disabled=false;form.elements.batch_id.value=crypto.randomUUID();action.value=choice||'';modal.dataset.single=choice?'1':'0';
+        if(choice==='collect'&&collectibleCents()<=0){swal({icon:'info',title:'لا يوجد مبلغ متاح للتحصيل',text:'الزيارة مسددة بالكامل أو لا يوجد مبلغ مستحق للتحصيل حاليًا. راجع سجل الدفعات.'});return;}
         step(choice?'form':'pick');
         document.getElementById('vl-target').textContent=(ids.length===1?'':ids.length+' ')+'زيارة محددة: #'+ids.join('، #');
         bootstrap.Modal.getOrCreateInstance(modal).show();
@@ -39,9 +61,20 @@
         }
         if(choice==='unassign_driver')form.elements.remove_driver_role.value=button?.dataset.role||'delivery';
         if(choice==='assign_workers')await loadWorkers(button?.dataset.replaceWorker);
+        if(choice==='reschedule'&&ids.length===1&&button?.dataset.missed==='1')setupRescheduleSlots();
     }
     document.getElementById('vl-open-batch').addEventListener('click',()=>open(selected()));
     root.querySelectorAll('[data-single]').forEach(b=>b.addEventListener('click',()=>open([b.dataset.id],b.dataset.single,b)));
+    function setupRescheduleSlots(){
+        const picker=form.querySelector('[data-reschedule-slots]'),manual=form.querySelector('[data-reschedule-manual]'),date=form.querySelector('#vl-reschedule-date'),cards=form.querySelector('#vl-reschedule-slot-cards'),start=form.elements.starts_at;
+        picker.hidden=false;manual.hidden=true;date.disabled=false;start.disabled=false;start.value='';date.min=new Date(Date.now()-new Date().getTimezoneOffset()*60000).toISOString().slice(0,10);const firstDate=new Date();firstDate.setDate(firstDate.getDate()+1);date.value=new Date(firstDate.getTime()-firstDate.getTimezoneOffset()*60000).toISOString().slice(0,10);
+        const note=text=>{const p=document.createElement('p');p.className='vl-slot-empty';p.textContent=text;cards.replaceChildren(p);};
+        const load=async()=>{const token=++slotRequest;start.value='';note(cards.dataset.loading);submit.disabled=true;error.hidden=true;
+            try{const response=await fetch(root.dataset.visitBase+'/'+target[0]+'/reschedule-slots?date='+encodeURIComponent(date.value),{headers:{Accept:'application/json'}}),data=await response.json();if(token!==slotRequest)return;if(!response.ok)throw new Error(data.message||cards.dataset.error);if(!data.slots.length){note(cards.dataset.empty);return;}
+                cards.replaceChildren(...data.slots.map(slot=>{const button=document.createElement('button');button.type='button';button.className='vl-slot-card';button.textContent=slot.label;button.setAttribute('aria-pressed','false');button.addEventListener('click',()=>{start.value=slot.starts_at;cards.querySelectorAll('.vl-slot-card').forEach(card=>{card.classList.remove('is-selected');card.setAttribute('aria-pressed','false');});button.classList.add('is-selected');button.setAttribute('aria-pressed','true');});return button;}));
+            }catch(e){if(token===slotRequest){note(cards.dataset.error);error.textContent=e.message;error.hidden=false;}}finally{if(token===slotRequest)submit.disabled=false;}
+        };date.addEventListener('input',load);date.addEventListener('change',load);load();
+    }
     async function loadWorkers(replace){
         const choices=document.getElementById('vl-worker-choices'),context=document.getElementById('vl-worker-context'),token=form.elements.batch_id.value;
         choices.replaceChildren();workerSnapshot=[];workerRequired=0;workersLoading=true;submit.disabled=true;context.textContent='جارٍ التحقق من التوفر…';
@@ -72,9 +105,15 @@
     root.querySelectorAll('[data-column-toggle]').forEach(input=>input.addEventListener('change',()=>{hidden=hidden.filter(k=>k!==input.dataset.columnToggle);if(!input.checked)hidden.push(input.dataset.columnToggle);try{localStorage.setItem('hourly-visit-hidden-columns',JSON.stringify(hidden));}catch{}applyColumns();}));applyColumns();
     form.addEventListener('submit',async event=>{
         event.preventDefault();if(busy||workersLoading||!action.value)return;
+        if(blockedStartedAction(action.value)){error.textContent='بدأ تنفيذ إحدى الزيارات؛ لا يمكن إلغاؤها أو تغيير موعدها أو مدتها.';error.hidden=false;return;}
         const label=modal.querySelector('[data-pick-action="'+action.value+'"]')?.dataset.label||'الإجراء';
         busy=true;submit.disabled=true;error.hidden=true;
         try{
+            if(action.value==='collect'){
+                const limit=collectibleCents(),amount=Math.round(Number(form.elements.amount.value)*100);
+                if(limit<=0)throw new Error('لا يوجد مبلغ متاح للتحصيل للزيارات المحددة. حدّث القائمة وراجع سجل الدفعات.');
+                if(amount>limit)throw new Error('المبلغ المدخل يتجاوز المتاح للتحصيل: '+(limit/100).toFixed(2)+' ر.س بعد خصم السداد السابق.');
+            }
             let preview='سيُنفَّذ على '+target.length+' زيارة. السبب: '+form.elements.reason.value;
             if(action.value==='assign_workers'){
                 const chosen=[...root.querySelectorAll('[name="worker_ids[]"]:checked')];
@@ -82,6 +121,7 @@
                 preview=document.getElementById('vl-worker-context').textContent+'\nالتعيين بعد الحفظ: '+chosen.map(input=>input.dataset.workerName).join('، ')+'\n'+preview;
             }
             if(!(await confirmAction('معاينة وتأكيد: '+label,preview,['cancel_visit','unassign_workers','unassign_driver','unassign_all'].includes(action.value))))return;
+            if(action.value==='reschedule'&&form.elements.starts_at&&!form.elements.starts_at.disabled&&!form.elements.starts_at.value)throw new Error('Choose an available time first.');
             const data=new FormData(form);target.forEach(id=>data.append('visit_ids[]',id));
             if(action.value==='assign_workers')workerSnapshot.forEach(id=>data.append('expected_worker_ids[]',id));
             if(action.value==='unassign_driver'){data.set('driver_role',form.elements.remove_driver_role.value);data.delete('remove_driver_role');}

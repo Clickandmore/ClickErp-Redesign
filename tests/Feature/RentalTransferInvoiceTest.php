@@ -30,7 +30,7 @@ class RentalTransferInvoiceTest extends TestCase
         parent::setUp();
         config(['database.default' => 'sqlite', 'database.connections.sqlite.database' => ':memory:']);
         DB::purge('sqlite');
-        Schema::create('rental_contracts', function ($table) {
+        Schema::create('rental_contracts', function ($table) { $table->boolean('freeze_releases_maid')->default(false);
             $table->id(); $table->integer('user_id'); $table->integer('maid_id')->nullable(); $table->integer('branch_id')->nullable();
             $table->timestamp('closed_at')->nullable();
             $table->string('status')->default('active');
@@ -306,7 +306,7 @@ class RentalTransferInvoiceTest extends TestCase
         }
         $matrix = \App\Support\AdminRoutePermissionMatrix::class;
         $this->assertSame([\App\PermKeys::SPONSOR_TRANSFER_CREATE_INVOICE], $matrix::resolve('invoices.store', \Illuminate\Http\Request::create('/', 'POST', ['sponsorship_transfer_id' => 163])));
-        $this->assertSame([\App\PermKeys::INVOICES_CREATE], $matrix::resolve('invoices.store', \Illuminate\Http\Request::create('/', 'POST', ['client_id' => 9])));
+        $this->assertSame([\App\PermKeys::INVOICES_CREATE, \App\PermKeys::INVOICES_CREATE_DRAFT], $matrix::resolve('invoices.store', \Illuminate\Http\Request::create('/', 'POST', ['client_id' => 9])));
         $this->assertSame([\App\PermKeys::SPONSOR_TRANSFER_CREATE_INVOICE], $matrix::resolve('SponsorshipTransfer.invoice.create'));
         auth()->forgetGuards();
     }

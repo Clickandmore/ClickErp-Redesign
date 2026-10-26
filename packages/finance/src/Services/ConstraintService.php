@@ -110,6 +110,16 @@ class ConstraintService extends MainService
     public function storeConstraint($data,$getActiveYear,$type = ConstraintTypiesEnum::DailyEntry)
     {
         $this->assertAccountsAssignableToBranch($data['account_id'] ?? [], $data['branch_id'] ?? null);
+        $accountsByBranch = [];
+        foreach ($data['account_id'] ?? [] as $key => $accountId) {
+            $branchId = $data['detail_branch_id'][$key] ?? null;
+            if ($branchId !== null) {
+                $accountsByBranch[(int) $branchId][] = $accountId;
+            }
+        }
+        foreach ($accountsByBranch as $branchId => $accountIds) {
+            $this->assertAccountsAssignableToBranch($accountIds, $branchId);
+        }
 
         $year = $getActiveYear;
         $data['year_id'] = $year->id;
@@ -156,6 +166,7 @@ class ConstraintService extends MainService
         $yearId = $year_id ?? $this->yearService->getActiveYear()->id;
 
         foreach ($accountIds as $key => $accountId) {
+            $detailBranchIds = $request['detail_branch_id'] ?? $request['branch_id'] ?? null;
             $data = [
                 "type" => $request['account_type'][$key],
                 "debtor_value" => $request['debtor_value'][$key],
@@ -163,6 +174,7 @@ class ConstraintService extends MainService
                 "statement" => $request['statement_account'][$key] ?? '-',
                 "account_id" => $accountId,
                 "cost_center_id" => $request['cost_center_id'][$key] ?? '',
+                "branch_id" => is_array($detailBranchIds) ? ($detailBranchIds[$key] ?? null) : null,
                 "year_id" => $yearId,
                 "constraint_id" => $constraintId,
                 "date" => $date ?? $this->model->find($constraintId)->date,
@@ -280,6 +292,9 @@ class ConstraintService extends MainService
                                         ->whereNull('fn_constraints.deleted_at')
                                         ->whereIn('fn_constraint_details.account_id', $accountIds)
                                         ->where('fn_constraint_details.date', '<', $customDate)
+                                        ->when(!empty($dataSearch['supplier_workers']) && filled($dataSearch['worker_search'] ?? null), function ($query) use ($dataSearch) {
+                                            $query->addWhereExistsQuery($this->supplierWorkerQuery($dataSearch['worker_search']));
+                                        })
                                         ->first();
         }
         return null;
@@ -325,7 +340,43 @@ class ConstraintService extends MainService
             ->orderBy('fn_constraints.id')
             ->orderBy('fn_constraint_details.id');
 
+        if (!empty($dataSearch['supplier_workers'])) {
+            $accountStatment
+                ->selectSub($this->supplierWorkerQuery()->selectRaw("COALESCE(NULLIF(statement_maid.name, ''), statement_info.manual_maid_name)")->limit(1), 'worker_name')
+                ->selectSub($this->supplierWorkerQuery()->selectRaw("COALESCE(NULLIF(statement_maid.passport_num, ''), statement_info.manual_maid_passport_num)")->limit(1), 'worker_passport');
+            if (filled($dataSearch['worker_search'] ?? null)) {
+                $accountStatment->addWhereExistsQuery($this->supplierWorkerQuery($dataSearch['worker_search']));
+            }
+        }
+
         return $paginate ? StatementPaginator::fromQuery($accountStatment) : $accountStatment->get();
+    }
+
+    /** Correlated lookups preserve accounting row counts and totals. */
+    private function supplierWorkerQuery(?string $search = null)
+    {
+        $query = DB::table('contracts as statement_contract')
+            ->leftJoin('maids as statement_maid', 'statement_maid.id', '=', 'statement_contract.maid_id')
+            ->leftJoin('contract_infos as statement_info', 'statement_info.contract_id', '=', 'statement_contract.id')
+            ->where(function ($query) {
+                $query->whereColumn('statement_contract.external_office_cost_constraint_id', 'fn_constraints.id')
+                    ->orWhereExists(function ($invoice) {
+                        $invoice->selectRaw('1')->from('invoices as statement_invoice')
+                            ->whereColumn('statement_invoice.contract_id', 'statement_contract.id')
+                            ->whereColumn('statement_invoice.external_office_cost_constraint_id', 'fn_constraints.id');
+                    });
+            })
+            ->orderBy('statement_contract.id');
+
+        if (filled($search)) {
+            $query->where(function ($query) use ($search) {
+                $term = '%' . trim($search) . '%';
+                $query->whereRaw("COALESCE(NULLIF(statement_maid.name, ''), statement_info.manual_maid_name) LIKE ?", [$term])
+                    ->orWhereRaw("COALESCE(NULLIF(statement_maid.passport_num, ''), statement_info.manual_maid_passport_num) LIKE ?", [$term]);
+            });
+        }
+
+        return $query;
     }
 
     public function filterConstraints($dataSearch, ?array $constraintIds = null)

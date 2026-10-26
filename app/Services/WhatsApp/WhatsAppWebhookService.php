@@ -96,6 +96,9 @@ class WhatsAppWebhookService
             return;
         }
 
+        // Also update sends made outside the inbox (OTP, reminders, campaigns).
+        \App\Support\OutboundMessageRecorder::whatsAppStatus($messageId, $state, $status);
+
         $message = WhatsAppMessage::query()->where('meta_message_id', $messageId)->first();
         if (!$message) {
             Log::info('WhatsApp status received before local message was available', [

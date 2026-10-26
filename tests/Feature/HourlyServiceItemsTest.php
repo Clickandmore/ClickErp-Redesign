@@ -35,7 +35,9 @@ class HourlyServiceItemsTest extends TestCase
         parent::setUp();
         config(['database.connections.items_test'=>['driver'=>'sqlite','database'=>':memory:','prefix'=>''],'database.default'=>'items_test','superadmin_modules.hourly_rental.default_enabled'=>true,'activitylog.enabled'=>false]);
         Schema::create('new_settings',function(Blueprint $t){$t->id();$t->string('key');$t->text('value');$t->timestamps();});
-        Schema::create('cities',function(Blueprint $t){$t->id();$t->string('name_ar');$t->boolean('is_active')->default(true);});
+        Schema::create('countries',function(Blueprint $t){$t->id();$t->string('code');});
+        DB::table('countries')->insert([['id'=>1,'code'=>'SA'],['id'=>2,'code'=>'EG']]);
+        Schema::create('cities',function(Blueprint $t){$t->id();$t->unsignedBigInteger('country_id')->default(1);$t->string('name_ar');$t->boolean('is_active')->default(true);});
         Schema::create('nationalities',function(Blueprint $t){$t->id();});
         Schema::create('user_addresses',function(Blueprint $t){$t->id();$t->unsignedBigInteger('user_id');$t->unsignedBigInteger('city_id');$t->string('address');$t->decimal('latitude');$t->decimal('longitude');$t->timestamps();});
         (require base_path('database/migrations/2026_09_16_000006_create_hourly_commerce_tables.php'))->up();
@@ -108,10 +110,12 @@ class HourlyServiceItemsTest extends TestCase
     }
     public function test_views_render_and_form_can_create_service_item(): void
     {
+        (require base_path('database/migrations/2026_10_14_000003_add_hourly_package_payment_policy.php'))->up();
         $this->item();$this->get(route('admin.hourly-service-items.index'))->assertOk()->assertSee('عنصر تجريبي');
-        $this->get(route('admin.hourly-packages.create'))->assertOk()->assertSee('إجمالي سعر الباقة');
-        $this->postJson(route('admin.hourly-packages.store'),['service_item_form'=>1,'code'=>'NEW','category'=>'مكاتب','title_ar'=>'تنظيف المكاتب','package_type'=>'one_off','total_price'=>200,'duration_minutes'=>240,'hours_per_visit'=>4,'workers_per_visit'=>1,'visits_count'=>1,'validity_days'=>30,'extra_worker_price'=>0,'extra_hour_price'=>0,'transport_fee'=>0,'tax_rate'=>15,'sort_order'=>0,'city_ids'=>[1],'is_active'=>1,'show_on_app'=>1,'use_general_schedule'=>1])->assertOk();
+        $this->get(route('admin.hourly-packages.create'))->assertOk()->assertSee('إجمالي سعر الباقة')->assertSee('سياسة استحقاق الدفع');
+        $this->postJson(route('admin.hourly-packages.store'),['service_item_form'=>1,'code'=>'NEW','payment_policy'=>'installments','deposit_amount'=>50,'monthly_amount'=>75,'category'=>'مكاتب','title_ar'=>'تنظيف المكاتب','package_type'=>'one_off','total_price'=>200,'duration_minutes'=>240,'hours_per_visit'=>4,'workers_per_visit'=>1,'visits_count'=>1,'validity_days'=>30,'extra_worker_price'=>0,'extra_hour_price'=>0,'transport_fee'=>0,'tax_rate'=>15,'sort_order'=>0,'city_ids'=>[1],'is_active'=>1,'show_on_app'=>1,'use_general_schedule'=>1])->assertOk();
         $this->assertEquals(200,HourlyPackage::where('code','NEW')->firstOrFail()->total_price);
+        $this->assertSame('installments',HourlyPackage::where('code','NEW')->firstOrFail()->payment_policy);
         $this->get(route('admin.hourly-service-items.logs'))->assertOk()->assertSee('تنظيف المكاتب');
     }
     public function test_service_item_routes_keep_feature_and_permission_gates(): void
@@ -143,4 +147,30 @@ class HourlyServiceItemsTest extends TestCase
         $order=app(HourlyOrderService::class)->create(1,$data,7);$this->assertSame('scheduled',$order->visits()->first()->status);
         $this->expectException(ValidationException::class);app(HourlyOrderService::class)->create(1,$data);
     }
+
+    public function test_package_city_picker_and_saving_allow_only_active_saudi_cities(): void
+    {
+        DB::table('cities')->insert([
+            ['id'=>2,'country_id'=>2,'name_ar'=>'القاهرة','is_active'=>true],
+            ['id'=>3,'country_id'=>1,'name_ar'=>'مدينة سعودية موقوفة','is_active'=>false],
+        ]);
+        $this->get(route('admin.hourly-packages.create'))->assertOk()
+            ->assertViewHas('cities',fn($cities)=>$cities->pluck('id')->all()===[1]);
+        $this->withHeader('X-Requested-With','XMLHttpRequest')->get(route('admin.hourly-packages.create'))->assertOk()
+            ->assertViewHas('cities',fn($cities)=>$cities->pluck('id')->all()===[1]);
+        $payload=['service_item_form'=>1,'code'=>'SA-ONLY','category'=>'مكاتب','title_ar'=>'باقة سعودية','package_type'=>'one_off',
+            'total_price'=>200,'duration_minutes'=>240,'hours_per_visit'=>4,'workers_per_visit'=>1,'visits_count'=>1,'validity_days'=>30,
+            'extra_worker_price'=>0,'extra_hour_price'=>0,'transport_fee'=>0,'tax_rate'=>15,'sort_order'=>0,'city_ids'=>[2],
+            'is_active'=>1,'show_on_app'=>1,'use_general_schedule'=>1];
+        $this->postJson(route('admin.hourly-packages.store'),$payload)->assertUnprocessable()->assertJsonValidationErrors('city_ids');
+        $payload['city_ids']=[3];
+        $this->postJson(route('admin.hourly-packages.store'),$payload)->assertUnprocessable()->assertJsonValidationErrors('city_ids');
+        $this->assertFalse(HourlyPackage::where('code','SA-ONLY')->exists());
+        $payload['city_ids']=[1];$this->postJson(route('admin.hourly-packages.store'),$payload)->assertOk();
+        $item=HourlyPackage::where('code','SA-ONLY')->firstOrFail();
+        $payload['city_ids']=[1,2];
+        $this->putJson(route('admin.hourly-packages.update',$item),$payload)->assertUnprocessable()->assertJsonValidationErrors('city_ids');
+        $this->assertEquals([1],$item->fresh()->cities->pluck('id')->all());
+    }
+
 }

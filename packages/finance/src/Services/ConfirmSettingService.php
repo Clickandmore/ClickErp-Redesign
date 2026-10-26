@@ -34,6 +34,7 @@ class ConfirmSettingService extends MainService
             ->filter(fn ($value) => is_numeric($value) && (int) $value > 0)
             ->map(fn ($value) => (int) $value)
             ->concat($additionalAccountIds)
+            ->concat(\App\Support\MusanedIntermediateAccountSettings::settingsForForm())
             ->filter(fn ($value) => is_numeric($value) && (int) $value > 0)
             ->map(fn ($value) => (int) $value)
             ->unique()
@@ -166,6 +167,9 @@ class ConfirmSettingService extends MainService
     public function storeData($data)
     {
         $rows = $data['data'] ?? [];
+        \App\Support\MusanedIntermediateAccountSettings::validateSubmission($rows);
+        $musanedMode = collect($rows)->firstWhere('title', \App\Support\MusanedIntermediateAccountSettings::MODE_KEY)['value']
+            ?? \App\Support\MusanedIntermediateAccountSettings::mode();
 
         foreach ($rows as $key => $setting) {
             if (($setting['title'] ?? null) === \App\Support\InvoiceSupplierWorkflow::SETTING_KEY
@@ -198,9 +202,29 @@ class ConfirmSettingService extends MainService
             }
         }
 
-        DB::transaction(function () use ($rows) {
+        $this->assertRecruitmentSupplierCycleIsConsistent($rows);
+
+        DB::transaction(function () use ($rows, $musanedMode) {
             foreach ($rows as $value) {
                 $title = $value['title'] ?? null;
+
+                if ($title === \App\Support\MusanedIntermediateAccountSettings::MODE_KEY
+                    || $title === 'musaned_intermediate_account'
+                    || str_starts_with((string) $title, \App\Support\MusanedIntermediateAccountSettings::BRANCH_PREFIX)) {
+                    if ($title === 'musaned_intermediate_account'
+                        && $musanedMode === \App\Support\MusanedIntermediateAccountSettings::MODE_PER_BRANCH) {
+                        continue;
+                    }
+                    if (str_starts_with((string) $title, \App\Support\MusanedIntermediateAccountSettings::BRANCH_PREFIX)
+                        && $musanedMode !== \App\Support\MusanedIntermediateAccountSettings::MODE_PER_BRANCH) {
+                        continue;
+                    }
+                    $this->model->updateOrCreate(
+                        ['title' => $title],
+                        ['value' => $value['value'] ?? null, 'created_by_id' => auth('admin')->id()]
+                    );
+                    continue;
+                }
 
                 // حقول الحساب القديمة لم تعد تُعرض ولا تُكتب من هذه الصفحة.
                 if ($title === null || isset(TaxAccountResolver::RATE_SETTINGS[$title])) {
@@ -242,6 +266,53 @@ class ConfirmSettingService extends MainService
         });
     }
 
+
+    /**
+     * تركيبات إعدادات «قيود المشتريات والوكلاء الخارجيون» التي لا يمكن تنفيذها تُرفض عند
+     * الحفظ بدل أن تفشل بصمت وقت إنشاء العقد.
+     */
+    private function assertRecruitmentSupplierCycleIsConsistent(array $rows): void
+    {
+        $settings = \App\Support\RecruitmentSupplierSettings::class;
+        $recognition = \App\Support\RecruitmentSupplierCostRecognition::class;
+
+        // القيمة المرسلة أولاً، وإلا المحفوظة: الصفحة قد تُحفظ بقسم واحد.
+        $submitted = function (string $title) use ($rows) {
+            foreach ($rows as $row) {
+                if (($row['title'] ?? null) === $title) {
+                    return $row['value'] ?? null;
+                }
+            }
+
+            return null;
+        };
+
+        $rate = $submitted($settings::USD_RATE);
+        if ($rate !== null && trim((string) $rate) !== '' && (!is_numeric($rate) || (float) $rate <= 0)) {
+            throw \Illuminate\Validation\ValidationException::withMessages([
+                'data.' . $settings::USD_RATE . '.value' => 'سعر صرف الدولار يجب أن يكون رقماً أكبر من صفر.',
+            ]);
+        }
+
+        $mode = $submitted($recognition::SETTING_KEY);
+        $mode = $mode === null ? $recognition::mode() : $recognition::normalize($mode);
+
+        if ($mode !== $recognition::MODE_ON_CONTRACT) {
+            return;
+        }
+
+        $source = $submitted($settings::COST_SOURCE);
+        $source = $source === null
+            ? $settings::costSource()
+            : $settings::normalize($settings::COST_SOURCE, $source);
+
+        if ($source !== $settings::SOURCE_OFFICE_PRICE_LIST) {
+            throw \Illuminate\Validation\ValidationException::withMessages([
+                'data.' . $settings::COST_SOURCE . '.value' => 'إثبات التكلفة «عند إنشاء العقد» يلزمه مصدر مبلغ لا يعتمد على الإرسالية. اختر «تكلفة الدولار المعرّفة على ملف المكتب الخارجي».',
+            ]);
+        }
+    }
+
     public function getAllSettings()
     {
         $titles = array_merge([
@@ -256,6 +327,7 @@ class ConfirmSettingService extends MainService
             'daily_constraints',
             'automatic_journal_entries',
             \App\Support\InvoiceSupplierWorkflow::SETTING_KEY,
+            \App\Support\MusanedCommissionPosting::SETTING_KEY,
             \App\Support\RecruitmentRevenueRecognition::SETTING_KEY,
             \App\Support\RecruitmentSupplierCostRecognition::SETTING_KEY,
             'bill_sales',
@@ -277,7 +349,7 @@ class ConfirmSettingService extends MainService
             'cost_center_general_sarf_bond',
             'cost_center_general_qabd_bond',
             'cost_center_account_transfer',
-        ], RentalContractFinanceService::confirmSettingTitles(), RentalMaidFinanceService::confirmSettingTitles(), ShelterLivingExpenseAccountingService::confirmSettingTitles(), NationalityFinanceAccountService::confirmSettingTitles(), \App\Support\ShelterAccountingSettings::confirmSettingTitles());
+        ], \App\Support\RecruitmentSupplierSettings::confirmSettingTitles(), RentalContractFinanceService::confirmSettingTitles(), RentalMaidFinanceService::confirmSettingTitles(), ShelterLivingExpenseAccountingService::confirmSettingTitles(), NationalityFinanceAccountService::confirmSettingTitles(), \App\Support\ShelterAccountingSettings::confirmSettingTitles());
 
         return $this->model->where(function ($query) use ($titles) {
             $query->whereIn('title', $titles)

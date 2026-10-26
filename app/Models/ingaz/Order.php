@@ -90,13 +90,29 @@ class Order extends Model
 
     public function adminCanDelete(?Admin $admin): bool
     {
-        return $this->wasCreatedByAdmin($admin)
+        return ($this->wasCreatedByAdmin($admin)
+                && \App\Support\AdminRoutePermissionMatrix::adminHasAnyPermission($admin, [\App\PermKeys::ORDERS_DELETE_OWN]))
             || \App\Support\AdminRoutePermissionMatrix::adminHasAnyPermission($admin, [\App\PermKeys::ORDERS_DELETE]);
     }
 
     public function transfers()
     {
         return $this->hasMany(OrderTransfers::class);
+    }
+
+    public function clientChangeBlockReason(): ?string
+    {
+        if ($this->trashed() || !in_array($this->status, ['new', 'under_process'], true)) {
+            return 'يمكن تغيير العميل للطلبات الجديدة أو قيد التنفيذ فقط.';
+        }
+        // Check all linked records, including archived contracts and payment attempts awaiting callbacks.
+        foreach (['contracts', 'rental_contracts', 'rental_order_payments', 'invoices', 'fn_bonds', 'financial_requests'] as $table) {
+            if (\Illuminate\Support\Facades\Schema::hasColumn($table, 'order_id')
+                && \Illuminate\Support\Facades\DB::table($table)->where('order_id', $this->id)->exists()) {
+                return 'لا يمكن تغيير العميل لطلب مرتبط بعقد أو عملية دفع أو مستند مالي.';
+            }
+        }
+        return null;
     }
 
     public function notes()

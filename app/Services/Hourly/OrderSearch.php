@@ -32,10 +32,10 @@ class OrderSearch
         foreach(['admin_id'=>'created_by_admin_id','hours'=>'hours_per_visit','short_id'=>'id','service_id'=>'service_category_id','coupon_code'=>'coupon_code','unique_id'=>'booking_token'] as $key=>$column)if(isset($f[$key]) && $f[$key]!=='')$q->where($column,$f[$key]);
         if(!empty($f['customer_name']))$q->whereHas('user',fn($q)=>$q->where('name','like','%'.$f['customer_name'].'%'));
         if(!empty($f['customer_source']))$q->whereHas('user',fn($q)=>$q->where('register_from',$f['customer_source']));
-        if(!empty($f['order_number']))$q->where('order_number','like','%'.$f['order_number'].'%');
+        if(!empty($f['order_number']))$q->where(fn($q)=>$q->where('order_number','like','%'.$f['order_number'].'%')->orWhere('legacy_order_number','like','%'.$f['order_number'].'%'));
         if(!empty($f['from']))$q->whereDate('created_at','>=',$f['from']);
         if(!empty($f['to']))$q->whereDate('created_at','<=',$f['to']);
-        if(!empty($f['search']))$q->where(fn($q)=>$q->where('order_number','like','%'.$f['search'].'%')->orWhere('invoice_number','like','%'.$f['search'].'%')->orWhereHas('user',fn($q)=>$q->where('name','like','%'.$f['search'].'%')->orWhere('phone','like','%'.$f['search'].'%')));
+        if(!empty($f['search']))$q->where(fn($q)=>$q->where('order_number','like','%'.$f['search'].'%')->orWhere('legacy_order_number','like','%'.$f['search'].'%')->orWhere('invoice_number','like','%'.$f['search'].'%')->orWhereHas('user',fn($q)=>$q->where('name','like','%'.$f['search'].'%')->orWhere('phone','like','%'.$f['search'].'%')));
         if(!empty($f['installment'])){
             $method=$f['installment']==='none'?'whereNotExists':'whereExists';
             $q->$method(function($q)use($f){$q->selectRaw('1')->from('hourly_order_installments as i')->whereColumn('i.hourly_rental_order_id','hourly_rental_orders.id');

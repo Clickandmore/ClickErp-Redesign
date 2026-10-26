@@ -55,9 +55,9 @@ class DeportationTravelController extends Controller
                 })
                 ->addColumn('client', function ($row) {
                     $html = '<div class="client-info">';
-                    if ($row->user) {
-                        $html .= '<span>' . $row->user->name . '</span><br>';
-                        $html .= '<small class="text-muted">' . $row->user->phone . '</small>';
+                    if ($row->client) {
+                        $html .= '<span>' . $row->client->name . '</span><br>';
+                        $html .= '<small class="text-muted">' . $row->client->phone . '</small>';
                     } else {
                         $html .= '<span class="text-muted">غير محدد</span>';
                     }
@@ -150,7 +150,7 @@ class DeportationTravelController extends Controller
     {
         $travel = null;
         $contract = $request->filled('contract_id')
-            ? Contract::with(['maid', 'user', 'info'])->find((int) $request->input('contract_id'))
+            ? Contract::with(['maid', 'user', 'companyProfile', 'info'])->find((int) $request->input('contract_id'))
             : null;
         $contracts = $this->availableDeportationContracts($contract);
         $arrivalAirports = TravelAirports::options();
@@ -171,12 +171,13 @@ class DeportationTravelController extends Controller
     public function store(Request $request)
     {
         $validated = $this->validateTravelData($request);
-        $contract = Contract::with(['maid', 'user'])->findOrFail($validated['contract_id']);
+        $contract = Contract::with(['maid', 'user', 'companyProfile'])->findOrFail($validated['contract_id']);
         $assigneeId = $validated['assigned_to'] ?? null;
 
         // إنشاء رحلة الترحيل
         $travel = TravelHistory::create([
-            'user_id' => $contract->user_id,
+            'user_id' => $contract->company_profile_id ? null : $contract->user_id,
+            'company_profile_id' => $contract->company_profile_id,
             'maid_id' => $contract->maid_id,
             'order_id' => $contract->id,
             'trip_group_code' => null,
@@ -228,7 +229,7 @@ class DeportationTravelController extends Controller
 
     public function edit($id)
     {
-        $travel = TravelHistory::with(['order.maid', 'order.user', 'order.info', 'files'])
+        $travel = TravelHistory::with(['deportationContract.maid', 'deportationContract.user', 'deportationContract.companyProfile', 'deportationContract.info', 'files'])
             ->where('travel_type', 'deportation')
             ->findOrFail($id);
 
@@ -237,7 +238,7 @@ class DeportationTravelController extends Controller
                 ->with('error', 'لا يمكن تعديل رحلة ترحيل مكتملة');
         }
 
-        $contract = $travel->order;
+        $contract = $travel->deportationContract;
         $contracts = $this->availableDeportationContracts($contract);
         $arrivalAirports = TravelAirports::options();
         $assignableStaff = $this->assignableStaff();
@@ -263,13 +264,14 @@ class DeportationTravelController extends Controller
             ], 422);
         }
 
-        $contract = Contract::with(['maid', 'user'])->findOrFail($validated['contract_id']);
+        $contract = Contract::with(['maid', 'user', 'companyProfile'])->findOrFail($validated['contract_id']);
         $previousAssigneeId = $travel->assigned_to;
         $assigneeId = $validated['assigned_to'] ?? null;
         $assigneeChanged = (string) $previousAssigneeId !== (string) $assigneeId;
 
         $travel->update([
-            'user_id' => $contract->user_id,
+            'user_id' => $contract->company_profile_id ? null : $contract->user_id,
+            'company_profile_id' => $contract->company_profile_id,
             'maid_id' => $contract->maid_id,
             'order_id' => $contract->id,
             'trip_group_code' => null,
@@ -568,12 +570,12 @@ class DeportationTravelController extends Controller
                 $query->where('travel_type', 'deportation')
                     ->whereNotIn('status', ['completed', 'cancelled']);
             })
-            ->with(['maid', 'user', 'info'])
+            ->with(['maid', 'user', 'companyProfile', 'info'])
             ->latest('id')
             ->get();
 
         if ($selectedContract && ! $contracts->contains('id', $selectedContract->id)) {
-            $contracts->prepend($selectedContract->loadMissing(['maid', 'user', 'info']));
+            $contracts->prepend($selectedContract->loadMissing(['maid', 'user', 'companyProfile', 'info']));
         }
 
         return $contracts;
@@ -583,6 +585,7 @@ class DeportationTravelController extends Controller
     {
         $query = TravelHistory::with([
             'user',
+            'companyProfile',
             'maid',
             'maid.nationality.translations',
             'order',
@@ -626,6 +629,7 @@ class DeportationTravelController extends Controller
             '#',
             'رقم العقد',
             'العاملة',
+            'رقم الجواز',
             'العميل',
             'الجوال',
             'المطار',
@@ -646,8 +650,9 @@ class DeportationTravelController extends Controller
             $row->id,
             $row->order_id ? '#' . $row->order_id : 'غير محدد',
             optional($row->maid)->name ?: 'غير محدد',
-            optional($row->user)->name ?: 'غير محدد',
-            optional($row->user)->phone ?: '-',
+            optional($row->maid)->passport_num ?: '-',
+            optional($row->client)->name ?: 'غير محدد',
+            optional($row->client)->phone ?: '-',
             $row->arrival_airport ?: 'غير محدد',
             $row->arrival_date ? \Carbon\Carbon::parse($row->arrival_date)->format('Y-m-d') : 'غير محدد',
             $row->arrival_time ?: 'غير محدد',

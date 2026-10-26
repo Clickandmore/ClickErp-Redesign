@@ -30,6 +30,7 @@ class NationalityController extends Controller
         "direct_recruitment_cost",
         "external_recruitment_cost",
         "government_cost",
+        "musaned_commission_rate",
         "salary_with_no_experience",
         "salary_with_experience",
         "service_transportation_cost",
@@ -67,6 +68,7 @@ class NationalityController extends Controller
                     'direct_recruitment_cost',
                     'external_recruitment_cost',
                     'government_cost',
+                    'musaned_commission_rate',
                     'salary_with_experience',
                     'salary_with_no_experience',
                     'service_transportation_cost',
@@ -130,6 +132,7 @@ class NationalityController extends Controller
                         ['icon' => 'fa-handshake', 'label' => 'الاستقدام المباشر', 'value' => $row->direct_recruitment_cost],
                         ['icon' => 'fa-plane-departure', 'label' => 'الاستقدام الخارجي', 'value' => $row->external_recruitment_cost],
                         ['icon' => 'fa-landmark', 'label' => 'التكاليف الحكومية', 'value' => $row->government_cost],
+                        ['icon' => 'fa-percent', 'label' => 'نسبة التكاليف البنكية', 'value' => $row->musaned_commission_rate, 'percent' => true],
                         ['icon' => 'fa-briefcase', 'label' => helperTrans('ingaz.salary_with_experience'), 'value' => $row->salary_with_experience],
                         ['icon' => 'fa-user', 'label' => helperTrans('ingaz.salary_with_no_experience'), 'value' => $row->salary_with_no_experience],
                         ['icon' => 'fa-truck', 'label' => helperTrans('ingaz.service_transportation_cost'), 'value' => $row->service_transportation_cost],
@@ -138,10 +141,13 @@ class NationalityController extends Controller
                     ];
 
                     $chips = collect($items)->map(function ($item) use ($format) {
+                        $value = !empty($item['percent'])
+                            ? rtrim(rtrim(number_format((float) $item['value'], 4, '.', ''), '0'), '.') . '%'
+                            : $format($item['value']);
                         return '<div class="financial-chip">
                                     <i class="fas ' . $item['icon'] . '"></i>
                                     <span class="text-muted">' . $item['label'] . '</span>
-                                    <strong>' . $format($item['value']) . '</strong>
+                                    <strong>' . $value . '</strong>
                                 </div>';
                     })->implode('');
 

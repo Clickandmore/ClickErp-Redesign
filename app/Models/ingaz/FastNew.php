@@ -13,6 +13,7 @@ class FastNew extends Model
     use Translatable,HasFactory;
 
     protected $guarded = [];
+    protected $casts = ['is_visible' => 'boolean'];
 
     public $translatedAttributes = ['title'];
     protected $translationForeignKey = 'fast_new_id';

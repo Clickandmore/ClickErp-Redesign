@@ -280,6 +280,47 @@ class ShelterCostLedgerTest extends TestCase
         $this->assertSame([[$writeOff->id, 2250.0, 0.0], [$this->asset->id, 0.0, 2250.0]], $this->lines($entry->constraint));
     }
 
+    public function test_direct_entry_maid_returning_to_her_customer_reverses_the_receipt_without_write_off(): void
+    {
+        [$contract] = $this->arrivedContractWithInvoice(officeCostUsd: 600);
+        $ledger = app(ShelterCostLedgerService::class);
+        $ledger->capitalizeOfficeCost($contract, 2250, now()->toDateString(), $contract, 'دخول مباشر');
+        $contract->update(['status' => ContractStatusEnum::Shelter->value]);
+        ContractInfo::query()->updateOrCreate(['contract_id' => $contract->id], ['shelter_id' => 1]);
+        $this->grantShelterPermissions();
+
+        $this->postJson(route('ShelterContract.back', $contract->id))->assertOk();
+
+        $this->assertSame(ContractStatusEnum::Completed->value, $contract->fresh()->status);
+        $this->assertSame(0.0, $ledger->balance($contract->maid_id));
+        $entry = ShelterCostEntry::query()->where('kind', ShelterCostEntry::KIND_RETURN_TO_CUSTOMER)->sole();
+        $this->assertSame([[$this->costReturns->id, 2250.0, 0.0], [$this->asset->id, 0.0, 2250.0]], $this->lines($entry->constraint));
+        $this->assertSame(0, ShelterCostEntry::query()->where('kind', ShelterCostEntry::KIND_WRITE_OFF)->count());
+    }
+
+    public function test_return_to_customer_is_refused_until_the_agent_recovery_is_reversed(): void
+    {
+        [$contract] = $this->arrivedContractWithInvoice(officeCostUsd: 600);
+        $ledger = app(ShelterCostLedgerService::class);
+        $receipt = $ledger->capitalizeOfficeCost($contract, 2250, now()->toDateString(), $contract, 'دخول مباشر')['entry'];
+        $contract->update(['status' => ContractStatusEnum::Shelter->value]);
+        ContractInfo::query()->updateOrCreate(['contract_id' => $contract->id], ['shelter_id' => 1, 'is_outside_shelter' => false]);
+        $this->grantShelterPermissions();
+        $service = app(\App\Services\ingaz\ShelterAgentCostRecoveryService::class);
+        $recovery = $service->recover($contract, $receipt->id, now()->toDateString(), 'مطالبة', (string) \Illuminate\Support\Str::uuid());
+        $this->assertSame(0.0, $ledger->balance($contract->maid_id));
+
+        $refused = $this->postJson(route('ShelterContract.back', $contract->id));
+        $refused->assertStatus(422);
+        $this->assertStringContainsString('اعكس الاسترداد', $refused->json('message'));
+        $this->assertSame(ContractStatusEnum::Shelter->value, $contract->fresh()->status);
+
+        $service->reverse($contract, $recovery->id, 'العاملة رجعت لعميلها');
+        $this->postJson(route('ShelterContract.back', $contract->id))->assertOk();
+        $this->assertSame(0.0, $ledger->balance($contract->maid_id));
+        $this->assertSame(1, ShelterCostEntry::query()->where('kind', ShelterCostEntry::KIND_RETURN_TO_CUSTOMER)->count());
+    }
+
     public function test_capitalized_living_expense_debits_shelter_asset_and_records_ledger(): void
     {
         [$contract] = $this->arrivedContractWithInvoice();
@@ -559,6 +600,25 @@ class ShelterCostLedgerTest extends TestCase
         // A retry cannot add another admission or cost.
         app(\App\Http\Controllers\ingaz\ShelterContractController::class)->store($request);
         $this->assertSame(1, ShelterCostEntry::where('maid_id', $contract->maid_id)->count());
+    }
+
+    public function test_cancelled_after_arrival_contract_can_be_admitted_to_shelter(): void
+    {
+        [$contract] = $this->arrivedContractWithInvoice();
+        $contract->update(['status' => ContractStatusEnum::Back->value]);
+        $request = \App\Http\Requests\ingaz\ShelterContactStore::create('/', 'POST', [
+            'contract_id' => $contract->id,
+            'maid_date_back' => now()->toDateString(),
+            'arrival_date' => now()->subDays(3)->toDateString(),
+            'receipt_source' => 'client',
+            'duration_from_enter' => 0,
+        ]);
+
+        app(\App\Http\Controllers\ingaz\ShelterContractController::class)->store($request);
+
+        $this->assertSame(ContractStatusEnum::Shelter->value, $contract->fresh()->status);
+        $this->assertSame(ContractStatusEnum::Back->value,
+            $contract->contract_status_logs()->latest('id')->value('previous_status'));
     }
 
     public function test_admission_rolls_back_when_supplier_cost_cannot_be_posted(): void

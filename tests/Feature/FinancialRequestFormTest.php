@@ -49,6 +49,27 @@ class FinancialRequestFormTest extends TestCase
         $this->assertDatabaseHas('financial_requests', ['status' => FinancialRequest::STATUS_FOR_APPROVAL]);
     }
 
+    public function test_list_defaults_to_unclosed_requests_and_all_and_closed_remain_available(): void
+    {
+        $prefix = 'FR-OPEN-' . uniqid();
+        foreach ([FinancialRequest::STATUS_FOR_APPROVAL, FinancialRequest::STATUS_PAID, FinancialRequest::STATUS_CLOSED] as $status) {
+            FinancialRequest::query()->create([
+                'request_no' => $prefix . '-' . $status, 'type' => 'other_financial',
+                'priority' => FinancialRequest::PRIORITY_NORMAL, 'status' => $status,
+                'amount' => 100, 'request_date' => now()->toDateString(),
+                'branch_id' => auth('admin')->user()->branch_id, 'created_by_id' => auth('admin')->id(),
+            ]);
+        }
+        $this->get(route('financial-requests.index', ['q' => $prefix]))->assertOk()
+            ->assertViewHas('requests', fn ($rows) => $rows->total() === 2 && ! $rows->contains('status', FinancialRequest::STATUS_CLOSED));
+        $this->get(route('financial-requests.index', ['q' => $prefix, 'scope' => 'all']))->assertOk()
+            ->assertViewHas('requests', fn ($rows) => $rows->total() === 3);
+        $this->get(route('financial-requests.index', ['q' => $prefix, 'status' => FinancialRequest::STATUS_CLOSED]))->assertOk()
+            ->assertViewHas('requests', fn ($rows) => $rows->total() === 1 && $rows->first()->status === FinancialRequest::STATUS_CLOSED);
+        $this->get(route('financial-requests.index', ['q' => $prefix, 'scope' => 'open', 'status' => FinancialRequest::STATUS_CLOSED]))->assertOk()
+            ->assertViewHas('requests', fn ($rows) => $rows->total() === 1 && $rows->first()->status === FinancialRequest::STATUS_CLOSED);
+    }
+
     public function test_request_with_attachment_is_created_and_attachment_is_stored_separately(): void
     {
         Storage::fake('public');

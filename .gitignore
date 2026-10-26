@@ -42,7 +42,7 @@ storage/framework/scheduler-heartbeat.json
 # Documentation files
 /docs/finance_tree
 /docs/updates
-
+/docs/sql
 # Local package artifacts
 /packages/*/.idea/
 /packages/*/.vscode/
@@ -53,3 +53,6 @@ storage/framework/scheduler-heartbeat.json
 .claude/settings.local.json
 
 /postman
+
+/docs/reports
+/docs

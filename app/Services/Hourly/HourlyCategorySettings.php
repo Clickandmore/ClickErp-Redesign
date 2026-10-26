@@ -4,7 +4,7 @@ namespace App\Services\Hourly;
 
 use App\Models\Hourly\{HourlyCategorySetting, HourlyPackage};
 use App\Support\HourlyRentalSettings;
-use Illuminate\Support\Facades\Schema;
+use App\Support\SchemaCache as Schema;
 
 /**
  * كتالوج إعدادات الفئة وحلّ التوريث: إعداد العنصر > إعداد الفئة > الإعداد العام.

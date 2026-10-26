@@ -36,7 +36,7 @@ class CustomerVisitActions
         $snapshot = (array) $order->package_snapshot;
         $window = (int) ($snapshot['cancellation_window_hours'] ?? HourlyRentalSettings::get('cancellation_window_hours'));
         $percent = (float) ($snapshot['cancellation_fee_percent'] ?? HourlyRentalSettings::get('cancellation_fee_percent'));
-        $upcoming = $visit->status === 'scheduled' && $visit->scheduled_start_at?->isFuture();
+        $upcoming = $visit->status === 'scheduled' && !$visit->has_started_execution && $visit->scheduled_start_at?->isFuture() && !ServiceIncident::waiting($order,$visit->id);
         // داخل نافذة الإلغاء = رسوم بنسبة من سعر الزيارة، وقبلها الإلغاء مجاني.
         $inside = $upcoming && now()->diffInMinutes($visit->scheduled_start_at, false) < $window * 60;
         return [
@@ -53,12 +53,14 @@ class CustomerVisitActions
         HourlyOrderService::enabled();
         return DB::transaction(function () use ($visit) {
             [$order, $visit] = $this->lock($visit);
+            if(ServiceIncident::waiting($order,$visit->id)) HourlyOrderService::reject('للزيارة بلاغ معتمد؛ استخدم طلب الإلغاء والاسترداد دون رسوم من خيارات المعالجة.');
             // إعادة الإرسال لا تُعيد فرض الرسوم ولا تُسجّل إلغاءً ثانيًا.
             if ($visit->status === 'cancelled_by_client') return $visit;
             if (in_array($visit->status, self::CLOSED, true)) HourlyOrderService::reject('الزيارة منتهية أو ملغاة ولا يمكن إلغاؤها.');
             if ($visit->status !== 'scheduled' || !$visit->scheduled_start_at) HourlyOrderService::reject('الإلغاء متاح للزيارات المجدولة فقط.');
             if (!$visit->scheduled_start_at->isFuture()) HourlyOrderService::reject('بدأ موعد الزيارة بالفعل؛ تواصل مع خدمة العملاء.');
             if (!$this->open($order)) HourlyOrderService::reject('الطلب مغلق أو انتهت صلاحيته ولا يقبل الإلغاء.');
+            if ($visit->has_started_execution) HourlyOrderService::reject('بدأ تنفيذ الزيارة بالفعل؛ لا يمكن إلغاؤها.');
             $policy = $this->policy($visit, $order);
             $before = $visit->getAttributes();
             $visit->update(['status' => 'cancelled_by_client', 'cancellation_fee' => $policy['fee_if_cancelled_now']]);
@@ -85,18 +87,7 @@ class CustomerVisitActions
         return DB::transaction(function () use ($visit, $hours, $token) {
             [$order, $visit] = $this->lock($visit);
             if ($replay = $this->replay($visit, $hours, $token)) return $replay;
-            if (in_array($visit->status, self::CLOSED, true)) HourlyOrderService::reject('الزيارة منتهية أو ملغاة ولا تقبل ساعة إضافية.');
-            if (!in_array($visit->status, self::EXTENDABLE, true) || !$visit->scheduled_start_at || !$visit->scheduled_end_at) HourlyOrderService::reject('طلب الساعة الإضافية متاح للزيارات المجدولة أو الجارية فقط.');
-            if (!$this->open($order)) HourlyOrderService::reject('الطلب مغلق أو انتهت صلاحيته ولا يقبل تعديلًا.');
-            if (!$visit->scheduled_end_at->isFuture()) HourlyOrderService::reject('انتهى وقت الزيارة؛ لا يمكن إضافة ساعات إليها.');
-            $end = $visit->scheduled_end_at->copy()->addHours($hours);
-            if (!$end->isSameDay($visit->scheduled_start_at)) HourlyOrderService::reject('الساعة الإضافية تتجاوز يوم الزيارة.');
-            $planned = round((float) $visit->planned_hours + $hours, 2);
-            if ($planned > self::MAX_VISIT_HOURS) HourlyOrderService::reject('إجمالي ساعات الزيارة لا يتجاوز '.self::MAX_VISIT_HOURS.' ساعة.');
-            $amount = round($this->hourPrice($order, $visit) * $hours, 2);
-            $snapshot = (array) $order->package_snapshot + ['service_category_id' => $order->service_category_id ?? null];
-            $this->assertNoOverlap($order, $visit, $end, $snapshot);
-            $this->assertWorkersStay($visit, $end, $snapshot);
+            ["end"=>$end, "planned"=>$planned, "amount"=>$amount] = $this->extension($order, $visit, $hours);
             $before = $visit->getAttributes();
             $price = round((float) $visit->visit_price + $amount, 2);
             if ($price > 9999999) HourlyOrderService::reject('السعر الناتج للزيارة خارج الحدود المسموحة.');
@@ -112,6 +103,36 @@ class CustomerVisitActions
             DB::afterCommit(fn()=>app(StaffPushService::class)->extraHour($visitId,$hours));
             return ['visit' => $visit->fresh(), 'hours' => $hours, 'amount' => $amount, 'replayed' => false];
         });
+    }
+
+    /** معاينة بلا تعديل؛ التأكيد يعيد فحص التوفر تحت قفل الزيارة. */
+    public function extraHourQuote(HourlyVisit $visit, int $hours): array
+    {
+        HourlyOrderService::enabled();
+        $order = HourlyRentalOrder::findOrFail($visit->hourly_rental_order_id);
+        $quote = $this->extension($order, $visit, $hours);
+        return ['hours'=>$hours, 'amount'=>$quote['amount'], 'currency'=>'SAR',
+            'ends_at'=>$quote['end']->format('Y-m-d H:i'), 'planned_hours'=>$quote['planned']];
+    }
+
+    private function extension(HourlyRentalOrder $order, HourlyVisit $visit, int $hours): array
+    {
+        if(ServiceIncident::waiting($order,$visit->id)) HourlyOrderService::reject('للزيارة بلاغ معتمد؛ أكمل المعالجة قبل طلب خدمات إضافية.');
+        if ($hours < 1 || $hours > 6) HourlyOrderService::reject('عدد الساعات الإضافية من 1 إلى 6.');
+        if (in_array($visit->status, self::CLOSED, true)) HourlyOrderService::reject('الزيارة منتهية أو ملغاة ولا تقبل ساعة إضافية.');
+        if (!in_array($visit->status, self::EXTENDABLE, true) || !$visit->scheduled_start_at || !$visit->scheduled_end_at) HourlyOrderService::reject('طلب الساعة الإضافية متاح للزيارات المجدولة أو الجارية فقط.');
+        if (!$this->open($order)) HourlyOrderService::reject('الطلب مغلق أو انتهت صلاحيته ولا يقبل تعديلًا.');
+        $serviceEnd=ServiceTime::deadline($visit);
+        if (!$serviceEnd?->isFuture()) HourlyOrderService::reject('انتهى وقت الزيارة؛ لا يمكن إضافة ساعات إليها.');
+        $end = $serviceEnd->copy()->addHours($hours);
+        if (!$end->isSameDay($visit->scheduled_start_at)) HourlyOrderService::reject('الساعة الإضافية تتجاوز يوم الزيارة.');
+        $planned = round((float) $visit->planned_hours + $hours, 2);
+        if ($planned > self::MAX_VISIT_HOURS) HourlyOrderService::reject('إجمالي ساعات الزيارة لا يتجاوز '.self::MAX_VISIT_HOURS.' ساعة.');
+        $amount = round($this->hourPrice($order, $visit) * $hours, 2);
+        $snapshot = (array) $order->package_snapshot + ['service_category_id' => $order->service_category_id ?? null];
+        $this->assertNoOverlap($order, $visit, $end, $snapshot);
+        $this->assertWorkersStay($visit, $end, $snapshot);
+        return compact('end', 'planned', 'amount');
     }
 
     /** يعيد ['visit','rating','comment','workers']. */
@@ -199,6 +220,10 @@ class CustomerVisitActions
     private function commit(HourlyRentalOrder $order, HourlyVisit $visit, array $before, string $action, string $reason, array $extra = [], bool $closeOrder = false): void
     {
         app(OrderManagementService::class)->totals($order);
+        if ($closeOrder) {
+            app(OrderRefundService::class)->refund($order,'wallet',$reason,null,'client',(int)$order->user_id);
+            $order->refresh();
+        }
         $order->statusLogs()->create(['from_status' => $order->status, 'to_status' => $order->status, 'actor_type' => 'client', 'actor_id' => $order->user_id, 'reason' => $reason]);
         if (Schema::hasTable('hourly_order_audits')) {
             app(OrderManagementService::class)->audit($order, $action, $before, $visit->fresh()->getAttributes() + $extra, null, $visit->id, $reason);

@@ -58,6 +58,22 @@ class EnsurePackageRoutePermission
         };
     }
 
+    /** هل يملك المشرف صلاحية مسار حزمة معين (لإظهار الأزرار بنفس قاعدة الحماية). */
+    public function allows($admin, string $routeName, string $module): bool
+    {
+        if (!$admin) {
+            return false;
+        }
+
+        if ((int) ($admin->admin_type ?? 0) === AdminTypeisEnum::Developer->value) {
+            return true;
+        }
+
+        $permissions = $this->resolvePermissions($routeName, $module);
+
+        return $permissions === [] || $this->adminHasAnyPermission($admin, $permissions);
+    }
+
     private function crmPermissions(string $routeName): array
     {
         [$resource, $action] = $this->splitPrefixedRoute($routeName, 'crm.');
@@ -84,6 +100,18 @@ class EnsurePackageRoutePermission
                 'edit', 'update', 'cancel' => 'edit', default => 'view',
             };
             return ['finance_procurement_'.$ability, 'finance_module'];
+        }
+
+        // إعادة هيكلة الدليل تغيّر قيوداً تاريخية؛ صلاحيتها حصرية بلا بديل finance_module.
+        foreach ([
+            'finance.accounting-guide-management.destroy' => 'finance_accounting_guide_management_delete',
+            'finance.accounts.destroy' => 'finance_accounting_guide_management_delete',
+            'finance.accounting-guide-management.move*' => 'finance_accounting_guide_management_move',
+            'finance.accounting-guide-management.merge*' => 'finance_accounting_guide_management_merge',
+        ] as $pattern => $permission) {
+            if (Str::is($pattern, $routeName)) {
+                return [$permission];
+            }
         }
 
         $exportPermission = $this->financeExportPermission($routeName);

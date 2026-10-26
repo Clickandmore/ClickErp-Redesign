@@ -14,7 +14,7 @@
 </style>
 @endpush
 <div class="modal fade om-modal" id="visit-edit-modal" tabindex="-1" aria-labelledby="ve-title" aria-hidden="true" dir="{{ app()->getLocale()==='ar'?'rtl':'ltr' }}">
-<div class="modal-dialog modal-dialog-centered"><div class="modal-content"><div class="modal-header"><span class="om-m-icon"><i class="fa fa-sliders"></i></span><div><h5 id="ve-title" class="m-0"></h5><p><i class="fa fa-hashtag"></i> {{ $order->order_number }}</p></div><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="{{ __('visit_edit.cancel') }}"></button></div>
+<div class="modal-dialog modal-dialog-centered"><div class="modal-content"><div class="modal-header"><span class="om-m-icon"><i class="fa fa-sliders"></i></span><div><h5 id="ve-title" class="m-0"></h5><p><i class="fa fa-hashtag"></i> {{ str_pad((string) $order->id, 8, '0', STR_PAD_LEFT) }}</p></div><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="{{ __('visit_edit.cancel') }}"></button></div>
 <form id="visit-edit-form" action="{{ route('admin.hourly-orders.operations',$order) }}" method="POST">@csrf
 <input type="hidden" name="action"><input type="hidden" name="visit_ids[]"><input type="hidden" name="hours"><input type="hidden" name="expected_price"><input type="hidden" name="expected_hours">
 <div class="modal-body"><div class="ve-summary"><dl>

@@ -185,7 +185,7 @@ class CommissionAccrualService
         });
     }
 
-    private function expenseAccount(): Account
+    public function expenseAccount(): Account
     {
         $account = Account::query()
             ->whereIn('code', [self::ALRAFEDAIN_EXPENSE_ACCOUNT_CODE, self::EXPENSE_ACCOUNT_CODE])

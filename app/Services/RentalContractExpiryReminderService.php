@@ -72,6 +72,9 @@ class RentalContractExpiryReminderService
         string $notificationType = 'advance'
     ): ?RentalContractExpiryReminder
     {
+        if (!RentalContract::query()->eligibleForExpiryNotifications()->whereKey($contract->id)->exists()) {
+            return null;
+        }
         $contract->loadMissing(['user', 'info', 'marketer']);
 
         if (!$contract->info?->ingaz_to || !$contract->user) {
@@ -120,14 +123,19 @@ class RentalContractExpiryReminderService
         $errors = [];
 
         if ($phone === '') {
+            $this->recordUnsentReminder($contract, $reminder, $message, $phone, $reminder->channel, 'لا يوجد رقم جوال للعميل.');
             $errors[] = 'لا يوجد رقم جوال للعميل.';
         } else {
             if (in_array($reminder->channel, ['sms', 'both'], true)) {
                 if (!CommunicationSettings::smsIsConfigured()) {
+                    $this->recordUnsentReminder($contract, $reminder, $message, $phone, 'sms', 'إعدادات SMS غير مكتملة أو البوابة متوقفة.');
                     $errors[] = 'SMS: إعدادات الرسائل النصية غير مكتملة أو بوابة SMS متوقفة.';
                 } else {
                     try {
-                        $smsResult = $this->sendSMS(formatSaudiPhone($phone), $message);
+                        $smsResult = \App\Support\SmsGateway::send(formatSaudiPhone($phone), $message, null, null, [
+                            'source' => 'rental_contract_expiry_reminder', 'contract_id' => $contract->id,
+                            'reminder_id' => $reminder->id, 'user_id' => $contract->user_id, 'branch_id' => $contract->branch_id,
+                        ]);
                         $smsSent = $this->smsWasSent($smsResult);
 
                         if (!$smsSent) {
@@ -141,6 +149,7 @@ class RentalContractExpiryReminderService
 
             if (in_array($reminder->channel, ['whatsapp', 'both'], true)) {
                 if (!$this->whatsApp->isConfigured()) {
+                    $this->recordUnsentReminder($contract, $reminder, $message, $phone, 'whatsapp', 'إعدادات واتساب غير مكتملة.');
                     $missing = $this->whatsApp->missingConfigKeys();
                     $errors[] = 'WhatsApp: إعدادات واتساب غير مكتملة'
                         . ($missing ? ' (' . implode(', ', $missing) . ')' : '')
@@ -151,6 +160,8 @@ class RentalContractExpiryReminderService
                             'source' => 'rental_contract_expiry_reminder',
                             'contract_id' => $contract->id,
                             'reminder_id' => $reminder->id,
+                            'user_id' => $contract->user_id,
+                            'branch_id' => $contract->branch_id,
                         ]);
                         $whatsappSent = (bool) ($result['success'] ?? false);
                         if (!$whatsappSent) {
@@ -179,6 +190,18 @@ class RentalContractExpiryReminderService
         }
 
         return $reminder->fresh();
+    }
+
+    private function recordUnsentReminder(RentalContract $contract, RentalContractExpiryReminder $reminder, string $message, string $phone, string $channel, string $error): void
+    {
+        foreach ($channel === 'both' ? ['sms', 'whatsapp'] : [$channel] as $item) {
+            $provider = $item === 'sms' ? (string) (CommunicationSettings::sms()['provider'] ?? 'msegat') : $this->whatsApp->driver();
+            $log = \App\Support\OutboundMessageRecorder::begin($item, $phone, $message, $provider, [
+                'source' => 'rental_contract_expiry_reminder', 'contract_id' => $contract->id,
+                'reminder_id' => $reminder->id, 'user_id' => $contract->user_id, 'branch_id' => $contract->branch_id,
+            ]);
+            \App\Support\OutboundMessageRecorder::finish($log, 'skipped', ['error_message' => $error]);
+        }
     }
 
     public function markCustomerResponse(RentalContractExpiryReminder $reminder, string $response): void
@@ -614,7 +637,7 @@ class RentalContractExpiryReminderService
 
         $hasActiveRentalContracts = RentalContract::query()
             ->where('maid_id', $maid->id)
-            ->whereIn('status', $this->rentalActiveContractStatuses())
+            ->whereIn('status', $this->rentalActiveContractStatuses())->holdingMaid()
             ->exists();
 
         if ($hasActiveRentalContracts) {
@@ -663,43 +686,16 @@ class RentalContractExpiryReminderService
 
     private function buildCustomerMessage(RentalContract $contract, RentalContractExpiryReminder $reminder): string
     {
-        $clientName = $contract->user?->name ?: 'عميلنا العزيز';
+        $clientName = $contract->user?->name ?: '';
         $contractNumber = $contract->contract_number ?: $contract->id;
         $expiresOn = optional($contract->info?->ingaz_to)->format('Y-m-d');
-        $url = route('rental-contract-reminders.show', $reminder->token);
-        $template = $reminder->notification_type === 'advance'
-            ? NotificationAlertSettings::template('rent_contract_expiry')
-            : null;
-
-        if ($template) {
-            return $template->processMessage([
-                'client_name' => $clientName,
-                'customer_name' => $clientName,
-                'contract_id' => (string) $contract->id,
-                'contract_number' => (string) $contractNumber,
-                'expiry_date' => (string) $expiresOn,
-                'expires_on' => (string) $expiresOn,
-                'action_url' => $url,
-                'url' => $url,
-            ]);
-        }
-
-        if ($reminder->notification_type === 'expired') {
-            return implode("\n", [
-                "عميلنا {$clientName}،",
-                "نحيطكم علماً بأن عقد الإيجار رقم {$contractNumber} انتهى بتاريخ {$expiresOn}.",
-                "يرجى التواصل معنا لاستكمال إجراءات التمديد أو تسليم العاملة.",
-                "شكراً لتعاملكم معنا.",
-            ]);
-        }
-
-        return implode("\n", [
-            "عميلنا {$clientName}،",
-            "نود تذكيركم بأن عقد الإيجار رقم {$contractNumber} ينتهي بتاريخ {$expiresOn}.",
-            "فضلاً حدد رغبتك: تمديد العقد أو تسليم العاملة عبر الرابط:",
-            $url,
-            "شكراً لتعاملكم معنا.",
-        ]);
+        // Use the contact-based wording even when an older template contains a response link.
+        return \App\Support\RentalExpiryMessage::customer(
+            (string) $clientName,
+            (string) $contractNumber,
+            (string) $expiresOn,
+            $reminder->notification_type === 'expired'
+        );
     }
 
     private function customerPhone(RentalContract $contract): string

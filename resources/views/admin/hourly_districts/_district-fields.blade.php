@@ -9,7 +9,7 @@
 <div class="row g-3 mb-4">
     <div class="col-12">
         <label for="city_id" class="form-label">المدينة <span class="text-danger">*</span></label>
-        <select id="city_id" name="city_id" class="form-select @error('city_id') is-invalid @enderror" required>
+        <select id="city_id" data-city-search name="city_id" class="form-select @error('city_id') is-invalid @enderror" required>
             <option value="">اختر المدينة</option>
             @foreach ($cities as $city)
                 <option value="{{ $city->id }}" {{ (string) old('city_id', $district->city_id) === (string) $city->id ? 'selected' : '' }}>{{ $city->name_ar ?: $city->name_en }}</option>
@@ -40,6 +40,14 @@
 </div>
 
 <div class="hd-section-title">2. الموقع</div>
+<div class="mb-3">
+    <label for="location_text" class="form-label"><i class="fa fa-paste ms-1 text-muted"></i> الصق الموقع من Google Maps</label>
+    <div class="input-group">
+        <input id="location_text" class="form-control" dir="ltr" maxlength="2000" autocomplete="off" placeholder="CWQC+4C9, Al Nahdah, Hafar Al Batin 39958, Saudi Arabia">
+        <button type="button" id="resolve-location" class="btn btn-primary"><i class="fa fa-location-crosshairs ms-1"></i> تحويل إلى إحداثيات</button>
+    </div>
+    <div class="form-text">من Google Maps: اضغط على المكان، ثم انسخ الرمز الظاهر بجانب <i class="fa fa-location-dot"></i> (مثل <span dir="ltr">CWQC+4C9</span>) مع العنوان، أو انسخ رابط المشاركة، أو الإحداثيات. اختر المدينة أولًا ليُحدد الرمز القصير بدقة.</div>
+</div>
 <div class="row g-3 mb-2">
     <div class="col-md-5">
         <label for="latitude" class="form-label">خط العرض</label>

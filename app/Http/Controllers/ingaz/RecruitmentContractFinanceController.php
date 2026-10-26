@@ -6,17 +6,35 @@ use App\Http\Controllers\Controller;
 use App\Models\Contract;
 use App\Models\ingaz\Invoice;
 use App\NewPermKeys;
+use App\Support\AutomaticJournalEntries;
+use App\Support\RecruitmentAgentBalance;
+use App\Support\RecruitmentSupplierSettings;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Nami\Finance\Enums\AccountTypesEnum;
+use Nami\Finance\Models\Account;
 use Nami\Finance\Services\BondService;
 use Nami\Finance\Services\ConstraintService;
 use Nami\Finance\Services\YearService;
 
+/**
+ * الملف المالي للعقد: الفاتورة وتحويل مساند وسداد الوكيل في شاشة واحدة.
+ *
+ * هذه الشاشة **لوحة حالة ومُطلِق إجراءات** فوق المستندات القائمة (Invoice و
+ * MusanedTransfer و Bond)، وليست نموذج مستند موازياً. لا تحمل أي منطق محاسبي: كل زر
+ * فيها يسلّم المسار القائم الذي ينشئ المستند، فلا يوجد مصدر حقيقة ثانٍ ولا منطق مكرر
+ * يمكن أن يتباعد عن الأصل.
+ *
+ * وكل إجراء يُرحَّل بتاريخه ووحده، لأن الثلاثة لا تقع في لحظة واحدة في الواقع:
+ * الفاتورة الآن، وتحويل مساند حين تحوّل مساند فعلاً، وسداد الوكيل بجدوله على دفعات.
+ */
 class RecruitmentContractFinanceController extends Controller
 {
     public function __construct()
     {
-        $this->middleware('permission:' . NewPermKeys::REC_CONTRACTS_LATE_FINANCE . ',admin');
+        $this->middleware('admin');
+        $this->middleware('permission:' . NewPermKeys::REC_CONTRACTS_LATE_FINANCE . ',admin')
+            ->only(['show', 'storeInvoice', 'storeTransfer', 'storeDispatch', 'storeDelegationCost']);
     }
 
     private function contract(int $id, bool $lock = false): Contract
@@ -127,5 +145,113 @@ class RecruitmentContractFinanceController extends Controller
             return redirect()->route('RecruitmentContract.lateFinance.show', $id)
                 ->with('success', 'تم تسجيل تكلفة التفويض وقيدها المحاسبي للعقد بنجاح.');
         });
+    }
+
+    public function index(Request $request)
+    {
+        $this->assertEnabled();
+
+        $search = trim((string) $request->query('search', ''));
+
+        $contracts = Contract::query()
+            ->with(['user', 'maid.nationality', 'requiredMaidNationality', 'invoice.musanedTransferItem.transfer'])
+            ->when($search !== '', function ($query) use ($search) {
+                $like = '%' . addcslashes($search, '%_\\') . '%';
+                $query->where(function ($inner) use ($search, $like) {
+                    if (ctype_digit($search)) {
+                        $inner->orWhere('id', (int) $search);
+                    }
+                    $inner->orWhereHas('user', fn ($q) => $q->where('name', 'like', $like))
+                        ->orWhereHas('maid', fn ($q) => $q->where('name', 'like', $like));
+                });
+            })
+            ->latest('id')
+            ->paginate(25)
+            ->appends($request->query());
+
+        $rows = $contracts->getCollection()->map(fn (Contract $contract) => $this->state($contract));
+
+        return view('admin.ingaz.recruitment_contract_finance.index', [
+            'contracts' => $contracts,
+            'rows' => $rows,
+            'search' => $search,
+        ]);
+    }
+
+    public function overview(int $contract)
+    {
+        $this->assertEnabled();
+
+        $model = Contract::query()
+            ->with(['user', 'maid.nationality', 'requiredMaidNationality', 'invoice.musanedTransferItem.transfer'])
+            ->findOrFail($contract);
+
+        $state = $this->state($model);
+
+        return view('admin.ingaz.recruitment_contract_finance.show', [
+            'contract' => $model,
+            'state' => $state,
+            'payments' => RecruitmentAgentBalance::payments($model, $state['agent']['office_account_id']),
+            'bankAccounts' => $this->bankAccounts(),
+            'automaticEntriesEnabled' => AutomaticJournalEntries::enabled(),
+            'paymentsEnabled' => RecruitmentSupplierSettings::usesContractLinkedPayments(),
+        ]);
+    }
+
+    /**
+     * حالة العقد المالية الثلاثية. الأرقام كلها من المستندات نفسها، بلا إعادة حساب.
+     */
+    private function state(Contract $contract): array
+    {
+        $invoice = $contract->invoice;
+        $transferItem = $invoice?->musanedTransferItem;
+        $transfer = $transferItem?->transfer;
+        $agent = RecruitmentAgentBalance::for($contract);
+
+        return [
+            'contract_id' => (int) $contract->id,
+            'client' => $agent['client'],
+            'worker' => $agent['worker'],
+            'nationality' => $agent['nationality'],
+            'office' => $agent['office'],
+            'invoice' => [
+                'exists' => (bool) $invoice,
+                'id' => $invoice?->id,
+                'total' => $invoice ? round((float) $invoice->total_due, 2) : null,
+                'date' => optional($invoice?->created_at)->format('Y-m-d'),
+                'constraint_id' => $invoice?->invoice_constraint_id,
+            ],
+            'musaned' => [
+                'settled' => (bool) $transfer,
+                'transfer_id' => $transfer?->id,
+                'transferred' => $transferItem ? round((float) $transferItem->transferred_amount, 2) : null,
+                'commission' => $transferItem ? round((float) $transferItem->commission_amount, 2) : null,
+                'expense_tax' => $transferItem ? round((float) $transferItem->expense_tax_amount, 2) : null,
+                'date' => optional($transfer?->transfer_date)->format('Y-m-d'),
+            ],
+            'agent' => $agent,
+        ];
+    }
+
+    private function bankAccounts()
+    {
+        return Account::query()
+            ->whereDoesntHave('children')
+            ->whereIn('type', [
+                AccountTypesEnum::Banks->value,
+                AccountTypesEnum::Bank->value,
+                AccountTypesEnum::Boxs->value,
+                AccountTypesEnum::Box->value,
+                AccountTypesEnum::BankName->value,
+            ])
+            ->orderBy('code')
+            ->get();
+    }
+
+    private function assertEnabled(): void
+    {
+        if (!RecruitmentSupplierSettings::contractFinanceScreenEnabled()) {
+            abort(403, 'شاشة الملف المالي للعقد غير مفعلة. فعّلها من إعدادات الحسابات، قسم «قيود المشتريات والوكلاء الخارجيون».');
+        }
     }
 }

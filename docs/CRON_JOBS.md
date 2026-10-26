@@ -78,6 +78,10 @@ orders:cancel-expired
 
 orders:handle-expired
 يعمل حسب orders_expired_handler_interval_minutes، والقيمة الافتراضية كل 5 دقائق.
+
+system-updates:sync
+يسحب تحديثات النظام من المصدر المضبوط في Super Admin، كل دقيقة افتراضيًا (قابل للتعديل حتى يوم). لا يكتب في السجل إلا إذا وصل جديد.
+لا يُجدول إلا إذا فُعّلت المزامنة وضُبط الرابط والمفتاح. التفاصيل في docs/SYSTEM_UPDATES.md.
 ```
 
 ## 4. إعدادات التحكم في مواعيد الأتمتة

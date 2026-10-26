@@ -33,7 +33,7 @@
 @endsection
 
 @section('content')
-    @if (@AdminGuardHasPerm(\App\PermKeys::MAIDS_CREATE))
+    @if (AdminGuardHasAnyPerm([\App\PermKeys::MAIDS_CREATE, \App\PermKeys::DATA_IMPORT_UPLOAD]))
         <div class="container-fluid">
             <div class="import-hero p-4 p-lg-5 mb-4">
                 <div class="row align-items-center g-4">

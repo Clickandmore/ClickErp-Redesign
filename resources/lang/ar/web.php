@@ -1,6 +1,15 @@
 <?php
 
 return array (
+  'fast_news_visibility' => 'ظهور الخبر',
+  'fast_news_visible' => 'ظاهر',
+  'fast_news_hidden' => 'مخفي',
+  'fast_news_switch_on_hint' => 'سيظهر الخبر في شريط الأخبار بالموقع',
+  'fast_news_switch_off_hint' => 'لن يظهر الخبر للزوار',
+  'fast_news_toggle_hint' => 'اضغط لإظهار أو إخفاء الخبر في الموقع',
+  'fast_news_page_hint' => 'الأخبار القصيرة التي تظهر في شريط الأخبار بالموقع الخارجي. يمكنك إظهار أو إخفاء أي خبر بضغطة واحدة.',
+  'fast_news_total' => 'إجمالي الأخبار',
+  'fast_news_visibility_updated' => 'تم تحديث ظهور الخبر',
   'Home' => 'الرئيسية',
   'About' => 'عنا',
   'Business' => 'أعمالنا',

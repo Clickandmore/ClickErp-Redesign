@@ -65,6 +65,10 @@ class ApiRentalRequestController extends Controller
 
         $maid = Maid::with(['jobTypes', 'nationality'])->find($data['maid_id']);
 
+        if ($maid?->isHourly()) {
+            return apiResponse(false, __('rental_mode.errors.hourly_not_orderable'), null, 422);
+        }
+
         if (!$maid || !$maid->jobTypes->contains(fn ($jobType) => (int) $jobType->id === 2)) {
             return apiResponse(false, __('ingaz.job_type_not_found'), null, 422);
         }

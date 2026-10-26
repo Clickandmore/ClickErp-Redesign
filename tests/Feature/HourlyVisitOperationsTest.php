@@ -243,6 +243,23 @@ class HourlyVisitOperationsTest extends TestCase
         $this->assertEquals($order->total_amount,$order->fresh()->total_amount);
     }
 
+    public function test_order_worker_picker_lists_and_assigns_workers_without_changing_the_price():void
+    {
+        $order=$this->order();$visit=$order->visits()->first();
+        $url='/admin/hourly/orders/'.$order->id.'/visits/'.$visit->id.'/available-workers?selection=1';
+        $this->getJson($url)->assertOk()->assertJsonCount(2,'workers')->assertJsonPath('selected.0',1)->assertJsonPath('required',1);
+        $this->postJson('/admin/hourly/orders/'.$order->id.'/operations',[
+            'action'=>'assign_workers','visit_ids'=>[$visit->id],'worker_ids'=>[2],'expected_worker_ids'=>[1],
+        ])->assertOk();
+        $this->assertEquals([2],$visit->workers()->pluck('maids.id')->all());
+        $this->assertEquals($order->total_amount,$order->fresh()->total_amount);
+        $this->postJson('/admin/hourly/orders/'.$order->id.'/operations',[
+            'action'=>'assign_workers','visit_ids'=>[$visit->id],'worker_ids'=>[1,2],
+        ])->assertUnprocessable();
+        $visit->update(['scheduled_start_at'=>now()->subHour(),'scheduled_end_at'=>now()->addHour()]);
+        $this->getJson($url)->assertUnprocessable();
+    }
+
     public function test_latest_is_chosen_before_filtering_and_visit_pages_render():void
     {
         $order=$this->order();$order->update(['status'=>'active']);$first=$order->visits()->first();$last=$first->replicate();$last->visit_number=2;$last->scheduled_start_at=$first->scheduled_start_at->copy()->addDays(5);$last->scheduled_end_at=$first->scheduled_end_at->copy()->addDays(5);$last->save();
@@ -434,5 +451,137 @@ class HourlyVisitOperationsTest extends TestCase
         $data['starts_at']=now()->addDays(8)->format('Y-m-d').'T08:15';
         $this->postJson('/admin/hourly/orders/'.$order->id.'/operations',$data)->assertOk();
         $free=$order->visits()->orderByDesc('id')->first();$this->assertSame('08:00',\Carbon\Carbon::parse($free->delivery_at)->format('H:i'));
+    }
+
+    public function test_missed_visit_can_be_rebooked_by_admin_without_consuming_other_visits(): void
+    {
+        $order=$this->order();$order->update(['status'=>'active']);$visit=$order->visits()->first();
+        $visit->update(['scheduled_date'=>today()->subDays(2),'scheduled_start_at'=>today()->subDays(2)->setTime(8,0),
+            'scheduled_end_at'=>today()->subDays(2)->setTime(12,0),'delivery_driver_id'=>99,'pickup_driver_id'=>99]);
+        $other=$visit->replicate();$other->visit_number=2;$other->scheduled_date=today()->addDays(6);
+        $other->scheduled_start_at=today()->addDays(6)->setTime(8,0);$other->scheduled_end_at=today()->addDays(6)->setTime(12,0);
+        $other->delivery_driver_id=null;$other->pickup_driver_id=null;$other->save();
+        $beforeOther=$other->getAttributes();$price=$visit->visit_price;
+        if(!Schema::hasTable('hourly_route_stops'))Schema::create('hourly_route_stops',function(Blueprint $t){$t->id();$t->unsignedBigInteger('hourly_visit_id');});
+        DB::table('hourly_route_stops')->insert(['hourly_visit_id'=>$visit->id]);
+        $this->assertTrue($visit->fresh()->is_missed);
+        $this->assertSame('missed',$visit->fresh()->display_status);
+        $customer = app(\App\Services\Hourly\CustomerHourlyData::class)->visit($visit->fresh(), $order->fresh());
+        $this->assertTrue($customer['is_missed']);$this->assertSame('missed',$customer['display_status']);
+        $this->assertFalse($customer['can_reschedule']);$this->assertFalse($customer['can_cancel']);
+        $this->assertNull($customer['delivery_code']);
+        $this->assertTrue(app(VisitSearch::class)->query(['status'=>['missed']])->whereKey($visit->id)->exists());
+        $this->get('/admin/hourly/visits?from=&to=')->assertOk()->assertSee('فات موعدها')->assertSee('إعادة جدولة الزيارة الفائتة');
+        $manager=app(\App\Services\Hourly\OrderManagementService::class);
+        foreach([['action'=>'reschedule','new_date'=>today()->addDays(4)->toDateString(),'reason'=>''],
+            ['action'=>'complete','reason'=>'اختبار'],
+            ['action'=>'reschedule','new_date'=>today()->subDay()->toDateString(),'reason'=>'اختبار'],
+            ['action'=>'reschedule','new_date'=>today()->addDays(6)->toDateString(),'reason'=>'اختبار']] as $invalid){
+            try{$manager->apply($order,$invalid+['visit_ids'=>[$visit->id]],7);$this->fail('Missed visit must require an explicit valid resolution.');}
+            catch(ValidationException $e){$this->assertTrue($visit->fresh()->is_missed);}
+        }
+        app(VisitBatchService::class)->run($this->payload('reschedule',[$visit->id],['new_date'=>today()->addDays(4)->toDateString()]),7);
+        $after=$visit->fresh();
+        $this->assertFalse($after->is_missed);$this->assertSame('scheduled',$after->display_status);
+        $this->assertSame(1,(int)$after->reschedule_count);$this->assertEquals($price,$after->visit_price);
+        $this->assertNull($after->delivery_driver_id);$this->assertNull($after->pickup_driver_id);
+        $this->assertSame(0,DB::table('hourly_route_stops')->where('hourly_visit_id',$visit->id)->count());
+        $this->assertEquals($beforeOther,$other->fresh()->getAttributes());
+        $this->assertDatabaseHas('hourly_order_audits',['visit_id'=>$visit->id,'action'=>'reschedule','admin_id'=>7,'reason'=>'اختبار التشغيل']);
+    }
+
+    public function test_missed_visit_cancellation_uses_existing_refund_and_audit_flow(): void
+    {
+        $order=$this->order();$order->update(['status'=>'active','paid_amount'=>100]);$visit=$order->visits()->first();
+        $visit->update(['scheduled_date'=>today()->subDay(),'scheduled_start_at'=>today()->subDay()->setTime(8,0),'scheduled_end_at'=>today()->subDay()->setTime(12,0)]);
+        app(VisitBatchService::class)->run($this->payload('cancel_visit',[$visit->id],['refund_method'=>'wallet']),7);
+        $this->assertSame('cancelled',$visit->fresh()->status);
+        $this->assertSame('cancelled',$order->fresh()->status);
+        $this->assertEquals(1100,DB::table('users')->where('id',1)->value('hourly_wallet_balance'));
+        $this->assertDatabaseHas('hourly_order_audits',['visit_id'=>$visit->id,'action'=>'cancel_visit','reason'=>'اختبار التشغيل']);
+    }
+
+    public function test_order_screen_cancellation_refunds_cash_payment_to_wallet_once(): void
+    {
+        $order=$this->order();$visit=$order->visits()->first();
+        $visit->update(['visit_price'=>200]);$order->update(['status'=>'active','total_amount'=>200,'paid_amount'=>200]);
+        $order->payments()->create(['user_id'=>1,'public_id'=>(string)Str::uuid(),'method'=>'cash','amount'=>200,'status'=>'paid','paid_at'=>now()]);
+        app(\App\Services\Hourly\OrderManagementService::class)->apply($order,['action'=>'cancel_visit','visit_ids'=>[$visit->id],'reason'=>'إلغاء مجاني'],7);
+        $this->assertEquals(1200,DB::table('users')->where('id',1)->value('hourly_wallet_balance'));
+        $this->assertEquals(0,$order->fresh()->paid_amount);$this->assertEquals(0,$order->fresh()->total_amount);
+        $this->assertSame('refunded',$order->fresh()->payment_status);
+        $this->assertEquals(200,$order->payments()->where('amount',200)->value('amount'));
+        $retry=app(\App\Services\Hourly\OrderManagementService::class)->apply($order,['action'=>'refund','refund_method'=>'wallet','reason'=>'إعادة المحاولة'],7);
+        $this->assertEquals(0,$retry['refunded_amount']);
+        $this->assertSame(1,$order->payments()->where('amount','<',0)->count());
+        app(\App\Services\Hourly\HourlyPaymentService::class)->recalculate($order->fresh(),'admin',7);
+        $this->assertSame('refunded',$order->fresh()->payment_status);
+    }
+
+    public function test_old_cancelled_order_has_refund_action_and_requires_financial_permission(): void
+    {
+        $order=$this->order();$order->update(['status'=>'cancelled','total_amount'=>0,'paid_amount'=>200]);
+        $order->visits()->update(['status'=>'cancelled','cancellation_fee'=>0]);
+        $order->payments()->create(['user_id'=>1,'public_id'=>(string)Str::uuid(),'method'=>'cash','amount'=>200,'status'=>'paid','paid_at'=>now()]);
+        $admin=\Mockery::mock(\App\Models\auth\Admin::class)->makePartial();$admin->id=7;
+        $admin->shouldReceive('can')->andReturnUsing(fn($p)=>in_array($p,['hourly_orders_view','hourly_orders_create']));auth('admin')->setUser($admin);
+        $payload=['action'=>'refund','refund_method'=>'wallet','reason'=>'تسوية إلغاء سابق'];
+        $url=route('admin.hourly-orders.operations',$order);
+        $this->postJson($url,$payload)->assertForbidden();
+        $this->assertEquals(1000,DB::table('users')->where('id',1)->value('hourly_wallet_balance'));
+        $admin=\Mockery::mock(\App\Models\auth\Admin::class)->makePartial();$admin->id=7;$admin->shouldReceive('can')->andReturn(true);auth('admin')->setUser($admin);
+        $this->get(route('admin.hourly-orders.show',$order))->assertOk()->assertSee('استرداد المبلغ المستحق');
+        $this->postJson($url,$payload)->assertOk()->assertJsonPath('refunded_amount',200);
+        $this->postJson($url,$payload)->assertOk()->assertJsonPath('refunded_amount',0);
+        $this->assertEquals(1200,DB::table('users')->where('id',1)->value('hourly_wallet_balance'));
+        $this->assertDatabaseHas('hourly_order_audits',['hourly_rental_order_id'=>$order->id,'action'=>'refund','reason'=>'تسوية إلغاء سابق']);
+    }
+
+    public function test_external_refund_requires_confirmation_and_does_not_credit_wallet(): void
+    {
+        $order=$this->order();$order->update(['status'=>'cancelled','total_amount'=>0,'paid_amount'=>200]);
+        $service=app(\App\Services\Hourly\OrderRefundService::class);
+        try{$service->refund($order,'bank_transfer','حوالة',7,'admin',7);$this->fail('External payout must be confirmed.');}
+        catch(ValidationException $e){$this->assertEquals(200,$order->fresh()->paid_amount);}
+        $this->assertEquals(200,$service->refund($order,'bank_transfer','حوالة رقم 123',7,'admin',7,true));
+        $this->assertEquals(1000,DB::table('users')->where('id',1)->value('hourly_wallet_balance'));
+        $this->assertEquals(0,$order->fresh()->paid_amount);
+        $this->assertEquals(0,$service->refund($order,'wallet','طلب مكرر',7));
+    }
+
+    public function test_pending_payment_blocks_refund_and_rolls_back_cancellation(): void
+    {
+        $order=$this->order();$visit=$order->visits()->first();$visit->update(['visit_price'=>200]);
+        $order->update(['status'=>'active','total_amount'=>200,'paid_amount'=>200]);
+        $order->payments()->create(['user_id'=>1,'public_id'=>(string)Str::uuid(),'method'=>'cash','amount'=>200,'status'=>'paid']);
+        $order->payments()->create(['user_id'=>1,'public_id'=>(string)Str::uuid(),'method'=>'bank_transfer','amount'=>50,'status'=>'pending_review']);
+        try{app(\App\Services\Hourly\OrderManagementService::class)->apply($order,
+            ['action'=>'cancel_visit','visit_ids'=>[$visit->id],'reason'=>'إلغاء مجاني'],7);$this->fail('Pending money must be settled before refund.');}
+        catch(ValidationException $e){$this->assertSame('scheduled',$visit->fresh()->status);}
+        $this->assertEquals(200,$order->fresh()->total_amount);$this->assertEquals(200,$order->fresh()->paid_amount);
+        $this->assertEquals(1000,DB::table('users')->where('id',1)->value('hourly_wallet_balance'));
+        $this->assertSame(0,$order->payments()->where('amount','<',0)->count());
+    }
+
+    public function test_paid_visit_hides_collection_and_reports_actual_remaining(): void
+    {
+        if(!Schema::hasColumn('hourly_visit_workers','status'))Schema::table('hourly_visit_workers',fn(Blueprint $t)=>$t->string('status')->nullable());
+        $order=$this->order();$visit=$order->visits()->first();$service=app(VisitBatchService::class);
+        $this->get('/admin/hourly/visits')->assertOk()->assertSee('data-single="collect"',false);
+        $data=['method'=>'cash','paid_at'=>now()->format('Y-m-d\TH:i')];
+        $service->run($this->payload('collect',[$visit->id],$data+['amount'=>50]),7);
+        $left=(float)$order->total_amount-50;
+        try{
+            $service->run($this->payload('collect',[$visit->id],$data+['amount'=>$left+1]),7);
+            $this->fail('Overpayment accepted');
+        }catch(ValidationException $e){$this->assertStringContainsString(number_format($left,2).' ر.س',json_encode($e->errors(),JSON_UNESCAPED_UNICODE));}
+        $service->run($this->payload('collect',[$visit->id],$data+['amount'=>$left]),7);
+        $this->get('/admin/hourly/visits')->assertOk()->assertDontSee('data-single="collect"',false)->assertSee('سجل الدفعات');
+        try{
+            $service->run($this->payload('collect',[$visit->id],$data+['amount'=>1]),7);
+            $this->fail('Duplicate payment accepted');
+        }catch(ValidationException $e){$this->assertStringContainsString('مسددة بالكامل',json_encode($e->errors(),JSON_UNESCAPED_UNICODE));}
+        $this->assertEquals($order->total_amount,$order->fresh()->paid_amount);
+        $this->assertEquals($order->total_amount,DB::table('hourly_order_payments')->sum('amount'));
     }
 }

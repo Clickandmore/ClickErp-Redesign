@@ -12,11 +12,11 @@
 @include('admin.hourly._booking-options')
 <div class="container-fluid hs"><div class="hs-shell">
     @include('admin.hourly.messages')
+@include('admin.hourly._order-refund')
+@include('admin.hourly._cash-link')
     @include('admin.hourly._order-summary')
     @php
-        $canConfirm = AdminGuardHasPerm('hourly_orders_confirm') && $order->status === 'pending_confirmation'
-            && (in_array($order->payment_method, ['cash', 'card_on_delivery'], true)
-                || \App\Services\Hourly\HourlyPaymentService::activationPaid($order));
+        $canConfirm = AdminGuardHasPerm('hourly_orders_confirm') && \App\Services\Hourly\HourlyOrderService::confirmable($order);
     @endphp
     @if($canConfirm)
         <div class="alert alert-warning d-flex flex-wrap align-items-center justify-content-between gap-2"><span><i class="fa fa-hourglass-half"></i> الطلب بانتظار تأكيد الصرّاف.</span><form method="POST" action="{{ route('admin.hourly-orders.confirm',$order) }}">@csrf<button class="btn btn-warning">تأكيد الصرّاف</button></form></div>

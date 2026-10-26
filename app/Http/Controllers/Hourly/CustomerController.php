@@ -189,7 +189,7 @@ class CustomerController extends Controller
     public function storeAddress(Request $request, int $customer)
     {
         $user = User::findOrFail($customer);
-        UserAddress::create($this->addressData($request) + ['user_id' => $user->id]);
+        UserAddress::createUnique($this->addressData($request) + ['user_id' => $user->id]);
 
         return redirect()->route('admin.hourly-customers.show', [$user->id, 'addresses'])->with('success', __('hourly_customers.messages.address_saved'));
     }
@@ -352,28 +352,47 @@ class CustomerController extends Controller
      */
     private function validated(Request $request, ?User $user): array
     {
+        $latinDigits = fn ($value) => strtr((string) $value, ['٠' => '0', '١' => '1', '٢' => '2', '٣' => '3', '٤' => '4', '٥' => '5', '٦' => '6', '٧' => '7', '٨' => '8', '٩' => '9']);
         $request->merge([
-            'iban' => $request->filled('iban') ? strtoupper(preg_replace('/\s+/', '', $request->input('iban'))) : null,
+            'iban' => $request->filled('iban') ? strtoupper(preg_replace('/\s+/u', '', $latinDigits($request->input('iban')))) : null,
             'phone' => trim((string) $request->input('phone')),
+            'first_name' => preg_replace('/\s+/u', ' ', trim((string) $request->input('first_name'))),
+            'last_name' => preg_replace('/\s+/u', ' ', trim((string) $request->input('last_name'))),
+            'national_num' => $request->filled('national_num') ? strtoupper(preg_replace('/\s+/u', '', $latinDigits($request->input('national_num')))) : null,
         ]);
         $keepsPhone = $user && $request->input('phone') === (string) $user->phone;
+        // أحرف عربية/لاتينية فقط مع مسافة مفردة بين المقاطع: لا أرقام ولا رموز.
+        $personName = ['regex:/^[\p{L}\p{M}]+(?: [\p{L}\p{M}]+)*$/u'];
 
         return $request->validate([
             'customer_type' => ['required', Rule::in(HourlyCustomerProfile::TYPES)],
             'group_id' => ['nullable', 'integer', Rule::exists('hourly_customer_groups', 'id')->where('is_active', true)],
             'payment_term' => ['nullable', Rule::in(HourlyCustomerProfile::PAYMENT_TERMS)],
-            'first_name' => 'exclude_unless:customer_type,individual|required|string|max:100',
-            'last_name' => 'exclude_unless:customer_type,individual|required|string|max:100',
+            'first_name' => ['exclude_unless:customer_type,individual', 'required', 'string', 'max:100', ...$personName],
+            'last_name' => ['exclude_unless:customer_type,individual', 'required', 'string', 'max:100', ...$personName],
             'company_name' => 'exclude_unless:customer_type,company|required|string|max:200',
             'company_id' => 'exclude_unless:customer_type,company|nullable|string|max:100',
             'phone' => ['bail', 'required', 'string', 'max:40',
-                function ($attribute, $value, $fail) use ($keepsPhone) { if (!$keepsPhone && !PhoneNumber::saudiMobile($value)) $fail(__('hourly_customers.messages.phone_format')); },
+                // أرقام فقط (مع + اختيارية لرمز الدولة)، ثم 9 أرقام تبدأ بـ 5 بعد رمز السعودية.
+                function ($attribute, $value, $fail) use ($keepsPhone) { if (!$keepsPhone && (!preg_match('/^\+?[0-9٠-٩]+$/u', $value) || !PhoneNumber::saudiMobile($value))) $fail(__('hourly_customers.messages.phone_format')); },
                 function ($attribute, $value, $fail) use ($user) { if ($this->directory->phoneTaken($value, $user?->id)) $fail(__('hourly_customers.messages.phone_taken')); }],
             'phone2' => 'nullable|string|max:50',
             'email' => ['nullable', 'email', 'max:255', Rule::unique('users', 'email')->ignore($user?->id)],
             'identity_type' => ['nullable', Rule::in(HourlyCustomerProfile::IDENTITY_TYPES)],
-            'national_num' => 'nullable|string|max:50',
-            'birthdate' => 'nullable|date|before_or_equal:today',
+            'national_num' => ['nullable', 'string', 'max:50', function ($attribute, $value, $fail) use ($request, $user) {
+                if ($user && $value === strtoupper((string) $user->national_num)) return; // رقم قديم لم يُعدَّل
+                // الهوية الوطنية تبدأ بـ 1 والإقامة بـ 2 (10 أرقام)؛ الجواز حروف لاتينية وأرقام فقط.
+                $valid = match ($request->input('identity_type')) {
+                    'national_id' => preg_match('/^1[0-9]{9}$/', $value),
+                    'iqama' => preg_match('/^2[0-9]{9}$/', $value),
+                    'passport' => preg_match('/^[A-Z0-9]{6,20}$/', $value),
+                    default => preg_match('/^[A-Z0-9]{6,20}$/', $value),
+                };
+                if (!$valid) $fail(__('hourly_customers.messages.national_format_'.($request->input('identity_type') ?: 'any')));
+            }],
+            // تاريخ ميلاد قديم لم يتغير يبقى مقبولًا في التعديل؛ الجديد يجب أن يعطي عمرًا بين الحدين.
+            'birthdate' => $user && $user->birthdate && $request->input('birthdate') === \Carbon\Carbon::parse($user->birthdate)->toDateString() ? 'nullable|date' : ['nullable', 'date',
+                'before_or_equal:'.now()->subYears(HourlyCustomerProfile::MIN_AGE)->toDateString(), 'after_or_equal:'.now()->subYears(HourlyCustomerProfile::MAX_AGE)->toDateString()],
             'language' => ['required', Rule::in(HourlyCustomerProfile::LANGUAGES)],
             'iban' => ['nullable', 'regex:/^SA[0-9]{22}$/'],
             'note' => 'nullable|string|max:2000',
@@ -381,7 +400,8 @@ class CustomerController extends Controller
             // الإنشاء: كلمة مرور اختيارية؛ التعديل: «كلمة مرور جديدة» تُحدَّث فقط إن مُلئت.
             'password' => $user ? 'prohibited' : 'nullable|string|min:8|max:100',
             'new_password' => $user ? 'nullable|string|min:8|max:100|confirmed' : 'prohibited',
-        ], ['iban.regex' => __('hourly_customers.messages.iban_format')]);
+        ], ['iban.regex' => __('hourly_customers.messages.iban_format'), 'first_name.regex' => __('hourly_customers.messages.name_format'), 'last_name.regex' => __('hourly_customers.messages.name_format'),
+            'birthdate.before_or_equal' => __('hourly_customers.messages.age_min', ['age' => HourlyCustomerProfile::MIN_AGE]), 'birthdate.after_or_equal' => __('hourly_customers.messages.age_max', ['age' => HourlyCustomerProfile::MAX_AGE])]);
     }
 
     /** نفس حقول العنوان في معالج الحجز، مع ملء أعمدة العنوان القديمة (الاسم والهاتف والعنوان المختصر) للأنظمة الأخرى. */
@@ -490,7 +510,7 @@ class CustomerController extends Controller
     /** الطلبات التي تقبل دفعة الآن مع المتبقي عليها. */
     private function payableOrders(User $user)
     {
-        return HourlyRentalOrder::where('user_id', $user->id)->whereIn('status', ['pending_confirmation', 'active'])->where('payment_status', '!=', 'paid')
+        return HourlyRentalOrder::where('user_id', $user->id)->whereIn('status', ['pending_confirmation', 'active', \App\Services\Hourly\HourlyOrderService::AWAITING_PAYMENT])->where('payment_status', '!=', 'paid')
             ->where('payment_method', '!=', 'moyasar')->orderByDesc('id')->get(['id', 'order_number', 'total_amount', 'paid_amount'])
             ->map(fn ($o) => ['id' => $o->id, 'label' => '#'.$o->order_number, 'remaining' => round($o->total_amount - $o->paid_amount, 2)]);
     }

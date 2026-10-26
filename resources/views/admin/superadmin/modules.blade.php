@@ -34,12 +34,7 @@
     $invalidCronCount = $cronJobs->where('risk', 'invalid')->count();
     $subscription = $subscription ?? [];
     $activeSection = $activeSection ?? 'modules';
-    $productUpdates = $productUpdates ?? \App\Support\ProductUpdatesSettings::all();
     $maintenanceSettings = $maintenanceSettings ?? \App\Support\DashboardMaintenanceSettings::all();
-    $editableProductUpdates = old('updates', $productUpdates['updates'] ?? []);
-    if (empty($editableProductUpdates)) {
-        $editableProductUpdates = [['title' => '', 'details' => '', 'url' => '', 'link_label' => 'عرض الميزة']];
-    }
     $subscriptionStatuses = [
         'active' => 'اشتراك نشط',
         'trial' => 'فترة تجريبية',
@@ -51,7 +46,7 @@
         'subscription' => ['title' => 'العميل والاشتراك', 'description' => 'إدارة بيانات المنشأة والباقة وتواريخ الاشتراك.'],
         'modules' => ['title' => 'الموديلات', 'description' => 'تفعيل مكونات النظام واختيار لوحة التحكم الافتراضية.'],
         'employees' => ['title' => 'الموظفون', 'description' => 'البحث عن موظف والدخول إلى لوحة الإدارة بحسابه.'],
-        'product-updates' => ['title' => 'ما الجديد', 'description' => 'إدارة بطاقات التحديثات وروابطها وترتيب ظهورها للعملاء.'],
+        'product-updates' => ['title' => 'تحديثات النظام', 'description' => 'إعلان الميزات والإصلاحات للموظفين بالصور والفيديو، ومتابعة من اطلع عليها، ومزامنة التحديثات بين النسخ.'],
         'backups' => ['title' => 'النسخ الاحتياطية', 'description' => 'إدارة النسخ التلقائية والتنزيل والاستعادة.'],
         'scheduler' => ['title' => 'المهام المجدولة', 'description' => 'متابعة حالة Scheduler والمهام الآلية القادمة.'],
     ][$activeSection] ?? ['title' => 'لوحة التطوير', 'description' => 'إدارة إعدادات النظام.'];
@@ -72,7 +67,7 @@
         ['key' => 'subscription', 'label' => 'العميل والاشتراك', 'url' => route('dev-superadmin.subscription')],
         ['key' => 'modules', 'label' => 'الموديلات', 'url' => route('dev-superadmin.modules')],
         ['key' => 'employees', 'label' => 'الموظفون', 'url' => route('dev-superadmin.employees')],
-        ['key' => 'product-updates', 'label' => 'ما الجديد', 'url' => route('dev-superadmin.product-updates')],
+        ['key' => 'product-updates', 'label' => 'تحديثات النظام', 'url' => route('dev-superadmin.product-updates')],
         ['key' => 'backups', 'label' => 'النسخ الاحتياطية', 'url' => route('dev-superadmin.database-backups')],
         ['key' => 'scheduler', 'label' => 'المهام المجدولة', 'url' => route('dev-superadmin.scheduler')],
     ];
@@ -93,9 +88,11 @@
             ['label' => 'نشط', 'value' => (string) $activeAdminsCount, 'tone' => 'is-good'],
             ['label' => 'الإجمالي', 'value' => (string) $admins->count(), 'tone' => ''],
         ],
-        'product-updates' => [
-            ['label' => 'بطاقات منشورة', 'value' => (string) count($productUpdates['updates'] ?? []), 'tone' => ''],
-        ],
+        'product-updates' => isset($systemUpdateCounts) ? [
+            ['label' => 'منشور', 'value' => (string) $systemUpdateCounts['published'], 'tone' => 'is-good'],
+            ['label' => 'مسودات', 'value' => (string) $systemUpdateCounts['drafts'], 'tone' => ''],
+            ['label' => 'من المصدر', 'value' => (string) $systemUpdateCounts['remote'], 'tone' => ''],
+        ] : [],
         'backups' => [
             ['label' => 'R2', 'value' => $r2Ready ? 'جاهز' : 'غير جاهز', 'tone' => $r2Ready ? 'is-good' : 'is-bad'],
             ['label' => 'نسخ محلية', 'value' => (string) count($localDatabaseBackups), 'tone' => ''],
@@ -121,6 +118,7 @@
         </div>
 
         <div class="topbar-actions">
+            <a class="btn" href="{{ route('dev-superadmin.hourly-app-review-accounts.index') }}">حسابات اختبار التطبيقات</a>
             <a class="btn btn-primary" href="{{ route('dev-superadmin.hourly-rental-settings.index') }}">إعدادات الساعات</a>
             <a class="btn" href="{{ route('dev-superadmin.invoice-corrections.index') }}">تصحيح الفواتير</a>
             <a class="btn" href="{{ \App\Support\SystemModuleManager::defaultDashboardUrl() }}">لوحة الإدارة</a>
@@ -269,82 +267,7 @@
     @endif
 
     @if ($activeSection === 'product-updates')
-    <section class="panel" id="product-updates" style="margin-bottom:24px;">
-        <div class="panel-head">
-            <div>
-                <h2 class="panel-title">ما الجديد في كليك</h2>
-                <p class="panel-subtitle">أنشئ بطاقات مرتبة لكل ميزة، وأضف رابط الصفحة التي تريد توجيه العميل إليها.</p>
-            </div>
-        </div>
-        <div class="panel-body">
-            <form class="subscription-form" method="POST" action="{{ route('dev-superadmin.product-updates.update') }}">
-                @csrf
-                @method('PUT')
-                <div class="field span-2">
-                    <label for="productUpdateTitle">عنوان نافذة التحديثات</label>
-                    <input id="productUpdateTitle" name="title" type="text" required value="{{ old('title', $productUpdates['title'] ?? '') }}" placeholder="جديد في كليك">
-                </div>
-                <div class="field">
-                    <label for="productUpdateDate">تاريخ النشر</label>
-                    <input id="productUpdateDate" name="published_at" type="date" value="{{ old('published_at', $productUpdates['published_at'] ?? '') }}">
-                </div>
-                <div class="field">
-                    <label for="productUpdateEnabled">حالة الظهور</label>
-                    <label class="switch-row" for="productUpdateEnabled">
-                        <span>إظهار في الهيدر</span>
-                        <span class="switch">
-                            <input name="is_enabled" type="hidden" value="0">
-                            <input id="productUpdateEnabled" name="is_enabled" type="checkbox" value="1" {{ old('is_enabled', $productUpdates['is_enabled'] ?? true) ? 'checked' : '' }}>
-                            <span class="slider"></span>
-                        </span>
-                    </label>
-                </div>
-                <div class="field span-4">
-                    <label for="productUpdateSummary">وصف مختصر</label>
-                    <input id="productUpdateSummary" name="summary" type="text" value="{{ old('summary', $productUpdates['summary'] ?? '') }}" placeholder="تحسينات جديدة أصبحت متاحة الآن">
-                </div>
-                <div class="field span-4">
-                    <label>بطاقات التحديث وترتيبها</label>
-                    <div id="productUpdatesBuilder" class="product-updates-builder">
-                        @foreach ($editableProductUpdates as $index => $update)
-                            <article class="product-update-editor" data-update-row>
-                                <div class="product-update-editor-head">
-                                    <strong data-update-number>التحديث {{ $loop->iteration }}</strong>
-                                    <div class="product-update-order">
-                                        <button type="button" data-move-update="up" title="تحريك لأعلى" aria-label="تحريك لأعلى">↑</button>
-                                        <button type="button" data-move-update="down" title="تحريك لأسفل" aria-label="تحريك لأسفل">↓</button>
-                                        <button type="button" class="product-update-remove" data-remove-update title="حذف">حذف</button>
-                                    </div>
-                                </div>
-                                <div class="product-update-fields">
-                                    <div class="field wide">
-                                        <label>عنوان الميزة</label>
-                                        <input data-update-field="title" name="updates[{{ $index }}][title]" type="text" required maxlength="160" value="{{ $update['title'] ?? '' }}" placeholder="مثال: إنشاء إشعار دائن من الفاتورة">
-                                    </div>
-                                    <div class="field wide">
-                                        <label>تفاصيل مختصرة</label>
-                                        <textarea data-update-field="details" name="updates[{{ $index }}][details]" rows="2" maxlength="1000" placeholder="اشرح الفائدة للعميل باختصار">{{ $update['details'] ?? '' }}</textarea>
-                                    </div>
-                                    <div class="field">
-                                        <label>رابط الصفحة</label>
-                                        <input data-update-field="url" name="updates[{{ $index }}][url]" type="text" maxlength="1000" dir="ltr" value="{{ $update['url'] ?? '' }}" placeholder="/dashboard/invoices">
-                                    </div>
-                                    <div class="field">
-                                        <label>نص زر الانتقال</label>
-                                        <input data-update-field="link_label" name="updates[{{ $index }}][link_label]" type="text" maxlength="80" value="{{ $update['link_label'] ?? '' }}" placeholder="الانتقال إلى الفواتير">
-                                    </div>
-                                </div>
-                            </article>
-                        @endforeach
-                        <button id="addProductUpdate" class="product-updates-add" type="button"><i class="fa fa-plus"></i> إضافة تحديث آخر</button>
-                    </div>
-                </div>
-                <div class="form-actions span-4">
-                    <button class="btn btn-primary" type="submit">حفظ ونشر التحديث</button>
-                </div>
-            </form>
-        </div>
-    </section>
+        @include('admin.superadmin.system-updates.' . ($systemUpdatesView ?? 'index'))
     @endif
 
     @if (in_array($activeSection, ['modules', 'employees'], true))
@@ -540,6 +463,18 @@
                                     </label>
                                 </div>
 
+                                @if ($key === 'hourly_rental')
+                                    {{-- نفس خيار «العرض في الموقع الخارجي» في إعدادات التأجير بالساعة؛ يُخفي الحجز عن الموقع وحده. --}}
+                                    <div class="switch-row">
+                                        <span>العرض في الموقع الخارجي</span>
+                                        <label class="switch" title="إظهار أو إخفاء حجز الساعات في الموقع الخارجي">
+                                            <input type="hidden" name="hourly_website_field" value="1">
+                                            <input type="checkbox" name="hourly_show_on_website" value="1" {{ old('hourly_show_on_website', \App\Support\HourlyRentalSettings::get('show_on_website', true)) ? 'checked' : '' }}>
+                                            <span class="slider"></span>
+                                        </label>
+                                    </div>
+                                @endif
+
                                 @if ($key === 'branches')
                                     <div class="limit-row">
                                         <label for="branchesLimit">عدد الفروع المسموح به</label>
@@ -611,358 +546,7 @@
     @endif
 
     @if ($activeSection === 'backups')
-    <section class="panel backup-panel" id="backups">
-        <div class="panel-head">
-            <div>
-                <h2 class="panel-title">النسخ الاحتياطية</h2>
-                <p class="panel-subtitle">استيراد القاعدة وإدارة النسخ المحلية وإعدادات التخزين.</p>
-            </div>
-            <div class="backup-actions">
-                <form method="POST" action="{{ route('dev-superadmin.database-backups.download-current') }}">
-                    @csrf
-                    <button class="btn btn-primary" type="submit">تنزيل نسخة جديدة</button>
-                </form>
-                <form method="POST" action="{{ route('dev-superadmin.database-backups.create') }}">
-                    @csrf
-                    <button class="btn" type="submit">{{ $r2Ready ? 'إنشاء نسخة في R2' : 'إنشاء نسخة محلية' }}</button>
-                </form>
-                @if (!$r2Ready)
-                    <a class="btn" href="{{ route('storage.settings') }}">إعدادات R2</a>
-                @endif
-            </div>
-        </div>
-        <div class="panel-body">
-            <div class="section-heading">
-                <div>
-                    <h2>قاعدة البيانات المستخدمة حاليًا</h2>
-                    <p>البرنامج يعمل مباشرة على قاعدة MySQL الموضحة هنا.</p>
-                </div>
-                <span class="badge {{ ($currentDatabaseDetails['connected'] ?? false) ? 'ok' : 'bad' }}">
-                    {{ ($currentDatabaseDetails['connected'] ?? false) ? 'متصل الآن' : 'غير متصل' }}
-                </span>
-            </div>
-            <div class="status-grid">
-                <div class="status-card">
-                    <span>اسم القاعدة</span>
-                    <strong dir="ltr">{{ $currentDatabaseDetails['connected_database'] ?? ($currentDatabaseDetails['database'] ?? '—') }}</strong>
-                </div>
-                <div class="status-card">
-                    <span>الخادم</span>
-                    <strong dir="ltr">{{ $currentDatabaseDetails['host'] ?? '—' }}:{{ $currentDatabaseDetails['port'] ?? '—' }}</strong>
-                </div>
-                <div class="status-card">
-                    <span>إصدار MySQL</span>
-                    <strong dir="ltr">{{ $currentDatabaseDetails['server_version'] ?? '—' }}</strong>
-                </div>
-            </div>
-            <details class="settings-disclosure">
-                <summary>عرض تفاصيل اتصال .env</summary>
-                <div class="settings-disclosure-content backup-settings database-connection-details" dir="ltr">
-                <div class="field">
-                    <label>DB_CONNECTION</label>
-                    <input type="text" readonly value="{{ $currentDatabaseDetails['driver'] ?? '—' }}">
-                </div>
-                <div class="field">
-                    <label>DB_HOST</label>
-                    <input type="text" readonly value="{{ $currentDatabaseDetails['host'] ?? '—' }}">
-                </div>
-                <div class="field">
-                    <label>DB_PORT</label>
-                    <input type="text" readonly value="{{ $currentDatabaseDetails['port'] ?? '—' }}">
-                </div>
-                <div class="field">
-                    <label>DB_DATABASE</label>
-                    <input type="text" readonly value="{{ $currentDatabaseDetails['database'] ?? '—' }}">
-                </div>
-                <div class="field">
-                    <label>DB_USERNAME</label>
-                    <input type="text" readonly value="{{ $currentDatabaseDetails['username'] ?? '—' }}">
-                </div>
-                <div class="field">
-                    <label>DB_PASSWORD</label>
-                    <input type="text" readonly value="{{ ($currentDatabaseDetails['password_configured'] ?? false) ? '•••••••• (مخفية)' : 'غير مضبوطة' }}">
-                </div>
-                <div class="field">
-                    <label>قاعدة البيانات المؤكدة من MySQL</label>
-                    <input type="text" readonly value="{{ $currentDatabaseDetails['connected_database'] ?? '—' }}">
-                </div>
-                <div class="field">
-                    <label>إصدار خادم MySQL</label>
-                    <input type="text" readonly value="{{ $currentDatabaseDetails['server_version'] ?? '—' }}">
-                </div>
-                <div class="field">
-                    <label>ترميز الاتصال</label>
-                    <input type="text" readonly value="{{ $currentDatabaseDetails['charset'] ?? '—' }}">
-                </div>
-                </div>
-            </details>
-            @if (!empty($currentDatabaseDetails['error']))
-                <p class="backup-status is-off">{{ $currentDatabaseDetails['error'] }}</p>
-            @endif
-            <details class="settings-disclosure">
-                <summary>أمان Super Admin</summary>
-                <div class="settings-disclosure-content">
-            <div class="section-heading">
-                <div>
-                    <p>تحكم بجهات استلام رموز العمليات الخطرة وكلمة مرور الدخول. تُحفظ القيم في ملف خاص مشفّر ومستقل عن قاعدة البيانات.</p>
-                </div>
-            </div>
-            <form method="POST" action="{{ route('dev-superadmin.database-backups.security') }}" class="backup-settings" autocomplete="off">
-                @csrf
-                @method('PUT')
-                <div class="field">
-                    <label for="superAdminVerificationEmail">بريد التحقق</label>
-                    <input id="superAdminVerificationEmail" type="email" name="verification_email" maxlength="190" value="{{ old('verification_email', $devSuperAdminSecurity['email']) }}" placeholder="security@example.com" autocomplete="email">
-                </div>
-                <div class="field">
-                    <label for="superAdminVerificationPhone">جوال التحقق</label>
-                    <input id="superAdminVerificationPhone" type="tel" name="verification_phone" value="{{ old('verification_phone', $devSuperAdminSecurity['phone']) }}" placeholder="05xxxxxxxx" dir="ltr" autocomplete="tel">
-                </div>
-                <div class="field">
-                    <label for="superAdminCurrentPassword">كلمة المرور الحالية <span class="required">*</span></label>
-                    <input id="superAdminCurrentPassword" type="password" name="current_password" required autocomplete="current-password">
-                </div>
-                <div class="field">
-                    <label for="superAdminNewPassword">كلمة مرور جديدة (اختياري)</label>
-                    <input id="superAdminNewPassword" type="password" name="password" minlength="12" autocomplete="new-password">
-                </div>
-                <div class="field">
-                    <label for="superAdminNewPasswordConfirmation">تأكيد كلمة المرور الجديدة</label>
-                    <input id="superAdminNewPasswordConfirmation" type="password" name="password_confirmation" minlength="12" autocomplete="new-password">
-                </div>
-                <button class="btn btn-primary" type="submit" onclick="return confirm('سيتم تحديث إعدادات أمان Super Admin. هل تريد المتابعة؟')">حفظ إعدادات الأمان</button>
-            </form>
-            <p class="backup-status">
-                يجب إبقاء بريد أو جوال واحد على الأقل. كلمة المرور الجديدة لا تقل عن 12 حرفًا وتحتوي حرفًا كبيرًا وصغيرًا ورقمًا ورمزًا خاصًا. عند تغييرها سيتم تسجيل خروجك تلقائيًا.
-            </p>
-                </div>
-            </details>
-
-            <details class="settings-disclosure">
-                <summary>الجدولة والتخزين وR2</summary>
-                <div class="settings-disclosure-content">
-            <form method="POST" action="{{ route('dev-superadmin.database-backups.settings') }}" class="backup-settings">
-                @csrf
-                @method('PUT')
-                <div class="field">
-                    <label>الجدولة اليومية</label>
-                    <label class="backup-status {{ $backupSettings['enabled'] ? 'is-ready' : '' }}">
-                        <input type="hidden" name="enabled" value="0">
-                        <input type="checkbox" name="enabled" value="1" {{ old('enabled', $backupSettings['enabled']) ? 'checked' : '' }}>
-                        تفعيل النسخ التلقائي
-                    </label>
-                </div>
-                <div class="field">
-                    <label>نسخة السيرفر الخاصة</label>
-                    <label class="backup-status {{ $backupSettings['local_enabled'] ? 'is-ready' : '' }}">
-                        <input type="hidden" name="local_enabled" value="0">
-                        <input type="checkbox" name="local_enabled" value="1" {{ old('local_enabled', $backupSettings['local_enabled']) ? 'checked' : '' }}>
-                        الاحتفاظ بنسخة على السيرفر
-                    </label>
-                </div>
-                <div class="field">
-                    <label for="backupDailyTime">وقت التنفيذ</label>
-                    <input id="backupDailyTime" type="time" name="daily_time" required value="{{ old('daily_time', $backupSettings['daily_time']) }}">
-                </div>
-                <div class="field">
-                    <label for="backupRetention">مدة الاحتفاظ في R2 (يوم)</label>
-                    <input id="backupRetention" type="number" name="retention_days" min="1" max="365" required value="{{ old('retention_days', $backupSettings['retention_days']) }}">
-                </div>
-                <div class="field">
-                    <label for="localBackupRetention">مدة الاحتفاظ على السيرفر (يوم)</label>
-                    <input id="localBackupRetention" type="number" name="local_retention_days" min="1" max="30" required value="{{ old('local_retention_days', $backupSettings['local_retention_days']) }}">
-                </div>
-                <div class="field">
-                    <label for="backupPath">المجلد داخل R2</label>
-                    <input id="backupPath" type="text" name="path" required value="{{ old('path', $backupSettings['path']) }}">
-                </div>
-                <button class="btn" type="submit">حفظ الإعداد</button>
-            </form>
-
-            <p class="backup-status {{ $r2Ready ? 'is-ready' : 'is-off' }}">
-                {{ $r2Ready ? 'اتصال R2 جاهز للحفظ والاستعادة.' : 'R2 غير جاهز. فعّله واختبر الاتصال من إعدادات التخزين أولًا.' }}
-                <a href="{{ route('storage.settings') }}">فتح إعدادات التخزين</a>
-            </p>
-                </div>
-            </details>
-
-            <p class="backup-status {{ $backupSettings['local_enabled'] ? 'is-ready' : '' }}">
-                النسخ المحلية: {{ count($localDatabaseBackups) }} — محفوظة بشكل خاص داخل <span dir="ltr">storage/app/database-backups</span>.
-            </p>
-
-            @if ($backupListError)
-                <div class="alert alert-danger">تعذر قراءة قائمة النسخ: {{ $backupListError }}</div>
-            @endif
-
-            <div class="database-import-box">
-                <h3>استيراد قاعدة بيانات</h3>
-                <p>اختر ملف <span dir="ltr">SQL / SQL.GZ</span> ثم انسخ أمر الرفع وأمر الاستيراد. ستُحفظ نسخة أمان تلقائيًا قبل استبدال البيانات.</p>
-
-                <div class="terminal-command-box">
-                    <label for="databaseFileInput">ملف قاعدة البيانات</label>
-                    <input id="databaseFileInput" type="file" accept=".sql,.gz,application/sql,application/gzip" aria-label="اختر ملف قاعدة البيانات لإنشاء أمر الاستيراد">
-                    <label for="databaseSshConnection">اتصال السيرفر</label>
-                    <input id="databaseSshConnection" type="text" dir="ltr" value="ssh {{ config('database.backup_ssh.target') }}" placeholder="ssh clickadmin@130.110.98.217">
-                    <p>١. نفّذ أمر الرفع على جهازك:</p>
-                    <code id="databaseUploadCommand" class="terminal-command">اختر الملف لإنشاء أمر الرفع.</code>
-                    <div class="terminal-command-actions">
-                        <button id="copyDatabaseUploadCommand" class="btn btn-small" type="button" disabled>نسخ أمر الرفع</button>
-                    </div>
-                    <p class="verification-note">يبحث أمر الرفع عن الملف المختار في المجلد الحالي وDownloads وDesktop وDocuments. إذا لم يجده يطلب مساره في Terminal، ثم يرفعه إلى مساحة مؤقتة على السيرفر وينقله بصلاحية مستخدم التطبيق إلى مجلد النسخ المحلية.</p>
-                    <p>٢. بعد نجاح الرفع، نفّذ أمر الاستيراد داخل جلسة SSH على السيرفر:</p>
-                    <code id="databaseTerminalCommandPrefix" class="terminal-command">اختر الملف لإنشاء أمر الاستيراد بعد الرفع.</code>
-                    <div class="terminal-command-actions">
-                        <button id="copyDatabaseTerminalPrefix" class="btn btn-small" type="button" disabled>نسخ أمر الاستيراد</button>
-                        <span id="terminalSelectedFile" class="terminal-selected-file">لم يتم اختيار ملف بعد.</span>
-                    </div>
-                    <p class="verification-note">نفّذ الأمر على الجهاز الذي يعمل عليه المشروع، ثم اكتب <span dir="ltr">IMPORT</span> عند طلب التأكيد.</p>
-                    <p class="verification-note">اختيار الملف لا يرفعه تلقائيًا. نفّذ أمر الرفع على جهازك أولًا، ثم ادخل للسيرفر باتصال SSH أعلاه ونفّذ أمر الاستيراد.</p>
-                </div>
-
-                <details class="settings-disclosure">
-                    <summary>طريقة بديلة: الرفع والاستيراد من المتصفح</summary>
-                    <div class="settings-disclosure-content">
-                        <form id="databaseImportForm" class="verification-confirm" method="POST" enctype="multipart/form-data" action="{{ route('dev-superadmin.database-backups.import') }}">
-                            @csrf
-                            <input id="databaseUploadFileInput" type="file" name="database_file" required accept=".sql,.gz,application/sql,application/gzip" aria-label="ملف قاعدة البيانات">
-                            <input type="text" name="confirmation" required placeholder="IMPORT" autocomplete="off" aria-label="اكتب IMPORT">
-                            <input type="password" name="current_password" required placeholder="كلمة مرور Super Admin" autocomplete="current-password" aria-label="كلمة مرور Super Admin الحالية">
-                            <button id="databaseImportButton" class="btn btn-danger" type="submit">رفع واستيراد القاعدة</button>
-                        </form>
-                        <p class="verification-note">الحد داخل التطبيق {{ number_format(config('database.backup_import_max_kb', 512000) / 1024, 0) }} MB، وقد يفرض PHP حدًا أقل.</p>
-                        <div id="databaseImportProgress" class="import-progress" hidden>
-                            <div class="import-progress-track" role="progressbar" aria-label="تقدم رفع قاعدة البيانات" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
-                                <div class="import-progress-bar"></div>
-                            </div>
-                            <p class="import-progress-text">جاري رفع الملف: 0%</p>
-                        </div>
-                        <div id="databaseImportMessage" class="import-progress-message" hidden></div>
-                    </div>
-                </details>
-
-                <details class="settings-disclosure">
-                    <summary>خيار متقدم وخطر: تفريغ القاعدة قبل الاستيراد</summary>
-                    <div class="settings-disclosure-content">
-                        <div class="terminal-command-box" style="border-color:#fecaca;background:#fef2f2">
-                            <p style="color:#991b1b">ينشئ نسخة أمان ثم يحذف كل الجداول والـViews من <span dir="ltr">{{ $currentDatabaseDetails['database'] ?? '—' }}</span>.</p>
-                            <code class="terminal-command">{{ $databaseEmptyCommand }}</code>
-                            <div class="terminal-command-actions">
-                                <button class="btn btn-danger btn-small copy-terminal-command" type="button" data-command="{{ $databaseEmptyCommand }}">نسخ أمر التفريغ</button>
-                                <a class="btn btn-small" href="http://127.0.0.1:8001/dev-super-admin/recovery" target="_blank" rel="noopener">فتح شاشة الإنقاذ 8001</a>
-                            </div>
-                            <p class="verification-note">بعد التفريغ لن يعمل النظام على 8000 حتى يكتمل الاستيراد. شاشة 8001 مستقلة ولا تستعيد هذه القاعدة تلقائيًا.</p>
-                        </div>
-                    </div>
-                </details>
-            </div>
-
-            @if (count($localDatabaseBackups) > 0)
-                <div class="backup-table-wrap">
-                    <h3>النسخ الاحتياطية المحلية</h3>
-                    <table class="backup-table">
-                        <thead><tr><th>الملف</th><th>النوع</th><th>التاريخ</th><th>الحجم</th><th>الإجراءات</th></tr></thead>
-                        <tbody>
-                        @foreach ($localDatabaseBackups as $backup)
-                            <tr>
-                                <td class="backup-file">{{ $backup['filename'] }}</td>
-                                <td>
-                                    @if (str_starts_with($backup['filename'], 'clickerp-uploaded-'))
-                                        مرفوعة يدويًا
-                                    @elseif (str_starts_with($backup['filename'], 'clickerp-pre-import-'))
-                                        أمان قبل الاستيراد
-                                    @elseif (str_starts_with($backup['filename'], 'clickerp-pre-restore-'))
-                                        أمان قبل الاستعادة
-                                    @else
-                                        نسخة محلية
-                                    @endif
-                                </td>
-                                <td class="cell-ltr">{{ \Carbon\Carbon::createFromTimestamp($backup['created_at'])->format('Y-m-d H:i:s') }}</td>
-                                <td class="cell-ltr">{{ number_format($backup["size"] / 1024 / 1024, 2) }} MB</td>
-                                <td>
-                                    <a class="btn btn-small" href="{{ route('dev-superadmin.database-backups.local.download', ['path' => $backup['path']]) }}">تنزيل</a>
-                                    @if (str_starts_with($backup['filename'], 'clickerp-uploaded-'))
-                                        <button class="btn btn-small copy-terminal-command" type="button" data-command="{{ $backup['terminal_command'] }}">نسخ أمر Terminal</button>
-                                        <form class="verification-confirm" method="POST" action="{{ route('dev-superadmin.database-backups.local.destroy') }}" onsubmit="return confirm('سيُحذف ملف النسخة المحلية المرفوعة نهائيًا. هل تريد المتابعة؟')">
-                                            @csrf
-                                            @method('DELETE')
-                                            <input type="hidden" name="path" value="{{ $backup['path'] }}">
-                                            <input type="text" name="confirmation" required placeholder="DELETE" autocomplete="off" aria-label="اكتب DELETE">
-                                            <input type="password" name="current_password" required placeholder="كلمة مرور Super Admin" autocomplete="current-password" aria-label="كلمة مرور Super Admin الحالية">
-                                            <button class="btn btn-danger btn-small" type="submit">حذف النسخة</button>
-                                        </form>
-                                    @else
-                                        <span class="text-muted">نسخة أمان محمية</span>
-                                    @endif
-                                </td>
-                            </tr>
-                        @endforeach
-                        </tbody>
-                    </table>
-                </div>
-            @endif
-
-            @if ($r2Ready || count($databaseBackups) > 0)
-            <div class="backup-table-wrap">
-                <h3>نسخ R2</h3>
-                <table class="backup-table">
-                    <thead><tr><th>الملف</th><th>التاريخ</th><th>الحجم</th><th>الإجراءات</th></tr></thead>
-                    <tbody>
-                    @forelse ($databaseBackups as $backup)
-                        <tr>
-                            <td class="backup-file">{{ $backup['filename'] }}</td>
-                            <td class="cell-ltr">{{ \Carbon\Carbon::createFromTimestamp($backup['created_at'])->format('Y-m-d H:i:s') }}</td>
-                            <td class="cell-ltr">{{ number_format($backup["size"] / 1024 / 1024, 2) }} MB</td>
-                            <td>
-                                <div class="backup-actions">
-                                    <a class="btn btn-small" href="{{ route('dev-superadmin.database-backups.download', ['key' => $backup['key']]) }}">تنزيل</a>
-                                    @if (count($backupVerificationChannels) > 0)
-                                        <form class="verification-request" method="POST" action="{{ route('dev-superadmin.database-backups.verification-code') }}">
-                                            @csrf
-                                            <input type="hidden" name="key" value="{{ $backup['key'] }}">
-                                            <select name="verification_channel" required aria-label="وسيلة إرسال رمز التحقق">
-                                                @foreach ($backupVerificationChannels as $channel => $details)
-                                                    <option value="{{ $channel }}">{{ $details['label'] }} — {{ $details['destination'] }}</option>
-                                                @endforeach
-                                            </select>
-                                            <button class="btn btn-small" type="submit" name="action" value="restore">طلب رمز الاستعادة</button>
-                                            <button class="btn btn-danger btn-small" type="submit" name="action" value="delete">طلب رمز الحذف</button>
-                                        </form>
-                                    @endif
-
-                                    @if ($backupVerificationChallenge && $backupVerificationChallenge['key'] === $backup['key'])
-                                        @if ($backupVerificationChallenge['action'] === 'restore')
-                                            <form class="verification-confirm" method="POST" action="{{ route('dev-superadmin.database-backups.restore') }}" onsubmit="return confirm('سيتم أولًا أخذ نسخة أمان من البيانات الحالية، ثم استبدال قاعدة البيانات. هل تريد المتابعة؟')">
-                                                @csrf
-                                                <input type="hidden" name="key" value="{{ $backup['key'] }}">
-                                                <input type="text" name="confirmation" required placeholder="RESTORE" autocomplete="off" aria-label="اكتب RESTORE">
-                                                <input type="text" name="verification_code" required inputmode="numeric" pattern="[0-9]{6}" maxlength="6" placeholder="رمز التحقق" autocomplete="one-time-code" aria-label="رمز التحقق">
-                                                <button class="btn btn-primary btn-small" type="submit">تأكيد الاستعادة</button>
-                                                <p class="verification-note">الرمز مرسل إلى {{ $backupVerificationChallenge['destination'] }} وصالح حتى {{ \Carbon\Carbon::createFromTimestamp($backupVerificationChallenge['expires_at'])->format('H:i') }}.</p>
-                                            </form>
-                                        @else
-                                            <form class="verification-confirm" method="POST" action="{{ route('dev-superadmin.database-backups.destroy') }}" onsubmit="return confirm('سيتم حذف ملف النسخة نهائيًا من R2. هل تريد المتابعة؟')">
-                                                @csrf
-                                                @method('DELETE')
-                                                <input type="hidden" name="key" value="{{ $backup['key'] }}">
-                                                <input type="text" name="confirmation" required placeholder="DELETE" autocomplete="off" aria-label="اكتب DELETE">
-                                                <input type="text" name="verification_code" required inputmode="numeric" pattern="[0-9]{6}" maxlength="6" placeholder="رمز التحقق" autocomplete="one-time-code" aria-label="رمز التحقق">
-                                                <button class="btn btn-danger btn-small" type="submit">تأكيد الحذف</button>
-                                                <p class="verification-note">الرمز مرسل إلى {{ $backupVerificationChallenge['destination'] }} وصالح حتى {{ \Carbon\Carbon::createFromTimestamp($backupVerificationChallenge['expires_at'])->format('H:i') }}.</p>
-                                            </form>
-                                        @endif
-                                    @endif
-                                </div>
-                            </td>
-                        </tr>
-                    @empty
-                        <tr><td colspan="4">لا توجد نسخ احتياطية محفوظة حتى الآن.</td></tr>
-                    @endforelse
-                    </tbody>
-                </table>
-            </div>
-            @endif
-        </div>
-    </section>
+    @include('admin.superadmin.partials.backups')
     @endif
 
     @if ($activeSection === 'scheduler')
@@ -1110,101 +694,6 @@
 
     productProfileInputs.forEach((input) => input.addEventListener('change', refreshProductProfileConfirmation));
     refreshProductProfileConfirmation();
-
-    const productUpdatesBuilder = document.getElementById('productUpdatesBuilder');
-    const addProductUpdateButton = document.getElementById('addProductUpdate');
-
-    function refreshProductUpdateRows() {
-        const rows = Array.from(productUpdatesBuilder?.querySelectorAll('[data-update-row]') || []);
-        rows.forEach((row, index) => {
-            const number = row.querySelector('[data-update-number]');
-            if (number) number.textContent = `التحديث ${index + 1}`;
-
-            const moveUp = row.querySelector('[data-move-update="up"]');
-            const moveDown = row.querySelector('[data-move-update="down"]');
-            if (moveUp) moveUp.disabled = index === 0;
-            if (moveDown) moveDown.disabled = index === rows.length - 1;
-
-            row.querySelectorAll('[data-update-field]').forEach((field) => {
-                field.name = `updates[${index}][${field.dataset.updateField}]`;
-            });
-        });
-    }
-
-    function createProductUpdateRow() {
-        const row = document.createElement('article');
-        row.className = 'product-update-editor';
-        row.dataset.updateRow = '';
-        row.innerHTML = `
-            <div class="product-update-editor-head">
-                <strong data-update-number>تحديث جديد</strong>
-                <div class="product-update-order">
-                    <button type="button" data-move-update="up" title="تحريك لأعلى" aria-label="تحريك لأعلى">↑</button>
-                    <button type="button" data-move-update="down" title="تحريك لأسفل" aria-label="تحريك لأسفل">↓</button>
-                    <button type="button" class="product-update-remove" data-remove-update title="حذف">حذف</button>
-                </div>
-            </div>
-            <div class="product-update-fields">
-                <div class="field wide">
-                    <label>عنوان الميزة</label>
-                    <input data-update-field="title" type="text" required maxlength="160" placeholder="مثال: إنشاء إشعار دائن من الفاتورة">
-                </div>
-                <div class="field wide">
-                    <label>تفاصيل مختصرة</label>
-                    <textarea data-update-field="details" rows="2" maxlength="1000" placeholder="اشرح الفائدة للعميل باختصار"></textarea>
-                </div>
-                <div class="field">
-                    <label>رابط الصفحة</label>
-                    <input data-update-field="url" type="text" maxlength="1000" dir="ltr" placeholder="/dashboard/invoices">
-                </div>
-                <div class="field">
-                    <label>نص زر الانتقال</label>
-                    <input data-update-field="link_label" type="text" maxlength="80" placeholder="الانتقال إلى الفواتير">
-                </div>
-            </div>`;
-        return row;
-    }
-
-    addProductUpdateButton?.addEventListener('click', function () {
-        const row = createProductUpdateRow();
-        productUpdatesBuilder.insertBefore(row, addProductUpdateButton);
-        refreshProductUpdateRows();
-        row.querySelector('[data-update-field="title"]')?.focus();
-    });
-
-    productUpdatesBuilder?.addEventListener('click', function (event) {
-        const removeButton = event.target.closest('[data-remove-update]');
-        const moveButton = event.target.closest('[data-move-update]');
-        const row = event.target.closest('[data-update-row]');
-        if (!row) return;
-
-        if (removeButton) {
-            const rows = productUpdatesBuilder.querySelectorAll('[data-update-row]');
-            if (rows.length === 1) {
-                row.querySelectorAll('input, textarea').forEach((field) => field.value = '');
-                row.querySelector('[data-update-field="title"]')?.focus();
-                return;
-            }
-            row.remove();
-            refreshProductUpdateRows();
-            return;
-        }
-
-        if (moveButton) {
-            const direction = moveButton.dataset.moveUpdate;
-            const sibling = direction === 'up' ? row.previousElementSibling : row.nextElementSibling;
-            if (!sibling?.matches('[data-update-row]')) return;
-
-            if (direction === 'up') {
-                productUpdatesBuilder.insertBefore(row, sibling);
-            } else {
-                productUpdatesBuilder.insertBefore(sibling, row);
-            }
-            refreshProductUpdateRows();
-        }
-    });
-
-    refreshProductUpdateRows();
 
     const searchInput = document.getElementById('employeeSearch');
     const employeeCards = Array.from(document.querySelectorAll('.employee-card'));

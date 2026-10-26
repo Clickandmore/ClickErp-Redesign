@@ -14,7 +14,17 @@
             --ap-muted: #6b7280;
             --ap-text: #111827;
             --ap-radius: 16px;
+            position: relative;
             color: var(--ap-text);
+        }
+
+        /* Keep the visually-hidden checkboxes (btn-check / switches) positioned inside the page,
+           otherwise focusing them on click scrolls the document to a far-away offset. */
+        .channel-pills,
+        .alerts-switch,
+        .rule-card,
+        .custom-alert-card {
+            position: relative;
         }
 
         #alert-rules-settings {
@@ -339,47 +349,158 @@
             box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.25);
         }
 
-        /* ---------- Rules table ---------- */
-        .alert-rules-table {
-            margin: 0;
-            border-collapse: separate;
-            border-spacing: 0;
+        /* ---------- Rules list ---------- */
+        .alert-rules-list {
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
         }
 
-        .alert-rules-table thead th {
-            background: #f8f9fc;
-            color: #4b5563;
-            font-size: 0.78rem;
-            font-weight: 700;
-            letter-spacing: 0.02em;
-            border-bottom: 1px solid var(--ap-border);
-            padding: 12px 14px;
-            white-space: nowrap;
-        }
-
-        .alert-rules-table tbody td {
-            padding: 16px 14px;
-            border-bottom: 1px solid #f1f2f6;
-            vertical-align: middle;
+        .rule-card {
+            border: 1px solid var(--ap-border);
+            border-inline-start: 4px solid #16a34a;
+            border-radius: 14px;
             background: #fff;
-            transition: background .15s ease;
+            transition: box-shadow .18s ease, border-color .18s ease, background .18s ease;
         }
 
-        .alert-rules-table tbody tr:last-child td {
-            border-bottom: 0;
+        .rule-card:hover {
+            box-shadow: 0 12px 28px -22px rgba(79, 70, 229, 0.55);
         }
 
-        .alert-rules-table tbody tr:hover td {
-            background: #fafaff;
-        }
-
-        .alert-rules-table tbody tr.is-disabled td {
+        .rule-card.is-disabled {
+            border-inline-start-color: #cbd5e1;
             background: #fcfcfd;
         }
 
-        .alert-rules-table tbody tr.is-disabled .rule-title,
-        .alert-rules-table tbody tr.is-disabled .rule-desc {
+        .rule-card.is-disabled .rule-title,
+        .rule-card.is-disabled .rule-desc,
+        .rule-card.is-disabled .rule-icon,
+        .rule-card.is-disabled .rule-card__body {
             opacity: 0.6;
+        }
+
+        .rule-card.is-disabled .rule-card__body:focus-within {
+            opacity: 1;
+        }
+
+        .rule-card__header {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 14px;
+            padding: 16px 18px;
+            border-bottom: 1px solid #f1f2f6;
+        }
+
+        .rule-card__toggle {
+            flex-shrink: 0;
+            padding: 6px 12px;
+            border-radius: 999px;
+            background: #f8f9fc;
+            border: 1px solid var(--ap-border);
+        }
+
+        .rule-card__toggle .form-check-label {
+            min-width: 42px;
+            display: inline-block;
+        }
+
+        .rule-card__body {
+            display: grid;
+            grid-template-columns: repeat(12, minmax(0, 1fr));
+            gap: 14px 16px;
+            padding: 16px 18px 18px;
+            transition: opacity .18s ease;
+        }
+
+        .rule-field {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            min-width: 0;
+            grid-column: span 3;
+        }
+
+        .rule-field--channels {
+            grid-column: span 12;
+        }
+
+        .rule-field__label {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            margin: 0;
+            font-size: 0.78rem;
+            font-weight: 700;
+            color: #4b5563;
+        }
+
+        .rule-field__label i {
+            color: #818cf8;
+            font-size: 0.75rem;
+        }
+
+        .rule-field .form-text {
+            margin-top: 0;
+        }
+
+        @media (max-width: 1199.98px) {
+            .rule-field { grid-column: span 6; }
+        }
+
+        @media (max-width: 575.98px) {
+            .rule-field { grid-column: span 12; }
+
+            .rule-card__header {
+                flex-direction: column;
+            }
+        }
+
+        /* ---------- Section nav ---------- */
+        .alerts-nav {
+            position: sticky;
+            top: 70px;
+            z-index: 6;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-bottom: 18px;
+            padding: 8px;
+            border: 1px solid var(--ap-border);
+            border-radius: 14px;
+            background: rgba(255, 255, 255, 0.94);
+            backdrop-filter: blur(8px);
+        }
+
+        .alerts-nav a {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 7px 14px;
+            border-radius: 10px;
+            font-size: 0.84rem;
+            font-weight: 700;
+            color: #4b5563;
+            text-decoration: none;
+            transition: all .15s ease;
+        }
+
+        .alerts-nav a:hover {
+            background: var(--ap-primary-soft);
+            color: var(--ap-primary-dark);
+        }
+
+        .alerts-nav__count {
+            padding: 1px 8px;
+            border-radius: 999px;
+            background: #dcfce7;
+            color: #166534;
+            font-size: 0.72rem;
+        }
+
+        .alerts-section {
+            scroll-margin-top: 140px;
         }
 
         .rule-cell {
@@ -438,7 +559,7 @@
             display: inline-flex;
             align-items: center;
             gap: 5px;
-            margin-top: 8px;
+            padding: 3px 4px;
             font-size: 0.76rem;
             font-weight: 600;
             color: var(--ap-primary);
@@ -668,7 +789,10 @@
         $automationSettings = $automationSettings ?? \App\Support\AutomationSettings::all();
 
         if ($oldSection === 'alerts') {
-            $alertSettings = array_replace_recursive($alertSettings, old('alerts', []));
+            foreach (old('alerts', []) as $key => $submittedRule) {
+                $alertSettings[$key] = array_replace($alertSettings[$key] ?? [], $submittedRule);
+                $alertSettings[$key]['channels'] = $submittedRule['channels'] ?? [];
+            }
             $customAlertSettings = old('custom_alerts', $customAlertSettings);
             $automationSettings = array_replace($automationSettings, old());
         }
@@ -689,6 +813,10 @@
             'notification' => 'fa-solid fa-bell',
             'email' => 'fa-solid fa-envelope',
         ];
+
+        $enabledRulesCount = collect(array_keys($alertDefinitions))
+            ->filter(fn ($key) => (bool) data_get($alertSettings, "{$key}.enabled"))
+            ->count();
     @endphp
 
     <div class="container-fluid alerts-page" id="alert-rules-settings">
@@ -723,7 +851,7 @@
         @endif
 
         @if ($errors->any())
-            <div class="alert alert-danger">
+            <div class="alert alert-danger" id="alert-save-errors" role="alert" tabindex="-1">
                 <ul class="mb-0">
                     @foreach ($errors->all() as $error)
                         <li>{{ $error }}</li>
@@ -736,8 +864,74 @@
             @csrf
             <input type="hidden" name="section" value="alerts">
 
+            <nav class="alerts-nav" aria-label="أقسام الصفحة">
+                <a href="#alerts-core">
+                    <i class="fa-solid fa-bell"></i>
+                    التنبيهات الأساسية
+                    <span class="alerts-nav__count"><span data-enabled-rules-count>{{ $enabledRulesCount }}</span> / {{ count($alertDefinitions) }}</span>
+                </a>
+                <a href="#alerts-custom"><i class="fa-solid fa-wand-magic-sparkles"></i> التنبيهات المخصصة</a>
+                <a href="#alerts-cron"><i class="fa-solid fa-clock-rotate-left"></i> المهام الآلية (Cron)</a>
+            </nav>
+
+            {{-- ===================== Core alert rules ===================== --}}
+            <div class="alerts-card alerts-section" id="alerts-core">
+                <div class="alerts-card__header">
+                    <div class="alerts-card__heading">
+                        <span class="alerts-card__icon alerts-card__icon--indigo"><i class="fa-solid fa-bell"></i></span>
+                        <div>
+                            <h5>تنبيهات النظام الأساسية</h5>
+                            <p>حدد القناة، المستلم، والمدة قبل الحدث لكل جزء في النظام.</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="alerts-card__body">
+                    @include('admin.ingaz.notifications.partials.alert-rules-table', [
+                        'rules' => $alertDefinitions,
+                        'alertRuleSettings' => $alertSettings,
+                        'inputPrefix' => 'alerts',
+                        'canEditMeta' => false,
+                        'channelIcons' => $channelIcons,
+                    ])
+                </div>
+            </div>
+
+            {{-- ===================== Custom alerts ===================== --}}
+            <div class="alerts-card alerts-section" id="alerts-custom">
+                <div class="alerts-card__header">
+                    <div class="alerts-card__heading">
+                        <span class="alerts-card__icon alerts-card__icon--teal"><i class="fa-solid fa-wand-magic-sparkles"></i></span>
+                        <div>
+                            <h5>تنبيهات مخصصة</h5>
+                            <p>أضف تنبيها جديدا ليكون محفوظا ضمن إعدادات النظام وقابلا للاستخدام في أي مهمة لاحقة.</p>
+                        </div>
+                    </div>
+                    <button type="button" class="btn-add-alert" id="addCustomAlert">
+                        <i class="fa-solid fa-plus"></i>
+                        إضافة تنبيه
+                    </button>
+                </div>
+                <div class="alerts-card__body">
+                    <div id="customAlertsContainer">
+                        @forelse ($customAlertSettings as $index => $customRule)
+                            @include('admin.ingaz.notifications.partials.custom-alert-row', [
+                                'index' => $index,
+                                'rule' => $customRule,
+                                'channelIcons' => $channelIcons,
+                            ])
+                        @empty
+                            <div class="custom-alerts-empty" id="emptyCustomAlertsHint">
+                                <i class="fa-regular fa-bell-slash"></i>
+                                <strong>لا توجد تنبيهات مخصصة حتى الآن</strong>
+                                <span class="small">اضغط "إضافة تنبيه" لإنشاء أول قاعدة مخصصة.</span>
+                            </div>
+                        @endforelse
+                    </div>
+                </div>
+            </div>
+
             {{-- ===================== Cron / automation ===================== --}}
-            <div class="alerts-card">
+            <div class="alerts-card alerts-section" id="alerts-cron">
                 <div class="alerts-card__header">
                     <div class="alerts-card__heading">
                         <span class="alerts-card__icon alerts-card__icon--amber"><i class="fa-solid fa-clock-rotate-left"></i></span>
@@ -899,62 +1093,6 @@
                 </div>
             </div>
 
-            {{-- ===================== Core alert rules ===================== --}}
-            <div class="alerts-card">
-                <div class="alerts-card__header">
-                    <div class="alerts-card__heading">
-                        <span class="alerts-card__icon alerts-card__icon--indigo"><i class="fa-solid fa-bell"></i></span>
-                        <div>
-                            <h5>تنبيهات النظام الأساسية</h5>
-                            <p>حدد القناة، المستلم، والمدة قبل الحدث لكل جزء في النظام.</p>
-                        </div>
-                    </div>
-                </div>
-                <div class="alerts-card__body p-0">
-                    @include('admin.ingaz.notifications.partials.alert-rules-table', [
-                        'rules' => $alertDefinitions,
-                        'settings' => $alertSettings,
-                        'inputPrefix' => 'alerts',
-                        'canEditMeta' => false,
-                        'channelIcons' => $channelIcons,
-                    ])
-                </div>
-            </div>
-
-            {{-- ===================== Custom alerts ===================== --}}
-            <div class="alerts-card">
-                <div class="alerts-card__header">
-                    <div class="alerts-card__heading">
-                        <span class="alerts-card__icon alerts-card__icon--teal"><i class="fa-solid fa-wand-magic-sparkles"></i></span>
-                        <div>
-                            <h5>تنبيهات مخصصة</h5>
-                            <p>أضف تنبيها جديدا ليكون محفوظا ضمن إعدادات النظام وقابلا للاستخدام في أي مهمة لاحقة.</p>
-                        </div>
-                    </div>
-                    <button type="button" class="btn-add-alert" id="addCustomAlert">
-                        <i class="fa-solid fa-plus"></i>
-                        إضافة تنبيه
-                    </button>
-                </div>
-                <div class="alerts-card__body">
-                    <div id="customAlertsContainer">
-                        @forelse ($customAlertSettings as $index => $customRule)
-                            @include('admin.ingaz.notifications.partials.custom-alert-row', [
-                                'index' => $index,
-                                'rule' => $customRule,
-                                'channelIcons' => $channelIcons,
-                            ])
-                        @empty
-                            <div class="custom-alerts-empty" id="emptyCustomAlertsHint">
-                                <i class="fa-regular fa-bell-slash"></i>
-                                <strong>لا توجد تنبيهات مخصصة حتى الآن</strong>
-                                <span class="small">اضغط "إضافة تنبيه" لإنشاء أول قاعدة مخصصة.</span>
-                            </div>
-                        @endforelse
-                    </div>
-                </div>
-            </div>
-
             <div class="alerts-savebar">
                 <div class="alerts-savebar__hint">
                     <i class="fa-solid fa-circle-info"></i>
@@ -973,6 +1111,14 @@
 @endsection
 
 @section('js')
+@if ($errors->any())
+<script>
+    window.addEventListener('load', function () {
+        var errors = document.getElementById('alert-save-errors');
+        if (errors) { errors.scrollIntoView({block: 'center'}); errors.focus({preventScroll: true}); }
+    });
+</script>
+@endif
 <script>
     const alertChannelOptions = @json($alertChannelOptions ?? []);
     const alertRecipientOptions = @json($alertRecipientOptions ?? []);
@@ -1090,7 +1236,10 @@
     }
 
     function syncRuleRowState(input) {
-        $(input).closest('tr').toggleClass('is-disabled', !input.checked);
+        const $label = $(input).siblings('.js-rule-enabled-label');
+        $(input).closest('.rule-card').toggleClass('is-disabled', !input.checked);
+        $label.text(input.checked ? $label.data('on') : $label.data('off'));
+        $('[data-enabled-rules-count]').text($('.alert-rules-list .js-rule-enabled:checked').length);
     }
 
     $(document).ready(function () {
@@ -1107,7 +1256,7 @@
             renumberCustomAlerts();
         });
 
-        $('.alert-rules-table .js-rule-enabled').each(function () {
+        $('.alert-rules-list .js-rule-enabled').each(function () {
             syncRuleRowState(this);
         }).on('change', function () {
             syncRuleRowState(this);

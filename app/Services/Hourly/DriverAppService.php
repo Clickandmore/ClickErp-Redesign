@@ -25,10 +25,11 @@ class DriverAppService
     /** بعدها تكون العاملة عند العميل: مهمة التوصيل منتهية (نفس قائمة RouteBoard). */
     public const DELIVERED = ['delivered', 'in_progress', 'worker_finished', 'picked_up', 'completed'];
     public const RETURNED = ['completed'];
+    public const ONGOING = ['en_route','delivered','in_progress','worker_finished','picked_up'];
 
     public function today(HourlyDriver $driver, ?string $date = null): array
     {
-        return array_values(array_filter($this->sync($driver, $date), fn ($trip) => $trip['status'] !== 'offered'));
+        return array_values(array_filter($this->sync($driver, $date), fn ($trip) => $trip['status'] !== 'offered' || !empty($trip['is_carryover'])));
     }
 
     /** العروض المفتوحة: لا تظهر إلا إذا فُعّل staff_app_driver_acceptance. */
@@ -67,6 +68,17 @@ class DriverAppService
         return $this->decide($driver, $tripId, function ($trip) {
             if ($trip->status === 'started') return [];
             if ($trip->status !== 'accepted') HourlyOrderService::reject('المشوار غير مقبول أو منتهٍ؛ لا يمكن بدؤه.');
+            if ($trip->role === 'delivery') {
+                $visits = HourlyVisit::whereIn('id', DB::table('hourly_route_stops')
+                    ->where('hourly_driver_trip_id', $trip->id)->where('role', 'delivery')->select('hourly_visit_id'))
+                    ->where('delivery_driver_id', $trip->hourly_driver_id)
+                    ->whereHas('order', fn($q) => $q->where('status', 'active'))->get();
+                if (!$visits->contains(fn($visit) => $visit->status === 'en_route'
+                    || ($visit->status === 'scheduled' && DeliveryStartWindow::blockedReason($visit)===null))) {
+                    $blocked=$visits->where('status','scheduled')->map(fn($visit)=>DeliveryStartWindow::blockedReason($visit))->filter()->first();
+                    HourlyOrderService::reject($blocked ?? DeliveryStartWindow::MESSAGE);
+                }
+            }
             return ['status' => 'started', 'started_at' => now()];
         });
     }
@@ -132,7 +144,7 @@ class DriverAppService
     }
 
     /** بناء (أو تحديث) مشاوير اليوم ومحطاتها ثم إرجاعها بشكل التطبيق. */
-    public function sync(HourlyDriver $driver, ?string $date): array
+    public function sync(HourlyDriver $driver, ?string $date, bool $includeCarryover = true): array
     {
         $day = Carbon::parse($date ?: now()->toDateString())->toDateString();
         $tasks = $this->tasks($driver, $day);
@@ -144,22 +156,42 @@ class DriverAppService
             $stops = [];
             foreach ($own as $index => $task) {
                 $this->stop($driver, $trip, $task, $index + 1);
-                $stops[] = $this->stopPayload($task, $index + 1);
+                $stops[] = $this->stopPayload($task, $index + 1, (int)$driver->id);
             }
             $this->closeTrip($trip, $stops);
+            $tripStatus = (string) (DB::table('hourly_driver_trips')->where('id', $trip->id)->value('status') ?? $trip->status);
             $team = $own->first()['team'] ?? null;
             $order = $own->first()['visit']->order;
             $trips[] = [
                 'id' => (int) $trip->id, 'trip_number' => (string) $trip->id, 'type' => $role,
                 'route_date' => $day,
                 // الطلب غير النشط يُعرض للسائق للعلم، وإجراءات محطاته مرفوضة حتى يُفعَّل الطلب.
-                'order_status' => $order?->status, 'actionable' => $order?->status === 'active',
-                'status' => (string) (DB::table('hourly_driver_trips')->where('id', $trip->id)->value('status') ?? $trip->status), 'team' => $team ? ['id' => $team->id, 'name' => $team->name] : null,
+                'order_status' => $order?->status, 'actionable' => collect($stops)->contains(fn($stop) => $stop['actionable']),
+                'can_start' => $tripStatus === 'accepted' && collect($stops)->contains(fn($stop) => $stop['actionable']),
+                'status' => $tripStatus, 'team' => $team ? ['id' => $team->id, 'name' => $team->name] : null,
                 'area' => $own->first()['visit']->district ?: null,
                 'planned_start_at' => $trip->planned_start_at ? Carbon::parse($trip->planned_start_at)->toIso8601String() : null,
                 'expires_at' => $trip->expires_at ? Carbon::parse($trip->expires_at)->toIso8601String() : null,
                 'distance_km' => null, 'stops_count' => count($stops), 'stops' => $stops,
             ];
+        }
+        if ($includeCarryover && $day===now()->toDateString()) {
+            // Keep original trip/stop IDs and dates; today's response also includes unfinished work.
+            $running=$this->tasks($driver,null)->filter(fn($task)=>in_array($task['visit']->status,self::ONGOING,true)
+                && $task['visit']->scheduled_start_at?->toDateString()<$day);
+            foreach($running->groupBy(fn($task)=>$task['visit']->scheduled_start_at->toDateString()) as $originalDay=>$tasks) {
+                $ids=$tasks->pluck('visit.id')->unique()->all();
+                foreach($this->sync($driver,$originalDay,false) as $trip) {
+                    $trip['stops']=array_values(array_filter($trip['stops'],fn($stop)=>in_array($stop['visit_id'],$ids,true)));
+                    if(!$trip['stops']) continue;
+                    $trip['stops_count']=count($trip['stops']);
+                    $trip['actionable']=collect($trip['stops'])->contains(fn($stop)=>$stop['actionable']);
+                    $trip['can_start']=$trip['status']==='accepted' && $trip['actionable'];
+                    $trip['is_carryover']=true;
+                    $trip['warning']='زيارة من يوم سابق ما زالت قيد التنفيذ؛ تابع الاستلام والعودة وراجع الإدارة.';
+                    $trips[]=$trip;
+                }
+            }
         }
         return $trips;
     }
@@ -178,7 +210,7 @@ class DriverAppService
 
         $trips = [];
         for ($day = $start->copy(); $day->lte($end); $day->addDay()) {
-            foreach ($this->sync($driver, $day->toDateString()) as $trip) $trips[] = $trip;
+            foreach ($this->sync($driver, $day->toDateString(), false) as $trip) $trips[] = $trip;
         }
         $days = collect($trips)->groupBy('route_date')->map(fn ($group, $date) => [
             'date' => (string) $date, 'trips_count' => $group->count(), 'stops_count' => (int) $group->sum('stops_count'),
@@ -242,10 +274,12 @@ class DriverAppService
         $query = HourlyVisit::query()
             ->where(fn ($q) => $q->where('delivery_driver_id', $driver->id)->orWhere('pickup_driver_id', $driver->id))
             ->whereNotIn('status', self::VOID)
-            ->whereHas('order', fn ($q) => $q->whereNotIn('status', ['cancelled', 'expired']))
-            ->with(['order:id,order_number,user_id,status,payment_method,payment_status,total_amount,paid_amount,package_snapshot', 'workers:id,name']);
+            ->where(fn($q)=>$q->whereHas('order', fn ($order) => $order->whereNotIn('status', ['cancelled', 'expired']))
+                ->orWhereIn('status',self::ONGOING))
+            ->with(['order:id,order_number,user_id,status,payment_method,payment_status,total_amount,paid_amount,package_snapshot,booking_metadata', 'workers:id,name']);
         if ($from) $query->whereDate('scheduled_start_at', '>=', $from)->whereDate('scheduled_start_at', '<=', $to ?: $from);
-        else $query->whereDate('scheduled_start_at', '>=', now()->subDay()->toDateString())->whereDate('scheduled_start_at', '<=', now()->addDay()->toDateString());
+        else $query->where(fn($q)=>$q->whereBetween('scheduled_start_at',[now()->subDay()->startOfDay(),now()->addDay()->endOfDay()])
+            ->orWhere(fn($running)=>$running->whereIn('status',self::ONGOING)->where('scheduled_start_at','<',now()->startOfDay())));
         $visits = $query->orderBy('scheduled_start_at')->orderBy('id')->get();
         $teams = HourlyTeam::whereIn('id', $visits->pluck('hourly_team_id')->filter()->unique())->get(['id', 'name'])->keyBy('id');
         $stops = DB::table('hourly_route_stops')->whereIn('hourly_visit_id', $visits->pluck('id'))->get()
@@ -355,15 +389,34 @@ class DriverAppService
         return 'pending';
     }
 
-    private function stopPayload(array $task, int $sequence): array
+    private function stopPayload(array $task, int $sequence, int $driverId): array
     {
         $visit = $task['visit'];
+        $incident=ServiceIncident::state($visit->order,$visit->id);
+        $returnRecorded=($incident['status']??null)==='manual_review' && !empty($incident['return_recorded_at']);
+        $delay = VisitDelay::state($visit);
         $action = $this->action($task);
+        $blockedReason = $task['role'] === 'delivery' && $visit->status === 'scheduled' ? DeliveryStartWindow::blockedReason($visit) : null;
+        if($visit->order?->status==='pending_confirmation' && in_array($visit->status,['scheduled','unscheduled'],true))
+            $blockedReason='الطلب بانتظار تأكيد الإدارة؛ لا تبدأ المشوار حتى يُؤكَّد.';
+        if($task['role']==='delivery' && $visit->status==='en_route' && ServiceIncident::waiting($visit->order,$visit->id))
+            $blockedReason='للزيارة بلاغ معتمد؛ راجع الإدارة قبل التسليم، وتابع العودة الآمنة حسب حالة التنفيذ.';
+        $timeBlocked = $blockedReason !== null;
+        $actionable = !$timeBlocked && $visit->order?->status === 'active' && !$this->done($task)
+            && !in_array($this->stopStatus($task), ['failed', 'skipped'], true);
         $atShelter = in_array($action, ['shelter_pickup', 'shelter_return'], true);
         $row = $task['row'] ?: DB::table('hourly_route_stops')->where('hourly_visit_id', $visit->id)->where('role', $task['role'])->first();
         return [
             'id' => (int) ($row->id ?? 0), 'sequence' => (int) ($row->display_order ?? $sequence), 'visit_id' => $visit->id,
-            'visit_number' => (int) $visit->visit_number, 'action' => $action, 'status' => $this->stopStatus($task),
+            'visit_number' => (int) $visit->visit_number, 'action' => $timeBlocked ? null : $action, 'status' => $this->stopStatus($task),
+            'actionable' => $actionable, 'blocked_reason' => $blockedReason,
+            'incident_status' => ServiceIncident::state($visit->order,$visit->id)['status']??null,
+            'is_overdue' => in_array($visit->status,self::ONGOING,true) && $delay !== null,
+            'pickup_overdue' => (bool) ($delay['pickup_overdue'] ?? false),
+            'pickup_delay' => $delay,
+            'warning' => !empty($delay['pickup_overdue']) && !$returnRecorded ? $delay['label'] : ($returnRecorded ? 'سُجلت عودة العاملة؛ ما زالت الزيارة في متابعة الإدارة للتسوية.'
+                : (in_array($visit->status,self::ONGOING,true) && $delay !== null
+                ? 'تجاوزت الزيارة موعد انتهائها ولم تعد العاملة بعد؛ تابع الاستلام والعودة وراجع الإدارة.' : null)),
             'booking_options' => $visit->order?->package_snapshot['booking_options'] ?? [],
             'worker' => $this->worker($visit), 'workers' => $visit->workers->map(fn ($w) => ['id' => $w->id, 'name' => $w->name])->values(),
             'place_name' => $atShelter ? ($task['team']->name ?? 'الإيواء') : 'العميل',
@@ -372,7 +425,9 @@ class DriverAppService
             'planned_at' => $task['time'] ? Carbon::parse($task['time'])->format('H:i') : null,
             'planned_at_iso' => $task['time'] ? Carbon::parse($task['time'])->toIso8601String() : null,
             'latitude' => $atShelter ? null : (float) $visit->latitude, 'longitude' => $atShelter ? null : (float) $visit->longitude,
-            'cash_due' => $this->cashDue($task), 'requires_code' => $action === 'drop_off' && (bool) HourlyRentalSettings::get('staff_app_require_delivery_code', true),
+            'financial' => app(PaymentScheduleService::class)->forOrder($visit->order)['visits'][$visit->id]??null,
+            'cash_collection' => app(CashCollectionService::class)->info($visit,'driver',$driverId),
+            'cash_due' => $this->cashDue($task), 'requires_code' => $action === 'drop_off' && DeliveryCode::required($visit),
         ];
     }
 
@@ -387,6 +442,12 @@ class DriverAppService
     {
         $order = $task['visit']->order;
         if ($task['role'] !== 'delivery' || !$order || !in_array($order->payment_method, ['cash', 'card_on_delivery', 'cash_and_card'], true)) return 0.0;
+        if (CashCollectionService::ready()) {
+            if(!in_array($order->payment_method,['cash','cash_and_card'],true))return 0.0;
+            $collector=app(CashCollectionService::class)->collector($task['visit']);
+            if($collector['type']!=='driver' || $collector['id']!==(int)$task['visit']->delivery_driver_id)return 0.0;
+            return app(PaymentScheduleService::class)->collectible($order,$task['visit']);
+        }
         $due = round((float) $order->total_amount - (float) $order->paid_amount, 2);
         return $due <= 0 ? 0.0 : min($due, round((float) $task['visit']->visit_price, 2));
     }

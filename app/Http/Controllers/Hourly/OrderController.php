@@ -40,6 +40,8 @@ class OrderController extends Controller
             ->get();
         return view('admin.hourly.orders',[
             'orders'=>$orders,
+            // تنبيه تشغيلي: زيارات اليوم المتوقفة على تعيين سائق، ومنها ما فات موعده.
+            'driverGaps'=>app(\App\Services\Hourly\DriverGaps::class)->today(),
             'latestCustomerOrders'=>$recent(false),
             'latestEmployeeOrders'=>$recent(true),
             'cities'=>City::saudi()->active()->get(),
@@ -85,6 +87,7 @@ class OrderController extends Controller
     private function orderView(HourlyRentalOrder $order, string $view) {
         $data=['order'=>$order->load(['user','serviceCategory','visits.workers','visits.deliveryDriver','visits.pickupDriver','visits.teamLeader','payments','statusLogs']), 'creator'=>\App\Models\auth\Admin::find($order->created_by_admin_id)];
         if($view==='admin.hourly.order-manage'){
+            $data['logAdmins']=\App\Models\auth\Admin::whereIn('id',$order->statusLogs->where('actor_type','admin')->pluck('actor_id')->filter()->unique())->get()->pluck('name','id');
             $data['paymentMethods']=app(\App\Services\Hourly\HourlyBookingRules::class)
                 ->paymentMethods($order->package_snapshot ?? [], 'employee');
             $data['visitAllocations']=app(\App\Services\Hourly\VisitPaymentAllocation::class)->forOrder($order);
@@ -139,6 +142,14 @@ class OrderController extends Controller
         return $request->expectsJson()?response()->json(['message'=>__('operational_notes.saved')]):back()->with('success',__('operational_notes.saved'));
     }
     public function confirm(HourlyRentalOrder $order, HourlyOrderService $service) { $service->confirm($order,auth('admin')->id()); return back()->with('success','تم تأكيد الطلب.'); }
+    public function closeUnpaid(Request $request, HourlyRentalOrder $order)
+    {
+        abort_unless(AdminGuardHasPerm('hourly_orders_close_unpaid'),403);
+        $data=$request->validate(['reason'=>['required','string','max:1000'],'confirmed'=>['required','accepted']]);
+        app(\App\Services\Hourly\HourlyOrderService::class)->closeUnpaid($order,(int)auth('admin')->id(),$data['reason']);
+        return back()->with('success','تم إغلاق الطلب مع بقاء المتبقي مسجّلًا عليه.');
+    }
+
     public function collect(Request $request, HourlyRentalOrder $order, HourlyPaymentService $service)
     {
         $data=$request->validate(['amount'=>['required','numeric','min:0.01'], 'method'=>['nullable','in:cash,card_on_delivery'], 'attachment'=>['nullable','file','mimes:pdf,jpg,jpeg,png','max:5120']]);
@@ -177,10 +188,27 @@ class OrderController extends Controller
             default => null,
         };
 
+        return self::receiptView($order, $payment, $collector);
+    }
+
+    /** سند القبض للطلب، يُستخدم أيضًا لسند التحصيل النقدي في شاشة العهد وتطبيق الطاقم. */
+    public static function receiptView(HourlyRentalOrder $order, HourlyOrderPayment $payment, ?string $collector)
+    {
+        $logo = null;
+        if ($path = \Illuminate\Support\Facades\View::shared('printSettings')?->logo) {
+            $storage = app(\App\Services\ManagedFileStorage::class);
+            if ($storage->exists($path)) $logo = 'data:'.$storage->mimeType($path).';base64,'.base64_encode($storage->contents($path));
+        }
+        // موقف حساب الطلب لحظة إصدار السند: ما سُدِّد قبله وبه وما تبقّى بعده.
+        $paidThrough = (float) $order->payments()->where('status', 'paid')->where('id', '<=', $payment->id)->sum('amount');
+
         return view('admin.hourly.payment-receipt', [
             'order' => $order->loadMissing(['user', 'serviceCategory']),
             'payment' => $payment,
             'collector' => $collector,
+            'receiptLogo' => $logo,
+            'paidBefore' => $paidThrough - (float) $payment->amount,
+            'paidThrough' => $paidThrough,
         ]);
     }
     public function invoice(HourlyRentalOrder $order)

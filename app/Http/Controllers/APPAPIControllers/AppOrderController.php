@@ -112,6 +112,10 @@ class AppOrderController extends Controller
     public function createOrder(Request $request, int $id)
     {
         $maid = Maid::with('jobTypes')->findOrFail($id);
+
+        if ($maid->isHourly()) {
+            return response()->json(['success' => false, 'msg' => __('rental_mode.errors.hourly_not_orderable')], 422);
+        }
         $jobType = $maid->jobTypes->firstWhere('id', 2);
 
         if (!$jobType) {

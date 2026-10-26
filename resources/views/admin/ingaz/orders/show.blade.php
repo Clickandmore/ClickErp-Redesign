@@ -513,6 +513,32 @@
         </div>
 
         <!-- Order Notes -->
+        @if (($clientChanges ?? collect())->isNotEmpty())
+            <div class="order-info-card mb-4" id="order-client-history">
+                <div class="order-info-header"><h5><i class="fa fa-history"></i> سجل تغيير العميل / الكفيل</h5></div>
+                <div class="order-info-body">
+                    @foreach ($clientChanges as $change)
+                        <div class="border rounded p-3 mb-3">
+                            <div class="d-flex justify-content-between flex-wrap gap-2 mb-3">
+                                <span>بواسطة: <strong>{{ $change['actor'] }}</strong></span>
+                                <span>{{ $change['date']->format('Y-m-d H:i') }}</span>
+                            </div>
+                            <div class="row">
+                                @foreach (['old' => 'العميل / الكفيل السابق', 'new' => 'العميل / الكفيل الجديد'] as $side => $label)
+                                    <div class="col-md-6 mb-3">
+                                        <h6>{{ $label }}</h6>
+                                        <div>الاسم: <strong>{{ $change[$side]['name'] }}</strong> <span class="text-muted">#{{ $change[$side]['id'] }}</span></div>
+                                        <div>الجوال: <span dir="ltr">{{ $change[$side]['phone'] }}</span></div>
+                                        <div>الهوية: {{ $change[$side]['identity'] }}</div>
+                                    </div>
+                                @endforeach
+                            </div>
+                            <div>سبب التغيير: {{ $change['reason'] }}</div>
+                        </div>
+                    @endforeach
+                </div>
+            </div>
+        @endif
         <div class="row" id="order-notes">
             <div class="col-12">
                 <div class="order-info-card">

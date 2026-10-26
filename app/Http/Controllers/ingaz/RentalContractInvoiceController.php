@@ -328,6 +328,7 @@ class RentalContractInvoiceController extends Controller
         // قيم ما قبل الخصم لعرض سطر "خصم" متسق في ملخص الفاتورة
         $amountsBeforeDiscount = (float) ($amounts['discount'] ?? 0) > 0
             ? ($extension->package_snapshot['amounts_before_discount']
+                ?? $extension->pricing_snapshot['amounts_before_discount']
                 ?? $financeService->extensionAmounts($contract, (int) $extension->extension_days))
             : $amounts;
         $items = [];

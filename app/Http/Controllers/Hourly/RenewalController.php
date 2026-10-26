@@ -92,6 +92,7 @@ class RenewalController extends Controller
                 'days_left' => $today->diffInDays($end->copy()->startOfDay(), false),
                 'visits' => $mine->count(), 'done' => $mine->whereIn('status', ContractPeriod::DONE)->count(),
                 'open' => (int) $order->open_visits, 'status' => $order->status,
+                'renewal_blocked_reason' => app(\App\Services\Hourly\RenewalEligibility::class)->reason($order,$mine->contains('status','completed'),$end),
                 'renewal' => $renewal ? ['id' => $renewal->id, 'order_number' => $renewal->order_number] : null,
             ];
         })->values()->all();
