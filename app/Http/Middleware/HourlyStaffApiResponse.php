@@ -36,6 +36,8 @@ class HourlyStaffApiResponse
             if (is_array($body) && array_key_exists('data', $body)) {
                 // data صريحة: تُنقل كما هي. قد تحمل حقل message مشروعًا (نص بلاغ نداء النجدة مثلًا).
                 $payload['data'] = $body['data'];
+                // مفاتيح بجوار data (next_page_url للصفحات مثلًا) تبقى بجوارها في الغلاف ولا تضيع.
+                $payload += array_diff_key($body, array_flip(['message', 'code', 'status', 'data']));
             } else {
                 // لا data: الجسم كله هو البيانات، ورسالته تُرفع للغلاف فلا تتكرر داخلها.
                 $payload['data'] = $body;

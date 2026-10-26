@@ -18,6 +18,8 @@ class MaidAuthController extends Controller
         if (!$maid || !$maid->hourly_password || !Hash::check($data['password'],$maid->hourly_password) || !$maid->canLoginVia($channel)) {
             throw ValidationException::withMessages(['login'=>'بيانات الدخول غير صحيحة أو الحساب غير متاح على هذه المنصة.']);
         }
+        // نفس شرط الدخول برمز التحقق (StaffAppAuth::requestWorkerCode): الموقوفة لا تدخل التطبيق.
+        if ($channel==='mobile' && $maid->hourly_is_suspended) throw ValidationException::withMessages(['login'=>'الحساب موقوف مؤقتًا. راجع الإدارة.']);
         return $maid;
     }
     public function webLogin(Request $request) {
