@@ -21,6 +21,11 @@ class Complaint extends Model
     use AssignsBranch, HasFactory, LogsActivity, BranchScoped;
 
     protected $guarded = [];
+
+    public function isClosed(): bool
+    {
+        return in_array($this->status, ['resolved', 'rejected', 'closed'], true);
+    }
     
     protected $casts = [
         'attachments' => 'array',

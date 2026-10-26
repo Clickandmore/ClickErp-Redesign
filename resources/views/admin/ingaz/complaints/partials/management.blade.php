@@ -1,6 +1,6 @@
 @if (session('success'))<div class="alert alert-success">{{ session('success') }}</div>@endif
 @if ($errors->any())<div class="alert alert-danger">@foreach ($errors->all() as $error)<div>{{ $error }}</div>@endforeach</div>@endif
-@if (AdminGuardHasPerm(\App\PermKeys::COMPLAINT_EDIT) || AdminGuardHasPerm(\App\PermKeys::COMPLAINT_CONTROL))
+@if (!$complaint->isClosed() && (AdminGuardHasPerm(\App\PermKeys::COMPLAINT_EDIT) || AdminGuardHasPerm(\App\PermKeys::COMPLAINT_CONTROL)))
 <section class="detail-section mb-4">
     <div class="detail-section__header"><h5>إدارة الشكوى</h5></div>
     <div class="detail-section__body">

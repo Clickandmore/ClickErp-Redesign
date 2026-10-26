@@ -27,6 +27,9 @@
 @endphp
 
 <div class="complaint-detail-page">
+    @if($complaint->isClosed())
+        <div class="alert alert-info" role="status">هذه الشكوى مغلقة. يمكنك الاطلاع على تفاصيلها وسجلها، ولا يمكن إضافة ردود أو تنفيذ إجراءات عليها.</div>
+    @endif
     <div class="detail-toolbar">
         <div>
             <a href="{{ route('complaints.index') }}" class="detail-back-link">
@@ -36,7 +39,7 @@
             <span class="text-muted">#{{ str_pad($complaint->id, 6, '0', STR_PAD_LEFT) }}</span>
         </div>
         <div class="detail-toolbar__actions">
-            @if (@AdminGuardHasPerm(\App\PermKeys::COMPLAINT_EDIT))
+            @if (!$complaint->isClosed() && @AdminGuardHasPerm(\App\PermKeys::COMPLAINT_EDIT))
                 <a class="btn btn-primary btn-sm" href="{{ route('complaints.edit', $complaint->id) }}">
                     <i class="fas fa-edit me-1"></i>{{ __('buttons.edit') }}
                 </a>
@@ -44,7 +47,7 @@
             <button class="btn btn-outline-secondary btn-sm" type="button" onclick="window.print()">
                 <i class="fas fa-print me-1"></i>{{ __('ingaz.print') }}
             </button>
-            @if (@AdminGuardHasPerm(\App\PermKeys::COMPLAINT_DELETE))
+            @if (!$complaint->isClosed() && @AdminGuardHasPerm(\App\PermKeys::COMPLAINT_DELETE))
                 <button class="btn btn-outline-danger btn-sm" type="button" id="deleteTicket">
                     <i class="fas fa-trash me-1"></i>{{ __('ingaz.delete') }}
                 </button>
@@ -86,6 +89,12 @@
                 </div>
                 <div class="detail-section__body">
                     <div class="complaint-description">{{ $complaint->details ?: $complaint->message ?: __('ingaz.no_description') }}</div>
+                    @if($complaint->complaint_notes)
+                        <div class="mt-3">
+                            <h6>ملاحظات الشكوى</h6>
+                            <div class="complaint-description" style="white-space:pre-wrap;overflow-wrap:anywhere">{{ $complaint->complaint_notes }}</div>
+                        </div>
+                    @endif
 
                     <div class="detail-data-grid">
                         <div class="detail-data-item">
@@ -323,7 +332,7 @@
                                             </small>
                                         </span>
                                     </a>
-                                    @if (@AdminGuardHasPerm(\App\PermKeys::COMPLAINT_EDIT))
+                                    @if (!$complaint->isClosed() && @AdminGuardHasPerm(\App\PermKeys::COMPLAINT_EDIT))
                                         <form method="POST" action="{{ route('complaints.attachments.destroy', [$complaint->id, $attachment->id]) }}" class="delete-attachment-form">
                                             @csrf @method('DELETE')
                                             <button class="btn btn-sm btn-light text-danger" type="submit" title="حذف"><i class="fas fa-trash"></i></button>
@@ -336,7 +345,7 @@
                         <div class="organized-empty"><i class="far fa-folder-open"></i><span>لا توجد مرفقات حتى الآن</span></div>
                     @endif
 
-                    @if (@AdminGuardHasPerm(\App\PermKeys::COMPLAINT_EDIT))
+                    @if (!$complaint->isClosed() && @AdminGuardHasPerm(\App\PermKeys::COMPLAINT_EDIT))
                         <form method="POST" enctype="multipart/form-data" action="{{ route('complaints.attachments.store', $complaint->id) }}" class="organized-upload">
                             @csrf
                             <div class="organized-upload__head">
@@ -367,7 +376,7 @@
                                 <div class="organized-comment__content">
                                     <div class="organized-comment__head">
                                         <div><strong>{{ $comment->admin?->name ?: __('ingaz.not_specified') }}</strong><small>{{ $comment->created_at->diffForHumans() }}</small></div>
-                                        @if (auth('admin')->id() == $comment->added_by || AdminGuardHasPerm(\App\PermKeys::COMPLAINT_CONTROL))
+                                        @if (!$complaint->isClosed() && (auth('admin')->id() == $comment->added_by || AdminGuardHasPerm(\App\PermKeys::COMPLAINT_CONTROL)))
                                             <button class="btn btn-sm btn-light text-danger deleteComment" data-comment-id="{{ $comment->id }}"><i class="fas fa-trash"></i></button>
                                         @endif
                                     </div>
@@ -379,7 +388,7 @@
                         @endforelse
                     </div>
 
-                    @if (@AdminGuardHasPerm(\App\PermKeys::COMPLAINT_RESPONSE))
+                    @if (!$complaint->isClosed() && @AdminGuardHasPerm(\App\PermKeys::COMPLAINT_RESPONSE))
                         <form id="addCommentForm" class="organized-comment-form">
                             @csrf
                             <input type="hidden" name="complaint_id" value="{{ $complaint->id }}">
@@ -429,7 +438,7 @@
                 </section>
 
                 {{-- الإجراءات السريعة متاحة فقط للتذاكر المفتوحة؛ بعد الحل أو الرفض تُخفى بالكامل --}}
-                @if (@AdminGuardHasPerm(\App\PermKeys::COMPLAINT_EDIT) && !in_array($complaint->status, ['resolved', 'rejected', 'closed']))
+                @if (@AdminGuardHasPerm(\App\PermKeys::COMPLAINT_EDIT) && !$complaint->isClosed())
                     <section class="sidebar-card quick-actions-organized">
                         <div class="sidebar-card__header"><h5><i class="fas fa-bolt"></i>{{ __('ingaz.quick_actions') }}</h5></div>
                         <div class="sidebar-actions">

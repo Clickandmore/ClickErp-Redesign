@@ -116,10 +116,12 @@ class ComplaintController extends Controller
                 })
                 ->addColumn('actions', function ($row) {
                     $buttons = '<div class="btn-group" role="group" aria-label="Actions">';
+                    if (!$row->isClosed()) {
                     $buttons .= '<button class="btn btn-sm btn-primary response-btn" data-id="' . $row->id . '" data-response="' . htmlspecialchars($row->response ?? '', ENT_QUOTES) . '" data-status="' . $row->status . '">
                         <i class="fa fa-reply"></i> ' . helperTrans('ingaz.respond') . '
                     </button>';
                     $buttons .= deleteButton(route($this->mainRoute . ".destroy", $row->id));
+                    }
                     $buttons .= '</div>';
                     return $buttons;
                 })
@@ -369,6 +371,7 @@ class ComplaintController extends Controller
                 'subject' => 'required|string|max:255',
                 'complaint_type_id' => 'required|exists:complaint_types,id',
                 'details' => 'required|string',
+                'complaint_notes' => 'nullable|string|max:5000',
                 'priority' => 'required|in:low,medium,high,urgent',
                 'user_id' => 'nullable|exists:users,id',
                 'maid_passport' => 'nullable|string|max:50',
@@ -879,6 +882,7 @@ class ComplaintController extends Controller
     {
         $complaint = objModel::with('attachmentFiles')->findOrFail($id);
         $this->assertCanAccessBranchModel($complaint);
+        $this->assertComplaintIsOpen($complaint);
 
         $data = $this->complaintFormData($complaint);
         $data['complaint'] = $complaint;
@@ -889,9 +893,10 @@ class ComplaintController extends Controller
 
     public function update(Request $request, $id)
     {
+        $complaint = objModel::findOrFail($id);
+        $this->assertCanAccessBranchModel($complaint);
+        $this->assertComplaintIsOpen($complaint);
         try {
-            $complaint = objModel::findOrFail($id);
-            $this->assertCanAccessBranchModel($complaint);
 
             $request->validate([
                 'complainant_name' => 'required|string|max:255',
@@ -900,6 +905,7 @@ class ComplaintController extends Controller
                 'subject' => 'required|string|max:255',
                 'complaint_type_id' => 'required|exists:complaint_types,id',
                 'details' => 'required|string',
+                'complaint_notes' => 'nullable|string|max:5000',
                 'priority' => 'required|in:low,medium,high,urgent',
                 'status' => 'required|in:pending,in_progress,resolved,rejected',
                 'user_id' => 'nullable|exists:users,id',
@@ -1054,6 +1060,10 @@ class ComplaintController extends Controller
         }
     }
 
+    private function assertComplaintIsOpen(objModel $complaint): void
+    {
+        abort_if($complaint->isClosed(), 409, 'الشكوى مغلقة ولا يمكن تعديلها أو إضافة ردود أو إجراءات عليها.');
+    }
     public function quickResponse(Request $request)
     {
         $request->validate([
@@ -1066,6 +1076,7 @@ class ComplaintController extends Controller
         ]);
         $complaint = objModel::findOrFail($request->complaint_id);
         $this->assertCanAccessBranchModel($complaint);
+        $this->assertComplaintIsOpen($complaint);
         $previousStatus = $complaint->status;
 
         if ($request->response) {
@@ -1097,6 +1108,7 @@ class ComplaintController extends Controller
         $request->validate(['comment' => 'required|string|max:10000', 'status' => 'nullable|in:pending,in_progress,resolved,rejected']);
         $complaint = objModel::findOrFail($request->complaint_id);
         $this->assertCanAccessBranchModel($complaint);
+        $this->assertComplaintIsOpen($complaint);
         $previousStatus = $complaint->status;
         $previousAssignedTo = $complaint->assigned_to;
 
@@ -1145,6 +1157,7 @@ class ComplaintController extends Controller
         ]);
         $complaint = objModel::findOrFail($request->complaint_id);
         $this->assertCanAccessBranchModel($complaint);
+        $this->assertComplaintIsOpen($complaint);
         $previousStatus = $complaint->status;
         $complaint->status = $request->status;
 
@@ -1174,6 +1187,7 @@ class ComplaintController extends Controller
         $this->validateAssignment($request, true);
         $complaint = objModel::findOrFail($request->complaint_id);
         $this->assertCanAccessBranchModel($complaint);
+        $this->assertComplaintIsOpen($complaint);
         $previousAssignedTo = $complaint->assigned_to;
         $complaint->assigned_to = $request->assigned_to;
         $complaint->save();
@@ -1186,6 +1200,7 @@ class ComplaintController extends Controller
     {
         $complaint = objModel::findOrFail($request->complaint_id);
         $this->assertCanAccessBranchModel($complaint);
+        $this->assertComplaintIsOpen($complaint);
         $previousPriority = $complaint->priority;
         $complaint->priority = $request->priority;
         $complaint->save();
@@ -1198,6 +1213,7 @@ class ComplaintController extends Controller
     {
         $complaint = objModel::findOrFail($complaint);
         $this->assertCanAccessBranchModel($complaint);
+        $this->assertComplaintIsOpen($complaint);
 
         $request->validate([
             'attachments' => ['required', 'array', 'min:1', 'max:10'],
@@ -1224,6 +1240,7 @@ class ComplaintController extends Controller
     {
         $complaint = objModel::findOrFail($complaint);
         $this->assertCanAccessBranchModel($complaint);
+        $this->assertComplaintIsOpen($complaint);
         $attachment = $complaint->attachmentFiles()->whereKey($attachment)->firstOrFail();
 
         deleteFile($attachment->path);
@@ -1257,6 +1274,7 @@ class ComplaintController extends Controller
     {
         $complaint = objModel::findOrFail($id);
         $this->assertCanAccessBranchModel($complaint);
+        $this->assertComplaintIsOpen($complaint);
 
         foreach ($complaint->attachmentFiles as $attachment) {
             deleteFile($attachment->path);
@@ -1350,6 +1368,7 @@ class ComplaintController extends Controller
     public function schedule(Request $request, objModel $complaint)
     {
         $this->assertCanAccessBranchModel($complaint);
+        $this->assertComplaintIsOpen($complaint);
         $data = $request->validate([
             'due_at' => 'nullable|date|after:now',
             'schedule_notes' => 'nullable|string|max:2000',
@@ -1361,6 +1380,7 @@ class ComplaintController extends Controller
     public function linkRecord(Request $request, objModel $complaint)
     {
         $this->assertCanAccessBranchModel($complaint);
+        $this->assertComplaintIsOpen($complaint);
         $data = $request->validate([
             'relation_type' => 'required|in:contract,order,office,client,manual',
             'contract_id' => 'nullable|required_if:relation_type,contract|integer',
@@ -1449,6 +1469,7 @@ class ComplaintController extends Controller
     {
         $complaint = objModel::findOrFail($request->complaint_id);
         $this->assertCanAccessBranchModel($complaint);
+        $this->assertComplaintIsOpen($complaint);
         $previousStatus = $complaint->status;
         $complaint->response = $request->response;
         $complaint->status = $request->status;
@@ -1491,6 +1512,7 @@ class ComplaintController extends Controller
     {
         $complaint_comment = ComplaintComment::findOrFail($id);
         $this->assertCanAccessBranchModel($complaint_comment);
+        $this->assertComplaintIsOpen(objModel::findOrFail($complaint_comment->complaint_id));
 
         abort_unless($this->canDeleteComment($complaint_comment), 403, __('ingaz.permission_denied'));
 
