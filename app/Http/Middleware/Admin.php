@@ -39,7 +39,9 @@ class Admin
                 return response()
                     ->view('admin.maintenance', ['maintenance' => $settings], 503)
                     ->header('Retry-After', '300')
-                    ->header('Cache-Control', 'no-store, private');
+                    ->header('Cache-Control', 'no-store, private')
+                    // الصفحة عربية ونصها من Super Admin؛ الترجمة التلقائية كانت تحوّل «نعمل» إلى «Yesل».
+                    ->header(TranslateHardcodedOutput::SKIP_HEADER, '1');
             }
 
             $lastCheck = (int) $request->session()->get('admin_session_checked_at', 0);

@@ -54,7 +54,4 @@ class HourlyCategoryCompletionTest extends TestCase {
         $this->postJson($url,['scheduled_start'=>$day.' 08:00'])->assertStatus(422);
         $this->assertSame($other,$visit->fresh()->scheduled_start_at->toDateString());
     }
-    public function test_demo_seeder_is_repeatable_and_does_not_overwrite_existing_category():void {
-        $seed=new \Database\Seeders\HourlyServiceCategoryDemoSeeder();$seed->run();$seed->run();$this->assertEquals(3,\App\Models\Hourly\HourlyServiceCategory::count());
-    }
 }

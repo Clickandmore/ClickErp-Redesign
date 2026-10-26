@@ -462,6 +462,46 @@
                 width: 100%;
             }
         }
+
+        /* نافذة نجاح إنشاء العقد: هوية كليك (كحلي وأخضر) */
+        .ck-done.swal2-popup { width: min(560px, 94vw); padding: 0 0 1.25rem; border-radius: 18px; overflow: hidden; font-family: inherit; }
+        .ck-done .swal2-icon { margin: 1.6rem auto .4rem; transform: scale(.82); }
+        .ck-done .swal2-title { padding: .2rem 1.5rem 0; font-size: 1.45rem; font-weight: 700; color: #16233f; }
+        .ck-done .swal2-html-container { margin: .6rem 1.5rem 0; padding: 0; text-align: right; overflow: visible; }
+        .ck-done .swal2-actions { gap: .6rem; margin-top: 1.25rem; padding: 0 1.5rem; width: 100%; flex-wrap: nowrap; }
+        .ck-done .swal2-actions button { flex: 1; margin: 0; min-height: 46px; border-radius: 11px; font-weight: 600; font-size: .95rem; display: inline-flex; align-items: center; justify-content: center; gap: .45rem; box-shadow: none !important; }
+        .ck-done .ck-done-confirm { background: #16233f !important; color: #fff; border: 0; }
+        .ck-done .ck-done-confirm:hover { background: #22345c !important; }
+        .ck-done .ck-done-cancel { background: #fff !important; color: #16233f; border: 1px solid #d9e0ea !important; }
+        .ck-done .ck-done-cancel:hover { background: #f4f6fa !important; }
+        .ck-done-lead { margin: 0 0 1rem; text-align: center; color: #5f6c80; font-size: .95rem; line-height: 1.8; }
+        .ck-done-chips { display: flex; justify-content: center; flex-wrap: wrap; gap: .5rem; margin-bottom: 1.1rem; }
+        .ck-done-chip { display: inline-flex; align-items: center; gap: .4rem; padding: .3rem .8rem; border-radius: 999px; font-size: .82rem; font-weight: 600; background: #eef1f7; color: #16233f; }
+        .ck-done-chip i { color: #7ab648; }
+        .ck-pay { border: 1px solid #e3e8f0; border-radius: 14px; overflow: hidden; background: #fff; }
+        .ck-pay-head { display: flex; align-items: center; justify-content: space-between; gap: .75rem; padding: .75rem 1rem; background: #f6f8fb; border-bottom: 1px solid #e3e8f0; }
+        .ck-pay-title { display: flex; align-items: center; gap: .55rem; font-weight: 700; color: #16233f; font-size: .92rem; }
+        .ck-pay-title .ck-pay-logo { width: 30px; height: 30px; border-radius: 9px; display: grid; place-items: center; background: #16233f; color: #a3d46f; font-size: .85rem; }
+        .ck-pay-state { display: inline-flex; align-items: center; gap: .35rem; padding: .2rem .65rem; border-radius: 999px; font-size: .76rem; font-weight: 700; white-space: nowrap; }
+        .ck-pay-state.is-sent { background: #f0f7e8; color: #4f7f2b; }
+        .ck-pay-state.is-warn { background: #fdf6e7; color: #a26c0f; }
+        .ck-pay-body { padding: .9rem 1rem 1rem; }
+        .ck-pay-note { display: flex; gap: .5rem; align-items: flex-start; margin-bottom: .75rem; padding: .55rem .75rem; border-radius: 10px; font-size: .83rem; line-height: 1.7; background: #fdf6e7; color: #8a5a0b; }
+        .ck-pay-link { display: flex; align-items: stretch; border: 1px solid #d9e0ea; border-radius: 11px; overflow: hidden; direction: ltr; }
+        .ck-pay-link input { flex: 1; min-width: 0; border: 0; padding: .6rem .8rem; font-size: .85rem; color: #1d2839; background: #fbfcfe; font-family: ui-monospace, Consolas, monospace; outline: 0; }
+        .ck-pay-link button, .ck-pay-link a { display: inline-flex; align-items: center; gap: .35rem; padding: 0 .9rem; border: 0; border-left: 1px solid #d9e0ea; background: #fff; color: #16233f; font-size: .84rem; font-weight: 600; text-decoration: none; cursor: pointer; white-space: nowrap; }
+        .ck-pay-link button:hover, .ck-pay-link a:hover { background: #f0f7e8; color: #4f7f2b; }
+        .ck-pay-link button.is-copied { background: #7ab648; color: #fff; }
+        .ck-pay-hint { margin: .55rem 0 0; color: #7b879a; font-size: .78rem; }
+        .ck-docs { margin-top: 1rem; font-size: .8rem; color: #7b879a; display: flex; align-items: center; gap: .4rem; flex-wrap: wrap; justify-content: center; }
+        .ck-docs span { padding: .15rem .55rem; border-radius: 6px; background: #f6f8fb; border: 1px solid #e3e8f0; color: #33465c; }
+        @media (max-width: 480px) {
+            .ck-done .swal2-actions { flex-direction: column; }
+            .ck-done .swal2-actions button { width: 100%; }
+            .ck-pay-link { flex-wrap: wrap; }
+            .ck-pay-link input { flex-basis: 100%; border-bottom: 1px solid #d9e0ea; }
+            .ck-pay-link button, .ck-pay-link a { flex: 1; justify-content: center; min-height: 40px; border-left: 0; }
+        }
     </style>
 @endsection
 
@@ -1693,23 +1733,46 @@
             }
 
             function buildPaymentLinkSuccessHtml(response) {
-                let html = '<div class="text-end" dir="rtl"><p class="mb-2">' + escapeHtml(response.message || '') + '</p>';
+                const hasLink = !!response.moyasar_link;
+                const sent = !!response.payment_link_sent;
+                // حالة الرابط تظهر في بطاقته، فلا تتكرر في سطر الرسالة.
+                const lead = hasLink ? 'تم إنشاء عقد التأجير وحفظه بنجاح.' : (response.message || 'تم إنشاء عقد التأجير بنجاح.');
+                let html = '<div dir="rtl"><p class="ck-done-lead">' + escapeHtml(lead) + '</p>';
 
-                if (response.moyasar_link) {
-                    const warning = response.payment_link_created && !response.payment_link_sent
-                        ? '<div class="alert alert-warning py-2 mb-3">' + escapeHtml(response.payment_link_sms_error || 'تعذر إرسال رسالة رابط الدفع للعميل.') + '</div>'
-                        : '';
-
-                    html += warning +
-                        '<label class="form-label fw-bold">رابط الدفع</label>' +
-                        '<div class="input-group" dir="ltr">' +
-                        '<input type="text" class="form-control" id="createdPaymentLinkInput" value="' + escapeHtml(response.moyasar_link) + '" readonly>' +
-                        '<button type="button" class="btn btn-outline-primary" id="copyCreatedPaymentLinkBtn">' +
-                        '<i class="fas fa-copy me-1"></i>نسخ الرابط' +
-                        '</button>' +
-                        '</div>' +
-                        '<small class="text-muted d-block mt-2" dir="rtl">يمكنك نسخ الرابط وإرساله للعميل لاحقاً عند الحاجة.</small>';
+                if (response.contract_number) {
+                    html += '<div class="ck-done-chips"><span class="ck-done-chip"><i class="fas fa-file-signature"></i>عقد رقم '
+                        + escapeHtml(response.contract_number) + '</span></div>';
                 }
+
+                if (hasLink) {
+                    html += '<div class="ck-pay">' +
+                        '<div class="ck-pay-head">' +
+                            '<span class="ck-pay-title"><span class="ck-pay-logo"><i class="fas fa-credit-card"></i></span>رابط الدفع الإلكتروني (ميسر)</span>' +
+                            (sent
+                                ? '<span class="ck-pay-state is-sent"><i class="fas fa-check-circle"></i>أُرسل للعميل عبر SMS</span>'
+                                : '<span class="ck-pay-state is-warn"><i class="fas fa-exclamation-circle"></i>لم يُرسل</span>') +
+                        '</div>' +
+                        '<div class="ck-pay-body">' +
+                            (!sent && response.payment_link_created
+                                ? '<div class="ck-pay-note"><i class="fas fa-info-circle mt-1"></i><span>' + escapeHtml(response.payment_link_sms_error || 'تعذر إرسال رسالة رابط الدفع للعميل.') + '</span></div>'
+                                : '') +
+                            '<div class="ck-pay-link">' +
+                                '<input type="text" id="createdPaymentLinkInput" value="' + escapeHtml(response.moyasar_link) + '" readonly aria-label="رابط الدفع">' +
+                                '<a href="' + escapeHtml(response.moyasar_link) + '" target="_blank" rel="noopener" title="فتح صفحة الدفع"><i class="fas fa-external-link-alt"></i></a>' +
+                                '<button type="button" id="copyCreatedPaymentLinkBtn"><i class="fas fa-copy"></i>نسخ</button>' +
+                            '</div>' +
+                            '<p class="ck-pay-hint">' + (sent
+                                ? 'يمكنك إعادة إرسال الرابط عبر SMS أو واتساب من تفاصيل العقد.'
+                                : 'انسخ الرابط وأرسله للعميل، أو أعد إرساله لاحقاً من تفاصيل العقد.') + '</p>' +
+                        '</div>' +
+                    '</div>';
+                }
+
+                const docs = ['العقد'];
+                if (response.invoice_print_url) docs.push('الفاتورة');
+                if (response.receipt_bond_print_url) docs.push('سند القبض');
+                html += '<div class="ck-docs"><i class="fas fa-print"></i>طباعة المستندات تفتح: ' +
+                    docs.map(function (doc) { return '<span>' + doc + '</span>'; }).join('') + '</div>';
 
                 html += '</div>';
 
@@ -1931,12 +1994,19 @@
                                     Swal.fire({
                                         title: 'تم بنجاح!',
                                         html: buildPaymentLinkSuccessHtml(response),
-                                        icon: response.payment_link_created && !response.payment_link_sent ? 'warning' : 'success',
+                                        icon: 'success',
+                                        iconColor: '#7ab648',
                                         showCancelButton: true,
-                                        confirmButtonText: 'طباعة المستندات',
-                                        cancelButtonText: 'الذهاب للقائمة',
-                                        confirmButtonColor: '#2794eb',
-                                        cancelButtonColor: '#6c757d',
+                                        buttonsStyling: false,
+                                        reverseButtons: false,
+                                        allowOutsideClick: false,
+                                        customClass: {
+                                            popup: 'ck-done',
+                                            confirmButton: 'ck-done-confirm',
+                                            cancelButton: 'ck-done-cancel'
+                                        },
+                                        confirmButtonText: '<i class="fas fa-print"></i> طباعة المستندات',
+                                        cancelButtonText: '<i class="fas fa-list"></i> الذهاب للقائمة',
                                         didOpen: function () {
                                             const copyButton = document.getElementById('copyCreatedPaymentLinkBtn');
                                             const input = document.getElementById('createdPaymentLinkInput');
@@ -1944,6 +2014,8 @@
                                             if (copyButton && input) {
                                                 copyButton.addEventListener('click', function () {
                                                     copyTextToClipboard(input.value, copyButton);
+                                                    copyButton.classList.add('is-copied');
+                                                    setTimeout(function () { copyButton.classList.remove('is-copied'); }, 1600);
                                                 });
                                             }
                                         }
