@@ -313,6 +313,21 @@ class HourlyStaffAppApiTest extends TestCase
         $this->withToken($refreshed['token'])->getJson('/api/worker/hours')->assertOk();
     }
 
+    public function test_suspended_worker_cannot_log_in_with_password(): void
+    {
+        $this->order(1, '2026-09-22 08:00', ['password_ready' => true]);
+        DB::table('maids')->where('id', 1)->update(['hourly_password' => \Illuminate\Support\Facades\Hash::make('Field@12345'), 'hourly_is_suspended' => true]);
+        $this->postJson('/api/worker/login', ['login' => 'HM-1', 'password' => 'Field@12345'])->assertUnprocessable()
+            ->assertJsonPath('status', false)->assertJsonPath('errors.login.0', 'الحساب موقوف مؤقتًا. راجع الإدارة.');
+    }
+
+    public function test_envelope_keeps_keys_beside_data(): void
+    {
+        $response = (new \App\Http\Middleware\HourlyStaffApiResponse)->handle(\Illuminate\Http\Request::create('/api/worker/offers'),
+            fn () => response()->json(['data' => [], 'next_page_url' => 'http://x/api/worker/offers?page=2']));
+        $this->assertSame(['code' => 200, 'status' => true, 'message' => '', 'data' => [], 'next_page_url' => 'http://x/api/worker/offers?page=2'], $response->getData(true));
+    }
+
     public function test_trips_history_covers_other_days_and_explains_an_empty_list(): void
     {
         $driver = $this->driver();
