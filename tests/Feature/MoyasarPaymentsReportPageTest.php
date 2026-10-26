@@ -22,6 +22,19 @@ class MoyasarPaymentsReportPageTest extends TestCase
         parent::setUp();
         Cache::forget(PaymentMessageTemplates::CACHE_KEY);
         $this->branch = Branch::factory()->main()->create();
+        // التقارير مخفية افتراضياً؛ تُفعّل هنا من إعدادات ميسر كما يفعل Super Admin.
+        DB::table('moyasar_settings')->insert(['is_enabled' => false, 'base_url' => 'https://api.moyasar.com/v1',
+            'reports_enabled' => true, 'created_at' => now(), 'updated_at' => now()]);
+    }
+
+    public function test_report_is_hidden_until_super_admin_enables_it(): void
+    {
+        DB::table('moyasar_settings')->delete();
+        $this->assertFalse(\App\Support\MoyasarSettings::reportsEnabled());
+
+        $this->actingAs($this->administrator(), 'admin');
+        $this->get(route('moyasar-payments.index'))->assertNotFound();
+        $this->assertStringNotContainsString(route('moyasar-payments.index'), view('finance::finance')->render());
     }
 
     private function administrator(): Admin
@@ -122,8 +135,7 @@ class MoyasarPaymentsReportPageTest extends TestCase
 
     public function test_connection_test_reports_a_rejected_secret_key(): void
     {
-        DB::table('moyasar_settings')->insert(['is_enabled' => false, 'base_url' => 'https://api.moyasar.com/v1',
-            'publishable_key' => 'pk_test_1', 'secret_key' => 'sk_test_bad', 'created_at' => now(), 'updated_at' => now()]);
+        DB::table('moyasar_settings')->update(['publishable_key' => 'pk_test_1', 'secret_key' => 'sk_test_bad']);
         \Illuminate\Support\Facades\Http::fake(['*/invoices*' => \Illuminate\Support\Facades\Http::response(['message' => 'Invalid'], 401)]);
 
         $this->withSession(['dev_superadmin_authenticated' => true])

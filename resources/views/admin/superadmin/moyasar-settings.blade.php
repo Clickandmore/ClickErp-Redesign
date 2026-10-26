@@ -117,7 +117,7 @@
 @php
     $s = $moyasarSettings;
     $enabled = (bool) old('is_enabled', $s['is_enabled'] ?? false);
-    $reportsEnabled = (bool) old('reports_enabled', $s['reports_enabled'] ?? true);
+    $reportsEnabled = (bool) old('reports_enabled', $s['reports_enabled'] ?? false);
     $environmentLabels = ['live' => 'بيئة الإنتاج', 'test' => 'بيئة الاختبار'];
     $envChip = $readiness['environment'] ? $environmentLabels[$readiness['environment']] : 'غير معروفة';
     $checks = [
@@ -170,7 +170,7 @@
         </div>
         <div class="topbar-actions">
             <a class="btn" href="{{ route('dev-superadmin.modules') }}">لوحة Super Admin</a>
-            @if (($s['reports_enabled'] ?? true) && \Illuminate\Support\Facades\Route::has('moyasar-payments.index'))
+            @if (($s['reports_enabled'] ?? false) && \Illuminate\Support\Facades\Route::has('moyasar-payments.index'))
                 <a class="btn" href="{{ route('moyasar-payments.index') }}" target="_blank" rel="noopener">{!! $icon('chart') !!} تقارير المدفوعات</a>
             @endif
             <form method="POST" action="{{ route('dev-superadmin.logout') }}">

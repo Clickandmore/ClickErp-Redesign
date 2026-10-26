@@ -27,14 +27,14 @@ class MoyasarSettings
             'webhook_secret' => trim((string) $settings->webhook_secret),
             'company_name' => trim((string) ($settings->company_name ?? '')),
             'payment_description' => trim((string) ($settings->payment_description ?? '')),
-            'reports_enabled' => (bool) ($settings->reports_enabled ?? true),
+            'reports_enabled' => (bool) ($settings->reports_enabled ?? false),
         ];
     }
 
     /** إظهار تقارير مدفوعات ميسر في موديول المالية؛ يُتحكم به من لوحة Super Admin. */
     public static function reportsEnabled(): bool
     {
-        return (bool) (self::current()['reports_enabled'] ?? true);
+        return (bool) (self::current()['reports_enabled'] ?? false);
     }
 
     public static function isEnabled(): bool
@@ -124,7 +124,7 @@ class MoyasarSettings
             'webhook_secret' => '',
             'company_name' => '',
             'payment_description' => '',
-            'reports_enabled' => true,
+            'reports_enabled' => false,
         ];
     }
 

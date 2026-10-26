@@ -8,14 +8,14 @@ use Illuminate\Support\Facades\Schema;
 use Spatie\Permission\PermissionRegistrar;
 
 /**
- * مفتاح إظهار تقارير مدفوعات ميسر من لوحة Super Admin (مفعّل افتراضياً)،
+ * مفتاح إظهار تقارير مدفوعات ميسر من لوحة Super Admin (معطّل افتراضياً)،
  * ونقل صلاحيتي التقرير إلى قسم المالية لأن الصفحة صارت ضمن موديول المالية.
  */
 return new class extends Migration {
     public function up(): void
     {
         if (Schema::hasTable('moyasar_settings') && !Schema::hasColumn('moyasar_settings', 'reports_enabled')) {
-            Schema::table('moyasar_settings', fn (Blueprint $table) => $table->boolean('reports_enabled')->default(true));
+            Schema::table('moyasar_settings', fn (Blueprint $table) => $table->boolean('reports_enabled')->default(false));
         }
 
         if (Schema::hasTable('permissions')) {
