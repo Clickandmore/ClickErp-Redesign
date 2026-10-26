@@ -116,6 +116,62 @@
             margin: 8px 0 4px;
         }
 
+        .order-source-panel {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 16px;
+            margin: -8px 0 24px;
+            padding: 12px 14px;
+            border: 1px solid #e8ecf4;
+            border-radius: 18px;
+            background: #fff;
+            box-shadow: 0 8px 24px rgba(15, 23, 42, .04);
+        }
+
+        .order-source-panel__title { min-width: 190px; }
+        .order-source-panel__title b, .order-source-panel__title small { display: block; }
+        .order-source-panel__title b { color: #111c3a; }
+        .order-source-panel__title small { margin-top: 2px; color: #667085; }
+        .order-source-switch { display: grid; grid-template-columns: repeat(3, minmax(150px, 1fr)); gap: 8px; flex: 1; max-width: 760px; }
+
+        .order-source-option {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            min-height: 44px;
+            padding: 8px 12px;
+            border: 1px solid #e4e7ec;
+            border-radius: 12px;
+            color: #475467;
+            background: #f8fafc;
+            font-weight: 700;
+            transition: border-color .15s ease, background .15s ease, box-shadow .15s ease;
+        }
+
+        .order-source-option:hover { border-color: #a5b4fc; background: #fff; }
+        .order-source-option.active { color: #fff; border-color: #4f46e5; background: #4f46e5; box-shadow: 0 7px 18px rgba(79, 70, 229, .18); }
+        .order-source-option[data-source="employee"].active { border-color: #0d9488; background: #0d9488; box-shadow: 0 7px 18px rgba(13, 148, 136, .18); }
+        .order-source-option__count { min-width: 27px; padding: 2px 7px; border-radius: 999px; background: rgba(255, 255, 255, .88); color: #344054; font-size: .75rem; font-variant-numeric: tabular-nums; }
+        .order-source-option.active .order-source-option__count { color: inherit; background: rgba(255, 255, 255, .18); }
+
+        .order-source-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 9px;
+            border: 1px solid;
+            border-radius: 12px;
+            font-size: .78rem;
+            font-weight: 700;
+            white-space: nowrap;
+        }
+
+        .order-source-badge small { font-size: .68rem; font-weight: 500; opacity: .8; }
+        .order-source-badge--external { color: #4338ca; border-color: #c7d2fe; background: #eef2ff; }
+        .order-source-badge--employee { color: #0f766e; border-color: #99f6e4; background: #f0fdfa; }
+
         .order-stat-card small {
             color: #8892a6;
             font-size: 0.85rem;
@@ -329,6 +385,9 @@
                 gap: 12px;
             }
 
+            .orders-page .order-source-panel { align-items: stretch; flex-direction: column; }
+            .orders-page .order-source-switch { grid-template-columns: 1fr; max-width: none; }
+
             .orders-page .orders-overview-panel {
                 align-items: flex-start;
                 flex-direction: column;
@@ -492,6 +551,27 @@
                     </button>
                 </div>
 
+                <div class="order-source-panel" aria-label="فلترة الطلبات حسب مصدر الإنشاء">
+                    <div class="order-source-panel__title">
+                        <b><i class="fas fa-code-branch text-primary me-1"></i> مصدر إنشاء الطلب</b>
+                        <small>الأعداد تتحدث تلقائيًا مع التاريخ وبقية الفلاتر.</small>
+                    </div>
+                    <div class="order-source-switch">
+                        <button type="button" class="order-source-option active" data-source="">
+                            <i class="fas fa-layer-group"></i><span>كل الطلبات</span>
+                            <span class="order-source-option__count" id="sourceCountAll">{{ number_format($totalOrders ?? 0) }}</span>
+                        </button>
+                        <button type="button" class="order-source-option" data-source="external">
+                            <i class="fas fa-globe"></i><span>طلبات الموقع الخارجي</span>
+                            <span class="order-source-option__count" id="sourceCountExternal">{{ number_format($externalOrders ?? 0) }}</span>
+                        </button>
+                        <button type="button" class="order-source-option" data-source="employee">
+                            <i class="fas fa-user-tie"></i><span>طلبات موظفي الفروع</span>
+                            <span class="order-source-option__count" id="sourceCountEmployee">{{ number_format($employeeOrders ?? 0) }}</span>
+                        </button>
+                    </div>
+                </div>
+
 
                 <div class="row g-4 align-items-start">
                     <div class="col-xxl-12">
@@ -571,6 +651,14 @@
                                             @endif
                                         </select>
                                     </div>
+                                    <div class="col-md-2">
+                                        <label class="form-label" for="source">مصدر الطلب</label>
+                                        <select class="form-select" name="source" id="source">
+                                            <option value="">كل المصادر</option>
+                                            <option value="external">الموقع الخارجي</option>
+                                            <option value="employee">موظف الفرع</option>
+                                        </select>
+                                    </div>
                                     @include('admin.partials.branch-filter', ['id' => 'branch_id', 'containerClass' => 'col-md-2'])
                                     <div class="col-md-2">
                                         <label class="form-label">{{ helperTrans('ingaz.timer_status') }}</label>
@@ -637,6 +725,7 @@
                                 <thead>
                                     <tr>
                                         <th>ID</th>
+                                        <th>مصدر الطلب</th>
                                         <th>{{ helperTrans('ingaz.maid_photo') }}</th>
                                         <th>{{ helperTrans('ingaz.client') }}</th>
                                         <th>{{ helperTrans('ingaz.phone') }}</th>
@@ -770,6 +859,11 @@
             let columns = [{
                     "data": 'id',
                     name: 'id',
+                    orderable: false,
+                    searchable: false
+                },
+                {
+                    "data": "order_source",
                     orderable: false,
                     searchable: false
                 },
@@ -944,11 +1038,11 @@
                 ],
                 columnDefs: [{
                         responsivePriority: 1,
-                        targets: @if($branchesEnabled ?? false) [0, 2, 7, 10, 13] @else [0, 2, 7, 10, 12] @endif
+                        targets: @if($branchesEnabled ?? false) [0, 1, 3, 8, 11, 14] @else [0, 1, 3, 8, 11, 13] @endif
                     },
                     {
                         responsivePriority: 2,
-                        targets: [3, 6, 8]
+                        targets: [4, 7, 9]
                     }
                 ],
                 ajax: {
@@ -962,6 +1056,7 @@
                         d.nationality_id = $('#nationality_id').val();
                         d.request_type = $('#request_type').val();
                         d.admin_id = $('#admin_id').val() || getUrlParameter('admin_id');
+                        d.source = $('#source').val() || getUrlParameter('source');
                         d.branch_id = $('#branch_id').length ? $('#branch_id').val() : '';
                         d.timer_status = $('#timer_status').val();
                         d.client_name = $('#client_name').val();
@@ -978,8 +1073,13 @@
                         console.error('Status:', xhr.status);
                     },
                     dataSrc: function(json) {
-                        // معالجة البيانات قبل عرضها
-                        console.log('Received ' + json.data.length + ' records');
+                        const sourceCounts = json.source_counts || {};
+                        const external = Number(sourceCounts.external || 0);
+                        const employee = Number(sourceCounts.employee || 0);
+                        const formatCount = value => new Intl.NumberFormat('ar-SA').format(value);
+                        $('#sourceCountExternal').text(formatCount(external));
+                        $('#sourceCountEmployee').text(formatCount(employee));
+                        $('#sourceCountAll').text(formatCount(external + employee));
                         return json.data;
                     }
                 },
@@ -1020,6 +1120,12 @@
                 });
             }
 
+            function setActiveSourceCard(value) {
+                $('.order-source-option').each(function() {
+                    $(this).toggleClass('active', ($(this).data('source') || '') === (value || ''));
+                });
+            }
+
             // Handle filter form submission
             $('#filterForm').on('submit', function(e) {
                 e.preventDefault();
@@ -1029,24 +1135,41 @@
             // Set form values from URL parameters on page load
             var urlStatus = getUrlParameter('status');
             var urlAdminId = getUrlParameter('admin_id');
+            var urlSource = getUrlParameter('source');
             if (urlStatus) {
                 $('#status').val(urlStatus);
             }
             if (urlAdminId) {
                 $('#admin_id').val(urlAdminId);
             }
+            if (urlSource) {
+                $('#source').val(urlSource);
+            }
 
             setActiveCard($('#status').val());
+            setActiveSourceCard($('#source').val());
 
             // Handle reset button
             $('#resetFilter').on('click', function() {
                 $('#filterForm')[0].reset();
                 $('#status').val('').trigger('change');
+                $('#source').val('').trigger('change');
                 dataTable.ajax.reload();
             });
 
             $('#status').on('change', function() {
                 setActiveCard($(this).val());
+            });
+
+            $('#source').on('change', function() {
+                setActiveSourceCard($(this).val());
+            });
+
+            $('.order-source-option').on('click', function() {
+                const source = $(this).data('source') || '';
+                $('#source').val(source);
+                setActiveSourceCard(source);
+                dataTable.ajax.reload();
             });
 
             $('.order-stat-card').on('click', function() {

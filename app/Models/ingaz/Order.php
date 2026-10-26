@@ -119,6 +119,27 @@ class Order extends Model
         return $this->belongsTo(Admin::class, 'customer_id');
     }
 
+    /** الموظف الذي أنشأ الطلب من لوحة التحكم؛ الطلبات الخارجية لا تحمل هذه القيمة. */
+    public function createdByAdmin()
+    {
+        return $this->belongsTo(Admin::class, 'created_by_admin_id');
+    }
+
+    public function scopeCreatedByEmployee(Builder $query): Builder
+    {
+        return $query->whereNotNull('created_by_admin_id');
+    }
+
+    public function scopeCreatedExternally(Builder $query): Builder
+    {
+        return $query->whereNull('created_by_admin_id');
+    }
+
+    public function resolveCreatorAdmin(): ?Admin
+    {
+        return $this->createdByAdmin;
+    }
+
     public function jobType()
     {
         return $this->belongsTo(JobType::class, 'job_type_id');

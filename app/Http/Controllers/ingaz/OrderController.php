@@ -64,10 +64,11 @@ class OrderController extends Controller
             $query->with([
                 'user',
                 'maid.nationality',
-                'maid.office',
-                'jobType',
+                'maid.office.translations',
+                'jobType.translations',
                 'details.admin',
                 'customer',
+                'createdByAdmin',
                 'branch',
                 'contracts'
             ])->withCount('notes');
@@ -87,10 +88,10 @@ class OrderController extends Controller
 
             // Apply date range filter
             if ($request->filled('from_date')) {
-                $query->whereDate('created_at', '>=', $request->from_date);
+                $query->where('created_at', '>=', \Carbon\Carbon::parse($request->from_date)->startOfDay());
             }
             if ($request->filled('to_date')) {
-                $query->whereDate('created_at', '<=', $request->to_date);
+                $query->where('created_at', '<', \Carbon\Carbon::parse($request->to_date)->addDay()->startOfDay());
             }
 
             // Apply job type filter
@@ -174,7 +175,47 @@ class OrderController extends Controller
                 });
             }
 
+            // Source totals intentionally exclude only the source filter itself, so
+            // they stay in sync with date/month, status, branch and search filters.
+            $sourceCounts = (clone $query)->reorder()->toBase()->selectRaw(
+                'COALESCE(SUM(created_by_admin_id IS NULL), 0) AS external_count, '
+                . 'COALESCE(SUM(created_by_admin_id IS NOT NULL), 0) AS employee_count'
+            )->first();
+
+            if ($request->source === 'employee') {
+                $query->createdByEmployee();
+            } elseif ($request->source === 'external') {
+                $query->createdExternally();
+            }
+
+            // Permission resolution is relatively expensive with branch-aware roles;
+            // resolve it once per response instead of once for every rendered row.
+            $currentAdmin = auth('admin')->user();
+            $permissions = \App\Support\BranchScopedPermissions::withCachedPermissions(function () use ($currentAdmin) {
+                return [
+                    'edit' => (bool) @AdminGuardHasPerm(\App\PermKeys::ORDERS_EDIT),
+                    'view' => (bool) @AdminGuardHasPerm(\App\PermKeys::ORDERS_VIEW),
+                    'change_status' => (bool) @AdminGuardHasPerm(\App\PermKeys::ORDERS_CHANGE_STATUS),
+                    'add_contract' => (bool) @AdminGuardHasPerm(\App\PermKeys::ORDERS_ADD_CONTRACT),
+                    'change_maid' => (bool) @AdminGuardHasPerm(\App\PermKeys::ORDERS_CHANGE_MAID),
+                    'change_responsible' => (bool) @AdminGuardHasPerm(\App\PermKeys::ORDERS_CHANGE_RESPONSIBLE),
+                    'reject' => \App\Support\AdminRoutePermissionMatrix::adminHasAnyPermission($currentAdmin, [\App\PermKeys::ORDERS_REJECT]),
+                    'delete' => \App\Support\AdminRoutePermissionMatrix::adminHasAnyPermission($currentAdmin, [\App\PermKeys::ORDERS_DELETE]),
+                ];
+            });
+            $canEdit = $permissions['edit'];
+            $canView = $permissions['view'];
+            $canChangeStatus = $permissions['change_status'];
+            $canAddContract = $permissions['add_contract'];
+            $canChangeMaid = $permissions['change_maid'];
+            $canChangeResponsible = $permissions['change_responsible'];
+            $canReject = $permissions['reject'];
+            $canDelete = $permissions['delete'];
+
             return DataTables::of($query)
+                // Relations remain available to callbacks, but excluding them from
+                // model serialization avoids costly Maid appended accessors.
+                ->makeHidden(['maid', 'user', 'details', 'customer', 'createdByAdmin', 'branch', 'contracts', 'jobType'])
                 ->orderColumn('maid_passport_num', function ($query, $direction) {
                     $query->orderBy(
                         Maid::query()->select('name')->whereColumn('maids.id', 'orders.maid_id')->limit(1),
@@ -193,13 +234,23 @@ class OrderController extends Controller
                 ->addColumn('admin_name', function ($row) {
                     return $row->resolveResponsibleAdmin()?->name ?? '-';
                 })
+                ->addColumn('order_source', function ($row) {
+                    if ($creator = $row->resolveCreatorAdmin()) {
+
+                        return '<span class="order-source-badge order-source-badge--employee" title="أُنشئ من لوحة التحكم">'
+                            . '<i class="fas fa-user-tie"></i><span>موظف الفرع</span><small>' . e($creator->name ?: 'غير محدد') . '</small></span>';
+                    }
+
+                    return '<span class="order-source-badge order-source-badge--external" title="وصل من الموقع الخارجي">'
+                        . '<i class="fas fa-globe"></i><span>الموقع الخارجي</span></span>';
+                })
                 ->addColumn('created_at', function ($row) {
                     return $row->created_at->format('Y-m-d H:i:s');
                 })
-                ->editColumn('status', function ($row) {
+                ->editColumn('status', function ($row) use ($canEdit) {
                     $statusHtml = $this->getStatusHtml($this->effectiveOrderStatus($row));
 
-                    if (@AdminGuardHasPerm(\App\PermKeys::ORDERS_EDIT) && !$this->isCompletedOrder($row)) {
+                    if ($canEdit && !$this->isCompletedOrder($row)) {
                         $statusHtml .= ' <button type="button" class="edit-status" data-id="' . $row->id . '" title="تعديل الحالة">
                                 <i class="fa fa-pen"></i>
                             </button>';
@@ -227,7 +278,7 @@ class OrderController extends Controller
                 // merged into alerts. The current table no longer renders this key.
                 ->addColumn('notes', fn () => '')
                 ->addColumn('recruitment_office', function ($row) {
-                    $office = $row->maid?->office ?? $row->maid?->recruitmentOffice;
+                    $office = $row->maid?->office;
                     return $office?->title ?? '-';
                 })
                 ->editColumn('job_type_id', function ($row) {
@@ -250,7 +301,7 @@ class OrderController extends Controller
                         return '';
                     }
 
-                    $office = $row->maid->office ?? $row->maid->recruitmentOffice;
+                    $office = $row->maid->office;
                     $officeTitle = $office?->title ?? '-';
 
                     return '<div class="d-flex flex-column gap-1">'
@@ -274,7 +325,7 @@ class OrderController extends Controller
                     }
                 })
                 ->addColumn('contract_status', function ($row) {
-                    if ($row->contracts()->exists()) {
+                    if ($row->contracts->isNotEmpty()) {
                         return '<span class="badge bg-info status-badge">' . __('ingaz.has_contract') . '</span>';
                     }
                     return '<span class="badge bg-danger status-badge">' . __('ingaz.no_contract') . '</span>';
@@ -297,7 +348,7 @@ class OrderController extends Controller
 
                     return $row->branch ? e($row->branch->name) : '-';
                 })
-                ->addColumn('actions', function ($row) {
+                ->addColumn('actions', function ($row) use ($canView, $canChangeStatus, $canAddContract, $canChangeMaid, $canChangeResponsible, $canReject, $canDelete, $currentAdmin) {
                     $isCompletedOrder = $this->isCompletedOrder($row);
 
                     $actions = ' <div class="dropdown actions-dropdown">
@@ -307,7 +358,7 @@ class OrderController extends Controller
                         <ul class="dropdown-menu dropdown-menu-end shadow-lg top-0">';
 
                     // View button
-                    if (@AdminGuardHasPerm(\App\PermKeys::ORDERS_VIEW)) {
+                    if ($canView) {
                         $actions .= '<li><a class="dropdown-item" href="' . route('showSingleOrder', ['orderId' => $row->id]) . '">
                             <i class="fa fa-eye"></i> عرض التفاصيل
                         </a></li>';
@@ -315,35 +366,35 @@ class OrderController extends Controller
 
 
                     // A linked contract makes the order complete and locks its status.
-                    if (@AdminGuardHasPerm(\App\PermKeys::ORDERS_CHANGE_STATUS) && !$isCompletedOrder) {
+                    if ($canChangeStatus && !$isCompletedOrder) {
                         $actions .= '<li><button class="dropdown-item edit-status" data-id="' . $row->id . '">
                             <i class="fa fa-edit"></i> تعديل الحالة
                         </button></li>';
                     }
 
                     // Add Contract button for open orders and legacy ended orders that still have no contract.
-                    if (@AdminGuardHasPerm(\App\PermKeys::ORDERS_ADD_CONTRACT) && $this->canAddRecruitmentContract($row)) {
+                    if ($canAddContract && $this->canAddRecruitmentContract($row)) {
                         $actions .= '<li><button class="dropdown-item addNewContract" data-id="' . $row->id . '">
                             <i class="fa fa-plus"></i> إضافة عقد
                         </button></li>';
                     }
 
                     // Change Maid button for new orders
-                    if (@AdminGuardHasPerm(\App\PermKeys::ORDERS_CHANGE_MAID) && $row->status == OrderEnum::New->value) {
+                    if ($canChangeMaid && $row->status == OrderEnum::New->value) {
                         $actions .= '<li><button class="dropdown-item change-maid" data-id="' . $row->id . '">
                             <i class="fa fa-user"></i> تغيير العاملة
                         </button></li>';
                     }
 
                     // Change Responsible Employee button
-                    if (@AdminGuardHasPerm(\App\PermKeys::ORDERS_CHANGE_RESPONSIBLE) && !$isCompletedOrder) {
+                    if ($canChangeResponsible && !$isCompletedOrder) {
                         $actions .= '<li><button class="dropdown-item change-responsible" data-id="' . $row->id . '">
                             <i class="fa fa-user-secret"></i> تغيير الموظف المسؤول
                         </button></li>';
                     }
 
                     // Refuse/Return button for new and under_process orders
-                    if ($row->adminCanReject(auth('admin')->user()) && !$isCompletedOrder) {
+                    if (($row->wasCreatedByAdmin($currentAdmin) || $canReject) && !$isCompletedOrder) {
                         if (in_array($row->status, [OrderEnum::New->value, OrderEnum::UnderProcess->value])) {
                             $actions .= '<li><button class="dropdown-item refuse-order" data-id="' . $row->id . '">
                                 <i class="fa fa-times"></i> رفض/إرجاع الطلب
@@ -352,7 +403,7 @@ class OrderController extends Controller
                     }
 
                     // Delete button
-                    if ($row->adminCanDelete(auth('admin')->user()) && !$isCompletedOrder) {
+                    if (($row->wasCreatedByAdmin($currentAdmin) || $canDelete) && !$isCompletedOrder) {
                         $actions .= '<li><hr class="dropdown-divider"></li>
                         <li><button class="dropdown-item delete-order" data-id="' . $row->id . '">
                             <i class="fa fa-trash"></i> حذف الطلب
@@ -363,7 +414,11 @@ class OrderController extends Controller
                     return $actions;
                 })
                 ->escapeColumns([])
-                ->rawColumns(['actions', 'status', 'timer', 'user_id', 'phone', 'maid_id', 'maid_passport_num', 'deliver_status', 'contract_status', 'order_code', 'created_at', 'admin_name'])
+                ->rawColumns(['actions', 'status', 'timer', 'user_id', 'phone', 'maid_id', 'maid_passport_num', 'deliver_status', 'contract_status', 'order_code', 'created_at', 'admin_name', 'order_source'])
+                ->with('source_counts', [
+                    'external' => (int) ($sourceCounts->external_count ?? 0),
+                    'employee' => (int) ($sourceCounts->employee_count ?? 0),
+                ])
                 ->make(true);
         }
 
@@ -407,37 +462,39 @@ class OrderController extends Controller
         $statisticsQuery = objModel::query()->recruitmentRequests();
         $this->applyRequestBranchFilter($statisticsQuery, $request, 'orders');
 
-        $data['totalOrders'] = (clone $statisticsQuery)->count();
-        $data['newOrders'] = (clone $statisticsQuery)
-            ->where('status', OrderEnum::New->value)
-            ->whereDoesntHave('contracts')
-            ->count();
-        $data['underProcessOrders'] = (clone $statisticsQuery)
-            ->where('status', OrderEnum::UnderProcess->value)
-            ->whereDoesntHave('contracts')
-            ->count();
-        $data['newOverdueOrders'] = (clone $statisticsQuery)
-            ->where('status', OrderEnum::New->value)
-            ->whereDoesntHave('contracts')
-            ->whereNotNull('deadline_at')
-            ->where('deadline_at', '<', now())
-            ->count();
-        $data['underProcessOverdueOrders'] = (clone $statisticsQuery)
-            ->where('status', OrderEnum::UnderProcess->value)
-            ->whereDoesntHave('contracts')
-            ->whereNotNull('deadline_at')
-            ->where('deadline_at', '<', now())
-            ->count();
-        $data['completedOrders'] = (clone $statisticsQuery)
-            ->where(function ($query) use ($completedStatuses) {
-                $query->whereIn('status', $completedStatuses)
-                    ->orWhereHas('contracts');
-            })
-            ->count();
-        $data['notCompletedOrders'] = (clone $statisticsQuery)
-            ->whereIn('status', $notCompletedStatuses)
-            ->whereDoesntHave('contracts')
-            ->count();
+        $contractExists = 'EXISTS (SELECT 1 FROM contracts AS source_contracts WHERE source_contracts.order_id = orders.id)';
+        $completedPlaceholders = implode(',', array_fill(0, count($completedStatuses), '?'));
+        $notCompletedPlaceholders = implode(',', array_fill(0, count($notCompletedStatuses), '?'));
+        $statistics = (clone $statisticsQuery)->toBase()->selectRaw(
+            "COUNT(*) AS total_count,
+            COALESCE(SUM(created_by_admin_id IS NULL), 0) AS external_count,
+            COALESCE(SUM(created_by_admin_id IS NOT NULL), 0) AS employee_count,
+            COALESCE(SUM(status = ? AND NOT $contractExists), 0) AS new_count,
+            COALESCE(SUM(status = ? AND NOT $contractExists), 0) AS under_process_count,
+            COALESCE(SUM(status = ? AND deadline_at IS NOT NULL AND deadline_at < ? AND NOT $contractExists), 0) AS new_overdue_count,
+            COALESCE(SUM(status = ? AND deadline_at IS NOT NULL AND deadline_at < ? AND NOT $contractExists), 0) AS process_overdue_count,
+            COALESCE(SUM(status IN ($completedPlaceholders) OR $contractExists), 0) AS completed_count,
+            COALESCE(SUM(status IN ($notCompletedPlaceholders) AND NOT $contractExists), 0) AS not_completed_count",
+            [
+                OrderEnum::New->value,
+                OrderEnum::UnderProcess->value,
+                OrderEnum::New->value,
+                now(),
+                OrderEnum::UnderProcess->value,
+                now(),
+                ...$completedStatuses,
+                ...$notCompletedStatuses,
+            ]
+        )->first();
+        $data['totalOrders'] = (int) ($statistics->total_count ?? 0);
+        $data['externalOrders'] = (int) ($statistics->external_count ?? 0);
+        $data['employeeOrders'] = (int) ($statistics->employee_count ?? 0);
+        $data['newOrders'] = (int) ($statistics->new_count ?? 0);
+        $data['underProcessOrders'] = (int) ($statistics->under_process_count ?? 0);
+        $data['newOverdueOrders'] = (int) ($statistics->new_overdue_count ?? 0);
+        $data['underProcessOverdueOrders'] = (int) ($statistics->process_overdue_count ?? 0);
+        $data['completedOrders'] = (int) ($statistics->completed_count ?? 0);
+        $data['notCompletedOrders'] = (int) ($statistics->not_completed_count ?? 0);
         $data['orderNewDeadlineHours'] = AutomationSettings::orderNewDeadlineHours();
         $data['orderUnderProcessDeadlineHours'] = AutomationSettings::orderUnderProcessDeadlineHours();
 
