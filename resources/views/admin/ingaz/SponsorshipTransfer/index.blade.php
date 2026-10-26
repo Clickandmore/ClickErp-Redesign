@@ -342,6 +342,24 @@
                                 <option value="15000+">15,000+ ريال</option>
                             </select>
                         </div>
+                        <div class="col-md-3">
+                            <label for="marketerFilter" class="form-label">المسوق</label>
+                            <select class="form-select" id="marketerFilter">
+                                <option value="">كل المسوقين</option>
+                                @foreach($marketers as $marketer)
+                                    <option value="{{ $marketer->id }}" {{ (string) request('marketer_id') === (string) $marketer->id ? 'selected' : '' }}>{{ $marketer->name }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label for="officeFilter" class="form-label">المكتب الخارجي</label>
+                            <select class="form-select" id="officeFilter">
+                                <option value="">كل المكاتب</option>
+                                @foreach($offices as $office)
+                                    <option value="{{ $office['id'] }}" {{ (string) request('office_id') === (string) $office['id'] ? 'selected' : '' }}>{{ $office['title'] }}</option>
+                                @endforeach
+                            </select>
+                        </div>
                     </div>
                     <div class="row mt-3">
                         <div class="col-12 d-flex justify-content-between">
@@ -349,10 +367,16 @@
                                 <i class="fas fa-times me-2"></i>
                                 {{helperTrans("ingaz.clear_filters")}}
                             </button>
-                            <button type="button" class="btn btn-primary" id="searchBtn">
-                                <i class="fas fa-search me-2"></i>
-                                {{helperTrans("ingaz.search")}}
-                            </button>
+                            <div class="d-flex gap-2">
+                                <button type="button" class="btn btn-success" id="exportExcelBtn">
+                                    <i class="fas fa-file-excel me-2"></i>
+                                    تصدير Excel
+                                </button>
+                                <button type="button" class="btn btn-primary" id="searchBtn">
+                                    <i class="fas fa-search me-2"></i>
+                                    {{helperTrans("ingaz.search")}}
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -438,6 +462,35 @@
                 }).addClass('is-active');
             }
 
+            function currentFilters() {
+                return {
+                    branch_id: $('#branchFilter').val(),
+                    status: $('#statusFilter').val(),
+                    date_from: $('#dateFromFilter').val(),
+                    date_to: $('#dateToFilter').val(),
+                    contract_number: $('#contractNumberFilter').val(),
+                    maid_passport: $('#maidPassportFilter').val(),
+                    maid_nationality_id: $('#maidNationalityFilter').val(),
+                    old_sponsor: $('#oldSponsorFilter').val(),
+                    new_sponsor: $('#newSponsorFilter').val(),
+                    trial_days: $('#trialDaysFilter').val(),
+                    amount: $('#amountFilter').val(),
+                    marketer_id: $('#marketerFilter').val(),
+                    office_id: $('#officeFilter').val()
+                };
+            }
+
+            // تصدير نفس النتائج المفلترة في الجدول
+            $('#exportExcelBtn').click(function() {
+                var params = {export: 'xlsx'};
+                $.each(currentFilters(), function(key, value) {
+                    if (value) {
+                        params[key] = value;
+                    }
+                });
+                window.location.href = '{{ route("SponsorshipTransfer.index") }}?' + $.param(params);
+            });
+
             // إعداد DataTable
             var dataTable = $('#sponsorshipTransferTable').DataTable({
                 processing: true,
@@ -446,17 +499,7 @@
                 ajax: {
                     url: '{{ route("SponsorshipTransfer.index") }}',
                     data: function(d) {
-                        d.branch_id = $('#branchFilter').val();
-                        d.status = $('#statusFilter').val();
-                        d.date_from = $('#dateFromFilter').val();
-                        d.date_to = $('#dateToFilter').val();
-                        d.contract_number = $('#contractNumberFilter').val();
-                        d.maid_passport = $('#maidPassportFilter').val();
-                        d.maid_nationality_id = $('#maidNationalityFilter').val();
-                        d.old_sponsor = $('#oldSponsorFilter').val();
-                        d.new_sponsor = $('#newSponsorFilter').val();
-                        d.trial_days = $('#trialDaysFilter').val();
-                        d.amount = $('#amountFilter').val();
+                        Object.assign(d, currentFilters());
                     }
                 },
                 columns: [
@@ -507,6 +550,8 @@
                 $('#newSponsorFilter').val('');
                 $('#trialDaysFilter').val('');
                 $('#amountFilter').val('');
+                $('#marketerFilter').val('');
+                $('#officeFilter').val('');
                 syncStatisticsCards();
                 dataTable.draw();
             });

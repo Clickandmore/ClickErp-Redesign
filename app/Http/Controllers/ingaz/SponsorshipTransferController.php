@@ -41,9 +41,18 @@ class SponsorshipTransferController extends Controller
 
     public function index(Request $request)
     {
+        if ($request->query('export') === 'xlsx') {
+            $transfers = $this->buildIndexQuery($request)
+                ->with(self::EXPORT_RELATIONS)
+                ->latest()
+                ->get();
+
+            return $this->exportTransfersExcel($transfers, 'sponsorship_transfers');
+        }
+
         // إذا كان الطلب من DataTables
         if ($request->ajax()) {
-            $query = SponsorshipTransfer::with([
+            $transfers = $this->buildIndexQuery($request)->with([
                 'contract.maid.nationality',
                 'oldSponsor',
                 'newSponsor',
@@ -51,384 +60,13 @@ class SponsorshipTransferController extends Controller
                 'invoice',
                 'receiptBond',
                 'refundBond',
-            ]);
-            $this->applyRequestBranchFilter($query, $request, 'sponsorship_transfers');
-
-            // تطبيق الفلاتر
-            if ($request->filled('status')) {
-                switch ($request->status) {
-                    case 'trial_period':
-                        $query->whereIn('status', ['trial', 'trial_started']);
-                        break;
-                    case 'partially_paid':
-                        $query->where(function ($paymentQuery) {
-                            $paymentQuery->where('payment_status', 'partial')
-                                ->orWhere(function ($amountQuery) {
-                                    $amountQuery->where('paid_amount', '>', 0)
-                                        ->where('remaining_amount', '>', 0);
-                                });
-                        });
-                        break;
-                    case 'cancelled':
-                        // زر إلغاء نقل الكفالة يسجل الطلب كفشل، مع دعم القيمة القديمة cancelled.
-                        $query->whereIn('status', ['failed', 'cancelled']);
-                        break;
-                    default:
-                        $query->where('status', $request->status);
-                }
-            }
-
-            if ($request->filled('maid_passport')) {
-                $passport = trim((string) $request->maid_passport);
-                $query->whereHas('contract.maid', function ($maidQuery) use ($passport) {
-                    $maidQuery->whereRaw('LOWER(passport_num) LIKE ?', ['%' . mb_strtolower($passport) . '%']);
-                });
-            }
-
-            if ($request->filled('maid_nationality_id')) {
-                $query->whereHas('contract.maid', function ($maidQuery) use ($request) {
-                    $maidQuery->where('nationality_id', $request->maid_nationality_id);
-                });
-            }
-
-            if ($request->filled('date_from')) {
-                $query->whereDate('created_at', '>=', $request->date_from);
-            }
-
-            if ($request->filled('date_to')) {
-                $query->whereDate('created_at', '<=', $request->date_to);
-            }
-
-            if ($request->filled('contract_number')) {
-                $query->whereHas('contract', function($q) use ($request) {
-                    $q->where('id', 'like', '%' . $request->contract_number . '%');
-                });
-            }
-
-            if ($request->filled('old_sponsor')) {
-                $query->whereHas('oldSponsor', function($q) use ($request) {
-                    $q->where('name', 'like', '%' . $request->old_sponsor . '%')
-                      ->orWhere('phone', 'like', '%' . $request->old_sponsor . '%');
-                });
-            }
-
-            if ($request->filled('new_sponsor')) {
-                $query->whereHas('newSponsor', function($q) use ($request) {
-                    $q->where('name', 'like', '%' . $request->new_sponsor . '%')
-                      ->orWhere('phone', 'like', '%' . $request->new_sponsor . '%');
-                });
-            }
-
-            if ($request->filled('trial_days')) {
-                $query->where('trial_days', $request->trial_days);
-            }
-
-            if ($request->filled('amount')) {
-                $amountRange = explode('-', $request->amount);
-                if (count($amountRange) == 2) {
-                    $query->whereBetween('contract_value', [$amountRange[0], $amountRange[1]]);
-                } elseif ($request->amount == '15000+') {
-                    $query->where('contract_value', '>=', 15000);
-                }
-            }
-
-            $transfers = $query->latest()->get();
+            ])->latest()->get();
             // تُحسب مرة واحدة لا لكل صف.
             $canSendMoyasarLinks = \App\Services\SponsorshipTransferMoyasarService::isAvailable()
                 && \App\Support\MoyasarSettings::isEnabled()
                 && (@AdminGuardHasPerm(PermKeys::SPONSOR_TRANSFER_ADD_PAYMENT) || @AdminGuardHasPerm(PermKeys::SPONSOR_TRANSFER_CONTROL));
 
-            return DataTables::of($transfers)
-                ->addIndexColumn()
-                ->addColumn('contract_number', function($transfer) {
-                    return $transfer->contract ? 'عقد رقم: ' . $transfer->contract->id : 'غير محدد';
-                })
-                ->addColumn('old_sponsor', function($transfer) {
-                    if ($transfer->oldSponsor) {
-                        return '<div class="user-info">
-                                    <strong>' . $transfer->oldSponsor->name . '</strong><br>
-                                    <small class="text-muted">' . e($transfer->oldSponsor->documentNumberLabel()) . ': ' . e($transfer->oldSponsor->documentNumber() ?? 'غير محدد') . '</small><br>
-                                    <small class="text-muted">جوال: ' . $transfer->oldSponsor->phone . '</small>
-                                </div>';
-                    }
-                    return 'غير محدد';
-                })
-                ->addColumn('new_sponsor', function($transfer) {
-                    if ($transfer->newSponsor) {
-                        return '<div class="user-info">
-                                    <strong>' . $transfer->newSponsor->name . '</strong><br>
-                                    <small class="text-muted">' . e($transfer->newSponsor->documentNumberLabel()) . ': ' . e($transfer->newSponsor->documentNumber() ?? 'غير محدد') . '</small><br>
-                                    <small class="text-muted">جوال: ' . $transfer->newSponsor->phone . '</small>
-                                </div>';
-                    }
-                    return 'غير محدد';
-                })
-                ->addColumn('maid_info', function($transfer) {
-                    if ($transfer->contract && $transfer->contract->maid) {
-                        $maid = $transfer->contract->maid;
-                        return '<div class="maid-info">
-                                    <strong>' . $maid->name . '</strong><br>
-                                    <small class="text-muted">جواز: ' . ($maid->passport_num ?? 'غير محدد') . '</small><br>
-                                    <small class="text-muted">جنسية: ' . ($maid->nationality->sub_title ?? $maid->nationality->title ?? 'غير محدد') . '</small>
-                                </div>';
-                    }
-                    return 'غير محدد';
-                })
-                ->addColumn('trial_days', function($transfer) {
-                    return $transfer->trial_days . ' يوم';
-                })
-                ->addColumn('trial_start_date', function($transfer) {
-                    return $transfer->effective_trial_start_date
-                        ? $transfer->effective_trial_start_date->format('Y-m-d')
-                        : 'غير محدد';
-                })
-                ->addColumn('trial_end_info', function($transfer) {
-                    if ($transfer->trial_end_date) {
-                        $endDate = $transfer->trial_end_date;
-                        $daysRemaining = $transfer->trial_days_remaining;
-
-                        $html = '<div class="trial-info">';
-                        $html .= '<strong>تنتهي: ' . $endDate->format('Y-m-d') . '</strong><br>';
-
-                        if ($daysRemaining > 0) {
-                            $html .= '<small class="text-success">متبقي: ' . $daysRemaining . ' يوم</small>';
-                        } elseif ($daysRemaining == 0) {
-                            $html .= '<small class="text-warning">تنتهي اليوم</small>';
-                        } else {
-                            $html .= '<small class="text-danger">انتهت منذ: ' . abs($daysRemaining) . ' يوم</small>';
-                        }
-
-                        $html .= '</div>';
-                        return $html;
-                    }
-                    return 'غير محدد';
-                })
-                ->addColumn('contract_value', function($transfer) {
-                    return number_format($transfer->contract_value, 2) . ' ريال';
-                })
-                ->addColumn('paid_amount', function($transfer) {
-                    return number_format($transfer->paid_amount, 2) . ' ريال';
-                })
-                ->addColumn('remaining_amount', function($transfer) {
-                    return number_format($transfer->remaining_amount, 2) . ' ريال';
-                })
-                ->addColumn('status', function($transfer) {
-                    $badgeClass = '';
-                    switch ($transfer->status) {
-                        case 'pending':
-                            $badgeClass = 'bg-warning';
-                            break;
-                        case 'waiting_contract_send':
-                            $badgeClass = 'bg-info';
-                            break;
-                        case 'contract_sent':
-                            $badgeClass = 'bg-primary';
-                            break;
-                        case 'contract_signed':
-                            $badgeClass = 'bg-success';
-                            break;
-                        case 'maid_delivered':
-                            $badgeClass = 'bg-success';
-                            break;
-                        case 'trial_started':
-                            $badgeClass = 'bg-primary';
-                            break;
-                        case 'approved':
-                            $badgeClass = 'bg-info';
-                            break;
-                        case 'trial':
-                            $badgeClass = 'bg-primary';
-                            break;
-                        case 'transferred':
-                            $badgeClass = 'bg-success';
-                            break;
-                        case 'failed':
-                            $badgeClass = 'bg-danger';
-                            break;
-                        case 'rejected':
-                            $badgeClass = 'bg-danger';
-                            break;
-                        case 'completed':
-                            $badgeClass = 'bg-success';
-                            break;
-                        default:
-                            $badgeClass = 'bg-secondary';
-                    }
-                    return '<span class="badge ' . $badgeClass . '">' . $transfer->status_text . '</span>';
-                })
-                ->addColumn('created_at', function($transfer) {
-                    return $transfer->created_at ? $transfer->created_at->format('Y-m-d H:i') : 'غير محدد';
-                })
-                ->addColumn('actions', function($transfer) use ($canSendMoyasarLinks) {
-                    $actions = '<div class="dropdown actions-dropdown">
-                                    <button class="btn btn-sm btn-primary dropdown-toggle actions-btn" type="button" aria-expanded="false" title="الإجراءات المتاحة">
-                                        <i class="fas fa-cogs me-1"></i> الإجراءات
-                                    </button>
-                                    <ul class="dropdown-menu dropdown-menu-end shadow-lg">';
-
-                    // عرض الطلب
-                    $actions .= '<li><a class="dropdown-item" href="' . route('SponsorshipTransfer.show', $transfer->id) . '">
-                                    <i class="fas fa-eye"></i> عرض التفاصيل
-                                </a></li>';
-
-                    $actions .= '<li><hr class="dropdown-divider"></li>';
-                    if ($transfer->invoice && InvoiceAuthorization::canView()) {
-                        $actions .= '<li><a class="dropdown-item" href="' . route('invoices.show', $transfer->invoice->id) . '">
-                                        <i class="fas fa-file-invoice text-success"></i> عرض الفاتورة
-                                    </a></li>';
-                        if (InvoiceAuthorization::canPrint()) {
-                            $actions .= '<li><a class="dropdown-item" href="' . route('invoice.download', ['id' => $transfer->invoice->id, 'autoprint' => 1]) . '" target="_blank">
-                                            <i class="fas fa-print text-success"></i> تحميل / طباعة الفاتورة
-                                        </a></li>';
-                        }
-                    } elseif ($transfer->canIssueInvoice() && InvoiceAuthorization::canCreateTransfer()) {
-                        $actions .= '<li><a class="dropdown-item fw-bold text-success" href="' . route('SponsorshipTransfer.invoice.create', $transfer->id) . '">
-                                        <i class="fas fa-file-invoice-dollar"></i> إصدار فاتورة نقل الخدمات
-                                    </a></li>';
-                    } elseif ($transfer->canIssueInvoice()) {
-                        $actions .= '<li><span class="dropdown-item text-muted" title="يتطلب صلاحية إضافة فاتورة لنقل الخدمات"><i class="fas fa-lock"></i> إصدار فاتورة نقل الخدمات — الصلاحية غير متاحة</span></li>';
-                    }
-
-                    if ($canSendMoyasarLinks && \App\Services\SponsorshipTransferMoyasarService::canSend($transfer)) {
-                        $actions .= '<li><button type="button" class="dropdown-item text-primary send-payment-link"
-                                        data-url="' . route('SponsorshipTransfer.sendPaymentLink', $transfer->id) . '"
-                                        data-client="' . e($transfer->newSponsor?->name ?? '') . '"
-                                        data-phone="' . e($transfer->newSponsor?->phone ?? '') . '">
-                                        <i class="fas fa-link"></i> ' . e(\App\Services\PaymentLinkDeliveryService::label($transfer)) . '
-                                    </button></li>';
-                    }
-
-                    if ($transfer->payment_receipt_path) {
-                        $actions .= '<li><a class="dropdown-item" href="' . route('SponsorshipTransfer.attachment.download', [
-                            'id' => $transfer->id,
-                            'type' => 'payment-receipt',
-                        ]) . '">
-                                        <i class="fas fa-paperclip text-primary"></i> تحميل إيصال الدفع
-                                    </a></li>';
-                    }
-
-                    if ($transfer->receiptBond) {
-                        $actions .= '<li><a class="dropdown-item" href="' . route('finance.bonds-print.show', [
-                            'bonds_print' => $transfer->receiptBond->id,
-                            'type' => 'qabd',
-                        ]) . '" target="_blank">
-                                        <i class="fas fa-file-arrow-down text-primary"></i> تحميل / طباعة سند القبض
-                                    </a></li>';
-                    }
-
-                    if ($transfer->refundBond) {
-                        $actions .= '<li><a class="dropdown-item" href="' . route('finance.bonds-print.show', [
-                            'bonds_print' => $transfer->refundBond->id,
-                            'type' => 'sarf',
-                        ]) . '" target="_blank">
-                                        <i class="fas fa-file-arrow-up text-danger"></i> تحميل / طباعة سند الصرف
-                                    </a></li>';
-                    }
-
-                    foreach (array_values((array) $transfer->attachments) as $attachmentIndex => $attachment) {
-                        if (empty($attachment['path'])) {
-                            continue;
-                        }
-
-                        $attachmentName = Str::limit((string) ($attachment['name'] ?? ('مرفق ' . ($attachmentIndex + 1))), 35);
-                        $actions .= '<li><a class="dropdown-item" href="' . route('SponsorshipTransfer.attachment.download', [
-                            'id' => $transfer->id,
-                            'type' => 'attachment',
-                            'index' => $attachmentIndex,
-                        ]) . '">
-                                        <i class="fas fa-download text-secondary"></i> تحميل: ' . e($attachmentName) . '
-                                    </a></li>';
-                    }
-
-                    if ($transfer->failure_client_iban_attachment_path) {
-                        $actions .= '<li><a class="dropdown-item" href="' . route('SponsorshipTransfer.attachment.download', [
-                            'id' => $transfer->id,
-                            'type' => 'iban',
-                        ]) . '">
-                                        <i class="fas fa-download text-secondary"></i> تحميل مرفق الآيبان
-                                    </a></li>';
-                    }
-
-                    // طباعة العقد (انتظار إرسال العقد)
-                    if ($transfer->status == 'waiting_contract_send') {
-                        $actions .= '<li><hr class="dropdown-divider"></li>';
-                        $actions .= '<li><a class="dropdown-item" href="' . route('print.sponsorship-transfer-contract', $transfer->id) . '" target="_blank">
-                                        <i class="fas fa-print"></i> طباعة العقد
-                                    </a></li>';
-                    }
-
-                    // تسجيل استلام العاملة مع تفعيل التجربة مباشرة
-                    if (in_array($transfer->status, ['waiting_contract_send', 'contract_sent', 'contract_signed'])) {
-                        $actions .= '<li><a class="dropdown-item confirm-action" href="#" data-action="deliver-maid" data-id="' . $transfer->id . '" data-text="تسجيل استلام العاملة وتفعيل التجربة مباشرة">
-                                        <i class="fas fa-handshake"></i> تسجيل استلام العاملة
-                                    </a></li>';
-                    }
-
-                    // بدء التجربة (تم تسليم العاملة)
-                    if ($transfer->status == 'maid_delivered') {
-                        $actions .= '<li><a class="dropdown-item" href="' . route('SponsorshipTransfer.trial-details', $transfer->id) . '">
-                                        <i class="fas fa-play"></i> عرض تفاصيل التجربة
-                                    </a></li>';
-                    }
-
-                    // تأكيد النقل (فقط إذا كان في فترة التجربة)
-                    // if ($transfer->status == 'trial') {
-                    //     $actions .= '<li><a class="dropdown-item confirm-action" href="#" data-action="confirm-transfer" data-id="' . $transfer->id . '" data-text="تأكيد نقل الخدمات">
-                    //                     <i class="fas fa-check-circle"></i> تأكيد النقل
-                    //                 </a></li>';
-                    // }
-                    if ($transfer->status == 'trial_started') {
-                        $actions .= '<li><a class="dropdown-item confirm-action" href="#" data-action="confirm-transfer" data-id="' . $transfer->id . '" data-text="تأكيد نقل الخدمات">
-                                        <i class="fas fa-check-circle"></i> تأكيد النقل
-                                    </a></li>';
-                    }
-
-                    // إلغاء النقل (فقط إذا كان في فترة التجربة)
-                    // if ($transfer->status == 'trial') {
-                    //     $actions .= '<li><a class="dropdown-item confirm-action" href="#" data-action="cancel-transfer" data-id="' . $transfer->id . '" data-text="إلغاء النقل وإعادة العقد إلى الإيواء">
-                    //                     <i class="fas fa-times-circle"></i> إلغاء النقل
-                    //                 </a></li>';
-                    // }
-                    if ($transfer->status == 'trial_started') {
-                        $actions .= '<li><a class="dropdown-item cancel-transfer-action" href="#"
-                                        data-id="' . $transfer->id . '"
-                                        data-contract-value="' . (float) $transfer->contract_value . '"
-                                        data-paid-amount="' . (float) $transfer->paid_amount . '"
-                                        data-remaining-amount="' . (float) $transfer->remaining_amount . '">
-                                        <i class="fas fa-times-circle"></i> إلغاء النقل
-                                    </a></li>';
-                    }
-
-                    // الرفض (فقط إذا كان في الانتظار)
-                    if ($transfer->status == 'pending') {
-                        $actions .= '<li><a class="dropdown-item confirm-action" href="#" data-action="reject" data-id="' . $transfer->id . '" data-text="رفض الطلب">
-                                        <i class="fas fa-times"></i> رفض
-                                    </a></li>';
-                    }
-
-                    if ($transfer->canEditDetails() && @AdminGuardHasPerm(\App\PermKeys::SPONSOR_TRANSFER_EDIT)) {
-                        $actions .= '<li><hr class="dropdown-divider"></li>';
-                        $actions .= '<li><a class="dropdown-item" href="' . route('SponsorshipTransfer.edit', $transfer->id) . '">
-                                        <i class="fas fa-edit"></i> تعديل
-                                    </a></li>';
-                    }
-
-                    if ($transfer->canDeleteDetails() && @AdminGuardHasPerm(\App\PermKeys::SPONSOR_TRANSFER_DELETE)) {
-                        if (!($transfer->canEditDetails() && @AdminGuardHasPerm(\App\PermKeys::SPONSOR_TRANSFER_EDIT))) {
-                            $actions .= '<li><hr class="dropdown-divider"></li>';
-                        }
-
-                        $actions .= '<li><a class="dropdown-item text-danger confirm-action" href="#" data-action="destroy" data-id="' . $transfer->id . '" data-text="حذف الطلب من القائمة بدون حذفه نهائياً">
-                                        <i class="fas fa-trash"></i> حذف
-                                    </a></li>';
-                    }
-
-                    $actions .= '</ul></div>';
-
-                    return $actions;
-                })
-                ->rawColumns(['old_sponsor', 'new_sponsor', 'maid_info', 'trial_end_info', 'status', 'actions'])
-                ->make(true);
+            return $this->indexDataTable($transfers, $canSendMoyasarLinks);
         }
 
         // حساب الإحصائيات
@@ -443,6 +81,8 @@ class SponsorshipTransferController extends Controller
         $completedCount = (clone $statsQuery)->where('status', 'completed')->count();
         $receiptAccounts = SponsorshipTransferPaymentService::receiptAccounts();
         $nationalities = Nationality::query()->orderBy('sort_order')->orderBy('id')->get();
+        $marketers = $this->marketerFilterOptions();
+        $offices = $this->officeFilterOptions();
 
         return view($this->folderPath . '.index', compact(
             'totalCount',
@@ -454,8 +94,543 @@ class SponsorshipTransferController extends Controller
             'approvedCount',
             'completedCount',
             'receiptAccounts',
-            'nationalities'
+            'nationalities',
+            'marketers',
+            'offices'
         ));
+    }
+
+    /**
+     * استعلام صفحة الطلبات الرئيسية بعد تطبيق الفلاتر، يُستخدم للجدول والتصدير معاً.
+     */
+    private function buildIndexQuery(Request $request)
+    {
+        $query = SponsorshipTransfer::query();
+        $this->applyRequestBranchFilter($query, $request, 'sponsorship_transfers');
+
+        // تطبيق الفلاتر
+        if ($request->filled('status')) {
+            switch ($request->status) {
+                case 'trial_period':
+                    $query->whereIn('status', ['trial', 'trial_started']);
+                    break;
+                case 'partially_paid':
+                    $query->where(function ($paymentQuery) {
+                        $paymentQuery->where('payment_status', 'partial')
+                            ->orWhere(function ($amountQuery) {
+                                $amountQuery->where('paid_amount', '>', 0)
+                                    ->where('remaining_amount', '>', 0);
+                            });
+                    });
+                    break;
+                case 'cancelled':
+                    // زر إلغاء نقل الكفالة يسجل الطلب كفشل، مع دعم القيمة القديمة cancelled.
+                    $query->whereIn('status', ['failed', 'cancelled']);
+                    break;
+                default:
+                    $query->where('status', $request->status);
+            }
+        }
+
+        if ($request->filled('maid_passport')) {
+            $passport = trim((string) $request->maid_passport);
+            $query->whereHas('contract.maid', function ($maidQuery) use ($passport) {
+                $maidQuery->whereRaw('LOWER(passport_num) LIKE ?', ['%' . mb_strtolower($passport) . '%']);
+            });
+        }
+
+        if ($request->filled('maid_nationality_id')) {
+            $query->whereHas('contract.maid', function ($maidQuery) use ($request) {
+                $maidQuery->where('nationality_id', $request->maid_nationality_id);
+            });
+        }
+
+        if ($request->filled('date_from')) {
+            $query->whereDate('created_at', '>=', $request->date_from);
+        }
+
+        if ($request->filled('date_to')) {
+            $query->whereDate('created_at', '<=', $request->date_to);
+        }
+
+        if ($request->filled('contract_number')) {
+            $query->whereHas('contract', function($q) use ($request) {
+                $q->where('id', 'like', '%' . $request->contract_number . '%');
+            });
+        }
+
+        if ($request->filled('old_sponsor')) {
+            $query->whereHas('oldSponsor', function($q) use ($request) {
+                $q->where('name', 'like', '%' . $request->old_sponsor . '%')
+                  ->orWhere('phone', 'like', '%' . $request->old_sponsor . '%');
+            });
+        }
+
+        if ($request->filled('new_sponsor')) {
+            $query->whereHas('newSponsor', function($q) use ($request) {
+                $q->where('name', 'like', '%' . $request->new_sponsor . '%')
+                  ->orWhere('phone', 'like', '%' . $request->new_sponsor . '%');
+            });
+        }
+
+        if ($request->filled('trial_days')) {
+            $query->where('trial_days', $request->trial_days);
+        }
+
+        if ($request->filled('amount')) {
+            $amountRange = explode('-', $request->amount);
+            if (count($amountRange) == 2) {
+                $query->whereBetween('contract_value', [$amountRange[0], $amountRange[1]]);
+            } elseif ($request->amount == '15000+') {
+                $query->where('contract_value', '>=', 15000);
+            }
+        }
+
+        $this->applyMarketerAndOfficeFilters($query, $request);
+
+        return $query;
+    }
+
+    private function indexDataTable($transfers, bool $canSendMoyasarLinks)
+    {
+        return DataTables::of($transfers)
+            ->addIndexColumn()
+            ->addColumn('contract_number', function($transfer) {
+                return $transfer->contract ? 'عقد رقم: ' . $transfer->contract->id : 'غير محدد';
+            })
+            ->addColumn('old_sponsor', function($transfer) {
+                if ($transfer->oldSponsor) {
+                    return '<div class="user-info">
+                                <strong>' . $transfer->oldSponsor->name . '</strong><br>
+                                <small class="text-muted">' . e($transfer->oldSponsor->documentNumberLabel()) . ': ' . e($transfer->oldSponsor->documentNumber() ?? 'غير محدد') . '</small><br>
+                                <small class="text-muted">جوال: ' . $transfer->oldSponsor->phone . '</small>
+                            </div>';
+                }
+                return 'غير محدد';
+            })
+            ->addColumn('new_sponsor', function($transfer) {
+                if ($transfer->newSponsor) {
+                    return '<div class="user-info">
+                                <strong>' . $transfer->newSponsor->name . '</strong><br>
+                                <small class="text-muted">' . e($transfer->newSponsor->documentNumberLabel()) . ': ' . e($transfer->newSponsor->documentNumber() ?? 'غير محدد') . '</small><br>
+                                <small class="text-muted">جوال: ' . $transfer->newSponsor->phone . '</small>
+                            </div>';
+                }
+                return 'غير محدد';
+            })
+            ->addColumn('maid_info', function($transfer) {
+                if ($transfer->contract && $transfer->contract->maid) {
+                    $maid = $transfer->contract->maid;
+                    return '<div class="maid-info">
+                                <strong>' . $maid->name . '</strong><br>
+                                <small class="text-muted">جواز: ' . ($maid->passport_num ?? 'غير محدد') . '</small><br>
+                                <small class="text-muted">جنسية: ' . ($maid->nationality->sub_title ?? $maid->nationality->title ?? 'غير محدد') . '</small>
+                            </div>';
+                }
+                return 'غير محدد';
+            })
+            ->addColumn('trial_days', function($transfer) {
+                return $transfer->trial_days . ' يوم';
+            })
+            ->addColumn('trial_start_date', function($transfer) {
+                return $transfer->effective_trial_start_date
+                    ? $transfer->effective_trial_start_date->format('Y-m-d')
+                    : 'غير محدد';
+            })
+            ->addColumn('trial_end_info', function($transfer) {
+                if ($transfer->trial_end_date) {
+                    $endDate = $transfer->trial_end_date;
+                    $daysRemaining = $transfer->trial_days_remaining;
+
+                    $html = '<div class="trial-info">';
+                    $html .= '<strong>تنتهي: ' . $endDate->format('Y-m-d') . '</strong><br>';
+
+                    if ($daysRemaining > 0) {
+                        $html .= '<small class="text-success">متبقي: ' . $daysRemaining . ' يوم</small>';
+                    } elseif ($daysRemaining == 0) {
+                        $html .= '<small class="text-warning">تنتهي اليوم</small>';
+                    } else {
+                        $html .= '<small class="text-danger">انتهت منذ: ' . abs($daysRemaining) . ' يوم</small>';
+                    }
+
+                    $html .= '</div>';
+                    return $html;
+                }
+                return 'غير محدد';
+            })
+            ->addColumn('contract_value', function($transfer) {
+                return number_format($transfer->contract_value, 2) . ' ريال';
+            })
+            ->addColumn('paid_amount', function($transfer) {
+                return number_format($transfer->paid_amount, 2) . ' ريال';
+            })
+            ->addColumn('remaining_amount', function($transfer) {
+                return number_format($transfer->remaining_amount, 2) . ' ريال';
+            })
+            ->addColumn('status', function($transfer) {
+                $badgeClass = '';
+                switch ($transfer->status) {
+                    case 'pending':
+                        $badgeClass = 'bg-warning';
+                        break;
+                    case 'waiting_contract_send':
+                        $badgeClass = 'bg-info';
+                        break;
+                    case 'contract_sent':
+                        $badgeClass = 'bg-primary';
+                        break;
+                    case 'contract_signed':
+                        $badgeClass = 'bg-success';
+                        break;
+                    case 'maid_delivered':
+                        $badgeClass = 'bg-success';
+                        break;
+                    case 'trial_started':
+                        $badgeClass = 'bg-primary';
+                        break;
+                    case 'approved':
+                        $badgeClass = 'bg-info';
+                        break;
+                    case 'trial':
+                        $badgeClass = 'bg-primary';
+                        break;
+                    case 'transferred':
+                        $badgeClass = 'bg-success';
+                        break;
+                    case 'failed':
+                        $badgeClass = 'bg-danger';
+                        break;
+                    case 'rejected':
+                        $badgeClass = 'bg-danger';
+                        break;
+                    case 'completed':
+                        $badgeClass = 'bg-success';
+                        break;
+                    default:
+                        $badgeClass = 'bg-secondary';
+                }
+                return '<span class="badge ' . $badgeClass . '">' . $transfer->status_text . '</span>';
+            })
+            ->addColumn('created_at', function($transfer) {
+                return $transfer->created_at ? $transfer->created_at->format('Y-m-d H:i') : 'غير محدد';
+            })
+            ->addColumn('actions', function($transfer) use ($canSendMoyasarLinks) {
+                $actions = '<div class="dropdown actions-dropdown">
+                                <button class="btn btn-sm btn-primary dropdown-toggle actions-btn" type="button" aria-expanded="false" title="الإجراءات المتاحة">
+                                    <i class="fas fa-cogs me-1"></i> الإجراءات
+                                </button>
+                                <ul class="dropdown-menu dropdown-menu-end shadow-lg">';
+
+                // عرض الطلب
+                $actions .= '<li><a class="dropdown-item" href="' . route('SponsorshipTransfer.show', $transfer->id) . '">
+                                <i class="fas fa-eye"></i> عرض التفاصيل
+                            </a></li>';
+
+                $actions .= '<li><hr class="dropdown-divider"></li>';
+                if ($transfer->invoice && InvoiceAuthorization::canView()) {
+                    $actions .= '<li><a class="dropdown-item" href="' . route('invoices.show', $transfer->invoice->id) . '">
+                                    <i class="fas fa-file-invoice text-success"></i> عرض الفاتورة
+                                </a></li>';
+                    if (InvoiceAuthorization::canPrint()) {
+                        $actions .= '<li><a class="dropdown-item" href="' . route('invoice.download', ['id' => $transfer->invoice->id, 'autoprint' => 1]) . '" target="_blank">
+                                        <i class="fas fa-print text-success"></i> تحميل / طباعة الفاتورة
+                                    </a></li>';
+                    }
+                } elseif ($transfer->canIssueInvoice() && InvoiceAuthorization::canCreateTransfer()) {
+                    $actions .= '<li><a class="dropdown-item fw-bold text-success" href="' . route('SponsorshipTransfer.invoice.create', $transfer->id) . '">
+                                    <i class="fas fa-file-invoice-dollar"></i> إصدار فاتورة نقل الخدمات
+                                </a></li>';
+                } elseif ($transfer->canIssueInvoice()) {
+                    $actions .= '<li><span class="dropdown-item text-muted" title="يتطلب صلاحية إضافة فاتورة لنقل الخدمات"><i class="fas fa-lock"></i> إصدار فاتورة نقل الخدمات — الصلاحية غير متاحة</span></li>';
+                }
+
+                if ($canSendMoyasarLinks && \App\Services\SponsorshipTransferMoyasarService::canSend($transfer)) {
+                    $actions .= '<li><button type="button" class="dropdown-item text-primary send-payment-link"
+                                    data-url="' . route('SponsorshipTransfer.sendPaymentLink', $transfer->id) . '"
+                                    data-client="' . e($transfer->newSponsor?->name ?? '') . '"
+                                    data-phone="' . e($transfer->newSponsor?->phone ?? '') . '">
+                                    <i class="fas fa-link"></i> ' . e(\App\Services\PaymentLinkDeliveryService::label($transfer)) . '
+                                </button></li>';
+                }
+
+                if ($transfer->payment_receipt_path) {
+                    $actions .= '<li><a class="dropdown-item" href="' . route('SponsorshipTransfer.attachment.download', [
+                        'id' => $transfer->id,
+                        'type' => 'payment-receipt',
+                    ]) . '">
+                                    <i class="fas fa-paperclip text-primary"></i> تحميل إيصال الدفع
+                                </a></li>';
+                }
+
+                if ($transfer->receiptBond) {
+                    $actions .= '<li><a class="dropdown-item" href="' . route('finance.bonds-print.show', [
+                        'bonds_print' => $transfer->receiptBond->id,
+                        'type' => 'qabd',
+                    ]) . '" target="_blank">
+                                    <i class="fas fa-file-arrow-down text-primary"></i> تحميل / طباعة سند القبض
+                                </a></li>';
+                }
+
+                if ($transfer->refundBond) {
+                    $actions .= '<li><a class="dropdown-item" href="' . route('finance.bonds-print.show', [
+                        'bonds_print' => $transfer->refundBond->id,
+                        'type' => 'sarf',
+                    ]) . '" target="_blank">
+                                    <i class="fas fa-file-arrow-up text-danger"></i> تحميل / طباعة سند الصرف
+                                </a></li>';
+                }
+
+                foreach (array_values((array) $transfer->attachments) as $attachmentIndex => $attachment) {
+                    if (empty($attachment['path'])) {
+                        continue;
+                    }
+
+                    $attachmentName = Str::limit((string) ($attachment['name'] ?? ('مرفق ' . ($attachmentIndex + 1))), 35);
+                    $actions .= '<li><a class="dropdown-item" href="' . route('SponsorshipTransfer.attachment.download', [
+                        'id' => $transfer->id,
+                        'type' => 'attachment',
+                        'index' => $attachmentIndex,
+                    ]) . '">
+                                    <i class="fas fa-download text-secondary"></i> تحميل: ' . e($attachmentName) . '
+                                </a></li>';
+                }
+
+                if ($transfer->failure_client_iban_attachment_path) {
+                    $actions .= '<li><a class="dropdown-item" href="' . route('SponsorshipTransfer.attachment.download', [
+                        'id' => $transfer->id,
+                        'type' => 'iban',
+                    ]) . '">
+                                    <i class="fas fa-download text-secondary"></i> تحميل مرفق الآيبان
+                                </a></li>';
+                }
+
+                // طباعة العقد (انتظار إرسال العقد)
+                if ($transfer->status == 'waiting_contract_send') {
+                    $actions .= '<li><hr class="dropdown-divider"></li>';
+                    $actions .= '<li><a class="dropdown-item" href="' . route('print.sponsorship-transfer-contract', $transfer->id) . '" target="_blank">
+                                    <i class="fas fa-print"></i> طباعة العقد
+                                </a></li>';
+                }
+
+                // تسجيل استلام العاملة مع تفعيل التجربة مباشرة
+                if (in_array($transfer->status, ['waiting_contract_send', 'contract_sent', 'contract_signed'])) {
+                    $actions .= '<li><a class="dropdown-item confirm-action" href="#" data-action="deliver-maid" data-id="' . $transfer->id . '" data-text="تسجيل استلام العاملة وتفعيل التجربة مباشرة">
+                                    <i class="fas fa-handshake"></i> تسجيل استلام العاملة
+                                </a></li>';
+                }
+
+                // بدء التجربة (تم تسليم العاملة)
+                if ($transfer->status == 'maid_delivered') {
+                    $actions .= '<li><a class="dropdown-item" href="' . route('SponsorshipTransfer.trial-details', $transfer->id) . '">
+                                    <i class="fas fa-play"></i> عرض تفاصيل التجربة
+                                </a></li>';
+                }
+
+                // تأكيد النقل (فقط إذا كان في فترة التجربة)
+                // if ($transfer->status == 'trial') {
+                //     $actions .= '<li><a class="dropdown-item confirm-action" href="#" data-action="confirm-transfer" data-id="' . $transfer->id . '" data-text="تأكيد نقل الخدمات">
+                //                     <i class="fas fa-check-circle"></i> تأكيد النقل
+                //                 </a></li>';
+                // }
+                if ($transfer->status == 'trial_started') {
+                    $actions .= '<li><a class="dropdown-item confirm-action" href="#" data-action="confirm-transfer" data-id="' . $transfer->id . '" data-text="تأكيد نقل الخدمات">
+                                    <i class="fas fa-check-circle"></i> تأكيد النقل
+                                </a></li>';
+                }
+
+                // إلغاء النقل (فقط إذا كان في فترة التجربة)
+                // if ($transfer->status == 'trial') {
+                //     $actions .= '<li><a class="dropdown-item confirm-action" href="#" data-action="cancel-transfer" data-id="' . $transfer->id . '" data-text="إلغاء النقل وإعادة العقد إلى الإيواء">
+                //                     <i class="fas fa-times-circle"></i> إلغاء النقل
+                //                 </a></li>';
+                // }
+                if ($transfer->status == 'trial_started') {
+                    $actions .= '<li><a class="dropdown-item cancel-transfer-action" href="#"
+                                    data-id="' . $transfer->id . '"
+                                    data-contract-value="' . (float) $transfer->contract_value . '"
+                                    data-paid-amount="' . (float) $transfer->paid_amount . '"
+                                    data-remaining-amount="' . (float) $transfer->remaining_amount . '">
+                                    <i class="fas fa-times-circle"></i> إلغاء النقل
+                                </a></li>';
+                }
+
+                // الرفض (فقط إذا كان في الانتظار)
+                if ($transfer->status == 'pending') {
+                    $actions .= '<li><a class="dropdown-item confirm-action" href="#" data-action="reject" data-id="' . $transfer->id . '" data-text="رفض الطلب">
+                                    <i class="fas fa-times"></i> رفض
+                                </a></li>';
+                }
+
+                if ($transfer->canEditDetails() && @AdminGuardHasPerm(\App\PermKeys::SPONSOR_TRANSFER_EDIT)) {
+                    $actions .= '<li><hr class="dropdown-divider"></li>';
+                    $actions .= '<li><a class="dropdown-item" href="' . route('SponsorshipTransfer.edit', $transfer->id) . '">
+                                    <i class="fas fa-edit"></i> تعديل
+                                </a></li>';
+                }
+
+                if ($transfer->canDeleteDetails() && @AdminGuardHasPerm(\App\PermKeys::SPONSOR_TRANSFER_DELETE)) {
+                    if (!($transfer->canEditDetails() && @AdminGuardHasPerm(\App\PermKeys::SPONSOR_TRANSFER_EDIT))) {
+                        $actions .= '<li><hr class="dropdown-divider"></li>';
+                    }
+
+                    $actions .= '<li><a class="dropdown-item text-danger confirm-action" href="#" data-action="destroy" data-id="' . $transfer->id . '" data-text="حذف الطلب من القائمة بدون حذفه نهائياً">
+                                    <i class="fas fa-trash"></i> حذف
+                                </a></li>';
+                }
+
+                $actions .= '</ul></div>';
+
+                return $actions;
+            })
+            ->rawColumns(['old_sponsor', 'new_sponsor', 'maid_info', 'trial_end_info', 'status', 'actions'])
+            ->make(true);
+    }
+
+    private const EXPORT_RELATIONS = [
+        'contract.maid.nationality',
+        'contract.maid.office',
+        'contract.info.manualMaidOffice',
+        'oldSponsor',
+        'newSponsor',
+        'marketer',
+    ];
+
+    /**
+     * فلترة بالمسوق وبالمكتب الخارجي للعاملة (مكتب ملف العاملة أو المكتب اليدوي في بيانات العقد).
+     */
+    private function applyMarketerAndOfficeFilters($query, Request $request): void
+    {
+        if ($request->filled('marketer_id')) {
+            $query->where('marketer_id', (int) $request->marketer_id);
+        }
+
+        if ($request->filled('office_id')) {
+            $officeId = (int) $request->office_id;
+            $query->whereHas('contract', function ($contractQuery) use ($officeId) {
+                $contractQuery->where(function ($officeQuery) use ($officeId) {
+                    $officeQuery->whereHas('maid', fn ($maidQuery) => $maidQuery->where('office_id', $officeId))
+                        ->orWhereHas('info', fn ($infoQuery) => $infoQuery->where('manual_maid_office_id', $officeId));
+                });
+            });
+        }
+    }
+
+    /**
+     * المسوقون الذين لهم طلبات نقل فعلاً، ليظهر في الفلتر حتى من توقف حسابه.
+     */
+    private function marketerFilterOptions()
+    {
+        return Admin::query()
+            ->whereIn('id', SponsorshipTransfer::query()->whereNotNull('marketer_id')->select('marketer_id'))
+            ->orderBy('name')
+            ->get(['id', 'name']);
+    }
+
+    private function officeFilterOptions()
+    {
+        return \App\Models\RecruitmentOffices::query()
+            ->orderBy('id')
+            ->get()
+            ->map(fn ($office) => ['id' => $office->id, 'title' => $office->title ?: ('مكتب #' . $office->id)]);
+    }
+
+    private function exportTransfersExcel($transfers, string $filePrefix)
+    {
+        $headers = [
+            'رقم الطلب',
+            'رقم العقد',
+            'الكفيل القديم',
+            'جوال الكفيل القديم',
+            'الكفيل الجديد',
+            'جوال الكفيل الجديد',
+            'هوية الكفيل الجديد',
+            'العاملة',
+            'رقم الجواز',
+            'الجنسية',
+            'المكتب الخارجي',
+            'المسوق',
+            'مدة التجربة (يوم)',
+            'بداية التجربة',
+            'نهاية التجربة',
+            'قيمة العقد',
+            'المدفوع',
+            'المتبقي',
+            'حالة الدفع',
+            'الحالة',
+            'تاريخ الطلب',
+            'تاريخ النقل',
+            'تاريخ الفشل',
+            'سبب الفشل',
+        ];
+
+        $rows = collect($transfers)->map(function (SponsorshipTransfer $transfer) {
+            $maid = $transfer->contract?->maid;
+            $office = $maid?->office ?? $transfer->contract?->info?->manualMaidOffice;
+            $oldSponsor = $transfer->oldSponsor;
+            $newSponsor = $transfer->newSponsor;
+
+            return [
+                $transfer->id,
+                $transfer->contract_id,
+                data_get($oldSponsor, 'name', ''),
+                data_get($oldSponsor, 'phone', ''),
+                $newSponsor?->name ?? '',
+                $newSponsor?->phone ?? '',
+                $newSponsor ? ($newSponsor->documentNumber() ?? '') : '',
+                $maid?->name ?? '',
+                $maid?->passport_num ?? '',
+                $maid?->nationality?->sub_title ?? $maid?->nationality?->title ?? '',
+                $office?->title ?? '',
+                $transfer->marketer?->name ?? '',
+                $transfer->trial_days,
+                $transfer->effective_trial_start_date?->format('Y-m-d') ?? '',
+                $transfer->trial_end_date?->format('Y-m-d') ?? '',
+                (float) $transfer->contract_value,
+                (float) $transfer->paid_amount,
+                (float) $transfer->remaining_amount,
+                $transfer->payment_status_text,
+                $transfer->status_text,
+                $transfer->created_at?->format('Y-m-d H:i') ?? '',
+                $transfer->transferred_at ? \Carbon\Carbon::parse($transfer->transferred_at)->format('Y-m-d H:i') : '',
+                $transfer->failed_at ? \Carbon\Carbon::parse($transfer->failed_at)->format('Y-m-d H:i') : '',
+                $transfer->failure_reason ?? '',
+            ];
+        });
+
+        $spreadsheet = new \PhpOffice\PhpSpreadsheet\Spreadsheet();
+        $sheet = $spreadsheet->getActiveSheet();
+        $sheet->setRightToLeft(true);
+        $sheet->fromArray($headers, null, 'A1');
+
+        $lastColumn = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex(count($headers));
+        $sheet->getStyle('A1:' . $lastColumn . '1')->applyFromArray([
+            'font' => ['bold' => true, 'size' => 12],
+            'alignment' => ['horizontal' => \PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER],
+            'fill' => [
+                'fillType' => \PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID,
+                'startColor' => ['rgb' => 'F2F2F2'],
+            ],
+        ]);
+
+        if ($rows->isNotEmpty()) {
+            $sheet->fromArray($rows->all(), null, 'A2', true);
+        }
+
+        foreach (range(1, count($headers)) as $columnIndex) {
+            $sheet->getColumnDimension(\PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($columnIndex))->setAutoSize(true);
+        }
+
+        $writer = new \PhpOffice\PhpSpreadsheet\Writer\Xlsx($spreadsheet);
+        $tempFile = tempnam(sys_get_temp_dir(), 'sponsorship_transfers_xlsx_');
+        $writer->save($tempFile);
+
+        return response()
+            ->download(
+                $tempFile,
+                $filePrefix . '_' . now()->format('Y-m-d_His') . '.xlsx',
+                ['Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet']
+            )
+            ->deleteFileAfterSend(true);
     }
 
     /**
@@ -2313,7 +2488,14 @@ class SponsorshipTransferController extends Controller
 
         $this->applyStatusListingFilters($baseQuery, $request, $page);
 
-        $stats = $this->buildStatusListingStats(clone $baseQuery, $page);
+        if ($request->query('export') === 'xlsx') {
+            $exportQuery = (clone $baseQuery)->with(self::EXPORT_RELATIONS);
+            $this->applyStatusListingSort($exportQuery, $request, $page);
+
+            return $this->exportTransfersExcel($exportQuery->get(), 'sponsorship_transfers_' . $page);
+        }
+
+        $stats =$this->buildStatusListingStats(clone $baseQuery, $page);
         $topFailureReasons = $page === 'failed'
             ? $this->getTopFailureReasons(clone $baseQuery)
             : collect();
@@ -2335,6 +2517,8 @@ class SponsorshipTransferController extends Controller
         $receiptAccounts = $page === 'trial'
             ? SponsorshipTransferPaymentService::receiptAccounts()
             : collect();
+        $marketers = $this->marketerFilterOptions();
+        $offices = $this->officeFilterOptions();
 
         return view($this->folderPath . '.status-overview', compact(
             'transfers',
@@ -2342,7 +2526,9 @@ class SponsorshipTransferController extends Controller
             'stats',
             'topFailureReasons',
             'filtersActive',
-            'receiptAccounts'
+            'receiptAccounts',
+            'marketers',
+            'offices'
         ));
     }
 
@@ -2501,6 +2687,8 @@ class SponsorshipTransferController extends Controller
             $query->whereNotNull('failure_reason')
                 ->where('failure_reason', '!=', '');
         }
+
+        $this->applyMarketerAndOfficeFilters($query, $request);
     }
 
     private function applyStatusListingSort($query, Request $request, string $page): void

@@ -2,6 +2,7 @@
 <style>
 .hourly-publication{position:relative;display:inline-flex;align-items:center;gap:5px;padding:5px 9px;border-radius:20px;font-size:11px;font-weight:600;line-height:1.5;cursor:help;background:#e8f6ed;color:#166534;white-space:nowrap}
 .hourly-publication.is-hidden{background:#fff0ed;color:#9f3020}
+.hourly-publication.is-warning{background:#fff7e0;color:#8a5a00}
 .hourly-publication:focus-visible{outline:2px solid #2563eb;outline-offset:2px}
 /* fixed حتى لا يقصّه overflow الجداول ولا تغطيه الصفوف التالية؛ موضعه يُحسب بالسكربت أدناه */
 .hourly-publication-tip{display:none;position:fixed;z-index:2000;width:300px;max-width:calc(100vw - 24px);max-height:60vh;overflow:auto;background:#172436;color:white;padding:12px 15px;border-radius:10px;box-shadow:0 10px 30px rgba(15,23,42,.3);white-space:normal;font-size:12px;line-height:1.8;text-align:start;font-weight:400;pointer-events:none}
@@ -47,8 +48,9 @@
 })();
 </script>
 @endonce
-<span class="hourly-publication {{ $report['visible'] ? '' : 'is-hidden' }}" tabindex="0" aria-describedby="{{ $badgeId }}" data-publication-key="{{ $badgeId }}" data-website-visible="{{ $report['visible'] ? '1' : '0' }}">
-    <i class="fa {{ $report['visible'] ? 'fa-eye' : 'fa-eye-slash' }}" aria-hidden="true"></i>
+@php $warn = $report['visible'] && !empty($report['warning']); @endphp
+<span class="hourly-publication {{ $report['visible'] ? ($warn ? 'is-warning' : '') : 'is-hidden' }}" tabindex="0" aria-describedby="{{ $badgeId }}" data-publication-key="{{ $badgeId }}" data-website-visible="{{ $report['visible'] ? '1' : '0' }}">
+    <i class="fa {{ $report['visible'] ? ($warn ? 'fa-triangle-exclamation' : 'fa-eye') : 'fa-eye-slash' }}" aria-hidden="true"></i>
     <span data-publication-label>{{ $report['visible'] ? 'يظهر في الموقع' : 'لا يظهر في الموقع' }}</span>
     <span class="hourly-publication-tip" role="tooltip" id="{{ $badgeId }}">@foreach($report['reasons'] as $reason)<span>{{ $reason }}</span>@endforeach</span>
 </span>

@@ -22,10 +22,9 @@ class ClientController extends Controller
             // طبقة الفئات: فئة متوقفة تُخفي عناصرها، وshow_packages/show_one_off تحدد ما يُعرض للعملاء.
             ->filter(fn($item)=>!($category=$rules->category($item)) || ($category->is_active && !$category->trashed() && $rules->visibleToCustomers($item)))->values();
         $items->load('cities');
-        if ($request->boolean('ready_only')) {
-            $catalog=app(\App\Services\Hourly\HourlyWebsiteCatalog::class);
-            $items=$items->filter(fn($item)=>$rules->category($item) && $catalog->readyDistricts($item)->contains('city_id',(int)$data['city_id']))->values();
-        }
+        // مثل الموقع: الباقة تظهر فقط إن كان لها في المدينة حي جاهز (فريق نشط وعاملات بالعدد المطلوب). ready_only باقٍ للتوافق.
+        $catalog=app(\App\Services\Hourly\HourlyWebsiteCatalog::class);
+        $items=$items->filter(fn($item)=>$catalog->readyInCity($item,(int)$data['city_id']))->values();
         return response()->json(['data'=>$items->map(fn($item)=>app(\App\Services\Hourly\CustomerHourlyData::class)->package($item))]);
     }
     public function package(Request $request, int $package)
@@ -38,6 +37,7 @@ class ClientController extends Controller
         $rules=app(\App\Services\Hourly\HourlyBookingRules::class);
         $category=$rules->category($item);
         abort_unless((!$category || ($category->is_active && !$category->trashed())) && $rules->visibleToCustomers($item),404,__('hourly_api.package_unavailable'));
+        abort_unless(app(\App\Services\Hourly\HourlyWebsiteCatalog::class)->readyInCity($item,(int)$data['city_id']),404,__('hourly_api.package_unavailable'));
         return response()->json(['data'=>app(\App\Services\Hourly\CustomerHourlyData::class)->package($item,$data['workers']??null,$data['quantity']??null)]);
     }
     public function cities()
