@@ -180,15 +180,27 @@ class HourlyWebsiteTest extends TestCase
         $this->postJson('/api/app/hourly/orders',$booking+['selected_maid_ids'=>[1,2]])->assertCreated();
     }
 
-    public function test_customer_package_ready_filter_is_opt_in_and_config_explains_selection(): void
+    public function test_customer_packages_hide_unready_items_and_config_explains_selection(): void
     {
         $booking=$this->fixture();$this->actingAs(User::findOrFail(1),'api');
-        $this->getJson('/api/app/hourly/packages?city_id=1&ready_only=1')->assertOk()->assertJsonCount(1,'data');
+        $this->getJson('/api/app/hourly/packages?city_id=1')->assertOk()->assertJsonCount(1,'data');
         $this->getJson('/api/app/hourly/packages/'.$booking['hourly_package_id'].'/config?city_id=1')->assertOk()
             ->assertJsonPath('data.customer_worker_selection',true)->assertJsonPath('data.worker_selection.request_field','selected_maid_ids');
         DB::table('maids')->where('id',1)->update(['is_show'=>false]);
-        $this->getJson('/api/app/hourly/packages?city_id=1&ready_only=1')->assertOk()->assertJsonCount(0,'data');
-        $this->getJson('/api/app/hourly/packages?city_id=1')->assertOk()->assertJsonCount(1,'data');
+        $this->getJson('/api/app/hourly/packages?city_id=1')->assertOk()->assertJsonCount(0,'data');
+        $this->getJson('/api/app/hourly/packages/'.$booking['hourly_package_id'].'?city_id=1')->assertNotFound();
+    }
+
+    public function test_district_without_active_team_hides_package(): void
+    {
+        $booking=$this->fixture();$this->actingAs(User::findOrFail(1),'api');
+        DB::table('hourly_category_district')->update(['team_id'=>null]);
+        DB::table('hourly_team_district')->delete();
+        $this->getJson('/api/app/hourly/packages?city_id=1')->assertOk()->assertJsonCount(0,'data');
+        $item=\App\Models\Hourly\HourlyPackage::findOrFail($booking['hourly_package_id']);
+        $report=app(\App\Services\Hourly\HourlyWebsiteCatalog::class)->publicationStatus($item);
+        $this->assertFalse($report['visible']);
+        $this->assertStringContainsString('بلا فريق نشط',implode(' ',$report['reasons']));
     }
 
     private function driverLocations(): void

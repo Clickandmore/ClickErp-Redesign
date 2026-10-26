@@ -86,6 +86,8 @@ class ComplaintController extends Controller
                 ->editColumn('status', function ($row) {
                     return $this->getStatusBadge($row->status);
                 })
+                // عمود status يصل للواجهة كشارة HTML، فحالة الإغلاق تُرسل منفصلة لإخفاء إجراءات الشكوى المغلقة.
+                ->addColumn('is_closed', fn ($row) => $row->isClosed())
                 ->editColumn('file', function ($row) {
                     return $row->file ? showFile($row->file) : null;
                 })

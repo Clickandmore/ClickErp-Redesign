@@ -129,7 +129,14 @@ class HourlyServiceCategoryController extends Controller
         $cities = \App\Models\City::saudi()->whereIn('id', $cityIds)->orderBy('sort_order')->orderBy('name_ar')->get(['id', 'name_ar', 'name_en']);
         $districts = \App\Models\Hourly\ServiceDistrict::whereIn('city_id', $cities->modelKeys())->orderBy('name')->get(['id', 'city_id', 'name', 'name_en', 'is_active'])->groupBy('city_id');
         $teams = \App\Models\Hourly\HourlyTeam::where(fn ($q) => $q->where('is_active', true)->orWhereIn('id', $links->pluck('team_id')->filter()))->orderBy('name')->get(['id', 'name', 'is_active']);
-        return ['coverageCities' => $cities, 'cityDistricts' => $districts, 'districtLinks' => $links, 'teams' => $teams];
+        // نفس قاعدة الحجز في assertDistrictCovered: فريق الربط النشط، وإلا أول فريق نشط للحي. حي بلا فريق لا تُقبل فيه الحجوزات.
+        $activeTeams = $teams->where('is_active', true)->pluck('id')->all();
+        $districtTeams = DB::table('hourly_team_district as td')->join('hourly_teams as t', 't.id', '=', 'td.hourly_team_id')
+            ->whereIn('td.district_id', $links->keys())->where('td.is_active', true)->where('t.is_active', true)
+            ->orderBy('t.id')->get(['td.district_id', 't.id', 't.name'])->groupBy('district_id')->map->first();
+        $effectiveTeams = $links->map(fn ($link) => $link->team_id && in_array($link->team_id, $activeTeams)
+            ? null : ($districtTeams[$link->district_id] ?? false));
+        return ['coverageCities' => $cities, 'cityDistricts' => $districts, 'districtLinks' => $links, 'teams' => $teams, 'districtTeams' => $effectiveTeams];
     }
 
     private function fill(HourlyServiceCategory $category, ServiceCategoryRequest $request): void

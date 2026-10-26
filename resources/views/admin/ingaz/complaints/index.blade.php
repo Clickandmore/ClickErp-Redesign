@@ -390,33 +390,103 @@
         }
 
         .complaint-actions .dropdown-menu {
+            background: #fff;
             border: 1px solid #e5e9f0;
-            border-radius: 10px;
-            box-shadow: 0 12px 28px rgba(34, 45, 76, .15);
-            min-width: 205px;
-            padding: 7px;
+            border-radius: 12px;
+            box-shadow: 0 16px 36px rgba(34, 45, 76, .18);
+            min-width: 215px;
+            padding: 6px;
             text-align: start;
             z-index: 1080;
         }
 
+        .complaint-actions__header {
+            align-items: center;
+            border-bottom: 1px solid #eef1f5;
+            display: flex;
+            gap: 8px;
+            justify-content: space-between;
+            margin: -2px -2px 6px;
+            padding: 6px 8px 8px;
+        }
+
+        .complaint-actions__closed {
+            align-items: center;
+            background: #eef1f5;
+            border-radius: 20px;
+            color: var(--cm-muted, #68778a);
+            display: inline-flex;
+            font-size: 11px;
+            font-weight: 600;
+            gap: 5px;
+            padding: 2px 9px;
+        }
+
         .complaint-actions .dropdown-item {
             align-items: center;
+            background: transparent;
             border: 0;
-            border-radius: 6px;
+            border-radius: 8px;
+            color: #34445a;
             display: flex;
-            gap: 9px;
+            font-size: 13px;
+            font-weight: 500;
+            gap: 10px;
+            margin-bottom: 2px;
             padding: 8px 10px;
             width: 100%;
         }
 
         .complaint-actions .dropdown-item i {
-            text-align: center;
-            width: 16px;
+            align-items: center;
+            border-radius: 6px;
+            display: inline-flex;
+            flex: 0 0 26px;
+            font-size: 12px;
+            height: 26px;
+            justify-content: center;
+        }
+
+        .complaint-actions .dropdown-item:hover,
+        .complaint-actions .dropdown-item:focus {
+            background: var(--cm-ice, #f3f6f9);
+        }
+
+        .complaint-actions .complaint-actions__primary {
+            color: var(--cm-teal, #0f6b6e);
+            font-weight: 600;
+        }
+
+        .complaint-actions .complaint-actions__primary i {
+            background: rgba(15, 107, 110, .1);
+        }
+
+        .complaint-actions .complaint-actions__primary:hover {
+            background: rgba(15, 107, 110, .08);
+        }
+
+        .complaint-actions .complaint-actions__item--success i {
+            background: rgba(25, 135, 84, .1);
+            color: #198754;
+        }
+
+        .complaint-actions .complaint-actions__item--warning i {
+            background: rgba(255, 159, 28, .14);
+            color: #c77700;
+        }
+
+        .complaint-actions .dropdown-item.text-danger i {
+            background: rgba(185, 91, 90, .1);
         }
 
         .complaint-actions .dropdown-item.text-danger:hover {
             background: #f8ecec;
             color: var(--danger, #b95b5a) !important;
+        }
+
+        .complaint-actions .dropdown-divider {
+            border-color: #eef1f5;
+            margin: 5px 2px;
         }
 
         .actions-trigger {
@@ -1054,34 +1124,41 @@
                         data: 'actions',
                         orderable: false,
                         searchable: false,
+                        // all: لا ينتقل عمود الإجراءات إلى صف التفاصيل المطوي عند ضيق الشاشة
+                        className: 'all text-center',
+                        responsivePriority: 1,
                         render: function (data, type, row) {
                             let actions = '<div class="action-buttons">';
-                            let isClosed = (row.status === 'closed' || row.status === 'resolved' || row.status === 'rejected');
+                            let isClosed = row.is_closed === true;
 
                             actions += '<div class="dropdown complaint-actions">';
-                            actions += '<button class="btn btn-sm actions-trigger" type="button" data-bs-toggle="dropdown" aria-expanded="false">';
+                            // strategy fixed تُخرج القائمة من حدود الجدول فلا تختفي تحت الصف التالي
+                            actions += '<button class="btn btn-sm actions-trigger" type="button" data-bs-toggle="dropdown" data-bs-popper-config=\'{"strategy":"fixed"}\' aria-expanded="false">';
                             actions += '<i class="fas fa-sliders-h"></i><span>' + complaintsTranslations.actions + '</span><i class="fas fa-chevron-down"></i></button>';
                             actions += '<div class="dropdown-menu dropdown-menu-end">';
-                            actions += '<a href="' + complaintUrl('show', row.id) + '" class="dropdown-item">';
-                            actions += '<i class="fas fa-eye click-accent"></i>' + complaintsTranslations.viewDetails + '</a>';
+                            actions += '<div class="complaint-actions__header">';
+                            actions += '<span class="ticket-number">#' + String(row.id).padStart(6, '0') + '</span>';
+                            if (isClosed) {
+                                actions += '<span class="complaint-actions__closed"><i class="fas fa-lock"></i>مغلقة</span>';
+                            }
+                            actions += '</div>';
+                            actions += '<a href="' + complaintUrl('show', row.id) + '" class="dropdown-item complaint-actions__primary">';
+                            actions += '<i class="fas fa-eye"></i>' + complaintsTranslations.viewDetails + '</a>';
 
                             if (!isClosed) {
-
                                 if (complaintPermissions.respond) {
-                                    actions += '<div class="dropdown-divider"></div>';
-                                    actions += '<button type="button" class="dropdown-item quick-response" data-id="' + row.id + '">';
-                                    actions += '<i class="fas fa-reply text-success"></i>' + complaintsTranslations.quickResponse + '</button>';
+                                    actions += '<button type="button" class="dropdown-item complaint-actions__item--success quick-response" data-id="' + row.id + '">';
+                                    actions += '<i class="fas fa-reply"></i>' + complaintsTranslations.quickResponse + '</button>';
                                 }
                                 if (complaintPermissions.edit) {
-                                    actions += '<a href="' + complaintUrl('edit', row.id) + '" class="dropdown-item">';
-                                    actions += '<i class="fas fa-edit text-warning"></i>' + complaintsTranslations.edit + '</a>';
+                                    actions += '<a href="' + complaintUrl('edit', row.id) + '" class="dropdown-item complaint-actions__item--warning">';
+                                    actions += '<i class="fas fa-edit"></i>' + complaintsTranslations.edit + '</a>';
                                 }
                                 if (complaintPermissions.delete) {
                                     actions += '<div class="dropdown-divider"></div>';
                                     actions += '<button type="button" class="dropdown-item text-danger delete-complaint" data-id="' + row.id + '">';
                                     actions += '<i class="fas fa-trash"></i>' + complaintsTranslations.delete + '</button>';
                                 }
-
                             }
 
                             actions += '</div></div></div>';

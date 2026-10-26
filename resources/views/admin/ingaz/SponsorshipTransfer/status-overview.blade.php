@@ -978,6 +978,8 @@
                 'expired' => 'منتهية',
             ][request('trial_state')] ?? request('trial_state') : null,
             'سبب الفشل' => request('failure_reason'),
+            'المسوق' => request('marketer_id') ? optional($marketers->firstWhere('id', (int) request('marketer_id')))->name : null,
+            'المكتب الخارجي' => request('office_id') ? data_get($offices->firstWhere('id', (int) request('office_id')), 'title') : null,
             'الترتيب حسب' => request('sort') ? ($pageConfig['sort_options'][request('sort')] ?? request('sort')) : null,
             'الاتجاه' => request('direction') ? (request('direction') === 'asc' ? 'تصاعدي' : 'تنازلي') : null,
         ])->filter(fn ($value) => filled($value));
@@ -1102,6 +1104,25 @@
                                 </select>
                             </div>
 
+                            <div class="col-md-3">
+                                <label class="form-label">المسوق</label>
+                                <select class="form-select" name="marketer_id">
+                                    <option value="">كل المسوقين</option>
+                                    @foreach($marketers as $marketer)
+                                        <option value="{{ $marketer->id }}" {{ (string) request('marketer_id') === (string) $marketer->id ? 'selected' : '' }}>{{ $marketer->name }}</option>
+                                    @endforeach
+                                </select>
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label">المكتب الخارجي</label>
+                                <select class="form-select" name="office_id">
+                                    <option value="">كل المكاتب</option>
+                                    @foreach($offices as $office)
+                                        <option value="{{ $office['id'] }}" {{ (string) request('office_id') === (string) $office['id'] ? 'selected' : '' }}>{{ $office['title'] }}</option>
+                                    @endforeach
+                                </select>
+                            </div>
+
                             @if($pageConfig['page'] === 'trial')
                                 <div class="col-md-3">
                                     <label class="form-label">حالة التجربة</label>
@@ -1130,6 +1151,9 @@
                             <a href="{{ $pageConfig['route'] }}" class="btn btn-light border">
                                 <i class="fas fa-times me-2"></i>{{ helperTrans("ingaz.clear_filters") }}
                             </a>
+                            <button type="submit" name="export" value="xlsx" class="btn btn-success px-4">
+                                <i class="fas fa-file-excel me-2"></i>تصدير Excel
+                            </button>
                         </div>
                     </form>
                 </div>

@@ -21,6 +21,10 @@
     @if ($districtLinks->isEmpty())
         <div class="ht-note ht-note-warn mb-3"><i class="fa fa-triangle-exclamation mt-1"></i><div>{{ __('hourly_category_ui.no_links') }}</div></div>
     @endif
+    @php $teamless = $districtTeams->filter(fn ($team) => $team === false)->count(); @endphp
+    @if ($teamless)
+        <div class="ht-note ht-note-warn mb-3"><i class="fa fa-triangle-exclamation mt-1"></i><div>{{ __('hourly_category_ui.teamless_districts', ['count' => $teamless]) }}</div></div>
+    @endif
     <div class="row g-3">
         @foreach ($coverageCities as $city)
             @php
@@ -66,7 +70,16 @@
                                             @php $link = $districtLinks[$district->id]; @endphp
                                             <tr data-district-row data-search="{{ mb_strtolower($district->name.' '.$district->name_en.' '.($teamNames[$link->team_id] ?? '')) }}">
                                                 <td><strong>{{ (app()->getLocale()==='en' ? ($district->name_en ?: $district->name) : $district->name) }}</strong>@unless ($district->is_active)<div class="small text-warning">{{ __('hourly_category_ui.directory_inactive') }}</div>@endunless</td>
-                                                <td data-team-name>{{ $link->team_id ? ($teamNames[$link->team_id] ?? '—') : __('hourly_category_ui.no_team') }}</td>
+                                                {{-- $fallback: null = فريق الربط نشط، كائن = فريق الحي يُستخدم بدلًا منه، false = لا فريق نشط --}}
+                                                @php $fallback = $districtTeams[$district->id] ?? null; @endphp
+                                                <td data-team-name>
+                                                    {{ $link->team_id ? ($teamNames[$link->team_id] ?? '—') : __('hourly_category_ui.no_team') }}
+                                                    @if ($fallback === false)
+                                                        <div class="small text-danger"><i class="fa fa-triangle-exclamation"></i> {{ __('hourly_category_ui.no_active_team') }}</div>
+                                                    @elseif ($fallback)
+                                                        <div class="small text-muted">{{ __('hourly_category_ui.district_team_used', ['team' => $fallback->name]) }}</div>
+                                                    @endif
+                                                </td>
                                                 <td>
                                                     <button type="button" class="ht-toggle" role="switch" aria-checked="{{ $link->is_active ? 'true' : 'false' }}" aria-label="{{ __('hourly_category_ui.status') }} {{ (app()->getLocale()==='en' ? ($district->name_en ?: $district->name) : $district->name) }}"
                                                             data-link-url="{{ route('admin.hourly-category-districts.update', [$category, $district]) }}" {{ $canEdit ? '' : 'disabled' }}><span>{{ $link->is_active ? '✓' : '' }}</span></button>

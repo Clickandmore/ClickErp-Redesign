@@ -36,19 +36,16 @@ class HourlyWebsiteCatalog
         if ($districts->isEmpty()) return ['visible'=>false,'reasons'=>['لا يوجد حي تغطية مفعّل ضمن مدن الباقة ونطاق التشغيل.']];
         if (!Schema::hasTable('maids')) return ['visible'=>false,'reasons'=>['لم تُهيأ بيانات العاملات.']];
         $hasTeam=false;$hasEligible=false;$hiddenWorkers=false;$hiddenNationalities=false;$seenTeams=[];
-        $required=$this->requiredWorkers($item);$best=null;$withoutSchedule=false;
+        $required=$this->requiredWorkers($item);$best=null;$withoutSchedule=false;$shown=false;$teamless=[];
         foreach ($districts as $district) {
             [, $coverage]=$rules->assertDistrictCovered($category,(int)$district->city_id,null,null,null,$district->id);
-            if (!$coverage?->team_id) continue;
+            if (!$coverage?->team_id) { $teamless[]=$district->name; continue; }
             $hasTeam=true;
-            if (isset($seenTeams[$coverage->team_id])) continue;
+            if ($shown || isset($seenTeams[$coverage->team_id])) continue;
             $seenTeams[$coverage->team_id]=true;
             $visible=$this->candidates($item,$district);
             $ready=$visible->filter(fn($worker)=>$this->hasWorkDay($worker));
-            if ($ready->count()>=$required) return ['visible'=>true,'reasons'=>[
-                'الباقة وفئتها مفعّلتان، ولها في الموقع عاملات ظاهرات بالعدد الذي تحتاجه كل زيارة ('.$required.').',
-                'تظهر بعد تسجيل الدخول واختيار المدينة المناسبة، ولا تُعرض إلا الأوقات التي يتوفر فيها هذا العدد فعلًا.',
-            ]];
+            if ($ready->count()>=$required) { $shown=true; continue; }
             if ($visible->isNotEmpty() && (!$best || $ready->count()>$best[1])) $best=[$district->name,$ready->count()];
             $withoutSchedule=$withoutSchedule || $ready->count()<$visible->count();
             $eligible=app(HourlyWorkerAssignment::class)->candidates($item,$coverage->team_id,
@@ -57,6 +54,13 @@ class HourlyWebsiteCatalog
             if (Schema::hasColumn('maids','is_show')) $hiddenWorkers=$hiddenWorkers || $eligible->contains(fn($worker)=>!$worker->is_show);
             if (Schema::hasColumn('nationalities','is_show')) $hiddenNationalities=$hiddenNationalities || $eligible->contains(fn($worker)=>$worker->nationality && !$worker->nationality->is_show);
         }
+        // حي مغطى بلا فريق نشط يرفض الحجز برسالة «لا توجد عاملات»، فننبه إليه حتى لو ظهرت الباقة بأحياء أخرى.
+        $teamlessNote=$teamless ? ['أحياء مغطاة بلا فريق نشط، لا تُقبل فيها الحجوزات: '.implode('، ',$teamless).'. اربطها بفريق من مناطق الخدمة في الفئة أو من فرق الحي.'] : [];
+        if ($shown) return ['visible'=>true,'warning'=>(bool)$teamless,'reasons'=>array_merge([
+            'الباقة وفئتها مفعّلتان، ولها في الموقع عاملات ظاهرات بالعدد الذي تحتاجه كل زيارة ('.$required.').',
+            'تظهر بعد تسجيل الدخول واختيار المدينة المناسبة، ولا تُعرض إلا الأوقات التي يتوفر فيها هذا العدد فعلًا.',
+        ],$teamlessNote)];
+        $reasons=array_merge($reasons,$teamlessNote);
         if ($best) {
             $reasons[]='عدد العاملات المطلوب لكل زيارة: '.$required.'، وأعلى عدد جاهز في أحياء التغطية: '.$best[1].' ('.$best[0].').';
             if ($withoutSchedule) $reasons[]='بعض العاملات المؤهلات جداول عملهن كلها إجازة، فلا يُحتسبن.';
@@ -75,8 +79,9 @@ class HourlyWebsiteCatalog
     {
         $reports ??= $category->packages()->with(['cities','serviceCategory'])->get()->map(fn($item)=>$this->publicationStatus($item))->all();
         $shown=collect($reports)->where('visible',true)->count();
-        return ['visible'=>$shown>0,'reasons'=>$shown>0
-            ? [($shown===1 ? 'تظهر الخدمة لأن لديها باقة واحدة تستوفي شروط الظهور في الموقع.' : 'تظهر الخدمة لأن عدد باقاتها التي تستوفي شروط الظهور في الموقع: '.$shown.'.'),'الحجز يتطلب تسجيل الدخول واختيار مدينة مغطاة.']
+        $warnings=collect($reports)->where('warning',true)->map(fn($report)=>end($report['reasons']))->unique()->values()->all();
+        return ['visible'=>$shown>0,'warning'=>(bool)$warnings,'reasons'=>$shown>0
+            ? array_merge([($shown===1 ? 'تظهر الخدمة لأن لديها باقة واحدة تستوفي شروط الظهور في الموقع.' : 'تظهر الخدمة لأن عدد باقاتها التي تستوفي شروط الظهور في الموقع: '.$shown.'.'),'الحجز يتطلب تسجيل الدخول واختيار مدينة مغطاة.'],$warnings)
             : (count($reports) ? array_values(array_unique(array_merge(...array_column($reports,'reasons')))) : ['لا توجد باقات مرتبطة بهذه الخدمة.'])];
     }
 
@@ -147,6 +152,15 @@ class HourlyWebsiteCatalog
     public function readyWorkers(HourlyPackage $item, ServiceDistrict $district)
     {
         return $this->candidates($item,$district)->filter(fn($worker)=>$this->hasWorkDay($worker))->values();
+    }
+
+    /** هل للباقة حي جاهز في المدينة؟ شرط عرضها للعميل في التطبيق والموقع. */
+    public function readyInCity(HourlyPackage $item, int $cityId): bool
+    {
+        if (!$item->serviceCategory) return false;
+        $required=$this->requiredWorkers($item);
+        return $this->districts($item)->where('city_id',$cityId)
+            ->contains(fn($district)=>$this->readyWorkers($item,$district)->count()>=$required);
     }
 
     /** أحياء التغطية التي فيها العدد المطلوب من العاملات الجاهزات؛ غيرها لا يُعرض للعميل. */
