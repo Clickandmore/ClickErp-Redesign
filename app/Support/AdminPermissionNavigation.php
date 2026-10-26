@@ -165,6 +165,7 @@ final class AdminPermissionNavigation
         'settings' => ['settings', 'إعدادات لوحة التحكم'],
         'company_settings' => ['settings', 'إعدادات الشركة'],
         'moyasar_settings' => ['settings', 'إعدادات بوابة ميسر'],
+        'moyasar_reports' => ['finance', 'تقارير مدفوعات ميسر'],
         'developers' => ['settings', 'صلاحيات المطور'],
         'admins' => ['users_management', 'المشرفون'],
         'users' => ['users_management', 'المستخدمون'],

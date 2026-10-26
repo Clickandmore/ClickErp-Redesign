@@ -223,6 +223,9 @@
                                         <option value="mada" {{ $selectedPaymentType === 'mada' ? 'selected' : '' }}>مدى</option>
                                         <option value="tabby" {{ $selectedPaymentType === 'tabby' ? 'selected' : '' }}>تابي</option>
                                         <option value="tamara" {{ $selectedPaymentType === 'tamara' ? 'selected' : '' }}>تمارا</option>
+                                        @if (\App\Support\MoyasarSettings::isEnabled() || $selectedPaymentType === 'moyasar')
+                                            <option value="moyasar" {{ $selectedPaymentType === 'moyasar' ? 'selected' : '' }}>ميسر: فيزا، مدى، ماستر كارد، أبل باي</option>
+                                        @endif
                                         <option value="pay_later" {{ $selectedPaymentType === 'pay_later' ? 'selected' : '' }}>الدفع لاحقاً</option>
                                         <option value="other" {{ $selectedPaymentType === 'other' ? 'selected' : '' }}>أخرى</option>
                                     </select>
@@ -262,6 +265,20 @@
                                         <div class="form-text text-danger">لا توجد حسابات بنك أو صندوق أو محفظة صالحة في الدليل المحاسبي.</div>
                                     @else
                                         <div class="form-text">سيُصدر سند القبض على هذا الحساب ويرتبط بطلب نقل الخدمات والعميل.</div>
+                                    @endif
+                                </div>
+                                <div class="col-12 d-none" id="moyasar_payment_hint">
+                                    @if ($isEditMode && !empty($transfer->moyasar_invoice_id))
+                                        <div class="alert alert-warning mb-0">
+                                            <i class="fas fa-lock me-1"></i>
+                                            أُنشئت فاتورة ميسر لهذا الطلب؛ طريقة الدفع وحالته والمبالغ تُحدّث من ميسر فقط.
+                                        </div>
+                                    @else
+                                        <div class="alert alert-info mb-0">
+                                            <i class="fas fa-credit-card me-1"></i>
+                                            بعد الحفظ يُنشأ رابط دفع ميسر بقيمة المتبقي ويُرسل للعميل الجديد برسالة نصية.
+                                            يُسجَّل السداد وسند القبض على الحساب المختار تلقائياً عند تأكيد ميسر، لذلك يبقى المدفوع صفراً والحالة "معلق".
+                                        </div>
                                     @endif
                                 </div>
                                 <div class="col-12">
@@ -401,17 +418,35 @@ $(document).ready(function() {
     });
 
     function syncPaymentReceiptRequirement() {
+        const isMoyasar = $('#payment_type').val() === 'moyasar';
+        const moyasarLocked = {{ $isEditMode && !empty($transfer->moyasar_invoice_id) ? 'true' : 'false' }};
+        // ميسر: السداد يُسجل من البوابة، فالمدفوع صفر والحالة معلق ما لم تُنشأ الفاتورة بعد.
+        if (isMoyasar && !moyasarLocked) {
+            $('#payment_status').val('pending');
+            $('#paid_amount').val(0).trigger('input');
+        }
+        $('#payment_status, #paid_amount').prop('readonly', isMoyasar)
+            .toggleClass('bg-light', isMoyasar);
+        $('#payment_status option').prop('disabled', function () {
+            return isMoyasar && this.value !== $('#payment_status').val();
+        });
+        $('#moyasar_payment_hint').toggleClass('d-none', !isMoyasar);
+        if (moyasarLocked) {
+            $('#payment_type option').prop('disabled', function () { return this.value !== 'moyasar'; });
+            $('#contract_value').prop('readonly', true).addClass('bg-light');
+        }
+
         const paymentStatus = $('#payment_status').val();
         const hasSavedReceipt = {{ $isEditMode && !empty($transfer->payment_receipt_path) ? 'true' : 'false' }};
         const isPaid = paymentStatus === 'paid' || paymentStatus === 'partial';
-        const receiptRequired = isPaid && !hasSavedReceipt;
+        const receiptRequired = isPaid && !hasSavedReceipt && !isMoyasar;
         $('#payment_receipt').prop('required', receiptRequired);
         $('#payment_receipt_hint').toggleClass('d-none', !receiptRequired);
-        $('#receipt_account_wrapper').toggleClass('d-none', !isPaid);
-        $('#receipt_account_id').prop('required', isPaid);
+        $('#receipt_account_wrapper').toggleClass('d-none', !isPaid && !isMoyasar);
+        $('#receipt_account_id').prop('required', isPaid || isMoyasar);
     }
 
-    $('#payment_status').on('change', syncPaymentReceiptRequirement);
+    $('#payment_status, #payment_type').on('change', syncPaymentReceiptRequirement);
     syncPaymentReceiptRequirement();
 
     function escapeHtml(value) {

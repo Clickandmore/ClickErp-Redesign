@@ -756,4 +756,5 @@
             }
         });
     </script>
+    @include('admin.ingaz.payment-link-modal')
 @endsection

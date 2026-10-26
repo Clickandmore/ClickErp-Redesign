@@ -29,6 +29,13 @@ class SyncMoyasarRefunds extends Command
                 foreach($rows as $row){try{app($service)->synchronize($row);$count++;}catch(\Throwable $e){report($e);$failed++;$this->error(class_basename($row).' #'.$row->id.' failed; see application log.');}}
             });
         }
+        if (\App\Services\SponsorshipTransferMoyasarService::isAvailable()) {
+            $query=\App\Models\SponsorshipTransfer::withTrashed()->whereNotNull('moyasar_invoice_id');
+            if($this->option('invoice'))$query->where('moyasar_invoice_id',$this->option('invoice'));
+            $query->chunkById(100,function($rows)use(&$count,&$failed){
+                foreach($rows as $row){try{app(\App\Services\SponsorshipTransferMoyasarService::class)->synchronize($row);$count++;}catch(\Throwable $e){report($e);$failed++;$this->error('SponsorshipTransfer #'.$row->id.' failed; see application log.');}}
+            });
+        }
         $this->info("Synchronized: {$count}; failed: {$failed}");
         return $failed ? 1 : 0;
     }

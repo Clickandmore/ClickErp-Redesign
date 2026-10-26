@@ -62,6 +62,7 @@ class RentalContractInfo extends Model
         'moyasar_payment_url',
         'moyasar_payment_status',
         'payment_link_sent_at',
+        'payment_link_sent_channel',
         'moyasar_paid_at',
         'legacy_start_date_hijri',
         'legacy_end_date_hijri',

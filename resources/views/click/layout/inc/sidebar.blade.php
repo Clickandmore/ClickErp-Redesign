@@ -830,6 +830,7 @@
                 @php
                     $isFinance =
                         request()->is('finance*') ||
+                        request()->routeIs('moyasar-payments.*') ||
                         request()->routeIs('commissions.finance.*') ||
                         request()->routeIs('commissions.marketers.payments.*');
                 @endphp
@@ -859,8 +860,7 @@
                         request()->routeIs('about-us.*') ||
                         request()->routeIs('questions.*') ||
                         request()->routeIs('dash.settings*');
-                    $isMoyasarSettingsRoute = request()->routeIs('moyasar-settings.*');
-                    $settingsOperationOpen = $isDashboardSettings || $websiteManagementOpen || $isMoyasarSettingsRoute;
+                    $settingsOperationOpen = $isDashboardSettings || $websiteManagementOpen;
                 @endphp
                 <li class="{{ $settingsOperationOpen ? '' : 'collapsed' }}">
                     <a class="m-link" data-bs-toggle="collapse" data-bs-target="#settingsOperation" href="#">
@@ -878,15 +878,7 @@
                                 </a>
                             </li>
                         @endif
-                        @if (@AdminGuardHasPerm(\App\PermKeys::MOYASAR_SETTINGS))
-                            <li>
-                                <a class="m-link {{ $isMoyasarSettingsRoute ? 'active' : '' }}"
-                                    href="{{ route('moyasar-settings.edit') }}">
-                                    <i class="fa fa-credit-card"></i>
-                                    <span class="ms-2">إعدادات ميسر</span>
-                                </a>
-                            </li>
-                        @endif
+                        {{-- إعدادات ميسر في لوحة Super Admin، وتقاريرها ضمن موديول المالية. --}}
 
                         <li class="{{ $websiteManagementOpen ? '' : 'collapsed' }}">
                             <a class="m-link" data-bs-toggle="collapse" data-bs-target="#websiteManagement"

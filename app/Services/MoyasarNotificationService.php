@@ -22,6 +22,10 @@ class MoyasarNotificationService
         if ($order) { app(RentalOrderPaymentService::class)->synchronize($order); return; }
         $hourly = HourlyOrderPayment::where('provider','moyasar')->where('provider_reference',$reference)->first();
         if ($hourly) { app(HourlyPaymentService::class)->synchronize($hourly); return; }
+        if (SponsorshipTransferMoyasarService::isAvailable()) {
+            $transfer = \App\Models\SponsorshipTransfer::withTrashed()->where('moyasar_invoice_id',$reference)->first();
+            if ($transfer) { app(SponsorshipTransferMoyasarService::class)->synchronize($transfer); return; }
+        }
         $contracts = app(MoyasarContractPaymentService::class);
         $payment = $contracts->resolve($reference);
         if ($payment) $contracts->synchronize($payment);

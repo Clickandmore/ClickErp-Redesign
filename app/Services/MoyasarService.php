@@ -28,7 +28,7 @@ class MoyasarService
      * @param  array  $metadata      بيانات إضافية تُحفظ مع الدفعة
      * @return array{id: string, url: string}|null
      */
-    public function createPaymentLink(float $amount, string $description, string $callbackUrl, array $metadata = []): ?array
+    public function createPaymentLink(float $amount, string $description, string $callbackUrl, array $metadata = [], ?string $successUrl = null): ?array
     {
         if (!MoyasarSettings::isEnabled()) {
             Log::info('Moyasar createPaymentLink skipped because gateway is disabled');
@@ -42,10 +42,14 @@ class MoyasarService
         $payload = [
             'amount'       => $amountInHalala,
             'currency'     => 'SAR',
-            'description'  => $description,
+            'description'  => MoyasarSettings::invoiceDescription($description),
             'callback_url' => $callbackUrl,
             'metadata'     => $metadata,
         ];
+        // يعيد العميل بعد السداد إلى صفحة التأكيد بدل بقائه في صفحة ميسر.
+        if ($successUrl !== null) {
+            $payload['success_url'] = $successUrl;
+        }
 
         try {
             $response = Http::withBasicAuth($this->secretKey, '')
@@ -128,6 +132,93 @@ class MoyasarService
 
         } catch (\Throwable $e) {
             Log::error('Moyasar getInvoice exception', [
+                'invoice_id' => $invoiceId,
+                'message'    => $e->getMessage(),
+            ]);
+
+            return null;
+        }
+    }
+
+    /**
+     * يتحقق من المفتاح السري المحفوظ بطلب قراءة خفيف؛ لا يُنشئ أي فاتورة.
+     *
+     * @return array{ok: bool, message: string}
+     */
+    public function testConnection(): array
+    {
+        if ($this->secretKey === '') {
+            return ['ok' => false, 'message' => 'لا يوجد مفتاح سري محفوظ. احفظ المفاتيح أولاً ثم أعد الاختبار.'];
+        }
+
+        try {
+            $response = Http::withBasicAuth($this->secretKey, '')
+                ->timeout(15)
+                ->get("{$this->baseUrl}/invoices", ['per' => 1]);
+        } catch (\Throwable $e) {
+            Log::warning('Moyasar testConnection exception', ['message' => $e->getMessage()]);
+
+            return ['ok' => false, 'message' => 'تعذر الوصول إلى ميسر. تحقق من رابط API واتصال الخادم بالإنترنت.'];
+        }
+
+        return match (true) {
+            $response->successful() => ['ok' => true, 'message' => 'تم الاتصال بميسر بنجاح، والمفتاح السري صالح.'],
+            in_array($response->status(), [401, 403], true) => ['ok' => false, 'message' => 'رفضت ميسر المفتاح السري. تأكد من نسخه كاملاً من لوحة ميسر.'],
+            default => ['ok' => false, 'message' => 'ردت ميسر برمز ' . $response->status() . '. راجع رابط API.'],
+        };
+    }
+
+    /**
+     * يميّز الفاتورة غير الموجودة لدى الحساب الحالي (404، كتغيير المفاتيح) عن تعذر الاتصال.
+     *
+     * @return array{found: ?bool, invoice: ?array} found=null عند تعذر التحقق
+     */
+    public function lookupInvoice(string $invoiceId): array
+    {
+        try {
+            $response = Http::withBasicAuth($this->secretKey, '')
+                ->timeout(15)
+                ->get("{$this->baseUrl}/invoices/{$invoiceId}");
+
+            if ($response->successful()) {
+                return ['found' => true, 'invoice' => $response->json()];
+            }
+
+            return ['found' => $response->status() === 404 ? false : null, 'invoice' => null];
+        } catch (\Throwable $e) {
+            Log::error('Moyasar lookupInvoice exception', [
+                'invoice_id' => $invoiceId,
+                'message'    => $e->getMessage(),
+            ]);
+
+            return ['found' => null, 'invoice' => null];
+        }
+    }
+
+    /**
+     * إلغاء فاتورة ميسر غير مدفوعة حتى لا يبقى رابطها صالحًا بعد إغلاق السجل.
+     */
+    public function cancelInvoice(string $invoiceId): ?array
+    {
+        try {
+            $response = Http::withBasicAuth($this->secretKey, '')
+                ->timeout(15)
+                ->put("{$this->baseUrl}/invoices/{$invoiceId}/cancel");
+
+            if ($response->successful()) {
+                return $response->json();
+            }
+
+            Log::warning('Moyasar cancelInvoice failed', [
+                'invoice_id' => $invoiceId,
+                'status'     => $response->status(),
+                'body'       => $response->body(),
+            ]);
+
+            return null;
+
+        } catch (\Throwable $e) {
+            Log::error('Moyasar cancelInvoice exception', [
                 'invoice_id' => $invoiceId,
                 'message'    => $e->getMessage(),
             ]);

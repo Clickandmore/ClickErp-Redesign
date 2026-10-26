@@ -175,7 +175,6 @@
                     $canViewCvSettings ||
                     @AdminGuardHasPerm(\App\PermKeys::SETTINGS_CV_TEMPLATE) ||
                     @AdminGuardHasPerm(\App\PermKeys::SETTINGS_CV_OPTIONS) ||
-                    @AdminGuardHasPerm(\App\PermKeys::MOYASAR_SETTINGS) ||
                     @AdminGuardHasPerm(\App\PermKeys::SETTINGS_CONTROL) ||
                     @AdminGuardHasPerm(\App\PermKeys::PACKAGES_VIEW) ||
                     $canViewFinanceModule ||
@@ -1198,6 +1197,7 @@
                         request()->is('finance*') ||
                         \Illuminate\Support\Str::startsWith((string) Route::currentRouteName(), 'invoices.') ||
                         request()->routeIs('invoice-drafts.*') ||
+                        request()->routeIs('moyasar-payments.*') ||
                         request()->routeIs('commissions.finance.*') ||
                         request()->routeIs('commissions.marketers.payments.*');
                 @endphp
@@ -1343,7 +1343,6 @@
                             request()->routeIs('social-statuses.*');
                         $isInternalSystemSettingsRoute =
                             $isTranslationSettingsRoute ||
-                            request()->routeIs('moyasar-settings.*') ||
                             request()->routeIs('storage.settings*') ||
                             request()->routeIs('form-settings.*') ||
                             request()->routeIs('company-settings.*') ||
@@ -1963,7 +1962,7 @@
                                 </ul>
                             </li>
 
-                            @if (@AdminGuardHasAnyPerm([\App\PermKeys::SETTINGS_VIEW, \App\PermKeys::SETTINGS_CONTROL, \App\PermKeys::COMPANY_SETTINGS_VIEW, \App\PermKeys::DEVELOPERS_PERMS, \App\PermKeys::MOYASAR_SETTINGS]))
+                            @if (@AdminGuardHasAnyPerm([\App\PermKeys::SETTINGS_VIEW, \App\PermKeys::SETTINGS_CONTROL, \App\PermKeys::COMPANY_SETTINGS_VIEW, \App\PermKeys::DEVELOPERS_PERMS]))
                                 <li class="{{ $isInternalSystemSettingsRoute ? '' : 'collapsed' }}">
                                     <a class="m-link" data-bs-toggle="collapse"
                                         data-bs-target="#internalSystemSettings" href="#">
@@ -1975,15 +1974,7 @@
 
                                     <ul class="sub-menu collapse {{ $isInternalSystemSettingsRoute ? 'show' : '' }}"
                                         id="internalSystemSettings">
-                                        @if (@AdminGuardHasPerm(\App\PermKeys::MOYASAR_SETTINGS))
-                                            <li>
-                                                <a class="m-link {{ request()->routeIs('moyasar-settings.*') ? 'active' : '' }}"
-                                                    href="{{ route('moyasar-settings.edit') }}">
-                                                    <i class="fa fa-credit-card"></i>
-                                                    <span class="ms-2">إعدادات بوابة ميسر</span>
-                                                </a>
-                                            </li>
-                                        @endif
+                                        {{-- إعدادات ميسر في لوحة Super Admin، وتقاريرها ضمن موديول المالية. --}}
 
                                         @if (@AdminGuardHasPerm(\App\PermKeys::SETTINGS_VIEW) || @AdminGuardHasPerm(\App\PermKeys::SETTINGS_CONTROL))
                                             <li>

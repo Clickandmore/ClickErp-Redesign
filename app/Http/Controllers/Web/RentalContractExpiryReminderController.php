@@ -112,16 +112,18 @@ class RentalContractExpiryReminderController extends Controller
         $contractNumber = $contract->contract_number ?: $contract->id;
         $clientName = $contract->user?->name ?? 'العميل';
 
+        $callbackUrl = route('moyasar.callback', ['contract_id' => $contract->id, 'reminder_id' => $reminder->id]);
         $result = $moyasar->createPaymentLink(
             $amount,
             "تمديد عقد إيجار رقم {$contractNumber} - {$clientName}",
-            route('moyasar.callback', ['contract_id' => $contract->id, 'reminder_id' => $reminder->id]),
+            $callbackUrl,
             [
                 'contract_id' => $contract->id,
                 'contract_number' => $contractNumber,
                 'reminder_id' => $reminder->id,
                 'source' => 'rental_contract_expiry_reminder',
-            ]
+            ],
+            $callbackUrl
         );
 
         if (!$result || empty($result['id']) || empty($result['url'])) {

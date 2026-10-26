@@ -480,6 +480,7 @@ class PermissionsController extends Controller
             'sponsor_transfer_' => ['section' => 'additional_services', 'group' => 'sponsor_transfer'],
             'sponsor_transfer_web_requests_' => ['section' => 'additional_services', 'group' => 'sponsor_transfer_web_requests'],
             'moyasar_settings' => ['section' => 'settings', 'group' => 'moyasar_settings'],
+            'payments_moyasar_' => ['section' => 'finance', 'group' => 'moyasar_reports'],
             'settings_' => ['section' => 'settings', 'group' => 'settings'],
             'activity_' => ['section' => 'users_management', 'group' => 'activity_log'],
             'job_titles_' => ['section' => 'maids_settings', 'group' => 'job_titles'],
