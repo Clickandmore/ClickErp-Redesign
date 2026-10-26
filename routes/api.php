@@ -237,6 +237,7 @@ Route::group(
 
 Route::group(['middleware' => AppApiLang::class, 'prefix' => 'user'], function () {
     Route::get('sliders', [AppHomeController::class, 'sliders']);
+    Route::get('offers', [App\Http\Controllers\Api\ApiOfferController::class, 'appIndex']);
     Route::get('jobs', [AppHomeController::class, 'jobs']);
     Route::get('nationalities', [AppHomeController::class, 'nationalities']);
     Route::get('customers', [AppHomeController::class, 'customers']);
