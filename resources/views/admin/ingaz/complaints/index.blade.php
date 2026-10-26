@@ -711,6 +711,7 @@
                                             <th>{{ __('ingaz.complainant_name') }}</th>
                                             <th>العاملة</th>
                                             <th>{{ __('ingaz.subject') }}</th>
+                                            <th>ملاحظات الشكوى</th>
                                             <th>متعلق بـ</th>
                                             <th>{{ __('ingaz.type') }}</th>
                                             <th width="80">{{ __('ingaz.priority') }}</th>
@@ -977,6 +978,14 @@
                         render: function (data) {
                             return data || '<span class="text-muted">' + complaintsTranslations.noSubject + '</span>';
                         },searchable: true
+                    },
+                    {
+                        data: 'complaint_notes',
+                        defaultContent: '',
+                        render: function (data, type) {
+                            if (type !== 'display') return data || '';
+                            return data ? '<div style="min-width:180px;max-width:320px;white-space:pre-wrap;overflow-wrap:anywhere">' + escapeHtml(data) + '</div>' : '<span class="text-muted">—</span>';
+                        }, searchable: true, orderable: false
                     },
                     {
                         data: 'related_record',
