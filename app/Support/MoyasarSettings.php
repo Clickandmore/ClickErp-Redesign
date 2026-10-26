@@ -25,7 +25,16 @@ class MoyasarSettings
             'publishable_key' => trim((string) $settings->publishable_key),
             'secret_key' => trim((string) $settings->secret_key),
             'webhook_secret' => trim((string) $settings->webhook_secret),
+            'company_name' => trim((string) ($settings->company_name ?? '')),
+            'payment_description' => trim((string) ($settings->payment_description ?? '')),
+            'reports_enabled' => (bool) ($settings->reports_enabled ?? true),
         ];
+    }
+
+    /** إظهار تقارير مدفوعات ميسر في موديول المالية؛ يُتحكم به من لوحة Super Admin. */
+    public static function reportsEnabled(): bool
+    {
+        return (bool) (self::current()['reports_enabled'] ?? true);
     }
 
     public static function isEnabled(): bool
@@ -51,6 +60,16 @@ class MoyasarSettings
             'webhook_secret' => self::preserveSecret($payload['webhook_secret'] ?? '', $current['webhook_secret']),
             'updated_by' => $adminId,
         ];
+        // الأعمدة تُضاف بترحيل لاحق؛ لا نكتبها قبل وجودها.
+        if (Schema::hasColumn('moyasar_settings', 'company_name')) {
+            $data['company_name'] = trim((string) ($payload['company_name'] ?? $current['company_name']));
+            $data['payment_description'] = trim((string) ($payload['payment_description'] ?? $current['payment_description']));
+        }
+        if (Schema::hasColumn('moyasar_settings', 'reports_enabled')) {
+            $data['reports_enabled'] = array_key_exists('reports_enabled', $payload)
+                ? filter_var($payload['reports_enabled'], FILTER_VALIDATE_BOOLEAN)
+                : $current['reports_enabled'];
+        }
 
         $record = MoyasarSetting::query()->latest('id')->first();
 
@@ -80,6 +99,16 @@ class MoyasarSettings
         return str_repeat('*', max(6, strlen($value) - $visible)) . substr($value, -$visible);
     }
 
+    /** وصف فاتورة ميسر؛ بلا نص مضبوط يبقى الوصف الأصلي كما هو. */
+    public static function invoiceDescription(string $description): string
+    {
+        $settings = self::current();
+
+        return implode(' — ', array_filter([
+            $settings['company_name'] ?? '', $settings['payment_description'] ?? '', $description,
+        ], fn ($value) => $value !== ''));
+    }
+
     public static function containsMaskCharacters(?string $value): bool
     {
         return str_contains(trim((string) $value), '*');
@@ -93,6 +122,9 @@ class MoyasarSettings
             'publishable_key' => '',
             'secret_key' => '',
             'webhook_secret' => '',
+            'company_name' => '',
+            'payment_description' => '',
+            'reports_enabled' => true,
         ];
     }
 

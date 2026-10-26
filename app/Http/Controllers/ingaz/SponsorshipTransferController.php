@@ -133,6 +133,10 @@ class SponsorshipTransferController extends Controller
             }
 
             $transfers = $query->latest()->get();
+            // تُحسب مرة واحدة لا لكل صف.
+            $canSendMoyasarLinks = \App\Services\SponsorshipTransferMoyasarService::isAvailable()
+                && \App\Support\MoyasarSettings::isEnabled()
+                && (@AdminGuardHasPerm(PermKeys::SPONSOR_TRANSFER_ADD_PAYMENT) || @AdminGuardHasPerm(PermKeys::SPONSOR_TRANSFER_CONTROL));
 
             return DataTables::of($transfers)
                 ->addIndexColumn()
@@ -255,7 +259,7 @@ class SponsorshipTransferController extends Controller
                 ->addColumn('created_at', function($transfer) {
                     return $transfer->created_at ? $transfer->created_at->format('Y-m-d H:i') : 'غير محدد';
                 })
-                ->addColumn('actions', function($transfer) {
+                ->addColumn('actions', function($transfer) use ($canSendMoyasarLinks) {
                     $actions = '<div class="dropdown actions-dropdown">
                                     <button class="btn btn-sm btn-primary dropdown-toggle actions-btn" type="button" aria-expanded="false" title="الإجراءات المتاحة">
                                         <i class="fas fa-cogs me-1"></i> الإجراءات
@@ -283,6 +287,15 @@ class SponsorshipTransferController extends Controller
                                     </a></li>';
                     } elseif ($transfer->canIssueInvoice()) {
                         $actions .= '<li><span class="dropdown-item text-muted" title="يتطلب صلاحية إضافة فاتورة لنقل الخدمات"><i class="fas fa-lock"></i> إصدار فاتورة نقل الخدمات — الصلاحية غير متاحة</span></li>';
+                    }
+
+                    if ($canSendMoyasarLinks && \App\Services\SponsorshipTransferMoyasarService::canSend($transfer)) {
+                        $actions .= '<li><button type="button" class="dropdown-item text-primary send-payment-link"
+                                        data-url="' . route('SponsorshipTransfer.sendPaymentLink', $transfer->id) . '"
+                                        data-client="' . e($transfer->newSponsor?->name ?? '') . '"
+                                        data-phone="' . e($transfer->newSponsor?->phone ?? '') . '">
+                                        <i class="fas fa-link"></i> ' . e(\App\Services\PaymentLinkDeliveryService::label($transfer)) . '
+                                    </button></li>';
                     }
 
                     if ($transfer->payment_receipt_path) {
@@ -676,10 +689,10 @@ class SponsorshipTransferController extends Controller
                 'trial_start_date' => 'required|date',
                 'contract_value' => 'required|numeric|min:0',
                 'paid_amount' => 'required|numeric|min:0|lte:contract_value',
-                'payment_type' => 'required|in:cash,bank_transfer,mada,tabby,tamara,pay_later,other',
+                'payment_type' => 'required|in:cash,bank_transfer,mada,tabby,tamara,moyasar,pay_later,other',
                 'payment_status' => 'required|in:paid,partial,pending,later,bank_pending',
                 'payment_receipt' => 'nullable|file|mimes:jpg,jpeg,png,pdf|max:4096',
-                'receipt_account_id' => 'nullable|required_if:payment_status,paid,partial|integer|exists:fn_accounts,id',
+                'receipt_account_id' => 'nullable|required_if:payment_status,paid,partial|required_if:payment_type,moyasar|integer|exists:fn_accounts,id',
                 'attachments' => 'nullable|array',
                 'attachments.*' => 'file|mimes:jpg,jpeg,png,pdf,doc,docx|max:8192',
                 'notes' => 'nullable|string|max:1000',
@@ -764,6 +777,8 @@ class SponsorshipTransferController extends Controller
                     'payment_receipt' => 'يجب إرفاق إيصال الدفع عند تحديد حالة الدفع تم الدفع أو مدفوع جزئياً',
                 ]);
             }
+
+            \App\Services\SponsorshipTransferMoyasarService::validateManualPayment($validated);
 
             if (!$contract->user_id) {
                 throw ValidationException::withMessages([
@@ -869,10 +884,25 @@ class SponsorshipTransferController extends Controller
             $transfer->refresh();
             $this->notifySponsorshipTransferCreated($transfer);
 
+            // الطلب محفوظ؛ تعذر رابط ميسر لا يُفشل الحفظ ويمكن إعادة الإرسال من التفاصيل.
+            $moyasarMessage = '';
+            if ($transfer->payment_type === 'moyasar') {
+                try {
+                    $link = app(\App\Services\PaymentLinkDeliveryService::class)->deliverTransfer($transfer, 'sms');
+                    $moyasarMessage = ($link['link_sent'] ?? false)
+                        ? '، وتم إرسال رابط دفع ميسر للعميل عبر SMS'
+                        : '، ' . ($link['message'] ?? 'تعذر إرسال رابط الدفع') . ' يمكنك إعادة الإرسال من تفاصيل الطلب';
+                } catch (\Throwable $exception) {
+                    report($exception);
+                    $moyasarMessage = '، تعذر تجهيز رابط دفع ميسر. أعد المحاولة من تفاصيل الطلب';
+                }
+            }
+
             return response()->json([
                 'success' => true,
                 'message' => 'تم حفظ طلب نقل الخدمات بنجاح'
-                    . (!empty($financeResult['bond']) ? ' وإنشاء سند قبض رقم ' . ($financeResult['bond']->code ?: $financeResult['bond']->id) : ''),
+                    . (!empty($financeResult['bond']) ? ' وإنشاء سند قبض رقم ' . ($financeResult['bond']->code ?: $financeResult['bond']->id) : '')
+                    . $moyasarMessage,
                 'transfer_id' => $transfer->id,
                 'show_url' => route('SponsorshipTransfer.show', $transfer->id),
                 'invoice_create_url' => $transfer->canIssueInvoice() && InvoiceAuthorization::canCreateTransfer()
@@ -948,6 +978,18 @@ class SponsorshipTransferController extends Controller
             'receipt_account_id' => 'required|integer|exists:fn_accounts,id',
             'payment_receipt' => 'required|file|mimes:jpg,jpeg,png,pdf|max:4096',
         ]);
+
+        // دفعة يدوية تغيّر المتبقي؛ فاتورة ميسر المفتوحة بالمبلغ القديم تُلغى أولاً حتى لا يُدفع مرتين.
+        if (\App\Services\SponsorshipTransferMoyasarService::isAvailable()) {
+            $current = SponsorshipTransfer::query()->findOrFail($id);
+            $this->assertCanAccessBranchModel($current);
+            try {
+                app(\App\Services\SponsorshipTransferMoyasarService::class)->cancelOpenInvoice($current);
+            } catch (ValidationException $exception) {
+                return back()->withInput($request->except('payment_receipt'))
+                    ->withErrors(['amount' => collect($exception->errors())->flatten()->first()]);
+            }
+        }
 
         try {
             DB::transaction(function () use ($id, $data, $payments) {
@@ -1105,10 +1147,10 @@ class SponsorshipTransferController extends Controller
                 'trial_start_date' => 'required|date',
                 'contract_value' => 'required|numeric|min:0',
                 'paid_amount' => 'required|numeric|min:0|lte:contract_value',
-                'payment_type' => 'required|in:cash,bank_transfer,mada,tabby,tamara,pay_later,other',
+                'payment_type' => 'required|in:cash,bank_transfer,mada,tabby,tamara,moyasar,pay_later,other',
                 'payment_status' => 'required|in:paid,partial,pending,later,bank_pending',
                 'payment_receipt' => 'nullable|file|mimes:jpg,jpeg,png,pdf|max:4096',
-                'receipt_account_id' => 'nullable|required_if:payment_status,paid,partial|integer|exists:fn_accounts,id',
+                'receipt_account_id' => 'nullable|required_if:payment_status,paid,partial|required_if:payment_type,moyasar|integer|exists:fn_accounts,id',
                 'attachments' => 'nullable|array',
                 'attachments.*' => 'file|mimes:jpg,jpeg,png,pdf,doc,docx|max:8192',
                 'notes' => 'nullable|string|max:1000',
@@ -1120,6 +1162,8 @@ class SponsorshipTransferController extends Controller
                 $validated['payment_status'] = 'later';
                 $validated['receipt_account_id'] = null;
             }
+
+            \App\Services\SponsorshipTransferMoyasarService::validateManualPayment($validated, $transfer);
 
             if (
                 !$transfer->isRentalWorkflow()
@@ -1274,6 +1318,53 @@ class SponsorshipTransferController extends Controller
         }
     }
 
+    /** @throws ValidationException إن تعذر إلغاء فاتورة ميسر المفتوحة أو سُددت للتو. */
+    private function cancelOpenMoyasarInvoice(SponsorshipTransfer $transfer): void
+    {
+        if (\App\Services\SponsorshipTransferMoyasarService::isAvailable()) {
+            app(\App\Services\SponsorshipTransferMoyasarService::class)->cancelOpenInvoice($transfer);
+        }
+    }
+
+    public function sendPaymentLink(Request $request, int $id, \App\Services\PaymentLinkDeliveryService $delivery)
+    {
+        $validated = $request->validate([
+            'channel' => 'nullable|in:sms,whatsapp,copy',
+            'phone' => ['nullable', 'string', 'max:30', 'regex:/^\+?[0-9\s()\-]+$/'],
+        ], [
+            'phone.regex' => 'أدخل رقم جوال صالحًا.',
+        ]);
+        $channel = $validated['channel'] ?? 'sms';
+        $phone = isset($validated['phone']) && trim((string) $validated['phone']) !== '' ? trim($validated['phone']) : null;
+
+        $transfer = SponsorshipTransfer::query()->findOrFail($id);
+        $this->assertCanAccessBranchModel($transfer);
+        if (!\App\Services\SponsorshipTransferMoyasarService::isAvailable()) {
+            return response()->json(['success' => false, 'message' => 'يلزم تحديث قاعدة البيانات لتفعيل دفع نقل الخدمات عبر ميسر.'], 422);
+        }
+
+        try {
+            $result = $delivery->deliverTransfer($transfer, $channel, $phone);
+        } catch (\Throwable $exception) {
+            report($exception);
+
+            return response()->json(['success' => false, 'message' => 'تعذر تجهيز أو إرسال رابط الدفع. حاول مجددًا.'], 503);
+        }
+
+        if (!($result['link_created'] ?? false)) {
+            return response()->json(['success' => false, 'message' => $result['failure_reason'] ?? 'تعذر إنشاء رابط الدفع.'], 422);
+        }
+
+        return response()->json([
+            'success' => true,
+            'channel' => $channel,
+            'message_sent' => (bool) ($result['link_sent'] ?? false),
+            'message' => $result['message'] ?? '',
+            'payment_url' => $result['payment_url'] ?? null,
+            'sms_error' => $result['sms_error'] ?? null,
+        ]);
+    }
+
     private function exceptionMessage(string $baseMessage, \Throwable $e): string
     {
         if (!config('app.debug')) {
@@ -1356,6 +1447,12 @@ class SponsorshipTransferController extends Controller
                 ], 400);
             }
 
+            try {
+                $this->cancelOpenMoyasarInvoice($transfer);
+            } catch (ValidationException $e) {
+                return response()->json(['success' => false, 'message' => collect($e->errors())->flatten()->first()], 422);
+            }
+
             $previousStatus = $transfer->status;
             $transfer->update([
                 'status' => 'rejected',
@@ -1435,6 +1532,12 @@ class SponsorshipTransferController extends Controller
                     'success' => false,
                     'message' => 'لا يمكن حذف هذا الطلب'
                 ], 400);
+            }
+
+            try {
+                $this->cancelOpenMoyasarInvoice($transfer);
+            } catch (ValidationException $e) {
+                return response()->json(['success' => false, 'message' => collect($e->errors())->flatten()->first()], 422);
             }
 
             $transfer->delete();
@@ -1837,6 +1940,10 @@ class SponsorshipTransferController extends Controller
                     'message' => 'لا يمكن إلغاء النقل لهذا الطلب'
                 ], 400);
             }
+
+            // قبل التسوية: فاتورة ميسر المفتوحة تُلغى، وما سُدد منها يُسجل أولاً.
+            $this->cancelOpenMoyasarInvoice($transfer);
+            $transfer->refresh();
 
             $previousStatus = $transfer->status;
             DB::beginTransaction();

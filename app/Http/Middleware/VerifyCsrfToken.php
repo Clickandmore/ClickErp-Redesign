@@ -16,5 +16,9 @@ class VerifyCsrfToken extends Middleware
         '/en/bank_transfer_submit',
         'moyasar/webhook',
         '*/moyasar/webhook',
+        'moyasar/callback',
+        '*/moyasar/callback',
+        'transfer/moyasar/callback/*',
+        '*/transfer/moyasar/callback/*',
     ];
 }

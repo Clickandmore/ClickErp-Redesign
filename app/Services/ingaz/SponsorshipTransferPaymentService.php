@@ -98,7 +98,64 @@ class SponsorshipTransferPaymentService
         });
     }
 
-    protected function issueReceipt(SponsorshipTransfer $transfer, int $receiptAccountId, float $amount, string $paymentType, Carbon|string|null $date): array
+    /** سند قبض لسداد ميسر مؤكد من البوابة؛ يُستدعى أثناء قفل الطلب. */
+    public function recordGatewayReceipt(SponsorshipTransfer $transfer, float $amount, string $reference): array
+    {
+        $accountId = (int) $transfer->receipt_account_id ?: (int) Account::query()
+            ->when(
+                BranchSharingSettings::accountsPerBranch(),
+                fn ($query) => $query->assignableTo(BranchQueryContext::activeBranchId())
+            )
+            ->where('status', 'debtor')
+            ->whereIn('type', [AccountTypesEnum::ElectronicWallet->value, AccountTypesEnum::Bank->value])
+            ->orderByRaw('type = ? desc', [AccountTypesEnum::ElectronicWallet->value])
+            ->orderBy('code')
+            ->value('id');
+        if (!$accountId) {
+            throw new \RuntimeException('لا يوجد حساب بنك أو محفظة إلكترونية لإثبات سداد ميسر لطلب نقل الخدمات.');
+        }
+
+        return $this->issueReceipt($transfer, $accountId, $amount, 'moyasar', now(), ' / ميسر ' . $reference);
+    }
+
+    /** استرداد ميسر يعكس حسابي سند القبض ولا يمس سند استرجاع الإلغاء (refund_bond_id). */
+    public function recordGatewayRefund(SponsorshipTransfer $transfer, float $amount, string $reference, int $receiptBondId): \Nami\Finance\Models\Bond
+    {
+        if ($amount <= 0) {
+            throw new \InvalidArgumentException('Refund must be positive.');
+        }
+        $receipt = \Nami\Finance\Models\Bond::query()->findOrFail($receiptBondId);
+        if ((int) $receipt->sponsorship_transfer_id !== (int) $transfer->id) {
+            throw new \RuntimeException('Refund receipt belongs to another sponsorship transfer.');
+        }
+        $date = now()->toDateString();
+        if (!$this->yearService->checkDateRange($date)) {
+            throw new \RuntimeException('لا توجد سنة مالية نشطة لتسجيل استرداد ميسر.');
+        }
+
+        $bond = $this->bondService->storeSarfBond([
+            'payment_type' => BondPaymentTypes::Online->value,
+            'bond_book_num' => ' ',
+            'debit_account_id' => $receipt->credit_account_id,
+            'credit_account_id' => $receipt->debit_account_id,
+            'value' => round($amount, 2),
+            'date' => $date,
+            'statement' => 'استرداد ميسر طلب نقل الخدمات رقم ' . $transfer->id . ' / ' . $reference . ' / سند القبض #' . $receipt->id,
+            'code' => $this->bondService->lastCode(BondTypes::Sarf->value),
+            'is_tax' => 0,
+            'general_type' => 0,
+            'sponsorship_transfer_id' => $transfer->id,
+        ])->fresh();
+
+        if ((int) $bond->is_confirm !== 1 || !$bond->constraint_id) {
+            $this->bondService->confirmBond($bond->id);
+            $bond = $bond->fresh();
+        }
+
+        return $bond;
+    }
+
+    protected function issueReceipt(SponsorshipTransfer $transfer, int $receiptAccountId, float $amount, string $paymentType, Carbon|string|null $date, string $statementSuffix = ''): array
     {
         $transfer->loadMissing(['newSponsor', 'contract.maid']);
         $receiptAccount = $this->resolveReceiptAccount($receiptAccountId);
@@ -121,7 +178,7 @@ class SponsorshipTransferPaymentService
             'statement' => 'سند قبض طلب نقل الخدمات رقم ' . $transfer->id
                 . ' / العميل ' . ($transfer->newSponsor?->name ?: 'غير محدد')
                 . ' / العاملة ' . ($transfer->contract?->maid?->name ?: 'غير محدد')
-                . ' / إلى حساب ' . $receiptAccount->name,
+                . ' / إلى حساب ' . $receiptAccount->name . $statementSuffix,
             'code' => $this->bondService->lastCode(BondTypes::Qabd->value),
             'is_tax' => 0,
             'general_type' => 0,
@@ -261,6 +318,7 @@ class SponsorshipTransferPaymentService
             'cash' => BondPaymentTypes::Cash,
             'mada' => BondPaymentTypes::Network,
             'tabby', 'tamara' => BondPaymentTypes::ElectronicWallet,
+            'moyasar' => BondPaymentTypes::Online,
             default => BondPaymentTypes::BankTransfer,
         };
     }

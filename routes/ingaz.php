@@ -71,6 +71,7 @@ use App\Http\Controllers\ingaz\RentalOrderController;
 use App\Http\Controllers\ingaz\RentContractController;
 use App\Http\Controllers\ingaz\MoyasarWebhookController;
 use App\Http\Controllers\ingaz\MoyasarSettingsController;
+use App\Http\Controllers\ingaz\MoyasarPaymentsReportController;
 use App\Http\Controllers\ingaz\ReportController;
 use App\Http\Controllers\ingaz\RequirementsController;
 use App\Http\Controllers\ingaz\ReturnRequestController;
@@ -118,7 +119,12 @@ Route::group(
     ],
     function () {
         // ميسر: callback يستقبل العميل بعد الدفع (بدون auth)
-        Route::get('moyasar/callback', [MoyasarWebhookController::class, 'callback'])->name('moyasar.callback');
+        // GET رجوع العميل عبر success_url، وPOST إشعار الفاتورة عبر callback_url؛ الحالة تُجلب من ميسر دائماً.
+        Route::match(['get', 'post'], 'moyasar/callback', [MoyasarWebhookController::class, 'callback'])
+            ->middleware('throttle:60,1')->name('moyasar.callback')->withoutMiddleware([\App\Http\Middleware\VerifyCsrfToken::class]);
+        Route::match(['get', 'post'], 'transfer/moyasar/callback/{token}', [MoyasarWebhookController::class, 'transferCallback'])
+            ->where('token', '[A-Za-z0-9\-]{20,64}')
+            ->middleware('throttle:60,1')->name('transfer.moyasar.callback')->withoutMiddleware([\App\Http\Middleware\VerifyCsrfToken::class]);
         // ميسر: webhook يستقبل إشعارات ميسر (بدون CSRF — يُستثنى في VerifyCsrfToken أيضاً)
         Route::post('moyasar/webhook', [MoyasarWebhookController::class, 'webhook'])->name('moyasar.webhook')->withoutMiddleware([\App\Http\Middleware\VerifyCsrfToken::class]);
 
@@ -259,8 +265,10 @@ Route::group(
                 ->name('settings.site-cache.flush');
             Route::resource('settings', SettingController::class);
             Route::get('settings/section/{section}', [SettingController::class, 'section'])->name('settings.section');
-            Route::get('moyasar-settings', [MoyasarSettingsController::class, 'edit'])->name('moyasar-settings.edit');
-            Route::put('moyasar-settings', [MoyasarSettingsController::class, 'update'])->name('moyasar-settings.update');
+            // انتقلت إعدادات ميسر إلى لوحة Super Admin؛ الرابط القديم يحوّل إليها.
+            Route::get('moyasar-settings', fn () => redirect()->route('dev-superadmin.moyasar-settings'))->name('moyasar-settings.edit');
+            Route::get('moyasar-payments', [MoyasarPaymentsReportController::class, 'index'])->name('moyasar-payments.index');
+            Route::get('moyasar-payments/export', [MoyasarPaymentsReportController::class, 'export'])->name('moyasar-payments.export');
             Route::get('recruitment-contract-stages', [RecruitmentContractStageLabelController::class, 'edit'])->name('recruitment-contract-stages.edit');
             Route::put('recruitment-contract-stages', [RecruitmentContractStageLabelController::class, 'update'])->name('recruitment-contract-stages.update');
             Route::get('recruitment-contract-stage-labels', fn() => redirect()->route('recruitment-contract-stages.edit'));
@@ -660,6 +668,7 @@ Route::group(
 
             Route::resource('SponsorshipTransfer', SponsorshipTransferController::class);
             Route::post('SponsorshipTransfer/{id}/payments', [SponsorshipTransferController::class, 'addPayment'])->name('SponsorshipTransfer.addPayment');
+            Route::post('SponsorshipTransfer/{id}/send-payment-link', [SponsorshipTransferController::class, 'sendPaymentLink'])->whereNumber('id')->name('SponsorshipTransfer.sendPaymentLink');
             Route::get('Contract/searchClients', [SponsorshipTransferController::class, 'searchClients'])->name('SponsorshipTransfer.searchClients');
             Route::post('SponsorshipTransfer/{id}/approve', [SponsorshipTransferController::class, 'approve'])->name('SponsorshipTransfer.approve');
             Route::post('SponsorshipTransfer/{id}/reject', [SponsorshipTransferController::class, 'reject'])->name('SponsorshipTransfer.reject');
@@ -886,6 +895,10 @@ Route::group(
                 Route::post('recovery/migrate', [DevSuperAdminController::class, 'runRecoveryMigrations'])
                     ->middleware('throttle:3,1')
                     ->name('recovery.migrate');
+                Route::get('moyasar-settings', [MoyasarSettingsController::class, 'edit'])->name('moyasar-settings');
+                Route::put('moyasar-settings', [MoyasarSettingsController::class, 'update'])->name('moyasar-settings.update');
+                Route::post('moyasar-settings/test-connection', [MoyasarSettingsController::class, 'testConnection'])
+                    ->middleware('throttle:10,1')->name('moyasar-settings.test');
                 Route::get('modules', [DevSuperAdminController::class, 'modules'])->name('modules');
                 Route::get('subscription', [DevSuperAdminController::class, 'modules'])->name('subscription');
                 Route::get('product-updates', [\App\Http\Controllers\admin\DevSystemUpdatesController::class, 'index'])->name('product-updates');

@@ -486,6 +486,7 @@
                         <span class="info-label">حالة الدفع:</span>
                         <span class="info-value">{{ $transfer->payment_status_text }}</span>
                     </div>
+                    @include('admin.ingaz.SponsorshipTransfer.partials.moyasar-payment')
                     @if($transfer->receiptAccount)
                         <div class="info-row">
                             <span class="info-label">حساب السداد:</span>
@@ -865,4 +866,5 @@
 
 @section('js')
     <script src="{{ asset('admin') }}/custom/admin-tables.js"></script>
+    @include('admin.ingaz.payment-link-modal')
 @endsection

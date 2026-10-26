@@ -74,7 +74,18 @@ class SponsorshipTransfer extends Model
         'failed_by',
         'signature',
         'company_signature',
-        'rejection_reason'
+        'rejection_reason',
+        'moyasar_invoice_id',
+        'moyasar_payment_id',
+        'moyasar_payment_url',
+        'moyasar_payment_status',
+        'moyasar_amount',
+        'moyasar_refunded_amount',
+        'moyasar_callback_token',
+        'moyasar_paid_at',
+        'moyasar_receipt_bond_id',
+        'payment_link_sent_at',
+        'payment_link_sent_channel',
     ];
 
     protected $casts = [
@@ -95,7 +106,14 @@ class SponsorshipTransfer extends Model
         'visa_fee_amount' => 'decimal:2',
         'attachments' => 'array',
         'branch_id' => 'integer',
+        'moyasar_amount' => 'decimal:2',
+        'moyasar_refunded_amount' => 'decimal:2',
+        'moyasar_paid_at' => 'datetime',
+        'payment_link_sent_at' => 'datetime',
     ];
+
+    /** رمز رجوع العميل من ميسر لا يظهر في أي استجابة JSON. */
+    protected $hidden = ['moyasar_callback_token'];
 
     // العلاقات
     public function contract()
@@ -324,6 +342,7 @@ class SponsorshipTransfer extends Model
             'mada' => 'مدى',
             'tabby' => 'تابي',
             'tamara' => 'تمارا',
+            'moyasar' => 'ميسر (دفع إلكتروني)',
             'pay_later' => 'الدفع لاحقاً',
             'other' => 'أخرى',
         ];

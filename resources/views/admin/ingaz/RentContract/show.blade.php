@@ -1927,17 +1927,51 @@
                             </div>
                         @endif
 
-                        @if (!empty($contract->info?->moyasar_payment_url))
-                            @if ((float) $contract->info->moyasar_refunded_amount > 0)
+                        @php
+                            $canSendPaymentLink = $contract->info
+                                && $contract->info->payment_status !== 'paid'
+                                && (float) $contract->info->remaining_amount > 0
+                                && \App\Support\MoyasarSettings::isEnabled()
+                                && @AdminGuardHasPerm(\App\PermKeys::RENT_CONTRACT_CONTROL);
+                        @endphp
+                        @if (!empty($contract->info?->moyasar_payment_url) || $canSendPaymentLink)
+                            @if ((float) ($contract->info->moyasar_refunded_amount ?? 0) > 0)
                                 <div class="alert alert-warning mt-3">إجمالي المبالغ المستردة عبر ميسر: {{ number_format((float) $contract->info->moyasar_refunded_amount, 2) }} ريال. تم تسجيل سندات الصرف المرتبطة بها.</div>
                             @endif
+                            @if (!empty($contract->info?->moyasar_payment_status))
+                                <div class="small text-muted mt-3">
+                                    حالة فاتورة ميسر: <strong>{{ [
+                                        'initiated' => 'بانتظار الدفع', 'paid' => 'مدفوعة', 'failed' => 'فشلت المحاولة',
+                                        'expired' => 'منتهية', 'canceled' => 'ملغاة', 'refunded' => 'مستردة',
+                                        'partially_refunded' => 'مستردة جزئياً',
+                                    ][$contract->info->moyasar_payment_status] ?? $contract->info->moyasar_payment_status }}</strong>
+                                    @if ($contract->info->payment_link_sent_at)
+                                        · آخر إرسال للرابط: {{ $contract->info->payment_link_sent_at->format('Y-m-d H:i') }}
+                                        @if ($contract->info->payment_link_sent_channel)
+                                            ({{ $contract->info->payment_link_sent_channel === 'whatsapp' ? 'واتساب' : 'SMS' }})
+                                        @endif
+                                    @endif
+                                </div>
+                            @endif
                             <div class="d-flex flex-wrap gap-2 mt-3">
-                                <button type="button"
-                                    class="btn btn-outline-primary copy-payment-link-btn"
-                                    data-payment-url="{{ $contract->info->moyasar_payment_url }}">
-                                    <i class="fas fa-link me-1"></i>
-                                    نسخ رابط الدفع
-                                </button>
+                                @if ($canSendPaymentLink)
+                                    <button type="button"
+                                        class="btn btn-primary send-payment-link"
+                                        data-url="{{ route('RentContract.sendPaymentLink', $contract->id) }}"
+                                        data-client="{{ $contract->user?->name }}"
+                                        data-phone="{{ $contract->user?->phone }}">
+                                        <i class="fas fa-paper-plane me-1"></i>
+                                        {{ \App\Services\PaymentLinkDeliveryService::label($contract) }}
+                                    </button>
+                                @endif
+                                @if (!empty($contract->info?->moyasar_payment_url))
+                                    <button type="button"
+                                        class="btn btn-outline-primary copy-payment-link-btn"
+                                        data-payment-url="{{ $contract->info->moyasar_payment_url }}">
+                                        <i class="fas fa-link me-1"></i>
+                                        نسخ رابط الدفع
+                                    </button>
+                                @endif
                             </div>
                         @endif
                     </div>
@@ -2660,4 +2694,5 @@
             });
         });
     </script>
+    @include('admin.ingaz.payment-link-modal')
 @endsection

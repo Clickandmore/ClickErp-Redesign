@@ -263,6 +263,9 @@ const PARTENR_CONTROL = 'partenr_control';
     const SETTINGS_CV_TEMPLATE = 'settings_cv_template';
     const SETTINGS_CV_OPTIONS = 'settings_cv_options';
     const MOYASAR_SETTINGS = 'moyasar_settings';
+    // تقارير مدفوعات ميسر: العرض والتصدير منفصلان عن إعدادات البوابة.
+    const PAYMENTS_MOYASAR_VIEW = 'payments_moyasar_view';
+    const PAYMENTS_MOYASAR_EXPORT = 'payments_moyasar_export';
 
     // سجل النشاط
     const ACTIVITY_VIEW = 'activity_view';

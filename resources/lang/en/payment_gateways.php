@@ -1,0 +1,99 @@
+<?php
+
+return [
+    'moyasar' => [
+        'menu' => 'Moyasar payment reports',
+        'title' => 'Moyasar payments',
+        'subtitle' => 'Online payment links (mada, Visa, Mastercard, Apple Pay) for rental contracts, renewals, service transfers, hourly orders and app orders: issued, collected and refunded.',
+        'table' => 'Payment operations',
+        'table_hint' => 'Links created or paid in the selected period.',
+        'gateway_id' => 'Moyasar invoice ID',
+    ],
+
+    'period' => [
+        'title' => 'Period',
+        'month' => 'Month',
+        'from' => 'From',
+        'to' => 'To',
+        'apply' => 'Apply',
+        'reset' => 'Reset',
+        'this_month' => 'This month',
+        'last_month' => 'Last month',
+        'range_hint' => 'Pick a month, or a from/to range (the range wins).',
+    ],
+    'filters' => [
+        'service' => 'Service',
+        'status' => 'Status',
+        'search' => 'Search',
+        'search_placeholder' => 'Contract/order no., customer, phone, invoice ID…',
+        'all' => 'All',
+        'filter' => 'Filter',
+    ],
+
+    'export' => [
+        'excel' => 'Excel sheet (.xlsx)',
+        'pdf' => 'PDF file',
+        'hint' => 'Exports the current period and filters, with all operations rather than the visible page only.',
+        'summary_sheet' => 'Summary',
+        'generated_at' => 'Exported at',
+        'indicator' => 'Indicator',
+        'value' => 'Value',
+        'operations' => 'Operations',
+        'phone' => 'Phone',
+    ],
+
+    'kpi' => [
+        'billed' => 'Total issued',
+        'billed_hint' => ':count operations in the period',
+        'collected' => 'Collected',
+        'collected_hint' => ':count payments',
+        'net' => 'Net collected',
+        'net_hint' => 'After :amount refunded',
+        'pending' => 'Awaiting payment',
+        'pending_hint' => ':count unpaid links',
+        'conversion' => 'Payment rate',
+        'conversion_hint' => 'Of links not cancelled',
+        'average' => 'Average payment',
+    ],
+
+    'chart' => [
+        'trend' => 'Monthly trend (last 12 months)',
+        'daily' => 'Daily collections in the period',
+        'by_service' => 'Collected by service',
+        'by_status' => 'Operations by status',
+        'billed' => 'Issued',
+        'collected' => 'Collected',
+        'refunded' => 'Refunded',
+        'empty' => 'No data for the current filters',
+        'currency' => 'SAR',
+    ],
+
+    'table' => [
+        'service' => 'Service',
+        'reference' => 'Reference',
+        'contract_number' => 'Contract / order no.',
+        'customer' => 'Customer',
+        'amount' => 'Amount',
+        'refunded' => 'Refunded',
+        'status' => 'Status',
+        'created' => 'Created',
+        'paid_at' => 'Paid',
+        'open' => 'Open',
+        'empty' => 'No matching operations in this period.',
+    ],
+
+    'service' => [
+        'rental' => 'Rental contracts',
+        'renewal' => 'Rental renewals',
+        'transfer' => 'Service transfers',
+        'hourly' => 'Hourly rental',
+        'app' => 'App orders',
+    ],
+    'status' => [
+        'paid' => 'Paid',
+        'partially_refunded' => 'Partially refunded',
+        'refunded' => 'Refunded',
+        'pending' => 'Awaiting payment',
+        'cancelled' => 'Cancelled / expired',
+    ],
+];

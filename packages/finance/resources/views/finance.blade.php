@@ -12,6 +12,19 @@ $permissions = ['printSettings.create', 'letters.index', 'officialVacations.inde
 </li>
 {{-- @endif --}}
 
+{{-- تقارير مدفوعات ميسر: صلاحية مستقلة، ويُتحكم بظهورها من إعدادات ميسر في لوحة Super Admin. --}}
+@if (\Illuminate\Support\Facades\Route::has('moyasar-payments.index')
+    && \App\Support\MoyasarSettings::reportsEnabled()
+    && @AdminGuardHasPerm(\App\PermKeys::PAYMENTS_MOYASAR_VIEW))
+    <li>
+        <a class="m-link {{ request()->routeIs('moyasar-payments.*') ? 'active' : '' }}"
+            href="{{ route('moyasar-payments.index') }}">
+            <i class="fa fa-credit-card"></i>
+            <span class="ms-2">{{ __('payment_gateways.moyasar.menu') }}</span>
+        </a>
+    </li>
+@endif
+
 
 <li class="collapsed">
     <a class="m-link

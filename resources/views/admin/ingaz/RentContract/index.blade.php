@@ -3884,63 +3884,7 @@
                 if (data) executeWorkflowAction(contractId, 'resume', 'تم استئناف عقد الإيجار بنجاح', data);
             });
 
-            $(document).on('click', '.send-payment-link', function() {
-                const url = $(this).data('url');
-
-                Swal.fire({
-                    title: 'إرسال رابط الدفع',
-                    text: 'هل تريد إرسال رابط الدفع للعميل الآن؟',
-                    icon: 'question',
-                    showCancelButton: true,
-                    confirmButtonColor: '#0d6efd',
-                    cancelButtonColor: '#6c757d',
-                    confirmButtonText: 'نعم، أرسل الرابط',
-                    cancelButtonText: 'إلغاء'
-                }).then((result) => {
-                    if (!result.isConfirmed) {
-                        return;
-                    }
-
-                    $.ajax({
-                        url: url,
-                        type: 'POST',
-                        data: {
-                            _token: '{{ csrf_token() }}'
-                        },
-                        beforeSend: function() {
-                            Swal.fire({
-                                title: 'جارٍ إرسال رابط الدفع...',
-                                allowOutsideClick: false,
-                                didOpen: function() {
-                                    Swal.showLoading();
-                                }
-                            });
-                        },
-                        success: function(response) {
-                            dataTable.ajax.reload(null, false);
-                            showPaymentLinkResult(response);
-                        },
-                        error: function(xhr) {
-                            const response = xhr.responseJSON || {};
-
-                            if (response.payment_url) {
-                                showPaymentLinkResult({
-                                    message_sent: false,
-                                    message: response.message || 'تعذر إرسال الرسالة للعميل.',
-                                    payment_url: response.payment_url
-                                });
-                                return;
-                            }
-
-                            Swal.fire({
-                                icon: 'error',
-                                title: 'تعذر إرسال رابط الدفع',
-                                text: response.message || 'حدث خطأ أثناء إرسال رابط الدفع.'
-                            });
-                        }
-                    });
-                });
-            });
+            // إرسال رابط الدفع يتم من نافذة payment-link-modal (SMS / واتساب / نسخ).
 
             $(document).on('click', '.send-expiry-reminder', function() {
                 const url = $(this).data('url');
@@ -4037,4 +3981,5 @@
             }
         });
     </script>
+    @include('admin.ingaz.payment-link-modal')
 @endsection
