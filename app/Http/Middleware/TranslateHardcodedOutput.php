@@ -12,9 +12,19 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class TranslateHardcodedOutput
 {
+    /** استجابة تحمل هذا الرأس لا تُترجم تلقائياً (نصوص عربية مقصودة)، ويُحذف الرأس قبل الإرسال. */
+    public const SKIP_HEADER = 'X-Skip-Hardcoded-Translation';
+
     public function handle(Request $request, Closure $next)
     {
         $response = $next($request);
+
+        if ($response instanceof Response && $response->headers->has(self::SKIP_HEADER)) {
+            $response->headers->remove(self::SKIP_HEADER);
+
+            return $response;
+        }
+
         $locale = $this->currentLocale($request);
 
         if ($locale !== 'en') {
