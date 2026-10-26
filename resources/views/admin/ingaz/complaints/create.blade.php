@@ -190,6 +190,11 @@
             <div class="form-section-header"><span class="step-number">4</span><div><h5 class="mb-0">تفاصيل الشكوى والمرفقات</h5><small class="text-muted">اكتب وصفًا كاملًا وأرفق المستندات المتاحة</small></div></div>
             <div class="form-section-body"><div class="row">
                 <div class="col-12 mb-3"><label class="form-label">تفاصيل الشكوى <span class="required">*</span></label><textarea name="details" class="form-control @error('details') is-invalid @enderror" rows="6" required placeholder="اكتب الوقائع والتواريخ والإجراء المطلوب بوضوح">{{ old('details', $complaint->details ?? $complaint->message ?? null) }}</textarea>@error('details')<div class="text-danger small mt-1">{{ $message }}</div>@enderror</div>
+                <div class="col-12 mb-3">
+                    <label class="form-label" for="complaint-notes">ملاحظات الشكوى <span class="text-muted fw-normal">(اختياري)</span></label>
+                    <textarea id="complaint-notes" name="complaint_notes" class="form-control @error('complaint_notes') is-invalid @enderror" rows="3" maxlength="5000" placeholder="أضف ملاحظات تظهر في جدول الشكاوى">{{ old('complaint_notes', $complaint->complaint_notes ?? null) }}</textarea>
+                    @error('complaint_notes')<div class="text-danger small mt-1">{{ $message }}</div>@enderror
+                </div>
                 <div class="col-md-6 mb-3"><label class="form-label">رقم جواز العاملة</label><input type="text" name="maid_passport" class="form-control" value="{{ old('maid_passport', $complaint->maid_passport ?? null) }}"></div>
                 <div class="col-md-6 mb-3"><label class="form-label">جنسية العاملة</label><select name="maid_nationality_id" class="form-select select2"><option value="">غير محدد</option>@foreach($nationalities as $nationality)<option value="{{ $nationality->id }}" {{ old('maid_nationality_id', $complaint->maid_nationality_id ?? null) == $nationality->id ? 'selected' : '' }}>{{ $nationality->sub_title ?? $nationality->title }}</option>@endforeach</select></div>
                 @if($isEdit && ($complaint->attachmentFiles->isNotEmpty() || !empty($complaint->attachments)))
