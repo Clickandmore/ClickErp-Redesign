@@ -92,7 +92,11 @@
                                         data-sponsor-phone="{{ $contract->user ? $contract->user->phone : 'غير محدد' }}"
                                         data-sponsor-city="{{ $contract->user ? $contract->user->city : 'غير محدد' }}"
                                         {{ $selectedContractId == $contract->id ? 'selected' : '' }}>
-                                    عقد رقم: {{ $contract->id }} — فرع المصدر: {{ $contract->branch?->name ?? 'غير محدد' }} -
+                                    عقد رقم: {{ $contract->id }}
+                                    @if (@SystemModuleEnabled('branches'))
+                                        — فرع المصدر: {{ $contract->branch?->name ?? 'غير محدد' }}
+                                    @endif
+                                    -
                                     {{ $contract->maid ? $contract->maid->name : 'غير محدد' }} -
                                     {{ $contract->user ? $contract->user->name : 'غير محدد' }}
                                 </option>
@@ -510,7 +514,9 @@ $(document).ready(function() {
             return { title: 'انتهت الجلسة', message: 'انتهت صلاحية جلسة الدخول أو رمز الحماية بسبب بقاء الصفحة مفتوحة لفترة طويلة، ولم يتم حفظ الطلب. حدّث الصفحة وسجّل الدخول من جديد ثم أعد إدخال الطلب.', reload: true };
         }
         if (status === 403) {
-            return { title: 'غير مصرح لك', message: 'لا تملك صلاحية إنشاء طلب نقل الخدمات، أو أن العقد أو العميل يتبع فرعاً آخر لا يمكنك التعامل معه. تواصل مع مدير النظام لمنحك الصلاحية.' };
+            return { title: 'غير مصرح لك', message: @json(\App\Support\SystemModuleManager::isEnabled('branches')
+                ? 'لا تملك صلاحية إنشاء طلب نقل الخدمات، أو أن العقد أو العميل يتبع فرعاً آخر لا يمكنك التعامل معه. تواصل مع مدير النظام لمنحك الصلاحية.'
+                : 'لا تملك صلاحية إنشاء طلب نقل الخدمات. تواصل مع مدير النظام لمنحك الصلاحية.') };
         }
         if (status === 404) {
             return { title: 'مسار الحفظ غير موجود', message: 'لم يعثر الخادم على مسار حفظ الطلب أو على أحد السجلات المطلوبة. حدّث الصفحة وأعد المحاولة، وإن استمرت المشكلة أبلغ الدعم الفني.' };

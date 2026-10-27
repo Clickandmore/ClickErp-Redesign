@@ -33,7 +33,9 @@ class BoxController extends Controller
             return DataTables::of($dataTable)
                 ->addIndexColumn()
                 ->addColumn('code', function ($row) {
-                    return $row->account->code;
+                    // صندوق حُذف حسابه من الشجرة: يُعرض بدل كسر الجدول، والحفظ من التعديل يعيد إنشاء الحساب
+                    return $row->account?->code
+                        ?? '<span class="badge bg-danger" title="احفظ الصندوق من زر التعديل لإعادة إنشاء حسابه">الحساب محذوف</span>';
                 })
 
                 ->addColumn('actions', function ($row) {
@@ -52,6 +54,16 @@ class BoxController extends Controller
         return view($this->folderPath . '.index', $data);
     }
 
+    private function branchAssignmentData(): array
+    {
+        $enabled = \App\Support\SystemModuleManager::isEnabled('branches')
+            && \App\Support\BranchSharingSettings::accountsPerBranch();
+        return [
+            'accountBranchAssignmentsEnabled' => $enabled,
+            'branches' => $enabled ? \App\Models\Branch::active()->ordered()->get() : collect(),
+        ];
+    }
+
     /**
      * @param Request $request
      * @param ObjService $service
@@ -63,6 +75,7 @@ class BoxController extends Controller
         if ($request->ajax()) {
             $returnHTML = view($this->folderPath . ".create")->with([
                 'storeRoute' => route($this->mainRoute . ".store"),
+                ...$this->branchAssignmentData(),
             ])->render();
             return jsonSuccess(["html" => $returnHTML]);
         }
@@ -107,7 +120,8 @@ class BoxController extends Controller
     {
         if ($request->ajax()) {
             $returnHTML = view($this->folderPath . ".edit")->with([
-                "obj" => $service->find($id),
+                "obj" => $service->find($id)->load('account.branches'),
+                ...$this->branchAssignmentData(),
                 'updateRoute' => route($this->mainRoute . ".update", $id),
             ])->render();
             return jsonSuccess(["html" => $returnHTML]);

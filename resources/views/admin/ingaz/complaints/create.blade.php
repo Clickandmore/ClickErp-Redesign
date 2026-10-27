@@ -37,14 +37,73 @@
     .maid-mode-option input:checked + .maid-mode-card { border-color: #2f67b2; background: #eef5ff; box-shadow: 0 0 0 3px rgba(47,103,178,.11); }
     .maid-mode-option input:checked + .maid-mode-card i { background: #2f67b2; color: #fff; }
     .maid-mode-option input:focus-visible + .maid-mode-card { outline: 2px solid #2f67b2; outline-offset: 2px; }
-    .select2-container .select2-selection--single { height: 39px; padding: 0 .75rem; display: flex; align-items: center; border-color: #dee2e6; }
-    .select2-container--default .select2-selection--single .select2-selection__rendered { flex: 1; min-width: 0; line-height: 37px; padding: 0 0 0 26px; }
-    .select2-container--default .select2-selection--single .select2-selection__arrow { top: 0; bottom: 0; height: auto; left: 8px; right: auto; width: 20px; }
-    .select2-container--default .select2-selection--single .select2-selection__clear { margin: 0 0 0 6px; color: #98a2b3; }
-    .select2-container { max-width: 100%; }
-    .select2-dropdown { z-index: 1055; }
+    /* ---- الحقول والقوائم المنسدلة: ارتفاع وحدود وتركيز موحدة ---- */
+    .complaint-create .form-control, .complaint-create .form-select { min-height: 42px; border-color: #d0d5dd; border-radius: 10px; font-size: 14px; color: #1d2939; }
+    .complaint-create textarea.form-control { min-height: auto; }
+    .complaint-create .form-control::placeholder { color: #98a2b3; }
+    .complaint-create .form-control:focus, .complaint-create .form-select:focus { border-color: #2f67b2; box-shadow: 0 0 0 3px rgba(47,103,178,.14); }
+    /* القالب يضع سهم القائمة الأصلية يمينًا؛ في الواجهة العربية مكانه اليسار */
+    .complaint-create .form-select { padding: .45rem .85rem .45rem 2.4rem; background-position: left .85rem center; background-size: 14px 10px; cursor: pointer; }
+    .complaint-create .form-select:disabled, .complaint-create .form-control:disabled { background-color: #f2f4f7; color: #98a2b3; cursor: not-allowed; }
+
+    .complaint-create .select2-container { max-width: 100%; }
+    .complaint-create .select2-container .select2-selection--single {
+        height: 42px; padding: 0 .85rem; display: flex; align-items: center;
+        border: 1px solid #d0d5dd; border-radius: 10px; background: #fff; transition: border-color .15s, box-shadow .15s;
+    }
+    .complaint-create .select2-container--default .select2-selection--single .select2-selection__rendered {
+        flex: 1; min-width: 0; padding: 0 0 0 46px; line-height: 40px; color: #1d2939; font-size: 14px; text-align: right;
+        overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    }
+    .complaint-create .select2-container--default .select2-selection--single .select2-selection__placeholder { color: #98a2b3; }
+    .complaint-create .select2-container--default .select2-selection--single .select2-selection__arrow {
+        top: 0; bottom: 0; left: 10px; right: auto; width: 16px; height: auto; display: flex; align-items: center; justify-content: center;
+    }
+    .complaint-create .select2-container--default .select2-selection--single .select2-selection__arrow b {
+        position: static; margin: 0; border: 0; width: 8px; height: 8px;
+        border-left: 2px solid #667085; border-bottom: 2px solid #667085; transform: rotate(-45deg) translateY(-2px); transition: transform .15s;
+    }
+    .complaint-create .select2-container--open .select2-selection--single .select2-selection__arrow b { transform: rotate(135deg) translate(-2px, 0); }
+    .complaint-create .select2-container--default .select2-selection--single .select2-selection__clear {
+        position: absolute; left: 30px; top: 50%; transform: translateY(-50%); float: none; margin: 0; padding: 0;
+        border: 0; background: transparent; color: #98a2b3; font-size: 18px; line-height: 1; cursor: pointer; z-index: 1;
+    }
+    .complaint-create .select2-container--default .select2-selection--single .select2-selection__clear:hover { color: #d92d20; }
+    .complaint-create .select2-container--focus .select2-selection--single,
+    .complaint-create .select2-container--open .select2-selection--single { border-color: #2f67b2; box-shadow: 0 0 0 3px rgba(47,103,178,.14); }
+    .complaint-create .select2-container--disabled .select2-selection--single { background: #f2f4f7; cursor: not-allowed; }
+    .complaint-create .select2-container--disabled .select2-selection__rendered { color: #98a2b3; }
+    .complaint-create .select2-selection.border-danger { border-color: #dc3545 !important; box-shadow: 0 0 0 3px rgba(220,53,69,.12); }
+
+    /* القائمة المفتوحة (بعضها يُلحق بالصفحة نفسها فلا يُقيد بـ.complaint-create) */
+    .select2-dropdown { z-index: 1055; border: 1px solid #d0d5dd !important; border-radius: 10px !important; overflow: hidden; box-shadow: 0 12px 28px rgba(16,24,40,.14); }
+    .select2-container--open .select2-dropdown--below { margin-top: 4px; }
+    .select2-container--open .select2-dropdown--above { margin-top: -4px; }
+    .select2-search--dropdown { padding: 8px; background: #f9fafb; border-bottom: 1px solid #eaecf0; }
+    .select2-search--dropdown .select2-search__field { height: 36px; padding: 0 10px; border: 1px solid #d0d5dd !important; border-radius: 8px; font-size: 13px; outline: 0; }
+    .select2-search--dropdown .select2-search__field:focus { border-color: #2f67b2 !important; box-shadow: 0 0 0 3px rgba(47,103,178,.14); }
+    .select2-results__options { max-height: 280px !important; padding: 4px; }
+    .select2-results__option { padding: 8px 10px; border-radius: 7px; font-size: 13.5px; color: #344054; text-align: right; }
+    .select2-container--default .select2-results__option--highlighted[aria-selected],
+    .select2-container--default .select2-results__option--highlighted.select2-results__option--selectable { background: #eef5ff; color: #19376d; }
+    .select2-container--default .select2-results__option[aria-selected=true],
+    .select2-container--default .select2-results__option--selected { background: #2f67b2 !important; color: #fff !important; }
+    .select2-results__message, .select2-results__option--load-more { color: #98a2b3; font-size: 13px; text-align: center; }
     .footer-actions { position: relative; z-index: 1; display: flex; justify-content: flex-end; gap: 10px; margin-top: 18px; padding: 14px; border: 1px solid #e8edf4; border-radius: 14px; background: rgba(255,255,255,.95); box-shadow: 0 8px 30px rgba(31,45,61,.11); backdrop-filter: blur(7px); }
     @media (max-width: 992px) { .relation-grid { grid-template-columns: repeat(3,1fr); } }
+    .party-flow { display: grid; grid-template-columns: 1fr auto 1fr; align-items: end; gap: 12px; padding: 14px; border: 1px dashed #cfd8e6; border-radius: 13px; background: #f8fafc; }
+    .party-flow__arrow { display: flex; flex-direction: column; align-items: center; padding-bottom: 6px; color: #2f67b2; font-size: 20px; line-height: 1; }
+    .party-flow__arrow small { font-size: 12px; font-weight: 700; margin-top: 2px; }
+    .complaint-create .party-flow select.is-locked { pointer-events: none; background-color: #eef5ff; background-image: none; padding-left: .85rem; border-color: #b9cff0; color: #19376d; font-weight: 700; }
+    .party-badge { display: inline-block; margin-inline-start: 6px; padding: 2px 10px; border-radius: 999px; background: #eef5ff; color: #2f67b2; font-size: 12px; font-weight: 700; vertical-align: middle; }
+    .party-note { padding: 10px 14px; border-radius: 10px; background: #f8fafc; color: #475467; font-size: 13px; }
+    .party-note i { color: #2f67b2; margin-inline-end: 6px; }
+    .relation-grid--4 { grid-template-columns: repeat(4, minmax(120px,1fr)); }
+    .optional-maid { padding: 16px; border: 1px dashed #cfd8e6; border-radius: 13px; }
+    .optional-maid__title { font-weight: 700; color: #344054; margin-bottom: 12px; }
+    .optional-maid__title i { color: #2f67b2; margin-inline-end: 6px; }
+    .optional-maid:not(:has(#maidPartyBlock)) { display: none; }
+    @media (max-width: 576px) { .party-flow { grid-template-columns: 1fr; } .party-flow__arrow { transform: rotate(-90deg); padding: 0; } .relation-grid--4 { grid-template-columns: repeat(2,1fr); } }
     @media (max-width: 576px) { .relation-grid { grid-template-columns: repeat(2,1fr); } .maid-mode-grid { grid-template-columns: 1fr; } .form-section-body { padding: 16px; } }
 </style>
 @endsection
@@ -84,6 +143,25 @@
                     <input type="text" name="subject" class="form-control @error('subject') is-invalid @enderror" value="{{ old('subject', $complaint->subject ?? null) }}" placeholder="ملخص واضح ومختصر للشكوى" required>
                     @error('subject')<div class="text-danger small mt-1">{{ $message }}</div>@enderror
                 </div>
+                <div class="col-12 mb-3">
+                    <div class="party-flow">
+                        <div class="party-flow__side">
+                            <label class="form-label" for="complainantType">صفة مقدم الشكوى <span class="required">*</span></label>
+                            <select name="complainant_type" id="complainantType" class="form-select">
+                                @foreach($partyTypes as $value => $label)<option value="{{ $value }}" @selected(old('complainant_type', $partyState['complainant_type']) === $value)>{{ $label }}</option>@endforeach
+                            </select>
+                        </div>
+                        <span class="party-flow__arrow"><i class="fas fa-long-arrow-alt-left"></i><small>ضد</small></span>
+                        <div class="party-flow__side">
+                            <label class="form-label" for="againstType">صفة المشتكى عليه <span class="required">*</span></label>
+                            <select name="against_type" id="againstType" class="form-select">
+                                @foreach($partyTypes as $value => $label)<option value="{{ $value }}" @selected(old('against_type', $partyState['against_type']) === $value)>{{ $label }}</option>@endforeach
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-text" id="partyFlowHint"></div>
+                    @error('against_type')<div class="text-danger small mt-1">{{ $message }}</div>@enderror
+                </div>
                 <div class="col-md-{{ $isEdit ? '4' : '6' }} mb-3">
                     <label class="form-label">الأولوية <span class="required">*</span></label>
                     <select name="priority" class="form-select" required>
@@ -117,88 +195,177 @@
             </div></div>
         </section>
 
-        <section class="form-section">
-            <div class="form-section-header"><span class="step-number">2</span><div><h5 class="mb-0">بيانات مقدم الشكوى</h5><small class="text-muted">يمكن اختيار عميل مسجل أو كتابة البيانات يدويًا</small></div></div>
+        <input type="hidden" name="party_form" value="1">
+        @php
+            $officeLabel = fn ($office) => $office->title ?: 'مكتب #' . $office->id;
+            $maidMode = old('maid_registration_status', $complaint->maid_registration_status ?? 'registered') === 'unregistered' ? 'unregistered' : 'registered';
+        @endphp
+
+        {{-- 2. مقدم الشكوى: الحقول الظاهرة تتبع صفته (data-for) --}}
+        <section class="form-section party-section" data-side="complainant">
+            <div class="form-section-header"><span class="step-number">2</span><div><h5 class="mb-0">بيانات مقدم الشكوى <span class="party-badge" data-party-label></span></h5><small class="text-muted" data-party-help></small></div></div>
             <div class="form-section-body"><div class="row">
-                <div class="col-lg-4 mb-3">
-                    <label class="form-label">عميل مسجل <span class="text-muted fw-normal">(اختياري)</span></label>
+                <div class="col-lg-6 mb-3" data-for="client">
+                    <label class="form-label" for="complainantUser">العميل المسجل <span class="text-muted fw-normal">(اختياري للعميل غير المسجل)</span></label>
                     <select name="user_id" id="complainantUser" class="form-select select2">
-                        <option value="">إدخال يدوي</option>
-                        @foreach($users as $user)<option value="{{ $user->id }}" data-name="{{ $user->name }}" data-phone="{{ $user->phone }}" {{ old('user_id', $complaint->user_id ?? null) == $user->id ? 'selected' : '' }}>{{ $user->name }} — {{ $user->phone }}</option>@endforeach
+                        <option value="">عميل غير مسجل — إدخال يدوي</option>
+                        @foreach($users as $user)<option value="{{ $user->id }}" data-name="{{ $user->name }}" data-phone="{{ $user->phone }}" @selected(old('user_id', $complaint->user_id ?? null) == $user->id)>{{ $user->name }} — {{ $user->phone }}</option>@endforeach
                     </select>
                 </div>
-                <div class="col-lg-3 mb-3">
-                    <label class="form-label">صفة مقدم الشكوى <span class="required">*</span></label>
-                    <select name="complainant_type" id="complainantType" class="form-select" required>
-                        @foreach($partyTypes as $value => $label)<option value="{{ $value }}" {{ old('complainant_type', $complaint->complainant_type ?? 'client') === $value ? 'selected' : '' }}>{{ $label }}</option>@endforeach
+                <div class="col-lg-6 mb-3" data-for="external_office">
+                    <label class="form-label">المكتب الخارجي <span class="required">*</span></label>
+                    <select name="complainant_office_id" class="form-select select2" data-required>
+                        <option value="">ابحث باسم المكتب</option>
+                        @foreach($recruitmentOffices as $office)<option value="{{ $office->id }}" @selected(old('complainant_office_id', $partyState['complainant_office_id']) == $office->id)>{{ $officeLabel($office) }}</option>@endforeach
                     </select>
                 </div>
-                <div class="col-lg-3 mb-3">
-                    <label class="form-label">الاسم <span class="required">*</span></label>
-                    <input type="text" name="complainant_name" class="form-control @error('complainant_name') is-invalid @enderror" value="{{ old('complainant_name', $complaint->complainant_name ?? null) }}" required>
+                <div class="col-lg-6 mb-3" data-for="employee">
+                    <label class="form-label">الموظف <span class="required">*</span></label>
+                    <select name="complainant_admin_id" class="form-select select2" data-required>
+                        <option value="">ابحث باسم الموظف</option>
+                        @foreach($admins as $admin)<option value="{{ $admin->id }}" @selected(old('complainant_admin_id', $partyState['complainant_admin_id']) == $admin->id)>{{ $admin->name }}</option>@endforeach
+                    </select>
+                </div>
+                <div class="col-12" data-for="worker" data-worker-host="complainant"></div>
+                <div class="col-lg-3 mb-3" data-for="client,other,internal_office">
+                    <label class="form-label">الاسم <span class="required" data-required-mark>*</span></label>
+                    <input type="text" name="complainant_name" class="form-control @error('complainant_name') is-invalid @enderror" maxlength="255" value="{{ old('complainant_name', $complaint->complainant_name ?? null) }}" data-required-for="client,other" placeholder="">
                     @error('complainant_name')<div class="text-danger small mt-1">{{ $message }}</div>@enderror
                 </div>
-                <div class="col-lg-2 mb-3">
-                    <label class="form-label">الجوال <span class="required">*</span></label>
-                    <input type="tel" name="complainant_phone" class="form-control @error('complainant_phone') is-invalid @enderror" value="{{ old('complainant_phone', $complaint->complainant_phone ?? null) }}" placeholder="05XXXXXXXX" required>
+                <div class="col-lg-3 mb-3" data-for="client,other,worker,internal_office">
+                    <label class="form-label">الجوال <span class="required" data-required-mark>*</span></label>
+                    <input type="tel" name="complainant_phone" class="form-control @error('complainant_phone') is-invalid @enderror" value="{{ old('complainant_phone', $complaint->complainant_phone ?? null) }}" placeholder="05XXXXXXXX" data-required-for="client">
                     <div id="complainantPhoneError" class="text-danger small mt-1" data-field="complainant_phone" aria-live="polite">@error('complainant_phone'){{ $message }}@enderror</div>
                 </div>
+                <div class="col-12" data-for="internal_office"><div class="party-note"><i class="fas fa-building"></i> الشكوى مقدمة من المكتب نفسه؛ يمكن تعديل الاسم أو إضافة جوال للتواصل.</div></div>
+                @error('complainant_office_id')<div class="col-12 text-danger small">{{ $message }}</div>@enderror
+                @error('complainant_admin_id')<div class="col-12 text-danger small">{{ $message }}</div>@enderror
             </div></div>
         </section>
 
+        {{-- 3. المشتكى عليه --}}
+        <section class="form-section party-section" data-side="against">
+            <div class="form-section-header"><span class="step-number">3</span><div><h5 class="mb-0">بيانات المشتكى عليه <span class="party-badge" data-party-label></span></h5><small class="text-muted" data-party-help></small></div></div>
+            <div class="form-section-body"><div class="row">
+                <div class="col-lg-6 mb-3" data-for="client">
+                    <label class="form-label" for="againstUser">العميل المسجل</label>
+                    <select name="related_user_id" id="againstUser" class="form-select select2">
+                        <option value="">عميل غير مسجل — إدخال يدوي</option>
+                        @foreach($users as $user)<option value="{{ $user->id }}" data-name="{{ $user->name }}" data-phone="{{ $user->phone }}" @selected(old('related_user_id', $partyState['related_user_id']) == $user->id)>{{ $user->name }} — {{ $user->phone }}</option>@endforeach
+                    </select>
+                    <div class="form-text">إذا تُرك فارغًا مع ربط الشكوى بطلب أو عقد، يُعتمد عميل الطلب أو العقد.</div>
+                    @error('related_user_id')<div class="text-danger small mt-1">{{ $message }}</div>@enderror
+                </div>
+                <div class="col-lg-6 mb-3" data-for="external_office">
+                    <label class="form-label">المكتب الخارجي <span class="required">*</span></label>
+                    <select name="against_office_id" class="form-select select2" data-required>
+                        <option value="">ابحث باسم المكتب</option>
+                        @foreach($recruitmentOffices as $office)<option value="{{ $office->id }}" @selected(old('against_office_id', $partyState['against_office_id']) == $office->id)>{{ $officeLabel($office) }}</option>@endforeach
+                    </select>
+                    @error('against_office_id')<div class="text-danger small mt-1">{{ $message }}</div>@enderror
+                </div>
+                <div class="col-lg-6 mb-3" data-for="employee">
+                    <label class="form-label">الموظف <span class="required">*</span></label>
+                    <select name="against_admin_id" class="form-select select2" data-required>
+                        <option value="">ابحث باسم الموظف</option>
+                        @foreach($admins as $admin)<option value="{{ $admin->id }}" @selected(old('against_admin_id', $partyState['against_admin_id']) == $admin->id)>{{ $admin->name }}</option>@endforeach
+                    </select>
+                    @error('against_admin_id')<div class="text-danger small mt-1">{{ $message }}</div>@enderror
+                </div>
+                <div class="col-12" data-for="worker" data-worker-host="against"></div>
+                <div class="col-lg-3 mb-3" data-for="client,other,internal_office">
+                    <label class="form-label">الاسم <span class="required" data-required-mark>*</span></label>
+                    <input type="text" name="against_name" class="form-control @error('against_name') is-invalid @enderror" maxlength="255" value="{{ old('against_name', $complaint->against_name ?? null) }}" data-required-for="other">
+                    @error('against_name')<div class="text-danger small mt-1">{{ $message }}</div>@enderror
+                </div>
+                <div class="col-lg-3 mb-3" data-for="client,other,internal_office">
+                    <label class="form-label">الجوال / وسيلة التواصل</label>
+                    <input type="text" name="against_phone" class="form-control" maxlength="50" value="{{ old('against_phone', $complaint->against_phone ?? null) }}">
+                </div>
+                <div class="col-12" data-for="internal_office"><div class="party-note"><i class="fas fa-building"></i> الشكوى مقدمة ضد المكتب نفسه.</div></div>
+            </div></div>
+        </section>
+
+        {{-- بيانات العاملة: تُنقل بالجافاسكربت إلى قسم الطرف الذي صفته «عاملة»، أو تبقى اختيارية في قسم الربط --}}
+        <div class="row" id="maidPartyBlock">
+            <div class="col-12 mb-3">
+                <div class="maid-mode-grid" role="radiogroup" aria-label="بيانات العاملة">
+                    <label class="maid-mode-option">
+                        <input type="radio" name="maid_registration_status" value="registered" @checked($maidMode === 'registered')>
+                        <span class="maid-mode-card"><i class="fas fa-user-check"></i><span><strong>عاملة مسجلة بالنظام</strong><small>ابحث واختر العاملة بالاسم أو رقم الجواز</small></span></span>
+                    </label>
+                    <label class="maid-mode-option">
+                        <input type="radio" name="maid_registration_status" value="unregistered" @checked($maidMode === 'unregistered')>
+                        <span class="maid-mode-card"><i class="fas fa-user-edit"></i><span><strong>العاملة غير مسجلة بالنظام</strong><small>أدخل اسم العاملة ورقم جوازها يدويًا</small></span></span>
+                    </label>
+                </div>
+            </div>
+            <div class="col-md-6 mb-3" id="registeredMaidFields">
+                <label class="form-label" for="complaintMaid">البحث عن العاملة بالاسم أو رقم الجواز</label>
+                <select name="maid_id" id="complaintMaid" class="form-select">
+                    <option value=""></option>
+                    @if(old('maid_id', $complaint->maid_id ?? null))
+                        <option value="{{ old('maid_id', $complaint->maid_id ?? null) }}" selected>{{ old('maid_name', $complaint->maid_name ?? '') }} — {{ old('maid_passport', $complaint->maid_passport ?? '') }}</option>
+                    @endif
+                </select>
+                <div class="form-text" data-maid-help></div>
+                @error('maid_id')<div class="text-danger small mt-1">{{ $message }}</div>@enderror
+            </div>
+            <div class="col-md-6 mb-3" id="unregisteredMaidFields">
+                <label class="form-label" for="complaintMaidName">اسم العاملة غير المسجلة</label>
+                <input type="text" name="maid_name" id="complaintMaidName" class="form-control" maxlength="255" value="{{ old('maid_name', $complaint->maid_name ?? '') }}">
+            </div>
+            <div class="col-md-6 mb-3">
+                <label class="form-label" for="complaintMaidPassport">رقم جواز العاملة</label>
+                <input type="text" name="maid_passport" id="complaintMaidPassport" class="form-control" maxlength="50" dir="ltr" autocomplete="off" title="حروف إنجليزية وأرقام فقط، من {{ \App\Support\MaidFieldRules::PASSPORT_MIN_LENGTH }} إلى {{ \App\Support\MaidFieldRules::PASSPORT_MAX_LENGTH }} خانة" value="{{ old('maid_passport', $complaint->maid_passport ?? null) }}">
+                <div class="form-text" id="complaintMaidPassportHelp">الجواز والجنسية يُملآن من سجل العاملة المختارة ولا يمكن تعديلهما هنا.</div>
+                @error('maid_passport')<div class="text-danger small">{{ $message }}</div>@enderror
+            </div>
+            <div class="col-md-6 mb-3"><label class="form-label">جنسية العاملة</label><select name="maid_nationality_id" class="form-select select2"><option value="">غير محدد</option>@foreach($nationalities as $nationality)<option value="{{ $nationality->id }}" {{ old('maid_nationality_id', $complaint->maid_nationality_id ?? null) == $nationality->id ? 'selected' : '' }}>{{ $nationality->sub_title ?? $nationality->title }}</option>@endforeach</select></div>
+        </div>
+
+        {{-- 4. ربط الشكوى --}}
         <section class="form-section">
-            <div class="form-section-header"><span class="step-number">3</span><div><h5 class="mb-0">ربط الشكوى</h5><small class="text-muted">اختر السجل المرتبط أو أضف بيانات المشتكى عليه يدويًا</small></div></div>
+            <div class="form-section-header"><span class="step-number">4</span><div><h5 class="mb-0">ربط الشكوى</h5><small class="text-muted">اربط الشكوى بالطلب أو العقد أو المكتب الخارجي المعني إن وجد</small></div></div>
             <div class="form-section-body">
-                @php
-                    $currentRelation = !empty($prefillContractId) ? 'contract' : 'none';
-                    if ($isEdit) {
-                        $currentRelation = $complaint->relation_type
-                            ?: ($complaint->order_id ? 'order'
-                                : ($complaint->contract_id ? 'contract'
-                                    : ($complaint->recruitment_office_id ? 'office'
-                                        : ($complaint->related_user_id ? 'client'
-                                            : ($complaint->against_name ? 'manual' : 'none')))));
-                    }
-                    $selectedRelation = old('relation_type', $currentRelation);
-                @endphp
-                <div class="relation-grid">
+                @php $selectedRelation = old('relation_type', $partyState['relation_type']); @endphp
+                <div class="relation-grid relation-grid--4">
                     @foreach([
                         'order' => ['fa-shopping-cart','طلب'], 'contract' => ['fa-file-contract','عقد'],
-                        'office' => ['fa-building','مكتب خارجي'], 'client' => ['fa-user-tie','عميل'],
-                        'manual' => ['fa-keyboard','إدخال يدوي'], 'none' => ['fa-ban','بدون ربط']
+                        'office' => ['fa-building','مكتب خارجي'], 'none' => ['fa-ban','بدون ربط']
                     ] as $value => $meta)
-                        <label class="relation-option"><input type="radio" name="relation_type" value="{{ $value }}" {{ $selectedRelation === $value ? 'checked' : '' }}><span class="relation-card"><i class="fas {{ $meta[0] }}"></i><strong>{{ $meta[1] }}</strong></span></label>
+                        <label class="relation-option" data-relation-option="{{ $value }}"><input type="radio" name="relation_type" value="{{ $value }}" {{ $selectedRelation === $value ? 'checked' : '' }}><span class="relation-card"><i class="fas {{ $meta[0] }}"></i><strong>{{ $meta[1] }}</strong></span></label>
                     @endforeach
                 </div>
+                @error('relation_type')<div class="text-danger small mt-2">{{ $message }}</div>@enderror
 
                 <div class="relation-panel" data-relation="order">
                     <label class="form-label">اختر الطلب <span class="required">*</span></label>
                     <select name="order_id" class="form-select select2 relation-input"><option value="">ابحث برقم الطلب أو اسم العميل أو العاملة</option>@foreach($orders as $order)<option value="{{ $order->id }}" {{ old('order_id', $complaint->order_id ?? null) == $order->id ? 'selected' : '' }}>طلب #{{ $order->order_code ?: $order->id }} — {{ $order->user?->name ?: 'بدون عميل' }} @if($order->maid) — {{ $order->maid->name }} @endif</option>@endforeach</select>
+                    <div class="form-text" data-relation-filter-hint></div>
                 </div>
                 <div class="relation-panel" data-relation="contract">
                     <label class="form-label">اختر العقد <span class="required">*</span></label>
                     <select name="contract_id" class="form-select select2 relation-input"><option value="">ابحث برقم العقد أو اسم العميل أو العاملة</option>@foreach($contractOptions as $contractOption)<option value="{{ $contractOption['id'] }}" {{ old('contract_id', $complaint->contract_id ?? $prefillContractId ?? null) == $contractOption['id'] ? 'selected' : '' }}>{{ $contractOption['label'] }}</option>@endforeach</select>
+                    <div class="form-text" data-relation-filter-hint></div>
                 </div>
                 <div class="relation-panel" data-relation="office">
                     <label class="form-label">اختر المكتب الخارجي <span class="required">*</span></label>
-                    <select name="recruitment_office_id" class="form-select select2 relation-input"><option value="">ابحث باسم المكتب</option>@foreach($recruitmentOffices as $office)<option value="{{ $office->id }}" {{ old('recruitment_office_id', $complaint->recruitment_office_id ?? null) == $office->id ? 'selected' : '' }}>{{ $office->title ?: 'مكتب #' . $office->id }}</option>@endforeach</select>
+                    <select name="recruitment_office_id" class="form-select select2 relation-input"><option value="">ابحث باسم المكتب</option>@foreach($recruitmentOffices as $office)<option value="{{ $office->id }}" {{ old('recruitment_office_id', $partyState['relation_office_id']) == $office->id ? 'selected' : '' }}>{{ $officeLabel($office) }}</option>@endforeach</select>
                 </div>
-                <div class="relation-panel" data-relation="client">
-                    <label class="form-label">اختر العميل المرتبط <span class="required">*</span></label>
-                    <select name="related_user_id" class="form-select select2 relation-input"><option value="">ابحث بالاسم أو الجوال</option>@foreach($users as $user)<option value="{{ $user->id }}" {{ old('related_user_id', $complaint->related_user_id ?? null) == $user->id ? 'selected' : '' }}>{{ $user->name }} — {{ $user->phone }}</option>@endforeach</select>
-                </div>
-                <div class="relation-panel" data-relation="manual"><div class="row">
-                    <div class="col-md-4 mb-3"><label class="form-label">اسم المشتكى عليه <span class="required">*</span></label><input type="text" name="against_name" class="form-control relation-input" value="{{ old('against_name', $complaint->against_name ?? null) }}"></div>
-                    <div class="col-md-4 mb-3"><label class="form-label">الجوال / وسيلة التواصل</label><input type="text" name="against_phone" class="form-control relation-input" value="{{ old('against_phone', $complaint->against_phone ?? null) }}"></div>
-                    <div class="col-md-4 mb-3"><label class="form-label">رقم أو مرجع خارجي</label><input type="text" name="relation_reference" class="form-control relation-input" value="{{ old('relation_reference', $complaint->relation_reference ?? null) }}"></div>
-                </div></div>
-                <div class="relation-panel" data-relation="none"><div class="text-muted"><i class="fas fa-info-circle me-2"></i>ستُحفظ الشكوى دون ربط بسجل، ويمكن ربطها لاحقًا.</div></div>
+                <div class="relation-panel" data-relation="none"><div class="text-muted"><i class="fas fa-info-circle me-2"></i>ستُحفظ الشكوى دون ربط بسجل، ويمكن ربطها لاحقًا من صفحة الشكوى.</div></div>
+                <div class="alert alert-warning small mt-3 mb-0" id="relationMismatch" hidden></div>
                 <div class="mt-3"><label class="form-label">ملاحظات الربط <span class="text-muted fw-normal">(اختياري)</span></label><textarea name="relation_notes" class="form-control" rows="2" placeholder="أي معلومات تساعد في تحديد الطلب أو العقد أو الطرف المرتبط">{{ old('relation_notes', $complaint->relation_notes ?? null) }}</textarea></div>
+
+                <div class="optional-maid mt-3" data-worker-host="optional">
+                    <div class="optional-maid__title"><i class="fas fa-user"></i> العاملة المعنية بالشكوى <span class="text-muted fw-normal">(اختياري)</span></div>
+                </div>
             </div>
         </section>
 
+        {{-- 5. التفاصيل والمرفقات --}}
         <section class="form-section">
-            <div class="form-section-header"><span class="step-number">4</span><div><h5 class="mb-0">تفاصيل الشكوى والمرفقات</h5><small class="text-muted">اكتب وصفًا كاملًا وأرفق المستندات المتاحة</small></div></div>
+            <div class="form-section-header"><span class="step-number">5</span><div><h5 class="mb-0">تفاصيل الشكوى والمرفقات</h5><small class="text-muted">اكتب وصفًا كاملًا وأرفق المستندات المتاحة</small></div></div>
             <div class="form-section-body"><div class="row">
                 <div class="col-12 mb-3"><label class="form-label">تفاصيل الشكوى <span class="required">*</span></label><textarea name="details" class="form-control @error('details') is-invalid @enderror" rows="6" required placeholder="اكتب الوقائع والتواريخ والإجراء المطلوب بوضوح">{{ old('details', $complaint->details ?? $complaint->message ?? null) }}</textarea>@error('details')<div class="text-danger small mt-1">{{ $message }}</div>@enderror</div>
                 <div class="col-12 mb-3">
@@ -206,41 +373,6 @@
                     <textarea id="complaint-notes" name="complaint_notes" class="form-control @error('complaint_notes') is-invalid @enderror" rows="3" maxlength="5000" placeholder="أضف ملاحظات تظهر في جدول الشكاوى">{{ old('complaint_notes', $complaint->complaint_notes ?? null) }}</textarea>
                     @error('complaint_notes')<div class="text-danger small mt-1">{{ $message }}</div>@enderror
                 </div>
-                @php $maidMode = old('maid_registration_status', $complaint->maid_registration_status ?? 'registered') === 'unregistered' ? 'unregistered' : 'registered'; @endphp
-                <div class="col-12 mb-3">
-                    <label class="form-label d-block">بيانات العاملة</label>
-                    <div class="maid-mode-grid" role="radiogroup" aria-label="بيانات العاملة">
-                        <label class="maid-mode-option">
-                            <input type="radio" name="maid_registration_status" value="registered" @checked($maidMode === 'registered')>
-                            <span class="maid-mode-card"><i class="fas fa-user-check"></i><span><strong>عاملة مسجلة بالنظام</strong><small>ابحث واختر العاملة بالاسم أو رقم الجواز</small></span></span>
-                        </label>
-                        <label class="maid-mode-option">
-                            <input type="radio" name="maid_registration_status" value="unregistered" @checked($maidMode === 'unregistered')>
-                            <span class="maid-mode-card"><i class="fas fa-user-edit"></i><span><strong>العاملة غير مسجلة بالنظام</strong><small>أدخل اسم العاملة ورقم جوازها يدويًا</small></span></span>
-                        </label>
-                    </div>
-                </div>
-                <div class="col-md-6 mb-3" id="registeredMaidFields">
-                    <label class="form-label" for="complaintMaid">البحث عن العاملة بالاسم أو رقم الجواز</label>
-                    <select name="maid_id" id="complaintMaid" class="form-select">
-                        <option value=""></option>
-                        @if(old('maid_id', $complaint->maid_id ?? null))
-                            <option value="{{ old('maid_id', $complaint->maid_id ?? null) }}" selected>{{ old('maid_name', $complaint->maid_name ?? '') }} — {{ old('maid_passport', $complaint->maid_passport ?? '') }}</option>
-                        @endif
-                    </select>
-                    <div class="form-text">اختر العاملة من نتائج البحث. يمكن ترك بيانات العاملة فارغة إذا لم تكن الشكوى تخص عاملة.</div>
-                </div>
-                <div class="col-md-6 mb-3" id="unregisteredMaidFields">
-                    <label class="form-label" for="complaintMaidName">اسم العاملة غير المسجلة</label>
-                    <input type="text" name="maid_name" id="complaintMaidName" class="form-control" maxlength="255" value="{{ old('maid_name', $complaint->maid_name ?? '') }}">
-                </div>
-                <div class="col-md-6 mb-3">
-                    <label class="form-label" for="complaintMaidPassport">رقم جواز العاملة</label>
-                    <input type="text" name="maid_passport" id="complaintMaidPassport" class="form-control" maxlength="50" dir="ltr" autocomplete="off" title="حروف إنجليزية وأرقام فقط، من {{ \App\Support\MaidFieldRules::PASSPORT_MIN_LENGTH }} إلى {{ \App\Support\MaidFieldRules::PASSPORT_MAX_LENGTH }} خانة" value="{{ old('maid_passport', $complaint->maid_passport ?? null) }}">
-                    <div class="form-text" id="complaintMaidPassportHelp">الجواز والجنسية يُملآن من سجل العاملة المختارة ولا يمكن تعديلهما هنا.</div>
-                    @error('maid_passport')<div class="text-danger small">{{ $message }}</div>@enderror
-                </div>
-                <div class="col-md-6 mb-3"><label class="form-label">جنسية العاملة</label><select name="maid_nationality_id" class="form-select select2"><option value="">غير محدد</option>@foreach($nationalities as $nationality)<option value="{{ $nationality->id }}" {{ old('maid_nationality_id', $complaint->maid_nationality_id ?? null) == $nationality->id ? 'selected' : '' }}>{{ $nationality->sub_title ?? $nationality->title }}</option>@endforeach</select></div>
                 @if($isEdit && ($complaint->attachmentFiles->isNotEmpty() || !empty($complaint->attachments)))
                     <div class="col-12 mb-3">
                         <label class="form-label">المرفقات الحالية</label>
@@ -283,6 +415,10 @@
 @section('js')
 <script>
 $(function () {
+    // بيانات العاملة توضع في قسم طرفها قبل تهيئة select2، وتُنقل لاحقًا مع تغيّر صفة الطرف
+    $('[data-worker-host="' + ($('#complainantType').val() === 'worker' ? 'complainant' : ($('#againstType').val() === 'worker' ? 'against' : 'optional')) + '"]')
+        .append($('#maidPartyBlock'));
+
     const pageLoaded = new Promise(function (resolve) {
         if (document.readyState === 'complete') resolve();
         else window.addEventListener('load', resolve, { once: true });
@@ -299,16 +435,21 @@ $(function () {
             width: '100%',
             allowClear: true,
             placeholder: 'اختر أو ابحث',
-            dropdownParent: $select.closest('.form-section-body')
+            // بيانات العاملة تنتقل بين الأقسام حسب صفة الطرف، فقائمتها تُلحق بالصفحة
+            dropdownParent: $select.closest('#maidPartyBlock').length ? $(document.body) : $select.closest('.form-section-body')
         };
         if (['contract_id', 'order_id'].includes($select.attr('name'))) {
             const searchUrl = $select.attr('name') === 'order_id'
                 ? @json(route('complaints.search-orders'))
                 : @json(route('complaints.search-contracts'));
             let initialRequest = null;
+            let initialKey = null;
             function firstPage() {
-                if (!initialRequest) {
-                    initialRequest = $.ajax({ url: searchUrl, dataType: 'json', data: { q: '', page: 1 } });
+                const filters = relationFilters();
+                const key = JSON.stringify(filters);
+                if (!initialRequest || initialKey !== key) {
+                    initialKey = key;
+                    initialRequest = $.ajax({ url: searchUrl, dataType: 'json', data: $.extend({ q: '', page: 1 }, filters) });
                     initialRequest.fail(function () { initialRequest = null; });
                 }
                 return initialRequest;
@@ -318,7 +459,7 @@ $(function () {
                 url: searchUrl,
                 dataType: 'json',
                 delay: 250,
-                data: function (params) { return { q: params.term || '', page: params.page || 1 }; },
+                data: function (params) { return $.extend({ q: params.term || '', page: params.page || 1 }, relationFilters()); },
                 processResults: function (data) { return data; },
                 transport: function (params, success, failure) {
                     let cancelled = false;
@@ -396,8 +537,11 @@ $(function () {
     $('[name="maid_registration_status"]').on('change', refreshMaidMode);
     refreshMaidMode();
 
+    // ---------- ربط الشكوى ----------
+    let lastLinkedRecord = null;
+    function relationType() { return $('[name="relation_type"]:checked').val(); }
     function refreshRelationPanels() {
-        const type = $('[name="relation_type"]:checked').val();
+        const type = relationType();
         $('.relation-panel').each(function () {
             const active = $(this).data('relation') === type;
             $(this).toggle(active).find('.relation-input').prop('disabled', !active);
@@ -405,51 +549,220 @@ $(function () {
         $('[name="relation_notes"]').closest('.mt-3').toggle(type !== 'none');
         $('#shelter-after-save').toggle(type === 'contract');
         $('#after_save').prop('disabled', type !== 'contract');
+        if (type !== 'order' && type !== 'contract') lastLinkedRecord = null;
+        refreshRelationFilterHint();
+        checkRelationMatch();
     }
     $('[name="relation_type"]').on('change', refreshRelationPanels);
-    refreshRelationPanels();
 
+    // ---------- أطراف الشكوى ----------
+    const partyLabels = @json($partyTypes);
+    const partyHelp = {
+        client: 'اختر العميل المسجل لتعبئة بياناته، أو أدخل اسم وجوال عميل غير مسجل.',
+        worker: 'اختر العاملة من النظام، أو حدد «العاملة غير مسجلة بالنظام» وأدخل بياناتها.',
+        external_office: 'اختر المكتب الخارجي من القائمة.',
+        employee: 'اختر الموظف من قائمة موظفي النظام.',
+        internal_office: 'المكتب نفسه طرف في الشكوى.',
+        other: 'أدخل اسم الطرف ووسيلة التواصل معه.'
+    };
+    const $complainantType = $('#complainantType');
+    const $againstType = $('#againstType');
+    const $complainantUser = $('#complainantUser');
+    const $againstUser = $('#againstUser');
+    function sideType(side) { return (side === 'complainant' ? $complainantType : $againstType).val(); }
+    function clientSelect(side) { return side === 'complainant' ? $complainantUser : $againstUser; }
+
+    function placeMaidBlock() {
+        const side = sideType('complainant') === 'worker' ? 'complainant' : (sideType('against') === 'worker' ? 'against' : 'optional');
+        const $host = $('[data-worker-host="' + side + '"]');
+        if (!$host.children('#maidPartyBlock').length) $host.append($('#maidPartyBlock'));
+        $('[data-worker-host="optional"]').prop('hidden', side !== 'optional');
+        $('[data-maid-help]').text(side === 'optional'
+            ? 'اختياري: حدد العاملة إذا كانت الشكوى تخصها دون أن تكون طرفًا فيها.'
+            : 'اختر العاملة من نتائج البحث.');
+    }
+
+    function refreshPartySection(side) {
+        const type = sideType(side);
+        const $section = $('.party-section[data-side="' + side + '"]');
+        $section.find('[data-party-label]').text(partyLabels[type] || '');
+        $section.find('[data-party-help]').text(partyHelp[type] || '');
+        $section.find('[data-for]').each(function () {
+            const active = String($(this).data('for')).split(',').includes(type);
+            $(this).prop('hidden', !active);
+            $(this).find(':input').not('#maidPartyBlock :input').prop('disabled', !active);
+        });
+        $section.find('[data-required]').each(function () { $(this).prop('required', !$(this).prop('disabled')); });
+        $section.find('[data-required-for]').each(function () {
+            const required = !$(this).prop('disabled') && String($(this).data('required-for')).split(',').includes(type);
+            $(this).prop('required', required).closest('[data-for]').find('[data-required-mark]').prop('hidden', !required);
+        });
+        $section.find('[name="' + side + '_name"]').attr('placeholder', type === 'internal_office' ? 'المكتب' : '');
+    }
+
+    function refreshParties() {
+        const option = $('#complaintType').find(':selected');
+        // «أخرى» في التصنيف تعني أن الموظف يحدد صفة الطرف
+        const lockedValue = function (value) { return value && value !== 'other' ? value : null; };
+        const locked = { complainant: lockedValue(option.data('complainant')), against: lockedValue(option.data('against')) };
+        [['complainant', $complainantType], ['against', $againstType]].forEach(function (pair) {
+            const value = locked[pair[0]];
+            if (value) pair[1].val(value);
+            pair[1].toggleClass('is-locked', !!value).attr('tabindex', value ? -1 : null).attr('aria-readonly', value ? 'true' : null);
+        });
+        $('#partyFlowHint').text(locked.complainant && locked.against
+            ? 'صفة الطرفين محددة من تصنيف الشكوى، ولتغييرها اختر تصنيفًا آخر.'
+            : (option.val() ? 'هذا التصنيف لا يحدد صفة الطرفين؛ اخترها يدويًا.' : 'اختر تصنيف الشكوى لتحديد صفة الطرفين تلقائيًا.'));
+
+        refreshPartySection('complainant');
+        refreshPartySection('against');
+        placeMaidBlock();
+
+        // المكتب الخارجي إن كان طرفًا لا يُربط مرة أخرى
+        const officeParty = [sideType('complainant'), sideType('against')].includes('external_office');
+        $('[data-relation-option="office"]').prop('hidden', officeParty);
+        if (officeParty && relationType() === 'office') {
+            $('[name="relation_type"][value="none"]').prop('checked', true);
+        }
+        refreshRelationPanels();
+        clearPhoneError();
+    }
+    $('#complaintType').on('change', refreshParties);
+    $complainantType.add($againstType).on('change', refreshParties);
+
+    // ---------- الجوال ----------
     const $phone = $('[name="complainant_phone"]');
     $phone.attr('aria-describedby', 'complainantPhoneError');
+    function clearPhoneError() {
+        $phone.removeClass('is-invalid').removeAttr('aria-invalid');
+        $('#complainantPhoneError').text('');
+    }
     function validatePhone() {
-        const phone = String($phone.val() || '');
-        const valid = /^(05|5)[0-9]{8}$/.test(phone);
+        if ($phone.prop('disabled')) { clearPhoneError(); return true; }
+        const phone = String($phone.val() || '').trim();
+        const valid = phone === '' ? !$phone.prop('required') : /^(05|5)[0-9]{8}$/.test(phone);
         $phone.toggleClass('is-invalid', !valid).attr('aria-invalid', String(!valid));
-        $('#complainantPhoneError').text(valid ? '' : @json(helperTrans('ingaz.complaint_phone_invalid')));
+        $('#complainantPhoneError').text(valid ? '' : (phone === '' ? 'جوال مقدم الشكوى مطلوب.' : @json(helperTrans('ingaz.complaint_phone_invalid'))));
         return valid;
     }
     $phone.on('input', validatePhone);
 
-    $('#complainantUser').on('change', function () {
-        const option = $(this).find(':selected');
-        if (option.val()) {
-            $('[name="complainant_name"]').val(option.data('name'));
-            $('[name="complainant_phone"]').val(option.data('phone'));
-            validatePhone();
-            $('#complainantType').val('client');
-        }
-    });
+    // ---------- اختيار العملاء ----------
+    function fillFromUser($select, side) {
+        const option = $select.find(':selected');
+        if (!option.val()) return;
+        $('[name="' + side + '_name"]').val(option.data('name'));
+        $('[name="' + side + '_phone"]').val(option.data('phone'));
+    }
+    $complainantUser.on('change', function () { fillFromUser($(this), 'complainant'); if ($(this).val()) validatePhone(); onPartiesChanged(); });
+    $againstUser.on('change', function () { fillFromUser($(this), 'against'); onPartiesChanged(); });
+    $maid.on('change', onPartiesChanged);
     @if(!$isEdit)
-        $('#complainantUser').trigger('change');
+        $complainantUser.trigger('change');
     @endif
 
-    $('#complaintType').on('change', function () {
-        const option = $(this).find(':selected');
-        if (option.data('complainant')) $('#complainantType').val(option.data('complainant'));
+    // ---------- تصفية الطلبات والعقود حسب الأطراف + التعبئة من السجل المرتبط ----------
+    function selectedClientId() {
+        for (const side of ['complainant', 'against']) {
+            if (sideType(side) === 'client' && clientSelect(side).val()) return clientSelect(side).val();
+        }
+        return '';
+    }
+    function relationFilters() {
+        const filters = {};
+        const clientId = selectedClientId();
+        if (clientId) filters.user_id = clientId;
+        if ($maid.val() && !$maid.prop('disabled')) filters.maid_id = $maid.val();
+        return filters;
+    }
+    function refreshRelationFilterHint() {
+        const filtered = Object.keys(relationFilters()).length > 0;
+        $('[data-relation-filter-hint]').text(filtered
+            ? 'تظهر أولًا السجلات الخاصة بالأطراف المختارة، واكتب للبحث في جميع السجلات.'
+            : '');
+    }
+    function onPartiesChanged() {
+        refreshRelationFilterHint();
+        checkRelationMatch();
+    }
+
+    $('[name="contract_id"], [name="order_id"]').on('select2:select', function (event) {
+        const record = event.params.data || {};
+        lastLinkedRecord = record;
+        if (record.user) {
+            for (const side of ['complainant', 'against']) {
+                const $select = clientSelect(side);
+                if (sideType(side) !== 'client' || $select.val() || $('[name="' + side + '_name"]').val()) continue;
+                if ($select.find('option[value="' + record.user.id + '"]').length) {
+                    $select.val(String(record.user.id)).trigger('change');
+                }
+                break;
+            }
+        }
+        const workerIsParty = [sideType('complainant'), sideType('against')].includes('worker');
+        if (record.maid && workerIsParty && !$maid.val() && $('[name="maid_registration_status"]:checked').val() === 'registered') {
+            $maid.append(new Option(record.maid.name + ' — ' + record.maid.passport, record.maid.id, true, true)).trigger('change');
+            selectedMaidIdentity = { passport: record.maid.passport, nationality_id: record.maid.nationality_id };
+            $('#complaintMaidPassport').val(record.maid.passport);
+            $maidNationality.val(record.maid.nationality_id).trigger('change');
+        }
+        checkRelationMatch();
+    }).on('select2:clear', function () {
+        lastLinkedRecord = null;
+        checkRelationMatch();
     });
 
+    function checkRelationMatch() {
+        const record = lastLinkedRecord;
+        const warnings = [];
+        if (record) {
+            const kind = relationType() === 'order' ? 'الطلب' : 'العقد';
+            const clientId = selectedClientId();
+            if (record.user && clientId && String(clientId) !== String(record.user.id)) {
+                warnings.push('العميل المختار ليس عميل ' + kind + ' المرتبط («' + record.user.name + '»).');
+            }
+            if (record.maid && $maid.val() && String($maid.val()) !== String(record.maid.id)) {
+                warnings.push('العاملة المختارة ليست عاملة ' + kind + ' المرتبط («' + record.maid.name + '»)، ولن تُحفظ الشكوى بهذا الاختلاف.');
+            }
+        }
+        $('#relationMismatch').text(warnings.join(' ')).prop('hidden', warnings.length === 0);
+    }
+
+    refreshParties();
+
+    // ---------- التحقق قبل الإرسال ----------
+    function markInvalid($field, invalid) {
+        $field.toggleClass('is-invalid', invalid);
+        $field.next('.select2').find('.select2-selection').toggleClass('border-danger', invalid);
+    }
     $('#complaintForm').on('submit', function (event) {
         let valid = true;
         $(this).find('[required]:enabled').each(function () {
             const empty = !String($(this).val() || '').trim();
-            $(this).toggleClass('is-invalid', empty);
+            markInvalid($(this), empty);
             valid = valid && !empty;
         });
+
+        const linked = ['order', 'contract'].includes(relationType());
+        if (sideType('against') === 'client') {
+            const missing = !$againstUser.val() && !String($('[name="against_name"]').val() || '').trim() && !linked;
+            markInvalid($('[name="against_name"]'), missing);
+            valid = valid && !missing;
+        }
+        const workerIsParty = [sideType('complainant'), sideType('against')].includes('worker');
+        if (workerIsParty && $('[name="maid_registration_status"]:checked').val() === 'registered') {
+            const missing = !$maid.val() && !linked && !@json($isEdit);
+            markInvalid($maid, missing);
+            valid = valid && !missing;
+        }
         valid = validatePhone() && valid;
+
         if (!valid) {
             event.preventDefault();
             event.stopImmediatePropagation();
-            $('html,body').animate({scrollTop: $('.is-invalid').first().offset().top - 120}, 300);
+            const $first = $('.is-invalid, .select2-selection.border-danger').first();
+            const $target = $first.is('select') && $first.next('.select2').length ? $first.next('.select2') : $first;
+            if ($target.length) $('html,body').animate({scrollTop: $target.offset().top - 120}, 300);
         }
     });
 });

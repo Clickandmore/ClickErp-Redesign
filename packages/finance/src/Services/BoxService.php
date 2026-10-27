@@ -45,7 +45,7 @@ class BoxService extends MainService
     }
     public function updateAccount($box, $data)
     {
-        return $this->accountService->update($box->account_id,
+        return $this->accountService->updateAccountGuideDetails($box->account_id,
             [
             "name" => $data["title"],
         ]);
@@ -53,20 +53,43 @@ class BoxService extends MainService
 
     public function store($data)
     {
-        $box = parent::store($data);
-        $parent = $this->getParent();
-        $account =  $this->insertAccount($parent,$data["title"]);;
-        $box->update(["account_id" => $account->id]);
-        return $box;
+        return \Illuminate\Support\Facades\DB::transaction(function () use ($data) {
+            $scopePresent = !empty($data['account_branch_scope_present']);
+            $branchIds = $data['branch_ids'] ?? [];
+            unset($data['account_branch_scope_present'], $data['branch_ids'], $data['account_id']);
+            $account = $this->insertAccount($this->getParent(), $data['title']);
+            $box = parent::store($data + ['account_id' => $account->id]);
+            $this->syncBranches($account, $scopePresent, $branchIds);
+            return $box;
+        });
     }
 
 
     public function update($id, $data)
     {
-        $box = $this->find($id);
-        parent::update($id, $data);
-        $this->updateAccount($box, $data);
-        return $box;
+        return \Illuminate\Support\Facades\DB::transaction(function () use ($id, $data) {
+            $scopePresent = !empty($data['account_branch_scope_present']);
+            $branchIds = $data['branch_ids'] ?? [];
+            unset($data['account_branch_scope_present'], $data['branch_ids'], $data['account_id']);
+            $box = $this->find($id);
+            parent::update($id, $data);
+            if ($box->account) {
+                $this->updateAccount($box, $data);
+            } else {
+                $account = $this->insertAccount($this->getParent(), $data['title']);
+                $box->update(['account_id' => $account->id]);
+            }
+            $this->syncBranches($box->fresh()->account, $scopePresent, $branchIds);
+            return $box->fresh();
+        });
+    }
+
+    private function syncBranches($account, bool $scopePresent, array $branchIds): void
+    {
+        if ($scopePresent && \App\Support\SystemModuleManager::isEnabled('branches')
+            && \App\Support\BranchSharingSettings::accountsPerBranch()) {
+            $account->branches()->sync($branchIds);
+        }
     }
 
 }

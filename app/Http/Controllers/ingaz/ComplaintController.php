@@ -234,9 +234,10 @@ class ComplaintController extends Controller
 
     public function searchContracts(Request $request)
     {
-        $data = $request->validate(['q' => 'nullable|string|max:255', 'page' => 'nullable|integer|min:1']);
+        $data = $request->validate(['q' => 'nullable|string|max:255', 'page' => 'nullable|integer|min:1', 'user_id' => 'nullable|integer', 'maid_id' => 'nullable|integer']);
         $search = trim($data['q'] ?? '');
         $query = Contract::query()->with(['user', 'maid', 'info']);
+        $this->applyPartyFilters($query, $data);
         if ($search !== '') {
             $query->where(function ($query) use ($search) {
                 $query->where('id', $search)
@@ -255,16 +256,17 @@ class ComplaintController extends Controller
         return response()->json([
             'results' => $contracts->getCollection()->map(fn (Contract $contract) => [
                 'id' => $contract->id, 'text' => $this->contractSelectorLabel($contract),
-            ])->values(),
+            ] + $this->linkedPartiesPayload($contract->user, $contract->maid))->values(),
             'pagination' => ['more' => $contracts->hasMorePages()],
         ]);
     }
 
     public function searchOrders(Request $request)
     {
-        $data = $request->validate(['q' => 'nullable|string|max:255', 'page' => 'nullable|integer|min:1']);
+        $data = $request->validate(['q' => 'nullable|string|max:255', 'page' => 'nullable|integer|min:1', 'user_id' => 'nullable|integer', 'maid_id' => 'nullable|integer']);
         $search = trim($data['q'] ?? '');
         $query = Order::query()->with(['user', 'maid']);
+        $this->applyPartyFilters($query, $data);
         if ($search !== '') {
             $query->where(function ($query) use ($search) {
                 $query->where('order_code', 'like', "%{$search}%")
@@ -291,7 +293,7 @@ class ComplaintController extends Controller
                     $order->user?->name ?: 'بدون عميل',
                     $order->maid?->name,
                 ])),
-            ])->values(),
+            ] + $this->linkedPartiesPayload($order->user, $order->maid))->values(),
             'pagination' => ['more' => $orders->hasMorePages()],
         ]);
     }
@@ -357,11 +359,74 @@ class ComplaintController extends Controller
         ])->values();
         $recruitmentOffices = RecruitmentOffices::query()->with('translations')->orderBy('id')->get();
         $partyTypes = ComplaintType::partyTypes();
+        $partyState = $this->complaintPartyState($complaint, $admins);
 
         return compact(
             'users', 'nationalities', 'complaintTypes', 'admins', 'orders', 'contracts',
-            'contractOptions', 'recruitmentOffices', 'partyTypes'
+            'contractOptions', 'recruitmentOffices', 'partyTypes', 'partyState'
         );
+    }
+
+    /**
+     * قيم نموذج الأطراف لشكوى محفوظة. يدعم الصيغ القديمة: صفة الطرف نصًا عربيًا
+     * (الشكاوى المستوردة)، والربط بـ«عميل» أو «إدخال يدوي» الذي صار بيانات المشتكى عليه.
+     */
+    private function complaintPartyState(?objModel $complaint, $admins): array
+    {
+        $type = $complaint?->complaint_type_id ? ComplaintType::find($complaint->complaint_type_id) : null;
+        $complainantType = ComplaintType::normalizePartyType($complaint?->complainant_type)
+            ?? $type?->complainant_type ?? 'client';
+        $againstType = ComplaintType::normalizePartyType($complaint?->against_type)
+            ?? $type?->against_type
+            ?? ($complaint?->related_user_id ? 'client' : ($complaint?->against_name ? 'other' : 'client'));
+
+        $relation = $complaint?->relation_type
+            ?: ($complaint?->order_id ? 'order'
+                : ($complaint?->contract_id ? 'contract'
+                    : ($complaint?->recruitment_office_id ? 'office' : 'none')));
+        if (in_array($relation, ['client', 'manual'], true)) {
+            $relation = 'none';
+        }
+        $officeParty = in_array('external_office', [$complainantType, $againstType], true);
+        if ($officeParty && $relation === 'office') {
+            $relation = 'none';
+        }
+        $adminByName = fn (?string $name) => $name ? $admins->firstWhere('name', $name)?->id : null;
+
+        return [
+            'complainant_type' => $complainantType,
+            'against_type' => $againstType,
+            'relation_type' => $relation,
+            'related_user_id' => $againstType === 'client' ? $complaint?->related_user_id : null,
+            'complainant_office_id' => $complainantType === 'external_office' ? $complaint?->recruitment_office_id : null,
+            'against_office_id' => $againstType === 'external_office' ? $complaint?->recruitment_office_id : null,
+            'relation_office_id' => $officeParty ? null : $complaint?->recruitment_office_id,
+            'complainant_admin_id' => $complainantType === 'employee' ? $adminByName($complaint?->complainant_name) : null,
+            'against_admin_id' => $againstType === 'employee' ? $adminByName($complaint?->against_name) : null,
+        ];
+    }
+
+    /** بيانات الأطراف في نتائج البحث لتعبئتها عند اختيار الطلب أو العقد */
+    private function linkedPartiesPayload($user, $maid): array
+    {
+        return [
+            'user' => $user ? ['id' => $user->id, 'name' => $user->name, 'phone' => $user->phone] : null,
+            'maid' => $maid ? ['id' => $maid->id, 'name' => $maid->name, 'passport' => $maid->passport_num, 'nationality_id' => $maid->nationality_id] : null,
+        ];
+    }
+
+    /** قبل الكتابة في البحث تظهر سجلات الأطراف المختارة في النموذج */
+    private function applyPartyFilters($query, array $data): void
+    {
+        if (trim($data['q'] ?? '') !== '') {
+            return;
+        }
+        if (!empty($data['user_id'])) {
+            $query->where('user_id', $data['user_id']);
+        }
+        if (!empty($data['maid_id'])) {
+            $query->where('maid_id', $data['maid_id']);
+        }
     }
 
     /**
@@ -384,7 +449,7 @@ class ComplaintController extends Controller
     public function store(Request $request, UserAction $userAction)
     {
         try {
-            $request->validate([
+            $request->validate(array_replace([
                 'complainant_name' => 'required|string|max:255',
                 'complainant_phone' => $this->complainantPhoneRules(),
                 'complainant_type' => 'required|in:client,worker,internal_office,external_office,employee,other',
@@ -411,7 +476,19 @@ class ComplaintController extends Controller
                 'relation_reference' => 'nullable|string|max:255',
                 'relation_notes' => 'nullable|string|max:2000',
                 'attachments.*' => 'nullable|file|max:5120|mimes:jpg,jpeg,png,pdf,doc,docx,xls,xlsx'
-            ]);
+            ], $this->partyFormRules($request)));
+
+            if ($request->boolean('party_form')) {
+                $data = $this->explicitPartyData($request, ComplaintType::findOrFail($request->complaint_type_id));
+                $data['status'] = 'pending';
+                $data['submission_method'] = ComplaintSubmissionMethodEnum::Dashboard->value;
+                $complaint = objModel::create($data);
+                $this->storeComplaintAttachments($complaint, $request->file('attachments', []));
+
+                return $this->complaintSavedResponse($request, $request->input('after_save') === 'shelter'
+                    ? route('ShelterContract.create', ['contract_id' => $complaint->contract_id, 'shelter_complaint_id' => $complaint->id])
+                    : route($this->mainRoute . '.index'), 201, 'تم إضافة الشكوى بنجاح');
+            }
 
             $data = $request->except('attachments', 'attachment_names', 'after_save');
             $data['status'] = 'pending';
@@ -485,6 +562,51 @@ class ComplaintController extends Controller
     private function complainantPhoneRules(): array
     {
         return ['required', 'regex:/^(05|5)[0-9]{8}$/'];
+    }
+
+    /** حقول نموذج الأطراف التي لا تقابل أعمدة في جدول الشكاوى */
+    private const PARTY_FORM_INPUTS = ['party_form', 'complainant_office_id', 'complainant_admin_id', 'against_office_id', 'against_admin_id'];
+
+    /**
+     * النموذج الجديد يرسل party_form=1: بيانات كل طرف تُستكمل حسب صفته، فلا يلزم
+     * اسم وجوال يدويان إلا للعميل والطرف «أخرى». بقية الطلبات تبقى بقواعدها السابقة.
+     */
+    private function partyFormRules(Request $request): array
+    {
+        if (!$request->boolean('party_form')) {
+            return [];
+        }
+
+        return [
+            'complainant_name' => 'nullable|string|max:255',
+            'complainant_phone' => ['nullable', 'regex:/^(05|5)[0-9]{8}$/'],
+            'complainant_type' => 'nullable|string|max:50',
+            'against_type' => 'nullable|string|max:50',
+        ] + \App\Services\Complaints\ComplaintPartyResolver::rules();
+    }
+
+    private function explicitPartyData(Request $request, ComplaintType $type, ?objModel $existing = null): array
+    {
+        $parties = app(\App\Services\Complaints\ComplaintPartyResolver::class);
+        $data = $request->except('attachments', 'attachment_names', 'after_save', '_method', '_token');
+        $data['message'] = $request->details; // للتوافق مع الحقل القديم
+
+        $parties->applyTypes($data, $type);
+        $this->applyComplaintRelation($data, true);
+        $parties->resolve($data, $existing);
+        app(\App\Services\Complaints\ComplaintWorkerResolver::class)->resolve($data);
+        $parties->finalizeWorker($data, $existing);
+
+        return \Illuminate\Support\Arr::except($data, self::PARTY_FORM_INPUTS);
+    }
+
+    private function complaintSavedResponse(Request $request, string $url, int $code, string $message)
+    {
+        if ($request->ajax()) {
+            return response()->json(['code' => $code, 'message' => $message, 'data' => ['url' => $url]]);
+        }
+
+        return redirect()->to($url)->with('success', $message);
     }
 
     /**
@@ -657,26 +779,36 @@ class ComplaintController extends Controller
         ];
     }
 
-    private function applyComplaintRelation(array &$data): void
+    /**
+     * @param bool $explicitParties نموذج الأطراف: الربط لا يغيّر بيانات المشتكى عليه،
+     *                              فهي تُحدد في قسمها (ComplaintPartyResolver).
+     */
+    private function applyComplaintRelation(array &$data, bool $explicitParties = false): void
     {
         $relationType = $data['relation_type'] ?? 'none';
         $data['order_id'] = $relationType === 'order' ? ($data['order_id'] ?? null) : null;
         $data['contract_id'] = $relationType === 'contract' ? ($data['contract_id'] ?? null) : null;
         $data['recruitment_office_id'] = $relationType === 'office' ? ($data['recruitment_office_id'] ?? null) : null;
-        $data['related_user_id'] = $relationType === 'client' ? ($data['related_user_id'] ?? null) : null;
+        $data['related_user_id'] = $relationType === 'client' || $explicitParties ? ($data['related_user_id'] ?? null) : null;
 
         if ($relationType === 'order') {
             $order = Order::with(['user', 'maid', 'contracts.maid'])->findOrFail($data['order_id']);
-            $this->applyResolvedAgainstParty($data, $this->resolveOrderAgainstParty($order, $data['against_type'] ?? null));
+            if (!$explicitParties) {
+                $this->applyResolvedAgainstParty($data, $this->resolveOrderAgainstParty($order, $data['against_type'] ?? null));
+            }
             $data['relation_reference'] = ($data['relation_reference'] ?? null) ?: ($order->order_code ?: (string) $order->id);
         } elseif ($relationType === 'contract') {
             $contract = Contract::with(['user', 'maid'])->findOrFail($data['contract_id']);
-            $this->applyResolvedAgainstParty($data, $this->resolveContractAgainstParty($contract, $data['against_type'] ?? null));
+            if (!$explicitParties) {
+                $this->applyResolvedAgainstParty($data, $this->resolveContractAgainstParty($contract, $data['against_type'] ?? null));
+            }
             $data['relation_reference'] = ($data['relation_reference'] ?? null) ?: (string) $contract->id;
         } elseif ($relationType === 'office') {
             $office = RecruitmentOffices::findOrFail($data['recruitment_office_id']);
-            $data['against_name'] = $office->title;
-            $data['against_phone'] = $office->phone_office ?: ($data['against_phone'] ?? null);
+            if (!$explicitParties) {
+                $data['against_name'] = $office->title;
+                $data['against_phone'] = $office->phone_office ?: ($data['against_phone'] ?? null);
+            }
             $data['relation_reference'] = ($data['relation_reference'] ?? null) ?: (string) $office->id;
         } elseif ($relationType === 'client') {
             $relatedUser = User::findOrFail($data['related_user_id']);
@@ -684,8 +816,10 @@ class ComplaintController extends Controller
             $data['against_phone'] = $relatedUser->phone;
             $data['relation_reference'] = ($data['relation_reference'] ?? null) ?: (string) $relatedUser->id;
         } elseif ($relationType === 'none') {
-            $data['against_name'] = null;
-            $data['against_phone'] = null;
+            if (!$explicitParties) {
+                $data['against_name'] = null;
+                $data['against_phone'] = null;
+            }
             $data['relation_reference'] = null;
             $data['relation_notes'] = null;
         } else {
@@ -922,7 +1056,7 @@ class ComplaintController extends Controller
         $this->assertComplaintIsOpen($complaint);
         try {
 
-            $request->validate([
+            $request->validate(array_replace([
                 'complainant_name' => 'required|string|max:255',
                 'complainant_phone' => $this->complainantPhoneRules(),
                 'complainant_type' => 'required|in:client,worker,internal_office,external_office,employee,other',
@@ -949,7 +1083,19 @@ class ComplaintController extends Controller
                 'relation_reference' => 'nullable|string|max:255',
                 'relation_notes' => 'nullable|string|max:2000',
                 'attachments.*' => 'nullable|file|max:5120|mimes:jpg,jpeg,png,pdf,doc,docx,xls,xlsx'
-            ]);
+            ], $this->partyFormRules($request)));
+
+            if ($request->boolean('party_form')) {
+                $data = $this->explicitPartyData($request, ComplaintType::findOrFail($request->complaint_type_id), $complaint);
+                if ($request->status == 'resolved' && !in_array($complaint->status, ['resolved', 'closed'])) {
+                    $data['resolved_at'] = now();
+                    $data['resolved_by'] = auth()->guard('admin')->id();
+                }
+                $complaint->update($data);
+                $this->storeComplaintAttachments($complaint, $request->file('attachments', []));
+
+                return $this->complaintSavedResponse($request, route($this->mainRoute . '.index'), 200, 'تم تحديث الشكوى بنجاح');
+            }
 
             $data = $request->except('attachments', 'attachment_names', '_method', '_token');
             $data['message'] = $request->details; // للتوافق مع الحقل القديم

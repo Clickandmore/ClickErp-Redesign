@@ -120,6 +120,11 @@ class Order extends Model
         return $this->hasMany(OrderNote::class)->latest();
     }
 
+    public function latestNote()
+    {
+        return $this->hasOne(OrderNote::class)->latestOfMany();
+    }
+
     // relations
     public function maid()
     {

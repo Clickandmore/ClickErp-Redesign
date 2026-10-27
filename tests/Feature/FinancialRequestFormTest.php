@@ -16,6 +16,50 @@ class FinancialRequestFormTest extends TestCase
 {
     use DatabaseTransactions;
 
+    /** @dataProvider rentalStatesAtPayment */
+    public function test_payment_does_not_change_the_linked_rental_contract(string $status, ?string $closedAt): void
+    {
+        $contractId = \Illuminate\Support\Facades\DB::table('rental_contracts')->insertGetId([
+            'contract_number' => 'PAYMENT-STATE-' . uniqid(), 'status' => $status, 'closed_at' => $closedAt,
+            'branch_id' => auth('admin')->user()->branch_id, 'created_at' => now(), 'updated_at' => now()->subDay(),
+        ]);
+        $before = (array) \Illuminate\Support\Facades\DB::table('rental_contracts')->where('id', $contractId)->first();
+        $requestItem = FinancialRequest::create([
+            'request_no' => 'FR-RENTAL-STATE-' . uniqid(), 'type' => 'client_refund',
+            'contract_type' => 'rental', 'contract_id' => $contractId,
+            'status' => FinancialRequest::STATUS_APPROVED, 'priority' => FinancialRequest::PRIORITY_NORMAL,
+            'amount' => 100, 'request_date' => now()->toDateString(),
+            'created_by_id' => auth('admin')->id(), 'branch_id' => auth('admin')->user()->branch_id,
+        ]);
+        $requestItem->attachments()->create([
+            'field_key' => 'payment_proof', 'file_name' => 'test-proof.pdf', 'file_path' => 'test-proof.pdf',
+            'mime_type' => 'application/pdf', 'size' => 10,
+        ]);
+
+        $this->post(route('financial-requests.status', $requestItem), ['status' => FinancialRequest::STATUS_PAID])
+            ->assertRedirect()->assertSessionHasNoErrors();
+
+        $this->assertSame(FinancialRequest::STATUS_PAID, $requestItem->fresh()->status);
+        $this->assertNotNull($requestItem->fresh()->paid_at);
+        $this->assertTrue($requestItem->statusLogs()->where('to_status', FinancialRequest::STATUS_PAID)->exists());
+        $after = (array) \Illuminate\Support\Facades\DB::table('rental_contracts')->where('id', $contractId)->first();
+        $this->assertSame($before, $after, 'Paying a financial request must not modify the rental contract.');
+    }
+
+    public static function rentalStatesAtPayment(): array
+    {
+        return [
+            'cancelled without closure date' => ['cancelled', null],
+            'completed without closure date' => ['completed', null],
+            'cancelled with closure date' => ['cancelled', '2026-10-01 12:00:00'],
+            'active with closure date' => ['active', '2026-10-01 12:00:00'],
+            'awaiting signature' => ['waiting_contract_send', null],
+            'signed awaiting delivery' => ['contract_signed', null],
+            'frozen' => ['frozen', null],
+            'active' => ['active', null],
+        ];
+    }
+
     protected function setUp(): void
     {
         parent::setUp();

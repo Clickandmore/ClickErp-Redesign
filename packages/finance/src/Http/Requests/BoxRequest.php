@@ -37,6 +37,7 @@ class BoxRequest extends MainRequest
         return [
             'title' => 'required|unique:fn_boxes,title',
             'account_id' => 'nullable',
+            ...$this->branchRules(),
         ];
     }
 
@@ -45,6 +46,7 @@ class BoxRequest extends MainRequest
         return [
             'title' => 'required',
             'account_id' => 'nullable',
+            ...$this->branchRules(),
         ];
     }
 
@@ -60,5 +62,18 @@ class BoxRequest extends MainRequest
     protected function view(): array
     {
         return [];
+    }
+
+    private function branchRules(): array
+    {
+        if (!\App\Support\SystemModuleManager::isEnabled('branches')
+            || !\App\Support\BranchSharingSettings::accountsPerBranch()) {
+            return [];
+        }
+        return [
+            'account_branch_scope_present' => 'nullable|boolean',
+            'branch_ids' => 'nullable|array',
+            'branch_ids.*' => ['integer', 'distinct', \Illuminate\Validation\Rule::exists('branches', 'id')->where('is_active', true)],
+        ];
     }
 }

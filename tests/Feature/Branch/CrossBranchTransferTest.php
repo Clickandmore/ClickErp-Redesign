@@ -98,6 +98,90 @@ class CrossBranchTransferTest extends TestCase
             ->assertOk()->assertViewHas('contracts', fn ($contracts) => !$contracts->contains('id', $this->contractId));
     }
 
+    private function useCompanySponsor(): \App\Models\CompanyProfile
+    {
+        $company = \App\Models\CompanyProfile::create([
+            'setting_id' => random_int(1000000, 2000000000), 'name' => 'Transfer source company', 'account_id' => 987654,
+        ]);
+        DB::table('contracts')->where('id', $this->contractId)->update([
+            'user_id' => null, 'company_profile_id' => $company->id, 'company_finance_account_id' => 987655,
+        ]);
+        $this->grant(PermKeys::SPONSOR_TRANSFER_CROSS_BRANCH);
+        return $company;
+    }
+
+    public function test_company_sponsored_worker_can_be_created_and_edited_without_a_customer_id(): void
+    {
+        $company = $this->useCompanySponsor();
+        $usersBefore = DB::table('users')->count();
+        $response = $this->postJson(route('SponsorshipTransfer.store'), $this->payload())->assertOk()->assertJsonPath('success', true);
+        $transfer = SponsorshipTransfer::findOrFail($response->json('transfer_id'));
+        $this->assertNull($transfer->old_sponsor_id);
+        $this->assertEquals($company->id, $transfer->old_company_profile_id);
+        $this->assertEquals(987655, $transfer->old_company_finance_account_id);
+        $this->assertSame($company->name, $transfer->oldSponsor->name);
+        $this->assertSame('standard', $transfer->workflow_source);
+        $this->assertNull($transfer->contract->user_id);
+        $this->assertSame($usersBefore, DB::table('users')->count());
+        $this->get(route('SponsorshipTransfer.show', $transfer->id))->assertOk()->assertSee($company->name);
+        $this->putJson(route('SponsorshipTransfer.update', $transfer->id), $this->payload() + ['notes' => 'Company transfer edit'])
+            ->assertOk()->assertJsonPath('success', true);
+        $this->assertEquals($company->id, $transfer->fresh()->old_company_profile_id);
+        $this->assertEquals(987655, $transfer->fresh()->old_company_finance_account_id);
+        $document = TransferServiceContract::create([
+            'sponsorship_transfer_id' => $transfer->id, 'contract_id' => $this->contractId,
+            'old_sponsor_id' => null, 'new_sponsor_id' => $this->clientId,
+            'maid_id' => $transfer->contract->maid_id, 'contract_number' => 'COMPANY-' . uniqid(),
+            'contract_value' => 10000, 'paid_amount' => 0, 'remaining_amount' => 10000,
+            'trial_days' => 7, 'trial_start_date' => now(), 'status' => 'draft',
+        ]);
+        $this->assertSame($company->name, $document->oldSponsor->name);
+        $this->assertEquals(987655, $document->oldSponsor->account_id);
+        $this->grant(PermKeys::SPONSOR_TRANSFER_CONTROL);
+        $this->mock(\App\Services\ingaz\SponsorshipTransferCompletionService::class)
+            ->shouldReceive('record')->once()->andReturn(null);
+        $transfer->update(['status' => 'trial_started']);
+        $this->postJson(route('SponsorshipTransfer.confirmTransfer', $transfer->id))->assertOk()->assertJsonPath('success', true);
+        $transfer->refresh();
+        $this->assertEquals($this->clientId, $transfer->contract->user_id);
+        $this->assertNull($transfer->contract->company_profile_id);
+        $this->assertSame($company->name, $transfer->oldSponsor->name);
+        $this->assertEquals(987655, $transfer->old_company_finance_account_id);
+    }
+
+    public function test_missing_or_conflicting_current_sponsors_are_rejected(): void
+    {
+        $company = $this->useCompanySponsor();
+        DB::table('contracts')->where('id', $this->contractId)->update(['user_id' => $this->clientId]);
+        $this->postJson(route('SponsorshipTransfer.store'), $this->payload())->assertStatus(422)->assertJsonValidationErrors('contract_id');
+        DB::table('contracts')->where('id', $this->contractId)->update(['user_id' => null, 'company_profile_id' => null]);
+        $this->postJson(route('SponsorshipTransfer.store'), $this->payload())->assertStatus(422)->assertJsonValidationErrors('contract_id');
+        DB::table('contracts')->where('id', $this->contractId)->update(['company_profile_id' => $company->id + 1000000]);
+        $this->postJson(route('SponsorshipTransfer.store'), $this->payload())->assertStatus(422)->assertJsonValidationErrors('contract_id');
+    }
+
+    public function test_reserving_company_worker_for_replacement_preserves_current_sponsor_identity(): void
+    {
+        $company = $this->useCompanySponsor();
+        $contract = app(CrossBranchTransferService::class)->reserve($this->contractId);
+        $this->assertNull($contract->user_id);
+        $this->assertEquals($company->id, $contract->company_profile_id);
+        $this->assertSame($company->name, $contract->user->name);
+    }
+
+    public function test_source_branch_labels_only_appear_when_branches_are_enabled(): void
+    {
+        $this->enableBranchesModule(false);
+        $this->get(route('SponsorshipTransfer.create'))->assertOk()
+            ->assertSee('Cross branch worker')->assertDontSee('فرع المصدر:')->assertDontSee('يتبع فرعاً آخر');
+
+        $this->enableBranchesModule();
+        \App\Support\BranchQueryContext::reset();
+        $this->grant(PermKeys::SPONSOR_TRANSFER_CROSS_BRANCH);
+        $this->get(route('SponsorshipTransfer.create'))->assertOk()
+            ->assertSee('Cross branch worker')->assertSee('فرع المصدر:');
+    }
+
     public function test_permission_requires_directional_policy_and_eligible_worker(): void
     {
         $this->grant(PermKeys::SPONSOR_TRANSFER_CROSS_BRANCH);

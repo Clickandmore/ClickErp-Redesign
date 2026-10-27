@@ -492,6 +492,8 @@ class RecruitmentContractExternalOfficeDispatchController extends Controller
             'office_contract_cost_usd' => 'required|numeric|min:0.01|max:99999999.99',
             'supplier_recognition_mode' => 'nullable|in:full,partial',
             'supplier_total_cost_usd' => 'nullable|numeric|min:0.01|max:99999999.99',
+            'attachments' => 'nullable|array|max:10',
+            'attachments.*' => 'required|file|mimes:jpg,jpeg,png,pdf,doc,docx,xls,xlsx|max:10240',
         ], [
             'dispatch_date.required' => 'تاريخ فاتورة المورد مطلوب.',
             'dispatch_date.date' => 'تاريخ فاتورة المورد غير صحيح.',
@@ -522,16 +524,19 @@ class RecruitmentContractExternalOfficeDispatchController extends Controller
 
         $adminId = auth('admin')->id() ?? auth()->id();
 
-        $this->persistExternalOfficeDispatch(
-            $contract,
-            $validated['dispatch_date'],
-            trim((string) $validated['arrival_station']),
-            number_format((float) $validated['office_contract_cost_usd'], 2, '.', ''),
-            $adminId,
-            false,
-            $validated['supplier_recognition_mode'] ?? null,
-            isset($validated['supplier_total_cost_usd']) ? (float) $validated['supplier_total_cost_usd'] : null
-        );
+        $this->saveWithAttachments($request, function (array $attachments) use ($contract, $validated, $adminId) {
+            $this->persistExternalOfficeDispatch(
+                $contract,
+                $validated['dispatch_date'],
+                trim((string) $validated['arrival_station']),
+                number_format((float) $validated['office_contract_cost_usd'], 2, '.', ''),
+                $adminId,
+                false,
+                $validated['supplier_recognition_mode'] ?? null,
+                isset($validated['supplier_total_cost_usd']) ? (float) $validated['supplier_total_cost_usd'] : null
+            );
+            $this->appendAttachments($contract, $attachments);
+        });
 
         return redirect()
             ->route('RecruitmentContract.externalOfficeDispatch.edit', $contract->id)
@@ -551,6 +556,8 @@ class RecruitmentContractExternalOfficeDispatchController extends Controller
             'arrival_station' => 'nullable|string|max:255',
             'office_contract_cost_usd' => 'required|numeric|min:0.01|max:99999999.99',
             'return_contract_id' => 'nullable|integer|exists:contracts,id',
+            'attachments' => 'nullable|array|max:10',
+            'attachments.*' => 'required|file|mimes:jpg,jpeg,png,pdf,doc,docx,xls,xlsx|max:10240',
         ], [
             'contract_ids.required' => 'يجب تحديد عقد واحد على الأقل.',
             'contract_ids.min' => 'يجب تحديد عقد واحد على الأقل.',
@@ -656,7 +663,7 @@ class RecruitmentContractExternalOfficeDispatchController extends Controller
                 ->with('bulk_dispatch_errors', $errors);
         }
 
-        DB::transaction(function () use (
+        $this->saveWithAttachments($request, function (array $attachments) use (
             $contracts,
             $validated,
             $arrivalStations,
@@ -671,6 +678,7 @@ class RecruitmentContractExternalOfficeDispatchController extends Controller
                     $commonOfficeContractCostUsd,
                     $adminId
                 );
+                $this->appendAttachments($contract, $attachments);
             }
         });
 
@@ -741,6 +749,39 @@ class RecruitmentContractExternalOfficeDispatchController extends Controller
         }
 
         return $pdf->stream($fileName);
+    }
+
+    private function saveWithAttachments(Request $request, callable $save): void
+    {
+        $storage = app(\App\Services\ManagedFileStorage::class);
+        $attachments = [];
+        try {
+            foreach ($request->file('attachments', []) as $file) {
+                $attachments[] = [
+                    'path' => $storage->uploadFile($file, 'external-office-dispatches/attachments'),
+                    'name' => $file->getClientOriginalName(),
+                    'mime_type' => $file->getMimeType(),
+                    'size' => $file->getSize(),
+                    'added_by' => auth('admin')->id(),
+                    'added_at' => now()->toIso8601String(),
+                ];
+            }
+            DB::transaction(fn () => $save($attachments));
+        } catch (\Throwable $exception) {
+            foreach ($attachments as $attachment) {
+                $storage->delete($attachment['path']);
+            }
+            throw $exception;
+        }
+    }
+
+    private function appendAttachments(Contract $contract, array $attachments): void
+    {
+        if (!$attachments) {
+            return;
+        }
+        $dispatch = $contract->externalOfficeDispatch()->lockForUpdate()->firstOrFail();
+        $dispatch->update(['attachments' => array_merge($dispatch->attachments ?? [], $attachments)]);
     }
 
     public static function ensureDispatchCompleted(Contract $contract): ?string

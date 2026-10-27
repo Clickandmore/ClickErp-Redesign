@@ -89,6 +89,7 @@ class CrossBranchTransferService
         if (!$contract) {
             throw ValidationException::withMessages(['contract_id' => 'العاملة غير متاحة للنقل أو غير مسموحة لفرعك.']);
         }
+        app(\App\Services\ingaz\TransferCurrentSponsor::class)->validate($contract);
         if ($contract->maid_id) {
             DB::table('maids')->where('id', $contract->maid_id)->lockForUpdate()->first();
         }

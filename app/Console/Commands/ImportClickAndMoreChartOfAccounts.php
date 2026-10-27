@@ -246,6 +246,10 @@ class ImportClickAndMoreChartOfAccounts extends Command
 
             $existing = $existingByCode->get($row['code']);
             if ($existing) {
+                if (DB::table('fn_boxes')->where('account_id', $existing->id)->exists()
+                    && (int) $payload['type'] !== AccountTypesEnum::Box->value) {
+                    throw new RuntimeException('الاستيراد يغير نوع حساب صندوق قائم؛ راجع الكود ' . $row['code'] . ' أولاً.');
+                }
                 DB::table('fn_accounts')->where('id', $existing->id)->update($payload);
                 $id = (int) $existing->id;
                 $updated++;
@@ -293,6 +297,9 @@ class ImportClickAndMoreChartOfAccounts extends Command
         $toDelete = DB::table('fn_accounts')->whereNotIn('id', $keepIds)->orderByDesc('level')->pluck('id');
         $deleted = 0;
         foreach ($toDelete as $id) {
+            if (DB::table('fn_boxes')->where('account_id', $id)->exists()) {
+                throw new RuntimeException('لا يمكن استيراد شجرة تحذف حساب صندوق قائم: ' . $id);
+            }
             $deleted += DB::table('fn_accounts')->where('id', $id)->delete();
         }
 

@@ -177,7 +177,7 @@
 
         @if ($showBulkCreateForm)
             <div id="bulk-dispatch-panel" {{ $dispatch && !session('bulk_dispatch_errors') && !old('return_contract_id') ? 'hidden' : '' }}>
-            <form method="POST" action="{{ route('RecruitmentContract.externalOfficeDispatch.bulkStore') }}"
+            <form method="POST" enctype="multipart/form-data" action="{{ route('RecruitmentContract.externalOfficeDispatch.bulkStore') }}"
                 id="bulk-dispatch-card" class="card shadow-sm border-0 mb-4 overflow-hidden">
                 @csrf
                 <input type="hidden" name="return_contract_id" value="{{ $contract->id }}">
@@ -289,6 +289,10 @@
                         </table>
                     </div>
                 </div>
+                <div class="card-body border-top">
+                    @include('admin.ingaz.RecruitmentContract.partials.dispatch-attachments-input')
+                    <div class="form-text">تُرفق الملفات بكل إرسالية ضمن العقود المحددة.</div>
+                </div>
                 <div class="card-footer bg-white d-flex justify-content-end">
                     <button type="submit" class="btn btn-primary" id="inline-bulk-submit">
                         <i class="fas fa-paper-plane me-1"></i>
@@ -299,6 +303,7 @@
             </div>
         @endif
 
+        @include('admin.ingaz.RecruitmentContract.partials.dispatch-attachments')
         @if (!$useUnifiedCreateForm)
         <div class="card shadow-sm border-0 mb-4">
             <div class="card-body">
@@ -330,7 +335,7 @@
             </div>
         @endif
 
-        <form method="POST" action="{{ route('RecruitmentContract.externalOfficeDispatch.store', $contract->id) }}">
+        <form method="POST" enctype="multipart/form-data" action="{{ route('RecruitmentContract.externalOfficeDispatch.store', $contract->id) }}">
             @csrf
 
             <div class="card shadow-sm border-0">
@@ -439,6 +444,9 @@
                     </div>
                 </div>
                 @if ($isEditable)
+                    <div class="card-body border-top">
+                        @include('admin.ingaz.RecruitmentContract.partials.dispatch-attachments-input')
+                    </div>
                     <div class="card-footer bg-white d-flex justify-content-end gap-2">
                         <button type="submit" class="btn btn-primary" {{ !empty($sourceErrors) ? 'disabled' : '' }}>
                             <i class="fas fa-save me-1"></i>
