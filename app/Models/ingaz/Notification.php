@@ -5,6 +5,7 @@ namespace App\Models\ingaz;
 use Astrotomic\Translatable\Translatable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\Schema;
 use Spatie\Activitylog\LogOptions;
 use Spatie\Activitylog\Traits\LogsActivity;
 use Spatie\Translatable\HasTranslations;
@@ -23,6 +24,21 @@ class Notification extends Model
     public function order()
     {
         return $this->belongsTo(Order::class, 'order_id');
+    }
+
+    /** Notifications created after the customer last opened the list are unread. */
+    public static function unreadCountFor(User $user): int
+    {
+        if (!Schema::hasColumn('users', 'notifications_read_at')) return 0;
+        return static::where('user_id', $user->id)
+            ->when($user->notifications_read_at, fn ($query, $readAt) => $query->where('created_at', '>', $readAt))
+            ->count();
+    }
+
+    public static function markReadFor(User $user): void
+    {
+        // A plain update: opening the list is not a profile change worth an activity log entry.
+        if (Schema::hasColumn('users', 'notifications_read_at')) User::whereKey($user->id)->update(['notifications_read_at' => now()]);
     }
 
     public function getActivitylogOptions(): LogOptions

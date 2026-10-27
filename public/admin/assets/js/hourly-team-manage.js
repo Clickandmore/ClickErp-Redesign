@@ -47,7 +47,8 @@
         event.preventDefault();
         const body = new FormData(form);
         if (event.submitter?.name) body.set(event.submitter.name, event.submitter.value);
-        save(form.action, body, form.closest('.tab-pane').id, form);
+        // getAttribute: a control named "action" (the activate/remove buttons) shadows form.action.
+        save(form.getAttribute('action'), body, form.closest('.tab-pane').id, form);
     });
     document.addEventListener('click', event => {
         const button = event.target.closest('.ht-page .ht-toggle[data-status-url]');

@@ -64,7 +64,7 @@ class OrderManagementService
                     }
                     $before=$this->snapshot($visit);
                     $wasMissed = $visit->is_missed;
-                    if ($visit->is_missed && in_array($action, ['cancel_visit','cancel_order','reschedule'], true)
+                    if ($visit->is_missed && in_array($action, ['cancel_visit','cancel_order','reschedule','start_time'], true)
                         && (!$admin || !trim((string)($data['reason'] ?? '')))) HourlyOrderService::reject('معالجة زيارة فائتة تتطلب مشرفًا وسببًا مسجلًا.');
                     if(isset($data['expected_start_at']) && $visit->scheduled_start_at?->format('Y-m-d\TH:i')!==$data['expected_start_at'])HourlyOrderService::reject('تغير موعد الزيارة. حدّث الصفحة وأعد المحاولة.');
                     if((isset($data['expected_price']) && abs($visit->visit_price-$data['expected_price'])>0.001) || (isset($data['expected_hours']) && abs($visit->planned_hours-$data['expected_hours'])>0.001))HourlyOrderService::reject('تم تعديل الزيارة من مستخدم آخر. حدّث الصفحة قبل إعادة المحاولة.');
@@ -87,14 +87,15 @@ class OrderManagementService
                         $visit->status='completed';
                     } elseif($action==='price'){$visit->visit_price=$data['price'];$visit->is_free=(float)$data['price']===0;}
                     elseif(in_array($action,['reschedule','start_time','duration'])){
-                        $recoverMissed = $action === 'reschedule' && $visit->is_missed;
+                        // A missed visit can be moved to a new date or to a later time on the same day.
+                        $recoverMissed = in_array($action,['reschedule','start_time'],true) && $visit->is_missed;
                         $initialSchedule = $action === 'reschedule' && $visit->status === 'unscheduled' && !$visit->scheduled_start_at;
                         if ($recoverMissed) {
                             if (!$admin || !trim((string)($data['reason'] ?? ''))) HourlyOrderService::reject('إعادة جدولة زيارة فائتة تتطلب مشرفًا وسببًا مسجلًا.');
                             if (\Illuminate\Support\Facades\Schema::hasTable('worker_daily_movements') && DB::table('worker_daily_movements')
                                 ->where('source','hourly_visit')->where('reference_type','hourly_visit')->where('reference_id',$visit->id)->whereNull('in_at')->exists())
                                 HourlyOrderService::reject('توجد حركة خروج مفتوحة؛ تحقق من عودة العاملة قبل إعادة الجدولة.');
-                        } elseif(!$initialSchedule && (!$visit->scheduled_start_at || $visit->scheduled_start_at->isPast()))HourlyOrderService::reject('Choose an upcoming appointment time.');
+                        } elseif(!$initialSchedule && (!$visit->scheduled_start_at || ($action!=='start_time' && $visit->scheduled_start_at->isPast())))HourlyOrderService::reject('اختر موعدًا قادمًا للزيارة.');
                         if ($visit->status !== 'scheduled' && !$initialSchedule) HourlyOrderService::reject('This visit cannot be rescheduled in its current state.');
                         $start=$visit->scheduled_start_at?->format('Y-m-d H:i') ?? ''; $hours=(float)$visit->planned_hours;
                         $settings=app(HourlyCategorySettings::class);
@@ -109,6 +110,7 @@ class OrderManagementService
                             $visit->is_free=(float)$visit->visit_price===0.0;$hours=(float)$data['hours'];
                         }
                         $this->setTime($visit,$start,$hours);
+                        if ($action==='start_time' && !$visit->scheduled_start_at->isFuture()) HourlyOrderService::reject('اختر وقت بدء بعد الوقت الحالي.');
                         if ($recoverMissed) {
                             if (!$visit->scheduled_start_at->isFuture()) HourlyOrderService::reject('اختر موعدًا مستقبليًا للزيارة الفائتة.');
                             // A new date needs a new driver assignment and fresh stops.
@@ -196,7 +198,7 @@ class OrderManagementService
                     }
                     elseif(in_array($action,['reschedule','start_time','duration'],true)){
                         DB::afterCommit(fn()=>app(StaffPushService::class)->scheduleChanged($visitId,$before));
-                        if ($wasMissed && $action==='reschedule') DB::afterCommit(fn()=>app(StaffPushService::class)->unassigned($visitId,$before));
+                        if ($wasMissed && in_array($action,['reschedule','start_time'],true)) DB::afterCommit(fn()=>app(StaffPushService::class)->unassigned($visitId,$before));
                     }
                     elseif(in_array($action,['unassign_worker','unassign_workers','unassign_all','remove_worker','unassign_driver','unassign_drivers','clear_driver_routes'],true)){
                         DB::afterCommit(fn()=>app(StaffPushService::class)->unassigned($visitId,$before));

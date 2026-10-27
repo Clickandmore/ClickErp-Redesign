@@ -62,6 +62,7 @@ class User extends Authenticatable implements JWTSubject
 
     protected $casts = [
         'branch_id' => 'integer',
+        'notifications_read_at' => 'datetime',
         'residence_expiry_date' => 'date',
         'license_expiry_date' => 'date',
     ];
