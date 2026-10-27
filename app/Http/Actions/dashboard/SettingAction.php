@@ -5,6 +5,7 @@ namespace App\Http\Actions\dashboard;
 
 use App\Http\Actions\MainAction;
 use App\Models\ingaz\Setting;
+use App\Support\ExternalSiteCacheSettings;
 use Illuminate\Support\Facades\Schema;
 
 class SettingAction extends MainAction
@@ -86,6 +87,7 @@ class SettingAction extends MainAction
     {
         $setting = $this->find($id);
         unset($data['_token'], $data['_method']);
+        $wasInMaintenance = (bool) $setting->public_site_maintenance;
         $oldFiles = [];
         $newFiles = [];
         $fileFields = [
@@ -181,6 +183,12 @@ class SettingAction extends MainAction
         }
 
         $this->deleteManagedFiles($oldFiles);
+
+        // المواقع الخارجية تحتفظ بالإعدادات في الكاش حتى عدة دقائق؛ إبطاله يجعل
+        // وضع الصيانة يُطبَّق (أو يُرفع) خلال دقيقة تقريبًا.
+        if ($wasInMaintenance !== (bool) $setting->public_site_maintenance) {
+            ExternalSiteCacheSettings::flushSites();
+        }
 
         return $setting;
     }

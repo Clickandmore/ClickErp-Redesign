@@ -339,6 +339,23 @@
                     </div>
                     <small class="text-muted d-block mt-1">{{ __('admin.settings_public_site_disabled_hint') }}</small>
                 </div>
+                <div class="col-md-6">
+                    <label class="form-label d-block">{{ __('admin.settings_public_site_maintenance') }}</label>
+                    <input type="hidden" name="public_site_maintenance" value="0">
+                    <div class="form-check form-switch">
+                        <input
+                            type="checkbox"
+                            name="public_site_maintenance"
+                            id="public_site_maintenance"
+                            class="form-check-input"
+                            value="1"
+                            {{ !empty($settings->public_site_maintenance) ? 'checked' : '' }}>
+                        <label class="form-check-label" for="public_site_maintenance">
+                            {{ !empty($settings->public_site_maintenance) ? __('admin.settings_enabled') : __('admin.settings_disabled') }}
+                        </label>
+                    </div>
+                    <small class="text-muted d-block mt-1">{{ __('admin.settings_public_site_maintenance_hint') }}</small>
+                </div>
             </div>
         </div>
 

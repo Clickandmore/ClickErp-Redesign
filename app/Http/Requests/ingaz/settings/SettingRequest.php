@@ -51,6 +51,7 @@ class SettingRequest extends MainRequest
             'privacy:ar' => 'nullable|string',
             'privacy:en' => 'nullable|string',
             'show_public_site' => 'nullable|boolean',
+            'public_site_maintenance' => 'nullable|boolean',
         ];
     }
 }

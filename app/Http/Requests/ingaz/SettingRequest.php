@@ -188,6 +188,7 @@ class SettingRequest extends MainRequest
             'years' => 'nullable|numeric',
             'show_customer_service_during_booking' => 'nullable|boolean',
             'show_public_site' => 'nullable|boolean',
+            'public_site_maintenance' => 'nullable|boolean',
             'external_auth_mode' => 'nullable|in:password,otp',
             'app_auth_mode' => 'sometimes|required|in:password,otp',
             'external_order_mode' => 'nullable|in:authenticated,simplified',

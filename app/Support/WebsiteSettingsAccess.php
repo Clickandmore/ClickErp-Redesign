@@ -8,7 +8,7 @@ class WebsiteSettingsAccess
 
     private const FIELDS = [
         'email', 'phone', 'other_phone', 'tax_number', 'map_link', 'find_us_mode', 'years',
-        'show_customer_service_during_booking', 'show_public_site',
+        'show_customer_service_during_booking', 'show_public_site', 'public_site_maintenance',
         'external_auth_mode', 'external_order_mode', 'rental_order_mode',
         'external_booking_employee_selection',
         'twitter', 'facebook', 'instagram', 'snapchat', 'linkedin', 'youtube', 'tiktok', 'whatsapp',

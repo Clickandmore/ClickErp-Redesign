@@ -87,6 +87,7 @@ class SettingResource extends JsonResource
             'rights_users' => (string)$this->rights_users,
             'about_us_app' => (string)$this->about_us_app,
             'show_public_site' => (bool)$this->show_public_site,
+            'public_site_maintenance' => (bool)$this->public_site_maintenance,
             'customer_services' => (string)$this->customer_services,
             'has_offers' => (bool)$this->has_offers,
             'show_customer_service_during_booking' => (bool)$this->show_customer_service_during_booking,
