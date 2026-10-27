@@ -173,7 +173,10 @@ class OrderManagementService
                         $ignoreBreak=$action==='duration' && !empty($data['ignore_break']);
                         // Staffing an existing visit does not create or change its booked time.
                         $ignoreNotice=in_array($action,['assign_workers','assign_all','add_worker'],true);
-                        $this->checkSlot($order,$visit,$ignoreCaps,$ignoreBreak,$ignoreNotice);$this->reserve($order,$visit,$ids,$action==='assign_all',$ignoreCaps,$ignoreBreak);
+                        // A new start follows the item's current start times, like the reschedule slot picker; other terms stay as booked.
+                        $slotItem=null;
+                        if(in_array($action,['reschedule','start_time'],true)){$slotItem=$order->package_snapshot;$slotItem['start_times']=HourlyPackage::withTrashed()->findOrFail($order->hourly_package_id)->start_times;}
+                        $this->checkSlot($order,$visit,$ignoreCaps,$ignoreBreak,$ignoreNotice,$slotItem);$this->reserve($order,$visit,$ids,$action==='assign_all',$ignoreCaps,$ignoreBreak);
                     }
                     if(in_array($action,['assign_driver','reschedule','start_time','duration']))$this->checkDrivers($visit);
                     $after=$this->snapshot($visit);
