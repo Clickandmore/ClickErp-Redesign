@@ -114,6 +114,7 @@ Route::group(
         ], function ($router) {
             Route::resource('dashboard', ApiClientDashboard::class);
             Route::post('/update-profile', [App\Http\Controllers\Api\ApiClientDashboard::class, 'update_profile'])->name('update-profile');
+            Route::get('notifications-unread-count', [ApiNotificationController::class, 'unreadCount'])->name('notifications.unread-count');
             Route::resource('notifications', ApiNotificationController::class);
             Route::resource('complaints', ApiComplaintController::class);
             Route::get('complaints-types', [App\Http\Controllers\Api\ApiComplaintController::class, 'complaints_types'])->name('complaints-types');

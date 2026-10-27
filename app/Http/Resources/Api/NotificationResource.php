@@ -19,6 +19,9 @@ class NotificationResource extends JsonResource
 			'title' => (string)$this->title,
 			'description' => (string)$this->description,
 			'type' => (string)$this->type,
+			// Only the customer notifications list sets the read time; other callers see every item as read.
+			'is_read' => !$request->attributes->has('notifications_read_at')
+				|| ($request->attributes->get('notifications_read_at') && $this->created_at <= $request->attributes->get('notifications_read_at')),
 			'order_id' => (int)$this->order_id,
             'order' => OrderResource::make($this->order),
 			'user_id' => (int)$this->user_id,

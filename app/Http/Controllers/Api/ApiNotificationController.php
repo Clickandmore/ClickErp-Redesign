@@ -18,9 +18,18 @@ class ApiNotificationController extends Controller
      */
     public function index(Request $request)
     {
-        $sql = objModel::where('user_id',Auth::user()->id);
-        
-        return generalReturn($request, $sql, objResource::class, __("api.All items"));
+        $user = Auth::user();
+        // is_read is judged against the previous visit, before mark_read moves it to now.
+        $request->attributes->set('notifications_read_at', $user->notifications_read_at);
+        $sql = objModel::where('user_id',$user->id)->latest()->latest('id');
+        $response = generalReturn($request, $sql, objResource::class, __("api.All items"));
+        if ($request->boolean('mark_read')) objModel::markReadFor($user);
+        return $response;
+    }
+
+    public function unreadCount()
+    {
+        return jsonSuccess(['count' => objModel::unreadCountFor(Auth::user())]);
     }
 
     /**
