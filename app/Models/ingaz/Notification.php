@@ -4,6 +4,7 @@ namespace App\Models\ingaz;
 
 use Astrotomic\Translatable\Translatable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use App\Services\WebPush\WebPushSender;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Schema;
 use Spatie\Activitylog\LogOptions;
@@ -15,6 +16,12 @@ class Notification extends Model
     use HasTranslations, LogsActivity;
     public $translatable = ['title', 'description'];
     protected $guarded = [];
+
+    protected static function booted(): void
+    {
+        // Website push only; the mobile app keeps receiving through its own path as before.
+        static::created(fn (Notification $notification) => WebPushSender::afterCreated($notification));
+    }
 
     public function user()
     {
