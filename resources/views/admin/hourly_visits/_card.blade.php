@@ -15,7 +15,7 @@
         </div>
         <div class="vl-card-badges">
             @if($canEdit && $visit->is_missed)
-                @if(!$visit->has_started_execution)<button type="button" class="vl-act" data-single="reschedule" data-id="{{ $visit->id }}">إعادة جدولة الزيارة الفائتة</button>@endif
+                @if(!$visit->has_started_execution)<button type="button" class="vl-act" data-single="reschedule" data-id="{{ $visit->id }}" data-missed="{{ $visit->is_missed ? '1' : '0' }}">إعادة جدولة الزيارة الفائتة</button>@endif
                 @if(!$visit->has_started_execution)<button type="button" class="vl-act" data-single="cancel_visit" data-id="{{ $visit->id }}">إلغاء الزيارة</button>@endif
             @endif
             @if($canEdit && in_array($visit->status, \App\Services\Hourly\ShelterPresence::OUT_STATUSES, true))
@@ -72,7 +72,7 @@
             @include('admin.hourly_visits._schedule-button')
             @if($canEdit)
                 <div class="vl-acts">
-                    @if(!$visit->has_started_execution && !$slotPick)<button type="button" class="vl-act" data-single="reschedule" data-id="{{ $visit->id }}"><i class="fa fa-calendar-days"></i> التاريخ</button>@endif
+                    @if(!$visit->has_started_execution && !$slotPick)<button type="button" class="vl-act" data-single="reschedule" data-id="{{ $visit->id }}" data-missed="{{ $visit->is_missed ? '1' : '0' }}"><i class="fa fa-calendar-days"></i> التاريخ</button>@endif
                     @if(!$visit->has_started_execution && !$slotPick)<button type="button" class="vl-act" data-single="start_time" data-id="{{ $visit->id }}"><i class="fa fa-clock"></i> الوقت</button>@endif
                     <button type="button" class="vl-act" data-single="note" data-id="{{ $visit->id }}"><i class="fa fa-note-sticky"></i> مذكرة</button>
                 </div>

@@ -656,16 +656,7 @@
 
                         // السداد النقدي: صناديق فقط وبدون آيبان؛ البنكي (الافتراضي): حسابات بنكية مع الآيبان
                         const applyRefundMethod = () => {
-                            const isCash = $('#failureRefundMethod').val() === 'cash';
-                            $('#failureBankRefundFields').toggle(!isCash);
-                            $('#failureRefundAccountLabel').html((isCash ? 'الصندوق / حساب الصرف' : 'البنك / حساب الصرف') + ' <span class="text-danger">*</span>');
-                            $('#failureRefundAccount option[value!=""]').each(function() {
-                                const matches = String($(this).data('cash')) === (isCash ? '1' : '0');
-                                $(this).prop('hidden', !matches).prop('disabled', !matches);
-                            });
-                            if ($('#failureRefundAccount option:selected').prop('disabled')) {
-                                $('#failureRefundAccount').val('');
-                            }
+                            @include('admin.ingaz.SponsorshipTransfer.partials.refund-account-help')
                         };
 
                         $('#failureRefundMethod').on('change', applyRefundMethod);

@@ -27,14 +27,25 @@
     .relation-option input:checked + .relation-card { border-color: #2f67b2; background: #eef5ff; color: #19376d; box-shadow: 0 0 0 3px rgba(47,103,178,.11); }
     .relation-option input:checked + .relation-card i { color: #2f67b2; }
     .relation-panel { margin-top: 18px; padding: 18px; background: #f8fafc; border: 1px dashed #cfd8e6; border-radius: 13px; }
-    .select2-container .select2-selection--single { height: 39px; border-color: #dee2e6; }
-    .select2-container--default .select2-selection--single .select2-selection__rendered { line-height: 37px; }
-    .select2-container--default .select2-selection--single .select2-selection__arrow { height: 37px; }
+    .maid-mode-grid { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 10px; }
+    .maid-mode-option { position: relative; display: block; margin: 0; }
+    .maid-mode-option input { position: absolute; inset: 0; z-index: 2; width: 100%; height: 100%; margin: 0; opacity: 0; cursor: pointer; }
+    .maid-mode-card { display: flex; align-items: center; gap: 12px; padding: 12px 14px; border: 1px solid #dce3ed; border-radius: 13px; background: #fff; color: #475467; transition: .2s ease; }
+    .maid-mode-card i { width: 38px; height: 38px; flex-shrink: 0; display: grid; place-items: center; border-radius: 10px; background: #f2f4f7; color: #667085; font-size: 16px; }
+    .maid-mode-card strong { display: block; color: #344054; }
+    .maid-mode-card small { display: block; color: #667085; font-size: 12px; margin-top: 2px; }
+    .maid-mode-option input:checked + .maid-mode-card { border-color: #2f67b2; background: #eef5ff; box-shadow: 0 0 0 3px rgba(47,103,178,.11); }
+    .maid-mode-option input:checked + .maid-mode-card i { background: #2f67b2; color: #fff; }
+    .maid-mode-option input:focus-visible + .maid-mode-card { outline: 2px solid #2f67b2; outline-offset: 2px; }
+    .select2-container .select2-selection--single { height: 39px; padding: 0 .75rem; display: flex; align-items: center; border-color: #dee2e6; }
+    .select2-container--default .select2-selection--single .select2-selection__rendered { flex: 1; min-width: 0; line-height: 37px; padding: 0 0 0 26px; }
+    .select2-container--default .select2-selection--single .select2-selection__arrow { top: 0; bottom: 0; height: auto; left: 8px; right: auto; width: 20px; }
+    .select2-container--default .select2-selection--single .select2-selection__clear { margin: 0 0 0 6px; color: #98a2b3; }
     .select2-container { max-width: 100%; }
     .select2-dropdown { z-index: 1055; }
     .footer-actions { position: relative; z-index: 1; display: flex; justify-content: flex-end; gap: 10px; margin-top: 18px; padding: 14px; border: 1px solid #e8edf4; border-radius: 14px; background: rgba(255,255,255,.95); box-shadow: 0 8px 30px rgba(31,45,61,.11); backdrop-filter: blur(7px); }
     @media (max-width: 992px) { .relation-grid { grid-template-columns: repeat(3,1fr); } }
-    @media (max-width: 576px) { .relation-grid { grid-template-columns: repeat(2,1fr); } .form-section-body { padding: 16px; } }
+    @media (max-width: 576px) { .relation-grid { grid-template-columns: repeat(2,1fr); } .maid-mode-grid { grid-template-columns: 1fr; } .form-section-body { padding: 16px; } }
 </style>
 @endsection
 
@@ -195,7 +206,40 @@
                     <textarea id="complaint-notes" name="complaint_notes" class="form-control @error('complaint_notes') is-invalid @enderror" rows="3" maxlength="5000" placeholder="أضف ملاحظات تظهر في جدول الشكاوى">{{ old('complaint_notes', $complaint->complaint_notes ?? null) }}</textarea>
                     @error('complaint_notes')<div class="text-danger small mt-1">{{ $message }}</div>@enderror
                 </div>
-                <div class="col-md-6 mb-3"><label class="form-label">رقم جواز العاملة</label><input type="text" name="maid_passport" class="form-control" value="{{ old('maid_passport', $complaint->maid_passport ?? null) }}"></div>
+                @php $maidMode = old('maid_registration_status', $complaint->maid_registration_status ?? 'registered') === 'unregistered' ? 'unregistered' : 'registered'; @endphp
+                <div class="col-12 mb-3">
+                    <label class="form-label d-block">بيانات العاملة</label>
+                    <div class="maid-mode-grid" role="radiogroup" aria-label="بيانات العاملة">
+                        <label class="maid-mode-option">
+                            <input type="radio" name="maid_registration_status" value="registered" @checked($maidMode === 'registered')>
+                            <span class="maid-mode-card"><i class="fas fa-user-check"></i><span><strong>عاملة مسجلة بالنظام</strong><small>ابحث واختر العاملة بالاسم أو رقم الجواز</small></span></span>
+                        </label>
+                        <label class="maid-mode-option">
+                            <input type="radio" name="maid_registration_status" value="unregistered" @checked($maidMode === 'unregistered')>
+                            <span class="maid-mode-card"><i class="fas fa-user-edit"></i><span><strong>العاملة غير مسجلة بالنظام</strong><small>أدخل اسم العاملة ورقم جوازها يدويًا</small></span></span>
+                        </label>
+                    </div>
+                </div>
+                <div class="col-md-6 mb-3" id="registeredMaidFields">
+                    <label class="form-label" for="complaintMaid">البحث عن العاملة بالاسم أو رقم الجواز</label>
+                    <select name="maid_id" id="complaintMaid" class="form-select">
+                        <option value=""></option>
+                        @if(old('maid_id', $complaint->maid_id ?? null))
+                            <option value="{{ old('maid_id', $complaint->maid_id ?? null) }}" selected>{{ old('maid_name', $complaint->maid_name ?? '') }} — {{ old('maid_passport', $complaint->maid_passport ?? '') }}</option>
+                        @endif
+                    </select>
+                    <div class="form-text">اختر العاملة من نتائج البحث. يمكن ترك بيانات العاملة فارغة إذا لم تكن الشكوى تخص عاملة.</div>
+                </div>
+                <div class="col-md-6 mb-3" id="unregisteredMaidFields">
+                    <label class="form-label" for="complaintMaidName">اسم العاملة غير المسجلة</label>
+                    <input type="text" name="maid_name" id="complaintMaidName" class="form-control" maxlength="255" value="{{ old('maid_name', $complaint->maid_name ?? '') }}">
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label class="form-label" for="complaintMaidPassport">رقم جواز العاملة</label>
+                    <input type="text" name="maid_passport" id="complaintMaidPassport" class="form-control" maxlength="50" dir="ltr" autocomplete="off" title="حروف إنجليزية وأرقام فقط، من {{ \App\Support\MaidFieldRules::PASSPORT_MIN_LENGTH }} إلى {{ \App\Support\MaidFieldRules::PASSPORT_MAX_LENGTH }} خانة" value="{{ old('maid_passport', $complaint->maid_passport ?? null) }}">
+                    <div class="form-text" id="complaintMaidPassportHelp">الجواز والجنسية يُملآن من سجل العاملة المختارة ولا يمكن تعديلهما هنا.</div>
+                    @error('maid_passport')<div class="text-danger small">{{ $message }}</div>@enderror
+                </div>
                 <div class="col-md-6 mb-3"><label class="form-label">جنسية العاملة</label><select name="maid_nationality_id" class="form-select select2"><option value="">غير محدد</option>@foreach($nationalities as $nationality)<option value="{{ $nationality->id }}" {{ old('maid_nationality_id', $complaint->maid_nationality_id ?? null) == $nationality->id ? 'selected' : '' }}>{{ $nationality->sub_title ?? $nationality->title }}</option>@endforeach</select></div>
                 @if($isEdit && ($complaint->attachmentFiles->isNotEmpty() || !empty($complaint->attachments)))
                     <div class="col-12 mb-3">
@@ -296,6 +340,61 @@ $(function () {
         }
         $select.select2(options);
     });
+
+    const $maid = $('#complaintMaid');
+    const $maidNationality = $('[name="maid_nationality_id"]');
+    let selectedMaidIdentity = $maid.val() ? {
+        passport: $('#complaintMaidPassport').val(),
+        nationality_id: $maidNationality.val()
+    } : null;
+    $maid.select2({
+        dir: 'rtl', width: '100%', allowClear: true,
+        placeholder: 'ابحث بالاسم أو رقم الجواز', minimumInputLength: 2,
+        ajax: {
+            url: @json(route('complaints.search-maids')), dataType: 'json', delay: 250,
+            data: function (params) { return { q: params.term || '', page: params.page || 1 }; },
+            processResults: function (data) { return data; }
+        }
+    });
+    $maid.on('select2:select', function (event) {
+        selectedMaidIdentity = event.params.data;
+        $('#complaintMaidPassport').val(selectedMaidIdentity.passport);
+        $maidNationality.val(selectedMaidIdentity.nationality_id).trigger('change');
+    }).on('select2:clear', function () {
+        selectedMaidIdentity = null;
+        $('#complaintMaidPassport').val('');
+        $maidNationality.val('').trigger('change');
+    });
+    function refreshMaidMode() {
+        const manual = $('[name="maid_registration_status"]:checked').val() === 'unregistered';
+        $('#registeredMaidFields').toggle(!manual);
+        $maid.prop('disabled', manual);
+        $('#unregisteredMaidFields').toggle(manual);
+        $('#complaintMaidName').prop('disabled', !manual).prop('required', manual);
+        $('#complaintMaidPassport').prop('required', manual).prop('readOnly', !manual);
+        // قيد الصيغة على الإدخال اليدوي فقط؛ جوازات العاملات المسجلات تأتي من السجل كما هي
+        if (manual) {
+            $('#complaintMaidPassport').attr({ pattern: '[A-Za-z0-9]{' + passportRule.min + ',' + passportRule.max + '}', maxlength: passportRule.max });
+        } else {
+            $('#complaintMaidPassport').removeAttr('pattern').attr('maxlength', 50);
+        }
+        $maidNationality.prop('disabled', !manual);
+        $('#complaintMaidPassportHelp').text(manual
+            ? 'أدخل جواز العاملة غير المسجلة (حروف إنجليزية وأرقام فقط) وجنسيتها يدويًا.'
+            : 'الجواز والجنسية يُملآن من سجل العاملة المختارة ولا يمكن تعديلهما هنا.');
+        if (!manual && selectedMaidIdentity) {
+            $('#complaintMaidPassport').val(selectedMaidIdentity.passport);
+            $maidNationality.val(selectedMaidIdentity.nationality_id).trigger('change');
+        }
+    }
+    const passportRule = { min: {{ \App\Support\MaidFieldRules::PASSPORT_MIN_LENGTH }}, max: {{ \App\Support\MaidFieldRules::PASSPORT_MAX_LENGTH }} };
+    $('#complaintMaidPassport').on('input', function () {
+        if (this.readOnly) return;
+        const cleaned = this.value.replace(/[^A-Za-z0-9]/g, '').toUpperCase();
+        if (cleaned !== this.value) this.value = cleaned;
+    });
+    $('[name="maid_registration_status"]').on('change', refreshMaidMode);
+    refreshMaidMode();
 
     function refreshRelationPanels() {
         const type = $('[name="relation_type"]:checked').val();

@@ -343,6 +343,12 @@
 
 @section('content')
     <div class="details-container">
+        @if (@SystemModuleEnabled('branches'))
+            <div class="alert alert-info">
+                فرع الطلب: <strong>{{ $transfer->branch?->name ?? 'غير محدد' }}</strong>
+                — فرع العقد المصدر: <strong>{{ $transfer->contract?->branch?->name ?? 'غير محدد' }}</strong>
+            </div>
+        @endif
         <!-- Header مع معلومات أساسية -->
         <div class="details-header">
             <h3>

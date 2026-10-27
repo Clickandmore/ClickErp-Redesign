@@ -89,6 +89,11 @@ class Complaint extends Model
     {
         return $this->belongsTo(Nationality::class, 'maid_nationality_id');
     }
+
+    public function maid()
+    {
+        return $this->belongsTo(Maid::class, 'maid_id');
+    }
     
     public function assignedTo()
     {

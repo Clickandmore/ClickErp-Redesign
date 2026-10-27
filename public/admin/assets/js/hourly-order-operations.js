@@ -76,10 +76,41 @@
     form.elements.driver_role.addEventListener('change',driverSchedule);
     form.elements.driver_time.addEventListener('change',refreshDrivers);
     form.elements.driver_time.addEventListener('input',refreshDrivers);
+    // إعادة جدولة زيارة فائتة واحدة: تاريخ ثم الأوقات المتاحة كما في قائمة الزيارات؛ غير ذلك تاريخ جديد أو إزاحة بالأيام.
+    const picker=form.querySelector('[data-reschedule-slots]'),manual=form.querySelector('[data-reschedule-manual]'),slotDate=document.getElementById('operation-reschedule-date'),slotCards=document.getElementById('operation-reschedule-slot-cards'),slotStart=picker.querySelector('[name="starts_at"]'),save=document.getElementById('operation-save');
+    let slotRequest=0,slotVisit=null;
+    const slotNote=text=>{const p=document.createElement('p');p.className='vl-slot-empty';p.textContent=text;slotCards.replaceChildren(p);};
+    async function loadSlots(){
+        const token=++slotRequest;slotStart.value='';slotNote(slotCards.dataset.loading);save.disabled=true;error.hidden=true;
+        try{
+            const response=await fetch(form.dataset.slotsUrl.replace('VISIT_ID',slotVisit)+'?date='+encodeURIComponent(slotDate.value),{headers:{Accept:'application/json'}}),data=await response.json();
+            if(token!==slotRequest)return;
+            if(!response.ok)throw new Error(data.message||slotCards.dataset.error);
+            if(!data.slots.length){slotNote(slotCards.dataset.empty);return;}
+            slotCards.replaceChildren(...data.slots.map(slot=>{const button=document.createElement('button');button.type='button';button.className='vl-slot-card';button.textContent=slot.label;button.setAttribute('aria-pressed','false');button.addEventListener('click',()=>{slotStart.value=slot.starts_at;slotCards.querySelectorAll('.vl-slot-card').forEach(card=>{card.classList.remove('is-selected');card.setAttribute('aria-pressed','false');});button.classList.add('is-selected');button.setAttribute('aria-pressed','true');});return button;}));
+        }catch(ex){if(token===slotRequest){slotNote(slotCards.dataset.error);error.textContent=ex.message;error.hidden=false;}}finally{if(token===slotRequest && !busy)save.disabled=false;}
+    }
+    function rescheduleMode(){
+        const selected=boxes().filter(b=>b.checked),reschedule=select.value==='reschedule';
+        const visit=reschedule&&selected.length===1&&selected[0].dataset.missed==='1'?selected[0].value:null;
+        picker.hidden=!visit;manual.hidden=!!visit;
+        // معالجة الزيارة الفائتة تتطلب سببًا مسجلًا على الخادم.
+        form.elements.reason.required=reschedule&&selected.some(b=>b.dataset.missed==='1');
+        if(!visit){if(slotVisit!==null){slotRequest++;if(!busy)save.disabled=false;}slotVisit=null;return;}
+        if(visit===slotVisit)return;
+        slotVisit=visit;const tomorrow=new Date();tomorrow.setDate(tomorrow.getDate()+1);
+        slotDate.min=new Date(Date.now()-new Date().getTimezoneOffset()*60000).toISOString().slice(0,10);
+        slotDate.value=new Date(tomorrow.getTime()-tomorrow.getTimezoneOffset()*60000).toISOString().slice(0,10);
+        loadSlots();
+    }
+    slotDate.addEventListener('change',loadSlots);
+    boxes().forEach(b=>b.addEventListener('change',()=>{if(select.value==='reschedule')fields();}));
+    document.getElementById('select-all-visits').addEventListener('change',()=>{if(select.value==='reschedule')fields();});
     function fields(){
         const whole=['cancel_order','payment_method','free_visit'].includes(select.value);
         document.getElementById('operation-target').textContent=whole?'هذا الإجراء يخص الطلب بالكامل.':'يطبق الإجراء على '+boxes().filter(b=>b.checked).length+' زيارة محددة.';
-        document.querySelectorAll('[data-op-fields]').forEach(group=>{const active=group.dataset.opFields.split(' ').includes(select.value);group.hidden=!active;group.querySelectorAll('input,select').forEach(input=>{input.disabled=!active;input.required=active&&input.type!=='checkbox';});});
+        rescheduleMode();
+        document.querySelectorAll('[data-op-fields]').forEach(group=>{const active=group.dataset.opFields.split(' ').includes(select.value);group.hidden=!active;group.querySelectorAll('input,select').forEach(input=>{input.disabled=!active||input.closest('[hidden]')!==null;input.required=active&&input.type!=='checkbox'&&!['new_date','shift_days'].includes(input.name);});});
         error.hidden=true;
         if(select.value==='assign_driver')driverSchedule();
         if(select.value==='assign_workers')refreshWorkers();
@@ -128,6 +159,8 @@
             if(!workersReady || selected.length!==1 || !checked.length || checked.length>workerRequired){error.textContent='اختر من العاملات المتاحات لزيارة واحدة دون تجاوز العدد المطلوب ('+workerRequired+').';error.hidden=false;return;}
         }
         if(!['cancel_order','payment_method','free_visit'].includes(select.value) && !selected.length){error.textContent='اختر زيارة واحدة على الأقل.';error.hidden=false;return;}
+        if(select.value==='reschedule' && !picker.hidden && !slotStart.value){error.textContent='اختر وقتًا متاحًا أولًا.';error.hidden=false;return;}
+        if(select.value==='reschedule' && picker.hidden && !form.elements.new_date.value && form.elements.shift_days.value===''){error.textContent='أدخل التاريخ الجديد أو عدد الأيام.';error.hidden=false;return;}
         if(['cancel_order','cancel_visit','complete','free_visit'].includes(select.value)){
             const danger=select.value!=='complete',text='سيُطبَّق «'+title.textContent+'» ولا يمكن التراجع عنه تلقائيًا.';
             const ok=window.Swal

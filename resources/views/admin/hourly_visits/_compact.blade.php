@@ -115,7 +115,7 @@
                         <button class="btn btn-sm btn-outline-primary" data-single="offer" data-id="{{ $visit->id }}"><i class="fa fa-bullhorn"></i> {{ $visit->offered_to_workers ? 'إعداد العرض' : 'عرض للعاملات' }}</button>
                     @else
                         @if($visit->is_missed)
-                            @if(!$visit->has_started_execution)<button class="btn btn-sm btn-warning" data-single="reschedule" data-id="{{ $visit->id }}"><i class="fa fa-calendar-days"></i> إعادة الجدولة</button>@endif
+                            @if(!$visit->has_started_execution)<button class="btn btn-sm btn-warning" data-single="reschedule" data-id="{{ $visit->id }}" data-missed="1"><i class="fa fa-calendar-days"></i> إعادة الجدولة</button>@endif
                         @else
                             <button class="btn btn-sm btn-success" data-single="complete" data-id="{{ $visit->id }}"><i class="fa fa-circle-check"></i> إكمال</button>
                         @endif

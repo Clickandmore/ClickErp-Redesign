@@ -118,7 +118,7 @@ class SponsorshipTransfer extends Model
     // العلاقات
     public function contract()
     {
-        return $this->belongsTo(Contract::class);
+        return $this->belongsTo(TransferSourceContract::class, 'contract_id')->withoutBranchScope();
     }
 
     public function oldSponsor()

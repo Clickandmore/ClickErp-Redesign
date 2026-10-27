@@ -18,6 +18,8 @@ use App\Services\ingaz\SponsorshipTransferTrialStartService;
 use App\Services\ingaz\SponsorshipTransferPaymentService;
 use App\Services\ManagedFileStorage;
 use App\Services\AdminNotificationService;
+use App\Services\CrossBranchTransferService;
+use App\Services\BranchAccessService;
 use App\Support\SystemModuleManager;
 use App\Support\InvoiceAuthorization;
 use Illuminate\Http\Request;
@@ -785,16 +787,10 @@ class SponsorshipTransferController extends Controller
             }
 
             // إذا كان الطلب موجوداً وله عاملة، نبحث عن العقد المناسب
-            if ($selectedOrder && $selectedOrder->maid) {
+            if ($selectedOrder && $selectedOrder->maid_id) {
                 // البحث عن العقد الذي يحتوي على هذه العاملة في الإيواء
-                $matchingContractQuery = Contract::insideShelter()
-                    ->with(['maid', 'user', 'info'])
-                    ->where('maid_id', $selectedOrder->maid_id)
-                    ->whereHas('info', function($query) {
-                        $query->where('wants_to_work', 'yes');
-                    })
-                    ;
-                $this->applyRequestBranchFilter($matchingContractQuery, request(), 'contracts');
+                $matchingContractQuery = app(CrossBranchTransferService::class)->candidates()
+                    ->where('maid_id', $selectedOrder->maid_id);
                 $matchingContract = $matchingContractQuery->first();
 
                 if ($matchingContract) {
@@ -816,20 +812,14 @@ class SponsorshipTransferController extends Controller
         }
 
         // جلب العقود المتاحة للنقل (العقود داخل الإيواء مع work_willingness = 'yes')
-        $contractsQuery = Contract::insideShelter()
-            ->with(['maid.jobTypes', 'user', 'info'])
-            ->whereHas('info', function($query) {
-                $query->where('wants_to_work', 'yes');
-            })
-            ;
-        $this->applyRequestBranchFilter($contractsQuery, request(), 'contracts');
+        $contractsQuery = app(CrossBranchTransferService::class)->candidates();
         $contracts = $contractsQuery->latest()->get();
 
         // مصدر المسار يُشتق من العقد نفسه وليس من رابط الصفحة فقط؛ عدة مداخل في الواجهة
         // لا تمرّر workflow_source، وكانت عاملة الإيجار تُفتح على المسار المالي فتتكرر قيودها.
         if ($selectedContractId) {
             $selectedContract = $contracts->firstWhere('id', (int) $selectedContractId)
-                ?? Contract::with('maid.jobTypes')->find($selectedContractId);
+                ?? app(CrossBranchTransferService::class)->candidates()->find($selectedContractId);
             if ($selectedContract && $this->contractIsRentalWorker($selectedContract)) {
                 $workflowSource = 'rental';
             }
@@ -912,16 +902,13 @@ class SponsorshipTransferController extends Controller
                 'notes.max' => 'الملاحظات يجب أن تكون أقل من 1000 حرف',
             ]);
 
-            $contract = Contract::with('info')->find($validated['contract_id']);
-            if ($contract) {
-                $this->assertCanAccessBranchModel($contract);
-            }
+            $contract = app(CrossBranchTransferService::class)->candidates()->find($validated['contract_id']);
 
             if (!$contract) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'العقد غير موجود'
-                ], 404);
+                    'message' => 'العاملة غير متاحة لنقل الخدمات؛ تحقق من أهليتها وعدم حجزها ومن إتاحتها وصلاحيات فرعك.'
+                ], 422);
             }
 
             $workflowSource = ($validated['workflow_source'] ?? 'standard') === 'rental'
@@ -978,6 +965,8 @@ class SponsorshipTransferController extends Controller
 
             DB::beginTransaction();
 
+            $contract = app(CrossBranchTransferService::class)->reserve((int) $validated['contract_id']);
+
             $newSponsor = $validated['new_sponsor_mode'] === 'existing'
                 ? User::find($validated['new_sponsor_id'])
                 : $this->findOrCreateNewSponsor($validated);
@@ -1019,6 +1008,9 @@ class SponsorshipTransferController extends Controller
 
             // حفظ بيانات طلب نقل الخدمات
             $transferData = [
+                ...(SystemModuleManager::isEnabled('branches') && Schema::hasColumn('sponsorship_transfers', 'branch_id')
+                    ? ['branch_id' => app(BranchAccessService::class)->adminBranchId() ?: $contract->branch_id]
+                    : []),
                 'workflow_source' => $workflowSource,
                 'contract_id' => $contract->id,
                 'old_sponsor_id' => $contract->user_id,
@@ -1257,13 +1249,11 @@ class SponsorshipTransferController extends Controller
         }
 
         // جلب العقود المتاحة للنقل
-        $contractsQuery = Contract::with(['maid', 'user', 'info'])
-            ->whereHas('info', function($query) {
-                $query->where('wants_to_work', 'yes');
-            })
-            ;
-        $this->applyRequestBranchFilter($contractsQuery, request(), 'contracts');
+        $contractsQuery = app(CrossBranchTransferService::class)->candidates();
         $contracts = $contractsQuery->latest()->get();
+        if ($transfer->contract && !$contracts->contains('id', $transfer->contract_id)) {
+            $contracts->push($transfer->contract);
+        }
 
         $isEditMode = true;
         $workflowSource = $transfer->isRentalWorkflow() ? 'rental' : 'standard';
@@ -1351,10 +1341,9 @@ class SponsorshipTransferController extends Controller
                 ]);
             }
 
-            $contract = Contract::with('info')->find($validated['contract_id']);
-            if ($contract) {
-                $this->assertCanAccessBranchModel($contract);
-            }
+            $contract = (int) $transfer->contract_id === (int) $validated['contract_id']
+                ? $transfer->contract
+                : app(CrossBranchTransferService::class)->candidates()->find($validated['contract_id']);
 
             if (!$contract || !$contract->info || $contract->info->wants_to_work !== 'yes') {
                 return response()->json([
@@ -1380,6 +1369,8 @@ class SponsorshipTransferController extends Controller
                     'paid_amount' => 'لا يمكن تعديل المبلغ أو طريقة/حساب الدفع بعد إصدار سند القبض. استخدم سند قبض أو صرف جديد للتسوية.',
                 ]);
             }
+
+            $contract = app(CrossBranchTransferService::class)->reserve((int) $validated['contract_id'], $transfer);
 
             $newSponsor = $validated['new_sponsor_mode'] === 'existing'
                 ? User::find($validated['new_sponsor_id'])
@@ -1970,7 +1961,7 @@ class SponsorshipTransferController extends Controller
                 ]);
             }
 
-            $contract = Contract::query()
+            $contract = $transfer->contract()
                 ->with(['info', 'maid'])
                 ->lockForUpdate()
                 ->findOrFail($transfer->contract_id);
@@ -2336,7 +2327,7 @@ class SponsorshipTransferController extends Controller
             : false;
 
         $term = trim((string) $request->input('q'));
-        $query = Contract::insideShelter()
+        $query = app(CrossBranchTransferService::class)->candidates()
             ->with(['maid.nationality', 'maid.jobTypes'])
             ->where('contracts.id', '!=', $transfer->contract_id)
             ->whereHas('info', fn ($q) => $q->where('wants_to_work', 'yes'))
@@ -2346,7 +2337,6 @@ class SponsorshipTransferController extends Controller
                         ->orWhere('passport_num', 'like', "%{$term}%"));
                 }
             });
-        $this->applyRequestBranchFilter($query, $request, 'contracts');
 
         $contracts = $query->latest()->get()
             ->filter(fn (Contract $contract) => !$companyWorker || $this->contractIsRentalWorker($contract))
@@ -2377,10 +2367,7 @@ class SponsorshipTransferController extends Controller
             $this->assertCanAccessBranchModel($transfer);
             $this->assertMaidCanBeReplaced($transfer);
 
-            $replacement = Contract::insideShelter()->with(['info', 'maid'])->lockForUpdate()
-                ->whereHas('info', fn ($q) => $q->where('wants_to_work', 'yes'))
-                ->findOrFail($validated['replacement_contract_id']);
-            $this->assertCanAccessBranchModel($replacement, 'contracts');
+            $replacement = app(CrossBranchTransferService::class)->reserve((int) $validated['replacement_contract_id']);
 
             if (!$replacement->maid || !$replacement->user_id
                 || (int) $replacement->id === (int) $transfer->contract_id) {

@@ -65,7 +65,9 @@ class OrderManagementController extends Controller
             'duration_price_adjustment'=>'nullable|numeric|between:-9999999,9999999',
             'expected_price'=>'nullable|numeric|min:0','expected_hours'=>'nullable|numeric|min:0.5',
             'ignore_hour_caps'=>'sometimes|boolean','ignore_break'=>'sometimes|boolean',
-            'shift_days'=>'required_if:action,reschedule|nullable|integer|between:-365,365',
+            // إعادة الجدولة: موعد من الأوقات المتاحة (زيارة فائتة واحدة) أو تاريخ جديد أو إزاحة بالأيام.
+            'shift_days'=>'exclude_unless:action,reschedule|required_without_all:new_date,starts_at|nullable|integer|between:-365,365',
+            'new_date'=>'exclude_unless:action,reschedule|nullable|date_format:Y-m-d',
             'start_time'=>'required_if:action,start_time|nullable|date_format:H:i',
             'starts_at'=>'required_if:action,free_visit|nullable|date_format:Y-m-d\\TH:i',
             'allow_unassigned'=>'sometimes|boolean','ignore_notice'=>'sometimes|boolean',
