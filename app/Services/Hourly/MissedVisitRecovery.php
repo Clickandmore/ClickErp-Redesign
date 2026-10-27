@@ -37,11 +37,15 @@ class MissedVisitRecovery
         $requestId=(string)\Illuminate\Support\Str::uuid();
         $meta['missed_visit_requests'][$visitId]=['id'=>$requestId,'status'=>'pending','type'=>'reschedule','reason_code'=>$reason];
         $copy=clone $order;$copy->booking_metadata=$meta;
-        return $this->availableSlots($copy,$visitId,$requestId,$date);
+        return $this->availableSlots($copy,$visitId,$requestId,$date,true);
     }
 
-    /** Return only dispatcher slots that can be used to recover this visit. */
-    public function availableSlots(HourlyRentalOrder $order,int $visitId,string $requestId,string $date): array
+    /**
+     * Return only dispatcher slots that can be used to recover this visit.
+     * $customer narrows them to what booking shows customers (customer start times, team capacity left for
+     * unassigned visits), so a time the customer picks still passes the dispatcher check on approval.
+     */
+    public function availableSlots(HourlyRentalOrder $order,int $visitId,string $requestId,string $date,bool $customer=false): array
     {
         $visit=$order->visits()->findOrFail($visitId);
         $request=$order->booking_metadata['missed_visit_requests'][$visitId]??null;
@@ -61,7 +65,7 @@ class MissedVisitRecovery
                 $teamId=$coverage?->team_id;
             }catch(\Illuminate\Validation\ValidationException $e){return [];}
         }
-        $slots=app(HourlySlotService::class)->forDate($date,(float)$visit->planned_hours,(int)($snapshot['min_notice_hours']??0),$snapshot,true);
+        $slots=app(HourlySlotService::class)->forDate($date,(float)$visit->planned_hours,(int)($snapshot['min_notice_hours']??0),$snapshot,!$customer);
         $incident=($request['reason_code']??null)==='service_incident';
         $failed=$incident?(ServiceIncident::state($order,$visitId)['failed_worker_ids']??[]):[];
         $assigned=DB::table('hourly_visit_workers')->where('hourly_visit_id',$visitId)->pluck('maid_id')->map(fn($id)=>(int)$id)->all();
@@ -81,10 +85,16 @@ class MissedVisitRecovery
                 $candidate=clone $visit;$candidate->scheduled_start_at=$start;$candidate->scheduled_end_at=$end;$candidate->scheduled_date=$start->toDateString();$candidate->hourly_team_id=$teamId;
                 $workers=$manager->availableWorkers($order,$candidate);
                 if($workers->count()<$visit->workers_count)continue;
+                if($customer){
+                    // As in booking: the workers who could not serve this visit do not count, and unassigned visits keep their share of the team.
+                    $free=$workers->reject(fn($worker)=>in_array((int)$worker->id,array_map('intval',$failed),true))->count()
+                        -($teamId?app(PanelBookingService::class)->unassignedCapacity((int)$teamId,$start->toDateTimeString(),$end->toDateTimeString(),(int)$order->id):0);
+                    if($free<$visit->workers_count)continue;
+                }
                 if(!$incident && count(array_diff($assigned,$workers->pluck('id')->map(fn($id)=>(int)$id)->all())))continue;
             }catch(\Illuminate\Validation\ValidationException $e){continue;}
             catch(\Illuminate\Http\Exceptions\HttpResponseException $e){continue;}
-            $result[]=['starts_at'=>$start->format('Y-m-d\\TH:i'),'label'=>$start->format('H:i')];
+            $result[]=['starts_at'=>$start->format('Y-m-d\\TH:i'),'ends_at'=>$end->format('Y-m-d\\TH:i'),'label'=>$start->format('H:i')];
         }
         return $result;
     }

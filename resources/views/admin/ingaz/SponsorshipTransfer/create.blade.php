@@ -92,7 +92,7 @@
                                         data-sponsor-phone="{{ $contract->user ? $contract->user->phone : 'غير محدد' }}"
                                         data-sponsor-city="{{ $contract->user ? $contract->user->city : 'غير محدد' }}"
                                         {{ $selectedContractId == $contract->id ? 'selected' : '' }}>
-                                    عقد رقم: {{ $contract->id }} -
+                                    عقد رقم: {{ $contract->id }} — فرع المصدر: {{ $contract->branch?->name ?? 'غير محدد' }} -
                                     {{ $contract->maid ? $contract->maid->name : 'غير محدد' }} -
                                     {{ $contract->user ? $contract->user->name : 'غير محدد' }}
                                 </option>

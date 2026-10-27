@@ -418,6 +418,7 @@ Route::group(
             Route::put('packages/{id}/offer', [PackageController::class, 'updateOffer'])->name('packages.offer.update');
             Route::resource('packages', PackageController::class);
             Route::get('complaints/search-contracts', [ComplaintController::class, 'searchContracts'])->name('complaints.search-contracts');
+            Route::get('complaints/search-maids', [ComplaintController::class, 'searchMaids'])->name('complaints.search-maids');
             Route::get('complaints/search-orders', [ComplaintController::class, 'searchOrders'])->name('complaints.search-orders');
             Route::post('complaints/{complaint}/link', [ComplaintController::class, 'linkRecord'])->name('complaints.link');
             Route::post('complaints/{complaint}/schedule', [ComplaintController::class, 'schedule'])->name('complaints.schedule');

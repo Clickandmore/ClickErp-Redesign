@@ -66,6 +66,7 @@ class BranchController extends Controller
             'sharingSettings' => BranchSharingSettings::all(),
             'sharingBranches' => Branch::query()->active()->ordered()->get(['id', 'name_ar', 'name_en', 'code']),
             'branchSharingPolicies' => $sharingService->policies(),
+            'transferSharingPolicies' => app(\App\Services\CrossBranchTransferService::class)->policies(),
         ]);
     }
 
@@ -78,6 +79,9 @@ class BranchController extends Controller
             'sharing_policies' => ['nullable', 'array'],
             'sharing_policies.*' => ['array'],
             'sharing_policies.*.*' => ['nullable', 'boolean'],
+            'transfer_sharing' => ['nullable', 'array'],
+            'transfer_sharing.*' => ['array'],
+            'transfer_sharing.*.*' => ['nullable', 'boolean'],
         ]);
 
         BranchSharingSettings::persist([
@@ -87,6 +91,7 @@ class BranchController extends Controller
         ]);
 
         $sharingService->sync((array) ($validated['sharing_policies'] ?? []));
+        app(\App\Services\CrossBranchTransferService::class)->sync((array) ($validated['transfer_sharing'] ?? []));
 
         return redirect()
             ->route('branches.settings')

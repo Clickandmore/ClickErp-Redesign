@@ -13,7 +13,7 @@
 <article class="om-visit {{ str_replace('om-b-', 'om-tl-', $visitClass) }}" data-visit-card data-buckets="{{ implode(' ', $buckets) }}" id="visit-{{ $visit->id }}">
     <header class="om-v-head">
         @if($editable)
-            <input class="form-check-input om-v-check" type="checkbox" data-visit-select data-started="{{ $visit->has_started_execution ? '1' : '0' }}" value="{{ $visit->id }}" data-number="{{ $visit->visit_number }}" data-start="{{ $visit->scheduled_start_at?->format('Y-m-d H:i') }}" data-end="{{ $visit->scheduled_end_at?->format('Y-m-d H:i') }}" data-delivery="{{ $visit->delivery_at }}" data-pickup="{{ $visit->pickup_at }}" aria-label="تحديد الزيارة {{ $visit->visit_number }} للإجراءات الجماعية" title="تحديد للإجراءات الجماعية">
+            <input class="form-check-input om-v-check" type="checkbox" data-visit-select data-started="{{ $visit->has_started_execution ? '1' : '0' }}" data-missed="{{ $visit->is_missed ? '1' : '0' }}" value="{{ $visit->id }}" data-number="{{ $visit->visit_number }}" data-start="{{ $visit->scheduled_start_at?->format('Y-m-d H:i') }}" data-end="{{ $visit->scheduled_end_at?->format('Y-m-d H:i') }}" data-delivery="{{ $visit->delivery_at }}" data-pickup="{{ $visit->pickup_at }}" aria-label="تحديد الزيارة {{ $visit->visit_number }} للإجراءات الجماعية" title="تحديد للإجراءات الجماعية">
         @endif
         <div class="om-v-no"><span>زيارة</span><b class="om-num">{{ $visit->visit_number }}</b><small class="om-ltr om-num">#{{ $visit->id }}</small></div>
         <div class="om-v-when">

@@ -183,7 +183,7 @@ class ShelterCostLedgerService
     public function releaseToTrial(SponsorshipTransfer $transfer, string $date): array
     {
         return DB::transaction(function () use ($transfer, $date) {
-            if ($transfer->contract?->maid_id) { Maid::query()->whereKey($transfer->contract?->maid_id)->lockForUpdate()->firstOrFail(); }
+            if ($transfer->contract?->maid_id) { $transfer->contract->maid()->lockForUpdate()->firstOrFail(); }
             return $this->releaseToTrialLocked($transfer, $date);
         });
     }
@@ -225,7 +225,7 @@ class ShelterCostLedgerService
     public function returnFromTrial(SponsorshipTransfer $transfer, string $date): array
     {
         return DB::transaction(function () use ($transfer, $date) {
-            if ($transfer->contract?->maid_id) { Maid::query()->whereKey($transfer->contract?->maid_id)->lockForUpdate()->firstOrFail(); }
+            if ($transfer->contract?->maid_id) { $transfer->contract->maid()->lockForUpdate()->firstOrFail(); }
             return $this->returnFromTrialLocked($transfer, $date);
         });
     }

@@ -129,6 +129,9 @@
                     <div class="detail-section__header"><span class="section-icon"><i class="fas fa-user"></i></span><h5>بيانات العاملة</h5></div>
                     <div class="detail-section__body detail-data-grid">
                         <div class="detail-data-item"><span>العاملة</span><strong>{{ $maidParty['name'] }}</strong></div>
+                        @if($complaint->maid_registration_status)
+                            <div class="detail-data-item"><span>التسجيل بالنظام</span><strong>{{ $complaint->maid_registration_status === 'unregistered' ? 'عاملة غير مسجلة — بيانات مدخلة يدويًا' : 'عاملة مسجلة' }}</strong></div>
+                        @endif
                         <div class="detail-data-item"><span>الوكيل الخارجي</span><strong>{{ $maidParty['office'] ?: 'غير محدد' }}</strong></div>
                         <div class="detail-data-item"><span>جواز العاملة</span><strong>{{ $maidParty['passport'] ?: 'غير محدد' }}</strong></div>
                         <div class="detail-data-item"><span>الجنسية</span><strong>{{ $maidParty['nationality'] ?: 'غير محدد' }}</strong></div>

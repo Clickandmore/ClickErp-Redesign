@@ -37,7 +37,7 @@ class ComplaintController extends Controller
     function __construct()
     {
         $this->middleware('permission:' . PermKeys::COMPLAINT_EDIT . '|' . PermKeys::COMPLAINT_CONTROL . ',admin')->only(['linkRecord', 'schedule']);
-        $this->middleware('permission:' . PermKeys::COMPLAINT_CREATE . '|' . PermKeys::COMPLAINT_EDIT . '|' . PermKeys::COMPLAINT_CONTROL . ',admin')->only(['searchContracts', 'searchOrders']);
+        $this->middleware('permission:' . PermKeys::COMPLAINT_CREATE . '|' . PermKeys::COMPLAINT_EDIT . '|' . PermKeys::COMPLAINT_CONTROL . ',admin')->only(['searchContracts', 'searchOrders', 'searchMaids']);
         $this->middleware('permission:' . PermKeys::COMPLAINT_VIEW . '|' . PermKeys::COMPLAINT_CONTROL . ',admin', ['only' => ['cards']]);
         // $this->middleware('permission:الشكاوى-قراءة,admin', ['only' => ['index']]);
         // $this->middleware('permission:الشكاوى-انشاء,admin', ['only' => ['create', 'store']]);
@@ -296,6 +296,24 @@ class ComplaintController extends Controller
         ]);
     }
 
+    public function searchMaids(Request $request)
+    {
+        $data = $request->validate(['q' => 'nullable|string|max:100', 'page' => 'nullable|integer|min:1']);
+        $term = trim((string) ($data['q'] ?? ''));
+        $query = \App\Models\ingaz\Maid::query()->whereNotNull('passport_num')->where('passport_num', '!=', '');
+        if ($term !== '') {
+            $query->where(fn ($q) => $q->where('passport_num', 'like', '%' . $term . '%')->orWhere('name', 'like', '%' . $term . '%'));
+        }
+        $maids = $query->orderBy('name')->simplePaginate(20, ['id', 'name', 'passport_num', 'nationality_id'], 'page', $data['page'] ?? 1);
+        return response()->json([
+            'results' => $maids->getCollection()->map(fn ($maid) => [
+                'id' => $maid->id, 'text' => $maid->name . ' — ' . $maid->passport_num,
+                'passport' => $maid->passport_num, 'nationality_id' => $maid->nationality_id,
+            ])->values(),
+            'pagination' => ['more' => $maids->hasMorePages()],
+        ]);
+    }
+
     private function complaintFormData(?objModel $complaint = null): array
     {
         $users = User::orderBy('name')->get(['id', 'name', 'phone']);
@@ -377,6 +395,9 @@ class ComplaintController extends Controller
                 'priority' => 'required|in:low,medium,high,urgent',
                 'user_id' => 'nullable|exists:users,id',
                 'maid_passport' => 'nullable|string|max:50',
+                'maid_id' => 'nullable|integer',
+                'maid_registration_status' => 'nullable|in:registered,unregistered',
+                'maid_name' => 'nullable|string|max:255',
                 'maid_nationality_id' => 'nullable|exists:nationalities,id',
                 'assigned_to' => 'nullable|exists:admins,id',
                 'after_save' => 'nullable|in:list,shelter',
@@ -415,6 +436,7 @@ class ComplaintController extends Controller
             $data['complainant_type'] = $complaintType->complainant_type ?: $data['complainant_type'];
             $data['against_type'] = $complaintType->against_type ?: ($data['against_type'] ?? null);
             $this->applyComplaintRelation($data);
+            app(\App\Services\Complaints\ComplaintWorkerResolver::class)->resolve($data);
             $complaint = objModel::create($data);
             $this->storeComplaintAttachments($complaint, $request->file('attachments', []));
 
@@ -758,7 +780,7 @@ class ComplaintController extends Controller
         }
         $name = $isAgainstWorker && filled($complaint->against_name)
             ? $complaint->against_name
-            : ($party['name'] ?? null);
+            : ($complaint->maid_name ?: ($party['name'] ?? null));
 
         if (blank($name)) {
             return null;
@@ -912,6 +934,9 @@ class ComplaintController extends Controller
                 'status' => 'required|in:pending,in_progress,resolved,rejected',
                 'user_id' => 'nullable|exists:users,id',
                 'maid_passport' => 'nullable|string|max:50',
+                'maid_id' => 'nullable|integer',
+                'maid_registration_status' => 'nullable|in:registered,unregistered',
+                'maid_name' => 'nullable|string|max:255',
                 'maid_nationality_id' => 'nullable|exists:nationalities,id',
                 'assigned_to' => 'nullable|exists:admins,id',
                 'relation_type' => 'required|in:none,order,contract,office,client,manual',
@@ -935,6 +960,7 @@ class ComplaintController extends Controller
             $this->applyComplaintRelation($data);
 
             // تحديث حالة الحل إذا تم تغيير الحالة
+            app(\App\Services\Complaints\ComplaintWorkerResolver::class)->resolve($data);
             if ($request->status == 'resolved' && !in_array($complaint->status, ['resolved', 'closed'])) {
                 $data['resolved_at'] = now();
                 $data['resolved_by'] = auth()->guard('admin')->id();
@@ -1401,7 +1427,13 @@ class ComplaintController extends Controller
             $this->assertCanAccessBranchModel($record);
         }
         $data['against_type'] = $complaint->against_type ?: $complaint->complaintType?->against_type;
+        if ($complaint->maid_registration_status) {
+            $data += $complaint->only(['maid_id', 'maid_registration_status', 'maid_name', 'maid_passport', 'maid_nationality_id']);
+        }
         $this->applyComplaintRelation($data);
+        if ($complaint->maid_registration_status) {
+            app(\App\Services\Complaints\ComplaintWorkerResolver::class)->resolve($data);
+        }
         $complaint->update($data);
         return back()->with('success', 'تم ربط الشكوى بنجاح');
     }

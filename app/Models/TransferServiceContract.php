@@ -103,7 +103,7 @@ class TransferServiceContract extends Model
 
     public function contract()
     {
-        return $this->belongsTo(Contract::class);
+        return $this->belongsTo(TransferSourceContract::class, 'contract_id')->withoutBranchScope();
     }
 
     public function oldSponsor()
@@ -126,7 +126,7 @@ class TransferServiceContract extends Model
 
     public function maid()
     {
-        return $this->belongsTo(Maid::class);
+        return $this->belongsTo(Maid::class)->withoutBranchScope();
     }
 
     public function createdBy()
@@ -269,7 +269,8 @@ class TransferServiceContract extends Model
 
     protected function resolveBranchIdForCreate(): ?int
     {
-        return $this->resolveBranchIdFromContract($this->contract_id)
+        return $this->resolveBranchIdFromTable('sponsorship_transfers', $this->sponsorship_transfer_id)
+            ?? $this->resolveBranchIdFromContract($this->contract_id)
             ?? $this->resolveBranchIdFromUser($this->new_sponsor_id)
             ?? $this->resolveBranchIdFromUser($this->old_sponsor_id)
             ?? $this->resolveBranchIdFromAdmin($this->created_by)

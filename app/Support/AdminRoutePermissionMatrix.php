@@ -808,6 +808,7 @@ class AdminRoutePermissionMatrix
             [
                 'complaints.cards' => [PermKeys::COMPLAINT_VIEW, PermKeys::COMPLAINT_CONTROL],
                 'complaints.search-contracts' => [PermKeys::COMPLAINT_CREATE, PermKeys::COMPLAINT_EDIT, PermKeys::COMPLAINT_CONTROL],
+                'complaints.search-maids' => [PermKeys::COMPLAINT_CREATE, PermKeys::COMPLAINT_EDIT, PermKeys::COMPLAINT_CONTROL],
                 'complaints.search-orders' => [PermKeys::COMPLAINT_CREATE, PermKeys::COMPLAINT_EDIT, PermKeys::COMPLAINT_CONTROL],
                 'complaints.quick-response' => [PermKeys::COMPLAINT_RESPONSE, PermKeys::COMPLAINT_EDIT],
                 'complaints.add-comment' => [PermKeys::COMPLAINT_RESPONSE, PermKeys::COMPLAINT_EDIT],

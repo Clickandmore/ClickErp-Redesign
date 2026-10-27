@@ -76,7 +76,8 @@ class ShelterDocumentMovementService
         }
         if ($action === 'transfer') {
             $transfer = SponsorshipTransfer::findOrFail($reference);
-            return $transfer->contract_id ? Contract::findOrFail($transfer->contract_id) : null;
+            app(BranchAccessService::class)->assertCanAccessModel($transfer);
+            return $transfer->contract;
         }
         if ($action === 'deportation') {
             return Contract::findOrFail(DeportationProcedure::findOrFail($reference)->contract_id);

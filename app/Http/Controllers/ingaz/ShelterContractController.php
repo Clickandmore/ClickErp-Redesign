@@ -97,8 +97,13 @@ class ShelterContractController extends Controller
             default => $this->shelterRemoveFromShelterPermissions(),
         };
         abort_unless($this->adminCanAny($permissions), 403);
-        $contract = Contract::with('info')->findOrFail($id);
-        $this->assertCanAccessBranchModel($contract, 'contracts');
+        $contract = $action === 'transfer'
+            ? $service->resolve($action, $reference)
+            : Contract::with('info')->findOrFail($id);
+        abort_unless($contract && (int) $contract->id === (int) $id, 404);
+        if ($action !== 'transfer') {
+            $this->assertCanAccessBranchModel($contract, 'contracts');
+        }
         abort_unless($service->resolve($action, $reference)?->id === $contract->id, 404);
         abort_unless($service->inside($contract), 409, 'العاملة ليست داخل الإيواء حاليًا.');
         $configuration = $service->configuration($contract, 'release');

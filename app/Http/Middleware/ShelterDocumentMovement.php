@@ -38,7 +38,7 @@ class ShelterDocumentMovement
         $level = DB::transactionLevel();
         DB::beginTransaction();
         try {
-            $locked = Contract::with('info')->lockForUpdate()->findOrFail($contract->id);
+            $locked = $contract->newQuery()->withoutBranchScope()->with('info')->lockForUpdate()->findOrFail($contract->id);
             $wasInside = $service->inside($locked);
             if (!$admission && !$wasInside) {
                 DB::rollBack();
