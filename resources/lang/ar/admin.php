@@ -1788,6 +1788,8 @@ return array (
   'settings_public_site' => 'الموقع الخارجي',
   'settings_show_public_site_to_customer' => 'إظهار الموقع الخارجي للعميل',
   'settings_public_site_disabled_hint' => 'عند تعطيله سيتم تحويل الزائر مباشرة إلى صفحة الدخول للوحة التحكم.',
+  'settings_public_site_maintenance' => 'وضع الصيانة للموقع الخارجي',
+  'settings_public_site_maintenance_hint' => 'عند تفعيله تظهر للزوار صفحة «الموقع تحت الصيانة» بشعار الشركة بدل محتوى الموقع، ويُطبَّق خلال دقيقة تقريبًا.',
   'settings_twitter_url' => 'رابط تويتر',
   'settings_facebook_url' => 'رابط فيسبوك',
   'settings_instagram_url' => 'رابط انستجرام',

@@ -146,6 +146,7 @@ class SettingController extends Controller
         'note_en',
         'link_rights_and_duties',
         'show_public_site',
+        'public_site_maintenance',
     ];
     public $mainRoute = "settings";
 

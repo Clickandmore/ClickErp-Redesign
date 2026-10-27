@@ -1674,6 +1674,8 @@ return array (
   'settings_public_site' => 'Public Site',
   'settings_show_public_site_to_customer' => 'Show public site to customers',
   'settings_public_site_disabled_hint' => 'When disabled, visitors will be redirected directly to the dashboard login page.',
+  'settings_public_site_maintenance' => 'Public site maintenance mode',
+  'settings_public_site_maintenance_hint' => 'When enabled, visitors see an "under maintenance" page with the company logo instead of the site. Takes effect within about a minute.',
   'settings_twitter_url' => 'Twitter URL',
   'settings_facebook_url' => 'Facebook URL',
   'settings_instagram_url' => 'Instagram URL',

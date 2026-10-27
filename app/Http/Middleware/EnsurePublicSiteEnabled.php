@@ -32,6 +32,13 @@ class EnsurePublicSiteEnabled
             return redirect()->route('admin.form.login');
         }
 
+        if (!empty($settings->public_site_maintenance)) {
+            return response()->view('maintenance', [
+                'logo' => $settings->logo_header ? showFile($settings->logo_header) : null,
+                'siteName' => $settings->website_name ?? config('app.name'),
+            ], 503)->header('Retry-After', '3600');
+        }
+
         return $next($request);
     }
 }
