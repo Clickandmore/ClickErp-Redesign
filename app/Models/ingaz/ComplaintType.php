@@ -29,6 +29,32 @@ class ComplaintType extends Model
         ];
     }
 
+    /**
+     * يحوّل صفة الطرف إلى أحد مفاتيح partyTypes. الشكاوى المستوردة تحمل نصًا عربيًا
+     * مثل «عميل» أو «عاملـ/ـة» بدل المفتاح.
+     */
+    public static function normalizePartyType($value): ?string
+    {
+        $value = trim((string) $value);
+        if ($value === '') {
+            return null;
+        }
+        if (array_key_exists($value, self::partyTypes())) {
+            return $value;
+        }
+
+        $text = str_replace(['ـ', '/', 'ة', 'أ', 'إ', 'آ'], ['', '', 'ه', 'ا', 'ا', 'ا'], $value);
+
+        return match (true) {
+            str_contains($text, 'عميل') => 'client',
+            str_contains($text, 'عامل') => 'worker',
+            str_contains($text, 'خارجي') => 'external_office',
+            str_contains($text, 'موظف') => 'employee',
+            str_contains($text, 'مكتب') => 'internal_office',
+            default => 'other',
+        };
+    }
+
     public function getClassificationLabelAttribute(): string
     {
         $labels = self::partyTypes();

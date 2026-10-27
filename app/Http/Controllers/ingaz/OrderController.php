@@ -70,7 +70,8 @@ class OrderController extends Controller
                 'customer',
                 'createdByAdmin',
                 'branch',
-                'contracts'
+                'contracts',
+                'latestNote.admin',
             ])->withCount('notes');
 
             // Keep actionable bookings at the top, then show the newest records first.
@@ -259,20 +260,41 @@ class OrderController extends Controller
                     return '<div class="d-flex align-items-center gap-2">' . $statusHtml . '</div>';
                 })
                 ->addColumn('timer', function ($row) {
-                    $html = '<div class="order-alerts d-flex flex-column align-items-start gap-2">'
-                        . $this->getTimerHtml($row);
-
+                    // ملاحظات الموظفين لها عمود مستقل (staff_notes)
+                    return '<div class="order-alerts d-flex flex-column align-items-start gap-2">'
+                        . $this->getTimerHtml($row) . '</div>';
+                })
+                ->addColumn('staff_notes', function ($row) use ($canEdit) {
                     $notesCount = (int) ($row->notes_count ?? 0);
-                    if ($notesCount > 0) {
-                        $url = route('showSingleOrder', ['orderId' => $row->id]) . '#order-notes';
-                        $html .= '<a class="order-notes-indicator" href="' . e($url) . '" title="عرض ملاحظات الطلب">'
-                            . '<i class="fas fa-sticky-note"></i>'
-                            . '<span>عليه ملاحظات</span>'
-                            . '<span class="badge bg-warning text-dark">' . $notesCount . '</span>'
-                            . '</a>';
+                    $note = $row->latestNote;
+                    $html = '<div class="order-staff-notes">';
+
+                    if ($note) {
+                        $html .= '<div class="order-staff-notes__text" title="' . e($note->note) . '">'
+                            . e(\Illuminate\Support\Str::limit($note->note, 70)) . '</div>'
+                            . '<div class="order-staff-notes__meta">'
+                            . e($note->admin?->name ?? 'موظف غير محدد') . ' • ' . e(optional($note->created_at)->format('Y-m-d H:i'))
+                            . '</div>';
+                        if ($notesCount > 1) {
+                            $url = route('showSingleOrder', ['orderId' => $row->id]) . '#order-notes';
+                            $html .= '<a class="order-staff-notes__all" href="' . e($url) . '">كل الملاحظات (' . $notesCount . ')</a>';
+                        }
+                    } else {
+                        $html .= '<span class="text-muted small">لا توجد ملاحظات</span>';
+                    }
+
+                    if ($canEdit) {
+                        $html .= '<button type="button" class="btn btn-sm btn-outline-warning order-add-note-btn"'
+                            . ' data-url="' . e(route('orders.notes.store', $row->id)) . '"'
+                            . ' data-order="' . e($row->order_code ?: $row->id) . '"'
+                            . ' data-client="' . e($row->user?->name ?? '') . '">'
+                            . '<i class="fas fa-plus"></i> إضافة ملاحظة</button>';
                     }
 
                     return $html . '</div>';
+                })
+                ->filterColumn('staff_notes', function ($query, $keyword) {
+                    $query->whereHas('notes', fn ($notes) => $notes->where('note', 'like', '%' . $keyword . '%'));
                 })
                 // Keep already-open pages from failing after the notes column was
                 // merged into alerts. The current table no longer renders this key.
@@ -418,7 +440,7 @@ class OrderController extends Controller
                     return $actions;
                 })
                 ->escapeColumns([])
-                ->rawColumns(['actions', 'status', 'timer', 'user_id', 'phone', 'maid_id', 'maid_passport_num', 'deliver_status', 'contract_status', 'order_code', 'created_at', 'admin_name', 'order_source'])
+                ->rawColumns(['actions', 'status', 'timer', 'user_id', 'phone', 'maid_id', 'maid_passport_num', 'deliver_status', 'contract_status', 'order_code', 'created_at', 'admin_name', 'order_source', 'staff_notes'])
                 ->with('source_counts', [
                     'external' => (int) ($sourceCounts->external_count ?? 0),
                     'employee' => (int) ($sourceCounts->employee_count ?? 0),
@@ -1022,10 +1044,18 @@ class OrderController extends Controller
         $order = Order::withTrashed()->findOrFail($orderId);
         $this->assertCanAccessBranchModel($order, 'orders');
 
-        $order->notes()->create([
+        $note = $order->notes()->create([
             'admin_id' => auth('admin')->id(),
             'note' => trim($validated['note']),
         ]);
+
+        // الإضافة السريعة من جدول الطلبات
+        if ($request->expectsJson()) {
+            return response()->json([
+                'message' => 'تمت إضافة الملاحظة على الطلب بنجاح.',
+                'note' => $note->only(['id', 'note', 'created_at']),
+            ], 201);
+        }
 
         return redirect(route('showSingleOrder', ['orderId' => $order->id]) . '#order-notes')
             ->with('success', 'تمت إضافة الملاحظة على الطلب بنجاح.');

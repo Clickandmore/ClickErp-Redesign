@@ -732,7 +732,8 @@ class FinancialRequestController extends Controller
         }
 
         if ($financialRequest->contract_type === 'rental') {
-            RentalContract::query()->whereKey($financialRequest->contract_id)->update(['status' => 'active']);
+            // Payment settles the financial request, including refunds after
+            // closure. Rental activation belongs to the worker delivery flow.
             return;
         }
 

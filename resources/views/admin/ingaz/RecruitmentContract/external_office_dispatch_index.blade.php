@@ -198,7 +198,7 @@
 
     <div class="modal fade" id="bulkDispatchModal" tabindex="-1" aria-labelledby="bulkDispatchModalLabel" aria-hidden="true">
         <div class="modal-dialog">
-            <form method="POST" action="{{ route('RecruitmentContract.externalOfficeDispatch.bulkStore') }}" class="modal-content" id="bulkDispatchForm">
+            <form method="POST" enctype="multipart/form-data" action="{{ route('RecruitmentContract.externalOfficeDispatch.bulkStore') }}" class="modal-content" id="bulkDispatchForm">
                 @csrf
                 <div id="bulk-dispatch-contract-inputs"></div>
                 <div class="modal-header">
@@ -244,6 +244,10 @@
                             value="{{ old('arrival_station') }}"
                             placeholder="اتركها فارغة لاستخدام محطة الوصول المسجلة لكل عقد">
                     </div>
+                </div>
+                <div class="px-3">
+                    @include('admin.ingaz.RecruitmentContract.partials.dispatch-attachments-input')
+                    <div class="form-text mb-3">تُرفق الملفات بكل إرسالية ضمن العقود المحددة.</div>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-light" data-bs-dismiss="modal">إلغاء</button>

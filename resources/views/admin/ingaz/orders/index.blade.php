@@ -298,26 +298,159 @@
             opacity: 0.8;
         }
 
-        .order-notes-indicator {
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-            width: fit-content;
-            padding: 6px 10px;
-            border-radius: 999px;
-            background: #fff7ed;
-            color: #9a3412;
-            border: 1px solid #fed7aa;
-            font-size: 0.82rem;
-            font-weight: 700;
-            text-decoration: none;
-            white-space: nowrap;
+        .order-staff-notes {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 4px;
+            min-width: 170px;
+            max-width: 260px;
+            white-space: normal;
         }
 
-        .order-notes-indicator:hover {
-            color: #7c2d12;
-            background: #ffedd5;
-            text-decoration: none;
+        .order-staff-notes__text {
+            padding: 6px 9px;
+            border-radius: 8px;
+            border-inline-start: 3px solid #f59e0b;
+            background: #fffbeb;
+            color: #344054;
+            font-size: 0.8rem;
+            line-height: 1.5;
+            cursor: help;
+        }
+
+        .order-staff-notes__meta {
+            color: #98a2b3;
+            font-size: 0.72rem;
+        }
+
+        .order-staff-notes__all {
+            color: #b45309;
+            font-size: 0.75rem;
+            font-weight: 700;
+        }
+
+        .order-staff-notes .order-add-note-btn {
+            padding: 1px 8px;
+            font-size: 0.75rem;
+        }
+
+        .order-note-swal.swal2-popup {
+            width: min(520px, calc(100vw - 32px));
+            padding: 0;
+            border-radius: 16px;
+            overflow: hidden;
+            text-align: start;
+        }
+
+        .order-note-swal .swal2-html-container {
+            margin: 0;
+            padding: 0 22px;
+            text-align: start;
+            overflow: visible;
+        }
+
+        .order-note-swal__head {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin: 0 -22px 18px;
+            padding: 18px 22px;
+            background: #fffbeb;
+            border-bottom: 1px solid #fde68a;
+        }
+
+        .order-note-swal__icon {
+            width: 44px;
+            height: 44px;
+            flex-shrink: 0;
+            display: grid;
+            place-items: center;
+            border-radius: 12px;
+            background: #f59e0b;
+            color: #fff;
+            font-size: 1.15rem;
+        }
+
+        .order-note-swal__title {
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: #1f2937;
+        }
+
+        .order-note-swal__meta {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 4px 14px;
+            margin-top: 3px;
+            font-size: 0.82rem;
+            color: #6b7280;
+        }
+
+        .order-note-swal__meta i {
+            color: #d97706;
+            font-size: 0.75rem;
+        }
+
+        .order-note-swal__label {
+            display: block;
+            margin-bottom: 6px;
+            font-size: 0.85rem;
+            font-weight: 700;
+            color: #374151;
+        }
+
+        .order-note-swal__input {
+            min-height: 120px;
+            resize: vertical;
+            border-radius: 10px;
+            font-size: 0.92rem;
+            line-height: 1.7;
+        }
+
+        .order-note-swal__input:focus {
+            border-color: #f59e0b;
+            box-shadow: 0 0 0 3px rgba(245, 158, 11, .18);
+        }
+
+        .order-note-swal__hint {
+            display: flex;
+            justify-content: space-between;
+            gap: 10px;
+            margin-top: 6px;
+            font-size: 0.75rem;
+            color: #9ca3af;
+        }
+
+        .order-note-swal .swal2-validation-message {
+            margin: 12px 22px 0;
+            border-radius: 8px;
+        }
+
+        .order-note-swal__actions.swal2-actions {
+            width: 100%;
+            margin: 18px 0 0;
+            padding: 14px 22px;
+            gap: 8px;
+            justify-content: flex-start;
+            background: #f9fafb;
+            border-top: 1px solid #f1f1f1;
+        }
+
+        .order-note-swal__save {
+            min-width: 140px;
+            font-weight: 700;
+            color: #1f2937;
+        }
+
+        .order-note-swal__cancel {
+            min-width: 90px;
+        }
+
+        .order-note-swal .swal2-close {
+            top: 10px;
+            inset-inline-end: 10px;
+            inset-inline-start: auto;
         }
 
         button.edit-status {
@@ -762,6 +895,7 @@
                                     <tr>
                                         <th>ID</th>
                                         <th>مصدر الطلب</th>
+                                        <th>ملاحظات الموظفين</th>
                                         <th>{{ helperTrans('ingaz.maid_photo') }}</th>
                                         <th>{{ helperTrans('ingaz.client') }}</th>
                                         <th>{{ helperTrans('ingaz.phone') }}</th>
@@ -902,6 +1036,11 @@
                     "data": "order_source",
                     orderable: false,
                     searchable: false
+                },
+                {
+                    "data": "staff_notes",
+                    orderable: false,
+                    searchable: true
                 },
                 {
                     "data": "maid_photo",
@@ -1074,11 +1213,11 @@
                 ],
                 columnDefs: [{
                         responsivePriority: 1,
-                        targets: @if($branchesEnabled ?? false) [0, 1, 3, 8, 11, 14] @else [0, 1, 3, 8, 11, 13] @endif
+                        targets: @if($branchesEnabled ?? false) [0, 1, 4, 9, 12, 15] @else [0, 1, 4, 9, 12, 14] @endif
                     },
                     {
                         responsivePriority: 2,
-                        targets: [4, 7, 9]
+                        targets: [5, 8, 10]
                     }
                 ],
                 ajax: {
@@ -1234,6 +1373,78 @@
             setInterval(function() {
                 dataTable.ajax.reload(null, false); // false to maintain pagination
             }, 60000); // 60 seconds
+
+            // إضافة ملاحظة موظف على الطلب من الجدول مباشرة
+            $(document).on('click', '.order-add-note-btn', function(e) {
+                e.preventDefault();
+                const url = $(this).data('url');
+                const client = $(this).data('client');
+                const meta = '<span><i class="fas fa-hashtag"></i> ' + $('<i>').text($(this).data('order')).html() + '</span>'
+                    + (client ? '<span><i class="fas fa-user"></i> ' + $('<i>').text(client).html() + '</span>' : '');
+
+                Swal.fire({
+                    customClass: {
+                        popup: 'order-note-swal',
+                        confirmButton: 'btn btn-warning order-note-swal__save',
+                        cancelButton: 'btn btn-light order-note-swal__cancel',
+                        actions: 'order-note-swal__actions'
+                    },
+                    buttonsStyling: false,
+                    showCloseButton: true,
+                    html: '<div class="order-note-swal__head">'
+                        + '<span class="order-note-swal__icon"><i class="fas fa-sticky-note"></i></span>'
+                        + '<div><div class="order-note-swal__title">إضافة ملاحظة على الطلب</div>'
+                        + '<div class="order-note-swal__meta">' + meta + '</div></div></div>'
+                        + '<label class="order-note-swal__label" for="orderNoteText">نص الملاحظة</label>'
+                        + '<textarea id="orderNoteText" class="form-control order-note-swal__input" rows="5" maxlength="2000" dir="auto"'
+                        + ' placeholder="مثال: تم التواصل مع العميل وطلب تأجيل الموعد..."></textarea>'
+                        + '<div class="order-note-swal__hint"><span><i class="fas fa-eye"></i> تظهر للموظفين في الجدول وصفحة تفاصيل الطلب</span>'
+                        + '<span id="orderNoteCounter">0 / 2000</span></div>',
+                    showCancelButton: true,
+                    reverseButtons: false,
+                    confirmButtonText: '<i class="fas fa-save"></i> حفظ الملاحظة',
+                    cancelButtonText: 'إلغاء',
+                    showLoaderOnConfirm: true,
+                    didOpen: function(popup) {
+                        const input = popup.querySelector('#orderNoteText');
+                        const counter = popup.querySelector('#orderNoteCounter');
+                        input.addEventListener('input', function() {
+                            counter.textContent = input.value.length + ' / 2000';
+                            Swal.resetValidationMessage();
+                        });
+                        input.addEventListener('keydown', function(event) {
+                            if (event.key === 'Enter' && (event.ctrlKey || event.metaKey)) Swal.clickConfirm();
+                        });
+                        input.focus();
+                    },
+                    preConfirm: function() {
+                        const note = Swal.getPopup().querySelector('#orderNoteText').value.trim();
+                        if (!note) {
+                            Swal.showValidationMessage('نص الملاحظة مطلوب.');
+                            return false;
+                        }
+                        return $.ajax({
+                            url: url,
+                            type: 'POST',
+                            dataType: 'json',
+                            data: { _token: '{{ csrf_token() }}', note: note }
+                        }).catch(function(xhr) {
+                            const errors = xhr.responseJSON && xhr.responseJSON.errors;
+                            Swal.showValidationMessage(
+                                (errors && errors.note && errors.note[0]) ||
+                                (xhr.responseJSON && xhr.responseJSON.message) ||
+                                'تعذر حفظ الملاحظة.'
+                            );
+                        });
+                    },
+                    allowOutsideClick: function() { return !Swal.isLoading(); }
+                }).then(function(result) {
+                    if (result.isConfirmed) {
+                        dataTable.ajax.reload(null, false);
+                        Swal.fire({ icon: 'success', title: 'تمت إضافة الملاحظة', timer: 1500, showConfirmButton: false });
+                    }
+                });
+            });
 
             // Handle delete order
             $(document).on('click', '.delete-order', function(e) {

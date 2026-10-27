@@ -5,6 +5,7 @@
             <input type="text" name="title" id="title" class="form-control" data-validation="required">
         </div>
 
+    @include('finance::finance.boxes.branch-assignment')
     <div class="col-12 modal-footer">
         {!! submitButton($storeRoute) !!}
         {!! closeButton() !!}

@@ -233,9 +233,6 @@
                         </a>
                         <ul class="sub-menu collapse {{ $isCrm || request()->routeIs('clients.*') || request()->routeIs('website-visitors.*') || request()->routeIs('whatsapp.inbox.*') || request()->routeIs('whatsapp.notifications.*') || request()->routeIs('messages.*') ? 'show' : '' }}"
                             id="crm">
-                            @if (@AdminGuardHasPerm(\App\PermKeys::CLIENTS_DELETE))
-                                <li><a class="m-link {{ request()->routeIs('clients.trashed') ? 'active' : '' }}" href="{{ route('clients.trashed') }}"><i class="fas fa-trash-restore"></i><span class="ms-2">العملاء المحذوفون</span></a></li>
-                            @endif
                             @if (@AdminGuardHasPerm(\App\PermKeys::CLIENTS_VIEW))
                                 <li>
                                     <a class="m-link {{ Route::currentRouteName() == 'clients.index' ? 'active' : '' }}"
@@ -244,6 +241,9 @@
                                         <span class="ms-2"> {{ helperTrans('ingaz.clients') }}</span>
                                     </a>
                                 </li>
+                            @endif
+                            @if (@AdminGuardHasPerm(\App\PermKeys::CLIENTS_DELETE))
+                                <li><a class="m-link {{ request()->routeIs('clients.trashed') ? 'active' : '' }}" href="{{ route('clients.trashed') }}"><i class="fas fa-trash-restore text-danger"></i><span class="ms-2">العملاء المحذوفون</span></a></li>
                             @endif
                             @if (@AdminGuardHasPerm(\App\PermKeys::CLIENTS_VIEW))
                                 <li>
@@ -333,7 +333,7 @@
                                             <li>
                                                 <a class="m-link {{ Route::currentRouteName() == 'maids.deleted_cvs' ? 'active' : '' }}"
                                                     href="{{ route('maids.deleted_cvs') }}">
-                                                    <i class="fa fa-trash"></i>
+                                                    <i class="fa fa-trash text-danger"></i>
                                                     <span class="ms-2">{{ helperTrans('ingaz.deleted_cvs') }}</span>
                                                 </a>
                                             </li>

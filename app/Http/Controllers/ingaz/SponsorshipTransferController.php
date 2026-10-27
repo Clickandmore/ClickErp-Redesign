@@ -942,11 +942,7 @@ class SponsorshipTransferController extends Controller
 
             \App\Services\SponsorshipTransferMoyasarService::validateManualPayment($validated);
 
-            if (!$contract->user_id) {
-                throw ValidationException::withMessages([
-                    'contract_id' => 'لا يمكن إنشاء طلب نقل خدمات لهذا العقد لأنه لا يحتوي على كفيل حالي. يرجى ربط العقد بالعميل الحالي أولا.',
-                ]);
-            }
+            app(\App\Services\ingaz\TransferCurrentSponsor::class)->validate($contract);
 
             // التحقق من أن العقد متاح للنقل
             if (!$contract->info || $contract->info->wants_to_work !== 'yes') {
@@ -1352,11 +1348,7 @@ class SponsorshipTransferController extends Controller
                 ], 400);
             }
 
-            if (!$contract->user_id) {
-                throw ValidationException::withMessages([
-                    'contract_id' => 'لا يمكن تحديث طلب نقل الخدمات بهذا العقد لأنه لا يحتوي على كفيل حالي. يرجى ربط العقد بالعميل الحالي أولا.',
-                ]);
-            }
+            app(\App\Services\ingaz\TransferCurrentSponsor::class)->validate($contract);
 
             DB::beginTransaction();
 
@@ -2369,7 +2361,8 @@ class SponsorshipTransferController extends Controller
 
             $replacement = app(CrossBranchTransferService::class)->reserve((int) $validated['replacement_contract_id']);
 
-            if (!$replacement->maid || !$replacement->user_id
+            app(\App\Services\ingaz\TransferCurrentSponsor::class)->validate($replacement);
+            if (!$replacement->maid
                 || (int) $replacement->id === (int) $transfer->contract_id) {
                 throw ValidationException::withMessages(['replacement_contract_id' => 'العاملة البديلة غير متاحة لنقل الكفالة.']);
             }

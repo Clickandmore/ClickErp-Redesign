@@ -28,6 +28,7 @@ class SponsorshipTransferPaymentService
     public static function receiptAccounts()
     {
         return Account::query()
+            ->registeredPaymentAccount()
             ->when(
                 BranchSharingSettings::accountsPerBranch(),
                 fn ($query) => $query->assignableTo(BranchQueryContext::activeBranchId())
@@ -257,6 +258,7 @@ class SponsorshipTransferPaymentService
     private function resolveReceiptAccount(int $accountId): Account
     {
         $account = Account::query()
+            ->registeredPaymentAccount()
             ->when(
                 BranchSharingSettings::accountsPerBranch(),
                 fn ($query) => $query->assignableTo(BranchQueryContext::activeBranchId())

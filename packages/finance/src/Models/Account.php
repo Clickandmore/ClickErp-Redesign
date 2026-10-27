@@ -28,6 +28,39 @@ class Account extends Finance
         'type'=> AccountTypesEnum::class
     ];
 
+    protected static function booted()
+    {
+        static::deleting(function (self $account) {
+            if ($account->cashBoxes()->exists()) {
+                throw \Illuminate\Validation\ValidationException::withMessages([
+                    'account' => 'لا يمكن حذف حساب مرتبط بصندوق. راجع الصندوق من شاشة الصناديق أولاً.',
+                ]);
+            }
+        });
+
+        static::updating(function (self $account) {
+            if ($account->isDirty('type') && $account->cashBoxes()->exists()
+                && (int) $account->getAttributes()['type'] !== AccountTypesEnum::Box->value) {
+                throw \Illuminate\Validation\ValidationException::withMessages([
+                    'type' => 'لا يمكن تغيير نوع حساب مرتبط بصندوق إلى نوع آخر.',
+                ]);
+            }
+        });
+    }
+
+    public function cashBoxes()
+    {
+        return $this->hasMany(Box::class, 'account_id');
+    }
+
+    public function scopeRegisteredPaymentAccount($query)
+    {
+        return $query->where(function ($query) {
+            $query->where('type', '<>', AccountTypesEnum::Box->value)
+                ->orWhereHas('cashBoxes');
+        });
+    }
+
     public function children()
     {
         return $this->hasMany(Account::class, 'parent_id', 'id');

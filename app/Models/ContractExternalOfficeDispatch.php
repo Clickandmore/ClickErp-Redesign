@@ -17,6 +17,7 @@ class ContractExternalOfficeDispatch extends Model
     protected $guarded = [];
 
     protected $casts = [
+        'attachments' => 'array',
         'dispatch_date' => 'date',
         'office_contract_cost_usd' => 'decimal:2',
         'branch_id' => 'integer',
