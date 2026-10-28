@@ -1,0 +1,18 @@
+{
+  "name": "clickerp",
+  "version": "1.0.0",
+  "description": "ClickERP for Claude Code: read-only access to domestic workers and recruitment contracts with the signed-in employee's permissions and branch.",
+  "author": {
+    "name": "Click & More"
+  },
+  "homepage": "https://clickerp.sa",
+  "keywords": ["erp", "recruitment", "mcp"],
+  "userConfig": {
+    "server_url": {
+      "type": "string",
+      "title": "رابط خادم ClickERP",
+      "description": "رابط MCP الخاص بشركتك كما يظهر في Super Admin ← MCP، مثل https://clickerp.com.sa/mcp",
+      "required": true
+    }
+  }
+}

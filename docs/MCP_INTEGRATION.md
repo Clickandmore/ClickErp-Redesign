@@ -55,7 +55,7 @@ Codex / Claude  ──POST /mcp + Bearer token──►  AuthenticateMcpToken
 ## التشغيل على السيرفر
 
 ```bash
-php artisan migrate --force --path=database/migrations/2026_10_28_100000_create_mcp_tables.php
+php artisan migrate --force   # ينشئ جداول MCP وOAuth مع باقي الرقع المعلقة
 ```
 
 ثم من **Super Admin → زر MCP** (`/dev-super-admin/mcp`):
@@ -125,7 +125,55 @@ curl -s https://erp.example.com/mcp -H "Authorization: Bearer $CLICKERP_TOKEN" \
   -d '{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"whoami"}}'
 ```
 
-ChatGPT وClaude.ai (الموصلات من الويب) يحتاجان OAuth — غير مدعوم في هذا الإصدار.
+claude.ai وChatGPT يربطان عبر OAuth بدون توكن — انظر القسم التالي.
+
+## الربط بتسجيل الدخول (OAuth) — claude.ai وChatGPT وClaude Code
+
+بدل لصق توكن، يضيف الموظف رابط `https://<الدومين>/mcp` في البرنامج، فتفتح له صفحة دخول
+ClickERP، يسجّل دخوله بحسابه ويضغط «موافقة وربط». يُفعَّل من Super Admin ← MCP ←
+«السماح بالربط عبر تسجيل الدخول» (يتطلب أن يكون الخادم نفسه مفعّلاً).
+
+| البرنامج | أين يُضاف |
+|---|---|
+| claude.ai والتطبيق | Settings ← Connectors ← Add custom connector (في Team/Enterprise: مالك المنظمة) |
+| ChatGPT | Settings ← Apps & Connectors ← Advanced ← Developer mode، ثم Create والمصادقة OAuth |
+| Claude Code | الإضافة (القسم التالي) أو `claude mcp add --transport http clickerp <url>` ثم `/mcp` ← Authenticate |
+
+**المسارات** ([McpOAuthController](../app/Http/Controllers/McpOAuthController.php)، [routes/mcp.php](../routes/mcp.php)):
+
+| المسار | الغرض |
+|---|---|
+| `GET /.well-known/oauth-protected-resource` | RFC 9728 — يدلّ على خادم التفويض. الرد 401 من `/mcp` يشير إليه في `WWW-Authenticate` |
+| `GET /.well-known/oauth-authorization-server` | RFC 8414 — روابط التفويض والتوكن والتسجيل |
+| `POST /oauth/register` | RFC 7591 — تسجيل عميل ديناميكي (claude.ai وChatGPT يسجّلان أنفسهما) |
+| `GET/POST /oauth/authorize` | صفحة موافقة الموظف (جلسة لوحة التحكم). بلا دخول ← صفحة الدخول ثم يرجع |
+| `POST /oauth/token` | استبدال الرمز (PKCE S256 إلزامي) وتجديد التوكن |
+
+**ضوابط الأمان:**
+- روابط الرجوع المسموحة: `https` على `claude.ai`، `claude.com`، `chatgpt.com`، `chat.openai.com`
+  (`mcp.oauth.redirect_hosts` في [config/mcp.php](../config/mcp.php))، و`localhost`/`127.0.0.1` لعملاء سطح المكتب.
+  أي رابط آخر يُرفض عند التسجيل، ورابط غير مطابق عند التفويض يعرض صفحة خطأ ولا يُعاد التوجيه إليه.
+- رمز التفويض: 10 دقائق، استخدام واحد، مربوط بالعميل ورابط الرجوع وPKCE.
+- access token ساعة واحدة، وrefresh token بمدة «مدة التوكن» في الإعدادات (365 يوماً إذا كانت 0)،
+  ويُدوَّر مع كل تجديد. إيقاف الموظف يوقف التوكن والتجديد فوراً.
+- كل ربط يظهر في جدول التوكنات بمصدر «ربط بتسجيل الدخول» ويُلغى من هناك؛ الموافقة والرفض في سجل التدقيق.
+- الروابط في الاكتشاف تُبنى على `https` إذا كان `APP_URL` على https، حتى خلف Cloudflare.
+  **تأكد أن `APP_URL` في `.env` هو الدومين الصحيح بـ https** — claude.ai وChatGPT يرفضان الروابط غير المطابقة.
+
+## إضافة Claude Code (Plugin)
+
+في [integrations/claude-code-plugin/](../integrations/claude-code-plugin/): marketplace فيه إضافة `clickerp`
+تحمل إعداد الخادم وثلاثة أوامر (`/clickerp:contracts-summary`، `/clickerp:find-maid`،
+`/clickerp:contract-details`). رابط الخادم إعداد للمستخدم (`userConfig.server_url`) يُطلب عند التثبيت،
+فالإضافة نفسها تعمل لكل العملاء. الشرح للمستخدم في [README الإضافة](../integrations/claude-code-plugin/README.md).
+
+```bash
+claude plugin validate integrations/claude-code-plugin          # الـ marketplace
+claude plugin validate integrations/claude-code-plugin/plugins/clickerp
+```
+
+للتوزيع على الموظفين: انسخ المجلد إلى مستودع GitHub مستقل (مثل `Clickandmore/clickerp-claude-plugin`)
+لأن مستودع ClickERP خاص؛ الموظف يضيفه بـ `/plugin marketplace add Clickandmore/clickerp-claude-plugin`.
 
 ## مراجعة الاستخدام
 
@@ -152,6 +200,5 @@ MySQL يحوّل النص إلى 0 فيطابق صفوفاً خاطئة. قار�
 
 - أدوات الكتابة (ملاحظة على عقد، مسودة طلب) — تحتاج تأكيداً من الموظف قبل التنفيذ.
 - عقود الإيجار، العملاء وأرصدتهم، الشكاوى، الإيواء.
-- OAuth لـ ChatGPT وClaude.ai.
 
 لن تُضاف أبداً: ترحيل القيود المالية، الحذف، تعديل الصلاحيات.

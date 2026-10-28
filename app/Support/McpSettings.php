@@ -38,6 +38,7 @@ class McpSettings
             'rate_limit_per_minute' => max(1, (int) $settings['rate_limit_per_minute']),
             'mask_sensitive' => filter_var($settings['mask_sensitive'], FILTER_VALIDATE_BOOLEAN),
             'token_days' => max(0, (int) $settings['token_days']),
+            'oauth_enabled' => filter_var($settings['oauth_enabled'], FILTER_VALIDATE_BOOLEAN),
         ];
     }
 
@@ -62,6 +63,12 @@ class McpSettings
         return self::all()['token_days'];
     }
 
+    /** ربط claude.ai وChatGPT وClaude Code بتسجيل دخول الموظف (OAuth) بدل لصق توكن. */
+    public static function oauthEnabled(): bool
+    {
+        return self::all()['oauth_enabled'];
+    }
+
     public static function persist(array $payload): void
     {
         if (! Schema::hasTable('dev_superadmin_settings')) {
@@ -73,6 +80,7 @@ class McpSettings
             'rate_limit_per_minute' => max(1, (int) ($payload['rate_limit_per_minute'] ?? 60)),
             'mask_sensitive' => (bool) ($payload['mask_sensitive'] ?? false),
             'token_days' => max(0, (int) ($payload['token_days'] ?? 90)),
+            'oauth_enabled' => (bool) ($payload['oauth_enabled'] ?? false),
         ];
 
         \App\Support\Audit\AuditedSettings::updateOrInsert('dev_superadmin_settings',
@@ -94,6 +102,7 @@ class McpSettings
             'rate_limit_per_minute' => (int) config('mcp.rate_limit_per_minute', 60),
             'mask_sensitive' => (bool) config('mcp.mask_sensitive', true),
             'token_days' => (int) config('mcp.token_days', 90),
+            'oauth_enabled' => (bool) config('mcp.oauth.enabled', false),
         ];
     }
 }

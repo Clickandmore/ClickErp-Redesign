@@ -20,6 +20,26 @@ return [
 
     'max_results' => 50,
 
+    'oauth' => [
+        // ربط claude.ai وChatGPT وClaude Code بتسجيل دخول الموظف. يُدار من شاشة Super Admin.
+        'enabled' => (bool) env('MCP_OAUTH_ENABLED', false),
+
+        // عمر الـ access token؛ العميل يجدده تلقائياً بالـ refresh token.
+        'access_token_minutes' => 60,
+
+        // عمر الـ refresh token عندما تكون "مدة التوكن" في الإعدادات 0 (بلا انتهاء).
+        'refresh_token_max_days' => 365,
+
+        // عناوين الرجوع المسموحة لعملاء OAuth. localhost و127.0.0.1 مسموحان دائماً
+        // (Claude Code وClaude Desktop يستقبلان الرد على منفذ محلي).
+        'redirect_hosts' => [
+            'claude.ai',
+            'claude.com',
+            'chatgpt.com',
+            'chat.openai.com',
+        ],
+    ],
+
     'tools' => [
         \App\Mcp\Tools\WhoAmITool::class,
         \App\Mcp\Tools\SearchMaidsTool::class,

@@ -93,5 +93,10 @@ class RouteServiceProvider extends ServiceProvider
 
             return Limit::perMinute(\App\Support\McpSettings::rateLimitPerMinute())->by('mcp:' . $key);
         });
+
+        // تسجيل العملاء والتوكن وشاشة الموافقة: حد لكل IP يكفي للربط ويوقف الإغراق.
+        RateLimiter::for('mcp-oauth', function (Request $request) {
+            return Limit::perMinute(30)->by('mcp-oauth:' . $request->ip());
+        });
     }
 }

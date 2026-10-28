@@ -20,7 +20,8 @@
 <body class="sa-recovery">
 @php
     $statusLabels = ['ok' => 'نجح', 'denied' => 'بلا صلاحية', 'error' => 'خطأ', 'unknown' => 'أداة غير موجودة'];
-    $activeTokens = $tokens->filter(fn ($token) => $token->isActive())->count();
+    $activeTokens = $tokens->filter(fn ($token) => !$token->revoked_at
+        && ($token->isActive() || ($token->oauth_client_id && $token->refresh_expires_at?->isFuture())))->count();
 @endphp
 <main class="shell">
     <header class="topbar">
@@ -48,6 +49,9 @@
         <div class="page-heading-meta">
             <span class="heading-chip {{ $settings['enabled'] ? 'is-good' : 'is-bad' }}">
                 الخادم: <b>{{ $settings['enabled'] ? 'مفعّل' : 'مغلق' }}</b>
+            </span>
+            <span class="heading-chip {{ $settings['oauth_enabled'] ? 'is-good' : '' }}">
+                الربط بتسجيل الدخول: <b>{{ $settings['oauth_enabled'] ? 'مفعّل' : 'مغلق' }}</b>
             </span>
             <span class="heading-chip">توكنات فعّالة: <b>{{ $activeTokens }}</b></span>
         </div>
@@ -100,6 +104,11 @@
                         <input type="hidden" name="enabled" value="0">
                         <input type="checkbox" name="enabled" value="1" {{ old('enabled', $settings['enabled']) ? 'checked' : '' }}>
                         تفعيل خادم MCP
+                    </label>
+                    <label class="check-row">
+                        <input type="hidden" name="oauth_enabled" value="0">
+                        <input type="checkbox" name="oauth_enabled" value="1" {{ old('oauth_enabled', $settings['oauth_enabled']) ? 'checked' : '' }}>
+                        السماح بالربط عبر تسجيل الدخول (OAuth) — مطلوب لـ claude.ai وChatGPT
                     </label>
                     <label class="check-row">
                         <input type="hidden" name="mask_sensitive" value="0">
@@ -175,19 +184,22 @@
             @else
                 <div class="table-wrap" style="margin-top:0">
                     <table>
-                        <thead><tr><th>#</th><th>الموظف</th><th>الاسم</th><th>آخر استخدام</th><th>ينتهي</th><th>الحالة</th><th></th></tr></thead>
+                        <thead><tr><th>#</th><th>الموظف</th><th>الاسم</th><th>المصدر</th><th>آخر استخدام</th><th>ينتهي</th><th>الحالة</th><th></th></tr></thead>
                         <tbody>
                         @foreach ($tokens as $token)
                             @php
                                 $suspended = ($token->admin->status ?? 'active') === 'suspended';
-                                $state = $token->revoked_at ? 'ملغي' : (!$token->isActive() ? 'منتهي' : ($suspended ? 'الموظف موقوف' : 'فعّال'));
+                                // توكن OAuth قصير العمر يتجدد تلقائياً، فهو فعّال ما دام الـ refresh صالحاً.
+                                $renewable = $token->oauth_client_id && $token->refresh_expires_at?->isFuture();
+                                $state = $token->revoked_at ? 'ملغي' : ((!$token->isActive() && !$renewable) ? 'منتهي' : ($suspended ? 'الموظف موقوف' : 'فعّال'));
                             @endphp
                             <tr>
                                 <td>{{ $token->id }}</td>
                                 <td>{{ $token->admin->name ?? ('#' . $token->admin_id) }}</td>
                                 <td>{{ $token->name }}</td>
+                                <td>{{ $token->oauth_client_id ? 'ربط بتسجيل الدخول' : 'توكن يدوي' }}</td>
                                 <td dir="ltr">{{ $token->last_used_at?->format('Y-m-d H:i') ?? '—' }}</td>
-                                <td dir="ltr">{{ $token->expires_at?->format('Y-m-d') ?? 'بلا انتهاء' }}</td>
+                                <td dir="ltr">{{ ($token->oauth_client_id ? $token->refresh_expires_at : $token->expires_at)?->format('Y-m-d') ?? 'بلا انتهاء' }}</td>
                                 <td><span class="badge {{ $state === 'فعّال' ? 'ok' : 'bad' }}">{{ $state }}</span></td>
                                 <td>
                                     @if (!$token->revoked_at)
@@ -210,56 +222,60 @@
         <div class="panel-head">
             <div>
                 <h2>طريقة الربط</h2>
-                <p class="muted">في كل الأوامر استبدل <code dir="ltr">cerp_mcp_...</code> بالتوكن الذي أصدرته من الأعلى.</p>
+                <p class="muted">رابط الخادم لكل البرامج: <code dir="ltr">{{ $endpoint }}</code></p>
             </div>
         </div>
         <div class="panel-body">
             <div class="table-wrap" style="margin-top:0">
                 <table>
-                    <thead><tr><th>البرنامج</th><th>يعمل؟</th><th>ملاحظة</th></tr></thead>
+                    <thead><tr><th>البرنامج</th><th>الطريقة</th><th>يحتاج</th></tr></thead>
                     <tbody>
-                        <tr><td>Claude Code (الطرفية أو VS Code)</td><td><span class="badge ok">نعم</span></td><td>الطريقة 1</td></tr>
-                        <tr><td>Codex (OpenAI)</td><td><span class="badge ok">نعم</span></td><td>الطريقة 2</td></tr>
-                        <tr><td>تطبيق Claude Desktop</td><td><span class="badge ok">نعم</span></td><td>الطريقة 3 — يحتاج Node.js على الجهاز</td></tr>
-                        <tr><td>موقع claude.ai وChatGPT</td><td><span class="badge bad">ليس بعد</span></td><td>يتطلبان تسجيل دخول OAuth، غير مدعوم في هذا الإصدار</td></tr>
+                        <tr><td>claude.ai وتطبيق Claude (سطح المكتب والجوال)</td><td>Connector — الطريقة 1</td><td>تفعيل «الربط بتسجيل الدخول»</td></tr>
+                        <tr><td>ChatGPT</td><td>Connector — الطريقة 2</td><td>تفعيل «الربط بتسجيل الدخول» + وضع المطوّر في ChatGPT</td></tr>
+                        <tr><td>Claude Code</td><td>Plugin أو أمر واحد — الطريقة 3</td><td>تسجيل الدخول، أو توكن يدوي</td></tr>
+                        <tr><td>Codex</td><td>توكن يدوي — الطريقة 4</td><td>إصدار توكن من الأعلى</td></tr>
                     </tbody>
                 </table>
             </div>
 
-            <h3 style="margin:22px 0 6px">الطريقة 1 — Claude Code</h3>
-            <p class="help">1. افتح الطرفية (Terminal) على جهازك والصق الأمر التالي بعد وضع التوكن:</p>
+            @unless ($settings['oauth_enabled'])
+                <div class="alert alert-warning" style="margin-top:14px">الطريقتان 1 و2 لن تعملا حتى تفعّل «السماح بالربط عبر تسجيل الدخول» في الإعدادات أعلاه.</div>
+            @endunless
+
+            <h3 style="margin:22px 0 6px">الطريقة 1 — claude.ai وتطبيق Claude</h3>
+            <p class="help">1. في claude.ai افتح <b>Settings ← Connectors ← Add custom connector</b> (في حسابات Team/Enterprise يضيفه مالك المنظمة من إعدادات المنظمة).<br>
+                2. الاسم: <code>ClickERP</code> — الرابط:</p>
+            <pre class="command-output mcp-snippet">{{ $endpoint }}</pre>
+            <p class="help">3. اضغط <b>Add</b> ثم <b>Connect</b>: تفتح صفحة دخول ClickERP، سجّل دخولك بحسابك ثم اضغط «موافقة وربط».<br>
+                4. في أي محادثة فعّل ClickERP من قائمة الأدوات واسأل: «كم عقد استقدام عندنا في كل مرحلة؟». الربط يظهر تلقائياً في تطبيق سطح المكتب والجوال لنفس الحساب.</p>
+
+            <h3 style="margin:22px 0 6px">الطريقة 2 — ChatGPT</h3>
+            <p class="help">1. في ChatGPT افتح <b>Settings ← Apps &amp; Connectors ← Advanced settings</b> وفعّل <b>Developer mode</b> (حسب باقة الحساب).<br>
+                2. ارجع إلى Apps &amp; Connectors واضغط <b>Create</b>: الاسم <code>ClickERP</code>، ورابط خادم MCP:</p>
+            <pre class="command-output mcp-snippet">{{ $endpoint }}</pre>
+            <p class="help">3. المصادقة: <b>OAuth</b> ← <b>Create</b>، ثم سجّل دخولك في صفحة ClickERP ووافق.<br>
+                4. في المحادثة اختر ClickERP من زر الأدوات (+) قبل السؤال.</p>
+
+            <h3 style="margin:22px 0 6px">الطريقة 3 — Claude Code</h3>
+            <p class="help"><b>الأسهل — Plugin:</b> داخل Claude Code نفّذ الأوامر الثلاثة، وعند سؤالك عن «رابط خادم ClickERP» الصق <code dir="ltr">{{ $endpoint }}</code>:</p>
+            <pre class="command-output mcp-snippet">/plugin marketplace add Clickandmore/clickerp-claude-plugin
+/plugin install clickerp@clickerp
+/mcp</pre>
+            <p class="help">من <code dir="ltr">/mcp</code> اختر <code dir="ltr">plugin:clickerp:clickerp</code> ← <b>Authenticate</b>، فتفتح صفحة دخول ClickERP في المتصفح. الإضافة تضيف أوامر جاهزة مثل <code dir="ltr">/clickerp:contracts-summary</code>.</p>
+            <p class="help"><b>بدون Plugin:</b> أمر واحد في الطرفية ثم <code dir="ltr">/mcp</code> ← Authenticate:</p>
+            <pre class="command-output mcp-snippet">claude mcp add --transport http clickerp {{ $endpoint }}</pre>
+            <p class="help">أو بتوكن يدوي بدل تسجيل الدخول:</p>
             <pre class="command-output mcp-snippet">claude mcp add --transport http clickerp {{ $endpoint }} \
   --header "Authorization: Bearer cerp_mcp_..."</pre>
-            <p class="help">2. تأكد من الربط بالأمر <code dir="ltr">claude mcp list</code> — يجب أن يظهر <code dir="ltr">clickerp ... ✔ Connected</code>.<br>
-                3. افتح محادثة <b>جديدة</b> في Claude Code واسأل مثلاً: «كم عقد استقدام عندنا في كل مرحلة؟». وافق على استخدام أداة clickerp أول مرة.</p>
 
-            <h3 style="margin:22px 0 6px">الطريقة 2 — Codex</h3>
-            <p class="help">1. افتح الملف <code dir="ltr">~/.codex/config.toml</code> (أنشئه إن لم يوجد) وأضف في آخره:</p>
+            <h3 style="margin:22px 0 6px">الطريقة 4 — Codex</h3>
+            <p class="help">1. أصدر توكناً من الأعلى، ثم أضف إلى <code dir="ltr">~/.codex/config.toml</code>:</p>
             <pre class="command-output mcp-snippet">[mcp_servers.clickerp]
 url = "{{ $endpoint }}"
 bearer_token_env_var = "CLICKERP_TOKEN"</pre>
-            <p class="help">2. في الطرفية، قبل تشغيل Codex، ضع التوكن في متغير بيئة (أضفه إلى <code dir="ltr">~/.zshrc</code> ليبقى دائماً):</p>
-            <pre class="command-output mcp-snippet">export CLICKERP_TOKEN=cerp_mcp_...</pre>
-            <p class="help">3. شغّل Codex من نفس الطرفية وتحقق بـ <code dir="ltr">codex mcp list</code>.</p>
+            <p class="help">2. في الطرفية (أو داخل <code dir="ltr">~/.zshrc</code>): <code dir="ltr">export CLICKERP_TOKEN=cerp_mcp_...</code> ثم شغّل Codex.</p>
 
-            <h3 style="margin:22px 0 6px">الطريقة 3 — تطبيق Claude Desktop</h3>
-            <p class="help">1. من التطبيق: Settings ← Developer ← Edit Config، أو افتح الملف
-                <code dir="ltr">~/Library/Application Support/Claude/claude_desktop_config.json</code> على الماك.<br>
-                2. ضع فيه (أو أضف <code dir="ltr">clickerp</code> داخل <code dir="ltr">mcpServers</code> الموجودة):</p>
-            <pre class="command-output mcp-snippet">{
-  "mcpServers": {
-    "clickerp": {
-      "command": "npx",
-      "args": ["-y", "mcp-remote", "{{ $endpoint }}",
-               "--header", "Authorization: Bearer ${CLICKERP_TOKEN}"],
-      "env": { "CLICKERP_TOKEN": "cerp_mcp_..." }
-    }
-  }
-}</pre>
-            <p class="help">3. أغلق التطبيق تماماً وافتحه من جديد؛ تظهر أدوات clickerp في المحادثة.</p>
-
-            <p class="help" style="margin-top:18px">أصدر <b>توكناً منفصلاً لكل جهاز أو برنامج</b>، فتستطيع إلغاء واحد دون إيقاف البقية، ويظهر في السجل من استخدم ماذا.
-                التوكن يحمل صلاحيات الموظف الذي صدر باسمه، فلا تشاركه.</p>
+            <p class="help" style="margin-top:18px">كل ربط يعمل بصلاحيات الموظف الذي سجّل دخوله أو صدر التوكن باسمه، ويظهر في جدول التوكنات أعلاه ويمكن إلغاؤه منه في أي وقت.</p>
         </div>
     </section>
 

@@ -1,0 +1,14 @@
+{
+  "name": "clickerp",
+  "owner": {
+    "name": "Click & More"
+  },
+  "description": "إضافات Claude Code الرسمية لنظام ClickERP.",
+  "plugins": [
+    {
+      "name": "clickerp",
+      "source": "./plugins/clickerp",
+      "description": "ربط Claude Code بنظام ClickERP: البحث في العاملات وعقود الاستقدام بصلاحيات الموظف (قراءة فقط)."
+    }
+  ]
+}

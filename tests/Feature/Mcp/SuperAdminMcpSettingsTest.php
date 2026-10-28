@@ -48,13 +48,14 @@ class SuperAdminMcpSettingsTest extends TestCase
 
         $this->asSuperAdmin()->put(route('dev-superadmin.mcp.update'), [
             'enabled' => '1',
+            'oauth_enabled' => '1',
             'mask_sensitive' => '0',
             'rate_limit_per_minute' => 30,
             'token_days' => 14,
         ])->assertRedirect(route('dev-superadmin.mcp.index'));
 
         $this->assertSame(
-            ['enabled' => true, 'rate_limit_per_minute' => 30, 'mask_sensitive' => false, 'token_days' => 14],
+            ['enabled' => true, 'rate_limit_per_minute' => 30, 'mask_sensitive' => false, 'token_days' => 14, 'oauth_enabled' => true],
             McpSettings::all()
         );
         $ping()->assertOk();

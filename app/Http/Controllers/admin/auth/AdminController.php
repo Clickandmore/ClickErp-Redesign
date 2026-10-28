@@ -1216,6 +1216,12 @@ class AdminController extends Controller
                     ? route('employeeProfile.index')
                     : $this->defaultAdminRedirectUrl($user);
 
+                // الموظف جاء من شاشة ربط MCP (claude.ai / ChatGPT): يرجع لصفحة الموافقة.
+                $mcpReturn = (string) $request->session()->pull(\App\Http\Controllers\McpOAuthController::RETURN_SESSION_KEY, '');
+                if ($mcpReturn !== '' && str_starts_with($mcpReturn, url('/oauth/authorize') . '?')) {
+                    $redirectUrl = $mcpReturn;
+                }
+
                 return jsonSuccess(['url' => $redirectUrl], __("auth.login successful"));
             }
             return jsonSuccess(null, __("auth.password"), 402);

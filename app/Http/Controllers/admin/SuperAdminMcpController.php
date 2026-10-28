@@ -23,9 +23,9 @@ class SuperAdminMcpController extends Controller
         return view('admin.superadmin.mcp', [
             'settings' => McpSettings::all(),
             'tablesReady' => $tablesReady,
-            'endpoint' => url('/mcp'),
+            'endpoint' => \App\Http\Controllers\McpOAuthController::absoluteUrl('/mcp'),
             'tokens' => $tablesReady
-                ? McpAccessToken::query()->with('admin:id,name,email,branch_id,status')->latest('id')->limit(100)->get()
+                ? McpAccessToken::query()->with(['admin:id,name,email,branch_id,status', 'oauthClient:id,client_name'])->latest('id')->limit(100)->get()
                 : collect(),
             'logs' => $tablesReady
                 ? McpAuditLog::query()->latest('id')->limit(50)->get()
@@ -46,6 +46,7 @@ class SuperAdminMcpController extends Controller
     {
         $validated = $request->validate([
             'enabled' => ['nullable', 'boolean'],
+            'oauth_enabled' => ['nullable', 'boolean'],
             'mask_sensitive' => ['nullable', 'boolean'],
             'rate_limit_per_minute' => ['required', 'integer', 'min:1', 'max:1000'],
             'token_days' => ['required', 'integer', 'min:0', 'max:3650'],
@@ -53,6 +54,7 @@ class SuperAdminMcpController extends Controller
 
         McpSettings::persist([
             'enabled' => $request->boolean('enabled'),
+            'oauth_enabled' => $request->boolean('oauth_enabled'),
             'mask_sensitive' => $request->boolean('mask_sensitive'),
             'rate_limit_per_minute' => $validated['rate_limit_per_minute'],
             'token_days' => $validated['token_days'],

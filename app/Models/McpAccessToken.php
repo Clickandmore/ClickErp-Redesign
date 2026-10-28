@@ -19,13 +19,60 @@ class McpAccessToken extends Model
         'last_used_at' => 'datetime',
         'expires_at' => 'datetime',
         'revoked_at' => 'datetime',
+        'refresh_expires_at' => 'datetime',
     ];
 
     public const PREFIX = 'cerp_mcp_';
 
+    public const REFRESH_PREFIX = 'cerp_mcpr_';
+
     public function admin()
     {
         return $this->belongsTo(Admin::class, 'admin_id');
+    }
+
+    public function oauthClient()
+    {
+        return $this->belongsTo(McpOAuthClient::class, 'oauth_client_id');
+    }
+
+    /**
+     * توكن قصير العمر + refresh token، يصدران بعد موافقة الموظف في شاشة OAuth.
+     *
+     * @return array{0: self, 1: string, 2: string} السجل، access token، refresh token
+     */
+    public static function issueForOAuth(Admin $admin, McpOAuthClient $client, int $accessMinutes, int $refreshDays): array
+    {
+        $access = self::PREFIX . Str::random(48);
+        $refresh = self::REFRESH_PREFIX . Str::random(48);
+
+        $token = self::query()->create([
+            'admin_id' => $admin->id,
+            'oauth_client_id' => $client->id,
+            'name' => Str::limit($client->client_name ?: 'OAuth client', 110),
+            'token_hash' => self::hash($access),
+            'refresh_token_hash' => self::hash($refresh),
+            'expires_at' => now()->addMinutes($accessMinutes),
+            'refresh_expires_at' => now()->addDays($refreshDays),
+        ]);
+
+        return [$token, $access, $refresh];
+    }
+
+    public static function findByRefreshToken(string $plain): ?self
+    {
+        if ($plain === '' || !str_starts_with($plain, self::REFRESH_PREFIX)) {
+            return null;
+        }
+
+        $token = self::query()->where('refresh_token_hash', self::hash($plain))->first();
+
+        if (!$token || $token->revoked_at !== null
+            || ($token->refresh_expires_at !== null && $token->refresh_expires_at->isPast())) {
+            return null;
+        }
+
+        return $token;
     }
 
     /**

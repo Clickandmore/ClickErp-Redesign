@@ -26,8 +26,13 @@ class AuthenticateMcpToken
         $admin = $token?->admin;
 
         if (!$admin || ($admin->status ?? 'active') === 'suspended') {
-            return response()->json(['error' => 'invalid_token'], 401)
-                ->header('WWW-Authenticate', 'Bearer realm="clickerp-mcp", error="invalid_token"');
+            // resource_metadata يدلّ claude.ai وChatGPT على OAuth فيبدآن تسجيل الدخول تلقائياً.
+            $challenge = 'Bearer realm="clickerp-mcp", error="invalid_token"';
+            if (McpSettings::oauthEnabled()) {
+                $challenge .= ', resource_metadata="' . \App\Http\Controllers\McpOAuthController::absoluteUrl('/.well-known/oauth-protected-resource') . '"';
+            }
+
+            return response()->json(['error' => 'invalid_token'], 401)->header('WWW-Authenticate', $challenge);
         }
 
         if (DashboardMaintenanceSettings::enabled()) {
