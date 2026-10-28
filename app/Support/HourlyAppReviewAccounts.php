@@ -44,7 +44,7 @@ class HourlyAppReviewAccounts
     {
         if (!$account) return false;
         if ($role === 'customer') {
-            return !(int) $account->is_blocked && (string) $account->phone_code === '966'
+            return !(int) $account->is_blocked && ltrim((string) $account->phone_code, '+') === '966'
                 && (bool) preg_match('/^5[0-9]{8}$/', (string) $account->phone);
         }
         if (!$account->canLoginVia('mobile')) return false;

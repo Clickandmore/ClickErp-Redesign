@@ -57,7 +57,10 @@ class HourlyAppReviewAccountsController extends Controller
             if ($settings['enabled'] && $entry['enabled'] && $entry['account_id'] && !$account) throw ValidationException::withMessages(["accounts.$role.account_id" => "حساب $label غير موجود أو محذوف."]);
             $entry['phone'] = $account ? HourlyStaffOtp::normalize(Review::phone($role, $account)) : '';
             if ($settings['enabled'] && $entry['enabled'] && (!$account || !Review::available($role, $account) || !preg_match('/^05[0-9]{8}$/', $entry['phone']))) {
-                throw ValidationException::withMessages(["accounts.$role.account_id" => "اختر حساب $label متاحًا للجوال وله رقم سعودي صحيح. راجع حالة الحساب وصلاحية وثائق السائق."]);
+                $message = $role === 'customer'
+                    ? 'اختر حساب عميل غير محظور، برقم من 9 أرقام يبدأ بـ5 ومفتاح دولة 966 أو +966. لا يشترط إنشاء الحساب من التطبيق.'
+                    : "اختر حساب $label متاحًا للجوال وله رقم سعودي صحيح. راجع حالة الحساب وصلاحية وثائق السائق.";
+                throw ValidationException::withMessages(["accounts.$role.account_id" => $message]);
             }
             if ($settings['enabled'] && $entry['enabled'] && !$entry['code']) throw ValidationException::withMessages(["accounts.$role.code" => "أدخل رمزًا من خمسة أرقام لحساب $label."]);
             $settings['accounts'][$role] = $entry;

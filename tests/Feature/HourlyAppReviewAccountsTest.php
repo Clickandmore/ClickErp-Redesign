@@ -161,6 +161,16 @@ class HourlyAppReviewAccountsTest extends HourlyTestCase
         $this->assertFalse(Review::all()['enabled']);
     }
 
+    public function test_customer_with_plus_country_code_can_be_selected_and_use_review_code(): void
+    {
+        DB::table('users')->where('id',1)->update(['phone_code'=>'+966']);
+        $this->save($this->payload());
+        $this->assertSame('73916', Review::code('customer', '500000001', null, '+966'));
+        $this->assertSame('73916', Review::code('customer', '500000001', null, '966'));
+        DB::table('users')->where('id',1)->update(['is_blocked'=>true]);
+        $this->assertNull(Review::code('customer', '500000001', null, '+966'));
+    }
+
     public function test_customer_must_match_existing_mobile_login_phone_format(): void
     {
         DB::table('users')->where('id',1)->update(['phone'=>'0500000001']);
