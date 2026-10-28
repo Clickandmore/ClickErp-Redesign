@@ -10,4 +10,7 @@
             {{ $i === 0 ? __('payment_gateways.period.this_month') : ($i === 1 ? __('payment_gateways.period.last_month') : $month->locale(app()->getLocale())->translatedFormat('F Y')) }}
         </a>
     @endforeach
+    <a href="{{ route($route, $quickFilters + ['period' => 'all']) }}" class="{{ $period->mode === 'all' ? 'active' : '' }}">
+        {{ __('payment_gateways.period.all_time') }}
+    </a>
 </div>

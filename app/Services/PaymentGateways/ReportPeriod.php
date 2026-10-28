@@ -13,6 +13,10 @@ use Illuminate\Http\Request;
 class ReportPeriod
 {
     public const TREND_MONTHS = 12;
+    /** بداية «كل الأوقات»: أقدم من أي عملية دفع مسجلة. */
+    private const ALL_SINCE = 2000;
+    /** حد الرسم اليومي: الفترات الأطول تُعرض أيامها الأخيرة فقط. */
+    private const MAX_DAYS = 92;
 
     private function __construct(
         public readonly CarbonImmutable $from,
@@ -30,7 +34,12 @@ class ReportPeriod
             return new self($from->startOfDay(), $to->endOfDay(), 'range');
         }
 
-        $month = preg_match('/^\d{4}-\d{2}$/', (string) $request->input('month')) ? $request->input('month') : now()->format('Y-m');
+        $month = preg_match('/^\d{4}-\d{2}$/', (string) $request->input('month')) ? $request->input('month') : null;
+        if (!$month && $request->input('period') === 'all') {
+            return new self(CarbonImmutable::create(self::ALL_SINCE, 1, 1)->startOfDay(), CarbonImmutable::now()->endOfDay(), 'all');
+        }
+
+        $month ??= now()->format('Y-m');
         $start = CarbonImmutable::createFromFormat('Y-m-d', $month . '-01')->startOfMonth();
 
         return new self($start, $start->endOfMonth(), 'month');
@@ -43,9 +52,27 @@ class ReportPeriod
 
     public function label(): string
     {
-        return $this->mode === 'month'
-            ? $this->from->locale(app()->getLocale())->translatedFormat('F Y')
-            : $this->from->format('Y-m-d') . ' — ' . $this->to->format('Y-m-d');
+        return match ($this->mode) {
+            'month' => $this->from->locale(app()->getLocale())->translatedFormat('F Y'),
+            'all' => __('payment_gateways.period.all_time'),
+            default => $this->from->format('Y-m-d') . ' — ' . $this->to->format('Y-m-d'),
+        };
+    }
+
+    /** أول تاريخ يلزم جلبه: بداية الفترة أو بداية نافذة الاتجاه، أيهما أقدم. */
+    public function fetchStart(): CarbonImmutable
+    {
+        return $this->from->lt($this->trendStart()) ? $this->from : $this->trendStart();
+    }
+
+    /** اسم ملف التصدير المميِّز للفترة. */
+    public function slug(): string
+    {
+        return match ($this->mode) {
+            'month' => $this->month(),
+            'all' => 'all',
+            default => $this->from->format('Ymd') . '-' . $this->to->format('Ymd'),
+        };
     }
 
     /** بداية نافذة الاتجاه: أول يوم قبل 11 شهراً من شهر نهاية الفترة. */
@@ -65,12 +92,13 @@ class ReportPeriod
         return $months;
     }
 
-    /** @return array<int, string> أيام الفترة بصيغة Y-m-d (للرسم اليومي؛ حتى 92 يوماً) */
+    /** @return array<int, string> أيام الفترة بصيغة Y-m-d (للرسم اليومي؛ آخر 92 يوماً منها كحد أقصى) */
     public function days(): array
     {
         $days = [];
         $last = $this->to->startOfDay();
-        for ($day = $this->from->startOfDay(); $day->lte($last) && count($days) < 92; $day = $day->addDay()) {
+        $first = $this->from->startOfDay()->max($last->subDays(self::MAX_DAYS - 1));
+        for ($day = $first; $day->lte($last); $day = $day->addDay()) {
             $days[] = $day->format('Y-m-d');
         }
 

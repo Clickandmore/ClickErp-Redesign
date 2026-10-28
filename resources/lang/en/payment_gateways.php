@@ -19,6 +19,7 @@ return [
         'reset' => 'Reset',
         'this_month' => 'This month',
         'last_month' => 'Last month',
+        'all_time' => 'All time',
         'range_hint' => 'Pick a month, or a from/to range (the range wins).',
     ],
     'filters' => [

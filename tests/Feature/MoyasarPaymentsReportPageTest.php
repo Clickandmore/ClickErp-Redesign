@@ -82,6 +82,23 @@ class MoyasarPaymentsReportPageTest extends TestCase
             ->assertSee(__('payment_gateways.status.partially_refunded'));
     }
 
+    public function test_all_time_period_includes_payments_older_than_the_trend_window(): void
+    {
+        $invoice = $this->paidRentalInvoice();
+        DB::table('moyasar_contract_payments')->where('invoice_id', $invoice)
+            ->update(['created_at' => now()->subYears(3), 'paid_at' => now()->subYears(3)]);
+        $this->actingAs($this->administrator(), 'admin');
+
+        $this->get(route('moyasar-payments.index', ['search' => $invoice]))->assertOk()->assertDontSee('1,250.00');
+        $this->get(route('moyasar-payments.index', ['period' => 'all', 'search' => $invoice]))
+            ->assertOk()
+            ->assertSee(__('payment_gateways.period.all_time'))
+            ->assertSee('<input type="hidden" name="period" value="all">', false)
+            ->assertSee('1,250.00');
+        $this->get(route('moyasar-payments.export', ['period' => 'all', 'format' => 'xlsx']))
+            ->assertOk()->assertHeader('Content-Disposition', 'attachment; filename=moyasar-payments-all.xlsx');
+    }
+
     public function test_exports_follow_their_own_permission(): void
     {
         $this->paidRentalInvoice();

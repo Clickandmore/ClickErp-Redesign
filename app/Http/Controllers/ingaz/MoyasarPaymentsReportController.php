@@ -80,7 +80,7 @@ class MoyasarPaymentsReportController extends Controller
             ]],
         ];
 
-        $filename = 'moyasar-payments-' . ($period->mode === 'month' ? $period->month() : $period->from->format('Ymd') . '-' . $period->to->format('Ymd'));
+        $filename = 'moyasar-payments-' . $period->slug();
 
         return $format === 'pdf'
             ? $exporter->pdf($document, 'moyasar', $filename)
