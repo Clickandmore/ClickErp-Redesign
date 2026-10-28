@@ -210,17 +210,56 @@
         <div class="panel-head">
             <div>
                 <h2>طريقة الربط</h2>
-                <p class="muted">استبدل <code dir="ltr">cerp_mcp_...</code> بالتوكن الذي أصدرته.</p>
+                <p class="muted">في كل الأوامر استبدل <code dir="ltr">cerp_mcp_...</code> بالتوكن الذي أصدرته من الأعلى.</p>
             </div>
         </div>
         <div class="panel-body">
-            <p class="help">Claude Code:</p>
+            <div class="table-wrap" style="margin-top:0">
+                <table>
+                    <thead><tr><th>البرنامج</th><th>يعمل؟</th><th>ملاحظة</th></tr></thead>
+                    <tbody>
+                        <tr><td>Claude Code (الطرفية أو VS Code)</td><td><span class="badge ok">نعم</span></td><td>الطريقة 1</td></tr>
+                        <tr><td>Codex (OpenAI)</td><td><span class="badge ok">نعم</span></td><td>الطريقة 2</td></tr>
+                        <tr><td>تطبيق Claude Desktop</td><td><span class="badge ok">نعم</span></td><td>الطريقة 3 — يحتاج Node.js على الجهاز</td></tr>
+                        <tr><td>موقع claude.ai وChatGPT</td><td><span class="badge bad">ليس بعد</span></td><td>يتطلبان تسجيل دخول OAuth، غير مدعوم في هذا الإصدار</td></tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <h3 style="margin:22px 0 6px">الطريقة 1 — Claude Code</h3>
+            <p class="help">1. افتح الطرفية (Terminal) على جهازك والصق الأمر التالي بعد وضع التوكن:</p>
             <pre class="command-output mcp-snippet">claude mcp add --transport http clickerp {{ $endpoint }} \
   --header "Authorization: Bearer cerp_mcp_..."</pre>
-            <p class="help">Codex — في <code dir="ltr">~/.codex/config.toml</code> ثم <code dir="ltr">export CLICKERP_TOKEN=cerp_mcp_...</code>:</p>
+            <p class="help">2. تأكد من الربط بالأمر <code dir="ltr">claude mcp list</code> — يجب أن يظهر <code dir="ltr">clickerp ... ✔ Connected</code>.<br>
+                3. افتح محادثة <b>جديدة</b> في Claude Code واسأل مثلاً: «كم عقد استقدام عندنا في كل مرحلة؟». وافق على استخدام أداة clickerp أول مرة.</p>
+
+            <h3 style="margin:22px 0 6px">الطريقة 2 — Codex</h3>
+            <p class="help">1. افتح الملف <code dir="ltr">~/.codex/config.toml</code> (أنشئه إن لم يوجد) وأضف في آخره:</p>
             <pre class="command-output mcp-snippet">[mcp_servers.clickerp]
 url = "{{ $endpoint }}"
 bearer_token_env_var = "CLICKERP_TOKEN"</pre>
+            <p class="help">2. في الطرفية، قبل تشغيل Codex، ضع التوكن في متغير بيئة (أضفه إلى <code dir="ltr">~/.zshrc</code> ليبقى دائماً):</p>
+            <pre class="command-output mcp-snippet">export CLICKERP_TOKEN=cerp_mcp_...</pre>
+            <p class="help">3. شغّل Codex من نفس الطرفية وتحقق بـ <code dir="ltr">codex mcp list</code>.</p>
+
+            <h3 style="margin:22px 0 6px">الطريقة 3 — تطبيق Claude Desktop</h3>
+            <p class="help">1. من التطبيق: Settings ← Developer ← Edit Config، أو افتح الملف
+                <code dir="ltr">~/Library/Application Support/Claude/claude_desktop_config.json</code> على الماك.<br>
+                2. ضع فيه (أو أضف <code dir="ltr">clickerp</code> داخل <code dir="ltr">mcpServers</code> الموجودة):</p>
+            <pre class="command-output mcp-snippet">{
+  "mcpServers": {
+    "clickerp": {
+      "command": "npx",
+      "args": ["-y", "mcp-remote", "{{ $endpoint }}",
+               "--header", "Authorization: Bearer ${CLICKERP_TOKEN}"],
+      "env": { "CLICKERP_TOKEN": "cerp_mcp_..." }
+    }
+  }
+}</pre>
+            <p class="help">3. أغلق التطبيق تماماً وافتحه من جديد؛ تظهر أدوات clickerp في المحادثة.</p>
+
+            <p class="help" style="margin-top:18px">أصدر <b>توكناً منفصلاً لكل جهاز أو برنامج</b>، فتستطيع إلغاء واحد دون إيقاف البقية، ويظهر في السجل من استخدم ماذا.
+                التوكن يحمل صلاحيات الموظف الذي صدر باسمه، فلا تشاركه.</p>
         </div>
     </section>
 
