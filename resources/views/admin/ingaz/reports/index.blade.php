@@ -132,6 +132,9 @@
                 @endif
             </div>
 
+            @if(isset($reports['recruitment_contracts']))
+                <a href="{{ route('reports.arrivals') }}" class="btn btn-primary mb-3"><i class="fas fa-plane-arrival me-1"></i> تقرير وصول العاملات والإحصائيات الشهرية</a>
+            @endif
             <div class="card reports-hero mb-4">
                 <div class="card-body d-flex flex-wrap align-items-center justify-content-between gap-3">
                     <div>

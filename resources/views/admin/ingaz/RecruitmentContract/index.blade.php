@@ -61,153 +61,174 @@
             color: #111827;
         }
 
-        .stat-card-current {
-            background: linear-gradient(135deg, #f8fafc, #eef2ff);
+        .arrival-panel {
+            border: 1px solid #e5e7eb;
+            border-radius: 16px;
+            background: #fbfcfe;
+            padding: 16px;
         }
 
-        .stat-card-all {
-            background: linear-gradient(135deg, #f8fafc, #f1f5f9);
+        .arrival-panel-header h6 {
+            font-weight: 700;
+            color: #1f2937;
         }
 
-        .stat-card-refunded {
-            background: linear-gradient(135deg, #fff7ed, #ffedd5);
+        .arrival-cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+            gap: 12px;
+            margin-top: 14px;
         }
 
-        .stat-card-pending {
-            background: linear-gradient(135deg, #f0fdfa, #ecfeff);
+        .arrival-card {
+            --tone: #334155;
+            --tone-soft: #f1f5f9;
+            display: flex;
+            flex-direction: column;
+            align-items: stretch;
+            gap: 4px;
+            padding: 14px 16px;
+            border: 1px solid #e5e7eb;
+            border-top: 4px solid var(--tone);
+            border-radius: 14px;
+            background: #fff;
+            text-align: start;
+            cursor: pointer;
+            transition: transform 0.15s ease, box-shadow 0.15s ease;
         }
 
-        .stat-card-new {
-            background: linear-gradient(135deg, #eff6ff, #e0f2fe);
+        .arrival-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 24px rgba(0, 0, 0, 0.07);
         }
 
-        .stat-card-msaned {
-            background: linear-gradient(135deg, #eff6ff, #e0e7ff);
+        .arrival-card.active {
+            box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.2);
+            border-color: rgba(13, 110, 253, 0.6);
+            border-top-color: var(--tone);
         }
 
-        .stat-card-tafwed {
-            background: linear-gradient(135deg, #e0f2fe, #e0f7ff);
+        .arrival-card-success { --tone: #16a34a; --tone-soft: #dcfce7; }
+        .arrival-card-info { --tone: #2563eb; --tone-soft: #dbeafe; }
+        .arrival-card-danger { --tone: #dc2626; --tone-soft: #fee2e2; }
+        .arrival-card-warning { --tone: #d97706; --tone-soft: #fef3c7; }
+        .arrival-card-slate { --tone: #475569; --tone-soft: #e2e8f0; }
+
+        .arrival-card-top {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 6px;
         }
 
-        .stat-card-taffez {
-            background: linear-gradient(135deg, #ecfeff, #ecfdf5);
+        .arrival-card-icon {
+            width: 38px;
+            height: 38px;
+            border-radius: 10px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            background: var(--tone-soft);
+            color: var(--tone);
+            font-size: 17px;
         }
 
-        .stat-card-tazker {
-            background: linear-gradient(135deg, #fff7ed, #ffedd5);
+        .arrival-card-value {
+            font-size: 1.75rem;
+            font-weight: 800;
+            color: #111827;
+            line-height: 1;
         }
 
-        .stat-card-completed {
-            background: linear-gradient(135deg, #f0fdf4, #dcfce7);
+        .arrival-card-title {
+            font-weight: 700;
+            color: #1f2937;
         }
 
-        .stat-card-shelter {
-            background: linear-gradient(135deg, #eef2ff, #e0f2fe);
+        .arrival-card-hint {
+            font-size: 0.78rem;
+            color: #6b7280;
         }
 
-        .stat-card-arrival {
-            background: linear-gradient(135deg, #ecfdf5, #d1fae5);
+        .arrival-card-trend {
+            margin-top: 6px;
+            padding-top: 6px;
+            border-top: 1px dashed #e5e7eb;
+            font-size: 0.78rem;
+            color: #4b5563;
         }
 
-        .stat-card-warranty-active {
-            background: linear-gradient(135deg, #e0f2fe, #dbeafe);
+        .arrival-card-trend.is-up { color: #15803d; }
+        .arrival-card-trend.is-down { color: #b91c1c; }
+
+        .arrival-panel-footer {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-top: 12px;
         }
 
-        .stat-card-warranty-expired {
-            background: linear-gradient(135deg, #fef2f2, #fee2e2);
+        .arrival-footer-link {
+            border: 1px solid #e5e7eb;
+            background: #fff;
+            border-radius: 999px;
+            padding: 5px 12px;
+            font-size: 0.8rem;
+            color: #374151;
+            cursor: pointer;
         }
 
-        .stat-card-warranty-na {
-            background: linear-gradient(135deg, #f9fafb, #f3f4f6);
+        .arrival-footer-link:hover,
+        .arrival-footer-link.active {
+            border-color: rgba(13, 110, 253, 0.6);
+            color: #0d6efd;
         }
 
-        .stat-card-back {
-            background: linear-gradient(135deg, #fef2f2, #ffe4e6);
+        .arrival-footer-link-warn {
+            border-color: #fde68a;
+            background: #fffbeb;
+            color: #92400e;
         }
 
-        .stat-card-current .stat-icon {
-            background: #64748b;
+        /* Each stat card picks a tone; the shared rules draw the accent bar and tinted icon. */
+        .stat-card-all { --tone: #334155; --tone-soft: #e2e8f0; }
+        .stat-card-current { --tone: #4f46e5; --tone-soft: #e0e7ff; }
+        .stat-card-completed { --tone: #16a34a; --tone-soft: #dcfce7; }
+        .stat-card-back { --tone: #dc2626; --tone-soft: #fee2e2; }
+        .stat-card-pending { --tone: #0f766e; --tone-soft: #ccfbf1; }
+        .stat-card-new { --tone: #2563eb; --tone-soft: #dbeafe; }
+        .stat-card-msaned { --tone: #1d4ed8; --tone-soft: #e0e7ff; }
+        .stat-card-tafwed { --tone: #0284c7; --tone-soft: #e0f2fe; }
+        .stat-card-taffez { --tone: #0d9488; --tone-soft: #ccfbf1; }
+        .stat-card-tazker { --tone: #ea580c; --tone-soft: #ffedd5; }
+        .stat-card-arrival { --tone: #059669; --tone-soft: #d1fae5; }
+        .stat-card-refunded { --tone: #c2410c; --tone-soft: #ffedd5; }
+        .stat-card-shelter { --tone: #4f46e5; --tone-soft: #e0e7ff; }
+        .stat-card-warranty-active { --tone: #0284c7; --tone-soft: #e0f2fe; }
+        .stat-card-warranty-expired { --tone: #dc2626; --tone-soft: #fee2e2; }
+        .stat-card-warranty-na { --tone: #6b7280; --tone-soft: #f3f4f6; }
+
+        .stat-card[class*="stat-card-"] {
+            background: #fff;
+            border-inline-start: 4px solid var(--tone, #334155);
         }
 
-        .stat-card-pending .stat-icon {
-            background: #0f766e;
+        .stat-card[class*="stat-card-"] .stat-icon {
+            background: var(--tone-soft, #f1f5f9);
+            color: var(--tone, #334155);
         }
 
-        .stat-card-new .stat-icon {
-            background: #2563eb;
-        }
-
-        .stat-card-msaned .stat-icon {
-            background: #1d4ed8;
-        }
-
-        .stat-card-tafwed .stat-icon {
-            background: #0ea5e9;
-        }
-
-        .stat-card-taffez .stat-icon {
-            background: #14b8a6;
-        }
-
-        .stat-card-tazker .stat-icon {
-            background: #f97316;
-        }
-
-        .stat-card-completed .stat-icon {
-            background: #16a34a;
-        }
-
-        .stat-card-shelter .stat-icon {
-            background: #4f46e5;
-        }
-
-        .stat-card-arrival .stat-icon {
-            background: #22c55e;
-        }
-
-        .stat-card-warranty-active .stat-icon {
-            background: #0ea5e9;
-        }
-
-        .stat-card-warranty-expired .stat-icon {
-            background: #ef4444;
-        }
-
-        .stat-card-warranty-na .stat-icon {
-            background: #6b7280;
-        }
-
-        .stat-card-back .stat-icon {
-            background: #dc2626;
-        }
-
-        .stat-card-all .stat-icon {
-            background: #334155;
-        }
-
-        .stat-card-refunded .stat-icon {
-            background: #c2410c;
+        .stat-card.active[class*="stat-card-"] {
+            border-inline-start-color: var(--tone, #334155);
         }
 
         .stats-overview .stat-card {
-            min-height: 104px;
-            border-width: 0 4px 0 0;
+            min-height: 96px;
         }
 
-        .stats-overview .stat-card-all {
-            border-right-color: #334155;
-        }
-
-        .stats-overview .stat-card-current {
-            border-right-color: #64748b;
-        }
-
-        .stats-overview .stat-card-completed {
-            border-right-color: #16a34a;
-        }
-
-        .stats-overview .stat-card-back {
-            border-right-color: #dc2626;
+        .stats-overview .stat-value {
+            font-size: 1.85rem;
+            font-weight: 800;
         }
 
         .stats-group {
@@ -493,20 +514,226 @@
             margin: 0 8px 8px 0;
         }
 
-        .contracts-page-header {
+        .filters-body {
             display: flex;
-            align-items: flex-start;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .filters-summary {
+            font-size: 0.82rem;
+            color: #475569;
+            background: #f8fafc;
+            border: 1px dashed #cbd5e1;
+            border-radius: 10px;
+            padding: 8px 12px;
+        }
+
+        .filters-summary:empty {
+            display: none;
+        }
+
+        .filter-group {
+            border: 1px solid #e5e7eb;
+            border-radius: 14px;
+            padding: 14px 16px 16px;
+            margin: 0;
+            background: #fff;
+        }
+
+        .filter-group legend {
+            float: none;
+            width: auto;
+            margin: 0 0 12px;
+            padding: 0;
+            font-size: 0.95rem;
+            font-weight: 700;
+            color: #1f2937;
+        }
+
+        .filter-group legend i {
+            color: var(--bs-primary, #0d6efd);
+            margin-inline-end: 6px;
+        }
+
+        .filter-group .form-label {
+            font-size: 0.85rem;
+            color: #4b5563;
+            margin-bottom: 6px;
+        }
+
+        .date-type-switch,
+        .period-shortcuts {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+        }
+
+        .date-type-switch {
+            padding: 4px;
+            border-radius: 12px;
+            background: #f1f5f9;
+            width: fit-content;
+            max-width: 100%;
+        }
+
+        .date-type-option {
+            border: 0;
+            background: transparent;
+            border-radius: 9px;
+            padding: 7px 14px;
+            font-size: 0.88rem;
+            color: #475569;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .date-type-option:hover {
+            color: #1f2937;
+        }
+
+        .date-type-option.active {
+            background: #fff;
+            color: var(--bs-primary, #0d6efd);
+            font-weight: 600;
+            box-shadow: 0 1px 3px rgba(15, 23, 42, 0.12);
+        }
+
+        .contract-period-shortcut {
+            border: 1px solid #e5e7eb;
+            background: #fff;
+            border-radius: 999px;
+            padding: 6px 14px;
+            font-size: 0.85rem;
+            color: #374151;
+            min-height: 38px;
+        }
+
+        .contract-period-shortcut:hover {
+            border-color: var(--bs-primary, #0d6efd);
+            color: var(--bs-primary, #0d6efd);
+        }
+
+        .contract-period-shortcut.active {
+            background: var(--bs-primary, #0d6efd);
+            border-color: var(--bs-primary, #0d6efd);
+            color: #fff;
+        }
+
+        .filters-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 8px;
+            padding-top: 4px;
+        }
+
+        .filters-actions .btn {
+            min-width: 120px;
+        }
+
+        .filters-actions .btn-light {
+            border: 1px solid #e5e7eb;
+        }
+
+        .contracts-page-header {
+            background: #fff;
+            border: 1px solid #e5e7eb;
+            border-radius: 16px;
+            padding: 18px 20px 14px;
+            margin-bottom: 1.5rem;
+        }
+
+        .contracts-header-top {
+            display: flex;
+            align-items: center;
             justify-content: space-between;
             gap: 16px;
-            margin-bottom: 1.5rem;
+            padding-bottom: 14px;
+            border-bottom: 1px solid #f1f5f9;
+        }
+
+        .contracts-header-title {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            min-width: 0;
+        }
+
+        .contracts-header-title h3 {
+            font-weight: 700;
+            color: #1f2937;
+        }
+
+        .contracts-header-icon {
+            width: 46px;
+            height: 46px;
+            border-radius: 12px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            background: rgba(13, 110, 253, 0.1);
+            color: var(--bs-primary, #0d6efd);
+            font-size: 20px;
+        }
+
+        .contracts-header-primary {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 9px 18px;
+            font-weight: 600;
+            white-space: nowrap;
+        }
+
+        .contracts-header-toolbar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 12px;
+            padding-top: 14px;
+        }
+
+        .contracts-view-switch {
+            display: inline-flex;
+            flex-wrap: wrap;
+            gap: 4px;
+            padding: 4px;
+            border-radius: 12px;
+            background: #f1f5f9;
+        }
+
+        .contracts-view-switch a {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 7px 14px;
+            border-radius: 9px;
+            color: #475569;
+            font-size: 0.9rem;
+            text-decoration: none;
+            white-space: nowrap;
+            transition: background 0.15s ease, color 0.15s ease;
+        }
+
+        .contracts-view-switch a:hover {
+            color: #1f2937;
+            background: rgba(255, 255, 255, 0.6);
+        }
+
+        .contracts-view-switch a.active {
+            background: #fff;
+            color: var(--bs-primary, #0d6efd);
+            font-weight: 600;
+            box-shadow: 0 1px 3px rgba(15, 23, 42, 0.12);
         }
 
         .contracts-header-actions {
             display: flex;
             flex-wrap: wrap;
-            justify-content: flex-end;
             gap: 8px;
-            max-width: 760px;
         }
 
         .contracts-header-actions .btn {
@@ -514,23 +741,40 @@
             align-items: center;
             gap: 6px;
             min-height: 38px;
+            border: 1px solid #e5e7eb;
+            background: #fff;
+            color: #374151;
+            font-size: 0.9rem;
             white-space: nowrap;
         }
 
-        .contracts-header-actions .btn i {
+        .contracts-header-actions .btn:hover {
+            border-color: var(--bs-primary, #0d6efd);
+            color: var(--bs-primary, #0d6efd);
+        }
+
+        .contracts-header-actions .btn i,
+        .contracts-view-switch a i {
             margin: 0 !important;
+            opacity: 0.85;
         }
 
         @media (max-width: 767.98px) {
-            .contracts-page-header {
+            .contracts-header-top {
                 flex-direction: column;
+                align-items: stretch;
             }
 
+            .contracts-header-primary {
+                justify-content: center;
+            }
+
+            .contracts-view-switch,
             .contracts-header-actions {
                 width: 100%;
-                justify-content: flex-start;
             }
 
+            .contracts-view-switch a,
             .contracts-header-actions .btn {
                 flex: 1 1 calc(50% - 8px);
                 justify-content: center;
@@ -666,55 +910,74 @@
         @endphp
 
         <!-- Header Section -->
+        @php
+            $contractsIndexRoute = $companyContractsMode ? 'RecruitmentContract.company.index' : 'RecruitmentContract.index';
+            $activeContractsView = $shelterContractsMode ? 'shelter' : ($requestedStatus === 'current' ? 'current' : 'all');
+        @endphp
         <div class="contracts-page-header">
-            <h3 class="h3 mb-0 text-gray-800">
-                <i class="fas fa-file-contract text-primary me-2"></i>
-                {{ $shelterContractsMode ? 'عقود الإيواء' : ($companyContractsMode ? 'عقود الاستقدام للشركة' : helperTrans('ingaz.All Recruitment contracts')) }}
-            </h3>
-            <div class="contracts-header-actions">
-                @if ($companyContractsMode && @AdminGuardHasPerm(\App\PermKeys::COMPANY_SETTINGS_VIEW))
-                    <a href="{{ route('company-settings.index') }}" class="btn btn-outline-primary">إعدادات الشركة</a>
-                @endif
-                <a href="{{ route($companyContractsMode ? 'RecruitmentContract.company.index' : 'RecruitmentContract.index', ['all_contracts' => 1]) }}" class="btn btn-outline-dark">
-                    <i class="fas fa-list"></i>
-                    كل العقود
-                </a>
-                <a href="{{ route($companyContractsMode ? 'RecruitmentContract.company.index' : 'RecruitmentContract.index', ['status' => 'current']) }}" class="btn btn-outline-secondary">
-                    <i class="fas fa-layer-group"></i>
-                    العقود السارية
-                </a>
-                @if (@AdminGuardHasPerm(\App\NewPermKeys::REC_CONTRACTS_VIEW_SHELTER))
-                    <a href="{{ route($companyContractsMode ? 'RecruitmentContract.company.index' : 'RecruitmentContract.index', ['shelter_contracts' => 1]) }}"
-                        class="btn {{ $shelterContractsMode ? 'btn-dark' : 'btn-outline-dark' }}">
-                        <i class="fas fa-house-user"></i>
-                        عقود الإيواء
-                    </a>
-                @endif
-                <a href="{{ route('RecruitmentContract.externalOfficeDispatch.index') }}" class="btn btn-outline-primary">
-                    <i class="fas fa-paper-plane"></i>
-                    فواتير الموردين
-                </a>
-                <a href="{{ route('musaned-transfers.create') }}" class="btn btn-outline-info">
-                    <i class="fas fa-money-bill-transfer"></i>
-                    تحويل مساند
-                </a>
-                @if (AdminGuardHasAnyPerm([
-                    \App\PermKeys::MUSANED_TRANSFERS_CREATE,
-                    \App\PermKeys::MUSANED_TRANSFERS_CONTROL,
-                    \App\PermKeys::REC_CONTRACTS_CREATE,
-                    \App\PermKeys::REC_CONTRACTS_MANAGE,
-                ]))
-                    <a href="{{ route('delegation-costs.create') }}" class="btn btn-outline-primary">
-                        <i class="fas fa-money-check-alt"></i>
-                        تسجيل تكلفة التفويض
-                    </a>
-                @endif
+            <div class="contracts-header-top">
+                <div class="contracts-header-title">
+                    <span class="contracts-header-icon"><i class="fas fa-file-contract"></i></span>
+                    <div>
+                        <h3 class="h4 mb-1">
+                            {{ $shelterContractsMode ? 'عقود الإيواء' : ($companyContractsMode ? 'عقود الاستقدام للشركة' : helperTrans('ingaz.All Recruitment contracts')) }}
+                        </h3>
+                        <small class="text-muted">متابعة العقود من الإنشاء حتى الوصول والتسليم والضمان</small>
+                    </div>
+                </div>
                 @if (AdminGuardHasAnyPerm([\App\NewPermKeys::REC_CONTRACTS_CREATE, \App\NewPermKeys::REC_CONTRACTS_MANAGE]))
-                    <a href="{{ route('RecruitmentContract.create') }}" class="btn btn-primary">
+                    <a href="{{ route('RecruitmentContract.create') }}" class="btn btn-primary contracts-header-primary">
                         <i class="fas fa-plus"></i>
                         {{ helperTrans('ingaz.add_recruitment_contract') }}
                     </a>
                 @endif
+            </div>
+
+            <div class="contracts-header-toolbar">
+                <nav class="contracts-view-switch" aria-label="طريقة عرض العقود">
+                    <a href="{{ route($contractsIndexRoute, ['all_contracts' => 1]) }}"
+                        class="{{ $activeContractsView === 'all' ? 'active' : '' }}" @if ($activeContractsView === 'all') aria-current="page" @endif>
+                        <i class="fas fa-list"></i> كل العقود
+                    </a>
+                    <a href="{{ route($contractsIndexRoute, ['status' => 'current']) }}"
+                        class="{{ $activeContractsView === 'current' ? 'active' : '' }}" @if ($activeContractsView === 'current') aria-current="page" @endif>
+                        <i class="fas fa-layer-group"></i> العقود السارية
+                    </a>
+                    @if (@AdminGuardHasPerm(\App\NewPermKeys::REC_CONTRACTS_VIEW_SHELTER))
+                        <a href="{{ route($contractsIndexRoute, ['shelter_contracts' => 1]) }}"
+                            class="{{ $activeContractsView === 'shelter' ? 'active' : '' }}" @if ($activeContractsView === 'shelter') aria-current="page" @endif>
+                            <i class="fas fa-house-user"></i> عقود الإيواء
+                        </a>
+                    @endif
+                </nav>
+
+                <div class="contracts-header-actions">
+                    <a href="{{ route('RecruitmentContract.externalOfficeDispatch.index') }}" class="btn btn-light">
+                        <i class="fas fa-paper-plane"></i>
+                        فواتير الموردين
+                    </a>
+                    <a href="{{ route('musaned-transfers.create') }}" class="btn btn-light">
+                        <i class="fas fa-money-bill-transfer"></i>
+                        تحويل مساند
+                    </a>
+                    @if (AdminGuardHasAnyPerm([
+                        \App\PermKeys::MUSANED_TRANSFERS_CREATE,
+                        \App\PermKeys::MUSANED_TRANSFERS_CONTROL,
+                        \App\PermKeys::REC_CONTRACTS_CREATE,
+                        \App\PermKeys::REC_CONTRACTS_MANAGE,
+                    ]))
+                        <a href="{{ route('delegation-costs.create') }}" class="btn btn-light">
+                            <i class="fas fa-money-check-alt"></i>
+                            تسجيل تكلفة التفويض
+                        </a>
+                    @endif
+                    @if ($companyContractsMode && @AdminGuardHasPerm(\App\PermKeys::COMPANY_SETTINGS_VIEW))
+                        <a href="{{ route('company-settings.index') }}" class="btn btn-light">
+                            <i class="fas fa-gear"></i>
+                            إعدادات الشركة
+                        </a>
+                    @endif
+                </div>
             </div>
         </div>
 
@@ -783,6 +1046,50 @@
                             </div>
                         </div>
 
+                        @php
+                            $arrivalMonthName = now()->locale('ar')->translatedFormat('F');
+                            $arrivalCards = [
+                                'arrived_month' => ['tone' => 'success', 'icon' => 'fa-plane-arrival', 'title' => 'وصلت هذا الشهر', 'hint' => 'وصول فعلي منذ 1 '.$arrivalMonthName],
+                                'expected_month' => ['tone' => 'info', 'icon' => 'fa-calendar-check', 'title' => 'ستصل هذا الشهر', 'hint' => 'رحلات مجدولة من اليوم حتى نهاية '.$arrivalMonthName],
+                                'delayed' => ['tone' => 'danger', 'icon' => 'fa-triangle-exclamation', 'title' => 'متأخرة عن موعد الرحلة', 'hint' => 'مضى تاريخ الرحلة ولم يُسجَّل الوصول'],
+                                'waiting' => ['tone' => 'warning', 'icon' => 'fa-hourglass-half', 'title' => 'بانتظار الوصول', 'hint' => 'كل العقود التي لم تصل بعد'],
+                                'undelivered' => ['tone' => 'slate', 'icon' => 'fa-handshake-slash', 'title' => 'وصلت دون تسليم موثق', 'hint' => 'تراكمي — غياب التوثيق لا يعني عدم التسليم'],
+                            ];
+                        @endphp
+                        <section class="arrival-panel mb-4" aria-labelledby="arrivalPanelTitle">
+                            <div class="arrival-panel-header">
+                                <div>
+                                    <h6 class="mb-1" id="arrivalPanelTitle"><i class="fas fa-plane-arrival me-2"></i>متابعة الوصول والتسليم — {{ $arrivalMonthName }} {{ now()->year }}</h6>
+                                    <small class="text-muted">كل بطاقة تعدّ العقود ضمن فلاتر البحث الحالية، والضغط عليها يعرض عقودها في الجدول.</small>
+                                </div>
+                            </div>
+                            <div class="arrival-cards">
+                                @foreach($arrivalCards as $key => $card)
+                                    <button type="button" class="arrival-card arrival-card-{{ $card['tone'] }} operation-stat-filter" data-arrival-scope="{{ $key }}">
+                                        <span class="arrival-card-top">
+                                            <span class="arrival-card-icon"><i class="fas {{ $card['icon'] }}"></i></span>
+                                            <span class="arrival-card-value" data-stat-key="operations_{{ $key }}">—</span>
+                                        </span>
+                                        <span class="arrival-card-title">{{ $card['title'] }}</span>
+                                        <span class="arrival-card-hint">{{ $card['hint'] }}</span>
+                                        @if($key === 'arrived_month')
+                                            <span class="arrival-card-trend" id="arrivalPeriodComparison" role="status">جارٍ المقارنة بالشهر السابق…</span>
+                                        @endif
+                                    </button>
+                                @endforeach
+                            </div>
+                            <div class="arrival-panel-footer">
+                                <button type="button" class="arrival-footer-link operation-stat-filter" data-arrival-scope="arrived">
+                                    <i class="fas fa-layer-group"></i> إجمالي الواصلين (كل الفترات): <strong data-stat-key="operations_arrived">—</strong>
+                                </button>
+                                <button type="button" class="arrival-footer-link operation-stat-filter" data-arrival-scope="unscheduled">
+                                    <i class="fas fa-calendar-xmark"></i> بانتظار الوصول بلا موعد رحلة: <strong data-stat-key="operations_unscheduled">—</strong>
+                                </button>
+                                <button type="button" class="arrival-footer-link arrival-footer-link-warn operation-stat-filter" data-arrival-scope="missing">
+                                    <i class="fas fa-circle-exclamation"></i> وصلت دون تاريخ وصول صالح (تحتاج تصحيح): <strong data-stat-key="operations_missing">—</strong>
+                                </button>
+                            </div>
+                        </section>
                         <div class="row g-3">
                             <div class="col-12" id="currentStatsSection" @if (!$showCurrentStatsInitially) style="display: none;" @endif>
                                 <div class="stats-group">
@@ -838,19 +1145,19 @@
                                         <span>الوصول والنتائج النهائية</span>
                                     </div>
                                     <div class="row g-2">
-                                        <div class="col-12 col-sm-6">
+                                        <div class="col-12 col-sm-4">
                                             <button type="button" class="stat-card stat-filter stat-card-arrival" data-status="arrival">
                                                 <div class="stat-icon"><i class="fas fa-plane-arrival"></i></div>
                                                 <div class="stat-body"><div class="stat-title">{{ $contractStageLabel('arrival') }}</div><div class="stat-value" data-stat-key="stage_arrival">0</div></div>
                                             </button>
                                         </div>
-                                        <div class="col-12 col-sm-6">
+                                        <div class="col-12 col-sm-4">
                                             <button type="button" class="stat-card stat-filter stat-card-completed" data-status="completed">
                                                 <div class="stat-icon"><i class="fas fa-circle-check"></i></div>
                                                 <div class="stat-body"><div class="stat-title">{{ $contractStageLabel('completed') }}</div><div class="stat-value" data-stat-key="stage_completed">0</div></div>
                                             </button>
                                         </div>
-                                        <div class="col-12 col-sm-6">
+                                        <div class="col-12 col-sm-4">
                                             <button type="button" class="stat-card stat-filter stat-card-refunded" data-status="refunded">
                                                 <div class="stat-icon"><i class="fas fa-money-bill-transfer"></i></div>
                                                 <div class="stat-body"><div class="stat-title">{{ $contractStageLabel('refunded') }}</div><div class="stat-value" data-stat-key="stage_refunded">0</div></div>
@@ -975,193 +1282,216 @@
                     <i class="fas fa-chevron-down" id="filtersIcon"></i>
                 </button>
             </div>
-            <div class="card-body collapse" id="filtersCollapse">
-                <div class="card-body">
-                    <div class="row">
-                        <div class="col-md-3 {{ $shelterContractsMode ? 'd-none' : '' }}">
-                            <label for="statusFilter" class="form-label">حالة العقد:</label>
-                            <select id="statusFilter" class="form-select">
-                                <option value="">جميع الحالات</option>
-                                <option value="current">{{ helperTrans('ingaz.contracts_are_valid') }}</option>
-                                <option value="arrival_today" hidden>وصول اليوم</option>
-                                <option value="delayed_arrival" hidden>مدة التقديم تجاوزت 45 يومًا بدون تذاكر</option>
-                                <option value="expired_over_2y">أقدم من عامين</option>
+            <div class="collapse" id="filtersCollapse">
+                <div class="card-body filters-body">
+                    <div id="operationsFilterSummary" class="filters-summary" role="status"></div>
 
-                                <option value="new">{{ $contractStageLabel('new') }}</option>
-                                <option value="msaned">{{ $contractStageLabel('msaned') }}</option>
-                                <option value="tafwed">{{ $contractStageLabel('tafwed') }}</option>
-                                <option value="taffez">{{ $contractStageLabel('taffez') }}</option>
-                                <option value="tazker">{{ $contractStageLabel('tazker') }}</option>
-                                <option value="completed_stage">المكتملة (إجمالي)</option>
-                                <option value="arrival">{{ $contractStageLabel('arrival') }}</option>
-                                <option value="sari">{{ $contractStageLabel('sari') }}</option>
-                                <option value="completed">{{ $contractStageLabel('completed') }}</option>
-                                <option value="refunded">{{ $contractStageLabel('refunded') }}</option>
-                                <option value="back">{{ $contractStageLabel('back') }}</option>
-                                {{-- <option value="shelter">{{ $contractStageLabel('shelter') }}</option> --}}
-                                <option value="pending_maid_selection">{{ $contractStageLabel('pending_maid_selection') }}</option>
-                                <option value="accreditation_contracts">{{ $contractStageLabel('accreditation_contracts') }}</option>
-                            </select>
-                        </div>
-
-                        <div class="col-md-3">
-                            <label for="dateFromFilter" class="form-label">تاريخ من:</label>
-                            <input type="date" id="dateFromFilter" class="form-control">
-                        </div>
-                        <div class="col-md-3">
-                            <label for="dateToFilter" class="form-label">تاريخ إلى:</label>
-                            <input type="date" id="dateToFilter" class="form-control">
-                        </div>
-                        <div class="col-md-3">
-                            <label for="clientPhoneFilter" class="form-label">رقم جوال العميل:</label>
-                            <input type="text" id="clientPhoneFilter" class="form-control"
-                                placeholder="ابحث برقم الجوال (5********)">
-                        </div>
-                    </div>
-                    <div class="row mt-3">
-                        <div class="col-md-3">
-                            <label for="clientNameFilter" class="form-label">اسم العميل:</label>
-                            <input type="text" id="clientNameFilter" class="form-control"
-                                placeholder="ابحث باسم العميل">
-                        </div>
-                        <div class="col-md-3">
-                            <label for="maidPassportFilter" class="form-label">رقم جواز العاملة:</label>
-                            <input type="text" id="maidPassportFilter" class="form-control"
-                                placeholder="ابحث برقم الجواز">
-                        </div>
-                        <div class="col-md-3">
-                            <label for="maidNameFilter" class="form-label">اسم العاملة:</label>
-                            <input type="text" id="maidNameFilter" class="form-control"
-                                placeholder="ابحث باسم العاملة">
-                        </div>
-                        <div class="col-md-3">
-                            <label for="contractNumberFilter" class="form-label">رقم العقد:</label>
-                            <input type="text" id="contractNumberFilter" class="form-control"
-                                placeholder="ابحث برقم العقد">
-                        </div>
-                    </div>
-                    <div class="row mt-3">
-                        <div class="col-md-3">
-                            <label for="nationalityFilter" class="form-label">جنسية العاملة:</label>
-                            <select id="nationalityFilter" class="form-select">
-                                <option value="">جميع الجنسيات</option>
-
-                                @if (isset($filterOptions) && isset($filterOptions['nationalities']))
-                                    @foreach ($filterOptions['nationalities'] as $nationality)
-                                        <option value="{{ $nationality->sub_title }}">{{ $nationality->sub_title }}
-                                        </option>
-                                    @endforeach
-                                @else
-                                    <option value="">لا توجد بيانات</option>
-                                @endif
-                            </select>
-                        </div>
-                        <div class="col-md-3">
-                            <label for="religionFilter" class="form-label">ديانة العاملة:</label>
-                            <select id="religionFilter" class="form-select">
-                                <option value="">جميع الديانات</option>
-
-                                @if (isset($filterOptions) && isset($filterOptions['religions']))
-                                    @foreach ($filterOptions['religions'] as $religion)
-                                        <option value="{{ $religion->title }}">{{ $religion->title }}</option>
-                                    @endforeach
-                                @else
-                                    <option value="">لا توجد بيانات</option>
-                                @endif
-                            </select>
-                        </div>
-                        <div class="col-md-3">
-                            <label for="officeFilter" class="form-label"> المكتب الخارجي:</label>
-                            <select id="officeFilter" class="form-select">
-                                <option value="">جميع المكاتب الخارجية</option>
-
-                                @if (isset($filterOptions) && isset($filterOptions['offices']))
-                                    @foreach ($filterOptions['offices'] as $office)
-                                        <option value="{{ $office->id }}" {{ (string) request('office_id') === (string) $office->id ? 'selected' : '' }}>{{ $office->title }}</option>
-                                    @endforeach
-                                @else
-                                    <option value="">لا توجد بيانات</option>
-                                @endif
-                            </select>
-                        </div>
-                        <div class="col-md-3">
-                            <label for="requestTypeFilter" class="form-label">{{ helperTrans('ingaz.request_type') }}:</label>
-                            <select id="requestTypeFilter" class="form-select">
-                                <option value="">{{ helperTrans('ingaz.all') }}</option>
-                                @foreach (\App\Models\ingaz\Maid::getRequestTypeOptions() as $value => $label)
-                                    <option value="{{ $value }}">{{ $label }}</option>
+                    <fieldset class="filter-group">
+                        <legend><i class="fas fa-calendar-days"></i> الفترة الزمنية</legend>
+                        <div class="filter-field mb-3">
+                            <span class="form-label d-block">الفترة تُطبَّق على:</span>
+                            <div class="date-type-switch" role="radiogroup" aria-label="التاريخ الذي تُطبق عليه الفترة">
+                                @foreach(['contract'=>['تاريخ العقد','fa-file-signature'],'created'=>['تاريخ إنشاء السجل','fa-clock'],'arrival'=>['تاريخ الوصول للمملكة','fa-plane-arrival'],'delivery'=>['تاريخ التسليم للعميل','fa-handshake']] as $key=>[$label,$icon])
+                                    <button type="button" class="date-type-option" role="radio" data-value="{{ $key }}"><i class="fas {{ $icon }}"></i> {{ $label }}</button>
                                 @endforeach
-                            </select>
+                            </div>
+                            <select id="dateTypeFilter" class="d-none" aria-hidden="true" tabindex="-1">@foreach(['contract'=>'تاريخ العقد','created'=>'تاريخ إنشاء السجل','arrival'=>'الوصول الفعلي','delivery'=>'التسليم الموثق'] as $key=>$label)<option value="{{ $key }}" {{ request('date_type','contract')===$key?'selected':'' }}>{{ $label }}</option>@endforeach</select>
+                            <small class="text-muted d-block mt-1">مثال: اختر "تاريخ الوصول للمملكة" ثم "هذا الشهر" لعرض العقود التي وصلت عاملاتها هذا الشهر بغض النظر عن تاريخ توقيع العقد.</small>
                         </div>
-                        <div class="col-md-3" style="display: none;">
-                            <label for="warrantyStatusFilter" class="form-label">حالة الضمان:</label>
-                            <select id="warrantyStatusFilter" class="form-select">
-                                <option value="">جميع حالات الضمان</option>
-
-                                <option value="active">نشط (تحت الضمان)</option>
-                                <option value="expired">منتهي (خارج الضمان)</option>
-                                <option value="not_applicable">غير قابل للتطبيق</option>
-                            </select>
-                        </div>
-                        <div class="col-md-3">
-                            <label for="marketerFilter" class="form-label">المسوق:</label>
-                            <select id="marketerFilter" class="form-select">
-                                <option value="">جميع المسوقين</option>
-
-                                @if (isset($filterOptions) && isset($filterOptions['marketers']))
-                                    @foreach ($filterOptions['marketers'] as $marketer)
-                                        <option value="{{ $marketer->id }}">{{ $marketer->name }}</option>
+                        <div class="row g-3 align-items-end">
+                            <div class="col-lg-6">
+                                <span class="form-label d-block">اختصارات الفترة</span>
+                                <div class="period-shortcuts">
+                                    <button type="button" class="contract-period-shortcut" data-from="" data-to="">كل الفترات</button>
+                                    @foreach(['اليوم'=>[today(),today()],'هذا الأسبوع'=>[now()->startOfWeek(\Carbon\Carbon::SUNDAY),today()],'هذا الشهر'=>[now()->startOfMonth(),today()],'الشهر السابق'=>[now()->subMonthNoOverflow()->startOfMonth(),now()->subMonthNoOverflow()->endOfMonth()],'هذه السنة'=>[now()->startOfYear(),today()]] as $label=>$dates)
+                                        <button type="button" class="contract-period-shortcut" data-from="{{ $dates[0]->toDateString() }}" data-to="{{ $dates[1]->toDateString() }}">{{ $label }}</button>
                                     @endforeach
-                                @else
-                                    <option value="">لا توجد بيانات</option>
-                                @endif
-                            </select>
-                        </div>
-
-                    </div>
-                    <div class="row mt-3">
-                        <div class="col-md-3">
-                            <label for="cityFilter" class="form-label">مدينة العميل:</label>
-                            <input type="text" id="cityFilter" class="form-control" placeholder="ابحث بالمدينة">
-                        </div>
-                        <div class="col-md-3">
-                            <label for="invoicePresenceFilter" class="form-label">الفاتورة:</label>
-                            <select id="invoicePresenceFilter" class="form-select">
-                                <option value="">الكل</option>
-                                <option value="1">لها فاتورة</option>
-                                <option value="0">بدون فاتورة</option>
-                            </select>
-                        </div>
-                        <div class="col-md-3">
-                            <label for="musanedTransferPresenceFilter" class="form-label">تحويل مساند:</label>
-                            <select id="musanedTransferPresenceFilter" class="form-select">
-                                <option value="">الكل</option>
-                                <option value="1">تم تسجيل التحويل</option>
-                                <option value="0">لم يسجل التحويل</option>
-                            </select>
-                        </div>
-                        <div class="col-md-3">
-                            <label for="externalDispatchPresenceFilter" class="form-label">فاتورة المورد:</label>
-                            <select id="externalDispatchPresenceFilter" class="form-select">
-                                <option value="">الكل</option>
-                                <option value="1">لها فاتورة مورد</option>
-                                <option value="0">بدون فاتورة مورد</option>
-                            </select>
-                        </div>
-                    </div>
-                    <div class="row mt-3">
-                        <div class="col-md-3">
-                            <label class="form-label">&nbsp;</label>
-                            <div>
-
-                                <button type="button" id="clearFilters" class="btn btn-secondary">
-                                    <i class="fas fa-times me-1"></i> مسح
-                                </button>
-                                <button type="button" id="btnSubmit" class="btn btn-primary ms-2">
-                                    <i class="fas fa-search me-1"></i>بحث
-                                </button>
+                                </div>
+                            </div>
+                            <div class="col-sm-6 col-lg-3">
+                                <label for="dateFromFilter" class="form-label">من تاريخ</label>
+                                <input type="date" id="dateFromFilter" class="form-control">
+                            </div>
+                            <div class="col-sm-6 col-lg-3">
+                                <label for="dateToFilter" class="form-label">إلى تاريخ</label>
+                                <input type="date" id="dateToFilter" class="form-control">
                             </div>
                         </div>
+                    </fieldset>
+
+                    <fieldset class="filter-group">
+                        <legend><i class="fas fa-diagram-project"></i> مرحلة العقد والوصول</legend>
+                        <div class="row g-3">
+                            <div class="col-md-6 col-lg-4 {{ $shelterContractsMode ? 'd-none' : '' }}">
+                                <label for="statusFilter" class="form-label">مرحلة العقد</label>
+                                <select id="statusFilter" class="form-select">
+                                    <option value="">جميع الحالات</option>
+                                    <option value="current">{{ helperTrans('ingaz.contracts_are_valid') }}</option>
+                                    <option value="arrival_today" hidden>وصول اليوم</option>
+                                    <option value="delayed_arrival" hidden>مدة التقديم تجاوزت 45 يومًا بدون تذاكر</option>
+                                    <option value="expired_over_2y">أقدم من عامين</option>
+
+                                    <option value="new">{{ $contractStageLabel('new') }}</option>
+                                    <option value="msaned">{{ $contractStageLabel('msaned') }}</option>
+                                    <option value="tafwed">{{ $contractStageLabel('tafwed') }}</option>
+                                    <option value="taffez">{{ $contractStageLabel('taffez') }}</option>
+                                    <option value="tazker">{{ $contractStageLabel('tazker') }}</option>
+                                    <option value="completed_stage">المكتملة (إجمالي)</option>
+                                    <option value="arrival">{{ $contractStageLabel('arrival') }}</option>
+                                    <option value="sari">{{ $contractStageLabel('sari') }}</option>
+                                    <option value="completed">{{ $contractStageLabel('completed') }}</option>
+                                    <option value="refunded">{{ $contractStageLabel('refunded') }}</option>
+                                    <option value="back">{{ $contractStageLabel('back') }}</option>
+                                    {{-- <option value="shelter">{{ $contractStageLabel('shelter') }}</option> --}}
+                                    <option value="pending_maid_selection">{{ $contractStageLabel('pending_maid_selection') }}</option>
+                                    <option value="accreditation_contracts">{{ $contractStageLabel('accreditation_contracts') }}</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6 col-lg-4">
+                                <label for="arrivalScopeFilter" class="form-label">حالة الوصول والتسليم</label>
+                                <select id="arrivalScopeFilter" class="form-select"><option value="">الكل</option>@foreach(['arrived_month'=>'وصلت هذا الشهر','expected_month'=>'ستصل هذا الشهر','delayed'=>'متأخرة عن موعد الرحلة','waiting'=>'بانتظار الوصول','unscheduled'=>'بانتظار الوصول بلا موعد رحلة','undelivered'=>'وصلت دون تسليم موثق','arrived'=>'وصلت (كل الفترات)','missing'=>'وصلت دون تاريخ وصول صالح'] as $key=>$label)<option value="{{ $key }}" {{ request('arrival_scope')===$key?'selected':'' }}>{{ $label }}</option>@endforeach</select>
+                            </div>
+                            <div class="col-md-6 col-lg-4" style="display: none;">
+                                <label for="warrantyStatusFilter" class="form-label">حالة الضمان</label>
+                                <select id="warrantyStatusFilter" class="form-select">
+                                    <option value="">جميع حالات الضمان</option>
+
+                                    <option value="active">نشط (تحت الضمان)</option>
+                                    <option value="expired">منتهي (خارج الضمان)</option>
+                                    <option value="not_applicable">غير قابل للتطبيق</option>
+                                </select>
+                            </div>
+                        </div>
+                    </fieldset>
+
+                    <fieldset class="filter-group">
+                        <legend><i class="fas fa-users"></i> العميل والعاملة</legend>
+                        <div class="row g-3">
+                            <div class="col-sm-6 col-lg-3">
+                                <label for="contractNumberFilter" class="form-label">رقم العقد</label>
+                                <input type="text" id="contractNumberFilter" class="form-control" placeholder="ابحث برقم العقد">
+                            </div>
+                            <div class="col-sm-6 col-lg-3">
+                                <label for="clientNameFilter" class="form-label">اسم العميل</label>
+                                <input type="text" id="clientNameFilter" class="form-control" placeholder="ابحث باسم العميل">
+                            </div>
+                            <div class="col-sm-6 col-lg-3">
+                                <label for="clientPhoneFilter" class="form-label">رقم جوال العميل</label>
+                                <input type="text" id="clientPhoneFilter" class="form-control" placeholder="ابحث برقم الجوال (5********)">
+                            </div>
+                            <div class="col-sm-6 col-lg-3">
+                                <label for="cityFilter" class="form-label">مدينة العميل</label>
+                                <input type="text" id="cityFilter" class="form-control" placeholder="ابحث بالمدينة">
+                            </div>
+                            <div class="col-sm-6 col-lg-3">
+                                <label for="maidNameFilter" class="form-label">اسم العاملة</label>
+                                <input type="text" id="maidNameFilter" class="form-control" placeholder="ابحث باسم العاملة">
+                            </div>
+                            <div class="col-sm-6 col-lg-3">
+                                <label for="maidPassportFilter" class="form-label">رقم جواز العاملة</label>
+                                <input type="text" id="maidPassportFilter" class="form-control" placeholder="ابحث برقم الجواز">
+                            </div>
+                            <div class="col-sm-6 col-lg-3">
+                                <label for="nationalityFilter" class="form-label">جنسية العاملة</label>
+                                <select id="nationalityFilter" class="form-select">
+                                    <option value="">جميع الجنسيات</option>
+                                    @if (isset($filterOptions) && isset($filterOptions['nationalities']))
+                                        @foreach ($filterOptions['nationalities'] as $nationality)
+                                            <option value="{{ $nationality->sub_title }}">{{ $nationality->sub_title }}</option>
+                                        @endforeach
+                                    @else
+                                        <option value="">لا توجد بيانات</option>
+                                    @endif
+                                </select>
+                            </div>
+                            <div class="col-sm-6 col-lg-3">
+                                <label for="religionFilter" class="form-label">ديانة العاملة</label>
+                                <select id="religionFilter" class="form-select">
+                                    <option value="">جميع الديانات</option>
+                                    @if (isset($filterOptions) && isset($filterOptions['religions']))
+                                        @foreach ($filterOptions['religions'] as $religion)
+                                            <option value="{{ $religion->title }}">{{ $religion->title }}</option>
+                                        @endforeach
+                                    @else
+                                        <option value="">لا توجد بيانات</option>
+                                    @endif
+                                </select>
+                            </div>
+                        </div>
+                    </fieldset>
+
+                    <fieldset class="filter-group">
+                        <legend><i class="fas fa-building"></i> المكتب والتسويق والمستندات</legend>
+                        <div class="row g-3">
+                            <div class="col-sm-6 col-lg-4">
+                                <label for="officeFilter" class="form-label">المكتب الخارجي</label>
+                                <select id="officeFilter" class="form-select">
+                                    <option value="">جميع المكاتب الخارجية</option>
+                                    @if (isset($filterOptions) && isset($filterOptions['offices']))
+                                        @foreach ($filterOptions['offices'] as $office)
+                                            <option value="{{ $office->id }}" {{ (string) request('office_id') === (string) $office->id ? 'selected' : '' }}>{{ $office->title }}</option>
+                                        @endforeach
+                                    @else
+                                        <option value="">لا توجد بيانات</option>
+                                    @endif
+                                </select>
+                            </div>
+                            <div class="col-sm-6 col-lg-4">
+                                <label for="requestTypeFilter" class="form-label">{{ helperTrans('ingaz.request_type') }}</label>
+                                <select id="requestTypeFilter" class="form-select">
+                                    <option value="">{{ helperTrans('ingaz.all') }}</option>
+                                    @foreach (\App\Models\ingaz\Maid::getRequestTypeOptions() as $value => $label)
+                                        <option value="{{ $value }}">{{ $label }}</option>
+                                    @endforeach
+                                </select>
+                            </div>
+                            <div class="col-sm-6 col-lg-4">
+                                <label for="marketerFilter" class="form-label">المسوق</label>
+                                <select id="marketerFilter" class="form-select">
+                                    <option value="">جميع المسوقين</option>
+                                    @if (isset($filterOptions) && isset($filterOptions['marketers']))
+                                        @foreach ($filterOptions['marketers'] as $marketer)
+                                            <option value="{{ $marketer->id }}">{{ $marketer->name }}</option>
+                                        @endforeach
+                                    @else
+                                        <option value="">لا توجد بيانات</option>
+                                    @endif
+                                </select>
+                            </div>
+                            <div class="col-sm-6 col-lg-4">
+                                <label for="invoicePresenceFilter" class="form-label">فاتورة العميل</label>
+                                <select id="invoicePresenceFilter" class="form-select">
+                                    <option value="">الكل</option>
+                                    <option value="1">لها فاتورة</option>
+                                    <option value="0">بدون فاتورة</option>
+                                </select>
+                            </div>
+                            <div class="col-sm-6 col-lg-4">
+                                <label for="musanedTransferPresenceFilter" class="form-label">تحويل مساند</label>
+                                <select id="musanedTransferPresenceFilter" class="form-select">
+                                    <option value="">الكل</option>
+                                    <option value="1">تم تسجيل التحويل</option>
+                                    <option value="0">لم يسجل التحويل</option>
+                                </select>
+                            </div>
+                            <div class="col-sm-6 col-lg-4">
+                                <label for="externalDispatchPresenceFilter" class="form-label">فاتورة المورد</label>
+                                <select id="externalDispatchPresenceFilter" class="form-select">
+                                    <option value="">الكل</option>
+                                    <option value="1">لها فاتورة مورد</option>
+                                    <option value="0">بدون فاتورة مورد</option>
+                                </select>
+                            </div>
+                        </div>
+                    </fieldset>
+
+                    <div class="filters-actions">
+                        <button type="button" id="clearFilters" class="btn btn-light">
+                            <i class="fas fa-rotate-left me-1"></i> مسح الفلاتر
+                        </button>
+                        <button type="button" id="btnSubmit" class="btn btn-primary">
+                            <i class="fas fa-search me-1"></i> بحث
+                        </button>
                     </div>
                 </div>
             </div>
@@ -1877,6 +2207,12 @@
             const urlStatus = getStatusFromUrl();
             const urlWarrantyStatus = getWarrantyStatusFromUrl();
             const urlMarketer = getMarketerFromUrl();
+            const sharedFilters = new URLSearchParams(window.location.search);
+            const sharedFields = {global_search:'#globalSearchFilter',client_phone:'#clientPhoneFilter',client_name:'#clientNameFilter',
+                maid_passport:'#maidPassportFilter',maid_name:'#maidNameFilter',contract_number:'#contractNumberFilter',nationality:'#nationalityFilter',
+                religion:'#religionFilter',office_id:'#officeFilter',request_type:'#requestTypeFilter',city:'#cityFilter',branch_id:'#branchFilter',
+                has_invoice:'#invoicePresenceFilter',has_musaned_transfer:'#musanedTransferPresenceFilter',has_external_dispatch:'#externalDispatchPresenceFilter'};
+            Object.entries(sharedFields).forEach(function([key,selector]){ if(sharedFilters.has(key)) $(selector).val(sharedFilters.get(key)); });
             const urlDateFrom = getDateFilterFromUrl('date_from');
             const urlDateTo = getDateFilterFromUrl('date_to');
             const urlExcludeBack = shouldExcludeBackFromUrl();
@@ -2158,6 +2494,8 @@
                 '#warrantyStatusFilter',
                 '#dateFromFilter',
                 '#dateToFilter',
+                '#dateTypeFilter',
+                '#arrivalScopeFilter',
                 '#clientPhoneFilter',
                 '#clientNameFilter',
                 '#maidPassportFilter',
@@ -2228,6 +2566,8 @@
                         d.shelter_contracts = shelterContractsMode ? 1 : '';
                         d.date_from = $('#dateFromFilter').val();
                         d.date_to = $('#dateToFilter').val();
+                        d.date_type = $('#dateTypeFilter').val();
+                        d.arrival_scope = $('#arrivalScopeFilter').val();
                         d.client_phone = $('#clientPhoneFilter').val();
                         d.client_name = $('#clientNameFilter').val();
                         d.maid_passport = $('#maidPassportFilter').val();
@@ -2658,7 +2998,13 @@
 
             // زر البحث
             $('#btnSubmit').on('click', function() {
+                syncOperationsFilters();
                 clearTimeout(globalSearchTimer);
+                const dateFrom = $('#dateFromFilter').val(), dateTo = $('#dateToFilter').val();
+                if (dateFrom && dateTo && dateFrom > dateTo) {
+                    Swal.fire({icon:'warning',text:'نهاية الفترة يجب أن تساوي بدايتها أو تأتي بعدها.'});
+                    return;
+                }
                 clearBulkSelection();
                 $('#dataTableObject').addClass('loading');
                 dataTable.ajax.reload(function() {
@@ -2666,6 +3012,55 @@
                 });
             });
 
+            function syncOperationsFilters() {
+                const labels = ['التاريخ: '+$('#dateTypeFilter option:selected').text(),
+                    'من: '+($('#dateFromFilter').val() || 'البداية'), 'إلى: '+($('#dateToFilter').val() || 'الآن')];
+                if ($('#arrivalScopeFilter').val()) labels.push($('#arrivalScopeFilter option:selected').text());
+                const fields = {global_search:'#globalSearchFilter',status:'#statusFilter',warranty_status:'#warrantyStatusFilter',
+                    date_from:'#dateFromFilter',date_to:'#dateToFilter',date_type:'#dateTypeFilter',arrival_scope:'#arrivalScopeFilter',
+                    client_phone:'#clientPhoneFilter',client_name:'#clientNameFilter',maid_passport:'#maidPassportFilter',maid_name:'#maidNameFilter',
+                    contract_number:'#contractNumberFilter',nationality:'#nationalityFilter',religion:'#religionFilter',office_id:'#officeFilter',
+                    request_type:'#requestTypeFilter',city:'#cityFilter',marketer_id:'#marketerFilter',branch_id:'#branchFilter',
+                    has_invoice:'#invoicePresenceFilter',has_musaned_transfer:'#musanedTransferPresenceFilter',has_external_dispatch:'#externalDispatchPresenceFilter'};
+                const url = new URL(window.location.href);
+                Object.entries(fields).forEach(function([key,selector]) {
+                    const field = $(selector), value = field.val();
+                    if (value !== undefined && value !== null && value !== '') url.searchParams.set(key,value);
+                    else url.searchParams.delete(key);
+                    if (value && !['date_type','date_from','date_to','arrival_scope'].includes(key)) {
+                        const label = $('label[for="'+field.attr('id')+'"]').first().text();
+                        labels.push((label || key)+' '+(field.is('select') ? field.find('option:selected').text() : value));
+                    }
+                });
+                window.history.replaceState({},'',url.toString());
+                $('#operationsFilterSummary').text('الفلاتر المطبقة: '+labels.join(' · '));
+                $('.operation-stat-filter').each(function(){ $(this).toggleClass('active',$(this).data('arrivalScope')===$('#arrivalScopeFilter').val()); });
+                syncPeriodControls();
+            }
+            function syncPeriodControls() {
+                const dateType = $('#dateTypeFilter').val(), from = $('#dateFromFilter').val() || '', to = $('#dateToFilter').val() || '';
+                $('.date-type-option').each(function(){
+                    const active = $(this).data('value') === dateType;
+                    $(this).toggleClass('active', active).attr('aria-checked', active ? 'true' : 'false');
+                });
+                $('.contract-period-shortcut').each(function(){
+                    $(this).toggleClass('active', String($(this).data('from')) === from && String($(this).data('to')) === to);
+                });
+            }
+            syncPeriodControls();
+            $('.date-type-option').on('click',function(){
+                $('#dateTypeFilter').val($(this).data('value')).trigger('change');
+            });
+            $('#dateFromFilter, #dateToFilter').on('change', syncPeriodControls);
+            $('.operation-stat-filter').on('click',function(){
+                // Clicking the selected card again clears the arrival filter.
+                const scope = $(this).data('arrivalScope');
+                $('#arrivalScopeFilter').val($('#arrivalScopeFilter').val() === scope ? '' : scope); $('#btnSubmit').trigger('click');
+            });
+            $('.contract-period-shortcut').on('click',function(){
+                $('#dateFromFilter').val($(this).data('from')); $('#dateToFilter').val($(this).data('to')); $('#btnSubmit').trigger('click');
+            });
+            $('#dateTypeFilter, #arrivalScopeFilter').on('change',function(){ syncPeriodControls(); $('#btnSubmit').trigger('click'); });
             // Export exactly the records represented by the current table filters.
             $('.recruitment-contract-export').on('click', function() {
                 const status = $('#statusFilter').val();
@@ -2675,6 +3070,8 @@
                     status: status,
                     date_from: $('#dateFromFilter').val(),
                     date_to: $('#dateToFilter').val(),
+                        date_type: $('#dateTypeFilter').val(),
+                        arrival_scope: $('#arrivalScopeFilter').val(),
                     client_phone: $('#clientPhoneFilter').val(),
                     client_name: $('#clientNameFilter').val(),
                     maid_passport: $('#maidPassportFilter').val(),
@@ -2687,6 +3084,9 @@
                     city: $('#cityFilter').val(),
                     marketer_id: $('#marketerFilter').val(),
                     branch_id: $('#branchFilter').length ? $('#branchFilter').val() : '',
+                    has_invoice: $('#invoicePresenceFilter').val(),
+                    has_musaned_transfer: $('#musanedTransferPresenceFilter').val(),
+                    has_external_dispatch: $('#externalDispatchPresenceFilter').val(),
                     exclude_back: urlExcludeBack ? 1 : ''
                 };
 
@@ -2709,7 +3109,9 @@
             $('#clearFilters').on('click', function() {
                 $('#globalSearchFilter, #statusFilter, #warrantyStatusFilter, #clientPhoneFilter, #clientNameFilter, #maidPassportFilter, #maidNameFilter, #contractNumberFilter, #nationalityFilter, #religionFilter, #officeFilter, #requestTypeFilter, #cityFilter, #marketerFilter, #branchFilter, #invoicePresenceFilter, #musanedTransferPresenceFilter, #externalDispatchPresenceFilter')
                     .val('');
-                $('#dateFromFilter, #dateToFilter').val('');
+                $('#dateFromFilter, #dateToFilter, #arrivalScopeFilter').val('');
+                $('#dateTypeFilter').val('contract');
+                syncOperationsFilters();
                 localStorage.removeItem('contractFilters'); // مسح الفلاتر المحفوظة
 
                 toggleWarrantyFilter();
@@ -2724,7 +3126,7 @@
             });
 
             function hasActiveSearchFilters() {
-                return $('#globalSearchFilter').val() || $('#dateFromFilter').val() || $('#dateToFilter').val() ||
+                return $('#arrivalScopeFilter').val() || $('#globalSearchFilter').val() || $('#dateFromFilter').val() || $('#dateToFilter').val() ||
                     $('#clientPhoneFilter').val() || $('#clientNameFilter').val() ||
                     $('#maidPassportFilter').val() || $('#maidNameFilter').val() ||
                     $('#contractNumberFilter').val() || $('#nationalityFilter').val() ||
@@ -2807,6 +3209,8 @@
                         warranty_status: $('#warrantyStatusFilter').val(),
                         date_from: $('#dateFromFilter').val(),
                         date_to: $('#dateToFilter').val(),
+                        date_type: $('#dateTypeFilter').val(),
+                        arrival_scope: $('#arrivalScopeFilter').val(),
                         client_phone: $('#clientPhoneFilter').val(),
                         client_name: $('#clientNameFilter').val(),
                         maid_passport: $('#maidPassportFilter').val(),
@@ -2827,6 +3231,18 @@
                     success: function(response) {
                         if (response.success) {
                             const data = response.data || {};
+                            const comparison = data.arrival_comparison;
+                            if (comparison) {
+                                const diff = comparison.difference;
+                                const trendClass = diff > 0 ? 'is-up' : (diff < 0 ? 'is-down' : 'is-flat');
+                                const trendIcon = diff > 0 ? 'fa-arrow-trend-up' : (diff < 0 ? 'fa-arrow-trend-down' : 'fa-equals');
+                                const change = comparison.percentage === null ? (diff > 0 ? '+' : '') + diff : (diff > 0 ? '+' : '') + comparison.percentage + '%';
+                                $('#arrivalPeriodComparison')
+                                    .removeClass('is-up is-down is-flat').addClass(trendClass)
+                                    .attr('title', 'من '+comparison.previous_from+' إلى '+comparison.previous_to)
+                                    .html('<i class="fas '+trendIcon+'"></i> '+change+' عن نفس الفترة من الشهر السابق ('+comparison.previous+')');
+                            }
+                            syncOperationsFilters();
                             $('[data-stat-key]').each(function() {
                                 const key = $(this).data('statKey');
                                 $(this).text(data[key] ?? 0);
@@ -2840,6 +3256,8 @@
                             return;
                         }
 
+                        $('[data-stat-key]').text('—');
+                        $('#arrivalPeriodComparison').removeClass('is-up is-down is-flat').text('تعذّر تحديث الإحصائيات. راجع الفلاتر ثم أعد البحث.');
                         console.error('Statistics error:', xhr.responseText);
                     }
                 });
@@ -2862,6 +3280,8 @@
                     city: $('#cityFilter').val(),
                     dateFrom: $('#dateFromFilter').val(),
                     dateTo: $('#dateToFilter').val(),
+                    dateType: $('#dateTypeFilter').val(),
+                    arrivalScope: $('#arrivalScopeFilter').val(),
                     marketer: $('#marketerFilter').val(), // Save marketer filter
                     branch: $('#branchFilter').length ? $('#branchFilter').val() : '',
                     invoicePresence: $('#invoicePresenceFilter').val(),
@@ -2885,7 +3305,7 @@
                 }
 
                 // لا تحمل الفلاتر من localStorage إذا كان هناك status في الـ URL
-                if (urlStatus || urlDateFrom || urlDateTo || urlExcludeBack) {
+                if (urlStatus || urlDateFrom || urlDateTo || urlExcludeBack || Array.from(sharedFilters.keys()).some(key=>Object.keys(sharedFields).includes(key)||['date_type','arrival_scope'].includes(key))) {
                     console.log('Skipping localStorage load because filters are in URL');
                     return;
                 }
@@ -2907,6 +3327,8 @@
                     $('#cityFilter').val(filters.city || '');
                     $('#dateFromFilter').val(filters.dateFrom || '');
                     $('#dateToFilter').val(filters.dateTo || '');
+                    $('#dateTypeFilter').val(filters.dateType || 'contract');
+                    $('#arrivalScopeFilter').val(filters.arrivalScope || '');
                     $('#marketerFilter').val(filters.marketer || ''); // Load marketer filter
                     $('#branchFilter').val(filters.branch || '');
                     $('#invoicePresenceFilter').val(filters.invoicePresence || '');

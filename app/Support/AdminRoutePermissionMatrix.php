@@ -366,6 +366,8 @@ class AdminRoutePermissionMatrix
             // بوابة المسار = اتحاد كل صلاحية تصدير معرفة في ReportExportService،
             // والفحص الدقيق لكل تقرير/صيغة يبقى داخل الخدمة نفسها.
             'reports.index' => ReportExportService::allExportPermissions(),
+            'reports.arrivals' => ReportExportService::allExportPermissions(),
+            'reports.arrivals.delivery' => [NewPermKeys::REC_CONTRACTS_EDIT, NewPermKeys::REC_CONTRACTS_MANAGE],
             'reports.export' => ReportExportService::allExportPermissions(),
             'form-settings.preview.print' => [PermKeys::SETTINGS_VIEW, PermKeys::SETTINGS_CONTROL],
             'company-settings.index' => [PermKeys::COMPANY_SETTINGS_VIEW],

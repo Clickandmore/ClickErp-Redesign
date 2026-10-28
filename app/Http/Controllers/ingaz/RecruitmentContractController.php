@@ -481,26 +481,8 @@ class RecruitmentContractController extends Controller
 
     private function getEffectiveArrivalDateSql(): string
     {
-        return "DATE(COALESCE(
-            NULLIF(contracts.warranty_start_date, '0000-00-00 00:00:00'),
-            (SELECT COALESCE(NULLIF(th.arrival_date, '0000-00-00'), th.arrived_at)
-                FROM travel_histories as th
-                WHERE th.order_id = contracts.id
-                    AND th.deleted_at IS NULL
-                    AND th.status = 'completed'
-                ORDER BY th.id DESC
-                LIMIT 1),
-            CASE WHEN contracts.status IN ('arrival', 'completed')
-                THEN NULLIF((SELECT ci.arrival_date FROM contract_infos as ci WHERE ci.contract_id = contracts.id LIMIT 1), '0000-00-00')
-                ELSE NULL
-            END,
-            CASE WHEN contracts.status IN ('arrival', 'completed')
-                THEN NULLIF((SELECT m.arrival_date FROM maids as m WHERE m.id = contracts.maid_id LIMIT 1), '0000-00-00')
-                ELSE NULL
-            END
-        ))";
+        return \App\Support\RecruitmentContractReporting::arrivalDateSql();
     }
-
     private function sponsorshipTransferDisplayStatuses(): array
     {
         return [
@@ -776,154 +758,11 @@ class RecruitmentContractController extends Controller
             ]))
                 ->withCount(['notes', 'attachments']);
 
-            // فلتر الحالة - استخدام query parameter فقط
             $statusFilter = $this->getStatusFilterForRequest($request);
-
             $query->whereIn('type', ['recruitment', 'maid']);
-            $query->forCompanyRecruitment($companyContractsMode);
-            if ($shelterContractsMode) {
-                $query->where('status', ContractStatusEnum::Shelter->value);
-            } else {
-                $this->applyStatusFilter($query, $statusFilter);
-            }
-
-            // فلاتر توفر المستندات والإجراءات المالية/التشغيلية
-            $this->applyDocumentPresenceFilters($query, $request);
-
-            if ($request->boolean('exclude_back')) {
-                $query->where(function ($q) {
-                    $q->whereNull('status')
-                        ->orWhere('status', '!=', ContractStatusEnum::Back->value);
-                });
-            }
-
-            // فلتر حالة الضمان إذا تم تمريرها (حسب تاريخ انتهاء الضمان)
-            if (!$shelterContractsMode && !$this->shouldTreatAsCompletedTotalRequest($request) && $request->filled('warranty_status')) {
-                $warrantyStatuses = array_filter(array_map('trim', explode(',', $request->warranty_status)));
-                if (!empty($warrantyStatuses)) {
-                    $today = \Carbon\Carbon::now()->toDateString();
-                    $query->where(function ($q) use ($warrantyStatuses, $today) {
-                        foreach ($warrantyStatuses as $status) {
-                            switch ($status) {
-                                case 'active':
-                                    $q->orWhere(function ($sub) use ($today) {
-                                        $sub->whereNotNull('warranty_end_date')
-                                            ->whereDate('warranty_end_date', '>=', $today);
-                                    });
-                                    break;
-                                case 'expired':
-                                    $q->orWhere(function ($sub) use ($today) {
-                                        $sub->whereNotNull('warranty_end_date')
-                                            ->whereDate('warranty_end_date', '<', $today);
-                                    });
-                                    break;
-                                case 'not_applicable':
-                                    $q->orWhereNull('warranty_end_date');
-                                    break;
-                                default:
-                                    $q->orWhere('warranty_status', $status);
-                                    break;
-                            }
-                        }
-                    });
-                }
-            }
-
-
-            // فلتر التاريخ من
-            if ($request->filled('date_from')) {
-                $query->whereRaw($this->getEffectiveContractDateSql() . ' >= ?', [$request->date_from]);
-            }
-
-            // فلتر التاريخ إلى
-            if ($request->filled('date_to')) {
-                $query->whereRaw($this->getEffectiveContractDateSql() . ' <= ?', [$request->date_to]);
-            }
-
-            // فلتر رقم جوال العميل
-            if ($request->filled('client_phone')) {
-                $this->applyDisplayedClientFilter($query, function ($q) use ($request) {
-                    $q->where('phone', 'like', '%' . $request->client_phone . '%');
-                });
-            }
-
-            // فلتر اسم العميل
-            if ($request->filled('client_name')) {
-                $this->applyDisplayedClientFilter($query, function ($q) use ($request) {
-                    $q->where('name', 'like', '%' . $request->client_name . '%');
-                });
-            }
-
-            // فلتر رقم جواز العاملة
-            if ($request->filled('maid_passport')) {
-                $query->whereHas('maid', function ($q) use ($request) {
-                    $q->where('passport_num', 'like', '%' . $request->maid_passport . '%');
-                });
-            }
-
-            // فلتر اسم العاملة
-            if ($request->filled('maid_name')) {
-                $query->whereHas('maid', function ($q) use ($request) {
-                    $q->where('name', 'like', '%' . $request->maid_name . '%');
-                });
-            }
-
-            if ($request->filled('request_type')) {
-                $query->whereHas('maid', function ($q) use ($request) {
-                    $q->ofRequestType($request->request_type);
-                });
-            }
-
-            // فلتر رقم العقد
-            if ($request->filled('contract_number')) {
-                $query->where('id', 'like', '%' . $request->contract_number . '%');
-            }
-
-            // فلتر جنسية العاملة
-            if ($request->filled('nationality')) {
-                $query->whereHas('maid.nationality.translations', function ($q) use ($request) {
-                    $q->where('sub_title', $request->nationality);
-                });
-            }
-
-            // فلتر ديانة العاملة
-            if ($request->filled('religion')) {
-                $query->whereHas('maid.religion.translations', function ($q) use ($request) {
-                    $q->where('title', $request->religion);
-                });
-            }
-
-            // فلتر المكتب الخارجي
-            if ($request->filled('office_id')) {
-                $this->applyOfficeFilter($query, $request->office_id);
-            }
-
-            // فلتر مدينة العميل
-            if ($request->filled('city')) {
-                $this->applyDisplayedClientFilter($query, function ($q) use ($request) {
-                    $q->where('city', 'like', '%' . $request->city . '%');
-                });
-            }
-
-            // فلتر البحث الشامل
-            if ($request->filled('global_search')) {
-                $this->applyGlobalSearchFilter($query, $request->global_search);
-            }
-
-            // فلتر المسوق
-            if ($request->filled('marketer_id')) {
-                $query->where(function ($q) use ($request) {
-                    // البحث في marketer_id المباشر
-                    $q->where('marketer_id', $request->marketer_id)
-                        // أو البحث في order.details.admin_id
-                        ->orWhereHas('order.details', function ($orderQuery) use ($request) {
-                            $orderQuery->where('admin_id', $request->marketer_id);
-                        });
-                });
-            }
-
-            $this->applyRequestBranchFilter($query, $request, 'contracts');
-
+            $this->applyContractFilters($query, $request);
+            $query->selectRaw(\App\Support\RecruitmentContractReporting::arrivalDateSql().' AS reporting_arrival_date')
+                ->selectRaw(\App\Support\RecruitmentContractReporting::hasArrivalSql().' AS reporting_has_arrived');
             $rows = $query->orderBy('id', 'desc');
 
             logger()->info('Query prepared for DataTables', [
@@ -1433,7 +1272,11 @@ class RecruitmentContractController extends Controller
                             . '</div>';
                     }
 
-                    return $html . '</div>';
+                    $delivery = \App\Support\RecruitmentArrivalMetrics::date($row->getRawOriginal('client_delivered_at'));
+                    if ($arrival['has_arrived']) {
+                        $html .= '<div class="small mt-2 text-muted">التسليم للعميل: '
+                            . ($delivery ? '<strong dir="ltr">'.e($delivery->format('Y-m-d H:i')).'</strong>' : 'غير موثق') . '</div>';
+                    }                    return $html . '</div>';
                 })
                 ->addColumn('duration', function ($row) {
                     $duration = $this->buildContractDurationSummary($row);
@@ -3255,6 +3098,16 @@ class RecruitmentContractController extends Controller
             $arrivalDateTime = $this->normalizeContractStageDate($contract->maid->arrival_date);
         }
 
+        $usesReportingDate = array_key_exists('reporting_has_arrived', $contract->getAttributes());
+        $reportingDateChanged = false;
+        if ($usesReportingDate) {
+            $hasArrived = (bool) $contract->reporting_has_arrived;
+            if ($hasArrived) {
+                $canonicalDate = \App\Support\RecruitmentArrivalMetrics::date($contract->reporting_arrival_date);
+                $reportingDateChanged = !$canonicalDate || !$arrivalDateTime || !$canonicalDate->isSameDay($arrivalDateTime);
+                if ($reportingDateChanged) $arrivalDateTime = $canonicalDate;
+            }
+        }
         $hasExplicitArrivalTime = filled($travelHistory?->arrival_time)
             || (filled($travelHistory?->arrival_date)
                 && preg_match('/\d{1,2}:\d{2}/', (string) $travelHistory->arrival_date));
@@ -3263,7 +3116,7 @@ class RecruitmentContractController extends Controller
             'has_arrived' => $hasArrived,
             'date_time' => $arrivalDateTime,
             'date_label' => $arrivalDateTime?->format('Y-m-d'),
-            'time_label' => $arrivalDateTime && $hasExplicitArrivalTime
+            'time_label' => $arrivalDateTime && $hasExplicitArrivalTime && !$reportingDateChanged
                 ? $arrivalDateTime->format('H:i')
                 : null,
             'station' => filled($travelHistory?->arrival_airport)
@@ -4568,6 +4421,8 @@ class RecruitmentContractController extends Controller
 
         $query->whereIn('type', ['recruitment', 'maid']);
 
+        $query->select('contracts.*')->selectRaw(\App\Support\RecruitmentContractReporting::arrivalDateSql().' AS reporting_arrival_date');
+
         $this->applyContractFilters($query, $request);
 
         return $query;
@@ -4607,7 +4462,8 @@ class RecruitmentContractController extends Controller
             'working_hours' => 'ساعات العمل',
             'ingaz_from' => 'تاريخ البداية',
             'ingaz_to' => 'تاريخ النهاية',
-            'arrival_date' => 'تاريخ الوصول',
+            'arrival_date' => 'تاريخ الوصول الفعلي',
+            'client_delivered_at' => 'التسليم الموثق للعميل',
             'marketer' => 'المسوق',
             'status' => 'الحالة',
             'created_at' => 'تاريخ إنشاء العقد',
@@ -4652,7 +4508,8 @@ class RecruitmentContractController extends Controller
             'working_hours' => (string) ($info?->working_hours_num ?? ''),
             'ingaz_from' => (string) ($info?->ingaz_from ?? ''),
             'ingaz_to' => (string) ($info?->ingaz_to ?? ''),
-            'arrival_date' => (string) ($info?->arrival_date ?? $maid?->arrival_date ?? ''),
+            'arrival_date' => (string) (array_key_exists('reporting_arrival_date', $contract->getAttributes()) ? $contract->reporting_arrival_date : ($info?->arrival_date ?? $maid?->arrival_date ?? '')),
+            'client_delivered_at' => (string) ($contract->getRawOriginal('client_delivered_at') ?? ''),
             'marketer' => (string) ($marketer?->name ?? ''),
             'status' => (string) getEnumValue('contract_statuses', $this->resolveRecruitmentLifecycleStatus($contract)),
             'created_at' => $contract->created_at?->format('Y-m-d H:i:s') ?? '',
@@ -6008,11 +5865,30 @@ class RecruitmentContractController extends Controller
             $delayedArrivalQuery = clone $baseQuery;
             $this->applyStatusFilter($delayedArrivalQuery, 'delayed_arrival');
             $counts['delayed_arrival'] = $delayedArrivalQuery->count();
+            // Each operational card adds exactly one condition to the active table filters.
+            foreach (\App\Support\RecruitmentContractReporting::SCOPES as $scope) {
+                $operational = clone $baseQuery;
+                \App\Support\RecruitmentContractReporting::applyScope($operational, $scope);
+                $counts['operations_'.$scope] = $operational->count();
+            }
+            // Month-to-date arrivals vs. the same days of the previous month, on the same table filters.
+            $from = now()->startOfMonth();
+            $previousFrom = $from->copy()->subMonthNoOverflow();
+            $previousTo = $previousFrom->copy()->addDays(min(today()->day, $previousFrom->daysInMonth) - 1);
+            $arrivalSql = \App\Support\RecruitmentContractReporting::arrivalDateSql();
+            $previousCount = (clone $baseQuery)->whereRaw("$arrivalSql BETWEEN ? AND ?",[$previousFrom->toDateString(),$previousTo->toDateString()])->count();
+            $currentCount = $counts['operations_arrived_month'];
+            $counts['arrival_comparison'] = ['from'=>$from->toDateString(),'to'=>today()->toDateString(),
+                'previous_from'=>$previousFrom->toDateString(),'previous_to'=>$previousTo->toDateString(),
+                'current'=>$currentCount,'previous'=>$previousCount,'difference'=>$currentCount-$previousCount,
+                'percentage'=>$previousCount ? round(($currentCount-$previousCount)*100/$previousCount,1) : null];
 
             return response()->json([
                 'success' => true,
                 'data' => $counts
             ]);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return response()->json(['success'=>false,'message'=>$e->getMessage(),'errors'=>$e->errors()],422);
         } catch (\Exception $e) {
             logger()->error('Error in contract statistics:', [
                 'error' => $e->getMessage(),
@@ -6048,6 +5924,12 @@ class RecruitmentContractController extends Controller
     private function applyContractFilters($query, Request $request, bool $ignoreStatus = false, bool $ignoreWarranty = false): void
     {
         $query->forCompanyRecruitment($request->boolean('company_contracts'));
+        if ($request->boolean('shelter_contracts')) {
+            abort_unless($this->canViewShelterRecruitmentContracts(), 403);
+            $query->where('status', ContractStatusEnum::Shelter->value);
+            $ignoreStatus = true;
+            $ignoreWarranty = true;
+        }
         $this->applyRequestBranchFilter($query, $request, 'contracts');
 
         if ($request->filled('marketer_id')) {
@@ -6106,15 +5988,7 @@ class RecruitmentContractController extends Controller
             }
         }
 
-        // فلتر التاريخ من
-        if ($request->filled('date_from')) {
-            $query->whereRaw($this->getEffectiveContractDateSql() . ' >= ?', [$request->date_from]);
-        }
-
-        // فلتر التاريخ إلى
-        if ($request->filled('date_to')) {
-            $query->whereRaw($this->getEffectiveContractDateSql() . ' <= ?', [$request->date_to]);
-        }
+        \App\Support\RecruitmentContractReporting::apply($query, $request);
 
         // فلتر رقم جوال العميل
         if ($request->filled('client_phone')) {
