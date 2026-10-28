@@ -437,6 +437,30 @@ php artisan finance:shelter-ledger-reconcile --apply --post-missing-deportations
 
 الاختبارات: `tests/Feature/Finance/AccountRestructureTest.php`.
 
+## 15. ربط «تقرير حركة صندوق اليومية» برقم الحساب
+
+بنود التقرير (`Nami\Finance\Services\DailyCashReferenceService`) مكتوبة بأكواد الحسابات في
+`packages/finance/config/daily_cash_reference.php`، وهي أكواد شجرة الرافدين. الكود يتغير مع كل نقل أو إعادة ترقيم،
+فيُربط كل بند برقم الحساب في `fn_daily_cash_reference_lines` لكل شركة على حدة:
+
+```bash
+php artisan migrate                                   # ينشئ الجدول فارغاً
+php artisan finance:link-daily-cash-reference --dry-run
+php artisan finance:link-daily-cash-reference
+```
+
+- **ما دام الجدول فارغاً** يعمل التقرير من ملف الإعدادات بالكود كما كان؛ الشركات التي لا تشغّل الأمر لا يتغير عندها شيء.
+- **بعد الربط** يقرأ التقرير البنود من الجدول، ويعرض الكود والاسم الحاليين لكل حساب. البند الذي حُذف حسابه يظهر «غير مربوط».
+- **الشجرة رُتّبت قبل الربط؟** شغّل الأمر مع `--as-of="Y-m-d H:i:s"` بوقت قبل الترتيب: يحدد الحساب الذي كان يحمل
+  كل كود في ذلك الوقت من `fn_account_restructure_logs` (النقل يتبع الحساب، الدمج يتبع الهدف، الحذف يترك البند غير مربوط).
+- **الإدارة من الشاشة:** المالية ← التقارير ← «بنود تقرير صندوق اليومية» (`finance.daily-cash-reference-lines.index`،
+  وزر «إدارة البنود» في التقرير): زر «ربط البنود» إن لم تُربط، ثم تغيير حساب البند أو تسميته، والإضافة والحذف والترتيب.
+  الصلاحيات `finance_daily_cash_reference_lines_{view,create,edit,delete}` (أو `finance_module`).
+- الربط مرة واحدة؛ إعادته تحتاج `--force`. الجدول ضمن `AccountRestructureService::REFERENCES`، فالدمج ينقل البنود والحذف يُمنع.
+- **عند ترتيب شجرة شركة:** اربط البنود قبل الترتيب (بلا `--as-of`)، أو بعده بـ `--as-of`. لا تعدّل أكواد ملف الإعدادات.
+
+الاختبارات: `tests/Feature/CashMovementReportTest.php`.
+
 ## قيود المشتريات والوكلاء الخارجيون (إعدادات مستقلة)
 
 قسم جديد في صفحة الإعدادات:

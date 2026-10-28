@@ -153,4 +153,74 @@ class CashMovementReportTest extends TestCase
         $this->assertSame('غير مربوط',$book->getActiveSheet()->getCell('C7')->getValue());
         $book->disconnectWorksheets();
     }
+
+    private function createReferenceLinesTable(): void
+    {
+        Schema::create('fn_daily_cash_reference_lines', function (Blueprint $t) {
+            $t->increments('id'); $t->string('group_key'); $t->integer('sort_order'); $t->integer('account_id')->nullable();
+            $t->string('reference_code'); $t->string('label'); $t->timestamps();
+        });
+    }
+
+    public function test_reference_report_without_linked_lines_keeps_config_codes(): void
+    {
+        $this->createReferenceLinesTable();
+        $r=app(\Nami\Finance\Services\DailyCashReferenceService::class)->report(null,'2026-09-01');
+        $this->assertCount(20,$r['groups']['receipts']['rows']);
+        $this->assertSame('1211',$r['groups']['receipts']['rows'][0]['code']);
+        $this->assertFalse($r['groups']['receipts']['rows'][0]['missing']);
+    }
+
+    public function test_linked_reference_lines_follow_their_account_after_code_change(): void
+    {
+        $this->createReferenceLinesTable();
+        DB::table('fn_accounts')->insert(['id'=>5,'parent_id'=>4,'code'=>'5211','name'=>'Rent','type'=>1]);
+        DB::table('fn_daily_cash_reference_lines')->insert([
+            ['group_key'=>'receipts','sort_order'=>1,'account_id'=>2,'reference_code'=>'1211','label'=>'صندوق'],
+            ['group_key'=>'expenses','sort_order'=>1,'account_id'=>5,'reference_code'=>'5211','label'=>'الايجارات'],
+            ['group_key'=>'expenses','sort_order'=>2,'account_id'=>99,'reference_code'=>'5999','label'=>'محذوف'],
+        ]);
+        $this->entry(1,'2026-09-01',5,2,'20');
+        // إعادة ترقيم الحسابين وإعطاء كوديهما القديمين لحسابين آخرين لا يغيّر البنود
+        DB::table('fn_accounts')->where('id',5)->update(['code'=>'50001']);
+        DB::table('fn_accounts')->where('id',2)->update(['code'=>'121000']);
+        DB::table('fn_accounts')->insert([['id'=>8,'parent_id'=>null,'code'=>'5211','name'=>'Other','type'=>1],['id'=>9,'parent_id'=>null,'code'=>'1211','name'=>'Other cash','type'=>1]]);
+        $this->entry(2,'2026-09-01',8,9,'7');
+        $r=app(\Nami\Finance\Services\DailyCashReferenceService::class)->report(null,'2026-09-01');
+        $this->assertSame(['receipts','expenses'],array_keys($r['groups']));
+        $this->assertSame('121000',$r['groups']['receipts']['rows'][0]['code']);
+        $this->assertSame(-2000,$r['groups']['receipts']['total']);
+        $this->assertSame('50001',$r['groups']['expenses']['rows'][0]['code']);
+        $this->assertSame('Rent',$r['groups']['expenses']['rows'][0]['name']);
+        $this->assertSame(2000,$r['groups']['expenses']['rows'][0]['amount']);
+        $this->assertTrue($r['groups']['expenses']['rows'][1]['missing']);
+        $this->assertContains('البند «محذوف»: الحساب المربوط به لم يعد موجوداً',$r['issues']);
+    }
+
+    public function test_link_command_resolves_codes_as_of_before_a_restructure(): void
+    {
+        $this->createReferenceLinesTable();
+        Schema::table('fn_accounts', function (Blueprint $t) { $t->timestamp('created_at')->nullable(); });
+        Schema::create('fn_account_restructure_logs', function (Blueprint $t) {
+            $t->increments('id'); $t->string('action'); $t->integer('account_id'); $t->string('account_code')->nullable();
+            $t->integer('target_account_id')->nullable(); $t->timestamp('reversed_at')->nullable(); $t->timestamps();
+        });
+        // بعد الترتيب: 1211 (id 2) نُقل وصار 121000، والكود 1211 أُعطي لحساب جديد؛ 1212 دُمج في 1213
+        DB::table('fn_accounts')->where('id',2)->update(['code'=>'121000','created_at'=>'2026-01-01']);
+        DB::table('fn_accounts')->insert([
+            ['id'=>10,'parent_id'=>1,'code'=>'1211','name'=>'New holder','type'=>1,'created_at'=>'2026-10-28 18:00:00'],
+            ['id'=>11,'parent_id'=>1,'code'=>'1213','name'=>'Custody','type'=>1,'created_at'=>'2026-01-01'],
+        ]);
+        DB::table('fn_account_restructure_logs')->insert([
+            ['action'=>'move','account_id'=>2,'account_code'=>'1211','target_account_id'=>null,'created_at'=>'2026-10-28 18:00:00'],
+            ['action'=>'merge','account_id'=>12,'account_code'=>'1212','target_account_id'=>11,'created_at'=>'2026-10-28 18:00:00'],
+        ]);
+        $this->artisan('finance:link-daily-cash-reference',['--as-of'=>'2026-10-28 17:00:00'])->assertExitCode(0);
+        $line=fn ($code)=>DB::table('fn_daily_cash_reference_lines')->where('reference_code',$code)->value('account_id');
+        $this->assertSame(2,(int)$line('1211'));
+        $this->assertSame(11,(int)$line('1212'));
+        $this->assertSame(11,(int)$line('1213'));
+        $this->assertNull($line('1222'));
+        $this->artisan('finance:link-daily-cash-reference')->assertExitCode(1);
+    }
 }

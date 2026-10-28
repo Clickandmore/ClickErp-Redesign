@@ -751,6 +751,7 @@ $permissions = ['printSettings.create', 'letters.index', 'officialVacations.inde
         'finance.account-cost-centers.index',
         'finance.operational-summary.index',
         'finance.cash-movements.index',
+        'finance.daily-cash-reference-lines.index',
         'finance.account-statement.index',
         'finance.debtor-accounts.index',
         'finance.creditor-accounts.index',
@@ -774,6 +775,7 @@ $permissions = ['printSettings.create', 'letters.index', 'officialVacations.inde
                                          'finance.account-cost-centers.index',
                                          'finance.operational-summary.index',
                                          'finance.cash-movements.index',
+                                         'finance.daily-cash-reference-lines.index',
                                          'finance.account-statement.index',
                                          'finance.debtor-accounts.index',
                                          'finance.creditor-accounts.index',
@@ -834,6 +836,12 @@ $permissions = ['printSettings.create', 'letters.index', 'officialVacations.inde
             <a class="m-link {{ Route::currentRouteName() == 'finance.cash-movements.index' ? 'active' : '' }}"
                 href="{{ route('finance.cash-movements.index') }}">
                 <span class="ms-2"> حركة الصندوق والبنوك اليومية </span>
+            </a>
+        </li>
+        <li>
+            <a class="m-link {{ Route::currentRouteName() == 'finance.daily-cash-reference-lines.index' ? 'active' : '' }}"
+                href="{{ route('finance.daily-cash-reference-lines.index') }}">
+                <span class="ms-2"> بنود تقرير صندوق اليومية </span>
             </a>
         </li>
         {{--        @endif --}}
