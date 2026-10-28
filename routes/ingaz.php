@@ -895,6 +895,10 @@ Route::group(
                 Route::post('invoice-corrections/{invoice}/preview', [\App\Http\Controllers\admin\SuperAdminInvoiceCorrectionController::class, 'preview'])->whereNumber('invoice')->name('invoice-corrections.preview');
                 Route::put('invoice-corrections/{invoice}', [\App\Http\Controllers\admin\SuperAdminInvoiceCorrectionController::class, 'update'])->whereNumber('invoice')->name('invoice-corrections.update');
                 Route::get('recovery', [DevSuperAdminController::class, 'recovery'])->name('recovery');
+                Route::get('mcp', [\App\Http\Controllers\admin\SuperAdminMcpController::class, 'index'])->name('mcp.index');
+                Route::put('mcp', [\App\Http\Controllers\admin\SuperAdminMcpController::class, 'update'])->name('mcp.update');
+                Route::post('mcp/tokens', [\App\Http\Controllers\admin\SuperAdminMcpController::class, 'storeToken'])->name('mcp.tokens.store');
+                Route::post('mcp/tokens/{token}/revoke', [\App\Http\Controllers\admin\SuperAdminMcpController::class, 'revokeToken'])->whereNumber('token')->name('mcp.tokens.revoke');
                 Route::post('recovery/migrate', [DevSuperAdminController::class, 'runRecoveryMigrations'])
                     ->middleware('throttle:3,1')
                     ->name('recovery.migrate');

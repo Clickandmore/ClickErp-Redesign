@@ -1,0 +1,182 @@
+<?php
+
+namespace App\Mcp;
+
+use App\Mcp\Tools\McpTool;
+use App\Models\auth\Admin;
+use App\Models\McpAccessToken;
+use App\Models\McpAuditLog;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Str;
+use Throwable;
+
+/**
+ * معالج JSON-RPC لبروتوكول MCP (نقل Streamable HTTP بلا جلسات وبلا SSE).
+ * كل طلب مستقل: initialize و tools/list و tools/call و ping.
+ */
+class McpServer
+{
+    public const SUPPORTED_PROTOCOL_VERSIONS = ['2025-06-18', '2025-03-26', '2024-11-05'];
+
+    public const SERVER_VERSION = '1.0.0';
+
+    /** @var array<string, McpTool>|null */
+    private ?array $tools = null;
+
+    /**
+     * @return array|null رد JSON-RPC، أو null للإشعارات (لا رد لها).
+     */
+    public function handle(array $message, Admin $admin, ?McpAccessToken $token = null, ?string $ip = null): ?array
+    {
+        $id = $message['id'] ?? null;
+        $method = $message['method'] ?? null;
+        $params = is_array($message['params'] ?? null) ? $message['params'] : [];
+
+        if (($message['jsonrpc'] ?? null) !== '2.0' || !is_string($method)) {
+            return $this->error($id, -32600, 'Invalid Request');
+        }
+
+        if (!array_key_exists('id', $message)) {
+            return null;
+        }
+
+        return match ($method) {
+            'initialize' => $this->result($id, $this->initialize($params)),
+            'ping' => $this->result($id, new \stdClass()),
+            'tools/list' => $this->result($id, ['tools' => $this->listTools($admin)]),
+            'tools/call' => $this->callTool($id, $params, $admin, $token, $ip),
+            default => $this->error($id, -32601, "Method not found: {$method}"),
+        };
+    }
+
+    private function initialize(array $params): array
+    {
+        $requested = $params['protocolVersion'] ?? null;
+
+        return [
+            'protocolVersion' => in_array($requested, self::SUPPORTED_PROTOCOL_VERSIONS, true)
+                ? $requested
+                : self::SUPPORTED_PROTOCOL_VERSIONS[0],
+            'capabilities' => ['tools' => ['listChanged' => false]],
+            'serverInfo' => ['name' => 'clickerp', 'title' => 'ClickERP', 'version' => self::SERVER_VERSION],
+            'instructions' => 'ClickERP: نظام استقدام وتأجير عمالة منزلية. كل الأدوات للقراءة فقط، '
+                . 'وتعمل بصلاحيات الموظف صاحب التوكن وفرعه. ابدأ بـ whoami لمعرفة النطاق. '
+                . 'الأرقام الحساسة (الجواز والجوال) مخفية جزئياً.',
+        ];
+    }
+
+    private function listTools(Admin $admin): array
+    {
+        return collect($this->tools())
+            ->filter(fn (McpTool $tool) => $tool->isAllowedFor($admin))
+            ->map(fn (McpTool $tool) => $tool->definition())
+            ->values()
+            ->all();
+    }
+
+    private function callTool($id, array $params, Admin $admin, ?McpAccessToken $token, ?string $ip): array
+    {
+        $name = (string) ($params['name'] ?? '');
+        $arguments = is_array($params['arguments'] ?? null) ? $params['arguments'] : [];
+        $tool = $this->tools()[$name] ?? null;
+        $startedAt = microtime(true);
+
+        $audit = function (string $status, ?string $error = null) use ($admin, $token, $name, $arguments, $ip, $startedAt) {
+            $this->audit($admin, $token, 'tools/call', $name, $arguments, $status, $error, $ip, $startedAt);
+        };
+
+        if (!$tool) {
+            $audit('unknown');
+
+            return $this->error($id, -32602, "Unknown tool: {$name}");
+        }
+
+        if (!$tool->isAllowedFor($admin)) {
+            $audit('denied');
+
+            return $this->result($id, $this->toolError('لا تملك صلاحية استخدام هذه الأداة.'));
+        }
+
+        try {
+            $data = $tool->handle($arguments, $admin);
+        } catch (McpToolException $e) {
+            $audit('error', $e->getMessage());
+
+            return $this->result($id, $this->toolError($e->getMessage()));
+        } catch (Throwable $e) {
+            Log::error('MCP tool failed', ['tool' => $name, 'exception' => $e]);
+            $audit('error', $e->getMessage());
+
+            return $this->result($id, $this->toolError('حدث خطأ داخلي أثناء تنفيذ الأداة.'));
+        }
+
+        $audit('ok');
+
+        return $this->result($id, [
+            'content' => [[
+                'type' => 'text',
+                'text' => json_encode($data, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT),
+            ]],
+            'structuredContent' => $data,
+            'isError' => false,
+        ]);
+    }
+
+    /** @return array<string, McpTool> */
+    public function tools(): array
+    {
+        if ($this->tools === null) {
+            $this->tools = collect(config('mcp.tools', []))
+                ->map(fn (string $class) => app($class))
+                ->keyBy(fn (McpTool $tool) => $tool->name())
+                ->all();
+        }
+
+        return $this->tools;
+    }
+
+    private function audit(
+        Admin $admin,
+        ?McpAccessToken $token,
+        string $method,
+        ?string $tool,
+        array $arguments,
+        string $status,
+        ?string $error,
+        ?string $ip,
+        float $startedAt
+    ): void {
+        try {
+            McpAuditLog::query()->create([
+                'admin_id' => $admin->id,
+                'token_id' => $token?->id,
+                'method' => $method,
+                'tool' => $tool !== null ? Str::limit($tool, 117) : null,
+                'arguments' => $arguments,
+                'status' => $status,
+                'error' => $error !== null ? Str::limit($error, 497) : null,
+                'duration_ms' => (int) round((microtime(true) - $startedAt) * 1000),
+                'ip' => $ip,
+                'created_at' => now(),
+            ]);
+        } catch (Throwable $e) {
+            // تعطل السجل لا يجب أن يُسقط الرد؛ يكفي تسجيله في اللوج.
+            Log::warning('MCP audit log failed', ['exception' => $e->getMessage()]);
+        }
+    }
+
+    private function toolError(string $message): array
+    {
+        return ['content' => [['type' => 'text', 'text' => $message]], 'isError' => true];
+    }
+
+    private function result($id, $result): array
+    {
+        return ['jsonrpc' => '2.0', 'id' => $id, 'result' => $result];
+    }
+
+    public function error($id, int $code, string $message): array
+    {
+        return ['jsonrpc' => '2.0', 'id' => $id, 'error' => ['code' => $code, 'message' => $message]];
+    }
+}

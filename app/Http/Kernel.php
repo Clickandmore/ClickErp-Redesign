@@ -96,5 +96,6 @@ class Kernel extends HttpKernel
         'check_system_subscription' => CheckSystemSubscriptionMiddelware::class,
         'public_site_enabled' => \App\Http\Middleware\EnsurePublicSiteEnabled::class,
         'track.website.visitor' => \App\Http\Middleware\TrackWebsiteVisitor::class,
+        'mcp.auth' => \App\Http\Middleware\AuthenticateMcpToken::class,
     ];
 }

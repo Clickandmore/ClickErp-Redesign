@@ -122,6 +122,7 @@
             <a class="btn btn-primary" href="{{ route('dev-superadmin.hourly-rental-settings.index') }}">إعدادات الساعات</a>
             <a class="btn" href="{{ route('dev-superadmin.moyasar-settings') }}">بوابة ميسر</a>
             <a class="btn" href="{{ route('dev-superadmin.invoice-corrections.index') }}">تصحيح الفواتير</a>
+            <a class="btn" href="{{ route('dev-superadmin.mcp.index') }}">MCP</a>
             <a class="btn" href="{{ \App\Support\SystemModuleManager::defaultDashboardUrl() }}">لوحة الإدارة</a>
             <form method="POST" action="{{ route('dev-superadmin.logout') }}">
                 @csrf

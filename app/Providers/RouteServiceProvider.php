@@ -71,6 +71,8 @@ class RouteServiceProvider extends ServiceProvider
             Route::middleware(['web', 'dev.superadmin'])
                 ->namespace($this->namespace)
                 ->group(base_path('routes/commands.php'));
+
+            Route::group([], base_path('routes/mcp.php'));
         });
     }
 
@@ -83,6 +85,13 @@ class RouteServiceProvider extends ServiceProvider
     {
         RateLimiter::for('api', function (Request $request) {
             return Limit::perMinute(60)->by(optional($request->user())->id ?: $request->ip());
+        });
+
+        // يعمل قبل التحقق من التوكن، فيحدّ محاولات التخمين أيضاً.
+        RateLimiter::for('mcp', function (Request $request) {
+            $key = $request->bearerToken() ? hash('sha256', $request->bearerToken()) : $request->ip();
+
+            return Limit::perMinute(\App\Support\McpSettings::rateLimitPerMinute())->by('mcp:' . $key);
         });
     }
 }
