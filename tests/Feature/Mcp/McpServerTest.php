@@ -22,6 +22,8 @@ class McpServerTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
+        // إعداد محفوظ من شاشة Super Admin يتقدم على config، فيُزال ليحكم الاختبار وحده.
+        DB::table('dev_superadmin_settings')->where('key', 'mcp_server')->delete();
         $this->setUpBranches();
         config(['mcp.enabled' => true, 'mcp.mask_sensitive' => true]);
     }
