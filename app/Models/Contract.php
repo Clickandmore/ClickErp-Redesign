@@ -85,6 +85,7 @@ class Contract extends Model
     // إضافة الحقول الجديدة للضمان
     protected $casts = [
         'warranty_start_date' => 'datetime',
+        'client_delivered_at' => 'datetime',
         'warranty_end_date' => 'datetime',
         'branch_id' => 'integer',
     ];
@@ -285,6 +286,11 @@ class Contract extends Model
         return $this->hasOne(\App\Models\TravelHistory::class, 'order_id', 'id')->latestOfMany();
     }
 
+    public function completedArrivalTravel()
+    {
+        return $this->hasOne(\App\Models\TravelHistory::class, 'order_id', 'id')
+            ->ofMany(['id' => 'max'], fn ($query) => $query->where('status', 'completed'));
+    }
     public function externalOfficeDispatch()
     {
         return $this->hasOne(ContractExternalOfficeDispatch::class, 'contract_id');
@@ -709,9 +715,9 @@ class Contract extends Model
             return $warrantyStart;
         }
 
-        $travelHistory = $this->exists
-            ? \App\Models\TravelHistory::where('order_id', $this->id)->latest('id')->first()
-            : ($this->relationLoaded('travelHistory') ? $this->travelHistory : null);
+        $travelHistory = $this->relationLoaded('travelHistory')
+            ? $this->travelHistory
+            : ($this->exists ? $this->travelHistory()->first() : null);
 
         $arrivalDateTime = null;
 

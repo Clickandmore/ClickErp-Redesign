@@ -329,6 +329,8 @@ Route::group(
             Route::resource('make-accounts-for-clients', MakeAccountsForClientsController::class)->only(['store']);
             Route::resource('skills', SkillController::class);
             Route::get('reports', [ReportController::class, 'index'])->name('reports.index');
+            Route::get('reports/arrivals', [ReportController::class, 'arrivals'])->name('reports.arrivals');
+            Route::post('reports/arrivals/{contract}/delivery', [ReportController::class, 'documentDelivery'])->whereNumber('contract')->name('reports.arrivals.delivery');
             Route::get('reports/import', [DataImportController::class, 'index'])->name('reports.import.index');
             Route::get('reports/import/template/{type}', [DataImportController::class, 'template'])->name('reports.import.template');
             Route::post('reports/import', [DataImportController::class, 'store'])->name('reports.import.store');

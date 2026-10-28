@@ -366,11 +366,180 @@ class ReportExportService
         abort_unless($this->canExportFormat($reportKey, $format), 403);
         $this->configureRuntime();
 
-        $payload = $this->buildReportPayload($reportKey, $request);
+        $payload = $reportKey === 'recruitment_contracts' && $request->query('arrival_report') === '1'
+            ? $this->arrivalReport($request)
+            : $this->buildReportPayload($reportKey, $request);
 
         return $format === 'excel'
             ? $this->exportExcel($payload)
             : $this->exportPdf($payload, $request);
+    }
+
+    public function arrivalReport(Request $request): array
+    {
+        $request->validate([
+            'date_from' => 'nullable|date_format:Y-m-d|after_or_equal:1900-01-01',
+            'date_to' => 'nullable|date_format:Y-m-d|after_or_equal:date_from',
+            'bucket' => 'nullable|in:all,arrived,previous,waiting,delayed,undelivered,missing,delivered',
+            'date_type' => 'nullable|in:arrival,contract,created,delivery',
+            'view' => 'nullable|in:contracts,offices,employees',
+            'office_id' => 'nullable|integer|min:1', 'marketer_id' => 'nullable|integer|min:1',
+            'nationality_id' => 'nullable|integer|min:1', 'branch_id' => 'nullable|integer|min:1',
+            'status' => 'nullable|string|max:60', 'global_search' => 'nullable|string|max:200',
+            'sort' => 'nullable|in:id,arrival,expected,delivery,contract,created,delay',
+            'direction' => 'nullable|in:asc,desc', 'page' => 'nullable|integer|min:1',
+        ]);
+        $from = Carbon::parse($request->input('date_from') ?: now()->startOfMonth()->toDateString())->startOfDay();
+        $to = Carbon::parse($request->input('date_to') ?: now()->toDateString())->endOfDay();
+        abort_if($from->gt($to), 422, 'بداية الفترة يجب أن تسبق نهايتها.');
+        $asOf = now();
+        $dateType = $request->input('date_type') ?: 'arrival';
+        $bucket = $request->input('bucket') ?: 'all';
+        $reportView = $request->input('view') ?: 'contracts';
+        $query = Contract::query()->whereIn('type', ['recruitment', 'maid'])
+            ->with(['user', 'companyProfile', 'maid.office.translations', 'maid.nationality.translations',
+                'info.manualMaidOffice.translations', 'info.manualMaidNationality.translations',
+                'marketer', 'order.details.admin', 'travelHistory', 'completedArrivalTravel',
+                'contract_status_logs' => fn ($q) => $q->whereIn('status', ['arrival', 'completed', 'under_warranty', 'closed'])]);
+        $this->applyRecruitmentContractFilters(Request::create('/', 'GET', $request->only(['global_search', 'status'])), $query);
+        app(BranchAccessService::class)->applyToQuery($query, $request, 'contracts');
+        if ($request->filled('office_id')) {
+            $id = (int) $request->input('office_id');
+            $query->where(fn ($q) => $q->whereHas('maid', fn ($m) => $m->where('office_id', $id))
+                ->orWhere(fn ($q) => $q->where(fn ($q) => $q->whereDoesntHave('maid')->orWhereHas('maid', fn ($m) => $m->whereNull('office_id')))
+                    ->whereHas('info', fn ($i) => $i->where('manual_maid_office_id', $id))));
+        }
+        if ($request->filled('marketer_id')) {
+            $id = (int) $request->input('marketer_id');
+            $query->where(fn ($q) => $q->where('marketer_id', $id)->orWhere(fn ($q) => $q->whereNull('marketer_id')
+                ->whereHas('order.details', fn ($d) => $d->where('admin_id', $id))));
+        }
+        if ($request->filled('nationality_id')) {
+            $id = (int) $request->input('nationality_id');
+            $query->where(fn ($q) => $q->whereHas('maid', fn ($m) => $m->where('nationality_id', $id))
+                ->orWhere(fn ($q) => $q->whereDoesntHave('maid')->whereHas('info', fn ($i) => $i->where('manual_maid_nationality_id', $id)))
+                ->orWhere(fn ($q) => $q->whereDoesntHave('maid')->whereDoesntHave('info', fn ($i) => $i->whereNotNull('manual_maid_nationality_id'))
+                    ->where('required_maid_nationality_id', $id)));
+        }
+        $records = $query->orderByDesc('id')->lazy(200)->map(fn ($c) => $this->arrivalFacts($c, $asOf))->collect();
+        $metrics = \App\Support\RecruitmentArrivalMetrics::class;
+        $summary = $metrics::summary($records, $from, $to, $asOf);
+        [$previousFrom, $previousTo] = $metrics::previousRange($from, $to);
+        $selected = $metrics::select($records, $bucket, $dateType, $from, $to, $asOf);
+        $sort = $request->input('sort') ?: 'arrival';
+        $selected = $selected->sortBy(fn ($r) => $r[$sort] instanceof Carbon ? $r[$sort]->timestamp : ($r[$sort] ?? PHP_INT_MIN), SORT_REGULAR, $request->input('direction', 'desc') === 'desc')->values();
+        $snapshot = in_array($bucket, ['waiting', 'delayed', 'undelivered', 'missing'], true);
+        $labels = ['all' => 'العقود حسب التاريخ المختار', 'arrived' => 'وصلت خلال الفترة', 'previous' => 'الوصول في الفترة السابقة',
+            'waiting' => 'بانتظار الوصول حاليًا', 'delayed' => 'متأخرة عن موعد الرحلة المتوقع',
+            'undelivered' => 'وصلت دون تسليم موثق', 'missing' => 'وصول دون تاريخ صالح', 'delivered' => 'تسليم موثق خلال الفترة'];
+        $title = 'تقرير الاستقدام — ' . $labels[$bucket] . ' — '
+            . ($snapshot ? 'حتى ' . $asOf->format('Y-m-d H:i') : ($bucket === 'previous' ? $previousFrom->toDateString().' إلى '.$previousTo->toDateString() : $from->toDateString().' إلى '.$to->toDateString()));
+        $branchLabel = app(BranchAccessService::class)->reportBranchLabel();
+        if ($branchLabel) $title .= ' — ' . $branchLabel;
+        $headings = ['رقم العقد', 'العميل', 'العاملة', 'الجواز', 'التأشيرة', 'الجنسية', 'المكتب الخارجي', 'الموظف / المسوق',
+            'تاريخ العقد', 'تاريخ الإنشاء', 'الوصول الفعلي', 'مصدر تاريخ الوصول', 'الوصول المتوقع', 'أيام التأخير الحالية', 'التسليم الموثق', 'حالة العقد'];
+        $rows = $selected->map(fn ($r) => [$r['id'], $r['client'], $r['maid'], $r['passport'], $r['visa'], $r['nationality'],
+            $r['office'], $r['employee'], $r['contract']?->toDateString() ?: '-', $r['created']?->toDateString() ?: '-',
+            $r['arrival']?->toDateString() ?: '-', $r['source'], $r['expected']?->toDateString() ?: '-', $r['delay'],
+            $r['delivery']?->format('Y-m-d H:i') ?: 'غير موثق', $r['status_label']])->all();
+        $groups = [];
+        if ($reportView !== 'contracts') {
+            $dimension = $reportView === 'offices' ? 'office' : 'employee';
+            foreach ($records->groupBy($dimension . '_id') as $id => $items) {
+                $groupSelected = $selected->where($dimension . '_id', $id);
+                if ($groupSelected->isEmpty()) continue;
+                $stats = $metrics::summary($items, $from, $to, $asOf);
+                $durations = $metrics::select($items, 'arrived', 'arrival', $from, $to, $asOf)
+                    ->filter(fn ($r) => $r['contract'] && $r['arrival']->gte($r['contract']))
+                    ->map(fn ($r) => $r['contract']->diffInDays($r['arrival']));
+                $groups[] = ['id' => $id, 'name' => $items->first()[$dimension], 'selected' => $groupSelected->count(),
+                    'arrived' => $stats['arrived'], 'previous' => $stats['previous'], 'waiting' => $stats['waiting'],
+                    'delayed' => $stats['delayed'], 'undelivered' => $stats['undelivered'],
+                    'average' => $durations->isEmpty() ? '-' : round($durations->avg(), 1)];
+            }
+            $groups = collect($groups)->sortByDesc('selected')->values()->all();
+            $headings = [$reportView === 'offices' ? 'المكتب الخارجي' : 'الموظف / المسوق', 'العقود المطابقة للفلاتر',
+                'الوصول خلال الفترة', 'الوصول بالفترة السابقة', 'بانتظار الوصول حاليًا', 'متأخرة حاليًا', 'دون تسليم موثق حاليًا', 'متوسط أيام الاستقدام للوصول خلال الفترة'];
+            $rows = array_map(fn ($g) => [$g['name'], $g['selected'], $g['arrived'], $g['previous'], $g['waiting'], $g['delayed'], $g['undelivered'], $g['average']], $groups);
+            $title .= $reportView === 'offices' ? ' — أداء المكاتب' : ' — أداء الموظفين';
+        }
+        $monthly = $metrics::select($records, 'arrived', 'arrival', $from, $to, $asOf)
+            ->groupBy(fn ($r) => $r['arrival']->format('Y-m'))->map->count()->sortKeys()->all();
+        $cellLinks = [];
+        if ($reportView === 'contracts' && AdminGuardHasAnyPerm([NewPermKeys::REC_CONTRACTS_VIEW, NewPermKeys::REC_CONTRACTS_MANAGE])) {
+            foreach ($selected as $index => $record) $cellLinks[$index][0] = route('RecruitmentContract.show', $record['id']);
+        }
+        return ['title' => $title, 'filename_prefix' => 'recruitment_operations', 'wide' => true,
+            'from' => $from->toDateString(), 'to' => $to->toDateString(), 'as_of' => $asOf->format('Y-m-d H:i'),
+            'previous_from' => $previousFrom->toDateString(), 'previous_to' => $previousTo->toDateString(),
+            'summary' => $summary, 'arrived_count' => $summary['arrived'], 'missing_count' => $summary['missing'],
+            'snapshot' => $snapshot, 'bucket' => $bucket, 'date_type' => $dateType, 'view' => $reportView,
+            'records' => $selected, 'groups' => $groups, 'monthly' => $monthly,
+            'headings' => $headings, 'rows' => $rows, 'cell_links' => $cellLinks,
+            'delivery_tracking' => Schema::hasColumn('contracts', 'client_delivered_at')];
+    }
+
+    protected function arrivalFacts(Contract $contract, Carbon $asOf): array
+    {
+        $date = fn ($value) => \App\Support\RecruitmentArrivalMetrics::date($value);
+        $trip = $contract->completedArrivalTravel;
+        $logs = $contract->contract_status_logs;
+        $arrival = $date($contract->getRawOriginal('warranty_start_date'));
+        $source = $arrival ? 'بداية الضمان' : '-';
+        if (!$arrival && $trip) {
+            $arrival = $date($trip->arrival_date) ?: $date($trip->arrived_at);
+            if ($arrival) $source = 'رحلة مكتملة';
+        }
+        $hasArrived = $arrival || $trip || $logs->isNotEmpty()
+            || in_array($contract->status, ['arrival', 'completed', 'under_warranty', 'closed', 'refunded'], true);
+        if (!$arrival && $hasArrived) {
+            $arrival = $date($contract->info?->arrival_date);
+            if ($arrival) $source = 'تاريخ الوصول بالعقد';
+        }
+        if (!$arrival && $hasArrived) {
+            $arrival = $date($contract->maid?->arrival_date);
+            if ($arrival) $source = 'تاريخ الوصول بالعاملة';
+        }
+        // A dated arrival event remains evidence after cancellation/return; never use an arbitrary update timestamp.
+        if (!$arrival && $hasArrived) {
+            $arrivalLog = $logs->where('status', 'arrival')->sortBy('id')->first(fn ($log) => $date($log->date));
+            $arrival = $date($arrivalLog?->date);
+            if ($arrival) $source = 'سجل مرحلة الوصول';
+        }
+        $latestTrip = $contract->travelHistory;
+        $expected = !$hasArrived && $latestTrip && !in_array($latestTrip->status, ['completed', 'cancelled', 'canceled'], true)
+            ? $date($latestTrip->arrival_date) : null;
+        $office = $contract->maid?->office ?: $contract->info?->manualMaidOffice;
+        $employee = $contract->marketer ?: $contract->order?->details?->admin;
+        $record = ['id' => $contract->id, 'arrival' => $arrival, 'source' => $source, 'expected' => $expected,
+            'has_arrived' => (bool) $hasArrived, 'delivery' => $date($contract->getRawOriginal('client_delivered_at')),
+            'contract' => $date($contract->info?->contract_date) ?: $date($contract->contract_date),
+            'created' => $date($contract->getRawOriginal('created_at')), 'status' => $contract->status,
+            'client' => $contract->user?->name ?: '-', 'maid' => $this->resolveRecruitmentContractMaidName($contract),
+            'passport' => $this->resolveRecruitmentContractPassport($contract),
+            'visa' => $contract->info?->visa_number ?: ($contract->visa_number ?: '-'),
+            'nationality' => $contract->maid?->nationality?->title ?: ($contract->info?->manualMaidNationality?->title ?: '-'),
+            'office_id' => (int) ($office?->id ?? 0), 'office' => $office?->title ?: 'غير محدد',
+            'employee_id' => (int) ($employee?->id ?? 0), 'employee' => $employee?->name ?: 'غير محدد',
+            'status_label' => $this->resolveContractStatusLabel($contract->status)];
+        $record['delay'] = \App\Support\RecruitmentArrivalMetrics::delayed($record, $asOf)
+            ? $expected->copy()->startOfDay()->diffInDays($asOf->copy()->startOfDay()) : 0;
+        return $record;
+    }
+    protected function arrivalBuckets(iterable $contracts, Carbon $from, Carbon $to): array
+    {
+        $arrived = collect();
+        $missing = collect();
+        foreach ($contracts as $contract) {
+            $arrival = $contract->resolveRecruitmentArrivalDateTime();
+            if ($arrival && $arrival->betweenIncluded($from, $to)) {
+                $arrived->push([$contract, $arrival]);
+            } elseif (!$arrival && (in_array($contract->status, ['arrival', 'completed'], true)
+                || $contract->travelHistory?->status === 'completed')) {
+                $missing->push([$contract, null]);
+            }
+        }
+        return [$arrived, $missing];
     }
 
     private function definitions(): array
@@ -2582,7 +2751,7 @@ class ReportExportService
         $likeSearch = '%' . $search . '%';
 
         $query->where(function ($innerQuery) use ($likeSearch) {
-            $innerQuery->where('id', 'like', $likeSearch)
+            $innerQuery->where('id', 'like', $likeSearch)->orWhere('visa_number', 'like', $likeSearch)
                 ->orWhere('order_id', 'like', $likeSearch)
                 ->orWhere('status', 'like', $likeSearch)
                 ->orWhereHas('user', function ($userQuery) use ($likeSearch) {
@@ -2600,6 +2769,8 @@ class ReportExportService
                 })
                 ->orWhereHas('info', function ($infoQuery) use ($likeSearch) {
                     $infoQuery->where('visa_number', 'like', $likeSearch)
+                        ->orWhere('manual_maid_name', 'like', $likeSearch)
+                        ->orWhere('manual_maid_passport_num', 'like', $likeSearch)
                         ->orWhere('msaned_number', 'like', $likeSearch)
                         ->orWhere('tafwed_number', 'like', $likeSearch)
                         ->orWhere('visa_milad_date', 'like', $likeSearch)
