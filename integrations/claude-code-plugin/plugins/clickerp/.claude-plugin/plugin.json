@@ -1,7 +1,7 @@
 {
   "name": "clickerp",
-  "version": "1.0.0",
-  "description": "ClickERP for Claude Code: read-only access to domestic workers and recruitment contracts with the signed-in employee's permissions and branch.",
+  "version": "1.1.0",
+  "description": "ClickERP for Claude Code: read-only access to workers, recruitment and rental contracts, customers, complaints, invoices, finance and the activity log with the signed-in employee's permissions and branch.",
   "author": {
     "name": "Click & More"
   },

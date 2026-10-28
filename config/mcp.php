@@ -45,5 +45,12 @@ return [
         \App\Mcp\Tools\SearchMaidsTool::class,
         \App\Mcp\Tools\ListRecruitmentContractsTool::class,
         \App\Mcp\Tools\GetRecruitmentContractTool::class,
+        \App\Mcp\Tools\ListRentalContractsTool::class,
+        \App\Mcp\Tools\SearchCustomersTool::class,
+        \App\Mcp\Tools\ListComplaintsTool::class,
+        \App\Mcp\Tools\InvoicesSummaryTool::class,
+        \App\Mcp\Tools\FinanceAccountBalanceTool::class,
+        \App\Mcp\Tools\FinanceBondsSummaryTool::class,
+        \App\Mcp\Tools\ActivityLogTool::class,
     ],
 ];

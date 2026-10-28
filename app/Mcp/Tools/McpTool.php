@@ -30,21 +30,36 @@ abstract class McpTool
 
     abstract public function handle(array $arguments, Admin $admin): array;
 
+    /**
+     * مسارات الحزم (finance، hr...) محمية بـ package.route.permission لا بالمصفوفة.
+     * أعد اسم الحزمة هنا ليُقرأ إذن gateRoute() من EnsurePackageRoutePermission.
+     */
+    protected function gatePackage(): ?string
+    {
+        return null;
+    }
+
     public function isAllowedFor(Admin $admin): bool
     {
-        $route = $this->gateRoute();
+        return self::routeAllows($admin, $this->gateRoute(), $this->gatePackage());
+    }
 
+    /** نفس فحص الشاشة: موديول غير مغلق + إحدى صلاحيات المسار. */
+    public static function routeAllows(Admin $admin, ?string $route, ?string $package = null): bool
+    {
         if ($route === null) {
             return true;
         }
 
-        if (SystemModuleManager::disabledModuleForRoute($route, '')) {
+        // مسار محذوف أو مكتوب خطأً يعني خطأ في تعريف الأداة، لا إذناً مفتوحاً.
+        if (!app('router')->has($route) || SystemModuleManager::disabledModuleForRoute($route, '')) {
             return false;
         }
 
-        $permissions = AdminRoutePermissionMatrix::resolve($route);
+        $permissions = $package
+            ? app(\App\Http\Middleware\EnsurePackageRoutePermission::class)->resolvePermissions($route, $package)
+            : AdminRoutePermissionMatrix::resolve($route);
 
-        // مسار بلا إدخال في المصفوفة يعني خطأ في تعريف الأداة، لا إذناً مفتوحاً.
         if ($permissions === []) {
             return false;
         }

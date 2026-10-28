@@ -41,6 +41,16 @@ Codex / Claude  ──POST /mcp + Bearer token──►  AuthenticateMcpToken
 | `search_maids` | `maids.index` | البحث عن العاملات |
 | `list_recruitment_contracts` | `RecruitmentContract.index` | قائمة العقود + العدد حسب الحالة |
 | `get_recruitment_contract` | `RecruitmentContract.show` | تفاصيل عقد مع فاتورته وآخر ملاحظاته |
+| `list_rental_contracts` | `RentContract.index` | عقود الإيجار + العدد حسب الحالة + المنتهية قريباً |
+| `search_customers` | `clients.index` | العملاء (عزل الفرع يدوي كما في UserController لأن User بلا BranchScoped) |
+| `list_complaints` | `complaints.index` | الشكاوى + العدد حسب الحالة والأولوية |
+| `invoices_summary` | `invoices.index` | إجماليات الفواتير والضريبة والمدفوع وغير المدفوع |
+| `finance_account_balance` | `finance.accounts.index` (حزمة finance) | رصيد حساب مع حساباته الفرعية في فترة |
+| `finance_bonds_summary` | `finance.bonds-qabd.index` / `finance.bonds-sarf.index` (حزمة finance) | سندات القبض والصرف — كل نوع بصلاحيته |
+| `activity_log` | `dash.activity.log` | سجل الأنشطة: من فعل ماذا، مع ملخصات. الحقول السرية (كلمات المرور، التوكنات) تُرسل `[مخفي]` |
+
+أدوات حزمة finance تعلن `gatePackage() = 'finance'` فتُقرأ صلاحيتها من `EnsurePackageRoutePermission`.
+مسار غير موجود في الـ router يُرفض دائماً.
 
 - الصلاحية تُقرأ من `AdminRoutePermissionMatrix::resolve()` نفسها، فأي تعديل على صلاحية الشاشة
   ينعكس على الأداة تلقائياً.
@@ -199,6 +209,6 @@ MySQL يحوّل النص إلى 0 فيطابق صفوفاً خاطئة. قار�
 ## خارج هذا الإصدار
 
 - أدوات الكتابة (ملاحظة على عقد، مسودة طلب) — تحتاج تأكيداً من الموظف قبل التنفيذ.
-- عقود الإيجار، العملاء وأرصدتهم، الشكاوى، الإيواء.
+- الإيواء والترحيل والسفر، الموارد البشرية، CRM.
 
 لن تُضاف أبداً: ترحيل القيود المالية، الحذف، تعديل الصلاحيات.
