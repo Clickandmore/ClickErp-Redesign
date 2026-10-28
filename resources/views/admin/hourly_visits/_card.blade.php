@@ -73,7 +73,7 @@
             @if($canEdit)
                 <div class="vl-acts">
                     @if(!$visit->has_started_execution && !$slotPick)<button type="button" class="vl-act" data-single="reschedule" data-id="{{ $visit->id }}" data-missed="{{ $visit->is_missed ? '1' : '0' }}"><i class="fa fa-calendar-days"></i> التاريخ</button>@endif
-                    @if(!$visit->has_started_execution && !$slotPick)<button type="button" class="vl-act" data-single="start_time" data-id="{{ $visit->id }}"><i class="fa fa-clock"></i> الوقت</button>@endif
+                    @if(!$visit->has_started_execution && !$slotPick)<button type="button" class="vl-act" data-single="start_time" data-id="{{ $visit->id }}" data-date="{{ $visit->scheduled_start_at?->format('Y-m-d') }}" data-time="{{ $visit->scheduled_start_at?->format('H:i') }}"><i class="fa fa-clock"></i> الوقت</button>@endif
                     <button type="button" class="vl-act" data-single="note" data-id="{{ $visit->id }}"><i class="fa fa-note-sticky"></i> مذكرة</button>
                 </div>
             @endif

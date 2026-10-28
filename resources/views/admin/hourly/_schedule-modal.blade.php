@@ -31,6 +31,9 @@ if(isset($scheduleVisitList)){
 .vs-slot-card{border:1px solid #d6e3f0;border-radius:11px;background:#fff;color:#1b6fb8;padding:.6rem .4rem;font-weight:700;direction:ltr;transition:background .15s,border-color .15s,color .15s}
 .vs-slot-card:hover{border-color:#2794eb;background:#eef6fe}
 .vs-slot-card:focus-visible{outline:2px solid #2794eb;outline-offset:2px}
+.vs-slot-card.is-current,.vs-slot-card.is-current:hover{background:#f1f3f5;border-style:dashed;border-color:#c3cbd4;color:#8a96a3;cursor:not-allowed}
+.vs-slot-card small{display:block;font-weight:500;font-size:.7rem}
+.vs-current{display:flex;align-items:center;gap:.5rem;margin-bottom:.9rem;padding:.55rem .8rem;border-radius:11px;background:#f1f7fd;border:1px solid #d6e6f6;color:#2c4a66;font-size:.84rem;font-weight:600}
 .vs-slot-card.selected{background:#1b6fb8;border-color:#1b6fb8;color:#fff;box-shadow:0 4px 12px rgba(27,111,184,.3)}
 .vs-slot-status{grid-column:1/-1;display:flex;align-items:center;gap:.5rem;justify-content:center;color:#68788b;background:#f8fafc;border:1px dashed #d6e3f0;border-radius:11px;padding:.9rem;margin:0;font-size:.84rem;text-align:center}
 .vs-summary{display:flex;align-items:center;gap:.7rem;margin-top:1rem;padding:.7rem .9rem;border-radius:12px;background:#f8fafc;border:1px solid #edf1f6;color:#94a3b8}
@@ -53,6 +56,7 @@ if(isset($scheduleVisitList)){
 </div>
 <form id="visit-schedule-form" method="POST">@csrf @method('PUT')<input type="hidden" name="starts_at"><input type="hidden" name="expected_start_at">
 <div class="modal-body">
+    <div id="vs-current" class="vs-current" hidden><i class="fa fa-clock-rotate-left" aria-hidden="true"></i><span></span></div>
     <label for="vs-date" class="vs-step"><span class="vs-step-num">1</span>{{ __('visit_schedule.date') }}</label>
     <div class="vs-date-wrap"><i class="fa fa-calendar" aria-hidden="true"></i><input class="form-control" type="date" id="vs-date" min="{{ now()->toDateString() }}" max="{{ $scheduleMax }}"></div>
     <div class="vs-step mt-3" id="vs-time-label"><span class="vs-step-num">2</span>{{ __('visit_schedule.time') }}</div>
@@ -62,6 +66,6 @@ if(isset($scheduleVisitList)){
 </div>
 <div class="modal-footer"><button id="vs-save" class="btn btn-primary"><i class="fa fa-check ms-1"></i> {{ __('visit_schedule.save') }}</button><button type="button" class="btn btn-light" data-bs-dismiss="modal">{{ __('visit_schedule.close') }}</button></div></form></div></div></div>
 @push('js')
-<script>window.hourlyScheduleConfig={visits:@json((object) $scheduleVisits),url:@json($scheduleUrl),targets:@json((object) $scheduleTargets),slotsUrl:@json(route('admin.hourly-visits.reschedule-slots','VISIT_ID')),locale:@json(app()->getLocale()),min:@json(now()->toDateString()),max:@json($scheduleMax),error:@json(__('visit_schedule.error')),text:{visit:@json(__('visit_schedule.visit')),loading:@json(__('visit_schedule.loading')),noSlots:@json(__('visit_schedule.no_slots')),pickSlot:@json(__('visit_schedule.pick_slot')),noneSelected:@json(__('visit_schedule.none_selected'))}};</script>
+<script>window.hourlyScheduleConfig={visits:@json((object) $scheduleVisits),url:@json($scheduleUrl),targets:@json((object) $scheduleTargets),slotsUrl:@json(route('admin.hourly-visits.reschedule-slots','VISIT_ID')),locale:@json(app()->getLocale()),min:@json(now()->toDateString()),max:@json($scheduleMax),error:@json(__('visit_schedule.error')),text:{visit:@json(__('visit_schedule.visit')),loading:@json(__('visit_schedule.loading')),noSlots:@json(__('visit_schedule.no_slots')),pickSlot:@json(__('visit_schedule.pick_slot')),noneSelected:@json(__('visit_schedule.none_selected')),current:@json(__('visit_schedule.current')),currentHint:@json(__('visit_schedule.current_hint')),noOtherSlots:@json(__('visit_schedule.no_other_slots'))}};</script>
 <script src="{{ asset('admin/assets/js/hourly-visit-schedule.js') }}?v={{ filemtime(public_path('admin/assets/js/hourly-visit-schedule.js')) }}"></script>
 @endpush
