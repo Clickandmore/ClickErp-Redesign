@@ -68,6 +68,7 @@ class AccountRestructureService
         'shelter_agent_cost_recoveries' => ['office_account_id' => 'استرداد تكلفة الوكيل (المكتب)', 'asset_account_id' => 'استرداد تكلفة الوكيل (الأصل)'],
         'shelter_living_expenses' => ['expense_account_id' => 'مصروفات الإعاشة (مصروف)', 'payment_account_id' => 'مصروفات الإعاشة (الدفع)'],
         'hr_employee_custodies' => ['account_id' => 'عهد الموظفين'],
+        'fn_daily_cash_reference_lines' => ['account_id' => 'بنود تقرير صندوق اليومية'],
     ];
 
     private array $columnExists = [];

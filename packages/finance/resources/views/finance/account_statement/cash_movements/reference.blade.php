@@ -19,7 +19,7 @@ $receipts=$report['groups']['receipts']; $expenses=$report['groups']['expenses']
 <div class="col-md-3"><label for="reference-from">من تاريخ (اختياري)</label><input class="form-control" id="reference-from" type="date" name="from_date" value="{{ $report['from'] }}"><small>اتركه فارغًا لعرض جميع السجلات حتى تاريخ النهاية</small></div>
 <div class="col-md-3"><label for="reference-to">إلى تاريخ</label><input class="form-control" id="reference-to" type="date" name="to_date" value="{{ $report['to'] }}" required></div>
 <div class="col-md-3"><label for="reference-approval">القيود المحتسبة</label><select class="form-control" id="reference-approval" name="approval"><option value="approved" {{ $report['approval']==='approved' ? 'selected' : '' }}>المعتمدة فقط</option><option value="all" {{ $report['approval']==='all' ? 'selected' : '' }}>جميع القيود غير المحذوفة (للمراجعة)</option></select></div>
-<div class="col-md-3"><button type="submit" class="btn btn-success">عرض التقرير</button><a class="btn btn-outline-secondary" href="{{ route('finance.cash-movements.index',['view'=>'movement']) }}">تفاصيل حركة الحسابات</a></div>
+<div class="col-md-3"><button type="submit" class="btn btn-success">عرض التقرير</button><a class="btn btn-outline-secondary" href="{{ route('finance.cash-movements.index',['view'=>'movement']) }}">تفاصيل حركة الحسابات</a> <a class="btn btn-outline-secondary" href="{{ route('finance.daily-cash-reference-lines.index') }}">إدارة البنود</a></div>
 </div>
 @if($errors->any())<div class="alert alert-danger mt-3">{{ $errors->first() }}</div>@endif
 </form>
