@@ -1,4 +1,7 @@
-{{-- حقول الفترة المشتركة: شهر، أو من/إلى (يتقدّم على الشهر). المتغيرات: $period --}}
+{{-- حقول الفترة المشتركة: شهر، أو من/إلى (يتقدّم على الشهر)، و«كل الأوقات» تبقى ما لم يُختر شهر أو مدى. المتغيرات: $period --}}
+@if ($period->mode === 'all')
+    <input type="hidden" name="period" value="all">
+@endif
 <div>
     <label for="pg-month">{{ __('payment_gateways.period.month') }}</label>
     <input type="month" id="pg-month" name="month" class="form-control" value="{{ $period->mode === 'month' ? $period->month() : '' }}">

@@ -21,10 +21,10 @@ class MoyasarPaymentsReport
     /** حالات دُفع فيها المبلغ (حتى لو استُرد لاحقاً). */
     private const COLLECTED = ['paid', 'partially_refunded', 'refunded'];
 
-    /** @return Collection<int, array> عمليات ميسر من بداية نافذة الاتجاه حتى نهاية الفترة */
+    /** @return Collection<int, array> عمليات ميسر من بداية الفترة أو نافذة الاتجاه (أيهما أقدم) حتى نهاية الفترة */
     public function rows(ReportPeriod $period): Collection
     {
-        $from = $period->trendStart()->toDateTimeString();
+        $from = $period->fetchStart()->toDateTimeString();
         $to = $period->to->toDateTimeString();
 
         return $this->rental($from, $to)

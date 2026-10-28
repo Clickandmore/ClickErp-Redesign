@@ -101,7 +101,8 @@ class CommunicationService
                 'sent_at' => now(),
             ];
 
-            $log = $channel === 'notification' && filled($result['notification_id'])
+            // A failed internal notification has no row id; it is logged as a new line instead of breaking the batch.
+            $log = $channel === 'notification' && filled($result['notification_id'] ?? null)
                 ? CommunicationLog::updateOrCreate(
                     [
                         'channel' => $channel,
@@ -208,6 +209,21 @@ class CommunicationService
                 'response' => ['error' => $e->getMessage()],
             ];
         }
+    }
+
+    /**
+     * حالة التسليم الحقيقية كما ترويها نتيجة FCM لا كما نفترضها.
+     * معرّفة هنا لأن trait Firebase في هذا النظام لا يحملها، وهو جزء من مسار الجوال فلا نعدّله.
+     *
+     * @param array $result ناتج FirebasePushResult::toArray()
+     */
+    protected static function deliveryStatus(array $result): string
+    {
+        if (!empty($result['skipped'])) {
+            return 'skipped';
+        }
+
+        return ((int) ($result['success_count'] ?? 0)) > 0 ? 'sent' : 'failed';
     }
 
     /**
