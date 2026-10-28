@@ -51,7 +51,7 @@
     async function open(ids,choice,button){
         if(busy)return;
         if(!ids.length){swal({icon:'info',title:'لم تحدد أي زيارة',text:'حدد زيارة واحدة على الأقل من القائمة ثم اختر الإجراء.'});return;}
-        target=ids;form.reset();const slotPicker=form.querySelector('[data-reschedule-slots]'),manualPicker=form.querySelector('[data-reschedule-manual]');if(slotPicker)slotPicker.hidden=true;if(manualPicker)manualPicker.hidden=false;workersLoading=false;submit.disabled=false;form.elements.batch_id.value=crypto.randomUUID();action.value=choice||'';modal.dataset.single=choice?'1':'0';
+        target=ids;form.reset();const slotPicker=form.querySelector('[data-reschedule-slots]'),manualPicker=form.querySelector('[data-reschedule-manual]');if(slotPicker)slotPicker.hidden=true;if(manualPicker)manualPicker.hidden=false;form.querySelectorAll('[data-start-slots],[data-start-hint]').forEach(el=>el.hidden=true);form.querySelectorAll('[data-start-manual]').forEach(el=>el.hidden=false);workersLoading=false;submit.disabled=false;form.elements.batch_id.value=crypto.randomUUID();action.value=choice||'';modal.dataset.single=choice?'1':'0';
         if(choice==='collect'&&collectibleCents()<=0){swal({icon:'info',title:'لا يوجد مبلغ متاح للتحصيل',text:'الزيارة مسددة بالكامل أو لا يوجد مبلغ مستحق للتحصيل حاليًا. راجع سجل الدفعات.'});return;}
         step(choice?'form':'pick');
         document.getElementById('vl-target').textContent=(ids.length===1?'':ids.length+' ')+'زيارة محددة: #'+ids.join('، #');
@@ -62,6 +62,7 @@
         if(choice==='unassign_driver')form.elements.remove_driver_role.value=button?.dataset.role||'delivery';
         if(choice==='assign_workers')await loadWorkers(button?.dataset.replaceWorker);
         if(choice==='reschedule'&&ids.length===1&&button?.dataset.missed==='1')setupRescheduleSlots();
+        if(choice==='start_time'&&ids.length===1&&button?.dataset.date)setupStartSlots(button.dataset.date,button.dataset.time);
     }
     document.getElementById('vl-open-batch').addEventListener('click',()=>open(selected()));
     root.querySelectorAll('[data-single]').forEach(b=>b.addEventListener('click',()=>open([b.dataset.id],b.dataset.single,b)));
@@ -74,6 +75,24 @@
                 cards.replaceChildren(...data.slots.map(slot=>{const button=document.createElement('button');button.type='button';button.className='vl-slot-card';button.textContent=slot.label;button.setAttribute('aria-pressed','false');button.addEventListener('click',()=>{start.value=slot.starts_at;cards.querySelectorAll('.vl-slot-card').forEach(card=>{card.classList.remove('is-selected');card.setAttribute('aria-pressed','false');});button.classList.add('is-selected');button.setAttribute('aria-pressed','true');});return button;}));
             }catch(e){if(token===slotRequest){note(cards.dataset.error);error.textContent=e.message;error.hidden=false;}}finally{if(token===slotRequest)submit.disabled=false;}
         };date.addEventListener('input',load);date.addEventListener('change',load);load();
+    }
+    // Keeps the visit's date: lists that day's free start times and shows the current one as a disabled card.
+    async function setupStartSlots(day,current){
+        const group=form.querySelector('[data-fields="start_time"]'),hint=group.querySelector('[data-start-hint]'),picker=group.querySelector('[data-start-slots]'),manual=group.querySelector('[data-start-manual]'),cards=group.querySelector('#vl-start-slot-cards'),value=picker.querySelector('[name="start_time"]'),typed=manual.querySelector('[name="start_time"]');
+        const useManual=()=>{picker.hidden=true;value.disabled=true;manual.hidden=false;typed.disabled=false;typed.required=true;};
+        hint.querySelector('[data-start-date]').textContent=day;hint.querySelector('[data-start-current]').textContent=current||'—';hint.hidden=false;
+        picker.hidden=false;value.disabled=false;value.value='';manual.hidden=true;typed.disabled=true;typed.required=false;
+        const token=++slotRequest,note=text=>{const p=document.createElement('p');p.className='vl-slot-empty';p.textContent=text;return p;};
+        cards.replaceChildren(note(cards.dataset.loading));submit.disabled=true;
+        try{
+            const response=await fetch(root.dataset.visitBase+'/'+target[0]+'/reschedule-slots?date='+encodeURIComponent(day),{headers:{Accept:'application/json'}}),data=await response.json();
+            if(token!==slotRequest)return;if(!response.ok)throw new Error(data.message);
+            const times=[...new Set(data.slots.map(slot=>slot.label).concat(current?[current]:[]))].sort();
+            cards.replaceChildren(...times.map(time=>{const button=document.createElement('button');button.type='button';button.className='vl-slot-card';button.textContent=time;
+                if(time===current){button.classList.add('is-current');button.disabled=true;const tag=document.createElement('small');tag.textContent=cards.dataset.current;button.appendChild(tag);return button;}
+                button.setAttribute('aria-pressed','false');button.addEventListener('click',()=>{value.value=time;cards.querySelectorAll('.vl-slot-card').forEach(card=>{card.classList.remove('is-selected');card.setAttribute('aria-pressed','false');});button.classList.add('is-selected');button.setAttribute('aria-pressed','true');});return button;}));
+            if(times.every(time=>time===current))cards.appendChild(note(cards.dataset.empty));
+        }catch(e){if(token===slotRequest)useManual();}finally{if(token===slotRequest)submit.disabled=false;}
     }
     async function loadWorkers(replace){
         const choices=document.getElementById('vl-worker-choices'),context=document.getElementById('vl-worker-context'),token=form.elements.batch_id.value;
@@ -120,6 +139,8 @@
                 if(!chosen.length||chosen.length>workerRequired)throw new Error('اختر من عاملة واحدة إلى '+workerRequired+' عاملات.');
                 preview=document.getElementById('vl-worker-context').textContent+'\nالتعيين بعد الحفظ: '+chosen.map(input=>input.dataset.workerName).join('، ')+'\n'+preview;
             }
+            const slotTime=form.querySelector('[data-start-slots] [name="start_time"]');
+            if(action.value==='start_time'&&!slotTime.disabled){if(!slotTime.value)throw new Error('اختر أحد الأوقات المتاحة أولًا.');preview='الوقت الجديد: '+slotTime.value+'\n'+preview;}
             if(!(await confirmAction('معاينة وتأكيد: '+label,preview,['cancel_visit','unassign_workers','unassign_driver','unassign_all'].includes(action.value))))return;
             if(action.value==='reschedule'&&form.elements.starts_at&&!form.elements.starts_at.disabled&&!form.elements.starts_at.value)throw new Error('Choose an available time first.');
             const data=new FormData(form);target.forEach(id=>data.append('visit_ids[]',id));
