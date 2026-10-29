@@ -61,133 +61,26 @@
             color: #111827;
         }
 
-        .arrival-panel {
-            border: 1px solid #e5e7eb;
-            border-radius: 16px;
-            background: #fbfcfe;
-            padding: 16px;
-        }
-
-        .arrival-panel-header h6 {
-            font-weight: 700;
-            color: #1f2937;
-        }
-
-        .arrival-cards {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
-            gap: 12px;
-            margin-top: 14px;
-        }
-
-        .arrival-card {
-            --tone: #334155;
-            --tone-soft: #f1f5f9;
-            display: flex;
-            flex-direction: column;
-            align-items: stretch;
-            gap: 4px;
-            padding: 14px 16px;
-            border: 1px solid #e5e7eb;
-            border-top: 4px solid var(--tone);
-            border-radius: 14px;
-            background: #fff;
-            text-align: start;
-            cursor: pointer;
+        .contracts-insights-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 7px;
+            padding: 6px 14px;
+            border-radius: 999px;
+            border: 0;
+            background: linear-gradient(135deg, #4f46e5, #0ea5e9);
+            color: #fff;
+            font-weight: 600;
+            white-space: nowrap;
+            box-shadow: 0 6px 16px rgba(79, 70, 229, 0.25);
             transition: transform 0.15s ease, box-shadow 0.15s ease;
         }
 
-        .arrival-card:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 10px 24px rgba(0, 0, 0, 0.07);
-        }
-
-        .arrival-card.active {
-            box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.2);
-            border-color: rgba(13, 110, 253, 0.6);
-            border-top-color: var(--tone);
-        }
-
-        .arrival-card-success { --tone: #16a34a; --tone-soft: #dcfce7; }
-        .arrival-card-info { --tone: #2563eb; --tone-soft: #dbeafe; }
-        .arrival-card-danger { --tone: #dc2626; --tone-soft: #fee2e2; }
-        .arrival-card-warning { --tone: #d97706; --tone-soft: #fef3c7; }
-        .arrival-card-slate { --tone: #475569; --tone-soft: #e2e8f0; }
-
-        .arrival-card-top {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            margin-bottom: 6px;
-        }
-
-        .arrival-card-icon {
-            width: 38px;
-            height: 38px;
-            border-radius: 10px;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            background: var(--tone-soft);
-            color: var(--tone);
-            font-size: 17px;
-        }
-
-        .arrival-card-value {
-            font-size: 1.75rem;
-            font-weight: 800;
-            color: #111827;
-            line-height: 1;
-        }
-
-        .arrival-card-title {
-            font-weight: 700;
-            color: #1f2937;
-        }
-
-        .arrival-card-hint {
-            font-size: 0.78rem;
-            color: #6b7280;
-        }
-
-        .arrival-card-trend {
-            margin-top: 6px;
-            padding-top: 6px;
-            border-top: 1px dashed #e5e7eb;
-            font-size: 0.78rem;
-            color: #4b5563;
-        }
-
-        .arrival-card-trend.is-up { color: #15803d; }
-        .arrival-card-trend.is-down { color: #b91c1c; }
-
-        .arrival-panel-footer {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 8px;
-            margin-top: 12px;
-        }
-
-        .arrival-footer-link {
-            border: 1px solid #e5e7eb;
-            background: #fff;
-            border-radius: 999px;
-            padding: 5px 12px;
-            font-size: 0.8rem;
-            color: #374151;
-            cursor: pointer;
-        }
-
-        .arrival-footer-link:hover,
-        .arrival-footer-link.active {
-            border-color: rgba(13, 110, 253, 0.6);
-            color: #0d6efd;
-        }
-
-        .arrival-footer-link-warn {
-            border-color: #fde68a;
-            background: #fffbeb;
-            color: #92400e;
+        .contracts-insights-link:hover,
+        .contracts-insights-link:focus-visible {
+            color: #fff;
+            transform: translateY(-1px);
+            box-shadow: 0 10px 22px rgba(79, 70, 229, 0.35);
         }
 
         /* Each stat card picks a tone; the shared rules draw the accent bar and tinted icon. */
@@ -993,12 +886,19 @@
                             </h6>
                             <small class="text-muted">الأرقام تتبع فلاتر البحث وتعرض توزيع النتائج على المراحل</small>
                         </div>
+                        <div class="d-flex align-items-center gap-2 flex-wrap">
+                        <a href="{{ route('RecruitmentContract.insights', $companyContractsMode ? ['company_contracts' => 1] : []) }}"
+                            class="btn btn-sm contracts-insights-link" id="contractInsightsLink">
+                            <i class="fas fa-chart-pie"></i>
+                            عرض إحصائيات كاملة للعقود
+                        </a>
                         <button type="button" class="btn btn-sm btn-outline-secondary stats-collapse-toggle"
                             id="contractStatsToggle" data-bs-toggle="collapse" data-bs-target="#contractStatsCollapse"
                             aria-expanded="true" aria-controls="contractStatsCollapse">
                             <span id="contractStatsToggleLabel">طي الإحصائيات</span>
                             <i class="fas fa-chevron-up" id="contractStatsToggleIcon"></i>
                         </button>
+                        </div>
                     </div>
                     <div class="collapse show" id="contractStatsCollapse">
                     <div class="card-body">
@@ -1046,50 +946,6 @@
                             </div>
                         </div>
 
-                        @php
-                            $arrivalMonthName = now()->locale('ar')->translatedFormat('F');
-                            $arrivalCards = [
-                                'arrived_month' => ['tone' => 'success', 'icon' => 'fa-plane-arrival', 'title' => 'وصلت هذا الشهر', 'hint' => 'وصول فعلي منذ 1 '.$arrivalMonthName],
-                                'expected_month' => ['tone' => 'info', 'icon' => 'fa-calendar-check', 'title' => 'ستصل هذا الشهر', 'hint' => 'رحلات مجدولة من اليوم حتى نهاية '.$arrivalMonthName],
-                                'delayed' => ['tone' => 'danger', 'icon' => 'fa-triangle-exclamation', 'title' => 'متأخرة عن موعد الرحلة', 'hint' => 'مضى تاريخ الرحلة ولم يُسجَّل الوصول'],
-                                'waiting' => ['tone' => 'warning', 'icon' => 'fa-hourglass-half', 'title' => 'بانتظار الوصول', 'hint' => 'كل العقود التي لم تصل بعد'],
-                                'undelivered' => ['tone' => 'slate', 'icon' => 'fa-handshake-slash', 'title' => 'وصلت دون تسليم موثق', 'hint' => 'تراكمي — غياب التوثيق لا يعني عدم التسليم'],
-                            ];
-                        @endphp
-                        <section class="arrival-panel mb-4" aria-labelledby="arrivalPanelTitle">
-                            <div class="arrival-panel-header">
-                                <div>
-                                    <h6 class="mb-1" id="arrivalPanelTitle"><i class="fas fa-plane-arrival me-2"></i>متابعة الوصول والتسليم — {{ $arrivalMonthName }} {{ now()->year }}</h6>
-                                    <small class="text-muted">كل بطاقة تعدّ العقود ضمن فلاتر البحث الحالية، والضغط عليها يعرض عقودها في الجدول.</small>
-                                </div>
-                            </div>
-                            <div class="arrival-cards">
-                                @foreach($arrivalCards as $key => $card)
-                                    <button type="button" class="arrival-card arrival-card-{{ $card['tone'] }} operation-stat-filter" data-arrival-scope="{{ $key }}">
-                                        <span class="arrival-card-top">
-                                            <span class="arrival-card-icon"><i class="fas {{ $card['icon'] }}"></i></span>
-                                            <span class="arrival-card-value" data-stat-key="operations_{{ $key }}">—</span>
-                                        </span>
-                                        <span class="arrival-card-title">{{ $card['title'] }}</span>
-                                        <span class="arrival-card-hint">{{ $card['hint'] }}</span>
-                                        @if($key === 'arrived_month')
-                                            <span class="arrival-card-trend" id="arrivalPeriodComparison" role="status">جارٍ المقارنة بالشهر السابق…</span>
-                                        @endif
-                                    </button>
-                                @endforeach
-                            </div>
-                            <div class="arrival-panel-footer">
-                                <button type="button" class="arrival-footer-link operation-stat-filter" data-arrival-scope="arrived">
-                                    <i class="fas fa-layer-group"></i> إجمالي الواصلين (كل الفترات): <strong data-stat-key="operations_arrived">—</strong>
-                                </button>
-                                <button type="button" class="arrival-footer-link operation-stat-filter" data-arrival-scope="unscheduled">
-                                    <i class="fas fa-calendar-xmark"></i> بانتظار الوصول بلا موعد رحلة: <strong data-stat-key="operations_unscheduled">—</strong>
-                                </button>
-                                <button type="button" class="arrival-footer-link arrival-footer-link-warn operation-stat-filter" data-arrival-scope="missing">
-                                    <i class="fas fa-circle-exclamation"></i> وصلت دون تاريخ وصول صالح (تحتاج تصحيح): <strong data-stat-key="operations_missing">—</strong>
-                                </button>
-                            </div>
-                        </section>
                         <div class="row g-3">
                             <div class="col-12" id="currentStatsSection" @if (!$showCurrentStatsInitially) style="display: none;" @endif>
                                 <div class="stats-group">
@@ -3052,6 +2908,14 @@
                 $('#dateTypeFilter').val($(this).data('value')).trigger('change');
             });
             $('#dateFromFilter, #dateToFilter').on('change', syncPeriodControls);
+            // شاشة الإحصائيات الكاملة تفتح بنفس فلاتر الجدول الحالية (syncOperationsFilters يكتبها في الرابط).
+            $('#contractInsightsLink').on('click', function() {
+                const target = new URL(this.href, window.location.origin);
+                new URLSearchParams(window.location.search).forEach(function(value, key) {
+                    if (key !== 'all_contracts') target.searchParams.set(key, value);
+                });
+                this.href = target.toString();
+            });
             $('.operation-stat-filter').on('click',function(){
                 // Clicking the selected card again clears the arrival filter.
                 const scope = $(this).data('arrivalScope');

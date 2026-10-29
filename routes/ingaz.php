@@ -526,6 +526,8 @@ Route::group(
             Route::get('RecruitmentContract/filter-options', [RecruitmentContractController::class, 'getFilterOptions'])->name('RecruitmentContract.filterOptions');
             Route::get('RecruitmentContract/company', [RecruitmentContractController::class, 'companyIndex'])->name('RecruitmentContract.company.index');
             Route::get('RecruitmentContract/statistics', [RecruitmentContractController::class, 'statistics'])->name('RecruitmentContract.statistics');
+            Route::get('RecruitmentContract/insights', [RecruitmentContractController::class, 'insights'])->name('RecruitmentContract.insights');
+            Route::get('RecruitmentContract/insights/data', [RecruitmentContractController::class, 'insightsData'])->name('RecruitmentContract.insights.data');
             Route::get('RecruitmentContract/export/pdf', [RecruitmentContractController::class, 'exportPdf'])->name('RecruitmentContract.export.pdf');
             Route::get('RecruitmentContract/export/excel', [RecruitmentContractController::class, 'exportExcel'])->name('RecruitmentContract.export.excel');
             Route::get('RecruitmentContract/external-office-dispatches', [RecruitmentContractExternalOfficeDispatchController::class, 'index'])->name('RecruitmentContract.externalOfficeDispatch.index');
