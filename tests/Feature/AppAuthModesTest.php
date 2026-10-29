@@ -27,6 +27,23 @@ class AppAuthModesTest extends HourlyTestCase
         DB::table('users')->insert(['id'=>1,'name'=>'Test User','phone'=>'512345678','phone_code'=>'966','password'=>Hash::make('Secret123')]);
     }
 
+    public function test_unknown_login_phone_reports_registration_step_in_both_modes(): void
+    {
+        foreach (['password', 'otp'] as $mode) {
+            DB::table('settings')->update(['app_auth_mode' => $mode]);
+            $this->postJson('/api/app/auth/login', ['phone'=>'599999999', 'password'=>'Secret123'])
+                ->assertStatus(422)
+                ->assertJsonPath('status', false)
+                ->assertJsonPath('data.registered', false)
+                ->assertJsonPath('data.next_step', 'register')
+                ->assertJsonPath('data.auth_mode', $mode)
+                ->assertJsonPath('data.phone', '599999999')
+                ->assertJsonPath('data.token', null);
+            $response = $this->postJson('/api/app/auth/login', ['phone'=>'invalid']);
+            $response->assertStatus(422)->assertJsonPath('data.next_step', null);
+        }
+    }
+
     public function test_password_login_still_requires_and_checks_password(): void
     {
         DB::table('settings')->update(['external_auth_mode' => 'otp']);

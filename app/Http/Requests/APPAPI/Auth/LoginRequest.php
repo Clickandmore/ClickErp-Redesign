@@ -3,9 +3,27 @@
 namespace App\Http\Requests\APPAPI\Auth;
 
 use App\Models\ingaz\User;
+use Illuminate\Contracts\Validation\Validator;
+use Illuminate\Http\Exceptions\HttpResponseException;
 
 class LoginRequest extends AppApiRequest
 {
+    protected function failedValidation(Validator $validator)
+    {
+        if (isset($validator->failed()['phone']['Exists'])) {
+            $message = $this->appApiMessage('رقم الجوال غير مسجل في النظام.', 'Phone number is not registered.');
+            throw new HttpResponseException(apiResponse(false, $message, [
+                'registered' => false,
+                'next_step' => 'register',
+                'auth_mode' => \App\Support\AppAuthSettings::mode(),
+                'phone' => (string) $this->phone,
+                'errors' => $validator->errors(),
+            ], 422));
+        }
+
+        parent::failedValidation($validator);
+    }
+
     public function rules(): array
     {
         return [
