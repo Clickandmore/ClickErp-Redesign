@@ -82,6 +82,11 @@ orders:handle-expired
 system-updates:sync
 يسحب تحديثات النظام من المصدر المضبوط في Super Admin، كل دقيقة افتراضيًا (قابل للتعديل حتى يوم). لا يكتب في السجل إلا إذا وصل جديد.
 لا يُجدول إلا إذا فُعّلت المزامنة وضُبط الرابط والمفتاح. التفاصيل في docs/SYSTEM_UPDATES.md.
+
+recruitment:send-stage-notifications
+كل دقيقة. شبكة أمان لإشعارات مراحل عقود الاستقدام (SMS والبريد): الإشعار يُرسل أصلًا فور نجاح
+حفظ تغيير المرحلة وبعد إرسال الرد للموظف، وهذا الأمر يلتقط ما بقي بانتظار الإرسال (مثلًا إذا تعطلت
+البوابة لحظتها). لا يعمل إلا إذا فُعّلت الإشعارات من صفحة مراحل عقود الاستقدام.
 ```
 
 ## 4. إعدادات التحكم في مواعيد الأتمتة
@@ -120,6 +125,7 @@ php artisan contracts:initialize-warranty
 php artisan orders:cancel-expired
 php artisan orders:handle-expired
 php artisan log:clear --keep=30
+php artisan recruitment:send-stage-notifications
 ```
 
 أوامر الطلبات الإضافية المسجلة في المشروع:

@@ -30,6 +30,8 @@ class OutboundMessageLog extends Model
             'legacy:admin_notifications' => 'إشعارات الموظفين السابقة',
             'legacy:rental_contract_expiry_reminders' => 'تنبيهات انتهاء التأجير السابقة',
             'legacy:whatsapp_messages' => 'سجل صندوق واتساب السابق', 'system' => 'النظام',
+            'recruitment_stage' => 'إشعارات مراحل الاستقدام',
+            'recruitment:send-stage-notifications' => 'إشعارات مراحل الاستقدام',
         ];
         return $labels[$source ?? ''] ?? ($source ?: 'غير محدد');
     }

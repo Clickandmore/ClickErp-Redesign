@@ -1358,7 +1358,7 @@ class RecruitmentContractController extends Controller
                     return $office?->title ?  '<span class="text-muted">' . $office?->title .'</span>' : '<span class="text-muted">غير محدد</span>';
                 })
                 ->addColumn('updateStatus', function ($row) {
-                    $currentStageStep = app(RecruitmentContractStageStepService::class)->currentStep($row);
+                    $currentStageStep = app(RecruitmentContractStageStepService::class)->currentStep($row, true);
                     if ($currentStageStep) {
                         return '<button type="button" class="btn btn-warning btn-sm btn-action complete-stage-step-btn"'
                             . ' data-contract-id="' . e($row->id) . '"'
@@ -2099,37 +2099,26 @@ class RecruitmentContractController extends Controller
 
     private function getContractStageSteps(Contract $contract)
     {
-        $nationalityId = $contract->maid?->nationality_id
-            ?: $contract->required_maid_nationality_id
-            ?: $contract->info?->manual_maid_nationality_id;
+        $current = app(RecruitmentContractStageStepService::class)->applicableSteps($contract);
+        $history = RecruitmentContractStageStep::withTrashed()->whereHas('completions', fn ($query) => $query
+            ->where('contract_id', $contract->id)->whereNotNull('completed_at'))->get();
+        $steps = new \Illuminate\Database\Eloquent\Collection($current->merge($history)->unique('id')->values()->all());
+        $steps->load(['nationality.translations', 'completions' => fn ($query) => $query
+            ->where('contract_id', $contract->id)->with('completedBy')]);
+        return $steps;
+    }
 
-        return RecruitmentContractStageStep::withTrashed()
-            ->with([
-                'nationality.translations',
-                'completions' => fn ($query) => $query
-                    ->where('contract_id', $contract->id)
-                    ->with('completedBy'),
-            ])
-            ->where(function ($query) use ($contract, $nationalityId) {
-                $query->where(function ($currentSteps) use ($contract, $nationalityId) {
-                    $currentSteps->whereNull('deleted_at')
-                        ->where('is_active', true)
-                        ->where('stage', $contract->status)
-                        ->where(function ($nationalities) use ($nationalityId) {
-                            $nationalities->whereNull('nationality_id');
-                            if ($nationalityId) {
-                                $nationalities->orWhere('nationality_id', $nationalityId);
-                            }
-                        });
-                })->orWhereHas('completions', function ($completions) use ($contract) {
-                    $completions->where('contract_id', $contract->id)
-                        ->whereNotNull('completed_at');
-                });
-            })
-            ->orderByRaw('CASE WHEN stage = ? THEN 0 ELSE 1 END', [$contract->status])
-            ->orderBy('sort_order')
-            ->orderBy('id')
-            ->get();
+    public function retryStageNotification(Contract $contract, \App\Models\RecruitmentStageNotification $notification)
+    {
+        abort_unless($this->canUpdateRecruitmentContracts(), 403);
+        abort_unless(in_array($contract->type, ['recruitment', 'maid'], true), 404);
+        abort_unless((int) $notification->contract_id === (int) $contract->id, 404);
+        abort_if(empty(\App\Support\RecruitmentStageNotificationSettings::all()['enabled']), 422, 'فعّل إشعارات متابعة الاستقدام أولًا.');
+        $recipient = $notification->channel === 'email' ? $contract->user?->email : $contract->user?->phone;
+        abort_unless($notification->channel === 'email' ? filter_var($recipient, FILTER_VALIDATE_EMAIL) : filled($recipient), 422, 'صحح بيانات تواصل العميل أولًا.');
+        \App\Models\RecruitmentStageNotification::whereKey($notification->id)->whereIn('status', ['failed', 'skipped'])
+            ->update(['recipient' => $recipient, 'status' => 'pending', 'error' => null, 'updated_at' => now()]);
+        return back()->with('success', 'أُعيدت جدولة الإشعار للإرسال.');
     }
 
     public function stageSteps(Contract $contract)
@@ -2144,9 +2133,12 @@ class RecruitmentContractController extends Controller
         return response()->json([
             'stage' => $contract->status,
             'today' => now()->toDateString(),
+            'notifications' => \App\Models\RecruitmentStageNotification::where('contract_id', $contract->id)
+                ->latest('id')->limit(20)->get(['channel', 'status', 'error', 'created_at', 'sent_at']),
             'steps' => $steps->map(fn ($step) => [
                 'id' => $step->id,
                 'name' => $step->displayName(app()->getLocale()),
+                'is_required' => $step->is_required,
                 'completed_at' => $completions->get($step->id)?->completed_at?->format('Y-m-d'),
                 'notes' => $completions->get($step->id)?->notes,
             ]),
@@ -2182,12 +2174,7 @@ class RecruitmentContractController extends Controller
             'notes' => ['nullable', 'string', 'max:2000'],
         ]);
 
-        $nationalityId = $contract->maid?->nationality_id
-            ?: $contract->required_maid_nationality_id
-            ?: $contract->info?->manual_maid_nationality_id;
-        $appliesToContract = $step->is_active
-            && $step->stage === $contract->status
-            && (!$step->nationality_id || (int) $step->nationality_id === (int) $nationalityId);
+        $appliesToContract = app(RecruitmentContractStageStepService::class)->applicableSteps($contract)->contains('id', $step->id);
 
         abort_unless($appliesToContract, 422, 'هذه الخطوة لا تنطبق على مرحلة العقد أو جنسية العاملة الحالية.');
 
@@ -2209,16 +2196,14 @@ class RecruitmentContractController extends Controller
                 $stepService->assertCurrentStep($contract, $step);
             }
 
-            $completion = RecruitmentContractStepCompletion::firstOrNew([
-                'contract_id' => $contract->id,
-                'stage_step_id' => $step->id,
-            ]);
-            $completion->notes = trim((string) ($validated['notes'] ?? '')) ?: null;
-            if (!$completion->completed_at) {
-                $completion->completed_at = $validated['completed_at'] ?? now();
-                $completion->completed_by_id = Auth::guard('admin')->id();
+            if (!$existingCompletion?->completed_at) {
+                $stepService->completeMany($contract, $contract->status, [[
+                    'id' => $step->id, 'completed_at' => $validated['completed_at'] ?? now()->toDateString(),
+                    'notes' => $validated['notes'] ?? null,
+                ]], Auth::guard('admin')->id());
+            } else {
+                $existingCompletion->update(['notes' => trim((string) ($validated['notes'] ?? '')) ?: null]);
             }
-            $completion->save();
         }
 
         $message = $validated['completed'] ? 'تم إنجاز خطوة العقد بنجاح.' : 'تمت إعادة فتح خطوة العقد.';
@@ -2229,7 +2214,7 @@ class RecruitmentContractController extends Controller
             return response()->json([
                 'success' => true,
                 'message' => $message,
-                'stage_complete' => $nextStep === null,
+                'stage_complete' => $stepService->currentStep($contract->fresh(), true) === null,
                 'next_step' => $nextStep ? [
                     'id' => $nextStep->id,
                     'name' => $nextStep->displayName(app()->getLocale()),

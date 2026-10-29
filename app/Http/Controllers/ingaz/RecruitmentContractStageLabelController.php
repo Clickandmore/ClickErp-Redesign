@@ -22,6 +22,7 @@ class RecruitmentContractStageLabelController extends Controller
         return view('admin.ingaz.recruitment_contract_stage_labels.edit', [
             'labels' => RecruitmentContractStageLabels::labels(),
             'defaults' => RecruitmentContractStageLabels::defaults(),
+            'notificationSettings' => \App\Support\RecruitmentStageNotificationSettings::all(),
             'orderLabels' => RecruitmentOrderStatusLabels::labels(),
             'orderDefaults' => RecruitmentOrderStatusLabels::defaults(),
             'stageSteps' => RecruitmentContractStageStep::with('nationality.translations')
@@ -49,17 +50,48 @@ class RecruitmentContractStageLabelController extends Controller
             'steps.*.nationality_id' => ['nullable', 'integer', 'exists:nationalities,id'],
             'steps.*.sort_order' => ['nullable', 'integer', 'min:0', 'max:9999'],
             'steps.*.is_active' => ['nullable', 'boolean'],
+            'steps.*.is_required' => ['nullable', 'boolean'],
+            'steps.*.notify_sms' => ['nullable', 'boolean'],
+            'steps.*.notify_email' => ['nullable', 'boolean'],
+            'steps.*.notification_template' => ['nullable', 'string', 'max:2000'],
             'steps.*._delete' => ['nullable', 'boolean'],
+            'notifications' => ['nullable', 'array'],
+            'notifications.enabled' => ['nullable', 'boolean'],
+            'notifications.stages' => ['nullable', 'array'],
+            'notifications.stages.*.sms' => ['nullable', 'boolean'],
+            'notifications.stages.*.email' => ['nullable', 'boolean'],
+            'notifications.stages.*.template' => ['nullable', 'string', 'max:2000'],
         ]);
+
+        foreach ($validated['steps'] ?? [] as $index => $step) {
+            if (empty($step['_delete']) && !\App\Support\RecruitmentStagePolicy::allowsSteps($step['stage'])) {
+                throw \Illuminate\Validation\ValidationException::withMessages([
+                    "steps.$index.stage" => 'هذه المرحلة مرتبطة بإجراء مستقل ولا تقبل مراحل فرعية. انقل المرحلة الفرعية إلى مرحلة مناسبة أو احذفها.',
+                ]);
+            }
+        }
+        $templates = array_merge(
+            array_column($validated['steps'] ?? [], 'notification_template'),
+            array_column($validated['notifications']['stages'] ?? [], 'template')
+        );
+        foreach ($templates as $template) {
+            preg_match_all('/\{([^{}]+)\}/u', (string) $template, $matches);
+            if (array_diff($matches[1], \App\Support\RecruitmentStageNotificationSettings::VARIABLES)) {
+                throw \Illuminate\Validation\ValidationException::withMessages(['notifications' => 'قالب الرسالة يحتوي متغيرات غير مدعومة.']);
+            }
+        }
 
         DB::transaction(function () use ($request, $validated) {
             if ($request->boolean('reset_defaults')) {
                 RecruitmentContractStageLabels::reset();
                 RecruitmentOrderStatusLabels::reset();
+                \App\Support\RecruitmentStageNotificationSettings::save([]);
             } else {
                 RecruitmentContractStageLabels::save($validated['labels']);
                 RecruitmentOrderStatusLabels::save($validated['order_labels']);
+                \App\Services\ingaz\RecruitmentContractStageStepService::freezeExistingContracts();
                 $this->saveStageSteps($validated['steps'] ?? []);
+                \App\Support\RecruitmentStageNotificationSettings::save($validated['notifications'] ?? []);
             }
         });
 
@@ -87,6 +119,10 @@ class RecruitmentContractStageLabelController extends Controller
                 'nationality_id' => $stepData['nationality_id'] ?? null,
                 'sort_order' => (int) ($stepData['sort_order'] ?? 0),
                 'is_active' => (bool) ($stepData['is_active'] ?? false),
+                'is_required' => (bool) ($stepData['is_required'] ?? true),
+                'notify_sms' => (bool) ($stepData['notify_sms'] ?? false),
+                'notify_email' => (bool) ($stepData['notify_email'] ?? false),
+                'notification_template' => trim((string) ($stepData['notification_template'] ?? '')) ?: null,
             ];
 
             $id

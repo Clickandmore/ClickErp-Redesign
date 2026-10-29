@@ -93,6 +93,12 @@ class Contract extends Model
     protected static function booted(): void
     {
         static::updated(function (Contract $contract): void {
+            if ($contract->wasChanged('status')) {
+                app(\App\Services\ingaz\RecruitmentStageNotifier::class)
+                    ->stageChanged($contract, (string) $contract->getOriginal('status'));
+            }
+        });
+        static::updated(function (Contract $contract): void {
             if (! $contract->wasChanged('status')) {
                 return;
             }

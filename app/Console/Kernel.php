@@ -22,6 +22,7 @@ class Kernel extends ConsoleKernel
      */
     protected function schedule(Schedule $schedule): void
     {
+        $schedule->command('recruitment:send-stage-notifications')->everyMinute()->withoutOverlapping();
         // Hourly service time must never imply a physical shelter return.
         $schedule->command('hourly:past-visit-reminder')->dailyAt('08:05')->timezone('Asia/Riyadh')->withoutOverlapping();
         $schedule->command('hourly:service-time')->everyMinute()->withoutOverlapping();
