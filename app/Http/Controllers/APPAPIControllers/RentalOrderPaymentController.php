@@ -59,19 +59,18 @@ class RentalOrderPaymentController extends Controller
             ->firstOrFail();
 
         try {
-            if (in_array($payment->status, [
-                RentalOrderPayment::STATUS_CREATING,
-                RentalOrderPayment::STATUS_PENDING,
-                RentalOrderPayment::STATUS_PAID,
-                RentalOrderPayment::STATUS_PARTIALLY_REFUNDED,
-            ], true)) {
-                $payment = $paymentService->synchronize($payment);
-            }
+            // Never answer from the cached status: the customer may close Moyasar before callback.
+            $payment = $paymentService->synchronize($payment);
         } catch (\Throwable $exception) {
             Log::warning('Unable to synchronize app rental order payment status', [
                 'payment_id' => $payment->id,
                 'message' => $exception->getMessage(),
             ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'تعذر التحقق من حالة الدفع من ميسر حالياً.',
+            ], 503);
         }
 
         return response()->json([
@@ -111,6 +110,8 @@ class RentalOrderPaymentController extends Controller
         if (in_array($payment->status, [
             RentalOrderPayment::STATUS_FAILED,
             RentalOrderPayment::STATUS_EXPIRED,
+            'voided',
+            'canceled',
         ], true)) {
             return $this->callbackView('failed', 'لم تكتمل عملية الدفع، يمكنك المحاولة مجدداً من التطبيق.');
         }
@@ -135,10 +136,11 @@ class RentalOrderPaymentController extends Controller
     {
         return [
             'id' => (int) $payment->id,
+            'public_id' => (string) $payment->public_id,
             'order_id' => (int) $payment->order_id,
             'status' => (string) $payment->status,
             'is_paid' => $payment->status === RentalOrderPayment::STATUS_PAID,
-            'amount' => (string) $payment->amount,
+            'amount' => (float) $payment->amount,
             'refunded_amount' => (string) ($payment->refunded_amount ?? '0.00'),
             'net_paid_amount' => $payment->paid_at ? round((float)$payment->amount-(float)$payment->refunded_amount,2) : 0,
             'currency' => (string) $payment->currency,

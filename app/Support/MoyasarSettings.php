@@ -22,9 +22,9 @@ class MoyasarSettings
         return [
             'is_enabled' => (bool) $settings->is_enabled,
             'base_url' => self::trimUrl($settings->base_url ?: self::defaults()['base_url']),
-            'publishable_key' => trim((string) $settings->publishable_key),
-            'secret_key' => trim((string) $settings->secret_key),
-            'webhook_secret' => trim((string) $settings->webhook_secret),
+            'publishable_key' => trim((string) ($settings->publishable_key ?: self::defaults()['publishable_key'])),
+            'secret_key' => trim((string) ($settings->secret_key ?: self::defaults()['secret_key'])),
+            'webhook_secret' => trim((string) ($settings->webhook_secret ?: self::defaults()['webhook_secret'])),
             'company_name' => trim((string) ($settings->company_name ?? '')),
             'payment_description' => trim((string) ($settings->payment_description ?? '')),
             'reports_enabled' => (bool) ($settings->reports_enabled ?? false),
@@ -117,11 +117,11 @@ class MoyasarSettings
     public static function defaults(): array
     {
         return [
-            'is_enabled' => false,
-            'base_url' => 'https://api.moyasar.com/v1',
-            'publishable_key' => '',
-            'secret_key' => '',
-            'webhook_secret' => '',
+            'is_enabled' => (bool) config('services.moyasar.enabled', false),
+            'base_url' => (string) config('services.moyasar.base_url', 'https://api.moyasar.com/v1'),
+            'publishable_key' => (string) config('services.moyasar.publishable_key', ''),
+            'secret_key' => (string) config('services.moyasar.secret_key', ''),
+            'webhook_secret' => (string) config('services.moyasar.webhook_secret', ''),
             'company_name' => '',
             'payment_description' => '',
             'reports_enabled' => false,

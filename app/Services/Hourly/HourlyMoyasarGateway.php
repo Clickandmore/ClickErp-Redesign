@@ -170,16 +170,19 @@ class HourlyMoyasarGateway
         }
     }
 
-    /**
-     * التحقق من secret_token داخل JSON. أبقينا وسيط التوقيع لتوافق الاستدعاءات القائمة.
-     */
+    /** Verify Moyasar's documented secret_token, with HMAC header compatibility. */
     public function verifyWebhookSignature(string $payload, string $signature): bool
     {
         $secret = MoyasarSettings::current()['webhook_secret'] ?? '';
+        if ($secret === '') return false;
 
         $data = json_decode($payload, true);
         $token = is_array($data) ? ($data['secret_token'] ?? null) : null;
-        return $secret !== '' && is_string($token) && hash_equals($secret, $token);
+        if (is_string($token) && hash_equals($secret, $token)) return true;
+
+        if ($signature === '') return false;
+
+        return hash_equals(hash_hmac('sha256', $payload, $secret), $signature);
     }
 
     /**

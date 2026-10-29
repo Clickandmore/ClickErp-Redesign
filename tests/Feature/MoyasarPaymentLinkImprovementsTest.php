@@ -77,6 +77,18 @@ class MoyasarPaymentLinkImprovementsTest extends TestCase
         parent::tearDown();
     }
 
+    public function test_hourly_webhook_accepts_moyasar_secret_token_or_valid_hmac_only(): void
+    {
+        $gateway = new \App\Services\Hourly\HourlyMoyasarGateway();
+        $payload = json_encode(['secret_token' => 'whsec', 'data' => ['id' => 'pay-1']], JSON_THROW_ON_ERROR);
+        $unsigned = json_encode(['data' => ['id' => 'pay-1']], JSON_THROW_ON_ERROR);
+
+        $this->assertTrue($gateway->verifyWebhookSignature($payload, ''));
+        $this->assertTrue($gateway->verifyWebhookSignature($unsigned, hash_hmac('sha256', $unsigned, 'whsec')));
+        $this->assertFalse($gateway->verifyWebhookSignature($unsigned, 'invalid'));
+        $this->assertFalse($gateway->verifyWebhookSignature($unsigned, ''));
+    }
+
     /** القنوات تُقرأ من إعدادات الاتصال؛ هنا تُضبط مباشرة. */
     private function channels(bool $sms, bool $whatsapp): void
     {

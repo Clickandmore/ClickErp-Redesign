@@ -37,7 +37,7 @@ class RentalOrderPaymentService
             ->where('order_id', $order->id)
             ->where('provider', RentalOrderPayment::PROVIDER_MOYASAR)
             ->where('status', RentalOrderPayment::STATUS_PENDING)
-            ->whereNotNull('payment_url')
+            ->where('payment_url', 'like', 'https://%')
             ->latest('id')
             ->first();
 
@@ -66,7 +66,7 @@ class RentalOrderPaymentService
                 ->where('order_id', $lockedOrder->id)
                 ->where('provider', RentalOrderPayment::PROVIDER_MOYASAR)
                 ->where('status', RentalOrderPayment::STATUS_PENDING)
-                ->whereNotNull('payment_url')
+                ->where('payment_url', 'like', 'https://%')
                 ->latest('id')
                 ->first();
 
@@ -104,7 +104,7 @@ class RentalOrderPaymentService
         $result = $this->moyasar->createPaymentLink(
             (float) $payment->amount,
             'Rental order #' . $order->order_code,
-            route('api.app.moyasar.callback', ['payment' => $payment->public_id]),
+            $this->appUrl('api.app.moyasar.callback', ['payment' => $payment->public_id]),
             [
                 'rental_order_payment_id' => $payment->id,
                 'order_id' => $order->id,
@@ -112,7 +112,7 @@ class RentalOrderPaymentService
             ]
         );
 
-        if (empty($result['id']) || empty($result['url'])) {
+        if (empty($result['id']) || !$this->isHttpsUrl($result['url'] ?? null)) {
             $payment->update(['status' => RentalOrderPayment::STATUS_FAILED]);
             throw new RentalOrderPaymentException('تعذر إنشاء رابط الدفع من ميسر حالياً.');
         }
@@ -136,7 +136,7 @@ class RentalOrderPaymentService
             $snapshot = \App\Support\MoyasarPaymentSnapshot::fromInvoice($invoice,
                 $locked->provider_invoice_id, (float) $locked->amount);
             if (!$snapshot) {
-                if (!$locked->paid_at && in_array($invoice['status'] ?? '', ['failed', 'expired'], true)) {
+                if (!$locked->paid_at && in_array($invoice['status'] ?? '', ['failed', 'expired', 'voided', 'canceled'], true)) {
                     $locked->update(['status'=>$invoice['status'], 'provider_payload'=>$invoice]);
                 }
                 return $locked;
@@ -166,5 +166,18 @@ class RentalOrderPaymentService
         if (isset($payload['currency']) && $payload['currency'] !== $payment->currency) return $payment;
         // Notifications are hints, including delayed or duplicated refund events.
         return $this->synchronize($payment);
+    }
+
+    private function appUrl(string $route, array $parameters = []): string
+    {
+        $base = rtrim((string) config('services.moyasar.app_callback_base_url'), '/');
+
+        return $base.route($route, $parameters, false);
+    }
+
+    private function isHttpsUrl(mixed $url): bool
+    {
+        return is_string($url) && filter_var($url, FILTER_VALIDATE_URL)
+            && strtolower((string) parse_url($url, PHP_URL_SCHEME)) === 'https';
     }
 }

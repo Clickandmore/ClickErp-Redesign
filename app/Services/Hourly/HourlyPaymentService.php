@@ -21,17 +21,21 @@ class HourlyPaymentService
         return DB::transaction(function () use ($order, $website, $returnUrl) {
             $order = HourlyRentalOrder::query()->lockForUpdate()->findOrFail($order->id);
             $this->payable($order);
-            if($this->dueNow($order)<=0)HourlyOrderService::reject('لا يوجد مبلغ مستحق الآن وفق سياسة الدفع.');
+            $amount = round((float) $order->total_amount, 2);
+            if($amount<=0)HourlyOrderService::reject('لا يوجد مبلغ مستحق للطلب.');
             if ($order->payment_method !== 'moyasar') HourlyOrderService::reject('طريقة الدفع المختارة ليست ميسر.');
-            $existing = $order->payments()->whereIn('status',['pending','creating'])->first();
+            $existing = $order->payments()->whereIn('status',['pending','creating'])
+                ->where(function ($query) {
+                    $query->where('status', 'creating')->orWhere('payment_url', 'like', 'https://%');
+                })->first();
             if ($existing) return $existing;
-            $payment = $order->payments()->create(['user_id'=>$order->user_id,'public_id'=>(string) Str::uuid(),'method'=>'moyasar','provider'=>'moyasar','amount'=>$this->dueNow($order),'status'=>'creating','provider_payload'=>['visit_allocations'=>app(PaymentScheduleService::class)->allocations($order,(int)round($this->dueNow($order)*100))]]);
+            $payment = $order->payments()->create(['user_id'=>$order->user_id,'public_id'=>(string) Str::uuid(),'method'=>'moyasar','provider'=>'moyasar','amount'=>$amount,'status'=>'creating','provider_payload'=>['visit_allocations'=>app(PaymentScheduleService::class)->allocations($order,(int)round($amount*100))]]);
             $result = $this->gateway->createPaymentLink((float) $payment->amount, 'Hourly rental '.$order->order_number,
-                route('api.hourly.moyasar.webhook'), ['hourly_payment_id'=>$payment->public_id],
+                $this->appUrl('api.hourly.moyasar.webhook'), ['hourly_payment_id'=>$payment->public_id],
                 $returnUrl
                     ? $returnUrl.(str_contains($returnUrl, '?') ? '&' : '?').http_build_query(['payment'=>$payment->public_id])
-                    : route($website ? 'web.hourly.payment-return' : 'api.hourly.moyasar.callback', ['payment'=>$payment->public_id]));
-            if (empty($result['id']) || empty($result['url'])) HourlyOrderService::reject('تعذر إنشاء رابط الدفع. حاول مجددًا.');
+                    : ($website ? route('web.hourly.payment-return', ['payment'=>$payment->public_id]) : $this->appUrl('api.hourly.moyasar.callback', ['payment'=>$payment->public_id])));
+            if (empty($result['id']) || !$this->isHttpsUrl($result['url'] ?? null)) HourlyOrderService::reject('تعذر إنشاء رابط دفع آمن. حاول مجددًا.');
             $payment->update(['provider_reference'=>$result['id'],'payment_url'=>$result['url'],'status'=>'pending']);
             return $payment;
         });
@@ -43,9 +47,14 @@ class HourlyPaymentService
         // Only the stored invoice is fetched. Callback fields never prove payment.
         $invoice = $this->gateway->getInvoice($payment->provider_reference);
         abort_if(!$invoice,503,'تعذر التحقق من فاتورة ميسر حاليًا. أعد المحاولة.');
-        if (!$invoice || !in_array($invoice['status'] ?? '', ['paid','refunded'], true)) return $payment;
         if (($invoice['id'] ?? '') !== $payment->provider_reference || ($invoice['currency'] ?? '') !== 'SAR'
             || (int) ($invoice['amount'] ?? -1) !== (int) round($payment->amount*100)) HourlyOrderService::reject('بيانات السداد لا تطابق الفاتورة.');
+        if (!in_array($invoice['status'] ?? '', ['paid','refunded'], true)) {
+            if (!$payment->paid_at && in_array($invoice['status'] ?? '', ['failed','expired','voided','canceled'], true)) {
+                $payment->update(['status'=>$invoice['status'], 'provider_payload'=>$invoice]);
+            }
+            return $payment->fresh();
+        }
         return DB::transaction(function () use ($payment, $invoice) {
             $order = HourlyRentalOrder::query()->lockForUpdate()->findOrFail($payment->hourly_rental_order_id);
             $payment = HourlyOrderPayment::query()->lockForUpdate()->findOrFail($payment->id);
@@ -215,5 +224,17 @@ class HourlyPaymentService
             $this->orders->transition($order,'active',$actor,$actorId,$full ? 'اكتمال السداد' : 'سداد الزيارة الأولى');
         }
         $this->orders->settle($order,$actor,$actorId);
+    }
+
+    private function appUrl(string $route, array $parameters = []): string
+    {
+        return rtrim((string) config('services.moyasar.app_callback_base_url'), '/')
+            .route($route, $parameters, false);
+    }
+
+    private function isHttpsUrl(mixed $url): bool
+    {
+        return is_string($url) && filter_var($url, FILTER_VALIDATE_URL)
+            && strtolower((string) parse_url($url, PHP_URL_SCHEME)) === 'https';
     }
 }

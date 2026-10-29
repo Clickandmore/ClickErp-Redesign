@@ -203,8 +203,16 @@ class HourlyCustomerApiTest extends TestCase
     {
         [$item,$district,$payload]=$this->checkout();
         $order=$this->postJson('/api/app/hourly/orders',$payload)->assertCreated()->json('data');
+        $model=HourlyRentalOrder::findOrFail($order['id']);
+        $snapshot=$model->package_snapshot;
+        $snapshot['payment_policy']='per_visit';
+        $snapshot['charge_now']=180;
+        $model->update(['package_snapshot'=>$snapshot]);
         $gateway=\Mockery::mock(HourlyMoyasarGateway::class);
-        $gateway->shouldReceive('createPaymentLink')->once()->withArgs(fn($amount,$description,$callback,$metadata,$success)=>$amount==720 && str_contains($callback,'payments/moyasar/webhook') && str_contains($success,'payment=') && isset($metadata['hourly_payment_id']))->andReturn(['id'=>'invoice-test','url'=>'https://example.test/pay']);
+        $gateway->shouldReceive('createPaymentLink')->once()->withArgs(fn($amount,$description,$callback,$metadata,$success)=>$amount==720
+            && str_starts_with($callback,'https://dashboard.platinumeastern.com.sa/api/app/hourly/payments/moyasar/webhook')
+            && str_starts_with($success,'https://dashboard.platinumeastern.com.sa/api/app/hourly/payments/moyasar/callback')
+            && str_contains($success,'payment=') && isset($metadata['hourly_payment_id']))->andReturn(['id'=>'invoice-test','url'=>'https://example.test/pay']);
         $gateway->shouldReceive('getInvoice')->with('invoice-test')->once()->andReturn(['id'=>'invoice-test','status'=>'paid','amount'=>72000,'currency'=>'SAR']);
         $this->app->instance(HourlyMoyasarGateway::class,$gateway);
         $url='/api/app/hourly/orders/'.$order['id'].'/payments/moyasar';
@@ -222,10 +230,13 @@ class HourlyCustomerApiTest extends TestCase
         $model=HourlyRentalOrder::findOrFail($order['id']);
         $payment=$model->payments()->create(['user_id'=>1,'public_id'=>(string)\Illuminate\Support\Str::uuid(),'method'=>'moyasar','provider'=>'moyasar','provider_reference'=>'invoice-callback','amount'=>720,'status'=>'pending']);
         $gateway=\Mockery::mock(HourlyMoyasarGateway::class);
-        $gateway->shouldReceive('getInvoice')->with('invoice-callback')->twice()->andReturn(['id'=>'invoice-callback','status'=>'paid','amount'=>72000,'currency'=>'SAR']);
+        $gateway->shouldReceive('verifyWebhookSignature')->twice()->andReturnTrue();
+        $gateway->shouldReceive('getInvoice')->with('invoice-callback')->times(3)->andReturn(['id'=>'invoice-callback','status'=>'paid','amount'=>72000,'currency'=>'SAR']);
         $this->app->instance(HourlyMoyasarGateway::class,$gateway);
         $this->postJson('/api/app/hourly/payments/moyasar/webhook',['id'=>'invoice-callback','status'=>'paid'])->assertOk();
         $this->postJson('/api/app/hourly/payments/moyasar/webhook',['data'=>['invoice_id'=>'invoice-callback','id'=>'payment-id']])->assertOk();
+        $this->get('/api/app/hourly/payments/moyasar/callback?payment='.$payment->public_id)
+            ->assertOk()->assertHeader('content-type','text/html; charset=UTF-8')->assertSee('تم الدفع بنجاح');
         $this->assertDatabaseHas('hourly_rental_orders',['id'=>$model->id,'payment_status'=>'paid','paid_amount'=>720,'status'=>'active']);
         $this->assertEquals('paid',$payment->fresh()->status);
     }
@@ -236,10 +247,22 @@ class HourlyCustomerApiTest extends TestCase
         $order=$this->postJson('/api/app/hourly/orders',$payload)->assertCreated()->json('data');
         HourlyRentalOrder::findOrFail($order['id'])->payments()->create(['user_id'=>1,'public_id'=>(string)\Illuminate\Support\Str::uuid(),'method'=>'moyasar','provider'=>'moyasar','provider_reference'=>'invoice-retry','amount'=>720,'status'=>'pending']);
         $gateway=\Mockery::mock(HourlyMoyasarGateway::class);
+        $gateway->shouldReceive('verifyWebhookSignature')->once()->andReturnTrue();
         $gateway->shouldReceive('getInvoice')->with('invoice-retry')->once()->andReturn(null);
         $this->app->instance(HourlyMoyasarGateway::class,$gateway);
         $this->postJson('/api/app/hourly/payments/moyasar/webhook',['id'=>'invoice-retry','status'=>'paid'])->assertStatus(503);
         $this->assertDatabaseHas('hourly_rental_orders',['id'=>$order['id'],'payment_status'=>'unpaid','paid_amount'=>0]);
+    }
+
+    public function test_hourly_webhook_rejects_an_invalid_secret_before_lookup(): void
+    {
+        $gateway=\Mockery::mock(HourlyMoyasarGateway::class);
+        $gateway->shouldReceive('verifyWebhookSignature')->once()->andReturnFalse();
+        $gateway->shouldNotReceive('getInvoice');
+        $this->app->instance(HourlyMoyasarGateway::class,$gateway);
+
+        $this->postJson('/api/app/hourly/payments/moyasar/webhook',['data'=>['invoice_id'=>'invoice-forged']])
+            ->assertForbidden()->assertJsonPath('error','Invalid signature');
     }
 
     public function test_bank_transfer_receipt_can_be_reviewed_and_replaced_after_rejection(): void
@@ -373,6 +396,7 @@ class HourlyCustomerApiTest extends TestCase
         $model=HourlyRentalOrder::findOrFail($order['id']);
         $payment=$model->payments()->create(['user_id'=>1,'public_id'=>(string)\Illuminate\Support\Str::uuid(),'method'=>'moyasar','provider'=>'moyasar','provider_reference'=>'invoice-refund','amount'=>720,'status'=>'pending']);
         $gateway=\Mockery::mock(HourlyMoyasarGateway::class);
+        $gateway->shouldReceive('verifyWebhookSignature')->times(3)->andReturnTrue();
         $invoice=fn($refund)=>['id'=>'invoice-refund','status'=>'paid','amount'=>72000,'currency'=>'SAR',
             'payments'=>[['id'=>'payment-refund','status'=>$refund ? 'refunded' : 'paid','amount'=>72000,'currency'=>'SAR','refunded'=>$refund]]];
         $gateway->shouldReceive('getInvoice')->with('invoice-refund')->andReturn($invoice(0),$invoice(12000),$invoice(12000),$invoice(72000));

@@ -3,7 +3,7 @@ namespace App\Http\Controllers\Hourly;
 use App\Http\Controllers\Controller;
 use App\Models\Hourly\{HourlyPackage,HourlyRentalOrder,HourlyOrderPayment};
 use App\Models\ingaz\UserAddress;
-use App\Services\Hourly\{CustomerVisitActions,HourlyOrderService,HourlyPaymentService};
+use App\Services\Hourly\{CustomerVisitActions,HourlyMoyasarGateway,HourlyOrderService,HourlyPaymentService};
 use App\Support\HourlyRentalSettings;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
@@ -250,12 +250,17 @@ class ClientController extends Controller
         return response()->json(['data'=>app(\App\Services\Hourly\CustomerHourlyData::class)->visit($result['visit']->fresh(),$order->fresh())]);
     }
     public function invoice(int $id) { return app(OrderController::class)->invoice($this->owned($id)); }
-    public function pay(int $id,HourlyPaymentService $service) { return response()->json(['data'=>$service->initiate($this->owned($id))->only(['public_id','status','amount','payment_url'])]); }
+    public function pay(int $id,HourlyPaymentService $service)
+    {
+        $payment=$service->initiate($this->owned($id));
+        return response()->json(['data'=>$payment->only(['public_id','status','payment_url'])+['amount'=>(float)$payment->amount]]);
+    }
     public function payment(int $id,HourlyPaymentService $service)
     {
         $payment=$this->owned($id)->payments()->where('provider','moyasar')->whereNotNull('provider_reference')->latest('id')->firstOrFail();
         $payment=$service->synchronize($payment);
-        return response()->json(['data'=>array_merge($payment->only(['public_id','amount','payment_url','refunded_amount']), [
+        return response()->json(['data'=>array_merge($payment->only(['public_id','payment_url','refunded_amount']), [
+            'amount'=>(float)$payment->amount,
             'status'=>$payment->settlement_status,
             'net_paid_amount'=>$payment->paid_at ? round((float)$payment->amount-(float)$payment->refunded_amount,2) : 0,
         ])]);
@@ -279,10 +284,17 @@ class ClientController extends Controller
     {
         $data=$request->validate(['payment'=>['required','uuid']]);
         $payment=HourlyOrderPayment::where('public_id',$data['payment'])->where('provider','moyasar')->firstOrFail();
-        return response()->json(['status'=>$service->synchronize($payment)->settlement_status]);
+        $payment=$service->synchronize($payment);
+        $status=$payment->settlement_status;
+        $message=$status==='paid' ? 'تم الدفع بنجاح. شكرًا لك!'
+            : (in_array($status,['failed','voided','refunded','expired','canceled'],true) ? 'لم تكتمل عملية الدفع.' : 'جاري التحقق من حالة الدفع...');
+        return view('moyasar.callback',compact('status','message'));
     }
-    public function webhook(Request $request,HourlyPaymentService $service)
+    public function webhook(Request $request,HourlyPaymentService $service,HourlyMoyasarGateway $gateway)
     {
+        if (!$gateway->verifyWebhookSignature($request->getContent(),(string)$request->header('X-Moyasar-Signature',''))) {
+            return response()->json(['error'=>'Invalid signature'],403);
+        }
         // Treat the notification only as a hint. Re-fetch the stored invoice server-side.
         $reference=$request->input('data.invoice_id') ?? $request->input('data.id') ?? $request->input('invoice_id') ?? $request->input('id');
         if (!is_string($reference) || strlen($reference)>255) return response()->json(['received'=>true]);
