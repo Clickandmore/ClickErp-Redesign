@@ -2,20 +2,17 @@
 
 namespace App\Mcp\Tools;
 
+use App\Mcp\Tools\Concerns\ScopesCustomersToBranch;
 use App\Models\auth\Admin;
 use App\Models\ingaz\User;
-use App\PermKeys;
-use App\Services\BranchAccessService;
-use App\Services\BranchDataSharingService;
-use App\Support\AdminRoutePermissionMatrix;
-use App\Support\SystemModuleManager;
 
 /**
- * البحث في العملاء. موديل User بلا BranchScoped، فيُطبَّق هنا نفس عزل
- * UserController::applyBranchScope (مع مشاركة العملاء بين الفروع).
+ * البحث في العملاء. عزل الفروع في ScopesCustomersToBranch لأن User بلا BranchScoped.
  */
 class SearchCustomersTool extends McpTool
 {
+    use ScopesCustomersToBranch;
+
     public function name(): string
     {
         return 'search_customers';
@@ -51,7 +48,7 @@ class SearchCustomersTool extends McpTool
             ->orWhere('phone', 'like', "%{$term}%")
             ->orWhere('national_num', $term));
 
-        $this->applyBranchScope($query, $admin);
+        $this->applyCustomerBranchScope($query, $admin);
 
         $total = (clone $query)->count();
         $customers = $query->with('branch')->latest('id')->limit($this->limit($arguments, 10))->get();
@@ -76,27 +73,5 @@ class SearchCustomersTool extends McpTool
                 'created_at' => $this->date($customer->created_at),
             ])->all(),
         ];
-    }
-
-    private function applyBranchScope($query, Admin $admin): void
-    {
-        $enabled = SystemModuleManager::isEnabled('branches');
-        if (!$enabled || AdminRoutePermissionMatrix::adminHasAnyPermission($admin, [PermKeys::BRANCHES_VIEW_ALL, PermKeys::CLIENTS_VIEW_ALL_BRANCHES])) {
-            return;
-        }
-
-        if ($admin->branch_id) {
-            app(BranchAccessService::class)->applyBranchIdToQuery(
-                $query,
-                (int) $admin->branch_id,
-                'users',
-                null,
-                app(BranchDataSharingService::class)->sharedSourceBranchIds(BranchDataSharingService::CLIENTS)
-            );
-
-            return;
-        }
-
-        $query->whereRaw('1 = 0');
     }
 }

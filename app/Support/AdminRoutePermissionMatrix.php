@@ -409,7 +409,42 @@ class AdminRoutePermissionMatrix
         return [
             'maids.index' => [PermKeys::MAIDS_VIEW],
             'maids.create' => [PermKeys::MAIDS_CREATE],
-            'maids.bulk-import.create', 'maids.bulk-import.template', 'maids.bulk-import.store' => [PermKeys::MAIDS_CREATE, PermKeys::DATA_IMPORT_UPLOAD],
+            // كل مسار مفتاح مستقل: الصيغة السابقة ('a', 'b', 'c' => [...]) كانت تحمي c وحده وتترك a وb بلا صلاحية.
+            'maids.bulk-import.create' => [PermKeys::MAIDS_CREATE, PermKeys::DATA_IMPORT_UPLOAD],
+            'maids.bulk-import.template' => [PermKeys::MAIDS_CREATE, PermKeys::DATA_IMPORT_UPLOAD],
+            'maids.bulk-import.store' => [PermKeys::MAIDS_CREATE, PermKeys::DATA_IMPORT_UPLOAD],
+
+            // نفس صلاحيات middleware في MaidController::__construct؛ هنا حتى تبقى المصفوفة مصدر الحماية
+            // الكامل (وتعرفها شاشة الصلاحيات وأدوات المساعد) لو تغيّر الكنترولر يوماً.
+            'maids.store' => [PermKeys::MAIDS_CREATE],
+            'maids.create_rapid_cv' => [PermKeys::MAIDS_CREATE],
+            'maids.store_rapid_cv' => [PermKeys::MAIDS_CREATE],
+            'maids.extract-cv-data' => [PermKeys::MAIDS_CREATE],
+            'maids.rental.create' => [PermKeys::MAIDS_CREATE],
+            'maids.edit' => [PermKeys::MAIDS_EDIT],
+            'maids.update' => [PermKeys::MAIDS_EDIT],
+            'maids.update_cv' => [PermKeys::MAIDS_EDIT],
+            'maids.media.update' => [PermKeys::MAIDS_EDIT],
+            'maids.offer' => [PermKeys::MAIDS_EDIT],
+            'maids.backout' => [PermKeys::MAIDS_EDIT],
+            'maids.remove_backout' => [PermKeys::MAIDS_EDIT],
+            'maids.suspendCv' => [PermKeys::MAIDS_EDIT],
+            'maids.destroy' => [PermKeys::MAIDS_DELETE],
+            'maids.restore' => [PermKeys::MAIDS_DELETE],
+            'maids.show' => [PermKeys::MAIDS_TOGGLE_STATUS],
+            'maids.toggle-pin' => [PermKeys::MAIDS_TOGGLE_PIN],
+            'maids.video.open' => [PermKeys::MAIDS_VIEW, PermKeys::MAIDS_RENTAL_VIEW],
+
+            // عرض تفاصيل العاملة وسيرتها: كانت بلا أي صلاحية. تُفتح من شاشات العاملات ومراجعة السير.
+            'showMaidDetails' => [PermKeys::MAIDS_VIEW, PermKeys::MAIDS_SHOW, PermKeys::MAIDS_RENTAL_VIEW, PermKeys::MAIDS_EDIT],
+            'maids.details' => [PermKeys::MAIDS_VIEW, PermKeys::MAIDS_SHOW, PermKeys::MAIDS_RENTAL_VIEW, PermKeys::MAIDS_EDIT],
+            'maids.cv.preview' => [PermKeys::MAIDS_VIEW, PermKeys::MAIDS_SHOW, PermKeys::MAIDS_RENTAL_VIEW, PermKeys::MAIDS_EDIT],
+            'maids.cv.preview.data' => [PermKeys::MAIDS_VIEW, PermKeys::MAIDS_SHOW, PermKeys::MAIDS_RENTAL_VIEW, PermKeys::MAIDS_EDIT],
+            'maids.cv.download' => [PermKeys::MAIDS_VIEW, PermKeys::MAIDS_SHOW, PermKeys::MAIDS_RENTAL_VIEW, PermKeys::MAIDS_EDIT],
+            // بحث واختيار العاملات: تستدعيه شاشتا الطلبات وطلبات الإيجار، فصلاحياتهما معه.
+            'maids.available' => [PermKeys::MAIDS_VIEW, PermKeys::MAIDS_RENTAL_VIEW, PermKeys::ORDERS_VIEW, PermKeys::RENTAL_ORDERS_VIEW],
+            'maids.search' => [PermKeys::MAIDS_VIEW, PermKeys::MAIDS_RENTAL_VIEW, PermKeys::ORDERS_VIEW, PermKeys::RENTAL_ORDERS_VIEW],
+            'maids.info' => [PermKeys::MAIDS_VIEW, PermKeys::MAIDS_RENTAL_VIEW, PermKeys::ORDERS_VIEW, PermKeys::RENTAL_ORDERS_VIEW],
             'maids.bulk-import.show' => [PermKeys::MAIDS_CREATE, PermKeys::DATA_IMPORT_UPLOAD, PermKeys::DATA_IMPORT_REVIEW, PermKeys::DATA_IMPORT_APPROVE],
             'maids.bulk-import.approve' => [PermKeys::DATA_IMPORT_APPROVE],
             'maids.rental.index' => [PermKeys::MAIDS_RENTAL_VIEW],

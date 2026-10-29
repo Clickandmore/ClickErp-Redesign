@@ -16,4 +16,45 @@ class McpAuditLog extends Model
     protected $casts = [
         'arguments' => 'array',
     ];
+
+    public const STATUS_LABELS = [
+        'ok' => 'نجح',
+        'denied' => 'بلا صلاحية شاشة',
+        'disabled' => 'موقوفة من الإدارة',
+        'blocked' => 'موظف غير مفعّل',
+        'error' => 'خطأ',
+        'unknown' => 'أداة غير موجودة',
+    ];
+
+    private const SENSITIVE_KEY = '/passport|phone|mobile|whatsapp|iqama|identity|national|id_number|password|secret|token/i';
+
+    /**
+     * السجل يُقرأ من شاشة Super Admin ويُحفظ شهوراً، فلا تُخزَّن فيه أرقام الجواز والجوال كاملة:
+     * الحقول الحساسة بالاسم، وأي نص من 7 أرقام فأكثر (جوال أو هوية في خانة بحث) يبقى منه آخر 4.
+     */
+    public static function sanitizeArguments(array $arguments): array
+    {
+        $clean = [];
+
+        foreach ($arguments as $key => $value) {
+            if (is_array($value)) {
+                $clean[$key] = self::sanitizeArguments($value);
+            } elseif (is_string($value) || is_int($value)) {
+                $text = (string) $value;
+                $sensitiveKey = is_string($key) && preg_match(self::SENSITIVE_KEY, $key);
+                $clean[$key] = ($sensitiveKey || preg_match('/^\+?\d{7,}$/', $text)) ? self::mask($text) : $value;
+            } else {
+                $clean[$key] = $value;
+            }
+        }
+
+        return $clean;
+    }
+
+    private static function mask(string $value): string
+    {
+        $length = mb_strlen($value);
+
+        return $length <= 4 ? str_repeat('*', $length) : str_repeat('*', $length - 4) . mb_substr($value, -4);
+    }
 }

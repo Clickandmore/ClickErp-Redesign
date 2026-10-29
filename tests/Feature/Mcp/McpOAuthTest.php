@@ -39,6 +39,7 @@ class McpOAuthTest extends TestCase
             'mask_sensitive' => true,
             'rate_limit_per_minute' => 1000,
             'token_days' => 30,
+            'access_mode' => McpSettings::ACCESS_ALL,
         ]);
     }
 

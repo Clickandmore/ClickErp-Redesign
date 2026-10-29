@@ -31,6 +31,17 @@ class Admin extends Authenticatable
         return \App\Support\Audit\PermissionSync::run($this, fn () => $this->syncPermissionsWithoutAudit(...$permissions));
     }
 
+    protected static function booted(): void
+    {
+        // تغيير كلمة المرور (من الملف الشخصي أو الاستعادة أو تعديل الموظف) يقطع اتصالات
+        // المساعد الذكي، كما يُتوقع ممن يغيّرها لأنه يشك في تسرّب حسابه.
+        static::updated(function (self $admin) {
+            if ($admin->wasChanged('password') && \Illuminate\Support\Facades\Schema::hasTable('mcp_access_tokens')) {
+                \App\Models\McpAccessToken::revokeAllFor((int) $admin->id);
+            }
+        });
+    }
+
     protected $table ='admins';
     protected $guarded = [];
     protected $guard_name = 'admin';

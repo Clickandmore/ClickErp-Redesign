@@ -23,6 +23,27 @@ class MaidCvPdfGenerator
     public const OUTPUT_PDF = 'pdf';
     public const OUTPUT_IMAGE = 'image';
 
+    /**
+     * توليد السيرة تلقائياً بعد إضافة عاملة (من الشاشة أو المساعد الذكي) إن كان القالب مفعّلاً.
+     * فشل التوليد لا يُفشل الإضافة؛ يُسجَّل فقط.
+     */
+    public function generateIfEnabled(Maid $maid): void
+    {
+        if (!MaidCvTemplateSettings::enabled()) {
+            return;
+        }
+
+        try {
+            $this->generate($maid);
+        } catch (\Throwable $exception) {
+            report($exception);
+            \Log::warning('Automatic maid CV generation failed.', [
+                'maid_id' => $maid->id,
+                'error' => $exception->getMessage(),
+            ]);
+        }
+    }
+
     public function generate(Maid $maid): string
     {
         $settings = MaidCvTemplateSettings::current();

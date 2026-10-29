@@ -35,6 +35,12 @@ class Kernel extends ConsoleKernel
                 ->appendOutputTo(storage_path('logs/activity-log-cleanup.log'));
         }
 
+        // التوكنات المنتهية وسجل MCP الأقدم من المدة المضبوطة في Super Admin ← MCP.
+        $schedule->command('mcp:prune')
+            ->dailyAt('03:45')
+            ->withoutOverlapping()
+            ->appendOutputTo(storage_path('logs/mcp-prune.log'));
+
         $schedule->call([SchedulerMonitorService::class, 'writeHeartbeat'])
             ->everyMinute()
             ->description('scheduler-heartbeat');

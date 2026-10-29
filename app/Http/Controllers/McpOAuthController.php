@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Mcp\McpAccess;
 use App\Models\auth\Admin;
 use App\Models\McpAccessToken;
 use App\Models\McpAuditLog;
@@ -131,7 +132,14 @@ class McpOAuthController extends Controller
             return redirect()->route('admin.form.login');
         }
 
+        if (!app(McpAccess::class)->adminAllowed($admin)) {
+            return $this->notEnabledView($admin);
+        }
+
+        $access = app(McpAccess::class)->recordFor($admin);
+
         return view('admin.mcp.oauth-consent', [
+            'canWrite' => McpSettings::writeEnabled() && $access?->canWrite(),
             'client' => $client,
             'admin' => $admin,
             'redirectHost' => parse_url($request->query('redirect_uri'), PHP_URL_HOST),
@@ -154,6 +162,10 @@ class McpOAuthController extends Controller
         $admin = $this->currentAdmin();
         if (!$admin) {
             return redirect()->route('admin.form.login');
+        }
+
+        if (!app(McpAccess::class)->adminAllowed($admin)) {
+            return $this->notEnabledView($admin);
         }
 
         $redirectUri = (string) $request->input('redirect_uri');
@@ -228,7 +240,7 @@ class McpOAuthController extends Controller
         }
 
         $admin = Admin::query()->find($code->admin_id);
-        if (!$admin || ($admin->status ?? 'active') === 'suspended') {
+        if (!$admin || ($admin->status ?? 'active') === 'suspended' || !app(McpAccess::class)->adminAllowed($admin)) {
             return $this->oauthError('invalid_grant', 'حساب الموظف غير متاح.');
         }
 
@@ -244,7 +256,7 @@ class McpOAuthController extends Controller
         }
 
         $admin = $old->admin;
-        if (!$admin || ($admin->status ?? 'active') === 'suspended') {
+        if (!$admin || ($admin->status ?? 'active') === 'suspended' || !app(McpAccess::class)->adminAllowed($admin)) {
             return $this->oauthError('invalid_grant', 'حساب الموظف غير متاح.');
         }
 
@@ -354,6 +366,14 @@ class McpOAuthController extends Controller
         }
 
         return [$request->input('client_id'), $request->input('client_secret')];
+    }
+
+    /** لا رمز ولا إعادة توجيه: الموظف يرى السبب، والعميل يبقى بلا ربط حتى يُفعَّل. */
+    private function notEnabledView(Admin $admin)
+    {
+        return response()->view('admin.mcp.oauth-error', [
+            'message' => "لم تفعّل الإدارة استخدام المساعد الذكي لحساب {$admin->name}. اطلب من مدير النظام تفعيله من شاشة Super Admin ← MCP ← الموظفون، ثم أعد محاولة الربط.",
+        ], 403);
     }
 
     private function currentAdmin(): ?Admin

@@ -52,7 +52,11 @@ class McpTokenCommand extends Command
         $this->warn('Copy it now — it is stored hashed and cannot be shown again.');
 
         if (!McpSettings::enabled()) {
-            $this->warn('MCP is disabled. Enable it from Super Admin > MCP (or MCP_ENABLED=true in .env).');
+            $this->warn('MCP is disabled. Enable it from Super Admin > MCP > Settings.');
+        }
+
+        if (!app(\App\Mcp\McpAccess::class)->adminAllowed($admin)) {
+            $this->warn('This admin is not enabled in Super Admin > MCP > Employees, so the token is rejected (403) until you add them.');
         }
 
         return self::SUCCESS;
