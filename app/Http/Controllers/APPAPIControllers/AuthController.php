@@ -50,6 +50,7 @@ class AuthController extends Controller
                 'phone_code' => $request->phone_code,
                 'encrypted_phone' => Crypt::encryptString($user->phone),
                 'auth_mode' => 'otp',
+                'registered' => true,
                 'next_step' => 'verify_otp',
             ]);
         }
@@ -72,6 +73,9 @@ class AuthController extends Controller
         RateLimiter::clear($key);
 
         return apiResponse(true, __('ingaz.login_successfully'), [
+            'registered' => true,
+            'next_step' => 'authenticated',
+            'auth_mode' => 'password',
             'user' => new UserResource($user),
             'token' => $token,
         ]);
