@@ -1929,6 +1929,7 @@
 
                         @php
                             $canSendPaymentLink = $contract->info
+                                && $contract->info->payment_type === 'moyasar'
                                 && $contract->info->payment_status !== 'paid'
                                 && (float) $contract->info->remaining_amount > 0
                                 && \App\Support\MoyasarSettings::isEnabled()

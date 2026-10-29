@@ -199,6 +199,9 @@ class McpWriteToolsTest extends TestCase
         $this->assertSame('available', $maid->status);
         $this->assertSame($this->admin->id, (int) $maid->added_by);
         $this->assertSame([$jobTitle], $maid->jobTitles()->pluck('job_titles.id')->map(fn ($id) => (int) $id)->all());
+        // بدون صلاحية تعديل العاملة لا يُعطى رابط رفع الصور؛ يُكمل من الشاشة.
+        $this->assertArrayNotHasKey('media_upload', $created);
+        $this->assertArrayHasKey('next_step', $created);
 
         $this->tool('create_maid_cv', $arguments)->assertJsonPath('result.isError', true);
     }

@@ -30,6 +30,7 @@ use App\Models\SponsorshipTransfer;
 use App\Services\BranchAccessService;
 use App\Services\ingaz\MaidCvExtractionService;
 use App\Services\ingaz\MaidCvPdfGenerator;
+use App\Services\ingaz\MaidMediaUpdater;
 use App\Services\ingaz\RentalMaidFinanceService;
 use App\Services\ManagedFileStorage;
 use App\Support\ExperiencePeriod;
@@ -2747,72 +2748,19 @@ class MaidController extends Controller
         $cvGenerator->generateIfEnabled($maid);
     }
 
-    public function updateMedia(Request $request, Maid $maid)
+    public function updateMedia(Request $request, Maid $maid, MaidMediaUpdater $mediaUpdater)
     {
         $request->merge([
             'video_link' => $this->normalizeMaidVideoLink($request->input('video_link')),
         ]);
 
-        $validated = $request->validate([
-            'image' => ['nullable', 'image', 'max:10240'],
-            'cv_file' => ['nullable', 'file', 'mimes:pdf,jpg,jpeg,png,gif,bmp,webp', 'max:20480'],
-            'cv_preview' => ['nullable', 'image', 'max:10240'],
-            'video' => ['nullable', 'file', 'mimes:mp4,mov,avi,wmv,webm,mkv,m4v', 'max:102400'],
-            'remove_video' => ['nullable', 'boolean'],
-            'video_link' => ['nullable', 'url', 'max:2000'],
-        ], [
-            'image.image' => 'يجب أن تكون الصورة الشخصية ملف صورة صالحًا.',
-            'cv_file.mimes' => 'ملف السيرة يجب أن يكون PDF أو صورة صالحة.',
-            'cv_preview.image' => 'يجب أن تكون صورة معاينة السيرة ملف صورة صالحًا.',
-            'video.mimes' => 'صيغة ملف الفيديو غير مدعومة.',
-            'video_link.url' => 'رابط الفيديو غير صالح.',
-        ]);
+        $validated = $request->validate($mediaUpdater->rules(), $mediaUpdater->messages());
 
-        $mediaFields = ['image', 'cv_file', 'cv_preview', 'video'];
-        $updates = [];
-        $oldFiles = [];
-        $uploadedFiles = [];
-
-        try {
-            foreach ($mediaFields as $field) {
-                if (!$request->hasFile($field)) {
-                    continue;
-                }
-
-                $oldFiles[] = $maid->{$field};
-                $updates[$field] = uploadMaidFile($request->file($field), 'images/Maid/');
-                $uploadedFiles[] = $updates[$field];
-            }
-
-            if ($request->boolean('remove_video') && !$request->hasFile('video')) {
-                $oldFiles[] = $maid->video;
-                $updates['video'] = null;
-            }
-
-            if ($request->boolean('remove_video_link')) {
-                $updates['video_link'] = null;
-            } elseif ($request->exists('video_link')) {
-                $updates['video_link'] = $validated['video_link'] ?? null;
-            }
-
-            if ($updates === [] || collect($updates)->every(fn ($value, $field) => $maid->{$field} == $value)) {
-                return back()->withErrors(
-                    ['media' => 'اختر صورة أو ملف فيديو، أو غيّر رابط الفيديو أولًا.'],
-                    'mediaUpdate'
-                );
-            }
-
-            $maid->update($updates);
-
-            foreach (array_filter($oldFiles) as $oldFile) {
-                deleteFile($oldFile);
-            }
-        } catch (\Throwable $exception) {
-            foreach ($uploadedFiles as $uploadedFile) {
-                deleteFile($uploadedFile);
-            }
-
-            throw $exception;
+        if (!$mediaUpdater->apply($maid, $request, $validated)) {
+            return back()->withErrors(
+                ['media' => 'اختر صورة أو ملف فيديو، أو غيّر رابط الفيديو أولًا.'],
+                'mediaUpdate'
+            );
         }
 
         return back()->with('success', 'تم تحديث صور وفيديو العاملة، وتسجيل التعديل في سجل السيرة.');

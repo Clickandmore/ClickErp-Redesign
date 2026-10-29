@@ -60,6 +60,9 @@ class RentContractController extends Controller
 
     public function __construct()
     {
+        $this->middleware('permission:' . PermKeys::RENT_CONTRACT_SEND_OVERDUE_SMS . ',admin', [
+            'only' => ['sendOverdueSms'],
+        ]);
         $this->middleware('permission:' . PermKeys::RENT_CONTRACT_CHANGE_MARKETER . ',admin', [
             'only' => ['changeMarketer'],
         ]);
@@ -371,7 +374,9 @@ class RentContractController extends Controller
                     $remainingAmount = (float) ($row->info?->remaining_amount ?? 0);
                     if (
                         @AdminGuardHasPerm(\App\PermKeys::RENT_CONTRACT_CONTROL)
+                        && MoyasarSettings::isEnabled()
                         && $row->info
+                        && $row->info->payment_type === 'moyasar'
                         && $paymentStatus !== 'paid'
                         && $remainingAmount > 0
                     ) {
@@ -429,6 +434,13 @@ class RentContractController extends Controller
                                         data-url="' . route('RentContract.sendExpiryReminder', $row->id) . '">
                                         <i class="fas fa-bell"></i> إرسال تنبيه انتهاء العقد
                                     </button></li>';
+                    }
+
+                    if (AdminGuardHasPerm(PermKeys::RENT_CONTRACT_SEND_OVERDUE_SMS)
+                        && app(\App\Services\RentalContractOverdueSmsService::class)->daysOverdue($row) > 0) {
+                        $actions .= '<li><button type="button" class="dropdown-item text-danger send-overdue-sms"
+                            data-url="' . route('RentContract.sendOverdueSms', $row->id) . '">
+                            <i class="fas fa-sms"></i> إرسال رسالة انتهاء العقد</button></li>';
                     }
 
                     if (AdminGuardHasPerm(PermKeys::RENT_CONTRACT_CHANGE_MARKETER)) {
@@ -5024,6 +5036,13 @@ class RentContractController extends Controller
                 ], 422);
             }
 
+            if ($contract->info->payment_type !== 'moyasar') {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'إرسال رابط الدفع متاح فقط للعقود التي طريقة دفعها ميسر.',
+                ], 422);
+            }
+
             if ($contract->info->payment_status === 'paid') {
                 return response()->json([
                     'success' => false,
@@ -5064,6 +5083,16 @@ class RentContractController extends Controller
                 'message' => 'حدث خطأ أثناء إرسال رابط الدفع: ' . $e->getMessage(),
             ], 500);
         }
+    }
+
+    public function sendOverdueSms($id, \App\Services\RentalContractOverdueSmsService $service)
+    {
+        abort_unless(AdminGuardHasPerm(PermKeys::RENT_CONTRACT_SEND_OVERDUE_SMS), 403);
+        $contract = RentalContract::with(['user', 'info'])->findOrFail($id);
+        $this->assertCanAccessBranchModel($contract, 'rental_contracts');
+        $service->send($contract);
+
+        return response()->json(['success' => true, 'message' => 'تم قبول إرسال رسالة انتهاء العقد للعميل.']);
     }
 
     public function sendExpiryReminder(Request $request, $id, RentalContractExpiryReminderService $reminderService)

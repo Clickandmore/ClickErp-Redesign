@@ -749,6 +749,7 @@ class AdminRoutePermissionMatrix
             'RentContract.create' => [PermKeys::RENT_CONTRACT_CREATE, PermKeys::RENT_CONTRACT_CONTROL],
             'RentContract.export.excel' => [PermKeys::RENT_CONTRACT_VIEW, PermKeys::RENT_CONTRACT_CONTROL],
             'RentContract.sendExpiryReminder' => [PermKeys::RENT_CONTRACT_CONTROL],
+            'RentContract.sendOverdueSms' => [PermKeys::RENT_CONTRACT_SEND_OVERDUE_SMS],
             'RentContract.sendPaymentLink' => [PermKeys::RENT_CONTRACT_CONTROL],
             'RentContract.changeMarketer' => [PermKeys::RENT_CONTRACT_CHANGE_MARKETER],
             'RentContract.escapeReturn' => [PermKeys::RENT_CONTRACT_CONTROL],

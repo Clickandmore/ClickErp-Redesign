@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\McpController;
+use App\Http\Controllers\McpMaidUploadController;
 use App\Http\Controllers\McpOAuthController;
 use Illuminate\Support\Facades\Route;
 
@@ -28,4 +29,10 @@ Route::middleware('throttle:mcp-oauth')->group(function () {
 Route::middleware(['web', 'throttle:mcp-oauth'])->group(function () {
     Route::get('oauth/authorize', [McpOAuthController::class, 'authorizeForm'])->name('mcp.oauth.authorize');
     Route::post('oauth/authorize', [McpOAuthController::class, 'authorizeDecision'])->name('mcp.oauth.decision');
+});
+
+// رابط رفع صور العاملة وفيديوها الذي ترسله أداة maid_media_upload_link: موقّع ومؤقت، بلا جلسة دخول.
+Route::middleware(['web', 'signed', 'throttle:mcp-oauth'])->group(function () {
+    Route::get('mcp/maids/{maid}/upload', [McpMaidUploadController::class, 'show'])->whereNumber('maid')->name('mcp.maid-upload.show');
+    Route::post('mcp/maids/{maid}/upload', [McpMaidUploadController::class, 'store'])->whereNumber('maid')->name('mcp.maid-upload.store');
 });
