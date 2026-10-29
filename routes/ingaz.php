@@ -899,6 +899,13 @@ Route::group(
                 Route::put('mcp', [\App\Http\Controllers\admin\SuperAdminMcpController::class, 'update'])->name('mcp.update');
                 Route::post('mcp/tokens', [\App\Http\Controllers\admin\SuperAdminMcpController::class, 'storeToken'])->name('mcp.tokens.store');
                 Route::post('mcp/tokens/{token}/revoke', [\App\Http\Controllers\admin\SuperAdminMcpController::class, 'revokeToken'])->whereNumber('token')->name('mcp.tokens.revoke');
+                Route::put('mcp/tools', [\App\Http\Controllers\admin\SuperAdminMcpController::class, 'updateTools'])->name('mcp.tools.update');
+                Route::post('mcp/admins', [\App\Http\Controllers\admin\SuperAdminMcpController::class, 'storeAdmin'])->name('mcp.admins.store');
+                Route::put('mcp/admins/{access}', [\App\Http\Controllers\admin\SuperAdminMcpController::class, 'updateAdmin'])->whereNumber('access')->name('mcp.admins.update');
+                Route::delete('mcp/admins/{access}', [\App\Http\Controllers\admin\SuperAdminMcpController::class, 'destroyAdmin'])->whereNumber('access')->name('mcp.admins.destroy');
+                Route::post('mcp/admins/{admin}/revoke-connections', [\App\Http\Controllers\admin\SuperAdminMcpController::class, 'revokeAdminConnections'])->whereNumber('admin')->name('mcp.admins.revoke-connections');
+                Route::post('mcp/oauth-clients/{client}/revoke', [\App\Http\Controllers\admin\SuperAdminMcpController::class, 'revokeClient'])->whereNumber('client')->name('mcp.clients.revoke');
+                Route::get('mcp/logs/export', [\App\Http\Controllers\admin\SuperAdminMcpController::class, 'exportLogs'])->name('mcp.logs.export');
                 Route::post('recovery/migrate', [DevSuperAdminController::class, 'runRecoveryMigrations'])
                     ->middleware('throttle:3,1')
                     ->name('recovery.migrate');

@@ -23,7 +23,8 @@ class McpModuleToolsTest extends TestCase
         parent::setUp();
         DB::table('dev_superadmin_settings')->where('key', 'mcp_server')->delete();
         $this->setUpBranches();
-        config(['mcp.enabled' => true, 'mcp.mask_sensitive' => true]);
+        // هذه الاختبارات عن الأدوات لا عن قائمة الموظفين؛ McpAccessControlTest يغطي الوضع الافتراضي «المحددون فقط».
+        config(['mcp.enabled' => true, 'mcp.mask_sensitive' => true, 'mcp.access_mode' => 'all']);
     }
 
     private function grant(Admin $admin, string ...$permissions): void

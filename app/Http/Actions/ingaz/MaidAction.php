@@ -626,6 +626,27 @@ class MaidAction extends MainAction
         return $maid;
     }
 
+    /**
+     * السيرة السريعة من بيانات تحققت بقواعد StoreRapidCv: افتراضيات النموذج ثم الحفظ.
+     * تستخدمها شاشة «سيرة سريعة» وأداة المساعد الذكي create_maid_cv.
+     */
+    public function createRapidCv(array $data, $request, ?int $addedBy): Maid
+    {
+        $data['status'] = 'available';
+        $data['added_by'] = $addedBy;
+        $data['available'] = $data['available'] ?? 1;
+        // Show new rapid CVs by default while respecting explicit hiding.
+        $data['is_show'] = $data['is_show'] ?? 1;
+        $data['experience_status'] = $data['experience_status'] ?? 'no_experience';
+        $data['experience_years'] = $data['experience_years'] ?? '0';
+
+        $name = trim((string) ($data['name:en'] ?? ''));
+        $data['name'] = $name !== '' ? $name : null;
+        unset($data['name:en']);
+
+        return $this->storeRapidCvMaid($data, $request);
+    }
+
     public function storeRapidCvMaid($createData, $request)
     {
         if (isset($createData['cv_file']) && $createData['cv_file'] instanceof \Illuminate\Http\UploadedFile) {

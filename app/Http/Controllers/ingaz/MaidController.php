@@ -2215,22 +2215,7 @@ class MaidController extends Controller
 
     public function store_rapid_cv(StoreRapidCv $request, objAction $action, MaidCvPdfGenerator $cvGenerator)
     {
-        $data = $request->validated();
-
-        // Set defaults so the rapid form saves without missing fields
-        $data['status'] = 'available';
-        $data['added_by'] = auth('admin')->id() ?? auth()->id();
-        $data['available'] = $data['available'] ?? 1;
-        // Show new rapid CVs by default while respecting explicit hiding.
-        $data['is_show'] = $data['is_show'] ?? 1;
-        $data['experience_status'] = $data['experience_status'] ?? 'no_experience';
-        $data['experience_years'] = $data['experience_years'] ?? '0';
-
-        $name = trim((string) ($data['name:en'] ?? ''));
-        $data['name'] = $name !== '' ? $name : null;
-        unset($data['name:en']);
-
-        $data = $action->storeRapidCvMaid($data, $request);
+        $data = $action->createRapidCv($request->validated(), $request, auth('admin')->id() ?? auth()->id());
         $this->generateCvAutomatically($data, $cvGenerator);
 
         return response()->json(['code' => 200, 'message' => __('ingaz.cv_added_successfully')]);
@@ -2759,19 +2744,7 @@ class MaidController extends Controller
 
     private function generateCvAutomatically(Maid $maid, MaidCvPdfGenerator $cvGenerator): void
     {
-        if (!MaidCvTemplateSettings::enabled()) {
-            return;
-        }
-
-        try {
-            $cvGenerator->generate($maid);
-        } catch (\Throwable $exception) {
-            report($exception);
-            \Log::warning('Automatic maid CV generation failed.', [
-                'maid_id' => $maid->id,
-                'error' => $exception->getMessage(),
-            ]);
-        }
+        $cvGenerator->generateIfEnabled($maid);
     }
 
     public function updateMedia(Request $request, Maid $maid)

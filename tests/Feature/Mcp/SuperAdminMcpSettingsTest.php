@@ -4,6 +4,7 @@ namespace Tests\Feature\Mcp;
 
 use App\Models\auth\Admin;
 use App\Models\McpAccessToken;
+use App\Models\McpAdminAccess;
 use App\Support\McpSettings;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Illuminate\Support\Facades\Cache;
@@ -39,6 +40,7 @@ class SuperAdminMcpSettingsTest extends TestCase
     public function saved_settings_override_the_env_defaults_and_switch_the_endpoint(): void
     {
         $admin = Admin::factory()->create();
+        McpAdminAccess::query()->create(['admin_id' => $admin->id]);
         [, $plain] = McpAccessToken::issue($admin, 'test', 30);
         $ping = fn () => $this->withToken($plain)->postJson('/mcp', ['jsonrpc' => '2.0', 'id' => 1, 'method' => 'ping']);
 
@@ -52,12 +54,22 @@ class SuperAdminMcpSettingsTest extends TestCase
             'mask_sensitive' => '0',
             'rate_limit_per_minute' => 30,
             'token_days' => 14,
-        ])->assertRedirect(route('dev-superadmin.mcp.index'));
+            'access_mode' => 'selected',
+            'audit_retention_days' => 30,
+        ])->assertRedirect(route('dev-superadmin.mcp.index', ['tab' => 'settings']));
 
-        $this->assertSame(
-            ['enabled' => true, 'rate_limit_per_minute' => 30, 'mask_sensitive' => false, 'token_days' => 14, 'oauth_enabled' => true],
-            McpSettings::all()
-        );
+        $this->assertSame([
+            'enabled' => true,
+            'rate_limit_per_minute' => 30,
+            'mask_sensitive' => false,
+            'token_days' => 14,
+            'oauth_enabled' => true,
+            'access_mode' => 'selected',
+            'write_enabled' => false,
+            'disabled_tools' => [],
+            'audit_retention_days' => 30,
+            'write_limit_per_hour' => 30,
+        ], McpSettings::all());
         $ping()->assertOk();
 
         $this->asSuperAdmin()->put(route('dev-superadmin.mcp.update'), [
@@ -79,16 +91,19 @@ class SuperAdminMcpSettingsTest extends TestCase
             'admin_id' => $admin->id,
             'name' => 'Codex test',
         ]);
-        $response->assertRedirect(route('dev-superadmin.mcp.index'));
+        $response->assertRedirect(route('dev-superadmin.mcp.index', ['tab' => 'connections']));
         $plain = session('mcp_plain_token')['value'];
+
+        // إصدار توكن يضيف الموظف لقائمة «المحددون فقط» بمستوى قراءة، وإلا لما عمل التوكن.
+        $this->assertDatabaseHas('mcp_admin_access', ['admin_id' => $admin->id, 'enabled' => true, 'access_level' => 'read']);
 
         $token = McpAccessToken::query()->where('admin_id', $admin->id)->firstOrFail();
         $this->assertSame(McpAccessToken::hash($plain), $token->token_hash);
         $this->assertSame(now()->addDays(7)->toDateString(), $token->expires_at->toDateString());
 
         // يظهر في الصفحة التي يُعاد التوجيه إليها، ثم يختفي.
-        $this->get(route('dev-superadmin.mcp.index'))->assertOk()->assertSee($plain);
-        $this->get(route('dev-superadmin.mcp.index'))
+        $this->get(route('dev-superadmin.mcp.index', ['tab' => 'connections']))->assertOk()->assertSee($plain);
+        $this->get(route('dev-superadmin.mcp.index', ['tab' => 'connections']))
             ->assertOk()
             ->assertSee('Codex test')
             ->assertDontSee($plain);
@@ -96,7 +111,7 @@ class SuperAdminMcpSettingsTest extends TestCase
         $this->withToken($plain)->postJson('/mcp', ['jsonrpc' => '2.0', 'id' => 1, 'method' => 'ping'])->assertOk();
 
         $this->asSuperAdmin()->post(route('dev-superadmin.mcp.tokens.revoke', $token))
-            ->assertRedirect(route('dev-superadmin.mcp.index'));
+            ->assertRedirect(route('dev-superadmin.mcp.index', ['tab' => 'connections']));
         $this->withToken($plain)->postJson('/mcp', ['jsonrpc' => '2.0', 'id' => 1, 'method' => 'ping'])->assertStatus(401);
     }
 

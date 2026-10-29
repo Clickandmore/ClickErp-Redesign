@@ -67,13 +67,48 @@ abstract class McpTool
         return AdminRoutePermissionMatrix::adminHasAnyPermission($admin, $permissions);
     }
 
+    /** للعرض في شاشة Super Admin. */
+    public function gateRouteName(): ?string
+    {
+        return $this->gateRoute();
+    }
+
+    /**
+     * أدوات الإضافة والتعديل ترجع true، فلا تظهر إلا مع مفتاح الكتابة العام
+     * ومستوى «كتابة» للموظف في شاشة Super Admin.
+     */
+    public function isWriteTool(): bool
+    {
+        return false;
+    }
+
+    /** مجموعة الأداة في شاشة Super Admin؛ تُستنتج من الشاشة المستعارة ويمكن تجاوزها. */
+    public function category(): string
+    {
+        $route = (string) $this->gateRoute();
+
+        return match (true) {
+            str_starts_with($route, 'RecruitmentContract.'), str_starts_with($route, 'RentContract.') => 'contracts',
+            str_starts_with($route, 'maids.') => 'maids',
+            str_starts_with($route, 'clients.') => 'customers',
+            str_starts_with($route, 'orders.') => 'orders',
+            str_starts_with($route, 'complaints.') => 'complaints',
+            str_starts_with($route, 'finance.'), str_starts_with($route, 'invoices.') => 'finance',
+            default => 'system',
+        };
+    }
+
     public function definition(): array
     {
         return [
             'name' => $this->name(),
             'description' => $this->description(),
             'inputSchema' => $this->inputSchema(),
-            'annotations' => ['readOnlyHint' => true, 'openWorldHint' => false],
+            'annotations' => [
+                'readOnlyHint' => !$this->isWriteTool(),
+                'destructiveHint' => $this->isWriteTool(),
+                'openWorldHint' => false,
+            ],
         ];
     }
 

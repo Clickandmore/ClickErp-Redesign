@@ -103,6 +103,15 @@ class McpAccessToken extends Model
         return $token && $token->isActive() ? $token : null;
     }
 
+    /** يقطع كل اتصالات الموظف (يدوية وOAuth) فوراً، والتجديد يتوقف معها. */
+    public static function revokeAllFor(int $adminId): int
+    {
+        return self::query()
+            ->where('admin_id', $adminId)
+            ->whereNull('revoked_at')
+            ->update(['revoked_at' => now(), 'updated_at' => now()]);
+    }
+
     public static function hash(string $plain): string
     {
         return hash('sha256', $plain);

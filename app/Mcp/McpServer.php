@@ -23,6 +23,10 @@ class McpServer
     /** @var array<string, McpTool>|null */
     private ?array $tools = null;
 
+    public function __construct(private McpAccess $access)
+    {
+    }
+
     /**
      * @return array|null رد JSON-RPC، أو null للإشعارات (لا رد لها).
      */
@@ -68,7 +72,7 @@ class McpServer
     private function listTools(Admin $admin): array
     {
         return collect($this->tools())
-            ->filter(fn (McpTool $tool) => $tool->isAllowedFor($admin))
+            ->filter(fn (McpTool $tool) => $this->access->toolAllowed($admin, $tool) && $tool->isAllowedFor($admin))
             ->map(fn (McpTool $tool) => $tool->definition())
             ->values()
             ->all();
@@ -89,6 +93,12 @@ class McpServer
             $audit('unknown');
 
             return $this->error($id, -32602, "Unknown tool: {$name}");
+        }
+
+        if (!$this->access->toolAllowed($admin, $tool)) {
+            $audit('disabled');
+
+            return $this->result($id, $this->toolError('هذه الأداة غير متاحة لك؛ الإدارة لم تفعّلها في إعدادات المساعد الذكي.'));
         }
 
         if (!$tool->isAllowedFor($admin)) {
@@ -152,7 +162,7 @@ class McpServer
                 'token_id' => $token?->id,
                 'method' => $method,
                 'tool' => $tool !== null ? Str::limit($tool, 117) : null,
-                'arguments' => $arguments,
+                'arguments' => McpAuditLog::sanitizeArguments($arguments),
                 'status' => $status,
                 'error' => $error !== null ? Str::limit($error, 497) : null,
                 'duration_ms' => (int) round((microtime(true) - $startedAt) * 1000),

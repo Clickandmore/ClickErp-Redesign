@@ -2,13 +2,16 @@
 
 namespace App\Http\Middleware;
 
+use App\Mcp\McpAccess;
 use App\Models\McpAccessToken;
+use App\Models\McpAuditLog;
 use App\Support\BranchQueryContext;
 use App\Support\DashboardMaintenanceSettings;
 use App\Support\McpSettings;
 use Closure;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Cache;
 
 /**
  * يحوّل توكن MCP إلى موظف مسجّل دخوله تحت حارس admin لمدة الطلب فقط.
@@ -39,6 +42,17 @@ class AuthenticateMcpToken
             return response()->json(['error' => 'maintenance'], 503)->header('Retry-After', '300');
         }
 
+        // التوكن صالح لكن Super Admin لم يفعّل هذا الموظف (أو أوقفه): 403 لا 401،
+        // فالعميل لا يعيد تسجيل الدخول في حلقة بلا فائدة.
+        if (!app(McpAccess::class)->adminAllowed($admin)) {
+            $this->auditBlocked($admin, $token, $request);
+
+            return response()->json([
+                'error' => 'access_denied',
+                'error_description' => 'لم تفعّل الإدارة استخدام المساعد الذكي لحسابك. تواصل مع مدير النظام.',
+            ], 403);
+        }
+
         Auth::shouldUse('admin');
         Auth::guard('admin')->setUser($admin);
         BranchQueryContext::flush();
@@ -51,5 +65,27 @@ class AuthenticateMcpToken
         $request->attributes->set('mcp_token', $token);
 
         return $next($request);
+    }
+
+    /** محاولة واحدة في الدقيقة لكل توكن تكفي لتظهر في السجل دون أن تغرقه إعادة المحاولات. */
+    private function auditBlocked($admin, McpAccessToken $token, Request $request): void
+    {
+        if (!Cache::add('mcp:blocked-audit:' . $token->id, true, now()->addMinute())) {
+            return;
+        }
+
+        try {
+            McpAuditLog::query()->create([
+                'admin_id' => $admin->id,
+                'token_id' => $token->id,
+                'method' => (string) ($request->json('method') ?: 'request'),
+                'tool' => $request->json('params.name'),
+                'status' => 'blocked',
+                'ip' => $request->ip(),
+                'created_at' => now(),
+            ]);
+        } catch (\Throwable $e) {
+            // السجل لا يغيّر الرد.
+        }
     }
 }
