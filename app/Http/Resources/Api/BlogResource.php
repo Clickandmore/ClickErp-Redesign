@@ -2,6 +2,7 @@
 
 namespace App\Http\Resources\Api;
 
+use App\Support\BlogShortcodes;
 use Illuminate\Http\Resources\Json\JsonResource;
 use Illuminate\Support\Str;
 
@@ -27,7 +28,7 @@ class BlogResource extends JsonResource
         // النص المختصر: الملخص إن وُجد، وإلا أول 200 حرف من المحتوى بعد تجريده من HTML.
         $excerpt = filled($this->excerpt)
             ? (string) $this->excerpt
-            : Str::limit(trim(strip_tags((string) $this->content)), 200);
+            : Str::limit(trim(strip_tags(BlogShortcodes::strip($this->content))), 200);
 
         $data = [
             'id' => (int) $this->id,
@@ -49,7 +50,8 @@ class BlogResource extends JsonResource
         ];
 
         if ($this->withContent) {
-            $data['content'] = (string) $this->content;
+            // {{contact_info}} وغيره يُستبدل هنا، فتعرضه كل المواقع الخارجية كما هو.
+            $data['content'] = BlogShortcodes::render($this->content);
             // الأسئلة الشائعة تُرسل مع صفحة المقال فقط: البطاقات في القوائم لا
             // تعرضها، وإرسالها هناك يضخّم الرد بلا فائدة تمامًا كـ content.
             $data['faqs'] = $this->faqsPayload();
@@ -89,7 +91,7 @@ class BlogResource extends JsonResource
 
     private function readingMinutes(): int
     {
-        $text = trim(strip_tags((string) $this->content));
+        $text = trim(strip_tags(BlogShortcodes::strip($this->content)));
 
         if ($text === '') {
             return 1;

@@ -165,8 +165,6 @@
             border-bottom: 1px solid #f1f5f9;
             padding: 10px 0;
             font-size: 0.95rem;
-
-            overflow-x: auto;
         }
 
         .info-row:last-of-type {
@@ -177,12 +175,21 @@
         .info-label {
             font-weight: 600;
             color: #475569;
-            min-width: 140px;
+            flex: 0 0 auto;
+            max-width: 45%;
         }
 
         .info-value {
             color: #0f172a;
-            text-align: right;
+            flex: 1 1 auto;
+            min-width: 0;
+            text-align: left;
+            overflow-wrap: anywhere;
+        }
+
+        .info-value .status-pill,
+        .info-value .badge {
+            white-space: nowrap;
         }
 
         .highlight {
@@ -287,6 +294,47 @@
                 flex-direction: column;
                 align-items: flex-start;
             }
+
+            .info-label {
+                max-width: none;
+            }
+
+            .info-value {
+                text-align: right;
+            }
+        }
+
+        /* الطباعة: الغلاف (.wrapper) مثبت على 100vh مع تمرير داخلي، فبدون هذا تخرج لقطة للشاشة فقط مع القائمة الجانبية */
+        @media print {
+            @page { size: A4; margin: 10mm; }
+
+            html, body, .layout-1 .wrapper, .page-body, .page-body > .container-fluid {
+                height: auto !important;
+                min-height: 0 !important;
+                overflow: visible !important;
+                display: block !important;
+                width: 100% !important;
+                margin: 0 !important;
+                padding: 0 !important;
+                background: #fff !important;
+            }
+
+            .sidebar, .page-header, .page-footer, .page-scroll-controls, #loading-wrapper,
+            .modal, .modal-backdrop, .no-print,
+            .details-content .btn, .details-content form, .details-content button {
+                display: none !important;
+            }
+
+            * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+
+            .details-container { padding: 0; background: #fff; }
+            .details-content { max-width: none; }
+            .hero-card, .info-card, .operations-panel { box-shadow: none !important; }
+            .hero-card { padding: 20px; border-radius: 12px; }
+            .info-grid { grid-template-columns: repeat(2, 1fr); gap: 12px; margin-top: 16px; }
+            .info-card, .operations-panel { padding: 14px; border-radius: 12px; margin-top: 16px; }
+            .info-card, .info-row, tr { break-inside: avoid; page-break-inside: avoid; }
+            .table-responsive { overflow: visible !important; }
         }
     </style>
 @endsection
@@ -349,7 +397,7 @@
                     </div>
                 </div>
             </div>
-            <div class="hero-actions">
+            <div class="hero-actions no-print">
                 @if (app(\App\Services\ShelterDocumentService::class)->available())
                     @foreach (\App\Models\ShelterDocument::where('contract_id', $contract->id)->where('enabled', true)->where(function ($query) { $query->where('kind', 'entry')->orWhereNotNull('release_completed_at'); })->get() as $shelterDocument)
                         <a class="btn-action" target="_blank" rel="noopener" href="{{ route('shelter_contract_form.download', ['id' => $contract->id, 'document' => $shelterDocument->kind]) }}">طباعة {{ \App\Support\ShelterDocumentFields::kinds()[$shelterDocument->kind] }}</a>
@@ -610,7 +658,7 @@
 
         @include('admin.ingaz.ShelterContract.partials.agent-cost-recovery')
 
-        <div class="operations-panel">
+        <div class="operations-panel no-print">
             <div class="section-title">
                 <i class="fas fa-cogs"></i>خيارات إضافية
             </div>
