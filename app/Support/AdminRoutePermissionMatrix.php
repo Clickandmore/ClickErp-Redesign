@@ -595,6 +595,8 @@ class AdminRoutePermissionMatrix
                 NewPermKeys::REC_CONTRACTS_MANAGE,
             ],
             'RecruitmentContract.statistics' => [NewPermKeys::REC_CONTRACTS_VIEW, NewPermKeys::REC_CONTRACTS_MANAGE],
+            'RecruitmentContract.insights' => [NewPermKeys::REC_CONTRACTS_VIEW, NewPermKeys::REC_CONTRACTS_MANAGE],
+            'RecruitmentContract.insights.data' => [NewPermKeys::REC_CONTRACTS_VIEW, NewPermKeys::REC_CONTRACTS_MANAGE],
             'RecruitmentContract.export.pdf' => [NewPermKeys::REC_CONTRACTS_EXPORT, NewPermKeys::REC_CONTRACTS_MANAGE],
             'RecruitmentContract.export.excel' => [NewPermKeys::REC_CONTRACTS_EXPORT, NewPermKeys::REC_CONTRACTS_MANAGE],
             'contracts.details' => [NewPermKeys::REC_CONTRACTS_VIEW, NewPermKeys::REC_CONTRACTS_MANAGE],

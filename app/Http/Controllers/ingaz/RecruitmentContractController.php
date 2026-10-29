@@ -5902,6 +5902,116 @@ class RecruitmentContractController extends Controller
         }
     }
 
+    /**
+     * شاشة الإحصائيات الكاملة للعقود (رسوم بيانية + بطاقات الوصول والتسليم).
+     * الأرقام تُجلب عبر statistics و insightsData بنفس فلاتر جدول العقود.
+     */
+    public function insights(Request $request)
+    {
+        abort_unless($this->canViewRecruitmentContracts(), 403);
+
+        return view($this->folderPath . '.insights', [
+            'filterOptions' => $this->getFilterOptions(),
+            'companyContractsMode' => $request->boolean('company_contracts'),
+        ]);
+    }
+
+    public function insightsData(Request $request)
+    {
+        if (!$this->canViewRecruitmentContracts()) {
+            return response()->json(['success' => false, 'message' => 'ليس لديك صلاحية لعرض إحصائيات العقود'], 403);
+        }
+
+        try {
+            $reporting = \App\Support\RecruitmentContractReporting::class;
+            $base = Contract::query()->whereIn('type', ['recruitment', 'maid']);
+            $this->applyContractFilters($base, $request);
+
+            // الاتجاه الشهري يتجاهل فلتر الفترة ويرسم كل سلسلة على تاريخها الخاص داخل نافذة الرسم.
+            $trendBase = Contract::query()->whereIn('type', ['recruitment', 'maid']);
+            $this->applyContractFilters($trendBase, $request->duplicate(
+                \Illuminate\Support\Arr::except($request->query(), ['date_from', 'date_to', 'date_type'])
+            ));
+            $to = ($request->filled('date_to') ? \Carbon\Carbon::parse($request->date_to) : now())->endOfMonth();
+            $from = $request->filled('date_from')
+                ? \Carbon\Carbon::parse($request->date_from)->startOfMonth()
+                : $to->copy()->subMonthsNoOverflow(11)->startOfMonth();
+            if ($from->copy()->addMonthsNoOverflow(23)->lt($to->copy()->startOfMonth())) {
+                $from = $to->copy()->subMonthsNoOverflow(23)->startOfMonth();
+            }
+
+            $monthly = function (string $sql) use ($trendBase, $from, $to) {
+                return (clone $trendBase)
+                    ->whereRaw("$sql BETWEEN ? AND ?", [$from->toDateString(), $to->toDateString()])
+                    ->selectRaw("DATE_FORMAT($sql, '%Y-%m') AS period, COUNT(*) AS total")
+                    ->groupBy('period')
+                    ->pluck('total', 'period');
+            };
+            $series = [
+                'contracts' => $monthly($reporting::dateSql('contract')),
+                'arrivals' => $monthly($reporting::arrivalDateSql()),
+                'deliveries' => $monthly($reporting::dateSql('delivery')),
+            ];
+            $trend = ['labels' => [], 'contracts' => [], 'arrivals' => [], 'deliveries' => []];
+            for ($month = $from->copy(); $month->lte($to); $month->addMonthNoOverflow()) {
+                $key = $month->format('Y-m');
+                $trend['labels'][] = $month->copy()->locale('ar')->translatedFormat('M Y');
+                foreach ($series as $name => $values) {
+                    $trend[$name][] = (int) ($values[$key] ?? 0);
+                }
+            }
+
+            $options = $this->getFilterOptions();
+            $top = function (string $sql, $labels) use ($base) {
+                return (clone $base)
+                    ->selectRaw("$sql AS group_id, COUNT(*) AS total")
+                    ->groupBy('group_id')
+                    ->orderByDesc('total')
+                    ->limit(8)
+                    ->get()
+                    ->map(fn ($row) => [
+                        'label' => $row->group_id ? ($labels[$row->group_id] ?? ('#' . $row->group_id)) : 'غير محدد',
+                        'total' => (int) $row->total,
+                    ])
+                    ->values();
+            };
+
+            $arrival = $reporting::arrivalDateSql();
+            $contractDate = $reporting::dateSql('contract');
+            $delivery = $reporting::dateSql('delivery');
+            $durations = (clone $base)->selectRaw(
+                "AVG(CASE WHEN $arrival >= $contractDate THEN DATEDIFF($arrival, $contractDate) END) AS contract_to_arrival,
+                AVG(CASE WHEN $delivery >= $arrival THEN DATEDIFF($delivery, $arrival) END) AS arrival_to_delivery"
+            )->first();
+
+            return response()->json([
+                'success' => true,
+                'data' => [
+                    'trend' => $trend,
+                    'nationalities' => $top(
+                        'COALESCE((SELECT m.nationality_id FROM maids m WHERE m.id = contracts.maid_id), (SELECT i.manual_maid_nationality_id FROM contract_infos i WHERE i.contract_id = contracts.id LIMIT 1))',
+                        collect($options['nationalities'])->pluck('sub_title', 'id')
+                    ),
+                    'offices' => $top(
+                        'COALESCE((SELECT m.office_id FROM maids m WHERE m.id = contracts.maid_id), (SELECT i.manual_maid_office_id FROM contract_infos i WHERE i.contract_id = contracts.id LIMIT 1))',
+                        collect($options['offices'])->pluck('title', 'id')
+                    ),
+                    'marketers' => $top('contracts.marketer_id', collect($options['marketers'])->pluck('name', 'id')),
+                    'durations' => [
+                        'contract_to_arrival' => $durations->contract_to_arrival !== null ? round((float) $durations->contract_to_arrival, 1) : null,
+                        'arrival_to_delivery' => $durations->arrival_to_delivery !== null ? round((float) $durations->arrival_to_delivery, 1) : null,
+                    ],
+                ],
+            ]);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return response()->json(['success' => false, 'message' => $e->getMessage(), 'errors' => $e->errors()], 422);
+        } catch (\Exception $e) {
+            logger()->error('Error in contract insights:', ['error' => $e->getMessage()]);
+
+            return response()->json(['success' => false, 'message' => 'حدث خطأ أثناء جلب الإحصائيات'], 500);
+        }
+    }
+
     private function applyDocumentPresenceFilters($query, Request $request): void
     {
         $relations = [
