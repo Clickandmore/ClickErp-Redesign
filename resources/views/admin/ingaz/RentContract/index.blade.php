@@ -3886,6 +3886,32 @@
 
             // إرسال رابط الدفع يتم من نافذة payment-link-modal (SMS / واتساب / نسخ).
 
+            $(document).on('click', '.send-overdue-sms', function() {
+                const button = $(this);
+                Swal.fire({
+                    title: 'إرسال رسالة انتهاء العقد',
+                    text: 'سيتم إرسال SMS للعميل بعدد الأيام منذ انتهاء العقد محسوبًا الآن. يمكن إعادة الإرسال لاحقًا.',
+                    icon: 'question',
+                    showCancelButton: true,
+                    confirmButtonText: 'إرسال الرسالة',
+                    cancelButtonText: 'إلغاء',
+                    showLoaderOnConfirm: true,
+                    allowOutsideClick: () => !Swal.isLoading(),
+                    preConfirm: () => $.ajax({
+                        url: button.data('url'),
+                        type: 'POST',
+                        data: { _token: '{{ csrf_token() }}' }
+                    }).then(response => response, xhr => {
+                        Swal.showValidationMessage((xhr.responseJSON || {}).message || 'تعذر إرسال الرسالة. حاول مرة أخرى.');
+                        return false;
+                    })
+                }).then(result => {
+                    if (result.isConfirmed && result.value) {
+                        Swal.fire({icon: 'success', title: 'تم قبول الإرسال', text: result.value.message});
+                    }
+                });
+            });
+
             $(document).on('click', '.send-expiry-reminder', function() {
                 const url = $(this).data('url');
 

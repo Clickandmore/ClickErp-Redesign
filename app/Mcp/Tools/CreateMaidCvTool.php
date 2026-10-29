@@ -3,12 +3,16 @@
 namespace App\Mcp\Tools;
 
 use App\Http\Actions\ingaz\MaidAction;
+use App\Http\Controllers\McpMaidUploadController;
 use App\Http\Requests\StoreRapidCv;
+use App\Mcp\McpAccess;
 use App\Models\auth\Admin;
 use App\Models\ingaz\JobTitle;
 use App\Models\ingaz\JobType;
+use App\Models\ingaz\Maid;
 use App\Models\ingaz\Nationality;
 use App\Models\ingaz\Religion;
+use App\Models\McpAccessToken;
 use App\Models\RecruitmentOffices;
 use App\Services\ingaz\MaidCvPdfGenerator;
 use Illuminate\Http\Request;
@@ -17,7 +21,8 @@ use Illuminate\Support\Facades\Validator;
 /**
  * إضافة سيرة ذاتية (عاملة) بنفس نموذج «السيرة السريعة» في الشاشة: قواعد StoreRapidCv
  * وحفظ MaidAction::createRapidCv، ثم توليد ملف السيرة إن كان القالب مفعّلاً.
- * المساعد يقرأ صورة السيرة في المحادثة ويرسل الحقول؛ الصورة والملف يُرفعان من الشاشة.
+ * المساعد يقرأ صورة السيرة في المحادثة ويرسل الحقول؛ الصورة والفيديو يُرفعان من رابط
+ * الرفع المؤقت الذي يرجع مع النتيجة (أداة maid_media_upload_link).
  */
 class CreateMaidCvTool extends McpWriteTool
 {
@@ -31,7 +36,8 @@ class CreateMaidCvTool extends McpWriteTool
         return 'إضافة سيرة ذاتية لعاملة بخطوتين: الاستدعاء الأول يتحقق ويرجع معاينة ورمز تأكيد دون حفظ، وبعد موافقة المستخدم '
             . 'الصريحة يُعاد الاستدعاء مع confirmation_token فتُحفظ. استخرج الحقول من صورة السيرة أو الجواز إن أرسلها المستخدم، '
             . 'وخذ المعرّفات (الجنسية، الديانة، نوع الخدمة، المهنة، المكتب) من form_options (form=maid) ولا تخمّنها. '
-            . 'يرفض رقم جواز مسجل مسبقاً. الصورة الشخصية وملف السيرة يُرفعان لاحقاً من شاشة العاملة. '
+            . 'يرفض رقم جواز مسجل مسبقاً. بعد الحفظ ترجع النتيجة رابط رفع مؤقتاً (media_upload.upload_url): أعطه للمستخدم '
+            . 'ليرفع منه صورة العاملة وفيديوها، فأنت لا تستطيع رفع الملفات بنفسك. '
             . 'Create a maid CV: preview first, then confirm with the token.';
     }
 
@@ -108,7 +114,21 @@ class CreateMaidCvTool extends McpWriteTool
                 'cv_code' => $maid->cv_code,
                 'url' => route('maids.show', $maid->id),
             ],
-            'next_step' => 'أضف الصورة الشخصية وملف السيرة من شاشة العاملة إن لزم.',
-        ];
+        ] + $this->mediaUpload($maid, $admin);
+    }
+
+    /** رابط رفع الصورة والفيديو إن كان الموظف يملك أداة الرابط؛ وإلا يُكمل من شاشة العاملة. */
+    private function mediaUpload(Maid $maid, Admin $admin): array
+    {
+        $token = request()->attributes->get('mcp_token');
+        $linkTool = app(MaidMediaUploadLinkTool::class);
+
+        if ($token instanceof McpAccessToken
+            && app(McpAccess::class)->toolAllowed($admin, $linkTool)
+            && $linkTool->isAllowedFor($admin)) {
+            return ['media_upload' => McpMaidUploadController::linkFor($maid, $admin, $token)];
+        }
+
+        return ['next_step' => 'أضف الصورة الشخصية والفيديو من شاشة العاملة إن لزم.'];
     }
 }

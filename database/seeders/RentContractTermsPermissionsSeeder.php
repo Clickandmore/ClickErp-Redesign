@@ -13,6 +13,13 @@ class RentContractTermsPermissionsSeeder extends Seeder
     {
         $permissions = [
             [
+                'name' => PermKeys::RENT_CONTRACT_SEND_OVERDUE_SMS,
+                'guard_name' => 'admin',
+                'group_name' => 'rent_contract',
+                'section_name' => 'rent_contracts',
+                'display_name' => 'إرسال رسالة للعميل بعد انتهاء عقد التأجير',
+            ],
+            [
                 'name' => PermKeys::RENT_CONTRACT_CHANGE_MARKETER,
                 'guard_name' => 'admin',
                 'group_name' => 'rent_contract',

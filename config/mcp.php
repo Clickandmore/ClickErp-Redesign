@@ -82,5 +82,8 @@ return [
         \App\Mcp\Tools\FormOptionsTool::class,
         \App\Mcp\Tools\CreateCustomerTool::class,
         \App\Mcp\Tools\CreateMaidCvTool::class,
+
+        // رابط رفع مؤقت لصورة العاملة وفيديوها؛ المساعد لا يستطيع إرسال الملفات نفسها عبر MCP.
+        \App\Mcp\Tools\MaidMediaUploadLinkTool::class,
     ],
 ];
