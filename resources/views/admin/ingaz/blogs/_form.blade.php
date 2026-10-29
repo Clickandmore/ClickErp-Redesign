@@ -86,8 +86,22 @@
                 <div class="col-12">
                     <label class="form-label">المحتوى @if ($isDefault) <span class="text-danger">*</span> @endif</label>
                     {{-- mytextarea هو ما يلتقطه TinyMCE تلقائيًا بعد فتح المودال. --}}
-                    <textarea name="content:{{ $locale }}" class="form-control mytextarea"
+                    <textarea name="content:{{ $locale }}" id="blog-content-{{ $locale }}" class="form-control mytextarea"
                         rows="10">{{ $translation->content ?? '' }}</textarea>
+                    {{-- الأكواد المختصرة تُستبدل عند الإرسال للموقع الخارجي — App\Support\BlogShortcodes. --}}
+                    <div class="small text-muted mt-2 d-flex flex-wrap align-items-center gap-2">
+                        <span>أكواد مختصرة:</span>
+                        @foreach (\App\Support\BlogShortcodes::available() as $shortcode => $shortcodeLabel)
+                            {{-- الأقواس تُبنى في PHP لأن Blade يفسّر {{ داخل القالب. --}}
+                            @php $shortcodeTag = '{' . '{' . $shortcode . '}' . '}'; @endphp
+                            <button type="button" class="btn btn-sm btn-outline-secondary" dir="ltr"
+                                title="{{ $shortcodeLabel }}"
+                                onclick="window.tinymce && tinymce.get('blog-content-{{ $locale }}') && tinymce.get('blog-content-{{ $locale }}').insertContent('<p>{{ $shortcodeTag }}</p>')">
+                                {{ $shortcodeTag }}
+                            </button>
+                            <span>{{ $shortcodeLabel }} — اكتبه في سطر مستقل في المكان المطلوب.</span>
+                        @endforeach
+                    </div>
                 </div>
 
                 <div class="col-md-6">
