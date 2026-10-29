@@ -11,6 +11,19 @@ use Illuminate\Validation\ValidationException;
 
 class RecruitmentContractStageStepService
 {
+    public static function stepSnapshot(): string
+    {
+        return RecruitmentContractStageStep::where('is_active', true)->orderBy('sort_order')->orderBy('id')
+            ->get()->toJson(JSON_UNESCAPED_UNICODE);
+    }
+
+    public static function freezeExistingContracts(): void
+    {
+        // Freeze definitions before editing them, including contracts not opened by a follower yet.
+        DB::table('contracts')->whereIn('type', ['recruitment', 'maid'])->whereNull('recruitment_steps_snapshot')
+            ->update(['recruitment_steps_snapshot' => self::stepSnapshot()]);
+    }
+
     public function nationalityId(Contract $contract): ?int
     {
         $id = $contract->maid?->nationality_id
@@ -22,26 +35,30 @@ class RecruitmentContractStageStepService
 
     public function applicableSteps(Contract $contract, bool $lock = false): Collection
     {
+        if (!\App\Support\RecruitmentStagePolicy::allowsSteps((string) $contract->status)) {
+            return collect();
+        }
         $nationalityId = $this->nationalityId($contract);
 
-        return RecruitmentContractStageStep::query()
-            ->where('is_active', true)
-            ->where('stage', $contract->status)
-            ->where(function ($query) use ($nationalityId) {
-                $query->whereNull('nationality_id');
-                if ($nationalityId) {
-                    $query->orWhere('nationality_id', $nationalityId);
-                }
-            })
-            ->orderBy('sort_order')
-            ->orderBy('id')
-            ->when($lock, fn ($query) => $query->lockForUpdate())
-            ->get();
+        $snapshot = $contract->recruitment_steps_snapshot;
+        if ($snapshot === null) {
+            DB::table('contracts')->where('id', $contract->id)->whereNull('recruitment_steps_snapshot')
+                ->update(['recruitment_steps_snapshot' => self::stepSnapshot()]);
+            $snapshot = DB::table('contracts')->where('id', $contract->id)->value('recruitment_steps_snapshot');
+            $contract->recruitment_steps_snapshot = $snapshot;
+        }
+        return collect(json_decode((string) $snapshot, true) ?: [])
+            ->filter(fn ($step) => $step['stage'] === $contract->status
+                && (empty($step['nationality_id']) || (int) $step['nationality_id'] === $nationalityId))
+            ->map(fn ($step) => (new RecruitmentContractStageStep)->newFromBuilder($step))->values();
     }
 
-    public function currentStep(Contract $contract): ?RecruitmentContractStageStep
+    public function currentStep(Contract $contract, bool $requiredOnly = false): ?RecruitmentContractStageStep
     {
         $steps = $this->applicableSteps($contract);
+        if ($requiredOnly) {
+            $steps = $steps->filter(fn ($step) => $step->is_required);
+        }
         if ($steps->isEmpty()) {
             return null;
         }
@@ -96,7 +113,7 @@ class RecruitmentContractStageStepService
 
     public function assertStageComplete(Contract $contract): void
     {
-        $current = $this->currentStep($contract);
+        $current = $this->currentStep($contract, true);
         if ($current) {
             throw ValidationException::withMessages([
                 'stage_steps' => 'لا يمكن الانتقال من مرحلة '
@@ -109,6 +126,7 @@ class RecruitmentContractStageStepService
     public function reopenFrom(Contract $contract, RecruitmentContractStageStep $step): void
     {
         DB::transaction(function () use ($contract, $step) {
+            $contract = Contract::query()->lockForUpdate()->findOrFail($contract->id);
             $steps = $this->applicableSteps($contract, true);
             $position = $steps->search(fn ($candidate) => (int) $candidate->id === (int) $step->id);
 

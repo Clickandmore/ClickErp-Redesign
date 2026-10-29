@@ -608,6 +608,7 @@ class AdminRoutePermissionMatrix
             'RecruitmentContract.stageSteps.update' => [NewPermKeys::REC_CONTRACTS_UPDATE, NewPermKeys::REC_CONTRACTS_MANAGE],
             'RecruitmentContract.stageSteps.index' => [NewPermKeys::REC_CONTRACTS_UPDATE, NewPermKeys::REC_CONTRACTS_MANAGE],
             'RecruitmentContract.stageSteps.complete' => [NewPermKeys::REC_CONTRACTS_UPDATE, NewPermKeys::REC_CONTRACTS_MANAGE],
+            'RecruitmentContract.stageNotifications.retry' => [NewPermKeys::REC_CONTRACTS_UPDATE, NewPermKeys::REC_CONTRACTS_MANAGE],
             'contract-return-requests.index' => [NewPermKeys::REC_CONTRACTS_VIEW, NewPermKeys::REC_CONTRACTS_MANAGE],
             'contract-return-requests.show' => [NewPermKeys::REC_CONTRACTS_VIEW, NewPermKeys::REC_CONTRACTS_MANAGE],
             'contract-return-requests.process' => [NewPermKeys::REC_CONTRACTS_EDIT, NewPermKeys::REC_CONTRACTS_MANAGE],

@@ -1946,6 +1946,7 @@
             @endif
 
             <!-- سجل الحالات -->
+            @include('admin.ingaz.RecruitmentContract._stage_notifications')
             <div class="row contract-activity-section">
                 <div class="col-12 mb-4">
                     @if ($contractStageSteps->isNotEmpty())
@@ -1983,6 +1984,7 @@
                                                         {{ $step->displayName(app()->getLocale()) }}
                                                     </span>
                                                     <span class="badge bg-primary">{{ $stageLabel }}</span>
+                                                    <span class="badge bg-secondary">{{ $step->is_required ? 'إلزامية' : 'اختيارية' }}</span>
                                                     <span class="badge bg-secondary">
                                                         {{ $step->nationality?->display_name ?: 'جميع الجنسيات' }}
                                                     </span>

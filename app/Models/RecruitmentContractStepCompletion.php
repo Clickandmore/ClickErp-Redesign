@@ -7,6 +7,30 @@ use Illuminate\Database\Eloquent\Model;
 
 class RecruitmentContractStepCompletion extends Model
 {
+    protected static function booted(): void
+    {
+        static::updated(function (self $completion): void {
+            if ($completion->wasChanged('completed_at') && $completion->completed_at) {
+                $contract = Contract::find($completion->contract_id);
+                $step = $contract ? app(\App\Services\ingaz\RecruitmentContractStageStepService::class)
+                    ->applicableSteps($contract)->firstWhere('id', $completion->stage_step_id) : null;
+                if ($contract && $step) {
+                    app(\App\Services\ingaz\RecruitmentStageNotifier::class)->stepCompleted($contract, $step);
+                }
+            }
+        });
+        static::created(function (self $completion): void {
+            if ($completion->completed_at) {
+                $contract = Contract::find($completion->contract_id);
+                $step = $contract ? app(\App\Services\ingaz\RecruitmentContractStageStepService::class)
+                    ->applicableSteps($contract)->firstWhere('id', $completion->stage_step_id) : null;
+                if ($contract && $step) {
+                    app(\App\Services\ingaz\RecruitmentStageNotifier::class)->stepCompleted($contract, $step);
+                }
+            }
+        });
+    }
+
     use \App\Models\Concerns\AuditsChanges;
 
     use \App\Models\Concerns\AssignsBranch, \App\Models\Concerns\BranchScoped;

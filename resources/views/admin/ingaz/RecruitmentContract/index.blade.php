@@ -3403,12 +3403,17 @@
                         if ($('#stageStepUpdateUrl').val() !== url) return;
                         $('#stageStepParentValue').val(response.stage);
                         const rows = $('#stageStepsRows').empty();
+                        const remaining = response.steps.filter(step => !step.completed_at && step.is_required).length;
+                        rows.append($('<div class="alert alert-info">').text(remaining
+                            ? 'متبقي ' + remaining + ' خطوات إلزامية قبل الانتقال.'
+                            : 'اكتملت المتطلبات الإلزامية؛ يمكن تنفيذ إجراء الانتقال المناسب للعقد.'));
                         response.steps.forEach(function(step) {
                             const completed = !!step.completed_at;
                             const row = $('<div class="border rounded p-3 mb-2 stage-step-row">').attr('data-id', step.id);
                             const label = $('<label class="d-flex align-items-center gap-2 fw-bold mb-2">');
                             label.append($('<input type="checkbox" class="form-check-input stage-step-select">').prop('disabled', completed));
                             label.append($('<span>').text(step.name));
+                            label.append($('<span class="badge bg-secondary">').text(step.is_required ? 'إلزامية' : 'اختيارية'));
                             if (completed) label.append($('<span class="badge bg-success">').text('تم التنفيذ'));
                             row.append(label);
                             const fields = $('<div class="row g-2">');
@@ -3424,7 +3429,14 @@
                                     .attr('id', notesId).val(step.notes || '').prop('disabled', true)));
                             rows.append(row.append(fields));
                         });
-                        if (!response.steps.length) rows.text('لا توجد مراحل فرعية لهذه المرحلة.');
+                        if (!response.steps.length) rows.append($('<p>').text('لا توجد مراحل فرعية لهذه المرحلة.'));
+                        const deliveryLabels = {pending: 'بانتظار الإرسال', processing: 'جارٍ الإرسال', sent: 'أُرسل', failed: 'فشل', skipped: 'لم يُرسل', cancelled: 'أُلغي'};
+                        (response.notifications || []).forEach(function(notification) {
+                            rows.append($('<div class="small border-top pt-2 mt-2">').text(
+                                (notification.channel === 'email' ? 'البريد الإلكتروني' : 'SMS') + ': '
+                                + (deliveryLabels[notification.status] || notification.status)
+                                + (notification.error ? ' — ' + notification.error : '')));
+                        });
                     }).fail(function(xhr) {
                         if ($('#stageStepUpdateUrl').val() !== url) return;
                         $('#stageStepsRows').empty();

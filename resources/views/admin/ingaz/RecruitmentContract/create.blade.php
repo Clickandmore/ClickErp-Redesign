@@ -2453,6 +2453,7 @@
             }
 
             $('#use-direct-client-data').on('click', function() {
+                hideClientDetachedNotice();
                 clearSelectedClientForDirectEntry();
                 $('#new_client_name').trigger('focus');
             });
@@ -2473,17 +2474,52 @@
                 });
             });
 
-            $('#new_client_name, #new_client_phone, #new_client_email, #new_client_national_num, #new_client_license_number, #new_client_birthdate, #new_client_phone2, #new_client_address, #new_client_beds_num, #new_client_family_num, #new_client_children, #new_client_job')
-                .on('input', function() {
-                    if (!isFillingClientFromSelection && $('#new_existing_client_id').val()) {
-                        clearSelectedClientForDirectEntry();
-                    }
-                });
+            // يبقى العميل المختار مرتبطًا بالعقد عند إكمال بياناته (جنسية، عنوان...).
+            // تغيير الجوال أو رقم الهوية فقط يعني عميلًا مختلفًا، فيُلغى الاختيار مع تنبيه ظاهر.
+            var lastSelectedClient = null;
 
-            $('#new_client_nationality_id, #new_client_city').on('change', function() {
-                if (!isFillingClientFromSelection && $('#new_existing_client_id').val()) {
-                    clearSelectedClientForDirectEntry();
+            function normalizedIdentityValue(value) {
+                return String(value || '').replace(/\D+/g, '').replace(/^(00966|966|0)/, '');
+            }
+
+            function hideClientDetachedNotice() {
+                $('#client-detached-notice').remove();
+            }
+
+            function showClientDetachedNotice() {
+                hideClientDetachedNotice();
+                if (!lastSelectedClient) {
+                    return;
                 }
+                var $notice = $('<div id="client-detached-notice" class="alert alert-warning d-flex flex-wrap justify-content-between align-items-center gap-2 py-2 mt-2 mb-0 small" role="alert"></div>');
+                $notice.append($('<span></span>').text('ألغي اختيار العميل «' + lastSelectedClient.text + '» لأنك غيّرت رقم الجوال أو الهوية؛ سيُنشأ العقد لعميل جديد بهذه البيانات.'));
+                $notice.append('<button type="button" class="btn btn-sm btn-outline-secondary" id="restore-selected-client">استعادة العميل المختار</button>');
+                $('#new_existing_client_id').closest('.contract-picker-row').after($notice);
+            }
+
+            $(document).on('click', '#restore-selected-client', function() {
+                if (!lastSelectedClient) {
+                    return;
+                }
+                var $select = $('#new_existing_client_id');
+                if (!$select.find('option').filter(function() { return $(this).val() === String(lastSelectedClient.id); }).length) {
+                    $select.append(new Option(lastSelectedClient.text, lastSelectedClient.id, false, false));
+                }
+                $select.val(String(lastSelectedClient.id)).trigger('change');
+            });
+
+            $('#new_client_phone, #new_client_national_num, #new_client_license_number').on('input', function() {
+                var selectedId = $('#new_existing_client_id').val();
+                if (isFillingClientFromSelection || !selectedId || !lastSelectedClient) {
+                    return;
+                }
+                var original = lastSelectedClient.identity[this.id];
+                // إكمال رقم كان فارغًا في سجل العميل لا يعني عميلًا آخر
+                if (!normalizedIdentityValue(original) || normalizedIdentityValue(original) === normalizedIdentityValue($(this).val())) {
+                    return;
+                }
+                clearSelectedClientForDirectEntry();
+                showClientDetachedNotice();
             });
 
             $('#new_existing_client_id').on('change', function() {
@@ -2570,6 +2606,16 @@
                         children: $('#new_client_children').val(),
                         job: $('#new_client_job').val()
                     });
+                    lastSelectedClient = {
+                        id: selectedOption.val(),
+                        text: (selectedClient && selectedClient.text) || selectedOption.text() || ('عميل #' + selectedOption.val()),
+                        identity: {
+                            new_client_phone: $('#new_client_phone').val(),
+                            new_client_national_num: $('#new_client_national_num').val(),
+                            new_client_license_number: $('#new_client_license_number').val()
+                        }
+                    };
+                    hideClientDetachedNotice();
                     isFillingClientFromSelection = false;
                 } else {
                     // مسح جميع الحقول عند عدم اختيار عميل

@@ -22,6 +22,10 @@ trait ContractSMSTrait
     public function sendContractStatusSMS(Contract $contract, string $newStatus)
     {
         try {
+            if (\App\Support\RecruitmentStageNotificationSettings::smsManaged($newStatus)) {
+                // The configured outbox owns this SMS; do not send a second legacy message.
+                return false;
+            }
             if ($contract->company_profile_id) {
                 return false;
             }

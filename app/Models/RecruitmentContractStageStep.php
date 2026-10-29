@@ -18,6 +18,9 @@ class RecruitmentContractStageStep extends Model
         'nationality_id' => 'integer',
         'sort_order' => 'integer',
         'is_active' => 'boolean',
+        'is_required' => 'boolean',
+        'notify_sms' => 'boolean',
+        'notify_email' => 'boolean',
     ];
 
     public function nationality()
