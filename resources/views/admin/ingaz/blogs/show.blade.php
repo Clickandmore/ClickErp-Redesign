@@ -58,7 +58,7 @@
                         @endif
 
                         <hr>
-                        <div class="blog-content">{!! $translation->content !!}</div>
+                        <div class="blog-content">{!! \App\Support\BlogShortcodes::render($translation->content) !!}</div>
 
                         @if (filled($translation->meta_title) || filled($translation->meta_description))
                             <hr>
