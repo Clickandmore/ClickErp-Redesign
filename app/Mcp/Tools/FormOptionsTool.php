@@ -32,7 +32,7 @@ class FormOptionsTool extends McpTool
     {
         return 'قوائم الاختيار لنماذج الإضافة: form=maid (الجنسيات، الديانات، أنواع الخدمة، المهن، المكاتب) '
             . 'وform=customer (الدول، أنواع العميل، الحالات الاجتماعية، مفاتيح الجوال، التصنيفات، الفروع). '
-            . 'وform=order (أنواع الطلبات وباقات الإيجار). استدعها قبل create_maid_cv أو create_customer أو create_order. Picklists (id + name) for the create forms.';
+            . 'وform=order (أنواع الطلبات وباقات الإيجار). استدعها قبل create_maid_cv أو create_maid_cvs_batch أو create_customer أو create_order. Picklists (id + name) for the create forms.';
     }
 
     public function inputSchema(): array

@@ -107,6 +107,7 @@ return [
         \App\Mcp\Tools\FormOptionsTool::class,
         \App\Mcp\Tools\CreateCustomerTool::class,
         \App\Mcp\Tools\CreateMaidCvTool::class,
+        \App\Mcp\Tools\CreateMaidCvBatchTool::class,
         \App\Mcp\Tools\AddContractNoteTool::class,
         \App\Mcp\Tools\UpdateComplaintStatusTool::class,
         \App\Mcp\Tools\CreateOrderTool::class,

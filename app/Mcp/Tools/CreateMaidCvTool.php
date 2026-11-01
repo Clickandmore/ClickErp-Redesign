@@ -99,11 +99,24 @@ class CreateMaidCvTool extends McpWriteTool
         ];
     }
 
-    protected function commit(array $data, Admin $admin): array
+    /** نفس تحقق السيرة الواحدة، لتعيد الأداة المجمعة استخدامه صفاً صفاً. */
+    public function prepareRow(array $arguments, Admin $admin): array
+    {
+        return $this->prepare($arguments, $admin);
+    }
+
+    /** الحفظ بدون ملف السيرة؛ التوليد بطيء (ثوانٍ لكل سيرة) فتقرر كل أداة متى تشغله. */
+    public function saveRow(array $data, Admin $admin): Maid
     {
         // MaidAction يقرأ type_id وjob_id من الطلب لربط نوع الخدمة والمهن، كما في الشاشة.
         $request = Request::create('/', 'POST', $data['input']);
-        $maid = app(MaidAction::class)->createRapidCv($data['validated'], $request, (int) $admin->id);
+
+        return app(MaidAction::class)->createRapidCv($data['validated'], $request, (int) $admin->id);
+    }
+
+    protected function commit(array $data, Admin $admin): array
+    {
+        $maid = $this->saveRow($data, $admin);
         app(MaidCvPdfGenerator::class)->generateIfEnabled($maid);
 
         return [
@@ -129,6 +142,7 @@ class CreateMaidCvTool extends McpWriteTool
             return ['media_upload' => McpMaidUploadController::linkFor($maid, $admin, $token)];
         }
 
-        return ['next_step' => 'أضف الصورة الشخصية والفيديو من شاشة العاملة إن لزم.'];
+        // عند الموافقة من صفحة ClickERP لا يوجد توكن اتصال لبناء الرابط، فيطلبه المساعد بعدها بالأداة.
+        return ['next_step' => 'لرفع الصورة والفيديو استدعِ maid_media_upload_link برقم العاملة إن كانت متاحة لك، وإلا فمن شاشة العاملة.'];
     }
 }
