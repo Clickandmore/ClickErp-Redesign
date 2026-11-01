@@ -439,6 +439,7 @@
         @endif
 
         @include('admin.ingaz.ShelterContract.partials.worker-history')
+        @include('admin.ingaz.ShelterContract.partials.stays')
 
         <div class="info-grid" id="worker-details">
             <section class="info-card contract-info">
