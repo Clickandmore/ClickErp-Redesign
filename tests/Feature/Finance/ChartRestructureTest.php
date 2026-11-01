@@ -157,6 +157,20 @@ class ChartRestructureTest extends TestCase
         $this->assertSame('الموردين', Account::find($ids['supplier'])->displayTypeLabel());
     }
 
+    public function test_chart_settings_permission_is_registered_and_listed_for_assignment(): void
+    {
+        $this->assertDatabaseHas('permissions', ['name' => 'finance_chart_settings_manage', 'guard_name' => 'admin', 'display_name' => 'إدارة إعدادات الدليل المحاسبي']);
+
+        $this->admin->givePermissionTo(Permission::firstOrCreate(['name' => \App\PermKeys::SET_PERMS, 'guard_name' => 'admin']));
+        $role = \App\Models\Role::query()->where('guard_name', 'admin')->first() ?? \App\Models\Role::query()->create(['name' => 'perm-test', 'guard_name' => 'admin']);
+        app(\Spatie\Permission\PermissionRegistrar::class)->forgetCachedPermissions();
+        $this->actingAs($this->admin->fresh(), 'admin');
+        $this->withoutMiddleware();
+        $this->get(route('dash.perms.setPerms', $role->id))->assertOk()
+            ->assertSee('finance_chart_settings_manage')
+            ->assertSee('إدارة إعدادات الدليل المحاسبي');
+    }
+
     public function test_settings_page_requires_its_own_permission_and_validates(): void
     {
         $this->admin->givePermissionTo(Permission::firstOrCreate(['name' => 'finance_module', 'guard_name' => 'admin']));
