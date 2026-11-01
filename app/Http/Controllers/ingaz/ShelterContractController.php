@@ -1685,12 +1685,13 @@ class ShelterContractController extends Controller
             }
         }
         $workerHistory = app(\App\Services\ingaz\ShelterWorkerHistoryService::class)->build($contract);
+        $shelterStays = app(\App\Services\ShelterStayService::class)->summary($contract);
         $postArrivalRefund = $contract->returnSettlements
             ->first(fn ($settlement) => $settlement->status !== 'cancelled');
         $postArrivalOfficeChargeLine = $postArrivalRefund?->lines
             ->first(fn ($line) => $line->type === 'office_charge' && $line->status !== 'reversed');
         return view('admin.ingaz.ShelterContract.show', compact('contract', 'warrantyStatus', 'warrantyDays', 'isRentalWorker',
-            'canRecoverAgentCost', 'canReverseAgentCost', 'agentCostSummary', 'agentRecoveries', 'workerHistory',
+            'canRecoverAgentCost', 'canReverseAgentCost', 'agentCostSummary', 'agentRecoveries', 'workerHistory', 'shelterStays',
             'shelterStatement', 'supplierStatementAccounts', 'postArrivalRefund', 'postArrivalOfficeChargeLine'));
     }
 
