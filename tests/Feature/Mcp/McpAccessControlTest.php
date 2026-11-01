@@ -120,7 +120,7 @@ class McpAccessControlTest extends TestCase
         $access = McpAdminAccess::query()->create(['admin_id' => $admin->id]);
         $token = $this->token($admin);
 
-        $this->assertEqualsCanonicalizing(['whoami', 'list_complaints'], $this->tools($token));
+        $this->assertEqualsCanonicalizing(['whoami', 'list_complaints', 'get_complaint', 'needs_attention'], $this->tools($token));
 
         $access->update(['allowed_tools' => ['list_complaints']]);
         $this->assertSame(['list_complaints'], $this->tools($token));

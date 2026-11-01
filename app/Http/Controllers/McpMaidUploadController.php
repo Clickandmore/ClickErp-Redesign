@@ -99,6 +99,7 @@ class McpMaidUploadController extends Controller
     {
         abort_unless(McpSettings::enabled(), 404);
         abort_if(DashboardMaintenanceSettings::enabled(), 503);
+        abort_unless(\App\Support\McpSubscription::allowsWrite(), 403, \App\Support\McpSubscription::writeBlockedMessage());
 
         $admin = Admin::query()->find((int) $request->query('admin'));
         $token = McpAccessToken::query()->find((int) $request->query('token'));

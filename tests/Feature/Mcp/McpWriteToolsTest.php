@@ -37,7 +37,7 @@ class McpWriteToolsTest extends TestCase
         DB::table('dev_superadmin_settings')->where('key', 'mcp_server')->delete();
         // الإضافة في وضع الفروع مغطاة باختبارات شاشة العملاء؛ هنا يكفي الوضع العادي.
         $this->enableBranchesModule(false);
-        McpSettings::persist(['enabled' => true, 'rate_limit_per_minute' => 1000, 'write_enabled' => true]);
+        McpSettings::persist(['enabled' => true, 'rate_limit_per_minute' => 1000, 'write_enabled' => true, 'human_confirmation' => false]);
 
         $this->admin = Admin::factory()->create();
         McpAdminAccess::query()->create(['admin_id' => $this->admin->id, 'access_level' => 'write']);

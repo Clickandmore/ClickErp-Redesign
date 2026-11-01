@@ -85,7 +85,7 @@ class GetRecruitmentContractTool extends McpTool
             'latest_notes' => $contract->notes()->latest('id')->limit(5)->get()
                 ->map(fn ($note) => [
                     'date' => $this->date($note->created_at),
-                    'note' => $note->note,
+                    'note' => $this->maskText($note->note),
                 ])->all(),
         ];
     }

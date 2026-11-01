@@ -29,6 +29,7 @@ class InvoicesSummaryTool extends McpTool
                 'paid' => ['type' => 'boolean', 'description' => 'true المدفوعة فقط، false غير المدفوعة فقط'],
                 'client' => ['type' => 'string', 'description' => 'اسم العميل أو جواله'],
                 'limit' => ['type' => 'integer', 'minimum' => 1, 'maximum' => 50, 'default' => 10],
+                'offset' => $this->offsetProperty(),
             ],
         ];
     }
@@ -69,7 +70,8 @@ class InvoicesSummaryTool extends McpTool
             $query->where('is_paid', (bool) $arguments['paid']);
         }
 
-        $invoices = $query->with(['client', 'contract.user'])->latest('id')->limit($this->limit($arguments, 10))->get();
+        $total = (clone $query)->count();
+        $invoices = $query->with(['client', 'contract.user'])->latest('id')->offset($this->offset($arguments))->limit($this->limit($arguments, 10))->get();
 
         return [
             'totals' => [
@@ -83,8 +85,10 @@ class InvoicesSummaryTool extends McpTool
                 'unpaid_count' => (int) $totals->unpaid_count,
             ],
             'currency' => 'SAR',
+            ...$this->pageInfo($total, $invoices->count(), $arguments),
             'latest' => $invoices->map(fn (Invoice $invoice) => [
                 'id' => $invoice->id,
+                'url' => $this->link('invoices.show', $invoice->id),
                 'date' => $this->date($invoice->created_at),
                 // فواتير الاستقدام غالباً بلا client_id؛ العميل على العقد.
                 'client' => ($invoice->client ?? $invoice->contract?->user)?->name,

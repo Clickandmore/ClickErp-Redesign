@@ -37,6 +37,16 @@ class McpSettings
             'disabled_tools' => array_values(array_filter((array) $settings['disabled_tools'], 'is_string')),
             'audit_retention_days' => max(0, (int) $settings['audit_retention_days']),
             'write_limit_per_hour' => max(1, (int) $settings['write_limit_per_hour']),
+            'human_confirmation' => filter_var($settings['human_confirmation'], FILTER_VALIDATE_BOOLEAN),
+            'guide_page_enabled' => filter_var($settings['guide_page_enabled'], FILTER_VALIDATE_BOOLEAN),
+            'message_max_recipients' => max(1, (int) $settings['message_max_recipients']),
+            'messages_per_hour' => max(1, (int) $settings['messages_per_hour']),
+            'subscription_mode' => $settings['subscription_mode'] === McpSubscription::MODE_PAID ? McpSubscription::MODE_PAID : McpSubscription::MODE_FREE,
+            'subscription_starts_at' => $settings['subscription_starts_at'] ?: null,
+            'subscription_ends_at' => $settings['subscription_ends_at'] ?: null,
+            'subscription_grace_days' => max(0, (int) $settings['subscription_grace_days']),
+            'subscription_notes' => $settings['subscription_notes'] ?: null,
+            'subscription_alert_admins' => array_values(array_map('intval', (array) $settings['subscription_alert_admins'])),
         ];
     }
 
@@ -78,6 +88,30 @@ class McpSettings
         return self::all()['write_enabled'];
     }
 
+    /** true: أدوات الإضافة لا تُنفَّذ إلا بموافقة الموظف بنفسه داخل ClickERP، لا بتأكيد يمر عبر النموذج. */
+    public static function humanConfirmation(): bool
+    {
+        return self::all()['human_confirmation'];
+    }
+
+    /** ظهور صفحة «المساعد الذكي» للموظفين المفعّلين في لوحة التحكم. */
+    public static function guidePageEnabled(): bool
+    {
+        return self::all()['guide_page_enabled'];
+    }
+
+    /** أقصى عدد عملاء في رسالة واحدة عبر المساعد. */
+    public static function messageMaxRecipients(): int
+    {
+        return self::all()['message_max_recipients'];
+    }
+
+    /** أقصى عدد رسائل عبر المساعد لكل موظف في الساعة، محسوبة بالمستلمين. */
+    public static function messagesPerHour(): int
+    {
+        return self::all()['messages_per_hour'];
+    }
+
     public static function toolEnabled(string $name): bool
     {
         return !in_array($name, self::all()['disabled_tools'], true);
@@ -117,6 +151,16 @@ class McpSettings
             'disabled_tools' => fn ($value) => array_values(array_unique(array_filter((array) $value, 'is_string'))),
             'audit_retention_days' => fn ($value) => max(0, (int) $value),
             'write_limit_per_hour' => fn ($value) => max(1, (int) $value),
+            'human_confirmation' => fn ($value) => (bool) $value,
+            'guide_page_enabled' => fn ($value) => (bool) $value,
+            'message_max_recipients' => fn ($value) => max(1, (int) $value),
+            'messages_per_hour' => fn ($value) => max(1, (int) $value),
+            'subscription_mode' => fn ($value) => $value === McpSubscription::MODE_PAID ? McpSubscription::MODE_PAID : McpSubscription::MODE_FREE,
+            'subscription_starts_at' => fn ($value) => $value ?: null,
+            'subscription_ends_at' => fn ($value) => $value ?: null,
+            'subscription_grace_days' => fn ($value) => max(0, (int) $value),
+            'subscription_notes' => fn ($value) => $value ?: null,
+            'subscription_alert_admins' => fn ($value) => array_values(array_unique(array_map('intval', (array) $value))),
         ];
 
         $settings = [];
@@ -163,6 +207,16 @@ class McpSettings
             'disabled_tools' => [],
             'audit_retention_days' => (int) config('mcp.audit_retention_days', 180),
             'write_limit_per_hour' => (int) config('mcp.write_limit_per_hour', 30),
+            'human_confirmation' => (bool) config('mcp.human_confirmation', true),
+            'guide_page_enabled' => (bool) config('mcp.guide_page_enabled', true),
+            'message_max_recipients' => (int) config('mcp.message_max_recipients', 50),
+            'messages_per_hour' => (int) config('mcp.messages_per_hour', 200),
+            'subscription_mode' => (string) config('mcp.subscription_mode', McpSubscription::MODE_FREE),
+            'subscription_starts_at' => null,
+            'subscription_ends_at' => null,
+            'subscription_grace_days' => (int) config('mcp.subscription_grace_days', 3),
+            'subscription_notes' => null,
+            'subscription_alert_admins' => [],
         ];
     }
 }

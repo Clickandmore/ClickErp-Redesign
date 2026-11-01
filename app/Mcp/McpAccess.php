@@ -6,6 +6,7 @@ use App\Mcp\Tools\McpTool;
 use App\Models\auth\Admin;
 use App\Models\McpAdminAccess;
 use App\Support\McpSettings;
+use App\Support\McpSubscription;
 use Illuminate\Support\Facades\Schema;
 
 /**
@@ -51,7 +52,7 @@ class McpAccess
 
         $record = $this->recordFor($admin);
 
-        if ($tool->isWriteTool() && (!McpSettings::writeEnabled() || !$record?->canWrite())) {
+        if ($tool->isWriteTool() && (!McpSettings::writeEnabled() || !McpSubscription::allowsWrite() || !$record?->canWrite())) {
             return false;
         }
 

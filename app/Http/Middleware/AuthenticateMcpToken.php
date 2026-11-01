@@ -8,6 +8,7 @@ use App\Models\McpAuditLog;
 use App\Support\BranchQueryContext;
 use App\Support\DashboardMaintenanceSettings;
 use App\Support\McpSettings;
+use App\Support\McpSubscription;
 use Closure;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -42,6 +43,16 @@ class AuthenticateMcpToken
             return response()->json(['error' => 'maintenance'], 503)->header('Retry-After', '300');
         }
 
+        // 403 برسالة واضحة: الاتصال يبقى، فلا يحتاج الموظف إلى إعادة الربط بعد التجديد.
+        if (!McpSubscription::allowsRead()) {
+            $this->auditBlocked($admin, $token, $request, 'expired');
+
+            return response()->json([
+                'error' => 'subscription_inactive',
+                'error_description' => McpSubscription::message(),
+            ], 403);
+        }
+
         // التوكن صالح لكن Super Admin لم يفعّل هذا الموظف (أو أوقفه): 403 لا 401،
         // فالعميل لا يعيد تسجيل الدخول في حلقة بلا فائدة.
         if (!app(McpAccess::class)->adminAllowed($admin)) {
@@ -68,7 +79,7 @@ class AuthenticateMcpToken
     }
 
     /** محاولة واحدة في الدقيقة لكل توكن تكفي لتظهر في السجل دون أن تغرقه إعادة المحاولات. */
-    private function auditBlocked($admin, McpAccessToken $token, Request $request): void
+    private function auditBlocked($admin, McpAccessToken $token, Request $request, string $status = 'blocked'): void
     {
         if (!Cache::add('mcp:blocked-audit:' . $token->id, true, now()->addMinute())) {
             return;
@@ -80,7 +91,7 @@ class AuthenticateMcpToken
                 'token_id' => $token->id,
                 'method' => (string) ($request->json('method') ?: 'request'),
                 'tool' => $request->json('params.name'),
-                'status' => 'blocked',
+                'status' => $status,
                 'ip' => $request->ip(),
                 'created_at' => now(),
             ]);

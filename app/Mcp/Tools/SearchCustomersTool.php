@@ -31,6 +31,7 @@ class SearchCustomersTool extends McpTool
             'properties' => [
                 'query' => ['type' => 'string', 'description' => 'اسم العميل أو جواله أو رقم هويته'],
                 'limit' => ['type' => 'integer', 'minimum' => 1, 'maximum' => 50, 'default' => 10],
+                'offset' => $this->offsetProperty(),
             ],
             'required' => ['query'],
         ];
@@ -51,7 +52,7 @@ class SearchCustomersTool extends McpTool
         $this->applyCustomerBranchScope($query, $admin);
 
         $total = (clone $query)->count();
-        $customers = $query->with('branch')->latest('id')->limit($this->limit($arguments, 10))->get();
+        $customers = $query->with('branch')->latest('id')->offset($this->offset($arguments))->limit($this->limit($arguments, 10))->get();
 
         $recruitment = \App\Models\Contract::query()->whereIn('type', ['recruitment', 'maid'])
             ->whereIn('user_id', $customers->pluck('id'))->selectRaw('user_id, count(*) as total')->groupBy('user_id')->pluck('total', 'user_id');
@@ -59,9 +60,10 @@ class SearchCustomersTool extends McpTool
             ->whereIn('user_id', $customers->pluck('id'))->selectRaw('user_id, count(*) as total')->groupBy('user_id')->pluck('total', 'user_id');
 
         return [
-            'total' => $total,
+            ...$this->pageInfo($total, $customers->count(), $arguments),
             'customers' => $customers->map(fn (User $customer) => [
                 'id' => $customer->id,
+                'url' => $this->link('clients.show', $customer->id),
                 'name' => $customer->name,
                 'phone' => $this->mask($customer->phone),
                 'national_id' => $this->mask($customer->national_num),

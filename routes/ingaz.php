@@ -901,6 +901,7 @@ Route::group(
                 Route::get('recovery', [DevSuperAdminController::class, 'recovery'])->name('recovery');
                 Route::get('mcp', [\App\Http\Controllers\admin\SuperAdminMcpController::class, 'index'])->name('mcp.index');
                 Route::put('mcp', [\App\Http\Controllers\admin\SuperAdminMcpController::class, 'update'])->name('mcp.update');
+                Route::put('mcp/subscription', [\App\Http\Controllers\admin\SuperAdminMcpController::class, 'updateSubscription'])->name('mcp.subscription.update');
                 Route::post('mcp/tokens', [\App\Http\Controllers\admin\SuperAdminMcpController::class, 'storeToken'])->name('mcp.tokens.store');
                 Route::post('mcp/tokens/{token}/revoke', [\App\Http\Controllers\admin\SuperAdminMcpController::class, 'revokeToken'])->whereNumber('token')->name('mcp.tokens.revoke');
                 Route::put('mcp/tools', [\App\Http\Controllers\admin\SuperAdminMcpController::class, 'updateTools'])->name('mcp.tools.update');

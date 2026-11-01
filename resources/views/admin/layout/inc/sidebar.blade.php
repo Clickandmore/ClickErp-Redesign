@@ -1379,7 +1379,8 @@
                             $isZatcaSettingsRoute ||
                             $branchesManagementOpen ||
                             $isAccessControlOpen ||
-                            $isSupportOpen;
+                            $isSupportOpen ||
+                            request()->routeIs('mcp.guide');
                     @endphp
                     <li
                         class="sidebar-module sidebar-module--settings {{ $settingsOperationOpen ? '' : 'collapsed' }}">
@@ -2062,10 +2063,21 @@
                                     </ul>
                                 </li>
                             @endif
+
+                            {{-- لكل الموظفين (القسم ظاهر للجميع بروابط الدعم)؛ ظهورها يتبع Super Admin ← MCP ← الإعدادات وحده. --}}
+                            @if (auth('admin')->check() && \App\Support\McpSettings::guidePageEnabled())
+                                <li>
+                                    <a class="m-link {{ Route::currentRouteName() == 'mcp.guide' ? 'active' : '' }}" href="{{ route('mcp.guide') }}">
+                                        <i class="fa fa-robot"></i>
+                                        <span class="ms-2">المساعد الذكي</span>
+                                    </a>
+                                </li>
+                            @endif
                         </ul>
                     </li>
                 @endif
             </ul>
+
         </div>
 
         {{-- @if (Auth::guard('admin')->user()->hasPermission('الإعدادات-انشاء')) --}}

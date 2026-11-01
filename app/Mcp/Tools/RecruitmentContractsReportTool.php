@@ -62,6 +62,14 @@ class RecruitmentContractsReportTool extends McpTool
 
         return $this->periodSummary($period) + [
             'total' => $total,
+            'comparison' => $this->comparison($arguments, $period, $total, function (array $other) use ($arguments, $base) {
+                $query = $this->applyPeriod(clone $base, self::DATE, $other);
+                if (!empty($arguments['status'])) {
+                    $query->where('contracts.status', (string) $arguments['status']);
+                }
+
+                return $query->count();
+            }),
             'by_status' => $this->labeled(
                 $this->countBy($query, 'contracts.status'),
                 fn ($status) => ContractStatusEnum::tryFrom($status)?->lang()

@@ -69,6 +69,16 @@ class SuperAdminMcpSettingsTest extends TestCase
             'disabled_tools' => [],
             'audit_retention_days' => 30,
             'write_limit_per_hour' => 30,
+            'human_confirmation' => true,
+            'guide_page_enabled' => true,
+            'message_max_recipients' => 50,
+            'messages_per_hour' => 200,
+            'subscription_mode' => 'free',
+            'subscription_starts_at' => null,
+            'subscription_ends_at' => null,
+            'subscription_grace_days' => 3,
+            'subscription_notes' => null,
+            'subscription_alert_admins' => [],
         ], McpSettings::all());
         $ping()->assertOk();
 

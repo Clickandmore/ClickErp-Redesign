@@ -37,6 +37,11 @@ class Kernel extends ConsoleKernel
         }
 
         // التوكنات المنتهية وسجل MCP الأقدم من المدة المضبوطة في Super Admin ← MCP.
+        $schedule->command('mcp:subscription-alerts')
+            ->dailyAt('09:00')
+            ->withoutOverlapping()
+            ->appendOutputTo(storage_path('logs/mcp-prune.log'));
+
         $schedule->command('mcp:prune')
             ->dailyAt('03:45')
             ->withoutOverlapping()

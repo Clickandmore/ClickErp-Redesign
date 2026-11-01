@@ -33,6 +33,23 @@ return [
     // أقصى عدد عمليات إضافة عبر المساعد لكل موظف في الساعة.
     'write_limit_per_hour' => 30,
 
+    // موافقة الموظف بنفسه داخل ClickERP قبل أي إضافة، فلا يستطيع نص خبيث في شكوى أو ملاحظة دفع النموذج للتأكيد.
+    'human_confirmation' => true,
+
+    // ظهور صفحة «المساعد الذكي» في القائمة الجانبية لكل الموظفين، ولو لم يُفعَّل لهم المساعد.
+    'guide_page_enabled' => true,
+
+    // أقصى عدد عملاء في رسالة SMS أو واتساب واحدة عبر المساعد.
+    'message_max_recipients' => 50,
+
+    // أقصى عدد رسائل عبر المساعد لكل موظف في الساعة، محسوبة بالمستلمين.
+    'messages_per_hour' => 200,
+
+    // اشتراك الخدمة: free بلا قيود، أو paid بتواريخ من Super Admin ← MCP ← الاشتراك.
+    // الافتراضي مجاني حتى لا ينقطع عميل قائم عند النشر.
+    'subscription_mode' => 'free',
+    'subscription_grace_days' => 3,
+
     // مدة الاحتفاظ بسجل الاستدعاءات بالأيام (0 = بلا حذف). يحذفه أمر mcp:prune اليومي.
     'audit_retention_days' => 180,
 
@@ -58,6 +75,7 @@ return [
 
     'tools' => [
         \App\Mcp\Tools\WhoAmITool::class,
+        \App\Mcp\Tools\NeedsAttentionTool::class,
         \App\Mcp\Tools\SearchMaidsTool::class,
         \App\Mcp\Tools\ListRecruitmentContractsTool::class,
         \App\Mcp\Tools\GetRecruitmentContractTool::class,
@@ -68,6 +86,10 @@ return [
         \App\Mcp\Tools\FinanceAccountBalanceTool::class,
         \App\Mcp\Tools\FinanceBondsSummaryTool::class,
         \App\Mcp\Tools\ActivityLogTool::class,
+        \App\Mcp\Tools\GetCustomerTool::class,
+        \App\Mcp\Tools\GetMaidTool::class,
+        \App\Mcp\Tools\GetRentalContractTool::class,
+        \App\Mcp\Tools\GetComplaintTool::class,
 
         // التقارير: أرقام مجمّعة لفترة، كل حساب في قاعدة البيانات.
         \App\Mcp\Tools\RecruitmentContractsReportTool::class,
@@ -77,11 +99,18 @@ return [
         \App\Mcp\Tools\OrdersReportTool::class,
         \App\Mcp\Tools\MaidsReportTool::class,
         \App\Mcp\Tools\CustomersReportTool::class,
+        \App\Mcp\Tools\ReceivablesReportTool::class,
+        \App\Mcp\Tools\ProfitLossSummaryTool::class,
+        \App\Mcp\Tools\DeportationReportTool::class,
 
         // الإضافة: معاينة ثم تأكيد (McpWriteTool). تحتاج مفتاح الكتابة ومستوى «قراءة وإضافة».
         \App\Mcp\Tools\FormOptionsTool::class,
         \App\Mcp\Tools\CreateCustomerTool::class,
         \App\Mcp\Tools\CreateMaidCvTool::class,
+        \App\Mcp\Tools\AddContractNoteTool::class,
+        \App\Mcp\Tools\UpdateComplaintStatusTool::class,
+        \App\Mcp\Tools\CreateOrderTool::class,
+        \App\Mcp\Tools\SendCustomerMessageTool::class,
 
         // رابط رفع مؤقت لصورة العاملة وفيديوها؛ المساعد لا يستطيع إرسال الملفات نفسها عبر MCP.
         \App\Mcp\Tools\MaidMediaUploadLinkTool::class,

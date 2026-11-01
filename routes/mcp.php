@@ -1,6 +1,8 @@
 <?php
 
 use App\Http\Controllers\McpController;
+use App\Http\Controllers\McpGuideController;
+use App\Http\Controllers\McpWriteConfirmController;
 use App\Http\Controllers\McpMaidUploadController;
 use App\Http\Controllers\McpOAuthController;
 use Illuminate\Support\Facades\Route;
@@ -29,6 +31,13 @@ Route::middleware('throttle:mcp-oauth')->group(function () {
 Route::middleware(['web', 'throttle:mcp-oauth'])->group(function () {
     Route::get('oauth/authorize', [McpOAuthController::class, 'authorizeForm'])->name('mcp.oauth.authorize');
     Route::post('oauth/authorize', [McpOAuthController::class, 'authorizeDecision'])->name('mcp.oauth.decision');
+});
+
+// موافقة الموظف على إضافة طلبها المساعد، وصفحة إرشاد الربط: كلتاهما بجلسة الموظف في لوحة التحكم.
+Route::middleware(['web', 'throttle:mcp-oauth'])->group(function () {
+    Route::get('mcp/confirm/{token}', [McpWriteConfirmController::class, 'show'])->name('mcp.write-confirm.show');
+    Route::post('mcp/confirm/{token}', [McpWriteConfirmController::class, 'store'])->name('mcp.write-confirm.store');
+    Route::get('mcp/guide', [McpGuideController::class, 'show'])->name('mcp.guide');
 });
 
 // رابط رفع صور العاملة وفيديوها الذي ترسله أداة maid_media_upload_link: موقّع ومؤقت، بلا جلسة دخول.

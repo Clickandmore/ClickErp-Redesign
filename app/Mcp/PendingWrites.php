@@ -16,7 +16,7 @@ class PendingWrites
 {
     public const TTL_MINUTES = 15;
 
-    public function issue(Admin $admin, string $tool, array $arguments): string
+    public function issue(Admin $admin, string $tool, array $arguments, array $preview = []): string
     {
         $token = 'cerp_confirm_' . Str::random(32);
 
@@ -24,6 +24,7 @@ class PendingWrites
             'admin_id' => (int) $admin->id,
             'tool' => $tool,
             'arguments' => $arguments,
+            'preview' => $preview,
         ], now()->addMinutes(self::TTL_MINUTES));
 
         return $token;
@@ -39,6 +40,14 @@ class PendingWrites
         }
 
         return $pending['arguments'];
+    }
+
+    /** قراءة بلا استهلاك: صفحة الموافقة تعرض المعاينة قبل أن يوافق الموظف. */
+    public function peek(string $token): ?array
+    {
+        $pending = Cache::get($this->key($token));
+
+        return is_array($pending) ? $pending : null;
     }
 
     public function rememberResult(string $token, array $result): void

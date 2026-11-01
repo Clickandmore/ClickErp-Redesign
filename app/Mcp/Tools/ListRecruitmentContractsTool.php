@@ -35,6 +35,7 @@ class ListRecruitmentContractsTool extends McpTool
                 'from' => ['type' => 'string', 'format' => 'date', 'description' => 'تاريخ العقد من (Y-m-d)'],
                 'to' => ['type' => 'string', 'format' => 'date', 'description' => 'تاريخ العقد إلى (Y-m-d)'],
                 'limit' => ['type' => 'integer', 'minimum' => 1, 'maximum' => 50, 'default' => 20],
+                'offset' => $this->offsetProperty(),
             ],
         ];
     }
@@ -85,12 +86,12 @@ class ListRecruitmentContractsTool extends McpTool
         $total = (clone $query)->count();
         $contracts = $query->with(['user', 'maid', 'marketer', 'branch'])
             ->latest('id')
+            ->offset($this->offset($arguments))
             ->limit($this->limit($arguments))
             ->get();
 
         return [
-            'total' => $total,
-            'returned' => $contracts->count(),
+            ...$this->pageInfo($total, $contracts->count(), $arguments),
             'count_by_status' => $byStatus,
             'contracts' => $contracts->map(fn ($contract) => $this->contractSummary($contract))->all(),
         ];
