@@ -33,6 +33,7 @@ class ListRentalContractsTool extends McpTool
                 'ending_within_days' => ['type' => 'integer', 'minimum' => 1, 'maximum' => 365, 'description' => 'العقود السارية التي تنتهي خلال عدد أيام'],
                 'query' => ['type' => 'string', 'description' => 'رقم العقد أو اسم/جوال العميل'],
                 'limit' => ['type' => 'integer', 'minimum' => 1, 'maximum' => 50, 'default' => 20],
+                'offset' => $this->offsetProperty(),
             ],
         ];
     }
@@ -71,14 +72,15 @@ class ListRentalContractsTool extends McpTool
         }
 
         $total = (clone $query)->count();
-        $contracts = $query->with(['user', 'maid', 'info', 'marketer', 'branch'])->latest('id')->limit($this->limit($arguments))->get();
+        $contracts = $query->with(['user', 'maid', 'info', 'marketer', 'branch'])->latest('id')->offset($this->offset($arguments))->limit($this->limit($arguments))->get();
 
         return [
-            'total' => $total,
+            ...$this->pageInfo($total, $contracts->count(), $arguments),
             'count_by_status' => $byStatus,
             'currency' => 'SAR',
             'contracts' => $contracts->map(fn (RentalContract $contract) => [
                 'id' => $contract->id,
+                'url' => $this->link('RentContract.show', $contract->id, 'RentContract.index'),
                 'contract_number' => $contract->contract_number,
                 'contract_date' => $this->date($contract->contract_date),
                 'status' => $contract->status,

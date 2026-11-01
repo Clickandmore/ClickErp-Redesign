@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Http\Controllers\ingaz\RentContractController;
 use App\Models\RentalContract;
+use App\Services\RentalShelterPresenceService;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
@@ -29,6 +30,8 @@ class RentalContractEditMaidStateTest extends TestCase
     {
         parent::setUp();
         config(['activitylog.enabled' => false]);
+        $this->mock(RentalShelterPresenceService::class)
+            ->shouldReceive('returnReplacedMaidInside')->andReturn(true)->byDefault();
         Schema::create('maids', function (Blueprint $table) {
             $table->id();
             $table->string('status');
@@ -137,6 +140,26 @@ class RentalContractEditMaidStateTest extends TestCase
             $this->assertSame($expected, DB::table('maids')->find($oldId)->status);
             $this->assertEquals(0, DB::table('maids')->find($oldId)->available);
         }
+    }
+
+    public function test_editing_assignment_returns_old_maid_to_shelter_after_releasing_her(): void
+    {
+        $oldId = $this->maid('contracted', false);
+        $newId = $this->maid();
+        $contract = $this->contract($newId, 'active');
+
+        $this->mock(RentalShelterPresenceService::class)
+            ->shouldReceive('returnReplacedMaidInside')
+            ->once()
+            ->with($oldId, $contract)
+            ->andReturnUsing(function () use ($oldId, $newId, $contract) {
+                $this->assertSame('available', DB::table('maids')->find($oldId)->status);
+                $this->assertEquals($newId, DB::table('rental_contracts')->find($contract->id)->maid_id);
+
+                return true;
+            });
+
+        $this->syncAfterEdit($contract, $oldId);
     }
 
     public function test_reassignment_does_not_release_a_backed_out_maid(): void

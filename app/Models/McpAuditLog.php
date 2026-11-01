@@ -11,6 +11,8 @@ class McpAuditLog extends Model
 
     public const UPDATED_AT = null;
 
+    private static ?bool $hasResultCount = null;
+
     protected $guarded = [];
 
     protected $casts = [
@@ -22,11 +24,18 @@ class McpAuditLog extends Model
         'denied' => 'بلا صلاحية شاشة',
         'disabled' => 'موقوفة من الإدارة',
         'blocked' => 'موظف غير مفعّل',
+        'expired' => 'الاشتراك غير ساري',
         'error' => 'خطأ',
         'unknown' => 'أداة غير موجودة',
     ];
 
     private const SENSITIVE_KEY = '/passport|phone|mobile|whatsapp|iqama|identity|national|id_number|password|secret|token/i';
+
+    /** السيرفر قد يعمل قبل تطبيق الرقعة؛ غياب العمود لا يجب أن يوقف السجل كله. */
+    public static function hasResultCount(): bool
+    {
+        return self::$hasResultCount ??= \Illuminate\Support\Facades\Schema::hasColumn('mcp_audit_logs', 'result_count');
+    }
 
     /**
      * السجل يُقرأ من شاشة Super Admin ويُحفظ شهوراً، فلا تُخزَّن فيه أرقام الجواز والجوال كاملة:

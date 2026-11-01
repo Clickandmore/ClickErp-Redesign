@@ -31,6 +31,7 @@ class ListComplaintsTool extends McpTool
                 'to' => ['type' => 'string', 'format' => 'date'],
                 'query' => ['type' => 'string', 'description' => 'اسم المشتكي أو جواله أو الموضوع'],
                 'limit' => ['type' => 'integer', 'minimum' => 1, 'maximum' => 50, 'default' => 20],
+                'offset' => $this->offsetProperty(),
             ],
         ];
     }
@@ -67,19 +68,20 @@ class ListComplaintsTool extends McpTool
         }
 
         $total = (clone $query)->count();
-        $complaints = $query->with(['complaintType', 'assignedTo', 'contract'])->latest('id')->limit($this->limit($arguments))->get();
+        $complaints = $query->with(['complaintType', 'assignedTo', 'contract'])->latest('id')->offset($this->offset($arguments))->limit($this->limit($arguments))->get();
 
         return [
-            'total' => $total,
+            ...$this->pageInfo($total, $complaints->count(), $arguments),
             'count_by_status' => $byStatus,
             'count_by_priority' => $byPriority,
             'complaints' => $complaints->map(fn (Complaint $complaint) => [
                 'id' => $complaint->id,
+                'url' => $this->link('complaints.show', $complaint->id),
                 'date' => $this->date($complaint->complaint_date ?: $complaint->created_at),
                 'status' => $complaint->status,
                 'priority' => $complaint->priority,
                 'type' => $complaint->complaintType?->name ?? $complaint->complaintType?->title,
-                'subject' => Str::limit((string) ($complaint->subject ?: $complaint->message), 150),
+                'subject' => Str::limit((string) $this->maskText($complaint->subject ?: $complaint->message), 150),
                 'complainant' => $complaint->complainant_name,
                 'complainant_phone' => $this->mask($complaint->complainant_phone),
                 'against' => $complaint->against_name,

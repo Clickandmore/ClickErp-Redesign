@@ -1332,26 +1332,7 @@ class ComplaintController extends Controller
         $complaint = objModel::findOrFail($request->complaint_id);
         $this->assertCanAccessBranchModel($complaint);
         $this->assertComplaintIsOpen($complaint);
-        $previousStatus = $complaint->status;
-        $complaint->status = $request->status;
-
-        if ($request->status == 'resolved') {
-            $complaint->resolved_at = now();
-            $complaint->resolved_by = auth('admin')->id();
-
-            // إرسال رسالة التقييم إذا كان مفعلاً وهناك رقم هاتف
-            $smsEnabled = env('SMS_FEEDBACK_ENABLED', false);
-            if ($smsEnabled && $previousStatus != 'resolved' && $complaint->complainant_phone) {
-                try {
-                    \App\Http\Controllers\admin\ComplaintFeedbackController::sendFeedbackSMS($complaint);
-                } catch (\Exception $e) {
-                    \Log::error('Failed to send feedback SMS: ' . $e->getMessage());
-                }
-            }
-        }
-
-        $complaint->save();
-        $this->notifyComplaintStatusChanged($complaint, $previousStatus);
+        app(\App\Services\ingaz\ComplaintStatusService::class)->change($complaint, $request->status);
 
         return response()->json(['success' => true, 'message' => 'تم تحديث الحالة بنجاح']);
     }

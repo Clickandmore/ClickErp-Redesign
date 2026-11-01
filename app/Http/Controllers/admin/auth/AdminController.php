@@ -1218,7 +1218,7 @@ class AdminController extends Controller
 
                 // الموظف جاء من شاشة ربط MCP (claude.ai / ChatGPT): يرجع لصفحة الموافقة.
                 $mcpReturn = (string) $request->session()->pull(\App\Http\Controllers\McpOAuthController::RETURN_SESSION_KEY, '');
-                if ($mcpReturn !== '' && str_starts_with($mcpReturn, url('/oauth/authorize') . '?')) {
+                if ($mcpReturn !== '' && (str_starts_with($mcpReturn, url('/oauth/authorize') . '?') || str_starts_with($mcpReturn, url('/mcp/confirm/')))) {
                     $redirectUrl = $mcpReturn;
                 }
 

@@ -132,6 +132,10 @@ class McpOAuthController extends Controller
             return redirect()->route('admin.form.login');
         }
 
+        if (!\App\Support\McpSubscription::allowsRead()) {
+            return response()->view('admin.mcp.oauth-error', ['message' => \App\Support\McpSubscription::message()], 403);
+        }
+
         if (!app(McpAccess::class)->adminAllowed($admin)) {
             return $this->notEnabledView($admin);
         }
@@ -139,7 +143,7 @@ class McpOAuthController extends Controller
         $access = app(McpAccess::class)->recordFor($admin);
 
         return view('admin.mcp.oauth-consent', [
-            'canWrite' => McpSettings::writeEnabled() && $access?->canWrite(),
+            'canWrite' => McpSettings::writeEnabled() && \App\Support\McpSubscription::allowsWrite() && $access?->canWrite(),
             'client' => $client,
             'admin' => $admin,
             'redirectHost' => parse_url($request->query('redirect_uri'), PHP_URL_HOST),
@@ -162,6 +166,10 @@ class McpOAuthController extends Controller
         $admin = $this->currentAdmin();
         if (!$admin) {
             return redirect()->route('admin.form.login');
+        }
+
+        if (!\App\Support\McpSubscription::allowsRead()) {
+            return response()->view('admin.mcp.oauth-error', ['message' => \App\Support\McpSubscription::message()], 403);
         }
 
         if (!app(McpAccess::class)->adminAllowed($admin)) {

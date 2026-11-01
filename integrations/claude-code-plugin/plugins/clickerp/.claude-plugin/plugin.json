@@ -1,7 +1,7 @@
 {
   "name": "clickerp",
-  "version": "1.1.0",
-  "description": "ClickERP for Claude Code: read-only access to workers, recruitment and rental contracts, customers, complaints, invoices, finance and the activity log with the signed-in employee's permissions and branch.",
+  "version": "1.2.0",
+  "description": "ClickERP for Claude Code: workers, recruitment and rental contracts, customers, complaints, invoices, finance and the activity log with the signed-in employee's permissions and branch.",
   "author": {
     "name": "Click & More"
   },
@@ -11,7 +11,7 @@
     "server_url": {
       "type": "string",
       "title": "رابط خادم ClickERP",
-      "description": "رابط MCP الخاص بشركتك كما يظهر في Super Admin ← MCP، مثل https://clickerp.com.sa/mcp",
+      "description": "رابط MCP الخاص بشركتك كما يظهر في لوحة التحكم ← المساعد الذكي، مثل https://clickerp.com.sa/mcp",
       "required": true
     }
   }

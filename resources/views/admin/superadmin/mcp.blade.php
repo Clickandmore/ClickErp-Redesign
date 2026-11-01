@@ -118,6 +118,7 @@
 @php
     $navIcons = [
         'overview' => '<path d="M3 13h8V3H3zM13 21h8V11h-8zM3 21h8v-6H3zM13 3v6h8V3z"/>',
+        'subscription' => '<rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/>',
         'employees' => '<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/>',
         'tools' => '<path d="M14.7 6.3a4 4 0 0 0-5.4 5.4L3 18v3h3l6.3-6.3a4 4 0 0 0 5.4-5.4l-2.6 2.6-2.4-.6-.6-2.4z"/>',
         'connections' => '<path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>',
@@ -154,6 +155,7 @@
             <p>المساعد يرى ما يراه الموظف في لوحة التحكم فقط، داخل فرعه، وكل استدعاء يُسجَّل.</p>
         </div>
         <div class="page-heading-meta">
+            <span class="heading-chip {{ $subscription['allows_write'] ? 'is-good' : 'is-bad' }}">الاشتراك: <b>{{ $subscription['label'] }}</b></span>
             <span class="heading-chip {{ $settings['enabled'] ? 'is-good' : 'is-bad' }}">الخادم: <b>{{ $settings['enabled'] ? 'يعمل' : 'مغلق' }}</b></span>
             <span class="heading-chip {{ $settings['oauth_enabled'] ? 'is-good' : '' }}">OAuth: <b>{{ $settings['oauth_enabled'] ? 'مفعّل' : 'مغلق' }}</b></span>
             <span class="heading-chip">الوصول: <b>{{ $selectedMode ? 'المحددون فقط' : 'الجميع' }}</b></span>
@@ -204,7 +206,7 @@
     {{-- ================================================================ نظرة عامة --}}
     @if ($tab === 'overview' && $tablesReady)
         @php
-            $failedToday = ($today['denied'] ?? 0) + ($today['disabled'] ?? 0) + ($today['blocked'] ?? 0);
+            $failedToday = ($today['denied'] ?? 0) + ($today['disabled'] ?? 0) + ($today['blocked'] ?? 0) + ($today['expired'] ?? 0);
             $errorsToday = $today['error'] ?? 0;
             $maxDay = max(1, $days->max('total'));
             $maxTool = max(1, $topTools->max() ?? 1);
@@ -300,6 +302,42 @@
                             @endforeach
                         </div>
                     @endif
+                </div>
+            </section>
+        </div>
+
+        <div class="mcp-grid-2">
+            <section class="panel">
+                <div class="panel-head"><div><h2>بحث بلا نتائج</h2><p class="muted">آخر 30 يوماً: ما يبحث عنه الموظفون ولا يجدونه.</p></div></div>
+                <div class="panel-body">
+                    @if ($emptySearches->isEmpty())
+                        <div class="mcp-empty">لا يوجد بعد.</div>
+                    @else
+                        <div class="mcp-rank">
+                            @foreach ($emptySearches as $log)
+                                <div class="mcp-rank-row"><code>{{ $log->tool }}</code><span class="mcp-args">{{ json_encode($log->arguments, JSON_UNESCAPED_UNICODE) }}</span></div>
+                            @endforeach
+                        </div>
+                    @endif
+                </div>
+            </section>
+            <section class="panel">
+                <div class="panel-head"><div><h2>فرص المتابعة</h2><p class="muted">أدوات لم تُستخدم آخر 30 يوماً، وموظفون ربطوا ولم يستخدموا المساعد منذ 14 يوماً.</p></div></div>
+                <div class="panel-body">
+                    <div class="mcp-badges">
+                        @forelse ($unusedTools as $name)
+                            <span class="badge neutral">{{ $name }}</span>
+                        @empty
+                            <span class="muted">كل الأدوات مستخدمة.</span>
+                        @endforelse
+                    </div>
+                    <div class="mcp-badges" style="margin-top:14px">
+                        @forelse ($idleAdmins as $name)
+                            <span class="badge warn">{{ $name }}</span>
+                        @empty
+                            <span class="muted">لا يوجد موظف متوقف.</span>
+                        @endforelse
+                    </div>
                 </div>
             </section>
         </div>
@@ -787,10 +825,178 @@
                         </div>
                     </div>
 
+                    <div class="mcp-fieldset">
+                        <h3>صفحة «المساعد الذكي»</h3>
+                        <p>صفحة إرشادية تظهر في القائمة الجانبية داخل «إعدادات النظام» لكل الموظفين، ولو لم يُفعَّل لهم المساعد؛ وتخبر غير المفعّل بذلك. عرضها لا يفتح المساعد لأحد. الإخفاء يزيل الرابط ويغلق الصفحة، ولا يؤثر على عمل المساعد نفسه.</p>
+                        <div class="mcp-switches">
+                            <label class="switch-row">
+                                <span>إظهار الصفحة للموظفين</span>
+                                <input type="hidden" name="guide_page_enabled" value="0">
+                                <input type="checkbox" name="guide_page_enabled" value="1" @checked($settings['guide_page_enabled'])>
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="mcp-fieldset">
+                        <h3>رسائل العملاء عبر المساعد</h3>
+                        <p>تعمل بها أداة <code>send_customer_message</code>. موافقة الموظف داخل ClickERP إلزامية لكل رسالة حتى لو أُوقف الخيار التالي.</p>
+                        <div class="mcp-inputs">
+                            <div class="field">
+                                <label>أقصى عدد عملاء في الرسالة الواحدة</label>
+                                <input type="number" name="message_max_recipients" min="1" max="500" value="{{ old('message_max_recipients', $settings['message_max_recipients']) }}">
+                            </div>
+                            <div class="field">
+                                <label>أقصى عدد رسائل في الساعة لكل موظف</label>
+                                <input type="number" name="messages_per_hour" min="1" max="5000" value="{{ old('messages_per_hour', $settings['messages_per_hour']) }}">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mcp-fieldset">
+                        <h3>موافقة الموظف على الإضافة</h3>
+                        <p>عند التفعيل لا يُنفَّذ أي طلب إضافة إلا بعد أن يفتح الموظف رابطاً ويوافق من حسابه في ClickERP. يحمي من نص خبيث داخل شكوى أو ملاحظة يدفع النموذج إلى التأكيد. الإيقاف يعيد التأكيد داخل المحادثة.</p>
+                        <div class="mcp-switches">
+                            <label class="switch-row">
+                                <span>موافقة الموظف داخل ClickERP</span>
+                                <input type="hidden" name="human_confirmation" value="0">
+                                <input type="checkbox" name="human_confirmation" value="1" @checked($settings['human_confirmation'])>
+                            </label>
+                        </div>
+                    </div>
+
                     <div class="form-actions"><button class="btn btn-primary" type="submit">حفظ الإعدادات</button></div>
                 </form>
             </div>
         </section>
+    @endif
+
+    {{-- ================================================================ الاشتراك --}}
+    @if ($tab === 'subscription')
+        @php
+            $isPaid = old('subscription_mode', $settings['subscription_mode']) === \App\Support\McpSubscription::MODE_PAID;
+            $selectedAlerts = array_map('intval', (array) old('subscription_alert_admins', $settings['subscription_alert_admins']));
+        @endphp
+        <section class="stats mcp-stats">
+            <div class="stat mcp-stat {{ $subscription['allows_write'] ? '' : ($subscription['allows_read'] ? 'is-warn' : 'is-bad') }}">
+                <div class="stat-label">الحالة</div>
+                <div class="stat-value">{{ $subscription['label'] }}</div>
+                <div class="mcp-stat-hint">{{ $subscription['allows_write'] ? 'كل الأدوات تعمل' : ($subscription['allows_read'] ? 'القراءة فقط' : 'الخدمة متوقفة') }}</div>
+            </div>
+            <div class="stat">
+                <div class="stat-label">الأيام المتبقية</div>
+                <div class="stat-value">{{ $subscription['days_left'] === null ? 'بلا حد' : max(0, $subscription['days_left']) }}</div>
+                <div class="mcp-stat-hint">حتى تاريخ النهاية</div>
+            </div>
+            <div class="stat">
+                <div class="stat-label">تاريخ النهاية</div>
+                <div class="stat-value" dir="ltr" style="text-align:right">{{ $subscription['ends_at'] ?? '—' }}</div>
+                <div class="mcp-stat-hint">يوم عمل كامل</div>
+            </div>
+            <div class="stat">
+                <div class="stat-label">نهاية فترة السماح</div>
+                <div class="stat-value" dir="ltr" style="text-align:right">{{ $subscription['grace_ends_at'] ?? '—' }}</div>
+                <div class="mcp-stat-hint">بعدها تتوقف الخدمة</div>
+            </div>
+        </section>
+
+        <section class="panel">
+            <div class="panel-head"><div><h2>نوع الخدمة ومدتها</h2><p class="muted">مستقل عن اشتراك النظام وعن زر تشغيل الخادم. الخدمة تعمل عندما يكون الخادم مفعّلاً والاشتراك ساريًا.</p></div></div>
+            <div class="panel-body">
+                <form method="POST" action="{{ route('dev-superadmin.mcp.subscription.update') }}" class="mcp-settings" id="mcpSubscriptionForm">
+                    @csrf
+                    @method('PUT')
+                    <div class="mcp-radio-cards">
+                        <label class="mcp-radio-card">
+                            <input type="radio" name="subscription_mode" value="free" @checked(!$isPaid)>
+                            <b>مجاني</b>
+                            <span>يعمل دون تواريخ أو قيود حتى تغيّره.</span>
+                        </label>
+                        <label class="mcp-radio-card">
+                            <input type="radio" name="subscription_mode" value="paid" @checked($isPaid)>
+                            <b>مدفوع</b>
+                            <span>يعمل بين تاريخي البداية والنهاية، ثم فترة سماح للقراءة فقط، ثم يتوقف.</span>
+                        </label>
+                    </div>
+
+                    <div class="mcp-fieldset" data-paid-only @if (!$isPaid) hidden @endif>
+                        <h3>مدة الاشتراك</h3>
+                        <p>عند التجديد غيّر تاريخ النهاية فقط؛ تعود الخدمة فورًا دون إعادة ربط.</p>
+                        <div class="mcp-inputs">
+                            <div class="field">
+                                <label>تاريخ البداية</label>
+                                <input type="date" name="subscription_starts_at" value="{{ old('subscription_starts_at', $settings['subscription_starts_at']) }}">
+                            </div>
+                            <div class="field">
+                                <label>تاريخ النهاية</label>
+                                <input type="date" name="subscription_ends_at" value="{{ old('subscription_ends_at', $settings['subscription_ends_at']) }}">
+                            </div>
+                            <div class="field">
+                                <label>فترة السماح (يوم، 0 = بلا سماح)</label>
+                                <input type="number" name="subscription_grace_days" min="0" max="90" required value="{{ old('subscription_grace_days', $settings['subscription_grace_days']) }}">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mcp-fieldset" data-paid-only @if (!$isPaid) hidden @endif>
+                        <h3>من يصله تنبيه الانتهاء</h3>
+                        <p>إشعار داخل النظام قبل النهاية بـ 14 و3 أيام، وأول يوم في فترة السماح، وعند التوقف. يمكن اختيار أكثر من موظف.</p>
+                        <div class="field">
+                            <select name="subscription_alert_admins[]" multiple size="6">
+                                @foreach ($alertAdmins as $alertAdmin)
+                                    <option value="{{ $alertAdmin->id }}" @selected(in_array($alertAdmin->id, $selectedAlerts, true))>{{ $alertAdmin->name }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="field">
+                        <label>ملاحظات (رقم الفاتورة، الباقة...)</label>
+                        <input type="text" name="subscription_notes" maxlength="1000" value="{{ old('subscription_notes', $settings['subscription_notes']) }}">
+                    </div>
+
+                    <div class="form-actions"><button class="btn btn-primary" type="submit">حفظ الاشتراك</button></div>
+                </form>
+            </div>
+        </section>
+
+        <section class="panel">
+            <div class="panel-head"><div><h2>سجل التغييرات</h2><p class="muted">كل تغيير في نوع الخدمة أو تواريخها، للرجوع إليه عند التجديد.</p></div></div>
+            <div class="panel-body">
+                @if ($subscriptionEvents->isEmpty())
+                    <div class="mcp-empty">لا توجد تغييرات بعد.</div>
+                @else
+                    <div class="table-wrap">
+                        <table>
+                            <thead><tr><th>وقت التغيير</th><th>النوع</th><th>من</th><th>إلى</th><th>السماح</th><th>ملاحظات</th><th>IP</th></tr></thead>
+                            <tbody>
+                                @foreach ($subscriptionEvents as $event)
+                                    <tr>
+                                        <td dir="ltr">{{ $event->created_at?->format('Y-m-d H:i') }}</td>
+                                        <td>{{ $event->mode === 'paid' ? 'مدفوع' : 'مجاني' }}</td>
+                                        <td dir="ltr">{{ $event->starts_at ?? '—' }}</td>
+                                        <td dir="ltr">{{ $event->ends_at ?? '—' }}</td>
+                                        <td>{{ $event->grace_days }}</td>
+                                        <td>{{ $event->notes ?? '—' }}</td>
+                                        <td dir="ltr">{{ $event->ip }}</td>
+                                    </tr>
+                                @endforeach
+                            </tbody>
+                        </table>
+                    </div>
+                @endif
+            </div>
+        </section>
+        <script>
+            (function () {
+                var form = document.getElementById('mcpSubscriptionForm');
+                form.addEventListener('change', function (event) {
+                    if (event.target.name !== 'subscription_mode') { return; }
+                    form.querySelectorAll('[data-paid-only]').forEach(function (section) {
+                        section.hidden = event.target.value !== 'paid';
+                    });
+                });
+            })();
+        </script>
     @endif
 
     {{-- ================================================================ طريقة الربط --}}

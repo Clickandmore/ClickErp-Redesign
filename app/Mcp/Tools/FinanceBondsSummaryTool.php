@@ -95,7 +95,7 @@ class FinanceBondsSummaryTool extends McpTool
                         'payment_type' => $this->paymentLabel($bond->payment_type),
                         'debit_account' => $bond->debitAccount?->name,
                         'credit_account' => $bond->creditAccount?->name,
-                        'statement' => \Illuminate\Support\Str::limit((string) $bond->statement, 150),
+                        'statement' => \Illuminate\Support\Str::limit((string) $this->maskText($bond->statement), 150),
                     ])->all(),
             ];
         }

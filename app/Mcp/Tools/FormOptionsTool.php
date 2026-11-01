@@ -21,7 +21,7 @@ use Nami\Finance\Models\ClientCategory;
  */
 class FormOptionsTool extends McpTool
 {
-    private const FORMS = ['customer' => 'clients.store', 'maid' => 'maids.create'];
+    private const FORMS = ['customer' => 'clients.store', 'maid' => 'maids.create', 'order' => 'orders.create'];
 
     public function name(): string
     {
@@ -32,7 +32,7 @@ class FormOptionsTool extends McpTool
     {
         return 'قوائم الاختيار لنماذج الإضافة: form=maid (الجنسيات، الديانات، أنواع الخدمة، المهن، المكاتب) '
             . 'وform=customer (الدول، أنواع العميل، الحالات الاجتماعية، مفاتيح الجوال، التصنيفات، الفروع). '
-            . 'استدعها قبل create_maid_cv أو create_customer. Picklists (id + name) for the create forms.';
+            . 'وform=order (أنواع الطلبات وباقات الإيجار). استدعها قبل create_maid_cv أو create_customer أو create_order. Picklists (id + name) for the create forms.';
     }
 
     public function inputSchema(): array
@@ -59,6 +59,23 @@ class FormOptionsTool extends McpTool
         return collect(self::FORMS)->contains(fn ($route) => self::routeAllows($admin, $route));
     }
 
+    /** باقات الإيجار لأداة create_order؛ nationality_id الفارغ يعني أنها لكل الجنسيات. */
+    private function orderOptions(): array
+    {
+        return [
+            'order_types' => [
+                ['id' => 'recruitment', 'name' => 'استقدام'],
+                ['id' => 'rental', 'name' => 'إيجار عمالة'],
+                ['id' => 'immediate', 'name' => 'استلام فوري'],
+            ],
+            'rental_packages' => \App\Models\ingaz\Package::query()->visible()->get()->map(fn ($package) => [
+                'id' => $package->id,
+                'name' => $package->title,
+                'nationality_id' => $package->nationality_id,
+            ])->values()->all(),
+        ];
+    }
+
     public function handle(array $arguments, Admin $admin): array
     {
         $form = (string) ($arguments['form'] ?? '');
@@ -67,7 +84,11 @@ class FormOptionsTool extends McpTool
             throw new McpToolException('لا تملك صلاحية هذا النموذج، أو النموذج غير معروف (maid أو customer).');
         }
 
-        return $form === 'maid' ? $this->maidOptions() : $this->customerOptions($admin);
+        return match ($form) {
+            'maid' => $this->maidOptions(),
+            'order' => $this->orderOptions(),
+            default => $this->customerOptions($admin),
+        };
     }
 
     private function maidOptions(): array

@@ -1,7 +1,7 @@
 # ClickERP — إضافة Claude Code
 
-تربط Claude Code بخادم MCP الخاص بنظام ClickERP لشركتك. القراءة فقط، وبصلاحيات الموظف
-الذي يسجّل دخوله وفرعه. شرح الخادم كاملاً في `docs/MCP_INTEGRATION.md` داخل مستودع ClickERP.
+تربط Claude Code بخادم MCP الخاص بنظام ClickERP لشركتك، بصلاحيات الموظف الذي يسجّل دخوله وفرعه.
+الإضافة والتعديل لا يتمان إلا لمن فعّلهما فريق ClickERP وبموافقته. شرح الخادم كاملاً في `docs/MCP_INTEGRATION.md` داخل مستودع ClickERP.
 
 ## التثبيت
 
@@ -12,11 +12,11 @@
 /plugin install clickerp@clickerp
 ```
 
-عند التثبيت يُطلب **رابط خادم ClickERP**: انسخه من لوحة شركتك ← Super Admin ← MCP،
+عند التثبيت يُطلب **رابط خادم ClickERP**: تجده في لوحة التحكم ← «المساعد الذكي» بعد أن يفعّل فريق ClickERP حسابك،
 مثل `https://clickerp.com.sa/mcp`.
 
 ثم `/mcp` ← `plugin:clickerp:clickerp` ← **Authenticate**: تفتح صفحة دخول ClickERP في المتصفح،
-سجّل دخولك ووافق. (يجب أن يكون «الربط بتسجيل الدخول» مفعّلاً في شاشة MCP.)
+سجّل دخولك ووافق. (إن لم تفتح الصفحة فتواصل مع فريق ClickERP.)
 
 لتغيير الرابط لاحقاً: `/plugin configure clickerp@clickerp`.
 

@@ -57,6 +57,21 @@ abstract class McpWriteTool extends McpTool
         if ($token === '') {
             $prepared = $this->validated($arguments, $admin);
 
+            if ($this->requiresHumanApproval()) {
+                $token = $pending->issue($admin, $this->name(), $arguments, $prepared['preview']);
+
+                return [
+                    'status' => 'awaiting_approval',
+                    'saved' => false,
+                    'preview' => $prepared['preview'],
+                    'confirm_url' => route('mcp.write-confirm.show', ['token' => $token]),
+                    'confirmation_token' => $token,
+                    'expires_in_minutes' => PendingWrites::TTL_MINUTES,
+                    'next_step' => 'أعطِ المستخدم confirm_url ليراجع ويوافق بنفسه في ClickERP بحسابه؛ لا يمكنك الموافقة عنه. لم يُحفظ شيء بعد. '
+                        . 'بعد موافقته يمكنك معرفة النتيجة باستدعاء الأداة نفسها مع confirmation_token.',
+                ];
+            }
+
             return [
                 'status' => 'preview',
                 'saved' => false,
@@ -74,6 +89,18 @@ abstract class McpWriteTool extends McpTool
             return $previous + ['note' => 'هذا التأكيد نُفذ من قبل؛ هذه نتيجته، ولم يُنشأ سجل جديد.'];
         }
 
+        // النموذج يحمل الرمز، فلا يكفي وحده لتنفيذ العملية عند تفعيل موافقة الموظف.
+        if ($this->requiresHumanApproval() && $pending->peek($token)) {
+            throw new McpToolException('لم يوافق المستخدم بعد. أعطه confirm_url ليوافق بنفسه في ClickERP، ثم أعد المحاولة.');
+        }
+
+        return $this->execute($token, $admin);
+    }
+
+    /** ينفذ معاينة محفوظة. تستدعيه الأداة نفسها، أو صفحة موافقة الموظف. */
+    public function execute(string $token, Admin $admin): array
+    {
+        $pending = app(PendingWrites::class);
         $stored = $pending->claim($admin, $this->name(), $token);
         $this->hitWriteLimit($admin);
         $prepared = $this->validated($stored, $admin);
@@ -82,6 +109,12 @@ abstract class McpWriteTool extends McpTool
         $pending->rememberResult($token, $result + ['_admin_id' => (int) $admin->id, '_tool' => $this->name()]);
 
         return $result;
+    }
+
+    /** الإعداد العام، وتجعله الأداة إلزامياً إذا كان أثرها لا يمكن سحبه (إرسال رسائل). */
+    protected function requiresHumanApproval(): bool
+    {
+        return McpSettings::humanConfirmation();
     }
 
     private function validated(array $arguments, Admin $admin): array

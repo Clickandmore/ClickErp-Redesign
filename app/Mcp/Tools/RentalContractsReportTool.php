@@ -69,7 +69,10 @@ class RentalContractsReportTool extends McpTool
         $running = (clone $base)->whereIn('rental_contracts.status', self::RUNNING);
 
         return $this->periodSummary($period) + [
-            'total' => (clone $query)->count(),
+            'total' => $total = (clone $query)->count(),
+            'comparison' => $this->comparison($arguments, $period, $total, fn (array $other) => $this->applyPeriod(clone $base, self::DATE, $other)
+                ->when(!empty($arguments['status']), fn ($q) => $q->where('rental_contracts.status', (string) $arguments['status']))
+                ->count()),
             'by_status' => $this->labeled($this->countBy($query, 'rental_contracts.status'), fn ($status) => $this->statusLabel($status)),
             'money' => [
                 'currency' => 'SAR',

@@ -10,7 +10,9 @@ use App\Models\McpAccessToken;
 use App\Models\McpAdminAccess;
 use App\Models\McpAuditLog;
 use App\Models\McpOAuthClient;
+use App\Models\McpSubscriptionEvent;
 use App\Support\McpSettings;
+use App\Support\McpSubscription;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
@@ -26,6 +28,7 @@ class SuperAdminMcpController extends Controller
 {
     public const TABS = [
         'overview' => 'نظرة عامة',
+        'subscription' => 'الاشتراك',
         'employees' => 'الموظفون',
         'tools' => 'الأدوات',
         'connections' => 'الاتصالات',
@@ -54,6 +57,7 @@ class SuperAdminMcpController extends Controller
             'tab' => $tab,
             'tabs' => self::TABS,
             'settings' => $settings,
+            'subscription' => McpSubscription::summary(),
             'tablesReady' => $tablesReady,
             'endpoint' => \App\Http\Controllers\McpOAuthController::absoluteUrl('/mcp'),
             'plainToken' => session('mcp_plain_token'),
@@ -74,8 +78,16 @@ class SuperAdminMcpController extends Controller
             };
         }
 
-        return view('admin.superadmin.mcp', $data);
-    }
+        if ($tab === 'subscription') {
+            $data += [
+                'subscriptionEvents' => Schema::hasTable('mcp_subscription_events')
+                    ? McpSubscriptionEvent::query()->latest('id')->limit(30)->get()
+                    : collect(),
+                'alertAdmins' => Admin::activeForOperations()->notExternalOfficeAgents()->orderBy('name')->get(['id', 'name']),
+            ];
+        }
+
+        return view('admin.superadmin.mcp', $data);    }
 
     // ------------------------------------------------------------------ الإعدادات والأدوات
 
@@ -85,6 +97,10 @@ class SuperAdminMcpController extends Controller
             'enabled' => ['nullable', 'boolean'],
             'oauth_enabled' => ['nullable', 'boolean'],
             'mask_sensitive' => ['nullable', 'boolean'],
+            'human_confirmation' => ['nullable', 'boolean'],
+            'guide_page_enabled' => ['nullable', 'boolean'],
+            'message_max_recipients' => ['nullable', 'integer', 'min:1', 'max:500'],
+            'messages_per_hour' => ['nullable', 'integer', 'min:1', 'max:5000'],
             'access_mode' => ['nullable', Rule::in([McpSettings::ACCESS_SELECTED, McpSettings::ACCESS_ALL])],
             'rate_limit_per_minute' => ['required', 'integer', 'min:1', 'max:1000'],
             'token_days' => ['required', 'integer', 'min:0', 'max:3650'],
@@ -96,6 +112,11 @@ class SuperAdminMcpController extends Controller
             'enabled' => $request->boolean('enabled'),
             'oauth_enabled' => $request->boolean('oauth_enabled'),
             'mask_sensitive' => $request->boolean('mask_sensitive'),
+            // النموذج يرسلها دائماً؛ طلب بدونها لا يوقف الحماية بالخطأ.
+            'human_confirmation' => $request->has('human_confirmation') ? $request->boolean('human_confirmation') : null,
+            'guide_page_enabled' => $request->has('guide_page_enabled') ? $request->boolean('guide_page_enabled') : null,
+            'message_max_recipients' => $validated['message_max_recipients'] ?? null,
+            'messages_per_hour' => $validated['messages_per_hour'] ?? null,
             'access_mode' => $validated['access_mode'] ?? null,
             'rate_limit_per_minute' => $validated['rate_limit_per_minute'],
             'token_days' => $validated['token_days'],
@@ -104,6 +125,54 @@ class SuperAdminMcpController extends Controller
         ], fn ($value) => $value !== null));
 
         return $this->back('settings', 'تم حفظ إعدادات MCP.');
+    }
+
+    public function updateSubscription(Request $request)
+    {
+        $validated = $request->validate([
+            'subscription_mode' => ['required', Rule::in([McpSubscription::MODE_FREE, McpSubscription::MODE_PAID])],
+            'subscription_starts_at' => ['nullable', 'required_if:subscription_mode,paid', 'date'],
+            'subscription_ends_at' => ['nullable', 'required_if:subscription_mode,paid', 'date', 'after_or_equal:subscription_starts_at'],
+            'subscription_grace_days' => ['required', 'integer', 'min:0', 'max:90'],
+            'subscription_notes' => ['nullable', 'string', 'max:1000'],
+            'subscription_alert_admins' => ['nullable', 'array', 'max:50'],
+            'subscription_alert_admins.*' => ['integer', Rule::exists('admins', 'id')],
+        ], [
+            'subscription_starts_at.required_if' => 'الاشتراك المدفوع يحتاج إلى تاريخ بداية.',
+            'subscription_ends_at.required_if' => 'الاشتراك المدفوع يحتاج إلى تاريخ نهاية.',
+            'subscription_ends_at.after_or_equal' => 'تاريخ النهاية يجب ألا يسبق تاريخ البداية.',
+        ]);
+
+        $before = McpSettings::all();
+        $payload = [
+            'subscription_mode' => $validated['subscription_mode'],
+            'subscription_starts_at' => $validated['subscription_starts_at'] ?? null,
+            'subscription_ends_at' => $validated['subscription_ends_at'] ?? null,
+            'subscription_grace_days' => $validated['subscription_grace_days'],
+            'subscription_notes' => $validated['subscription_notes'] ?? null,
+            'subscription_alert_admins' => $validated['subscription_alert_admins'] ?? [],
+        ];
+
+        McpSettings::persist($payload);
+
+        $tracked = ['subscription_mode', 'subscription_starts_at', 'subscription_ends_at', 'subscription_grace_days', 'subscription_notes'];
+        $after = McpSettings::all();
+
+        // تغيير قائمة المنبَّهين وحده ليس تغييراً في الاشتراك.
+        if (Schema::hasTable('mcp_subscription_events') && array_intersect_key($before, array_flip($tracked)) != array_intersect_key($after, array_flip($tracked))) {
+            McpSubscriptionEvent::query()->create([
+                'mode' => $after['subscription_mode'],
+                'starts_at' => $after['subscription_starts_at'],
+                'ends_at' => $after['subscription_ends_at'],
+                'grace_days' => $after['subscription_grace_days'],
+                'notes' => $after['subscription_notes'],
+                'previous' => array_intersect_key($before, array_flip($tracked)),
+                'ip' => $request->ip(),
+                'created_at' => now(),
+            ]);
+        }
+
+        return $this->back('subscription', 'تم حفظ اشتراك المساعد الذكي.');
     }
 
     public function updateTools(Request $request, McpServer $server)
@@ -317,7 +386,21 @@ class SuperAdminMcpController extends Controller
             'recentLogs' => McpAuditLog::query()->latest('id')->limit(8)->get(),
             'logAdmins' => $this->adminNamesFor(McpAuditLog::query()->latest('id')->limit(8)->pluck('admin_id')),
             'checks' => $this->setupChecks($settings, $tools),
+            'emptySearches' => McpAuditLog::hasResultCount()
+                ? McpAuditLog::query()->where('result_count', 0)->where('created_at', '>=', now()->subDays(30))->latest('id')->limit(10)->get()
+                : collect(),
+            'unusedTools' => $tools->map(fn ($tool) => $tool->name())->diff($this->callsByTool(30)->keys())->values(),
+            'idleAdmins' => $this->idleAdmins(),
         ];
+    }
+
+    /** موظفون لديهم اتصال فعّال ولم يستخدموا المساعد منذ 14 يوماً: غالباً يحتاجون متابعة. */
+    private function idleAdmins(): Collection
+    {
+        $ids = $this->activeTokens()->pluck('admin_id')->unique();
+        $recent = McpAuditLog::query()->where('created_at', '>=', now()->subDays(14))->whereIn('admin_id', $ids)->distinct()->pluck('admin_id');
+
+        return Admin::query()->whereIn('id', $ids->diff($recent))->limit(10)->pluck('name');
     }
 
     private function employeesData(): array
@@ -420,6 +503,7 @@ class SuperAdminMcpController extends Controller
         $enabledTools = $tools->filter(fn (McpTool $tool) => McpSettings::toolEnabled($tool->name()))->count();
 
         return [
+            ['ok' => McpSubscription::allowsRead(), 'label' => 'الاشتراك ساري', 'hint' => 'الحالة: ' . McpSubscription::summary()['label'] . '. من تبويب الاشتراك.'],
             ['ok' => $settings['enabled'], 'label' => 'الخادم مفعّل', 'hint' => 'من تبويب الإعدادات. قبل التفعيل يرجع الرابط 404.'],
             ['ok' => str_starts_with($appUrl, 'https://'), 'label' => 'APP_URL على https', 'hint' => 'القيمة الحالية: ' . ($appUrl ?: 'فارغة') . '. claude.ai وChatGPT يرفضان رابطاً غير مطابق.'],
             ['ok' => $settings['oauth_enabled'], 'label' => 'الربط بتسجيل الدخول (OAuth)', 'hint' => 'مطلوب لـ claude.ai وChatGPT. Codex يعمل بتوكن يدوي بدونه.'],

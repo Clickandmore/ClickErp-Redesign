@@ -2334,6 +2334,10 @@ class RentContractController extends Controller
         foreach (Maid::whereIn('id', $maidIds)->orderBy('id')->lockForUpdate()->get() as $maid) {
             $this->syncMaidBookingState($maid);
         }
+
+        if ($oldMaidId) {
+            app(RentalShelterPresenceService::class)->returnReplacedMaidInside($oldMaidId, $contract);
+        }
     }
 
     private function syncMaidBookingState(Maid $maid): void

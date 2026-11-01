@@ -11,17 +11,20 @@ use Illuminate\Support\Facades\DB;
  */
 trait ReportsOnPeriods
 {
+    private static array $knownPeriods = ['today', 'this_week', 'last_week', 'this_month', 'last_month', 'this_quarter', 'this_year', 'last_year', 'all'];
+
     protected function periodProperties(string $dateLabel): array
     {
         return [
             'period' => [
                 'type' => 'string',
-                'enum' => ['today', 'this_week', 'this_month', 'last_month', 'this_year', 'last_year', 'all'],
+                'enum' => self::$knownPeriods,
                 'default' => 'this_month',
                 'description' => "فترة التقرير حسب {$dateLabel}. تُتجاهل إذا أُرسل from أو to.",
             ],
             'from' => ['type' => 'string', 'format' => 'date', 'description' => 'من تاريخ (YYYY-MM-DD)'],
             'to' => ['type' => 'string', 'format' => 'date', 'description' => 'إلى تاريخ (YYYY-MM-DD)'],
+            'compare_to' => ['type' => 'string', 'enum' => ['previous_period', 'same_period_last_year'], 'description' => 'يضيف comparison: نفس الرقم في الفترة السابقة أو نفس الفترة من العام الماضي'],
         ];
     }
 
@@ -41,6 +44,8 @@ trait ReportsOnPeriods
         [$start, $end] = match ($period) {
             'today' => [$now->copy()->startOfDay(), $now->copy()->endOfDay()],
             'this_week' => [$now->copy()->startOfWeek(Carbon::SATURDAY), $now->copy()->endOfDay()],
+            'last_week' => [$now->copy()->startOfWeek(Carbon::SATURDAY)->subWeek(), $now->copy()->startOfWeek(Carbon::SATURDAY)->subDay()->endOfDay()],
+            'this_quarter' => [$now->copy()->startOfQuarter(), $now->copy()->endOfDay()],
             'last_month' => [$now->copy()->subMonthNoOverflow()->startOfMonth(), $now->copy()->subMonthNoOverflow()->endOfMonth()],
             'this_year' => [$now->copy()->startOfYear(), $now->copy()->endOfDay()],
             'last_year' => [$now->copy()->subYear()->startOfYear(), $now->copy()->subYear()->endOfYear()],
@@ -48,9 +53,7 @@ trait ReportsOnPeriods
             default => [$now->copy()->startOfMonth(), $now->copy()->endOfDay()],
         };
 
-        $known = ['today', 'this_week', 'this_month', 'last_month', 'this_year', 'last_year', 'all'];
-
-        return ['from' => $start, 'to' => $end, 'label' => in_array($period, $known, true) ? $period : 'this_month'];
+        return ['from' => $start, 'to' => $end, 'label' => in_array($period, self::$knownPeriods, true) ? $period : 'this_month'];
     }
 
     /** $column عمود مؤهل أو تعبير SQL مثل COALESCE(contract_date, DATE(created_at)). */
@@ -64,6 +67,37 @@ trait ReportsOnPeriods
         }
 
         return $query;
+    }
+
+    /**
+     * مقارنة الإجمالي بفترة أخرى. $count تحسب الرقم لأي فترة، فالمقارنة تطبّق نفس فلاتر التقرير.
+     * null إذا لم تُطلب، أو كانت الفترة بلا بداية ونهاية (all).
+     */
+    protected function comparison(array $arguments, array $period, int $current, callable $count): ?array
+    {
+        $mode = (string) ($arguments['compare_to'] ?? '');
+
+        if (!in_array($mode, ['previous_period', 'same_period_last_year'], true) || !$period['from'] || !$period['to']) {
+            return null;
+        }
+
+        if ($mode === 'same_period_last_year') {
+            $other = ['from' => $period['from']->copy()->subYear(), 'to' => $period['to']->copy()->subYear()];
+        } else {
+            $days = (int) $period['from']->copy()->startOfDay()->diffInDays($period['to']->copy()->startOfDay()) + 1;
+            $other = ['from' => $period['from']->copy()->subDays($days), 'to' => $period['from']->copy()->subDay()->endOfDay()];
+        }
+
+        $previous = $count($other + ['label' => 'custom']);
+
+        return [
+            'mode' => $mode,
+            'from' => $other['from']->toDateString(),
+            'to' => $other['to']->toDateString(),
+            'total' => $previous,
+            'change' => $current - $previous,
+            'change_percent' => $previous > 0 ? round(($current - $previous) / $previous * 100, 1) : null,
+        ];
     }
 
     protected function periodSummary(array $period): array

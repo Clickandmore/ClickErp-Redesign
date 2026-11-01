@@ -24,6 +24,7 @@ trait PresentsRecruitmentContracts
 
         return [
             'id' => $contract->id,
+            'url' => $this->link('RecruitmentContract.show', $contract->id),
             'contract_number' => $contract->arabia_order_number,
             'contract_date' => $this->date($contract->contract_date),
             'status' => $contract->status,

@@ -40,6 +40,7 @@ class ActivityLogTool extends McpTool
                 'subject_id' => ['type' => 'integer'],
                 'query' => ['type' => 'string', 'description' => 'نص في وصف النشاط'],
                 'limit' => ['type' => 'integer', 'minimum' => 1, 'maximum' => 50, 'default' => 20],
+                'offset' => $this->offsetProperty(),
             ],
         ];
     }
@@ -95,13 +96,14 @@ class ActivityLogTool extends McpTool
             ->pluck('total', 'causer_id');
         $names = Admin::withTrashed()->whereIn('id', $byCauser->keys())->pluck('name', 'id');
 
-        $rows = (clone $query)->orderByDesc('id')->limit($this->limit($arguments))->get();
+        $total = (clone $query)->count();
+        $rows = (clone $query)->orderByDesc('id')->offset($this->offset($arguments))->limit($this->limit($arguments))->get();
         $rowNames = Admin::withTrashed()
             ->whereIn('id', $rows->where('causer_type', Admin::class)->pluck('causer_id')->unique())
             ->pluck('name', 'id');
 
         return [
-            'total' => (clone $query)->count(),
+            ...$this->pageInfo($total, $rows->count(), $arguments),
             'by_employee' => $byCauser->map(fn ($total, $id) => ['employee' => $names[$id] ?? "#{$id}", 'total' => (int) $total])->values()->all(),
             'by_event' => $this->countBy($query, 'event'),
             'by_log' => $this->countBy($query, 'log_name'),
@@ -113,7 +115,7 @@ class ActivityLogTool extends McpTool
                 'employee' => $row->causer_type === Admin::class ? ($rowNames[$row->causer_id] ?? "#{$row->causer_id}") : null,
                 'event' => $row->event,
                 'log' => $row->log_name,
-                'description' => Str::limit((string) $row->description, 200),
+                'description' => Str::limit((string) $this->maskText($row->description), 200),
                 'subject' => $row->subject_type ? class_basename($row->subject_type) . ' #' . $row->subject_id : null,
                 'changes' => $this->changes($row->properties),
             ])->all(),
@@ -163,6 +165,6 @@ class ActivityLogTool extends McpTool
             $value = json_encode($value, JSON_UNESCAPED_UNICODE);
         }
 
-        return is_string($value) ? Str::limit($value, 100) : $value;
+        return is_string($value) ? Str::limit((string) $this->maskText($value), 100) : $value;
     }
 }
