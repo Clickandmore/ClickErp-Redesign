@@ -108,6 +108,7 @@ class EnsurePackageRoutePermission
             'finance.accounts.destroy' => 'finance_accounting_guide_management_delete',
             'finance.accounting-guide-management.move*' => 'finance_accounting_guide_management_move',
             'finance.accounting-guide-management.merge*' => 'finance_accounting_guide_management_merge',
+            'finance.chart-settings.*' => 'finance_chart_settings_manage',
         ] as $pattern => $permission) {
             if (Str::is($pattern, $routeName)) {
                 return [$permission];

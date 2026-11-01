@@ -195,7 +195,7 @@ class ConstraintDetailsService extends MainService
                     $query->selectRaw('1')
                         ->from('recruitment_offices as office')
                         ->whereColumn('office.account_id', 'account.id');
-                })->orWhere('parent.code', 221);
+                })->orWhere('parent.code', \Nami\Finance\Support\AccountCodeAliases::current(221));
             });
         } elseif ($scope === 'treasury_banks') {
             $query->whereIn('account.type', [
@@ -296,7 +296,7 @@ class ConstraintDetailsService extends MainService
                     $query->selectRaw('1')
                         ->from('recruitment_offices as office')
                         ->whereColumn('office.account_id', 'account.id');
-                })->orWhere('parent.code', 221);
+                })->orWhere('parent.code', \Nami\Finance\Support\AccountCodeAliases::current(221));
             });
         } elseif ($scope === 'treasury_banks') {
             $accountsQuery->whereIn('account.type', [

@@ -188,10 +188,10 @@ class CommissionAccrualService
     public function expenseAccount(): Account
     {
         $account = Account::query()
-            ->whereIn('code', [self::ALRAFEDAIN_EXPENSE_ACCOUNT_CODE, self::EXPENSE_ACCOUNT_CODE])
+            ->whereIn('code', \Nami\Finance\Support\AccountCodeAliases::many([self::ALRAFEDAIN_EXPENSE_ACCOUNT_CODE, self::EXPENSE_ACCOUNT_CODE]))
             ->where('status', 'debtor')
             ->whereDoesntHave('children')
-            ->orderByRaw('CASE WHEN code = ? THEN 0 ELSE 1 END', [self::ALRAFEDAIN_EXPENSE_ACCOUNT_CODE])
+            ->orderByRaw('CASE WHEN code = ? THEN 0 ELSE 1 END', [\Nami\Finance\Support\AccountCodeAliases::current(self::ALRAFEDAIN_EXPENSE_ACCOUNT_CODE)])
             ->first();
 
         $account ??= Account::query()

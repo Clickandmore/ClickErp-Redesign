@@ -501,7 +501,7 @@ class AccountRestructureService
     {
         $anchors = array_column((array) config('branch_finance.anchors', []), 'code');
 
-        return array_values(array_unique(array_map('strval', array_merge(self::PROTECTED_CODES, $anchors))));
+        return array_values(array_unique(\Nami\Finance\Support\AccountCodeAliases::many(array_map('strval', array_merge(self::PROTECTED_CODES, $anchors)))));
     }
 
     /** حماية سريعة على صف واحد (لإظهار الأزرار)؛ الخادم يعيد الفحص كاملاً مع الفروع. */

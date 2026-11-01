@@ -158,7 +158,7 @@ class RentalMaidFinanceService
 
         return Account::query()
             ->whereDoesntHave('children')
-            ->where('code', $definition['code'])
+            ->where('code', \Nami\Finance\Support\AccountCodeAliases::current($definition['code']))
             ->first();
     }
 
@@ -178,7 +178,7 @@ class RentalMaidFinanceService
 
         return Account::query()
             ->whereDoesntHave('children')
-            ->where('code', $definition['prepaid_code'])
+            ->where('code', \Nami\Finance\Support\AccountCodeAliases::current($definition['prepaid_code']))
             ->first();
     }
 

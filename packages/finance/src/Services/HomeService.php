@@ -338,7 +338,7 @@ class HomeService extends MainService
         }
 
         return $ids
-            ->merge($this->accountBranchIds($accounts, [221]))
+            ->merge($this->accountBranchIds($accounts, [\Nami\Finance\Support\AccountCodeAliases::current(221)]))
             ->map(fn ($id) => (int) $id)->unique()->values();
     }
 

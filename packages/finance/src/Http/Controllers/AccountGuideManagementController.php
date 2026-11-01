@@ -42,7 +42,7 @@ class AccountGuideManagementController extends Controller
             return DataTables::of($dataTable)
                 ->addIndexColumn()
                 ->editColumn('type', function ($row) {
-                    return $row->type?->lang() ?? "";
+                    return $row->displayTypeLabel();
                 })
                 ->editColumn('status', function ($row) {
                     return $row->status?->lang() ?? "";
@@ -344,7 +344,7 @@ class AccountGuideManagementController extends Controller
             return [
                 $account->name,
                 $account->code,
-                $account->type?->lang() ?? '',
+                $account->displayTypeLabel(),
                 $account->status?->lang() ?? '',
                 $account->level,
                 $account->parent->name ?? __('finance::finance.without'),

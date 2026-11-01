@@ -413,7 +413,7 @@ class ShelterContractController extends Controller
                 $query->whereHas('parent', function ($parentQuery) {
                     $parentQuery
                         ->where('type', AccountTypesEnum::Custody->value)
-                        ->orWhere('code', 126);
+                        ->orWhere('code', \Nami\Finance\Support\AccountCodeAliases::current(126));
                 });
 
                 if ($custodyAccountIds->isNotEmpty()) {
