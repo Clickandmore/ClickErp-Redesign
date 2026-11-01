@@ -17,7 +17,7 @@ use Illuminate\Validation\ValidationException;
 
 class NotificationSettingsController extends Controller
 {
-    private const ALLOWED_SECTIONS = ['alerts', 'email', 'sms', 'whatsapp'];
+    private const ALLOWED_SECTIONS = ['alerts', 'email', 'sms', 'whatsapp', 'contact'];
 
     public function edit()
     {
@@ -69,25 +69,35 @@ class NotificationSettingsController extends Controller
                 'email' => $this->validateEmailSection($request),
                 'sms' => $this->validateSmsSection($request),
                 'whatsapp' => $this->validateWhatsAppSection($request),
+                'contact' => \App\Support\ContactNotificationSettings::validate((array) $request->input('contact', [])),
             };
 
             if ($section === 'alerts') {
                 $validatedCustomAlerts = $this->validateCustomAlertsSection($request);
                 $validatedAutomation = $this->validateAutomationSection($request);
+                $validatedContact = $request->has('contact')
+                    ? \App\Support\ContactNotificationSettings::validate((array) $request->input('contact'))
+                    : null;
 
                 DB::transaction(function () use (
                     $validatedSectionPayload,
                     $validatedCustomAlerts,
-                    $validatedAutomation
+                    $validatedAutomation,
+                    $validatedContact
                 ): void {
                     NotificationAlertSettings::persist($validatedSectionPayload, $validatedCustomAlerts);
                     AutomationSettings::persist($validatedAutomation);
+                    if ($validatedContact !== null) {
+                        \App\Support\ContactNotificationSettings::persist($validatedContact);
+                    }
                 });
+            } elseif ($section === 'contact') {
+                \App\Support\ContactNotificationSettings::persist($validatedSectionPayload);
             } else {
                 CommunicationSettings::persistSection($section, $validatedSectionPayload);
             }
 
-            $route = $section === 'alerts' ? 'notifications.settings.alerts' : 'notifications.settings';
+            $route = in_array($section, ['alerts', 'contact'], true) ? 'notifications.settings.alerts' : 'notifications.settings';
 
             return redirect()
                 ->to(route($route) . '#' . $this->sectionAnchor($section))
@@ -100,7 +110,7 @@ class NotificationSettingsController extends Controller
                 'section' => $section,
             ]);
 
-            $fallbackRoute = $section === 'alerts'
+            $fallbackRoute = in_array($section, ['alerts', 'contact'], true)
                 ? 'notifications.settings.alerts'
                 : 'notifications.settings';
 
@@ -437,6 +447,7 @@ class NotificationSettingsController extends Controller
 
     private function successMessage(string $section): string
     {
+        if ($section === 'contact') return 'تم تحديث إعدادات إشعارات تواصل معنا بنجاح.';
         return match ($section) {
             'alerts' => 'تم تحديث إعدادات التنبيهات الآلية بنجاح.',
             'email' => 'تم تحديث إعدادات البريد الإلكتروني بنجاح.',
@@ -447,6 +458,7 @@ class NotificationSettingsController extends Controller
 
     private function sectionAnchor(string $section): string
     {
+        if ($section === 'contact') return 'contact-notification-settings';
         return match ($section) {
             'alerts' => 'alert-rules-settings',
             'email' => 'email-settings',

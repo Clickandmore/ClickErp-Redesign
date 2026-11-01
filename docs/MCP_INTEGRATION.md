@@ -340,6 +340,7 @@ MySQL يحوّل النص إلى 0 فيطابق صفوفاً خاطئة. قار�
 | `form_options` | `clients.store` أو `maids.create` | قوائم الاختيار (معرّف + اسم) لنموذج العميل أو السيرة، حتى لا يخمّن المساعد المعرّفات |
 | `create_customer` | `clients.store` (`clients_create`) | إضافة عميل + حسابه في دليل الحسابات وعملاء المالية |
 | `create_maid_cv` | `maids.create` (`maids_create`) | سيرة بنموذج «السيرة السريعة»، ثم توليد ملف السيرة إن كان القالب مفعّلاً |
+| `create_maid_cvs_batch` | `maids.create` (`maids_create`) | حتى 50 سيرة في الاستدعاء (صفوف Excel يقرؤها المساعد في المحادثة). كل صف بتحقق `create_maid_cv`، والمرفوض لا يوقف الباقي |
 | `add_contract_note` | `RecruitmentContract.index` + `rec_contracts_update` أو `rec_contracts_manage` | ملاحظة على عقد استقدام، بنفس فحص `storeNote` |
 | `update_complaint_status` | `complaints.update-status` (`complaint_edit`) | تغيير حالة شكوى مفتوحة عبر [ComplaintStatusService](../app/Services/ingaz/ComplaintStatusService.php)، نفس خدمة الشاشة |
 
@@ -347,6 +348,8 @@ MySQL يحوّل النص إلى 0 فيطابق صفوفاً خاطئة. قار�
 | `send_customer_message` | `clients.index` + `notifications.store` أو `whatsapp.notifications.store` (`notifications_control`) | SMS أو واتساب لعميل أو أكثر عبر `NotificationAction`، نفس خدمة شاشة الرسائل |
 
 **الرسائل:** موافقة الموظف داخل ClickERP **إلزامية دائماً** لهذه الأداة حتى لو أُوقف الإعداد العام، لأن الإرسال لا يُسحب. المستلمون معرّفات عملاء داخل فرع الموظف فقط، وليست أرقاماً حرة. يُرسل طلب مستقل لكل عميل، ففشل واحد لا يوقف الباقي، ويدعم النص `{client_name}` و`{company_name}`. واتساب يُرسل بغرض `follow_up`، وSMS باسم المرسل الدعائي. «تم» تعني قبول المزود، لا وصول الرسالة.
+
+**السير المجمعة:** الخادم لا يستقبل الملف نفسه؛ البرنامج المتصل يقرأ Excel ويرسل الصفوف، ويحوّل الأسماء إلى معرّفات من `form_options`. موافقة الموظف إلزامية دائماً، والدفعة الموافق عليها تُحسب عملية واحدة في حد الساعة. توليد ملف السيرة (نحو 6 ثوانٍ للعاملة) يعمل بعد رد الصفحة عبر `app()->terminating`، فحفظ 50 سيرة يأخذ ثوانٍ. إعادة إرسال ملف بعد انقطاع آمنة لأن الجواز المكرر يُرفض.
 
 **الطلبات:** لا توجد شاشة مستقلة لإنشاء طلب في لوحة التحكم، فالأداة تستخدم مسار الموقع والتطبيق نفسه. يصل العميل إشعار، ويصل الموظف المسؤول SMS.
 

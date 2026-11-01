@@ -865,6 +865,7 @@
             <input type="hidden" name="section" value="alerts">
 
             <nav class="alerts-nav" aria-label="أقسام الصفحة">
+                <a href="#contact-notification-settings"><i class="fa-solid fa-comments"></i> الشكاوى وتواصل معنا</a>
                 <a href="#alerts-core">
                     <i class="fa-solid fa-bell"></i>
                     التنبيهات الأساسية
@@ -1092,6 +1093,8 @@
 
                 </div>
             </div>
+
+            @include('admin.ingaz.notifications.partials.contact-settings')
 
             <div class="alerts-savebar">
                 <div class="alerts-savebar__hint">
