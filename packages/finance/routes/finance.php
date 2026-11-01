@@ -41,6 +41,7 @@ use Nami\Finance\Http\Controllers\BondQabdController;
 use Nami\Finance\Http\Controllers\BondSarfController;
 use Nami\Finance\Http\Controllers\BoxController;
 use Nami\Finance\Http\Controllers\CashMovementController;
+use Nami\Finance\Http\Controllers\ChartSettingController;
 use Nami\Finance\Http\Controllers\DailyCashReferenceLineController;
 use Nami\Finance\Http\Controllers\OperationalSummaryController;
 use Nami\Finance\Http\Controllers\CatchCheckController;
@@ -248,6 +249,7 @@ Route::group(
 
         Route::get('confirm-settings/account-options', [ConfirmSettingController::class, 'accountOptions'])
             ->name('confirm-settings.account-options');
+        Route::resource('chart-settings', ChartSettingController::class)->only('index', 'store');
         Route::resource('confirm-settings', ConfirmSettingController::class);
         Route::resource('audit-budget-supplier', AuditBudgetController::class);
         Route::resource('audit-budget-monthly', AuditBudgetMonthlyController::class);

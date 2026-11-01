@@ -1565,11 +1565,11 @@ class RentalContractFinanceService
         $accountId = Account::query()
             ->where('status', 'creditor')
             ->where(function ($query) {
-                $query->where('code', '4216')
+                $query->where('code', \Nami\Finance\Support\AccountCodeAliases::current('4216'))
                     ->orWhere('name', 'like', '%مرتب%عامل%معف%')
                     ->orWhere('name', 'like', '%راتب%عامل%معف%');
             })
-            ->orderByRaw("CASE WHEN code = '4216' THEN 0 ELSE 1 END")
+            ->orderByRaw('CASE WHEN code = ? THEN 0 ELSE 1 END', [\Nami\Finance\Support\AccountCodeAliases::current('4216')])
             ->value('id');
 
         if ($accountId) {

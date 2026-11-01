@@ -139,7 +139,7 @@ class AccountService extends MainService
     public function updateChildrenCode($account)
     {
         if ($account->children) {
-            $nextCode = ((int) $account->code) * 100;
+            $nextCode = $this->childCodeStart($account);
 
             foreach ($account->children->sortBy('code')->values() as $child) {
                 $child->update(['code' => $nextCode++]);
@@ -169,7 +169,7 @@ class AccountService extends MainService
 
     private function recodeDescendants(Account $account): void
     {
-        $nextCode = ((int) $account->code) * 100;
+        $nextCode = $this->childCodeStart($account);
 
         foreach ($account->children->sortBy('code')->values() as $child) {
             $child->update(['code' => $nextCode++, 'level' => $account->level + 1]);
@@ -463,10 +463,24 @@ class AccountService extends MainService
     {
         if ($id != 'without') {
             $parent = $this->find($id);
-            return $this->firstAvailableCode(((int) $parent->code) * 100, $childPluckCode);
+            return $this->firstAvailableChildCode($parent, $childPluckCode);
         }
 
         return $this->firstAvailableCode(1, $parentPluckCode);
+    }
+
+    /** بداية أكواد الفروع حسب طول المستوى إن ضُبط في إعدادات الدليل، وإلا كود الأب × 100. */
+    protected function childCodeStart($parent): int
+    {
+        return \Nami\Finance\Support\ChartSettings::childCodeStart($parent->code, (int) $parent->level) ?? ((int) $parent->code) * 100;
+    }
+
+    protected function firstAvailableChildCode($parent, $codes): int
+    {
+        $code = $this->firstAvailableCode($this->childCodeStart($parent), $codes);
+        \Nami\Finance\Support\ChartSettings::assertFits($code, (int) $parent->level + 1);
+
+        return $code;
     }
 
     protected function firstAvailableCode(int $start, $codes): int
@@ -504,7 +518,7 @@ class AccountService extends MainService
             ->orderBy('code')
             ->lockForUpdate();
 
-        return $this->firstAvailableCode(((int) $parent->code) * 100, $query->pluck('code'));
+        return $this->firstAvailableChildCode($parent, $query->pluck('code'));
     }
 
     public function childPluckCode($id)
@@ -630,7 +644,7 @@ class AccountService extends MainService
             ->where(function ($query) {
                 $query->where('type', AccountTypesEnum::Supplier->value)
                     ->orWhereHas('parent', function ($parentQuery) {
-                        $parentQuery->where('code', 221);
+                        $parentQuery->where('code', \Nami\Finance\Support\AccountCodeAliases::current(221));
                     });
             })
             ->orderBy('code')

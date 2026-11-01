@@ -4754,7 +4754,7 @@ class DataImportExecutionService
     private function resolveOrCreateLegacyUnassignedFinanceAccount(?int $adminId): int
     {
         $existing = Account::query()
-            ->where('code', self::LEGACY_UNASSIGNED_ACCOUNT_CODE)
+            ->where('code', \Nami\Finance\Support\AccountCodeAliases::current(self::LEGACY_UNASSIGNED_ACCOUNT_CODE))
             ->lockForUpdate()
             ->first();
 

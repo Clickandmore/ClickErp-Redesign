@@ -21,7 +21,7 @@ class CashMovementReportService
                     16, 17 => 'cash', 14, 15, 111 => 'bank', 32, 33 => 'wallet', default => null,
                 };
                 if (!$kind && in_array((string) $cursor->code, ['121', '122'], true)) {
-                    $kind = (string) $cursor->code === '121' ? 'cash' : 'bank';
+                    $kind = (string) $cursor->code === \Nami\Finance\Support\AccountCodeAliases::current('121') ? 'cash' : 'bank';
                 }
                 if ($kind) {
                     $account->kind = $kind;

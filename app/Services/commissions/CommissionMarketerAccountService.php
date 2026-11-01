@@ -20,7 +20,7 @@ class CommissionMarketerAccountService
 
     public function parentAccount(): Account
     {
-        $parent = Account::query()->where('code', 144)->first();
+        $parent = Account::query()->where('code', \Nami\Finance\Support\AccountCodeAliases::current(144))->first();
         if (!$parent) {
             $parents = Account::query()->where('name', 'المسوقين')->get();
             $parent = $parents->count() === 1 ? $parents->first() : null;

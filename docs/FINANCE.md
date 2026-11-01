@@ -461,6 +461,31 @@ php artisan finance:link-daily-cash-reference
 
 الاختبارات: `tests/Feature/CashMovementReportTest.php`.
 
+## 16. ترتيب الدليل بخطة محفوظة وطول الكود لكل مستوى
+
+**الإعدادات:** المالية ← الإعدادات ← «إعدادات الدليل المحاسبي» (صلاحية حصرية `finance_chart_settings_manage`، ولا تكفي `finance_module`).
+عدد خانات الكود لكل مستوى، وعرض «النوع» حسب التسلسل. الفراغ هو الافتراضي: كود الأب × 100 ونوع الحساب كما كان، فلا يتغير شيء على الشركات الأخرى.
+العرض حسب التسلسل يغيّر شاشة إدارة الدليل وتصديرها فقط: المستوى 1 و3 اسمهما، والمستوى 2 و4 وما بعده اسم الأب. نوع الحساب الفعلي لا يتغير.
+
+**تنفيذ خطة** (`packages/finance/database/chart_plans/<plan>.php`):
+
+```bash
+php artisan migrate
+php artisan finance:chart-restructure --plan=rafidain            # معاينة: تنفّذ كل شيء ثم تلغيه
+# نسخة احتياطية mysqldump وإيقاف الإدخال، ثم:
+php artisan finance:chart-restructure --plan=rafidain --execute
+php artisan optimize:clear && php artisan queue:restart
+```
+
+- الخطة تذكر الحسابات بكودها **الأصلي**، والأكواد الجديدة تُحسب وقت التنفيذ. الحساب غير المذكور يبقى مع أبيه، وفروع حساب مدموج غير مذكورة تتبع هدف الدمج مع تنبيه.
+- معاملة واحدة تُلغى إن تغيّر مجموع القيود أو رصيد أي حساب، أو تكرر كود، أو تجاوز كود طول مستواه. الخطة نفسها لا تُنفَّذ مرتين (`fn_chart_restructure_runs`) إلا بـ `--force`.
+- التقرير في `storage/app/chart-restructure/<وقت>/`: `report.xlsx` فيه خريطة كل الأكواد، و`report.html`.
+- **الأكواد القديمة التي يبحث عنها البرنامج** (144، 221، 4216، 52149، 5450، 5911…) تُربط في `fn_account_code_aliases` برقم الحساب. أي بحث جديد بكود ثابت في الكود يجب أن يمر عبر `AccountCodeAliases::current()`، ويُضاف كوده إلى `AccountRestructureService::PROTECTED_CODES`.
+- ترقيم الحسابات الجديدة يمر عبر `ChartSettings::childCodeStart()`؛ أي مكان جديد ينشئ حساباً يستخدم `AccountService::getChildCode()`.
+- التراجع عن خطة منفذة يكون باستعادة النسخة الاحتياطية.
+
+الاختبارات: `tests/Feature/Finance/ChartRestructureTest.php`.
+
 ## قيود المشتريات والوكلاء الخارجيون (إعدادات مستقلة)
 
 قسم جديد في صفحة الإعدادات:

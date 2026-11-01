@@ -66,7 +66,7 @@ class OfficeFinanceAccountService
     {
         return DB::transaction(function () {
             $parent = Account::query()
-                ->where('code', 221)
+                ->where('code', \Nami\Finance\Support\AccountCodeAliases::current(221))
                 ->lockForUpdate()
                 ->first();
 
@@ -75,7 +75,7 @@ class OfficeFinanceAccountService
             }
 
             $shortLiabilities = Account::query()
-                ->where('code', 22)
+                ->where('code', \Nami\Finance\Support\AccountCodeAliases::current(22))
                 ->lockForUpdate()
                 ->first();
 

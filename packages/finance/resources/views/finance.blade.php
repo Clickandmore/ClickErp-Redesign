@@ -64,6 +64,14 @@ $permissions = ['printSettings.create', 'letters.index', 'officialVacations.inde
             </a>
         </li>
         {{--        @endif --}}
+        @if (auth('admin')->user()?->can('finance_chart_settings_manage'))
+        <li>
+            <a class="m-link {{ Route::currentRouteName() == 'finance.chart-settings.index' ? 'active' : '' }}"
+                href="{{ route('finance.chart-settings.index') }}">
+                <span class="ms-2"> إعدادات الدليل المحاسبي </span>
+            </a>
+        </li>
+        @endif
         {{--        @if (in_array('finance.tax-setting-read', $user_permission_list)) --}}
         <li>
             <a class="m-link {{ Route::currentRouteName() == 'finance.tax-setting.index' ? 'active' : '' }}"

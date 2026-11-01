@@ -50,8 +50,8 @@ class ShelterLivingExpenseAccountingService
 
         return Account::query()
             ->whereDoesntHave('children')
-            ->whereIn('code', ['5450', '527'])
-            ->orderByRaw("FIELD(code, '5450', '527')")
+            ->whereIn('code', \Nami\Finance\Support\AccountCodeAliases::many(['5450', '527']))
+            ->orderByRaw('FIELD(code, ?, ?)', \Nami\Finance\Support\AccountCodeAliases::many(['5450', '527']))
             ->value('id');
     }
 
@@ -342,7 +342,7 @@ class ShelterLivingExpenseAccountingService
                 ->where(function ($query) {
                     $query
                         ->where('type', AccountTypesEnum::Custody->value)
-                        ->orWhere('code', 126);
+                        ->orWhere('code', \Nami\Finance\Support\AccountCodeAliases::current(126));
                 })
                 ->exists();
 

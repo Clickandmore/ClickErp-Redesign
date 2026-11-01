@@ -616,7 +616,7 @@ class NationalityFinanceAccountService
             ? $lastChildCode + 1
             : (
                 (int) $parent->code > 0
-                    ? ((int) $parent->code * 100) + 1
+                    ? (\Nami\Finance\Support\ChartSettings::childCodeStart($parent->code, (int) $parent->level) ?? ((int) $parent->code * 100) + 1)
                     : ((int) Account::query()->lockForUpdate()->max('code')) + 1
             );
 

@@ -710,7 +710,7 @@ class RecruitmentContractRefundService
 
     private function nextAccountCode(Account $parent): int
     {
-        $base = ((int) $parent->code) * 100;
+        $base = \Nami\Finance\Support\ChartSettings::childCodeStart($parent->code, (int) $parent->level) ?? ((int) $parent->code) * 100;
 
         $siblingCodes = Account::query()
             ->where('parent_id', $parent->id)

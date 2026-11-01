@@ -48,6 +48,19 @@ class Account extends Finance
         });
     }
 
+    /**
+     * «النوع» كما يظهر في الدليل. إذا فُعّل العرض حسب التسلسل في إعدادات الدليل: المستوى 1 و3 اسمهما،
+     * والمستوى 2 و4 وما بعده اسم الأب. لا يغيّر نوع الحساب الذي يعتمد عليه منطق البرنامج.
+     */
+    public function displayTypeLabel(): string
+    {
+        if (!\Nami\Finance\Support\ChartSettings::typeDisplayByHierarchy()) {
+            return $this->type?->lang() ?? '';
+        }
+
+        return in_array((int) $this->level, [1, 3], true) ? (string) $this->name : (string) ($this->parent->name ?? $this->name);
+    }
+
     public function cashBoxes()
     {
         return $this->hasMany(Box::class, 'account_id');
@@ -121,7 +134,7 @@ class Account extends Finance
     public function scopeUnderMusanedParent($query)
     {
         return $query->whereHas('parent', function ($parentQuery) {
-            $parentQuery->whereIn('code', self::MUSANED_PARENT_CODES);
+            $parentQuery->whereIn('code', \Nami\Finance\Support\AccountCodeAliases::many(self::MUSANED_PARENT_CODES));
         });
     }
 

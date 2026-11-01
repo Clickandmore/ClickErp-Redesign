@@ -280,7 +280,7 @@ class AuditBudgetService extends MainService
                         ->from('fn_suppliers')
                         ->whereColumn('fn_suppliers.account_id', 'fn_accounts.id');
                 })
-                    ->orWhere('parent_accounts.code', self::EXTERNAL_AGENTS_PARENT_CODE);
+                    ->orWhere('parent_accounts.code', \Nami\Finance\Support\AccountCodeAliases::current(self::EXTERNAL_AGENTS_PARENT_CODE));
             });
     }
 

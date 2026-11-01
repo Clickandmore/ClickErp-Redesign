@@ -168,7 +168,7 @@ class BranchChartOfAccountsService
 
     private function anchorAccount(string $code): ?object
     {
-        return DB::table('fn_accounts')->where('code', $code)->first(['id', 'code', 'level', 'type', 'statement_type']);
+        return DB::table('fn_accounts')->where('code', \Nami\Finance\Support\AccountCodeAliases::current($code))->first(['id', 'code', 'level', 'type', 'statement_type']);
     }
 
     private function createBranchAccount(Branch $branch, object $parent, string $label, string $purpose): int
@@ -202,7 +202,7 @@ class BranchChartOfAccountsService
      */
     private function nextChildCode(object $parent): string
     {
-        $base = ((int) $parent->code) * 100;
+        $base = \Nami\Finance\Support\ChartSettings::childCodeStart($parent->code, (int) $parent->level) ?? ((int) $parent->code) * 100;
 
         $maxChildCode = (int) DB::table('fn_accounts')
             ->where('parent_id', $parent->id)
