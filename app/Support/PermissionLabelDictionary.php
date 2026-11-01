@@ -119,6 +119,8 @@ final class PermissionLabelDictionary
         'finance_account_statement_clients' => 'كشف حساب العملاء',
         'finance_account_statement_clients_print' => 'طباعة كشف حساب العملاء',
         'finance_account_cost_centers' => 'مراكز التكلفة',
+        'finance_chart_settings' => 'إعدادات الدليل المحاسبي',
+        'finance_daily_cash_reference_lines' => 'بنود تقرير صندوق اليومية',
         'finance_account_balance_differed_normal' => 'أرصدة الحسابات المؤجلة',
         'finance_load_blade_view' => 'قوالب الشاشات المالية (للمطور)',
         'finance_load_blade_edit_view' => 'تعديل قوالب الشاشات المالية (للمطور)',
