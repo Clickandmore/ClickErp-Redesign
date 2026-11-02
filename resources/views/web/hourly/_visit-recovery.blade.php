@@ -1,5 +1,8 @@
 @php($recovery = app(\App\Services\Hourly\CustomerHourlyData::class)->visit($visit,$order))
 @include('web.hourly._service-disruption')
+@if(!empty($recovery['closure_conflict']))
+    <p class="hr-notice" role="alert">{{ $recovery['closure_conflict']['message'] }}</p>
+@endif
 @if(!empty($recovery['worker_replaced_at']))
     <p class="hr-notice">تم توفير عاملة بديلة لهذه الزيارة بنفس مواصفات الخدمة ودون تكلفة إضافية. بيانات العاملات المعروضة هي التعيينات الحالية.</p>
 @endif

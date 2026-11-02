@@ -39,6 +39,81 @@ class HourlyVisitOperationsTest extends TestCase
         return app(PanelBookingService::class)->create(['booking_token'=>(string)Str::uuid(),'customer_mode'=>'existing','user_id'=>1,'address_mode'=>'existing','address_id'=>$this->address(24.7,46.7,'الملز'),'hourly_package_id'=>$item->id,'workers_per_visit'=>1,'payment_method'=>'cash','collect_now'=>false,'all_workers'=>false,'notify_email'=>false,'notify_app'=>false,'visits'=>[['starts_at'=>now()->addDays($days)->format('Y-m-d').' 08:00','worker_ids'=>[1]]]],7);
     }
     private function payload(string $action,array $ids,array $more=[]):array{return $more+['batch_id'=>(string)Str::uuid(),'action'=>$action,'visit_ids'=>$ids,'reason'=>'اختبار التشغيل'];}
+    private function closureOrder(): array
+    {
+        if(!Schema::hasColumn('hourly_visit_workers','status'))Schema::table('hourly_visit_workers',fn(Blueprint $t)=>$t->string('status')->nullable());
+        $order=$this->order();$visit=$order->visits()->first();
+        $closure=\App\Models\Hourly\HourlyCategoryClosure::create(['service_category_id'=>$order->service_category_id,
+            'starts_at'=>$visit->scheduled_start_at->copy()->addHour(),'ends_at'=>$visit->scheduled_end_at->copy()->addHour(),'reason'=>'إجازة']);
+        return [$order,$visit,$closure];
+    }
+    public function test_existing_closure_conflict_respects_overlap_district_exemptions_and_removal():void
+    {
+        [$order,$visit,$closure]=$this->closureOrder();$impact=app(\App\Services\Hourly\ClosureImpact::class);
+        $this->assertCount(1,$impact->visits($closure));
+        $this->assertTrue($impact->conflict($visit,$order)['can_request_resolution']);
+        $this->assertTrue(\App\Services\Hourly\MissedVisitRecovery::eligible($visit,$order));
+        $this->assertFalse(app(\App\Services\Hourly\CustomerVisitActions::class)->policy($visit,$order)['can_cancel']);
+        $closure->update(['district_ids'=>[999999]]);$this->assertNull($impact->conflict($visit,$order));
+        $closure->update(['district_ids'=>null,'starts_at'=>$visit->scheduled_end_at]);$this->assertNull($impact->conflict($visit,$order));
+        $closure->update(['starts_at'=>$visit->scheduled_start_at]);
+        $snapshot=$order->package_snapshot;$snapshot['ignore_closed_days']=true;$order->update(['package_snapshot'=>$snapshot]);
+        $this->assertCount(0,$impact->visits($closure));
+        $snapshot['ignore_closed_days']=false;$order->update(['package_snapshot'=>$snapshot]);
+        $visit->update(['status'=>'delivered']);$this->assertFalse($impact->conflict($visit,$order)['can_request_resolution']);
+        $closure->delete();$this->assertNull($impact->conflict($visit,$order));
+    }
+    public function test_closure_notification_is_sent_once_and_does_not_change_appointment():void
+    {
+        [$order,$visit,$closure]=$this->closureOrder();
+        Schema::create('notifications',function(Blueprint $t){$t->id();$t->unsignedBigInteger('user_id');$t->string('type');$t->text('title');$t->text('description');$t->timestamps();});
+        $push=\Mockery::mock(\App\Services\Firebase\FirebasePushService::class);
+        $push->shouldReceive('sendToUser')->once()->andThrow(new \RuntimeException('Temporary push failure'));
+        $push->shouldReceive('sendToUser')->once()->andReturn(\App\Services\Firebase\FirebasePushResult::skipped('No tokens'));
+        $this->app->instance(\App\Services\Firebase\FirebasePushService::class,$push);
+        $job=new \App\Jobs\NotifyHourlyClosure($closure->id);
+        try{$job->handle();$this->fail('Expected temporary push failure');}catch(\RuntimeException $e){$this->assertSame('Temporary push failure',$e->getMessage());}
+        $job->handle();$job->handle();
+        $this->assertSame(1,DB::table('notifications')->count());
+        $this->assertSame('scheduled',$visit->fresh()->status);
+        $this->assertEquals([1],$visit->workers()->pluck('maids.id')->all());
+        $this->assertNotEmpty($order->fresh()->booking_metadata['closure_notifications'][$closure->id]);
+    }
+    public function test_existing_closures_are_queued_for_notification_by_the_scheduled_scan():void
+    {
+        [$order,$visit,$closure]=$this->closureOrder();
+        \Illuminate\Support\Facades\Queue::fake();
+        $this->artisan('hourly:closure-notices')->assertExitCode(0);
+        \Illuminate\Support\Facades\Queue::assertPushed(\App\Jobs\NotifyHourlyClosure::class,fn($job)=>$job->closureId===$closure->id);
+    }
+    public function test_customer_can_request_cancellation_of_unpaid_closed_day_without_fees():void
+    {
+        [$order,$visit,$closure]=$this->closureOrder();
+        $service=app(\App\Services\Hourly\MissedVisitRecovery::class);
+        $request=$service->request($order,$visit->id,['request_token'=>(string)Str::uuid(),'type'=>'refund','note'=>'إجازة']);
+        $this->assertSame('category_closure',$request['reason_code']);
+        $result=$service->review($order,$visit->id,['request_id'=>$request['id'],'decision'=>'approve','verified_non_execution'=>true,'reason'=>'إغلاق الخدمة'],7);
+        $this->assertSame('approved',$result['status']);
+        $this->assertSame('cancelled',$visit->fresh()->status);
+        $this->assertEquals(0,$visit->fresh()->cancellation_fee);
+        $this->assertEquals(0,$result['refunded_amount']);
+    }
+    public function test_closed_day_can_be_rescheduled_through_review_despite_customer_reschedule_limits():void
+    {
+        [$order,$visit,$closure]=$this->closureOrder();
+        $closure->update(['starts_at'=>$visit->scheduled_start_at->copy()->startOfDay(),'ends_at'=>$visit->scheduled_start_at->copy()->addDay()->startOfDay()]);
+        $snapshot=$order->package_snapshot;$snapshot['allow_reschedule']=false;$snapshot['max_reschedules_per_visit']=0;
+        $order->update(['package_snapshot'=>$snapshot]);
+        $service=app(\App\Services\Hourly\MissedVisitRecovery::class);
+        $date=$visit->scheduled_start_at->copy()->addDay()->toDateString();
+        $this->assertSame([],$service->customerAvailableSlots($order,$visit->id,$visit->scheduled_start_at->toDateString()));
+        $slots=$service->customerAvailableSlots($order,$visit->id,$date);$this->assertNotEmpty($slots);
+        $request=$service->request($order,$visit->id,['request_token'=>(string)Str::uuid(),'type'=>'reschedule','requested_start'=>$slots[0]['starts_at']]);
+        $result=$service->review($order,$visit->id,['request_id'=>$request['id'],'decision'=>'approve','verified_non_execution'=>true,'reason'=>'إعادة الجدولة بسبب إجازة'],7);
+        $this->assertSame('approved',$result['status']);
+        $this->assertSame($date,$visit->fresh()->scheduled_start_at->toDateString());
+        $this->assertNull(app(\App\Services\Hourly\ClosureImpact::class)->conflict($visit->fresh(),$order->fresh()));
+    }
     public function test_order_driver_choices_follow_schedule_membership_and_conflicts():void
     {
         $order=$this->order();$visit=$order->visits()->first();
@@ -210,6 +285,27 @@ class HourlyVisitOperationsTest extends TestCase
                 $this->assertEquals($assigned,$visit->workers()->pluck('maids.id')->all());
             }
         }
+    }
+
+    public function test_started_visit_keeps_workers_and_reservations_when_unassignment_is_requested():void
+    {
+        if(!Schema::hasColumn('hourly_visit_workers','status'))Schema::table('hourly_visit_workers',fn(Blueprint $t)=>$t->string('status')->nullable());
+        if(!Schema::hasColumn('hourly_visit_workers','arrived_at'))Schema::table('hourly_visit_workers',fn(Blueprint $t)=>$t->timestamp('arrived_at')->nullable());
+        $order=$this->order();$visit=$order->visits()->first();
+        $reservations=DB::table('hourly_visit_reservations')->where('hourly_visit_id',$visit->id)->count();
+        foreach(['delivered','in_progress','scheduled'] as $status){
+            $visit->update(['status'=>$status]);
+            if($status==='scheduled')DB::table('hourly_visit_workers')->where('hourly_visit_id',$visit->id)->update(['arrived_at'=>now()]);
+            foreach(['unassign_worker'=>['worker_id'=>1],'unassign_workers'=>[],'unassign_all'=>[],'remove_worker'=>['worker_id'=>1],'assign_workers'=>['worker_ids'=>[2]],'assign_all'=>[]] as $action=>$extra){
+                $data=$this->payload($action,[$visit->id],$extra);
+                $this->postJson('/admin/hourly/orders/'.$order->id.'/operations',$data)->assertUnprocessable();
+                if($action!=='remove_worker')$this->postJson('/admin/hourly/visits/batch',$data)->assertUnprocessable();
+                $this->assertEquals([1],$visit->workers()->pluck('maids.id')->all());
+                $this->assertSame($reservations,DB::table('hourly_visit_reservations')->where('hourly_visit_id',$visit->id)->count());
+                $this->assertSame($status,$visit->fresh()->status);
+            }
+        }
+        $this->assertDatabaseMissing('hourly_order_audits',['visit_id'=>$visit->id,'action'=>'unassign_worker']);
     }
 
     public function test_auto_assignment_repairs_a_legacy_visit_without_a_team():void

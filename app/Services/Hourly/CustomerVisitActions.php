@@ -44,7 +44,7 @@ class CustomerVisitActions
             'fee_percent' => $percent,
             'fee_if_cancelled_now' => $upcoming && $inside ? round((float) $visit->visit_price * $percent / 100, 2) : 0.0,
             'free_until' => $visit->scheduled_start_at?->copy()->subHours($window)->toIso8601String(),
-            'can_cancel' => $this->open($order) && $upcoming,
+            'can_cancel' => $this->open($order) && $upcoming && !MissedVisitRecovery::closureRecovery($visit,$order),
         ];
     }
 
@@ -53,6 +53,7 @@ class CustomerVisitActions
         HourlyOrderService::enabled();
         return DB::transaction(function () use ($visit) {
             [$order, $visit] = $this->lock($visit);
+            if(MissedVisitRecovery::closureRecovery($visit,$order)) HourlyOrderService::reject('الموعد يتعارض مع إجازة الخدمة؛ استخدم طلب الإلغاء دون رسوم أو إعادة الجدولة من خيارات المعالجة.');
             if(ServiceIncident::waiting($order,$visit->id)) HourlyOrderService::reject('للزيارة بلاغ معتمد؛ استخدم طلب الإلغاء والاسترداد دون رسوم من خيارات المعالجة.');
             // إعادة الإرسال لا تُعيد فرض الرسوم ولا تُسجّل إلغاءً ثانيًا.
             if ($visit->status === 'cancelled_by_client') return $visit;

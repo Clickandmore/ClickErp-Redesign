@@ -16,7 +16,7 @@
     function fields(){root.querySelectorAll('[data-fields]').forEach(group=>{const active=group.dataset.fields===action.value;group.hidden=!active;group.querySelectorAll('input,select').forEach(input=>{input.disabled=!active||input.closest('[hidden]')!==null;input.required=active&&!['checkbox','file','hidden'].includes(input.type)&&!['new_date','shift_days','starts_at'].includes(input.name);});});error.hidden=true;}
     // خطوتان: شبكة بطاقات الإجراءات ثم حقول الإجراء المختار؛ العنوان والأيقونة يتبعان الاختيار.
     function blockedStartedAction(choice) {
-        return ['cancel_visit','reschedule','start_time','duration'].includes(choice)
+        return ['cancel_visit','reschedule','start_time','duration','unassign_worker','unassign_workers','unassign_all','remove_worker','assign_workers','assign_all'].includes(choice)
             && boxes.some(box=>target.includes(box.value) && box.dataset.started==='1');
     }
     function collectibleCents(){
@@ -146,7 +146,10 @@
             const data=new FormData(form);target.forEach(id=>data.append('visit_ids[]',id));
             if(action.value==='assign_workers')workerSnapshot.forEach(id=>data.append('expected_worker_ids[]',id));
             if(action.value==='unassign_driver'){data.set('driver_role',form.elements.remove_driver_role.value);data.delete('remove_driver_role');}
-            const response=await fetch(root.dataset.endpoint,{method:'POST',headers:{Accept:'application/json'},body:data});
+            const csrf=document.querySelector('meta[name="csrf-token"]')?.content||form.elements._token?.value;
+            if(csrf)data.set('_token',csrf);
+            const response=await fetch(root.dataset.endpoint,{method:'POST',credentials:'same-origin',headers:{Accept:'application/json','X-CSRF-TOKEN':csrf||''},body:data});
+            if(response.status===419)throw new Error('انتهت صلاحية الجلسة. حدّث الصفحة ثم أعد تنفيذ الإجراء، وسجّل الدخول إذا طُلب منك ذلك.');
             const result=await response.json();if(!response.ok)throw new Error(Object.values(result.errors||{}).flat().join('\n')||result.message||'تعذر تنفيذ الإجراء');
             if(!result.receipts?.length){
                 bootstrap.Modal.getOrCreateInstance(modal).hide();

@@ -36,12 +36,14 @@ class HourlyServiceProvider extends ServiceProvider
                 \App\Console\Commands\HourlyAutoCompleteVisits::class,
                 \App\Console\Commands\HourlyRenewalReminders::class,
                 \App\Console\Commands\HourlyVisitNotices::class,
+                \App\Console\Commands\HourlyClosureNotices::class,
                 \App\Console\Commands\PruneHourlyLocationPings::class,
             ]);
             $this->callAfterResolving(Schedule::class, function (Schedule $schedule) {
                 $schedule->command('hourly:expire-orders')->dailyAt('00:30')->withoutOverlapping()->when(fn () => \App\Support\HourlyRentalSettings::isEnabled());
                 $schedule->command('hourly:auto-complete-visits')->everyFiveMinutes()->withoutOverlapping()->when(fn () => \App\Support\HourlyRentalSettings::isEnabled());
                 $schedule->command('hourly:visit-notices')->everyMinute()->withoutOverlapping()->when(fn () => \App\Support\HourlyRentalSettings::isEnabled());
+                $schedule->command('hourly:closure-notices')->everyFiveMinutes()->withoutOverlapping()->when(fn () => \App\Support\HourlyRentalSettings::isEnabled());
                 $schedule->command('hourly:renewal-reminders')->dailyAt('08:00')->withoutOverlapping()->when(fn () => \App\Support\HourlyRentalSettings::isEnabled());
                 $schedule->command('hourly:prune-location-pings')->dailyAt('02:30')->withoutOverlapping()->when(fn () => \App\Support\HourlyRentalSettings::isEnabled());
             });

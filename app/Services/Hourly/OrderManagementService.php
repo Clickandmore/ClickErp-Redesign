@@ -62,6 +62,9 @@ class OrderManagementService
                         && in_array($action,['cancel_visit','cancel_order','reschedule','start_time','duration'],true)) {
                         HourlyOrderService::reject('بدأ تنفيذ الزيارة بالفعل؛ لا يمكن إلغاؤها أو تغيير موعدها أو مدتها.');
                     }
+                    if ($visit->has_started_execution && in_array($action,['unassign_worker','unassign_workers','unassign_all','remove_worker','assign_workers','assign_all'],true)) {
+                        HourlyOrderService::reject('بدأ تنفيذ الزيارة بالفعل؛ لا يمكن إزالة العاملات أو إلغاء تعيينهن أو إعادة تعيين الطاقم. استخدم مسار بلاغ الخدمة عند الحاجة إلى الاستبدال.');
+                    }
                     $before=$this->snapshot($visit);
                     $wasMissed = $visit->is_missed;
                     if ($visit->is_missed && in_array($action, ['cancel_visit','cancel_order','reschedule','start_time'], true)
@@ -99,7 +102,7 @@ class OrderManagementService
                         if ($visit->status !== 'scheduled' && !$initialSchedule) HourlyOrderService::reject('This visit cannot be rescheduled in its current state.');
                         $start=$visit->scheduled_start_at?->format('Y-m-d H:i') ?? ''; $hours=(float)$visit->planned_hours;
                         $settings=app(HourlyCategorySettings::class);
-                        if(!$recoverMissed && !$initialSchedule && $action!=='duration' && (!$settings->value($order->package_snapshot,'allow_reschedule') || $visit->reschedule_count >= $settings->value($order->package_snapshot,'max_reschedules_per_visit')))HourlyOrderService::reject('إعادة الجدولة غير مسموحة أو تم بلوغ الحد الأقصى لهذه الزيارة.');
+                        if(!$recoverMissed && !$initialSchedule && !MissedVisitRecovery::closureRecovery($visit,$order) && $action!=='duration' && (!$settings->value($order->package_snapshot,'allow_reschedule') || $visit->reschedule_count >= $settings->value($order->package_snapshot,'max_reschedules_per_visit')))HourlyOrderService::reject('إعادة الجدولة غير مسموحة أو تم بلوغ الحد الأقصى لهذه الزيارة.');
                         if($action==='reschedule')$start=isset($data['starts_at']) ? Carbon::parse($data['starts_at'])->format('Y-m-d H:i') : (!empty($data['new_date']) ? $data['new_date'].' '.$visit->scheduled_start_at->format('H:i') : Carbon::parse($start)->addDays($data['shift_days'])->format('Y-m-d H:i'));
                         if($action==='start_time')$start=$visit->scheduled_start_at->format('Y-m-d').' '.$data['start_time'];
                         if($action==='duration'){

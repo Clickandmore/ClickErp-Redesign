@@ -7,6 +7,7 @@
     $visitPaymentStatus=$visitPaid>=(float)$visit->visit_price?'paid':($visitPaid>0?'partial':'unpaid');
 @endphp
 <article class="vl-card" data-visit-card="{{ $visit->id }}" style="--row-tone: {{ $toneHex }}">
+    @include('admin.hourly._closure-warning')
     <header class="vl-card-head">
         <div class="vl-card-title">
             <input id="select-visit-{{ $visit->id }}" type="checkbox" data-select-visit data-collectable="{{ $collectables[$visit->id] ?? 0 }}" data-order-id="{{ $visit->hourly_rental_order_id }}" data-order-remaining="{{ max(0, $visit->order->total_amount - $visit->order->paid_amount) }}" data-started="{{ $visit->has_started_execution ? '1' : '0' }}" value="{{ $visit->id }}" aria-label="تحديد الزيارة {{ $visit->id }}">
@@ -125,7 +126,7 @@
                 <div class="vl-acts">
                     <button type="button" class="vl-act is-primary" data-single="assign_workers" data-id="{{ $visit->id }}"><i class="fa fa-user-plus"></i> تعيين عاملة</button>
                     <button type="button" class="vl-act" data-single="assign_all" data-id="{{ $visit->id }}"><i class="fa fa-wand-magic-sparkles"></i> تعيين تلقائي</button>
-                    @if($assignedCount)<button type="button" class="vl-act is-danger" data-single="unassign_workers" data-id="{{ $visit->id }}"><i class="fa fa-user-minus"></i> إلغاء التعيين</button>@endif
+                    @if($assignedCount && !$visit->has_started_execution)<button type="button" class="vl-act is-danger" data-single="unassign_workers" data-id="{{ $visit->id }}"><i class="fa fa-user-minus"></i> إلغاء التعيين</button>@endif
                 </div>
             @endif
         </section>

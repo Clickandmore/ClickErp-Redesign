@@ -123,7 +123,7 @@
     if(modal.parentElement!==document.body)document.body.appendChild(modal);
     // خطوتان داخل المودال: شبكة اختيار الإجراء ثم حقوله؛ العنوان والأيقونة يتبعان الإجراء المختار.
     function blockedStartedAction(action) {
-        if (!['cancel_visit','cancel_order','reschedule','start_time','duration'].includes(action)) return false;
+        if (!['cancel_visit','cancel_order','reschedule','start_time','duration','unassign_worker','unassign_workers','unassign_all','remove_worker','assign_workers','assign_all'].includes(action)) return false;
         const targets = action === 'cancel_order' ? boxes() : boxes().filter(box=>box.checked);
         return targets.some(box=>box.dataset.started==='1');
     }

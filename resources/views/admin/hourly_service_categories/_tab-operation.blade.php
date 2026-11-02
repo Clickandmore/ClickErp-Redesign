@@ -4,6 +4,17 @@
     $districtNames = $cityDistricts->flatten()->mapWithKeys(fn ($d)=>[$d->id=>app()->getLocale()==='en' ? ($d->name_en ?: $d->name) : $d->name]);
 @endphp
 <div class="row g-3">
+    @php
+        $closureVisits = $closures->flatMap(fn($closure)=>app(\App\Services\Hourly\ClosureImpact::class)->visits($closure))->unique('id');
+    @endphp
+    @if($closureVisits->isNotEmpty())
+        <div class="col-12"><div class="alert alert-warning" role="alert">
+            <strong>يوجد {{ $closureVisits->count() }} موعد محجوز يتعارض مع الإغلاقات. يجب مراجعة المواعيد لإعادة الجدولة أو الإلغاء.</strong>
+            @foreach($closureVisits as $affectedVisit)
+                <div><a href="{{ route('admin.hourly-orders.show',$affectedVisit->order) }}#visit-{{ $affectedVisit->id }}">الطلب #{{ $affectedVisit->order->order_number }} — زيارة #{{ $affectedVisit->id }} — {{ $affectedVisit->scheduled_start_at->format('d/m/Y H:i') }}</a></div>
+            @endforeach
+        </div></div>
+    @endif
     @if ($canEdit)
         @php $u = fn (string $key, array $replace = []) => __('hourly_category_ui.'.$key, $replace); @endphp
         <style>

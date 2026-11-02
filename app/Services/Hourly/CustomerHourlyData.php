@@ -168,6 +168,7 @@ class CustomerHourlyData
             // إنهاء العاملة قبل اكتمال الوقت: can_respond يعرض سؤال «هل كان بطلبك؟» حتى respond_until.
             'early_finishes' => app(EarlyFinish::class)->publicData($visit),
             'worker_replaced_at' => $order->booking_metadata['worker_replacements'][$visit->id]['replaced_at']??null,
+            'closure_conflict' => app(ClosureImpact::class)->conflict($visit,$order),
             'coverage_recovery' => MissedVisitRecovery::coverageRecovery($visit,$order),
             'recovery_request' => $order->booking_metadata['missed_visit_requests'][$visit->id] ?? null,
             'can_track' => app(VisitTracking::class)->canTrack($visit, $order),
