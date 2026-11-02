@@ -54,6 +54,9 @@ class Account extends Finance
      */
     public function displayTypeLabel(): string
     {
+        if (filled($this->type_label ?? null)) {
+            return (string) $this->type_label;
+        }
         if (!\Nami\Finance\Support\ChartSettings::typeDisplayByHierarchy()) {
             return $this->type?->lang() ?? '';
         }

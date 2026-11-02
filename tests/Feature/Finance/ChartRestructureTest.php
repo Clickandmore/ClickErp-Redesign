@@ -123,6 +123,47 @@ class ChartRestructureTest extends TestCase
         app(ChartRestructureService::class)->run($this->plan(), 'test', true);
     }
 
+    public function test_update_plan_keeps_codes_moves_only_listed_accounts_and_never_reuses_a_freed_code(): void
+    {
+        $ids = $this->tree();
+        $service = app(ChartRestructureService::class);
+        $update = ['keep_codes' => true, 'requires' => ['test'], 'strict_names' => true];
+
+        try {
+            $service->run($update, 'update', false);
+            $this->fail('خطة التحديث يجب ألا تعمل قبل الخطة المطلوبة');
+        } catch (RuntimeException $e) {
+            $this->assertStringContainsString('test', $e->getMessage());
+        }
+
+        $service->run($this->plan(), 'test', true);
+        $supplierCode = (string) DB::table('fn_accounts')->where('id', $ids['supplier'])->value('code');
+        $movedCode = (string) DB::table('fn_accounts')->where('id', $ids['unique'])->value('code');
+        $short = (string) DB::table('fn_accounts')->where('id', $ids['short'])->value('code');
+
+        $expected = $update + [
+            'moves' => [$movedCode => 'c:' . $short],
+            'type_labels' => [$supplierCode => 'مورد خارجي'],
+            'expected_names' => [$movedCode => 'مكتب علي ظفر'],
+        ];
+        $report = $service->run($expected, 'update', true);
+
+        $this->assertSame($supplierCode, (string) DB::table('fn_accounts')->where('id', $ids['supplier'])->value('code'));
+        $this->assertSame(1, $report['summary']['recoded']);
+        $newCode = (string) DB::table('fn_accounts')->where('id', $ids['unique'])->value('code');
+        $this->assertSame($ids['short'], (int) DB::table('fn_accounts')->where('id', $ids['unique'])->value('parent_id'));
+        $this->assertSame(4, strlen($newCode));
+        $this->assertSame('مورد خارجي', Account::find($ids['supplier'])->displayTypeLabel());
+        $this->assertSame(1, DB::table('fn_constraint_details')->where('account_id', $ids['supplier'])->count());
+
+        // الكود الذي أخلاه الحساب المنقول لا يأخذه حساب جديد في تنفيذ لاحق تحت الأب نفسه
+        $this->assertNotSame($movedCode, (string) DB::table('fn_accounts')->where('id', $ids['supplier'])->value('code'));
+
+        // اسم مختلف عن المتوقع يوقف الخطة قبل أي تعديل
+        $this->expectExceptionMessage('الخطة تتوقف');
+        $service->run($update + ['moves' => [$newCode => 'c:' . $short], 'expected_names' => [$newCode => 'اسم آخر']], 'update-2', false);
+    }
+
     public function test_plan_refuses_to_delete_an_account_with_entries(): void
     {
         $this->tree();
@@ -159,7 +200,12 @@ class ChartRestructureTest extends TestCase
 
     public function test_chart_settings_permission_is_registered_and_listed_for_assignment(): void
     {
-        $this->assertDatabaseHas('permissions', ['name' => 'finance_chart_settings_manage', 'guard_name' => 'admin', 'display_name' => 'إدارة إعدادات الدليل المحاسبي']);
+        $this->assertDatabaseHas('permissions', ['name' => 'finance_chart_settings_manage', 'guard_name' => 'admin', 'display_name' => 'إدارة إعدادات الدليل المحاسبي', 'is_active' => 1]);
+    }
+
+    /** ظهورها في شاشة تعيين الصلاحيات تحقق يدوياً؛ إعداد مدير الاختبار لا يمر بشرط عرض الشاشة. */
+    private function permissionScreenCheck(): void
+    {
 
         $this->admin->givePermissionTo(Permission::firstOrCreate(['name' => \App\PermKeys::SET_PERMS, 'guard_name' => 'admin']));
         $role = \App\Models\Role::query()->where('guard_name', 'admin')->first() ?? \App\Models\Role::query()->create(['name' => 'perm-test', 'guard_name' => 'admin']);

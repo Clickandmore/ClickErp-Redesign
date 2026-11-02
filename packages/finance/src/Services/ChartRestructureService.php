@@ -18,6 +18,10 @@ use RuntimeException;
  * شكل الخطة: digits، type_display، renames [كود => اسم]، moves [كود => مرجع أب]، merges [كود => كود الهدف]،
  * deletes [أكواد]، creates [مفتاح => name,type,status,parent,legacy_code]، retype_children [كود => اسم نوع]، expected_names [كود => اسم].
  * مرجع الأب: 'c:كود' لحساب موجود، أو 'n:مفتاح' لحساب جديد.
+ *
+ * خطة تحديث على دليل مرتب (keep_codes: true): الحساب الذي لا يتحرك يبقى بكوده، والمنقول يأخذ أول كود حر تحت أبيه
+ * بطول مستواه المحفوظ في الإعدادات. مفاتيح إضافية: requires [خطط يجب أن تكون نُفذت]، strict_names (اختلاف الاسم يوقف الخطة)،
+ * codes [كود => كود مطلوب]، type_labels [كود => النوع المعروض]، settings [عنوان إعداد => مرجع حساب].
  */
 class ChartRestructureService
 {
@@ -42,6 +46,7 @@ class ChartRestructureService
             $report['before'] = $this->snapshot();
             $this->linkDailyCashReference();
             $this->loadAccounts();
+            $plan = $this->preparePlan($plan);
             $this->assertPlanMatches($plan);
 
             $originalCodes = array_column($this->accounts, 'code', 'id');
@@ -51,10 +56,16 @@ class ChartRestructureService
             $this->validateTree($tree, $plan);
 
             $changes = $this->apply($tree, $planName);
-            $aliases = $this->writeAliases($tree, $idByOriginalCode);
+            $changes['settings'] = $this->applySettings($plan, $tree, $idByOriginalCode);
+            // في خطة التحديث تبقى الأكواد القديمة المربوطة كما هي: ربطها برقم الحساب لا بكوده
+            $aliases = empty($plan['keep_codes']) ? $this->writeAliases($tree, $idByOriginalCode) : [];
 
-            ChartSettings::put(ChartSettings::LEVEL_DIGITS, json_encode(array_combine(range(1, count($plan['digits'])), $plan['digits'])));
-            ChartSettings::put(ChartSettings::TYPE_DISPLAY, $plan['type_display'] ?? null);
+            if (empty($plan['keep_codes'])) {
+                ChartSettings::put(ChartSettings::LEVEL_DIGITS, json_encode(array_combine(range(1, count($plan['digits'])), $plan['digits'])));
+            }
+            if (array_key_exists('type_display', $plan)) {
+                ChartSettings::put(ChartSettings::TYPE_DISPLAY, $plan['type_display']);
+            }
             AccountCodeAliases::reset();
 
             $report['after'] = $this->snapshot();
@@ -108,11 +119,29 @@ class ChartRestructureService
         }
     }
 
+    private function preparePlan(array $plan): array
+    {
+        foreach ($plan['requires'] ?? [] as $required) {
+            if (!DB::table('fn_chart_restructure_runs')->where('plan', $required)->exists()) {
+                throw new RuntimeException("هذه الخطة تُنفَّذ بعد خطة «{$required}»، ولم تُنفَّذ على هذه القاعدة.");
+            }
+        }
+        if (!empty($plan['keep_codes'])) {
+            $plan['digits'] ??= array_values(ChartSettings::levelDigits());
+            if (!$plan['digits']) {
+                throw new RuntimeException('خطة التحديث تحتاج أطوال المستويات محفوظة في إعدادات الدليل.');
+            }
+        }
+
+        return $plan;
+    }
+
     private function assertPlanMatches(array $plan): void
     {
         $codes = array_flip(array_map('strval', array_column($this->accounts, 'code')));
         $missing = [];
-        foreach (array_merge(array_keys($plan['renames'] ?? []), array_keys($plan['moves'] ?? []), array_keys($plan['merges'] ?? []), $plan['deletes'] ?? []) as $code) {
+        foreach (array_merge(array_keys($plan['renames'] ?? []), array_keys($plan['moves'] ?? []), array_keys($plan['merges'] ?? []), $plan['deletes'] ?? [],
+            array_keys($plan['codes'] ?? []), array_keys($plan['type_labels'] ?? [])) as $code) {
             if (!isset($codes[(string) $code])) {
                 $missing[] = $code;
             }
@@ -124,7 +153,11 @@ class ChartRestructureService
         $names = array_column($this->accounts, 'name', 'code');
         foreach ($plan['expected_names'] ?? [] as $code => $name) {
             if (isset($names[$code]) && $this->normalize($names[$code]) !== $this->normalize($name)) {
-                $this->warnings[] = "الحساب {$code} اسمه الآن «{$names[$code]}» والخطة كُتبت على «{$name}».";
+                $message = "الحساب {$code} اسمه الآن «{$names[$code]}» والخطة كُتبت على «{$name}».";
+                if (!empty($plan['strict_names'])) {
+                    throw new RuntimeException($message . ' الخطة تتوقف حتى لا تعدّل حساباً غير المقصود.');
+                }
+                $this->warnings[] = $message;
             }
         }
     }
@@ -139,6 +172,7 @@ class ChartRestructureService
                 'key' => "c:$id", 'id' => $id, 'name' => $row['name'], 'old_name' => $row['name'], 'old_code' => (string) $row['code'], 'code' => null,
                 'parent' => $row['parent_id'] ? 'c:' . (int) $row['parent_id'] : null, 'old_parent' => $row['parent_id'] ? 'c:' . (int) $row['parent_id'] : null,
                 'type' => (int) $row['type'], 'old_type' => (int) $row['type'], 'status' => $row['status'], 'old_level' => (int) $row['level'], 'removed' => null, 'into' => null, 'new' => false,
+                'type_label' => $row['type_label'] ?? null, 'old_type_label' => $row['type_label'] ?? null, 'fixed_code' => null,
             ];
         }
         $ref = function (string $ref) use ($idByOriginalCode) {
@@ -158,6 +192,7 @@ class ChartRestructureService
             $tree["n:$key"] = [
                 'key' => "n:$key", 'id' => null, 'name' => $new['name'], 'old_name' => null, 'old_code' => '', 'code' => null, 'parent' => $ref($new['parent']), 'old_parent' => null,
                 'type' => $type, 'old_type' => $type, 'status' => $new['status'], 'old_level' => null, 'removed' => null, 'into' => null, 'new' => true, 'legacy_code' => $new['legacy_code'] ?? null,
+                'type_label' => $new['type_label'] ?? null, 'old_type_label' => null, 'fixed_code' => null,
             ];
         }
         foreach ($plan['renames'] ?? [] as $code => $name) {
@@ -173,6 +208,12 @@ class ChartRestructureService
         }
         foreach ($plan['deletes'] ?? [] as $code) {
             $tree['c:' . $idByOriginalCode[(string) $code]]['removed'] = 'delete';
+        }
+        foreach ($plan['codes'] ?? [] as $code => $wanted) {
+            $tree['c:' . $idByOriginalCode[(string) $code]]['fixed_code'] = (string) $wanted;
+        }
+        foreach ($plan['type_labels'] ?? [] as $code => $label) {
+            $tree['c:' . $idByOriginalCode[(string) $code]]['type_label'] = $label === '' ? null : $label;
         }
 
         // فروع حساب يُدمج ولم تذكرها الخطة (أُضيفت بعد كتابتها) تنتقل إلى هدف الدمج.
@@ -217,7 +258,7 @@ class ChartRestructureService
             return $keys;
         };
 
-        $walk = function (?string $parentKey, int $level) use (&$walk, &$tree, &$children, $digits, $sort) {
+        $walk = function (?string $parentKey, int $level) use (&$walk, &$tree, &$children, $digits, $sort, $plan) {
             $keys = $sort($children[$parentKey ?? 'root'] ?? []);
             if (!$keys) {
                 return;
@@ -242,7 +283,24 @@ class ChartRestructureService
             $width = $digits[$level] - $digits[$level - 1];
             $limit = (10 ** $width) - 1;
             $taken = [];
-            if ($level === 2) {
+            if (!empty($plan['keep_codes'])) {
+                // كود أخلاه حساب نُقل أو أُزيل لا يُعطى لحساب آخر في التنفيذ نفسه، حتى لا يتغير معنى كود قديم
+                foreach ($tree as $node) {
+                    if ($node['old_parent'] === $parentKey && strlen($node['old_code']) === $digits[$level] && str_starts_with($node['old_code'], $parentCode)) {
+                        $taken[(int) substr($node['old_code'], strlen($parentCode))] = true;
+                    }
+                }
+                foreach ($keys as $key) {
+                    $node = $tree[$key];
+                    $candidate = $node['fixed_code'] ?? (($node['parent'] === $node['old_parent'] && $node['old_code'] !== '') ? $node['old_code'] : null);
+                    if ($candidate !== null && strlen($candidate) === $digits[$level] && str_starts_with($candidate, $parentCode)) {
+                        $tree[$key]['code'] = $candidate;
+                        $taken[(int) substr($candidate, strlen($parentCode))] = true;
+                    } elseif ($node['fixed_code'] !== null) {
+                        throw new RuntimeException("الكود المطلوب {$node['fixed_code']} لا يصلح تحت {$parentCode} في المستوى {$level}.");
+                    }
+                }
+            } elseif ($level === 2) {
                 foreach ($keys as $key) {
                     $old = $tree[$key]['old_code'];
                     if (strlen($old) === $digits[2] && str_starts_with($old, $parentCode)) {
@@ -324,7 +382,7 @@ class ChartRestructureService
     {
         $reason = "خطة ترتيب الدليل: {$planName}";
         $now = now();
-        $changes = ['created' => 0, 'renamed' => 0, 'moved' => 0, 'recoded' => 0, 'retyped' => 0, 'merged' => [], 'deleted' => []];
+        $changes = ['created' => 0, 'renamed' => 0, 'moved' => 0, 'recoded' => 0, 'retyped' => 0, 'relabeled' => 0, 'merged' => [], 'deleted' => []];
 
         // كود مؤقت سالب لكل حساب يتغير كوده حتى لا تتصادم الأكواد أثناء التبديل
         foreach ($tree as $node) {
@@ -343,7 +401,7 @@ class ChartRestructureService
             $tree[$key]['id'] = DB::table('fn_accounts')->insertGetId([
                 'name' => $node['name'], 'operation_type' => $parent->operation_type ?? 1, 'status' => $node['status'], 'statement_type' => $parent->statement_type ?? null,
                 'level' => $node['level'], 'code' => $temporary--, 'type' => $node['type'], 'parent_id' => $parentId, 'created_by_id' => 1, 'created_at' => $now, 'updated_at' => $now,
-            ]);
+            ] + ($node['type_label'] !== null ? ['type_label' => $node['type_label']] : []));
             $changes['created']++;
         }
 
@@ -367,6 +425,10 @@ class ChartRestructureService
             }
             if ($node['level'] !== $node['old_level']) {
                 $update['level'] = $node['level'];
+            }
+            if ($node['type_label'] !== $node['old_type_label']) {
+                $update['type_label'] = $node['type_label'];
+                $changes['relabeled']++;
             }
             if ($update) {
                 DB::table('fn_accounts')->where('id', $node['id'])->update($update + ['updated_at' => $now]);
@@ -408,6 +470,24 @@ class ChartRestructureService
         }
 
         return $changes;
+    }
+
+    /** يضبط إعدادات الحسابات (fn_confirm_settings) على حسابات الخطة: [عنوان => 'c:كود' أو 'n:مفتاح']. */
+    private function applySettings(array $plan, array $tree, array $idByOriginalCode): array
+    {
+        $applied = [];
+        foreach ($plan['settings'] ?? [] as $title => $ref) {
+            $key = str_starts_with($ref, 'n:') ? $ref : 'c:' . ($idByOriginalCode[substr($ref, 2)] ?? '');
+            $node = $tree[$key] ?? null;
+            if (!$node || $node['removed']) {
+                throw new RuntimeException("الإعداد {$title} يشير إلى حساب غير موجود: {$ref}");
+            }
+            $old = DB::table('fn_confirm_settings')->where('title', $title)->value('value');
+            DB::table('fn_confirm_settings')->updateOrInsert(['title' => $title], ['value' => (string) $node['id'], 'created_by_id' => 1, 'updated_at' => now()]);
+            $applied[$title] = ['from' => $old, 'to' => $node['id'], 'account' => $node['code'] . ' ' . $node['name']];
+        }
+
+        return $applied;
     }
 
     private function references(): array
@@ -605,7 +685,7 @@ class ChartRestructureService
                 'old_code' => $node['old_code'], 'new_code' => $node['removed'] ? '' : $node['code'], 'name' => $node['name'], 'old_name' => $node['old_name'],
                 'old_parent' => $old['name'] ?? '', 'new_parent' => $node['removed'] ? '' : ($parent['name'] ?? ''),
                 'level' => $node['level'] ?? '', 'type' => $this->typeLabel($node['type']),
-                'display_type' => $node['removed'] ? '' : (in_array($node['level'] ?? 0, [1, 3], true) ? $node['name'] : ($parent['name'] ?? $node['name'])),
+                'display_type' => $node['removed'] ? '' : ($node['type_label'] ?? (in_array($node['level'] ?? 0, [1, 3], true) ? $node['name'] : ($parent['name'] ?? $node['name']))),
                 'action' => $this->rowAction($node),
                 'into' => $node['into'] ? $tree[$node['into']]['code'] : '',
             ];
@@ -630,7 +710,7 @@ class ChartRestructureService
         if ($node['name'] !== $node['old_name']) {
             $actions[] = 'إعادة تسمية';
         }
-        if ($node['type'] !== $node['old_type']) {
+        if ($node['type'] !== $node['old_type'] || $node['type_label'] !== $node['old_type_label']) {
             $actions[] = 'تغيير النوع';
         }
         if ($node['code'] !== $node['old_code']) {
@@ -651,7 +731,7 @@ class ChartRestructureService
     {
         return [
             'accounts_before' => $report['before']['accounts'], 'accounts_after' => $report['after']['accounts'],
-            'created' => $changes['created'], 'renamed' => $changes['renamed'], 'moved' => $changes['moved'], 'recoded' => $changes['recoded'], 'retyped' => $changes['retyped'],
+            'created' => $changes['created'], 'renamed' => $changes['renamed'], 'moved' => $changes['moved'], 'recoded' => $changes['recoded'], 'retyped' => $changes['retyped'], 'relabeled' => $changes['relabeled'], 'settings' => count($changes['settings'] ?? []),
             'merged' => count($changes['merged']), 'deleted' => count($changes['deleted']), 'aliases' => count($report['aliases'] ?? []),
             'lines' => (int) $report['after']['totals']['n'], 'debit' => (string) $report['after']['totals']['d'], 'credit' => (string) $report['after']['totals']['c'],
         ];
