@@ -721,6 +721,7 @@ class AccountService extends MainService
                 'parent_id',
                 'operation_type',
             ])
+            ->when(\Illuminate\Support\Facades\Schema::hasColumn('fn_accounts', 'type_label'), fn ($query) => $query->addSelect('type_label'))
             ->with([
                 'parent:id,name',
             ])
