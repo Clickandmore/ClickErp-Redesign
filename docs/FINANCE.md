@@ -490,6 +490,11 @@ php artisan optimize:clear && php artisan queue:restart
 `type_labels` (النوع المعروض لحساب بعينه، في العمود `fn_accounts.type_label`، ويتقدم على العرض حسب التسلسل)،
 و`settings` (ضبط إعداد حسابات على حساب من الخطة). الأكواد في خطة التحديث هي أكواد الدليل بعد الخطة السابقة.
 
+**استكمال نقل عهد الرافدين بعد `rafidain-update-1`:** خطة `rafidain-update-2` تنقل عهدة عبد الواحد الفرج
+وعهدة أحمد السعيد من النقدية إلى «عهد الموظفين» (`1206`)، مع إبقاء بقية الحسابات بأكوادها الحالية.
+تُراجع أولاً بـ `php artisan finance:chart-restructure --plan=rafidain-update-2`، ثم تُحفظ بإضافة `--execute`.
+لا تُعَد خطة `rafidain-update-1` المنفذة، ولا يُستخدم `--force` لهذا الاستكمال.
+
 الاختبارات: `tests/Feature/Finance/ChartRestructureTest.php`.
 
 ## قيود المشتريات والوكلاء الخارجيون (إعدادات مستقلة)
