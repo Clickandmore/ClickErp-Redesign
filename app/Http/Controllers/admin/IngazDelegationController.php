@@ -265,7 +265,7 @@ class IngazDelegationController extends Controller
                         </a>';
                     }
 
-                    if ($canDeleteDelegation) {
+                    if ($canDeleteDelegation && !$row->hasFinancialLinks()) {
                         $actions[] = '
                             <form action="' . $deleteUrl . '" method="POST" onsubmit="return confirm(\'' . e(__('delegations.delete_confirm')) . '\');">
                                 <input type="hidden" name="_token" value="' . $csrf . '">
@@ -760,6 +760,8 @@ class IngazDelegationController extends Controller
     public function destroy(IngazDelegation $ingazDelegation): RedirectResponse
     {
         $this->assertCanAccessBranchModel($ingazDelegation);
+
+        $ingazDelegation->ensureCanDelete();
 
         $this->deleteAttachments($ingazDelegation->attachments ?? []);
         $ingazDelegation->delete();

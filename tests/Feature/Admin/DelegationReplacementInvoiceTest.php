@@ -26,7 +26,7 @@ class DelegationReplacementInvoiceTest extends TestCase
         config(['activitylog.enabled' => false]);
         $branch = Branch::factory()->main()->create();
         $actor = Admin::factory()->forBranch($branch)->create();
-        foreach ([PermKeys::INVOICES_CREATE, PermKeys::INVOICES_CONTROL, PermKeys::INGAZ_DELEGATIONS_VIEW] as $permission) {
+        foreach ([PermKeys::INVOICES_CREATE, PermKeys::INVOICES_CONTROL, PermKeys::INGAZ_DELEGATIONS_VIEW, PermKeys::INGAZ_DELEGATIONS_DELETE] as $permission) {
             $actor->givePermissionTo(Permission::firstOrCreate(['name' => $permission, 'guard_name' => 'admin']));
         }
         $this->actingAs($actor, 'admin');
@@ -55,6 +55,35 @@ class DelegationReplacementInvoiceTest extends TestCase
         return ['ingaz_delegation_id' => $this->delegation->id, 'invoice_date' => now()->toDateString(),
             'direct_recruitment_cost' => 100, 'direct_recruitment_count' => 1,
             'external_recruitment_cost' => 100, 'external_recruitment_count' => 1, 'send_to_zatca' => false];
+    }
+
+    public function test_financial_delegation_deletion_is_blocked_even_after_full_credit(): void
+    {
+        foreach ([false, true] as $fullyCredited) {
+            if ($fullyCredited) {
+                $this->credit(115);
+            }
+            $this->deleteJson(route('ingaz-delegations.destroy', $this->delegation))
+                ->assertUnprocessable()->assertJsonValidationErrors('delegation');
+            $this->assertDatabaseHas('ingaz_delegations', ['id' => $this->delegation->id]);
+            $this->assertDatabaseHas('invoices', [
+                'id' => $this->oldInvoice->id, 'ingaz_delegation_id' => $this->delegation->id,
+            ]);
+        }
+    }
+
+    public function test_direct_model_deletion_rejects_financial_links(): void
+    {
+        $this->expectException(\Illuminate\Validation\ValidationException::class);
+        $this->delegation->delete();
+    }
+
+    public function test_delegation_without_financial_links_can_be_deleted(): void
+    {
+        $this->oldInvoice->delete();
+        $this->delete(route('ingaz-delegations.destroy', $this->delegation))
+            ->assertRedirect(route('ingaz-delegations.index'));
+        $this->assertDatabaseMissing('ingaz_delegations', ['id' => $this->delegation->id]);
     }
 
     public function test_full_credit_allows_one_replacement_and_preserves_history(): void

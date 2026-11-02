@@ -69,8 +69,34 @@ class IngazDelegation extends Model
         'branch_id' => 'integer',
     ];
 
+    public function hasFinancialLinks(): bool
+    {
+        // Include all invoices, even fully credited ones, across branch scopes.
+        foreach (['invoices', 'recruitment_invoice_credit_notes', 'musaned_transfer_items', 'commission_batch_items'] as $table) {
+            if (\Illuminate\Support\Facades\DB::table($table)
+                ->where('ingaz_delegation_id', $this->getKey())->exists()) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    public function ensureCanDelete(): void
+    {
+        if ($this->hasFinancialLinks()) {
+            throw \Illuminate\Validation\ValidationException::withMessages([
+                'delegation' => 'لا يمكن حذف التفويض لوجود ارتباطات مالية عليه.',
+            ]);
+        }
+    }
+
     protected static function booted(): void
     {
+        static::deleting(function (self $delegation) {
+            $delegation->ensureCanDelete();
+        });
+
         static::creating(function (self $delegation) {
             $delegation->syncActiveDuplicateKeys();
         });
