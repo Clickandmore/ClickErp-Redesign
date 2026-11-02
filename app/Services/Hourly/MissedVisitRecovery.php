@@ -33,7 +33,7 @@ class MissedVisitRecovery
         $meta=$order->booking_metadata??[];
         $existing=$meta['missed_visit_requests'][$visitId]??null;
         if(($existing['status']??null)==='pending')return [];
-        $reason=ServiceIncident::recoverable($order,$visit)?'service_incident':(self::coverageRecovery($visit,$order)?'coverage_unavailable':'missed_visit');
+        $reason=ServiceIncident::recoverable($order,$visit)?'service_incident':(self::closureRecovery($visit,$order)?'category_closure':(self::coverageRecovery($visit,$order)?'coverage_unavailable':'missed_visit'));
         $requestId=(string)\Illuminate\Support\Str::uuid();
         $meta['missed_visit_requests'][$visitId]=['id'=>$requestId,'status'=>'pending','type'=>'reschedule','reason_code'=>$reason];
         $copy=clone $order;$copy->booking_metadata=$meta;
@@ -124,6 +124,7 @@ class MissedVisitRecovery
     public static function eligible(HourlyVisit $visit, HourlyRentalOrder $order): bool
     {
         return ((($visit->is_missed || self::coverageRecovery($visit,$order)) && (float)$order->paid_amount>0)
+            || self::closureRecovery($visit,$order)
             || ServiceIncident::recoverable($order,$visit))
             && in_array($order->status,['active','pending_confirmation','expired'],true);
     }
@@ -140,6 +141,11 @@ class MissedVisitRecovery
         } catch (\Illuminate\Validation\ValidationException $e) {
             return true;
         }
+    }
+
+    public static function closureRecovery(HourlyVisit $visit, HourlyRentalOrder $order): bool
+    {
+        return (bool)(app(ClosureImpact::class)->conflict($visit,$order)['can_request_resolution']??false);
     }
 
     public static function coverageRecovery(HourlyVisit $visit, HourlyRentalOrder $order): bool
@@ -169,7 +175,7 @@ class MissedVisitRecovery
                     HourlyOrderService::reject('الموعد المختار غير متاح. اختر موعدًا من المواعيد المتاحة.');
             }
             $request=['id'=>$data['request_token'],'visit_id'=>$visitId,'type'=>$data['type'],'status'=>'pending',
-                'reason_code'=>ServiceIncident::recoverable($order,$visit)?'service_incident':(self::coverageRecovery($visit,$order)?'coverage_unavailable':'missed_visit'),
+                'reason_code'=>ServiceIncident::recoverable($order,$visit)?'service_incident':(self::closureRecovery($visit,$order)?'category_closure':(self::coverageRecovery($visit,$order)?'coverage_unavailable':'missed_visit')),
                 'disruption_id'=>ServiceIncident::state($order,$visitId)['id']??null,
                 'requested_start'=>$data['requested_start']??null,'note'=>$data['note']??null,'requested_at'=>now()->toIso8601String()];
             $meta['missed_visit_requests'][$visitId]=$request; $order->update(['booking_metadata'=>$meta]);
@@ -246,7 +252,7 @@ class MissedVisitRecovery
                 }else{
                     $allocation=app(VisitPaymentAllocation::class)->forOrder($order);
                     $amount=round(min((float)$visit->visit_price,(float)($allocation[$visitId]['paid']??0)),2);
-                    if($amount<=0 && !$incident) HourlyOrderService::reject('لا يوجد مبلغ مسدد مخصص لهذه الزيارة؛ راجع توزيع الدفعات.');
+                    if($amount<=0 && !$incident && ($request['reason_code']??null)!=='category_closure') HourlyOrderService::reject('لا يوجد مبلغ مسدد مخصص لهذه الزيارة؛ راجع توزيع الدفعات.');
                     $manager->apply($order,['action'=>'cancel_visit','visit_ids'=>[$visitId],'refund_method'=>'wallet','reason'=>$data['reason']],$admin,true,$incident);
                     $request['refunded_amount']=$amount>0?app(OrderRefundService::class)->refund($order,'wallet',$data['reason'],$admin,'admin',$admin,false,$amount):0;
                     if($expired && (in_array($order->fresh()->status,['active','pending_confirmation'],true)

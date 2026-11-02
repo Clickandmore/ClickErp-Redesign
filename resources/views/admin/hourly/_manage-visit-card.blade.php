@@ -46,6 +46,7 @@
     @if(\App\Services\Hourly\VisitDelay::state($visit))
         <div class="px-3 py-2">@include('admin.hourly_visits._delay', ['visit' => $visit])</div>
     @endif
+    @include('admin.hourly._closure-warning')
     @if($alerts)
         <div class="om-v-alerts">
             @foreach($alerts as [$class, $icon, $text])<span class="om-badge {{ $class }}"><i class="fa {{ $icon }}"></i> {{ $text }}</span>@endforeach
@@ -60,7 +61,7 @@
                     <li>
                         <span class="om-v-avatar">{{ mb_substr($worker->name, 0, 1) }}</span>
                         <span class="om-v-name">{{ $worker->name }} <small class="om-ltr om-num">#{{ $worker->id }}</small></span>
-                        @if($editable)
+                        @if($editable && !$visit->has_started_execution)
                             <button type="button" class="om-v-icon is-danger" data-order-action="unassign_worker" data-worker="{{ $worker->id }}" data-visit="{{ $visit->id }}" title="إلغاء تعيين {{ $worker->name }}" aria-label="إلغاء تعيين {{ $worker->name }}"><i class="fa fa-user-xmark"></i></button>
                         @endif
                     </li>
@@ -70,7 +71,7 @@
                         <span class="om-v-avatar"><i class="fa fa-user-plus"></i></span>
                         @if($editable)
                             <button type="button" class="om-v-slot" data-order-action="add_worker" data-visit="{{ $visit->id }}">مقعد شاغر — اختر عاملة</button>
-                            @if(AdminGuardHasPerm('hourly_orders_price_override'))
+                            @if(AdminGuardHasPerm('hourly_orders_price_override') && !$visit->has_started_execution)
                                 <button type="button" class="om-v-icon is-danger" data-order-action="remove_worker" data-visit="{{ $visit->id }}" title="إزالة المقعد وتقليل العدد" aria-label="إزالة المقعد وتقليل العدد"><i class="fa fa-user-minus"></i></button>
                             @endif
                         @else

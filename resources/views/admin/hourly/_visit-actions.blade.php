@@ -10,7 +10,7 @@
         $groups['row']['reschedule'] = ['إعادة جدولة الزيارة الفائتة', 'om-btn-warn', 'fa-calendar-days'];
     }
     if ($visit->has_started_execution) {
-        unset($groups['row']['cancel_visit'], $groups['row']['reschedule'], $groups['money']['duration']);
+        unset($groups['staff']['assign_workers'], $groups['row']['cancel_visit'], $groups['row']['reschedule'], $groups['money']['duration']);
     }
     $locked = in_array($visit->status, ['completed', 'cancelled', 'expired', 'no_show', 'cancelled_by_client']);
     $allowed = AdminGuardHasPerm('hourly_orders_create') && in_array($order->status, ['active', 'pending_confirmation']) && !$locked;

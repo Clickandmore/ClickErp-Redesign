@@ -38,6 +38,7 @@ class HourlyCategoryClosureController extends Controller
                 'reason' => $data['reason'] ?? null, 'created_by' => auth('admin')->id(),
             ]);
             $this->service->audit($category, 'closures', 'add', null, $this->describe($closure));
+            \App\Jobs\NotifyHourlyClosure::dispatch($closure->id)->afterCommit();
         });
         return $this->back($category, __('hourly_category_ui.closure_added'));
     }

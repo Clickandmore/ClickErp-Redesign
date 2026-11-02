@@ -44,6 +44,9 @@
     </header>
 
     <div class="rr-body">
+        @if(($recoveryRequest['reason_code'] ?? null) === 'category_closure')
+            <div class="rr-alert rr-alert-warn"><span>طلب معالجة بسبب إغلاق الخدمة / إجازة. راجع إعادة الجدولة إلى موعد متاح أو الإلغاء دون رسوم وإعادة المبلغ المدفوع عن الزيارة.</span></div>
+        @endif
         @if(($recoveryRequest['reason_code'] ?? null) === 'coverage_unavailable')
             <div class="rr-alert rr-alert-warn"><i class="fa fa-triangle-exclamation" aria-hidden="true"></i><span>تعذرت جدولة الزيارة بسبب عدم توفر التغطية. لا تعتمد التنفيذ قبل توفر التغطية. تُمدد صلاحية الموعد المعتمد دون دفع جديد، ويقتصر الاسترداد على المبلغ المدفوع لهذه الزيارة.</span></div>
         @endif
