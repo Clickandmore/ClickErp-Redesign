@@ -7,7 +7,7 @@ use Carbon\Carbon;
 
 class OrderManagementService
 {
-    public const ACTIONS=['assign_workers','unassign_driver','reschedule','start_time','duration','price','assign_all','add_worker','remove_worker','unassign_worker','assign_driver','auto_driver','team_leader','free_visit','unassign_drivers','unassign_workers','unassign_all','clear_driver_routes','offer','cancel_visit','complete','confirm_return','refund','cancel_order','payment_method'];
+    public const ACTIONS=['assign_workers','unassign_driver','reschedule','start_time','duration','price','assign_all','add_worker','remove_worker','unassign_worker','assign_driver','auto_driver','team_leader','free_visit','unassign_drivers','unassign_workers','unassign_all','clear_driver_routes','offer','cancel_visit','complete','confirm_return','refund','cancel_order','payment_method','confirmers'];
     public function audit(HourlyRentalOrder $order,string $action,array $before,array $after,?int $admin,?int $visit=null,?string $reason=null): void
     {
         DB::table('hourly_order_audits')->insert(['hourly_rental_order_id'=>$order->id,'visit_id'=>$visit,'admin_id'=>$admin,'action'=>$action,'reason'=>$reason,'before'=>json_encode($before),'after'=>json_encode($after),'created_at'=>now(),'updated_at'=>now()]);
@@ -35,7 +35,10 @@ class OrderManagementService
                     if($order->payments()->where('status','pending_review')->exists())HourlyOrderService::reject('يوجد تحويل بنكي قيد المراجعة؛ اقبله أو ارفضه قبل تغيير طريقة الدفع.');
                     app(HourlyPaymentService::class)->cancelPendingMoyasar($order,(int)$admin);
                 }
+                $changedToBalance=$data['payment_method']==='customer_balance' && $order->payment_method!=='customer_balance';
                 $order->payment_method=$data['payment_method'];$order->save();
+                // الدفع من الرصيد يعني الخصم الآن؛ رصيد غير كافٍ يرفض التغيير كله بدل ترك الطلب بطريقة دفع لا تُحصَّل.
+                if($changedToBalance && $admin)$result['balance_payment_id']=app(HourlyPaymentService::class)->chargeCustomerBalance($order,$admin)?->id;
             } else {
                 $query=$order->visits()->orderBy('id')->lockForUpdate();
                 if($action!=='cancel_order' && $action!=='free_visit')$query->whereIn('id',$data['visit_ids'] ?? []);
@@ -129,6 +132,10 @@ class OrderManagementService
                         if(!$visit->scheduled_start_at || $visit->scheduled_start_at->isPast() || $visit->workers()->exists())HourlyOrderService::reject('العرض للعاملات متاح لزيارة قادمة بلا عاملات فقط.');
                         $visit->offered_to_workers=(bool)$data['offered'];
                     }
+                    elseif($action==='confirmers'){
+                        if(!VisitConfirmation::ready())HourlyOrderService::reject('شغّل ترحيل إعداد تأكيد الوصول والعودة أولًا.');
+                        $visit->arrival_confirmer=$data['arrival_confirmer'];$visit->return_confirmer=$data['return_confirmer'];
+                    }
                     elseif($action==='auto_driver')$this->autoDriver($visit,$data['driver_direction']??'together');
                     elseif($action==='assign_driver'){
                         if(!$visit->scheduled_start_at || !$visit->scheduled_end_at)HourlyOrderService::reject('حدد موعد الزيارة قبل تعيين السائق.');
@@ -176,12 +183,13 @@ class OrderManagementService
                     if(in_array($action,['reschedule','start_time','duration','assign_all','assign_workers','add_worker','remove_worker'])){
                         $ignoreCaps=$action==='duration' && !empty($data['ignore_hour_caps']);
                         $ignoreBreak=$action==='duration' && !empty($data['ignore_break']);
-                        // Staffing an existing visit does not create or change its booked time.
-                        $ignoreNotice=in_array($action,['assign_workers','assign_all','add_worker'],true);
+                        // Staffing an existing visit does not create or change its booked time: the window, start times, notice and
+                        // session rules were checked when the time was set, so only the workers' own availability is checked (reserve).
+                        $staffing=in_array($action,['assign_workers','assign_all','add_worker'],true);
                         // A new start follows the item's current start times, like the reschedule slot picker; other terms stay as booked.
                         $slotItem=null;
                         if(in_array($action,['reschedule','start_time'],true)){$slotItem=$order->package_snapshot;$slotItem['start_times']=HourlyPackage::withTrashed()->findOrFail($order->hourly_package_id)->start_times;}
-                        $this->checkSlot($order,$visit,$ignoreCaps,$ignoreBreak,$ignoreNotice,$slotItem);$this->reserve($order,$visit,$ids,$action==='assign_all',$ignoreCaps,$ignoreBreak);
+                        if(!$staffing)$this->checkSlot($order,$visit,$ignoreCaps,$ignoreBreak,false,$slotItem);$this->reserve($order,$visit,$ids,$action==='assign_all',$ignoreCaps,$ignoreBreak);
                     }
                     if(in_array($action,['assign_driver','reschedule','start_time','duration']))$this->checkDrivers($visit);
                     $after=$this->snapshot($visit);

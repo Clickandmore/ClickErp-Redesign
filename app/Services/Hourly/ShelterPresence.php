@@ -43,6 +43,21 @@ class ShelterPresence
         return self::linked() ? $this->inVisitNow() : [];
     }
 
+    /**
+     * شرط صفوف العاملات الخارجات فعليًا (على استعلام بالاسمين w و v): لم تعد بعد، وليست «لم تحضر»،
+     * وليست عاملة بلا حالة ولا وقت وصول في زيارة بدأتها زميلتها بنفسها (لم تغادر الإيواء أصلًا).
+     */
+    public static function physicallyOut($q)
+    {
+        $q->where(fn ($q) => $q->whereNull('w.status')->orWhereNotIn('w.status', ['returned', 'completed', 'no_show']));
+        if (Schema::hasColumn('hourly_visit_workers', 'arrived_at')) {
+            $q->where(fn ($q) => $q->whereNotNull('w.status')->orWhereNotNull('w.arrived_at')->orWhere('v.status', 'en_route')
+                ->orWhereNotExists(fn ($c) => $c->from('hourly_visit_workers as c')->whereColumn('c.hourly_visit_id', 'w.hourly_visit_id')
+                    ->whereColumn('c.id', '!=', 'w.id')->whereIn('c.status', WorkerAppService::EXECUTED)));
+        }
+        return $q;
+    }
+
     /** الزيارات تُقرأ متى عمل موديول الساعات، ولو لم يُفعَّل مفتاح الربط بشاشات الإيواء. */
     public static function tracked(): bool
     {
@@ -66,7 +81,7 @@ class ShelterPresence
             ->join('hourly_rental_orders as o', 'o.id', '=', 'v.hourly_rental_order_id')
             ->where(fn ($q) => $q->whereIn('v.status', self::OUT_STATUSES)->orWhereIn('w.status', ['delivered', 'finished', 'picked_up']))
             ->whereNotIn('o.status', ['cancelled', 'expired'])
-            ->where(fn ($q) => $q->whereNull('w.status')->orWhereNotIn('w.status', ['returned', 'completed']))
+            ->where(fn ($q) => self::physicallyOut($q))
             ->orderBy('v.scheduled_start_at')
             ->get(['w.maid_id', 'v.id as visit_id', 'v.visit_number', 'v.status', 'v.scheduled_start_at', 'v.scheduled_end_at',
                 'v.planned_hours', Schema::hasColumn('hourly_visit_workers', 'arrived_at') ? 'w.arrived_at' : DB::raw('NULL as arrived_at'),
@@ -128,7 +143,7 @@ class ShelterPresence
             ->join('hourly_rental_orders as o', 'o.id', '=', 'v.hourly_rental_order_id')
             ->whereIn('v.status', self::UPCOMING_STATUSES)
             ->whereNotIn('o.status', ['cancelled', 'expired'])
-            ->where(fn ($q) => $q->whereNull('w.status')->orWhereNotIn('w.status', ['returned', 'completed']))
+            ->where(fn ($q) => $q->whereNull('w.status')->orWhereNotIn('w.status', ['returned', 'completed', 'no_show']))
             ->where(fn ($q) => $q->whereNull('v.scheduled_end_at')->orWhere('v.scheduled_end_at', '>=', now()))
             ->groupBy('w.maid_id')
             ->pluck(DB::raw('COUNT(*)'), 'w.maid_id')

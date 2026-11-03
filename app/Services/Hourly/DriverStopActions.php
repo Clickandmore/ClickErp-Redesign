@@ -38,6 +38,7 @@ class DriverStopActions
     public function deliver(HourlyDriver $driver, int $stopId, array $gps, ?string $code, ?float $cash): array
     {
         return $this->apply($driver, $stopId, 'drop_off', function ($stop, HourlyVisit $visit, HourlyRentalOrder $order) use ($driver, $code, $cash) {
+            VisitConfirmation::assertDriver($visit, VisitConfirmation::ARRIVAL);
             DeliveryCode::assertValid($visit, $code);
             ServiceTime::recordDelivery($visit);
             $collected = $this->collect($order, $driver, $cash, $visit);
@@ -60,6 +61,7 @@ class DriverStopActions
     public function shelterReturn(HourlyDriver $driver, int $stopId, array $gps): array
     {
         return $this->apply($driver, $stopId, 'shelter_return', function ($stop, HourlyVisit $visit) use ($driver) {
+            VisitConfirmation::assertDriver($visit, VisitConfirmation::RETURN);
             DB::table('hourly_visit_workers')->where('hourly_visit_id', $visit->id)->whereIn('status', ['finished', 'picked_up'])->update(['status' => 'returned', 'updated_at' => now()]);
             app(ShelterPresence::class)->close($visit, 'driver', $driver->id);
             return ['visit' => ['status' => 'completed'], 'stop' => ['status' => 'completed', 'completed_at' => now()], 'close_order' => true];

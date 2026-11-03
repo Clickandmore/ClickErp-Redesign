@@ -23,6 +23,7 @@ class DeliveryStartWindow
     {
         if($visit->order && ServiceIncident::waiting($visit->order,$visit->id))
             return 'للزيارة بلاغ تعذر خدمة معتمد؛ لا يمكن بدء التوصيل قبل اعتماد البديلة أو الموعد الجديد.';
+        if($visit->id && ServiceIncident::pendingReport((int)$visit->id))return ServiceIncident::PENDING_MESSAGE;
         if ($visit->scheduled_end_at && now()->gte($visit->scheduled_end_at))
             return 'انتهى موعد الزيارة؛ لا يمكن بدء التوصيل. راجع الإدارة لإعادة الجدولة.';
         if (!self::allows($visit)) return self::MESSAGE;

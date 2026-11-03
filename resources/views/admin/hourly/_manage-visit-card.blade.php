@@ -88,6 +88,9 @@
             <h6><i class="fa fa-van-shuttle"></i> النقل</h6>
             <div class="om-v-row"><span><i class="fa fa-arrow-right-to-bracket"></i> توصيل</span><b class="{{ $visit->deliveryDriver ? '' : 'is-missing' }}">{{ $visit->deliveryDriver?->name ?: 'بدون سائق' }}</b><em class="om-ltr om-num">{{ $visit->delivery_at?->format('H:i') ?: $visit->scheduled_start_at?->format('H:i') }}</em></div>
             <div class="om-v-row"><span><i class="fa fa-arrow-right-from-bracket"></i> استلام</span><b class="{{ $visit->pickupDriver ? '' : 'is-missing' }}">{{ $visit->pickupDriver?->name ?: 'بدون سائق' }}</b><em class="om-ltr om-num">{{ $visit->pickup_at?->format('H:i') ?: $visit->scheduled_end_at?->format('H:i') }}</em></div>
+            @php $confirmation = \App\Services\Hourly\VisitConfirmation::payload($visit); $byLabels = ['driver' => 'السائق', 'worker' => 'العاملة', 'both' => 'السائق أو العاملة']; @endphp
+            <div class="om-v-row"><span><i class="fa fa-user-check"></i> يؤكد الوصول</span><b>{{ $byLabels[$confirmation['arrival']['by']] }}</b>@if($confirmation['arrival']['mode'] === 'auto')<em>تلقائي</em>@endif</div>
+            <div class="om-v-row"><span><i class="fa fa-house"></i> يؤكد العودة</span><b>{{ $byLabels[$confirmation['return']['by']] }}</b>@if($confirmation['return']['mode'] === 'auto')<em>تلقائي</em>@endif</div>
             @include('admin.hourly._driver-suggestion')
         </section>
 

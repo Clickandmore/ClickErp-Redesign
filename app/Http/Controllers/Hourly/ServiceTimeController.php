@@ -10,7 +10,10 @@ class ServiceTimeController extends Controller
 {
     private function input(Request $request): array {
         return $request->validate(['reason'=>['required',Rule::in(array_keys(ServiceTime::REASONS))],
-            'note'=>'nullable|string|max:1000','actual_finished_at'=>'required_if:reason,forgot_finish|nullable|date']);
+            'note'=>'nullable|string|max:1000','actual_finished_at'=>'required_if:reason,forgot_finish|nullable|date'],[
+            'reason.required'=>'اختاري سبب تجاوز مدة الخدمة.','reason.in'=>'السبب المختار غير صالح؛ حدّثي الصفحة واختاري من القائمة.',
+            'actual_finished_at.required_if'=>'حددي وقت الانتهاء الفعلي عند اختيار «انتهيت ونسيت تسجيل الانتهاء».',
+            'actual_finished_at.date'=>'وقت الانتهاء الفعلي غير صالح.','note.max'=>'التوضيح يجب ألا يزيد على 1000 حرف.']);
     }
     public function worker(Request $request,int $visit,ServiceTime $service){
         $result=$service->reportReason(Maid::findOrFail(auth('hourly_maid_api')->id()),$visit,$this->input($request));

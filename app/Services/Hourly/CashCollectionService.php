@@ -14,17 +14,35 @@ class CashCollectionService
         return Schema::hasColumn('hourly_visit_workers','arrived_at')
             && DB::table('hourly_visit_workers')->where('hourly_visit_id',$visit->id)->where('maid_id',$maidId)->whereNotNull('arrived_at')->exists();
     }
+    /**
+     * العاملات اللاتي سجّلن وصولهن بأنفسهن، الأسبق وصولًا أولًا.
+     * الحالة على صف العاملة هي الدليل، لا arrived_at وحده: تسليم الزيارة يختم وقت الوصول على الطاقم كله.
+     */
+    private function presentWorkerIds(HourlyVisit $visit): array {
+        if(!$visit->id || !Schema::hasColumn('hourly_visit_workers','arrived_at') || !Schema::hasColumn('hourly_visit_workers','status'))return [];
+        return DB::table('hourly_visit_workers')->where('hourly_visit_id',$visit->id)->whereNotNull('arrived_at')
+            ->whereIn('status',['delivered','finished','picked_up','returned','completed'])
+            ->orderBy('arrived_at')->orderBy('id')->pluck('maid_id')->map(fn($id)=>(int)$id)->unique()->values()->all();
+    }
     public function collector(HourlyVisit $visit): array {
         $type=$visit->delivery_driver_id ? 'driver' : ($visit->cash_collector_type ?: 'auto');$id=null;
+        // «السائق» بلا سائق توصيل معيّن لا يحصّل منه أحد؛ يُعامل كالتلقائي.
+        if($type==='driver' && !$visit->delivery_driver_id)$type='auto';
+        $present=$type==='driver' ? [] : $this->presentWorkerIds($visit);
         if($type==='auto') {
             if($visit->delivery_driver_id){$type='driver';}
             else {
+                // بلا سائق توصيل: أول عاملة تسجل وصولها تستلم النقد، ولو لم تحضر باقي عاملات الزيارة.
                 $workers=$visit->workers;
-                $type=$workers->count()===1 && !(bool)($workers->first()->hourly_settings['requires_driver'] ?? true)?'worker':'admin';
+                $type=$present || ($workers->count()===1 && !(bool)($workers->first()->hourly_settings['requires_driver'] ?? true))?'worker':'admin';
             }
         }
         if($type==='driver')$id=$visit->delivery_driver_id;
-        if($type==='worker')$id=$visit->cash_collector_worker_id ?: ($visit->workers->count()===1?$visit->workers->first()->id:null);
+        if($type==='worker'){
+            $id=$visit->cash_collector_worker_id ?: ($present[0] ?? ($visit->workers->count()===1?$visit->workers->first()->id:null));
+            // العاملة المحددة لم تحضر وحضرت غيرها: الحاضرة تستلم، وإلا لا يستطيع أحد التحصيل.
+            if($id && $present && !in_array((int)$id,$present,true))$id=$present[0];
+        }
         return ['type'=>$type,'id'=>$id?(int)$id:null,'label'=>['driver'=>'السائق','worker'=>'العاملة','admin'=>'موظف التحصيل'][$type] ?? 'غير محدد'];
     }
     public function info(HourlyVisit $visit,string $guard='',?int $id=null): array {

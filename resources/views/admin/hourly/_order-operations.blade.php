@@ -12,6 +12,7 @@ $operations=[
     'unassign_worker'=>['إلغاء تعيين عامل','fa-user-xmark','red'],
     'assign_driver'=>['تعيين السائق','fa-car','teal'],
     'team_leader'=>['قائد الفريق','fa-users','green'],
+    'confirmers'=>['من يؤكد الوصول والعودة','fa-user-check','indigo'],
     'free_visit'=>['إضافة زيارة مجانية','fa-circle-plus','blue'],
     'unassign_drivers'=>['إلغاء تعيين السائقين','fa-xmark','red'],
     'unassign_workers'=>['إلغاء تعيين العاملات','fa-xmark','red'],
@@ -57,6 +58,7 @@ $operations=array_filter($operations,fn($op,$action)=>!in_array($action,['price'
 <div data-op-fields="price"><label><i class="fa fa-tag"></i> السعر الجديد لكل زيارة <small>(شاملة الضريبة — ر.س)</small></label><input class="form-control" type="number" name="price" min="0" max="9999999" step="0.01"></div>
 <div data-op-fields="add_worker remove_worker unassign_worker"><label><i class="fa fa-user-nurse"></i> العاملة</label><select class="form-select" name="worker_id"><option value="">اختر</option>@foreach($workers as $worker)<option value="{{ $worker->id }}">#{{ $worker->id }} — {{ $worker->name }}</option>@endforeach</select><small>إضافة عاملة فوق العدد المحجوز تزيد السعر بنسبة زيادة العدد. إلغاء التعيين يحتفظ بمقعد الزيارة.</small></div>
 <div data-op-fields="assign_driver"><div id="driver-visit-schedule" class="alert alert-info mb-3" aria-live="polite"></div><label><i class="fa fa-truck"></i> السائق</label><select class="form-select" name="driver_id"><option value="">حدّد الزيارات ووقت المهمة</option></select><label><i class="fa fa-route"></i> نوع المهمة</label><select name="driver_role" class="form-select"><option value="delivery">توصيل — Drop Off</option><option value="pickup">استلام — Pick Up</option></select><label id="driver-time-label"><i class="fa fa-clock"></i> وقت التوصيل</label><input type="time" class="form-control" name="driver_time" aria-labelledby="driver-time-label"><small>يمكن تعديل وقت المهمة حسب حركة السائق. لا يغيّر ذلك موعد بداية عمل العاملة.</small></div>
+@include('admin.hourly._visit-confirmers-fields', ['fieldsAttr' => 'data-op-fields', 'fieldClass' => 'form-select'])
 <div data-op-fields="team_leader"><label><i class="fa fa-user-tie"></i> قائد الفريق</label><select name="leader_id" class="form-select"><option value="">اختر</option>@foreach($drivers as $driver)<option value="{{ $driver->id }}">{{ $driver->name }}</option>@endforeach</select><small>يجب أن يكون من قادة فريق الزيارة.</small></div>
 <div data-op-fields="free_visit"><label><i class="fa fa-gift"></i> موعد الزيارة المجانية</label><input type="datetime-local" name="starts_at" class="form-control" step="900" min="{{ now()->copy()->addMinutes(15-now()->minute%15)->second(0)->format('Y-m-d\TH:i') }}">
 <p class="small text-muted">تُنسخ تعيينات آخر زيارة غير ملغاة، وتُفحص العاملات والسائقون قبل الحفظ. المدة وعدد العاملات حسب الطلب.</p>

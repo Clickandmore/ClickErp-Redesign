@@ -26,6 +26,15 @@
         <div>{{ $order->payment_status === 'pending_review' ? 'التحويل البنكي بانتظار المراجعة من سجل الدفعات.' : 'الطلب بانتظار رفع إثبات التحويل البنكي أو تسجيل التحصيل.' }}</div>
     </div>
 @endif
+@if($order->payment_method === 'customer_balance' && $collectibleNow > 0 && $order->payment_status !== 'paid' && in_array($order->status,['pending_confirmation','active','completed','awaiting_payment'],true) && AdminGuardHasPerm('hourly_orders_collect'))
+    @php $customerBalance = (float) ($order->user?->hourly_wallet_balance ?? 0); $balanceDue = min($collectibleNow, (float) $order->total_amount - (float) $order->paid_amount); @endphp
+    {{-- طلب طريقة دفعه «رصيد العميل» ولم يُخصم بعد (غُيّرت طريقته بعد الحجز): الخصم وسند القبض بخطوة واحدة. --}}
+    <form method="POST" action="{{ route('admin.hourly-orders.charge-balance',$order) }}" class="om-collect" onsubmit="return confirm('خصم {{ number_format($balanceDue,2) }} ر.س من رصيد العميل وتسجيل السداد؟');">@csrf
+        <div>رصيد العميل: <strong>{{ number_format($customerBalance,2) }} ر.س</strong> — المستحق الآن: <strong>{{ number_format($balanceDue,2) }} ر.س</strong>
+            @if($customerBalance < $balanceDue)<div class="text-danger small mt-1">الرصيد غير كافٍ؛ اشحن رصيد العميل أو غيّر طريقة الدفع.</div>@endif</div>
+        <div><button class="om-btn om-btn-green" style="margin:0" {{ $customerBalance < $balanceDue ? 'disabled' : '' }}><i class="fa fa-wallet"></i> خصم من رصيد العميل</button></div>
+    </form>
+@endif
 @if($canCollect)
     <form method="POST" enctype="multipart/form-data" action="{{ route('admin.hourly-orders.collect',$order) }}" class="om-collect">@csrf
         <div><label for="collect-amount">المبلغ المحصل — المستحق الآن {{ number_format($collectibleNow,2) }} ر.س</label>

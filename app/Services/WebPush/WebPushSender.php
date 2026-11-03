@@ -54,6 +54,8 @@ class WebPushSender
                 'notification_id' => (string) $notification->id,
                 'type' => (string) $notification->type,
             ];
+            // يفتح الضغط على الإشعار طلب الساعات نفسه بدل قائمة الإشعارات.
+            if (!empty($notification->hourly_order_id)) $message['hourly_order_id'] = (string) $notification->hourly_order_id;
             dispatch(fn () => app(WebPushSender::class)->send($message))->afterResponse();
         } catch (\Throwable $e) {
             Log::warning('Web push not scheduled', ['notification_id' => $notification->id, 'error' => $e->getMessage()]);

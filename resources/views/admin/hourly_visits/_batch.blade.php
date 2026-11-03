@@ -11,6 +11,7 @@
     $actionGroups['التعيين']['assign_workers']=['fa-user-plus','blue','اختيار العاملات المتاحات ومعاينة التعيين'];
     $actionGroups['الإزالة']['unassign_workers']=['fa-users-slash','red','إلغاء تعيين العاملات فقط'];
     $actionGroups['الإزالة']['unassign_driver']=['fa-car','red','إزالة التوصيل أو الاستلام'];
+    $actionGroups['التعيين']['confirmers']=['fa-user-check','indigo','السائق أو العاملة أو كلاهما'];
     $allowed = fn ($action) => ($action === 'collect' && $canCollect) || ($action !== 'collect' && $canEdit && (!in_array($action, ['price', 'duration']) || $canPrice));
     $labels = \App\Services\Hourly\VisitBatchService::ACTIONS;
 @endphp
@@ -47,6 +48,7 @@
 <div data-fields="duration" class="vl-modal-group"><label>المدة الجديدة بالساعات</label><input class="form-control" name="hours" type="number" min="0.5" max="24" step="0.25"><label><input type="checkbox" name="ignore_break" value="1"> تجاهل الفاصل بين الزيارات</label><small>يُعدَّل السعر بنسبة المدة الجديدة.</small></div>
 <div data-fields="price" class="vl-modal-group"><label>السعر الجديد لكل زيارة شامل الضريبة</label><input class="form-control" type="number" name="price" min="0" step="0.01"></div>
 <div data-fields="auto_driver" class="vl-modal-group"><label>اتجاه تعيين السائق</label><select name="driver_direction" class="form-control"><option value="together">التوصيل والاستلام معًا</option><option value="delivery">التوصيل فقط</option><option value="pickup">الاستلام فقط</option></select></div>
+@include('admin.hourly._visit-confirmers-fields', ['fieldsAttr' => 'data-fields', 'fieldClass' => 'form-control'])
 <div data-fields="assign_driver" class="vl-modal-group"><label>السائق</label><select name="driver_id" class="form-control"><option value="">اختر</option>@foreach($drivers as $driver)<option value="{{ $driver->id }}">{{ $driver->name }}</option>@endforeach</select><label>المهمة</label><select name="driver_role" class="form-control"><option value="delivery">توصيل</option><option value="pickup">استلام</option></select><label>وقت المهمة</label><input name="driver_time" type="time" class="form-control"></div>
 <div data-fields="team_leader" class="vl-modal-group"><label>قائد الفريق</label><select name="leader_id" class="form-control"><option value="">اختر</option>@foreach($drivers as $driver)<option value="{{ $driver->id }}">{{ $driver->name }}</option>@endforeach</select><small>يجب أن يكون قائدًا مفعّلًا في فريق كل زيارة محددة.</small></div>
 <div data-fields="offer" class="vl-modal-group"><label>عرض الزيارة للعاملات المؤهلات</label><select name="offered" class="form-control"><option value="1">إظهار</option><option value="0">إخفاء</option></select></div>

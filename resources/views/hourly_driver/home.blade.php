@@ -30,9 +30,15 @@
         elseif ($isDelivery && $visit->status === 'en_route') { $action = 'confirm_delivery'; $actionLabel = 'تأكيد التوصيل'; }
         elseif ($isPickup && $visit->status === 'worker_finished') { $action = 'confirm_pickup'; $actionLabel = 'تأكيد استلام العاملات'; }
         elseif ($isPickup && $visit->status === 'picked_up') { $action = 'complete'; $actionLabel = 'إنهاء المشوار'; }
+        if (in_array($action, ['confirm_delivery', 'complete'], true)
+            && ($reason = \App\Services\Hourly\VisitConfirmation::driverBlockReason($visit, $action === 'complete' ? 'return' : 'arrival'))) {
+            $action = null; $blocked = $reason;
+        }
         if ($visit->order?->status !== 'active') $action = null;
         if ($isDelivery && \App\Services\Hourly\ServiceIncident::waiting($visit->order, $visit->id)) {
             $action = null; $blocked = 'للزيارة بلاغ معتمد؛ راجع الإدارة قبل التوصيل أو التسليم وتابع العودة حسب حالة التنفيذ.';
+        } elseif ($isDelivery && in_array($visit->status, ['scheduled', 'en_route'], true) && \App\Services\Hourly\ServiceIncident::pendingReport((int) $visit->id)) {
+            $action = null; $blocked = \App\Services\Hourly\ServiceIncident::PENDING_MESSAGE;
         }
         return $task + ['action' => $action, 'actionLabel' => $actionLabel, 'blocked' => $blocked];
     });

@@ -118,6 +118,7 @@ return [
     'admin.hourly-orders.store' => ['hourly_orders_create'],
     'admin.hourly-orders.confirm' => ['hourly_orders_confirm'],
     'admin.hourly-orders.collect' => ['hourly_orders_collect'],
+    'admin.hourly-orders.charge-balance' => ['hourly_orders_collect'],
     'admin.hourly-orders.bank-transfer-review' => ['hourly_orders_collect'],
     'admin.hourly-teams.index' => ['hourly_teams_view'],
     'admin.hourly-sos.index' => ['hourly_sos_view'],

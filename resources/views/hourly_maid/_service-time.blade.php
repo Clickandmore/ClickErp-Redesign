@@ -4,8 +4,9 @@
     <summary>تجاوزت مدة الخدمة — سجّلي سبب التأخير</summary>
     <p>تجاوز الوقت {{ $timeCheck['overrun_minutes'] }} دقيقة. لا يعني ذلك تحميل العميل مبلغًا إضافيًا، ولا يُغني هذا البلاغ عن تسجيل الانتهاء أو العودة.</p>
     <form method="post" action="{{ route('hourly-maid.visits.time-overrun',$task['id']) }}">@csrf
-        <label>السبب<select name="reason" required><option value="">اختاري السبب</option>@foreach($timeCheck['reason_options'] as $key=>$label)<option value="{{ $key }}">{{ $label }}</option>@endforeach</select></label>
-        <label>وقت الانتهاء الفعلي إذا نسيتِ التسجيل<input type="datetime-local" name="actual_finished_at" max="{{ now()->format('Y-m-d\TH:i') }}"></label>
+        {{-- «نسيت تسجيل الانتهاء» يتطلب وقت الانتهاء الفعلي في الخادم؛ الحقل يظهر ويصبح إلزاميًا عند اختياره فقط. --}}
+        <label>السبب<select name="reason" required onchange="var t=this.form.elements.actual_finished_at,f=this.value==='forgot_finish';t.required=f;t.closest('label').hidden=!f;if(!f)t.value='';"><option value="">اختاري السبب</option>@foreach($timeCheck['reason_options'] as $key=>$label)<option value="{{ $key }}" {{ old('reason')===$key ? 'selected' : '' }}>{{ $label }}</option>@endforeach</select></label>
+        <label @if(old('reason')!=='forgot_finish') hidden @endif>وقت الانتهاء الفعلي الذي نسيتِ تسجيله<input type="datetime-local" name="actual_finished_at" value="{{ old('actual_finished_at') }}" max="{{ now()->format('Y-m-d\TH:i') }}" @if(old('reason')==='forgot_finish') required @endif></label>
         <label>توضيح داخلي للإدارة<textarea name="note" maxlength="1000"></textarea></label><button type="submit">إرسال السبب للمراجعة</button>
     </form>
 </details>
