@@ -159,6 +159,13 @@ class OrderController extends Controller
         return back()->with('success','تم تسجيل التحصيل وإنشاء سند القبض.')
             ->with('receipt_url',route('admin.hourly-orders.receipt',[$order,$payment]));
     }
+    public function chargeBalance(HourlyRentalOrder $order, HourlyPaymentService $service)
+    {
+        $payment=$service->chargeCustomerBalance($order,(int)auth('admin')->id());
+        if(!$payment)return back()->with('warning','لا يوجد مبلغ مستحق الآن على هذا الطلب.');
+        return back()->with('success','تم خصم '.number_format((float)$payment->amount,2).' ر.س من رصيد العميل وتسجيل السداد.')
+            ->with('receipt_url',route('admin.hourly-orders.receipt',[$order,$payment]));
+    }
     public function reviewBankTransfer(Request $request, HourlyRentalOrder $order, HourlyOrderPayment $payment, HourlyPaymentService $service)
     {
         abort_unless((int)$payment->hourly_rental_order_id===(int)$order->id,404);

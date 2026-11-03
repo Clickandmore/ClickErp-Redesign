@@ -19,6 +19,13 @@ class ServiceIncident
     {
         return in_array(self::state($order,$visit)['status']??null,self::WAITING,true);
     }
+    public const PENDING_MESSAGE='أُرسل بلاغ تعذّر لهذه الزيارة وهو قيد مراجعة الإدارة؛ لا يبدأ التوصيل أو التنفيذ حتى يصدر القرار.';
+    /** بلاغ أُرسل ولم تبتّ فيه الإدارة بعد: يوقف بدء التنفيذ كالبلاغ المعتمد، حتى لا يُنقل الطاقم إلى موعد أُبلغ بتعذره. */
+    public static function pendingReport(int $visit): bool
+    {
+        return Schema::hasTable('hourly_service_incidents')
+            && DB::table('hourly_service_incidents')->where('visit_id',$visit)->where('status','pending')->exists();
+    }
     public static function recoverable(HourlyRentalOrder $order,HourlyVisit $visit): bool
     {
         return in_array(self::state($order,$visit->id)['status']??null,['awaiting_admin','awaiting_customer'],true)

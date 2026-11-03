@@ -401,6 +401,11 @@ class DriverAppService
             $blockedReason='الطلب بانتظار تأكيد الإدارة؛ لا تبدأ المشوار حتى يُؤكَّد.';
         if($task['role']==='delivery' && $visit->status==='en_route' && ServiceIncident::waiting($visit->order,$visit->id))
             $blockedReason='للزيارة بلاغ معتمد؛ راجع الإدارة قبل التسليم، وتابع العودة الآمنة حسب حالة التنفيذ.';
+        if(!$blockedReason && $task['role']==='delivery' && in_array($visit->status,['scheduled','en_route'],true) && ServiceIncident::pendingReport((int)$visit->id))
+            $blockedReason=ServiceIncident::PENDING_MESSAGE;
+        // من يؤكد الوصول والعودة يحدده إعداد الزيارة (VisitConfirmation)؛ المهمة تبقى معروضة بلا زر حتى تؤكدها العاملة.
+        if(!$blockedReason && !$this->done($task) && in_array($action,['drop_off','shelter_return'],true))
+            $blockedReason=VisitConfirmation::driverBlockReason($visit,$action==='drop_off'?VisitConfirmation::ARRIVAL:VisitConfirmation::RETURN);
         $timeBlocked = $blockedReason !== null;
         $actionable = !$timeBlocked && $visit->order?->status === 'active' && !$this->done($task)
             && !in_array($this->stopStatus($task), ['failed', 'skipped'], true);
@@ -428,6 +433,7 @@ class DriverAppService
             'financial' => app(PaymentScheduleService::class)->forOrder($visit->order)['visits'][$visit->id]??null,
             'cash_collection' => app(CashCollectionService::class)->info($visit,'driver',$driverId),
             'cash_due' => $this->cashDue($task), 'requires_code' => $action === 'drop_off' && DeliveryCode::required($visit),
+            'confirmation' => VisitConfirmation::payload($visit),
         ];
     }
 

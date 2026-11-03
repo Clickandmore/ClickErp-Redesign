@@ -9,7 +9,7 @@ use Illuminate\Validation\Rule;
 
 class VisitBatchService
 {
-    public const ACTIONS=['assign_workers'=>'تعيين عاملة','unassign_worker'=>'إلغاء تعيين عاملة','unassign_workers'=>'إلغاء تعيين العاملات','unassign_driver'=>'إزالة سائق المهمة','assign_all'=>'تعيين العاملات تلقائيًا','auto_driver'=>'تعيين السائق تلقائيًا','confirm_return'=>'تأكيد العودة للإيواء يدويًا','complete'=>'إكمال الزيارات','cancel_visit'=>'إلغاء الزيارات','collect'=>'إضافة دفعة جماعية','unassign_drivers'=>'إزالة السائقين','clear_driver_routes'=>'إزالة مسارات السائقين','unassign_all'=>'إزالة العاملات والسائقين','reschedule'=>'تغيير التاريخ','start_time'=>'تغيير وقت البدء','duration'=>'تغيير المدة','price'=>'تغيير السعر','assign_driver'=>'تعيين سائق','team_leader'=>'تعيين قائد الفريق','note'=>'إضافة مذكرة','offer'=>'عرض للعاملات'];
+    public const ACTIONS=['assign_workers'=>'تعيين عاملة','unassign_worker'=>'إلغاء تعيين عاملة','unassign_workers'=>'إلغاء تعيين العاملات','unassign_driver'=>'إزالة سائق المهمة','assign_all'=>'تعيين العاملات تلقائيًا','auto_driver'=>'تعيين السائق تلقائيًا','confirm_return'=>'تأكيد العودة للإيواء يدويًا','complete'=>'إكمال الزيارات','cancel_visit'=>'إلغاء الزيارات','collect'=>'إضافة دفعة جماعية','unassign_drivers'=>'إزالة السائقين','clear_driver_routes'=>'إزالة مسارات السائقين','unassign_all'=>'إزالة العاملات والسائقين','reschedule'=>'تغيير التاريخ','start_time'=>'تغيير وقت البدء','duration'=>'تغيير المدة','price'=>'تغيير السعر','assign_driver'=>'تعيين سائق','team_leader'=>'تعيين قائد الفريق','note'=>'إضافة مذكرة','offer'=>'عرض للعاملات','confirmers'=>'من يؤكد الوصول والعودة'];
     public static function rules(): array
     {
         return ['batch_id'=>'required|uuid','action'=>['required',Rule::in(array_keys(self::ACTIONS))],
@@ -24,6 +24,8 @@ class VisitBatchService
             'hours'=>'required_if:action,duration|nullable|numeric|between:0.5,24','ignore_break'=>'sometimes|boolean',
             'price'=>'required_if:action,price|nullable|numeric|between:0,9999999',
             'driver_direction'=>'required_if:action,auto_driver|nullable|in:delivery,pickup,together',
+            'arrival_confirmer'=>['required_if:action,confirmers','nullable',Rule::in(array_keys(VisitConfirmation::MODES))],
+            'return_confirmer'=>['required_if:action,confirmers','nullable',Rule::in(array_keys(VisitConfirmation::MODES))],
             'driver_id'=>'required_if:action,assign_driver|nullable|integer','driver_role'=>'required_if:action,assign_driver,unassign_driver|nullable|in:delivery,pickup','driver_time'=>'required_if:action,assign_driver|nullable|date_format:H:i',
             'leader_id'=>'required_if:action,team_leader|nullable|integer','offered'=>'required_if:action,offer|boolean',
             'refund_method'=>'required_if:action,cancel_visit|nullable|in:wallet,cash,bank_transfer,none',

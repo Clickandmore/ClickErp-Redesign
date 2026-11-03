@@ -541,7 +541,7 @@ class HourlyStaffAppApiTest extends TestCase
         Carbon::setTestNow('2026-09-22 12:10');$service=app(\App\Services\Hourly\ServiceTime::class);$service->scan();
         $worker=DB::table('hourly_visit_workers')->where('hourly_visit_id',$visit->id)->first();$token=$this->loginWorker();
         $url='/api/worker/visits/'.$worker->id.'/time-overrun';
-        $this->withToken($token)->postJson($url,['reason'=>'forgot_finish'])->assertUnprocessable();auth()->forgetGuards();
+        $this->withToken($token)->postJson($url,['reason'=>'forgot_finish'])->assertUnprocessable()->assertJsonPath('message','حددي وقت الانتهاء الفعلي عند اختيار «انتهيت ونسيت تسجيل الانتهاء».');auth()->forgetGuards();
         $this->withToken($token)->postJson('/api/worker/visits/99999/time-overrun',['reason'=>'other'])->assertNotFound();auth()->forgetGuards();
         $id=$this->withToken($token)->postJson($url,['reason'=>'forgot_finish','actual_finished_at'=>'2026-09-22T11:55','note'=>'PRIVATE OPERATIONAL DETAIL'])
             ->assertOk()->assertJsonPath('data.status','awaiting_admin')->json('data.id');auth()->forgetGuards();
@@ -1715,5 +1715,260 @@ class HourlyStaffAppApiTest extends TestCase
         Carbon::setTestNow('2026-09-22 12:00');
         $this->withToken($token)->postJson('/api/worker/visits/'.$id.'/finish')->assertOk();
         $this->assertDatabaseMissing('hourly_early_finishes', ['visit_id' => $visit->id]);
+    }
+
+    public function test_visit_return_confirmer_decides_whether_worker_or_driver_confirms_return(): void
+    {
+        (require base_path('database/migrations/2026_11_03_100000_add_hourly_visit_confirmers.php'))->up();
+        $driver = $this->driver();
+        $order = $this->order();
+        $visit = $this->assign($order->visits()->first(), $driver);
+        $visit->update(['status' => 'worker_finished']);
+        DB::table('hourly_visit_workers')->where('hourly_visit_id', $visit->id)->update(['status' => 'finished', 'arrived_at' => '2026-09-22 08:00', 'finished_at' => '2026-09-22 12:00']);
+        Carbon::setTestNow('2026-09-22 12:05');
+        $worker = $this->loginWorker();
+
+        // «تلقائي» مع سائق استلام معيّن: السائق وحده يؤكد العودة (حالة الطلب 112).
+        $task = $this->withToken($worker)->getJson('/api/worker/visits/today')->assertOk()
+            ->assertJsonPath('data.0.can_return', false)->assertJsonPath('data.0.confirmation.return.mode', 'auto')
+            ->assertJsonPath('data.0.confirmation.return.by', 'driver')->json('data.0');
+        $this->assertStringContainsString('سائق الاستلام', $task['return_blocked_reason']);
+        auth()->forgetGuards();
+        $this->withToken($worker)->postJson('/api/worker/visits/'.$task['id'].'/return')->assertUnprocessable();
+        $this->assertDatabaseHas('hourly_visit_workers', ['id' => $task['id'], 'status' => 'finished']);
+
+        // الإدارة تسند تأكيد العودة للعاملة: يختفي زر السائق ويظهر زر العاملة.
+        app(\App\Services\Hourly\OrderManagementService::class)->apply($order, ['action' => 'confirmers', 'visit_ids' => [$visit->id],
+            'arrival_confirmer' => 'auto', 'return_confirmer' => 'worker', 'reason' => 'العاملة تعود بنفسها'], 7);
+        $this->assertDatabaseHas('hourly_order_audits', ['visit_id' => $visit->id, 'action' => 'confirmers']);
+        $driverToken = $this->loginDriver($driver);
+        $pickup = collect($this->withToken($driverToken)->getJson('/api/driver/trips/today')->assertOk()->json('data'))->firstWhere('type', 'pickup')['stops'][0]['id'];
+        auth()->forgetGuards();
+        $this->withToken($driverToken)->postJson('/api/driver/stops/'.$pickup.'/pick-up')->assertOk();
+        auth()->forgetGuards();
+        $stop = collect($this->withToken($driverToken)->getJson('/api/driver/trips/today')->assertOk()->json('data'))->firstWhere('type', 'pickup')['stops'][0];
+        $this->assertNull($stop['action']);
+        $this->assertFalse($stop['actionable']);
+        $this->assertSame('worker', $stop['confirmation']['return']['by']);
+        $this->assertStringContainsString('العاملة', $stop['blocked_reason']);
+        auth()->forgetGuards();
+        $this->withToken($driverToken)->postJson('/api/driver/stops/'.$pickup.'/shelter-return')->assertUnprocessable();
+        $this->assertDatabaseHas('hourly_visits', ['id' => $visit->id, 'status' => 'picked_up']);
+
+        auth()->forgetGuards();
+        $worker = $this->loginWorker();
+        $this->withToken($worker)->getJson('/api/worker/visits/today')->assertOk()
+            ->assertJsonPath('data.0.can_return', true)->assertJsonPath('data.0.return_blocked_reason', null);
+        auth()->forgetGuards();
+        $this->withToken($worker)->postJson('/api/worker/visits/'.$task['id'].'/return')->assertOk();
+        $this->assertDatabaseHas('hourly_visits', ['id' => $visit->id, 'status' => 'completed']);
+        $this->assertDatabaseHas('hourly_route_stops', ['id' => $pickup, 'status' => 'completed']);
+    }
+
+    public function test_visit_arrival_confirmer_lets_a_transported_worker_confirm_her_own_arrival(): void
+    {
+        (require base_path('database/migrations/2026_11_03_100000_add_hourly_visit_confirmers.php'))->up();
+        $driver = $this->driver();
+        $order = $this->order();
+        $visit = $this->assign($order->visits()->first(), $driver);
+        // السائق استلمها من الإيواء: الزيارة في الطريق وحركة الخروج الخاصة بها مفتوحة.
+        $visit->update(['status' => 'en_route']);
+        app(\App\Services\Hourly\ShelterPresence::class)->open($visit, 'driver', $driver->id);
+        Carbon::setTestNow('2026-09-22 07:45');
+        $worker = $this->loginWorker();
+
+        $task = $this->withToken($worker)->getJson('/api/worker/visits/today')->assertOk()
+            ->assertJsonPath('data.0.can_arrive', false)->assertJsonPath('data.0.confirmation.arrival.by', 'driver')->json('data.0');
+        $this->assertStringContainsString('بواسطة السائق', $task['arrival_blocked_reason']);
+
+        foreach (['both', 'worker'] as $mode) {
+            $visit->fresh()->update(['arrival_confirmer' => $mode]);
+            auth()->forgetGuards();
+            $this->withToken($worker)->getJson('/api/worker/visits/today')->assertOk()
+                ->assertJsonPath('data.0.can_arrive', true)->assertJsonPath('data.0.arrival_blocked_reason', null)
+                ->assertJsonPath('data.0.confirmation.arrival.by', $mode);
+        }
+        // «العاملة فقط»: لا زر تسليم للسائق.
+        $driverToken = $this->loginDriver($driver);
+        $stop = collect($this->withToken($driverToken)->getJson('/api/driver/trips/today')->assertOk()->json('data'))->firstWhere('type', 'delivery')['stops'][0];
+        $this->assertNull($stop['action']);
+        auth()->forgetGuards();
+        $this->withToken($driverToken)->postJson('/api/driver/stops/'.$stop['id'].'/deliver', ['otp_code' => $visit->fresh()->delivery_code])->assertUnprocessable();
+
+        auth()->forgetGuards();
+        $worker = $this->loginWorker();
+        $this->withToken($worker)->postJson('/api/worker/visits/'.$task['id'].'/arrived', ['otp_code' => $visit->fresh()->delivery_code])->assertOk()
+            ->assertJsonPath('data.visit.status', 'delivered');
+        $this->assertDatabaseHas('hourly_visits', ['id' => $visit->id, 'status' => 'delivered']);
+        $this->assertDatabaseHas('hourly_route_stops', ['id' => $stop['id'], 'status' => 'completed']);
+    }
+
+    public function test_present_worker_collects_cash_when_the_designated_worker_of_a_two_worker_visit_is_absent(): void
+    {
+        (require base_path('database/migrations/2026_10_14_000002_add_hourly_cash_custody.php'))->up();
+        $order=$this->order(1,'2026-09-22 08:00',['requires_driver'=>false]);
+        $other=$this->order(2,'2026-09-22 08:00',['requires_driver'=>false]);
+        $other->visits()->first()->workers()->detach(2);
+        $visit=$order->visits()->first();
+        $visit->workers()->attach(2);
+        // الطلب 114: زيارة لعاملتين، والإدارة حددت العاملة 1 للتحصيل، لكن حضرت العاملة 2 وحدها.
+        $visit->update(['workers_count'=>2,'cash_collector_type'=>'worker','cash_collector_worker_id'=>1]);
+        $cash=app(\App\Services\Hourly\CashCollectionService::class);
+        $this->assertSame(1,$cash->collector($visit->fresh())['id']);
+        Carbon::setTestNow('2026-09-22 07:45');
+        $service=app(\App\Services\Hourly\WorkerAppService::class);
+        $row=DB::table('hourly_visit_workers')->where('hourly_visit_id',$visit->id)->where('maid_id',2)->first();
+        $service->arrived(\App\Models\ingaz\Maid::findOrFail(2),$row->id,[],$visit->fresh()->delivery_code);
+        Carbon::setTestNow('2026-09-22 12:00');
+        $service->finish(\App\Models\ingaz\Maid::findOrFail(2),$row->id,null);
+        $visit=$visit->fresh();
+        $this->assertSame(['type'=>'worker','id'=>2,'label'=>'العاملة'],$cash->collector($visit));
+        $this->assertTrue($cash->info($visit,'worker',2)['can_collect']);
+        $this->assertFalse($cash->info($visit,'worker',1)['can_collect']);
+        $this->assertTrue(collect($service->today(\App\Models\ingaz\Maid::findOrFail(2),'2026-09-22'))->firstWhere('id',$row->id)['cash']['can_collect']);
+        $collection=$cash->collect($visit,'worker',2,10,(string)Str::uuid());
+        $this->assertDatabaseHas('hourly_cash_collections',['id'=>$collection['collection_id'],'holder_type'=>'worker','holder_id'=>2]);
+
+        // التلقائي بلا سائق: الحاضرة تستلم أيضًا بدل «موظف التحصيل».
+        $visit->update(['cash_collector_type'=>'auto','cash_collector_worker_id'=>null]);
+        $this->assertSame(['type'=>'worker','id'=>2,'label'=>'العاملة'],$cash->collector($visit->fresh()));
+    }
+
+    public function test_absent_worker_of_a_self_arrival_visit_cannot_finish_or_return_and_is_not_charged(): void
+    {
+        $order=$this->order(1,'2026-09-22 08:00',['requires_driver'=>false]);
+        $other=$this->order(2,'2026-09-22 08:00',['requires_driver'=>false]);
+        $other->visits()->first()->workers()->detach(2);
+        $visit=$order->visits()->first();
+        $visit->workers()->attach(2);
+        $visit->update(['workers_count'=>2,'visit_price'=>200]);
+        app(\App\Services\Hourly\OrderManagementService::class)->totals($order);
+        $service=app(\App\Services\Hourly\WorkerAppService::class);
+        $mary=\App\Models\ingaz\Maid::findOrFail(1);$madina=\App\Models\ingaz\Maid::findOrFail(2);
+        $maryRow=DB::table('hourly_visit_workers')->where('hourly_visit_id',$visit->id)->where('maid_id',1)->value('id');
+        $madinaRow=DB::table('hourly_visit_workers')->where('hourly_visit_id',$visit->id)->where('maid_id',2)->value('id');
+
+        // الطلب 114: مدينة وحدها تصل؛ ماريا لا تُختم لها وقت وصول ولا يظهر لها «انتهيت» ولا تُعد خارج الإيواء.
+        Carbon::setTestNow('2026-09-22 07:45');
+        $service->arrived($madina,$madinaRow,[],$visit->fresh()->delivery_code);
+        $this->assertNull(DB::table('hourly_visit_workers')->where('id',$maryRow)->value('arrived_at'));
+        $task=collect($service->today($mary,'2026-09-22'))->firstWhere('id',$maryRow);
+        $this->assertSame('assigned',$task['status']);
+        $this->assertFalse($task['can_finish']);
+        $this->assertFalse($task['can_return']);
+        app(\App\Services\Hourly\ShelterPresence::class)->flush();
+        $this->assertArrayNotHasKey(1,app(\App\Services\Hourly\ShelterPresence::class)->inVisitNow());
+        $this->assertArrayHasKey(2,app(\App\Services\Hourly\ShelterPresence::class)->inVisitNow());
+        try { $service->finish($mary,$maryRow,null); $this->fail('Absent worker finished the visit.'); }
+        catch(\Illuminate\Validation\ValidationException $e) { $this->assertArrayHasKey('hourly',$e->errors()); }
+        $this->assertDatabaseMissing('hourly_early_finishes',['visit_id'=>$visit->id,'maid_id'=>1]);
+
+        // انتهاء الحاضرة: الزيارة تتقدم، وماريا «لم تحضر»، وتُخصم حصتها من السعر وإجمالي الطلب.
+        Carbon::setTestNow('2026-09-22 12:00');
+        $service->finish($madina,$madinaRow,null);
+        $visit=$visit->fresh();
+        $this->assertSame('worker_finished',$visit->status);
+        $this->assertSame('no_show',DB::table('hourly_visit_workers')->where('id',$maryRow)->value('status'));
+        $this->assertEquals(100,(float)$visit->visit_price);
+        $this->assertSame(1,(int)$visit->workers_count);
+        $this->assertEquals(100,(float)$order->fresh()->total_amount);
+        $this->assertDatabaseHas('hourly_order_audits',['visit_id'=>$visit->id,'action'=>'worker_no_show']);
+        $task=collect($service->today($mary,'2026-09-22'))->firstWhere('id',$maryRow);
+        $this->assertSame('no_show',$task['status']);
+        $this->assertFalse($task['can_return']);
+        $this->assertFalse($task['can_arrive']);
+        try { $service->returnToShelter($mary,$maryRow); $this->fail('Absent worker confirmed a return.'); }
+        catch(\Illuminate\Validation\ValidationException $e) { $this->assertArrayHasKey('hourly',$e->errors()); }
+
+        // عودة الحاضرة تُغلق الزيارة؛ الغائبة لا تمنع الإغلاق.
+        $service->returnToShelter($madina,$madinaRow);
+        $this->assertSame('completed',$visit->fresh()->status);
+        $this->assertEquals(100,(float)$visit->fresh()->visit_price);
+    }
+
+    public function test_switching_an_unpaid_order_to_customer_balance_charges_the_wallet_and_records_payment(): void
+    {
+        $order=$this->order();
+        $total=(float)$order->total_amount;
+        $this->assertGreaterThan(0,$total);
+        $before=(float)DB::table('users')->where('id',1)->value('hourly_wallet_balance');
+        $manager=app(\App\Services\Hourly\OrderManagementService::class);
+
+        // الرصيد غير كافٍ: يُرفض التغيير كله ولا يبقى الطلب بطريقة دفع لا تُحصَّل.
+        DB::table('users')->where('id',1)->update(['hourly_wallet_balance'=>$total-1]);
+        try { $manager->apply($order,['action'=>'payment_method','payment_method'=>'customer_balance','reason'=>'الدفع من الرصيد'],7); $this->fail('Insufficient balance accepted.'); }
+        catch(\Illuminate\Validation\ValidationException $e) { $this->assertStringContainsString('رصيد العميل غير كافٍ',collect($e->errors())->flatten()->first()); }
+        $this->assertSame('cash',$order->fresh()->payment_method);
+        $this->assertDatabaseMissing('hourly_wallet_transactions',['hourly_rental_order_id'=>$order->id]);
+
+        // الطلب 129: التغيير إلى الرصيد يخصم المستحق ويسجل السداد فورًا.
+        DB::table('users')->where('id',1)->update(['hourly_wallet_balance'=>$before]);
+        $manager->apply($order,['action'=>'payment_method','payment_method'=>'customer_balance','reason'=>'الدفع من الرصيد'],7);
+        $order=$order->fresh();
+        $this->assertSame('customer_balance',$order->payment_method);
+        $this->assertSame('paid',$order->payment_status);
+        $this->assertEquals($total,(float)$order->paid_amount);
+        $this->assertEquals($before-$total,(float)DB::table('users')->where('id',1)->value('hourly_wallet_balance'));
+        $this->assertDatabaseHas('hourly_wallet_transactions',['hourly_rental_order_id'=>$order->id,'amount'=>-$total]);
+        // لا خصم مكرر بعد السداد.
+        $this->assertNull(app(\App\Services\Hourly\HourlyPaymentService::class)->chargeCustomerBalance($order,7));
+    }
+
+    public function test_order_already_switched_to_customer_balance_can_be_charged_from_the_order_screen(): void
+    {
+        $order=$this->order();
+        $order->update(['payment_method'=>'customer_balance']);
+        $before=(float)DB::table('users')->where('id',1)->value('hourly_wallet_balance');
+        $payment=app(\App\Services\Hourly\HourlyPaymentService::class)->chargeCustomerBalance($order,7);
+        $this->assertNotNull($payment);
+        $this->assertEquals((float)$order->total_amount,(float)$payment->amount);
+        $this->assertSame('paid',$order->fresh()->payment_status);
+        $this->assertEquals($before-(float)$order->total_amount,(float)DB::table('users')->where('id',1)->value('hourly_wallet_balance'));
+    }
+
+    public function test_pending_incident_report_hides_start_delivery_until_the_admin_decides(): void
+    {
+        (require base_path('database/migrations/2026_10_18_000003_create_hourly_service_incidents.php'))->up();
+        $driver=$this->driver();$visit=$this->assign($this->order()->visits()->first(),$driver);
+        Carbon::setTestNow('2026-09-22 08:00:00');
+        $driver->refresh();$this->actingAs($driver,'hourly_driver')->withSession(['hourly_driver_version'=>$driver->auth_version]);
+        $this->get(route('hourly-driver.home'))->assertOk()->assertSee('بدء مشوار التوصيل');
+        $this->post(route('hourly-driver.visits.incidents',$visit->id),['request_token'=>(string)Str::uuid(),'maid_id'=>1,
+            'category'=>'illness','note'=>'العاملة مريضة'])->assertRedirect()->assertSessionHasNoErrors();
+        $this->assertDatabaseHas('hourly_service_incidents',['visit_id'=>$visit->id,'status'=>'pending']);
+
+        // البلاغ قيد المراجعة: لا زر بدء في البوابة، ولا إجراء في التطبيق، والطلب المباشر مرفوض.
+        $this->get(route('hourly-driver.home'))->assertOk()->assertDontSee('بدء مشوار التوصيل')
+            ->assertSee(\App\Services\Hourly\ServiceIncident::PENDING_MESSAGE);
+        $this->post(route('hourly-driver.visits.action',$visit->id),['action'=>'start_delivery'])->assertSessionHasErrors('hourly');
+        $this->assertSame('scheduled',$visit->fresh()->status);
+        $token=$this->loginDriver($driver);
+        $stop=collect($this->withToken($token)->getJson('/api/driver/trips/today')->assertOk()->json('data'))->firstWhere('type','delivery')['stops'][0];
+        $this->assertNull($stop['action']);
+        $this->assertSame(\App\Services\Hourly\ServiceIncident::PENDING_MESSAGE,$stop['blocked_reason']);
+
+        // رفض الإدارة للبلاغ يعيد المشوار كما كان.
+        DB::table('hourly_service_incidents')->update(['status'=>'rejected']);
+        auth()->forgetGuards();
+        $this->withToken($token)->getJson('/api/driver/trips/today')->assertOk()->assertJsonPath('data.0.stops.0.action','shelter_pickup');
+    }
+
+    public function test_worker_can_claim_an_offered_visit_whose_time_was_set_outside_the_start_window(): void
+    {
+        $order=$this->order(1,'2026-09-23 08:00',['requires_driver'=>false]);
+        $visit=$order->visits()->first();
+        // الزيارة 164: موعدها حدده الموظف (06:00) خارج نافذة أوقات البدء، ثم عُرضت على العاملات.
+        $visit->workers()->detach(1);
+        $visit->update(['scheduled_start_at'=>'2026-09-23 06:00:00','scheduled_end_at'=>'2026-09-23 10:00:00','offered_to_workers'=>true]);
+        try {
+            app(\App\Services\Hourly\HourlySlotService::class)->validate(['2026-09-23 06:00'],4,0,$order->expires_at,$order->package_snapshot,true);
+            $this->fail('06:00 should be outside the start window.');
+        } catch(\Illuminate\Validation\ValidationException $e) { $this->assertStringContainsString('خارج فترات العمل',collect($e->errors())->flatten()->first()); }
+
+        // اختيار العاملة يعيّنها دون إعادة فحص قواعد الموعد؛ توفرها هي وحده يُفحص.
+        app(\App\Services\Hourly\OrderManagementService::class)->apply($order,['action'=>'add_worker','visit_ids'=>[$visit->id],'worker_id'=>1,
+            'additional_fee'=>0,'expected_workers'=>$visit->workers_count,'reason'=>'قبول الزيارة من العاملة #1'],null);
+        $this->assertSame([1],$visit->fresh()->workers()->pluck('maids.id')->map(fn($id)=>(int)$id)->all());
+        $this->assertSame('2026-09-23 06:00:00',$visit->fresh()->scheduled_start_at->toDateTimeString());
     }
 }

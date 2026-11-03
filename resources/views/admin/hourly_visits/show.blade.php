@@ -150,7 +150,7 @@
     $hours = rtrim(rtrim(number_format((float) $visit->planned_hours, 2), '0'), '.');
     $initial = fn ($name) => mb_substr(trim((string) $name), 0, 1) ?: '؟';
     $actionLabels = \App\Services\Hourly\VisitBatchService::ACTIONS + ['bulk_note' => 'مذكرة', 'bulk_collect' => 'تحصيل', 'refund' => 'استرداد'];
-    $changeLabels = ['status' => 'الحالة', 'worker_ids' => 'معرّفات العاملات', 'delivery_driver_id' => 'سائق التوصيل', 'pickup_driver_id' => 'سائق الاستلام', 'scheduled_start_at' => 'الموعد', 'visit_price' => 'السعر', 'amount' => 'المبلغ', 'payment_id' => 'رقم الدفعة'];
+    $changeLabels = ['status' => 'الحالة', 'worker_ids' => 'معرّفات العاملات', 'delivery_driver_id' => 'سائق التوصيل', 'pickup_driver_id' => 'سائق الاستلام', 'arrival_confirmer' => 'مؤكد الوصول', 'return_confirmer' => 'مؤكد العودة', 'scheduled_start_at' => 'الموعد', 'visit_price' => 'السعر', 'amount' => 'المبلغ', 'payment_id' => 'رقم الدفعة'];
     $show = fn ($value) => is_array($value) ? implode('، ', $value) : ($value ?? '—');
 @endphp
 <div class="container-fluid ht-page vd" dir="rtl">
@@ -265,6 +265,13 @@
                             <div class="vd-team-val">
                                 @if($driver)<a class="vd-person" href="{{ route('admin.hourly-drivers.edit', $driver) }}"><span class="vd-avatar">{{ $initial($driver->name) }}</span>{{ $driver->name }}</a>@else<span class="vd-muted">غير مخصص</span>@endif
                             </div>
+                        </div>
+                    @endforeach
+                    @php $confirmation = \App\Services\Hourly\VisitConfirmation::payload($visit); $byLabels = ['driver' => 'السائق', 'worker' => 'العاملة', 'both' => 'السائق أو العاملة']; @endphp
+                    @foreach(['arrival' => ['يؤكد الوصول', 'fa-user-check'], 'return' => ['يؤكد العودة للإيواء', 'fa-house']] as $step => [$label, $icon])
+                        <div class="vd-team-row">
+                            <div class="vd-team-role"><i class="fa {{ $icon }}"></i> {{ $label }}</div>
+                            <div class="vd-team-val">{{ $byLabels[$confirmation[$step]['by']] }} @if($confirmation[$step]['mode'] === 'auto')<span class="vd-muted">(تلقائي)</span>@endif</div>
                         </div>
                     @endforeach
                 </div>

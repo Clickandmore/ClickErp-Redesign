@@ -145,6 +145,7 @@ Route::prefix('hourly')->middleware('feature.hourly_rental')->group(function () 
         Route::post('orders/{order}/notes', [\App\Http\Controllers\Hourly\OrderController::class, 'note'])->name('admin.hourly-orders.note');
         Route::post('orders/{order}/confirm', [\App\Http\Controllers\Hourly\OrderController::class, 'confirm'])->name('admin.hourly-orders.confirm');
         Route::post('orders/{order}/payments', [\App\Http\Controllers\Hourly\OrderController::class, 'collect'])->name('admin.hourly-orders.collect');
+        Route::post('orders/{order}/charge-balance', [\App\Http\Controllers\Hourly\OrderController::class, 'chargeBalance'])->name('admin.hourly-orders.charge-balance');
         Route::post('orders/{order}/close-unpaid', [\App\Http\Controllers\Hourly\OrderController::class, 'closeUnpaid'])->name('admin.hourly-orders.close-unpaid');
         Route::post('orders/{order}/compensations', [\App\Http\Controllers\Hourly\OrderCompensationController::class, 'store'])->middleware('throttle:20,1')->name('admin.hourly-orders.compensations.store');
         Route::post('orders/{order}/compensations/{compensation}/paid-out', [\App\Http\Controllers\Hourly\OrderCompensationController::class, 'paidOut'])->whereNumber('compensation')->name('admin.hourly-orders.compensations.paid-out');

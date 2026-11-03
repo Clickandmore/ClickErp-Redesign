@@ -27,6 +27,10 @@ class HourlyVisitNotices extends Command
                         'hourly_order_id'=>isset($notice->order_id)?(string)$notice->order_id:null,
                         'visit_id'=>isset($notice->visit_id)?(string)$notice->visit_id:null,
                         'hourly_visit_id'=>isset($notice->visit_id)?(string)$notice->visit_id:null],fn($v)=>$v!==null);
+                    // يظهر في قائمة إشعارات العميل (التطبيق والموقع) مع رقم الطلب، لا في الجوال وحده. الإشعار يُعالج مرة واحدة (pending → sending).
+                    \App\Models\ingaz\Notification::create(['user_id'=>$notice->user_id,'type'=>'hourly_visits','title'=>['ar'=>$notice->title,'en'=>$notice->title],
+                            'description'=>['ar'=>$notice->body,'en'=>$notice->body]]+\App\Models\ingaz\Notification::hourlyReference(
+                            isset($notice->order_id)?(int)$notice->order_id:null,isset($notice->visit_id)?(int)$notice->visit_id:null));
                     $result=app(\App\Services\Firebase\FirebasePushService::class)->sendToUser($notice->user_id,$notice->title,$notice->body,$payload);
                     if(!$result->successCount())throw new \RuntimeException('لم يُسلّم الإشعار؛ تحقق من أجهزة العميل وإعدادات Firebase.');
                 }

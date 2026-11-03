@@ -33,6 +33,23 @@ class Notification extends Model
         return $this->belongsTo(Order::class, 'order_id');
     }
 
+    public function hourlyOrder()
+    {
+        return $this->belongsTo(\App\Models\Hourly\HourlyRentalOrder::class, 'hourly_order_id');
+    }
+
+    public function hourlyVisit()
+    {
+        return $this->belongsTo(\App\Models\Hourly\HourlyVisit::class, 'hourly_visit_id');
+    }
+
+    /** مرجع طلب الساعات للإشعار، إن وُجدت أعمدته؛ تستخدمه قائمة الإشعارات والضغط على الإشعار. */
+    public static function hourlyReference(?int $orderId, ?int $visitId = null): array
+    {
+        if (!$orderId || !Schema::hasColumn('notifications', 'hourly_order_id')) return [];
+        return ['hourly_order_id' => $orderId, 'hourly_visit_id' => $visitId];
+    }
+
     /** Notifications created after the customer last opened the list are unread. */
     public static function unreadCountFor(User $user): int
     {

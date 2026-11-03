@@ -116,7 +116,8 @@ class CustomerTrackingPushService
             'type' => $data['type'] ?? 'hourly_visit',
             'title' => ['ar' => $title, 'en' => $title],
             'description' => ['ar' => $body, 'en' => $body],
-        ]);
+        ] + Notification::hourlyReference(isset($data['hourly_order_id']) ? (int) $data['hourly_order_id'] : null,
+            isset($data['visit_id']) ? (int) $data['visit_id'] : null));
 
         $this->sendFCMNotification($title, $body, $userId, $data + [
             'notification_id' => (string) $notification->id,

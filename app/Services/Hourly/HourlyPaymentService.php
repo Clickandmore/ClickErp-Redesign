@@ -95,6 +95,32 @@ class HourlyPaymentService
         });
     }
 
+    /**
+     * خصم المستحق من رصيد العميل لطلب طريقة دفعه «رصيد العميل» ثم تسجيل السداد، كما يفعل الحجز من اللوحة.
+     * يُستدعى عند تغيير طريقة الدفع إلى الرصيد، ومن زر «خصم من رصيد العميل» للطلبات التي غُيّرت قبل ذلك.
+     */
+    public function chargeCustomerBalance(HourlyRentalOrder $order, int $adminId): ?HourlyOrderPayment
+    {
+        HourlyOrderService::enabled();
+        return DB::transaction(function () use ($order, $adminId) {
+            $order = HourlyRentalOrder::query()->lockForUpdate()->findOrFail($order->id);
+            if ($order->payment_method !== 'customer_balance') HourlyOrderService::reject('طريقة دفع الطلب ليست رصيد العميل.');
+            $schedule = app(PaymentScheduleService::class);
+            $remaining = (float) $order->total_amount - (float) $order->paid_amount;
+            $due = (int) round(($schedule->policy($order) === 'legacy' ? $remaining : min($remaining, $this->dueNow($order))) * 100);
+            if ($due <= 0) return null;
+            $user = \App\Models\ingaz\User::query()->lockForUpdate()->findOrFail($order->user_id);
+            $balance = (int) round((float) $user->hourly_wallet_balance * 100);
+            if ($balance < $due) {
+                HourlyOrderService::reject('رصيد العميل غير كافٍ: الرصيد '.number_format($balance / 100, 2).' ر.س والمستحق '.number_format($due / 100, 2).' ر.س.');
+            }
+            $user->update(['hourly_wallet_balance' => ($balance - $due) / 100]);
+            DB::table('hourly_wallet_transactions')->insert(['user_id' => $user->id, 'hourly_rental_order_id' => $order->id, 'amount' => -$due / 100,
+                'balance_after' => ($balance - $due) / 100, 'admin_id' => $adminId, 'created_at' => now(), 'updated_at' => now()]);
+            return $this->collect($order, ['amount' => $due / 100], $adminId);
+        });
+    }
+
     public function submitBankTransfer(HourlyRentalOrder $order, string $attachmentPath, ?string $referenceNumber = null): HourlyOrderPayment
     {
         HourlyOrderService::enabled();

@@ -16,6 +16,7 @@ class DeliveryCode
     {
         if($visit->order && ServiceIncident::waiting($visit->order,$visit->id))
             HourlyOrderService::reject('للزيارة بلاغ معتمد يحتاج مراجعة الإدارة قبل التسليم؛ الاستلام والعودة متاحان حسب حالة التنفيذ.');
+        if($visit->id && ServiceIncident::pendingReport((int)$visit->id))HourlyOrderService::reject(ServiceIncident::PENDING_MESSAGE);
         // Legacy visits without a customer-visible code keep their existing delivery flow.
         if (!self::required($visit)) return;
         self::match($visit, $code);

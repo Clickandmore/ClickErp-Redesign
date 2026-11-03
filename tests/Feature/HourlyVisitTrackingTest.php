@@ -294,4 +294,28 @@ class HourlyVisitTrackingTest extends TestCase
 
         app(\App\Services\Hourly\CustomerTrackingPushService::class)->notify($visit, 'on_the_way');
     }
+
+    public function test_tracking_notification_is_listed_with_its_hourly_order_number_and_visit(): void
+    {
+        Schema::create('notifications', function (Blueprint $table) {
+            $table->id();$table->unsignedBigInteger('user_id');$table->unsignedBigInteger('order_id')->nullable();$table->string('type');
+            $table->text('title');$table->text('description');$table->timestamps();
+        });
+        (require base_path('database/migrations/2026_11_03_110000_add_hourly_refs_to_notifications.php'))->up();
+        [$order, $visit] = $this->order();
+        $push = \Mockery::mock(\App\Services\Firebase\FirebasePushService::class);
+        $push->shouldReceive('sendToUser')->andReturn(\App\Services\Firebase\FirebasePushResult::skipped('test'));
+        $this->app->instance(\App\Services\Firebase\FirebasePushService::class, $push);
+
+        app(\App\Services\Hourly\CustomerTrackingPushService::class)->notify($visit, 'early_finish');
+
+        $notification = \App\Models\ingaz\Notification::query()->latest('id')->firstOrFail();
+        $this->assertSame($order, (int) $notification->hourly_order_id);
+        $this->assertSame($visit, (int) $notification->hourly_visit_id);
+        $item = (new \App\Http\Resources\Api\NotificationResource($notification))->toArray(request());
+        $this->assertSame($order, $item['hourly_order']['id']);
+        $this->assertSame(\App\Models\Hourly\HourlyRentalOrder::findOrFail($order)->order_number, $item['hourly_order']['order_number']);
+        $this->assertSame($visit, $item['hourly_order']['visit_id']);
+        $this->assertSame((int) \App\Models\Hourly\HourlyVisit::findOrFail($visit)->visit_number, (int) $item['hourly_order']['visit_number']);
+    }
 }

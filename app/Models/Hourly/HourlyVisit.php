@@ -46,8 +46,11 @@ class HourlyVisit extends Model
         static::updated(function (self $visit) {
             if ($visit->wasChanged('status') && $visit->status === 'delivered'
                 && \Illuminate\Support\Facades\Schema::hasColumn('hourly_visit_workers', 'arrived_at')) {
-                \Illuminate\Support\Facades\DB::table('hourly_visit_workers')->where('hourly_visit_id', $visit->id)
-                    ->whereNull('arrived_at')->update(['arrived_at' => now()]);
+                $rows = \Illuminate\Support\Facades\DB::table('hourly_visit_workers')->where('hourly_visit_id', $visit->id);
+                // وصول ذاتي (لصف العاملة حالة): لا يُختم وقت الوصول على زميلة لم تحضر بعد، وإلا بدت حاضرة للتحصيل ومتابعة العودة.
+                if (\Illuminate\Support\Facades\Schema::hasColumn('hourly_visit_workers', 'status')
+                    && (clone $rows)->whereIn('status', ['delivered', 'finished', 'picked_up', 'returned', 'completed'])->exists()) return;
+                $rows->whereNull('arrived_at')->update(['arrived_at' => now()]);
             }
         });
     }

@@ -79,6 +79,8 @@ class OrderManagementController extends Controller
             'driver_role'=>'required_if:action,assign_driver,unassign_driver|nullable|in:delivery,pickup',
             'driver_time'=>'required_if:action,assign_driver|nullable|date_format:H:i',
             'driver_direction'=>'required_if:action,auto_driver|nullable|in:delivery,pickup,together',
+            'arrival_confirmer'=>['required_if:action,confirmers','nullable',Rule::in(array_keys(\App\Services\Hourly\VisitConfirmation::MODES))],
+            'return_confirmer'=>['required_if:action,confirmers','nullable',Rule::in(array_keys(\App\Services\Hourly\VisitConfirmation::MODES))],
             'offered'=>'required_if:action,offer|boolean',
             'leader_id'=>'required_if:action,team_leader|nullable|integer',
             'all_teams'=>'sometimes|boolean',
@@ -87,6 +89,7 @@ class OrderManagementController extends Controller
         if ($data['action']==='refund' || (in_array($data['action'],['cancel_visit','cancel_order'],true)
             && ($data['refund_method'] ?? 'wallet')!=='none' && (float)$order->paid_amount>0)) abort_unless(AdminGuardHasPerm('hourly_orders_collect'),403);
         $data['reason']??=null; // السبب اختياري في كل مودالات الطلب؛ يُسجَّل فارغًا في السجلات إن لم يُكتب
+        if($data['action']==='payment_method' && ($data['payment_method']??null)==='customer_balance')abort_unless(AdminGuardHasPerm('hourly_orders_collect'),403);
         if(in_array($data['action'],['price','duration','free_visit','add_worker','remove_worker']))abort_unless(AdminGuardHasPerm('hourly_orders_price_override'),403);
         if(!empty($data['ignore_notice']))abort_unless($data['action']==='free_visit' && AdminGuardHasPerm('hourly_orders_notice_override'),403);
         if($data['action']==='duration' && abs($data['hours']*4-round($data['hours']*4))>0.00001)throw \Illuminate\Validation\ValidationException::withMessages(['hours'=>'تُعدّل المدة بمضاعفات 15 دقيقة.']);

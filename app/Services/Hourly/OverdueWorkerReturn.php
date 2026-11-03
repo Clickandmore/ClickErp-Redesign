@@ -28,7 +28,7 @@ class OverdueWorkerReturn
         $visits=DB::table('hourly_visit_workers as w')->join('hourly_visits as v','v.id','=','w.hourly_visit_id')
             ->join('hourly_rental_orders as o','o.id','=','v.hourly_rental_order_id')
             ->where(fn($q)=>$q->whereIn('v.status',ShelterPresence::OUT_STATUSES)->orWhereIn('w.status',['delivered','finished','picked_up']))
-            ->where(fn($q)=>$q->whereNull('w.status')->orWhereNotIn('w.status',['returned','completed']))
+            ->where(fn($q)=>ShelterPresence::physicallyOut($q))
             ->when($exceptVisit!==null,fn($q)=>$q->where('v.id','!=',$exceptVisit))
             ->when($maidId!==null,fn($q)=>$q->where('w.maid_id',$maidId))->orderBy('v.scheduled_end_at')
             ->get(['w.maid_id','w.status as worker_status','v.id as visit_id','v.scheduled_end_at','v.scheduled_start_at','v.planned_hours',

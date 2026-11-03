@@ -78,6 +78,8 @@ class DriverPortalController extends Controller
                 HourlyOrderService::reject('تغيّرت حالة المهمة أو تم تنفيذها بالفعل. حدّث الصفحة ثم حاول مرة أخرى.');
             }
 
+            if ($data['action'] === 'confirm_delivery') \App\Services\Hourly\VisitConfirmation::assertDriver($visit, \App\Services\Hourly\VisitConfirmation::ARRIVAL);
+            if ($data['action'] === 'complete') \App\Services\Hourly\VisitConfirmation::assertDriver($visit, \App\Services\Hourly\VisitConfirmation::RETURN);
             if ($data['action'] === 'start_delivery') \App\Services\Hourly\DeliveryStartWindow::assertAllowed($visit);
             if ($data['action'] === 'confirm_delivery') \App\Services\Hourly\DeliveryCode::assertValid($visit,$data['delivery_code']??null);
             if ($data['action']==='confirm_delivery' && (float)($data['cash_amount']??0)>0) {
