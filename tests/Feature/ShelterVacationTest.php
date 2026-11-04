@@ -68,6 +68,36 @@ class ShelterVacationTest extends TestCase
         $this->assertTrue(Contract::insideShelter()->whereKey($contractId)->exists());
     }
 
+    public function test_outside_shelter_name_search_handles_extra_spaces_and_combines_with_passport(): void
+    {
+        $maidId = DB::table('maids')->insertGetId([
+            'name' => 'NURHAYANI  MUHAMMAD IDRUS', 'passport_num' => 'SEARCH-' . uniqid(),
+            'age' => 30, 'cv_file' => '', 'height' => '', 'weight' => '',
+            'created_at' => now(), 'updated_at' => now(),
+        ]);
+        $contractId = DB::table('contracts')->insertGetId([
+            'maid_id' => $maidId, 'status' => 'shelter', 'type' => 'recruitment',
+            'created_at' => now(), 'updated_at' => now(),
+        ]);
+        ContractInfo::create([
+            'contract_id' => $contractId, 'wants_to_work' => 'yes',
+            'is_outside_shelter' => true, 'outside_shelter_reason' => 'vacation',
+        ]);
+        $controller = app(\App\Http\Controllers\ingaz\ShelterContractController::class);
+        $filter = new \ReflectionMethod($controller, 'applyFilters');
+        $filter->setAccessible(true);
+        foreach (['NURHAYANI MUHAMMAD IDRUS', '  NURHAYANI   MUHAMMAD IDRUS  ', 'MUHAMMAD IDRUS'] as $name) {
+            $query = Contract::outsideShelter()->whereKey($contractId);
+            $filter->invoke($controller, $query, \Illuminate\Http\Request::create('/', 'GET', ['maid_name' => $name]));
+            $this->assertTrue($query->exists());
+        }
+        $query = Contract::outsideShelter()->whereKey($contractId);
+        $filter->invoke($controller, $query, \Illuminate\Http\Request::create('/', 'GET', [
+            'maid_name' => 'NURHAYANI MUHAMMAD IDRUS', 'passport_num' => 'WRONG-PASSPORT',
+        ]));
+        $this->assertFalse($query->exists());
+    }
+
     private function grant($admin, string $permission): void
     {
         Permission::withoutGlobalScopes()->updateOrCreate(
