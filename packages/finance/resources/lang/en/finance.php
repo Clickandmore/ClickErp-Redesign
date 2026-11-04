@@ -1856,6 +1856,7 @@ return array (
   'ops_days' => 'days',
   'ops_invoice_value' => 'Invoice value',
   'ops_paid' => 'Paid',
+  'ops_adjustments' => 'Net credit adjustments',
   'ops_remaining' => 'Remaining',
   'ops_payment_status' => 'Payment status',
   'ops_aging' => 'Receivables aging',

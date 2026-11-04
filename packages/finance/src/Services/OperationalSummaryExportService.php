@@ -288,6 +288,10 @@ class OperationalSummaryExportService
             'التقادم: ' . $this->agingSummary($section['aging']),
         ];
 
+        if (abs($t['adjustments'] ?? 0) > 0.005) {
+            $notes[] = 'صافي التسويات الدائنة المحتسبة في المتبقي: ' . number_format($t['adjustments'], 2) . ' ر.س. (لا تُحتسب ضمن المدفوع).';
+        }
+
         if (isset($section['outstanding_all'])) {
             $notes[] = 'إجمالي الرصيد القائم حتى ' . $report['to'] . ' بلا قيد فترة: '
                 . number_format($section['outstanding_all'], 2) . ' ر.س.';

@@ -1018,6 +1018,16 @@
             placeholder: 'ابحث باسم الحساب أو رقم الحساب',
             width: '100%',
             allowClear: true,
+            matcher: function(params, data) {
+                const normalize = value => String(value || '').replace(/\s+/g, ' ').trim().toLocaleLowerCase();
+                const term = normalize(params.term);
+                if (!term) return data;
+                if (data.children) {
+                    const children = data.children.filter(child => normalize(child.text).includes(term));
+                    return children.length ? $.extend({}, data, { children: children }) : null;
+                }
+                return normalize(data.text).includes(term) ? data : null;
+            },
             templateResult: function(account) {
                 return account.text;
             },

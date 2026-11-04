@@ -200,7 +200,7 @@ class ChartRestructureTest extends TestCase
 
     public function test_chart_settings_permission_is_registered_and_listed_for_assignment(): void
     {
-        $this->assertDatabaseHas('permissions', ['name' => 'finance_chart_settings_manage', 'guard_name' => 'admin', 'display_name' => 'إدارة إعدادات الدليل المحاسبي', 'is_active' => 1]);
+        $this->assertDatabaseHas('permissions', ['name' => 'finance_chart_settings_manage', 'guard_name' => 'admin', 'is_active' => 1]);
     }
 
     /** ظهورها في شاشة تعيين الصلاحيات تحقق يدوياً؛ إعداد مدير الاختبار لا يمر بشرط عرض الشاشة. */

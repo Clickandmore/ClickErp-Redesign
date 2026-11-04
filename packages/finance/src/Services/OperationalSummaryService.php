@@ -171,7 +171,7 @@ class OperationalSummaryService extends MainService
             ->selectRaw('COALESCE(SUM(CASE WHEN is_paid = 1 THEN total_due ELSE 0 END), 0) as collected')
             ->first();
 
-        $rentalOutstanding = $this->rentalBillingQuery()
+        $rentalOutstanding = DB::query()->fromSub($this->rentalReceivableBillingQuery($to), 'rental_contract_invoices')
             ->whereDate('rental_contract_invoices.created_at', '<=', $to)
             ->where('remaining_amount', '>', 0)
             ->selectRaw('COUNT(*) as documents')
@@ -326,6 +326,34 @@ class OperationalSummaryService extends MainService
         return DB::query()->fromSub($invoices->unionAll($extensions), 'rental_contract_invoices');
     }
 
+    /** Apply contract credits once, oldest outstanding document first, before period filtering. */
+    private function rentalReceivableBillingQuery(string $to): Builder
+    {
+        $credits = $this->scoped('rental_financial_adjustments')
+            ->whereIn('context', ['closure', 'manual_credit_note', 'closure_correction'])
+            ->whereDate(DB::raw('COALESCE(issue_date, created_at)'), '<=', $to)
+            ->select('rental_contract_id')
+            ->selectRaw("SUM(CASE WHEN type = 'expense' THEN amount WHEN type = 'income' THEN -amount ELSE 0 END) as credit")
+            ->groupBy('rental_contract_id');
+
+        $documents = $this->rentalBillingQuery()
+            ->whereDate('created_at', '<=', $to);
+        $ordered = DB::query()->fromSub($documents, 'documents')
+            ->select('documents.*')
+            ->selectRaw('COALESCE(SUM(remaining_amount) OVER (PARTITION BY rental_contract_id ORDER BY created_at, document_type, id ROWS BETWEEN UNBOUNDED PRECEDING AND 1 PRECEDING), 0) as earlier_remaining')
+            ->selectRaw('ROW_NUMBER() OVER (PARTITION BY rental_contract_id ORDER BY created_at, document_type, id) as document_position');
+        $allocated = DB::query()->fromSub($ordered, 'documents')
+            ->leftJoinSub($credits, 'credits', 'credits.rental_contract_id', '=', 'documents.rental_contract_id')
+            ->select('documents.*')
+            ->selectRaw('CASE WHEN COALESCE(credits.credit, 0) >= 0 THEN LEAST(documents.remaining_amount, GREATEST(COALESCE(credits.credit, 0) - documents.earlier_remaining, 0)) WHEN documents.document_position = 1 THEN credits.credit ELSE 0 END as adjustment_amount');
+
+        return DB::query()->fromSub($allocated, 'documents')->select([
+            'id', 'rental_contract_id', 'total_due', 'paid_amount',
+            'payment_type', 'created_at', 'document_type', 'adjustment_amount',
+        ])->selectRaw('ROUND(remaining_amount - adjustment_amount, 2) as remaining_amount')
+            ->selectRaw("CASE WHEN ROUND(remaining_amount - adjustment_amount, 2) <= 0 THEN 'paid' WHEN paid_amount > 0 THEN 'partial' ELSE payment_status END as payment_status");
+    }
+
     private function monthlyRentalSales(string $from, string $to): Collection
     {
         return $this->rentalBillingQuery()
@@ -414,7 +442,7 @@ class OperationalSummaryService extends MainService
      */
     private function rentalReceivableQuery(?string $from, string $to): Builder
     {
-        $query = $this->rentalBillingQuery()
+        $query = DB::query()->fromSub($this->rentalReceivableBillingQuery($to), 'rental_contract_invoices')
             ->join('rental_contracts', 'rental_contracts.id', '=', 'rental_contract_invoices.rental_contract_id')
             ->leftJoin('users', 'users.id', '=', 'rental_contracts.user_id')
             ->whereDate('rental_contract_invoices.created_at', '<=', $to)
@@ -523,11 +551,13 @@ class OperationalSummaryService extends MainService
             'rental_contract_invoices.total_due',
             'rental_contract_invoices.paid_amount',
             'rental_contract_invoices.remaining_amount',
+            'rental_contract_invoices.adjustment_amount',
             'rental_contract_invoices.payment_type',
             'rental_contract_invoices.payment_status',
             'rental_contract_invoices.created_at as invoiced_at',
             'rental_contracts.contract_number',
             'users.id as client_id',
+            'users.account_id as client_account_id',
             'users.name as client_name',
             'users.phone as client_phone',
             'users.national_num as client_identity',
@@ -553,15 +583,20 @@ class OperationalSummaryService extends MainService
             ? 'invoices.total_due'
             : 'rental_contract_invoices.total_due';
 
-        $totals = $query()
+        $totalsQuery = $query()
             ->selectRaw('COUNT(*) as documents')
             ->selectRaw('COUNT(DISTINCT users.id) as clients')
             ->selectRaw("COALESCE(SUM({$remainingColumn}), 0) as remaining")
             ->selectRaw("COALESCE(SUM({$totalColumn}), 0) as invoiced")
-            ->selectRaw("COALESCE(MAX(DATEDIFF(?, DATE({$dateColumn}))), 0) as oldest_days", [$to])
-            ->first();
+            ->selectRaw("COALESCE(MAX(DATEDIFF(?, DATE({$dateColumn}))), 0) as oldest_days", [$to]);
 
-        $paid = (float) $totals->invoiced - (float) $totals->remaining;
+        if ($dateColumn !== 'invoices.created_at') {
+            $totalsQuery->selectRaw('COALESCE(SUM(rental_contract_invoices.paid_amount), 0) as actual_paid')
+                ->selectRaw('COALESCE(SUM(rental_contract_invoices.adjustment_amount), 0) as adjustments');
+        }
+        $totals = $totalsQuery->first();
+
+        $paid = isset($totals->actual_paid) ? (float) $totals->actual_paid : (float) $totals->invoiced - (float) $totals->remaining;
         $aging = $this->receivableAging($query, $dateColumn, $remainingColumn, $to);
 
         $rowsQuery = $query()->select($this->receivableColumns($dateColumn));
@@ -598,6 +633,7 @@ class OperationalSummaryService extends MainService
                 'clients' => (int) $totals->clients,
                 'invoiced' => (float) $totals->invoiced,
                 'paid' => $paid,
+                'adjustments' => (float) ($totals->adjustments ?? 0),
                 'remaining' => (float) $totals->remaining,
                 'oldest_days' => (int) $totals->oldest_days,
             ],

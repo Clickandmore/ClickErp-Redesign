@@ -52,6 +52,7 @@ return [
                 'finance.account-cost-centers' => 'c,r,u,d',
                 'finance.cash-movements' => 'c,r,u,d',
                 'finance.daily-cash-reference-lines' => 'c,r,u,d',
+                'finance.client-trial-balance' => 'r',
                 'finance.bank-account-statement' => 'c,r,u,d',
                 'finance.bank-account-statement-print' => 'c,r,u,d',
                 'finance.exchange-checks' => 'c,r,u,d',

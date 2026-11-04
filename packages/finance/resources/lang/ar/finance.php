@@ -1856,6 +1856,7 @@ return array (
   'ops_days' => 'يوم',
   'ops_invoice_value' => 'قيمة الفاتورة',
   'ops_paid' => 'المدفوع',
+  'ops_adjustments' => 'صافي التسويات الدائنة',
   'ops_remaining' => 'المتبقي',
   'ops_payment_status' => 'حالة السداد',
   'ops_aging' => 'تقادم الذمم',

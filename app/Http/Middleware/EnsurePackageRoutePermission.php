@@ -147,6 +147,7 @@ class EnsurePackageRoutePermission
             'finance.double-account-statement-print.*' => 'finance_double_account_statement_export',
             'finance.double-account-statement.export' => 'finance_double_account_statement_export',
             'finance.trail-balance.export' => 'finance_trail_balance_export',
+            'finance.client-trial-balance.export' => 'finance_client_trial_balance_export',
             'finance.bonds-qabd.export' => 'finance_bonds_export',
             'finance.bonds-sarf.export' => 'finance_bonds_export',
             'finance.bonds-print.*' => 'finance_bonds_export',
@@ -163,7 +164,7 @@ class EnsurePackageRoutePermission
     {
         if (Str::startsWith($routeName, 'hr.maids.')) {
             return match (Str::after($routeName, 'hr.maids.')) {
-                'index' => ['hr_employees_view', 'hr_module'],
+                'index', 'employees' => ['hr_employees_view', 'hr_module'],
                 'employ' => ['hr_employees_edit', 'hr_module'],
                 default => ['hr_module'],
             };

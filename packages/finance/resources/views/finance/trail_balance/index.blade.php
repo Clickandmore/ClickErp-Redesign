@@ -459,6 +459,39 @@
                         </select>
                     </div>
 
+                    <div class="trial-field">
+                        <label for="balance_filter">الرصيد</label>
+                        <select name="balance_filter" id="balance_filter" class="form-control search_keys">
+                            @foreach (\Nami\Finance\Services\TrailBalanceService::BALANCE_FILTERS as $key => $label)
+                                <option value="{{ $key }}">{{ $label }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+
+                    <div class="trial-field">
+                        <label for="movement_filter">الحركة</label>
+                        <select name="movement_filter" id="movement_filter" class="form-control search_keys">
+                            @foreach (\Nami\Finance\Services\TrailBalanceService::MOVEMENT_FILTERS as $key => $label)
+                                <option value="{{ $key }}">{{ $label }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+
+                    <div class="trial-field">
+                        <label for="root_code">الحساب الرئيسي</label>
+                        <select name="root_code" id="root_code" class="form-control search_keys">
+                            <option value="">كل الحسابات</option>
+                            @foreach (\Illuminate\Support\Facades\DB::table('fn_accounts')->whereNull('parent_id')->orderBy('code')->get(['code', 'name']) as $rootAccount)
+                                <option value="{{ $rootAccount->code }}">{{ $rootAccount->code }} — {{ $rootAccount->name }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+
+                    <div class="trial-field">
+                        <label for="account_search">بحث بالاسم أو الكود</label>
+                        <input type="search" name="account_search" id="account_search" class="form-control search_keys" placeholder="مثال: الصندوق أو 1201">
+                    </div>
+
                     @include('admin.partials.branch-filter', [
                         'name' => 'branch_id',
                         'label' => __('financial_requests.branch'),

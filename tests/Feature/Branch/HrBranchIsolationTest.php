@@ -48,6 +48,114 @@ class HrBranchIsolationTest extends TestCase
     }
 
     /** @test */
+    public function employee_and_employed_maid_listings_are_separate_and_respect_filters(): void
+    {
+        $branch = $this->makeBranch(['is_main' => true]);
+        $otherBranch = $this->makeBranch();
+        $maid = Maid::query()->create([
+            'name' => 'Listing test maid',
+            'passport_num' => 'HR-' . uniqid(),
+            'age' => 30,
+            'status' => 'available',
+            'available' => true,
+            'branch_id' => $branch->id,
+        ]);
+        $employeeId = $this->makeEmployee($branch);
+        $employedMaidId = $this->makeEmployee($branch, Employee::CATEGORY_EMPLOYEE, $maid->id);
+        $this->makeEmployee($otherBranch);
+        $service = app(EmployeeService::class);
+        $request = Request::create('/hr/employees', 'GET', ['branch_id' => $branch->id]);
+
+        $this->assertSame([$employeeId], $service->GetFilterEmployees($request)->pluck('id')->all());
+        $this->assertSame([$employedMaidId], $service->GetFilterEmployees($request, Employee::CATEGORY_EMPLOYEE, true)->pluck('id')->all());
+
+        $departmentId = DB::table('hr_employee')->where('id', $employeeId)->value('deparment_id');
+        $filtered = Request::create('/hr/employed-maids', 'GET', ['department_id' => $departmentId]);
+        $this->assertCount(0, $service->GetFilterEmployees($filtered, Employee::CATEGORY_EMPLOYEE, true));
+
+        DB::table('hr_employee')->where('id', $employedMaidId)->update(['employee_category' => Employee::CATEGORY_MAID]);
+        $this->assertCount(0, $service->GetFilterEmployees($request, Employee::CATEGORY_EMPLOYEE, true));
+    }
+
+    /** @test */
+    public function employee_filters_support_inactive_status_nationality_dates_and_contract_boundaries(): void
+    {
+        $branch = $this->makeBranch(['is_main' => true]);
+        $inactiveId = $this->makeEmployee($branch);
+        $activeId = $this->makeEmployee($branch);
+        $laterId = $this->makeEmployee($branch);
+        DB::table('hr_employee')->where('id', $inactiveId)->update([
+            'status' => 0, 'hired_date' => '2026-02-15',
+            'contract_end_date' => today()->addDays(30)->toDateString(),
+        ]);
+        DB::table('hr_employee')->where('id', $activeId)->update([
+            'hired_date' => '2026-03-01', 'contract_end_date' => today()->subDay()->toDateString(),
+        ]);
+        DB::table('hr_employee')->where('id', $laterId)->update([
+            'hired_date' => '2026-04-01', 'contract_end_date' => today()->addDays(31)->toDateString(),
+        ]);
+        $countryId = DB::table('hr_employee')->where('id', $inactiveId)->value('country_id');
+        $ids = function (array $filters) use ($branch) {
+            return app(EmployeeService::class)->GetFilterEmployees(Request::create('/hr/employees', 'GET',
+                ['branch_id' => $branch->id] + $filters))->pluck('id')->sort()->values()->all();
+        };
+
+        $this->assertSame([$inactiveId], $ids(['status' => '0']));
+        $this->assertSame([$activeId, $laterId], $ids(['status' => '1']));
+        $this->assertSame([$inactiveId], $ids(['country_id' => $countryId]));
+        $this->assertSame([$inactiveId], $ids(['hired_from' => '2026-02-15', 'hired_to' => '2026-02-15']));
+        $this->assertSame([$activeId], $ids(['contract_status' => 'expired']));
+        $this->assertSame([$inactiveId], $ids(['contract_status' => 'expiring']));
+        $this->assertSame([$inactiveId, $laterId], $ids(['contract_status' => 'valid']));
+        $this->assertSame([$inactiveId], $ids([
+            'status' => '0', 'country_id' => $countryId, 'hired_from' => '2026-02-15',
+            'hired_to' => '2026-02-15', 'contract_status' => 'expiring',
+        ]));
+        DB::table('hr_employee')->where('id', $inactiveId)->update(['contract_end_date' => today()->toDateString()]);
+        $this->assertSame([$inactiveId], $ids(['contract_status' => 'expiring']));
+        $this->assertSame([$activeId], $ids(['contract_status' => 'expired']));
+    }
+
+    /** @test */
+    public function employee_name_search_matches_partial_names_and_combines_with_other_filters(): void
+    {
+        $branch = $this->makeBranch(['is_main' => true]);
+        $first = $this->makeEmployee($branch);
+        $second = $this->makeEmployee($branch);
+        DB::table('hr_employee')->where('id', $first)->update(['name' => 'أحمد محمد', 'status' => 0]);
+        DB::table('hr_employee')->where('id', $second)->update(['name' => 'محمد علي', 'status' => 1]);
+        $service = app(EmployeeService::class);
+        $request = Request::create('/hr/employees', 'GET', ['employee_name' => '  محمد  ', 'branch_id' => $branch->id]);
+        $this->assertEqualsCanonicalizing([$first, $second], $service->GetFilterEmployees($request)->pluck('id')->all());
+        $request->merge(['status' => '0']);
+        $this->assertSame([$first], $service->GetFilterEmployees($request)->pluck('id')->all());
+        $request->merge(['employee_name' => 'لا يوجد']);
+        $this->assertCount(0, $service->GetFilterEmployees($request));
+    }
+
+    /** @test */
+    public function employee_filters_reject_reversed_hiring_dates(): void
+    {
+        $this->expectException(ValidationException::class);
+        app(EmployeeService::class)->GetFilterEmployees(Request::create('/hr/employees', 'GET', [
+            'hired_from' => '2026-03-01', 'hired_to' => '2026-02-01',
+        ]));
+    }
+
+    /** @test */
+    public function employed_maids_page_uses_its_own_title_and_data_source(): void
+    {
+        $request = Request::create('/hr/employed-maids');
+        $view = app(\Nami\Hr\Http\Controllers\EmployeeController::class)
+            ->employedMaids($request, app(EmployeeService::class));
+
+        $this->assertSame(__('hr::hr.employed_maids'), $view->getData()['bladeTitle']);
+        $this->assertSame(route('hr.maids.employees'), $view->getData()['dataTableRoute']);
+        $this->assertNull($view->getData()['createRoute']);
+        $this->assertStringContainsString(__('hr::hr.employed_maids'), view('admin.layout.inc.hr_sidebar_links')->render());
+    }
+
+    /** @test */
     public function employee_filter_uses_hr_employee_branch_as_the_single_source_of_truth(): void
     {
         $main = $this->makeBranch(['is_main' => true]);
@@ -151,10 +259,14 @@ class HrBranchIsolationTest extends TestCase
             'created_at' => now(),
             'updated_at' => now(),
         ]);
+        do {
+            $countryCode = chr(random_int(65, 90)) . chr(random_int(65, 90));
+        } while (DB::table('countries')->where('code', $countryCode)->exists());
+
         $countryId = DB::table('countries')->insertGetId([
             'name_ar' => 'دولة اختبار',
             'name_en' => 'Test Country',
-            'code' => substr(strtoupper($suffix), -2),
+            'code' => $countryCode,
             'created_at' => now(),
             'updated_at' => now(),
         ]);
