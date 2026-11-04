@@ -2643,8 +2643,11 @@ class ShelterContractController extends Controller
         if ($request->filled('maid_name')) {
             $maidName = trim((string) $request->input('maid_name'));
             $rows->whereHas('maid', function ($query) use ($maidName) {
-                $query->where('name', 'like', '%' . $maidName . '%')
-                    ->orWhere('id', 'like', '%' . $maidName . '%');
+                $namePattern = '%' . implode('%', preg_split('/\s+/u', $maidName, -1, PREG_SPLIT_NO_EMPTY)) . '%';
+                $query->where(function ($match) use ($namePattern, $maidName) {
+                    $match->where('name', 'like', $namePattern)
+                        ->orWhere('id', 'like', '%' . $maidName . '%');
+                });
             });
         }
 

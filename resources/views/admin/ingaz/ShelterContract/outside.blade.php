@@ -93,6 +93,14 @@
                     <div class="card-body">
                         <div class="row g-3">
                             <div class="col-md-3">
+                                <label for="filterMaidName" class="form-label">اسم العاملة</label>
+                                <input type="search" id="filterMaidName" class="form-control" placeholder="ابحث باسم العاملة" maxlength="255">
+                            </div>
+                            <div class="col-md-3">
+                                <label for="filterPassportNumber" class="form-label">رقم جواز العاملة</label>
+                                <input type="search" id="filterPassportNumber" class="form-control" placeholder="ابحث برقم الجواز" maxlength="255">
+                            </div>
+                            <div class="col-md-3">
                                 <label for="filterContractNumber" class="form-label">رقم عقد الإيواء</label>
                                 <input type="text" id="filterContractNumber" class="form-control">
                             </div>
@@ -193,6 +201,8 @@
                         'X-Requested-With': 'XMLHttpRequest'
                     },
                     data: function(d) {
+                        d.maid_name = $('#filterMaidName').val().trim();
+                        d.passport_num = $('#filterPassportNumber').val().trim();
                         d.contract_number = $('#filterContractNumber').val();
                         d.outside_reason = $('#filterOutsideReason').val();
                         d.nationality = $('#filterNationality').val();
@@ -225,8 +235,15 @@
                 table.ajax.reload();
             });
 
+            $('#filterMaidName, #filterPassportNumber, #filterContractNumber').on('keydown', function(event) {
+                if (event.key === 'Enter') {
+                    event.preventDefault();
+                    table.ajax.reload();
+                }
+            });
+
             $('#clearFilters').on('click', function() {
-                $('#filterContractNumber, #filterOutsideReason, #filterNationality, #filterShelter').val('');
+                $('#filterMaidName, #filterPassportNumber, #filterContractNumber, #filterOutsideReason, #filterNationality, #filterShelter').val('');
                 table.ajax.reload();
             });
 
